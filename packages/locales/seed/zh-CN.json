@@ -1787,6 +1787,94 @@
       "loadHistoryFailed": "加载交易历史失败: {err}"
     }
   },
+  "community": {
+    "title": "社区",
+    "subtitle": "联系人 · 好友 · 帖子（去中心化社交平台）",
+    "refresh": "刷新",
+    "publishButton": "发布帖子",
+    "addContactButton": "添加联系人",
+    "stats": {
+      "contacts": "联系人",
+      "friends": "好友",
+      "posts": "帖子",
+      "messages": "消息",
+      "pendingRequests": "待处理请求"
+    },
+    "tabs": {
+      "posts": "帖子",
+      "friends": "好友",
+      "contacts": "联系人"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "posts": {
+      "emptyText": "暂无帖子，点击发布帖子创建第一条",
+      "publishTitle": "发布帖子",
+      "publishOk": "发布",
+      "authorLabel": "作者",
+      "authorPlaceholder": "可选，留空则使用 cli-user",
+      "contentLabel": "内容",
+      "contentPlaceholder": "说点什么..."
+    },
+    "friends": {
+      "removeConfirm": "移除该好友？",
+      "removeOk": "移除",
+      "remove": "移除",
+      "emptyText": "暂无好友。在联系人标签页给联系人发送好友请求。"
+    },
+    "friendColumns": {
+      "contact": "联系人",
+      "status": "状态",
+      "createdAt": "建立时间",
+      "action": "操作"
+    },
+    "contacts": {
+      "addFriend": "添加好友",
+      "alreadyFriend": "已是好友",
+      "deleteConfirm": "删除该联系人？",
+      "deleteOk": "删除",
+      "delete": "删除",
+      "emptyText": "暂无联系人，点击添加联系人创建",
+      "addTitle": "添加联系人",
+      "addOk": "添加",
+      "nameLabel": "姓名",
+      "namePlaceholder": "联系人显示名称",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:... (可选)",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "可选",
+      "notesLabel": "备注"
+    },
+    "contactColumns": {
+      "name": "姓名",
+      "did": "DID",
+      "email": "邮箱",
+      "createdAt": "创建时间",
+      "action": "操作"
+    },
+    "status": {
+      "accepted": "已接受",
+      "pending": "待处理",
+      "blocked": "已屏蔽"
+    },
+    "messages": {
+      "loadFailed": "加载社区数据失败: {err}",
+      "contentRequired": "请输入帖子内容",
+      "publishFailed": "发布失败: {err}",
+      "publishOk": "帖子已发布",
+      "nameRequired": "请输入联系人姓名",
+      "addFailed": "添加失败: {err}",
+      "addOk": "联系人已添加",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "联系人已删除",
+      "friendRequestFailed": "好友请求失败: {err}",
+      "friendRequestOk": "好友请求已发送",
+      "removeFailed": "移除失败: {err}",
+      "removeOk": "已移除好友",
+      "likeFailed": "点赞失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

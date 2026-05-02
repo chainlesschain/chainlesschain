@@ -1787,6 +1787,94 @@
       "loadHistoryFailed": "Failed to load history: {err}"
     }
   },
+  "community": {
+    "title": "Community",
+    "subtitle": "Contacts · Friends · Posts (decentralized social)",
+    "refresh": "Refresh",
+    "publishButton": "Publish post",
+    "addContactButton": "Add contact",
+    "stats": {
+      "contacts": "Contacts",
+      "friends": "Friends",
+      "posts": "Posts",
+      "messages": "Messages",
+      "pendingRequests": "Pending requests"
+    },
+    "tabs": {
+      "posts": "Posts",
+      "friends": "Friends",
+      "contacts": "Contacts"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "posts": {
+      "emptyText": "No posts yet — click Publish post to create the first one",
+      "publishTitle": "Publish post",
+      "publishOk": "Publish",
+      "authorLabel": "Author",
+      "authorPlaceholder": "Optional, defaults to cli-user",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Say something..."
+    },
+    "friends": {
+      "removeConfirm": "Remove this friend?",
+      "removeOk": "Remove",
+      "remove": "Remove",
+      "emptyText": "No friends yet. Send a friend request to a contact from the Contacts tab."
+    },
+    "friendColumns": {
+      "contact": "Contact",
+      "status": "Status",
+      "createdAt": "Since",
+      "action": "Action"
+    },
+    "contacts": {
+      "addFriend": "Add friend",
+      "alreadyFriend": "Already friends",
+      "deleteConfirm": "Delete this contact?",
+      "deleteOk": "Delete",
+      "delete": "Delete",
+      "emptyText": "No contacts yet — click Add contact to create one",
+      "addTitle": "Add contact",
+      "addOk": "Add",
+      "nameLabel": "Name",
+      "namePlaceholder": "Display name",
+      "didLabel": "DID",
+      "didPlaceholder": "did:key:... (optional)",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Optional",
+      "notesLabel": "Notes"
+    },
+    "contactColumns": {
+      "name": "Name",
+      "did": "DID",
+      "email": "Email",
+      "createdAt": "Created",
+      "action": "Action"
+    },
+    "status": {
+      "accepted": "Accepted",
+      "pending": "Pending",
+      "blocked": "Blocked"
+    },
+    "messages": {
+      "loadFailed": "Failed to load community data: {err}",
+      "contentRequired": "Enter post content",
+      "publishFailed": "Publish failed: {err}",
+      "publishOk": "Post published",
+      "nameRequired": "Enter a contact name",
+      "addFailed": "Add failed: {err}",
+      "addOk": "Contact added",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Contact deleted",
+      "friendRequestFailed": "Friend request failed: {err}",
+      "friendRequestOk": "Friend request sent",
+      "removeFailed": "Remove failed: {err}",
+      "removeOk": "Friend removed",
+      "likeFailed": "Like failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

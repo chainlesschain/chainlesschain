@@ -2,21 +2,21 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">社区</h2>
-        <p class="page-sub">联系人 · 好友 · 帖子（去中心化社交平台）</p>
+        <h2 class="page-title">{{ t('community.title') }}</h2>
+        <p class="page-sub">{{ t('community.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('community.refresh') }}
         </a-button>
         <a-button type="primary" @click="showPostModal = true">
           <template #icon><EditOutlined /></template>
-          发布帖子
+          {{ t('community.publishButton') }}
         </a-button>
         <a-button @click="showContactModal = true">
           <template #icon><UserAddOutlined /></template>
-          添加联系人
+          {{ t('community.addContactButton') }}
         </a-button>
       </a-space>
     </div>
@@ -25,28 +25,28 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="联系人" :value="stats.contacts" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="t('community.stats.contacts')" :value="stats.contacts" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><TeamOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="好友" :value="stats.friends" :value-style="{ color: '#52c41a', fontSize: '20px' }">
+          <a-statistic :title="t('community.stats.friends')" :value="stats.friends" :value-style="{ color: '#52c41a', fontSize: '20px' }">
             <template #prefix><HeartOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="帖子" :value="stats.posts" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="t('community.stats.posts')" :value="stats.posts" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><FileTextOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="消息" :value="stats.messages" :value-style="{ color: '#faad14', fontSize: '20px' }">
+          <a-statistic :title="t('community.stats.messages')" :value="stats.messages" :value-style="{ color: '#faad14', fontSize: '20px' }">
             <template #prefix><MessageOutlined /></template>
           </a-statistic>
         </a-card>
@@ -54,7 +54,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="待处理请求"
+            :title="t('community.stats.pendingRequests')"
             :value="stats.pendingRequests"
             :value-style="{ color: stats.pendingRequests > 0 ? '#ff4d4f' : '#888', fontSize: '20px' }"
           >
@@ -67,13 +67,13 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="community-tabs">
       <!-- ── Posts tab ─────────────────────────────────────────────── -->
-      <a-tab-pane key="posts" tab="帖子">
+      <a-tab-pane key="posts" :tab="t('community.tabs.posts')">
         <div v-if="loading && !posts.length" style="text-align: center; padding: 60px;">
           <a-spin size="large" />
         </div>
         <div v-else-if="!posts.length" style="text-align: center; padding: 60px; color: var(--text-muted);">
           <FileTextOutlined style="font-size: 40px; margin-bottom: 12px; display: block;" />
-          暂无帖子，点击"发布帖子"创建第一条
+          {{ t('community.posts.emptyText') }}
         </div>
         <div v-else class="post-feed">
           <a-card
@@ -101,11 +101,11 @@
       </a-tab-pane>
 
       <!-- ── Friends tab ───────────────────────────────────────────── -->
-      <a-tab-pane key="friends" tab="好友">
+      <a-tab-pane key="friends" :tab="t('community.tabs.friends')">
         <a-table
           :columns="friendColumns"
           :data-source="friendRows"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('community.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -121,26 +121,26 @@
               <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
             </template>
             <template v-if="column.key === 'action'">
-              <a-popconfirm title="移除该好友？" ok-text="移除" cancel-text="取消" @confirm="removeFriend(record)">
-                <a-button size="small" type="link" danger>移除</a-button>
+              <a-popconfirm :title="t('community.friends.removeConfirm')" :ok-text="t('community.friends.removeOk')" :cancel-text="t('common.cancel')" @confirm="removeFriend(record)">
+                <a-button size="small" type="link" danger>{{ t('community.friends.remove') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <HeartOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无好友。在"联系人"标签页给联系人发送好友请求。
+              {{ t('community.friends.emptyText') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Contacts tab ──────────────────────────────────────────── -->
-      <a-tab-pane key="contacts" tab="联系人">
+      <a-tab-pane key="contacts" :tab="t('community.tabs.contacts')">
         <a-table
           :columns="contactColumns"
           :data-source="contacts"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('community.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -170,18 +170,18 @@
                 :loading="addingFriend === record.id"
                 @click="sendFriendRequest(record)"
               >
-                添加好友
+                {{ t('community.contacts.addFriend') }}
               </a-button>
-              <a-tag v-else color="green" style="font-size: 11px;">已是好友</a-tag>
-              <a-popconfirm title="删除该联系人？" ok-text="删除" cancel-text="取消" @confirm="deleteContact(record)">
-                <a-button size="small" type="link" danger style="margin-left: 4px;">删除</a-button>
+              <a-tag v-else color="green" style="font-size: 11px;">{{ t('community.contacts.alreadyFriend') }}</a-tag>
+              <a-popconfirm :title="t('community.contacts.deleteConfirm')" :ok-text="t('community.contacts.deleteOk')" :cancel-text="t('common.cancel')" @confirm="deleteContact(record)">
+                <a-button size="small" type="link" danger style="margin-left: 4px;">{{ t('community.contacts.delete') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <TeamOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无联系人，点击"添加联系人"创建
+              {{ t('community.contacts.emptyText') }}
             </div>
           </template>
         </a-table>
@@ -191,21 +191,21 @@
     <!-- ── Publish post modal ──────────────────────────────────────── -->
     <a-modal
       v-model:open="showPostModal"
-      title="发布帖子"
+      :title="t('community.posts.publishTitle')"
       :confirm-loading="publishing"
-      ok-text="发布"
-      cancel-text="取消"
+      :ok-text="t('community.posts.publishOk')"
+      :cancel-text="t('common.cancel')"
       @ok="publishPost"
       @cancel="resetPostForm"
     >
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
-        <a-form-item label="作者">
-          <a-input v-model:value="postForm.author" placeholder="可选，留空则使用 cli-user" />
+        <a-form-item :label="t('community.posts.authorLabel')">
+          <a-input v-model:value="postForm.author" :placeholder="t('community.posts.authorPlaceholder')" />
         </a-form-item>
-        <a-form-item label="内容" required>
+        <a-form-item :label="t('community.posts.contentLabel')" required>
           <a-textarea
             v-model:value="postForm.content"
-            placeholder="说点什么..."
+            :placeholder="t('community.posts.contentPlaceholder')"
             :auto-size="{ minRows: 4, maxRows: 10 }"
             :maxlength="2000"
             show-count
@@ -217,24 +217,24 @@
     <!-- ── Add contact modal ───────────────────────────────────────── -->
     <a-modal
       v-model:open="showContactModal"
-      title="添加联系人"
+      :title="t('community.contacts.addTitle')"
       :confirm-loading="addingContact"
-      ok-text="添加"
-      cancel-text="取消"
+      :ok-text="t('community.contacts.addOk')"
+      :cancel-text="t('common.cancel')"
       @ok="addContact"
       @cancel="resetContactForm"
     >
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="姓名" required>
-          <a-input v-model:value="contactForm.name" placeholder="联系人显示名称" />
+        <a-form-item :label="t('community.contacts.nameLabel')" required>
+          <a-input v-model:value="contactForm.name" :placeholder="t('community.contacts.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="DID">
-          <a-input v-model:value="contactForm.did" placeholder="did:key:... (可选)" />
+        <a-form-item :label="t('community.contacts.didLabel')">
+          <a-input v-model:value="contactForm.did" :placeholder="t('community.contacts.didPlaceholder')" />
         </a-form-item>
-        <a-form-item label="邮箱">
-          <a-input v-model:value="contactForm.email" placeholder="可选" />
+        <a-form-item :label="t('community.contacts.emailLabel')">
+          <a-input v-model:value="contactForm.email" :placeholder="t('community.contacts.emailPlaceholder')" />
         </a-form-item>
-        <a-form-item label="备注">
+        <a-form-item :label="t('community.contacts.notesLabel')">
           <a-textarea v-model:value="contactForm.notes" :auto-size="{ minRows: 2, maxRows: 4 }" />
         </a-form-item>
       </a-form>
@@ -244,6 +244,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   EditOutlined,
@@ -265,6 +266,7 @@ import {
   STATS_DEFAULTS,
 } from '../utils/community-parser.js'
 
+const { t, locale } = useI18n()
 const ws = useWsStore()
 
 const loading = ref(false)
@@ -284,20 +286,20 @@ const showContactModal = ref(false)
 const postForm = reactive({ author: '', content: '' })
 const contactForm = reactive({ name: '', did: '', email: '', notes: '' })
 
-const contactColumns = [
-  { title: '姓名', key: 'name', dataIndex: 'name', width: '160px' },
-  { title: 'DID', key: 'did', dataIndex: 'did' },
-  { title: '邮箱', key: 'email', dataIndex: 'email', width: '200px' },
-  { title: '创建时间', key: 'createdAt', dataIndex: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '180px' },
-]
+const contactColumns = computed(() => [
+  { title: t('community.contactColumns.name'), key: 'name', dataIndex: 'name', width: '160px' },
+  { title: t('community.contactColumns.did'), key: 'did', dataIndex: 'did' },
+  { title: t('community.contactColumns.email'), key: 'email', dataIndex: 'email', width: '200px' },
+  { title: t('community.contactColumns.createdAt'), key: 'createdAt', dataIndex: 'createdAt', width: '160px' },
+  { title: t('community.contactColumns.action'), key: 'action', width: '180px' },
+])
 
-const friendColumns = [
-  { title: '联系人', key: 'contact' },
-  { title: '状态', key: 'status', width: '120px' },
-  { title: '建立时间', key: 'createdAt', dataIndex: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '100px' },
-]
+const friendColumns = computed(() => [
+  { title: t('community.friendColumns.contact'), key: 'contact' },
+  { title: t('community.friendColumns.status'), key: 'status', width: '120px' },
+  { title: t('community.friendColumns.createdAt'), key: 'createdAt', dataIndex: 'createdAt', width: '160px' },
+  { title: t('community.friendColumns.action'), key: 'action', width: '100px' },
+])
 
 // Join friends with contact name for display.
 const friendRows = computed(() =>
@@ -328,11 +330,11 @@ function shortDid(did) {
 
 function formatTime(ts) {
   if (!ts) return '—'
-  // Already-formatted dates pass through; ISO timestamps get a friendly form.
   if (typeof ts !== 'string') return String(ts)
   const d = new Date(ts)
   if (isNaN(d.getTime())) return ts
-  return d.toLocaleString('zh-CN', { hour12: false })
+  const localeTag = locale.value === 'zh-CN' ? 'zh-CN' : 'en-US'
+  return d.toLocaleString(localeTag, { hour12: false })
 }
 
 function statusColor(status) {
@@ -340,7 +342,9 @@ function statusColor(status) {
 }
 
 function statusLabel(status) {
-  return { accepted: '已接受', pending: '待处理', blocked: '已屏蔽' }[status] || status
+  const key = `community.status.${status}`
+  const v = t(key)
+  return v === key ? status : v
 }
 
 async function loadAll() {
@@ -356,11 +360,10 @@ async function loadAll() {
     contacts.value = parseContacts(contactsRes.output)
     friends.value = parseFriends(friendsRes.output)
     posts.value = parsePosts(postsRes.output).sort((a, b) => {
-      // Most recent first when timestamps are present.
       return (b.createdAt || '').localeCompare(a.createdAt || '')
     })
   } catch (e) {
-    message.error('加载社区数据失败: ' + (e?.message || e))
+    message.error(t('community.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -369,7 +372,7 @@ async function loadAll() {
 async function publishPost() {
   const content = postForm.content.trim()
   if (!content) {
-    message.warning('请输入帖子内容')
+    message.warning(t('community.messages.contentRequired'))
     return
   }
   publishing.value = true
@@ -381,15 +384,15 @@ async function publishPost() {
       : `social post publish "${escaped}"`
     const { output } = await ws.execute(cmd, 15000)
     if (/error|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('发布失败: ' + output.slice(0, 120))
+      message.error(t('community.messages.publishFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('帖子已发布')
+    message.success(t('community.messages.publishOk'))
     showPostModal.value = false
     resetPostForm()
     await loadAll()
   } catch (e) {
-    message.error('发布失败: ' + (e?.message || e))
+    message.error(t('community.messages.publishFailed', { err: e?.message || e }))
   } finally {
     publishing.value = false
   }
@@ -398,7 +401,7 @@ async function publishPost() {
 async function addContact() {
   const name = contactForm.name.trim()
   if (!name) {
-    message.warning('请输入联系人姓名')
+    message.warning(t('community.messages.nameRequired'))
     return
   }
   addingContact.value = true
@@ -409,15 +412,15 @@ async function addContact() {
     if (contactForm.notes.trim()) parts.push(`--notes "${contactForm.notes.trim().replace(/"/g, '\\"')}"`)
     const { output } = await ws.execute(parts.join(' '), 15000)
     if (/error|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('添加失败: ' + output.slice(0, 120))
+      message.error(t('community.messages.addFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('联系人已添加')
+    message.success(t('community.messages.addOk'))
     showContactModal.value = false
     resetContactForm()
     await loadAll()
   } catch (e) {
-    message.error('添加失败: ' + (e?.message || e))
+    message.error(t('community.messages.addFailed', { err: e?.message || e }))
   } finally {
     addingContact.value = false
   }
@@ -427,13 +430,13 @@ async function deleteContact(record) {
   try {
     const { output } = await ws.execute(`social contact delete ${record.id}`, 10000)
     if (/error|失败/i.test(output)) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('community.messages.deleteFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('联系人已删除')
+    message.success(t('community.messages.deleteOk'))
     await loadAll()
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || e))
+    message.error(t('community.messages.deleteFailed', { err: e?.message || e }))
   }
 }
 
@@ -442,14 +445,14 @@ async function sendFriendRequest(record) {
   try {
     const { output } = await ws.execute(`social friend add ${record.id}`, 10000)
     if (/error|失败/i.test(output) && !/"id"/.test(output)) {
-      message.error('好友请求失败: ' + output.slice(0, 120))
+      message.error(t('community.messages.friendRequestFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('好友请求已发送')
+    message.success(t('community.messages.friendRequestOk'))
     await loadAll()
     activeTab.value = 'friends'
   } catch (e) {
-    message.error('好友请求失败: ' + (e?.message || e))
+    message.error(t('community.messages.friendRequestFailed', { err: e?.message || e }))
   } finally {
     addingFriend.value = ''
   }
@@ -459,24 +462,23 @@ async function removeFriend(record) {
   try {
     const { output } = await ws.execute(`social friend remove ${record.contactId}`, 10000)
     if (/error|失败/i.test(output)) {
-      message.error('移除失败: ' + output.slice(0, 120))
+      message.error(t('community.messages.removeFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('已移除好友')
+    message.success(t('community.messages.removeOk'))
     await loadAll()
   } catch (e) {
-    message.error('移除失败: ' + (e?.message || e))
+    message.error(t('community.messages.removeFailed', { err: e?.message || e }))
   }
 }
 
 async function likePost(post) {
   try {
     await ws.execute(`social post like ${post.id}`, 10000)
-    // Optimistic update; refresh in background to reconcile.
     post.likes++
     loadAll()
   } catch (e) {
-    message.error('点赞失败: ' + (e?.message || e))
+    message.error(t('community.messages.likeFailed', { err: e?.message || e }))
   }
 }
 
