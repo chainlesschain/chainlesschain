@@ -197,6 +197,7 @@ const TRANSLATED_VIEWS = [
   { file: 'Inference.vue',        titleKey: 'inference.title' },
   { file: 'Wallet.vue',           titleKey: 'wallet.title' },
   { file: 'Community.vue',        titleKey: 'community.title' },
+  { file: 'WebAuthn.vue',         titleKey: 'webauthn.title' },
 ]
 
 describe('translated views mount sweep', () => {

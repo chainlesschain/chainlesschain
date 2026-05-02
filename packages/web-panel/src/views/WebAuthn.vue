@@ -2,12 +2,12 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">认证管理</h2>
-        <p class="page-sub">WebAuthn / SSO / 双因素认证</p>
+        <h2 class="page-title">{{ t('webauthn.title') }}</h2>
+        <p class="page-sub">{{ t('webauthn.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="refreshing" @click="refreshCurrentTab">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('webauthn.refresh') }}
       </a-button>
     </div>
 
@@ -16,13 +16,13 @@
       <a-tab-pane key="webauthn">
         <template #tab>
           <KeyOutlined />
-          WebAuthn
+          {{ t('webauthn.tabs.webauthn') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" @click="showRegisterModal = true">
             <template #icon><PlusOutlined /></template>
-            注册新凭证
+            {{ t('webauthn.credentials.registerButton') }}
           </a-button>
         </a-space>
 
@@ -31,7 +31,7 @@
           v-else
           :columns="credentialColumns"
           :data-source="credentialList"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('webauthn.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'auth-row'"
@@ -56,35 +56,35 @@
             </template>
             <template v-if="column.key === 'actions'">
               <a-popconfirm
-                title="确定要删除此凭证吗？"
-                ok-text="确定"
-                cancel-text="取消"
+                :title="t('webauthn.credentials.deleteConfirm')"
+                :ok-text="t('webauthn.credentials.deleteOk')"
+                :cancel-text="t('common.cancel')"
                 @confirm="deleteCredential(record)"
               >
                 <a-button type="link" danger size="small">
                   <template #icon><DeleteOutlined /></template>
-                  删除
+                  {{ t('webauthn.credentials.delete') }}
                 </a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无 WebAuthn 凭证，点击「注册新凭证」添加" />
+            <a-empty :description="t('webauthn.credentials.emptyText')" />
           </template>
         </a-table>
 
         <!-- Register Modal -->
         <a-modal
           v-model:open="showRegisterModal"
-          title="注册 WebAuthn 凭证"
+          :title="t('webauthn.credentials.registerTitle')"
           :confirm-loading="registering"
           @ok="registerCredential"
-          ok-text="注册"
-          cancel-text="取消"
+          :ok-text="t('webauthn.credentials.registerOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-            <a-form-item label="凭证名称" required>
-              <a-input v-model:value="newCredentialName" placeholder="例如：YubiKey-5, TouchID" />
+            <a-form-item :label="t('webauthn.credentials.nameLabel')" required>
+              <a-input v-model:value="newCredentialName" :placeholder="t('webauthn.credentials.namePlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -94,13 +94,13 @@
       <a-tab-pane key="sso">
         <template #tab>
           <SafetyOutlined />
-          SSO 配置
+          {{ t('webauthn.tabs.sso') }}
         </template>
 
         <div v-if="ssoLoading" style="text-align: center; padding: 60px;"><a-spin size="large" /></div>
         <template v-else>
           <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
-            <a-col :xs="12" :sm="6" v-for="stat in ssoStats" :key="stat.label">
+            <a-col :xs="12" :sm="6" v-for="stat in ssoStats" :key="stat.key">
               <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
                 <a-statistic
                   :title="stat.label"
@@ -111,26 +111,26 @@
             </a-col>
           </a-row>
 
-          <a-card style="background: var(--bg-card); border-color: var(--border-color);" title="当前 SSO 配置">
+          <a-card style="background: var(--bg-card); border-color: var(--border-color);" :title="t('webauthn.sso.currentTitle')">
             <a-descriptions :column="{ xs: 1, sm: 2 }" bordered size="small" style="background: var(--bg-card);">
-              <a-descriptions-item label="提供商">
+              <a-descriptions-item :label="t('webauthn.sso.providerLabel')">
                 <a-tag :color="ssoConfig.provider ? 'blue' : 'default'">
-                  {{ ssoConfig.provider || '未配置' }}
+                  {{ ssoConfig.provider || t('webauthn.sso.notConfigured') }}
                 </a-tag>
               </a-descriptions-item>
-              <a-descriptions-item label="Client ID">
+              <a-descriptions-item :label="t('webauthn.sso.clientIdLabel')">
                 <span style="color: #e0e0e0; font-family: monospace; font-size: 12px;">
                   {{ ssoConfig.clientId || '-' }}
                 </span>
               </a-descriptions-item>
-              <a-descriptions-item label="Redirect URL">
+              <a-descriptions-item :label="t('webauthn.sso.redirectUrlLabel')">
                 <span style="color: var(--text-secondary); font-size: 12px;">
                   {{ ssoConfig.redirectUrl || '-' }}
                 </span>
               </a-descriptions-item>
-              <a-descriptions-item label="状态">
+              <a-descriptions-item :label="t('webauthn.sso.statusLabel')">
                 <a-tag :color="ssoConfig.enabled ? 'green' : 'default'">
-                  {{ ssoConfig.enabled ? '已启用' : '未启用' }}
+                  {{ ssoConfig.enabled ? t('webauthn.sso.enabled') : t('webauthn.sso.disabled') }}
                 </a-tag>
               </a-descriptions-item>
             </a-descriptions>
@@ -138,7 +138,7 @@
             <div style="margin-top: 16px;">
               <a-button type="primary" @click="showSsoModal = true">
                 <template #icon><KeyOutlined /></template>
-                配置 SSO
+                {{ t('webauthn.sso.configureButton') }}
               </a-button>
             </div>
           </a-card>
@@ -147,29 +147,29 @@
         <!-- SSO Config Modal -->
         <a-modal
           v-model:open="showSsoModal"
-          title="配置 SSO"
+          :title="t('webauthn.sso.modalTitle')"
           :confirm-loading="ssoSaving"
           @ok="saveSsoConfig"
-          ok-text="保存"
-          cancel-text="取消"
+          :ok-text="t('webauthn.sso.modalOk')"
+          :cancel-text="t('common.cancel')"
           width="520px"
         >
           <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-            <a-form-item label="提供商" required>
-              <a-select v-model:value="ssoForm.provider" placeholder="选择 SSO 提供商">
+            <a-form-item :label="t('webauthn.sso.providerLabel')" required>
+              <a-select v-model:value="ssoForm.provider" :placeholder="t('webauthn.sso.providerPlaceholder')">
                 <a-select-option value="OIDC">OIDC</a-select-option>
                 <a-select-option value="SAML">SAML</a-select-option>
                 <a-select-option value="LDAP">LDAP</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item label="Client ID" required>
-              <a-input v-model:value="ssoForm.clientId" placeholder="输入 Client ID" />
+            <a-form-item :label="t('webauthn.sso.clientIdLabel')" required>
+              <a-input v-model:value="ssoForm.clientId" :placeholder="t('webauthn.sso.clientIdPlaceholder')" />
             </a-form-item>
-            <a-form-item label="Client Secret">
-              <a-input-password v-model:value="ssoForm.clientSecret" placeholder="输入 Client Secret" />
+            <a-form-item :label="t('webauthn.sso.clientSecretLabel')">
+              <a-input-password v-model:value="ssoForm.clientSecret" :placeholder="t('webauthn.sso.clientSecretPlaceholder')" />
             </a-form-item>
-            <a-form-item label="Issuer URL">
-              <a-input v-model:value="ssoForm.issuerUrl" placeholder="https://sso.example.com" />
+            <a-form-item :label="t('webauthn.sso.issuerLabel')">
+              <a-input v-model:value="ssoForm.issuerUrl" :placeholder="t('webauthn.sso.issuerPlaceholder')" />
             </a-form-item>
           </a-form>
         </a-modal>
@@ -179,16 +179,16 @@
       <a-tab-pane key="2fa">
         <template #tab>
           <LockOutlined />
-          双因素认证
+          {{ t('webauthn.tabs.tfa') }}
         </template>
 
         <div v-if="tfaLoading" style="text-align: center; padding: 60px;"><a-spin size="large" /></div>
         <template v-else>
-          <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;" title="TOTP 双因素认证">
+          <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;" :title="t('webauthn.tfa.totpCardTitle')">
             <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-              <span style="color: var(--text-primary); font-size: 14px;">状态:</span>
+              <span style="color: var(--text-primary); font-size: 14px;">{{ t('webauthn.tfa.statusPrefix') }}</span>
               <a-tag :color="tfaEnabled ? 'green' : 'default'" style="font-size: 13px;">
-                {{ tfaEnabled ? '已启用' : '未启用' }}
+                {{ tfaEnabled ? t('webauthn.tfa.enabled') : t('webauthn.tfa.disabled') }}
               </a-tag>
             </div>
 
@@ -200,17 +200,17 @@
                 @click="enableTOTP"
               >
                 <template #icon><LockOutlined /></template>
-                启用 TOTP
+                {{ t('webauthn.tfa.enableButton') }}
               </a-button>
               <a-popconfirm
                 v-else
-                title="确定要禁用双因素认证吗？这会降低账户安全性。"
-                ok-text="确定禁用"
-                cancel-text="取消"
+                :title="t('webauthn.tfa.disableConfirm')"
+                :ok-text="t('webauthn.tfa.disableOk')"
+                :cancel-text="t('common.cancel')"
                 @confirm="disableTOTP"
               >
                 <a-button danger :loading="tfaToggling">
-                  禁用
+                  {{ t('webauthn.tfa.disableButton') }}
                 </a-button>
               </a-popconfirm>
             </a-space>
@@ -220,14 +220,14 @@
             </div>
           </a-card>
 
-          <a-card style="background: var(--bg-card); border-color: var(--border-color);" title="恢复码">
+          <a-card style="background: var(--bg-card); border-color: var(--border-color);" :title="t('webauthn.tfa.recoveryCardTitle')">
             <p style="color: var(--text-secondary); margin-bottom: 12px;">
-              恢复码可在丢失 TOTP 设备时用于登录。请妥善保管。
+              {{ t('webauthn.tfa.recoveryHint') }}
             </p>
 
             <a-button :loading="generatingCodes" @click="generateRecoveryCodes">
               <template #icon><ReloadOutlined /></template>
-              生成恢复码
+              {{ t('webauthn.tfa.generateButton') }}
             </a-button>
 
             <div v-if="recoveryCodes.length > 0" style="margin-top: 16px;">
@@ -235,7 +235,7 @@
                 type="warning"
                 show-icon
                 style="margin-bottom: 12px;"
-                message="请立即保存这些恢复码，关闭后将无法再次查看。"
+                :message="t('webauthn.tfa.saveAlert')"
               />
               <div style="background: var(--bg-base); padding: 16px; border-radius: 6px; border: 1px solid var(--border-color);">
                 <div
@@ -255,7 +255,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   KeyOutlined,
   SafetyOutlined,
@@ -267,6 +268,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- Shared ---
@@ -311,14 +313,14 @@ const credentialList = ref([])
 const showRegisterModal = ref(false)
 const newCredentialName = ref('')
 
-const credentialColumns = [
-  { title: 'ID', key: 'id', dataIndex: 'id', width: '180px' },
-  { title: '名称', key: 'name', dataIndex: 'name', width: '160px' },
-  { title: '类型', key: 'type', dataIndex: 'type', width: '120px' },
-  { title: '创建时间', key: 'createdAt', dataIndex: 'createdAt', width: '180px' },
-  { title: '最后使用', key: 'lastUsed', dataIndex: 'lastUsed', width: '180px' },
-  { title: '操作', key: 'actions', width: '100px', fixed: 'right' },
-]
+const credentialColumns = computed(() => [
+  { title: t('webauthn.credentialColumns.id'), key: 'id', dataIndex: 'id', width: '180px' },
+  { title: t('webauthn.credentialColumns.name'), key: 'name', dataIndex: 'name', width: '160px' },
+  { title: t('webauthn.credentialColumns.type'), key: 'type', dataIndex: 'type', width: '120px' },
+  { title: t('webauthn.credentialColumns.createdAt'), key: 'createdAt', dataIndex: 'createdAt', width: '180px' },
+  { title: t('webauthn.credentialColumns.lastUsed'), key: 'lastUsed', dataIndex: 'lastUsed', width: '180px' },
+  { title: t('webauthn.credentialColumns.actions'), key: 'actions', width: '100px', fixed: 'right' },
+])
 
 async function loadCredentials() {
   credentialLoading.value = true
@@ -347,7 +349,7 @@ async function loadCredentials() {
       credentialList.value = parseCredentialText(output)
     }
   } catch (e) {
-    message.error('加载 WebAuthn 凭证失败: ' + e.message)
+    message.error(t('webauthn.messages.loadFailed', { err: e.message }))
   } finally {
     credentialLoading.value = false
   }
@@ -376,21 +378,21 @@ function parseCredentialText(output) {
 
 async function registerCredential() {
   const name = newCredentialName.value.trim()
-  if (!name) { message.warning('请输入凭证名称'); return }
+  if (!name) { message.warning(t('webauthn.messages.credNameRequired')); return }
   registering.value = true
   try {
     const escapedName = name.replace(/"/g, '\\"')
     const { output } = await ws.execute(`webauthn register --name "${escapedName}" --json`, 30000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('注册失败: ' + output.slice(0, 120))
+      message.error(t('webauthn.messages.registerFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('WebAuthn 凭证已注册')
+      message.success(t('webauthn.messages.registerOk'))
       showRegisterModal.value = false
       newCredentialName.value = ''
       await loadCredentials()
     }
   } catch (e) {
-    message.error('注册失败: ' + e.message)
+    message.error(t('webauthn.messages.registerFailed', { err: e.message }))
   } finally {
     registering.value = false
   }
@@ -400,13 +402,13 @@ async function deleteCredential(record) {
   try {
     const { output } = await ws.execute(`webauthn delete "${record.id}"`, 15000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('删除失败: ' + output.slice(0, 120))
+      message.error(t('webauthn.messages.deleteFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('凭证已删除')
+      message.success(t('webauthn.messages.deleteOk'))
       await loadCredentials()
     }
   } catch (e) {
-    message.error('删除失败: ' + e.message)
+    message.error(t('webauthn.messages.deleteFailed', { err: e.message }))
   }
 }
 
@@ -427,7 +429,21 @@ const ssoForm = ref({
   clientSecret: '',
   issuerUrl: '',
 })
-const ssoStats = ref([])
+
+const ssoStats = computed(() => [
+  {
+    key: 'provider',
+    label: t('webauthn.sso.providerLabel'),
+    value: ssoConfig.value.provider || t('webauthn.sso.notConfigured'),
+    color: ssoConfig.value.provider ? '#1677ff' : '#999',
+  },
+  {
+    key: 'status',
+    label: t('webauthn.sso.statusLabel'),
+    value: ssoConfig.value.enabled ? t('webauthn.sso.enabled') : t('webauthn.sso.disabled'),
+    color: ssoConfig.value.enabled ? '#52c41a' : '#faad14',
+  },
+])
 
 async function loadSsoStatus() {
   ssoLoading.value = true
@@ -442,7 +458,6 @@ async function loadSsoStatus() {
         enabled: parsed.enabled || parsed.active || false,
       }
     } else {
-      // Fallback: parse text output
       const lines = output.split('\n')
       for (const line of lines) {
         const kv = line.trim().match(/^(.+?)\s*[:=：]\s*(.+)$/)
@@ -456,17 +471,9 @@ async function loadSsoStatus() {
         }
       }
     }
-    ssoStats.value = [
-      { label: '提供商', value: ssoConfig.value.provider || '未配置', color: ssoConfig.value.provider ? '#1677ff' : '#999' },
-      { label: '状态', value: ssoConfig.value.enabled ? '已启用' : '未启用', color: ssoConfig.value.enabled ? '#52c41a' : '#faad14' },
-    ]
     ssoLoaded.value = true
-  } catch (e) {
+  } catch (_e) {
     ssoConfig.value = { provider: '', clientId: '', redirectUrl: '', enabled: false }
-    ssoStats.value = [
-      { label: '提供商', value: '未配置', color: '#999' },
-      { label: '状态', value: '未启用', color: '#faad14' },
-    ]
     ssoLoaded.value = true
   } finally {
     ssoLoading.value = false
@@ -474,8 +481,8 @@ async function loadSsoStatus() {
 }
 
 async function saveSsoConfig() {
-  if (!ssoForm.value.provider) { message.warning('请选择 SSO 提供商'); return }
-  if (!ssoForm.value.clientId.trim()) { message.warning('请输入 Client ID'); return }
+  if (!ssoForm.value.provider) { message.warning(t('webauthn.messages.providerRequired')); return }
+  if (!ssoForm.value.clientId.trim()) { message.warning(t('webauthn.messages.clientIdRequired')); return }
   ssoSaving.value = true
   try {
     const commands = [
@@ -491,11 +498,11 @@ async function saveSsoConfig() {
     for (const cmd of commands) {
       await ws.execute(cmd, 10000)
     }
-    message.success('SSO 配置已保存')
+    message.success(t('webauthn.messages.ssoSaveOk'))
     showSsoModal.value = false
     await loadSsoStatus()
   } catch (e) {
-    message.error('保存失败: ' + e.message)
+    message.error(t('webauthn.messages.ssoSaveFailed', { err: e.message }))
   } finally {
     ssoSaving.value = false
   }
@@ -535,19 +542,23 @@ async function enableTOTP() {
   try {
     const { output } = await ws.execute('auth 2fa enable --type totp --json', 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('启用失败: ' + output.slice(0, 120))
+      message.error(t('webauthn.messages.totpEnableFailed', { err: output.slice(0, 120) }))
     } else {
       const parsed = tryParseJSON(output)
       if (parsed && parsed.secret) {
-        totpResult.value = `TOTP Secret: ${parsed.secret}\nOTP Auth URL: ${parsed.otpAuthUrl || parsed.uri || ''}`
+        const lines = [
+          t('webauthn.tfa.totpResultPrefix', { secret: parsed.secret }),
+          t('webauthn.tfa.totpResultUrl', { url: parsed.otpAuthUrl || parsed.uri || '' }),
+        ]
+        totpResult.value = lines.join('\n')
       } else {
         totpResult.value = output
       }
       tfaEnabled.value = true
-      message.success('TOTP 已启用')
+      message.success(t('webauthn.messages.totpEnableOk'))
     }
   } catch (e) {
-    message.error('启用失败: ' + e.message)
+    message.error(t('webauthn.messages.totpEnableFailed', { err: e.message }))
   } finally {
     tfaToggling.value = false
   }
@@ -559,13 +570,13 @@ async function disableTOTP() {
   try {
     const { output } = await ws.execute('auth 2fa disable', 15000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('禁用失败: ' + output.slice(0, 120))
+      message.error(t('webauthn.messages.totpDisableFailed', { err: output.slice(0, 120) }))
     } else {
       tfaEnabled.value = false
-      message.success('双因素认证已禁用')
+      message.success(t('webauthn.messages.totpDisableOk'))
     }
   } catch (e) {
-    message.error('禁用失败: ' + e.message)
+    message.error(t('webauthn.messages.totpDisableFailed', { err: e.message }))
   } finally {
     tfaToggling.value = false
   }
@@ -582,17 +593,16 @@ async function generateRecoveryCodes() {
     } else if (parsed && Array.isArray(parsed)) {
       recoveryCodes.value = parsed
     } else {
-      // Parse text: one code per line
       const codes = output.split('\n')
         .map((l) => l.trim())
         .filter((l) => l && /^[A-Za-z0-9-]{6,}$/.test(l))
-      recoveryCodes.value = codes.length > 0 ? codes : [output.trim() || '无法生成恢复码']
+      recoveryCodes.value = codes.length > 0 ? codes : [output.trim() || t('webauthn.messages.codesUnable')]
     }
-    if (recoveryCodes.value.length > 0 && recoveryCodes.value[0] !== '无法生成恢复码') {
-      message.success('恢复码已生成')
+    if (recoveryCodes.value.length > 0 && recoveryCodes.value[0] !== t('webauthn.messages.codesUnable')) {
+      message.success(t('webauthn.messages.codesOk'))
     }
   } catch (e) {
-    message.error('生成恢复码失败: ' + e.message)
+    message.error(t('webauthn.messages.codesFailed', { err: e.message }))
   } finally {
     generatingCodes.value = false
   }

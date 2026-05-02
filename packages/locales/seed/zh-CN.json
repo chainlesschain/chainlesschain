@@ -1875,6 +1875,92 @@
       "likeFailed": "点赞失败: {err}"
     }
   },
+  "webauthn": {
+    "title": "认证管理",
+    "subtitle": "WebAuthn / SSO / 双因素认证",
+    "refresh": "刷新",
+    "tabs": {
+      "webauthn": "WebAuthn",
+      "sso": "SSO 配置",
+      "tfa": "双因素认证"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "credentials": {
+      "registerButton": "注册新凭证",
+      "registerTitle": "注册 WebAuthn 凭证",
+      "registerOk": "注册",
+      "nameLabel": "凭证名称",
+      "namePlaceholder": "例如：YubiKey-5, TouchID",
+      "deleteConfirm": "确定要删除此凭证吗？",
+      "deleteOk": "确定",
+      "delete": "删除",
+      "emptyText": "暂无 WebAuthn 凭证，点击注册新凭证添加"
+    },
+    "credentialColumns": {
+      "id": "ID",
+      "name": "名称",
+      "type": "类型",
+      "createdAt": "创建时间",
+      "lastUsed": "最后使用",
+      "actions": "操作"
+    },
+    "sso": {
+      "currentTitle": "当前 SSO 配置",
+      "providerLabel": "提供商",
+      "clientIdLabel": "Client ID",
+      "redirectUrlLabel": "Redirect URL",
+      "statusLabel": "状态",
+      "configureButton": "配置 SSO",
+      "modalTitle": "配置 SSO",
+      "modalOk": "保存",
+      "providerPlaceholder": "选择 SSO 提供商",
+      "clientIdPlaceholder": "输入 Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretPlaceholder": "输入 Client Secret",
+      "issuerLabel": "Issuer URL",
+      "issuerPlaceholder": "https://sso.example.com",
+      "notConfigured": "未配置",
+      "enabled": "已启用",
+      "disabled": "未启用"
+    },
+    "tfa": {
+      "totpCardTitle": "TOTP 双因素认证",
+      "statusPrefix": "状态:",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "enableButton": "启用 TOTP",
+      "disableConfirm": "确定要禁用双因素认证吗？这会降低账户安全性。",
+      "disableOk": "确定禁用",
+      "disableButton": "禁用",
+      "recoveryCardTitle": "恢复码",
+      "recoveryHint": "恢复码可在丢失 TOTP 设备时用于登录。请妥善保管。",
+      "generateButton": "生成恢复码",
+      "saveAlert": "请立即保存这些恢复码，关闭后将无法再次查看。",
+      "totpResultPrefix": "TOTP Secret: {secret}",
+      "totpResultUrl": "OTP Auth URL: {url}"
+    },
+    "messages": {
+      "loadFailed": "加载 WebAuthn 凭证失败: {err}",
+      "credNameRequired": "请输入凭证名称",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "WebAuthn 凭证已注册",
+      "deleteFailed": "删除失败: {err}",
+      "deleteOk": "凭证已删除",
+      "providerRequired": "请选择 SSO 提供商",
+      "clientIdRequired": "请输入 Client ID",
+      "ssoSaveFailed": "保存失败: {err}",
+      "ssoSaveOk": "SSO 配置已保存",
+      "totpEnableFailed": "启用失败: {err}",
+      "totpEnableOk": "TOTP 已启用",
+      "totpDisableFailed": "禁用失败: {err}",
+      "totpDisableOk": "双因素认证已禁用",
+      "codesFailed": "生成恢复码失败: {err}",
+      "codesOk": "恢复码已生成",
+      "codesUnable": "无法生成恢复码"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

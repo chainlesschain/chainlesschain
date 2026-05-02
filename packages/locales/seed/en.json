@@ -1875,6 +1875,92 @@
       "likeFailed": "Like failed: {err}"
     }
   },
+  "webauthn": {
+    "title": "Authentication",
+    "subtitle": "WebAuthn / SSO / Two-factor",
+    "refresh": "Refresh",
+    "tabs": {
+      "webauthn": "WebAuthn",
+      "sso": "SSO config",
+      "tfa": "Two-factor"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "credentials": {
+      "registerButton": "Register credential",
+      "registerTitle": "Register WebAuthn credential",
+      "registerOk": "Register",
+      "nameLabel": "Credential name",
+      "namePlaceholder": "e.g. YubiKey-5, TouchID",
+      "deleteConfirm": "Delete this credential?",
+      "deleteOk": "OK",
+      "delete": "Delete",
+      "emptyText": "No WebAuthn credentials yet — click Register credential to add"
+    },
+    "credentialColumns": {
+      "id": "ID",
+      "name": "Name",
+      "type": "Type",
+      "createdAt": "Created",
+      "lastUsed": "Last used",
+      "actions": "Actions"
+    },
+    "sso": {
+      "currentTitle": "Current SSO config",
+      "providerLabel": "Provider",
+      "clientIdLabel": "Client ID",
+      "redirectUrlLabel": "Redirect URL",
+      "statusLabel": "Status",
+      "configureButton": "Configure SSO",
+      "modalTitle": "Configure SSO",
+      "modalOk": "Save",
+      "providerPlaceholder": "Pick an SSO provider",
+      "clientIdPlaceholder": "Client ID",
+      "clientSecretLabel": "Client Secret",
+      "clientSecretPlaceholder": "Client Secret",
+      "issuerLabel": "Issuer URL",
+      "issuerPlaceholder": "https://sso.example.com",
+      "notConfigured": "Not configured",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "tfa": {
+      "totpCardTitle": "TOTP two-factor",
+      "statusPrefix": "Status:",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableButton": "Enable TOTP",
+      "disableConfirm": "Disable two-factor authentication? This lowers account security.",
+      "disableOk": "Confirm disable",
+      "disableButton": "Disable",
+      "recoveryCardTitle": "Recovery codes",
+      "recoveryHint": "Recovery codes let you sign in if you lose your TOTP device. Keep them safe.",
+      "generateButton": "Generate recovery codes",
+      "saveAlert": "Save these codes immediately — once closed they cannot be shown again.",
+      "totpResultPrefix": "TOTP Secret: {secret}",
+      "totpResultUrl": "OTP Auth URL: {url}"
+    },
+    "messages": {
+      "loadFailed": "Failed to load WebAuthn credentials: {err}",
+      "credNameRequired": "Enter a credential name",
+      "registerFailed": "Register failed: {err}",
+      "registerOk": "WebAuthn credential registered",
+      "deleteFailed": "Delete failed: {err}",
+      "deleteOk": "Credential deleted",
+      "providerRequired": "Pick an SSO provider",
+      "clientIdRequired": "Enter a Client ID",
+      "ssoSaveFailed": "Save failed: {err}",
+      "ssoSaveOk": "SSO config saved",
+      "totpEnableFailed": "Enable failed: {err}",
+      "totpEnableOk": "TOTP enabled",
+      "totpDisableFailed": "Disable failed: {err}",
+      "totpDisableOk": "Two-factor disabled",
+      "codesFailed": "Failed to generate recovery codes: {err}",
+      "codesOk": "Recovery codes generated",
+      "codesUnable": "Could not generate recovery codes"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
