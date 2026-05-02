@@ -497,9 +497,9 @@ export async function verifyMTC(
 
 **TODO（已完成 / 待补）：**
 
-2. **联邦 MTCA 的治理**：⚠️ **机制 ✅ / 治理文档 ❌** — Phase 3 P3.1+P3.2+P3.3 已落（commits `95b861914` 多签 landmark、`15c29e9fe` Marketplace 联邦信任锚、`aa13e07a9` filesystem 服务发现）+ libp2p gossipsub 自动发现 + Ed25519/SLH-DSA 异构联邦；但"谁有权加入、threshold 怎么定、成员撤销流程"的**单独治理设计文档**仍未写（见 §14.4 待办 1）
+2. **联邦 MTCA 的治理**：✅ **机制 + 治理文档全落地** — Phase 3 P3.1+P3.2+P3.3 已落（commits `95b861914` 多签 landmark、`15c29e9fe` Marketplace 联邦信任锚、`aa13e07a9` filesystem 服务发现）+ libp2p gossipsub 自动发现 + Ed25519/SLH-DSA 异构联邦；治理规范见 `docs/design/MTC_联邦治理_v1.md`（2026-05-02）— 覆盖 5 阶段联邦生命周期、准入审批 + 候选期权重 0.5、M-of-N 业务场景分级、三种退出路径、Fork/Merge 语义
 5. **与现有 audit log 写入路径的语义冲突**：✅ **已解决（2026-05-02 commit `70d2cda59`）** — backend `AuditMtcBridgeService` 解析 `cc audit mtc emit --json` 提取 event_id，via setEmitCallback 通知 `OperationLogService` 写入 `audit_mtc_event_id` 字段（V013 迁移）；web-panel `Audit.vue` 加 MTC 列四态徽章（—/已签未查/待关批/已关批 #N），点击触发 `cc audit mtc reconcile-check` 缓存到 row
-6. **跨链桥的 MTC 化**：❌ **未做** — 留给独立设计文档（关联 memory `cross_chain_cli`），见 §14.4 待办 2
+6. **跨链桥的 MTC 化**：✅ **设计文档已落** — 见 `docs/design/MTC_跨链桥_v1.md`（2026-05-02）— 新增 `mtc/v1/bridge/<chain-pair>/...` namespace（字典序）、桥两侧 MTCA 三种互信模式（Independent / Federated / Light Client）、跨链特有威胁分析（T1 oracle 共谋 / T5 censorship）、与现有 `cc crosschain` 19 子命令集成点。**实现仍 opt-in（`--mtc` flag）**，待 desktop RPC 链适配器成熟后切默认 on
 
 ---
 
@@ -543,8 +543,8 @@ export async function verifyMTC(
 - [x] **audit "待批次关闭" 徽章**（Q-PROD-1 决议 B，2026-05-02 commit `70d2cda59`）：backend 端 `AuditMtcBridgeService` 解析 `cc audit mtc emit --json` stdout 提取 event_id，via setEmitCallback 通知 `OperationLogService` 写入新字段 `audit_mtc_event_id`（V013 迁移 + 索引）；web-panel `audit-parser.js` 暴露 `auditMtcEventId` + `classifyMtcStatus`，Audit.vue 加 MTC 列：—/已签未查/待关批/已关批 #N 四态徽章，点击触发 `cc audit mtc reconcile-check` 缓存到 row。+4 backend 单测、+5 web-panel 单测。
 
 ### 14.4 待补设计文档
-1. **联邦 MTCA 治理设计文档**（关闭 §12 第 2 项的"治理"半截）— 范围：(a) 谁有权加入联邦（准入条件 + 审批流），(b) M-of-N 阈值如何确定（业务场景分级），(c) 成员撤销 / 轮换流程，(d) 联邦分裂 / 合并语义，(e) 异构算法成员（Ed25519 + SLH-DSA）的 threshold 计票规则。机制层 P3.1–P3.3 已在 §9 落地，本文档仅产出运营 / 治理规范。
-2. **跨链桥的 MTC 化设计文档**（关闭 §12 第 6 项）— 范围：cross-chain message 如何嵌入 MTC envelope、桥两侧 MTCA 互信模型、与现有 `cc crosschain` 5 链生命周期的集成点。关联 memory `cross_chain_cli`。
+1. ✅ **联邦 MTCA 治理设计文档**（2026-05-02 落地，文件 `docs/design/MTC_联邦治理_v1.md`）— 关闭 §12 第 2 项的"治理"半截。覆盖 11 节：联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed)、准入审批流（候选期权重 0.5）、M-of-N 阈值业务场景分级（含 N≥5 强制 PQC 多样性）、主动 leave / 协商 revoke / 强制 revoke 三种退出、密钥轮换、Fork/Merge 语义、与 governance.log + announce + verifier 的接口、6 项决策记录、4 项 v0.2 后续。
+2. ✅ **跨链桥的 MTC 化设计文档**（2026-05-02 落地，文件 `docs/design/MTC_跨链桥_v1.md`）— 关闭 §12 第 6 项。覆盖 11 节：与现有 `cc crosschain` 19 子命令集成、新增 `mtc/v1/bridge/<chain-pair>/...` namespace（字典序）、桥两侧 MTCA 三种互信模式（Independent / Federated / Light Client）+ 决策表、5 类失败模式与回滚、5 项威胁模型分析（含跨链特有 T1 oracle 共谋 / T5 censorship）、7 项决策记录、6 项 v0.2 后续。**仍 opt-in（`--mtc` flag），等 desktop RPC 链适配器成熟后切默认 on**。
 
 ### 14.5 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
