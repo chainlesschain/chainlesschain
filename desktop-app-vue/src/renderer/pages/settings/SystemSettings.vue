@@ -793,6 +793,23 @@ const config = ref({
     errorReporting: false,
     clipboardHistory: false,
   },
+  // Subtrees mirrored from main-side settings-manager.js defaults — the
+  // template reads config.notifications.* and config.advanced.* directly,
+  // so they must exist on first render (before the async IPC merge fills
+  // in real values). Without these, an old config.json missing the keys
+  // triggers "Cannot read properties of undefined" toasts at mount.
+  notifications: {
+    enabled: true,
+    sound: true,
+    badge: true,
+    desktop: true,
+  },
+  advanced: {
+    devTools: false,
+    experimentalFeatures: false,
+    debugMode: false,
+    logLevel: "info",
+  },
   performance: {
     hardwareAcceleration: true,
     gpuRasterization: false,

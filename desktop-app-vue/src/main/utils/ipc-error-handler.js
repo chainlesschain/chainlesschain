@@ -369,10 +369,7 @@ async function diagnoseError(error, context = {}) {
         };
       }
     } catch (aiError) {
-      logger.warn(
-        "[IPC Error] AI 诊断失败，回退到基本诊断:",
-        aiError.message
-      );
+      logger.warn("[IPC Error] AI 诊断失败，回退到基本诊断:", aiError.message);
     }
   }
 
@@ -494,6 +491,34 @@ function resetErrorStats() {
   errorStats.reset();
 }
 
+/**
+ * Create a thin IPC handler wrapper that logs uncaught errors with a prefix
+ * and re-throws (so the renderer still sees the rejection).
+ *
+ * Two existing IPC modules (browser/workflow/workflow-ipc.js,
+ * browser/recording/recording-ipc.js) `require` this name from this module;
+ * historically the only implementation lived inside browser-ipc.js as a
+ * file-private helper, so the import resolved to `undefined` and IPC
+ * registration was silently skipped at startup. Surfacing it here unblocks
+ * Browser Workflow + Recording IPC.
+ *
+ * @param {string} prefix
+ * @returns {(handler: Function) => Function}
+ */
+function createIPCErrorHandler(prefix) {
+  return (handler) =>
+    async (event, ...args) => {
+      try {
+        return await handler(event, ...args);
+      } catch (error) {
+        logger.error(
+          `[${prefix}] IPC Error: ${error && error.message ? error.message : error}`,
+        );
+        throw error;
+      }
+    };
+}
+
 module.exports = {
   // 错误类型
   ErrorType,
@@ -513,6 +538,7 @@ module.exports = {
   // 中间件
   withErrorHandling,
   wrapHandlers,
+  createIPCErrorHandler,
 
   // 工具函数
   classifyError,

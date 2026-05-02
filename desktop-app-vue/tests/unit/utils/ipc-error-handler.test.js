@@ -282,4 +282,33 @@ describe("IPC Error Handler", () => {
       process.env.NODE_ENV = originalEnv;
     });
   });
+
+  describe("createIPCErrorHandler — 兼容 browser/recording/workflow IPC", () => {
+    it("returns a higher-order wrapper function", async () => {
+      const mod = await import("../../../src/main/utils/ipc-error-handler.js");
+      expect(typeof mod.createIPCErrorHandler).toBe("function");
+      const wrap = mod.createIPCErrorHandler("test");
+      expect(typeof wrap).toBe("function");
+      const wrapped = wrap(async () => "ok");
+      expect(typeof wrapped).toBe("function");
+    });
+
+    it("passes through return value on success", async () => {
+      const mod = await import("../../../src/main/utils/ipc-error-handler.js");
+      const wrap = mod.createIPCErrorHandler("test");
+      const handler = vi.fn().mockResolvedValue({ ok: true, value: 42 });
+      const wrapped = wrap(handler);
+      const result = await wrapped({}, "arg1", "arg2");
+      expect(result).toEqual({ ok: true, value: 42 });
+      expect(handler).toHaveBeenCalledWith({}, "arg1", "arg2");
+    });
+
+    it("re-throws errors after logging (so renderer sees the rejection)", async () => {
+      const mod = await import("../../../src/main/utils/ipc-error-handler.js");
+      const wrap = mod.createIPCErrorHandler("recording");
+      const handler = vi.fn().mockRejectedValue(new Error("boom"));
+      const wrapped = wrap(handler);
+      await expect(wrapped({})).rejects.toThrow("boom");
+    });
+  });
 });

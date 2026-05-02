@@ -151,7 +151,7 @@ function createTables(dbManager, logger) {
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
         file_count INTEGER DEFAULT 0,
@@ -422,10 +422,10 @@ function createTables(dbManager, logger) {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-        category TEXT NOT NULL CHECK(category IN ('medical', 'legal', 'education', 'research', 'writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'marketing', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career', 'business', 'hr', 'project')),
+        category TEXT NOT NULL CHECK(category IN ('medical', 'legal', 'education', 'research', 'writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'marketing', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career', 'business', 'hr', 'project', 'automation', 'ai-workflow', 'knowledge', 'remote', 'content', 'devops', 'testing')),
         subcategory TEXT,
         tags TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         prompt_template TEXT,
         variables_schema TEXT,
         file_structure TEXT,
@@ -3638,6 +3638,7 @@ function createTables(dbManager, logger) {
       CREATE TABLE IF NOT EXISTS ops_remediation_playbooks (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
+        description TEXT DEFAULT '',
         trigger_config TEXT DEFAULT '{}',
         steps TEXT DEFAULT '[]',
         rollback_on_failure INTEGER DEFAULT 1,
@@ -3993,6 +3994,7 @@ function createTables(dbManager, logger) {
     dbManager.db.run("PRAGMA foreign_keys = ON");
 
     dbManager.ensureTaskBoardOwnerSchema();
+    dbManager.ensureOpsPlaybookDescription();
 
     logger.info("[Database] ✓ 所有表和索引创建成功");
 

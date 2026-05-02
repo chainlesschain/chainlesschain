@@ -79,6 +79,45 @@ describe("readSettingsSync", () => {
     expect(readSettingsSync(tempUserData)).toBe(42);
   });
 
+  it("tolerates a UTF-8 BOM at the start of settings.json (Windows tools may add one)", () => {
+    // PowerShell's `Out-File` and some Notepad/VS Code save modes prepend
+    // a UTF-8 BOM (U+FEFF) to JSON. JSON.parse rejects it; the helper must
+    // strip it so settings still load.
+    const BOM = String.fromCharCode(0xfeff);
+    const body = JSON.stringify({
+      ui: { useV6ShellByDefault: true, useWebShellExperimental: false },
+    });
+    fs.writeFileSync(
+      path.join(tempUserData, "settings.json"),
+      BOM + body,
+      "utf8",
+    );
+    const onError = vi.fn();
+    const result = readSettingsSync(tempUserData, { onError });
+    expect(onError).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ui: { useV6ShellByDefault: true, useWebShellExperimental: false },
+    });
+  });
+
+  it("tolerates a UTF-8 BOM at the start of app-config.json overlay file", () => {
+    const BOM = String.fromCharCode(0xfeff);
+    fs.writeFileSync(
+      path.join(tempUserData, "settings.json"),
+      JSON.stringify({ ui: { useV6ShellByDefault: false } }),
+    );
+    fs.writeFileSync(
+      path.join(tempUserData, "app-config.json"),
+      BOM + JSON.stringify({ ui: { useV6ShellByDefault: true } }),
+      "utf8",
+    );
+    const onError = vi.fn();
+    const result = readSettingsSync(tempUserData, { onError });
+    expect(onError).not.toHaveBeenCalled();
+    // app-config.json's ui overlays on top of settings.json's ui
+    expect(result.ui.useV6ShellByDefault).toBe(true);
+  });
+
   // Overlay: SystemSettings.vue writes ui.* to app-config.json (AppConfigManager).
   // _readSettingsSync must surface those values so the boot-time
   // shouldRunWebShell decision honors the SystemSettings switch.

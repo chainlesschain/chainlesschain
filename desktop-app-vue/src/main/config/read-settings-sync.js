@@ -40,7 +40,10 @@ function readSettingsSync(userDataPath, options = {}) {
     const settingsPath = path.join(userDataPath, "settings.json");
     if (fs.existsSync(settingsPath)) {
       const raw = fs.readFileSync(settingsPath, "utf8");
-      base = JSON.parse(raw);
+      // Strip leading UTF-8 BOM (U+FEFF) — Windows tools may prepend a
+      // BOM which JSON.parse rejects.
+      const stripped = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+      base = JSON.parse(stripped);
     }
   } catch (err) {
     if (typeof options.onError === "function") {
@@ -61,7 +64,8 @@ function readSettingsSync(userDataPath, options = {}) {
     const appConfigPath = path.join(userDataPath, "app-config.json");
     if (fs.existsSync(appConfigPath)) {
       const raw = fs.readFileSync(appConfigPath, "utf8");
-      const parsed = JSON.parse(raw);
+      const stripped = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+      const parsed = JSON.parse(stripped);
       if (
         parsed &&
         typeof parsed === "object" &&

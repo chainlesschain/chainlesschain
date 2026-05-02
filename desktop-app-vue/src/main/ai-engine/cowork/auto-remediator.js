@@ -650,7 +650,9 @@ class AutoRemediator extends EventEmitter {
           steps: JSON.parse(row.steps || "[]"),
           rollbackOnFailure: Boolean(row.rollback_on_failure),
           notifyChannels: JSON.parse(row.notify_channels || "[]"),
-          enabled: row.enabled !== 0,
+          // schema column is named `active` (with idx_ops_playbooks_active);
+          // expose as `enabled` for in-memory API compatibility.
+          enabled: row.active !== 0,
           successCount: row.success_count || 0,
           failureCount: row.failure_count || 0,
           avgDuration: row.avg_duration_ms || 0,
@@ -672,7 +674,7 @@ class AutoRemediator extends EventEmitter {
         .prepare(
           `INSERT OR REPLACE INTO ops_remediation_playbooks
            (id, name, description, trigger_config, steps, rollback_on_failure,
-            notify_channels, enabled, success_count, failure_count, avg_duration_ms, created_at, updated_at)
+            notify_channels, active, success_count, failure_count, avg_duration_ms, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, datetime('now'), datetime('now'))`,
         )
         .run(
@@ -699,7 +701,7 @@ class AutoRemediator extends EventEmitter {
         .prepare(
           `UPDATE ops_remediation_playbooks
            SET name = ?, description = ?, trigger_config = ?, steps = ?,
-               rollback_on_failure = ?, notify_channels = ?, enabled = ?, updated_at = datetime('now')
+               rollback_on_failure = ?, notify_channels = ?, active = ?, updated_at = datetime('now')
            WHERE id = ?`,
         )
         .run(

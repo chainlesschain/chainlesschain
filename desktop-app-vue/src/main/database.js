@@ -732,6 +732,17 @@ class DatabaseManager {
   }
 
   /**
+   * Ensure ops_remediation_playbooks has the description column the
+   * AutoRemediator INSERT/UPDATE statements expect.
+   */
+  ensureOpsPlaybookDescription() {
+    const {
+      ensureOpsPlaybookDescription: _ensureOpsPlaybookDescription,
+    } = require("./database/database-migrations");
+    return _ensureOpsPlaybookDescription(this, logger);
+  }
+
+  /**
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {

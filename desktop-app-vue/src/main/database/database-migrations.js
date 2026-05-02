@@ -12,6 +12,38 @@
 const fs = require("fs");
 const path = require("path");
 
+/**
+ * Ensure ops_remediation_playbooks has the `description` column. The
+ * AutoRemediator's INSERT/UPDATE statements reference it; older DBs
+ * created before description was added will hit "table … has no column
+ * named description" three times on every boot when default playbooks
+ * are seeded. Idempotent — only runs ALTER when missing.
+ */
+function ensureOpsPlaybookDescription(dbManager, logger) {
+  try {
+    // PRAGMA table_info on a missing table returns []; treat that as "skip".
+    const cols = dbManager.db
+      .prepare("PRAGMA table_info(ops_remediation_playbooks)")
+      .all();
+    if (cols.length === 0) {
+      return; // table not yet created (fresh install) — schema covers it
+    }
+    if (cols.some((c) => c.name === "description")) {
+      return;
+    }
+    logger.info("[Database] 添加 ops_remediation_playbooks.description 列");
+    dbManager.db.run(
+      "ALTER TABLE ops_remediation_playbooks ADD COLUMN description TEXT DEFAULT ''",
+    );
+    dbManager.saveToFile();
+  } catch (error) {
+    logger.warn(
+      "[Database] ops_remediation_playbooks.description 迁移失败（可忽略）:",
+      error.message,
+    );
+  }
+}
+
 function ensureTaskBoardOwnerSchema(dbManager, logger) {
   try {
     const tableInfo = dbManager.db
@@ -460,14 +492,16 @@ function migrateDatabase(dbManager, logger) {
       dbManager.rebuildProjectsTable();
     }
 
-    // 检查是否需要重建project_templates表 (检查是否支持business分类)
+    // 检查是否需要重建project_templates表（probe 'automation' — added v0.20.x
+    // alongside ai-workflow / knowledge / remote / content / devops / testing
+    // to match the actual on-disk template directory layout).
     const needsTemplatesRebuild = dbManager.checkIfTableNeedsRebuild(
       "project_templates",
-      "business",
+      "automation",
     );
     if (needsTemplatesRebuild) {
       logger.info(
-        "[Database] 检测到project_templates表需要更新CHECK约束（添加business/hr/project分类），开始重建...",
+        "[Database] 检测到project_templates表需要更新CHECK约束（添加 automation/ai-workflow/knowledge/remote/content/devops/testing 分类），开始重建...",
       );
       dbManager.rebuildProjectTemplatesTable();
     }
@@ -1190,11 +1224,21 @@ function checkIfTableNeedsRebuild(
     const sql = result.sql;
 
     if (tableName === "projects") {
-      // 检查是否包含 'presentation' 和 'spreadsheet'
-      return !sql.includes("'presentation'") || !sql.includes("'spreadsheet'");
+      // v0.20.x: also probe workflow/knowledge in project_type so existing DBs
+      // get rebuilt to accept template-derived project_type values.
+      return (
+        !sql.includes("'presentation'") ||
+        !sql.includes("'spreadsheet'") ||
+        !sql.includes("'workflow'") ||
+        !sql.includes("'knowledge'")
+      );
     } else if (tableName === "project_templates") {
-      // 检查category是否包含测试值
-      return !sql.includes(`'${testCategoryValue}'`);
+      // Check category test value AND new project_type values added in v0.20.x.
+      return (
+        !sql.includes(`'${testCategoryValue}'`) ||
+        !sql.includes("'workflow'") ||
+        !sql.includes("'knowledge'")
+      );
     }
 
     return false;
@@ -1218,7 +1262,7 @@ function rebuildProjectsTable(dbManager, logger) {
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
         file_count INTEGER DEFAULT 0,
@@ -1339,13 +1383,21 @@ function rebuildProjectTemplatesTable(dbManager, logger) {
           'career',           -- 职业发展
           'business',         -- 商业
           'hr',               -- 人力资源
-          'project'           -- 项目管理
+          'project',          -- 项目管理
+          -- 新增分类 (v0.20.x — match on-disk template directories)
+          'automation',       -- 自动化工作流
+          'ai-workflow',      -- AI 工作流
+          'knowledge',        -- 知识管理
+          'remote',           -- 远程协作
+          'content',          -- 内容生产
+          'devops',           -- DevOps
+          'testing'           -- 测试
         )),
         subcategory TEXT,
         tags TEXT,
 
         -- 模板配置
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         prompt_template TEXT,
         variables_schema TEXT,
         file_structure TEXT,
@@ -1428,6 +1480,7 @@ function checkColumnExists(dbManager, logger, tableName, columnName) {
 
 module.exports = {
   ensureTaskBoardOwnerSchema,
+  ensureOpsPlaybookDescription,
   migrateDatabase,
   runMigrationsOptimized,
   runMigrations,

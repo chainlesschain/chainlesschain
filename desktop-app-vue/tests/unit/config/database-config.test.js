@@ -160,4 +160,45 @@ describe("AppConfigManager — ui.* round-trip persistence", () => {
     // Phase 1.6 hard-flip: malformed config falls back to web-shell default.
     expect(reader.get("ui.useWebShellExperimental")).toBe(true);
   });
+
+  it("load() tolerates a UTF-8 BOM at the start of app-config.json", () => {
+    // Windows tools (PowerShell Out-File, Notepad, some VS Code save modes)
+    // prepend a UTF-8 BOM (U+FEFF) that JSON.parse rejects. AppConfigManager
+    // must strip it so saved ui.* values still load.
+    const BOM = String.fromCharCode(0xfeff);
+    const body = JSON.stringify({
+      ui: { useV6ShellByDefault: false, useWebShellExperimental: false },
+    });
+    fs.writeFileSync(
+      path.join(tempUserData, "app-config.json"),
+      BOM + body,
+      "utf8",
+    );
+    const {
+      AppConfigManager,
+    } = require("../../../src/main/config/database-config.js");
+    const reader = new AppConfigManager();
+    reader.load();
+    expect(reader.get("ui.useV6ShellByDefault")).toBe(false);
+    expect(reader.get("ui.useWebShellExperimental")).toBe(false);
+  });
+
+  it("loadAsync() tolerates a UTF-8 BOM at the start of app-config.json", async () => {
+    const BOM = String.fromCharCode(0xfeff);
+    const body = JSON.stringify({
+      ui: { useV6ShellByDefault: false, useWebShellExperimental: true },
+    });
+    fs.writeFileSync(
+      path.join(tempUserData, "app-config.json"),
+      BOM + body,
+      "utf8",
+    );
+    const {
+      AppConfigManager,
+    } = require("../../../src/main/config/database-config.js");
+    const reader = new AppConfigManager();
+    await reader.loadAsync();
+    expect(reader.get("ui.useV6ShellByDefault")).toBe(false);
+    expect(reader.get("ui.useWebShellExperimental")).toBe(true);
+  });
 });

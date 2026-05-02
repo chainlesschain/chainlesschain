@@ -73,7 +73,12 @@ class AppConfigManager {
       }
       if (exists) {
         const content = await fsp.readFile(this.configPath, "utf-8");
-        const savedConfig = JSON.parse(content);
+        // Strip leading UTF-8 BOM (U+FEFF) — Windows tools (PowerShell
+        // Out-File, Notepad, some VS Code save modes) prepend a BOM that
+        // JSON.parse rejects. Tolerate it on read to survive cross-tool edits.
+        const stripped =
+          content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
+        const savedConfig = JSON.parse(stripped);
         this.config = {
           ...DEFAULT_CONFIG,
           database: {
@@ -154,7 +159,10 @@ class AppConfigManager {
     try {
       if (fs.existsSync(this.configPath)) {
         const content = fs.readFileSync(this.configPath, "utf8");
-        const savedConfig = JSON.parse(content);
+        // Strip leading UTF-8 BOM — see loadAsync() for rationale.
+        const stripped =
+          content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
+        const savedConfig = JSON.parse(stripped);
 
         this.config = {
           ...DEFAULT_CONFIG,
