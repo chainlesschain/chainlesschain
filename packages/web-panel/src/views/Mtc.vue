@@ -264,6 +264,162 @@
           </a-collapse>
         </a-card>
       </a-tab-pane>
+
+      <!-- ── Tab 4: Cross-chain bridge MTC (v0.6) ────────── -->
+      <a-tab-pane key="bridge" tab="跨链桥 MTC">
+        <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
+          <a-col :xs="24" :sm="8">
+            <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+              <a-statistic
+                title="桥 MTC 集成"
+                :value="bridgeStatus.config.enabled ? '已启用' : '未启用'"
+                :value-style="{ color: bridgeStatus.config.enabled ? '#52c41a' : '#888', fontSize: '20px' }"
+              />
+            </a-card>
+          </a-col>
+          <a-col :xs="24" :sm="8">
+            <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+              <a-statistic
+                title="互信模式"
+                :value="bridgeModeLabel"
+                :value-style="{ color: '#1677ff', fontSize: '20px' }"
+              />
+            </a-card>
+          </a-col>
+          <a-col :xs="24" :sm="8">
+            <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+              <a-statistic
+                title="待批次关闭"
+                :value="bridgeStatus.staging.pending"
+                :value-style="{ color: bridgeStatus.staging.pending > 0 ? '#faad14' : '#888', fontSize: '20px' }"
+              />
+            </a-card>
+          </a-col>
+        </a-row>
+
+        <a-card title="配置" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+          <a-descriptions :column="{ xs: 1, sm: 2 }" size="small" bordered>
+            <a-descriptions-item label="算法">
+              <a-tag :color="bridgeStatus.config.alg === 'slh-dsa-128f' ? 'purple' : 'blue'">{{ bridgeStatus.config.alg || '—' }}</a-tag>
+            </a-descriptions-item>
+            <a-descriptions-item label="batch interval">
+              {{ formatBatchInterval(bridgeStatus.config.batch_interval_seconds) }}
+            </a-descriptions-item>
+            <a-descriptions-item label="issuer">
+              <span style="font-family: monospace;">{{ bridgeStatus.config.issuer || '—' }}</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="batches 总数">
+              {{ bridgeStatus.batches.total }}
+              <span v-if="bridgeStatus.batches.latest" style="font-family: monospace; font-size: 11px; color: var(--text-tertiary); margin-left: 8px;">
+                latest: {{ bridgeStatus.batches.latest }}
+              </span>
+            </a-descriptions-item>
+          </a-descriptions>
+        </a-card>
+
+        <a-card title="信任锚 (Independent 模式)" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+          <a-empty v-if="bridgeStatus.trust_anchors.total === 0" description="未配置信任锚" />
+          <a-table
+            v-else
+            :data-source="bridgeAnchorsTable"
+            :columns="bridgeAnchorColumns"
+            :pagination="false"
+            size="small"
+            row-key="key"
+          />
+          <p style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary);">
+            添加：<code>cc crosschain mtc-trust-anchor add &lt;chain&gt; &lt;pubkey-id&gt; --alg --issuer</code>
+          </p>
+        </a-card>
+
+        <a-alert
+          type="info"
+          show-icon
+          message="桥 MTC 仍 opt-in"
+          description="启用后 cc crosschain bridge|swap|send 加 --mtc 才会写 envelope；定期 cc crosschain mtc-batch 关 staging 为批次。完整指南见 docs.chainlesschain.com/guide/mtc-merkle-tree-certs。"
+        />
+      </a-tab-pane>
+
+      <!-- ── Tab 5: Federation governance (v0.7+v0.8) ───── -->
+      <a-tab-pane key="governance" tab="联邦治理">
+        <a-form layout="inline" style="margin-bottom: 16px;">
+          <a-form-item label="联邦 ID">
+            <a-input
+              v-model:value="govFederationId"
+              placeholder="e.g. fed-test"
+              style="width: 240px;"
+              allow-clear
+            />
+          </a-form-item>
+          <a-form-item>
+            <a-button type="primary" :loading="govLoading" @click="loadGovernanceLog">
+              加载 governance.log
+            </a-button>
+          </a-form-item>
+        </a-form>
+
+        <div v-if="govResult">
+          <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
+            <a-col :xs="24" :sm="8">
+              <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+                <a-statistic title="状态" :value="govResult.state.status || '—'" :value-style="{ fontSize: '20px' }" />
+              </a-card>
+            </a-col>
+            <a-col :xs="24" :sm="8">
+              <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+                <a-statistic title="Threshold" :value="govResult.state.threshold || 1" :value-style="{ fontSize: '20px' }" />
+              </a-card>
+            </a-col>
+            <a-col :xs="24" :sm="8">
+              <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+                <a-statistic title="事件总数" :value="(govResult.events || []).length" :value-style="{ fontSize: '20px' }" />
+              </a-card>
+            </a-col>
+          </a-row>
+
+          <a-card title="成员" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+            <a-table
+              :data-source="govResult.state.members || []"
+              :columns="memberColumns"
+              :pagination="false"
+              size="small"
+              row-key="member_id"
+            />
+          </a-card>
+
+          <a-card v-if="(govResult.state.pending_invites || []).length" title="待投票邀请" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+            <a-list :data-source="govResult.state.pending_invites" size="small">
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <span style="font-family: monospace;">{{ item.member_id }}</span>
+                  <a-tag color="blue">approve {{ item.votes.approve.length }}/{{ item.required }}</a-tag>
+                  <a-tag v-if="item.votes.reject.length" color="red">reject {{ item.votes.reject.length }}</a-tag>
+                </a-list-item>
+              </template>
+            </a-list>
+          </a-card>
+
+          <a-card title="事件时间线" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-timeline>
+              <a-timeline-item v-for="e in (govResult.events || [])" :key="e.event_id">
+                <span style="font-family: monospace; color: var(--text-secondary); font-size: 11px;">{{ e.issued_at }}</span>
+                <a-tag :color="eventTypeColor(e.event_type)" style="margin-left: 8px;">{{ e.event_type }}</a-tag>
+                actor: <span style="font-family: monospace;">{{ e.actor_member_id }}</span>
+              </a-timeline-item>
+            </a-timeline>
+          </a-card>
+        </div>
+
+        <a-empty v-else description="输入联邦 ID 加载 governance.log" />
+
+        <a-alert
+          style="margin-top: 16px;"
+          type="info"
+          show-icon
+          message="跨成员同步"
+          description="cc mtc federation governance-publish/pull --drop-zone 用文件系统目录在成员间双向同步事件。事件签名 + dedupe by event_id 保证幂等。"
+        />
+      </a-tab-pane>
     </a-tabs>
   </div>
 </template>
@@ -373,8 +529,109 @@ async function runVerify() {
   }
 }
 
+// ─── Bridge MTC tab (v0.6) ────────────────────────────────────
+const bridgeStatus = ref({
+  config: { enabled: false, mode: 'independent', alg: 'ed25519', batch_interval_seconds: 60, issuer: '' },
+  trust_anchors: { chain_count: 0, total: 0, by_chain: {} },
+  staging: { pending: 0 },
+  batches: { total: 0, latest: null },
+})
+const bridgeModeLabel = computed(() => {
+  switch (bridgeStatus.value.config.mode) {
+    case 'federated': return 'Federated'
+    case 'light-client': return 'Light Client'
+    default: return 'Independent'
+  }
+})
+const bridgeAnchorColumns = [
+  { title: 'chain', key: 'chain', dataIndex: 'chain', width: '120px' },
+  { title: '锚数', key: 'count', dataIndex: 'count', width: '80px' },
+]
+const bridgeAnchorsTable = computed(() => {
+  const by = bridgeStatus.value.trust_anchors.by_chain || {}
+  return Object.entries(by).map(([chain, count]) => ({ key: chain, chain, count }))
+})
+
+async function loadBridgeStatus() {
+  try {
+    const { output } = await ws.execute('crosschain mtc-status --json', 8000)
+    const lines = output.split(/\r?\n/)
+    for (let s = 0; s < lines.length; s++) {
+      if (lines[s].trimStart().startsWith('{')) {
+        for (let e = lines.length; e > s; e--) {
+          try {
+            const obj = JSON.parse(lines.slice(s, e).join('\n'))
+            if (obj && obj.config) {
+              bridgeStatus.value = obj
+              return
+            }
+          } catch (_err) { /* keep trying */ }
+        }
+      }
+    }
+  } catch (e) {
+    message.error('加载桥 MTC 状态失败: ' + (e?.message || e))
+  }
+}
+
+// ─── Federation governance tab (v0.7+v0.8) ───────────────────
+const govFederationId = ref('')
+const govLoading = ref(false)
+const govResult = ref(null)
+const memberColumns = [
+  { title: 'member_id', key: 'member_id', dataIndex: 'member_id' },
+  { title: 'status', key: 'status', dataIndex: 'status', width: '110px' },
+  { title: 'weight', key: 'weight', dataIndex: 'weight', width: '80px' },
+  { title: 'alg', key: 'alg', dataIndex: 'alg', width: '120px' },
+]
+
+function eventTypeColor(eventType) {
+  switch (eventType) {
+    case 'create': return 'cyan'
+    case 'invite': case 'vote': return 'blue'
+    case 'leave': case 'rotate-key': return 'default'
+    case 'propose-revoke': case 'propose-threshold': return 'orange'
+    case 'confirm-revoke': case 'confirm-threshold': return 'gold'
+    case 'fork': case 'merge': return 'purple'
+    case 'dispute': case 'wind-down': return 'red'
+    default: return 'default'
+  }
+}
+
+async function loadGovernanceLog() {
+  if (!govFederationId.value.trim()) {
+    message.warning('请输入联邦 ID')
+    return
+  }
+  govLoading.value = true
+  try {
+    const safeId = govFederationId.value.trim().replace(/"/g, '')
+    const { output } = await ws.execute(`mtc federation governance-log "${safeId}" --json`, 8000)
+    const lines = output.split(/\r?\n/)
+    for (let s = 0; s < lines.length; s++) {
+      if (lines[s].trimStart().startsWith('{')) {
+        for (let e = lines.length; e > s; e--) {
+          try {
+            const obj = JSON.parse(lines.slice(s, e).join('\n'))
+            if (obj && obj.state) {
+              govResult.value = obj
+              return
+            }
+          } catch (_err) { /* keep trying */ }
+        }
+      }
+    }
+    message.error('未能解析 governance-log 输出')
+  } catch (e) {
+    message.error('加载 governance.log 失败: ' + (e?.message || e))
+  } finally {
+    govLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadStatus()
+  loadBridgeStatus()
 })
 </script>
 

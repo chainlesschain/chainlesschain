@@ -22,6 +22,7 @@ const {
   registerMtcIPC,
   readStatusFromDisk,
   readBridgeStatusFromDisk,
+  readFederationGovernanceFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   STATUS_DEFAULTS,
@@ -260,6 +261,69 @@ describe("mtc-ipc — readBridgeStatusFromDisk", () => {
   });
 });
 
+describe("mtc-ipc — readFederationGovernanceFromDisk", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mtc-ipc-gov-"));
+  });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns empty federations list for missing dir", () => {
+    const r = readFederationGovernanceFromDisk(path.join(tmpDir, "nope"));
+    expect(r).toEqual({ federations: [] });
+  });
+
+  it("returns empty federations list for empty dir", () => {
+    const r = readFederationGovernanceFromDisk(tmpDir);
+    expect(r).toEqual({ federations: [] });
+  });
+
+  it("parses jsonl + replays state per federation", () => {
+    // Hand-crafted unsigned event — replayGovernanceLog doesn't verify
+    // signatures, so we can skip key generation here. Signature
+    // round-tripping is covered in core-mtc's own unit tests.
+    const create = {
+      schema: "mtc-federation-governance/v1",
+      fed_id: "fed-x",
+      event_type: "create",
+      event_id: "00000000-0000-0000-0000-000000000001",
+      issued_at: new Date().toISOString(),
+      actor_member_id: "alice",
+      payload: {
+        bootstrap_member_id: "alice",
+        bootstrap_pubkey_id: "sha256:alice-pk",
+        initial_threshold: 1,
+      },
+      signature: { alg: "Ed25519", key_id: "sha256:alice-pk", value: "x" },
+    };
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-x.jsonl"),
+      JSON.stringify(create) + "\n",
+    );
+
+    const r = readFederationGovernanceFromDisk(tmpDir);
+    expect(r.federations).toHaveLength(1);
+    expect(r.federations[0].fed_id).toBe("fed-x");
+    expect(r.federations[0].events_count).toBe(1);
+    expect(r.federations[0].state.members).toHaveLength(1);
+    expect(r.federations[0].state.members[0].member_id).toBe("alice");
+  });
+
+  it("survives malformed jsonl lines", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-broken.jsonl"),
+      ["{ broken", '{"event_id":"a"}', "another broken"].join("\n"),
+    );
+    const r = readFederationGovernanceFromDisk(tmpDir);
+    expect(r.federations).toHaveLength(1);
+    expect(r.federations[0].fed_id).toBe("fed-broken");
+    expect(r.federations[0].events_count).toBe(1); // only the valid one
+  });
+});
+
 describe("mtc-ipc — registerMtcIPC", () => {
   let tmpDir;
   let handlers;
@@ -278,12 +342,23 @@ describe("mtc-ipc — registerMtcIPC", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("registers all 4 channels", () => {
+  it("registers all 5 channels", () => {
     registerMtcIPC({ ipcMain: fakeIpcMain, configDir: tmpDir });
     expect(handlers.has("mtc:get-audit-status")).toBe(true);
     expect(handlers.has("mtc:get-active-alg")).toBe(true);
     expect(handlers.has("mtc:verify-envelope")).toBe(true);
     expect(handlers.has("mtc:get-bridge-status")).toBe(true);
+    expect(handlers.has("mtc:get-federation-governance")).toBe(true);
+  });
+
+  it("get-federation-governance returns empty list on empty dir", async () => {
+    registerMtcIPC({
+      ipcMain: fakeIpcMain,
+      configDir: tmpDir,
+      governanceDir: path.join(tmpDir, "gov-empty"),
+    });
+    const r = await handlers.get("mtc:get-federation-governance")();
+    expect(r).toEqual({ federations: [] });
   });
 
   it("get-bridge-status returns default shape on empty dir", async () => {

@@ -68,6 +68,66 @@ const BRIDGE_STATUS_DEFAULTS = Object.freeze({
   batches: { total: 0, latest: null },
 });
 
+/** Resolve federation governance log dir under .chainlesschain/federation/governance/. */
+function defaultFederationGovernanceDir() {
+  let userData;
+  try {
+    userData = app && app.getPath ? app.getPath("userData") : null;
+  } catch (_err) {
+    userData = null;
+  }
+  if (!userData) {
+    userData = process.env.CHAINLESSCHAIN_USER_DATA || process.cwd();
+  }
+  return path.join(userData, ".chainlesschain", "federation", "governance");
+}
+
+/**
+ * Read all governance.log JSONL files from <dir>/<fed>.jsonl and replay
+ * each one into a {fed_id → state} map using core-mtc's pure replay fn.
+ *
+ * @param {string} dir
+ * @returns {{ federations: Array<{fed_id, events_count, state}> }}
+ */
+function readFederationGovernanceFromDisk(dir) {
+  const result = { federations: [] };
+  if (!dir || !fs.existsSync(dir)) {
+    return result;
+  }
+
+  const lib = loadMtcLib();
+  for (const name of fs.readdirSync(dir).sort()) {
+    if (!name.endsWith(".jsonl")) {
+      continue;
+    }
+    const fedId = name.slice(0, -".jsonl".length);
+    const raw = fs.readFileSync(path.join(dir, name), "utf-8");
+    const events = [];
+    for (const line of raw.split(/\r?\n/)) {
+      if (!line.trim()) {
+        continue;
+      }
+      try {
+        events.push(JSON.parse(line));
+      } catch (_err) {
+        /* skip corrupt line */
+      }
+    }
+    let state = null;
+    try {
+      state = lib.replayGovernanceLog(events, fedId);
+    } catch (_err) {
+      state = { federation_id: fedId, replay_error: true };
+    }
+    result.federations.push({
+      fed_id: fedId,
+      events_count: events.length,
+      state,
+    });
+  }
+  return result;
+}
+
 function readBridgeStatusFromDisk(dir) {
   const result = JSON.parse(JSON.stringify(BRIDGE_STATUS_DEFAULTS));
   if (!dir || !fs.existsSync(dir)) {
@@ -286,12 +346,15 @@ function registerMtcIPC({
   ipcMain: injectedIpcMain,
   configDir,
   bridgeConfigDir,
+  governanceDir: injectedGovernanceDir,
   logger,
 } = {}) {
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dir = configDir || defaultAuditMtcDir();
   const bridgeDir = bridgeConfigDir || defaultBridgeMtcDir();
+  const governanceDir =
+    injectedGovernanceDir || defaultFederationGovernanceDir();
   const log = logger || console;
 
   ipcMain.handle("mtc:get-bridge-status", async () => {
@@ -300,6 +363,18 @@ function registerMtcIPC({
     } catch (err) {
       log.warn?.("[MTC IPC] get-bridge-status failed:", err && err.message);
       return JSON.parse(JSON.stringify(BRIDGE_STATUS_DEFAULTS));
+    }
+  });
+
+  ipcMain.handle("mtc:get-federation-governance", async () => {
+    try {
+      return readFederationGovernanceFromDisk(governanceDir);
+    } catch (err) {
+      log.warn?.(
+        "[MTC IPC] get-federation-governance failed:",
+        err && err.message,
+      );
+      return { federations: [] };
     }
   });
 
@@ -358,11 +433,13 @@ module.exports = {
   // Exported for tests:
   readStatusFromDisk,
   readBridgeStatusFromDisk,
+  readFederationGovernanceFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   makeMultiAlgVerifier,
   defaultAuditMtcDir,
   defaultBridgeMtcDir,
+  defaultFederationGovernanceDir,
   STATUS_DEFAULTS,
   BRIDGE_STATUS_DEFAULTS,
 };

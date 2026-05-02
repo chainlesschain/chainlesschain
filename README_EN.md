@@ -19,6 +19,24 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-02 Update — **MTC v0.8** — governance.log cross-member sync + service templates + governance GUIs (desktop + web)
+
+Closes the two v0.7 limitations: governance.log only existing on local boxes, and governance state being CLI-only:
+
+| Module | Notes |
+|---|---|
+| core-mtc sync helpers | `dedupeEventsByEventId` / `sortEventsChronologically` / `verifyGovernanceLog` (returns valid/invalid/unknown); +8 unit tests |
+| 2 new CLI subcommands | `cc mtc federation governance-publish <fed> --drop-zone <dir>` (atomic per-event file, idempotent) + `cc mtc federation governance-pull <fed> --drop-zone <dir> [--verify]` (dedupe by event_id + optional signature verification); +5 integration tests covering alice→bob cross-home sync + dedupe + --verify |
+| Service supervisor templates | `packages/cli/scripts/service/`: systemd unit (Linux) + launchd plist (macOS) + NSSM config (Windows) + Task Scheduler XML; explicit operator install, NOT auto-wired into npm postinstall |
+| Desktop V6 governance widget | `FederationGovernanceWidget.vue` + `mtc:get-federation-governance` IPC + `electronAPI.mtc.getFederationGovernance`; lists all federations with status / threshold / members (active+candidate) / pending invites / pending revokes / archived/compromised keys; +7 widget unit + 4 IPC tests |
+| Web-panel/Web-shell governance + bridge tabs | `Mtc.vue` adds "跨链桥 MTC" tab (config + trust-anchor table) + "联邦治理" tab (load governance-log by fed-id, renders status cards + member table + pending invites + event timeline). Web-shell embeds the same web-panel in Electron, zero extra work |
+
+**Test totals**: core-mtc governance lib 28 unit + CLI governance integration 19 + desktop 26 IPC + 18 widget = **91 governance/sync-related tests** green.
+
+Implementation stays opt-in: cross-member sync is manual `governance-publish/pull`, no auto daemon — automation deferred to v0.9.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.7** — Federation governance CLI + bridge MTCA daemon + V6 widget
 
 Builds on v0.6 cross-chain MTC integration to make the governance design

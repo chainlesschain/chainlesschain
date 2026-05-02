@@ -458,6 +458,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Bridge MTC (cross-chain bridge) — surfaces config + trust anchors +
     // staging + batch counters for the V6 BridgeMtcStatusWidget.
     getBridgeStatus: () => ipcRenderer.invoke("mtc:get-bridge-status"),
+    // Federation governance (per-fed event log + replayed state) — for the
+    // V6 FederationGovernanceWidget.
+    getFederationGovernance: () =>
+      ipcRenderer.invoke("mtc:get-federation-governance"),
   },
 
   did: {

@@ -5,6 +5,7 @@ import SocialPreviewWidget from "./SocialPreviewWidget.vue";
 import UKeyPreviewWidget from "./UKeyPreviewWidget.vue";
 import MtcStatusPreviewWidget from "./MtcStatusPreviewWidget.vue";
 import BridgeMtcStatusWidget from "./BridgeMtcStatusWidget.vue";
+import FederationGovernanceWidget from "./FederationGovernanceWidget.vue";
 
 export type DecentralEntryId =
   | "p2p"
@@ -12,7 +13,8 @@ export type DecentralEntryId =
   | "social"
   | "ukey"
   | "mtc"
-  | "bridge-mtc";
+  | "bridge-mtc"
+  | "federation-governance";
 
 export interface PreviewWidgetEntry {
   id: DecentralEntryId;
@@ -50,6 +52,11 @@ export const PREVIEW_WIDGETS: Record<DecentralEntryId, PreviewWidgetEntry> = {
     id: "bridge-mtc",
     title: "跨链桥 MTC",
     component: BridgeMtcStatusWidget,
+  },
+  "federation-governance": {
+    id: "federation-governance",
+    title: "联邦治理",
+    component: FederationGovernanceWidget,
   },
 };
 
