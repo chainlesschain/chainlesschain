@@ -45,6 +45,8 @@ const ROOT_FILE_MAP = {
   "默克尔树证书_MTC_落地方案.md": "mtc-landing-plan.md",
   "MTC_数据格式_v1.md": "mtc-data-format-v1.md",
   "默克尔树证书_MTC_v0.2_评审清单.md": "mtc-review-checklist.md",
+  "MTC_联邦治理_v1.md": "mtc-federation-governance-v1.md",
+  "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名

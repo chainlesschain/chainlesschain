@@ -6,6 +6,7 @@ import fs from "node:fs";
 
 import { Command } from "commander";
 
+import { bootstrap } from "../runtime/bootstrap.js";
 import { getHomeDir } from "../lib/paths.js";
 import {
   getCrossChainMtcDir,
@@ -16,6 +17,8 @@ import {
   removeTrustAnchor,
   verifyBridgeEnvelope,
   assembleBridgeBatch,
+  stageBridgeOp,
+  closeBatch,
 } from "../lib/cross-chain-mtc.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
@@ -63,16 +66,64 @@ import {
 } from "../lib/cross-chain.js";
 
 function _dbFromCtx(cmd) {
-  const root = cmd?.parent?.parent ?? cmd?.parent;
-  return root?._db;
+  // cmd is typically the action subcommand (e.g. `bridge`).
+  // _db may be wired onto cmd itself, the parent (`cc crosschain` group),
+  // or the root program — return the first one we find.
+  return cmd?._db ?? cmd?.parent?._db ?? cmd?.parent?.parent?._db ?? null;
+}
+
+/**
+ * Bootstrap a real DB when the crosschain command is invoked headless
+ * (e.g. via spawnSync in integration tests). Falls back to whatever the
+ * REPL/runtime already wired into _dbFromCtx if present.
+ */
+async function _ensureDb(thisCmd) {
+  const existing = _dbFromCtx(thisCmd);
+  if (existing) {
+    ensureCrossChainTables(existing);
+    return existing;
+  }
+  const ctx = await bootstrap({ verbose: false });
+  if (!ctx.db) return null;
+  const db = ctx.db.getDatabase();
+  ensureCrossChainTables(db);
+  thisCmd._db = db;
+  return db;
+}
+
+/**
+ * --mtc opt-in hook: when caller passes --mtc and the action succeeded,
+ * stage one bridge op for the next batch close. Silent best-effort —
+ * an MTC failure must not break the existing crosschain flow.
+ */
+function _maybeStageMtc(opts, opBuilder) {
+  if (!opts || !opts.mtc) return null;
+  try {
+    const home = opts.mtcConfigDir || getHomeDir();
+    const dir = getCrossChainMtcDir(home);
+    return stageBridgeOp(dir, opBuilder(), { requireEnabled: false });
+  } catch (err) {
+    return { staged: false, path: null, reason: `STAGE_ERROR: ${err.message}` };
+  }
 }
 
 export function registerCrossChainCommand(program) {
   const cc = new Command("crosschain")
     .description("Cross-chain interoperability (Phase 89)")
-    .hook("preAction", (thisCmd) => {
-      const db = _dbFromCtx(thisCmd);
-      if (db) ensureCrossChainTables(db);
+    .hook("preAction", async (thisCmd, actionCommand) => {
+      // Skip db bootstrap for MTC-only subcommands that don't touch the
+      // crosschain DB — keeps `cc crosschain mtc-status` etc. usable on
+      // a fresh box where the SQLite store hasn't been initialized.
+      const name = actionCommand?.name?.() || "";
+      if (
+        name.startsWith("mtc-") ||
+        name === "chains" ||
+        name === "bridge-statuses" ||
+        name === "swap-statuses"
+      ) {
+        return;
+      }
+      await _ensureDb(thisCmd);
     });
 
   /* ── Catalogs ────────────────────────────────────── */
@@ -114,6 +165,11 @@ export function registerCrossChainCommand(program) {
     .option("-a, --asset <asset>", "Asset name", "native")
     .option("-s, --sender <address>", "Sender address")
     .option("-r, --recipient <address>", "Recipient address")
+    .option(
+      "--mtc",
+      "On success, stage an MTC bridge envelope (requires cc crosschain mtc-batch to close)",
+    )
+    .option("--mtc-config-dir <dir>", "Override MTC config root")
     .option("--json", "JSON output")
     .action((fromChain, toChain, amount, opts) => {
       const db = _dbFromCtx(cc);
@@ -125,10 +181,27 @@ export function registerCrossChainCommand(program) {
         senderAddress: opts.sender,
         recipientAddress: opts.recipient,
       });
-      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      const mtc =
+        result.bridgeId &&
+        _maybeStageMtc(opts, () => ({
+          bridge_op: "lock",
+          src_chain: fromChain,
+          dst_chain: toChain,
+          src_tx_hash: result.bridgeId,
+          amount: String(amount),
+          asset: opts.asset || "native",
+          src_did: opts.sender || null,
+          dst_did: opts.recipient || null,
+          issued_at: new Date().toISOString(),
+        }));
+      if (opts.json)
+        return console.log(JSON.stringify({ ...result, mtc }, null, 2));
       if (result.bridgeId)
         console.log(`Bridge created: ${result.bridgeId} (fee: ${result.fee})`);
       else console.log(`Failed: ${result.reason}`);
+      if (mtc?.staged) console.log(`MTC envelope staged: ${mtc.path}`);
+      else if (mtc && !mtc.staged)
+        console.log(`MTC stage skipped: ${mtc.reason}`);
     });
 
   cc.command("bridge-status <bridge-id> <status>")
@@ -199,6 +272,8 @@ export function registerCrossChainCommand(program) {
     .option("-b, --to-asset <asset>", "Target asset", "native")
     .option("-c, --counterparty <address>", "Counterparty address")
     .option("-t, --timeout <ms>", "Timeout in ms", parseInt)
+    .option("--mtc", "On success, stage an MTC swap-init envelope")
+    .option("--mtc-config-dir <dir>", "Override MTC config root")
     .option("--json", "JSON output")
     .action((fromChain, toChain, amount, opts) => {
       const db = _dbFromCtx(cc);
@@ -211,12 +286,27 @@ export function registerCrossChainCommand(program) {
         counterpartyAddress: opts.counterparty,
         timeoutMs: opts.timeout,
       });
-      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      const mtc =
+        result.swapId &&
+        _maybeStageMtc(opts, () => ({
+          bridge_op: "swap-init",
+          src_chain: fromChain,
+          dst_chain: toChain,
+          swap_id: result.swapId,
+          amount: String(amount),
+          asset: opts.fromAsset || "native",
+          issued_at: new Date().toISOString(),
+        }));
+      if (opts.json)
+        return console.log(JSON.stringify({ ...result, mtc }, null, 2));
       if (result.swapId) {
         console.log(`Swap initiated: ${result.swapId}`);
         console.log(`Hash lock: ${result.hashLock}`);
         console.log(`Expires:   ${new Date(result.expiresAt).toISOString()}`);
       } else console.log(`Failed: ${result.reason}`);
+      if (mtc?.staged) console.log(`MTC envelope staged: ${mtc.path}`);
+      else if (mtc && !mtc.staged)
+        console.log(`MTC stage skipped: ${mtc.reason}`);
     });
 
   cc.command("swap-claim <swap-id>")
@@ -307,6 +397,8 @@ export function registerCrossChainCommand(program) {
     .description("Send cross-chain message")
     .option("-p, --payload <text>", "Message payload")
     .option("-c, --contract <address>", "Target contract address")
+    .option("--mtc", "On success, stage an MTC msg-send envelope")
+    .option("--mtc-config-dir <dir>", "Override MTC config root")
     .option("--json", "JSON output")
     .action((fromChain, toChain, opts) => {
       const db = _dbFromCtx(cc);
@@ -316,9 +408,25 @@ export function registerCrossChainCommand(program) {
         payload: opts.payload,
         targetContract: opts.contract,
       });
-      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      const mtc =
+        result.messageId &&
+        _maybeStageMtc(opts, () => ({
+          bridge_op: "msg-send",
+          src_chain: fromChain,
+          dst_chain: toChain,
+          src_tx_hash: result.messageId,
+          msg_payload: opts.payload
+            ? Buffer.from(opts.payload, "utf-8").toString("base64url")
+            : null,
+          issued_at: new Date().toISOString(),
+        }));
+      if (opts.json)
+        return console.log(JSON.stringify({ ...result, mtc }, null, 2));
       if (result.messageId) console.log(`Message sent: ${result.messageId}`);
       else console.log(`Failed: ${result.reason}`);
+      if (mtc?.staged) console.log(`MTC envelope staged: ${mtc.path}`);
+      else if (mtc && !mtc.staged)
+        console.log(`MTC stage skipped: ${mtc.reason}`);
     });
 
   cc.command("msg-status <message-id> <status>")
@@ -657,6 +765,33 @@ function registerCrossChainMtcSubcommands(cc) {
       console.log(
         `Batches:        ${s.batches.total}${s.batches.latest ? ` (latest: ${s.batches.latest})` : ""}`,
       );
+    });
+
+  cc.command("mtc-batch")
+    .description(
+      "Close currently-staged bridge ops into batches (one per chain-pair)",
+    )
+    .option("--config-dir <dir>", "Override config root")
+    .option("--alg <alg>", "Override config alg (ed25519 | slh-dsa-128f)")
+    .option("--issuer <issuer>", "Override config issuer")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const result = closeBatch(dir, {
+        alg: opts.alg,
+        issuer: opts.issuer,
+      });
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (result.skipped) {
+        console.log(`(no batch closed: ${result.skipped.reason})`);
+        return;
+      }
+      for (const b of result.batches) {
+        console.log(
+          `✓ Closed ${b.pair}#${b.seq}  ${b.count} op(s)  treeHead=${b.treeHeadId}`,
+        );
+        console.log(`  → ${b.dir}`);
+      }
     });
 
   cc.command("mtc-envelope")

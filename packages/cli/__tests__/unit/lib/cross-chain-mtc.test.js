@@ -21,6 +21,9 @@ import {
   assembleBridgeBatch,
   verifyBridgeEnvelope,
   getBridgeMtcStatus,
+  stageBridgeOp,
+  listStagedOps,
+  closeBatch,
   _internal,
 } from "../../../src/lib/cross-chain-mtc.js";
 import mtcLib from "@chainlesschain/core-mtc";
@@ -524,6 +527,177 @@ describe("cross-chain-mtc lib", () => {
       const s = getBridgeMtcStatus(dir);
       expect(s.batches.total).toBe(3);
       expect(s.batches.latest).toBe("000003");
+    });
+
+    it("reports staging.pending count", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(dir, {
+        bridge_op: "lock",
+        src_chain: "ethereum",
+        dst_chain: "polygon",
+        src_tx_hash: "0x1",
+        amount: "1",
+        asset: "USDC",
+        issued_at: new Date().toISOString(),
+      });
+      const s = getBridgeMtcStatus(dir);
+      expect(s.staging.pending).toBe(1);
+    });
+  });
+
+  // ─── staging + closeBatch ────────────────────────────────
+
+  describe("staging + closeBatch", () => {
+    function makeOp(overrides = {}) {
+      return {
+        bridge_op: "lock",
+        src_chain: "ethereum",
+        dst_chain: "polygon",
+        src_tx_hash: "0xaaa",
+        amount: "1000",
+        asset: "USDC",
+        issued_at: new Date().toISOString(),
+        ...overrides,
+      };
+    }
+
+    it("stageBridgeOp respects requireEnabled=true gate by default", () => {
+      const r = stageBridgeOp(dir, makeOp());
+      expect(r.staged).toBe(false);
+      expect(r.reason).toBe("DISABLED");
+    });
+
+    it("stageBridgeOp writes a file when enabled", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const r = stageBridgeOp(dir, makeOp());
+      expect(r.staged).toBe(true);
+      expect(fs.existsSync(r.path)).toBe(true);
+    });
+
+    it("stageBridgeOp dedupes by content (same op twice → one file)", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const op = makeOp();
+      const r1 = stageBridgeOp(dir, op);
+      const r2 = stageBridgeOp(dir, op);
+      expect(r1.staged).toBe(true);
+      expect(r2.staged).toBe(false);
+      expect(r2.reason).toBe("ALREADY_STAGED");
+    });
+
+    it("stageBridgeOp with requireEnabled=false ignores gate", () => {
+      const r = stageBridgeOp(dir, makeOp(), { requireEnabled: false });
+      expect(r.staged).toBe(true);
+    });
+
+    it("stageBridgeOp validates op (rejects bad bridge_op)", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      expect(() => stageBridgeOp(dir, makeOp({ bridge_op: "evil" }))).toThrow(
+        /bridge_op must be/,
+      );
+    });
+
+    it("listStagedOps groups by chain-pair (lex-ordered)", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(
+        dir,
+        makeOp({
+          src_chain: "polygon",
+          dst_chain: "ethereum",
+          src_tx_hash: "0x1",
+        }),
+      );
+      stageBridgeOp(
+        dir,
+        makeOp({
+          src_chain: "ethereum",
+          dst_chain: "polygon",
+          src_tx_hash: "0x2",
+        }),
+      );
+      stageBridgeOp(
+        dir,
+        makeOp({ src_chain: "arbitrum", dst_chain: "bsc", src_tx_hash: "0x3" }),
+      );
+      const groups = listStagedOps(dir);
+      expect(Object.keys(groups).sort()).toEqual([
+        "arbitrum-bsc",
+        "ethereum-polygon",
+      ]);
+      expect(groups["ethereum-polygon"]).toHaveLength(2);
+      expect(groups["arbitrum-bsc"]).toHaveLength(1);
+    });
+
+    it("closeBatch returns NO_STAGED_OPS when staging empty", () => {
+      const r = closeBatch(dir);
+      expect(r.batches).toHaveLength(0);
+      expect(r.skipped.reason).toBe("NO_STAGED_OPS");
+    });
+
+    it("closeBatch closes one batch per chain-pair, removes staging", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0xaaa" }));
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0xbbb" }));
+      stageBridgeOp(
+        dir,
+        makeOp({
+          src_chain: "arbitrum",
+          dst_chain: "bsc",
+          src_tx_hash: "0xccc",
+        }),
+      );
+
+      const r = closeBatch(dir);
+      expect(r.skipped).toBeNull();
+      expect(r.batches).toHaveLength(2);
+      const ethPoly = r.batches.find((b) => b.pair === "ethereum-polygon");
+      const arbBsc = r.batches.find((b) => b.pair === "arbitrum-bsc");
+      expect(ethPoly.count).toBe(2);
+      expect(arbBsc.count).toBe(1);
+      expect(ethPoly.namespace).toBe("mtc/v1/bridge/ethereum-polygon/000001");
+
+      // staging cleared
+      expect(listStagedOps(dir)).toEqual({});
+
+      // landmark + envelopes on disk
+      expect(fs.existsSync(path.join(ethPoly.dir, "landmark.json"))).toBe(true);
+      expect(fs.existsSync(path.join(ethPoly.dir, "envelope-0000.json"))).toBe(
+        true,
+      );
+      expect(fs.existsSync(path.join(ethPoly.dir, "envelope-0001.json"))).toBe(
+        true,
+      );
+    });
+
+    it("closeBatch advances per-pair seq across calls", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0x1" }));
+      const r1 = closeBatch(dir);
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0x2" }));
+      const r2 = closeBatch(dir);
+      expect(r1.batches[0].seq).toBe(1);
+      expect(r2.batches[0].seq).toBe(2);
+      expect(r2.batches[0].namespace).toMatch(/\/000002$/);
+    });
+
+    it("closeBatch produces verifiable envelopes", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0xaaa" }));
+      stageBridgeOp(dir, makeOp({ src_tx_hash: "0xbbb" }));
+      const r = closeBatch(dir);
+      const batch = r.batches[0];
+      const landmark = JSON.parse(
+        fs.readFileSync(path.join(batch.dir, "landmark.json"), "utf-8"),
+      );
+      const env = JSON.parse(
+        fs.readFileSync(path.join(batch.dir, "envelope-0000.json"), "utf-8"),
+      );
+      const cache = new LandmarkCache({
+        signatureVerifier: alwaysAcceptSignatureVerifier,
+      });
+      cache.ingest(landmark);
+      const v = verifyBridgeEnvelope(env, cache);
+      expect(v.ok).toBe(true);
+      expect(v.bridge_op).toBe("lock");
     });
   });
 });

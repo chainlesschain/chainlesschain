@@ -94,6 +94,16 @@ cc mtc serve --transport={libp2p,filesystem} [...] --cache-dir <dir>
 # Audit 双轨脚手架（v0.4 新，off-by-default — 待法务出函后启用）
 cc audit mtc {enable | disable | config | set-interval <s>}    # 配置
 cc audit mtc {emit | reconcile | reconcile-check <id> | status}  # 双轨流转
+
+# 跨链桥 MTC 集成（v0.6 新，opt-in via --mtc，see design 跨链桥设计 v1）
+cc crosschain mtc-status                     # 配置 + trust anchors + staging/batches
+cc crosschain mtc-trust-anchor add <chain> <pubkey-id> --alg --issuer
+cc crosschain mtc-trust-anchor list [<chain>]
+cc crosschain mtc-trust-anchor remove <chain> <pubkey-id>
+cc crosschain mtc-envelope --input <ops.json> --src-chain --dst-chain --batch-seq
+cc crosschain mtc-verify <envelope> <landmark>
+cc crosschain mtc-batch                      # 关 staging 中所有 op 为批次（按 chain-pair 分组）
+cc crosschain bridge|swap|send ... --mtc     # 在原命令成功后写一条 staging op
 ```
 
 ---

@@ -328,6 +328,143 @@ describe("cc crosschain mtc-* — CLI integration", () => {
       expect(r.stdout).toMatch(/mtc-envelope/);
       expect(r.stdout).toMatch(/mtc-verify/);
       expect(r.stdout).toMatch(/mtc-trust-anchor/);
+      expect(r.stdout).toMatch(/mtc-batch/);
+    });
+
+    it("bridge --help shows --mtc flag", () => {
+      const r = runCli(["crosschain", "bridge", "--help"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/--mtc/);
+    });
+
+    it("swap --help shows --mtc flag", () => {
+      const r = runCli(["crosschain", "swap", "--help"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/--mtc/);
+    });
+
+    it("send --help shows --mtc flag", () => {
+      const r = runCli(["crosschain", "send", "--help"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/--mtc/);
+    });
+  });
+
+  function writeEnabledConfig() {
+    const dir = path.join(tmpHome, "cross-chain-mtc");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify(
+        {
+          enabled: true,
+          batch_interval_seconds: 60,
+          alg: "ed25519",
+          mode: "independent",
+          issuer: "mtca:cc:bridge-test",
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+  }
+
+  // Note: --mtc opt-in flag wiring on bridge/swap/send is unit-tested via the
+  // lib (`stageBridgeOp` round-trip in cross-chain-mtc.test.js). Driving it
+  // through the real CLI requires a working SQLite store on the test box,
+  // which is not always available in CI/local — so we exercise mtc-batch
+  // with staging files written directly here (no bridge dependency).
+
+  function writeStagedOp(overrides = {}) {
+    writeEnabledConfig();
+    const stagingDir = path.join(tmpHome, "cross-chain-mtc", "staging");
+    fs.mkdirSync(stagingDir, { recursive: true });
+    const op = {
+      bridge_op: "lock",
+      src_chain: "ethereum",
+      dst_chain: "polygon",
+      src_tx_hash: `0x${Math.random().toString(16).slice(2, 10)}`,
+      amount: "100",
+      asset: "USDC",
+      issued_at: new Date().toISOString(),
+      ...overrides,
+    };
+    const ts = new Date(op.issued_at)
+      .toISOString()
+      .replace(/[-:T.]/g, "")
+      .slice(0, 17);
+    const pair = [op.src_chain, op.dst_chain].sort().join("-");
+    const tail = Math.random().toString(16).slice(2, 10);
+    const file = path.join(stagingDir, `${ts}-${pair}-${tail}.json`);
+    fs.writeFileSync(file, JSON.stringify(op), "utf-8");
+    return file;
+  }
+
+  describe("mtc-batch", () => {
+    it("returns NO_STAGED_OPS when staging empty", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-batch",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.batches).toHaveLength(0);
+      expect(j.skipped.reason).toBe("NO_STAGED_OPS");
+    });
+
+    it("closes one batch per chain-pair from staged files", () => {
+      writeStagedOp({ src_chain: "ethereum", dst_chain: "polygon" });
+      writeStagedOp({ src_chain: "ethereum", dst_chain: "polygon" });
+      writeStagedOp({ src_chain: "arbitrum", dst_chain: "bsc" });
+
+      const batch = runCli([
+        "crosschain",
+        "mtc-batch",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      expect(batch.status).toBe(0);
+      const bj = extractJson(batch.stdout);
+      expect(bj.skipped).toBeNull();
+      expect(bj.batches).toHaveLength(2);
+      const ethPoly = bj.batches.find((b) => b.pair === "ethereum-polygon");
+      expect(ethPoly.count).toBe(2);
+
+      const status = runCli([
+        "crosschain",
+        "mtc-status",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      const sj = extractJson(status.stdout);
+      expect(sj.staging.pending).toBe(0);
+      expect(sj.batches.total).toBeGreaterThanOrEqual(2);
+    });
+
+    it("closed batch envelopes verify against landmark via mtc-verify", () => {
+      writeStagedOp();
+      const batch = runCli([
+        "crosschain",
+        "mtc-batch",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      const bj = extractJson(batch.stdout);
+      const dir = bj.batches[0].dir;
+      const envPath = path.join(dir, "envelope-0000.json");
+      const lmPath = path.join(dir, "landmark.json");
+      expect(fs.existsSync(envPath)).toBe(true);
+      expect(fs.existsSync(lmPath)).toBe(true);
+      const v = runCli(["crosschain", "mtc-verify", envPath, lmPath, "--json"]);
+      expect(v.status).toBe(0);
+      expect(extractJson(v.stdout).ok).toBe(true);
     });
   });
 });

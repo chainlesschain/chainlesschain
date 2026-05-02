@@ -126,6 +126,16 @@ export default defineConfig({
           ],
         },
         {
+          text: "MTC 默克尔树证书",
+          items: [
+            { text: "落地方案", link: "/mtc-landing-plan" },
+            { text: "数据格式 v1", link: "/mtc-data-format-v1" },
+            { text: "联邦治理 v1 ⭐NEW", link: "/mtc-federation-governance-v1" },
+            { text: "跨链桥设计 v1 ⭐NEW", link: "/mtc-cross-chain-bridge-v1" },
+            { text: "v0.2 评审清单", link: "/mtc-review-checklist" },
+          ],
+        },
+        {
           text: "扩展系统设计",
           items: [
             { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },

@@ -19,6 +19,26 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-02 Update — **MTC v0.6** — Cross-chain bridge MTC integration + governance design docs
+
+Two new design documents (closing §12 known-limit items #2 / #6) plus a new `cc crosschain mtc-*` subcommand surface that lets existing bridge / swap / send paths opt-in to MTC envelope writes:
+
+| Module | Notes |
+|---|---|
+| Design — Federation governance v1 | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
+| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship) |
+| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`) |
+| 4 new subcommands | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
+| `--mtc` opt-in flag | `cc crosschain bridge|swap|send --mtc` writes one staging op on success; `cc crosschain mtc-batch` closes staging into per-chain-pair batches (landmark + envelopes persisted to `batches/<pair>-<seq>/`) |
+| Bug fix | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB |
+| core-mtc | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit) |
+
+**Test totals**: lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + existing cross-chain 83 = **342 tests green** across unit / integration / e2e plus cross-process independent verification.
+
+Implementation stays opt-in (`--mtc` flag); flips to default-on after desktop RPC chain adapters mature.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.5** — Phase 3 federation suite + libp2p gossipsub auto-discovery
 
 Phase 3 federation MTCA fully landed: M-of-N multi-signature landmarks,

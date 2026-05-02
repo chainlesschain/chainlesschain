@@ -20,7 +20,14 @@ import fs from "node:fs";
 import path from "node:path";
 import mtcLib from "@chainlesschain/core-mtc";
 
-const { assembleBatch, verify, NAMESPACE_RE, SCHEMA_ENVELOPE } = mtcLib;
+const {
+  assembleBatch,
+  verify,
+  NAMESPACE_RE,
+  SCHEMA_ENVELOPE,
+  ed25519,
+  slhDsa,
+} = mtcLib;
 
 const SUPPORTED_BRIDGE_CHAINS = Object.freeze([
   "ethereum",
@@ -74,8 +81,16 @@ function batchesDir(dir) {
   return path.join(dir, "batches");
 }
 
+function stagingDir(dir) {
+  return path.join(dir, "staging");
+}
+
+function batchSeqPath(dir) {
+  return path.join(dir, "batch-seq.json");
+}
+
 function ensureDirs(dir) {
-  for (const p of [dir, batchesDir(dir)]) {
+  for (const p of [dir, batchesDir(dir), stagingDir(dir)]) {
     if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
   }
 }
@@ -383,6 +398,171 @@ export function verifyBridgeEnvelope(envelope, cache, options) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Staging — `--mtc` opt-in writes one op per file; mtc-batch closes them
+// ─────────────────────────────────────────────────────────────────────
+
+function stagedFileName(op) {
+  // Time-prefixed so listdir = chronological. Pair-prefix groups visually.
+  const ts = new Date(op.issued_at)
+    .toISOString()
+    .replace(/[-:T.]/g, "")
+    .slice(0, 17);
+  const pair = [op.src_chain, op.dst_chain].sort().join("-");
+  // Use a content-derived 8-char tail to dedupe accidental double-stage of same op.
+  const sigSource = `${op.bridge_op}|${op.src_tx_hash || ""}|${op.swap_id || ""}|${op.amount || ""}|${ts}`;
+  let h = 0;
+  for (let i = 0; i < sigSource.length; i++)
+    h = ((h << 5) - h + sigSource.charCodeAt(i)) | 0;
+  const tail = (h >>> 0).toString(16).padStart(8, "0");
+  return `${ts}-${pair}-${tail}.json`;
+}
+
+/**
+ * Stage one bridge op for inclusion in the next batch close.
+ * Idempotent: same op written twice -> single staging file.
+ *
+ * @param {string} dir
+ * @param {object} op
+ * @param {{ requireEnabled?: boolean }} [opts]
+ * @returns {{ staged: boolean, path: string, reason?: string }}
+ */
+export function stageBridgeOp(dir, op, opts = {}) {
+  ensureDirs(dir);
+  const cfg = loadCrossChainMtcConfig(dir);
+  const requireEnabled = opts.requireEnabled !== false;
+  if (requireEnabled && !cfg.enabled) {
+    return { staged: false, path: null, reason: "DISABLED" };
+  }
+  validateBridgeOp(op);
+  const file = path.join(stagingDir(dir), stagedFileName(op));
+  if (fs.existsSync(file)) {
+    return { staged: false, path: file, reason: "ALREADY_STAGED" };
+  }
+  fs.writeFileSync(file, JSON.stringify(op, null, 2), "utf-8");
+  return { staged: true, path: file };
+}
+
+/**
+ * Read all staged ops grouped by chain-pair.
+ * @returns {{ [pair: string]: Array<{ file: string, op: object }> }}
+ */
+export function listStagedOps(dir) {
+  ensureDirs(dir);
+  const sd = stagingDir(dir);
+  if (!fs.existsSync(sd)) return {};
+  const out = {};
+  for (const name of fs.readdirSync(sd).sort()) {
+    if (!name.endsWith(".json")) continue;
+    const file = path.join(sd, name);
+    let op;
+    try {
+      op = JSON.parse(fs.readFileSync(file, "utf-8"));
+      validateBridgeOp(op);
+    } catch (_err) {
+      continue;
+    }
+    const pair = [op.src_chain, op.dst_chain].sort().join("-");
+    out[pair] ||= [];
+    out[pair].push({ file, op });
+  }
+  return out;
+}
+
+function nextBatchSeq(dir, pair) {
+  const p = batchSeqPath(dir);
+  let map = {};
+  if (fs.existsSync(p)) {
+    try {
+      map = JSON.parse(fs.readFileSync(p, "utf-8"));
+    } catch (_err) {
+      map = {};
+    }
+  }
+  const next = (map[pair] || 0) + 1;
+  map[pair] = next;
+  fs.writeFileSync(p, JSON.stringify(map, null, 2), "utf-8");
+  return next;
+}
+
+/**
+ * Close all currently-staged ops into one batch per chain-pair.
+ * Writes batches/<pair>-<seq>/{landmark.json, envelope-NN.json,...} and
+ * removes the staged files atomically per pair (best-effort).
+ *
+ * @param {string} dir
+ * @param {{ alg?: string, signer?: object, issuer?: string,
+ *           keys?: { secretKey: Buffer, publicKey: Buffer } }} [opts]
+ * @returns {{ batches: Array<{ pair, seq, namespace, treeHeadId, count, dir }>,
+ *             skipped: { reason: string } | null }}
+ */
+export function closeBatch(dir, opts = {}) {
+  ensureDirs(dir);
+  const cfg = loadCrossChainMtcConfig(dir);
+  const grouped = listStagedOps(dir);
+  const pairs = Object.keys(grouped);
+  if (pairs.length === 0) {
+    return { batches: [], skipped: { reason: "NO_STAGED_OPS" } };
+  }
+
+  const alg = opts.alg || cfg.alg;
+  const signer = opts.signer || (alg === "slh-dsa-128f" ? slhDsa : ed25519);
+  const keys = opts.keys || signer.generateKeyPair();
+  const issuer = opts.issuer || cfg.issuer;
+
+  const batches = [];
+  for (const pair of pairs) {
+    const entries = grouped[pair];
+    const ops = entries.map((e) => e.op);
+    const [src, dst] = pair.split("-");
+    const seq = nextBatchSeq(dir, pair);
+    const result = assembleBridgeBatch(ops, keys, {
+      src_chain: src,
+      dst_chain: dst,
+      batch_seq: seq,
+      issuer,
+      signer,
+    });
+
+    const outDir = path.join(
+      batchesDir(dir),
+      `${pair}-${String(seq).padStart(6, "0")}`,
+    );
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(outDir, "landmark.json"),
+      JSON.stringify(result.landmark, null, 2),
+      "utf-8",
+    );
+    result.envelopes.forEach((env, i) => {
+      fs.writeFileSync(
+        path.join(outDir, `envelope-${String(i).padStart(4, "0")}.json`),
+        JSON.stringify(env, null, 2),
+        "utf-8",
+      );
+    });
+
+    // Remove staging files only after on-disk artifacts persisted.
+    for (const e of entries) {
+      try {
+        fs.unlinkSync(e.file);
+      } catch (_err) {
+        /* best-effort cleanup */
+      }
+    }
+
+    batches.push({
+      pair,
+      seq,
+      namespace: result.namespace,
+      treeHeadId: result.treeHeadId,
+      count: ops.length,
+      dir: outDir,
+    });
+  }
+  return { batches, skipped: null };
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Status snapshot (for `cc crosschain mtc-status`)
 // ─────────────────────────────────────────────────────────────────────
 
@@ -409,6 +589,14 @@ export function getBridgeMtcStatus(dir) {
     if (batchCount > 0) latestBatch = entries[batchCount - 1];
   }
 
+  let stagedCount = 0;
+  const sDir = stagingDir(dir);
+  if (fs.existsSync(sDir)) {
+    stagedCount = fs
+      .readdirSync(sDir)
+      .filter((n) => n.endsWith(".json")).length;
+  }
+
   return {
     enabled: cfg.enabled,
     mode: cfg.mode,
@@ -421,6 +609,9 @@ export function getBridgeMtcStatus(dir) {
       by_chain: Object.fromEntries(
         taChains.map((c) => [c, taStore.anchors[c].length]),
       ),
+    },
+    staging: {
+      pending: stagedCount,
     },
     batches: {
       total: batchCount,
