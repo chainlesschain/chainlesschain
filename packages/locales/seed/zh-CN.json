@@ -2988,6 +2988,56 @@
       "pullFailed": "拉取失败: {err}"
     }
   },
+  "memory": {
+    "title": "记忆文件",
+    "subtitle": "分层记忆系统 — 短期 / 长期 / 核心记忆",
+    "storeButton": "存储记忆",
+    "refresh": "刷新",
+    "stats": {
+      "shortTerm": "短期记忆",
+      "shortTermHint": "最近会话内容",
+      "longTerm": "长期记忆",
+      "longTermHint": "巩固后的重要信息",
+      "core": "核心记忆",
+      "coreHint": "高重要性长期保留"
+    },
+    "card": {
+      "title": "记忆内容",
+      "tabs": {
+        "short": "短期",
+        "long": "长期",
+        "core": "核心"
+      },
+      "searchPlaceholder": "语义搜索记忆...",
+      "emptyText": "暂无记忆内容，点击存储记忆添加",
+      "importanceLabel": "重要度 {value}"
+    },
+    "layer": {
+      "short-term": "短期",
+      "long-term": "长期",
+      "core": "核心"
+    },
+    "consolidateButton": "巩固记忆（短期 → 长期晋升）",
+    "modal": {
+      "title": "存储新记忆",
+      "contentLabel": "内容",
+      "contentPlaceholder": "要存储的记忆内容...",
+      "importanceLabel": "重要度",
+      "marks": {
+        "low": "低",
+        "mid": "中",
+        "high": "高"
+      }
+    },
+    "messages": {
+      "contentRequired": "请输入记忆内容",
+      "storeOk": "记忆已存储",
+      "storeDefault": "存储完成",
+      "storeFailed": "存储失败: {err}",
+      "consolidateOk": "记忆巩固完成",
+      "consolidateFailed": "巩固失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

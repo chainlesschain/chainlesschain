@@ -2988,6 +2988,56 @@
       "pullFailed": "Pull failed: {err}"
     }
   },
+  "memory": {
+    "title": "Memory",
+    "subtitle": "Layered memory system — Short-term / Long-term / Core",
+    "storeButton": "Store memory",
+    "refresh": "Refresh",
+    "stats": {
+      "shortTerm": "Short-term",
+      "shortTermHint": "Recent conversation",
+      "longTerm": "Long-term",
+      "longTermHint": "Consolidated important info",
+      "core": "Core",
+      "coreHint": "High-importance long-term retention"
+    },
+    "card": {
+      "title": "Memory contents",
+      "tabs": {
+        "short": "Short",
+        "long": "Long",
+        "core": "Core"
+      },
+      "searchPlaceholder": "Semantic search memories...",
+      "emptyText": "No memory contents yet — click Store memory to add",
+      "importanceLabel": "Importance {value}"
+    },
+    "layer": {
+      "short-term": "Short",
+      "long-term": "Long",
+      "core": "Core"
+    },
+    "consolidateButton": "Consolidate memory (short-term → long-term)",
+    "modal": {
+      "title": "Store new memory",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Memory content to store...",
+      "importanceLabel": "Importance",
+      "marks": {
+        "low": "Low",
+        "mid": "Mid",
+        "high": "High"
+      }
+    },
+    "messages": {
+      "contentRequired": "Enter memory content",
+      "storeOk": "Memory stored",
+      "storeDefault": "Stored",
+      "storeFailed": "Store failed: {err}",
+      "consolidateOk": "Consolidation complete",
+      "consolidateFailed": "Consolidate failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

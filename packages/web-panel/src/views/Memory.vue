@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">记忆文件</h2>
-        <p class="page-sub">分层记忆系统 — 短期 / 长期 / 核心记忆</p>
+        <h2 class="page-title">{{ t('memory.title') }}</h2>
+        <p class="page-sub">{{ t('memory.subtitle') }}</p>
       </div>
       <a-space>
         <a-button @click="showStore = true" type="primary">
           <template #icon><PlusOutlined /></template>
-          存储记忆
+          {{ t('memory.storeButton') }}
         </a-button>
         <a-button ghost :loading="loading" @click="loadStats">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('memory.refresh') }}
         </a-button>
       </a-space>
     </div>
@@ -21,26 +21,26 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="24" :sm="8">
         <a-card style="background: rgba(114,46,209,.1); border-color: rgba(114,46,209,.35); cursor: pointer;" hoverable @click="activeLayer = 'short-term'">
-          <a-statistic title="短期记忆" :value="stats.shortTerm || 0" value-style="color: #c084fc; font-size: 20px;">
+          <a-statistic :title="t('memory.stats.shortTerm')" :value="stats.shortTerm || 0" value-style="color: #c084fc; font-size: 20px;">
             <template #prefix><ThunderboltOutlined /></template>
           </a-statistic>
-          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">最近会话内容</div>
+          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">{{ t('memory.stats.shortTermHint') }}</div>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-card style="background: rgba(22,119,255,.08); border-color: rgba(22,119,255,.3); cursor: pointer;" hoverable @click="activeLayer = 'long-term'">
-          <a-statistic title="长期记忆" :value="stats.longTerm || 0" value-style="color: #91caff; font-size: 20px;">
+          <a-statistic :title="t('memory.stats.longTerm')" :value="stats.longTerm || 0" value-style="color: #91caff; font-size: 20px;">
             <template #prefix><ClockCircleOutlined /></template>
           </a-statistic>
-          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">巩固后的重要信息</div>
+          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">{{ t('memory.stats.longTermHint') }}</div>
         </a-card>
       </a-col>
       <a-col :xs="24" :sm="8">
         <a-card style="background: rgba(41,162,112,.08); border-color: rgba(41,162,112,.3); cursor: pointer;" hoverable @click="activeLayer = 'core'">
-          <a-statistic title="核心记忆" :value="stats.core || 0" value-style="color: #69db7c; font-size: 20px;">
+          <a-statistic :title="t('memory.stats.core')" :value="stats.core || 0" value-style="color: #69db7c; font-size: 20px;">
             <template #prefix><StarOutlined /></template>
           </a-statistic>
-          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">高重要性长期保留</div>
+          <div style="margin-top: 4px; color: var(--text-secondary); font-size: 11px;">{{ t('memory.stats.coreHint') }}</div>
         </a-card>
       </a-col>
     </a-row>
@@ -49,18 +49,18 @@
     <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
       <template #title>
         <div style="display: flex; align-items: center; gap: 12px;">
-          <span>记忆内容</span>
+          <span>{{ t('memory.card.title') }}</span>
           <a-radio-group v-model:value="activeLayer" button-style="solid" size="small" @change="recallByLayer">
-            <a-radio-button value="short-term">短期</a-radio-button>
-            <a-radio-button value="long-term">长期</a-radio-button>
-            <a-radio-button value="core">核心</a-radio-button>
+            <a-radio-button value="short-term">{{ t('memory.card.tabs.short') }}</a-radio-button>
+            <a-radio-button value="long-term">{{ t('memory.card.tabs.long') }}</a-radio-button>
+            <a-radio-button value="core">{{ t('memory.card.tabs.core') }}</a-radio-button>
           </a-radio-group>
         </div>
       </template>
       <template #extra>
         <a-input-search
           v-model:value="recallQuery"
-          placeholder="语义搜索记忆..."
+          :placeholder="t('memory.card.searchPlaceholder')"
           allow-clear
           size="small"
           style="width: 220px;"
@@ -71,8 +71,7 @@
 
       <div v-if="recalling" style="text-align: center; padding: 30px;"><a-spin /></div>
       <div v-else-if="!memories.length" style="text-align: center; padding: 30px; color: var(--text-muted);">
-        <BrainOutlined v-if="false" />
-        暂无记忆内容，点击"存储记忆"添加
+        {{ t('memory.card.emptyText') }}
       </div>
       <div v-else class="memory-list">
         <div v-for="mem in memories" :key="mem.id" class="memory-item">
@@ -82,7 +81,7 @@
                 {{ layerLabel(mem.layer || activeLayer) }}
               </a-tag>
               <span v-if="mem.importance" style="color: var(--text-secondary); font-size: 11px;">
-                重要度 {{ mem.importance }}
+                {{ t('memory.card.importanceLabel', { value: mem.importance }) }}
               </span>
             </div>
             <span style="color: var(--text-muted); font-size: 11px;">{{ mem.time }}</span>
@@ -99,17 +98,17 @@
       style="background: var(--bg-card-hover); border-color: var(--text-muted); width: 100%;"
     >
       <template #icon><SyncOutlined /></template>
-      巩固记忆（短期 → 长期晋升）
+      {{ t('memory.consolidateButton') }}
     </a-button>
 
     <!-- Store Memory Modal -->
-    <a-modal v-model:open="showStore" title="存储新记忆" :confirm-loading="storing" @ok="storeMemory">
+    <a-modal v-model:open="showStore" :title="t('memory.modal.title')" :confirm-loading="storing" @ok="storeMemory">
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
-        <a-form-item label="内容" required>
-          <a-textarea v-model:value="newMemory.content" :rows="4" placeholder="要存储的记忆内容..." />
+        <a-form-item :label="t('memory.modal.contentLabel')" required>
+          <a-textarea v-model:value="newMemory.content" :rows="4" :placeholder="t('memory.modal.contentPlaceholder')" />
         </a-form-item>
-        <a-form-item label="重要度">
-          <a-slider v-model:value="newMemory.importance" :min="0" :max="1" :step="0.1" :marks="{ 0: '低', 0.5: '中', 1: '高' }" />
+        <a-form-item :label="t('memory.modal.importanceLabel')">
+          <a-slider v-model:value="newMemory.importance" :min="0" :max="1" :step="0.1" :marks="importanceMarks" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -117,7 +116,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   PlusOutlined, ReloadOutlined, ThunderboltOutlined, ClockCircleOutlined,
   StarOutlined, SyncOutlined
@@ -125,6 +125,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const loading = ref(false)
@@ -139,11 +140,19 @@ const activeLayer = ref('short-term')
 const recallQuery = ref('')
 const newMemory = ref({ content: '', importance: 0.5 })
 
+const importanceMarks = computed(() => ({
+  0: t('memory.modal.marks.low'),
+  0.5: t('memory.modal.marks.mid'),
+  1: t('memory.modal.marks.high'),
+}))
+
 function layerColor(layer) {
   return { 'short-term': 'purple', 'long-term': 'blue', 'core': 'green' }[layer] || 'default'
 }
 function layerLabel(layer) {
-  return { 'short-term': '短期', 'long-term': '长期', 'core': '核心' }[layer] || layer
+  const key = `memory.layer.${layer}`
+  const v = t(key)
+  return v === key ? layer : v
 }
 
 async function loadStats() {
@@ -174,7 +183,7 @@ async function recallByLayer() {
     const query = activeLayer.value === 'short-term' ? 'recent' : activeLayer.value === 'long-term' ? 'important' : 'core'
     const { output } = await ws.execute(`hmemory recall "${query}" --limit 20`, 15000)
     memories.value = parseMemories(output)
-  } catch (e) {
+  } catch (_e) {
     memories.value = []
   } finally {
     recalling.value = false
@@ -187,7 +196,7 @@ async function doRecall() {
   try {
     const { output } = await ws.execute(`hmemory recall "${recallQuery.value}"`, 15000)
     memories.value = parseMemories(output)
-  } catch (e) {
+  } catch (_e) {
     memories.value = []
   } finally {
     recalling.value = false
@@ -197,11 +206,9 @@ async function doRecall() {
 function parseMemories(output) {
   const result = []
   const lines = output.split('\n')
-  let current = null
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('Recall')) continue
-    // Memory entry: might be "- content" or numbered
     const m = trimmed.match(/^[-●•\d.]+\s+(.+)/)
     if (m) {
       const text = m[1].trim()
@@ -222,22 +229,22 @@ function parseMemories(output) {
 }
 
 async function storeMemory() {
-  if (!newMemory.value.content.trim()) { message.warning('请输入记忆内容'); return }
+  if (!newMemory.value.content.trim()) { message.warning(t('memory.messages.contentRequired')); return }
   storing.value = true
   try {
     const cmd = `hmemory store "${newMemory.value.content.replace(/"/g, '\\"')}" --importance ${newMemory.value.importance}`
     const { output } = await ws.execute(cmd, 15000)
     if (output.toLowerCase().includes('stored') || output.includes('✔')) {
-      message.success('记忆已存储')
+      message.success(t('memory.messages.storeOk'))
       showStore.value = false
       newMemory.value = { content: '', importance: 0.5 }
       await loadStats()
     } else {
-      message.warning(output.slice(0, 100) || '存储完成')
+      message.warning(output.slice(0, 100) || t('memory.messages.storeDefault'))
       showStore.value = false
     }
   } catch (e) {
-    message.error('存储失败: ' + e.message)
+    message.error(t('memory.messages.storeFailed', { err: e.message }))
   } finally {
     storing.value = false
   }
@@ -246,11 +253,11 @@ async function storeMemory() {
 async function consolidate() {
   consolidating.value = true
   try {
-    const { output } = await ws.execute('hmemory consolidate', 20000)
-    message.success('记忆巩固完成')
+    await ws.execute('hmemory consolidate', 20000)
+    message.success(t('memory.messages.consolidateOk'))
     await loadStats()
   } catch (e) {
-    message.error('巩固失败: ' + e.message)
+    message.error(t('memory.messages.consolidateFailed', { err: e.message }))
   } finally {
     consolidating.value = false
   }
