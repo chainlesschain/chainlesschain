@@ -10,6 +10,7 @@ const ed25519Signer = require("./signers/ed25519.js");
 const slhDsaSigner = require("./signers/slh-dsa.js");
 const batchModule = require("./batch.js");
 const federationModule = require("./federation.js");
+const federationGovernanceModule = require("./federation-governance.js");
 
 module.exports = {
   // constants
@@ -65,4 +66,12 @@ module.exports = {
   FederationAnnounceCache: federationModule.FederationAnnounceCache,
   SCHEMA_FEDERATION_ANNOUNCE: federationModule.SCHEMA_ANNOUNCE,
   FEDERATION_ANNOUNCE_TTL_DEFAULT: federationModule.DEFAULT_TTL_SECONDS,
+
+  // Federation governance log (MTC_联邦治理_v1.md §9.1)
+  SCHEMA_FEDERATION_GOVERNANCE: federationGovernanceModule.SCHEMA_GOVERNANCE,
+  FEDERATION_GOVERNANCE_EVENT_TYPES: federationGovernanceModule.EVENT_TYPES,
+  createGovernanceEvent: federationGovernanceModule.createGovernanceEvent,
+  verifyGovernanceEvent: federationGovernanceModule.verifyGovernanceEvent,
+  replayGovernanceLog: federationGovernanceModule.replayGovernanceLog,
+  isValidGovernanceEventType: federationGovernanceModule.isValidEventType,
 };

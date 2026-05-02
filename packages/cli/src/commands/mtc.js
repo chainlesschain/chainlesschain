@@ -1640,6 +1640,390 @@ function registerFederationCommands(mtc) {
         process.exit(1);
       }
     });
+
+  registerFederationGovernanceCommands(fed);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Federation governance log (MTC_联邦治理_v1.md §9.1) — 8 subcommands
+// ─────────────────────────────────────────────────────────────────────────
+
+function getGovernanceLogPath(federationId) {
+  return path.join(getFederationDir(), "governance", `${federationId}.jsonl`);
+}
+
+function loadGovernanceLog(federationId) {
+  const file = getGovernanceLogPath(federationId);
+  if (!fs.existsSync(file)) return [];
+  const raw = fs.readFileSync(file, "utf-8");
+  const events = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      events.push(JSON.parse(line));
+    } catch (_err) {
+      /* skip corrupt line — replay-from-source-of-truth, don't crash */
+    }
+  }
+  return events;
+}
+
+function appendGovernanceEvent(federationId, event) {
+  const file = getGovernanceLogPath(federationId);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.appendFileSync(file, JSON.stringify(event) + "\n", "utf-8");
+}
+
+/**
+ * Look up a member's keys + alg for signing a governance event as that
+ * member. Throws if not joined.
+ */
+function loadMemberSigner(federationId, memberId) {
+  const registry = loadFederationRegistry();
+  const fedEntry = registry.federations[federationId];
+  if (!fedEntry || !fedEntry.members[memberId]) {
+    throw new Error(
+      `not joined as "${memberId}" in federation "${federationId}" — \`cc mtc federation join ${federationId} --member-id ${memberId}\` first`,
+    );
+  }
+  const member = fedEntry.members[memberId];
+  if (!member.key_file || !fs.existsSync(member.key_file)) {
+    throw new Error(`member key file missing: ${member.key_file}`);
+  }
+  let signerInfo;
+  if (member.alg === "Ed25519") signerInfo = resolveSigner("ed25519");
+  else if (member.alg === "SLH-DSA-SHA2-128F")
+    signerInfo = resolveSigner("slh-dsa-128f");
+  else throw new Error(`unknown member alg: ${member.alg}`);
+  const keys = loadOrGenerateKeyPair(member.key_file, signerInfo);
+  return { member, keys, alg: member.alg };
+}
+
+function emitAndPersist(federationId, params) {
+  const event = mtcLib.createGovernanceEvent({
+    federationId,
+    ...params,
+  });
+  appendGovernanceEvent(federationId, event);
+  return event;
+}
+
+function registerFederationGovernanceCommands(fed) {
+  // mtc federation invite — propose adding a candidate member
+  fed
+    .command("invite <federation-id> <candidate-member-id>")
+    .description("Propose adding a candidate member (governance.log event)")
+    .requiredOption("--actor <member-id>", "Existing member casting the invite")
+    .requiredOption("--candidate-pubkey-id <id>", "Candidate's pubkey_id")
+    .option("--candidate-alg <alg>", "ed25519 | slh-dsa-128f", "ed25519")
+    .option("--json", "JSON output")
+    .action((federationId, candidateMemberId, options) => {
+      try {
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "invite",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {
+            candidate_member_id: candidateMemberId,
+            candidate_pubkey_id: options.candidatePubkeyId,
+            candidate_alg: options.candidateAlg,
+          },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Invited ${candidateMemberId} into ${federationId} (event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation invite failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation vote — vote on an outstanding invite
+  fed
+    .command("vote <federation-id> <candidate-member-id>")
+    .description("Vote on an outstanding invite")
+    .requiredOption("--actor <member-id>", "Voting member")
+    .requiredOption("--decision <approve|reject>", "Vote decision")
+    .option("--json", "JSON output")
+    .action((federationId, candidateMemberId, options) => {
+      try {
+        if (!["approve", "reject"].includes(options.decision)) {
+          throw new Error("--decision must be approve or reject");
+        }
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "vote",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {
+            invite_target_member_id: candidateMemberId,
+            decision: options.decision,
+          },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `${options.actor} voted ${options.decision} on ${candidateMemberId} (event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation vote failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation propose-revoke
+  fed
+    .command("propose-revoke <federation-id> <target-member-id>")
+    .description("Propose revoking a member (7-day grace period)")
+    .requiredOption("--actor <member-id>", "Proposing member")
+    .requiredOption("--reason <text>", "Reason (e.g. inactive, key-compromise)")
+    .option("--json", "JSON output")
+    .action((federationId, targetMemberId, options) => {
+      try {
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "propose-revoke",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: { target_member_id: targetMemberId, reason: options.reason },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Proposed revoke of ${targetMemberId} (reason: ${options.reason}, event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation propose-revoke failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation confirm-revoke
+  fed
+    .command("confirm-revoke <federation-id> <target-member-id>")
+    .description("Confirm a previously-proposed revoke (after grace period)")
+    .requiredOption("--actor <member-id>", "Confirming member")
+    .option(
+      "--reason <text>",
+      "Confirmation reason (key-compromise → mark key compromised)",
+    )
+    .option("--json", "JSON output")
+    .action((federationId, targetMemberId, options) => {
+      try {
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "confirm-revoke",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: { target_member_id: targetMemberId, reason: options.reason },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Confirmed revoke of ${targetMemberId} (event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation confirm-revoke failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation rotate-key
+  fed
+    .command("rotate-key <federation-id>")
+    .description("Rotate the actor's signing key to a new pubkey")
+    .requiredOption("--actor <member-id>", "Member rotating their key")
+    .requiredOption("--new-pubkey-id <id>", "New public-key id")
+    .option("--new-alg <alg>", "ed25519 | slh-dsa-128f")
+    .option("--json", "JSON output")
+    .action((federationId, options) => {
+      try {
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "rotate-key",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {
+            new_pubkey_id: options.newPubkeyId,
+            new_alg: options.newAlg,
+          },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `${options.actor} rotated key to ${options.newPubkeyId} (event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation rotate-key failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation propose-threshold
+  fed
+    .command("propose-threshold <federation-id> <new-threshold>")
+    .description("Propose a new M-of-N threshold (30-day cooldown)")
+    .requiredOption("--actor <member-id>", "Proposing member")
+    .option("--json", "JSON output")
+    .action((federationId, newThreshold, options) => {
+      try {
+        const target = parseInt(newThreshold, 10);
+        if (!Number.isInteger(target) || target < 1) {
+          throw new Error("new-threshold must be a positive integer");
+        }
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "propose-threshold",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: { proposed_threshold: target },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Proposed threshold ${target} (event ${event.event_id}, 30-day cooldown)`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation propose-threshold failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation fork
+  fed
+    .command("fork <federation-id> <new-federation-id>")
+    .description(
+      "Spawn a new federation with a subset of current members (members leave the original)",
+    )
+    .requiredOption("--actor <member-id>", "Forking member")
+    .requiredOption(
+      "--members <ids>",
+      "Comma-separated list of member-ids leaving for the new federation",
+    )
+    .option("--json", "JSON output")
+    .action((federationId, newFedId, options) => {
+      try {
+        const memberIds = options.members
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "fork",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {
+            new_federation_id: newFedId,
+            member_ids: memberIds,
+          },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Forked ${federationId} → ${newFedId} (members: ${memberIds.join(", ")}; event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation fork failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation merge
+  fed
+    .command("merge <federation-id> <other-federation-id> <new-federation-id>")
+    .description(
+      "Mark this federation as winding down into a new merged federation",
+    )
+    .requiredOption("--actor <member-id>", "Merging member")
+    .option("--json", "JSON output")
+    .action((federationId, otherFedId, newFedId, options) => {
+      try {
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "merge",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {
+            other_federation_id: otherFedId,
+            new_federation_id: newFedId,
+          },
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(
+          `Merged ${federationId} + ${otherFedId} → ${newFedId} (event ${event.event_id})`,
+        );
+      } catch (err) {
+        logger.error(`mtc federation merge failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // mtc federation governance-log — show all events + replayed state
+  fed
+    .command("governance-log <federation-id>")
+    .description("Show governance.log events + current replayed state")
+    .option("--json", "JSON output")
+    .option("--events-only", "Only print events, skip replay state")
+    .action((federationId, options) => {
+      try {
+        const events = loadGovernanceLog(federationId);
+        if (options.eventsOnly) {
+          if (options.json) return console.log(JSON.stringify(events, null, 2));
+          for (const e of events) {
+            logger.log(
+              `${e.issued_at}  ${e.event_type.padEnd(20)} actor=${e.actor_member_id}  event_id=${e.event_id}`,
+            );
+          }
+          return;
+        }
+        const state = mtcLib.replayGovernanceLog(events, federationId);
+        if (options.json) {
+          return console.log(JSON.stringify({ events, state }, null, 2));
+        }
+        logger.log(
+          `Federation: ${state.federation_id}  status=${state.status}  threshold=${state.threshold}`,
+        );
+        logger.log(`Members (${state.members.length}):`);
+        for (const m of state.members) {
+          logger.log(
+            `  ${m.member_id.padEnd(20)} weight=${m.weight} status=${m.status} alg=${m.alg}`,
+          );
+        }
+        if (state.pending_invites.length) {
+          logger.log(`Pending invites (${state.pending_invites.length}):`);
+          for (const i of state.pending_invites) {
+            logger.log(
+              `  ${i.member_id}  approve=${i.votes.approve.length}/${i.required}  reject=${i.votes.reject.length}`,
+            );
+          }
+        }
+        if (state.pending_threshold) {
+          logger.log(
+            `Pending threshold: ${state.pending_threshold.target} (activates ${state.pending_threshold.activates_at})`,
+          );
+        }
+        if (state.archived_keys.length || state.compromised_keys.length) {
+          logger.log(
+            `Archived keys: ${state.archived_keys.length}, compromised: ${state.compromised_keys.length}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`mtc federation governance-log failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -21,9 +21,11 @@ const cjsRequire = createRequire(import.meta.url);
 const {
   registerMtcIPC,
   readStatusFromDisk,
+  readBridgeStatusFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   STATUS_DEFAULTS,
+  BRIDGE_STATUS_DEFAULTS,
 } = cjsRequire("../mtc-ipc.js");
 
 describe("mtc-ipc — readStatusFromDisk", () => {
@@ -181,6 +183,83 @@ describe("mtc-ipc — verifyEnvelopeInProcess", () => {
   });
 });
 
+describe("mtc-ipc — readBridgeStatusFromDisk", () => {
+  let tmpDir;
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mtc-ipc-bridge-"));
+  });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns defaults when dir does not exist", () => {
+    const r = readBridgeStatusFromDisk(path.join(tmpDir, "nope"));
+    expect(r).toEqual(BRIDGE_STATUS_DEFAULTS);
+  });
+
+  it("reads enabled config from disk", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify({
+        enabled: true,
+        mode: "federated",
+        alg: "slh-dsa-128f",
+        batch_interval_seconds: 600,
+      }),
+    );
+    const r = readBridgeStatusFromDisk(tmpDir);
+    expect(r.config.enabled).toBe(true);
+    expect(r.config.mode).toBe("federated");
+    expect(r.config.alg).toBe("slh-dsa-128f");
+    expect(r.config.batch_interval_seconds).toBe(600);
+  });
+
+  it("counts trust anchors per chain", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "trust-anchors.json"),
+      JSON.stringify({
+        schema: "mtc-bridge-trust-anchors/v1",
+        anchors: {
+          ethereum: [
+            { pubkey_id: "sha256:e1", alg: "ed25519", issuer: "x" },
+            { pubkey_id: "sha256:e2", alg: "ed25519", issuer: "y" },
+          ],
+          polygon: [
+            { pubkey_id: "sha256:p1", alg: "slh-dsa-128f", issuer: "z" },
+          ],
+        },
+      }),
+    );
+    const r = readBridgeStatusFromDisk(tmpDir);
+    expect(r.trust_anchors.chain_count).toBe(2);
+    expect(r.trust_anchors.total).toBe(3);
+    expect(r.trust_anchors.by_chain.ethereum).toBe(2);
+    expect(r.trust_anchors.by_chain.polygon).toBe(1);
+  });
+
+  it("counts staged ops + reports latest batch", () => {
+    fs.mkdirSync(path.join(tmpDir, "staging"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, "staging", "a.json"), "{}");
+    fs.writeFileSync(path.join(tmpDir, "staging", "b.json"), "{}");
+    fs.mkdirSync(path.join(tmpDir, "batches", "ethereum-polygon-000001"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(tmpDir, "batches", "ethereum-polygon-000002"), {
+      recursive: true,
+    });
+    const r = readBridgeStatusFromDisk(tmpDir);
+    expect(r.staging.pending).toBe(2);
+    expect(r.batches.total).toBe(2);
+    expect(r.batches.latest).toBe("ethereum-polygon-000002");
+  });
+
+  it("survives malformed config json", () => {
+    fs.writeFileSync(path.join(tmpDir, "config.json"), "not json");
+    const r = readBridgeStatusFromDisk(tmpDir);
+    expect(r.config.enabled).toBe(false); // defaults
+  });
+});
+
 describe("mtc-ipc — registerMtcIPC", () => {
   let tmpDir;
   let handlers;
@@ -199,11 +278,25 @@ describe("mtc-ipc — registerMtcIPC", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("registers all 3 channels", () => {
+  it("registers all 4 channels", () => {
     registerMtcIPC({ ipcMain: fakeIpcMain, configDir: tmpDir });
     expect(handlers.has("mtc:get-audit-status")).toBe(true);
     expect(handlers.has("mtc:get-active-alg")).toBe(true);
     expect(handlers.has("mtc:verify-envelope")).toBe(true);
+    expect(handlers.has("mtc:get-bridge-status")).toBe(true);
+  });
+
+  it("get-bridge-status returns default shape on empty dir", async () => {
+    registerMtcIPC({
+      ipcMain: fakeIpcMain,
+      configDir: tmpDir,
+      bridgeConfigDir: path.join(tmpDir, "bridge"),
+    });
+    const r = await handlers.get("mtc:get-bridge-status")();
+    expect(r.config.enabled).toBe(false);
+    expect(r.config.mode).toBe("independent");
+    expect(r.staging.pending).toBe(0);
+    expect(r.batches.total).toBe(0);
   });
 
   it("get-audit-status returns default shape on empty dir", async () => {

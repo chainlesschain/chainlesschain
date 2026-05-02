@@ -4,8 +4,15 @@ import TradePreviewWidget from "./TradePreviewWidget.vue";
 import SocialPreviewWidget from "./SocialPreviewWidget.vue";
 import UKeyPreviewWidget from "./UKeyPreviewWidget.vue";
 import MtcStatusPreviewWidget from "./MtcStatusPreviewWidget.vue";
+import BridgeMtcStatusWidget from "./BridgeMtcStatusWidget.vue";
 
-export type DecentralEntryId = "p2p" | "trade" | "social" | "ukey" | "mtc";
+export type DecentralEntryId =
+  | "p2p"
+  | "trade"
+  | "social"
+  | "ukey"
+  | "mtc"
+  | "bridge-mtc";
 
 export interface PreviewWidgetEntry {
   id: DecentralEntryId;
@@ -38,6 +45,11 @@ export const PREVIEW_WIDGETS: Record<DecentralEntryId, PreviewWidgetEntry> = {
     id: "mtc",
     title: "MTC 默克尔证书",
     component: MtcStatusPreviewWidget,
+  },
+  "bridge-mtc": {
+    id: "bridge-mtc",
+    title: "跨链桥 MTC",
+    component: BridgeMtcStatusWidget,
   },
 };
 

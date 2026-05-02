@@ -41,6 +41,92 @@ function defaultAuditMtcDir() {
   return path.join(userData, ".chainlesschain", "audit-mtc");
 }
 
+/** Resolve cross-chain-mtc dir (sibling of audit-mtc under .chainlesschain/). */
+function defaultBridgeMtcDir() {
+  let userData;
+  try {
+    userData = app && app.getPath ? app.getPath("userData") : null;
+  } catch (_err) {
+    userData = null;
+  }
+  if (!userData) {
+    userData = process.env.CHAINLESSCHAIN_USER_DATA || process.cwd();
+  }
+  return path.join(userData, ".chainlesschain", "cross-chain-mtc");
+}
+
+const BRIDGE_STATUS_DEFAULTS = Object.freeze({
+  config: {
+    enabled: false,
+    mode: "independent",
+    alg: "ed25519",
+    batch_interval_seconds: 60,
+    issuer: "mtca:cc:bridge-local",
+  },
+  trust_anchors: { chain_count: 0, total: 0, by_chain: {} },
+  staging: { pending: 0 },
+  batches: { total: 0, latest: null },
+});
+
+function readBridgeStatusFromDisk(dir) {
+  const result = JSON.parse(JSON.stringify(BRIDGE_STATUS_DEFAULTS));
+  if (!dir || !fs.existsSync(dir)) {
+    return result;
+  }
+
+  // Config
+  const cfgPath = path.join(dir, "config.json");
+  if (fs.existsSync(cfgPath)) {
+    try {
+      Object.assign(
+        result.config,
+        JSON.parse(fs.readFileSync(cfgPath, "utf-8")),
+      );
+    } catch (_err) {
+      /* fall back to defaults on malformed json */
+    }
+  }
+
+  // Trust anchors
+  const taPath = path.join(dir, "trust-anchors.json");
+  if (fs.existsSync(taPath)) {
+    try {
+      const store = JSON.parse(fs.readFileSync(taPath, "utf-8"));
+      const anchors = (store && store.anchors) || {};
+      const chains = Object.keys(anchors);
+      result.trust_anchors.chain_count = chains.length;
+      result.trust_anchors.total = chains.reduce(
+        (sum, c) => sum + ((anchors[c] || []).length || 0),
+        0,
+      );
+      result.trust_anchors.by_chain = Object.fromEntries(
+        chains.map((c) => [c, (anchors[c] || []).length]),
+      );
+    } catch (_err) {
+      /* fall back */
+    }
+  }
+
+  // Staging
+  const stagingDir = path.join(dir, "staging");
+  if (fs.existsSync(stagingDir)) {
+    result.staging.pending = fs
+      .readdirSync(stagingDir)
+      .filter((n) => n.endsWith(".json")).length;
+  }
+
+  // Batches (named "<pair>-<seq>", sortable)
+  const batchesDir = path.join(dir, "batches");
+  if (fs.existsSync(batchesDir)) {
+    const entries = fs.readdirSync(batchesDir).sort();
+    result.batches.total = entries.length;
+    if (entries.length > 0) {
+      result.batches.latest = entries[entries.length - 1];
+    }
+  }
+  return result;
+}
+
 const STATUS_DEFAULTS = Object.freeze({
   config: {
     enabled: false,
@@ -196,11 +282,26 @@ function verifyEnvelopeInProcess(envelope, landmark, opts = {}) {
   return lib.verify(envelope, cache, { now });
 }
 
-function registerMtcIPC({ ipcMain: injectedIpcMain, configDir, logger } = {}) {
+function registerMtcIPC({
+  ipcMain: injectedIpcMain,
+  configDir,
+  bridgeConfigDir,
+  logger,
+} = {}) {
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dir = configDir || defaultAuditMtcDir();
+  const bridgeDir = bridgeConfigDir || defaultBridgeMtcDir();
   const log = logger || console;
+
+  ipcMain.handle("mtc:get-bridge-status", async () => {
+    try {
+      return readBridgeStatusFromDisk(bridgeDir);
+    } catch (err) {
+      log.warn?.("[MTC IPC] get-bridge-status failed:", err && err.message);
+      return JSON.parse(JSON.stringify(BRIDGE_STATUS_DEFAULTS));
+    }
+  });
 
   ipcMain.handle("mtc:get-audit-status", async () => {
     try {
@@ -256,9 +357,12 @@ module.exports = {
   registerMtcIPC,
   // Exported for tests:
   readStatusFromDisk,
+  readBridgeStatusFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   makeMultiAlgVerifier,
   defaultAuditMtcDir,
+  defaultBridgeMtcDir,
   STATUS_DEFAULTS,
+  BRIDGE_STATUS_DEFAULTS,
 };

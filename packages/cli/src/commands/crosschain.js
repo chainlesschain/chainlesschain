@@ -767,6 +767,68 @@ function registerCrossChainMtcSubcommands(cc) {
       );
     });
 
+  cc.command("mtc-serve")
+    .description(
+      "Run a daemon that periodically closes staged bridge ops into batches",
+    )
+    .option("--config-dir <dir>", "Override config root")
+    .option(
+      "--interval <seconds>",
+      "Batch close interval (default: config.batch_interval_seconds)",
+      parseInt,
+    )
+    .option("--once", "Close once and exit (no daemon loop)")
+    .option("--alg <alg>", "Override config alg")
+    .option("--issuer <issuer>", "Override config issuer")
+    .option("--json", "Emit per-tick JSON results to stdout")
+    .action(async (opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const cfg = loadCrossChainMtcConfig(dir);
+      const intervalSec = opts.interval || cfg.batch_interval_seconds;
+      const tick = () => {
+        try {
+          const result = closeBatch(dir, {
+            alg: opts.alg,
+            issuer: opts.issuer,
+          });
+          const stamp = new Date().toISOString();
+          if (opts.json) {
+            console.log(JSON.stringify({ tick_at: stamp, ...result }, null, 2));
+          } else if (!result.skipped) {
+            console.log(
+              `[${stamp}] closed ${result.batches.length} batch(es): ${result.batches
+                .map((b) => `${b.pair}#${b.seq}(${b.count})`)
+                .join(", ")}`,
+            );
+          } else {
+            console.log(`[${stamp}] (idle: ${result.skipped.reason})`);
+          }
+        } catch (err) {
+          console.error(
+            `[${new Date().toISOString()}] tick error: ${err.message}`,
+          );
+        }
+      };
+
+      tick();
+      if (opts.once) return;
+
+      console.log(
+        `mtc-serve: closing every ${intervalSec}s (config-dir: ${dir}). Ctrl-C to stop.`,
+      );
+      const handle = setInterval(tick, intervalSec * 1000);
+      // Graceful shutdown
+      const stop = () => {
+        clearInterval(handle);
+        console.log("mtc-serve: stopped.");
+        process.exit(0);
+      };
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      // Keep the event loop alive forever (until signal)
+      await new Promise(() => {});
+    });
+
   cc.command("mtc-batch")
     .description(
       "Close currently-staged bridge ops into batches (one per chain-pair)",

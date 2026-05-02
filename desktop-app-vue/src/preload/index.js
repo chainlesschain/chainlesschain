@@ -455,6 +455,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getActiveAlg: () => ipcRenderer.invoke("mtc:get-active-alg"),
     verifyEnvelope: (envelope, landmark, opts) =>
       ipcRenderer.invoke("mtc:verify-envelope", envelope, landmark, opts),
+    // Bridge MTC (cross-chain bridge) — surfaces config + trust anchors +
+    // staging + batch counters for the V6 BridgeMtcStatusWidget.
+    getBridgeStatus: () => ipcRenderer.invoke("mtc:get-bridge-status"),
   },
 
   did: {

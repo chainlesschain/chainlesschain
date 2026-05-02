@@ -405,6 +405,41 @@ describe("cc crosschain mtc-* — CLI integration", () => {
     return file;
   }
 
+  describe("mtc-serve --once", () => {
+    it("runs one tick and exits when staging empty", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-serve",
+        "--once",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.tick_at).toBeDefined();
+      expect(j.batches).toHaveLength(0);
+      expect(j.skipped.reason).toBe("NO_STAGED_OPS");
+    });
+
+    it("closes staged ops on the single tick", () => {
+      writeStagedOp();
+      writeStagedOp({ src_chain: "arbitrum", dst_chain: "bsc" });
+      const r = runCli([
+        "crosschain",
+        "mtc-serve",
+        "--once",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.skipped).toBeNull();
+      expect(j.batches).toHaveLength(2);
+    });
+  });
+
   describe("mtc-batch", () => {
     it("returns NO_STAGED_OPS when staging empty", () => {
       const r = runCli([

@@ -19,6 +19,25 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-02 Update — **MTC v0.7** — Federation governance CLI + bridge MTCA daemon + V6 widget
+
+Builds on v0.6 cross-chain MTC integration to make the governance design
+doc executable rather than aspirational:
+
+| Module | Notes |
+|---|---|
+| core-mtc governance lib | `packages/core-mtc/lib/federation-governance.js`: 13 event types (create/invite/vote/leave/propose-revoke/confirm-revoke/rotate-key/propose-threshold/confirm-threshold/fork/merge/dispute/wind-down), `createGovernanceEvent` (multi-alg Ed25519/SLH-DSA), `verifyGovernanceEvent`, `replayGovernanceLog` — pure function deriving effective state (members + threshold + 0.5-weight candidate period + auto-promote after 30 days) |
+| 8 new governance CLI | `cc mtc federation invite/vote/propose-revoke/confirm-revoke/rotate-key/propose-threshold/fork/merge` all sign + append to `~/.chainlesschain/federation/governance/<fed>.jsonl`; `cc mtc federation governance-log <fed>` shows events + replay state |
+| Bridge MTCA daemon | `cc crosschain mtc-serve [--interval <s>] [--once]`: periodic closeBatch; `--once` mode suits cron/tests; SIGINT/SIGTERM graceful shutdown |
+| Desktop V6 widget | `BridgeMtcStatusWidget.vue` + `mtc:get-bridge-status` IPC channel (preload `electronAPI.mtc.getBridgeStatus`); shows enabled/mode/alg/batch interval/trust anchors/pending-staging/latest batch; registered as `PREVIEW_WIDGETS["bridge-mtc"]` |
+| Bug fix | governance lib's `pickSigner` accepts both canonical (`Ed25519`) and CLI-lowercase (`ed25519`) — otherwise verify returned `BAD_ALG` |
+
+**Test totals**: core governance lib 20 unit + CLI 14 integration + desktop 11 (5 widget + 6 IPC bridge) = **50 new tests green**; total MTC-related = core-mtc 202 + CLI 86 + desktop 32 = **320 tests**.
+
+Implementation stays opt-in: `cc mtc federation` governance events only write to local governance.log on the actor's box — other members must actively sync the log or run a verifier to learn about changes.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.6** — Cross-chain bridge MTC integration + governance design docs
 
 Two new design documents (closing §12 known-limit items #2 / #6) plus a new `cc crosschain mtc-*` subcommand surface that lets existing bridge / swap / send paths opt-in to MTC envelope writes:

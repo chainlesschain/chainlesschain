@@ -82,6 +82,17 @@ cc mtc federation discover <fed-id>
   --transport libp2p --listen <maddr> --connect <peer-maddr>
   [--member-id <m>] [--ttl <s>] [--once]
 
+# Federation 治理（v0.7 新，see design 联邦治理 v1）
+cc mtc federation invite <fed-id> <candidate-member-id> --actor <m> --candidate-pubkey-id <id>
+cc mtc federation vote <fed-id> <candidate-member-id> --actor <m> --decision approve|reject
+cc mtc federation propose-revoke <fed-id> <target-id> --actor <m> --reason <text>
+cc mtc federation confirm-revoke <fed-id> <target-id> --actor <m> [--reason key-compromise]
+cc mtc federation rotate-key <fed-id> --actor <m> --new-pubkey-id <id> [--new-alg <alg>]
+cc mtc federation propose-threshold <fed-id> <new-M> --actor <m>
+cc mtc federation fork <fed-id> <new-fed-id> --actor <m> --members <id1,id2,...>
+cc mtc federation merge <fed-id> <other-fed-id> <new-fed-id> --actor <m>
+cc mtc federation governance-log <fed-id> [--events-only] [--json]
+
 # 验证
 cc mtc verify <envelope.json> --landmark <landmark.json>
 
@@ -104,6 +115,7 @@ cc crosschain mtc-envelope --input <ops.json> --src-chain --dst-chain --batch-se
 cc crosschain mtc-verify <envelope> <landmark>
 cc crosschain mtc-batch                      # 关 staging 中所有 op 为批次（按 chain-pair 分组）
 cc crosschain bridge|swap|send ... --mtc     # 在原命令成功后写一条 staging op
+cc crosschain mtc-serve [--interval <s>] [--once]   # daemon: 周期性 close batch（v0.7 新）
 ```
 
 ---
