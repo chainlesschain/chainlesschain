@@ -487,12 +487,19 @@ export async function verifyMTC(
 
 ## 12. 已知限制 / 未解决问题
 
+> 以下分两类：**永久设计权衡 / 运维约束**（不会"完成"，作为读者心智模型保留）和 **代码 / 文档 TODO**（会在路线图推进中关闭）。
+
+**永久限制（设计 / 运维约束）：**
+
 1. **延迟不适合实时场景**：DID 24h 批延迟、Marketplace 1 月批延迟 — 实时通信继续走单条签名
-2. **联邦 MTCA 的治理未定**：Phase 3 才考虑；M-of-N 怎么定？谁有权加入？— 需要单独治理设计文档
 3. **IPFS 可达性**：Phase 1 假设节点能访问 IPFS 公网；离线 / 内网部署下 landmark 分发需走自建 pinning service
 4. **Tree size 上限**：单棵树长到 N=2³² 后审计路径 32 层，验证仍 < 1 ms；但单 landmark 文件会很大 — Phase 3 可能需要"分代树根"
-5. **与现有 audit log 写入路径的语义冲突**：现有审计是同步落盘 + 实时可查；改造后"批次关闭前的事件状态"需要 UI 明确表示"待批确认"
-6. **未考虑跨链桥的 MTC 化**：留给独立设计文档（关联 memory `cross_chain_cli`）
+
+**TODO（已完成 / 待补）：**
+
+2. **联邦 MTCA 的治理**：⚠️ **机制 ✅ / 治理文档 ❌** — Phase 3 P3.1+P3.2+P3.3 已落（commits `95b861914` 多签 landmark、`15c29e9fe` Marketplace 联邦信任锚、`aa13e07a9` filesystem 服务发现）+ libp2p gossipsub 自动发现 + Ed25519/SLH-DSA 异构联邦；但"谁有权加入、threshold 怎么定、成员撤销流程"的**单独治理设计文档**仍未写（见 §14.4 待办 1）
+5. **与现有 audit log 写入路径的语义冲突**：✅ **已解决（2026-05-02 commit `70d2cda59`）** — backend `AuditMtcBridgeService` 解析 `cc audit mtc emit --json` 提取 event_id，via setEmitCallback 通知 `OperationLogService` 写入 `audit_mtc_event_id` 字段（V013 迁移）；web-panel `Audit.vue` 加 MTC 列四态徽章（—/已签未查/待关批/已关批 #N），点击触发 `cc audit mtc reconcile-check` 缓存到 row
+6. **跨链桥的 MTC 化**：❌ **未做** — 留给独立设计文档（关联 memory `cross_chain_cli`），见 §14.4 待办 2
 
 ---
 
@@ -535,7 +542,11 @@ export async function verifyMTC(
 - [x] **Phase 4 — Desktop + Web UI 全部落地**（2026-05-02）：V6 状态 widget + 主进程 IPC + DID 详情页 MTC 包含证明 drawer + Marketplace per-row 验证按钮 + Web-panel /mtc 三 tab + Web-panel /did 行 MTC 验证（cross-host parity）。详见 §9 Phase 4 列表。
 - [x] **audit "待批次关闭" 徽章**（Q-PROD-1 决议 B，2026-05-02 commit `70d2cda59`）：backend 端 `AuditMtcBridgeService` 解析 `cc audit mtc emit --json` stdout 提取 event_id，via setEmitCallback 通知 `OperationLogService` 写入新字段 `audit_mtc_event_id`（V013 迁移 + 索引）；web-panel `audit-parser.js` 暴露 `auditMtcEventId` + `classifyMtcStatus`，Audit.vue 加 MTC 列：—/已签未查/待关批/已关批 #N 四态徽章，点击触发 `cc audit mtc reconcile-check` 缓存到 row。+4 backend 单测、+5 web-panel 单测。
 
-### 14.4 上游跟踪
+### 14.4 待补设计文档
+1. **联邦 MTCA 治理设计文档**（关闭 §12 第 2 项的"治理"半截）— 范围：(a) 谁有权加入联邦（准入条件 + 审批流），(b) M-of-N 阈值如何确定（业务场景分级），(c) 成员撤销 / 轮换流程，(d) 联邦分裂 / 合并语义，(e) 异构算法成员（Ed25519 + SLH-DSA）的 threshold 计票规则。机制层 P3.1–P3.3 已在 §9 落地，本文档仅产出运营 / 治理规范。
+2. **跨链桥的 MTC 化设计文档**（关闭 §12 第 6 项）— 范围：cross-chain message 如何嵌入 MTC envelope、桥两侧 MTCA 互信模型、与现有 `cc crosschain` 5 链生命周期的集成点。关联 memory `cross_chain_cli`。
+
+### 14.5 上游跟踪
 - 关注 `draft-ietf-plants-merkle-tree-certs-03+` 对树头签名算法、consistency proof、JWK 编码 SLH-DSA 的新建议
 - 关注 IETF COSE WG 的 SLH-DSA / ML-DSA JWK 草案（数据格式 §13 第 1 项的未决依赖）
 - 关注 `@noble/post-quantum` 发布动态
