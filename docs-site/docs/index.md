@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.3.1 | CLI 0.158.0 · 109 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认）· cc pack OTA · Web Panel 50 routes（V5→Web 全量收官）
+  tagline: v5.0.3.4 | CLI 0.160.1 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）· Web Panel i18n M3 全覆盖 · MTC v0.5（Phase 0–4 联邦 + libp2p auto-discovery · 476 测试）· cc pack OTA
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -41,6 +41,10 @@ features:
 > 2026-04-26 更新：**web-panel Phase B 全量收官**。从桌面端移植 5 个高频功能到浏览器面板：`/community`（社交：联系人/好友/帖子）、`/marketplace`（技能市场：发布/调用/统计）、`/crosschain`（跨链桥：5 链桥接 + HTLC + 跨链消息）、`/aiops`（运维：异常检测 + Playbook + 基线）、`/compliance`（合规：STIX 2.1 IoC + UEBA 行为分析）。配套：侧边栏改造（独立滚动 + 8 个二级菜单可折叠 + localStorage 持久化）、SPA fallback 测试覆盖率从 23 路由扩到 34、新增 19 个集成测试（每命令实跑一次 `cc serve` WS）。Commits: `260787c99` / `792b211e1` / `8f7d87ede` / `30cf3b6ab` / `04c57237d` / `7ee1985c5` / `d43e43a93`。
 >
 > 2026-04-27 更新：**web-panel V5→Web 全量化迁移收官 — Phase B/C/D 一日连发**。Phase B 补齐 B6–B10（`/privacy` 隐私计算 + `/inference` 推理网络 + `/nlprog` 自然语言编程 + `/tenant` 多租户 SaaS + `/pipeline` Pipeline 编排）共 10/10 全量上线，CLI 升 `0.157.7`。随后 Phase C 5/5 全量：`/governance` 治理 + `/audit` 审计 + `/reputation` 信誉 + `/recommend` 推荐 + `/sla` SLA，CLI 升 `0.157.8`。同日 Phase D 5/5 收口：`/codegen` 代码生成 + `/search` 多维搜索 + `/tokens` Token 激励 + `/trust` 信任根 + `/federation` 联邦熔断，CLI 升 `0.157.9`。**至此 Phase A (3) + B (10) + C (5) + D (5) = 23 ports 全部落地，router 28 → 50 (+22 routes)，web-panel 单元测试 27 → 1489 全绿**。从此 `cc ui` 浏览器端与桌面 Electron 端功能对等。Phase D commits: `fa8479d49` / `da852045d` / `6e1941beb` / `6b7ac0985` / `a7909b8a6` → bundle `1faa9e11f`。
+>
+> 2026-05-01 更新：**MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery**（commit `d75abe6e8` / sweep `f7e333a41`）。Phase 3.1 多签 landmark + `cc mtc federation {join,leave,status}` 本地 registry；Phase 3.2 `cc mtc batch* / publish-skills --federation <id> --threshold <M>` 多签发布；Phase 3.3 `--transport filesystem` 跨进程 drop-zone 发现（NFS/Syncthing/SMB/USB）；Phase 3.4 `--transport libp2p` 真 P2P gossipsub topic auto-discovery。Backend Q-ENG-2 OperationLogService 桥接 `cc audit mtc emit` 写回 `audit_mtc_event_id`（V013 migration），web-panel `Audit.vue` 加 4 态 MTC 列徽章。**476 MTC 测试全绿**（core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19）跨 6 层覆盖，含异构 Ed25519 + SLH-DSA 联邦。
+>
+> 2026-05-02 更新：**Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker**。i18n M3 一波收 ~25 个视图（Speech/Analytics/Cron/Security/Templates/Search/Audit/McpTools/Backup/Tokens/Mtc/WebAuthn/Community/Wallet/Inference/Organization/Recommend/Federation/Reputation/AIOps/Projects 等），中英双语 vue-i18n 全量贯通；V6 preview topbar 接 `LanguageSwitcher`（`645b19f30`）。web-shell 默认 ON 后加 `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）；projects 加 folder picker 走 `cc init --cwd` 完成"打开已有文件夹"流（`c935a95d4`）。CLI `0.160.0 → 0.160.1`，root `productVersion v5.0.3.1 → v5.0.3.4`。
 
 ## 当前验证结果
 

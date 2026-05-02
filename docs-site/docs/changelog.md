@@ -3,6 +3,71 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.4 / CLI 0.160.1] - 2026-05-02 (Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker)
+
+### Added
+
+- **Web Panel i18n M3 — ~25 视图国际化大批量收口**（commits `b69ed7cef` / `fac49c07d` / `1c9c8a9a1` / `431714a8b` / `0306474a8` / `f357289e9` / `c089ce07d` / `18524d971` / `5f45b6379` / `443d3eceb` / `91563a092` / `28b46d4bf` / `587534ef3` / `93d41459c` / `32ff8e36c` / `cb46f7755` / `fd61758a1` / `92792a52b` / `332ff60f6` / `89ba2cb5c` / `7eadd0565` 等）：把 web-panel 主要视图全部改用 vue-i18n 字典，覆盖 SpeechSettings / Analytics / Cron / Security / Templates / Search / Audit / McpTools / Backup / Tokens / Mtc / WebAuthn / Community / Wallet / Inference / Organization / Recommend / Federation / Reputation / AIOps / Projects 等 ~25 视图。中英双语贯通，硬编码字符串清零。
+- **V6 Preview LanguageSwitcher**（commit `645b19f30`）：V6 preview 壳顶栏接入语言切换器，与 web-panel i18n 字典共享。
+- **web-shell `--no-web-shell` dev opt-out + settings-authoritative precedence**（commit `9119bdec1`）：默认 ON 后给开发者保留快速回桌面 V6 壳的开关；setting 中显式选择优先于命令行。
+- **`cc init --cwd` + projects folder picker**（commit `c935a95d4`）：projects 视图增加"打开已有文件夹"流，走 `cc init --cwd <dir>` 把任意目录初始化为 ChainlessChain 工作区。
+
+### Changed
+
+- 仓库根 `productVersion v5.0.3.1 → v5.0.3.3 → v5.0.3.4`（commit `8c68970cf` 起）；CLI npm 包 `0.158.0 → 0.160.0 → 0.160.1`（含 web-panel dist 重打包 commit `edaf61d2b`）。
+- 三站 tagline / hero chip / 模块清单同步刷新到 v5.0.3.4 / CLI 0.160.1 / 112 命令。
+
+### Why
+
+i18n M3 是「web-panel V5→Web 全量化收官（Phase A+B+C+D = 23 ports）」之后的国际化补丁层，把所有迁移过来的 V2/V3/Phase 视图统一接入 vue-i18n。结合 V6 preview LanguageSwitcher，让 ChainlessChain 浏览器端 + 桌面端预览壳一次性获得中英双语能力。`--no-web-shell` 是 web-shell 默认 ON 后的运维出口；folder picker + `cc init --cwd` 则补齐了 projects "打开已有文件夹" 这条 V5 时代缺失的流程。
+
+---
+
+## [5.0.3.3 / CLI 0.160.0] - 2026-05-01 (MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery)
+
+### Added
+
+- **MTC Phase 3.1 多签 landmark + `cc mtc federation {join,leave,status}`**：本地 registry（atomic write、`wx` race-safe），M-of-N 多签 landmark 生成。
+- **MTC Phase 3.2 多签发布**：`cc mtc batch* / publish-skills --federation <id> --threshold <M>`，把已有 batch / skill 发布命令对接到联邦多签路径。
+- **MTC Phase 3.3 `--transport filesystem` 跨进程发现**：drop-zone 跨进程发现（NFS / Syncthing / SMB / USB），自签 announce schema `mtc-federation-announce/v1` + TTL-evicting 名册。
+- **MTC Phase 3.4 `--transport libp2p` 真 P2P auto-discovery**（commit `d75abe6e8`）：libp2p gossipsub topic `mtc-federation/v1/<id>` 自动发现，`Libp2pTransport` 加 `publishRaw / subscribeRaw` 通用 pubsub API（与 landmark 通道隔离）。
+- **Backend Q-ENG-2 OperationLogService 桥接**：`cc audit mtc emit` 捕获 `event_id` 写回 `audit_mtc_event_id` 字段（V013 migration），web-panel `Audit.vue` 加 4 态 MTC 列徽章（— / 已签未查 / 待关批 / 已关批 #N）。
+- **异构联邦支持**：同一联邦内 Ed25519 + SLH-DSA 节点共存，多签门限按签名抽象层验证。
+
+### Fixed
+
+- MTC v0.5 sweep（commit `f7e333a41`）：drawer 错调 `electronAPI.fs.readFile` → 改 `file.readContent`；libp2p 节点 init 异常路径 cleanup；filesystem discover daemon scan 重入锁；federation join `wx` 独占创建。
+
+### 测试
+
+- **476 MTC 测试全绿**：core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19，跨 6 层覆盖（unit / integration / e2e / desktop-renderer / web-panel-renderer / backend-spring）。
+
+---
+
+## [5.0.3.2 / CLI 0.159.0] - 2026-04-30 (MTC v0.4 + Phase 1.6 SLH-DSA + Phase 4 V6 widget)
+
+### Added
+
+- **`cc mtc publish-skills` marketplace publisher 守护进程**：JCS-canonicalize → SHA-256 fingerprint 差量检测 + 自动 seq 递增 + 状态文件原子写（temp + rename，崩溃不污染）。
+- **`cc audit mtc {enable, disable, config, set-interval, emit, reconcile, reconcile-check, status}` 双轨脚手架**：每事件实时 Ed25519 落盘 + 关批 Merkle 树 inclusion proof，幂等关批 + atomic rename 崩溃恢复，schema/filename 三路验签拒伪事件。60s/3600s 双合规路径预留。
+- **Phase 1.6 SLH-DSA real signing**（FIPS 205 后量子签名 hard-flip）：`--alg slh-dsa-128f` opt-in，原 Ed25519 路径仍默认。
+- **Phase 4 V6 status widget**：`/v6-preview` 壳新增 MTC 状态 widget，跑流水显示 batch / federation / audit 三段。
+
+### Changed
+
+- `assembleBatch` 抽到 `core-mtc/lib/batch.js` 公用，CLI mtc / audit / 未来发布路径同一条装配代码。
+- 设计文档 v0.3 → v0.4，docs-site 用户指南 + 设计站均同步。
+
+### Note
+
+> Audit 产线启用仍待 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；脚手架已就位，出函后单一 `cc audit mtc enable --interval <60|3600>` 即上线。
+
+### 测试
+
+- **222 测试全绿**：core-mtc 147 + CLI 64 + desktop V6 widget 11，四层覆盖 unit / integration / e2e / desktop-renderer。
+
+---
+
 ## [5.0.3.1 / CLI 0.157.9] - 2026-04-27 (web-panel V5→Web 全量收官 — Phase B/C/D 一日连发)
 
 ### Added

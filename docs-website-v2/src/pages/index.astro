@@ -28,7 +28,10 @@ const everyday = [
 ];
 
 const evolution = [
-  // ── v5.0.3.1 Latest (2026-05-01) — Phase 2 流式取消 + 配置持久化修 + Speech port + session-list bug 修 ──
+  // ── v5.0.3.4 Latest (2026-05-02) — Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + folder picker ──
+  { tag: 'v5.0.3.4', title: 'Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker', sub: '~25 视图国际化 · 中英双语贯通 · `--no-web-shell` opt-out · `cc init --cwd` 文件夹打开流', desc: '一波收口四件：（1）Web Panel i18n M3 — `b69ed7cef` / `fac49c07d` / `1c9c8a9a1` / `431714a8b` / `0306474a8` / `f357289e9` / `c089ce07d` / `18524d971` / `5f45b6379` / `443d3eceb` / `91563a092` / `28b46d4bf` / `587534ef3` / `93d41459c` / `32ff8e36c` / `cb46f7755` / `fd61758a1` / `92792a52b` / `332ff60f6` / `89ba2cb5c` / `7eadd0565` 等连续 commit 把 web-panel 主要视图全部改用 vue-i18n 字典（SpeechSettings / Analytics / Cron / Security / Templates / Search / Audit / McpTools / Backup / Tokens / Mtc / WebAuthn / Community / Wallet / Inference / Organization / Recommend / Federation / Reputation / AIOps / Projects 等 ~25 视图），中英双语贯通，硬编码字符串清零。（2）V6 Preview LanguageSwitcher（`645b19f30`）— V6 preview 壳顶栏接入语言切换器，与 web-panel i18n 字典共享。（3）web-shell `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）— 默认 ON 后给开发者保留快速回桌面 V6 壳的开关，setting 中显式选择优先于命令行。（4）`cc init --cwd` + projects folder picker（`c935a95d4`）— projects 视图增加"打开已有文件夹"流，走 `cc init --cwd <dir>` 把任意目录初始化为 ChainlessChain 工作区。CLI `0.160.0 → 0.160.1`，root `productVersion v5.0.3.1 → v5.0.3.3 → v5.0.3.4`（commit `8c68970cf` 起 + dist 重打包 `edaf61d2b`）。' },
+
+  // ── v5.0.3.3 (2026-05-01) — MTC v0.5 Phase 3 federation 全套 + libp2p auto-discovery（已存在，置顶突显） ──
   { tag: 'v5.0.3.1', title: 'Phase 2 流式取消 + 配置持久化修 + Speech port + 多项 bug 修', sub: 'AbortController 贯通 · ui.* whitelist 修 · vendor target 修 · session-close 真删 · ~2480 测试全绿', desc: '一次集中收口五条线：（1）`llm.chat` 真取消（commits `b6b5174cb` + `4951c95d5`）— ws-cli-loader 加 `inFlightStreams<id, gen>` map，ws.close（lazy WeakSet 钩 ws.on("close")）+ `<topic>.cancel` 帧两条触发链都驱动 `gen.return()`；llm-handlers 的 generator finally 调 `AbortController.abort()`，signal 透到 ollama / anthropic / openai client 的 fetch（gemini 因 axios 参数顺序差异未透）。`useLlmChat.cancel()` SPA 端按钮真停 HTTP 请求。（2）AppConfigManager `ui.*` 持久化修（commit `436e349f1`）— DEFAULT_CONFIG 加 `ui` 字段 + load/loadAsync 合并白名单加 `ui` 行；`_readSettingsSync` 层叠 app-config.json 的 `ui` 到 settings.json，让 V6 toggle / Web Shell toggle 真在下次启动生效，原 silent-drop bug 一并解决。（3）Phase 1.4 vendor target 修（commit `cecb94980`）— forge.config.js 的 `vendorWebShellInto(buildPath)` 修为 `path.join(buildPath, "..")`，匹配 path-math 测试 fixture，让 packaged loaders 的 4-up REL 真命中 `Resources/packages/`；asar.unpack 顺势丢掉死掉的 `packages/**` glob。（4）Speech 子页搬到 web-panel（commit `2d45ae278`）— `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + 路由 `/speech-settings`，引擎选择 + Web Speech / Whisper API / Whisper Local 三块核心配置；高级 storage / audio / 知识集成 / 性能子项保留 V5（Memory Bank 同款 deliberate scope cut）。LLM / Project 早有 Providers / ProjectSettings 等价页，V5 SystemSettings 三个 tab 加 a-alert 指向 web-panel。（5）drive-by：CLI ws-session-gateway `closeSession` 后 session 仍现身 `session-list` 的 bug 修 — `_serializeSessionMetadata` 加 `status` 字段 + listSessions DB 路径 `if (metadata.status === "closed") continue;`。**测试矩阵**：desktop unit 248 + config 26 + scripts 14 + integration 514 + web-shell e2e 14 + Playwright 4，web-panel unit 1616 + integration 58 + e2e 75（含修好的 session-close case），CLI session-gateway 58。共 ~2480 测试全绿。' },
   // ── v5.0.3.1 (2026-04-30) — 桌面 web-shell Phase 1.5 MVP：多窗口架构 ──
   { tag: 'v5.0.3.1', title: '桌面 web-shell Phase 1.5 MVP — 多窗口架构落地', sub: 'WindowRegistry + window.open WS handler · 26 新单测', desc: '桌面 web-shell 多窗口骨架 MVP 完成。`desktop-app-vue/src/main/window-registry.js`（202 行）实现 role-based hash route + per-role geometry 持久化的 WindowRegistry 骨架，同源多 BrowserWindow 通过 role 标识统一管理。新增 `web-shell/handlers/window-open-handler.js`（146 行）暴露 WS topic `window.open`，web-panel 渲染层可通过 envelope `{type:"window.open", payload:{role,url,hash,options}}` 让主进程拉新窗口。同时落地 HomePage 真知识计数 + 响应式同步徽章、SyncStatusButton mount 时探真同步状态（弃硬编码默认）、CLI `0.158.0` web-shell embedded mode release tag。`window-registry.test.js`（13）+ `window-open-handler.test.js`（13）共 26 例新单测全绿。剩余收口：role catalog 完善 + WindowRegistry 接 web-panel 真路由 + 多窗口 e2e。' },
@@ -150,9 +153,11 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
-          <span class="chip">CLI v0.158.0</span>
-          <span class="chip">109 命令</span>
+          <span class="chip">CLI v0.160.1</span>
+          <span class="chip">112 命令</span>
           <span class="chip">Web Shell（默认）</span>
+          <span class="chip">Web Panel i18n（中英）</span>
+          <span class="chip">MTC v0.5</span>
         </div>
 
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
@@ -207,7 +212,7 @@ const badges = [
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
-            <div class="font-display text-4xl text-ember">109</div>
+            <div class="font-display text-4xl text-ember">112</div>
             <div class="text-sm text-muted mt-1">CLI 命令</div>
           </div>
           <div>
@@ -439,7 +444,7 @@ const badges = [
             <li>· CLI Agent · Claude Code 风格</li>
             <li>· Cowork 多 Agent 并行审查</li>
             <li>· MCP 工具生态 + 9 Skill Packs</li>
-            <li>· 109 命令 · 14800+ 测试 · V2 规范层 220+ 治理表面</li>
+            <li>· 112 命令 · 14800+ 测试 · V2 规范层 220+ 治理表面</li>
           </ul>
           <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
             <span>$ npm i -g chainlesschain</span>
@@ -545,7 +550,7 @@ const badges = [
           </div>
           <p class="text-muted mb-6">适合个人用户 & 独立开发者。完整的 CLI、桌面、移动端三端体验。</p>
           <ul class="space-y-2 text-sm mb-8">
-            <li>✓ 全部 109 条 CLI 命令 + 139 Skills</li>
+            <li>✓ 全部 112 条 CLI 命令 + 139 Skills</li>
             <li>✓ U-Key / SIMKey 硬件加密</li>
             <li>✓ 本地 Ollama + 10 LLM Providers</li>
             <li>✓ Cowork 多智能体协作</li>
