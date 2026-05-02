@@ -2556,6 +2556,76 @@
       "copyFailed": "复制失败"
     }
   },
+  "security": {
+    "title": "安全中心",
+    "subtitle": "DID 身份 / 加密 / 审计",
+    "refresh": "刷新",
+    "tabs": {
+      "did": "DID 身份",
+      "encrypt": "文件加密",
+      "audit": "审计日志"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "did": {
+      "createButton": "创建身份",
+      "signButton": "签名消息",
+      "default": "默认",
+      "available": "可用",
+      "emptyText": "暂无 DID 身份，点击创建身份添加",
+      "signTitle": "DID 签名",
+      "signOk": "签名",
+      "messageLabel": "消息",
+      "messagePlaceholder": "请输入要签名的消息",
+      "signResultLabel": "签名结果:"
+    },
+    "didColumns": {
+      "did": "DID",
+      "method": "方法",
+      "created": "创建时间",
+      "status": "状态"
+    },
+    "encrypt": {
+      "encryptCardTitle": "加密文件",
+      "decryptCardTitle": "解密文件",
+      "pathLabel": "文件路径",
+      "encryptPlaceholder": "输入文件路径，如 /path/to/file.txt",
+      "decryptPlaceholder": "输入加密文件路径，如 /path/to/file.txt.enc",
+      "encryptButton": "加密",
+      "decryptButton": "解密",
+      "successTag": "成功",
+      "failureTag": "失败",
+      "encryptDefault": "加密完成",
+      "decryptDefault": "解密完成"
+    },
+    "audit": {
+      "emptyText": "暂无审计日志",
+      "totalEvents": "总事件数",
+      "statusLabel": "状态",
+      "ready": "就绪"
+    },
+    "auditColumns": {
+      "time": "时间",
+      "event": "事件",
+      "user": "用户",
+      "level": "级别",
+      "detail": "详情"
+    },
+    "messages": {
+      "loadDidsFailed": "加载 DID 列表失败: {err}",
+      "didCreateFailed": "创建失败: {err}",
+      "didCreateOk": "DID 身份已创建",
+      "messageRequired": "请输入消息",
+      "signFailed": "签名失败: {err}",
+      "signOk": "签名成功",
+      "encryptFailed": "加密失败: {err}",
+      "encryptOk": "文件加密成功",
+      "decryptFailed": "解密失败: {err}",
+      "decryptOk": "文件解密成功",
+      "loadAuditFailed": "加载审计日志失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

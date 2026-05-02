@@ -2,12 +2,12 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">安全中心</h2>
-        <p class="page-sub">DID 身份 / 加密 / 审计</p>
+        <h2 class="page-title">{{ t('security.title') }}</h2>
+        <p class="page-sub">{{ t('security.subtitle') }}</p>
       </div>
       <a-button type="primary" ghost :loading="refreshing" @click="refreshCurrentTab">
         <template #icon><ReloadOutlined /></template>
-        刷新
+        {{ t('security.refresh') }}
       </a-button>
     </div>
 
@@ -16,17 +16,17 @@
       <a-tab-pane key="did">
         <template #tab>
           <SafetyCertificateOutlined />
-          DID 身份
+          {{ t('security.tabs.did') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" :loading="creating" @click="createDID">
             <template #icon><PlusOutlined /></template>
-            创建身份
+            {{ t('security.did.createButton') }}
           </a-button>
           <a-button @click="showSignModal = true">
             <template #icon><KeyOutlined /></template>
-            签名消息
+            {{ t('security.did.signButton') }}
           </a-button>
         </a-space>
 
@@ -35,7 +35,7 @@
           v-else
           :columns="didColumns"
           :data-source="didList"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('security.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'sec-row'"
@@ -52,31 +52,31 @@
             </template>
             <template v-if="column.key === 'status'">
               <a-tag :color="record.isDefault ? 'green' : 'default'">
-                {{ record.isDefault ? '默认' : '可用' }}
+                {{ record.isDefault ? t('security.did.default') : t('security.did.available') }}
               </a-tag>
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无 DID 身份，点击「创建身份」添加" />
+            <a-empty :description="t('security.did.emptyText')" />
           </template>
         </a-table>
 
         <!-- Sign Modal -->
         <a-modal
           v-model:open="showSignModal"
-          title="DID 签名"
+          :title="t('security.did.signTitle')"
           :confirm-loading="signing"
           @ok="signMessage"
-          ok-text="签名"
-          cancel-text="取消"
+          :ok-text="t('security.did.signOk')"
+          :cancel-text="t('common.cancel')"
         >
           <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
-            <a-form-item label="消息" required>
-              <a-input v-model:value="signText" placeholder="请输入要签名的消息" />
+            <a-form-item :label="t('security.did.messageLabel')" required>
+              <a-input v-model:value="signText" :placeholder="t('security.did.messagePlaceholder')" />
             </a-form-item>
           </a-form>
           <div v-if="signResult" style="margin-top: 12px;">
-            <p style="color: var(--text-secondary); margin-bottom: 6px;">签名结果:</p>
+            <p style="color: var(--text-secondary); margin-bottom: 6px;">{{ t('security.did.signResultLabel') }}</p>
             <pre style="white-space: pre-wrap; word-break: break-all; color: #52c41a; font-size: 11px; background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">{{ signResult }}</pre>
           </div>
         </a-modal>
@@ -86,47 +86,47 @@
       <a-tab-pane key="encrypt">
         <template #tab>
           <LockOutlined />
-          文件加密
+          {{ t('security.tabs.encrypt') }}
         </template>
 
         <a-row :gutter="[24, 24]">
           <a-col :xs="24" :md="12">
-            <a-card title="加密文件" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="t('security.encrypt.encryptCardTitle')" style="background: var(--bg-card); border-color: var(--border-color);">
               <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-                <a-form-item label="文件路径">
-                  <a-input v-model:value="encryptPath" placeholder="输入文件路径，如 /path/to/file.txt" />
+                <a-form-item :label="t('security.encrypt.pathLabel')">
+                  <a-input v-model:value="encryptPath" :placeholder="t('security.encrypt.encryptPlaceholder')" />
                 </a-form-item>
                 <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
                   <a-button type="primary" :loading="encrypting" :disabled="!encryptPath.trim()" @click="doEncrypt">
                     <template #icon><LockOutlined /></template>
-                    加密
+                    {{ t('security.encrypt.encryptButton') }}
                   </a-button>
                 </a-form-item>
               </a-form>
               <div v-if="encryptResult" style="margin-top: 8px;">
                 <a-tag :color="encryptResult.success ? 'green' : 'red'">
-                  {{ encryptResult.success ? '成功' : '失败' }}
+                  {{ encryptResult.success ? t('security.encrypt.successTag') : t('security.encrypt.failureTag') }}
                 </a-tag>
                 <pre style="white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); font-size: 11px; margin-top: 8px; background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">{{ encryptResult.output }}</pre>
               </div>
             </a-card>
           </a-col>
           <a-col :xs="24" :md="12">
-            <a-card title="解密文件" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-card :title="t('security.encrypt.decryptCardTitle')" style="background: var(--bg-card); border-color: var(--border-color);">
               <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-                <a-form-item label="文件路径">
-                  <a-input v-model:value="decryptPath" placeholder="输入加密文件路径，如 /path/to/file.txt.enc" />
+                <a-form-item :label="t('security.encrypt.pathLabel')">
+                  <a-input v-model:value="decryptPath" :placeholder="t('security.encrypt.decryptPlaceholder')" />
                 </a-form-item>
                 <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
                   <a-button type="primary" :loading="decrypting" :disabled="!decryptPath.trim()" @click="doDecrypt">
                     <template #icon><LockOutlined /></template>
-                    解密
+                    {{ t('security.encrypt.decryptButton') }}
                   </a-button>
                 </a-form-item>
               </a-form>
               <div v-if="decryptResult" style="margin-top: 8px;">
                 <a-tag :color="decryptResult.success ? 'green' : 'red'">
-                  {{ decryptResult.success ? '成功' : '失败' }}
+                  {{ decryptResult.success ? t('security.encrypt.successTag') : t('security.encrypt.failureTag') }}
                 </a-tag>
                 <pre style="white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); font-size: 11px; margin-top: 8px; background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">{{ decryptResult.output }}</pre>
               </div>
@@ -139,7 +139,7 @@
       <a-tab-pane key="audit">
         <template #tab>
           <AuditOutlined />
-          审计日志
+          {{ t('security.tabs.audit') }}
         </template>
 
         <!-- Stats Cards -->
@@ -160,7 +160,7 @@
           v-else
           :columns="auditColumns"
           :data-source="auditEvents"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('security.totals.rows', { count }) }"
           size="small"
           style="background: var(--bg-card);"
           :row-class-name="() => 'sec-row'"
@@ -183,7 +183,7 @@
             </template>
           </template>
           <template #emptyText>
-            <a-empty description="暂无审计日志" />
+            <a-empty :description="t('security.audit.emptyText')" />
           </template>
         </a-table>
       </a-tab-pane>
@@ -192,7 +192,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   SafetyCertificateOutlined,
   LockOutlined,
@@ -204,6 +205,7 @@ import {
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // --- Shared ---
@@ -234,12 +236,12 @@ const showSignModal = ref(false)
 const signText = ref('')
 const signResult = ref('')
 
-const didColumns = [
-  { title: 'DID', key: 'did', dataIndex: 'did', ellipsis: true },
-  { title: '方法', key: 'method', dataIndex: 'method', width: '100px' },
-  { title: '创建时间', key: 'created', dataIndex: 'created', width: '180px' },
-  { title: '状态', key: 'status', width: '80px' },
-]
+const didColumns = computed(() => [
+  { title: t('security.didColumns.did'), key: 'did', dataIndex: 'did', ellipsis: true },
+  { title: t('security.didColumns.method'), key: 'method', dataIndex: 'method', width: '100px' },
+  { title: t('security.didColumns.created'), key: 'created', dataIndex: 'created', width: '180px' },
+  { title: t('security.didColumns.status'), key: 'status', width: '80px' },
+])
 
 async function loadDIDList() {
   didLoading.value = true
@@ -247,7 +249,7 @@ async function loadDIDList() {
     const { output } = await ws.execute('did list', 15000)
     didList.value = parseDIDList(output)
   } catch (e) {
-    message.error('加载 DID 列表失败: ' + e.message)
+    message.error(t('security.messages.loadDidsFailed', { err: e.message }))
   } finally {
     didLoading.value = false
   }
@@ -259,7 +261,6 @@ function parseDIDList(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('DID') || trimmed.match(/^\d+ identit/i)) continue
-    // Try to match DID string patterns like "did:key:z6Mk..." or numbered entries
     const didMatch = trimmed.match(/(did:\w+:\w+)/)
     if (didMatch) {
       const did = didMatch[1]
@@ -283,30 +284,30 @@ async function createDID() {
   try {
     const { output } = await ws.execute('did create', 20000)
     if (output.includes('error') || output.includes('失败')) {
-      message.error('创建失败: ' + output.slice(0, 120))
+      message.error(t('security.messages.didCreateFailed', { err: output.slice(0, 120) }))
     } else {
-      message.success('DID 身份已创建')
+      message.success(t('security.messages.didCreateOk'))
       await loadDIDList()
     }
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('security.messages.didCreateFailed', { err: e.message }))
   } finally {
     creating.value = false
   }
 }
 
 async function signMessage() {
-  if (!signText.value.trim()) { message.warning('请输入消息'); return }
+  if (!signText.value.trim()) { message.warning(t('security.messages.messageRequired')); return }
   signing.value = true
   signResult.value = ''
   try {
     const { output } = await ws.execute(`did sign "${signText.value.replace(/"/g, '\\"')}"`, 15000)
     signResult.value = output
     if (!output.includes('error') && !output.includes('失败')) {
-      message.success('签名成功')
+      message.success(t('security.messages.signOk'))
     }
   } catch (e) {
-    signResult.value = '签名失败: ' + e.message
+    signResult.value = t('security.messages.signFailed', { err: e.message })
   } finally {
     signing.value = false
   }
@@ -328,11 +329,11 @@ async function doEncrypt() {
     const { output, exitCode } = await ws.execute(`encrypt file "${encryptPath.value.trim()}"`, 30000)
     encryptResult.value = {
       success: exitCode === 0 && !output.includes('error') && !output.includes('失败'),
-      output: output || '加密完成',
+      output: output || t('security.encrypt.encryptDefault'),
     }
-    if (encryptResult.value.success) message.success('文件加密成功')
+    if (encryptResult.value.success) message.success(t('security.messages.encryptOk'))
   } catch (e) {
-    encryptResult.value = { success: false, output: '加密失败: ' + e.message }
+    encryptResult.value = { success: false, output: t('security.messages.encryptFailed', { err: e.message }) }
   } finally {
     encrypting.value = false
   }
@@ -346,11 +347,11 @@ async function doDecrypt() {
     const { output, exitCode } = await ws.execute(`decrypt file "${decryptPath.value.trim()}"`, 30000)
     decryptResult.value = {
       success: exitCode === 0 && !output.includes('error') && !output.includes('失败'),
-      output: output || '解密完成',
+      output: output || t('security.encrypt.decryptDefault'),
     }
-    if (decryptResult.value.success) message.success('文件解密成功')
+    if (decryptResult.value.success) message.success(t('security.messages.decryptOk'))
   } catch (e) {
-    decryptResult.value = { success: false, output: '解密失败: ' + e.message }
+    decryptResult.value = { success: false, output: t('security.messages.decryptFailed', { err: e.message }) }
   } finally {
     decrypting.value = false
   }
@@ -361,13 +362,13 @@ const auditLoading = ref(false)
 const auditEvents = ref([])
 const auditStats = ref([])
 
-const auditColumns = [
-  { title: '时间', key: 'time', dataIndex: 'time', width: '180px' },
-  { title: '事件', key: 'event', dataIndex: 'event', width: '200px' },
-  { title: '用户', key: 'user', dataIndex: 'user', width: '120px' },
-  { title: '级别', key: 'level', dataIndex: 'level', width: '80px' },
-  { title: '详情', key: 'detail', dataIndex: 'detail', ellipsis: true },
-]
+const auditColumns = computed(() => [
+  { title: t('security.auditColumns.time'), key: 'time', dataIndex: 'time', width: '180px' },
+  { title: t('security.auditColumns.event'), key: 'event', dataIndex: 'event', width: '200px' },
+  { title: t('security.auditColumns.user'), key: 'user', dataIndex: 'user', width: '120px' },
+  { title: t('security.auditColumns.level'), key: 'level', dataIndex: 'level', width: '80px' },
+  { title: t('security.auditColumns.detail'), key: 'detail', dataIndex: 'detail', ellipsis: true },
+])
 
 function levelColor(level) {
   const map = { info: 'blue', warn: 'orange', warning: 'orange', error: 'red', critical: 'red' }
@@ -384,7 +385,7 @@ async function loadAudit() {
     auditEvents.value = parseAuditLog(logRes.output)
     auditStats.value = parseAuditStats(statsRes.output)
   } catch (e) {
-    message.error('加载审计日志失败: ' + e.message)
+    message.error(t('security.messages.loadAuditFailed', { err: e.message }))
   } finally {
     auditLoading.value = false
   }
@@ -396,7 +397,6 @@ function parseAuditLog(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('Audit') || trimmed.startsWith('Recent')) continue
-    // Try structured format: "time | event | user | level | detail"
     const parts = trimmed.split(/\s*[|│]\s*/)
     if (parts.length >= 3) {
       result.push({
@@ -409,7 +409,6 @@ function parseAuditLog(output) {
       })
       continue
     }
-    // Fallback: try to parse timestamp-prefixed lines
     const dateMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}(?::\d{2})?)\s+(.+)/)
     if (dateMatch) {
       const rest = dateMatch[2]
@@ -444,7 +443,6 @@ function parseAuditStats(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('Audit')) continue
-    // Match "Label: Value" or "Label = Value" patterns
     const kvMatch = trimmed.match(/^(.+?)\s*[:=：]\s*(.+)$/)
     if (kvMatch) {
       const label = kvMatch[1].trim()
@@ -458,11 +456,10 @@ function parseAuditStats(output) {
       colorIdx++
     }
   }
-  // Fallback: if no stats parsed, show placeholder
   if (stats.length === 0) {
     stats.push(
-      { label: '总事件数', value: auditEvents.value.length, color: '#1677ff' },
-      { label: '状态', value: '就绪', color: '#52c41a' },
+      { label: t('security.audit.totalEvents'), value: auditEvents.value.length, color: '#1677ff' },
+      { label: t('security.audit.statusLabel'), value: t('security.audit.ready'), color: '#52c41a' },
     )
   }
   return stats

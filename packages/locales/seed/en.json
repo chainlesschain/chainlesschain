@@ -2556,6 +2556,76 @@
       "copyFailed": "Copy failed"
     }
   },
+  "security": {
+    "title": "Security Center",
+    "subtitle": "DID identity / Encryption / Audit",
+    "refresh": "Refresh",
+    "tabs": {
+      "did": "DID identity",
+      "encrypt": "File encryption",
+      "audit": "Audit log"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "did": {
+      "createButton": "Create identity",
+      "signButton": "Sign message",
+      "default": "Default",
+      "available": "Available",
+      "emptyText": "No DID identities yet — click Create identity to add one",
+      "signTitle": "DID sign",
+      "signOk": "Sign",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter the message to sign",
+      "signResultLabel": "Signature:"
+    },
+    "didColumns": {
+      "did": "DID",
+      "method": "Method",
+      "created": "Created",
+      "status": "Status"
+    },
+    "encrypt": {
+      "encryptCardTitle": "Encrypt file",
+      "decryptCardTitle": "Decrypt file",
+      "pathLabel": "File path",
+      "encryptPlaceholder": "File path, e.g. /path/to/file.txt",
+      "decryptPlaceholder": "Encrypted file path, e.g. /path/to/file.txt.enc",
+      "encryptButton": "Encrypt",
+      "decryptButton": "Decrypt",
+      "successTag": "Success",
+      "failureTag": "Failed",
+      "encryptDefault": "Encryption complete",
+      "decryptDefault": "Decryption complete"
+    },
+    "audit": {
+      "emptyText": "No audit logs yet",
+      "totalEvents": "Total events",
+      "statusLabel": "Status",
+      "ready": "Ready"
+    },
+    "auditColumns": {
+      "time": "Time",
+      "event": "Event",
+      "user": "User",
+      "level": "Level",
+      "detail": "Detail"
+    },
+    "messages": {
+      "loadDidsFailed": "Failed to load DID list: {err}",
+      "didCreateFailed": "Create failed: {err}",
+      "didCreateOk": "DID identity created",
+      "messageRequired": "Enter a message",
+      "signFailed": "Sign failed: {err}",
+      "signOk": "Signed",
+      "encryptFailed": "Encrypt failed: {err}",
+      "encryptOk": "File encrypted",
+      "decryptFailed": "Decrypt failed: {err}",
+      "decryptOk": "File decrypted",
+      "loadAuditFailed": "Failed to load audit log: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
