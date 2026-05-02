@@ -75,6 +75,7 @@
           <DownOutlined class="cb-shell__topbar-caret" />
         </button>
         <div class="cb-shell__topbar-actions">
+          <LanguageSwitcher class="cb-shell__topbar-language" />
           <button
             v-if="activeConversation?.projectId"
             type="button"
@@ -449,6 +450,7 @@ import { registerSlashHandler } from "../shell/slash-dispatch";
 import ConversationList from "./ConversationList.vue";
 import DecentralEntries from "./DecentralEntries.vue";
 import ArtifactDrawer from "./ArtifactDrawer.vue";
+import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import ToolInvocationCard from "./components/ToolInvocationCard.vue";
 import TaskProgressPanel from "./components/TaskProgressPanel.vue";
 import { getPreviewWidget, type DecentralEntryId } from "./widgets";
