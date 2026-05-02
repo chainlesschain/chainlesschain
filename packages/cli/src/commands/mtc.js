@@ -1708,6 +1708,147 @@ function emitAndPersist(federationId, params) {
   return event;
 }
 
+/**
+ * Pre-flight check that a confirm-* event has its matching propose-*.
+ * Reads the local governance log + checks for an unresolved proposal.
+ * Throws on missing — caller decides whether to log a warning or hard-fail.
+ *
+ * @param {string} federationId
+ * @param {string} proposalType — "propose-revoke" | "propose-threshold"
+ * @param {(payload: object) => boolean} matcher — returns true when payload matches
+ */
+function requireOpenProposal(federationId, proposalType, matcher) {
+  const events = loadGovernanceLog(federationId);
+  // Walk forward; an open proposal is one not yet matched by a confirm of
+  // the same target. v0.1 quorum gating only checks "is there at least one
+  // proposal event with a matching target" — full quorum cooldown logic
+  // lives in lib replay, this is a CLI-side guardrail.
+  const open = events.some(
+    (e) =>
+      e && e.event_type === proposalType && e.payload && matcher(e.payload),
+  );
+  if (!open) {
+    throw new Error(
+      `no open ${proposalType} proposal matches — emit ${proposalType} first`,
+    );
+  }
+}
+
+/**
+ * Internal helper used by both the `governance-publish` CLI handler and
+ * the `governance-sync-serve` daemon. Pure side-effect free aside from
+ * filesystem writes to <drop-zone>/federation-governance/<fed>/.
+ *
+ * @returns {{ federation_id, drop_zone, local_total, published, skipped }}
+ */
+function runGovernancePublish(federationId, dropZone) {
+  const events = loadGovernanceLog(federationId);
+  const targetDir = path.join(dropZone, "federation-governance", federationId);
+  fs.mkdirSync(targetDir, { recursive: true });
+  let published = 0;
+  let skipped = 0;
+  for (const ev of events) {
+    if (!ev || typeof ev.event_id !== "string") continue;
+    const target = path.join(targetDir, `${ev.event_id}.json`);
+    if (fs.existsSync(target)) {
+      skipped++;
+      continue;
+    }
+    const tmp = `${target}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(ev, null, 2), "utf-8");
+    fs.renameSync(tmp, target);
+    published++;
+  }
+  return {
+    federation_id: federationId,
+    drop_zone: targetDir,
+    local_total: events.length,
+    published,
+    skipped,
+  };
+}
+
+/**
+ * Internal helper for governance-pull + governance-sync-serve.
+ * Reads remote events from drop-zone, optionally signature-verifies them,
+ * dedupes by event_id against local log, sorts chronologically, and appends
+ * new events to the local jsonl.
+ *
+ * @returns {{
+ *   federation_id, drop_zone, remote_total, local_total_before,
+ *   appended, duplicates, invalid_signature, unknown_signer
+ * }}
+ */
+function runGovernancePull(federationId, dropZone, opts = {}) {
+  const sourceDir = path.join(dropZone, "federation-governance", federationId);
+  if (!fs.existsSync(sourceDir)) {
+    // Daemon-friendly: empty drop-zone is "nothing to pull yet", not an error.
+    return {
+      federation_id: federationId,
+      drop_zone: sourceDir,
+      remote_total: 0,
+      local_total_before: loadGovernanceLog(federationId).length,
+      appended: 0,
+      duplicates: 0,
+      invalid_signature: 0,
+      unknown_signer: 0,
+    };
+  }
+
+  const remote = [];
+  for (const name of fs.readdirSync(sourceDir)) {
+    if (!name.endsWith(".json")) continue;
+    try {
+      const ev = JSON.parse(
+        fs.readFileSync(path.join(sourceDir, name), "utf-8"),
+      );
+      if (ev && typeof ev.event_id === "string") remote.push(ev);
+    } catch (_err) {
+      /* skip malformed */
+    }
+  }
+
+  let invalid = 0;
+  let unknown = 0;
+  let candidates = remote;
+  if (opts.verify) {
+    const registry = loadFederationRegistry();
+    const fedEntry = registry.federations[federationId] || { members: {} };
+    const lookup = (actor /* , keyId */) => {
+      const m = fedEntry.members[actor];
+      if (!m || !m.pubkey_jwk) return null;
+      try {
+        return Buffer.from(m.pubkey_jwk.x, "base64url");
+      } catch (_err) {
+        return null;
+      }
+    };
+    const result = mtcLib.verifyGovernanceLog(remote, lookup);
+    invalid = result.invalid.length;
+    unknown = result.unknown.length;
+    candidates = result.valid;
+  }
+
+  const localEvents = loadGovernanceLog(federationId);
+  const localIds = new Set(
+    localEvents.filter((e) => e && e.event_id).map((e) => e.event_id),
+  );
+  const newEvents = candidates.filter((e) => !localIds.has(e.event_id));
+  const sorted = mtcLib.sortGovernanceEventsChronologically(newEvents);
+  for (const ev of sorted) appendGovernanceEvent(federationId, ev);
+
+  return {
+    federation_id: federationId,
+    drop_zone: sourceDir,
+    remote_total: remote.length,
+    local_total_before: localEvents.length,
+    appended: sorted.length,
+    duplicates: candidates.length - newEvents.length,
+    invalid_signature: invalid,
+    unknown_signer: unknown,
+  };
+}
+
 function registerFederationGovernanceCommands(fed) {
   // mtc federation invite — propose adding a candidate member
   fed
@@ -1813,9 +1954,20 @@ function registerFederationGovernanceCommands(fed) {
       "--reason <text>",
       "Confirmation reason (key-compromise → mark key compromised)",
     )
+    .option(
+      "--no-quorum-check",
+      "Skip the pre-flight check that a matching propose-revoke exists (caller assumes responsibility)",
+    )
     .option("--json", "JSON output")
     .action((federationId, targetMemberId, options) => {
       try {
+        if (options.quorumCheck !== false) {
+          requireOpenProposal(
+            federationId,
+            "propose-revoke",
+            (p) => p.target_member_id === targetMemberId,
+          );
+        }
         const { keys, alg } = loadMemberSigner(federationId, options.actor);
         const event = emitAndPersist(federationId, {
           eventType: "confirm-revoke",
@@ -1898,6 +2050,42 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // mtc federation confirm-threshold — apply the most recent propose-threshold
+  fed
+    .command("confirm-threshold <federation-id>")
+    .description(
+      "Confirm the most recent propose-threshold (apply it via replay)",
+    )
+    .requiredOption("--actor <member-id>", "Confirming member")
+    .option(
+      "--no-quorum-check",
+      "Skip the pre-flight check that an open propose-threshold exists",
+    )
+    .option("--json", "JSON output")
+    .action((federationId, options) => {
+      try {
+        if (options.quorumCheck !== false) {
+          requireOpenProposal(federationId, "propose-threshold", (p) =>
+            Number.isInteger(p.proposed_threshold),
+          );
+        }
+        const { keys, alg } = loadMemberSigner(federationId, options.actor);
+        const event = emitAndPersist(federationId, {
+          eventType: "confirm-threshold",
+          actorMemberId: options.actor,
+          secretKey: keys.secretKey,
+          publicKey: keys.publicKey,
+          alg,
+          payload: {},
+        });
+        if (options.json) return console.log(JSON.stringify(event, null, 2));
+        logger.success(`Confirmed pending threshold (event ${event.event_id})`);
+      } catch (err) {
+        logger.error(`mtc federation confirm-threshold failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // mtc federation fork
   fed
     .command("fork <federation-id> <new-federation-id>")
@@ -1970,6 +2158,111 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // mtc federation governance-sync-libp2p — pubsub gossipsub variant
+  fed
+    .command("governance-sync-libp2p <federation-id>")
+    .description(
+      "Sync governance events over libp2p gossipsub (topic mtc-federation-governance/v1/<fed>)",
+    )
+    .option("--listen <maddr>", "libp2p listen multiaddr", "/ip4/0.0.0.0/tcp/0")
+    .option(
+      "--connect <maddr>",
+      "Seed peer multiaddr (repeatable)",
+      (v, prev) => (prev ? [...prev, v] : [v]),
+      [],
+    )
+    .option(
+      "--interval <seconds>",
+      "Publish-new-events interval (default: 10)",
+      (v) => parseInt(v, 10),
+      10,
+    )
+    .option("--verify", "Verify signatures before appending received events")
+    .option(
+      "--once",
+      "Subscribe + publish-once + wait <interval> seconds, then exit (test/cron)",
+    )
+    .option("--json", "Per-tick JSON output")
+    .action(async (federationId, options) => {
+      try {
+        await runGovernanceSyncLibp2p(federationId, options);
+      } catch (err) {
+        logger.error(
+          `mtc federation governance-sync-libp2p failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
+  // mtc federation governance-sync-serve — daemon: periodically publish + pull
+  fed
+    .command("governance-sync-serve <federation-id>")
+    .description(
+      "Daemon: periodically publish local governance events + pull remote ones from a shared drop-zone",
+    )
+    .requiredOption("--drop-zone <dir>", "Shared filesystem directory")
+    .option(
+      "--interval <seconds>",
+      "Sync interval (default: 60)",
+      (v) => parseInt(v, 10),
+      60,
+    )
+    .option(
+      "--verify",
+      "Verify signatures against local registry on pull (default: trust schema only)",
+    )
+    .option("--once", "Sync once and exit (no daemon loop)")
+    .option("--json", "Emit per-tick JSON results to stdout")
+    .action(async (federationId, options) => {
+      const tick = () => {
+        const stamp = new Date().toISOString();
+        try {
+          const pubResult = runGovernancePublish(
+            federationId,
+            options.dropZone,
+          );
+          const pullResult = runGovernancePull(federationId, options.dropZone, {
+            verify: !!options.verify,
+          });
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  tick_at: stamp,
+                  publish: pubResult,
+                  pull: pullResult,
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            console.log(
+              `[${stamp}] publish: ${pubResult.published} new (${pubResult.skipped} skipped) | pull: ${pullResult.appended} new (dedup ${pullResult.duplicates}, invalid ${pullResult.invalid_signature}, unknown ${pullResult.unknown_signer})`,
+            );
+          }
+        } catch (err) {
+          console.error(`[${stamp}] tick error: ${err.message}`);
+        }
+      };
+
+      tick();
+      if (options.once) return;
+
+      console.log(
+        `governance-sync-serve: federation=${federationId} interval=${options.interval}s drop-zone=${options.dropZone}. Ctrl-C to stop.`,
+      );
+      const handle = setInterval(tick, options.interval * 1000);
+      const stop = () => {
+        clearInterval(handle);
+        console.log("governance-sync-serve: stopped.");
+        process.exit(0);
+      };
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      await new Promise(() => {});
+    });
+
   // mtc federation governance-publish — push local events to a shared drop-zone
   fed
     .command("governance-publish <federation-id>")
@@ -1980,39 +2273,10 @@ function registerFederationGovernanceCommands(fed) {
     .option("--json", "JSON output")
     .action((federationId, options) => {
       try {
-        const events = loadGovernanceLog(federationId);
-        const targetDir = path.join(
-          options.dropZone,
-          "federation-governance",
-          federationId,
-        );
-        fs.mkdirSync(targetDir, { recursive: true });
-        let published = 0;
-        let skipped = 0;
-        for (const ev of events) {
-          if (!ev || typeof ev.event_id !== "string") continue;
-          // event_id is a uuid v4 — already filesystem-safe
-          const target = path.join(targetDir, `${ev.event_id}.json`);
-          if (fs.existsSync(target)) {
-            skipped++;
-            continue;
-          }
-          // Atomic write: tmp + rename
-          const tmp = `${target}.${process.pid}.tmp`;
-          fs.writeFileSync(tmp, JSON.stringify(ev, null, 2), "utf-8");
-          fs.renameSync(tmp, target);
-          published++;
-        }
-        const result = {
-          federation_id: federationId,
-          drop_zone: targetDir,
-          local_total: events.length,
-          published,
-          skipped,
-        };
+        const result = runGovernancePublish(federationId, options.dropZone);
         if (options.json) return console.log(JSON.stringify(result, null, 2));
         logger.success(
-          `Published ${published} new event(s) (${skipped} already in drop-zone) to ${targetDir}`,
+          `Published ${result.published} new event(s) (${result.skipped} already in drop-zone) to ${result.drop_zone}`,
         );
       } catch (err) {
         logger.error(
@@ -2036,6 +2300,8 @@ function registerFederationGovernanceCommands(fed) {
     .option("--json", "JSON output")
     .action((federationId, options) => {
       try {
+        // CLI surface keeps the strict "must exist" contract; the daemon
+        // helper treats absent drop-zone as "nothing yet" and returns zeros.
         const sourceDir = path.join(
           options.dropZone,
           "federation-governance",
@@ -2046,70 +2312,12 @@ function registerFederationGovernanceCommands(fed) {
             `drop-zone has no events for ${federationId}: ${sourceDir}`,
           );
         }
-
-        // Collect remote events
-        const remote = [];
-        for (const name of fs.readdirSync(sourceDir)) {
-          if (!name.endsWith(".json")) continue;
-          try {
-            const ev = JSON.parse(
-              fs.readFileSync(path.join(sourceDir, name), "utf-8"),
-            );
-            if (ev && typeof ev.event_id === "string") remote.push(ev);
-          } catch (_err) {
-            /* skip malformed */
-          }
-        }
-
-        // Optional verify pass
-        let invalid = 0;
-        let unknown = 0;
-        let candidates = remote;
-        if (options.verify) {
-          const registry = loadFederationRegistry();
-          const fedEntry = registry.federations[federationId] || {
-            members: {},
-          };
-          const lookup = (actor /* , keyId */) => {
-            const m = fedEntry.members[actor];
-            if (!m || !m.pubkey_jwk) return null;
-            // Reconstruct Buffer from JWK x param (Ed25519 / SLH-DSA both use OKP-style)
-            try {
-              return Buffer.from(m.pubkey_jwk.x, "base64url");
-            } catch (_err) {
-              return null;
-            }
-          };
-          const result = mtcLib.verifyGovernanceLog(remote, lookup);
-          invalid = result.invalid.length;
-          unknown = result.unknown.length;
-          candidates = result.valid;
-        }
-
-        // Dedupe against local log
-        const localEvents = loadGovernanceLog(federationId);
-        const localIds = new Set(
-          localEvents.filter((e) => e && e.event_id).map((e) => e.event_id),
-        );
-        const newEvents = candidates.filter((e) => !localIds.has(e.event_id));
-
-        // Append in chronological order so replay sees stable ordering
-        const sorted = mtcLib.sortGovernanceEventsChronologically(newEvents);
-        for (const ev of sorted) appendGovernanceEvent(federationId, ev);
-
-        const result = {
-          federation_id: federationId,
-          drop_zone: sourceDir,
-          remote_total: remote.length,
-          local_total_before: localEvents.length,
-          appended: sorted.length,
-          duplicates: candidates.length - newEvents.length,
-          invalid_signature: invalid,
-          unknown_signer: unknown,
-        };
+        const result = runGovernancePull(federationId, options.dropZone, {
+          verify: !!options.verify,
+        });
         if (options.json) return console.log(JSON.stringify(result, null, 2));
         logger.success(
-          `Pulled ${sorted.length} new event(s) (dedup: ${result.duplicates}, invalid: ${invalid}, unknown: ${unknown})`,
+          `Pulled ${result.appended} new event(s) (dedup: ${result.duplicates}, invalid: ${result.invalid_signature}, unknown: ${result.unknown_signer})`,
         );
       } catch (err) {
         logger.error(`mtc federation governance-pull failed: ${err.message}`);
@@ -2424,6 +2632,202 @@ const FEDERATION_TOPIC_PREFIX = "mtc-federation/v1";
 
 function federationTopic(federationId) {
   return `${FEDERATION_TOPIC_PREFIX}/${federationId}`;
+}
+
+function governanceTopic(federationId) {
+  return `mtc-federation-governance/v1/${federationId}`;
+}
+
+/**
+ * libp2p gossipsub-based governance sync (Phase 2 of v0.9 sync work).
+ *
+ * Each peer subscribes to mtc-federation-governance/v1/<fed>; on each tick
+ * the peer publishes any local events that haven't been published yet
+ * (tracked in <governance-dir>/<fed>.libp2p-pos.json — a tiny offset file
+ * mapping event_id → already-published flag). Receivers dedupe + optionally
+ * verify each event before appending to their local jsonl.
+ *
+ * --once mode subscribes, publishes one batch, waits one interval to drain
+ * inbox, then exits — suitable for cron / tests.
+ */
+async function runGovernanceSyncLibp2p(federationId, options) {
+  const { Libp2pTransport } =
+    await import("@chainlesschain/core-mtc/transports/libp2p");
+
+  const node = await Libp2pTransport.create({
+    listen: options.listen,
+    mode: "gossipsub",
+  });
+
+  const closeOnError = async (err) => {
+    try {
+      await node.close();
+    } catch (_e) {
+      /* ignore */
+    }
+    throw err;
+  };
+
+  try {
+    return await runGovernanceSyncLibp2pInner(federationId, options, node);
+  } catch (err) {
+    return closeOnError(err);
+  }
+}
+
+function loadLibp2pPubMarkers(federationId) {
+  const file = path.join(
+    getFederationDir(),
+    "governance",
+    `${federationId}.libp2p-pos.json`,
+  );
+  if (!fs.existsSync(file)) return new Set();
+  try {
+    return new Set(JSON.parse(fs.readFileSync(file, "utf-8")));
+  } catch (_err) {
+    return new Set();
+  }
+}
+
+function saveLibp2pPubMarkers(federationId, ids) {
+  const file = path.join(
+    getFederationDir(),
+    "governance",
+    `${federationId}.libp2p-pos.json`,
+  );
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify([...ids]), "utf-8");
+}
+
+async function runGovernanceSyncLibp2pInner(federationId, options, node) {
+  const topic = governanceTopic(federationId);
+  let received = 0;
+  let appendedFromWire = 0;
+  let invalidFromWire = 0;
+  let unknownFromWire = 0;
+
+  // verify lookup (built once from local registry)
+  let verifyLookup = null;
+  if (options.verify) {
+    const registry = loadFederationRegistry();
+    const fedEntry = registry.federations[federationId] || { members: {} };
+    verifyLookup = (actor) => {
+      const m = fedEntry.members[actor];
+      if (!m || !m.pubkey_jwk) return null;
+      try {
+        return Buffer.from(m.pubkey_jwk.x, "base64url");
+      } catch (_err) {
+        return null;
+      }
+    };
+  }
+
+  // Subscribe + dispatch
+  node.subscribeRaw(topic, (bytes) => {
+    received++;
+    let ev;
+    try {
+      ev = JSON.parse(new TextDecoder().decode(bytes));
+    } catch (_err) {
+      return;
+    }
+    if (!ev || typeof ev.event_id !== "string") return;
+
+    if (verifyLookup) {
+      const result = mtcLib.verifyGovernanceLog([ev], verifyLookup);
+      if (result.invalid.length) {
+        invalidFromWire++;
+        return;
+      }
+      if (result.unknown.length) {
+        unknownFromWire++;
+        return;
+      }
+    }
+
+    // Dedupe vs local log
+    const local = loadGovernanceLog(federationId);
+    if (local.some((e) => e && e.event_id === ev.event_id)) return;
+    appendGovernanceEvent(federationId, ev);
+    appendedFromWire++;
+  });
+
+  // Dial seed peers
+  for (const peer of options.connect || []) {
+    try {
+      await node.dial(peer);
+    } catch (err) {
+      console.warn(`[libp2p] dial ${peer} failed: ${err.message}`);
+    }
+  }
+
+  const publishTick = async () => {
+    const stamp = new Date().toISOString();
+    const local = loadGovernanceLog(federationId);
+    const published = loadLibp2pPubMarkers(federationId);
+    let publishedThisTick = 0;
+    for (const ev of local) {
+      if (!ev || typeof ev.event_id !== "string") continue;
+      if (published.has(ev.event_id)) continue;
+      try {
+        await node.publishRaw(topic, JSON.stringify(ev));
+        published.add(ev.event_id);
+        publishedThisTick++;
+      } catch (err) {
+        console.warn(`[libp2p] publish ${ev.event_id} failed: ${err.message}`);
+      }
+    }
+    if (publishedThisTick > 0) saveLibp2pPubMarkers(federationId, published);
+
+    if (options.json) {
+      console.log(
+        JSON.stringify(
+          {
+            tick_at: stamp,
+            published: publishedThisTick,
+            wire_received: received,
+            wire_appended: appendedFromWire,
+            wire_invalid: invalidFromWire,
+            wire_unknown: unknownFromWire,
+          },
+          null,
+          2,
+        ),
+      );
+    } else {
+      console.log(
+        `[${stamp}] published ${publishedThisTick} new event(s); wire received=${received} appended=${appendedFromWire} invalid=${invalidFromWire} unknown=${unknownFromWire}`,
+      );
+    }
+  };
+
+  await publishTick();
+
+  if (options.once) {
+    // Wait one interval to drain inbox, then exit cleanly
+    await new Promise((r) => setTimeout(r, options.interval * 1000));
+    await publishTick();
+    await node.close();
+    return;
+  }
+
+  console.log(
+    `governance-sync-libp2p: federation=${federationId} topic=${topic} interval=${options.interval}s. Ctrl-C to stop.`,
+  );
+  const handle = setInterval(publishTick, options.interval * 1000);
+  const stop = async () => {
+    clearInterval(handle);
+    try {
+      await node.close();
+    } catch (_e) {
+      /* ignore */
+    }
+    console.log("governance-sync-libp2p: stopped.");
+    process.exit(0);
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  await new Promise(() => {});
 }
 
 async function runFederationDiscoverLibp2p(federationId, options) {

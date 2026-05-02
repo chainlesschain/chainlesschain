@@ -92,6 +92,15 @@ cc mtc federation propose-threshold <fed-id> <new-M> --actor <m>
 cc mtc federation fork <fed-id> <new-fed-id> --actor <m> --members <id1,id2,...>
 cc mtc federation merge <fed-id> <other-fed-id> <new-fed-id> --actor <m>
 cc mtc federation governance-log <fed-id> [--events-only] [--json]
+cc mtc federation confirm-threshold <fed-id> --actor <m> [--no-quorum-check]
+
+# 跨成员 governance.log 同步（v0.8/v0.9）
+cc mtc federation governance-publish <fed> --drop-zone <dir>          # 推到共享目录
+cc mtc federation governance-pull <fed> --drop-zone <dir> [--verify]   # 从共享目录拉
+cc mtc federation governance-sync-serve <fed> --drop-zone <dir>        # daemon 自动 publish+pull
+  [--interval <s>] [--verify] [--once]
+cc mtc federation governance-sync-libp2p <fed>                         # daemon: gossipsub 同步
+  --listen <maddr> [--connect <peer>] [--interval <s>] [--verify] [--once]
 
 # 验证
 cc mtc verify <envelope.json> --landmark <landmark.json>

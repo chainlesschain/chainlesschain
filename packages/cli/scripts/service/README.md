@@ -5,6 +5,10 @@ Currently covers:
 
 - `cc crosschain mtc-serve` — periodic bridge MTC batch closer
 - `cc mtc serve` — federation libp2p verifier daemon (existing)
+- `cc mtc federation governance-sync-serve` — periodic governance.log
+  cross-member sync (filesystem drop-zone)
+- `cc mtc federation governance-sync-libp2p` — gossipsub-based governance
+  sync (alternative to filesystem drop-zone)
 - `cc audit mtc reconcile` — periodic audit-mtc reconcile (use cron / supervisor)
 
 Choose the file matching your platform:

@@ -678,6 +678,218 @@ describe("cc mtc federation governance — CLI integration", () => {
     });
   });
 
+  describe("confirm-threshold + quorum gating", () => {
+    it("confirm-threshold rejected without prior propose-threshold (quorum check)", () => {
+      joinAs("alice");
+      const r = runCli([
+        "mtc",
+        "federation",
+        "confirm-threshold",
+        "fed-test",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      expect(r.status).not.toBe(0);
+      expect(r.stderr || r.stdout).toMatch(/no open propose-threshold/);
+    });
+
+    it("confirm-threshold succeeds after propose-threshold + replay applies it", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "propose-threshold",
+        "fed-test",
+        "3",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "confirm-threshold",
+        "fed-test",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      const event = extractJson(r.stdout);
+      expect(event.event_type).toBe("confirm-threshold");
+
+      // governance-log replay must show threshold applied
+      const log = mustRun([
+        "mtc",
+        "federation",
+        "governance-log",
+        "fed-test",
+        "--json",
+      ]);
+      const data = extractJson(log.stdout);
+      expect(data.state.threshold).toBe(3);
+      expect(data.state.pending_threshold).toBeNull();
+    });
+
+    it("confirm-revoke rejected without prior propose-revoke (quorum check)", () => {
+      joinAs("alice");
+      const r = runCli([
+        "mtc",
+        "federation",
+        "confirm-revoke",
+        "fed-test",
+        "bob",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      expect(r.status).not.toBe(0);
+      expect(r.stderr || r.stdout).toMatch(/no open propose-revoke/);
+    });
+
+    it("confirm-revoke --no-quorum-check bypasses the gate", () => {
+      joinAs("alice");
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "confirm-revoke",
+        "fed-test",
+        "bob",
+        "--actor",
+        "alice",
+        "--no-quorum-check",
+        "--json",
+      ]);
+      const event = extractJson(r.stdout);
+      expect(event.event_type).toBe("confirm-revoke");
+    });
+
+    it("confirm-revoke succeeds when a matching propose-revoke exists", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "propose-revoke",
+        "fed-test",
+        "carol",
+        "--actor",
+        "alice",
+        "--reason",
+        "inactive",
+        "--json",
+      ]);
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "confirm-revoke",
+        "fed-test",
+        "carol",
+        "--actor",
+        "alice",
+        "--json",
+      ]);
+      expect(extractJson(r.stdout).event_type).toBe("confirm-revoke");
+    });
+  });
+
+  describe("governance-sync-serve --once (auto-sync daemon, single tick)", () => {
+    it("publishes + pulls in one tick when staging+remote empty", () => {
+      joinAs("alice");
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-sync-1-"));
+      try {
+        const r = mustRun([
+          "mtc",
+          "federation",
+          "governance-sync-serve",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--once",
+          "--json",
+        ]);
+        const j = extractJson(r.stdout);
+        expect(j.tick_at).toBeDefined();
+        // Only the join doesn't write a governance event; alice has 0 events
+        expect(j.publish.published).toBe(0);
+        expect(j.pull.appended).toBe(0);
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+
+    it("--once syncs alice → bob in a single round", () => {
+      joinAs("alice");
+      mustRun([
+        "mtc",
+        "federation",
+        "invite",
+        "fed-test",
+        "carol",
+        "--actor",
+        "alice",
+        "--candidate-pubkey-id",
+        "sha256:c",
+        "--json",
+      ]);
+      const dropZone = fs.mkdtempSync(path.join(os.tmpdir(), "fed-sync-2-"));
+      try {
+        // alice publishes via --once
+        const aliceTick = mustRun([
+          "mtc",
+          "federation",
+          "governance-sync-serve",
+          "fed-test",
+          "--drop-zone",
+          dropZone,
+          "--once",
+          "--json",
+        ]);
+        const aj = extractJson(aliceTick.stdout);
+        expect(aj.publish.published).toBe(1);
+
+        // switch to bob's home and run --once — he pulls
+        const aliceHome = tmpHome;
+        const bobHome = fs.mkdtempSync(path.join(os.tmpdir(), "fed-bob-sync-"));
+        try {
+          tmpHome = bobHome;
+          const bobTick = mustRun([
+            "mtc",
+            "federation",
+            "governance-sync-serve",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--once",
+            "--json",
+          ]);
+          const bj = extractJson(bobTick.stdout);
+          expect(bj.pull.appended).toBe(1);
+          expect(bj.publish.published).toBe(0); // nothing local to publish
+
+          // Idempotent: a second tick on bob's box adds nothing
+          const bobTick2 = mustRun([
+            "mtc",
+            "federation",
+            "governance-sync-serve",
+            "fed-test",
+            "--drop-zone",
+            dropZone,
+            "--once",
+            "--json",
+          ]);
+          const bj2 = extractJson(bobTick2.stdout);
+          expect(bj2.pull.appended).toBe(0);
+          expect(bj2.pull.duplicates).toBe(1);
+        } finally {
+          fs.rmSync(bobHome, { recursive: true, force: true });
+          tmpHome = aliceHome;
+        }
+      } finally {
+        fs.rmSync(dropZone, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("--help wiring", () => {
     it("federation --help lists all 8 governance subcommands", () => {
       const r = mustRun(["mtc", "federation", "--help"]);
@@ -688,14 +900,31 @@ describe("cc mtc federation governance — CLI integration", () => {
         "confirm-revoke",
         "rotate-key",
         "propose-threshold",
+        "confirm-threshold",
         "fork",
         "merge",
         "governance-log",
         "governance-publish",
         "governance-pull",
+        "governance-sync-serve",
+        "governance-sync-libp2p",
       ]) {
         expect(r.stdout).toMatch(new RegExp(sub));
       }
+    });
+
+    it("governance-sync-libp2p --help shows interval + verify + once flags", () => {
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "governance-sync-libp2p",
+        "--help",
+      ]);
+      expect(r.stdout).toMatch(/--listen/);
+      expect(r.stdout).toMatch(/--connect/);
+      expect(r.stdout).toMatch(/--interval/);
+      expect(r.stdout).toMatch(/--verify/);
+      expect(r.stdout).toMatch(/--once/);
     });
   });
 });

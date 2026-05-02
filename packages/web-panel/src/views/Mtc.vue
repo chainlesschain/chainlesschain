@@ -399,7 +399,7 @@
             </a-list>
           </a-card>
 
-          <a-card title="事件时间线" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+          <a-card title="事件时间线" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
             <a-timeline>
               <a-timeline-item v-for="e in (govResult.events || [])" :key="e.event_id">
                 <span style="font-family: monospace; color: var(--text-secondary); font-size: 11px;">{{ e.issued_at }}</span>
@@ -407,6 +407,71 @@
                 actor: <span style="font-family: monospace;">{{ e.actor_member_id }}</span>
               </a-timeline-item>
             </a-timeline>
+          </a-card>
+
+          <!-- ── Operational governance actions (v0.9) ─────── -->
+          <a-card title="操作型治理 (签名密钥仍 CLI-only)" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+            <a-alert
+              type="warning"
+              show-icon
+              message="安全设计"
+              description="所有操作通过本机 CLI 子进程执行。私钥永远不进入 web 渲染进程 — 这里只是给 cc mtc federation * 命令拼参数。"
+              style="margin-bottom: 12px;"
+            />
+
+            <a-tabs size="small">
+              <a-tab-pane key="invite" tab="邀请">
+                <a-form layout="inline" @submit.prevent="runInvite">
+                  <a-form-item label="actor"><a-input v-model:value="inviteForm.actor" placeholder="alice" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="candidate"><a-input v-model:value="inviteForm.candidate" placeholder="bob" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="pubkey-id"><a-input v-model:value="inviteForm.pubkeyId" placeholder="sha256:..." style="width: 200px;" /></a-form-item>
+                  <a-form-item><a-button type="primary" :loading="actionLoading" @click="runInvite">invite</a-button></a-form-item>
+                </a-form>
+              </a-tab-pane>
+              <a-tab-pane key="vote" tab="投票">
+                <a-form layout="inline" @submit.prevent="runVote">
+                  <a-form-item label="actor"><a-input v-model:value="voteForm.actor" placeholder="alice" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="candidate"><a-input v-model:value="voteForm.candidate" placeholder="bob" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="decision">
+                    <a-select v-model:value="voteForm.decision" style="width: 110px;">
+                      <a-select-option value="approve">approve</a-select-option>
+                      <a-select-option value="reject">reject</a-select-option>
+                    </a-select>
+                  </a-form-item>
+                  <a-form-item><a-button type="primary" :loading="actionLoading" @click="runVote">vote</a-button></a-form-item>
+                </a-form>
+              </a-tab-pane>
+              <a-tab-pane key="threshold" tab="改 threshold">
+                <a-form layout="inline" @submit.prevent="runProposeThreshold">
+                  <a-form-item label="actor"><a-input v-model:value="thresholdForm.actor" placeholder="alice" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="新 M"><a-input-number v-model:value="thresholdForm.newM" :min="1" style="width: 90px;" /></a-form-item>
+                  <a-form-item><a-button :loading="actionLoading" @click="runProposeThreshold">propose</a-button></a-form-item>
+                  <a-form-item><a-button type="primary" :loading="actionLoading" @click="runConfirmThreshold">confirm</a-button></a-form-item>
+                </a-form>
+              </a-tab-pane>
+              <a-tab-pane key="revoke" tab="撤销">
+                <a-form layout="inline" @submit.prevent="runProposeRevoke">
+                  <a-form-item label="actor"><a-input v-model:value="revokeForm.actor" placeholder="alice" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="target"><a-input v-model:value="revokeForm.target" placeholder="bob" style="width: 120px;" /></a-form-item>
+                  <a-form-item label="reason"><a-input v-model:value="revokeForm.reason" placeholder="inactive" style="width: 160px;" /></a-form-item>
+                  <a-form-item><a-button :loading="actionLoading" @click="runProposeRevoke">propose-revoke</a-button></a-form-item>
+                  <a-form-item><a-button type="primary" :loading="actionLoading" @click="runConfirmRevoke">confirm-revoke</a-button></a-form-item>
+                </a-form>
+              </a-tab-pane>
+              <a-tab-pane key="sync" tab="跨成员同步">
+                <a-form layout="inline">
+                  <a-form-item label="drop-zone"><a-input v-model:value="syncForm.dropZone" placeholder="/path/to/shared/dir" style="width: 220px;" /></a-form-item>
+                  <a-form-item><a-checkbox v-model:checked="syncForm.verify">--verify</a-checkbox></a-form-item>
+                  <a-form-item><a-button :loading="actionLoading" @click="runGovPublish">publish</a-button></a-form-item>
+                  <a-form-item><a-button type="primary" :loading="actionLoading" @click="runGovPull">pull</a-button></a-form-item>
+                  <a-form-item><a-button :loading="actionLoading" @click="runGovSyncOnce">sync-once</a-button></a-form-item>
+                </a-form>
+              </a-tab-pane>
+            </a-tabs>
+
+            <a-card v-if="lastActionResult" size="small" style="margin-top: 12px; background: var(--bg-hover);">
+              <pre class="raw-pre" style="margin: 0;">{{ JSON.stringify(lastActionResult, null, 2) }}</pre>
+            </a-card>
           </a-card>
         </div>
 
@@ -417,7 +482,7 @@
           type="info"
           show-icon
           message="跨成员同步"
-          description="cc mtc federation governance-publish/pull --drop-zone 用文件系统目录在成员间双向同步事件。事件签名 + dedupe by event_id 保证幂等。"
+          description="cc mtc federation governance-publish/pull --drop-zone 文件系统通道；governance-sync-libp2p --listen 走 libp2p gossipsub 通道；governance-sync-serve 自动 daemon 化。事件签名 + dedupe by event_id 保证幂等。"
         />
       </a-tab-pane>
     </a-tabs>
@@ -596,6 +661,107 @@ function eventTypeColor(eventType) {
     case 'dispute': case 'wind-down': return 'red'
     default: return 'default'
   }
+}
+
+// ─── Operational governance actions (v0.9 — shells out to CLI via ws) ───
+const actionLoading = ref(false)
+const lastActionResult = ref(null)
+const inviteForm = ref({ actor: '', candidate: '', pubkeyId: '' })
+const voteForm = ref({ actor: '', candidate: '', decision: 'approve' })
+const thresholdForm = ref({ actor: '', newM: 2 })
+const revokeForm = ref({ actor: '', target: '', reason: 'inactive' })
+const syncForm = ref({ dropZone: '', verify: false })
+
+function shellSafe(s) {
+  return String(s || '').replace(/"/g, '').replace(/[`$]/g, '')
+}
+
+async function runGovAction(cmdSuffix, refresh = true) {
+  if (!govFederationId.value.trim()) {
+    message.warning('请先输入联邦 ID')
+    return
+  }
+  actionLoading.value = true
+  lastActionResult.value = null
+  try {
+    const fed = shellSafe(govFederationId.value.trim())
+    const fullCmd = `mtc federation ${cmdSuffix.replace('<FED>', `"${fed}"`)} --json`
+    const { output } = await ws.execute(fullCmd, 12000)
+    const lines = output.split(/\r?\n/)
+    let parsed = null
+    for (let s = 0; s < lines.length; s++) {
+      if (lines[s].trimStart().startsWith('{')) {
+        for (let e = lines.length; e > s; e--) {
+          try { parsed = JSON.parse(lines.slice(s, e).join('\n')); break } catch (_err) { /* keep trying */ }
+        }
+        if (parsed) break
+      }
+    }
+    lastActionResult.value = parsed || { raw: output }
+    message.success('命令执行完成')
+    if (refresh) await loadGovernanceLog()
+  } catch (e) {
+    message.error('CLI 执行失败: ' + (e?.message || e))
+    lastActionResult.value = { error: e?.message || String(e) }
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+function runInvite() {
+  const f = inviteForm.value
+  if (!f.actor || !f.candidate || !f.pubkeyId) {
+    message.warning('actor / candidate / pubkey-id 都必填')
+    return
+  }
+  return runGovAction(`invite <FED> "${shellSafe(f.candidate)}" --actor "${shellSafe(f.actor)}" --candidate-pubkey-id "${shellSafe(f.pubkeyId)}"`)
+}
+
+function runVote() {
+  const f = voteForm.value
+  if (!f.actor || !f.candidate) { message.warning('actor / candidate 必填'); return }
+  return runGovAction(`vote <FED> "${shellSafe(f.candidate)}" --actor "${shellSafe(f.actor)}" --decision ${f.decision}`)
+}
+
+function runProposeThreshold() {
+  const f = thresholdForm.value
+  if (!f.actor) { message.warning('actor 必填'); return }
+  return runGovAction(`propose-threshold <FED> ${parseInt(f.newM)} --actor "${shellSafe(f.actor)}"`)
+}
+
+function runConfirmThreshold() {
+  const f = thresholdForm.value
+  if (!f.actor) { message.warning('actor 必填'); return }
+  return runGovAction(`confirm-threshold <FED> --actor "${shellSafe(f.actor)}"`)
+}
+
+function runProposeRevoke() {
+  const f = revokeForm.value
+  if (!f.actor || !f.target) { message.warning('actor / target 必填'); return }
+  return runGovAction(`propose-revoke <FED> "${shellSafe(f.target)}" --actor "${shellSafe(f.actor)}" --reason "${shellSafe(f.reason)}"`)
+}
+
+function runConfirmRevoke() {
+  const f = revokeForm.value
+  if (!f.actor || !f.target) { message.warning('actor / target 必填'); return }
+  return runGovAction(`confirm-revoke <FED> "${shellSafe(f.target)}" --actor "${shellSafe(f.actor)}"`)
+}
+
+function runGovPublish() {
+  if (!syncForm.value.dropZone) { message.warning('drop-zone 必填'); return }
+  return runGovAction(`governance-publish <FED> --drop-zone "${shellSafe(syncForm.value.dropZone)}"`, false)
+}
+
+function runGovPull() {
+  if (!syncForm.value.dropZone) { message.warning('drop-zone 必填'); return }
+  const verifyFlag = syncForm.value.verify ? ' --verify' : ''
+  return runGovAction(`governance-pull <FED> --drop-zone "${shellSafe(syncForm.value.dropZone)}"${verifyFlag}`)
+}
+
+function runGovSyncOnce() {
+  if (!syncForm.value.dropZone) { message.warning('drop-zone 必填'); return }
+  const verifyFlag = syncForm.value.verify ? ' --verify' : ''
+  return runGovAction(`governance-sync-serve <FED> --drop-zone "${shellSafe(syncForm.value.dropZone)}" --once${verifyFlag}`)
 }
 
 async function loadGovernanceLog() {

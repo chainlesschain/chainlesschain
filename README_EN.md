@@ -19,6 +19,24 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-02 Update — **MTC v0.9** — auto sync daemon + libp2p channel + quorum gating + web operational GUI
+
+Closes the four v0.8 TODOs:
+
+| Module | Notes |
+|---|---|
+| Auto sync daemon | `cc mtc federation governance-sync-serve <fed> --drop-zone <dir> [--interval] [--verify] [--once]` periodically publishes + pulls; SIGINT/SIGTERM graceful; helpers `runGovernancePublish` / `runGovernancePull` extracted for reuse |
+| libp2p sync transport | `cc mtc federation governance-sync-libp2p <fed> --listen <maddr> [--connect] [--verify] [--once]`: gossipsub topic `mtc-federation-governance/v1/<fed>`; `<dir>/<fed>.libp2p-pos.json` high-water mark of already-published event_ids; receiver dedupes + verifies + appends; reuses existing `Libp2pTransport` |
+| Quorum gating | `cc mtc federation confirm-revoke` / `confirm-threshold` add pre-flight check for matching `propose-revoke` / `propose-threshold`; `--no-quorum-check` opts out. Also adds the previously-missing `cc mtc federation confirm-threshold <fed> --actor <m>` CLI |
+| Web-panel operational GUI | `Mtc.vue` federation governance tab gains 5 sub-tabs (invite/vote/change threshold/revoke/cross-member sync), all calling local CLI via `ws.execute('mtc federation ...')` — **signing keys never enter the web renderer process**. Security alert embedded |
+| Service template | New `cc-fed-governance-sync.service` (systemd) template |
+
+**Test totals**: CLI integration 27 (+6 new: confirm-threshold + quorum + sync-serve --once + sync-libp2p --help) + web-panel parser 13 (no regression) = **40 green**.
+
+Design tradeoffs: libp2p sync uses a simple "high-water-mark republish" strategy (each tick publishes only events not yet published); receiver-side dedupe + verify makes that reliable without a pull protocol. Web operational GUI shells out via ws-bridge to local CLI, keeping signing material in the CLI process per the "keys-never-leave-CLI" constraint.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.8** — governance.log cross-member sync + service templates + governance GUIs (desktop + web)
 
 Closes the two v0.7 limitations: governance.log only existing on local boxes, and governance state being CLI-only:
