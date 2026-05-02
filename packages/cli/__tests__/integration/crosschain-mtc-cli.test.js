@@ -57,7 +57,11 @@ describe("cc crosschain mtc-* — CLI integration", () => {
         tmpHome,
         "--json",
       ]);
-      expect(r.status).toBe(0);
+      if (r.status !== 0) {
+        throw new Error(
+          `mtc-status exit=${r.status}\n--- stdout ---\n${r.stdout}\n--- stderr ---\n${r.stderr}`,
+        );
+      }
       const json = extractJson(r.stdout);
       expect(json.enabled).toBe(false);
       expect(json.mode).toBe("independent");
