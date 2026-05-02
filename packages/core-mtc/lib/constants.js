@@ -10,7 +10,11 @@ const SCHEMA_ENVELOPE = "mtc-envelope/v1";
 const SCHEMA_TREE_HEAD = "mtc-tree-head/v1";
 const SCHEMA_LANDMARK = "mtc-landmark/v1";
 
-const NAMESPACE_RE = /^mtc\/v1\/(did|skill|audit)(?:\/[a-zA-Z0-9_-]{1,64})?\/[0-9]{6,}$/;
+// Bridge kind added per docs/design/MTC_跨链桥_v1.md §5.2 (chain-pair scope is
+// always lex-ordered "<chain>-<chain>"; format-level enforcement is in
+// cross-chain-mtc lib's BRIDGE_NAMESPACE_RE — this regex just allows the kind
+// through landmark-cache + verifier).
+const NAMESPACE_RE = /^mtc\/v1\/(did|skill|audit|bridge)(?:\/[a-zA-Z0-9_-]{1,64})?\/[0-9]{6,}$/;
 
 const HASH_PREFIX = "sha256:";
 

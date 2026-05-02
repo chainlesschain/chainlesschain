@@ -2,7 +2,22 @@
  * `cc crosschain` — CLI surface for Phase 89 Cross-Chain Interoperability.
  */
 
+import fs from "node:fs";
+
 import { Command } from "commander";
+
+import { getHomeDir } from "../lib/paths.js";
+import {
+  getCrossChainMtcDir,
+  getBridgeMtcStatus,
+  loadCrossChainMtcConfig,
+  addTrustAnchor,
+  listTrustAnchors,
+  removeTrustAnchor,
+  verifyBridgeEnvelope,
+  assembleBridgeBatch,
+} from "../lib/cross-chain-mtc.js";
+import mtcLib from "@chainlesschain/core-mtc";
 
 import {
   SUPPORTED_CHAINS,
@@ -397,6 +412,15 @@ export function registerCrossChainCommand(program) {
     });
 
   /* ══════════════════════════════════════════════════
+   * Cross-chain bridge MTC integration (跨链桥设计 v0.1)
+   * Design: docs/design/MTC_跨链桥_v1.md
+   * Status: opt-in. Default config.enabled = false. Read commands work
+   * regardless; envelope generation requires enabled=true.
+   * ══════════════════════════════════════════════════ */
+
+  registerCrossChainMtcSubcommands(cc);
+
+  /* ══════════════════════════════════════════════════
    * Phase 89 — Cross-Chain V2 subcommands
    * ══════════════════════════════════════════════════ */
 
@@ -598,6 +622,200 @@ export function registerCrossChainCommand(program) {
 
   program.addCommand(cc);
   registerCrossChainV2Command(cc);
+}
+
+function _resolveBridgeMtcDir(opts) {
+  const home = (opts && opts.configDir) || getHomeDir();
+  return getCrossChainMtcDir(home);
+}
+
+function registerCrossChainMtcSubcommands(cc) {
+  cc.command("mtc-status")
+    .description("Show cross-chain bridge MTC config + trust anchors + batches")
+    .option(
+      "--config-dir <dir>",
+      "Override config root (default: ~/.chainlesschain)",
+    )
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const s = getBridgeMtcStatus(dir);
+      if (opts.json) return console.log(JSON.stringify(s, null, 2));
+      console.log(
+        `Enabled:        ${s.enabled ? "yes" : "no (opt-in via config.enabled=true)"}`,
+      );
+      console.log(`Mode:           ${s.mode}`);
+      console.log(`Algorithm:      ${s.alg}`);
+      console.log(`Batch interval: ${s.batch_interval_seconds}s`);
+      console.log(`Issuer:         ${s.issuer}`);
+      console.log(
+        `Trust anchors:  ${s.trust_anchors.total} across ${s.trust_anchors.chain_count} chain(s)`,
+      );
+      for (const [chain, count] of Object.entries(s.trust_anchors.by_chain)) {
+        console.log(`                ${chain}: ${count}`);
+      }
+      console.log(
+        `Batches:        ${s.batches.total}${s.batches.latest ? ` (latest: ${s.batches.latest})` : ""}`,
+      );
+    });
+
+  cc.command("mtc-envelope")
+    .description("Build a bridge MTC envelope from a JSON file of bridge ops")
+    .requiredOption("-i, --input <path>", "JSON file: array of bridge ops")
+    .requiredOption("--src-chain <chain>", "Source chain")
+    .requiredOption("--dst-chain <chain>", "Destination chain")
+    .requiredOption("--batch-seq <n>", "Batch sequence number", parseInt)
+    .option("--issuer <issuer>", "MTCA issuer (default from config)")
+    .option("--alg <alg>", "ed25519 | slh-dsa-128f")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "JSON output (full landmark + envelopes)")
+    .action((opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const cfg = loadCrossChainMtcConfig(dir);
+      const ops = JSON.parse(fs.readFileSync(opts.input, "utf-8"));
+      if (!Array.isArray(ops)) {
+        console.error("Input file must contain a JSON array of bridge ops.");
+        process.exit(2);
+      }
+      const alg = opts.alg || cfg.alg;
+      const signer = alg === "slh-dsa-128f" ? mtcLib.slhDsa : mtcLib.ed25519;
+      const keys = signer.generateKeyPair();
+      const result = assembleBridgeBatch(ops, keys, {
+        src_chain: opts.srcChain,
+        dst_chain: opts.dstChain,
+        batch_seq: opts.batchSeq,
+        issuer: opts.issuer || cfg.issuer,
+        signer,
+      });
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      console.log(`Namespace:    ${result.namespace}`);
+      console.log(`Tree head id: ${result.treeHeadId}`);
+      console.log(`Tree size:    ${result.envelopes.length}`);
+      console.log(`Algorithm:    ${alg}`);
+      console.log(`(JSON envelope + landmark omitted; pass --json to emit)`);
+    });
+
+  cc.command("mtc-verify <envelope-path> <landmark-path>")
+    .description("Verify a bridge MTC envelope against a landmark file")
+    .option("--json", "JSON output")
+    .action((envPath, lmPath, opts) => {
+      const envelope = JSON.parse(fs.readFileSync(envPath, "utf-8"));
+      const landmark = JSON.parse(fs.readFileSync(lmPath, "utf-8"));
+      const cache = new mtcLib.LandmarkCache({
+        signatureVerifier: mtcLib.alwaysAcceptSignatureVerifier,
+      });
+      try {
+        cache.ingest(landmark);
+      } catch (err) {
+        const out = {
+          ok: false,
+          code: err.code || "LANDMARK_REJECT",
+          error: err.message,
+        };
+        if (opts.json) return console.log(JSON.stringify(out, null, 2));
+        console.log(`✗ Landmark ingest failed: ${err.message}`);
+        process.exit(2);
+      }
+      const result = verifyBridgeEnvelope(envelope, cache);
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+        if (!result.ok) process.exit(2);
+        return;
+      }
+      if (result.ok) {
+        console.log(`✓ Envelope verified.`);
+        console.log(`  Bridge op: ${result.bridge_op}`);
+        console.log(`  Tree size: ${result.treeHead?.tree_size}`);
+        console.log(`  Issuer:    ${result.treeHead?.issuer}`);
+      } else {
+        console.log(`✗ Verification failed: ${result.code}`);
+        process.exit(2);
+      }
+    });
+
+  const taParent = cc
+    .command("mtc-trust-anchor")
+    .description("Manage Independent-mode trust anchors (per source chain)");
+
+  taParent
+    .command("add <chain> <pubkey-id>")
+    .description("Add a trust anchor for a source chain")
+    .requiredOption("--alg <alg>", "ed25519 | slh-dsa-128f")
+    .requiredOption("--issuer <issuer>", "MTCA issuer string for this anchor")
+    .option("--jwk <path>", "Optional JWK file for the public key")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "JSON output")
+    .action((chain, pubkeyId, opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      let pubkeyJwk = null;
+      if (opts.jwk) {
+        pubkeyJwk = JSON.parse(fs.readFileSync(opts.jwk, "utf-8"));
+      }
+      const r = addTrustAnchor(dir, chain, {
+        pubkey_id: pubkeyId,
+        alg: opts.alg,
+        issuer: opts.issuer,
+        pubkey_jwk: pubkeyJwk,
+      });
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      if (r.added) {
+        console.log(`✓ Added trust anchor for ${chain}: ${pubkeyId}`);
+      } else {
+        console.log(`(already exists for ${chain}: ${pubkeyId})`);
+      }
+      console.log(`Total anchors for ${chain}: ${r.total_for_chain}`);
+    });
+
+  taParent
+    .command("list [chain]")
+    .description("List trust anchors (optionally filter by chain)")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "JSON output")
+    .action((chain, opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const result = listTrustAnchors(dir, chain);
+      if (opts.json) return console.log(JSON.stringify(result, null, 2));
+      if (chain) {
+        if (!result || result.length === 0) {
+          console.log(`(no trust anchors for ${chain})`);
+          return;
+        }
+        for (const a of result) {
+          console.log(
+            `  ${a.pubkey_id}  alg=${a.alg}  issuer=${a.issuer}  added=${a.added_at}`,
+          );
+        }
+      } else {
+        const chains = Object.keys(result);
+        if (chains.length === 0) {
+          console.log("(no trust anchors)");
+          return;
+        }
+        for (const c of chains) {
+          console.log(`${c}:`);
+          for (const a of result[c]) {
+            console.log(`  ${a.pubkey_id}  alg=${a.alg}  issuer=${a.issuer}`);
+          }
+        }
+      }
+    });
+
+  taParent
+    .command("remove <chain> <pubkey-id>")
+    .description("Remove a trust anchor by pubkey-id")
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "JSON output")
+    .action((chain, pubkeyId, opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const r = removeTrustAnchor(dir, chain, pubkeyId);
+      if (opts.json) return console.log(JSON.stringify(r, null, 2));
+      if (r.removed) {
+        console.log(`✓ Removed trust anchor for ${chain}: ${pubkeyId}`);
+      } else {
+        console.log(`(no matching trust anchor for ${chain}: ${pubkeyId})`);
+      }
+      console.log(`Remaining anchors for ${chain}: ${r.total_for_chain}`);
+    });
 }
 
 import {
