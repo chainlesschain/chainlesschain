@@ -9,6 +9,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   createFsOpenDialogHandler,
+  createFsOpenDirectoryHandler,
   createFsSaveDialogHandler,
   READ_MAX_BYTES,
 } from "../handlers/fs-handlers.js";
@@ -228,5 +229,101 @@ describe("fs.saveDialog handler", () => {
         filters: [{ name: "Markdown", extensions: ["md"] }],
       }),
     );
+  });
+});
+
+describe("fs.openDirectory handler", () => {
+  it("returns {canceled:true} when the user dismisses the picker", async () => {
+    const handler = createFsOpenDirectoryHandler({
+      mainWindow: FAKE_WINDOW,
+      dialogModule: makeOpenDialogModule({ canceled: true, filePaths: [] }),
+      fsModule: makeFsModule(),
+    });
+    const result = await handler({ id: "20", type: "fs.openDirectory" });
+    expect(result).toEqual({
+      canceled: true,
+      path: null,
+      initialized: false,
+    });
+  });
+
+  it("reports initialized:true when <dir>/.chainlesschain/config.json exists", async () => {
+    const fsModule = makeFsModule({
+      stat: vi.fn().mockResolvedValue({ isFile: () => true }),
+    });
+    const handler = createFsOpenDirectoryHandler({
+      mainWindow: FAKE_WINDOW,
+      dialogModule: makeOpenDialogModule({
+        canceled: false,
+        filePaths: ["/work/my-project"],
+      }),
+      fsModule,
+    });
+    const result = await handler({ id: "21", type: "fs.openDirectory" });
+    expect(result.canceled).toBe(false);
+    expect(result.path).toBe("/work/my-project");
+    expect(result.initialized).toBe(true);
+    // The stat call must target <dir>/.chainlesschain/config.json — never an
+    // arbitrary path the SPA could request.
+    expect(fsModule.stat).toHaveBeenCalledWith(
+      expect.stringMatching(/\.chainlesschain[\\/]config\.json$/),
+    );
+  });
+
+  it("reports initialized:false when stat ENOENTs", async () => {
+    const fsModule = makeFsModule({
+      stat: vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+        ),
+    });
+    const handler = createFsOpenDirectoryHandler({
+      mainWindow: FAKE_WINDOW,
+      dialogModule: makeOpenDialogModule({
+        canceled: false,
+        filePaths: ["/work/empty-dir"],
+      }),
+      fsModule,
+    });
+    const result = await handler({ id: "22", type: "fs.openDirectory" });
+    expect(result).toEqual({
+      canceled: false,
+      path: "/work/empty-dir",
+      initialized: false,
+    });
+  });
+
+  it("uses openDirectory property — never returns a file content blob", async () => {
+    const dialogModule = makeOpenDialogModule({
+      canceled: false,
+      filePaths: ["/some/dir"],
+    });
+    const handler = createFsOpenDirectoryHandler({
+      mainWindow: FAKE_WINDOW,
+      dialogModule,
+      fsModule: makeFsModule({
+        stat: vi.fn().mockResolvedValue({ isFile: () => false }),
+      }),
+    });
+    const result = await handler({ id: "23", type: "fs.openDirectory" });
+    expect(dialogModule.showOpenDialog).toHaveBeenCalledWith(
+      FAKE_WINDOW,
+      expect.objectContaining({ properties: ["openDirectory"] }),
+    );
+    // Result shape must NOT include `content` — directory pickers don't read.
+    expect(result).not.toHaveProperty("content");
+    expect(result).not.toHaveProperty("size");
+  });
+
+  it("throws main_window_unavailable when no parent window is registered", async () => {
+    const handler = createFsOpenDirectoryHandler({
+      mainWindow: null,
+      dialogModule: makeOpenDialogModule({}),
+      fsModule: makeFsModule(),
+    });
+    await expect(
+      handler({ id: "24", type: "fs.openDirectory" }),
+    ).rejects.toThrow("main_window_unavailable");
   });
 });

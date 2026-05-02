@@ -32,6 +32,7 @@ const { createUKeyStatusHandler } = require("./handlers/ukey-status-handler");
 const { createSkillListHandler } = require("./handlers/skill-list-handler");
 const {
   createFsOpenDialogHandler,
+  createFsOpenDirectoryHandler,
   createFsSaveDialogHandler,
 } = require("./handlers/fs-handlers");
 const {
@@ -111,6 +112,9 @@ async function startWebShell(options = {}) {
     // post-destroy, so registering with null is harmless until a window
     // exists.
     "fs.openDialog": createFsOpenDialogHandler({
+      mainWindow: options.mainWindow ?? null,
+    }),
+    "fs.openDirectory": createFsOpenDirectoryHandler({
       mainWindow: options.mainWindow ?? null,
     }),
     "fs.saveDialog": createFsSaveDialogHandler({

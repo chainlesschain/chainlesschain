@@ -187,5 +187,41 @@ export function useFs() {
     return saveText(content, opts)
   }
 
-  return { pickFileText, saveText, saveJson }
+  /**
+   * Pick a directory via the native Electron dialog (embedded shell only —
+   * browser fallback is impossible since browsers can't return absolute
+   * paths). The handler also reports whether the picked dir is already a
+   * chainlesschain project (`<dir>/.chainlesschain/config.json` exists),
+   * so the caller can branch between "bind existing" and "init new".
+   *
+   * Returns:
+   *   { canceled: boolean, path: string|null, initialized: boolean,
+   *     unsupported?: true }
+   *
+   * In browser mode `unsupported: true` is returned — the caller should
+   * surface a "请使用桌面壳" hint.
+   */
+  async function pickDirectory(options = {}) {
+    if (!useShellMode().isEmbedded) {
+      return { canceled: true, path: null, initialized: false, unsupported: true }
+    }
+    const reply = await ws.sendRaw(
+      {
+        type: 'fs.openDirectory',
+        title: options.title,
+      },
+      60000,
+    )
+    if (reply && reply.ok === false) {
+      throw new Error(reply.error || 'fs.openDirectory failed')
+    }
+    const r = reply?.result ?? reply
+    return {
+      canceled: !!r.canceled,
+      path: r.path ?? null,
+      initialized: !!r.initialized,
+    }
+  }
+
+  return { pickFileText, saveText, saveJson, pickDirectory }
 }

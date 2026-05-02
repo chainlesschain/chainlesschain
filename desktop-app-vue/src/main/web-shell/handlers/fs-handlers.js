@@ -110,6 +110,63 @@ function createFsOpenDialogHandler(options = {}) {
 }
 
 /**
+ * Build the `fs.openDirectory` topic handler — picks a folder and reports
+ * whether it's already a chainlesschain project (i.e. has
+ * `<path>/.chainlesschain/config.json`). Used by the web-panel "open
+ * project folder" flow so the UI can decide between "bind existing" and
+ * "init new" without a second round-trip.
+ *
+ * Frame:
+ *   client → server: { id, type: "fs.openDirectory", title? }
+ *   server → client: { id, type: "fs.openDirectory.result", ok: true,
+ *     result: { canceled, path, initialized } }
+ *
+ * No path read happens beyond `.chainlesschain/config.json` existence —
+ * keeps the security envelope tight.
+ *
+ * @param {FsHandlerOptions} options
+ * @returns {(frame: any) => Promise<{
+ *   canceled: boolean,
+ *   path: string | null,
+ *   initialized: boolean,
+ * }>}
+ */
+function createFsOpenDirectoryHandler(options = {}) {
+  return async function fsOpenDirectoryHandler(frame) {
+    if (!options.mainWindow) {
+      throw new Error("main_window_unavailable");
+    }
+    const dialog = loadDialog(options);
+    const fs = loadFsPromises(options);
+
+    const result = await dialog.showOpenDialog(options.mainWindow, {
+      title: frame?.title || "选择项目文件夹",
+      properties: ["openDirectory"],
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return { canceled: true, path: null, initialized: false };
+    }
+
+    const dirPath = result.filePaths[0];
+    const path = require("path");
+    const configPath = path.join(dirPath, ".chainlesschain", "config.json");
+
+    let initialized = false;
+    try {
+      const stat = await fs.stat(configPath);
+      initialized = stat.isFile();
+    } catch {
+      // ENOENT or any stat failure → treat as not initialized; the init
+      // flow will surface real errors when it actually tries to create.
+      initialized = false;
+    }
+
+    return { canceled: false, path: dirPath, initialized };
+  };
+}
+
+/**
  * Build the `fs.saveDialog` topic handler.
  *
  * @param {FsHandlerOptions} options
@@ -147,6 +204,7 @@ function createFsSaveDialogHandler(options = {}) {
 
 module.exports = {
   createFsOpenDialogHandler,
+  createFsOpenDirectoryHandler,
   createFsSaveDialogHandler,
   READ_MAX_BYTES,
 };

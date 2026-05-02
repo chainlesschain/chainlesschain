@@ -2406,8 +2406,23 @@ export function registerInitCommand(program) {
       "--bare",
       "Create minimal structure (alias for --template empty --yes)",
     )
+    .option(
+      "--cwd <dir>",
+      "Initialize in <dir> instead of the current working directory (used by web-panel folder picker)",
+    )
     .action(async (options) => {
-      const cwd = process.cwd();
+      let cwd;
+      if (options.cwd) {
+        cwd = path.resolve(options.cwd);
+        if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
+          logger.error(
+            `--cwd path does not exist or is not a directory: ${cwd}`,
+          );
+          process.exit(1);
+        }
+      } else {
+        cwd = process.cwd();
+      }
       const ccDir = path.join(cwd, ".chainlesschain");
 
       // Check if already initialized

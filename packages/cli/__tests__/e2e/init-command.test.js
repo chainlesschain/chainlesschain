@@ -467,4 +467,48 @@ describe("E2E: init command", () => {
       expect(skillMd).toContain("_edited");
     });
   });
+
+  // --cwd <dir> exists so the web-panel folder picker can run init against
+  // a user-selected directory without spawning cc with an explicit cwd
+  // (the WS execute topic just runs the command line).
+  describe("init --cwd", () => {
+    it("initializes in the given directory regardless of process cwd", () => {
+      // Run from cliRoot but target tempDir via --cwd
+      run(`init --bare --cwd ${tempDir}`, { cwd: cliRoot });
+
+      expect(existsSync(join(tempDir, ".chainlesschain", "config.json"))).toBe(
+        true,
+      );
+      // cliRoot must NOT have been touched
+      expect(existsSync(join(cliRoot, ".chainlesschain", "config.json"))).toBe(
+        false,
+      );
+    });
+
+    it("config.json's project name reflects the --cwd basename, not process.cwd", () => {
+      run(`init --bare --cwd ${tempDir}`, { cwd: cliRoot });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      // tempDir basename is `cc-init-e2e-XXXXXX` from mkdtempSync
+      expect(config.name).toMatch(/^cc-init-e2e-/);
+    });
+
+    it("rejects --cwd that does not exist", () => {
+      const ghost = join(tempDir, "does-not-exist");
+      expect(() => run(`init --bare --cwd ${ghost}`, { cwd: cliRoot })).toThrow(
+        /does not exist|is not a directory/,
+      );
+    });
+
+    it("--cwd interacts with the already-initialized guard at the target dir", () => {
+      // First init succeeds at tempDir
+      run(`init --bare --cwd ${tempDir}`, { cwd: cliRoot });
+      // Second one against the same --cwd must fail with the existing guard
+      expect(() =>
+        run(`init --bare --cwd ${tempDir}`, { cwd: cliRoot }),
+      ).toThrow(/Already initialized/);
+    });
+  });
 });

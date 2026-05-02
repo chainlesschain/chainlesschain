@@ -121,20 +121,54 @@
         </a-col>
       </a-row>
 
-      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px;">
+      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <a-button
           type="primary"
           :loading="initLoading"
-          :disabled="!selectedTemplate"
+          :disabled="!selectedTemplate || (selectedFolder && selectedFolderInitialized)"
           @click="initProject"
         >
           <template #icon><RocketOutlined /></template>
-          初始化
+          {{ selectedFolder ? '在所选文件夹初始化' : '初始化（当前目录）' }}
+        </a-button>
+        <a-button
+          :loading="folderPickerLoading"
+          @click="pickProjectFolder"
+        >
+          <template #icon><FolderOpenOutlined /></template>
+          选择文件夹...
+        </a-button>
+        <a-button
+          v-if="selectedFolder"
+          size="small"
+          type="text"
+          @click="clearSelectedFolder"
+        >
+          清除
         </a-button>
         <span v-if="selectedTemplate" style="color: var(--text-secondary); font-size: 12px;">
           模板: {{ selectedTemplate }}
         </span>
       </div>
+      <div
+        v-if="selectedFolder"
+        style="margin-top: 12px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 10px;"
+      >
+        <FolderOpenOutlined :style="{ color: selectedFolderInitialized ? '#52c41a' : '#1677ff' }" />
+        <span style="font-family: monospace; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          {{ selectedFolder }}
+        </span>
+        <a-tag v-if="selectedFolderInitialized" color="green">已是项目</a-tag>
+        <a-tag v-else color="blue">待初始化</a-tag>
+      </div>
+      <a-alert
+        v-if="selectedFolder && selectedFolderInitialized"
+        type="info"
+        show-icon
+        style="margin-top: 12px;"
+        message="该文件夹已是 ChainlessChain 项目"
+        description="检测到 .chainlesschain/config.json。无需重新初始化 — 重新启动 cc ui 时把工作目录指向这里即可使用现有配置。"
+      />
 
       <a-alert
         v-if="initResult"
@@ -185,20 +219,28 @@
 import { ref, reactive, onMounted } from 'vue'
 import {
   ProjectOutlined, RocketOutlined, MedicineBoxOutlined,
-  ReloadOutlined, CheckCircleOutlined
+  ReloadOutlined, CheckCircleOutlined, FolderOpenOutlined
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useFs } from '../composables/useFs.js'
 
 const ws = useWsStore()
+const fs = useFs()
 
 const statusLoading = ref(false)
 const initLoading = ref(false)
 const doctorLoading = ref(false)
+const folderPickerLoading = ref(false)
 const selectedTemplate = ref('')
 const doctorOutput = ref('')
 const initResult = ref(null)
 const configLoaded = ref(false)
 const configItems = ref([])
+// Selected folder for `cc init --cwd <path>`. Null = init runs in cc ui's
+// own cwd (current project directory or global mode).
+const selectedFolder = ref(null)
+const selectedFolderInitialized = ref(false)
 
 const statusInfo = reactive({
   running: false,
@@ -271,13 +313,27 @@ async function refreshStatus() {
 
 async function initProject() {
   if (!selectedTemplate.value) return
+  if (selectedFolder.value && selectedFolderInitialized.value) {
+    // Defensive: button is disabled in this case but in case the alert was
+    // dismissed and disabled flag missed.
+    message.info('该文件夹已是项目，无需重新初始化')
+    return
+  }
   initLoading.value = true
   initResult.value = null
   try {
-    const cmd = `init --template ${selectedTemplate.value} --yes`
+    let cmd = `init --template ${selectedTemplate.value} --yes`
+    if (selectedFolder.value) {
+      // Quote so paths with spaces survive ws.execute's command-line parsing.
+      cmd += ` --cwd "${selectedFolder.value}"`
+    }
     const { output, exitCode } = await ws.execute(cmd, 30000)
     initResult.value = { success: exitCode === 0, output }
     if (exitCode === 0) {
+      // Re-check the picked folder so the badge flips to "已是项目"
+      if (selectedFolder.value) {
+        selectedFolderInitialized.value = true
+      }
       await refreshStatus()
     }
   } catch (e) {
@@ -285,6 +341,29 @@ async function initProject() {
   } finally {
     initLoading.value = false
   }
+}
+
+async function pickProjectFolder() {
+  folderPickerLoading.value = true
+  try {
+    const r = await fs.pickDirectory({ title: '选择项目文件夹' })
+    if (r.unsupported) {
+      message.warning('浏览器模式不支持选择文件夹 — 请在桌面壳里使用此功能')
+      return
+    }
+    if (r.canceled) return
+    selectedFolder.value = r.path
+    selectedFolderInitialized.value = r.initialized
+  } catch (e) {
+    message.error(`选择文件夹失败: ${e.message}`)
+  } finally {
+    folderPickerLoading.value = false
+  }
+}
+
+function clearSelectedFolder() {
+  selectedFolder.value = null
+  selectedFolderInitialized.value = false
 }
 
 async function runDoctor() {
