@@ -2,17 +2,17 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">定时任务</h2>
-        <p class="page-sub">定时任务调度管理</p>
+        <h2 class="page-title">{{ t('cron.title') }}</h2>
+        <p class="page-sub">{{ t('cron.subtitle') }}</p>
       </div>
       <a-space>
         <a-button @click="showAdd = true" type="primary">
           <template #icon><PlusOutlined /></template>
-          新建任务
+          {{ t('cron.newTask') }}
         </a-button>
         <a-button ghost :loading="loading" @click="loadTasks">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('cron.refresh') }}
         </a-button>
       </a-space>
     </div>
@@ -21,32 +21,32 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="全部任务" :value="tasks.length" value-style="color: #ccc; font-size: 18px;" />
+          <a-statistic :title="t('cron.stats.all')" :value="tasks.length" value-style="color: #ccc; font-size: 18px;" />
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="启用中" :value="activeTasks" value-style="color: #52c41a; font-size: 18px;" />
+          <a-statistic :title="t('cron.stats.active')" :value="activeTasks" value-style="color: #52c41a; font-size: 18px;" />
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="已暂停" :value="pausedTasks" value-style="color: #faad14; font-size: 18px;" />
+          <a-statistic :title="t('cron.stats.paused')" :value="pausedTasks" value-style="color: #faad14; font-size: 18px;" />
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);" size="small">
-          <a-statistic title="预设方案" :value="presets.length" value-style="color: #1677ff; font-size: 18px;" />
+          <a-statistic :title="t('cron.stats.presets')" :value="presets.length" value-style="color: #1677ff; font-size: 18px;" />
         </a-card>
       </a-col>
     </a-row>
 
     <!-- Presets -->
-    <a-card title="快速添加预设" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;" size="small">
+    <a-card :title="t('cron.presetsCardTitle')" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;" size="small">
       <a-space wrap>
         <a-button
           v-for="p in presets"
-          :key="p.label"
+          :key="p.key"
           size="small"
           style="background: var(--bg-card-hover); border-color: var(--border-color); font-size: 12px;"
           @click="applyPreset(p)"
@@ -77,17 +77,17 @@
           <template v-if="column.key === 'status'">
             <a-badge
               :status="record.enabled ? 'success' : 'warning'"
-              :text="record.enabled ? '运行中' : '已暂停'"
+              :text="record.enabled ? t('cron.running') : t('cron.paused')"
             />
           </template>
           <template v-if="column.key === 'actions'">
             <a-space size="small">
-              <a-button size="small" type="link" :loading="record.running" @click="runTask(record)">运行</a-button>
+              <a-button size="small" type="link" :loading="record.running" @click="runTask(record)">{{ t('cron.actions.run') }}</a-button>
               <a-button size="small" type="link" @click="toggleTask(record)">
-                {{ record.enabled ? '暂停' : '启用' }}
+                {{ record.enabled ? t('cron.actions.pause') : t('cron.actions.enable') }}
               </a-button>
-              <a-popconfirm title="确认删除此任务?" @confirm="deleteTask(record)">
-                <a-button size="small" type="link" danger>删除</a-button>
+              <a-popconfirm :title="t('cron.actions.deleteConfirm')" @confirm="deleteTask(record)">
+                <a-button size="small" type="link" danger>{{ t('cron.actions.delete') }}</a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -95,29 +95,29 @@
         <template #emptyText>
           <div style="padding: 40px; color: var(--text-muted); text-align: center;">
             <ClockCircleOutlined style="font-size: 36px; margin-bottom: 12px; display: block;" />
-            暂无定时任务
+            {{ t('cron.emptyText') }}
           </div>
         </template>
       </a-table>
     </a-card>
 
     <!-- Add Task Modal -->
-    <a-modal v-model:open="showAdd" title="新建定时任务" :confirm-loading="adding" @ok="addTask" width="520px">
+    <a-modal v-model:open="showAdd" :title="t('cron.modal.title')" :confirm-loading="adding" @ok="addTask" width="520px">
       <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
-        <a-form-item label="任务名称" required>
-          <a-input v-model:value="newTask.name" placeholder="任务名称" />
+        <a-form-item :label="t('cron.modal.nameLabel')" required>
+          <a-input v-model:value="newTask.name" :placeholder="t('cron.modal.namePlaceholder')" />
         </a-form-item>
-        <a-form-item label="Cron 表达式" required>
-          <a-input v-model:value="newTask.cron" placeholder="如: 0 9 * * * (每天9点)" />
-          <div style="color: var(--text-secondary); font-size: 11px; margin-top: 4px;">格式: 分 时 日 月 周</div>
+        <a-form-item :label="t('cron.modal.cronLabel')" required>
+          <a-input v-model:value="newTask.cron" :placeholder="t('cron.modal.cronPlaceholder')" />
+          <div style="color: var(--text-secondary); font-size: 11px; margin-top: 4px;">{{ t('cron.modal.cronHint') }}</div>
         </a-form-item>
-        <a-form-item label="任务内容" required>
-          <a-textarea v-model:value="newTask.payload" :rows="3" placeholder="要执行的 AI 任务描述..." />
+        <a-form-item :label="t('cron.modal.payloadLabel')" required>
+          <a-textarea v-model:value="newTask.payload" :rows="3" :placeholder="t('cron.modal.payloadPlaceholder')" />
         </a-form-item>
-        <a-form-item label="描述">
-          <a-input v-model:value="newTask.description" placeholder="可选描述" />
+        <a-form-item :label="t('cron.modal.descriptionLabel')">
+          <a-input v-model:value="newTask.description" :placeholder="t('cron.modal.descriptionPlaceholder')" />
         </a-form-item>
-        <a-form-item label="立即启用">
+        <a-form-item :label="t('cron.modal.enabledLabel')">
           <a-switch v-model:checked="newTask.enabled" />
         </a-form-item>
       </a-form>
@@ -127,10 +127,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { PlusOutlined, ReloadOutlined, ClockCircleOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const loading = ref(false)
@@ -138,35 +140,38 @@ const adding = ref(false)
 const showAdd = ref(false)
 const tasks = ref([])
 
-const activeTasks = computed(() => tasks.value.filter(t => t.enabled).length)
-const pausedTasks = computed(() => tasks.value.filter(t => !t.enabled).length)
+const activeTasks = computed(() => tasks.value.filter(task => task.enabled).length)
+const pausedTasks = computed(() => tasks.value.filter(task => !task.enabled).length)
 
-const presets = [
-  { label: '每5分钟', cron: '*/5 * * * *' },
-  { label: '每15分钟', cron: '*/15 * * * *' },
-  { label: '每小时', cron: '0 * * * *' },
-  { label: '每天9点', cron: '0 9 * * *' },
-  { label: '每天18点', cron: '0 18 * * *' },
-  { label: '每周一9点', cron: '0 9 * * 1' },
-  { label: '每月1号', cron: '0 9 1 * *' },
+const PRESETS = [
+  { key: 'every5m', cron: '*/5 * * * *' },
+  { key: 'every15m', cron: '*/15 * * * *' },
+  { key: 'everyHour', cron: '0 * * * *' },
+  { key: 'every9am', cron: '0 9 * * *' },
+  { key: 'every6pm', cron: '0 18 * * *' },
+  { key: 'weeklyMon9', cron: '0 9 * * 1' },
+  { key: 'monthly1', cron: '0 9 1 * *' },
 ]
+
+const presets = computed(() =>
+  PRESETS.map(p => ({ ...p, label: t(`cron.presets.${p.key}`) })),
+)
 
 const newTask = ref({ name: '', cron: '', payload: '', description: '', enabled: true })
 
-const columns = [
-  { title: '任务名称', key: 'name', width: '25%' },
-  { title: 'Cron', key: 'cron', width: '20%' },
-  { title: '状态', key: 'status', width: '15%' },
-  { title: '操作', key: 'actions', width: '20%' },
-]
+const columns = computed(() => [
+  { title: t('cron.columns.name'), key: 'name', width: '25%' },
+  { title: t('cron.columns.cron'), key: 'cron', width: '20%' },
+  { title: t('cron.columns.status'), key: 'status', width: '15%' },
+  { title: t('cron.columns.actions'), key: 'actions', width: '20%' },
+])
 
 async function loadTasks() {
   loading.value = true
   try {
-    // Try to list cron tasks via skill
     const { output } = await ws.execute('skill run cron-scheduler "list all scheduled tasks"', 20000)
     tasks.value = parseTasks(output)
-  } catch (e) {
+  } catch (_e) {
     tasks.value = []
   } finally {
     loading.value = false
@@ -179,7 +184,6 @@ function parseTasks(output) {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('─')) continue
-    // Try to parse task entries
     const m = trimmed.match(/^([^\t|]+?)[\t|]+([*\d/,\-?LW#\s]+)[\t|]+/)
     if (m) {
       result.push({
@@ -201,17 +205,17 @@ function applyPreset(preset) {
 }
 
 async function addTask() {
-  if (!newTask.value.name || !newTask.value.cron) { message.warning('请填写任务名称和 Cron 表达式'); return }
+  if (!newTask.value.name || !newTask.value.cron) { message.warning(t('cron.messages.nameAndCronRequired')); return }
   adding.value = true
   try {
     const cmd = `skill run cron-scheduler "add task: ${newTask.value.name}, schedule: ${newTask.value.cron}, payload: ${newTask.value.payload || 'ping'}"`
-    const { output } = await ws.execute(cmd, 20000)
-    message.success('任务已创建')
+    await ws.execute(cmd, 20000)
+    message.success(t('cron.messages.createOk'))
     showAdd.value = false
     newTask.value = { name: '', cron: '', payload: '', description: '', enabled: true }
     await loadTasks()
   } catch (e) {
-    message.error('创建失败: ' + e.message)
+    message.error(t('cron.messages.createFailed', { err: e.message }))
   } finally {
     adding.value = false
   }
@@ -220,10 +224,10 @@ async function addTask() {
 async function runTask(record) {
   record.running = true
   try {
-    const { output } = await ws.execute(`skill run cron-scheduler "run task: ${record.name}"`, 30000)
-    message.success(`任务 ${record.name} 已触发`)
+    await ws.execute(`skill run cron-scheduler "run task: ${record.name}"`, 30000)
+    message.success(t('cron.messages.runOk', { name: record.name }))
   } catch (e) {
-    message.error('触发失败: ' + e.message)
+    message.error(t('cron.messages.runFailed', { err: e.message }))
   } finally {
     record.running = false
   }
@@ -234,19 +238,19 @@ async function toggleTask(record) {
   try {
     await ws.execute(`skill run cron-scheduler "${action} task: ${record.name}"`, 10000)
     record.enabled = !record.enabled
-    message.success(`任务已${record.enabled ? '启用' : '暂停'}`)
-  } catch (e) {
-    message.error('操作失败')
+    message.success(record.enabled ? t('cron.messages.toggleEnabled') : t('cron.messages.togglePaused'))
+  } catch (_e) {
+    message.error(t('cron.messages.toggleFailed'))
   }
 }
 
 async function deleteTask(record) {
   try {
     await ws.execute(`skill run cron-scheduler "delete task: ${record.name}"`, 10000)
-    tasks.value = tasks.value.filter(t => t.key !== record.key)
-    message.success('任务已删除')
-  } catch (e) {
-    message.error('删除失败')
+    tasks.value = tasks.value.filter(task => task.key !== record.key)
+    message.success(t('cron.messages.deleteOk'))
+  } catch (_e) {
+    message.error(t('cron.messages.deleteFailed'))
   }
 }
 

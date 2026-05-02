@@ -2626,6 +2626,69 @@
       "loadAuditFailed": "加载审计日志失败: {err}"
     }
   },
+  "cron": {
+    "title": "定时任务",
+    "subtitle": "定时任务调度管理",
+    "newTask": "新建任务",
+    "refresh": "刷新",
+    "stats": {
+      "all": "全部任务",
+      "active": "启用中",
+      "paused": "已暂停",
+      "presets": "预设方案"
+    },
+    "presetsCardTitle": "快速添加预设",
+    "presets": {
+      "every5m": "每5分钟",
+      "every15m": "每15分钟",
+      "everyHour": "每小时",
+      "every9am": "每天9点",
+      "every6pm": "每天18点",
+      "weeklyMon9": "每周一9点",
+      "monthly1": "每月1号"
+    },
+    "running": "运行中",
+    "paused": "已暂停",
+    "actions": {
+      "run": "运行",
+      "pause": "暂停",
+      "enable": "启用",
+      "delete": "删除",
+      "deleteConfirm": "确认删除此任务?"
+    },
+    "emptyText": "暂无定时任务",
+    "modal": {
+      "title": "新建定时任务",
+      "nameLabel": "任务名称",
+      "namePlaceholder": "任务名称",
+      "cronLabel": "Cron 表达式",
+      "cronPlaceholder": "如: 0 9 * * * (每天9点)",
+      "cronHint": "格式: 分 时 日 月 周",
+      "payloadLabel": "任务内容",
+      "payloadPlaceholder": "要执行的 AI 任务描述...",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "可选描述",
+      "enabledLabel": "立即启用"
+    },
+    "columns": {
+      "name": "任务名称",
+      "cron": "Cron",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "messages": {
+      "nameAndCronRequired": "请填写任务名称和 Cron 表达式",
+      "createOk": "任务已创建",
+      "createFailed": "创建失败: {err}",
+      "runOk": "任务 {name} 已触发",
+      "runFailed": "触发失败: {err}",
+      "toggleEnabled": "任务已启用",
+      "togglePaused": "任务已暂停",
+      "toggleFailed": "操作失败",
+      "deleteOk": "任务已删除",
+      "deleteFailed": "删除失败"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

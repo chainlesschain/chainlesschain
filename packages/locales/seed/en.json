@@ -2626,6 +2626,69 @@
       "loadAuditFailed": "Failed to load audit log: {err}"
     }
   },
+  "cron": {
+    "title": "Scheduled Tasks",
+    "subtitle": "Cron task scheduler management",
+    "newTask": "New task",
+    "refresh": "Refresh",
+    "stats": {
+      "all": "All tasks",
+      "active": "Active",
+      "paused": "Paused",
+      "presets": "Presets"
+    },
+    "presetsCardTitle": "Quick presets",
+    "presets": {
+      "every5m": "Every 5 min",
+      "every15m": "Every 15 min",
+      "everyHour": "Every hour",
+      "every9am": "Daily 9am",
+      "every6pm": "Daily 6pm",
+      "weeklyMon9": "Mon 9am",
+      "monthly1": "1st of month"
+    },
+    "running": "Running",
+    "paused": "Paused",
+    "actions": {
+      "run": "Run",
+      "pause": "Pause",
+      "enable": "Enable",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this task?"
+    },
+    "emptyText": "No scheduled tasks yet",
+    "modal": {
+      "title": "New scheduled task",
+      "nameLabel": "Task name",
+      "namePlaceholder": "Task name",
+      "cronLabel": "Cron expression",
+      "cronPlaceholder": "e.g. 0 9 * * * (daily 9am)",
+      "cronHint": "Format: min hour day month weekday",
+      "payloadLabel": "Task content",
+      "payloadPlaceholder": "AI task description to execute...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "enabledLabel": "Enable now"
+    },
+    "columns": {
+      "name": "Task name",
+      "cron": "Cron",
+      "status": "Status",
+      "actions": "Action"
+    },
+    "messages": {
+      "nameAndCronRequired": "Enter task name and Cron expression",
+      "createOk": "Task created",
+      "createFailed": "Create failed: {err}",
+      "runOk": "Task {name} triggered",
+      "runFailed": "Trigger failed: {err}",
+      "toggleEnabled": "Task enabled",
+      "togglePaused": "Task paused",
+      "toggleFailed": "Operation failed",
+      "deleteOk": "Task deleted",
+      "deleteFailed": "Delete failed"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",
