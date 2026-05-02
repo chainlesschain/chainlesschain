@@ -142,6 +142,17 @@ ensureTaskBoardOwnerSchema()
 
 ---
 
+## ensureOpsPlaybookDescription()
+
+```javascript
+ensureOpsPlaybookDescription()
+```
+
+* Ensure ops_remediation_playbooks has the description column the
+   * AutoRemediator INSERT/UPDATE statements expect.
+
+---
+
 ## migrateDatabase()
 
 ```javascript
