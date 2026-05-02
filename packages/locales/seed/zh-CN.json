@@ -3038,6 +3038,67 @@
       "consolidateFailed": "巩固失败: {err}"
     }
   },
+  "git": {
+    "title": "Git 与数据",
+    "subtitle": "版本控制 / 导入导出",
+    "tabs": {
+      "git": "Git 仓库",
+      "io": "导入导出"
+    },
+    "actions": {
+      "refresh": "刷新状态",
+      "autoCommit": "自动提交"
+    },
+    "status": {
+      "changedCount": "{count} 个文件变更",
+      "clean": "工作区干净",
+      "emptyHint": "点击刷新状态查看 Git 信息",
+      "commitSuccessAlert": "提交成功",
+      "commitResultAlert": "提交结果"
+    },
+    "import": {
+      "cardTitle": "导入数据",
+      "pathLabel": "文件路径",
+      "pathPlaceholder": "输入文件或目录路径，如 ./docs",
+      "formatLabel": "格式",
+      "submit": "导入"
+    },
+    "export": {
+      "cardTitle": "导出站点",
+      "pathLabel": "输出路径",
+      "pathPlaceholder": "输出目录，如 ./site",
+      "submit": "导出为静态站点"
+    },
+    "io": {
+      "successAlert": "操作成功",
+      "resultAlert": "操作结果",
+      "outputCardTitle": "命令输出",
+      "importIssue": "导入过程中可能存在问题，请查看输出",
+      "importDone": "导入完成",
+      "exportIssue": "导出过程中可能存在问题，请查看输出",
+      "exportDone": "导出完成"
+    },
+    "confirm": {
+      "title": "确认自动提交",
+      "ok": "确认提交",
+      "intro1": "将执行",
+      "intro2": "自动提交当前所有变更。请确认工作区文件已准备就绪。"
+    },
+    "messages": {
+      "statusFailed": "获取 Git 状态失败: {err}",
+      "commitOk": "自动提交完成",
+      "commitFailedToast": "自动提交失败",
+      "commitFailedDetail": "提交失败: {err}",
+      "importPathRequired": "请输入文件路径",
+      "importOk": "导入成功",
+      "importFailed": "导入失败",
+      "importFailedDetail": "导入失败: {err}",
+      "exportPathRequired": "请输入输出路径",
+      "exportOk": "导出成功",
+      "exportFailed": "导出失败",
+      "exportFailedDetail": "导出失败: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

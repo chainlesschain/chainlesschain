@@ -2,8 +2,8 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">Git 与数据</h2>
-        <p class="page-sub">版本控制 / 导入导出</p>
+        <h2 class="page-title">{{ t('git.title') }}</h2>
+        <p class="page-sub">{{ t('git.subtitle') }}</p>
       </div>
     </div>
 
@@ -11,17 +11,17 @@
       <!-- Git Tab -->
       <a-tab-pane key="git">
         <template #tab>
-          <BranchesOutlined /> Git 仓库
+          <BranchesOutlined /> {{ t('git.tabs.git') }}
         </template>
 
         <a-space style="margin-bottom: 16px;">
           <a-button type="primary" :loading="statusLoading" @click="refreshStatus">
             <template #icon><ReloadOutlined /></template>
-            刷新状态
+            {{ t('git.actions.refresh') }}
           </a-button>
           <a-button :loading="commitLoading" @click="confirmAutoCommit">
             <template #icon><CheckOutlined /></template>
-            自动提交
+            {{ t('git.actions.autoCommit') }}
           </a-button>
         </a-space>
 
@@ -31,8 +31,8 @@
             <a-tag v-if="gitBranch" color="blue">
               <BranchesOutlined /> {{ gitBranch }}
             </a-tag>
-            <a-tag v-if="changedCount > 0" color="orange">{{ changedCount }} 个文件变更</a-tag>
-            <a-tag v-else-if="statusOutput && changedCount === 0" color="green">工作区干净</a-tag>
+            <a-tag v-if="changedCount > 0" color="orange">{{ t('git.status.changedCount', { count: changedCount }) }}</a-tag>
+            <a-tag v-else-if="statusOutput && changedCount === 0" color="green">{{ t('git.status.clean') }}</a-tag>
           </a-space>
         </div>
 
@@ -41,12 +41,12 @@
           <pre style="white-space: pre-wrap; word-break: break-all; color: var(--text-primary); font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 13px; line-height: 1.7; margin: 0;">{{ statusOutput }}</pre>
         </a-card>
 
-        <a-empty v-else-if="!statusLoading" description="点击刷新状态查看 Git 信息" style="padding: 60px 0;" />
+        <a-empty v-else-if="!statusLoading" :description="t('git.status.emptyHint')" style="padding: 60px 0;" />
 
         <!-- Commit Result -->
         <a-alert
           v-if="commitResult"
-          :message="commitSuccess ? '提交成功' : '提交结果'"
+          :message="commitSuccess ? t('git.status.commitSuccessAlert') : t('git.status.commitResultAlert')"
           :description="commitResult"
           :type="commitSuccess ? 'success' : 'info'"
           show-icon
@@ -59,18 +59,18 @@
       <!-- Import/Export Tab -->
       <a-tab-pane key="io">
         <template #tab>
-          <ImportOutlined /> 导入导出
+          <ImportOutlined /> {{ t('git.tabs.io') }}
         </template>
 
         <!-- Import Section -->
-        <a-card title="导入数据" :bordered="false" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-bottom: 16px;">
+        <a-card :title="t('git.import.cardTitle')" :bordered="false" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-bottom: 16px;">
           <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 200px;">
-              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">文件路径</label>
-              <a-input v-model:value="importPath" placeholder="输入文件或目录路径，如 ./docs" allow-clear />
+              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">{{ t('git.import.pathLabel') }}</label>
+              <a-input v-model:value="importPath" :placeholder="t('git.import.pathPlaceholder')" allow-clear />
             </div>
             <div style="min-width: 140px;">
-              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">格式</label>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">{{ t('git.import.formatLabel') }}</label>
               <a-select v-model:value="importFormat" style="width: 140px;">
                 <a-select-option value="markdown">Markdown</a-select-option>
                 <a-select-option value="pdf">PDF</a-select-option>
@@ -79,21 +79,21 @@
             </div>
             <a-button type="primary" :loading="importLoading" :disabled="!importPath.trim()" @click="doImport">
               <template #icon><ImportOutlined /></template>
-              导入
+              {{ t('git.import.submit') }}
             </a-button>
           </div>
         </a-card>
 
         <!-- Export Section -->
-        <a-card title="导出站点" :bordered="false" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-bottom: 16px;">
+        <a-card :title="t('git.export.cardTitle')" :bordered="false" style="background: var(--bg-card); border: 1px solid var(--border-color); margin-bottom: 16px;">
           <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 200px;">
-              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">输出路径</label>
-              <a-input v-model:value="exportPath" placeholder="输出目录，如 ./site" allow-clear />
+              <label style="display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 13px;">{{ t('git.export.pathLabel') }}</label>
+              <a-input v-model:value="exportPath" :placeholder="t('git.export.pathPlaceholder')" allow-clear />
             </div>
             <a-button type="primary" :loading="exportLoading" :disabled="!exportPath.trim()" @click="doExport">
               <template #icon><ExportOutlined /></template>
-              导出为静态站点
+              {{ t('git.export.submit') }}
             </a-button>
           </div>
         </a-card>
@@ -101,7 +101,7 @@
         <!-- IO Result -->
         <a-alert
           v-if="ioResult"
-          :message="ioSuccess ? '操作成功' : '操作结果'"
+          :message="ioSuccess ? t('git.io.successAlert') : t('git.io.resultAlert')"
           :description="ioResult"
           :type="ioSuccess ? 'success' : 'info'"
           show-icon
@@ -113,7 +113,7 @@
         <!-- IO Output -->
         <a-card
           v-if="ioOutput"
-          title="命令输出"
+          :title="t('git.io.outputCardTitle')"
           :bordered="false"
           style="background: var(--bg-base); border: 1px solid var(--border-color); margin-top: 16px;"
         >
@@ -125,14 +125,14 @@
     <!-- Auto Commit Confirmation Modal -->
     <a-modal
       v-model:open="showCommitConfirm"
-      title="确认自动提交"
-      ok-text="确认提交"
-      cancel-text="取消"
+      :title="t('git.confirm.title')"
+      :ok-text="t('git.confirm.ok')"
+      :cancel-text="t('common.cancel')"
       :confirm-loading="commitLoading"
       @ok="doAutoCommit"
     >
       <p style="color: var(--text-secondary);">
-        将执行 <code>git auto-commit</code> 自动提交当前所有变更。请确认工作区文件已准备就绪。
+        {{ t('git.confirm.intro1') }} <code>git auto-commit</code> {{ t('git.confirm.intro2') }}
       </p>
     </a-modal>
   </div>
@@ -140,10 +140,12 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { BranchesOutlined, ImportOutlined, ExportOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 // Tab
@@ -198,7 +200,7 @@ async function refreshStatus() {
     gitBranch.value = parsed.branch
     changedCount.value = parsed.changed
   } catch (e) {
-    message.error('获取 Git 状态失败: ' + e.message)
+    message.error(t('git.messages.statusFailed', { err: e.message }))
     statusOutput.value = ''
   } finally {
     statusLoading.value = false
@@ -218,13 +220,13 @@ async function doAutoCommit() {
     commitResult.value = output
     commitSuccess.value = !output.includes('✖') && !output.toLowerCase().includes('error')
     if (commitSuccess.value) {
-      message.success('自动提交完成')
+      message.success(t('git.messages.commitOk'))
     }
     await refreshStatus()
   } catch (e) {
-    commitResult.value = '提交失败: ' + e.message
+    commitResult.value = t('git.messages.commitFailedDetail', { err: e.message })
     commitSuccess.value = false
-    message.error('自动提交失败')
+    message.error(t('git.messages.commitFailedToast'))
   } finally {
     commitLoading.value = false
   }
@@ -232,7 +234,7 @@ async function doAutoCommit() {
 
 async function doImport() {
   const pathVal = importPath.value.trim()
-  if (!pathVal) { message.warning('请输入文件路径'); return }
+  if (!pathVal) { message.warning(t('git.messages.importPathRequired')); return }
   importLoading.value = true
   ioResult.value = ''
   ioOutput.value = ''
@@ -242,12 +244,12 @@ async function doImport() {
     ioOutput.value = output
     const hasError = output.includes('✖') || output.toLowerCase().includes('error')
     ioSuccess.value = !hasError
-    ioResult.value = hasError ? '导入过程中可能存在问题，请查看输出' : '导入完成'
-    if (!hasError) message.success('导入成功')
+    ioResult.value = hasError ? t('git.io.importIssue') : t('git.io.importDone')
+    if (!hasError) message.success(t('git.messages.importOk'))
   } catch (e) {
-    ioResult.value = '导入失败: ' + e.message
+    ioResult.value = t('git.messages.importFailedDetail', { err: e.message })
     ioSuccess.value = false
-    message.error('导入失败')
+    message.error(t('git.messages.importFailed'))
   } finally {
     importLoading.value = false
   }
@@ -255,7 +257,7 @@ async function doImport() {
 
 async function doExport() {
   const pathVal = exportPath.value.trim()
-  if (!pathVal) { message.warning('请输入输出路径'); return }
+  if (!pathVal) { message.warning(t('git.messages.exportPathRequired')); return }
   exportLoading.value = true
   ioResult.value = ''
   ioOutput.value = ''
@@ -265,12 +267,12 @@ async function doExport() {
     ioOutput.value = output
     const hasError = output.includes('✖') || output.toLowerCase().includes('error')
     ioSuccess.value = !hasError
-    ioResult.value = hasError ? '导出过程中可能存在问题，请查看输出' : '导出完成'
-    if (!hasError) message.success('导出成功')
+    ioResult.value = hasError ? t('git.io.exportIssue') : t('git.io.exportDone')
+    if (!hasError) message.success(t('git.messages.exportOk'))
   } catch (e) {
-    ioResult.value = '导出失败: ' + e.message
+    ioResult.value = t('git.messages.exportFailedDetail', { err: e.message })
     ioSuccess.value = false
-    message.error('导出失败')
+    message.error(t('git.messages.exportFailed'))
   } finally {
     exportLoading.value = false
   }

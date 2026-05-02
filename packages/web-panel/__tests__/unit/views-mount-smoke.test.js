@@ -213,6 +213,7 @@ const TRANSLATED_VIEWS = [
   { file: 'VideoEditing.vue',     titleKey: 'videoEditing.title' },
   { file: 'P2P.vue',              titleKey: 'p2p.title' },
   { file: 'Memory.vue',           titleKey: 'memory.title' },
+  { file: 'Git.vue',              titleKey: 'git.title' },
 ]
 
 describe('translated views mount sweep', () => {

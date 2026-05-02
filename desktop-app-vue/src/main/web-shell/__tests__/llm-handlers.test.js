@@ -20,6 +20,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   createLlmChatHandler,
   streamFromCallback,
+  normalizeChunk,
 } from "../handlers/llm-handlers.js";
 
 /**
@@ -136,6 +137,131 @@ describe("streamFromCallback bridge", () => {
       collected.push(c.delta);
     }
     expect(collected).toEqual(["d0", "d1", "d2", "d3", "d4"]);
+  });
+});
+
+describe("normalizeChunk — provider shape coverage", () => {
+  // The bridge has to absorb three different onChunk shapes from the
+  // provider clients without leaking any of them onto the wire. This is
+  // the regression seam for the doubao "[object Object]" bug: openai-client
+  // calls `onChunk({content, delta, fullContent})` and the bridge used to
+  // bind that whole object to the `delta` parameter.
+
+  it("ollama/anthropic 2-string form: passes delta+content through", () => {
+    expect(normalizeChunk(["He", "He"], "")).toEqual({
+      delta: "He",
+      content: "He",
+    });
+    expect(normalizeChunk([" world", "Hello world"], "Hello")).toEqual({
+      delta: " world",
+      content: "Hello world",
+    });
+  });
+
+  it("ollama-style with missing accumulator: falls back to accumulator + delta", () => {
+    expect(normalizeChunk(["b"], "a")).toEqual({ delta: "b", content: "ab" });
+  });
+
+  it("openai object form: extracts string delta + uses provider fullContent", () => {
+    // What openai-client.js actually emits — including `delta: <object>`
+    // (the raw OpenAI choice-delta) which must NOT leak through.
+    const arg = {
+      content: "He",
+      delta: { role: "assistant", content: "He" },
+      fullContent: "He",
+    };
+    expect(normalizeChunk([arg], "")).toEqual({ delta: "He", content: "He" });
+    const arg2 = {
+      content: " world",
+      delta: { content: " world" },
+      fullContent: "Hello world",
+    };
+    expect(normalizeChunk([arg2], "Hello")).toEqual({
+      delta: " world",
+      content: "Hello world",
+    });
+  });
+
+  it("gemini object form ({content, done}): treats content as delta, accumulates", () => {
+    expect(normalizeChunk([{ content: "He", done: false }], "")).toEqual({
+      delta: "He",
+      content: "He",
+    });
+    expect(
+      normalizeChunk([{ content: " world", done: false }], "Hello"),
+    ).toEqual({ delta: " world", content: "Hello world" });
+    // Terminal frame: done:true with empty content — emitted as a no-op
+    // chunk that preserves the accumulator.
+    expect(
+      normalizeChunk([{ content: "", done: true }], "Hello world"),
+    ).toEqual({ delta: "", content: "Hello world" });
+  });
+
+  it("never returns non-string fields (defensive against future shape drift)", () => {
+    const out1 = normalizeChunk([null, undefined], "abc");
+    expect(typeof out1.delta).toBe("string");
+    expect(typeof out1.content).toBe("string");
+    const out2 = normalizeChunk([{}], "abc");
+    expect(typeof out2.delta).toBe("string");
+    expect(typeof out2.content).toBe("string");
+  });
+});
+
+describe("streamFromCallback — provider shape adapter", () => {
+  // End-to-end through the bridge for openai-shape and gemini-shape, since
+  // QuickAsk.vue's `answer.value += chunk.delta` is what surfaced the bug
+  // in production. Here we assert the chunks downstream actually receives.
+
+  it("normalizes openai-style object chunks into {delta, content} strings", async () => {
+    // Mirrors openai-client.js:264 onChunk({content, delta, fullContent}).
+    const fn = async (_msgs, onChunk) => {
+      let acc = "";
+      for (const tok of ["He", "llo", " world"]) {
+        acc += tok;
+        onChunk({
+          content: tok,
+          delta: { role: "assistant", content: tok },
+          fullContent: acc,
+        });
+        await new Promise((r) => setImmediate(r));
+      }
+      return { message: { role: "assistant", content: acc } };
+    };
+    const collected = [];
+    for await (const c of streamFromCallback(fn, [], {})) {
+      collected.push(c);
+    }
+    expect(collected).toEqual([
+      { delta: "He", content: "He" },
+      { delta: "llo", content: "Hello" },
+      { delta: " world", content: "Hello world" },
+    ]);
+    // Critical: the wire envelope must be string-typed so QuickAsk's
+    // `answer.value += chunk.delta` is string concat, not "[object Object]".
+    for (const c of collected) {
+      expect(typeof c.delta).toBe("string");
+      expect(typeof c.content).toBe("string");
+    }
+  });
+
+  it("normalizes gemini-style {content, done} chunks", async () => {
+    const fn = async (_msgs, onChunk) => {
+      onChunk({ content: "He", done: false });
+      await new Promise((r) => setImmediate(r));
+      onChunk({ content: "llo", done: false });
+      await new Promise((r) => setImmediate(r));
+      onChunk({ content: "", done: true });
+      return { message: { role: "assistant", content: "Hello" } };
+    };
+    const collected = [];
+    for await (const c of streamFromCallback(fn, [], {})) {
+      collected.push(c);
+    }
+    expect(collected).toEqual([
+      { delta: "He", content: "He" },
+      { delta: "llo", content: "Hello" },
+      { delta: "", content: "Hello" },
+    ]);
   });
 });
 

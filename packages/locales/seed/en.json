@@ -3038,6 +3038,67 @@
       "consolidateFailed": "Consolidate failed: {err}"
     }
   },
+  "git": {
+    "title": "Git & Data",
+    "subtitle": "Version control / Import & export",
+    "tabs": {
+      "git": "Git repo",
+      "io": "Import / Export"
+    },
+    "actions": {
+      "refresh": "Refresh status",
+      "autoCommit": "Auto commit"
+    },
+    "status": {
+      "changedCount": "{count} files changed",
+      "clean": "Working tree clean",
+      "emptyHint": "Click Refresh status to view Git info",
+      "commitSuccessAlert": "Commit succeeded",
+      "commitResultAlert": "Commit result"
+    },
+    "import": {
+      "cardTitle": "Import data",
+      "pathLabel": "File path",
+      "pathPlaceholder": "Enter file or directory path, e.g. ./docs",
+      "formatLabel": "Format",
+      "submit": "Import"
+    },
+    "export": {
+      "cardTitle": "Export site",
+      "pathLabel": "Output path",
+      "pathPlaceholder": "Output directory, e.g. ./site",
+      "submit": "Export as static site"
+    },
+    "io": {
+      "successAlert": "Operation succeeded",
+      "resultAlert": "Operation result",
+      "outputCardTitle": "Command output",
+      "importIssue": "Possible issues during import — see output",
+      "importDone": "Import complete",
+      "exportIssue": "Possible issues during export — see output",
+      "exportDone": "Export complete"
+    },
+    "confirm": {
+      "title": "Confirm auto commit",
+      "ok": "Confirm",
+      "intro1": "This will run",
+      "intro2": "to auto-commit all current changes. Make sure the working tree is ready."
+    },
+    "messages": {
+      "statusFailed": "Failed to get Git status: {err}",
+      "commitOk": "Auto commit complete",
+      "commitFailedToast": "Auto commit failed",
+      "commitFailedDetail": "Commit failed: {err}",
+      "importPathRequired": "Enter a file path",
+      "importOk": "Import succeeded",
+      "importFailed": "Import failed",
+      "importFailedDetail": "Import failed: {err}",
+      "exportPathRequired": "Enter an output path",
+      "exportOk": "Export succeeded",
+      "exportFailed": "Export failed",
+      "exportFailedDetail": "Export failed: {err}"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

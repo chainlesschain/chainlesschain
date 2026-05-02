@@ -37,11 +37,64 @@
  */
 
 /**
+ * Map one provider onChunk invocation to the wire envelope `{delta, content}`.
+ *
+ * `delta`   = the new token(s) since the previous chunk (string).
+ * `content` = the full accumulated assistant text so far (string).
+ *
+ * Inputs handled:
+ *   - `(deltaText, fullContent)` — ollama / anthropic / llava
+ *   - `({content, delta, fullContent})` — openai-style; `content` is the
+ *     new token, `delta` is the raw choice-delta object (ignored), and
+ *     `fullContent` is provider-supplied accumulator
+ *   - `({content, done})` — gemini; `content` is the new token, terminal
+ *     frame has empty content + done:true (yielded as a no-op chunk so
+ *     callers see a stable stream)
+ *
+ * `accumulator` is the running content from the bridge; used as a fallback
+ * when the provider didn't supply one (gemini, defensive ollama path).
+ *
+ * Returns strings only — never undefined / non-string — so downstream
+ * `string += chunk.delta` is always string concatenation.
+ */
+function normalizeChunk(rawArgs, accumulator) {
+  const first = rawArgs[0];
+  const second = rawArgs[1];
+
+  if (typeof first === "string") {
+    const delta = first;
+    const content = typeof second === "string" ? second : accumulator + delta;
+    return { delta, content };
+  }
+
+  if (first && typeof first === "object") {
+    const delta = typeof first.content === "string" ? first.content : "";
+    const content =
+      typeof first.fullContent === "string"
+        ? first.fullContent
+        : accumulator + delta;
+    return { delta, content };
+  }
+
+  return { delta: "", content: accumulator };
+}
+
+/**
  * Bridge a (messages, onChunk, options) -> Promise<finalResult> stream
- * into an async iterable. Each onChunk(delta, content) becomes a yielded
- * `{delta, content}`; the resolved value of the underlying promise becomes
- * the generator's `return value`. Rejection re-throws so the dispatcher's
- * mid-stream-error handler turns it into ok:false.
+ * into an async iterable. Each onChunk invocation becomes a yielded
+ * `{delta:string, content:string}`; the resolved value of the underlying
+ * promise becomes the generator's `return value`. Rejection re-throws so
+ * the dispatcher's mid-stream-error handler turns it into ok:false.
+ *
+ * Provider clients call onChunk in three different shapes — this bridge
+ * is the seam that hides that from the wire protocol:
+ *   - ollama/anthropic/llava: `onChunk(deltaText, fullContent)`  (2 strings)
+ *   - openai (incl. Doubao/Volcengine): `onChunk({content, delta, fullContent})`
+ *   - gemini: `onChunk({content, done})`
+ * Normalization here means downstream sees a single `{delta, content}`
+ * envelope regardless of provider. (Without this, the openai/gemini
+ * object-form chunk gets bound to the `delta` parameter, then concatenated
+ * by callers as `string + Object`, surfacing as `[object Object]`.)
  *
  * @param {(messages: any[], onChunk: Function, options: object) => Promise<any>} streamFn
  * @param {any[]} messages
@@ -51,6 +104,7 @@ async function* streamFromCallback(streamFn, messages, options) {
   let queue = [];
   let done = false;
   let waker = null;
+  let accumulator = "";
 
   const wake = () => {
     if (waker) {
@@ -62,8 +116,10 @@ async function* streamFromCallback(streamFn, messages, options) {
 
   const finalPromise = streamFn(
     messages,
-    (delta, content) => {
-      queue.push({ delta, content });
+    (...rawArgs) => {
+      const normalized = normalizeChunk(rawArgs, accumulator);
+      accumulator = normalized.content;
+      queue.push(normalized);
       wake();
     },
     options,
@@ -177,4 +233,5 @@ module.exports = {
   createLlmChatHandler,
   // Exported for unit tests of the bridge in isolation.
   streamFromCallback,
+  normalizeChunk,
 };
