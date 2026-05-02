@@ -2,23 +2,23 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">推理网络</h2>
-        <p class="page-sub">去中心化推理节点 · 任务调度 · 隐私模式</p>
+        <h2 class="page-title">{{ t('inference.title') }}</h2>
+        <p class="page-sub">{{ t('inference.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('inference.refresh') }}
         </a-button>
         <a-dropdown :trigger="['click']">
           <a-button type="primary">
             <template #icon><PlusOutlined /></template>
-            操作 ▼
+            {{ t('inference.actionDropdown') }}
           </a-button>
           <template #overlay>
             <a-menu @click="handleNewClick">
-              <a-menu-item key="register"><CloudServerOutlined /> 注册节点</a-menu-item>
-              <a-menu-item key="submit"><ThunderboltOutlined /> 提交推理任务</a-menu-item>
+              <a-menu-item key="register"><CloudServerOutlined /> {{ t('inference.actions.register') }}</a-menu-item>
+              <a-menu-item key="submit"><ThunderboltOutlined /> {{ t('inference.actions.submit') }}</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -29,7 +29,7 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="节点总数" :value="stats.nodes.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="t('inference.stats.totalNodes')" :value="stats.nodes.total" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><CloudServerOutlined /></template>
           </a-statistic>
         </a-card>
@@ -37,7 +37,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="在线节点"
+            :title="t('inference.stats.onlineNodes')"
             :value="stats.nodes.online"
             :value-style="{ color: stats.nodes.online > 0 ? '#52c41a' : '#888', fontSize: '20px' }"
           >
@@ -47,7 +47,7 @@
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="任务总数" :value="stats.tasks.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
+          <a-statistic :title="t('inference.stats.totalTasks')" :value="stats.tasks.total" :value-style="{ color: '#722ed1', fontSize: '20px' }">
             <template #prefix><ThunderboltOutlined /></template>
           </a-statistic>
         </a-card>
@@ -55,7 +55,7 @@
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="排队中"
+            :title="t('inference.stats.queued')"
             :value="stats.tasks.queued"
             :value-style="{ color: stats.tasks.queued > 0 ? '#faad14' : '#52c41a', fontSize: '20px' }"
           >
@@ -66,7 +66,7 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均耗时"
+            :title="t('inference.stats.avgDuration')"
             :value="stats.tasks.avgDurationMs"
             suffix="ms"
             :value-style="{ color: '#13c2c2', fontSize: '20px' }"
@@ -78,17 +78,17 @@
     <!-- Node status breakdown -->
     <a-card
       v-if="stats.nodes.total > 0"
-      title="节点状态分布"
+      :title="t('inference.breakdown.title')"
       size="small"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
       :body-style="{ padding: '12px 16px' }"
     >
       <a-space :size="[12, 8]" wrap>
-        <a-tag color="green">在线 {{ stats.nodes.online }}</a-tag>
-        <a-tag color="orange">忙碌 {{ stats.nodes.busy }}</a-tag>
-        <a-tag color="default">离线 {{ stats.nodes.offline }}</a-tag>
+        <a-tag color="green">{{ t('inference.breakdown.online', { count: stats.nodes.online }) }}</a-tag>
+        <a-tag color="orange">{{ t('inference.breakdown.busy', { count: stats.nodes.busy }) }}</a-tag>
+        <a-tag color="default">{{ t('inference.breakdown.offline', { count: stats.nodes.offline }) }}</a-tag>
         <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px;">
-          完成: {{ stats.tasks.completed }} · 失败: {{ stats.tasks.failed }}
+          {{ t('inference.breakdown.extra', { complete: stats.tasks.completed, failed: stats.tasks.failed }) }}
         </span>
       </a-space>
     </a-card>
@@ -96,10 +96,10 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="inference-tabs">
       <!-- ── Nodes tab ─────────────────────────────────────────────── -->
-      <a-tab-pane key="nodes" tab="节点">
+      <a-tab-pane key="nodes" :tab="t('inference.tabs.nodes')">
         <div class="filter-bar">
           <a-radio-group v-model:value="nodeStatusFilter" size="small" button-style="solid">
-            <a-radio-button value="">全部</a-radio-button>
+            <a-radio-button value="">{{ t('inference.filter.all') }}</a-radio-button>
             <a-radio-button v-for="s in NODE_STATUSES" :key="s" :value="s">{{ nodeStatusLabel(s) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -107,7 +107,7 @@
         <a-table
           :columns="nodeColumns"
           :data-source="filteredNodes"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('inference.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -140,9 +140,9 @@
               <span style="color: var(--text-secondary); font-size: 11px;">{{ formatInferenceTime(record.lastHeartbeat) }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-button size="small" type="link" :loading="heartbeatId === record.id" @click="sendHeartbeat(record)">心跳</a-button>
+              <a-button size="small" type="link" :loading="heartbeatId === record.id" @click="sendHeartbeat(record)">{{ t('inference.rowActions.heartbeat') }}</a-button>
               <a-dropdown :trigger="['click']">
-                <a-button size="small" type="link">状态 ▼</a-button>
+                <a-button size="small" type="link">{{ t('inference.rowActions.statusDropdown') }}</a-button>
                 <template #overlay>
                   <a-menu @click="(e) => transitionStatus(record, e.key)">
                     <a-menu-item v-for="s in NODE_STATUSES" :key="s" :disabled="s === record.status">
@@ -151,29 +151,29 @@
                   </a-menu>
                 </template>
               </a-dropdown>
-              <a-popconfirm title="注销该节点？" ok-text="注销" cancel-text="取消" @confirm="unregisterNode(record)">
-                <a-button size="small" type="link" danger>注销</a-button>
+              <a-popconfirm :title="t('inference.rowActions.unregisterConfirm')" :ok-text="t('inference.rowActions.unregisterOk')" :cancel-text="t('common.cancel')" @confirm="unregisterNode(record)">
+                <a-button size="small" type="link" danger>{{ t('inference.rowActions.unregister') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <CloudServerOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ nodeStatusFilter ? '没有符合条件的节点' : '暂无节点，点"操作 → 注册节点"添加第一个' }}
+              {{ nodeStatusFilter ? t('inference.empty.filteredNodes') : t('inference.empty.noNodes') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Tasks tab ─────────────────────────────────────────────── -->
-      <a-tab-pane key="tasks" tab="任务">
+      <a-tab-pane key="tasks" :tab="t('inference.tabs.tasks')">
         <div class="filter-bar">
           <a-radio-group v-model:value="taskStatusFilter" size="small">
-            <a-radio-button value="">全部状态</a-radio-button>
+            <a-radio-button value="">{{ t('inference.filter.allStatuses') }}</a-radio-button>
             <a-radio-button v-for="s in TASK_STATUSES" :key="s" :value="s">{{ taskStatusLabel(s) }}</a-radio-button>
           </a-radio-group>
           <a-radio-group v-model:value="taskPrivacyFilter" size="small">
-            <a-radio-button value="">全部模式</a-radio-button>
+            <a-radio-button value="">{{ t('inference.filter.allModes') }}</a-radio-button>
             <a-radio-button v-for="m in PRIVACY_MODES" :key="m" :value="m">{{ privacyLabel(m) }}</a-radio-button>
           </a-radio-group>
         </div>
@@ -181,7 +181,7 @@
         <a-table
           :columns="taskColumns"
           :data-source="filteredTasks"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('inference.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -225,23 +225,23 @@
                 :loading="completingId === record.id"
                 @click="completeTask(record)"
               >
-                完成
+                {{ t('inference.rowActions.complete') }}
               </a-button>
               <a-popconfirm
                 v-if="canFail(record)"
-                title="标记任务失败？"
-                ok-text="确认"
-                cancel-text="取消"
+                :title="t('inference.rowActions.failConfirm')"
+                :ok-text="t('inference.rowActions.failOk')"
+                :cancel-text="t('common.cancel')"
                 @confirm="failTask(record)"
               >
-                <a-button size="small" type="link" danger>失败</a-button>
+                <a-button size="small" type="link" danger>{{ t('inference.rowActions.fail') }}</a-button>
               </a-popconfirm>
             </template>
           </template>
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <ThunderboltOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              {{ taskStatusFilter || taskPrivacyFilter ? '没有符合条件的任务' : '暂无任务，点"操作 → 提交推理任务"创建第一个' }}
+              {{ taskStatusFilter || taskPrivacyFilter ? t('inference.empty.filteredTasks') : t('inference.empty.noTasks') }}
             </div>
           </template>
         </a-table>
@@ -251,25 +251,25 @@
     <!-- ── Register node modal ──────────────────────────────────── -->
     <a-modal
       v-model:open="showRegisterModal"
-      title="注册推理节点"
+      :title="t('inference.register.title')"
       :confirm-loading="registering"
       :width="520"
-      ok-text="注册"
-      cancel-text="取消"
+      :ok-text="t('inference.register.ok')"
+      :cancel-text="t('common.cancel')"
       @ok="registerNode"
       @cancel="resetRegisterForm"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="节点 ID" required>
-          <a-input v-model:value="registerForm.nodeId" placeholder="例如: gpu-host-1" />
+        <a-form-item :label="t('inference.register.nodeIdLabel')" required>
+          <a-input v-model:value="registerForm.nodeId" :placeholder="t('inference.register.nodeIdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="端点 URL">
-          <a-input v-model:value="registerForm.endpoint" placeholder="https://node.example.com（可选）" />
+        <a-form-item :label="t('inference.register.endpointLabel')">
+          <a-input v-model:value="registerForm.endpoint" :placeholder="t('inference.register.endpointPlaceholder')" />
         </a-form-item>
-        <a-form-item label="能力列表">
-          <a-input v-model:value="registerForm.capabilities" placeholder="逗号分隔，例如: llama2,mistral,gpt-4" />
+        <a-form-item :label="t('inference.register.capabilitiesLabel')">
+          <a-input v-model:value="registerForm.capabilities" :placeholder="t('inference.register.capabilitiesPlaceholder')" />
         </a-form-item>
-        <a-form-item label="GPU 内存 (MB)">
+        <a-form-item :label="t('inference.register.gpuLabel')">
           <a-input-number v-model:value="registerForm.gpuMemory" :min="0" :max="200000" style="width: 100%;" />
         </a-form-item>
       </a-form>
@@ -278,25 +278,25 @@
     <!-- ── Submit task modal ────────────────────────────────────── -->
     <a-modal
       v-model:open="showSubmitModal"
-      title="提交推理任务"
+      :title="t('inference.submit.title')"
       :confirm-loading="submitting"
       :width="520"
-      ok-text="提交"
-      cancel-text="取消"
+      :ok-text="t('inference.submit.ok')"
+      :cancel-text="t('common.cancel')"
       @ok="submitTask"
       @cancel="resetSubmitForm"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" style="margin-top: 16px;">
-        <a-form-item label="模型" required>
-          <a-input v-model:value="submitForm.model" placeholder="例如: llama2-7b" />
+        <a-form-item :label="t('inference.submit.modelLabel')" required>
+          <a-input v-model:value="submitForm.model" :placeholder="t('inference.submit.modelPlaceholder')" />
         </a-form-item>
-        <a-form-item label="输入">
+        <a-form-item :label="t('inference.submit.inputLabel')">
           <a-textarea v-model:value="submitForm.input" :auto-size="{ minRows: 3, maxRows: 6 }" />
         </a-form-item>
-        <a-form-item label="优先级">
+        <a-form-item :label="t('inference.submit.priorityLabel')">
           <a-input-number v-model:value="submitForm.priority" :min="1" :max="10" style="width: 100%;" />
         </a-form-item>
-        <a-form-item label="隐私模式">
+        <a-form-item :label="t('inference.submit.modeLabel')">
           <a-radio-group v-model:value="submitForm.mode">
             <a-radio-button v-for="m in PRIVACY_MODES" :key="m" :value="m">{{ privacyLabel(m) }}</a-radio-button>
           </a-radio-group>
@@ -308,6 +308,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   PlusOutlined,
@@ -328,6 +329,7 @@ import {
   PRIVACY_MODES,
 } from '../utils/inference-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const loading = ref(false)
@@ -354,26 +356,26 @@ const showSubmitModal = ref(false)
 const registerForm = reactive({ nodeId: '', endpoint: '', capabilities: '', gpuMemory: null })
 const submitForm = reactive({ model: '', input: '', priority: 5, mode: 'standard' })
 
-const nodeColumns = [
-  { title: '节点 ID', key: 'nodeId' },
-  { title: '能力', key: 'capabilities', width: '220px' },
-  { title: 'GPU', key: 'gpu', width: '100px' },
-  { title: '状态', key: 'status', width: '100px' },
-  { title: '任务数', key: 'taskCount', width: '90px' },
-  { title: '最近心跳', key: 'lastHeartbeat', width: '160px' },
-  { title: '操作', key: 'action', width: '210px' },
-]
+const nodeColumns = computed(() => [
+  { title: t('inference.nodeColumns.nodeId'), key: 'nodeId' },
+  { title: t('inference.nodeColumns.capabilities'), key: 'capabilities', width: '220px' },
+  { title: t('inference.nodeColumns.gpu'), key: 'gpu', width: '100px' },
+  { title: t('inference.nodeColumns.status'), key: 'status', width: '100px' },
+  { title: t('inference.nodeColumns.taskCount'), key: 'taskCount', width: '90px' },
+  { title: t('inference.nodeColumns.lastHeartbeat'), key: 'lastHeartbeat', width: '160px' },
+  { title: t('inference.nodeColumns.action'), key: 'action', width: '210px' },
+])
 
-const taskColumns = [
-  { title: '模型', key: 'model' },
-  { title: '隐私', key: 'privacyMode', width: '110px' },
-  { title: '优先级', key: 'priority', width: '80px' },
-  { title: '执行节点', key: 'assignedNode', width: '140px' },
-  { title: '状态', key: 'status', width: '110px' },
-  { title: '耗时', key: 'duration', width: '110px' },
-  { title: '提交时间', key: 'createdAt', width: '160px' },
-  { title: '操作', key: 'action', width: '140px' },
-]
+const taskColumns = computed(() => [
+  { title: t('inference.taskColumns.model'), key: 'model' },
+  { title: t('inference.taskColumns.privacyMode'), key: 'privacyMode', width: '110px' },
+  { title: t('inference.taskColumns.priority'), key: 'priority', width: '80px' },
+  { title: t('inference.taskColumns.assignedNode'), key: 'assignedNode', width: '140px' },
+  { title: t('inference.taskColumns.status'), key: 'status', width: '110px' },
+  { title: t('inference.taskColumns.duration'), key: 'duration', width: '110px' },
+  { title: t('inference.taskColumns.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('inference.taskColumns.action'), key: 'action', width: '140px' },
+])
 
 const filteredNodes = computed(() => {
   if (!nodeStatusFilter.value) return nodes.value
@@ -382,25 +384,31 @@ const filteredNodes = computed(() => {
 
 const filteredTasks = computed(() => {
   let rows = tasks.value
-  if (taskStatusFilter.value) rows = rows.filter(t => t.status === taskStatusFilter.value)
-  if (taskPrivacyFilter.value) rows = rows.filter(t => t.privacyMode === taskPrivacyFilter.value)
+  if (taskStatusFilter.value) rows = rows.filter(row => row.status === taskStatusFilter.value)
+  if (taskPrivacyFilter.value) rows = rows.filter(row => row.privacyMode === taskPrivacyFilter.value)
   return rows
 })
 
 function nodeStatusLabel(s) {
-  return { online: '在线', offline: '离线', busy: '忙碌', degraded: '降级' }[s] || s
+  const key = `inference.nodeStatus.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function nodeStatusColor(s) {
   return { online: 'green', offline: 'default', busy: 'orange', degraded: 'red' }[s] || 'default'
 }
 function taskStatusLabel(s) {
-  return { queued: '排队中', dispatched: '已派发', running: '运行中', complete: '已完成', failed: '失败' }[s] || s
+  const key = `inference.taskStatus.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function taskStatusColor(s) {
   return { queued: 'default', dispatched: 'processing', running: 'cyan', complete: 'green', failed: 'red' }[s] || 'default'
 }
 function privacyLabel(m) {
-  return { standard: '标准', encrypted: '加密', federated: '联邦' }[m] || m
+  const key = `inference.privacy.${m}`
+  const v = t(key)
+  return v === key ? m : v
 }
 function privacyColor(m) {
   return { standard: 'default', encrypted: 'purple', federated: 'cyan' }[m] || 'default'
@@ -450,7 +458,7 @@ async function loadAll() {
     tasks.value = parseTasks(tasksRes.output)
     stats.value = parseStats(statsRes.output)
   } catch (e) {
-    message.error('加载推理网络数据失败: ' + (e?.message || e))
+    message.error(t('inference.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -459,7 +467,7 @@ async function loadAll() {
 async function registerNode() {
   const nodeId = registerForm.nodeId.trim()
   if (!nodeId) {
-    message.warning('请填写节点 ID')
+    message.warning(t('inference.messages.nodeIdRequired'))
     return
   }
   registering.value = true
@@ -474,15 +482,15 @@ async function registerNode() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 10000)
     if (/error|failed|失败/i.test(output) && !/"nodeId"/.test(output)) {
-      message.error('注册失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.registerFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('节点已注册')
+    message.success(t('inference.messages.registerOk'))
     showRegisterModal.value = false
     resetRegisterForm()
     await loadAll()
   } catch (e) {
-    message.error('注册失败: ' + (e?.message || e))
+    message.error(t('inference.messages.registerFailed', { err: e?.message || e }))
   } finally {
     registering.value = false
   }
@@ -491,7 +499,7 @@ async function registerNode() {
 async function submitTask() {
   const model = submitForm.model.trim()
   if (!model) {
-    message.warning('请填写模型名')
+    message.warning(t('inference.messages.modelRequired'))
     return
   }
   submitting.value = true
@@ -503,16 +511,16 @@ async function submitTask() {
     parts.push('--json')
     const { output } = await ws.execute(parts.join(' '), 12000)
     if (/error|failed|失败/i.test(output) && !/"taskId"/.test(output)) {
-      message.error('提交失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.submitFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('任务已提交')
+    message.success(t('inference.messages.submitOk'))
     showSubmitModal.value = false
     resetSubmitForm()
     activeTab.value = 'tasks'
     await loadAll()
   } catch (e) {
-    message.error('提交失败: ' + (e?.message || e))
+    message.error(t('inference.messages.submitFailed', { err: e?.message || e }))
   } finally {
     submitting.value = false
   }
@@ -523,13 +531,13 @@ async function sendHeartbeat(record) {
   try {
     const { output } = await ws.execute(`inference heartbeat ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"updated"/.test(output)) {
-      message.error('心跳失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.heartbeatFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('心跳已更新')
+    message.success(t('inference.messages.heartbeatOk'))
     await loadAll()
   } catch (e) {
-    message.error('心跳失败: ' + (e?.message || e))
+    message.error(t('inference.messages.heartbeatFailed', { err: e?.message || e }))
   } finally {
     heartbeatId.value = ''
   }
@@ -540,13 +548,13 @@ async function transitionStatus(record, newStatus) {
   try {
     const { output } = await ws.execute(`inference node-status ${record.id} ${newStatus} --json`, 8000)
     if (/error|invalid/i.test(output) && !/"updated"/.test(output)) {
-      message.error('状态转换失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.statusFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success(`节点状态已更新为 ${nodeStatusLabel(newStatus)}`)
+    message.success(t('inference.messages.statusOk', { status: nodeStatusLabel(newStatus) }))
     await loadAll()
   } catch (e) {
-    message.error('状态转换失败: ' + (e?.message || e))
+    message.error(t('inference.messages.statusFailed', { err: e?.message || e }))
   }
 }
 
@@ -554,13 +562,13 @@ async function unregisterNode(record) {
   try {
     const { output } = await ws.execute(`inference unregister ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"removed"/.test(output)) {
-      message.error('注销失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.unregisterFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('节点已注销')
+    message.success(t('inference.messages.unregisterOk'))
     await loadAll()
   } catch (e) {
-    message.error('注销失败: ' + (e?.message || e))
+    message.error(t('inference.messages.unregisterFailed', { err: e?.message || e }))
   }
 }
 
@@ -569,13 +577,13 @@ async function completeTask(record) {
   try {
     const { output } = await ws.execute(`inference complete ${record.id} --json`, 10000)
     if (/error|failed/i.test(output) && !/"completed"/.test(output)) {
-      message.error('完成失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.completeFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('任务已完成')
+    message.success(t('inference.messages.completeOk'))
     await loadAll()
   } catch (e) {
-    message.error('完成失败: ' + (e?.message || e))
+    message.error(t('inference.messages.completeFailed', { err: e?.message || e }))
   } finally {
     completingId.value = ''
   }
@@ -585,13 +593,13 @@ async function failTask(record) {
   try {
     const { output } = await ws.execute(`inference fail-task ${record.id} --json`, 8000)
     if (/error/i.test(output) && !/"failed"/.test(output)) {
-      message.error('标记失败: ' + output.slice(0, 120))
+      message.error(t('inference.messages.failFailed', { err: output.slice(0, 120) }))
       return
     }
-    message.success('已标记为失败')
+    message.success(t('inference.messages.failOk'))
     await loadAll()
   } catch (e) {
-    message.error('标记失败: ' + (e?.message || e))
+    message.error(t('inference.messages.failFailed', { err: e?.message || e }))
   }
 }
 

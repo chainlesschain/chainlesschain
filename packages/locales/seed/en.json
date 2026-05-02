@@ -1560,6 +1560,135 @@
       "submitOk": "Approval submitted"
     }
   },
+  "inference": {
+    "title": "Inference Network",
+    "subtitle": "Decentralized inference nodes · Task scheduling · Privacy modes",
+    "refresh": "Refresh",
+    "actionDropdown": "Action ▼",
+    "actions": {
+      "register": "Register node",
+      "submit": "Submit inference task"
+    },
+    "stats": {
+      "totalNodes": "Nodes",
+      "onlineNodes": "Online",
+      "totalTasks": "Tasks",
+      "queued": "Queued",
+      "avgDuration": "Avg duration"
+    },
+    "breakdown": {
+      "title": "Node status breakdown",
+      "online": "Online {count}",
+      "busy": "Busy {count}",
+      "offline": "Offline {count}",
+      "extra": "Complete: {complete} · Failed: {failed}"
+    },
+    "tabs": {
+      "nodes": "Nodes",
+      "tasks": "Tasks"
+    },
+    "filter": {
+      "all": "All",
+      "allStatuses": "All statuses",
+      "allModes": "All modes"
+    },
+    "totals": {
+      "rows": "{count} rows"
+    },
+    "nodeColumns": {
+      "nodeId": "Node ID",
+      "capabilities": "Capabilities",
+      "gpu": "GPU",
+      "status": "Status",
+      "taskCount": "Tasks",
+      "lastHeartbeat": "Last heartbeat",
+      "action": "Action"
+    },
+    "taskColumns": {
+      "model": "Model",
+      "privacyMode": "Privacy",
+      "priority": "Priority",
+      "assignedNode": "Node",
+      "status": "Status",
+      "duration": "Duration",
+      "createdAt": "Submitted",
+      "action": "Action"
+    },
+    "rowActions": {
+      "heartbeat": "Heartbeat",
+      "statusDropdown": "Status ▼",
+      "unregister": "Unregister",
+      "unregisterConfirm": "Unregister this node?",
+      "unregisterOk": "Unregister",
+      "complete": "Complete",
+      "fail": "Fail",
+      "failConfirm": "Mark task as failed?",
+      "failOk": "Confirm"
+    },
+    "empty": {
+      "filteredNodes": "No nodes match the filter",
+      "noNodes": "No nodes yet — Action → Register node to add the first",
+      "filteredTasks": "No tasks match the filter",
+      "noTasks": "No tasks yet — Action → Submit inference task to create the first"
+    },
+    "register": {
+      "title": "Register inference node",
+      "ok": "Register",
+      "nodeIdLabel": "Node ID",
+      "nodeIdPlaceholder": "e.g. gpu-host-1",
+      "endpointLabel": "Endpoint URL",
+      "endpointPlaceholder": "https://node.example.com (optional)",
+      "capabilitiesLabel": "Capabilities",
+      "capabilitiesPlaceholder": "Comma-separated, e.g. llama2,mistral,gpt-4",
+      "gpuLabel": "GPU memory (MB)"
+    },
+    "submit": {
+      "title": "Submit inference task",
+      "ok": "Submit",
+      "modelLabel": "Model",
+      "modelPlaceholder": "e.g. llama2-7b",
+      "inputLabel": "Input",
+      "priorityLabel": "Priority",
+      "modeLabel": "Privacy mode"
+    },
+    "nodeStatus": {
+      "online": "Online",
+      "offline": "Offline",
+      "busy": "Busy",
+      "degraded": "Degraded"
+    },
+    "taskStatus": {
+      "queued": "Queued",
+      "dispatched": "Dispatched",
+      "running": "Running",
+      "complete": "Complete",
+      "failed": "Failed"
+    },
+    "privacy": {
+      "standard": "Standard",
+      "encrypted": "Encrypted",
+      "federated": "Federated"
+    },
+    "messages": {
+      "loadFailed": "Failed to load inference data: {err}",
+      "nodeIdRequired": "Enter a node ID",
+      "registerFailed": "Register failed: {err}",
+      "registerOk": "Node registered",
+      "modelRequired": "Enter a model name",
+      "submitFailed": "Submit failed: {err}",
+      "submitOk": "Task submitted",
+      "heartbeatFailed": "Heartbeat failed: {err}",
+      "heartbeatOk": "Heartbeat updated",
+      "statusFailed": "Status transition failed: {err}",
+      "statusOk": "Node status updated to {status}",
+      "unregisterFailed": "Unregister failed: {err}",
+      "unregisterOk": "Node unregistered",
+      "completeFailed": "Complete failed: {err}",
+      "completeOk": "Task completed",
+      "failFailed": "Mark failed: {err}",
+      "failOk": "Marked as failed"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

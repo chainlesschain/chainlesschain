@@ -1560,6 +1560,135 @@
       "submitOk": "审批已提交"
     }
   },
+  "inference": {
+    "title": "推理网络",
+    "subtitle": "去中心化推理节点 · 任务调度 · 隐私模式",
+    "refresh": "刷新",
+    "actionDropdown": "操作 ▼",
+    "actions": {
+      "register": "注册节点",
+      "submit": "提交推理任务"
+    },
+    "stats": {
+      "totalNodes": "节点总数",
+      "onlineNodes": "在线节点",
+      "totalTasks": "任务总数",
+      "queued": "排队中",
+      "avgDuration": "平均耗时"
+    },
+    "breakdown": {
+      "title": "节点状态分布",
+      "online": "在线 {count}",
+      "busy": "忙碌 {count}",
+      "offline": "离线 {count}",
+      "extra": "完成: {complete} · 失败: {failed}"
+    },
+    "tabs": {
+      "nodes": "节点",
+      "tasks": "任务"
+    },
+    "filter": {
+      "all": "全部",
+      "allStatuses": "全部状态",
+      "allModes": "全部模式"
+    },
+    "totals": {
+      "rows": "共 {count} 条"
+    },
+    "nodeColumns": {
+      "nodeId": "节点 ID",
+      "capabilities": "能力",
+      "gpu": "GPU",
+      "status": "状态",
+      "taskCount": "任务数",
+      "lastHeartbeat": "最近心跳",
+      "action": "操作"
+    },
+    "taskColumns": {
+      "model": "模型",
+      "privacyMode": "隐私",
+      "priority": "优先级",
+      "assignedNode": "执行节点",
+      "status": "状态",
+      "duration": "耗时",
+      "createdAt": "提交时间",
+      "action": "操作"
+    },
+    "rowActions": {
+      "heartbeat": "心跳",
+      "statusDropdown": "状态 ▼",
+      "unregister": "注销",
+      "unregisterConfirm": "注销该节点？",
+      "unregisterOk": "注销",
+      "complete": "完成",
+      "fail": "失败",
+      "failConfirm": "标记任务失败？",
+      "failOk": "确认"
+    },
+    "empty": {
+      "filteredNodes": "没有符合条件的节点",
+      "noNodes": "暂无节点，点操作 → 注册节点添加第一个",
+      "filteredTasks": "没有符合条件的任务",
+      "noTasks": "暂无任务，点操作 → 提交推理任务创建第一个"
+    },
+    "register": {
+      "title": "注册推理节点",
+      "ok": "注册",
+      "nodeIdLabel": "节点 ID",
+      "nodeIdPlaceholder": "例如: gpu-host-1",
+      "endpointLabel": "端点 URL",
+      "endpointPlaceholder": "https://node.example.com（可选）",
+      "capabilitiesLabel": "能力列表",
+      "capabilitiesPlaceholder": "逗号分隔，例如: llama2,mistral,gpt-4",
+      "gpuLabel": "GPU 内存 (MB)"
+    },
+    "submit": {
+      "title": "提交推理任务",
+      "ok": "提交",
+      "modelLabel": "模型",
+      "modelPlaceholder": "例如: llama2-7b",
+      "inputLabel": "输入",
+      "priorityLabel": "优先级",
+      "modeLabel": "隐私模式"
+    },
+    "nodeStatus": {
+      "online": "在线",
+      "offline": "离线",
+      "busy": "忙碌",
+      "degraded": "降级"
+    },
+    "taskStatus": {
+      "queued": "排队中",
+      "dispatched": "已派发",
+      "running": "运行中",
+      "complete": "已完成",
+      "failed": "失败"
+    },
+    "privacy": {
+      "standard": "标准",
+      "encrypted": "加密",
+      "federated": "联邦"
+    },
+    "messages": {
+      "loadFailed": "加载推理网络数据失败: {err}",
+      "nodeIdRequired": "请填写节点 ID",
+      "registerFailed": "注册失败: {err}",
+      "registerOk": "节点已注册",
+      "modelRequired": "请填写模型名",
+      "submitFailed": "提交失败: {err}",
+      "submitOk": "任务已提交",
+      "heartbeatFailed": "心跳失败: {err}",
+      "heartbeatOk": "心跳已更新",
+      "statusFailed": "状态转换失败: {err}",
+      "statusOk": "节点状态已更新为 {status}",
+      "unregisterFailed": "注销失败: {err}",
+      "unregisterOk": "节点已注销",
+      "completeFailed": "完成失败: {err}",
+      "completeOk": "任务已完成",
+      "failFailed": "标记失败: {err}",
+      "failOk": "已标记为失败"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

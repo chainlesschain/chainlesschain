@@ -194,6 +194,7 @@ const TRANSLATED_VIEWS = [
   { file: 'Federation.vue',       titleKey: 'federation.title' },
   { file: 'Recommend.vue',        titleKey: 'recommend.title' },
   { file: 'Organization.vue',     titleKey: 'organization.title' },
+  { file: 'Inference.vue',        titleKey: 'inference.title' },
 ]
 
 describe('translated views mount sweep', () => {
