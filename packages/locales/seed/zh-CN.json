@@ -2032,6 +2032,106 @@
       "verifyFailed": "验证失败: {err}"
     }
   },
+  "tokens": {
+    "title": "Token 用量",
+    "subtitle": "LLM 调用追踪 · 成本核算 · 响应缓存",
+    "refresh": "刷新",
+    "noDb": {
+      "message": "该模块需要项目级数据库",
+      "description": "`cc tokens ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+    },
+    "periodLabel": "时间范围:",
+    "period": {
+      "today": "今日",
+      "week": "近 7 日",
+      "month": "近 30 日",
+      "all": "全部"
+    },
+    "stats": {
+      "calls": "调用次数",
+      "callsToday": "今日 {count}",
+      "totalTokens": "Token 总数",
+      "tokensInOut": "{inputs} 入 / {outputs} 出",
+      "totalCost": "累计成本",
+      "costToday": "今日 {amount}",
+      "avgResponse": "平均响应",
+      "cacheHits": "缓存命中",
+      "cacheTokensSaved": "省 {count} tokens"
+    },
+    "tabs": {
+      "breakdown": "模型成本",
+      "recent": "最近调用",
+      "cache": "响应缓存"
+    },
+    "totals": {
+      "models": "共 {count} 个模型",
+      "rows": "共 {count} 条"
+    },
+    "breakdownColumns": {
+      "provider": "提供商",
+      "model": "模型",
+      "calls": "调用",
+      "totalTokens": "Token",
+      "costUsd": "成本",
+      "avgCost": "均价/次"
+    },
+    "breakdownDetails": {
+      "tokensInOut": "{inputs} 入 / {outputs} 出"
+    },
+    "recentColumns": {
+      "createdAt": "时间",
+      "provider": "提供商",
+      "model": "模型",
+      "tokens": "Tokens",
+      "costUsd": "成本",
+      "responseTimeMs": "响应",
+      "endpoint": "端点"
+    },
+    "empty": {
+      "breakdown": "暂无用量数据",
+      "recent": "暂无调用记录"
+    },
+    "cache": {
+      "totalEntries": "缓存条目",
+      "totalHits": "命中次数",
+      "totalTokensSaved": "节省 Tokens",
+      "expiredEntries": "过期条目",
+      "maintenanceTitle": "缓存维护",
+      "cleanupConfirm": "移除所有过期缓存？",
+      "cleanupOk": "清理",
+      "cleanupButton": "清理过期条目 ({count})",
+      "clearConfirm": "清空整个响应缓存？此操作不可撤销。",
+      "clearOk": "清空",
+      "clearButton": "清空全部缓存"
+    },
+    "v2": {
+      "cardTitle": "V2 预算治理",
+      "budgetsTitle": "预算 (Budgets V2)",
+      "recordsTitle": "使用记录 (Records V2)"
+    },
+    "budgetStatus": {
+      "planning": "筹划",
+      "active": "活跃",
+      "suspended": "暂停",
+      "archived": "已归档"
+    },
+    "recordStatus": {
+      "pending": "待处理",
+      "recorded": "已记录",
+      "billed": "已结算",
+      "rejected": "已拒绝",
+      "refunded": "已退款"
+    },
+    "messages": {
+      "loadFailed": "加载用量数据失败: {err}",
+      "loadShowFailed": "加载用量失败: {err}",
+      "needInit": "需要先 cc init 初始化项目",
+      "cleanupFailed": "清理失败: {err}",
+      "cleanupOk": "过期条目已清理",
+      "clearFailed": "清空失败: {err}",
+      "clearOk": "缓存已清空"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "概 览",

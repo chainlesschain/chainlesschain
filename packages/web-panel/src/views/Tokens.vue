@@ -2,13 +2,13 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">Token 用量</h2>
-        <p class="page-sub">LLM 调用追踪 · 成本核算 · 响应缓存</p>
+        <h2 class="page-title">{{ t('tokens.title') }}</h2>
+        <p class="page-sub">{{ t('tokens.subtitle') }}</p>
       </div>
       <a-space>
         <a-button :loading="loading" @click="loadAll">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          {{ t('tokens.refresh') }}
         </a-button>
       </a-space>
     </div>
@@ -18,15 +18,15 @@
       v-if="errorState.noDb"
       type="info"
       show-icon
-      message="该模块需要项目级数据库"
-      description="`cc tokens ...` 命令仅在 chainlesschain 项目目录下可用。请先运行 `cc init` 初始化项目，或在已初始化的目录启动 `cc serve`。"
+      :message="t('tokens.noDb.message')"
+      :description="t('tokens.noDb.description')"
       style="margin-bottom: 16px;"
     />
 
     <!-- Period selector -->
     <a-card size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;" :body-style="{ padding: '10px 16px' }">
       <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span style="color: var(--text-secondary); font-size: 12px;">时间范围:</span>
+        <span style="color: var(--text-secondary); font-size: 12px;">{{ t('tokens.periodLabel') }}</span>
         <a-radio-group v-model:value="period" size="small" button-style="solid" @change="loadShow">
           <a-radio-button v-for="p in PERIOD_OPTIONS" :key="p" :value="p">{{ periodLabel(p) }}</a-radio-button>
         </a-radio-group>
@@ -37,40 +37,40 @@
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic title="调用次数" :value="show.stats.totalCalls" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+          <a-statistic :title="t('tokens.stats.calls')" :value="show.stats.totalCalls" :value-style="{ color: '#1677ff', fontSize: '20px' }">
             <template #prefix><ApiOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">今日 {{ show.today.totalCalls }}</div>
+          <div class="stat-sub">{{ t('tokens.stats.callsToday', { count: show.today.totalCalls }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="Token 总数"
+            :title="t('tokens.stats.totalTokens')"
             :value="show.stats.totalTokens"
             :value-style="{ color: '#722ed1', fontSize: '20px' }"
           >
             <template #prefix><NumberOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">{{ formatNumber(show.stats.totalInputTokens) }} 入 / {{ formatNumber(show.stats.totalOutputTokens) }} 出</div>
+          <div class="stat-sub">{{ t('tokens.stats.tokensInOut', { inputs: formatNumber(show.stats.totalInputTokens), outputs: formatNumber(show.stats.totalOutputTokens) }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="累计成本"
+            :title="t('tokens.stats.totalCost')"
             :value="show.stats.totalCostUsd"
             :precision="show.stats.totalCostUsd < 1 ? 4 : 2"
             prefix="$"
             :value-style="{ color: '#faad14', fontSize: '20px' }"
           />
-          <div class="stat-sub">今日 {{ formatCost(show.today.totalCostUsd) }}</div>
+          <div class="stat-sub">{{ t('tokens.stats.costToday', { amount: formatCost(show.today.totalCostUsd) }) }}</div>
         </a-card>
       </a-col>
       <a-col :xs="12" :sm="8" :lg="5">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="平均响应"
+            :title="t('tokens.stats.avgResponse')"
             :value="show.stats.avgResponseTimeMs"
             suffix="ms"
             :precision="0"
@@ -83,13 +83,13 @@
       <a-col :xs="24" :sm="8" :lg="4">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
           <a-statistic
-            title="缓存命中"
+            :title="t('tokens.stats.cacheHits')"
             :value="cache.totalHits"
             :value-style="{ color: '#13c2c2', fontSize: '20px' }"
           >
             <template #prefix><DatabaseOutlined /></template>
           </a-statistic>
-          <div class="stat-sub">省 {{ formatNumber(cache.totalTokensSaved) }} tokens</div>
+          <div class="stat-sub">{{ t('tokens.stats.cacheTokensSaved', { count: formatNumber(cache.totalTokensSaved) }) }}</div>
         </a-card>
       </a-col>
     </a-row>
@@ -97,11 +97,11 @@
     <!-- Tabs -->
     <a-tabs v-model:activeKey="activeTab" class="tokens-tabs">
       <!-- ── Breakdown tab ────────────────────────────────────── -->
-      <a-tab-pane key="breakdown" tab="模型成本">
+      <a-tab-pane key="breakdown" :tab="t('tokens.tabs.breakdown')">
         <a-table
           :columns="breakdownColumns"
           :data-source="breakdown"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 个模型` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('tokens.totals.models', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -119,7 +119,7 @@
             <template v-if="column.key === 'totalTokens'">
               <span style="color: var(--text-secondary); font-family: monospace; font-size: 12px;">{{ formatNumber(record.totalTokens) }}</span>
               <div style="color: var(--text-muted); font-size: 11px; font-family: monospace;">
-                {{ formatNumber(record.inputTokens) }} 入 / {{ formatNumber(record.outputTokens) }} 出
+                {{ t('tokens.breakdownDetails.tokensInOut', { inputs: formatNumber(record.inputTokens), outputs: formatNumber(record.outputTokens) }) }}
               </div>
             </template>
             <template v-if="column.key === 'costUsd'">
@@ -139,18 +139,18 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <NumberOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无用量数据
+              {{ t('tokens.empty.breakdown') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Recent tab ───────────────────────────────────────── -->
-      <a-tab-pane key="recent" tab="最近调用">
+      <a-tab-pane key="recent" :tab="t('tokens.tabs.recent')">
         <a-table
           :columns="recentColumns"
           :data-source="recent"
-          :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
+          :pagination="{ pageSize: 20, showTotal: (count) => t('tokens.totals.rows', { count }) }"
           size="small"
           :loading="loading"
           style="background: var(--bg-card);"
@@ -185,69 +185,69 @@
           <template #emptyText>
             <div style="padding: 40px; color: var(--text-muted); text-align: center;">
               <ClockCircleOutlined style="font-size: 36px; margin-bottom: 10px; display: block;" />
-              暂无调用记录
+              {{ t('tokens.empty.recent') }}
             </div>
           </template>
         </a-table>
       </a-tab-pane>
 
       <!-- ── Cache tab ────────────────────────────────────────── -->
-      <a-tab-pane key="cache" tab="响应缓存">
+      <a-tab-pane key="cache" :tab="t('tokens.tabs.cache')">
         <a-row :gutter="[16, 16]" style="margin-bottom: 16px;">
           <a-col :xs="12" :sm="6">
             <a-card size="small" style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="缓存条目" :value="cache.totalEntries" :value-style="{ color: '#1677ff', fontSize: '18px' }" />
+              <a-statistic :title="t('tokens.cache.totalEntries')" :value="cache.totalEntries" :value-style="{ color: '#1677ff', fontSize: '18px' }" />
             </a-card>
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-card size="small" style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="命中次数" :value="cache.totalHits" :value-style="{ color: '#52c41a', fontSize: '18px' }" />
+              <a-statistic :title="t('tokens.cache.totalHits')" :value="cache.totalHits" :value-style="{ color: '#52c41a', fontSize: '18px' }" />
             </a-card>
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-card size="small" style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="节省 Tokens" :value="cache.totalTokensSaved" :value-style="{ color: '#13c2c2', fontSize: '18px' }" />
+              <a-statistic :title="t('tokens.cache.totalTokensSaved')" :value="cache.totalTokensSaved" :value-style="{ color: '#13c2c2', fontSize: '18px' }" />
             </a-card>
           </a-col>
           <a-col :xs="12" :sm="6">
             <a-card size="small" style="background: var(--bg-card); border-color: var(--border-color);">
-              <a-statistic title="过期条目" :value="cache.expiredEntries" :value-style="{ color: cache.expiredEntries > 0 ? '#faad14' : '#888', fontSize: '18px' }" />
+              <a-statistic :title="t('tokens.cache.expiredEntries')" :value="cache.expiredEntries" :value-style="{ color: cache.expiredEntries > 0 ? '#faad14' : '#888', fontSize: '18px' }" />
             </a-card>
           </a-col>
         </a-row>
 
-        <a-card title="缓存维护" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
+        <a-card :title="t('tokens.cache.maintenanceTitle')" size="small" style="background: var(--bg-card); border-color: var(--border-color);">
           <a-space>
             <a-popconfirm
-              title="移除所有过期缓存？"
-              ok-text="清理"
-              cancel-text="取消"
+              :title="t('tokens.cache.cleanupConfirm')"
+              :ok-text="t('tokens.cache.cleanupOk')"
+              :cancel-text="t('common.cancel')"
               @confirm="cleanupExpired"
             >
               <a-button :disabled="cache.expiredEntries === 0">
                 <template #icon><DeleteOutlined /></template>
-                清理过期条目 ({{ cache.expiredEntries }})
+                {{ t('tokens.cache.cleanupButton', { count: cache.expiredEntries }) }}
               </a-button>
             </a-popconfirm>
             <a-popconfirm
-              title="清空整个响应缓存？此操作不可撤销。"
-              ok-text="清空"
+              :title="t('tokens.cache.clearConfirm')"
+              :ok-text="t('tokens.cache.clearOk')"
               ok-type="danger"
-              cancel-text="取消"
+              :cancel-text="t('common.cancel')"
               @confirm="clearAllCache"
             >
               <a-button danger :disabled="cache.totalEntries === 0">
                 <template #icon><DeleteOutlined /></template>
-                清空全部缓存
+                {{ t('tokens.cache.clearButton') }}
               </a-button>
             </a-popconfirm>
           </a-space>
         </a-card>
 
-        <a-card title="V2 预算治理" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
+        <a-card :title="t('tokens.v2.cardTitle')" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
           <a-row :gutter="[16, 16]">
             <a-col :xs="24" :lg="12">
-              <h5 style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px;">预算 (Budgets V2)</h5>
+              <h5 style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px;">{{ t('tokens.v2.budgetsTitle') }}</h5>
               <div v-for="s in BUDGET_MATURITIES_V2" :key="s" class="bd-row">
                 <a-tag :color="budgetStatusColor(s)" style="min-width: 80px; text-align: center;">{{ budgetStatusLabel(s) }}</a-tag>
                 <a-progress
@@ -260,7 +260,7 @@
               </div>
             </a-col>
             <a-col :xs="24" :lg="12">
-              <h5 style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px;">使用记录 (Records V2)</h5>
+              <h5 style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px;">{{ t('tokens.v2.recordsTitle') }}</h5>
               <div v-for="s in USAGE_RECORD_LIFECYCLES_V2" :key="s" class="bd-row">
                 <a-tag :color="recordStatusColor(s)" style="min-width: 80px; text-align: center;">{{ recordStatusLabel(s) }}</a-tag>
                 <a-progress
@@ -281,6 +281,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ReloadOutlined,
   ApiOutlined,
@@ -305,6 +306,7 @@ import {
   USAGE_RECORD_LIFECYCLES_V2,
 } from '../utils/tokens-parser.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 
 const loading = ref(false)
@@ -327,29 +329,31 @@ const errorState = ref({ noDb: false, error: '' })
 
 const activeTab = ref('breakdown')
 
-const breakdownColumns = [
-  { title: '提供商', key: 'provider', width: '130px' },
-  { title: '模型', key: 'model' },
-  { title: '调用', key: 'calls', width: '90px' },
-  { title: 'Token', key: 'totalTokens', width: '180px' },
-  { title: '成本', key: 'costUsd', width: '180px' },
-  { title: '均价/次', key: 'avgCost', width: '110px' },
-]
+const breakdownColumns = computed(() => [
+  { title: t('tokens.breakdownColumns.provider'), key: 'provider', width: '130px' },
+  { title: t('tokens.breakdownColumns.model'), key: 'model' },
+  { title: t('tokens.breakdownColumns.calls'), key: 'calls', width: '90px' },
+  { title: t('tokens.breakdownColumns.totalTokens'), key: 'totalTokens', width: '180px' },
+  { title: t('tokens.breakdownColumns.costUsd'), key: 'costUsd', width: '180px' },
+  { title: t('tokens.breakdownColumns.avgCost'), key: 'avgCost', width: '110px' },
+])
 
-const recentColumns = [
-  { title: '时间', key: 'createdAt', width: '160px' },
-  { title: '提供商', key: 'provider', width: '130px' },
-  { title: '模型', key: 'model', width: '180px' },
-  { title: 'Tokens', key: 'tokens', width: '160px' },
-  { title: '成本', key: 'costUsd', width: '110px' },
-  { title: '响应', key: 'responseTimeMs', width: '100px' },
-  { title: '端点', key: 'endpoint' },
-]
+const recentColumns = computed(() => [
+  { title: t('tokens.recentColumns.createdAt'), key: 'createdAt', width: '160px' },
+  { title: t('tokens.recentColumns.provider'), key: 'provider', width: '130px' },
+  { title: t('tokens.recentColumns.model'), key: 'model', width: '180px' },
+  { title: t('tokens.recentColumns.tokens'), key: 'tokens', width: '160px' },
+  { title: t('tokens.recentColumns.costUsd'), key: 'costUsd', width: '110px' },
+  { title: t('tokens.recentColumns.responseTimeMs'), key: 'responseTimeMs', width: '100px' },
+  { title: t('tokens.recentColumns.endpoint'), key: 'endpoint' },
+])
 
 const totalCost = computed(() => breakdown.value.reduce((s, r) => s + r.costUsd, 0))
 
 function periodLabel(p) {
-  return { today: '今日', week: '近 7 日', month: '近 30 日', all: '全部' }[p] || p
+  const key = `tokens.period.${p}`
+  const v = t(key)
+  return v === key ? p : v
 }
 
 function providerColor(p) {
@@ -389,7 +393,9 @@ function pctOfTotal(n, total) {
 }
 
 function budgetStatusLabel(s) {
-  return { planning: '筹划', active: '活跃', suspended: '暂停', archived: '已归档' }[s] || s
+  const key = `tokens.budgetStatus.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function budgetStatusColor(s) {
   return { planning: 'default', active: 'green', suspended: 'orange', archived: 'default' }[s] || 'default'
@@ -399,7 +405,9 @@ function budgetBarColor(s) {
 }
 
 function recordStatusLabel(s) {
-  return { pending: '待处理', recorded: '已记录', billed: '已结算', rejected: '已拒绝', refunded: '已退款' }[s] || s
+  const key = `tokens.recordStatus.${s}`
+  const v = t(key)
+  return v === key ? s : v
 }
 function recordStatusColor(s) {
   return { pending: 'default', recorded: 'blue', billed: 'green', rejected: 'red', refunded: 'orange' }[s] || 'default'
@@ -431,7 +439,7 @@ async function loadAll() {
     cache.value = parseCacheStats(cacheRes.output)
     statsV2.value = parseStatsV2(v2Res.output)
   } catch (e) {
-    message.error('加载用量数据失败: ' + (e?.message || e))
+    message.error(t('tokens.messages.loadFailed', { err: e?.message || e }))
   } finally {
     loading.value = false
   }
@@ -447,7 +455,7 @@ async function loadShow() {
     }
     show.value = parseShowResult(output)
   } catch (e) {
-    message.error('加载用量失败: ' + (e?.message || e))
+    message.error(t('tokens.messages.loadShowFailed', { err: e?.message || e }))
   }
 }
 
@@ -456,13 +464,13 @@ async function cleanupExpired() {
     const { output } = await ws.execute('tokens cache --cleanup', 8000)
     const err = detectTokensError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('tokens.messages.needInit'))
       return
     }
-    message.success('过期条目已清理')
+    message.success(t('tokens.messages.cleanupOk'))
     await loadAll()
   } catch (e) {
-    message.error('清理失败: ' + (e?.message || e))
+    message.error(t('tokens.messages.cleanupFailed', { err: e?.message || e }))
   }
 }
 
@@ -471,13 +479,13 @@ async function clearAllCache() {
     const { output } = await ws.execute('tokens cache --clear', 8000)
     const err = detectTokensError(output)
     if (err.noDb) {
-      message.error('需要先 cc init 初始化项目')
+      message.error(t('tokens.messages.needInit'))
       return
     }
-    message.success('缓存已清空')
+    message.success(t('tokens.messages.clearOk'))
     await loadAll()
   } catch (e) {
-    message.error('清空失败: ' + (e?.message || e))
+    message.error(t('tokens.messages.clearFailed', { err: e?.message || e }))
   }
 }
 

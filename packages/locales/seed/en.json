@@ -2032,6 +2032,106 @@
       "verifyFailed": "Verify failed: {err}"
     }
   },
+  "tokens": {
+    "title": "Token Usage",
+    "subtitle": "LLM call tracking · Cost accounting · Response cache",
+    "refresh": "Refresh",
+    "noDb": {
+      "message": "Project-scoped database required",
+      "description": "`cc tokens ...` commands are only available inside a chainlesschain project. Run `cc init` first or start `cc serve` from an initialized directory."
+    },
+    "periodLabel": "Range:",
+    "period": {
+      "today": "Today",
+      "week": "Last 7 days",
+      "month": "Last 30 days",
+      "all": "All time"
+    },
+    "stats": {
+      "calls": "Calls",
+      "callsToday": "Today {count}",
+      "totalTokens": "Total tokens",
+      "tokensInOut": "{inputs} in / {outputs} out",
+      "totalCost": "Total cost",
+      "costToday": "Today {amount}",
+      "avgResponse": "Avg response",
+      "cacheHits": "Cache hits",
+      "cacheTokensSaved": "Saved {count} tokens"
+    },
+    "tabs": {
+      "breakdown": "By model",
+      "recent": "Recent calls",
+      "cache": "Response cache"
+    },
+    "totals": {
+      "models": "{count} models",
+      "rows": "{count} rows"
+    },
+    "breakdownColumns": {
+      "provider": "Provider",
+      "model": "Model",
+      "calls": "Calls",
+      "totalTokens": "Tokens",
+      "costUsd": "Cost",
+      "avgCost": "Avg/call"
+    },
+    "breakdownDetails": {
+      "tokensInOut": "{inputs} in / {outputs} out"
+    },
+    "recentColumns": {
+      "createdAt": "Time",
+      "provider": "Provider",
+      "model": "Model",
+      "tokens": "Tokens",
+      "costUsd": "Cost",
+      "responseTimeMs": "Response",
+      "endpoint": "Endpoint"
+    },
+    "empty": {
+      "breakdown": "No usage data yet",
+      "recent": "No call records yet"
+    },
+    "cache": {
+      "totalEntries": "Cache entries",
+      "totalHits": "Hits",
+      "totalTokensSaved": "Tokens saved",
+      "expiredEntries": "Expired entries",
+      "maintenanceTitle": "Cache maintenance",
+      "cleanupConfirm": "Remove all expired cache entries?",
+      "cleanupOk": "Cleanup",
+      "cleanupButton": "Clean up expired entries ({count})",
+      "clearConfirm": "Clear the entire response cache? This cannot be undone.",
+      "clearOk": "Clear",
+      "clearButton": "Clear all cache"
+    },
+    "v2": {
+      "cardTitle": "V2 Budget governance",
+      "budgetsTitle": "Budgets V2",
+      "recordsTitle": "Records V2"
+    },
+    "budgetStatus": {
+      "planning": "Planning",
+      "active": "Active",
+      "suspended": "Suspended",
+      "archived": "Archived"
+    },
+    "recordStatus": {
+      "pending": "Pending",
+      "recorded": "Recorded",
+      "billed": "Billed",
+      "rejected": "Rejected",
+      "refunded": "Refunded"
+    },
+    "messages": {
+      "loadFailed": "Failed to load usage data: {err}",
+      "loadShowFailed": "Failed to load usage: {err}",
+      "needInit": "Run `cc init` to initialize the project first",
+      "cleanupFailed": "Cleanup failed: {err}",
+      "cleanupOk": "Expired entries cleaned",
+      "clearFailed": "Clear failed: {err}",
+      "clearOk": "Cache cleared"
+    }
+  },
   "appLayout": {
     "groups": {
       "overview": "Overview",

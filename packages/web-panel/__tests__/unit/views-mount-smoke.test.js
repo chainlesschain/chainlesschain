@@ -199,6 +199,7 @@ const TRANSLATED_VIEWS = [
   { file: 'Community.vue',        titleKey: 'community.title' },
   { file: 'WebAuthn.vue',         titleKey: 'webauthn.title' },
   { file: 'Mtc.vue',              titleKey: 'mtc.title' },
+  { file: 'Tokens.vue',           titleKey: 'tokens.title' },
 ]
 
 describe('translated views mount sweep', () => {
