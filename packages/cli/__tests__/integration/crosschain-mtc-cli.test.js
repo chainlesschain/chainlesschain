@@ -324,6 +324,172 @@ describe("cc crosschain mtc-* — CLI integration", () => {
     });
   });
 
+  describe("v0.2 multi-hop + gas-aware + sla", () => {
+    it("mtc-gas-check returns close decision based on gas + staged count", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-gas-check",
+        "ethereum",
+        "--staged-count",
+        "5",
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.close).toBe(true);
+      expect(j.reason).toBe("GAS_NORMAL_OR_LOW");
+    });
+
+    it("mtc-gas-check defers when current gas is high", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-gas-check",
+        "ethereum",
+        "--staged-count",
+        "5",
+        "--current-gas-usd",
+        "20",
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.close).toBe(false);
+      expect(j.reason).toBe("GAS_HIGH_DEFERRED");
+    });
+
+    it("mtc-sla returns ok status on fresh dir", () => {
+      const r = runCli([
+        "crosschain",
+        "mtc-sla",
+        "--config-dir",
+        tmpHome,
+        "--json",
+      ]);
+      expect(r.status).toBe(0);
+      const j = extractJson(r.stdout);
+      expect(j.sla_status).toBe("ok");
+      expect(j.enabled).toBe(false);
+    });
+
+    it("mtc-multihop-build + mtc-multihop-verify round-trip", () => {
+      // Build leg 1 (eth → polygon)
+      const opsFile = path.join(tmpHome, "ops.json");
+      fs.writeFileSync(
+        opsFile,
+        JSON.stringify([
+          {
+            bridge_op: "lock",
+            src_chain: "ethereum",
+            dst_chain: "polygon",
+            src_tx_hash: "0xa",
+            amount: "100",
+            asset: "USDC",
+            issued_at: new Date().toISOString(),
+          },
+        ]),
+      );
+      const env1 = extractJson(
+        runCli([
+          "crosschain",
+          "mtc-envelope",
+          "--input",
+          opsFile,
+          "--src-chain",
+          "ethereum",
+          "--dst-chain",
+          "polygon",
+          "--batch-seq",
+          "1",
+          "--config-dir",
+          tmpHome,
+          "--json",
+        ]).stdout,
+      );
+
+      // Build leg 2 (polygon → arbitrum)
+      const opsFile2 = path.join(tmpHome, "ops2.json");
+      fs.writeFileSync(
+        opsFile2,
+        JSON.stringify([
+          {
+            bridge_op: "lock",
+            src_chain: "polygon",
+            dst_chain: "arbitrum",
+            src_tx_hash: "0xb",
+            amount: "100",
+            asset: "USDC",
+            issued_at: new Date().toISOString(),
+          },
+        ]),
+      );
+      const env2 = extractJson(
+        runCli([
+          "crosschain",
+          "mtc-envelope",
+          "--input",
+          opsFile2,
+          "--src-chain",
+          "polygon",
+          "--dst-chain",
+          "arbitrum",
+          "--batch-seq",
+          "1",
+          "--config-dir",
+          tmpHome,
+          "--json",
+        ]).stdout,
+      );
+
+      const legsFile = path.join(tmpHome, "legs.json");
+      fs.writeFileSync(
+        legsFile,
+        JSON.stringify([env1.envelopes[0], env2.envelopes[0]]),
+      );
+
+      const wrapperPath = path.join(tmpHome, "multihop.json");
+      const buildResult = runCli([
+        "crosschain",
+        "mtc-multihop-build",
+        "--input",
+        legsFile,
+        "--out",
+        wrapperPath,
+        "--total-amount",
+        "100",
+        "--asset",
+        "USDC",
+      ]);
+      expect(buildResult.status).toBe(0);
+      expect(fs.existsSync(wrapperPath)).toBe(true);
+
+      const wrapper = JSON.parse(fs.readFileSync(wrapperPath, "utf-8"));
+      expect(wrapper.schema).toBe("mtc-bridge-multihop/v1");
+      expect(wrapper.chain_path).toEqual(["ethereum", "polygon", "arbitrum"]);
+
+      const lmFile = path.join(tmpHome, "lms.json");
+      fs.writeFileSync(
+        lmFile,
+        JSON.stringify([
+          { landmark: env1.landmark },
+          { landmark: env2.landmark },
+        ]),
+      );
+
+      const verifyResult = runCli([
+        "crosschain",
+        "mtc-multihop-verify",
+        wrapperPath,
+        "--landmarks",
+        lmFile,
+        "--json",
+      ]);
+      expect(verifyResult.status).toBe(0);
+      const v = extractJson(verifyResult.stdout);
+      expect(v.ok).toBe(true);
+      expect(v.leg_results).toHaveLength(2);
+    });
+  });
+
   describe("--help wiring", () => {
     it("crosschain --help lists mtc-* subcommands", () => {
       const r = runCli(["crosschain", "--help"]);
@@ -333,6 +499,10 @@ describe("cc crosschain mtc-* — CLI integration", () => {
       expect(r.stdout).toMatch(/mtc-verify/);
       expect(r.stdout).toMatch(/mtc-trust-anchor/);
       expect(r.stdout).toMatch(/mtc-batch/);
+      expect(r.stdout).toMatch(/mtc-multihop-build/);
+      expect(r.stdout).toMatch(/mtc-multihop-verify/);
+      expect(r.stdout).toMatch(/mtc-gas-check/);
+      expect(r.stdout).toMatch(/mtc-sla/);
     });
 
     it("bridge --help shows --mtc flag", () => {

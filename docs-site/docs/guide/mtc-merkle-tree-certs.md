@@ -125,6 +125,15 @@ cc crosschain mtc-verify <envelope> <landmark>
 cc crosschain mtc-batch                      # 关 staging 中所有 op 为批次（按 chain-pair 分组）
 cc crosschain bridge|swap|send ... --mtc     # 在原命令成功后写一条 staging op
 cc crosschain mtc-serve [--interval <s>] [--once]   # daemon: 周期性 close batch（v0.7 新）
+
+# v0.11 — 多跳桥 / gas-aware / SLA / 跨联邦互信 / 离线审计
+cc crosschain mtc-multihop-build --input <legs.json> [--out <path>]   # envelope-of-envelope
+cc crosschain mtc-multihop-verify <wrapper> --landmarks <lms.json>
+cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd <usd>]
+cc crosschain mtc-sla [--json]                              # cc sla 兼容形状
+cc mtc federation cross-trust-create <host> <trusted> --threshold <m> --member <id:pubkey>
+cc mtc federation cross-trust-validate <anchor.json>
+cc mtc federation audit <fed> [--summary | --json]          # 离线第三方审计
 ```
 
 ---

@@ -933,6 +933,134 @@ describe("cc mtc federation governance — CLI integration", () => {
     });
   });
 
+  describe("v0.3 cross-federation trust + audit", () => {
+    it("cross-trust-create writes a v1 anchor JSON", () => {
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "cross-trust-create",
+        "host-fed",
+        "trusted-fed",
+        "--threshold",
+        "1",
+        "--member",
+        "alice:sha256:a-pk",
+        "--member",
+        "bob:sha256:b-pk",
+        "--json",
+      ]);
+      const anchor = extractJson(r.stdout);
+      expect(anchor.schema).toBe("mtc-cross-federation-trust-anchor/v1");
+      expect(anchor.host_federation_id).toBe("host-fed");
+      expect(anchor.trusted_federation_id).toBe("trusted-fed");
+      expect(anchor.member_roster_snapshot).toHaveLength(2);
+      expect(anchor.threshold).toBe(1);
+    });
+
+    it("cross-trust-create rejects same host + trusted federation id", () => {
+      const r = runCli([
+        "mtc",
+        "federation",
+        "cross-trust-create",
+        "same",
+        "same",
+        "--threshold",
+        "1",
+        "--member",
+        "x:sha256:x",
+        "--json",
+      ]);
+      expect(r.status).not.toBe(0);
+      expect(r.stderr || r.stdout).toMatch(/must differ/);
+    });
+
+    it("cross-trust-validate accepts a freshly-created anchor", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cross-trust-"));
+      try {
+        const out = path.join(dir, "anchor.json");
+        mustRun([
+          "mtc",
+          "federation",
+          "cross-trust-create",
+          "h",
+          "t",
+          "--threshold",
+          "1",
+          "--member",
+          "alice:sha256:a",
+          "--out",
+          out,
+        ]);
+        const r = mustRun([
+          "mtc",
+          "federation",
+          "cross-trust-validate",
+          out,
+          "--json",
+        ]);
+        const j = extractJson(r.stdout);
+        expect(j.ok).toBe(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("cross-trust-validate flags expired anchor with non-zero exit", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cross-trust-exp-"));
+      try {
+        const anchor = {
+          schema: "mtc-cross-federation-trust-anchor/v1",
+          host_federation_id: "h",
+          trusted_federation_id: "t",
+          member_roster_snapshot: [
+            { member_id: "a", pubkey_id: "sha256:a", alg: "ed25519" },
+          ],
+          threshold: 1,
+          accepted_kinds: ["did"],
+          pinned_at: "2020-01-01T00:00:00Z",
+          expires_at: "2020-04-01T00:00:00Z",
+          notes: null,
+        };
+        const out = path.join(dir, "expired.json");
+        fs.writeFileSync(out, JSON.stringify(anchor));
+        const r = runCli([
+          "mtc",
+          "federation",
+          "cross-trust-validate",
+          out,
+          "--json",
+        ]);
+        expect(r.status).not.toBe(0);
+        const j = extractJson(r.stdout);
+        expect(j.code).toBe("EXPIRED");
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("audit reports clean log with ok=true", () => {
+      joinAs("alice");
+      // Note: join doesn't write a governance event yet; audit on empty log
+      // returns ok=true with 0 events.
+      const r = mustRun(["mtc", "federation", "audit", "fed-test", "--json"]);
+      const j = extractJson(r.stdout);
+      expect(j.ok).toBe(true);
+      expect(j.events_count).toBe(0);
+    });
+
+    it("audit --summary surface", () => {
+      joinAs("alice");
+      const r = mustRun([
+        "mtc",
+        "federation",
+        "audit",
+        "fed-test",
+        "--summary",
+      ]);
+      expect(r.stdout).toMatch(/✓ fed-test/);
+    });
+  });
+
   describe("--help wiring", () => {
     it("federation --help lists all 8 governance subcommands", () => {
       const r = mustRun(["mtc", "federation", "--help"]);
@@ -952,6 +1080,9 @@ describe("cc mtc federation governance — CLI integration", () => {
         "governance-sync-serve",
         "governance-sync-libp2p",
         "governance-sync-stats",
+        "cross-trust-create",
+        "cross-trust-validate",
+        "audit",
       ]) {
         expect(r.stdout).toMatch(new RegExp(sub));
       }

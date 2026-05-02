@@ -2292,6 +2292,152 @@ function registerFederationGovernanceCommands(fed) {
       }
     });
 
+  // mtc federation cross-trust-create — emit a cross-federation trust anchor record (v0.3)
+  fed
+    .command("cross-trust-create <host-fed> <trusted-fed>")
+    .description(
+      "Build a cross-federation trust anchor record (host accepts landmarks from trusted)",
+    )
+    .requiredOption(
+      "--threshold <m>",
+      "Trusted federation's threshold at snapshot time",
+      (v) => parseInt(v, 10),
+    )
+    .requiredOption(
+      "--member <id:pubkey>",
+      "Trusted member entry, id:pubkey_id (repeatable)",
+      (v, prev) => (prev ? [...prev, v] : [v]),
+      [],
+    )
+    .option(
+      "--accepted-kinds <kinds>",
+      "Comma-separated landmark kinds to accept (default: did,skill,bridge,audit)",
+    )
+    .option("--expires-at <iso>", "ISO 8601 expiry (default: 90 days)")
+    .option(
+      "--out <path>",
+      "Write the anchor JSON to a file (otherwise stdout)",
+    )
+    .option("--json", "JSON output (default unless --out given)")
+    .action((hostFed, trustedFed, options) => {
+      try {
+        const roster = (options.member || []).map((entry) => {
+          const [member_id, pubkey_id] = entry.split(":", 2);
+          if (!member_id || !pubkey_id) {
+            throw new Error(
+              `bad --member entry "${entry}", expected id:pubkey_id`,
+            );
+          }
+          return { member_id, pubkey_id, alg: "ed25519" };
+        });
+        const anchor = mtcLib.createCrossFederationTrustAnchor({
+          host_federation_id: hostFed,
+          trusted_federation_id: trustedFed,
+          member_roster_snapshot: roster,
+          threshold: options.threshold,
+          accepted_kinds: options.acceptedKinds
+            ? options.acceptedKinds.split(",").map((s) => s.trim())
+            : undefined,
+          expires_at: options.expiresAt,
+        });
+        const json = JSON.stringify(anchor, null, 2);
+        if (options.out) {
+          fs.mkdirSync(path.dirname(options.out), { recursive: true });
+          fs.writeFileSync(options.out, json, "utf-8");
+          if (options.json) console.log(json);
+          else
+            logger.success(
+              `Cross-fed trust anchor written: ${options.out} (expires ${anchor.expires_at})`,
+            );
+        } else {
+          console.log(json);
+        }
+      } catch (err) {
+        logger.error(
+          `mtc federation cross-trust-create failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
+  // mtc federation cross-trust-validate — validate an anchor's structure + freshness
+  fed
+    .command("cross-trust-validate <anchor-path>")
+    .description("Validate a cross-federation trust anchor JSON file")
+    .option("--json", "JSON output")
+    .action((anchorPath, options) => {
+      try {
+        const anchor = JSON.parse(fs.readFileSync(anchorPath, "utf-8"));
+        const result = mtcLib.validateCrossFederationTrustAnchor(anchor);
+        if (options.json) {
+          console.log(
+            JSON.stringify({ ...result, anchor_path: anchorPath }, null, 2),
+          );
+          if (!result.ok) process.exit(2);
+          return;
+        }
+        if (result.ok) {
+          logger.success(
+            `✓ Anchor valid: ${anchor.host_federation_id} → ${anchor.trusted_federation_id} (expires ${anchor.expires_at})`,
+          );
+        } else {
+          logger.error(`✗ Anchor invalid: ${result.code}`);
+          process.exit(2);
+        }
+      } catch (err) {
+        logger.error(
+          `mtc federation cross-trust-validate failed: ${err.message}`,
+        );
+        process.exit(1);
+      }
+    });
+
+  // mtc federation audit — independent third-party auditor of governance.log (v0.3)
+  fed
+    .command("audit <federation-id>")
+    .description(
+      "Offline audit: replay governance.log + verify each event signature against the rolling roster",
+    )
+    .option("--json", "JSON output (full report incl. final_state)")
+    .option("--summary", "Show only the finding counts + ok/fail")
+    .action((federationId, options) => {
+      try {
+        const events = loadGovernanceLog(federationId);
+        const report = mtcLib.auditGovernanceLog(events, federationId);
+        if (options.json) return console.log(JSON.stringify(report, null, 2));
+        const errorCount = report.findings.filter(
+          (f) => f.severity === "error",
+        ).length;
+        const warnCount = report.findings.filter(
+          (f) => f.severity === "warn",
+        ).length;
+        if (options.summary) {
+          logger.log(
+            `${report.ok ? "✓" : "✗"} ${federationId}: ${report.events_count} events, ${errorCount} errors, ${warnCount} warnings`,
+          );
+          if (!report.ok) process.exit(2);
+          return;
+        }
+        logger.log(`Federation: ${federationId}`);
+        logger.log(`Events:     ${report.events_count}`);
+        logger.log(
+          `Audit:      ${report.ok ? "✓ PASS" : "✗ FAIL"} (errors=${errorCount}, warnings=${warnCount})`,
+        );
+        if (report.findings.length > 0) {
+          logger.log(`\nFindings:`);
+          for (const f of report.findings) {
+            const sev = f.severity === "error" ? "ERROR" : "WARN ";
+            logger.log(`  [${sev}] ${f.code}: ${f.message}`);
+            logger.log(`           event_id=${f.event_id}`);
+          }
+        }
+        if (!report.ok) process.exit(2);
+      } catch (err) {
+        logger.error(`mtc federation audit failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // mtc federation governance-sync-serve — daemon: periodically publish + pull
   fed
     .command("governance-sync-serve <federation-id>")

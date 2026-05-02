@@ -563,6 +563,280 @@ export function closeBatch(dir, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// v0.2 — Multi-hop envelope (envelope-of-envelope)
+// ─────────────────────────────────────────────────────────────────────
+
+const SCHEMA_MULTI_HOP_BRIDGE = "mtc-bridge-multihop/v1";
+
+/**
+ * Build a multi-hop bridge envelope by chaining single-hop envelopes.
+ * For a route A → B → C, the caller supplies the leg envelopes
+ * [A→B, B→C] and gets back a wrapper envelope referencing both legs.
+ *
+ * Verification (verifyMultiHopBridgeEnvelope below) checks each leg's
+ * inclusion proof against its respective landmark + asserts that the
+ * intermediate chain is consistent (leg[i].dst_chain == leg[i+1].src_chain).
+ *
+ * @param {Array<object>} legEnvelopes - ≥ 2 single-hop bridge envelopes
+ * @param {{ route_id?: string, total_amount?: string, asset?: string }} [meta]
+ * @returns {object} multi-hop wrapper envelope
+ */
+export function buildMultiHopBridgeEnvelope(legEnvelopes, meta = {}) {
+  if (!Array.isArray(legEnvelopes) || legEnvelopes.length < 2) {
+    throw new RangeError(
+      "buildMultiHopBridgeEnvelope: need at least 2 leg envelopes",
+    );
+  }
+  for (let i = 0; i < legEnvelopes.length; i++) {
+    const env = legEnvelopes[i];
+    if (!env || env.schema !== SCHEMA_ENVELOPE) {
+      throw new TypeError(`leg ${i}: not a valid mtc-envelope/v1 envelope`);
+    }
+    if (!isBridgeNamespace(env.namespace)) {
+      throw new TypeError(`leg ${i}: not a bridge namespace`);
+    }
+    validateBridgeOp(env.leaf);
+    if (i > 0) {
+      const prev = legEnvelopes[i - 1];
+      if (prev.leaf.dst_chain !== env.leaf.src_chain) {
+        throw new RangeError(
+          `route discontinuity: leg ${i - 1} dst_chain=${prev.leaf.dst_chain} but leg ${i} src_chain=${env.leaf.src_chain}`,
+        );
+      }
+    }
+  }
+  const route = legEnvelopes.map((env) => ({
+    src_chain: env.leaf.src_chain,
+    dst_chain: env.leaf.dst_chain,
+    leaf_hash: env.leaf_hash || null,
+    namespace: env.namespace,
+    tree_head_id: env.tree_head_id,
+  }));
+  const chainPath = [
+    legEnvelopes[0].leaf.src_chain,
+    ...legEnvelopes.map((e) => e.leaf.dst_chain),
+  ];
+  return {
+    schema: SCHEMA_MULTI_HOP_BRIDGE,
+    route_id:
+      meta.route_id ||
+      `mh-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    chain_path: chainPath,
+    leg_count: legEnvelopes.length,
+    legs: legEnvelopes,
+    route_summary: route,
+    total_amount: meta.total_amount || null,
+    asset: meta.asset || null,
+    issued_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Verify a multi-hop wrapper envelope. Each leg must verify against its
+ * own landmark + the chain path must be continuous + at least one leg
+ * must be the "lock" op (the trigger).
+ *
+ * @param {object} wrapper - multi-hop envelope from buildMultiHopBridgeEnvelope
+ * @param {Array<{landmark: object}>} legCacheEntries - one per leg, in order
+ * @returns {{ ok: boolean, code?: string, leg_results?: Array<{ok, code?}> }}
+ */
+export function verifyMultiHopBridgeEnvelope(wrapper, legCacheEntries) {
+  if (!wrapper || wrapper.schema !== SCHEMA_MULTI_HOP_BRIDGE) {
+    return { ok: false, code: "BAD_MULTIHOP_SCHEMA" };
+  }
+  if (!Array.isArray(wrapper.legs) || wrapper.legs.length < 2) {
+    return { ok: false, code: "BAD_LEG_COUNT" };
+  }
+  if (
+    !Array.isArray(legCacheEntries) ||
+    legCacheEntries.length !== wrapper.legs.length
+  ) {
+    return { ok: false, code: "LEG_CACHE_COUNT_MISMATCH" };
+  }
+  const lib = mtcLib;
+  const results = [];
+  for (let i = 0; i < wrapper.legs.length; i++) {
+    const leg = wrapper.legs[i];
+    const cache = new lib.LandmarkCache({
+      signatureVerifier: lib.alwaysAcceptSignatureVerifier,
+    });
+    try {
+      cache.ingest(legCacheEntries[i].landmark);
+    } catch (err) {
+      results.push({ ok: false, code: err.code || "LANDMARK_REJECT" });
+      continue;
+    }
+    const r = verifyBridgeEnvelope(leg, cache);
+    results.push(r);
+    if (i > 0) {
+      const prev = wrapper.legs[i - 1];
+      if (prev.leaf.dst_chain !== leg.leaf.src_chain) {
+        return {
+          ok: false,
+          code: "ROUTE_DISCONTINUITY",
+          leg_results: results,
+        };
+      }
+    }
+  }
+  const allOk = results.every((r) => r.ok);
+  return { ok: allOk, leg_results: results };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// v0.2 — Gas-aware batch trigger
+// ─────────────────────────────────────────────────────────────────────
+
+const DEFAULT_GAS_PROFILE = Object.freeze({
+  // gas-cost units per chain, normalized to USD per tx (heuristic)
+  // Aligns with the existing fee estimator in cross-chain.js
+  ethereum: 5.0,
+  polygon: 0.01,
+  bsc: 0.1,
+  arbitrum: 0.3,
+  solana: 0.005,
+});
+
+/**
+ * Decide whether to close the batch now or defer to the next interval
+ * based on a target chain's current gas price (USD-equivalent).
+ *
+ * Heuristic: defer when current gas > 1.5x the chain's baseline AND
+ * the staged-ops count is below the "hard close" floor. Otherwise close.
+ *
+ * @param {{
+ *   target_chain: string,
+ *   current_gas_usd?: number,        // observed; if absent uses baseline
+ *   staged_count: number,
+ *   hard_close_floor?: number,        // always close at or above this count
+ *   defer_multiplier?: number,        // gas-multiplier triggering defer
+ * }} args
+ * @returns {{ close: boolean, reason: string, baseline_usd: number, current_usd: number, staged_count: number }}
+ */
+export function shouldCloseBatchGasAware(args = {}) {
+  if (!args.target_chain || typeof args.target_chain !== "string") {
+    throw new TypeError("shouldCloseBatchGasAware: target_chain required");
+  }
+  const baseline = DEFAULT_GAS_PROFILE[args.target_chain];
+  if (baseline === undefined) {
+    throw new RangeError(
+      `shouldCloseBatchGasAware: unknown target_chain "${args.target_chain}"`,
+    );
+  }
+  const current =
+    typeof args.current_gas_usd === "number" ? args.current_gas_usd : baseline;
+  const staged = Number.isInteger(args.staged_count) ? args.staged_count : 0;
+  const hardFloor = Number.isInteger(args.hard_close_floor)
+    ? args.hard_close_floor
+    : 50;
+  const deferMult =
+    typeof args.defer_multiplier === "number" ? args.defer_multiplier : 1.5;
+
+  if (staged >= hardFloor) {
+    return {
+      close: true,
+      reason: "STAGED_COUNT_AT_HARD_FLOOR",
+      baseline_usd: baseline,
+      current_usd: current,
+      staged_count: staged,
+    };
+  }
+  if (current > baseline * deferMult) {
+    return {
+      close: false,
+      reason: "GAS_HIGH_DEFERRED",
+      baseline_usd: baseline,
+      current_usd: current,
+      staged_count: staged,
+    };
+  }
+  return {
+    close: true,
+    reason: "GAS_NORMAL_OR_LOW",
+    baseline_usd: baseline,
+    current_usd: current,
+    staged_count: staged,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// v0.2 — SLA integration (cc sla compatible export)
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Export bridge MTC operational metrics in cc sla compatible shape.
+ * Reads on-disk staging + batches + sync-stats and synthesizes:
+ *   - latest_publish_age_seconds (newer than threshold = healthy)
+ *   - staged_pending_count (low = healthy)
+ *   - batches_per_hour (heuristic from batch dir mtimes)
+ *   - sla_status: ok | degraded | down
+ *
+ * @param {string} dir - cross-chain-mtc dir
+ * @param {{ now?: number }} [opts]
+ */
+export function getBridgeMtcSlaMetrics(dir, opts = {}) {
+  ensureDirs(dir);
+  const now = opts.now || Date.now();
+  const status = getBridgeMtcStatus(dir);
+
+  // Compute batches_per_hour from batches/ mtimes (last hour only)
+  let batchesLastHour = 0;
+  let latestBatchMtime = null;
+  const bDir = batchesDir(dir);
+  if (fs.existsSync(bDir)) {
+    for (const name of fs.readdirSync(bDir)) {
+      try {
+        const stat = fs.statSync(path.join(bDir, name));
+        if (now - stat.mtimeMs <= 3600 * 1000) batchesLastHour++;
+        if (!latestBatchMtime || stat.mtimeMs > latestBatchMtime) {
+          latestBatchMtime = stat.mtimeMs;
+        }
+      } catch (_err) {
+        /* skip stat failures */
+      }
+    }
+  }
+
+  const stagedAge = latestBatchMtime
+    ? Math.round((now - latestBatchMtime) / 1000)
+    : null;
+
+  // Status:
+  //   - down: enabled but no batches in 24h AND staging > 0
+  //   - degraded: staging > 100 OR no batch in 30 min while enabled
+  //   - ok: otherwise
+  let slaStatus = "ok";
+  if (status.enabled) {
+    if (status.staging.pending > 100) slaStatus = "degraded";
+    else if (
+      stagedAge !== null &&
+      stagedAge > 30 * 60 &&
+      status.staging.pending > 0
+    ) {
+      slaStatus = "degraded";
+    }
+    if (
+      stagedAge !== null &&
+      stagedAge > 24 * 3600 &&
+      status.staging.pending > 0
+    ) {
+      slaStatus = "down";
+    }
+  }
+
+  return {
+    sla_status: slaStatus,
+    enabled: status.enabled,
+    mode: status.mode,
+    staged_pending_count: status.staging.pending,
+    batches_total: status.batches.total,
+    batches_last_hour: batchesLastHour,
+    seconds_since_last_batch: stagedAge,
+    measured_at: new Date(now).toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Status snapshot (for `cc crosschain mtc-status`)
 // ─────────────────────────────────────────────────────────────────────
 

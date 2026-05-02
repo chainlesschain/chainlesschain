@@ -19,6 +19,10 @@ import {
   assembleBridgeBatch,
   stageBridgeOp,
   closeBatch,
+  buildMultiHopBridgeEnvelope,
+  verifyMultiHopBridgeEnvelope,
+  shouldCloseBatchGasAware,
+  getBridgeMtcSlaMetrics,
 } from "../lib/cross-chain-mtc.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
@@ -928,6 +932,143 @@ function registerCrossChainMtcSubcommands(cc) {
         console.log(`✗ Verification failed: ${result.code}`);
         process.exit(2);
       }
+    });
+
+  // v0.2 — Multi-hop bridge envelope (envelope-of-envelope)
+  cc.command("mtc-multihop-build")
+    .description(
+      "Build a multi-hop bridge envelope from a JSON file of leg envelopes",
+    )
+    .requiredOption(
+      "-i, --input <path>",
+      "JSON file: array of single-hop bridge envelopes (≥ 2)",
+    )
+    .option("--route-id <id>", "Optional route id (default: auto-generated)")
+    .option("--total-amount <amount>", "Optional cumulative amount string")
+    .option("--asset <asset>", "Optional asset symbol")
+    .option("--out <path>", "Write multi-hop envelope to file")
+    .option("--json", "JSON output (default unless --out given)")
+    .action((opts) => {
+      try {
+        const legs = JSON.parse(fs.readFileSync(opts.input, "utf-8"));
+        const wrapper = buildMultiHopBridgeEnvelope(legs, {
+          route_id: opts.routeId,
+          total_amount: opts.totalAmount,
+          asset: opts.asset,
+        });
+        const json = JSON.stringify(wrapper, null, 2);
+        if (opts.out) {
+          fs.writeFileSync(opts.out, json, "utf-8");
+          if (opts.json) console.log(json);
+          else
+            console.log(
+              `✓ Multi-hop envelope written: ${opts.out} (${wrapper.leg_count} legs, route: ${wrapper.chain_path.join(" → ")})`,
+            );
+        } else {
+          console.log(json);
+        }
+      } catch (err) {
+        console.error(`mtc-multihop-build failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  cc.command("mtc-multihop-verify <wrapper-path>")
+    .description(
+      "Verify a multi-hop bridge envelope against per-leg landmark files",
+    )
+    .requiredOption(
+      "--landmarks <path>",
+      "JSON file: array of {landmark} entries, one per leg in order",
+    )
+    .option("--json", "JSON output")
+    .action((wrapperPath, opts) => {
+      try {
+        const wrapper = JSON.parse(fs.readFileSync(wrapperPath, "utf-8"));
+        const lmEntries = JSON.parse(fs.readFileSync(opts.landmarks, "utf-8"));
+        const result = verifyMultiHopBridgeEnvelope(wrapper, lmEntries);
+        if (opts.json) {
+          console.log(JSON.stringify(result, null, 2));
+          if (!result.ok) process.exit(2);
+          return;
+        }
+        if (result.ok) {
+          console.log(
+            `✓ Multi-hop verified (${wrapper.leg_count} legs, route: ${wrapper.chain_path.join(" → ")})`,
+          );
+        } else {
+          console.log(
+            `✗ Multi-hop verification failed: ${result.code || "LEG_FAIL"}`,
+          );
+          process.exit(2);
+        }
+      } catch (err) {
+        console.error(`mtc-multihop-verify failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // v0.2 — Gas-aware batch trigger advisor
+  cc.command("mtc-gas-check <target-chain>")
+    .description(
+      "Heuristic: should the bridge MTCA close its batch now given current gas + staged ops?",
+    )
+    .requiredOption("--staged-count <n>", "Currently staged ops", parseInt)
+    .option(
+      "--current-gas-usd <usd>",
+      "Observed gas cost in USD (default: chain baseline)",
+      parseFloat,
+    )
+    .option(
+      "--hard-close-floor <n>",
+      "Always close at or above this staged count (default: 50)",
+      parseInt,
+    )
+    .option(
+      "--defer-multiplier <m>",
+      "Defer when current_gas > baseline * this (default: 1.5)",
+      parseFloat,
+    )
+    .option("--json", "JSON output")
+    .action((targetChain, opts) => {
+      try {
+        const r = shouldCloseBatchGasAware({
+          target_chain: targetChain,
+          staged_count: opts.stagedCount,
+          current_gas_usd: opts.currentGasUsd,
+          hard_close_floor: opts.hardCloseFloor,
+          defer_multiplier: opts.deferMultiplier,
+        });
+        if (opts.json) return console.log(JSON.stringify(r, null, 2));
+        console.log(
+          `${r.close ? "✓ CLOSE" : "✗ DEFER"}  reason=${r.reason}  baseline=$${r.baseline_usd}  current=$${r.current_usd}  staged=${r.staged_count}`,
+        );
+      } catch (err) {
+        console.error(`mtc-gas-check failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // v0.2 — SLA Manager integration: emit SLA-shaped metrics
+  cc.command("mtc-sla")
+    .description(
+      "Emit cc sla-compatible operational metrics for the bridge MTCA",
+    )
+    .option("--config-dir <dir>", "Override config root")
+    .option("--json", "JSON output")
+    .action((opts) => {
+      const dir = _resolveBridgeMtcDir(opts);
+      const m = getBridgeMtcSlaMetrics(dir);
+      if (opts.json) return console.log(JSON.stringify(m, null, 2));
+      console.log(`SLA Status:        ${m.sla_status}`);
+      console.log(`Enabled:           ${m.enabled}`);
+      console.log(`Mode:              ${m.mode}`);
+      console.log(`Staged pending:    ${m.staged_pending_count}`);
+      console.log(`Batches total:     ${m.batches_total}`);
+      console.log(`Batches last hour: ${m.batches_last_hour}`);
+      console.log(
+        `Last batch:        ${m.seconds_since_last_batch !== null ? `${m.seconds_since_last_batch}s ago` : "—"}`,
+      );
     });
 
   const taParent = cc

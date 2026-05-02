@@ -332,6 +332,43 @@
           </p>
         </a-card>
 
+        <!-- v0.2: SLA / monitoring metrics from cc crosschain mtc-sla -->
+        <a-card title="SLA / Monitoring (v0.2)" size="small" style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+          <a-row :gutter="[12, 12]">
+            <a-col :xs="24" :sm="12" :lg="6">
+              <a-statistic
+                title="SLA Status"
+                :value="bridgeSla.sla_status || '—'"
+                :value-style="{ color: slaStatusColor(bridgeSla.sla_status), fontSize: '18px' }"
+              />
+            </a-col>
+            <a-col :xs="24" :sm="12" :lg="6">
+              <a-statistic
+                title="Staged pending"
+                :value="bridgeSla.staged_pending_count ?? 0"
+                :value-style="{ fontSize: '18px' }"
+              />
+            </a-col>
+            <a-col :xs="24" :sm="12" :lg="6">
+              <a-statistic
+                title="Batches / hour"
+                :value="bridgeSla.batches_last_hour ?? 0"
+                :value-style="{ fontSize: '18px' }"
+              />
+            </a-col>
+            <a-col :xs="24" :sm="12" :lg="6">
+              <a-statistic
+                title="Last batch"
+                :value="bridgeSla.seconds_since_last_batch !== null && bridgeSla.seconds_since_last_batch !== undefined ? `${bridgeSla.seconds_since_last_batch}s ago` : '—'"
+                :value-style="{ fontSize: '14px' }"
+              />
+            </a-col>
+          </a-row>
+          <p style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary);">
+            通过 <code>cc crosschain mtc-sla --json</code> 实时刷新（30s 自动 poll）。可纳入外部 Prometheus / Grafana。
+          </p>
+        </a-card>
+
         <a-alert
           type="info"
           show-icon
@@ -407,6 +444,105 @@
                 actor: <span style="font-family: monospace;">{{ e.actor_member_id }}</span>
               </a-timeline-item>
             </a-timeline>
+          </a-card>
+
+          <!-- ── v0.10: Pending threshold proposals (multi-proposal CRDT) ─── -->
+          <a-card
+            v-if="pendingThresholdsList.length > 0"
+            title="待批 threshold proposals"
+            size="small"
+            style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;"
+          >
+            <a-alert
+              v-if="pendingThresholdsList.length > 1"
+              type="warning"
+              show-icon
+              message="多 proposal 并发"
+              description="同一联邦同时存在多个待批 threshold proposal。下方每行可独立确认（CRDT-style 选择）；不指定时 CLI 默认确认最新一条。"
+              style="margin-bottom: 12px;"
+            />
+            <a-list :data-source="pendingThresholdsList" size="small">
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <a-space wrap>
+                    <a-tag color="orange">target M = {{ item.target }}</a-tag>
+                    <span style="font-size: 11px; color: var(--text-secondary);">by</span>
+                    <span style="font-family: monospace;">{{ item.proposer || '—' }}</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">at</span>
+                    <span style="font-family: monospace; font-size: 11px;">{{ formatTimestamp(item.proposed_at) }}</span>
+                    <a-tag color="cyan" style="font-family: monospace;">{{ truncateEventId(item.event_id) }}</a-tag>
+                  </a-space>
+                  <template #actions>
+                    <a-button
+                      size="small"
+                      type="primary"
+                      :loading="actionLoading"
+                      @click="runConfirmThresholdById(item.event_id)"
+                    >
+                      确认这个
+                    </a-button>
+                  </template>
+                </a-list-item>
+              </template>
+            </a-list>
+          </a-card>
+
+          <!-- ── v0.10: Live sync stats (governance-sync daemon counters) ─── -->
+          <a-card
+            v-if="govSyncStats"
+            title="实时同步状态"
+            size="small"
+            style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;"
+          >
+            <a-row :gutter="[12, 12]">
+              <a-col :xs="24" :sm="8">
+                <a-statistic
+                  title="模式"
+                  :value="govSyncStats.mode || '—'"
+                  :value-style="{ fontSize: '16px', color: '#1677ff' }"
+                />
+              </a-col>
+              <a-col :xs="24" :sm="8">
+                <a-statistic
+                  title="最近 tick"
+                  :value="formatRelative(govSyncStats.last_tick_at) || '—'"
+                  :value-style="{ fontSize: '16px' }"
+                />
+              </a-col>
+              <a-col :xs="24" :sm="8">
+                <a-statistic
+                  title="下次轮询"
+                  :value="govSyncRefreshHint"
+                  :value-style="{ fontSize: '14px', color: 'var(--text-secondary)' }"
+                />
+              </a-col>
+            </a-row>
+            <a-descriptions
+              v-if="govSyncStats.publish || govSyncStats.pull || govSyncStats.libp2p"
+              :column="{ xs: 1, sm: 2 }"
+              size="small"
+              style="margin-top: 12px;"
+            >
+              <a-descriptions-item v-if="govSyncStats.publish" label="Publish">
+                last {{ govSyncStats.publish.last_published || 0 }} / total {{ govSyncStats.publish.total_published || 0 }}
+              </a-descriptions-item>
+              <a-descriptions-item v-if="govSyncStats.pull" label="Pull">
+                last {{ govSyncStats.pull.last_appended || 0 }} / total {{ govSyncStats.pull.total_appended || 0 }}
+                <span
+                  v-if="(govSyncStats.pull.last_invalid || 0) || (govSyncStats.pull.last_unknown || 0)"
+                  style="color: #cf1322; margin-left: 8px;"
+                >
+                  · invalid {{ govSyncStats.pull.last_invalid || 0 }} / unknown {{ govSyncStats.pull.last_unknown || 0 }}
+                </span>
+              </a-descriptions-item>
+              <a-descriptions-item v-if="govSyncStats.libp2p" label="libp2p wire" :span="2">
+                recv {{ govSyncStats.libp2p.wire_received || 0 }} · appended {{ govSyncStats.libp2p.wire_appended || 0 }}
+                <span v-if="govSyncStats.libp2p.topic" style="font-family: monospace; font-size: 11px; color: var(--text-secondary); margin-left: 8px;">
+                  ({{ govSyncStats.libp2p.topic }})
+                </span>
+              </a-descriptions-item>
+            </a-descriptions>
+            <a-empty v-else description="daemon 还没写过 tick — 启动 governance-sync-serve 或 governance-sync-libp2p 后再加载" />
           </a-card>
 
           <!-- ── Operational governance actions (v0.9) ─────── -->
@@ -629,6 +765,39 @@ function mergeBridgeStatus(obj) {
   }
 }
 
+// v0.2: SLA / monitoring metrics (auto-polled)
+const bridgeSla = ref({})
+let slaPollHandle = null
+
+function slaStatusColor(s) {
+  if (s === 'ok') return '#52c41a'
+  if (s === 'degraded') return '#faad14'
+  if (s === 'down') return '#ff4d4f'
+  return '#888'
+}
+
+async function loadBridgeSla() {
+  try {
+    const { output } = await ws.execute('crosschain mtc-sla --json', 6000)
+    const lines = output.split(/\r?\n/)
+    for (let s = 0; s < lines.length; s++) {
+      if (lines[s].trimStart().startsWith('{')) {
+        for (let e = lines.length; e > s; e--) {
+          try {
+            const obj = JSON.parse(lines.slice(s, e).join('\n'))
+            if (obj && typeof obj.sla_status === 'string') {
+              bridgeSla.value = obj
+              return
+            }
+          } catch (_err) { /* keep trying */ }
+        }
+      }
+    }
+  } catch (_e) {
+    /* keep last value */
+  }
+}
+
 async function loadBridgeStatus() {
   try {
     const { output } = await ws.execute('crosschain mtc-status --json', 8000)
@@ -655,6 +824,22 @@ async function loadBridgeStatus() {
 const govFederationId = ref('')
 const govLoading = ref(false)
 const govResult = ref(null)
+// v0.10: Live sync stats from governance-sync daemons (file-polled)
+const govSyncStats = ref(null)
+const govSyncRefreshHint = ref('随 governance-log 加载刷新')
+// v0.10: Multi-proposal CRDT — list of all open propose-threshold events
+const pendingThresholdsList = computed(() => {
+  const s = govResult.value?.state
+  if (!s) return []
+  // Prefer pending_thresholds[] (v0.10); fall back to pending_threshold (single, pre-v0.10)
+  if (Array.isArray(s.pending_thresholds) && s.pending_thresholds.length > 0) {
+    return s.pending_thresholds
+  }
+  if (s.pending_threshold && Number.isInteger(s.pending_threshold.target)) {
+    return [s.pending_threshold]
+  }
+  return []
+})
 const memberColumns = [
   { title: 'member_id', key: 'member_id', dataIndex: 'member_id' },
   { title: 'status', key: 'status', dataIndex: 'status', width: '110px' },
@@ -747,6 +932,22 @@ function runConfirmThreshold() {
   return runGovAction(`confirm-threshold <FED> --actor "${shellSafe(f.actor)}"`)
 }
 
+// v0.10: Multi-proposal CRDT — confirm a SPECIFIC proposal by event_id.
+// Reuses thresholdForm.actor for the actor field; if blank, prompts.
+function runConfirmThresholdById(eventId) {
+  const actor = (thresholdForm.value.actor || '').trim()
+  if (!actor) { message.warning('请先在"改 threshold"子 tab 填 actor'); return }
+  if (!eventId) { message.warning('proposal event_id 缺失'); return }
+  return runGovAction(
+    `confirm-threshold <FED> --actor "${shellSafe(actor)}" --proposal-event-id "${shellSafe(eventId)}"`,
+  )
+}
+
+function truncateEventId(id) {
+  if (!id) return '—'
+  return id.length <= 16 ? id : `${id.slice(0, 8)}…${id.slice(-4)}`
+}
+
 function runProposeRevoke() {
   const f = revokeForm.value
   if (!f.actor || !f.target) { message.warning('actor / target 必填'); return }
@@ -786,6 +987,7 @@ async function loadGovernanceLog() {
     const safeId = govFederationId.value.trim().replace(/"/g, '')
     const { output } = await ws.execute(`mtc federation governance-log "${safeId}" --json`, 8000)
     const lines = output.split(/\r?\n/)
+    let parsed = false
     for (let s = 0; s < lines.length; s++) {
       if (lines[s].trimStart().startsWith('{')) {
         for (let e = lines.length; e > s; e--) {
@@ -793,13 +995,22 @@ async function loadGovernanceLog() {
             const obj = JSON.parse(lines.slice(s, e).join('\n'))
             if (obj && obj.state) {
               govResult.value = obj
-              return
+              parsed = true
+              break
             }
           } catch (_err) { /* keep trying */ }
         }
+        if (parsed) break
       }
     }
-    message.error('未能解析 governance-log 输出')
+    if (!parsed) {
+      message.error('未能解析 governance-log 输出')
+      return
+    }
+    // v0.10: also pull live sync-stats for this federation. Best-effort —
+    // if no daemon is running the CLI returns available=false and we render
+    // an empty-state hint instead of an error toast.
+    await loadGovSyncStats(safeId)
   } catch (e) {
     message.error('加载 governance.log 失败: ' + (e?.message || e))
   } finally {
@@ -807,9 +1018,50 @@ async function loadGovernanceLog() {
   }
 }
 
+// v0.10: pull live sync-stats from `cc mtc federation governance-sync-stats <fed> --json`.
+// CLI returns { fed_id, available, mode, last_tick_at, publish?, pull?, libp2p? }.
+// available=false means no daemon has written the sync-stats.json yet — render empty.
+async function loadGovSyncStats(fedId) {
+  govSyncStats.value = null
+  govSyncRefreshHint.value = '随 governance-log 加载刷新'
+  if (!fedId) return
+  try {
+    const safeId = String(fedId).replace(/"/g, '')
+    const { output } = await ws.execute(
+      `mtc federation governance-sync-stats "${safeId}" --json`,
+      8000,
+    )
+    const lines = output.split(/\r?\n/)
+    for (let s = 0; s < lines.length; s++) {
+      if (lines[s].trimStart().startsWith('{')) {
+        for (let e = lines.length; e > s; e--) {
+          try {
+            const obj = JSON.parse(lines.slice(s, e).join('\n'))
+            if (obj && (obj.available !== undefined || obj.mode !== undefined)) {
+              govSyncStats.value = obj.available === false ? null : obj
+              return
+            }
+          } catch (_err) { /* keep trying */ }
+        }
+      }
+    }
+  } catch (_e) {
+    // CLI missing or daemon not running — silent (button still works manually)
+    govSyncStats.value = null
+  }
+}
+
 onMounted(() => {
   loadStatus()
   loadBridgeStatus()
+  loadBridgeSla()
+  // v0.2 — auto-poll SLA every 30s for live monitoring view
+  slaPollHandle = setInterval(loadBridgeSla, 30_000)
+})
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  if (slaPollHandle) clearInterval(slaPollHandle)
 })
 </script>
 

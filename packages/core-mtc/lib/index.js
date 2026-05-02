@@ -80,4 +80,12 @@ module.exports = {
   sortGovernanceEventsChronologically:
     federationGovernanceModule.sortEventsChronologically,
   verifyGovernanceLog: federationGovernanceModule.verifyGovernanceLog,
+  // v0.3 cross-federation + offline auditor
+  SCHEMA_CROSS_FED_TRUST_ANCHOR:
+    federationGovernanceModule.SCHEMA_CROSS_FED_TRUST_ANCHOR,
+  createCrossFederationTrustAnchor:
+    federationGovernanceModule.createCrossFederationTrustAnchor,
+  validateCrossFederationTrustAnchor:
+    federationGovernanceModule.validateCrossFederationTrustAnchor,
+  auditGovernanceLog: federationGovernanceModule.auditGovernanceLog,
 };

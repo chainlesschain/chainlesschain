@@ -24,6 +24,10 @@ import {
   stageBridgeOp,
   listStagedOps,
   closeBatch,
+  buildMultiHopBridgeEnvelope,
+  verifyMultiHopBridgeEnvelope,
+  shouldCloseBatchGasAware,
+  getBridgeMtcSlaMetrics,
   _internal,
 } from "../../../src/lib/cross-chain-mtc.js";
 import mtcLib from "@chainlesschain/core-mtc";
@@ -698,6 +702,182 @@ describe("cross-chain-mtc lib", () => {
       const v = verifyBridgeEnvelope(env, cache);
       expect(v.ok).toBe(true);
       expect(v.bridge_op).toBe("lock");
+    });
+  });
+
+  // ─── v0.2 multi-hop bridge envelope ───────────────────────
+
+  describe("buildMultiHopBridgeEnvelope + verifyMultiHopBridgeEnvelope", () => {
+    let keys;
+    beforeEach(() => {
+      keys = ed25519.generateKeyPair();
+    });
+
+    function makeLeg(srcChain, dstChain, batchSeq) {
+      const op = {
+        bridge_op: "lock",
+        src_chain: srcChain,
+        dst_chain: dstChain,
+        src_tx_hash: `0x${srcChain}-${dstChain}-${batchSeq}`,
+        amount: "100",
+        asset: "USDC",
+        issued_at: new Date().toISOString(),
+      };
+      const result = assembleBridgeBatch([op], keys, {
+        src_chain: srcChain,
+        dst_chain: dstChain,
+        batch_seq: batchSeq,
+        issuer: "mtca:cc:test",
+      });
+      return { envelope: result.envelopes[0], landmark: result.landmark };
+    }
+
+    it("builds a 2-leg multi-hop wrapper with chain_path", () => {
+      const a2b = makeLeg("ethereum", "polygon", 1);
+      const b2c = makeLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {
+          total_amount: "100",
+          asset: "USDC",
+        },
+      );
+      expect(wrapper.schema).toBe("mtc-bridge-multihop/v1");
+      expect(wrapper.leg_count).toBe(2);
+      expect(wrapper.chain_path).toEqual(["ethereum", "polygon", "arbitrum"]);
+      expect(wrapper.legs).toHaveLength(2);
+      expect(wrapper.route_id).toBeDefined();
+    });
+
+    it("rejects fewer than 2 legs", () => {
+      const a2b = makeLeg("ethereum", "polygon", 1);
+      expect(() => buildMultiHopBridgeEnvelope([a2b.envelope])).toThrow(
+        /at least 2/,
+      );
+    });
+
+    it("rejects route discontinuity (B→C after A→B where B mismatch)", () => {
+      const a2b = makeLeg("ethereum", "polygon", 1);
+      const c2d = makeLeg("bsc", "arbitrum", 1); // bsc != polygon
+      expect(() =>
+        buildMultiHopBridgeEnvelope([a2b.envelope, c2d.envelope]),
+      ).toThrow(/route discontinuity/);
+    });
+
+    it("verifies multi-hop wrapper with correct landmarks", () => {
+      const a2b = makeLeg("ethereum", "polygon", 1);
+      const b2c = makeLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope([a2b.envelope, b2c.envelope]);
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+        { landmark: b2c.landmark },
+      ]);
+      expect(r.ok).toBe(true);
+      expect(r.leg_results).toHaveLength(2);
+      expect(r.leg_results[0].ok).toBe(true);
+      expect(r.leg_results[1].ok).toBe(true);
+    });
+
+    it("verifyMultiHopBridgeEnvelope rejects when landmark count mismatches", () => {
+      const a2b = makeLeg("ethereum", "polygon", 1);
+      const b2c = makeLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope([a2b.envelope, b2c.envelope]);
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+      ]);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("LEG_CACHE_COUNT_MISMATCH");
+    });
+  });
+
+  // ─── v0.2 gas-aware batch ─────────────────────────────────
+
+  describe("shouldCloseBatchGasAware", () => {
+    it("closes when gas at baseline + low staged count", () => {
+      const r = shouldCloseBatchGasAware({
+        target_chain: "ethereum",
+        staged_count: 5,
+      });
+      expect(r.close).toBe(true);
+      expect(r.reason).toBe("GAS_NORMAL_OR_LOW");
+    });
+
+    it("defers when gas > baseline * 1.5", () => {
+      const r = shouldCloseBatchGasAware({
+        target_chain: "ethereum",
+        staged_count: 5,
+        current_gas_usd: 20.0, // baseline = 5
+      });
+      expect(r.close).toBe(false);
+      expect(r.reason).toBe("GAS_HIGH_DEFERRED");
+    });
+
+    it("hard-closes at staged count >= floor regardless of gas", () => {
+      const r = shouldCloseBatchGasAware({
+        target_chain: "ethereum",
+        staged_count: 60, // > default floor 50
+        current_gas_usd: 100.0, // crazy high
+      });
+      expect(r.close).toBe(true);
+      expect(r.reason).toBe("STAGED_COUNT_AT_HARD_FLOOR");
+    });
+
+    it("respects custom defer_multiplier", () => {
+      const r = shouldCloseBatchGasAware({
+        target_chain: "ethereum",
+        staged_count: 5,
+        current_gas_usd: 7.0, // 1.4x baseline
+        defer_multiplier: 1.2, // tighter threshold
+      });
+      expect(r.close).toBe(false);
+    });
+
+    it("rejects unknown chain", () => {
+      expect(() =>
+        shouldCloseBatchGasAware({
+          target_chain: "dogecoin",
+          staged_count: 5,
+        }),
+      ).toThrow(/unknown target_chain/);
+    });
+  });
+
+  // ─── v0.2 SLA metrics ─────────────────────────────────────
+
+  describe("getBridgeMtcSlaMetrics", () => {
+    it("returns ok status when bridge MTCA disabled", () => {
+      const m = getBridgeMtcSlaMetrics(dir);
+      expect(m.sla_status).toBe("ok");
+      expect(m.enabled).toBe(false);
+    });
+
+    it("returns ok status when enabled with low staging", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const m = getBridgeMtcSlaMetrics(dir);
+      expect(m.sla_status).toBe("ok");
+    });
+
+    it("returns degraded when staged > 100 with enabled MTCA", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const stagingDir = path.join(dir, "staging");
+      fs.mkdirSync(stagingDir, { recursive: true });
+      for (let i = 0; i < 105; i++) {
+        fs.writeFileSync(path.join(stagingDir, `${i}.json`), "{}");
+      }
+      const m = getBridgeMtcSlaMetrics(dir);
+      expect(m.sla_status).toBe("degraded");
+      expect(m.staged_pending_count).toBe(105);
+    });
+
+    it("counts batches in last hour via mtime", () => {
+      const bDir = path.join(dir, "batches");
+      fs.mkdirSync(path.join(bDir, "ethereum-polygon-000001"), {
+        recursive: true,
+      });
+      const m = getBridgeMtcSlaMetrics(dir);
+      expect(m.batches_last_hour).toBeGreaterThanOrEqual(1);
+      expect(m.batches_total).toBe(1);
+      expect(m.seconds_since_last_batch).toBeGreaterThanOrEqual(0);
     });
   });
 });

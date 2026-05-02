@@ -19,6 +19,30 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-03 Update — **MTC v0.11** — cross-fed trust + offline auditor + multi-hop + gas-aware + SLA + monitoring dashboard
+
+Closes every doable item from cross-chain bridge §11 + federation governance v0.2 §11 (chain anchoring blocked by Q-COMP-3, real RPC adapters need major desktop work — both kept):
+
+| Wave | Module | Notes |
+|---|---|---|
+| **A1** Cross-federation trust (v0.3 #1) | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate` |
+| **A2** Independent third-party auditor (v0.3 #3) | same lib | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary | --json]` |
+| **B1** Multi-hop bridge (bridge §11 #3) | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch (bridge §11 #4) | same | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
+| **B3** SLA Manager integration (bridge §11 #6) | same | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla` |
+| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana |
+
+**Test totals**: core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 green**.
+
+**Still NOT done (explicit external blockers / major dependencies)**:
+- Chain anchoring of governance log (v0.3 #2) — waiting on Q-COMP-3 legal sign-off for domestic consortium chain path
+- Real RPC chain adapters (bridge §11 #1) — needs desktop ethers/web3 integration + chain endpoints + extensive integration tests
+- Cross-chain DID resolution (bridge §11 #2) — merged design with cross-fed trust; schema ready, waiting on real-chain path
+- Full paxos cross-member real-time quorum (v0.10 carry-over) — multi-week distributed-systems work, out of incremental scope
+- Libp2p cross-node wire e2e (v0.10 carry-over) — gossipsub mesh in 2-node testbed is flaky by design; replaced with call-path + dispatch tests
+
+---
+
 ## 2026-05-03 Update — **MTC v0.10.1** — desktop V6 widget surfaces live sync stats
 
 Closes the last small v0.10 item — wires the sync daemon stats files into the desktop V6 governance widget so users see real-time publish/pull/wire counters on the desktop:

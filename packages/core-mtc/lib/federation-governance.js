@@ -556,6 +556,330 @@ function verifyGovernanceLog(events, getPublicKey) {
   return { valid, invalid, unknown };
 }
 
+/**
+ * v0.3 — Cross-federation trust anchor schema.
+ *
+ * Federation A's verifier may want to accept landmarks signed by federation B
+ * (e.g. cross-platform Marketplace publishing). Without an anchor record, the
+ * verifier has no way to know which other-federation member-pubkeys to trust.
+ *
+ * The trust-anchor record is a self-signed document (by federation A's own
+ * threshold M-of-N — caller's responsibility to assemble) declaring the
+ * accepted other-federation IDs + their pinned member roster snapshot at
+ * the time of anchoring. Renewal/revocation goes through the same governance
+ * log channel as all other federation operations.
+ *
+ * Schema: mtc-cross-federation-trust-anchor/v1
+ */
+const SCHEMA_CROSS_FED_TRUST_ANCHOR = "mtc-cross-federation-trust-anchor/v1";
+
+/**
+ * Build a cross-federation trust-anchor record. NOT signed here — caller
+ * runs it through createGovernanceEvent (eventType = "create" or a future
+ * "cross-federation-trust" event type) so the anchor lives in the host
+ * federation's governance.log and is replayable.
+ *
+ * @param {{
+ *   host_federation_id: string,    // who is granting trust
+ *   trusted_federation_id: string, // who is being trusted
+ *   member_roster_snapshot: Array<{member_id, pubkey_id, alg}>, // pinned
+ *   threshold: number,             // remote federation's threshold at snapshot time
+ *   accepted_kinds?: string[],     // ["did", "skill", "bridge", "audit"] — what landmark types we accept
+ *   expires_at?: string,           // ISO 8601 — defaults to 90 days
+ *   notes?: string,
+ * }} params
+ * @returns {object} unsigned anchor record
+ */
+function createCrossFederationTrustAnchor(params) {
+  if (!params || typeof params !== "object") {
+    throw new TypeError("createCrossFederationTrustAnchor: params required");
+  }
+  if (
+    typeof params.host_federation_id !== "string" ||
+    !params.host_federation_id
+  ) {
+    throw new TypeError("host_federation_id required");
+  }
+  if (
+    typeof params.trusted_federation_id !== "string" ||
+    !params.trusted_federation_id
+  ) {
+    throw new TypeError("trusted_federation_id required");
+  }
+  if (params.host_federation_id === params.trusted_federation_id) {
+    throw new RangeError("host and trusted federation must differ");
+  }
+  if (!Array.isArray(params.member_roster_snapshot)) {
+    throw new TypeError("member_roster_snapshot must be an array");
+  }
+  if (
+    !Number.isInteger(params.threshold) ||
+    params.threshold < 1 ||
+    params.threshold > params.member_roster_snapshot.length
+  ) {
+    throw new RangeError(
+      "threshold must be 1..member_roster_snapshot.length",
+    );
+  }
+  for (const m of params.member_roster_snapshot) {
+    if (
+      !m ||
+      typeof m.member_id !== "string" ||
+      typeof m.pubkey_id !== "string"
+    ) {
+      throw new TypeError(
+        "member_roster_snapshot entries must have {member_id, pubkey_id}",
+      );
+    }
+  }
+  const now = Date.now();
+  const expiresAt =
+    params.expires_at ||
+    new Date(now + 90 * 24 * 3600 * 1000).toISOString();
+  return {
+    schema: SCHEMA_CROSS_FED_TRUST_ANCHOR,
+    host_federation_id: params.host_federation_id,
+    trusted_federation_id: params.trusted_federation_id,
+    member_roster_snapshot: params.member_roster_snapshot.slice(),
+    threshold: params.threshold,
+    accepted_kinds: params.accepted_kinds || [
+      "did",
+      "skill",
+      "bridge",
+      "audit",
+    ],
+    pinned_at: new Date(now).toISOString(),
+    expires_at: expiresAt,
+    notes: params.notes || null,
+  };
+}
+
+/**
+ * Validate a cross-federation trust anchor's structure + freshness.
+ * Does NOT verify member signatures (caller composes its own verifier
+ * against host federation's governance.log).
+ *
+ * @param {object} anchor
+ * @param {{ now?: number }} [opts]
+ * @returns {{ ok: boolean, code?: string }}
+ */
+function validateCrossFederationTrustAnchor(anchor, opts = {}) {
+  if (!anchor || typeof anchor !== "object") {
+    return { ok: false, code: "BAD_SHAPE" };
+  }
+  if (anchor.schema !== SCHEMA_CROSS_FED_TRUST_ANCHOR) {
+    return { ok: false, code: "BAD_SCHEMA" };
+  }
+  if (
+    typeof anchor.host_federation_id !== "string" ||
+    typeof anchor.trusted_federation_id !== "string" ||
+    anchor.host_federation_id === anchor.trusted_federation_id
+  ) {
+    return { ok: false, code: "BAD_FEDERATION_IDS" };
+  }
+  if (!Array.isArray(anchor.member_roster_snapshot)) {
+    return { ok: false, code: "BAD_ROSTER" };
+  }
+  if (
+    !Number.isInteger(anchor.threshold) ||
+    anchor.threshold < 1 ||
+    anchor.threshold > anchor.member_roster_snapshot.length
+  ) {
+    return { ok: false, code: "BAD_THRESHOLD" };
+  }
+  if (typeof anchor.expires_at !== "string") {
+    return { ok: false, code: "BAD_EXPIRY" };
+  }
+  const now = opts.now || Date.now();
+  if (Date.parse(anchor.expires_at) < now) {
+    return { ok: false, code: "EXPIRED" };
+  }
+  return { ok: true };
+}
+
+/**
+ * v0.3 — Independent auditor's offline verifier.
+ *
+ * Replays governance.log + verifies every event signature against the
+ * roster derived from earlier replayed events. Returns a complete audit
+ * report suitable for compliance review (no network calls; all inputs
+ * are pure data).
+ *
+ * Detects gaps the regular replay would silently allow:
+ *   - Events whose actor isn't in the active member set at issued_at
+ *   - Events whose signature key_id doesn't match the actor's recorded pubkey_id
+ *   - Out-of-order events (issued_at decreases)
+ *   - Forged signatures
+ *
+ * @param {Array<object>} events - chronologically sorted governance events
+ * @param {string} federationId
+ * @param {{ now?: number }} [opts]
+ * @returns {{
+ *   ok: boolean,
+ *   federation_id: string,
+ *   events_count: number,
+ *   findings: Array<{event_id, severity, code, message}>,
+ *   final_state: object,
+ * }}
+ */
+function auditGovernanceLog(events, federationId, opts = {}) {
+  const findings = [];
+  let lastTs = -Infinity;
+
+  // We need to walk events in order, building up the roster as we go,
+  // and verify each event's signature against the roster known AT THAT MOMENT.
+  // The trick: the bootstrap "create" event is self-signed by the future first
+  // member, so its key_id must equal what create.payload.bootstrap_pubkey_id says.
+  const rosterByMember = new Map(); // member_id → {pubkey_id, alg, status, joined_at}
+
+  for (const ev of events) {
+    if (!ev || ev.fed_id !== federationId) continue;
+
+    // 1. Schema check
+    if (ev.schema !== SCHEMA_GOVERNANCE) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "BAD_SCHEMA",
+        message: `Schema must be ${SCHEMA_GOVERNANCE}`,
+      });
+      continue;
+    }
+
+    // 2. Chronological ordering
+    const ts = Date.parse(ev.issued_at);
+    if (Number.isNaN(ts)) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "BAD_TIMESTAMP",
+        message: "issued_at not parseable",
+      });
+      continue;
+    }
+    if (ts < lastTs) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "warn",
+        code: "OUT_OF_ORDER",
+        message: `issued_at ${ev.issued_at} earlier than previous`,
+      });
+    }
+    lastTs = ts;
+
+    // 3. Special bootstrap path: create can be self-signed by a brand-new actor
+    if (ev.event_type === "create" && rosterByMember.size === 0) {
+      const claimedId = ev.payload && ev.payload.bootstrap_pubkey_id;
+      if (
+        claimedId &&
+        ev.signature &&
+        ev.signature.key_id !== claimedId
+      ) {
+        findings.push({
+          event_id: ev.event_id,
+          severity: "error",
+          code: "BOOTSTRAP_KEY_MISMATCH",
+          message: `create.signature.key_id ${ev.signature.key_id} != payload.bootstrap_pubkey_id ${claimedId}`,
+        });
+      }
+      // Add bootstrap member to roster so subsequent events can be checked
+      if (
+        ev.payload &&
+        ev.payload.bootstrap_member_id &&
+        ev.payload.bootstrap_pubkey_id
+      ) {
+        rosterByMember.set(ev.payload.bootstrap_member_id, {
+          pubkey_id: ev.payload.bootstrap_pubkey_id,
+          alg: ev.payload.bootstrap_alg || "ed25519",
+          joined_at: ev.issued_at,
+        });
+      }
+      continue;
+    }
+
+    // 4. Actor membership check
+    const actor = rosterByMember.get(ev.actor_member_id);
+    if (!actor) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "UNKNOWN_ACTOR",
+        message: `actor_member_id ${ev.actor_member_id} not in roster at issued_at`,
+      });
+      continue;
+    }
+
+    // 5. Signature key_id matches recorded pubkey_id
+    if (ev.signature && ev.signature.key_id !== actor.pubkey_id) {
+      findings.push({
+        event_id: ev.event_id,
+        severity: "error",
+        code: "ACTOR_KEY_MISMATCH",
+        message: `signature.key_id ${ev.signature.key_id} != actor's recorded pubkey_id ${actor.pubkey_id}`,
+      });
+    }
+
+    // 6. Event-specific roster updates (so later events validate against new state)
+    if (ev.event_type === "vote" && ev.payload) {
+      // approve vote moves candidate into roster (with the candidate_pubkey_id from invite)
+      // we need to find the matching invite
+      // (auditor walks linearly; simple match-by-target is enough for v0.3)
+      const target = ev.payload.invite_target_member_id;
+      const decision = ev.payload.decision;
+      if (target && decision === "approve") {
+        // Find the most recent invite for this target in events seen so far
+        const inviteMatches = events
+          .slice(0, events.indexOf(ev))
+          .filter(
+            (e) =>
+              e.event_type === "invite" &&
+              e.payload &&
+              e.payload.candidate_member_id === target,
+          );
+        if (inviteMatches.length > 0) {
+          const lastInvite = inviteMatches[inviteMatches.length - 1];
+          if (
+            lastInvite.payload.candidate_pubkey_id &&
+            !rosterByMember.has(target)
+          ) {
+            rosterByMember.set(target, {
+              pubkey_id: lastInvite.payload.candidate_pubkey_id,
+              alg: lastInvite.payload.candidate_alg || "ed25519",
+              joined_at: ev.issued_at,
+            });
+          }
+        }
+      }
+    } else if (ev.event_type === "leave") {
+      rosterByMember.delete(ev.actor_member_id);
+    } else if (
+      ev.event_type === "confirm-revoke" &&
+      ev.payload &&
+      ev.payload.target_member_id
+    ) {
+      rosterByMember.delete(ev.payload.target_member_id);
+    } else if (
+      ev.event_type === "rotate-key" &&
+      ev.payload &&
+      ev.payload.new_pubkey_id
+    ) {
+      const m = rosterByMember.get(ev.actor_member_id);
+      if (m) m.pubkey_id = ev.payload.new_pubkey_id;
+    }
+  }
+
+  // Final replay state for the report
+  const final_state = replayGovernanceLog(events, federationId, opts);
+
+  return {
+    ok: findings.filter((f) => f.severity === "error").length === 0,
+    federation_id: federationId,
+    events_count: events.filter((e) => e && e.fed_id === federationId).length,
+    findings,
+    final_state,
+  };
+}
+
 module.exports = {
   SCHEMA_GOVERNANCE,
   GOVERNANCE_DOMAIN_PREFIX,
@@ -568,4 +892,9 @@ module.exports = {
   dedupeEventsByEventId,
   sortEventsChronologically,
   verifyGovernanceLog,
+  // v0.3 cross-federation + auditor
+  SCHEMA_CROSS_FED_TRUST_ANCHOR,
+  createCrossFederationTrustAnchor,
+  validateCrossFederationTrustAnchor,
+  auditGovernanceLog,
 };

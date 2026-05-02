@@ -12,6 +12,10 @@ const {
   dedupeEventsByEventId,
   sortEventsChronologically,
   verifyGovernanceLog,
+  SCHEMA_CROSS_FED_TRUST_ANCHOR,
+  createCrossFederationTrustAnchor,
+  validateCrossFederationTrustAnchor,
+  auditGovernanceLog,
 } = require("../lib/federation-governance.js");
 const ed25519 = require("../lib/signers/ed25519.js");
 
@@ -804,6 +808,233 @@ describe("federation-governance", () => {
       });
       expect(result.unknown).toHaveLength(1);
       expect(result.unknown[0].reason).toBe("UNKNOWN_KEY");
+    });
+  });
+
+  describe("v0.3 cross-federation trust anchor", () => {
+    function makeRoster(n) {
+      return Array.from({ length: n }, (_, i) => ({
+        member_id: `m${i + 1}`,
+        pubkey_id: `sha256:m${i + 1}`,
+        alg: "ed25519",
+      }));
+    }
+
+    it("createCrossFederationTrustAnchor builds a well-formed v1 record", () => {
+      const a = createCrossFederationTrustAnchor({
+        host_federation_id: "host-fed",
+        trusted_federation_id: "trusted-fed",
+        member_roster_snapshot: makeRoster(3),
+        threshold: 2,
+      });
+      expect(a.schema).toBe(SCHEMA_CROSS_FED_TRUST_ANCHOR);
+      expect(a.host_federation_id).toBe("host-fed");
+      expect(a.trusted_federation_id).toBe("trusted-fed");
+      expect(a.member_roster_snapshot).toHaveLength(3);
+      expect(a.threshold).toBe(2);
+      expect(a.accepted_kinds).toEqual(["did", "skill", "bridge", "audit"]);
+      expect(a.expires_at).toBeDefined();
+    });
+
+    it("rejects same host + trusted federation", () => {
+      expect(() =>
+        createCrossFederationTrustAnchor({
+          host_federation_id: "f",
+          trusted_federation_id: "f",
+          member_roster_snapshot: makeRoster(1),
+          threshold: 1,
+        }),
+      ).toThrow(/must differ/);
+    });
+
+    it("rejects out-of-bounds threshold", () => {
+      expect(() =>
+        createCrossFederationTrustAnchor({
+          host_federation_id: "a",
+          trusted_federation_id: "b",
+          member_roster_snapshot: makeRoster(3),
+          threshold: 4,
+        }),
+      ).toThrow(/threshold/);
+    });
+
+    it("validate accepts a freshly-created anchor", () => {
+      const a = createCrossFederationTrustAnchor({
+        host_federation_id: "a",
+        trusted_federation_id: "b",
+        member_roster_snapshot: makeRoster(2),
+        threshold: 1,
+      });
+      const r = validateCrossFederationTrustAnchor(a);
+      expect(r.ok).toBe(true);
+    });
+
+    it("validate flags expired anchor", () => {
+      const a = createCrossFederationTrustAnchor({
+        host_federation_id: "a",
+        trusted_federation_id: "b",
+        member_roster_snapshot: makeRoster(1),
+        threshold: 1,
+        expires_at: "2020-01-01T00:00:00Z",
+      });
+      const r = validateCrossFederationTrustAnchor(a);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("EXPIRED");
+    });
+
+    it("validate flags bad schema/shape", () => {
+      expect(validateCrossFederationTrustAnchor(null).code).toBe("BAD_SHAPE");
+      expect(
+        validateCrossFederationTrustAnchor({ schema: "wrong" }).code,
+      ).toBe("BAD_SCHEMA");
+    });
+  });
+
+  describe("v0.3 auditGovernanceLog (offline auditor)", () => {
+    function ev(overrides) {
+      const keys = overrides.keys || ed25519.generateKeyPair();
+      return createGovernanceEvent({
+        federationId: overrides.fed || "fed-test",
+        eventType: overrides.eventType,
+        actorMemberId: overrides.actor || "alice",
+        secretKey: keys.secretKey,
+        publicKey: keys.publicKey,
+        payload: overrides.payload || {},
+        issuedAt: overrides.issuedAt,
+      });
+    }
+
+    it("clean log: no findings + ok=true", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+          },
+        }),
+        ev({
+          eventType: "leave",
+          actor: "alice",
+          keys: aliceKeys,
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      expect(r.ok).toBe(true);
+      expect(r.findings).toHaveLength(0);
+      expect(r.events_count).toBe(2);
+    });
+
+    it("flags UNKNOWN_ACTOR when an event's actor isn't in the roster", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+          },
+        }),
+        ev({ eventType: "leave", actor: "ghost" }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      expect(r.ok).toBe(false);
+      const f = r.findings.find((x) => x.code === "UNKNOWN_ACTOR");
+      expect(f).toBeDefined();
+    });
+
+    it("flags ACTOR_KEY_MISMATCH when signature key_id != recorded pubkey_id", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const otherKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+          },
+        }),
+        // alice "leave" event signed by a DIFFERENT key — auditor catches it
+        ev({ eventType: "leave", actor: "alice", keys: otherKeys }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      const f = r.findings.find((x) => x.code === "ACTOR_KEY_MISMATCH");
+      expect(f).toBeDefined();
+      expect(r.ok).toBe(false);
+    });
+
+    it("flags BOOTSTRAP_KEY_MISMATCH if create payload claims a different pubkey_id than the signer", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: "sha256:wrong-claim",
+          },
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      const f = r.findings.find((x) => x.code === "BOOTSTRAP_KEY_MISMATCH");
+      expect(f).toBeDefined();
+      expect(r.ok).toBe(false);
+    });
+
+    it("flags OUT_OF_ORDER (warn) when issued_at decreases between events", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+          },
+          issuedAt: "2026-05-03T10:00:00Z",
+        }),
+        // Earlier timestamp than create — flagged as warn (not error)
+        ev({
+          eventType: "leave",
+          actor: "alice",
+          keys: aliceKeys,
+          issuedAt: "2026-05-01T00:00:00Z",
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      const f = r.findings.find((x) => x.code === "OUT_OF_ORDER");
+      expect(f).toBeDefined();
+      expect(f.severity).toBe("warn");
+      expect(r.ok).toBe(true); // warn doesn't break ok
+    });
+
+    it("includes final_state from replay", () => {
+      const aliceKeys = ed25519.generateKeyPair();
+      const log = [
+        ev({
+          eventType: "create",
+          actor: "alice",
+          keys: aliceKeys,
+          payload: {
+            bootstrap_member_id: "alice",
+            bootstrap_pubkey_id: aliceKeys.pubkeyId,
+            initial_threshold: 1,
+          },
+        }),
+      ];
+      const r = auditGovernanceLog(log, "fed-test");
+      expect(r.final_state).toBeDefined();
+      expect(r.final_state.federation_id).toBe("fed-test");
+      expect(r.final_state.members).toHaveLength(1);
     });
   });
 });
