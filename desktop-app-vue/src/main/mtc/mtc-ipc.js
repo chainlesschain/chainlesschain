@@ -128,6 +128,50 @@ function readFederationGovernanceFromDisk(dir) {
   return result;
 }
 
+/**
+ * Read all per-federation sync-stats files written by the governance-sync
+ * daemons (governance-sync-serve / governance-sync-libp2p). These are
+ * atomic JSON files at <dir>/<fed>.sync-stats.json. v0.10 surface.
+ *
+ * @param {string} dir - same governance dir as readFederationGovernanceFromDisk
+ * @returns {{ federations: Array<{fed_id, available, mode, last_tick_at,
+ *             publish, pull, libp2p}> }}
+ */
+function readFederationSyncStatsFromDisk(dir) {
+  const result = { federations: [] };
+  if (!dir || !fs.existsSync(dir)) {
+    return result;
+  }
+
+  for (const name of fs.readdirSync(dir).sort()) {
+    if (!name.endsWith(".sync-stats.json")) {
+      continue;
+    }
+    const fedId = name.slice(0, -".sync-stats.json".length);
+    let stats;
+    try {
+      stats = JSON.parse(fs.readFileSync(path.join(dir, name), "utf-8"));
+    } catch (_err) {
+      result.federations.push({
+        fed_id: fedId,
+        available: false,
+        error: "PARSE_ERROR",
+      });
+      continue;
+    }
+    result.federations.push({
+      fed_id: fedId,
+      available: true,
+      mode: stats.mode || null,
+      last_tick_at: stats.last_tick_at || null,
+      publish: stats.publish || null,
+      pull: stats.pull || null,
+      libp2p: stats.libp2p || null,
+    });
+  }
+  return result;
+}
+
 function readBridgeStatusFromDisk(dir) {
   const result = JSON.parse(JSON.stringify(BRIDGE_STATUS_DEFAULTS));
   if (!dir || !fs.existsSync(dir)) {
@@ -378,6 +422,18 @@ function registerMtcIPC({
     }
   });
 
+  ipcMain.handle("mtc:get-federation-sync-stats", async () => {
+    try {
+      return readFederationSyncStatsFromDisk(governanceDir);
+    } catch (err) {
+      log.warn?.(
+        "[MTC IPC] get-federation-sync-stats failed:",
+        err && err.message,
+      );
+      return { federations: [] };
+    }
+  });
+
   ipcMain.handle("mtc:get-audit-status", async () => {
     try {
       return readStatusFromDisk(dir);
@@ -434,6 +490,7 @@ module.exports = {
   readStatusFromDisk,
   readBridgeStatusFromDisk,
   readFederationGovernanceFromDisk,
+  readFederationSyncStatsFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   makeMultiAlgVerifier,

@@ -81,6 +81,62 @@
             </dd>
           </div>
         </dl>
+
+        <!-- v0.10: live sync stats per federation (when daemon is running) -->
+        <div
+          v-if="syncStatsByFedId[fed.fed_id]"
+          class="cc-preview-widget__sync"
+        >
+          <header>
+            <span class="cc-preview-widget__sync-label">
+              Sync · {{ syncStatsByFedId[fed.fed_id].mode || "—" }}
+            </span>
+            <span class="cc-preview-widget__sync-stale">
+              {{ relativeAge(syncStatsByFedId[fed.fed_id].last_tick_at) }}
+            </span>
+          </header>
+          <dl class="cc-preview-widget__kv cc-preview-widget__kv--sub">
+            <div v-if="syncStatsByFedId[fed.fed_id].publish">
+              <dt>Publish</dt>
+              <dd>
+                last
+                {{ syncStatsByFedId[fed.fed_id].publish.last_published || 0 }}
+                / total
+                {{ syncStatsByFedId[fed.fed_id].publish.total_published || 0 }}
+              </dd>
+            </div>
+            <div v-if="syncStatsByFedId[fed.fed_id].pull">
+              <dt>Pull</dt>
+              <dd>
+                last
+                {{ syncStatsByFedId[fed.fed_id].pull.last_appended || 0 }}
+                / total
+                {{ syncStatsByFedId[fed.fed_id].pull.total_appended || 0 }}
+                <span
+                  v-if="
+                    syncStatsByFedId[fed.fed_id].pull.last_invalid ||
+                    syncStatsByFedId[fed.fed_id].pull.last_unknown
+                  "
+                  class="cc-preview-widget__danger"
+                >
+                  · invalid
+                  {{ syncStatsByFedId[fed.fed_id].pull.last_invalid || 0 }}
+                  unknown
+                  {{ syncStatsByFedId[fed.fed_id].pull.last_unknown || 0 }}
+                </span>
+              </dd>
+            </div>
+            <div v-if="syncStatsByFedId[fed.fed_id].libp2p">
+              <dt>libp2p wire</dt>
+              <dd>
+                recv
+                {{ syncStatsByFedId[fed.fed_id].libp2p.wire_received || 0 }}
+                · appended
+                {{ syncStatsByFedId[fed.fed_id].libp2p.wire_appended || 0 }}
+              </dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </section>
 
@@ -126,11 +182,39 @@ interface GovFederation {
   events_count: number;
   state: GovState;
 }
+interface SyncStatsEntry {
+  fed_id: string;
+  available?: boolean;
+  mode?: string | null;
+  last_tick_at?: string | null;
+  publish?: {
+    last_published?: number;
+    last_skipped?: number;
+    total_published?: number;
+  } | null;
+  pull?: {
+    last_appended?: number;
+    last_duplicates?: number;
+    last_invalid?: number;
+    last_unknown?: number;
+    total_appended?: number;
+  } | null;
+  libp2p?: {
+    wire_received?: number;
+    wire_appended?: number;
+    wire_invalid?: number;
+    wire_unknown?: number;
+    topic?: string;
+  } | null;
+}
+
 interface MtcApi {
   getFederationGovernance?: () => Promise<{ federations: GovFederation[] }>;
+  getFederationSyncStats?: () => Promise<{ federations: SyncStatsEntry[] }>;
 }
 
 const federations = ref<GovFederation[]>([]);
+const syncStatsByFedId = ref<Record<string, SyncStatsEntry>>({});
 
 function memberSummary(members: GovMember[] | undefined): string {
   if (!members || members.length === 0) {
@@ -142,6 +226,31 @@ function memberSummary(members: GovMember[] | undefined): string {
     return `${active}`;
   }
   return `${active} 活跃 + ${candidate} 候选`;
+}
+
+function relativeAge(iso: string | null | undefined): string {
+  if (!iso) {
+    return "—";
+  }
+  try {
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) {
+      return iso;
+    }
+    const delta = Math.round((Date.now() - t) / 1000);
+    if (delta < 60) {
+      return `${delta}s 前`;
+    }
+    if (delta < 3600) {
+      return `${Math.round(delta / 60)}min 前`;
+    }
+    if (delta < 86400) {
+      return `${Math.round(delta / 3600)}h 前`;
+    }
+    return `${Math.round(delta / 86400)}d 前`;
+  } catch {
+    return iso;
+  }
 }
 
 function statusBadgeClass(status: string | undefined): string {
@@ -194,6 +303,22 @@ onMounted(async () => {
     }
   } catch {
     /* keep defaults */
+  }
+  // v0.10: also pull sync-stats so live publish/pull/wire counters render
+  // alongside each federation. IPC missing → render without stats sub-panel.
+  if (api.getFederationSyncStats) {
+    try {
+      const r = await api.getFederationSyncStats();
+      const map: Record<string, SyncStatsEntry> = {};
+      for (const s of r?.federations || []) {
+        if (s && s.fed_id && s.available !== false) {
+          map[s.fed_id] = s;
+        }
+      }
+      syncStatsByFedId.value = map;
+    } catch {
+      /* keep defaults */
+    }
   }
 });
 </script>
@@ -306,6 +431,37 @@ onMounted(async () => {
   color: #d48806;
   font-weight: 400;
   margin-left: 4px;
+}
+
+.cc-preview-widget__sync {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cc-preview-border, rgba(0, 0, 0, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cc-preview-widget__sync header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.cc-preview-widget__sync-label {
+  color: var(--cc-preview-accent);
+  font-weight: 500;
+}
+
+.cc-preview-widget__sync-stale {
+  color: var(--cc-preview-text-secondary);
+  font-family: var(--cc-preview-font-mono, monospace);
+}
+
+.cc-preview-widget__kv--sub {
+  font-size: 11px;
+  gap: 4px;
 }
 
 .cc-preview-widget__danger {

@@ -23,6 +23,7 @@ const {
   readStatusFromDisk,
   readBridgeStatusFromDisk,
   readFederationGovernanceFromDisk,
+  readFederationSyncStatsFromDisk,
   detectActiveAlg,
   verifyEnvelopeInProcess,
   STATUS_DEFAULTS,
@@ -324,6 +325,85 @@ describe("mtc-ipc — readFederationGovernanceFromDisk", () => {
   });
 });
 
+describe("mtc-ipc — readFederationSyncStatsFromDisk (v0.10)", () => {
+  let tmpDir;
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mtc-ipc-syncstats-"));
+  });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns empty list for missing dir", () => {
+    expect(readFederationSyncStatsFromDisk(path.join(tmpDir, "nope"))).toEqual({
+      federations: [],
+    });
+  });
+
+  it("parses sync-stats.json files written by daemons", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-a.sync-stats.json"),
+      JSON.stringify({
+        federation_id: "fed-a",
+        mode: "filesystem",
+        last_tick_at: "2026-05-03T10:00:00Z",
+        publish: { last_published: 2, total_published: 17 },
+        pull: {
+          last_appended: 1,
+          total_appended: 5,
+          last_invalid: 0,
+          last_unknown: 0,
+        },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-b.sync-stats.json"),
+      JSON.stringify({
+        federation_id: "fed-b",
+        mode: "libp2p",
+        last_tick_at: "2026-05-03T10:01:00Z",
+        publish: { last_published: 0, total_published: 3 },
+        libp2p: { wire_received: 4, wire_appended: 2 },
+      }),
+    );
+
+    const r = readFederationSyncStatsFromDisk(tmpDir);
+    expect(r.federations).toHaveLength(2);
+    const a = r.federations.find((f) => f.fed_id === "fed-a");
+    expect(a.mode).toBe("filesystem");
+    expect(a.publish.total_published).toBe(17);
+    const b = r.federations.find((f) => f.fed_id === "fed-b");
+    expect(b.mode).toBe("libp2p");
+    expect(b.libp2p.wire_received).toBe(4);
+  });
+
+  it("ignores non-sync-stats files in the same dir", () => {
+    fs.writeFileSync(path.join(tmpDir, "fed-x.jsonl"), "");
+    fs.writeFileSync(path.join(tmpDir, "fed-x.libp2p-pos.json"), "[]");
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-x.sync-stats.json"),
+      JSON.stringify({
+        mode: "filesystem",
+        last_tick_at: "2026-05-03T10:00:00Z",
+      }),
+    );
+    const r = readFederationSyncStatsFromDisk(tmpDir);
+    expect(r.federations).toHaveLength(1);
+    expect(r.federations[0].fed_id).toBe("fed-x");
+  });
+
+  it("survives malformed json with PARSE_ERROR entry", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "fed-broken.sync-stats.json"),
+      "{ broken",
+    );
+    const r = readFederationSyncStatsFromDisk(tmpDir);
+    expect(r.federations).toHaveLength(1);
+    expect(r.federations[0].available).toBe(false);
+    expect(r.federations[0].error).toBe("PARSE_ERROR");
+  });
+});
+
 describe("mtc-ipc — registerMtcIPC", () => {
   let tmpDir;
   let handlers;
@@ -342,13 +422,24 @@ describe("mtc-ipc — registerMtcIPC", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("registers all 5 channels", () => {
+  it("registers all 6 channels", () => {
     registerMtcIPC({ ipcMain: fakeIpcMain, configDir: tmpDir });
     expect(handlers.has("mtc:get-audit-status")).toBe(true);
     expect(handlers.has("mtc:get-active-alg")).toBe(true);
     expect(handlers.has("mtc:verify-envelope")).toBe(true);
     expect(handlers.has("mtc:get-bridge-status")).toBe(true);
     expect(handlers.has("mtc:get-federation-governance")).toBe(true);
+    expect(handlers.has("mtc:get-federation-sync-stats")).toBe(true);
+  });
+
+  it("get-federation-sync-stats returns empty list on empty dir", async () => {
+    registerMtcIPC({
+      ipcMain: fakeIpcMain,
+      configDir: tmpDir,
+      governanceDir: path.join(tmpDir, "gov-empty"),
+    });
+    const r = await handlers.get("mtc:get-federation-sync-stats")();
+    expect(r).toEqual({ federations: [] });
   });
 
   it("get-federation-governance returns empty list on empty dir", async () => {

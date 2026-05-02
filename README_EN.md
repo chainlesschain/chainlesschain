@@ -19,6 +19,21 @@ The web management panel switches from hardcoded Chinese to bilingual (zh-CN / e
 
 **Bug fixes**: no new bugs introduced. The single integration-test failure (`compliance threat-intel match 1.2.3.4`) is a corrupt local SQLite DB (`database disk image is malformed`) on the dev machine, not a code bug — `cc setup --reset` or removing `%APPDATA%/chainlesschain/data/chainlesschain.db` rebuilds it.
 
+## 2026-05-03 Update — **MTC v0.10.1** — desktop V6 widget surfaces live sync stats
+
+Closes the last small v0.10 item — wires the sync daemon stats files into the desktop V6 governance widget so users see real-time publish/pull/wire counters on the desktop:
+
+| Module | Notes |
+|---|---|
+| Main process IPC | New `mtc:get-federation-sync-stats` channel + `readFederationSyncStatsFromDisk(dir)` helper, scans `<gov-dir>/*.sync-stats.json` returning `{federations: [{fed_id, mode, last_tick_at, publish, pull, libp2p}]}` |
+| Preload bridge | `electronAPI.mtc.getFederationSyncStats()` |
+| V6 widget enhancement | `FederationGovernanceWidget.vue` appends a sync sub-panel per federation card — shows mode (filesystem/libp2p) + last_tick relative time + Publish (last/total) + Pull (last/total + invalid/unknown) + libp2p wire (recv/appended). Sub-panel hidden when no daemon is running |
+| Tests | +5 IPC unit (empty dir / parsing / ignores non-stats files / malformed JSON / channel registration) + +3 widget unit (filesystem mode / libp2p mode / hides when no stats). 41/41 desktop MTC tests green |
+
+Closes the "desktop V6 widget surfaces sync-stats" item from v0.10. The remaining 3 v0.10 candidates (full paxos cross-member quorum / WebSocket streaming sync-stats / libp2p cross-node wire e2e) are optimization paths waiting on real deployment feedback before prioritization.
+
+---
+
 ## 2026-05-02 Update — **MTC v0.10** — multi-proposal CRDT + live sync stats + libp2p smoke test + hardening checklist
 
 Closes the four v0.9 TODOs:

@@ -462,6 +462,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // V6 FederationGovernanceWidget.
     getFederationGovernance: () =>
       ipcRenderer.invoke("mtc:get-federation-governance"),
+    // v0.10: per-fed sync-stats (publish/pull/libp2p wire counters) written
+    // by the governance-sync-serve / governance-sync-libp2p daemons.
+    getFederationSyncStats: () =>
+      ipcRenderer.invoke("mtc:get-federation-sync-stats"),
   },
 
   did: {

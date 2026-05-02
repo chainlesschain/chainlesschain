@@ -180,6 +180,127 @@ describe("FederationGovernanceWidget", () => {
     expect(wrapper.exists()).toBe(true);
   });
 
+  it("renders live sync stats sub-panel when getFederationSyncStats provides data (v0.10)", async () => {
+    (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
+      mtc: {
+        getFederationGovernance: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-live",
+              events_count: 4,
+              state: {
+                federation_id: "fed-live",
+                status: "steady",
+                threshold: 2,
+                members: [{ member_id: "alice", status: "active", weight: 1 }],
+              },
+            },
+          ],
+        }),
+        getFederationSyncStats: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-live",
+              available: true,
+              mode: "filesystem",
+              last_tick_at: new Date(Date.now() - 30_000).toISOString(),
+              publish: { last_published: 2, total_published: 17 },
+              pull: {
+                last_appended: 1,
+                total_appended: 5,
+                last_invalid: 0,
+                last_unknown: 0,
+              },
+            },
+          ],
+        }),
+      },
+    };
+    const wrapper = mount(FederationGovernanceWidget, {
+      global: { stubs: STUBS },
+    });
+    await flushPromises();
+
+    const html = wrapper.html();
+    expect(html).toContain("Sync");
+    expect(html).toContain("filesystem");
+    expect(html).toContain("Publish");
+    expect(html).toContain("17"); // total_published
+    expect(html).toContain("Pull");
+    expect(html).toContain("5"); // total_appended
+    expect(html).toMatch(/s 前|min 前/); // relative age
+  });
+
+  it("renders libp2p wire counters when daemon mode = libp2p (v0.10)", async () => {
+    (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
+      mtc: {
+        getFederationGovernance: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-libp2p",
+              events_count: 1,
+              state: {
+                federation_id: "fed-libp2p",
+                status: "steady",
+                threshold: 1,
+                members: [{ member_id: "alice", status: "active", weight: 1 }],
+              },
+            },
+          ],
+        }),
+        getFederationSyncStats: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-libp2p",
+              available: true,
+              mode: "libp2p",
+              last_tick_at: new Date().toISOString(),
+              publish: { last_published: 0, total_published: 3 },
+              libp2p: { wire_received: 4, wire_appended: 2 },
+            },
+          ],
+        }),
+      },
+    };
+    const wrapper = mount(FederationGovernanceWidget, {
+      global: { stubs: STUBS },
+    });
+    await flushPromises();
+    const html = wrapper.html();
+    expect(html).toContain("libp2p");
+    expect(html).toContain("recv");
+    expect(html).toContain("4"); // wire_received
+  });
+
+  it("hides sync sub-panel when getFederationSyncStats missing or returns no entries", async () => {
+    (globalThis as unknown as { electronAPI?: unknown }).electronAPI = {
+      mtc: {
+        getFederationGovernance: vi.fn().mockResolvedValue({
+          federations: [
+            {
+              fed_id: "fed-nostats",
+              events_count: 1,
+              state: {
+                federation_id: "fed-nostats",
+                status: "steady",
+                threshold: 1,
+                members: [{ member_id: "alice", status: "active", weight: 1 }],
+              },
+            },
+          ],
+        }),
+        // getFederationSyncStats deliberately omitted
+      },
+    };
+    const wrapper = mount(FederationGovernanceWidget, {
+      global: { stubs: STUBS },
+    });
+    await flushPromises();
+    const html = wrapper.html();
+    expect(html).toContain("fed-nostats");
+    expect(html).not.toContain("Sync ·"); // sub-panel header signature
+  });
+
   it("opens governance design doc URL", async () => {
     delete (globalThis as unknown as { electronAPI?: unknown }).electronAPI;
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
