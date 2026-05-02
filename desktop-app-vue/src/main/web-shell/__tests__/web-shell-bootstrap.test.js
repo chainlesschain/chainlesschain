@@ -9,6 +9,7 @@ import {
   startWebShell,
   shouldRunWebShell,
   WEB_SHELL_FLAG,
+  NO_WEB_SHELL_FLAG,
   WEB_SHELL_ENV,
 } from "../web-shell-bootstrap.js";
 
@@ -264,17 +265,61 @@ describe("shouldRunWebShell (Phase 1.6 hard-flip — opt-out semantics)", () => 
     ).toBe(false);
   });
 
-  it("defaults to true when no opt-out signal is present", () => {
-    // Hard-flip default: all of these used to be false and are now true.
-    expect(shouldRunWebShell(["node", "main.js"], {})).toBe(true);
+  it("settings opt-in wins over --no-web-shell argv (UI toggle is authoritative)", () => {
+    // User clicks "切换到 Web Shell" in V6 preview → setting=true → relaunch.
+    // app.relaunch() carries the original argv (still has --no-web-shell from
+    // dev:no-web-shell), but the setting must win or the toggle is broken.
     expect(
-      shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "0" }),
+      shouldRunWebShell(
+        ["node", "main.js", NO_WEB_SHELL_FLAG],
+        {},
+        { ui: { useWebShellExperimental: true } },
+      ),
     ).toBe(true);
+  });
+
+  it("settings opt-in wins over CHAINLESSCHAIN_WEB_SHELL=0 env", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js"],
+        { [WEB_SHELL_ENV]: "0" },
+        { ui: { useWebShellExperimental: true } },
+      ),
+    ).toBe(true);
+  });
+
+  it("defaults to true when no opt-out signal is present", () => {
+    // Hard-flip default: empty / unset / non-recognized values land on true.
+    expect(shouldRunWebShell(["node", "main.js"], {})).toBe(true);
     expect(
       shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "" }),
     ).toBe(true);
     expect(shouldRunWebShell(["node", "main.js"], {}, null)).toBe(true);
     expect(shouldRunWebShell(["node", "main.js"], {}, {})).toBe(true);
     expect(shouldRunWebShell(["node", "main.js"], {}, { ui: {} })).toBe(true);
+  });
+
+  it("returns false when --no-web-shell is in argv (dev escape hatch)", () => {
+    expect(shouldRunWebShell(["node", "main.js", NO_WEB_SHELL_FLAG], {})).toBe(
+      false,
+    );
+  });
+
+  it("returns false when env is '0' or 'false' (dev escape hatch)", () => {
+    expect(
+      shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "0" }),
+    ).toBe(false);
+    expect(
+      shouldRunWebShell(["node", "main.js"], { [WEB_SHELL_ENV]: "false" }),
+    ).toBe(false);
+  });
+
+  it("--no-web-shell wins over --web-shell force-on", () => {
+    expect(
+      shouldRunWebShell(
+        ["node", "main.js", WEB_SHELL_FLAG, NO_WEB_SHELL_FLAG],
+        {},
+      ),
+    ).toBe(false);
   });
 });

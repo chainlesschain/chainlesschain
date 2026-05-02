@@ -47,6 +47,9 @@ const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
 const WEB_SHELL_ENV = "CHAINLESSCHAIN_WEB_SHELL";
+/** Dev-friendly opt-out: skip touching settings.json, just pass `--no-web-shell` */
+/** or `CHAINLESSCHAIN_WEB_SHELL=0` to land on V5/V6 desktop renderer. */
+const NO_WEB_SHELL_FLAG = "--no-web-shell";
 
 /**
  * @typedef {Object} StartWebShellOptions
@@ -230,14 +233,26 @@ function shouldRunWebShell(
   env = process.env,
   settings = null,
 ) {
-  // Explicit opt-out via the SystemSettings toggle wins over everything
-  // else — argv/env force-on cannot override a user who has turned the
-  // shell off. Mirrors how V5/V6 toggle precedence was specified in
-  // caaddf530.
-  if (settings?.ui?.useWebShellExperimental === false) {
+  // Settings is authoritative in both directions — a user who toggled
+  // via UI (in either shell's "switch" button) expects the next launch
+  // to honour that choice regardless of stale argv flags carried over
+  // by `app.relaunch()`. Argv/env signals are dev escape hatches that
+  // only apply when settings is unset.
+  const persisted = settings?.ui?.useWebShellExperimental;
+  if (persisted === false) {
     return false;
   }
-  // Argv/env force-on stays as an escape hatch for early-boot or CI.
+  if (persisted === true) {
+    return true;
+  }
+  // Settings unset: argv/env signals decide. Opt-out wins over opt-in
+  // when both are present (safer landing on the V5/V6 renderer).
+  if (Array.isArray(argv) && argv.includes(NO_WEB_SHELL_FLAG)) {
+    return false;
+  }
+  if (env?.[WEB_SHELL_ENV] === "0" || env?.[WEB_SHELL_ENV] === "false") {
+    return false;
+  }
   if (Array.isArray(argv) && argv.includes(WEB_SHELL_FLAG)) {
     return true;
   }
@@ -252,5 +267,6 @@ module.exports = {
   startWebShell,
   shouldRunWebShell,
   WEB_SHELL_FLAG,
+  NO_WEB_SHELL_FLAG,
   WEB_SHELL_ENV,
 };
