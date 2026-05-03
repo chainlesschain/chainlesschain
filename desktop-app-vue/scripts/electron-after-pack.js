@@ -1,102 +1,100 @@
 /**
- * electron-builder afterPack hook.
+ * electron-builder afterPack hook — NUCLEAR OPTION.
  *
- * Last-resort fix for the v5.0.3.4-13 saga of "Cannot find module
- * 'call-bind-apply-helpers'". electron-builder's prod-dep walker keeps
- * de-duping the top-level copy of call-bind-apply-helpers (and only that
- * package — the other 6 express@5/qs/side-channel split deps survive at
- * top-level). The dedupe happens at file-selection time, BEFORE asar
- * packing, so disabling asar doesn't help either.
+ * v5.0.3.4-14 saga: electron-builder's prod-dep walker creates a malformed
+ * node_modules tree in the bundle (private nested copies, missing top-level
+ * counterparts, etc.). Symptom: app crashes at startup with `Cannot find
+ * module 'X'` where X varies (`call-bind-apply-helpers`, then `merge-descriptors`,
+ * then probably more if we whack-mole package by package).
  *
- * This hook runs AFTER electron-builder packages files into the unpacked
- * output (`<appOutDir>/resources/app/` for asar:false, or
- * `<appOutDir>/resources/app.asar` for asar:true). At this point we can
- * still mutate `resources/app/node_modules/` before the installer is
- * generated.
+ * Past attempts (all FAILED to fully fix):
+ *   v5.0.3.7  — lockfile sync + robocopy fallback
+ *   v5.0.3.8-11 — `npm install --workspaces=false` flat install pre-pack
+ *   v5.0.3.12 — extraResources to app.asar.unpacked/
+ *   v5.0.3.13 — asar: false (didn't help — dedupe is at file-selection time)
+ *   v5.0.3.14 — afterPack hook promoting 7 hardcoded packages to top-level
+ *               (call-bind-apply-helpers fixed; merge-descriptors still broken)
  *
- * Strategy: walk every nested `node_modules/<parent>/node_modules/<pkg>/`
- * for our 7 known-problematic packages and, if no top-level copy exists,
- * promote the nested one to top-level. This guarantees Node's CJS
- * resolver finds them when require'd from anywhere in the tree.
+ * Root cause: electron-builder's walker is fundamentally incompatible with
+ * how `desktop-app-vue` resolves deps in dev. We can't enumerate every
+ * affected package — there are too many transitive chains.
  *
- * If any package is missing entirely (no nested copy either), exit non-
- * zero — the build is broken in a way this hook can't fix and we should
- * fail rather than ship a non-working artifact.
+ * NUCLEAR FIX: REPLACE the entire `appOutDir/resources/app/node_modules/`
+ * with a verbatim copy of `desktop-app-vue/node_modules/` (which the CI
+ * merge step has already populated with the complete prod tree). This
+ * guarantees the bundled tree is byte-identical to the dev tree that the
+ * user knows works. Whatever electron-builder did is overwritten wholesale.
+ *
+ * Trade-offs accepted (per user "几百MB没问题"):
+ *   - Larger install size (devDeps included)
+ *   - Slightly slower NSIS packaging (more files)
+ *
+ * Build-time trade-offs:
+ *   - afterPack runs on each platform's runner, copying ~3-4 GB of files
+ *   - Adds ~30-60s per platform to CI time
  */
 
 const fs = require("fs");
 const path = require("path");
 
-const PROBLEMATIC_PKGS = [
-  "call-bind-apply-helpers",
-  "dunder-proto",
-  "get-proto",
-  "math-intrinsics",
-  "side-channel-list",
-  "side-channel-map",
-  "side-channel-weakmap",
-];
-
-function findNestedCopy(rootNodeModules, pkg) {
-  if (!fs.existsSync(rootNodeModules)) return null;
-  for (const entry of fs.readdirSync(rootNodeModules, {
-    withFileTypes: true,
-  })) {
-    if (!entry.isDirectory()) continue;
-    const nested = path.join(rootNodeModules, entry.name, "node_modules", pkg);
-    if (fs.existsSync(path.join(nested, "package.json"))) {
-      return { source: nested, parent: entry.name };
-    }
-  }
-  return null;
-}
-
 exports.default = async function afterPack(context) {
   const { appOutDir } = context;
-  const tag = "[after-pack:promote-nested]";
+  const tag = "[after-pack:nuclear-replace]";
 
-  const appRoot = path.join(appOutDir, "resources", "app");
-  const nodeModules = path.join(appRoot, "node_modules");
+  const sourceNm = path.resolve(__dirname, "..", "node_modules");
+  const targetAppRoot = path.join(appOutDir, "resources", "app");
+  const targetNm = path.join(targetAppRoot, "node_modules");
 
-  if (!fs.existsSync(nodeModules)) {
+  if (!fs.existsSync(sourceNm)) {
+    throw new Error(
+      `${tag} source not found: ${sourceNm}. CI merge step must populate desktop-app-vue/node_modules/ before electron-builder runs.`,
+    );
+  }
+
+  if (!fs.existsSync(targetAppRoot)) {
     console.log(
-      `${tag} ${nodeModules} not found — assuming asar:true layout, skipping`,
+      `${tag} ${targetAppRoot} not found — assuming asar:true layout, skipping`,
     );
     return;
   }
 
-  const missing = [];
-  let promoted = 0;
+  console.log(`${tag} replacing ${targetNm} with verbatim copy of ${sourceNm}`);
+  const start = Date.now();
 
-  for (const pkg of PROBLEMATIC_PKGS) {
-    const topLevel = path.join(nodeModules, pkg);
-    if (fs.existsSync(path.join(topLevel, "package.json"))) {
-      continue;
-    }
-
-    const found = findNestedCopy(nodeModules, pkg);
-    if (!found) {
-      missing.push(pkg);
-      console.error(
-        `${tag} ${pkg} missing top-level AND no nested copy — cannot recover`,
-      );
-      continue;
-    }
-
-    fs.cpSync(found.source, topLevel, { recursive: true });
-    promoted += 1;
-    console.log(
-      `${tag} promoted ${pkg} from node_modules/${found.parent}/node_modules/ to top-level`,
-    );
+  if (fs.existsSync(targetNm)) {
+    fs.rmSync(targetNm, { recursive: true, force: true });
   }
 
+  fs.cpSync(sourceNm, targetNm, {
+    recursive: true,
+    dereference: false,
+    preserveTimestamps: true,
+  });
+
+  // Sanity check the 7 known-problematic packages survived at top-level.
+  const SANITY_CHECK_PKGS = [
+    "call-bind-apply-helpers",
+    "dunder-proto",
+    "get-proto",
+    "math-intrinsics",
+    "merge-descriptors",
+    "side-channel-list",
+    "side-channel-map",
+    "side-channel-weakmap",
+    "express",
+    "qs",
+  ];
+  const missing = SANITY_CHECK_PKGS.filter(
+    (pkg) => !fs.existsSync(path.join(targetNm, pkg, "package.json")),
+  );
   if (missing.length) {
     throw new Error(
-      `${tag} unrecoverable missing packages: ${missing.join(", ")}`,
+      `${tag} sanity check FAILED — missing top-level: ${missing.join(", ")}. Verify desktop-app-vue/node_modules/ has all prod deps before packaging.`,
     );
   }
 
+  const elapsed = Math.round((Date.now() - start) / 1000);
   console.log(
-    `${tag} done — promoted ${promoted}/${PROBLEMATIC_PKGS.length} packages`,
+    `${tag} done in ${elapsed}s — sanity check passed (${SANITY_CHECK_PKGS.length} key packages verified at top-level)`,
   );
 };
