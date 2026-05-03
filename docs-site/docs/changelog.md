@@ -3,6 +3,25 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.7 / CLI 0.161.2] - 2026-05-03 (发布工程硬化：Express@5 ASAR hoist 修 + dev/CI 收口)
+
+### Fixed
+
+- **Express@5 ASAR hoist 陷阱修复**（commits `496d21708` / `f92505fb4` / `1c8d0994d`）：npm workspaces 把 Express@5 拆出的 transitive deps（`call-bind-apply-helpers` 等）hoist 到根 `node_modules/`，electron-builder `files: node_modules/**/*` 只看 `desktop-app-vue/node_modules/`，结果 ASAR 缺包导致打出来的 .exe 启动报 `Cannot find module 'call-bind-apply-helpers'`。修复方案三层兜底：（1）`496d21708` 让 ASAR 物理上一定带上 Express@5 transitive 细包；（2）`f92505fb4` 把 `package-lock.json` 同步到 nested `node_modules/` 真实状态 + `productVersion v5.0.3.6 → v5.0.3.7`；（3）`1c8d0994d` ci-release hard-fail 校验 split deps 是否落进 nested `node_modules/`，缺包直接挂 CI。
+- **`npm run dev` 修复**（commit `a84284eb6`）：hoisted bin shims 残留导致 dev 启动失败，prune 掉损坏的 hoisted bin shims。
+- **electron-builder release 链路收口**（commits `cf29f2ef1` / `8c0dc5e8f` / `b050abafd` / `73415b67e` / `5f1dac021` / `da8ed9d91` / `8d5890bfd`）：electron-builder.yml 资源路径修复 + Linux .deb maintainer/vendor 元数据补齐 + icon.ico 256x256 + drop missing afterSign hook + `npmRebuild: false` 让原生依赖走预编译 + `--publish never` + `gh release upload` 拆分（不再依赖 `GH_TOKEN`）+ Linux AppImage blockmap 缺失降级为 warning。
+
+### Added
+
+- **CI release 测试链路 escape hatch**（commit `8d2defd90` / `24427e4c8`）：`feat(ci): add skip_tests input to Publish to npm workflow`，手动发布时可跳过 CLI 集成测试。
+- **CLI publish IPC 饱和修复**（commits `5d3a3dc49` / `c2746e41b` / `b68fff118` / `4e50d9691`）：`--no-file-parallelism` + 静默 vitest + 分批跑集成测试避开 `onTaskUpdate timeout`。
+
+### Why
+
+v5.0.3.6 → v5.0.3.7 是发布工程线的硬化批次，无新功能。Express@5 ASAR hoist 陷阱在 v5.0.3.5 之前发布的 Windows 安装包中潜伏（dev 跑得通因为 hoist 到根 `node_modules/` 仍可解析；release 装出来的 .exe 跑不通），由 `496d21708` / `f92505fb4` / `1c8d0994d` 三连击根治。同期把 electron-builder 在 macOS DMG / Linux .deb / icon / 签名 / 发布流程上的零碎 fix 一次性收口，避免下一次发布再碰同类问题。产品功能面延续 v5.0.3.5 时的 MTC v0.11 + Web Panel i18n M3，本次部署主要是把发布工程稳定性传导到下游。
+
+---
+
 ## [5.0.3.5 / CLI 0.161.2] - 2026-05-03 (MTC v0.6→v0.11 doc roll-up + 跨链桥 + 治理自动同步 + 链上锚定)
 
 ### Added
