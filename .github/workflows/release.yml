@@ -62,6 +62,12 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         shell: cmd
         run: |
@@ -206,6 +212,12 @@ jobs:
       - name: Build renderer
         working-directory: desktop-app-vue
         run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -363,6 +375,12 @@ jobs:
       - name: Build renderer
         working-directory: desktop-app-vue
         run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
