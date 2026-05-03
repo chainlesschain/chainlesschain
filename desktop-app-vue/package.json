@@ -133,7 +133,11 @@
     "ai",
     "privacy"
   ],
-  "author": "ChainlessChain Team",
+  "author": {
+    "name": "ChainlessChain Team",
+    "email": "team@chainlesschain.com"
+  },
+  "homepage": "https://www.chainlesschain.com",
   "license": "MIT",
   "dependencies": {
     "@chainlesschain/session-core": "0.3.1",
