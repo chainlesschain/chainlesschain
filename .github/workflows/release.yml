@@ -120,12 +120,12 @@ jobs:
           npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
           if errorlevel 1 exit /b 1
 
-      - name: Verify express@5 transitive deps + index.js intact in nested (Windows)
+      - name: Verify express@5 transitive deps + entry files intact in nested (Windows)
         shell: cmd
         run: |
-          @REM Strengthened gate: check both package.json AND index.js (or main entry).
-          @REM v5.0.3.7's gate only checked package.json which passed, masking the real
-          @REM issue (top-level dir was a stub or got de-duped during electron-builder).
+          @REM Strengthened gate: check both package.json AND a real entry file
+          @REM (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          @REM exports-map only with main:false, so we pick a known subpath file).
           set FAIL=0
           for %%P in (call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
             if not exist "desktop-app-vue\node_modules\%%P\package.json" (
@@ -133,25 +133,25 @@ jobs:
               set FAIL=1
             )
           )
-          @REM call-bind-apply-helpers / dunder-proto / get-proto / math-intrinsics use
-          @REM index.js as main; side-channel-{list,map,weakmap} also do.
-          for %%P in (call-bind-apply-helpers math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
+          @REM Packages with normal "main": "index.js"
+          for %%P in (call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap) do (
             if not exist "desktop-app-vue\node_modules\%%P\index.js" (
               echo ERROR: desktop-app-vue\node_modules\%%P\index.js missing
               set FAIL=1
             )
           )
-          @REM dunder-proto/get-proto use exports map (no main entry); check get.js / index.js.
+          @REM dunder-proto: "main": false, exports map → ./get
           if not exist "desktop-app-vue\node_modules\dunder-proto\get.js" (
             echo ERROR: desktop-app-vue\node_modules\dunder-proto\get.js missing
             set FAIL=1
           )
-          if not exist "desktop-app-vue\node_modules\get-proto\index.js" (
-            echo ERROR: desktop-app-vue\node_modules\get-proto\index.js missing
+          @REM math-intrinsics: "main": false, exports map → ./abs (use any subpath)
+          if not exist "desktop-app-vue\node_modules\math-intrinsics\abs.js" (
+            echo ERROR: desktop-app-vue\node_modules\math-intrinsics\abs.js missing
             set FAIL=1
           )
           if "%FAIL%"=="1" exit /b 1
-          echo OK: 7 express@5/qs/side-channel transitive deps + main entries verified
+          echo OK: 7 express@5/qs/side-channel transitive deps + entry files verified
 
       - name: Package Windows (electron-builder, with .blockmap)
         working-directory: desktop-app-vue
@@ -277,9 +277,11 @@ jobs:
           # See Windows step for full context.
           npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
-      - name: Verify express@5 transitive deps + main entries intact (macOS)
+      - name: Verify express@5 transitive deps + entry files intact (macOS)
         run: |
-          # Strengthened gate: check both package.json AND main entry.
+          # Strengthened gate: check both package.json AND a real entry file
+          # (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          # exports-map only with main:false, so we pick a known subpath file).
           fail=0
           for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
             if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
@@ -287,18 +289,25 @@ jobs:
               fail=1
             fi
           done
-          for pkg in call-bind-apply-helpers math-intrinsics side-channel-list side-channel-map side-channel-weakmap get-proto; do
+          # Packages with normal "main": "index.js"
+          for pkg in call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap; do
             if [ ! -f "desktop-app-vue/node_modules/$pkg/index.js" ]; then
               echo "ERROR: desktop-app-vue/node_modules/$pkg/index.js missing"
               fail=1
             fi
           done
+          # dunder-proto: "main": false, exports map → ./get
           if [ ! -f "desktop-app-vue/node_modules/dunder-proto/get.js" ]; then
             echo "ERROR: desktop-app-vue/node_modules/dunder-proto/get.js missing"
             fail=1
           fi
+          # math-intrinsics: "main": false, exports map → ./abs
+          if [ ! -f "desktop-app-vue/node_modules/math-intrinsics/abs.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/math-intrinsics/abs.js missing"
+            fail=1
+          fi
           [ "$fail" = "1" ] && exit 1
-          echo "OK: 7 express@5/qs/side-channel transitive deps + main entries verified"
+          echo "OK: 7 express@5/qs/side-channel transitive deps + entry files verified"
 
       - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
@@ -419,9 +428,11 @@ jobs:
           # See Windows step for full context.
           npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
-      - name: Verify express@5 transitive deps + main entries intact (Linux)
+      - name: Verify express@5 transitive deps + entry files intact (Linux)
         run: |
-          # Strengthened gate: check both package.json AND main entry.
+          # Strengthened gate: check both package.json AND a real entry file
+          # (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          # exports-map only with main:false, so we pick a known subpath file).
           fail=0
           for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
             if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
@@ -429,18 +440,25 @@ jobs:
               fail=1
             fi
           done
-          for pkg in call-bind-apply-helpers math-intrinsics side-channel-list side-channel-map side-channel-weakmap get-proto; do
+          # Packages with normal "main": "index.js"
+          for pkg in call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap; do
             if [ ! -f "desktop-app-vue/node_modules/$pkg/index.js" ]; then
               echo "ERROR: desktop-app-vue/node_modules/$pkg/index.js missing"
               fail=1
             fi
           done
+          # dunder-proto: "main": false, exports map → ./get
           if [ ! -f "desktop-app-vue/node_modules/dunder-proto/get.js" ]; then
             echo "ERROR: desktop-app-vue/node_modules/dunder-proto/get.js missing"
             fail=1
           fi
+          # math-intrinsics: "main": false, exports map → ./abs
+          if [ ! -f "desktop-app-vue/node_modules/math-intrinsics/abs.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/math-intrinsics/abs.js missing"
+            fail=1
+          fi
           [ "$fail" = "1" ] && exit 1
-          echo "OK: 7 express@5/qs/side-channel transitive deps + main entries verified"
+          echo "OK: 7 express@5/qs/side-channel transitive deps + entry files verified"
 
       - name: Package Linux (electron-builder, AppImage + deb + rpm)
         working-directory: desktop-app-vue
