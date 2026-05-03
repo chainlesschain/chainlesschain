@@ -92,10 +92,10 @@ cd packaging/scripts
 ## 📚 详细文档
 
 - **完整总结**: `WINDOWS_PACKAGE_SUMMARY.md`
-- **当前状态**: `packaging/CURRENT_STATUS.md`
-- **构建说明**: `packaging/BUILD_INSTRUCTIONS.md`
-- **设计文档**: `packaging/WINDOWS_PACKAGE_DESIGN.md`
-- **Shell脚本指南**: `packaging/SHELL_SCRIPTS_GUIDE.md` ⭐ 新增
+- **当前状态**: `packaging/docs/CURRENT_STATUS.md`
+- **构建说明**: `packaging/docs/BUILD_INSTRUCTIONS.md`
+- **设计文档**: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
+- **Shell脚本指南**: `packaging/docs/SHELL_SCRIPTS_GUIDE.md` ⭐ 新增
 
 ---
 
@@ -120,4 +120,4 @@ cd packaging/scripts
 
 **开始构建吧！** 🎉
 
-需要帮助？查看 `packaging/BUILD_INSTRUCTIONS.md` 的故障排除部分。
+需要帮助？查看 `packaging/docs/BUILD_INSTRUCTIONS.md` 的故障排除部分。

@@ -95,7 +95,7 @@ bash -x build-windows-package.sh
 
 ## 📖 详细文档
 
-完整的 Shell 脚本使用指南: `packaging/SHELL_SCRIPTS_GUIDE.md`
+完整的 Shell 脚本使用指南: `packaging/docs/SHELL_SCRIPTS_GUIDE.md`
 
 ---
 

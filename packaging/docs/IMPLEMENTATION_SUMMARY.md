@@ -20,7 +20,7 @@
 
 **文件修改:**
 - `.github/workflows/release.yml` (新增 Windows 签名步骤)
-- `packaging/CODE_SIGNING_GUIDE.md` (新建，详细文档)
+- `packaging/docs/CODE_SIGNING_GUIDE.md` (新建，详细文档)
 
 **配置要求:**
 - `WINDOWS_CERTIFICATE_BASE64` (Secret)
@@ -120,7 +120,7 @@ a1b2c3d4e5f6... ChainlessChain-Windows-x64.zip
 - ✅ GitHub Releases 作为更新服务器
 
 #### 实现文件
-- `packaging/ADVANCED_FEATURES_GUIDE.md` (完整实现代码示例)
+- `packaging/docs/ADVANCED_FEATURES_GUIDE.md` (完整实现代码示例)
 
 **需要创建的文件:**
 ```
@@ -140,9 +140,9 @@ npm install electron-updater --save
 
 | 文件 | 说明 | 行数 |
 |------|------|------|
-| `packaging/CODE_SIGNING_GUIDE.md` | 代码签名详细指南 | 600+ |
-| `packaging/ADVANCED_FEATURES_GUIDE.md` | 高级功能配置指南 | 800+ |
-| `packaging/IMPLEMENTATION_SUMMARY.md` | 本文档 | 300+ |
+| `packaging/docs/CODE_SIGNING_GUIDE.md` | 代码签名详细指南 | 600+ |
+| `packaging/docs/ADVANCED_FEATURES_GUIDE.md` | 高级功能配置指南 | 800+ |
+| `packaging/docs/IMPLEMENTATION_SUMMARY.md` | 本文档 | 300+ |
 
 ---
 

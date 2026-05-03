@@ -559,7 +559,7 @@ autoUpdater.on('update-available', () => {
 
 ## 技术支持
 
-- **文档**: `packaging/WINDOWS_PACKAGE_DESIGN.md`
+- **文档**: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
 - **问题反馈**: https://github.com/chainlesschain/chainlesschain/issues
 - **讨论**: https://github.com/chainlesschain/chainlesschain/discussions
 

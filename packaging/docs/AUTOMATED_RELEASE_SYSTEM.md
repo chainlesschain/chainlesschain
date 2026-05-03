@@ -348,12 +348,12 @@ const dockerFiles = [
 ### 开发者文档
 
 - 📖 [完整发布指南](RELEASE_GUIDE.md) - 发布流程和最佳实践
-- 📖 [脚本使用说明](scripts/README.md) - 发布脚本详细说明
+- 📖 [脚本使用说明](../scripts/README.md) - 发布脚本详细说明
 
 ### 其他文档
 
-- 📖 [项目 README](../README.md) - 项目总览
-- 📖 [如何运行](../HOW_TO_RUN.md) - 开发环境搭建
+- 📖 [项目 README](../../README.md) - 项目总览
+- 📖 [如何运行](../../docs/quick-start/HOW_TO_RUN.md) - 开发环境搭建
 
 ---
 

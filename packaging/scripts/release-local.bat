@@ -229,9 +229,9 @@ echo ---
 echo.
 echo ### 📚 文档
 echo.
-echo - 📖 [快速开始指南]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/QUICK_START_OFFLINE.md^)
-echo - 📖 [完整安装文档]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/DOCKER_OFFLINE_PACKAGING.md^)
-echo - 🔧 [故障排除]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/DOCKER_OFFLINE_PACKAGING.md#故障排除^)
+echo - 📖 [快速开始指南]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/docs/QUICK_START_OFFLINE.md^)
+echo - 📖 [完整安装文档]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/docs/DOCKER_OFFLINE_PACKAGING.md^)
+echo - 🔧 [故障排除]^(https://github.com/$GITHUB_REPOSITORY/blob/main/packaging/docs/DOCKER_OFFLINE_PACKAGING.md#故障排除^)
 echo.
 echo ---
 echo.

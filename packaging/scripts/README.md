@@ -139,7 +139,7 @@ release-local.bat v0.16.5-test --draft
 
 ## 📚 详细文档
 
-完整的发布指南请参考：**[packaging/RELEASE_GUIDE.md](../RELEASE_GUIDE.md)**
+完整的发布指南请参考：**[packaging/docs/RELEASE_GUIDE.md](../docs/RELEASE_GUIDE.md)**
 
 包含：
 - ✅ GitHub Actions vs 本地构建对比
@@ -228,7 +228,7 @@ ls -lh release-output/
 ## 📞 支持
 
 如有问题，请参考：
-- 📖 完整文档：[packaging/RELEASE_GUIDE.md](../RELEASE_GUIDE.md)
+- 📖 完整文档：[packaging/docs/RELEASE_GUIDE.md](../docs/RELEASE_GUIDE.md)
 - 🐛 提交 Issue：[GitHub Issues](https://github.com/chainlesschain/chainlesschain/issues)
 - 💬 社区支持：[Discord](https://discord.gg/chainlesschain)
 

@@ -27,7 +27,7 @@ prePackage: async (config, platform, arch) => {
   } else if (missingResources.length > 0) {
     const missingList = missingResources.map(item => `- ${item}`).join('\n');
     throw new Error(
-      `Missing packaging resources:\n${missingList}\n\nFollow packaging/BUILD_INSTRUCTIONS.md before packaging.`
+      `Missing packaging resources:\n${missingList}\n\nFollow packaging/docs/BUILD_INSTRUCTIONS.md before packaging.`
     );
   }
 ```

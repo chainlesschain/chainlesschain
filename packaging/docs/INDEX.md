@@ -1,4 +1,6 @@
-# ChainlessChain 打包文档索引
+# ChainlessChain 打包文档索引（2025-01 旧版）
+
+> ⚠️ **此索引描述的是 v0.16.0 时代基于 Electron Forge + `build-windows-package.bat` 的打包方案，整套流程已被 electron-builder + `cc pack` 取代。当前打包入口请看 [`../README.md`](../README.md)**。本文件保留以备查档；下面的部分链接（指向已不存在的 `build-windows-package.{bat,sh}` 等）属于历史记录。
 
 ## 📚 快速导航
 
@@ -26,7 +28,7 @@
 | [`CURRENT_STATUS.md`](CURRENT_STATUS.md) | 当前状态和待办 | 查看进度 |
 | [`BUILD_INSTRUCTIONS.md`](BUILD_INSTRUCTIONS.md) | 详细构建说明 | 遇到问题时 |
 | [`WINDOWS_PACKAGE_DESIGN.md`](WINDOWS_PACKAGE_DESIGN.md) | 技术设计文档 | 技术深入了解 |
-| [`README.md`](README.md) | 快速参考 | 查询信息 |
+| [`../README.md`](../README.md) | 现行打包入口 ⭐ | 所有人 |
 
 ### Shell 脚本专题
 

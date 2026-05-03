@@ -440,7 +440,7 @@ module.exports = {
           .map((item) => `- ${item}`)
           .join("\n");
         throw new Error(
-          `Missing packaging resources:\n${missingList}\n\nFollow packaging/MANUAL_DOWNLOAD_GUIDE.md to download dependencies manually.`,
+          `Missing packaging resources:\n${missingList}\n\nFollow packaging/docs/MANUAL_DOWNLOAD_GUIDE.md to download dependencies manually.`,
         );
       }
 

@@ -103,7 +103,7 @@ zip -r ChainlessChain-0.1.0-win32-x64.zip ChainlessChain-win32-x64/
 2. 包含所有后端组件
 3. 添加服务自动启动脚本
 
-**参考文档**: `packaging/WINDOWS_PACKAGE_DESIGN.md`
+**参考文档**: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
 
 ### 选项 C: 创建 ZIP 便携包
 
@@ -155,9 +155,9 @@ build-windows-package.bat
 ## 📖 相关文档
 
 - **快速开始**: `QUICK_START_PACKAGING.md`
-- **完整设计**: `packaging/WINDOWS_PACKAGE_DESIGN.md`
-- **构建说明**: `packaging/BUILD_INSTRUCTIONS.md`
-- **Shell 脚本**: `packaging/SHELL_SCRIPTS_GUIDE.md`
+- **完整设计**: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
+- **构建说明**: `packaging/docs/BUILD_INSTRUCTIONS.md`
+- **Shell 脚本**: `packaging/docs/SHELL_SCRIPTS_GUIDE.md`
 
 ---
 

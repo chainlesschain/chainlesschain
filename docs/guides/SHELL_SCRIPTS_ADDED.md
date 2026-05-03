@@ -112,7 +112,7 @@ cd /mnt/c/code/chainlesschain
 ### 新增文档
 
 1. **Shell 脚本完整指南**
-   - 文件: `packaging/SHELL_SCRIPTS_GUIDE.md`
+   - 文件: `packaging/docs/SHELL_SCRIPTS_GUIDE.md`
    - 内容: 详细使用说明、故障排除、技巧
 
 2. **Shell 脚本快速参考**
@@ -236,11 +236,11 @@ grep "PostgreSQL" build-windows-package.sh
 ### 如何开始？
 
 1. **快速参考**: 查看 `SHELL_SCRIPTS_README.md`
-2. **完整指南**: 查看 `packaging/SHELL_SCRIPTS_GUIDE.md`
+2. **完整指南**: 查看 `packaging/docs/SHELL_SCRIPTS_GUIDE.md`
 3. **直接运行**: `./build-windows-package.sh`
 
 ---
 
 **欢迎使用 Shell 脚本构建 ChainlessChain！** 🚀
 
-如有问题，请查看 `packaging/SHELL_SCRIPTS_GUIDE.md` 的故障排除部分。
+如有问题，请查看 `packaging/docs/SHELL_SCRIPTS_GUIDE.md` 的故障排除部分。

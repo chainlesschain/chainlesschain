@@ -26,7 +26,7 @@
 - 支持 EV 证书和标准证书
 
 **如何配置：**
-请参考 `packaging/CODE_SIGNING_GUIDE.md` 获取完整步骤。
+请参考 `packaging/docs/CODE_SIGNING_GUIDE.md` 获取完整步骤。
 
 #### macOS 代码签名和公证
 

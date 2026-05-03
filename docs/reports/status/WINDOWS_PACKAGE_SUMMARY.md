@@ -76,11 +76,11 @@
 ### 5. 完整文档 ✓
 
 1. **设计文档**
-   - 文件: `packaging/WINDOWS_PACKAGE_DESIGN.md`
+   - 文件: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
    - 内容: 完整的架构设计、组件说明、构建流程
 
 2. **构建说明**
-   - 文件: `packaging/BUILD_INSTRUCTIONS.md`
+   - 文件: `packaging/docs/BUILD_INSTRUCTIONS.md`
    - 内容: 详细的构建步骤、故障排除、FAQ
 
 3. **快速参考**
@@ -88,7 +88,7 @@
    - 内容: 快速入门、文件结构、检查清单
 
 4. **当前状态**
-   - 文件: `packaging/CURRENT_STATUS.md`
+   - 文件: `packaging/docs/CURRENT_STATUS.md`
    - 内容: 已完成工作、待办事项、下载链接
 
 5. **集成补丁说明**
@@ -393,4 +393,4 @@ A: 检查端口是否被占用（5432, 6379, 6333, 9090），查看日志文件
 
 **祝构建顺利！** 🎉
 
-如有任何问题，请参考 `packaging/BUILD_INSTRUCTIONS.md` 中的故障排除部分。
+如有任何问题，请参考 `packaging/docs/BUILD_INSTRUCTIONS.md` 中的故障排除部分。

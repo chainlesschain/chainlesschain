@@ -183,8 +183,8 @@ npm run package
 ## 📞 需要帮助？
 
 参考完整文档：
-- 设计文档: `packaging/WINDOWS_PACKAGE_DESIGN.md`
-- 构建说明: `packaging/BUILD_INSTRUCTIONS.md`
+- 设计文档: `packaging/docs/WINDOWS_PACKAGE_DESIGN.md`
+- 构建说明: `packaging/docs/BUILD_INSTRUCTIONS.md`
 - 快速参考: `packaging/README.md`
 
 ---
