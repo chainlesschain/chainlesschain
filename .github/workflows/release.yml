@@ -825,20 +825,17 @@ jobs:
       # package itself is immutable once published. Running tests here would
       # only red-block finalize-release for already-shipped releases.
       #
-      # vitest IPC saturation: per-test console.log from CLI invocations is
-      # captured and forwarded over the worker→main RPC pipe. With heavy
-      # integration files (e.g. mtc-federation-governance-cli.test.js — 41
-      # tests / 85s / dozens of CLI spawns each printing logs), the pipe
-      # backs up and the final "onTaskUpdate" RPC times out at 60s, exiting
-      # 1 even though every test passed (observed run 25271119524 batch a-m:
-      # 353/353 tests passed, exit 1; same on full integration run 25269511113
-      # 821/821 passed). Fix: --silent suppresses the test stdout capture so
-      # only reporter output crosses the pipe. Batching kept as belt-and-braces
-      # for the e2e suite which exhibited the same pattern on run 25268846178.
+      # vitest IPC saturation: even with --silent, the worker→main RPC pipe
+      # can time out ("onTaskUpdate") when multiple workers all flush results
+      # at once after long-running files (mtc-federation-governance-cli.test.js
+      # ~85s, 41 tests; crosschain-mtc ~28s). --no-file-parallelism makes
+      # vitest process files one at a time so at most one worker reports at
+      # a time — eliminates IPC congestion while keeping intra-file parallelism.
+      # Root cause timeline: run 25273633427 batch a-m 353/353 passed, exit 1.
       - name: Run CLI unit tests
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
         working-directory: packages/cli
-        run: npx vitest run --silent --reporter=basic __tests__/unit/
+        run: npx vitest run --silent --reporter=basic --no-file-parallelism __tests__/unit/
 
       - name: Run CLI integration tests (batch 1, a-m)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
@@ -847,7 +844,7 @@ jobs:
         run: |
           files=(__tests__/integration/[a-m]*.test.js)
           echo "Batch 1 files: ${#files[@]}"
-          npx vitest run --silent --reporter=basic "${files[@]}"
+          npx vitest run --silent --reporter=basic --no-file-parallelism "${files[@]}"
 
       - name: Run CLI integration tests (batch 2, n-z)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
@@ -856,7 +853,7 @@ jobs:
         run: |
           files=(__tests__/integration/[n-z]*.test.js)
           echo "Batch 2 files: ${#files[@]}"
-          npx vitest run --silent --reporter=basic "${files[@]}"
+          npx vitest run --silent --reporter=basic --no-file-parallelism "${files[@]}"
 
       - name: Run CLI E2E tests (batch 1, a-o)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
@@ -865,7 +862,7 @@ jobs:
         run: |
           files=(__tests__/e2e/[a-o]*.test.js)
           echo "Batch 1 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic "${files[@]}"
+          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic --no-file-parallelism "${files[@]}"
 
       - name: Run CLI E2E tests (batch 2, p-z)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
@@ -874,7 +871,7 @@ jobs:
         run: |
           files=(__tests__/e2e/[p-z]*.test.js)
           echo "Batch 2 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic "${files[@]}"
+          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic --no-file-parallelism "${files[@]}"
 
       # Publish core packages in dependency order
       - name: "Publish @chainlesschain/core-env"
