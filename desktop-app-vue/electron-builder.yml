@@ -138,8 +138,11 @@ publish:
   #   region: us-east-1
   #   path: /releases
 
-# 自动更新配置
-afterSign: scripts/notarize.js  # macOS 公证脚本（可选）
+# macOS notarization hook — disabled until scripts/notarize.js exists.
+# afterSign is loaded for all platforms (not just mac), so a missing file
+# crashes Linux/Windows builds too. Re-enable after adding the file +
+# wiring APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID secrets.
+# afterSign: scripts/notarize.js
 
 # 压缩配置
 compression: normal  # 或 maximum（但会更慢）
