@@ -17,7 +17,13 @@ class BackendServiceManager {
     this.isProduction = process.env.NODE_ENV === "production" || app.isPackaged;
     this.appPath = this.isProduction ? process.resourcesPath : app.getAppPath();
     this.backendDir = path.join(this.appPath, "backend");
-    this.dataDir = path.join(path.dirname(this.appPath), "data");
+    // Production install path (e.g. C:\Program Files\ChainlessChain) is read-only
+    // for non-admin users. Use userData (per-OS app-data dir, e.g. %APPDATA%/
+    // chainlesschain-desktop-vue/) for the data tree when packaged. In dev keep
+    // path.dirname(this.appPath) so npm run dev still writes alongside the repo.
+    this.dataDir = this.isProduction
+      ? path.join(app.getPath("userData"), "data")
+      : path.join(path.dirname(this.appPath), "data");
     this.logsDir = path.join(this.dataDir, "logs");
     this.startupScript = path.join(
       this.appPath,
