@@ -30,19 +30,21 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    {
-        "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.5-20260503-0254.tar.gz",
-        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    },
+    # www.chainlesschain.com — already at v5.0.3.5 (deployed 2026-05-03 02:54 via
+    # commit 31cb1c8a0); no content diff this round, intentionally skipped.
+    # {
+    #     "name": "www.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.5-20260503-0254.tar.gz",
+    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    # },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.5-20260503-0254.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.5-20260503-0946.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.5-20260503-0254.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.5-20260503-0947.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]

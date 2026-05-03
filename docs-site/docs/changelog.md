@@ -3,6 +3,32 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.5 / CLI 0.161.2] - 2026-05-03 (MTC v0.6→v0.11 doc roll-up + 跨链桥 + 治理自动同步 + 链上锚定)
+
+### Added
+
+- **MTC v0.11 — 跨联邦互信 + 离线审计 + 链上 governance-anchor + 监控仪表盘**（commit `b312563f0`）：`cross-trust-create / cross-trust-validate` 实现联邦间显式背书（multi-hop 信任链可达）；`auditGovernanceLog` 纯函数离线复盘整条治理日志；`computeGovernanceSnapshotHash + buildGovernanceAnchorRecord + verifyGovernanceAnchor` 把治理快照锚定到链（Q-COMP-3 已解锁，提供 `InMemoryChainAnchorClient` / `FilesystemChainAnchorClient` 抽象）；监控仪表盘聚合 sync stats / SLA / gas-aware 路径选择。
+- **MTC v0.10 multi-proposal CRDT picker + governance ops 测试**（commits `66ddc1566` / `aedee372d` / `6e90faa9d`）：单成员视角同时存在多个 propose-revoke / propose-threshold 时，UI 用 CRDT picker 排序展示；live sync stats + libp2p smoke 强化；桌面 V6 widget surfaces governance-sync-stats（v0.10.1）。
+- **MTC v0.9 治理 GUI（桌面 V6 + Web Panel）**（commits `a8fff1f52` / `9ad09446f`）：操作型治理 tab 在桌面 V6 widget 与 Web Panel `Mtc.vue` 落地；签名密钥仍 CLI-only。
+- **MTC v0.8 跨成员 governance.log 同步**（commit `bb88756d6`）：filesystem drop-zone + libp2p gossipsub 双路径；service supervisor 模板（`governance-sync-serve` 长跑守护进程）；dedup by `event_id` + 时序回放最终一致。
+- **MTC v0.7 联邦治理 CLI + 桥接 MTCA 守护**（commit `1c1e4096d`）：`cc mtc federation {invite,vote,propose-revoke,confirm-revoke,rotate-key,propose-threshold,confirm-threshold,fork,merge}` 共 11 个治理子命令；bridge MTCA 守护进程；V6 widget 接入。
+- **MTC v0.6 跨链桥集成**（commits `0123fd168` / `5a9898028`）：`cc crosschain mtc-batch / mtc-status` 把 MTC 树头作为跨链证明随消息上链；bridge MTC opt-in flag + e2e 覆盖。
+- **CLI 0.161.2**：上述 30+ 子命令端到端集成测试（114 个），`cc audit mtc enable/disable/config/...` 双轨脚手架（off-by-default 等 Q-COMP-1/2 出函）。
+
+### Changed
+
+- **`docs-site/docs/chainlesschain/mtc.md` 全文重写** — 从 v0.3 (Phase 1+1.5, 154 测试, 6 子命令) 升级到 v0.11 (Phase 0–4 全量, 476 测试 / 6 层, 30+ 子命令)。新增章节涵盖 SLH-DSA-128F 双轨签名、联邦 M-of-N 多签、链下治理日志 + 11 事件类型、跨成员同步守护、quorum 门控、跨联邦互信锚（multi-hop）、离线审计器、链上 governance-anchor、Marketplace publisher daemon、cross-chain bridge 集成、audit MTC 双轨等。
+- **三站 hero / changelog 同步** — `docs-site` package.json `5.0.3.4 → 5.0.3.5`；`docs-site-design` hero 更新 `v5.0.3.5 | CLI 0.161.2 | MTC v0.11`；`docs-website-v2` 已在 commit `31cb1c8a0` 完成。
+- **electron-builder release path 修复**（commits `2cc8a6200` / `8c0dc5e8f` / `b050abafd` / `73415b67e`）：differential-update sidecars + ENOENT chainlesschain symlink + Windows distutils + 禁用 npmRebuild 让原生依赖走预编译路径。
+- **桌面系统设置稳定性**（commit `b19f05966`）：BOM 容忍 + IPC export 修复 + schema gaps 补齐。
+- **桌面回归测试加固**（commit `488ca8b11`）：`ensureOpsPlaybookDescription` 迁移路径 + `verify-release-artifacts` 测试覆盖。
+
+### Why
+
+v0.6→v0.11 是 MTC 从「Phase 3 联邦机制层完成」走向「Phase 4 治理 + 跨链 + 链上 + 监控完整运营层」的批次落地。`b312563f0` 标志着 MTC 不再是孤立的签名压缩工具，而是具备**联邦自治 + 跨联邦互信 + 链上不可篡改锚定 + 离线审计可复盘**的完整证书系统。本次发布把 v0.6 起的所有功能一次性 roll-up 进文档站，让用户文档与设计文档对齐到 v0.11 现状；MTC 用户文档的全文重写则是把"用户视角的 MTC"从 v0.3 快照刷新到 v0.11 完整能力面。
+
+---
+
 ## [5.0.3.4 / CLI 0.160.1] - 2026-05-02 (Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker)
 
 ### Added
