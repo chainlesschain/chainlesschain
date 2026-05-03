@@ -38,7 +38,7 @@
       <template #title="{ title, isLeaf, icon, filePath }">
         <div class="tree-node-title">
           <component :is="icon" class="node-icon" />
-          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
           <span v-html="highlightText(title, searchQuery)" />
           <!-- eslint-enable vue/no-v-html -->
           <a-tag

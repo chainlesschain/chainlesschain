@@ -47,7 +47,7 @@ module.exports = [
       // Every existing v-html site is sanitized (safeHtml / renderMarkdown
       // / DOMPurify / escapeHtml); new usage must either route through one
       // of those or carry an explicit `eslint-disable-next-line` with a
-      // justification. See AUDIT_2026-04-22.md §3.
+      // justification. See docs/audits/AUDIT_2026-04-22.md §3.
       "vue/no-v-html": "error",
       "vue/require-default-prop": "warn",
       "vue/require-prop-types": "warn",

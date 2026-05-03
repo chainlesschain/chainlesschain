@@ -27,7 +27,7 @@
     <!-- 演示模式 -->
     <div v-else-if="isPresentMode" class="presentation-mode">
       <div class="presentation-slide">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div
           v-if="slides[presentSlideIndex]"
           class="presentation-content"
@@ -211,7 +211,7 @@
                 {{ index + 1 }}
               </div>
               <div class="slide-preview">
-                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
                 <div
                   class="slide-content-preview"
                   v-html="safeHtml(slide.content)"
@@ -250,7 +250,7 @@
       <!-- 中央：当前幻灯片编辑区 -->
       <div ref="slideEditorRef" class="slide-editor">
         <div class="slide-canvas" :style="canvasStyle">
-          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
           <div
             v-if="currentSlide"
             class="slide-content"

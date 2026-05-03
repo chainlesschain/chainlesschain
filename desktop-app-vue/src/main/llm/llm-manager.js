@@ -1962,7 +1962,7 @@ LLMManager.prototype.compressContent = function (content, type) {
 // providers in llm-config.js. Zero SKILL.md migration required — category
 // is inferred from existing modelHints (context-window / capability).
 //
-// Design notes: see CLAUDE-patterns.md "类别路由" + memory entry.
+// Design notes: see docs/claude/CLAUDE-patterns.md "类别路由" + memory entry.
 // ============================================================================
 
 /**

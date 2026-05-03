@@ -272,7 +272,7 @@
         <div class="detail-section">
           <h3>插件介绍</h3>
           <p>{{ selectedPlugin.description }}</p>
-          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
           <div
             v-if="selectedPlugin.longDescription"
             v-html="safeHtml(selectedPlugin.longDescription)"

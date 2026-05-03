@@ -155,7 +155,7 @@
 
       <!-- 渲染区 -->
       <div v-if="latestArtifact" class="render-area">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div
           v-if="outputFormat === 'markdown' || outputFormat === 'html'"
           class="rendered-content"

@@ -66,7 +66,7 @@
       </div>
 
       <!-- Markdown 渲染预览 -->
-      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
       <div
         v-else-if="fileType === 'markdown'"
         class="markdown-preview"
@@ -76,7 +76,7 @@
 
       <!-- 代码预览（语法高亮） -->
       <div v-else-if="fileType === 'code'" class="code-preview">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <pre><code
 :class="codeLanguageClass"
                    v-html="highlightedCode"
@@ -98,7 +98,7 @@
 
       <!-- JSON 格式化预览 -->
       <div v-else-if="fileType === 'json'" class="json-preview">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <pre><code
 class="language-json"
                    v-html="highlightedJson"
@@ -133,7 +133,7 @@ class="language-json"
 
       <!-- Word文档预览 -->
       <div v-else-if="fileType === 'word'" class="office-preview word-preview">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div
           v-if="officeContent"
           class="office-content"

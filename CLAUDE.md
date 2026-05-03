@@ -62,7 +62,7 @@ Key CLI entry points:
 
 ## Feature Index
 
-**See [`FEATURES.md`](FEATURES.md)** for the complete list (138 desktop features, 28 Android skills).
+**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (138 desktop features, 28 Android skills).
 
 Key highlights:
 - **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (138 built-in)
@@ -108,9 +108,9 @@ REDIS_HOST=localhost:6379
 
 ## Documentation References
 
-- **Architecture Patterns**: `CLAUDE-patterns.md` (44k — read on demand when working with patterns)
-- **Architecture Decisions**: `CLAUDE-decisions.md`
-- **Troubleshooting**: `CLAUDE-troubleshooting.md` (22k — read on demand when debugging issues)
+- **Architecture Patterns**: `docs/claude/CLAUDE-patterns.md` (44k — read on demand when working with patterns)
+- **Architecture Decisions**: `docs/claude/CLAUDE-decisions.md`
+- **Troubleshooting**: `docs/claude/CLAUDE-troubleshooting.md` (22k — read on demand when debugging issues)
 - **System Design**: `docs/design/系统设计_主文档.md`
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)

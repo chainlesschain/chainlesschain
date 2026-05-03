@@ -464,9 +464,9 @@ Desktop 使用同名文件，位置在 `<userData>/.chainlesschain/`。
   - `docs/design/modules/88_OpenAgents对标补齐方案.md`
   - `docs/design/modules/89_v5.0.2.9_六项优化_设计说明.md`
 - 架构模式:
-  - `CLAUDE-patterns.md` § Hooks 三件套
-  - `CLAUDE-patterns.md` § Skill-Embedded MCP
-  - `CLAUDE-patterns.md` § Canonical Tool Descriptor
+  - `docs/claude/CLAUDE-patterns.md` § Hooks 三件套
+  - `docs/claude/CLAUDE-patterns.md` § Skill-Embedded MCP
+  - `docs/claude/CLAUDE-patterns.md` § Canonical Tool Descriptor
 
 ---
 

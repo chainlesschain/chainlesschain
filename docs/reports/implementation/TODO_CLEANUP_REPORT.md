@@ -252,7 +252,7 @@
 
 - [ ] （可选）为 iOS UI 占位符 TODO 添加说明注释
 - [ ] （可选）实现 5-10 个功能集成 TODO（按业务需求）
-- [ ] （推荐）更新 CLAUDE-activeContext.md 记录本次清理
+- [ ] （推荐）更新 docs/claude/CLAUDE-activeContext.md 记录本次清理
 - [ ] （推荐）在项目文档中说明 TODO 管理规范
 
 **报告生成者**: Claude Code AI Assistant

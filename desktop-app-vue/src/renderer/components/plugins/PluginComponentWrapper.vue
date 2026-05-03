@@ -24,7 +24,7 @@
     <!-- 渲染插件组件 -->
     <template v-else>
       <!-- 内联 HTML 组件 -->
-      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
       <div
         v-if="renderType === 'html'"
         class="plugin-component-html"
@@ -62,7 +62,7 @@
         size="small"
         class="plugin-component-panel"
       >
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div v-html="sanitizedPanelContent" />
         <!-- eslint-enable vue/no-v-html -->
       </a-card>

@@ -13,7 +13,7 @@
  *
  * Every v-html site in this codebase routes through a sanitizer
  * (safeHtml, renderMarkdown, escapeHtml, DOMPurify direct, or
- * hljs+safeHtml); see AUDIT_2026-04-22.md §3 and sanitizeHtml.ts.
+ * hljs+safeHtml); see docs/audits/AUDIT_2026-04-22.md §3 and sanitizeHtml.ts.
  *
  * Idempotent — re-running produces the same output.
  */
@@ -27,7 +27,7 @@ const ENABLE_MARKER = "eslint-enable vue/no-v-html";
 const LEGACY_MARKER =
   "eslint-disable-next-line vue/no-v-html -- input goes through safeHtml";
 
-const DISABLE_COMMENT = `<!-- ${DISABLE_MARKER} via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->`;
+const DISABLE_COMMENT = `<!-- ${DISABLE_MARKER} via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->`;
 const ENABLE_COMMENT = `<!-- ${ENABLE_MARKER} -->`;
 
 function* walkVueFiles(dir) {

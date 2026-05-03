@@ -137,7 +137,7 @@
         v-show="viewMode === 'preview' || viewMode === 'split'"
         class="preview-pane"
       >
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div class="markdown-preview" v-html="renderedHTML" />
         <!-- eslint-enable vue/no-v-html -->
       </div>

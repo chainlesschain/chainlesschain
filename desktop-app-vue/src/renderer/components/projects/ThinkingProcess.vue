@@ -58,7 +58,7 @@
     <!-- 流式内容预览 -->
     <div v-if="streamingContent" class="streaming-content">
       <div class="streaming-label">生成中...</div>
-      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+      <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
       <div class="streaming-text" v-html="renderMarkdown(streamingContent)" />
       <!-- eslint-enable vue/no-v-html -->
     </div>

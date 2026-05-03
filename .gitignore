@@ -9,7 +9,7 @@ doc/
 .claude/*
 !.claude/rules/
 CLAUDE.local.md
-CLAUDE-activeContext.md
+docs/claude/CLAUDE-activeContext.md
 参考资料/
 
 # Build outputs

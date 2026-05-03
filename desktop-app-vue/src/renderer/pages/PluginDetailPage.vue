@@ -109,7 +109,7 @@
                 v-if="(plugin as any).longDescription"
                 class="long-description"
               >
-                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
                 <div v-html="safeHtml((plugin as any).longDescription)" />
                 <!-- eslint-enable vue/no-v-html -->
               </div>

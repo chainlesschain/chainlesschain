@@ -49,7 +49,7 @@
           <div v-else-if="msg.type === 'assistant'" class="assistant-message">
             <div class="message-avatar">🤖</div>
             <div class="message-content">
-              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
               <div class="message-text" v-html="safeHtml(msg.content)" />
               <!-- eslint-enable vue/no-v-html -->
               <div class="message-time">

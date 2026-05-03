@@ -94,7 +94,7 @@
           :key="index"
           class="diff-line"
         >
-          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
           <div
             :class="['line-content', `line-${change.type}`]"
             v-html="safeHtml(change.content)"
@@ -111,7 +111,7 @@
           class="inline-line"
         >
           <span class="line-number">{{ index + 1 }}</span>
-          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+          <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
           <span
             :class="['line-text', line.changed ? 'line-changed' : '']"
             v-html="safeHtml(line.content)"

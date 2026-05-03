@@ -41,7 +41,7 @@
                 该评论已被删除
               </div>
               <div v-else>
-                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
                 <div
                   class="comment-text"
                   v-html="renderComment(comment.content)"

@@ -129,7 +129,7 @@
                     </template>
                   </a-dropdown>
                 </div>
-                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+                <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
                 <div
                   class="message-text"
                   v-html="renderMarkdown(message.content)"

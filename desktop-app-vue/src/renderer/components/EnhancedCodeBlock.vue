@@ -31,7 +31,7 @@
         </a-tooltip>
       </div>
     </div>
-    <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+    <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
     <pre class="code-content"><code
       :class="`language-${language}`"
       v-html="highlightedCode"
@@ -46,7 +46,7 @@
       :width="500"
     >
       <div v-if="explanation" class="explanation-content">
-        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+        <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
         <div v-html="renderMarkdown(explanation)" />
         <!-- eslint-enable vue/no-v-html -->
       </div>

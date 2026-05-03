@@ -103,7 +103,7 @@
               <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
             </div>
             <div class="message-text">
-              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
               <div
                 v-if="msg.role === 'assistant'"
                 v-html="renderMarkdown(msg.content)"
@@ -159,7 +159,7 @@
               <span class="message-time">正在输入...</span>
             </div>
             <div class="message-text">
-              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3 -->
+              <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
               <div v-html="renderMarkdown(streamingText)" />
               <!-- eslint-enable vue/no-v-html -->
               <span class="typing-cursor">▊</span>

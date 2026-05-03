@@ -1818,7 +1818,7 @@
 
 **File**: `src/renderer/components/EnhancedCodeBlock.vue`
 
-**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3
 
 ---
 
@@ -4098,7 +4098,7 @@
 
 **File**: `src/renderer/components/common/MarkdownViewer.vue`
 
-**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3
 
 ---
 
@@ -4272,7 +4272,7 @@
 
 **File**: `src/renderer/components/chat/UserAssistantMessage.vue`
 
-**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see AUDIT_2026-04-22.md §3
+**Description**: eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3
 
 ---
 
@@ -4581,4 +4581,3 @@
 **File**: `src/renderer/components/analytics/AIPerformanceChart.vue`
 
 ---
-

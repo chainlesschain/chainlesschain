@@ -21,7 +21,7 @@ def _load_dotenv(path):
         k, _, v = line.partition("=")
         os.environ.setdefault(k.strip(), v.strip())
 
-_load_dotenv(Path(__file__).resolve().parent / ".env")
+_load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 HOST = os.environ.get("DEPLOY_HOST")
 USER = os.environ.get("DEPLOY_USER")

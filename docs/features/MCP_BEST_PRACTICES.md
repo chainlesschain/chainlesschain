@@ -549,7 +549,7 @@ npm run benchmark:mcp -- --iterations 500 --output results.json
 - [MCP 规范](https://modelcontextprotocol.io/specification/2025-11-25)
 - [MCP SDK 文档](https://github.com/modelcontextprotocol/sdk)
 - [ChainlessChain MCP 测试指南](../../desktop-app-vue/src/main/mcp/TESTING_GUIDE.md)
-- [ChainlessChain 故障排除指南](../../CLAUDE-troubleshooting.md)
+- [ChainlessChain 故障排除指南](../claude/CLAUDE-troubleshooting.md)
 
 ---
 
