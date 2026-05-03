@@ -15,6 +15,31 @@ copyright: Copyright © 2024 ChainlessChain Team
 #   - macOS: ModuleNotFoundError: distutils (Python 3.13)
 npmRebuild: false
 
+# Disable ASAR packaging entirely.
+#
+# v5.0.3.4-12 history (a full day of failed releases): electron-builder's
+# prod-dep walker repeatedly de-dupes the top-level call-bind-apply-helpers/
+# out of the asar when call-bind has a private nested copy. The remaining
+# nested-only copy is invisible to dunder-proto's `require('call-bind-apply-helpers')`
+# (Node CJS resolver doesn't traverse other packages' node_modules).
+#
+# Tried & failed:
+#   v5.0.3.7  — lockfile sync + robocopy fallback
+#   v5.0.3.8-11 — `npm install --workspaces=false` flat install
+#   v5.0.3.12 — extraResources to app.asar.unpacked/ (Electron's asar fs
+#               only falls back to .unpacked for files REGISTERED in the
+#               asar header — unregistered files there are invisible)
+#
+# Solution: don't pack into asar. With `asar: false`, all node_modules ship
+# as loose files under resources/app/. Node's CJS resolver walks a real
+# filesystem, no asar magic, no dedupe, no surprises.
+#
+# Trade-offs accepted: ~300 MB extra install size (no asar compression),
+# ~100ms slower cold start (more inode lookups). Both immaterial vs.
+# the alternative of the app being non-functional. Re-enable later if
+# electron-builder fixes the dedupe heuristic.
+asar: false
+
 # 目录配置
 # buildResources points to assets/ — there is no `build/` directory in the
 # repo. All icon refs below are RELATIVE to this dir (electron-builder
