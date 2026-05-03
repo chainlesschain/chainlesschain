@@ -82,6 +82,17 @@ jobs:
           if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
           @REM Belt-and-suspenders: also clear it from nested if it slipped through.
           if exist "desktop-app-vue\node_modules\chainlesschain" rmdir "desktop-app-vue\node_modules\chainlesschain"
+          @REM Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps.
+          @REM These packages were split out in late 2024 and may be missed by robocopy hoisting
+          @REM (observed: dunder-proto ended up in ASAR but call-bind-apply-helpers did not).
+          for %%P in (call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
+            if exist "node_modules\%%P" (
+              if not exist "desktop-app-vue\node_modules\%%P" (
+                robocopy "node_modules\%%P" "desktop-app-vue\node_modules\%%P" /E /NFL /NDL /NJH /NJS /NP
+                if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+              )
+            )
+          )
           echo Hoisted modules merged into desktop-app-vue (nested preserved)
           exit /b 0
 
@@ -193,6 +204,13 @@ jobs:
               fi
             done
           fi
+          # Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ -d "node_modules/$pkg" ] && [ ! -d "desktop-app-vue/node_modules/$pkg" ]; then
+              rsync -a "node_modules/$pkg" "desktop-app-vue/node_modules/"
+              echo "Fallback-copied $pkg to desktop-app-vue/node_modules/"
+            fi
+          done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package macOS (electron-builder, x64 + arm64)
@@ -298,6 +316,13 @@ jobs:
               fi
             done
           fi
+          # Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ -d "node_modules/$pkg" ] && [ ! -d "desktop-app-vue/node_modules/$pkg" ]; then
+              rsync -a "node_modules/$pkg" "desktop-app-vue/node_modules/"
+              echo "Fallback-copied $pkg to desktop-app-vue/node_modules/"
+            fi
+          done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
       - name: Package Linux (electron-builder, AppImage + deb + rpm)
