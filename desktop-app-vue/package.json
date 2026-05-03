@@ -366,7 +366,7 @@
   "overrides": {
     "cookie": ">=0.7.0",
     "diff": ">=8.0.3",
-    "axios": "1.15.0",
+    "axios": "$axios",
     "protobufjs": ">=7.5.5"
   }
 }
