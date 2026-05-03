@@ -5,6 +5,16 @@ appId: com.chainlesschain.desktop
 productName: ChainlessChain
 copyright: Copyright © 2024 ChainlessChain Team
 
+# Skip native dep rebuild — equivalent of forge.config.js
+# `rebuildConfig.onlyModules = []`. The app sets CHAINLESSCHAIN_DISABLE_NATIVE_DB=1
+# in CI and at runtime falls back to a pure-JS path, so better-sqlite3-multiple-ciphers
+# / similar native modules do not need to be rebuilt against Electron's V8 ABI.
+# Without this flag, node-gyp / MSBuild fail on:
+#   - Linux: better_sqlite3.lzz uses removed v8::Context::GetIsolate (Node 22+)
+#   - Windows: MSBuild compile error from same C++ source
+#   - macOS: ModuleNotFoundError: distutils (Python 3.13)
+npmRebuild: false
+
 # 目录配置
 directories:
   output: out/build
