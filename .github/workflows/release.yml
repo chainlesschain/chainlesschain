@@ -96,6 +96,24 @@ jobs:
           echo Hoisted modules merged into desktop-app-vue (nested preserved)
           exit /b 0
 
+      - name: Verify express@5 transitive deps landed in nested (Windows)
+        shell: cmd
+        run: |
+          @REM Hard fail if any of the 7 split-out deps that npm workspaces hoists
+          @REM to root node_modules/ did not make it into desktop-app-vue/node_modules/.
+          @REM electron-builder's `files: node_modules/**/*` only sees the nested dir,
+          @REM so a miss here = "Cannot find module" at runtime in the packaged app.
+          @REM This gate caught us once at v5.0.3.6; keep it.
+          set FAIL=0
+          for %%P in (call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
+            if not exist "desktop-app-vue\node_modules\%%P\package.json" (
+              echo ERROR: desktop-app-vue\node_modules\%%P missing after merge
+              set FAIL=1
+            )
+          )
+          if "%FAIL%"=="1" exit /b 1
+          echo OK: 7 express@5/qs/side-channel transitive deps verified in nested
+
       - name: Package Windows (electron-builder, with .blockmap)
         working-directory: desktop-app-vue
         run: npm run make:win:builder
@@ -213,6 +231,20 @@ jobs:
           done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
+      - name: Verify express@5 transitive deps landed in nested (macOS)
+        run: |
+          # Hard fail if any of the 7 split-out deps did not make it into
+          # desktop-app-vue/node_modules/. See Windows verify step for context.
+          fail=0
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg missing after merge"
+              fail=1
+            fi
+          done
+          [ "$fail" = "1" ] && exit 1
+          echo "OK: 7 express@5/qs/side-channel transitive deps verified in nested"
+
       - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
         run: npm run make:mac:builder
@@ -324,6 +356,20 @@ jobs:
             fi
           done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
+
+      - name: Verify express@5 transitive deps landed in nested (Linux)
+        run: |
+          # Hard fail if any of the 7 split-out deps did not make it into
+          # desktop-app-vue/node_modules/. See Windows verify step for context.
+          fail=0
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg missing after merge"
+              fail=1
+            fi
+          done
+          [ "$fail" = "1" ] && exit 1
+          echo "OK: 7 express@5/qs/side-channel transitive deps verified in nested"
 
       - name: Package Linux (electron-builder, AppImage + deb + rpm)
         working-directory: desktop-app-vue
