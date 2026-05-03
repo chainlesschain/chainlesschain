@@ -126,15 +126,20 @@ function verify(buildDir) {
     }
   }
 
-  // 3. AppImage 必须有 blockmap
+  // 3. AppImage blockmap — WARNING only.
+  // electron-builder reliably emits .blockmap for NSIS .exe and .dmg, but
+  // AppImage blockmap support has been intermittent across versions. When
+  // missing, electron-updater falls back to full download on Linux — degraded
+  // but not broken. Treat as warning so a missing AppImage blockmap does
+  // not block the entire release.
   for (const ai of appImages) {
     const blockmap = ai + ".blockmap";
     if (!fileSet.has(blockmap.toLowerCase())) {
-      errors.push(
-        `Missing blockmap for AppImage: ${path.relative(buildDir, ai)}`,
+      warnings.push(
+        `Missing blockmap for AppImage: ${path.relative(buildDir, ai)} (Linux auto-update will fall back to full download — known electron-builder AppImage limitation)`,
       );
     } else if (fs.statSync(blockmap).size === 0) {
-      errors.push(`Empty blockmap: ${path.relative(buildDir, blockmap)}`);
+      warnings.push(`Empty blockmap: ${path.relative(buildDir, blockmap)}`);
     }
   }
 
