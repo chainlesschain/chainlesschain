@@ -156,6 +156,29 @@ compression: normal  # 或 maximum（但会更慢）
 extraResources:
   - from: ../docker-compose.yml
     to: backend-services/docker-compose.yml
+  # Force-include express@5/qs/side-channel split deps that electron-builder's
+  # prod-dep walker repeatedly drops from the asar (v5.0.3.4-11 shipped broken
+  # with this exact symptom — call-bind-apply-helpers ends up only inside
+  # call-bind/node_modules/ but not at top-level node_modules/, breaking
+  # dunder-proto's require). Putting them at app.asar.unpacked/node_modules/
+  # via extraResources bypasses the walker entirely (raw file copy, no analysis).
+  # Node's ASAR-aware resolver auto-falls-back to app.asar.unpacked/ paths,
+  # so require('call-bind-apply-helpers') from inside app.asar resolves
+  # transparently to resources/app.asar.unpacked/node_modules/call-bind-apply-helpers/.
+  - from: node_modules/call-bind-apply-helpers
+    to: app.asar.unpacked/node_modules/call-bind-apply-helpers
+  - from: node_modules/dunder-proto
+    to: app.asar.unpacked/node_modules/dunder-proto
+  - from: node_modules/get-proto
+    to: app.asar.unpacked/node_modules/get-proto
+  - from: node_modules/math-intrinsics
+    to: app.asar.unpacked/node_modules/math-intrinsics
+  - from: node_modules/side-channel-list
+    to: app.asar.unpacked/node_modules/side-channel-list
+  - from: node_modules/side-channel-map
+    to: app.asar.unpacked/node_modules/side-channel-map
+  - from: node_modules/side-channel-weakmap
+    to: app.asar.unpacked/node_modules/side-channel-weakmap
 
 # 元数据
 appx:

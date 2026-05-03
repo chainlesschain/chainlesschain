@@ -57,6 +57,7 @@ test-*.js
 !tests/unit/scripts/verify-release-artifacts.test.js
 !scripts/verify-release-artifacts.js
 !scripts/fix-broken-bin-shims.js
+!scripts/remove-nested-asar-dupes.js
 
 # Temporary summary/report docs
 *_FIX.md

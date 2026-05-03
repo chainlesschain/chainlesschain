@@ -96,32 +96,23 @@ jobs:
           echo Hoisted modules merged into desktop-app-vue (nested preserved)
           exit /b 0
 
-      - name: Flatten desktop-app-vue prod deps (bypass workspace hoisting/dedupe) Windows
-        working-directory: desktop-app-vue
+      - name: Remove nested duplicates of split deps (Windows)
         shell: cmd
         run: |
-          @REM Root-cause fix for v5.0.3.4-7 silent ASAR mis-bundling.
+          @REM v5.0.3.4-11 ALL shipped broken with the same crash: dunder-proto
+          @REM can't find call-bind-apply-helpers because electron-builder's
+          @REM prod-dep walker dedupes the top-level copy when call-bind has
+          @REM a nested duplicate at call-bind/node_modules/call-bind-apply-helpers/.
           @REM
-          @REM Workspace-aware `npm ci` hoists shared deps (e.g. call-bind-apply-helpers)
-          @REM to ROOT node_modules/. The merge robocopy above brings them over to nested,
-          @REM but electron-builder's prod-dep walker then DEDUPES them away during
-          @REM packaging — when a transitive dep is shared between two parents and one
-          @REM parent already has it nested (call-bind/node_modules/call-bind-apply-helpers),
-          @REM the walker drops the top-level copy. dunder-proto's require() then can't
-          @REM find call-bind-apply-helpers, crashing app on every fresh install.
+          @REM This step removes ALL nested duplicates of the 7 split-out deps
+          @REM (kept top-level only). With nothing to dedupe to, the walker
+          @REM is forced to keep top-level. Cross-platform Node script.
           @REM
-          @REM Fix: re-resolve desktop-app-vue's prod deps as a STANDALONE project
-          @REM (--workspaces=false), forcing a clean flat tree at desktop-app-vue/node_modules/.
-          @REM This eliminates dedupe ambiguity — every direct dep (and transitive) lands
-          @REM at top-level deterministically. No more hoisting tricks.
-          @REM
-          @REM --no-package-lock + --no-save: don't mutate root lockfile or package.json.
-          @REM Do NOT use --omit=dev here: electron-builder needs `electron` itself
-          @REM (a devDep) at packaging time. electron-builder filters devDeps out of
-          @REM the ASAR on its own, so installing them here is correct AND necessary.
-          @REM v5.0.3.10 hit "Cannot compute electron version" with --omit=dev set.
-          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
-          if errorlevel 1 exit /b 1
+          @REM v5.0.3.8-11 tried `npm install --workspaces=false` to bypass
+          @REM hoisting — verified at gate-time but electron-builder still
+          @REM dedup'd. This approach attacks the root by removing the dedupe
+          @REM target itself.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
 
       - name: Verify express@5 transitive deps + entry files intact in nested (Windows)
         shell: cmd
@@ -273,13 +264,10 @@ jobs:
           done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
-      - name: Flatten desktop-app-vue prod deps (bypass workspace hoisting/dedupe) macOS
-        working-directory: desktop-app-vue
+      - name: Remove nested duplicates of split deps (macOS)
         run: |
-          # Root-cause fix for v5.0.3.4-7 silent ASAR mis-bundling.
-          # See Windows step for full context. Do NOT use --omit=dev — electron-builder
-          # needs electron (a devDep) at packaging time. v5.0.3.10 hit this trap.
-          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
+          # See Windows step for context.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
 
       - name: Verify express@5 transitive deps + entry files intact (macOS)
         run: |
@@ -425,13 +413,10 @@ jobs:
           done
           echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
 
-      - name: Flatten desktop-app-vue prod deps (bypass workspace hoisting/dedupe) Linux
-        working-directory: desktop-app-vue
+      - name: Remove nested duplicates of split deps (Linux)
         run: |
-          # Root-cause fix for v5.0.3.4-7 silent ASAR mis-bundling.
-          # See Windows step for full context. Do NOT use --omit=dev — electron-builder
-          # needs electron (a devDep) at packaging time. v5.0.3.10 hit this trap.
-          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
+          # See Windows step for context.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
 
       - name: Verify express@5 transitive deps + entry files intact (Linux)
         run: |
