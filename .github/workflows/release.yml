@@ -116,8 +116,11 @@ jobs:
           @REM at top-level deterministically. No more hoisting tricks.
           @REM
           @REM --no-package-lock + --no-save: don't mutate root lockfile or package.json.
-          @REM --omit=dev: only prod deps (electron-builder doesn't bundle devDeps anyway).
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          @REM Do NOT use --omit=dev here: electron-builder needs `electron` itself
+          @REM (a devDep) at packaging time. electron-builder filters devDeps out of
+          @REM the ASAR on its own, so installing them here is correct AND necessary.
+          @REM v5.0.3.10 hit "Cannot compute electron version" with --omit=dev set.
+          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
           if errorlevel 1 exit /b 1
 
       - name: Verify express@5 transitive deps + entry files intact in nested (Windows)
@@ -274,8 +277,9 @@ jobs:
         working-directory: desktop-app-vue
         run: |
           # Root-cause fix for v5.0.3.4-7 silent ASAR mis-bundling.
-          # See Windows step for full context.
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          # See Windows step for full context. Do NOT use --omit=dev — electron-builder
+          # needs electron (a devDep) at packaging time. v5.0.3.10 hit this trap.
+          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
 
       - name: Verify express@5 transitive deps + entry files intact (macOS)
         run: |
@@ -425,8 +429,9 @@ jobs:
         working-directory: desktop-app-vue
         run: |
           # Root-cause fix for v5.0.3.4-7 silent ASAR mis-bundling.
-          # See Windows step for full context.
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          # See Windows step for full context. Do NOT use --omit=dev — electron-builder
+          # needs electron (a devDep) at packaging time. v5.0.3.10 hit this trap.
+          npm install --no-package-lock --no-save --workspaces=false --legacy-peer-deps
 
       - name: Verify express@5 transitive deps + entry files intact (Linux)
         run: |
