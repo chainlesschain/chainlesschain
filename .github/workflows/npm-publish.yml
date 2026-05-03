@@ -12,10 +12,16 @@ on:
         required: false
         type: boolean
         default: false
+      skip_tests:
+        description: "Skip tests before publishing (use when tests already passed in a prior run)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # Run tests before publishing
   test:
+    if: inputs.skip_tests != true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -61,6 +67,7 @@ jobs:
   # Publish all packages in dependency order
   publish:
     needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
