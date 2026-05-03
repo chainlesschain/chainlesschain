@@ -56,6 +56,7 @@ test-*.js
 !tests/
 !tests/unit/scripts/verify-release-artifacts.test.js
 !scripts/verify-release-artifacts.js
+!scripts/fix-broken-bin-shims.js
 
 # Temporary summary/report docs
 *_FIX.md
