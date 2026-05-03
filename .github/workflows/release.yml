@@ -302,7 +302,10 @@ jobs:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
           NODE_OPTIONS: "--max-old-space-size=4096"
-          USE_SYSTEM_FPM: "true"
+          # USE_SYSTEM_FPM removed — fpm is not installed on the runner
+          # (it is a Ruby gem, not in apt). Letting electron-builder
+          # download its own fpm via @electron/builder-binaries works
+          # out of the box.
 
       - name: Verify differential-update artifacts (Linux)
         working-directory: desktop-app-vue

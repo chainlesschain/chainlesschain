@@ -126,24 +126,14 @@ linux:
   vendor: "ChainlessChain"
 
 # 发布配置
-publish:
-  # 方式1: GitHub Releases（推荐）
-  - provider: github
-    owner: chainlesschain
-    repo: chainlesschain
-    private: false
-    releaseType: release
-
-  # 方式2: 通用 HTTP 服务器
-  # - provider: generic
-  #   url: https://your-update-server.com/releases
-  #   channel: latest
-
-  # 方式3: S3
-  # - provider: s3
-  #   bucket: your-bucket-name
-  #   region: us-east-1
-  #   path: /releases
+# `publish` block removed — electron-builder hard-fails at build-time when
+# this is set to a github provider without GH_TOKEN env (macOS run failed:
+# "GitHub Personal Access Token is not set"). The release.yml workflow's
+# `create-release` job uploads artifacts via `gh release upload` directly,
+# so electron-builder doesn't need to know about the publish target.
+# Re-add (with GH_TOKEN env wired) when we want electron-updater to pull
+# from GitHub instead of staging via gh release.
+publish: null
 
 # macOS notarization hook — disabled until scripts/notarize.js exists.
 # afterSign is loaded for all platforms (not just mac), so a missing file
