@@ -826,20 +826,35 @@ jobs:
       # only red-block finalize-release for already-shipped releases.
       #
       # Same vitest IPC-saturation workaround as cli-ci.yml: split into
-      # unit / integration / e2e (a-o) / e2e (p-z) batches with --reporter=basic
-      # so per-test stdout doesn't flood the worker→main RPC pipe past the
-      # 60s "onTaskUpdate" timeout. Single-batch `npx vitest run` reliably
-      # exits 1 with "Timeout calling onTaskUpdate" even when 18000+ tests
-      # all pass (observed on run 25268846178).
+      # unit / integration (a-m) / integration (n-z) / e2e (a-o) / e2e (p-z)
+      # batches with --reporter=basic so per-test stdout doesn't flood the
+      # worker→main RPC pipe past the 60s "onTaskUpdate" timeout. Single-batch
+      # `npx vitest run` reliably exits 1 with "Timeout calling onTaskUpdate"
+      # even when all tests pass (E2E observed on run 25268846178; integration
+      # observed on run 25269511113 — 821 tests/54 files passed but vitest
+      # crashed exit 1 in the same way, so integration is now batched too).
       - name: Run CLI unit tests
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
         working-directory: packages/cli
         run: npx vitest run --reporter=basic __tests__/unit/
 
-      - name: Run CLI integration tests
+      - name: Run CLI integration tests (batch 1, a-m)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
         working-directory: packages/cli
-        run: npx vitest run --reporter=basic __tests__/integration/
+        shell: bash
+        run: |
+          files=(__tests__/integration/[a-m]*.test.js)
+          echo "Batch 1 files: ${#files[@]}"
+          npx vitest run --reporter=basic "${files[@]}"
+
+      - name: Run CLI integration tests (batch 2, n-z)
+        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          files=(__tests__/integration/[n-z]*.test.js)
+          echo "Batch 2 files: ${#files[@]}"
+          npx vitest run --reporter=basic "${files[@]}"
 
       - name: Run CLI E2E tests (batch 1, a-o)
         if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
