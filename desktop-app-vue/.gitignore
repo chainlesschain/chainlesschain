@@ -58,6 +58,7 @@ test-*.js
 !scripts/verify-release-artifacts.js
 !scripts/fix-broken-bin-shims.js
 !scripts/remove-nested-asar-dupes.js
+!scripts/electron-after-pack.js
 
 # Temporary summary/report docs
 *_FIX.md

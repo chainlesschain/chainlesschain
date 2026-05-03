@@ -170,6 +170,16 @@ publish:
 # wiring APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID secrets.
 # afterSign: scripts/notarize.js
 
+# afterPack: promote nested call-bind-apply-helpers to top-level after the
+# walker has finished its damage. v5.0.3.4-13 saga: electron-builder's
+# prod-dep walker dedupes the top-level copy when call-bind has a nested
+# private copy. Removing the source nested copy doesn't help (walker
+# re-creates it), and asar:false doesn't help (dedupe is a file-selection
+# issue not an asar packaging one). This hook runs AFTER files are placed
+# in `<appOutDir>/resources/app/`, where we can copy the nested copy back
+# to top-level before the installer is generated.
+afterPack: scripts/electron-after-pack.js
+
 # 压缩配置
 compression: normal  # 或 maximum（但会更慢）
 
