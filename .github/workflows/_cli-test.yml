@@ -7,8 +7,9 @@ name: _CLI Test (reusable)
 # Why this exists (do not revert to the old `[a-m]*/[n-z]*` glob batches):
 #   The previous strategy alphabetically split test files into two halves and
 #   added --no-file-parallelism on top to keep things linear. That broke every
-#   time a heavy new test landed in one half (e.g. mtc-federation-governance-cli
-#   ~85s/41 tests). vitest's --shard splits files by hash → each shard is
+#   time a heavy new test landed in one half (e.g. the original
+#   mtc-federation-governance-cli, ~85s/41 tests, since split into three
+#   smaller files per issue #4). vitest's --shard splits files by hash → each shard is
 #   ~25% of the work, balanced automatically as new tests land, AND file
 #   parallelism inside the shard can come back.
 #
@@ -72,26 +73,21 @@ jobs:
     # Integration runs 8 shards because shard 4 (at the 4-shard layout)
     # hashed to a combination heavy enough to push wall-time past the 60s
     # onTaskUpdate heartbeat on all 3 OS. 8 shards halved the per-shard
-    # wall-time but did NOT eliminate the failure — see the "known
-    # limitation" note below.
+    # wall-time and the file split below removed the heaviest single file.
     #
-    # KNOWN LIMITATION (intentionally not patched):
-    # Whichever shard contains __tests__/integration/mtc-federation-governance-cli.test.js
-    # may flake on Windows and Ubuntu with vitest's hardcoded 60s
-    # onTaskUpdate RPC timeout. That ONE file runs 41 CLI subprocess
-    # spawns and takes ~110s on Linux CI / ~200s on Windows CI alone.
-    # All 41 tests inside it pass — only the worker→main reporter
-    # heartbeat times out during long quiet stretches between subprocess
-    # results. As of CLI CI run 25321545472 on b52c2f427, this hashed
-    # to shard 8/8.
-    #
-    # If you see "integration (*, shard k/8)" failing with
-    # "[vitest-worker]: Timeout calling onTaskUpdate" while "Test Files
-    # N passed (N)" reports green, this is the known issue. Re-run
-    # to confirm transience or investigate if it spreads to other shards.
-    # The structural fix is to either (a) split this test file into
-    # smaller chunks or (b) give it a dedicated CI job; both are out of
-    # scope for the sharding work and need a follow-up issue.
+    # Issue #4 fixed — file split + per-file pool override:
+    # The original __tests__/integration/mtc-federation-governance-cli.test.js
+    # (1334 lines / 41 tests / ~200s on Windows CI) was split into three
+    # focused suites — *-core-cli.test.js (13 tests), *-sync-cli.test.js
+    # (13 tests), *-trust-cli.test.js (15 tests) — sharing a helper
+    # module under __tests__/integration/_helpers/. The split alone wasn't
+    # enough on Windows: even 13 tests in the forks pool still tripped
+    # vitest's hardcoded 60s birpc onTaskUpdate timeout. The real fix is
+    # `poolMatchGlobs` in packages/cli/vitest.config.js routing these
+    # files to `pool: threads` (singleThread), which uses worker_threads
+    # postMessage instead of process IPC — no birpc heartbeat on the
+    # critical path. Underlying RPC bug is fixed upstream in vitest
+    # v4.0.0 (#8297); we stay on ^3.1.1 to avoid the major bump.
     name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
     strategy:
