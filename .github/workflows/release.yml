@@ -70,6 +70,14 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        run: npm install --legacy-peer-deps
+
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
         run: npm run build
@@ -249,6 +257,14 @@ jobs:
         run: npm run build:renderer
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        run: npm install --legacy-peer-deps
 
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
@@ -437,6 +453,14 @@ jobs:
         run: npm run build:renderer
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        run: npm install --legacy-peer-deps
 
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
