@@ -28,6 +28,10 @@ on:
           - new-tests
           - perfect-score-tests
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e-project-detail:
     name: Project Detail E2E Tests

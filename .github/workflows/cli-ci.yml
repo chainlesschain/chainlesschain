@@ -15,6 +15,12 @@ on:
       - ".github/workflows/_cli-test.yml"
   workflow_dispatch:
 
+# Cancel older runs of this workflow on the same branch/PR when a newer push
+# arrives. The 36+ matrix jobs make stacking expensive.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Per-OS test fan-out via the shared reusable workflow.
   # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
