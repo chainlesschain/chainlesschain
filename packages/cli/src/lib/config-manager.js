@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { getConfigPath } from "./paths.js";
 import { DEFAULT_CONFIG } from "../constants.js";
 
@@ -18,6 +19,7 @@ export function loadConfig() {
 
 export function saveConfig(config) {
   const configPath = getConfigPath();
+  mkdirSync(dirname(configPath), { recursive: true });
   writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
 }
 
