@@ -68,6 +68,25 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+        shell: bash
+
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         shell: cmd
         run: |
@@ -220,6 +239,25 @@ jobs:
         run: npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+        shell: bash
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
@@ -383,6 +421,25 @@ jobs:
         run: npm run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+        shell: bash
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |

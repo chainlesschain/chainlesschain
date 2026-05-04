@@ -213,6 +213,18 @@ extraResources:
     to: packages/cli/bin
   - from: ../packages/cli/package.json
     to: packages/cli/package.json
+  # CLI runtime deps (ws, commander, ora, sql.js etc.) — installed standalone
+  # by CI step "Install packages/cli prod deps standalone". Without this, the
+  # CLI files crash with `Cannot find package 'ws'` when loaded by web-shell
+  # (they'd need to find ws via Node CJS ancestor walk, which in dev resolves
+  # to repo-root hoisted ws but in prod has no equivalent path).
+  - from: ../packages/cli/node_modules
+    to: packages/cli/node_modules
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
+      - "!.bin"
   - from: ../packages/web-panel/dist
     to: packages/web-panel/dist
   - from: ../packages/web-panel/package.json
