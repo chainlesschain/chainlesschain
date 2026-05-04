@@ -69,12 +69,17 @@ jobs:
         run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/unit/
 
   integration:
-    name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
+    # Integration runs more shards than unit because shard 4 hashes to a
+    # combination heavy enough to push wall-time past the 60s onTaskUpdate
+    # heartbeat on all 3 OS (ubuntu 109s, macos 136s, windows 213s as of
+    # CLI CI run 25320080164 on c4c4f0d8a). 8 shards halves the per-shard
+    # wall-time without affecting unit/e2e.
+    name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -83,9 +88,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
-      - name: vitest integration shard ${{ matrix.shard }}/${{ inputs.shards }}
+      - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/integration/
+        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=basic --silent=true __tests__/integration/
 
   e2e:
     name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
