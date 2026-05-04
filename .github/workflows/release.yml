@@ -873,7 +873,16 @@ jobs:
     if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' && needs.build-macos.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
+      # `contents: write` for `gh release create` (required).
+      # Adding the broader set explicitly to bypass v5.0.3.27 HTTP 403
+      # "Resource not accessible by integration" — repo-level
+      # default_workflow_permissions is "write" but the narrow job
+      # permissions block was somehow capping release-create scope.
       contents: write
+      actions: read
+      checks: read
+      packages: write
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
