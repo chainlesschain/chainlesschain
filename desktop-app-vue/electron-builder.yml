@@ -191,29 +191,12 @@ compression: normal  # 或 maximum（但会更慢）
 extraResources:
   - from: ../docker-compose.yml
     to: backend-services/docker-compose.yml
-  # Bundle packages/cli/ into resources/packages/cli/ so web-shell loaders
-  # can resolve sibling-to-app paths like
-  #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
-  # at runtime (web-ui-loader.js, ws-cli-loader.js).
-  # Without this, app crashes after main-process init with:
-  #   ERR_MODULE_NOT_FOUND: resources/packages/cli/src/gateways/ws/ws-server.js
-  # Filter excludes node_modules (~3 GB) and test/dev artifacts.
-  - from: ../packages/cli
-    to: packages/cli
-    filter:
-      - "src/**/*"
-      - "bin/**/*"
-      - "package.json"
-      - "!src/**/__tests__/**"
-      - "!src/**/*.test.js"
-  # Bundle packages/web-panel/dist/ for the embedded web SPA. web-ui-server.js
-  # tries multiple resolution paths; resources/packages/web-panel/dist/ is one
-  # of them. Source tree resolution would land here when CLI is at
-  # resources/packages/cli/ (per above).
-  - from: ../packages/web-panel/dist
-    to: packages/web-panel/dist
-  - from: ../packages/web-panel/package.json
-    to: packages/web-panel/package.json
+  # NOTE: packages/cli + packages/web-panel/dist are NOT copied here.
+  # v5.0.3.17 tried that and Setup.exe failed to install (NSIS exit 2 /
+  # immediate crash on click — likely path-length or file-count edge case
+  # with the ~50 MB cli source tree). Moved to scripts/electron-after-pack.js
+  # where the same files are placed at appOutDir/resources/packages/ via
+  # plain Node fs.cpSync. NSIS then just zips the resources/ tree wholesale.
   # Force-include express@5/qs/side-channel split deps that electron-builder's
   # prod-dep walker repeatedly drops from the asar (v5.0.3.4-11 shipped broken
   # with this exact symptom — call-bind-apply-helpers ends up only inside
