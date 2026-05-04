@@ -38,6 +38,7 @@ jobs:
         uses: ./.github/actions/setup-node-deps
         with:
           install-command: npm install --legacy-peer-deps
+          install-desktop-app-vue: "true"
 
       - name: Build desktop app main process
         working-directory: ./desktop-app-vue

@@ -56,7 +56,9 @@ jobs:
             ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run Rules Validator
         working-directory: ./desktop-app-vue
@@ -95,12 +97,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-v2-
 
-      - name: Install root dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Install desktop-app-vue dependencies
-        working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+      - name: Install dependencies (workspace-aware)
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run npm audit (informational)
         run: npm audit --audit-level=high || true
@@ -135,7 +135,9 @@ jobs:
             ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Check code style
         working-directory: ./desktop-app-vue
@@ -171,7 +173,9 @@ jobs:
             ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -207,10 +211,9 @@ jobs:
             ${{ runner.os }}-node-v2-
 
       - name: Install dependencies (workspace-aware)
-        run: |
-          npm install --legacy-peer-deps
-          # Workaround npm bug #4828: --legacy-peer-deps skips optional deps
-          npm ls @rollup/rollup-linux-x64-gnu 2>/dev/null || npm install --no-save @rollup/rollup-linux-x64-gnu
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Build main process
         working-directory: ./desktop-app-vue

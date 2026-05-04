@@ -44,6 +44,8 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -145,6 +147,8 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run ESLint
         working-directory: ./desktop-app-vue
@@ -187,6 +191,8 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Build main process
         working-directory: ./desktop-app-vue
@@ -269,6 +275,8 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -302,6 +310,8 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue

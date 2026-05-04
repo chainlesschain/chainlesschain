@@ -13,6 +13,10 @@ inputs:
     description: "Space-separated extra npm packages to install alongside the rollup binary (e.g. 'electron-installer-debian')"
     required: false
     default: ""
+  install-desktop-app-vue:
+    description: "After the root install, also run 'npm install --legacy-peer-deps' inside desktop-app-vue. Required since ad3e7d403 dropped desktop-app-vue from root workspaces — root install no longer hoists its deps."
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -20,6 +24,11 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: ${{ inputs.install-command }}
+    - name: Install desktop-app-vue dependencies (post-workspace-refactor)
+      if: inputs.install-desktop-app-vue == 'true'
+      shell: bash
+      working-directory: desktop-app-vue
+      run: npm install --legacy-peer-deps
     - name: Install platform rollup binary + extras
       shell: bash
       working-directory: ${{ inputs.working-directory }}
