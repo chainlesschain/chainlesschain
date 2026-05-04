@@ -361,6 +361,7 @@
     "cookie": ">=0.7.0",
     "diff": ">=8.0.3",
     "axios": "$axios",
-    "protobufjs": ">=7.5.5"
+    "protobufjs": ">=7.5.5",
+    "rollup": "4.59.0"
   }
 }
