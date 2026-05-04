@@ -8,12 +8,14 @@
  * 检查项（任何一条不满足即 exit 1）：
  *   1. 每个 NSIS 安装包 (*-Setup-*.exe) 必须有同名 .blockmap 旁挂
  *   2. 每个 .dmg 必须有同名 .blockmap 旁挂
- *   3. 每个 .AppImage 必须有同名 .blockmap 旁挂
+ *   3. 每个 .AppImage 在 latest-linux.yml 里必须有 blockMapSize 字段
+ *      （AppImage 走嵌入式 blockmap，不是 sidecar，由 app-builder 把 blockmap
+ *      追加到 AppImage 文件末尾，electron-updater 通过 HTTP Range 读取）
  *   4. 出现 NSIS / dmg / AppImage 的平台，对应的 latest*.yml 必须存在
  *      - Windows  → latest.yml
  *      - macOS    → latest-mac.yml
  *      - Linux    → latest-linux.yml
- *   5. .blockmap 文件必须非空
+ *   5. .blockmap 文件（NSIS/DMG sidecar）必须非空
  *
  * 不强制（仅提示）：
  *   - portable .exe（*-Portable-*.exe）— portable target 没有差量机制
@@ -126,20 +128,47 @@ function verify(buildDir) {
     }
   }
 
-  // 3. AppImage blockmap — WARNING only.
-  // electron-builder reliably emits .blockmap for NSIS .exe and .dmg, but
-  // AppImage blockmap support has been intermittent across versions. When
-  // missing, electron-updater falls back to full download on Linux — degraded
-  // but not broken. Treat as warning so a missing AppImage blockmap does
-  // not block the entire release.
-  for (const ai of appImages) {
-    const blockmap = ai + ".blockmap";
-    if (!fileSet.has(blockmap.toLowerCase())) {
-      warnings.push(
-        `Missing blockmap for AppImage: ${path.relative(buildDir, ai)} (Linux auto-update will fall back to full download — known electron-builder AppImage limitation)`,
-      );
-    } else if (fs.statSync(blockmap).size === 0) {
-      warnings.push(`Empty blockmap: ${path.relative(buildDir, blockmap)}`);
+  // 3. AppImage blockmap — verify EMBEDDED blockmap, not sidecar.
+  //
+  // electron-builder ≥22 uses two different code paths for blockmap:
+  //   - NSIS / DMG: createBlockmap() → sidecar `.blockmap` file (checked above)
+  //   - AppImage:   appendBlockmap() → blockmap appended to AppImage file itself
+  //
+  // electron-updater's AppImageUpdater uses
+  // FileWithEmbeddedBlockMapDifferentialDownloader to read the trailing
+  // blockMapSize bytes of the AppImage via HTTP Range — no sidecar needed.
+  //
+  // The presence of `blockMapSize:` for the AppImage entry in latest-linux.yml
+  // is the canonical proof that the embedded blockmap was generated. If it's
+  // missing, differential update WILL fall back to full download.
+  if (appImages.length > 0) {
+    const yml = files.find((f) => isLatestYml(f, "latest-linux.yml"));
+    if (yml) {
+      const ymlText = fs.readFileSync(yml, "utf-8");
+      // Cheap check: any AppImage entry must have a blockMapSize sibling.
+      // Match an AppImage url + look for blockMapSize within its block (until
+      // next `- url:` or end of file).
+      const appImageBlocks = ymlText
+        .split(/\n  - /)
+        .filter((b) => /url:\s*\S+\.AppImage(\s|$)/.test(b));
+      for (const block of appImageBlocks) {
+        if (!/blockMapSize:\s*\d+/.test(block)) {
+          errors.push(
+            "AppImage entry in latest-linux.yml is missing blockMapSize — embedded blockmap was not generated, Linux differential update will fall back to full download",
+          );
+          break;
+        }
+      }
+    }
+    // Stray sidecar: if a .AppImage.blockmap somehow appears, flag as warning.
+    // Older electron-builder versions emitted both; current versions don't.
+    for (const ai of appImages) {
+      const blockmap = ai + ".blockmap";
+      if (fileSet.has(blockmap.toLowerCase())) {
+        warnings.push(
+          `Unexpected sidecar ${path.relative(buildDir, blockmap)} — AppImage uses embedded blockmap; sidecar is harmless but unused`,
+        );
+      }
     }
   }
 

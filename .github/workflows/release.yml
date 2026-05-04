@@ -601,11 +601,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-artifacts
-          # Only AppImage gets a .blockmap. deb/rpm don't support delta updates
-          # (electron-updater limitation) but ship for users who want them.
+          # AppImage has blockmap EMBEDDED in the .AppImage file itself (no sidecar)
+          # — electron-builder appends it via `app-builder appimage` and exposes
+          # `blockMapSize` in latest-linux.yml. electron-updater's
+          # FileWithEmbeddedBlockMapDifferentialDownloader reads it via HTTP Range.
+          # deb/rpm have no differential support but ship for users who want them.
           path: |
             desktop-app-vue/out/build/*.AppImage
-            desktop-app-vue/out/build/*.AppImage.blockmap
             desktop-app-vue/out/build/*.deb
             desktop-app-vue/out/build/*.rpm
             desktop-app-vue/out/build/latest-linux.yml
@@ -984,11 +986,13 @@ jobs:
           #   chainlesschain_1.1.0-alpha_amd64.deb
           #   chainlesschain-1.1.0-alpha.x86_64.rpm
           # No rename needed — names already include version + arch.
-          # CRITICAL: must include .blockmap and latest*.yml or auto-update
-          # falls back to full download (or breaks entirely).
+          # CRITICAL: must include sidecar .blockmap (NSIS/DMG) and latest*.yml
+          # or auto-update falls back to full download (or breaks entirely).
+          # AppImage has no sidecar — blockmap is embedded in the AppImage file
+          # itself (latest-linux.yml carries blockMapSize for it).
           for f in artifacts/**/*.exe artifacts/**/*.exe.blockmap \
                    artifacts/**/*.dmg artifacts/**/*.dmg.blockmap \
-                   artifacts/**/*.AppImage artifacts/**/*.AppImage.blockmap \
+                   artifacts/**/*.AppImage \
                    artifacts/**/*.deb artifacts/**/*.rpm \
                    artifacts/**/latest.yml artifacts/**/latest-mac.yml artifacts/**/latest-linux.yml \
                    artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa \
