@@ -6,7 +6,7 @@
  * can rely on stable shapes.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   collectDoctorReport,
   collectStatusReport,
@@ -14,6 +14,14 @@ import {
 } from "../../src/runtime/diagnostics.js";
 
 describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
+  // Pre-warm: first collectDoctorReport call on cold Windows CI runners
+  // takes >60s (NTFS metadata walks + port scans + spawned child commands).
+  // Subsequent calls are <1s. Warming here amortizes the cold-start so each
+  // test stays under the 60s testTimeout.
+  beforeAll(async () => {
+    await collectDoctorReport();
+  }, 180000);
+
   it("returns a report with the doctor v1 schema tag", async () => {
     const report = await collectDoctorReport();
     expect(report.schema).toBe("chainlesschain.doctor.v1");

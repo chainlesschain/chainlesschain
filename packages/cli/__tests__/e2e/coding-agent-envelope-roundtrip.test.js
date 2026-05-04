@@ -133,13 +133,21 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     child = startServer(port);
     ws = await waitForReady(port);
 
-    const response = await sendAndCorrelate(ws, {
-      id: "e2e-create-1",
-      type: "session-create",
-      sessionType: "agent",
-      provider: "ollama",
-      model: "qwen2.5:7b",
-    });
+    // First request bears the cold-start cost of the test process (Node
+    // module load, V8 JIT, libuv socket pool init). On Windows CI this can
+    // exceed the default 5s sendAndCorrelate timeout. Subsequent tests in
+    // the same file use 5s because the Node process is warm by then.
+    const response = await sendAndCorrelate(
+      ws,
+      {
+        id: "e2e-create-1",
+        type: "session-create",
+        sessionType: "agent",
+        provider: "ollama",
+        model: "qwen2.5:7b",
+      },
+      30000,
+    );
 
     expect(isUnifiedEnvelope(response)).toBe(true);
     expect(response.version).toBe("1.0");
