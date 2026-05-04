@@ -142,10 +142,6 @@ const settingsPages = createRouteGroup("settings", {
 
 // 社交功能页面组（低优先级）
 const socialPages = createRouteGroup("social", {
-  did: () =>
-    import(
-      /* webpackChunkName: "social-did" */ "../components/DIDManagement.vue"
-    ),
   contacts: () =>
     import(
       /* webpackChunkName: "social-contacts" */ "../components/ContactManagement.vue"
@@ -184,13 +180,6 @@ const socialPages = createRouteGroup("social", {
     import(
       /* webpackChunkName: "social-collab" */ "../pages/CollabEditorPage.vue"
     ),
-  // v0.42.0 — 社区/频道
-  community: () =>
-    import(
-      /* webpackChunkName: "social-community" */ "../pages/CommunityPage.vue"
-    ),
-  channel: () =>
-    import(/* webpackChunkName: "social-channel" */ "../pages/ChannelPage.vue"),
   // v0.43.0 — 时光机
   timeMachine: () =>
     import(
@@ -402,11 +391,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "语音输入测试" },
       },
       {
-        path: "did",
-        name: "DIDManagement",
-        component: socialPages.did,
-      },
-      {
         path: "contacts",
         name: "ContactManagement",
         component: socialPages.contacts,
@@ -462,19 +446,6 @@ const routes: RouteRecordRaw[] = [
         name: "SocialCollabEditor",
         component: socialPages.collabEditor,
         meta: { title: "协作编辑" },
-      },
-      // ===== v0.42.0 — 社区/频道 =====
-      {
-        path: "community",
-        name: "Community",
-        component: socialPages.community,
-        meta: { title: "社区" },
-      },
-      {
-        path: "community/:communityId/channel/:channelId?",
-        name: "Channel",
-        component: socialPages.channel,
-        meta: { title: "频道" },
       },
       // ===== v0.43.0 — 时光机 =====
       {
@@ -597,12 +568,6 @@ const routes: RouteRecordRaw[] = [
         component: () =>
           import("../pages/templates/TemplateManagementPage.vue"),
         meta: { title: "项目模板管理" },
-      },
-      {
-        path: "friends",
-        name: "Friends",
-        component: () => import("../pages/FriendsPage.vue"),
-        meta: { title: "好友管理" },
       },
       {
         path: "posts",
@@ -944,12 +909,6 @@ const routes: RouteRecordRaw[] = [
         name: "TagManager",
         component: () => import("../pages/TagManagerPage.vue"),
         meta: { title: "标签管理" },
-      },
-      {
-        path: "memory",
-        name: "MemoryDashboard",
-        component: () => import("../pages/MemoryDashboardPage.vue"),
-        meta: { title: "Memory Bank 仪表板" },
       },
       {
         path: "memory/permanent",

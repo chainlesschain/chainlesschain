@@ -850,27 +850,15 @@
         </a-tabs>
       </div>
 
-      <!-- 内容区和聊天面板 -->
+      <!-- 内容区 -->
       <a-layout class="content-layout">
-        <!-- 内容区 -->
-        <a-layout-content
-          class="layout-content"
-          :style="{ marginRight: chatPanelVisible ? '400px' : '0' }"
-        >
+        <a-layout-content class="layout-content">
           <router-view v-slot="{ Component }">
             <keep-alive>
               <component :is="Component" :key="$route.fullPath" />
             </keep-alive>
           </router-view>
         </a-layout-content>
-
-        <!-- 聊天面板 -->
-        <div
-          class="chat-panel-container"
-          :style="{ width: chatPanelVisible ? '400px' : '0' }"
-        >
-          <ChatPanel :open="chatPanelVisible" @toggle="toggleChat" />
-        </div>
       </a-layout>
     </a-layout>
 
@@ -975,7 +963,6 @@ import {
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
-import ChatPanel from "./ChatPanel.vue";
 import SyncConflictDialog from "./SyncConflictDialog.vue";
 import NotificationCenter from "./social/NotificationCenter.vue";
 import VoiceCommandHandler from "./layout/VoiceCommandHandler.vue";
@@ -1009,11 +996,6 @@ const contextMenuRef = ref(null);
 const sidebarCollapsed = computed({
   get: () => store.sidebarCollapsed,
   set: (val) => store.setSidebarCollapsed(val),
-});
-
-const chatPanelVisible = computed({
-  get: () => store.chatPanelVisible,
-  set: (val) => store.setChatPanelVisible(val),
 });
 
 const selectedMenuKeys = ref(["home"]);
@@ -1205,10 +1187,6 @@ watch(
   },
   { immediate: true },
 );
-
-const toggleChat = () => {
-  chatPanelVisible.value = !chatPanelVisible.value;
-};
 
 // 通知中心面板（抽屉仍由 MainLayout 管理）
 const notificationPanelVisible = computed({
@@ -1766,17 +1744,6 @@ onUnmounted(() => {
   transition: margin-right 0.3s;
 }
 
-.chat-panel-container {
-  position: fixed;
-  right: 0;
-  top: 56px;
-  bottom: 0;
-  overflow: hidden;
-  transition: width 0.3s;
-  z-index: 100;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
-}
-
 /* 语音输入组件容器 */
 .voice-feedback-container {
   position: fixed;
@@ -1784,11 +1751,6 @@ onUnmounted(() => {
   bottom: 24px;
   z-index: 1000;
   transition: right 0.3s;
-}
-
-/* 当聊天面板打开时,语音组件向左移动 */
-.chat-panel-container:has(+ .voice-feedback-container) {
-  /* 聊天面板打开时的样式 */
 }
 
 /* 侧边栏插件插槽 */

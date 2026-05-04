@@ -193,6 +193,14 @@
  * 7ebd53887, 24949cda4). Kept active because this sidebar is shared
  * across three V5-shell pages (HomePage / ProjectsPage / ProjectDetailPage)
  * — users who opted out of the V6 shell via SystemSettings still need it.
+ *
+ * **DO NOT DELETE** even after V5 dead-page cleanup: `pages/projects/Project
+ * DetailPage.vue` is a V6 partial-port target (V6 ProjectDetailDrawer
+ * deep-links to `/projects/:id` via "打开完整工作区"), and that page imports
+ * this sidebar at line 571. Removing this file would break the V6 partial-
+ * port chain for Settings-B2 / Projects-P1b. Wait until full V5 shell
+ * removal AND partial-port pages are upgraded to full V6 ports.
+ *
  * Do not add new features here — port them to the V6 panel instead.
  */
 import { logger } from "@/utils/logger";
