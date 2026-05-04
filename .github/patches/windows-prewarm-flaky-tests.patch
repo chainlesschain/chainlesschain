@@ -1,0 +1,61 @@
+diff --git a/packages/cli/__tests__/e2e/coding-agent-envelope-roundtrip.test.js b/packages/cli/__tests__/e2e/coding-agent-envelope-roundtrip.test.js
+index 16deeb997..70fc6aed0 100644
+--- a/packages/cli/__tests__/e2e/coding-agent-envelope-roundtrip.test.js
++++ b/packages/cli/__tests__/e2e/coding-agent-envelope-roundtrip.test.js
+@@ -133,13 +133,21 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
+     child = startServer(port);
+     ws = await waitForReady(port);
+ 
+-    const response = await sendAndCorrelate(ws, {
+-      id: "e2e-create-1",
+-      type: "session-create",
+-      sessionType: "agent",
+-      provider: "ollama",
+-      model: "qwen2.5:7b",
+-    });
++    // First request bears the cold-start cost of the test process (Node
++    // module load, V8 JIT, libuv socket pool init). On Windows CI this can
++    // exceed the default 5s sendAndCorrelate timeout. Subsequent tests in
++    // the same file use 5s because the Node process is warm by then.
++    const response = await sendAndCorrelate(
++      ws,
++      {
++        id: "e2e-create-1",
++        type: "session-create",
++        sessionType: "agent",
++        provider: "ollama",
++        model: "qwen2.5:7b",
++      },
++      30000,
++    );
+ 
+     expect(isUnifiedEnvelope(response)).toBe(true);
+     expect(response.version).toBe("1.0");
+diff --git a/packages/cli/__tests__/unit/diagnostics.test.js b/packages/cli/__tests__/unit/diagnostics.test.js
+index 94d59a778..320b3f493 100644
+--- a/packages/cli/__tests__/unit/diagnostics.test.js
++++ b/packages/cli/__tests__/unit/diagnostics.test.js
+@@ -6,7 +6,7 @@
+  * can rely on stable shapes.
+  */
+ 
+-import { describe, it, expect } from "vitest";
++import { describe, it, expect, beforeAll } from "vitest";
+ import {
+   collectDoctorReport,
+   collectStatusReport,
+@@ -14,6 +14,14 @@ import {
+ } from "../../src/runtime/diagnostics.js";
+ 
+ describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
++  // Pre-warm: first collectDoctorReport call on cold Windows CI runners
++  // takes >60s (NTFS metadata walks + port scans + spawned child commands).
++  // Subsequent calls are <1s. Warming here amortizes the cold-start so each
++  // test stays under the 60s testTimeout.
++  beforeAll(async () => {
++    await collectDoctorReport();
++  }, 180000);
++
+   it("returns a report with the doctor v1 schema tag", async () => {
+     const report = await collectDoctorReport();
+     expect(report.schema).toBe("chainlesschain.doctor.v1");
