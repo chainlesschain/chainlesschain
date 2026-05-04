@@ -52,6 +52,14 @@ jobs:
         with:
           install-command: npm ci
 
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. Without this step, the next
+        # `build:main` / `build:renderer` fail with `Cannot find module
+        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        run: npm ci
+
       - name: Build main process
         working-directory: desktop-app-vue
         run: npm run build:main
@@ -223,6 +231,14 @@ jobs:
         uses: ./.github/actions/setup-node-deps
         with:
           install-command: npm ci
+
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. Without this step, the next
+        # `build:main` / `build:renderer` fail with `Cannot find module
+        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        run: npm ci
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -405,6 +421,12 @@ jobs:
         with:
           install-command: npm ci
           extra-packages: electron-installer-debian
+
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. See Windows variant for details.
+        run: npm ci
 
       - name: Build main process
         working-directory: desktop-app-vue
