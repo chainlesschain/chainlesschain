@@ -999,13 +999,17 @@ jobs:
           echo "🔗 Draft at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
   # Publish all packages to npm (core packages + CLI)
-  publish-cli:
+  # Precheck: resolve the published version + decide whether tests should run.
+  # Split from publish-cli so tests can live in their own reusable workflow
+  # (./.github/workflows/_cli-test.yml) — see that file for shard rationale.
+  publish-cli-precheck:
     needs: [create-release]
     if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      version: ${{ steps.cli-version.outputs.VERSION }}
+      already_published: ${{ steps.check-published.outputs.ALREADY_PUBLISHED }}
+      should_test: ${{ steps.decide.outputs.SHOULD_TEST }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -1015,11 +1019,6 @@ jobs:
         with:
           node-version: "22.12.0"
           registry-url: "https://registry.npmjs.org"
-
-      - name: Install dependencies (workspaces)
-        uses: ./.github/actions/setup-node-deps
-        with:
-          install-command: npm ci
 
       - name: Resolve version
         id: cli-version
@@ -1054,58 +1053,60 @@ jobs:
       # behind main (e.g. test fixes landed after the tag was cut), but the
       # package itself is immutable once published. Running tests here would
       # only red-block finalize-release for already-shipped releases.
-      #
-      # vitest IPC saturation: even with --silent, the worker→main RPC pipe
-      # can time out ("onTaskUpdate") when multiple workers all flush results
-      # at once after long-running files (mtc-federation-governance-cli.test.js
-      # ~85s, 41 tests; crosschain-mtc ~28s). --no-file-parallelism makes
-      # vitest process files one at a time so at most one worker reports at
-      # a time — eliminates IPC congestion while keeping intra-file parallelism.
-      # Root cause timeline: run 25273633427 batch a-m 353/353 passed, exit 1.
-      - name: Run CLI unit tests
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true' && inputs.skip_tests != true
-        working-directory: packages/cli
-        run: npx vitest run --silent --reporter=basic --no-file-parallelism __tests__/unit/
-
-      - name: Run CLI integration tests (batch 1, a-m)
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true' && inputs.skip_tests != true
-        working-directory: packages/cli
-        shell: bash
+      - name: Decide whether to run tests
+        id: decide
         run: |
-          files=(__tests__/integration/[a-m]*.test.js)
-          echo "Batch 1 files: ${#files[@]}"
-          npx vitest run --silent --reporter=basic --no-file-parallelism "${files[@]}"
+          if [ "${{ steps.check-published.outputs.ALREADY_PUBLISHED }}" == "true" ]; then
+            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
+            echo "Skipping tests: version already published"
+          elif [ "${{ inputs.skip_tests }}" == "true" ]; then
+            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
+            echo "Skipping tests: skip_tests input was true"
+          else
+            echo "SHOULD_TEST=true" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Run CLI integration tests (batch 2, n-z)
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true' && inputs.skip_tests != true
-        working-directory: packages/cli
-        shell: bash
-        run: |
-          files=(__tests__/integration/[n-z]*.test.js)
-          echo "Batch 2 files: ${#files[@]}"
-          npx vitest run --silent --reporter=basic --no-file-parallelism "${files[@]}"
+  # Tests run in the shared reusable workflow (vitest --shard matrix).
+  # Conditional skip is at the JOB level — never a step-level loop, so we never
+  # drift back into the IPC-saturating glob batches that this replaced.
+  cli-tests:
+    needs: [publish-cli-precheck]
+    if: ${{ needs.publish-cli-precheck.outputs.should_test == 'true' }}
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: ubuntu-latest
 
-      - name: Run CLI E2E tests (batch 1, a-o)
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true' && inputs.skip_tests != true
-        working-directory: packages/cli
-        shell: bash
-        run: |
-          files=(__tests__/e2e/[a-o]*.test.js)
-          echo "Batch 1 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic --no-file-parallelism "${files[@]}"
+  publish-cli:
+    # Wait on cli-tests so a red shard blocks publish. Use `always()` plus an
+    # explicit success-or-skipped check so the job still runs when cli-tests
+    # was skipped (already-published or skip_tests=true case).
+    needs: [publish-cli-precheck, cli-tests]
+    if: |
+      always() &&
+      needs.publish-cli-precheck.result == 'success' &&
+      (needs.cli-tests.result == 'success' || needs.cli-tests.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run CLI E2E tests (batch 2, p-z)
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true' && inputs.skip_tests != true
-        working-directory: packages/cli
-        shell: bash
-        run: |
-          files=(__tests__/e2e/[p-z]*.test.js)
-          echo "Batch 2 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --silent --reporter=basic --no-file-parallelism "${files[@]}"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (workspaces)
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
 
       # Publish core packages in dependency order
       - name: "Publish @chainlesschain/core-env"
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/core-env
         run: |
           CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
@@ -1119,7 +1120,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/shared-logger"
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/shared-logger
         run: |
           CURRENT=$(npm view @chainlesschain/shared-logger version 2>/dev/null || echo "0.0.0")
@@ -1133,7 +1134,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-config"
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/core-config
         run: |
           CURRENT=$(npm view @chainlesschain/core-config version 2>/dev/null || echo "0.0.0")
@@ -1147,7 +1148,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-db"
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/core-db
         run: |
           CURRENT=$(npm view @chainlesschain/core-db version 2>/dev/null || echo "0.0.0")
@@ -1161,7 +1162,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-infra"
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/core-infra
         run: |
           CURRENT=$(npm view @chainlesschain/core-infra version 2>/dev/null || echo "0.0.0")
@@ -1175,15 +1176,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Sync CLI version from tag
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/cli
         run: |
-          VERSION="${{ steps.cli-version.outputs.VERSION }}"
+          VERSION="${{ needs.publish-cli-precheck.outputs.version }}"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
           echo "📦 Publishing chainlesschain@${VERSION}"
 
       - name: Publish CLI to npm
-        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/cli
         run: npm publish --provenance --access public
         env:

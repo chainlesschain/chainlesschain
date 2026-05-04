@@ -6,71 +6,51 @@ on:
     paths:
       - "packages/cli/**"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/_cli-test.yml"
   pull_request:
     branches: [main]
     paths:
       - "packages/cli/**"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/_cli-test.yml"
   workflow_dispatch:
 
 jobs:
-  test:
+  # Per-OS test fan-out via the shared reusable workflow.
+  # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
+  test-ubuntu:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: ubuntu-latest
+
+  test-windows:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: windows-latest
+
+  test-macos:
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: macos-latest
+
+  verify-cli:
+    needs: [test-ubuntu, test-windows, test-macos]
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ["22.12.0"]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "22.12.0"
           cache: "npm"
           cache-dependency-path: package-lock.json
-
-      - name: Install dependencies (workspace-aware)
-        uses: ./.github/actions/setup-node-deps
-
-      - name: Run unit tests
-        working-directory: packages/cli
-        run: npx vitest run __tests__/unit/
-
-      - name: Run integration tests
-        working-directory: packages/cli
-        run: npx vitest run __tests__/integration/
-
-      # E2E suite has known IPC-saturation issue on Windows/macOS:
-      # init-and-cowork-commands.test.js alone runs 51 subprocess-spawn
-      # tests in ~65s, which floods the Vitest worker→main stdout pipe
-      # past the 60s "onTaskUpdate" RPC timeout (vitest/dist/chunks/rpc).
-      #   --reporter=basic suppresses per-test output → less IPC traffic
-      #   --reporter=junit writes to file → no live stdout
-      # Two batches keep any single batch under the timeout even if one
-      # heavy file straggles.
-      - name: Run E2E tests (batch 1, a-o)
-        working-directory: packages/cli
-        shell: bash
-        run: |
-          files=(__tests__/e2e/[a-o]*.test.js)
-          echo "Batch 1 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --reporter=basic "${files[@]}"
-
-      - name: Run E2E tests (batch 2, p-z)
-        working-directory: packages/cli
-        shell: bash
-        run: |
-          files=(__tests__/e2e/[p-z]*.test.js)
-          echo "Batch 2 files: ${#files[@]}"
-          npx vitest run --config vitest.e2e.config.js --reporter=basic "${files[@]}"
-
+      - uses: ./.github/actions/setup-node-deps
       - name: Verify CLI --version
         working-directory: packages/cli
         run: node bin/chainlesschain.js --version
-
       - name: Verify CLI --help
         working-directory: packages/cli
         run: node bin/chainlesschain.js --help
@@ -81,7 +61,7 @@ jobs:
   # A full pkg + smoke run would need CC_PACK_E2E=1 and ~30s of pkg download
   # on every PR — out of scope for this job; use the manual e2e suite instead.
   pack-linux-dryrun:
-    needs: [test]
+    needs: [test-ubuntu]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -116,7 +96,7 @@ jobs:
             --no-smoke-test
 
   dry-run-publish:
-    needs: [test]
+    needs: [test-ubuntu]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:

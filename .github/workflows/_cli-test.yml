@@ -1,0 +1,108 @@
+name: _CLI Test (reusable)
+
+# Reusable workflow for the chainlesschain CLI test suite.
+# Uses vitest's native --shard=k/n (file-balanced) plus a GitHub Actions matrix
+# so each suite × shard runs in its own runner, in parallel.
+#
+# Why this exists (do not revert to the old `[a-m]*/[n-z]*` glob batches):
+#   The previous strategy alphabetically split test files into two halves and
+#   added --no-file-parallelism on top to keep things linear. That broke every
+#   time a heavy new test landed in one half (e.g. mtc-federation-governance-cli
+#   ~85s/41 tests). vitest's --shard splits files by hash → each shard is
+#   ~25% of the work, balanced automatically as new tests land, AND file
+#   parallelism inside the shard can come back.
+#
+# Required flags (DO NOT DROP):
+#   --shard=k/n        balanced file split (replaces glob batching)
+#   --silent=true      suppresses per-test stdout capture going over the
+#                      vitest worker→main RPC pipe (60s onTaskUpdate timeout).
+#                      Without this, a 4366-test shard locally exits 1 with
+#                      "[vitest-worker]: Timeout calling onTaskUpdate" even
+#                      though every test passes. This is standard vitest CI
+#                      practice, not a workaround. Note: vitest CAC parser
+#                      requires the explicit `=true` form when positional
+#                      file args follow.
+#   --reporter=basic   minimal reporter output (less IPC traffic)
+#
+# Inputs:
+#   runs-on    — runner OS (default ubuntu-latest)
+#   shards     — number of shards per suite (default 4; must match the matrix below)
+#   include-e2e — set false to skip the e2e suite (e.g. for fast PR feedback)
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: "Runner OS"
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      shards:
+        description: "Number of shards per suite (must equal the matrix length below)"
+        required: false
+        type: number
+        default: 4
+      include-e2e:
+        description: "Include the e2e suite"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  unit:
+    name: "unit (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
+    runs-on: ${{ inputs.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.shards }}
+        working-directory: packages/cli
+        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/unit/
+
+  integration:
+    name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
+    runs-on: ${{ inputs.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: vitest integration shard ${{ matrix.shard }}/${{ inputs.shards }}
+        working-directory: packages/cli
+        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/integration/
+
+  e2e:
+    name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
+    if: ${{ inputs.include-e2e }}
+    runs-on: ${{ inputs.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+      - name: vitest e2e shard ${{ matrix.shard }}/${{ inputs.shards }}
+        working-directory: packages/cli
+        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/e2e/
