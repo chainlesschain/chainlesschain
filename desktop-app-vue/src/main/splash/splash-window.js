@@ -26,7 +26,7 @@ class SplashWindow {
         height: 520,
         frame: false,
         transparent: false,
-        backgroundColor: "#764ba2",  // 渐变中间色，避免首帧闪白/透明
+        backgroundColor: "#764ba2", // 渐变中间色，避免首帧闪白/透明
         alwaysOnTop: true,
         center: true,
         resizable: false,
@@ -114,13 +114,18 @@ class SplashWindow {
         // 等待淡出动画完成后关闭
         setTimeout(() => {
           if (this.window && !this.window.isDestroyed()) {
-            this.window.close();
+            // Use destroy() instead of close() — the latter triggers the
+            // sandboxed_renderer close handshake that intermittently crashes
+            // Electron 39 / Windows with "object is not iterable" (exit
+            // 0xC0000005), especially when paired with web-panel HTML in
+            // the main BrowserWindow. destroy() skips that handshake.
+            this.window.destroy();
             this.window = null;
           }
           this.isCreated = false;
         }, 300);
       } else {
-        this.window.close();
+        this.window.destroy();
         this.window = null;
         this.isCreated = false;
       }

@@ -169,14 +169,17 @@ class ChainlessChainApp {
     logger.info("ChainlessChain Vue 启动中..(优化版");
 
     // 创建启动画面
-    // Skip the splash window entirely when running in web-shell mode. Its
-    // sandboxed_renderer bundle hits a flaky "object is not iterable" crash
-    // around the close handshake on Electron 39 / Windows that
-    // intermittently takes the main process down (exit 0xC0000005). The
-    // web-panel SPA loads from local HTTP in <100 ms so the splash adds no
-    // user value here. Keep it for the V5/V6 desktop renderer where the
-    // long bootstrap actually benefits from the progress UI.
-    if (process.env.NODE_ENV !== "test" && !shouldRunWebShell()) {
+    // Show splash in BOTH desktop-renderer AND webshell modes — packaged
+    // boot takes 1+ minute (backend services start, skill registry loads
+    // 167 skills, P2P stack inits, web-panel SPA HTTP server boots) and
+    // without splash users click the icon and see nothing for ~60s
+    // ("是不是没启动？" UX issue reported v5.0.3.20).
+    //
+    // The previous gating (Phase 1.6: `!shouldRunWebShell()`) was added
+    // because Electron 39 hit a sandboxed_renderer "object is not iterable"
+    // crash around splash CLOSE in webshell mode. Mitigated below: the
+    // SplashWindow.close() now uses destroy() to bypass the close handshake.
+    if (process.env.NODE_ENV !== "test") {
       this.splashWindow = new SplashWindow();
       try {
         await this.splashWindow.create();
