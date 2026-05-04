@@ -1,0 +1,33 @@
+diff --git a/.github/workflows/_cli-test.yml b/.github/workflows/_cli-test.yml
+index 209c9e6d8..d633dae7b 100644
+--- a/.github/workflows/_cli-test.yml
++++ b/.github/workflows/_cli-test.yml
+@@ -88,13 +88,17 @@ jobs:
+         run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/integration/
+ 
+   e2e:
+-    name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
++    # e2e runs more shards than unit/integration. The init-and-cowork-commands
++    # e2e file alone runs 51 CLI subprocess spawns and saturates the worker→main
++    # RPC pipe past the 60s onTaskUpdate timeout when bundled with peers. 8
++    # shards isolates it (~3 files/shard) without affecting unit/integration.
++    name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
+     if: ${{ inputs.include-e2e }}
+     runs-on: ${{ inputs.runs-on }}
+     strategy:
+       fail-fast: false
+       matrix:
+-        shard: [1, 2, 3, 4]
++        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+     steps:
+       - uses: actions/checkout@v4
+       - uses: actions/setup-node@v4
+@@ -103,6 +107,6 @@ jobs:
+           cache: "npm"
+           cache-dependency-path: package-lock.json
+       - uses: ./.github/actions/setup-node-deps
+-      - name: vitest e2e shard ${{ matrix.shard }}/${{ inputs.shards }}
++      - name: vitest e2e shard ${{ matrix.shard }}/8
+         working-directory: packages/cli
+-        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/e2e/
++        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/8 --reporter=basic --silent=true __tests__/e2e/
