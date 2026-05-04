@@ -22,8 +22,14 @@ vi.mock("@/utils/logger", () => ({
 }));
 
 vi.mock("@ant-design/icons-vue", () => ({
-  CheckCircleOutlined: { name: "CheckCircleOutlined", template: "<span>check</span>" },
-  MinusCircleOutlined: { name: "MinusCircleOutlined", template: "<span>minus</span>" },
+  CheckCircleOutlined: {
+    name: "CheckCircleOutlined",
+    template: "<span>check</span>",
+  },
+  MinusCircleOutlined: {
+    name: "MinusCircleOutlined",
+    template: "<span>minus</span>",
+  },
   LockOutlined: { name: "LockOutlined", template: "<span>lock</span>" },
   CodeOutlined: { name: "CodeOutlined", template: "<span>code</span>" },
   ReloadOutlined: { name: "ReloadOutlined", template: "<span>reload</span>" },
@@ -111,8 +117,7 @@ const globalStubs = {
     props: ["columns", "dataSource", "pagination", "loading", "rowKey"],
   },
   "a-tag": {
-    template:
-      '<span class="a-tag" :data-color="color"><slot /></span>',
+    template: '<span class="a-tag" :data-color="color"><slot /></span>',
     props: ["color"],
   },
   "a-descriptions": {
@@ -127,7 +132,15 @@ const globalStubs = {
   "a-modal": {
     template:
       '<div v-if="open" class="a-modal"><div class="modal-title">{{ title }}</div><slot /><slot name="footer" /></div>',
-    props: ["open", "title", "width", "footer", "confirmLoading", "okText", "cancelText"],
+    props: [
+      "open",
+      "title",
+      "width",
+      "footer",
+      "confirmLoading",
+      "okText",
+      "cancelText",
+    ],
     emits: ["update:open", "ok"],
   },
   "a-radio-group": {
@@ -196,10 +209,16 @@ const createInvokeMock = (overrides = {}) => {
     "system:get-path": ({ args }) => {
       const target = args[0];
       if (target === "userData") {
-        return { success: true, path: "C:/Users/test/AppData/Roaming/ChainlessChain" };
+        return {
+          success: true,
+          path: "C:/Users/test/AppData/Roaming/ChainlessChain",
+        };
       }
       if (target === "exe") {
-        return { success: true, path: "C:/code/chainlesschain/desktop-app-vue/app.exe" };
+        return {
+          success: true,
+          path: "C:/code/chainlesschain/desktop-app-vue/app.exe",
+        };
       }
       return { success: true, path: "C:/code/chainlesschain" };
     },
@@ -353,19 +372,13 @@ describe("MCPSettings.vue", () => {
     wrapper.vm.testTool(wrapper.vm.serverTools[0]);
     await flushPromises();
 
-    expect(wrapper.vm.selectedTool.category).toBe("read");
-    expect(wrapper.vm.selectedTool.riskLevel).toBe("low");
-    expect(wrapper.vm.toolParameters).toEqual([
-      {
-        name: "noteId",
-        type: "string",
-        description: "Note identifier",
-        required: true,
-        enum: null,
-        default: undefined,
-        multiline: false,
-      },
-    ]);
+    // After 42d0578fb the tool-test state lives inside MCPToolTestModal;
+    // selectedTool/toolParameters are no longer on MCPSettings.vm. Verify
+    // the same intent by checking that normalizeToolDescriptor (called via
+    // showServerTools) derived category/riskLevel from isReadOnly, then
+    // confirm the rendered tree picked them up through the child modal.
+    expect(wrapper.vm.serverTools[0].category).toBe("read");
+    expect(wrapper.vm.serverTools[0].riskLevel).toBe("low");
     expect(wrapper.html()).toContain("Read");
     expect(wrapper.html()).toContain("Low");
     expect(wrapper.html()).toContain("Read a note");

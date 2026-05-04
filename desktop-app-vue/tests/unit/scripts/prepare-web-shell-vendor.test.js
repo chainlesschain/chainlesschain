@@ -99,9 +99,16 @@ describe("vendorWebShellInto", () => {
       ),
     ).toBe(true);
 
-    // Stats reported should match what's actually on disk.
+    // Stats reported should match what's actually on disk. cli/src is
+    // git-tracked source (always >50 files in fresh checkout). webPanel
+    // dist count depends on whether web-panel was built — fresh CI has
+    // only the 9 git-committed files, a full local build has ~200+. Use
+    // a non-zero floor here; the existsSync checks above already guard
+    // against an empty / no-op vendor copy. If we want to enforce "dist
+    // is built", that belongs in a CI build-step assertion, not a unit
+    // test of the vendor script.
     expect(stats.cli.files).toBeGreaterThan(50);
-    expect(stats.webPanel.files).toBeGreaterThan(10);
+    expect(stats.webPanel.files).toBeGreaterThan(0);
   });
 
   it("excludes the assets/web-panel duplicate from the cli vendor", () => {
