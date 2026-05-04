@@ -69,11 +69,29 @@ jobs:
         run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/unit/
 
   integration:
-    # Integration runs more shards than unit because shard 4 hashes to a
-    # combination heavy enough to push wall-time past the 60s onTaskUpdate
-    # heartbeat on all 3 OS (ubuntu 109s, macos 136s, windows 213s as of
-    # CLI CI run 25320080164 on c4c4f0d8a). 8 shards halves the per-shard
-    # wall-time without affecting unit/e2e.
+    # Integration runs 8 shards because shard 4 (at the 4-shard layout)
+    # hashed to a combination heavy enough to push wall-time past the 60s
+    # onTaskUpdate heartbeat on all 3 OS. 8 shards halved the per-shard
+    # wall-time but did NOT eliminate the failure — see the "known
+    # limitation" note below.
+    #
+    # KNOWN LIMITATION (intentionally not patched):
+    # Whichever shard contains __tests__/integration/mtc-federation-governance-cli.test.js
+    # may flake on Windows and Ubuntu with vitest's hardcoded 60s
+    # onTaskUpdate RPC timeout. That ONE file runs 41 CLI subprocess
+    # spawns and takes ~110s on Linux CI / ~200s on Windows CI alone.
+    # All 41 tests inside it pass — only the worker→main reporter
+    # heartbeat times out during long quiet stretches between subprocess
+    # results. As of CLI CI run 25321545472 on b52c2f427, this hashed
+    # to shard 8/8.
+    #
+    # If you see "integration (*, shard k/8)" failing with
+    # "[vitest-worker]: Timeout calling onTaskUpdate" while "Test Files
+    # N passed (N)" reports green, this is the known issue. Re-run
+    # to confirm transience or investigate if it spreads to other shards.
+    # The structural fix is to either (a) split this test file into
+    # smaller chunks or (b) give it a dedicated CI job; both are out of
+    # scope for the sharding work and need a follow-up issue.
     name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
     strategy:
