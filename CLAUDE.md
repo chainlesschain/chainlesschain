@@ -10,13 +10,13 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.3.3 (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 112 CLI Commands + 8000+ Tests; MTC v0.5 — Phases 0–4 fully landed including federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA federations + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
+**Current Version**: see `package.json.productVersion` (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 112 CLI Commands + 8000+ Tests; MTC v0.5 — Phases 0–4 fully landed including federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA federations + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
-**Version hierarchy** (independent tracks — do not attempt to unify):
-- Product line: `v5.0.3.3` (marketing / release notes / docs — single source: `package.json.productVersion`)
-- CLI npm: `chainlesschain@0.160.0` (`packages/cli/package.json`)
-- Desktop app: `1.1.0-alpha` (`desktop-app-vue/package.json` — alpha prerelease track)
-- Monorepo root: `0.37.8` (`/package.json` — workspaces aggregate, not published)
+**Version hierarchy** (independent tracks — do not attempt to unify; values live in their respective files, do not duplicate here):
+- Product line: `package.json.productVersion` (marketing / release notes / docs — single source of truth)
+- CLI npm: `packages/cli/package.json` `version` field (alpha prerelease track)
+- Desktop app: `desktop-app-vue/package.json` `version` field (alpha prerelease track)
+- Monorepo root: `package.json` `version` field (workspaces aggregate, not published)
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
