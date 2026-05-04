@@ -36,18 +36,10 @@
           <div class="did-info">
             <div class="did-name">
               {{ did.profile?.name || "Unnamed" }}
-              <a-tag
-                v-if="did.did === currentDid"
-                color="blue"
-                size="small"
-              >
+              <a-tag v-if="did.did === currentDid" color="blue" size="small">
                 当前
               </a-tag>
-              <a-tag
-                v-if="isCreator(did)"
-                color="green"
-                size="small"
-              >
+              <a-tag v-if="isCreator(did)" color="green" size="small">
                 创建者
               </a-tag>
             </div>
@@ -66,15 +58,8 @@
 
       <!-- 空状态 -->
       <template #notFoundContent>
-        <a-empty
-          :image="Empty.PRESENTED_IMAGE_SIMPLE"
-          description="暂无DID"
-        >
-          <a-button
-            type="link"
-            size="small"
-            @click="handleCreateDid"
-          >
+        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无DID">
+          <a-button type="link" size="small" @click="handleCreateDid">
             <plus-outlined /> 创建DID
           </a-button>
         </a-empty>
@@ -82,22 +67,11 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div
-      v-if="showQuickActions"
-      class="quick-actions"
-    >
-      <a-button
-        type="link"
-        size="small"
-        @click="handleCreateDid"
-      >
+    <div v-if="showQuickActions" class="quick-actions">
+      <a-button type="link" size="small" @click="handleCreateDid">
         <plus-outlined /> 新建
       </a-button>
-      <a-button
-        type="link"
-        size="small"
-        @click="handleManageDids"
-      >
+      <a-button type="link" size="small" @click="handleManageDids">
         <setting-outlined /> 管理
       </a-button>
     </div>
@@ -340,8 +314,8 @@ const handleChange = (value) => {
  */
 const handleCreateDid = () => {
   emit("create-did");
-  // 默认跳转到DID管理页
-  router.push("/did");
+  // 默认跳转到 V6 home（V5 /did 路由已删，由 V6 DIDManagementPanel 替代）
+  router.push("/v6-preview");
 };
 
 /**
@@ -349,7 +323,7 @@ const handleCreateDid = () => {
  */
 const handleManageDids = () => {
   emit("manage-dids");
-  router.push("/did");
+  router.push("/v6-preview");
 };
 
 // 生命周期
