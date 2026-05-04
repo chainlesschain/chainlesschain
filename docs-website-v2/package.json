@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "fetch:sizes": "node scripts/fetch-release-sizes.mjs",
+    "build": "node scripts/fetch-release-sizes.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
