@@ -191,12 +191,32 @@ compression: normal  # 或 maximum（但会更慢）
 extraResources:
   - from: ../docker-compose.yml
     to: backend-services/docker-compose.yml
-  # NOTE: packages/cli + packages/web-panel/dist are NOT copied here.
-  # v5.0.3.17 tried that and Setup.exe failed to install (NSIS exit 2 /
-  # immediate crash on click — likely path-length or file-count edge case
-  # with the ~50 MB cli source tree). Moved to scripts/electron-after-pack.js
-  # where the same files are placed at appOutDir/resources/packages/ via
-  # plain Node fs.cpSync. NSIS then just zips the resources/ tree wholesale.
+  # packages/cli + packages/web-panel/dist MUST go through extraResources,
+  # NOT through the afterPack hook. electron-builder builds an internal
+  # file manifest BEFORE afterPack runs; new paths added in afterPack
+  # (verified: copy succeeds in win-unpacked/) get dropped by the NSIS /
+  # Portable target packing step because they're not in the manifest.
+  # v5.0.3.18 confirmed this: afterPack copied resources/packages/ at
+  # build time, but the final Setup.exe / Portable.exe install showed
+  # resources/packages/ missing.
+  #
+  # afterPack still does the heavy lifting for the node_modules nuclear
+  # replacement (those paths ARE in the manifest because electron-builder
+  # walked them itself; afterPack just rewrites their contents).
+  - from: ../packages/cli/src
+    to: packages/cli/src
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
+  - from: ../packages/cli/bin
+    to: packages/cli/bin
+  - from: ../packages/cli/package.json
+    to: packages/cli/package.json
+  - from: ../packages/web-panel/dist
+    to: packages/web-panel/dist
+  - from: ../packages/web-panel/package.json
+    to: packages/web-panel/package.json
   # Force-include express@5/qs/side-channel split deps that electron-builder's
   # prod-dep walker repeatedly drops from the asar (v5.0.3.4-11 shipped broken
   # with this exact symptom — call-bind-apply-helpers ends up only inside

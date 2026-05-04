@@ -93,77 +93,18 @@ exports.default = async function afterPack(context) {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // Copy packages/cli + packages/web-panel/dist into resources/packages/
-  // so web-shell loaders can resolve the sibling-app paths they expect:
-  //   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
-  // (web-ui-loader.js, ws-cli-loader.js).
+  // NOTE: packages/cli + packages/web-panel/dist are NOT copied here.
+  // electron-builder snapshots the file manifest BEFORE afterPack runs,
+  // so new paths added at this stage get DROPPED by NSIS/Portable target
+  // packaging. v5.0.3.18 confirmed: afterPack copied them successfully
+  // to win-unpacked/resources/packages/ (visible in CI log) but the final
+  // installer artifact had no resources/packages/ directory.
   //
-  // Done here in afterPack instead of via electron-builder.yml `extraResources`
-  // because v5.0.3.17 saw NSIS Setup.exe install failures (exit 2 / 闪退)
-  // when extraResources copied ~50 MB of cli sources — apparently triggered
-  // some NSIS path-length or file-count edge case. afterPack copy lands in
-  // appOutDir/resources/packages/ which NSIS just zips wholesale, no
-  // glob-walking gymnastics on the NSIS side.
-  // ---------------------------------------------------------------------
-  const repoRoot = path.resolve(__dirname, "..", "..");
-  const targetResources = path.join(appOutDir, "resources");
-  const targetPackages = path.join(targetResources, "packages");
-
-  function copyTree(src, dest, label) {
-    if (!fs.existsSync(src)) {
-      throw new Error(`${tag} source not found: ${src} (${label})`);
-    }
-    if (fs.existsSync(dest)) fs.rmSync(dest, { recursive: true, force: true });
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.cpSync(src, dest, { recursive: true, dereference: false });
-    console.log(
-      `${tag} copied ${label} → ${path.relative(targetResources, dest)}`,
-    );
-  }
-
-  copyTree(
-    path.join(repoRoot, "packages", "cli", "src"),
-    path.join(targetPackages, "cli", "src"),
-    "packages/cli/src",
-  );
-  copyTree(
-    path.join(repoRoot, "packages", "cli", "bin"),
-    path.join(targetPackages, "cli", "bin"),
-    "packages/cli/bin",
-  );
-  fs.mkdirSync(path.join(targetPackages, "cli"), { recursive: true });
-  fs.copyFileSync(
-    path.join(repoRoot, "packages", "cli", "package.json"),
-    path.join(targetPackages, "cli", "package.json"),
-  );
-  console.log(`${tag} copied packages/cli/package.json`);
-
-  copyTree(
-    path.join(repoRoot, "packages", "web-panel", "dist"),
-    path.join(targetPackages, "web-panel", "dist"),
-    "packages/web-panel/dist",
-  );
-  fs.mkdirSync(path.join(targetPackages, "web-panel"), { recursive: true });
-  fs.copyFileSync(
-    path.join(repoRoot, "packages", "web-panel", "package.json"),
-    path.join(targetPackages, "web-panel", "package.json"),
-  );
-  console.log(`${tag} copied packages/web-panel/package.json`);
-
-  // Final sanity: paths that web-shell loaders specifically need.
-  const REQUIRED_PATHS = [
-    path.join(targetPackages, "cli", "src", "gateways", "ws", "ws-server.js"),
-    path.join(targetPackages, "cli", "src", "lib", "web-ui-server.js"),
-    path.join(targetPackages, "web-panel", "dist", "index.html"),
-  ];
-  const missingPaths = REQUIRED_PATHS.filter((p) => !fs.existsSync(p));
-  if (missingPaths.length) {
-    throw new Error(
-      `${tag} required web-shell paths missing: ${missingPaths.map((p) => path.relative(targetResources, p)).join(", ")}`,
-    );
-  }
-  console.log(`${tag} web-shell required paths all present`);
+  // Solution: declared via electron-builder.yml `extraResources`. Those
+  // paths ARE in the manifest, so the contents reach the final installer.
+  // node_modules nuclear-replace works in afterPack because electron-builder
+  // walked node_modules/ itself, registering each path in the manifest;
+  // afterPack just rewrites the file contents at registered paths.
 
   const elapsed = Math.round((Date.now() - start) / 1000);
   console.log(
