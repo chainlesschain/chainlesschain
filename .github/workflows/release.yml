@@ -383,6 +383,16 @@ jobs:
           [ "$fail" = "1" ] && exit 1
           echo "OK: 7 express@5/qs/side-channel transitive deps + entry files verified"
 
+      - name: Install macOS dmg-license (cross-platform lockfile workaround)
+        working-directory: desktop-app-vue
+        # desktop-app-vue/package-lock.json was generated on Windows where
+        # dmg-license (os: ["darwin"]) was skipped. CI's macOS `npm ci`
+        # honors that platform constraint and doesn't install it either,
+        # then electron-builder's dmg-builder requires('dmg-license') and
+        # crashes with `Cannot find module 'dmg-license'`. v5.0.3.26 hit this.
+        # Install it explicitly here without touching the lockfile.
+        run: npm install --no-save --legacy-peer-deps dmg-license
+
       - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
         run: npm run make:mac:builder
