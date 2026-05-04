@@ -1285,6 +1285,14 @@ jobs:
       - name: Install dependencies (workspace-aware)
         run: npm install --legacy-peer-deps
 
+      - name: Install desktop-app-vue deps (post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # cowork-doc-generator.js requires('glob') which lives in
+        # desktop-app-vue/node_modules/glob. After ad3e7d403 workspace
+        # refactor, root npm install no longer installs desktop-app-vue's
+        # deps. v5.0.3.28 hit "Cannot find module 'glob'" here.
+        run: npm ci
+
       - name: Regenerate CHANGELOG.md
         working-directory: desktop-app-vue
         run: node scripts/cowork-doc-generator.js --type changelog
