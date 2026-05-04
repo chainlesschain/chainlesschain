@@ -3,6 +3,11 @@
   "version": "1.1.0-alpha",
   "description": "ChainlessChain桌面应用 - 基于Electron和Vue3的个人AI知识库",
   "main": "dist/main/index.js",
+  "engines": {
+    "node": ">=22.12.0 <23.0.0 || >=24.0.0",
+    "npm": ">=10.0.0",
+    "_comment": "Node 23 (ABI v131) intentionally excluded — native deps like better-sqlite3-multiple-ciphers and SIMKey FFI ship prebuilds for v115/v127/v137 only, so 23.x falls back to node-gyp from-source builds and breaks `npm install` on machines without MSVC. Use 22.x LTS (recommended) or 24.x."
+  },
   "scripts": {
     "_postinstall_disabled": "node scripts/link-hoisted-modules.js",
     "predev": "node scripts/fix-broken-bin-shims.js",
