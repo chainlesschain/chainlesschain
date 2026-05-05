@@ -14,15 +14,17 @@ import {
 } from "../../../src/main/engines/pdf-engine.js";
 
 // Helper to create mock BrowserWindow instance
-const createMockBrowserWindow = () => ({
-  loadURL: vi.fn().mockResolvedValue(undefined),
-  webContents: {
-    printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF content")),
-  },
-  close: vi.fn(),
-  isDestroyed: vi.fn().mockReturnValue(false),
-  destroy: vi.fn(),
-});
+function createMockBrowserWindow() {
+  return {
+    loadURL: vi.fn().mockResolvedValue(undefined),
+    webContents: {
+      printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF content")),
+    },
+    close: vi.fn(),
+    isDestroyed: vi.fn().mockReturnValue(false),
+    destroy: vi.fn(),
+  };
+}
 
 // Mock BrowserWindow constructor
 const MockBrowserWindow = vi.fn().mockImplementation(createMockBrowserWindow);
@@ -164,14 +166,16 @@ describe("PDF引擎测试", () => {
     it("should convert HTML to PDF", async () => {
       const mockPDFData = Buffer.from("PDF content");
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(mockPDFData),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(mockPDFData),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
@@ -187,14 +191,16 @@ describe("PDF引擎测试", () => {
     });
 
     it("should create BrowserWindow with correct options", async () => {
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
@@ -216,14 +222,16 @@ describe("PDF引擎测试", () => {
     it("should handle landscape option", async () => {
       const mockPrintToPDF = vi.fn().mockResolvedValue(Buffer.from("PDF"));
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: mockPrintToPDF,
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: mockPrintToPDF,
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
@@ -240,14 +248,16 @@ describe("PDF引擎测试", () => {
     it("should handle custom page size", async () => {
       const mockPrintToPDF = vi.fn().mockResolvedValue(Buffer.from("PDF"));
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: mockPrintToPDF,
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: mockPrintToPDF,
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
@@ -264,14 +274,16 @@ describe("PDF引擎测试", () => {
     it("should close window even if conversion fails", async () => {
       const mockClose = vi.fn();
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockRejectedValue(new Error("Load failed")),
-        webContents: {
-          printToPDF: vi.fn(),
-        },
-        close: mockClose,
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockRejectedValue(new Error("Load failed")),
+          webContents: {
+            printToPDF: vi.fn(),
+          },
+          close: mockClose,
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       await expect(
         pdfEngine.htmlToPDF("<html></html>", "/test.pdf"),
@@ -283,14 +295,16 @@ describe("PDF引擎测试", () => {
     it("should not close already destroyed window", async () => {
       const mockClose = vi.fn();
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockRejectedValue(new Error("Failed")),
-        webContents: {
-          printToPDF: vi.fn(),
-        },
-        close: mockClose,
-        isDestroyed: vi.fn(() => true), // Already destroyed
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockRejectedValue(new Error("Failed")),
+          webContents: {
+            printToPDF: vi.fn(),
+          },
+          close: mockClose,
+          isDestroyed: vi.fn(() => true), // Already destroyed
+        };
+      });
 
       await expect(
         pdfEngine.htmlToPDF("<html></html>", "/test.pdf"),
@@ -302,14 +316,16 @@ describe("PDF引擎测试", () => {
     it("should encode HTML properly for data URL", async () => {
       const mockLoadURL = vi.fn().mockResolvedValue(undefined);
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: mockLoadURL,
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: mockLoadURL,
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
@@ -326,14 +342,16 @@ describe("PDF引擎测试", () => {
   describe("markdownToPDF", () => {
     beforeEach(() => {
       mockMarked.parse.mockReturnValue("<p>Content</p>");
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 1024 });
@@ -377,14 +395,16 @@ describe("PDF引擎测试", () => {
 
   describe("htmlFileToPDF", () => {
     beforeEach(() => {
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 2048 });
@@ -429,14 +449,16 @@ describe("PDF引擎测试", () => {
 
   describe("textFileToPDF", () => {
     beforeEach(() => {
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 512 });
@@ -456,14 +478,16 @@ describe("PDF引擎测试", () => {
       mockFs.readFile.mockResolvedValue("Text");
       const mockLoadURL = vi.fn().mockResolvedValue(undefined);
 
-      MockBrowserWindow.mockImplementationOnce(() => ({
-        loadURL: mockLoadURL,
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementationOnce(function () {
+        return {
+          loadURL: mockLoadURL,
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       await pdfEngine.textFileToPDF("/path/to/myfile.txt", "/output.pdf");
 
@@ -496,14 +520,16 @@ describe("PDF引擎测试", () => {
       mockFs.readFile.mockResolvedValue(textWithFormatting);
       const mockLoadURL = vi.fn().mockResolvedValue(undefined);
 
-      MockBrowserWindow.mockImplementationOnce(() => ({
-        loadURL: mockLoadURL,
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementationOnce(function () {
+        return {
+          loadURL: mockLoadURL,
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       await pdfEngine.textFileToPDF("/formatted.txt", "/output.pdf");
 
@@ -517,14 +543,16 @@ describe("PDF引擎测试", () => {
   describe("batchConvert", () => {
     beforeEach(() => {
       mockMarked.parse.mockReturnValue("<p>Content</p>");
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 1024 });
@@ -651,14 +679,16 @@ describe("PDF引擎测试", () => {
 
   describe("边界条件和错误处理", () => {
     beforeEach(() => {
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 100 });
@@ -701,14 +731,16 @@ describe("PDF引擎测试", () => {
     });
 
     it("should handle printToPDF errors", async () => {
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockRejectedValue(new Error("Print failed")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockRejectedValue(new Error("Print failed")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       await expect(
         pdfEngine.htmlToPDF("<html></html>", "/test.pdf"),
@@ -746,14 +778,16 @@ describe("PDF引擎测试", () => {
   describe("性能测试", () => {
     beforeEach(() => {
       mockMarked.parse.mockReturnValue("<p>Content</p>");
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: vi.fn(),
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        };
+      });
       mockFs.ensureDir.mockResolvedValue(undefined);
       mockFs.writeFile.mockResolvedValue(undefined);
       mockFs.stat.mockResolvedValue({ size: 1024 });
@@ -780,14 +814,16 @@ describe("PDF引擎测试", () => {
     it("should not leak memory with multiple conversions", async () => {
       const mockClose = vi.fn();
 
-      MockBrowserWindow.mockImplementation(() => ({
-        loadURL: vi.fn().mockResolvedValue(undefined),
-        webContents: {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
-        },
-        close: mockClose,
-        isDestroyed: vi.fn(() => false),
-      }));
+      MockBrowserWindow.mockImplementation(function () {
+        return {
+          loadURL: vi.fn().mockResolvedValue(undefined),
+          webContents: {
+            printToPDF: vi.fn().mockResolvedValue(Buffer.from("PDF")),
+          },
+          close: mockClose,
+          isDestroyed: vi.fn(() => false),
+        };
+      });
 
       for (let i = 0; i < 5; i++) {
         await pdfEngine.markdownToPDF(`# Test ${i}`, `/test${i}.pdf`);

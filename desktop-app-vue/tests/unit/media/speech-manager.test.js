@@ -187,11 +187,21 @@ describe("SpeechManager with Dependency Injection", () => {
 
     // Create manager with injected dependencies
     manager = new SpeechManager(mockDb, mockRagManager, {
-      ConfigClass: vi.fn(() => mockConfig),
-      ProcessorClass: vi.fn(() => mockProcessor),
-      StorageClass: vi.fn(() => mockStorage),
-      RecognizerClass: vi.fn(() => mockRecognizer),
-      SubtitleClass: vi.fn(() => mockSubtitleGenerator),
+      ConfigClass: vi.fn(function () {
+        return mockConfig;
+      }),
+      ProcessorClass: vi.fn(function () {
+        return mockProcessor;
+      }),
+      StorageClass: vi.fn(function () {
+        return mockStorage;
+      }),
+      RecognizerClass: vi.fn(function () {
+        return mockRecognizer;
+      }),
+      SubtitleClass: vi.fn(function () {
+        return mockSubtitleGenerator;
+      }),
     });
   });
 
@@ -280,14 +290,24 @@ describe("SpeechManager with Dependency Injection", () => {
     });
 
     it("should use injected config class", async () => {
-      const ConfigClassSpy = vi.fn(() => mockConfig);
+      const ConfigClassSpy = vi.fn(function () {
+        return mockConfig;
+      });
 
       const testManager = new SpeechManager(mockDb, mockRagManager, {
         ConfigClass: ConfigClassSpy,
-        ProcessorClass: vi.fn(() => mockProcessor),
-        StorageClass: vi.fn(() => mockStorage),
-        RecognizerClass: vi.fn(() => mockRecognizer),
-        SubtitleClass: vi.fn(() => mockSubtitleGenerator),
+        ProcessorClass: vi.fn(function () {
+          return mockProcessor;
+        }),
+        StorageClass: vi.fn(function () {
+          return mockStorage;
+        }),
+        RecognizerClass: vi.fn(function () {
+          return mockRecognizer;
+        }),
+        SubtitleClass: vi.fn(function () {
+          return mockSubtitleGenerator;
+        }),
       });
 
       await testManager.initialize();

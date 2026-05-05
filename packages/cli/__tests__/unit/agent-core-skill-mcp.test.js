@@ -19,9 +19,9 @@ vi.mock("../../src/lib/plan-mode.js", () => ({
 const _mockSkills = [];
 
 vi.mock("../../src/lib/skill-loader.js", () => ({
-  CLISkillLoader: vi.fn().mockImplementation(() => ({
-    getResolvedSkills: vi.fn(() => _mockSkills),
-  })),
+  CLISkillLoader: vi.fn(function () {
+    return { getResolvedSkills: vi.fn(() => _mockSkills) };
+  }),
 }));
 
 vi.mock("../../src/lib/project-detector.js", () => ({

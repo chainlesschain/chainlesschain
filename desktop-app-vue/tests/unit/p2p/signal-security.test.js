@@ -59,13 +59,17 @@ function setupMockImplementations() {
     const privKey = new ArrayBuffer(32);
     const pubView = new Uint8Array(pubKey);
     const privView = new Uint8Array(privKey);
-    for (let i = 0; i < 33; i++) pubView[i] = Math.floor(Math.random() * 256);
-    for (let i = 0; i < 32; i++) privView[i] = Math.floor(Math.random() * 256);
+    for (let i = 0; i < 33; i++) {
+      pubView[i] = Math.floor(Math.random() * 256);
+    }
+    for (let i = 0; i < 32; i++) {
+      privView[i] = Math.floor(Math.random() * 256);
+    }
     return { pubKey, privKey };
   });
 
-  mockKeyHelper.generateRegistrationId.mockImplementation(
-    () => Math.floor(Math.random() * 16777215)
+  mockKeyHelper.generateRegistrationId.mockImplementation(() =>
+    Math.floor(Math.random() * 16777215),
   );
 
   mockKeyHelper.generateSignedPreKey.mockImplementation(
@@ -76,7 +80,7 @@ function setupMockImplementations() {
         privKey: new ArrayBuffer(32),
       },
       signature: new ArrayBuffer(64),
-    })
+    }),
   );
 
   mockKeyHelper.generatePreKey.mockImplementation(async (keyId) => ({
@@ -88,11 +92,15 @@ function setupMockImplementations() {
   }));
 
   // Setup SessionBuilder constructor mock
-  MockSessionBuilder.mockImplementation(() => mockSessionBuilder);
+  MockSessionBuilder.mockImplementation(function () {
+    return mockSessionBuilder;
+  });
   mockSessionBuilder.processPreKey.mockResolvedValue(undefined);
 
   // Setup SessionCipher constructor mock
-  MockSessionCipher.mockImplementation(() => mockCipher);
+  MockSessionCipher.mockImplementation(function () {
+    return mockCipher;
+  });
   mockCipher.encrypt.mockImplementation(async (plaintext) => {
     messageCounter++;
     const sessionKey = `session_${messageCounter}`;
@@ -160,12 +168,15 @@ function setupMockImplementations() {
     return decrypted;
   });
 
-  // Setup SignalProtocolAddress constructor mock
-  MockSignalProtocolAddress.mockImplementation((name, deviceId) => ({
-    getName: () => name,
-    getDeviceId: () => deviceId,
-    toString: () => `${name}.${deviceId}`,
-  }));
+  // Setup SignalProtocolAddress constructor mock.
+  // function (not arrow) so vitest 4 allows `new MockSignalProtocolAddress(...)`.
+  MockSignalProtocolAddress.mockImplementation(function (name, deviceId) {
+    return {
+      getName: () => name,
+      getDeviceId: () => deviceId,
+      toString: () => `${name}.${deviceId}`,
+    };
+  });
 }
 
 describe("Signal Protocol Security Tests", () => {

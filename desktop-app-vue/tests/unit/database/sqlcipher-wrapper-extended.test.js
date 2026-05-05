@@ -123,7 +123,9 @@ describe("SQLCipherWrapper", () => {
         finish: vi.fn(),
       })),
     };
-    LocalMockDatabase = vi.fn(() => localMockDb);
+    LocalMockDatabase = vi.fn(function () {
+      return localMockDb;
+    });
   });
 
   afterEach(() => {

@@ -44,10 +44,16 @@ describe("Word引擎测试", () => {
     };
 
     globalThis.__WORD_ENGINE_DOCX__ = {
-      Document: vi.fn((config) => ({ type: "document", config })),
+      Document: vi.fn(function (config) {
+        return { type: "document", config };
+      }),
       Packer: { toBuffer: vi.fn() },
-      Paragraph: vi.fn((config) => ({ type: "paragraph", config })),
-      TextRun: vi.fn((config) => ({ config })),
+      Paragraph: vi.fn(function (config) {
+        return { type: "paragraph", config };
+      }),
+      TextRun: vi.fn(function (config) {
+        return { config };
+      }),
       HeadingLevel: {
         TITLE: "TITLE",
         HEADING_1: "H1",

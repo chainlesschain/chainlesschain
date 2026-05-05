@@ -69,15 +69,19 @@ function setupMockImplementations() {
         pubKey: new ArrayBuffer(33),
         privKey: new ArrayBuffer(32),
       },
-    })
+    }),
   );
 
   // Setup SessionBuilder constructor mock
-  MockSessionBuilder.mockImplementation(() => mockSessionBuilder);
+  MockSessionBuilder.mockImplementation(function () {
+    return mockSessionBuilder;
+  });
   mockSessionBuilder.processPreKey.mockResolvedValue(undefined);
 
   // Setup SessionCipher constructor mock
-  MockSessionCipher.mockImplementation(() => mockSessionCipher);
+  MockSessionCipher.mockImplementation(function () {
+    return mockSessionCipher;
+  });
   mockSessionCipher.encrypt.mockResolvedValue({
     type: 3,
     body: new Uint8Array([1, 2, 3, 4, 5]),
@@ -85,19 +89,22 @@ function setupMockImplementations() {
   });
 
   mockSessionCipher.decryptPreKeyWhisperMessage.mockResolvedValue(
-    new Uint8Array([72, 101, 108, 108, 111]) // "Hello"
+    new Uint8Array([72, 101, 108, 108, 111]), // "Hello"
   );
 
   mockSessionCipher.decryptWhisperMessage.mockResolvedValue(
-    new Uint8Array([72, 105]) // "Hi"
+    new Uint8Array([72, 105]), // "Hi"
   );
 
-  // Setup SignalProtocolAddress constructor mock
-  MockSignalProtocolAddress.mockImplementation((name, deviceId) => ({
-    getName: () => name,
-    getDeviceId: () => deviceId,
-    toString: () => `${name}.${deviceId}`,
-  }));
+  // Setup SignalProtocolAddress constructor mock.
+  // function (not arrow) so vitest 4 allows `new MockSignalProtocolAddress(...)`.
+  MockSignalProtocolAddress.mockImplementation(function (name, deviceId) {
+    return {
+      getName: () => name,
+      getDeviceId: () => deviceId,
+      toString: () => `${name}.${deviceId}`,
+    };
+  });
 }
 
 describe("SignalSessionManager", () => {

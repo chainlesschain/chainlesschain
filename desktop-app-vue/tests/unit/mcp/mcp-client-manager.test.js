@@ -54,12 +54,14 @@ function createMockHttpSseTransport() {
 function createMockDeps(mockClient) {
   return {
     mcpClient: {
-      Client: vi.fn().mockImplementation(() => mockClient),
+      Client: vi.fn(function () {
+        return mockClient;
+      }),
     },
     mcpStdio: {
-      StdioClientTransport: vi
-        .fn()
-        .mockImplementation(() => createMockStdioTransport()),
+      StdioClientTransport: vi.fn(function () {
+        return createMockStdioTransport();
+      }),
     },
     mcpTypes: {
       LoggingMessageNotificationSchema: { method: "notifications/message" },
@@ -74,9 +76,9 @@ function createMockDeps(mockClient) {
       },
     },
     httpSseTransport: {
-      HttpSseTransport: vi
-        .fn()
-        .mockImplementation(() => createMockHttpSseTransport()),
+      HttpSseTransport: vi.fn(function () {
+        return createMockHttpSseTransport();
+      }),
     },
   };
 }

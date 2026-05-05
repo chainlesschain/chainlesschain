@@ -95,7 +95,11 @@ describe("DatabaseMigrator", () => {
       getHandle: vi.fn(() => ({ transaction: vi.fn((fn) => fn) })),
       close: vi.fn(),
     };
-    const mockSQL = { Database: vi.fn(() => mockSourceDb) };
+    const mockSQL = {
+      Database: vi.fn(function () {
+        return mockSourceDb;
+      }),
+    };
 
     migrator.SQL = mockSQL;
     migrator.initSqlJs = vi.fn();

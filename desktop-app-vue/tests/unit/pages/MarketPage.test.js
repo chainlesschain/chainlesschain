@@ -844,7 +844,9 @@ describe("MarketPage.vue", () => {
         }),
       };
 
-      global.FileReader = vi.fn(() => mockReader);
+      global.FileReader = vi.fn(function () {
+        return mockReader;
+      });
 
       const result = wrapper.vm.handleBeforeUpload(file);
 

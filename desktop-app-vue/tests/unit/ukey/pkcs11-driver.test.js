@@ -238,7 +238,9 @@ describe("PKCS11Driver", () => {
     };
     PKCS11Driver._deps.execAsync = defaultExecAsync;
     PKCS11Driver._deps.loadPkcs11js = () => ({
-      PKCS11: vi.fn(() => mockPKCS11Instance),
+      PKCS11: vi.fn(function () {
+        return mockPKCS11Instance;
+      }),
     });
 
     driver = new PKCS11Driver();

@@ -55,10 +55,7 @@ import {
   _mockCreate,
   _mockRun,
 } from "../../src/lib/sub-agent-context.js";
-import {
-  _mockMount,
-  _mockCleanup,
-} from "../../src/lib/cowork-mcp-tools.js";
+import { _mockMount, _mockCleanup } from "../../src/lib/cowork-mcp-tools.js";
 
 describe("cowork-task-runner", () => {
   beforeEach(() => {
@@ -465,7 +462,11 @@ describe("cowork-task-runner", () => {
         parameters: { type: "object", properties: {} },
       },
     };
-    const fakeDesc = { name: "mcp__fetch__get", kind: "mcp", serverName: "fetch" };
+    const fakeDesc = {
+      name: "mcp__fetch__get",
+      kind: "mcp",
+      serverName: "fetch",
+    };
     const fakeExec = { kind: "mcp", serverName: "fetch", toolName: "get" };
     const fakeClient = { connect: vi.fn(), callTool: vi.fn() };
     _mockMount.mockResolvedValueOnce({
@@ -473,8 +474,8 @@ describe("cowork-task-runner", () => {
       mounted: ["fetch"],
       skipped: [],
       extraToolDefinitions: [fakeDef],
-      externalToolDescriptors: { "mcp__fetch__get": fakeDesc },
-      externalToolExecutors: { "mcp__fetch__get": fakeExec },
+      externalToolDescriptors: { mcp__fetch__get: fakeDesc },
+      externalToolExecutors: { mcp__fetch__get: fakeExec },
       cleanup: _mockCleanup,
     });
 
@@ -485,8 +486,8 @@ describe("cowork-task-runner", () => {
 
     const opts = _mockCreate.mock.calls[0][0];
     expect(opts.extraToolDefinitions).toEqual([fakeDef]);
-    expect(opts.externalToolDescriptors).toEqual({ "mcp__fetch__get": fakeDesc });
-    expect(opts.externalToolExecutors).toEqual({ "mcp__fetch__get": fakeExec });
+    expect(opts.externalToolDescriptors).toEqual({ mcp__fetch__get: fakeDesc });
+    expect(opts.externalToolExecutors).toEqual({ mcp__fetch__get: fakeExec });
     expect(opts.mcpClient).toBe(fakeClient);
   });
 
@@ -510,12 +511,14 @@ vi.mock("../../src/lib/orchestrator.js", () => {
   const mockAddTask = vi.fn();
   const mockStopCronWatch = vi.fn();
   const mockOn = vi.fn();
-  const MockOrchestrator = vi.fn(() => ({
-    addTask: mockAddTask,
-    stopCronWatch: mockStopCronWatch,
-    on: mockOn,
-    notifier: { addWebSocketChannel: vi.fn() },
-  }));
+  const MockOrchestrator = vi.fn(function () {
+    return {
+      addTask: mockAddTask,
+      stopCronWatch: mockStopCronWatch,
+      on: mockOn,
+      notifier: { addWebSocketChannel: vi.fn() },
+    };
+  });
   return {
     Orchestrator: MockOrchestrator,
     TASK_SOURCE: { CLI: "cli" },

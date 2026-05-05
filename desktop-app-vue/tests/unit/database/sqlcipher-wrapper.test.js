@@ -348,7 +348,9 @@ describe("SQLCipherWrapper", () => {
       })),
     };
 
-    LocalMockDatabase = vi.fn(() => localMockDbInstance);
+    LocalMockDatabase = vi.fn(function () {
+      return localMockDbInstance;
+    });
 
     const module =
       await import("../../../src/main/database/sqlcipher-wrapper.js");
@@ -957,7 +959,9 @@ describe("边界情况", () => {
       close: vi.fn(),
       backup: vi.fn(() => ({ step: vi.fn(), finish: vi.fn() })),
     };
-    LocalMockDatabase = vi.fn(() => localMockDbInstance);
+    LocalMockDatabase = vi.fn(function () {
+      return localMockDbInstance;
+    });
 
     const module =
       await import("../../../src/main/database/sqlcipher-wrapper.js");
@@ -1037,7 +1041,9 @@ describe("错误处理", () => {
       close: vi.fn(),
       backup: vi.fn(() => ({ step: vi.fn(), finish: vi.fn() })),
     };
-    LocalMockDatabase = vi.fn(() => localMockDbInstance);
+    LocalMockDatabase = vi.fn(function () {
+      return localMockDbInstance;
+    });
 
     const module =
       await import("../../../src/main/database/sqlcipher-wrapper.js");
@@ -1143,7 +1149,9 @@ describe("安全性", () => {
       close: vi.fn(),
       backup: vi.fn(() => ({ step: vi.fn(), finish: vi.fn() })),
     };
-    const LocalMockDb = vi.fn(() => localMockDb);
+    const LocalMockDb = vi.fn(function () {
+      return localMockDb;
+    });
     const secretKey = "super_secret_key_12345";
     const w = new module.SQLCipherWrapper(
       "/test/db.sqlite",

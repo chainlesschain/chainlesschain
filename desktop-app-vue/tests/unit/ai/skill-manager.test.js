@@ -32,7 +32,9 @@ const mockDocGenerator = {
 };
 
 vi.mock("../../../src/main/skill-tool-system/doc-generator", () => ({
-  default: vi.fn(() => mockDocGenerator),
+  default: vi.fn(function () {
+    return mockDocGenerator;
+  }),
 }));
 
 // Mock builtin-skills
@@ -89,7 +91,9 @@ describe("SkillManager", () => {
 
     // Create SkillManager instance with DI
     skillManager = new SkillManager(mockDb, mockToolMgr, {
-      DocGeneratorClass: vi.fn(() => mockDocGenerator),
+      DocGeneratorClass: vi.fn(function () {
+        return mockDocGenerator;
+      }),
     });
   });
 

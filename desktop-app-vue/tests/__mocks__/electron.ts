@@ -3,7 +3,7 @@
  * Referenced by vitest.config.ts resolve alias
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 export const ipcMain = {
   handle: vi.fn(),
@@ -19,24 +19,26 @@ export const ipcRenderer = {
 };
 
 export const app = {
-  getPath: vi.fn().mockReturnValue('/mock/path'),
-  getName: vi.fn().mockReturnValue('test-app'),
-  getVersion: vi.fn().mockReturnValue('1.0.0'),
+  getPath: vi.fn().mockReturnValue("/mock/path"),
+  getName: vi.fn().mockReturnValue("test-app"),
+  getVersion: vi.fn().mockReturnValue("1.0.0"),
   isReady: vi.fn().mockReturnValue(true),
   on: vi.fn(),
 };
 
-export const BrowserWindow = vi.fn().mockImplementation(() => ({
-  loadURL: vi.fn(),
-  webContents: {
-    send: vi.fn(),
+export const BrowserWindow = vi.fn(function () {
+  return {
+    loadURL: vi.fn(),
+    webContents: {
+      send: vi.fn(),
+      on: vi.fn(),
+    },
     on: vi.fn(),
-  },
-  on: vi.fn(),
-  show: vi.fn(),
-  hide: vi.fn(),
-  close: vi.fn(),
-}));
+    show: vi.fn(),
+    hide: vi.fn(),
+    close: vi.fn(),
+  };
+});
 
 export const dialog = {
   showOpenDialog: vi.fn(),

@@ -2,17 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock all heavy dependencies before importing
 vi.mock("../../src/lib/plan-mode.js", () => ({
-  PlanModeManager: vi.fn(() => ({
-    state: "inactive",
-    currentPlan: null,
-    history: [],
-    blockedToolLog: [],
-    isActive: vi.fn(() => false),
-    enterPlanMode: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    removeAllListeners: vi.fn(),
-  })),
+  PlanModeManager: vi.fn(function () {
+    return {
+      state: "inactive",
+      currentPlan: null,
+      history: [],
+      blockedToolLog: [],
+      isActive: vi.fn(() => false),
+      enterPlanMode: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
+      removeAllListeners: vi.fn(),
+    };
+  }),
   PlanState: {
     INACTIVE: "inactive",
     ANALYZING: "analyzing",
@@ -27,20 +29,24 @@ vi.mock("../../src/lib/plan-mode.js", () => ({
 }));
 
 vi.mock("../../src/lib/cli-context-engineering.js", () => ({
-  CLIContextEngineering: vi.fn(() => ({
-    setTask: vi.fn(),
-    clearTask: vi.fn(),
-    recordError: vi.fn(),
-    getStats: vi.fn(() => ({})),
-    smartCompact: vi.fn((msgs) => msgs.slice(0, 2)),
-  })),
+  CLIContextEngineering: vi.fn(function () {
+    return {
+      setTask: vi.fn(),
+      clearTask: vi.fn(),
+      recordError: vi.fn(),
+      getStats: vi.fn(() => ({})),
+      smartCompact: vi.fn((msgs) => msgs.slice(0, 2)),
+    };
+  }),
 }));
 
 vi.mock("../../src/lib/permanent-memory.js", () => ({
-  CLIPermanentMemory: vi.fn(() => ({
-    initialize: vi.fn(),
-    autoSummarize: vi.fn(),
-  })),
+  CLIPermanentMemory: vi.fn(function () {
+    return {
+      initialize: vi.fn(),
+      autoSummarize: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock("../../src/lib/session-manager.js", () => ({
