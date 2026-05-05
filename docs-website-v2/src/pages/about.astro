@@ -1,5 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import rootPkg from '../../../package.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+
+const milestones = [
+  { date: '2025', title: '公司成立', body: '厦门自贸区落地 · 等保三级 · ICP 备案完成' },
+  { date: '2025 末', title: 'v1.0 首发', body: 'CLI + 桌面双形态 · npm 首次发布' },
+  { date: '2026 Q1', title: 'v3.0', body: '多模态 Agent · Pipeline Orchestrator · NL Programming' },
+  { date: '2026 Q1 晚', title: 'v4.0', body: 'Agent Federation · Android 28 Skills · Deep Agents Deploy' },
+  { date: '2026-04', title: 'v5.0.2.x', body: '139 技能 / CLI 109 命令 · V2 治理表面 220+ · 14,800+ 测试' },
+  { date: '2026-05', title: PRODUCT_VERSION, body: 'Web Shell 默认 · MTC v0.11 跨联邦 · Web Panel 中英双语' },
+];
 ---
 <BaseLayout
   title="关于我们 — 厦门无链之链科技有限公司 | ChainlessChain"
@@ -42,9 +54,66 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- Milestones -->
+  <section class="py-16 border-t border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">发展历程 · Milestones</div>
+        <h2 class="font-display text-4xl md:text-5xl leading-tight">
+          从 v1.0 双形态首发，<br/>到 <span class="italic text-ember">{PRODUCT_VERSION}</span>。
+        </h2>
+      </div>
+
+      <ol class="relative border-l-2 border-line ml-3 md:ml-6 space-y-10">
+        {milestones.map((m) => (
+          <li class="pl-8 md:pl-12 relative">
+            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-ember ring-4 ring-paper"></span>
+            <div class="font-mono text-xs text-ember uppercase tracking-widest mb-2">{m.date}</div>
+            <h3 class="font-display text-2xl mb-2">{m.title}</h3>
+            <p class="text-muted leading-relaxed">{m.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- Credentials -->
+  <section class="py-16 border-t border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">资质 · Credentials</div>
+        <h2 class="font-display text-4xl md:text-5xl leading-tight">
+          合规与认证，<br/><span class="italic text-ember">写在资质里</span>。
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember uppercase tracking-widest mb-5">已获</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex gap-2"><span class="text-ember">✓</span><span>国家信息系统安全等级保护三级测评</span></li>
+            <li class="flex gap-2"><span class="text-ember">✓</span><span>T/ZGCMCA 023—2025 团体标准（参编）</span></li>
+            <li class="flex gap-2"><span class="text-ember">✓</span><span>工信部 ICP 备案 <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/60 hover:text-ink">闽ICP备2025105973号-1</a></span></li>
+            <li class="flex gap-2"><span class="text-ember">✓</span><span>4 项发明专利及多项软件著作权</span></li>
+            <li class="flex gap-2"><span class="text-ember">✓</span><span>MCP 社区 / Claude Agent SDK 适配方</span></li>
+          </ul>
+        </div>
+        <div class="p-8 rounded-2xl border border-dashed border-ember/40 bg-ember/5">
+          <div class="font-mono text-xs text-ember uppercase tracking-widest mb-5">进行中</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex gap-2"><span class="text-ember">→</span><span>ISO/IEC 27001 信息安全管理体系</span></li>
+            <li class="flex gap-2"><span class="text-ember">→</span><span>商用密码应用安全性评估</span></li>
+            <li class="flex gap-2"><span class="text-ember">→</span><span>生成式人工智能服务算法备案</span></li>
+            <li class="flex gap-2"><span class="text-ember">→</span><span>CMMI 级别认证</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Contact -->
   <section class="py-16 bg-cream/50 border-y border-line">
-    <div class="container-wide grid md:grid-cols-3 gap-10">
+    <div class="container-wide grid md:grid-cols-2 gap-10">
       <div>
         <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">地址</div>
         <div class="font-display text-2xl leading-snug mb-2">厦门 · 自由贸易试验区</div>
@@ -54,15 +123,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">联系</div>
         <a href="tel:400-1068-687" class="block font-display text-2xl text-ember hover:text-ember-dark mb-2">400-1068-687</a>
         <a href="mailto:zhanglongfa@chainlesschain.com" class="text-muted hover:text-ink break-all">zhanglongfa@chainlesschain.com</a>
-      </div>
-      <div>
-        <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">资质</div>
-        <ul class="space-y-1.5 text-sm">
-          <li>✓ 4 项发明专利</li>
-          <li>✓ 等保三级认证</li>
-          <li>✓ T/ZGCMCA 023—2025 参编</li>
-          <li>✓ 备案号 <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/50 hover:text-ink/70">闽ICP备2025105973号-1</a></li>
-        </ul>
       </div>
     </div>
   </section>

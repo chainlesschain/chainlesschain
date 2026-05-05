@@ -1,0 +1,780 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Terminal from '../../components/Terminal.astro';
+import rootPkg from '../../../../package.json';
+import cliPkg from '../../../../packages/cli/package.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+const CLI_VERSION = cliPkg.version;
+
+const templates = [
+  { id: 'doc-convert', name: 'Document Conversion', tools: 'pandoc · LibreOffice' },
+  { id: 'media-process', name: 'Audio / Video', tools: 'ffmpeg · yt-dlp' },
+  { id: 'data-analysis', name: 'Data Analysis', tools: 'pandas · matplotlib' },
+  { id: 'web-research', name: 'Web Research', tools: 'curl · BeautifulSoup' },
+  { id: 'image-process', name: 'Image Processing', tools: 'ImageMagick · Tesseract' },
+  { id: 'code-helper', name: 'Code Helper', tools: 'Python · Node.js' },
+  { id: 'system-admin', name: 'System Admin', tools: 'system commands' },
+  { id: 'file-organize', name: 'File Organization', tools: 'pathlib · 7-Zip' },
+  { id: 'network-tools', name: 'Network Tools', tools: 'curl · nslookup' },
+];
+
+const pillars = [
+  {
+    icon: '📚',
+    title: 'Knowledge Base',
+    en: 'Personal Second Brain',
+    bullets: [
+      'Notes / docs / chat history — your personal second brain',
+      'Hybrid search: BM25 + Qdrant vectors',
+      'Hierarchical memory 2.0: working → short → long → core',
+      'RAG-powered Q&A · code knowledge graph',
+    ],
+  },
+  {
+    icon: '🌐',
+    title: 'Decentralized Social',
+    en: 'P2P Identity & Messaging',
+    bullets: [
+      'W3C DID v2 identity + verifiable credentials',
+      'P2P end-to-end: Signal + libp2p + WebRTC',
+      'Protocol bridge: ActivityPub · Nostr · Matrix',
+      'Anti-censorship: Tor + domain fronting + satellite',
+    ],
+  },
+  {
+    icon: '💎',
+    title: 'Trading Assistant',
+    en: 'Multi-Chain Wallet & Bridge',
+    bullets: [
+      'Multi-chain wallets: EVM family + Solana',
+      'Cross-chain bridge: HTLC atomic swap + messaging',
+      'zk-SNARK / zk-STARK generated locally',
+      'DAO governance v2 · quadratic voting · treasury',
+    ],
+  },
+];
+
+const everyday = [
+  { icon: '📄', title: 'Document Conversion', example: 'Batch Word → PDF / Word → Markdown' },
+  { icon: '🎬', title: 'Media Processing', example: 'Compress video, extract audio, transcode' },
+  { icon: '📊', title: 'Data Analysis', example: 'CSV / Excel analysis + chart generation' },
+  { icon: '🖼️', title: 'Image Processing', example: 'Batch compress, OCR text extraction' },
+  { icon: '🔎', title: 'Web Research', example: 'Auto-search and summarize results' },
+  { icon: '🧰', title: 'System Admin', example: 'Disk analysis, process audit, network test' },
+];
+
+const highlights = [
+  {
+    tag: 'v5.0.3.5',
+    title: 'MTC v0.11 — Cross-federation trust anchors + offline audit',
+    sub: 'Phases 0–4 complete · 476 tests across six layers',
+    desc: 'Decentralized certificate system on Merkle trees: cross-federation trust anchors + third-party auditor + multi-hop routing + gas-aware batch closure + SLA monitoring dashboard. M-of-N multi-sig with heterogeneous Ed25519/SLH-DSA federations + dual-transport service discovery (filesystem + libp2p).',
+  },
+  {
+    tag: 'v5.0.3.4',
+    title: 'Web Panel bilingual M3',
+    sub: '~25 views internationalized · vue-i18n dictionaries',
+    desc: 'Migrated all major web-panel views to vue-i18n (SpeechSettings / Analytics / Cron / Security / Audit / MCP / Backup / Tokens / MTC / WebAuthn / Community / Wallet / Inference / Organization / Federation, etc.) — full Chinese/English coverage, no hardcoded strings. V6 Preview top-bar gets a language switcher.',
+  },
+  {
+    tag: 'v5.0.3.1',
+    title: 'Web Shell as default + multi-window',
+    sub: 'Electron embeds web-panel · WindowRegistry',
+    desc: 'Desktop pivots from "native Vue renderer" to "Electron main embeds ws-server + loads web-panel dist" — true cross-target uniformity. Multi-window scaffold (role-based hash routing + per-role geometry persistence); window.open WS topic lets the renderer spawn new windows.',
+  },
+  {
+    tag: 'v5.0.2.34',
+    title: 'V6 Chat-First Shell hard-flip',
+    sub: '13 first-party packs · 7 UI extension points',
+    desc: 'Desktop now defaults to V6 Chat-First Shell (three-pane layout + 5 enterprise providers + dispatcher with widget registry + Ctrl+Shift+A admin console). .ccprofile + MDM push as 3 enterprise customization paths. Top-10 V5 routes all have V6 widget probes.',
+  },
+  {
+    tag: 'v5.0.2.10',
+    title: 'CLI V2 governance surfaces · 220+',
+    sub: '4-state maturity × 5-state lifecycle',
+    desc: 'From a2apgov to pmodegov — 136 lib-level V2 governance surfaces (dual-cap + auto-flip + autoStaleIdle + autoFailStuck) + 5,984 V2 tests. Coexists with same-module legacy surfaces via shared nest-blocker.',
+  },
+  {
+    tag: 'v5.0.2.9',
+    title: 'PQC SLH-DSA (FIPS 205) + Trinity v3.2',
+    sub: '6 SLH-DSA variants · Ed25519 hybrid',
+    desc: 'Post-quantum hash-based signing — SLH-DSA-{128,192,256}{s,f} all landed; Ed25519/X25519 hybrid covers the transition. Trinity Trust Root v3.2 anchors three pillars (U-Key / SIMKey / TEE), paired with locally-generated zk-SNARK Groth16 / zk-STARK.',
+  },
+];
+
+const badges = [
+  { icon: '🏆', label: '4 invention patents' },
+  { icon: '🔒', label: 'Military-grade encryption' },
+  { icon: '⭐', label: 'GitHub 10k+ stars' },
+  { icon: '✅', label: 'MLPS Level 3' },
+  { icon: '📋', label: 'T/ZGCMCA 023—2025 co-author' },
+];
+---
+<BaseLayout>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-ember/10 blur-3xl pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="animate-fade-in flex items-center gap-3 mb-8 flex-wrap">
+          <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
+          <span class="chip">CLI v{CLI_VERSION}</span>
+          <span class="chip">112 commands</span>
+          <span class="chip">Web Shell (default)</span>
+          <span class="chip">Bilingual Web Panel</span>
+          <span class="chip">MTC v0.11</span>
+        </div>
+
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02] tracking-tight">
+          Data sovereignty<br/>
+          <span class="italic">returned to you</span>,<br/>
+          AI <span class="text-ember italic">at your fingertips</span>.
+        </h1>
+
+        <p class="animate-fade-in-delay-2 mt-8 text-xl md:text-2xl text-muted leading-relaxed max-w-3xl">
+          CLI-driven local AI × hardware-grade encryption.<br class="hidden md:block"/>
+          Built for everyone who wants to own their data.
+        </p>
+
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap items-center gap-4">
+          <button
+            class="btn-primary group"
+            data-copy="npm i -g chainlesschain"
+            aria-label="Copy install command"
+          >
+            <span class="text-ember">$</span>
+            <span>npm i -g chainlesschain</span>
+            <span class="text-muted-dark text-xs ml-2 group-hover:text-cream">click to copy</span>
+          </button>
+          <a href="#security" class="btn-ghost">
+            See the hardware crypto stack <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
+          {badges.map((b) => (
+            <div class="flex items-center gap-2 text-sm text-muted">
+              <span class="text-base">{b.icon}</span>
+              <span>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三大核心能力 -->
+  <section class="py-20 md:py-28 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Product Positioning · Three Pillars</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Knowledge · Social · Trading,<br/>
+          <span class="italic text-ember">end-to-end, individual-first</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          One foundation — hardware security + on-device AI + true decentralization. Three pillars stand independently and compose freely.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        {pillars.map((p) => (
+          <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="text-3xl mb-4">{p.icon}</div>
+            <h3 class="font-display text-2xl mb-1">{p.title}</h3>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-5">{p.en}</div>
+            <ul class="space-y-2 text-sm text-ink/80">
+              {p.bullets.map((b) => (
+                <li class="flex gap-2"><span class="text-ember shrink-0">·</span><span>{b}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Privacy First</div>
+          <div class="text-sm text-ink/80">End-to-end encryption · hardware security · zero-knowledge proofs — service operators can't see your data.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Truly Decentralized</div>
+          <div class="text-sm text-ink/80">Local storage (SQLCipher AES-256) · P2P (libp2p) · self-sovereign identity (DID v2).</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">AI Native</div>
+          <div class="text-sm text-ink/80">Local LLMs (Ollama / LLaMA / Qwen) · prompts never uploaded by default · AI search + agent orchestration.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+      <div>
+        <div class="chip mb-6">CLI · Primary Entry</div>
+        <h2 class="text-display-md md:text-5xl mb-6">
+          Your terminal,<br/>your AI workbench.
+        </h2>
+        <p class="prose-muted text-lg mb-8">
+          No GUI required — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> runs local AI, agent coding, and multi-agent orchestration entirely in the terminal.
+        </p>
+        <div class="grid grid-cols-3 gap-6 mb-8">
+          <div>
+            <div class="font-display text-4xl text-ember">112</div>
+            <div class="text-sm text-muted mt-1">CLI commands</div>
+          </div>
+          <div>
+            <div class="font-display text-4xl text-ember">139</div>
+            <div class="text-sm text-muted mt-1">Built-in skills</div>
+          </div>
+          <div>
+            <div class="font-display text-4xl text-ember">14800+</div>
+            <div class="text-sm text-muted mt-1">Tests</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="/en/cli" class="btn-ember">All commands →</a>
+          <a href="https://docs.chainlesschain.com" rel="noopener" class="btn-ghost">CLI docs ↗</a>
+        </div>
+      </div>
+      <div class="md:pl-4">
+        <Terminal />
+        <div class="mt-4 text-xs text-muted font-mono text-center">Agent / Cowork / Skill — full AI workflow in the terminal</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 普通人能做什么 -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Web Cowork · Zero-friction AI Toolbox</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Just say what you need —<br/>
+          <span class="italic text-ember">the agent does it</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          No commands to memorize. Open the web console, describe your task —<br class="hidden md:block"/>
+          the agent picks tools, installs dependencies, streams progress live.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        {everyday.map((e) => (
+          <div class="group p-7 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="text-3xl mb-4">{e.icon}</div>
+            <h3 class="font-display text-xl mb-2 group-hover:text-ember transition-colors">{e.title}</h3>
+            <p class="text-sm text-muted leading-relaxed mb-4">{e.example}</p>
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-ember/10 text-ember text-[11px] font-mono">
+              <span class="w-1 h-1 bg-ember rounded-full"></span> Auto-installs required tools
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <figure class="mt-10 border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/cowork.png"
+          alt="Web Cowork interface · 10 task templates"
+          width="1400"
+          height="900"
+          loading="lazy"
+          class="block w-full h-auto"
+        />
+      </figure>
+      <p class="mt-3 text-center text-xs text-muted">Run <code class="font-mono bg-cream px-2 py-0.5 rounded">chainlesschain ui</code>, browser opens <code class="font-mono bg-cream px-2 py-0.5 rounded">http://localhost:18810/#/cowork</code></p>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Zero-install Workflow</div>
+          <div class="text-sm text-ink/80">Agent auto-runs winget / choco / pip / npm — no env config needed.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Sandbox Isolation</div>
+          <div class="text-sm text-ink/80">SubAgentContext sandboxes every task — independent contexts, no cross-pollution.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-paper border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Live Progress</div>
+          <div class="text-sm text-ink/80">WebSocket streams every step — not "black box, hope it works."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cowork 5 阶段编排 -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">AI Engine · Cowork Multi-Agent</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          5-stage orchestration · Plan Mode · <br/>
+          <span class="italic text-ember">instinct learning · verification loop</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          Not a single agent rolling dice. Planner / Architect / Coder / Reviewer / Verify — five roles in series, every step interruptible, auditable, replayable.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-2 mb-12">
+        {[
+          { n: '01', name: 'Planner', sub: 'Decompose' },
+          { n: '02', name: 'Architect', sub: 'Design' },
+          { n: '03', name: 'Coder', sub: 'Implement' },
+          { n: '04', name: 'Reviewer', sub: 'Adversarial review' },
+          { n: '05', name: 'Verify', sub: '6-stage validation' },
+        ].map((s, i) => (
+          <div class="relative">
+            <div class="p-5 rounded-xl border border-line bg-paper hover:border-ember transition-colors">
+              <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{s.n}</div>
+              <div class="font-display text-xl mb-1">{s.name}</div>
+              <div class="text-xs text-muted">{s.sub}</div>
+            </div>
+            {i < 4 && (
+              <div class="hidden md:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10 w-4 h-4 items-center justify-center text-ember">
+                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">4 Templates</div>
+          <div class="text-sm text-muted">feature / bugfix / refactor / security-audit — apply with one command.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Plan Mode</div>
+          <div class="text-sm text-muted">Plan first, confirm, then execute — keeps the AI on the rails.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Instinct Learning</div>
+          <div class="text-sm text-muted">8 pattern types + confidence decay + auto-injection — sharper with use.</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Sub-Agent Isolation</div>
+          <div class="text-sm text-muted">Tool whitelist + 3-tier summary + isolated messages — context stays clean.</div>
+        </div>
+      </div>
+
+      <div class="mt-10 p-6 md:p-8 rounded-2xl bg-ink text-cream">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+          <div class="font-display text-xl">139 built-in skills · 13 categories</div>
+          <div class="font-mono text-xs text-muted-dark">139 desktop + 28 Android + 112 CLI</div>
+        </div>
+        <div class="text-sm text-muted-dark leading-relaxed">
+          Original 15 · Dev tools 15 · Advanced 10 · AI session 10 · Office A/V 10 · Image data 10 · Dev system 10 · Security design 10 · Tooling 10 · Workflow 10 · Knowledge research 10 · Media security 11 · Community video 7
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工程基线 · 测试细分 -->
+  <section class="py-20 md:py-24 bg-cream/40 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Engineering Baseline · 5 Platforms</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          One AI engine,<br/>
+          <span class="italic text-ember">14,800+ tests guarding it</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          Win / macOS / Linux / Android / iOS / CLI — same engine across every target. Six layers must all pass before release; one red layer blocks the entire ship.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-10">
+        {[
+          { name: 'Windows', sub: 'Electron 39 · Win 10/11' },
+          { name: 'macOS', sub: 'Electron 39 · 12+' },
+          { name: 'Linux', sub: 'Electron 39 · Ubuntu 20+' },
+          { name: 'Android', sub: 'Jetpack Compose · Kotlin' },
+          { name: 'iOS', sub: 'SwiftUI' },
+          { name: 'CLI', sub: 'npm · Node 22 LTS' },
+        ].map((p) => (
+          <div class="p-4 rounded-xl border border-line bg-paper text-center">
+            <div class="font-display text-base md:text-lg mb-1">{p.name}</div>
+            <div class="font-mono text-[10px] text-muted leading-tight">{p.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: '14,255', label: 'CLI Unit' },
+          { n: '696', label: 'CLI Integration' },
+          { n: '565', label: 'CLI E2E' },
+          { n: '197', label: 'Desktop Coding Agent' },
+          { n: '84', label: 'Phase 5 harness' },
+          { n: '27', label: 'Web Panel' },
+        ].map((t) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-display text-2xl md:text-3xl text-ember">{t.n}</div>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mt-2">{t.label}</div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-4 text-xs text-muted text-center font-mono">2026-04-19 verification regression · all green</p>
+    </div>
+  </section>
+
+  <!-- SECURITY (dark) -->
+  <section id="security" class="relative bg-ink text-cream py-24 md:py-32">
+    <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
+    <div class="container-wide relative">
+      <div class="max-w-3xl mb-16">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-line-dark border border-line-dark text-muted-dark mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span> Security Core
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Your keys,<br/><span class="italic text-ember">held in your hand</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted-dark leading-relaxed">
+          U-Key / SIMKey hardware chips · keys never exported. AES-256 + SQLCipher full encryption. Signal end-to-end. Local Ollama inference — data never reaches the cloud.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">01 · U-KEY</div>
+          <h3 class="font-display text-2xl mb-3">USB security chip</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            Windows Koffi FFI talks directly to the SIMKey SDK. PIN-protected, auto-locks on repeated failure, all critical operations require physical confirmation. BLE/NFC wireless U-Key + biometrics.
+          </p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">02 · SIMKEY</div>
+          <h3 class="font-display text-2xl mb-3">SIM-card security chip</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            Android OMAPI / iOS eSIM API. USIM + 5G super-SIM across three Chinese carriers. Fingerprint / Face ID replaces PIN. 12 enhancements: eSIM OTA, TEE integration, post-quantum readiness.
+          </p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line-dark hover:border-ember/40 transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">03 · LOCAL AI</div>
+          <h3 class="font-display text-2xl mb-3">Local Ollama</h3>
+          <p class="text-muted-dark text-sm leading-relaxed">
+            qwen2 / llama3 / deepseek-r1 inference on-device. 14+ cloud LLMs available but never required. Sensitive data auto-routes to local models — the cloud path is severed at the source.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 border-t border-line-dark">
+        <div><div class="font-display text-3xl text-ember">4</div><div class="text-sm text-muted-dark mt-1">Patents</div></div>
+        <div><div class="font-display text-3xl text-ember">AES-256</div><div class="text-sm text-muted-dark mt-1">SQLCipher database</div></div>
+        <div><div class="font-display text-3xl text-ember">Signal</div><div class="text-sm text-muted-dark mt-1">E2E protocol</div></div>
+        <div><div class="font-display text-3xl text-ember">MLPS L3</div><div class="text-sm text-muted-dark mt-1">Compliance</div></div>
+      </div>
+
+      <div class="mt-10">
+        <a href="/en/security" class="inline-flex items-center gap-2 text-ember hover:text-cream transition-colors">Full security architecture <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- WEB COWORK -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Web Cowork</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Speak plainly to AI,<br/>
+          <span class="italic text-ember">tools do the work</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          10 task templates · auto dependency install · live streaming progress.<br class="hidden md:block"/>
+          "Convert report.docx to PDF" — agent installs pandoc, runs the tool, reports back.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {templates.map((t) => (
+          <div class="group p-5 rounded-xl border border-line hover:border-ember hover:bg-ember/5 transition-all cursor-default">
+            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mb-2">{t.id}</div>
+            <div class="font-display text-lg mb-1 group-hover:text-ember transition-colors">{t.name}</div>
+            <div class="text-xs text-muted">{t.tools}</div>
+          </div>
+        ))}
+        <div class="p-5 rounded-xl border border-dashed border-ember bg-ember/5">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">free-mode</div>
+          <div class="font-display text-lg mb-1">Free Mode</div>
+          <div class="text-xs text-muted">Skip the template, describe the task directly</div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3 items-center">
+        <div class="font-mono text-sm bg-ink text-cream px-4 py-2 rounded-md">$ chainlesschain ui → http://localhost:18810/#/cowork</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGHLIGHTS -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Recent Highlights</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Multi-agent, made into<br/>
+          <span class="italic">repeatable engineering patterns</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          Not concept demos. Each item is shipped, tested, and codified. Full changelog at
+          <a href="https://design.chainlesschain.com" rel="noopener" class="text-ember underline-offset-4 hover:underline">design.chainlesschain.com</a>.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {highlights.map((h, i) => (
+          <a href="https://design.chainlesschain.com" rel="noopener" class="group bg-paper p-8 hover:bg-ember/5 transition-colors">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Highlight</div>
+              <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-ember text-cream">{h.tag}</span>
+            </div>
+            <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{h.title}</h3>
+            <div class="text-xs text-muted mb-3 font-mono">{h.sub}</div>
+            <p class="text-sm text-ink/80 leading-relaxed">{h.desc}</p>
+            <div class="mt-5 text-xs text-muted group-hover:text-ember transition-colors">Read design doc →</div>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a href="https://github.com/chainlesschain/chainlesschain/releases" target="_blank" rel="noopener" class="btn-ghost">Full Release Notes ↗</a>
+        <a href="https://design.chainlesschain.com" rel="noopener" class="btn-ghost">Design Docs ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR WHOM -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Who It's For</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Two audiences, one foundation.</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="p-10 rounded-2xl border border-line hover:border-ink transition-colors">
+          <div class="font-mono text-xs text-muted mb-4">FOR INDIVIDUALS</div>
+          <h3 class="font-display text-3xl mb-4 leading-tight">"I want a truly private<br/>AI assistant."</h3>
+          <ul class="space-y-2 text-muted mb-8">
+            <li>· Local encryption · data never goes to cloud</li>
+            <li>· Zero-config · works out of the box</li>
+            <li>· Bilingual UI</li>
+            <li>· Doctors, lawyers, researchers' daily companion</li>
+          </ul>
+          <a href="/en/desktop" class="btn-ember">Download desktop →</a>
+        </div>
+
+        <div class="p-10 rounded-2xl bg-ink text-cream hover:bg-[#2a2a27] transition-colors">
+          <div class="font-mono text-xs text-ember mb-4">FOR DEVELOPERS</div>
+          <h3 class="font-display text-3xl mb-4 leading-tight">"I want agent-driven<br/>coding from my terminal."</h3>
+          <ul class="space-y-2 text-muted-dark mb-8">
+            <li>· CLI Agent · Claude Code style</li>
+            <li>· Cowork multi-agent parallel review</li>
+            <li>· MCP tool ecosystem + 9 Skill Packs</li>
+            <li>· 112 commands · 14,800+ tests · 220+ V2 governance surfaces</li>
+          </ul>
+          <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
+            <span>$ npm i -g chainlesschain</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 行业落地案例 -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Industry Case Studies</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          Beyond demos —<br/>
+          <span class="italic text-ember">running on real factory floors</span>.
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          From supply-chain Excel collaboration to AI reporting — validated in real factory deployments.
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-ink text-cream border border-line-dark overflow-hidden">
+        <div class="p-10 md:p-14 border-b border-line-dark">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="font-mono text-xs text-ember">CASE · 01 · MANUFACTURING</span>
+            <span class="chip bg-ember/15 text-ember border border-ember/30">Delivered</span>
+          </div>
+          <h3 class="font-display text-4xl md:text-5xl leading-tight mb-4">
+            ChainFactory Data Steward · <span class="italic text-ember">factory supply-chain AI</span>
+          </h3>
+          <p class="text-xl text-muted-dark leading-relaxed max-w-3xl">
+            Move Excel into the browser, install AI in the factory —<br class="hidden md:block"/>
+            OnlyOffice real-time collab · AI Text-to-SQL · OCR intake · Git versioning.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-[1px] bg-line-dark">
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">01 · COLLAB</div>
+            <h4 class="font-display text-xl mb-3">Excel collaboration online</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">OnlyOffice embedded in browser, multiple users edit one spreadsheet in real time, Git auto-versioning lets you roll back. Socket.IO syncs cells live.</p>
+          </div>
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">02 · TEXT-TO-SQL</div>
+            <h4 class="font-display text-xl mb-3">Natural-language reporting</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">Ask in plain language — AI auto-generates SQL against the operational SQLite, returns tables and charts in seconds.</p>
+          </div>
+          <div class="bg-ink p-8">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">03 · OCR</div>
+            <h4 class="font-display text-xl mb-3">Auto receipt intake</h4>
+            <p class="text-sm text-muted-dark leading-relaxed">Snap receipts on phone, AI extracts and structures into the database. End manual Excel transcription. Drizzle ORM for canonical storage.</p>
+          </div>
+        </div>
+
+        <div class="p-8 md:p-10 flex flex-wrap items-center justify-between gap-6 bg-[#17171510] border-t border-line-dark">
+          <div>
+            <div class="font-mono text-[10px] text-muted-dark uppercase tracking-widest mb-2">Use cases</div>
+            <div class="text-sm text-muted-dark">Supply chain · materials · production planning · cost accounting · quality traceability</div>
+          </div>
+          <div class="flex gap-3 items-center">
+            <a href="/en/enterprise" class="btn-ember">Customize a factory edition</a>
+            <a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream transition-colors">☎ 400-1068-687</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mt-10">
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 02 · HEALTHCARE</div>
+          <h4 class="font-display text-xl mb-2">Hospital records AI search</h4>
+          <p class="text-sm text-muted leading-relaxed">Local Ollama inference — patient data never leaves the hospital. RAG retrieval + medical-order assistance.</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 03 · LEGAL</div>
+          <h4 class="font-display text-xl mb-2">Law firm KB & contract review</h4>
+          <p class="text-sm text-muted leading-relaxed">U-Key hardware encryption protects case files; Cowork multi-role contract clause review.</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-3">CASE · 04 · GOVERNMENT</div>
+          <h4 class="font-display text-xl mb-2">Intranet AI office platform</h4>
+          <p class="text-sm text-muted leading-relaxed">Private deployment · SSO / SCIM / RBAC · MLPS Level 3 · audit logs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EDITIONS -->
+  <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Editions</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Personal, or enterprise?</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="p-10 rounded-2xl bg-paper border border-line">
+          <div class="flex items-baseline justify-between mb-4">
+            <h3 class="font-display text-3xl">Personal</h3>
+            <span class="font-mono text-sm text-ember">Free / Open Source</span>
+          </div>
+          <p class="text-muted mb-6">For individuals & independent developers. Full CLI, desktop, mobile experience.</p>
+          <ul class="space-y-2 text-sm mb-8">
+            <li>✓ All 112 CLI commands + 139 skills</li>
+            <li>✓ U-Key / SIMKey hardware encryption</li>
+            <li>✓ Local Ollama + 10 LLM providers</li>
+            <li>✓ Cowork multi-agent collaboration</li>
+            <li>✓ Windows / macOS / Linux / Android</li>
+          </ul>
+          <div class="flex gap-3">
+            <a href="/en/desktop" class="btn-ember">Download desktop</a>
+            <a href="/en/cli" class="btn-ghost">npm install</a>
+          </div>
+        </div>
+        <div class="p-10 rounded-2xl bg-ink text-cream border border-line-dark">
+          <div class="flex items-baseline justify-between mb-4">
+            <h3 class="font-display text-3xl">Enterprise</h3>
+            <span class="font-mono text-sm text-ember">Custom</span>
+          </div>
+          <p class="text-muted-dark mb-6">For finance, healthcare, legal, government — strict compliance and on-prem requirements.</p>
+          <ul class="space-y-2 text-sm mb-8 text-muted-dark">
+            <li>✓ Private deployment + UI branding</li>
+            <li>✓ SSO / SCIM / RBAC / audit & compliance</li>
+            <li>✓ Industry-specific skills (healthcare / legal / research)</li>
+            <li>✓ U-Key batch issuance + DLP + SIEM</li>
+            <li>✓ Dedicated technical support</li>
+          </ul>
+          <div class="flex gap-3 items-center">
+            <a href="/en/enterprise" class="btn-ember">Enterprise solutions</a>
+            <a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream transition-colors">☎ 400-1068-687</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOADS -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">Downloads</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">Same source, every target · {PRODUCT_VERSION}</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
+          <h3 class="font-display text-2xl mb-3">Command-line</h3>
+          <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy="npm i -g chainlesschain">$ npm i -g chainlesschain</div>
+          <p class="text-sm text-muted">npm / yarn / pnpm / bun · ~2MB</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">DESKTOP · {PRODUCT_VERSION}</div>
+          <h3 class="font-display text-2xl mb-3">Desktop App</h3>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Windows</a>
+            <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">macOS</a>
+            <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">Linux</a>
+          </div>
+          <p class="text-sm text-muted">Electron 39 · Vue 3.4 · 139 skills</p>
+        </div>
+        <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
+          <div class="font-mono text-xs text-muted mb-3">MOBILE · {PRODUCT_VERSION}</div>
+          <h3 class="font-display text-2xl mb-3">Android</h3>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">APK</a>
+            <span class="chip opacity-60">iOS coming</span>
+          </div>
+          <p class="text-sm text-muted">28 skills · P2P remote desktop</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPANY + CTA -->
+  <section class="py-24 md:py-32 bg-ink text-cream">
+    <div class="container-wide grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <div class="font-mono text-xs text-ember mb-6">Xiamen Chainlesschain Technology Co., Ltd.</div>
+        <h2 class="text-display-md md:text-5xl leading-tight mb-6">
+          Need an enterprise edition?<br/>
+          <span class="text-ember italic">Pick up the phone.</span>
+        </h2>
+        <p class="text-muted-dark text-lg leading-relaxed mb-8">
+          We provide full-cycle custom services from POC to production for healthcare, legal, research, and government clients. Free needs assessment · 90-day POC guarantee.
+        </p>
+        <div class="space-y-3 text-sm">
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Phone</span><a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream">400-1068-687</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Email</span><a href="mailto:zhanglongfa@chainlesschain.com" class="hover:text-ember">zhanglongfa@chainlesschain.com</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">Address</span><span class="text-muted-dark">Unit 431-H, Floor 4, Building C, Xiamen International Shipping Center, 93 Xiangyu Rd., Xiamen FTZ</span></div>
+        </div>
+      </div>
+      <div class="md:justify-self-end">
+        <a href="tel:400-1068-687" class="block p-10 rounded-2xl bg-ember hover:bg-ember-dark transition-colors">
+          <div class="font-mono text-xs text-ink/70 mb-3">CALL US</div>
+          <div class="font-display text-5xl md:text-6xl text-ink mb-2 tracking-tight">400-1068-687</div>
+          <div class="text-ink/80">Mon-Fri 9:00–18:00 · Free consult</div>
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

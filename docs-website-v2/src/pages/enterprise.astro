@@ -175,6 +175,81 @@ const industries = [
     </div>
   </section>
 
+  <!-- ═══════════════════════════════ SLA + 合作模式 + 合作伙伴 ═══════════════════════════════ -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">服务承诺 · 合作邀请</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          标准 SLA · <span class="italic text-ember">多种合作模式</span>。
+        </h2>
+      </div>
+
+      <!-- SLA 表 + 5 类合作伙伴 -->
+      <div class="grid md:grid-cols-2 gap-6 mb-10">
+        <div class="rounded-2xl border border-line overflow-hidden">
+          <div class="px-6 py-4 bg-ink text-cream">
+            <div class="font-display text-lg">服务级别承诺 SLA · 标准版</div>
+          </div>
+          <div class="bg-paper">
+            {[
+              ['响应时间', '工作日 4 小时内首次响应'],
+              ['重大故障恢复', '24 小时内'],
+              ['版本升级', '每季度小版本 / 每半年大版本'],
+              ['安全补丁', '高危漏洞 72 小时内响应'],
+              ['远程支持', '7×8（标准）/ 7×24（企业级）'],
+            ].map(([k, v], i, arr) => (
+              <div class={`flex items-baseline gap-4 px-6 py-4 ${i < arr.length - 1 ? 'border-b border-line' : ''}`}>
+                <div class="font-display text-sm w-28 shrink-0">{k}</div>
+                <div class="text-sm text-muted">{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-line overflow-hidden">
+          <div class="px-6 py-4 bg-ember text-cream">
+            <div class="font-display text-lg">诚邀合作 · 5 类合作伙伴</div>
+          </div>
+          <div class="bg-paper">
+            {[
+              ['行业集成商', '共同打造行业解决方案'],
+              ['地方政府', '数字政府与政务云落地'],
+              ['央企国企', '数字化转型与信创适配'],
+              ['高校科研', '联合课题与学术合作'],
+              ['开源社区', 'MCP / DID / PQC 生态共建'],
+            ].map(([k, v], i, arr) => (
+              <div class={`flex items-baseline gap-4 px-6 py-4 ${i < arr.length - 1 ? 'border-b border-line' : ''}`}>
+                <div class="font-display text-sm w-24 shrink-0">{k}</div>
+                <div class="text-sm text-muted">{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 合作方式 -->
+      <div>
+        <div class="font-mono text-xs text-muted uppercase tracking-widest mb-5">合作方式</div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            ['🏢', '私有化部署'],
+            ['☁', 'SaaS 订阅'],
+            ['🏷', 'OEM 贴牌'],
+            ['🛠', '项目定制'],
+            ['📦', 'SDK 嵌入'],
+            ['🔗', '集成服务'],
+          ].map(([icon, label]) => (
+            <div class="p-5 rounded-xl border border-line bg-paper text-center hover:border-ember transition-colors">
+              <div class="text-2xl mb-2">{icon}</div>
+              <div class="font-display text-sm">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Contact form (mailto) -->
   <section class="py-20 bg-ink text-cream">
     <div class="container-wide grid md:grid-cols-2 gap-16 items-start">

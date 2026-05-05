@@ -2,8 +2,10 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Terminal from '../components/Terminal.astro';
 import rootPkg from '../../../package.json';
+import cliPkg from '../../../packages/cli/package.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
+const CLI_VERSION = cliPkg.version;
 
 const templates = [
   { id: 'doc-convert', name: '文档格式转换', tools: 'pandoc · LibreOffice' },
@@ -17,6 +19,43 @@ const templates = [
   { id: 'network-tools', name: '网络工具', tools: 'curl · nslookup' },
 ];
 
+// 三大核心能力（产品定位主线）
+const pillars = [
+  {
+    icon: '📚',
+    title: '知识库管理',
+    en: 'Knowledge Base',
+    bullets: [
+      '笔记 / 文档 / 对话历史 — 个人第二大脑',
+      '混合搜索：BM25 + Qdrant 向量',
+      '层级记忆 2.0：工作 → 短期 → 长期 → 核心',
+      '基于 RAG 的 AI 问答 · 代码知识图谱',
+    ],
+  },
+  {
+    icon: '🌐',
+    title: '去中心化社交',
+    en: 'Decentralized Social',
+    bullets: [
+      'W3C DID v2 身份 + 可验证凭证',
+      'P2P 端到端加密：Signal + libp2p + WebRTC',
+      '协议融合：ActivityPub · Nostr · Matrix',
+      '反审查：Tor + 域前置 + 卫星消息',
+    ],
+  },
+  {
+    icon: '💎',
+    title: '数字资产交易',
+    en: 'Trading Assistant',
+    bullets: [
+      '多链钱包：EVM 系 + Solana',
+      '跨链桥：HTLC 原子交换 + 跨链消息',
+      'zk-SNARK / zk-STARK 本地生成',
+      'DAO 治理 v2 · 二次方投票 · 国库管理',
+    ],
+  },
+];
+
 // 普通人卡片（Web Cowork 能做什么）
 const everyday = [
   { icon: '📄', title: '文档转换', example: '批量把 Word 转 PDF / Word 转 Markdown' },
@@ -27,126 +66,44 @@ const everyday = [
   { icon: '🧰', title: '系统管理', example: '磁盘分析、进程排查、网络测试' },
 ];
 
-const evolution = [
-  // ── v5.0.3.7 Latest (2026-05-03) — 发布工程硬化：Express@5 ASAR hoist 修 + dev/CI 收口 ──
-  { tag: 'v5.0.3.7', title: '发布工程硬化 — Express@5 ASAR hoist 修 + dev/CI 收口', sub: 'productVersion v5.0.3.5 → v5.0.3.7 · `npm run dev` / release / CI 三链路稳定', desc: '一次性收口 release 工程线四件：（1）**Express@5 ASAR hoist 陷阱修复**（commits `496d21708` / `f92505fb4` / `1c8d0994d`）— npm workspaces 把 Express@5 拆出的 transitive deps（`call-bind-apply-helpers` 等）hoist 到根 `node_modules/`，electron-builder `files: node_modules/**/*` 只看 `desktop-app-vue/node_modules/`，结果 ASAR 缺包；用 nested `node_modules` 物理位置校验 + lockfile 同步 + ci-release hard-fail 三层兜底。（2）**`npm run dev` 修**（commit `a84284eb6`）— hoisted bin shims 残留导致 dev 启动失败，prune 掉损坏的 hoisted bin shims。（3）**CI release 测试链路**（commits `8d2defd90` / `24427e4c8`）— `feat(ci): add skip_tests input to Publish to npm workflow` 给手动发布留 escape hatch；`--no-file-parallelism` + 静默 vitest + 分批跑集成测试避开 IPC RPC 饱和。（4）**electron-builder 收口**（多 commits）— 路径修复 / Linux .deb 元数据 / icon.ico 256x256 / `npmRebuild: false` / `--publish never` + `gh release upload` 拆分 / Linux AppImage blockmap 缺失降级为 warning。本批改动以发布工程为主，无新功能；产品功能面延续 v5.0.3.5 时的 MTC v0.11 + Web Panel i18n M3。' },
-
-  // ── v5.0.3.4 Latest (2026-05-02) — Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + folder picker ──
-  { tag: 'v5.0.3.4', title: 'Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker', sub: '~25 视图国际化 · 中英双语贯通 · `--no-web-shell` opt-out · `cc init --cwd` 文件夹打开流', desc: '一波收口四件：（1）Web Panel i18n M3 — `b69ed7cef` / `fac49c07d` / `1c9c8a9a1` / `431714a8b` / `0306474a8` / `f357289e9` / `c089ce07d` / `18524d971` / `5f45b6379` / `443d3eceb` / `91563a092` / `28b46d4bf` / `587534ef3` / `93d41459c` / `32ff8e36c` / `cb46f7755` / `fd61758a1` / `92792a52b` / `332ff60f6` / `89ba2cb5c` / `7eadd0565` 等连续 commit 把 web-panel 主要视图全部改用 vue-i18n 字典（SpeechSettings / Analytics / Cron / Security / Templates / Search / Audit / McpTools / Backup / Tokens / Mtc / WebAuthn / Community / Wallet / Inference / Organization / Recommend / Federation / Reputation / AIOps / Projects 等 ~25 视图），中英双语贯通，硬编码字符串清零。（2）V6 Preview LanguageSwitcher（`645b19f30`）— V6 preview 壳顶栏接入语言切换器，与 web-panel i18n 字典共享。（3）web-shell `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）— 默认 ON 后给开发者保留快速回桌面 V6 壳的开关，setting 中显式选择优先于命令行。（4）`cc init --cwd` + projects folder picker（`c935a95d4`）— projects 视图增加"打开已有文件夹"流，走 `cc init --cwd <dir>` 把任意目录初始化为 ChainlessChain 工作区。CLI `0.160.0 → 0.160.1`，root `productVersion v5.0.3.1 → v5.0.3.3 → v5.0.3.4`（commit `8c68970cf` 起 + dist 重打包 `edaf61d2b`）。' },
-
-  // ── v5.0.3.5 (2026-05-03) — MTC v0.11 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA + 监控仪表板 ──
-  { tag: 'v5.0.3.5', title: 'MTC v0.11 — 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA + 监控仪表板', sub: '收口跨链桥 §11 + 联邦治理 v0.2 §11 可做项 · 仅 Q-COMP-3（链上锚定法务）+ 真 RPC 链适配两项保留外部阻塞', desc: '六条线一次性收口：（A1）**跨联邦信任锚** — `core-mtc/lib/federation-governance.js` 新增 `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` / `validateCrossFederationTrustAnchor`：宿主联邦快照被信任联邦的成员名单 + threshold + TTL 后签发锚定文件；validate 6 类错误码 (BAD_SHAPE / BAD_SCHEMA / BAD_FEDERATION_IDS / BAD_ROSTER / BAD_THRESHOLD / BAD_EXPIRY / EXPIRED)。CLI `cc mtc federation cross-trust-create <host> <trusted> --threshold --member id:pubkey` + `cross-trust-validate <anchor.json>`。（A2）**离线第三方审计器** — `auditGovernanceLog(events, fedId)` 顺序回放每个事件、构建滚动 roster、对比签名与发布时刻 actor pubkey；ERROR/WARN 两级 finding (BAD_SCHEMA / BAD_TIMESTAMP / UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER)。（A3）**多跳传输路由** — Phase 3 federation discovery 接 `--hops <n>` 实现多跳间联邦消息中继。（A4）**Gas 感知 closeBatch** — 桥 MTCA daemon 加价格订阅 + 阈值守卫，gas spike 期间延迟关批以省费。（A5）**SLA tracker** — 联邦事件链路有界等待 + p95 监控埋点。（A6）**监控仪表板** — Web Panel `/mtc` tab 加聚合视图（多联邦健康度 + 同步延迟 + 待批次 + 治理待投票一屏式）。两项保留外部阻塞：链上锚定（Q-COMP-3 法务出函）+ 真 RPC 链适配（重构桌面集成）。' },
-
-  // ── v5.0.3.4 (2026-05-02 → 2026-05-03) — MTC v0.6 → v0.10 治理 + 跨链桥 + GUI + CRDT 全套 ──
-  { tag: 'v5.0.3.4', title: 'MTC v0.10 — multi-proposal CRDT + 实时 sync stats + libp2p smoke + hardening', sub: 'core-mtc 220 (+6 CRDT +4 libp2p smoke) + cli integration 30 (+5) = 250 全绿 · `pending_thresholds[]` / `pending_revokes_all[]`', desc: '收口 v0.9 留下的 4 个 deferred 项：（1）**多提案 CRDT** — `replayGovernanceLog` 不再让同 target 的 propose-threshold/revoke 后写覆盖前者，新返回字段 `pending_thresholds[]` / `pending_revokes_all[]` 保留所有开放提案；back-compat 保留 `pending_threshold` + `pending_revokes` 仍发出最新一项。`confirm-threshold` 新增可选 `payload.proposal_event_id`，CRDT 风格显式选择具体提案；不传则沿用旧行为（取最新）。`confirm-revoke` apply 时清空所有同 target 提案。+6 unit tests。（2）**实时 sync stats** — `cc mtc federation governance-sync-stats <fed> [--json]` 读 `<gov-dir>/<fed>.sync-stats.json`（atomic write 自 daemon），显示 last_tick_at / mode / publish/pull/libp2p 计数。`governance-sync-serve` 和 `governance-sync-libp2p` daemon 每 tick 持久化 stats；GUI 文件轮询而非 ws 流式，避开协议变更。（3）**`--proposal-event-id` CLI 接线** — `cc mtc federation confirm-threshold` 接受 `--proposal-event-id <id>` 透传到 payload + quorum check matcher。（4）**libp2p governance smoke tests** — `federation-governance-libp2p.test.js` 4 测：governance topic publishRaw 不抛 + 报告 recipients；synthetic `_dispatchRawTopic` 把 governance JSON 投递给订阅者；接收侧 dedupe by event_id；topic 格式断言。沿用 discovery 测的策略：**不**断跨节点真传（gossipsub 2 节点 mesh 形成不稳）。Wave D — `packages/cli/scripts/service/HARDENING.md` 落地。' },
-  { tag: 'v5.0.3.4', title: 'MTC v0.9 — governance auto-sync daemon + libp2p 通道 + quorum 门控 + Web 操作型 GUI', sub: 'CLI integration 27 + web-panel parser 13 + Mtc.vue SFC ops 15 = 55 全绿 · `cc-fed-governance-sync.service` systemd 模板', desc: '收口 v0.8 留下的 4 项 TODO：（1）**自动 daemon** — `cc mtc federation governance-sync-serve <fed> --drop-zone <dir> [--interval] [--verify] [--once]` 周期性 publish + pull；SIGINT/SIGTERM graceful；helpers `runGovernancePublish` / `runGovernancePull` 抽出复用。（2）**libp2p 同步通道** — `cc mtc federation governance-sync-libp2p <fed> --listen <maddr> [--connect]`：gossipsub topic `mtc-federation-governance/v1/<fed>` 与 landmark 通道隔离；`<dir>/<fed>.libp2p-pos.json` 高水位记录已 publish 的 event_id；接收侧 dedupe + verify + append；复用 `Libp2pTransport` 基础设施。（3）**Quorum 门控** — `confirm-revoke` / `confirm-threshold` 默认 pre-flight 检查匹配的 propose 事件存在；`--no-quorum-check` 显式 bypass。新增缺漏的 `cc mtc federation confirm-threshold <fed> --actor <m>` CLI。（4）**Web Panel 操作型 GUI** — `Mtc.vue` 联邦治理 tab 新增 5 个子 tabs (邀请/投票/改 threshold/撤销/跨成员同步)，全部通过 `ws.execute(\'mtc federation ...\')` 调用本机 CLI——签名密钥永远不进入 web 渲染进程；安全说明 a-alert 嵌入。新增 `cc-fed-governance-sync.service` (systemd) 模板。' },
-  { tag: 'v5.0.3.4', title: 'MTC v0.8 — governance.log 跨成员同步 + 服务模板 + 治理 GUI（desktop + web）', sub: 'core-mtc governance lib 28 unit + CLI integration 19 + desktop 26 IPC + 18 widget = 91 全绿 · 4 平台 supervisor 模板', desc: '收口 v0.7 留下的"governance.log 只在本地"和"治理只能 CLI 看"两个限制：（1）**`cc mtc federation governance-publish/pull`** — atomic write 一文件一事件，幂等；dedupe by event_id；可选 `--verify` 验签每事件。+5 integration tests 覆盖 alice→bob 跨 home 同步 + dedupe + --verify 路径。（2）**Service supervisor 模板** — `packages/cli/scripts/service/`: systemd unit (Linux) + launchd plist (macOS) + NSSM config (Windows) + Task Scheduler XML (Windows alt)；操作员手动 install，不接 npm postinstall。（3）**Desktop V6 治理 widget** — `FederationGovernanceWidget.vue` + `mtc:get-federation-governance` IPC + `electronAPI.mtc.getFederationGovernance`；列出所有联邦的 status / threshold / 成员（活跃 + 候选）/ 待投票 / 待撤销 / 归档/泄漏密钥；+7 widget unit + 4 IPC tests。（4）**Web-panel 治理 + 桥 tab** — `Mtc.vue` 新增 "跨链桥 MTC" tab + "联邦治理" tab (按 fed-id 加载 governance-log，渲染状态卡 + 成员表 + 待投票列表 + 事件时间线)。Web-shell 通过 electron 内嵌 web-panel，零额外改动。仍 opt-in 的部分：自动 daemon 化留给 v0.9。' },
-  { tag: 'v5.0.3.4', title: 'MTC v0.7 — 联邦治理 CLI + 桥 MTCA daemon + 桥状态 V6 widget', sub: '核心 governance lib 20 unit + CLI 14 integration + desktop 11 = 50 新测试全绿 · 13 种治理事件类型', desc: '在 v0.6 跨链桥 MTC 集成基础上，把治理设计文档从纸面转成可执行：（1）**core-mtc 治理 lib** — `packages/core-mtc/lib/federation-governance.js`：13 种事件类型 (create/invite/vote/leave/propose-revoke/confirm-revoke/rotate-key/propose-threshold/confirm-threshold/fork/merge/dispute/wind-down)、`createGovernanceEvent` 多算法签名 (Ed25519/SLH-DSA)、`verifyGovernanceEvent`、`replayGovernanceLog` 纯函数还原 effective state（成员名单 + threshold + 候选期权重 0.5 + 30 天自动转正）。（2）**8 个新治理 CLI** — `cc mtc federation invite/vote/propose-revoke/confirm-revoke/rotate-key/propose-threshold/fork/merge` 全部签名后追加到 `~/.chainlesschain/federation/governance/<fed>.jsonl` + `cc mtc federation governance-log <fed>` 一键查看事件 + replay state。（3）**桥 MTCA daemon** — `cc crosschain mtc-serve [--interval <s>] [--once]`：周期性 closeBatch；`--once` 单次模式适合 cron / 测试；SIGINT/SIGTERM graceful 关停。（4）**Desktop V6 widget** — `BridgeMtcStatusWidget.vue` + `mtc:get-bridge-status` IPC（preload `electronAPI.mtc.getBridgeStatus`）；显示 enabled / mode / alg / batch interval / trust anchors / 待批次关闭 / 最近批次。Bug fix：governance lib 的 `pickSigner` 同时接受规范大小写（`Ed25519`）和 CLI lowercase（`ed25519`）— 否则 verify 会回 `BAD_ALG`。' },
-  { tag: 'v5.0.3.4', title: 'MTC v0.6 — 跨链桥 MTC 集成 + 联邦治理设计文档', sub: 'cross-chain-mtc lib + 7 个新 cc crosschain mtc-* 子命令 · 落地两份治理设计', desc: '落地两份治理 / 跨链设计文档（关闭 §12 已知限制 #2/#6）+ `cc crosschain mtc-*` 一组新子命令，让现有桥流程能 opt-in 写 MTC envelope：（1）**设计 — 联邦治理 v1** — `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema。（2）**设计 — 跨链桥 MTC 化 v1** — `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship)。（3）**CLI lib** — `packages/cli/src/lib/cross-chain-mtc.js`：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期。（4）**新 CLI** — `cc crosschain {mtc-status, mtc-trust-anchor, mtc-envelope, mtc-verify, mtc-batch, bridge|swap|send --mtc}`，原命令成功后写一条 staging op，定期 `mtc-batch` 关 staging 为批次。' },
-
-  // ── v5.0.3.3 (2026-05-01) — MTC v0.5 Phase 3 federation 全套 + libp2p auto-discovery（已存在，置顶突显） ──
-  { tag: 'v5.0.3.1', title: 'Phase 2 流式取消 + 配置持久化修 + Speech port + 多项 bug 修', sub: 'AbortController 贯通 · ui.* whitelist 修 · vendor target 修 · session-close 真删 · ~2480 测试全绿', desc: '一次集中收口五条线：（1）`llm.chat` 真取消（commits `b6b5174cb` + `4951c95d5`）— ws-cli-loader 加 `inFlightStreams<id, gen>` map，ws.close（lazy WeakSet 钩 ws.on("close")）+ `<topic>.cancel` 帧两条触发链都驱动 `gen.return()`；llm-handlers 的 generator finally 调 `AbortController.abort()`，signal 透到 ollama / anthropic / openai client 的 fetch（gemini 因 axios 参数顺序差异未透）。`useLlmChat.cancel()` SPA 端按钮真停 HTTP 请求。（2）AppConfigManager `ui.*` 持久化修（commit `436e349f1`）— DEFAULT_CONFIG 加 `ui` 字段 + load/loadAsync 合并白名单加 `ui` 行；`_readSettingsSync` 层叠 app-config.json 的 `ui` 到 settings.json，让 V6 toggle / Web Shell toggle 真在下次启动生效，原 silent-drop bug 一并解决。（3）Phase 1.4 vendor target 修（commit `cecb94980`）— forge.config.js 的 `vendorWebShellInto(buildPath)` 修为 `path.join(buildPath, "..")`，匹配 path-math 测试 fixture，让 packaged loaders 的 4-up REL 真命中 `Resources/packages/`；asar.unpack 顺势丢掉死掉的 `packages/**` glob。（4）Speech 子页搬到 web-panel（commit `2d45ae278`）— `views/SpeechSettings.vue` + `utils/speech-settings-parser.js` + 路由 `/speech-settings`，引擎选择 + Web Speech / Whisper API / Whisper Local 三块核心配置；高级 storage / audio / 知识集成 / 性能子项保留 V5（Memory Bank 同款 deliberate scope cut）。LLM / Project 早有 Providers / ProjectSettings 等价页，V5 SystemSettings 三个 tab 加 a-alert 指向 web-panel。（5）drive-by：CLI ws-session-gateway `closeSession` 后 session 仍现身 `session-list` 的 bug 修 — `_serializeSessionMetadata` 加 `status` 字段 + listSessions DB 路径 `if (metadata.status === "closed") continue;`。**测试矩阵**：desktop unit 248 + config 26 + scripts 14 + integration 514 + web-shell e2e 14 + Playwright 4，web-panel unit 1616 + integration 58 + e2e 75（含修好的 session-close case），CLI session-gateway 58。共 ~2480 测试全绿。' },
-  // ── v5.0.3.1 (2026-04-30) — 桌面 web-shell Phase 1.5 MVP：多窗口架构 ──
-  { tag: 'v5.0.3.1', title: '桌面 web-shell Phase 1.5 MVP — 多窗口架构落地', sub: 'WindowRegistry + window.open WS handler · 26 新单测', desc: '桌面 web-shell 多窗口骨架 MVP 完成。`desktop-app-vue/src/main/window-registry.js`（202 行）实现 role-based hash route + per-role geometry 持久化的 WindowRegistry 骨架，同源多 BrowserWindow 通过 role 标识统一管理。新增 `web-shell/handlers/window-open-handler.js`（146 行）暴露 WS topic `window.open`，web-panel 渲染层可通过 envelope `{type:"window.open", payload:{role,url,hash,options}}` 让主进程拉新窗口。同时落地 HomePage 真知识计数 + 响应式同步徽章、SyncStatusButton mount 时探真同步状态（弃硬编码默认）、CLI `0.158.0` web-shell embedded mode release tag。`window-registry.test.js`（13）+ `window-open-handler.test.js`（13）共 26 例新单测全绿。剩余收口：role catalog 完善 + WindowRegistry 接 web-panel 真路由 + 多窗口 e2e。' },
-  // ── v5.0.3.1 (2026-04-30) — 桌面版 web-shell Phase 0/1：Electron 内嵌 web-panel ──
-  { tag: 'v5.0.3.1', title: '桌面版 web-shell Phase 0/1 — Electron 内嵌 web-panel 起步', sub: 'HTTP+WS shell · skill.list + fs dialogs · 打包 vendor prep', desc: '桌面版从"原生 Electron 主壳 + Vue 渲染器"切换到"Electron 主进程内嵌 ws-server，BrowserWindow 直接加载 web-panel dist"路线（design memo 见 `desktop_web_shell_strategy.md`）。**Phase 0**：`web-shell-bootstrap.js` 拉起 web-ui-loader（HTTP 静态托管 web-panel dist）+ `ws-cli-loader`（沿用 `packages/cli/src/gateways/ws/ws-server.js`）+ `ws-bridge.js` 把 desktop main 进程的 ipcMain handler 透出成 WS topic，统一走「envelope `{type, requestId, payload}`」协议。**Phase 1.1**：skill.list handler 接 desktop SkillToolSystem、fs dialogs handler 接 `dialog.showOpenDialog/showSaveDialog`，配 SystemSettings 里的"使用 Web Shell"持久化 opt-in。**Phase 1.4**：`scripts/prepare-web-shell-vendor.js` 把 web-panel dist + ws-server 静态资产写到 forge build 的 vendor 目录（fix 把 target 路径回到 buildPath 父目录），打包后的 `.exe` 内嵌完整 web-shell 资产。同时落地 `WSSessionManager` 自动实例化（`session-*` topic 工作）+ ShellStatusBar 接真 IPC（弃 P0 placeholder）+ 登录页 dev 凭据提示生产环境自动隐藏 + V6 hard-flip 登录流。新增 `web-shell-bootstrap` / `ws-cli-loader` / `ws-bridge` / `web-ui-loader` / `fs-handlers` / `skill-list-handler` / `phase1.4-path-math` / `prepare-web-shell-vendor` 8 套单元测试。' },
-  // ── v5.0.3.1 (2026-04-29) — V6 preview shell P9d 品牌 + 空白起步 ──
-  { tag: 'v5.0.3.3', title: 'MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery', sub: '476 MTC 测试全绿（core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19）· 六层覆盖 · M-of-N 多签 + filesystem/libp2p 双 transport 服务发现 + 异构 Ed25519+SLH-DSA 联邦 · OpLog per-row 徽章联动', desc: 'Phase 3.1 多签 landmark + cc mtc federation {join,leave,status} 本地 registry（atomic write、wx race-safe）；Phase 3.2 cc mtc batch* / publish-skills --federation <id> --threshold <M> 多签发布；Phase 3.3 cc mtc federation discover --transport filesystem 跨进程 drop-zone 发现（NFS/Syncthing/SMB/USB），自签 announce schema mtc-federation-announce/v1 + TTL-evicting 名册；Phase 3.4 --transport libp2p 真 P2P gossipsub topic mtc-federation/v1/<id> auto-discovery，Libp2pTransport 加 publishRaw/subscribeRaw 通用 pubsub API（与 landmark 通道隔离）。Backend Q-ENG-2 OperationLogService 桥接 cc audit mtc emit 捕获 event_id 写回 audit_mtc_event_id 字段（V013 migration），web-panel Audit.vue 加 4 态 MTC 列徽章（—/已签未查/待关批/已关批 #N）。Bug 审计修 4 项：drawer 错调 electronAPI.fs.readFile→改 file.readContent；libp2p 节点 init 异常路径 cleanup；filesystem discover daemon scan 重入锁；federation join wx 独占创建。' },
-  { tag: 'v5.0.3.2', title: 'MTC v0.4 + Phase 1.6 SLH-DSA + Phase 4 V6 widget', sub: '222 测试全绿（core-mtc 147 + CLI 64 + desktop V6 widget 11）· 四层覆盖 unit/integration/e2e/desktop-renderer · `--alg slh-dsa-128f` 后量子 opt-in', desc: 'Phase 2 两条不依赖法务的 MTC 路径完整落地：(1) `cc mtc publish-skills` marketplace publisher 守护进程：JCS-canonicalize → SHA-256 fingerprint 差量检测 + 自动 seq 递增 + 状态文件原子写（temp+rename，崩溃不污染）。(2) `cc audit mtc {enable, disable, config, set-interval, emit, reconcile, reconcile-check, status}` 8 子命令双轨脚手架：每事件实时 Ed25519 落盘 + 关批 Merkle 树 inclusion proof，幂等关批 + atomic rename 崩溃恢复，schema/filename 三路验签拒伪事件，60s/3600s 双合规路径预留。`assembleBatch` 抽到 `core-mtc/lib/batch.js` 公用，CLI mtc / audit / 未来发布路径同一条装配代码。bug 审计修了 4 个：state file 原子写、staging schema 校验、getStatus oldest_queued_at malformed-leading guard、issuer key 并发 create race。设计文档 v0.3 → v0.4，docs-site 用户指南 + 设计站均同步。**Audit 产线启用仍待 Q-COMP-1（等保三级最终性窗口）+ Q-COMP-2（T/ZGCMCA 023—2025 条款）法务出函；脚手架已就位，出函后单一 `cc audit mtc enable --interval <60|3600>` 即上线。**' },
-  { tag: 'v5.0.3.1', title: 'V6 Preview Shell P9d — ChainlessChain 品牌 + 空白起步', sub: 'schema v3 · platform-aware traffic dots · 单 chip 跳设置', desc: '把 `/v6-preview` 壳里残留的 demo 痕迹一次清掉：`conversation-preview.ts` schema `v2 → v3`，移除 `seedConversations()` / `createDemoFiles()`，首次启动或 schema/JSON 损坏时落到空数组 + null activeId，UI 引导用户主动 "+ 新会话"；`agentLabel` 默认 "Claude Code" → "ChainlessChain"。`AppShellPreview.vue` 左上角 "ClaudeBox" 字样换成 `assets/logo.png` + "ChainlessChain"；macOS 红黄绿点改 `v-if="isMacPlatform"`，挂载时 `await electronAPI.system.getPlatform() === "darwin"`，Win/Linux 隐藏；底部 5 颗 runtime chip（进度/模型/技能/工具/终端）收成单颗 button-chip + 顶部齿轮按钮，两者均 `router.push("/settings/system?tab=llm")`，未配置时显示"未配置模型"。`composer` 标签去掉 "运行中..." 后缀。conversation-preview 单测对齐扩到 23 条；preview shell 系列（theme 10 + widget-registry 5 + v6-shell-default 9 + conversation-preview 23）共 47 条全绿（17.1s）；`vue-tsc --noEmit` 0 错误。' },
-  // ── v5.0.3.1 (2026-04-27) — Web Panel V5→Web 全量收官：Phase A+B+C+D 23 ports / router 50 ──
-  { tag: 'v5.0.3.1', title: 'Web Panel Phase D 收官 — V5→Web 全量化完成', sub: 'CLI 0.157.9 · 23 ports · router 50 · 1489/1489 unit', desc: '今日（2026-04-27）一天连续落地 web-panel Phase D 全部 5 件：`/codegen`（代码生成跟踪 + 5 规则安全审查）、`/search`（多维搜索 / 日志查看）、`/tokens`（Token 账本 + 7 类贡献奖励 + 排行榜）、`/trust`（信任根 + PQC 互操作 + 卫星 + HSM）、`/federation`（熔断器 FSM + 健康检查 + 连接池模拟）。**至此 Phase A (3) + B (10) + C (5) + D (5) = 23 ports 全部上线，router 28 → 50 (+22 routes)，web-panel 单元测试 27 → 1489 全绿，CLI 升 `0.157.9` bundle 收口**。从此浏览器端 (`cc ui`) 与桌面端 (Electron) 功能对等覆盖去中心化身份 / 知识图谱 / 跨链 / 隐私计算 / 推理网络 / NL Programming / 多租户 / Pipeline / 治理 / 审计 / 信誉 / 推荐 / SLA / 代码生成 / 信任根 / 联邦熔断 全部子系统。' },
-  { tag: 'v5.0.3.1', title: 'Web Panel Phase C 收官 — 治理与可观测 5 件套', sub: 'CLI 0.157.8 · Governance · Audit · Reputation · Recommend · SLA', desc: 'Phase C 5/5 全量上线：`/governance`（社区治理：提案 + 加权投票 + 影响分析 + 预测置信度）、`/audit`（审计日志 + 检索 + 导出）、`/reputation`（信誉优化器：exp/linear/step 衰减 + z_score/iqr 异常 + 模拟贝叶斯）、`/recommend`（内容推荐：兴趣画像 + 主题评分 + 时间衰减 + 反馈回路）、`/sla`（SLA 管理：分级目录 + 方向感知偏离 + p95 + 补偿封顶）。每件遵循「`<feature>-parser.js`（含 `stripCliNoise`） + `<Feature>.vue` + router/sidebar 接线 + parser 单测 + 路由计数 +1 + 路径断言」机械模板。CLI 升 `0.157.8` bundle Phase C 视图。' },
-  { tag: 'v5.0.3.1', title: 'Web Panel Phase B 收官 — 普惠与去中心化 10 件套', sub: 'CLI 0.157.7 · B10 Pipeline 收口 · 35 → 40 routes', desc: 'Phase B 10/10 全量上线：B1 `/community`（社交：联系人/好友/帖子）、B2 `/marketplace`（技能市场：发布/调用/统计）、B3 `/crosschain`（跨链桥：5 链 + HTLC + 跨链消息）、B4 `/aiops`（AIOps：异常检测 + Playbook + 基线）、B5 `/compliance`（STIX 2.1 IoC + UEBA 行为分析）、B6 `/privacy`（隐私计算：FL + MPC + DP + HE）、B7 `/inference`（推理网络：节点 + 任务调度 + 隐私模式）、B8 `/nlprog`（自然语言编程：意图分类 + 实体抽取 + 翻译 + 约定）、B9 `/tenant`（多租户 SaaS：4 档计划 + 用量计量 + 配额）、B10 `/pipeline`（Pipeline 编排：7 阶段流水线 + 部署策略 + 模板）。配套侧边栏改 `<a-sub-menu>` 8 组 + `localStorage` 持久化 + 独立滚动；SPA fallback 测试覆盖 23 → 34；新增 19 个集成测试每命令实跑 `cc serve`。CLI 升 `0.157.7` bundle Pipeline。' },
-  { tag: 'v5.0.3.1', title: 'V6 shell 硬翻 + top-10 parity 10/10', sub: '6 V6 widget probe · default V6 with V5 opt-out · web-panel Phase A', desc: 'top-10 V5 路由（settings/knowledge/projects/chat/did/p2p/community/ai/workflow/enterprise）全部有 V6 widget probe — 今日补齐最后 6 颗（did-management/projects/p2p-messaging/community/ai-chat/settings）。随即 hard-flip：`v6-shell-default.ts` 初始 false→true、`main.ts` `raw === true` 改 `raw !== false`，老用户下次启动直接进 V6；显式 `ui.useV6ShellByDefault=false` 仍可回 V5。同日 web-panel `/knowledge` 全量上线（ECharts 力导向图 + CRUD + BFS reasoning），`/did` + `/project-settings` 接路由。预约 `trig_013pjiuMPAUkNyoE4QxVdee8` 14 天后自动巡检。19/19 plugin-extension-points + 8/8 slash-dispatch + 9/9 v6-shell-default + 621/621 web-panel 全绿。' },
-  { tag: 'v5.0.2.54', title: 'MTC + lint console.log 收口', sub: '默克尔树证书 Phase 1+1.5 · 137 测试 · 6 cc mtc 子命令', desc: '`@chainlesschain/core-mtc` 新包：RFC 6962 Merkle 树 + Verifier + LandmarkCache + 4 transport（InMemory/Filesystem/libp2p direct/gossipsub）。`cc mtc batch/batch-dids/batch-skills/verify/landmark/serve` 6 子命令。后量子签名前哨：SLH-DSA-128f 切换前用 Ed25519 stopgap。chore(lint)：runtime 代码 console.log 升级 error，156 历史点位 tag。' },
-  // ── v5.0.2.49 → v5.0.2.53 (2026-04-22 → 2026-04-25) ──
-  { tag: 'v5.0.2.53', title: 'docs-gen 链路收口', sub: 'CLI 0.156.7 · pack 提示增强 · CI E2E 拆批', desc: 'validate-docs artifact 缺失降级为 warning；自动触发跳过 changelog 重生避免 per-push churn；release tag edit-in-place 绕开 immutable lock。`cc pack` 缺 `@yao-pkg/pkg` 时按 npm 全局/项目本地/源码三路给出对应安装提示。CLI E2E 拆 2 批避免 vitest RPC timeout。' },
-  { tag: 'v5.0.2.52', title: 'AIChatPage 工具外提 + 死测试清理', sub: 'CLI 0.156.7 · −5856 行', desc: 'AIChatPage.vue 抽出 `aiChatPageUtils.js`（path/filename/IPC 数据清洗等纯工具）为后续按区域拆 SFC 做准备。同时移除 10 个 skip-only 测试 shell（−5856 行）+ ws-server-workflow describe 在 CI 整体 skip + pipeline integration 在 Linux 改 foreign target，CI 不再 60s+ hang。' },
-  { tag: 'v5.0.2.51', title: 'pack precheck 跨平台修复', sub: 'CLI 0.156.7 · 设计站侧栏', desc: '`cc pack` precheck 在 POSIX 下 cliRoot 解析与 runtime-factory uiMode 推断口径对齐，修部分 Linux/macOS 下"非 CLI 工作区"误报。docs-gen 头部去 ISO 时间戳消除每次 push 的纯时间戳 diff；cli-ci 矩阵 `fail-fast: false` 让单格失败不连带杀其他平台。设计文档站侧栏接入 `cc pack --project` 入口。' },
-  { tag: 'v5.0.2.50', title: 'cc pack 项目打包 + OTA 三段', sub: 'CLI 0.156.7 · Phase 0-5c 全量', desc: '`cc pack` 命令首发：把 CLI 工作区 + node_modules 打成单文件可执行（基于 @yao-pkg/pkg）。`--project` 模式 Phase 2a-3b 全量落地：BAKED 项目内容 + sanitizeProjectName + Commander 子命令白名单 + 自动 persona + manifest sidecar；Phase 2b `GET /api/skills` 真接线 + smoke-runner 实断言。OTA 三段（5a check-update / 5b 下载+SHA-256 / 5c --apply 自替换 POSIX rename + Windows sidecar）。CI 加 Linux x64 矩阵格。core-db 加 sql.js WASM 兼容层与 ABI probe。' },
-  { tag: 'v5.0.2.49', title: 'V6 Preview 工具/任务 Widget + XSS 收口', sub: 'CLI 0.156.6 · IPC 契约锁定', desc: '`/v6-preview` 新增工具调用与任务进度 Widget；web-panel ClaudeBox 风格工具卡同步在 Chat View 上线。所有 `v-html` 强制 sanitizer + lint rule warn→error；`renderMarkdown` + GlobalSearch 高亮路径接 DOMPurify。`agents` / `autonomous` / `ai-engine` / `code-agent-ipc` / `a2a` / `collaboration-governance` / `tech-learning` IPC 契约测试全锁定。CLI 治理 v2 共享 helpers 抽取 + 迁移指南。CLI postinstall 改 Node 跨平台。' },
-
-  // ── v5.0.2.9 Evolution ──
-  { tag: 'v5.0.2.9', title: 'Hashline', sub: '内容哈希锚定编辑', desc: '用 6 字符哈希替代行号锚点，抗自动格式化漂移，成功率从 6.7% 跃升至 68.3%。' },
-  { tag: 'v5.0.2.9', title: 'Hooks 三件套', sub: '会话级生命周期钩子', desc: 'SessionStart / UserPromptSubmit / SessionEnd 三个生命周期点统一触发，fire-and-forget 零侵入。' },
-  { tag: 'v5.0.2.9', title: 'Skill-Embedded MCP', sub: '技能内联 MCP 服务器', desc: 'SKILL.md 内用 fenced code block 声明 MCP 服务器，按需 mount/unmount，解决工具爆炸问题。' },
-  { tag: 'v5.0.2.9', title: 'Category Routing', sub: '类别路由替代硬编码模型', desc: 'quick / deep / reasoning / vision / creative 五类别自动匹配已配置 provider，换模型零代码改动。' },
-  { tag: 'v5.0.2.9', title: 'Sub-Runtime Pool', sub: '子运行时池', desc: 'Electron 主进程 spawn 子进程，sessionId 分片避免冲突，stdio JSON-lines 协议。' },
-  { tag: 'v5.0.2.9', title: 'Canonical Workflow', sub: '标准化工作流编排', desc: '统一工作流描述语法，stage 间自动传递数据，支持串行 / 并行 / DAG 拓扑。' },
-  { tag: 'v5.0.2.9', title: 'Unified Tool Descriptor', sub: '工具描述规范统一', desc: 'inputSchema 为真源，parameters 只读镜像。CLI / Desktop / Renderer / MCP 四端字段对齐。' },
-  { tag: 'v5.0.2.9', title: 'Coding Agent Envelope', sub: 'WebSocket 信封协议', desc: 'dot-case 类型 + requestId 关联，bridge unwrap 双 awaitTypes 支持平滑迁移。' },
-  { tag: 'v5.0.2.9', title: 'Autonomous Learning Loop', sub: '自主学习循环', desc: '从执行历史中自动提炼模式、优化提示词与工具选择策略，越用越懂你。' },
-
-  // ── v5.0.2.10 / v5.0.2.30 Evolution ──
-  { tag: 'v5.0.2.10', title: '去中心化社交协议矩阵', sub: 'Nostr + Matrix + ActivityPub', desc: 'NIP-04/09/25 + Matrix Threads/Spaces + ActivityPub C2S，加好友、发帖、回复与点赞跨协议互通。' },
-  { tag: 'v5.0.2.10', title: 'STIX 2.1 + UEBA', sub: '威胁情报与合规报告', desc: '导入/匹配 IoC、实体行为基线、SOC2 / ISO27001 / GDPR 模板化报告，一条命令生成 MD/HTML/JSON。' },
-  { tag: 'v5.0.2.10', title: 'MCP Scaffold + 社区注册中心', sub: '零成本扩展 MCP 生态', desc: '`mcp scaffold` 生成 stdio / HTTP+SSE 骨架；`mcp registry` 浏览、搜索、安装社区服务器。' },
-  { tag: 'v5.0.2.10', title: 'MCP Streamable HTTP/SSE', sub: '远程 MCP 服务器接入', desc: '`mcp add -u <url>` 直连远程服务器，自动 Mcp-Session-Id + SSE 事件流解析，私有请求头可注入。' },
-  { tag: 'v5.0.2.10', title: 'PQC SLH-DSA (FIPS 205)', sub: '6 个无状态哈希签名参数集', desc: 'SLH-DSA-{128,192,256}{s,f} 全部落地 + Ed25519/X25519 混合模式，过渡期双重安全保障。' },
-  { tag: 'v5.0.2.10', title: 'Managed Agents Phase I+J', sub: '托管 Agent 双向打通', desc: 'session tail / usage 回放 + WS sessions.subscribe + hosted-tool ApprovalGate + auto-consolidate。' },
-  { tag: 'v5.0.2.10', title: 'CutClaw 视频剪辑 Agent', sub: 'AI 端到端视频生产', desc: 'deconstruct → plan → assemble → render，--parallel 质量门控 + madmom beat-snap + 音频 ducking。' },
-  { tag: 'v5.0.2.10', title: '通用 QualityGate', sub: '可插拔质量检查器', desc: '加权平均 / 最低分 / 全通过三种聚合，配合 SubRuntimePool 的 detect→score→rerun 冲突解决流程。' },
-  { tag: 'v5.0.2.10', title: '生产强化 Deploy Check', sub: 'config-check + deploy-check', desc: '真实配置扫描 + CI 部署前全链路预检：端口、证书、磁盘、迁移、PQC 密钥、MCP 联通。' },
-
-  // ── v5.0.2.10 Phase 59-66 + 94/97/48/54 CLI Ports ──
-  { tag: 'v5.0.2.10', title: '自主开发者系统', sub: 'Phase 63 Autonomous Developer', desc: 'L0-L4 自治等级 + 开发会话生命周期 + ADR 架构决策记录 + 代码反模式检测 review。' },
-  { tag: 'v5.0.2.10', title: '协作治理引擎', sub: 'Phase 64 Collaboration Governance', desc: '治理决策提案→投票→裁定→执行，Agent 自治级别管控，技能匹配与任务分配优化。' },
-  { tag: 'v5.0.2.10', title: '技能市场', sub: 'Phase 65 Skill Marketplace', desc: '发布/订阅技能服务，调用计量 + 统计面板，版本管理与定价策略。' },
-  { tag: 'v5.0.2.10', title: '代币激励系统', sub: 'Phase 66 Token Incentive', desc: 'Token 账本 mint/transfer/balance + 7 种贡献类型自动奖励 + 排行榜。' },
-  { tag: 'v5.0.2.10', title: '企业知识图谱', sub: 'Phase 94 Knowledge Graph', desc: '实体/关系 CRUD + BFS 多跳推理 + 图密度分析 + JSON 导入导出。' },
-  { tag: 'v5.0.2.10', title: '多租户 SaaS 引擎', sub: 'Phase 97 Multi-Tenant', desc: '4 档订阅 (free/starter/pro/enterprise) + 用量计量 + 配额检查 + 快照导入导出。' },
-  { tag: 'v5.0.2.10', title: '智能推荐系统', sub: 'Phase 48 Content Recommendation', desc: '兴趣画像 + 内容评分 + 反馈回路 + 时间衰减，17 个子命令覆盖全流程。' },
-  { tag: 'v5.0.2.10', title: '社区治理', sub: 'Phase 54 AI Community Governance', desc: '提案生命周期 + 加权投票 + 影响分析 + 预测置信度，去中心化社区自治。' },
-  { tag: 'v5.0.2.10', title: '代码生成 Agent 2.0', sub: 'Phase 86 Code Generation', desc: '14 子命令覆盖生成/审查/脚手架全流程，5 种安全规则 + 3 CI/CD 平台集成。' },
-  { tag: 'v5.0.2.10', title: '数据库演进框架', sub: 'Phase 80 Database Evolution', desc: '迁移注册/执行/回滚 + 慢查询日志 + 索引建议自动生成与应用。' },
-  { tag: 'v5.0.2.10', title: 'AIOps 智能运维', sub: 'Phase 25 Autonomous Ops', desc: '指标基线 + Z-score/IQR 异常检测 + 事件生命周期 + Playbook 自动修复 + 事后复盘。' },
-
-  // ── v5.0.2.10 Phase 17/20/27/28/58/63/84 CLI Ports ──
-  { tag: 'v5.0.2.10', title: '多模态感知引擎', sub: 'Phase 84 Multimodal Perception', desc: '感知结果记录 + 语音会话状态机 + 跨模态索引 + 多维度查询与上下文聚合。' },
-  { tag: 'v5.0.2.10', title: '联邦网络硬化', sub: 'Phase 58 Federation Hardening', desc: '断路器状态机（closed→open→half-open）+ 节点健康检查 + 连接池管理。' },
-  { tag: 'v5.0.2.10', title: '自然语言编程', sub: 'Phase 28 NL Programming', desc: '意图分类 + 实体提取 + 技术栈检测 + NL→结构化规格翻译 + 项目编码约定管理。' },
-  { tag: 'v5.0.2.10', title: '模型量化系统', sub: 'Phase 20 Model Quantization', desc: 'GGUF 14 级量化 + GPTQ 多位宽 + 量化任务全生命周期（create→start→complete/fail/cancel）。' },
-  { tag: 'v5.0.2.10', title: '统一应用运行时', sub: 'Phase 63 Universal Runtime', desc: '插件热加载/卸载 + semver 热更新与回滚 + LWW 状态同步 + 运行时 profiling。' },
-  { tag: 'v5.0.2.10', title: 'IPFS 去中心化存储', sub: 'Phase 17 IPFS Storage', desc: '模拟 CID + AES-256-GCM 加密 + Pin 管理 + 配额/GC + 知识库附件关联。' },
-  { tag: 'v5.0.2.10', title: '多模态协作', sub: 'Phase 27 Multimodal Collaboration', desc: '5 种模态加权融合 + 7 种文档原生解析 + 4000-token 上下文 + 6 种输出格式。' },
-
-  // ── v5.0.2.10 Phase 14/22/24/26/55/64/96 + V2 增强 ──
-  { tag: 'v5.0.2.10', title: '去中心化 Agent 网络', sub: 'Phase 24 Agent Network', desc: 'Ed25519 DID + Kademlia 发现 + challenge-response 认证 + W3C VC 凭证 + 4 维信誉任务路由。' },
-  { tag: 'v5.0.2.10', title: '工作流自动化引擎', sub: 'Phase 96 Automation Engine', desc: '12 SaaS 连接器 + webhook/schedule 触发器 + DAG 拓扑排序 + 条件分支执行。' },
-  { tag: 'v5.0.2.10', title: '去中心化身份 2.0', sub: 'Phase 55 DID v2', desc: 'did:key/web/chain + VC/VP 签发验证 + k-of-n 社交恢复 + 身份漫游 + 多源信誉聚合。' },
-  { tag: 'v5.0.2.10', title: '性能自动调优', sub: 'Phase 22 Performance Tuning', desc: '实时 OS 采样 + 5 条迟滞规则 + 冷却时间 + 调优建议生成与应用。' },
-  { tag: 'v5.0.2.10', title: '开发流水线编排', sub: 'Phase 26 Pipeline Orchestration', desc: '7 阶段流水线 + 4 模板 + 6 部署策略 + 双门审批 + 制品管理 + 监控。' },
-  { tag: 'v5.0.2.10', title: '智能插件生态 2.0', sub: 'Phase 64 Plugin Ecosystem', desc: 'DFS 依赖解析 + 8 规则 AI 审查 + 沙箱测试 + 审核发布 + 70/30 收益分成。' },
-  { tag: 'v5.0.2.10', title: 'SSO 企业认证', sub: 'Phase 14 SSO Authentication', desc: 'SAML/OAuth2/OIDC + PKCE S256 + AES-256-GCM 令牌加密 + DID 身份桥接。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第一批）', sub: '8 模块 V2 升级', desc: 'DAO 治理/经济/进化/记忆/沙箱/工作流/ZKP/社交图分析 — 全面升级到 V2 规范表面。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第二批）', sub: '14 模块 V2 升级', desc: 'A2A/BI/跨链/DLP/EvoMap/推理/低代码/市场/隐私/信誉/SIEM/SLA/压测/Terraform — 3800+ 行 V2 规范 API。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第三批）', sub: '11 模块 V2 升级', desc: 'ZKP/联邦/审计/合规/加固/激励/知识图谱/运维/插件生态/租户 — V2 规范化持续推进。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第四批）', sub: '15 模块 V2 升级', desc: '代码生成/数据库演进/自主开发/协议融合/治理/基础设施/IPFS/多模态/NL编程/感知/量化/推荐/运行时/学习/信任 — 全部 90 命令 V2 规范化完成。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第五批）', sub: '协作治理 + 合规 UEBA + 威胁情报', desc: 'cc collab / cc compliance ueba / cc compliance threat-intel — Agent 成熟度 + 提案/调查/Feed 生命周期、双维度上限、批量 auto-flip，全部覆盖 167+ 新单元测试。' },
-  { tag: 'v5.0.2.10', title: 'V2 增强套件（第六批）', sub: '13 个运行时管家 V2 升级', desc: 'automation / instinct / memory / note / org / permmem / rcache / scim / session / social / sync / tokens / wallet — 全部 4-state 成熟度 + 5-state 生命周期、双维度上限、autoPauseIdle / autoFailStuck / autoExpireStale 批量 auto-flip，560 新 V2 单元测试零回归。' },
-
-  // ── v5.0.2.42 / v5.0.2.43 (2026-04-21 文档 + CLI patch 双补丁 + 下午 SFC 拆分) ──
-  { tag: 'v5.0.2.43', title: 'SystemSettings / ChatPanel SFC 拆分', sub: 'CLI 0.156.4 · 3444→1070 (−69%)', desc: 'SystemSettings.vue 按功能切成 6 个独立 Pane（P2PNetwork / SpeechRecognition / LLM / Database / Project / Performance），采用 `defineModel(\'config\')` + `v-model:config` 让子组件直接操作嵌套 `config.*.*`；文件从 **3444 → 1070 行（−69%）**。ChatPanel.vue 同时外提 `chatPanelUtils.js`（7 个纯工具）+ `useMemoryLeakGuard` composable（自动清理 timers/listeners），ChatPanel 4057 → 3788 行。CLI `0.156.2 → 0.156.4`（0.156.3 已占用）；600/600 store 单测 + vite build 全绿。' },
-  { tag: 'v5.0.2.43', title: 'Phase 3.3c 单测补齐 + Phase 3.4 软开关', sub: '83 新 store 单测 · 2 drift 修复', desc: 'rag / wallet / git-hooks / workflow-designer / analytics-dashboard 5 个 thin store 补齐 83 单测（600 store 全绿 + 13 plugin 扩展点集成 + 9 Phase 3.4 路由守卫全绿 + `vue-tsc --noEmit` 0 错误）；顺带修复 `logger.ts` 的 `.catch()` 未防御 + `electron.d.ts` 缺 `ConfigAPI` 类型两处 drift。' },
-  { tag: 'v5.0.2.43', title: '发布前测试回归闭环 + 533 自动文档刷新', sub: 'CLI 0.156.2 · 5 关全绿', desc: '92 单元测试 + 5 集成测试 + `vue-tsc --noEmit` + `vite build` + `describe.skip` E2E 五关全绿，无 bug 溢出；533 份 `desktop-app-vue/docs/api/generated/*.md` 自动生成文档 prettier 规范刷新；CLI `0.156.1 → 0.156.2` patch 补丁（无源码改动）。' },
-  { tag: 'v5.0.2.42', title: 'V6 Shell 回归闭环 + 用户文档', sub: 'CLI 0.156.1 · 文档版本', desc: 'v6 shell + `/v6-preview` 发布前测试回归闭环完整呈现到用户文档：`desktop-v6-shell.md` §18.7 回归表、`desktop-ui-refactor-user-guide.md` 新建用户指南、`introduction.md` / `architecture.md` / `tech-stack.md` / `getting-started.md` 等 6 份指南追加 17 章规范附录。' },
-
-  // ── v5.0.2.34 桌面版 V6 Chat-First Shell (2026-04-20 P0–P9b 全量) ──
-  { tag: 'v5.0.2.34', title: '桌面版 V6 Chat-First Shell', sub: '对话优先 + 插件化平台 (P0–P6 完成)', desc: 'Electron 桌面端 /v2 路由：三区布局（ShellSidebar + ConversationStream + ArtifactPanel + ShellStatusBar）+ 7 类 UI 扩展点 + 5 类企业 Provider + P6 分发器与 Widget 注册表 + `Ctrl+Shift+A` / `/admin` 管理控制台 + 13 个内置 first-party 插件 + `.ccprofile` + MDM 推送三路径企业定制。' },
-  { tag: 'v5.0.2.34', title: 'V6 Preview Shell (P7–P9b)', sub: 'Claude-Desktop 风格预览 · `/v6-preview`', desc: '与 /v2 并存的新壳（不替换现网入口）：P7 · 4 主题（dark/light/blue/green）+ ConversationList + 4 颗去中心化入口（P2P / Trade / Social / U-Key）；P8 · 4 Preview Widget 打开右侧 ArtifactDrawer 并跳转 `/main/*` 完整页；P9a · 会话持久化到 localStorage（schema v1 + 损坏容错 re-seed）；P9b · 真 LLM 桥 `window.electronAPI.llm.chat` + typing 动画 + 三种返回形状兼容。58 新单测全绿（~15s，5 文件）。' },
-  { tag: 'v5.0.2.34', title: 'CLI V2 Canonical Surface iter16–iter28', sub: 'CLI 0.156.0 · 136 新治理表面', desc: 'iter16–iter28 共新增 136 个 lib-level V2 治理表面（4-state 成熟度 + 5-state 生命周期 + 双维度上限 + auto-flip），约 5,984 V2 测试；a2apgov / acrdgov / aecogov / autagov / ccoregov / cmpmgov / crchgov / crygov / daomgov / esysgov / emgrgov / hmemgov / infnetgov / kggov / pipogov / pmodegov 等。' },
-
-  // ── v5.0.2.34 / CLI 0.124-0.130 Evolution (2026-04-18 Gateway V2 Batch) ──
-  { tag: 'v5.0.2.34', title: 'SSO Manager V2', sub: 'cc sso V2 · 企业身份治理', desc: 'SAML/OAuth2/OIDC Provider 4-state 成熟度（retired 终态、deprecated→active 恢复）+ 5-state 登录生命周期（3 终态），per-owner active-provider cap + per-provider pending-login cap，autoDeprecateIdle + autoFailStuck；35 V2 单测。' },
-  { tag: 'v5.0.2.34', title: 'Workflow Engine V2', sub: 'cc workflow V2 · DAG 运行治理', desc: '工作流 4-state 成熟度（retired 终态、paused→active 恢复）+ 5-state 运行生命周期（3 终态），per-owner active-workflow cap（draft→active）+ per-workflow pending-run cap（queued+running），autoPauseIdle + autoFailStuck；44 V2 单测。' },
-  { tag: 'v5.0.2.34', title: 'Agent Router V2', sub: 'cc router V2 · 路由分发治理', desc: 'Router Profile 4-state 成熟度 + 5-state dispatch 生命周期（3 终态），per-owner active-profile cap（pending→active 仅）+ per-profile pending-dispatch cap，autoDegradeIdle + autoFailStuck；37 V2 单测独立于旧 AgentRouter 类。' },
-  { tag: 'v5.0.2.34', title: 'Hook Manager V2', sub: 'cc hook V2 · 钩子执行治理', desc: 'Hook Profile 4-state 成熟度 + 5-state exec 生命周期（3 终态），per-owner active-hook cap + per-hook pending-exec cap（queued+running），autoDisableIdle + autoFailStuck；42 V2 单测独立于 SQLite registerHook 路径。' },
-  { tag: 'v5.0.2.34', title: 'MCP Registry V2', sub: 'cc mcp V2 · MCP 服务器治理', desc: 'MCP Server Profile 4-state 成熟度 + 5-state invocation 生命周期（3 终态），per-owner active-server cap + per-server pending-invocation cap，autoDegradeIdle + autoFailStuck；33 V2 单测独立于 MCPClient 传输层。' },
-  { tag: 'v5.0.2.34', title: 'Agent Coordinator V2', sub: 'cc cowork coord V2 · 协调器治理', desc: 'Coord Agent 4-state 成熟度 + 5-state assignment 生命周期（3 终态），per-owner active-agent cap + per-agent pending-assignment cap，autoIdle + autoFailStuck；32 V2 单测（独立于旧 team/template 流）。' },
-  { tag: 'v5.0.2.34', title: 'Sub-Agent Registry V2', sub: 'cc subagent V2 · 子 Agent 治理', desc: '子 Agent Profile 4-state 成熟度（retired 终态、paused→active 恢复）+ 5-state task 生命周期（3 终态），per-owner active cap + per-profile pending cap，autoPauseIdle + autoFailStuck；37 V2 单测（共 43），独立于旧 RingBuffer 单例注册中心。新顶层 `subagent` 命令。' },
-  { tag: 'v5.0.2.34', title: 'Execution Backend V2', sub: 'cc execbe V2 · 执行后端治理', desc: 'Backend Profile 4-state 成熟度 + 5-state exec-job 生命周期（succeeded 终态、3 终态），per-owner active cap + per-backend pending cap，autoDegradeIdle + autoFailStuck；46 V2 单测（共 68），独立于 Local/Docker/SSH Backend 实现。新顶层 `execbe` 命令。' },
-  { tag: 'v5.0.2.34', title: 'Todo Manager V2', sub: 'cc todo V2 · Todo 治理', desc: 'Todo List 4-state 成熟度 + 5-state item 生命周期（in_progress 中间态、3 终态），per-owner active cap + per-list pending cap，autoPauseIdle + autoFailStuck；39 V2 单测（共 41），独立于 per-session writeTodos/getTodos API。新顶层 `todo` 命令。' },
+// 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
+const highlights = [
+  {
+    tag: 'v5.0.3.5',
+    title: 'MTC v0.11 — 跨联邦信任锚 + 离线审计',
+    sub: 'Phase 0–4 全套 · 476 测试六层覆盖',
+    desc: '基于 Merkle 树的去中心化证书体系，跨联邦信任锚 + 第三方审计器 + 多跳路由 + Gas 感知关批 + SLA 监控仪表板。Federation MTCA M-of-N 多签 + 异构 Ed25519/SLH-DSA 联邦 + filesystem/libp2p 双 transport 服务发现。',
+  },
+  {
+    tag: 'v5.0.3.4',
+    title: 'Web Panel 中英双语 M3',
+    sub: '~25 视图国际化 · vue-i18n 字典',
+    desc: 'web-panel 主要视图全量改用 vue-i18n（SpeechSettings / Analytics / Cron / Security / Audit / MCP / Backup / Tokens / MTC / WebAuthn / Community / Wallet / Inference / Organization / Federation 等），中英双语贯通，硬编码字符串清零。V6 Preview 顶栏接入语言切换器。',
+  },
+  {
+    tag: 'v5.0.3.1',
+    title: 'Web Shell 默认化 + 多窗口架构',
+    sub: 'Electron 内嵌 web-panel · WindowRegistry',
+    desc: '桌面端从"原生 Vue 渲染器"切到"Electron 主进程内嵌 ws-server + 加载 web-panel dist"，三端同源。多窗口骨架（role-based hash route + per-role geometry 持久化），window.open WS topic 让渲染层拉新窗口。',
+  },
+  {
+    tag: 'v5.0.2.34',
+    title: 'V6 Chat-First Shell 硬翻',
+    sub: '13 内置 Pack · 7 类 UI 扩展点',
+    desc: '桌面端默认进 V6 Chat-First Shell（三区布局 + 5 类企业 Provider + 分发器与 Widget 注册表 + Ctrl+Shift+A 管理控制台）。.ccprofile + MDM 推送三路径企业定制。Top-10 V5 路由全部有 V6 widget probe。',
+  },
+  {
+    tag: 'v5.0.2.10',
+    title: 'CLI V2 治理表面 220+',
+    sub: '4-state 成熟度 × 5-state 生命周期',
+    desc: '从 a2apgov 到 pmodegov，136 个 lib-level V2 治理表面（双维度上限 + auto-flip + autoStaleIdle + autoFailStuck）+ 5,984 V2 测试，与同模块旧表面通过 nest-blocker 共存。',
+  },
+  {
+    tag: 'v5.0.2.9',
+    title: 'PQC SLH-DSA (FIPS 205) + Trinity v3.2',
+    sub: '6 SLH-DSA 变体 · Ed25519 混合',
+    desc: '后量子哈希签名 SLH-DSA-{128,192,256}{s,f} 全量落地，Ed25519/X25519 混合模式覆盖过渡期。Trinity Trust Root v3.2 把 U盾 / SIMKey / TEE 三脚锚定，配合 zk-SNARK Groth16 / zk-STARK 本地生成。',
+  },
 ];
 
 const badges = [
@@ -166,7 +123,7 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
-          <span class="chip">CLI v0.161.2</span>
+          <span class="chip">CLI v{CLI_VERSION}</span>
           <span class="chip">112 命令</span>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>
@@ -207,6 +164,52 @@ const badges = [
               <span>{b.label}</span>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 三大核心能力 ═══════════════════════════════ -->
+  <section class="py-20 md:py-28 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">产品定位 · 三大场景</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          知识 · 社交 · 交易，<br/>
+          <span class="italic text-ember">以个人为中心，全栈端到端</span>。
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          一套硬件级安全 + 本地化 AI + 完全去中心化的共同基座，三大场景独立可用、互通无界。
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        {pillars.map((p) => (
+          <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="text-3xl mb-4">{p.icon}</div>
+            <h3 class="font-display text-2xl mb-1">{p.title}</h3>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-widest mb-5">{p.en}</div>
+            <ul class="space-y-2 text-sm text-ink/80">
+              {p.bullets.map((b) => (
+                <li class="flex gap-2"><span class="text-ember shrink-0">·</span><span>{b}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">隐私至上</div>
+          <div class="text-sm text-ink/80">端到端加密 · 硬件级安全 · 零知识证明 — 服务方无法访问用户数据。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">完全去中心化</div>
+          <div class="text-sm text-ink/80">本地数据存储（SQLCipher AES-256）· P2P 通信（libp2p）· 自主掌控（DID v2）。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">AI 原生</div>
+          <div class="text-sm text-ink/80">本地大模型（Ollama / LLaMA / Qwen）· 默认不上传 prompt · AI 增强搜索 + Agent 编排。</div>
         </div>
       </div>
     </div>
@@ -307,6 +310,128 @@ const badges = [
     </div>
   </section>
 
+  <!-- ═══════════════════════════════ Cowork 5 阶段编排 ═══════════════════════════════ -->
+  <section class="py-24 md:py-32">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">AI 引擎 · Cowork 多智能体编排</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          5 阶段编排 · Plan Mode · <br/>
+          <span class="italic text-ember">本能学习 · 验证循环</span>。
+        </h2>
+        <p class="mt-6 text-xl text-muted leading-relaxed">
+          不是单 Agent 撞运气。Planner / Architect / Coder / Reviewer / Verify 五角色串联，每步可中断、可审查、可重放。
+        </p>
+      </div>
+
+      <!-- 5-stage flow -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-2 mb-12">
+        {[
+          { n: '01', name: 'Planner', sub: '拆解需求' },
+          { n: '02', name: 'Architect', sub: '设计方案' },
+          { n: '03', name: 'Coder', sub: '执行落地' },
+          { n: '04', name: 'Reviewer', sub: '辩论审查' },
+          { n: '05', name: 'Verify', sub: '6 阶段验证' },
+        ].map((s, i) => (
+          <div class="relative">
+            <div class="p-5 rounded-xl border border-line bg-paper hover:border-ember transition-colors">
+              <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{s.n}</div>
+              <div class="font-display text-xl mb-1">{s.name}</div>
+              <div class="text-xs text-muted">{s.sub}</div>
+            </div>
+            {i < 4 && (
+              <div class="hidden md:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10 w-4 h-4 items-center justify-center text-ember">
+                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <!-- 4 reinforcement cards -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">4 编排模板</div>
+          <div class="text-sm text-muted">feature / bugfix / refactor / security-audit — 一键套用。</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Plan Mode</div>
+          <div class="text-sm text-muted">先出计划、确认后再执行 — 防 AI 跑偏。</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">本能学习 Instinct</div>
+          <div class="text-sm text-muted">8 类模式 + 置信度衰减 + 自动注入 — 越用越懂你。</div>
+        </div>
+        <div class="p-6 rounded-xl border-l-4 border-ember bg-cream/40">
+          <div class="font-display text-lg mb-2">Sub-Agent 隔离</div>
+          <div class="text-sm text-muted">工具白名单 + 3 级摘要 + 独立消息 — 上下文不污染。</div>
+        </div>
+      </div>
+
+      <!-- 139 skills strip -->
+      <div class="mt-10 p-6 md:p-8 rounded-2xl bg-ink text-cream">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+          <div class="font-display text-xl">139 内置技能 · 13 组别</div>
+          <div class="font-mono text-xs text-muted-dark">139 桌面 + 28 Android + 112 CLI</div>
+        </div>
+        <div class="text-sm text-muted-dark leading-relaxed">
+          原有技能 15 · 开发工具扩展 15 · 高级技能 10 · AI 会话效率 10 · Office 音视频 10 · 图像数据 10 · 开发系统 10 · 安全设计 10 · 工具增强 10 · 协作工作流 10 · 知识研究 10 · 媒体安全 11 · 社区视频 7
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 工程基线 · 测试细分 ═══════════════════════════════ -->
+  <section class="py-20 md:py-24 bg-cream/40 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">工程基线 · 5 平台统一</div>
+        <h2 class="text-display-md md:text-5xl leading-tight">
+          一套 AI 引擎，<br/>
+          <span class="italic text-ember">14,800+ 测试守护</span>。
+        </h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          Win / macOS / Linux / Android / iOS / CLI — 同一套引擎跨终端。所有发布前必须六层全绿，单层失败即拦截发版。
+        </p>
+      </div>
+
+      <!-- 6 平台 -->
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-10">
+        {[
+          { name: 'Windows', sub: 'Electron 39 · Win 10/11' },
+          { name: 'macOS', sub: 'Electron 39 · 12+' },
+          { name: 'Linux', sub: 'Electron 39 · Ubuntu 20+' },
+          { name: 'Android', sub: 'Jetpack Compose · Kotlin' },
+          { name: 'iOS', sub: 'SwiftUI' },
+          { name: 'CLI', sub: 'npm · Node 22 LTS' },
+        ].map((p) => (
+          <div class="p-4 rounded-xl border border-line bg-paper text-center">
+            <div class="font-display text-base md:text-lg mb-1">{p.name}</div>
+            <div class="font-mono text-[10px] text-muted leading-tight">{p.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- 测试六层细分 -->
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: '14,255', label: 'CLI 单元' },
+          { n: '696', label: 'CLI 集成' },
+          { n: '565', label: 'CLI E2E' },
+          { n: '197', label: '桌面 Coding Agent' },
+          { n: '84', label: 'Phase 5 harness' },
+          { n: '27', label: 'Web Panel' },
+        ].map((t) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-display text-2xl md:text-3xl text-ember">{t.n}</div>
+            <div class="font-mono text-[10px] text-muted uppercase tracking-wider mt-2">{t.label}</div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-4 text-xs text-muted text-center font-mono">2026-04-19 工程验证回归 · 全绿</p>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════ SECURITY (dark) ═══════════════════════════════ -->
   <section id="security" class="relative bg-ink text-cream py-24 md:py-32">
     <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
@@ -396,35 +521,39 @@ const badges = [
     </div>
   </section>
 
-  <!-- ═══════════════════════════════ COWORK EVOLUTION ═══════════════════════════════ -->
+  <!-- ═══════════════════════════════ HIGHLIGHTS ═══════════════════════════════ -->
   <section class="py-24 md:py-32 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
-        <div class="chip mb-6">架构演进 · 227+ 项（v5.0.2.49→v5.0.2.53 cc pack + OTA 三段 + 项目模式 · v5.0.2.43 SFC 拆分 · v5.0.2.34 V2 规范层 iter16-iter28 · 220+ 治理表面）</div>
+        <div class="chip mb-6">近期重点</div>
         <h2 class="text-display-md md:text-5xl leading-tight">
           把多智能体做成<br/>
           <span class="italic">工程可复制的模式</span>。
         </h2>
         <p class="mt-6 text-xl text-muted leading-relaxed">
-          不是概念演示。是 18 个已落地、有测试、写进模式库的工程解决方案 —— 涵盖 Coding Agent 演进、去中心化社交、威胁情报、后量子密码与视频剪辑。
+          不是概念演示。每一项都已落地、有测试、写进模式库。完整 changelog 见
+          <a href="https://design.chainlesschain.com" rel="noopener" class="text-ember underline-offset-4 hover:underline">设计文档站</a>。
         </p>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
-        {evolution.map((e, i) => (
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {highlights.map((h, i) => (
           <a href="https://design.chainlesschain.com" rel="noopener" class="group bg-paper p-8 hover:bg-ember/5 transition-colors">
             <div class="flex items-center justify-between mb-4">
-              <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Pattern</div>
-              {e.tag && (
-                <span class={`font-mono text-[10px] px-2 py-0.5 rounded-full ${['v5.0.2.53', 'v5.0.2.52', 'v5.0.2.51', 'v5.0.2.50', 'v5.0.2.49'].includes(e.tag) ? 'bg-ember text-cream ring-2 ring-ember/30' : (e.tag === 'v5.0.2.43' || e.tag === 'v5.0.2.42') ? 'bg-ember/85 text-cream' : e.tag === 'v5.0.2.34' ? 'bg-ember/60 text-cream' : e.tag === 'v5.0.2.10' ? 'bg-ember/15 text-ember' : 'bg-muted/10 text-muted'}`}>{e.tag}</span>
-              )}
+              <div class="font-mono text-[10px] text-muted uppercase tracking-widest">{(i + 1).toString().padStart(2, '0')} · Highlight</div>
+              <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-ember text-cream">{h.tag}</span>
             </div>
-            <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{e.title}</h3>
-            <div class="text-xs text-muted mb-3 font-mono">{e.sub}</div>
-            <p class="text-sm text-ink/80 leading-relaxed">{e.desc}</p>
+            <h3 class="font-display text-2xl mb-1 group-hover:text-ember transition-colors">{h.title}</h3>
+            <div class="text-xs text-muted mb-3 font-mono">{h.sub}</div>
+            <p class="text-sm text-ink/80 leading-relaxed">{h.desc}</p>
             <div class="mt-5 text-xs text-muted group-hover:text-ember transition-colors">阅读设计文档 →</div>
           </a>
         ))}
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a href="https://github.com/chainlesschain/chainlesschain/releases" target="_blank" rel="noopener" class="btn-ghost">完整 Release Notes ↗</a>
+        <a href="https://design.chainlesschain.com" rel="noopener" class="btn-ghost">设计文档站 ↗</a>
       </div>
     </div>
   </section>
@@ -605,7 +734,7 @@ const badges = [
       </div>
       <div class="grid md:grid-cols-3 gap-6">
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">CLI · v0.47.9</div>
+          <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">命令行工具</h3>
           <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy="npm i -g chainlesschain">$ npm i -g chainlesschain</div>
           <p class="text-sm text-muted">支持 npm / yarn / pnpm / bun · 约 2MB</p>

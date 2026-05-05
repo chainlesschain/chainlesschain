@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import cliPkg from '../../../packages/cli/package.json';
+
+const CLI_VERSION = cliPkg.version;
 
 const categories = [
   {
@@ -346,7 +349,7 @@ const packs = [
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">CLI · v0.160.1</div>
+        <div class="chip mb-6 animate-fade-in">CLI · v{CLI_VERSION}</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>

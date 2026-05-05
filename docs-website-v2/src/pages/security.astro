@@ -25,6 +25,36 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- Trinity Trust Root v3.2 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-6">Trinity Trust Root v3.2</div>
+        <h2 class="font-display text-3xl md:text-4xl leading-tight">
+          三位一体<span class="italic text-ember">硬件信任根</span>。
+        </h2>
+        <p class="mt-4 text-muted leading-relaxed">三个独立的硬件锚点共同守护私钥与身份。任一脚单点失守，其余两脚仍可恢复。</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        <div class="bg-paper p-8">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">01 · U-KEY</div>
+          <h3 class="font-display text-2xl mb-3">USB 安全芯片</h3>
+          <p class="text-sm text-muted leading-relaxed">Windows 原生支持 · 设备级私钥载体 · PIN 保护 · 多次错误自动锁定。所有关键签名需物理确认。</p>
+        </div>
+        <div class="bg-paper p-8">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">02 · SIMKEY</div>
+          <h3 class="font-display text-2xl mb-3">SIM 卡承载密钥</h3>
+          <p class="text-sm text-muted leading-relaxed">三大运营商 USIM + 5G 超级 SIM · PQC 固件预置 · OMAPI / eSIM API · 手机即硬件钱包。</p>
+        </div>
+        <div class="bg-paper p-8">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">03 · TEE</div>
+          <h3 class="font-display text-2xl mb-3">可信执行环境</h3>
+          <p class="text-sm text-muted leading-relaxed">硬件指纹绑定 · 隔离敏感运算 · 与 U盾 / SIMKey 互为冗余 · 抗 OS 提权与冷启动攻击。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Architecture diagram -->
   <section class="py-16 md:py-24">
     <div class="container-wide">
@@ -171,6 +201,58 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
         <div class="md:w-48 shrink-0">
           <div class="font-mono text-xs text-ember mb-2">06</div>
+          <h3 class="font-display text-3xl">后量子 PQC</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">ML-KEM 密钥封装 · ML-DSA 签名 · 全面替换 RSA / ECDSA。</p>
+          <p class="prose-muted mb-4">基于 NIST FIPS 203 / 204 标准化算法，结合 SLH-DSA (FIPS 205) 提供哈希签名兜底。Ed25519 / X25519 混合模式覆盖过渡期，让现网证书在量子计算威胁前已具备前向安全。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">ML-KEM (FIPS 203)</span>
+            <span class="chip">ML-DSA (FIPS 204)</span>
+            <span class="chip">SLH-DSA-128f</span>
+            <span class="chip">混合签名</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">07</div>
+          <h3 class="font-display text-3xl">零知识证明</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">zk-SNARK Groth16 · zk-STARK 本地生成。</p>
+          <p class="prose-muted mb-4">证明在用户设备上生成，不向服务方泄露原始数据。可用于年龄 / 身份 / 资产门槛证明、合规报告与跨链桥安全。STARK 后量子安全，SNARK 高效紧凑，按场景自动选型。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">Groth16</span>
+            <span class="chip">zk-STARK</span>
+            <span class="chip">本地生成</span>
+            <span class="chip">链下计算</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">08</div>
+          <h3 class="font-display text-3xl">硬件标准与钱包</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">FIPS 140-3 兼容 · 统一 HSM 接口。</p>
+          <p class="prose-muted mb-4">主流硬件钱包（Yubikey / Ledger / Trezor）即插即用，企业版可对接 Thales / Utimaco / 国产 HSM。统一接口屏蔽底层差异，门限签名 / 多签策略 / 密钥托管在同一 API 表面。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">FIPS 140-3</span>
+            <span class="chip">Yubikey</span>
+            <span class="chip">Ledger</span>
+            <span class="chip">Trezor</span>
+            <span class="chip">门限签名</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">09</div>
           <h3 class="font-display text-3xl">合规与认证</h3>
         </div>
         <div>
