@@ -112,6 +112,14 @@ class ChainlessChainApp {
     this.dbEncryptionIPC = null;
     this.initialSetupIPC = null;
     this.deepLinkHandler = null;
+    // Tray + minimize-to-tray state:
+    //   trayManager  — EnhancedTrayManager instance (created in createWindow)
+    //   isQuitting   — set true by `before-quit` so the window's close handler
+    //                  knows to let close proceed instead of intercepting it.
+    //                  Without this flag, app.quit() from any source (tray
+    //                  menu, Ctrl+Q, OS shutdown) would silently no-op.
+    this.trayManager = null;
+    this.isQuitting = false;
 
     // 懒加载状态
     this.speechInitialized = false;
@@ -163,6 +171,11 @@ class ChainlessChainApp {
     app.on("window-all-closed", () => this.onWindowAllClosed());
     app.on("activate", () => this.onActivate());
     app.on("will-quit", (event) => this.onWillQuit(event));
+    // Mark "real quit in progress" so the main window's close handler stops
+    // intercepting. Fires for tray-menu Quit, Ctrl+Q, and OS-initiated shutdown.
+    app.on("before-quit", () => {
+      this.isQuitting = true;
+    });
   }
 
   async onReady() {
@@ -975,9 +988,43 @@ class ChainlessChainApp {
       initLogForwarder(this.mainWindow);
     });
 
+    // Close-button behavior: minimize to system tray instead of quitting.
+    // Pressing X used to destroy the window and quit the app via
+    // `window-all-closed` → app.quit(). Users hit "where did my window go?"
+    // when minimize+lose-focus made it look closed. Now X hides the window;
+    // tray icon's "退出" menu (and Ctrl+Q, app menu, OS shutdown) are the
+    // explicit quit paths, gated by `app.before-quit` setting `isQuitting`.
+    this.mainWindow.on("close", (e) => {
+      if (!this.isQuitting && this.trayManager) {
+        e.preventDefault();
+        this.mainWindow.hide();
+      }
+    });
     this.mainWindow.on("closed", () => {
       this.mainWindow = null;
     });
+
+    // Initialize system tray once the main window exists. The tray owns the
+    // explicit Quit path; if tray creation fails (e.g. icon missing on a
+    // stripped-down Linux desktop) the close→hide intercept above sees
+    // `trayManager === null` and falls through to native close, so the app
+    // is never strandable in a hidden state.
+    try {
+      const EnhancedTrayManager = require("./system/enhanced-tray-manager.js");
+      this.trayManager = new EnhancedTrayManager(this.mainWindow);
+      this.trayManager.create();
+      if (!this.trayManager.tray) {
+        // create() catches its own errors and leaves tray=null. Treat that
+        // as "tray unavailable" so close behaves natively.
+        this.trayManager = null;
+      }
+    } catch (err) {
+      logger.warn(
+        "[Main] Tray init failed, close-to-quit fallback active:",
+        err.message,
+      );
+      this.trayManager = null;
+    }
 
     // 设置依赖
     if (this.dbEncryptionIPC) {
@@ -1830,6 +1877,18 @@ class ChainlessChainApp {
   async onWillQuit(event) {
     event.preventDefault();
     logger.info("[Main] 应用退出中...");
+
+    // Destroy tray BEFORE rest of cleanup so the system-tray icon disappears
+    // immediately when the user hits Quit, instead of lingering through the
+    // multi-second teardown chain.
+    if (this.trayManager) {
+      try {
+        this.trayManager.destroy();
+      } catch (err) {
+        logger.warn("[Main] tray destroy error:", err.message);
+      }
+      this.trayManager = null;
+    }
 
     // Phase 1.5: flush any pending debounced geometry writes so the user's
     // last visible bounds aren't lost to the 500ms timer on quit.
