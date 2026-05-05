@@ -5,22 +5,28 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 桌面版安装链路收口 + 系统托盘最小化
+## [v5.0.3.30] - 2026-05-05 — 桌面版收口（安装链路 + 托盘 + 技能上限 + 图标）
 
-> 待版本号确认后并入正式 release 条目。覆盖 commits `b2e1ff27d` / `33d40fbad` / `d57759dc9`。
+> 覆盖 commits `b2e1ff27d` / `33d40fbad` / `d57759dc9` + 本次 desktop fix batch。
+
+### Fixed
+
+- **内置技能数 100 上限触顶 —— 第 101 个起注册全失败** —— `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-registry.js:23` 的 `maxSkills` 默认 `100`，但运行时 `SkillLoader` 实际加载 **bundled 144 + marketplace 5 + managed 9 = 158** 个。所有 `getSkillRegistry()` 调用均不传 options，从第 101 个开始 `throw 已达到最大技能数限制: 100`。提升默认值到 `1000`（注释说明仅作 sanity 上限防循环注册 OOM，非功能上限），实测 158/158 全注册成功。
+- **系统托盘图标在 dev 模式加载为空白** —— `enhanced-tray-manager.js:getIconPath()` 候选路径全部指向 `resources/`（项目里**根本没有这个目录**），`nativeImage.createFromPath()` 返回空 image，Windows 给了 fallback 图标。候选列表头部加 `assets/icon.ico`（dev 模式真实位置），`process.resourcesPath/icon.ico` 排第二（packaged 模式由 `electron-builder.yml extraResources` 拷贝）。tray 现在能正常吃到品牌 icon。
+- **本地 `make:win:builder` 漏装 `packages/cli` 生产依赖** —— 之前从本地构建产物启动会在 web-shell 拉起 `ws-server.js` 时崩溃 `Cannot find package 'ws'`。`desktop-app-vue/package.json` 加 `prepare:cli-prod-deps` 前置脚本，`make:{win,mac,linux}:builder` 串起来跑 `cd ../packages/cli && npm install --omit=dev --workspaces=false --legacy-peer-deps`，对齐 CI release path 行为。
+- **`afterPack` 在 Windows 非 admin / 非 Developer Mode 下 EPERM symlink** —— `cpSync` `dereference: false` 试图把 `@chainlesschain/{core-mtc,session-core}` 的 workspace junction 复刻到目标目录，Windows 拒绝。改 `dereference: true`——shippable 安装包本来就该 inline workspace 内容，不应保留指回用户源码树的 link。
 
 ### Changed
 
 - **关闭按钮 X 默认最小化到系统托盘** —— 之前点窗口 X 直接退出应用导致用户误以为"窗口消失了"。现在 X 会把主窗口隐藏到屏幕右下角系统托盘（`desktop-app-vue/src/main/system/enhanced-tray-manager.js` 接进 `index.js`），后台仍运行；通过托盘菜单"退出"或 `Ctrl+Q` 才彻底关闭。完整说明见 [`/guide/installation`](/guide/installation#三、关闭按钮-x-行为)。
 - **本地 Win 安装包体积下降 357 MB / 14k 文件** —— `desktop-app-vue/scripts/electron-after-pack.js` 增加 `cpSync` filter，丢 50 个声明在 `devDependencies` 的顶层包（运行时无引用，4 个例外 `better-sqlite3` / `electron` / `jsdom` / `glob` 通过 lockfile BFS 验证保留）+ 12 个非 win32 平台原生（`@nomicfoundation/edr-{linux,darwin}-*` 等）。Setup.exe 由 ~610 MB 降至 **594 MB**，安装时文件数由 124k 降至 110k。
-
-### Fixed
-
-- **本地 `make:win:builder` 漏装 `packages/cli` 生产依赖** —— 之前从本地构建产物启动会在 web-shell 拉起 `ws-server.js` 时崩溃 `Cannot find package 'ws'`。`desktop-app-vue/package.json` 加 `prepare:cli-prod-deps` 前置脚本，`make:{win,mac,linux}:builder` 串起来跑 `cd ../packages/cli && npm install --omit=dev --workspaces=false --legacy-peer-deps`，对齐 CI release path 行为。
-- **`afterPack` 在 Windows 非 admin / 非 Developer Mode 下 EPERM symlink** —— `cpSync` `dereference: false` 试图把 `@chainlesschain/{core-mtc,session-core}` 的 workspace junction 复刻到目标目录，Windows 拒绝。改 `dereference: true`——shippable 安装包本来就该 inline workspace 内容，不应保留指回用户源码树的 link。
+- **应用图标 master 重生成（fill ratio 52% → 100% 水平）** —— `assets/icon.png` 原 master 是 2451×2451 但圆形 logo 仅占画布 ~52%，托盘 / 任务栏 / 桌面快捷方式视觉上明显比邻居（WeChat / Office）小一圈。新增 `desktop-app-vue/tools/regen-app-icon.js`（sharp + png-to-ico），自动 trim 透明边重生成 master + 7 层 .ico（16/24/32/48/64/128/256，bbox 1282×1143 squared 到 1282×1282，水平 100% / 垂直 89% fill）。后续换 logo 直接 `node tools/regen-app-icon.js` 重跑。
+- **Windows 任务栏图标 + AppUserModelId 收口** —— `desktop-app-vue/src/main/index.js` 主 BrowserWindow 加 `icon: resolveAppIconPath()`（dev 走 `assets/icon.ico`，packaged 走 `process.resourcesPath/icon.ico`），`setupApp()` 顶部加 `app.setAppUserModelId("com.chainlesschain.desktop")`。dev 启动不再回落到 Electron 默认图标，packaged 升级时任务栏图标关联也不会丢。
 
 ### Added
 
+- **`desktop-app-vue/package.json` postinstall electron 二进制兜底** —— `node node_modules/electron/install.js || true`。npm workspaces hoisting 偶发导致子包 electron postinstall 不触发、`node_modules/electron/dist/electron.exe` 缺失时，`npm install` 自动恢复，避免 `npm run dev` 抛 `Electron failed to install correctly`。
+- **`desktop-app-vue/tools/regen-app-icon.js`** —— 应用图标 master + .ico 重生成脚本（详见 Changed 段）。
 - **`docs-site/docs/guide/installation.md`** —— 桌面版安装指南，覆盖安装时间预期（15–25 分钟）、首次启动延迟（30–60 秒到主窗口）、托盘行为、卸载、系统要求。回答 "进度条不动是不是卡死了" / "我的窗口怎么消失了" 等高频疑问。
 - **`desktop-app-vue/scripts/after-pack-dryrun.js`** —— 不打包的探针，复用 afterPack 过滤逻辑量化收益（kept / skipped / 文件数 / 体积），用于将来调整过滤规则前预演。
 - **`desktop-app-vue/scripts/find-renderer-only-deps.js`** —— grep `src/main` + `dist/` 的实际 require/import，跟 `dependencies` 求差集找 renderer-only 候选。当前未接入 afterPack（transitive prod-chain 风险需 lockfile BFS 单独验证），留作 issue #6 后续优化探针。
@@ -28,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known Limitations
 
 - **首次安装仍需 15–25 分钟** —— `asar:false` 散文件部署模式下 NSIS + Defender 单文件处理是结构性瓶颈。优化路线见 [GitHub Issue #6](https://github.com/chainlesschain/chainlesschain/issues/6)（重启用 `asar:true` + `asarUnpack` 把安装时间砍到 5 分钟内）。
+- **图标视觉上仍比 WeChat / 酷狗音乐等方形 app 显小** —— 圆形 logo 物理面积 = 同尺寸方形的 78%（π/4），跟方形邻居同台必然显瘦一圈。本次改进只解决了"源 master 留白过多"的工程问题；要彻底视觉对齐需要设计层加方形底（待评估）。
 
 ## [v5.0.3.1] - 2026-04-29 — V6 Preview Shell P9d — 品牌收口 + 空白起步 + 设置入口
 

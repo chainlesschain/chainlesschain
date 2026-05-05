@@ -34,7 +34,20 @@ console.log("[DEBUG] Electron modules loaded");
 const { logger } = require("./utils/logger.js");
 console.log("[DEBUG] Logger loaded");
 const path = require("path");
+const fs = require("fs");
 console.log("[DEBUG] Node modules loaded");
+
+// Resolve app icon for BrowserWindow + Windows AppUserModelId. Same dual-
+// origin pattern as EnhancedTrayManager: assets/ in dev, resources/ when
+// packaged (electron-builder.yml extraResources copies icon.ico into
+// process.resourcesPath at build time).
+function resolveAppIconPath() {
+  const candidates = [
+    path.join(__dirname, "../../assets/icon.ico"),
+    path.join(process.resourcesPath || "", "icon.ico"),
+  ];
+  return candidates.find((p) => p && fs.existsSync(p)) || candidates[0];
+}
 
 // Bootstrap 模块
 const {
@@ -132,6 +145,13 @@ class ChainlessChainApp {
   }
 
   setupApp() {
+    // Windows: bind taskbar icon + jump-list to a stable AppUserModelId.
+    // Without this, dev runs show Electron's default icon and packaged runs
+    // can lose icon association after upgrades.
+    if (process.platform === "win32") {
+      app.setAppUserModelId("com.chainlesschain.desktop");
+    }
+
     // macOS 特定配置
     if (process.platform === "darwin") {
       app.commandLine.appendSwitch("disable-features", "RestoreSessionState");
@@ -802,6 +822,7 @@ class ChainlessChainApp {
         : {}),
       minWidth: 800,
       minHeight: 600,
+      icon: resolveAppIconPath(),
       backgroundColor: "#764ba2", // 与加载动画背景色一致，防止白屏闪烁
       show: process.env.NODE_ENV === "test",
       webPreferences: {

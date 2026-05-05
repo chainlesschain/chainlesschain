@@ -188,6 +188,27 @@ module.exports = [
     },
   },
 
+  // tools/ 脚本（构建辅助、资源生成等）— Node CJS 环境
+  {
+    files: ["tools/**/*.js", "scripts/**/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        __dirname: "readonly",
+        __filename: "readonly",
+        require: "readonly",
+        module: "readonly",
+        exports: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "no-console": "off",
+      "no-undef": "off",
+    },
+  },
+
   // Worker 文件特殊配置
   {
     files: ["src/renderer/workers/**/*.js"],

@@ -189,6 +189,16 @@ compression: normal  # 或 maximum（但会更慢）
 # do not exist; electron-builder treated them as warnings here, but kept
 # them silently truncating the bundle. Drop until those files actually land.
 extraResources:
+  # System tray icon — `EnhancedTrayManager` reads via process.resourcesPath
+  # at runtime (= <install-dir>/resources/). buildResources: assets is for
+  # build-time only (NSIS installer icon, embedded exe icon via rcedit), so
+  # ship a runtime copy here. Without these the tray initializes "successfully"
+  # with an empty nativeImage but the icon is invisible in the Windows tray
+  # (verified 2026-05-05: tray icon never appeared after d57759dc9).
+  - from: assets/icon.ico
+    to: icon.ico
+  - from: assets/icon.png
+    to: icon.png
   - from: ../docker-compose.yml
     to: backend-services/docker-compose.yml
   # packages/cli + packages/web-panel/dist MUST go through extraResources,

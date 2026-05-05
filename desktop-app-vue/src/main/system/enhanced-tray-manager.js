@@ -25,7 +25,11 @@ class EnhancedTrayManager {
       const iconPath = this.getIconPath();
       const icon = nativeImage.createFromPath(iconPath);
 
-      this.tray = new Tray(icon.resize({ width: 16, height: 16 }));
+      // Don't .resize() — that squashes multi-layer ICO into single 16x16
+      // raster, which Windows then upscales for high-DPI screens (1.5x/2x
+      // scaling is common) producing a blurry icon. Let Tray() consume the
+      // multi-resolution nativeImage and pick the right layer per DPI.
+      this.tray = new Tray(icon);
       this.tray.setToolTip("ChainlessChain - 个人AI管理系统");
 
       // 创建上下文菜单
@@ -60,11 +64,16 @@ class EnhancedTrayManager {
       iconName = "iconTemplate.png";
     }
 
-    // 尝试多个可能的路径
+    // 候选路径顺序：
+    //   1. assets/ (dev 模式：desktop-app-vue/assets/icon.ico — git 里真实存在)
+    //   2. process.resourcesPath (packaged 模式：electron-builder.yml 已把
+    //      assets/icon.ico 拷到 <install>/resources/icon.ico)
+    //   3. 历史 resources/ 路径兜底（实际没人用，留着防止 regression）
     const possiblePaths = [
+      path.join(__dirname, "../../../assets", iconName),
+      path.join(process.resourcesPath, iconName),
       path.join(__dirname, "../../resources", iconName),
       path.join(__dirname, "../../../resources", iconName),
-      path.join(process.resourcesPath, iconName),
       path.join(app.getAppPath(), "resources", iconName),
     ];
 
@@ -305,10 +314,10 @@ class EnhancedTrayManager {
       const icon = nativeImage.createFromPath(iconPath);
 
       if (isHighlighted) {
-        this.tray.setImage(icon.resize({ width: 16, height: 16 }));
+        this.tray.setImage(icon);
       } else {
         // 创建一个高亮版本（可以是不同的图标或添加效果）
-        this.tray.setImage(icon.resize({ width: 16, height: 16 }));
+        this.tray.setImage(icon);
       }
 
       isHighlighted = !isHighlighted;
@@ -326,7 +335,7 @@ class EnhancedTrayManager {
       // 恢复正常图标
       const iconPath = this.getIconPath();
       const icon = nativeImage.createFromPath(iconPath);
-      this.tray.setImage(icon.resize({ width: 16, height: 16 }));
+      this.tray.setImage(icon);
     }
   }
 
