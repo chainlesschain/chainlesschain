@@ -1055,10 +1055,14 @@ jobs:
             gh release upload "$VERSION" release-assets/* --clobber
           else
             echo "Creating new DRAFT release ${VERSION} with artifacts..."
+            # Don't pass --target: tag already exists on remote (we got
+            # here via tag-push), so target_commitish is ignored per GH API
+            # docs. Worse: passing the resolved SHA actively breaks the
+            # call when the tag's commit isn't main's tip — v5.0.3.31 hit
+            # 403 because the tag pointed 3 commits behind HEAD.
             gh release create "$VERSION" \
               --title "ChainlessChain ${VERSION}" \
               --notes-file release-notes.md \
-              --target "${{ github.sha }}" \
               --draft \
               $EXTRA_FLAGS \
               release-assets/*
