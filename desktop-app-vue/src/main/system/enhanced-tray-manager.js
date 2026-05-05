@@ -362,7 +362,7 @@ class EnhancedTrayManager {
     if (
       autoUpdater &&
       typeof autoUpdater.checkForUpdates === "function" &&
-      process.env.NODE_ENV === "production"
+      (process.env.NODE_ENV === "production" || app.isPackaged)
     ) {
       autoUpdater.checkForUpdates().catch((err) => {
         logger.warn("[TrayManager] checkForUpdates failed:", err.message);
