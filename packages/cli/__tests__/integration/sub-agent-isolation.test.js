@@ -36,9 +36,9 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 
 // Mock skill-loader (instantiated at module level in agent-core)
 vi.mock("../../src/lib/skill-loader.js", () => ({
-  CLISkillLoader: vi.fn().mockImplementation(() => ({
-    getResolvedSkills: vi.fn(() => []),
-  })),
+  CLISkillLoader: vi.fn(function () {
+    return { getResolvedSkills: vi.fn(() => []) };
+  }),
 }));
 
 const { executeTool, AGENT_TOOLS } =
