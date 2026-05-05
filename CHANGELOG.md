@@ -5,6 +5,23 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.31] - 2026-05-05 — 系统托盘菜单 + 自动更新接入（修 v5.0.3.30 漏修的三个 bug）
+
+> 用户报告 v5.0.3.30 安装版三个 bug：托盘菜单除了"显示主窗口"全部点了无反应；"检查更新"按钮点了哑响；自动更新功能不工作。三个症状同根：tray-manager 把所有菜单项 send 到 renderer 各自独立的 IPC channel，但 renderer **从未给任何一个 channel 注册 listener**；同时 `auto-updater.js` 模块在 `index.js` **从未被初始化**（grep `autoUpdater` 在 index.js 0 个匹配）。
+
+### Fixed
+
+- **自动更新静默不工作** —— `auto-updater.js` 模块定义了 init / 4-小时定期检查 / 启动 3s 自检，但 `desktop-app-vue/src/main/index.js` 从来没调用过 `init()`，packaged 版本因此既不主动检查也不被动等待。修复：在 tray 创建之后调用 `require("./system/auto-updater.js").init(this.mainWindow)`，模块自身仍守 `NODE_ENV !== "production"` 的 dev no-op。这是发版功能性 bug，影响所有已安装用户的自动更新链路。
+- **托盘"检查更新"菜单点击无反应** —— 原实现 `sendToRenderer("check-update")`，renderer 全代码库 0 个 listener 监听该 channel。改为主进程直接调 auto-updater 单例 `checkForUpdates()`（dev 模式下弹一个原生 dialog 提示"开发模式不会触发自动更新"，避免再次哑响）。
+- **托盘菜单大部分项点击无反应** —— `quick-action / sync / show-notifications / show-performance / open-settings / show-about` 6 个菜单分别 send 自己的 IPC channel，**renderer 一个都没监听**。统一为单一 `tray:action` 通道，payload 形如 `{ type, payload }`。`enhanced-tray-manager.js` 新增 `dispatchTrayAction(type, payload)` 方法，`src/renderer/App.vue` 注册 listener 按 type 分发到 Vue Router (`/settings/system`, `/performance/dashboard`, `/chat`) / `showGlobalSearch` 状态切换 / window 自定义事件 (`cc:show-notifications`, `cc:new-note`)；当前未接入的能力（screenshot-ocr / clipboard-import / sync）给明确的 `message.info("功能即将推出")` toast，避免再次哑响。
+- **托盘菜单触发时主窗口被隐藏** —— 用户从托盘菜单选了菜单项但主窗口在托盘里没拉出来，UI 永远没机会响应。`dispatchTrayAction` 派发前检查 `mainWindow.isVisible()`，隐藏则 `show() + focus()`，保证操作可见。
+
+### Added
+
+- **`enhanced-tray-manager.js` 三个新方法** —— `dispatchTrayAction(type, payload)` 统一通道；`showAboutDialog()` 主进程原生关于对话框（避开 renderer round-trip）；`triggerCheckForUpdates()` 调 auto-updater 单例 + dev 模式 fallback dialog。
+- **`src/main/system/__tests__/enhanced-tray-manager.test.js`** —— vitest 单测覆盖 `dispatchTrayAction` 6 个场景（payload 形状 / 空值默认 / 隐藏窗口的 show+focus / mainWindow 缺失兜底）。`showAboutDialog` / `triggerCheckForUpdates` 是 Electron 原语薄包装，受现有全局 `tests/__mocks__/electron.ts` + `tests/setup.ts` mock 干扰难以隔离测试，靠手动验证覆盖。
+- **`docs-site/docs/guide/installation.md` 等三处 tagline / 当前版本** 同步更新到 v5.0.3.31。
+
 ## [v5.0.3.30] - 2026-05-05 — 桌面版收口（安装链路 + 托盘 + 技能上限 + 图标）
 
 > 覆盖 commits `b2e1ff27d` / `33d40fbad` / `d57759dc9` + 本次 desktop fix batch。

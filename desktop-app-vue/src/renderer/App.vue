@@ -1,14 +1,8 @@
 <template>
-  <a-config-provider
-    :locale="currentAntdLocale"
-    :theme="themeConfig"
-  >
+  <a-config-provider :locale="currentAntdLocale" :theme="themeConfig">
     <!-- 离线状态横幅 -->
     <transition name="slide-down">
-      <div
-        v-if="!networkStore.isOnline"
-        class="offline-banner"
-      >
+      <div v-if="!networkStore.isOnline" class="offline-banner">
         <a-alert
           type="warning"
           :message="$t('app.offlineMessage', '您当前处于离线状态')"
@@ -69,6 +63,7 @@
 import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
 import { useAppStore } from "./stores/app";
@@ -96,6 +91,7 @@ const store = useAppStore();
 const socialStore = useSocialStore();
 const networkStore = useNetworkStore();
 const loading = ref(true);
+const router = useRouter();
 const { locale } = useI18n();
 const showGlobalSetupWizard = ref(false);
 const showEncryptionWizard = ref(false);
@@ -233,6 +229,76 @@ const handleDatabaseSwitched = (data) => {
   }, 300);
 };
 
+// 系统托盘菜单事件 — 主进程通过 "tray:action" 通道统一派发，单一入口
+// 取代之前各种 quick-action / sync / show-notifications 等 channel
+// （renderer 一个都没监听，全部点了无效）。这里按 type 分发到路由 /
+// 面板状态 / window 事件。
+const handleTrayAction = (_event, payload) => {
+  const { type, payload: data } = payload || {};
+  logger.info("[App] tray action:", type, data);
+  switch (type) {
+    case "open-settings":
+      if (data === "notifications") {
+        router.push("/settings/system?tab=notifications");
+      } else if (data) {
+        router.push(`/settings/${data}`);
+      } else {
+        router.push("/settings/system");
+      }
+      break;
+    case "show-performance":
+      router.push("/performance/dashboard");
+      break;
+    case "show-notifications":
+      // NotificationCenter 自管开合状态；先转一个 window 事件让它接住
+      window.dispatchEvent(new CustomEvent("cc:show-notifications"));
+      break;
+    case "quick-action":
+      handleQuickAction(data);
+      break;
+    case "sync":
+      handleSyncAction(data);
+      break;
+    default:
+      message.info("未识别的托盘操作");
+  }
+};
+
+const handleQuickAction = (action) => {
+  switch (action) {
+    case "global-search":
+      // GlobalSearch 已在 App.vue 模板里以 v-model 挂载，直接拨开关
+      showGlobalSearch.value = true;
+      break;
+    case "new-chat":
+      router.push("/chat");
+      break;
+    case "new-note":
+      router.push("/");
+      window.dispatchEvent(new CustomEvent("cc:new-note"));
+      break;
+    case "screenshot-ocr":
+    case "clipboard-import":
+      // 这两个需要主进程侧能力（屏幕截图 / 剪贴板抓取后写入 KB），
+      // 还没接入；先给用户明确反馈而不是哑响。
+      message.info("功能即将推出");
+      break;
+    default:
+      message.info("未识别的快速操作");
+  }
+};
+
+const handleSyncAction = (data = {}) => {
+  // 主进程暂未暴露统一 sync IPC；先给用户明确反馈。后续接入后这里
+  // 换成真实 IPC 调用即可，托盘 → renderer 链路本身已通。
+  const { mode, value } = data || {};
+  if (mode === "now") {
+    message.info("立即同步功能即将推出");
+  } else if (mode === "toggle-auto") {
+    message.info(`自动同步：${value ? "已开启" : "已关闭"}（待接入）`);
+  }
+};
+
 onMounted(async () => {
   try {
     // 初始化网络状态监听器
@@ -301,6 +367,9 @@ onMounted(async () => {
         "database-switched",
         handleDatabaseSwitched,
       );
+
+      // 监听系统托盘菜单 — 单一通道 "tray:action"，按 payload.type 分发
+      window.electron.ipcRenderer.on("tray:action", handleTrayAction);
     }
   } catch (error) {
     logger.error("应用初始化失败", error);
@@ -330,6 +399,7 @@ onUnmounted(() => {
       "database-switched",
       handleDatabaseSwitched,
     );
+    window.electron.ipcRenderer.removeListener("tray:action", handleTrayAction);
   }
 });
 

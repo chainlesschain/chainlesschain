@@ -1047,6 +1047,20 @@ class ChainlessChainApp {
       this.trayManager = null;
     }
 
+    // 自动更新初始化 — 模块原本一直存在但从未在 setupApp 里调用过 init()，
+    // 导致 packaged 版本既不会启动后 3s 自检也不跑 4 小时定期检查。模块
+    // 内部对 NODE_ENV !== "production" 已自动 no-op（dev 不会触发更新弹
+    // 窗），所以这里始终调用是安全的。失败兜底为 logger.warn，不阻塞应用
+    // 启动。AutoUpdater 单例同时被 enhanced-tray-manager.js 用来响应托盘
+    // "检查更新" 菜单 — 必须在 tray 创建之后初始化（保证 singleton 已就绪）。
+    try {
+      const autoUpdater = require("./system/auto-updater.js");
+      autoUpdater.init(this.mainWindow);
+      this.autoUpdater = autoUpdater;
+    } catch (err) {
+      logger.warn("[Main] Auto-updater init failed:", err.message);
+    }
+
     // 设置依赖
     if (this.dbEncryptionIPC) {
       this.dbEncryptionIPC.setMainWindow(this.mainWindow);
