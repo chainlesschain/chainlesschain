@@ -62,11 +62,9 @@ export default defineConfig({
     maxConcurrency: 5, // 每个测试文件最多同时运行 5 个测试
     isolate: true, // 隔离测试环境（提高可靠性）
     pool: 'threads', // 使用线程池（更快）
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        useAtomics: true,
-      },
+    threads: {
+      singleThread: false,
+      useAtomics: true,
     },
     server: {
       deps: {

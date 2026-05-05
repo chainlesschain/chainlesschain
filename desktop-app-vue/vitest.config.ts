@@ -62,14 +62,11 @@ export default defineConfig({
     testTimeout: 60000, // 60秒
     hookTimeout: 60000, // 60秒
     teardownTimeout: 10000, // 10秒
-    // Use forks pool to prevent "Timeout calling onTaskUpdate" worker errors.
     // Forks are more stable than threads for large test suites with CJS/ESM interop.
     pool: "forks",
-    poolOptions: {
-      forks: {
-        maxForks: 2,
-        minForks: 1,
-      },
+    forks: {
+      maxForks: 2,
+      minForks: 1,
     },
     server: {
       deps: {

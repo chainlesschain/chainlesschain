@@ -5,6 +5,6 @@ export default defineConfig({
     globals: false,
     environment: "node",
     pool: "forks",
-    poolOptions: { forks: { maxForks: 2, minForks: 1 } },
+    forks: { maxForks: 2, minForks: 1 },
   },
 });

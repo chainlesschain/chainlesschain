@@ -25,7 +25,7 @@ export default defineConfig({
     hookTimeout: 120000,
     reporters: ['verbose'],
     pool: 'forks',
-    poolOptions: { forks: { maxForks, minForks: 1 } },
+    forks: { maxForks, minForks: 1 },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{js,vue}'],
