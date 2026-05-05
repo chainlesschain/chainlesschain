@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 583
+**Total Components**: 577
 
 ---
 
@@ -408,14 +408,6 @@
 
 ---
 
-### MemoryDashboardPage
-
-**File**: `src/renderer/pages/MemoryDashboardPage.vue`
-
-**Description**: Stats Overview
-
----
-
 ### MCPServerMarketplace
 
 **File**: `src/renderer/pages/MCPServerMarketplace.vue`
@@ -540,14 +532,6 @@
 
 ---
 
-### FriendsPage
-
-**File**: `src/renderer/pages/FriendsPage.vue`
-
-**Description**: 头部操作栏
-
----
-
 ### FederatedNetworkPage
 
 **File**: `src/renderer/pages/FederatedNetworkPage.vue`
@@ -644,14 +628,6 @@
 
 ---
 
-### CommunityPage
-
-**File**: `src/renderer/pages/CommunityPage.vue`
-
-**Description**: Left Sidebar: Community List
-
----
-
 ### CommandLogsPage
 
 **File**: `src/renderer/pages/CommandLogsPage.vue`
@@ -665,14 +641,6 @@
 **File**: `src/renderer/pages/CollabEditorPage.vue`
 
 **Description**: Header Bar
-
----
-
-### ChannelPage
-
-**File**: `src/renderer/pages/ChannelPage.vue`
-
-**Description**: Left Sidebar: Channel List
 
 ---
 
@@ -1850,14 +1818,6 @@
 
 ---
 
-### DIDManagement
-
-**File**: `src/renderer/components/DIDManagement.vue`
-
-**Description**: 自动重新发布状态
-
----
-
 ### DIDInvitationNotifier
 
 **File**: `src/renderer/components/DIDInvitationNotifier.vue`
@@ -1879,14 +1839,6 @@
 **File**: `src/renderer/components/ContactManagement.vue`
 
 **Description**: 搜索框
-
----
-
-### ChatPanel
-
-**File**: `src/renderer/components/ChatPanel.vue`
-
-**Description**: 头部
 
 ---
 
