@@ -307,12 +307,24 @@ onMounted(async () => {
     // 初始化社交模块在线状态监听器
     socialStore.initOnlineStatusListeners();
 
-    // 监听深链接事件（企业版DID邀请链接）
+    // 监听深链接事件（企业版DID邀请链接）+ 系统托盘 / 全局设置 / 身份切换
+    // —— 这些 IPC 监听必须在 setup 未完成的早返（line ~339）之前注册，否则
+    // 首次启动（未设密码）状态下托盘菜单事件全部无人接收，表现为"点托盘
+    // 只把窗口拉出来、不跳路由"。和数据库加密 / 设置流程无依赖关系。
     if (window.electron?.ipcRenderer) {
       window.electron.ipcRenderer.on(
         "deep-link:invitation",
         handleInvitationDeepLink,
       );
+      window.electron.ipcRenderer.on(
+        "show-global-settings",
+        handleShowGlobalSettings,
+      );
+      window.electron.ipcRenderer.on(
+        "database-switched",
+        handleDatabaseSwitched,
+      );
+      window.electron.ipcRenderer.on("tray:action", handleTrayAction);
     }
 
     // 检测U盾状态
@@ -353,23 +365,6 @@ onMounted(async () => {
       } catch (error) {
         logger.error("检查设置状态失败:", error);
       }
-    }
-
-    // 监听托盘菜单触发的全局设置事件
-    if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.on(
-        "show-global-settings",
-        handleShowGlobalSettings,
-      );
-
-      // 监听数据库切换事件(身份上下文切换)
-      window.electron.ipcRenderer.on(
-        "database-switched",
-        handleDatabaseSwitched,
-      );
-
-      // 监听系统托盘菜单 — 单一通道 "tray:action"，按 payload.type 分发
-      window.electron.ipcRenderer.on("tray:action", handleTrayAction);
     }
   } catch (error) {
     logger.error("应用初始化失败", error);
