@@ -19,8 +19,9 @@ class SkillRegistry extends EventEmitter {
     this.options = {
       // 是否启用自动加载
       autoLoad: options.autoLoad !== false,
-      // 最大技能数
-      maxSkills: options.maxSkills || 100,
+      // 最大技能数（内置 ~139 + marketplace + 用户自定义；1000 仅作 sanity 上限，
+      // 防御循环注册等异常导致 OOM。tests 显式传 maxSkills 覆盖此默认值）
+      maxSkills: options.maxSkills || 1000,
       ...options,
     };
 
