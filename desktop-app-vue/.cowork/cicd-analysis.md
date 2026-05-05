@@ -43,7 +43,6 @@ Current CI/CD pipelines have significant optimization opportunities:
 | `android-ci.yml`        | PR                    | **10-20 min** | Android CI checks                           |
 | `android-pr-check.yml`  | PR                    | **5-10 min**  | Quick Android PR validation                 |
 | `android-e2e-tests.yml` | Manual                | **30-60 min** | Android E2E tests                           |
-| `android-release.yml`   | Tag                   | **20-40 min** | Android release build                       |
 | `ios-build.yml`         | PR (ios-app/\*\*)     | **20-40 min** | iOS build and tests                         |
 
 **Total Mobile Testing Time**: **15-30 min per PR** (when mobile files changed)
