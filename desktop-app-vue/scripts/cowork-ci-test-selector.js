@@ -333,10 +333,20 @@ function applyExclusions(selectedTests) {
 /**
  * Generate test execution command
  */
+// CI flags required to keep vitest's worker→main birpc heartbeat alive on
+// long unit-test runs. Without --silent=true, per-test stdout going over
+// the RPC pipe + the hardcoded 60s onTaskUpdate timeout causes
+// "[vitest-worker]: Timeout calling onTaskUpdate" exit-1s on slower
+// runners (Ubuntu/Windows) even when every test passes (see
+// memory/cli_ci_sharding_lessons.md). macOS happens to be fast enough
+// to clear the heartbeat, so this only surfaces on the slower OSes.
+// `--reporter=basic` keeps reporter chatter off the same RPC pipe.
+const CI_VITEST_FLAGS = "--reporter=basic --silent=true";
+
 function generateTestCommand(selectedTests) {
   if (selectedTests.length === 0) {
     console.log("\n⚠️  No tests selected. Running default test suite.");
-    return "npx vitest run tests/unit";
+    return `npx vitest run tests/unit ${CI_VITEST_FLAGS}`;
   }
 
   // Build command with relative paths
@@ -345,7 +355,7 @@ function generateTestCommand(selectedTests) {
     .map((t) => `"${t.replace(/\\/g, "/")}"`) // Use forward slashes for cross-platform
     .join(" ");
 
-  return `npx vitest run ${testPaths}`;
+  return `npx vitest run ${CI_VITEST_FLAGS} ${testPaths}`;
 }
 
 /**
@@ -439,7 +449,7 @@ async function main() {
 
       if (!dryRun) {
         // Run default stable tests (same as test.yml)
-        const defaultCommand = "npx vitest run tests/unit";
+        const defaultCommand = `npx vitest run tests/unit ${CI_VITEST_FLAGS}`;
         console.log(`🚀 Executing: ${defaultCommand}\n`);
         execSync(defaultCommand, { stdio: "inherit", cwd: process.cwd() });
       }
@@ -508,7 +518,9 @@ async function main() {
       setGitHubOutput("test-mode", "fallback");
       setGitHubOutput("test-count", "0");
 
-      execSync("npx vitest run tests/unit", { stdio: "inherit" });
+      execSync(`npx vitest run tests/unit ${CI_VITEST_FLAGS}`, {
+        stdio: "inherit",
+      });
       process.exit(0);
     } catch (testError) {
       process.exit(1);

@@ -72,9 +72,16 @@ jobs:
         if: steps.test-selector.outcome == 'failure'
         working-directory: ./desktop-app-vue
         shell: bash
+        # --reporter=basic --silent=true: required to keep vitest's
+        # worker→main birpc heartbeat alive on Ubuntu/Windows runners.
+        # Without them, the hardcoded 60s onTaskUpdate timeout fires on
+        # long suites and exits 1 even when every test passes (macOS is
+        # fast enough to slip under the deadline). Same recipe as
+        # _cli-test.yml — see memory/cli_ci_sharding_lessons.md.
         run: |
           echo "⚠️  Intelligent test selection failed, running stable test suite..."
           npx vitest run tests/unit \
+            --reporter=basic --silent=true \
             --exclude="**/media/ocr-service.test.js" \
             --exclude="**/mcp/**" \
             --exclude="**/p2p/**" \
