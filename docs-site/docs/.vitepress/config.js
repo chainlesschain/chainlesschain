@@ -57,6 +57,7 @@ export default defineConfig({
           items: [
             { text: "简介", link: "/guide/introduction" },
             { text: "快速开始", link: "/guide/getting-started" },
+            { text: "桌面版安装指南", link: "/guide/installation" },
             { text: "系统架构", link: "/guide/architecture" },
             { text: "技术栈", link: "/guide/tech-stack" },
           ],

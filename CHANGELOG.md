@@ -5,6 +5,30 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 桌面版安装链路收口 + 系统托盘最小化
+
+> 待版本号确认后并入正式 release 条目。覆盖 commits `b2e1ff27d` / `33d40fbad` / `d57759dc9`。
+
+### Changed
+
+- **关闭按钮 X 默认最小化到系统托盘** —— 之前点窗口 X 直接退出应用导致用户误以为"窗口消失了"。现在 X 会把主窗口隐藏到屏幕右下角系统托盘（`desktop-app-vue/src/main/system/enhanced-tray-manager.js` 接进 `index.js`），后台仍运行；通过托盘菜单"退出"或 `Ctrl+Q` 才彻底关闭。完整说明见 [`/guide/installation`](/guide/installation#三、关闭按钮-x-行为)。
+- **本地 Win 安装包体积下降 357 MB / 14k 文件** —— `desktop-app-vue/scripts/electron-after-pack.js` 增加 `cpSync` filter，丢 50 个声明在 `devDependencies` 的顶层包（运行时无引用，4 个例外 `better-sqlite3` / `electron` / `jsdom` / `glob` 通过 lockfile BFS 验证保留）+ 12 个非 win32 平台原生（`@nomicfoundation/edr-{linux,darwin}-*` 等）。Setup.exe 由 ~610 MB 降至 **594 MB**，安装时文件数由 124k 降至 110k。
+
+### Fixed
+
+- **本地 `make:win:builder` 漏装 `packages/cli` 生产依赖** —— 之前从本地构建产物启动会在 web-shell 拉起 `ws-server.js` 时崩溃 `Cannot find package 'ws'`。`desktop-app-vue/package.json` 加 `prepare:cli-prod-deps` 前置脚本，`make:{win,mac,linux}:builder` 串起来跑 `cd ../packages/cli && npm install --omit=dev --workspaces=false --legacy-peer-deps`，对齐 CI release path 行为。
+- **`afterPack` 在 Windows 非 admin / 非 Developer Mode 下 EPERM symlink** —— `cpSync` `dereference: false` 试图把 `@chainlesschain/{core-mtc,session-core}` 的 workspace junction 复刻到目标目录，Windows 拒绝。改 `dereference: true`——shippable 安装包本来就该 inline workspace 内容，不应保留指回用户源码树的 link。
+
+### Added
+
+- **`docs-site/docs/guide/installation.md`** —— 桌面版安装指南，覆盖安装时间预期（15–25 分钟）、首次启动延迟（30–60 秒到主窗口）、托盘行为、卸载、系统要求。回答 "进度条不动是不是卡死了" / "我的窗口怎么消失了" 等高频疑问。
+- **`desktop-app-vue/scripts/after-pack-dryrun.js`** —— 不打包的探针，复用 afterPack 过滤逻辑量化收益（kept / skipped / 文件数 / 体积），用于将来调整过滤规则前预演。
+- **`desktop-app-vue/scripts/find-renderer-only-deps.js`** —— grep `src/main` + `dist/` 的实际 require/import，跟 `dependencies` 求差集找 renderer-only 候选。当前未接入 afterPack（transitive prod-chain 风险需 lockfile BFS 单独验证），留作 issue #6 后续优化探针。
+
+### Known Limitations
+
+- **首次安装仍需 15–25 分钟** —— `asar:false` 散文件部署模式下 NSIS + Defender 单文件处理是结构性瓶颈。优化路线见 [GitHub Issue #6](https://github.com/chainlesschain/chainlesschain/issues/6)（重启用 `asar:true` + `asarUnpack` 把安装时间砍到 5 分钟内）。
+
 ## [v5.0.3.1] - 2026-04-29 — V6 Preview Shell P9d — 品牌收口 + 空白起步 + 设置入口
 
 ### Changed
