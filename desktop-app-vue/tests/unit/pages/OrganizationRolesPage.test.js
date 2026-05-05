@@ -233,6 +233,55 @@ vi.mock("@ant-design/icons-vue", () => ({
     name: "EyeOutlined",
     template: '<span class="eye-outlined">Eye</span>',
   },
+  // vitest 4 strict-mode: declare every named export the SUT imports.
+  MoreOutlined: {
+    name: "MoreOutlined",
+    template: '<span class="more-outlined">M</span>',
+  },
+  ExclamationCircleOutlined: {
+    name: "ExclamationCircleOutlined",
+    template: '<span class="exclamation-circle-outlined">!</span>',
+  },
+  CheckCircleOutlined: {
+    name: "CheckCircleOutlined",
+    template: '<span class="check-circle-outlined">✓</span>',
+  },
+  CloseCircleOutlined: {
+    name: "CloseCircleOutlined",
+    template: '<span class="close-circle-outlined">✗</span>',
+  },
+  SearchOutlined: {
+    name: "SearchOutlined",
+    template: '<span class="search-outlined">🔍</span>',
+  },
+  FilterOutlined: {
+    name: "FilterOutlined",
+    template: '<span class="filter-outlined">F</span>',
+  },
+  DownOutlined: {
+    name: "DownOutlined",
+    template: '<span class="down-outlined">▼</span>',
+  },
+  UpOutlined: {
+    name: "UpOutlined",
+    template: '<span class="up-outlined">▲</span>',
+  },
+  LeftOutlined: {
+    name: "LeftOutlined",
+    template: '<span class="left-outlined">◀</span>',
+  },
+  LoadingOutlined: {
+    name: "LoadingOutlined",
+    template: '<span class="loading-outlined">…</span>',
+  },
+  InfoCircleOutlined: {
+    name: "InfoCircleOutlined",
+    template: '<span class="info-circle-outlined">i</span>',
+  },
+  WarningOutlined: {
+    name: "WarningOutlined",
+    template: '<span class="warning-outlined">⚠</span>',
+  },
 }));
 
 describe("OrganizationRolesPage", () => {

@@ -2,31 +2,31 @@
  * Vitest 测试环境设置
  */
 
-import { vi, beforeEach, afterEach } from 'vitest';
-import { config } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
+import { vi, beforeEach, afterEach } from "vitest";
+import { config } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 
 // ============================================================
 // CRITICAL: Mock electron, logger, and vue-i18n FIRST before any other imports
 // ============================================================
 
 // Mock vue-i18n to avoid actual i18n setup (must be hoisted)
-vi.mock('vue-i18n', () => ({
+vi.mock("vue-i18n", () => ({
   createI18n: vi.fn(() => ({
     global: {
       t: (key: string) => key,
-      locale: 'zh-CN',
+      locale: "zh-CN",
     },
     install: vi.fn(),
   })),
   useI18n: vi.fn(() => ({
     t: (key: string) => key,
-    locale: { value: 'zh-CN' },
+    locale: { value: "zh-CN" },
   })),
 }));
 
 // Mock electron module - must be hoisted to run before any module imports
-vi.mock('electron', () => ({
+vi.mock("electron", () => ({
   ipcMain: {
     handle: vi.fn(),
     removeHandler: vi.fn(),
@@ -39,23 +39,25 @@ vi.mock('electron', () => ({
     send: vi.fn(),
   },
   app: {
-    getPath: vi.fn().mockReturnValue('/mock/path'),
-    getName: vi.fn().mockReturnValue('test-app'),
-    getVersion: vi.fn().mockReturnValue('1.0.0'),
+    getPath: vi.fn().mockReturnValue("/mock/path"),
+    getName: vi.fn().mockReturnValue("test-app"),
+    getVersion: vi.fn().mockReturnValue("1.0.0"),
     isReady: vi.fn().mockReturnValue(true),
     on: vi.fn(),
   },
-  BrowserWindow: vi.fn().mockImplementation(() => ({
-    loadURL: vi.fn(),
-    webContents: {
-      send: vi.fn(),
+  BrowserWindow: vi.fn(function () {
+    return {
+      loadURL: vi.fn(),
+      webContents: {
+        send: vi.fn(),
+        on: vi.fn(),
+      },
       on: vi.fn(),
-    },
-    on: vi.fn(),
-    show: vi.fn(),
-    hide: vi.fn(),
-    close: vi.fn(),
-  })),
+      show: vi.fn(),
+      hide: vi.fn(),
+      close: vi.fn(),
+    };
+  }),
   dialog: {
     showOpenDialog: vi.fn(),
     showSaveDialog: vi.fn(),
@@ -72,7 +74,7 @@ vi.mock('electron', () => ({
 
 // Mock ipc module to prevent module-level initialization errors
 // (social.js calls createRetryableIPC at module load time)
-vi.mock('@/utils/ipc', () => ({
+vi.mock("@/utils/ipc", () => ({
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -91,7 +93,7 @@ vi.mock('@/utils/ipc', () => ({
 }));
 
 // Also mock relative path versions of ipc
-vi.mock('../src/renderer/utils/ipc', () => ({
+vi.mock("../src/renderer/utils/ipc", () => ({
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -109,7 +111,7 @@ vi.mock('../src/renderer/utils/ipc', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/utils/ipc', () => ({
+vi.mock("../../src/renderer/utils/ipc", () => ({
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -136,22 +138,22 @@ const mockLoggerInstance = {
   log: vi.fn(),
 };
 
-vi.mock('@main/utils/logger.js', () => ({
+vi.mock("@main/utils/logger.js", () => ({
   logger: mockLoggerInstance,
   createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
 }));
 
-vi.mock('../src/main/utils/logger.js', () => ({
+vi.mock("../src/main/utils/logger.js", () => ({
   logger: mockLoggerInstance,
   createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
 }));
 
-vi.mock('../../src/main/utils/logger.js', () => ({
+vi.mock("../../src/main/utils/logger.js", () => ({
   logger: mockLoggerInstance,
   createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
 }));
 
-vi.mock('../../../src/main/utils/logger.js', () => ({
+vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: mockLoggerInstance,
   createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
 }));
@@ -195,8 +197,8 @@ export const mockAntMessage = hoistedMocks.mockAntMessage;
 export const mockAntModal = hoistedMocks.mockAntModal;
 export const mockAntNotification = hoistedMocks.mockAntNotification;
 
-vi.mock('ant-design-vue', async (importOriginal) => {
-  const original = await importOriginal() as any;
+vi.mock("ant-design-vue", async (importOriginal) => {
+  const original = (await importOriginal()) as any;
   return {
     ...original,
     message: mockAntMessage,
@@ -242,28 +244,28 @@ const ensureWordEngineFileHandlerMock = () => {
 const ensureWordEngineDocxMock = () => {
   const globalTarget = globalThis as any;
   const docxMock = globalTarget.__WORD_ENGINE_DOCX__ || {};
-  docxMock.Document = vi.fn((config) => ({ type: 'document', config }));
+  docxMock.Document = vi.fn((config) => ({ type: "document", config }));
   docxMock.Packer = docxMock.Packer || { toBuffer: vi.fn() };
   docxMock.Packer.toBuffer = vi.fn();
-  docxMock.Paragraph = vi.fn((config) => ({ type: 'paragraph', config }));
+  docxMock.Paragraph = vi.fn((config) => ({ type: "paragraph", config }));
   docxMock.TextRun = vi.fn((config) => ({ config }));
   docxMock.HeadingLevel = {
-    TITLE: 'TITLE',
-    HEADING_1: 'H1',
-    HEADING_2: 'H2',
-    HEADING_3: 'H3',
-    HEADING_4: 'H4',
-    HEADING_5: 'H5',
-    HEADING_6: 'H6',
+    TITLE: "TITLE",
+    HEADING_1: "H1",
+    HEADING_2: "H2",
+    HEADING_3: "H3",
+    HEADING_4: "H4",
+    HEADING_5: "H5",
+    HEADING_6: "H6",
   };
   docxMock.AlignmentType = {
-    LEFT: 'LEFT',
-    CENTER: 'CENTER',
-    RIGHT: 'RIGHT',
-    JUSTIFIED: 'JUSTIFIED',
+    LEFT: "LEFT",
+    CENTER: "CENTER",
+    RIGHT: "RIGHT",
+    JUSTIFIED: "JUSTIFIED",
   };
   docxMock.UnderlineType = {
-    SINGLE: 'SINGLE',
+    SINGLE: "SINGLE",
   };
   globalTarget.__WORD_ENGINE_DOCX__ = docxMock;
   return docxMock;
@@ -348,7 +350,7 @@ afterEach(() => {
 });
 
 // Global mock for ipc-guard to prevent IPC registration blocking in tests
-vi.mock('@main/ipc-guard', () => ({
+vi.mock("@main/ipc-guard", () => ({
   isModuleRegistered: vi.fn().mockReturnValue(false),
   markModuleRegistered: vi.fn(),
   isChannelRegistered: vi.fn().mockReturnValue(false),
@@ -359,12 +361,19 @@ vi.mock('@main/ipc-guard', () => ({
   safeRegisterModule: vi.fn().mockReturnValue(true),
   unregisterChannel: vi.fn(),
   unregisterModule: vi.fn(),
-  getStats: vi.fn().mockReturnValue({ totalChannels: 0, totalModules: 0, channels: [], modules: [] }),
+  getStats: vi
+    .fn()
+    .mockReturnValue({
+      totalChannels: 0,
+      totalModules: 0,
+      channels: [],
+      modules: [],
+    }),
   printStats: vi.fn(),
 }));
 
 // Also mock the relative path version
-vi.mock('../../../src/main/ipc-guard', () => ({
+vi.mock("../../../src/main/ipc-guard", () => ({
   isModuleRegistered: vi.fn().mockReturnValue(false),
   markModuleRegistered: vi.fn(),
   isChannelRegistered: vi.fn().mockReturnValue(false),
@@ -375,7 +384,14 @@ vi.mock('../../../src/main/ipc-guard', () => ({
   safeRegisterModule: vi.fn().mockReturnValue(true),
   unregisterChannel: vi.fn(),
   unregisterModule: vi.fn(),
-  getStats: vi.fn().mockReturnValue({ totalChannels: 0, totalModules: 0, channels: [], modules: [] }),
+  getStats: vi
+    .fn()
+    .mockReturnValue({
+      totalChannels: 0,
+      totalModules: 0,
+      channels: [],
+      modules: [],
+    }),
   printStats: vi.fn(),
 }));
 
@@ -384,17 +400,17 @@ const createWrtcMock = () => {
   class MockPeerConnection {
     public localDescription: any;
     public remoteDescription: any;
-    public connectionState = 'connected';
+    public connectionState = "connected";
     public onicecandidate: ((event: any) => void) | null = null;
     public onconnectionstatechange: (() => void) | null = null;
     public ontrack: ((event: any) => void) | null = null;
 
     async createOffer() {
-      return { type: 'offer', sdp: 'mock-offer-sdp' };
+      return { type: "offer", sdp: "mock-offer-sdp" };
     }
 
     async createAnswer() {
-      return { type: 'answer', sdp: 'mock-answer-sdp' };
+      return { type: "answer", sdp: "mock-answer-sdp" };
     }
 
     async setLocalDescription(desc: any) {
@@ -449,15 +465,21 @@ const createWrtcMock = () => {
       type: string;
       sdp: string;
       constructor(init: { type?: string; sdp?: string } = {}) {
-        this.type = init.type || '';
-        this.sdp = init.sdp || '';
+        this.type = init.type || "";
+        this.sdp = init.sdp || "";
       }
     },
     RTCIceCandidate: class {
       candidate?: string;
       sdpMid?: string | null;
       sdpMLineIndex?: number | null;
-      constructor(init: { candidate?: string; sdpMid?: string; sdpMLineIndex?: number } = {}) {
+      constructor(
+        init: {
+          candidate?: string;
+          sdpMid?: string;
+          sdpMLineIndex?: number;
+        } = {},
+      ) {
         this.candidate = init.candidate;
         this.sdpMid = init.sdpMid ?? null;
         this.sdpMLineIndex = init.sdpMLineIndex ?? null;
@@ -469,9 +491,9 @@ const createWrtcMock = () => {
   return mockModule;
 };
 
-vi.mock('../src/main/p2p/wrtc-compat.js', () => createWrtcMock());
-vi.mock('../src/main/p2p/wrtc-compat', () => createWrtcMock());
-vi.mock('wrtc', () => {
+vi.mock("../src/main/p2p/wrtc-compat.js", () => createWrtcMock());
+vi.mock("../src/main/p2p/wrtc-compat", () => createWrtcMock());
+vi.mock("wrtc", () => {
   const mock = createWrtcMock();
   return {
     ...mock,
@@ -493,89 +515,119 @@ config.global.plugins.push(createPinia());
 // 这些 stubs 用于避免组件未注册的警告，同时保持测试的稳定性
 config.global.stubs = {
   // 布局组件
-  'a-layout': { template: '<div class="a-layout"><slot /></div>' },
-  'a-layout-header': { template: '<header class="a-layout-header"><slot /></header>' },
-  'a-layout-content': { template: '<main class="a-layout-content"><slot /></main>' },
-  'a-layout-sider': { template: '<aside class="a-layout-sider"><slot /></aside>' },
-  'a-layout-footer': { template: '<footer class="a-layout-footer"><slot /></footer>' },
+  "a-layout": { template: '<div class="a-layout"><slot /></div>' },
+  "a-layout-header": {
+    template: '<header class="a-layout-header"><slot /></header>',
+  },
+  "a-layout-content": {
+    template: '<main class="a-layout-content"><slot /></main>',
+  },
+  "a-layout-sider": {
+    template: '<aside class="a-layout-sider"><slot /></aside>',
+  },
+  "a-layout-footer": {
+    template: '<footer class="a-layout-footer"><slot /></footer>',
+  },
   // 表单组件
-  'a-form': { template: '<form class="a-form"><slot /></form>' },
-  'a-form-item': { template: '<div class="a-form-item"><slot /></div>' },
-  'a-input': { template: '<input class="a-input" />' },
-  'a-input-password': { template: '<input class="a-input-password" type="password" />' },
-  'a-input-search': { template: '<input class="a-input-search" />' },
-  'a-textarea': { template: '<textarea class="a-textarea" />' },
-  'a-select': { template: '<select class="a-select"><slot /></select>' },
-  'a-select-option': { template: '<option class="a-select-option"><slot /></option>' },
-  'a-checkbox': { template: '<input type="checkbox" class="a-checkbox" />' },
-  'a-radio': { template: '<input type="radio" class="a-radio" />' },
-  'a-radio-group': { template: '<div class="a-radio-group"><slot /></div>' },
-  'a-switch': { template: '<input type="checkbox" class="a-switch" />' },
-  'a-slider': { template: '<input type="range" class="a-slider" />' },
-  'a-date-picker': { template: '<input class="a-date-picker" />' },
-  'a-time-picker': { template: '<input class="a-time-picker" />' },
-  'a-range-picker': { template: '<div class="a-range-picker" />' },
-  'a-upload': { template: '<div class="a-upload"><slot /></div>' },
-  'a-rate': { template: '<div class="a-rate" />' },
+  "a-form": { template: '<form class="a-form"><slot /></form>' },
+  "a-form-item": { template: '<div class="a-form-item"><slot /></div>' },
+  "a-input": { template: '<input class="a-input" />' },
+  "a-input-password": {
+    template: '<input class="a-input-password" type="password" />',
+  },
+  "a-input-search": { template: '<input class="a-input-search" />' },
+  "a-textarea": { template: '<textarea class="a-textarea" />' },
+  "a-select": { template: '<select class="a-select"><slot /></select>' },
+  "a-select-option": {
+    template: '<option class="a-select-option"><slot /></option>',
+  },
+  "a-checkbox": { template: '<input type="checkbox" class="a-checkbox" />' },
+  "a-radio": { template: '<input type="radio" class="a-radio" />' },
+  "a-radio-group": { template: '<div class="a-radio-group"><slot /></div>' },
+  "a-switch": { template: '<input type="checkbox" class="a-switch" />' },
+  "a-slider": { template: '<input type="range" class="a-slider" />' },
+  "a-date-picker": { template: '<input class="a-date-picker" />' },
+  "a-time-picker": { template: '<input class="a-time-picker" />' },
+  "a-range-picker": { template: '<div class="a-range-picker" />' },
+  "a-upload": { template: '<div class="a-upload"><slot /></div>' },
+  "a-rate": { template: '<div class="a-rate" />' },
   // 按钮和链接
-  'a-button': { template: '<button class="a-button"><slot /></button>' },
-  'a-link': { template: '<a class="a-link"><slot /></a>' },
+  "a-button": { template: '<button class="a-button"><slot /></button>' },
+  "a-link": { template: '<a class="a-link"><slot /></a>' },
   // 数据展示
-  'a-table': { template: '<table class="a-table"><slot /></table>' },
-  'a-list': { template: '<div class="a-list"><slot /></div>' },
-  'a-list-item': { template: '<div class="a-list-item"><slot /></div>' },
-  'a-list-item-meta': { template: '<div class="a-list-item-meta"><slot name="title" /><slot name="description" /></div>' },
-  'a-card': { template: '<div class="a-card"><slot /><slot name="extra" /><slot name="actions" /></div>' },
-  'a-descriptions': { template: '<div class="a-descriptions"><slot /></div>' },
-  'a-descriptions-item': { template: '<div class="a-descriptions-item"><slot /></div>' },
-  'a-statistic': { template: '<div class="a-statistic" />' },
-  'a-tree': { template: '<div class="a-tree" />' },
-  'a-tree-select': { template: '<div class="a-tree-select" />' },
-  'a-tag': { template: '<span class="a-tag"><slot /></span>' },
-  'a-badge': { template: '<span class="a-badge"><slot /></span>' },
-  'a-avatar': { template: '<span class="a-avatar"><slot /></span>' },
-  'a-image': { template: '<img class="a-image" />' },
-  'a-empty': { template: '<div class="a-empty" />' },
-  'a-result': { template: '<div class="a-result"><slot /></div>' },
-  'a-progress': { template: '<div class="a-progress" />' },
-  'a-spin': { template: '<div class="a-spin"><slot /></div>' },
-  'a-skeleton': { template: '<div class="a-skeleton" />' },
-  'a-collapse': { template: '<div class="a-collapse"><slot /></div>' },
-  'a-collapse-panel': { template: '<div class="a-collapse-panel"><slot /></div>' },
-  'a-timeline': { template: '<div class="a-timeline"><slot /></div>' },
-  'a-timeline-item': { template: '<div class="a-timeline-item"><slot /></div>' },
-  'a-tabs': { template: '<div class="a-tabs"><slot /></div>' },
-  'a-tab-pane': { template: '<div class="a-tab-pane"><slot /></div>' },
+  "a-table": { template: '<table class="a-table"><slot /></table>' },
+  "a-list": { template: '<div class="a-list"><slot /></div>' },
+  "a-list-item": { template: '<div class="a-list-item"><slot /></div>' },
+  "a-list-item-meta": {
+    template:
+      '<div class="a-list-item-meta"><slot name="title" /><slot name="description" /></div>',
+  },
+  "a-card": {
+    template:
+      '<div class="a-card"><slot /><slot name="extra" /><slot name="actions" /></div>',
+  },
+  "a-descriptions": { template: '<div class="a-descriptions"><slot /></div>' },
+  "a-descriptions-item": {
+    template: '<div class="a-descriptions-item"><slot /></div>',
+  },
+  "a-statistic": { template: '<div class="a-statistic" />' },
+  "a-tree": { template: '<div class="a-tree" />' },
+  "a-tree-select": { template: '<div class="a-tree-select" />' },
+  "a-tag": { template: '<span class="a-tag"><slot /></span>' },
+  "a-badge": { template: '<span class="a-badge"><slot /></span>' },
+  "a-avatar": { template: '<span class="a-avatar"><slot /></span>' },
+  "a-image": { template: '<img class="a-image" />' },
+  "a-empty": { template: '<div class="a-empty" />' },
+  "a-result": { template: '<div class="a-result"><slot /></div>' },
+  "a-progress": { template: '<div class="a-progress" />' },
+  "a-spin": { template: '<div class="a-spin"><slot /></div>' },
+  "a-skeleton": { template: '<div class="a-skeleton" />' },
+  "a-collapse": { template: '<div class="a-collapse"><slot /></div>' },
+  "a-collapse-panel": {
+    template: '<div class="a-collapse-panel"><slot /></div>',
+  },
+  "a-timeline": { template: '<div class="a-timeline"><slot /></div>' },
+  "a-timeline-item": {
+    template: '<div class="a-timeline-item"><slot /></div>',
+  },
+  "a-tabs": { template: '<div class="a-tabs"><slot /></div>' },
+  "a-tab-pane": { template: '<div class="a-tab-pane"><slot /></div>' },
   // 导航
-  'a-menu': { template: '<nav class="a-menu"><slot /></nav>' },
-  'a-menu-item': { template: '<div class="a-menu-item"><slot /></div>' },
-  'a-menu-sub-menu': { template: '<div class="a-menu-sub-menu"><slot /></div>' },
-  'a-menu-item-group': { template: '<div class="a-menu-item-group"><slot /></div>' },
-  'a-menu-divider': { template: '<div class="a-menu-divider" />' },
-  'a-breadcrumb': { template: '<nav class="a-breadcrumb"><slot /></nav>' },
-  'a-breadcrumb-item': { template: '<span class="a-breadcrumb-item"><slot /></span>' },
-  'a-pagination': { template: '<div class="a-pagination" />' },
-  'a-steps': { template: '<div class="a-steps"><slot /></div>' },
-  'a-step': { template: '<div class="a-step"><slot /></div>' },
-  'a-dropdown': { template: '<div class="a-dropdown"><slot /></div>' },
+  "a-menu": { template: '<nav class="a-menu"><slot /></nav>' },
+  "a-menu-item": { template: '<div class="a-menu-item"><slot /></div>' },
+  "a-menu-sub-menu": {
+    template: '<div class="a-menu-sub-menu"><slot /></div>',
+  },
+  "a-menu-item-group": {
+    template: '<div class="a-menu-item-group"><slot /></div>',
+  },
+  "a-menu-divider": { template: '<div class="a-menu-divider" />' },
+  "a-breadcrumb": { template: '<nav class="a-breadcrumb"><slot /></nav>' },
+  "a-breadcrumb-item": {
+    template: '<span class="a-breadcrumb-item"><slot /></span>',
+  },
+  "a-pagination": { template: '<div class="a-pagination" />' },
+  "a-steps": { template: '<div class="a-steps"><slot /></div>' },
+  "a-step": { template: '<div class="a-step"><slot /></div>' },
+  "a-dropdown": { template: '<div class="a-dropdown"><slot /></div>' },
   // 反馈
-  'a-modal': { template: '<div class="a-modal"><slot /></div>' },
-  'a-drawer': { template: '<div class="a-drawer"><slot /></div>' },
-  'a-tooltip': { template: '<span class="a-tooltip"><slot /></span>' },
-  'a-popover': { template: '<span class="a-popover"><slot /></span>' },
-  'a-popconfirm': { template: '<span class="a-popconfirm"><slot /></span>' },
-  'a-alert': { template: '<div class="a-alert"><slot /></div>' },
+  "a-modal": { template: '<div class="a-modal"><slot /></div>' },
+  "a-drawer": { template: '<div class="a-drawer"><slot /></div>' },
+  "a-tooltip": { template: '<span class="a-tooltip"><slot /></span>' },
+  "a-popover": { template: '<span class="a-popover"><slot /></span>' },
+  "a-popconfirm": { template: '<span class="a-popconfirm"><slot /></span>' },
+  "a-alert": { template: '<div class="a-alert"><slot /></div>' },
   // 布局辅助
-  'a-row': { template: '<div class="a-row"><slot /></div>' },
-  'a-col': { template: '<div class="a-col"><slot /></div>' },
-  'a-space': { template: '<div class="a-space"><slot /></div>' },
-  'a-divider': { template: '<div class="a-divider" />' },
-  'a-affix': { template: '<div class="a-affix"><slot /></div>' },
-  'a-anchor': { template: '<div class="a-anchor"><slot /></div>' },
-  'a-anchor-link': { template: '<div class="a-anchor-link"><slot /></div>' },
-  'a-back-top': { template: '<div class="a-back-top" />' },
+  "a-row": { template: '<div class="a-row"><slot /></div>' },
+  "a-col": { template: '<div class="a-col"><slot /></div>' },
+  "a-space": { template: '<div class="a-space"><slot /></div>' },
+  "a-divider": { template: '<div class="a-divider" />' },
+  "a-affix": { template: '<div class="a-affix"><slot /></div>' },
+  "a-anchor": { template: '<div class="a-anchor"><slot /></div>' },
+  "a-anchor-link": { template: '<div class="a-anchor-link"><slot /></div>' },
+  "a-back-top": { template: '<div class="a-back-top" />' },
   // 图标
-  'a-icon': { template: '<span class="a-icon" />' },
+  "a-icon": { template: '<span class="a-icon" />' },
 };
 
 // Mock Electron API
@@ -724,20 +776,43 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
 } as any;
 
-// Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+// Mock matchMedia (vitest 4 respects per-file `@vitest-environment node`
+// before setup runs, so guard window access for node-env tests).
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+
+  // Vue 3 transition queries window.getComputedStyle during mount. With
+  // vitest 4's bundled jsdom, an attached element on a detached subtree can
+  // return null, and some Vue test-utils mount paths see no implementation
+  // at all. Install a permissive stub via defineProperty so it survives the
+  // jsdom window's writable=false on this property.
+  const stubComputedStyle = (_elt: any, _pseudo?: any) => ({
+    getPropertyValue: () => "",
+    transitionDelay: "0s",
+    transitionDuration: "0s",
+    animationDelay: "0s",
+    animationDuration: "0s",
+  });
+  if (typeof window.getComputedStyle !== "function") {
+    Object.defineProperty(window, "getComputedStyle", {
+      configurable: true,
+      writable: true,
+      value: stubComputedStyle,
+    });
+  }
+}
 
 // 导出 mock API 供测试使用
 export { mockElectronAPI };
