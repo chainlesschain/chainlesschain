@@ -333,21 +333,16 @@ function applyExclusions(selectedTests) {
 /**
  * Generate test execution command
  */
-// CI flags required to keep vitest's worker→main birpc heartbeat alive on
-// long unit-test runs. The vitest 3.x birpc 60s onTaskUpdate timeout is
-// hardcoded (vitest-dev/vitest#8297, fixed v4.0.0). On a 379-file forks
-// pool with maxForks=2, RPC contention trips the timeout on slower
-// runners (Ubuntu/Windows) even when every test passes — macOS is fast
-// enough to slip under the deadline.
-//   --silent=true / --reporter=basic reduce per-test traffic on the pipe
-//   --pool=threads switches the worker→main IPC to worker_threads
-//     postMessage, sidestepping the birpc forks-pool heartbeat entirely.
-// Same recipe as the federation tests' poolMatchGlobs override
-// (memory/cli_ci_sharding_lessons.md). Scoped to this CI script's
-// invocations — vitest.config.ts keeps `pool: forks` for local + other
-// contexts (its comment warns threads broke CJS/ESM interop historically;
-// we override per-invocation here, not globally).
-const CI_VITEST_FLAGS = "--reporter=basic --silent=true --pool=threads";
+// CI flags for the long unit-test run. Vitest 4 made the worker→main
+// birpc heartbeat respect user-configured timeouts (vitest-dev/vitest#8297),
+// so the previous --pool=threads workaround is no longer load-bearing —
+// we keep it because threads remain materially faster on the 390-file
+// suite under maxForks=2, and because this script's invocations are
+// scoped to CI (vitest.config.ts keeps `pool: forks` for local). v4 also
+// dropped the legacy `basic` reporter; `default + silent=passed-only`
+// is the equivalent.
+const CI_VITEST_FLAGS =
+  "--reporter=default --silent=passed-only --pool=threads";
 
 function generateTestCommand(selectedTests) {
   if (selectedTests.length === 0) {

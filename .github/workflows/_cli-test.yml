@@ -14,16 +14,17 @@ name: _CLI Test (reusable)
 #   parallelism inside the shard can come back.
 #
 # Required flags (DO NOT DROP):
-#   --shard=k/n        balanced file split (replaces glob batching)
-#   --silent=true      suppresses per-test stdout capture going over the
-#                      vitest worker→main RPC pipe (60s onTaskUpdate timeout).
-#                      Without this, a 4366-test shard locally exits 1 with
-#                      "[vitest-worker]: Timeout calling onTaskUpdate" even
-#                      though every test passes. This is standard vitest CI
-#                      practice, not a workaround. Note: vitest CAC parser
-#                      requires the explicit `=true` form when positional
-#                      file args follow.
-#   --reporter=basic   minimal reporter output (less IPC traffic)
+#   --shard=k/n              balanced file split (replaces glob batching)
+#   --silent=passed-only     suppresses passed-test stdout capture going over
+#                            the vitest worker→main RPC pipe. Without this,
+#                            a 4366-test shard exits 1 with "Timeout calling
+#                            onTaskUpdate" even though every test passes.
+#                            Note: `--silent=true` (alias of `passed-only`)
+#                            still works; we use the explicit name for clarity.
+#                            Note: vitest CAC parser requires the explicit
+#                            `=value` form when positional file args follow.
+#   --reporter=default       v4 dropped the `basic` reporter (replaced by
+#                            default + silent=passed-only).
 #
 # Inputs:
 #   runs-on    — runner OS (default ubuntu-latest)
@@ -67,7 +68,7 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: vitest unit shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/unit/
+        run: npx vitest run --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --silent=passed-only __tests__/unit/
 
   integration:
     # Integration runs 8 shards because shard 4 (at the 4-shard layout)
@@ -75,19 +76,15 @@ jobs:
     # onTaskUpdate heartbeat on all 3 OS. 8 shards halved the per-shard
     # wall-time and the file split below removed the heaviest single file.
     #
-    # Issue #4 fixed — file split + per-file pool override:
-    # The original __tests__/integration/mtc-federation-governance-cli.test.js
+    # Issue #4 history: the original mtc-federation-governance-cli.test.js
     # (1334 lines / 41 tests / ~200s on Windows CI) was split into three
     # focused suites — *-core-cli.test.js (13 tests), *-sync-cli.test.js
-    # (13 tests), *-trust-cli.test.js (15 tests) — sharing a helper
-    # module under __tests__/integration/_helpers/. The split alone wasn't
-    # enough on Windows: even 13 tests in the forks pool still tripped
-    # vitest's hardcoded 60s birpc onTaskUpdate timeout. The real fix is
-    # `poolMatchGlobs` in packages/cli/vitest.config.js routing these
-    # files to `pool: threads` (singleThread), which uses worker_threads
-    # postMessage instead of process IPC — no birpc heartbeat on the
-    # critical path. Underlying RPC bug is fixed upstream in vitest
-    # v4.0.0 (#8297); we stay on ^3.1.1 to avoid the major bump.
+    # (13 tests), *-trust-cli.test.js (15 tests) — sharing a helper module
+    # under __tests__/integration/_helpers/. On vitest v3 the split alone
+    # wasn't enough on Windows: birpc's hardcoded 60s onTaskUpdate timeout
+    # tripped even with 13 tests in the forks pool. We worked around it
+    # via `poolMatchGlobs → threads:singleThread`. Vitest v4 (#8297) makes
+    # birpc respect user-configured timeouts, so the workaround is gone.
     name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
     strategy:
@@ -104,7 +101,7 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
-        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=basic --silent=true __tests__/integration/
+        run: npx vitest run --shard=${{ matrix.shard }}/8 --reporter=default --silent=passed-only __tests__/integration/
 
   e2e:
     name: "e2e (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/${{ inputs.shards }})"
@@ -124,4 +121,4 @@ jobs:
       - uses: ./.github/actions/setup-node-deps
       - name: vitest e2e shard ${{ matrix.shard }}/${{ inputs.shards }}
         working-directory: packages/cli
-        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=basic --silent=true __tests__/e2e/
+        run: npx vitest run --config vitest.e2e.config.js --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=default --silent=passed-only __tests__/e2e/

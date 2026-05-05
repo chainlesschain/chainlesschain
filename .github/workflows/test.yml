@@ -16,15 +16,10 @@ jobs:
     name: Unit Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    # Windows hits vitest 3.x birpc onTaskUpdate heartbeat (60s hardcoded
-    # in node_modules/vitest/dist/chunks/rpc.*.js) on this 379-file suite
-    # even with --pool=threads --silent=true --reporter=basic. ubuntu and
-    # macOS clear it post-502551390. Marked continue-on-error until we
-    # bump vitest to v4 (vitest-dev/vitest#8297, the structural fix).
-    # macOS + ubuntu remain blocking — Windows-only real test failures
-    # would still surface on the other two OSes first 99% of the time.
-    # Tracked for follow-up with the v4 bump.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    # Vitest 4 (vitest-dev/vitest#8297) made birpc respect user-configured
+    # timeouts, so the Windows-only 60s onTaskUpdate heartbeat that gated
+    # this matrix is gone. continue-on-error stayed on Windows until the
+    # v4 bump landed; closes #5.
 
     strategy:
       fail-fast: false
@@ -81,20 +76,18 @@ jobs:
         if: steps.test-selector.outcome == 'failure'
         working-directory: ./desktop-app-vue
         shell: bash
-        # --reporter=basic --silent=true reduces RPC pipe traffic. By itself
-        # not enough on Ubuntu/Windows: the vitest 3.x birpc 60s onTaskUpdate
-        # heartbeat is hardcoded (vitest-dev/vitest#8297, fixed v4.0.0) and
-        # this 379-file desktop suite trips it under forks-pool RPC
-        # contention even when every test passes. --pool=threads here uses
-        # worker_threads postMessage instead of process IPC, sidestepping
-        # the heartbeat. Scoped to this CI step only — vitest.config.ts
-        # keeps `pool: forks` for local + other contexts (the existing
-        # comment there warns threads broke CJS/ESM interop historically;
-        # we override per-invocation here, not globally).
+        # `--silent=passed-only` keeps the worker→main RPC quiet on the
+        # 390-file suite; vitest 4 dropped the legacy `basic` reporter.
+        # `--pool=threads` overrides vitest.config.ts's forks default for
+        # this CI step only (the config comment notes threads have broken
+        # CJS/ESM interop locally; we accept that here in CI to keep RPC
+        # traffic light). vitest 4 also fixed the hardcoded birpc 60s
+        # heartbeat (vitest-dev/vitest#8297), so the Windows continue-on-
+        # error gate is gone.
         run: |
           echo "⚠️  Intelligent test selection failed, running stable test suite..."
           npx vitest run tests/unit \
-            --reporter=basic --silent=true --pool=threads \
+            --reporter=default --silent=passed-only --pool=threads \
             --exclude="**/media/ocr-service.test.js" \
             --exclude="**/mcp/**" \
             --exclude="**/p2p/**" \
