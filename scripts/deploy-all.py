@@ -30,22 +30,23 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-05 — 三站 v5.0.3.29。www 的 -0720 包含 desktop.astro 接 GitHub API
-    # 真实 release asset size 修复（之前硬编码 "约 120MB" 与真实 821 MB 不符）；
-    # docs/design -0713 包内容未变，下次有改动时再统一新 stamp。
+    # 2026-05-05 -2137 — 三站同步刷到 v5.0.3.31。changelog 补 v5.0.3.30 + v5.0.3.31
+    # 两段；release-sizes.json 自动 fetch v5.0.3.30 (Latest, v5.0.3.31 仍 Draft)；
+    # taglines + overview "当前版本" 已是 v5.0.3.31。vitest 4 bump 工程改动不入
+    # 用户面 doc，仅在 changelog v5.0.3.31 段提到。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.29-20260505-0720.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.31-20260505-2137.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.29-20260505-0713.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.31-20260505-2137.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.29-20260505-0713.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.31-20260505-2137.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
