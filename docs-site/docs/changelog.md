@@ -3,6 +3,62 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.29 / CLI 0.161.2] - 2026-05-05 (CI/test 稳定性收口 + 双语整站 + 桌面端体验优化)
+
+### Added
+
+- **官网整站双语**（commit `036bfa33e`）：`docs-website-v2` 8 页 zh + 8 页 en 镜像（`/`、`/cli`、`/web`、`/desktop`、`/security`、`/enterprise`、`/about`、`/404`），`SiteHeader`/`SiteFooter` 检测 `/en/` 前缀自动切换 nav + dictionary，"EN ↔ 中文" 双向切换。同批落地：首页"三大核心能力"屏 / Cowork 5 阶段流程图 / 6 平台 + 6 路测试细分 strip / SLA + 5 类伙伴 + 6 合作方式区块；`/security` 补 Trinity Trust Root v3.2 三脚（U盾 / SIMKey / TEE）+ PQC（ML-KEM/ML-DSA）+ 零知识（Groth16 + zk-STARK）+ FIPS 140-3；`/about` 补里程碑 + 资质双块。CLI 版本号统一引用 `packages/cli/package.json`，三处硬编码漂移修掉。
+- **桌面主窗口最小化到系统托盘**（commit `d57759dc9`）：关闭按钮触发 hide() 而非 quit()，托盘图标常驻；右键菜单 Show / Quit。
+
+### Fixed
+
+- **MTC federation governance CLI 测试拆分**（commit `0114aec48`）：`mtc-federation-governance-cli.test.js` 单文件 41 测试 110-200s wall-time 触发 vitest hardcoded 60s `onTaskUpdate` RPC 心跳超时。拆为多文件 + `poolMatchGlobs` 路由到 threads pool（forks pool birpc 在 subprocess 负载下崩溃，threads 用 postMessage 不会）。issue #4 关闭。
+- **桌面 installer 瘦身 357 MB / 14k 文件**（commit `b2e1ff27d`）：electron-builder afterPack hook 过滤掉打不进生产的 devDep / 测试目录 / `.bak` 等无用文件。Setup.exe 装机时间天花板（文件数 × ~10ms）相应下降。
+- **Node 23 native-dep prebuild 缺口排除**（commit `7724ff541` + `9138aa3fa`）：`better-sqlite3-multiple-ciphers` 只 ship ABI v115/v127/v137（无 v131），Node 23 上 `npm install` 级联失败 vue-tsc / ant-design-vue 等。`engines.node` 声明 `>=22.12.0 <23.0.0 || >=24.0.0`，`package-lock.json` engines 字段同步对齐。
+- **桌面单元测试 RPC 饱和修复**（commits `9abf81452` / `502551390`）：`vitest --reporter=basic --silent=true` 抑制 per-test stdout RPC 流量；heartbeat-killer 干掉 hung 子进程；`skill-handlers.test.js` timeout 上调。
+- **CI 测试稳定性双修**（commit `2753ebf44`）：stable-suite fallback 暴露的两个 unit-test 失败修掉。
+- **官网下载链接 size 显示修复**（commit `57df48852`）：桌面下载卡读真 GitHub release asset size 而非占位符。
+- **CLI prod deps 标准化注入 packaged**（commit `33d40fbad`）：本地 `make:*:builder` 链路也走 prod-deps standalone install + bundle，与 CI 路径对齐。
+- **`update-changelog` job 安装 desktop deps**（commit `0e34609e9`）：post-workspace-refactor 后 changelog 生成需要 desktop-app-vue 的 deps。
+
+### Changed
+
+- **Windows Unit Tests 标 continue-on-error**（commit `e0dbcb140`）：等 vitest v4 升级再去掉。
+
+### Why
+
+v5.0.3.22 → v5.0.3.29 是发布工程线最后一段稳定性收口，主题是 "把所有 CI/test/installer 路径对齐到 workspace refactor 后的新架构"。同期顺手做完官网整站双语 + 桌面端系统托盘体验优化。productVersion 跨度大但每步都是小幅 patch，无功能性变化，主要给下一次 GA 发布铺路。
+
+---
+
+## [5.0.3.22 / CLI 0.161.2] - 2026-05-04 (Workspace 结构性重构 + ASAR 终结 + V5 dead-page 清理)
+
+### Changed
+
+- **Workspace 重构：移除 desktop-app-vue from root workspaces**（commit `ad3e7d403`）：根本性修复 npm workspaces hoisting 陷阱 — 此前每次发版都因 `call-bind-apply-helpers` 等 transitive deps hoist 到根 `node_modules/` 而触发 ASAR 缺包问题（v5.0.3.7 走的是补丁性方案）。这次直接把 desktop-app-vue 从 workspace 拆出，让它有独立 `node_modules/`，根治第二天发版翻车的可能性。`ad3e7d403` 之后所有 CI/release path 都按 "non-workspace" 重新接线。
+- **CLI 测试 sharding 替代 glob 批处理**（commits `1c9db161b` / `21a60f714` / `b52c2f427` / `a0abf544e`）：vitest `--shard=k/n` matrix 替代易翻车的 `[a-m]/[n-z]` glob 批处理；9 个 push/PR workflows 加 `concurrency: cancel-in-progress`；integration shard 矩阵从 4 升 8 让 macos shard 4/4 上的 MTC 重型文件 hash 走他处；vitest config 内固化 `silent + basic reporter`。
+- **Vite 7 + Rollup 4 strict mode 适配**（commits `a9418b58a` / `39ebb116e` / `2c1c7887c`）：禁用 `modulePreload polyfill`、splash CSS 抽到 public/ 文件、rollup 锁 4.59.0（4.60+ source phase strict 报错）。
+- **删除 6 个 V5 死页面**（commit `5066a718d`）：V6 Chat-First Shell 全量 port 完毕后清理 V5 残留；`-8283 lines / +10 lines`，路由表减 5 个 entries。
+
+### Fixed
+
+- **call-bind-apply-helpers ASAR drop 终战**（commits `496d21708` / `f92505fb4` / `1c8d0994d` / `99eb6b730` / `6152056e2` / `41df786f1` / `1533fc116` / `d1de6b8f7` / `be428a3fe` / `328343642` / `4d9c21b79` / `611757f7e` / `020b74f7e` / `aed3fcc7c` / `32d23864f`）：v5.0.3.7 之前已经发现，但补丁未根治。本批走完所有备选方案：禁用 ASAR、afterPack 重构、nuclear 把 dev tree verbatim 替换、`extraResources` 路线、最终 standalone prod-deps install + bundle。**这条路线在 `ad3e7d403` workspace 重构后才彻底安静下来**。
+- **Windows 冷启动 flaky 测试预热**（commit `2d29bc615`）：`diagnostics.test.js` 首次 `collectDoctorReport` >60s + `coding-agent-envelope-roundtrip.test.js` 首次 WS round-trip >5s。`beforeAll` 预热 + 首次请求 30s timeout。
+- **CI release 多个角落修补**（commits `c4c4f0d8a` / `a86e05ab6` / `4aee8af0c` / `f5246aa5c` / `8ace3d14a` / `afb974f0f` / `fefe86953` / `4ef147d53` / `016df8a0d`）：`saveConfig` mkdir before write（fresh runner ENOENT）+ `core-mtc` 7 个缺失的 libp2p deps 显式声明 + `web-panel npm install before build` + post-workspace-refactor 各处 `cd && npm ci` + macOS dmg-license 安装 + AppImage embedded blockmap 验证 + create-release permissions 拓宽 + MTC governance test 已知限制文档化。
+- **`npm run dev` 修**（commit `a84284eb6`）：hoisted bin shims 残留导致 dev 启动失败，prune 掉破损的 hoisted bin shims。
+- **桌面 backend data 路径**（commit `22c0ec43d`）：production 用 `userData` 而非 Program Files（read-only）。
+- **桌面 webshell splash window**（commit `fcbf4195d`）：long boot 期间显示 splash 窗给用户反馈。
+
+### Added
+
+- **`docs(claude)` 版本号 source-of-truth 化**（commit `99b5a03ac`）：CLAUDE.md 把 productVersion / CLI version 等版本字段直接指向源文件（`package.json` 的 productVersion / `packages/cli/package.json` 的 version），不再在多处复制粘贴。配合本仓库三站 tagline 同步策略。
+
+### Why
+
+v5.0.3.7 → v5.0.3.21 期间 ASAR call-bind-apply-helpers drop 反复发作，每次发版都得加新补丁。`ad3e7d403` 直接拆 workspace 是结构性根治 —— 自此 nested `node_modules/` 物理上就有这些包，electron-builder walker 不可能再选错。同期把 V5 dead pages 删掉、CI sharding 升级、Vite 7 适配三件事打包做完，避免下次发版再被翻出。productVersion 从 `.7` 跳到 `.21 → .22` 跨度大但中间多个版本只是 release attempt 失败重试，没有功能性新增。
+
+---
+
 ## [5.0.3.7 / CLI 0.161.2] - 2026-05-03 (发布工程硬化：Express@5 ASAR hoist 修 + dev/CI 收口)
 
 ### Fixed

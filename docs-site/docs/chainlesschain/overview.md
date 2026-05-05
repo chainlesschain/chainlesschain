@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.7 进化版 | 141 桌面技能 + 28 Android 技能 | CLI v0.161.2 / 112 命令 / 14,800+ 测试 | V6 Chat-First 桌面壳（P0–P9c 全量落地 + LanguageSwitcher）| CLI V2 规范层 220+ 治理表面（iter16–iter28 · ~5,984 V2 测试）| cc pack 多平台打包（macOS / Windows / Linux + 项目模式 Phase 2a/2b/3a/3b + OTA check-update / SHA-256 / 自替换）| MTC v0.5→v0.11（联邦 M-of-N 多签 + libp2p gossipsub 自发现 + Ed25519/SLH-DSA 异构 + 跨联邦信任 + 多跳 + gas-aware + SLA 监控 + Op Log 行级徽标 + Q-ENG-2 后端桥；476+ 测试）| Web Panel i18n M1–M3 + Express@5 ASAR hoist 修复**
+> **当前版本: v5.0.3.29 进化版 | 141 桌面技能 + 28 Android 技能 | CLI v0.161.2 / 112 命令 / 14,800+ 测试 | V6 Chat-First 桌面壳（P0–P9c 全量落地 + LanguageSwitcher）| CLI V2 规范层 220+ 治理表面（iter16–iter28 · ~5,984 V2 测试）| cc pack 多平台打包（macOS / Windows / Linux + 项目模式 Phase 2a/2b/3a/3b + OTA check-update / SHA-256 / 自替换）| MTC v0.5→v0.11（联邦 M-of-N 多签 + libp2p gossipsub 自发现 + Ed25519/SLH-DSA 异构 + 跨联邦信任 + 多跳 + gas-aware + SLA 监控 + Op Log 行级徽标 + Q-ENG-2 后端桥；476+ 测试）| Web Panel i18n M1–M3 + Express@5 ASAR hoist 修复**
 
 ## 概述
 

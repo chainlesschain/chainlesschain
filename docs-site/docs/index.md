@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.3.4 | CLI 0.160.1 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）· Web Panel i18n M3 全覆盖 · MTC v0.5（Phase 0–4 联邦 + libp2p auto-discovery · 476 测试）· cc pack OTA
+  tagline: v5.0.3.29 | CLI 0.161.2 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由）· cc pack OTA
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -45,6 +45,10 @@ features:
 > 2026-05-01 更新：**MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery**（commit `d75abe6e8` / sweep `f7e333a41`）。Phase 3.1 多签 landmark + `cc mtc federation {join,leave,status}` 本地 registry；Phase 3.2 `cc mtc batch* / publish-skills --federation <id> --threshold <M>` 多签发布；Phase 3.3 `--transport filesystem` 跨进程 drop-zone 发现（NFS/Syncthing/SMB/USB）；Phase 3.4 `--transport libp2p` 真 P2P gossipsub topic auto-discovery。Backend Q-ENG-2 OperationLogService 桥接 `cc audit mtc emit` 写回 `audit_mtc_event_id`（V013 migration），web-panel `Audit.vue` 加 4 态 MTC 列徽章。**476 MTC 测试全绿**（core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19）跨 6 层覆盖，含异构 Ed25519 + SLH-DSA 联邦。
 >
 > 2026-05-02 更新：**Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker**。i18n M3 一波收 ~25 个视图（Speech/Analytics/Cron/Security/Templates/Search/Audit/McpTools/Backup/Tokens/Mtc/WebAuthn/Community/Wallet/Inference/Organization/Recommend/Federation/Reputation/AIOps/Projects 等），中英双语 vue-i18n 全量贯通；V6 preview topbar 接 `LanguageSwitcher`（`645b19f30`）。web-shell 默认 ON 后加 `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）；projects 加 folder picker 走 `cc init --cwd` 完成"打开已有文件夹"流（`c935a95d4`）。CLI `0.160.0 → 0.160.1`，root `productVersion v5.0.3.1 → v5.0.3.4`。
+>
+> 2026-05-03 更新：**MTC v0.11 — 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA + 监控仪表板**。六条线一次收口跨链桥 §11 + 联邦治理 v0.2 §11 全部可做项：(A1) 跨联邦信任锚 schema + validate（6 类错误码）+ `cc mtc federation cross-trust-create/cross-trust-validate`；(A2) 离线第三方审计器 `auditGovernanceLog()` 顺序回放每个事件、构建滚动 roster、ERROR/WARN 两级 finding；(A3) 多跳传输路由 `--hops <n>`；(A4) Gas 感知 closeBatch；(A5) SLA tracker 有界等待 + p95；(A6) 监控仪表板 web-panel `/mtc` 聚合视图（多联邦健康度 + 同步延迟 + 待批次）。仅 Q-COMP-3（链上锚定法务）+ 真 RPC 链适配两项保留外部阻塞。
+>
+> 2026-05-04 更新：**官网 + 双语整站 + brochure 同步**。docs-website-v2（Astro）整站 8 页 zh + 8 页 en 双语镜像，SiteHeader/SiteFooter 检测 `/en/` 前缀自动切换 nav + dictionary，"EN ↔ 中文" 双向切换；新增三大核心能力屏 / Cowork 5 阶段流程图 / 6 平台 + 6 路测试细分 strip / SLA + 5 类伙伴 + 6 合作方式区块；/security 补 Trinity Trust Root v3.2 三脚（U盾 / SIMKey / TEE）+ 后量子 PQC（ML-KEM/ML-DSA）+ 零知识（Groth16 + zk-STARK）+ FIPS 140-3 硬件标准；/about 补 6 点里程碑时间线 + 资质双块（已获 5 项 + 进行中 4 项）。CLI 版本号统一引用 `packages/cli/package.json`，三处硬编码漂移修掉。CLI `0.161.2`，root `productVersion v5.0.3.29`。Brochure v3 重新生成对齐当前版本。
 
 ## 当前验证结果
 
