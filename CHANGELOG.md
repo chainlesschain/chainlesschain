@@ -5,6 +5,19 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.32] - 2026-05-05 — 修 v5.0.3.31 系统托盘菜单两处残留
+
+> 用户在 v5.0.3.31 安装版上报告：托盘"检查更新"按钮仍弹"当前模式：development"对话框；从托盘菜单点其它项只把主窗口拉出来，但不跳到对应页面。两处不同根因，但一起表现为"v5.0.3.31 的托盘修复在打包版上没生效"。
+
+### Fixed
+
+- **托盘"检查更新"在打包版误报开发模式** —— `enhanced-tray-manager.js:365` 的判断写的是 `process.env.NODE_ENV === "production"`，但 Electron 打包后 `NODE_ENV` 默认是 undefined（不是 "production"），所以即使是 GitHub 下载的安装版也走 fallback 分支显示"当前模式：development"，且因此从未真正调用过 `autoUpdater.checkForUpdates()`。改为 `(process.env.NODE_ENV === "production" || app.isPackaged)`，对齐 `backend-service-manager.js:17` 已有的双判断写法。注意：后台静默自动更新链路本身不受影响，因为 `auto-updater.js:32` 守的是 `!process.env.NODE_ENV || === "production"`，对 undefined 容错。
+- **首次启动未设密码状态下托盘菜单事件被丢弃** —— `App.vue` 的 `onMounted` 在 `initial-setup:get-status` 返回 `{ completed: false }` 时 early-return（line ~339），跳过下方的 IPC listener 注册块（`tray:action` / `show-global-settings` / `database-switched` 三个）。结果：首次启动用户点托盘菜单，主进程的 `dispatchTrayAction` 把窗口 show + focus 后通过 IPC `send("tray:action")`，但 renderer 没人接，路由不跳。把这三个 listener（连同已经在早返之前的 `deep-link:invitation`）整体提到早返之前——它们和数据库加密 / 设置流程无依赖关系。
+
+### Notes
+
+- 已知小问题（不在本版本修）：preload `removeListener` 直接传 `func`，但 `on` 注册时包了 arrow wrapper，不匹配。表现为 `onUnmounted` 里的 cleanup 实质未生效（轻微监听器累积），不影响功能。
+
 ## [v5.0.3.31] - 2026-05-05 — 系统托盘菜单 + 自动更新接入（修 v5.0.3.30 漏修的三个 bug）
 
 > 用户报告 v5.0.3.30 安装版三个 bug：托盘菜单除了"显示主窗口"全部点了无反应；"检查更新"按钮点了哑响；自动更新功能不工作。三个症状同根：tray-manager 把所有菜单项 send 到 renderer 各自独立的 IPC channel，但 renderer **从未给任何一个 channel 注册 listener**；同时 `auto-updater.js` 模块在 `index.js` **从未被初始化**（grep `autoUpdater` 在 index.js 0 个匹配）。
