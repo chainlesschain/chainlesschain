@@ -3,6 +3,49 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.31 / CLI 0.161.2] - 2026-05-05 (vitest 4 bump + 自动更新 + 托盘菜单 IPC 修复)
+
+### Fixed
+
+- **桌面自动更新 + 托盘菜单全量修复**（commit `bc2e476bf`）：v5.0.3.30 用户反馈三个 packaged-install 问题同源——(1) 自动更新功能不工作、(2) 托盘"检查更新"点击无反应、(3) 托盘菜单大部分项点击无反应（除"显示主窗口"）。`auto-updater.js` 模块存在但 `index.js` 从未调用 `init()`，packaged 版本无启动自检也无 4h 周期检查；托盘菜单各项发送的 per-item IPC channel（`quick-action` / `sync` / `show-notifications` / `show-performance` / `open-settings` / `show-about` / `check-update`）在 renderer 0 监听器。修复：所有菜单项重新走 `dispatchTrayAction` 统一入口；窗口隐藏时先 `show()+focus()` 给反馈（之前 silent-on-hidden 是"无响应"感知的助燃因素）；"检查更新"生产模式直调 `auto-updater.checkForUpdates()`、dev 模式 fallback dialog；"关于"主进程 native `dialog.showMessageBox`，无需 renderer 往返。`App.vue` 监听 `tray:action` 按 type 派发到 Vue Router、GlobalSearch、window CustomEvents；未映射的 `screenshot-ocr` / `clipboard-import` / `sync` 显式 toast "功能即将推出"——比哑响好。
+- **afterPack 预清悬挂 symlink**（commit `411a99af5`）：CI Linux build 在 after-pack 报 `ENOENT: no such file or directory, stat .bin/cc`。根因 CI "Merge hoisted modules into nested" 步创建 `.bin/cc` 软链指向 `@chainlesschain/cli`，但 cli 包本身只装在 `packages/cli/node_modules/` 下，nothing 镜像到 `desktop-app-vue/node_modules/@chainlesschain/`——symlink dangling。`fs.cpSync(..., { dereference: true })` 在 filter 回调前先 `getStats()`（跟随 symlink），filter 返 false 拦不住。修复：`cpSync` 前 walk `sourceNm`，`unlink` 任何 target 解析失败的 symlink；廉价（仅 `.bin/*` 通常是 symlink）、有日志、best-effort。
+- **vitest 3→4 误升级回滚**（commit `18caa371a`）：`bc2e476bf` 暂存 `desktop-app-vue/package.json` 1.1.1-alpha → 1.1.2-alpha 时，`git add` 同时拣进了 `chore/vitest-v4-dry-run` 分支遗留在工作目录的 vitest dep 改动（sticky checkout 没清干净），导致 vitest 3→4 没带 lockfile 一起升级，CI `npm ci` 报 8 个 `lock file's @vitest/expect@3.2.4 does not satisfy 4.1.5`。三平台 build 全挂。回滚 vitest / `@vitest/coverage-v8` / `@vitest/ui` 回 ^3.0.0 重新对齐 lockfile，v4 迁移按计划走单独分支（见下面 v4 bump 段落）。
+
+### Added
+
+- **vitest 3.x → 4.1.5 全量升级 + 后量子级 CI 稳定性**（7 commits `57bb519fe..8ad5fb7e9`）：v3 时代两个工件性 workaround 同时退役——issue #5 的 Windows Unit Tests `continue-on-error` + issue #4 的 `mtc-federation-governance-cli` `poolMatchGlobs → threads:singleThread` 路由。vitest 4 上游修了 birpc 60s `onTaskUpdate` 心跳硬编码（`vitest-dev/vitest#8297`），现在尊重用户配置的 `testTimeout` / `hookTimeout`，`--reporter=basic` 也由 `default + silent=passed-only` 替代。受影响包：cli、web-panel、core-mtc、session-core、shared-logger、core-{db,env,infra,config}、desktop-app-vue（含 `@vitest/coverage-v8` / `@vitest/ui`）。同批 bump `@vitejs/plugin-vue 5.x → 6.0.6`（vitest 4 的 vite peer 是 `^6 || ^7 || ^8`，plugin-vue 5 顶到 vite ^6 conflict 在 web-panel install 时 ERESOLVE 撞墙）。落地配套：`vi.fn(() => obj)` 用作 constructor 的 ~30 文件改 `function () { return obj }`（v4 拒绝 arrow 作 ctor）；CLI `testTimeout: 30000 → 60000` 给 subprocess-heavy 联邦治理 + 审计 e2e 场景留余量；`tests/setup.ts` window 访问加 typeof guard（v4 严守 per-file `@vitest-environment node`）；`OrganizationRolesPage.test.js` 补 `MoreOutlined` 等 12 个 antd icon mock（v4 mock module strict mode）；`ProgressMonitor.test.ts` 把 `(global as any).window = {...}` 改成 mutate `window.electronAPI`（避免覆盖整个 jsdom window 丢 `getComputedStyle`）。最终 5/5 CI workflow 全绿；issue #5 自动闭环。
+
+### Changed
+
+- **删除冗余 android-release.yml**（commit `36d9307f6`）：standalone workflow 与 `release.yml` `build-android` job 同 tag pattern + 同 APK/AAB 输出 + 同 GitHub Release 创建，实测前者 v5.0.3.30 在 45m15s 超时取消、后者 ~2 分钟跑完发了 14 APK + AAB，标准 release 唯一作用是给每个发布加个红叉。同步刷新 `android-app/docs/ci-cd/CI_CD_GUIDE.md` 手动触发指引指向 `release.yml`，`desktop-app-vue/.cowork/cicd-analysis.md` 删行；`FIREBASE_CRASHLYTICS_SETUP.md` 通用示例 yaml 不动（说明性，非真实引用）。
+
+### Docs
+
+- **issue #6 文档 fact-check**（commit `4b134e9f4`）：issue #6 body 提的 `asar:true` + `asarUnpack` glob 把 Win install 砍到 5min 的方案在 2026-05-05 实证（issue 关闭注释里）证伪——`asarUnpack` 只能给 walker manifest 里已选的文件加 unpack 标，无法补 walker drop 到 nested-only 的 4 个包（`call-bind-apply-helpers`、`side-channel-{list,map,weakmap}`）。同步刷外部文档对齐：`CHANGELOG.md` 删 "重启用 asarUnpack 砍到 5 分钟" false promise 改 "前期方案证伪 + 剩余路径 = post-pack asar surgery + 暂无 active tracker"；`docs-site/docs/guide/installation.md` 用户面安装指南口径同步。
+
+### Why
+
+5.0.3.31 主题是"修真问题 + 顺手清技术债"：用户反馈的自动更新和托盘菜单是真功能 bug 不能拖；CI Linux build 的 dangling symlink 是阻塞 release 的 P0；vitest 4 升级一直在 backlog 里，issue #5 直到 v4 拿掉硬编码心跳才有体面解，正好这次连同 issue #4 的 `poolMatchGlobs` workaround 一并退役。
+
+---
+
+## [5.0.3.30 / CLI 0.161.2] - 2026-05-05 (桌面图标 + 系统托盘 + 安装恢复力)
+
+### Fixed
+
+- **桌面应用图标视觉占用率不足**（commit `f2c8fc22f`）：`assets/icon.png` master 圆形 logo 在 2451x2451 画布占比 ~52%（重透明边距），任务栏 + 桌面快捷方式 + 托盘渲染都比微信 / Office 等方块邻居小一圈。`tools/regen-app-icon.js`（sharp + png-to-ico）自动 trim 透明边、squarify bbox、重建 7 层 .ico；新 master 1282x1282，水平占比 100% / 垂直 89%。圆形 logo 固有的 π/4 比与方形 icon 视觉对比仍有差距（已写进 Known Limitations）。同批接线：`BrowserWindow` 加 `icon: resolveAppIconPath()`（dev → `assets/icon.ico`、packaged → `process.resourcesPath/icon.ico`），`setupApp()` 调 `app.setAppUserModelId("com.chainlesschain.desktop")`（不调 dev 退回 Electron 默认图标 + packaged 升级有图标关联丢失风险）；`enhanced-tray-manager.js` `getIconPath()` 候选路径之前只指向项目里压根不存在的 `resources/`，nativeImage 静默空、Windows 退回 fallback——补 `assets/icon.ico` + `process.resourcesPath` 进表头；`electron-builder.yml` `extraResources` 把 `assets/icon.{ico,png}` 拷到 `process.resourcesPath`，确保 packaged install 运行时 tray 找得到。
+- **桌面 npm install 后 electron 二进制偶失**（commit `f2c8fc22f` 同批）：`desktop-app-vue/package.json` 加 postinstall fallback `node node_modules/electron/install.js || true`。npm workspaces hoist 偶尔会让 desktop 的 `electron/dist/electron.exe` 缺，没这个 fallback 全新 clone `npm run dev` 撞 "Electron failed to install correctly" 需手动 recover。
+- **eslint tools/ + scripts/ 范围溢出**（commit `f2c8fc22f` 同批）：`eslint.config.js` 加 `tools/` + `scripts/` override（CommonJS、`no-undef` off、`no-require-imports` off），未来 Node helper script 不再撞 renderer-style TS 规则。
+- **桌面主窗口最小化到系统托盘**（commit `d57759dc9`，bundled into v5.0.3.30）：关闭按钮触发 `hide()` 而非 `quit()`，托盘图标常驻；右键菜单 Show / Quit。
+- **桌面 installer 瘦身 357 MB / 14k 文件**（commit `b2e1ff27d`，bundled）：electron-builder afterPack hook 过滤掉打不进生产的 devDep / 测试目录 / `.bak` 等无用文件。Setup.exe 装机时间天花板（文件数 × ~10ms）相应下降。
+- **CLI prod deps 标准化注入 packaged**（commit `33d40fbad`，bundled）：本地 `make:*:builder` 链路也走 prod-deps standalone install + bundle，与 CI 路径对齐。
+
+### Why
+
+5.0.3.30 是 5.0.3.29 之后桌面端体验线的小幅 patch，主题是 "图标视觉对齐 + workspace 残余坑收口"。功能层无变化，主要改善 packaged install 后第一印象（任务栏 / 托盘可见度）和 fresh-clone 体验。捆绑发布的 `b2e1ff27d` / `33d40fbad` / `d57759dc9` 是前序未发版的 desktop work，赶 5.0.3.30 一起落 GA。
+
+---
+
 ## [5.0.3.29 / CLI 0.161.2] - 2026-05-05 (CI/test 稳定性收口 + 双语整站 + 桌面端体验优化)
 
 ### Added
