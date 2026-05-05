@@ -1193,6 +1193,11 @@ describe("Skill Handlers", () => {
     });
 
     it("should evaluate a library", async () => {
+      // Handler shells out to `npm view vitest` (15s internal timeout)
+      // and `npm audit` (20s internal timeout). On slower CI runners
+      // (Ubuntu/Windows) the registry round-trip + audit can exceed
+      // the 10s default test timeout — macOS happens to be fast
+      // enough to slip under it. Give it 60s headroom.
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
         { input: "--evaluate vitest" },
@@ -1200,7 +1205,7 @@ describe("Skill Handlers", () => {
       );
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
-    });
+    }, 60_000);
   });
 
   // ============================================================

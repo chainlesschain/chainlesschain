@@ -334,14 +334,20 @@ function applyExclusions(selectedTests) {
  * Generate test execution command
  */
 // CI flags required to keep vitest's worker→main birpc heartbeat alive on
-// long unit-test runs. Without --silent=true, per-test stdout going over
-// the RPC pipe + the hardcoded 60s onTaskUpdate timeout causes
-// "[vitest-worker]: Timeout calling onTaskUpdate" exit-1s on slower
-// runners (Ubuntu/Windows) even when every test passes (see
-// memory/cli_ci_sharding_lessons.md). macOS happens to be fast enough
-// to clear the heartbeat, so this only surfaces on the slower OSes.
-// `--reporter=basic` keeps reporter chatter off the same RPC pipe.
-const CI_VITEST_FLAGS = "--reporter=basic --silent=true";
+// long unit-test runs. The vitest 3.x birpc 60s onTaskUpdate timeout is
+// hardcoded (vitest-dev/vitest#8297, fixed v4.0.0). On a 379-file forks
+// pool with maxForks=2, RPC contention trips the timeout on slower
+// runners (Ubuntu/Windows) even when every test passes — macOS is fast
+// enough to slip under the deadline.
+//   --silent=true / --reporter=basic reduce per-test traffic on the pipe
+//   --pool=threads switches the worker→main IPC to worker_threads
+//     postMessage, sidestepping the birpc forks-pool heartbeat entirely.
+// Same recipe as the federation tests' poolMatchGlobs override
+// (memory/cli_ci_sharding_lessons.md). Scoped to this CI script's
+// invocations — vitest.config.ts keeps `pool: forks` for local + other
+// contexts (its comment warns threads broke CJS/ESM interop historically;
+// we override per-invocation here, not globally).
+const CI_VITEST_FLAGS = "--reporter=basic --silent=true --pool=threads";
 
 function generateTestCommand(selectedTests) {
   if (selectedTests.length === 0) {

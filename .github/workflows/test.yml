@@ -72,16 +72,20 @@ jobs:
         if: steps.test-selector.outcome == 'failure'
         working-directory: ./desktop-app-vue
         shell: bash
-        # --reporter=basic --silent=true: required to keep vitest's
-        # worker→main birpc heartbeat alive on Ubuntu/Windows runners.
-        # Without them, the hardcoded 60s onTaskUpdate timeout fires on
-        # long suites and exits 1 even when every test passes (macOS is
-        # fast enough to slip under the deadline). Same recipe as
-        # _cli-test.yml — see memory/cli_ci_sharding_lessons.md.
+        # --reporter=basic --silent=true reduces RPC pipe traffic. By itself
+        # not enough on Ubuntu/Windows: the vitest 3.x birpc 60s onTaskUpdate
+        # heartbeat is hardcoded (vitest-dev/vitest#8297, fixed v4.0.0) and
+        # this 379-file desktop suite trips it under forks-pool RPC
+        # contention even when every test passes. --pool=threads here uses
+        # worker_threads postMessage instead of process IPC, sidestepping
+        # the heartbeat. Scoped to this CI step only — vitest.config.ts
+        # keeps `pool: forks` for local + other contexts (the existing
+        # comment there warns threads broke CJS/ESM interop historically;
+        # we override per-invocation here, not globally).
         run: |
           echo "⚠️  Intelligent test selection failed, running stable test suite..."
           npx vitest run tests/unit \
-            --reporter=basic --silent=true \
+            --reporter=basic --silent=true --pool=threads \
             --exclude="**/media/ocr-service.test.js" \
             --exclude="**/mcp/**" \
             --exclude="**/p2p/**" \
