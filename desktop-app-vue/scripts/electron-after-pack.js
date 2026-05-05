@@ -146,6 +146,50 @@ exports.default = async function afterPack(context) {
     fs.rmSync(targetNm, { recursive: true, force: true });
   }
 
+  // Pre-clean dangling symlinks from sourceNm before cpSync. CI's
+  // "Merge hoisted modules into nested" step can leave broken `.bin/*`
+  // entries — e.g. `.bin/cc` symlinks to `@chainlesschain/cli` when the
+  // CLI is only installed under `packages/cli/node_modules/`, not
+  // mirrored into desktop-app-vue/node_modules/@chainlesschain/. With
+  // dereference:true below, cpSync's internal getStats() walks the
+  // symlink target and throws ENOENT before the filter can skip it.
+  // Sweep the source tree first; remove any symlink whose target no
+  // longer exists. Cheap (only `.bin/*` are usually symlinks).
+  const removedDangling = [];
+  function removeDanglingSymlinks(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isSymbolicLink()) {
+        try {
+          fs.statSync(full); // follows symlink; throws if dangling
+        } catch (err) {
+          if (err.code === "ENOENT") {
+            try {
+              fs.unlinkSync(full);
+              removedDangling.push(path.relative(sourceNm, full));
+            } catch {
+              // ignore — best-effort cleanup
+            }
+          }
+        }
+      } else if (ent.isDirectory()) {
+        removeDanglingSymlinks(full);
+      }
+    }
+  }
+  removeDanglingSymlinks(sourceNm);
+  if (removedDangling.length > 0) {
+    console.log(
+      `${tag} removed ${removedDangling.length} dangling symlink(s) from source node_modules: ${removedDangling.join(", ")}`,
+    );
+  }
+
   // Track skipped packages for reporting. We only count each top-level
   // package once (not every file inside it).
   const skippedDevDeps = new Set();
