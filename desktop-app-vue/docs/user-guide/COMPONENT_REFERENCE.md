@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 580
+**Total Components**: 581
 
 ---
 
@@ -863,6 +863,14 @@
 **File**: `src/renderer/pages/settings/SystemSettings.vue`
 
 **Description**: 通用设置
+
+---
+
+### SyncWebDAV
+
+**File**: `src/renderer/pages/settings/SyncWebDAV.vue`
+
+**Description**: 配置表单
 
 ---
 
