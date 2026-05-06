@@ -15,6 +15,23 @@ const
 
 ---
 
+## constructor(mainWindow, options =
+
+```javascript
+constructor(mainWindow, options =
+```
+
+* @param {BrowserWindow} mainWindow
+   * @param {Object} [options]
+   * @param {() => ({ broadcast: (frame: any) => void } | null)} [options.getWebShellHandle]
+   *   Lazy getter for the web-shell handle. When the embedded web-panel is
+   *   the loaded renderer (Phase 1.6 default), the V5/V6 IPC `tray:action`
+   *   channel has no listener — dispatchTrayAction additionally broadcasts
+   *   through this handle's ws-server so the SPA can route on it. Returns
+   *   null when web-shell is disabled (V5/V6 shell active). v5.0.3.34.
+
+---
+
 ## create()
 
 ```javascript
