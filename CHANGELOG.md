@@ -5,6 +5,29 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装 20m → ~5m, issue #8）
+
+### Fixed
+- Windows installer time from ~20 min back to ~5 min by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`).
+
+### Added
+- `scripts/asar-surgery.js` — extract → inject → repack with original unpackDir preserved + verification gate.
+- `scripts/build-win-with-deref.js` — Win wrapper that detaches workspace symlinks, runs electron-builder, restores in finally with `'junction'`.
+- `scripts/probe-asar.js` — debug CLI for inspecting any asar's top-level entries.
+- `tests/unit/scripts/asar-surgery.test.js` (8) + `build-win-with-deref.test.js` (15) — 23 unit/integration tests, real fs + real `@electron/asar` against tmp fixtures.
+
+### Changed
+- `electron-builder.yml`: `asar: false` → `asar: true`; removed 7 force-include `extraResources` entries that targeted `app.asar.unpacked/`.
+- `scripts/electron-after-pack.js`: dual-branch — asar:false nuclear-replace (legacy) / asar:true `runSurgery`. Mac/Linux + Win all funnel through the same hook.
+- `desktop-app-vue/package.json`: `@electron/asar ^3.4.1` declared as explicit devDep (was implicit transitive).
+
+### Notes
+- Surfaced one bug during testing: `@electron/asar` has a module-level `filesystemCache` keyed by archive path; `extractAll` populates it with the pre-surgery header so `listPackage` returns stale entries after we delete + repack. Fix: `asar.uncache(asarPath)` after `fs.rmSync`. Production builds were also affected — no Win VM smoke needed to find this.
+- Refuted approaches (don't re-attempt): asarUnpack glob (issue #6 proven empirical), extraResources to `app.asar.unpacked/` (v5.0.3.12), declaring 4 packages as direct deps (v5.0.3.6).
+- ASAR integrity: Electron `EnableEmbeddedAsarIntegrityValidation` fuse currently macOS-only. Windows post-surgery hash mismatch is unenforced. When macOS support lands, either patch electron.exe hash or disable integrity via `@electron/fuses`.
+
+---
+
 ## [v5.0.3.38] - 2026-05-06 — 平台补齐：v5.0.3.37 漏掉的 Android APK 重新出全平台
 
 > v5.0.3.37 的 release 因 GitHub immutable-releases 机制（一旦 release 由 finalize-release 翻成 published，**任何 asset 的新增/替换/删除都被 API 拒绝**——不只是 delete，UPLOAD 也 422）漏掉了 build-android 产出的 APK/AAB，桌面三平台 + iOS 共 14 个 asset 已发出且事后无法追加。本版无桌面功能改动，仅重新出全平台一致的 release 把 Android 补回。桌面侧二进制内容与 v5.0.3.37 等价（仅 productVersion / desktop version +1）。

@@ -1199,7 +1199,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.33-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.39-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1219,7 +1219,17 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.33 Evolution Edition (2026-05-06 · CLI 0.161.2 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面)
+## ⭐ 当前版本: v5.0.3.39 Evolution Edition (2026-05-07 · CLI 0.161.2 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m)
+
+### 最新更新 - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
+
+Windows 安装时间从 ~20 分钟回到 ~5 分钟。v5.0.3.4-13 因 electron-builder 的 prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms = ~20 分钟安装地板。本版本（B4 plan，commit `e11b46913`）走第三条路：
+
+- **`scripts/asar-surgery.js`**：在 electron-builder afterPack 钩子里 extract → inject 4 个 walker-dropped 包到 staging top-level → `@electron/asar.createPackageWithOptions` 重打包，并保留 electron-builder 原始 unpackDir 决策。Build-time verification gate 检查 4 个包确实落在 top-level，缺一抛错。
+- **`scripts/build-win-with-deref.js`**：Win 包装 `electron-builder --win`，临时把 `@chainlesschain/{core-mtc,session-core}` workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），finally 用 `'junction'` 还原（Win 非 admin 不能创建 `'dir'` symlink）。
+- **`tests/unit/scripts/asar-surgery.test.js`** + **`build-win-with-deref.test.js`**：23 个单元 + 集成测试（真 fs + 真 `@electron/asar` 跑 fixture），过程中暴露并修掉一个真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，extractAll 后必须 `asar.uncache(asarPath)` 才能让 listPackage 读到 fresh header。
+
+预期 Windows 安装 ~5 分钟、安装包 ~300 MB 减重。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted（不要再走）：asarUnpack glob（issue #6）、extraResources to `app.asar.unpacked/`（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
 
 ### 最新更新 - 托盘"关于"产品版本 "—" 修复 (v5.0.3.33, 2026-05-06)
 

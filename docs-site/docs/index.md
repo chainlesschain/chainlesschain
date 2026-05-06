@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.3.37 | CLI 0.161.2 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由）· cc pack OTA
+  tagline: v5.0.3.39 | CLI 0.161.2 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由）· cc pack OTA · B4 ASAR surgery（Win 安装 20m → ~5m）
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -49,6 +49,8 @@ features:
 > 2026-05-03 更新：**MTC v0.11 — 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA + 监控仪表板**。六条线一次收口跨链桥 §11 + 联邦治理 v0.2 §11 全部可做项：(A1) 跨联邦信任锚 schema + validate（6 类错误码）+ `cc mtc federation cross-trust-create/cross-trust-validate`；(A2) 离线第三方审计器 `auditGovernanceLog()` 顺序回放每个事件、构建滚动 roster、ERROR/WARN 两级 finding；(A3) 多跳传输路由 `--hops <n>`；(A4) Gas 感知 closeBatch；(A5) SLA tracker 有界等待 + p95；(A6) 监控仪表板 web-panel `/mtc` 聚合视图（多联邦健康度 + 同步延迟 + 待批次）。仅 Q-COMP-3（链上锚定法务）+ 真 RPC 链适配两项保留外部阻塞。
 >
 > 2026-05-04 更新：**官网 + 双语整站 + brochure 同步**。docs-website-v2（Astro）整站 8 页 zh + 8 页 en 双语镜像，SiteHeader/SiteFooter 检测 `/en/` 前缀自动切换 nav + dictionary，"EN ↔ 中文" 双向切换；新增三大核心能力屏 / Cowork 5 阶段流程图 / 6 平台 + 6 路测试细分 strip / SLA + 5 类伙伴 + 6 合作方式区块；/security 补 Trinity Trust Root v3.2 三脚（U盾 / SIMKey / TEE）+ 后量子 PQC（ML-KEM/ML-DSA）+ 零知识（Groth16 + zk-STARK）+ FIPS 140-3 硬件标准；/about 补 6 点里程碑时间线 + 资质双块（已获 5 项 + 进行中 4 项）。CLI 版本号统一引用 `packages/cli/package.json`，三处硬编码漂移修掉。CLI `0.161.2`，root `productVersion v5.0.3.29`。Brochure v3 重新生成对齐当前版本。
+>
+> 2026-05-07 更新：**B4 post-pack ASAR surgery 落地（v5.0.3.39，issue #8）**。重启 `asar: true`（v5.0.3.4-13 因 electron-builder walker 漏掉 4 个 transitive 包改成 `asar: false`，代价是 NSIS 内 ~110k loose files → Windows 安装 ~20 分钟）。新 `scripts/asar-surgery.js` 在 afterPack 钩子里 extract → inject 4 个 walker-dropped 包（call-bind-apply-helpers / side-channel-{list,map,weakmap}）到 asar header top-level → 重新 createPackageWithOptions，并保留 electron-builder 原始 unpackDir 决策。新 `scripts/build-win-with-deref.js` Win 包装 `electron-builder --win`，临时把 `@chainlesschain/{core-mtc,session-core}` workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），finally 用 'junction' 还原（Win 非 admin 不能创建 'dir' symlink）。预期 Windows 安装 ~5 分钟、安装包 ~300 MB 减重。Tests：`tests/unit/scripts/asar-surgery.test.js`（8 用例）+ `build-win-with-deref.test.js`（15 用例）真 fs + 真 `@electron/asar` 跑 fixture，过程中暴露并修掉一个真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，extractAll 后必须 `asar.uncache(asarPath)` 才能让 listPackage 读到 fresh header（否则 verification gate 永远抛 stale）。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted 路径（不要再走）：asarUnpack glob（issue #6 经验证）、extraResources to app.asar.unpacked/（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
 
 ## 当前验证结果
 

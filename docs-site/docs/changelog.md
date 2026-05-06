@@ -3,6 +3,39 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装 20m → ~5m, issue #8)
+
+### Fixed
+
+- **Windows 安装时间从 ~20 分钟回到 ~5 分钟**（commit `e11b46913`）—— v5.0.3.4-13 因 electron-builder prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms 文件级 LZMA dict reset + NTFS transaction + Defender scan = ~20 分钟安装地板。本版本（B4 plan）走第三条路：`asar: true` + post-pack ASAR surgery。
+
+### Added
+
+- **`scripts/asar-surgery.js`** —— 在 electron-builder afterPack 钩子里跑 surgery：从原 asar `extractAll` 到 staging → 把 walker dropped 的 4 个包从 `desktop-app-vue/node_modules/` 注入到 staging 的 top-level `node_modules/` → 用 `@electron/asar.createPackageWithOptions` 重打包，并保留 electron-builder 原始 unpackDir 决策（扫物理 `app.asar.unpacked/` 父目录构造 brace-expanded glob）→ build-time verification gate 检查 4 个包确实落在 top-level（缺一即抛错，避免静默发出坏包）。
+- **`scripts/build-win-with-deref.js`** —— Win 包装 `electron-builder --win`：临时把 `@chainlesschain/{core-mtc,session-core}` 的 workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），electron-builder 完成后在 finally 用 `'junction'` 还原（Windows 非 admin 不能创建 `'dir'` symlink，必须 `junction`）。surgery 本身在 afterPack 里跑（在 NSIS 生成安装包之前），不在这里跑——否则 Setup.exe 已经从 surgery 前的 win-unpacked 打好了。
+- **`scripts/probe-asar.js`** —— 调试 CLI：`node scripts/probe-asar.js <path/to/app.asar>` 打印 4 个 walker-dropped 包是否落在 asar header top-level。
+- **`tests/unit/scripts/asar-surgery.test.js`** + **`build-win-with-deref.test.js`** —— 23 个单元 + 集成测试（真 fs + 真 `@electron/asar` 跑 fixture），覆盖 no-asar 跳过 / 4 包注入 / source 缺包抛错 / dst 已存在覆写 / unpacked 内容保留 / verification 失败抛错 / stage 清理 / symlink 检测 / dereference / detach / restore-with-junction。期间发现并修掉 1 个真 bug：
+
+### Changed
+
+- **`electron-builder.yml`** —— `asar: false` → `asar: true`，移除 7 条 force-include extraResources（`app.asar.unpacked/{call-bind-apply-helpers,dunder-proto,get-proto,math-intrinsics,side-channel-{list,map,weakmap}}`），`afterPack` hook 在 asar:true 路径下调 `runSurgery`。
+- **`scripts/electron-after-pack.js`** —— afterPack hook 双分支：asar:false（已有 nuclear-replace 路径，保留给 mac/linux 临时兼容）/ asar:true（新增 `runSurgery({appOutDir, sourceNm})` 调用）。Mac/Linux/Win 三平台共用一条 surgery 路径。
+- **`desktop-app-vue/package.json`** —— `@electron/asar ^3.4.1` 提为显式 devDep（之前是 electron-forge / electron-builder / electron-winstaller 的 transitive，任一升级丢掉就坏）；`make:win:builder` 脚本改走 `node scripts/build-win-with-deref.js`。
+
+### Notes
+
+- 测试期间发现的真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，`extractAll` 后必须 `asar.uncache(asarPath)` 才能让后续 `listPackage` 读到 fresh header（否则 verification gate 永远抛 stale）。无 vitest fixture 的话生产环境也会同样抛——单纯依赖人工 Win VM 烟测发现需要再走一遍 30-45min build cycle。
+- Refuted 路径（不要再走）：asarUnpack glob（issue #6 经验证）、extraResources to `app.asar.unpacked/`（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
+- ASAR 完整性：Electron `EnableEmbeddedAsarIntegrityValidation` fuse 目前只在 macOS 强制（[Electron 文档](https://www.electronjs.org/docs/latest/tutorial/fuses)）。Windows 上 fuse no-op，post-surgery hash mismatch 不会让启动崩。当 macOS 加入支持（或 Windows 启用）后续 Phase 2：要么 `@electron/fuses` post-build patch 关闭 integrity，要么 surgery 后重算 hash 写回 electron.exe。
+
+---
+
+## [5.0.3.38 / CLI 0.161.2] - 2026-05-06 (refit Android APKs missed by v5.0.3.37 immutable-release)
+
+详见 git log `608d235dd`。
+
+---
+
 ## [5.0.3.37 / CLI 0.161.2] - 2026-05-06 (桌面版同步 productVersion + 托盘内存使用周期更新)
 
 ### Changed
