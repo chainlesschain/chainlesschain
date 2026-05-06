@@ -30,24 +30,24 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1047 — www-only refresh: GitHub v5.0.3.33 Release published
-    # (workflow run 25412694788), so docs-website-v2 was rebuilt to pick up
-    # real v5.0.3.33 asset sizes via fetch-release-sizes.mjs. docs / design
-    # contents unchanged since -1032 (entries kept here so the next full deploy
-    # works as a unit, but only www was redeployed in this round).
+    # 2026-05-06 -1219 — 三站同步刷到 v5.0.3.34。CI run 25415226803 已发布
+    # GitHub Release v5.0.3.34 (5 desktop/mobile builds + create-release +
+    # publish-cli 全 success)，docs-website-v2 build 时 fetch-release-sizes.mjs
+    # 拉到了真 v5.0.3.34 资产大小。changelog / taglines / overview "当前版本"
+    # 已 sweep 到 v5.0.3.34。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.33-20260506-1047.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.34-20260506-1219.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.33-20260506-1032.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.34-20260506-1219.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.33-20260506-1032.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.34-20260506-1219.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]

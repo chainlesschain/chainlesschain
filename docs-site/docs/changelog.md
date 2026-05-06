@@ -3,6 +3,23 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.34 / CLI 0.161.2] - 2026-05-06 (Web-shell 托盘菜单 bridge + 检查更新诊断)
+
+### Fixed
+
+- **Web-shell 模式下托盘菜单事件被丢弃**（commit `91914eb14`）：用户在 v5.0.3.33 packaged install 反馈托盘"新建笔记 / 设置 / 检查更新"等点了不跳转。根因 Phase 1.6 hard-flip 之后默认走 web-shell 模式（`caaddf530`），加载的渲染器是 `web-panel` SPA 而非 `desktop-app-vue` 的 V5/V6 Vue 渲染器；v5.0.3.31/32 修的都是 `desktop-app-vue/src/renderer/App.vue` 的 IPC `tray:action` listener，但这文件在 web-shell 模式下根本没被加载，preload 也是空的（per strategy memo），主进程 `webContents.send("tray:action",…)` 发的事件无人接。修复给主进程加一条"绕开 IPC 走 ws-server"桥接：`ws-cli-loader.js` 暴露公共 `broadcast(frame)`（委托现成的 `ChainlessChainWSServer._broadcast`），`web-shell-bootstrap.js` 透传到 startWebShell handle，`index.js` 用 `getWebShellHandle()` 懒 getter 注入 EnhancedTrayManager，`dispatchTrayAction` 在原 IPC send 之外 additionally `broadcast({type:"tray:action",payload:{type,payload}})`；`web-panel/src/App.vue` 在 `wsStore.onMessage` 上挂全局监听并路由到 web-panel 自己的 `/notes`/`/chat`/`/dashboard`/`/project-settings` 等页面，无对应面板的（通知中心 / 全局搜索 / 同步）回 toast"功能即将推出"。
+
+### Changed
+
+- **"检查更新"开发模式 fallback dialog 加诊断信息** —— v5.0.3.32 已经把 gate 从 `process.env.NODE_ENV === "production"` 改成 `(NODE_ENV === "production" || app.isPackaged)`，但用户在 v5.0.3.33 packaged install 上仍报告看到这个 dialog。把 `NODE_ENV` / `app.isPackaged` / `autoUpdater loaded` / `checkForUpdates fn` 四个字段直接打到 dialog detail 里，下次用户截图就能直接判断是哪条 fail（require 抛了？isPackaged 出乎意料 false？module 缺导出？），避免再让用户挖 log 文件。
+
+### Tests
+
+- `enhanced-tray-manager.test.js` 6 → 10 测试（新增 4 个 web-shell broadcast path：handle 存在时双发、handle 为 null 时仅 IPC、未传 option 时向后兼容、broadcast 抛错时不波及主进程）。
+- `src/main/web-shell/` 全 13 文件 196/196 绿。
+
+---
+
 ## [5.0.3.33 / CLI 0.161.2] - 2026-05-06 (托盘"关于"产品版本 "—" 修复)
 
 ### Fixed
