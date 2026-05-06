@@ -5,6 +5,20 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.38] - 2026-05-06 — 平台补齐：v5.0.3.37 漏掉的 Android APK 重新出全平台
+
+> v5.0.3.37 的 release 因 GitHub immutable-releases 机制（一旦 release 由 finalize-release 翻成 published，**任何 asset 的新增/替换/删除都被 API 拒绝**——不只是 delete，UPLOAD 也 422）漏掉了 build-android 产出的 APK/AAB，桌面三平台 + iOS 共 14 个 asset 已发出且事后无法追加。本版无桌面功能改动，仅重新出全平台一致的 release 把 Android 补回。桌面侧二进制内容与 v5.0.3.37 等价（仅 productVersion / desktop version +1）。
+
+### Fixed
+
+- **CI release 工具链 2 处工程闭环**——
+  - `release.yml` create-release 三状态分支（`b6256c972`）—— state 1 (no release) 创建 draft / state 2 (draft exists) edit + clobber upload / state 3 (published exists) 原本计划 add-only，**但本版实测证伪**：immutable-releases 连 UPLOAD 都拒，state 3 路径的 add-only 写法对已 finalized release 永远 422。后续会改成 advisory exit 0 或 revert 该分支，单独 issue 跟进。
+  - `package-lock.json` 同步 `b6256c972` 5 个 npm 包版本（`a90e09b57`）—— 上一次 chore commit 改了 5 份 package.json 没跑 `npm install`，导致 v5.0.3.37 redispatch 在所有桌面平台一致挂在 `npm ci` "Install dependencies" 步。
+
+### Notes
+
+- v5.0.3.37 桌面用户重启时 auto-updater 比对 `5.0.3-alpha.38` > `5.0.3-alpha.37`，会真发现新版并提示。Android 用户首次拿到 APK（v5.0.3.37 release 的 14 个 asset 里没有 .apk / .aab）。
+
 ## [v5.0.3.37] - 2026-05-06 — 桌面版同步 productVersion + 托盘内存使用周期更新
 
 > 用户在 v5.0.3.36 装上后看托盘 → 关于显示 `产品版本: v5.0.3.36 / 桌面版: 1.1.2-alpha`，质疑 auto-updater 用哪个版本号比对——直觉是对的。`desktop-app-vue/package.json.version`（也就是 electron-updater 真正用来比对的字段）从 v5.0.3.30 起一直停在 `1.1.2-alpha` 没动过，导致即便 productVersion 已 bump 到 v5.0.3.36，auto-updater 比对 GitHub Release `latest.yml` 里的 `1.1.2-alpha` 总是相等，**所有 6 个 release（v5.0.3.31-36）的"已是最新"判断都是误报**——任何一个老版用户重启都收不到自动更新提示。本版同步两件事。
