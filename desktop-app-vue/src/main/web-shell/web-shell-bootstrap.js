@@ -178,6 +178,15 @@ async function startWebShell(options = {}) {
     ...(options.extraHandlers || {}),
   };
 
+  // DIAG 2026-05-06 — verify which topics actually got registered
+  // eslint-disable-next-line no-console
+  console.log(
+    "[web-shell-bootstrap] registering",
+    Object.keys(wsHandlers).length,
+    "WS topics:",
+    Object.keys(wsHandlers).sort(),
+  );
+
   const ws = await startWsCliBackend({
     host,
     port: typeof options.wsPort === "number" ? options.wsPort : 0,
