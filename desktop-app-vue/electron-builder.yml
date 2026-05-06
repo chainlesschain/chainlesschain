@@ -15,30 +15,42 @@ copyright: Copyright © 2024 ChainlessChain Team
 #   - macOS: ModuleNotFoundError: distutils (Python 3.13)
 npmRebuild: false
 
-# Disable ASAR packaging entirely.
+# Re-enabled asar:true after B4 post-pack surgery landed (issue #8, 2026-05-06).
 #
-# v5.0.3.4-12 history (a full day of failed releases): electron-builder's
-# prod-dep walker repeatedly de-dupes the top-level call-bind-apply-helpers/
-# out of the asar when call-bind has a private nested copy. The remaining
-# nested-only copy is invisible to dunder-proto's `require('call-bind-apply-helpers')`
-# (Node CJS resolver doesn't traverse other packages' node_modules).
+# History: v5.0.3.4-13 set `asar: false` to work around electron-builder's
+# prod-dep walker dropping 4 packages (call-bind-apply-helpers,
+# side-channel-{list,map,weakmap}) from the asar manifest. Cost: ~110k loose
+# files in NSIS = ~20 min Win install (per-file LZMA dict reset + NTFS
+# transaction + Defender scan).
 #
-# Tried & failed:
-#   v5.0.3.7  — lockfile sync + robocopy fallback
-#   v5.0.3.8-11 — `npm install --workspaces=false` flat install
-#   v5.0.3.12 — extraResources to app.asar.unpacked/ (Electron's asar fs
-#               only falls back to .unpacked for files REGISTERED in the
-#               asar header — unregistered files there are invisible)
+# B4 fix (2026-05-06):
+#   1. `scripts/build-win-with-deref.js` — wraps `electron-builder --win`,
+#      temporarily replaces `@chainlesschain/{core-mtc,session-core}`
+#      directory symlinks with verbatim copies AND detaches the top-level
+#      `node_modules/chainlesschain` link (asar packer rejects symlinks
+#      pointing outside app root). After electron-builder completes
+#      successfully, calls `runSurgery` to inject the 4 walker-dropped
+#      packages. Restores symlinks in finally with 'junction' (Windows
+#      non-admin can't create 'dir' symlinks).
+#   2. `scripts/asar-surgery.js` — extracts the asar, injects the 4 packages
+#      at top-level node_modules/, repacks via @electron/asar with unpackDir
+#      preserving electron-builder's original auto-unpack decisions.
+#   3. ASAR integrity — Electron's `EnableEmbeddedAsarIntegrityValidation`
+#      fuse currently only enforces on macOS (per Electron docs:
+#      https://www.electronjs.org/docs/latest/tutorial/fuses). On Windows
+#      the fuse is a no-op, so post-surgery hash mismatch doesn't crash
+#      startup. When macOS support is added (or Windows support lands in a
+#      later Electron version), follow-up: either keep integrity off via
+#      @electron/fuses post-build patch, or re-compute the hash after
+#      surgery and patch electron.exe.
 #
-# Solution: don't pack into asar. With `asar: false`, all node_modules ship
-# as loose files under resources/app/. Node's CJS resolver walks a real
-# filesystem, no asar magic, no dedupe, no surprises.
-#
-# Trade-offs accepted: ~300 MB extra install size (no asar compression),
-# ~100ms slower cold start (more inode lookups). Both immaterial vs.
-# the alternative of the app being non-functional. Re-enable later if
-# electron-builder fixes the dedupe heuristic.
-asar: false
+# Refuted approaches (don't try again):
+#   - asarUnpack glob (issue #6): only marks files-in-walker-manifest for
+#     unpacking, can't add new top-level entries.
+#   - extraResources to app.asar.unpacked/ (v5.0.3.12): Electron's ASAR-aware
+#     resolver only falls back for paths IN the asar header.
+#   - Direct deps for the 4 packages (v5.0.3.6): walker dedupes regardless.
+asar: true
 
 # 目录配置
 # buildResources points to assets/ — there is no `build/` directory in the
@@ -239,29 +251,14 @@ extraResources:
     to: packages/web-panel/dist
   - from: ../packages/web-panel/package.json
     to: packages/web-panel/package.json
-  # Force-include express@5/qs/side-channel split deps that electron-builder's
-  # prod-dep walker repeatedly drops from the asar (v5.0.3.4-11 shipped broken
-  # with this exact symptom — call-bind-apply-helpers ends up only inside
-  # call-bind/node_modules/ but not at top-level node_modules/, breaking
-  # dunder-proto's require). Putting them at app.asar.unpacked/node_modules/
-  # via extraResources bypasses the walker entirely (raw file copy, no analysis).
-  # Node's ASAR-aware resolver auto-falls-back to app.asar.unpacked/ paths,
-  # so require('call-bind-apply-helpers') from inside app.asar resolves
-  # transparently to resources/app.asar.unpacked/node_modules/call-bind-apply-helpers/.
-  - from: node_modules/call-bind-apply-helpers
-    to: app.asar.unpacked/node_modules/call-bind-apply-helpers
-  - from: node_modules/dunder-proto
-    to: app.asar.unpacked/node_modules/dunder-proto
-  - from: node_modules/get-proto
-    to: app.asar.unpacked/node_modules/get-proto
-  - from: node_modules/math-intrinsics
-    to: app.asar.unpacked/node_modules/math-intrinsics
-  - from: node_modules/side-channel-list
-    to: app.asar.unpacked/node_modules/side-channel-list
-  - from: node_modules/side-channel-map
-    to: app.asar.unpacked/node_modules/side-channel-map
-  - from: node_modules/side-channel-weakmap
-    to: app.asar.unpacked/node_modules/side-channel-weakmap
+  # NOTE (issue #8, 2026-05-06): Removed 7 force-include extraResources
+  # entries (call-bind-apply-helpers, dunder-proto, get-proto, math-intrinsics,
+  # side-channel-{list,map,weakmap}) that targeted app.asar.unpacked/. Those
+  # were the workaround for `asar: false` mode and no longer apply. With
+  # `asar: true` + `scripts/build-win-with-deref.js` post-electron-builder
+  # asar-surgery, the 4 walker-dropped packages get injected directly into
+  # the asar header at top-level node_modules/, which is what dunder-proto's
+  # CJS require path actually walks.
 
 # 元数据
 appx:

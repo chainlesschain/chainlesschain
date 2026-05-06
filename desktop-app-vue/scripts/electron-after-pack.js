@@ -42,6 +42,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { runSurgery } = require("./asar-surgery");
 
 // Read declared devDependencies once. These are top-level packages that the
 // runtime (src/main) does not require — Vite bundles renderer-side ones
@@ -131,9 +132,15 @@ exports.default = async function afterPack(context) {
   }
 
   if (!fs.existsSync(targetAppRoot)) {
+    // asar:true layout — no resources/app/ dir; instead resources/app.asar.
+    // Walker dedupe still drops 4 packages from the asar manifest (issue #8);
+    // surgery extracts the asar, injects them at top-level, and repacks.
+    // Runs in afterPack (BEFORE installer generation) so the installer ships
+    // the post-surgery asar — not the broken one.
     console.log(
-      `${tag} ${targetAppRoot} not found — assuming asar:true layout, skipping`,
+      `${tag} ${targetAppRoot} not found — asar:true layout, running asar-surgery`,
     );
+    await runSurgery({ appOutDir, sourceNm });
     return;
   }
 

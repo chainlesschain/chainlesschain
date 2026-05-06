@@ -126,7 +126,7 @@
     "release:builder:draft": "npm run docs:generate && node scripts/release.js --builder --draft",
     "release:verify": "node scripts/verify-release-artifacts.js",
     "prepare:cli-prod-deps": "cd ../packages/cli && npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps",
-    "make:win:builder": "npm run prepare:cli-prod-deps && npm run build && electron-builder --win --config electron-builder.yml --publish never",
+    "make:win:builder": "npm run prepare:cli-prod-deps && npm run build && node scripts/build-win-with-deref.js",
     "make:mac:builder": "npm run prepare:cli-prod-deps && npm run build && electron-builder --mac --config electron-builder.yml --publish never",
     "make:linux:builder": "npm run prepare:cli-prod-deps && npm run build && electron-builder --linux --config electron-builder.yml --publish never",
     "perf:benchmark": "node test-scripts/performance-benchmark.js",
@@ -302,6 +302,7 @@
     "robotjs": "^0.6.0"
   },
   "devDependencies": {
+    "@electron/asar": "^3.4.1",
     "@electron-forge/cli": "^7.2.0",
     "@electron-forge/maker-deb": "^7.2.0",
     "@electron-forge/maker-dmg": "^7.10.2",
