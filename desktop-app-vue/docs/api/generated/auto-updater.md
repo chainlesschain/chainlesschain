@@ -36,13 +36,16 @@ setupAutoUpdater()
 
 ---
 
-## async checkForUpdates()
+## async checkForUpdates(manual = false)
 
 ```javascript
-async checkForUpdates()
+async checkForUpdates(manual = false)
 ```
 
-* 手动检查更新
+* 检查更新。`manual=true` 表示用户主动从托盘触发，事件回调会弹 native
+   * dialog 给 feedback；`manual=false`（默认）是启动 3s 自检 + 每 4h 周期
+   * 检查，全程静默不弹任何 UI。
+   * @param {boolean} [manual=false]
 
 ---
 
