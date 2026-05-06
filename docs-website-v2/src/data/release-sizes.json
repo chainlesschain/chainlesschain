@@ -1,6 +1,6 @@
 {
-  "tag": "v5.0.3.30",
-  "fetchedAt": "2026-05-05T13:24:03.795Z",
+  "tag": "v5.0.3.32",
+  "fetchedAt": "2026-05-05T22:48:36.636Z",
   "sizes": {
     "android-universal": {
       "name": "app-universal-release.apk",
@@ -8,39 +8,39 @@
       "label": "101 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-1.1.1-alpha-arm64.dmg",
-      "bytes": 481378755,
+      "name": "ChainlessChain-1.1.2-alpha-arm64.dmg",
+      "bytes": 480957330,
       "label": "459 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-1.1.1-alpha.AppImage",
-      "bytes": 920444246,
+      "name": "ChainlessChain-1.1.2-alpha.AppImage",
+      "bytes": 920706875,
       "label": "878 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-1.1.1-alpha.dmg",
-      "bytes": 486814393,
+      "name": "ChainlessChain-1.1.2-alpha.dmg",
+      "bytes": 486240226,
       "label": "464 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-1.1.1-alpha.x86_64.rpm",
-      "bytes": 613626473,
-      "label": "585 MB"
+      "name": "chainlesschain-desktop-vue-1.1.2-alpha.x86_64.rpm",
+      "bytes": 610535213,
+      "label": "582 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_1.1.1-alpha_amd64.deb",
-      "bytes": 604562074,
-      "label": "577 MB"
+      "name": "chainlesschain-desktop-vue_1.1.2-alpha_amd64.deb",
+      "bytes": 602880910,
+      "label": "575 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-1.1.1-alpha.exe",
-      "bytes": 767307743,
-      "label": "732 MB"
+      "name": "ChainlessChain-Portable-1.1.2-alpha.exe",
+      "bytes": 771182333,
+      "label": "735 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-1.1.1-alpha.exe",
-      "bytes": 767627267,
-      "label": "732 MB"
+      "name": "ChainlessChain-Setup-1.1.2-alpha.exe",
+      "bytes": 771501852,
+      "label": "736 MB"
     }
   }
 }

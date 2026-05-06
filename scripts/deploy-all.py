@@ -30,23 +30,24 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-05 -2137 — 三站同步刷到 v5.0.3.31。changelog 补 v5.0.3.30 + v5.0.3.31
-    # 两段；release-sizes.json 自动 fetch v5.0.3.30 (Latest, v5.0.3.31 仍 Draft)；
-    # taglines + overview "当前版本" 已是 v5.0.3.31。vitest 4 bump 工程改动不入
-    # 用户面 doc，仅在 changelog v5.0.3.31 段提到。
+    # 2026-05-06 -0904 — 三站同步刷到 v5.0.3.32。changelog 补 v5.0.3.32 段
+    # （托盘"检查更新"误报 dev 模式 + 首次启动未设密码状态下托盘菜单事件丢弃 — 都是
+    # v5.0.3.31 修复闭环外漏掉的 packaged-only 边角）；release-sizes.json 自动
+    # fetch v5.0.3.32（Release workflow 25385716058 已 publish）；taglines +
+    # overview "当前版本" 已是 v5.0.3.32。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.31-20260505-2137.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.32-20260506-0904.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.31-20260505-2137.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.32-20260506-0904.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.31-20260505-2137.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.32-20260506-0904.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]

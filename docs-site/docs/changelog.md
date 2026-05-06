@@ -3,6 +3,23 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.32 / CLI 0.161.2] - 2026-05-06 (托盘修复 v5.0.3.31 残留两处)
+
+### Fixed
+
+- **托盘"检查更新"在打包版误报开发模式**（commit `7e6605006`）：v5.0.3.31 用户反馈 GitHub 下载的安装版点托盘"检查更新"仍弹"当前模式：development"对话框。根因 `enhanced-tray-manager.js:365` 守的是 `process.env.NODE_ENV === "production"`，但 Electron 打包后 `NODE_ENV` 默认 undefined（不是 "production"），所以 packaged install 也走 fallback 分支并因此从未真正调用过 `autoUpdater.checkForUpdates()`。改判 `(process.env.NODE_ENV === "production" || app.isPackaged)`，对齐 `backend-service-manager.js:17` 既有双判断。后台静默自动更新链路本身不受影响，因为 `auto-updater.js:32` 守的是 `!process.env.NODE_ENV || === "production"`，对 undefined 容错。
+- **首次启动未设密码状态下托盘菜单事件被丢弃**（commit `2532774f5`）：`App.vue` `onMounted` 在 `initial-setup:get-status` 返回 `{ completed: false }` 时 early-return，跳过下方 `tray:action` / `show-global-settings` / `database-switched` 三个 IPC listener 注册。结果首次启动用户点托盘菜单，主进程 `dispatchTrayAction` 把窗口 show + focus 后通过 IPC `send("tray:action")`，但 renderer 没人接，路由不跳——表现为"托盘只把窗口拉出来不进对应界面"。修复：把这三个 listener 整体提到早返之前（连同已经在那里的 `deep-link:invitation`），它们和数据库加密 / 设置流程无依赖。
+
+### Notes
+
+- 已知小问题（不在本版本修）：preload `removeListener` 直接传 `func`，但 `on` 注册时包了 arrow wrapper，匹配不到——`onUnmounted` 的 cleanup 实质未生效（轻微监听器累积），不影响功能。
+
+### Why
+
+v5.0.3.31 已经修了"托盘菜单大部分项哑响"的主链路（`tray:action` 统一通道 + renderer listener），但两处残留——`NODE_ENV === "production"` 误判和 setup-未完成早返——只在用户实际跑 packaged install 才暴露，本机 dev 模式正好走另一条分支看不见。这两个 bug 是 v5.0.3.31 修复闭环外漏掉的边角。
+
+---
+
 ## [5.0.3.31 / CLI 0.161.2] - 2026-05-05 (vitest 4 bump + 自动更新 + 托盘菜单 IPC 修复)
 
 ### Fixed
