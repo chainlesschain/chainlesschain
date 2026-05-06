@@ -10,6 +10,10 @@
           <template #icon><PlusOutlined /></template>
           新建笔记
         </a-button>
+        <a-button @click="showClipboardImport = true">
+          <template #icon><SnippetsOutlined /></template>
+          剪贴板导入
+        </a-button>
         <a-button ghost :loading="loading" @click="loadNotes">
           <template #icon><ReloadOutlined /></template>
           刷新
@@ -90,6 +94,12 @@
       </a-form>
     </a-modal>
 
+    <!-- Clipboard import modal -->
+    <ClipboardImportDialog
+      v-model="showClipboardImport"
+      @saved="onClipboardSaved"
+    />
+
     <!-- View Note Modal -->
     <a-modal
       v-model:open="showView"
@@ -115,10 +125,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { PlusOutlined, ReloadOutlined, FileTextOutlined, DownloadOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, ReloadOutlined, FileTextOutlined, DownloadOutlined, SnippetsOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
+import ClipboardImportDialog from '../components/ClipboardImportDialog.vue'
 
 const ws = useWsStore()
 const fs = useFs()
@@ -134,8 +145,14 @@ const isSearchMode = ref(false)
 const searchQuery = ref('')
 const showAdd = ref(false)
 const showView = ref(false)
+const showClipboardImport = ref(false)
 const viewingNote = ref(null)
 const newNote = ref({ title: '', content: '', tags: '' })
+
+async function onClipboardSaved() {
+  message.success('剪贴板内容已保存到知识库')
+  await loadNotes()
+}
 
 const displayNotes = computed(() => isSearchMode.value ? searchResults.value : notes.value)
 

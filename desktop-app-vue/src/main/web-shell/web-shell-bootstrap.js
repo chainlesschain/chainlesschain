@@ -47,6 +47,10 @@ const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 const { createSyncWebDAVHandlers } = require("./handlers/sync-webdav-handlers");
 const { createSyncStatusHandlers } = require("./handlers/sync-status-handlers");
 const { createGitConfigHandlers } = require("./handlers/git-config-handlers");
+const {
+  createNotificationHandlers,
+} = require("./handlers/notification-handlers");
+const { createKnowledgeHandlers } = require("./handlers/knowledge-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -69,6 +73,15 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  * @property {object | null} [llmManager]    LLMManager singleton (or null when
  *                                            LLM hasn't initialised yet). Drives
  *                                            the streaming `llm.chat` topic.
+ * @property {object | null} [database]      DatabaseManager singleton. Drives
+ *                                            sync.* / sync.webdav.* /
+ *                                            notification.* / knowledge.*
+ *                                            topics.
+ * @property {object | null} [ragManager]    RAG manager singleton. When non-null,
+ *                                            knowledge.add-item also indexes the
+ *                                            new row (best-effort, mirrors the
+ *                                            V5/V6 db:add-knowledge-item IPC
+ *                                            handler).
  * @property {Electron.BrowserWindow | null} [mainWindow]
  *                                            Parent window for native dialogs. Required
  *                                            for fs.openDialog / fs.saveDialog handlers.
@@ -165,6 +178,15 @@ async function startWebShell(options = {}) {
     // Phase 3c.5 — git.config-* topics. 复用 git-config.json 单例（getGitConfig），
     // web-panel 用户也能配 Git 仓库，不必切回 V5/V6 桌面 shell。
     ...createGitConfigHandlers(),
+    // Phase 3c.6 — notification.* + knowledge.* WS topics. V5/V6 通过
+    // ipcMain.handle('notification:*' / 'db:add-knowledge-item') 落主进程
+    // SQLite，web-panel 之前没有对等入口（默认壳用户看不见 / 用不上）。
+    // database 可能为 null（pre-bootstrap）— handlers 内部各自做 null 检查。
+    ...createNotificationHandlers({ database: options.database ?? null }),
+    ...createKnowledgeHandlers({
+      database: options.database ?? null,
+      ragManager: options.ragManager ?? null,
+    }),
     // Phase 1.6 — symmetric shell switch from web-panel back to V5/V6.
     // Only registered when getAppConfig is provided (it requires the
     // AppConfigManager singleton to persist the opt-out).
