@@ -5,6 +5,21 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.35] - 2026-05-06 — auto-updater 缺 electron-log 模块导致从未 load
+
+> v5.0.3.34 给"检查更新"fallback dialog 加诊断字段后，用户截图反馈：`autoUpdater loaded: NO`、`require error: Cannot find module 'electron-log'`、`app.isPackaged: true`。诊断把根因暴露得很彻底——v5.0.3.31 加 auto-updater init 时就坏，但因为 require 抛错被 logger.warn 静默吞掉，包括启动 3s 自检 + 4h 周期检查 + 托盘"检查更新"在内的整条自动更新链路其实从未真正生效，跨 v5.0.3.31 / 32 / 33 / 34 四个版本（v5.0.3.32 加的 `app.isPackaged` gate 是有效的，autoUpdater 是 undefined 就走不到那一步）。
+
+### Fixed
+
+- **packaged 安装版 `require("electron-log")` 抛 ENOENT 致 auto-updater 模块无法 load**（commit pending） —— `electron-log` 既不是 desktop-app-vue 的直接依赖，`electron-updater@6.6.2` 也不再带它作 transitive dep（v6 起 logger 由调用方注入）。修法是双保险：
+  - **`auto-updater.js` 把 `require("electron-log")` 包 try/catch**：缺失时 fallback 到 console-based `{info,warn,error}` 对象，内部 `log.info(...)` 调用站点全部不变；同时 fallback 分支不设置 `autoUpdater.logger`，让 electron-updater 用自带默认。这样即便未来 electron-log 又出意外 missing，自动更新链路本身仍然可用，不会 cascading fail。
+  - **`desktop-app-vue/package.json` 加 `electron-log: ^5.4.3` 直接依赖**：正常情况会走 file logger（写到 ChainlessChain log 目录），fallback 只是兜底。
+
+### Notes
+
+- 已知不在本版本修：托盘 → 性能监控 子菜单的"内存使用 / 加载中..."始终显示"加载中..."。`tray-manager` 有 `updateMemoryUsage(usage)` 方法但 main 进程从未周期性调用它来填充实时数据。和本版本无关，单独 issue 跟。
+- web-panel 的"全局搜索 / 截图识别 / 剪切板导入 / 同步 / 通知中心"等 tray 项点了弹"功能即将推出"toast 是设计预期——web-panel 暂无对应面板。要让它们真工作得在 web-panel 加面板，是更大的功能开发。
+
 ## [v5.0.3.34] - 2026-05-06 — Web-shell 托盘菜单 bridge + 检查更新诊断信息
 
 > 用户在 v5.0.3.33 安装版上反馈：托盘"检查更新 / 新建笔记 / 设置"等菜单项点了不跳转（除"显示主窗口"和"关于"外）；"检查更新"仍弹"开发模式"对话框。根因：当前默认走 web-shell 模式（Phase 1.6 `caaddf530` hard-flip），加载的渲染器是 `web-panel` SPA 而不是 `desktop-app-vue` 的 V5/V6 Vue 渲染器。v5.0.3.31 / v5.0.3.32 的两处 tray 修复都改的是 `desktop-app-vue/src/renderer/App.vue` 的 IPC listener — 在 web-shell 模式下这文件根本没被加载，preload (`src/preload/web-shell.js`) 也是空的（per strategy memo），所以主进程通过 `webContents.send("tray:action", …)` 发的事件无人接收。

@@ -5,11 +5,44 @@
 
 const { autoUpdater } = require("electron-updater");
 const { dialog, BrowserWindow } = require("electron");
-const log = require("electron-log");
 
-// 配置日志
-autoUpdater.logger = log;
-autoUpdater.logger.transports.file.level = "info";
+// v5.0.3.35 — electron-log 是 optional logger（electron-updater 文档明确支持
+// winston / 任意 `{info,warn,error}` shape）。v5.0.3.34 的诊断 dialog 暴露
+// 用户的 packaged install 里 require("electron-log") 抛 ENOENT — 它既不是
+// desktop-app-vue 的直接依赖，electron-updater 6.x 也不再带它作 transitive
+// dep，所以 packaged 时整个 auto-updater 模块 load 不进来，`autoUpdater`
+// 在 enhanced-tray-manager 里始终 undefined，自动更新链路从未真正生效。
+// 修复：require 走 try/catch，缺失时 fallback console，autoUpdater.logger
+// 仍可用，更新流程不再依赖 electron-log 是否被打进 asar。同时 package.json
+// 加了直接依赖，正常情况会有真文件日志（fallback 只是兜底）。
+let log;
+try {
+  log = require("electron-log");
+  autoUpdater.logger = log;
+  // electron-log 5.x 默认 transports 已覆盖 file，这里保持显式 level 不变。
+  // require 失败时跳过——electron-updater 自带最低限度 console 输出。
+  if (
+    autoUpdater.logger &&
+    autoUpdater.logger.transports &&
+    autoUpdater.logger.transports.file
+  ) {
+    autoUpdater.logger.transports.file.level = "info";
+  }
+} catch (err) {
+  // Console-based fallback so existing `log.info(...)` call sites below work.
+  // electron-updater itself doesn't require electron-log — it just uses
+  // whatever satisfies `{info,warn,error}`. So we DON'T set autoUpdater.logger
+  // in this branch, letting electron-updater's internal default take over.
+  log = {
+    info: (...a) => console.log("[auto-updater]", ...a),
+    warn: (...a) => console.warn("[auto-updater]", ...a),
+    error: (...a) => console.error("[auto-updater]", ...a),
+  };
+  log.warn(
+    "electron-log not found, using console fallback (file logs disabled):",
+    err && err.message,
+  );
+}
 
 class AutoUpdater {
   constructor() {

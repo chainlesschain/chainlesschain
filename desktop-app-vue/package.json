@@ -152,8 +152,8 @@
   "homepage": "https://www.chainlesschain.com",
   "license": "MIT",
   "dependencies": {
-    "@chainlesschain/session-core": "file:../packages/session-core",
     "@chainlesschain/core-mtc": "file:../packages/core-mtc",
+    "@chainlesschain/session-core": "file:../packages/session-core",
     "@chainsafe/libp2p-yamux": "^8.0.1",
     "@chroma-core/default-embed": "^0.1.9",
     "@codemirror/lang-css": "^6.3.1",
@@ -226,6 +226,7 @@
     "dotenv": "^16.6.1",
     "echarts": "^6.0.0",
     "echarts-gl": "^2.0.9",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "ethers": "^6.16.0",
     "exceljs": "^4.4.0",
