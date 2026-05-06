@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-env",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Platform abstraction layer - paths, runtime detection, environment",
   "type": "module",
   "main": "lib/index.js",

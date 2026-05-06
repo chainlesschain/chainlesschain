@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/core-db",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Database layer - SQLite/SQLCipher with migrations, query builder, and optimization",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -35,8 +35,8 @@
     "directory": "packages/core-db"
   },
   "dependencies": {
-    "@chainlesschain/core-env": "0.1.0",
-    "@chainlesschain/core-config": "0.1.0"
+    "@chainlesschain/core-env": "0.1.1",
+    "@chainlesschain/core-config": "0.1.1"
   },
   "optionalDependencies": {
     "better-sqlite3-multiple-ciphers": "^11.0.0",

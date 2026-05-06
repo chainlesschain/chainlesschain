@@ -1045,14 +1045,47 @@ jobs:
           # update-changelog) succeed. Avoids the v5.0.2.55 immutable-asset
           # incident where build-android rerun → create-release rerun → 422
           # "Cannot delete asset from an immutable release".
+          #
+          # Three rerun states are possible:
+          #   (1) no release exists       → create as draft
+          #   (2) draft exists            → edit notes + clobber-upload (mutable)
+          #   (3) published release exists → add-only mode (assets immutable
+          #       once published; --clobber's internal DELETE returns 422 on
+          #       repos with immutable-releases enabled). v5.0.3.37 hit this
+          #       when the user reran build-android to add 14 missing APKs to
+          #       an already-finalized release.
           if gh release view "$VERSION" > /dev/null 2>&1; then
-            echo "Release ${VERSION} already exists — updating draft notes + assets..."
-            gh release edit "$VERSION" \
-              --title "ChainlessChain ${VERSION}" \
-              --notes-file release-notes.md \
-              --draft=true
-            # Drafts are mutable — clobber works without 422
-            gh release upload "$VERSION" release-assets/* --clobber
+            IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft)
+            if [ "$IS_DRAFT" = "true" ]; then
+              echo "Release ${VERSION} exists as draft — updating notes + clobber-uploading assets..."
+              gh release edit "$VERSION" \
+                --title "ChainlessChain ${VERSION}" \
+                --notes-file release-notes.md \
+                --draft=true
+              # Drafts are mutable — clobber works without 422
+              gh release upload "$VERSION" release-assets/* --clobber
+            else
+              # Published release: assets are immutable. Don't touch metadata
+              # (release notes were finalized with the original ship) and only
+              # upload assets that aren't already attached. Replacing an
+              # existing asset would require bumping the version anyway.
+              echo "Release ${VERSION} is already published — add-only mode (no clobber)..."
+              EXISTING=$(gh release view "$VERSION" --json assets -q '.assets[].name')
+              added=0
+              skipped=0
+              for f in release-assets/*; do
+                name=$(basename "$f")
+                if printf '%s\n' "$EXISTING" | grep -qx "$name"; then
+                  echo "  · skip (already on release): $name"
+                  skipped=$((skipped + 1))
+                else
+                  echo "  + adding: $name"
+                  gh release upload "$VERSION" "$f"
+                  added=$((added + 1))
+                fi
+              done
+              echo "Add-only summary: $added added, $skipped skipped"
+            fi
           else
             echo "Creating new DRAFT release ${VERSION} with artifacts..."
             # Don't pass --target: tag already exists on remote (we got
@@ -1068,8 +1101,8 @@ jobs:
               release-assets/*
           fi
 
-          echo "✅ DRAFT release ${VERSION} ready for finalize"
-          echo "🔗 Draft at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
+          echo "✅ create-release done (state: $(gh release view "$VERSION" --json isDraft -q 'if .isDraft then "draft" else "published" end'))"
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
   # Publish all packages to npm (core packages + CLI)
   # Precheck: resolve the published version + decide whether tests should run.
@@ -1354,6 +1387,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          gh release edit "$VERSION" --draft=false --repo "${{ github.repository }}"
-          echo "✅ Release ${VERSION} published"
+          # Idempotent: only flip on draft. On a post-finalize rerun (state 3
+          # in create-release), the release is already published — any edit
+          # would fail under GitHub's immutable-releases feature.
+          IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft --repo "${{ github.repository }}")
+          if [ "$IS_DRAFT" = "true" ]; then
+            gh release edit "$VERSION" --draft=false --repo "${{ github.repository }}"
+            echo "✅ Release ${VERSION} published"
+          else
+            echo "✅ Release ${VERSION} was already published (rerun) — nothing to flip"
+          fi
           echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
