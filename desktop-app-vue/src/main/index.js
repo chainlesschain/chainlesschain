@@ -133,6 +133,8 @@ class ChainlessChainApp {
     //                  menu, Ctrl+Q, OS shutdown) would silently no-op.
     this.trayManager = null;
     this.isQuitting = false;
+    // v5.0.3.37 — 10s 周期 tray "内存使用"刷新 timer 的句柄，onWillQuit 清理。
+    this._trayMemoryInterval = null;
 
     // 懒加载状态
     this.speechInitialized = false;
@@ -1059,6 +1061,41 @@ class ChainlessChainApp {
       this.trayManager = null;
     }
 
+    // v5.0.3.37 — 托盘 → 性能监控 → 内存使用 跨 v5.0.3.30+ 一直显示"加载中..."。
+    // EnhancedTrayManager 提供 updateMemoryUsage 但 main 进程从未周期调用。
+    // 用 app.getAppMetrics() 累计所有 electron 进程 RSS（main + renderer + GPU
+    // + utility 子进程），10s 一次。app quit 时 destroy 路径会因为 trayManager
+    // 已 null 而停止周期 update（updateMemoryUsage 内部 guard 了 mainWindow 状
+    // 态）。失败兜底为 logger.warn，不阻塞应用启动。
+    if (this.trayManager) {
+      try {
+        const updateTrayMemory = () => {
+          try {
+            const metrics = app.getAppMetrics();
+            const totalRssKb = metrics.reduce(
+              (sum, m) => sum + ((m.memory && m.memory.workingSetSize) || 0),
+              0,
+            );
+            const totalMb = totalRssKb / 1024;
+            const label =
+              totalMb >= 1024
+                ? `${(totalMb / 1024).toFixed(1)} GB`
+                : `${Math.round(totalMb)} MB`;
+            if (this.trayManager) {
+              this.trayManager.updateMemoryUsage(label);
+            }
+          } catch (err) {
+            logger.warn("[Main] Tray memory update failed:", err.message);
+          }
+        };
+        // 立即跑一次填初始数据，再设 10s interval。
+        updateTrayMemory();
+        this._trayMemoryInterval = setInterval(updateTrayMemory, 10000);
+      } catch (err) {
+        logger.warn("[Main] Tray memory updater init failed:", err.message);
+      }
+    }
+
     // 自动更新初始化 — 模块原本一直存在但从未在 setupApp 里调用过 init()，
     // 导致 packaged 版本既不会启动后 3s 自检也不跑 4 小时定期检查。模块
     // 内部对 NODE_ENV !== "production" 已自动 no-op（dev 不会触发更新弹
@@ -1924,6 +1961,14 @@ class ChainlessChainApp {
   async onWillQuit(event) {
     event.preventDefault();
     logger.info("[Main] 应用退出中...");
+
+    // v5.0.3.37 — 停掉托盘内存使用周期 update（10s interval），否则后续 quit
+    // 流程里 trayManager 已 null 时还会 fire 一次 setInterval 回调（被内部 guard
+    // 接住，但白白产生 logger.warn 噪音）。
+    if (this._trayMemoryInterval) {
+      clearInterval(this._trayMemoryInterval);
+      this._trayMemoryInterval = null;
+    }
 
     // Destroy tray BEFORE rest of cleanup so the system-tray icon disappears
     // immediately when the user hits Quit, instead of lingering through the

@@ -5,6 +5,18 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.37] - 2026-05-06 — 桌面版同步 productVersion + 托盘内存使用周期更新
+
+> 用户在 v5.0.3.36 装上后看托盘 → 关于显示 `产品版本: v5.0.3.36 / 桌面版: 1.1.2-alpha`，质疑 auto-updater 用哪个版本号比对——直觉是对的。`desktop-app-vue/package.json.version`（也就是 electron-updater 真正用来比对的字段）从 v5.0.3.30 起一直停在 `1.1.2-alpha` 没动过，导致即便 productVersion 已 bump 到 v5.0.3.36，auto-updater 比对 GitHub Release `latest.yml` 里的 `1.1.2-alpha` 总是相等，**所有 6 个 release（v5.0.3.31-36）的"已是最新"判断都是误报**——任何一个老版用户重启都收不到自动更新提示。本版同步两件事。
+
+### Changed
+
+- **`desktop-app-vue/package.json` version 同步 productVersion**（commit pending）—— `1.1.2-alpha` → `5.0.3-alpha.37`，semver 合法（`-alpha.N` prerelease），数字部分跟 productVersion `vX.Y.Z.N` 一一对应。规则文档化在 `CLAUDE.md` Version hierarchy 段：每发一版（`productVersion → vX.Y.Z.N`）desktop 版同步到 `X.Y.Z-alpha.N`。下一次发版（productVersion → v5.0.3.38）desktop 版变 `5.0.3-alpha.38`，比 v5.0.3.37 用户当前的 `5.0.3-alpha.37` 高一档，auto-updater 会真发现并提示新版本。Setup.exe 文件名也变为 `ChainlessChain-Setup-5.0.3-alpha.37.exe`，与 GitHub release tag `v5.0.3.37` 视觉对应。
+
+### Added
+
+- **托盘 → 性能监控 → 内存使用 周期更新**（commit pending）—— `EnhancedTrayManager` 早就提供了 `updateMemoryUsage(usage)` 方法但 main 进程从未调用，跨 v5.0.3.30+ 一直显示"加载中..."。`index.js` 在 tray 创建后挂一个 10s `setInterval`：用 `app.getAppMetrics()` 累计所有 electron 进程（main + renderer + GPU + utility 子进程）的 `workingSetSize` (RSS)，格式化"X MB"或"X.X GB"传给 `updateMemoryUsage`。failure-tolerant：`getAppMetrics` 抛错只 `logger.warn` 不影响 tray 主流程。`onWillQuit` 中 `clearInterval` 提早停掉防止 quit 链路 timer 火 stale 回调。
+
 ## [v5.0.3.36] - 2026-05-06 — 手动检查更新加 native dialog feedback
 
 > v5.0.3.35 修了 electron-log 缺失致 auto-updater 整模块 load 不进来的 bug 之后，从 electron-log 真实日志看 auto-updater 在用户点托盘"检查更新"时确实运行了：`手动检查更新 → Checking for update → Update for version 1.1.2-alpha is not available → 当前是最新版本`。但用户在 v5.0.3.30 - 5.0.3.35 跨 6 个版本一直反映"点了无反应"——根因是 `update-not-available` / `error` 事件只调 `webContents.send("update-status",...)` IPC，但 V5/V6 App.vue 和 web-shell 模式下加载的 web-panel SPA **都没监听这个 channel**，所以无论哪种 renderer 模式 UI 都看不到任何反馈。
