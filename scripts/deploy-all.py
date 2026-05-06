@@ -30,26 +30,29 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1806 — 仅刷 www 到 v5.0.3.37。GitHub Release v5.0.3.37 刚 publish
-    # (release-sizes.json fetch 已确认 latest=v5.0.3.37，14 个 desktop/mobile asset)。
-    # 本版本 www 加"多目标同步"feature 段（Phase 3b/3c），desktop.astro zh + en
-    # 各插一段链回设计文档 §4.6。docs / design 站点本批未改源，留下次三站同刷。
+    # 2026-05-06 -1815 — 三站同步刷到 v5.0.3.37。CI run 25427193606 已发布
+    # GitHub Release v5.0.3.37（5 desktop builds + iOS + create-release 全
+    # success；android transient kotlin-dsl repo flake 已 rerun，与本批无关）。
+    # 本版同步两件：desktop-app-vue/package.json version 1.1.2-alpha →
+    # 5.0.3-alpha.37（auto-updater 终于能比对版本），托盘内存使用 10s 周期更新。
+    # 此前并行 session 的 -1806 仅刷过 www（Phase 3b/3c 多目标同步段），本批
+    # 把 docs / design / www 三站统一刷到当前 v5.0.3.37 状态——changelog /
+    # taglines / overview 都已 sweep。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.37-20260506-1806.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.37-20260506-1815.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
-    # docs / design — skipped this round (本批仅 www 内容更新)。下次重新启用：
-    # {
-    #     "name": "docs.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\...tar.gz",
-    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    # },
-    # {
-    #     "name": "design.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\...tar.gz",
-    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    # },
+    {
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.37-20260506-1815.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    },
+    {
+        "name": "design.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.37-20260506-1815.tar.gz",
+        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
