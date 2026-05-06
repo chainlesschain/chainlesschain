@@ -115,6 +115,19 @@ function registerPhases6to7Content({ safeRegister, logger, deps }) {
     logger.info("[IPC Registry] ✓ Image IPC registered (22 handlers)");
   }
 
+  // 截图 + OCR (托盘"截图识别"入口；3 handlers)
+  safeRegister("Screenshot IPC", {
+    register: () => {
+      const {
+        registerScreenshotIPC,
+      } = require("../../screenshot/screenshot-ipc");
+      registerScreenshotIPC();
+    },
+    handlers: 3,
+    fatal: false,
+    continueMessage: "Continuing with other IPC registrations...",
+  });
+
   logger.info("[IPC Registry] ========================================");
   logger.info(
     "[IPC Registry] Phase 6 Complete: 5 modules migrated (87 handlers)!",

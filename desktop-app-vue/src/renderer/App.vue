@@ -49,6 +49,9 @@
     <!-- 剪贴板导入 -->
     <ClipboardImportDialog v-model="showClipboardImport" />
 
+    <!-- 截图识别 -->
+    <ScreenshotImportDialog v-model="showScreenshotImport" />
+
     <!-- 企业版DID邀请接受对话框 -->
     <InvitationAcceptDialog
       v-model:open="showInvitationDialog"
@@ -83,6 +86,7 @@ import NotificationCenter from "./components/common/NotificationCenter.vue";
 import ShortcutHelpPanel from "./components/common/ShortcutHelpPanel.vue";
 import GlobalSearch from "./components/common/GlobalSearch.vue";
 import ClipboardImportDialog from "./components/common/ClipboardImportDialog.vue";
+import ScreenshotImportDialog from "./components/common/ScreenshotImportDialog.vue";
 import InvitationAcceptDialog from "./components/organization/InvitationAcceptDialog.vue";
 import BudgetAlertListener from "./components/BudgetAlertListener.vue";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
@@ -123,6 +127,9 @@ const showGlobalSearch = ref(false);
 
 // 剪贴板导入
 const showClipboardImport = ref(false);
+
+// 截图识别
+const showScreenshotImport = ref(false);
 
 // 通知系统
 const { success: notifySuccess, error: notifyError } = useNotifications();
@@ -288,9 +295,7 @@ const handleQuickAction = (action) => {
       showClipboardImport.value = true;
       break;
     case "screenshot-ocr":
-      // 截图识别需要主进程侧能力（desktopCapturer + Tesseract OCR），
-      // 还没接入；先给用户明确反馈而不是哑响。
-      message.info("功能即将推出");
+      showScreenshotImport.value = true;
       break;
     default:
       message.info("未识别的快速操作");

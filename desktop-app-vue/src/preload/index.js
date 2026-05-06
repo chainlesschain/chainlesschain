@@ -702,6 +702,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getCategories: () => ipcRenderer.invoke("knowledge:get-tags"), // 别名
   },
 
+  // 截图 + OCR (托盘"截图识别"入口)
+  screenshot: {
+    capture: (options) =>
+      ipcRenderer.invoke("screenshot:capture", options || {}),
+    ocr: (options) => ipcRenderer.invoke("screenshot:ocr", options || {}),
+    cleanup: (options) =>
+      ipcRenderer.invoke("screenshot:cleanup", options || {}),
+  },
+
   // 知识图谱
   graph: {
     getGraphData: (options) =>
