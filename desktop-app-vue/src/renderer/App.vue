@@ -46,6 +46,9 @@
     <!-- 全局搜索 -->
     <GlobalSearch v-model="showGlobalSearch" />
 
+    <!-- 剪贴板导入 -->
+    <ClipboardImportDialog v-model="showClipboardImport" />
+
     <!-- 企业版DID邀请接受对话框 -->
     <InvitationAcceptDialog
       v-model:open="showInvitationDialog"
@@ -79,6 +82,7 @@ import GlobalSettingsWizard from "./components/GlobalSettingsWizard.vue";
 import NotificationCenter from "./components/common/NotificationCenter.vue";
 import ShortcutHelpPanel from "./components/common/ShortcutHelpPanel.vue";
 import GlobalSearch from "./components/common/GlobalSearch.vue";
+import ClipboardImportDialog from "./components/common/ClipboardImportDialog.vue";
 import InvitationAcceptDialog from "./components/organization/InvitationAcceptDialog.vue";
 import BudgetAlertListener from "./components/BudgetAlertListener.vue";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
@@ -116,6 +120,9 @@ const showShortcutHelp = ref(false);
 
 // 全局搜索
 const showGlobalSearch = ref(false);
+
+// 剪贴板导入
+const showClipboardImport = ref(false);
 
 // 通知系统
 const { success: notifySuccess, error: notifyError } = useNotifications();
@@ -277,9 +284,11 @@ const handleQuickAction = (action) => {
       router.push("/");
       window.dispatchEvent(new CustomEvent("cc:new-note"));
       break;
-    case "screenshot-ocr":
     case "clipboard-import":
-      // 这两个需要主进程侧能力（屏幕截图 / 剪贴板抓取后写入 KB），
+      showClipboardImport.value = true;
+      break;
+    case "screenshot-ocr":
+      // 截图识别需要主进程侧能力（desktopCapturer + Tesseract OCR），
       // 还没接入；先给用户明确反馈而不是哑响。
       message.info("功能即将推出");
       break;
