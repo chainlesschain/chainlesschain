@@ -1,41 +1,46 @@
 {
-  "tag": "v5.0.3.37",
-  "fetchedAt": "2026-05-06T10:06:45.609Z",
+  "tag": "v5.0.3.38",
+  "fetchedAt": "2026-05-06T22:43:24.430Z",
   "sizes": {
+    "android-universal": {
+      "name": "app-universal-release.apk",
+      "bytes": 106280430,
+      "label": "101 MB"
+    },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.37-arm64.dmg",
-      "bytes": 483328643,
-      "label": "461 MB"
+      "name": "ChainlessChain-5.0.3-alpha.38-arm64.dmg",
+      "bytes": 493335562,
+      "label": "470 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.37.AppImage",
-      "bytes": 922740570,
-      "label": "880 MB"
+      "name": "ChainlessChain-5.0.3-alpha.38.AppImage",
+      "bytes": 923408873,
+      "label": "881 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.37.dmg",
-      "bytes": 488901411,
-      "label": "466 MB"
+      "name": "ChainlessChain-5.0.3-alpha.38.dmg",
+      "bytes": 498702906,
+      "label": "476 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.37.x86_64.rpm",
-      "bytes": 610550977,
-      "label": "582 MB"
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.38.x86_64.rpm",
+      "bytes": 613147485,
+      "label": "585 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.37_amd64.deb",
-      "bytes": 603949960,
-      "label": "576 MB"
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.38_amd64.deb",
+      "bytes": 608975966,
+      "label": "581 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.37.exe",
-      "bytes": 773141108,
-      "label": "737 MB"
+      "name": "ChainlessChain-Portable-5.0.3-alpha.38.exe",
+      "bytes": 781872420,
+      "label": "746 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.37.exe",
-      "bytes": 773460628,
-      "label": "738 MB"
+      "name": "ChainlessChain-Setup-5.0.3-alpha.38.exe",
+      "bytes": 782191945,
+      "label": "746 MB"
     }
   }
 }
