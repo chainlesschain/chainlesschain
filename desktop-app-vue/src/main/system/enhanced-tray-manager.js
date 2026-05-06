@@ -424,7 +424,10 @@ class EnhancedTrayManager {
     const isProd =
       process.env.NODE_ENV === "production" || app.isPackaged === true;
     if (hasUpdater && isProd) {
-      autoUpdater.checkForUpdates().catch((err) => {
+      // v5.0.3.36 — 标记为 manual 触发，让 auto-updater 事件回调弹 native
+      // dialog 给 feedback（"当前已是最新版本" / "检查更新失败"）。后台 3s
+      // 启动自检 + 每 4h 周期检查路径不传 manual=true，全程静默不弹任何 UI。
+      autoUpdater.checkForUpdates(true).catch((err) => {
         logger.warn("[TrayManager] checkForUpdates failed:", err.message);
       });
       return;

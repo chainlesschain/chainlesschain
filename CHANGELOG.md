@@ -5,6 +5,18 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.36] - 2026-05-06 — 手动检查更新加 native dialog feedback
+
+> v5.0.3.35 修了 electron-log 缺失致 auto-updater 整模块 load 不进来的 bug 之后，从 electron-log 真实日志看 auto-updater 在用户点托盘"检查更新"时确实运行了：`手动检查更新 → Checking for update → Update for version 1.1.2-alpha is not available → 当前是最新版本`。但用户在 v5.0.3.30 - 5.0.3.35 跨 6 个版本一直反映"点了无反应"——根因是 `update-not-available` / `error` 事件只调 `webContents.send("update-status",...)` IPC，但 V5/V6 App.vue 和 web-shell 模式下加载的 web-panel SPA **都没监听这个 channel**，所以无论哪种 renderer 模式 UI 都看不到任何反馈。
+
+### Changed
+
+- **手动检查更新加 native dialog feedback**（commit pending）—— `auto-updater.js` 加 `_manualCheckPending` 标志：`checkForUpdates(manual=true)` 设置；`update-not-available` 事件回调在 manual 时弹 native "当前已是最新版本" dialog（带当前版本号）；`error` 事件回调在 manual 时弹 native "检查更新失败" dialog（带错误信息）；`update-available` 已有 `showUpdateAvailableDialog`，仅清掉 manual 标志避免重复弹窗。后台 3s 启动自检 + 每 4h 周期检查路径不传 manual=true，**全程静默不弹任何 UI**（电源管理 / 锁屏唤醒等场景下大量自动 dialog 会很骚扰）。`enhanced-tray-manager.js triggerCheckForUpdates` 调用处加 `true` 参数。
+
+### Notes
+
+- 之前 v5.0.3.31 / 32 / 33 / 34 / 35 五版的"检查更新点了无反应"用户体验问题，本版彻底闭环。绕开了 renderer IPC channel 的"无人监听"问题，跟 showAboutDialog 一样走主进程原生 dialog——简单可靠，不依赖 V5/V6 / web-shell 模式。
+
 ## [v5.0.3.35] - 2026-05-06 — auto-updater 缺 electron-log 模块导致从未 load
 
 > v5.0.3.34 给"检查更新"fallback dialog 加诊断字段后，用户截图反馈：`autoUpdater loaded: NO`、`require error: Cannot find module 'electron-log'`、`app.isPackaged: true`。诊断把根因暴露得很彻底——v5.0.3.31 加 auto-updater init 时就坏，但因为 require 抛错被 logger.warn 静默吞掉，包括启动 3s 自检 + 4h 周期检查 + 托盘"检查更新"在内的整条自动更新链路其实从未真正生效，跨 v5.0.3.31 / 32 / 33 / 34 四个版本（v5.0.3.32 加的 `app.isPackaged` gate 是有效的，autoUpdater 是 undefined 就走不到那一步）。

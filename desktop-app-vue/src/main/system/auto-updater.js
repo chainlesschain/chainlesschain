@@ -49,6 +49,11 @@ class AutoUpdater {
     this.mainWindow = null;
     this.updateCheckInterval = null;
     this.checkIntervalHours = 4; // 每4小时检查一次更新
+    // v5.0.3.36 — true 表示当前 in-flight 的检查是用户主动从托盘触发的，
+    // update-not-available / error 事件需要弹 native dialog 给 feedback；
+    // false 表示后台静默自检（启动 3s + 每 4h），不弹任何 UI。在事件回调
+    // 里读完立即重置，避免下一次自检"借用"上一次的 manual 标志。
+    this._manualCheckPending = false;
 
     // 配置 autoUpdater
     this.setupAutoUpdater();
@@ -81,6 +86,21 @@ class AutoUpdater {
     autoUpdater.on("error", (error) => {
       log.error("更新检查错误:", error);
       this.sendStatusToWindow("更新检查失败");
+      // v5.0.3.36 — 用户主动触发的检查必须给 feedback；后台自检静默。
+      if (this._manualCheckPending) {
+        this._manualCheckPending = false;
+        if (this.mainWindow) {
+          dialog
+            .showMessageBox(this.mainWindow, {
+              type: "error",
+              title: "检查更新失败",
+              message: "无法检查更新",
+              detail: String((error && error.message) || error || "未知错误"),
+              buttons: ["确定"],
+            })
+            .catch(() => {});
+        }
+      }
     });
 
     // 开始检查更新
@@ -94,6 +114,9 @@ class AutoUpdater {
       log.info("发现新版本:", info.version);
       this.sendStatusToWindow("发现新版本");
 
+      // showUpdateAvailableDialog 本来就是 native dialog（手动 + 自动都弹），
+      // 所以这里 manual 标志只需要清掉，不必重复弹。
+      this._manualCheckPending = false;
       // 显示更新提示
       this.showUpdateAvailableDialog(info);
     });
@@ -102,6 +125,28 @@ class AutoUpdater {
     autoUpdater.on("update-not-available", (info) => {
       log.info("当前是最新版本");
       this.sendStatusToWindow("当前是最新版本");
+      // v5.0.3.36 — 用户主动点了"检查更新"才 feedback；后台 3s/4h 自检静默
+      // 不弹（电源管理 / 锁屏唤醒等场景下大量弹窗很骚扰）。
+      if (this._manualCheckPending) {
+        this._manualCheckPending = false;
+        if (this.mainWindow) {
+          let appVersion = "";
+          try {
+            appVersion = require("../../../package.json").version || "";
+          } catch {
+            // ignore — desktop-app-vue/package.json should always be reachable
+          }
+          dialog
+            .showMessageBox(this.mainWindow, {
+              type: "info",
+              title: "检查更新",
+              message: "当前已是最新版本",
+              detail: appVersion ? `当前版本: v${appVersion}` : undefined,
+              buttons: ["确定"],
+            })
+            .catch(() => {});
+        }
+      }
     });
 
     // 更新下载进度
@@ -125,11 +170,17 @@ class AutoUpdater {
   }
 
   /**
-   * 手动检查更新
+   * 检查更新。`manual=true` 表示用户主动从托盘触发，事件回调会弹 native
+   * dialog 给 feedback；`manual=false`（默认）是启动 3s 自检 + 每 4h 周期
+   * 检查，全程静默不弹任何 UI。
+   * @param {boolean} [manual=false]
    */
-  async checkForUpdates() {
+  async checkForUpdates(manual = false) {
+    if (manual) {
+      this._manualCheckPending = true;
+    }
     try {
-      log.info("手动检查更新");
+      log.info(manual ? "手动检查更新" : "后台检查更新");
       await autoUpdater.checkForUpdates();
     } catch (error) {
       log.error("检查更新失败:", error);
