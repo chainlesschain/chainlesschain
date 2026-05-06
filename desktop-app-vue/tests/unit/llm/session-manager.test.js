@@ -162,6 +162,13 @@ describe("SessionManager", () => {
       "../../../src/main/llm/session-manager.js?t=" + Date.now()
     );
     SessionManager = module.SessionManager;
+
+    // Belt-and-suspenders: inject mock fs via _deps directly. vi.mock('fs')
+    // intermittently fails to intercept require('fs').promises across pools
+    // (forks vs threads) and OSes — Linux CI hit "JSON.parse position 56
+    // line 5 col 2" because the real fs read pretty-printed leftover state
+    // when the vi.mock didn't apply. _deps is the documented escape hatch.
+    module._deps.fs = mockFsPromises;
   });
 
   afterEach(() => {
