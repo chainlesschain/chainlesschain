@@ -989,7 +989,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.33-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.39-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1009,7 +1009,17 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.33 Evolution Edition (2026-05-06 · CLI 0.161.2 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces)
+## ⭐ Current Version: v5.0.3.39 Evolution Edition (2026-05-07 · CLI 0.161.2 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m)
+
+### Latest Update - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
+
+Windows install time back from ~20 min to ~5 min. v5.0.3.4-13 set `asar: false` to work around electron-builder's prod-dep walker dropping 4 transitive deps (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) — cost: ~110k loose files in NSIS × ~10 ms per-file = ~20 min install floor (LZMA dict reset + NTFS transaction + Defender scan). This release (B4 plan, commit `e11b46913`) takes the third path:
+
+- **`scripts/asar-surgery.js`** — runs in electron-builder's `afterPack` hook: extract → inject the 4 walker-dropped packages at top-level → repack via `@electron/asar.createPackageWithOptions`, preserving electron-builder's original auto-unpack decisions. Build-time verification gate throws if any package fails to land at top-level.
+- **`scripts/build-win-with-deref.js`** — Win wrapper for `electron-builder --win` that temporarily replaces `@chainlesschain/{core-mtc,session-core}` workspace symlinks with verbatim copies (asar packer rejects symlinks pointing outside app root), restores in `finally` with `'junction'` (Windows non-admin can't create `'dir'` symlinks).
+- **`tests/unit/scripts/asar-surgery.test.js`** + **`build-win-with-deref.test.js`** — 23 unit + integration tests (real fs + real `@electron/asar` against tmp fixtures). Surfaced one real bug during test development: `@electron/asar` has a module-level `filesystemCache` keyed by archive path; `extractAll` populates it with the pre-surgery header, so `listPackage` returns stale entries after we delete + repack. Fix: `asar.uncache(asarPath)` after `fs.rmSync`.
+
+Expected ~5 min Windows install, ~300 MB smaller installer. Mac/Linux benefit from the same `afterPack` path automatically. Refuted approaches (don't re-attempt): asarUnpack glob (issue #6 empirically refuted), extraResources to `app.asar.unpacked/` (v5.0.3.12), 4 packages declared as direct deps (v5.0.3.6).
 
 ### Latest Update - Tray "About" Product Version "—" Fix (v5.0.3.33, 2026-05-06)
 
