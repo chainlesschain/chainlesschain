@@ -30,33 +30,31 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-07 — docs + design 刷到 v5.0.3.39（B4 post-pack ASAR surgery）。
-    # www 故意留在 v5.0.3.38 不动：v5.0.3.39 GitHub Release 还没 publish，提前
-    # 把 www 推到 .39 会让 release-sizes.json 的 download cards 指向不存在的
-    # asset bytes（per memory deployment_scripts.md release-sizes timing window）。
-    # 等 v5.0.3.39 GH Release published → 重跑 refresh-release-sizes → rebuild
-    # www → 单独再 deploy www。
+    # 2026-05-07 — www 单独刷到 v5.0.3.39。docs + design 已在前一次 run
+    # (-070915) 部署到 .39，本次只更新 www。
     #
-    # commits in this batch: e11b46913 (asar-surgery scripts + 23 tests) /
-    # f89ffa7e9 (version sweep + CHANGELOG + 4 docs-site files) /
-    # b50b875de (README_EN + www homepage highlights — built into all 3 dists,
-    # but only docs/design ship in this run).
+    # 时序：v5.0.3.39 GitHub Release 已 published (2026-05-06T23:08:52Z, 28 assets,
+    # isImmutable=true) → 跑 docs-website-v2/scripts/fetch-release-sizes.mjs
+    # 重新拉 release-sizes.json (8 entries, win-setup/portable 441 MB,
+    # mac-arm64 457 MB, mac-intel 462 MB, linux-appimage 669 MB,
+    # linux-deb 344 MB, linux-rpm 345 MB, android-universal 101 MB) →
+    # rebuild www → 本批 deploy。
     #
-    # www 条目被注释掉，待 .39 release published 后再启用并刷 .local_tar。
+    # docs / design 暂留注释中以备需要重发；当前 -070915 batch 已生效。
     # {
-    #     "name": "www.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.37-20260506-1815.tar.gz",
-    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    #     "name": "docs.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.39-20260507-070915.tar.gz",
+    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    # },
+    # {
+    #     "name": "design.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.39-20260507-070915.tar.gz",
+    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     # },
     {
-        "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.39-20260507-070915.tar.gz",
-        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    },
-    {
-        "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.39-20260507-070915.tar.gz",
-        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+        "name": "www.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.39-20260507-072001.tar.gz",
+        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
 
