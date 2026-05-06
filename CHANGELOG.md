@@ -5,6 +5,14 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.33] - 2026-05-06 — 托盘"关于"产品版本显示 "—" 修复
+
+> 用户在 v5.0.3.32 安装版上反馈托盘 → 关于对话框 `产品版本：—`（应显示 v5.0.3.32）。根因是历史遗留 packaging 路径问题，v5.0.3.31 / v5.0.3.32 都有；本版顺手修掉。
+
+### Fixed
+
+- **托盘"关于"产品版本永远显示 "—"** —— `enhanced-tray-manager.js:317` 用 `require("../../../../package.json")` 读 monorepo 根 `productVersion`，但 packaged install 里 `enhanced-tray-manager.js` 位于 `app.asar/dist/main/system/`，相对路径 `../../../..` 走出 `app.asar` 抵达 `<install>/resources/`，那里没有 package.json → require 必失败 → 永远 catch 走 "—"。改为 build 时把 `productVersion` + `appVersion` 烧进 `dist/main/build-info.json`，showAboutDialog 优先读这个常量文件，packaged 模式 / dev 模式都能稳定取到；老相对路径保留作为直接 import src 跑测试时的 fallback。`scripts/build-main.js` 在 `dist/main/` 末尾写入 build-info.json。
+
 ## [v5.0.3.32] - 2026-05-05 — 修 v5.0.3.31 系统托盘菜单两处残留
 
 > 用户在 v5.0.3.31 安装版上报告：托盘"检查更新"按钮仍弹"当前模式：development"对话框；从托盘菜单点其它项只把主窗口拉出来，但不跳到对应页面。两处不同根因，但一起表现为"v5.0.3.31 的托盘修复在打包版上没生效"。

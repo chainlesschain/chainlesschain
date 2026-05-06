@@ -314,16 +314,28 @@ class EnhancedTrayManager {
   showAboutDialog() {
     let productVersion = "—";
     let appVersion = "—";
+    // 优先读 build-time 烧进 dist/main/build-info.json 的常量。原因：
+    // packaged 模式下 enhanced-tray-manager.js 在 app.asar 内，相对路径
+    // ../../../../package.json 走出 asar，require 必失败，产品版本永远
+    // 显示 "—"。build-info.json 由 scripts/build-main.js 在 build 末尾
+    // 写入，dev 模式 (`npm run dev` 会跑 build:main)、packaged 模式都会
+    // 存在；只在直接 import src 跑测试时不存在 → 走下面 fallback。
     try {
-      const root = require("../../../../package.json");
-      productVersion = root.productVersion || "—";
+      const info = require("../build-info.json");
+      productVersion = info.productVersion || "—";
+      appVersion = info.appVersion || "—";
     } catch {
-      // ignore — root package.json not reachable in some test layouts
-    }
-    try {
-      appVersion = require("../../../package.json").version || "—";
-    } catch {
-      // ignore
+      try {
+        productVersion =
+          require("../../../../package.json").productVersion || "—";
+      } catch {
+        // ignore — root package.json not reachable in packaged builds
+      }
+      try {
+        appVersion = require("../../../package.json").version || "—";
+      } catch {
+        // ignore
+      }
     }
     const message = "ChainlessChain";
     const detail =
