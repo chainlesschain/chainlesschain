@@ -963,14 +963,14 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.43-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.33-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-12900%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.2-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -983,9 +983,43 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.43 Evolution Edition (2026-04-20 · CLI 0.156.2 · V6 Desktop Shell Regression Closure + V2 Canonical Layer iter16-iter28)
+## ⭐ Current Version: v5.0.3.33 Evolution Edition (2026-05-06 · CLI 0.161.2 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces)
 
-### Latest Update - Managed Agents Parity · CLI Persistence (2026-04-16) 🆕
+### Latest Update - Tray "About" Product Version "—" Fix (v5.0.3.33, 2026-05-06)
+
+A small follow-up edge-case discovered after v5.0.3.32 user re-testing:
+
+- **Tray "About" dialog product version always shows "—"** (commit `461edf060`): users on v5.0.3.32 packaged installs reported tray → About showing `Product Version: —` instead of `v5.0.3.32`. Root cause: `enhanced-tray-manager.js:317` does `require("../../../../package.json")` to read the monorepo root's `productVersion`, but in a packaged install `enhanced-tray-manager.js` lives at `app.asar/dist/main/system/`, so the relative path walks out of `app.asar` to `<install>/resources/` where no `package.json` exists — `require` throws, the catch always returns `"—"`. Dev mode paths happen to resolve in-repo, hiding the bug. Fix: build-time bake `productVersion` + `appVersion` into `dist/main/build-info.json` (`scripts/build-main.js` writes it after `copyDir`); `showAboutDialog` reads that constant first, with the old relative require kept as a fallback for direct-source imports in tests.
+
+### Latest Update - Tray Fixes Closure (v5.0.3.32, 2026-05-06)
+
+Following v5.0.3.31's main-line fix to the tray menu (`tray:action` unified channel + renderer listener), two more edge-case bugs that only surface in packaged installs are addressed:
+
+1. **Tray "Check for Updates" misreports development mode in packaged build** (commit `7e6605006`) — `enhanced-tray-manager.js:365` guarded on `process.env.NODE_ENV === "production"`, but Electron's packaged build leaves `NODE_ENV` undefined by default, so packaged installs hit the fallback branch and never actually called `autoUpdater.checkForUpdates()`. Changed the predicate to `(process.env.NODE_ENV === "production" || app.isPackaged)`.
+2. **Tray menu events dropped on first-run when password not set** (commit `2532774f5`) — `App.vue` `onMounted` early-returned when `initial-setup:get-status` reported `{ completed: false }`, skipping registration of three IPC listeners below. The fix: hoist those listeners above the early return.
+
+### Latest Update - vitest 4 Bump + Auto-Updater Fix (v5.0.3.31, 2026-05-05)
+
+- **Desktop auto-updater + tray menu full repair** (commit `bc2e476bf`): three packaged-install regressions had a single root cause — `auto-updater.js` was never `init()`'d, and tray menu items emitted per-item IPC channels that no renderer listened to. Fix: every menu item now goes through the unified `dispatchTrayAction` entry; auto-updater wired into packaged startup with 4h periodic checks.
+- **vitest 3.x → 4.1.5 full upgrade** (7 commits `57bb519fe..8ad5fb7e9`): two v3-era workarounds retired together — issue #5's Windows Unit Tests `continue-on-error` and issue #4's `mtc-federation-governance-cli` `poolMatchGlobs → threads:singleThread` route. vitest 4 fixed the upstream birpc 60s `onTaskUpdate` heartbeat hardcode; CLI `testTimeout: 30s → 60s` for subprocess-heavy federation governance + audit e2e. All 5/5 CI workflows green.
+
+### Latest Update - Desktop Icon + Tray + Install Resilience (v5.0.3.30, 2026-05-05)
+
+- **Desktop app icon visual occupancy** (commit `f2c8fc22f`): the master circular logo occupied only ~52% of its 2451×2451 canvas. `tools/regen-app-icon.js` (sharp + png-to-ico) auto-trims transparent edges and rebuilds a 7-layer .ico; new master 1282×1282 with 100% horizontal / 89% vertical occupancy. `BrowserWindow` + `setAppUserModelId` + tray `getIconPath()` candidate paths wired up in the same batch.
+- **Main window minimizes to system tray** (commit `d57759dc9`): close button triggers `hide()` rather than `quit()`; tray icon stays resident with right-click Show / Quit.
+- **Installer slimmed by 357 MB / 14k files** (commit `b2e1ff27d`): electron-builder afterPack hook filters out devDeps / test directories / `.bak` files that don't belong in production.
+
+### Latest Update - Workspace Refactor + ASAR Final Battle (v5.0.3.22, 2026-05-04)
+
+- **Workspace refactor: removed desktop-app-vue from root workspaces** (commit `ad3e7d403`): structurally fixes the npm workspaces hoisting trap that, for every prior release, caused `call-bind-apply-helpers` and other Express@5 transitive deps to hoist into root `node_modules/` and trigger ASAR-missing-package failures on packaged installs.
+- **CLI test sharding replaces glob batching** (commits `1c9db161b` / `21a60f714` / `b52c2f427`): vitest `--shard=k/n` matrix replaces the fragile `[a-m]/[n-z]` glob batches; 9 push/PR workflows gain `concurrency: cancel-in-progress`.
+- **Deleted 6 V5 dead pages** (commit `5066a718d`): post V6 Chat-First Shell port closure cleanup; `-8283 lines / +10 lines`.
+
+Full changelog at [docs-site/docs/changelog.md](./docs-site/docs/changelog.md) (covers v5.0.3.1 → v5.0.3.32).
+
+---
+
+### Historical Update - Managed Agents Parity · CLI Persistence (2026-04-16)
 
 Three baseline Managed Agents capabilities from `@chainlesschain/session-core` — MemoryStore, ApprovalGate, BetaFlags — are now fully wired into the CLI with cross-process JSON persistence:
 

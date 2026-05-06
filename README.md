@@ -1173,14 +1173,14 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.43-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.33-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-12900%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.2-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -1193,9 +1193,43 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.2.43 Evolution Edition (2026-04-20 · CLI 0.156.2 · V6 桌面壳回归闭包 + V2 规范层 iter16-iter28)
+## ⭐ 当前版本: v5.0.3.33 Evolution Edition (2026-05-06 · CLI 0.161.2 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面)
 
-### 最新更新 - 合规与威胁情报补齐 (STIX 2.1 · UEBA · Framework Reporter, 2026-04-16) 🆕
+### 最新更新 - 托盘"关于"产品版本 "—" 修复 (v5.0.3.33, 2026-05-06)
+
+紧贴 v5.0.3.32 收尾后用户复测发现一处只在 packaged install 才暴露的边角小问题：
+
+- **托盘"关于"对话框产品版本永远显示 "—"**（commit `461edf060`）：用户在 v5.0.3.32 安装版反馈托盘 → 关于显示 `产品版本：—`。根因 `enhanced-tray-manager.js:317` 用 `require("../../../../package.json")` 读 monorepo 根的 `productVersion`，但 packaged install 里 `enhanced-tray-manager.js` 位于 `app.asar/dist/main/system/`，相对路径 `../../../..` 走出 `app.asar` 抵达 `<install>/resources/`，那里没有 package.json → require 必失败 → 永远 catch 走 `"—"`。dev 模式路径在 repo 内有效所以本机看不出来，是 v5.0.3.31 / v5.0.3.32 共有的历史遗留 packaging 路径问题。修复：build 时把 `productVersion` + `appVersion` 烧进 `dist/main/build-info.json`（`scripts/build-main.js` 在 `copyDir` 完成后写入），`showAboutDialog` 优先读这个常量文件，老相对路径保留作为直接 import src 跑测试时的 fallback。
+
+### 最新更新 - 桌面托盘修复收口 (v5.0.3.32, 2026-05-06)
+
+紧贴 v5.0.3.31 解决托盘菜单主链路（`tray:action` 统一通道 + renderer listener）后，再修两处只在 packaged install 才暴露的边角：
+
+1. **托盘"检查更新"在打包版误报开发模式**（commit `7e6605006`）— `enhanced-tray-manager.js:365` 守的是 `process.env.NODE_ENV === "production"`，但 Electron 打包后 `NODE_ENV` 默认 undefined，packaged install 走 fallback 分支并因此从未真正调用过 `autoUpdater.checkForUpdates()`。改判 `(process.env.NODE_ENV === "production" || app.isPackaged)`。
+2. **首次启动未设密码状态下托盘菜单事件被丢弃**（commit `2532774f5`）— `App.vue` `onMounted` 在 `initial-setup:get-status` 返回 `{ completed: false }` 时 early-return，跳过下方三个 IPC listener 注册。结果首次启动用户点托盘菜单，主进程把窗口 show + focus 后通过 IPC 派发，但 renderer 没人接。修复：把这三个 listener 提到早返之前。
+
+### 最新更新 - vitest 4 升级 + 自动更新链路修复 (v5.0.3.31, 2026-05-05)
+
+- **桌面自动更新 + 托盘菜单全量修复**（commit `bc2e476bf`）：v5.0.3.30 用户反馈三个 packaged-install 问题同源——(1) 自动更新功能不工作、(2) 托盘"检查更新"点击无反应、(3) 托盘菜单大部分项点击无反应。修复：所有菜单项重新走 `dispatchTrayAction` 统一入口；`auto-updater.js` 实际接入 packaged 启动自检 + 4h 周期检查。
+- **vitest 3.x → 4.1.5 全量升级**（7 commits `57bb519fe..8ad5fb7e9`）：v3 时代两个 workaround 同时退役——issue #5 的 Windows Unit Tests `continue-on-error` + issue #4 的 `mtc-federation-governance-cli` `poolMatchGlobs → threads:singleThread` 路由。vitest 4 上游修了 birpc 60s `onTaskUpdate` 心跳硬编码；CLI `testTimeout: 30s → 60s` 给 subprocess-heavy 联邦治理 + 审计 e2e 场景留余量。最终 5/5 CI workflow 全绿。
+
+### 最新更新 - 桌面图标 + 系统托盘 + 安装恢复力 (v5.0.3.30, 2026-05-05)
+
+- **桌面应用图标视觉占用率不足**（commit `f2c8fc22f`）：`assets/icon.png` master 圆形 logo 在 2451×2451 画布占比 ~52%。`tools/regen-app-icon.js`（sharp + png-to-ico）自动 trim 透明边、重建 7 层 .ico；新 master 1282×1282，水平占比 100% / 垂直 89%。`BrowserWindow` + `setAppUserModelId` + tray `getIconPath()` 候选路径同步接线。
+- **桌面主窗口最小化到系统托盘**（commit `d57759dc9`）：关闭按钮触发 `hide()` 而非 `quit()`，托盘图标常驻；右键菜单 Show / Quit。
+- **桌面 installer 瘦身 357 MB / 14k 文件**（commit `b2e1ff27d`）：electron-builder afterPack hook 过滤掉打不进生产的 devDep / 测试目录 / `.bak` 等无用文件。
+
+### 最新更新 - Workspace 结构性重构 + ASAR 终战 (v5.0.3.22, 2026-05-04)
+
+- **Workspace 重构：移除 desktop-app-vue from root workspaces**（commit `ad3e7d403`）：根本性修复 npm workspaces hoisting 陷阱 — 此前每次发版都因 `call-bind-apply-helpers` 等 transitive deps hoist 到根 `node_modules/` 而触发 ASAR 缺包问题。这次直接把 desktop-app-vue 从 workspace 拆出，让它有独立 `node_modules/`，根治第二天发版翻车的可能性。
+- **CLI 测试 sharding 替代 glob 批处理**（commits `1c9db161b` / `21a60f714` / `b52c2f427`）：vitest `--shard=k/n` matrix 替代易翻车的 `[a-m]/[n-z]` glob 批处理；9 个 push/PR workflows 加 `concurrency: cancel-in-progress`。
+- **删除 6 个 V5 死页面**（commit `5066a718d`）：V6 Chat-First Shell 全量 port 完毕后清理 V5 残留；`-8283 lines / +10 lines`。
+
+完整更新日志见 [docs-site/docs/changelog.md](./docs-site/docs/changelog.md)（涵盖 v5.0.3.1 → v5.0.3.32 全部条目）。
+
+---
+
+### 历史更新 - 合规与威胁情报补齐 (STIX 2.1 · UEBA · Framework Reporter, 2026-04-16)
 
 基于设计文档 [`19_合规分类系统.md`](./docs/design/modules/19_合规分类系统.md)（v1.2）一次性补齐三项之前标记 "未完成" 的企业合规能力：
 
