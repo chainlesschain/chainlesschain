@@ -44,6 +44,8 @@ const {
 const { createLlmChatHandler } = require("./handlers/llm-handlers");
 const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
 const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
+const { createSyncWebDAVHandlers } = require("./handlers/sync-webdav-handlers");
+const { createSyncStatusHandlers } = require("./handlers/sync-status-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -152,6 +154,13 @@ async function startWebShell(options = {}) {
     "ukey.sign": createUkeySignHandler({
       ukeyManager: options.ukeyManager ?? null,
     }),
+    // Phase 3c.4 — WebDAV sync topics for web-panel parity. database may be
+    // null pre-bootstrap; the handlers throw / return error envelope instead
+    // of crashing the dispatcher.
+    ...createSyncWebDAVHandlers({ database: options.database ?? null }),
+    // Phase 3b — sync.status / push / pull / conflicts / resolve. 复用 main 已开
+    // 的 db handle，避免 ws.execute('sync ...') spawn 子进程抢同一 SQLite 文件。
+    ...createSyncStatusHandlers({ database: options.database ?? null }),
     // Phase 1.6 — symmetric shell switch from web-panel back to V5/V6.
     // Only registered when getAppConfig is provided (it requires the
     // AppConfigManager singleton to persist the opt-out).

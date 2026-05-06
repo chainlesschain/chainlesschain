@@ -40,6 +40,11 @@ function routeTrayAction(payload) {
         router.push('/speech-settings')
       } else if (data === 'providers' || data === 'llm') {
         router.push('/providers')
+      } else if (data === 'sync') {
+        // Phase 3b 桌面 V5/V6 的 /settings/sync 在 web-panel 这边落到 /sync-settings。
+        // CLI 桥接版本只覆盖 status / push / pull / 冲突；多 provider 详细
+        // 配置（WebDAV 等）仍只在 V5/V6 shell 提供，详见 SyncSettings.vue 顶部 banner。
+        router.push('/sync-settings')
       } else {
         router.push('/project-settings')
       }

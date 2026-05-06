@@ -142,6 +142,10 @@ const settingsPages = createRouteGroup("settings", {
     import(
       /* webpackChunkName: "settings-sync" */ "../pages/settings/SyncSettings.vue"
     ),
+  webdav: () =>
+    import(
+      /* webpackChunkName: "settings-sync-webdav" */ "../pages/settings/SyncWebDAV.vue"
+    ),
 });
 
 // 社交功能页面组（低优先级）
@@ -399,6 +403,12 @@ const routes: RouteRecordRaw[] = [
         name: "SyncSettings",
         component: settingsPages.sync,
         meta: { title: "同步设置", requiresAuth: false },
+      },
+      {
+        path: "settings/sync-webdav",
+        name: "SyncWebDAV",
+        component: settingsPages.webdav,
+        meta: { title: "WebDAV 同步设置", requiresAuth: false },
       },
       {
         path: "contacts",

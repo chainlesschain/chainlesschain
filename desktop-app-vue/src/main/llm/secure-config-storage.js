@@ -70,6 +70,13 @@ const SENSITIVE_FIELDS = [
   "mcp.postgres.password",
   "mcp.mysql.password",
   "mcp.redis.password",
+
+  // 外部同步 provider 凭证（Phase 3c — WebDAV / S3 / OSS）
+  // 整个 sync.<id>.* 都进 secure-config.enc 加密 blob，但只有
+  // password / secret 类字段进 SENSITIVE_FIELDS（控制 sanitizeConfig
+  // 渲染端 mask 行为；URL / username / remotePath 仍以明文返回给前端展示）
+  "sync.webdav.password",
+  "sync.oss.secretAccessKey",
 ];
 
 /**

@@ -1,16 +1,9 @@
 <template>
   <div class="settings-page">
     <div class="settings-content">
-      <a-tabs
-        v-model:active-key="activeTab"
-        type="card"
-        class="settings-tabs"
-      >
+      <a-tabs v-model:active-key="activeTab" type="card" class="settings-tabs">
         <!-- 通用设置 -->
-        <a-tab-pane
-          key="general"
-          tab="通用"
-        >
+        <a-tab-pane key="general" tab="通用">
           <template #tab>
             <span>
               <setting-outlined />
@@ -18,21 +11,12 @@
             </span>
           </template>
           <a-card title="通用设置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="主题">
                 <a-radio-group v-model:value="theme">
-                  <a-radio value="light">
-                    浅色
-                  </a-radio>
-                  <a-radio value="dark">
-                    深色
-                  </a-radio>
-                  <a-radio value="auto">
-                    跟随系统
-                  </a-radio>
+                  <a-radio value="light"> 浅色 </a-radio>
+                  <a-radio value="dark"> 深色 </a-radio>
+                  <a-radio value="auto"> 跟随系统 </a-radio>
                 </a-radio-group>
               </a-form-item>
 
@@ -61,10 +45,7 @@
               </a-form-item>
 
               <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
-                <a-button
-                  type="primary"
-                  @click="handleSaveGeneral"
-                >
+                <a-button type="primary" @click="handleSaveGeneral">
                   保存设置
                 </a-button>
               </a-form-item>
@@ -73,10 +54,7 @@
         </a-tab-pane>
 
         <!-- LLM 服务设置 -->
-        <a-tab-pane
-          key="llm"
-          tab="LLM 服务"
-        >
+        <a-tab-pane key="llm" tab="LLM 服务">
           <template #tab>
             <span>
               <api-outlined />
@@ -87,10 +65,7 @@
         </a-tab-pane>
 
         <!-- Token 使用与成本 -->
-        <a-tab-pane
-          key="token-usage"
-          tab="Token 使用"
-        >
+        <a-tab-pane key="token-usage" tab="Token 使用">
           <template #tab>
             <span>
               <dollar-outlined />
@@ -101,10 +76,7 @@
         </a-tab-pane>
 
         <!-- MCP 服务器管理 -->
-        <a-tab-pane
-          key="mcp"
-          tab="MCP 服务器"
-        >
+        <a-tab-pane key="mcp" tab="MCP 服务器">
           <template #tab>
             <span>
               <api-outlined />
@@ -115,10 +87,7 @@
         </a-tab-pane>
 
         <!-- Git 同步设置 -->
-        <a-tab-pane
-          key="git"
-          tab="Git 同步"
-        >
+        <a-tab-pane key="git" tab="Git 同步">
           <template #tab>
             <span>
               <sync-outlined />
@@ -128,11 +97,32 @@
           <GitSettings />
         </a-tab-pane>
 
+        <!-- 同步目标管理（多 provider — backend / git / p2p / mobile / WebDAV / OSS） -->
+        <a-tab-pane key="sync-targets">
+          <template #tab>
+            <span>
+              <cloud-sync-outlined />
+              同步目标
+            </span>
+          </template>
+          <a-card title="同步目标管理">
+            <p>
+              在专用页面中管理所有同步 provider（启用 /
+              禁用、配置凭证、查看上次状态）。
+            </p>
+            <a-space direction="vertical" style="width: 100%">
+              <a-button type="primary" @click="$router.push('/settings/sync')">
+                打开同步设置
+              </a-button>
+              <a-button @click="$router.push('/settings/sync-webdav')">
+                直达 WebDAV 配置
+              </a-button>
+            </a-space>
+          </a-card>
+        </a-tab-pane>
+
         <!-- RAG 知识库设置 -->
-        <a-tab-pane
-          key="rag"
-          tab="知识库RAG"
-        >
+        <a-tab-pane key="rag" tab="知识库RAG">
           <template #tab>
             <span>
               <database-outlined />
@@ -143,10 +133,7 @@
         </a-tab-pane>
 
         <!-- U盾设置 -->
-        <a-tab-pane
-          key="ukey"
-          tab="U盾"
-        >
+        <a-tab-pane key="ukey" tab="U盾">
           <template #tab>
             <span>
               <safety-outlined />
@@ -154,37 +141,18 @@
             </span>
           </template>
           <a-card title="U盾设置">
-            <a-descriptions
-              bordered
-              :column="1"
-            >
+            <a-descriptions bordered :column="1">
               <a-descriptions-item label="设备状态">
-                <a-tag
-                  v-if="store.ukeyStatus.detected"
-                  color="success"
-                >
+                <a-tag v-if="store.ukeyStatus.detected" color="success">
                   已检测
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="error"
-                >
-                  未检测
-                </a-tag>
+                <a-tag v-else color="error"> 未检测 </a-tag>
               </a-descriptions-item>
               <a-descriptions-item label="锁定状态">
-                <a-tag
-                  v-if="store.ukeyStatus.unlocked"
-                  color="success"
-                >
+                <a-tag v-if="store.ukeyStatus.unlocked" color="success">
                   已解锁
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="warning"
-                >
-                  已锁定
-                </a-tag>
+                <a-tag v-else color="warning"> 已锁定 </a-tag>
               </a-descriptions-item>
             </a-descriptions>
 
@@ -200,10 +168,7 @@
         </a-tab-pane>
 
         <!-- 数据库安全 -->
-        <a-tab-pane
-          key="database"
-          tab="数据库安全"
-        >
+        <a-tab-pane key="database" tab="数据库安全">
           <template #tab>
             <span>
               <lock-outlined />
@@ -229,10 +194,7 @@
         </a-tab-pane>
 
         <!-- Additional Tools V3 统计 -->
-        <a-tab-pane
-          key="additional-tools-v3"
-          tab="工具统计"
-        >
+        <a-tab-pane key="additional-tools-v3" tab="工具统计">
           <template #tab>
             <span>
               <bar-chart-outlined />
@@ -243,10 +205,7 @@
         </a-tab-pane>
 
         <!-- 性能监控 -->
-        <a-tab-pane
-          key="performance"
-          tab="性能监控"
-        >
+        <a-tab-pane key="performance" tab="性能监控">
           <template #tab>
             <span>
               <dashboard-outlined />
@@ -267,10 +226,7 @@
         </a-tab-pane>
 
         <!-- 关于 -->
-        <a-tab-pane
-          key="about"
-          tab="关于"
-        >
+        <a-tab-pane key="about" tab="关于">
           <template #tab>
             <span>
               <info-circle-outlined />
@@ -278,30 +234,17 @@
             </span>
           </template>
           <a-card title="关于 ChainlessChain">
-            <a-descriptions
-              bordered
-              :column="1"
-            >
-              <a-descriptions-item label="版本">
-                0.1.0
-              </a-descriptions-item>
+            <a-descriptions bordered :column="1">
+              <a-descriptions-item label="版本"> 0.1.0 </a-descriptions-item>
               <a-descriptions-item label="描述">
                 ChainlessChain 是一个基于 Electron + Vue 3 的个人 AI 知识库系统
               </a-descriptions-item>
               <a-descriptions-item label="技术栈">
                 <a-space direction="vertical">
-                  <a-tag color="blue">
-                    Electron 28
-                  </a-tag>
-                  <a-tag color="green">
-                    Vue 3
-                  </a-tag>
-                  <a-tag color="purple">
-                    Ant Design Vue 4
-                  </a-tag>
-                  <a-tag color="orange">
-                    Vite 5
-                  </a-tag>
+                  <a-tag color="blue"> Electron 28 </a-tag>
+                  <a-tag color="green"> Vue 3 </a-tag>
+                  <a-tag color="purple"> Ant Design Vue 4 </a-tag>
+                  <a-tag color="orange"> Vite 5 </a-tag>
                 </a-space>
               </a-descriptions-item>
               <a-descriptions-item label="功能特性">
@@ -318,18 +261,8 @@
 
             <div style="margin-top: 16px">
               <a-space>
-                <a-button
-                  type="link"
-                  @click="checkUpdate"
-                >
-                  检查更新
-                </a-button>
-                <a-button
-                  type="link"
-                  @click="openGithub"
-                >
-                  GitHub
-                </a-button>
+                <a-button type="link" @click="checkUpdate"> 检查更新 </a-button>
+                <a-button type="link" @click="openGithub"> GitHub </a-button>
               </a-space>
             </div>
           </a-card>
@@ -347,6 +280,7 @@ import { message } from "ant-design-vue";
 import {
   ApiOutlined,
   SyncOutlined,
+  CloudSyncOutlined,
   SafetyOutlined,
   SettingOutlined,
   InfoCircleOutlined,

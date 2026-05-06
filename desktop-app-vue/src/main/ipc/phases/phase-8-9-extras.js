@@ -189,6 +189,15 @@ function registerPhases8to9Extras({
     continueMessage: "Continuing with other IPC registrations...",
   });
 
+  // Phase 3c — WebDAV 外部同步
+  safeRegister("WebDAV IPC", {
+    register: () => {
+      const { registerWebDAVIPC } = require("../../sync/webdav-ipc");
+      registerWebDAVIPC({ database, mainWindow });
+    },
+    handlers: 5,
+  });
+
   // Notification IPC already registered early (phase-2-core)
 
   // Preference Manager IPC

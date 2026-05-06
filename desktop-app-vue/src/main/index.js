@@ -873,6 +873,10 @@ class ChainlessChainApp {
         // budget alert / cache / state-bus. Null until LLM init lands; the
         // handler throws llm_unavailable cleanly when called too early.
         llmManager: this.llmManager ?? null,
+        // Phase 3c.4 — DatabaseManager for sync.webdav.* topic handlers
+        // (cursor / tombstones / status). Null pre-init is safe; handlers
+        // return error envelope.
+        database: this.database ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
         // ui.useWebShellExperimental opt-out from inside web-panel.

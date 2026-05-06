@@ -1820,6 +1820,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("sync:show-conflicts", (_event, ...args) =>
         callback(...args),
       ),
+
+    // Phase 3c — WebDAV 外部同步（命名空间隔离）
+    webdav: {
+      test: () => ipcRenderer.invoke("sync:webdav:test"),
+      run: () => ipcRenderer.invoke("sync:webdav:run"),
+      configGet: () => ipcRenderer.invoke("sync:webdav:config-get"),
+      configSet: (payload) =>
+        ipcRenderer.invoke("sync:webdav:config-set", payload),
+      configClear: () => ipcRenderer.invoke("sync:webdav:config-clear"),
+      // 进度订阅：返回 unsubscribe 函数
+      onProgress: (callback) => {
+        const handler = (_event, payload) => callback(payload);
+        ipcRenderer.on("sync:webdav:progress", handler);
+        return () =>
+          ipcRenderer.removeListener("sync:webdav:progress", handler);
+      },
+    },
   },
 
   // 插件管理

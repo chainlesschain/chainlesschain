@@ -3987,6 +3987,73 @@ function createTables(dbManager, logger) {
       CREATE INDEX IF NOT EXISTS idx_fido2_rp ON fido2_credentials(rp_id);
       CREATE INDEX IF NOT EXISTS idx_fido2_user ON fido2_credentials(user_id);
       CREATE INDEX IF NOT EXISTS idx_fido2_cred_id ON fido2_credentials(credential_id);
+
+      -- ============================
+      -- Phase 3c — 外部 sync provider 增量游标 + tombstones
+      -- ============================
+      -- 命名加 external_ 前缀，与现有 sync_queue / sync_conflicts
+      -- (org-internal backend sync 用) 解耦。WebDAV / S3 / OSS / 网盘 共用。
+
+      -- 每个 provider × account 维护一个游标
+      CREATE TABLE IF NOT EXISTS sync_external_provider_cursor (
+        provider_id TEXT NOT NULL,             -- 'webdav' / 'oss' / ...
+        account_key TEXT NOT NULL DEFAULT '',  -- 多账户预留，单账户为空串
+        last_sync_at INTEGER NOT NULL DEFAULT 0,    -- 上次成功推送的本地 updated_at 上界 (ms)
+        last_item_id TEXT,                          -- 同一 ms 内的 tie-breaker
+        remote_etag_map TEXT NOT NULL DEFAULT '{}', -- JSON {item_id: etag} for If-Match 冲突检测
+        remote_filename_map TEXT NOT NULL DEFAULT '{}', -- JSON {item_id: remoteFilename} for rename / delete
+        last_run_status TEXT,                       -- 'success' / 'partial' / 'failed' / 'conflict'
+        last_run_error TEXT,                        -- 最近一次失败的可读原因
+        last_run_duration_ms INTEGER,               -- 最近一次同步耗时
+        items_pushed INTEGER NOT NULL DEFAULT 0,    -- 累积推送数（监控用）
+        items_skipped INTEGER NOT NULL DEFAULT 0,   -- 累积跳过数（ETag 不匹配等）
+        items_deleted INTEGER NOT NULL DEFAULT 0,   -- 累积远端 DELETE 数
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
+        PRIMARY KEY (provider_id, account_key)
+      );
+
+      -- 软删 tombstone — 本地删除后等待下次 sync 同步到远端 DELETE
+      -- 设计取舍：
+      --   - 不在 knowledge_items 上加 deleted_at（侵入性大），单独表
+      --   - 由 trigger 自动写入（任何路径删 knowledge_items 都被覆盖）
+      --   - 推送成功后删除对应 tombstone 行；失败保留下次重试
+      --   - 多 provider 各推各的 → 同一 item 删除产生 N 行 (N=已建过游标的 provider)
+      --   - remote_filename 由 sync engine 推送时从 cursor.remote_filename_map 查出，
+      --     不在 trigger 里冗余存（保持触发器极简）
+      CREATE TABLE IF NOT EXISTS sync_external_tombstones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider_id TEXT NOT NULL,
+        account_key TEXT NOT NULL DEFAULT '',
+        item_id TEXT NOT NULL,                 -- knowledge_items.id
+        deleted_at INTEGER NOT NULL,           -- 本地删除时间 (ms)
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        UNIQUE(provider_id, account_key, item_id)
+      );
+
+      -- knowledge_items 删除时自动 fan-out tombstone 到所有已存在的 provider 游标
+      -- INSERT OR IGNORE：同一 item 重复删（理论上不该发生）不会重复行
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_on_delete
+      AFTER DELETE ON knowledge_items
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, deleted_at)
+        SELECT
+          c.provider_id,
+          c.account_key,
+          OLD.id,
+          (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      CREATE INDEX IF NOT EXISTS idx_sync_ext_cursor_provider
+        ON sync_external_provider_cursor(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_provider
+        ON sync_external_tombstones(provider_id, account_key);
+      CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_item
+        ON sync_external_tombstones(item_id);
       `);
 
     // 重新启用外键约束
