@@ -352,6 +352,25 @@ async function startWsCliBackend(options = {}) {
     topicHandlers.set(topic, fn);
   }
 
+  // Server → all-clients fan-out for unsolicited events (tray menu actions,
+  // future global notifications, …). The CLI ws-server already has
+  // `_broadcast(data)` (private, used internally for task completion) — this
+  // exposes it as a public surface so the desktop main process can push
+  // tray:action frames to whatever web-panel client is connected. No-op when
+  // server has no clients (e.g. user closed the only window). Best-effort:
+  // never throws, never blocks tray menu UX on WS state.
+  function broadcast(frame) {
+    if (!frame || typeof frame !== "object") {
+      return;
+    }
+    try {
+      server._broadcast(frame);
+    } catch {
+      // Underlying _send guards readyState; only an internal CLI ws-server
+      // bug would throw here. Tray clicks must never crash the main process.
+    }
+  }
+
   async function close() {
     return server.stop();
   }
@@ -362,6 +381,7 @@ async function startWsCliBackend(options = {}) {
     port: server.port,
     url: `ws://${server.host}:${server.port}/`,
     register,
+    broadcast,
     close,
   };
 }

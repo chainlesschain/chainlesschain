@@ -8,12 +8,26 @@ const { Tray, Menu, nativeImage, app, dialog } = require("electron");
 const path = require("path");
 
 class EnhancedTrayManager {
-  constructor(mainWindow) {
+  /**
+   * @param {BrowserWindow} mainWindow
+   * @param {Object} [options]
+   * @param {() => ({ broadcast: (frame: any) => void } | null)} [options.getWebShellHandle]
+   *   Lazy getter for the web-shell handle. When the embedded web-panel is
+   *   the loaded renderer (Phase 1.6 default), the V5/V6 IPC `tray:action`
+   *   channel has no listener — dispatchTrayAction additionally broadcasts
+   *   through this handle's ws-server so the SPA can route on it. Returns
+   *   null when web-shell is disabled (V5/V6 shell active). v5.0.3.34.
+   */
+  constructor(mainWindow, options = {}) {
     this.mainWindow = mainWindow;
     this.tray = null;
     this.contextMenu = null;
     this.flashInterval = null;
     this.notificationCount = 0;
+    this.getWebShellHandle =
+      typeof options.getWebShellHandle === "function"
+        ? options.getWebShellHandle
+        : () => null;
   }
 
   /**
@@ -305,7 +319,29 @@ class EnhancedTrayManager {
       this.mainWindow.show();
     }
     this.mainWindow.focus();
+    // V5/V6 Vue renderer 路径 — App.vue 注册了 `tray:action` IPC listener。
+    // 在 web-shell 模式下加载的是 web-panel HTML（preload 是空的），这条
+    // send 实际无人接，但保留它是因为 send 本身不会抛错，且未来从 web-shell
+    // 切回 V5/V6 后立即生效。
     this.mainWindow.webContents.send("tray:action", { type, payload });
+    // v5.0.3.34 — web-shell 路径：通过 ws-server 广播给 web-panel SPA。
+    // web-panel 的 wsStore.onMessage 监听 type==="tray:action" 后路由到
+    // 对应 web-panel 路由 (/notes /chat /dashboard /project-settings 等)。
+    // 当 V5/V6 渲染器活跃时 getWebShellHandle 返回 null → 跳过；当 web-shell
+    // 活跃但还没有 web-panel 客户端连上时 broadcast 是 no-op (server.clients
+    // 为空)。两种情况都不抛错，只是发不出去——和 IPC send 给隐藏窗口同样
+    // 的容忍度。
+    const webShell = this.getWebShellHandle();
+    if (webShell && typeof webShell.broadcast === "function") {
+      try {
+        webShell.broadcast({ type: "tray:action", payload: { type, payload } });
+      } catch (err) {
+        logger.warn(
+          `[TrayManager] web-shell broadcast(${type}) failed:`,
+          err.message,
+        );
+      }
+    }
   }
 
   /**
@@ -366,33 +402,48 @@ class EnhancedTrayManager {
    */
   triggerCheckForUpdates() {
     let autoUpdater;
+    let requireError = null;
     try {
       autoUpdater = require("./auto-updater.js");
     } catch (err) {
+      requireError = err;
       logger.warn("[TrayManager] auto-updater require failed:", err.message);
     }
-    if (
-      autoUpdater &&
-      typeof autoUpdater.checkForUpdates === "function" &&
-      (process.env.NODE_ENV === "production" || app.isPackaged)
-    ) {
+    const hasUpdater =
+      autoUpdater && typeof autoUpdater.checkForUpdates === "function";
+    const isProd =
+      process.env.NODE_ENV === "production" || app.isPackaged === true;
+    if (hasUpdater && isProd) {
       autoUpdater.checkForUpdates().catch((err) => {
         logger.warn("[TrayManager] checkForUpdates failed:", err.message);
       });
-    } else {
-      // dev / 测试环境：起码给用户一个反馈
-      dialog
-        .showMessageBox(this.mainWindow, {
-          type: "info",
-          title: "检查更新",
-          message: "开发模式不会触发自动更新",
-          detail:
-            "自动更新仅在 packaged 安装版生效。当前模式：" +
-            (process.env.NODE_ENV || "development"),
-          buttons: ["确定"],
-        })
-        .catch(() => {});
+      return;
     }
+    // v5.0.3.34 — 当用户在 packaged 安装版上仍看到这个 dialog（v5.0.3.32
+    // 已修 NODE_ENV / app.isPackaged 二选一的判断），把诊断信息直接打到
+    // detail 里，下次点击就能看出是哪一条 fail 的（autoUpdater require
+    // 抛了？isPackaged === false？checkForUpdates 不是函数？），不必再
+    // 让用户在 log 文件里挖。生产环境下三个值都正确时本来就走不到这里。
+    const lines = [
+      "自动更新仅在 packaged 安装版生效。下方为诊断字段，packaged 装的应" +
+        "全部正确——若仍弹出此 dialog，截图反馈：",
+      `NODE_ENV: ${process.env.NODE_ENV || "(undefined)"}`,
+      `app.isPackaged: ${app.isPackaged}`,
+      `autoUpdater loaded: ${autoUpdater ? "yes" : "NO"}`,
+      `checkForUpdates fn: ${hasUpdater ? "yes" : "NO"}`,
+    ];
+    if (requireError) {
+      lines.push(`require error: ${requireError.message}`);
+    }
+    dialog
+      .showMessageBox(this.mainWindow, {
+        type: "info",
+        title: "检查更新",
+        message: "未触发自动更新",
+        detail: lines.join("\n"),
+        buttons: ["确定"],
+      })
+      .catch(() => {});
   }
 
   /**

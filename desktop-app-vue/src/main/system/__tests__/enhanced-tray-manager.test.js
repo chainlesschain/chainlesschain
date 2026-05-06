@@ -86,3 +86,55 @@ describe("EnhancedTrayManager.dispatchTrayAction", () => {
     expect(() => mgr.dispatchTrayAction("foo")).not.toThrow();
   });
 });
+
+describe("EnhancedTrayManager.dispatchTrayAction web-shell broadcast (v5.0.3.34)", () => {
+  let mgr;
+  let mainWindow;
+  let webShell;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mainWindow = makeMainWindow();
+    webShell = { broadcast: vi.fn() };
+    mgr = new EnhancedTrayManager(mainWindow, {
+      getWebShellHandle: () => webShell,
+    });
+  });
+
+  it("broadcasts a tray:action frame through web-shell when handle present", () => {
+    mgr.dispatchTrayAction("open-settings", "notifications");
+    expect(webShell.broadcast).toHaveBeenCalledTimes(1);
+    expect(webShell.broadcast).toHaveBeenCalledWith({
+      type: "tray:action",
+      payload: { type: "open-settings", payload: "notifications" },
+    });
+    // IPC send still fires for V5/V6 compatibility (App.vue listener).
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith("tray:action", {
+      type: "open-settings",
+      payload: "notifications",
+    });
+  });
+
+  it("skips broadcast when getWebShellHandle returns null (V5/V6 active)", () => {
+    mgr = new EnhancedTrayManager(mainWindow, {
+      getWebShellHandle: () => null,
+    });
+    expect(() => mgr.dispatchTrayAction("foo")).not.toThrow();
+    // No throw, IPC send still fires.
+    expect(mainWindow.webContents.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips broadcast when no getWebShellHandle option provided (back-compat)", () => {
+    mgr = new EnhancedTrayManager(mainWindow);
+    expect(() => mgr.dispatchTrayAction("foo")).not.toThrow();
+    expect(mainWindow.webContents.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("swallows broadcast errors so tray clicks never crash main", () => {
+    webShell.broadcast = vi.fn(() => {
+      throw new Error("ws server closed");
+    });
+    expect(() => mgr.dispatchTrayAction("show-performance")).not.toThrow();
+    expect(mainWindow.webContents.send).toHaveBeenCalledTimes(1);
+  });
+});

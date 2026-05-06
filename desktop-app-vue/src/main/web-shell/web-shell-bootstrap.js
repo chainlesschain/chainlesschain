@@ -212,6 +212,11 @@ async function startWebShell(options = {}) {
     httpPort: http.port,
     wsPort: ws.port,
     register: ws.register,
+    // Server → all-clients fan-out, used by enhanced-tray-manager for
+    // tray:action push to the embedded web-panel (no IPC listener exists in
+    // web-shell mode because the renderer is web-panel HTML, not the V5/V6
+    // Vue SPA). See dispatchTrayAction call site.
+    broadcast: ws.broadcast,
     close,
   };
 }

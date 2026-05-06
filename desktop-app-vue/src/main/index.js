@@ -1032,7 +1032,15 @@ class ChainlessChainApp {
     // is never strandable in a hidden state.
     try {
       const EnhancedTrayManager = require("./system/enhanced-tray-manager.js");
-      this.trayManager = new EnhancedTrayManager(this.mainWindow);
+      // v5.0.3.34 — pass a live getter for the web-shell handle so
+      // dispatchTrayAction can also broadcast through the embedded ws-server
+      // when web-panel is the loaded renderer (it has no IPC listener for
+      // the desktop-app-vue `tray:action` channel). Lazy because tray init
+      // runs after web-shell bootstrap on the happy path, but this contract
+      // doesn't depend on ordering.
+      this.trayManager = new EnhancedTrayManager(this.mainWindow, {
+        getWebShellHandle: () => this._webShellHandle || null,
+      });
       this.trayManager.create();
       if (!this.trayManager.tray) {
         // create() catches its own errors and leaves tray=null. Treat that
