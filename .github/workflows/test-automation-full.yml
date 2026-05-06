@@ -23,27 +23,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 健康检查
+  # 健康检查 (advisory only — failures here do not block run-all-tests; see
+  # issue #7 where a transient ECONNRESET in this job filed a false-positive
+  # bug ticket).
   health-check:
     name: System Health Check
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Run health checks
         working-directory: ./desktop-app-vue
         run: |
-          npm install --legacy-peer-deps
+          for i in 1 2 3; do
+            npm install --legacy-peer-deps && break || {
+              echo "npm install attempt $i failed, retrying in $((i*15))s..."
+              sleep $((i*15))
+            }
+          done
           node -e "const { getHealthCheckService } = require('./src/main/health-check'); const service = getHealthCheckService(); service.runChecks().then(r => console.log(JSON.stringify(r, null, 2)));" || true
 
   # 综合测试运行器
   run-all-tests:
     name: Run All Tests
     runs-on: ${{ matrix.os }}
-    needs: health-check
 
     strategy:
       matrix:
@@ -57,10 +66,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            npm install --legacy-peer-deps && break || {
+              echo "npm install attempt $i failed, retrying in $((i*15))s..."
+              sleep $((i*15))
+            }
+          done
 
       - name: Run comprehensive test suite
         working-directory: ./desktop-app-vue
