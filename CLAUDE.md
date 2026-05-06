@@ -12,11 +12,11 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 
 **Current Version**: see `package.json.productVersion` (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 112 CLI Commands + 8000+ Tests; MTC v0.5 — Phases 0–4 fully landed including federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA federations + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
-**Version hierarchy** (independent tracks — do not attempt to unify; values live in their respective files, do not duplicate here):
-- Product line: `package.json.productVersion` (marketing / release notes / docs — single source of truth)
-- CLI npm: `packages/cli/package.json` `version` field (alpha prerelease track)
-- Desktop app: `desktop-app-vue/package.json` `version` field (alpha prerelease track)
-- Monorepo root: `package.json` `version` field (workspaces aggregate, not published)
+**Version hierarchy** (values live in their respective files, do not duplicate here):
+- Product line: `package.json.productVersion` (marketing / release notes / docs — single source of truth, format `vX.Y.Z.N`)
+- CLI npm: `packages/cli/package.json` `version` field (alpha prerelease track, independent)
+- Desktop app: `desktop-app-vue/package.json` `version` field — **must follow productVersion** as `X.Y.Z-alpha.N` (semver-compatible derivation; required so electron-updater can compare versions; before v5.0.3.37 this was static `1.1.2-alpha` and auto-updater never offered any update across 6 productVersion bumps)
+- Monorepo root: `package.json` `version` field (workspaces aggregate, not published, independent)
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
