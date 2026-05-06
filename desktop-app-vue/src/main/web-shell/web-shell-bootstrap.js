@@ -178,16 +178,6 @@ async function startWebShell(options = {}) {
     ...(options.extraHandlers || {}),
   };
 
-  // DIAG 2026-05-06 — verify which topics actually got registered
-  try {
-    const { logger } = require("../utils/logger.js");
-    logger.info(
-      `[WebShell DIAG] registering ${Object.keys(wsHandlers).length} WS topics: ${Object.keys(wsHandlers).sort().join(", ")}`,
-    );
-  } catch (_) {
-    // ignore if logger unavailable
-  }
-
   const ws = await startWsCliBackend({
     host,
     port: typeof options.wsPort === "number" ? options.wsPort : 0,
