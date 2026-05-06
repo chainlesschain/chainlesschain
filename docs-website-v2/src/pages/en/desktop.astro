@@ -91,6 +91,32 @@ const PRODUCT_VERSION = rootPkg.productVersion;
     </div>
   </section>
 
+  <!-- Multi-target sync — 2026-05-06 (Phase 3b/3c) -->
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3b/3c · 2026-05-06</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Multi-target sync</h2>
+        <p class="text-muted leading-relaxed">
+          One SyncProvider abstraction, 5 real channels + 2 placeholders, usable from both V5/V6 desktop and web-shell. Each provider has its own enable toggle and "Sync now" button; one global auto-sync schedule drives them all. Credentials encrypted locally.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Wired</strong>: Backend HTTP / Git repo (markdown export + push) / P2P device direct / WebDAV (Nextcloud / 坚果云 / Synology) / Mobile placeholder</li>
+          <li>· <strong class="text-ink">Entry</strong>: tray menu → Sync → Sync settings… or open <code class="font-mono bg-cream px-1 rounded">/settings/sync</code> directly · web-shell uses <code class="font-mono bg-cream px-1 rounded">sync.* WS topic</code> direct to main process, sidestepping the old CLI-subprocess SQLite-lock contention</li>
+          <li>· <strong class="text-ink">Tests</strong>: 16 sync handler units + 4 web-panel SyncSettings envelope regressions + Phase 3c WebDAV integration end-to-end</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >Design doc: Data Sync §4.6 multi-target abstraction →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="py-16 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <h2 class="text-3xl md:text-4xl mb-10">Feature preview</h2>

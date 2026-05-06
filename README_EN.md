@@ -1,5 +1,31 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-06 Update — **Phase 3b/3c multi-target sync** — 5 tray placeholders wired + SyncProvider abstraction + WebDAV/Git/sync.* WS topics across both shells
+
+5 tray-menu placeholders (NotificationCenter listener / clipboard import / screenshot OCR / sync now / auto sync) graduated from "coming soon" toasts to real flows. Sync grew from a single backend hook into a multi-provider abstraction (Backend HTTP / Git / P2P / Mobile / WebDAV / OSS) usable from both V5/V6 and web-shell renderers.
+
+| Topic | Commit | Notes |
+|---|---|---|
+| Step 0 — NotificationCenter listener | `c990cda2a` | App.vue's `cc:show-notifications` window event had no listener; added onMounted/onBeforeUnmount that toggles panelVisible drawer. Tray "unread notifications" item now actually opens the panel. |
+| Step 1 — Clipboard import quick-action | `c2a2d8844` | New `ClipboardImportDialog.vue`: navigator.clipboard.readText → title/tag edit → `electronAPI.database.addKnowledgeItem`. Falls back to manual paste with a-alert when clipboard permission is denied. 4 unit tests. |
+| Step 2 — Screenshot OCR quick-action | `19fc2a50e` | Main-process `screenshot-ipc.js` (capture / ocr / cleanup, tmpdir sandbox rejecting non `cc-screenshot-` prefix) + `ScreenshotImportDialog.vue` preview + Tesseract OCR (eng+chi_sim) + recapture / re-OCR. 10 IPC tests + 4 component tests. |
+| Step 3 — SyncProvider abstraction + V5/V6 SyncSettings | `f89fb0ea0` + `1e39e2b58` | 6 providers (backend / git / p2p real + mobile / webdav / oss placeholder) + aggregate scheduler (per-provider enabled flag + autoSync interval persisted to localStorage) + `/settings/sync` page + tray "Sync Settings…" link + autoSync checkbox default `false` fix. 20 unit tests. vue-tsc fix for ant-design-vue 4.x `CheckedType`. |
+| Phase 3c — WebDAV desktop + web-shell parity | `1a9c51882` | Main-process webdav-engine (drain tombstones + push deltas + cursor persistence) + encrypted credentials + markdown-pack export + 5 `sync.webdav.*` IPC channels + V5/V6 SyncWebDAV.vue config page. WebDAV provider promoted from placeholder to real, calling `electronAPI.sync.webdav.run()`. |
+| Phase 3c.5 — Git repo web-shell parity | `5216c7665` + `e63016de9` | 3 `git.config-*` WS topics (get/set/clear) + Git config section in web-panel SyncSettings (remote URL / username / Token / auto-sync toggle + plaintext-credentials warning). Phase 1.6 web-shell users no longer have to drop back to V5/V6 to configure Git. |
+| Phase 3b adapted to web-shell — sync.* WS topics | `eb8697598` | web-panel SyncSettings.vue switched from `ws.execute('sync …')` to `ws.sendRaw({type:'sync.status'})`. **Root cause**: spawning the cc CLI as a child process opened a second better-sqlite3 connection on the same chainlesschain.db, which fails with "database disk image is malformed" under Windows + WAL. The in-process WS handler shares the main process's db handle, eliminating the conflict. 5 new handlers (status / push / pull / conflicts / resolve). |
+| sync.status hardened against schema collision | `32b78ce7d` + `283708640` | CLI v1's `sync_state / sync_conflicts / sync_log` collided with desktop's same-named P2P sync tables. The CLI tables were renamed wholesale to `cli_*` (one-shot ALTER on first launch); handler's `_safeCountQuery` swallows "no such table" and returns 0. |
+
+**Test matrix**
+- desktop unit + web-shell + system + screenshot: 12914 / 12914 passing (802 skipped — native binding unavailable in test env)
+- web-panel unit: 1754 / 1754 passing
+- New: `sync-status-handlers.test.js` 16 tests (4 native-db skip) + `web-panel/sync-settings.test.js` 4 tests (envelope-shape regression)
+- `new-pages.test.js` route count 54 → 55 (new `/sync-settings`)
+
+**Battle-scar bugs worth remembering**
+- ws.sendRaw envelope is `{ok, result, error}`, with the handler's `{success, ...}` payload nested under `result`. First pass read `data?.totalResources` as if the handler return value sat at the top, producing all-zero statistics and a misleading "uninitialized" error.
+- vitest 4 strict mock factories must enumerate every named export the SUT imports. A `Proxy({}, get: () => stub)` does not satisfy ESM named-export resolution — list each icon explicitly.
+- `console.log` from the Electron main process does not reach stdout (it's intercepted by the bundled logger). Use `logger.info` for diagnostics that need to land in the dev log.
+
 ## 2026-05-02 Update — **Web Panel i18n** — vue-i18n + 18 views translated + shared `@chainlesschain/locales` package
 
 The web management panel switches from hardcoded Chinese to bilingual (zh-CN / en) — sidebar follows the header toggle. `@chainlesschain/locales` is the single source of truth so desktop-app-vue / docs / website can all reuse the same catalog.

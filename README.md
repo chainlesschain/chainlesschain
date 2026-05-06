@@ -1,5 +1,31 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-06 增量更新（**Phase 3b/3c 多目标同步** — 5 个托盘 placeholder 接通 + SyncProvider 抽象 + WebDAV/Git/sync.* WS topics 双 shell parity）
+
+托盘菜单 5 个 placeholder（NotificationCenter listener / 剪贴板导入 / 截图识别 / 同步立即 / 自动同步）从"功能即将推出" toast 升级为真实链路。同步从单 backend 升级为多 provider 抽象（Backend HTTP / Git / P2P / Mobile / WebDAV / OSS），V5/V6 + web-shell 两条壳都能用。
+
+| 主题 | 提交 | 说明 |
+|---|---|---|
+| Step 0 — NotificationCenter listener | `c990cda2a` | App.vue 派发的 `cc:show-notifications` window 事件原本无人接，加 onMounted/onBeforeUnmount listener 拨开 panelVisible drawer。托盘"未读通知"项从哑响变真打开通知中心。 |
+| Step 1 — 剪贴板导入 quick-action | `c2a2d8844` | 新 `ClipboardImportDialog.vue`：navigator.clipboard.readText → 标题/标签编辑 → `electronAPI.database.addKnowledgeItem`。剪贴板权限拒绝时 a-alert 降级允许手动粘贴。4 单测覆盖正常 / 失败 / 空内容拒保存。 |
+| Step 2 — 截图识别 quick-action | `19fc2a50e` | 主进程 3 handler `screenshot-ipc.js`（capture / ocr / cleanup，tmpdir 沙箱拒非 cc-screenshot- 前缀）+ `ScreenshotImportDialog.vue` 截屏预览 + Tesseract OCR (eng+chi_sim) 文本编辑 + 重截 / 重跑 OCR。10 IPC + 4 组件单测。 |
+| Step 3 — SyncProvider 抽象 + V5/V6 SyncSettings | `f89fb0ea0` + `1e39e2b58` | 6 provider（backend / git / p2p 实接 + mobile / webdav / oss 占位）+ aggregate scheduler（per-provider enabled flag + autoSync interval localStorage 持久化）+ `/settings/sync` 页 + 托盘"同步设置…"菜单项跳转 + `enhanced-tray-manager.js` autoSync checkbox 默认 false 修正。20 单测。`a-switch @change` 的 `CheckedType` vue-tsc fix。 |
+| Phase 3c — WebDAV 桌面 + web-shell parity | `1a9c51882` | 主进程 webdav-engine（drain tombstones + push 增量 + cursor 持久化）+ 凭证加密存储（sync-credentials.js）+ markdown 包导出 + 5 个 `sync.webdav.*` IPC + V5/V6 SyncWebDAV.vue 配置页。WebDAV provider 从 placeholder 升级到真实，对接 `electronAPI.sync.webdav.run()`。 |
+| Phase 3c.5 — Git 仓库 web-shell parity | `5216c7665` + `e63016de9` | 3 个 `git.config-*` WS topic（get/set/clear）+ web-panel SyncSettings 加 Git 配置段（远程 URL / 用户名 / Token / 自动同步开关 + 凭证明文存储 warning）。Phase 1.6 web-shell 用户不必切回 V5/V6 也能配 Git。 |
+| Phase 3b 适配 web-shell — sync.* WS topics | `eb8697598` | web-panel SyncSettings.vue 从 `ws.execute('sync …')` 切换到 `ws.sendRaw({type:'sync.status'})`。**根因**：spawn cc CLI 子进程会在 Windows + WAL 下抢同一个 SQLite 文件 → "database disk image is malformed"。in-process WS handler 共用 main 已开的 db handle，零冲突。新增 5 个 handler（status / push / pull / conflicts / resolve）。 |
+| sync.status 抗 schema 冲突 | `32b78ce7d` + `283708640` | CLI v1 的 `sync_state / sync_conflicts / sync_log` 跟桌面 P2P sync 同名表撞了。CLI 表整体 RENAME 加 `cli_` 前缀（首次启动一次性 ALTER）；handler `_safeCountQuery` swallow "no such table" 返回 0。 |
+
+**测试矩阵**
+- desktop unit + web-shell + system + screenshot：12914 / 12914 通过（802 skip — native binding 缺失环境跳过）
+- web-panel unit：1754 / 1754 通过
+- 新增：`sync-status-handlers.test.js` 16 测试（4 native-db skip）+ `web-panel/sync-settings.test.js` 4 测试（envelope 形状回归）
+- `new-pages.test.js` 路由计数 54 → 55（新加 `/sync-settings`）
+
+**关键 bug 实战记录**
+- ws.sendRaw envelope 是 `{ok, result, error}`，handler 自身 `{success, ...}` 在 `result` 里。最初漏算把 `data?.totalResources` 直接当 handler 返回值读，导致 4 个 statistic 全 0 + 误判 "未初始化"。
+- vitest 4 strict mock factories 必须列全 SUT 用到的 named exports。`Proxy({}, get: () => stub)` 满足不了 ESM named export 解析，要逐个 enumerate。
+- Electron 主进程 `console.log` 不到 stdout（被 logger pipe 吞）。诊断要用 `logger.info`。
+
 ## 2026-05-02 增量更新（**Web Panel 双语化** — vue-i18n + 18 个 view 翻译完成 + 共享 locales 包）
 
 Web 管理面板从硬编码中文翻成中英双语，sidebar 跟着头部按钮一键切。`@chainlesschain/locales` 共享包是 SOT，desktop / 官网 / docs 都能复用。

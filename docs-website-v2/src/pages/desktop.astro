@@ -94,6 +94,32 @@ const PRODUCT_VERSION = rootPkg.productVersion;
     </div>
   </section>
 
+  <!-- Multi-target sync — 2026-05-06 (Phase 3b/3c) -->
+  <section class="py-16 md:py-20 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3b/3c · 2026-05-06</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">多目标同步</h2>
+        <p class="text-muted leading-relaxed">
+          一个 SyncProvider 抽象，5 种真实通道 + 2 种占位预留，桌面 V5/V6 跟 web-shell 两条壳都能跑。每个 provider 独立启用、独立"立即同步"按钮、共用一个全局自动同步周期；本地凭证加密存。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">已接通</strong>：Backend HTTP / Git 仓库（markdown 导出 + push）/ P2P 设备直连 / WebDAV 网盘（Nextcloud / 坚果云 / 群晖）/ Mobile 占位</li>
+          <li>· <strong class="text-ink">入口</strong>：托盘菜单 → 同步 → 同步设置… 或直接打开 <code class="font-mono bg-cream px-1 rounded">/settings/sync</code> · web-shell 下走 <code class="font-mono bg-cream px-1 rounded">sync.* WS topic</code> 直连主进程，避开 CLI 子进程抢 SQLite 锁的老 bug</li>
+          <li>· <strong class="text-ink">测试</strong>：sync handler 16 单测 + web-panel SyncSettings 4 envelope 回归 + 集成 Phase 3c WebDAV 端到端</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E6%96%B9%E6%A1%88.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >设计文档：数据同步方案 §4.6 多目标同步抽象 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Screenshot grid -->
   <section class="py-16 bg-cream/50 border-y border-line">
     <div class="container-wide">
