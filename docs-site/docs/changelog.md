@@ -3,6 +3,18 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.33 / CLI 0.161.2] - 2026-05-06 (托盘"关于"产品版本 "—" 修复)
+
+### Fixed
+
+- **托盘"关于"对话框产品版本永远显示 "—"**（commit `461edf060`）：用户在 v5.0.3.32 安装版反馈托盘 → 关于显示 `产品版本：—`，应显示 `v5.0.3.32`。根因 `enhanced-tray-manager.js:317` 用 `require("../../../../package.json")` 读 monorepo 根的 `productVersion`，但 packaged install 里 `enhanced-tray-manager.js` 位于 `app.asar/dist/main/system/`，相对路径 `../../../..` 走出 `app.asar` 抵达 `<install>/resources/`，那里没有 package.json → require 必失败 → 永远 catch 走 `"—"`。dev 模式路径在 repo 内有效所以本机看不出来，是 v5.0.3.31 / v5.0.3.32 共有的历史遗留 packaging 路径问题。修复：build 时把 `productVersion` + `appVersion` 烧进 `dist/main/build-info.json`（`scripts/build-main.js` 在 `copyDir` 完成后写入），`showAboutDialog` 优先读这个常量文件，老相对路径保留作为直接 import src 跑测试时的 fallback。
+
+### Why
+
+v5.0.3.32 修完两处托盘主链路 bug 后用户复测发现"关于"还有这个边角小问题。它和托盘菜单链路、自动更新链路均无关，但同样属于"只在 packaged install 才暴露、dev 模式看不出来"那类。顺手收口。
+
+---
+
 ## [5.0.3.32 / CLI 0.161.2] - 2026-05-06 (托盘修复 v5.0.3.31 残留两处)
 
 ### Fixed

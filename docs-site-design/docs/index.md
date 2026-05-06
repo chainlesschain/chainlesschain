@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.3.32 | 95+ 模块设计 | 139 技能 | CLI 112 命令/0.161.2 | 14800+ 总测试 | V2 规范层 220+ 治理表面（iter16-iter28） | Web Panel 50 routes（Phase A+B+C+D 全量收官 + i18n M3 全覆盖）| Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）| MTC v0.11（Phase 0–4 联邦 + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 · 476 测试 / 6 层 · 30+ CLI 子命令）| 面向开发者的架构与实现文档
+  tagline: v5.0.3.33 | 95+ 模块设计 | 139 技能 | CLI 112 命令/0.161.2 | 14800+ 总测试 | V2 规范层 220+ 治理表面（iter16-iter28） | Web Panel 50 routes（Phase A+B+C+D 全量收官 + i18n M3 全覆盖）| Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out）| MTC v0.11（Phase 0–4 联邦 + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 · 476 测试 / 6 层 · 30+ CLI 子命令）| 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
