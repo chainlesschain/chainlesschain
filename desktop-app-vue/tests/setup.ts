@@ -74,7 +74,23 @@ vi.mock("electron", () => ({
 
 // Mock ipc module to prevent module-level initialization errors
 // (social.js calls createRetryableIPC at module load time)
+// Mock all three import-path aliases for utils/ipc identically. `electronAPI`
+// delegates lazily to `window.electronAPI` at access time via a Proxy so that
+// tests stubbing `(window as any).electronAPI = {...}` in beforeEach see their
+// stub reach the SUT through the mocked module.
+//
+// IMPORTANT: vi.mock factories are hoisted, so the factory body must be
+// self-contained — no closure references to outer-scope helpers.
 vi.mock("@/utils/ipc", () => ({
+  electronAPI: new Proxy(
+    {},
+    {
+      get: (_t, prop) =>
+        ((globalThis as any).window?.electronAPI ?? {})[prop as any],
+      has: (_t, prop) =>
+        prop in ((globalThis as any).window?.electronAPI ?? {}),
+    },
+  ),
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -91,9 +107,16 @@ vi.mock("@/utils/ipc", () => ({
     verifyPassword: vi.fn().mockResolvedValue({ success: true }),
   },
 }));
-
-// Also mock relative path versions of ipc
 vi.mock("../src/renderer/utils/ipc", () => ({
+  electronAPI: new Proxy(
+    {},
+    {
+      get: (_t, prop) =>
+        ((globalThis as any).window?.electronAPI ?? {})[prop as any],
+      has: (_t, prop) =>
+        prop in ((globalThis as any).window?.electronAPI ?? {}),
+    },
+  ),
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -110,8 +133,16 @@ vi.mock("../src/renderer/utils/ipc", () => ({
     verifyPassword: vi.fn().mockResolvedValue({ success: true }),
   },
 }));
-
 vi.mock("../../src/renderer/utils/ipc", () => ({
+  electronAPI: new Proxy(
+    {},
+    {
+      get: (_t, prop) =>
+        ((globalThis as any).window?.electronAPI ?? {})[prop as any],
+      has: (_t, prop) =>
+        prop in ((globalThis as any).window?.electronAPI ?? {}),
+    },
+  ),
   createRetryableIPC: vi.fn(() => ({
     invoke: vi.fn().mockResolvedValue({}),
     on: vi.fn().mockReturnValue(() => {}),
@@ -361,14 +392,12 @@ vi.mock("@main/ipc-guard", () => ({
   safeRegisterModule: vi.fn().mockReturnValue(true),
   unregisterChannel: vi.fn(),
   unregisterModule: vi.fn(),
-  getStats: vi
-    .fn()
-    .mockReturnValue({
-      totalChannels: 0,
-      totalModules: 0,
-      channels: [],
-      modules: [],
-    }),
+  getStats: vi.fn().mockReturnValue({
+    totalChannels: 0,
+    totalModules: 0,
+    channels: [],
+    modules: [],
+  }),
   printStats: vi.fn(),
 }));
 
@@ -384,14 +413,12 @@ vi.mock("../../../src/main/ipc-guard", () => ({
   safeRegisterModule: vi.fn().mockReturnValue(true),
   unregisterChannel: vi.fn(),
   unregisterModule: vi.fn(),
-  getStats: vi
-    .fn()
-    .mockReturnValue({
-      totalChannels: 0,
-      totalModules: 0,
-      channels: [],
-      modules: [],
-    }),
+  getStats: vi.fn().mockReturnValue({
+    totalChannels: 0,
+    totalModules: 0,
+    channels: [],
+    modules: [],
+  }),
   printStats: vi.fn(),
 }));
 
@@ -732,20 +759,52 @@ const mockElectronIpcAPI = {
 // persist to test files. Each test file that needs window.electronAPI must
 // define its own mock (e.g., globalThis.electronAPI = { ... }).
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
-};
+// Mock localStorage / sessionStorage with a real Map-backed store so
+// renderer stores that round-trip through localStorage (theme-preview,
+// conversation-preview, etc.) work under jsdom + vitest 4. jsdom 27 ships
+// its own localStorage but tests in node-env need this fallback. Each
+// fresh import uses its own backing Map, so isolate via separate factories.
+function createStorageMock(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    getItem(key: string) {
+      return store.has(key) ? (store.get(key) as string) : null;
+    },
+    setItem(key: string, value: string) {
+      store.set(String(key), String(value));
+    },
+    removeItem(key: string) {
+      store.delete(key);
+    },
+    clear() {
+      store.clear();
+    },
+  };
+}
 
-global.localStorage = localStorageMock as any;
-
-// Mock sessionStorage
-global.sessionStorage = localStorageMock as any;
+// Only install the polyfill when the host environment doesn't already
+// provide a working storage. jsdom-env tests get the real jsdom Storage;
+// node-env tests need the polyfill.
+if (typeof globalThis.localStorage === "undefined") {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: createStorageMock(),
+    writable: true,
+    configurable: true,
+  });
+}
+if (typeof globalThis.sessionStorage === "undefined") {
+  Object.defineProperty(globalThis, "sessionStorage", {
+    value: createStorageMock(),
+    writable: true,
+    configurable: true,
+  });
+}
 
 // Mock console 方法避免测试输出污染
 global.console = {

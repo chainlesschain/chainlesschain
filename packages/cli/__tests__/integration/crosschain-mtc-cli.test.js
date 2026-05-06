@@ -80,7 +80,7 @@ describe("cc crosschain mtc-* — CLI integration", () => {
   });
 
   describe("mtc-trust-anchor", () => {
-    it("add → list → remove round-trip", () => {
+    it("add → list → remove round-trip", { timeout: 180_000 }, () => {
       // add
       const add = runCli([
         "crosschain",

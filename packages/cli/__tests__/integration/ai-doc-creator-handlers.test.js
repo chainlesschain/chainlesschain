@@ -277,7 +277,7 @@ describe("doc-generate handler: docx/pdf fallback (no pandoc/soffice)", () => {
     } else {
       expect(["pdf", "md"]).toContain(result.format);
     }
-  }, 20000);
+  }, 60000);
 });
 
 // ─── libre-convert handler: parameter validation ─────────────────────────

@@ -97,8 +97,9 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
     expect(execResp.success).toBe(true);
     expect(execResp.stdout.trim()).toMatch(/\d+\.\d+\.\d+/);
 
-    // Step 3: Stream the same command
-    const msgPromise = collectMessages(ws, 2);
+    // Step 3: Stream the same command — bump timeout for Windows subprocess
+    // cold-start (--version forks node which takes 5-15s under load on Win)
+    const msgPromise = collectMessages(ws, 2, 30000);
     ws.send(JSON.stringify({ id: "3", type: "stream", command: "--version" }));
     const msgs = await msgPromise;
 
@@ -116,8 +117,8 @@ describeWS("Integration: WebSocket Server Workflow", { timeout: 60000 }, () => {
 
     const ws = await connect(server.port);
 
-    // Fire 3 commands simultaneously
-    const p1 = collectMessages(ws, 3, 15000);
+    // Fire 3 commands simultaneously — bump for Windows subprocess cold-start
+    const p1 = collectMessages(ws, 3, 45000);
     ws.send(JSON.stringify({ id: "a", type: "execute", command: "--version" }));
     ws.send(JSON.stringify({ id: "b", type: "execute", command: "--version" }));
     ws.send(JSON.stringify({ id: "c", type: "execute", command: "--version" }));

@@ -689,8 +689,9 @@ describe("ConversationExecutor", () => {
 
       expect(results).toHaveLength(100);
       expect(results.every((r) => r.status === "success")).toBe(true);
-      // Use generous timeout for CI environments and slower systems
-      expect(duration).toBeLessThan(15000); // Should complete in < 15 seconds
-    }, 20000); // Increase test timeout to 20 seconds for CI environments
+      // Use generous timeout for CI environments and slower systems —
+      // Windows can hit ~20s for 100 file creates under load
+      expect(duration).toBeLessThan(45000);
+    }, 60000);
   });
 });

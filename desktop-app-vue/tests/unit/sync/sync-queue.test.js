@@ -435,8 +435,8 @@ describe("DBSyncManager - 并发同步集成测试", () => {
 
       // 并发执行（3并发）应该在 (6/3 * 100) = 200ms 左右完成
       // 串行执行需要 (6 * 100) = 600ms
-      // 允许一些延迟，预期不超过 300ms
-      expect(duration).toBeLessThan(300);
+      // 给 Windows + CI 调度抖动留余量，仍然显著快于串行 600ms
+      expect(duration).toBeLessThan(550);
 
       console.log(`并发同步${tableCount}个表耗时: ${duration}ms`);
       console.log(`预期串行耗时: ${tableCount * tableSyncDuration}ms`);

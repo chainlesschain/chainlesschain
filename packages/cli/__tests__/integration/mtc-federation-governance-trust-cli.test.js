@@ -223,53 +223,57 @@ describe("cc mtc federation governance — trust + on-chain anchor + help", () =
       }
     });
 
-    it("governance-verify-anchor flags HASH_MISMATCH after new event added post-anchor", () => {
-      joinAs("alice");
-      const chainStore = fs.mkdtempSync(
-        path.join(os.tmpdir(), "chain-store-d-"),
-      );
-      try {
-        mustRun([
-          "mtc",
-          "federation",
-          "governance-anchor",
-          "fed-test",
-          "--actor",
-          "alice",
-          "--chain-store",
-          chainStore,
-          "--json",
-        ]);
-        mustRun([
-          "mtc",
-          "federation",
-          "invite",
-          "fed-test",
-          "bob",
-          "--actor",
-          "alice",
-          "--candidate-pubkey-id",
-          "sha256:b",
-          "--json",
-        ]);
-        const v = runCli([
-          "mtc",
-          "federation",
-          "governance-verify-anchor",
-          "fed-test",
-          "--chain-store",
-          chainStore,
-          "--json",
-        ]);
-        expect(v.status).not.toBe(0);
-        const j = extractJson(v.stdout);
-        expect(j.ok).toBe(false);
-        expect(j.code).toBe("HASH_MISMATCH");
-        expect(j.drift.events_count_diff).toBeGreaterThan(0);
-      } finally {
-        fs.rmSync(chainStore, { recursive: true, force: true });
-      }
-    });
+    it(
+      "governance-verify-anchor flags HASH_MISMATCH after new event added post-anchor",
+      { timeout: 180_000 },
+      () => {
+        joinAs("alice");
+        const chainStore = fs.mkdtempSync(
+          path.join(os.tmpdir(), "chain-store-d-"),
+        );
+        try {
+          mustRun([
+            "mtc",
+            "federation",
+            "governance-anchor",
+            "fed-test",
+            "--actor",
+            "alice",
+            "--chain-store",
+            chainStore,
+            "--json",
+          ]);
+          mustRun([
+            "mtc",
+            "federation",
+            "invite",
+            "fed-test",
+            "bob",
+            "--actor",
+            "alice",
+            "--candidate-pubkey-id",
+            "sha256:b",
+            "--json",
+          ]);
+          const v = runCli([
+            "mtc",
+            "federation",
+            "governance-verify-anchor",
+            "fed-test",
+            "--chain-store",
+            chainStore,
+            "--json",
+          ]);
+          expect(v.status).not.toBe(0);
+          const j = extractJson(v.stdout);
+          expect(j.ok).toBe(false);
+          expect(j.code).toBe("HASH_MISMATCH");
+          expect(j.drift.events_count_diff).toBeGreaterThan(0);
+        } finally {
+          fs.rmSync(chainStore, { recursive: true, force: true });
+        }
+      },
+    );
 
     it("governance-verify-anchor flags NO_ANCHOR_ON_CHAIN for a fed never anchored", () => {
       const chainStore = fs.mkdtempSync(
