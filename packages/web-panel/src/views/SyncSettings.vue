@@ -102,6 +102,88 @@
       </div>
     </a-card>
 
+    <!-- Git 仓库配置段 (Phase 3c.5) -->
+    <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
+      <template #title>
+        <a-space><BranchesOutlined /><span>Git 仓库</span></a-space>
+      </template>
+      <template #extra>
+        <a-tag :color="gitcfg.configured ? (gitcfg.form.enabled ? 'green' : 'default') : 'default'">
+          {{ gitcfg.configured ? (gitcfg.form.enabled ? '已启用' : '已配置未启用') : '未配置' }}
+        </a-tag>
+      </template>
+
+      <a-form :model="gitcfg.form" layout="vertical" :disabled="gitcfg.saving">
+        <a-row :gutter="16">
+          <a-col :xs="24" :sm="12">
+            <a-form-item label="启用 Git 同步">
+              <a-switch v-model:checked="gitcfg.form.enabled" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12">
+            <a-form-item label="自动同步">
+              <a-switch v-model:checked="gitcfg.form.autoSync" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="远程仓库 URL">
+          <a-input v-model:value="gitcfg.form.remoteUrl" placeholder="https://github.com/user/repo.git" allow-clear />
+        </a-form-item>
+        <a-form-item label="本地仓库路径">
+          <a-input v-model:value="gitcfg.form.repoPath" placeholder="留空使用默认 (userData/git-repo)" allow-clear />
+        </a-form-item>
+        <a-row :gutter="16">
+          <a-col :xs="24" :sm="12">
+            <a-form-item label="作者名">
+              <a-input v-model:value="gitcfg.form.authorName" placeholder="ChainlessChain User" allow-clear />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12">
+            <a-form-item label="作者邮箱">
+              <a-input v-model:value="gitcfg.form.authorEmail" placeholder="user@chainlesschain.com" allow-clear />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :xs="24" :sm="12">
+            <a-form-item label="用户名">
+              <a-input v-model:value="gitcfg.form.username" placeholder="GitHub 用户名 / 邮箱" allow-clear />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12">
+            <a-form-item
+              label="密码 / Token"
+              :help="gitcfg.configured && !gitcfg.form.password ? '留空则沿用已保存的值' : ''"
+            >
+              <a-input-password
+                v-model:value="gitcfg.form.password"
+                :placeholder="gitcfg.configured ? (gitcfg.maskedPassword || '（已保存，留空保持不变）') : 'Personal Access Token 或密码'"
+                autocomplete="new-password"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-alert
+          type="warning"
+          show-icon
+          message="Git 凭证当前以明文存储在 git-config.json — 建议使用 Personal Access Token 而非账号密码，且 token 范围尽量收敛 (repo 即可)。"
+          style="margin-bottom: 16px;"
+        />
+        <a-space wrap>
+          <a-button type="primary" :loading="gitcfg.saving" @click="gitConfigSave">保存</a-button>
+          <a-popconfirm
+            v-if="gitcfg.configured"
+            title="确定要清除 Git 凭证吗？远程仓库 URL / 路径会保留。"
+            ok-text="清除"
+            cancel-text="取消"
+            @confirm="gitConfigClear"
+          >
+            <a-button danger>清除凭证</a-button>
+          </a-popconfirm>
+        </a-space>
+      </a-form>
+    </a-card>
+
     <!-- 状态卡片 -->
     <a-card style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;">
       <template #title>
@@ -193,6 +275,7 @@ import {
   CloudUploadOutlined,
   CloudDownloadOutlined,
   WarningOutlined,
+  BranchesOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 
@@ -471,8 +554,97 @@ async function webdavClear() {
   }
 }
 
+// ── Git 仓库段 (Phase 3c.5) ────────────────────────────────
+const gitcfg = reactive({
+  configured: false,
+  maskedPassword: '',
+  saving: false,
+  form: {
+    enabled: false,
+    autoSync: false,
+    remoteUrl: '',
+    repoPath: '',
+    authorName: '',
+    authorEmail: '',
+    username: '',
+    password: '',
+  },
+})
+
+async function gitConfigLoad() {
+  try {
+    const reply = await ws.sendRaw({ type: 'git.config-get' }, 10000)
+    if (!reply || reply.ok === false) return
+    const r = reply.result
+    if (!r?.success) return
+    const d = r.data || {}
+    gitcfg.form.enabled = !!d.enabled
+    gitcfg.form.autoSync = !!d.autoSync
+    gitcfg.form.remoteUrl = d.remoteUrl || ''
+    gitcfg.form.repoPath = d.repoPath || ''
+    gitcfg.form.authorName = d.authorName || ''
+    gitcfg.form.authorEmail = d.authorEmail || ''
+    gitcfg.form.username = d.auth?.username || ''
+    gitcfg.form.password = ''
+    gitcfg.maskedPassword = d.auth?.password || d.auth?.token || ''
+    gitcfg.configured = !!d.configured
+  } catch (err) {
+    console.warn('[SyncSettings] git.config-get failed:', err?.message)
+  }
+}
+
+async function gitConfigSave() {
+  gitcfg.saving = true
+  try {
+    const payload = {
+      enabled: gitcfg.form.enabled,
+      autoSync: gitcfg.form.autoSync,
+      remoteUrl: gitcfg.form.remoteUrl.trim(),
+      repoPath: gitcfg.form.repoPath.trim(),
+      authorName: gitcfg.form.authorName,
+      authorEmail: gitcfg.form.authorEmail,
+      auth: {
+        username: gitcfg.form.username,
+        password: gitcfg.form.password,
+      },
+    }
+    const reply = await ws.sendRaw({ type: 'git.config-set', payload }, 15000)
+    const r = reply?.result
+    if (reply?.ok && r?.success) {
+      message.success('Git 配置已保存')
+      gitcfg.form.password = ''
+      await gitConfigLoad()
+    } else {
+      message.error('保存失败：' + (r?.error || reply?.error || '未知错误'))
+    }
+  } catch (err) {
+    message.error('保存失败：' + (err?.message || ''))
+  } finally {
+    gitcfg.saving = false
+  }
+}
+
+async function gitConfigClear() {
+  try {
+    const reply = await ws.sendRaw({ type: 'git.config-clear' }, 5000)
+    const r = reply?.result
+    if (reply?.ok && r?.success) {
+      message.success('已清除 Git 凭证')
+      gitcfg.form.username = ''
+      gitcfg.form.password = ''
+      gitcfg.form.enabled = false
+      gitcfg.maskedPassword = ''
+      gitcfg.configured = false
+    } else {
+      message.error('清除失败：' + (r?.error || reply?.error || '未知错误'))
+    }
+  } catch (err) {
+    message.error('清除失败：' + (err?.message || ''))
+  }
+}
+
 async function refreshAll() {
-  await Promise.all([fetchStatus(), webdavLoad()])
+  await Promise.all([fetchStatus(), webdavLoad(), gitConfigLoad()])
 }
 
 onMounted(refreshAll)
