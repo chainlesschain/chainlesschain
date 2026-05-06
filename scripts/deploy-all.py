@@ -30,24 +30,26 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1219 — 三站同步刷到 v5.0.3.34。CI run 25415226803 已发布
-    # GitHub Release v5.0.3.34 (5 desktop/mobile builds + create-release +
-    # publish-cli 全 success)，docs-website-v2 build 时 fetch-release-sizes.mjs
-    # 拉到了真 v5.0.3.34 资产大小。changelog / taglines / overview "当前版本"
-    # 已 sweep 到 v5.0.3.34。
+    # 2026-05-06 -1438 — 三站同步刷到 v5.0.3.35。CI run 25418749598 已发布
+    # GitHub Release v5.0.3.35 (5 desktop/mobile builds + create-release +
+    # publish-cli 全 success)。docs-website-v2 fetch-release-sizes 拉到 v5.0.3.35
+    # 真资产大小（Setup.exe 736 MB）。changelog / taglines / overview "当前版本"
+    # 已 sweep 到 v5.0.3.35。本版修 packaged install 里 require("electron-log")
+    # 抛 ENOENT 致 auto-updater 整个 load 不进来——跨 v5.0.3.31/32/33/34 的隐藏
+    # bug，v5.0.3.34 加诊断 dialog 才暴露根因。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.34-20260506-1219.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.35-20260506-1438.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.34-20260506-1219.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.35-20260506-1438.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.34-20260506-1219.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.35-20260506-1438.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
