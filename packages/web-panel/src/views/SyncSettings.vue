@@ -225,16 +225,21 @@ const conflictColumns = [
 // 改用 web-shell 的 sync.* WS topic 而不是 ws.execute('sync …')：CLI 子进程
 // 会撞 main 已开的 SQLite db (Windows + WAL 下 better-sqlite3 报"database disk
 // image is malformed")。in-process WS handler 共用同一个 db handle，零冲突。
+// Envelope shape: ws.sendRaw 拿到 {type, ok, result, error?}；handler 自身返回
+// {success, ...} 在 result 里。所以读字段都走 reply.result.xxx。
 async function fetchStatus() {
   statusLoading.value = true
   statusError.value = ''
   try {
-    const data = await ws.sendRaw({ type: 'sync.status' }, 15000)
-    if (data?.success === false) throw new Error(data.error || '获取失败')
-    totalResources.value = Number(data?.totalResources ?? 0)
-    pending.value = Number(data?.pending ?? 0)
-    synced.value = Number(data?.synced ?? 0)
-    conflicts.value = Number(data?.conflicts ?? 0)
+    const reply = await ws.sendRaw({ type: 'sync.status' }, 15000)
+    const r = reply?.result
+    if (!reply?.ok || !r?.success) {
+      throw new Error(r?.error || reply?.error || '获取失败')
+    }
+    totalResources.value = Number(r.totalResources ?? 0)
+    pending.value = Number(r.pending ?? 0)
+    synced.value = Number(r.synced ?? 0)
+    conflicts.value = Number(r.conflicts ?? 0)
     if (conflicts.value > 0) {
       await fetchConflicts()
     } else {
@@ -250,11 +255,10 @@ async function fetchStatus() {
 async function fetchConflicts() {
   conflictsLoading.value = true
   try {
-    const data = await ws.sendRaw({ type: 'sync.conflicts' }, 15000)
-    const list = Array.isArray(data?.conflicts) ? data.conflicts : []
+    const reply = await ws.sendRaw({ type: 'sync.conflicts' }, 15000)
+    const list = Array.isArray(reply?.result?.conflicts) ? reply.result.conflicts : []
     conflictList.value = list
   } catch (err) {
-    // 静默失败 — 状态卡片已经显示 conflicts 计数
     conflictList.value = []
   } finally {
     conflictsLoading.value = false
@@ -265,13 +269,14 @@ async function doPush() {
   pushLoading.value = true
   lastActionLabel.value = 'sync.push'
   try {
-    const result = await ws.sendRaw({ type: 'sync.push' }, 60000)
-    lastActionResult.value = JSON.stringify(result, null, 2)
-    if (result?.success) {
-      message.success(`推送完成 (${result.pushed ?? 0} / ${result.total ?? 0})`)
+    const reply = await ws.sendRaw({ type: 'sync.push' }, 60000)
+    const r = reply?.result
+    lastActionResult.value = JSON.stringify(r, null, 2)
+    if (reply?.ok && r?.success) {
+      message.success(`推送完成 (${r.pushed ?? 0} / ${r.total ?? 0})`)
       await fetchStatus()
     } else {
-      message.error('推送失败：' + (result?.error || ''))
+      message.error('推送失败：' + (r?.error || reply?.error || ''))
     }
   } catch (err) {
     lastActionResult.value = err?.message || String(err)
@@ -285,13 +290,14 @@ async function doPull() {
   pullLoading.value = true
   lastActionLabel.value = 'sync.pull'
   try {
-    const result = await ws.sendRaw({ type: 'sync.pull' }, 60000)
-    lastActionResult.value = JSON.stringify(result, null, 2)
-    if (result?.success) {
-      message.success(`拉取完成 (检查 ${result.checked ?? 0}, 更新 ${result.updated ?? 0})`)
+    const reply = await ws.sendRaw({ type: 'sync.pull' }, 60000)
+    const r = reply?.result
+    lastActionResult.value = JSON.stringify(r, null, 2)
+    if (reply?.ok && r?.success) {
+      message.success(`拉取完成 (检查 ${r.checked ?? 0}, 更新 ${r.updated ?? 0})`)
       await fetchStatus()
     } else {
-      message.error('拉取失败：' + (result?.error || ''))
+      message.error('拉取失败：' + (r?.error || reply?.error || ''))
     }
   } catch (err) {
     lastActionResult.value = err?.message || String(err)
@@ -303,15 +309,16 @@ async function doPull() {
 
 async function resolveOne(id, side) {
   try {
-    const result = await ws.sendRaw(
+    const reply = await ws.sendRaw(
       { type: 'sync.resolve', conflictId: id, side },
       30000,
     )
-    if (result?.success) {
+    const r = reply?.result
+    if (reply?.ok && r?.success) {
       message.success(`已用${side === 'local' ? '本地' : '远程'}版本解决`)
       await fetchStatus()
     } else {
-      message.error('解决失败：' + (result?.error || ''))
+      message.error('解决失败：' + (r?.error || reply?.error || ''))
     }
   } catch (err) {
     message.error('解决失败：' + (err?.message || ''))
