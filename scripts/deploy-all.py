@@ -30,26 +30,26 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1438 — 三站同步刷到 v5.0.3.35。CI run 25418749598 已发布
-    # GitHub Release v5.0.3.35 (5 desktop/mobile builds + create-release +
-    # publish-cli 全 success)。docs-website-v2 fetch-release-sizes 拉到 v5.0.3.35
-    # 真资产大小（Setup.exe 736 MB）。changelog / taglines / overview "当前版本"
-    # 已 sweep 到 v5.0.3.35。本版修 packaged install 里 require("electron-log")
-    # 抛 ENOENT 致 auto-updater 整个 load 不进来——跨 v5.0.3.31/32/33/34 的隐藏
-    # bug，v5.0.3.34 加诊断 dialog 才暴露根因。
+    # 2026-05-06 -1622 — 三站同步刷到 v5.0.3.36。CI run 25422630718 已发布
+    # GitHub Release v5.0.3.36（5 desktop/mobile builds 全 success）。本版给
+    # 手动检查更新加 native dialog feedback（"当前已是最新版本" / "检查更新失败"），
+    # 彻底闭环跨 v5.0.3.31-35 五版的"检查更新点了无反应"用户体验问题——根因
+    # update-not-available / error 事件只走 webContents.send IPC，但 V5/V6 和
+    # web-shell 的 renderer 都没监听这个 channel。绕开 renderer 走主进程原生
+    # dialog（manualCheckPending flag 区分手动 vs 后台 3s/4h 自检）。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.35-20260506-1438.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.36-20260506-1622.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.35-20260506-1438.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.36-20260506-1622.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.35-20260506-1438.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.36-20260506-1622.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]

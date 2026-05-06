@@ -46,6 +46,7 @@ const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
 const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 const { createSyncWebDAVHandlers } = require("./handlers/sync-webdav-handlers");
 const { createSyncStatusHandlers } = require("./handlers/sync-status-handlers");
+const { createGitConfigHandlers } = require("./handlers/git-config-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -161,6 +162,9 @@ async function startWebShell(options = {}) {
     // Phase 3b — sync.status / push / pull / conflicts / resolve. 复用 main 已开
     // 的 db handle，避免 ws.execute('sync ...') spawn 子进程抢同一 SQLite 文件。
     ...createSyncStatusHandlers({ database: options.database ?? null }),
+    // Phase 3c.5 — git.config-* topics. 复用 git-config.json 单例（getGitConfig），
+    // web-panel 用户也能配 Git 仓库，不必切回 V5/V6 桌面 shell。
+    ...createGitConfigHandlers(),
     // Phase 1.6 — symmetric shell switch from web-panel back to V5/V6.
     // Only registered when getAppConfig is provided (it requires the
     // AppConfigManager singleton to persist the opt-out).
