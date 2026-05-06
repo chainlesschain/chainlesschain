@@ -157,13 +157,23 @@ class EnhancedTrayManager {
           {
             label: "自动同步",
             type: "checkbox",
-            checked: options.autoSync !== false,
+            // 默认 false：renderer 端 syncScheduler 也默认 disabled，与持久化
+            // localStorage `cc.sync.autoSync` 保持一致。renderer toggle 后下
+            // 次 updateContextMenu 时通过 options.autoSync 反映回来。
+            checked: options.autoSync === true,
             click: (menuItem) => {
               this.dispatchTrayAction("sync", {
                 mode: "toggle-auto",
                 value: menuItem.checked,
               });
             },
+          },
+          {
+            type: "separator",
+          },
+          {
+            label: "同步设置…",
+            click: () => this.dispatchTrayAction("open-settings", "sync"),
           },
           {
             type: "separator",

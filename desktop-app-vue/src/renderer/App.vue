@@ -87,6 +87,7 @@ import ShortcutHelpPanel from "./components/common/ShortcutHelpPanel.vue";
 import GlobalSearch from "./components/common/GlobalSearch.vue";
 import ClipboardImportDialog from "./components/common/ClipboardImportDialog.vue";
 import ScreenshotImportDialog from "./components/common/ScreenshotImportDialog.vue";
+import * as syncScheduler from "./utils/syncScheduler";
 import InvitationAcceptDialog from "./components/organization/InvitationAcceptDialog.vue";
 import BudgetAlertListener from "./components/BudgetAlertListener.vue";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
@@ -302,14 +303,39 @@ const handleQuickAction = (action) => {
   }
 };
 
-const handleSyncAction = (data = {}) => {
-  // 主进程暂未暴露统一 sync IPC；先给用户明确反馈。后续接入后这里
-  // 换成真实 IPC 调用即可，托盘 → renderer 链路本身已通。
+const handleSyncAction = async (data = {}) => {
+  // syncScheduler 走 SyncProvider 抽象（utils/syncProviders/）。托盘"立即同步"
+  // 跑用户在 设置 → 同步 启用的所有 provider；toggle-auto 控制全局周期。
   const { mode, value } = data || {};
   if (mode === "now") {
-    message.info("立即同步功能即将推出");
+    message.loading({ content: "正在同步…", key: "sync-now", duration: 0 });
+    const result = await syncScheduler.runOnce();
+    if (result.skipped) {
+      message.warning({
+        content: "未启用任何同步目标，请到 设置 → 同步 勾选",
+        key: "sync-now",
+      });
+      router.push("/settings/sync");
+    } else if (result.success) {
+      message.success({
+        content: `同步完成（${result.succeeded}/${result.ran}）`,
+        key: "sync-now",
+      });
+    } else {
+      message.error({
+        content: `同步失败 (${result.succeeded}/${result.ran})：${result.error || "未知错误"}`,
+        key: "sync-now",
+      });
+    }
   } else if (mode === "toggle-auto") {
-    message.info(`自动同步：${value ? "已开启" : "已关闭"}（待接入）`);
+    if (value) {
+      syncScheduler.start();
+      const interval = syncScheduler.getIntervalMin();
+      message.success(`自动同步已开启（每 ${interval} 分钟）`);
+    } else {
+      syncScheduler.stop();
+      message.info("自动同步已关闭");
+    }
   }
 };
 
@@ -340,6 +366,9 @@ onMounted(async () => {
       );
       window.electron.ipcRenderer.on("tray:action", handleTrayAction);
     }
+
+    // 同步调度器：若 localStorage 持久化了"开启"，启动周期 tick
+    syncScheduler.bootstrapFromPersisted();
 
     // 检测U盾状态
     const ukeyStatus = await ukeyAPI.detect();

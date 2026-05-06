@@ -138,6 +138,10 @@ const settingsPages = createRouteGroup("settings", {
     import(
       /* webpackChunkName: "settings-voice" */ "../pages/VoiceInputTestPage.vue"
     ),
+  sync: () =>
+    import(
+      /* webpackChunkName: "settings-sync" */ "../pages/settings/SyncSettings.vue"
+    ),
 });
 
 // 社交功能页面组（低优先级）
@@ -389,6 +393,12 @@ const routes: RouteRecordRaw[] = [
         name: "VoiceInputTest",
         component: settingsPages.voice,
         meta: { title: "语音输入测试" },
+      },
+      {
+        path: "settings/sync",
+        name: "SyncSettings",
+        component: settingsPages.sync,
+        meta: { title: "同步设置", requiresAuth: false },
       },
       {
         path: "contacts",
