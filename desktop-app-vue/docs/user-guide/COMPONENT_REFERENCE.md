@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 577
+**Total Components**: 580
 
 ---
 
@@ -863,6 +863,14 @@
 **File**: `src/renderer/pages/settings/SystemSettings.vue`
 
 **Description**: 通用设置
+
+---
+
+### SyncSettings
+
+**File**: `src/renderer/pages/settings/SyncSettings.vue`
+
+**Description**: 全局自动同步控制
 
 ---
 
@@ -4014,6 +4022,12 @@
 
 ---
 
+### ScreenshotImportDialog
+
+**File**: `src/renderer/components/common/ScreenshotImportDialog.vue`
+
+---
+
 ### RecentActivities
 
 **File**: `src/renderer/components/common/RecentActivities.vue`
@@ -4135,6 +4149,12 @@
 **File**: `src/renderer/components/common/CommandPalette.vue`
 
 **Description**: 搜索框
+
+---
+
+### ClipboardImportDialog
+
+**File**: `src/renderer/components/common/ClipboardImportDialog.vue`
 
 ---
 
