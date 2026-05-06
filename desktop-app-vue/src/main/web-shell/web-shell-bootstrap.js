@@ -179,13 +179,14 @@ async function startWebShell(options = {}) {
   };
 
   // DIAG 2026-05-06 — verify which topics actually got registered
-  // eslint-disable-next-line no-console
-  console.log(
-    "[web-shell-bootstrap] registering",
-    Object.keys(wsHandlers).length,
-    "WS topics:",
-    Object.keys(wsHandlers).sort(),
-  );
+  try {
+    const { logger } = require("../utils/logger.js");
+    logger.info(
+      `[WebShell DIAG] registering ${Object.keys(wsHandlers).length} WS topics: ${Object.keys(wsHandlers).sort().join(", ")}`,
+    );
+  } catch (_) {
+    // ignore if logger unavailable
+  }
 
   const ws = await startWsCliBackend({
     host,

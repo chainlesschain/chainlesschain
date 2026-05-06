@@ -50,9 +50,10 @@ function _getDb(database) {
 /**
  * 安全 COUNT 查询：表 / 列不存在时返回 0 而不是抛错。
  *
- * 用于桌面 `sync_conflicts` (column: `resolved` / `resolution_strategy`)
- * 与 CLI sync-manager 期望的 `sync_conflicts` (column: `resolution`)
- * schema 撞名问题 —— 两侧都试，先成功的为准。
+ * CLI v2 起把 sync_state / sync_conflicts / sync_log 加 `cli_` 前缀，
+ * 跟桌面 sync_conflicts (org-internal P2P sync) 解耦。但首次调用 CLI lib
+ * 之前 cli_sync_* 表还不存在 → 直查会拿到 "no such table"。这里 swallow
+ * 该 error 返回 0 是预期行为（用户尚未 cc sync 过任何资源）。
  */
 function _safeCountQuery(db, sql, params = []) {
   try {
@@ -63,21 +64,6 @@ function _safeCountQuery(db, sql, params = []) {
   }
 }
 
-function _countConflicts(db) {
-  // 桌面 schema：sync_conflicts.resolved INTEGER DEFAULT 0
-  // CLI schema：sync_conflicts.resolution TEXT (NULL = unresolved)
-  // 顺序无关 — 两个查询各自吞错，取大者（一般只有一侧成功 → max 等于该侧值）
-  const desktopCount = _safeCountQuery(
-    db,
-    "SELECT COUNT(*) as c FROM sync_conflicts WHERE resolved = 0",
-  );
-  const cliCount = _safeCountQuery(
-    db,
-    "SELECT COUNT(*) as c FROM sync_conflicts WHERE resolution IS NULL",
-  );
-  return Math.max(desktopCount, cliCount);
-}
-
 function createSyncStatusHandler({ database }) {
   return async function syncStatusHandler() {
     const db = _getDb(database);
@@ -85,25 +71,24 @@ function createSyncStatusHandler({ database }) {
       return { success: false, error: "数据库未初始化" };
     }
     try {
-      // CLI lib 的 getSyncStatus 直接 SELECT … WHERE resolution IS NULL，
-      // 在桌面 schema 上 throw "no such column: resolution"。这里改走
-      // 自包含的 COUNT 查询，对桌面 / CLI 两套 schema 都鲁棒；
-      // sync_state 表 CLI 才有，桌面无 → _safeCountQuery 自然返回 0。
       const totalResources = _safeCountQuery(
         db,
-        "SELECT COUNT(*) as c FROM sync_state",
+        "SELECT COUNT(*) as c FROM cli_sync_state",
       );
       const pending = _safeCountQuery(
         db,
-        "SELECT COUNT(*) as c FROM sync_state WHERE status = ?",
+        "SELECT COUNT(*) as c FROM cli_sync_state WHERE status = ?",
         ["pending"],
       );
       const synced = _safeCountQuery(
         db,
-        "SELECT COUNT(*) as c FROM sync_state WHERE status = ?",
+        "SELECT COUNT(*) as c FROM cli_sync_state WHERE status = ?",
         ["synced"],
       );
-      const conflicts = _countConflicts(db);
+      const conflicts = _safeCountQuery(
+        db,
+        "SELECT COUNT(*) as c FROM cli_sync_conflicts WHERE resolution IS NULL",
+      );
       return {
         success: true,
         totalResources,

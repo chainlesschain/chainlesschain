@@ -3991,8 +3991,11 @@ function createTables(dbManager, logger) {
       -- ============================
       -- Phase 3c — 外部 sync provider 增量游标 + tombstones
       -- ============================
-      -- 命名加 external_ 前缀，与现有 sync_queue / sync_conflicts
+      -- 命名加 external_ 前缀，与桌面 sync_queue / sync_conflicts
       -- (org-internal backend sync 用) 解耦。WebDAV / S3 / OSS / 网盘 共用。
+      -- 注：CLI 的 sync_state / sync_conflicts / sync_log 自 v2 起已加
+      -- cli_ 前缀（packages/cli/src/lib/sync-manager.js），与本表 + 桌面表
+      -- 的命名空间彻底不再撞。
 
       -- 每个 provider × account 维护一个游标
       CREATE TABLE IF NOT EXISTS sync_external_provider_cursor (

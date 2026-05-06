@@ -28,17 +28,17 @@ describe("Sync Manager", () => {
   // ─── ensureSyncTables ─────────────────────────────────
 
   describe("ensureSyncTables", () => {
-    it("should create sync tables", () => {
+    it("should create sync tables (cli_ prefix)", () => {
       ensureSyncTables(db);
-      expect(db.tables.has("sync_state")).toBe(true);
-      expect(db.tables.has("sync_conflicts")).toBe(true);
-      expect(db.tables.has("sync_log")).toBe(true);
+      expect(db.tables.has("cli_sync_state")).toBe(true);
+      expect(db.tables.has("cli_sync_conflicts")).toBe(true);
+      expect(db.tables.has("cli_sync_log")).toBe(true);
     });
 
     it("should be idempotent", () => {
       ensureSyncTables(db);
       ensureSyncTables(db);
-      expect(db.tables.has("sync_state")).toBe(true);
+      expect(db.tables.has("cli_sync_state")).toBe(true);
     });
   });
 

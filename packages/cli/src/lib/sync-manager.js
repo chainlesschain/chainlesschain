@@ -8,11 +8,102 @@ import fs from "fs";
 import path from "path";
 
 /**
+ * 检测 db 里是否有指定名字的表。
+ * 用 sqlite_master 查 — better-sqlite3 / sql.js / 真实 sqlite 都支持。
+ * MockDatabase 不支持 prepare/get 上 sqlite_master，但 mock 的 exec 是
+ * no-op-on-no-match，所以即便此函数返回 false migration 也不会执行。
+ */
+function _tableExists(db, name) {
+  try {
+    const row = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      )
+      .get(name);
+    return !!row;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 检测 sync_conflicts 表是否是 CLI 的 schema (有 `resolution` 列)。
+ * 桌面 (desktop-app-vue) 的 sync_conflicts 是 org-internal P2P sync 用的，
+ * 列是 `resolution_strategy` + `resolved`，**完全不兼容**。
+ *
+ * @returns {"cli" | "desktop" | "absent"}
+ */
+function _detectSyncConflictsShape(db) {
+  if (!_tableExists(db, "sync_conflicts")) {
+    return "absent";
+  }
+  try {
+    const cols = db.prepare("PRAGMA table_info(sync_conflicts)").all();
+    const names = new Set(cols.map((c) => c.name));
+    if (names.has("resolution")) {
+      return "cli";
+    }
+    return "desktop";
+  } catch {
+    return "absent";
+  }
+}
+
+/**
+ * 一次性迁移：把 CLI v1 的 sync_state / sync_log / sync_conflicts 表
+ * 改名加 cli_ 前缀，避开桌面侧的同名 org-sync 表。
+ *
+ * 安全保证：
+ *   - sync_state / sync_log：桌面没这两个名，老表一定是 CLI 的，可直接 RENAME
+ *   - sync_conflicts：列名探测 — 只有 CLI shape (`resolution` 列) 才 RENAME；
+ *     desktop shape (`resolution_strategy` + `resolved`) 一律不动
+ *   - 已迁移过 (cli_* 已存在) → 跳过
+ *   - ALTER TABLE 失败不抛 — 用 try/catch 吞掉，让 CREATE TABLE IF NOT EXISTS
+ *     兜底（结果是空的 cli_* 表，老数据丢失但 CLI 不挂）
+ *
+ * 历史包袱：v1 (commit < 2026-05-06) 的 CLI 用户数据库里只有老表名；
+ * 升级到 v2 后第一次调 ensureSyncTables 完成迁移；之后老表名不再使用。
+ */
+function _migrateOldTables(db) {
+  // sync_state → cli_sync_state
+  if (_tableExists(db, "sync_state") && !_tableExists(db, "cli_sync_state")) {
+    try {
+      db.exec("ALTER TABLE sync_state RENAME TO cli_sync_state");
+    } catch {
+      /* 让 CREATE TABLE IF NOT EXISTS 兜底 */
+    }
+  }
+  // sync_log → cli_sync_log
+  if (_tableExists(db, "sync_log") && !_tableExists(db, "cli_sync_log")) {
+    try {
+      db.exec("ALTER TABLE sync_log RENAME TO cli_sync_log");
+    } catch {
+      /* fallback */
+    }
+  }
+  // sync_conflicts：仅当确认是 CLI shape 时才迁移
+  if (
+    _detectSyncConflictsShape(db) === "cli" &&
+    !_tableExists(db, "cli_sync_conflicts")
+  ) {
+    try {
+      db.exec("ALTER TABLE sync_conflicts RENAME TO cli_sync_conflicts");
+    } catch {
+      /* fallback */
+    }
+  }
+}
+
+/**
  * Ensure sync tables exist.
+ *
+ * 表名 v2 起改为 `cli_sync_*` 前缀，避免与桌面 `sync_conflicts`
+ * (org-internal P2P sync) / 未来其它子系统的 `sync_*` 表撞名。
  */
 export function ensureSyncTables(db) {
+  _migrateOldTables(db);
   db.exec(`
-    CREATE TABLE IF NOT EXISTS sync_state (
+    CREATE TABLE IF NOT EXISTS cli_sync_state (
       id TEXT PRIMARY KEY,
       resource_type TEXT NOT NULL,
       resource_id TEXT NOT NULL,
@@ -26,7 +117,7 @@ export function ensureSyncTables(db) {
     )
   `);
   db.exec(`
-    CREATE TABLE IF NOT EXISTS sync_conflicts (
+    CREATE TABLE IF NOT EXISTS cli_sync_conflicts (
       id TEXT PRIMARY KEY,
       resource_type TEXT NOT NULL,
       resource_id TEXT NOT NULL,
@@ -38,7 +129,7 @@ export function ensureSyncTables(db) {
     )
   `);
   db.exec(`
-    CREATE TABLE IF NOT EXISTS sync_log (
+    CREATE TABLE IF NOT EXISTS cli_sync_log (
       id TEXT PRIMARY KEY,
       operation TEXT NOT NULL,
       resource_type TEXT,
@@ -65,7 +156,7 @@ export function registerResource(db, resourceType, resourceId, checksum) {
   const id = `sync-${crypto.randomBytes(8).toString("hex")}`;
 
   db.prepare(
-    `INSERT OR REPLACE INTO sync_state (id, resource_type, resource_id, checksum, status)
+    `INSERT OR REPLACE INTO cli_sync_state (id, resource_type, resource_id, checksum, status)
      VALUES (?, ?, ?, ?, ?)`,
   ).run(id, resourceType, resourceId, checksum || null, "pending");
 
@@ -79,7 +170,7 @@ export function getSyncState(db, resourceType, resourceId) {
   ensureSyncTables(db);
   return db
     .prepare(
-      "SELECT * FROM sync_state WHERE resource_type = ? AND resource_id = ?",
+      "SELECT * FROM cli_sync_state WHERE resource_type = ? AND resource_id = ?",
     )
     .get(resourceType, resourceId);
 }
@@ -91,7 +182,7 @@ export function getAllSyncStates(db, options = {}) {
   ensureSyncTables(db);
   const { status, resourceType } = options;
 
-  let sql = "SELECT * FROM sync_state WHERE 1=1";
+  let sql = "SELECT * FROM cli_sync_state WHERE 1=1";
   const params = [];
 
   if (status) {
@@ -115,28 +206,31 @@ export function updateSyncState(db, id, updates) {
   const { localVersion, remoteVersion, checksum, status, lastSynced } = updates;
 
   if (status) {
-    db.prepare("UPDATE sync_state SET status = ? WHERE id = ?").run(status, id);
+    db.prepare("UPDATE cli_sync_state SET status = ? WHERE id = ?").run(
+      status,
+      id,
+    );
   }
   if (localVersion !== undefined) {
-    db.prepare("UPDATE sync_state SET local_version = ? WHERE id = ?").run(
+    db.prepare("UPDATE cli_sync_state SET local_version = ? WHERE id = ?").run(
       localVersion,
       id,
     );
   }
   if (remoteVersion !== undefined) {
-    db.prepare("UPDATE sync_state SET remote_version = ? WHERE id = ?").run(
+    db.prepare("UPDATE cli_sync_state SET remote_version = ? WHERE id = ?").run(
       remoteVersion,
       id,
     );
   }
   if (checksum) {
-    db.prepare("UPDATE sync_state SET checksum = ? WHERE id = ?").run(
+    db.prepare("UPDATE cli_sync_state SET checksum = ? WHERE id = ?").run(
       checksum,
       id,
     );
   }
   if (lastSynced) {
-    db.prepare("UPDATE sync_state SET last_synced = ? WHERE id = ?").run(
+    db.prepare("UPDATE cli_sync_state SET last_synced = ? WHERE id = ?").run(
       lastSynced,
       id,
     );
@@ -159,7 +253,7 @@ export function createConflict(
   const id = `conflict-${crypto.randomBytes(8).toString("hex")}`;
 
   db.prepare(
-    `INSERT INTO sync_conflicts (id, resource_type, resource_id, local_data, remote_data)
+    `INSERT INTO cli_sync_conflicts (id, resource_type, resource_id, local_data, remote_data)
      VALUES (?, ?, ?, ?, ?)`,
   ).run(
     id,
@@ -181,12 +275,12 @@ export function getConflicts(db, options = {}) {
 
   if (resolved) {
     return db
-      .prepare("SELECT * FROM sync_conflicts ORDER BY created_at DESC")
+      .prepare("SELECT * FROM cli_sync_conflicts ORDER BY created_at DESC")
       .all();
   }
   return db
     .prepare(
-      "SELECT * FROM sync_conflicts WHERE resolution IS NULL ORDER BY created_at DESC",
+      "SELECT * FROM cli_sync_conflicts WHERE resolution IS NULL ORDER BY created_at DESC",
     )
     .all();
 }
@@ -198,7 +292,7 @@ export function resolveConflict(db, conflictId, resolution) {
   ensureSyncTables(db);
   const result = db
     .prepare(
-      "UPDATE sync_conflicts SET resolution = ?, resolved_at = datetime('now') WHERE id = ?",
+      "UPDATE cli_sync_conflicts SET resolution = ?, resolved_at = datetime('now') WHERE id = ?",
     )
     .run(resolution, conflictId);
   return result.changes > 0;
@@ -219,7 +313,7 @@ export function logSyncOperation(
   const id = `slog-${crypto.randomBytes(8).toString("hex")}`;
 
   db.prepare(
-    `INSERT INTO sync_log (id, operation, resource_type, resource_id, status, details)
+    `INSERT INTO cli_sync_log (id, operation, resource_type, resource_id, status, details)
      VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
@@ -240,7 +334,7 @@ export function getSyncLog(db, options = {}) {
   ensureSyncTables(db);
   const { limit = 50, operation } = options;
 
-  let sql = "SELECT * FROM sync_log";
+  let sql = "SELECT * FROM cli_sync_log";
   const params = [];
 
   if (operation) {
@@ -259,16 +353,16 @@ export function getSyncLog(db, options = {}) {
  */
 export function getSyncStatus(db) {
   ensureSyncTables(db);
-  const total = db.prepare("SELECT COUNT(*) as c FROM sync_state").get();
+  const total = db.prepare("SELECT COUNT(*) as c FROM cli_sync_state").get();
   const pending = db
-    .prepare("SELECT COUNT(*) as c FROM sync_state WHERE status = ?")
+    .prepare("SELECT COUNT(*) as c FROM cli_sync_state WHERE status = ?")
     .get("pending");
   const synced = db
-    .prepare("SELECT COUNT(*) as c FROM sync_state WHERE status = ?")
+    .prepare("SELECT COUNT(*) as c FROM cli_sync_state WHERE status = ?")
     .get("synced");
   const conflicts = db
     .prepare(
-      "SELECT COUNT(*) as c FROM sync_conflicts WHERE resolution IS NULL",
+      "SELECT COUNT(*) as c FROM cli_sync_conflicts WHERE resolution IS NULL",
     )
     .get();
 
@@ -285,7 +379,7 @@ export function getSyncStatus(db) {
  */
 export function pushResources(db, resourceType) {
   ensureSyncTables(db);
-  let sql = "SELECT * FROM sync_state WHERE status = ?";
+  let sql = "SELECT * FROM cli_sync_state WHERE status = ?";
   const params = ["pending"];
 
   if (resourceType) {
@@ -340,9 +434,9 @@ export function pullResources(db, resourceType) {
  */
 export function clearSyncData(db) {
   ensureSyncTables(db);
-  db.prepare("DELETE FROM sync_state").run();
-  db.prepare("DELETE FROM sync_conflicts").run();
-  db.prepare("DELETE FROM sync_log").run();
+  db.prepare("DELETE FROM cli_sync_state").run();
+  db.prepare("DELETE FROM cli_sync_conflicts").run();
+  db.prepare("DELETE FROM cli_sync_log").run();
   return true;
 }
 
