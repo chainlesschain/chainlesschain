@@ -1,10 +1,7 @@
 <template>
   <div class="notification-center">
     <!-- 通知图标按钮 -->
-    <a-badge
-      :count="unreadCount"
-      :overflow-count="99"
-    >
+    <a-badge :count="unreadCount" :overflow-count="99">
       <a-button
         type="text"
         size="large"
@@ -49,13 +46,7 @@
           >
             全部已读
           </a-button>
-          <a-button
-            size="small"
-            danger
-            @click="clearRead"
-          >
-            清空已读
-          </a-button>
+          <a-button size="small" danger @click="clearRead"> 清空已读 </a-button>
         </a-space>
       </div>
 
@@ -95,7 +86,9 @@
               {{ notification.description }}
             </div>
             <div class="notification-meta">
-              <span class="notification-time">{{ formatTime(notification.timestamp) }}</span>
+              <span class="notification-time">{{
+                formatTime(notification.timestamp)
+              }}</span>
               <a-tag
                 v-if="notification.priority !== 'normal'"
                 :color="getPriorityColor(notification.priority)"
@@ -140,8 +133,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Empty } from 'ant-design-vue';
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { Empty } from "ant-design-vue";
 import {
   BellOutlined,
   CloseOutlined,
@@ -149,8 +142,8 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useNotifications } from '@/utils/notificationManager';
+} from "@ant-design/icons-vue";
+import { useNotifications } from "@/utils/notificationManager";
 
 // 使用通知管理器
 const {
@@ -164,12 +157,12 @@ const {
 
 // 面板状态
 const panelVisible = ref(false);
-const filter = ref('all');
+const filter = ref("all");
 
 // 过滤后的通知列表
 const filteredNotifications = computed(() => {
-  if (filter.value === 'unread') {
-    return notifications.value.filter(n => !n.read);
+  if (filter.value === "unread") {
+    return notifications.value.filter((n) => !n.read);
   }
   return notifications.value;
 });
@@ -193,23 +186,23 @@ const getNotificationIcon = (type) => {
 // 获取优先级颜色
 const getPriorityColor = (priority) => {
   const colorMap = {
-    low: 'default',
-    normal: 'blue',
-    high: 'orange',
-    urgent: 'red',
+    low: "default",
+    normal: "blue",
+    high: "orange",
+    urgent: "red",
   };
-  return colorMap[priority] || 'blue';
+  return colorMap[priority] || "blue";
 };
 
 // 获取优先级标签
 const getPriorityLabel = (priority) => {
   const labelMap = {
-    low: '低',
-    normal: '普通',
-    high: '高',
-    urgent: '紧急',
+    low: "低",
+    normal: "普通",
+    high: "高",
+    urgent: "紧急",
   };
-  return labelMap[priority] || '普通';
+  return labelMap[priority] || "普通";
 };
 
 // 格式化时间
@@ -221,7 +214,7 @@ const formatTime = (timestamp) => {
   const day = 24 * hour;
 
   if (diff < minute) {
-    return '刚刚';
+    return "刚刚";
   } else if (diff < hour) {
     return `${Math.floor(diff / minute)} 分钟前`;
   } else if (diff < day) {
@@ -248,6 +241,17 @@ const handleActionClick = (action, notification) => {
   }
   markAsRead(notification.id);
 };
+
+// 托盘"未读通知"项点了从 App.vue 派发 cc:show-notifications
+const openFromTray = () => {
+  panelVisible.value = true;
+};
+onMounted(() => {
+  window.addEventListener("cc:show-notifications", openFromTray);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("cc:show-notifications", openFromTray);
+});
 </script>
 
 <style scoped>
@@ -294,7 +298,7 @@ const handleActionClick = (action, notification) => {
 }
 
 .notification-unread::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
