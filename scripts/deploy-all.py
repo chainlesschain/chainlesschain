@@ -30,27 +30,32 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1815 — 三站同步刷到 v5.0.3.37。CI run 25427193606 已发布
-    # GitHub Release v5.0.3.37（5 desktop builds + iOS + create-release 全
-    # success；android transient kotlin-dsl repo flake 已 rerun，与本批无关）。
-    # 本版同步两件：desktop-app-vue/package.json version 1.1.2-alpha →
-    # 5.0.3-alpha.37（auto-updater 终于能比对版本），托盘内存使用 10s 周期更新。
-    # 此前并行 session 的 -1806 仅刷过 www（Phase 3b/3c 多目标同步段），本批
-    # 把 docs / design / www 三站统一刷到当前 v5.0.3.37 状态——changelog /
-    # taglines / overview 都已 sweep。
-    {
-        "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.37-20260506-1815.tar.gz",
-        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    },
+    # 2026-05-07 — docs + design 刷到 v5.0.3.39（B4 post-pack ASAR surgery）。
+    # www 故意留在 v5.0.3.38 不动：v5.0.3.39 GitHub Release 还没 publish，提前
+    # 把 www 推到 .39 会让 release-sizes.json 的 download cards 指向不存在的
+    # asset bytes（per memory deployment_scripts.md release-sizes timing window）。
+    # 等 v5.0.3.39 GH Release published → 重跑 refresh-release-sizes → rebuild
+    # www → 单独再 deploy www。
+    #
+    # commits in this batch: e11b46913 (asar-surgery scripts + 23 tests) /
+    # f89ffa7e9 (version sweep + CHANGELOG + 4 docs-site files) /
+    # b50b875de (README_EN + www homepage highlights — built into all 3 dists,
+    # but only docs/design ship in this run).
+    #
+    # www 条目被注释掉，待 .39 release published 后再启用并刷 .local_tar。
+    # {
+    #     "name": "www.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.37-20260506-1815.tar.gz",
+    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    # },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.37-20260506-1815.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.39-20260507-070915.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.37-20260506-1815.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.39-20260507-070915.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
