@@ -19,7 +19,9 @@
             <a-switch
               :checked="autoSyncEnabled"
               :disabled="!hasAnyEnabled"
-              @change="onToggleAutoSync"
+              @change="
+                (val: boolean | string | number) => onToggleAutoSync(!!val)
+              "
             />
             <span>{{ autoSyncEnabled ? "已开启" : "已关闭" }}</span>
           </a-space>
@@ -104,7 +106,10 @@
               <a-switch
                 :checked="item.enabled"
                 :disabled="!item.available || item.provider.placeholder"
-                @change="(val) => onToggle(item.provider.id, val)"
+                @change="
+                  (val: boolean | string | number) =>
+                    onToggle(item.provider.id, !!val)
+                "
               />
             </template>
           </a-list-item>
