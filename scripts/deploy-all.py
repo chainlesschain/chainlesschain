@@ -30,16 +30,14 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -1032 — 三站同步刷到 v5.0.3.33。changelog 已落 v5.0.3.33 段
-    # （托盘"关于"对话框产品版本永远显示 "—" — packaged install 里
-    # require("../../../../package.json") 走出 app.asar 必失败。修复：build 时
-    # 烧 dist/main/build-info.json，showAboutDialog 优先读它）；READMEs 整体
-    # 从 v5.0.2.43 sweep 到 v5.0.3.33；taglines + overview "当前版本" 已是
-    # v5.0.3.33；release-sizes.json 等 v5.0.3.33 GitHub Release publish 后下
-    # 一次 build 自动 fetch（本次 build 时仍 v5.0.3.32 — 容忍）。
+    # 2026-05-06 -1047 — www-only refresh: GitHub v5.0.3.33 Release published
+    # (workflow run 25412694788), so docs-website-v2 was rebuilt to pick up
+    # real v5.0.3.33 asset sizes via fetch-release-sizes.mjs. docs / design
+    # contents unchanged since -1032 (entries kept here so the next full deploy
+    # works as a unit, but only www was redeployed in this round).
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.33-20260506-1032.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.33-20260506-1047.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
