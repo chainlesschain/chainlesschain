@@ -879,6 +879,10 @@ class ChainlessChainApp {
         // (cursor / tombstones / status). Null pre-init is safe; handlers
         // return error envelope.
         database: this.database ?? null,
+        // Phase 3c.6 — RAGManager so knowledge.add-item (web-shell clipboard
+        // import) keeps the knowledge index in sync the same way the V5/V6
+        // db:add-knowledge-item IPC handler does. Best-effort; null is safe.
+        ragManager: this.ragManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
         // ui.useWebShellExperimental opt-out from inside web-panel.

@@ -247,6 +247,12 @@
             </button>
           </a-tooltip>
 
+          <!-- Notification bell — only meaningful in the embedded web-shell
+               where notification.* WS topics are registered. In pure-browser
+               mode the composable returns empty / no-op shapes, so the badge
+               just shows 0 and the drawer is empty. -->
+          <NotificationBell v-if="shellMode.isEmbedded" />
+
           <span class="version-tag">{{ PRODUCT_VERSION }}</span>
           <!-- Phase 1.6 symmetric switch: only inside the embedded
                desktop shell does this make sense (no-op in `cc serve`
@@ -303,6 +309,7 @@ import logoSrc from '../assets/logo.png'
 import { useShellMode } from '../composables/useShellMode.js'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '../plugins/i18n.js'
+import NotificationBell from './NotificationBell.vue'
 
 const router  = useRouter()
 const route   = useRoute()
