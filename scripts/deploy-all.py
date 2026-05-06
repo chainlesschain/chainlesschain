@@ -30,24 +30,26 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-06 -0904 — 三站同步刷到 v5.0.3.32。changelog 补 v5.0.3.32 段
-    # （托盘"检查更新"误报 dev 模式 + 首次启动未设密码状态下托盘菜单事件丢弃 — 都是
-    # v5.0.3.31 修复闭环外漏掉的 packaged-only 边角）；release-sizes.json 自动
-    # fetch v5.0.3.32（Release workflow 25385716058 已 publish）；taglines +
-    # overview "当前版本" 已是 v5.0.3.32。
+    # 2026-05-06 -1032 — 三站同步刷到 v5.0.3.33。changelog 已落 v5.0.3.33 段
+    # （托盘"关于"对话框产品版本永远显示 "—" — packaged install 里
+    # require("../../../../package.json") 走出 app.asar 必失败。修复：build 时
+    # 烧 dist/main/build-info.json，showAboutDialog 优先读它）；READMEs 整体
+    # 从 v5.0.2.43 sweep 到 v5.0.3.33；taglines + overview "当前版本" 已是
+    # v5.0.3.33；release-sizes.json 等 v5.0.3.33 GitHub Release publish 后下
+    # 一次 build 自动 fetch（本次 build 时仍 v5.0.3.32 — 容忍）。
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.32-20260506-0904.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.33-20260506-1032.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.32-20260506-0904.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.33-20260506-1032.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.32-20260506-0904.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.33-20260506-1032.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
 ]
