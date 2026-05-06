@@ -3,6 +3,18 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.37 / CLI 0.161.2] - 2026-05-06 (桌面版同步 productVersion + 托盘内存使用周期更新)
+
+### Changed
+
+- **`desktop-app-vue/package.json` version 同步 productVersion**（commit `c73c3530c`）—— `1.1.2-alpha` → `5.0.3-alpha.37`，semver 合法（`-alpha.N` prerelease），数字部分跟 productVersion `vX.Y.Z.N` 一一对应。规则文档化在 `CLAUDE.md` Version hierarchy 段：每发一版（`productVersion → vX.Y.Z.N`）desktop 版同步到 `X.Y.Z-alpha.N`。下一次发版（productVersion → v5.0.3.38）desktop 版变 `5.0.3-alpha.38`，比 v5.0.3.37 用户当前的 `5.0.3-alpha.37` 高一档，auto-updater 会真发现并提示新版本。Setup.exe 文件名也变为 `ChainlessChain-Setup-5.0.3-alpha.37.exe`，与 GitHub release tag `v5.0.3.37` 视觉对应。**v5.0.3.36 用户重启时会首次收到原生"发现新版本 5.0.3-alpha.37"对话框**——跨 v5.0.3.31-36 六个 release 因桌面版字段一直是 1.1.2-alpha 没动过，auto-updater 比对永远相等而误报"已是最新"，本版彻底解开。
+
+### Added
+
+- **托盘 → 性能监控 → 内存使用 周期更新**（commit `c73c3530c`）—— `EnhancedTrayManager` 早就提供了 `updateMemoryUsage(usage)` 方法但 main 进程从未调用，跨 v5.0.3.30+ 一直显示"加载中..."。`index.js` 在 tray 创建后挂一个 10s `setInterval`：用 `app.getAppMetrics()` 累计所有 electron 进程（main + renderer + GPU + utility 子进程）的 `workingSetSize` (RSS)，格式化"X MB"或"X.X GB"传给 `updateMemoryUsage`。failure-tolerant：`getAppMetrics` 抛错只 `logger.warn` 不影响 tray 主流程。`onWillQuit` 中 `clearInterval` 提早停掉防止 quit 链路 timer 火 stale 回调。
+
+---
+
 ## [5.0.3.36 / CLI 0.161.2] - 2026-05-06 (手动检查更新加 native dialog feedback)
 
 ### Changed
