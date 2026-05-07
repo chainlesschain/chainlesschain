@@ -1,5 +1,38 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XIX（**chat-panel-v5 Phase E — V6 桌面 AIChatPanel 对齐 4 件功能**）
+
+XVI 把 V5 ChatPanel 的 4 件重型功能 port 到 web-shell；V6 桌面 `shell/AIChatPanel.vue` 当时未跟。本节把对齐补齐。V6 复用 desktop V5 已有的 `VirtualMessageList.vue` / `IntentConfirmationMessage.vue` / `messageTypes.ts` 三件套（不重新建），意图识别走 desktop **既有 IPC** `project:understandIntent` + `followup-intent:classify`（preload 已 expose，零后端工作），所以 Phase E 是纯 UI 集成。
+
+| 维度 | V6 改动 | 说明 |
+|---|---|---|
+| **A. 虚拟列表** | `<VirtualMessageList>` 替换 `v-for` (`shell/AIChatPanel.vue` slot 重构) | import 自 V5 `components/projects/VirtualMessageList.vue`（双壳共用一份）。slot prop 是 `unknown`，加 `asMsg(value: unknown): ConversationMessage` helper 在 setup 段把类型钉回，`v-for-with-singleton` (`v-for="msg in [asMsg(message)]"`) 把类型化 msg 暴露给整段模板 |
+| **B. Context 模式** | header 加 a-radio-group + localStorage `cc.desktop.aichat.contextMode`（与 web-shell key 独立）| file 永久 disable（V6 没 currentFile 概念）|
+| **C. 意图识别** | 新 `submitUserInput(text)` / `tryUnderstandIntent(text)` / `handleIntentConfirm/Correct`；transient `pendingIntentCard` ref（**不进 conversationStore**）；`onSend` 改走 submitUserInput；`<IntentConfirmationMessage>` 渲染挂在 messages-list 之后；clearContext / newConversation / selectConversation 都清空 pendingIntentCard | Wire：`window.electronAPI.project.understandIntent({ userInput, projectId, contextMode })` 直走 V5 IPC，preload 1259 行已 expose；返 success=false 或 understanding 无信息量时 fall through 直发 |
+| **D. autoSendMessage** | 新 prop `autoSend?: boolean`（保留 `prefillText`）；watch open + `[prefillText, autoSend]` 触发 `maybeAutoSend()`；token dedup `${prefill}::${autoSend}::${contextMode}` 防重发；canSend false 降级 prefill 让用户手动点发送 | Modal panel 无 vue-router，单通道（vs web-shell 双通道）|
+
+**双壳差异对比**
+
+| | web-shell (XVI) | V6 desktop (XIX) |
+|---|---|---|
+| 协议层 | WS topic `chat.intent.understand[-stream]` / `chat.intent.classify-followup` | electronAPI IPC `project.understandIntent` / `followupIntent.classify` |
+| Streaming intent | ✅（v1.1, async generator + chunk frames）| ❌（V5 IPC 是 non-streaming；待新建 streaming IPC 时再升）|
+| Multi-turn history | ✅ payload.history 自动注入 | ❌（V5 IPC 不接 history 参数）|
+| Persisted intent decisions | ✅ localStorage（LRU 200）| ❌（pendingIntentCard transient，刷新自然丢）|
+| Custom quickPrompts | ✅（modal editor + 12×120 cap）| ❌（V6 现有 4 个 hardcoded）|
+| autoSendMessage 通道 | URL query + Pinia 双通道 | Prop 单通道 |
+
+**测试矩阵**
+
+| 层 | 测试 |
+|---|---|
+| `vue-tsc --noEmit` | ✅ 0 errors |
+| `npm run build:main` | ✅ |
+| desktop store/shell/shell-preview/AIChatPage 回归 | **150 / 150** ✅（131 + 19）|
+| web-shell + CLI + e2e 累计 | 1844 + 89 + 63 全绿 |
+
+**新增 AIChatPanel.vue 测试 caveat**：本节未补 mount-level 单测。原因：(1) AIChatPanel 既有 mount 测试要海量 stub（参见 `AIChatPage.test.js` 一千多行模式），(2) Phase E 借用的 4 件 component 都已在 web-shell 测过，(3) 桌面 IPC `project:understandIntent` / `followupIntent.classify` 是 V5 跑了几年的 handler。Manual smoke：`npm run dev` → V6 shell AI 按钮打开 AIChatPanel → 切 contextMode → 输错别字看意图卡 → 确认/纠正闭环。
+
 ## 2026-05-07 增量更新 XVIII（**B4-auto-archive v1 — 主进程定时归档 cron + MtcAudit 第 5 个 Tab**）
 
 §2.2.21 (XIV) 把 Archive Tab 接好之后，归档仍然是手动的——用户必须主动点 "推送"。XVII 修了凭据持久化，让推送本身不需要每次重输密码；本节继续把 cron 跑起来——主进程 setInterval 周期触发 `ChannelEnvelopeArchiver.push`，配置写到 `app-config.json` 的 `mtc.autoArchive` namespace，重启后自动恢复。

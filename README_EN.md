@@ -1,5 +1,38 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XIX — **chat-panel-v5 Phase E — V6 desktop AIChatPanel aligned on the 4 features**
+
+XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 desktop `shell/AIChatPanel.vue` was deliberately deferred. This section closes that gap. V6 reuses the existing desktop V5 trio (`VirtualMessageList.vue` / `IntentConfirmationMessage.vue` / `messageTypes.ts`) instead of duplicating, and the intent flow rides on the **already-shipped** desktop IPC handlers `project:understandIntent` + `followup-intent:classify` (preload-exposed at `index.js:1259`/`2441`), so Phase E is a pure UI integration with zero backend work.
+
+| Area | Change | Notes |
+|---|---|---|
+| **A. Virtual list** | Replace the v-for in `shell/AIChatPanel.vue` with `<VirtualMessageList>` (slot rebuilt) | Imported from V5 `components/projects/VirtualMessageList.vue` (one component, both shells). Slot prop is `unknown`; added an `asMsg(value: unknown): ConversationMessage` helper plus a `v-for-with-singleton` (`v-for="msg in [asMsg(message)]"`) so the rest of the slot template sees a typed `msg` without modifying the JS list component |
+| **B. Context mode** | Header gains an a-radio-group + localStorage `cc.desktop.aichat.contextMode` (separate key from the web-shell's so each surface persists independently) | `file` permanently disabled (V6 has no currentFile concept) |
+| **C. Intent recognition** | New `submitUserInput(text)` / `tryUnderstandIntent(text)` / `handleIntentConfirm/Correct`; transient `pendingIntentCard` ref kept **out of conversationStore** so it never persists; `onSend` routes through submitUserInput; `<IntentConfirmationMessage>` renders between messages list and streaming bubble; clearContext / newConversation / selectConversation all reset pendingIntentCard | Wire: `window.electronAPI.project.understandIntent({ userInput, projectId, contextMode })` → V5 IPC; returns success=false or no useful understanding → falls through to direct dispatch |
+| **D. autoSendMessage** | New `autoSend?: boolean` prop (legacy `prefillText` preserved); watch `open` + `[prefillText, autoSend]` triggers `maybeAutoSend()`; token dedup `${prefill}::${autoSend}::${contextMode}` blocks duplicate fires; if canSend is false, degrades to prefilling the composer for manual send | Modal panel — no vue-router context, so single-channel (vs the web-shell's URL+Pinia dual surface) |
+
+**Cross-shell parity**
+
+| | web-shell (XVI) | V6 desktop (XIX) |
+|---|---|---|
+| Protocol | WS topics `chat.intent.understand[-stream]` / `chat.intent.classify-followup` | electronAPI IPC `project.understandIntent` / `followupIntent.classify` |
+| Streaming intent | ✅ (v1.1, async generator + chunk frames) | ❌ (V5 IPC is non-streaming; deferred until a streaming IPC is added) |
+| Multi-turn history | ✅ payload.history forwarded automatically | ❌ (V5 IPC doesn't accept history yet) |
+| Persisted intent decisions | ✅ localStorage (LRU 200) | ❌ (pendingIntentCard is transient; refresh in the modal naturally starts a fresh state) |
+| Custom quickPrompts | ✅ (modal editor + 12×120 cap) | ❌ (V6 keeps the existing 4 hardcoded prompts) |
+| autoSendMessage channel | URL query + Pinia dual surface | Prop single channel |
+
+**Test matrix**
+
+| Layer | Result |
+|---|---|
+| `vue-tsc --noEmit` | ✅ 0 errors |
+| `npm run build:main` | ✅ |
+| desktop store / shell / shell-preview / AIChatPage regression | **150 / 150** ✅ (131 + 19) |
+| Cumulative web-shell + CLI + e2e | 1844 + 89 + 63 still green |
+
+**Caveat — no AIChatPanel mount tests added**: (1) the V6 panel has no existing mount-test fixture and stubbing all of ant-design-vue + llmStore + conversationStore + electronAPI follows the 1000+-line `AIChatPage.test.js` pattern that's expensive to maintain; (2) the four reused components are all already covered by web-shell unit tests; (3) the underlying desktop IPC handlers (`project:understandIntent` / `followupIntent.classify`) have been in production for a year. Manual smoke recommended: `npm run dev` → click the V6 shell AI Chat entry → switch contextMode → type a typo → see the intent card → confirm/correct loop.
+
 ## 2026-05-07 Update XVIII — **B4-auto-archive v1 — main-process periodic archival cron + MtcAudit 5th tab**
 
 §2.2.21 (XIV) wired Archive Tab but archival remained manual — the user had to actively click "推送". XVII fixed credential persistence so each push no longer prompted for the password; this update lets the cron run itself — main process `setInterval` periodically fires `ChannelEnvelopeArchiver.push`, the config is persisted to `app-config.json` `mtc.autoArchive` namespace, restart-safe.
