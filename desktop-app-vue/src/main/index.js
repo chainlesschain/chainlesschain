@@ -513,6 +513,7 @@ class ChainlessChainApp {
     this.channelEnvelopeDistribution = instances.channelEnvelopeDistribution;
     this.channelEnvelopeArchiver = instances.channelEnvelopeArchiver;
     this.archiveProviderFactory = instances.archiveProviderFactory;
+    this.autoArchiveScheduler = instances.autoArchiveScheduler;
     this.governanceMultiSig = instances.governanceMultiSig;
     this.crossFedTrust = instances.crossFedTrust;
 
@@ -916,6 +917,7 @@ class ChainlessChainApp {
         channelEnvelopeDistribution: this.channelEnvelopeDistribution ?? null,
         channelEnvelopeArchiver: this.channelEnvelopeArchiver ?? null,
         archiveProviderFactory: this.archiveProviderFactory ?? null,
+        autoArchiveScheduler: this.autoArchiveScheduler ?? null,
         governanceMultiSig: this.governanceMultiSig ?? null,
         crossFedTrust: this.crossFedTrust ?? null,
         // B4-mofn-sign v2: needed for mtc.governance-mofn.sign-as-self
@@ -1257,6 +1259,7 @@ class ChainlessChainApp {
         channelEnvelopeDistribution: this.channelEnvelopeDistribution,
         channelEnvelopeArchiver: this.channelEnvelopeArchiver,
         archiveProviderFactory: this.archiveProviderFactory,
+        autoArchiveScheduler: this.autoArchiveScheduler,
         governanceMultiSig: this.governanceMultiSig,
         crossFedTrust: this.crossFedTrust,
         mtcFederationManager: this.mtcFederationManager,

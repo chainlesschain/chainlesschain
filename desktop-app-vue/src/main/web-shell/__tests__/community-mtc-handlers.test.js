@@ -44,6 +44,9 @@ describe("createCommunityMtcHandlers", () => {
         "mtc.archive.restore",
         "mtc.archive.list",
         "mtc.archive.has-stored-webdav-credentials",
+        "mtc.auto-archive.config-get",
+        "mtc.auto-archive.config-set",
+        "mtc.auto-archive.run-now",
         "mtc.governance-mofn.create",
         "mtc.governance-mofn.sign",
         "mtc.governance-mofn.sign-as-self",
@@ -248,6 +251,91 @@ describe("createCommunityMtcHandlers", () => {
         expect(r).not.toHaveProperty("username");
         expect(Object.keys(r).sort()).toEqual(["hasCredentials", "success"]);
       });
+    });
+  });
+
+  describe("mtc.auto-archive.* (B4-auto-archive v1)", () => {
+    let schedMock;
+    beforeEach(() => {
+      schedMock = {
+        getConfig: vi.fn().mockReturnValue({
+          enabled: false,
+          intervalMs: 86400000,
+          providerSpec: null,
+          communityIds: [],
+          lastRunAt: null,
+          lastRunStatus: null,
+          lastRunError: null,
+          lastRunSummary: null,
+        }),
+        setConfig: vi.fn().mockResolvedValue({
+          enabled: true,
+          intervalMs: 3600000,
+          providerSpec: { kind: "webdav", useStoredCredentials: true },
+          communityIds: ["c1"],
+        }),
+        runOnce: vi.fn().mockResolvedValue({
+          status: "ok",
+          summary: { totalArchives: 1, totalBytes: 100 },
+        }),
+      };
+    });
+
+    it("config-get returns scheduler.getConfig() output", async () => {
+      const h = createCommunityMtcHandlers({
+        autoArchiveScheduler: schedMock,
+      })["mtc.auto-archive.config-get"];
+      const r = await h();
+      expect(r.success).toBe(true);
+      expect(r.config.enabled).toBe(false);
+      expect(r.config.intervalMs).toBe(86400000);
+    });
+
+    it("config-set forwards patch to scheduler.setConfig", async () => {
+      const h = createCommunityMtcHandlers({
+        autoArchiveScheduler: schedMock,
+      })["mtc.auto-archive.config-set"];
+      const patch = {
+        enabled: true,
+        intervalMs: 3600000,
+        providerSpec: { kind: "webdav", useStoredCredentials: true },
+      };
+      const r = await h({ patch });
+      expect(r.success).toBe(true);
+      expect(schedMock.setConfig).toHaveBeenCalledWith(patch);
+    });
+
+    it("config-set surfaces validation error from scheduler", async () => {
+      schedMock.setConfig.mockRejectedValue(
+        new Error("intervalMs must be ≥ 300000 ms"),
+      );
+      const h = createCommunityMtcHandlers({
+        autoArchiveScheduler: schedMock,
+      })["mtc.auto-archive.config-set"];
+      const r = await h({ patch: { enabled: true, intervalMs: 10 } });
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/intervalMs/);
+    });
+
+    it("run-now triggers scheduler.runOnce", async () => {
+      const h = createCommunityMtcHandlers({
+        autoArchiveScheduler: schedMock,
+      })["mtc.auto-archive.run-now"];
+      const r = await h();
+      expect(r.success).toBe(true);
+      expect(r.result.status).toBe("ok");
+      expect(schedMock.runOnce).toHaveBeenCalledOnce();
+    });
+
+    it("returns clean error envelope when scheduler missing (all 3 topics)", async () => {
+      const handlers = createCommunityMtcHandlers({});
+      const r1 = await handlers["mtc.auto-archive.config-get"]();
+      const r2 = await handlers["mtc.auto-archive.config-set"]({});
+      const r3 = await handlers["mtc.auto-archive.run-now"]();
+      expect(r1.success).toBe(false);
+      expect(r2.success).toBe(false);
+      expect(r3.success).toBe(false);
+      expect(r1.error).toMatch(/autoArchiveScheduler not initialized/);
     });
   });
 

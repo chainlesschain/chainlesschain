@@ -1,10 +1,11 @@
 <!--
   MtcAudit — web-panel page exposing the full B4 audit-grade suite to the
-  default web-shell user. Four tabs:
+  default web-shell user. Five tabs:
     1. Envelope query (mtc.envelope.get)
     2. Archive (mtc.archive.{push, restore, list})
     3. Governance multi-sig (mtc.governance-mofn.*)
     4. Cross-fed trust (mtc.cross-fed-trust.*)
+    5. Auto archive cron (mtc.auto-archive.*) — B4-auto-archive v1
 
   Pure-browser mode (cc serve in plain Chrome): main process is absent, so
   every WS topic returns "not initialized". We surface a single banner
@@ -40,11 +41,13 @@ import { useMtcEnvelope } from '../composables/useMtcEnvelope.js'
 import { useMtcArchive } from '../composables/useMtcArchive.js'
 import { useGovernanceMofn } from '../composables/useGovernanceMofn.js'
 import { useCrossFedTrust } from '../composables/useCrossFedTrust.js'
+import { useAutoArchive } from '../composables/useAutoArchive.js'
 
 const envelope = useMtcEnvelope()
 const archive = useMtcArchive()
 const mofn = useGovernanceMofn()
 const trust = useCrossFedTrust()
+const autoArchive = useAutoArchive()
 
 const activeTab = ref('envelope')
 
@@ -230,6 +233,100 @@ async function trustRevoke(remoteCommunityId) {
 async function trustDids() {
   await trust.getTrustedDids(trustForm.localCommunityId)
 }
+
+// ─── Tab 5: auto-archive cron (B4-auto-archive v1)
+const autoForm = reactive({
+  enabled: false,
+  intervalHours: 24,
+  providerKind: 'webdav',
+  rootDir: '',
+  useStoredCredentials: true,
+  url: '',
+  username: '',
+  password: '',
+  remotePath: '',
+  communityIdsRaw: '',
+})
+
+const HOURS_TO_MS = 3600000
+
+function _intervalMs() {
+  const h = Number(autoForm.intervalHours)
+  return Number.isFinite(h) && h >= (5 / 60) ? Math.round(h * HOURS_TO_MS) : HOURS_TO_MS * 24
+}
+
+function _providerSpecForCron() {
+  if (autoForm.providerKind === 'filesystem') {
+    return { kind: 'filesystem', rootDir: autoForm.rootDir }
+  }
+  if (autoForm.useStoredCredentials) {
+    return { kind: 'webdav', useStoredCredentials: true }
+  }
+  return {
+    kind: 'webdav',
+    url: autoForm.url,
+    username: autoForm.username,
+    password: autoForm.password,
+    remotePath: autoForm.remotePath,
+  }
+}
+
+async function autoLoadConfig() {
+  const c = await autoArchive.getConfig()
+  if (c) {
+    autoForm.enabled = !!c.enabled
+    autoForm.intervalHours = Math.round((c.intervalMs || HOURS_TO_MS * 24) / HOURS_TO_MS)
+    if (c.providerSpec) {
+      autoForm.providerKind = c.providerSpec.kind
+      if (c.providerSpec.kind === 'filesystem') {
+        autoForm.rootDir = c.providerSpec.rootDir || ''
+      } else if (c.providerSpec.kind === 'webdav') {
+        autoForm.useStoredCredentials = !!c.providerSpec.useStoredCredentials
+        if (!c.providerSpec.useStoredCredentials) {
+          autoForm.url = c.providerSpec.url || ''
+          autoForm.username = c.providerSpec.username || ''
+          // password never round-trips from main; leave empty
+          autoForm.remotePath = c.providerSpec.remotePath || ''
+        }
+      }
+    }
+    autoForm.communityIdsRaw = (c.communityIds || []).join('\n')
+  }
+}
+
+async function autoSave() {
+  const communityIds = autoForm.communityIdsRaw
+    .split(/\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const r = await autoArchive.setConfig({
+    enabled: autoForm.enabled,
+    intervalMs: _intervalMs(),
+    providerSpec: _providerSpecForCron(),
+    communityIds,
+  })
+  if (r) {
+    message.success(autoForm.enabled ? '已保存并启动定时归档' : '已保存（定时归档关闭）')
+  }
+}
+
+async function autoRunNow() {
+  const r = await autoArchive.runNow()
+  if (r) {
+    if (r.status === 'ok') {
+      message.success(`归档完成：${r.summary?.totalArchives || 0} 包 / ${r.summary?.totalBytes || 0} bytes`)
+    } else if (r.status === 'partial') {
+      const failed = Object.entries(r.summary?.perCommunity || {}).filter(([, v]) => !v.ok).length
+      message.warning(`部分成功：${r.summary?.totalArchives || 0} 包成功，${failed} 个 community 失败`)
+    } else {
+      message.error(`归档失败：${r.error || '未知错误'}`)
+    }
+  }
+}
+
+onMounted(async () => {
+  if (autoArchive.isEmbedded) await autoLoadConfig()
+})
 </script>
 
 <template>
@@ -640,6 +737,169 @@ async function trustDids() {
               </ListItem>
             </template>
           </List>
+        </Card>
+      </TabPane>
+
+      <!-- ─────────────────────────────────────────── -->
+      <TabPane key="auto-archive" tab="Auto Archive 定时归档">
+        <Alert
+          type="info"
+          show-icon
+          message="B4-auto-archive v1 — 主进程内的定时器"
+          description="开启后桌面主进程会按设定的间隔自动 ChannelEnvelopeArchiver.push 一遍所有目标 community。最小间隔 5 分钟（防误配）。任何归档失败会记入 lastRunStatus='partial'，不会中断后续 community 的归档。"
+          style="margin-bottom: 16px"
+        />
+
+        <Form layout="vertical">
+          <FormItem label="启用定时归档">
+            <Switch v-model:checked="autoForm.enabled" />
+          </FormItem>
+
+          <FormItem label="归档间隔（小时）">
+            <InputNumber v-model:value="autoForm.intervalHours" :min="0.1" :max="168" :step="1" />
+            <Typography.Text type="secondary" style="margin-left: 8px">
+              ≥ 5 分钟（0.083 小时）；常用值：1 / 6 / 24 / 168
+            </Typography.Text>
+          </FormItem>
+
+          <FormItem label="归档目标 provider">
+            <Space>
+              <Button
+                :type="autoForm.providerKind === 'filesystem' ? 'primary' : 'default'"
+                @click="autoForm.providerKind = 'filesystem'"
+              >
+                Filesystem
+              </Button>
+              <Button
+                :type="autoForm.providerKind === 'webdav' ? 'primary' : 'default'"
+                @click="autoForm.providerKind = 'webdav'"
+              >
+                WebDAV
+              </Button>
+            </Space>
+          </FormItem>
+
+          <FormItem v-if="autoForm.providerKind === 'filesystem'" label="rootDir 本地路径" required>
+            <Input v-model:value="autoForm.rootDir" placeholder="/path/to/archive-mirror" />
+          </FormItem>
+
+          <template v-else>
+            <FormItem label="使用已保存的 WebDAV 凭据">
+              <Switch v-model:checked="autoForm.useStoredCredentials" />
+              <Typography.Text type="secondary" style="margin-left: 8px">
+                建议 ON — main 进程从 secure-config.enc 解密，密码不写入 cron 配置
+              </Typography.Text>
+            </FormItem>
+            <template v-if="!autoForm.useStoredCredentials">
+              <FormItem label="url">
+                <Input v-model:value="autoForm.url" placeholder="https://nas.example/dav" />
+              </FormItem>
+              <FormItem label="username">
+                <Input v-model:value="autoForm.username" />
+              </FormItem>
+              <FormItem label="password">
+                <Input v-model:value="autoForm.password" type="password" />
+              </FormItem>
+              <FormItem label="remotePath">
+                <Input v-model:value="autoForm.remotePath" placeholder="/cc-archives" />
+              </FormItem>
+            </template>
+          </template>
+
+          <FormItem label="目标 community（每行一个；留空表示全部已加入的）">
+            <Textarea v-model:value="autoForm.communityIdsRaw" :rows="3" placeholder="comm-A&#10;comm-B" />
+          </FormItem>
+
+          <FormItem>
+            <Space>
+              <Button
+                type="primary"
+                :loading="autoArchive.loading.value"
+                :disabled="!autoArchive.isEmbedded"
+                @click="autoSave"
+              >
+                保存配置
+              </Button>
+              <Button
+                :loading="autoArchive.loading.value"
+                :disabled="!autoArchive.isEmbedded"
+                @click="autoRunNow"
+              >
+                立即归档一次
+              </Button>
+              <Button :disabled="!autoArchive.isEmbedded" @click="autoLoadConfig">刷新</Button>
+            </Space>
+          </FormItem>
+        </Form>
+
+        <Alert
+          v-if="autoArchive.errorMessage.value"
+          type="error"
+          show-icon
+          :message="autoArchive.errorMessage.value"
+          style="margin-top: 12px"
+        />
+
+        <Card
+          v-if="autoArchive.config.value"
+          size="small"
+          title="当前持久化配置 + 上次运行状态"
+          style="margin-top: 16px"
+        >
+          <Descriptions :column="2" size="small">
+            <DescriptionsItem label="enabled">
+              <Tag :color="autoArchive.config.value.enabled ? 'green' : 'default'">
+                {{ autoArchive.config.value.enabled ? 'ON' : 'OFF' }}
+              </Tag>
+            </DescriptionsItem>
+            <DescriptionsItem label="interval">
+              {{ Math.round((autoArchive.config.value.intervalMs || 0) / 1000 / 60) }} 分钟
+            </DescriptionsItem>
+            <DescriptionsItem label="providerKind">
+              {{ autoArchive.config.value.providerSpec?.kind || '—' }}
+            </DescriptionsItem>
+            <DescriptionsItem label="targets">
+              {{ autoArchive.config.value.communityIds.length || '全部' }}
+            </DescriptionsItem>
+            <DescriptionsItem label="lastRunAt">
+              {{ autoArchive.config.value.lastRunAt
+                ? new Date(autoArchive.config.value.lastRunAt).toLocaleString()
+                : '—' }}
+            </DescriptionsItem>
+            <DescriptionsItem label="lastRunStatus">
+              <Tag
+                v-if="autoArchive.config.value.lastRunStatus"
+                :color="
+                  autoArchive.config.value.lastRunStatus === 'ok'
+                    ? 'green'
+                    : autoArchive.config.value.lastRunStatus === 'partial'
+                      ? 'orange'
+                      : 'red'
+                "
+              >
+                {{ autoArchive.config.value.lastRunStatus }}
+              </Tag>
+              <span v-else>—</span>
+            </DescriptionsItem>
+          </Descriptions>
+          <Alert
+            v-if="autoArchive.config.value.lastRunError"
+            type="error"
+            show-icon
+            :message="autoArchive.config.value.lastRunError"
+            style="margin-top: 8px"
+          />
+        </Card>
+
+        <Card
+          v-if="autoArchive.lastRunResult.value && autoArchive.lastRunResult.value.summary"
+          size="small"
+          title="本次手动 run-now 摘要"
+          style="margin-top: 12px"
+        >
+          <pre style="font-size: 12px; max-height: 200px; overflow: auto">{{
+            JSON.stringify(autoArchive.lastRunResult.value.summary, null, 2)
+          }}</pre>
         </Card>
       </TabPane>
     </Tabs>

@@ -243,6 +243,9 @@ async function startWebShell(options = {}) {
       // a WebDAV credential is already saved (without exposing it) so the
       // "use stored credentials" toggle can render correctly.
       syncCredentials: options.syncCredentials ?? null,
+      // B4-auto-archive v1: periodic archival cron (config-get / config-set /
+      // run-now). Optional; missing manager yields error envelope.
+      autoArchiveScheduler: options.autoArchiveScheduler ?? null,
       p2pManager: options.p2pManager ?? null,
     }),
     ...(options.extraHandlers || {}),

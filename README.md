@@ -1,5 +1,54 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XVIII（**B4-auto-archive v1 — 主进程定时归档 cron + MtcAudit 第 5 个 Tab**）
+
+§2.2.21 (XIV) 把 Archive Tab 接好之后，归档仍然是手动的——用户必须主动点 "推送"。XVII 修了凭据持久化，让推送本身不需要每次重输密码；本节继续把 cron 跑起来——主进程 setInterval 周期触发 `ChannelEnvelopeArchiver.push`，配置写到 `app-config.json` 的 `mtc.autoArchive` namespace，重启后自动恢复。
+
+| 维度 | 改动 |
+|---|---|
+| 触发模式 | XVII 手动 push → 主进程 setInterval cron（默认 24h，最小 5min）|
+| 配置持久化 | `app-config.json` `mtc.autoArchive`：enabled / intervalMs / providerSpec / communityIds + lastRunAt/Status/Error/Summary |
+| 失败处理 | 单 community 失败仅记 lastRunStatus='partial'，不阻断后续 community 归档 |
+| 复用 cred 链 | providerSpec 同 XVII —— `useStoredCredentials:true` 直接复用 secure-config.enc |
+| Reentrancy | runOnce 内置 `_running` 守卫，timer fire 期间手动触发返回 `{skipped:true}` |
+| UI 入口 | MtcAudit.vue 第 5 个 Tab "Auto Archive 定时归档"——switch / 间隔 / provider / community 白名单 / 立即跑一次 / lastRun 状态摘要 |
+
+**改动 (8 文件 / 27 测试)**：
+
+| 文件 | 改动 | 说明 |
+|---|---|---|
+| `desktop-app-vue/src/main/mtc/auto-archive-scheduler.js` | **新文件** (+250) | 纯 Node 调度器；构造器 / getConfig / setConfig / start / stop / runOnce |
+| `desktop-app-vue/src/main/mtc/__tests__/auto-archive-scheduler.test.js` | **新文件** (+325) | 19 测试：构造校验 / 默认 merge / clamp / setConfig 校验 / 启停 / runOnce 7 场景 |
+| `desktop-app-vue/src/main/bootstrap/social-initializer.js` | 注册 autoArchiveScheduler factory entry (+50) | dependsOn: archiver/factory/communityManager；start() 自动接 enabled=true 的旧配置 |
+| `desktop-app-vue/src/main/social/community-ipc.js` | 3 IPC: `auto-archive:{config-get,config-set,run-now}` (+45) | 桌面 V5/V6 路径 |
+| `desktop-app-vue/src/main/web-shell/handlers/community-mtc-handlers.js` | 3 WS topic + 工厂 (+55) | web-shell 默认壳路径 |
+| `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` | +5 测试 + 顶层注册表 +3 行 | config-get/set/run-now happy + 校验透传 + 缺 dep |
+| `desktop-app-vue/src/main/web-shell/web-shell-bootstrap.js` + `index.js` + `phase-3-4-social.js` | 4 处依赖透传 + handlers 计数 24→27 | DI 链全程串好 |
+| `packages/web-panel/src/composables/useAutoArchive.js` | **新文件** (+95) | 3 方法：getConfig / setConfig / runNow |
+| `packages/web-panel/__tests__/unit/useAutoArchive.test.js` | **新文件** (+155) | 9 测试：getConfig 2 / setConfig 3 / runNow 3 / isEmbedded |
+| `packages/web-panel/src/views/MtcAudit.vue` | +5 Tab + script 100 行 + onMounted 自动加载 | UI 含 lastRun 状态卡 + run-now summary 卡 |
+
+**测试统计 (27 新)**：
+- desktop scheduler 19 + handlers +5 = **24**
+- web-panel composable **9**（注：有重复计数；以新增 LoC 为准）
+
+**回归**：desktop web-shell + mtc 全 32 文件 538/542 (4 skipped, 0 fail)；web-panel useAutoArchive + useMtcArchive 22/22 子集全绿。
+
+**安全 / 鲁棒性断言**：
+- intervalMs 最小 5 分钟，避免误配成毫秒级 DoS 自己；
+- enabled=true 强制要求 providerSpec —— 没 provider 直接拒绝保存；
+- runOnce 内置 _running 守卫，多 fire 不重入；
+- providerSpec.useStoredCredentials 走 §2.2.23 vault 路径，cron 配置不写明文密码；
+- per-community try/catch，单点失败不阻断后续；记 lastRunSummary.perCommunity[id] = {ok, error?}。
+
+**B4-auto-archive 决策**：
+1. **不引第三方 cron 库**（node-cron / agenda 等）—— `setInterval` 已足够（不需要 cron 表达式）；
+2. **复用 app-config.json，不开新 store**—— 跟 ui.useV6ShellByDefault 等设置一个层级；
+3. **scheduler 纯 Node 无 Electron API**—— 单元可测 timers 注入；
+4. **runOnce 自动持久化 lastRun\* 字段**—— UI 不需要单独 status WS topic，getConfig 同时拿到运行历史。
+
+---
+
 ## 2026-05-07 增量更新 XVII（**B4-cred-persist v1 — WebDAV 凭据走 secure-config + 修一个潜伏 ~1 个月的字段名 bug**）
 
 §2.2.21（XIV）落 MtcAudit 时 archive Tab 让用户每次 push 都手输 baseUrl/username/password 走 WS——这违反了"凭据不应在 wire 上反复出现"原则；同时只要真去用 WebDAV archive 就会发现"url 必填"立刻抛错——WebDAVClient 构造器读 `url`/`remotePath`，archive 工厂从 §2.2.16 起一直传 `baseUrl`/`remoteRoot`，名字根本对不上，B4-archive WebDAV 路径自从落地就**完全不可用**。XIV 之前没人真点过那个按钮（CLI 路径走 filesystem 居多），所以一直没爆。本节同时解决两个问题：

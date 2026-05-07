@@ -786,6 +786,66 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-auto-archive v1 — periodic ChannelEnvelopeArchiver.push runner
+  // ========================================
+  // Persists user-configured cron (interval + provider spec + community
+  // whitelist) into app-config.json `mtc.autoArchive`, fires every
+  // `intervalMs` once started. Supports providerSpec.useStoredCredentials
+  // so credentials never re-cross the wire (B4-cred-persist v1).
+  // Defaults to `enabled: false` — opt-in via Settings UI.
+  factory.register({
+    name: "autoArchiveScheduler",
+    dependsOn: [
+      "channelEnvelopeArchiver",
+      "archiveProviderFactory",
+      "communityManager",
+    ],
+    required: false,
+    async init(context) {
+      try {
+        const {
+          channelEnvelopeArchiver,
+          archiveProviderFactory,
+          communityManager,
+        } = context;
+        if (!channelEnvelopeArchiver || !archiveProviderFactory) {
+          logger.warn(
+            "[Social] autoArchiveScheduler 跳过: archiver or factory 缺失",
+          );
+          return null;
+        }
+        const {
+          AutoArchiveScheduler,
+        } = require("../mtc/auto-archive-scheduler");
+        const { getAppConfig } = require("../config/database-config");
+        const appConfig = getAppConfig();
+        const sched = new AutoArchiveScheduler({
+          archiver: channelEnvelopeArchiver,
+          archiveProviderFactory,
+          communityManager,
+          appConfig,
+          logger,
+        });
+        // Start if persisted config has enabled=true. start() is a
+        // no-op when disabled.
+        sched.start();
+        logger.info(
+          "[Social] ✓ autoArchiveScheduler initialized (enabled=" +
+            sched.getConfig().enabled +
+            ")",
+        );
+        return sched;
+      } catch (error) {
+        logger.warn(
+          "[Social] autoArchiveScheduler init failed:",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // B4-merkle v1 — channel event batcher (Merkle envelope finality)
   // ========================================
   // 接受已经 B4a 签了的 channel_message, 累积到 staging/, 按 threshold/timer

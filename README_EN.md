@@ -1,5 +1,51 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XVIII — **B4-auto-archive v1 — main-process periodic archival cron + MtcAudit 5th tab**
+
+§2.2.21 (XIV) wired Archive Tab but archival remained manual — the user had to actively click "推送". XVII fixed credential persistence so each push no longer prompted for the password; this update lets the cron run itself — main process `setInterval` periodically fires `ChannelEnvelopeArchiver.push`, the config is persisted to `app-config.json` `mtc.autoArchive` namespace, restart-safe.
+
+| Aspect | Change |
+|---|---|
+| Trigger | XVII manual push → main-process setInterval cron (default 24h, min 5min) |
+| Persistence | `app-config.json` `mtc.autoArchive`: enabled / intervalMs / providerSpec / communityIds + lastRunAt/Status/Error/Summary |
+| Failure handling | Single-community failure only marks lastRunStatus='partial', doesn't block remaining communities |
+| Reuses cred chain | providerSpec same as XVII — `useStoredCredentials:true` reuses secure-config.enc directly |
+| Reentrancy | runOnce has built-in `_running` guard; concurrent invocations return `{skipped:true}` |
+| UI entry | MtcAudit.vue 5th tab "Auto Archive 定时归档" — switch / interval / provider / community whitelist / run-now / lastRun status card |
+
+**Changes (8 files / 27 tests)**:
+- `auto-archive-scheduler.js` **new** (+250) — pure-Node scheduler; constructor / getConfig / setConfig / start / stop / runOnce
+- `auto-archive-scheduler.test.js` **new** (+325) — 19 tests: constructor validation / default merging / clamp / setConfig validation / start/stop / runOnce 7 scenarios
+- `social-initializer.js` registers autoArchiveScheduler factory entry (+50) — dependsOn archiver/factory/communityManager; auto-resumes enabled=true configs on boot
+- `community-ipc.js` 3 IPC: `auto-archive:{config-get,config-set,run-now}` (+45) — desktop V5/V6 path
+- `community-mtc-handlers.js` 3 WS topics + factories (+55) — web-shell default-shell path
+- `community-mtc-handlers.test.js` +5 tests + topic registry +3 lines
+- `web-shell-bootstrap.js` + `index.js` + `phase-3-4-social.js` 4 dep-thread changes + handler count 24→27
+- `useAutoArchive.js` **new** (+95) — 3 methods: getConfig / setConfig / runNow
+- `useAutoArchive.test.js` **new** (+155) — 9 tests: getConfig 2 / setConfig 3 / runNow 3 / isEmbedded
+- `MtcAudit.vue` +5th tab + script 100 lines + onMounted auto-load — UI shows lastRun status card + run-now summary card
+
+**Tests (27 new)**:
+- desktop scheduler 19 + handlers +5 = **24**
+- web-panel composable **9**
+
+**Regression**: desktop web-shell + mtc all 32 files 538/542 (4 skipped, 0 fail); web-panel useAutoArchive + useMtcArchive subset 22/22 green.
+
+**Safety / robustness invariants**:
+- intervalMs min 5 minutes — prevents misconfigured millisecond DoS-of-self;
+- enabled=true requires providerSpec — saving without provider explicitly rejected;
+- runOnce has built-in _running guard — multiple fires never re-enter;
+- providerSpec.useStoredCredentials uses §2.2.23 vault path — cron config never persists plaintext passwords;
+- per-community try/catch — single-point failure never blocks subsequent ones; recorded as lastRunSummary.perCommunity[id] = {ok, error?}.
+
+**Design choices**:
+1. **No third-party cron library** (node-cron / agenda etc.) — `setInterval` suffices (no cron expressions needed);
+2. **Reuses app-config.json, no new store** — sits at the same level as ui.useV6ShellByDefault etc.;
+3. **Pure-Node scheduler with no Electron API** — unit-testable with injected timers;
+4. **runOnce auto-persists lastRun\* fields** — UI doesn't need a separate status WS topic; getConfig returns run history alongside config.
+
+---
+
 ## 2026-05-07 Update XVII — **B4-cred-persist v1 — WebDAV credentials via secure-config + fix a latent ~1-month field-name bug**
 
 §2.2.21 (XIV) shipped MtcAudit but the archive Tab forced users to re-type baseUrl/username/password into the WS payload on every push — violating the principle that credentials shouldn't traverse the wire repeatedly. Worse: anyone actually trying WebDAV archive would hit "url required" immediately — WebDAVClient's constructor reads `url`/`remotePath`, but the archive factory has been passing `baseUrl`/`remoteRoot` since §2.2.16, so the field names never matched. The B4-archive WebDAV path has been **completely broken since landing**, but nobody noticed because XIV was the first UI driver and most CLI runs used filesystem.

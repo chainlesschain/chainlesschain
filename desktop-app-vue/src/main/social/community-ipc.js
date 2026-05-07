@@ -48,6 +48,9 @@ const electron = require("electron");
  *   accepted by the envelope distribution trust filter
  * @param {Object} [dependencies.p2pManager] - needed by lazy peer-pull
  *   to enumerate connected peers
+ * @param {Object} [dependencies.autoArchiveScheduler] - B4-auto-archive v1
+ *   periodic archival runner. When present, auto-archive:* IPC handlers
+ *   register (config-get/config-set/run-now/status). Optional.
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
  */
 function registerCommunityIPC({
@@ -63,6 +66,7 @@ function registerCommunityIPC({
   archiveProviderFactory,
   governanceMultiSig,
   crossFedTrust,
+  autoArchiveScheduler,
   didManager,
   p2pManager,
   ipcMain,
@@ -779,6 +783,48 @@ function registerCommunityIPC({
       }
     },
   );
+
+  // ============================================================
+  // B4-auto-archive v1 — periodic archival cron IPC
+  // ============================================================
+
+  ipcMain.handle("auto-archive:config-get", async () => {
+    try {
+      if (!autoArchiveScheduler) {
+        return { ok: false, reason: "autoArchiveScheduler 未初始化" };
+      }
+      return { ok: true, config: autoArchiveScheduler.getConfig() };
+    } catch (err) {
+      logger.error("[Community IPC] auto-archive:config-get failed:", err);
+      return { ok: false, reason: err.message };
+    }
+  });
+
+  ipcMain.handle("auto-archive:config-set", async (_event, patch) => {
+    try {
+      if (!autoArchiveScheduler) {
+        return { ok: false, reason: "autoArchiveScheduler 未初始化" };
+      }
+      const config = await autoArchiveScheduler.setConfig(patch || {});
+      return { ok: true, config };
+    } catch (err) {
+      logger.error("[Community IPC] auto-archive:config-set failed:", err);
+      return { ok: false, reason: err.message };
+    }
+  });
+
+  ipcMain.handle("auto-archive:run-now", async () => {
+    try {
+      if (!autoArchiveScheduler) {
+        return { ok: false, reason: "autoArchiveScheduler 未初始化" };
+      }
+      const r = await autoArchiveScheduler.runOnce();
+      return { ok: true, result: r };
+    } catch (err) {
+      logger.error("[Community IPC] auto-archive:run-now failed:", err);
+      return { ok: false, reason: err.message };
+    }
+  });
 
   // ============================================================
   // B4-mofn v1 — governance M-of-N multi-sig IPC

@@ -183,6 +183,65 @@ function createArchiveListHandler(opts = {}) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// mtc.auto-archive.* — periodic ChannelEnvelopeArchiver.push runner
+//   (B4-auto-archive v1)
+// ─────────────────────────────────────────────────────────────────────
+
+function createAutoArchiveConfigGetHandler(opts = {}) {
+  const { autoArchiveScheduler } = opts;
+  return async function () {
+    try {
+      if (!autoArchiveScheduler) {
+        return {
+          success: false,
+          error: "autoArchiveScheduler not initialized",
+        };
+      }
+      return { success: true, config: autoArchiveScheduler.getConfig() };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
+function createAutoArchiveConfigSetHandler(opts = {}) {
+  const { autoArchiveScheduler } = opts;
+  return async function (payload = {}) {
+    try {
+      if (!autoArchiveScheduler) {
+        return {
+          success: false,
+          error: "autoArchiveScheduler not initialized",
+        };
+      }
+      const { patch } = payload;
+      const config = await autoArchiveScheduler.setConfig(patch || {});
+      return { success: true, config };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
+function createAutoArchiveRunNowHandler(opts = {}) {
+  const { autoArchiveScheduler } = opts;
+  return async function () {
+    try {
+      if (!autoArchiveScheduler) {
+        return {
+          success: false,
+          error: "autoArchiveScheduler not initialized",
+        };
+      }
+      const result = await autoArchiveScheduler.runOnce();
+      return { success: true, result };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
 // B4-cred-persist v1: lightweight check so UI can render the
 // "use stored WebDAV credentials" toggle as enabled/disabled.
 // Returns only a boolean — never the credential itself. The check
@@ -452,6 +511,10 @@ function createCommunityMtcHandlers(opts = {}) {
     "mtc.archive.has-stored-webdav-credentials":
       createArchiveHasStoredWebdavCredentialsHandler(opts),
 
+    "mtc.auto-archive.config-get": createAutoArchiveConfigGetHandler(opts),
+    "mtc.auto-archive.config-set": createAutoArchiveConfigSetHandler(opts),
+    "mtc.auto-archive.run-now": createAutoArchiveRunNowHandler(opts),
+
     "mtc.governance-mofn.create": createGovernanceMofnCreateHandler(opts),
     "mtc.governance-mofn.sign": createGovernanceMofnSignHandler(opts),
     "mtc.governance-mofn.sign-as-self":
@@ -476,6 +539,9 @@ module.exports = {
   createArchiveRestoreHandler,
   createArchiveListHandler,
   createArchiveHasStoredWebdavCredentialsHandler,
+  createAutoArchiveConfigGetHandler,
+  createAutoArchiveConfigSetHandler,
+  createAutoArchiveRunNowHandler,
   createGovernanceMofnCreateHandler,
   createGovernanceMofnSignHandler,
   createGovernanceMofnSignAsSelfHandler,
