@@ -153,6 +153,18 @@ async function mofnFinalize(proposalId) {
 async function mofnStatus(proposalId) {
   await mofn.getStatus(propForm.communityId, proposalId)
 }
+async function mofnSignAsSelf(proposalId) {
+  // B4-mofn-sign v2 — main process resolves current DID identity and
+  // signs locally; renderer never sees the private key. UI just sends
+  // (communityId, proposalId).
+  const r = await mofn.signAsSelf(propForm.communityId, proposalId)
+  if (r) {
+    message.success(
+      `已用本人身份 (${(r.signerDID || '').slice(-8)}) 代签 — 已收集 ${r.collected}/${r.threshold}`,
+    )
+    await mofnList()
+  }
+}
 
 // ─── Tab 4: cross-fed trust
 const trustForm = reactive({
@@ -444,10 +456,10 @@ async function trustDids() {
         <Alert v-if="mofn.errorMessage.value" type="error" show-icon :message="mofn.errorMessage.value" style="margin: 12px 0" />
 
         <Alert
-          type="info"
+          type="success"
           show-icon
-          message="签名收集（v1）"
-          description="addSignature 需要传 secretKey + publicKey 的 base64 — 由于安全考虑,本面板不直接持有用户私钥。你可以从桌面壳的 DID 管理面板导出后通过 cc CLI 或其他可信工具调用 mtc.governance-mofn.sign。"
+          message="签名收集 v2 — 主进程代签"
+          description="点击提案行的「代我签名」按钮：renderer 只发 (communityId, proposalId)，桌面主进程从 DIDManager 取本人当前身份，在主进程内完成 Ed25519 签名后写入 staging/。私钥永不离开主进程。"
           style="margin-bottom: 12px"
         />
 
@@ -477,6 +489,14 @@ async function trustDids() {
               </ListItem.Meta>
               <Space>
                 <Button size="small" :loading="mofn.loading.value" @click="mofnStatus(item.proposalId)">详情</Button>
+                <Button
+                  size="small"
+                  :disabled="item.finalized || !mofn.isEmbedded"
+                  :loading="mofn.loading.value"
+                  @click="mofnSignAsSelf(item.proposalId)"
+                >
+                  代我签名
+                </Button>
                 <Button
                   size="small"
                   type="primary"

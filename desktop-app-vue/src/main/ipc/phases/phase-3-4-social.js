@@ -191,6 +191,9 @@ function registerPhases3to4Social({
         governanceMultiSig: dependencies.governanceMultiSig || null,
         // B4-crossfed v1: cross-federation trust anchors
         crossFedTrust: dependencies.crossFedTrust || null,
+        // B4-mofn-sign v2: needed for governance-mofn:sign-as-self IPC
+        // (main resolves current identity, renderer never sees private key)
+        didManager: dependencies.didManager || null,
         // for lazy peer-pull when envelope missing locally
         p2pManager: dependencies.p2pManager || null,
       });

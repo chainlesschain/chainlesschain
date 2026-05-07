@@ -32,6 +32,40 @@ V5 桌面 `components/projects/ChatPanel.vue`（3788 行）一直被标记为"a 
 - 端到端浏览器 smoke（开 `cc serve --mode project --ui full` 后真跑 LLM 走完意图卡 → 点确认 → agent 回复）尚未做，建议 ship 前手动验一次。
 - V6 桌面 `shell/AIChatPanel.vue` 不含这 4 件功能（V6 panel 的 V5 来源是已删的 857 行全局 ChatPanel），后续以独立 phase 对齐（`Phase E: align V6 AIChatPanel`）。
 
+## 2026-05-07 增量更新 XV（**B4-mofn-sign v2 — sign-as-self（私钥永不离 main）+ latent IPC bag bug 修复**）
+
+XIV 落了 web-panel UI，但 governance-mofn 的签名收集 v1 要求 renderer 传 secretKey base64——出于安全 web-panel 故意不持私钥，结果"代我签名"按钮缺位。本次 v2 把签名移到主进程：renderer 只发 `(communityId, proposalId)`，main 进程从 DIDManager 取本人当前身份完成签名，**私钥永不出主进程**。
+
+顺带修了一个潜伏已久的 bug：`registerAllIPC` 的 deps 包从来没传 `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator` + B4 全套 managers，桌面 V5/V6 community IPC 一直 silently 拿到 null（V6 hard-flip caaddf530 后默认壳是 web-shell，IPC 路径用户基本碰不到，所以没暴露）。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **新 IPC `governance-mofn:sign-as-self`** | `community-ipc.js` (+58) | renderer 只发 `(communityId, proposalId)`，main 调 `didManager.getCurrentIdentity()` 拿 `{did, public_key_sign, private_key_ref}`，parse JSON 取 `sign` base64 → Buffer secretKey → 调 `governanceMultiSig.addSignature(...)` 完成。返回 `{ok:true, status, signerDID}` |
+| **新 WS topic `mtc.governance-mofn.sign-as-self`** | `web-shell/handlers/community-mtc-handlers.js` (+78) | 同样语义，web-panel 用这条。社交 deps + didManager 注入 |
+| **web-shell-bootstrap + index.js 透传** | `web-shell-bootstrap.js` + `index.js` (+5) | `didManager` 加进 createCommunityMtcHandlers opts |
+| **useGovernanceMofn.signAsSelf 动作** | `web-panel/composables/useGovernanceMofn.js` (+33) | 关键约束：wire 上**没有** `signerKeys` 字段（测试断言验证）|
+| **MtcAudit.vue Tab 3 "代我签名"按钮** | `MtcAudit.vue` (+25 / -8) | 提案行加 button，仅在 `!finalized && isEmbedded` enable；alert 文案改为 v2 secure 说明 |
+| **🐛 latent bug 修复 — registerAllIPC deps 包补齐** | `index.js` (+25 / +12 hoist) | 加 `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator + mtcFederationManager / channelEventBatcher / channelEnvelopeDistribution / channelEnvelopeArchiver / archiveProviderFactory / governanceMultiSig / crossFedTrust` 到 `this.*` + 进 `registerAllIPC({...})` 。**Phase A 起 community IPC 在桌面 V5/V6 一直 silent broken**——这次顺手修了 |
+
+**测试矩阵 (B4-mofn-sign v2 新增 10, 累计 desktop 1112 / 1112 全绿 across 33 文件 + web-panel 1833 / 1833 across 62 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit (扩展) | `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` (+6 → 25) | sign-as-self: 完整 happy path + 缺 didManager / 未登录 / 缺 keys / 错 JSON / 缺 sign 字段 |
+| Unit (扩展) | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` (+4 → 13) | signAsSelf: wire 上无 key material / 拒空 args / handler error 捕获 / currentStatus 更新 |
+| 全 desktop+web-panel 回归 | — | **1112 + 1833 = 2945** ✅ |
+
+**安全模型变化**
+
+| | v1 (XI) | v2 (本次) |
+|---|---|---|
+| renderer 持私钥？ | 是（renderer base64 序列化 secretKey 上 wire） | **否** |
+| wire 上私钥？ | 是 | **否** |
+| 主进程拿钥匙路径 | 不需要（因为 renderer 已经送过来） | DIDManager.getCurrentIdentity() → private_key_ref.sign |
+| 适用场景 | CLI 提案 / 测试 / 直接持私钥的高级用户 | 所有 web-panel UI 用户（默认） |
+
+`governance-mofn:sign` v1 入口保留向后兼容，CLI 等场景仍可用。UI 一律走 v2。
+
 ## 2026-05-07 增量更新 XIV（**B4-webpanel v1 — web-panel UI 接 13 个 WS topic**）
 
 XIII 把 IPC → WS 的桥铺好了，但 web-panel 没 UI 入口——用户照样点不到。本次补 4 个 composable + 1 个 4-tab 页面 `MtcAudit`，把 envelope / archive / governance-mofn / cross-fed-trust 四件全套接到默认壳的 sidebar 上。

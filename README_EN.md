@@ -32,6 +32,40 @@ V5 desktop `components/projects/ChatPanel.vue` (3788 lines) was long flagged as 
 - End-to-end browser smoke (start `cc serve --mode project --ui full`, drive a real LLM through the intent card → confirm → agent reply) still pending. Recommend a manual run before shipping.
 - The V6 desktop `shell/AIChatPanel.vue` does not yet inherit these 4 features (V6 panel's V5 source was the 857-line global ChatPanel that has since been deleted). Tracked as a follow-up phase (`Phase E: align V6 AIChatPanel`).
 
+## 2026-05-07 Update XV — **B4-mofn-sign v2 — sign-as-self (private key never leaves main) + latent IPC-bag bug fix**
+
+XIV shipped the web-panel UI, but governance-mofn's v1 signature collection demanded the renderer ship a secretKey base64 — for security the web-panel deliberately doesn't hold private keys, so the "sign for me" button was missing. v2 moves signing into the main process: renderer sends only `(communityId, proposalId)`, main resolves the current identity via DIDManager, and **the private key never crosses any wire** (IPC or WS).
+
+While in there, also fixed a latent bug: `registerAllIPC`'s dependency bag never included `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator` (or any of the B4 suite). Desktop V5/V6 community IPC has been silently receiving null since Phase A landed — handlers returned `[]` / threw "not initialized" without anyone noticing because the V6 hard-flip (caaddf530) makes web-shell the default and that path uses WS, not IPC.
+
+| Topic | File | Description |
+|---|---|---|
+| **New IPC `governance-mofn:sign-as-self`** | `community-ipc.js` (+58) | Renderer sends only `(communityId, proposalId)`. Main calls `didManager.getCurrentIdentity()` for `{did, public_key_sign, private_key_ref}`, parses the JSON ref to extract the `sign` base64 → Buffer secretKey → calls `governanceMultiSig.addSignature(...)`. Returns `{ok:true, status, signerDID}` |
+| **New WS topic `mtc.governance-mofn.sign-as-self`** | `web-shell/handlers/community-mtc-handlers.js` (+78) | Same semantics for the web-panel path; didManager + governanceMultiSig injected via opts |
+| **web-shell-bootstrap + index.js wiring** | `web-shell-bootstrap.js` + `index.js` (+5) | `didManager` added to createCommunityMtcHandlers opts |
+| **useGovernanceMofn.signAsSelf action** | `web-panel/composables/useGovernanceMofn.js` (+33) | Critical invariant: no `signerKeys` field on the wire (asserted in tests) |
+| **MtcAudit.vue Tab 3 "Sign for me" button** | `MtcAudit.vue` (+25 / -8) | Per-proposal button enabled when `!finalized && isEmbedded`; alert copy rewritten as a v2 security explanation |
+| **🐛 latent bug fix — registerAllIPC bag completion** | `index.js` (+25 / +12 hoist) | Hoists `communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator + mtcFederationManager / channelEventBatcher / channelEnvelopeDistribution / channelEnvelopeArchiver / archiveProviderFactory / governanceMultiSig / crossFedTrust` from `instances` to `this.*` and adds them to the `registerAllIPC({...})` bag. **Desktop V5/V6 community IPC has been silently broken since Phase A** — fixed in passing |
+
+**Test matrix (B4-mofn-sign v2 adds 10, total desktop 1112 / 1112 across 33 files + web-panel 1833 / 1833 across 62 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit (extended) | `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` (+6 → 25) | sign-as-self: full happy path with key-shape asserts / missing didManager / not-logged-in / missing signing keys / malformed private_key_ref JSON / missing private_key_ref.sign field |
+| Unit (extended) | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` (+4 → 13) | signAsSelf: wire payload contains no key material (tested explicitly) / rejects empty args / captures handler error envelope / updates currentStatus on success |
+| Full desktop + web-panel regression | — | **1112 + 1833 = 2945** ✅ |
+
+**Security model shift**
+
+| | v1 (XI) | v2 (this patch) |
+|---|---|---|
+| Renderer holds private key? | Yes (renderer base64-encodes secretKey before WS) | **No** |
+| Private key on wire? | Yes | **No** |
+| Main's path to the key | Not needed (renderer ships it) | DIDManager.getCurrentIdentity() → private_key_ref.sign |
+| Suitable for | CLI proposals / tests / advanced users who hold their own keys | All web-panel UI users (default) |
+
+The v1 `governance-mofn:sign` IPC stays for backward compatibility (CLI + tests). UI is now exclusively v2.
+
 ## 2026-05-07 Update XIV — **B4-webpanel v1 — web-panel UI wired to the 13 WS topics**
 
 XIII bridged IPC → WS, but web-panel had no UI entry point — users still couldn't reach any of it. This patch adds 4 composables + a 4-tab `MtcAudit` page, hooking envelope / archive / governance-mofn / cross-fed-trust into the default-shell sidebar.

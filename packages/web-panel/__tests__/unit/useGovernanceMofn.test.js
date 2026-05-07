@@ -129,6 +129,67 @@ describe('useGovernanceMofn', () => {
     expect(currentStatus.value.collected).toBe(2)
   })
 
+  describe('signAsSelf (B4-mofn-sign v2)', () => {
+    it('sends only communityId + proposalId (no key material)', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: {
+          success: true,
+          status: { collected: 1, complete: false, threshold: 2 },
+          signerDID: 'did:chainlesschain:abc',
+        },
+      })
+      const { signAsSelf } = useGovernanceMofn()
+      const r = await signAsSelf('c', 'p1')
+      expect(r.collected).toBe(1)
+      expect(r.signerDID).toBe('did:chainlesschain:abc')
+      const args = sendRawMock.mock.calls[0][0]
+      expect(args.type).toBe('mtc.governance-mofn.sign-as-self')
+      expect(args.communityId).toBe('c')
+      expect(args.proposalId).toBe('p1')
+      // Critical: no key material on the wire
+      expect(args).not.toHaveProperty('signerKeys')
+      expect(args).not.toHaveProperty('secretKey')
+      expect(args).not.toHaveProperty('publicKey')
+    })
+
+    it('rejects empty args', async () => {
+      const { signAsSelf, errorMessage } = useGovernanceMofn()
+      const r = await signAsSelf('', 'p1')
+      expect(r).toBeNull()
+      expect(errorMessage.value).toMatch(/必填/)
+    })
+
+    it('captures handler error envelope (e.g. didManager not initialized)', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: {
+          success: false,
+          error: 'didManager not initialized (cannot resolve current identity to sign)',
+        },
+      })
+      const { signAsSelf, errorMessage } = useGovernanceMofn()
+      const r = await signAsSelf('c', 'p1')
+      expect(r).toBeNull()
+      expect(errorMessage.value).toMatch(/didManager not initialized/)
+    })
+
+    it('updates currentStatus on success', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: {
+          success: true,
+          status: { collected: 3, complete: true, threshold: 3 },
+          signerDID: 'did:chainlesschain:final',
+        },
+      })
+      const { signAsSelf, currentStatus } = useGovernanceMofn()
+      await signAsSelf('c', 'p1')
+      expect(currentStatus.value.collected).toBe(3)
+      expect(currentStatus.value.complete).toBe(true)
+    })
+  })
+
   it('captures error envelope from handler', async () => {
     sendRawMock.mockResolvedValue({
       ok: true,

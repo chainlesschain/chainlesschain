@@ -45,6 +45,7 @@ describe("createCommunityMtcHandlers", () => {
         "mtc.archive.list",
         "mtc.governance-mofn.create",
         "mtc.governance-mofn.sign",
+        "mtc.governance-mofn.sign-as-self",
         "mtc.governance-mofn.status",
         "mtc.governance-mofn.finalize",
         "mtc.governance-mofn.list",
@@ -254,6 +255,101 @@ describe("createCommunityMtcHandlers", () => {
       ];
       const r = await h({ communityId: "c", proposalId: "p1" });
       expect(r.success).toBe(false);
+    });
+
+    describe("sign-as-self (B4-mofn-sign v2)", () => {
+      const validIdentity = {
+        did: "did:chainlesschain:abc",
+        public_key_sign: Buffer.alloc(32, 7).toString("base64"),
+        private_key_ref: JSON.stringify({
+          sign: Buffer.alloc(64, 8).toString("base64"),
+          encrypt: Buffer.alloc(32, 9).toString("base64"),
+        }),
+      };
+
+      it("resolves identity from didManager + delegates to addSignature", async () => {
+        const didMgr = {
+          getCurrentIdentity: vi.fn().mockReturnValue(validIdentity),
+        };
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+          didManager: didMgr,
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(true);
+        expect(r.signerDID).toBe("did:chainlesschain:abc");
+        expect(didMgr.getCurrentIdentity).toHaveBeenCalledOnce();
+        expect(mofnMock.addSignature).toHaveBeenCalledOnce();
+        const [, , signerKeys] = mofnMock.addSignature.mock.calls[0];
+        expect(signerKeys.did).toBe("did:chainlesschain:abc");
+        expect(Buffer.isBuffer(signerKeys.secretKey)).toBe(true);
+        expect(signerKeys.secretKey.length).toBe(64);
+        expect(Buffer.isBuffer(signerKeys.publicKey)).toBe(true);
+        expect(signerKeys.publicKey.length).toBe(32);
+      });
+
+      it("rejects when didManager missing", async () => {
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/didManager not initialized/);
+      });
+
+      it("rejects when no current identity (not logged in)", async () => {
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+          didManager: { getCurrentIdentity: () => null },
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/not logged in/);
+      });
+
+      it("rejects when identity has no signing keys", async () => {
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+          didManager: {
+            getCurrentIdentity: () => ({ did: "did:chainlesschain:nokey" }),
+          },
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/missing signing keys/);
+      });
+
+      it("rejects when private_key_ref is malformed JSON", async () => {
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+          didManager: {
+            getCurrentIdentity: () => ({
+              did: "did:chainlesschain:bad",
+              public_key_sign: "AAAA",
+              private_key_ref: "{not json",
+            }),
+          },
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/parseable JSON/);
+      });
+
+      it("rejects when private_key_ref.sign field missing", async () => {
+        const h = createCommunityMtcHandlers({
+          governanceMultiSig: mofnMock,
+          didManager: {
+            getCurrentIdentity: () => ({
+              did: "did:chainlesschain:nosign",
+              public_key_sign: "AAAA",
+              private_key_ref: JSON.stringify({ encrypt: "BBBB" }),
+            }),
+          },
+        })["mtc.governance-mofn.sign-as-self"];
+        const r = await h({ communityId: "c", proposalId: "p1" });
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/private_key_ref\.sign missing/);
+      });
     });
 
     it("status / finalize / list delegate cleanly", async () => {

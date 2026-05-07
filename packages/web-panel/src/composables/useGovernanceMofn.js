@@ -145,6 +145,42 @@ export function useGovernanceMofn() {
     }
   }
 
+  /**
+   * B4-mofn-sign v2: sign-as-self.
+   * Renderer sends ONLY (communityId, proposalId). Main process resolves
+   * the current user's DID identity + signs locally — private key never
+   * crosses the WS wire. This is the secure default the UI should use.
+   *
+   * @returns {Promise<object|null>} { collected, complete, ... } status, or null on error
+   */
+  async function signAsSelf(communityId, proposalId) {
+    errorMessage.value = ''
+    if (!communityId || !proposalId) {
+      return _setError(new Error('communityId + proposalId 必填'))
+    }
+    loading.value = true
+    try {
+      const reply = await ws.sendRaw(
+        {
+          type: 'mtc.governance-mofn.sign-as-self',
+          communityId,
+          proposalId,
+        },
+        REQUEST_TIMEOUT_MS,
+      )
+      const r = _unwrap(reply)
+      if (!r || r.success !== true) {
+        return _setError(new Error(r?.error || '代签失败'))
+      }
+      currentStatus.value = r.status
+      return { ...r.status, signerDID: r.signerDID }
+    } catch (err) {
+      return _setError(err)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function getStatus(communityId, proposalId) {
     errorMessage.value = ''
     loading.value = true
@@ -195,6 +231,7 @@ export function useGovernanceMofn() {
     listProposals,
     createProposal,
     addSignature,
+    signAsSelf,
     getStatus,
     finalize,
   }

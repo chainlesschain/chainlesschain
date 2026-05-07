@@ -492,9 +492,23 @@ class ChainlessChainApp {
     this.vcTemplateManager = instances.vcTemplateManager;
     this.remoteGateway = instances.remoteGateway;
 
+    // Community / channel / governance / moderation — these come from
+    // social-initializer's factory.register('communityManager' / etc).
+    // Latent bug before B4-mofn-sign v2: these were never hoisted from
+    // `instances` to `this.*`, so registerAllIPC fed null into community-ipc
+    // and the entire desktop V5/V6 community IPC surface silently no-op'd.
+    // V6 hard-flip (caaddf530) hid this because the default shell uses WS,
+    // not IPC.
+    this.communityManager = instances.communityManager;
+    this.channelManager = instances.channelManager;
+    this.gossipProtocol = instances.gossipProtocol;
+    this.governanceEngine = instances.governanceEngine;
+    this.contentModerator = instances.contentModerator;
+
     // B4 MTC suite — channel envelope batching, cross-machine distribution,
     // external archival, M-of-N governance, cross-fed trust anchors.
     // All required:false — null is OK (社区基础同步仍工作).
+    this.mtcFederationManager = instances.mtcFederationManager;
     this.channelEventBatcher = instances.channelEventBatcher;
     this.channelEnvelopeDistribution = instances.channelEnvelopeDistribution;
     this.channelEnvelopeArchiver = instances.channelEnvelopeArchiver;
@@ -904,6 +918,9 @@ class ChainlessChainApp {
         archiveProviderFactory: this.archiveProviderFactory ?? null,
         governanceMultiSig: this.governanceMultiSig ?? null,
         crossFedTrust: this.crossFedTrust ?? null,
+        // B4-mofn-sign v2: needed for mtc.governance-mofn.sign-as-self
+        // (main resolves current identity, private key never crosses wire)
+        didManager: this.didManager ?? null,
         p2pManager: this.p2pManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
@@ -1217,6 +1234,26 @@ class ChainlessChainApp {
         postManager: this.postManager,
         vcManager: this.vcManager,
         organizationManager: this.organizationManager,
+        // Community / channel / governance / moderation managers — these
+        // are read by phase-3-4-social → registerCommunityIPC. Latent bug
+        // before B4-mofn-sign v2: they weren't in this bag, so the desktop
+        // V5/V6 community IPC handlers all received null and silently
+        // returned empty arrays. Most users never noticed because V6 hard-
+        // flipped to web-shell (caaddf530), which has its own WS topic path.
+        communityManager: this.communityManager,
+        channelManager: this.channelManager,
+        gossipProtocol: this.gossipProtocol,
+        governanceEngine: this.governanceEngine,
+        contentModerator: this.contentModerator,
+        // B4 MTC suite: needed by phase-3-4-social for the channel-archive,
+        // governance-mofn, cross-fed-trust IPC handlers + sign-as-self.
+        channelEventBatcher: this.channelEventBatcher,
+        channelEnvelopeDistribution: this.channelEnvelopeDistribution,
+        channelEnvelopeArchiver: this.channelEnvelopeArchiver,
+        archiveProviderFactory: this.archiveProviderFactory,
+        governanceMultiSig: this.governanceMultiSig,
+        crossFedTrust: this.crossFedTrust,
+        mtcFederationManager: this.mtcFederationManager,
         dbManager: this.database,
         versionManager: this.versionManager,
       });

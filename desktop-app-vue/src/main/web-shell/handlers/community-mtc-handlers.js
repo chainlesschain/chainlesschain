@@ -232,6 +232,69 @@ function createGovernanceMofnSignHandler(opts = {}) {
   };
 }
 
+// B4-mofn-sign v2 — sign-as-self. Renderer sends ONLY (communityId,
+// proposalId); main process resolves the current identity via DIDManager
+// and signs locally. Private key NEVER crosses any wire (IPC or WS).
+// This is the secure default the web-panel UI should drive.
+function createGovernanceMofnSignAsSelfHandler(opts = {}) {
+  const { governanceMultiSig, didManager } = opts;
+  return async function (payload = {}) {
+    try {
+      if (!governanceMultiSig) {
+        return { success: false, error: "governanceMultiSig not initialized" };
+      }
+      if (!didManager || typeof didManager.getCurrentIdentity !== "function") {
+        return {
+          success: false,
+          error:
+            "didManager not initialized (cannot resolve current identity to sign)",
+        };
+      }
+      const { communityId, proposalId } = payload;
+      const identity = didManager.getCurrentIdentity();
+      if (!identity || !identity.did) {
+        return {
+          success: false,
+          error: "no current DID identity (not logged in)",
+        };
+      }
+      if (!identity.public_key_sign || !identity.private_key_ref) {
+        return {
+          success: false,
+          error:
+            "current identity missing signing keys (public_key_sign / private_key_ref)",
+        };
+      }
+      let secretKeyB64;
+      try {
+        const ref = JSON.parse(identity.private_key_ref);
+        secretKeyB64 = ref && ref.sign;
+      } catch (err) {
+        return {
+          success: false,
+          error: "private_key_ref not parseable JSON: " + err.message,
+        };
+      }
+      if (!secretKeyB64) {
+        return { success: false, error: "private_key_ref.sign missing" };
+      }
+      const signerKeys = {
+        did: identity.did,
+        secretKey: Buffer.from(secretKeyB64, "base64"),
+        publicKey: Buffer.from(identity.public_key_sign, "base64"),
+      };
+      const status = governanceMultiSig.addSignature(
+        communityId,
+        proposalId,
+        signerKeys,
+      );
+      return { success: true, status, signerDID: identity.did };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
 function createGovernanceMofnStatusHandler(opts = {}) {
   const { governanceMultiSig } = opts;
   return async function (payload = {}) {
@@ -363,6 +426,8 @@ function createCommunityMtcHandlers(opts = {}) {
 
     "mtc.governance-mofn.create": createGovernanceMofnCreateHandler(opts),
     "mtc.governance-mofn.sign": createGovernanceMofnSignHandler(opts),
+    "mtc.governance-mofn.sign-as-self":
+      createGovernanceMofnSignAsSelfHandler(opts),
     "mtc.governance-mofn.status": createGovernanceMofnStatusHandler(opts),
     "mtc.governance-mofn.finalize": createGovernanceMofnFinalizeHandler(opts),
     "mtc.governance-mofn.list": createGovernanceMofnListHandler(opts),
@@ -384,6 +449,7 @@ module.exports = {
   createArchiveListHandler,
   createGovernanceMofnCreateHandler,
   createGovernanceMofnSignHandler,
+  createGovernanceMofnSignAsSelfHandler,
   createGovernanceMofnStatusHandler,
   createGovernanceMofnFinalizeHandler,
   createGovernanceMofnListHandler,

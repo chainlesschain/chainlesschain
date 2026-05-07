@@ -38,6 +38,10 @@ const electron = require("electron");
  *   governance multi-sig manager (proposal + sig collection + finalize
  *   via assembleBatchFederated). Optional; when present, governance-mofn:*
  *   IPC handlers register
+ * @param {Object} [dependencies.didManager] - B4-mofn-sign v2 needs the
+ *   current identity for the `governance-mofn:sign-as-self` IPC, which
+ *   keeps the user's private key entirely in main process (renderer only
+ *   sends communityId+proposalId, never key material)
  * @param {Object} [dependencies.crossFedTrust] - B4-crossfed v1 cross-
  *   federation trust anchors. When present, cross-fed-trust:* IPC handlers
  *   register and inbound landmarks from trusted external federations are
@@ -59,6 +63,7 @@ function registerCommunityIPC({
   archiveProviderFactory,
   governanceMultiSig,
   crossFedTrust,
+  didManager,
   p2pManager,
   ipcMain,
 }) {
@@ -796,6 +801,75 @@ function registerCommunityIPC({
         return { ok: true, status };
       } catch (err) {
         logger.error("[Community IPC] governance-mofn:sign failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  /**
+   * B4-mofn-sign v2 — sign-as-self.
+   * Renderer sends ONLY (communityId, proposalId). Main process resolves
+   * the current user's identity via DIDManager + signs locally — private
+   * key never crosses any wire (IPC or WS). This is the secure path the
+   * web-panel UI should use.
+   *
+   * Channel: 'governance-mofn:sign-as-self'
+   */
+  ipcMain.handle(
+    "governance-mofn:sign-as-self",
+    async (_event, communityId, proposalId) => {
+      try {
+        if (!governanceMultiSig) {
+          return { ok: false, reason: "governanceMultiSig 未初始化" };
+        }
+        if (
+          !didManager ||
+          typeof didManager.getCurrentIdentity !== "function"
+        ) {
+          return {
+            ok: false,
+            reason: "didManager 未初始化（无法获取本人身份代签）",
+          };
+        }
+        const identity = didManager.getCurrentIdentity();
+        if (!identity || !identity.did) {
+          return { ok: false, reason: "未登录或当前 DID 身份缺失" };
+        }
+        if (!identity.public_key_sign || !identity.private_key_ref) {
+          return {
+            ok: false,
+            reason: "当前身份缺少签名密钥（public_key_sign / private_key_ref）",
+          };
+        }
+        let secretKeyB64;
+        try {
+          const ref = JSON.parse(identity.private_key_ref);
+          secretKeyB64 = ref && ref.sign;
+        } catch (err) {
+          return {
+            ok: false,
+            reason: "private_key_ref 不是合法 JSON: " + err.message,
+          };
+        }
+        if (!secretKeyB64) {
+          return { ok: false, reason: "private_key_ref.sign 缺失" };
+        }
+        const signerKeys = {
+          did: identity.did,
+          secretKey: Buffer.from(secretKeyB64, "base64"),
+          publicKey: Buffer.from(identity.public_key_sign, "base64"),
+        };
+        const status = governanceMultiSig.addSignature(
+          communityId,
+          proposalId,
+          signerKeys,
+        );
+        return { ok: true, status, signerDID: identity.did };
+      } catch (err) {
+        logger.error(
+          "[Community IPC] governance-mofn:sign-as-self failed:",
+          err,
+        );
         return { ok: false, reason: err.message };
       }
     },

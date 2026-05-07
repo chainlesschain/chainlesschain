@@ -236,6 +236,9 @@ async function startWebShell(options = {}) {
       archiveProviderFactory: options.archiveProviderFactory ?? null,
       governanceMultiSig: options.governanceMultiSig ?? null,
       crossFedTrust: options.crossFedTrust ?? null,
+      // B4-mofn-sign v2: didManager so sign-as-self can resolve current
+      // identity in main without renderer ever shipping private keys.
+      didManager: options.didManager ?? null,
       p2pManager: options.p2pManager ?? null,
     }),
     ...(options.extraHandlers || {}),
