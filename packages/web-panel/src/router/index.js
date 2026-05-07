@@ -61,6 +61,7 @@ const routes = [
       { path: 'pipeline',    name: 'Pipeline',    component: () => import('../views/Pipeline.vue') },
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
       { path: 'mtc',         name: 'Mtc',         component: () => import('../views/Mtc.vue') },
+      { path: 'mtc-audit',   name: 'MtcAudit',    component: () => import('../views/MtcAudit.vue') },
     ]
   }
 ]

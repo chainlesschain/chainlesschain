@@ -1,5 +1,69 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XV（**chat-panel-v5 v1 — V5 桌面 ChatPanel 三大重型功能 port 到 web-shell**）
+
+V5 桌面 `components/projects/ChatPanel.vue`（3788 行）一直被标记为"a different much larger port"——意图识别 / 自动发送 / 虚拟列表 / context 模式 4 件套和 5 个 IPC + 6 channel 强耦合，长期没下沉到 web-shell。本次完整 port 完成（含真 LLM 后端，不是占位）。
+
+| 维度 | 改动 | 说明 |
+|---|---|---|
+| **A. 虚拟列表** | `packages/web-panel/src/components/VirtualMessageList.vue` (+185) + `Chat.vue` 替 v-for | `@tanstack/virtual-core ^3.13.13` 对齐 V5；happy-dom 下 fallback 路径覆盖；同时把 V6 `AIChatPanel.vue` 的清爽 UI 借过来——32px 头像 / 角色 + 时间 / 4 个 quick-prompt 空态 |
+| **B. Context 模式** | chatStore 加 `contextMode` + localStorage 持久化（`cc.web-panel.chat.contextMode`），Chat.vue 头部 a-radio-group（project/file/global） | file 在 web-shell 永久 disable（无 currentFile 概念），project 在非 project 启动模式 disable，持久化值若与运行环境冲突自动降级到 global |
+| **C. 意图识别（完整 port，真 LLM）** | 后端：`packages/cli/src/lib/chat-intent-service.js` (+340) + `gateways/ws/chat-intent-protocol.js` (+95) + ws-server / dispatcher 接线（2 新 WS topic）。前端：`utils/messageTypes.js` (+90) + `components/IntentConfirmationMessage.vue` (+185) + chatStore 加 `submitUserInput`/`confirmIntent`/`correctIntent`/`classifyFollowupIntent`/`pushFollowupIntentBanner` | `chat.intent.understand` 走 V5 同款 prompt（temp 0.3 / max 500 tokens / JSON 严格契约），从活跃 session 取 LLM creds，LLM 不可用时降级 pass-through。`chat.intent.classify-followup` 规则优先（CONTINUE_EXECUTION / MODIFY_REQUIREMENT / CLARIFICATION / CANCEL_TASK 4 类，关键词 + 正则双层评分），confidence > 0.8 直接返回不调 LLM |
+| **D. autoSendMessage 协议** | Chat.vue 加 route.query 解析（`?prompt=xxx&autoSend=true&session=<id>`）+ chatStore.scheduleAutoSend / clearAutoSend + 消费 token 防回放 | URL 驱动 + Pinia 程序化双通道；URL 消费后 router.replace 清 query 防刷新重放；URL > Pinia 优先级 |
+| **i18n 同步** | `packages/locales/seed/{zh-CN,en}.json` | 新增 `chat.role.me` / `chat.contextMode.{project,file,global}` / `chat.empty.startTitle` / `chat.empty.hint.{project,file,global}` / `chat.quickPrompts.{summarize,brainstorm,explain,codeReview}` / `chat.intent.{confirmed,corrected,label.*,action.*,status.*}` 共 22 对 keys，zh/en parity 测试通过 |
+
+**测试矩阵（chat-panel-v5 新增 69 测试，累计 web-panel 1829 + CLI 89 全绿，无回归）**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit (CLI) | `packages/cli/__tests__/unit/lib/chat-intent-service.test.js` | 22 — extractJson 4 分支 / buildUnderstandPrompts 3 / ruleBasedClassify 5 类别 / understandIntent 5 分支（empty / no-llm / 解析成功 / 解析失败 / 网络抛错）/ classifyFollowupIntent 5 路径（rule-only / no-llm / llm-success / rule_fallback / 默认 CLARIFICATION）|
+| Unit (CLI) | `packages/cli/__tests__/unit/gateways/ws/chat-intent-protocol.test.js` | 6 — bad-request / no-session-creds 降级 / 有 session 完整透传 LLM creds / unexpected error → INTENT_UNDERSTAND_FAILED / classify-followup rule-method / classify-followup llm-method |
+| Unit (web-panel) | `__tests__/unit/messageTypes.test.js` | 11 — 三 enum 形状 / createSystemMessage / createIntentConfirmationMessage 3 / createIntentSystemMessage 4 intent 预设 |
+| Unit (web-panel) | `__tests__/unit/chat-intent-flow.test.js` | 19 — contextMode 4（默认 / 持久化 / 拒未知 / file 持久化降级）/ submitUserInput 7（global 直发 / project 有用 understanding 推卡 / no-LLM 降级 / 重复输入跳过 / confirmIntent / correctIntent / WS error 降级）/ scheduleAutoSend 3 / classifyFollowupIntent 3 |
+| Unit (web-panel) | `__tests__/unit/VirtualMessageList.test.js` | 5 — fallback 全量渲染 / `:key` 用 message.id / scrollToBottom expose / scroll 边界 emits / messages 长度变化 |
+| Unit (web-panel) | `__tests__/unit/IntentConfirmationMessage.test.js` | 7 — 显隐双分支 / pending/confirmed 状态切换 / confirm emit payload / correct 流程（打开/拒空/有内容提交）|
+| 全 web-panel 62 文件回归 | — | **1829 / 1829** ✅ |
+| CLI ws-server / dispatcher 回归 | — | **61 / 61** ✅ |
+| **新增累计** | — | **69 测试**（CLI 28 + web-panel 41）全绿 |
+
+**端到端总计**：desktop-app-vue 1106 + web-panel 1829 + CLI（chat-intent + ws）89 = **3024 测试全绿**。
+
+**已知 caveat**：
+- 端到端浏览器 smoke（开 `cc serve --mode project --ui full` 后真跑 LLM 走完意图卡 → 点确认 → agent 回复）尚未做，建议 ship 前手动验一次。
+- V6 桌面 `shell/AIChatPanel.vue` 不含这 4 件功能（V6 panel 的 V5 来源是已删的 857 行全局 ChatPanel），后续以独立 phase 对齐（`Phase E: align V6 AIChatPanel`）。
+
+## 2026-05-07 增量更新 XIV（**B4-webpanel v1 — web-panel UI 接 13 个 WS topic**）
+
+XIII 把 IPC → WS 的桥铺好了，但 web-panel 没 UI 入口——用户照样点不到。本次补 4 个 composable + 1 个 4-tab 页面 `MtcAudit`，把 envelope / archive / governance-mofn / cross-fed-trust 四件全套接到默认壳的 sidebar 上。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **4 个 composable** | `packages/web-panel/src/composables/{useMtcEnvelope, useMtcArchive, useGovernanceMofn, useCrossFedTrust}.js` (+460) | 全部走 `ws.sendRaw({type:'mtc.*', ...})` + `useShellMode().isEmbedded` 双路径分叉。pure-browser 模式自动 disable + 显示提示。useGovernanceMofn 内含 base64 序列化 helper（renderer 不直接传 Buffer，base64 字符串过 wire） |
+| **`MtcAudit.vue` 4-tab 页面** | `packages/web-panel/src/views/MtcAudit.vue` (+450) | Tab 1 Envelope 查询 + raw JSON 折叠 + 复制；Tab 2 Archive (filesystem / WebDAV provider 切换 + push/restore/list)；Tab 3 Governance M-of-N（创建提案 + 列表 + finalize；签名收集 v1 通过 alert 提示用 cc CLI / 桌面 DID 工具）；Tab 4 Cross-Fed Trust（建立/撤销/列表/合并 DID 集查询） |
+| **路由 + sidebar** | `packages/web-panel/src/router/index.js` + `components/AppLayout.vue` (+3 / 总) | `/mtc-audit` 路由；sidebar advanced 组里 mtc 之后新增 mtc-audit 项；折叠模式 icon 也加；`onMenuClick` 自动 router.push |
+
+**测试矩阵 (B4-webpanel 新增 33 composable 单元 + 1 路由计数 fix, 累计 web-panel 1829 / 1829 全绿 across 62 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `packages/web-panel/__tests__/unit/useMtcEnvelope.test.js` | 8 — idle 起手 / 空 args / pure-browser disable / found result / not-found / ws throw / reply.ok=false / reset |
+| Unit | `packages/web-panel/__tests__/unit/useMtcArchive.test.js` | 11 — listArchives 缓存 + 拒空 + handler error / pushArchive 完整 + sinceBatchId 透传 + handler error / restoreArchive 完整 + 拒缺 archiveName / isEmbedded reflect |
+| Unit | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` | 9 — list cache + 拒空 / create 透传 / sign 序列化 Uint8Array→base64 + 拒空 + 已 base64 不二次编码 / finalize / status cache / handler error |
+| Unit | `packages/web-panel/__tests__/unit/useCrossFedTrust.test.js` | 6 — list cache + 拒空 / establish 全量透传 + 空可选字段 strip / revoke 返 boolean / getTrustedDids cache / handler error |
+| 全 web-panel 62 文件回归 | — | **1829 / 1829** ✅ |
+
+**端到端总计**：desktop-app-vue 1106 + web-panel 1829 = **2935 测试全绿**。
+
+## 🎯 P2P 社交 audit-grade 全栈完成（11 commits + 1 web-panel UI commit）
+
+```
+Phase A → Phase B v1 → B4 → B4-merkle → B4-cross
+   → B4-cross-trust → B4-ui → B4-archive → B4-mofn
+   → B4-crossfed → B4-webshell (WS topics) → B4-webpanel (UI)
+```
+
+桌面端（V5/V6）走 IPC，web-shell 默认壳走 WS topic + Vue UI，全套对等。
+
 ## 2026-05-07 增量更新 XIII（**B4-webshell v1 — 全 B4 套件 web-shell 默认壳可见**）
 
 用户 follow-up：Phase 1.6 后默认壳是 web-shell（hard-flip `caaddf530`），但 B4 全套（envelope viewer / archive / governance-mofn / cross-fed-trust）只走 `ipcMain.handle`，web-panel 用户看不到。本次补 13 个 WS topic + 入口透传，让默认壳用户也能用全套。

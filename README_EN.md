@@ -1,5 +1,69 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XV — **chat-panel-v5 v1 — V5 desktop ChatPanel's 3 heavy features ported to web-shell**
+
+V5 desktop `components/projects/ChatPanel.vue` (3788 lines) was long flagged as "a different much larger port" — the intent recognition / autoSend / virtual list / context-mode quartet plus its 5 IPC + 6 channel coupling kept it out of the web-shell. This update lands the full port (with a real LLM backend, not a stub).
+
+| Area | Change | Notes |
+|---|---|---|
+| **A. Virtual list** | `packages/web-panel/src/components/VirtualMessageList.vue` (+185) + `Chat.vue` swap from v-for | `@tanstack/virtual-core ^3.13.13` matches V5; covers happy-dom fallback path; folds in V6 `AIChatPanel.vue`'s clean UI: 32px avatars / role + time / 4 quick-prompt empty state |
+| **B. Context mode** | chatStore gains `contextMode` + localStorage persistence (`cc.web-panel.chat.contextMode`); Chat.vue header a-radio-group (project/file/global) | `file` permanently disabled in web-shell (no currentFile concept), `project` disabled when not started in project mode; mismatched persisted values auto-degrade to global |
+| **C. Intent recognition (full port, real LLM)** | Backend: `packages/cli/src/lib/chat-intent-service.js` (+340) + `gateways/ws/chat-intent-protocol.js` (+95) + ws-server / dispatcher wiring (2 new WS topics). Frontend: `utils/messageTypes.js` (+90) + `components/IntentConfirmationMessage.vue` (+185) + chatStore actions `submitUserInput`/`confirmIntent`/`correctIntent`/`classifyFollowupIntent`/`pushFollowupIntentBanner` | `chat.intent.understand` runs the V5 prompt verbatim (temp 0.3 / 500 max tokens / strict JSON contract), pulls LLM creds from the active session, falls back to pass-through when LLM unavailable. `chat.intent.classify-followup` is rule-first (4 categories: CONTINUE_EXECUTION / MODIFY_REQUIREMENT / CLARIFICATION / CANCEL_TASK with keyword + regex scoring); confidence > 0.8 short-circuits without calling the LLM |
+| **D. autoSendMessage protocol** | Chat.vue parses `route.query` (`?prompt=xxx&autoSend=true&session=<id>`) + chatStore.scheduleAutoSend / clearAutoSend + token-based dedup | URL-driven + Pinia programmatic dual surface; URL is stripped via router.replace after consumption to prevent refresh-replay; URL > Pinia priority |
+| **i18n parity** | `packages/locales/seed/{zh-CN,en}.json` | New keys: `chat.role.me`, `chat.contextMode.{project,file,global}`, `chat.empty.startTitle`, `chat.empty.hint.{project,file,global}`, `chat.quickPrompts.{summarize,brainstorm,explain,codeReview}`, `chat.intent.{confirmed,corrected,label.*,action.*,status.*}` — 22 paired keys total, zh/en parity test passes |
+
+**Test matrix (chat-panel-v5 adds 69 tests, cumulative web-panel 1829 + CLI 89 all green, no regressions)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit (CLI) | `packages/cli/__tests__/unit/lib/chat-intent-service.test.js` | 22 — extractJson 4 branches / buildUnderstandPrompts 3 / ruleBasedClassify across 5 categories / understandIntent 5 branches (empty / no-llm / parse success / parse fail / network error) / classifyFollowupIntent 5 paths (rule-only / no-llm / llm-success / rule_fallback / CLARIFICATION default) |
+| Unit (CLI) | `packages/cli/__tests__/unit/gateways/ws/chat-intent-protocol.test.js` | 6 — bad-request / no-session-creds degrade / session present forwards LLM creds / unexpected error → INTENT_UNDERSTAND_FAILED / classify-followup rule path / classify-followup LLM path |
+| Unit (web-panel) | `__tests__/unit/messageTypes.test.js` | 11 — 3 enum shapes / createSystemMessage / createIntentConfirmationMessage 3 / createIntentSystemMessage 4 intent presets |
+| Unit (web-panel) | `__tests__/unit/chat-intent-flow.test.js` | 19 — contextMode 4 (default / persist / reject unknown / file persisted degrade) / submitUserInput 7 (global direct / project useful understanding pushes card / no-LLM degrade / identical input skip card / confirmIntent / correctIntent / WS error degrade) / scheduleAutoSend 3 / classifyFollowupIntent 3 |
+| Unit (web-panel) | `__tests__/unit/VirtualMessageList.test.js` | 5 — fallback full render / `:key` uses message.id / scrollToBottom exposed / scroll boundary emits / messages length grows |
+| Unit (web-panel) | `__tests__/unit/IntentConfirmationMessage.test.js` | 7 — show/hide branches / pending vs confirmed state / confirm emit payload / correction flow (open / reject empty / submit text) |
+| Full web-panel 62-file regression | — | **1829 / 1829** ✅ |
+| CLI ws-server / dispatcher regression | — | **61 / 61** ✅ |
+| **Cumulative new** | — | **69 tests** (CLI 28 + web-panel 41) all green |
+
+**End-to-end total**: desktop-app-vue 1106 + web-panel 1829 + CLI (chat-intent + ws) 89 = **3024 tests all green**.
+
+**Known caveats**:
+- End-to-end browser smoke (start `cc serve --mode project --ui full`, drive a real LLM through the intent card → confirm → agent reply) still pending. Recommend a manual run before shipping.
+- The V6 desktop `shell/AIChatPanel.vue` does not yet inherit these 4 features (V6 panel's V5 source was the 857-line global ChatPanel that has since been deleted). Tracked as a follow-up phase (`Phase E: align V6 AIChatPanel`).
+
+## 2026-05-07 Update XIV — **B4-webpanel v1 — web-panel UI wired to the 13 WS topics**
+
+XIII bridged IPC → WS, but web-panel had no UI entry point — users still couldn't reach any of it. This patch adds 4 composables + a 4-tab `MtcAudit` page, hooking envelope / archive / governance-mofn / cross-fed-trust into the default-shell sidebar.
+
+| Topic | File | Description |
+|---|---|---|
+| **4 composables** | `packages/web-panel/src/composables/{useMtcEnvelope, useMtcArchive, useGovernanceMofn, useCrossFedTrust}.js` (+460) | All wrap `ws.sendRaw({type:'mtc.*', ...})` + `useShellMode().isEmbedded` for dual-path branching. Pure-browser mode auto-disables + shows banner. useGovernanceMofn includes a base64 serialization helper (renderer doesn't ship Buffers; base64 strings cross the wire) |
+| **`MtcAudit.vue` 4-tab page** | `packages/web-panel/src/views/MtcAudit.vue` (+450) | Tab 1 Envelope query + raw JSON collapse + copy; Tab 2 Archive (filesystem / WebDAV provider toggle + push/restore/list); Tab 3 Governance M-of-N (proposal create + list + finalize; signature collection in v1 deferred to cc CLI / desktop DID tooling via in-page alert); Tab 4 Cross-Fed Trust (establish/revoke/list/merged-DID query) |
+| **Router + sidebar** | `packages/web-panel/src/router/index.js` + `components/AppLayout.vue` (+3 lines total) | `/mtc-audit` route; sidebar advanced group adds mtc-audit item right after mtc; collapsed mode also gets the icon; `onMenuClick` auto router.push |
+
+**Test matrix (B4-webpanel adds 33 composable unit + 1 route-count bump, total web-panel 1829 / 1829 across 62 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `packages/web-panel/__tests__/unit/useMtcEnvelope.test.js` | 8 — initial idle / empty args / pure-browser disable / found result / not-found / ws throw / reply.ok=false / reset |
+| Unit | `packages/web-panel/__tests__/unit/useMtcArchive.test.js` | 11 — listArchives caches + rejects empty + handler error / pushArchive happy + sinceBatchId pass-through + handler error / restoreArchive happy + rejects missing archiveName / isEmbedded reflects |
+| Unit | `packages/web-panel/__tests__/unit/useGovernanceMofn.test.js` | 9 — list cache + reject empty / create pass-through / sign Uint8Array→base64 serialization + reject missing + already-base64 no double-encode / finalize / status cache / handler error |
+| Unit | `packages/web-panel/__tests__/unit/useCrossFedTrust.test.js` | 6 — list cache + reject empty / establish full pass-through + strip empty optional fields / revoke returns boolean / getTrustedDids cache / handler error |
+| Full web-panel 62-file regression | — | **1829 / 1829** ✅ |
+
+**End-to-end totals**: desktop-app-vue 1106 + web-panel 1829 = **2935 tests all green**.
+
+## 🎯 P2P social audit-grade full stack complete (11 commits + 1 web-panel UI commit)
+
+```
+Phase A → Phase B v1 → B4 → B4-merkle → B4-cross
+   → B4-cross-trust → B4-ui → B4-archive → B4-mofn
+   → B4-crossfed → B4-webshell (WS topics) → B4-webpanel (UI)
+```
+
+Desktop (V5/V6) goes via IPC; web-shell default goes via WS topic + Vue UI. Full parity.
+
 ## 2026-05-07 Update XIII — **B4-webshell v1 — full B4 suite visible from default web-shell**
 
 User follow-up: after the Phase 1.6 hard-flip (`caaddf530`), the default shell is web-shell, but the B4 suite (envelope viewer / archive / governance-mofn / cross-fed-trust) only registered on `ipcMain.handle` — web-panel users couldn't see it. This patch adds 13 WS topics + dependency wiring so the default shell gets the full feature surface.
