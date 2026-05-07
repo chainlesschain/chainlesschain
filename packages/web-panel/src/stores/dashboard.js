@@ -1,6 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useWsStore } from './ws.js'
+import { stripCliNoise } from '../utils/community-parser.js'
+
+function parseCliJson(output) {
+  const cleaned = stripCliNoise(output)
+  if (!cleaned) return null
+  try { return JSON.parse(cleaned) } catch { /* fallthrough */ }
+  const m = cleaned.match(/\[[\s\S]*\]|\{[\s\S]*\}/)
+  if (!m) return null
+  try { return JSON.parse(m[0]) } catch { return null }
+}
 
 function createEmptyCompression() {
   return {
@@ -134,12 +144,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
 
       Promise.allSettled([
-        ws.execute('skill sources', 15000),
+        ws.execute('skill sources --json', 15000),
         ws.execute('llm providers', 15000),
       ]).then(([skillResult, llmResult]) => {
         if (skillResult.status === 'fulfilled') {
-          const match = skillResult.value.output.match(/(\d+)\s*(?:skills|技能)/i)
-          if (match) stats.value.skillCount = parseInt(match[1], 10)
+          const layers = parseCliJson(skillResult.value.output)
+          if (Array.isArray(layers)) {
+            stats.value.skillCount = layers.reduce(
+              (sum, l) => sum + (typeof l?.count === 'number' ? l.count : 0),
+              0,
+            )
+          }
         }
         if (llmResult.status === 'fulfilled') {
           const out = llmResult.value.output
@@ -148,10 +163,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
         }
       })
 
-      ws.execute('mcp servers', 10000)
+      ws.execute('mcp servers --json', 10000)
         .then(({ output }) => {
-          const count = (output.match(/^[a-z]/gm) || []).length
-          stats.value.mcpCount = count
+          const servers = parseCliJson(output)
+          stats.value.mcpCount = Array.isArray(servers) ? servers.length : 0
         })
         .catch(() => {
           stats.value.mcpCount = 0

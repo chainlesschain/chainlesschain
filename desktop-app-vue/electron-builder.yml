@@ -251,6 +251,23 @@ extraResources:
     to: packages/web-panel/dist
   - from: ../packages/web-panel/package.json
     to: packages/web-panel/package.json
+  # Bundled cowork skills — needed at install-relative path so the CLI's
+  # `CLISkillLoader.getLayerPaths()` bundled candidate
+  # (`__dirname/../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin`)
+  # resolves under packaged installs. With `asar: true`, the desktop-app-vue
+  # source tree is inside app.asar and `fs.existsSync` from a CLI subprocess
+  # spawned out-of-asar can't see it — bundled layer collapses to 0 skills,
+  # dashboard "可用技能" drops from ~158 to 15 (marketplace+managed+workspace
+  # only). Mounting via extraResources places the .md tree at
+  # `<install>/resources/desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/`,
+  # which `__dirname/../../../../desktop-app-vue/...` from
+  # `<install>/resources/packages/cli/src/lib/skill-loader.js` already finds.
+  - from: src/main/ai-engine/cowork/skills/builtin
+    to: desktop-app-vue/src/main/ai-engine/cowork/skills/builtin
+    filter:
+      - "**/*"
+      - "!**/__tests__/**"
+      - "!**/*.test.js"
   # NOTE (issue #8, 2026-05-06): Removed 7 force-include extraResources
   # entries (call-bind-apply-helpers, dunder-proto, get-proto, math-intrinsics,
   # side-channel-{list,map,weakmap}) that targeted app.asar.unpacked/. Those

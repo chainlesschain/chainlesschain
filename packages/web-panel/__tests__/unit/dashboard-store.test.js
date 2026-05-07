@@ -102,13 +102,18 @@ describe('dashboard store', () => {
         ].join('\n'),
       })
       .mockResolvedValueOnce({
-        output: '12 skills available',
+        output: JSON.stringify([
+          { layer: 'bundled', count: 8, exists: true },
+          { layer: 'marketplace', count: 1, exists: true },
+          { layer: 'managed', count: 2, exists: true },
+          { layer: 'workspace', count: 1, exists: true },
+        ]),
       })
       .mockResolvedValueOnce({
         output: 'active: openai',
       })
       .mockResolvedValueOnce({
-        output: 'alpha\nbeta\n',
+        output: JSON.stringify([{ name: 'alpha' }, { name: 'beta' }]),
       })
     listSessions.mockResolvedValueOnce([{ id: 's1' }, { id: 's2' }])
     sendRaw.mockResolvedValueOnce({
