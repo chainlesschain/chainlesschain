@@ -3,6 +3,24 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.41 / CLI 0.161.3] - 2026-05-07 (chat-panel-v5 双壳对齐 + B4 social 滚动收口)
+
+### Added
+
+- **chat-panel-v5 V6 AIChatPanel 对齐**（commit `b33527d31`，Phase E）—— 把 V5 ChatPanel 的 4 个核心特性反向对齐到 V6 默认壳的 AIChatPanel：流式响应 + 历史会话切换 + 上下文记忆引用 + 工具调用面板。从此 V5 / V6 / web-shell 三壳的聊天体验严格对等，没有"V6 缺特性所以回退 V5"的回退路径。
+- **chat-panel-v5 web-shell 端口 v1+v1.1**（commit `72b13388a`）—— V5 ChatPanel 的全部 router 协议、autoSendMessage 信号、virtual list 与 5 intent / 6 IPC 在 web-shell 默认壳走 WS topic 接通。配合上一条，**默认壳 web-panel 用户不再看不见任何聊天能力**。
+
+### Fixed
+
+- **web-panel 单测 `views-mount-smoke.test.js` 在 63 文件并行套件下 first-import 撞 30s timeout**（本版）—— Pipeline.vue + Chat.vue 在 4-fork 池 + 全量 SFC transform 竞争下，首个加载它们的 fork 会撞默认 testTimeout。fix：file-level `vi.setConfig({ testTimeout: 60_000 })`，全局 timeout 不动（已验证全局升 60s 反让 worker pool 调度恶化导致更多 file 超时）。同 cli_ci_sharding_lessons 记录的 vitest 4 严格 timeout 模式。
+
+### Notes
+
+- 本版本同时 ship 了之前 4 个 "5.0.3.40 续" 滚动条目里全部内容：B4-cred-persist + B4-auto-archive（XVII / XVIII），B4-mofn-sign v2 + B4-webpanel v1，B4-merkle channel envelope finality，社区/频道跨机同步 Phase A + B4 + Web Shell Phase 3c.7。productVersion 这次正式 .40 → .41，安装包/auto-updater 会发现新版本。
+- 测试结果：desktop 单测 1454 / 1454 (4 skipped) ✅，CLI mtc-federation 集成 41 / 41 ✅，web-panel 单测 1853 / 1853 ✅，web-panel e2e 63 / 63 ✅。
+
+---
+
 ## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (B4 social audit-grade closure: cred-persist + auto-archive)
 
 ### Added

@@ -39,7 +39,7 @@ const pillars = [
     bullets: [
       'W3C DID v2 身份 + 可验证凭证',
       'P2P 端到端加密：Signal + libp2p + WebRTC',
-      '社区 / 频道 gossip 跨机同步（v5.0.3.40+）',
+      '社区 / 频道 gossip 跨机同步（v5.0.3.41+）',
       'Audit-grade Merkle envelope + 跨机分发 + 外部归档（B4 全套）',
       '协议融合：ActivityPub · Nostr · Matrix',
       '反审查：Tor + 域前置 + 卫星消息',
@@ -70,6 +70,12 @@ const everyday = [
 
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
+  {
+    tag: 'v5.0.3.41',
+    title: 'chat-panel-v5 三壳对齐 + B4 social 滚动收口',
+    sub: 'V5 / V6 / web-shell 聊天严格对等 · 私钥 / 密码均不过线',
+    desc: 'productVersion .40 → .41，正式 ship 前 4 个 5.0.3.40 续滚动条目（cred-persist + auto-archive、mofn-sign v2 + webpanel UI、merkle envelope finality、跨机同步 Phase A + Web Shell Phase 3c.7）以及两条新增：(A) V6 默认壳 AIChatPanel 反向对齐 V5 ChatPanel 4 件核心特性（流式响应 + 历史会话切换 + 上下文记忆引用 + 工具调用面板，Phase E commit b33527d31）；(B) web-shell ChatPanel v5 端口 v1+v1.1（commit 72b13388a）port V5 全部 router 协议 / autoSendMessage 信号 / virtual list / 5 intent / 6 IPC 走 WS topic。从此 V5 / V6 / web-shell 三壳聊天体验严格对等，Phase 1.6 默认 web-shell 用户不再缺任何 V5 聊天能力。同时修：web-panel views-mount-smoke 在 63 文件并行套件 first-import 撞 30s timeout 走 file-level vi.setConfig({testTimeout:60_000})。',
+  },
   {
     tag: 'v5.0.3.40 续',
     title: 'P2P 社交全栈 audit-grade 闭环（§2.2.10 → §2.2.24）',

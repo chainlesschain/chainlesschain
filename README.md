@@ -1,5 +1,31 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 发布 — **v5.0.3.41 chat-panel-v5 三壳对齐 + B4 social 滚动收口**
+
+productVersion **v5.0.3.40 → v5.0.3.41**。本版本正式 ship 自 .40 以来的全部滚动条目（XII–XIX：B4 跨机分发 / trust filter / viewer / 外部归档 / M-of-N / 跨联邦信任 / web-shell / web-panel / sign-as-self / cred-persist / auto-archive / chat-panel-v5）。
+
+**核心新能力**：
+
+- **chat-panel-v5 三壳严格对齐** —— V5 桌面 / V6 桌面 / web-shell 默认壳的聊天体验严格对等：流式响应 + 历史会话切换 + 上下文记忆引用 + 工具调用面板。Phase 1.6 hard-flip 后默认 web-shell 用户不再缺任何 V5 聊天能力（commit `b33527d31` Phase E + commit `72b13388a` web-shell port v1+v1.1）。
+- **B4 P2P 社交全栈 audit-grade 闭环** —— §2.2.10 → §2.2.24 共 15 节累计落地：跨机同步 + MTC 联邦双轨 + DID 签名 + auto peer 桥接 + Merkle envelope finality + 跨机分发 + trust filter + 桌面 viewer + 外部归档 + M-of-N 多签 + 跨联邦信任 + sign-as-self（私钥永不离主进程）+ WebDAV 凭据 secure-config.enc（safeStorage / AES-256-GCM）+ 主进程定时归档 cron。**私钥 / 密码均不过线**，桌面 V5/V6 + 默认壳 web-panel 用户看到的功能严格对等。
+
+**回归测试全绿**：
+
+| Suite | 通过 |
+|---|---|
+| desktop MTC + DID + social + web-shell + p2p + bootstrap + renderer | 1454 / 1454（4 skipped）|
+| CLI chat-intent + mtc-federation core/trust/sync 集成 | 69 / 69 |
+| web-panel 单元 | 1853 / 1853 |
+| web-panel e2e | 63 / 63 |
+
+**修一个 bug**：
+
+- **web-panel `views-mount-smoke.test.js` 在 63 文件并行套件下 first-import 撞 30s timeout**（Pipeline.vue + Chat.vue 在 4-fork 池下 SFC transform 竞争）。fix：file-level `vi.setConfig({ testTimeout: 60_000 })`，全局 testTimeout 不动（已验证全局升 60s 反让 worker pool 调度恶化致更多 file 超时）。同 cli_ci_sharding_lessons 记录的 vitest 4 严格 timeout 模式。
+
+**部署/分发**：本版桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.41 > 5.0.3-alpha.40`，所有 v5.0.3.40 桌面用户重启会真发现新版。三大文档站（docs / design / www）同步刷新。
+
+---
+
 ## 2026-05-07 增量更新 XIX（**chat-panel-v5 Phase E — V6 桌面 AIChatPanel 对齐 4 件功能**）
 
 XVI 把 V5 ChatPanel 的 4 件重型功能 port 到 web-shell；V6 桌面 `shell/AIChatPanel.vue` 当时未跟。本节把对齐补齐。V6 复用 desktop V5 已有的 `VirtualMessageList.vue` / `IntentConfirmationMessage.vue` / `messageTypes.ts` 三件套（不重新建），意图识别走 desktop **既有 IPC** `project:understandIntent` + `followup-intent:classify`（preload 已 expose，零后端工作），所以 Phase E 是纯 UI 集成。
@@ -1825,7 +1851,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.39 Evolution Edition (2026-05-07 · CLI 0.161.2 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m)
+## ⭐ 当前版本: v5.0.3.41 Evolution Edition (2026-05-07 · CLI 0.161.3 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · **B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节** · **chat-panel-v5 三壳严格对齐**)
 
 ### 最新更新 - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
 

@@ -143,16 +143,18 @@ async correctIntent(sessionId, messageId, correction)
 - 浏览器端到端：开 `cc serve --mode project --ui full`，真跑 LLM → 输入错别字 → 看意图卡 → 点确认/纠正。建议 ship 前手动验。
 - panel.test.js 中 3 个 e2e 在 stash 后仍失败 → 与本次改动无关（spawn cc serve 在 Windows 偶发 ECONNRESET 的预存 flake）。
 
-## V6 桌面 panel 对齐（Phase E，后续）
+## V6 桌面 panel 对齐（Phase E，已实现 v5.0.3.41）
 
-V6 `shell/AIChatPanel.vue` 当前不含 4 件功能，对齐路径：
+**commit `b33527d31`** —— V6 `shell/AIChatPanel.vue` 反向对齐 V5 ChatPanel 的 4 件重型功能落地。从此 V5 / V6 / web-shell 三壳聊天体验严格对等：
 
-- VirtualMessageList → 直接 import 同一组件（`@tanstack/virtual-core` 已在 desktop-app-vue 依赖中）
-- contextMode → 加 ref + radio-group；持久化 key 复用 `cc.web-panel.chat.contextMode`（双壳共享）或独立分壳
-- 意图流 → 不走 WS，走 electronAPI 调用 desktop-app-vue 已有的 `project:understandIntent` / `followup-intent:classify` IPC handler（这些 IPC 早已存在，是 V5 历史遗产，V6 panel 没消费而已）
-- autoSendMessage → V6 是 modal panel（不是 vue-router 路由），URL 通道不适用；纯 Pinia + props 通道
+- ✅ **VirtualMessageList** → 直接 import 同一组件（`@tanstack/virtual-core` 已在 desktop-app-vue 依赖中，无新增依赖）
+- ✅ **contextMode** → 加 ref + radio-group；持久化 key 复用 `cc.web-panel.chat.contextMode`（双壳共享 localStorage namespace，设置一次双壳即时生效）
+- ✅ **意图流** → 走 electronAPI 调用 desktop-app-vue 已有的 `project:understandIntent` / `followup-intent:classify` IPC handler（这些 IPC 早已存在是 V5 历史遗产，V6 panel 之前没消费而已；零 backend 改动）
+- ✅ **autoSendMessage** → V6 是 modal panel（不是 vue-router 路由），URL 通道不适用；走纯 Pinia + props 通道
 
-预估工作量：~1-2 天（绝大部分代码已在 web-shell 验证过模式）。
+实际工作量：1 天（与预估一致，绝大部分代码已在 web-shell 验证过模式）。 测试：desktop renderer composable / shell community + AIChatPanel 相关测试全绿。
+
+**意义**：Phase 1.6 hard-flip 后默认壳是 web-shell；此前 V6 备选壳缺 4 件聊天能力——用户从默认壳切到 V6 等于功能降级。Phase E 落地后 V6 不再是次等公民，opt-out 用户也获得完整聊天体验。
 
 ## 部署与监控
 

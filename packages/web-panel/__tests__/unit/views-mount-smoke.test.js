@@ -21,6 +21,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 
+// First-import SFC transforms can blow past the default 30s under heavy
+// fork contention (61+ test files × 4 forks). Bump just this file to 60s
+// rather than raising the global default — see cli_ci_sharding_lessons
+// memory: vitest 4's strict per-test timeout no longer hides behind a
+// heartbeat, so transform-bound tests need a bigger ceiling.
+vi.setConfig({ testTimeout: 60_000 })
+
 vi.mock('ant-design-vue/es/locale/zh_CN', () => ({ default: { locale: 'zh_CN' } }))
 vi.mock('ant-design-vue/es/locale/en_US', () => ({ default: { locale: 'en_US' } }))
 

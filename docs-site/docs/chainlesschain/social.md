@@ -794,10 +794,13 @@ Mesh模式（小规模）:
 
 **已实现**: 去中心化的主题社区和订阅频道，支持公开讨论、内容聚合和社区自治。
 
-::: tip 2026-05-07 更新 — 跨机同步真正打通（Phase A）
+::: tip 2026-05-07 更新 — 跨机同步真正打通（Phase A）+ B4 audit-grade 闭环
 v5.0.3.40 之前，社区和频道功能在 UI 上完整可用，但**实际只在单机生效** —— 两台真机加入同一社区后，A 在频道里发的消息到不了 B 的本地数据库。
 Phase A 系统性修了 7 个底层 bug（libp2p 3.x stream API 用错、handler 在 init 流程里没注册、收包后没按 type 派发、gossip → channelManager 没有订阅者……），把发送 → wire → 接收 → 本地写入的整条链路接通。
-**现在两台同段 LAN（mDNS 发现）或公网（DHT + bootstrap）的真机器，加入同一社区后频道消息会真正同步。** 详见 [`README.md` 同日条目](https://github.com/chainlesschain/chainlesschain/blob/main/README.md) 与 [设计文档 §2.2.10](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/02_去中心化社交模块.md#2210-社区频道跨机同步--phase-a-实战架构-2026-05-07)。
+**现在两台同段 LAN（mDNS 发现）或公网（DHT + bootstrap）的真机器，加入同一社区后频道消息会真正同步。**
+
+**v5.0.3.41 新增 B4 audit-grade 闭环（§2.2.10 → §2.2.24，15 节）**：每条 channel 消息带 Ed25519 DID 签名 + 接收侧三重校验 → 100 条 / 1h 触发**离线可验**的 Merkle 批 envelope（任何第三方可验证"我在 X 时间向 Y 频道发了 Z"）→ 跨机分发 + 入站 trust filter → 桌面 Merkle envelope viewer → 外部归档（filesystem / WebDAV，凭据走 secure-config 加密 vault）→ M-of-N 多签 + sign-as-self（私钥永不离主进程）→ 跨联邦信任锚 → 主进程定时归档 cron → web-panel `MtcAudit.vue` 4-tab UI 接全套 13 个 WS topic。**私钥 / 密码均不过线**，桌面 V5/V6 + 默认壳 web-panel 用户看到的功能严格对等。
+详见 [`README.md` 同日条目](https://github.com/chainlesschain/chainlesschain/blob/main/README.md) 与 [设计文档 §2.2.10–§2.2.24](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/02_去中心化社交模块.md#2210-社区频道跨机同步--phase-a-实战架构-2026-05-07)。
 :::
 
 #### 社区架构

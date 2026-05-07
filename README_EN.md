@@ -1,5 +1,31 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Release — **v5.0.3.41 chat-panel-v5 three-shell parity + B4 social rolling closure**
+
+productVersion **v5.0.3.40 → v5.0.3.41**. This release formally ships every rolling entry accumulated since .40 (XII–XIX: B4 cross-machine distribution / trust filter / viewer / external archival / M-of-N / cross-fed trust / web-shell / web-panel / sign-as-self / cred-persist / auto-archive / chat-panel-v5).
+
+**Headline capabilities**:
+
+- **chat-panel-v5 three-shell strict parity** — V5 desktop / V6 desktop / web-shell default-shell chat experience strictly equivalent: streaming response + history switching + context memory references + tool-call panel. After Phase 1.6 hard-flip the default web-shell users no longer miss any V5 chat capability (commit `b33527d31` Phase E + commit `72b13388a` web-shell port v1+v1.1).
+- **B4 P2P social full-stack audit-grade closure** — §2.2.10 → §2.2.24, fifteen sections in total: cross-machine sync + MTC federation dual-track + DID signing + auto peer bridging + Merkle envelope finality + cross-machine distribution + trust filter + desktop viewer + external archival + M-of-N multi-sig + cross-federation trust anchors + sign-as-self (private keys never leave main process) + WebDAV creds via secure-config.enc (safeStorage / AES-256-GCM) + main-process periodic archival cron. **Neither private keys nor passwords ever traverse the wire.** Desktop V5/V6 + default-shell web-panel users see strictly equivalent functionality.
+
+**Regression suite all green**:
+
+| Suite | Pass |
+|---|---|
+| desktop MTC + DID + social + web-shell + p2p + bootstrap + renderer | 1454 / 1454 (4 skipped) |
+| CLI chat-intent + mtc-federation core/trust/sync integration | 69 / 69 |
+| web-panel unit | 1853 / 1853 |
+| web-panel e2e | 63 / 63 |
+
+**One bug fix**:
+
+- **web-panel `views-mount-smoke.test.js` hits 30s default timeout under 63-file fork contention** (Pipeline.vue + Chat.vue first-import SFC transform competes in 4-fork pool). Fix: file-level `vi.setConfig({ testTimeout: 60_000 })` — global testTimeout untouched (validated that bumping the global to 60s instead made the worker pool scheduling worse and caused more files to time out). Same pattern as `cli_ci_sharding_lessons` already records for vitest 4 strict timeout enforcement.
+
+**Distribution**: Desktop binary rebuilt; auto-updater compares `5.0.3-alpha.41 > 5.0.3-alpha.40`, so all v5.0.3.40 desktop users will see a real "new version" prompt on restart. All three documentation sites (docs / design / www) refreshed in sync.
+
+---
+
 ## 2026-05-07 Update XIX — **chat-panel-v5 Phase E — V6 desktop AIChatPanel aligned on the 4 features**
 
 XVI ported the four V5 ChatPanel heavy features into the web-shell; the V6 desktop `shell/AIChatPanel.vue` was deliberately deferred. This section closes that gap. V6 reuses the existing desktop V5 trio (`VirtualMessageList.vue` / `IntentConfirmationMessage.vue` / `messageTypes.ts`) instead of duplicating, and the intent flow rides on the **already-shipped** desktop IPC handlers `project:understandIntent` + `followup-intent:classify` (preload-exposed at `index.js:1259`/`2441`), so Phase E is a pure UI integration with zero backend work.
@@ -1592,7 +1618,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.39 Evolution Edition (2026-05-07 · CLI 0.161.2 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m)
+## ⭐ Current Version: v5.0.3.41 Evolution Edition (2026-05-07 · CLI 0.161.3 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · **B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections** · **chat-panel-v5 Three-Shell Strict Parity**)
 
 ### Latest Update - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
 
