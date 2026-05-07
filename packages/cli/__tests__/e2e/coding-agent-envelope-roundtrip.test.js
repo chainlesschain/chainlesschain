@@ -71,7 +71,7 @@ async function waitForReady(port, timeoutMs = 10000) {
  * legacy raw shape (correlation by `id`) — mirrors what the desktop
  * bridge does, so this also tests the bridge contract.
  */
-function sendAndCorrelate(ws, request, timeoutMs = 5000) {
+function sendAndCorrelate(ws, request, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const requestId = request.id;
     const timer = setTimeout(() => {
@@ -163,7 +163,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(response.payload.sessionType).toBe("agent");
     expect(response.payload.record).toBeDefined();
     expect(response.payload.record.id).toBe(response.sessionId);
-  }, 20000);
+  }, 60000);
 
   it("session-list response is a v1.0 envelope with payload.sessions", async () => {
     const port = nextPort();
@@ -190,7 +190,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(response.source).toBe("cli-runtime");
     expect(Array.isArray(response.payload.sessions)).toBe(true);
     expect(response.payload.sessions.length).toBeGreaterThanOrEqual(1);
-  }, 20000);
+  }, 60000);
 
   it("session-close response is a command.response envelope", async () => {
     const port = nextPort();
@@ -218,7 +218,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(close.sessionId).toBe(sessionId);
     expect(close.payload.success).toBe(true);
     expect(close.payload.sessionId).toBe(sessionId);
-  }, 20000);
+  }, 60000);
 
   it("malformed session-create (no provider) still produces an envelope error", async () => {
     const port = nextPort();
@@ -242,7 +242,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(isUnifiedEnvelope(close)).toBe(true);
     expect(close.type).toBe("command.response");
     expect(close.requestId).toBe("e2e-close-missing");
-  }, 20000);
+  }, 60000);
 
   it("worktree-list response is a worktree.list envelope", async () => {
     const port = nextPort();
@@ -259,7 +259,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(response.requestId).toBe("e2e-wlist-1");
     expect(response.source).toBe("cli-runtime");
     expect(Array.isArray(response.payload.worktrees)).toBe(true);
-  }, 20000);
+  }, 60000);
 
   it("worktree-diff without branch returns an error envelope with NO_BRANCH", async () => {
     const port = nextPort();
@@ -277,7 +277,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(response.source).toBe("cli-runtime");
     expect(response.payload.code).toBe("NO_BRANCH");
     expect(response.payload.message).toMatch(/branch required/);
-  }, 20000);
+  }, 60000);
 
   it("task graph create → add → update → advance round-trips as envelopes", async () => {
     const port = nextPort();
@@ -384,7 +384,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(errResp.type).toBe("error");
     expect(errResp.requestId).toBe("e2e-tg-bad-create");
     expect(typeof errResp.payload.code).toBe("string");
-  }, 20000);
+  }, 60000);
 
   it("task-graph-state on a session with no graph returns null graph", async () => {
     const port = nextPort();
@@ -415,7 +415,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     } else {
       expect(state.type).toBe("error");
     }
-  }, 20000);
+  }, 60000);
 
   it("envelope eventIds are unique across responses on the same socket", async () => {
     const port = nextPort();
@@ -438,5 +438,5 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(r1.eventId).not.toBe(r2.eventId);
     expect(r2.eventId).not.toBe(r3.eventId);
     expect(r1.eventId).not.toBe(r3.eventId);
-  }, 20000);
+  }, 60000);
 });

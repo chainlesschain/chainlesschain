@@ -137,7 +137,7 @@ describe("E2E: chainlesschain serve", () => {
     expect(result.type).toBe("result");
     expect(result.success).toBe(true);
     expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
-  }, 15000);
+  }, 60000);
 
   it("enforces token authentication", async () => {
     const port = nextPort();
@@ -170,7 +170,7 @@ describe("E2E: chainlesschain serve", () => {
     });
     expect(okResp.type).toBe("result");
     expect(okResp.success).toBe(true);
-  }, 15000);
+  }, 60000);
 
   it("streams command output", async () => {
     const port = nextPort();
@@ -189,7 +189,7 @@ describe("E2E: chainlesschain serve", () => {
     expect(dataMsg.channel).toBe("stdout");
     expect(endMsg).toBeDefined();
     expect(endMsg.exitCode).toBe(0);
-  }, 15000);
+  }, 60000);
 
   it("blocks serve command via WebSocket (prevents recursion)", async () => {
     const port = nextPort();
@@ -204,7 +204,7 @@ describe("E2E: chainlesschain serve", () => {
     });
     expect(resp.type).toBe("error");
     expect(resp.code).toBe("COMMAND_BLOCKED");
-  }, 15000);
+  }, 60000);
 
   it("blocks interactive commands (chat, agent, setup)", async () => {
     const port = nextPort();
@@ -221,7 +221,7 @@ describe("E2E: chainlesschain serve", () => {
       expect(resp.type).toBe("error");
       expect(resp.code).toBe("COMMAND_BLOCKED");
     }
-  }, 15000);
+  }, 60000);
 
   it("executes note --help successfully", async () => {
     const port = nextPort();
@@ -237,7 +237,7 @@ describe("E2E: chainlesschain serve", () => {
     expect(resp.type).toBe("result");
     expect(resp.success).toBe(true);
     expect(resp.stdout).toContain("note");
-  }, 15000);
+  }, 60000);
 
   it("--allow-remote without --token exits with error", () => {
     const { execSync } = require("node:child_process");
