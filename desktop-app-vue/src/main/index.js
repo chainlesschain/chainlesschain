@@ -693,6 +693,7 @@ class ChainlessChainApp {
     try {
       const { MCPConfigLoader } = require("./mcp/mcp-config-loader");
       const mcpConfigLoader = new MCPConfigLoader();
+      this.mcpConfigLoader = mcpConfigLoader;
       // M2: 启动期改用异步加载，避免阻塞事件循环
       const mcpConfig = await mcpConfigLoader.loadAsync();
 
@@ -895,6 +896,10 @@ class ChainlessChainApp {
         // fast-start paths, so by here this.mcpManager is settled (manager or
         // null). Handlers re-check at call time, so re-binding isn't needed.
         mcpManager: this.mcpManager ?? null,
+        // mcp.list_servers reads CONFIGURED servers from .chainlesschain/
+        // config.json (mcpConfigLoader is the source of truth); list_tools
+        // only sees CONNECTED ones.
+        mcpConfigLoader: this.mcpConfigLoader ?? null,
         // Phase 2 streaming consumer — drives `llm.chat` with multi-provider
         // chat (Ollama for local + cloud providers) inheriting the desktop's
         // budget alert / cache / state-bus. Null until LLM init lands; the

@@ -240,11 +240,49 @@ function createMcpReadResourceHandler(options = {}) {
   };
 }
 
+/**
+ * Build the `mcp.list_servers` topic handler.
+ *
+ * Returns the list of CONFIGURED MCP servers from `.chainlesschain/config.json`
+ * (the source of truth users edit via Settings → MCP). Distinct from
+ * mcp.list_tools, which only enumerates CONNECTED servers — a server can be
+ * configured but disconnected, and we want the dashboard count to reflect
+ * intent, not connection state.
+ *
+ *   client → server: { id, type: "mcp.list_servers" }
+ *   result.shape: { servers: [{ name, command?, url?, transport?, autoConnect? }, ...] }
+ *
+ * Required so the dashboard's MCP-count widget no longer has to shell out to
+ * `cc mcp servers --json` (which reads a different db under the CLI's userData
+ * dir and was returning 0 even when desktop config has 9 servers).
+ *
+ * @param {{ mcpConfigLoader: object | null }} options
+ * @returns {(frame: any) => Promise<object>}
+ */
+function createMcpListServersHandler(options = {}) {
+  return async function mcpListServersHandler() {
+    const loader = options.mcpConfigLoader;
+    if (!loader || !loader.config) {
+      return { servers: [] };
+    }
+    const map = loader.config.servers || {};
+    const servers = Object.entries(map).map(([name, cfg]) => ({
+      name,
+      command: cfg?.command ?? null,
+      url: cfg?.url ?? null,
+      transport: cfg?.transport ?? null,
+      autoConnect: !!cfg?.autoConnect,
+    }));
+    return { servers };
+  };
+}
+
 module.exports = {
   createMcpListToolsHandler,
   createMcpCallToolHandler,
   createMcpListResourcesHandler,
   createMcpReadResourceHandler,
+  createMcpListServersHandler,
   shapeTool,
   shapeResource,
 };

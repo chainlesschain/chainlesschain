@@ -163,9 +163,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
         }
       })
 
-      ws.execute('mcp servers --json', 10000)
-        .then(({ output }) => {
-          const servers = parseCliJson(output)
+      // mcp.list_servers reads CONFIGURED servers from desktop's
+      // .chainlesschain/config.json (mcpConfigLoader). Previously shelled
+      // out to `cc mcp servers --json` which queries the CLI's *own* db
+      // under a separate userData dir — desktop-configured servers were
+      // invisible there, so the dashboard always showed 0. WS topic
+      // bypasses the subprocess and reads the actual source of truth.
+      ws.sendRaw({ type: 'mcp.list_servers' }, 5000)
+        .then((reply) => {
+          const r = reply?.result ?? reply
+          const servers = r?.servers
           stats.value.mcpCount = Array.isArray(servers) ? servers.length : 0
         })
         .catch(() => {

@@ -40,6 +40,7 @@ const {
   createMcpCallToolHandler,
   createMcpListResourcesHandler,
   createMcpReadResourceHandler,
+  createMcpListServersHandler,
 } = require("./handlers/mcp-handlers");
 const { createLlmChatHandler } = require("./handlers/llm-handlers");
 const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
@@ -159,6 +160,9 @@ async function startWebShell(options = {}) {
     }),
     "mcp.read_resource": createMcpReadResourceHandler({
       mcpManager: options.mcpManager ?? null,
+    }),
+    "mcp.list_servers": createMcpListServersHandler({
+      mcpConfigLoader: options.mcpConfigLoader ?? null,
     }),
     // Phase 2 streaming first consumer — async-generator handler that
     // bridges LLMManager.chatStream(messages, onChunk, opts) to the
