@@ -181,6 +181,11 @@ function registerPhases3to4Social({
         mtcFederationManager: dependencies.mtcFederationManager || null,
         // B4-merkle v1: per-message Merkle envelope finality
         channelEventBatcher: dependencies.channelEventBatcher || null,
+        // B4-cross v1: cross-machine envelope distribution
+        channelEnvelopeDistribution:
+          dependencies.channelEnvelopeDistribution || null,
+        // for lazy peer-pull when envelope missing locally
+        p2pManager: dependencies.p2pManager || null,
       });
     },
     handlers: 24,

@@ -1,5 +1,41 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update VII — **B4-cross v1 — envelope cross-machine distribution**
+
+B4-merkle v1 produced envelopes but they were only useful to the sender (peers had no batch dir to verify against). This patch closes the most critical gap: landmarks auto-broadcast over federation gossipsub + envelopes are pulled on-demand from peers. The audit-grade promise is now redeemed — any third party can verify any known messageId's inclusion proof.
+
+| Topic | File | Description |
+|---|---|---|
+| **Batcher remote cache + callback API** | `src/main/mtc/channel-event-batch.js` (+196 / -27) | New methods: `onBatchClosed(handler)` (fires after closeBatch + multi-handler isolation), `storeRemoteLandmark / findRemoteLandmark` (indexed by treeHeadId, sha256: colon → filesystem-safe `_`), `storeRemoteEnvelope` (messageId-indexed). `findEnvelope` now returns an `origin: "local" \| "remote"` field; `loadEnvelopeAndLandmark` auto-routes landmark lookup by origin (local sits next to envelope, remote in remote-landmarks/) |
+| **ChannelEnvelopeDistribution** | `src/main/mtc/channel-envelope-distribution.js` (+330) | Wraps mtcFedMgr (gossipsub on a separate `cc.community.<id>.envelopes-track` topic to keep envelope flow off the message channel) + p2pManager (typed `mtc:envelope-request` / `mtc:envelope-response`). API: `subscribeCommunity` (cache remote landmarks) / auto `publishLandmark` (hooks batcher.onBatchClosed) / `requestEnvelope(peerId, communityId, messageId)` Promise + 8s default timeout. Internal in-flight tracker + close rejects all pending |
+| **typed message dispatch** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+24) | Adds `mtc:envelope-request` (→ `'mtc:envelope-request'` event w/ requestId/communityId/messageId/fromPeerId) + `mtc:envelope-response` (→ event w/ found/envelope/batchId). Distribution module listens on these events directly |
+| **social-initializer registration** | `src/main/bootstrap/social-initializer.js` (+38) | `channelEnvelopeDistribution` initializer (depends mtcFedMgr + p2pManager + channelEventBatcher); failure-tolerant |
+| **community-ipc integration** | `src/main/social/community-ipc.js` (+62) | `community:join` also calls `channelEnvelopeDistribution.subscribeCommunity` to start landmark caching; `channel:get-message-envelope` adds a fallback chain — when not local, enumerates connected peers in order and `requestEnvelope` until first hit (requestEnvelope internally `storeRemoteEnvelope`-caches); phase-3-4-social wires through `channelEnvelopeDistribution` + `p2pManager` |
+
+**Trust model (v1)**: none — caches every landmark/envelope received without trust_anchors validation. Reasoning: (a) Noise transport prevents MITM, (b) the user ultimately verifies the envelope's inclusion proof against the landmark's tree-head signature (`cc mtc verify` etc), so a fake landmark can't pass the final gate. v2 can add inbound landmark filtering by federation membership.
+
+**Test matrix (B4-cross adds 34, total 1003 / 1003 across 28 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit (extended) | `mtc/__tests__/channel-event-batch.test.js` (+11 →34) | 11 cross-machine cases: onBatchClosed full flow / handler exception isolation / storeRemoteLandmark+findRemoteLandmark round-trip / `:` filesystem escape / storeRemoteEnvelope+findEnvelope `origin:remote` / unsafe messageId reject / loadEnvelopeAndLandmark remote bundle / orphan envelope no landmark fallback / origin tag preserved |
+| Unit (new) | `mtc/__tests__/channel-envelope-distribution.test.js` | 21 — constructor required-deps validation / lifecycle idempotency / close tear-down listeners / auto-publish on closeBatch (non-blocking) / `landmark:published` event / subscribeCommunity uses synthetic `<id>.envelopes-track` topic / inbound landmark cache / non-landmark payload ignored / unsubscribeCommunity idempotent / `requestEnvelope` full flow (req → resp cached → resolve) / found:false / 8s timeout → null / unknown requestId silently ignored / close rejects in-flight / inbound envelope-request finds local envelope and responds / not-found → found:false / malformed request (missing requestId / missing fromPeerId) ignored |
+| Unit (extended) | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2 →22) | 2 new dispatch cases: `mtc:envelope-request` / `mtc:envelope-response` field passthrough |
+| Full 28-file regression | — | **1003 / 1003** ✅ |
+
+**End-to-end value redeemed**:
+1. Alice sends a message in community-X channel → local channelManager INSERT + B4a sign + Phase A gossip + Phase B MTC + B4-merkle batch enqueue
+2. After 100 messages or 1h triggers closeBatch → assembleBatch + writes batches/000001/ → onBatchClosed callback → ChannelEnvelopeDistribution publishes the landmark to `cc.community.community-X.envelopes-track` topic
+3. Bob has joined community-X (community:join auto-subscribes that topic) → receives landmark → batcher.storeRemoteLandmark persists to `<userData>/channel-mtc/community-X/remote-landmarks/sha256_xxx.json`
+4. Bob wants to verify a specific Alice message: renderer calls `channel:get-message-envelope` IPC → not local → enumerates connected peers (Phase A gossip's) → `requestEnvelope(Alice, …)` → Alice receives `mtc:envelope-request` typed → finds it in own batches/ → replies `mtc:envelope-response` → Bob caches to `remote-envelopes/messageId.json` → returns full envelope + cached landmark to renderer
+5. Renderer (or `cc mtc verify`) checks Merkle inclusion_proof against landmark's tree-head signature → ✅ third-party cryptographic evidence stands
+
+**Deferred (B4-cross follow-up sub-phases)**
+- Inbound landmark trust filtering (validate against expected federation membership)
+- Periodic envelope archival to OSS / WebDAV / IPFS (survive device wipe)
+- UI envelope viewer button ("show this message's cryptographic proof")
+- Large-community eager envelope push (currently on-demand pull; 10k-member communities may need bandwidth optimization)
+
 ## 2026-05-07 Update VI — **B4-merkle v1 — channel-event Merkle batch envelope finality**
 
 The P2P social path graduates from "messages are trusted + auto-mesh" to also producing offline-verifiable Merkle batch envelopes for every locally-sent channel message. Composes with B4a's Ed25519 per-message signatures: you now have third-party-verifiable evidence "I sent message Z to channel Y at time X."

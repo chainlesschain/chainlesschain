@@ -155,6 +155,30 @@ function dispatchTypedMessage(emitter, parsed, fromPeerId) {
     });
     return { dispatched: true, type };
   }
+  // B4-cross v1 — envelope request/response. ChannelEnvelopeDistribution
+  // listens on these events; receiver looks up the requested envelope
+  // locally and replies with `mtc:envelope-response`.
+  if (type === "mtc:envelope-request") {
+    emitter.emit("mtc:envelope-request", {
+      requestId: parsed.requestId,
+      communityId: parsed.communityId,
+      messageId: parsed.messageId,
+      fromPeerId,
+    });
+    return { dispatched: true, type };
+  }
+  if (type === "mtc:envelope-response") {
+    emitter.emit("mtc:envelope-response", {
+      requestId: parsed.requestId,
+      communityId: parsed.communityId,
+      messageId: parsed.messageId,
+      found: !!parsed.found,
+      envelope: parsed.envelope,
+      batchId: parsed.batchId,
+      fromPeerId,
+    });
+    return { dispatched: true, type };
+  }
   // call-signaling / call-invite / call-status / 其它历史 message:* 监听者
   if (/^call-[a-z-]+$/.test(type)) {
     emitter.emit("message:" + type, parsed.data || parsed);

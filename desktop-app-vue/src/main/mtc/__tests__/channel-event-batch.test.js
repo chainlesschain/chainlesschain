@@ -364,6 +364,177 @@ describe("ChannelEventBatcher", () => {
     });
   });
 
+  describe("B4-cross — onBatchClosed callback + remote landmark/envelope cache", () => {
+    it("onBatchClosed fires after closeBatch with full event payload", () => {
+      const events = [];
+      const unsub = batcher.onBatchClosed((evt) => events.push(evt));
+      batcher.enqueueEvent(
+        "comm-cb",
+        makeSignedMessage(identity, { id: "cb-1" }),
+      );
+      batcher.enqueueEvent(
+        "comm-cb",
+        makeSignedMessage(identity, { id: "cb-2" }),
+      );
+      batcher.closeBatch("comm-cb");
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        communityId: "comm-cb",
+        treeSize: 2,
+      });
+      expect(events[0].landmark).toBeDefined();
+      expect(events[0].manifest).toBeDefined();
+      expect(events[0].batchId).toMatch(/^\d{6}$/);
+      expect(events[0].treeHeadId).toBeTruthy();
+
+      // unsubscribe stops further events
+      unsub();
+      batcher.enqueueEvent(
+        "comm-cb",
+        makeSignedMessage(identity, { id: "cb-3" }),
+      );
+      batcher.closeBatch("comm-cb");
+      expect(events).toHaveLength(1);
+    });
+
+    it("onBatchClosed handler exception swallowed (independence)", () => {
+      const ok = vi.fn();
+      batcher.onBatchClosed(() => {
+        throw new Error("boom");
+      });
+      batcher.onBatchClosed(ok);
+      batcher.enqueueEvent(
+        "comm-iso",
+        makeSignedMessage(identity, { id: "iso-1" }),
+      );
+      const result = batcher.closeBatch("comm-iso");
+      expect(result.skipped).toBe(false);
+      expect(ok).toHaveBeenCalledOnce();
+    });
+
+    it("onBatchClosed rejects non-function", () => {
+      expect(() => batcher.onBatchClosed("not-a-fn")).toThrow(TypeError);
+    });
+
+    it("storeRemoteLandmark + findRemoteLandmark round-trip", () => {
+      const fakeLandmark = {
+        snapshots: [{ tree_head_id: "sha256:abc-remote" }],
+        trust_anchors: [],
+      };
+      const r = batcher.storeRemoteLandmark(
+        "comm-rem",
+        "sha256:abc-remote",
+        fakeLandmark,
+      );
+      expect(r.stored).toBe(true);
+      expect(r.path).toContain("remote-landmarks");
+
+      const got = batcher.findRemoteLandmark("comm-rem", "sha256:abc-remote");
+      expect(got).toEqual(fakeLandmark);
+
+      // idempotent — second store says alreadyExists
+      const r2 = batcher.storeRemoteLandmark(
+        "comm-rem",
+        "sha256:abc-remote",
+        fakeLandmark,
+      );
+      expect(r2.alreadyExists).toBe(true);
+    });
+
+    it("findRemoteLandmark returns null for unknown treeHeadId", () => {
+      expect(batcher.findRemoteLandmark("comm-rem", "sha256:nope")).toBeNull();
+    });
+
+    it("storeRemoteLandmark sanitizes treeHeadId for filesystem (':' → '_')", () => {
+      // sha256: prefix has a colon; ensure the file is created without
+      // breaking on Windows
+      batcher.storeRemoteLandmark("comm-fs", "sha256:colon-test", {
+        snapshots: [{ tree_head_id: "x" }],
+      });
+      const dir = path.join(tmpDir, "comm-fs", "remote-landmarks");
+      const files = fs.readdirSync(dir);
+      expect(files.length).toBe(1);
+      expect(files[0]).not.toContain(":"); // sanitized
+    });
+
+    it("storeRemoteEnvelope + findEnvelope (origin=remote) round-trip", () => {
+      const fakeEnvelope = {
+        schema: "envelope/v1",
+        namespace: "mtc/v1/channel/comm-rem/000005",
+        tree_head_id: "sha256:remote-th",
+        leaf: { kind: "channel-message", message_id: "remote-msg-1" },
+        inclusion_proof: { leaf_index: 3, tree_size: 10, audit_path: [] },
+      };
+      const r = batcher.storeRemoteEnvelope(
+        "comm-rem",
+        "remote-msg-1",
+        fakeEnvelope,
+      );
+      expect(r.stored).toBe(true);
+
+      const found = batcher.findEnvelope("comm-rem", "remote-msg-1");
+      expect(found.found).toBe(true);
+      expect(found.origin).toBe("remote");
+      expect(found.treeHeadId).toBe("sha256:remote-th");
+      expect(found.leafIndex).toBe(3);
+    });
+
+    it("storeRemoteEnvelope rejects unsafe messageId", () => {
+      expect(() =>
+        batcher.storeRemoteEnvelope("comm-rem", "../escape", { x: 1 }),
+      ).toThrow(/unsafe/);
+    });
+
+    it("loadEnvelopeAndLandmark for remote envelope grabs matching remote landmark", () => {
+      const treeHeadId = "sha256:remote-th-2";
+      batcher.storeRemoteLandmark("comm-bundle", treeHeadId, {
+        snapshots: [{ tree_head_id: treeHeadId }],
+      });
+      batcher.storeRemoteEnvelope("comm-bundle", "rem-msg-bundle", {
+        schema: "envelope/v1",
+        tree_head_id: treeHeadId,
+        leaf: { message_id: "rem-msg-bundle" },
+        inclusion_proof: { leaf_index: 0 },
+      });
+
+      const result = batcher.loadEnvelopeAndLandmark(
+        "comm-bundle",
+        "rem-msg-bundle",
+      );
+      expect(result.found).toBe(true);
+      expect(result.origin).toBe("remote");
+      expect(result.envelope.leaf.message_id).toBe("rem-msg-bundle");
+      expect(result.landmark.snapshots[0].tree_head_id).toBe(treeHeadId);
+    });
+
+    it("loadEnvelopeAndLandmark for remote envelope without landmark returns landmark=null", () => {
+      batcher.storeRemoteEnvelope("comm-orphan", "orphan-msg", {
+        schema: "envelope/v1",
+        tree_head_id: "sha256:never-cached",
+        leaf: { message_id: "orphan-msg" },
+        inclusion_proof: { leaf_index: 0 },
+      });
+      const result = batcher.loadEnvelopeAndLandmark(
+        "comm-orphan",
+        "orphan-msg",
+      );
+      expect(result.found).toBe(true);
+      expect(result.envelope).toBeDefined();
+      expect(result.landmark).toBeNull();
+    });
+
+    it("local origin tag preserved on findEnvelope for self-batched messages", () => {
+      batcher.enqueueEvent(
+        "comm-local",
+        makeSignedMessage(identity, { id: "self-msg" }),
+      );
+      batcher.closeBatch("comm-local");
+      const found = batcher.findEnvelope("comm-local", "self-msg");
+      expect(found.origin).toBe("local");
+    });
+  });
+
   describe("closeAllPending", () => {
     it("walks every community subdir", async () => {
       batcher.enqueueEvent("comm-A", makeSignedMessage(identity, { id: "a1" }));

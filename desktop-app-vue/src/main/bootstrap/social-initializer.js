@@ -743,6 +743,45 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-cross v1 — channel envelope cross-machine distribution
+  // ========================================
+  // 在 B4-merkle v1 (本机 envelope) 之上加跨机分发：closeBatch 时 landmark
+  // 自动 broadcast 到 federation gossipsub topic; 收到对端的 envelope-request
+  // 走 typed message response. 让 envelope 对**任何**第三方可验，不再只有发件人能用.
+  factory.register({
+    name: "channelEnvelopeDistribution",
+    dependsOn: ["mtcFederationManager", "p2pManager", "channelEventBatcher"],
+    required: false,
+    async init(context) {
+      try {
+        const { mtcFederationManager, p2pManager, channelEventBatcher } =
+          context;
+        if (!mtcFederationManager || !p2pManager || !channelEventBatcher) {
+          logger.warn("[Social] channelEnvelopeDistribution 跳过: 缺依赖");
+          return null;
+        }
+        const {
+          ChannelEnvelopeDistribution,
+        } = require("../mtc/channel-envelope-distribution");
+        const dist = new ChannelEnvelopeDistribution({
+          mtcFederationManager,
+          p2pManager,
+          channelEventBatcher,
+        });
+        dist.initialize();
+        logger.info("[Social] ✓ channelEnvelopeDistribution initialized");
+        return dist;
+      } catch (error) {
+        logger.warn(
+          "[Social] channelEnvelopeDistribution failed (envelope batches still local):",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // Phase B v2 — MTC 自动 peer 桥接 (auto-discovery)
   // ========================================
   // Phase B v1 留的 follow-up: MtcFederationManager 跑独立 libp2p 节点,

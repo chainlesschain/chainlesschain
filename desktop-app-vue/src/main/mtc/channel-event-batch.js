@@ -301,6 +301,29 @@ class ChannelEventBatcher {
     this._autoTimer = !!opts.autoTimer;
     this._timer = null;
     this._initialized = false;
+    // B4-cross v1: callback fires on every successful closeBatch — used by
+    // ChannelEnvelopeDistribution to publish the new landmark to the
+    // federation gossipsub channel.
+    this._onBatchClosedHandlers = [];
+  }
+
+  /**
+   * Register a callback fired after every successful closeBatch().
+   * Handler signature: ({ communityId, batchId, treeHeadId, namespace,
+   *   batchDir, landmark, manifest }) => void
+   * Errors thrown by handler are swallowed (each handler is independent).
+   */
+  onBatchClosed(handler) {
+    if (typeof handler !== "function") {
+      throw new TypeError("onBatchClosed: handler must be function");
+    }
+    this._onBatchClosedHandlers.push(handler);
+    return () => {
+      const idx = this._onBatchClosedHandlers.indexOf(handler);
+      if (idx >= 0) {
+        this._onBatchClosedHandlers.splice(idx, 1);
+      }
+    };
   }
 
   initialize() {
@@ -560,7 +583,7 @@ class ChannelEventBatcher {
         ")",
     );
 
-    return {
+    const result = {
       skipped: false,
       batchId,
       namespace,
@@ -569,6 +592,31 @@ class ChannelEventBatcher {
       batchDir: finalDir,
       malformed,
     };
+
+    // B4-cross v1: notify subscribers (e.g. distribution publisher) so they
+    // can broadcast the landmark to the federation. Each handler is
+    // independent — exceptions don't break subsequent handlers nor the
+    // closeBatch return value.
+    if (this._onBatchClosedHandlers.length > 0) {
+      const event = {
+        ...result,
+        communityId,
+        landmark,
+        manifest,
+      };
+      for (const h of this._onBatchClosedHandlers) {
+        try {
+          h(event);
+        } catch (handlerErr) {
+          logger.warn(
+            "[ChannelEventBatcher] onBatchClosed handler threw:",
+            handlerErr.message,
+          );
+        }
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -617,58 +665,177 @@ class ChannelEventBatcher {
       return { found: true, staging: true, file: stagedFile };
     }
 
+    // 1. Local closed batches (we authored these)
     const batchesDir = path.join(root, "batches");
-    if (!fs.existsSync(batchesDir)) {
-      return { found: false };
-    }
-    const batchIds = fs
-      .readdirSync(batchesDir)
-      .filter((n) => /^\d+$/.test(n))
-      .sort()
-      .reverse(); // most recent first
+    if (fs.existsSync(batchesDir)) {
+      const batchIds = fs
+        .readdirSync(batchesDir)
+        .filter((n) => /^\d+$/.test(n))
+        .sort()
+        .reverse(); // most recent first
 
-    for (const batchId of batchIds) {
-      const manifestPath = path.join(batchesDir, batchId, "manifest.json");
-      if (!fs.existsSync(manifestPath)) {
-        continue;
-      }
-      try {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-        const leafIndex = (manifest.message_ids || []).indexOf(messageId);
-        if (leafIndex < 0) {
+      for (const batchId of batchIds) {
+        const manifestPath = path.join(batchesDir, batchId, "manifest.json");
+        if (!fs.existsSync(manifestPath)) {
           continue;
         }
-        const envelopePath = path.join(
-          batchesDir,
-          batchId,
-          "envelope-" + messageId + ".json",
-        );
-        if (!fs.existsSync(envelopePath)) {
-          // manifest says yes but envelope file missing — corrupted batch
-          logger.warn(
-            "[ChannelEventBatcher] manifest references missing envelope " +
-              envelopePath,
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+          const leafIndex = (manifest.message_ids || []).indexOf(messageId);
+          if (leafIndex < 0) {
+            continue;
+          }
+          const envelopePath = path.join(
+            batchesDir,
+            batchId,
+            "envelope-" + messageId + ".json",
           );
-          continue;
+          if (!fs.existsSync(envelopePath)) {
+            logger.warn(
+              "[ChannelEventBatcher] manifest references missing envelope " +
+                envelopePath,
+            );
+            continue;
+          }
+          return {
+            found: true,
+            origin: "local",
+            batchId,
+            treeHeadId: manifest.tree_head_id,
+            namespace: manifest.namespace,
+            envelopePath,
+            leafIndex,
+          };
+        } catch (err) {
+          logger.warn(
+            "[ChannelEventBatcher] manifest parse failed at " +
+              manifestPath +
+              ": " +
+              err.message,
+          );
         }
+      }
+    }
+
+    // 2. B4-cross v1: remote envelope cache (fetched from peer in response
+    // to a verify request). Indexed by messageId.json — landmark lookup is
+    // separate (see findRemoteLandmark).
+    const remoteEnv = path.join(root, "remote-envelopes", messageId + ".json");
+    if (fs.existsSync(remoteEnv)) {
+      try {
+        const env = JSON.parse(fs.readFileSync(remoteEnv, "utf-8"));
         return {
           found: true,
-          batchId,
-          treeHeadId: manifest.tree_head_id,
-          namespace: manifest.namespace,
-          envelopePath,
-          leafIndex,
+          origin: "remote",
+          envelopePath: remoteEnv,
+          treeHeadId: env.tree_head_id,
+          namespace: env.namespace,
+          // leafIndex sourced from the envelope itself
+          leafIndex:
+            (env.inclusion_proof && env.inclusion_proof.leaf_index) >= 0
+              ? env.inclusion_proof.leaf_index
+              : -1,
         };
       } catch (err) {
         logger.warn(
-          "[ChannelEventBatcher] manifest parse failed at " +
-            manifestPath +
+          "[ChannelEventBatcher] remote envelope corrupted at " +
+            remoteEnv +
             ": " +
             err.message,
         );
       }
     }
+
     return { found: false };
+  }
+
+  /**
+   * B4-cross v1: cache a landmark received from another federation member
+   * via gossipsub. Indexed by treeHeadId so we can look it up when an
+   * envelope referencing that tree-head arrives later.
+   *
+   * @param {string} communityId
+   * @param {string} treeHeadId
+   * @param {object} landmark - the MTC landmark JSON from the wire
+   * @returns {{ stored: boolean, path: string, alreadyExists?: boolean }}
+   */
+  storeRemoteLandmark(communityId, treeHeadId, landmark) {
+    if (!treeHeadId || typeof treeHeadId !== "string") {
+      throw new TypeError("storeRemoteLandmark: treeHeadId required");
+    }
+    if (!landmark || typeof landmark !== "object") {
+      throw new TypeError("storeRemoteLandmark: landmark required");
+    }
+    // Filesystem safety on treeHeadId — it's "sha256:<base64url>" from
+    // core-mtc; replace ':' with '__' to avoid Windows path issues.
+    const safeName = treeHeadId.replace(/[:/\\]/g, "_");
+    const root = communityRoot(this._rootDir, communityId);
+    const dir = path.join(root, "remote-landmarks");
+    ensureDir(dir);
+    const target = path.join(dir, safeName + ".json");
+    if (fs.existsSync(target)) {
+      return { stored: true, path: target, alreadyExists: true };
+    }
+    fs.writeFileSync(target, JSON.stringify(landmark, null, 2), "utf-8");
+    return { stored: true, path: target };
+  }
+
+  /**
+   * B4-cross v1: look up a previously-cached remote landmark by treeHeadId.
+   * @returns {object|null} parsed landmark or null
+   */
+  findRemoteLandmark(communityId, treeHeadId) {
+    if (!treeHeadId) {
+      return null;
+    }
+    const safeName = treeHeadId.replace(/[:/\\]/g, "_");
+    const target = path.join(
+      communityRoot(this._rootDir, communityId),
+      "remote-landmarks",
+      safeName + ".json",
+    );
+    if (!fs.existsSync(target)) {
+      return null;
+    }
+    try {
+      return JSON.parse(fs.readFileSync(target, "utf-8"));
+    } catch (err) {
+      logger.warn(
+        "[ChannelEventBatcher] remote landmark corrupted at " +
+          target +
+          ": " +
+          err.message,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * B4-cross v1: cache an envelope received from another federation member
+   * in response to a request. Indexed by messageId so findEnvelope picks
+   * it up automatically.
+   *
+   * @param {string} communityId
+   * @param {string} messageId
+   * @param {object} envelope - the MTC envelope JSON from the wire
+   * @returns {{ stored: boolean, path: string, alreadyExists?: boolean }}
+   */
+  storeRemoteEnvelope(communityId, messageId, envelope) {
+    if (!messageId || !/^[A-Za-z0-9_-]+$/.test(messageId)) {
+      throw new Error("storeRemoteEnvelope: messageId unsafe");
+    }
+    if (!envelope || typeof envelope !== "object") {
+      throw new TypeError("storeRemoteEnvelope: envelope required");
+    }
+    const root = communityRoot(this._rootDir, communityId);
+    const dir = path.join(root, "remote-envelopes");
+    ensureDir(dir);
+    const target = path.join(dir, messageId + ".json");
+    if (fs.existsSync(target)) {
+      return { stored: true, path: target, alreadyExists: true };
+    }
+    fs.writeFileSync(target, JSON.stringify(envelope, null, 2), "utf-8");
+    return { stored: true, path: target };
   }
 
   /**
@@ -681,13 +848,23 @@ class ChannelEventBatcher {
       return found;
     }
     const envelope = JSON.parse(fs.readFileSync(found.envelopePath, "utf-8"));
-    const landmarkPath = path.join(
-      path.dirname(found.envelopePath),
-      "landmark.json",
-    );
-    const landmark = fs.existsSync(landmarkPath)
-      ? JSON.parse(fs.readFileSync(landmarkPath, "utf-8"))
-      : null;
+    let landmark = null;
+    if (found.origin === "local") {
+      // Local batch: landmark sits next to the envelope
+      const landmarkPath = path.join(
+        path.dirname(found.envelopePath),
+        "landmark.json",
+      );
+      if (fs.existsSync(landmarkPath)) {
+        landmark = JSON.parse(fs.readFileSync(landmarkPath, "utf-8"));
+      }
+    } else if (found.origin === "remote") {
+      // Remote envelope: landmark is in remote-landmarks/, indexed by tree
+      // head id. May be missing if we received the envelope without a
+      // matching landmark broadcast (e.g. the publisher closed a batch but
+      // the gossipsub message hasn't reached us yet).
+      landmark = this.findRemoteLandmark(communityId, found.treeHeadId);
+    }
     return { ...found, envelope, landmark };
   }
 }

@@ -23,6 +23,12 @@ const electron = require("electron");
  * @param {Object} [dependencies.channelEventBatcher] - B4-merkle channel event
  *   batcher (optional; when present, locally-sent signed messages are
  *   enqueued for Merkle batch envelope finality)
+ * @param {Object} [dependencies.channelEnvelopeDistribution] - B4-cross
+ *   envelope distribution (optional; when present, community:join also
+ *   subscribes to landmark broadcasts + channel:get-message-envelope can
+ *   lazy-pull from connected peers when envelope missing locally)
+ * @param {Object} [dependencies.p2pManager] - needed by lazy peer-pull
+ *   to enumerate connected peers
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
  */
 function registerCommunityIPC({
@@ -33,6 +39,8 @@ function registerCommunityIPC({
   contentModerator,
   mtcFederationManager,
   channelEventBatcher,
+  channelEnvelopeDistribution,
+  p2pManager,
   ipcMain,
 }) {
   // Default to real electron.ipcMain in production; tests inject a mock.
@@ -147,6 +155,20 @@ function registerCommunityIPC({
       // Subscribe to gossip for this community (Phase A — direct dial gossip)
       if (gossipProtocol) {
         gossipProtocol.subscribe(communityId);
+      }
+
+      // B4-cross v1: subscribe to envelope landmark broadcasts so any
+      // remote-batched envelopes for this community auto-cache locally.
+      // Failure non-fatal.
+      if (channelEnvelopeDistribution) {
+        try {
+          await channelEnvelopeDistribution.subscribeCommunity(communityId);
+        } catch (envSubErr) {
+          logger.warn(
+            "[Community IPC] envelope distribution subscribe failed:",
+            envSubErr.message,
+          );
+        }
       }
 
       // Phase B v1: also subscribe MTC federation gossipsub topic.
@@ -481,9 +503,10 @@ function registerCommunityIPC({
    * Returns: { found:boolean, staging?:bool, envelope?, landmark?, treeHeadId?,
    *            namespace?, batchId?, leafIndex? }
    *
-   * v1: only finds locally-batched messages (i.e. ones this device sent).
-   * Future: cross-machine envelope distribution (federation) so any node
-   * can serve any envelope.
+   * Lookup order:
+   *   1. local: this device's own batches + previously-cached remote envelopes
+   *   2. B4-cross v1 lazy peer-pull: ask each connected libp2p peer in turn
+   *      via mtc:envelope-request typed message; first hit caches and returns
    */
   ipcMain.handle(
     "channel:get-message-envelope",
@@ -498,10 +521,64 @@ function registerCommunityIPC({
         if (!communityId || !messageId) {
           return { found: false, reason: "communityId + messageId required" };
         }
-        return channelEventBatcher.loadEnvelopeAndLandmark(
+        // 1. Local + previously-cached remote
+        const local = channelEventBatcher.loadEnvelopeAndLandmark(
           communityId,
           messageId,
         );
+        if (local && local.found) {
+          return local;
+        }
+
+        // 2. B4-cross v1 lazy peer-pull: serially ask each connected peer
+        // until one has it. Bounded by the per-request timeout in
+        // ChannelEnvelopeDistribution (default 8s). Typical case: original
+        // author serves it on the first try.
+        if (
+          channelEnvelopeDistribution &&
+          p2pManager &&
+          typeof p2pManager.getConnectedPeers === "function"
+        ) {
+          let peers = [];
+          try {
+            peers = p2pManager.getConnectedPeers() || [];
+          } catch (_err) {
+            peers = [];
+          }
+          for (const p of peers) {
+            const peerId = typeof p === "string" ? p : p && (p.peerId || p.id);
+            if (!peerId) {
+              continue;
+            }
+            try {
+              const env = await channelEnvelopeDistribution.requestEnvelope(
+                peerId,
+                communityId,
+                messageId,
+              );
+              if (env) {
+                // requestEnvelope cached it; rerun local lookup so caller
+                // gets the unified shape (origin, paths, landmark, ...).
+                return channelEventBatcher.loadEnvelopeAndLandmark(
+                  communityId,
+                  messageId,
+                );
+              }
+            } catch (peerErr) {
+              logger.warn(
+                "[Community IPC] envelope peer-pull failed for " +
+                  peerId +
+                  ": " +
+                  peerErr.message,
+              );
+            }
+          }
+        }
+
+        return {
+          found: false,
+          reason: "envelope not found locally or among peers",
+        };
       } catch (err) {
         logger.error("[Community IPC] get-message-envelope failed:", err);
         return { found: false, reason: err.message };

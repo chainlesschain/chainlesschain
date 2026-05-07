@@ -216,6 +216,59 @@ describe("P2PManager wire-frame helpers", () => {
       });
     });
 
+    it("dispatches mtc:envelope-request with communityId/messageId/requestId/fromPeerId", () => {
+      const handler = vi.fn();
+      emitter.on("mtc:envelope-request", handler);
+
+      dispatchTypedMessage(
+        emitter,
+        {
+          type: "mtc:envelope-request",
+          requestId: "req-42",
+          communityId: "comm-X",
+          messageId: "msg-X",
+        },
+        "12D3KooWAsker",
+      );
+
+      expect(handler).toHaveBeenCalledWith({
+        requestId: "req-42",
+        communityId: "comm-X",
+        messageId: "msg-X",
+        fromPeerId: "12D3KooWAsker",
+      });
+    });
+
+    it("dispatches mtc:envelope-response with envelope payload + found flag", () => {
+      const handler = vi.fn();
+      emitter.on("mtc:envelope-response", handler);
+
+      const fakeEnv = { schema: "envelope/v1", leaf: { message_id: "msg-X" } };
+      dispatchTypedMessage(
+        emitter,
+        {
+          type: "mtc:envelope-response",
+          requestId: "req-42",
+          communityId: "comm-X",
+          messageId: "msg-X",
+          found: true,
+          envelope: fakeEnv,
+          batchId: "000007",
+        },
+        "12D3KooWResponder",
+      );
+
+      expect(handler).toHaveBeenCalledWith({
+        requestId: "req-42",
+        communityId: "comm-X",
+        messageId: "msg-X",
+        found: true,
+        envelope: fakeEnv,
+        batchId: "000007",
+        fromPeerId: "12D3KooWResponder",
+      });
+    });
+
     it("dispatches call-signaling under message:call-signaling", () => {
       const handler = vi.fn();
       emitter.on("message:call-signaling", handler);

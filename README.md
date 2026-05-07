@@ -1,5 +1,41 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 VII（**B4-cross v1 — envelope 跨机分发**）
+
+B4-merkle v1 落了 envelope，但只对发件人有用（对端没你的 batch dir 验不了）。本次补完最关键缺口：landmark 走 federation gossipsub 自动广播 + envelope 按需 peer-pull，整个 audit-grade 价值兑现——任何第三方都能 verify 任何已知 messageId 的 inclusion proof。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **Batcher 远端缓存 + 回调 API** | `src/main/mtc/channel-event-batch.js` (+196 / -27) | 新方法 `onBatchClosed(handler)` (closeBatch 完触发 + 多 handler 隔离)、`storeRemoteLandmark / findRemoteLandmark` (按 treeHeadId 索引，sha256: 冒号 → 文件系统安全 `_`)、`storeRemoteEnvelope` (messageId 索引)。`findEnvelope` 返回新增 `origin: "local" \| "remote"` 字段; `loadEnvelopeAndLandmark` 自动按 origin 选 landmark 路径 (local 在 batch dir 旁，remote 在 remote-landmarks/) |
+| **ChannelEnvelopeDistribution** | `src/main/mtc/channel-envelope-distribution.js` (+330) | 封装 mtcFedMgr (gossipsub 双轨：另起 `cc.community.<id>.envelopes-track` topic 跟消息流分开) + p2pManager (typed `mtc:envelope-request` / `mtc:envelope-response`)。API: `subscribeCommunity` (拉远端 landmark) / `publishLandmark` 自动 (hooks batcher.onBatchClosed) / `requestEnvelope(peerId, communityId, messageId)` Promise + 8s 默认 timeout. 内部 in-flight 跟踪 + close 时 reject 全部待响应 |
+| **typed message dispatch** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+24) | 加 `mtc:envelope-request` (→ `'mtc:envelope-request'` event w/ requestId/communityId/messageId/fromPeerId) + `mtc:envelope-response` (→ event w/ found/envelope/batchId). distribution 模块直接 listen 这俩 event |
+| **social-initializer 注册** | `src/main/bootstrap/social-initializer.js` (+38) | `channelEnvelopeDistribution` initializer (depends mtcFedMgr + p2pManager + channelEventBatcher); failure 容错 |
+| **community-ipc 集成** | `src/main/social/community-ipc.js` (+62) | `community:join` 也调 `channelEnvelopeDistribution.subscribeCommunity` 拉 landmark; `channel:get-message-envelope` 加 fallback chain — 本地缺时 enumerate 已连 peer 顺序 `requestEnvelope` 至首发命中，requestEnvelope 内部 storeRemoteEnvelope 缓存; phase-3-4-social 透传 `channelEnvelopeDistribution` + `p2pManager` |
+
+**信任模型 (v1)**：none — 缓存所有收到的 landmark/envelope，不做 trust_anchors 校验。理由：(a) Noise transport 防 MITM，(b) 用户最终 verify envelope 的 inclusion proof 时**会**用 landmark 的 tree-head signature 作真伪验证（`cc mtc verify` 等价物），所以攻击者注入 fake landmark 也通不过最后一道关。v2 可以加 inbound landmark 按 federation membership 过滤。
+
+**测试矩阵 (B4-cross 新增 34, 累计 1003 / 1003 全绿 across 28 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit (扩展) | `mtc/__tests__/channel-event-batch.test.js` (+11 →34) | 11 个 cross-machine 用例：onBatchClosed 完整 / handler 异常隔离 / storeRemoteLandmark+findRemoteLandmark / `:` 路径转义 / storeRemoteEnvelope+findEnvelope `origin:remote` / unsafe messageId reject / loadEnvelopeAndLandmark remote bundle / orphan envelope 无 landmark 兜底 / origin 标签保留 |
+| Unit (新) | `mtc/__tests__/channel-envelope-distribution.test.js` | 21 — constructor 必填检查 / lifecycle 幂等 / close tear-down 监听器 / 自动 publish on closeBatch (非阻塞) / `landmark:published` event / subscribeCommunity 用 `<id>.envelopes-track` 同步 topic / 入站 landmark cache / 非 landmark payload 忽略 / unsubscribeCommunity 幂等 / `requestEnvelope` 全流程 (req → resp 缓存 → resolve) / found:false / 8s timeout → null / 不识别 requestId 静默忽略 / close reject 在飞 / 入站 envelope-request 找本地 envelope 响应 / 找不到 → found:false / malformed 请求 (缺 requestId / 缺 fromPeerId) 忽略 |
+| Unit (扩展) | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2 →22) | 2 个新 dispatch 用例：`mtc:envelope-request` / `mtc:envelope-response` 字段透传 |
+| 全 28 文件回归 | — | **1003 / 1003** ✅ |
+
+**端到端价值兑现**：
+1. Alice 在 community-X 频道发消息 → 本地 channelManager INSERT + B4a 签名 + Phase A gossip + Phase B MTC + B4-merkle batch enqueue
+2. 100 条消息后或 1h 触发 closeBatch → assembleBatch + 写 batches/000001/ → onBatchClosed callback → ChannelEnvelopeDistribution publish landmark 到 `cc.community.community-X.envelopes-track` topic
+3. Bob 已加 community-X (community:join 自动 subscribeCommunity 那个 topic) → 收到 landmark → batcher.storeRemoteLandmark 落盘 `<userData>/channel-mtc/community-X/remote-landmarks/sha256_xxx.json`
+4. Bob 想验证 Alice 发的某条 message: renderer 调 `channel:get-message-envelope` IPC → 本地没 → enumerate connected peers (Phase A gossip 的) → `requestEnvelope(Alice, …)` → Alice 收到 `mtc:envelope-request` typed → 在自己 batches/ 找到 → 回 `mtc:envelope-response` → Bob 缓存到 `remote-envelopes/messageId.json` → 返回完整 envelope + 缓存的 landmark 给 renderer
+5. Renderer (或 `cc mtc verify`) 验证 Merkle inclusion_proof 对照 landmark 的 tree-head signature → ✅ 第三方密码学证据成立
+
+**Deferred (B4-cross 后续 sub-phases)**
+- Inbound landmark trust filtering (按 federation membership 校验)
+- Periodic envelope archival to OSS / WebDAV / IPFS (survive device wipe)
+- UI envelope viewer button ("show this message's cryptographic proof")
+- 大社区 batch envelope eager push (现在按需 pull，万人社区可能 latency 不够)
+
 ## 2026-05-07 增量更新 VI（**B4-merkle v1 — channel 事件 Merkle batch envelope finality**）
 
 P2P 社交从"消息可信 + 自动联网"再上一层：本机发出的每条 channel 消息进**离线可验**的 Merkle 批 envelope。配 B4a 的 Ed25519 单条签名，组合得"我可以拿出第三方都能验的证据，证明我在 X 时间向 Y 频道发了 Z 内容"。
