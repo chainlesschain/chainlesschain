@@ -150,6 +150,26 @@ class ChannelManager extends EventEmitter {
    * @private
    */
   _addColumnIfMissing(db, table, column, type) {
+    // SQLite cannot parameterize identifiers, so reject anything that
+    // doesn't look like a bare SQL identifier / simple type name. All
+    // current call sites pass hardcoded literals; this is defense in depth.
+    const SAFE_IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
+    const SAFE_TYPE = /^[A-Z]+$/;
+    if (
+      !SAFE_IDENT.test(table) ||
+      !SAFE_IDENT.test(column) ||
+      !SAFE_TYPE.test(type)
+    ) {
+      throw new Error(
+        "_addColumnIfMissing: unsafe identifier (table=" +
+          table +
+          " column=" +
+          column +
+          " type=" +
+          type +
+          ")",
+      );
+    }
     try {
       const stmt = db.prepare(`PRAGMA table_info(${table})`);
       const rows = typeof stmt.all === "function" ? stmt.all() : [];
@@ -162,7 +182,9 @@ class ChannelManager extends EventEmitter {
         }
       }
       if (!existing.has(column)) {
-        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        const migrationSQL =
+          "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
+        db.exec(migrationSQL);
         logger.info(
           "[ChannelManager] migrated " + table + ": added column " + column,
         );

@@ -245,8 +245,6 @@
     "ical-generator": "^4.1.0",
     "imap": "^0.8.19",
     "isomorphic-git": "^1.25.4",
-    "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4",
     "jspreadsheet-ce": "^5.0.4",
     "jsqr": "^1.4.0",
     "koffi": "^2.8.10",
