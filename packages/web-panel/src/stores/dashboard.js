@@ -163,13 +163,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
         }
       })
 
-      // mcp.list_servers reads CONFIGURED servers from desktop's
-      // .chainlesschain/config.json (mcpConfigLoader). Previously shelled
-      // out to `cc mcp servers --json` which queries the CLI's *own* db
-      // under a separate userData dir — desktop-configured servers were
-      // invisible there, so the dashboard always showed 0. WS topic
-      // bypasses the subprocess and reads the actual source of truth.
-      ws.sendRaw({ type: 'mcp.list_servers' }, 5000)
+      // Dashboard label is "已挂载扩展" — that's CONNECTED servers, not
+      // configured (mcp.list_servers would give configured count, mismatching
+      // the MCP 工具 page which shows connected = 2). Reusing list_tools so
+      // both views agree. Previous shell-out to `cc mcp servers --json` hit a
+      // different db under the CLI's own userData dir and always returned 0.
+      ws.sendRaw({ type: 'mcp.list_tools' }, 5000)
         .then((reply) => {
           const r = reply?.result ?? reply
           const servers = r?.servers
