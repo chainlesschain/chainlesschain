@@ -380,6 +380,7 @@ function verifyEnvelopeInProcess(envelope, landmark, opts = {}) {
   const lib = loadMtcLib();
   const cache = new lib.LandmarkCache({
     signatureVerifier: makeMultiAlgVerifier(landmark),
+    verifyPublisherSignature: true,
   });
   cache.ingest(landmark);
   const now = opts.now ? Date.parse(opts.now) : Date.now();

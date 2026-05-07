@@ -582,6 +582,7 @@ export function registerMtcCommand(program) {
 
         const cache = new LandmarkCache({
           signatureVerifier: makeMultiAlgVerifier(landmark),
+          verifyPublisherSignature: true,
         });
         cache.ingest(landmark);
 
@@ -1241,6 +1242,7 @@ export function registerMtcCommand(program) {
               if (!cache) {
                 cache = new LandmarkCache({
                   signatureVerifier: makeMultiAlgVerifier(landmark),
+                  verifyPublisherSignature: true,
                   persistDir: options.cacheDir,
                 });
                 if (options.cacheDir) {
