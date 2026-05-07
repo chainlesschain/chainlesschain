@@ -353,10 +353,44 @@ signing_input = TREE_HEAD_SIG_PREFIX || JCS(tree_head)
 ### 8.2 publisher_signature 待签字节
 
 ```
-signing_input = "mtc/v1/landmark\n" || JCS({schema, namespace, snapshots, trust_anchors, published_at})
+signing_input = LANDMARK_SIG_PREFIX || JCS(landmark with publisher_signature.sig = "")
+              = "mtc/v1/landmark\n" || JCS(landmark′)
 ```
 
-注意：签名输入**不包含** `publisher_signature` 字段本身（自引用）。
+其中 `landmark′` 是把目标 landmark 的 `publisher_signature.sig` 字段置为空字符串 `""` 后的副本（`alg` 与 `key_id` 保留），其他所有字段（含 snapshots、trust_anchors、published_at、schema、namespace）一字不动。
+
+域分离前缀 `LANDMARK_SIG_PREFIX` 与 `TREE_HEAD_SIG_PREFIX`（§7.1）对齐：保证 landmark 级签名永远不会被重放为 tree_head 签名，反之亦然。
+
+#### 生产端流程（producer）
+
+```
+1. 构造 landmark.publisher_signature = { alg, key_id, sig: "" }   // 占位
+2. canonical = JCS(landmark)                                       // 含占位的全文规范化
+3. sig_bytes = sign(LANDMARK_SIG_PREFIX || canonical, publisher_key)
+4. landmark.publisher_signature.sig = base64url(sig_bytes)         // 原地填回
+```
+
+> **关键不变量**：步骤 2 的 JCS 字节决定了步骤 3 签的是什么——之后步骤 4 只是把 sig 字段写回，不影响已生成的签名。验证端必须按相同顺序重建：先把 sig 抹回 `""`、再 JCS、再核签。
+
+#### 验证端流程（verifier）
+
+```
+1. 取出 landmark.publisher_signature 全字段
+2. landmark′ = { ...landmark, publisher_signature: { ...ps, sig: "" } }
+3. canonical = JCS(landmark′)
+4. ok = verify(sig_bytes, LANDMARK_SIG_PREFIX || canonical, anchor_pubkey)
+```
+
+公钥从 `trust_anchors[0]` 解析（参考实现：`signers[0]` 在联邦多签路径上必然落在该位置；单签路径就是唯一签名者）。算法名 `publisher_signature.alg` 必须等于 `trust_anchors[0].alg`，否则直接 `BAD_LANDMARK_SIG`。
+
+#### 选择 publisher key 的约定
+
+| 路径 | publisher key | trust_anchors 中位置 |
+|---|---|---|
+| 单签（`assembleBatch`） | 与 tree_head 签名相同的密钥 | `trust_anchors[0]` |
+| 联邦多签（`assembleBatchFederated`） | `signers[0]` 的密钥（确定性选择） | `trust_anchors[0]` |
+
+snapshot 已携带 M-of-N 的 `signatures[]`+`threshold`，`publisher_signature` 只额外标识"谁打包并发布了这份 landmark"，不影响 tree_head 签名层的阈值语义。
 
 ### 8.3 IPFS / DHT 分发
 
@@ -380,6 +414,40 @@ Verifier 接受新 landmark 前**必须**校验：
 2. 对于 `tree_size` 相同的快照，`root_hash` 必须相同（否则视为 MTCA 双花，记录并告警）
 
 不通过的 landmark 必须**拒绝**且**不更新本地缓存**。
+
+### 8.5 LandmarkCache.ingest 验证流程
+
+```
+function ingest(landmark):
+    # 0. schema 检查
+    if landmark.schema != "mtc-landmark/v1":   throw BAD_LANDMARK_SCHEMA
+    if landmark.snapshots is empty:            throw BAD_LANDMARK_SCHEMA
+
+    # 0.5. publisher_signature（opt-in，§8.2）
+    if cache.verifyPublisherSignature:
+        verify_publisher_signature(landmark)    # 失败抛 BAD_LANDMARK_SIG
+
+    # 1..N. 逐个 snapshot 验签（§7）+ 单调性（§8.4）+ MTCA 双花（§8.4）
+    for snap in landmark.snapshots:
+        validate_and_store(snap)                # 失败抛 BAD_TREE_HEAD_*
+```
+
+`verifyPublisherSignature` 是 LandmarkCache 构造选项，**默认 off**，向前兼容：
+
+| 默认 off | 默认 off + 占位签名 landmark | opt-in + 真签 landmark | opt-in + 占位签名 landmark |
+|---|---|---|---|
+| 旧路径 | ✅ 接受 | ✅ 接受 | ❌ `BAD_LANDMARK_SIG` |
+| 新路径 | — | — | — |
+
+切到 opt-in 的标准位点：用户主动 `cc mtc verify-envelope` / 联邦 gossipsub 订阅 / desktop `verifyEnvelopeInProcess`。这三处均要求 landmark 完整端到端可信，应启用。Cross-chain bridge 当前用 `alwaysAcceptSignatureVerifier`（结构性校验，不验签），opt-in 在它身上是 noop，等迁移到真验证器时再启用。
+
+#### 落盘/读盘的兼容性
+
+`LandmarkCache.loadFromDisk` 重建本地缓存时只迭代 **snapshot** 文件（`<tree_head_id>.json`），不重读 landmark 全文，因此 publisher_signature 不参与重建路径。已写盘的旧 cache 在 opt-in 切换后**不会**集体失效，只有新到达 ingest 的 landmark 必须带真签。
+
+#### 迁移说明
+
+`a634a00f3` 之前的生产端把 `publisher_signature.sig` 写为字面量 `"TODO-PUBLISHER-SIG"`。这种 landmark 在 opt-in caller 上会被抛 `BAD_LANDMARK_SIG`。补救路径：用最新生产端（`assembleBatch` / `assembleBatchFederated`）重新打包同一组 leaves 即可，输出与旧 landmark wire-compatible（仅 sig 字段差异）。
 
 ---
 
