@@ -1,5 +1,39 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XIII（**B4-webshell v1 — 全 B4 套件 web-shell 默认壳可见**）
+
+用户 follow-up：Phase 1.6 后默认壳是 web-shell（hard-flip `caaddf530`），但 B4 全套（envelope viewer / archive / governance-mofn / cross-fed-trust）只走 `ipcMain.handle`，web-panel 用户看不到。本次补 13 个 WS topic + 入口透传，让默认壳用户也能用全套。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **WS topic handler factory** | `src/main/web-shell/handlers/community-mtc-handlers.js` (+330) | 13 个 dotted topic：`mtc.envelope.get`、`mtc.archive.{push, restore, list}`、`mtc.governance-mofn.{create, sign, status, finalize, list}`、`mtc.cross-fed-trust.{establish, revoke, list, get-trusted-dids}`. 每个 handler 接 `{success, ...}` 形态返回，null manager 时返回 `{success:false, error:"... not initialized"}` 不让 dispatcher 崩 |
+| **web-shell-bootstrap 注册** | `src/main/web-shell/web-shell-bootstrap.js` (+22) | `createCommunityMtcHandlers({...managers})` 拼进 `wsHandlers` map; lazy peer-pull 走 `p2pManager.getConnectedPeers` |
+| **index.js 入口透传** | `src/main/index.js` (+22 / 0) | DI container 结果取 6 manager (channelEventBatcher / channelEnvelopeDistribution / channelEnvelopeArchiver / archiveProviderFactory / governanceMultiSig / crossFedTrust)，attach `this.*` 后 `startWebShell({...})` 都传过去 |
+| **Wire 形状一致性** | 同 IPC 层 | sign 仍走 base64 序列化 keys（renderer 不传 Buffer）；providerSpec 仍是 `{kind, ...opts}` 形态；error envelope `{success:false, error}` 跟 mtc.audit-status / sync.status / notification.* 等已有 topic 同 shape |
+
+**测试矩阵 (B4-webshell 新增 19, 累计 1106 / 1106 全绿 across 33 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `web-shell/__tests__/community-mtc-handlers.test.js` | 19 — 全 13 topic 注册检查 + envelope.get 4 (local hit / 远端 fallback peer-pull / 缺 batcher / 缺 args) + archive.* 5 (push / restore / list / 缺 factory / 缺 spec) + governance-mofn.* 5 (create / sign 含 base64→Buffer revive / sign 缺 args / status+finalize+list / 缺 manager) + cross-fed-trust.* 4 (establish 切 localCommunityId / revoke list get-trusted-dids / 缺 manager) + 同步 throw 包成 envelope |
+| 全 33 文件回归 | — | **1106 / 1106** ✅ |
+
+## ✅ B4 全 deferred + web-shell parity 完成
+
+| 阶段 | commit | 测试 |
+|---|---|---|
+| Phase A + Phase B v1 | `50b8ddb05` | +58 |
+| B4 (DID + auto-bridge) | `3741a8e7e` | +47 |
+| B4-merkle v1 | `435ba7dde` | +31 |
+| B4-cross v1 | `8b03e3b54` | +34 |
+| B4-cross-trust v1 | `c50353ca8` | +8 |
+| B4-ui v1 | `173efc52e` | +10 |
+| B4-archive v1 | `527e36eba` | +26 |
+| B4-mofn v1 | `b1b016dd8` | +24 |
+| B4-crossfed v1 | `ad12fc515` | +16 |
+| **B4-webshell v1** | **本次** | **+19** |
+| **小计** | **10 commits** | **+273 (149 → 1106)** |
+
 ## 2026-05-07 增量更新 XII（**B4-crossfed v1 — 跨联邦信任锚**）
 
 deferred 第五项也是 B4 最后一项。B4-cross-trust v1 把 inbound landmark 校验锁在"必须是本社区 member"。本次扩展：用户可以记录"我也信任另一个 federation 的 trust anchors"，他们发的 landmark 也能过校验，不必加入对方 community。

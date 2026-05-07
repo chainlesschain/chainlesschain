@@ -56,6 +56,9 @@ const { createScreenshotHandlers } = require("./handlers/screenshot-handlers");
 const {
   createNotificationSettingsHandlers,
 } = require("./handlers/notification-settings-handlers");
+const {
+  createCommunityMtcHandlers,
+} = require("./handlers/community-mtc-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -219,6 +222,22 @@ async function startWebShell(options = {}) {
           }),
         }
       : {}),
+    // B4-webshell v1 — full B4 MTC suite over WS topics so the default
+    // web-shell user can verify Merkle envelopes (mtc.envelope.get),
+    // archive batches to filesystem/WebDAV (mtc.archive.*), drive M-of-N
+    // governance (mtc.governance-mofn.*), and manage cross-fed trust
+    // anchors (mtc.cross-fed-trust.*). Each handler tolerates null
+    // managers (returns clean error envelope) — pre-init / disabled-by-
+    // config setups don't crash the dispatcher.
+    ...createCommunityMtcHandlers({
+      channelEventBatcher: options.channelEventBatcher ?? null,
+      channelEnvelopeDistribution: options.channelEnvelopeDistribution ?? null,
+      channelEnvelopeArchiver: options.channelEnvelopeArchiver ?? null,
+      archiveProviderFactory: options.archiveProviderFactory ?? null,
+      governanceMultiSig: options.governanceMultiSig ?? null,
+      crossFedTrust: options.crossFedTrust ?? null,
+      p2pManager: options.p2pManager ?? null,
+    }),
     ...(options.extraHandlers || {}),
   };
 

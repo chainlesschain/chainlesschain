@@ -1,5 +1,39 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XIII — **B4-webshell v1 — full B4 suite visible from default web-shell**
+
+User follow-up: after the Phase 1.6 hard-flip (`caaddf530`), the default shell is web-shell, but the B4 suite (envelope viewer / archive / governance-mofn / cross-fed-trust) only registered on `ipcMain.handle` — web-panel users couldn't see it. This patch adds 13 WS topics + dependency wiring so the default shell gets the full feature surface.
+
+| Topic | File | Description |
+|---|---|---|
+| **WS topic handler factory** | `src/main/web-shell/handlers/community-mtc-handlers.js` (+330) | 13 dotted topics: `mtc.envelope.get`, `mtc.archive.{push, restore, list}`, `mtc.governance-mofn.{create, sign, status, finalize, list}`, `mtc.cross-fed-trust.{establish, revoke, list, get-trusted-dids}`. Each handler returns `{success, ...}` shape; null manager yields `{success:false, error:"... not initialized"}` so the dispatcher doesn't crash |
+| **web-shell-bootstrap registration** | `src/main/web-shell/web-shell-bootstrap.js` (+22) | `createCommunityMtcHandlers({...managers})` spreads into `wsHandlers` map; lazy peer-pull uses `p2pManager.getConnectedPeers` |
+| **index.js dependency wiring** | `src/main/index.js` (+22) | Pulls 6 managers from DI container instances, attaches to `this.*`, passes them all into `startWebShell({...})` |
+| **Wire-shape consistency with IPC** | same | sign still uses base64-serialized keys (renderer doesn't ship Buffers); providerSpec stays `{kind, ...opts}`; error envelope `{success:false, error}` matches existing mtc.audit-status / sync.status / notification.* topics |
+
+**Test matrix (B4-webshell adds 19, total 1106 / 1106 across 33 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `web-shell/__tests__/community-mtc-handlers.test.js` | 19 — 13-topic registration check + envelope.get 4 (local hit / remote peer-pull fallback / missing batcher / missing args) + archive.* 5 (push / restore / list / missing factory / missing spec) + governance-mofn.* 5 (create / sign with base64→Buffer revive / sign missing args / status+finalize+list / missing manager) + cross-fed-trust.* 4 (establish strips localCommunityId / revoke+list+get-trusted-dids / missing manager) + sync-throw caught into envelope |
+| Full 33-file regression | — | **1106 / 1106** ✅ |
+
+## ✅ All B4 deferred + web-shell parity now complete
+
+| Phase | Commit | Tests added |
+|---|---|---|
+| Phase A + Phase B v1 | `50b8ddb05` | +58 |
+| B4 (DID + auto-bridge) | `3741a8e7e` | +47 |
+| B4-merkle v1 | `435ba7dde` | +31 |
+| B4-cross v1 | `8b03e3b54` | +34 |
+| B4-cross-trust v1 | `c50353ca8` | +8 |
+| B4-ui v1 | `173efc52e` | +10 |
+| B4-archive v1 | `527e36eba` | +26 |
+| B4-mofn v1 | `b1b016dd8` | +24 |
+| B4-crossfed v1 | `ad12fc515` | +16 |
+| **B4-webshell v1** | **this** | **+19** |
+| **Total** | **10 commits** | **+273 (149 → 1106)** |
+
 ## 2026-05-07 Update XII — **B4-crossfed v1 — cross-federation trust anchors**
 
 Fifth and final B4 deferred item. B4-cross-trust v1 locked the inbound landmark filter to "issuer must be a current community member". This patch lets a user record "I also trust this other federation's anchors", so landmarks signed by their members pass too — no need to formally join their community.

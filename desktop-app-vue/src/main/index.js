@@ -492,6 +492,16 @@ class ChainlessChainApp {
     this.vcTemplateManager = instances.vcTemplateManager;
     this.remoteGateway = instances.remoteGateway;
 
+    // B4 MTC suite — channel envelope batching, cross-machine distribution,
+    // external archival, M-of-N governance, cross-fed trust anchors.
+    // All required:false — null is OK (社区基础同步仍工作).
+    this.channelEventBatcher = instances.channelEventBatcher;
+    this.channelEnvelopeDistribution = instances.channelEnvelopeDistribution;
+    this.channelEnvelopeArchiver = instances.channelEnvelopeArchiver;
+    this.archiveProviderFactory = instances.archiveProviderFactory;
+    this.governanceMultiSig = instances.governanceMultiSig;
+    this.crossFedTrust = instances.crossFedTrust;
+
     // AI 引擎
     this.webEngine = instances.webEngine;
     this.documentEngine = instances.documentEngine;
@@ -883,6 +893,18 @@ class ChainlessChainApp {
         // import) keeps the knowledge index in sync the same way the V5/V6
         // db:add-knowledge-item IPC handler does. Best-effort; null is safe.
         ragManager: this.ragManager ?? null,
+        // B4-webshell v1 — full B4 MTC suite over WS topics so the default
+        // web-shell user can verify Merkle envelopes, archive batches, run
+        // M-of-N governance, manage cross-fed trust anchors. All optional;
+        // handlers return error envelope when the corresponding manager
+        // is null (pre-init or disabled).
+        channelEventBatcher: this.channelEventBatcher ?? null,
+        channelEnvelopeDistribution: this.channelEnvelopeDistribution ?? null,
+        channelEnvelopeArchiver: this.channelEnvelopeArchiver ?? null,
+        archiveProviderFactory: this.archiveProviderFactory ?? null,
+        governanceMultiSig: this.governanceMultiSig ?? null,
+        crossFedTrust: this.crossFedTrust ?? null,
+        p2pManager: this.p2pManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
         // ui.useWebShellExperimental opt-out from inside web-panel.
