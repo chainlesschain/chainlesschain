@@ -39,6 +39,89 @@ function isInsideTmpDir(filePath) {
   }
 }
 
+// Windows ships a security setting `NoDefaultCurrentDirectoryInExePath=1`
+// (env-level or HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System)
+// that disables cmd.exe's "search cwd for executables" behavior. screenshot-
+// desktop's polyglot .bat (lib/win32/screenCapture_1.3.2.bat) invokes the
+// compiled exe as plain `%~n0.exe %*` — without `.\` prefix — so on machines
+// with that policy on, the .bat fails with `'screenCapture_1.3.2.exe' is not
+// recognized as an internal or external command` even though the exe sits
+// next to the .bat in the temp dir.
+//
+// Pre-stage a patched .bat (and the matching app.manifest) into the temp
+// dir BEFORE screenshot-desktop's copyToTemp runs — its copyToTemp is a
+// pure if-not-exists guard, so it'll skip the write and use our patched
+// copy. Idempotent: re-runs are no-ops once the patched marker is present.
+function ensurePatchedScreenCaptureBat() {
+  if (process.platform !== "win32") {
+    return;
+  }
+  try {
+    const tmpDir = path.join(os.tmpdir(), "screenCapture");
+    const tmpBat = path.join(tmpDir, "screenCapture_1.3.2.bat");
+    const tmpManifest = path.join(tmpDir, "app.manifest");
+    const sourceDir = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      "screenshot-desktop",
+      "lib",
+      "win32",
+    );
+    const srcBat = path.join(sourceDir, "screenCapture_1.3.2.bat");
+    const srcManifest = path.join(sourceDir, "app.manifest");
+    if (!fs.existsSync(srcBat)) {
+      // screenshot-desktop not laid out as expected — bail; the package
+      // will surface its own error.
+      return;
+    }
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+
+    // Read existing or source .bat and ensure the .\ patch is applied.
+    const baseSource = fs.existsSync(tmpBat)
+      ? fs.readFileSync(tmpBat, "utf-8")
+      : fs.readFileSync(srcBat, "utf-8");
+    if (baseSource.includes(".\\%~n0.exe")) {
+      // Already patched; ensure manifest exists too (some users may have
+      // hand-deleted it) and bail.
+      if (!fs.existsSync(tmpManifest) && fs.existsSync(srcManifest)) {
+        fs.copyFileSync(srcManifest, tmpManifest);
+      }
+      return;
+    }
+    const patched = baseSource
+      .replace(/if not exist "%~n0\.exe"/g, 'if not exist ".\\%~n0.exe"')
+      .replace(/^%~n0\.exe %\*$/m, ".\\%~n0.exe %*");
+    if (patched === baseSource) {
+      // Patterns shifted in a future screenshot-desktop release — bail
+      // rather than corrupt.
+      logger.warn(
+        "[Screenshot IPC] screenCapture .bat shape changed; skipping cwd-policy patch",
+      );
+      return;
+    }
+    fs.writeFileSync(tmpBat, patched, "utf-8");
+    if (!fs.existsSync(tmpManifest) && fs.existsSync(srcManifest)) {
+      fs.copyFileSync(srcManifest, tmpManifest);
+    }
+    logger.info(
+      "[Screenshot IPC] Patched screenCapture .bat to use .\\ prefix " +
+        "(NoDefaultCurrentDirectoryInExePath workaround)",
+    );
+  } catch (err) {
+    // Best-effort — if it fails, screenshot-desktop will run unpatched and
+    // surface its own error.
+    logger.warn(
+      "[Screenshot IPC] Failed to ensure patched screenCapture .bat: " +
+        (err?.message || err),
+    );
+  }
+}
+
 async function captureScreenshot(screenIndex = 0) {
   let screenshot;
   try {
@@ -48,6 +131,9 @@ async function captureScreenshot(screenIndex = 0) {
       "screenshot-desktop not installed: " + (err?.message || err),
     );
   }
+  // Pre-stage the patched .bat so screenshot-desktop's copyToTemp's
+  // if-not-exists guard skips its own write and uses our version.
+  ensurePatchedScreenCaptureBat();
 
   const displays = await screenshot.listDisplays();
   if (!displays.length) {
