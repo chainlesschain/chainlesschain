@@ -663,6 +663,31 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-crossfed v1 — cross-federation trust anchors
+  // ========================================
+  // 让本机用户能 "信任另一个 federation 的 trust anchors"——他们发的
+  // landmark 也能过 ChannelEnvelopeDistribution 的 trust filter，不用
+  // 强制加入对方 community 才能审计他们的 envelope.
+  factory.register({
+    name: "crossFedTrust",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { CrossFedTrust } = require("../mtc/cross-fed-trust");
+        const rootDir = path.join(app.getPath("userData"), "cross-fed-trust");
+        const cft = new CrossFedTrust({ rootDir });
+        cft.initialize();
+        logger.info("[Social] ✓ crossFedTrust initialized at " + rootDir);
+        return cft;
+      } catch (error) {
+        logger.warn("[Social] crossFedTrust init failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // B4-mofn v1 — M-of-N multi-sig for governance-critical events
   // ========================================
   // Wraps core-mtc's assembleBatchFederated (via local tweetnacl signer
@@ -867,6 +892,7 @@ function registerSocialInitializers(factory) {
       "p2pManager",
       "channelEventBatcher",
       "communityManager",
+      "crossFedTrust",
     ],
     required: false,
     async init(context) {
@@ -876,6 +902,7 @@ function registerSocialInitializers(factory) {
           p2pManager,
           channelEventBatcher,
           communityManager,
+          crossFedTrust,
         } = context;
         if (!mtcFederationManager || !p2pManager || !channelEventBatcher) {
           logger.warn("[Social] channelEnvelopeDistribution 跳过: 缺依赖");
@@ -884,21 +911,36 @@ function registerSocialInitializers(factory) {
         const {
           ChannelEnvelopeDistribution,
         } = require("../mtc/channel-envelope-distribution");
-        // B4-cross-trust v1: filter inbound landmarks against community
-        // membership. communityManager missing (early-init / dev setup) →
-        // fall back to v1 trust-none so envelope flow still works.
+        // B4-cross-trust v1 + B4-crossfed v1: filter inbound landmarks
+        // against the UNION of local community membership AND any cross-fed
+        // trusted DIDs. communityManager missing → trust-none v1 fallback.
         const getCommunityMembers = communityManager
           ? async (communityId) => {
+              const dids = new Set();
               try {
                 const rows = await communityManager.getMembers(communityId, {
                   limit: 10000,
                 });
-                return Array.isArray(rows)
-                  ? rows.map((r) => r && r.member_did).filter(Boolean)
-                  : [];
+                if (Array.isArray(rows)) {
+                  for (const r of rows) {
+                    if (r && r.member_did) {
+                      dids.add(r.member_did);
+                    }
+                  }
+                }
               } catch (_err) {
-                return [];
+                /* swallow */
               }
+              if (crossFedTrust) {
+                try {
+                  for (const did of crossFedTrust.getTrustedDIDs(communityId)) {
+                    dids.add(did);
+                  }
+                } catch (_err) {
+                  /* swallow */
+                }
+              }
+              return [...dids];
             }
           : null;
         const dist = new ChannelEnvelopeDistribution({

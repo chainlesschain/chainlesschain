@@ -1,5 +1,35 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XII — **B4-crossfed v1 — cross-federation trust anchors**
+
+Fifth and final B4 deferred item. B4-cross-trust v1 locked the inbound landmark filter to "issuer must be a current community member". This patch lets a user record "I also trust this other federation's anchors", so landmarks signed by their members pass too — no need to formally join their community.
+
+| Topic | File | Description |
+|---|---|---|
+| **CrossFedTrust** | `src/main/mtc/cross-fed-trust.js` (+185) | `establishTrust(localCommunityId, {remoteCommunityId, remoteMembers, expiresAt?, note?})` / `revokeTrust(localCommunityId, remoteCommunityId)` / `listTrusted(localCommunityId)` / `getTrustedDIDs(localCommunityId, {now?})` returns union of unexpired records' DIDs. Storage at `<userData>/cross-fed-trust/<localCommunityId>/<remoteCommunityId>.json`. expiresAt accepts ISO timestamps; expired records auto-excluded from getTrustedDIDs (clock injectable for tests) |
+| **Distribution trust filter extension** | `social-initializer.js` (+25 / -10) | `getCommunityMembers` adapter now unions: communityManager local members ∪ crossFedTrust cross-fed trusted DIDs. Either source throwing is swallowed, doesn't block |
+| **4 IPC handlers** | `community-ipc.js` (+45) | `cross-fed-trust:establish / revoke / list / get-trusted-dids`. Once configured by the renderer, all cross-fed landmarks pass the trust filter |
+| **Initializer** | `social-initializer.js` (+22) | `crossFedTrust` initializer required:false |
+
+**Test matrix (B4-crossfed adds 16, total 1087 / 1087 across 32 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `mtc/__tests__/cross-fed-trust.test.js` | 16 — constructor / establishTrust 6 cases (writes record / unsafe ids / empty/dup/malformed members / idempotent update) / revokeTrust 2 / listTrusted 2 / getTrustedDIDs 5 (union / excludes expired / includes future expiresAt / clock injection / empty community) |
+| Full 32-file regression | — | **1087 / 1087** ✅ |
+
+## All B4 deferred items now complete ✅
+
+| Sub-phase | Commit | New tests |
+|---|---|---|
+| ~~Inbound landmark trust filtering~~ | `c50353ca8` (VIII) | +8 |
+| ~~UI envelope viewer~~ | `173efc52e` (IX) | +10 |
+| ~~Periodic envelope archival~~ | `527e36eba` (X) | +26 |
+| ~~M-of-N for governance-critical events~~ | `b1b016dd8` (XI) | +24 |
+| ~~Cross-federation trust anchors~~ | this patch (XII) | +16 |
+
+**One remaining**: user follow-up "需要在 web-shell 版本可以看到这些功能" — the full B4 IPC suite registers on ipcMain, but web-shell (the Phase 1.6 default) needs corresponding WS topic handlers before web-panel UI can use them. Next commit addresses this.
+
 ## 2026-05-07 Update XI — **B4-mofn v1 — governance M-of-N multi-sig**
 
 Fourth deferred item. Phase 54 `cc governance` is single-DID voting with no multi-sig / threshold finalize semantics. This patch wires core-mtc's `assembleBatchFederated`: proposal created → members add signatures one by one → once M signatures collected, finalize writes a multi-sig landmark with N trust_anchors.

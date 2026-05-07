@@ -1,5 +1,35 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XII（**B4-crossfed v1 — 跨联邦信任锚**）
+
+deferred 第五项也是 B4 最后一项。B4-cross-trust v1 把 inbound landmark 校验锁在"必须是本社区 member"。本次扩展：用户可以记录"我也信任另一个 federation 的 trust anchors"，他们发的 landmark 也能过校验，不必加入对方 community。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **CrossFedTrust** | `src/main/mtc/cross-fed-trust.js` (+185) | `establishTrust(localCommunityId, {remoteCommunityId, remoteMembers, expiresAt?, note?})` / `revokeTrust(localCommunityId, remoteCommunityId)` / `listTrusted(localCommunityId)` / `getTrustedDIDs(localCommunityId, {now?})` 返回未过期记录的 union DID 集. 文件存 `<userData>/cross-fed-trust/<localCommunityId>/<remoteCommunityId>.json`. expiresAt 支持 ISO timestamp，过期记录自动从 getTrustedDIDs 排除（clock 可注入用于测试） |
+| **distribution trust filter 扩展** | `social-initializer.js` (+25 / -10) | `getCommunityMembers` adapter 现在 union: communityManager 本地 members ∪ crossFedTrust 跨联邦信任 DIDs. 任一来源 throw 都 swallow 不阻塞 |
+| **4 个 IPC** | `community-ipc.js` (+45) | `cross-fed-trust:establish / revoke / list / get-trusted-dids`, renderer 一次配置后所有跨联邦 landmark 自动过 trust filter |
+| **initializer** | `social-initializer.js` (+22) | `crossFedTrust` initializer required:false |
+
+**测试矩阵 (B4-crossfed 新增 16, 累计 1087 / 1087 全绿 across 32 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `mtc/__tests__/cross-fed-trust.test.js` | 16 — constructor / establishTrust 6 case (writes record / unsafe ids / empty/dup/malformed members / idempotent update) / revokeTrust 2 / listTrusted 2 / getTrustedDIDs 5 (union / 排除过期 / 包含 future expiresAt / clock 注入 / 空 community) |
+| 全 32 文件回归 | — | **1087 / 1087** ✅ |
+
+## B4 全 deferred 完成 ✅
+
+| sub-phase | commit | 测试新增 |
+|---|---|---|
+| ~~Inbound landmark trust filtering~~ | `c50353ca8` (VIII) | +8 |
+| ~~UI envelope viewer~~ | `173efc52e` (IX) | +10 |
+| ~~Periodic envelope archival~~ | `527e36eba` (X) | +26 |
+| ~~M-of-N for governance-critical events~~ | `b1b016dd8` (XI) | +24 |
+| ~~跨联邦信任锚~~ | 本次 (XII) | +16 |
+
+**唯一遗留**：用户 follow-up "需要在 web-shell 版本可以看到这些功能"——B4 全套 IPC 都注册在 ipcMain，web-shell（默认壳，Phase 1.6）需要对应的 WS topic handlers 才能让 web-panel UI 用上。下一节 commit 处理。
+
 ## 2026-05-07 增量更新 XI（**B4-mofn v1 — governance M-of-N 多签**）
 
 deferred 第四项。Phase 54 `cc governance` 是单 DID 投票，没多签 / threshold finalize 概念。本次接 core-mtc 的 `assembleBatchFederated`：proposal 创建 → member 逐个 add signature → 收齐 M 个就 finalize → 写 multi-sig landmark 含 N 个 trust_anchors。

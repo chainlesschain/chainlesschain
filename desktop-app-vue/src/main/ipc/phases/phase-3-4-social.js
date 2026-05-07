@@ -189,6 +189,8 @@ function registerPhases3to4Social({
         archiveProviderFactory: dependencies.archiveProviderFactory || null,
         // B4-mofn v1: governance M-of-N multi-sig
         governanceMultiSig: dependencies.governanceMultiSig || null,
+        // B4-crossfed v1: cross-federation trust anchors
+        crossFedTrust: dependencies.crossFedTrust || null,
         // for lazy peer-pull when envelope missing locally
         p2pManager: dependencies.p2pManager || null,
       });

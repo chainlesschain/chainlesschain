@@ -38,6 +38,10 @@ const electron = require("electron");
  *   governance multi-sig manager (proposal + sig collection + finalize
  *   via assembleBatchFederated). Optional; when present, governance-mofn:*
  *   IPC handlers register
+ * @param {Object} [dependencies.crossFedTrust] - B4-crossfed v1 cross-
+ *   federation trust anchors. When present, cross-fed-trust:* IPC handlers
+ *   register and inbound landmarks from trusted external federations are
+ *   accepted by the envelope distribution trust filter
  * @param {Object} [dependencies.p2pManager] - needed by lazy peer-pull
  *   to enumerate connected peers
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
@@ -54,6 +58,7 @@ function registerCommunityIPC({
   channelEnvelopeArchiver,
   archiveProviderFactory,
   governanceMultiSig,
+  crossFedTrust,
   p2pManager,
   ipcMain,
 }) {
@@ -677,6 +682,74 @@ function registerCommunityIPC({
         return { ok: true, archives: items };
       } catch (err) {
         logger.error("[Community IPC] channel-archive:list failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  // ============================================================
+  // B4-crossfed v1 — cross-federation trust anchors IPC
+  // ============================================================
+
+  ipcMain.handle(
+    "cross-fed-trust:establish",
+    async (_event, localCommunityId, args) => {
+      try {
+        if (!crossFedTrust) {
+          return { ok: false, reason: "crossFedTrust 未初始化" };
+        }
+        const record = crossFedTrust.establishTrust(
+          localCommunityId,
+          args || {},
+        );
+        return { ok: true, record };
+      } catch (err) {
+        logger.error("[Community IPC] cross-fed-trust:establish failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "cross-fed-trust:revoke",
+    async (_event, localCommunityId, remoteCommunityId) => {
+      try {
+        if (!crossFedTrust) {
+          return { ok: false, reason: "crossFedTrust 未初始化" };
+        }
+        const removed = crossFedTrust.revokeTrust(
+          localCommunityId,
+          remoteCommunityId,
+        );
+        return { ok: true, removed };
+      } catch (err) {
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle("cross-fed-trust:list", async (_event, localCommunityId) => {
+    try {
+      if (!crossFedTrust) {
+        return { ok: false, reason: "crossFedTrust 未初始化" };
+      }
+      const records = crossFedTrust.listTrusted(localCommunityId);
+      return { ok: true, records };
+    } catch (err) {
+      return { ok: false, reason: err.message };
+    }
+  });
+
+  ipcMain.handle(
+    "cross-fed-trust:get-trusted-dids",
+    async (_event, localCommunityId) => {
+      try {
+        if (!crossFedTrust) {
+          return { ok: false, reason: "crossFedTrust 未初始化" };
+        }
+        const dids = crossFedTrust.getTrustedDIDs(localCommunityId);
+        return { ok: true, dids };
+      } catch (err) {
         return { ok: false, reason: err.message };
       }
     },
