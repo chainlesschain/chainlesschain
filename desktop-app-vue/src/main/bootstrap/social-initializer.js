@@ -750,12 +750,21 @@ function registerSocialInitializers(factory) {
   // 走 typed message response. 让 envelope 对**任何**第三方可验，不再只有发件人能用.
   factory.register({
     name: "channelEnvelopeDistribution",
-    dependsOn: ["mtcFederationManager", "p2pManager", "channelEventBatcher"],
+    dependsOn: [
+      "mtcFederationManager",
+      "p2pManager",
+      "channelEventBatcher",
+      "communityManager",
+    ],
     required: false,
     async init(context) {
       try {
-        const { mtcFederationManager, p2pManager, channelEventBatcher } =
-          context;
+        const {
+          mtcFederationManager,
+          p2pManager,
+          channelEventBatcher,
+          communityManager,
+        } = context;
         if (!mtcFederationManager || !p2pManager || !channelEventBatcher) {
           logger.warn("[Social] channelEnvelopeDistribution 跳过: 缺依赖");
           return null;
@@ -763,10 +772,28 @@ function registerSocialInitializers(factory) {
         const {
           ChannelEnvelopeDistribution,
         } = require("../mtc/channel-envelope-distribution");
+        // B4-cross-trust v1: filter inbound landmarks against community
+        // membership. communityManager missing (early-init / dev setup) →
+        // fall back to v1 trust-none so envelope flow still works.
+        const getCommunityMembers = communityManager
+          ? async (communityId) => {
+              try {
+                const rows = await communityManager.getMembers(communityId, {
+                  limit: 10000,
+                });
+                return Array.isArray(rows)
+                  ? rows.map((r) => r && r.member_did).filter(Boolean)
+                  : [];
+              } catch (_err) {
+                return [];
+              }
+            }
+          : null;
         const dist = new ChannelEnvelopeDistribution({
           mtcFederationManager,
           p2pManager,
           channelEventBatcher,
+          getCommunityMembers,
         });
         dist.initialize();
         logger.info("[Social] ✓ channelEnvelopeDistribution initialized");

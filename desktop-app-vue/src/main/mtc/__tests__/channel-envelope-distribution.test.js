@@ -287,6 +287,207 @@ describe("ChannelEnvelopeDistribution", () => {
       expect(events[0].treeHeadId).toBe("sha256:abc-event");
     });
 
+    it("trust filter ON: caches landmark when issuer DID is a community member", async () => {
+      // Re-init dist with a member-list provider
+      await dist.close();
+      dist = new ChannelEnvelopeDistribution({
+        mtcFederationManager: mtcFed,
+        p2pManager: p2p,
+        channelEventBatcher: batcher,
+        getCommunityMembers: async (cid) =>
+          cid === "comm-trust" ? ["did:chainlesschain:alice123"] : [],
+        requestTimeoutMs: 200,
+      });
+      dist.initialize();
+
+      await dist.subscribeCommunity("comm-trust");
+      mtcFed._fire("comm-trust.envelopes-track", {
+        type: "channel.landmark",
+        communityId: "comm-trust",
+        batchId: "000001",
+        treeHeadId: "sha256:trusted-th",
+        landmark: {
+          snapshots: [
+            {
+              tree_head_id: "sha256:trusted-th",
+              signature: { issuer: "did-bound:did:chainlesschain:alice123" },
+            },
+          ],
+        },
+      });
+      await new Promise((r) => setImmediate(r));
+
+      const cached = batcher.findRemoteLandmark(
+        "comm-trust",
+        "sha256:trusted-th",
+      );
+      expect(cached).not.toBeNull();
+    });
+
+    it("trust filter ON: REJECTS landmark when issuer DID is NOT a member", async () => {
+      await dist.close();
+      const events = [];
+      dist = new ChannelEnvelopeDistribution({
+        mtcFederationManager: mtcFed,
+        p2pManager: p2p,
+        channelEventBatcher: batcher,
+        getCommunityMembers: async () => ["did:chainlesschain:alice"],
+        requestTimeoutMs: 200,
+      });
+      dist.on("landmark:rejected", (e) => events.push(e));
+      dist.initialize();
+
+      await dist.subscribeCommunity("comm-attack");
+      mtcFed._fire("comm-attack.envelopes-track", {
+        type: "channel.landmark",
+        communityId: "comm-attack",
+        batchId: "000001",
+        treeHeadId: "sha256:imposter-th",
+        landmark: {
+          snapshots: [
+            {
+              tree_head_id: "sha256:imposter-th",
+              signature: { issuer: "did-bound:did:chainlesschain:mallory" },
+            },
+          ],
+        },
+      });
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r)); // 2 microtasks for the await chain
+
+      // Not cached
+      expect(
+        batcher.findRemoteLandmark("comm-attack", "sha256:imposter-th"),
+      ).toBeNull();
+      // Reject event emitted with reason + issuer
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        communityId: "comm-attack",
+        treeHeadId: "sha256:imposter-th",
+        issuer: "did:chainlesschain:mallory",
+        reason: expect.stringMatching(/not a community member/),
+      });
+    });
+
+    it("trust filter ON: rejects landmark with unextractable issuer DID", async () => {
+      await dist.close();
+      const events = [];
+      dist = new ChannelEnvelopeDistribution({
+        mtcFederationManager: mtcFed,
+        p2pManager: p2p,
+        channelEventBatcher: batcher,
+        getCommunityMembers: async () => ["did:chainlesschain:alice"],
+        requestTimeoutMs: 200,
+      });
+      dist.on("landmark:rejected", (e) => events.push(e));
+      dist.initialize();
+
+      await dist.subscribeCommunity("comm-bad");
+      mtcFed._fire("comm-bad.envelopes-track", {
+        type: "channel.landmark",
+        communityId: "comm-bad",
+        batchId: "000001",
+        treeHeadId: "sha256:no-issuer",
+        landmark: { snapshots: [{ tree_head_id: "sha256:no-issuer" }] }, // no signature
+      });
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r));
+
+      expect(events).toHaveLength(1);
+      expect(events[0].reason).toMatch(/issuer DID not extractable/);
+    });
+
+    it("trust filter ON: rejects landmark when getCommunityMembers throws", async () => {
+      await dist.close();
+      const events = [];
+      dist = new ChannelEnvelopeDistribution({
+        mtcFederationManager: mtcFed,
+        p2pManager: p2p,
+        channelEventBatcher: batcher,
+        getCommunityMembers: async () => {
+          throw new Error("DB unavailable");
+        },
+        requestTimeoutMs: 200,
+      });
+      dist.on("landmark:rejected", (e) => events.push(e));
+      dist.initialize();
+
+      await dist.subscribeCommunity("comm-dberr");
+      mtcFed._fire("comm-dberr.envelopes-track", {
+        type: "channel.landmark",
+        communityId: "comm-dberr",
+        batchId: "000001",
+        treeHeadId: "sha256:db-err-th",
+        landmark: {
+          snapshots: [
+            {
+              tree_head_id: "sha256:db-err-th",
+              signature: { issuer: "did-bound:did:chainlesschain:anyone" },
+            },
+          ],
+        },
+      });
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r));
+
+      expect(events).toHaveLength(1);
+      expect(events[0].reason).toMatch(/membership lookup failed/);
+    });
+
+    it("trust filter OFF (no callback): caches without DID validation (v1 default)", async () => {
+      // dist (created in outer beforeEach) has no getCommunityMembers
+      await dist.subscribeCommunity("comm-permissive");
+      mtcFed._fire("comm-permissive.envelopes-track", {
+        type: "channel.landmark",
+        communityId: "comm-permissive",
+        batchId: "000001",
+        treeHeadId: "sha256:permissive-th",
+        landmark: {
+          snapshots: [
+            {
+              tree_head_id: "sha256:permissive-th",
+              signature: { issuer: "did-bound:did:chainlesschain:anyone" },
+            },
+          ],
+        },
+      });
+      await new Promise((r) => setImmediate(r));
+      const cached = batcher.findRemoteLandmark(
+        "comm-permissive",
+        "sha256:permissive-th",
+      );
+      expect(cached).not.toBeNull();
+    });
+
+    it("extractIssuerDID strips did-bound: prefix", () => {
+      const did = ChannelEnvelopeDistribution.extractIssuerDID({
+        snapshots: [
+          { signature: { issuer: "did-bound:did:chainlesschain:abc" } },
+        ],
+      });
+      expect(did).toBe("did:chainlesschain:abc");
+    });
+
+    it("extractIssuerDID accepts plain DID issuer (no prefix)", () => {
+      const did = ChannelEnvelopeDistribution.extractIssuerDID({
+        snapshots: [{ signature: { issuer: "did:chainlesschain:bare" } }],
+      });
+      expect(did).toBe("did:chainlesschain:bare");
+    });
+
+    it("extractIssuerDID returns null for malformed shapes", () => {
+      expect(ChannelEnvelopeDistribution.extractIssuerDID(null)).toBeNull();
+      expect(ChannelEnvelopeDistribution.extractIssuerDID({})).toBeNull();
+      expect(
+        ChannelEnvelopeDistribution.extractIssuerDID({ snapshots: [] }),
+      ).toBeNull();
+      expect(
+        ChannelEnvelopeDistribution.extractIssuerDID({
+          snapshots: [{ signature: {} }],
+        }),
+      ).toBeNull();
+    });
+
     it("ignores non-landmark wire payloads", async () => {
       await dist.subscribeCommunity("comm-other");
       mtcFed._fire("comm-other.envelopes-track", {

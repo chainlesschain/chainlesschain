@@ -1,5 +1,35 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 VIII（**B4-cross-trust v1 — landmark inbound trust filter**）
+
+B4-cross v1 收口的 deferred 列表头一项：B4-cross v1 信任模型是 NONE，缓存所有 inbound landmark。本次加入按 community 成员校验：landmark 的 issuer DID 必须在当前社区 member list 才进 cache，否则 reject + emit `landmark:rejected`。回调缺省时退回 v1 trust-none 行为 + 启动期 warn。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **distribution 接受 trust 回调** | `src/main/mtc/channel-envelope-distribution.js` (+105) | 构造函数新 opts.getCommunityMembers `(communityId) => Promise<DID[]>`. `_handleIncomingLandmark` 改 async：(1) extract issuer DID via 新静态方法 `extractIssuerDID(landmark)` (默认 strip `did-bound:` 前缀，兼容裸 DID)；(2) 调 getCommunityMembers 拿 list；(3) issuer 不在 → `emit('landmark:rejected', {reason})` + 不缓存。无回调时 init 期 warn 一次"trust filter OFF" |
+| **social-initializer 注入** | `src/main/bootstrap/social-initializer.js` (+25) | distribution initializer 加 `communityManager` 依赖；提供 `getCommunityMembers` 实现：`communityManager.getMembers(id, {limit:10000}).then(rows => rows.map(r => r.member_did))`. 失败 swallow → 空 list |
+
+**rejected 事件 reason 枚举**：
+- `"issuer DID not extractable"` — landmark.snapshots[0].signature 缺 issuer 字段
+- `"membership lookup failed: <err>"` — getCommunityMembers throw（DB unavailable 等）
+- `"issuer not a community member"` — DID 在但不在 member list
+
+**为什么是 strip `did-bound:` 前缀**：channel-event-batch.js `_assembleBatchLocal` 的 issuer 格式是 `did-bound:<did>`（参考 audit-mtc 模式）；其它发布者（CLI / 联邦工具）可能直接用裸 DID，所以 `extractIssuerDID` 容忍两种。
+
+**测试矩阵 (B4-cross-trust 新增 8, 累计 1011 / 1011 全绿 across 28 文件)**
+
+| 层 | 测试 |
+|---|---|
+| 单元 +8 → 29 (`channel-envelope-distribution.test.js`) | trust filter ON: cache when member / reject when not member (含 reject event payload) / reject when issuer 不可提取 / reject when getCommunityMembers throw / trust filter OFF: 保留 v1 行为 / `extractIssuerDID` 三种 case (with prefix / no prefix / malformed) |
+| 全 28 文件回归 | **1011 / 1011** ✅ |
+
+**Deferred 剩余 sub-phases 进度**
+- ✅ ~~Inbound landmark trust filtering~~ — 本次完成
+- 🚧 UI envelope viewer
+- 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
+- 🚧 M-of-N for governance-critical events
+- 🚧 跨联邦信任锚 (MTC v0.11 cross-fed-trust 集成)
+
 ## 2026-05-07 增量更新 VII（**B4-cross v1 — envelope 跨机分发**）
 
 B4-merkle v1 落了 envelope，但只对发件人有用（对端没你的 batch dir 验不了）。本次补完最关键缺口：landmark 走 federation gossipsub 自动广播 + envelope 按需 peer-pull，整个 audit-grade 价值兑现——任何第三方都能 verify 任何已知 messageId 的 inclusion proof。

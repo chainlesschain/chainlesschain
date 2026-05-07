@@ -49,6 +49,13 @@ class ChannelEnvelopeDistribution extends EventEmitter {
    *   dispatchTypedMessage path
    * @param {object} opts.channelEventBatcher - local event batcher (also
    *   stores received remote landmarks/envelopes)
+   * @param {(communityId: string) => Promise<string[]>} [opts.getCommunityMembers]
+   *   B4-cross-trust v1: when provided, inbound landmarks are filtered
+   *   against this list of expected member DIDs for the community. landmarks
+   *   whose issuer DID isn't a current member are rejected (logged + emit
+   *   `landmark:rejected`). When omitted, the v1 trust-none behavior is
+   *   preserved (all landmarks cached unconditionally) and a warning is
+   *   logged once at initialize().
    * @param {number} [opts.requestTimeoutMs=8000]
    */
   constructor(opts = {}) {
@@ -69,6 +76,10 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     this._fed = opts.mtcFederationManager;
     this._p2p = opts.p2pManager;
     this._batcher = opts.channelEventBatcher;
+    this._getCommunityMembers =
+      typeof opts.getCommunityMembers === "function"
+        ? opts.getCommunityMembers
+        : null;
     this._requestTimeoutMs = opts.requestTimeoutMs || REQUEST_TIMEOUT_MS;
 
     this._communitySubs = new Map(); // communityId → unsubscribe fn (gossipsub)
@@ -119,7 +130,51 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     this._p2p.on("mtc:envelope-response", this._respListener);
 
     this._initialized = true;
+    if (!this._getCommunityMembers) {
+      // One-time warn at startup so production logs surface the trust-off
+      // mode (matches the v1 documented default; quiet during tests since
+      // most fixtures don't bother wiring a member list).
+      logger.warn(
+        "[ChannelEnvelopeDist] trust filter OFF — caching all inbound landmarks (B4-cross v1 default)",
+      );
+    } else {
+      logger.info(
+        "[ChannelEnvelopeDist] trust filter ON — landmarks validated against community member list",
+      );
+    }
     logger.info("[ChannelEnvelopeDist] initialized");
+  }
+
+  /**
+   * Extract the issuer DID from a landmark's first snapshot signature.
+   * Returns the DID string ("did:chainlesschain:abc...") with the
+   * `did-bound:` prefix stripped, or null if the shape is unexpected.
+   *
+   * Why first-snapshot only: B4-merkle v1 produces single-signer landmarks
+   * (no M-of-N yet), so snapshots[0] is always the authoritative one. When
+   * federation multi-sig lands we'll need to validate ALL signatures.
+   *
+   * @param {object} landmark
+   * @returns {string|null}
+   */
+  static extractIssuerDID(landmark) {
+    if (!landmark || typeof landmark !== "object") {
+      return null;
+    }
+    const sig =
+      landmark.snapshots &&
+      landmark.snapshots[0] &&
+      landmark.snapshots[0].signature;
+    if (!sig || typeof sig.issuer !== "string") {
+      return null;
+    }
+    const issuer = sig.issuer;
+    // channel-event-batch uses "did-bound:<did>" prefix; strip it.
+    // Other producers may not — we tolerate both.
+    if (issuer.startsWith("did-bound:")) {
+      return issuer.slice("did-bound:".length);
+    }
+    return issuer;
   }
 
   async close() {
@@ -185,14 +240,16 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     // topic. Slight abuse of the API but avoids leaking transport details.
     const syntheticId = communityId + ".envelopes-track";
     await this._fed.subscribeCommunity(syntheticId, (payload) => {
-      try {
-        this._handleIncomingLandmark(communityId, payload);
-      } catch (err) {
-        logger.warn(
-          "[ChannelEnvelopeDist] inbound landmark handler threw: " +
-            err.message,
-        );
-      }
+      // _handleIncomingLandmark is async (trust filter does an await).
+      // We don't return its promise (gossipsub handler signature is sync)
+      // so we attach a catch to swallow late rejections.
+      Promise.resolve(this._handleIncomingLandmark(communityId, payload)).catch(
+        (err) =>
+          logger.warn(
+            "[ChannelEnvelopeDist] inbound landmark handler threw: " +
+              err.message,
+          ),
+      );
     });
     this._communitySubs.set(communityId, () => {
       try {
@@ -298,13 +355,73 @@ class ChannelEnvelopeDistribution extends EventEmitter {
     });
   }
 
-  _handleIncomingLandmark(communityId, payload) {
+  async _handleIncomingLandmark(communityId, payload) {
     if (!payload || payload.type !== "channel.landmark") {
       return;
     }
     if (!payload.treeHeadId || !payload.landmark) {
       return;
     }
+
+    // B4-cross-trust v1: filter by community membership when configured.
+    // No filter installed → preserve v1 trust-none (cache everything).
+    if (this._getCommunityMembers) {
+      const issuerDID = ChannelEnvelopeDistribution.extractIssuerDID(
+        payload.landmark,
+      );
+      if (!issuerDID) {
+        logger.warn(
+          "[ChannelEnvelopeDist] landmark rejected: cannot extract issuer DID (th=" +
+            payload.treeHeadId +
+            ")",
+        );
+        this.emit("landmark:rejected", {
+          communityId,
+          treeHeadId: payload.treeHeadId,
+          batchId: payload.batchId,
+          reason: "issuer DID not extractable",
+        });
+        return;
+      }
+      let members = [];
+      try {
+        members = (await this._getCommunityMembers(communityId)) || [];
+      } catch (err) {
+        logger.warn(
+          "[ChannelEnvelopeDist] getCommunityMembers threw, rejecting landmark th=" +
+            payload.treeHeadId +
+            ": " +
+            err.message,
+        );
+        this.emit("landmark:rejected", {
+          communityId,
+          treeHeadId: payload.treeHeadId,
+          batchId: payload.batchId,
+          reason: "membership lookup failed: " + err.message,
+        });
+        return;
+      }
+      if (!members.includes(issuerDID)) {
+        logger.warn(
+          "[ChannelEnvelopeDist] landmark rejected: issuer " +
+            issuerDID +
+            " not a member of " +
+            communityId +
+            " (th=" +
+            payload.treeHeadId +
+            ")",
+        );
+        this.emit("landmark:rejected", {
+          communityId,
+          treeHeadId: payload.treeHeadId,
+          batchId: payload.batchId,
+          issuer: issuerDID,
+          reason: "issuer not a community member",
+        });
+        return;
+      }
+    }
+
     const stored = this._batcher.storeRemoteLandmark(
       communityId,
       payload.treeHeadId,

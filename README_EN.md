@@ -1,5 +1,35 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update VIII — **B4-cross-trust v1 — landmark inbound trust filter**
+
+First item off the B4-cross v1 deferred list: B4-cross v1 had no inbound trust model (cached every landmark received). This patch adds community-membership filtering: a landmark's issuer DID must be in the current community's member list before it's cached, otherwise it's rejected and `landmark:rejected` is emitted. When the membership callback is omitted, falls back to v1 trust-none behavior with a one-time startup warn.
+
+| Topic | File | Description |
+|---|---|---|
+| **distribution accepts trust callback** | `src/main/mtc/channel-envelope-distribution.js` (+105) | New constructor opt `getCommunityMembers: (communityId) => Promise<DID[]>`. `_handleIncomingLandmark` becomes async: (1) extract issuer DID via new static `extractIssuerDID(landmark)` method (default strips `did-bound:` prefix, tolerates bare DIDs); (2) call getCommunityMembers; (3) issuer not in list → emit `landmark:rejected` with reason and don't cache. No callback → init-time warn "trust filter OFF" |
+| **social-initializer wiring** | `src/main/bootstrap/social-initializer.js` (+25) | distribution initializer adds `communityManager` to its deps; provides `getCommunityMembers` implementation as `communityManager.getMembers(id, {limit:10000}).then(rows => rows.map(r => r.member_did))`. Failure swallowed → empty list |
+
+**rejected event reason enum**:
+- `"issuer DID not extractable"` — landmark.snapshots[0].signature missing issuer field
+- `"membership lookup failed: <err>"` — getCommunityMembers threw (DB unavailable etc)
+- `"issuer not a community member"` — DID present but not on membership list
+
+**Why strip `did-bound:` prefix**: channel-event-batch.js `_assembleBatchLocal` uses `did-bound:<did>` issuer format (mirrors the audit-mtc pattern); other publishers (CLI, federation tools) may use the bare DID, so `extractIssuerDID` tolerates both.
+
+**Test matrix (B4-cross-trust adds 8, total 1011 / 1011 across 28 files)**
+
+| Layer | Tests |
+|---|---|
+| Unit +8 → 29 (`channel-envelope-distribution.test.js`) | trust filter ON: cache when member / reject when not member (incl. reject event payload) / reject when issuer not extractable / reject when getCommunityMembers throws / trust filter OFF: v1 behavior preserved / `extractIssuerDID` three cases (with prefix / no prefix / malformed) |
+| Full 28-file regression | **1011 / 1011** ✅ |
+
+**Remaining deferred sub-phases progress**
+- ✅ ~~Inbound landmark trust filtering~~ — done in this patch
+- 🚧 UI envelope viewer
+- 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
+- 🚧 M-of-N for governance-critical events
+- 🚧 Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` integration)
+
 ## 2026-05-07 Update VII — **B4-cross v1 — envelope cross-machine distribution**
 
 B4-merkle v1 produced envelopes but they were only useful to the sender (peers had no batch dir to verify against). This patch closes the most critical gap: landmarks auto-broadcast over federation gossipsub + envelopes are pulled on-demand from peers. The audit-grade promise is now redeemed — any third party can verify any known messageId's inclusion proof.
