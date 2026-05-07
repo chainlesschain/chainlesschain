@@ -1,5 +1,35 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 XI（**B4-mofn v1 — governance M-of-N 多签**）
+
+deferred 第四项。Phase 54 `cc governance` 是单 DID 投票，没多签 / threshold finalize 概念。本次接 core-mtc 的 `assembleBatchFederated`：proposal 创建 → member 逐个 add signature → 收齐 M 个就 finalize → 写 multi-sig landmark 含 N 个 trust_anchors。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **GovernanceMultiSig** | `src/main/mtc/governance-multisig.js` (+440) | `createProposal({communityId, proposalId, payload, members[], threshold})` / `addSignature(communityId, proposalId, signerKeys)` / `getStatus` / `finalize` / `listProposals`. 文件存 `<userData>/governance-mofn/<communityId>/<proposalId>/{proposal.json, signatures/<did>.json, landmark.json}`. **anti-impersonation**: addSignature 校验 `pubkey → sha256 → DID` 必须等于 claimed did. **idempotent**: 同 DID 重复 add 是 no-op；finalize 二次返回相同 treeHeadId. **本地 federated assembler**: `_assembleBatchFederatedLocal` 用 core-mtc primitives + tweetnacl signer，绕开 @noble/curves hoisting trap (与 channel-event-batch 同策略) |
+| **5 个 IPC** | `community-ipc.js` (+85) | `governance-mofn:create / sign / status / finalize / list`. sign 接受 base64 `{did, secretKey, publicKey}` 串行化形态 (renderer 不直接传 Buffer) |
+| **initializer** | `social-initializer.js` (+22) | `governanceMultiSig` initializer required:false，failure 不致命 |
+
+**v1 信任 / 范围限制**：
+- 单机 sig collection — caller (renderer) 直接传 member 的 secret key，不通过网络。**v2 是把 sig 收集走 federation gossipsub**，coordinator 收 partial sigs + 其它 member 离线签发 partial sigs 寄回（典型 Frost/MuSig 模型）
+- "more than threshold contributions" → 用前 M 个 (deterministic by file order)，剩余忽略
+- 没 expiry / 撤销 / 重新打开机制 — 一旦 finalize 不可逆
+
+**测试矩阵 (B4-mofn 新增 24, 累计 1071 / 1071 全绿 across 31 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `mtc/__tests__/governance-multisig.test.js` | 24 — constructor / createProposal 含 threshold/empty/dup/malformed-DID/unsafe-id/exists 7 case + addSignature member-only/idempotent/non-member/DID-pubkey-mismatch/wrong-key-shape/threshold 6 case + getStatus 2 + finalize insufficient/3-of-5 happy/超 threshold deterministic/idempotent/post-finalize 拒签 5 + listProposals 2 |
+| 全 31 文件回归 | — | **1071 / 1071** ✅ |
+
+**Deferred 剩余 sub-phases 进度**
+- ✅ ~~Inbound landmark trust filtering~~ — VIII 完成
+- ✅ ~~UI envelope viewer~~ — IX 完成
+- ✅ ~~Periodic envelope archival~~ — X 完成
+- ✅ ~~M-of-N for governance-critical events~~ — 本次完成
+- 🚧 跨联邦信任锚 (MTC v0.11 cross-fed-trust 集成)
+- 🚧 web-shell parity for B4 features (用户 follow-up 反馈：默认壳是 web-shell，B4 系列 IPC 没 WS topic 暴露)
+
 ## 2026-05-07 增量更新 X（**B4-archive v1 — envelope 外部归档（filesystem + WebDAV）**）
 
 deferred 第三项。B4-merkle / B4-cross 在本机盘维护 envelope 证据链；设备 wipe / 卸载 / 磁盘损坏 = 全丢。本次加入打包 + 推送外部 provider 的能力，让 audit 史可以撑过本机生命周期。

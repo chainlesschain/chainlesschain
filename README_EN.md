@@ -1,5 +1,35 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update XI — **B4-mofn v1 — governance M-of-N multi-sig**
+
+Fourth deferred item. Phase 54 `cc governance` is single-DID voting with no multi-sig / threshold finalize semantics. This patch wires core-mtc's `assembleBatchFederated`: proposal created → members add signatures one by one → once M signatures collected, finalize writes a multi-sig landmark with N trust_anchors.
+
+| Topic | File | Description |
+|---|---|---|
+| **GovernanceMultiSig** | `src/main/mtc/governance-multisig.js` (+440) | `createProposal({communityId, proposalId, payload, members[], threshold})` / `addSignature(communityId, proposalId, signerKeys)` / `getStatus` / `finalize` / `listProposals`. Storage at `<userData>/governance-mofn/<communityId>/<proposalId>/{proposal.json, signatures/<did>.json, landmark.json}`. **Anti-impersonation**: addSignature validates `pubkey → sha256 → DID` matches the claimed DID. **Idempotent**: same DID adding twice is no-op; second finalize returns the same treeHeadId. **Local federated assembler**: `_assembleBatchFederatedLocal` uses core-mtc primitives + tweetnacl signer to dodge the @noble/curves hoisting trap (same approach as channel-event-batch) |
+| **5 IPC handlers** | `community-ipc.js` (+85) | `governance-mofn:create / sign / status / finalize / list`. sign accepts base64 `{did, secretKey, publicKey}` serialized form (renderer doesn't ship Buffers directly) |
+| **Initializer** | `social-initializer.js` (+22) | `governanceMultiSig` initializer required:false; failure non-fatal |
+
+**v1 trust / scope limits**:
+- Single-machine sig collection — caller (renderer) ships member secret keys directly, no network. **v2 will move sig collection to federation gossipsub**, with the coordinator gathering partial sigs while remote members sign offline and ship back (typical Frost/MuSig pattern)
+- "More than threshold contributions" → use the first M (deterministic by file order), ignore the rest
+- No expiry / revocation / reopen — once finalized, immutable
+
+**Test matrix (B4-mofn adds 24, total 1071 / 1071 across 31 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `mtc/__tests__/governance-multisig.test.js` | 24 — constructor / createProposal threshold/empty/dup/malformed-DID/unsafe-id/exists 7 cases + addSignature member-only/idempotent/non-member/DID-pubkey-mismatch/wrong-key-shape/threshold 6 cases + getStatus 2 + finalize insufficient/3-of-5 happy/over-threshold deterministic/idempotent/post-finalize-rejects-sign 5 + listProposals 2 |
+| Full 31-file regression | — | **1071 / 1071** ✅ |
+
+**Remaining deferred sub-phases progress**
+- ✅ ~~Inbound landmark trust filtering~~ — done in VIII
+- ✅ ~~UI envelope viewer~~ — done in IX
+- ✅ ~~Periodic envelope archival~~ — done in X
+- ✅ ~~M-of-N for governance-critical events~~ — done in this patch
+- 🚧 Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` integration)
+- 🚧 web-shell parity for B4 features (user follow-up feedback: default shell is web-shell, B4 IPC has no WS topic exposure yet)
+
 ## 2026-05-07 Update X — **B4-archive v1 — envelope external archival (filesystem + WebDAV)**
 
 Third deferred item. B4-merkle / B4-cross keep the envelope evidence trail on local disk; device wipe / uninstall / disk corruption = total loss. This patch adds packaging + push to external providers so audit history can survive beyond a single machine's lifecycle.

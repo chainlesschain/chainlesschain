@@ -187,6 +187,8 @@ function registerPhases3to4Social({
         // B4-archive v1: external archival
         channelEnvelopeArchiver: dependencies.channelEnvelopeArchiver || null,
         archiveProviderFactory: dependencies.archiveProviderFactory || null,
+        // B4-mofn v1: governance M-of-N multi-sig
+        governanceMultiSig: dependencies.governanceMultiSig || null,
         // for lazy peer-pull when envelope missing locally
         p2pManager: dependencies.p2pManager || null,
       });

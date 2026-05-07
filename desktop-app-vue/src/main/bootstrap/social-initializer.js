@@ -663,6 +663,33 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-mofn v1 — M-of-N multi-sig for governance-critical events
+  // ========================================
+  // Wraps core-mtc's assembleBatchFederated (via local tweetnacl signer
+  // adapter that dodges the @noble/curves hoisting trap) into per-proposal
+  // signature collection. v1: single-machine signature gathering — caller
+  // ships the member's keys directly; cross-machine sig pickup over
+  // federation gossipsub is a follow-up.
+  factory.register({
+    name: "governanceMultiSig",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { GovernanceMultiSig } = require("../mtc/governance-multisig");
+        const rootDir = path.join(app.getPath("userData"), "governance-mofn");
+        const mgr = new GovernanceMultiSig({ rootDir });
+        mgr.initialize();
+        logger.info("[Social] ✓ governanceMultiSig initialized at " + rootDir);
+        return mgr;
+      } catch (error) {
+        logger.warn("[Social] governanceMultiSig init failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // B4-archive v1 — channel envelope archiver (external storage)
   // ========================================
   // pack/restore B4-merkle batches + B4-cross remote caches into zip

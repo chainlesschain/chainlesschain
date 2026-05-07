@@ -34,6 +34,10 @@ const electron = require("electron");
  *   given a {kind, ...providerOpts} arg returns a provider instance
  *   suitable for ChannelEnvelopeArchiver. Lets renderers pick filesystem
  *   vs webdav per-call without us pre-instantiating credentials
+ * @param {Object} [dependencies.governanceMultiSig] - B4-mofn v1 M-of-N
+ *   governance multi-sig manager (proposal + sig collection + finalize
+ *   via assembleBatchFederated). Optional; when present, governance-mofn:*
+ *   IPC handlers register
  * @param {Object} [dependencies.p2pManager] - needed by lazy peer-pull
  *   to enumerate connected peers
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
@@ -49,6 +53,7 @@ function registerCommunityIPC({
   channelEnvelopeDistribution,
   channelEnvelopeArchiver,
   archiveProviderFactory,
+  governanceMultiSig,
   p2pManager,
   ipcMain,
 }) {
@@ -676,6 +681,95 @@ function registerCommunityIPC({
       }
     },
   );
+
+  // ============================================================
+  // B4-mofn v1 — governance M-of-N multi-sig IPC
+  // ============================================================
+
+  ipcMain.handle("governance-mofn:create", async (_event, args) => {
+    try {
+      if (!governanceMultiSig) {
+        return { ok: false, reason: "governanceMultiSig 未初始化" };
+      }
+      const proposal = governanceMultiSig.createProposal(args || {});
+      return { ok: true, proposal };
+    } catch (err) {
+      logger.error("[Community IPC] governance-mofn:create failed:", err);
+      return { ok: false, reason: err.message };
+    }
+  });
+
+  ipcMain.handle(
+    "governance-mofn:sign",
+    async (_event, communityId, proposalId, signerKeysSerialized) => {
+      try {
+        if (!governanceMultiSig) {
+          return { ok: false, reason: "governanceMultiSig 未初始化" };
+        }
+        if (!signerKeysSerialized || !signerKeysSerialized.did) {
+          return { ok: false, reason: "signerKeys 缺 did/secretKey/publicKey" };
+        }
+        // Renderer sends base64 strings; revive to Buffers here
+        const signerKeys = {
+          did: signerKeysSerialized.did,
+          secretKey: Buffer.from(signerKeysSerialized.secretKey, "base64"),
+          publicKey: Buffer.from(signerKeysSerialized.publicKey, "base64"),
+        };
+        const status = governanceMultiSig.addSignature(
+          communityId,
+          proposalId,
+          signerKeys,
+        );
+        return { ok: true, status };
+      } catch (err) {
+        logger.error("[Community IPC] governance-mofn:sign failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "governance-mofn:status",
+    async (_event, communityId, proposalId) => {
+      try {
+        if (!governanceMultiSig) {
+          return { ok: false, reason: "governanceMultiSig 未初始化" };
+        }
+        const status = governanceMultiSig.getStatus(communityId, proposalId);
+        return { ok: true, status };
+      } catch (err) {
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "governance-mofn:finalize",
+    async (_event, communityId, proposalId) => {
+      try {
+        if (!governanceMultiSig) {
+          return { ok: false, reason: "governanceMultiSig 未初始化" };
+        }
+        const result = governanceMultiSig.finalize(communityId, proposalId);
+        return { ok: true, result };
+      } catch (err) {
+        logger.error("[Community IPC] governance-mofn:finalize failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle("governance-mofn:list", async (_event, communityId) => {
+    try {
+      if (!governanceMultiSig) {
+        return { ok: false, reason: "governanceMultiSig 未初始化" };
+      }
+      const proposals = governanceMultiSig.listProposals(communityId);
+      return { ok: true, proposals };
+    } catch (err) {
+      return { ok: false, reason: err.message };
+    }
+  });
 
   /**
    * Pin a message
