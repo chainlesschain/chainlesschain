@@ -334,7 +334,15 @@ async function networkSpeedTesterReal(params)
 ```
 
 * 网速测试器 (真实实现)
- * 使用speedtest-net测试网络速度
+ *
+ * Uses Cloudflare's public speedtest endpoints (speed.cloudflare.com) via
+ * native fetch — replaces the previous speedtest-net dep, which pulled in
+ * an unmaintained chain (got/cacheable-request/http-cache-semantics HIGH
+ * advisories + node-pre-gyp@0.11 / lzma-native legacy native build).
+ *
+ * Cloudflare endpoints (publicly documented, no auth):
+ *   GET  https://speed.cloudflare.com/__down?bytes=N — download N bytes
+ *   POST https://speed.cloudflare.com/__up           — upload payload
 
 ---
 
