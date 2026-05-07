@@ -245,6 +245,99 @@ services:
     networks:
       - chainlesschain-network
 
+  # MinIO - 插件市场对象存储（plugin .zip 包）
+  marketplace-minio:
+    image: minio/minio:latest
+    container_name: chainlesschain-marketplace-minio
+    command: server /data --console-address ":9011"
+    environment:
+      - MINIO_ROOT_USER=${MARKETPLACE_MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MARKETPLACE_MINIO_SECRET_KEY:-minioadmin123}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9011:9011"   # Console (9001 已被 signaling-server 占用)
+    volumes:
+      - ./data/marketplace-minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # 插件市场数据库初始化（一次性，幂等）
+  marketplace-db-init:
+    image: postgres:16-alpine
+    container_name: chainlesschain-marketplace-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PGHOST=postgres
+      - PGUSER=chainlesschain
+      - PGPASSWORD=chainlesschain_pwd_2024
+      - DB_NAME=plugin_marketplace
+      - SCHEMA_FILE=/schema.sql
+    volumes:
+      - ./backend/plugin-marketplace-service/src/main/resources/schema.sql:/schema.sql:ro
+      - ./deploy/init-marketplace-db.sh:/init.sh:ro
+    entrypoint: ["sh", "/init.sh"]
+    networks:
+      - chainlesschain-network
+    restart: "no"
+
+  # 插件市场服务 - Spring Boot
+  plugin-marketplace-service:
+    build:
+      context: ./backend/plugin-marketplace-service
+      dockerfile: Dockerfile
+    image: chainlesschain/plugin-marketplace-service:1.0.0
+    container_name: chainlesschain-plugin-marketplace
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      # 复用根 postgres，使用独立库 plugin_marketplace
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/plugin_marketplace
+      - SPRING_DATASOURCE_USERNAME=chainlesschain
+      - SPRING_DATASOURCE_PASSWORD=chainlesschain_pwd_2024
+      # 复用根 redis，用 database 2 避免与 project-service(0) 冲突
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=chainlesschain_redis_2024
+      - SPRING_DATA_REDIS_DATABASE=2
+      # MinIO（专属，不复用其它服务）
+      - MINIO_ENDPOINT=http://marketplace-minio:9000
+      - MINIO_ACCESS_KEY=${MARKETPLACE_MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MARKETPLACE_MINIO_SECRET_KEY:-minioadmin123}
+      - MINIO_BUCKET=plugins
+      # JWT 必须在 .env 覆盖，默认值仅用于本地启动
+      - JWT_SECRET=${PLUGIN_MARKETPLACE_JWT_SECRET:-CHANGE_ME_IN_PROD_at_least_256_bits_required_xxxxxxxxxxxxxxxxxx}
+      - JWT_EXPIRATION=86400000
+      - SERVER_PORT=8090
+      - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      marketplace-minio:
+        condition: service_healthy
+      marketplace-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8090/api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
   # Coturn - STUN/TURN服务器（P2P NAT穿透）
   coturn:
     build:
@@ -277,3 +370,4 @@ volumes:
   redis-data:
   whisper-models:
   coturn-logs:
+  marketplace-minio-data:
