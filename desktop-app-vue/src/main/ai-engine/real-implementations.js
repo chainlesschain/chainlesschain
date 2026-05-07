@@ -29,7 +29,6 @@ const fsp = require("fs").promises;
 const path = require("path");
 const ical = require("ical-generator").default;
 const screenshot = require("screenshot-desktop");
-const speedTest = require("speedtest-net");
 const { exec } = require("child_process");
 const { promisify } = require("util");
 const execAsync = promisify(exec);
@@ -2049,61 +2048,110 @@ async function screenshotToolReal(params) {
 
 /**
  * 网速测试器 (真实实现)
- * 使用speedtest-net测试网络速度
+ *
+ * Uses Cloudflare's public speedtest endpoints (speed.cloudflare.com) via
+ * native fetch — replaces the previous speedtest-net dep, which pulled in
+ * an unmaintained chain (got/cacheable-request/http-cache-semantics HIGH
+ * advisories + node-pre-gyp@0.11 / lzma-native legacy native build).
+ *
+ * Cloudflare endpoints (publicly documented, no auth):
+ *   GET  https://speed.cloudflare.com/__down?bytes=N — download N bytes
+ *   POST https://speed.cloudflare.com/__up           — upload payload
  */
 async function networkSpeedTesterReal(params) {
-  const { test_type = "both", server_id, max_time = 10000 } = params;
+  const { test_type = "both", max_time = 10000 } = params;
+
+  const PING_HOST = "https://speed.cloudflare.com/__down?bytes=0";
+  const DOWNLOAD_BYTES = 25_000_000; // 25 MB
+  const UPLOAD_BYTES = 5_000_000; // 5 MB
+  const PING_SAMPLES = 5;
 
   try {
-    logger.info("开始网速测试，请稍候...");
+    logger.info("开始网速测试 (Cloudflare)，请稍候...");
 
-    // 配置测试选项
-    const options = {
-      acceptLicense: true,
-      acceptGdpr: true,
-    };
+    // ── Ping + jitter: PING_SAMPLES × HEAD-style fetch, measure RTT
+    const pings = [];
+    for (let i = 0; i < PING_SAMPLES; i++) {
+      const t0 = Date.now();
+      const r = await fetch(PING_HOST, {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(3000),
+      });
+      await r.arrayBuffer(); // drain
+      pings.push(Date.now() - t0);
+    }
+    const meanPing = pings.reduce((a, b) => a + b, 0) / pings.length;
+    const variance =
+      pings.reduce((a, b) => a + (b - meanPing) ** 2, 0) / pings.length;
+    const jitter = Math.sqrt(variance);
 
-    if (server_id) {
-      options.serverId = server_id;
+    let dlBandwidth = 0;
+    let dlBytes = 0;
+    let dlElapsedMs = 0;
+    if (test_type === "both" || test_type === "download") {
+      const t0 = Date.now();
+      const r = await fetch(
+        `https://speed.cloudflare.com/__down?bytes=${DOWNLOAD_BYTES}`,
+        { cache: "no-store", signal: AbortSignal.timeout(max_time) },
+      );
+      const buf = await r.arrayBuffer();
+      dlElapsedMs = Date.now() - t0;
+      dlBytes = buf.byteLength;
+      dlBandwidth = dlBytes / (dlElapsedMs / 1000); // bytes/sec
     }
 
-    // 执行速度测试
-    const result = await speedTest(options);
+    let upBandwidth = 0;
+    let upBytes = 0;
+    let upElapsedMs = 0;
+    if (test_type === "both" || test_type === "upload") {
+      const payload = new Uint8Array(UPLOAD_BYTES);
+      crypto.randomFillSync(Buffer.from(payload.buffer));
+      const t0 = Date.now();
+      const r = await fetch("https://speed.cloudflare.com/__up", {
+        method: "POST",
+        body: payload,
+        signal: AbortSignal.timeout(max_time),
+      });
+      await r.arrayBuffer();
+      upElapsedMs = Date.now() - t0;
+      upBytes = UPLOAD_BYTES;
+      upBandwidth = upBytes / (upElapsedMs / 1000);
+    }
 
-    // 转换速度单位 (Mbps)
-    const downloadMbps = ((result.download.bandwidth * 8) / 1000000).toFixed(2);
-    const uploadMbps = ((result.upload.bandwidth * 8) / 1000000).toFixed(2);
+    const downloadMbps = ((dlBandwidth * 8) / 1_000_000).toFixed(2);
+    const uploadMbps = ((upBandwidth * 8) / 1_000_000).toFixed(2);
 
     return {
       success: true,
-      test_type: test_type,
+      test_type,
       download: {
-        bandwidth: result.download.bandwidth,
+        bandwidth: dlBandwidth,
         speed_mbps: parseFloat(downloadMbps),
-        bytes: result.download.bytes,
-        elapsed: result.download.elapsed,
+        bytes: dlBytes,
+        elapsed: dlElapsedMs,
       },
       upload: {
-        bandwidth: result.upload.bandwidth,
+        bandwidth: upBandwidth,
         speed_mbps: parseFloat(uploadMbps),
-        bytes: result.upload.bytes,
-        elapsed: result.upload.elapsed,
+        bytes: upBytes,
+        elapsed: upElapsedMs,
       },
       ping: {
-        latency: result.ping.latency,
-        jitter: result.ping.jitter,
+        latency: parseFloat(meanPing.toFixed(2)),
+        jitter: parseFloat(jitter.toFixed(2)),
       },
       server: {
-        id: result.server.id,
-        name: result.server.name,
-        location: result.server.location,
-        country: result.server.country,
-        host: result.server.host,
-        ip: result.server.ip,
+        id: "cloudflare",
+        name: "Cloudflare Speedtest",
+        location: "Anycast",
+        country: "Global",
+        host: "speed.cloudflare.com",
+        ip: "",
       },
-      result_url: result.result?.url || "",
-      isp: result.isp,
-      timestamp: result.timestamp,
+      result_url: "",
+      isp: "",
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     return {

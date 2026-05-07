@@ -277,7 +277,6 @@
     "sharedb": "^5.2.2",
     "sharp": "^0.33.5",
     "sheetjs-style": "^0.15.8",
-    "speedtest-net": "^2.2.0",
     "sql.js": "^1.13.0",
     "tesseract.js": "^5.1.1",
     "tweetnacl": "^1.0.3",
