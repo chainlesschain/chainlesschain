@@ -48,7 +48,7 @@ class ProtocolFusionBridge extends EventEmitter {
       );
       CREATE INDEX IF NOT EXISTS idx_unified_msgs_protocol ON unified_messages(source_protocol);
 
-      CREATE TABLE IF NOT EXISTS identity_mappings (
+      CREATE TABLE IF NOT EXISTS protocol_identity_mappings (
         id TEXT PRIMARY KEY,
         did_id TEXT,
         activitypub_id TEXT,
@@ -57,7 +57,7 @@ class ProtocolFusionBridge extends EventEmitter {
         verified INTEGER DEFAULT 0,
         created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
       );
-      CREATE INDEX IF NOT EXISTS idx_identity_map_did ON identity_mappings(did_id);
+      CREATE INDEX IF NOT EXISTS idx_identity_map_did ON protocol_identity_mappings(did_id);
     `);
   }
 
@@ -67,7 +67,9 @@ class ProtocolFusionBridge extends EventEmitter {
     if (this.database && this.database.db) {
       try {
         const mappings = this.database.db
-          .prepare("SELECT * FROM identity_mappings ORDER BY created_at DESC")
+          .prepare(
+            "SELECT * FROM protocol_identity_mappings ORDER BY created_at DESC",
+          )
           .all();
         for (const m of mappings) {
           this._identityMap.set(m.id, m);
@@ -177,7 +179,7 @@ class ProtocolFusionBridge extends EventEmitter {
     if (this.database && this.database.db) {
       this.database.db
         .prepare(
-          `INSERT INTO identity_mappings (id,did_id,activitypub_id,nostr_pubkey,matrix_id,verified,created_at) VALUES (?,?,?,?,?,?,?)`,
+          `INSERT INTO protocol_identity_mappings (id,did_id,activitypub_id,nostr_pubkey,matrix_id,verified,created_at) VALUES (?,?,?,?,?,?,?)`,
         )
         .run(
           id,
