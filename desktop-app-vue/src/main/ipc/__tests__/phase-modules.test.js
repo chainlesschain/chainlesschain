@@ -37,32 +37,33 @@ const PHASE_MODULES = [
   {
     file: "../phases/phase-6-7-content",
     exportName: "registerPhases6to7Content",
-    // 4 unconditional safeRegister (Office File, Template, PDF, Document).
-    // Speech IPC is gated on app.initializeSpeechManager which is null in
-    // stub deps. File/Knowledge/Prompt Template/Image/Video are gated on
-    // their respective managers and don't fire with null deps.
-    expectedRegistrations: 4,
+    // 5 unconditional safeRegister (Office File, Template, Screenshot, PDF,
+    // Document). Speech IPC is gated on app.initializeSpeechManager which is
+    // null in stub deps. File/Knowledge/Prompt Template/Image/Video are
+    // gated on their respective managers and don't fire with null deps.
+    expectedRegistrations: 5,
     needsRegisteredModules: false,
   },
   {
     file: "../phases/phase-8-9-extras",
     exportName: "registerPhases8to9Extras",
-    // 9 unconditional safeRegister calls fire with null stub deps:
-    // Blockchain, Collaboration, Automation, Plugin, Sync, Preference,
-    // Conversation, Config, Workflow. The other 8 are gated on managers
-    // (llmManager / reviewManager / vcTemplateManager / database /
+    // 10 unconditional safeRegister calls fire with null stub deps:
+    // Blockchain, Collaboration, Automation, Plugin, Sync, WebDAV,
+    // Preference, Conversation, Config, Workflow. The other 8 are gated on
+    // managers (llmManager / reviewManager / vcTemplateManager / database /
     // app.graphExtractor / creditScoreManager / fileImporter / database)
     // and don't fire with null deps.
-    expectedRegistrations: 9,
+    expectedRegistrations: 10,
     needsRegisteredModules: true,
   },
   {
     file: "../phases/phase-3-4-social",
     exportName: "registerPhases3to4Social",
-    // 9 unconditional safeRegister calls (Social, Call, Album, Social Collab,
-    // Community, Time Machine, Livestream, Future Social, Organization).
-    // 6 others are gated on non-null managers and won't fire with stub deps.
-    expectedRegistrations: 9,
+    // 10 unconditional safeRegister calls (MTC, Social, Call, Album, Social
+    // Collab, Community, Time Machine, Livestream, Future Social,
+    // Organization). 6 others are gated on non-null managers and won't fire
+    // with stub deps.
+    expectedRegistrations: 10,
     needsRegisteredModules: true,
   },
   {
