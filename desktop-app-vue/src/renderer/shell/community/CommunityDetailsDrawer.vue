@@ -288,6 +288,18 @@
                       <a-tag v-if="m.is_pinned === 1" color="gold" size="small">
                         已置顶
                       </a-tag>
+                      <a-tooltip
+                        v-if="m.signature && m.sender_pubkey"
+                        title="该消息已带 Ed25519 签名 — 点查看 Merkle 证据"
+                      >
+                        <a-button
+                          size="small"
+                          type="link"
+                          @click="openEnvelope(m.id, m.content)"
+                        >
+                          🔐 验证
+                        </a-button>
+                      </a-tooltip>
                       <span v-if="canManage" class="message-actions">
                         <a-button
                           size="small"
@@ -567,6 +579,15 @@
     </a-spin>
   </a-drawer>
 
+  <!-- B4-ui v1: Merkle envelope viewer -->
+  <MessageEnvelopeViewer
+    v-if="community"
+    v-model:open="envelopeViewerOpen"
+    :community-id="String(community.id)"
+    :message-id="envelopeMessageId"
+    :message-preview="envelopeMessagePreview"
+  />
+
   <!-- Create proposal sub-modal -->
   <a-modal
     v-model:open="createProposalOpen"
@@ -730,11 +751,22 @@ import {
   type CommunityChannel,
   type CommunityMember,
 } from "../../stores/communityQuick";
+import MessageEnvelopeViewer from "./MessageEnvelopeViewer.vue";
 
 const store = useCommunityQuickStore();
 type DetailsTabKey = "members" | "channels" | "governance" | "moderation";
 const activeTab = ref<DetailsTabKey>("members");
 const composerText = ref("");
+
+// B4-ui v1: Merkle envelope viewer modal state. Triggered from message rows.
+const envelopeViewerOpen = ref(false);
+const envelopeMessageId = ref("");
+const envelopeMessagePreview = ref("");
+function openEnvelope(messageId: string, preview: string) {
+  envelopeMessageId.value = messageId;
+  envelopeMessagePreview.value = preview || "";
+  envelopeViewerOpen.value = true;
+}
 const createChannelOpen = ref(false);
 const channelForm = reactive({
   name: "",

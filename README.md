@@ -1,5 +1,32 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 IX（**B4-ui v1 — Merkle envelope 验证按钮 + viewer 弹窗**）
+
+deferred 第二项：B4-merkle / B4-cross 后端齐了但前端没出口。本次接通 renderer：每条带签名的 channel 消息旁加一个 "🔐 验证" 按钮，弹窗展示来源（local 本机批 / remote peer-pull）、tree-head / batch / leaf 索引、签名验证就位提示、可展开 raw envelope + landmark JSON 一键复制（用户可拿去 `cc mtc verify` 离线复核）。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **`useMessageEnvelope` composable** | `src/renderer/composables/useMessageEnvelope.ts` (+155) | 5 phase reactive state（idle / loading / found / not-found / error）+ `fetch(communityId, messageId)` + `reset()`. 走通用 `electronAPI.invoke('channel:get-message-envelope', ...)` (preload 不需要改). preload 缺失时回 error phase 友好提示 |
+| **`MessageEnvelopeViewer.vue`** | `src/renderer/shell/community/MessageEnvelopeViewer.vue` (+170) | Ant Design Modal 720px 宽，带 message preview + 5 phase UI（Spin / Alert / Descriptions）+ 来源 Tag（local 绿 / remote 蓝）+ tree-head / batch / namespace / leafIndex + 签名 ✅ + landmark 缺失时的 orange Tag + 折叠展示 raw envelope/landmark JSON + 复制按钮（用 `navigator.clipboard.writeText`）。仅在消息有 `signature && sender_pubkey` 时显示按钮 |
+| **CommunityDetailsDrawer 集成** | `src/renderer/shell/community/CommunityDetailsDrawer.vue` (+30) | 频道消息每条加 "🔐 验证" 按钮（仅签了名的）+ Tooltip 提示；Modal v-model:open 双向绑定；store 取 `community.id` 作为 viewer 的 communityId prop |
+
+**测试矩阵 (B4-ui 新增 10, 累计 1021 / 1021 全绿 across 29 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `composables/__tests__/useMessageEnvelope.test.ts` | 10 — 5 phase 完整覆盖（idle 起手 / 空 args 拒绝 / preload 缺失 error / found normalized result / origin 默认值 / not-found 带 reason / IPC throw → error / null IPC 响应当 not-found / loading 中间态可观察 / reset()） |
+| 全 29 文件回归 | — | **1021 / 1021** ✅ |
+
+**已知 coverage 缺口 (deliberate)**：
+- 没单测 `MessageEnvelopeViewer.vue` 组件本身。理由：组件主要是 Ant Design Modal/Spin/Tag/Descriptions 编排，没业务逻辑分支。Mount + Teleport modal 在 vitest jsdom 下脆弱；composable + IPC wiring 测试已经覆盖了数据流。集成测试可以等 e2e Playwright 那批一起加
+
+**Deferred 剩余 sub-phases 进度**
+- ✅ ~~Inbound landmark trust filtering~~ — VIII 完成
+- ✅ ~~UI envelope viewer~~ — 本次完成
+- 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
+- 🚧 M-of-N for governance-critical events
+- 🚧 跨联邦信任锚 (MTC v0.11 cross-fed-trust 集成)
+
 ## 2026-05-07 增量更新 VIII（**B4-cross-trust v1 — landmark inbound trust filter**）
 
 B4-cross v1 收口的 deferred 列表头一项：B4-cross v1 信任模型是 NONE，缓存所有 inbound landmark。本次加入按 community 成员校验：landmark 的 issuer DID 必须在当前社区 member list 才进 cache，否则 reject + emit `landmark:rejected`。回调缺省时退回 v1 trust-none 行为 + 启动期 warn。

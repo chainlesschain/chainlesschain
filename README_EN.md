@@ -1,5 +1,32 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update IX — **B4-ui v1 — Merkle envelope verify button + viewer modal**
+
+Second deferred item: B4-merkle / B4-cross had backend-only — no renderer surface. This patch wires the UI: every signed channel message gains a "🔐 验证" button that opens a modal showing origin (local-batched vs peer-pulled), tree-head / batch / leaf index, signature-verified status, plus an expandable raw envelope + landmark JSON view with copy buttons (so users can paste into `cc mtc verify` for offline cross-check).
+
+| Topic | File | Description |
+|---|---|---|
+| **`useMessageEnvelope` composable** | `src/renderer/composables/useMessageEnvelope.ts` (+155) | 5-phase reactive state (idle / loading / found / not-found / error) + `fetch(communityId, messageId)` + `reset()`. Uses generic `electronAPI.invoke('channel:get-message-envelope', ...)` (no preload changes needed). Falls back to error phase with friendly message when preload missing |
+| **`MessageEnvelopeViewer.vue`** | `src/renderer/shell/community/MessageEnvelopeViewer.vue` (+170) | 720px Ant Design Modal with message preview + 5-phase UI (Spin / Alert / Descriptions) + origin Tag (local green / remote blue) + tree-head / batch / namespace / leafIndex + signature ✅ + orange tag when landmark cache missing + collapsible raw envelope/landmark JSON with copy buttons (`navigator.clipboard.writeText`). Button only renders when message has `signature && sender_pubkey` |
+| **CommunityDetailsDrawer integration** | `src/renderer/shell/community/CommunityDetailsDrawer.vue` (+30) | Channel message rows gain a "🔐 验证" button (signed messages only) + Tooltip; Modal v-model:open two-way binding; passes `community.id` as the viewer's communityId prop |
+
+**Test matrix (B4-ui adds 10, total 1021 / 1021 across 29 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `composables/__tests__/useMessageEnvelope.test.ts` | 10 — full 5-phase coverage (idle initial / empty-args reject / preload-missing error / found normalized result / origin default / not-found with reason / IPC throw → error / null IPC response → not-found / loading transition observable / reset()) |
+| Full 29-file regression | — | **1021 / 1021** ✅ |
+
+**Known coverage gap (deliberate)**:
+- No unit test for `MessageEnvelopeViewer.vue` itself. Reasoning: the component is mostly Ant Design Modal/Spin/Tag/Descriptions plumbing with no business-logic branching. Mount + Teleport modals are fragile under vitest jsdom; the composable + IPC wiring tests already cover the data flow. Integration test can land with the next e2e Playwright batch.
+
+**Remaining deferred sub-phases progress**
+- ✅ ~~Inbound landmark trust filtering~~ — done in VIII
+- ✅ ~~UI envelope viewer~~ — done in this patch
+- 🚧 Periodic envelope archival to OSS / WebDAV / IPFS
+- 🚧 M-of-N for governance-critical events
+- 🚧 Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` integration)
+
 ## 2026-05-07 Update VIII — **B4-cross-trust v1 — landmark inbound trust filter**
 
 First item off the B4-cross v1 deferred list: B4-cross v1 had no inbound trust model (cached every landmark received). This patch adds community-membership filtering: a landmark's issuer DID must be in the current community's member list before it's cached, otherwise it's rejected and `landmark:rejected` is emitted. When the membership callback is omitted, falls back to v1 trust-none behavior with a one-time startup warn.
