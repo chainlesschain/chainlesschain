@@ -7,6 +7,7 @@ const {
   SCHEMA_TREE_HEAD,
   NAMESPACE_RE,
   TREE_HEAD_SIG_PREFIX,
+  LANDMARK_SIG_PREFIX,
 } = require("./constants.js");
 const { sha256, encodeHashStr } = require("./hash.js");
 const { jcs } = require("./jcs.js");
@@ -31,6 +32,12 @@ class LandmarkCache {
         e.code = "NO_SIGNATURE_VERIFIER";
         throw e;
       };
+    // Opt-in: when true, ingest() also verifies landmark.publisher_signature
+    // (in addition to per-snapshot tree_head signatures). Default off for
+    // back-compat with on-disk landmarks predating real publisher signing
+    // (see batch.js producer change a634a00f3) and with hand-built test
+    // fixtures that use placeholder sig values.
+    this._verifyPublisherSig = opts.verifyPublisherSignature === true;
     this._byNamespace = new Map();
     this._persistDir = opts.persistDir || null;
   }
@@ -42,6 +49,10 @@ class LandmarkCache {
       throw this._err("BAD_LANDMARK_SCHEMA");
     }
 
+    if (this._verifyPublisherSig) {
+      this._verifyPublisherSignature(landmark);
+    }
+
     let accepted = 0;
     for (const snap of landmark.snapshots) {
       const result = this._validateAndStoreSnapshot(snap);
@@ -51,6 +62,60 @@ class LandmarkCache {
       }
     }
     return { accepted, total: landmark.snapshots.length };
+  }
+
+  /**
+   * Verify landmark.publisher_signature.
+   *
+   * Producer (batch.js assembleBatch / assembleBatchFederated) signs
+   * `LANDMARK_SIG_PREFIX || JCS(landmark with publisher_signature.sig = "")`
+   * using the same key as the tree_head signer (single-sig path) or
+   * signers[0] (federated path). Both choices land that key as
+   * `trust_anchors[0]`, so this is the canonical verifier anchor.
+   *
+   * Reuses the configured _signatureVerifier with a synthesized sig-shaped
+   * object whose pubkey_id is taken from the anchor (publisher_signature
+   * itself stores key_id, not pubkey_id).
+   */
+  _verifyPublisherSignature(landmark) {
+    const ps = landmark.publisher_signature;
+    if (!ps || typeof ps !== "object") {
+      throw this._err("BAD_PUBLISHER_SIG");
+    }
+    if (typeof ps.alg !== "string" || typeof ps.sig !== "string" || !ps.sig) {
+      throw this._err("BAD_PUBLISHER_SIG");
+    }
+    const anchors = landmark.trust_anchors;
+    if (!Array.isArray(anchors) || anchors.length === 0) {
+      throw this._err("BAD_PUBLISHER_SIG");
+    }
+    const anchor = anchors[0];
+    if (
+      !anchor ||
+      typeof anchor.pubkey_id !== "string" ||
+      anchor.alg !== ps.alg
+    ) {
+      throw this._err("BAD_PUBLISHER_SIG");
+    }
+
+    // Reconstruct producer's signing input: JCS over a copy with sig="".
+    // Spread is shallow but JCS recurses on the rest, so unchanged sub-trees
+    // canonicalize to the same bytes the producer fed into the signer.
+    const stripped = {
+      ...landmark,
+      publisher_signature: { ...ps, sig: "" },
+    };
+    const signingInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(stripped)]);
+
+    const sigObj = {
+      alg: ps.alg,
+      sig: ps.sig,
+      pubkey_id: anchor.pubkey_id,
+    };
+
+    if (!this._signatureVerifier(signingInput, sigObj)) {
+      throw this._err("BAD_PUBLISHER_SIG");
+    }
   }
 
   _validateAndStoreSnapshot(snap) {
