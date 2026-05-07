@@ -52,6 +52,10 @@ const {
   createNotificationHandlers,
 } = require("./handlers/notification-handlers");
 const { createKnowledgeHandlers } = require("./handlers/knowledge-handlers");
+const { createScreenshotHandlers } = require("./handlers/screenshot-handlers");
+const {
+  createNotificationSettingsHandlers,
+} = require("./handlers/notification-settings-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -193,6 +197,18 @@ async function startWebShell(options = {}) {
       database: options.database ?? null,
       ragManager: options.ragManager ?? null,
     }),
+    // Phase 3c.7 — screenshot.* topics 复用 ../screenshot/screenshot-ipc 的
+    // _internal exports (captureScreenshot / recognize / isInsideTmpDir),
+    // 不依赖 ipcMain。OCR worker 在 web-shell 进程内跑 (与 V5/V6 同址)。
+    ...createScreenshotHandlers(),
+    // Phase 3c.7 — notification-settings.* topics 桥接 appConfig。getAppConfig
+    // 仅在调用方传入时才注册 (与 shell.switch 一致),避免 ws.execute 旧路径
+    // 还活着时 SPA 误打开本不该可写的设置面。
+    ...(typeof options.getAppConfig === "function"
+      ? createNotificationSettingsHandlers({
+          getAppConfig: options.getAppConfig,
+        })
+      : {}),
     // Phase 1.6 — symmetric shell switch from web-panel back to V5/V6.
     // Only registered when getAppConfig is provided (it requires the
     // AppConfigManager singleton to persist the opt-out).

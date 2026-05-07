@@ -3125,6 +3125,7 @@
       "mcp": "MCP tools",
       "projectSettings": "Project storage",
       "speechSettings": "Speech",
+      "notificationSettings": "Notifications",
       "nlprog": "NL programming",
       "codegen": "Code gen",
       "notes": "Notes",

@@ -35,7 +35,9 @@ function routeTrayAction(payload) {
       // /settings root. Closest match: project-settings for the catch-all,
       // sub-domains route to dedicated pages.
       if (data === 'notifications') {
-        message.info('通知设置在 web-panel 暂无对应页面')
+        // Phase 3c.7 — web-panel 自带 NotificationSettings 视图,直接路由
+        // (notification-settings.* WS topic 后端持久化进 appConfig)。
+        router.push('/notification-settings')
       } else if (data === 'speech') {
         router.push('/speech-settings')
       } else if (data === 'providers' || data === 'llm') {
@@ -55,12 +57,15 @@ function routeTrayAction(payload) {
       router.push('/dashboard')
       break
     case 'show-notifications':
-      message.info('通知中心在 web-panel 暂无对应面板')
+      // Phase 3c.6 NotificationBell drawer is mounted in AppLayout header;
+      // dispatch a window CustomEvent so the bell opens itself regardless
+      // of which route is active.
+      window.dispatchEvent(new CustomEvent('cc:open-notification-drawer'))
       break
     case 'quick-action':
       switch (data) {
         case 'global-search':
-          message.info('全局搜索在 web-panel 暂未接入')
+          router.push('/search')
           break
         case 'new-chat':
           router.push('/chat')
@@ -68,9 +73,15 @@ function routeTrayAction(payload) {
         case 'new-note':
           router.push('/notes')
           break
-        case 'screenshot-ocr':
         case 'clipboard-import':
-          message.info('功能即将推出')
+          // Notes.vue 监听 route.query.clipboardImport,自动打开
+          // ClipboardImportDialog. 用 timestamp 让重复点击都触发 watch.
+          router.push(`/notes?clipboardImport=${Date.now()}`)
+          break
+        case 'screenshot-ocr':
+          // Phase 3c.7 — Notes.vue 监听 route.query.screenshotOcr,自动打开
+          // ScreenshotImportDialog (screenshot.* WS topic 在 web-shell 落地)。
+          router.push(`/notes?screenshotOcr=${Date.now()}`)
           break
         default:
           message.info('未识别的快速操作')

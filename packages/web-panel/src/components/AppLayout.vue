@@ -62,6 +62,7 @@
             <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>{{ $t('appLayout.items.mcp') }}</a-menu-item>
             <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template>{{ $t('appLayout.items.projectSettings') }}</a-menu-item>
             <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template>{{ $t('appLayout.items.speechSettings') }}</a-menu-item>
+            <a-menu-item key="notification-settings"><template #icon><BellOutlined /></template>{{ $t('appLayout.items.notificationSettings') }}</a-menu-item>
             <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template>{{ $t('appLayout.items.nlprog') }}</a-menu-item>
             <a-menu-item key="codegen"><template #icon><CodeOutlined /></template>{{ $t('appLayout.items.codegen') }}</a-menu-item>
           </a-sub-menu>
@@ -147,6 +148,7 @@
           <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
           <a-menu-item key="project-settings"><template #icon><FolderOutlined /></template></a-menu-item>
           <a-menu-item key="speech-settings"><template #icon><SoundOutlined /></template></a-menu-item>
+          <a-menu-item key="notification-settings"><template #icon><BellOutlined /></template></a-menu-item>
           <a-menu-item key="nlprog"><template #icon><BulbOutlined /></template></a-menu-item>
           <a-menu-item key="codegen"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
@@ -300,7 +302,7 @@ import {
   UsergroupAddOutlined, ShoppingOutlined, SwapOutlined, AlertOutlined, SafetyOutlined,
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
-  NumberOutlined, ClusterOutlined, SoundOutlined, DesktopOutlined,
+  NumberOutlined, ClusterOutlined, SoundOutlined, DesktopOutlined, BellOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'

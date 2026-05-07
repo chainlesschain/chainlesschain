@@ -22,13 +22,14 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 55 child routes under root', async () => {
+  it('has exactly 56 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 54 named pages = 55 children
-    // (Mtc added 2026-05-02; SyncSettings added 2026-05-06 for tray "同步设置…" entry)
-    expect(rootRoute.children.length).toBe(55)
+    // 1 redirect + 55 named pages = 56 children
+    // (Mtc added 2026-05-02; SyncSettings added 2026-05-06 for tray "同步设置…" entry;
+    //  NotificationSettings added 2026-05-07 for Phase 3c.7 web-shell parity)
+    expect(rootRoute.children.length).toBe(56)
   })
 
   it('contains all expected route names', async () => {

@@ -14,6 +14,10 @@
           <template #icon><SnippetsOutlined /></template>
           剪贴板导入
         </a-button>
+        <a-button @click="showScreenshotImport = true">
+          <template #icon><CameraOutlined /></template>
+          截图识别
+        </a-button>
         <a-button ghost :loading="loading" @click="loadNotes">
           <template #icon><ReloadOutlined /></template>
           刷新
@@ -100,6 +104,12 @@
       @saved="onClipboardSaved"
     />
 
+    <!-- Screenshot OCR modal -->
+    <ScreenshotImportDialog
+      v-model="showScreenshotImport"
+      @saved="onScreenshotSaved"
+    />
+
     <!-- View Note Modal -->
     <a-modal
       v-model:open="showView"
@@ -124,15 +134,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { PlusOutlined, ReloadOutlined, FileTextOutlined, DownloadOutlined, SnippetsOutlined } from '@ant-design/icons-vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { PlusOutlined, ReloadOutlined, FileTextOutlined, DownloadOutlined, SnippetsOutlined, CameraOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useFs } from '../composables/useFs.js'
 import ClipboardImportDialog from '../components/ClipboardImportDialog.vue'
+import ScreenshotImportDialog from '../components/ScreenshotImportDialog.vue'
 
 const ws = useWsStore()
 const fs = useFs()
+const route = useRoute()
 const exporting = ref(false)
 
 const loading = ref(false)
@@ -146,11 +159,17 @@ const searchQuery = ref('')
 const showAdd = ref(false)
 const showView = ref(false)
 const showClipboardImport = ref(false)
+const showScreenshotImport = ref(false)
 const viewingNote = ref(null)
 const newNote = ref({ title: '', content: '', tags: '' })
 
 async function onClipboardSaved() {
   message.success('剪贴板内容已保存到知识库')
+  await loadNotes()
+}
+
+async function onScreenshotSaved() {
+  message.success('截图内容已保存到知识库')
   await loadNotes()
 }
 
@@ -279,7 +298,34 @@ async function exportNote() {
   }
 }
 
-onMounted(loadNotes)
+onMounted(() => {
+  loadNotes()
+  // Tray "剪贴板导入" action lands here as ?clipboardImport=<ts>; open on
+  // first paint when the user navigated straight from the tray menu.
+  if (route.query.clipboardImport) {
+    showClipboardImport.value = true
+  }
+  // Tray "截图识别" action lands here as ?screenshotOcr=<ts>; same
+  // mount-time + watch combo as clipboard.
+  if (route.query.screenshotOcr) {
+    showScreenshotImport.value = true
+  }
+})
+
+// Tray re-clicks update the timestamp without remounting Notes.vue —
+// watch picks each new value up so the dialog reopens reliably.
+watch(
+  () => route.query.clipboardImport,
+  (val) => {
+    if (val) showClipboardImport.value = true
+  },
+)
+watch(
+  () => route.query.screenshotOcr,
+  (val) => {
+    if (val) showScreenshotImport.value = true
+  },
+)
 </script>
 
 <style scoped>

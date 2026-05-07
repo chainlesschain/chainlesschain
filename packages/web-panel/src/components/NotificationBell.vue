@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Empty } from 'ant-design-vue'
 import { BellOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { useNotifications } from '../composables/useNotifications.js'
@@ -82,6 +82,18 @@ const loading = ref(false)
 
 const { notifications, unreadCount, refresh, markRead, markAllRead } =
   useNotifications()
+
+// 桌面托盘菜单"通知中心"通过 App.vue 的 routeTrayAction 派发 window
+// CustomEvent — 任何路由下 bell 都能自我打开,不依赖 router-view 切页。
+function _onOpenEvent() {
+  onOpen()
+}
+onMounted(() => {
+  window.addEventListener('cc:open-notification-drawer', _onOpenEvent)
+})
+onUnmounted(() => {
+  window.removeEventListener('cc:open-notification-drawer', _onOpenEvent)
+})
 
 const filtered = computed(() => {
   if (filter.value === 'unread') {
