@@ -72,9 +72,9 @@ const everyday = [
 const highlights = [
   {
     tag: 'v5.0.3.40 续',
-    title: '社区/频道跨机同步 Phase A + B4 + Web Shell Phase 3c.7',
-    sub: '5 commit · 22 文件 891 测试 + 47 B4 用例',
-    desc: 'Phase A 修 7 个底层 bug（libp2p 3.x stream API + handler 漏注册 + dispatch + gossip orphan）让两台真机加入同一社区后频道消息真正同步；Phase B v1 叠 MTC federation gossipsub 双轨；B4 每条 channel_message 带 sender_pubkey + Ed25519 detached signature，接收侧三重校验 DID/签名/shape，关闭冒名缝隙；B4 自动 peer 桥接通过 mtc:advertise envelope 在 peer:connected 双向广播。Web Shell Phase 3c.7：截图识别 / 通知设置 / 托盘 5 个 quick-action（global-search / clipboard-import / show-notifications / screenshot-ocr / open-settings#notifications）全部接到真路由，关掉 routeTrayAction 5 处死提示；新增 5 个 WS topic + ScreenshotImportDialog / NotificationSettings 视图。',
+    title: 'P2P 社交全栈 audit-grade 闭环（§2.2.10 → §2.2.24）',
+    sub: '15 节 14+1 commits · 私钥 / 密码均不过线',
+    desc: '从"消息能跨机"到"全套审计闭环"15 个 sub-phase 一次性收口：跨机同步（Phase A 修 7 底层 bug） → MTC 联邦双轨（B v1） → DID 签名 + 自动 peer 桥接（B4） → Merkle 批 envelope finality（B4-merkle） → envelope gossipsub 跨机分发 + on-demand pull（B4-cross） → trust filter 按 community 成员校验（B4-cross-trust） → 桌面 viewer 按钮 + Modal（B4-ui） → 外部归档 filesystem + WebDAV（B4-archive） → M-of-N 多签 governance（B4-mofn） → 跨联邦信任锚扩展 trust filter（B4-crossfed） → 13 WS topic 给默认 web-shell（B4-webshell） → 4 composable + MtcAudit.vue UI（B4-webpanel） → sign-as-self v2 渲染端只发 ID（B4-mofn-sign v2 + 修一个潜伏 ~1 个月的 IPC bag 漏 12 manager bug） → WebDAV 凭据走 secure-config.enc（safeStorage / AES-256-GCM 双层加密 + 修一个潜伏 ~1 个月的字段名 baseUrl/remoteRoot vs url/remotePath bug）→ 主进程定时归档 cron（min 5min / per-community try/catch / runOnce 不重入 / lastRun* 自动持久化）。私钥 / 密码均不离开主进程，UI 默认壳全套可见，audit-grade 闭环。',
   },
   {
     tag: 'v5.0.3.40',

@@ -3,6 +3,31 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (B4 social audit-grade closure: cred-persist + auto-archive)
+
+### Added
+
+- **B4-cred-persist v1 — WebDAV 凭据走 secure-config + 修一个潜伏 ~1 个月的字段名 bug**（commit `8e8e5a1b9`）—— §2.2.21 (XIV) 接好 Archive Tab 后让用户每次推归档都手输 baseUrl/username/password 走 wire（凭据原则违反 + 真去用 WebDAV archive 立刻撞 "url 必填"——构造器读 `url`/`remotePath` 但工厂从 §2.2.16 起一直传 `baseUrl`/`remoteRoot`，**字段名根本对不上**）。本节同时解决两个问题：(1) 抽 archive-provider-factory 到独立模块（`src/main/mtc/archive-provider-factory.js` +90，DI 注入可单测），加 `useStoredCredentials:true` 模式——main 从 Phase 3c 已落的 sync-credentials secure-config.enc（safeStorage / AES-256-GCM）解密构造 WebDAVClient；(2) 字段名 `baseUrl/remoteRoot` → `url/remotePath` 修正，加测试锁定 (`expect(captured).not.toHaveProperty('baseUrl')`)。新 1 IPC + 1 WS topic `*.has-stored-webdav-credentials`（只回 boolean，凭据永不外泄）+ MtcAudit.vue Archive Tab 重做：toggle 默认 ON 时不显示输入框，vault 空时 disable + 引导去 Settings → 同步 → WebDAV。**安全不变量**：useStoredCredentials=true 时 inline url/username/password 完全忽略（vault wins，防 spec-injection）；响应 schema 单元锁死 `expect(Object.keys(r).sort()).toEqual(['hasCredentials','success'])`。**测试**：desktop +10（archive-provider-factory 12 新文件 + community-mtc-handlers +4），web-panel +4 useMtcArchive。
+
+- **B4-auto-archive v1 — 主进程定时归档 cron + MtcAudit 第 5 个 Tab**（commit `edfe4ade5`）—— XVII 修了凭据持久化让推送不再需要每次输密码，本节继续把 cron 跑起来：主进程 `setInterval` 周期触发 `ChannelEnvelopeArchiver.push`，配置写到 `app-config.json` 的 `mtc.autoArchive` namespace（enabled / intervalMs / providerSpec / communityIds + lastRunAt/Status/Error/Summary），enabled=true 的旧配置在主进程 boot 后**自动接续**。新模块 `src/main/mtc/auto-archive-scheduler.js` (+250) 是纯 Node（无 Electron API，timers DI 可单测）。3 个 IPC + 3 个 WS topic：`auto-archive:{config-get,config-set,run-now}` 和 `mtc.auto-archive.{config-get,config-set,run-now}`。MtcAudit.vue 第 5 个 Tab："启用定时归档" Switch + intervalHours InputNumber（最小 0.083h = 5min）+ provider 切换 + 复用 §XVII useStoredCredentials toggle + community 白名单 Textarea + 立即归档 + 持久化配置 + lastRun 状态卡。**鲁棒性不变量**：intervalMs ≥ 5min（防误配 ms-DoS）/ enabled=true 强制要求 providerSpec（拒绝保存）/ runOnce 内置 `_running` 守卫（多 fire 不重入返回 `{skipped:true}`）/ per-community try/catch（单点失败仅记 `lastRunStatus='partial'`，不阻断后续 community）/ providerSpec.useStoredCredentials 走 §2.2.23 vault 路径（cron 配置不写明文密码）。**测试**：desktop +24（auto-archive-scheduler 19 新文件 + community-mtc-handlers +5），web-panel +9 useAutoArchive。
+
+### Notes
+
+- §2.2.10 → §2.2.24 这 15 节涵盖 P2P 社交从"消息可信 + 自动联网" → "envelope 跨机" → "trust 校验" → "UI 可见" → "外部归档（活的）" → "M-of-N 多签" → "跨联邦信任" → "默认壳全套" → "凭据加密复用" → "周期自动归档" 的**完整 audit-grade 闭环**。私钥 / 密码均不过线，UI 默认壳全套可见。
+- 设计文档 `docs/design/modules/02_去中心化社交模块.md` 在前序 commit 已加 §2.2.22（B4-mofn-sign v2）+ §2.2.23（B4-cred-persist）+ §2.2.24（B4-auto-archive），三大文档站本次同步刷新。
+
+---
+
+## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (B4-mofn-sign v2 + B4-webpanel UI)
+
+### Added
+
+- **B4-mofn-sign v2 — sign-as-self（私钥永不离 main）+ 顺手修一个潜伏 ~1 个月的 IPC bag bug**（commit `5c0374e88`）—— B4-webpanel UI 落地后想点"代我签名"按钮时撞墙：v1 协议要求渲染端把 64 字节 secretKey base64 后塞进 wire；web-panel 显式不持私钥（这是安全决策）所以按钮不可实现。本节把签名搬进主进程：渲染端只发 `(communityId, proposalId)`，main 通过 `DIDManager.getCurrentIdentity()` 取本人当前身份代签——**私钥永不离开主进程**。新 IPC `governance-mofn:sign-as-self` + WS topic `mtc.governance-mofn.sign-as-self`。顺手修了 `registerAllIPC` 的依赖包从 §2.2.10 Phase A 起就**漏传 12 个 manager**（communityManager / channelManager / gossipProtocol / governanceEngine / contentModerator / mtcFederationManager + B4 全套），phase-3-4-social 拿到的全是 `null`，桌面 V5/V6 的社区 IPC 全程返回空数组或 "not initialized"——Phase 1.6 hard-flip 默认壳走 web-shell，没人发现。本次结构性补齐。**安全模型对比**：v1 渲染端持密码 / 走 wire vs v2 都不持 / 不走 wire。**测试**：desktop +6（community-mtc-handlers）+ web-panel +4 useGovernanceMofn。
+
+- **B4-webpanel v1 — web-panel UI 接全套 13 个 WS topic**（commit `4bc9d5651`）—— §2.2.20 (B4-webshell) 已把 IPC → WS 桥接铺好，但 web-panel 没 UI 入口。本节加 4 个 composable（useMtcEnvelope / useMtcArchive / useGovernanceMofn / useCrossFedTrust）+ 1 个 4-tab 页面 `MtcAudit.vue`：envelope 查询 / archive 推恢列 / governance M-of-N 提案 / cross-fed-trust 跨联邦信任锚——全部接到默认壳的 sidebar 上，桌面 V5/V6 用户和默认壳用户看到的功能严格对等。
+
+---
+
 ## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (B4-merkle channel envelope finality)
 
 ### Added
