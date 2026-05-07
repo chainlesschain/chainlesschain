@@ -184,7 +184,7 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 统计数据，包括缓存命中率、总调用数等
    */
-  ipcMain.handle("context:get-stats", async () => {
+  ipcMain.handle("context-engineering:get-stats", async () => {
     try {
       const stats = contextEngineering.getStats();
       return {
@@ -764,7 +764,7 @@ function unregisterContextEngineeringIPC({
 
   // 所有 channel 名称
   const channels = [
-    "context:get-stats",
+    "context-engineering:get-stats",
     "context:reset-stats",
     "context:get-config",
     "context:set-config",

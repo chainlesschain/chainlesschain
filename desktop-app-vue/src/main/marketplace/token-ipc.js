@@ -12,8 +12,8 @@ import { ipcMain as electronIpcMain } from "electron";
 import ipcGuardModule from "../ipc/ipc-guard.js";
 
 const CHANNELS = [
-  "token:get-balance",
-  "token:get-transactions",
+  "token-ledger:get-balance",
+  "token-ledger:get-transactions",
   "token:submit-contribution",
   "token:get-pricing",
   "token:get-rewards-summary",
@@ -34,7 +34,7 @@ function registerTokenIPC({
 
   logger.info("[Token IPC] Registering handlers...");
 
-  ipcMain.handle("token:get-balance", async () => {
+  ipcMain.handle("token-ledger:get-balance", async () => {
     try {
       if (!tokenLedger) {
         throw new Error("TokenLedger not initialized");
@@ -47,7 +47,7 @@ function registerTokenIPC({
     }
   });
 
-  ipcMain.handle("token:get-transactions", async (_event, filter) => {
+  ipcMain.handle("token-ledger:get-transactions", async (_event, filter) => {
     try {
       if (!tokenLedger) {
         throw new Error("TokenLedger not initialized");

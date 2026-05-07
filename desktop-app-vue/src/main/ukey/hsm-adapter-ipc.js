@@ -12,7 +12,7 @@ const CHANNELS = [
   "hsm:list-adapters",
   "hsm:connect-device",
   "hsm:execute-operation",
-  "hsm:get-compliance-status",
+  "hsm-adapter:get-compliance-status",
 ];
 
 function registerHsmAdapterIPC({
@@ -70,7 +70,7 @@ function registerHsmAdapterIPC({
     }
   });
 
-  ipcMain.handle("hsm:get-compliance-status", async () => {
+  ipcMain.handle("hsm-adapter:get-compliance-status", async () => {
     try {
       if (!hsmAdapterManager) {
         throw new Error("HsmAdapterManager not initialized");

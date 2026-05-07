@@ -1025,7 +1025,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:start",
+    "browser-inline:recording:start",
     withErrorHandler(async (event, targetId = null, options = {}) => {
       const { getScreenRecorder } = require("./actions");
       const engine = _getBrowserEngine();
@@ -1039,7 +1039,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:pause",
+    "browser-inline:recording:pause",
     withErrorHandler(async (event) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1052,7 +1052,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:resume",
+    "browser-inline:recording:resume",
     withErrorHandler(async (event) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1065,7 +1065,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:stop",
+    "browser-inline:recording:stop",
     withErrorHandler(async (event) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1078,7 +1078,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:status",
+    "browser-inline:recording:status",
     withErrorHandler(async (event) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1091,7 +1091,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Array>}
    */
   _ipcMain.handle(
-    "browser:recording:list",
+    "browser-inline:recording:list",
     withErrorHandler(async (event) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1105,7 +1105,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:get",
+    "browser-inline:recording:get",
     withErrorHandler(async (event, recordingId) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1119,7 +1119,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:delete",
+    "browser-inline:recording:delete",
     withErrorHandler(async (event, recordingId) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1134,7 +1134,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:exportGif",
+    "browser-inline:recording:exportGif",
     withErrorHandler(async (event, recordingId, options = {}) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1149,7 +1149,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:recording:frame",
+    "browser-inline:recording:frame",
     withErrorHandler(async (event, recordingId, frameIndex) => {
       const { getScreenRecorder } = require("./actions");
       const recorder = getScreenRecorder();
@@ -1381,7 +1381,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:create",
+    "browser-inline:workflow:create",
     withErrorHandler(async (event, definition) => {
       const { getWorkflowEngine } = require("./actions");
       const engine = _getBrowserEngine();
@@ -1397,7 +1397,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:execute",
+    "browser-inline:workflow:execute",
     withErrorHandler(async (event, workflowId, options = {}) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1410,7 +1410,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:pause",
+    "browser-inline:workflow:pause",
     withErrorHandler(async (event) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1423,7 +1423,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:resume",
+    "browser-inline:workflow:resume",
     withErrorHandler(async (event) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1436,7 +1436,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:cancel",
+    "browser-inline:workflow:cancel",
     withErrorHandler(async (event) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1449,7 +1449,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:status",
+    "browser-inline:workflow:status",
     withErrorHandler(async (event) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1462,7 +1462,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Array>}
    */
   _ipcMain.handle(
-    "browser:workflow:list",
+    "browser-inline:workflow:list",
     withErrorHandler(async (event) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1476,7 +1476,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:get",
+    "browser-inline:workflow:get",
     withErrorHandler(async (event, workflowId) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1490,7 +1490,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:delete",
+    "browser-inline:workflow:delete",
     withErrorHandler(async (event, workflowId) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1504,7 +1504,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:save",
+    "browser-inline:workflow:save",
     withErrorHandler(async (event, workflowId) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
@@ -1518,7 +1518,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle(
-    "browser:workflow:load",
+    "browser-inline:workflow:load",
     withErrorHandler(async (event, workflowId) => {
       const { getWorkflowEngine } = require("./actions");
       const workflow = getWorkflowEngine();
