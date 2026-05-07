@@ -1,5 +1,38 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 V（**B4 — DID 签名 + auto peer bridging**）
+
+P2P 社交链路从"能跑"升级为"防伪 + 自动联网"。两件事一起做，共享 wire 协议改动：
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **B4a — DID 签名 channel 消息** | `src/main/did/did-signer.js` (+205) | 纯 crypto helper，不耦合 DIDManager。`signPayloadWithIdentity / verifyPayloadAgainstDid` 走 minimal deterministic JSON（避免 canonicalize 这个跨 workspace hoisting trap），签 `{id,channel_id,sender_did,content,message_type,reply_to,created_at}` 这 7 个不可变字段（is_pinned/reactions/updated_at 故意排除——会变） |
+| 公钥分发策略 | — | **embed in message**：消息带 `sender_pubkey` (base64 32B Ed25519)。无 DID resolver 依赖；离线也能验。开销 ~44B / 消息（人类对话级流量可忽略） |
+| 三重验证（receiver） | `channel-manager.handleMessageReceived` | (1) `sha256(sender_pubkey).slice(0,20).toString('hex')` 必须匹配 `sender_did` 后缀（防 pubkey/DID 错配）；(2) Ed25519 detached verify；(3) 签名长度/格式合法 |
+| 三态向后兼容 | 同上 | (a) 都有 sig+pubkey → strict verify，验失败 emit `channel:message-rejected` 事件 + 丢；(b) 都缺 → log warn + 接受（migration window，老客户端兼容）；(c) 只一个 → 拒，malformed |
+| Schema migration | `channel-manager.initializeTables` | CREATE 加新列 + PRAGMA `table_info` 检测 + 条件 ALTER（避开项目 fragmented numbered-SQL migration runner 的雷） |
+| **auto peer bridging** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+15) + `src/main/bootstrap/social-initializer.js` `wireMtcAutoBridge` (+95 export) | 新 typed message `mtc:advertise` 走 `/chainlesschain/message/1.0.0`，dispatch 派发到 `mtc:peer-advertise` 事件。social-initializer 注册 `mtcAutoBridge` initializer：on `peer:connected` 把自己 MTC 名片送过去；on `mtc:peer-advertise` 顺序 dial 对端 multiaddrs。双向，libp2p 自带 dedup |
+| 容错 | 同上 | 任一端 `mtcFedMgr.isInitialized() === false` 时跳过 → Phase A 直连 gossip 仍工作。失败的 `connectPeer` swallow（NAT/IPv6 不可达/dup 等正常情况） |
+
+**测试矩阵 (B4 新增 47, 总 938 / 938 全绿)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `did/__tests__/did-signer.test.js` | 22 — canonicalize 7 + computeDID 3 + sign/verify 5 + end-to-end 7 |
+| Unit | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2) | 20 (was 18) — 新增 `mtc:advertise` 派发 + 缺 multiaddrs 兜底 |
+| Integration | `social/__tests__/channel-manager-signing.integration.test.js` | 8 — 真 Ed25519 keypair × 真 ChannelManager × mock SQL，验证签 + 验签 + 三种攻击拒绝（impersonation/tamper/malformed）+ legacy 接受 + idempotency + 无 keys 兜底 |
+| Integration | `bootstrap/__tests__/mtc-auto-bridge.integration.test.js` | 15 — `wireMtcAutoBridge` 出/入站 × 各种容错路径 + 双向 mesh seed |
+| 全 25 文件回归 (p2p + social + mtc + did + bootstrap) | — | **938 / 938** ✅ |
+
+**关键 bug 实战记录**
+- `src/main/did/__tests__/foo.test.js` 用 `vi.mock("../../../utils/logger.js", ...)` 是**错路径**（解析到 `src/utils/logger.js`，落在 `src/main/` 之外）；vitest 4 strict mock loader 不报错，但**会跨文件污染** fork 的 mock registry：20+ 跟 logger 八竿子打不着的测试在 batch 跑时整片 `wireMtcAutoBridge is not a function`，单跑全绿。修：`../../utils/logger.js`（2 层不是 3 层）。配 memory `vitest_testing.md` "vi.mock path correctness" 收录
+- `canonicalize` npm 包是 `core-mtc` 的 transitive dep，desktop-app-vue（已不是 workspace）standalone node_modules 不可见；不引入新 dep，自己写 15 LoC 的 minimal deterministic JSON（足够 flat 不可变 subset 用，rejects nested 防误用）
+
+**deferred (B4 后续 sub-phases)**
+- Merkle batch envelope finality（`assembleBatch` 落盘 + verify 路径）
+- M-of-N for governance-critical events（提案/投票走 `assembleBatchFederated`）
+- 跨联邦信任锚（MTC v0.11 cross-fed-trust desktop 集成）
+
 ## 2026-05-07 增量更新 IV（**Phase B v1 — MTC 联邦双轨同步落地**）
 
 在 Phase A 直连 gossip 之上 *双轨* 加 MTC 联邦 gossipsub 通道。两条路并存，本地 INSERT OR IGNORE 去重。

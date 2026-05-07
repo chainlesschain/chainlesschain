@@ -1,5 +1,38 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update V — **B4 — DID signing + auto peer bridging**
+
+P2P social path graduates from "works" to "anti-impersonation + auto-mesh". Two features bundled because they share wire-protocol surface:
+
+| Topic | File | Description |
+|---|---|---|
+| **B4a — DID-signed channel messages** | `src/main/did/did-signer.js` (+205) | Pure crypto helper, decoupled from DIDManager. `signPayloadWithIdentity / verifyPayloadAgainstDid` use a minimal deterministic JSON (avoids the canonicalize cross-workspace hoisting trap), signing the immutable subset `{id,channel_id,sender_did,content,message_type,reply_to,created_at}` (is_pinned/reactions/updated_at deliberately excluded — they mutate) |
+| Public key distribution | — | **Embed in message**: each msg carries `sender_pubkey` (base64 32B Ed25519). No DID resolver dependency; verifies offline. Cost ~44B/msg (negligible at human chat rates) |
+| Triple verification (receiver) | `channel-manager.handleMessageReceived` | (1) `sha256(sender_pubkey).slice(0,20).toString('hex')` must match `sender_did` suffix (anti-pubkey/DID mismatch); (2) Ed25519 detached verify; (3) signature length/shape valid |
+| Three-state backward-compat | same | (a) both sig+pubkey present → strict verify, fail emits `channel:message-rejected` event + drops; (b) both absent → log warn + accept (migration window for old clients); (c) only one → reject as malformed |
+| Schema migration | `channel-manager.initializeTables` | CREATE adds new columns + PRAGMA `table_info` probe + conditional ALTER (sidesteps the project's fragmented numbered-SQL migration runner) |
+| **auto peer bridging** | `src/main/p2p/p2p-manager.js` `dispatchTypedMessage` (+15) + `src/main/bootstrap/social-initializer.js` `wireMtcAutoBridge` (+95 export) | New typed message `mtc:advertise` rides `/chainlesschain/message/1.0.0`; dispatch routes to `mtc:peer-advertise` event. social-initializer registers `mtcAutoBridge` initializer: on `peer:connected` it pushes our MTC card to the new peer; on `mtc:peer-advertise` it sequentially dials the advertised multiaddrs. Bidirectional, libp2p dedupes |
+| Failure tolerance | same | Either side `mtcFedMgr.isInitialized() === false` → no-op (Phase A direct gossip keeps working). `connectPeer` failures are swallowed (NAT / IPv6 unreachable / dup connect are normal) |
+
+**Test matrix (B4 adds 47, total 938 / 938 green)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `did/__tests__/did-signer.test.js` | 22 — canonicalize 7 + computeDID 3 + sign/verify 5 + end-to-end 7 |
+| Unit | `p2p/__tests__/p2p-manager-dispatch.test.js` (+2) | 20 (was 18) — added `mtc:advertise` dispatch + missing-multiaddrs fallback |
+| Integration | `social/__tests__/channel-manager-signing.integration.test.js` | 8 — real Ed25519 keypair × real ChannelManager × mock SQL, validates sign + verify + three attack rejects (impersonation/tamper/malformed) + legacy accept + idempotency + no-key fallback |
+| Integration | `bootstrap/__tests__/mtc-auto-bridge.integration.test.js` | 15 — `wireMtcAutoBridge` outbound/inbound × various error paths + bidirectional mesh seed |
+| Full 25-file regression (p2p + social + mtc + did + bootstrap) | — | **938 / 938** ✅ |
+
+**Real-world bug callouts**
+- `src/main/did/__tests__/foo.test.js` calling `vi.mock("../../../utils/logger.js", ...)` is the **wrong path** (resolves to `src/utils/logger.js`, outside `src/main/`); vitest 4's strict mock loader doesn't error but **silently pollutes the fork's mock registry across files**: 20+ unrelated tests in batch fail with `wireMtcAutoBridge is not a function`, all green when run individually. Fix: `../../utils/logger.js` (2 levels not 3). Captured in memory `vitest_testing.md` under "vi.mock path correctness"
+- The `canonicalize` npm package is a transitive dep of `core-mtc`; desktop-app-vue (no longer a workspace) sees no hoisted resolution from its standalone node_modules. Rather than add another direct dep, did-signer.js ships its own 15-LoC minimal deterministic JSON (sufficient for the flat immutable subset, rejects nested objects to surface misuse)
+
+**Deferred (B4 follow-up sub-phases)**
+- Merkle batch envelope finality (`assembleBatch` persistence + verify path)
+- M-of-N for governance-critical events (proposals/votes via `assembleBatchFederated`)
+- Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` desktop integration)
+
 ## 2026-05-07 Update IV — **Phase B v1 — MTC federation dual-track sync landed**
 
 On top of Phase A's direct gossip, *dual-track* MTC federation gossipsub channel. Both paths coexist; receivers idempotently `INSERT OR IGNORE` by `message.id`.

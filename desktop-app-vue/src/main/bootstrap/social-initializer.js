@@ -695,6 +695,35 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // Phase B v2 — MTC 自动 peer 桥接 (auto-discovery)
+  // ========================================
+  // Phase B v1 留的 follow-up: MtcFederationManager 跑独立 libp2p 节点,
+  // 跟 P2PManager (Phase A 的节点) 互不知道对方的 MTC port. 这里桥接:
+  //   on p2pManager 'peer:connected' → 把我方 MTC multiaddrs 发给对端
+  //     (走 /chainlesschain/message/1.0.0 的 typed message {type:'mtc:advertise'})
+  //   on p2pManager 'mtc:peer-advertise' → mtcFedMgr.connectPeer(对端 MTC maddr)
+  //
+  // 双向: A 连 B 时两端都 emit peer:connected → 两端都会 advertise,
+  // libp2p 会 dedup 重复 dial. 任一端 mtcFedMgr 未初始化时跳过 (容错).
+  factory.register({
+    name: "mtcAutoBridge",
+    dependsOn: ["p2pManager", "mtcFederationManager"],
+    required: false,
+    async init(context) {
+      const { p2pManager, mtcFederationManager } = context;
+      try {
+        return wireMtcAutoBridge(p2pManager, mtcFederationManager);
+      } catch (err) {
+        logger.error(
+          "[Social] mtcAutoBridge initialization failed:",
+          err.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // v0.42.0 — Gossip 接收回路 (channel_message → channelManager)
   // ========================================
   // gossipProtocol.broadcast 已经把消息送到对端的 gossipProtocol,
@@ -1228,7 +1257,108 @@ async function setupP2PPostInit(
   }
 }
 
+/**
+ * Wire the MTC auto-bridge between Phase A's P2PManager and Phase B's
+ * MtcFederationManager. Extracted from the factory closure so it's testable
+ * in isolation without bootstrapping the full DI container.
+ *
+ * Behavior:
+ *   - On `p2pManager.on('peer:connected', {peerId})`: send a typed
+ *     `mtc:advertise` message back to that peer with our MTC peerId +
+ *     multiaddrs (so they can dial our gossipsub node)
+ *   - On `p2pManager.on('mtc:peer-advertise', {peerId, multiaddrs})`:
+ *     try to dial those multiaddrs via mtcFedMgr.connectPeer (sequentially,
+ *     stop on first success, swallow per-addr errors)
+ *
+ * Both directions are no-ops when mtcFederationManager isn't initialized
+ * (graceful degradation to Phase A direct gossip).
+ *
+ * @param {EventEmitter} p2pManager
+ * @param {MtcFederationManager} mtcFederationManager
+ * @returns {{ wired: true } | null}
+ */
+function wireMtcAutoBridge(p2pManager, mtcFederationManager) {
+  if (!p2pManager || !mtcFederationManager) {
+    logger.warn(
+      "[Social] mtcAutoBridge 跳过: p2pManager / mtcFederationManager 缺失",
+    );
+    return null;
+  }
+
+  // 出站: 新 peer 连上 → 把自己的 MTC 名片送过去
+  p2pManager.on("peer:connected", ({ peerId }) => {
+    try {
+      if (
+        !mtcFederationManager.isInitialized ||
+        !mtcFederationManager.isInitialized()
+      ) {
+        return;
+      }
+      const mtcPeerId = mtcFederationManager.peerIdString();
+      const mtcMultiaddrs = mtcFederationManager.multiaddrs();
+      if (!mtcPeerId || !mtcMultiaddrs.length) {
+        return;
+      }
+
+      Promise.resolve(
+        p2pManager.sendMessage(peerId, {
+          type: "mtc:advertise",
+          peerId: mtcPeerId,
+          multiaddrs: mtcMultiaddrs,
+        }),
+      ).catch((err) =>
+        logger.warn(
+          "[Social] mtc:advertise send failed to " +
+            peerId +
+            ": " +
+            err.message,
+        ),
+      );
+    } catch (err) {
+      logger.warn("[Social] mtc:advertise outbound failed:", err.message);
+    }
+  });
+
+  // 入站: 收到对端 MTC 名片 → 主动 dial 把 gossipsub mesh 连起来
+  p2pManager.on("mtc:peer-advertise", ({ peerId, multiaddrs }) => {
+    if (
+      !mtcFederationManager.isInitialized ||
+      !mtcFederationManager.isInitialized()
+    ) {
+      return;
+    }
+    if (!Array.isArray(multiaddrs) || multiaddrs.length === 0) {
+      return;
+    }
+    // 任一 multiaddr 拨通即可; 不并发 dial 防止 connection storm.
+    // 顺序尝试到首个成功; 失败的 swallow (NAT, IPv6 不可达, dup connect 等).
+    (async () => {
+      for (const maddr of multiaddrs) {
+        try {
+          await mtcFederationManager.connectPeer(maddr);
+          logger.info(
+            "[Social] mtcAutoBridge: dialed MTC peer " + peerId + " @ " + maddr,
+          );
+          return;
+        } catch (_err) {
+          // try next
+        }
+      }
+      logger.warn(
+        "[Social] mtcAutoBridge: failed to dial any of " +
+          multiaddrs.length +
+          " multiaddrs for " +
+          peerId,
+      );
+    })();
+  });
+
+  logger.info("[Social] ✓ mtcAutoBridge wired");
+  return { wired: true };
+}
+
 module.exports = {
   registerSocialInitializers,
   setupP2PPostInit,
+  wireMtcAutoBridge,
 };

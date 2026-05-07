@@ -143,6 +143,18 @@ function dispatchTypedMessage(emitter, parsed, fromPeerId) {
     });
     return { dispatched: true, type };
   }
+  // B4 auto-bridge — peer advertises its MTC libp2p multiaddrs so the local
+  // MtcFederationManager can dial. Schema: { type:'mtc:advertise', peerId,
+  // multiaddrs: [string] }. Receiver wires this to mtcFedMgr.connectPeer in
+  // social-initializer.
+  if (type === "mtc:advertise") {
+    emitter.emit("mtc:peer-advertise", {
+      peerId: parsed.peerId || fromPeerId,
+      multiaddrs: Array.isArray(parsed.multiaddrs) ? parsed.multiaddrs : [],
+      fromPeerId,
+    });
+    return { dispatched: true, type };
+  }
   // call-signaling / call-invite / call-status / 其它历史 message:* 监听者
   if (/^call-[a-z-]+$/.test(type)) {
     emitter.emit("message:" + type, parsed.data || parsed);

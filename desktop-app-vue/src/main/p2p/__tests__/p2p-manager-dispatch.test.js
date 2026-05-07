@@ -172,6 +172,50 @@ describe("P2PManager wire-frame helpers", () => {
       });
     });
 
+    it("dispatches mtc:advertise under mtc:peer-advertise with multiaddrs", () => {
+      const handler = vi.fn();
+      emitter.on("mtc:peer-advertise", handler);
+
+      dispatchTypedMessage(
+        emitter,
+        {
+          type: "mtc:advertise",
+          peerId: "12D3KooWMtcA",
+          multiaddrs: [
+            "/ip4/192.168.1.10/tcp/9100/p2p/12D3KooWMtcA",
+            "/ip4/127.0.0.1/tcp/9100/p2p/12D3KooWMtcA",
+          ],
+        },
+        "12D3KooWPhaseA",
+      );
+
+      expect(handler).toHaveBeenCalledWith({
+        peerId: "12D3KooWMtcA",
+        multiaddrs: [
+          "/ip4/192.168.1.10/tcp/9100/p2p/12D3KooWMtcA",
+          "/ip4/127.0.0.1/tcp/9100/p2p/12D3KooWMtcA",
+        ],
+        fromPeerId: "12D3KooWPhaseA",
+      });
+    });
+
+    it("mtc:advertise with missing multiaddrs falls back to []", () => {
+      const handler = vi.fn();
+      emitter.on("mtc:peer-advertise", handler);
+
+      dispatchTypedMessage(
+        emitter,
+        { type: "mtc:advertise", peerId: "12D3KooWMtcA" },
+        "12D3KooWPhaseA",
+      );
+
+      expect(handler).toHaveBeenCalledWith({
+        peerId: "12D3KooWMtcA",
+        multiaddrs: [],
+        fromPeerId: "12D3KooWPhaseA",
+      });
+    });
+
     it("dispatches call-signaling under message:call-signaling", () => {
       const handler = vi.fn();
       emitter.on("message:call-signaling", handler);

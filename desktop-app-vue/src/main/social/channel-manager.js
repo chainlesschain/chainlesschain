@@ -10,6 +10,31 @@
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
+const {
+  signPayloadWithIdentity,
+  verifyPayloadAgainstDid,
+} = require("../did/did-signer.js");
+
+// Immutable subset of a channel_message that participates in the signature.
+// Excluded on purpose: is_pinned, reactions, updated_at — those mutate after
+// creation. Order doesn't matter (canonicalize sorts keys).
+const SIGNED_FIELDS = [
+  "id",
+  "channel_id",
+  "sender_did",
+  "content",
+  "message_type",
+  "reply_to",
+  "created_at",
+];
+
+function buildSignedSubset(message) {
+  const out = {};
+  for (const k of SIGNED_FIELDS) {
+    out[k] = message[k] === undefined ? null : message[k];
+  }
+  return out;
+}
 
 /**
  * Channel type constants
@@ -95,9 +120,18 @@ class ChannelManager extends EventEmitter {
         is_pinned INTEGER DEFAULT 0,
         reactions TEXT DEFAULT '{}',
         created_at INTEGER,
-        updated_at INTEGER
+        updated_at INTEGER,
+        -- B4a (2026-05-07): DID-bound Ed25519 signing
+        sender_pubkey TEXT,
+        signature TEXT
       )
     `);
+
+    // PRAGMA-driven migration for pre-B4a installs that already have the
+    // table without the signing columns. Avoids the fragmented numbered-SQL
+    // migration runner; keeps the schema bump local + idempotent.
+    this._addColumnIfMissing(db, "channel_messages", "sender_pubkey", "TEXT");
+    this._addColumnIfMissing(db, "channel_messages", "signature", "TEXT");
 
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_channel_messages_channel ON channel_messages(channel_id);
@@ -110,6 +144,42 @@ class ChannelManager extends EventEmitter {
   }
 
   /**
+   * Idempotent ALTER TABLE ADD COLUMN for SQLite (which lacks
+   * "ADD COLUMN IF NOT EXISTS"). Reads PRAGMA table_info first, only adds
+   * the column when absent.
+   * @private
+   */
+  _addColumnIfMissing(db, table, column, type) {
+    try {
+      const stmt = db.prepare(`PRAGMA table_info(${table})`);
+      const rows = typeof stmt.all === "function" ? stmt.all() : [];
+      const existing = new Set();
+      for (const row of rows) {
+        // better-sqlite3 returns {cid,name,type,...}; sql.js may return [cid,name,...]
+        const name = row && (row.name || row[1]);
+        if (name) {
+          existing.add(name);
+        }
+      }
+      if (!existing.has(column)) {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        logger.info(
+          "[ChannelManager] migrated " + table + ": added column " + column,
+        );
+      }
+    } catch (err) {
+      logger.warn(
+        "[ChannelManager] _addColumnIfMissing(" +
+          table +
+          "." +
+          column +
+          ") failed (continuing):",
+        err.message,
+      );
+    }
+  }
+
+  /**
    * Setup P2P event listeners
    */
   setupP2PListeners() {
@@ -117,13 +187,19 @@ class ChannelManager extends EventEmitter {
       return;
     }
 
-    this.p2pManager.on("channel:message-received", async ({ channelId, message }) => {
-      try {
-        await this.handleMessageReceived(channelId, message);
-      } catch (error) {
-        logger.warn("[ChannelManager] P2P message receive failed:", error.message);
-      }
-    });
+    this.p2pManager.on(
+      "channel:message-received",
+      async ({ channelId, message }) => {
+        try {
+          await this.handleMessageReceived(channelId, message);
+        } catch (error) {
+          logger.warn(
+            "[ChannelManager] P2P message receive failed:",
+            error.message,
+          );
+        }
+      },
+    );
 
     logger.info("[ChannelManager] P2P listeners set up");
   }
@@ -143,15 +219,19 @@ class ChannelManager extends EventEmitter {
   async checkWritePermission(channelId, memberDid) {
     const db = this.database.db;
 
-    const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(channelId);
+    const channel = db
+      .prepare("SELECT * FROM channels WHERE id = ?")
+      .get(channelId);
     if (!channel) {
       throw new Error("Channel not found");
     }
 
     // Check if user is a member of the community
-    const member = db.prepare(
-      "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-    ).get(channel.community_id, memberDid);
+    const member = db
+      .prepare(
+        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+      )
+      .get(channel.community_id, memberDid);
 
     if (!member) {
       throw new Error("You are not a member of this community");
@@ -164,7 +244,11 @@ class ChannelManager extends EventEmitter {
 
     // Announcement channels: only owner/admin/moderator can write
     if (channel.type === ChannelType.ANNOUNCEMENT) {
-      if (member.role !== "owner" && member.role !== "admin" && member.role !== "moderator") {
+      if (
+        member.role !== "owner" &&
+        member.role !== "admin" &&
+        member.role !== "moderator"
+      ) {
         throw new Error("Only admins can post in announcement channels");
       }
     }
@@ -176,7 +260,13 @@ class ChannelManager extends EventEmitter {
    * Create a new channel in a community
    * @param {Object} options - Channel options
    */
-  async createChannel({ communityId, name, description = "", type = ChannelType.DISCUSSION, sortOrder = 0 }) {
+  async createChannel({
+    communityId,
+    name,
+    description = "",
+    type = ChannelType.DISCUSSION,
+    sortOrder = 0,
+  }) {
     const currentDid = this.getCurrentDid();
     if (!currentDid) {
       throw new Error("User not logged in");
@@ -190,9 +280,11 @@ class ChannelManager extends EventEmitter {
       const db = this.database.db;
 
       // Check admin/owner role
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
       if (!member || (member.role !== "owner" && member.role !== "admin")) {
         throw new Error("Insufficient permissions to create channels");
@@ -201,12 +293,14 @@ class ChannelManager extends EventEmitter {
       const channelId = uuidv4();
       const now = Date.now();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO channels (
           id, community_id, name, description, type, sort_order, created_at, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         channelId,
         communityId,
         name.trim(),
@@ -218,7 +312,10 @@ class ChannelManager extends EventEmitter {
       );
 
       // Send system message about channel creation
-      await this.sendSystemMessage(channelId, `Channel "${name.trim()}" has been created`);
+      await this.sendSystemMessage(
+        channelId,
+        `Channel "${name.trim()}" has been created`,
+      );
 
       this.database.saveToFile();
 
@@ -256,22 +353,28 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(channelId);
+      const channel = db
+        .prepare("SELECT * FROM channels WHERE id = ?")
+        .get(channelId);
       if (!channel) {
         throw new Error("Channel not found");
       }
 
       // Check admin/owner role
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(channel.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(channel.community_id, currentDid);
 
       if (!member || (member.role !== "owner" && member.role !== "admin")) {
         throw new Error("Insufficient permissions to delete channels");
       }
 
       // Delete messages first
-      db.prepare("DELETE FROM channel_messages WHERE channel_id = ?").run(channelId);
+      db.prepare("DELETE FROM channel_messages WHERE channel_id = ?").run(
+        channelId,
+      );
 
       // Delete channel
       db.prepare("DELETE FROM channels WHERE id = ?").run(channelId);
@@ -279,7 +382,10 @@ class ChannelManager extends EventEmitter {
       this.database.saveToFile();
 
       logger.info("[ChannelManager] Channel deleted:", channelId);
-      this.emit("channel:deleted", { channelId, communityId: channel.community_id });
+      this.emit("channel:deleted", {
+        channelId,
+        communityId: channel.community_id,
+      });
 
       return { success: true };
     } catch (error) {
@@ -302,14 +408,18 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(channelId);
+      const channel = db
+        .prepare("SELECT * FROM channels WHERE id = ?")
+        .get(channelId);
       if (!channel) {
         throw new Error("Channel not found");
       }
 
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(channel.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(channel.community_id, currentDid);
 
       if (!member || (member.role !== "owner" && member.role !== "admin")) {
         throw new Error("Insufficient permissions to update channels");
@@ -344,7 +454,9 @@ class ChannelManager extends EventEmitter {
       values.push(Date.now());
       values.push(channelId);
 
-      db.prepare(`UPDATE channels SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+      db.prepare(`UPDATE channels SET ${fields.join(", ")} WHERE id = ?`).run(
+        ...values,
+      );
 
       this.database.saveToFile();
 
@@ -386,7 +498,12 @@ class ChannelManager extends EventEmitter {
    * Send a message to a channel
    * @param {Object} options - Message options
    */
-  async sendMessage({ channelId, content, messageType = MessageType.TEXT, replyTo = null }) {
+  async sendMessage({
+    channelId,
+    content,
+    messageType = MessageType.TEXT,
+    replyTo = null,
+  }) {
     const currentDid = this.getCurrentDid();
     if (!currentDid) {
       throw new Error("User not logged in");
@@ -404,13 +521,54 @@ class ChannelManager extends EventEmitter {
       const messageId = uuidv4();
       const now = Date.now();
 
-      db.prepare(`
+      // B4a: sign the immutable subset with the current identity's Ed25519
+      // secret key. Sender_pubkey + signature ride along on the wire and get
+      // verified at the receiver. Failure to sign (no identity / bad key
+      // shape) is non-fatal — we still INSERT unsigned and log warn so the
+      // local UX doesn't break, but cross-machine receivers will downgrade
+      // these to "unsigned legacy" warnings.
+      let senderPubkey = null;
+      let signature = null;
+      const signedSubset = buildSignedSubset({
+        id: messageId,
+        channel_id: channelId,
+        sender_did: currentDid,
+        content: content.trim(),
+        message_type: messageType,
+        reply_to: replyTo,
+        created_at: now,
+      });
+      try {
+        const identity =
+          this.didManager && this.didManager.getCurrentIdentity
+            ? this.didManager.getCurrentIdentity()
+            : null;
+        if (identity && identity.public_key_sign && identity.private_key_ref) {
+          const signed = signPayloadWithIdentity(signedSubset, identity);
+          senderPubkey = signed.sender_pubkey;
+          signature = signed.signature;
+        } else {
+          logger.warn(
+            "[ChannelManager] sendMessage: identity missing keys; sending unsigned (legacy compat)",
+          );
+        }
+      } catch (signErr) {
+        logger.warn(
+          "[ChannelManager] sendMessage: signing failed — sending unsigned:",
+          signErr.message,
+        );
+      }
+
+      db.prepare(
+        `
         INSERT INTO channel_messages (
           id, channel_id, sender_did, content, message_type,
-          reply_to, is_pinned, reactions, created_at, updated_at
+          reply_to, is_pinned, reactions, created_at, updated_at,
+          sender_pubkey, signature
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      ).run(
         messageId,
         channelId,
         currentDid,
@@ -421,10 +579,15 @@ class ChannelManager extends EventEmitter {
         "{}",
         now,
         now,
+        senderPubkey,
+        signature,
       );
 
       // Update channel timestamp
-      db.prepare("UPDATE channels SET updated_at = ? WHERE id = ?").run(now, channelId);
+      db.prepare("UPDATE channels SET updated_at = ? WHERE id = ?").run(
+        now,
+        channelId,
+      );
 
       this.database.saveToFile();
 
@@ -439,9 +602,16 @@ class ChannelManager extends EventEmitter {
         reactions: "{}",
         created_at: now,
         updated_at: now,
+        sender_pubkey: senderPubkey,
+        signature: signature,
       };
 
-      logger.info("[ChannelManager] Message sent:", messageId, "to channel:", channelId);
+      logger.info(
+        "[ChannelManager] Message sent:",
+        messageId,
+        "to channel:",
+        channelId,
+      );
       this.emit("channel:message-sent", { channelId, message });
 
       return message;
@@ -462,13 +632,15 @@ class ChannelManager extends EventEmitter {
       const messageId = uuidv4();
       const now = Date.now();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO channel_messages (
           id, channel_id, sender_did, content, message_type,
           reply_to, is_pinned, reactions, created_at, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         messageId,
         channelId,
         "system",
@@ -540,32 +712,43 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const message = db.prepare("SELECT * FROM channel_messages WHERE id = ?").get(messageId);
+      const message = db
+        .prepare("SELECT * FROM channel_messages WHERE id = ?")
+        .get(messageId);
       if (!message) {
         throw new Error("Message not found");
       }
 
       // Check if user is admin/owner/moderator
-      const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(message.channel_id);
+      const channel = db
+        .prepare("SELECT * FROM channels WHERE id = ?")
+        .get(message.channel_id);
       if (!channel) {
         throw new Error("Channel not found");
       }
 
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(channel.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(channel.community_id, currentDid);
 
       if (!member || member.role === "member") {
         throw new Error("Insufficient permissions to pin messages");
       }
 
       const now = Date.now();
-      db.prepare("UPDATE channel_messages SET is_pinned = 1, updated_at = ? WHERE id = ?").run(now, messageId);
+      db.prepare(
+        "UPDATE channel_messages SET is_pinned = 1, updated_at = ? WHERE id = ?",
+      ).run(now, messageId);
 
       this.database.saveToFile();
 
       logger.info("[ChannelManager] Message pinned:", messageId);
-      this.emit("channel:message-pinned", { messageId, channelId: message.channel_id });
+      this.emit("channel:message-pinned", {
+        messageId,
+        channelId: message.channel_id,
+      });
 
       return { success: true };
     } catch (error) {
@@ -587,31 +770,42 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const message = db.prepare("SELECT * FROM channel_messages WHERE id = ?").get(messageId);
+      const message = db
+        .prepare("SELECT * FROM channel_messages WHERE id = ?")
+        .get(messageId);
       if (!message) {
         throw new Error("Message not found");
       }
 
-      const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(message.channel_id);
+      const channel = db
+        .prepare("SELECT * FROM channels WHERE id = ?")
+        .get(message.channel_id);
       if (!channel) {
         throw new Error("Channel not found");
       }
 
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(channel.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(channel.community_id, currentDid);
 
       if (!member || member.role === "member") {
         throw new Error("Insufficient permissions to unpin messages");
       }
 
       const now = Date.now();
-      db.prepare("UPDATE channel_messages SET is_pinned = 0, updated_at = ? WHERE id = ?").run(now, messageId);
+      db.prepare(
+        "UPDATE channel_messages SET is_pinned = 0, updated_at = ? WHERE id = ?",
+      ).run(now, messageId);
 
       this.database.saveToFile();
 
       logger.info("[ChannelManager] Message unpinned:", messageId);
-      this.emit("channel:message-unpinned", { messageId, channelId: message.channel_id });
+      this.emit("channel:message-unpinned", {
+        messageId,
+        channelId: message.channel_id,
+      });
 
       return { success: true };
     } catch (error) {
@@ -634,7 +828,9 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const message = db.prepare("SELECT * FROM channel_messages WHERE id = ?").get(messageId);
+      const message = db
+        .prepare("SELECT * FROM channel_messages WHERE id = ?")
+        .get(messageId);
       if (!message) {
         throw new Error("Message not found");
       }
@@ -650,16 +846,23 @@ class ChannelManager extends EventEmitter {
       }
 
       const now = Date.now();
-      db.prepare("UPDATE channel_messages SET reactions = ?, updated_at = ? WHERE id = ?").run(
-        JSON.stringify(reactions),
-        now,
-        messageId,
-      );
+      db.prepare(
+        "UPDATE channel_messages SET reactions = ?, updated_at = ? WHERE id = ?",
+      ).run(JSON.stringify(reactions), now, messageId);
 
       this.database.saveToFile();
 
-      logger.info("[ChannelManager] Reaction added:", emoji, "to message:", messageId);
-      this.emit("channel:reaction-added", { messageId, emoji, userDid: currentDid });
+      logger.info(
+        "[ChannelManager] Reaction added:",
+        emoji,
+        "to message:",
+        messageId,
+      );
+      this.emit("channel:reaction-added", {
+        messageId,
+        emoji,
+        userDid: currentDid,
+      });
 
       return { success: true, reactions };
     } catch (error) {
@@ -682,7 +885,9 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const message = db.prepare("SELECT * FROM channel_messages WHERE id = ?").get(messageId);
+      const message = db
+        .prepare("SELECT * FROM channel_messages WHERE id = ?")
+        .get(messageId);
       if (!message) {
         throw new Error("Message not found");
       }
@@ -697,16 +902,23 @@ class ChannelManager extends EventEmitter {
       }
 
       const now = Date.now();
-      db.prepare("UPDATE channel_messages SET reactions = ?, updated_at = ? WHERE id = ?").run(
-        JSON.stringify(reactions),
-        now,
-        messageId,
-      );
+      db.prepare(
+        "UPDATE channel_messages SET reactions = ?, updated_at = ? WHERE id = ?",
+      ).run(JSON.stringify(reactions), now, messageId);
 
       this.database.saveToFile();
 
-      logger.info("[ChannelManager] Reaction removed:", emoji, "from message:", messageId);
-      this.emit("channel:reaction-removed", { messageId, emoji, userDid: currentDid });
+      logger.info(
+        "[ChannelManager] Reaction removed:",
+        emoji,
+        "from message:",
+        messageId,
+      );
+      this.emit("channel:reaction-removed", {
+        messageId,
+        emoji,
+        userDid: currentDid,
+      });
 
       return { success: true, reactions };
     } catch (error) {
@@ -728,21 +940,27 @@ class ChannelManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const message = db.prepare("SELECT * FROM channel_messages WHERE id = ?").get(messageId);
+      const message = db
+        .prepare("SELECT * FROM channel_messages WHERE id = ?")
+        .get(messageId);
       if (!message) {
         throw new Error("Message not found");
       }
 
       // Check if user is the sender or has admin/moderator permissions
       if (message.sender_did !== currentDid) {
-        const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(message.channel_id);
+        const channel = db
+          .prepare("SELECT * FROM channels WHERE id = ?")
+          .get(message.channel_id);
         if (!channel) {
           throw new Error("Channel not found");
         }
 
-        const member = db.prepare(
-          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-        ).get(channel.community_id, currentDid);
+        const member = db
+          .prepare(
+            "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+          )
+          .get(channel.community_id, currentDid);
 
         if (!member || member.role === "member") {
           throw new Error("Insufficient permissions to delete this message");
@@ -754,7 +972,10 @@ class ChannelManager extends EventEmitter {
       this.database.saveToFile();
 
       logger.info("[ChannelManager] Message deleted:", messageId);
-      this.emit("channel:message-deleted", { messageId, channelId: message.channel_id });
+      this.emit("channel:message-deleted", {
+        messageId,
+        channelId: message.channel_id,
+      });
 
       return { success: true };
     } catch (error) {
@@ -773,18 +994,82 @@ class ChannelManager extends EventEmitter {
       const db = this.database.db;
 
       // Check if message already exists
-      const existing = db.prepare("SELECT id FROM channel_messages WHERE id = ?").get(message.id);
+      const existing = db
+        .prepare("SELECT id FROM channel_messages WHERE id = ?")
+        .get(message.id);
       if (existing) {
         return;
       }
 
-      db.prepare(`
+      // B4a: signature verification gate
+      // Three modes:
+      //   1. both sender_pubkey + signature present → STRICT verify, drop on fail
+      //   2. both absent → legacy unsigned, accept + log warn (migration window)
+      //   3. only one present → malformed, reject
+      const hasPubkey = !!message.sender_pubkey;
+      const hasSig = !!message.signature;
+      if (hasPubkey !== hasSig) {
+        logger.warn(
+          "[ChannelManager] rejecting message " +
+            message.id +
+            ": malformed envelope (sender_pubkey/signature one missing)",
+        );
+        return;
+      }
+      if (hasPubkey && hasSig) {
+        const subset = buildSignedSubset({
+          id: message.id,
+          channel_id: channelId,
+          sender_did: message.sender_did,
+          content: message.content,
+          message_type: message.message_type || MessageType.TEXT,
+          reply_to: message.reply_to || null,
+          created_at: message.created_at,
+        });
+        const verdict = verifyPayloadAgainstDid(
+          subset,
+          message.sender_did,
+          message.sender_pubkey,
+          message.signature,
+        );
+        if (!verdict.ok) {
+          logger.warn(
+            "[ChannelManager] rejecting message " +
+              message.id +
+              " from " +
+              message.sender_did +
+              ": " +
+              verdict.reason,
+          );
+          this.emit("channel:message-rejected", {
+            channelId,
+            messageId: message.id,
+            sender_did: message.sender_did,
+            reason: verdict.reason,
+          });
+          return;
+        }
+      } else {
+        // legacy unsigned — accept but mark in logs so production can grep
+        logger.warn(
+          "[ChannelManager] accepting unsigned message " +
+            message.id +
+            " from " +
+            message.sender_did +
+            " (legacy compat — pre-B4a sender)",
+        );
+      }
+
+      db.prepare(
+        `
         INSERT OR IGNORE INTO channel_messages (
           id, channel_id, sender_did, content, message_type,
-          reply_to, is_pinned, reactions, created_at, updated_at
+          reply_to, is_pinned, reactions, created_at, updated_at,
+          sender_pubkey, signature
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      ).run(
         message.id,
         channelId,
         message.sender_did,
@@ -795,6 +1080,8 @@ class ChannelManager extends EventEmitter {
         message.reactions || "{}",
         message.created_at,
         message.updated_at || message.created_at,
+        message.sender_pubkey || null,
+        message.signature || null,
       );
 
       this.database.saveToFile();

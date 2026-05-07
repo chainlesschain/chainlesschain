@@ -33,7 +33,11 @@ vi.mock("uuid", () => ({
 }));
 
 // ─── Import module under test ─────────────────────────────────────────────────
-const { ChannelManager, ChannelType, MessageType } = require("../channel-manager");
+const {
+  ChannelManager,
+  ChannelType,
+  MessageType,
+} = require("../channel-manager");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -170,7 +174,11 @@ describe("ChannelManager", () => {
     });
 
     it("should skip P2P setup when no p2pManager", async () => {
-      const managerNoPeer = new ChannelManager(mockDatabase, mockDIDManager, null);
+      const managerNoPeer = new ChannelManager(
+        mockDatabase,
+        mockDIDManager,
+        null,
+      );
       await managerNoPeer.initialize();
       expect(managerNoPeer.initialized).toBe(true);
     });
@@ -191,7 +199,9 @@ describe("ChannelManager", () => {
     beforeEach(async () => {
       await manager.initialize();
       // Setup: user is an owner member
-      mockDatabase.db._prep.get.mockReturnValue(makeMemberRow({ role: "owner" }));
+      mockDatabase.db._prep.get.mockReturnValue(
+        makeMemberRow({ role: "owner" }),
+      );
     });
 
     it("should create a channel and return a channel object", async () => {
@@ -233,7 +243,10 @@ describe("ChannelManager", () => {
     });
 
     it("should insert into channels table", async () => {
-      await manager.createChannel({ communityId: "community-001", name: "general" });
+      await manager.createChannel({
+        communityId: "community-001",
+        name: "general",
+      });
 
       const insertCall = mockDatabase.db.prepare.mock.calls.find((c) =>
         c[0].includes("INSERT INTO channels"),
@@ -242,7 +255,10 @@ describe("ChannelManager", () => {
     });
 
     it("should call saveToFile after creating channel", async () => {
-      await manager.createChannel({ communityId: "community-001", name: "general" });
+      await manager.createChannel({
+        communityId: "community-001",
+        name: "general",
+      });
       expect(mockDatabase.saveToFile).toHaveBeenCalled();
     });
 
@@ -255,15 +271,23 @@ describe("ChannelManager", () => {
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
       await expect(
-        manager.createChannel({ communityId: "community-001", name: "general" }),
+        manager.createChannel({
+          communityId: "community-001",
+          name: "general",
+        }),
       ).rejects.toThrow("User not logged in");
     });
 
     it("should throw if user lacks admin/owner role", async () => {
       // Override: user is just a member
-      mockDatabase.db._prep.get.mockReturnValue(makeMemberRow({ role: "member" }));
+      mockDatabase.db._prep.get.mockReturnValue(
+        makeMemberRow({ role: "member" }),
+      );
       await expect(
-        manager.createChannel({ communityId: "community-001", name: "general" }),
+        manager.createChannel({
+          communityId: "community-001",
+          name: "general",
+        }),
       ).rejects.toThrow("Insufficient permissions to create channels");
     });
   });
@@ -344,8 +368,14 @@ describe("ChannelManager", () => {
       const listener = vi.fn();
       manager.on("channel:message-sent", listener);
 
-      const message = await manager.sendMessage({ channelId: "channel-001", content: "Hi" });
-      expect(listener).toHaveBeenCalledWith({ channelId: "channel-001", message });
+      const message = await manager.sendMessage({
+        channelId: "channel-001",
+        content: "Hi",
+      });
+      expect(listener).toHaveBeenCalledWith({
+        channelId: "channel-001",
+        message,
+      });
     });
 
     it("should insert into channel_messages table", async () => {
@@ -401,7 +431,10 @@ describe("ChannelManager", () => {
         .mockReturnValueOnce(channel)
         .mockReturnValueOnce(member);
 
-      const message = await manager.sendMessage({ channelId: "channel-001", content: "Announcement!" });
+      const message = await manager.sendMessage({
+        channelId: "channel-001",
+        content: "Announcement!",
+      });
       expect(message.content).toBe("Announcement!");
     });
 
@@ -457,7 +490,12 @@ describe("ChannelManager", () => {
       await manager.getMessages("channel-001", { limit: 10, offset: 20 });
 
       const prepareCalls = mockDatabase.db.prepare.mock.calls.map((c) => c[0]);
-      const messagesQuery = prepareCalls.find((q) => q.includes("channel_messages"));
+      // initializeTables now runs PRAGMA table_info() too, so narrow the
+      // predicate to the SELECT query, not just any string mentioning the
+      // table name.
+      const messagesQuery = prepareCalls.find(
+        (q) => q.includes("channel_messages") && /SELECT/i.test(q),
+      );
       expect(messagesQuery).toBeTruthy();
       expect(messagesQuery).toContain("LIMIT");
       expect(messagesQuery).toContain("OFFSET");
@@ -468,7 +506,9 @@ describe("ChannelManager", () => {
       await manager.getMessages("channel-001", { before: 1700000000000 });
 
       const prepareCalls = mockDatabase.db.prepare.mock.calls.map((c) => c[0]);
-      const messagesQuery = prepareCalls.find((q) => q.includes("created_at < ?"));
+      const messagesQuery = prepareCalls.find((q) =>
+        q.includes("created_at < ?"),
+      );
       expect(messagesQuery).toBeTruthy();
     });
 
@@ -517,7 +557,9 @@ describe("ChannelManager", () => {
 
     it("should throw if message is not found", async () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(null);
-      await expect(manager.pinMessage("nonexistent")).rejects.toThrow("Message not found");
+      await expect(manager.pinMessage("nonexistent")).rejects.toThrow(
+        "Message not found",
+      );
     });
 
     it("should throw if user is a regular member (insufficient permissions)", async () => {
@@ -537,7 +579,9 @@ describe("ChannelManager", () => {
 
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
-      await expect(manager.pinMessage("message-001")).rejects.toThrow("User not logged in");
+      await expect(manager.pinMessage("message-001")).rejects.toThrow(
+        "User not logged in",
+      );
     });
   });
 
@@ -577,7 +621,9 @@ describe("ChannelManager", () => {
 
     it("should throw if message is not found", async () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(null);
-      await expect(manager.unpinMessage("nonexistent")).rejects.toThrow("Message not found");
+      await expect(manager.unpinMessage("nonexistent")).rejects.toThrow(
+        "Message not found",
+      );
     });
 
     it("should throw if user lacks moderator permissions", async () => {
@@ -629,12 +675,16 @@ describe("ChannelManager", () => {
 
     it("should not duplicate a DID in the same emoji reaction", async () => {
       // Alice has already reacted
-      const message = makeMessageRow({ reactions: '{"👍":["did:test:alice"]}' });
+      const message = makeMessageRow({
+        reactions: '{"👍":["did:test:alice"]}',
+      });
       mockDatabase.db._prep.get.mockReturnValueOnce(message);
 
       const result = await manager.addReaction("message-001", "👍");
       // DID should appear only once
-      expect(result.reactions["👍"].filter((d) => d === "did:test:alice")).toHaveLength(1);
+      expect(
+        result.reactions["👍"].filter((d) => d === "did:test:alice"),
+      ).toHaveLength(1);
     });
 
     it("should add a new emoji key when emoji does not exist yet", async () => {
@@ -648,12 +698,16 @@ describe("ChannelManager", () => {
 
     it("should throw if message is not found", async () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(null);
-      await expect(manager.addReaction("nonexistent", "👍")).rejects.toThrow("Message not found");
+      await expect(manager.addReaction("nonexistent", "👍")).rejects.toThrow(
+        "Message not found",
+      );
     });
 
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
-      await expect(manager.addReaction("message-001", "👍")).rejects.toThrow("User not logged in");
+      await expect(manager.addReaction("message-001", "👍")).rejects.toThrow(
+        "User not logged in",
+      );
     });
   });
 
@@ -686,7 +740,9 @@ describe("ChannelManager", () => {
     });
 
     it("should delete the emoji key when the last DID is removed", async () => {
-      const message = makeMessageRow({ reactions: '{"👍":["did:test:alice"]}' });
+      const message = makeMessageRow({
+        reactions: '{"👍":["did:test:alice"]}',
+      });
       mockDatabase.db._prep.get.mockReturnValueOnce(message);
 
       const result = await manager.removeReaction("message-001", "👍");
@@ -705,7 +761,9 @@ describe("ChannelManager", () => {
 
     it("should throw if message is not found", async () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(null);
-      await expect(manager.removeReaction("nonexistent", "👍")).rejects.toThrow("Message not found");
+      await expect(manager.removeReaction("nonexistent", "👍")).rejects.toThrow(
+        "Message not found",
+      );
     });
   });
 
@@ -768,12 +826,16 @@ describe("ChannelManager", () => {
 
     it("should throw if message is not found", async () => {
       mockDatabase.db._prep.get.mockReturnValueOnce(null);
-      await expect(manager.deleteMessage("nonexistent")).rejects.toThrow("Message not found");
+      await expect(manager.deleteMessage("nonexistent")).rejects.toThrow(
+        "Message not found",
+      );
     });
 
     it("should throw if user is not logged in", async () => {
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
-      await expect(manager.deleteMessage("message-001")).rejects.toThrow("User not logged in");
+      await expect(manager.deleteMessage("message-001")).rejects.toThrow(
+        "User not logged in",
+      );
     });
   });
 
