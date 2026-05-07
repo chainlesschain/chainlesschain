@@ -80,14 +80,14 @@ class LandmarkCache {
   _verifyPublisherSignature(landmark) {
     const ps = landmark.publisher_signature;
     if (!ps || typeof ps !== "object") {
-      throw this._err("BAD_PUBLISHER_SIG");
+      throw this._err("BAD_LANDMARK_SIG");
     }
     if (typeof ps.alg !== "string" || typeof ps.sig !== "string" || !ps.sig) {
-      throw this._err("BAD_PUBLISHER_SIG");
+      throw this._err("BAD_LANDMARK_SIG");
     }
     const anchors = landmark.trust_anchors;
     if (!Array.isArray(anchors) || anchors.length === 0) {
-      throw this._err("BAD_PUBLISHER_SIG");
+      throw this._err("BAD_LANDMARK_SIG");
     }
     const anchor = anchors[0];
     if (
@@ -95,7 +95,7 @@ class LandmarkCache {
       typeof anchor.pubkey_id !== "string" ||
       anchor.alg !== ps.alg
     ) {
-      throw this._err("BAD_PUBLISHER_SIG");
+      throw this._err("BAD_LANDMARK_SIG");
     }
 
     // Reconstruct producer's signing input: JCS over a copy with sig="".
@@ -114,7 +114,7 @@ class LandmarkCache {
     };
 
     if (!this._signatureVerifier(signingInput, sigObj)) {
-      throw this._err("BAD_PUBLISHER_SIG");
+      throw this._err("BAD_LANDMARK_SIG");
     }
   }
 

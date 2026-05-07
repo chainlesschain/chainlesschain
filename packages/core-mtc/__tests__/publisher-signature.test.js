@@ -82,7 +82,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("opt-in mode rejects landmark with mutated body after signing", () => {
@@ -97,7 +97,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("opt-in mode rejects landmark with placeholder sig", () => {
@@ -109,7 +109,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("opt-in mode rejects landmark with missing publisher_signature", () => {
@@ -121,7 +121,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("opt-in mode rejects landmark with empty trust_anchors", () => {
@@ -135,7 +135,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifier(trustedKeys),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("opt-in mode rejects landmark with alg mismatch between sig and anchor", () => {
@@ -149,7 +149,7 @@ describe("LandmarkCache publisher_signature verification (opt-in)", () => {
       signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
       verifyPublisherSignature: true,
     });
-    expect(() => cache.ingest(landmark)).toThrow(/BAD_PUBLISHER_SIG/);
+    expect(() => cache.ingest(landmark)).toThrow(/BAD_LANDMARK_SIG/);
   });
 
   it("schema sanity: SCHEMA_LANDMARK still emitted", () => {
