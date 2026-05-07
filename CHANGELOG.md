@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - 桌面**有**运行时改动：`web-shell-bootstrap.js` 注册 3 个新 in-process WS handler，`packages/web-panel` SPA bundle 重打。auto-updater 比对 `5.0.3-alpha.40 > 5.0.3-alpha.39`，所有 v5.0.3.39 桌面用户重启时会发现新版并自动获取 MTC 提速 + CI 修复。
-- v5.0.3.39 release-sizes / 安装时间真机 benchmark 仍是 issue #8 待跟进项；本版桌面 binary 重新打过（含 SPA 新 bundle），但 ASAR surgery / native deps / 文件量级与 .39 一致，install 时间应等价。
+- v5.0.3.39 install-time benchmark 已跑 + [issue #8](https://github.com/chainlesschain/chainlesschain/issues/8) 已关 (2026-05-07 completed)：dev-box `Setup.exe /S` 实测 **190.9 s**（vs 1201 s baseline = −84% / 6.3×；vs 360 s gate = PASS 47% 余量）。Methodology caveat：本机 Defender OFF + NVMe SSD 跟 #6 baseline 三轴错二，HDD + Defender-on 严格 parity 仍是 nice-to-have follow-up（不是 release blocker）。本版桌面 binary 重新打过（含 SPA 新 bundle），但 ASAR surgery / native deps / 文件量级与 .39 一致，install 时间应等价。
 - standalone `cc serve` 模式下 `loadBridgeStatus` 仍受 lib-vs-SPA shape mismatch 影响（pre-existing bug），桥状态显示 defaults——只在浏览器直连场景出现，桌面 v5.0.3.40 默认壳不受影响。
 
 ---
