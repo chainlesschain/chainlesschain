@@ -3126,6 +3126,7 @@
       "projectSettings": "项目存储",
       "speechSettings": "语音识别",
       "notificationSettings": "通知设置",
+      "syncSettings": "同步设置",
       "nlprog": "自然语言编程",
       "codegen": "代码生成",
       "notes": "笔记管理",
