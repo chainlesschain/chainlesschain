@@ -20,6 +20,7 @@ const { sha256, leafHash, encodeHashStr } = require("./hash.js");
 const { jcs } = require("./jcs.js");
 const { MerkleTree } = require("./merkle.js");
 const ed25519 = require("./signers/ed25519.js");
+const { _stripSigsForPublisher } = require("./publisher-signing.js");
 
 /**
  * @param {Array<object>} rawLeaves - raw JSON leaves (will be JCS-canonicalized + leafHash'd)
@@ -91,7 +92,10 @@ function assembleBatch(rawLeaves, keys, meta, signer) {
   // Sign the canonicalized landmark (with sig="" placeholder) using the
   // LANDMARK domain-separation prefix, then patch sig in-place. Reuses
   // signTreeHead since it's a generic "sign these bytes" routine.
-  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const landmarkSigInput = Buffer.concat([
+    LANDMARK_SIG_PREFIX,
+    jcs(_stripSigsForPublisher(landmark)),
+  ]);
   const publisherSig = signImpl.signTreeHead(landmarkSigInput, {
     secretKey: keys.secretKey,
     publicKey: keys.publicKey,
@@ -237,7 +241,10 @@ function assembleBatchFederated(rawLeaves, signers, meta) {
   // Federated path: deterministically sign with the first signer's key.
   // The snapshot already carries M-of-N signatures[]; publisher_signature
   // identifies which federation member packaged + published the landmark.
-  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const landmarkSigInput = Buffer.concat([
+    LANDMARK_SIG_PREFIX,
+    jcs(_stripSigsForPublisher(landmark)),
+  ]);
   const publisherSigResult = publisherSigImpl.signTreeHead(landmarkSigInput, {
     secretKey: publisherSigner.secretKey,
     publicKey: publisherSigner.publicKey,

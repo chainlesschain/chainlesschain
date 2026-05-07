@@ -11,6 +11,7 @@ const {
 } = require("./constants.js");
 const { sha256, encodeHashStr } = require("./hash.js");
 const { jcs } = require("./jcs.js");
+const { _stripSigsForPublisher } = require("./publisher-signing.js");
 
 function alwaysAcceptSignatureVerifier() {
   return true;
@@ -98,14 +99,14 @@ class LandmarkCache {
       throw this._err("BAD_LANDMARK_SIG");
     }
 
-    // Reconstruct producer's signing input: JCS over a copy with sig="".
-    // Spread is shallow but JCS recurses on the rest, so unchanged sub-trees
-    // canonicalize to the same bytes the producer fed into the signer.
-    const stripped = {
-      ...landmark,
-      publisher_signature: { ...ps, sig: "" },
-    };
-    const signingInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(stripped)]);
+    // Reconstruct producer's signing input: JCS over a copy with publisher_
+    // signature.sig="" AND each snapshot's per-member sig bytes placeholder-d.
+    // Stripping per-member sigs is required for M-of-N threshold tolerance —
+    // see publisher-signing.js for the full rationale.
+    const signingInput = Buffer.concat([
+      LANDMARK_SIG_PREFIX,
+      jcs(_stripSigsForPublisher(landmark)),
+    ]);
 
     const sigObj = {
       alg: ps.alg,

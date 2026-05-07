@@ -15,6 +15,7 @@
     "./signers/ed25519": "./lib/signers/ed25519.js",
     "./signers/slh-dsa": "./lib/signers/slh-dsa.js",
     "./batch": "./lib/batch.js",
+    "./publisher-signing": "./lib/publisher-signing.js",
     "./federation": "./lib/federation.js",
     "./transports": "./lib/transports/index.js",
     "./transports/in-memory": "./lib/transports/in-memory.js",

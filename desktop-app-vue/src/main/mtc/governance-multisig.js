@@ -265,7 +265,16 @@ function _assembleBatchFederatedLocal(rawLeaves, signers, meta) {
   // Federated path: sign with first signer's key (deterministic). The
   // snapshot already carries M-of-N signatures[]; publisher_signature
   // identifies which member packaged + published the landmark.
-  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  // Strip per-member sig bytes so the publisher commits to landmark
+  // metadata (algs, keys, structure, threshold) but not exact sig bytes —
+  // preserves M-of-N threshold tolerance (see core-mtc publisher-signing.js).
+  const {
+    _stripSigsForPublisher,
+  } = require("@chainlesschain/core-mtc/publisher-signing");
+  const landmarkSigInput = Buffer.concat([
+    LANDMARK_SIG_PREFIX,
+    jcs(_stripSigsForPublisher(landmark)),
+  ]);
   const publisherSig = _tweetnaclSigner.signTreeHead(landmarkSigInput, {
     secretKey: publisherSigner.secretKey,
     publicKey: publisherSigner.publicKey,
