@@ -641,6 +641,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useShellMode } from '../composables/useShellMode.js'
 import {
   parseAuditMtcStatus,
   parsePublishStatus,
@@ -682,8 +683,17 @@ function truncate(s, max) {
 async function loadStatus() {
   loading.value = true
   try {
-    const { output } = await ws.execute('audit mtc status --json', 8000)
-    status.value = parseAuditMtcStatus(output)
+    if (useShellMode().isEmbedded) {
+      const reply = await ws.sendRaw({ type: 'mtc.audit-status' }, 30000)
+      const r = reply?.result
+      if (!reply?.ok || !r?.success) {
+        throw new Error(r?.error || reply?.error || 'mtc.audit-status failed')
+      }
+      status.value = parseAuditMtcStatus(r.status)
+    } else {
+      const { output } = await ws.execute('audit mtc status --json', 30000)
+      status.value = parseAuditMtcStatus(output)
+    }
   } catch (e) {
     message.error(t('mtc.messages.loadStatusFailed', { err: e?.message || e }))
   } finally {
@@ -778,7 +788,15 @@ function slaStatusColor(s) {
 
 async function loadBridgeSla() {
   try {
-    const { output } = await ws.execute('crosschain mtc-sla --json', 6000)
+    if (useShellMode().isEmbedded) {
+      const reply = await ws.sendRaw({ type: 'mtc.bridge-sla' }, 30000)
+      const r = reply?.result
+      if (reply?.ok && r?.success && r.metrics && typeof r.metrics.sla_status === 'string') {
+        bridgeSla.value = r.metrics
+      }
+      return
+    }
+    const { output } = await ws.execute('crosschain mtc-sla --json', 30000)
     const lines = output.split(/\r?\n/)
     for (let s = 0; s < lines.length; s++) {
       if (lines[s].trimStart().startsWith('{')) {
@@ -800,7 +818,31 @@ async function loadBridgeSla() {
 
 async function loadBridgeStatus() {
   try {
-    const { output } = await ws.execute('crosschain mtc-status --json', 8000)
+    if (useShellMode().isEmbedded) {
+      const reply = await ws.sendRaw({ type: 'mtc.bridge-status' }, 30000)
+      const r = reply?.result
+      if (!reply?.ok || !r?.success || !r.status) {
+        throw new Error(r?.error || reply?.error || 'mtc.bridge-status failed')
+      }
+      // Lib returns config fields flat (enabled / mode / alg / …); SPA template
+      // addresses bridgeStatus.config.* — adapt the shape here so mergeBridgeStatus
+      // sees the data instead of dropping into defaults.
+      const s = r.status
+      bridgeStatus.value = mergeBridgeStatus({
+        config: {
+          enabled: s.enabled,
+          mode: s.mode,
+          alg: s.alg,
+          batch_interval_seconds: s.batch_interval_seconds,
+          issuer: s.issuer,
+        },
+        trust_anchors: s.trust_anchors,
+        staging: s.staging,
+        batches: s.batches,
+      })
+      return
+    }
+    const { output } = await ws.execute('crosschain mtc-status --json', 30000)
     const lines = output.split(/\r?\n/)
     for (let s = 0; s < lines.length; s++) {
       if (lines[s].trimStart().startsWith('{')) {

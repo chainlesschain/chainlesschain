@@ -1,5 +1,29 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update II — **v5.0.3.40 — MTC view in-process speedup + CI triple-unblock**
+
+Four unrelated fixes bundled in one release:
+
+| Category | File | Root cause | Fix |
+|---|---|---|---|
+| **MTC view timeout cascade** | `packages/web-panel/src/views/Mtc.vue` + `desktop-app-vue/src/main/web-shell/handlers/mtc-status-handlers.js` (new) | After v5.0.3.39 flipped to `asar:true`, `cc` subprocess cold-start jumped from ~2.5s in dev to 6-10s when packaged (asar header walks + an extra virtual-fs layer in module resolution). `Mtc.vue`'s `onMounted` fires `loadStatus` + `loadBridgeStatus` + `loadBridgeSla` in parallel — they now reliably blow the 8s/6s ceilings → "状态加载失败: Request timeout" + "加载桥 MTC 状态失败" toasts | Added 3 in-process WS topics (`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`) that hit `audit-mtc` / `cross-chain-mtc` libs directly (pure file reads, no spawn, zero asar overhead). `Mtc.vue` branches on `useShellMode().isEmbedded`: embedded uses the new topics, browser / `cc serve` keeps the old `ws.execute` path. Bumped fallback timeouts 8000/6000 → 30000 ms (matching `executeJson` default). 7 + 1 new unit tests |
+| macOS unit fallback | `desktop-app-vue/scripts/build-win-with-deref.js` | `isSymlink` compared via `realpathSync`, but macOS `os.tmpdir()` resolves through `/var → /private/var` (implicit prefix-symlink) — every plain tmp dir false-positived as a symlink → 7 tests fail | Platform split: Windows still uses realpath (junctions need it); POSIX uses `lstat.isSymbolicLink()` (no junction concept) |
+| Rules-validator FP | `desktop-app-vue/scripts/rules-validator.js` | `sync-external-store.test.js:32` is a `TestDbManager.exec(sql)` passthrough for sql.js fixtures — flagged as SQL_INJECTION | `getAllFiles` now skips `__tests__/` / `__mocks__/` dirs + `.test.js`/`.spec.js`/`.d.ts` files |
+| Win cold-start ETIMEDOUT | `packages/cli/__tests__/unit/{skill,agent-repl}.test.js` | `node bin/chainlesschain.js …` ESM module-graph cold-start exceeds 10/15s `execSync` timeout on busy Windows hosts → 5 tests fail | Bumped all CLI-subprocess execSync timeouts to 60s (matches project-wide testTimeout); passes still finish in 1.7–2.5s |
+
+**Test matrix**
+
+| Suite | Passed | Files | Duration |
+|---|---|---|---|
+| Desktop unit + stores | 10482 / 10482 (689 skipped) | 320 | 1022s |
+| MTC handler in-process (new) | 7 / 7 | 1 | 3.4s |
+| web-panel mtc-parser (new) | 14 / 14 | 1 | 1.1s |
+| CLI unit | 17392 / 17392 (7 skipped) | 412 | 458s |
+| CLI integration | 821 / 821 | 56 | 198s |
+| **Total** | **28716** | **790** | **~28 min** |
+
+Desktop now **does** ship runtime changes (web-shell registers 3 new in-process handlers + the SPA bundle is rebuilt). The auto-updater compares `5.0.3-alpha.40 > 5.0.3-alpha.39`, so every v5.0.3.39 desktop user gets a real "new version available" prompt on restart and picks up both the MTC speedup and the CI fixes.
+
 ## 2026-05-06 Update — **Phase 3b/3c multi-target sync** — 5 tray placeholders wired + SyncProvider abstraction + WebDAV/Git/sync.* WS topics across both shells
 
 5 tray-menu placeholders (NotificationCenter listener / clipboard import / screenshot OCR / sync now / auto sync) graduated from "coming soon" toasts to real flows. Sync grew from a single backend hook into a multi-provider abstraction (Backend HTTP / Git / P2P / Mobile / WebDAV / OSS) usable from both V5/V6 and web-shell renderers.

@@ -43,6 +43,24 @@ describe('mtc-parser — parseAuditMtcStatus', () => {
     expect(r.batches.last_tree_head_id).toBe('sha256:abc')
   })
 
+  it('accepts a pre-parsed object (embedded shell path bypasses JSON round-trip)', () => {
+    const payload = {
+      config: {
+        enabled: true,
+        batch_interval_seconds: 90,
+        namespace_prefix: 'mtc/v1/audit/embedded',
+        issuer: 'did:test:embedded',
+      },
+      staging: { count: 4, malformed: 1, oldest_queued_at: '2026-05-07T01:00:00Z' },
+      batches: { count: 2, last_batch_id: '000002', last_closed_at: '2026-05-07T01:15:00Z', last_tree_size: 8, last_tree_head_id: 'sha256:def' },
+    }
+    const r = parseAuditMtcStatus(payload)
+    expect(r.ok).toBe(true)
+    expect(r.config.batch_interval_seconds).toBe(90)
+    expect(r.staging.malformed).toBe(1)
+    expect(r.batches.last_batch_id).toBe('000002')
+  })
+
   it('strips banner noise before parsing', () => {
     const noisy =
       '> connected to cc serve\n' +

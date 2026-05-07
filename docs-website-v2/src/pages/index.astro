@@ -69,6 +69,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.40',
+    title: 'MTC 视图 in-process 提速 + CI 三发解锁',
+    sub: '4 fix · 绕过 asar 冷启动 · 12224 测试',
+    desc: '主修：v5.0.3.39 切到 `asar:true` 后 `cc` 子进程冷启动 6-10s，`Mtc.vue` `onMounted` 三发并发必爆 8s/6s timeout（"状态加载失败 / 加载桥 MTC 状态失败"）。新增 3 个 in-process WS topic（`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`）直查 `audit-mtc` / `cross-chain-mtc` lib，零 spawn、零 asar 开销；`Mtc.vue` 通过 `useShellMode().isEmbedded` 双路径分叉。同时打包三发 CI 修复：macOS `realpathSync` 把 `/var → /private/var` 当 symlink → POSIX 改 `lstat`；rules-validator 把测试 fixture `TestDbManager.exec(sql)` 报红 → 排除 `__tests__`；CLI subprocess Win cold-start 超 10/15s execSync timeout → 统一 60s。',
+  },
+  {
     tag: 'v5.0.3.39',
     title: 'B4 ASAR surgery — Win 安装 20m → ~5m',
     sub: 'issue #8 · 23 单元 + 集成测试',
@@ -103,12 +109,6 @@ const highlights = [
     title: 'CLI V2 治理表面 220+',
     sub: '4-state 成熟度 × 5-state 生命周期',
     desc: '从 a2apgov 到 pmodegov，136 个 lib-level V2 治理表面（双维度上限 + auto-flip + autoStaleIdle + autoFailStuck）+ 5,984 V2 测试，与同模块旧表面通过 nest-blocker 共存。',
-  },
-  {
-    tag: 'v5.0.2.9',
-    title: 'PQC SLH-DSA (FIPS 205) + Trinity v3.2',
-    sub: '6 SLH-DSA 变体 · Ed25519 混合',
-    desc: '后量子哈希签名 SLH-DSA-{128,192,256}{s,f} 全量落地，Ed25519/X25519 混合模式覆盖过渡期。Trinity Trust Root v3.2 把 U盾 / SIMKey / TEE 三脚锚定，配合 zk-SNARK Groth16 / zk-STARK 本地生成。',
   },
 ];
 

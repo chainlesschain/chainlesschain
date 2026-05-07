@@ -66,6 +66,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.40',
+    title: 'MTC view in-process speedup + CI triple-unblock',
+    sub: '4 fixes · bypass asar cold-start · 12224 tests',
+    desc: 'Headline: after v5.0.3.39 flipped to `asar:true`, `cc` subprocess cold-start jumped from ~2.5s in dev to 6-10s when packaged, and `Mtc.vue`\'s parallel onMounted (`loadStatus` + `loadBridgeStatus` + `loadBridgeSla`) reliably blew the 8s/6s ceilings ("状态加载失败 / 加载桥 MTC 状态失败"). Fix: 3 new in-process WS topics (`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`) hit `audit-mtc` / `cross-chain-mtc` libs directly — pure file reads, no spawn, zero asar overhead. `Mtc.vue` branches on `useShellMode().isEmbedded`. Bundled with three CI fixes: macOS `realpathSync` flagged `/var → /private/var` as a symlink → POSIX uses `lstat`; rules-validator flagged a test-fixture `TestDbManager.exec(sql)` → exclude `__tests__/`; CLI subprocess Win cold-start exceeded 10/15s execSync timeouts → unified to 60s.',
+  },
+  {
     tag: 'v5.0.3.39',
     title: 'B4 ASAR surgery — Win install 20m → ~5m',
     sub: 'issue #8 · 23 unit + integration tests',
@@ -100,12 +106,6 @@ const highlights = [
     title: 'CLI V2 governance surfaces · 220+',
     sub: '4-state maturity × 5-state lifecycle',
     desc: 'From a2apgov to pmodegov — 136 lib-level V2 governance surfaces (dual-cap + auto-flip + autoStaleIdle + autoFailStuck) + 5,984 V2 tests. Coexists with same-module legacy surfaces via shared nest-blocker.',
-  },
-  {
-    tag: 'v5.0.2.9',
-    title: 'PQC SLH-DSA (FIPS 205) + Trinity v3.2',
-    sub: '6 SLH-DSA variants · Ed25519 hybrid',
-    desc: 'Post-quantum hash-based signing — SLH-DSA-{128,192,256}{s,f} all landed; Ed25519/X25519 hybrid covers the transition. Trinity Trust Root v3.2 anchors three pillars (U-Key / SIMKey / TEE), paired with locally-generated zk-SNARK Groth16 / zk-STARK.',
   },
 ];
 

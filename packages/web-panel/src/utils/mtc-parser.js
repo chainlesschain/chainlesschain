@@ -52,10 +52,17 @@ function asString(v, fallback = '') {
  * Always returns a fully-shaped object so the view doesn't need to defensively
  * check every field. Sets ok=true only when the command produced a parseable
  * status payload (i.e. cc serve was reachable + audit-mtc dir was readable).
+ *
+ * Accepts either the raw text output (standalone `cc serve` mode) or a
+ * pre-parsed object (embedded desktop web-shell, where the in-process
+ * `mtc.audit-status` topic returns the audit-mtc.getStatus() return value
+ * directly without a JSON.stringify round-trip).
  */
 export function parseAuditMtcStatus(output) {
   const result = JSON.parse(JSON.stringify(STATUS_DEFAULTS))
-  const parsed = tryParseJson(output)
+  const parsed = output && typeof output === 'object' && !Array.isArray(output)
+    ? output
+    : tryParseJson(output)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return result
 
   result.ok = true

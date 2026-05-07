@@ -3,6 +3,34 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.40 / CLI 0.161.3] - 2026-05-07 (MTC 视图 in-process 提速 + CI 三发解锁)
+
+### Fixed
+
+- **MTC 视图 onMounted 三发并发必爆 timeout**（asar 冷启动级联）—— v5.0.3.39 切到 `asar:true` 后 `cc` 子进程冷启动从 dev 的 ~2.5s 涨到打包后 6-10s（asar header 走查 + Node module resolve 多一层虚拟 fs），`Mtc.vue` 的 `loadStatus` + `loadBridgeStatus` + `loadBridgeSla` 三发并发必撞 8s/6s 上限（用户截图 "状态加载失败: Request timeout" + "加载桥 MTC 状态失败: Request timeout"）。修法：新增 3 个 in-process WS topic（`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`）直查 `audit-mtc` / `cross-chain-mtc` lib（纯文件读，无 SQLite，无 spawn，零 asar 开销）；`Mtc.vue` 通过 `useShellMode().isEmbedded` 双路径分叉，embedded 走新 topic，浏览器 / `cc serve` 仍走旧 `ws.execute`。同时把保底 timeout 从 8000/6000 提到 30000 ms（与 `executeJson` 默认对齐）。顺手修了 standalone 路径一个 pre-existing shape mismatch（lib 返回扁平字段，SPA 期望 `obj.config.*` 包装）—— 仅 embedded 路径生效，standalone 维持原状（独立 follow-up）。配 7 + 1 新单测。
+- **macOS unit fallback 上 7 个 build-win-with-deref 测试**（commit `25d834958`）—— `desktop-app-vue/scripts/build-win-with-deref.js` 的 `isSymlink` 之前用 `realpathSync` 比较，但 macOS `os.tmpdir()` 路径含 `/var → /private/var` 的隐式 symlink，所有 tmp 子目录都被误判为 symlink → 7 测试 fail。改成 platform split：Win 仍用 realpath（junction 需要），POSIX 用 `lstat.isSymbolicLink()`（POSIX 没有 junction 概念，lstat 可靠）。
+- **rules-validator SQL_INJECTION 在测试 fixture 上误报**（同 commit）—— `desktop-app-vue/src/main/sync/__tests__/sync-external-store.test.js:32` 是 `TestDbManager.exec(sql)` 的 sql.js 测试 fixture passthrough，被规则验证器 v2 当成 `db.exec()` 高危调用报红。`getAllFiles` 现在跳过 `__tests__/` / `__mocks__/` 目录 + `.test.js` / `.spec.js` / `.d.ts` 文件。生产代码扫描不变；75 条警告仍属 advisory。
+- **CLI subprocess cold-start ETIMEDOUT on Windows**（同 commit）—— `packages/cli/__tests__/unit/skill.test.js`（12 处 @ 15s）+ `agent-repl.test.js`（3 处 @ 10s）调 `node bin/chainlesschain.js …`。ESM module-graph cold-start 在繁忙 Windows 主机真的需要 >10s（vitest 的 60s testTimeout 包不住，per-call execSync timeout 才是真天花板）。所有 CLI subprocess 调用 timeout 统一升到 60s（与项目 testTimeout 对齐）；passes 仍 1.7-2.5s 完成，只有真 fail 才会跑满。
+
+### Tests
+
+| 套 | 通过 | 文件 | Duration |
+|---|---|---|---|
+| Desktop unit + stores | 10482 / 10482 (689 skipped) | 320 | 1022s |
+| MTC handler in-process 新增 | 7 / 7 | 1 | 3.4s |
+| web-panel mtc-parser 新增 | 14 / 14 | 1 | 1.1s |
+| CLI unit | 17392 / 17392 (7 skipped) | 412 | 458s |
+| CLI integration | 821 / 821 | 56 | 198s |
+| CLI e2e | TBD | TBD | TBD |
+| **小计** | **28716 + e2e** | **790+** | **~28 min** |
+
+### Notes
+
+- 桌面**有**运行时改动：`web-shell-bootstrap.js` 注册 3 个新 in-process WS handler，`packages/web-panel` SPA bundle 重打。auto-updater 比对 `5.0.3-alpha.40 > 5.0.3-alpha.39`，所有 v5.0.3.39 桌面用户重启时会发现新版并自动获取 MTC 提速 + CI 修复。
+- v5.0.3.39 release-sizes / 安装时间真机 benchmark 仍是 issue #8 待跟进项；本版桌面 binary 重新打过（含 SPA 新 bundle），但 ASAR surgery / native deps / 文件量级与 .39 一致，install 时间应等价。
+- standalone `cc serve` 模式下 `loadBridgeStatus` 仍受 lib-vs-SPA shape mismatch 影响（pre-existing bug），桥状态显示 defaults——只在浏览器直连场景出现，桌面 v5.0.3.40 默认壳不受影响。
+- 四个 fix 互不相关、互不依赖、互不冲突；任一单独应用都比 .39 现状好，捆绑发布只是节省一次 release 仪式。
+
 ## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装 20m → ~5m, issue #8)
 
 ### Fixed

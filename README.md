@@ -1,5 +1,29 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 II（**v5.0.3.40 — MTC 视图 in-process 提速 + CI 三发解锁**）
+
+四个互不相关的 fix 一次性闭环：
+
+| 类别 | 文件 | 根因 | 修复 |
+|---|---|---|---|
+| **MTC 视图 timeout 级联** | `packages/web-panel/src/views/Mtc.vue` + `desktop-app-vue/src/main/web-shell/handlers/mtc-status-handlers.js`（新增） | v5.0.3.39 切到 `asar:true` 后 `cc` 子进程冷启动从 dev 的 ~2.5s 涨到打包后 6-10s，`onMounted` 三发并发 (`loadStatus` + `loadBridgeStatus` + `loadBridgeSla`) 必撞 8s/6s 上限 → "状态加载失败: Request timeout" + "加载桥 MTC 状态失败" toasts | 新增 3 个 in-process WS topic（`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`）直查 `audit-mtc` / `cross-chain-mtc` lib（纯文件读，无 spawn，零 asar 开销），`Mtc.vue` 通过 `useShellMode().isEmbedded` 双路径分叉；保底 timeout 8000/6000 → 30000 ms。配 7 + 1 新单测 |
+| macOS unit fallback | `desktop-app-vue/scripts/build-win-with-deref.js` | `isSymlink` 用 `realpathSync` 比较，但 macOS `os.tmpdir()` 路径含 `/var → /private/var` 的隐式 symlink，所有 tmp 子目录都被误判为 symlink → 7 测试 fail | platform split：Win 仍用 realpath（junction 需要），POSIX 用 `lstat.isSymbolicLink()` |
+| 规则验证器误报 | `desktop-app-vue/scripts/rules-validator.js` | `sync-external-store.test.js:32` 是 `TestDbManager.exec(sql)` 的 sql.js 测试 fixture passthrough，被当成 SQL_INJECTION 报红 | `getAllFiles` 跳过 `__tests__/` / `__mocks__/` + `.test.js`/`.spec.js`/`.d.ts` |
+| Win cold-start ETIMEDOUT | `packages/cli/__tests__/unit/{skill,agent-repl}.test.js` | `node bin/chainlesschain.js …` ESM module-graph cold-start 在繁忙 Windows 主机超 10/15s execSync timeout，5 测试 fail | 全部 CLI subprocess execSync timeout 升到 60s（与项目 testTimeout 对齐）；passes 仍 1.7-2.5s |
+
+**测试矩阵**
+
+| 套 | 通过 | 文件 | Duration |
+|---|---|---|---|
+| Desktop unit + stores | 10482 / 10482 (689 skipped) | 320 | 1022s |
+| MTC handler in-process 新增 | 7 / 7 | 1 | 3.4s |
+| web-panel mtc-parser 新增 | 14 / 14 | 1 | 1.1s |
+| CLI unit | 17392 / 17392 (7 skipped) | 412 | 458s |
+| CLI integration | 821 / 821 | 56 | 198s |
+| **小计** | **28716** | **790** | **~28 min** |
+
+桌面**有**运行时改动（web-shell 注册 3 个 in-process handler + SPA bundle 重打）。auto-updater 比对 `5.0.3-alpha.40 > 5.0.3-alpha.39`，所有 v5.0.3.39 桌面用户重启会真发现新版并自动获取 MTC 提速 + CI 修复。
+
 ## 2026-05-06 增量更新（**Phase 3b/3c 多目标同步** — 5 个托盘 placeholder 接通 + SyncProvider 抽象 + WebDAV/Git/sync.* WS topics 双 shell parity）
 
 托盘菜单 5 个 placeholder（NotificationCenter listener / 剪贴板导入 / 截图识别 / 同步立即 / 自动同步）从"功能即将推出" toast 升级为真实链路。同步从单 backend 升级为多 provider 抽象（Backend HTTP / Git / P2P / Mobile / WebDAV / OSS），V5/V6 + web-shell 两条壳都能用。
