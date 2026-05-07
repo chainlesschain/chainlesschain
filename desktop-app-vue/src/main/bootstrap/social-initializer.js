@@ -464,8 +464,8 @@ function registerSocialInitializers(factory) {
     required: false,
     async init(context) {
       try {
-        const { CollabEngine } = require("../social/collab-engine");
-        const collabEngine = new CollabEngine(
+        const { SocialCollabEngine } = require("../social/collab-engine");
+        const collabEngine = new SocialCollabEngine(
           context.database,
           context.didManager,
           context.p2pManager,
