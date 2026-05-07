@@ -1,5 +1,35 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 X（**B4-archive v1 — envelope 外部归档（filesystem + WebDAV）**）
+
+deferred 第三项。B4-merkle / B4-cross 在本机盘维护 envelope 证据链；设备 wipe / 卸载 / 磁盘损坏 = 全丢。本次加入打包 + 推送外部 provider 的能力，让 audit 史可以撑过本机生命周期。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **ChannelEnvelopeArchiver** | `src/main/mtc/channel-envelope-archiver.js` (+360) | `pack(communityId, {sinceBatchId, includeRemote})` 用 adm-zip 打 batches/<id>/* + remote-landmarks/* + remote-envelopes/* 入 buffer + MANIFEST.json. `push(provider, communityId)` 调 provider.putFile 上传. `restore(provider, communityId, archiveName)` 反向：解 zip 落回本地（idempotent — 已存在文件 skip 不覆盖）. `list(provider, communityId)` 按 ARCHIVE_NAME_PREFIX 过滤 |
+| **filesystemProvider** | 同上 (+50) | mirror 到本地目录树（适配 Syncthing-class 外部同步、USB 备份、CI artifact）. path-traversal 全程防御 |
+| **webdavProvider** | 同上 (+50) | 包装 src/main/sync/webdav-client.js (Phase 3c.5 已落). put/get/list 适配 webdav-client 的 {ok, etag} 返回形状 |
+| **3 个 IPC** | `community-ipc.js` (+85) | `channel-archive:push` / `channel-archive:restore` / `channel-archive:list`. 接 renderer-supplied `{kind, ...opts}` provider spec → archiveProviderFactory 实例化 → archiver 操作. 凭证（webdav password）每次调用从 spec 拿，不在 main 缓存 |
+| **archiveProviderFactory + initializer** | `social-initializer.js` (+78) | `channelEnvelopeArchiver` initializer + `archiveProviderFactory` 工厂注册. provider 工厂支持 `{kind:'filesystem', rootDir}` 和 `{kind:'webdav', baseUrl, username, password, remoteRoot}` 两种 |
+
+**Archive 命名约定**：`channel-mtc-<communityId>-<isoTimestamp>-<sinceBatchId>-to-<latestBatchId>.zip`，存到 `<remoteRoot>/<communityId>/`. 增量推送（指定 `sinceBatchId`）只 ship 新 batch，节省带宽。
+
+**测试矩阵 (B4-archive 新增 26, 累计 1047 / 1047 全绿 across 30 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit (新) | `mtc/__tests__/channel-envelope-archiver.test.js` | 26 — constructor 必填 / pack 全/无 remote / sinceBatchId 增量 / unsafe communityId / 空仓 throw / 没新批 throw + filesystemProvider 必填+round-trip+path-traversal+missing+empty-dir + push 完整返回 + restore round-trip 真盘+同样数据 batcher.findEnvelope 命中 + idempotent 二次 restore=0 + 增量 sinceBatchId / list 过滤 + 排序 / 失败 provider throw / webdavProvider 必填+round-trip+failure+getFile 两形状+listFiles 映射+缺 listFiles 兜底+path-traversal 文档化 (adm-zip API 限制说明) |
+| 全 30 文件回归 | — | **1047 / 1047** ✅ |
+
+**测试 gotcha**：archiver 测试 `// @vitest-environment node` 钉到 node 环境——adm-zip 的 Buffer round-trip (`toBuffer → new AdmZip(buf)`) 在 jsdom 下 entries 全空（Buffer / typed-array realm mismatch），跟 libp2p e2e 测试遇到的问题同根。`extractIssuerDID`-style 之外又一例 jsdom 跟 main-process 库不兼容。
+
+**Deferred 剩余 sub-phases 进度**
+- ✅ ~~Inbound landmark trust filtering~~ — VIII 完成
+- ✅ ~~UI envelope viewer~~ — IX 完成
+- ✅ ~~Periodic envelope archival to OSS / WebDAV / IPFS~~ — 本次完成（FS + WebDAV，OSS/IPFS provider 留 follow-up）
+- 🚧 M-of-N for governance-critical events
+- 🚧 跨联邦信任锚 (MTC v0.11 cross-fed-trust 集成)
+
 ## 2026-05-07 增量更新 IX（**B4-ui v1 — Merkle envelope 验证按钮 + viewer 弹窗**）
 
 deferred 第二项：B4-merkle / B4-cross 后端齐了但前端没出口。本次接通 renderer：每条带签名的 channel 消息旁加一个 "🔐 验证" 按钮，弹窗展示来源（local 本机批 / remote peer-pull）、tree-head / batch / leaf 索引、签名验证就位提示、可展开 raw envelope + landmark JSON 一键复制（用户可拿去 `cc mtc verify` 离线复核）。

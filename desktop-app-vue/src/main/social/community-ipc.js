@@ -27,6 +27,13 @@ const electron = require("electron");
  *   envelope distribution (optional; when present, community:join also
  *   subscribes to landmark broadcasts + channel:get-message-envelope can
  *   lazy-pull from connected peers when envelope missing locally)
+ * @param {Object} [dependencies.channelEnvelopeArchiver] - B4-archive v1
+ *   external archival (optional; when present, channel-archive:* IPC
+ *   handlers are registered for push/restore/list)
+ * @param {Object} [dependencies.archiveProviderFactory] - factory that
+ *   given a {kind, ...providerOpts} arg returns a provider instance
+ *   suitable for ChannelEnvelopeArchiver. Lets renderers pick filesystem
+ *   vs webdav per-call without us pre-instantiating credentials
  * @param {Object} [dependencies.p2pManager] - needed by lazy peer-pull
  *   to enumerate connected peers
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
@@ -40,6 +47,8 @@ function registerCommunityIPC({
   mtcFederationManager,
   channelEventBatcher,
   channelEnvelopeDistribution,
+  channelEnvelopeArchiver,
+  archiveProviderFactory,
   p2pManager,
   ipcMain,
 }) {
@@ -582,6 +591,88 @@ function registerCommunityIPC({
       } catch (err) {
         logger.error("[Community IPC] get-message-envelope failed:", err);
         return { found: false, reason: err.message };
+      }
+    },
+  );
+
+  // ============================================================
+  // B4-archive v1 — channel-archive IPC (push/restore/list to OSS/WebDAV/FS)
+  // ============================================================
+
+  function _resolveArchiveProvider(providerSpec) {
+    if (!providerSpec || typeof providerSpec !== "object") {
+      throw new Error("provider 配置缺失 ({kind, ...opts})");
+    }
+    if (typeof archiveProviderFactory !== "function") {
+      throw new Error(
+        "archiveProviderFactory 未注入 — 桌面 main 进程未配 B4-archive provider 工厂",
+      );
+    }
+    return archiveProviderFactory(providerSpec);
+  }
+
+  ipcMain.handle(
+    "channel-archive:push",
+    async (_event, communityId, providerSpec, packOpts) => {
+      try {
+        if (!channelEnvelopeArchiver) {
+          return { ok: false, reason: "channelEnvelopeArchiver 未初始化" };
+        }
+        if (!communityId) {
+          return { ok: false, reason: "communityId required" };
+        }
+        const provider = _resolveArchiveProvider(providerSpec);
+        return await channelEnvelopeArchiver.push(
+          provider,
+          communityId,
+          packOpts || {},
+        );
+      } catch (err) {
+        logger.error("[Community IPC] channel-archive:push failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "channel-archive:restore",
+    async (_event, communityId, archiveName, providerSpec) => {
+      try {
+        if (!channelEnvelopeArchiver) {
+          return { ok: false, reason: "channelEnvelopeArchiver 未初始化" };
+        }
+        if (!communityId || !archiveName) {
+          return { ok: false, reason: "communityId + archiveName required" };
+        }
+        const provider = _resolveArchiveProvider(providerSpec);
+        return await channelEnvelopeArchiver.restore(
+          provider,
+          communityId,
+          archiveName,
+        );
+      } catch (err) {
+        logger.error("[Community IPC] channel-archive:restore failed:", err);
+        return { ok: false, reason: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "channel-archive:list",
+    async (_event, communityId, providerSpec) => {
+      try {
+        if (!channelEnvelopeArchiver) {
+          return { ok: false, reason: "channelEnvelopeArchiver 未初始化" };
+        }
+        if (!communityId) {
+          return { ok: false, reason: "communityId required" };
+        }
+        const provider = _resolveArchiveProvider(providerSpec);
+        const items = await channelEnvelopeArchiver.list(provider, communityId);
+        return { ok: true, archives: items };
+      } catch (err) {
+        logger.error("[Community IPC] channel-archive:list failed:", err);
+        return { ok: false, reason: err.message };
       }
     },
   );

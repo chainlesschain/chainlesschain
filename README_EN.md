@@ -1,5 +1,35 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update X — **B4-archive v1 — envelope external archival (filesystem + WebDAV)**
+
+Third deferred item. B4-merkle / B4-cross keep the envelope evidence trail on local disk; device wipe / uninstall / disk corruption = total loss. This patch adds packaging + push to external providers so audit history can survive beyond a single machine's lifecycle.
+
+| Topic | File | Description |
+|---|---|---|
+| **ChannelEnvelopeArchiver** | `src/main/mtc/channel-envelope-archiver.js` (+360) | `pack(communityId, {sinceBatchId, includeRemote})` zips batches/<id>/* + remote-landmarks/* + remote-envelopes/* into a Buffer with a MANIFEST.json. `push(provider, communityId)` calls provider.putFile to upload. `restore(provider, communityId, archiveName)` does the reverse: unzips back to local dir (idempotent — existing files are skipped, not overwritten). `list(provider, communityId)` filters by ARCHIVE_NAME_PREFIX |
+| **filesystemProvider** | same (+50) | Mirrors archives to a local directory tree (suitable for Syncthing-class external sync, USB backups, CI artifacts). Full path-traversal defense |
+| **webdavProvider** | same (+50) | Wraps the existing `src/main/sync/webdav-client.js` (shipped in Phase 3c.5). Adapts put/get/list to webdav-client's `{ok, etag}` return shape |
+| **3 IPC handlers** | `community-ipc.js` (+85) | `channel-archive:push` / `channel-archive:restore` / `channel-archive:list`. Accepts renderer-supplied `{kind, ...opts}` provider spec → archiveProviderFactory instantiates → archiver operates. Credentials (webdav password) come from the spec per-call, not cached in main |
+| **archiveProviderFactory + initializer** | `social-initializer.js` (+78) | Registers `channelEnvelopeArchiver` initializer and `archiveProviderFactory`. Factory currently supports `{kind:'filesystem', rootDir}` and `{kind:'webdav', baseUrl, username, password, remoteRoot}` |
+
+**Archive name convention**: `channel-mtc-<communityId>-<isoTimestamp>-<sinceBatchId>-to-<latestBatchId>.zip`, stored under `<remoteRoot>/<communityId>/`. Incremental push (specifying `sinceBatchId`) only ships new batches, saving bandwidth.
+
+**Test matrix (B4-archive adds 26, total 1047 / 1047 across 30 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit (new) | `mtc/__tests__/channel-envelope-archiver.test.js` | 26 — constructor required-args / pack all-vs-no-remote / sinceBatchId incremental / unsafe communityId reject / empty repo throws / no-new-batches throws + filesystemProvider required-args+round-trip+path-traversal+missing+empty-dir + push full result shape + restore round-trip with batcher.findEnvelope hit + idempotent second restore=0 + incremental sinceBatchId / list filtering + sort / provider failure throws + webdavProvider required-args+round-trip+failure+getFile two shapes+listFiles mapping+missing-listFiles fallback+path-traversal documented (adm-zip API limit explained) |
+| Full 30-file regression | — | **1047 / 1047** ✅ |
+
+**Test gotcha**: archiver tests pin `// @vitest-environment node` because adm-zip's Buffer round-trip (`toBuffer → new AdmZip(buf)`) returns 0 entries under jsdom (Buffer / typed-array realm mismatch — same root cause as the libp2p e2e tests). One more case where jsdom's main-process-library compatibility is genuinely flaky.
+
+**Remaining deferred sub-phases progress**
+- ✅ ~~Inbound landmark trust filtering~~ — done in VIII
+- ✅ ~~UI envelope viewer~~ — done in IX
+- ✅ ~~Periodic envelope archival to OSS / WebDAV / IPFS~~ — done in this patch (FS + WebDAV; OSS / IPFS providers as follow-up)
+- 🚧 M-of-N for governance-critical events
+- 🚧 Cross-federation trust anchors (MTC v0.11 `cross-fed-trust` integration)
+
 ## 2026-05-07 Update IX — **B4-ui v1 — Merkle envelope verify button + viewer modal**
 
 Second deferred item: B4-merkle / B4-cross had backend-only — no renderer surface. This patch wires the UI: every signed channel message gains a "🔐 验证" button that opens a modal showing origin (local-batched vs peer-pulled), tree-head / batch / leaf index, signature-verified status, plus an expandable raw envelope + landmark JSON view with copy buttons (so users can paste into `cc mtc verify` for offline cross-check).

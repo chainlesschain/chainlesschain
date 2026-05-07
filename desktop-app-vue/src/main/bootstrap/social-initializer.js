@@ -663,6 +663,91 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-archive v1 — channel envelope archiver (external storage)
+  // ========================================
+  // pack/restore B4-merkle batches + B4-cross remote caches into zip
+  // archives, push to filesystem provider (sync via Syncthing) or WebDAV
+  // (provider 走 sync/webdav-client.js). Manual trigger via IPC v1; cron
+  // 是 follow-up.
+  factory.register({
+    name: "channelEnvelopeArchiver",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const {
+          ChannelEnvelopeArchiver,
+        } = require("../mtc/channel-envelope-archiver");
+        const rootDir = path.join(app.getPath("userData"), "channel-mtc");
+        const archiver = new ChannelEnvelopeArchiver({ rootDir });
+        logger.info(
+          "[Social] ✓ channelEnvelopeArchiver initialized at " + rootDir,
+        );
+        return archiver;
+      } catch (error) {
+        logger.warn(
+          "[Social] channelEnvelopeArchiver init failed:",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // archiveProviderFactory — factory that takes a renderer-supplied
+  // {kind, ...opts} spec and returns a provider instance. Filesystem and
+  // webdav are wired here; OSS / IPFS / Git can be added without IPC churn.
+  factory.register({
+    name: "archiveProviderFactory",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const {
+          filesystemProvider,
+          webdavProvider,
+        } = require("../mtc/channel-envelope-archiver");
+        return function archiveProviderFactoryImpl(spec) {
+          if (!spec || typeof spec !== "object") {
+            throw new Error("provider spec required");
+          }
+          if (spec.kind === "filesystem") {
+            if (!spec.rootDir) {
+              throw new Error("filesystem provider needs rootDir");
+            }
+            return filesystemProvider({ rootDir: spec.rootDir });
+          }
+          if (spec.kind === "webdav") {
+            // Lazy-instantiate the WebDAV client per-call so credentials
+            // don't sit in memory between archive operations. Renderer
+            // passes {kind:'webdav', baseUrl, username, password,
+            // remoteRoot} (password injection point — UI should never
+            // persist it client-side; main process can read from secure
+            // store).
+            const { WebDAVClient } = require("../sync/webdav-client");
+            const client = new WebDAVClient({
+              baseUrl: spec.baseUrl,
+              username: spec.username,
+              password: spec.password,
+              remoteRoot: spec.remoteRoot,
+            });
+            return webdavProvider(client);
+          }
+          throw new Error(
+            "unsupported provider kind: " + (spec.kind || "<empty>"),
+          );
+        };
+      } catch (error) {
+        logger.warn(
+          "[Social] archiveProviderFactory init failed:",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // B4-merkle v1 — channel event batcher (Merkle envelope finality)
   // ========================================
   // 接受已经 B4a 签了的 channel_message, 累积到 staging/, 按 threshold/timer

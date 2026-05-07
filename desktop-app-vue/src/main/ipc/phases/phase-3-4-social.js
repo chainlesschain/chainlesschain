@@ -184,6 +184,9 @@ function registerPhases3to4Social({
         // B4-cross v1: cross-machine envelope distribution
         channelEnvelopeDistribution:
           dependencies.channelEnvelopeDistribution || null,
+        // B4-archive v1: external archival
+        channelEnvelopeArchiver: dependencies.channelEnvelopeArchiver || null,
+        archiveProviderFactory: dependencies.archiveProviderFactory || null,
         // for lazy peer-pull when envelope missing locally
         p2pManager: dependencies.p2pManager || null,
       });
