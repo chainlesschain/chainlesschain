@@ -1049,11 +1049,17 @@ jobs:
           # Three rerun states are possible:
           #   (1) no release exists       → create as draft
           #   (2) draft exists            → edit notes + clobber-upload (mutable)
-          #   (3) published release exists → add-only mode (assets immutable
-          #       once published; --clobber's internal DELETE returns 422 on
-          #       repos with immutable-releases enabled). v5.0.3.37 hit this
-          #       when the user reran build-android to add 14 missing APKs to
-          #       an already-finalized release.
+          #   (3) published release exists → advisory no-op (exit 0).
+          #       v5.0.3.38 saga (run 25441397063) proved that GitHub
+          #       immutable-releases blocks UPLOAD as well as DELETE — there
+          #       is NO API path to add or replace assets on a finalized
+          #       release. An earlier "add-only mode" branch attempted to
+          #       upload only new assets and was empirically refuted (422 on
+          #       first upload). To recover from missing assets (e.g.
+          #       v5.0.3.37's missing Android APKs), cut a new version.
+          #       Downstream jobs handle this state gracefully:
+          #       publish-cli-precheck skips if already_published;
+          #       finalize-release no-ops via its isDraft guard.
           if gh release view "$VERSION" > /dev/null 2>&1; then
             IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft)
             if [ "$IS_DRAFT" = "true" ]; then
@@ -1065,26 +1071,9 @@ jobs:
               # Drafts are mutable — clobber works without 422
               gh release upload "$VERSION" release-assets/* --clobber
             else
-              # Published release: assets are immutable. Don't touch metadata
-              # (release notes were finalized with the original ship) and only
-              # upload assets that aren't already attached. Replacing an
-              # existing asset would require bumping the version anyway.
-              echo "Release ${VERSION} is already published — add-only mode (no clobber)..."
-              EXISTING=$(gh release view "$VERSION" --json assets -q '.assets[].name')
-              added=0
-              skipped=0
-              for f in release-assets/*; do
-                name=$(basename "$f")
-                if printf '%s\n' "$EXISTING" | grep -qx "$name"; then
-                  echo "  · skip (already on release): $name"
-                  skipped=$((skipped + 1))
-                else
-                  echo "  + adding: $name"
-                  gh release upload "$VERSION" "$f"
-                  added=$((added + 1))
-                fi
-              done
-              echo "Add-only summary: $added added, $skipped skipped"
+              echo "::notice::Release ${VERSION} is already published — immutable-releases blocks all asset mutations (UPLOAD + DELETE)."
+              echo "::notice::To add or replace assets, cut a new version. See memory: github_release_pipeline_constraints.md"
+              echo "ℹ️  Skipping create-release work; downstream jobs will run against existing published state."
             fi
           else
             echo "Creating new DRAFT release ${VERSION} with artifacts..."
