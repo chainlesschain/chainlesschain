@@ -1,5 +1,34 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update VI — **B4-merkle v1 — channel-event Merkle batch envelope finality**
+
+The P2P social path graduates from "messages are trusted + auto-mesh" to also producing offline-verifiable Merkle batch envelopes for every locally-sent channel message. Composes with B4a's Ed25519 per-message signatures: you now have third-party-verifiable evidence "I sent message Z to channel Y at time X."
+
+| Topic | File | Description |
+|---|---|---|
+| **ChannelEventBatcher** | `src/main/mtc/channel-event-batch.js` (+390) | Accumulates `staging/<message-id>.json` → triggers `closeBatch` on threshold (default 100) or timer (default 1h) → writes `batches/<batch-id>/{manifest,landmark,envelope-*}.json`. Layout mirrors audit-mtc's `~/.chainlesschain/audit-mtc/`. Atomic rename + crash rollback. Path: `<userData>/channel-mtc/<communityId>/`. tweetnacl-based MTC signer (sidesteps `@noble/curves@2.2.0` removing the `/ed25519` subpath + workspace hoisting trap). `_assembleBatchLocal` uses core-mtc's `/hash` `/jcs` `/merkle` `/constants` subpath primitives directly (does NOT require core-mtc's index, which would transitively load the broken ed25519 signer) |
+| social-initializer registration | `src/main/bootstrap/social-initializer.js` (+45) | `channelEventBatcher` initializer (depends on `didManager`), `autoTimer:true` starts the 1h closer. Failure-tolerant |
+| community-ipc enqueue after dual-publish | `src/main/social/community-ipc.js` (+28) | `channel:send-message` IPC, after channelManager.sendMessage + gossip + MTC, enqueues the signed message into the batcher (B4a's sender_pubkey + signature anchor the leaf). Failure swallowed. New `channel:get-message-envelope` IPC takes `(communityId, messageId)` → returns `{found, envelope, landmark, treeHeadId, batchId, leafIndex}` |
+| Wire compat | — | Output landmark + envelopes are wire-compatible with core-mtc's verifier — peers can use `cc mtc verify` against inclusion proofs without our desktop binaries |
+
+**Sub-phase scope (v1 vs B4-merkle follow-up)**
+- v1: local-only batching + local envelope queries. Wire-compatible but **does not** auto-broadcast envelopes via federation (peers without your batch dir cannot query)
+- Follow-up: cross-machine envelope distribution (publish landmark via federation channel + on-demand pull); cron-based archival to OSS / WebDAV / IPFS; UI envelope viewer ("show this message's cryptographic proof")
+
+**Test matrix (B4-merkle adds 31, total 969 / 969 across 27 files)**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `mtc/__tests__/channel-event-batch.test.js` | 23 — real fs (tmp dir) + real core-mtc primitives × constructor / enqueueEvent / filesystem path-traversal guards / threshold auto-close / closeBatch full lifecycle / sequential batch ids / no-identity → throw / findEnvelope three states / loadEnvelopeAndLandmark / closeAllPending |
+| Integration | `social/__tests__/community-ipc-merkle-enqueue.integration.test.js` | 8 — `channel:send-message` IPC enqueues / unsigned skipped / batcher throw doesn't block / null batcher fallback + `channel:get-message-envelope` IPC delegates / null batcher / missing args / batcher throws |
+| Full 27-file regression (p2p + social + mtc + did + bootstrap) | — | **969 / 969** ✅ |
+
+**Real-world bugs / lessons**
+- `@noble/curves` cross-version subpath removal: core-mtc deps `^1.9.7` (has `./ed25519` subpath), desktop-app-vue's standalone node_modules has `@2.2.0` (subpath removed). `require("@chainlesschain/core-mtc")` index file top-level requires the ed25519 signer module, which fails to load → entire core-mtc module unusable. Fix: **don't require core-mtc index**, only require the specific subpath primitives we use (`/hash` `/jcs` `/merkle` `/constants` — none touch @noble/curves), implement the MTC signer interface ourselves with tweetnacl, and run a local `_assembleBatchLocal` that bypasses `@noble/curves` entirely
+- Another manifestation of the hoisting trap warned about in memory `desktop_release_npm_workspace_hoisting.md` — this time it's different npm versions locked into standalone node_modules
+
+**.exe background rebuild complete (exit 0)**: `out/build/ChainlessChain-Setup-5.0.3-alpha.40.exe` 426 MB, includes Phase A + Phase B v1 + B4 + B4-merkle. The previous v5.0.3.40 install (Phase A only) won't auto-update on restart (semver matches); to test the upgrade requires manual install.
+
 ## 2026-05-07 Update V — **B4 — DID signing + auto peer bridging**
 
 P2P social path graduates from "works" to "anti-impersonation + auto-mesh". Two features bundled because they share wire-protocol surface:

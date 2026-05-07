@@ -67,6 +67,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.40 (rolling)',
+    title: 'Community/channel cross-machine sync — Phase A + B4 + Web Shell Phase 3c.7',
+    sub: '5 commits · 22 files / 891 tests + 47 new B4 cases',
+    desc: 'Phase A fixed 7 underlying bugs (libp2p 3.x stream API + handler registration miss + dispatch + orphan gossip subscriber) so two real machines that join the same community now actually see each other\'s channel messages; Phase B v1 layers MTC federation gossipsub as a parallel "audit-grade" track. B4 ships sender_pubkey + Ed25519 detached signature on every channel_message — receivers triple-verify DID ↔ pubkey, signature, and field shape, closing the impersonation gap. B4 auto peer bridging broadcasts an `mtc:advertise` envelope on `peer:connected` so MTC federation finds peers without manual ops. Web Shell Phase 3c.7: screenshot OCR / notification settings / tray router fix wires all 5 tray quick-actions (global-search / clipboard-import / show-notifications / screenshot-ocr / open-settings#notifications) to real routes, retiring 5 hardcoded "coming soon" toasts; adds 5 new WS topics + ScreenshotImportDialog / NotificationSettings views.',
+  },
+  {
     tag: 'v5.0.3.40',
     title: 'MTC view in-process speedup + CI triple-unblock',
     sub: '4 fixes · bypass asar cold-start · 12224 tests',

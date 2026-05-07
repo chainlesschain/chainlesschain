@@ -20,6 +20,9 @@ const electron = require("electron");
  * @param {Object} [dependencies.mtcFederationManager] - Phase B MTC fed gossipsub
  *   (optional; when present, community/channel events are dual-published on
  *   `cc.community.<id>.events` topic alongside the Phase A gossip path)
+ * @param {Object} [dependencies.channelEventBatcher] - B4-merkle channel event
+ *   batcher (optional; when present, locally-sent signed messages are
+ *   enqueued for Merkle batch envelope finality)
  * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
  */
 function registerCommunityIPC({
@@ -29,6 +32,7 @@ function registerCommunityIPC({
   gossipProtocol,
   contentModerator,
   mtcFederationManager,
+  channelEventBatcher,
   ipcMain,
 }) {
   // Default to real electron.ipcMain in production; tests inject a mock.
@@ -423,6 +427,24 @@ function registerCommunityIPC({
               );
             }
           }
+
+          // B4-merkle v1: enqueue our own signed messages into per-community
+          // staging for Merkle batch envelope finality. enqueueEvent skips
+          // unsigned messages (B4a contract); auto-closes when threshold hit.
+          if (
+            channelEventBatcher &&
+            message.signature &&
+            message.sender_pubkey
+          ) {
+            try {
+              channelEventBatcher.enqueueEvent(channel.community_id, message);
+            } catch (mtcMerkleErr) {
+              logger.warn(
+                "[Community IPC] Merkle envelope enqueue failed:",
+                mtcMerkleErr.message,
+              );
+            }
+          }
         }
       }
 
@@ -448,6 +470,44 @@ function registerCommunityIPC({
       return [];
     }
   });
+
+  /**
+   * B4-merkle: query the Merkle inclusion proof + landmark for a sent
+   * channel message.
+   * Channel: 'channel:get-message-envelope'
+   *
+   * Args: (communityId, messageId) — community must match the one the
+   *   message was sent to (we use this for staging/batch path lookup).
+   * Returns: { found:boolean, staging?:bool, envelope?, landmark?, treeHeadId?,
+   *            namespace?, batchId?, leafIndex? }
+   *
+   * v1: only finds locally-batched messages (i.e. ones this device sent).
+   * Future: cross-machine envelope distribution (federation) so any node
+   * can serve any envelope.
+   */
+  ipcMain.handle(
+    "channel:get-message-envelope",
+    async (_event, communityId, messageId) => {
+      try {
+        if (!channelEventBatcher) {
+          return {
+            found: false,
+            reason: "channelEventBatcher not initialized",
+          };
+        }
+        if (!communityId || !messageId) {
+          return { found: false, reason: "communityId + messageId required" };
+        }
+        return channelEventBatcher.loadEnvelopeAndLandmark(
+          communityId,
+          messageId,
+        );
+      } catch (err) {
+        logger.error("[Community IPC] get-message-envelope failed:", err);
+        return { found: false, reason: err.message };
+      }
+    },
+  );
 
   /**
    * Pin a message

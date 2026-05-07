@@ -70,6 +70,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.40 续',
+    title: '社区/频道跨机同步 Phase A + B4 + Web Shell Phase 3c.7',
+    sub: '5 commit · 22 文件 891 测试 + 47 B4 用例',
+    desc: 'Phase A 修 7 个底层 bug（libp2p 3.x stream API + handler 漏注册 + dispatch + gossip orphan）让两台真机加入同一社区后频道消息真正同步；Phase B v1 叠 MTC federation gossipsub 双轨；B4 每条 channel_message 带 sender_pubkey + Ed25519 detached signature，接收侧三重校验 DID/签名/shape，关闭冒名缝隙；B4 自动 peer 桥接通过 mtc:advertise envelope 在 peer:connected 双向广播。Web Shell Phase 3c.7：截图识别 / 通知设置 / 托盘 5 个 quick-action（global-search / clipboard-import / show-notifications / screenshot-ocr / open-settings#notifications）全部接到真路由，关掉 routeTrayAction 5 处死提示；新增 5 个 WS topic + ScreenshotImportDialog / NotificationSettings 视图。',
+  },
+  {
     tag: 'v5.0.3.40',
     title: 'MTC 视图 in-process 提速 + CI 三发解锁',
     sub: '4 fix · 绕过 asar 冷启动 · 12224 测试',

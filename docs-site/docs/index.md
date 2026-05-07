@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: v5.0.3.40 | CLI 0.161.3 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out · MTC 视图 in-process 提速绕过 asar 冷启动）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由）· cc pack OTA · B4 ASAR surgery（Win 安装 20m → ~5m）· v5.0.3.40 MTC 视图 in-process 提速 + CI 三发 macOS / 规则误报 / Win cold-start 解锁
+  tagline: v5.0.3.40 | CLI 0.161.3 · 112 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 14800+ 测试 · Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out · MTC 视图 in-process 提速绕过 asar 冷启动 · Phase 3c.7 截图识别 + 通知设置 + 托盘路由收口）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由）· cc pack OTA · B4 ASAR surgery（Win 安装 20m → ~5m）· **社区/频道跨机同步真正打通**（Phase A + B v1 + B4 DID 签名 / 自动 MTC peer 桥接，22 文件 891 测试）· CI 三发 macOS / 规则误报 / Win cold-start 解锁
   image:
     src: /logo.png
     alt: ChainlessChain Logo

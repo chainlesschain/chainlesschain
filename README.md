@@ -1,5 +1,34 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 VI（**B4-merkle v1 — channel 事件 Merkle batch envelope finality**）
+
+P2P 社交从"消息可信 + 自动联网"再上一层：本机发出的每条 channel 消息进**离线可验**的 Merkle 批 envelope。配 B4a 的 Ed25519 单条签名，组合得"我可以拿出第三方都能验的证据，证明我在 X 时间向 Y 频道发了 Z 内容"。
+
+| 主题 | 文件 | 说明 |
+|---|---|---|
+| **ChannelEventBatcher** | `src/main/mtc/channel-event-batch.js` (+390) | 累积 staging/&lt;message-id&gt;.json → 按 threshold(默认 100) 或 timer(默认 1h) 触发 closeBatch → 写 `batches/&lt;batch-id&gt;/{manifest,landmark,envelope-*}.json`. 文件布局参考 audit-mtc 的 `~/.chainlesschain/audit-mtc/`. atomic rename + 失败回滚. 路径 `<userData>/channel-mtc/<communityId>/`。tweetnacl-based MTC signer (绕开 `@noble/curves@2.2.0` 的 `/ed25519` subpath 删除 + workspace hoisting trap)。`_assembleBatchLocal` 用 core-mtc 的 `/hash` `/jcs` `/merkle` `/constants` subpath primitives, 不 require core-mtc index (避开 ed25519 module 加载失败) |
+| social-initializer 注册 | `src/main/bootstrap/social-initializer.js` (+45) | `channelEventBatcher` initializer (depends `didManager`)，autoTimer:true 启动 1h closer。failure 不致命 |
+| community-ipc 双发后 enqueue | `src/main/social/community-ipc.js` (+28) | `channel:send-message` IPC 在 channelManager.sendMessage + gossip + MTC 三件之后, 把已签的 message enqueue 到 batcher (B4a 的 sender_pubkey + signature 作为 leaf 锚定字段)。失败 swallow 不阻塞 IPC。新 `channel:get-message-envelope` IPC 接收 `(communityId, messageId)` 返回 `{found, envelope, landmark, treeHeadId, batchId, leafIndex}` |
+| Wire compat | — | 输出 landmark + envelope 跟 core-mtc 自家 verifier wire-compatible，对端可以用 `cc mtc verify` 验 inclusion proof 无需我们的 desktop binaries |
+
+**Sub-phase 范围 (v1 vs B4-merkle 后续)**
+- v1：本机批 + 本机查 envelope。Wire-compatible 但**不**自动 federation broadcast envelope（远端没你的 batch dir 就查不到）
+- B4-merkle 后续：cross-machine envelope 分发（federation 通道 publish landmark + on-demand pull envelopes）；cron-based 永久存档 to OSS / WebDAV / IPFS；UI envelope 展示器（"显示这条消息的密码学证据"）
+
+**测试矩阵 (B4-merkle 新增 31, 累计 969 / 969 全绿 across 27 文件)**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `mtc/__tests__/channel-event-batch.test.js` | 23 — 真 fs (tmp dir) + 真 core-mtc primitives × constructor / enqueueEvent / 文件系统安全防越界 / threshold 自动 close / closeBatch 完整 lifecycle / sequential batch ids / 无身份 → throw / findEnvelope 三种状态 / loadEnvelopeAndLandmark / closeAllPending |
+| Integration | `social/__tests__/community-ipc-merkle-enqueue.integration.test.js` | 8 — IPC `channel:send-message` 走 enqueue / unsigned 跳过 / batcher throw 不阻塞 / null batcher fallback + IPC `channel:get-message-envelope` delegate / null batcher / 缺参 / batcher throw |
+| 全 27 文件回归 (p2p + social + mtc + did + bootstrap) | — | **969 / 969** ✅ |
+
+**关键 bug / 实战记录**
+- `@noble/curves` 跨版本 subpath 删除：core-mtc deps `^1.9.7` (有 `./ed25519` subpath)，desktop-app-vue standalone node_modules 装的是 `@2.2.0` (subpath 删了)。`require("@chainlesschain/core-mtc")` index 文件 top-level 就 require ed25519 signer，整个 module 加载失败。解决：**不 require core-mtc index**，只 require 用得到的 subpath primitives (`/hash` `/jcs` `/merkle` `/constants` 都不依赖 @noble/curves)，自家 tweetnacl 实现 MTC signer 接口，本地 `_assembleBatchLocal` 全程绕开 @noble/curves
+- 这是 memory `desktop_release_npm_workspace_hoisting.md` 警告过的 hoisting trap 的另一种 manifestation——这次是不同 npm 版本被 standalone node_modules 锁住
+
+**.exe 后台 rebuild 完成 (exit 0)**：`out/build/ChainlessChain-Setup-5.0.3-alpha.40.exe` 426 MB，含 Phase A + Phase B v1 + B4 + B4-merkle 全套。原先 v5.0.3.40 (Phase A only) 装机用户重启走 auto-updater 应该不会触发 (semver 一样)；要测必须手动 install。
+
 ## 2026-05-07 增量更新 V（**B4 — DID 签名 + auto peer bridging**）
 
 P2P 社交链路从"能跑"升级为"防伪 + 自动联网"。两件事一起做，共享 wire 协议改动：

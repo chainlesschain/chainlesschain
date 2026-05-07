@@ -3,6 +3,43 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (B4-merkle channel envelope finality)
+
+### Added
+
+- **B4-merkle v1 channel 事件 Merkle 批 envelope finality**（在 B4 DID 签名 + auto peer bridging 之后）—— 本机发出的每条 channel 消息进**离线可验**的 Merkle 批 envelope，组合 B4a 签名得"任何第三方都能验证我在 X 时间向 Y 频道发了 Z"。新模块 `desktop-app-vue/src/main/mtc/channel-event-batch.js` (+390)：累积到 `<userData>/channel-mtc/<communityId>/staging/<message-id>.json` → 按 threshold(默认 100) 或 timer(默认 1h) 触发 `closeBatch` → 写 `batches/<batch-id>/{manifest,landmark,envelope-*}.json` (atomic rename + crash rollback)。`social-initializer` 注册 `channelEventBatcher` initializer（autoTimer 启 1h closer），`community-ipc.channel:send-message` 在三件双发后 enqueue，新 IPC `channel:get-message-envelope(communityId, messageId)` 返回 inclusion proof + landmark 给 renderer / 外部 verifier。tweetnacl-based MTC signer + 自家 `_assembleBatchLocal` 用 core-mtc subpath primitives (`/hash` `/jcs` `/merkle` `/constants`) 绕开 `@noble/curves@^1` vs `@2.2.0` subpath 删除导致 core-mtc index 加载失败的 hoisting trap。输出 landmark/envelope wire-compatible，对端可用 `cc mtc verify` 验证。**总测试**：891 → 969（27 文件全绿），新增 31 用例（channel-event-batch 23 unit + community-ipc-merkle-enqueue 8 integration）。**`out/build/ChainlessChain-Setup-5.0.3-alpha.40.exe` 含全套已 rebuild**（426 MB，exit 0）。
+
+### Notes
+
+- B4-merkle v1 是 **local-only**：本机发出去的 envelope 落本机盘；远端没你的 batch dir 就查不到。Cross-machine envelope 分发是 follow-up sub-phase（federation channel publish landmark + on-demand pull envelopes）。
+- 设计文档新增 §2.2.13（数据流 + 文件布局 + tweetnacl signer 解释 + `@noble/curves` 跨版本 subpath 陷阱实战）。
+- 这是当前 v5.0.3.40 滚动周期的第二批：第一批是社区跨机同步 Phase A + B v1 + B4 + Phase 3c.7。
+
+---
+
+## [5.0.3.40 续 / CLI 0.161.3] - 2026-05-07 (社区/频道跨机同步 Phase A + B4 + Web Shell Phase 3c.7)
+
+### Added
+
+- **社区/频道**：跨机器同步真正打通（commits `50b8ddb05` + `3741a8e7e`）—— v5.0.3.40 之前社区 UI 完整可用但**只在单机生效**：A 在频道发的消息到不了 B 的本地数据库。Phase A 系统性修了 7 个底层 bug：libp2p 3.x stream API（`stream.write` → `stream.send` / `stream.source` → `for await of stream`）、`registerMessageHandler` 在 `P2PManager.initialize` 漏调、收包后没按 type 派发（新增 `decodeWireMessage` + `dispatchTypedMessage`）、`gossipProtocol.message:received` 一直没人订阅（新 `gossipReceiver` 在 social-initializer 接到 `channelManager.handleMessageReceived`）。Phase B v1 在 Phase A 直发 gossip 之上叠 MTC federation gossipsub 作为"审计级"双轨，`channel:send-message` / `community:join` 双发布双订阅、`INSERT OR IGNORE` 幂等。**B4 DID 签名补完**：每条 channel_message 现在带 `sender_pubkey + Ed25519 detached signature`；接收侧三重校验（DID ↔ pubkey、签名验真、shape 合法），关闭 sender_did free-text 冒名缝隙；`signature` / `pubkey` 通过 PRAGMA-based ALTER 加列，向后兼容。**B4 自动 peer 桥接**：libp2p `peer:connected` 双向广播 `mtc:advertise` envelope，对端按收到的 multiaddrs 顺序 `mtcFedMgr.connectPeer` 直至首发命中；非阻塞，Phase A 直发通道始终优先。**总测试**：149 → 891（22 个 p2p+social+mtc 文件全绿），新增 47 个 B4 用例（did-signer 22 + p2p-manager-dispatch +2 + channel-manager-signing 8 + mtc-auto-bridge 15）。
+- **Web Shell Phase 3c.7**：截图识别 + 通知设置 + 托盘路由收口（commit `200078947`）—— Phase 3c.6 已落 NotificationBell + ClipboardImportDialog + SyncSettings + Search.vue，但 web-panel `App.vue` 的 `routeTrayAction` 还写死 "暂未接入 / 即将推出 / 暂无对应页面" toast，从托盘点进来全是死提示。本次：
+  - `screenshot-handlers.js` 新增 3 个 WS topic（`capture` / `ocr` / `cleanup`）封装 `_internal.isInsideTmpDir` gate（防 path-traversal）；`useScreenshot` composable + `ScreenshotImportDialog.vue` port V5；pure-browser 模式自动 `unsupported:true`。
+  - `notification-settings-handlers.js` 新增 2 个 WS topic（`get` / `update`）桥接 `appConfig.notifications.{enabled,sound,badge,desktop}` 子树；`useNotificationSettings` + `NotificationSettings.vue` 与 V5 SystemSettings 第 277-305 行同形。
+  - 托盘 5 个 quick-action（global-search / clipboard-import / show-notifications / screenshot-ocr / open-settings#notifications）全部接到真路由；`Notes.vue` 监听 `?clipboardImport=` / `?screenshotOcr=` query 自动开 dialog；`NotificationBell.vue` mount/unmount `cc:open-notification-drawer` window event。
+  - 测试 26 cases：截图 15（capture/ocr/cleanup envelope + path-traversal reject）+ 通知设置 11（DEFAULTS fallback / patch coercion / 拒绝 null settings）。
+- **Plugin Marketplace 部署脚本骨架**（commit `a62fd8b81`）—— `docker-compose.yml` 加 marketplace services（postgres/redis 复用 db=2、独立 MinIO、db-init 一次性、Spring 容器）；`deploy/init-marketplace-db.sh` 幂等 `CREATE DATABASE` + schema bootstrap；`deploy/PLUGIN_MARKETPLACE_DEPLOY.md` end-to-end BT Panel SSL 部署指南；`deploy/nginx/chainlesschain.conf` 加 `plugins.chainlesschain.com` vhost；`deploy/fix-bt-nginx-marketplace.sh` BT Panel nginx 修复脚本。生产实际是 standalone 部署到 47.111.5.128（该机无 chainlesschain repo），这些是未来 from-repo 部署的参考。
+
+### Fixed
+
+- **Dashboard bundled-skill 发现 + JSON-based stat 解析**（commit `3881b9603`）—— skill 数 / 桌面统计在仪表盘上的展示口径修正，bundled-skill 列表能正确发现，stats 走 JSON 解析不再走 fragile string parse。
+
+### Notes
+
+- 本次 5 个 commit 互不依赖、互不冲突，**仍属 v5.0.3.40 滚动更新**（productVersion 未升）：B4 social 签名 + 自动 MTC 桥接是 Phase B 的真功能补完，社区跨机同步在 .40 之前 UI 已可见但实际不通；Phase 3c.7 是 Web Shell 默认壳路径上托盘 → 页面联动的真接线（之前 5 处死提示）。三大文档站本次同步刷新即对齐。
+- 设计文档 `docs/design/modules/02_去中心化社交模块.md` 新增 §2.2.10（Phase A 跨机同步实战架构 + 7 个底层 bug 列表 + 端到端数据流图）和 §2.2.11（B4 DID 签名 + auto MTC peer bridging），用户文档 `docs-site/docs/chainlesschain/social.md` 在「社区/频道功能」段加 tip 提示，官网 `docs-website-v2/src/pages/index.astro` 三大场景 bullet 加上「社区 / 频道 gossip 跨机同步（v5.0.3.40+）」。
+
+---
+
 ## [5.0.3.40 / CLI 0.161.3] - 2026-05-07 (MTC 视图 in-process 提速 + CI 三发解锁)
 
 ### Fixed

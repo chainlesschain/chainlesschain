@@ -179,6 +179,8 @@ function registerPhases3to4Social({
         contentModerator: dependencies.contentModerator || null,
         // Phase B v1: dual-track sync via MTC federation gossipsub
         mtcFederationManager: dependencies.mtcFederationManager || null,
+        // B4-merkle v1: per-message Merkle envelope finality
+        channelEventBatcher: dependencies.channelEventBatcher || null,
       });
     },
     handlers: 24,

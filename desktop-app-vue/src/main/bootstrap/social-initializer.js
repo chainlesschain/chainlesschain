@@ -663,6 +663,54 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // B4-merkle v1 — channel event batcher (Merkle envelope finality)
+  // ========================================
+  // 接受已经 B4a 签了的 channel_message, 累积到 staging/, 按 threshold/timer
+  // 触发 closeBatch → 写 batches/<id>/{manifest,landmark,envelope-*}.json.
+  // 离线可验 inclusion proof. v1 只 batch *本机发出* 的消息（远端的已经
+  // 由对方 DID 签，不重复签）.
+  //
+  // failure 不致命 — 没 didManager 或没身份就 skip, 社区基础功能不受影响.
+  factory.register({
+    name: "channelEventBatcher",
+    dependsOn: ["didManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { didManager } = context;
+        if (!didManager) {
+          logger.warn("[Social] channelEventBatcher 跳过: didManager 缺失");
+          return null;
+        }
+        const { ChannelEventBatcher } = require("../mtc/channel-event-batch");
+        const rootDir = path.join(app.getPath("userData"), "channel-mtc");
+        const batcher = new ChannelEventBatcher({
+          rootDir,
+          getCurrentIdentity: () => {
+            try {
+              return didManager.getCurrentIdentity
+                ? didManager.getCurrentIdentity()
+                : null;
+            } catch (_err) {
+              return null;
+            }
+          },
+          autoTimer: true, // 1h 默认 closer
+        });
+        batcher.initialize();
+        logger.info("[Social] ✓ channelEventBatcher initialized at " + rootDir);
+        return batcher;
+      } catch (error) {
+        logger.warn(
+          "[Social] channelEventBatcher initialization failed (channel sync still works):",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // Phase B v1 — MTC 联邦 gossipsub 通道
   // ========================================
   // 在 Phase A 直连 gossip 之上 *双轨* 加 MTC 联邦 gossipsub. 独立 libp2p
