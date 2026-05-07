@@ -4279,7 +4279,7 @@
       "stepsDivider": "步骤",
       "stepIdPlaceholder": "step-id",
       "dependsOnPlaceholder": "dependsOn",
-      "messagePlaceholder": "任务 prompt（支持 ${step.<id>.summary} 占位）",
+      "messagePlaceholder": "任务 prompt（支持 $step.<id>.summary 占位）",
       "whenPlaceholder": "when 条件（可选，如 step.s1.status === 'completed'）",
       "stepDelete": "删除",
       "stepCounter": "step {idx} / {total}",

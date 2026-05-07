@@ -4279,7 +4279,7 @@
       "stepsDivider": "Steps",
       "stepIdPlaceholder": "step-id",
       "dependsOnPlaceholder": "dependsOn",
-      "messagePlaceholder": "Task prompt (use ${step.<id>.summary} as placeholder)",
+      "messagePlaceholder": "Task prompt (use $step.<id>.summary as placeholder)",
       "whenPlaceholder": "when condition (optional, e.g. step.s1.status === 'completed')",
       "stepDelete": "Delete",
       "stepCounter": "step {idx} / {total}",
