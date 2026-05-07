@@ -31,6 +31,10 @@ export function useMtcArchive() {
   const lastResult = ref(null)
   const loading = ref(false)
   const errorMessage = ref('')
+  // B4-cred-persist v1: cached "is a WebDAV credential saved?" answer.
+  // Null = not yet checked, false = no, true = yes. UI gates the
+  // "use stored credentials" toggle on this.
+  const hasStoredWebdavCredentials = ref(null)
 
   function _setError(err) {
     errorMessage.value = err?.message || String(err)
@@ -110,14 +114,42 @@ export function useMtcArchive() {
     }
   }
 
+  // B4-cred-persist v1: probe whether a WebDAV credential is already
+  // persisted (in the Phase 3c sync-credentials secure-config.enc store).
+  // Only ever returns boolean; the credential never crosses the wire.
+  async function checkStoredWebdavCredentials() {
+    errorMessage.value = ''
+    try {
+      const reply = await ws.sendRaw(
+        { type: 'mtc.archive.has-stored-webdav-credentials' },
+        REQUEST_TIMEOUT_MS,
+      )
+      const r = _unwrap(reply)
+      if (!r || r.success !== true) {
+        // Don't surface this as a hard error — pure-browser / pre-init
+        // shells legitimately can't probe. Just leave the flag as null
+        // so the UI knows the answer is unknown.
+        hasStoredWebdavCredentials.value = false
+        return false
+      }
+      hasStoredWebdavCredentials.value = !!r.hasCredentials
+      return hasStoredWebdavCredentials.value
+    } catch (err) {
+      hasStoredWebdavCredentials.value = false
+      return _setError(err)
+    }
+  }
+
   return {
     archives,
     lastResult,
     loading,
     errorMessage,
     isEmbedded,
+    hasStoredWebdavCredentials,
     listArchives,
     pushArchive,
     restoreArchive,
+    checkStoredWebdavCredentials,
   }
 }

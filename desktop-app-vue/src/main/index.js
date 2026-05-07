@@ -921,6 +921,12 @@ class ChainlessChainApp {
         // B4-mofn-sign v2: needed for mtc.governance-mofn.sign-as-self
         // (main resolves current identity, private key never crosses wire)
         didManager: this.didManager ?? null,
+        // B4-cred-persist v1: lets web-shell archive UI check whether a
+        // WebDAV credential is already saved in secure-config.enc, so it
+        // can render the "use stored credentials" toggle. The credential
+        // itself is only read inside archiveProviderFactory; the WS
+        // surface only ever yields a boolean.
+        syncCredentials: require("./sync/sync-credentials"),
         p2pManager: this.p2pManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the

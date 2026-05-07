@@ -692,6 +692,26 @@ function registerCommunityIPC({
     },
   );
 
+  // B4-cred-persist v1: lets V5/V6 desktop UI render "use stored
+  // credentials" toggle. Only ever returns boolean — credential never
+  // crosses IPC. Reuses the existing Phase 3c sync-credentials store
+  // (single source of WebDAV creds for both sync and archive).
+  ipcMain.handle("channel-archive:has-stored-webdav-credentials", async () => {
+    try {
+      const syncCredentials = require("../sync/sync-credentials");
+      return {
+        ok: true,
+        hasCredentials: syncCredentials.hasCredentials("webdav"),
+      };
+    } catch (err) {
+      logger.error(
+        "[Community IPC] channel-archive:has-stored-webdav-credentials failed:",
+        err,
+      );
+      return { ok: false, reason: err.message };
+    }
+  });
+
   // ============================================================
   // B4-crossfed v1 — cross-federation trust anchors IPC
   // ============================================================

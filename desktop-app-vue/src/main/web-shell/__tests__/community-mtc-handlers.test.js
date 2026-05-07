@@ -43,6 +43,7 @@ describe("createCommunityMtcHandlers", () => {
         "mtc.archive.push",
         "mtc.archive.restore",
         "mtc.archive.list",
+        "mtc.archive.has-stored-webdav-credentials",
         "mtc.governance-mofn.create",
         "mtc.governance-mofn.sign",
         "mtc.governance-mofn.sign-as-self",
@@ -196,6 +197,57 @@ describe("createCommunityMtcHandlers", () => {
       const r = await h({ communityId: "c" });
       expect(r.success).toBe(false);
       expect(r.error).toMatch(/provider spec/);
+    });
+
+    describe("has-stored-webdav-credentials (B4-cred-persist v1)", () => {
+      it("returns true when sync-credentials reports a saved webdav config", async () => {
+        const syncCredentials = {
+          hasCredentials: vi.fn().mockReturnValue(true),
+        };
+        const h = createCommunityMtcHandlers({
+          syncCredentials,
+        })["mtc.archive.has-stored-webdav-credentials"];
+        const r = await h();
+        expect(r.success).toBe(true);
+        expect(r.hasCredentials).toBe(true);
+        expect(syncCredentials.hasCredentials).toHaveBeenCalledWith("webdav");
+      });
+
+      it("returns false when no credentials saved yet", async () => {
+        const syncCredentials = {
+          hasCredentials: vi.fn().mockReturnValue(false),
+        };
+        const h = createCommunityMtcHandlers({
+          syncCredentials,
+        })["mtc.archive.has-stored-webdav-credentials"];
+        const r = await h();
+        expect(r.success).toBe(true);
+        expect(r.hasCredentials).toBe(false);
+      });
+
+      it("returns clean error envelope when syncCredentials missing", async () => {
+        const h = createCommunityMtcHandlers({})[
+          "mtc.archive.has-stored-webdav-credentials"
+        ];
+        const r = await h();
+        expect(r.success).toBe(false);
+        expect(r.error).toMatch(/syncCredentials not injected/);
+      });
+
+      it("never leaks credential material — only boolean", async () => {
+        const syncCredentials = {
+          hasCredentials: vi.fn().mockReturnValue(true),
+        };
+        const h = createCommunityMtcHandlers({
+          syncCredentials,
+        })["mtc.archive.has-stored-webdav-credentials"];
+        const r = await h();
+        // critical safety invariant
+        expect(r).not.toHaveProperty("password");
+        expect(r).not.toHaveProperty("url");
+        expect(r).not.toHaveProperty("username");
+        expect(Object.keys(r).sort()).toEqual(["hasCredentials", "success"]);
+      });
     });
   });
 

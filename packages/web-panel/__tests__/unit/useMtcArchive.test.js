@@ -119,4 +119,60 @@ describe('useMtcArchive', () => {
     const { isEmbedded } = useMtcArchive()
     expect(isEmbedded).toBe(false)
   })
+
+  describe('checkStoredWebdavCredentials (B4-cred-persist v1)', () => {
+    it('updates flag to true when vault has credentials', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: { success: true, hasCredentials: true },
+      })
+      const { hasStoredWebdavCredentials, checkStoredWebdavCredentials } =
+        useMtcArchive()
+      const r = await checkStoredWebdavCredentials()
+      expect(r).toBe(true)
+      expect(hasStoredWebdavCredentials.value).toBe(true)
+      const args = sendRawMock.mock.calls[0][0]
+      expect(args.type).toBe('mtc.archive.has-stored-webdav-credentials')
+      // Critical: the request payload itself must not carry any cred fields
+      expect(args).not.toHaveProperty('password')
+      expect(args).not.toHaveProperty('url')
+      expect(args).not.toHaveProperty('username')
+    })
+
+    it('updates flag to false when vault empty', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: { success: true, hasCredentials: false },
+      })
+      const { hasStoredWebdavCredentials, checkStoredWebdavCredentials } =
+        useMtcArchive()
+      const r = await checkStoredWebdavCredentials()
+      expect(r).toBe(false)
+      expect(hasStoredWebdavCredentials.value).toBe(false)
+    })
+
+    it('treats handler error as "unknown / disabled" (false), not hard failure', async () => {
+      sendRawMock.mockResolvedValue({
+        ok: true,
+        result: { success: false, error: 'syncCredentials not injected' },
+      })
+      const { hasStoredWebdavCredentials, checkStoredWebdavCredentials } =
+        useMtcArchive()
+      const r = await checkStoredWebdavCredentials()
+      // pure-browser / pre-init shells legitimately can't probe; we only
+      // want to disable the toggle, not blow up the page
+      expect(r).toBe(false)
+      expect(hasStoredWebdavCredentials.value).toBe(false)
+    })
+
+    it('returns null on transport error', async () => {
+      sendRawMock.mockRejectedValue(new Error('ws closed'))
+      const { hasStoredWebdavCredentials, checkStoredWebdavCredentials, errorMessage } =
+        useMtcArchive()
+      const r = await checkStoredWebdavCredentials()
+      expect(r).toBeNull()
+      expect(errorMessage.value).toMatch(/ws closed/)
+      expect(hasStoredWebdavCredentials.value).toBe(false)
+    })
+  })
 })

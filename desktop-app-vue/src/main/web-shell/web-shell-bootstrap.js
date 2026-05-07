@@ -239,6 +239,10 @@ async function startWebShell(options = {}) {
       // B4-mofn-sign v2: didManager so sign-as-self can resolve current
       // identity in main without renderer ever shipping private keys.
       didManager: options.didManager ?? null,
+      // B4-cred-persist v1: syncCredentials lets archive UI check whether
+      // a WebDAV credential is already saved (without exposing it) so the
+      // "use stored credentials" toggle can render correctly.
+      syncCredentials: options.syncCredentials ?? null,
       p2pManager: options.p2pManager ?? null,
     }),
     ...(options.extraHandlers || {}),

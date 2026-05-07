@@ -1,6 +1,45 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-05-07 Update XV — **chat-panel-v5 v1 — V5 desktop ChatPanel's 3 heavy features ported to web-shell**
+## 2026-05-07 Update XVII — **B4-cred-persist v1 — WebDAV credentials via secure-config + fix a latent ~1-month field-name bug**
+
+§2.2.21 (XIV) shipped MtcAudit but the archive Tab forced users to re-type baseUrl/username/password into the WS payload on every push — violating the principle that credentials shouldn't traverse the wire repeatedly. Worse: anyone actually trying WebDAV archive would hit "url required" immediately — WebDAVClient's constructor reads `url`/`remotePath`, but the archive factory has been passing `baseUrl`/`remoteRoot` since §2.2.16, so the field names never matched. The B4-archive WebDAV path has been **completely broken since landing**, but nobody noticed because XIV was the first UI driver and most CLI runs used filesystem.
+
+| Aspect | v1 - XIV (broken) | v2 - XVII (this update) |
+|---|---|---|
+| WebDAV field names | spec.baseUrl / remoteRoot (wrong) | spec.url / remotePath (correct) |
+| Credential source | manual entry every push, traverses wire | reuses Phase 3c sync-credentials secure-config.enc (safeStorage / AES-256-GCM) |
+| Renderer holds password? | yes (input v-model) | no (toggle ON hides input fields entirely) |
+| Wire carries password? | yes | no (main resolves from vault internally) |
+
+**Changes (5 files / 8+ tests)**:
+- `archive-provider-factory.js` **new** (+90) — extracted from social-initializer; adds `useStoredCredentials:true` mode; field-name fix
+- `social-initializer.js` factory init now one-liner (-58 / +5)
+- `community-ipc.js` new IPC `channel-archive:has-stored-webdav-credentials` (boolean only)
+- `community-mtc-handlers.js` new WS topic `mtc.archive.has-stored-webdav-credentials` (boolean only)
+- `web-shell-bootstrap.js` + `index.js` thread `syncCredentials` dep through (+10)
+- `useMtcArchive.js` adds `checkStoredWebdavCredentials()` + `hasStoredWebdavCredentials` ref
+- `MtcAudit.vue` Archive Tab redone: switch toggle (default ON) + field-name fix; alert-driven help when vault empty
+
+**Tests (8 new)**:
+- `archive-provider-factory.test.js` **new** 12 tests — filesystem / webdav explicit / useStoredCredentials 4 sub-cases / field-name lock (asserts NO baseUrl/remoteRoot) / null spec / unknown kind
+- `community-mtc-handlers.test.js` +4 — has-stored true/false / missing dep / safety invariant (response keys = exactly `{success, hasCredentials}`)
+- `useMtcArchive.test.js` +4 — flag true/false / soft-false on handler error / null on transport error
+
+**Regression**: desktop social/mtc/web-shell 1244/1244 (+10 tests) + web-panel 1976/1978 (the 2 phase-b CLI failures are pre-existing flakes — verified by re-running on stash-clean main).
+
+**Critical security invariants**:
+- Factory: `useStoredCredentials=true` makes inline url/username/password **completely ignored** (vault wins) — prevents spec-injection attacks.
+- IPC + WS: `hasCredentials` response carries exactly `{success, hasCredentials}` — locked by unit test `expect(Object.keys(r).sort()).toEqual(['hasCredentials','success'])`.
+- UI: toggle defaults ON; when vault empty, toggle is disabled and an a-alert directs the user to Settings → 同步 → WebDAV.
+
+**Design choices**:
+1. Did NOT spin up a new credential-vault subsystem — reused Phase 3c sync-credentials (`secure-config.enc` + safeStorage / AES-256-GCM fallback), single source of truth.
+2. Did NOT expose any `credentials.encrypt/decrypt` IPC — all decryption stays inside main's archiveProviderFactory closure.
+3. Extracted factory from social-initializer to standalone module — DI wiring shrunk -58/+5, factory now independently testable, future OSS/S3 additions plug in cleanly.
+
+---
+
+## 2026-05-07 Update XVI — **chat-panel-v5 v1 + v1.1 — V5 desktop ChatPanel fully ported to web-shell**
 
 V5 desktop `components/projects/ChatPanel.vue` (3788 lines) was long flagged as "a different much larger port" — the intent recognition / autoSend / virtual list / context-mode quartet plus its 5 IPC + 6 channel coupling kept it out of the web-shell. This update lands the full port (with a real LLM backend, not a stub).
 

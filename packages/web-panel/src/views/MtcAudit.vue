@@ -12,7 +12,7 @@
 -->
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
   Tabs,
   TabPane,
@@ -32,6 +32,7 @@ import {
   Space,
   Typography,
   Modal,
+  Switch,
   message,
 } from 'ant-design-vue'
 
@@ -65,25 +66,44 @@ const archForm = reactive({
   communityId: '',
   providerKind: 'filesystem',
   rootDir: '',
-  baseUrl: '',
+  // B4-cred-persist v1: when true and credentials are saved, the WS
+  // payload omits url/username/password entirely — main resolves them
+  // from the secure-config.enc vault that Phase 3c sync already wrote.
+  useStoredCredentials: true,
+  url: '',
   username: '',
   password: '',
-  remoteRoot: '',
+  remotePath: '',
   sinceBatchId: '',
   archiveName: '',
 })
+
+// On mount: probe the vault so the toggle reflects reality. Same probe
+// also runs on every providerKind switch back to webdav (cheap, no key
+// material crosses the wire — only a boolean).
+async function refreshStoredCredCheck() {
+  if (archive.isEmbedded) {
+    await archive.checkStoredWebdavCredentials()
+  }
+}
+onMounted(refreshStoredCredCheck)
 
 const providerSpec = computed(() => {
   if (archForm.providerKind === 'filesystem') {
     return { kind: 'filesystem', rootDir: archForm.rootDir }
   }
   if (archForm.providerKind === 'webdav') {
+    if (archForm.useStoredCredentials) {
+      // Main process pulls url/username/password from
+      // sync-credentials.getCredentials('webdav'). Secure path.
+      return { kind: 'webdav', useStoredCredentials: true }
+    }
     return {
       kind: 'webdav',
-      baseUrl: archForm.baseUrl,
+      url: archForm.url,
       username: archForm.username,
       password: archForm.password,
-      remoteRoot: archForm.remoteRoot,
+      remotePath: archForm.remotePath,
     }
   }
   return null
@@ -351,18 +371,42 @@ async function trustDids() {
             <Input v-model:value="archForm.rootDir" placeholder="/path/to/archive-mirror" />
           </FormItem>
           <template v-else>
-            <FormItem label="baseUrl">
-              <Input v-model:value="archForm.baseUrl" placeholder="https://nas.example/dav" />
+            <FormItem label="使用已保存的 WebDAV 凭据">
+              <Space direction="vertical" style="width: 100%">
+                <Switch
+                  v-model:checked="archForm.useStoredCredentials"
+                  :disabled="archive.hasStoredWebdavCredentials.value === false"
+                  checked-children="使用 Settings 中已保存的 WebDAV 配置"
+                  un-checked-children="本次手输（仍只在 main 进程暂存，不写盘）"
+                />
+                <Alert
+                  v-if="archForm.useStoredCredentials && archive.hasStoredWebdavCredentials.value === true"
+                  type="success"
+                  show-icon
+                  message="已找到 Settings → 同步 → WebDAV 中保存的凭据，主进程会从 secure-config.enc（safeStorage / AES-256-GCM 加密）解密后构造 WebDAVClient — 渲染端不接触明文密码。"
+                />
+                <Alert
+                  v-else-if="archForm.useStoredCredentials && archive.hasStoredWebdavCredentials.value === false"
+                  type="warning"
+                  show-icon
+                  message="尚未保存 WebDAV 凭据，请先在 Settings → 同步 → WebDAV 中配置一次，然后再回来推送归档。"
+                />
+              </Space>
             </FormItem>
-            <FormItem label="username">
-              <Input v-model:value="archForm.username" />
-            </FormItem>
-            <FormItem label="password">
-              <Input v-model:value="archForm.password" type="password" />
-            </FormItem>
-            <FormItem label="remoteRoot">
-              <Input v-model:value="archForm.remoteRoot" placeholder="/cc-archives" />
-            </FormItem>
+            <template v-if="!archForm.useStoredCredentials">
+              <FormItem label="url">
+                <Input v-model:value="archForm.url" placeholder="https://nas.example/dav" />
+              </FormItem>
+              <FormItem label="username">
+                <Input v-model:value="archForm.username" />
+              </FormItem>
+              <FormItem label="password">
+                <Input v-model:value="archForm.password" type="password" />
+              </FormItem>
+              <FormItem label="remotePath">
+                <Input v-model:value="archForm.remotePath" placeholder="/cc-archives" />
+              </FormItem>
+            </template>
           </template>
           <FormItem label="(可选) sinceBatchId 增量推">
             <Input v-model:value="archForm.sinceBatchId" placeholder="000005" />

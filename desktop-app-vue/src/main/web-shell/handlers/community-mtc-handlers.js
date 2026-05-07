@@ -183,6 +183,32 @@ function createArchiveListHandler(opts = {}) {
   };
 }
 
+// B4-cred-persist v1: lightweight check so UI can render the
+// "use stored WebDAV credentials" toggle as enabled/disabled.
+// Returns only a boolean — never the credential itself. The check
+// reuses the Phase 3c sync-credentials store so a single saved
+// WebDAV config in Settings → 同步 → WebDAV powers both sync and
+// archive without re-prompting the user.
+function createArchiveHasStoredWebdavCredentialsHandler(opts = {}) {
+  const { syncCredentials } = opts;
+  return async function () {
+    try {
+      if (
+        !syncCredentials ||
+        typeof syncCredentials.hasCredentials !== "function"
+      ) {
+        return { success: false, error: "syncCredentials not injected" };
+      }
+      return {
+        success: true,
+        hasCredentials: syncCredentials.hasCredentials("webdav"),
+      };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // mtc.governance-mofn.* — M-of-N proposal lifecycle
 // ─────────────────────────────────────────────────────────────────────
@@ -423,6 +449,8 @@ function createCommunityMtcHandlers(opts = {}) {
     "mtc.archive.push": createArchivePushHandler(opts),
     "mtc.archive.restore": createArchiveRestoreHandler(opts),
     "mtc.archive.list": createArchiveListHandler(opts),
+    "mtc.archive.has-stored-webdav-credentials":
+      createArchiveHasStoredWebdavCredentialsHandler(opts),
 
     "mtc.governance-mofn.create": createGovernanceMofnCreateHandler(opts),
     "mtc.governance-mofn.sign": createGovernanceMofnSignHandler(opts),
@@ -447,6 +475,7 @@ module.exports = {
   createArchivePushHandler,
   createArchiveRestoreHandler,
   createArchiveListHandler,
+  createArchiveHasStoredWebdavCredentialsHandler,
   createGovernanceMofnCreateHandler,
   createGovernanceMofnSignHandler,
   createGovernanceMofnSignAsSelfHandler,

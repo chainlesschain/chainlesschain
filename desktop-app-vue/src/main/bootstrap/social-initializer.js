@@ -749,6 +749,22 @@ function registerSocialInitializers(factory) {
   // archiveProviderFactory — factory that takes a renderer-supplied
   // {kind, ...opts} spec and returns a provider instance. Filesystem and
   // webdav are wired here; OSS / IPFS / Git can be added without IPC churn.
+  //
+  // B4-cred-persist v1 (2026-05-07): added `useStoredCredentials:true`
+  // mode for `kind:'webdav'`. When set, the factory reads credentials
+  // from sync-credentials.getCredentials('webdav') (already persisted to
+  // safeStorage-encrypted secure-config.enc by the existing Phase 3c
+  // sync subsystem). UI renderer only needs to send {kind:'webdav',
+  // useStoredCredentials:true} — no password ever crosses the wire.
+  // Legacy explicit-spec mode `{kind:'webdav', url, username, password,
+  // remotePath}` retained for CLI / tests / advanced users.
+  //
+  // Also fixes a latent bug: pre-existing code passed `baseUrl` /
+  // `remoteRoot` to WebDAVClient, but the constructor expects `url` /
+  // `remotePath`. WebDAV archive path was silently broken since B4-
+  // archive landed — `this.url = ""` would have thrown 'url 必填' on
+  // the very first push. Nobody noticed because UI only came online in
+  // §2.2.21 (XIV).
   factory.register({
     name: "archiveProviderFactory",
     dependsOn: [],
@@ -756,39 +772,9 @@ function registerSocialInitializers(factory) {
     async init(_context) {
       try {
         const {
-          filesystemProvider,
-          webdavProvider,
-        } = require("../mtc/channel-envelope-archiver");
-        return function archiveProviderFactoryImpl(spec) {
-          if (!spec || typeof spec !== "object") {
-            throw new Error("provider spec required");
-          }
-          if (spec.kind === "filesystem") {
-            if (!spec.rootDir) {
-              throw new Error("filesystem provider needs rootDir");
-            }
-            return filesystemProvider({ rootDir: spec.rootDir });
-          }
-          if (spec.kind === "webdav") {
-            // Lazy-instantiate the WebDAV client per-call so credentials
-            // don't sit in memory between archive operations. Renderer
-            // passes {kind:'webdav', baseUrl, username, password,
-            // remoteRoot} (password injection point — UI should never
-            // persist it client-side; main process can read from secure
-            // store).
-            const { WebDAVClient } = require("../sync/webdav-client");
-            const client = new WebDAVClient({
-              baseUrl: spec.baseUrl,
-              username: spec.username,
-              password: spec.password,
-              remoteRoot: spec.remoteRoot,
-            });
-            return webdavProvider(client);
-          }
-          throw new Error(
-            "unsupported provider kind: " + (spec.kind || "<empty>"),
-          );
-        };
+          createArchiveProviderFactory,
+        } = require("../mtc/archive-provider-factory");
+        return createArchiveProviderFactory();
       } catch (error) {
         logger.warn(
           "[Social] archiveProviderFactory init failed:",

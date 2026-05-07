@@ -1,6 +1,48 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-05-07 增量更新 XV（**chat-panel-v5 v1 — V5 桌面 ChatPanel 三大重型功能 port 到 web-shell**）
+## 2026-05-07 增量更新 XVII（**B4-cred-persist v1 — WebDAV 凭据走 secure-config + 修一个潜伏 ~1 个月的字段名 bug**）
+
+§2.2.21（XIV）落 MtcAudit 时 archive Tab 让用户每次 push 都手输 baseUrl/username/password 走 WS——这违反了"凭据不应在 wire 上反复出现"原则；同时只要真去用 WebDAV archive 就会发现"url 必填"立刻抛错——WebDAVClient 构造器读 `url`/`remotePath`，archive 工厂从 §2.2.16 起一直传 `baseUrl`/`remoteRoot`，名字根本对不上，B4-archive WebDAV 路径自从落地就**完全不可用**。XIV 之前没人真点过那个按钮（CLI 路径走 filesystem 居多），所以一直没爆。本节同时解决两个问题：
+
+| 维度 | v1 - XIV（broken）| v2 - XVII（本节）|
+|---|---|---|
+| WebDAV 字段名 | spec.baseUrl / remoteRoot（错的）| spec.url / remotePath（对的）|
+| 凭据来源 | 每次 push 都手输 + 走 wire | 复用 Phase 3c sync-credentials secure-config.enc（safeStorage / AES-256-GCM）|
+| Renderer 是否持密码 | 是（input v-model）| 否（toggle 默认 ON 时不显示输入框）|
+| Wire 上是否有密码 | 是 | 否（main 内部从 vault 解密） |
+
+**改动 (5 文件 / 8+ 测试)**：
+
+| 文件 | 改动 | 说明 |
+|---|---|---|
+| `desktop-app-vue/src/main/mtc/archive-provider-factory.js` | **新文件** (+90) | 从 social-initializer 抽出工厂；支持 `useStoredCredentials:true` 模式；字段名修正 |
+| `desktop-app-vue/src/main/bootstrap/social-initializer.js` | 工厂 init 改用新模块 (-58 / +5) | DI 装配只剩一行 |
+| `desktop-app-vue/src/main/social/community-ipc.js` | 新 IPC `channel-archive:has-stored-webdav-credentials` (+22) | 桌面 V5/V6 路径，只回 boolean |
+| `desktop-app-vue/src/main/web-shell/handlers/community-mtc-handlers.js` | 新 WS topic `mtc.archive.has-stored-webdav-credentials` (+25) | web-shell 默认壳，只回 boolean |
+| `desktop-app-vue/src/main/web-shell/web-shell-bootstrap.js` + `index.js` | 透传 `syncCredentials` 依赖 (+10) | 让 WS handler 拿到 sync-credentials 模块引用 |
+| `packages/web-panel/src/composables/useMtcArchive.js` | 加 `checkStoredWebdavCredentials()` + `hasStoredWebdavCredentials` ref (+30) | UI 探测：vault 是否已有凭据 |
+| `packages/web-panel/src/views/MtcAudit.vue` | Archive Tab 重做：toggle + 字段名修 (+30 / -15) | switch 默认 ON；vault 空时改提示去 Settings 配 |
+
+**测试 (8 新)**：
+- `desktop-app-vue/src/main/mtc/__tests__/archive-provider-factory.test.js` **新文件** 12 测试 — filesystem 路径 / webdav 显式 spec / webdav useStoredCredentials 4 子用例 / 字段名锁定（assert NOT 含 baseUrl/remoteRoot）/ 拒空 spec / 拒未知 kind
+- `desktop-app-vue/src/main/web-shell/__tests__/community-mtc-handlers.test.js` +4 测试 — has-stored true/false / 缺 syncCredentials 注入 / 关键安全断言（响应只含 hasCredentials+success 二字段）
+- `packages/web-panel/__tests__/unit/useMtcArchive.test.js` +4 测试 — flag true/false / handler error → soft false / transport error → null
+
+**回归 (上下游全绿)**：desktop social/mtc/web-shell 1244/1244（+10 测试） + web-panel 1976/1978（2 个 phase-b CLI 失败为 stash-clean 时也存在的 pre-existing flake，与本次无关，stash 后已验证）。
+
+**关键安全断言**：
+- 工厂层：`useStoredCredentials=true` 时调用方传入的 inline url/username/password **完全忽略**（vault 字段优先）—— 防误用 / 防 spec injection。
+- IPC + WS 层：`hasCredentials` 响应只含 `{success, hasCredentials}` 两字段，单元测试 `expect(Object.keys(r).sort()).toEqual(['hasCredentials','success'])` 锁定。
+- UI 层：toggle 默认 ON；vault 空时 toggle 不可关（disable），同时显示 a-alert 引导去 Settings → 同步 → WebDAV 配置一次。
+
+**B4-cred-persist 决策**：
+1. 不另起 credential-vault 子系统——直接复用 §Phase 3c 已落的 sync-credentials（`secure-config.enc` + safeStorage / AES-256-GCM），单一 source of truth；
+2. 不新增 `credentials.encrypt`/`credentials.decrypt` IPC 暴露——所有解密只在主进程 archiveProviderFactory 内部进行；
+3. 工厂从 social-initializer 抽到独立模块——DI 装配 -58 / +5 行，可独立单测，未来加 OSS/S3 也好扩。
+
+---
+
+## 2026-05-07 增量更新 XVI（**chat-panel-v5 v1 + v1.1 — V5 桌面 ChatPanel 完整 port 到 web-shell**）
 
 V5 桌面 `components/projects/ChatPanel.vue`（3788 行）一直被标记为"a different much larger port"——意图识别 / 自动发送 / 虚拟列表 / context 模式 4 件套和 5 个 IPC + 6 channel 强耦合，长期没下沉到 web-shell。本次完整 port 完成（含真 LLM 后端，不是占位）。
 
@@ -26,7 +68,24 @@ V5 桌面 `components/projects/ChatPanel.vue`（3788 行）一直被标记为"a 
 | CLI ws-server / dispatcher 回归 | — | **61 / 61** ✅ |
 | **新增累计** | — | **69 测试**（CLI 28 + web-panel 41）全绿 |
 
-**端到端总计**：desktop-app-vue 1106 + web-panel 1829 + CLI（chat-intent + ws）89 = **3024 测试全绿**。
+**端到端总计 (v1)**：desktop-app-vue 1106 + web-panel 1829 + CLI（chat-intent + ws）89 = **3024 测试全绿**。
+
+---
+
+### v1.1 增强（4 个 future-work 项一次性消化）
+
+| Improvement | 实现 | 关键文件 |
+|---|---|---|
+| 1. **Streaming intent** | 新 WS topic `chat.intent.understand-stream`（chunk + result + error 三种 frame）。`chat-intent-service.understandIntentStream` 用 `chatStream` 异步生成器，token 边来边推；前端 `submitUserInput` 改用 `ws.sendStream`，立即推 placeholder 卡片"理解中… N tokens"，final 时 promote 为正式卡 | `chat-intent-service.js` `understandIntentStream`、`chat-intent-protocol.js` `handleChatIntentUnderstandStream`、`IntentConfirmationMessage.vue` 加 streaming 视图 |
+| 2. **Multi-turn intent** | `understandIntent` / `understandIntentStream` 接 `history` 参数；prompt 拼对话历史最近 5 条；前端 `submitUserInput` 自动 slice user/assistant 消息（trim 500 字/条）传上去；后端再次 `slice(-10)` 防客户端脏数据 | `chat-intent-service.js` `buildUnderstandPrompts(_, _, history)`、`chatStore.submitUserInput` |
+| 3. **Persist intent decisions** | confirmIntent / correctIntent 入 localStorage `cc.web-panel.chat.intentDecisions`（key：`<sessionId>::<messageId>`）；submitUserInput push 卡片时 lookup 历史决策 replay status；LRU 200 条上限按 ts 淘汰 | `chatStore.js` `recordIntentDecision/lookupIntentDecision/writePersistedIntentDecisions` |
+| 4. **Custom quickPrompts** | `chatStore.customQuickPrompts` ref + localStorage `cc.web-panel.chat.customQuickPrompts`；`setCustomQuickPrompts` 自动 trim/滤空/cap (12 entries × 120 chars)；空态加"+ 编辑"按钮打开 a-modal 编辑器（每行一条 prompt），有"恢复默认" | `chatStore.js`、`Chat.vue` modal、`locales` `chat.quickPromptsEditor.*` 7 keys |
+
+**新增 7 测试**（覆盖 4 个 improvement）：sendStream + onChunk 计数 / history payload 形状（tool 过滤）/ confirmIntent 落 localStorage / correctIntent 落 correction 字段 / customQuickPrompts trim+滤空 / 12×120 cap / null 清除。
+
+**E2E 测试修复**（顺手处理预存 3 个失败）：`__tests__/e2e/panel.test.js` 改用 `net.listen(0)` 拿 kernel-allocated 空闲端口，并解析 `cc ui` 启动 banner 真实绑定的 port（cc ui 有静默 port-fallback：requested 端口被占时 silently 切到下一个空闲口，导致 `httpGet(requestedPort)` 打到无关进程上 ECONNRESET，本地 5 个陈旧 vitest fork 进程占了 19210-19219）。4 个 suite 全部从硬编码端口迁移到动态分配。**3 个预存失败 → 0**。
+
+**累计 (v1 + v1.1)**：web-panel 1844/1844 + CLI 89/89 + e2e 63/63 + desktop-app-vue 1106/1106 = **3102 测试全绿** ✅
 
 **已知 caveat**：
 - 端到端浏览器 smoke（开 `cc serve --mode project --ui full` 后真跑 LLM 走完意图卡 → 点确认 → agent 回复）尚未做，建议 ship 前手动验一次。
