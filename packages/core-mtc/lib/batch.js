@@ -14,6 +14,7 @@ const {
   SCHEMA_TREE_HEAD,
   SCHEMA_LANDMARK,
   TREE_HEAD_SIG_PREFIX,
+  LANDMARK_SIG_PREFIX,
 } = require("./constants.js");
 const { sha256, leafHash, encodeHashStr } = require("./hash.js");
 const { jcs } = require("./jcs.js");
@@ -84,9 +85,19 @@ function assembleBatch(rawLeaves, keys, meta, signer) {
     publisher_signature: {
       alg: signImpl.ALG || "Ed25519",
       key_id: meta.issuer + "#key-1",
-      sig: "TODO-PUBLISHER-SIG",
+      sig: "",
     },
   };
+  // Sign the canonicalized landmark (with sig="" placeholder) using the
+  // LANDMARK domain-separation prefix, then patch sig in-place. Reuses
+  // signTreeHead since it's a generic "sign these bytes" routine.
+  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const publisherSig = signImpl.signTreeHead(landmarkSigInput, {
+    secretKey: keys.secretKey,
+    publicKey: keys.publicKey,
+    issuer: meta.issuer,
+  });
+  landmark.publisher_signature.sig = publisherSig.sig;
 
   const envelopes = rawLeaves.map((leaf, i) => ({
     schema: SCHEMA_ENVELOPE,
@@ -202,6 +213,8 @@ function assembleBatchFederated(rawLeaves, signers, meta) {
     return sig.trustAnchorEntry(s.publicKey, s.issuer);
   });
 
+  const publisherSigner = signers[0];
+  const publisherSigImpl = publisherSigner.signer || ed25519;
   const landmark = {
     schema: SCHEMA_LANDMARK,
     namespace: meta.namespace.split("/").slice(0, -1).join("/"),
@@ -216,11 +229,21 @@ function assembleBatchFederated(rawLeaves, signers, meta) {
     trust_anchors: trustAnchors,
     published_at: issuedAt,
     publisher_signature: {
-      alg: (signers[0].signer || ed25519).ALG || "Ed25519",
+      alg: publisherSigImpl.ALG || "Ed25519",
       key_id: meta.issuer + "#federation",
-      sig: "TODO-PUBLISHER-SIG",
+      sig: "",
     },
   };
+  // Federated path: deterministically sign with the first signer's key.
+  // The snapshot already carries M-of-N signatures[]; publisher_signature
+  // identifies which federation member packaged + published the landmark.
+  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const publisherSigResult = publisherSigImpl.signTreeHead(landmarkSigInput, {
+    secretKey: publisherSigner.secretKey,
+    publicKey: publisherSigner.publicKey,
+    issuer: publisherSigner.issuer,
+  });
+  landmark.publisher_signature.sig = publisherSigResult.sig;
 
   const envelopes = rawLeaves.map((leaf, i) => ({
     schema: SCHEMA_ENVELOPE,

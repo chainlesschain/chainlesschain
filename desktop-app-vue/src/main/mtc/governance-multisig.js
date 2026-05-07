@@ -182,6 +182,7 @@ function _assembleBatchFederatedLocal(rawLeaves, signers, meta) {
       SCHEMA_LANDMARK,
       SCHEMA_ENVELOPE,
       TREE_HEAD_SIG_PREFIX,
+      LANDMARK_SIG_PREFIX,
     },
     sha256,
     leafHash,
@@ -241,6 +242,7 @@ function _assembleBatchFederatedLocal(rawLeaves, signers, meta) {
     _tweetnaclSigner.trustAnchorEntry(s.publicKey, s.issuer),
   );
 
+  const publisherSigner = signers[0];
   const landmark = {
     schema: SCHEMA_LANDMARK,
     namespace: meta.namespace.split("/").slice(0, -1).join("/"),
@@ -256,10 +258,20 @@ function _assembleBatchFederatedLocal(rawLeaves, signers, meta) {
     published_at: issuedAt,
     publisher_signature: {
       alg: MTC_ALG,
-      key_id: meta.issuer + "#key-1",
-      sig: "TODO-PUBLISHER-SIG",
+      key_id: meta.issuer + "#federation",
+      sig: "",
     },
   };
+  // Federated path: sign with first signer's key (deterministic). The
+  // snapshot already carries M-of-N signatures[]; publisher_signature
+  // identifies which member packaged + published the landmark.
+  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const publisherSig = _tweetnaclSigner.signTreeHead(landmarkSigInput, {
+    secretKey: publisherSigner.secretKey,
+    publicKey: publisherSigner.publicKey,
+    issuer: publisherSigner.issuer,
+  });
+  landmark.publisher_signature.sig = publisherSig.sig;
 
   const envelopes = rawLeaves.map((leaf, i) => ({
     schema: SCHEMA_ENVELOPE,

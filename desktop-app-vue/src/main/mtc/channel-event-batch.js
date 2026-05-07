@@ -176,6 +176,7 @@ function _assembleBatchLocal(rawLeaves, keys, meta) {
     SCHEMA_LANDMARK,
     SCHEMA_ENVELOPE,
     TREE_HEAD_SIG_PREFIX,
+    LANDMARK_SIG_PREFIX,
   } = constants;
 
   const issuedAt = meta.issuedAt || new Date().toISOString();
@@ -215,9 +216,18 @@ function _assembleBatchLocal(rawLeaves, keys, meta) {
     publisher_signature: {
       alg: _tweetnaclSigner.ALG,
       key_id: meta.issuer + "#key-1",
-      sig: "TODO-PUBLISHER-SIG",
+      sig: "",
     },
   };
+  // Sign the canonicalized landmark (sig="" placeholder) with the LANDMARK
+  // domain-separation prefix, then patch sig in-place. Mirrors core-mtc/lib/batch.js.
+  const landmarkSigInput = Buffer.concat([LANDMARK_SIG_PREFIX, jcs(landmark)]);
+  const publisherSig = _tweetnaclSigner.signTreeHead(landmarkSigInput, {
+    secretKey: keys.secretKey,
+    publicKey: keys.publicKey,
+    issuer: meta.issuer,
+  });
+  landmark.publisher_signature.sig = publisherSig.sig;
 
   const envelopes = rawLeaves.map((leaf, i) => ({
     schema: SCHEMA_ENVELOPE,
