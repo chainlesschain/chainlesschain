@@ -11,6 +11,37 @@ const { logger } = require("../utils/logger.js");
  *   const pc = new wrtc.RTCPeerConnection(config);
  */
 
+// Mitigate GHSA-78xj-cgh5-2h22 (CVE-2024-29415): the `ip` package's
+// `isPublic()` mis-categorises `0.0.0.0` plus various non-canonical
+// encodings as public addresses. werift / werift-ice both call this
+// when filtering peer-supplied ICE candidates — an authenticated peer
+// could otherwise trick werift into routing to a local-network address.
+// The upstream `ip` package has been unmaintained since 2024 with no
+// patched version; monkey-patch the singleton before werift loads it.
+try {
+  const ip = require("ip");
+  const origIsPublic = ip.isPublic;
+  ip.isPublic = function patchedIsPublic(addr) {
+    if (typeof addr !== "string") {
+      return false;
+    }
+    // 0.0.0.0 / :: are "this network" per RFC 1122 / RFC 4291 — never public
+    if (addr === "0.0.0.0" || addr === "::") {
+      return false;
+    }
+    // Reject hex / octal / leading-zero encodings (0x..., 010.0.0.1, etc.)
+    if (/^0[xX]/.test(addr) || /^0\d/.test(addr)) {
+      return false;
+    }
+    return origIsPublic.call(this, addr);
+  };
+} catch (e) {
+  logger.warn(
+    "[wrtc-compat] ip CVE-2024-29415 patch failed (continuing):",
+    e.message,
+  );
+}
+
 let werift = null;
 let available = false;
 let loadError = null;
