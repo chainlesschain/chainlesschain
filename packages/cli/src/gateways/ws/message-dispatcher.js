@@ -90,6 +90,12 @@ export function createWsMessageDispatcher(server) {
         "task-graph-advance": () =>
           server._handleTaskGraphAdvance(id, ws, message),
         "task-graph-state": () => server._handleTaskGraphState(id, ws, message),
+        "chat.intent.understand": () =>
+          server._handleChatIntentUnderstand(id, ws, message),
+        "chat.intent.understand-stream": () =>
+          server._handleChatIntentUnderstandStream(id, ws, message),
+        "chat.intent.classify-followup": () =>
+          server._handleChatIntentClassifyFollowup(id, ws, message),
       };
 
       // Phase I — Hosted Session API streaming routes (stream.run).

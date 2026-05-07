@@ -4307,6 +4307,14 @@
     },
     "newChat": "Chat",
     "newAgent": "Agent",
+    "role": {
+      "me": "Me"
+    },
+    "contextMode": {
+      "project": "Project",
+      "file": "File",
+      "global": "Global"
+    },
     "session": {
       "untitled": "New chat",
       "messageCountSuffix": "{n} messages"
@@ -4316,7 +4324,28 @@
       "title": "Start an AI chat",
       "subtitle": "Pick a session on the left or create a new one",
       "newChat": "New Chat",
-      "newAgent": "New Agent"
+      "newAgent": "New Agent",
+      "startTitle": "Start a new chat",
+      "hint": {
+        "project": "Ask anything about this project",
+        "file": "Ask anything about the current file",
+        "global": "General AI assistant"
+      }
+    },
+    "quickPrompts": {
+      "summarize": "Summarise the project",
+      "brainstorm": "Help me brainstorm",
+      "explain": "Explain a concept",
+      "codeReview": "Code review checklist"
+    },
+    "quickPromptsEditor": {
+      "openButton": "+ Edit",
+      "title": "Customise quick prompts",
+      "hint": "One per line; up to 12 entries, each ≤ 120 chars. Leave empty to restore defaults.",
+      "placeholder": "Summarise the project\nHelp me brainstorm\n…",
+      "save": "Save",
+      "cancel": "Cancel",
+      "reset": "Restore defaults"
     },
     "input": {
       "loading": "Waiting for response...",
@@ -4329,6 +4358,27 @@
       "running": "running",
       "done": "done",
       "unknownTool": "unknown"
+    },
+    "intent": {
+      "confirmed": "✅ Confirmed",
+      "corrected": "🔄 Corrected",
+      "label": {
+        "original": "Your original input:",
+        "understood": "I understood:",
+        "intent": "Intent:",
+        "keyPoints": "Key points:",
+        "correction": "Your correction:"
+      },
+      "action": {
+        "confirm": "Confirm",
+        "correct": "Correct",
+        "correctPlaceholder": "Type your correction...",
+        "submitCorrection": "Submit",
+        "cancelCorrection": "Cancel"
+      },
+      "status": {
+        "understanding": "Understanding your request..."
+      }
     }
   },
   "dashboard": {

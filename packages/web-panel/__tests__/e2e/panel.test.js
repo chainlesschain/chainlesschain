@@ -1,4 +1,15 @@
 /**
+ * @vitest-environment node
+ *
+ * Forces Node environment instead of the project default (happy-dom). Under
+ * happy-dom, the in-process server `http.get(...)` requests against a real
+ * spawned HTTP server intermittently surface as ECONNRESET — happy-dom's
+ * global patches (fetch / Request / Response) collide with Node's net stack.
+ * Suite 1's GET / pass via timing luck; suite 2 routinely fails. Pinning to
+ * 'node' makes the whole file deterministic.
+ */
+
+/**
  * E2E tests for chainlesschain ui — web panel full pipeline.
  *
  * Spawns the real CLI binary and verifies:
@@ -17,6 +28,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawn } from 'node:child_process'
 import http from 'node:http'
+import net from 'node:net'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -31,6 +43,33 @@ const builtPanelDir = path.join(cliRoot, 'src', 'assets', 'web-panel')
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Ask the kernel for a definitely-free TCP port. Closes the listener as
+ * soon as the kernel hands back a port; brief TOCTOU race window before
+ * `cc ui` re-binds, but in practice nothing else grabs ephemeral ports
+ * inside the test process. Avoids the stale-server collision that surfaced
+ * 2026-05-07 when leaked vitest forks held 19210-19219 and `cc ui`'s
+ * silent port-fallback rebound the spawned server elsewhere — leaving the
+ * test's httpGet pointed at an unrelated PID and ECONNRESETing.
+ */
+async function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer()
+    srv.unref()
+    srv.on('error', reject)
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address()
+      srv.close(() => resolve(port))
+    })
+  })
+}
+
+/**
+ * Spawn `cc ui` and resolve with the **actually bound** ports parsed out
+ * of the banner. cc ui has a silent fallback that picks the next free
+ * port if the requested one is busy, so we cannot trust the requested
+ * value for httpGet — must read what was printed.
+ */
 function startUiServer({ httpPort, wsPort, cwd, extraArgs = [] } = {}) {
   return new Promise((resolve, reject) => {
     const proc = spawn('node', [
@@ -44,18 +83,33 @@ function startUiServer({ httpPort, wsPort, cwd, extraArgs = [] } = {}) {
     })
 
     let out = ''
+    let resolved = false
     const ready = (data) => {
       out += data.toString('utf8')
-      if (out.includes(`http://127.0.0.1:${httpPort}`)) {
-        resolve({ proc, port: httpPort })
+      const httpMatch = out.match(/UI:\s+http:\/\/127\.0\.0\.1:(\d+)/)
+      const wsMatch = out.match(/WS:\s+ws:\/\/127\.0\.0\.1:(\d+)/)
+      if (!resolved && httpMatch) {
+        resolved = true
+        resolve({
+          proc,
+          port: Number(httpMatch[1]),
+          actualWsPort: wsMatch ? Number(wsMatch[1]) : wsPort,
+        })
       }
     }
     proc.stdout.on('data', ready)
     proc.stderr.on('data', ready)
     proc.on('error', reject)
 
-    // Fallback: give the server time to start even if URL line wasn't captured
-    setTimeout(() => resolve({ proc, port: httpPort }), 12000)
+    // Fallback: don't hang the whole suite if the banner shape ever
+    // changes. Falls back to the requested port — caller will see the
+    // ECONNRESET and the suite fails loudly, which is what we want.
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        resolve({ proc, port: httpPort, actualWsPort: wsPort })
+      }
+    }, 12000)
   })
 }
 
@@ -93,11 +147,14 @@ function extractConfig(body) {
 
 describe('chainlesschain ui — basic startup and SPA routes', () => {
   let proc
-  const HTTP_PORT = 19200
-  const WS_PORT   = 19201
+  let actualHttpPort
 
   beforeAll(async () => {
-    ({ proc } = await startUiServer({ httpPort: HTTP_PORT, wsPort: WS_PORT }))
+    const httpPort = await findFreePort()
+    const wsPort = await findFreePort()
+    const r = await startUiServer({ httpPort, wsPort })
+    proc = r.proc
+    actualHttpPort = r.port
   }, 30000)
 
   afterAll(() => killProc(proc))
@@ -108,17 +165,17 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
   })
 
   it('GET / returns 200', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     expect(r.status).toBe(200)
   })
 
   it('GET / content-type is text/html', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     expect(r.headers['content-type']).toMatch(/text\/html/)
   })
 
   it('GET / injects __CC_CONFIG__', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     expect(r.body).toContain('__CC_CONFIG__')
   })
 
@@ -139,7 +196,7 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
 
   for (const route of SPA_ROUTES) {
     it(`SPA route ${route} returns 200`, async () => {
-      const r = await httpGet(HTTP_PORT, route)
+      const r = await httpGet(actualHttpPort, route)
       expect(r.status).toBe(200)
     })
   }
@@ -149,31 +206,39 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
 
 describe('chainlesschain ui — global mode config injection', () => {
   let proc
-  const HTTP_PORT = 19210
-  const WS_PORT   = 19211
+  let actualHttpPort
+  let actualWsPort
 
   beforeAll(async () => {
-    // Run in a temp dir that is NOT a chainlesschain project
+    // Run in a temp dir that is NOT a chainlesschain project. Use kernel-
+    // allocated free ports rather than hardcoded ones so leaked vitest
+    // forks (or anything else parked on the old 19210/19211 range) don't
+    // collide with cc ui's silent port-fallback.
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-e2e-global-'))
-    ;({ proc } = await startUiServer({ httpPort: HTTP_PORT, wsPort: WS_PORT, cwd: tmpDir }))
+    const httpPort = await findFreePort()
+    const wsPort = await findFreePort()
+    const r = await startUiServer({ httpPort, wsPort, cwd: tmpDir })
+    proc = r.proc
+    actualHttpPort = r.port
+    actualWsPort = r.actualWsPort
   }, 30000)
 
   afterAll(() => killProc(proc))
 
   it('__CC_CONFIG__ is parseable JSON', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     const cfg = extractConfig(r.body)
     expect(cfg).not.toBeNull()
   })
 
-  it('wsPort in config matches the --ws-port argument', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+  it('wsPort in config matches the bound WS port', async () => {
+    const r = await httpGet(actualHttpPort, '/')
     const cfg = extractConfig(r.body)
-    expect(cfg?.wsPort).toBe(WS_PORT)
+    expect(cfg?.wsPort).toBe(actualWsPort)
   })
 
   it('wsHost defaults to 127.0.0.1', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     const cfg = extractConfig(r.body)
     expect(cfg?.wsHost).toBe('127.0.0.1')
   })
@@ -183,8 +248,7 @@ describe('chainlesschain ui — global mode config injection', () => {
 
 describe('chainlesschain ui — project mode from project directory', () => {
   let proc, projectDir
-  const HTTP_PORT = 19220
-  const WS_PORT   = 19221
+  let actualHttpPort
 
   beforeAll(async () => {
     // Create a minimal chainlesschain project directory
@@ -196,7 +260,11 @@ describe('chainlesschain ui — project mode from project directory', () => {
       JSON.stringify({ projectName: 'test-project', edition: 'community' }),
       'utf-8',
     )
-    ;({ proc } = await startUiServer({ httpPort: HTTP_PORT, wsPort: WS_PORT, cwd: projectDir }))
+    const httpPort = await findFreePort()
+    const wsPort = await findFreePort()
+    const r = await startUiServer({ httpPort, wsPort, cwd: projectDir })
+    proc = r.proc
+    actualHttpPort = r.port
   }, 30000)
 
   afterAll(async () => {
@@ -209,7 +277,7 @@ describe('chainlesschain ui — project mode from project directory', () => {
   })
 
   it('config mode is "project"', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     const cfg = extractConfig(r.body)
     // mode depends on project detection; just verify config is parseable
     expect(cfg).not.toBeNull()
@@ -221,8 +289,7 @@ describe('chainlesschain ui — project mode from project directory', () => {
 
 describe('chainlesschain ui — --web-panel-dir option', () => {
   let proc, tmpBase
-  const HTTP_PORT = 19230
-  const WS_PORT   = 19231
+  let actualHttpPort
 
   beforeAll(async () => {
     // Create a fake dist directory
@@ -240,11 +307,15 @@ describe('chainlesschain ui — --web-panel-dir option', () => {
     fs.writeFileSync(path.join(assetsDir, 'app.js'), '// fake app', 'utf-8')
     fs.writeFileSync(path.join(assetsDir, 'style.css'), 'body{margin:0}', 'utf-8')
 
-    ;({ proc } = await startUiServer({
-      httpPort: HTTP_PORT,
-      wsPort: WS_PORT,
+    const httpPort = await findFreePort()
+    const wsPort = await findFreePort()
+    const r = await startUiServer({
+      httpPort,
+      wsPort,
       extraArgs: ['--web-panel-dir', distDir],
-    }))
+    })
+    proc = r.proc
+    actualHttpPort = r.port
   }, 30000)
 
   afterAll(async () => {
@@ -253,24 +324,24 @@ describe('chainlesschain ui — --web-panel-dir option', () => {
   })
 
   it('serves the custom dist index.html', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     expect(r.status).toBe(200)
     expect(r.body).toContain('<div id="app">')
   })
 
   it('__CC_CONFIG__ placeholder is replaced in custom dist', async () => {
-    const r = await httpGet(HTTP_PORT, '/')
+    const r = await httpGet(actualHttpPort, '/')
     expect(r.body).not.toContain('__CC_CONFIG_PLACEHOLDER__')
     expect(r.body).toContain('__CC_CONFIG__')
   })
 
   it('serves custom JS asset from dist/assets/', async () => {
-    const r = await httpGet(HTTP_PORT, '/assets/app.js')
+    const r = await httpGet(actualHttpPort, '/assets/app.js')
     expect(r.status).toBe(200)
   })
 
   it('serves custom CSS asset', async () => {
-    const r = await httpGet(HTTP_PORT, '/assets/style.css')
+    const r = await httpGet(actualHttpPort, '/assets/style.css')
     expect(r.status).toBe(200)
     expect(r.headers['content-type']).toMatch(/css/)
   })

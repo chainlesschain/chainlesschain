@@ -4307,6 +4307,14 @@
     },
     "newChat": "Chat",
     "newAgent": "Agent",
+    "role": {
+      "me": "我"
+    },
+    "contextMode": {
+      "project": "项目",
+      "file": "文件",
+      "global": "全局"
+    },
     "session": {
       "untitled": "新对话",
       "messageCountSuffix": "{n} 条消息"
@@ -4316,7 +4324,28 @@
       "title": "开始 AI 对话",
       "subtitle": "选择左侧会话或创建新对话",
       "newChat": "新建 Chat",
-      "newAgent": "新建 Agent"
+      "newAgent": "新建 Agent",
+      "startTitle": "开始新的对话",
+      "hint": {
+        "project": "在项目上下文中提问",
+        "file": "针对当前文件提问",
+        "global": "通用 AI 助手"
+      }
+    },
+    "quickPrompts": {
+      "summarize": "总结一下这个项目",
+      "brainstorm": "帮我头脑风暴",
+      "explain": "解释一个概念",
+      "codeReview": "代码审查清单"
+    },
+    "quickPromptsEditor": {
+      "openButton": "+ 编辑",
+      "title": "自定义快捷提示",
+      "hint": "每行一条；最多 12 条，每条 120 字以内。留空恢复默认。",
+      "placeholder": "总结一下这个项目\n帮我头脑风暴\n…",
+      "save": "保存",
+      "cancel": "取消",
+      "reset": "恢复默认"
     },
     "input": {
       "loading": "等待响应中...",
@@ -4329,6 +4358,27 @@
       "running": "执行中",
       "done": "完成",
       "unknownTool": "unknown"
+    },
+    "intent": {
+      "confirmed": "✅ 已确认",
+      "corrected": "🔄 已修正",
+      "label": {
+        "original": "您的原始输入：",
+        "understood": "我理解为：",
+        "intent": "意图：",
+        "keyPoints": "关键要点：",
+        "correction": "您的修正："
+      },
+      "action": {
+        "confirm": "确认",
+        "correct": "纠正",
+        "correctPlaceholder": "请输入您想要纠正的内容...",
+        "submitCorrection": "提交修正",
+        "cancelCorrection": "取消"
+      },
+      "status": {
+        "understanding": "正在理解您的请求..."
+      }
     }
   },
   "dashboard": {

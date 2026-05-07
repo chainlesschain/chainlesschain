@@ -1,9 +1,73 @@
 import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
 import { useWsStore } from './ws.js'
+import {
+  MessageType,
+  createIntentConfirmationMessage,
+  createIntentSystemMessage,
+} from '../utils/messageTypes.js'
 
 const DEFAULT_CHAT_TITLE = '新对话'
 const DEFAULT_AGENT_TITLE = '新 Agent'
+const CONTEXT_MODE_KEY = 'cc.web-panel.chat.contextMode'
+const VALID_CONTEXT_MODES = ['project', 'file', 'global']
+const INTENT_DECISIONS_KEY = 'cc.web-panel.chat.intentDecisions'
+const INTENT_DECISIONS_LIMIT = 200
+
+function readPersistedContextMode() {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONTEXT_MODE_KEY) : null
+    return VALID_CONTEXT_MODES.includes(raw) ? raw : null
+  } catch (_) {
+    return null
+  }
+}
+
+/**
+ * Read intent-card decisions from localStorage. Shape:
+ *   { "<sessionId>::<messageId>": { status, correction, ts }, ... }
+ * Older entries above the LRU cap are evicted on write.
+ */
+function readPersistedIntentDecisions() {
+  try {
+    if (typeof localStorage === 'undefined') return {}
+    const raw = localStorage.getItem(INTENT_DECISIONS_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch (_) {
+    return {}
+  }
+}
+
+function writePersistedIntentDecisions(map) {
+  try {
+    if (typeof localStorage === 'undefined') return
+    // Evict oldest by timestamp if over cap.
+    const entries = Object.entries(map)
+    if (entries.length > INTENT_DECISIONS_LIMIT) {
+      entries.sort((a, b) => (a[1]?.ts || 0) - (b[1]?.ts || 0))
+      const trimmed = entries.slice(-INTENT_DECISIONS_LIMIT)
+      map = Object.fromEntries(trimmed)
+    }
+    localStorage.setItem(INTENT_DECISIONS_KEY, JSON.stringify(map))
+  } catch (_) {
+    // Quota exceeded / private mode — degrade silently.
+  }
+}
+
+function recordIntentDecision(sessionId, messageId, decision) {
+  if (!sessionId || !messageId) return
+  const map = readPersistedIntentDecisions()
+  map[`${sessionId}::${messageId}`] = { ...decision, ts: Date.now() }
+  writePersistedIntentDecisions(map)
+}
+
+function lookupIntentDecision(sessionId, messageId) {
+  if (!sessionId || !messageId) return null
+  const map = readPersistedIntentDecisions()
+  return map[`${sessionId}::${messageId}`] || null
+}
 
 /**
  * Map v1.0 Coding Agent dot-case event types to legacy kebab-case types
@@ -28,6 +92,94 @@ export const useChatStore = defineStore('chat', () => {
   const streaming = reactive({})
   const pendingQuestion = reactive({})
   const loadingBySession = reactive({})
+
+  const cfg = (typeof window !== 'undefined' && window.__CC_CONFIG__) || {}
+  const isProjectEnv = cfg.mode === 'project'
+  const defaultMode = isProjectEnv ? 'project' : 'global'
+  const persisted = readPersistedContextMode()
+  // If persisted mode is 'project' but we're not in a project env, fall back.
+  // 'file' is currently always disabled in web-shell (no current-file concept).
+  const initialMode =
+    persisted === 'file' ? 'global'
+    : persisted === 'project' && !isProjectEnv ? 'global'
+    : (persisted || defaultMode)
+  const contextMode = ref(initialMode)
+
+  function setContextMode(mode) {
+    if (!VALID_CONTEXT_MODES.includes(mode)) return
+    contextMode.value = mode
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(CONTEXT_MODE_KEY, mode)
+    } catch (_) {
+      // localStorage may be unavailable (private browsing); degrade silently
+    }
+  }
+
+  // ── Custom quick prompts (Improvement 4) ────────────────────────────
+  // Defaults come from the i18n catalog; users may override per-environment
+  // via setCustomQuickPrompts. Stored as an array of strings; null/empty
+  // disables the override and falls back to i18n.
+  const QUICK_PROMPTS_KEY = 'cc.web-panel.chat.customQuickPrompts'
+  function readCustomQuickPrompts() {
+    try {
+      if (typeof localStorage === 'undefined') return null
+      const raw = localStorage.getItem(QUICK_PROMPTS_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return null
+      const cleaned = parsed
+        .map((s) => (typeof s === 'string' ? s.trim() : ''))
+        .filter((s) => s.length > 0 && s.length <= 120)
+        .slice(0, 12)
+      return cleaned.length > 0 ? cleaned : null
+    } catch (_) {
+      return null
+    }
+  }
+  const customQuickPrompts = ref(readCustomQuickPrompts())
+  function setCustomQuickPrompts(prompts) {
+    if (prompts == null) {
+      customQuickPrompts.value = null
+      try { if (typeof localStorage !== 'undefined') localStorage.removeItem(QUICK_PROMPTS_KEY) } catch (_) { /* */ }
+      return
+    }
+    if (!Array.isArray(prompts)) return
+    const cleaned = prompts
+      .map((s) => (typeof s === 'string' ? s.trim() : ''))
+      .filter((s) => s.length > 0 && s.length <= 120)
+      .slice(0, 12)
+    customQuickPrompts.value = cleaned.length > 0 ? cleaned : null
+    try {
+      if (typeof localStorage !== 'undefined') {
+        if (cleaned.length > 0) {
+          localStorage.setItem(QUICK_PROMPTS_KEY, JSON.stringify(cleaned))
+        } else {
+          localStorage.removeItem(QUICK_PROMPTS_KEY)
+        }
+      }
+    } catch (_) {
+      // Quota exceeded — degrade silently.
+    }
+  }
+
+  // autoSendMessage protocol — programmatic staging from other views. The
+  // ChatView watches this ref and consumes it on mount / change. Carries a
+  // token so retries don't double-fire.
+  const pendingAutoSend = ref(null)
+  let _autoSendSeq = 0
+  function scheduleAutoSend({ prompt, autoSend = true, session = null } = {}) {
+    if (!prompt || !String(prompt).trim()) return
+    _autoSendSeq += 1
+    pendingAutoSend.value = {
+      prompt: String(prompt),
+      autoSend: autoSend !== false,
+      session: session || null,
+      token: `staged::${_autoSendSeq}::${Date.now()}`,
+    }
+  }
+  function clearAutoSend() {
+    pendingAutoSend.value = null
+  }
   let unsubscribeRuntimeEvents = null
   // Track which sessions already have a WS handler registered so we never
   // register a second one (the Set in ws.js can't deduplicate anonymous
@@ -223,6 +375,163 @@ export const useChatStore = defineStore('chat', () => {
     ws.sendSessionMessage(sessionId, content)
   }
 
+  /**
+   * High-level entry point used by the chat input. When `contextMode` is
+   * project or file, run the intent-understanding flow first (V5 desktop
+   * parity). When global — or when the backend can't deliver useful
+   * understanding (no LLM configured / parse failure / pass-through) —
+   * fall straight through to sendMessage so the UX stays usable offline.
+   */
+  async function submitUserInput(sessionId, content) {
+    if (!sessionId || !content?.trim()) return
+    const mode = contextMode.value
+    if (mode === 'global') {
+      await sendMessage(sessionId, content)
+      return
+    }
+    const ws = useWsStore()
+    // Slice the last few exchanges so the model can resolve "再来一次"-style
+    // references. Trim each message body to keep the WS frame compact.
+    const recent = getMessages(sessionId)
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .slice(-5)
+      .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 500) }))
+
+    // Push a placeholder card immediately so the user sees "理解中…" while
+    // the LLM streams. The card.metadata.understanding stays empty until
+    // the .result frame arrives; IntentConfirmationMessage suppresses the
+    // confirm/correct buttons whenever metadata.streaming is true.
+    const placeholder = createIntentConfirmationMessage(content, {})
+    if (placeholder.metadata) {
+      placeholder.metadata.streaming = true
+      placeholder.metadata.streamingTokens = 0
+    }
+    placeholder.content = '理解中…'
+    const msgs = getMessages(sessionId)
+    msgs.push(placeholder)
+
+    let understanding = null
+    try {
+      const result = await ws.sendStream(
+        {
+          type: 'chat.intent.understand-stream',
+          sessionId,
+          userInput: content,
+          contextMode: mode,
+          history: recent,
+        },
+        {
+          onChunk: () => {
+            if (placeholder.metadata) {
+              placeholder.metadata.streamingTokens =
+                (placeholder.metadata.streamingTokens || 0) + 1
+            }
+          },
+          // The chat-intent-service caps maxTokens at 500 — even on slow
+          // local Ollama that's well under a minute. Disable the idle
+          // timer so a brief stall mid-stream doesn't kill the request.
+          idleMs: 60000,
+        },
+      )
+      if (result?.success) understanding = result
+    } catch (_err) {
+      // sendStream rejected — backend missing or stream broken. Either way
+      // fall through to a direct send so the user isn't stuck.
+    }
+
+    const hasUsefulUnderstanding =
+      understanding &&
+      ((understanding.correctedInput && understanding.correctedInput !== content) ||
+        (Array.isArray(understanding.keyPoints) && understanding.keyPoints.length > 0))
+
+    if (!hasUsefulUnderstanding) {
+      // Drop the placeholder + run the original input through the agent.
+      const idx = msgs.indexOf(placeholder)
+      if (idx >= 0) msgs.splice(idx, 1)
+      await sendMessage(sessionId, content)
+      return
+    }
+
+    // Promote the placeholder into the real confirmation card so the slot
+    // re-renders with action buttons.
+    placeholder.content = '我理解您的需求如下，请确认：'
+    if (placeholder.metadata) {
+      placeholder.metadata.streaming = false
+      placeholder.metadata.understanding = {
+        correctedInput: understanding.correctedInput,
+        intent: understanding.intent,
+        keyPoints: understanding.keyPoints,
+      }
+    }
+    // Replay any persisted decision so a refresh-then-resend lands with the
+    // user's prior choice still applied.
+    const prior = lookupIntentDecision(sessionId, placeholder.id)
+    if (prior?.status && placeholder.metadata) {
+      placeholder.metadata.status = prior.status
+      if (prior.correction) placeholder.metadata.correction = prior.correction
+    }
+  }
+
+  /**
+   * User confirmed the AI's understanding — finalize the card and dispatch
+   * the original input to the agent.
+   */
+  async function confirmIntent(sessionId, messageId) {
+    const msgs = getMessages(sessionId)
+    const card = msgs.find((m) => m.id === messageId)
+    if (!card || card.type !== MessageType.INTENT_CONFIRMATION) return
+    if (card.metadata) card.metadata.status = 'confirmed'
+    recordIntentDecision(sessionId, messageId, { status: 'confirmed', correction: null })
+    const original = card.metadata?.originalInput || ''
+    if (original.trim()) await sendMessage(sessionId, original)
+  }
+
+  /**
+   * User edited the input — finalize the card with their correction and
+   * dispatch the corrected text instead of the original.
+   */
+  async function correctIntent(sessionId, messageId, correction) {
+    const msgs = getMessages(sessionId)
+    const card = msgs.find((m) => m.id === messageId)
+    if (!card || card.type !== MessageType.INTENT_CONFIRMATION) return
+    if (card.metadata) {
+      card.metadata.status = 'corrected'
+      card.metadata.correction = correction
+    }
+    recordIntentDecision(sessionId, messageId, { status: 'corrected', correction })
+    const text = (correction || '').trim()
+    if (text) await sendMessage(sessionId, text)
+  }
+
+  /**
+   * Classify a follow-up input while a task is running. Returns the raw
+   * classifier result (intent + confidence + extractedInfo). The caller
+   * decides whether to push a system message via createIntentSystemMessage.
+   */
+  async function classifyFollowupIntent(sessionId, input, context = {}) {
+    const ws = useWsStore()
+    try {
+      const resp = await ws.sendRaw({
+        type: 'chat.intent.classify-followup',
+        sessionId,
+        input,
+        context,
+      }, 20000)
+      return resp
+    } catch (_err) {
+      return null
+    }
+  }
+
+  /**
+   * Push a system-style banner describing how a follow-up intent was
+   * classified (the V5 createIntentSystemMessage UX).
+   */
+  function pushFollowupIntentBanner(sessionId, intent, userInput, options = {}) {
+    const msgs = getMessages(sessionId)
+    msgs.push(createIntentSystemMessage(intent, userInput, options))
+  }
+
   function answerQuestion(sessionId, answer) {
     const ws = useWsStore()
     const question = pendingQuestion[sessionId]
@@ -255,10 +564,22 @@ export const useChatStore = defineStore('chat', () => {
     pendingQuestion,
     loadingBySession,
     isLoading,
+    contextMode,
+    setContextMode,
+    customQuickPrompts,
+    setCustomQuickPrompts,
+    pendingAutoSend,
+    scheduleAutoSend,
+    clearAutoSend,
     getIsLoading,
     loadSessions,
     createSession,
     sendMessage,
+    submitUserInput,
+    confirmIntent,
+    correctIntent,
+    classifyFollowupIntent,
+    pushFollowupIntentBanner,
     answerQuestion,
     switchSession,
     getMessages,

@@ -74,6 +74,11 @@ import {
   handleWorktreeList,
   handleCompressionStats,
 } from "./worktree-protocol.js";
+import {
+  handleChatIntentUnderstand,
+  handleChatIntentUnderstandStream,
+  handleChatIntentClassifyFollowup,
+} from "./chat-intent-protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -497,6 +502,21 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private */
   async _handleCompressionStats(id, ws, message) {
     return handleCompressionStats(this, id, ws, message);
+  }
+
+  /** @private — port of V5 desktop project:understandIntent IPC */
+  async _handleChatIntentUnderstand(id, ws, message) {
+    return handleChatIntentUnderstand(this, id, ws, message);
+  }
+
+  /** @private — streaming variant emitting per-token chunks */
+  async _handleChatIntentUnderstandStream(id, ws, message) {
+    return handleChatIntentUnderstandStream(this, id, ws, message);
+  }
+
+  /** @private — port of V5 desktop followup-intent:classify IPC */
+  async _handleChatIntentClassifyFollowup(id, ws, message) {
+    return handleChatIntentClassifyFollowup(this, id, ws, message);
   }
 
   /** @private */
