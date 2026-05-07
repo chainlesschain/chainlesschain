@@ -353,32 +353,50 @@ signing_input = TREE_HEAD_SIG_PREFIX || JCS(tree_head)
 ### 8.2 publisher_signature 待签字节
 
 ```
-signing_input = LANDMARK_SIG_PREFIX || JCS(landmark with publisher_signature.sig = "")
+signing_input = LANDMARK_SIG_PREFIX || JCS(stripSigs(landmark))
               = "mtc/v1/landmark\n" || JCS(landmark′)
 ```
 
-其中 `landmark′` 是把目标 landmark 的 `publisher_signature.sig` 字段置为空字符串 `""` 后的副本（`alg` 与 `key_id` 保留），其他所有字段（含 snapshots、trust_anchors、published_at、schema、namespace）一字不动。
+其中 `stripSigs(landmark)` 返回原 landmark 的副本，并把以下所有 `sig` 字节置为空字符串 `""`：
+
+1. `landmark.publisher_signature.sig`（自引用避免）
+2. 每个 `snapshots[i].signature.sig`（单签路径）
+3. 每个 `snapshots[i].signatures[j].sig`（联邦多签路径，所有成员签名）
+
+其他字段（`alg` / `key_id` / `pubkey_id` / `issuer` / `threshold` / `tree_head` / `tree_head_id` / `trust_anchors` / `published_at` / `schema` / `namespace`）一字不动。参考实现见 `packages/core-mtc/lib/publisher-signing.js` 的 `_stripSigsForPublisher`。
 
 域分离前缀 `LANDMARK_SIG_PREFIX` 与 `TREE_HEAD_SIG_PREFIX`（§7.1）对齐：保证 landmark 级签名永远不会被重放为 tree_head 签名，反之亦然。
+
+#### 为什么必须抹掉 per-snapshot sig 字节
+
+publisher_signature 的语义是"谁打包并发布了这份 landmark"——绑定**结构**（namespace、anchors、tree_head_id、threshold、各成员的 alg+pubkey_id）但**不绑定**实际签名字节。
+
+理由是 M-of-N 的语义本身就允许部分成员 sig 缺失或被替换，只要**有效**签名数 ≥ threshold，tree_head 验证仍应通过（§7、§8.5）。如果 publisher_signature 把所有 N 个 per-member sig 字节都吸进 JCS 里签，那只要某条 sig 在分发途中被替换或丢失，重建 JCS 字节就会变，publisher_signature 立即失效——直接抵消 M-of-N 的容错语义。
+
+抹 sig 后 publisher_signature 仅保护：
+- landmark 顶层字段（`namespace`、`published_at`、`trust_anchors` 顺序）
+- 每个 snapshot 的 `tree_head` + `tree_head_id` + `threshold`
+- 每个 per-member sig 的 `alg` + `pubkey_id`（保证签名者身份不被替换）
+
+per-member 实际 sig 字节由 §7 tree_head 校验流程独立验证；publisher_signature 不重复这一层。
 
 #### 生产端流程（producer）
 
 ```
-1. 构造 landmark.publisher_signature = { alg, key_id, sig: "" }   // 占位
-2. canonical = JCS(landmark)                                       // 含占位的全文规范化
+1. 构造 landmark with publisher_signature.sig = ""   // 占位
+2. canonical = JCS(stripSigs(landmark))              // 抹完 sig 后规范化
 3. sig_bytes = sign(LANDMARK_SIG_PREFIX || canonical, publisher_key)
-4. landmark.publisher_signature.sig = base64url(sig_bytes)         // 原地填回
+4. landmark.publisher_signature.sig = base64url(sig_bytes)   // 原地填回
 ```
 
-> **关键不变量**：步骤 2 的 JCS 字节决定了步骤 3 签的是什么——之后步骤 4 只是把 sig 字段写回，不影响已生成的签名。验证端必须按相同顺序重建：先把 sig 抹回 `""`、再 JCS、再核签。
+> **关键不变量**：步骤 2 的 JCS 字节决定了步骤 3 签的是什么——之后步骤 4 只是把 publisher sig 字段写回，**不**影响已生成的签名。per-snapshot sig 字段是 sign() 之前已经填好的真签（来自 §7 的 tree_head 签名流程），但因为步骤 2 抹掉了它们，所以 publisher_signature 与这些 sig 字节解耦。
 
 #### 验证端流程（verifier）
 
 ```
-1. 取出 landmark.publisher_signature 全字段
-2. landmark′ = { ...landmark, publisher_signature: { ...ps, sig: "" } }
-3. canonical = JCS(landmark′)
-4. ok = verify(sig_bytes, LANDMARK_SIG_PREFIX || canonical, anchor_pubkey)
+1. 取出 landmark.publisher_signature.sig
+2. canonical = JCS(stripSigs(landmark))   // 同生产端的抹 sig 操作
+3. ok = verify(sig, LANDMARK_SIG_PREFIX || canonical, anchor_pubkey)
 ```
 
 公钥从 `trust_anchors[0]` 解析（参考实现：`signers[0]` 在联邦多签路径上必然落在该位置；单签路径就是唯一签名者）。算法名 `publisher_signature.alg` 必须等于 `trust_anchors[0].alg`，否则直接 `BAD_LANDMARK_SIG`。
