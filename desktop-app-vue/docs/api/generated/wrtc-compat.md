@@ -4,10 +4,10 @@
 
 ---
 
-## let werift = null;
+## try
 
 ```javascript
-let werift = null;
+try
 ```
 
 * WebRTC Compatibility Layer
