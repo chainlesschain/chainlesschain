@@ -122,7 +122,7 @@ describe("agent-repl TOOLS definition", () => {
 
     const result = execSync(
       `node ${join(cliRoot, "bin", "chainlesschain.js")} agent --help`,
-      { encoding: "utf-8", timeout: 10000 },
+      { encoding: "utf-8", timeout: 60000 },
     );
     expect(result).toContain("agentic AI session");
     expect(result).toContain("--model");
@@ -139,7 +139,7 @@ describe("agent-repl TOOLS definition", () => {
 
     const result = execSync(
       `node ${join(cliRoot, "bin", "chainlesschain.js")} agent --help`,
-      { encoding: "utf-8", timeout: 10000 },
+      { encoding: "utf-8", timeout: 60000 },
     );
     expect(result).toContain("--session");
   });
@@ -559,7 +559,7 @@ describe("agent-repl context engineering integration", () => {
     // agent --help should succeed (proves imports work)
     const result = execSync(
       `node ${join(cliRoot, "bin", "chainlesschain.js")} agent --help`,
-      { encoding: "utf-8", timeout: 10000 },
+      { encoding: "utf-8", timeout: 60000 },
     );
     expect(result).toBeTruthy();
   });

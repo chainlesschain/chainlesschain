@@ -1034,12 +1034,16 @@ class RulesValidator {
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
 
-      // 跳过 node_modules 和 .git
+      // 跳过 node_modules / .git / 构建产物 / 测试目录
+      // 测试代码合法地用 db.exec 等做 fixture（如内存 SQLite 适配器），
+      // 不应被生产规则验证器扫描。
       if (
         entry.name === "node_modules" ||
         entry.name === ".git" ||
         entry.name === "dist" ||
-        entry.name === "out"
+        entry.name === "out" ||
+        entry.name === "__tests__" ||
+        entry.name === "__mocks__"
       ) {
         continue;
       }
@@ -1047,6 +1051,16 @@ class RulesValidator {
       if (entry.isDirectory()) {
         files.push(...this.getAllFiles(fullPath, ext));
       } else if (entry.isFile() && entry.name.endsWith(ext)) {
+        // 跳过测试 / spec / 类型声明文件
+        if (
+          entry.name.endsWith(".test.js") ||
+          entry.name.endsWith(".test.ts") ||
+          entry.name.endsWith(".spec.js") ||
+          entry.name.endsWith(".spec.ts") ||
+          entry.name.endsWith(".d.ts")
+        ) {
+          continue;
+        }
         files.push(fullPath);
       }
     }

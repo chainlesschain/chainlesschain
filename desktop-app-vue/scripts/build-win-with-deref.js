@@ -88,15 +88,27 @@ const tag = "[build-win-with-deref]";
  *     `fs.symlinkSync(target, path, 'junction')` (the case after this script's
  *     own restore step), even though it works for npm's original junctions.
  *
- * The reliable cross-platform / cross-link-type test is `realpathSync` — it
- * resolves both symlinks and junctions, and returns a path that DIFFERS from
- * the input only when there's a link to follow.
+ * On Windows we therefore use `realpathSync` — it resolves both symlinks and
+ * junctions and returns a path that differs from the input only when a link
+ * was followed.
+ *
+ * On macOS (and any POSIX with implicit prefix-symlinks like `/var → /private/var`)
+ * realpath comparison FALSE-POSITIVES on every plain dir under such prefixes
+ * (e.g. anything under `os.tmpdir()` resolves to `/private/var/...`). POSIX
+ * has no junction equivalent, so `lstat.isSymbolicLink()` is reliable there.
  */
 function isSymlink(p) {
   if (!fs.existsSync(p)) return false;
+  if (process.platform === "win32") {
+    try {
+      const real = fs.realpathSync(p);
+      return path.resolve(real) !== path.resolve(p);
+    } catch {
+      return false;
+    }
+  }
   try {
-    const real = fs.realpathSync(p);
-    return path.resolve(real) !== path.resolve(p);
+    return fs.lstatSync(p).isSymbolicLink();
   } catch {
     return false;
   }

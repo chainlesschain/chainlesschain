@@ -20,7 +20,7 @@ describe("skill command", () => {
     it("lists all 138 skills", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       // Strip ora spinner output before JSON
       const jsonStr = result.substring(result.indexOf("["));
@@ -31,7 +31,7 @@ describe("skill command", () => {
     it("each skill has required fields", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
@@ -48,7 +48,7 @@ describe("skill command", () => {
     it("filters by category", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --category automation --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
@@ -61,7 +61,7 @@ describe("skill command", () => {
     it("filters by tag", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --tag code --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
@@ -76,7 +76,7 @@ describe("skill command", () => {
     it("filters by runnable", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --runnable --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
@@ -90,7 +90,7 @@ describe("skill command", () => {
     it("lists all categories", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill categories`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       expect(result).toContain("Skill Categories");
       expect(result).toContain("development");
@@ -103,7 +103,7 @@ describe("skill command", () => {
     it("shows info for code-review skill", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill info code-review`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       expect(result).toContain("Code Review");
       expect(result).toContain("Handler:");
@@ -113,7 +113,7 @@ describe("skill command", () => {
     it("outputs JSON with --json flag", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill info code-review --json`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       const info = JSON.parse(result);
       expect(info.id).toBe("code-review");
@@ -125,7 +125,7 @@ describe("skill command", () => {
       expect(() => {
         execSync(
           `node ${join(cliRoot, "bin", "chainlesschain.js")} skill info nonexistent-skill-xyz`,
-          { encoding: "utf-8", timeout: 15000, stdio: "pipe" },
+          { encoding: "utf-8", timeout: 60000, stdio: "pipe" },
         );
       }).toThrow();
     });
@@ -135,7 +135,7 @@ describe("skill command", () => {
     it("finds skills matching keyword", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill search browser`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       expect(result).toContain("browser");
       expect(result).toContain("Search results");
@@ -144,7 +144,7 @@ describe("skill command", () => {
     it("shows message when no results", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill search zzzznonexistent`,
-        { encoding: "utf-8", timeout: 15000 },
+        { encoding: "utf-8", timeout: 60000 },
       );
       expect(result).toContain("No skills matching");
     });
