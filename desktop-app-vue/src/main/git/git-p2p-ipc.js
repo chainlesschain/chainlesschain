@@ -296,8 +296,8 @@ function registerGitP2PIPC({ p2pGitSync, deviceDiscovery, mainWindow }) {
     }
   });
 
-  // Register module
-  ipcGuard.registerModule("git-p2p-ipc", 15);
+  // Register module (ipc-guard exposes markModuleRegistered, not registerModule)
+  ipcGuard.markModuleRegistered("git-p2p-ipc");
   logger.info("[Git P2P IPC] Registered 15 handlers");
 }
 

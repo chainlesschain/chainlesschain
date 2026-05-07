@@ -236,8 +236,8 @@ function registerNostrBridgeIPC({
     }
   });
 
-  // Register with ipcGuard
-  ipcGuard.registerModule("nostr-bridge-ipc", NOSTR_CHANNELS);
+  // Register with ipcGuard (markModuleRegistered, not registerModule)
+  ipcGuard.markModuleRegistered("nostr-bridge-ipc");
 
   logger.info(
     `[Nostr IPC] Registered ${NOSTR_CHANNELS.length} Nostr Bridge IPC handlers`,

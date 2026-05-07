@@ -45,7 +45,7 @@ function registerMarketplaceIPC(dependencies) {
    */
   function getPluginInstaller() {
     if (!pluginInstaller) {
-      const { PluginInstaller } = require("./plugin-installer");
+      const PluginInstaller = require("./plugin-installer");
       pluginInstaller = new PluginInstaller({
         database,
         marketplaceClient: getMarketplaceClient(),

@@ -297,7 +297,11 @@ function registerPhase1AI({ safeRegister, logger, deps }) {
       const {
         registerProgressEmitterIPC,
       } = require("../../utils/progress-emitter-ipc");
-      registerProgressEmitterIPC({ mainWindow: mainWindow || null });
+      const { ipcMain } = require("electron");
+      registerProgressEmitterIPC({
+        ipcMain,
+        mainWindow: mainWindow || null,
+      });
     },
     handlers: 12,
   });
