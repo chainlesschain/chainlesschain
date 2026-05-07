@@ -30,32 +30,29 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-07 — www 单独刷到 v5.0.3.39。docs + design 已在前一次 run
-    # (-070915) 部署到 .39，本次只更新 www。
+    # 2026-05-07 v5.0.3.40 — docs + design 先发，www 等 GitHub Release published
+    # 后跑 fetch-release-sizes.mjs + rebuild + 单独 deploy（同 .39 套路）。
     #
-    # 时序：v5.0.3.39 GitHub Release 已 published (2026-05-06T23:08:52Z, 28 assets,
-    # isImmutable=true) → 跑 docs-website-v2/scripts/fetch-release-sizes.mjs
-    # 重新拉 release-sizes.json (8 entries, win-setup/portable 441 MB,
-    # mac-arm64 457 MB, mac-intel 462 MB, linux-appimage 669 MB,
-    # linux-deb 344 MB, linux-rpm 345 MB, android-universal 101 MB) →
-    # rebuild www → 本批 deploy。
-    #
-    # docs / design 暂留注释中以备需要重发；当前 -070915 batch 已生效。
-    # {
-    #     "name": "docs.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.39-20260507-070915.tar.gz",
-    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    # },
-    # {
-    #     "name": "design.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.39-20260507-070915.tar.gz",
-    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    # },
+    # 时序：tag v5.0.3.40 push @ 2026-05-07T09:46Z → release CI run 25471324405
+    # 5 平台并发 build → finalize-release 翻 published → 跑
+    # docs-website-v2/scripts/fetch-release-sizes.mjs → rebuild www → www
+    # batch deploy（DEPLOYS 切到只剩 www 的注释段）。
     {
-        "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.39-20260507-072001.tar.gz",
-        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.40-20260507-095120.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
+    {
+        "name": "design.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.40-20260507-095120.tar.gz",
+        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    },
+    # www holds at .39 until GitHub Release published + release-sizes.json refreshed:
+    # {
+    #     "name": "www.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.40-<TS>.tar.gz",
+    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    # },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
