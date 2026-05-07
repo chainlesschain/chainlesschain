@@ -371,6 +371,7 @@
     "protobufjs": ">=7.5.5",
     "rollup": "4.59.0",
     "serialize-javascript": "^7.0.5",
-    "tar": "^7.5.11"
+    "tar": "^7.5.11",
+    "semver": "^7.7.4"
   }
 }
