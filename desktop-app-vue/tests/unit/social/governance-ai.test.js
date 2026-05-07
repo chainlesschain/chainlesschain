@@ -111,8 +111,10 @@ describe("GovernanceAI", () => {
     it("should create governance tables", () => {
       gov._ensureTables();
       const sql = mockDb.exec.mock.calls[0][0];
-      expect(sql).toContain("CREATE TABLE IF NOT EXISTS governance_proposals");
-      expect(sql).toContain("CREATE TABLE IF NOT EXISTS governance_votes");
+      expect(sql).toContain(
+        "CREATE TABLE IF NOT EXISTS governance_ai_proposals",
+      );
+      expect(sql).toContain("CREATE TABLE IF NOT EXISTS governance_ai_votes");
     });
 
     it("should not throw if database is null", () => {

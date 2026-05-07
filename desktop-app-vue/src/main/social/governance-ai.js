@@ -61,8 +61,75 @@ class GovernanceAI extends EventEmitter {
       return;
     }
 
-    this.database.db.exec(`
-      CREATE TABLE IF NOT EXISTS governance_proposals (
+    // Migrate from earlier shared name. The social GovernanceEngine
+    // (community proposals) registered the same `governance_proposals`
+    // table name with an INCOMPATIBLE schema (community_id / proposal_type
+    // / discussion_end / voting_end). This module's prior schema is
+    // distinguishable by its `impact_level` column. If we see the AI
+    // schema sitting under the bare name, hand it over to the new
+    // namespaced name so GovernanceEngine can take the bare name.
+    const db = this.database.db;
+    try {
+      const existing = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('governance_proposals', 'governance_ai_proposals')",
+        )
+        .all()
+        .map((r) => r.name);
+      if (
+        existing.includes("governance_proposals") &&
+        !existing.includes("governance_ai_proposals")
+      ) {
+        const cols = db
+          .prepare("PRAGMA table_info(governance_proposals)")
+          .all()
+          .map((c) => c.name);
+        if (cols.includes("impact_level")) {
+          db.exec(
+            "ALTER TABLE governance_proposals RENAME TO governance_ai_proposals",
+          );
+          // Indexes on the renamed table follow it automatically; the
+          // old idx names are now technically misnomers but harmless.
+          // We'll re-create with new names below; SQLite tolerates the
+          // duplicate noise via IF NOT EXISTS guards.
+          logger.info(
+            "[GovernanceAI] Migrated table governance_proposals → governance_ai_proposals (AI schema detected)",
+          );
+        }
+      }
+      // Same migration for governance_votes (same naming clash).
+      const voteTables = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('governance_votes', 'governance_ai_votes')",
+        )
+        .all()
+        .map((r) => r.name);
+      if (
+        voteTables.includes("governance_votes") &&
+        !voteTables.includes("governance_ai_votes")
+      ) {
+        const cols = db
+          .prepare("PRAGMA table_info(governance_votes)")
+          .all()
+          .map((c) => c.name);
+        // AI vote schema has `reason` + `weight REAL`; the social
+        // GovernanceEngine schema uses INTEGER weight + no reason.
+        if (cols.includes("reason")) {
+          db.exec("ALTER TABLE governance_votes RENAME TO governance_ai_votes");
+          logger.info(
+            "[GovernanceAI] Migrated table governance_votes → governance_ai_votes",
+          );
+        }
+      }
+    } catch (err) {
+      logger.warn(
+        "[GovernanceAI] Migration probe failed (non-fatal): " +
+          (err?.message || err),
+      );
+    }
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS governance_ai_proposals (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         description TEXT,
@@ -79,10 +146,10 @@ class GovernanceAI extends EventEmitter {
         metadata TEXT,
         created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
       );
-      CREATE INDEX IF NOT EXISTS idx_governance_proposals_status ON governance_proposals(status);
-      CREATE INDEX IF NOT EXISTS idx_governance_proposals_type ON governance_proposals(type);
+      CREATE INDEX IF NOT EXISTS idx_governance_ai_proposals_status ON governance_ai_proposals(status);
+      CREATE INDEX IF NOT EXISTS idx_governance_ai_proposals_type ON governance_ai_proposals(type);
 
-      CREATE TABLE IF NOT EXISTS governance_votes (
+      CREATE TABLE IF NOT EXISTS governance_ai_votes (
         id TEXT PRIMARY KEY,
         proposal_id TEXT NOT NULL,
         voter_did TEXT NOT NULL,
@@ -92,7 +159,7 @@ class GovernanceAI extends EventEmitter {
         created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
         UNIQUE(proposal_id, voter_did)
       );
-      CREATE INDEX IF NOT EXISTS idx_governance_votes_proposal ON governance_votes(proposal_id);
+      CREATE INDEX IF NOT EXISTS idx_governance_ai_votes_proposal ON governance_ai_votes(proposal_id);
     `);
   }
 
@@ -104,7 +171,7 @@ class GovernanceAI extends EventEmitter {
       try {
         const proposals = this.database.db
           .prepare(
-            "SELECT * FROM governance_proposals WHERE status IN ('draft', 'active') ORDER BY created_at DESC",
+            "SELECT * FROM governance_ai_proposals WHERE status IN ('draft', 'active') ORDER BY created_at DESC",
           )
           .all();
         for (const p of proposals) {
@@ -139,7 +206,7 @@ class GovernanceAI extends EventEmitter {
   async listProposals(filter = {}) {
     if (this.database && this.database.db) {
       try {
-        let sql = "SELECT * FROM governance_proposals WHERE 1=1";
+        let sql = "SELECT * FROM governance_ai_proposals WHERE 1=1";
         const params = [];
 
         if (filter.status) {
@@ -225,7 +292,7 @@ class GovernanceAI extends EventEmitter {
       this.database.db
         .prepare(
           `
-        INSERT INTO governance_proposals (id, title, description, type, proposer_did, status, created_at)
+        INSERT INTO governance_ai_proposals (id, title, description, type, proposer_did, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
         )
@@ -262,7 +329,7 @@ class GovernanceAI extends EventEmitter {
       // Try loading from DB
       if (this.database && this.database.db) {
         const row = this.database.db
-          .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+          .prepare("SELECT * FROM governance_ai_proposals WHERE id = ?")
           .get(proposalId);
         if (!row) {
           throw new Error(`Proposal not found: ${proposalId}`);
@@ -297,7 +364,7 @@ class GovernanceAI extends EventEmitter {
       this.database.db
         .prepare(
           `
-        UPDATE governance_proposals SET impact_level = ?, impact_analysis = ? WHERE id = ?
+        UPDATE governance_ai_proposals SET impact_level = ?, impact_analysis = ? WHERE id = ?
       `,
         )
         .run(analysis.impact_level, JSON.stringify(analysis), proposalId);

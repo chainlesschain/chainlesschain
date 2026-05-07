@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore } from "pinia";
 
 export interface GovernanceProposal {
   id: string;
@@ -28,13 +28,14 @@ export interface ImpactAnalysis {
   analyzed_at: number;
 }
 
-const electronAPI = (window as any).electronAPI || (window as any).electron?.ipcRenderer;
+const electronAPI =
+  (window as any).electronAPI || (window as any).electron?.ipcRenderer;
 function invoke(channel: string, ...args: any[]) {
   if (electronAPI?.invoke) return electronAPI.invoke(channel, ...args);
-  return Promise.reject(new Error('IPC not available'));
+  return Promise.reject(new Error("IPC not available"));
 }
 
-export const useGovernanceStore = defineStore('governance', {
+export const useGovernanceStore = defineStore("governance", {
   state: () => ({
     proposals: [] as GovernanceProposal[],
     currentAnalysis: null as ImpactAnalysis | null,
@@ -43,17 +44,23 @@ export const useGovernanceStore = defineStore('governance', {
   }),
 
   getters: {
-    activeProposals: (state) => state.proposals.filter(p => p.status === 'active'),
-    draftProposals: (state) => state.proposals.filter(p => p.status === 'draft'),
+    activeProposals: (state) =>
+      state.proposals.filter((p) => p.status === "active"),
+    draftProposals: (state) =>
+      state.proposals.filter((p) => p.status === "draft"),
     proposalCount: (state) => state.proposals.length,
   },
 
   actions: {
-    async fetchProposals(filter?: { status?: string; type?: string; limit?: number }) {
+    async fetchProposals(filter?: {
+      status?: string;
+      type?: string;
+      limit?: number;
+    }) {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('governance:list-proposals', filter);
+        const result = await invoke("governance-ai:list-proposals", filter);
         if (result.success) this.proposals = result.proposals || [];
         else this.error = result.error;
         return result;
@@ -65,11 +72,21 @@ export const useGovernanceStore = defineStore('governance', {
       }
     },
 
-    async createProposal(title: string, description: string, type?: string, proposerDid?: string) {
+    async createProposal(
+      title: string,
+      description: string,
+      type?: string,
+      proposerDid?: string,
+    ) {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('governance:create-proposal', { title, description, type, proposerDid });
+        const result = await invoke("governance-ai:create-proposal", {
+          title,
+          description,
+          type,
+          proposerDid,
+        });
         if (result.success) await this.fetchProposals();
         else this.error = result.error;
         return result;
@@ -85,7 +102,9 @@ export const useGovernanceStore = defineStore('governance', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('governance:analyze-impact', { proposalId });
+        const result = await invoke("governance-ai:analyze-impact", {
+          proposalId,
+        });
         if (result.success) this.currentAnalysis = result.analysis;
         else this.error = result.error;
         return result;
@@ -101,7 +120,9 @@ export const useGovernanceStore = defineStore('governance', {
       this.loading = true;
       this.error = null;
       try {
-        const result = await invoke('governance:predict-vote', { proposalId });
+        const result = await invoke("governance-ai:predict-vote", {
+          proposalId,
+        });
         if (!result.success) this.error = result.error;
         return result;
       } catch (err: any) {

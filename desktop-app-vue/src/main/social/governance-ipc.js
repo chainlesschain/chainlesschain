@@ -16,10 +16,10 @@ import { ipcMain as electronIpcMain } from "electron";
 import ipcGuardModule from "../ipc/ipc-guard.js";
 
 const CHANNELS = [
-  "governance:list-proposals",
-  "governance:create-proposal",
-  "governance:analyze-impact",
-  "governance:predict-vote",
+  "governance-ai:list-proposals",
+  "governance-ai:create-proposal",
+  "governance-ai:analyze-impact",
+  "governance-ai:predict-vote",
 ];
 
 /**
@@ -48,7 +48,7 @@ function registerGovernanceIPC({
 
   logger.info("[Governance IPC] Registering Governance AI IPC handlers...");
 
-  ipcMain.handle("governance:list-proposals", async (_event, filter) => {
+  ipcMain.handle("governance-ai:list-proposals", async (_event, filter) => {
     try {
       if (!governanceAI) {
         throw new Error("Governance AI not initialized");
@@ -61,7 +61,7 @@ function registerGovernanceIPC({
     }
   });
 
-  ipcMain.handle("governance:create-proposal", async (_event, params) => {
+  ipcMain.handle("governance-ai:create-proposal", async (_event, params) => {
     try {
       if (!governanceAI) {
         throw new Error("Governance AI not initialized");
@@ -74,7 +74,7 @@ function registerGovernanceIPC({
     }
   });
 
-  ipcMain.handle("governance:analyze-impact", async (_event, params) => {
+  ipcMain.handle("governance-ai:analyze-impact", async (_event, params) => {
     try {
       if (!governanceAI) {
         throw new Error("Governance AI not initialized");
@@ -87,7 +87,7 @@ function registerGovernanceIPC({
     }
   });
 
-  ipcMain.handle("governance:predict-vote", async (_event, params) => {
+  ipcMain.handle("governance-ai:predict-vote", async (_event, params) => {
     try {
       if (!governanceAI) {
         throw new Error("Governance AI not initialized");

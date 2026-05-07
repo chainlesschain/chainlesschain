@@ -78,7 +78,9 @@ class GovernanceEngine extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info("[GovernanceEngine] Governance engine initialized successfully");
+      logger.info(
+        "[GovernanceEngine] Governance engine initialized successfully",
+      );
     } catch (error) {
       logger.error("[GovernanceEngine] Initialization failed:", error);
       throw error;
@@ -90,6 +92,85 @@ class GovernanceEngine extends EventEmitter {
    */
   async initializeTables() {
     const db = this.database.db;
+
+    // Reclaim the bare names from the AI governance module's prior schema.
+    // Both modules registered the same table names (`governance_proposals`,
+    // `governance_votes`) but with INCOMPATIBLE shapes — the AI schema has
+    // `impact_level` + `vote_yes`/`vote_no`, this engine's schema has
+    // `community_id` + `proposal_type`. If we see the AI shape squatting on
+    // the bare name, rename it to `governance_ai_*` so our CREATE TABLE IF
+    // NOT EXISTS can land cleanly. The AI module's own _ensureTables also
+    // performs this migration but runs in parallel with us under the same
+    // phase, so whichever fires first wins.
+    try {
+      const probe = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='governance_proposals'",
+        )
+        .get();
+      if (probe) {
+        const cols = db
+          .prepare("PRAGMA table_info(governance_proposals)")
+          .all()
+          .map((c) => c.name);
+        if (cols.includes("impact_level") && !cols.includes("community_id")) {
+          const aiTaken = db
+            .prepare(
+              "SELECT 1 FROM sqlite_master WHERE type='table' AND name='governance_ai_proposals'",
+            )
+            .get();
+          if (aiTaken) {
+            db.exec("DROP TABLE governance_proposals");
+            logger.info(
+              "[GovernanceEngine] Dropped stale AI-shaped governance_proposals (governance_ai_proposals already present)",
+            );
+          } else {
+            db.exec(
+              "ALTER TABLE governance_proposals RENAME TO governance_ai_proposals",
+            );
+            logger.info(
+              "[GovernanceEngine] Migrated governance_proposals → governance_ai_proposals (AI schema detected)",
+            );
+          }
+        }
+      }
+      const voteProbe = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='governance_votes'",
+        )
+        .get();
+      if (voteProbe) {
+        const cols = db
+          .prepare("PRAGMA table_info(governance_votes)")
+          .all()
+          .map((c) => c.name);
+        if (cols.includes("reason")) {
+          const aiTaken = db
+            .prepare(
+              "SELECT 1 FROM sqlite_master WHERE type='table' AND name='governance_ai_votes'",
+            )
+            .get();
+          if (aiTaken) {
+            db.exec("DROP TABLE governance_votes");
+            logger.info(
+              "[GovernanceEngine] Dropped stale AI-shaped governance_votes",
+            );
+          } else {
+            db.exec(
+              "ALTER TABLE governance_votes RENAME TO governance_ai_votes",
+            );
+            logger.info(
+              "[GovernanceEngine] Migrated governance_votes → governance_ai_votes",
+            );
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn(
+        "[GovernanceEngine] AI-table migration probe failed (non-fatal): " +
+          (err?.message || err),
+      );
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS governance_proposals (
@@ -171,9 +252,11 @@ class GovernanceEngine extends EventEmitter {
       const db = this.database.db;
 
       // Check if user is a member of the community
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(communityId, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(communityId, currentDid);
 
       if (!member) {
         throw new Error("You are not a member of this community");
@@ -184,14 +267,16 @@ class GovernanceEngine extends EventEmitter {
       const discussionEnd = now + discussionDuration;
       const votingEnd = discussionEnd + votingDuration;
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO governance_proposals (
           id, community_id, proposer_did, title, description,
           proposal_type, status, discussion_end, voting_end,
           created_at, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         proposalId,
         communityId,
         currentDid,
@@ -243,20 +328,27 @@ class GovernanceEngine extends EventEmitter {
     }
 
     if (!Object.values(VoteOption).includes(vote)) {
-      throw new Error("Invalid vote option. Must be 'approve', 'reject', or 'abstain'");
+      throw new Error(
+        "Invalid vote option. Must be 'approve', 'reject', or 'abstain'",
+      );
     }
 
     try {
       const db = this.database.db;
 
-      const proposal = db.prepare("SELECT * FROM governance_proposals WHERE id = ?").get(proposalId);
+      const proposal = db
+        .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+        .get(proposalId);
       if (!proposal) {
         throw new Error("Proposal not found");
       }
 
       // Auto-transition from discussion to voting if discussion period has ended
       const now = Date.now();
-      if (proposal.status === ProposalStatus.DISCUSSION && now >= proposal.discussion_end) {
+      if (
+        proposal.status === ProposalStatus.DISCUSSION &&
+        now >= proposal.discussion_end
+      ) {
         db.prepare(
           "UPDATE governance_proposals SET status = ?, updated_at = ? WHERE id = ?",
         ).run(ProposalStatus.VOTING, now, proposalId);
@@ -272,9 +364,11 @@ class GovernanceEngine extends EventEmitter {
       }
 
       // Check if user is a member of the community
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(proposal.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(proposal.community_id, currentDid);
 
       if (!member) {
         throw new Error("You are not a member of this community");
@@ -284,25 +378,40 @@ class GovernanceEngine extends EventEmitter {
       const weight = VOTE_WEIGHT[member.role] || 1;
 
       // Insert or update vote (UNIQUE constraint on proposal_id + voter_did)
-      const existingVote = db.prepare(
-        "SELECT * FROM governance_votes WHERE proposal_id = ? AND voter_did = ?",
-      ).get(proposalId, currentDid);
+      const existingVote = db
+        .prepare(
+          "SELECT * FROM governance_votes WHERE proposal_id = ? AND voter_did = ?",
+        )
+        .get(proposalId, currentDid);
 
       if (existingVote) {
         db.prepare(
           "UPDATE governance_votes SET vote = ?, weight = ?, created_at = ? WHERE id = ?",
         ).run(vote, weight, now, existingVote.id);
       } else {
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO governance_votes (id, proposal_id, voter_did, vote, weight, created_at)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run(uuidv4(), proposalId, currentDid, vote, weight, now);
+        `,
+        ).run(uuidv4(), proposalId, currentDid, vote, weight, now);
       }
 
       this.database.saveToFile();
 
-      logger.info("[GovernanceEngine] Vote cast:", currentDid, vote, "on proposal:", proposalId);
-      this.emit("proposal:vote-cast", { proposalId, voterDid: currentDid, vote, weight });
+      logger.info(
+        "[GovernanceEngine] Vote cast:",
+        currentDid,
+        vote,
+        "on proposal:",
+        proposalId,
+      );
+      this.emit("proposal:vote-cast", {
+        proposalId,
+        voterDid: currentDid,
+        vote,
+        weight,
+      });
 
       return { success: true, weight };
     } catch (error) {
@@ -316,7 +425,10 @@ class GovernanceEngine extends EventEmitter {
    * @param {string} communityId - Community ID
    * @param {Object} options - Query options
    */
-  async getProposals(communityId, { status = null, limit = 50, offset = 0 } = {}) {
+  async getProposals(
+    communityId,
+    { status = null, limit = 50, offset = 0 } = {},
+  ) {
     try {
       const db = this.database.db;
 
@@ -341,16 +453,24 @@ class GovernanceEngine extends EventEmitter {
       // Auto-update statuses based on time
       const now = Date.now();
       for (const proposal of proposals) {
-        if (proposal.status === ProposalStatus.DISCUSSION && now >= proposal.discussion_end) {
+        if (
+          proposal.status === ProposalStatus.DISCUSSION &&
+          now >= proposal.discussion_end
+        ) {
           db.prepare(
             "UPDATE governance_proposals SET status = ?, updated_at = ? WHERE id = ?",
           ).run(ProposalStatus.VOTING, now, proposal.id);
           proposal.status = ProposalStatus.VOTING;
         }
-        if (proposal.status === ProposalStatus.VOTING && now >= proposal.voting_end) {
+        if (
+          proposal.status === ProposalStatus.VOTING &&
+          now >= proposal.voting_end
+        ) {
           // Auto-tally votes
           const result = await this.tallyVotes(proposal.id);
-          proposal.status = result.passed ? ProposalStatus.PASSED : ProposalStatus.REJECTED;
+          proposal.status = result.passed
+            ? ProposalStatus.PASSED
+            : ProposalStatus.REJECTED;
         }
       }
 
@@ -369,18 +489,24 @@ class GovernanceEngine extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const proposal = db.prepare("SELECT * FROM governance_proposals WHERE id = ?").get(proposalId);
+      const proposal = db
+        .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+        .get(proposalId);
       if (!proposal) {
         return null;
       }
 
       // Get vote counts
-      const votes = db.prepare(`
+      const votes = db
+        .prepare(
+          `
         SELECT vote, SUM(weight) as total_weight, COUNT(*) as count
         FROM governance_votes
         WHERE proposal_id = ?
         GROUP BY vote
-      `).all(proposalId);
+      `,
+        )
+        .all(proposalId);
 
       proposal.votes_summary = {};
       for (const v of votes) {
@@ -393,9 +519,11 @@ class GovernanceEngine extends EventEmitter {
       // Check current user's vote
       const currentDid = this.getCurrentDid();
       if (currentDid) {
-        const myVote = db.prepare(
-          "SELECT * FROM governance_votes WHERE proposal_id = ? AND voter_did = ?",
-        ).get(proposalId, currentDid);
+        const myVote = db
+          .prepare(
+            "SELECT * FROM governance_votes WHERE proposal_id = ? AND voter_did = ?",
+          )
+          .get(proposalId, currentDid);
         proposal.my_vote = myVote ? myVote.vote : null;
       }
 
@@ -438,12 +566,16 @@ class GovernanceEngine extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const proposal = db.prepare("SELECT * FROM governance_proposals WHERE id = ?").get(proposalId);
+      const proposal = db
+        .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+        .get(proposalId);
       if (!proposal) {
         throw new Error("Proposal not found");
       }
 
-      const votes = db.prepare("SELECT * FROM governance_votes WHERE proposal_id = ?").all(proposalId);
+      const votes = db
+        .prepare("SELECT * FROM governance_votes WHERE proposal_id = ?")
+        .all(proposalId);
 
       let approveWeight = 0;
       let rejectWeight = 0;
@@ -467,10 +599,13 @@ class GovernanceEngine extends EventEmitter {
 
       // Calculate pass ratio (excluding abstentions)
       const effectiveWeight = approveWeight + rejectWeight;
-      const passRatio = effectiveWeight > 0 ? approveWeight / effectiveWeight : 0;
+      const passRatio =
+        effectiveWeight > 0 ? approveWeight / effectiveWeight : 0;
       const passed = passRatio >= PASS_THRESHOLD;
 
-      const newStatus = passed ? ProposalStatus.PASSED : ProposalStatus.REJECTED;
+      const newStatus = passed
+        ? ProposalStatus.PASSED
+        : ProposalStatus.REJECTED;
       const now = Date.now();
 
       db.prepare(
@@ -492,7 +627,12 @@ class GovernanceEngine extends EventEmitter {
         voterCount: votes.length,
       };
 
-      logger.info("[GovernanceEngine] Votes tallied for proposal:", proposalId, "Result:", newStatus);
+      logger.info(
+        "[GovernanceEngine] Votes tallied for proposal:",
+        proposalId,
+        "Result:",
+        newStatus,
+      );
       this.emit("proposal:tallied", result);
 
       return result;
@@ -515,7 +655,9 @@ class GovernanceEngine extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const proposal = db.prepare("SELECT * FROM governance_proposals WHERE id = ?").get(proposalId);
+      const proposal = db
+        .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+        .get(proposalId);
       if (!proposal) {
         throw new Error("Proposal not found");
       }
@@ -525,9 +667,11 @@ class GovernanceEngine extends EventEmitter {
       }
 
       // Check if user has admin/owner permissions
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(proposal.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(proposal.community_id, currentDid);
 
       if (!member || (member.role !== "owner" && member.role !== "admin")) {
         throw new Error("Insufficient permissions to execute proposals");
@@ -563,7 +707,9 @@ class GovernanceEngine extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const proposal = db.prepare("SELECT * FROM governance_proposals WHERE id = ?").get(proposalId);
+      const proposal = db
+        .prepare("SELECT * FROM governance_proposals WHERE id = ?")
+        .get(proposalId);
       if (!proposal) {
         throw new Error("Proposal not found");
       }
@@ -573,9 +719,11 @@ class GovernanceEngine extends EventEmitter {
       }
 
       // Check admin/owner permissions
-      const member = db.prepare(
-        "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
-      ).get(proposal.community_id, currentDid);
+      const member = db
+        .prepare(
+          "SELECT * FROM community_members WHERE community_id = ? AND member_did = ? AND status = 'active'",
+        )
+        .get(proposal.community_id, currentDid);
 
       if (!member || (member.role !== "owner" && member.role !== "admin")) {
         throw new Error("Insufficient permissions to close voting");
