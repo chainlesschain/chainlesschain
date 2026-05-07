@@ -27,6 +27,30 @@ const DEFAULT_CONFIG =
 
 ---
 
+## function dispatchTypedMessage(emitter, parsed, fromPeerId)
+
+```javascript
+function dispatchTypedMessage(emitter, parsed, fromPeerId)
+```
+
+* 把已解析的入站消息 (JSON-line 出来的对象) 派发到对应的 EventEmitter 事件上.
+ * 返回派发结果, 调用方根据需要决定要不要再 emit('message:received') 兜底.
+ *
+ * 派发规则:
+ *   - parsed.type === 'gossip:message'      → emit('gossip:message', parsed.data)
+ *   - parsed.type === 'gossip:subscribe'    → emit('gossip:subscribe', { peerId, communityId })
+ *   - parsed.type === 'gossip:unsubscribe'  → emit('gossip:unsubscribe', { peerId, communityId })
+ *   - parsed.type 形如 'call-*'             → emit('message:' + parsed.type, parsed.data || parsed)
+ *   - 其它带 type                            → emit('message:typed', parsed)
+ *   - 无 type                                → 不派发, 由调用方 emit('message:received')
+ *
+ * @param {EventEmitter} emitter
+ * @param {Object} parsed - 已解析的消息对象
+ * @param {string} [fromPeerId] - 发送方 peer id (可选, 透传到 gossip:message data)
+ * @returns {{ dispatched: boolean, type: string|null }}
+
+---
+
 ## class P2PManager extends EventEmitter
 
 ```javascript
