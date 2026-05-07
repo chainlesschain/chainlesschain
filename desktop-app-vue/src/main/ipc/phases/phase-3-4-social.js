@@ -177,6 +177,8 @@ function registerPhases3to4Social({
         governanceEngine: dependencies.governanceEngine || null,
         gossipProtocol: dependencies.gossipProtocol || null,
         contentModerator: dependencies.contentModerator || null,
+        // Phase B v1: dual-track sync via MTC federation gossipsub
+        mtcFederationManager: dependencies.mtcFederationManager || null,
       });
     },
     handlers: 24,

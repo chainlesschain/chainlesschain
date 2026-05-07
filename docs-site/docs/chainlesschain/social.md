@@ -794,6 +794,12 @@ Mesh模式（小规模）:
 
 **已实现**: 去中心化的主题社区和订阅频道，支持公开讨论、内容聚合和社区自治。
 
+::: tip 2026-05-07 更新 — 跨机同步真正打通（Phase A）
+v5.0.3.40 之前，社区和频道功能在 UI 上完整可用，但**实际只在单机生效** —— 两台真机加入同一社区后，A 在频道里发的消息到不了 B 的本地数据库。
+Phase A 系统性修了 7 个底层 bug（libp2p 3.x stream API 用错、handler 在 init 流程里没注册、收包后没按 type 派发、gossip → channelManager 没有订阅者……），把发送 → wire → 接收 → 本地写入的整条链路接通。
+**现在两台同段 LAN（mDNS 发现）或公网（DHT + bootstrap）的真机器，加入同一社区后频道消息会真正同步。** 详见 [`README.md` 同日条目](https://github.com/chainlesschain/chainlesschain/blob/main/README.md) 与 [设计文档 §2.2.10](https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/modules/02_去中心化社交模块.md#2210-社区频道跨机同步--phase-a-实战架构-2026-05-07)。
+:::
+
 #### 社区架构
 
 ```

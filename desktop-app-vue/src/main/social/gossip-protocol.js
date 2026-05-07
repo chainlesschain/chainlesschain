@@ -92,7 +92,9 @@ class GossipProtocol extends EventEmitter {
     this.messageTTL = options.messageTTL || DEFAULTS.MESSAGE_TTL;
 
     // LRU cache for message dedup
-    this.seenMessages = new LRUCache(options.cacheCapacity || DEFAULTS.CACHE_CAPACITY);
+    this.seenMessages = new LRUCache(
+      options.cacheCapacity || DEFAULTS.CACHE_CAPACITY,
+    );
 
     // Community subscriptions: Map<communityId, boolean>
     this.subscriptions = new Map();
@@ -113,7 +115,10 @@ class GossipProtocol extends EventEmitter {
       this.setupP2PListeners();
 
       this.initialized = true;
-      logger.info("[GossipProtocol] Gossip protocol initialized with fanout:", this.fanout);
+      logger.info(
+        "[GossipProtocol] Gossip protocol initialized with fanout:",
+        this.fanout,
+      );
     } catch (error) {
       logger.error("[GossipProtocol] Initialization failed:", error);
       throw error;
@@ -133,7 +138,10 @@ class GossipProtocol extends EventEmitter {
       try {
         await this.handleIncomingMessage(data);
       } catch (error) {
-        logger.warn("[GossipProtocol] Failed to handle incoming message:", error.message);
+        logger.warn(
+          "[GossipProtocol] Failed to handle incoming message:",
+          error.message,
+        );
       }
     });
 
@@ -186,7 +194,11 @@ class GossipProtocol extends EventEmitter {
           await this.forward(peerId, gossipMessage);
           forwarded++;
         } catch (error) {
-          logger.warn("[GossipProtocol] Failed to forward to peer:", peerId, error.message);
+          logger.warn(
+            "[GossipProtocol] Failed to forward to peer:",
+            peerId,
+            error.message,
+          );
         }
       }
 
@@ -241,7 +253,12 @@ class GossipProtocol extends EventEmitter {
         hops: forwardMessage.hops,
       });
     } catch (error) {
-      logger.warn("[GossipProtocol] Forward to", peerId, "failed:", error.message);
+      logger.warn(
+        "[GossipProtocol] Forward to",
+        peerId,
+        "failed:",
+        error.message,
+      );
       throw error;
     }
   }
@@ -401,7 +418,12 @@ class GossipProtocol extends EventEmitter {
       }
     }
 
-    logger.info("[GossipProtocol] Peer unsubscribed:", peerId, "from", communityId);
+    logger.info(
+      "[GossipProtocol] Peer unsubscribed:",
+      peerId,
+      "from",
+      communityId,
+    );
   }
 
   /**
@@ -447,7 +469,15 @@ class GossipProtocol extends EventEmitter {
       return "local";
     }
     try {
-      return this.p2pManager.peerId || this.p2pManager.localPeerId || "local";
+      // p2pManager.peerId 在生产里是 libp2p PeerId 对象, JSON.stringify 行为
+      // 不保证落在字符串. 这里强制 toString, 让 wire 上的 sender 字段总是
+      // 跨节点可比较 (否则 handleIncomingMessage 的 sender 排除/loop 检测会
+      // 静默失效).
+      const raw = this.p2pManager.peerId || this.p2pManager.localPeerId;
+      if (!raw) {
+        return "local";
+      }
+      return typeof raw === "string" ? raw : raw.toString();
     } catch (error) {
       return "local";
     }
@@ -486,7 +516,10 @@ class GossipProtocol extends EventEmitter {
       seenMessagesCache: this.seenMessages.size,
       cacheCapacity: DEFAULTS.CACHE_CAPACITY,
       peerSubscriptions: Object.fromEntries(
-        Array.from(this.peerSubscriptions.entries()).map(([k, v]) => [k, v.size]),
+        Array.from(this.peerSubscriptions.entries()).map(([k, v]) => [
+          k,
+          v.size,
+        ]),
       ),
     };
   }

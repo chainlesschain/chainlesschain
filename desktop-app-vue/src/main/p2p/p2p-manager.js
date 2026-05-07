@@ -45,6 +45,114 @@ const DEFAULT_CONFIG = {
   dataPath: null, // 数据存储路径
 };
 
+// ============================================================
+// 线协议帧 (wire-frame) 序列化
+// ============================================================
+//
+// libp2p 3.x 流只接受 Uint8Array. 历史上 sendMessage 直接 stream.write(jsObject)
+// 是错的, 但所有调用方的单元测试都 mock 了 sendMessage, 所以从未在端到端
+// 路径上暴露过 (gossip-protocol / call-* 等典型的发送-接收链条全断). 这里把
+// 序列化/反序列化集中, 兼容三种 payload:
+//   - Uint8Array / Buffer: 原样发送 (尊重旧调用方)
+//   - object: JSON.stringify + '\n' + UTF-8 (新调用方默认)
+//   - string: UTF-8 (兼容字符串调用方)
+//
+// 反序列化优先按 JSON-line 解析, 失败则视为原始字节交给 message:received fallback.
+
+const WIRE_FRAME_TERMINATOR = "\n";
+
+function encodeWireMessage(data) {
+  if (data == null) {
+    return new Uint8Array(0);
+  }
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  if (Buffer.isBuffer(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+  if (typeof data === "string") {
+    return new TextEncoder().encode(data);
+  }
+  // object / array / number / bool: 走 JSON-line
+  const json = JSON.stringify(data);
+  return new TextEncoder().encode(json + WIRE_FRAME_TERMINATOR);
+}
+
+function decodeWireMessage(bytes) {
+  if (!bytes || bytes.length === 0) {
+    return { kind: "raw", bytes };
+  }
+  // 仅当首字节像 JSON 起手 ('{' / '[' / '"') 才尝试 JSON 解析,
+  // 避免对加密二进制等做无意义的 try/catch.
+  const first = bytes[0];
+  if (first !== 0x7b && first !== 0x5b && first !== 0x22) {
+    return { kind: "raw", bytes };
+  }
+  try {
+    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    const trimmed = text.endsWith(WIRE_FRAME_TERMINATOR)
+      ? text.slice(0, -1)
+      : text;
+    const parsed = JSON.parse(trimmed);
+    return { kind: "json", value: parsed };
+  } catch (_err) {
+    return { kind: "raw", bytes };
+  }
+}
+
+/**
+ * 把已解析的入站消息 (JSON-line 出来的对象) 派发到对应的 EventEmitter 事件上.
+ * 返回派发结果, 调用方根据需要决定要不要再 emit('message:received') 兜底.
+ *
+ * 派发规则:
+ *   - parsed.type === 'gossip:message'      → emit('gossip:message', parsed.data)
+ *   - parsed.type === 'gossip:subscribe'    → emit('gossip:subscribe', { peerId, communityId })
+ *   - parsed.type === 'gossip:unsubscribe'  → emit('gossip:unsubscribe', { peerId, communityId })
+ *   - parsed.type 形如 'call-*'             → emit('message:' + parsed.type, parsed.data || parsed)
+ *   - 其它带 type                            → emit('message:typed', parsed)
+ *   - 无 type                                → 不派发, 由调用方 emit('message:received')
+ *
+ * @param {EventEmitter} emitter
+ * @param {Object} parsed - 已解析的消息对象
+ * @param {string} [fromPeerId] - 发送方 peer id (可选, 透传到 gossip:message data)
+ * @returns {{ dispatched: boolean, type: string|null }}
+ */
+function dispatchTypedMessage(emitter, parsed, fromPeerId) {
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    typeof parsed.type !== "string"
+  ) {
+    return { dispatched: false, type: null };
+  }
+  const type = parsed.type;
+  if (type === "gossip:message") {
+    // gossip-protocol.handleIncomingMessage 用 data.fromPeerId 排除回环
+    const payload =
+      parsed.data && typeof parsed.data === "object"
+        ? { ...parsed.data, fromPeerId: fromPeerId || parsed.data.fromPeerId }
+        : { data: parsed.data, fromPeerId };
+    emitter.emit("gossip:message", payload);
+    return { dispatched: true, type };
+  }
+  if (type === "gossip:subscribe" || type === "gossip:unsubscribe") {
+    emitter.emit(type, {
+      peerId: parsed.peerId || fromPeerId,
+      communityId: parsed.communityId,
+    });
+    return { dispatched: true, type };
+  }
+  // call-signaling / call-invite / call-status / 其它历史 message:* 监听者
+  if (/^call-[a-z-]+$/.test(type)) {
+    emitter.emit("message:" + type, parsed.data || parsed);
+    return { dispatched: true, type: "message:" + type };
+  }
+  // 通用 typed 消息: 让上层有机会按 type 路由
+  emitter.emit("message:typed", parsed);
+  return { dispatched: true, type: "message:typed" };
+}
+
 /**
  * P2P 管理器类
  */
@@ -529,6 +637,12 @@ class P2PManager extends EventEmitter {
 
       // 初始化设备同步管理器
       await this.initializeSyncManager();
+
+      // 注册通用消息协议处理器 (/chainlesschain/message/1.0.0)
+      // 之前从未在 initialize() 里调过, 导致 gossip-protocol 等所有 typed
+      // 消息接收方对 dial 来的流根本不响应; 配合上面 sendMessage/handler
+      // 的 wire-frame 修复, 这里把生产路径接上.
+      this.registerMessageHandler();
 
       // 注册加密消息协议处理器
       this.registerEncryptedMessageHandlers();
@@ -1391,9 +1505,24 @@ class P2PManager extends EventEmitter {
         "/chainlesschain/message/1.0.0",
       );
 
-      // 发送数据
-      await stream.write(data);
-      await stream.close();
+      // 序列化为 Uint8Array (libp2p 3.x 流只接受字节)
+      // - Uint8Array / Buffer: 直接发送 (向后兼容旧调用方)
+      // - 其它 (object/string): JSON 序列化, 末尾追加 '\n' 作为帧分隔
+      const payload = encodeWireMessage(data);
+
+      // 发送数据 — libp2p 3.x MessageStream API 是 send() 不是 write()
+      // (旧代码 stream.write 是 wrong API name, 加上传入对象而非 bytes,
+      // 实际从未在 wire 上跑通过, 全靠 catch 静默失败掩盖)
+      const accepted = stream.send(payload);
+      if (accepted === false) {
+        // 背压: 等 drain 事件再关流
+        await new Promise((resolve) => {
+          stream.addEventListener("drain", resolve, { once: true });
+        });
+      }
+      if (typeof stream.close === "function") {
+        await stream.close();
+      }
 
       logger.info("[P2PManager] 消息已发送到:", peerIdStr);
 
@@ -1535,28 +1664,59 @@ class P2PManager extends EventEmitter {
    * @param {Function} handler - 处理函数
    */
   registerMessageHandler(handler) {
-    this.node.handle("/chainlesschain/message/1.0.0", async ({ stream }) => {
-      try {
-        const data = [];
+    this.node.handle(
+      "/chainlesschain/message/1.0.0",
+      async (stream, connection) => {
+        try {
+          const data = [];
 
-        for await (const chunk of stream.source) {
-          data.push(chunk.subarray());
+          // libp2p 3.x MessageStream extends AsyncIterable directly
+          // (旧代码 stream.source 是 0.x/1.x 的 it-pipe 语义, 在 3.x 下是
+          // undefined, 配合上面的 stream.write 一起意味着 send 与 receive
+          // 两条路径都从未真正跑通过)
+          for await (const chunk of stream) {
+            data.push(chunk.subarray ? chunk.subarray() : chunk);
+          }
+
+          const message = Buffer.concat(data);
+          const fromPeerId =
+            connection && connection.remotePeer
+              ? connection.remotePeer.toString()
+              : undefined;
+
+          logger.info("[P2PManager] 收到消息:", message.length, "字节");
+
+          // 调用处理函数 (兼容旧 handler 签名: 接收原始 Buffer)
+          if (handler) {
+            await handler(message);
+          }
+
+          // 解码 wire-frame 并按 type 派发
+          const decoded = decodeWireMessage(message);
+          if (decoded.kind === "json") {
+            const result = dispatchTypedMessage(
+              this,
+              decoded.value,
+              fromPeerId,
+            );
+            if (result.dispatched) {
+              // 已派发到 typed 事件; 仍同步发 raw 兜底事件, 兼容历史监听者
+              this.emit("message:received", {
+                message,
+                parsed: decoded.value,
+                fromPeerId,
+              });
+              return;
+            }
+          }
+
+          // 解析失败或无 type: 走原始字节兜底
+          this.emit("message:received", { message, fromPeerId });
+        } catch (error) {
+          logger.error("[P2PManager] 处理消息失败:", error);
         }
-
-        const message = Buffer.concat(data);
-
-        logger.info("[P2PManager] 收到消息:", message.length, "字节");
-
-        // 调用处理函数
-        if (handler) {
-          await handler(message);
-        }
-
-        this.emit("message:received", { message });
-      } catch (error) {
-        logger.error("[P2PManager] 处理消息失败:", error);
-      }
-    });
+      },
+    );
   }
 
   /**
@@ -2231,5 +2391,11 @@ class P2PManager extends EventEmitter {
     }
   }
 }
+
+// 默认导出保持类本身 (大量调用方做 `const P2PManager = require(...)`),
+// 同时把 wire helpers 挂为静态属性供测试单独覆盖.
+P2PManager.encodeWireMessage = encodeWireMessage;
+P2PManager.decodeWireMessage = decodeWireMessage;
+P2PManager.dispatchTypedMessage = dispatchTypedMessage;
 
 module.exports = P2PManager;

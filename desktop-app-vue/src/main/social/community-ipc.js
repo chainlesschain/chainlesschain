@@ -7,7 +7,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+const electron = require("electron");
 
 /**
  * Register all Community IPC handlers
@@ -15,8 +15,12 @@ const { ipcMain } = require("electron");
  * @param {Object} dependencies.communityManager - Community manager instance
  * @param {Object} dependencies.channelManager - Channel manager instance
  * @param {Object} dependencies.governanceEngine - Governance engine instance
- * @param {Object} dependencies.gossipProtocol - Gossip protocol instance
+ * @param {Object} dependencies.gossipProtocol - Gossip protocol instance (Phase A direct gossip)
  * @param {Object} dependencies.contentModerator - Content moderator instance
+ * @param {Object} [dependencies.mtcFederationManager] - Phase B MTC fed gossipsub
+ *   (optional; when present, community/channel events are dual-published on
+ *   `cc.community.<id>.events` topic alongside the Phase A gossip path)
+ * @param {Object} [dependencies.ipcMain] - Override electron.ipcMain (test-only)
  */
 function registerCommunityIPC({
   communityManager,
@@ -24,7 +28,21 @@ function registerCommunityIPC({
   governanceEngine,
   gossipProtocol,
   contentModerator,
+  mtcFederationManager,
+  ipcMain,
 }) {
+  // Default to real electron.ipcMain in production; tests inject a mock.
+  // This mirrors social-ipc.js's DI pattern and dodges vitest's alias-based
+  // electron stub which doesn't reliably surface named CJS requires.
+  if (!ipcMain) {
+    ipcMain =
+      electron.ipcMain || (electron.default && electron.default.ipcMain);
+  }
+  if (!ipcMain || typeof ipcMain.handle !== "function") {
+    throw new Error(
+      "registerCommunityIPC: ipcMain dependency missing — pass {ipcMain} explicitly or run inside Electron",
+    );
+  }
   logger.info("[Community IPC] Registering Community IPC handlers...");
 
   // ============================================================
@@ -122,9 +140,47 @@ function registerCommunityIPC({
       }
       const result = await communityManager.joinCommunity(communityId);
 
-      // Subscribe to gossip for this community
+      // Subscribe to gossip for this community (Phase A — direct dial gossip)
       if (gossipProtocol) {
         gossipProtocol.subscribe(communityId);
+      }
+
+      // Phase B v1: also subscribe MTC federation gossipsub topic.
+      // Idempotent at MtcFederationManager (re-subscribe replaces handler).
+      // Failure is non-fatal — Phase A gossip still delivers.
+      if (mtcFederationManager && mtcFederationManager.isInitialized()) {
+        try {
+          await mtcFederationManager.subscribeCommunity(
+            communityId,
+            (payload) => {
+              // Same dispatch shape as social-initializer's gossipReceiver:
+              // route channel_message → channelManager.handleMessageReceived
+              // (INSERT OR IGNORE on message.id de-dups across both paths)
+              if (
+                !payload ||
+                payload.type !== "channel_message" ||
+                !payload.channelId ||
+                !payload.message ||
+                !channelManager
+              ) {
+                return;
+              }
+              channelManager
+                .handleMessageReceived(payload.channelId, payload.message)
+                .catch((err) =>
+                  logger.warn(
+                    "[Community IPC] MTC dispatch failed:",
+                    err.message,
+                  ),
+                );
+            },
+          );
+        } catch (mtcErr) {
+          logger.warn(
+            "[Community IPC] MTC subscribeCommunity failed (gossip path still active):",
+            mtcErr.message,
+          );
+        }
       }
 
       return result;
@@ -148,6 +204,18 @@ function registerCommunityIPC({
       // Unsubscribe from gossip for this community
       if (gossipProtocol) {
         gossipProtocol.unsubscribe(communityId);
+      }
+
+      // Phase B v1: unsubscribe MTC topic. Idempotent on unknown community.
+      if (mtcFederationManager && mtcFederationManager.isInitialized()) {
+        try {
+          mtcFederationManager.unsubscribeCommunity(communityId);
+        } catch (mtcErr) {
+          logger.warn(
+            "[Community IPC] MTC unsubscribeCommunity failed:",
+            mtcErr.message,
+          );
+        }
       }
 
       return result;
@@ -177,33 +245,43 @@ function registerCommunityIPC({
    * Get community members
    * Channel: 'community:get-members'
    */
-  ipcMain.handle("community:get-members", async (_event, communityId, options) => {
-    try {
-      if (!communityManager) {
+  ipcMain.handle(
+    "community:get-members",
+    async (_event, communityId, options) => {
+      try {
+        if (!communityManager) {
+          return [];
+        }
+        return await communityManager.getMembers(communityId, options);
+      } catch (error) {
+        logger.error("[Community IPC] Failed to get members:", error);
         return [];
       }
-      return await communityManager.getMembers(communityId, options);
-    } catch (error) {
-      logger.error("[Community IPC] Failed to get members:", error);
-      return [];
-    }
-  });
+    },
+  );
 
   /**
    * Promote a member
    * Channel: 'community:promote'
    */
-  ipcMain.handle("community:promote", async (_event, communityId, memberDid, newRole) => {
-    try {
-      if (!communityManager) {
-        throw new Error("Community manager not initialized");
+  ipcMain.handle(
+    "community:promote",
+    async (_event, communityId, memberDid, newRole) => {
+      try {
+        if (!communityManager) {
+          throw new Error("Community manager not initialized");
+        }
+        return await communityManager.promoteMember(
+          communityId,
+          memberDid,
+          newRole,
+        );
+      } catch (error) {
+        logger.error("[Community IPC] Failed to promote member:", error);
+        throw error;
       }
-      return await communityManager.promoteMember(communityId, memberDid, newRole);
-    } catch (error) {
-      logger.error("[Community IPC] Failed to promote member:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   /**
    * Demote a member
@@ -301,21 +379,49 @@ function registerCommunityIPC({
 
       const message = await channelManager.sendMessage(options);
 
-      // Broadcast via gossip protocol
-      if (gossipProtocol && message) {
+      // Dual-track broadcast:
+      //   Phase A — direct gossip (gossipProtocol.broadcast)
+      //   Phase B — MTC federation gossipsub (mtcFederationManager.publishCommunityEvent)
+      // Both deliver the same {type:'channel_message', channelId, message}
+      // payload; receivers idempotently INSERT OR IGNORE by message.id.
+      if (message && (gossipProtocol || mtcFederationManager)) {
         const channel = channelManager.database.db
           .prepare("SELECT community_id FROM channels WHERE id = ?")
           .get(options.channelId);
 
         if (channel) {
-          try {
-            await gossipProtocol.broadcast(channel.community_id, {
-              type: "channel_message",
-              channelId: options.channelId,
-              message,
-            });
-          } catch (gossipError) {
-            logger.warn("[Community IPC] Gossip broadcast failed:", gossipError.message);
+          const eventPayload = {
+            type: "channel_message",
+            channelId: options.channelId,
+            message,
+          };
+
+          if (gossipProtocol) {
+            try {
+              await gossipProtocol.broadcast(
+                channel.community_id,
+                eventPayload,
+              );
+            } catch (gossipError) {
+              logger.warn(
+                "[Community IPC] Gossip broadcast failed:",
+                gossipError.message,
+              );
+            }
+          }
+
+          if (mtcFederationManager && mtcFederationManager.isInitialized()) {
+            try {
+              await mtcFederationManager.publishCommunityEvent(
+                channel.community_id,
+                eventPayload,
+              );
+            } catch (mtcError) {
+              logger.warn(
+                "[Community IPC] MTC publish failed:",
+                mtcError.message,
+              );
+            }
           }
         }
       }
@@ -399,17 +505,20 @@ function registerCommunityIPC({
    * Get proposals
    * Channel: 'governance:get-proposals'
    */
-  ipcMain.handle("governance:get-proposals", async (_event, communityId, options) => {
-    try {
-      if (!governanceEngine) {
+  ipcMain.handle(
+    "governance:get-proposals",
+    async (_event, communityId, options) => {
+      try {
+        if (!governanceEngine) {
+          return [];
+        }
+        return await governanceEngine.getProposals(communityId, options);
+      } catch (error) {
+        logger.error("[Community IPC] Failed to get proposals:", error);
         return [];
       }
-      return await governanceEngine.getProposals(communityId, options);
-    } catch (error) {
-      logger.error("[Community IPC] Failed to get proposals:", error);
-      return [];
-    }
-  });
+    },
+  );
 
   /**
    * Get votes for a proposal
@@ -451,17 +560,20 @@ function registerCommunityIPC({
    * Review a report
    * Channel: 'moderation:review'
    */
-  ipcMain.handle("moderation:review", async (_event, reportId, action, reason) => {
-    try {
-      if (!contentModerator) {
-        throw new Error("Content moderator not initialized");
+  ipcMain.handle(
+    "moderation:review",
+    async (_event, reportId, action, reason) => {
+      try {
+        if (!contentModerator) {
+          throw new Error("Content moderator not initialized");
+        }
+        return await contentModerator.reviewReport(reportId, action, reason);
+      } catch (error) {
+        logger.error("[Community IPC] Failed to review report:", error);
+        throw error;
       }
-      return await contentModerator.reviewReport(reportId, action, reason);
-    } catch (error) {
-      logger.error("[Community IPC] Failed to review report:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   /**
    * Get moderation log

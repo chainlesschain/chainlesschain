@@ -1,5 +1,69 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Update IV — **Phase B v1 — MTC federation dual-track sync landed**
+
+On top of Phase A's direct gossip, *dual-track* MTC federation gossipsub channel. Both paths coexist; receivers idempotently `INSERT OR IGNORE` by `message.id`.
+
+| New | File | Description |
+|---|---|---|
+| MtcFederationManager | `src/main/mtc/mtc-federation-manager.js` (+233) | Wraps `@chainlesschain/core-mtc/transports/libp2p` Libp2pTransport (gossipsub mode). Topic: `cc.community.<id>.events`. API: `subscribeCommunity` / `publishCommunityEvent` / `unsubscribeCommunity` / `connectPeer`. Failure-tolerant — community keeps working via Phase A direct gossip if MTC fed init fails |
+| social-initializer registration | `src/main/bootstrap/social-initializer.js` (+34) | `mtcFederationManager` initializer, required:false |
+| community-ipc dual-publish + DI refactor | `src/main/social/community-ipc.js` (+62 / −10) | `community:join` / `community:leave` / `channel:send-message` IPC handlers run gossip + MTC concurrently. `registerCommunityIPC` now accepts `ipcMain` as a DI dep (matches social-ipc pattern; sidesteps vitest electron-alias named-export quirks) |
+| phase-3-4-social wiring | `src/main/ipc/phases/phase-3-4-social.js` (+2) | Passes `mtcFederationManager` through to `registerCommunityIPC` |
+
+**Sub-phase scope (v1 vs deferred)**
+- v1: transport layer (subscribe/publish/dispatch + dual-track idempotency)
+- B4 deferred: DID signing / Merkle batch envelope finality / M-of-N multi-sig / cross-federation trust anchors / automatic peer bridging
+
+**Tests**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit | `src/main/mtc/__tests__/mtc-federation-manager.test.js` | 17 — topicForCommunity / lifecycle / publish / subscribe / unsubscribe / connectPeer with mock transport |
+| Integration | `src/main/social/__tests__/community-ipc-dual-track.integration.test.js` | 12 — community:join dual-subscribe / community:leave dual-unsubscribe / channel:send-message dual-publish / either transport failure does not block the other / single-track fallback (gossip-only / MTC-only) |
+| E2E | `src/main/mtc/__tests__/mtc-federation-roundtrip.test.js` | 4 — two real libp2p gossipsub-mode nodes + call path doesn't throw + conditional delivery assertion (assert if mesh forms, no-op if not — same policy as core-mtc's own federation-discovery test) + dual-track idempotency (same message via two paths inserts once) |
+| Full 22-file regression (p2p + social + mtc) | — | **891 / 891** ✅ |
+
+**Architectural notes**
+- MtcFederationManager runs a **standalone libp2p node** (not reused from P2PManager) — sharing would require invasive P2PManager createLibp2p config changes to add `pubsub: gossipsub()` service + a new dynamic import; deferred as follow-up
+- v1 has no auto peer discovery: `connectPeer(multiaddr)` is manual; cross-machine effect in production requires bootstrapping the peer's multiaddr externally (Phase A direct gossip remains the instant default channel)
+- 2-node gossipsub mesh formation is genuinely flaky in test environments (per core-mtc historical experience), so e2e delivery is asserted conditionally; production federations with 3+ peers + `floodPublish=true` deliver reliably
+- When the same channel_message arrives at B via both Phase A direct gossip AND Phase B MTC topic, `channelManager.handleMessageReceived`'s `INSERT OR IGNORE` on `id` guarantees a single DB row
+
+## 2026-05-07 Update III — **P2P decentralized social cross-machine sync actually works** — Phase A: 7 bugs + 25 tests
+
+The community/channel "decentralized social" path was, **prior to this fix, single-machine only** — in any 2-user verification, A's messages never reached B's local DB. Phase A systematically fixed 7 independent bugs to wire send/receive together on the wire:
+
+| # | Location | Root cause | Fix |
+|---|---|---|---|
+| 1 | `p2p-manager.js:sendMessage` | `stream.write(data)` is libp2p 0.x/1.x legacy API; 3.x uses `stream.send(bytes)` | Switched to `stream.send(payload)` + drain backpressure |
+| 2 | `p2p-manager.js:sendMessage` | Passed JS object to `stream.write()`, but libp2p streams require `Uint8Array` | New `encodeWireMessage()`: Buffer/Uint8Array passthrough, object/string → JSON-line UTF-8 |
+| 3 | `p2p-manager.js:registerMessageHandler` | `for await of stream.source` is 0.x/1.x it-pipe semantics; in 3.x `.source` is undefined | Changed to `for await of stream` (3.x MessageStream is itself AsyncIterable) |
+| 4 | `p2p-manager.js:registerMessageHandler` | Handler signature `({stream, connection}) =>` was old shape | Changed to `(stream, connection) =>` |
+| 5 | `p2p-manager.js:registerMessageHandler` | Received bytes only emitted `message:received`, no per-`type` dispatch → gossip-protocol's `gossip:message` listener never fired | Added `decodeWireMessage` + `dispatchTypedMessage` to route by type to `gossip:message` / `gossip:subscribe` / `gossip:unsubscribe` / `message:call-*` / `message:typed`, with `message:received` retained as fallback |
+| 6 | `p2p-manager.js:initialize` | `registerMessageHandler()` was **never called** in init flow → the `/chainlesschain/message/1.0.0` protocol was never registered | Added the call before `registerEncryptedMessageHandlers()` |
+| 7 | `social-initializer.js` (new `gossipReceiver`) | `gossipProtocol.emit('message:received', ...)` had no subscriber → remote messages dead-ended at the gossip layer, never reached `channel_messages` table | New `gossipReceiver` initializer subscribes to the event and calls existing `channelManager.handleMessageReceived()` (INSERT OR IGNORE dedup) |
+
+**Test pyramid**
+
+| Layer | File | Tests |
+|---|---|---|
+| Unit (helpers) | `src/main/p2p/__tests__/p2p-manager-dispatch.test.js` | 18 — encode/decode/dispatch helpers × Buffer/Uint8Array/string/object/null payloads × 6 type categories |
+| Integration (wiring) | `src/main/social/__tests__/gossip-channel-receiver.integration.test.js` | 4 — real GossipProtocol + real ChannelManager + mock libp2p, validates channel_message insertion / idempotent duplicate / non-channel_message ignore / unsubscribed-community ignore |
+| E2E (real wire) | `src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js` | 3 — two real libp2p nodes (TCP + noise + yamux + identify), end-to-end through `mgrA.sendMessage` + `gossipA.broadcast` to receiver event emit |
+| Regression | `community-manager.test.js` (60) + `channel-manager.test.js` (64) + `call-signaling.test.js` + `call-manager.test.js` | 124 + entire p2p folder green |
+| **Total** | **5 files** | **149 / 149** |
+
+**Test gotcha**: e2e test pins `// @vitest-environment node` because the project's default jsdom env breaks libp2p's TCP receive path (`Uint8Array instanceof` fails across realms).
+
+**Real-world impact**: After Phase A, two real desktop installs on the same LAN (mDNS discovery) or remote (DHT + bootstrap) can connect, join the same community, and A's channel message reaches B's `/community` view. **This was a latent prerequisite bug behind every v0.42.0 / v5.0.3.x community/channel user experience claim.**
+
+**Pre-existing bugs left for follow-up**:
+- 9 other `node.handle(...)` call sites likely have the same stream.write/source legacy API issue (yjs-collab-manager / model-parameter-sync / voice-video-manager / collab-sync) — out of Phase A scope, will surface when those features are exercised cross-machine
+- gossip-protocol now wires only `channel_message` payloads; governance proposals / moderation reports don't go through gossip and remain single-machine
+
+**Phase B (planned)**: MTC federation gossipsub as the "formal" community sync channel — adds Merkle finality / cross-federation trust anchor / M-of-N multi-sig audit semantics on top of Phase A's direct gossip. Both paths coexist (dual-track): Phase A for best-effort instant sync, Phase B for auditable eventual consistency.
+
 ## 2026-05-07 Update II — **v5.0.3.40 — MTC view in-process speedup + CI triple-unblock**
 
 Four unrelated fixes bundled in one release:

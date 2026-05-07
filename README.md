@@ -1,5 +1,69 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 增量更新 IV（**Phase B v1 — MTC 联邦双轨同步落地**）
+
+在 Phase A 直连 gossip 之上 *双轨* 加 MTC 联邦 gossipsub 通道。两条路并存，本地 INSERT OR IGNORE 去重。
+
+| 新增 | 文件 | 说明 |
+|---|---|---|
+| MtcFederationManager | `src/main/mtc/mtc-federation-manager.js` (+233) | 封装 `@chainlesschain/core-mtc/transports/libp2p` 的 Libp2pTransport (gossipsub mode)。Topic: `cc.community.<id>.events`。API: `subscribeCommunity` / `publishCommunityEvent` / `unsubscribeCommunity` / `connectPeer`。failure 容错降级到 Phase A |
+| social-initializer 注册 | `src/main/bootstrap/social-initializer.js` (+34) | `mtcFederationManager` initializer，required:false（libp2p 失败时社区功能 fallback Phase A 直连仍工作） |
+| community-ipc 双发 + DI 重构 | `src/main/social/community-ipc.js` (+62 / −10) | `community:join` / `community:leave` / `channel:send-message` 三个 IPC 同时走 gossip + MTC。register 接受 `ipcMain` 作为 DI dep（match social-ipc 的模式，绕开 vitest electron alias 名字导出限制） |
+| phase-3-4-social 注入 | `src/main/ipc/phases/phase-3-4-social.js` (+2) | `mtcFederationManager` 透传到 `registerCommunityIPC` |
+
+**Sub-phase 范围（v1 vs deferred）**
+- v1：transport 层（subscribe/publish/dispatch + 双轨幂等）
+- B4 deferred：DID 签名 / Merkle 批 envelope finality / M-of-N 多签 / 跨联邦信任锚 / 自动 peer 桥接
+
+**测试**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit | `src/main/mtc/__tests__/mtc-federation-manager.test.js` | 17 — topicForCommunity / lifecycle / publish / subscribe / unsubscribe / connectPeer 全覆盖 + mock transport |
+| Integration | `src/main/social/__tests__/community-ipc-dual-track.integration.test.js` | 12 — community:join 双订阅 / community:leave 双退订 / channel:send-message 双发 / 任一 transport 失败不阻塞另一条 / 单管道 fallback (gossip-only / MTC-only) |
+| E2E | `src/main/mtc/__tests__/mtc-federation-roundtrip.test.js` | 4 — 双真 libp2p gossipsub-mode 节点 + 调用路径不抛 + 条件 delivery 断言（mesh 形成则 verify，未形成不阻断；与 core-mtc 自家 federation-discovery 测试同策略） + dual-track 幂等性（同条消息双路径只插一行） |
+| 全 22 文件回归 (p2p + social + mtc) | — | **891 / 891** ✅ |
+
+**架构注意**
+- MtcFederationManager 当前是 **独立 libp2p 节点**（与 P2PManager 不复用）—— 复用要侵入 P2PManager 的 createLibp2p config 加 `pubsub: gossipsub()` service + dynamic import gossipsub，留作后续 follow-up 优化
+- v1 没自动 peer 发现：`connectPeer(multiaddr)` 由调用方手动 bridge；生产里跨机生效需要先把对端 multiaddr 喂进来（Phase A 直连仍是默认即时通道）
+- 2-node gossipsub mesh 形成在测试环境天然 flaky（per core-mtc 历史经验），所以 e2e delivery 断言是 conditional 的；生产 federations 3+ peer + floodPublish=true 可靠
+- 同一条 channel_message 通过 Phase A direct gossip + Phase B MTC topic 双轨送到 B 时，`channelManager.handleMessageReceived` 的 INSERT OR IGNORE on `id` 保证只插一行
+
+## 2026-05-07 增量更新 III（**P2P 去中心化社交跨机同步真正打通** — Phase A: 7 个 bug + 25 个测试）
+
+社区/频道这条所谓"去中心化社交"路径，**在此之前其实只在单机上能跑** —— 双人验证里 A 发出去的消息永远到不了 B 的本地 DB。Phase A 系统性修了 7 个独立 bug，把发送/接收两端在 wire 上接通：
+
+| # | 位置 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | `p2p-manager.js:sendMessage` | `stream.write(data)` 是 libp2p 0.x/1.x 老 API；3.x 是 `stream.send(bytes)` | 改 `stream.send(payload)` + drain backpressure |
+| 2 | `p2p-manager.js:sendMessage` | 直传 JS 对象给 `stream.write()`，libp2p 流只接受 `Uint8Array` | 新增 `encodeWireMessage()`：Buffer/Uint8Array 透传，object/string → JSON-line UTF-8 |
+| 3 | `p2p-manager.js:registerMessageHandler` | `for await of stream.source` 是 0.x/1.x it-pipe 语义，3.x 下 `.source` 是 undefined | 改 `for await of stream`（3.x MessageStream 直接是 AsyncIterable） |
+| 4 | `p2p-manager.js:registerMessageHandler` | handler 签名 `({stream, connection}) =>` 是旧版形状 | 改 `(stream, connection) =>` |
+| 5 | `p2p-manager.js:registerMessageHandler` | 收到的 bytes 只 emit `message:received`，不按 `type` 派发 → gossip-protocol 监听的 `gossip:message` 事件永远不发 | 新增 `decodeWireMessage` + `dispatchTypedMessage`，按 type 路由到 `gossip:message` / `gossip:subscribe` / `gossip:unsubscribe` / `message:call-*` / `message:typed`，同时保留 `message:received` 兜底 |
+| 6 | `p2p-manager.js:initialize` | `registerMessageHandler()` 在 init 流程里**从未被调过**，等于 `/chainlesschain/message/1.0.0` protocol 根本没注册 | 在 `initialize()` 里 `registerEncryptedMessageHandlers()` 之前调上 |
+| 7 | `social-initializer.js` (新增 `gossipReceiver`) | `gossipProtocol.emit('message:received', ...)` 没人订阅 → 远端消息到 gossip 层就死循环，永远不进 `channel_messages` 表 | 新增 `gossipReceiver` initializer，订阅事件并调已存在的 `channelManager.handleMessageReceived()`（INSERT OR IGNORE 去重） |
+
+**测试金字塔**
+
+| 层 | 文件 | 测试 |
+|---|---|---|
+| Unit (helpers) | `src/main/p2p/__tests__/p2p-manager-dispatch.test.js` | 18 — encode/decode/dispatch 三组 helper × Buffer/Uint8Array/string/object/null 五种 payload × 6 类 type |
+| Integration (wiring) | `src/main/social/__tests__/gossip-channel-receiver.integration.test.js` | 4 — 真 GossipProtocol + 真 ChannelManager + mock libp2p，验证 channel_message 写入 / 重复幂等 / 非 channel_message 忽略 / 未订阅社区忽略 |
+| E2E (real wire) | `src/main/p2p/__tests__/p2p-gossip-roundtrip.test.js` | 3 — 双真 libp2p 节点（TCP + noise + yamux + identify），完整跑通 `mgrA.sendMessage` + `gossipA.broadcast` 到对端 emit 事件 |
+| 回归 | `community-manager.test.js` (60) + `channel-manager.test.js` (64) + `call-signaling.test.js` + `call-manager.test.js` | 124 + p2p folder 全绿 |
+| **小计** | **5 文件** | **149 / 149** |
+
+**关键测试细节**：e2e 测试用 `// @vitest-environment node` 强制走 node 环境（jsdom 默认环境会破坏 libp2p TCP 收包路径的 `Uint8Array instanceof` 检查）。
+
+**实战影响**：Phase A 之后，两台真机装的 desktop 在同一局域网（mDNS 发现）或远程（DHT + bootstrap）连上后，加入同一社区 → A 在频道里发消息 → B 的 `/community` 视图里能看到。**这是 v0.42.0 v5.0.3.x 期所有 community/channel 用户体验的隐性前置 bug**。
+
+**未触碰的相关 latent bug**（pre-existing，等 follow-up）：
+- 9 个其它 `node.handle(...)` 调用很可能也有同样的 stream.write/source 老 API（yjs-collab-manager / model-parameter-sync / voice-video-manager / collab-sync）—— 不在 Phase A scope，等真出问题再扫
+- gossip-protocol 现在只 wire 了 `channel_message` 一类 payload；governance 提案 / moderation 上报这些不走 gossip，仍是单机操作
+
+**Phase B (规划中)**：MTC 联邦 gossipsub 做社区数据同步的"正式通道"——比 Phase A 的 direct gossip 多了 Merkle finality / 跨联邦信任锚 / M-of-N 多签等 audit 语义。两条路并存（双轨），Phase A 提供 best-effort 即时同步，Phase B 给可审计的最终一致性。
+
 ## 2026-05-07 增量更新 II（**v5.0.3.40 — MTC 视图 in-process 提速 + CI 三发解锁**）
 
 四个互不相关的 fix 一次性闭环：

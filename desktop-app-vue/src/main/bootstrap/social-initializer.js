@@ -278,7 +278,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CallManager initialized");
         return callManager;
       } catch (error) {
-        logger.error("[Social] CallManager initialization failed:", error.message);
+        logger.error(
+          "[Social] CallManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -299,7 +302,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CallSignaling initialized");
         return callSignaling;
       } catch (error) {
-        logger.error("[Social] CallSignaling initialization failed:", error.message);
+        logger.error(
+          "[Social] CallSignaling initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -319,7 +325,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ MediaEngine initialized");
         return mediaEngine;
       } catch (error) {
-        logger.error("[Social] MediaEngine initialization failed:", error.message);
+        logger.error(
+          "[Social] MediaEngine initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -354,7 +363,9 @@ function registerSocialInitializers(factory) {
     required: false,
     async init(context) {
       try {
-        const { SharedAlbumManager } = require("../social/shared-album-manager");
+        const {
+          SharedAlbumManager,
+        } = require("../social/shared-album-manager");
         const sharedAlbumManager = new SharedAlbumManager(
           context.database,
           context.didManager,
@@ -364,7 +375,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ SharedAlbumManager initialized");
         return sharedAlbumManager;
       } catch (error) {
-        logger.error("[Social] SharedAlbumManager initialization failed:", error.message);
+        logger.error(
+          "[Social] SharedAlbumManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -385,7 +399,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ PhotoEncryptor initialized");
         return photoEncryptor;
       } catch (error) {
-        logger.error("[Social] PhotoEncryptor initialization failed:", error.message);
+        logger.error(
+          "[Social] PhotoEncryptor initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -406,7 +423,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ PhotoSync initialized");
         return photoSync;
       } catch (error) {
-        logger.error("[Social] PhotoSync initialization failed:", error.message);
+        logger.error(
+          "[Social] PhotoSync initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -426,7 +446,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ ExifStripper initialized");
         return exifStripper;
       } catch (error) {
-        logger.error("[Social] ExifStripper initialization failed:", error.message);
+        logger.error(
+          "[Social] ExifStripper initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -451,7 +474,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CollabEngine initialized");
         return collabEngine;
       } catch (error) {
-        logger.error("[Social] CollabEngine initialization failed:", error.message);
+        logger.error(
+          "[Social] CollabEngine initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -472,7 +498,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CollabSync initialized");
         return collabSync;
       } catch (error) {
-        logger.error("[Social] CollabSync initialization failed:", error.message);
+        logger.error(
+          "[Social] CollabSync initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -493,7 +522,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CollabAwareness initialized");
         return collabAwareness;
       } catch (error) {
-        logger.error("[Social] CollabAwareness initialization failed:", error.message);
+        logger.error(
+          "[Social] CollabAwareness initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -514,7 +546,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ DocVersionManager initialized");
         return docVersionManager;
       } catch (error) {
-        logger.error("[Social] DocVersionManager initialization failed:", error.message);
+        logger.error(
+          "[Social] DocVersionManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -539,7 +574,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ CommunityManager initialized");
         return communityManager;
       } catch (error) {
-        logger.error("[Social] CommunityManager initialization failed:", error.message);
+        logger.error(
+          "[Social] CommunityManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -564,7 +602,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ ChannelManager initialized");
         return channelManager;
       } catch (error) {
-        logger.error("[Social] ChannelManager initialization failed:", error.message);
+        logger.error(
+          "[Social] ChannelManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -588,7 +629,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ GovernanceEngine initialized");
         return governanceEngine;
       } catch (error) {
-        logger.error("[Social] GovernanceEngine initialization failed:", error.message);
+        logger.error(
+          "[Social] GovernanceEngine initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -609,7 +653,95 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ GossipProtocol initialized");
         return gossipProtocol;
       } catch (error) {
-        logger.error("[Social] GossipProtocol initialization failed:", error.message);
+        logger.error(
+          "[Social] GossipProtocol initialization failed:",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // Phase B v1 — MTC 联邦 gossipsub 通道
+  // ========================================
+  // 在 Phase A 直连 gossip 之上 *双轨* 加 MTC 联邦 gossipsub. 独立 libp2p
+  // 节点（与 P2PManager 的 node 不复用，因为 P2PManager 没配 pubsub service；
+  // 复用要侵入 createLibp2p 配置 + dynamic import gossipsub，留作 follow-up
+  // 优化）. v1 只提供 transport 层；DID 签名 / Merkle 批 / M-of-N 留 B4
+  // sub-phase. failure 不致命，社区功能 fallback 到 Phase A 直连 gossip.
+  factory.register({
+    name: "mtcFederationManager",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const {
+          MtcFederationManager,
+        } = require("../mtc/mtc-federation-manager");
+        const mgr = new MtcFederationManager();
+        await mgr.initialize();
+        logger.info("[Social] ✓ MtcFederationManager initialized");
+        return mgr;
+      } catch (error) {
+        // libp2p 模块加载失败 / 端口冲突 / 等 — 容错降级到只用 Phase A
+        logger.warn(
+          "[Social] MtcFederationManager initialization failed (Phase A direct gossip still works):",
+          error.message,
+        );
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — Gossip 接收回路 (channel_message → channelManager)
+  // ========================================
+  // gossipProtocol.broadcast 已经把消息送到对端的 gossipProtocol,
+  // 但收端 emit('message:received') 事件之前从来没人订阅, 导致远端
+  // 频道消息到了 gossip 层就死循环, 永远不会进 channel_messages 表.
+  // 这里把 gossip 事件接到 channelManager.handleMessageReceived(),
+  // 后者是已有方法且做了 INSERT OR IGNORE 去重 (message.id).
+  factory.register({
+    name: "gossipReceiver",
+    dependsOn: ["gossipProtocol", "channelManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { gossipProtocol, channelManager } = context;
+        if (!gossipProtocol || !channelManager) {
+          logger.warn("[Social] gossipReceiver 跳过: 缺少依赖");
+          return null;
+        }
+
+        gossipProtocol.on("message:received", async (data) => {
+          try {
+            const payload = data && data.payload;
+            if (!payload || payload.type !== "channel_message") {
+              return;
+            }
+            if (!payload.channelId || !payload.message) {
+              return;
+            }
+            await channelManager.handleMessageReceived(
+              payload.channelId,
+              payload.message,
+            );
+          } catch (err) {
+            logger.warn(
+              "[Social] gossip → channelManager 派发失败:",
+              err.message,
+            );
+          }
+        });
+
+        logger.info("[Social] ✓ gossipReceiver wired");
+        return { wired: true };
+      } catch (error) {
+        logger.error(
+          "[Social] gossipReceiver initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -630,7 +762,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ ContentModerator initialized");
         return contentModerator;
       } catch (error) {
-        logger.error("[Social] ContentModerator initialization failed:", error.message);
+        logger.error(
+          "[Social] ContentModerator initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -651,7 +786,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ TimeMachine initialized");
         return timeMachine;
       } catch (error) {
-        logger.error("[Social] TimeMachine initialization failed:", error.message);
+        logger.error(
+          "[Social] TimeMachine initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -672,7 +810,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ MemoryGenerator initialized");
         return memoryGenerator;
       } catch (error) {
-        logger.error("[Social] MemoryGenerator initialization failed:", error.message);
+        logger.error(
+          "[Social] MemoryGenerator initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -693,7 +834,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ SentimentAnalyzer initialized");
         return sentimentAnalyzer;
       } catch (error) {
-        logger.error("[Social] SentimentAnalyzer initialization failed:", error.message);
+        logger.error(
+          "[Social] SentimentAnalyzer initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -714,7 +858,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ SocialStats initialized");
         return socialStats;
       } catch (error) {
-        logger.error("[Social] SocialStats initialization failed:", error.message);
+        logger.error(
+          "[Social] SocialStats initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -739,7 +886,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ LivestreamManager initialized");
         return livestreamManager;
       } catch (error) {
-        logger.error("[Social] LivestreamManager initialization failed:", error.message);
+        logger.error(
+          "[Social] LivestreamManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -763,7 +913,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ DanmakuEngine initialized");
         return danmakuEngine;
       } catch (error) {
-        logger.error("[Social] DanmakuEngine initialization failed:", error.message);
+        logger.error(
+          "[Social] DanmakuEngine initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -779,12 +932,18 @@ function registerSocialInitializers(factory) {
     async init(context) {
       try {
         const { AnonymousMode } = require("../social/anonymous-mode");
-        const anonymousMode = new AnonymousMode(context.database, context.didManager);
+        const anonymousMode = new AnonymousMode(
+          context.database,
+          context.didManager,
+        );
         await anonymousMode.initialize();
         logger.info("[Social] ✓ AnonymousMode initialized");
         return anonymousMode;
       } catch (error) {
-        logger.error("[Social] AnonymousMode initialization failed:", error.message);
+        logger.error(
+          "[Social] AnonymousMode initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -800,12 +959,18 @@ function registerSocialInitializers(factory) {
     async init(context) {
       try {
         const { PlatformBridge } = require("../social/platform-bridge");
-        const platformBridge = new PlatformBridge(context.database, context.didManager);
+        const platformBridge = new PlatformBridge(
+          context.database,
+          context.didManager,
+        );
         await platformBridge.initialize();
         logger.info("[Social] ✓ PlatformBridge initialized");
         return platformBridge;
       } catch (error) {
-        logger.error("[Social] PlatformBridge initialization failed:", error.message);
+        logger.error(
+          "[Social] PlatformBridge initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -826,7 +991,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ SocialTokenManager initialized");
         return socialToken;
       } catch (error) {
-        logger.error("[Social] SocialTokenManager initialization failed:", error.message);
+        logger.error(
+          "[Social] SocialTokenManager initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -847,7 +1015,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ AISocialAssistant initialized");
         return aiSocialAssistant;
       } catch (error) {
-        logger.error("[Social] AISocialAssistant initialization failed:", error.message);
+        logger.error(
+          "[Social] AISocialAssistant initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -868,7 +1039,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ StorageMarket initialized");
         return storageMarket;
       } catch (error) {
-        logger.error("[Social] StorageMarket initialization failed:", error.message);
+        logger.error(
+          "[Social] StorageMarket initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
@@ -889,7 +1063,10 @@ function registerSocialInitializers(factory) {
         logger.info("[Social] ✓ MeshSocial initialized");
         return meshSocial;
       } catch (error) {
-        logger.error("[Social] MeshSocial initialization failed:", error.message);
+        logger.error(
+          "[Social] MeshSocial initialization failed:",
+          error.message,
+        );
         return null;
       }
     },
