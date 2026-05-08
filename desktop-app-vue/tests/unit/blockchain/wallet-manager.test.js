@@ -2,7 +2,7 @@
  * 钱包管理器单元测试
  *
  * Mock strategy:
- * - bip39/hdkey: vi.spyOn on actual module default (CJS interop - works)
+ * - bip39/@scure/bip32: vi.spyOn on actual module named export (CJS interop)
  * - crypto: real Node.js crypto (AES-256-GCM roundtrip)
  * - ethers/uuid: NOT mocked (vi.mock doesn't intercept CJS require)
  *   → use real ethers, capture wallet IDs dynamically
@@ -182,9 +182,13 @@ describe("WalletManager", () => {
     );
     vi.spyOn(actualBip39, "mnemonicToSeed").mockResolvedValue(Buffer.alloc(64));
 
-    // SpyOn actual hdkey (CJS default)
-    const hdkeyMod = await vi.importActual("hdkey");
-    const actualHDKey = hdkeyMod.default || hdkeyMod;
+    // SpyOn actual @scure/bip32 (CJS named export, replaces legacy hdkey).
+    // @scure/bip32 ships a dual ESM/CJS package — `vi.importActual` would
+    // load the ESM build while the SUT's `require()` loads CJS, leaving
+    // them as separate module instances and the spy uninstalled. Use a
+    // plain `require()` so we share the same CJS singleton the SUT sees.
+    const bip32Mod = require("@scure/bip32");
+    const actualHDKey = bip32Mod.HDKey;
     mocks.mockHDKeyDerivedNode.privateKey = Buffer.from(
       TEST_PRIVATE_KEY_HEX,
       "hex",

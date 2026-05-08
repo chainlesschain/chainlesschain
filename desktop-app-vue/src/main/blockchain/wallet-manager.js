@@ -15,7 +15,11 @@ const EventEmitter = require("events");
 const { ethers } = require("ethers");
 const { v4: uuidv4 } = require("uuid");
 const bip39 = require("bip39");
-const HDKey = require("hdkey");
+// Was `hdkey` — replaced with @scure/bip32 to drop the elliptic/secp256k1
+// LOW-vuln chain (GHSA-848j-6mx2-7j84). API is near-identical: same
+// fromMasterSeed + derive(path) shape; privateKey returns Uint8Array
+// instead of Buffer, so wrap the .toString("hex") sites with Buffer.from().
+const { HDKey } = require("@scure/bip32");
 const crypto = require("crypto");
 
 /**
@@ -114,7 +118,7 @@ class WalletManager extends EventEmitter {
       // 2. 从助记词派生私钥
       const hdNode = HDKey.fromMasterSeed(await bip39.mnemonicToSeed(mnemonic));
       const addrNode = hdNode.derive(this.derivationPath);
-      const privateKey = addrNode.privateKey.toString("hex");
+      const privateKey = Buffer.from(addrNode.privateKey).toString("hex");
 
       // 3. 创建 ethers.Wallet
       const wallet = new ethers.Wallet("0x" + privateKey);
@@ -192,7 +196,7 @@ class WalletManager extends EventEmitter {
       // 从助记词派生私钥
       const hdNode = HDKey.fromMasterSeed(await bip39.mnemonicToSeed(mnemonic));
       const addrNode = hdNode.derive(this.derivationPath);
-      const privateKey = addrNode.privateKey.toString("hex");
+      const privateKey = Buffer.from(addrNode.privateKey).toString("hex");
 
       // 创建钱包
       const wallet = new ethers.Wallet("0x" + privateKey);
