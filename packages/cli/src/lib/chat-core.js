@@ -242,26 +242,39 @@ export async function streamAnthropic(
 export async function* chatStream(messages, options) {
   const { provider, model, baseUrl, apiKey, sessionId } = options;
 
-  const tokens = [];
-  const onToken = (token) => {
-    tokens.push(token);
-  };
-
+  // Token queue + waiter promise. onToken (called synchronously by each
+  // streamX impl per delta) pushes onto the queue and wakes the generator
+  // loop, which yields immediately. Pre-v5.0.3.46 this was a buffering
+  // tokens[] array drained only after `await streamX(...)` resolved — so
+  // the "stream" surfaced no progress until the LLM call finished, which
+  // showed up as the chat.intent placeholder card spinning at "意图: 未识别"
+  // for the full LLM duration.
+  const queue = [];
+  let waiter = null;
+  let done = false;
   let capturedUsage = null;
+
+  const wake = () => {
+    if (!waiter) return;
+    const w = waiter;
+    waiter = null;
+    w();
+  };
+  const onToken = (token) => {
+    queue.push(token);
+    wake();
+  };
   const onUsage = (u) => {
     capturedUsage = u;
   };
 
-  let fullResponse;
-
+  // Validate creds + assemble URL synchronously so missing-key errors
+  // surface immediately to the consumer instead of being deferred until
+  // the first queue drain tick.
+  let providerCall;
   if (provider === "ollama") {
-    fullResponse = await streamOllama(
-      messages,
-      model,
-      baseUrl,
-      onToken,
-      onUsage,
-    );
+    providerCall = () =>
+      streamOllama(messages, model, baseUrl, onToken, onUsage);
   } else if (provider === "anthropic") {
     const providerDef = BUILT_IN_PROVIDERS.anthropic;
     const url =
@@ -276,14 +289,8 @@ export async function* chatStream(messages, options) {
         `API key required for anthropic (set ${providerDef?.apiKeyEnv || "ANTHROPIC_API_KEY"})`,
       );
     }
-    fullResponse = await streamAnthropic(
-      messages,
-      model,
-      url,
-      key,
-      onToken,
-      onUsage,
-    );
+    providerCall = () =>
+      streamAnthropic(messages, model, url, key, onToken, onUsage);
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
     const url =
@@ -298,15 +305,39 @@ export async function* chatStream(messages, options) {
         `API key required for ${provider} (set ${providerDef?.apiKeyEnv || "API key"})`,
       );
     }
-    fullResponse = await streamOpenAI(
-      messages,
-      model,
-      url,
-      key,
-      onToken,
-      onUsage,
-    );
+    providerCall = () =>
+      streamOpenAI(messages, model, url, key, onToken, onUsage);
   }
+
+  // Run the provider stream concurrently with the queue-drain loop. finally
+  // flips `done` and wakes the waiter so a stream that ends without emitting
+  // any token still terminates the generator cleanly.
+  const streamPromise = (async () => {
+    try {
+      return await providerCall();
+    } finally {
+      done = true;
+      wake();
+    }
+  })();
+  // Swallow-only handler so an early rejection isn't logged as unhandled
+  // before the consumer reaches `await streamPromise` below. The eventual
+  // await still rethrows.
+  streamPromise.catch(() => {});
+
+  while (true) {
+    if (queue.length > 0) {
+      yield { type: "response-token", token: queue.shift() };
+      continue;
+    }
+    if (done) break;
+    await new Promise((resolve) => {
+      waiter = resolve;
+    });
+  }
+
+  // Rethrows if providerCall rejected.
+  const fullResponse = await streamPromise;
 
   // Phase J — auto-record token usage to JSONL session store so
   // `cc session usage` and the `usage.*` WS routes see real data.
@@ -323,11 +354,6 @@ export async function* chatStream(messages, options) {
     } catch {
       // Best-effort — never break the stream because accounting failed.
     }
-  }
-
-  // Yield all collected tokens
-  for (const token of tokens) {
-    yield { type: "response-token", token };
   }
 
   yield { type: "response-complete", content: fullResponse };
