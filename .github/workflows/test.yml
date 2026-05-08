@@ -95,7 +95,6 @@ jobs:
             --exclude="**/blockchain/**" \
             --exclude="**/import/**" \
             --exclude="**/extended-tools*.test.js" \
-            --exclude="**/*-ipc.test.js" \
             --exclude="**/llm/session-manager*.test.js" \
             --exclude="**/llm/llm-performance.test.js" \
             --exclude="**/tools/tool-manager.test.js" \
@@ -329,7 +328,6 @@ jobs:
       - name: Run all unit tests
         working-directory: ./desktop-app-vue
         run: npm run test:unit
-        continue-on-error: true
 
       - name: Run test coverage
         working-directory: ./desktop-app-vue
