@@ -1,5 +1,49 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-07 发布 — **v5.0.3.43 MTC publisher_signature M-of-N 修正 + 安全硬化级联**
+
+productVersion **v5.0.3.41 → v5.0.3.43**（.42 是 CLI atomic bump，无功能变化，详见 changelog）。本版本两条主线：(1) **MTC `landmark.publisher_signature` strip-all-sigs 对称化**，修复一个会**绕过 M-of-N 阈值**的真实缺陷；(2) **安全硬化级联**，一周内 8 次 sweep 把 `npm audit` 全部清零（HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0）。
+
+**核心修复**：
+
+- **MTC publisher_signature M-of-N strip-all-sigs（commit `c23e98cca` + 文档 `038e6d710`）** —— Producer 与 verifier 必须**对称地**把 `_stripSigsForPublisher(landmark)`（清零 `publisher_signature.sig` + 每个 snapshot 的 `signature.sig` + `signatures[*].sig`）喂给 JCS 后再签 / 验，而不是只清零 `publisher_signature.sig`。否则只要篡改 M-of-N 联邦中**任何一个**成员的 per-member sig，publisher_signature 就会被打断 → 直接绕过 M-of-N 阈值的存在意义。Helper 抽到 `packages/core-mtc/lib/publisher-signing.js`，导出为 `@chainlesschain/core-mtc/publisher-signing` 子路径。三处调用点：`batch.js`（单签 + 联邦）、`landmark-cache.js` 验证侧、桌面 `governance-multisig.js`（lazy-require 绕 @noble/curves hoisting trap）。规范文档 §8.2 同步更新。Canary：`mtc-federation-publish-cli.test.js` "2-of-3 threshold accepts when one member's sig is tampered"。
+- **LandmarkCache `landmark.publisher_signature` 验证启用（commit `c40d927da` + `72c3619ee`）** —— 默认 opt-in `verifyPublisherSignature: true` 对 cache 命中前增加发布者签名校验（不再无脑相信 cache）；real-verifier callers（CLI `cc mtc verify` + 桌面 audit pipeline + cross-chain bridge 校验侧）全线启用。常量 `BAD_PUBLISHER_SIG` → `BAD_LANDMARK_SIG`（`36fcd8f4f`）匹配规范 §11；spec §8.5 跟进 `LANDMARK_SIG_PREFIX` 定义。
+
+**安全硬化（HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0）**：
+
+- `f6c937fa8` override `serialize-javascript` + `tar`（HIGH 44 → 10）
+- `8a56978b5` 删 `speedtest-net`，改用 native fetch
+- `9c7ce00e7` override `semver` ^7.7.4（清掉 imap 链）
+- `922b64822` override `undici` ^6.21.2（清掉 hardhat 5.x 链）
+- `4fae47dd4` deprecate `werift`
+- `cc7b0b40a` override `ip-address` + `dompurify`（MOD 4 → 0）
+- `1f86594a2` override `tmp` ^0.2.5
+- `64047283a` override `make-fetch-happen` ^13
+- `d19bcb8cb` 拆 `hardhat-stack` 到独立 `contracts/` workspace + drop `hdkey`（LOW 14 → 0）
+- `d558b66b1` `channel-manager` DDL 加固 + drop 未用的 jspdf
+- `7312cf035` `wrtc-compat` 补 CVE-2024-29415（`ip` SSRF）
+
+**新增**：
+
+- **Updater 渲染端进度通知（commit `4c1a5ac18` + `e27592bb5`）** —— `notifier-only` flow，关闭重复 native dialog，渲染端实时显示下载进度。
+
+**回归测试全绿**：
+
+| Suite | 通过 |
+|---|---|
+| desktop unit（含 nostr-bridge-ipc 修） | 1454 / 1454 |
+| core-mtc 单测 | 258 / 258 |
+| CLI mtc-federation 集成 | 41 / 41 |
+| CLI 全量 unit | 17,432 / 17,432 |
+
+**附带 bug 修**（本对话）：
+
+- **`tests/unit/social/nostr-bridge-ipc.test.js` 23 用例失败** —— 源自 `551ef28b3` "fix(ipc): correct ipcGuard API" 切到 `markModuleRegistered` 时未同步更新测试 stub（仍叫 `registerModule` + 错的 `(name, channels)` 签名）。修：stub 改 `markModuleRegistered`，断言改单参数。23 / 23 ✅。
+
+**部署/分发**：本版桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.43 > 5.0.3-alpha.41`，所有 v5.0.3.41 桌面用户重启会真发现新版。三大文档站（docs / design / www）同步刷新（commit `1183075b5` + `0384099f3`）。
+
+---
+
 ## 2026-05-07 发布 — **v5.0.3.41 chat-panel-v5 三壳对齐 + B4 social 滚动收口**
 
 productVersion **v5.0.3.40 → v5.0.3.41**。本版本正式 ship 自 .40 以来的全部滚动条目（XII–XIX：B4 跨机分发 / trust filter / viewer / 外部归档 / M-of-N / 跨联邦信任 / web-shell / web-panel / sign-as-self / cred-persist / auto-archive / chat-panel-v5）。
@@ -1831,7 +1875,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.39-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.43-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1851,7 +1895,11 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.41 Evolution Edition (2026-05-07 · CLI 0.161.3 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · **B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节** · **chat-panel-v5 三壳严格对齐**)
+## ⭐ 当前版本: v5.0.3.43 Evolution Edition (2026-05-07 · CLI 0.161.4 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + **publisher_signature M-of-N strip-all-sigs 修正** · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · **B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节** · **chat-panel-v5 三壳严格对齐** · **安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0**)
+
+### 最新更新 - MTC publisher_signature M-of-N 修正 + 安全硬化级联 (v5.0.3.43, 2026-05-07)
+
+修复一个会**绕过 M-of-N 阈值**的真实缺陷：producer + verifier 必须对称地把 `_stripSigsForPublisher(landmark)` 喂给 JCS（清零 publisher_signature.sig + 每个 snapshot 的 signature.sig + signatures[*].sig），仅清零 publisher_signature.sig 不够 — 否则篡改 M-of-N 中任一成员 sig 都会绕过阈值校验。Helper 抽到 `@chainlesschain/core-mtc/publisher-signing` 子路径，三处调用点（batch.js / landmark-cache.js / desktop governance-multisig.js）全部对齐。同步发版安全硬化级联（npm audit HIGH 44→0、MOD 4→0、LOW 45→0），8 次 sweep 干掉 hdkey + werift + speedtest-net，override `serialize-javascript` / `tar` / `semver` / `undici` / `tmp` / `ip-address` / `dompurify` / `make-fetch-happen` 等 transitive 漏洞，channel-manager DDL 加固，wrtc-compat 补 CVE-2024-29415。Updater 切到 notifier-only flow（`4c1a5ac18` + `e27592bb5`），渲染端实时进度。回归全绿：desktop 1454/1454 + core-mtc 258/258 + CLI 17432/17432 + mtc-federation 集成 41/41。
 
 ### 最新更新 - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
 

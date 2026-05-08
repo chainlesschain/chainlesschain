@@ -1,5 +1,49 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-07 Release — **v5.0.3.43 MTC publisher_signature M-of-N fix + security hardening cascade**
+
+productVersion **v5.0.3.41 → v5.0.3.43** (.42 was a CLI atomic bump with no functional change — see changelog). This release has two themes: (1) **MTC `landmark.publisher_signature` strip-all-sigs symmetrization** — fixes a real defect that **bypasses the M-of-N threshold**; (2) **security hardening cascade** — eight `npm audit` sweeps in one week clear all advisories (HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0).
+
+**Core fixes**:
+
+- **MTC publisher_signature M-of-N strip-all-sigs (commit `c23e98cca` + spec `038e6d710`)** — Producer + verifier must **symmetrically** feed `_stripSigsForPublisher(landmark)` (zeroing `publisher_signature.sig` + every snapshot's `signature.sig` + `signatures[*].sig`) into JCS before signing/verifying — not just `publisher_signature.sig`. Otherwise tampering with **any** per-member sig in an M-of-N federation breaks publisher_signature → completely defeating the M-of-N threshold's reason for existing. Helper extracted to `packages/core-mtc/lib/publisher-signing.js`, exported as `@chainlesschain/core-mtc/publisher-signing` subpath. Three call sites: `batch.js` (single + federated), `landmark-cache.js` verifier, desktop `governance-multisig.js` (lazy-require to dodge the @noble/curves hoisting trap). Spec §8.2 updated. Canary: `mtc-federation-publish-cli.test.js` "2-of-3 threshold accepts when one member's sig is tampered".
+- **LandmarkCache `landmark.publisher_signature` verification enabled (commit `c40d927da` + `72c3619ee`)** — `LandmarkCache` defaults `verifyPublisherSignature: true` opt-in, adding publisher-sig validation before cache hits (no longer blindly trusting cache); all real-verifier callers (CLI `cc mtc verify`, desktop audit pipeline, cross-chain bridge verifier) enabled. Constant `BAD_PUBLISHER_SIG` → `BAD_LANDMARK_SIG` (`36fcd8f4f`) to match spec §11; spec §8.5 followed up with `LANDMARK_SIG_PREFIX` definition.
+
+**Security hardening (HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0)**:
+
+- `f6c937fa8` override `serialize-javascript` + `tar` (HIGH 44 → 10)
+- `8a56978b5` drop `speedtest-net`, replace with native fetch
+- `9c7ce00e7` override `semver` ^7.7.4 (clears imap chain)
+- `922b64822` override `undici` ^6.21.2 (clears hardhat 5.x chain)
+- `4fae47dd4` deprecate `werift`
+- `cc7b0b40a` override `ip-address` + `dompurify` (MOD 4 → 0)
+- `1f86594a2` override `tmp` ^0.2.5
+- `64047283a` override `make-fetch-happen` ^13
+- `d19bcb8cb` split `hardhat-stack` into standalone `contracts/` workspace + drop `hdkey` (LOW 14 → 0)
+- `d558b66b1` `channel-manager` DDL hardening + drop unused jspdf
+- `7312cf035` `wrtc-compat` patches CVE-2024-29415 (`ip` SSRF)
+
+**Added**:
+
+- **Updater renderer-side progress notifier (commit `4c1a5ac18` + `e27592bb5`)** — `notifier-only` flow, drops duplicate native dialogs, renderer shows live download progress.
+
+**Regression test status**:
+
+| Suite | Pass |
+|---|---|
+| desktop unit (incl. nostr-bridge-ipc fix) | 1454 / 1454 |
+| core-mtc unit | 258 / 258 |
+| CLI mtc-federation integration | 41 / 41 |
+| CLI full unit | 17,432 / 17,432 |
+
+**Bonus bug fix (this conversation)**:
+
+- **`tests/unit/social/nostr-bridge-ipc.test.js` 23 cases failing** — Originally from `551ef28b3` "fix(ipc): correct ipcGuard API" which switched the source to `markModuleRegistered`, but the test stub still mocked `registerModule` with the wrong `(name, channels)` signature. CI didn't catch it because the "stable fallback" Unit Tests job excludes `**/*-ipc.test.js` and Full Test Suite uses `continue-on-error: true`. Fix: rename stub method to `markModuleRegistered`, drop the channels arg from the assertion. 23 / 23 ✅.
+
+**Distribution**: Desktop binary rebuilt; auto-updater compares `5.0.3-alpha.43 > 5.0.3-alpha.41`, so all v5.0.3.41 desktop users will see a real "new version" prompt on restart. All three documentation sites (docs / design / www) refreshed in sync (commit `1183075b5` + `0384099f3`).
+
+---
+
 ## 2026-05-07 Release — **v5.0.3.41 chat-panel-v5 three-shell parity + B4 social rolling closure**
 
 productVersion **v5.0.3.40 → v5.0.3.41**. This release formally ships every rolling entry accumulated since .40 (XII–XIX: B4 cross-machine distribution / trust filter / viewer / external archival / M-of-N / cross-fed trust / web-shell / web-panel / sign-as-self / cred-persist / auto-archive / chat-panel-v5).
@@ -1598,7 +1642,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.39-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.43-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1618,7 +1662,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.41 Evolution Edition (2026-05-07 · CLI 0.161.3 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · **B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections** · **chat-panel-v5 Three-Shell Strict Parity**)
+## ⭐ Current Version: v5.0.3.43 Evolution Edition (2026-05-07 · CLI 0.161.4 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + **publisher_signature M-of-N strip-all-sigs fix** · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · **B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections** · **chat-panel-v5 Three-Shell Strict Parity** · **Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0**)
+
+### Latest Update - MTC publisher_signature M-of-N fix + Security Hardening Cascade (v5.0.3.43, 2026-05-07)
+
+Fixes a real defect that **bypasses the M-of-N threshold**: producer + verifier must symmetrically feed `_stripSigsForPublisher(landmark)` (zeroing publisher_signature.sig + every snapshot's signature.sig + signatures[*].sig) into JCS — zeroing only publisher_signature.sig is insufficient, since tampering with any per-member sig would otherwise break the publisher_signature without touching the threshold check. Helper extracted to `@chainlesschain/core-mtc/publisher-signing` subpath, three call sites (batch.js / landmark-cache.js / desktop governance-multisig.js) all aligned. Shipped together with security hardening cascade (npm audit HIGH 44→0, MOD 4→0, LOW 45→0): 8 sweeps drop hdkey + werift + speedtest-net, override `serialize-javascript` / `tar` / `semver` / `undici` / `tmp` / `ip-address` / `dompurify` / `make-fetch-happen` transitive vulnerabilities, channel-manager DDL hardening, wrtc-compat patches CVE-2024-29415. Updater switched to notifier-only flow (`4c1a5ac18` + `e27592bb5`), renderer shows live progress. All regressions green: desktop 1454/1454 + core-mtc 258/258 + CLI 17432/17432 + mtc-federation integration 41/41.
 
 ### Latest Update - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
 

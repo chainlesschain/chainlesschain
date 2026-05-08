@@ -53,7 +53,7 @@ function makeIpcGuardStub({ registered = false } = {}) {
   let isReg = registered;
   return {
     isModuleRegistered: vi.fn(() => isReg),
-    registerModule: vi.fn(() => {
+    markModuleRegistered: vi.fn(() => {
       isReg = true;
     }),
     unregisterModule: vi.fn(() => {
@@ -133,9 +133,8 @@ describe("nostr-bridge-ipc", () => {
       for (const channel of NOSTR_CHANNELS) {
         expect(ipcMain.handlers.has(channel)).toBe(true);
       }
-      expect(ipcGuard.registerModule).toHaveBeenCalledWith(
+      expect(ipcGuard.markModuleRegistered).toHaveBeenCalledWith(
         "nostr-bridge-ipc",
-        NOSTR_CHANNELS,
       );
     });
 
