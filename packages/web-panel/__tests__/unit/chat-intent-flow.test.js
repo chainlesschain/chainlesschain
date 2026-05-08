@@ -185,6 +185,43 @@ describe('chat store — submitUserInput intent flow', () => {
     await store.submitUserInput('s-7', 'hi')
     expect(sendSessionMessage).toHaveBeenCalledWith('s-7', 'hi')
   })
+
+  it('intent.understand wall-clock timeout (sendStream hangs) falls through to direct send', async () => {
+    // Repro for the "理解中…" stuck card: backend dribbles tokens but never
+    // produces a `final` frame, so sendStream's 60s idle timer keeps rearming.
+    // The store should abort via signal at 90s and fall back to sendMessage.
+    vi.useFakeTimers()
+    try {
+      createSession.mockResolvedValueOnce('s-stuck')
+      sendStream.mockImplementationOnce((_payload, opts) => {
+        return new Promise((_resolve, reject) => {
+          opts.signal?.addEventListener('abort', () => {
+            const reason = opts.signal.reason instanceof Error
+              ? opts.signal.reason
+              : new Error('aborted')
+            reject(reason)
+          })
+          // Otherwise hang forever — simulates a slow LLM that never finishes.
+        })
+      })
+      const store = useChatStore()
+      store.setContextMode('project')
+      await store.createSession('chat')
+
+      const submitPromise = store.submitUserInput('s-stuck', 'hello')
+      // Fast-forward past the 90s wall-clock; flush microtasks between ticks
+      // so the abort handler chain (reject → catch → finally → splice) runs.
+      await vi.advanceTimersByTimeAsync(90001)
+      await submitPromise
+
+      expect(sendSessionMessage).toHaveBeenCalledWith('s-stuck', 'hello')
+      // Placeholder card must be removed once we fall through.
+      const msgs = store.getMessages('s-stuck')
+      expect(msgs.find((m) => m.type === 'intent-confirmation')).toBeUndefined()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('chat store — Improvement 1 (streaming intent)', () => {

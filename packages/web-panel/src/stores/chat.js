@@ -411,6 +411,16 @@ export const useChatStore = defineStore('chat', () => {
     msgs.push(placeholder)
 
     let understanding = null
+    // Wall-clock ceiling on top of sendStream's 60s idle timer. The idle
+    // timer rearms on every chunk, so a slow LLM that dribbles tokens but
+    // never produces a `final` frame would keep the placeholder card spinning
+    // indefinitely. Aborting the signal makes sendStream reject + emit a
+    // `.cancel` frame so the server releases its end of the stream too.
+    const ctl = new AbortController()
+    const wallTimeoutId = setTimeout(
+      () => ctl.abort(new Error('Intent understand wall-clock timeout')),
+      90000,
+    )
     try {
       const result = await ws.sendStream(
         {
@@ -431,12 +441,16 @@ export const useChatStore = defineStore('chat', () => {
           // local Ollama that's well under a minute. Disable the idle
           // timer so a brief stall mid-stream doesn't kill the request.
           idleMs: 60000,
+          signal: ctl.signal,
         },
       )
       if (result?.success) understanding = result
     } catch (_err) {
-      // sendStream rejected — backend missing or stream broken. Either way
-      // fall through to a direct send so the user isn't stuck.
+      // sendStream rejected — backend missing, stream broken, or wall-clock
+      // timeout fired. Either way fall through to a direct send so the user
+      // isn't stuck.
+    } finally {
+      clearTimeout(wallTimeoutId)
     }
 
     const hasUsefulUnderstanding =
