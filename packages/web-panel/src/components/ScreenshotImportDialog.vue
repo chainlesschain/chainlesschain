@@ -37,9 +37,29 @@
           <template #icon><ScanOutlined /></template>
           重跑 OCR
         </a-button>
-        <a-tag v-if="ocrConfidence !== null">
-          OCR 置信度 {{ ocrConfidence }}%
+        <a-select
+          v-model:value="ocrEngine"
+          size="small"
+          style="width: 140px"
+          :disabled="ocrLoading"
+          @change="handleEngineChange"
+        >
+          <a-select-option value="auto">自动 (推荐)</a-select-option>
+          <a-select-option value="llm">视觉 LLM</a-select-option>
+          <a-select-option value="tesseract">本地 Tesseract</a-select-option>
+        </a-select>
+        <a-tag v-if="engineUsed === 'llm'" color="blue">
+          {{ ocrModel || '豆包视觉' }}
         </a-tag>
+        <a-tag v-else-if="engineUsed === 'tesseract' && ocrConfidence !== null">
+          Tesseract · {{ ocrConfidence }}%
+        </a-tag>
+        <a-tooltip
+          v-if="ocrFallbackReason"
+          :title="`LLM 识别失败已回落 Tesseract: ${ocrFallbackReason}`"
+        >
+          <a-tag color="orange">回落 Tesseract</a-tag>
+        </a-tooltip>
       </div>
 
       <div v-if="shot?.dataUrl" class="ss-preview">
@@ -105,6 +125,10 @@ const capturing = ref(false)
 const ocrLoading = ref(false)
 const captureError = ref('')
 const ocrConfidence = ref(null)
+const ocrEngine = ref('auto')
+const engineUsed = ref(null)
+const ocrModel = ref('')
+const ocrFallbackReason = ref('')
 const shot = ref(null)
 
 const formState = reactive({
@@ -125,6 +149,9 @@ function resetState() {
   formState.tagsRaw = ''
   captureError.value = ''
   ocrConfidence.value = null
+  engineUsed.value = null
+  ocrModel.value = ''
+  ocrFallbackReason.value = ''
   shot.value = null
 }
 
@@ -155,10 +182,13 @@ async function runOcr(path) {
   if (!path) return
   ocrLoading.value = true
   try {
-    const result = await screenshot.ocr(path)
+    const result = await screenshot.ocr(path, undefined, ocrEngine.value)
     formState.content = result.text || ''
     ocrConfidence.value =
       typeof result.confidence === 'number' ? result.confidence : null
+    engineUsed.value = result.engine || null
+    ocrModel.value = result.model || ''
+    ocrFallbackReason.value = result.fallbackReason || ''
     if (!result.text) {
       message.info('OCR 未识别到文本,可手动输入')
     }
@@ -167,6 +197,11 @@ async function runOcr(path) {
   } finally {
     ocrLoading.value = false
   }
+}
+
+async function handleEngineChange() {
+  // 切引擎不强制重跑,等用户主动点"重跑 OCR"。这里只清回落标记。
+  ocrFallbackReason.value = ''
 }
 
 async function handleRecapture() {

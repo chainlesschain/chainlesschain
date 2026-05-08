@@ -9,7 +9,8 @@
  *   const ss = useScreenshot()
  *   if (ss.unsupported) { showAlert('请用桌面壳'); return }
  *   const cap = await ss.capture()         // {path, dataUrl, ...}
- *   const ocr = await ss.ocr(cap.path)     // {text, confidence, language}
+ *   const ocr = await ss.ocr(cap.path, undefined, 'auto')
+ *                                           // {text, confidence, language, engine, model?}
  *   ...save via useKnowledge().addItem()...
  *   await ss.cleanup(cap.path)
  *
@@ -59,12 +60,18 @@ export function useScreenshot() {
     return r
   }
 
-  async function ocr(path, lang) {
+  async function ocr(path, lang, engine) {
     if (!path) throw new Error('path is required')
     const reply = await ws.sendRaw(
-      { type: 'screenshot.ocr', path, lang },
-      // OCR 是 CPU 密集 (tesseract.js worker), 给 90s 兜底:中文识别
-      // 在低端 CPU 上 30-60s 是常态。
+      {
+        type: 'screenshot.ocr',
+        path,
+        lang,
+        // engine: 'auto' | 'llm' | 'tesseract'。undefined → 主进程默认 auto。
+        engine,
+      },
+      // OCR 时延上界:tesseract.js worker 在低端 CPU 上 30-60s 是常态;
+      // LLM 路径走网络 + 大图 base64,1-3s 但偶有 timeout。统一 90s 兜底。
       90000,
     )
     const r = _unwrap(reply)

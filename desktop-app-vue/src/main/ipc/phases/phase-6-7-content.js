@@ -116,12 +116,15 @@ function registerPhases6to7Content({ safeRegister, logger, deps }) {
   }
 
   // 截图 + OCR (托盘"截图识别"入口；3 handlers)
+  // app + llmManager 注入：screenshot:ocr 的 engine='auto'/'llm' 路径要读
+  // 当前配置的 LLM provider。LLM init 晚于 IPC 注册，所以走 app.llmManager
+  // 晚绑定（与 image-ipc 同款），直接传 llmManager 仅作 fallback 兜底。
   safeRegister("Screenshot IPC", {
     register: () => {
       const {
         registerScreenshotIPC,
       } = require("../../screenshot/screenshot-ipc");
-      registerScreenshotIPC();
+      registerScreenshotIPC({ app, llmManager });
     },
     handlers: 3,
     fatal: false,

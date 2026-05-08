@@ -207,7 +207,12 @@ async function startWebShell(options = {}) {
     // Phase 3c.7 — screenshot.* topics 复用 ../screenshot/screenshot-ipc 的
     // _internal exports (captureScreenshot / recognize / isInsideTmpDir),
     // 不依赖 ipcMain。OCR worker 在 web-shell 进程内跑 (与 V5/V6 同址)。
-    ...createScreenshotHandlers(),
+    // 2026-05-08 — engine='auto'/'llm' 路径要 app.llmManager；与 V5/V6
+    // IPC 同款晚绑定（LLM init 晚于 web-shell bootstrap）。
+    ...createScreenshotHandlers({
+      llmManager: options.llmManager ?? null,
+      app: options.app ?? null,
+    }),
     // Phase 3c.7 — notification-settings.* topics 桥接 appConfig。getAppConfig
     // 仅在调用方传入时才注册 (与 shell.switch 一致),避免 ws.execute 旧路径
     // 还活着时 SPA 误打开本不该可写的设置面。

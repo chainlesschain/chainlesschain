@@ -45,8 +45,26 @@ const globalStubs = {
     props: ["loading", "disabled", "size"],
     emits: ["click"],
   },
-  "a-tag": { template: '<span class="tag"><slot /></span>' },
+  "a-tag": {
+    template: '<span class="tag"><slot /></span>',
+    props: ["color"],
+  },
   "a-spin": { template: "<span />", props: ["size"] },
+  // engine selector + fallback tooltip (2026-05-08)
+  "a-select": {
+    template:
+      "<select :value=\"value\" @change=\"$emit('update:value', $event.target.value); $emit('change', $event.target.value)\"><slot /></select>",
+    props: ["value", "size", "disabled"],
+    emits: ["update:value", "change"],
+  },
+  "a-select-option": {
+    template: '<option :value="value"><slot /></option>',
+    props: ["value"],
+  },
+  "a-tooltip": {
+    template: "<span><slot /></span>",
+    props: ["title"],
+  },
   CameraOutlined: { template: "<span />" },
   ScanOutlined: { template: "<span />" },
 };
@@ -87,6 +105,7 @@ describe("ScreenshotImportDialog.vue", () => {
           text: "extracted text",
           confidence: 88.0,
           language: "eng+chi_sim",
+          engine: "tesseract",
         })),
         cleanup: vi.fn(async () => ({ success: true })),
       },
@@ -109,8 +128,11 @@ describe("ScreenshotImportDialog.vue", () => {
 
     const api = (window as any).electronAPI.screenshot;
     expect(api.capture).toHaveBeenCalledTimes(1);
+    // engine='auto' by default (2026-05-08): main 进程 dispatcher 会按
+    // 配置选 LLM 还是 Tesseract;UI 不强制。
     expect(api.ocr).toHaveBeenCalledWith({
       path: "/tmp/cc-screenshot-x.png",
+      engine: "auto",
     });
     const textarea = wrapper.find("textarea");
     expect((textarea.element as HTMLTextAreaElement).value).toBe(

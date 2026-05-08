@@ -22,6 +22,19 @@ const {
 // ── helpers ─────────────────────────────────────────────────────
 
 function makeStubInternal(overrides = {}) {
+  const recognize = vi.fn().mockResolvedValue({
+    text: "hello",
+    confidence: 0.9,
+    language: "eng",
+    engine: "tesseract",
+  });
+  const recognizeWithLLM = vi.fn().mockResolvedValue({
+    text: "豆包",
+    confidence: null,
+    language: "auto",
+    engine: "llm",
+    model: "doubao-1-5-vision-pro-240828",
+  });
   return {
     captureScreenshot: vi.fn().mockResolvedValue({
       path: "/tmp/cc-screenshot-stub.png",
@@ -30,9 +43,35 @@ function makeStubInternal(overrides = {}) {
       displays: 1,
       screenIndex: 0,
     }),
-    recognize: vi
+    recognize,
+    recognizeWithLLM,
+    // 与 screenshot-ipc.js _internal 同款的 dispatcher。测试侧拷贝逻辑而不是
+    // 真的 require — 保持单测独立 + 不依赖 _internal 实现细节。
+    recognizeDispatch: vi
       .fn()
-      .mockResolvedValue({ text: "hello", confidence: 0.9, language: "eng" }),
+      .mockImplementation(async (filePath, opts = {}) => {
+        const { engine = "auto", llmManager, lang = "eng+chi_sim" } = opts;
+        const llmAvail = !!llmManager && llmManager.provider === "volcengine";
+        if (engine === "tesseract") {
+          return await opts.tesseractImpl(filePath, lang);
+        }
+        if (engine === "llm") {
+          return await opts.llmImpl(filePath, llmManager);
+        }
+        if (llmAvail) {
+          try {
+            return await opts.llmImpl(filePath, llmManager);
+          } catch (err) {
+            const fb = await opts.tesseractImpl(filePath, lang);
+            return {
+              ...fb,
+              fallbackFrom: "llm",
+              fallbackReason: err.message,
+            };
+          }
+        }
+        return await opts.tesseractImpl(filePath, lang);
+      }),
     isInsideTmpDir: vi.fn((p) => /cc-screenshot-/.test(p)),
     tmpFilePath: vi.fn(() => "/tmp/cc-screenshot-stub.png"),
     ...overrides,
@@ -119,6 +158,7 @@ describe("screenshot.ocr", () => {
     const handler = createScreenshotOcrHandler({ _internal });
 
     await handler({ path: "/tmp/cc-screenshot-x.png" });
+    // engine='auto' + no llmManager → tesseract path
     expect(_internal.recognize).toHaveBeenLastCalledWith(
       "/tmp/cc-screenshot-x.png",
       "eng+chi_sim",
@@ -131,7 +171,7 @@ describe("screenshot.ocr", () => {
     );
   });
 
-  it("returns success envelope merging recognize result", async () => {
+  it("returns success envelope merging recognize result (default = tesseract w/o llmManager)", async () => {
     const _internal = makeStubInternal();
     const handler = createScreenshotOcrHandler({ _internal });
     const reply = await handler({ path: "/tmp/cc-screenshot-x.png" });
@@ -140,17 +180,106 @@ describe("screenshot.ocr", () => {
       text: "hello",
       confidence: 0.9,
       language: "eng",
+      engine: "tesseract",
     });
   });
 
   it("returns error envelope when recognize throws", async () => {
     const _internal = makeStubInternal({
-      recognize: vi.fn().mockRejectedValue(new Error("worker boom")),
+      recognizeDispatch: vi.fn().mockRejectedValue(new Error("worker boom")),
     });
     const handler = createScreenshotOcrHandler({ _internal });
     const reply = await handler({ path: "/tmp/cc-screenshot-x.png" });
     expect(reply.success).toBe(false);
     expect(reply.error).toMatch(/worker boom/);
+  });
+
+  it("engine='llm' forwards llmManager to llmImpl", async () => {
+    const _internal = makeStubInternal();
+    const llmManager = {
+      provider: "volcengine",
+      chatWithImageProcess: vi.fn(),
+    };
+    const handler = createScreenshotOcrHandler({ _internal, llmManager });
+    const reply = await handler({
+      path: "/tmp/cc-screenshot-x.png",
+      engine: "llm",
+    });
+    expect(reply.success).toBe(true);
+    expect(reply.engine).toBe("llm");
+    expect(reply.model).toBe("doubao-1-5-vision-pro-240828");
+    expect(_internal.recognizeWithLLM).toHaveBeenCalledWith(
+      "/tmp/cc-screenshot-x.png",
+      llmManager,
+    );
+  });
+
+  it("engine='auto' picks LLM when volcengine configured via app", async () => {
+    const _internal = makeStubInternal();
+    const app = {
+      llmManager: { provider: "volcengine", chatWithImageProcess: vi.fn() },
+    };
+    const handler = createScreenshotOcrHandler({ _internal, app });
+    const reply = await handler({
+      path: "/tmp/cc-screenshot-x.png",
+      engine: "auto",
+    });
+    expect(reply.success).toBe(true);
+    expect(reply.engine).toBe("llm");
+    expect(_internal.recognizeWithLLM).toHaveBeenCalledOnce();
+    expect(_internal.recognize).not.toHaveBeenCalled();
+  });
+
+  it("engine='auto' falls back to tesseract when LLM throws", async () => {
+    const _internal = makeStubInternal({
+      recognizeWithLLM: vi.fn().mockRejectedValue(new Error("rate limited")),
+    });
+    const llmManager = {
+      provider: "volcengine",
+      chatWithImageProcess: vi.fn(),
+    };
+    const handler = createScreenshotOcrHandler({ _internal, llmManager });
+    const reply = await handler({
+      path: "/tmp/cc-screenshot-x.png",
+      engine: "auto",
+    });
+    expect(reply.success).toBe(true);
+    expect(reply.engine).toBe("tesseract");
+    expect(reply.fallbackFrom).toBe("llm");
+    expect(reply.fallbackReason).toBe("rate limited");
+  });
+
+  it("garbage engine value coerces to auto", async () => {
+    const _internal = makeStubInternal();
+    const llmManager = {
+      provider: "volcengine",
+      chatWithImageProcess: vi.fn(),
+    };
+    const handler = createScreenshotOcrHandler({ _internal, llmManager });
+    const reply = await handler({
+      path: "/tmp/cc-screenshot-x.png",
+      engine: "totally-bogus",
+    });
+    expect(reply.success).toBe(true);
+    expect(reply.engine).toBe("llm"); // auto picked LLM
+  });
+
+  it("app.llmManager takes precedence over directly passed llmManager", async () => {
+    const _internal = makeStubInternal();
+    const direct = { provider: "ollama" }; // not vision-capable
+    const app = {
+      llmManager: { provider: "volcengine", chatWithImageProcess: vi.fn() },
+    };
+    const handler = createScreenshotOcrHandler({
+      _internal,
+      llmManager: direct,
+      app,
+    });
+    const reply = await handler({
+      path: "/tmp/cc-screenshot-x.png",
+      engine: "auto",
+    });
+    expect(reply.engine).toBe("llm"); // app's volcengine wins
   });
 });
 

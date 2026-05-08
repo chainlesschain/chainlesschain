@@ -3,7 +3,7 @@
  *
  * 暴露 3 个 topic 给 web-panel，对齐 V5/V6 桌面壳 `screenshot:*` IPC:
  *   screenshot.capture     → 截屏 + 写入 os.tmpdir/cc-screenshot-*.png
- *   screenshot.ocr         → tesseract.js 识别 (eng+chi_sim 默认)
+ *   screenshot.ocr         → 文本识别（engine: tesseract|llm|auto，默认 auto）
  *   screenshot.cleanup     → 删除截图临时文件
  *
  * Why we don't reuse ipcMain.handle: web-shell 走 WS dispatcher。但底层
@@ -13,6 +13,10 @@
  * 安全：`screenshot.ocr` / `screenshot.cleanup` 仍走 _internal.isInsideTmpDir
  * 防 path-traversal，与 IPC 完全一致。`screenshot.capture` 不接受 client
  * 传入的 path —— tmp 路径完全 server-allocated，零外部输入。
+ *
+ * Engine 路由（2026-05-08）：与 V5/V6 IPC 对齐三态。auto 模式自动用配置
+ * 的视觉 LLM（火山引擎），失败回落 Tesseract。llmManager 走 app 晚绑定
+ * 同款，由 web-shell-bootstrap 在 init 完成后注入。
  *
  * dataUrl 内联 vs 分离: 当前 V5 IPC 把 base64 PNG 跟 path 一起返回（4K
  * ~5–15 MB inline）。WS server (ws-cli-loader) 没有 envelope 封顶，
@@ -41,7 +45,11 @@ function createScreenshotCaptureHandler({ _internal } = {}) {
   };
 }
 
-function createScreenshotOcrHandler({ _internal } = {}) {
+function createScreenshotOcrHandler({
+  _internal,
+  llmManager: directLlmManager,
+  app,
+} = {}) {
   return async function screenshotOcrHandler(frame = {}) {
     const helpers = _internal || _loadInternal();
     const filePath = frame?.path;
@@ -53,8 +61,21 @@ function createScreenshotOcrHandler({ _internal } = {}) {
     }
     const lang =
       typeof frame.lang === "string" && frame.lang ? frame.lang : "eng+chi_sim";
+    const engine =
+      frame.engine === "tesseract" ||
+      frame.engine === "llm" ||
+      frame.engine === "auto"
+        ? frame.engine
+        : "auto";
+    const llmManager = app?.llmManager ?? directLlmManager ?? null;
     try {
-      const result = await helpers.recognize(filePath, lang);
+      const result = await helpers.recognizeDispatch(filePath, {
+        engine,
+        lang,
+        llmManager,
+        tesseractImpl: helpers.recognize,
+        llmImpl: helpers.recognizeWithLLM,
+      });
       return { success: true, ...result };
     } catch (err) {
       return { success: false, error: err?.message || String(err) };
@@ -86,6 +107,8 @@ function createScreenshotCleanupHandler({ _internal, fs: fsImpl } = {}) {
 }
 
 function createScreenshotHandlers(opts = {}) {
+  // ocr handler 单独需要 llmManager / app；capture/cleanup 不需要。
+  // 工厂层平铺整个 opts 给所有 sub-handler，多余字段 sub-handler 自动忽略。
   return {
     "screenshot.capture": createScreenshotCaptureHandler(opts),
     "screenshot.ocr": createScreenshotOcrHandler(opts),
