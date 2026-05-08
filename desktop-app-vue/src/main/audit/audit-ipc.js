@@ -36,25 +36,62 @@
  * @module audit/audit-ipc
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../utils/logger');
+const { logger } = require("../utils/logger");
+
+const CHANNELS = [
+  // Audit Log
+  "audit:query-logs",
+  "audit:get-log-detail",
+  "audit:export-logs",
+  "audit:get-statistics",
+  // Compliance
+  "compliance:get-policies",
+  "compliance:create-policy",
+  "compliance:update-policy",
+  "compliance:delete-policy",
+  "compliance:check-compliance",
+  "compliance:generate-report",
+  // Data Subject Requests
+  "dsr:create-request",
+  "dsr:list-requests",
+  "dsr:get-request-detail",
+  "dsr:process-request",
+  "dsr:approve-request",
+  "dsr:export-subject-data",
+  // Retention
+  "retention:apply-policy",
+  "retention:preview-deletion",
+];
 
 /**
  * Register audit system IPC handlers
  * @param {Object} dependencies - Injected dependencies
  * @param {Object} dependencies.database - Database instance
+ * @param {Object} [dependencies.auditLogger] - (optional) pre-built EnterpriseAuditLogger, for tests
+ * @param {Object} [dependencies.complianceManager] - (optional) pre-built ComplianceManager, for tests
+ * @param {Object} [dependencies.dataSubjectHandler] - (optional) pre-built DataSubjectHandler, for tests
+ * @param {Object} [dependencies.ipcMain] - (optional) ipcMain instance, for tests
  */
 function registerAuditIPC(dependencies) {
-  const { database } = dependencies;
+  const {
+    database,
+    auditLogger: injectedAuditLogger,
+    complianceManager: injectedComplianceManager,
+    dataSubjectHandler: injectedDataSubjectHandler,
+    ipcMain: injectedIpcMain,
+  } = dependencies;
 
-  // Lazy-initialize managers
-  let auditLogger = null;
-  let complianceManager = null;
-  let dataSubjectHandler = null;
+  // Lazy-require electron at first use so test injection can preempt
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
+
+  // Lazy-initialize managers (override lazy init when injected)
+  let auditLogger = injectedAuditLogger || null;
+  let complianceManager = injectedComplianceManager || null;
+  let dataSubjectHandler = injectedDataSubjectHandler || null;
 
   function getAuditLogger() {
     if (!auditLogger) {
-      const { EnterpriseAuditLogger } = require('./enterprise-audit-logger');
+      const { EnterpriseAuditLogger } = require("./enterprise-audit-logger");
       auditLogger = new EnterpriseAuditLogger({ database });
     }
     return auditLogger;
@@ -62,7 +99,7 @@ function registerAuditIPC(dependencies) {
 
   function getComplianceManager() {
     if (!complianceManager) {
-      const { ComplianceManager } = require('./compliance-manager');
+      const { ComplianceManager } = require("./compliance-manager");
       complianceManager = new ComplianceManager({ database });
     }
     return complianceManager;
@@ -70,13 +107,13 @@ function registerAuditIPC(dependencies) {
 
   function getDataSubjectHandler() {
     if (!dataSubjectHandler) {
-      const { DataSubjectHandler } = require('./data-subject-handler');
+      const { DataSubjectHandler } = require("./data-subject-handler");
       dataSubjectHandler = new DataSubjectHandler({ database });
     }
     return dataSubjectHandler;
   }
 
-  logger.info('[Audit IPC] Registering IPC handlers...');
+  logger.info("[Audit IPC] Registering IPC handlers...");
 
   // ==================== Audit Log ====================
 
@@ -93,12 +130,12 @@ function registerAuditIPC(dependencies) {
    * @param {number} [filters.pageSize] - Page size
    * @returns {Object} { success, data: { logs, total, page, pageSize } }
    */
-  ipcMain.handle('audit:query-logs', async (event, filters) => {
+  ipcMain.handle("audit:query-logs", async (event, filters) => {
     try {
       const result = await getAuditLogger().query(filters);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Query logs failed:', error.message);
+      logger.error("[Audit IPC] Query logs failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -109,12 +146,12 @@ function registerAuditIPC(dependencies) {
    * @param {string} id - Audit log entry ID
    * @returns {Object} { success, data: logEntry }
    */
-  ipcMain.handle('audit:get-log-detail', async (event, id) => {
+  ipcMain.handle("audit:get-log-detail", async (event, id) => {
     try {
       const result = await getAuditLogger().getLogDetail(id);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Get log detail failed:', error.message);
+      logger.error("[Audit IPC] Get log detail failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -126,12 +163,12 @@ function registerAuditIPC(dependencies) {
    * @param {Object} filters - Query filters for export scope
    * @returns {Object} { success, data: { filePath, format, count } }
    */
-  ipcMain.handle('audit:export-logs', async (event, format, filters) => {
+  ipcMain.handle("audit:export-logs", async (event, format, filters) => {
     try {
       const result = await getAuditLogger().exportLogs(format, filters);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Export logs failed:', error.message);
+      logger.error("[Audit IPC] Export logs failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -142,12 +179,12 @@ function registerAuditIPC(dependencies) {
    * @param {Object} timeRange - Time range for statistics
    * @returns {Object} { success, data: statistics }
    */
-  ipcMain.handle('audit:get-statistics', async (event, timeRange) => {
+  ipcMain.handle("audit:get-statistics", async (event, timeRange) => {
     try {
       const result = await getAuditLogger().getStatistics(timeRange);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Get statistics failed:', error.message);
+      logger.error("[Audit IPC] Get statistics failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -160,12 +197,15 @@ function registerAuditIPC(dependencies) {
    * @param {Object} filters - Policy filters
    * @returns {Object} { success, data: policies }
    */
-  ipcMain.handle('compliance:get-policies', async (event, filters) => {
+  ipcMain.handle("compliance:get-policies", async (event, filters) => {
     try {
       const result = await getComplianceManager().getPolicies(filters);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Get compliance policies failed:', error.message);
+      logger.error(
+        "[Audit IPC] Get compliance policies failed:",
+        error.message,
+      );
       return { success: false, error: error.message };
     }
   });
@@ -176,12 +216,15 @@ function registerAuditIPC(dependencies) {
    * @param {Object} policyData - Policy configuration data
    * @returns {Object} { success, data: createdPolicy }
    */
-  ipcMain.handle('compliance:create-policy', async (event, policyData) => {
+  ipcMain.handle("compliance:create-policy", async (event, policyData) => {
     try {
       const result = await getComplianceManager().createPolicy(policyData);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Create compliance policy failed:', error.message);
+      logger.error(
+        "[Audit IPC] Create compliance policy failed:",
+        error.message,
+      );
       return { success: false, error: error.message };
     }
   });
@@ -193,12 +236,15 @@ function registerAuditIPC(dependencies) {
    * @param {Object} updates - Fields to update
    * @returns {Object} { success, data: updatedPolicy }
    */
-  ipcMain.handle('compliance:update-policy', async (event, id, updates) => {
+  ipcMain.handle("compliance:update-policy", async (event, id, updates) => {
     try {
       const result = await getComplianceManager().updatePolicy(id, updates);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Update compliance policy failed:', error.message);
+      logger.error(
+        "[Audit IPC] Update compliance policy failed:",
+        error.message,
+      );
       return { success: false, error: error.message };
     }
   });
@@ -209,12 +255,15 @@ function registerAuditIPC(dependencies) {
    * @param {string} id - Policy ID to delete
    * @returns {Object} { success, data: deletionResult }
    */
-  ipcMain.handle('compliance:delete-policy', async (event, id) => {
+  ipcMain.handle("compliance:delete-policy", async (event, id) => {
     try {
       const result = await getComplianceManager().deletePolicy(id);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Delete compliance policy failed:', error.message);
+      logger.error(
+        "[Audit IPC] Delete compliance policy failed:",
+        error.message,
+      );
       return { success: false, error: error.message };
     }
   });
@@ -225,12 +274,12 @@ function registerAuditIPC(dependencies) {
    * @param {string} framework - Compliance framework identifier (e.g. 'GDPR', 'SOC2')
    * @returns {Object} { success, data: complianceResult }
    */
-  ipcMain.handle('compliance:check-compliance', async (event, framework) => {
+  ipcMain.handle("compliance:check-compliance", async (event, framework) => {
     try {
       const result = await getComplianceManager().checkCompliance(framework);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Check compliance failed:', error.message);
+      logger.error("[Audit IPC] Check compliance failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -242,15 +291,24 @@ function registerAuditIPC(dependencies) {
    * @param {Object} dateRange - Report date range { startDate, endDate }
    * @returns {Object} { success, data: report }
    */
-  ipcMain.handle('compliance:generate-report', async (event, framework, dateRange) => {
-    try {
-      const result = await getComplianceManager().generateReport(framework, dateRange);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[Audit IPC] Generate compliance report failed:', error.message);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "compliance:generate-report",
+    async (event, framework, dateRange) => {
+      try {
+        const result = await getComplianceManager().generateReport(
+          framework,
+          dateRange,
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error(
+          "[Audit IPC] Generate compliance report failed:",
+          error.message,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   // ==================== Data Subject Requests (DSR) ====================
 
@@ -262,15 +320,22 @@ function registerAuditIPC(dependencies) {
    * @param {Object} requestData - Additional request details
    * @returns {Object} { success, data: createdRequest }
    */
-  ipcMain.handle('dsr:create-request', async (event, requestType, subjectDid, requestData) => {
-    try {
-      const result = await getDataSubjectHandler().createRequest(requestType, subjectDid, requestData);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[Audit IPC] Create DSR failed:', error.message);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "dsr:create-request",
+    async (event, requestType, subjectDid, requestData) => {
+      try {
+        const result = await getDataSubjectHandler().createRequest(
+          requestType,
+          subjectDid,
+          requestData,
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[Audit IPC] Create DSR failed:", error.message);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * List data subject requests with filters
@@ -278,12 +343,12 @@ function registerAuditIPC(dependencies) {
    * @param {Object} filters - Request filters
    * @returns {Object} { success, data: requests }
    */
-  ipcMain.handle('dsr:list-requests', async (event, filters) => {
+  ipcMain.handle("dsr:list-requests", async (event, filters) => {
     try {
       const result = await getDataSubjectHandler().listRequests(filters);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] List DSR requests failed:', error.message);
+      logger.error("[Audit IPC] List DSR requests failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -294,12 +359,12 @@ function registerAuditIPC(dependencies) {
    * @param {string} id - Request ID
    * @returns {Object} { success, data: requestDetail }
    */
-  ipcMain.handle('dsr:get-request-detail', async (event, id) => {
+  ipcMain.handle("dsr:get-request-detail", async (event, id) => {
     try {
       const result = await getDataSubjectHandler().getRequestDetail(id);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Get DSR detail failed:', error.message);
+      logger.error("[Audit IPC] Get DSR detail failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -310,12 +375,12 @@ function registerAuditIPC(dependencies) {
    * @param {string} id - Request ID to process
    * @returns {Object} { success, data: processResult }
    */
-  ipcMain.handle('dsr:process-request', async (event, id) => {
+  ipcMain.handle("dsr:process-request", async (event, id) => {
     try {
       const result = await getDataSubjectHandler().processRequest(id);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Process DSR failed:', error.message);
+      logger.error("[Audit IPC] Process DSR failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -327,12 +392,15 @@ function registerAuditIPC(dependencies) {
    * @param {Object} responseData - Approval response details
    * @returns {Object} { success, data: approvalResult }
    */
-  ipcMain.handle('dsr:approve-request', async (event, id, responseData) => {
+  ipcMain.handle("dsr:approve-request", async (event, id, responseData) => {
     try {
-      const result = await getDataSubjectHandler().approveRequest(id, responseData);
+      const result = await getDataSubjectHandler().approveRequest(
+        id,
+        responseData,
+      );
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Approve DSR failed:', error.message);
+      logger.error("[Audit IPC] Approve DSR failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -343,12 +411,13 @@ function registerAuditIPC(dependencies) {
    * @param {string} subjectDid - DID of the data subject
    * @returns {Object} { success, data: exportResult }
    */
-  ipcMain.handle('dsr:export-subject-data', async (event, subjectDid) => {
+  ipcMain.handle("dsr:export-subject-data", async (event, subjectDid) => {
     try {
-      const result = await getDataSubjectHandler().exportSubjectData(subjectDid);
+      const result =
+        await getDataSubjectHandler().exportSubjectData(subjectDid);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Export subject data failed:', error.message);
+      logger.error("[Audit IPC] Export subject data failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -361,12 +430,12 @@ function registerAuditIPC(dependencies) {
    * @param {string} policyId - Retention policy ID to apply
    * @returns {Object} { success, data: applicationResult }
    */
-  ipcMain.handle('retention:apply-policy', async (event, policyId) => {
+  ipcMain.handle("retention:apply-policy", async (event, policyId) => {
     try {
       const result = await getAuditLogger().applyRetentionPolicy(policyId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Apply retention policy failed:', error.message);
+      logger.error("[Audit IPC] Apply retention policy failed:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -377,53 +446,35 @@ function registerAuditIPC(dependencies) {
    * @param {string} policyId - Retention policy ID to preview
    * @returns {Object} { success, data: previewResult }
    */
-  ipcMain.handle('retention:preview-deletion', async (event, policyId) => {
+  ipcMain.handle("retention:preview-deletion", async (event, policyId) => {
     try {
       const result = await getAuditLogger().previewRetentionDeletion(policyId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[Audit IPC] Preview retention deletion failed:', error.message);
+      logger.error(
+        "[Audit IPC] Preview retention deletion failed:",
+        error.message,
+      );
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[Audit IPC] Registered 18 IPC handlers');
+  logger.info("[Audit IPC] Registered 18 IPC handlers");
 }
 
 /**
  * Unregister all audit IPC handlers
+ * @param {Object} [options] - Options
+ * @param {Object} [options.ipcMain] - (optional) ipcMain instance, for tests
  */
-function unregisterAuditIPC() {
-  const channels = [
-    // Audit Log
-    'audit:query-logs',
-    'audit:get-log-detail',
-    'audit:export-logs',
-    'audit:get-statistics',
-    // Compliance
-    'compliance:get-policies',
-    'compliance:create-policy',
-    'compliance:update-policy',
-    'compliance:delete-policy',
-    'compliance:check-compliance',
-    'compliance:generate-report',
-    // Data Subject Requests
-    'dsr:create-request',
-    'dsr:list-requests',
-    'dsr:get-request-detail',
-    'dsr:process-request',
-    'dsr:approve-request',
-    'dsr:export-subject-data',
-    // Retention
-    'retention:apply-policy',
-    'retention:preview-deletion',
-  ];
+function unregisterAuditIPC(options = {}) {
+  const ipcMain = options.ipcMain || require("electron").ipcMain;
 
-  channels.forEach((channel) => {
+  CHANNELS.forEach((channel) => {
     ipcMain.removeHandler(channel);
   });
 
-  logger.info('[Audit IPC] Unregistered all IPC handlers');
+  logger.info("[Audit IPC] Unregistered all IPC handlers");
 }
 
-module.exports = { registerAuditIPC, unregisterAuditIPC };
+module.exports = { registerAuditIPC, unregisterAuditIPC, CHANNELS };
