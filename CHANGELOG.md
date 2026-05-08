@@ -5,6 +5,113 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.43] - 2026-05-07 — MTC publisher_signature M-of-N 修正 + 安全硬化级联
+
+> 两条主线。**(1) MTC `landmark.publisher_signature` strip-all-sigs 对称化**——修复一个会**绕过 M-of-N 阈值**的真实缺陷：原实现只清零 `publisher_signature.sig` 后做 JCS，但只要篡改 M-of-N 联邦中**任何一个**成员的 per-member sig，publisher_signature 就会被打断 → 直接绕过阈值的存在意义。**(2) 安全硬化级联**——一周内 8 次 sweep 把 `npm audit` 全部清零（HIGH 44 → 0 / MOD 4 → 0 / LOW 45 → 0）。
+
+### Fixed
+
+- **MTC publisher_signature M-of-N strip-all-sigs**（commit `c23e98cca` 代码 + `038e6d710` 规范）—— Producer 与 verifier 必须**对称地**把 `_stripSigsForPublisher(landmark)`（清零 `publisher_signature.sig` + 每个 snapshot 的 `signature.sig` + `signatures[*].sig`）喂给 JCS 后再签 / 验。Helper 抽到 `packages/core-mtc/lib/publisher-signing.js`，导出为 `@chainlesschain/core-mtc/publisher-signing` 子路径。三处调用点：`batch.js`（单签 + 联邦）、`landmark-cache.js` 验证侧、桌面 `governance-multisig.js`（lazy-require 绕 @noble/curves hoisting trap）。规范文档 §8.2 同步更新。Canary：`mtc-federation-publish-cli.test.js` "2-of-3 threshold accepts when one member's sig is tampered" — 任何修改 publisher-sig 路径都必须跑全部 `mtc-federation*` 集成。
+- **LandmarkCache `landmark.publisher_signature` 验证启用**（commit `c40d927da` + `72c3619ee`）—— `LandmarkCache` 默认 opt-in `verifyPublisherSignature: true` 对 cache 命中前增加发布者签名校验（不再无脑相信 cache）；real-verifier callers（CLI `cc mtc verify` + 桌面 audit pipeline + cross-chain bridge 校验侧）全线启用。常量 `BAD_PUBLISHER_SIG` → `BAD_LANDMARK_SIG`（`36fcd8f4f`）匹配规范 §11；spec §8.5 跟进 `LANDMARK_SIG_PREFIX` 定义（`8e459cfd5`）。
+
+### Security
+
+- **HIGH 44 → 0 / MOD 4 → 0 / LOW 45 → 0 安全硬化级联（多 commit）**——
+  - `f6c937fa8` override transitive `serialize-javascript` + `tar`（HIGH 44 → 10）
+  - `8a56978b5` 干掉无人维护的 `speedtest-net`，改用 native fetch 实现网速测试（HIGH 10 → 7）
+  - `9c7ce00e7` override `semver` 到 `^7.7.4`（清掉 imap 链 HIGH 7 → 4）
+  - `922b64822` override `undici` 到 `^6.21.2`（清掉 hardhat 5.x 链 HIGH 4 → 3）
+  - `4fae47dd4` deprecate `werift`（清空残余 HIGH 3 → 0）
+  - `cc7b0b40a` override `ip-address` + `dompurify`（MOD 4 → 0）
+  - `1f86594a2` override `tmp` 到 `^0.2.5`（LOW 45 → 40）
+  - `64047283a` override `make-fetch-happen` 到 `^13`（LOW 40 → 14）
+  - `d19bcb8cb` 拆 `hardhat-stack` 到独立 `contracts/` workspace + drop 不再依赖的 `hdkey`（LOW 14 → 0）
+- **`channel-manager` DDL 加固 + drop 未用的 jspdf**（commit `d558b66b1`，1 critical）—— 修一处 DDL 注入面 + 删未用依赖减少攻击面。
+- **`wrtc-compat` `ip.isPublic` 补丁 CVE-2024-29415**（commit `7312cf035`）—— `ip` package SSRF 漏洞绕过补丁。
+
+### Added
+
+- **Updater 渲染端进度通知**（commit `4c1a5ac18` + `e27592bb5`）—— `notifier-only` flow，关闭重复的 native dialog，渲染端实时显示下载进度。
+
+### Fixed (post-release follow-ups, 2026-05-08)
+
+> 源码级 follow-ups，源自 `551ef28b3` "fix(ipc): correct ipcGuard API" 那次 sweep 不彻底，留下两类互补 bug。两个 commit 都是源码 / 测试同步问题，**不影响 v5.0.3.43 桌面 binary 的业务功能**（handlers 仍正常注册），下次发版自动滚入。
+
+| Commit | Bug | 为什么之前没炸 | 测试 |
+|---|---|---|---|
+| **`af92e0162` fix(test): align nostr-bridge-ipc stub** | 源码用 `ipcGuard.markModuleRegistered(name)` 直调（real guard 有此 fn），但 test stub 仍 mock 不存在的 `registerModule(name, channels)` 二参 → stub 调时 `TypeError: ipcGuard.markModuleRegistered is not a function`，23 / 389 social 用例炸 | CI "Unit Tests" stable-fallback 排除 `**/*-ipc.test.js`；"Full Test Suite" 用 `continue-on-error: true` | 23 / 23 ✅ |
+| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 个 IPC 模块（autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference）反过来 —— 源码 `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }`，real guard 没 `registerModule` → `if` 永远 falsy → guard 内部 `registeredModules` Set 漏跟踪这 8 个模块。Handlers 走 `ipcMain.handle` 仍真正注册，业务功能正常，只是 guard tracker 漏 8 个模块 | 测试 stub 自己 mock 了 `registerModule` → 测试假绿 | 邻近 29 文件 577 / 577 ✅ |
+
+修法：stub `registerModule` → `markModuleRegistered` + 断言去 channels 参（test 侧）；`if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` → `ipcGuard.markModuleRegistered(name)`，同时去掉同样无意义的 `if (ipcGuard.unregisterModule)` wrap（源码侧）。CI 漏检的两类（fallback 排除 `*-ipc.test.js` + Full Suite `continue-on-error: true`）作为单独 follow-up，不在本 commit 范围。
+
+### Tests
+
+| 套 | 通过 |
+|---|---|
+| desktop 单测（含 nostr-bridge-ipc 修） | 1454 / 1454 |
+| core-mtc 单测 | 258 / 258 |
+| CLI mtc-federation 集成 | 41 / 41 |
+| CLI 全量 unit | 17,432 / 17,432 |
+
+### Notes
+
+- 本版本同时是大幅安全 / 加密路径硬化版本，不含新增 P2P / chat-panel feature；用户可放心 upgrade。
+- 桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.43 > 5.0.3-alpha.41`，所有 v5.0.3.41 桌面用户重启会真发现新版。三大文档站（docs-site / docs-site-design / docs-website-v2）同步刷新（commit `1183075b5` + `0384099f3`）。
+
+---
+
+## [v5.0.3.42] - 2026-05-07 — CLI 0.161.3 → 0.161.4 chat-intent 同步
+
+> 无功能变化，仅修 release pipeline 测试覆盖问题。
+
+### Changed
+
+- **CLI 包 `chainlesschain` 0.161.3 → 0.161.4 atomic bump**（commit `a555b6760`）—— v5.0.3.41 ship 了 chat-panel-v5 三壳对齐里的 chat-intent 路由代码，但 CLI `package.json.version` 没动，cli-tests 在 release 流程的 precheck 阶段判 `SHOULD_TEST=false`（`chainlesschain@0.161.3` 已在 npm registry → 跳过测试），导致后续 v5.0.3.43 publisher_signature 修补的真实回归差点没被拦住。本版本明示 atomic bump CLI 0.161.4 + 安装包同步发布，触发 cli-tests 强制运行。规则文档化在 `MEMORY.md` `github_release_pipeline_constraints.md` 第 5 条：未来如果发现 CLI source 改动但 release pipeline 跳测 cli-tests，请优先检查 `git diff <prev-tag>..HEAD -- packages/cli/src/` 是否非空 + 同步 bump CLI version。
+
+---
+
+## [v5.0.3.41] - 2026-05-07 — chat-panel-v5 三壳对齐 + B4 social 滚动收口
+
+> productVersion **v5.0.3.40 → v5.0.3.41**。本版本正式 ship 自 .40 以来全部滚动条目（XII–XIX：B4 跨机分发 / trust filter / viewer / 外部归档 / M-of-N / 跨联邦信任 / web-shell / web-panel / sign-as-self / cred-persist / auto-archive / chat-panel-v5）。
+
+### Added
+
+- **chat-panel-v5 V6 AIChatPanel 反向对齐**（commit `b33527d31`，Phase E）—— 把 V5 ChatPanel 的 4 个核心特性反向对齐到 V6 默认壳 AIChatPanel：流式响应 + 历史会话切换 + 上下文记忆引用 + 工具调用面板。从此 V5 / V6 / web-shell 三壳的聊天体验严格对等。
+- **chat-panel-v5 web-shell 端口 v1+v1.1**（commit `72b13388a`）—— V5 ChatPanel 的全部 router 协议、autoSendMessage 信号、virtual list 与 5 intent / 6 IPC 在 web-shell 默认壳走 WS topic 接通。配合上一条，**Phase 1.6 hard-flip 默认壳用户不再缺任何 V5 聊天能力**。
+- **B4 P2P 社交全栈 audit-grade 闭环**（§2.2.10 → §2.2.24 共 15 节，跨多个 .40 滚动 commit）——
+  - **§2.2.10 Phase A 跨机同步**（commits `50b8ddb05` + `3741a8e7e`）：系统性修 7 个底层 bug（libp2p 3.x stream API、`registerMessageHandler` 漏调、收包后没按 type 派发、`gossipProtocol.message:received` 一直没人订阅）。社区 / 频道跨机器同步真正打通。
+  - **§2.2.11 Phase B v1 + B4 DID 签名 + 自动 peer 桥接**：MTC federation gossipsub 双轨（`channel:send-message` / `community:join` 双发布双订阅 + `INSERT OR IGNORE` 幂等），每条 channel_message 带 `sender_pubkey + Ed25519 detached signature`，三重校验关闭 sender_did free-text 冒名缝隙；libp2p `peer:connected` 双向广播 `mtc:advertise` envelope 自动桥接。
+  - **§2.2.12-2.2.13 B4-merkle channel envelope finality**：本机发出每条 channel 消息进离线可验的 Merkle 批 envelope（`channel-event-batch.js` +390）；新 IPC `channel:get-message-envelope` 返 inclusion proof + landmark；输出 wire-compatible，对端可用 `cc mtc verify` 验证。
+  - **§2.2.14-2.2.18 B4-cross / cross-trust / ui / archive / mofn**：跨机 envelope gossipsub 分发 + on-demand pull / community-member trust filter / 桌面 viewer 按钮 + modal / 外部归档（filesystem + WebDAV）/ M-of-N 多签治理。
+  - **§2.2.19-2.2.20 B4-crossfed + B4-webshell**：跨联邦信任锚 / 13 个 WS topic 桥接 web-shell 默认壳。
+  - **§2.2.21-2.2.22 B4-webpanel + B4-mofn-sign v2**：4 个 composable + `MtcAudit.vue` 4-tab 页 / sign-as-self（私钥永不离主进程，渲染端只发 ID），顺手修 `registerAllIPC` 漏传 12 个 manager 的潜伏 ~1 个月 bug。
+  - **§2.2.23-2.2.24 B4-cred-persist + B4-auto-archive**：WebDAV 凭据走 secure-config.enc（safeStorage / AES-256-GCM）`useStoredCredentials:true`，凭据永不外泄；主进程 `setInterval` 周期触发归档（5min 最小、per-community try/catch、runOnce 非重入、配置写 `app-config.json` 的 `mtc.autoArchive` namespace、`lastRun*` 自动持久化）。
+- **Web Shell Phase 3c.7**（commit `200078947`）—— 截图识别 + 通知设置 + 托盘 5 个 quick-action 路由收口（global-search / clipboard-import / show-notifications / screenshot-ocr / open-settings#notifications）；`Notes.vue` 监听 `?clipboardImport=` / `?screenshotOcr=` query 自动开 dialog；测试 26 cases。
+- **Plugin Marketplace 部署脚本骨架**（commit `a62fd8b81`）—— `docker-compose.yml` 加 marketplace services；deploy doc + bt-nginx 修复脚本。生产实际是 standalone 部署到 47.111.5.128；这些是未来 from-repo 部署的参考。
+
+### Fixed
+
+- **web-panel 单测 `views-mount-smoke.test.js` 在 63 文件并行套件下 first-import 撞 30s timeout**（本版）—— Pipeline.vue + Chat.vue 在 4-fork 池 + 全量 SFC transform 竞争下，首个加载它们的 fork 会撞默认 testTimeout。fix：file-level `vi.setConfig({ testTimeout: 60_000 })`，全局 timeout 不动（已验证全局升 60s 反让 worker pool 调度恶化导致更多 file 超时）。同 `cli_ci_sharding_lessons` 记录的 vitest 4 严格 timeout 模式。
+- **Dashboard bundled-skill 发现 + JSON-based stat 解析**（commit `3881b9603`）—— skill 数 / 桌面统计在仪表盘上的展示口径修正，bundled-skill 列表能正确发现，stats 走 JSON 解析不再走 fragile string parse。
+
+### Tests
+
+| 套 | 通过 |
+|---|---|
+| desktop unit（MTC + DID + social + web-shell + p2p + bootstrap + renderer）| 1454 / 1454（4 skipped）|
+| core-mtc 单测 | 258 / 258 |
+| CLI chat-intent + mtc-federation core/trust/sync 集成 | 69 / 69 |
+| CLI 全量 unit | 17,432 / 17,432 |
+| web-panel 单元 | 1853 / 1853 |
+| web-panel e2e | 63 / 63 |
+
+### Notes
+
+- 桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.41 > 5.0.3-alpha.40`，所有 v5.0.3.40 桌面用户重启会真发现新版。三大文档站同步刷新。
+- 设计文档 `docs/design/modules/02_去中心化社交模块.md` 累积 §2.2.10–§2.2.24 全 15 节。**私钥 / 密码均不过线**，UI 默认壳全套可见，audit-grade 闭环。
+
+---
+
 ## [v5.0.3.40] - 2026-05-07 — MTC 视图 in-process 提速 + CI 解锁三发
 
 ### Fixed
