@@ -25,23 +25,12 @@ const router = useRouter();
 const store = useAppStore();
 const socialStore = useSocialStore();
 
-const chatPanelVisible = computed({
-  get: () => store.chatPanelVisible,
-  set: (val) => store.setChatPanelVisible(val),
-});
-
 const sidebarCollapsed = computed({
   get: () => store.sidebarCollapsed,
   set: (val) => store.setSidebarCollapsed(val),
 });
 
 const voiceCommands = [
-  {
-    patterns: ["打开聊天", "开启聊天", "显示聊天", "聊天面板"],
-    type: "open-chat",
-  },
-  { patterns: ["关闭聊天", "隐藏聊天", "收起聊天"], type: "close-chat" },
-
   {
     patterns: ["返回首页", "回到首页", "去首页", "主页", "知识首页"],
     type: "navigate",
@@ -451,15 +440,6 @@ function executeVoiceCommand(command) {
   logger.info("[VoiceCommandHandler] 执行语音命令:", command);
 
   switch (command.type) {
-    case "open-chat":
-      chatPanelVisible.value = true;
-      message.success("已打开聊天面板");
-      break;
-    case "close-chat":
-      chatPanelVisible.value = false;
-      message.success("已关闭聊天面板");
-      break;
-
     case "navigate":
       if (command.query) {
         router.push({ path: command.path, query: command.query });
@@ -530,16 +510,6 @@ function handleVoiceResult(result) {
   const command = parseVoiceCommand(text);
   if (command) {
     executeVoiceCommand(command);
-    return;
-  }
-
-  if (chatPanelVisible.value) {
-    window.dispatchEvent(
-      new CustomEvent("voice-input", {
-        detail: { text },
-      }),
-    );
-    message.success("语音已发送到聊天");
     return;
   }
 

@@ -8,7 +8,7 @@
  *  - Search: setSearchQuery(), getFilteredItems getter
  *  - AI chat: addMessage(), clearMessages(), setIsAITyping()
  *  - Config: setAppConfig(), setLLMStatus(), setGitStatus()
- *  - UI: setSidebarCollapsed(), setChatPanelVisible(), setLoading()
+ *  - UI: setSidebarCollapsed(), setLoading()
  *  - Tabs: addTab(), removeTab(), closeAllTabs(), closeOtherTabs()
  *  - Favorites: addFavoriteMenu(), removeFavoriteMenu(), toggleFavoriteMenu()
  *  - Storage: saveFavoritesToStorage(), loadFavoritesFromStorage(), initMenuData()

@@ -1,12 +1,9 @@
 /**
  * Community Quick Store
  * Wraps the community:* / channel:* / governance:* / moderation:* IPC
- * channels exposed by src/main/social/community-ipc.js. Phase 6 of the
- * V6 page port — adds DAO governance (proposals + votes) and content
- * moderation (review queue) tabs. Phase 7 marks V5 entry as deprecated.
- *
- * V5 page (`pages/CommunityPage.vue`) keeps using its own
- * `useCommunityStore` from `community.ts`; this store is V6-only.
+ * channels exposed by src/main/social/community-ipc.js — drives the
+ * V6 community panel including DAO governance (proposals + votes) and
+ * content moderation (review queue) tabs.
  *
  * Field shape note: community:get-list returns sqlite snake_case rows
  * (id, name, description, icon_url, rules_md, creator_did, member_limit,

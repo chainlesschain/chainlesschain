@@ -116,7 +116,6 @@ export interface AppState {
 
   // UI状态
   sidebarCollapsed: boolean;
-  chatPanelVisible: boolean;
   loading: boolean;
 
   // 多标签页管理
@@ -161,7 +160,6 @@ export const useAppStore = defineStore("app", {
 
     // UI状态
     sidebarCollapsed: false,
-    chatPanelVisible: false,
     loading: false,
 
     // 多标签页管理
@@ -423,10 +421,6 @@ export const useAppStore = defineStore("app", {
     // UI状态相关
     setSidebarCollapsed(collapsed: boolean): void {
       this.sidebarCollapsed = collapsed;
-    },
-
-    setChatPanelVisible(visible: boolean): void {
-      this.chatPanelVisible = visible;
     },
 
     setLoading(loading: boolean): void {

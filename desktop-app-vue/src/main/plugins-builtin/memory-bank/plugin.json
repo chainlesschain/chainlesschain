@@ -3,7 +3,7 @@
   "name": "记忆库",
   "version": "1.0.0",
   "firstParty": true,
-  "description": "V6 shell 内置：/memory-bank 斜杠命令 + Home 页快捷卡片（V5 MemoryDashboardPage 的 V6 完整 port — AI 学习模式 / 偏好 / 会话 / 行为洞察 / 存储管理 / 自动摘要）",
+  "description": "V6 shell 内置：/memory-bank 斜杠命令 + Home 页快捷卡片 — AI 学习模式 / 偏好 / 会话 / 行为洞察 / 存储管理 / 自动摘要",
   "extensionPoints": [
     {
       "point": "ui.slash",

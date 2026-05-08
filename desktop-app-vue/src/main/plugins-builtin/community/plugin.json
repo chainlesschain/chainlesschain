@@ -3,7 +3,7 @@
   "name": "社区",
   "version": "1.0.0",
   "firstParty": true,
-  "description": "V6 shell 内置：/community 斜杠命令 + Home 页社区快捷卡片（V5 CommunityPage.vue 的 V6 探针迁移）",
+  "description": "V6 shell 内置：/community 斜杠命令 + Home 页社区快捷卡片",
   "extensionPoints": [
     {
       "point": "ui.slash",

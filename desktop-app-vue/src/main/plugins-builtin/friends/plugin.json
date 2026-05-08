@@ -3,7 +3,7 @@
   "name": "好友",
   "version": "1.0.0",
   "firstParty": true,
-  "description": "V6 shell 内置：/friends 斜杠命令 + Home 页好友快捷卡片（V5 FriendsPage.vue 的 V6 完整 port — 共享 useSocialStore）",
+  "description": "V6 shell 内置：/friends 斜杠命令 + Home 页好友快捷卡片（共享 useSocialStore）",
   "extensionPoints": [
     {
       "point": "ui.slash",

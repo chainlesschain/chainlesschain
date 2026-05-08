@@ -36,12 +36,6 @@
 
         <DatabaseEncryptionStatus />
 
-        <a-tooltip title="AI对话">
-          <a-button type="text" @click="toggleChat">
-            <MessageOutlined />
-          </a-button>
-        </a-tooltip>
-
         <LanguageSwitcher />
 
         <DIDInvitationNotifier />
@@ -86,7 +80,6 @@ import {
   MenuUnfoldOutlined,
   ArrowLeftOutlined,
   SearchOutlined,
-  MessageOutlined,
   BellOutlined,
   UserOutlined,
   LogoutOutlined,
@@ -123,10 +116,6 @@ function toggleSidebar() {
 
 function handleBackToHome() {
   router.push("/");
-}
-
-function toggleChat() {
-  store.setChatPanelVisible(!store.chatPanelVisible);
 }
 
 function toggleNotificationPanel() {

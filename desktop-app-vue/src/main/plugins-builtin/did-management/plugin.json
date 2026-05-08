@@ -3,7 +3,7 @@
   "name": "DID 身份管理",
   "version": "1.0.0",
   "firstParty": true,
-  "description": "V6 shell 内置：/did 斜杠命令 + Home 页 DID 身份快捷卡片（V5 DIDManagement.vue 的 V6 探针迁移）",
+  "description": "V6 shell 内置：/did 斜杠命令 + Home 页 DID 身份快捷卡片",
   "extensionPoints": [
     {
       "point": "ui.slash",
