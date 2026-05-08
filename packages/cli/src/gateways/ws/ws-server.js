@@ -79,6 +79,7 @@ import {
   handleChatIntentUnderstandStream,
   handleChatIntentClassifyFollowup,
 } from "./chat-intent-protocol.js";
+import { handleLlmChat } from "./llm-chat-protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -517,6 +518,11 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — port of V5 desktop followup-intent:classify IPC */
   async _handleChatIntentClassifyFollowup(id, ws, message) {
     return handleChatIntentClassifyFollowup(this, id, ws, message);
+  }
+
+  /** @private — single-shot streaming chat for QuickAsk (`llm.chat` topic) */
+  async _handleLlmChat(id, ws, message) {
+    return handleLlmChat(this, id, ws, message);
   }
 
   /** @private */

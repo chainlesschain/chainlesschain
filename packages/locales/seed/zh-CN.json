@@ -4379,7 +4379,9 @@
       },
       "status": {
         "understanding": "正在理解您的请求..."
-      }
+      },
+      "toggleLabel": "意图理解",
+      "toggleHint": "开启后，每条消息会先调用 LLM 提炼意图与关键要点（仅项目/文件模式生效）。默认关闭以避免额外延迟。"
     }
   },
   "dashboard": {

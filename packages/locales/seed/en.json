@@ -4379,7 +4379,9 @@
       },
       "status": {
         "understanding": "Understanding your request..."
-      }
+      },
+      "toggleLabel": "Intent",
+      "toggleHint": "When on, every message first calls the LLM to extract intent and key points (project/file mode only). Off by default to avoid added latency."
     }
   },
   "dashboard": {

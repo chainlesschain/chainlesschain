@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <!-- Chat header: context mode + new conversation -->
+      <!-- Chat header: context mode + intent toggle -->
       <div v-if="currentSessionId" class="chat-header">
         <a-radio-group
           :value="contextMode"
@@ -79,6 +79,20 @@
             {{ $t('chat.contextMode.global') }}
           </a-radio-button>
         </a-radio-group>
+        <a-tooltip
+          v-if="contextMode !== 'global'"
+          :title="$t('chat.intent.toggleHint')"
+          placement="bottom"
+        >
+          <label class="chat-intent-toggle">
+            <a-switch
+              :checked="intentEnabled"
+              size="small"
+              @update:checked="setIntentEnabled"
+            />
+            <span class="chat-intent-toggle-label">{{ $t('chat.intent.toggleLabel') }}</span>
+          </label>
+        </a-tooltip>
       </div>
 
       <!-- Messages -->
@@ -267,6 +281,11 @@ const inputText = ref('')
 const contextMode = computed(() => chatStore.contextMode)
 function setContextMode(mode) {
   chatStore.setContextMode(mode)
+}
+
+const intentEnabled = computed(() => chatStore.intentEnabled)
+function setIntentEnabled(val) {
+  chatStore.setIntentEnabled(val)
 }
 
 const currentSessionId = computed(() => chatStore.currentSessionId)
@@ -507,10 +526,22 @@ onMounted(async () => {
 .chat-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 16px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+}
+.chat-intent-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.chat-intent-toggle-label {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 .chat-area-body {
   flex: 1;

@@ -13,6 +13,7 @@ const CONTEXT_MODE_KEY = 'cc.web-panel.chat.contextMode'
 const VALID_CONTEXT_MODES = ['project', 'file', 'global']
 const INTENT_DECISIONS_KEY = 'cc.web-panel.chat.intentDecisions'
 const INTENT_DECISIONS_LIMIT = 200
+const INTENT_ENABLED_KEY = 'cc.web-panel.chat.intentEnabled'
 
 function readPersistedContextMode() {
   try {
@@ -20,6 +21,19 @@ function readPersistedContextMode() {
     return VALID_CONTEXT_MODES.includes(raw) ? raw : null
   } catch (_) {
     return null
+  }
+}
+
+// Intent understanding is OFF by default — the LLM round-trip before every
+// project/file message added 0.5–90s of latency that surprised users used to
+// the pre-v5.0.3.43 direct-send path. Users who want it back can flip the
+// switch in Chat.vue header (persists to localStorage).
+function readPersistedIntentEnabled() {
+  try {
+    if (typeof localStorage === 'undefined') return false
+    return localStorage.getItem(INTENT_ENABLED_KEY) === 'true'
+  } catch (_) {
+    return false
   }
 }
 
@@ -110,6 +124,19 @@ export const useChatStore = defineStore('chat', () => {
     contextMode.value = mode
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(CONTEXT_MODE_KEY, mode)
+    } catch (_) {
+      // localStorage may be unavailable (private browsing); degrade silently
+    }
+  }
+
+  const intentEnabled = ref(readPersistedIntentEnabled())
+
+  function setIntentEnabled(enabled) {
+    intentEnabled.value = !!enabled
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(INTENT_ENABLED_KEY, intentEnabled.value ? 'true' : 'false')
+      }
     } catch (_) {
       // localStorage may be unavailable (private browsing); degrade silently
     }
@@ -385,7 +412,11 @@ export const useChatStore = defineStore('chat', () => {
   async function submitUserInput(sessionId, content) {
     if (!sessionId || !content?.trim()) return
     const mode = contextMode.value
-    if (mode === 'global') {
+    // Intent understanding is opt-in (v5.0.3.45+). When disabled — the default —
+    // even project/file mode skips the chat.intent.understand-stream round-trip
+    // and goes straight to sendMessage so the user isn't blocked on a possibly-
+    // hung LLM call. Toggleable via the 意图理解 switch in the Chat header.
+    if (mode === 'global' || !intentEnabled.value) {
       await sendMessage(sessionId, content)
       return
     }
@@ -580,6 +611,8 @@ export const useChatStore = defineStore('chat', () => {
     isLoading,
     contextMode,
     setContextMode,
+    intentEnabled,
+    setIntentEnabled,
     customQuickPrompts,
     setCustomQuickPrompts,
     pendingAutoSend,

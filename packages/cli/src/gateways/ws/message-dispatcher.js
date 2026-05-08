@@ -96,6 +96,7 @@ export function createWsMessageDispatcher(server) {
           server._handleChatIntentUnderstandStream(id, ws, message),
         "chat.intent.classify-followup": () =>
           server._handleChatIntentClassifyFollowup(id, ws, message),
+        "llm.chat": () => server._handleLlmChat(id, ws, message),
       };
 
       // Phase I — Hosted Session API streaming routes (stream.run).

@@ -16,25 +16,19 @@ import {
   understandIntentStream,
   classifyFollowupIntent,
 } from "../../lib/chat-intent-service.js";
+import { resolveLlmCreds } from "./llm-creds.js";
 
 /**
- * Look up the active session's LLM creds, or return null if not available.
+ * Look up LLM creds for the intent flow.
+ *
+ * Shared resolver covers session creds + env fallback (`VOLCENGINE_API_KEY`
+ * etc.), so a user without `cc auth llm` configured but with an env var
+ * exported still gets intent recognition. Pre-v5.0.3.45 this path
+ * hardcoded `baseUrl` to `http://localhost:11434` when the session lacked
+ * one — fatal for cloud providers when ollama wasn't running locally.
  */
-function resolveLlmOptions(server, sessionId) {
-  if (!sessionId || !server?.sessionManager?.getSession) return null;
-  let session;
-  try {
-    session = server.sessionManager.getSession(sessionId);
-  } catch (_e) {
-    return null;
-  }
-  if (!session?.provider) return null;
-  return {
-    provider: session.provider,
-    model: session.model,
-    baseUrl: session.baseUrl || "http://localhost:11434",
-    apiKey: session.apiKey,
-  };
+function resolveLlmOptions(server, message) {
+  return resolveLlmCreds(server, message);
 }
 
 /**
@@ -55,7 +49,7 @@ export async function handleChatIntentUnderstand(server, id, ws, message) {
       });
       return;
     }
-    const llmOptions = resolveLlmOptions(server, message.sessionId);
+    const llmOptions = resolveLlmOptions(server, message);
     // Cap the history payload server-side so a misbehaving client can't
     // blow out the context window.
     const history = Array.isArray(message.history)
@@ -112,7 +106,7 @@ export async function handleChatIntentUnderstandStream(
       });
       return;
     }
-    const llmOptions = resolveLlmOptions(server, message.sessionId);
+    const llmOptions = resolveLlmOptions(server, message);
     const history = Array.isArray(message.history)
       ? message.history.slice(-10)
       : undefined;
@@ -170,7 +164,7 @@ export async function handleChatIntentClassifyFollowup(
 ) {
   try {
     const input = message.input || "";
-    const llmOptions = resolveLlmOptions(server, message.sessionId);
+    const llmOptions = resolveLlmOptions(server, message);
     const result = await classifyFollowupIntent({
       input,
       context: message.context || {},

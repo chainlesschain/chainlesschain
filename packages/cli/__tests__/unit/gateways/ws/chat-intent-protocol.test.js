@@ -40,17 +40,39 @@ describe("chat-intent-protocol — handleChatIntentUnderstand", () => {
   });
 
   it("returns understand.response with success=false when no LLM creds available", async () => {
-    const server = makeFakeServer({ session: null });
-    await handleChatIntentUnderstand(server, "req2", fakeWs, {
-      userInput: "hello",
-      contextMode: "project",
-    });
-    const sent = server._send.mock.calls[0][1];
-    expect(sent.id).toBe("req2");
-    expect(sent.type).toBe("chat.intent.understand.response");
-    expect(sent.success).toBe(false);
-    expect(sent.intent).toBe("general");
-    expect(chatMock).not.toHaveBeenCalled();
+    // v5.0.3.45+ resolveLlmCreds also reads provider env vars (VOLCENGINE_API_KEY
+    // etc.) so the intent flow works without `cc auth llm` for users who set
+    // env. Strip them here so the "no creds anywhere" assertion stays valid.
+    const ENV_KEYS = [
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "VOLCENGINE_API_KEY",
+      "DEEPSEEK_API_KEY",
+      "DASHSCOPE_API_KEY",
+      "GEMINI_API_KEY",
+      "MOONSHOT_API_KEY",
+      "MINIMAX_API_KEY",
+      "MISTRAL_API_KEY",
+    ];
+    const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+    for (const k of ENV_KEYS) delete process.env[k];
+    try {
+      const server = makeFakeServer({ session: null });
+      await handleChatIntentUnderstand(server, "req2", fakeWs, {
+        userInput: "hello",
+        contextMode: "project",
+      });
+      const sent = server._send.mock.calls[0][1];
+      expect(sent.id).toBe("req2");
+      expect(sent.type).toBe("chat.intent.understand.response");
+      expect(sent.success).toBe(false);
+      expect(sent.intent).toBe("general");
+      expect(chatMock).not.toHaveBeenCalled();
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v !== undefined) process.env[k] = v;
+      }
+    }
   });
 
   it("forwards LLM creds from session and emits parsed payload on success", async () => {

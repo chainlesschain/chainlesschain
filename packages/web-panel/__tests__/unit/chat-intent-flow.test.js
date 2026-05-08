@@ -75,9 +75,36 @@ describe('chat store — contextMode', () => {
 })
 
 describe('chat store — submitUserInput intent flow', () => {
+  // Intent understanding became opt-in in v5.0.3.45 — every intent-flow test
+  // below has to flip it back on after the per-test localStorage clear in
+  // the outer beforeEach. Bypass tests do NOT call setIntentEnabled, which
+  // is what proves the default-off path also short-circuits.
+
+  it('default off: project mode skips intent.understand and sends directly', async () => {
+    createSession.mockResolvedValueOnce('s-default-off')
+    const store = useChatStore()
+    store.setContextMode('project')
+    // intentionally NOT calling setIntentEnabled — proves default-off path
+    await store.createSession('chat')
+    await store.submitUserInput('s-default-off', 'fxi loign')
+    expect(store.intentEnabled).toBe(false)
+    expect(sendStream).not.toHaveBeenCalled()
+    expect(sendSessionMessage).toHaveBeenCalledWith('s-default-off', 'fxi loign')
+  })
+
+  it('setIntentEnabled persists to localStorage', () => {
+    const store = useChatStore()
+    store.setIntentEnabled(true)
+    expect(store.intentEnabled).toBe(true)
+    expect(localStorage.getItem('cc.web-panel.chat.intentEnabled')).toBe('true')
+    store.setIntentEnabled(false)
+    expect(localStorage.getItem('cc.web-panel.chat.intentEnabled')).toBe('false')
+  })
+
   it('global mode: bypasses intent.understand and calls sendSessionMessage directly', async () => {
     createSession.mockResolvedValueOnce('s-1')
     const store = useChatStore()
+    store.setIntentEnabled(true) // even with intent on, global mode short-circuits
     await store.createSession('chat')
     await store.submitUserInput('s-1', 'hello world')
     expect(sendRaw).not.toHaveBeenCalled()
@@ -94,6 +121,7 @@ describe('chat store — submitUserInput intent flow', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
 
     await store.submitUserInput('s-2', 'fxi loign')
@@ -112,6 +140,7 @@ describe('chat store — submitUserInput intent flow', () => {
     sendStream.mockResolvedValueOnce({ success: false, correctedInput: 'x', intent: 'general', keyPoints: [] })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-3', 'anything')
     expect(sendSessionMessage).toHaveBeenCalledWith('s-3', 'anything')
@@ -130,6 +159,7 @@ describe('chat store — submitUserInput intent flow', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-4', 'identical')
     expect(sendSessionMessage).toHaveBeenCalledWith('s-4', 'identical')
@@ -147,6 +177,7 @@ describe('chat store — submitUserInput intent flow', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-5', 'fxi loign')
     const card = store.getMessages('s-5').find((m) => m.type === 'intent-confirmation')
@@ -166,6 +197,7 @@ describe('chat store — submitUserInput intent flow', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-6', 'fxi loign')
     const card = store.getMessages('s-6').find((m) => m.type === 'intent-confirmation')
@@ -181,6 +213,7 @@ describe('chat store — submitUserInput intent flow', () => {
     sendStream.mockRejectedValueOnce(new Error('network'))
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-7', 'hi')
     expect(sendSessionMessage).toHaveBeenCalledWith('s-7', 'hi')
@@ -206,6 +239,7 @@ describe('chat store — submitUserInput intent flow', () => {
       })
       const store = useChatStore()
       store.setContextMode('project')
+      store.setIntentEnabled(true)
       await store.createSession('chat')
 
       const submitPromise = store.submitUserInput('s-stuck', 'hello')
@@ -237,6 +271,7 @@ describe('chat store — Improvement 1 (streaming intent)', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-stream-1', 'fxi x')
 
@@ -261,6 +296,7 @@ describe('chat store — Improvement 2 (multi-turn history)', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     // Seed prior history.
     const msgs = store.getMessages('s-hist-1')
@@ -289,6 +325,7 @@ describe('chat store — Improvement 3 (persisted intent decisions)', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-persist-1', 'orig')
     const card = store.getMessages('s-persist-1').find((m) => m.type === 'intent-confirmation')
@@ -309,6 +346,7 @@ describe('chat store — Improvement 3 (persisted intent decisions)', () => {
     })
     const store = useChatStore()
     store.setContextMode('project')
+    store.setIntentEnabled(true)
     await store.createSession('chat')
     await store.submitUserInput('s-persist-2', 'orig')
     const card = store.getMessages('s-persist-2').find((m) => m.type === 'intent-confirmation')
