@@ -71,6 +71,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.44',
+    title: 'LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底',
+    sub: '截图三态 OCR · 18 channel × 23 用例首测 · 慢 LLM dribble 兜底',
+    desc: '一条 user-visible feature + 三条质量收口。(1) 截图 OCR LLM 引擎（39b16e29f）：Tesseract.js 中文准确度差，新增 engine 参数 auto/llm/tesseract 三态。auto 默认走火山豆包视觉（已配置），LLM 出错带 fallbackFrom / fallbackReason 标签自动降级回 Tesseract；llm 强制视觉 LLM（doubao-1.5-vision-pro，userBudget=medium）；tesseract 强制本地。Provider 白名单 Set(["volcengine"])，扩展到 gemini / openai / anthropic 只需在各自 LLMManager 暴露 chatWithImage* 后加一项。V5/V6 共享 dialog + web-panel dialog 各加 `<a-select>` engine 选择 + 蓝/灰/橙三色 tag。(2) chat intent understand 90s wall-clock 兜底（6cbd04c50）：sendStream 自带的 60s idle timer 在每个 chunk 上 rearm，慢 LLM dribble token 但永远不出 final frame 时占位卡无限转——AbortController + setTimeout(90s) 兜底。(3) compliance-ipc 死 handler 清理（29006decf）：typo 前缀 compliance-classify:* 无人调用，背后还接的是不同 service，直接删 + 同步删 IPC_CHANNELS。(4) audit-ipc.js 首次单测覆盖（b092673be）：之前零覆盖盲点拽出来 — 18 channel + DI 改造 + 23 用例。回归全绿：desktop 1477/1477 + CLI 17,455/17,455。',
+  },
+  {
     tag: 'v5.0.3.43',
     title: 'MTC publisher_signature M-of-N 修正 + 安全硬化级联',
     sub: 'HIGH 44→0 · MOD 4→0 · LOW 45→0 · publisher_signature strip-all-sigs 对称化',

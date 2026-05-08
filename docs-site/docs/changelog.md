@@ -3,6 +3,40 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.44 / CLI 0.161.5] - 2026-05-08 (LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底)
+
+> 一条 user-visible feature（截图 LLM OCR）+ 三条质量收口。无破坏性变化，所有 v5.0.3.43 用户可直接 upgrade。
+
+### Added
+
+- **截图 OCR 新增 LLM 引擎（commit `39b16e29f`）** —— Tesseract.js 中文识别准确度差，新增 `engine` 参数 `auto`/`llm`/`tesseract` 三态：
+  - `auto`（默认）：火山引擎已配置走 doubao 视觉 OCR，否则回落 Tesseract；LLM 出错带 `fallbackFrom` / `fallbackReason` 标签自动降级
+  - `llm`：强制视觉 LLM（当前 volcengine doubao-1.5-vision-pro，`userBudget=medium`），无 llmManager / 非 vision provider 时显式报错
+  - `tesseract`：强制本地 Tesseract.js
+  - V5 / V6 共享 dialog + web-panel dialog 各加一个 `<a-select>` engine 选择 + 蓝/灰/橙三色 tag 显示已用引擎。Engine guards 放在 `recognizeDispatch` 便于测试 stub 替换 impl 不重复验证逻辑；Provider 白名单 `Set(["volcengine"])`，扩展到 gemini / openai / anthropic 只需各自 LLMManager 暴露 `chatWithImage*` 后加一个集合项
+
+### Fixed
+
+- **chat intent understand 90s wall-clock 兜底（commit `6cbd04c50`）** —— `sendStream` 自带的 60s idle timer 在每个 chunk 上 rearm，慢 LLM 一直 dribble token 但永远不出 `final` frame 时"理解中…"占位卡会无限转。包一层 `AbortController + setTimeout(90s)` 把 signal 传进 stream 调用，超时后清理 placeholder 并给可读错误。
+- **compliance-ipc 死 handler 清理（commit `29006decf`）** —— `compliance-ipc.js` 之前注册了两个 typo 前缀 channel `compliance-classify:generate-report` / `compliance-classify:get-policies` 无人调用；renderer 真正调用的 `compliance:generate-report` / `compliance:get-policies` 由 `audit-ipc.js` 拥有，背后是 `ComplianceManager`。两边背后还接的是不同 service（`soc2Compliance.generateReport` vs `auditManager.complianceManager.generateReport`），保留死路径只会让后续改真路径时漏改 → 直接删 + 同步删 `IPC_CHANNELS` 中两个 typo 项。
+- **macOS 临时目录路径断言修复（commit `bb2c16656`）** —— `build-win-with-deref.test.js`（虽然测的是 Windows 构建符号链接，macOS Unit Tests 矩阵也跑）3 个断言炸 `expected '/private/var/folders/...' to be '/var/folders/...'`：macOS 的 `/var → /private/var` symlink，`os.tmpdir()` 返回 `/var/...` 但 `realpath` 路径不一样。`canonical = fs.realpathSync(os.tmpdir())` 把测试临时目录都规范化掉，linux / win 上 realpath 恒等无 regression。
+
+### Tests
+
+- **`audit-ipc.js` 首次单测覆盖（commit `b092673be`）** —— 之前零覆盖的盲点，被 `29006decf` typo 死 handler bug 拽出来。`audit-ipc.js` 拥有 18 个 channel 含 renderer-facing 的 `compliance:get-policies` / `compliance:generate-report`，没有单测就让 `compliance-ipc.js` 里的 typo duplicate 静悄悄活了几个月。源码 DI 改造（与 `credit-ipc` 模式一致）：accept `ipcMain` via `deps` with `electron` fallback，lazy-required 让 injection 可以抢先；新增 23 个 case 覆盖 18 channel 路由 + happy-path payload + AuditManager 异常路径。
+
+| 套 | 通过 |
+|---|---|
+| desktop 单测 | 1477 / 1477 |
+| CLI unit | 17,455 / 17,455 |
+
+### Notes
+
+- CLI npm 包同步发布 `chainlesschain@0.161.5`（v5.0.3.43 末已 bump 0.161.4 → 0.161.5）。
+- 桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.44 > 5.0.3-alpha.43`，所有 v5.0.3.43 桌面用户重启会真发现新版。
+
+---
+
 ## [5.0.3.43 / CLI 0.161.4] - 2026-05-07 (MTC publisher_signature M-of-N 修正 + 安全硬化级联)
 
 ### Fixed

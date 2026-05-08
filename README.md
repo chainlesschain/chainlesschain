@@ -1,5 +1,34 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-08 发布 — **v5.0.3.44 LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底**
+
+productVersion **v5.0.3.43 → v5.0.3.44**。一条 user-visible feature（截图 LLM OCR）+ 三条质量收口。无破坏性变化，所有 v5.0.3.43 用户可直接 upgrade。
+
+**新增**：
+
+- **截图 OCR LLM 引擎（commit `39b16e29f`）** —— Tesseract.js 中文识别准确度差，新增 `engine` 参数 `auto` / `llm` / `tesseract` 三态。`auto` 默认走火山豆包视觉（已配置），LLM 出错带 `fallbackFrom` / `fallbackReason` 标签自动降级回 Tesseract。Provider 白名单 `Set(["volcengine"])`，扩展到 gemini / openai / anthropic 只需在各自 LLMManager 暴露 `chatWithImage*` 后加一个集合项。V5 / V6 共享 dialog + web-panel dialog 各加一个 `<a-select>` engine 选择 + 蓝/灰/橙三色 tag 显示已用引擎。
+
+**修复**：
+
+- **chat intent understand 90s wall-clock 兜底（commit `6cbd04c50`）** —— `sendStream` 自带的 60s idle timer 在每个 chunk 上 rearm，慢 LLM 一直 dribble token 但永远不出 `final` frame 时"理解中…"占位卡会无限转。`AbortController + setTimeout(90s)` 把 signal 传进 stream 调用，超时清理 placeholder + 可读错误。
+- **compliance-ipc 死 handler 清理（commit `29006decf`）** —— `compliance-ipc.js` 之前注册的两个 channel 用了 typo 前缀 `compliance-classify:*`（无人调用）；renderer 真正调用的 `compliance:generate-report` / `compliance:get-policies` 由 `audit-ipc.js` 拥有，背后是 `ComplianceManager`。两边 service 还不一样（`soc2Compliance.generateReport` vs `auditManager.complianceManager.generateReport`），保留死路径只会让后续改真路径时漏改 → 直接删。
+- **macOS 临时目录路径断言（commit `bb2c16656`）** —— `build-win-with-deref.test.js` 在 macOS 矩阵 3 个断言炸 `expected '/private/var/folders/...' to be '/var/folders/...'`：macOS `/var → /private/var` symlink。`fs.realpathSync(os.tmpdir())` 规范化测试临时目录，linux / win 上 realpath 恒等无 regression。
+
+**测试**：
+
+- **`audit-ipc.js` 首次单测覆盖（commit `b092673be`）** —— 之前零覆盖盲点（被 `29006decf` typo 死 handler bug 拽出来）。`audit-ipc.js` 拥有 18 个 channel 含 renderer-facing 的 `compliance:get-policies` / `compliance:generate-report`，没有单测就让 typo duplicate 静悄悄活了几个月。源码 DI 改造（与 `credit-ipc` 模式一致）：accept `ipcMain` via `deps` with `electron` fallback；新增 23 个 case 覆盖 18 channel 路由 + happy-path payload + AuditManager 异常路径。
+
+**回归测试全绿**：
+
+| Suite | 通过 |
+|---|---|
+| desktop unit | 1477 / 1477 |
+| CLI 全量 unit | 17,455 / 17,455 |
+
+**部署 / 分发**：CLI npm `chainlesschain@0.161.5` 同步发布；桌面 binary 重新打过，auto-updater 比对 `5.0.3-alpha.44 > 5.0.3-alpha.43`，所有 v5.0.3.43 用户重启发现新版。
+
+---
+
 ## 2026-05-07 发布 — **v5.0.3.43 MTC publisher_signature M-of-N 修正 + 安全硬化级联**
 
 productVersion **v5.0.3.41 → v5.0.3.43**（.42 是 CLI atomic bump，无功能变化，详见 changelog）。本版本两条主线：(1) **MTC `landmark.publisher_signature` strip-all-sigs 对称化**，修复一个会**绕过 M-of-N 阈值**的真实缺陷；(2) **安全硬化级联**，一周内 8 次 sweep 把 `npm audit` 全部清零（HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0）。
@@ -1880,14 +1909,14 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.43-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.44-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.2-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.5-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -1900,7 +1929,11 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.43 Evolution Edition (2026-05-07 · CLI 0.161.4 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + **publisher_signature M-of-N strip-all-sigs 修正** · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · **B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节** · **chat-panel-v5 三壳严格对齐** · **安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0**)
+## ⭐ 当前版本: v5.0.3.44 Evolution Edition (2026-05-08 · CLI 0.161.5 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · chat-panel-v5 三壳严格对齐 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · **截图 LLM OCR auto/llm/tesseract** · **audit-ipc 23 用例首测**)
+
+### 最新更新 - LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底 (v5.0.3.44, 2026-05-08)
+
+一条 user-visible feature + 三条质量收口：(1) **截图 OCR LLM 引擎**（`39b16e29f`）—— Tesseract.js 中文识别准确度差，新增 `engine` 参数 `auto`/`llm`/`tesseract` 三态，`auto` 默认走火山豆包视觉，LLM 失败带标签自动降级 Tesseract；V5/V6 共享 dialog + web-panel dialog 各加 `<a-select>` + 三色 tag。(2) **chat intent 90s wall-clock 兜底**（`6cbd04c50`）—— 慢 LLM dribble token 但不出 `final` frame 时占位卡无限转，`AbortController + 90s` 兜底。(3) **compliance-ipc 死 handler 清理**（`29006decf`）—— typo 前缀 `compliance-classify:*` 无人调用，背后 service 还跟真路径不一样，直接删；同步暴露 (4) **`audit-ipc.js` 首次单测覆盖**（`b092673be`）—— 18 channel + DI + 23 用例。回归：desktop 1477/1477 + CLI 17,455/17,455。
 
 ### 最新更新 - MTC publisher_signature M-of-N 修正 + 安全硬化级联 (v5.0.3.43, 2026-05-07)
 

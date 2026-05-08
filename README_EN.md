@@ -1,5 +1,34 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-08 Release — **v5.0.3.44 LLM OCR + audit-ipc coverage + chat-intent 90s safeguard**
+
+productVersion **v5.0.3.43 → v5.0.3.44**. One user-visible feature (screenshot LLM OCR) + three quality follow-ups. No breaking changes; v5.0.3.43 users can upgrade directly.
+
+**Added**:
+
+- **Screenshot OCR LLM engine (commit `39b16e29f`)** — Tesseract.js Chinese accuracy is poor; new `engine` parameter `auto` / `llm` / `tesseract` three-way: `auto` (default) routes to volcengine doubao vision OCR if configured, else falls back to Tesseract; LLM errors auto-degrade with `fallbackFrom` / `fallbackReason` tags. Provider whitelist `Set(["volcengine"])`; extending to gemini / openai / anthropic is mechanical once their LLMManager exposes `chatWithImage*`. UI: V5 / V6 shared dialog + web-panel dialog each get an `<a-select>` engine picker + blue/grey/orange tag showing the engine actually used. Engine guards live in `recognizeDispatch` (not `recognizeWithLLM`) so test stubs can replace impl without re-implementing validation.
+
+**Fixed**:
+
+- **chat intent understand 90s wall-clock safeguard (commit `6cbd04c50`)** — `sendStream`'s built-in 60s idle timer rearms on every chunk; a slow LLM that dribbles tokens but never emits a `final` frame leaves the "理解中…" placeholder card spinning forever. Wrap the call in an `AbortController + setTimeout(90s)` and pass the signal into the stream call; on timeout, clean up the placeholder with a readable error.
+- **compliance-ipc dead handler cleanup (commit `29006decf`)** — `compliance-ipc.js` previously registered two channels under a typo'd prefix `compliance-classify:*` (no callers); the renderer (`stores/compliance.ts` + `stores/audit.ts`) actually calls `compliance:generate-report` / `compliance:get-policies` owned by `audit-ipc.js`, backed by `ComplianceManager`. The two paths even backed onto different services (`soc2Compliance.generateReport` vs `auditManager.complianceManager.generateReport`); keeping the dead path would just guarantee future devs miss the real one when patching → drop both + sync `IPC_CHANNELS`.
+- **macOS tmp path assertion (commit `bb2c16656`)** — `build-win-with-deref.test.js` (testing Windows symlink helpers, ironically running on the macOS Unit Tests matrix too) had 3 asserts failing `expected '/private/var/folders/...' to be '/var/folders/...'`: macOS's `/var → /private/var` symlink. `os.tmpdir()` returns `/var/...` but `realpath` differs. `canonical = fs.realpathSync(os.tmpdir())` normalizes test temp dirs; `realpath` is a no-op on linux / win → no regression.
+
+**Tests**:
+
+- **`audit-ipc.js` first unit test coverage (commit `b092673be`)** — pre-existing zero-coverage gap surfaced by the typo'd `compliance-classify` dead-handler bug. `audit-ipc.js` owns 18 channels including the renderer-facing `compliance:get-policies` / `compliance:generate-report`; with no unit test, the typo'd duplicate handlers in `compliance-ipc.js` sat undetected for months. Source DI refactor (mirrors the `credit-ipc` pattern): accept `ipcMain` via `deps` with `electron` fallback (lazy-required so injection can preempt); 23 cases cover 18-channel routing + happy-path payload + AuditManager error paths.
+
+**Regression test status**:
+
+| Suite | Pass |
+|---|---|
+| desktop unit | 1477 / 1477 |
+| CLI full unit | 17,455 / 17,455 |
+
+**Distribution**: CLI npm `chainlesschain@0.161.5` ships in sync; desktop binary rebuilt; auto-updater compares `5.0.3-alpha.44 > 5.0.3-alpha.43`, so all v5.0.3.43 desktop users will see a real "new version" prompt on restart.
+
+---
+
 ## 2026-05-07 Release — **v5.0.3.43 MTC publisher_signature M-of-N fix + security hardening cascade**
 
 productVersion **v5.0.3.41 → v5.0.3.43** (.42 was a CLI atomic bump with no functional change — see changelog). This release has two themes: (1) **MTC `landmark.publisher_signature` strip-all-sigs symmetrization** — fixes a real defect that **bypasses the M-of-N threshold**; (2) **security hardening cascade** — eight `npm audit` sweeps in one week clear all advisories (HIGH 44 → 0 · MOD 4 → 0 · LOW 45 → 0).
@@ -1647,14 +1676,14 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.43-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.44-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.2-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.5-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -1667,7 +1696,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.43 Evolution Edition (2026-05-07 · CLI 0.161.4 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + **publisher_signature M-of-N strip-all-sigs fix** · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · **B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections** · **chat-panel-v5 Three-Shell Strict Parity** · **Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0**)
+## ⭐ Current Version: v5.0.3.44 Evolution Edition (2026-05-08 · CLI 0.161.5 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · chat-panel-v5 Three-Shell Strict Parity · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · **Screenshot LLM OCR auto/llm/tesseract** · **audit-ipc 23 cases first coverage**)
+
+### Latest Update - LLM OCR + audit-ipc coverage + chat-intent 90s safeguard (v5.0.3.44, 2026-05-08)
+
+One user-visible feature + three quality follow-ups: (1) **Screenshot OCR LLM engine** (`39b16e29f`) — Tesseract.js Chinese accuracy is poor, new `engine` parameter `auto`/`llm`/`tesseract` three-way; `auto` (default) routes to volcengine doubao vision, LLM errors auto-degrade with tags back to Tesseract; V5/V6 shared dialog + web-panel dialog both get `<a-select>` + tri-color tag. (2) **chat intent 90s wall-clock safeguard** (`6cbd04c50`) — slow LLMs that dribble tokens but never emit `final` leave the placeholder card spinning forever; `AbortController + 90s` safeguard. (3) **compliance-ipc dead handler cleanup** (`29006decf`) — typo'd prefix `compliance-classify:*` had no callers, and the dead path even backed onto a different service than the real one — drop it before someone misses the real one when patching; surfaced (4) **`audit-ipc.js` first unit test coverage** (`b092673be`) — 18 channels + DI + 23 cases. Regression: desktop 1477/1477 + CLI 17,455/17,455.
 
 ### Latest Update - MTC publisher_signature M-of-N fix + Security Hardening Cascade (v5.0.3.43, 2026-05-07)
 
