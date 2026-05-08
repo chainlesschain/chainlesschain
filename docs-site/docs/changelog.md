@@ -3,6 +3,32 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.45 / CLI 0.161.7] - 2026-05-09 (cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy reactivity 修复)
+
+> `cc ui` 终于跟桌面 web-shell 在 LLM 路径上对齐；项目/文件模式聊天默认不再走"理解中…"占位 LLM 调用；`chatStream` 改为真正的 token-by-token 流式；意图卡片 Vue Proxy 引用 bug 修复让占位卡正确翻面。
+
+### Added
+
+- **`cc ui` `llm.chat` WS topic（commit `f41c4b4e2`）** —— 桌面 web-shell 自 `4eaf90137`（Phase 2）就有这个 topic，但 `cc ui`（CLI 的 ws-server）从未注册过。结果：QuickAsk 页面在 `cc ui` 模式下永远卡 60 秒后报 `Stream idle timeout`。新增 `packages/cli/src/gateways/ws/llm-chat-protocol.js`，handler 复用 `chat-core` 的 `streamOllama` / `streamOpenAI` / `streamAnthropic`，按 `<topic>.chunk` + `<topic>.result` 的 frame 协议跟桌面 `llm-handlers.js` 完全对齐。
+- **共享 cred 解析（commit `f41c4b4e2`）** —— 新增 `packages/cli/src/gateways/ws/llm-creds.js`：explicit `options` → WS session creds → provider 环境变量（`VOLCENGINE_API_KEY` / `OPENAI_API_KEY` 等）；任何源没拿到都立即返回 `ok:false` 帧，不再 60 秒挂死。`chat-intent-protocol` 同步切到这个 helper，顺手修一个 latent bug：原代码 `session.baseUrl || "http://localhost:11434"` 在 session 没设 baseUrl 时硬编码到 ollama 地址，所有云 provider 在用户本地没起 ollama 时都会跑死。
+- **意图理解可见开关（commit `f41c4b4e2`）** —— Chat / Agent 项目/文件模式 header 加 `<a-switch>`，**默认关闭**。原行为：v5.0.3.43 起每条消息先调 LLM 提炼意图（`chat.intent.understand-stream`），再走真发送 —— LLM 慢/无 cred 时占位卡 90 秒；现在默认直发，需要意图卡片的用户手动打开开关（持久化到 `localStorage cc.web-panel.chat.intentEnabled`）。`submitUserInput` 第一行短路：`if (mode === 'global' || !intentEnabled.value) { sendMessage; return }`。桌面壳同享这个 SPA bundle，所以桌面也跟 `cc ui` 行为一致。
+
+### Fixed
+
+- **`chatStream` 真正的 token 流式（commit `35f6e60ea`）** —— `packages/cli/src/lib/chat-core.js` 的 `chatStream` 原本是 buffer 全部 token 后再循环 yield 的伪流式 —— 消费者要等到 LLM 整个回完才看到第一帧。改为 token queue + Promise waiter 模式：onToken push 后立刻 wake generator yield。Chat / Agent / QuickAsk / 意图理解 全部受益。
+- **意图占位卡片 Vue Proxy reactivity 修复（commit `a76e451e2`）** —— `submitUserInput` 创建 placeholder 后 push 进 reactive `messages[sessionId]` 会被 wrap 成 Proxy，但本地变量 ref 仍指向 unwrap 之前的 target；后续 `placeholder.metadata.X` 直接改原对象绕过 Proxy `set` trap → 数据更新但不触发重渲染。修法：`card = msgs[msgs.length - 1]` push 后重新取 Proxy 引用，所有后续 mutation 走 `card.metadata.X`。
+
+### Tests
+
+- CLI ws gateway 16/16 绿（chat-intent 6 + 新 llm-chat 9 + 新增"无 cred 不调 LLM"环境清理 1）
+- web-panel chat-intent-flow 27/27 绿
+
+### NPM
+
+- `chainlesschain` 0.161.5 → 0.161.6 → **0.161.7**（0.161.6 已先于 productVersion 单独 publish 修复 QuickAsk + Chat 项目模式 hang；0.161.7 带 chatStream 真流式 + 意图卡片 Vue Proxy 修复）
+
+---
+
 ## [5.0.3.44 / CLI 0.161.5] - 2026-05-08 (LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底)
 
 > 一条 user-visible feature（截图 LLM OCR）+ 三条质量收口。无破坏性变化，所有 v5.0.3.43 用户可直接 upgrade。
