@@ -61,7 +61,11 @@ function symlinkDir(target, linkPath) {
 }
 
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), "build-deref-"));
+  // macOS symlinks `/var → /private/var`, so `os.tmpdir()` returns the
+  // un-canonicalized form but anything the SUT runs through fs.realpath /
+  // readlink resolves to the `/private/var/...` canonical form. Canonicalize
+  // at creation time so path-equality assertions hold cross-platform.
+  tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "build-deref-")));
 });
 
 afterEach(() => {
