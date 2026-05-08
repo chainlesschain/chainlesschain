@@ -433,13 +433,21 @@ export const useChatStore = defineStore('chat', () => {
     // the .result frame arrives; IntentConfirmationMessage suppresses the
     // confirm/correct buttons whenever metadata.streaming is true.
     const placeholder = createIntentConfirmationMessage(content, {})
-    if (placeholder.metadata) {
-      placeholder.metadata.streaming = true
-      placeholder.metadata.streamingTokens = 0
-    }
+    placeholder.metadata.streaming = true
+    placeholder.metadata.streamingTokens = 0
     placeholder.content = '理解中…'
     const msgs = getMessages(sessionId)
     msgs.push(placeholder)
+    // Re-acquire the reactive Proxy reference. Vue 3 reactivity caveat:
+    // pushing a plain object into a reactive collection wraps it in a Proxy,
+    // but the local `placeholder` ref still points at the raw target. Any
+    // later `placeholder.metadata.X = …` mutation bypasses the Proxy `set`
+    // trap and never triggers a re-render — even though the data is updated
+    // and unit tests reading `getMessages()[idx].metadata.X` still pass. Pre-
+    // v5.0.3.46 this bug pinned the card visibly at "理解中… / 意图: 未识别"
+    // for the entire LLM round-trip, even after `streaming=false` flipped on
+    // the raw object.
+    const card = msgs[msgs.length - 1]
 
     let understanding = null
     // Wall-clock ceiling on top of sendStream's 60s idle timer. The idle
@@ -463,10 +471,8 @@ export const useChatStore = defineStore('chat', () => {
         },
         {
           onChunk: () => {
-            if (placeholder.metadata) {
-              placeholder.metadata.streamingTokens =
-                (placeholder.metadata.streamingTokens || 0) + 1
-            }
+            card.metadata.streamingTokens =
+              (card.metadata.streamingTokens || 0) + 1
           },
           // The chat-intent-service caps maxTokens at 500 — even on slow
           // local Ollama that's well under a minute. Disable the idle
@@ -491,7 +497,7 @@ export const useChatStore = defineStore('chat', () => {
 
     if (!hasUsefulUnderstanding) {
       // Drop the placeholder + run the original input through the agent.
-      const idx = msgs.indexOf(placeholder)
+      const idx = msgs.indexOf(card)
       if (idx >= 0) msgs.splice(idx, 1)
       await sendMessage(sessionId, content)
       return
@@ -499,21 +505,19 @@ export const useChatStore = defineStore('chat', () => {
 
     // Promote the placeholder into the real confirmation card so the slot
     // re-renders with action buttons.
-    placeholder.content = '我理解您的需求如下，请确认：'
-    if (placeholder.metadata) {
-      placeholder.metadata.streaming = false
-      placeholder.metadata.understanding = {
-        correctedInput: understanding.correctedInput,
-        intent: understanding.intent,
-        keyPoints: understanding.keyPoints,
-      }
+    card.content = '我理解您的需求如下，请确认：'
+    card.metadata.streaming = false
+    card.metadata.understanding = {
+      correctedInput: understanding.correctedInput,
+      intent: understanding.intent,
+      keyPoints: understanding.keyPoints,
     }
     // Replay any persisted decision so a refresh-then-resend lands with the
     // user's prior choice still applied.
-    const prior = lookupIntentDecision(sessionId, placeholder.id)
-    if (prior?.status && placeholder.metadata) {
-      placeholder.metadata.status = prior.status
-      if (prior.correction) placeholder.metadata.correction = prior.correction
+    const prior = lookupIntentDecision(sessionId, card.id)
+    if (prior?.status) {
+      card.metadata.status = prior.status
+      if (prior.correction) card.metadata.correction = prior.correction
     }
   }
 
