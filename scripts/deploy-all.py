@@ -30,39 +30,40 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-08 v5.0.3.43 滚动更新 (3 站全刷) — 主线两件:
-    # (1) MTC landmark.publisher_signature M-of-N strip-all-sigs 对称化 (c23e98cca + 038e6d710)
-    #     + LandmarkCache verifyPublisherSignature opt-in 启用 (c40d927da + 72c3619ee)
-    #     + BAD_PUBLISHER_SIG → BAD_LANDMARK_SIG (36fcd8f4f) + spec §8.5 (8e459cfd5)。
-    # (2) 安全硬化级联 8 commits — HIGH 44→0 / MOD 4→0 / LOW 45→0:
-    #     drop hdkey + werift + speedtest-net + jspdf, override
-    #     serialize-javascript / tar / semver / undici / make-fetch-happen / tmp /
-    #     ip-address / dompurify, channel-manager DDL 加固, wrtc-compat 补丁
-    #     CVE-2024-29415 (d558b66b1, 7312cf035, f6c937fa8, 8a56978b5, 9c7ce00e7,
-    #     922b64822, cc7b0b40a, 4fae47dd4, 1f86594a2, 64047283a, d19bcb8cb)。
-    # 顺手 ship: updater 渲染端进度通知 (4c1a5ac18 + e27592bb5),
-    #          chainlesschain CLI 0.161.3 → 0.161.4 atomic bump (a555b6760)
-    #          补 v5.0.3.41 chat-intent 路由代码 release pipeline 测试覆盖。
+    # 2026-05-09 v5.0.3.44 滚动更新 (3 站全刷):
+    # (1) Added: 截图 OCR LLM 引擎 (39b16e29f) — engine=auto/llm/tesseract 三态;
+    #     auto 默认走火山豆包视觉 (已配置), LLM 出错带 fallbackFrom/fallbackReason
+    #     标签自动降级 Tesseract; V5/V6/web-panel 三处 dialog UI 各加 a-select +
+    #     蓝/灰/橙三色 tag。
+    # (2) Fixed: chat intent understand 90s wall-clock 兜底 (6cbd04c50);
+    #     compliance-ipc 死 handler 清理 (29006decf, typo 前缀 compliance-classify:*
+    #     无人调用且背后 service 跟真路径不同); macOS 临时目录路径断言修复
+    #     (bb2c16656, /var → /private/var symlink, fs.realpathSync 规范化)。
+    # (3) Tests: audit-ipc.js 首次单测 (b092673be) — 18 channel + DI 改造 + 23 用例。
+    # 顺手 ship: chainlesschain CLI 0.161.4 → 0.161.5 atomic bump (c61de71eb)
+    #          为 ipcGuard fixes (af92e0162 + 11247a957) 在 release pipeline
+    #          cli-tests 上的测试覆盖。
     #
-    # 改动: docs-site/docs/changelog.md 新增 v5.0.3.42 + v5.0.3.43 两条 entry;
+    # 改动: 根 CHANGELOG.md + docs-site/docs/changelog.md 新增 v5.0.3.44 entry;
     # index.md + chainlesschain/overview.md + docs-site-design/docs/index.md
-    # tagline .41 → .43 同时加 publisher_signature + 安全硬化 关键词;
+    # tagline .43 → .44 + 加 LLM OCR / audit-ipc 关键词;
     # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张
-    # "v5.0.3.43" 卡 (中英对照)。release-sizes.json 自动 refresh 到 v5.0.3.43
-    # (GitHub Release published 2026-05-07T23:15:53Z)。
+    # "v5.0.3.44" 卡 (中英对照); README.md / README_EN.md 顶部发布块 +
+    # Current Version + Latest Update 块同步。release-sizes.json 自动 refresh
+    # 到 v5.0.3.44 (GitHub Release published 2026-05-08T15:43:18Z, 28 assets).
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.43-20260508-165728.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.44-20260509-0459.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.43-20260508-165728.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.44-20260509-0459.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.43-20260508-165728.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.44-20260509-0459.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
