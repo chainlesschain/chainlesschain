@@ -36,9 +36,14 @@ productVersion **v5.0.3.41 → v5.0.3.43**（.42 是 CLI atomic bump，无功能
 | CLI mtc-federation 集成 | 41 / 41 |
 | CLI 全量 unit | 17,432 / 17,432 |
 
-**附带 bug 修**（本对话）：
+**附带 bug 修**（本对话两连）—— 同根：`551ef28b3` "fix(ipc): correct ipcGuard API" 切到 `markModuleRegistered` 那次 sweep 不彻底，留下两类互补 bug：
 
-- **`tests/unit/social/nostr-bridge-ipc.test.js` 23 用例失败** —— 源自 `551ef28b3` "fix(ipc): correct ipcGuard API" 切到 `markModuleRegistered` 时未同步更新测试 stub（仍叫 `registerModule` + 错的 `(name, channels)` 签名）。修：stub 改 `markModuleRegistered`，断言改单参数。23 / 23 ✅。
+| Commit | Bug | 为什么之前没炸 |
+|---|---|---|
+| **`af92e0162` fix(test): align nostr-bridge-ipc stub** | 源码用 `ipcGuard.markModuleRegistered(name)` 直调（real guard 有此 fn），但 test stub 仍 mock 不存在的 `registerModule(name, channels)` 二参 → stub 调时 `TypeError: ipcGuard.markModuleRegistered is not a function`，23 / 389 social 用例炸 | CI "Unit Tests" stable-fallback 排除 `**/*-ipc.test.js`；"Full Test Suite" 用 `continue-on-error: true` |
+| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 个 IPC 模块（autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference）反过来 —— 源码 `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }`，real guard 没 `registerModule` → `if` 永远 falsy → guard 内部 `registeredModules` Set 漏跟踪这 8 个模块。Handlers 走 `ipcMain.handle` 仍真正注册，业务功能正常 | 测试 stub 自己 mock 了 `registerModule` → 测试假绿 |
+
+修：stub `registerModule` → `markModuleRegistered` + 断言去 channels 参（test 侧）；`if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` → `ipcGuard.markModuleRegistered(name)`，同时去掉同样无意义的 `if (ipcGuard.unregisterModule)` wrap（源码侧）。回归：collaboration-governance-ipc 21/21 + tech-learning-ipc 21/21 + ipc-guard core 12/12 + 邻近 29 文件 577/577 ✅。
 
 **部署/分发**：本版桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.43 > 5.0.3-alpha.41`，所有 v5.0.3.41 桌面用户重启会真发现新版。三大文档站（docs / design / www）同步刷新（commit `1183075b5` + `0384099f3`）。
 

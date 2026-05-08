@@ -36,9 +36,14 @@ productVersion **v5.0.3.41 → v5.0.3.43** (.42 was a CLI atomic bump with no fu
 | CLI mtc-federation integration | 41 / 41 |
 | CLI full unit | 17,432 / 17,432 |
 
-**Bonus bug fix (this conversation)**:
+**Bonus bug fixes (this conversation, two-pack)** — same root: `551ef28b3` "fix(ipc): correct ipcGuard API" switched the API to `markModuleRegistered` but the sweep was incomplete, leaving two complementary bug classes:
 
-- **`tests/unit/social/nostr-bridge-ipc.test.js` 23 cases failing** — Originally from `551ef28b3` "fix(ipc): correct ipcGuard API" which switched the source to `markModuleRegistered`, but the test stub still mocked `registerModule` with the wrong `(name, channels)` signature. CI didn't catch it because the "stable fallback" Unit Tests job excludes `**/*-ipc.test.js` and Full Test Suite uses `continue-on-error: true`. Fix: rename stub method to `markModuleRegistered`, drop the channels arg from the assertion. 23 / 23 ✅.
+| Commit | Bug | Why CI missed it |
+|---|---|---|
+| **`af92e0162` fix(test): align nostr-bridge-ipc stub** | Source calls `ipcGuard.markModuleRegistered(name)` directly (real guard exports it), but the test stub still mocked the non-existent `registerModule(name, channels)` (wrong arity) → `TypeError: ipcGuard.markModuleRegistered is not a function`, 23 / 389 social cases failing | CI "Unit Tests" stable-fallback excludes `**/*-ipc.test.js`; "Full Test Suite" uses `continue-on-error: true` |
+| **`11247a957` fix(ipc): align 8 ai-engine IPC modules** | 8 IPC modules (autonomous-developer / collaboration-governance / tech-learning / federation-hardening / reputation-optimizer / sla / stress-test / inference) inverted: source has `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` — real guard has no `registerModule` → `if` always falsy → guard's `registeredModules` Set silently misses these 8. Handlers still register via `ipcMain.handle`, so business functionality works | Test stubs themselves mocked `registerModule` → tests passed falsely |
+
+Fix: stub `registerModule` → `markModuleRegistered` + drop channels arg from assertion (test side); `if (ipcGuard.registerModule) { ipcGuard.registerModule(name, CHANNELS); }` → `ipcGuard.markModuleRegistered(name)`, plus drop the equally pointless `if (ipcGuard.unregisterModule)` wrap (source side). Regression: collaboration-governance-ipc 21/21 + tech-learning-ipc 21/21 + ipc-guard core 12/12 + 29 adjacent files 577/577 ✅.
 
 **Distribution**: Desktop binary rebuilt; auto-updater compares `5.0.3-alpha.43 > 5.0.3-alpha.41`, so all v5.0.3.41 desktop users will see a real "new version" prompt on restart. All three documentation sites (docs / design / www) refreshed in sync (commit `1183075b5` + `0384099f3`).
 
