@@ -58,7 +58,9 @@ jobs:
         # `npm ci` no longer installs its deps. Without this step, the next
         # `build:main` / `build:renderer` fail with `Cannot find module
         # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
-        run: npm ci
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -76,7 +78,8 @@ jobs:
         # broke transitive hoisting that web-panel relied on. web-panel was
         # never a workspace itself (root package.json workspaces array), so
         # this step is the only way to populate @vitejs/plugin-vue + others.
-        run: npm install --legacy-peer-deps
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
 
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
@@ -86,6 +89,7 @@ jobs:
 
       - name: Install packages/cli prod deps standalone (consumed by extraResources)
         working-directory: packages/cli
+        shell: bash
         run: |
           # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
           # are loaded by the desktop main process via paths like
@@ -100,8 +104,8 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
-        shell: bash
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         shell: cmd
@@ -246,7 +250,9 @@ jobs:
         # `npm ci` no longer installs its deps. Without this step, the next
         # `build:main` / `build:renderer` fail with `Cannot find module
         # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
-        run: npm ci
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -264,7 +270,8 @@ jobs:
         # broke transitive hoisting that web-panel relied on. web-panel was
         # never a workspace itself (root package.json workspaces array), so
         # this step is the only way to populate @vitejs/plugin-vue + others.
-        run: npm install --legacy-peer-deps
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
 
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
@@ -274,6 +281,7 @@ jobs:
 
       - name: Install packages/cli prod deps standalone (consumed by extraResources)
         working-directory: packages/cli
+        shell: bash
         run: |
           # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
           # are loaded by the desktop main process via paths like
@@ -288,8 +296,8 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
-        shell: bash
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
@@ -391,7 +399,9 @@ jobs:
         # then electron-builder's dmg-builder requires('dmg-license') and
         # crashes with `Cannot find module 'dmg-license'`. v5.0.3.26 hit this.
         # Install it explicitly here without touching the lockfile.
-        run: npm install --no-save --legacy-peer-deps dmg-license
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --no-save --legacy-peer-deps dmg-license
 
       - name: Package macOS (electron-builder, x64 + arm64)
         working-directory: desktop-app-vue
@@ -452,7 +462,9 @@ jobs:
         working-directory: desktop-app-vue
         # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
         # `npm ci` no longer installs its deps. See Windows variant for details.
-        run: npm ci
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
 
       - name: Build main process
         working-directory: desktop-app-vue
@@ -470,7 +482,8 @@ jobs:
         # broke transitive hoisting that web-panel relied on. web-panel was
         # never a workspace itself (root package.json workspaces array), so
         # this step is the only way to populate @vitejs/plugin-vue + others.
-        run: npm install --legacy-peer-deps
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
 
       - name: Build web-panel SPA (consumed by extraResources copy)
         working-directory: packages/web-panel
@@ -480,6 +493,7 @@ jobs:
 
       - name: Install packages/cli prod deps standalone (consumed by extraResources)
         working-directory: packages/cli
+        shell: bash
         run: |
           # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
           # are loaded by the desktop main process via paths like
@@ -494,8 +508,8 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
-        shell: bash
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
@@ -1309,7 +1323,9 @@ jobs:
           node-version: "22.12.0"
 
       - name: Install dependencies (workspace-aware)
-        run: npm install --legacy-peer-deps
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
 
       - name: Install desktop-app-vue deps (post-workspace-refactor)
         working-directory: desktop-app-vue
@@ -1317,7 +1333,9 @@ jobs:
         # desktop-app-vue/node_modules/glob. After ad3e7d403 workspace
         # refactor, root npm install no longer installs desktop-app-vue's
         # deps. v5.0.3.28 hit "Cannot find module 'glob'" here.
-        run: npm ci
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
 
       - name: Regenerate CHANGELOG.md
         working-directory: desktop-app-vue

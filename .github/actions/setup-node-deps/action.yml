@@ -20,10 +20,31 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install npm dependencies
+    - name: Install npm dependencies (3-attempt retry, transient ECONNRESET hardening)
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: ${{ inputs.install-command }}
+      # v5.0.3.44 release.yml's build-linux failed in 52s on a single
+      # ECONNRESET during `npm ci`. Same class of transient that motivated
+      # test-automation-full.yml's retry (issue #7). Backoff 15s / 30s; on
+      # third failure propagate exit code so downstream steps don't run on
+      # half-installed node_modules. Mirrors the retry pattern already in
+      # test-automation-full.yml run-all-tests + health-check.
+      run: |
+        attempt_install() {
+          ${{ inputs.install-command }}
+        }
+        for i in 1 2 3; do
+          if attempt_install; then
+            exit 0
+          fi
+          if [ "$i" -lt 3 ]; then
+            delay=$((i * 15))
+            echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
+            sleep "$delay"
+          fi
+        done
+        echo "::error::npm install failed after 3 attempts"
+        exit 1
     - name: Install desktop-app-vue dependencies (post-workspace-refactor)
       if: inputs.install-desktop-app-vue == 'true'
       shell: bash
