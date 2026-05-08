@@ -172,11 +172,11 @@ class AutoUpdater {
         releaseNotes: info.releaseNotes,
       });
 
-      // showUpdateAvailableDialog 本来就是 native dialog（手动 + 自动都弹），
-      // 所以这里 manual 标志只需要清掉，不必重复弹。
+      // v5.0.3.44 — notifier-only 流程：渲染端 AppUpdateNotifier 已经接管
+      // "立即下载 / 稍后再说" 的 UI，原 native dialog 跟它重复弹两次很吵。
+      // showUpdateAvailableDialog 函数仍保留（下面），不再调用，方便回退。
       this._manualCheckPending = false;
-      // 显示更新提示
-      this.showUpdateAvailableDialog(info);
+      // this.showUpdateAvailableDialog(info);
     });
 
     // 没有可用更新
@@ -229,8 +229,9 @@ class AutoUpdater {
         releaseDate: info.releaseDate,
       });
 
-      // 显示安装提示
-      this.showUpdateReadyDialog(info);
+      // v5.0.3.44 — notifier-only：渲染端 AppUpdateNotifier 提供"立即重启 /
+      // 下次启动" 按钮，原 native dialog 不再弹。函数保留，方便回退。
+      // this.showUpdateReadyDialog(info);
     });
   }
 
