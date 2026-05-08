@@ -62,6 +62,9 @@
 
     <!-- 预算告警监听器 -->
     <BudgetAlertListener />
+
+    <!-- 自动更新通知器 (全局单例，覆盖 V5/V6/opt-out 所有路由) -->
+    <AppUpdateNotifier />
   </a-config-provider>
 </template>
 
@@ -90,6 +93,7 @@ import ScreenshotImportDialog from "./components/common/ScreenshotImportDialog.v
 import * as syncScheduler from "./utils/syncScheduler";
 import InvitationAcceptDialog from "./components/organization/InvitationAcceptDialog.vue";
 import BudgetAlertListener from "./components/BudgetAlertListener.vue";
+import AppUpdateNotifier from "./components/AppUpdateNotifier.vue";
 import zhCN from "ant-design-vue/es/locale/zh_CN";
 import enUS from "ant-design-vue/es/locale/en_US";
 import zhTW from "ant-design-vue/es/locale/zh_TW";

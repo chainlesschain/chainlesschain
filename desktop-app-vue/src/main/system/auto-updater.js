@@ -4,7 +4,7 @@
  */
 
 const { autoUpdater } = require("electron-updater");
-const { dialog, BrowserWindow } = require("electron");
+const { dialog, BrowserWindow, ipcMain, app } = require("electron");
 
 // v5.0.3.35 — electron-log 是 optional logger（electron-updater 文档明确支持
 // winston / 任意 `{info,warn,error}` shape）。v5.0.3.34 的诊断 dialog 暴露
@@ -54,6 +54,10 @@ class AutoUpdater {
     // false 表示后台静默自检（启动 3s + 每 4h），不弹任何 UI。在事件回调
     // 里读完立即重置，避免下一次自检"借用"上一次的 manual 标志。
     this._manualCheckPending = false;
+    // v5.0.3.44 — 当前 in-flight 下载状态，供渲染端 notifier 同步初始 UI
+    // 用（例如 notifier 在下载中段挂载时还是要看到进度条而不是空 idle）。
+    this._lastStatus = { status: "idle", data: null, info: null };
+    this._ipcRegistered = false;
 
     // 配置 autoUpdater
     this.setupAutoUpdater();
@@ -65,6 +69,9 @@ class AutoUpdater {
    */
   init(mainWindow) {
     this.mainWindow = mainWindow;
+
+    // 注册 IPC handlers — renderer 通知器驱动手动检查 / 下载 / 安装
+    this.registerIpcHandlers();
 
     // 应用启动时检查更新
     if (!process.env.NODE_ENV || process.env.NODE_ENV === "production") {
@@ -79,13 +86,60 @@ class AutoUpdater {
   }
 
   /**
+   * 注册 IPC handlers（幂等）：渲染端 notifier 通过 electronAPI.appUpdate.*
+   * 触发检查 / 下载 / 安装；onStatus 订阅走 webContents.send(update-status)
+   * 单向广播，不在这里注册。
+   */
+  registerIpcHandlers() {
+    if (this._ipcRegistered) {
+      return;
+    }
+    this._ipcRegistered = true;
+
+    ipcMain.handle("app-update:check", async () => {
+      const isProd =
+        process.env.NODE_ENV === "production" || app.isPackaged === true;
+      if (!isProd) {
+        return { ok: false, reason: "dev-mode", isProd: false };
+      }
+      await this.checkForUpdates(true);
+      return { ok: true };
+    });
+
+    ipcMain.handle("app-update:download", async () => {
+      try {
+        await autoUpdater.downloadUpdate();
+        return { ok: true };
+      } catch (err) {
+        log.error("downloadUpdate failed:", err);
+        return { ok: false, error: String((err && err.message) || err) };
+      }
+    });
+
+    ipcMain.handle("app-update:install", async () => {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+        return { ok: true };
+      } catch (err) {
+        log.error("quitAndInstall failed:", err);
+        return { ok: false, error: String((err && err.message) || err) };
+      }
+    });
+
+    ipcMain.handle("app-update:get-status", () => this._lastStatus);
+  }
+
+  /**
    * 配置 autoUpdater 事件处理
    */
   setupAutoUpdater() {
     // 检查更新错误
     autoUpdater.on("error", (error) => {
       log.error("更新检查错误:", error);
-      this.sendStatusToWindow("更新检查失败");
+      this.clearTaskbarProgress();
+      this.sendStatusToWindow("error", null, {
+        message: String((error && error.message) || error || "未知错误"),
+      });
       // v5.0.3.36 — 用户主动触发的检查必须给 feedback；后台自检静默。
       if (this._manualCheckPending) {
         this._manualCheckPending = false;
@@ -106,13 +160,17 @@ class AutoUpdater {
     // 开始检查更新
     autoUpdater.on("checking-for-update", () => {
       log.info("正在检查更新...");
-      this.sendStatusToWindow("正在检查更新...");
+      this.sendStatusToWindow("checking", null, null);
     });
 
     // 发现新版本
     autoUpdater.on("update-available", (info) => {
       log.info("发现新版本:", info.version);
-      this.sendStatusToWindow("发现新版本");
+      this.sendStatusToWindow("available", null, {
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes,
+      });
 
       // showUpdateAvailableDialog 本来就是 native dialog（手动 + 自动都弹），
       // 所以这里 manual 标志只需要清掉，不必重复弹。
@@ -124,7 +182,7 @@ class AutoUpdater {
     // 没有可用更新
     autoUpdater.on("update-not-available", (info) => {
       log.info("当前是最新版本");
-      this.sendStatusToWindow("当前是最新版本");
+      this.sendStatusToWindow("not-available", null, null);
       // v5.0.3.36 — 用户主动点了"检查更新"才 feedback；后台 3s/4h 自检静默
       // 不弹（电源管理 / 锁屏唤醒等场景下大量弹窗很骚扰）。
       if (this._manualCheckPending) {
@@ -156,17 +214,51 @@ class AutoUpdater {
       logMessage += ` (${progressObj.transferred}/${progressObj.total})`;
 
       log.info(logMessage);
-      this.sendStatusToWindow("正在下载更新", progressObj);
+      // taskbar / dock 进度条（OS 原生，零渲染端依赖兜底；renderer notifier
+      // 是主要 UI，但任务栏即使应用最小化也可见）
+      this.setTaskbarProgress(progressObj.percent);
+      this.sendStatusToWindow("downloading", progressObj, null);
     });
 
     // 更新下载完成
     autoUpdater.on("update-downloaded", (info) => {
       log.info("更新下载完成");
-      this.sendStatusToWindow("更新下载完成");
+      this.clearTaskbarProgress();
+      this.sendStatusToWindow("downloaded", null, {
+        version: info.version,
+        releaseDate: info.releaseDate,
+      });
 
       // 显示安装提示
       this.showUpdateReadyDialog(info);
     });
+  }
+
+  /**
+   * 设置 Windows 任务栏 / macOS Dock 进度条。
+   * `percent` 是 0-100 整数 / 浮点；setProgressBar 接收 0-1。
+   */
+  setTaskbarProgress(percent) {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      return;
+    }
+    try {
+      const p = Math.max(0, Math.min(1, Number(percent) / 100));
+      this.mainWindow.setProgressBar(p);
+    } catch (err) {
+      log.warn("setProgressBar failed:", err && err.message);
+    }
+  }
+
+  clearTaskbarProgress() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      return;
+    }
+    try {
+      this.mainWindow.setProgressBar(-1);
+    } catch (err) {
+      log.warn("setProgressBar(-1) failed:", err && err.message);
+    }
   }
 
   /**
@@ -204,15 +296,26 @@ class AutoUpdater {
   }
 
   /**
-   * 发送状态到渲染进程
+   * 发送状态到渲染进程。`status` 是 dot-case 枚举：
+   *   idle / checking / available / not-available / downloading
+   *   / downloaded / error
+   * `data` 仅 downloading 状态非空（electron-updater progress object）。
+   * `info` 在 available / downloaded / error 携带 {version,releaseNotes,…} / {message}。
    */
-  sendStatusToWindow(status, data = null) {
+  sendStatusToWindow(status, data = null, info = null) {
+    const payload = {
+      status,
+      data,
+      info,
+      timestamp: new Date().toISOString(),
+    };
+    this._lastStatus = payload;
     if (this.mainWindow && this.mainWindow.webContents) {
-      this.mainWindow.webContents.send("update-status", {
-        status,
-        data,
-        timestamp: new Date().toISOString(),
-      });
+      try {
+        this.mainWindow.webContents.send("update-status", payload);
+      } catch (err) {
+        log.warn("send update-status failed:", err && err.message);
+      }
     }
   }
 

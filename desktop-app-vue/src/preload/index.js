@@ -2437,6 +2437,25 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("system:set-always-on-top", flag),
   },
 
+  // 应用自动更新 — main/system/auto-updater.js electron-updater 封装。
+  // status 字段是 dot-case 枚举：
+  //   idle | checking | available | not-available | downloading
+  //   | downloaded | error
+  // downloading 时 data 是 progress object（percent / bytesPerSecond /
+  // transferred / total），其余状态为 null。available / downloaded 在 info
+  // 里带 {version, releaseDate, releaseNotes}；error 带 {message}。
+  appUpdate: {
+    check: () => ipcRenderer.invoke("app-update:check"),
+    download: () => ipcRenderer.invoke("app-update:download"),
+    install: () => ipcRenderer.invoke("app-update:install"),
+    getStatus: () => ipcRenderer.invoke("app-update:get-status"),
+    onStatus: (callback) => {
+      const listener = (_event, payload) => callback(payload);
+      ipcRenderer.on("update-status", listener);
+      return () => ipcRenderer.removeListener("update-status", listener);
+    },
+  },
+
   // 后续输入意图分类器 (Follow-up Intent Classifier)
   followupIntent: {
     /**
