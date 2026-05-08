@@ -83,12 +83,12 @@ describe("compliance-ipc", () => {
 
   // --- Registration ---
 
-  it("should export CHANNELS with 12 entries", () => {
-    expect(CHANNELS).toHaveLength(12);
+  it("should export CHANNELS with 10 entries", () => {
+    expect(CHANNELS).toHaveLength(10);
   });
 
-  it("should register all 12 IPC handlers", () => {
-    expect(mockIpcMain.handle).toHaveBeenCalledTimes(12);
+  it("should register all 10 IPC handlers", () => {
+    expect(mockIpcMain.handle).toHaveBeenCalledTimes(10);
   });
 
   it("should return handlerCount from registerComplianceIPC", () => {
@@ -98,7 +98,7 @@ describe("compliance-ipc", () => {
       classificationPolicy: mockClassificationPolicy,
       ipcMain: mockIpcMain,
     });
-    expect(result.handlerCount).toBe(12);
+    expect(result.handlerCount).toBe(10);
   });
 
   it("should register handlers for all defined channels", () => {
@@ -161,17 +161,6 @@ describe("compliance-ipc", () => {
     expect(result.evidence).toEqual({ id: "ev3", title: "Config" });
   });
 
-  // --- generate-report ---
-
-  it("should call generateReport for generate-report", async () => {
-    const result = await handlers["compliance-classify:generate-report"](
-      {},
-      { periodStart: 0 },
-    );
-    expect(result.success).toBe(true);
-    expect(result.report.complianceScore).toBe(80);
-  });
-
   // --- classify-content ---
 
   it("should call dataClassifier.classify for classify-content", async () => {
@@ -201,14 +190,6 @@ describe("compliance-ipc", () => {
     const result = await handler({}, { content: "x" });
     expect(result.success).toBe(false);
     expect(result.error).toContain("not initialized");
-  });
-
-  // --- get-policies ---
-
-  it("should call classificationPolicy.getPolicies for get-policies", async () => {
-    const result = await handlers["compliance-classify:get-policies"]({});
-    expect(result.success).toBe(true);
-    expect(result.policies).toEqual([{ id: "p1" }]);
   });
 
   // --- check-access ---
@@ -254,12 +235,12 @@ describe("compliance-ipc", () => {
   // --- error handling ---
 
   it("should return { success: false, error: message } on handler errors", async () => {
-    mockSoc2Compliance.generateReport.mockRejectedValue(
+    mockSoc2Compliance.collectAuditLogEvidence.mockRejectedValue(
       new Error("DB failure"),
     );
-    const result = await handlers["compliance-classify:generate-report"](
+    const result = await handlers["compliance:collect-audit-evidence"](
       {},
-      {},
+      { periodStart: 0 },
     );
     expect(result.success).toBe(false);
     expect(result.error).toBe("DB failure");

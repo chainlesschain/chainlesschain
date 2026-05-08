@@ -1,10 +1,12 @@
 /**
  * Compliance IPC Handlers
  *
- * 12 IPC handlers for SOC 2 compliance, data classification, and policy management.
+ * 10 IPC handlers for SOC 2 compliance, data classification, and policy management.
+ * Note: `compliance:generate-report` and `compliance:get-policies` are owned by
+ * audit-ipc.js (single registry, real implementation that the renderer calls).
  *
  * @module audit/compliance-ipc
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import { logger } from "../utils/logger.js";
@@ -14,14 +16,12 @@ const CHANNELS = [
   "compliance:collect-audit-evidence",
   "compliance:collect-access-evidence",
   "compliance:collect-config-evidence",
-  "compliance-classify:generate-report",
   "compliance:verify-evidence",
   "compliance:get-evidence",
   "compliance:classify-content",
   "compliance:batch-scan",
   "compliance:get-classifications",
   "compliance:auto-tag",
-  "compliance-classify:get-policies",
   "compliance:check-access",
 ];
 
@@ -83,24 +83,6 @@ function registerComplianceIPC({
       return { success: false, error: error.message };
     }
   });
-
-  ipcMain.handle(
-    "compliance-classify:generate-report",
-    async (_event, options) => {
-      try {
-        if (!soc2Compliance) {
-          throw new Error("SOC2 Compliance not initialized");
-        }
-        return {
-          success: true,
-          report: await soc2Compliance.generateReport(options),
-        };
-      } catch (error) {
-        logger.error("[Compliance IPC] Generate report failed:", error);
-        return { success: false, error: error.message };
-      }
-    },
-  );
 
   ipcMain.handle(
     "compliance:verify-evidence",
@@ -195,18 +177,6 @@ function registerComplianceIPC({
       }
     },
   );
-
-  ipcMain.handle("compliance-classify:get-policies", async () => {
-    try {
-      if (!classificationPolicy) {
-        throw new Error("Classification Policy not initialized");
-      }
-      return { success: true, policies: classificationPolicy.getPolicies() };
-    } catch (error) {
-      logger.error("[Compliance IPC] Get policies failed:", error);
-      return { success: false, error: error.message };
-    }
-  });
 
   ipcMain.handle(
     "compliance:check-access",
