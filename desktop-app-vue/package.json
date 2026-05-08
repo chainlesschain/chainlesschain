@@ -376,6 +376,7 @@
     "undici": "^6.21.2",
     "ip-address": "^10.2.0",
     "dompurify": "^3.4.2",
-    "tmp": "^0.2.5"
+    "tmp": "^0.2.5",
+    "make-fetch-happen": "^13.0.0"
   }
 }
