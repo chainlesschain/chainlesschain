@@ -102,9 +102,7 @@ function registerFederationHardeningIPC({
     },
   );
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("federation-hardening-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("federation-hardening-ipc");
 
   logger.info(
     `[Federation Hardening IPC] Registered ${CHANNELS.length} handlers`,
@@ -125,9 +123,7 @@ function unregisterFederationHardeningIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("federation-hardening-ipc");
-  }
+  ipcGuard.unregisterModule("federation-hardening-ipc");
   logger.info("[Federation Hardening IPC] All handlers unregistered");
 }
 

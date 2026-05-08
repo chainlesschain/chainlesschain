@@ -102,9 +102,7 @@ function registerTechLearningIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("tech-learning-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("tech-learning-ipc");
 
   logger.info(`[Tech Learning IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -123,9 +121,7 @@ function unregisterTechLearningIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("tech-learning-ipc");
-  }
+  ipcGuard.unregisterModule("tech-learning-ipc");
   logger.info("[Tech Learning IPC] All handlers unregistered");
 }
 

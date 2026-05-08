@@ -119,9 +119,7 @@ function registerInferenceIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("inference-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("inference-ipc");
 
   logger.info(`[Inference IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -140,9 +138,7 @@ function unregisterInferenceIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("inference-ipc");
-  }
+  ipcGuard.unregisterModule("inference-ipc");
   logger.info("[Inference IPC] All handlers unregistered");
 }
 

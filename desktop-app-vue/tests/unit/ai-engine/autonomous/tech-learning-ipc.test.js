@@ -16,7 +16,7 @@ vi.mock("electron", () => ({
 vi.mock("../../../../src/main/ipc/ipc-guard.js", () => ({
   default: {
     isModuleRegistered: vi.fn(() => false),
-    registerModule: vi.fn(),
+    markModuleRegistered: vi.fn(),
     unregisterModule: vi.fn(),
   },
 }));
@@ -46,7 +46,7 @@ describe("tech-learning-ipc", () => {
 
     mockIpcGuard = {
       isModuleRegistered: vi.fn(() => false),
-      registerModule: vi.fn(),
+      markModuleRegistered: vi.fn(),
       unregisterModule: vi.fn(),
     };
 
@@ -123,10 +123,9 @@ describe("tech-learning-ipc", () => {
       expect(result.handlerCount).toBe(5);
     });
 
-    it("calls ipcGuard.registerModule with channels", () => {
-      expect(mockIpcGuard.registerModule).toHaveBeenCalledWith(
+    it("marks module registered with ipcGuard", () => {
+      expect(mockIpcGuard.markModuleRegistered).toHaveBeenCalledWith(
         "tech-learning-ipc",
-        CHANNELS,
       );
     });
 

@@ -99,9 +99,7 @@ function registerSLAIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("sla-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("sla-ipc");
 
   logger.info(`[SLA IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -120,9 +118,7 @@ function unregisterSLAIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("sla-ipc");
-  }
+  ipcGuard.unregisterModule("sla-ipc");
   logger.info("[SLA IPC] All handlers unregistered");
 }
 

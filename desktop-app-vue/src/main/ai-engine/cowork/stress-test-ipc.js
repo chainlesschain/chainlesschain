@@ -88,9 +88,7 @@ function registerStressTestIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("stress-test-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("stress-test-ipc");
 
   logger.info(`[Stress Test IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -109,9 +107,7 @@ function unregisterStressTestIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("stress-test-ipc");
-  }
+  ipcGuard.unregisterModule("stress-test-ipc");
   logger.info("[Stress Test IPC] All handlers unregistered");
 }
 

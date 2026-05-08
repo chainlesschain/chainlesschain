@@ -102,9 +102,7 @@ function registerAutonomousDevIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("autonomous-dev-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("autonomous-dev-ipc");
 
   logger.info(`[Autonomous Dev IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -123,9 +121,7 @@ function unregisterAutonomousDevIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("autonomous-dev-ipc");
-  }
+  ipcGuard.unregisterModule("autonomous-dev-ipc");
   logger.info("[Autonomous Dev IPC] All handlers unregistered");
 }
 

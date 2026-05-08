@@ -105,9 +105,7 @@ function registerReputationOptimizerIPC({
     }
   });
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("reputation-optimizer-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("reputation-optimizer-ipc");
 
   logger.info(
     `[Reputation Optimizer IPC] Registered ${CHANNELS.length} handlers`,
@@ -128,9 +126,7 @@ function unregisterReputationOptimizerIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("reputation-optimizer-ipc");
-  }
+  ipcGuard.unregisterModule("reputation-optimizer-ipc");
   logger.info("[Reputation Optimizer IPC] All handlers unregistered");
 }
 

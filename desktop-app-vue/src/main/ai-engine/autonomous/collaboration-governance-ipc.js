@@ -124,9 +124,7 @@ function registerCollaborationGovernanceIPC({
     },
   );
 
-  if (ipcGuard.registerModule) {
-    ipcGuard.registerModule("collab-governance-ipc", CHANNELS);
-  }
+  ipcGuard.markModuleRegistered("collab-governance-ipc");
 
   logger.info(`[Collab Governance IPC] Registered ${CHANNELS.length} handlers`);
   return { handlerCount: CHANNELS.length };
@@ -145,9 +143,7 @@ function unregisterCollaborationGovernanceIPC({
       /* Intentionally empty */
     }
   }
-  if (ipcGuard.unregisterModule) {
-    ipcGuard.unregisterModule("collab-governance-ipc");
-  }
+  ipcGuard.unregisterModule("collab-governance-ipc");
   logger.info("[Collab Governance IPC] All handlers unregistered");
 }
 
