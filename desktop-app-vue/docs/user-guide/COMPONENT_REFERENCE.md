@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 581
+**Total Components**: 582
 
 ---
 
@@ -1861,6 +1861,12 @@
 ### BudgetAlertListener
 
 **File**: `src/renderer/components/BudgetAlertListener.vue`
+
+---
+
+### AppUpdateNotifier
+
+**File**: `src/renderer/components/AppUpdateNotifier.vue`
 
 ---
 

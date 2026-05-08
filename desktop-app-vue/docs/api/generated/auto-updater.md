@@ -26,6 +26,18 @@ init(mainWindow)
 
 ---
 
+## registerIpcHandlers()
+
+```javascript
+registerIpcHandlers()
+```
+
+* 注册 IPC handlers（幂等）：渲染端 notifier 通过 electronAPI.appUpdate.*
+   * 触发检查 / 下载 / 安装；onStatus 订阅走 webContents.send(update-status)
+   * 单向广播，不在这里注册。
+
+---
+
 ## setupAutoUpdater()
 
 ```javascript
@@ -33,6 +45,17 @@ setupAutoUpdater()
 ```
 
 * 配置 autoUpdater 事件处理
+
+---
+
+## setTaskbarProgress(percent)
+
+```javascript
+setTaskbarProgress(percent)
+```
+
+* 设置 Windows 任务栏 / macOS Dock 进度条。
+   * `percent` 是 0-100 整数 / 浮点；setProgressBar 接收 0-1。
 
 ---
 
@@ -59,13 +82,17 @@ setupPeriodicCheck()
 
 ---
 
-## sendStatusToWindow(status, data = null)
+## sendStatusToWindow(status, data = null, info = null)
 
 ```javascript
-sendStatusToWindow(status, data = null)
+sendStatusToWindow(status, data = null, info = null)
 ```
 
-* 发送状态到渲染进程
+* 发送状态到渲染进程。`status` 是 dot-case 枚举：
+   *   idle / checking / available / not-available / downloading
+   *   / downloaded / error
+   * `data` 仅 downloading 状态非空（electron-updater progress object）。
+   * `info` 在 available / downloaded / error 携带 {version,releaseNotes,…} / {message}。
 
 ---
 
