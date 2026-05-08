@@ -3,6 +3,51 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.43 / CLI 0.161.4] - 2026-05-07 (MTC publisher_signature M-of-N 修正 + 安全硬化级联)
+
+### Fixed
+
+- **MTC `landmark.publisher_signature` strip-all-sigs 对称化（commit `c23e98cca` + 文档 `038e6d710`）** —— Producer 与 verifier 必须对称地把 `_stripSigsForPublisher(landmark)`（清零 `publisher_signature.sig` + 每个 snapshot 的 `signature.sig` + `signatures[*].sig`）喂给 JCS 后再签 / 验，而不是只清零 `publisher_signature.sig`。否则只要篡改 M-of-N 联邦中**任何一个**成员的 per-member sig，publisher_signature 就会被打断，**直接绕过 M-of-N 阈值的存在意义**。Helper 抽到 `packages/core-mtc/lib/publisher-signing.js`，导出为 `@chainlesschain/core-mtc/publisher-signing` 子路径。三处调用点：`batch.js`（单签 + 联邦）、`landmark-cache.js` 验证侧、桌面 `governance-multisig.js`（lazy-require 绕 @noble/curves hoisting trap）。规范文档 §8.2 同步更新。Canary：`mtc-federation-publish-cli.test.js` "2-of-3 threshold accepts when one member's sig is tampered" — 任何修改 publisher-sig 路径都必须跑全部 `mtc-federation*` 集成。
+- **LandmarkCache `landmark.publisher_signature` 验证启用（commit `c40d927da` + `72c3619ee`）** —— `LandmarkCache` 默认 opt-in `verifyPublisherSignature: true` 对 cache 命中前增加发布者签名校验（不再无脑相信 cache）；real-verifier callers（CLI `cc mtc verify` + 桌面 audit pipeline + cross-chain bridge 校验侧）全线启用。常量 `BAD_PUBLISHER_SIG` 重命名为 `BAD_LANDMARK_SIG`（`36fcd8f4f`）以匹配规范 §11；spec §8.5 文档跟进 `LANDMARK_SIG_PREFIX` 定义（`8e459cfd5`）。
+
+### Security
+
+- **HIGH 44 → 0 / MOD 4 → 0 / LOW 45 → 0 安全硬化级联（多 commit）** —— 一周内分 8 次清空全部 npm audit 警报：
+  - `f6c937fa8` override transitive `serialize-javascript` + `tar`（HIGH 44 → 10）
+  - `8a56978b5` 干掉无人维护的 `speedtest-net`，改用 native fetch 实现网速测试（HIGH 10 → 7）
+  - `9c7ce00e7` override `semver` 到 `^7.7.4`（清掉 imap 链 HIGH 7 → 4）
+  - `922b64822` override `undici` 到 `^6.21.2`（清掉 hardhat 5.x 链 HIGH 4 → 3）
+  - `4fae47dd4` deprecate `werift`（清空残余 HIGH 3 → 0）
+  - `cc7b0b40a` override `ip-address` + `dompurify`（MOD 4 → 0）
+  - `1f86594a2` override `tmp` 到 `^0.2.5`（LOW 45 → 40）
+  - `64047283a` override `make-fetch-happen` 到 `^13`（LOW 40 → 14）
+  - `d19bcb8cb` 拆 `hardhat-stack` 到独立 `contracts/` workspace + drop 不再依赖的 `hdkey`（LOW 14 → 0）
+- **`channel-manager` DDL 加固 + drop 未用的 jspdf（commit `d558b66b1`，1 critical）** —— 修一处 DDL 注入面 + 删未用依赖减少攻击面。
+- **`wrtc-compat` `ip.isPublic` 补丁 CVE-2024-29415（commit `7312cf035`）** —— `ip` package SSRF 漏洞绕过补丁。
+
+### Added
+
+- **Updater 渲染端进度通知（commit `4c1a5ac18` + `e27592bb5`）** —— `notifier-only` flow，关闭重复的 native dialog，渲染端实时显示下载进度。
+
+### Notes
+
+- 测试结果：desktop 单测 1454 / 1454 ✅，CLI mtc-federation 集成 41 / 41 ✅，core-mtc 单测全绿。
+- 本版本同时是大幅安全 / 加密路径硬化版本，不含新增 P2P / chat-panel feature；用户可放心 upgrade。
+
+---
+
+## [5.0.3.42 / CLI 0.161.4] - 2026-05-07 (CLI 0.161.3 → 0.161.4 chat-intent 同步)
+
+### Changed
+
+- **CLI 包 `chainlesschain` 0.161.3 → 0.161.4 atomic bump（commit `a555b6760`）** —— v5.0.3.41 ship 了 chat-panel-v5 三壳对齐里的 chat-intent 路由代码，但 CLI `package.json.version` 没动，cli-tests 在 release 流程的 precheck 阶段判 `SHOULD_TEST=false`（`chainlesschain@0.161.3` 已在 npm registry → 跳过测试），导致后续 v5.0.3.43 publisher_signature 修补的真实回归差点没被拦住。本版本明示 atomic bump CLI 0.161.4 + 安装包同步发布，触发 cli-tests 强制运行，未来如果发现 CLI source 改动但 release pipeline 跳测 cli-tests，请优先检查 `git diff <prev-tag>..HEAD -- packages/cli/src/` 是否非空 + 同步 bump CLI version。
+
+### Notes
+
+- 本版本无功能变化，仅修 release pipeline 测试覆盖问题。
+
+---
+
 ## [5.0.3.41 / CLI 0.161.3] - 2026-05-07 (chat-panel-v5 双壳对齐 + B4 social 滚动收口)
 
 ### Added

@@ -71,6 +71,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.43',
+    title: 'MTC publisher_signature M-of-N 修正 + 安全硬化级联',
+    sub: 'HIGH 44→0 · MOD 4→0 · LOW 45→0 · publisher_signature strip-all-sigs 对称化',
+    desc: '两条主线一次 ship。(1) MTC `landmark.publisher_signature` 修正：producer 与 verifier 对称 strip 全部 per-member sig（不只是 publisher_signature.sig）后再喂 JCS——否则篡改 M-of-N 联邦中任何一个成员 sig 都会炸 publisher_signature，**直接绕过 M-of-N 阈值的存在意义**。Helper 抽到 `@chainlesschain/core-mtc/publisher-signing` 子路径，三处调用点（batch.js 单签 + 联邦、landmark-cache.js 验证、桌面 governance-multisig.js）。`LandmarkCache` 默认 opt-in `verifyPublisherSignature:true`，real-verifier callers 全线启用。常量 BAD_PUBLISHER_SIG → BAD_LANDMARK_SIG（匹配 spec §11）。(2) 一周内 8 次 npm audit 清空：override `serialize-javascript`/`tar`/`semver`/`undici`/`make-fetch-happen`/`tmp`/`ip-address`/`dompurify`，drop 无人维护的 `speedtest-net`（改 native fetch）+ `werift` + `hdkey`，拆 hardhat-stack 到独立 contracts/ workspace，channel-manager DDL 加固，wrtc-compat 修补 CVE-2024-29415——HIGH 44→0 / MOD 4→0 / LOW 45→0。Bonus：updater 渲染端进度通知（notifier-only flow）。',
+  },
+  {
     tag: 'v5.0.3.41',
     title: 'chat-panel-v5 三壳对齐 + B4 social 滚动收口',
     sub: 'V5 / V6 / web-shell 聊天严格对等 · 私钥 / 密码均不过线',

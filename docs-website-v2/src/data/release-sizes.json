@@ -1,6 +1,6 @@
 {
-  "tag": "v5.0.3.40",
-  "fetchedAt": "2026-05-07T10:39:27.382Z",
+  "tag": "v5.0.3.43",
+  "fetchedAt": "2026-05-08T08:46:42.355Z",
   "sizes": {
     "android-universal": {
       "name": "app-universal-release.apk",
@@ -8,39 +8,39 @@
       "label": "101 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.40-arm64.dmg",
-      "bytes": 478836196,
-      "label": "457 MB"
+      "name": "ChainlessChain-5.0.3-alpha.43-arm64.dmg",
+      "bytes": 473114239,
+      "label": "451 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.40.AppImage",
-      "bytes": 701410314,
-      "label": "669 MB"
+      "name": "ChainlessChain-5.0.3-alpha.43.AppImage",
+      "bytes": 695798195,
+      "label": "664 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.40.dmg",
-      "bytes": 484463557,
-      "label": "462 MB"
+      "name": "ChainlessChain-5.0.3-alpha.43.dmg",
+      "bytes": 478881888,
+      "label": "457 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.40.x86_64.rpm",
-      "bytes": 361417793,
-      "label": "345 MB"
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.43.x86_64.rpm",
+      "bytes": 362372421,
+      "label": "346 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.40_amd64.deb",
-      "bytes": 360292400,
-      "label": "344 MB"
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.43_amd64.deb",
+      "bytes": 359560410,
+      "label": "343 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.40.exe",
-      "bytes": 462288347,
-      "label": "441 MB"
+      "name": "ChainlessChain-Portable-5.0.3-alpha.43.exe",
+      "bytes": 458316344,
+      "label": "437 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.40.exe",
-      "bytes": 462607870,
-      "label": "441 MB"
+      "name": "ChainlessChain-Setup-5.0.3-alpha.43.exe",
+      "bytes": 458635875,
+      "label": "437 MB"
     }
   }
 }

@@ -30,31 +30,39 @@ if not (HOST and USER and PASS):
     sys.exit("ERROR: set DEPLOY_HOST / DEPLOY_USER / DEPLOY_PASS in .env or environment")
 
 DEPLOYS = [
-    # 2026-05-07 v5.0.3.40 滚动更新 (3 站全刷) — 本批包含 5 个 .40 后续 commit 的
-    # 文档对齐: B4 DID 签名 + 自动 MTC peer 桥接 (3741a8e7e), 跨机社区/频道同步
-    # Phase A+B v1 (50b8ddb05), Web Shell Phase 3c.7 截图识别+通知设置+托盘路由
-    # 收口 (200078947), Plugin Marketplace 部署脚本骨架 (a62fd8b81), Dashboard
-    # bundled-skill 发现修复 (3881b9603)。
+    # 2026-05-08 v5.0.3.43 滚动更新 (3 站全刷) — 主线两件:
+    # (1) MTC landmark.publisher_signature M-of-N strip-all-sigs 对称化 (c23e98cca + 038e6d710)
+    #     + LandmarkCache verifyPublisherSignature opt-in 启用 (c40d927da + 72c3619ee)
+    #     + BAD_PUBLISHER_SIG → BAD_LANDMARK_SIG (36fcd8f4f) + spec §8.5 (8e459cfd5)。
+    # (2) 安全硬化级联 8 commits — HIGH 44→0 / MOD 4→0 / LOW 45→0:
+    #     drop hdkey + werift + speedtest-net + jspdf, override
+    #     serialize-javascript / tar / semver / undici / make-fetch-happen / tmp /
+    #     ip-address / dompurify, channel-manager DDL 加固, wrtc-compat 补丁
+    #     CVE-2024-29415 (d558b66b1, 7312cf035, f6c937fa8, 8a56978b5, 9c7ce00e7,
+    #     922b64822, cc7b0b40a, 4fae47dd4, 1f86594a2, 64047283a, d19bcb8cb)。
+    # 顺手 ship: updater 渲染端进度通知 (4c1a5ac18 + e27592bb5),
+    #          chainlesschain CLI 0.161.3 → 0.161.4 atomic bump (a555b6760)
+    #          补 v5.0.3.41 chat-intent 路由代码 release pipeline 测试覆盖。
     #
-    # 改动: docs-site/docs/changelog.md 新增 "v5.0.3.40 续" entry; index.md +
-    # chainlesschain/overview.md + docs-site-design/docs/index.md tagline 加新
-    # 关键词; docs-website-v2/src/pages/{index,en/index}.astro highlights 顶
-    # 一张 "v5.0.3.40 续" 卡。设计文档 docs/design/modules/02_去中心化社交模块.md
-    # 在前序 commit 已加 §2.2.10 + §2.2.11, 本次 build 通过 sync 落到 design
-    # 站和 docs 站。
+    # 改动: docs-site/docs/changelog.md 新增 v5.0.3.42 + v5.0.3.43 两条 entry;
+    # index.md + chainlesschain/overview.md + docs-site-design/docs/index.md
+    # tagline .41 → .43 同时加 publisher_signature + 安全硬化 关键词;
+    # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张
+    # "v5.0.3.43" 卡 (中英对照)。release-sizes.json 自动 refresh 到 v5.0.3.43
+    # (GitHub Release published 2026-05-07T23:15:53Z)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.40-20260507-185044.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.43-20260508-165728.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.40-20260507-185044.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.43-20260508-165728.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.40-20260507-185044.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.43-20260508-165728.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
