@@ -93,15 +93,23 @@ describe("GovernanceAI", () => {
     });
 
     it("should load proposals from DB", async () => {
-      mockAllStmt.all.mockReturnValueOnce([
-        {
-          id: "p1",
-          title: "Test",
-          status: "draft",
-          metadata: "{}",
-          impact_analysis: null,
-        },
-      ]);
+      // initialize() runs 2 sqlite_master migration checks (governance_proposals
+      // table-rename + governance_votes table-rename, added in a1a920159 to
+      // isolate AI governance namespace from community engine) before the
+      // actual proposal SELECT. Queue empty returns for both, then the
+      // real proposal row.
+      mockAllStmt.all
+        .mockReturnValueOnce([]) // SELECT FROM sqlite_master (proposals migration check)
+        .mockReturnValueOnce([]) // SELECT FROM sqlite_master (votes migration check)
+        .mockReturnValueOnce([
+          {
+            id: "p1",
+            title: "Test",
+            status: "draft",
+            metadata: "{}",
+            impact_analysis: null,
+          },
+        ]);
       await gov.initialize();
       expect(gov._proposals.size).toBe(1);
     });

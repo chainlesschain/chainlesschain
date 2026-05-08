@@ -56,7 +56,9 @@ describe("ProtocolFusionBridge", () => {
       bridge._ensureTables();
       const sql = mockDb.exec.mock.calls[0][0];
       expect(sql).toContain("CREATE TABLE IF NOT EXISTS unified_messages");
-      expect(sql).toContain("CREATE TABLE IF NOT EXISTS identity_mappings");
+      expect(sql).toContain(
+        "CREATE TABLE IF NOT EXISTS protocol_identity_mappings",
+      );
     });
   });
 
