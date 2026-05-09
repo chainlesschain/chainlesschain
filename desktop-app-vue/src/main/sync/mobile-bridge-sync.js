@@ -1,0 +1,615 @@
+/**
+ * Mobile Bridge Sync — Phase 3d desktop ↔ Android 同步桥（Phase 3d v1）
+ *
+ * 复用 MobileBridge WebRTC DataChannel transport（src/main/p2p/mobile-bridge.js）+
+ * 现有 JSON-RPC envelope（chainlesschain:command:request/response）。新增 3 method：
+ * sync.push / sync.pull / sync.ack。详见 docs/design/Phase3d_Mobile_Sync_设计文档.md。
+ *
+ * 表结构：cursor + tombstone 复用 Phase 3c 的 sync_external_* 表（provider_id='mobile'，
+ * account_key=<mobileDeviceId>）。Walker 针对 5 张社交子系统表做 incremental 扫描：
+ * p2p_chat_messages / contacts / friends / social_posts / post_comments / notifications。
+ *
+ * 冲突：last-write-wins by (version DESC, timestamp DESC, deviceId DESC tie-break)，
+ * 严格对齐 Android `core-p2p/sync/ConflictResolver.kt` 的算法。
+ *
+ * 取舍：
+ *   - 不维护自己的 EventEmitter；通过 logger + 已落 syncScheduler 集成
+ *   - INSERT/UPDATE 走 walker（每 tick 拿 cursor 之后的新行），不需要 recordChange 钩子
+ *   - DELETE 走 trigger 写 tombstone，与 Phase 3c knowledge_items 同模式
+ *   - syncProvider.runOnce(deviceId) = pushPending + pullRemote 一轮
+ */
+
+const externalStore = require("./sync-external-store");
+const { logger } = require("../utils/logger.js");
+
+const PROVIDER_ID = "mobile";
+
+const ResourceType = Object.freeze({
+  MESSAGE: "MESSAGE",
+  CONTACT: "CONTACT",
+  FRIEND: "FRIEND",
+  POST: "POST",
+  POST_COMMENT: "POST_COMMENT",
+  NOTIFICATION: "NOTIFICATION",
+});
+
+const SyncOperation = Object.freeze({
+  CREATE: "CREATE",
+  UPDATE: "UPDATE",
+  DELETE: "DELETE",
+});
+
+const DEFAULT_BATCH_SIZE = 100;
+
+/**
+ * 测试可注入的依赖。生产环境下走默认 require。
+ */
+const _deps = {
+  getExternalStore: () => externalStore,
+  getLogger: () => logger,
+  now: () => Date.now(),
+};
+
+class MobileBridgeSync {
+  constructor({ mobileBridge, dbManager, deviceManager, deps = _deps } = {}) {
+    if (!mobileBridge) {
+      throw new Error("MobileBridgeSync 需要 mobileBridge");
+    }
+    if (!dbManager) {
+      throw new Error("MobileBridgeSync 需要 dbManager");
+    }
+
+    this.mobileBridge = mobileBridge;
+    this.dbManager = dbManager;
+    this.deviceManager = deviceManager;
+    this.deps = deps;
+    this.logger = deps.getLogger();
+
+    // pendingAcks: requestId -> { resolve, reject, timer }
+    this.pendingAcks = new Map();
+
+    // 关闭防止 leak
+    this._closed = false;
+  }
+
+  /**
+   * 注册到 desktop 端的 routeMobileCommand 路由表。调用方在 index.js
+   * handleMobileCommand 里做 dispatch。
+   */
+  registerRoutes(commandRouter) {
+    if (!commandRouter || typeof commandRouter.register !== "function") {
+      throw new Error("registerRoutes 需要 commandRouter.register");
+    }
+    commandRouter.register("sync.push", (params, ctx) =>
+      this.handlePush(params, ctx),
+    );
+    commandRouter.register("sync.pull", (params, ctx) =>
+      this.handlePull(params, ctx),
+    );
+    commandRouter.register("sync.ack", (params, ctx) =>
+      this.handleAck(params, ctx),
+    );
+  }
+
+  // ============================================================
+  // syncProvider 入口（IPC sync:mobile:run 调用）
+  // ============================================================
+
+  /**
+   * 一轮 sync = pushPending + pullRemote。返回汇总统计。
+   */
+  async runOnce(deviceId) {
+    if (!deviceId) {
+      throw new Error("runOnce 需要 deviceId");
+    }
+    const startedAt = this.deps.now();
+    const externalStoreApi = this.deps.getExternalStore();
+
+    externalStoreApi.ensureCursor(this.dbManager, PROVIDER_ID, deviceId);
+
+    let pushed = 0;
+    let pulled = 0;
+    let conflicts = 0;
+    let lastError = null;
+
+    try {
+      const pushRes = await this.pushPending(deviceId);
+      pushed = pushRes.pushed;
+      conflicts += pushRes.conflicts;
+
+      const pullRes = await this.pullRemote(deviceId);
+      pulled = pullRes.pulled;
+      conflicts += pullRes.conflicts;
+    } catch (err) {
+      lastError = err.message || String(err);
+      this.logger.error("[MobileBridgeSync] runOnce 失败:", err);
+    }
+
+    const durationMs = this.deps.now() - startedAt;
+
+    externalStoreApi.updateCursor(this.dbManager, PROVIDER_ID, deviceId, {
+      lastRunStatus: lastError
+        ? "failed"
+        : conflicts > 0
+          ? "conflict"
+          : "success",
+      lastRunError: lastError,
+      lastRunDurationMs: durationMs,
+      itemsPushedDelta: pushed,
+      itemsSkippedDelta: conflicts,
+    });
+
+    return { pushed, pulled, conflicts, durationMs, error: lastError };
+  }
+
+  // ============================================================
+  // 出向：本地 → 对端
+  // ============================================================
+
+  /**
+   * 扫 5 张表 + tombstone，把 cursor 之后的变更发给对端。
+   */
+  async pushPending(deviceId) {
+    const externalStoreApi = this.deps.getExternalStore();
+    const cursor = externalStoreApi.getCursor(
+      this.dbManager,
+      PROVIDER_ID,
+      deviceId,
+    );
+    const sinceMs = cursor?.lastSyncAt ?? 0;
+    const sinceId = cursor?.lastItemId || null;
+
+    let pushed = 0;
+    let conflicts = 0;
+
+    // tombstones 先：远端先知道哪些 id 已删除，避免后续 INSERT 重新建
+    const tombstones = externalStoreApi.listTombstones(
+      this.dbManager,
+      PROVIDER_ID,
+      deviceId,
+    );
+    for (const ts of tombstones) {
+      const item = {
+        resourceType: this._inferResourceTypeFromTombstone(ts),
+        resourceId: ts.itemId,
+        operation: SyncOperation.DELETE,
+        version: 1,
+        timestamp: ts.deletedAt,
+        data: "{}",
+      };
+      const res = await this._sendItem(deviceId, item);
+      if (res?.status === "applied") {
+        externalStoreApi.deleteTombstone(this.dbManager, ts.id);
+        pushed++;
+      } else if (res?.status === "conflict") {
+        conflicts++;
+      } else {
+        externalStoreApi.markTombstoneFailed(this.dbManager, ts.id, res?.error);
+      }
+    }
+
+    // 5 张表的 walker。第一张为完整实现，其余 4 张是 TODO（Phase 3d M2 step 3）
+    for (const fetcher of this._tableFetchers()) {
+      const batch = await fetcher(
+        this.dbManager,
+        sinceMs,
+        sinceId,
+        DEFAULT_BATCH_SIZE,
+      );
+      for (const item of batch) {
+        const res = await this._sendItem(deviceId, item);
+        if (res?.status === "applied") {
+          pushed++;
+          externalStoreApi.recordPushedItem(
+            this.dbManager,
+            PROVIDER_ID,
+            deviceId,
+            item.resourceId,
+          );
+        } else if (res?.status === "conflict") {
+          conflicts++;
+          this.logger.warn(
+            `[MobileBridgeSync] push 冲突 ${item.resourceType}/${item.resourceId}：远端版本胜`,
+          );
+        }
+      }
+    }
+
+    return { pushed, conflicts };
+  }
+
+  /**
+   * 向对端发起 sync.pull，对端把 cursor 之后的变更回来。
+   */
+  async pullRemote(deviceId) {
+    const externalStoreApi = this.deps.getExternalStore();
+    const cursor = externalStoreApi.getCursor(
+      this.dbManager,
+      PROVIDER_ID,
+      deviceId,
+    );
+    const pullRequest = {
+      cursor: { ts: cursor?.lastSyncAt ?? 0, id: cursor?.lastItemId || null },
+      resourceTypes: Object.values(ResourceType),
+      limit: DEFAULT_BATCH_SIZE,
+    };
+
+    const response = await this._invokeRemote(
+      deviceId,
+      "sync.pull",
+      pullRequest,
+    );
+    if (!response || !Array.isArray(response.items)) {
+      return { pulled: 0, conflicts: 0 };
+    }
+
+    let pulled = 0;
+    let conflicts = 0;
+    for (const item of response.items) {
+      const applyRes = await this._applyItemLocal(item, deviceId);
+      if (applyRes.status === "applied") {
+        pulled++;
+      } else if (applyRes.status === "conflict") {
+        conflicts++;
+      }
+    }
+    return { pulled, conflicts };
+  }
+
+  // ============================================================
+  // 入向：对端 → 本地（routeMobileCommand 路由进来）
+  // ============================================================
+
+  /**
+   * 处理对端 sync.push：拿到 SyncItem，跑冲突 → 应用 → 回 ack 状态。
+   */
+  async handlePush(params, ctx = {}) {
+    const item = params?.item;
+    const deviceId = params?.deviceId || ctx.peerId;
+    if (!item || !item.resourceType || !item.resourceId) {
+      return { status: "failed", error: "invalid SyncItem" };
+    }
+    return await this._applyItemLocal(item, deviceId);
+  }
+
+  /**
+   * 处理对端 sync.pull：从 5 张表拿 cursor 之后的变更回送。
+   */
+  async handlePull(params /* , ctx */) {
+    const cursor = params?.cursor || { ts: 0, id: null };
+    const requestedTypes = Array.isArray(params?.resourceTypes)
+      ? new Set(params.resourceTypes)
+      : new Set(Object.values(ResourceType));
+    const limit = Math.min(Number(params?.limit) || DEFAULT_BATCH_SIZE, 500);
+
+    const items = [];
+    for (const fetcher of this._tableFetchers()) {
+      if (items.length >= limit) {
+        break;
+      }
+      const batch = await fetcher(
+        this.dbManager,
+        cursor.ts,
+        cursor.id,
+        limit - items.length,
+      );
+      for (const it of batch) {
+        if (requestedTypes.has(it.resourceType)) {
+          items.push(it);
+        }
+        if (items.length >= limit) {
+          break;
+        }
+      }
+    }
+
+    const lastItem = items[items.length - 1];
+    const nextCursor = lastItem
+      ? { ts: lastItem.timestamp, id: lastItem.resourceId }
+      : cursor;
+    return { items, nextCursor, hasMore: items.length >= limit };
+  }
+
+  /**
+   * 处理对端 sync.ack：fire-and-forget，主要用于 telemetry。
+   */
+  handleAck(params /* , ctx */) {
+    const requestId = params?.requestId;
+    if (requestId && this.pendingAcks.has(requestId)) {
+      const { resolve, timer } = this.pendingAcks.get(requestId);
+      clearTimeout(timer);
+      this.pendingAcks.delete(requestId);
+      resolve(params);
+    }
+    return {};
+  }
+
+  // ============================================================
+  // 冲突解决（与 Android ConflictResolver.kt 严格对齐）
+  // ============================================================
+
+  /**
+   * Last-Write-Wins by (version DESC, timestamp DESC, deviceId DESC tie-break)。
+   * 对齐 Android `ConflictResolver.kt` 的默认 LATEST_WINS 策略。
+   *
+   * 返回 'remote' = 用 remoteItem 覆盖 local；'local' = 保留 local，让对端反向 apply。
+   */
+  resolveConflict(localItem, remoteItem) {
+    if (!localItem) {
+      return "remote";
+    }
+    if (!remoteItem) {
+      return "local";
+    }
+
+    const lv = Number(localItem.version) || 0;
+    const rv = Number(remoteItem.version) || 0;
+    if (rv > lv) {
+      return "remote";
+    }
+    if (lv > rv) {
+      return "local";
+    }
+
+    const lt = Number(localItem.timestamp) || 0;
+    const rt = Number(remoteItem.timestamp) || 0;
+    if (rt > lt) {
+      return "remote";
+    }
+    if (lt > rt) {
+      return "local";
+    }
+
+    // tie-break：deviceId 字典序大者胜，保证两端独立判决一致
+    const ld = String(localItem.deviceId || "");
+    const rd = String(remoteItem.deviceId || "");
+    return rd > ld ? "remote" : "local";
+  }
+
+  // ============================================================
+  // Walker（5 张表的 cursor 增量扫描）
+  // ============================================================
+
+  /**
+   * 当前实现的 walker 列表。每个 fetcher: (dbManager, sinceMs, sinceId, limit) → Promise<SyncItem[]>
+   */
+  _tableFetchers() {
+    return [
+      this._fetchP2PChatMessages.bind(this),
+      // TODO Phase 3d M2 step 3: 补 4 张表 walker
+      // this._fetchContacts.bind(this),
+      // this._fetchFriends.bind(this),
+      // this._fetchSocialPosts.bind(this),
+      // this._fetchPostComments.bind(this),
+      // this._fetchNotifications.bind(this),
+    ];
+  }
+
+  /**
+   * p2p_chat_messages walker — exemplar，其他 4 张表照此模式。
+   * 游标语义：(timestamp, id) lex order（避免依赖 SQLite row-value 比较）。
+   */
+  async _fetchP2PChatMessages(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, session_id, sender_did, receiver_did, content, message_type,
+                file_path, file_size, encrypted, status, device_id, timestamp,
+                forwarded_from_id, forward_count
+         FROM p2p_chat_messages
+         WHERE timestamp > ? OR (timestamp = ? AND id > ?)
+         ORDER BY timestamp ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, session_id, sender_did, receiver_did, content, message_type,
+                file_path, file_size, encrypted, status, device_id, timestamp,
+                forwarded_from_id, forward_count
+         FROM p2p_chat_messages
+         WHERE timestamp > ?
+         ORDER BY timestamp ASC, id ASC
+         LIMIT ?`;
+
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+
+    return rows.map((row) => ({
+      resourceType: ResourceType.MESSAGE,
+      resourceId: row.id,
+      operation: SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.timestamp,
+      deviceId: row.device_id || "",
+      data: JSON.stringify({
+        sessionId: row.session_id,
+        senderDid: row.sender_did,
+        receiverDid: row.receiver_did,
+        content: row.content,
+        messageType: row.message_type,
+        filePath: row.file_path,
+        fileSize: row.file_size,
+        encrypted: row.encrypted === 1,
+        status: row.status,
+        forwardedFromId: row.forwarded_from_id,
+        forwardCount: row.forward_count,
+      }),
+    }));
+  }
+
+  // ============================================================
+  // Apply（入向 SyncItem 写入本地表）
+  // ============================================================
+
+  async _applyItemLocal(item, deviceId) {
+    try {
+      const local = await this._readLocalItem(
+        item.resourceType,
+        item.resourceId,
+      );
+      const decision = this.resolveConflict(local, item);
+
+      if (decision === "local") {
+        return { status: "conflict", resolved: local };
+      }
+
+      switch (item.resourceType) {
+        case ResourceType.FRIEND:
+          await this._applyFriend(item);
+          break;
+        // TODO Phase 3d M2 step 4: 补 5 ResourceType apply
+        // case ResourceType.MESSAGE: await this._applyMessage(item); break;
+        // case ResourceType.CONTACT: await this._applyContact(item); break;
+        // case ResourceType.POST: await this._applyPost(item); break;
+        // case ResourceType.POST_COMMENT: await this._applyPostComment(item); break;
+        // case ResourceType.NOTIFICATION: await this._applyNotification(item); break;
+        default:
+          this.logger.warn(
+            `[MobileBridgeSync] apply 跳过未实现 ResourceType: ${item.resourceType}`,
+          );
+          return {
+            status: "failed",
+            error: `unimplemented ${item.resourceType}`,
+          };
+      }
+      return { status: "applied" };
+    } catch (err) {
+      this.logger.error("[MobileBridgeSync] apply 失败:", err);
+      return { status: "failed", error: err.message || String(err) };
+    }
+  }
+
+  /**
+   * FRIEND apply — exemplar。
+   * 字段对齐 friends 表 schema (database-schema.js 行 721)。
+   */
+  async _applyFriend(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM friends WHERE friend_did = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    // CREATE / UPDATE 都走 INSERT OR REPLACE（last-write-wins 已在上层判过）
+    this.dbManager.run(
+      `INSERT OR REPLACE INTO friends
+       (friend_did, nickname, avatar, status, added_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        item.resourceId,
+        data.nickname || "",
+        data.avatar || null,
+        data.status || "PENDING",
+        data.addedAt || item.timestamp,
+        item.timestamp,
+      ],
+    );
+  }
+
+  /**
+   * 读本地 item 用于冲突判决。
+   */
+  async _readLocalItem(resourceType, resourceId) {
+    switch (resourceType) {
+      case ResourceType.FRIEND: {
+        const row = this.dbManager.get(
+          `SELECT friend_did, updated_at FROM friends WHERE friend_did = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.friend_did,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: "",
+            }
+          : null;
+      }
+      // TODO M2 step 4: 5 ResourceType 的 readLocal
+      default:
+        return null;
+    }
+  }
+
+  // ============================================================
+  // 网络传输（封装 mobileBridge.sendToMobile + 等待 ack）
+  // ============================================================
+
+  async _sendItem(deviceId, item) {
+    return await this._invokeRemote(deviceId, "sync.push", { item, deviceId });
+  }
+
+  /**
+   * 包 mobileBridge JSON-RPC：发出 request，等待对端 response。
+   * 30s 超时；超时 reject 并清掉 pendingAcks。
+   */
+  async _invokeRemote(deviceId, method, params) {
+    if (!this.mobileBridge?.sendToMobile) {
+      throw new Error("mobileBridge.sendToMobile 不可用");
+    }
+    const requestId = `${this.deps.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const message = {
+      type: "chainlesschain:command:request",
+      payload: JSON.stringify({
+        jsonrpc: "2.0",
+        id: requestId,
+        method,
+        params,
+      }),
+    };
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingAcks.delete(requestId);
+        reject(new Error(`${method} 30s 超时`));
+      }, 30000);
+
+      this.pendingAcks.set(requestId, { resolve, reject, timer });
+
+      this.mobileBridge.sendToMobile(deviceId, message).catch((err) => {
+        clearTimeout(timer);
+        this.pendingAcks.delete(requestId);
+        reject(err);
+      });
+    });
+  }
+
+  // ============================================================
+  // 内部工具
+  // ============================================================
+
+  _inferResourceTypeFromTombstone(ts) {
+    // tombstone 由 trigger 写入时不带 resourceType；从表名推断。
+    // TODO M2 step 4: trigger 写 tombstone 时带 resourceType column 直接拿
+    return ResourceType.MESSAGE;
+  }
+
+  /**
+   * 显式入队（trigger 不能覆盖的场景，例如外部 IPC 触发）。
+   */
+  recordChange(resourceType, resourceId, operation, data) {
+    if (!Object.values(ResourceType).includes(resourceType)) {
+      throw new Error(`未知 ResourceType: ${resourceType}`);
+    }
+    if (!Object.values(SyncOperation).includes(operation)) {
+      throw new Error(`未知 SyncOperation: ${operation}`);
+    }
+    // 当前实现：walker 已能扫表自动发现，recordChange 主要是 trace。
+    // 真正的入队点是 sync_external_tombstones（DELETE）+ 5 张表 updated_at（其他）。
+    this.logger.debug(
+      `[MobileBridgeSync] recordChange ${resourceType}/${resourceId} ${operation}`,
+    );
+  }
+
+  cleanup() {
+    this._closed = true;
+    for (const { timer, reject } of this.pendingAcks.values()) {
+      clearTimeout(timer);
+      reject(new Error("MobileBridgeSync closed"));
+    }
+    this.pendingAcks.clear();
+  }
+}
+
+module.exports = MobileBridgeSync;
+module.exports.ResourceType = ResourceType;
+module.exports.SyncOperation = SyncOperation;
+module.exports._deps = _deps;
