@@ -152,7 +152,8 @@ function fakeMobileBridgeSync({ runOnce } = {}) {
 // 注册
 // ============================================================
 describe("mobile-ipc · registration", () => {
-  it("registers 5 handlers via injected ipcMain", () => {
+  it("registers 6 handlers via injected ipcMain", () => {
+    // M4.5 加了 register-manual 后总数从 5 → 6
     const ipcMain = makeFakeIpcMain();
     registerMobileSyncIPC({
       database,
@@ -160,7 +161,7 @@ describe("mobile-ipc · registration", () => {
       app: fakeApp(),
       ipcMain,
     });
-    expect(ipcMain.handle).toHaveBeenCalledTimes(5);
+    expect(ipcMain.handle).toHaveBeenCalledTimes(6);
     const channels = [...ipcMain.handlers.keys()];
     expect(channels).toEqual(
       expect.arrayContaining([
@@ -169,6 +170,7 @@ describe("mobile-ipc · registration", () => {
         "sync:mobile:status",
         "sync:mobile:list-paired",
         "sync:mobile:unpair",
+        "sync:mobile:register-manual",
       ]),
     );
   });
@@ -523,8 +525,8 @@ describe("mobile-ipc · unpair", () => {
     expect(res.error).toMatch(/deviceId/);
   });
 
-  it("clears cursor + tombstones + calls deviceManager.unregisterDevice", async () => {
-    // seed 数据
+  it("clears cursor + tombstones + calls deviceManager.unregisterDeviceById", async () => {
+    // M4.5 切到单参数 unregisterDeviceById（跨 userId 搜并删）
     database.run(
       `INSERT INTO sync_external_provider_cursor
        (provider_id, account_key, last_sync_at, items_pushed)
@@ -536,19 +538,19 @@ describe("mobile-ipc · unpair", () => {
        VALUES ('mobile', 'dev-1', 'm1', 'MESSAGE', 1)`,
     );
 
-    const unregisterDevice = vi.fn();
+    const unregisterDeviceById = vi.fn(async () => ({ success: true }));
     const ipcMain = makeFakeIpcMain();
     registerMobileSyncIPC({
       database,
       mainWindow: null,
       app: fakeApp({
-        deviceManager: { unregisterDevice },
+        deviceManager: { unregisterDeviceById },
       }),
       ipcMain,
     });
     const res = await ipcMain.invoke("sync:mobile:unpair", "dev-1");
     expect(res.success).toBe(true);
-    expect(unregisterDevice).toHaveBeenCalledWith("dev-1");
+    expect(unregisterDeviceById).toHaveBeenCalledWith("dev-1");
     // cursor 通过 resetCursor 清状态，行还在但 last_sync_at 应为 0
     const cursor = store.getCursor(database, "mobile", "dev-1");
     expect(cursor?.lastSyncAt ?? 0).toBe(0);
