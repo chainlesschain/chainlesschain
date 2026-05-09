@@ -31,6 +31,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          # Cache ~/.npm so subsequent installs hit the local registry mirror
+          # instead of re-downloading every transitive package. Two lockfiles
+          # keyed because both root and desktop-app-vue installs run.
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
 
       - name: Install root dependencies
         uses: ./.github/actions/setup-node-deps
@@ -48,8 +55,29 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Install Playwright browsers
+      # Cache Playwright's chromium download (~150MB) — both root and
+      # desktop-app-vue pin @playwright/test, so hash both lockfiles so a
+      # bump in either invalidates. On Windows the cache hit shaves ~3m
+      # off the job; on Linux we still need the OS-level deps step so
+      # split into two install branches.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json', 'desktop-app-vue/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only (cache hit, Linux)
+        if: steps.playwright-cache.outputs.cache-hit == 'true' && runner.os == 'Linux'
+        run: npx playwright install-deps chromium
 
       - name: Install Xvfb for Linux
         if: runner.os == 'Linux'
