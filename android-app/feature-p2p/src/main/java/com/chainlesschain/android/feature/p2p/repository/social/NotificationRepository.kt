@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationType
+import dagger.Lazy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,8 @@ import javax.inject.Singleton
 @Singleton
 class NotificationRepository @Inject constructor(
     private val notificationDao: NotificationDao,
-// TEMP DISABLED:     private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
+    // dagger.Lazy 解决 SocialSyncAdapter ↔ NotificationRepository 循环依赖
+    private val syncAdapter: Lazy<SocialSyncAdapter>,
 ) {
 
     // ===== 查询方法 =====
@@ -141,7 +143,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotification(notification: NotificationEntity): Result<Unit> {
         return try {
             notificationDao.insert(notification)
-//             syncAdapter.value.syncNotificationCreated(notification)
+            syncAdapter.get().syncNotificationCreated(notification)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -154,7 +156,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotifications(notifications: List<NotificationEntity>): Result<Unit> {
         return try {
             notificationDao.insertAll(notifications)
-//             notifications.forEach { syncAdapter.value.syncNotificationCreated(it) }
+            notifications.forEach { syncAdapter.get().syncNotificationCreated(it) }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

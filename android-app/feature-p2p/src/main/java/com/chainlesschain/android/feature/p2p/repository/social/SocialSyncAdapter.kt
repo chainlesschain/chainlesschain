@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncItem
 import com.chainlesschain.android.core.p2p.sync.SyncManager
 import com.chainlesschain.android.core.p2p.sync.SyncOperation
+import dagger.Lazy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -239,11 +240,11 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE, SyncOperation.UPDATE -> {
                 val friend = data.toEntity()
-                friendRepository.value.addFriend(friend)
+                friendRepository.get().addFriend(friend)
                 Timber.d("Friend synced: ${friend.did}")
             }
             SyncOperation.DELETE -> {
-                friendRepository.value.deleteFriend(data.did)
+                friendRepository.get().deleteFriend(data.did)
                 Timber.d("Friend deleted: ${data.did}")
             }
         }
@@ -255,16 +256,16 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val post = data.toEntity()
-                postRepository.value.createPost(post)
+                postRepository.get().createPost(post)
                 Timber.d("Post synced: ${post.id}")
             }
             SyncOperation.UPDATE -> {
                 val post = data.toEntity()
-                postRepository.value.updatePost(post)
+                postRepository.get().updatePost(post)
                 Timber.d("Post updated: ${post.id}")
             }
             SyncOperation.DELETE -> {
-                postRepository.value.deletePost(data.id)
+                postRepository.get().deletePost(data.id)
                 Timber.d("Post deleted: ${data.id}")
             }
         }
@@ -277,7 +278,7 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE -> {
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
-                        postRepository.value.likePost(postId, userDid)
+                        postRepository.get().likePost(postId, userDid)
                         Timber.d("Like synced: ${data.id}")
                     }
                 }
@@ -285,7 +286,7 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.DELETE -> {
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
-                        postRepository.value.unlikePost(postId, userDid)
+                        postRepository.get().unlikePost(postId, userDid)
                         Timber.d("Like removed: ${data.id}")
                     }
                 }
@@ -300,12 +301,12 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val comment = data.toEntity()
-                postRepository.value.addComment(comment)
+                postRepository.get().addComment(comment)
                 Timber.d("Comment synced: ${comment.id}")
             }
             SyncOperation.DELETE -> {
                 data.toEntity().let { comment ->
-                    postRepository.value.deleteComment(comment)
+                    postRepository.get().deleteComment(comment)
                     Timber.d("Comment deleted: ${data.id}")
                 }
             }
@@ -319,7 +320,7 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val notification = data.toEntity()
-                notificationRepository.value.createNotification(notification)
+                notificationRepository.get().createNotification(notification)
                 Timber.d("Notification synced: ${notification.id}")
             }
             else -> {}
