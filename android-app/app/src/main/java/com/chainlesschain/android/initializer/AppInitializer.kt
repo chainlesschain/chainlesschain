@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
+import com.chainlesschain.android.sync.SyncCoordinator
 // Firebase imports - uncomment when google-services.json is available
 // import com.google.firebase.analytics.FirebaseAnalytics
 // import com.google.firebase.analytics.ktx.analytics
@@ -34,6 +35,9 @@ class AppInitializer @Inject constructor(
 
     // 延迟初始化的组件（使用Hilt Lazy）
     private val llmAdapter: Lazy<LLMAdapter>,
+
+    // Phase 3d v1.1 #4: 移动同步 auto-trigger，让本地写入自动推到桌面
+    private val syncCoordinator: Lazy<SyncCoordinator>,
 
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
@@ -88,6 +92,17 @@ class AppInitializer @Inject constructor(
 
                 // 4. 预加载字体和资源
                 launch { preloadResources() }
+
+                // 5. Phase 3d v1.1 #4: 启动 SyncCoordinator 监听 P2P 连接，
+                //    连上桌面后周期推 pendingChanges 到对端
+                launch {
+                    try {
+                        syncCoordinator.get().start()
+                        Timber.d("SyncCoordinator started")
+                    } catch (e: Exception) {
+                        Timber.w(e, "SyncCoordinator start failed (non-fatal)")
+                    }
+                }
 
                 val elapsedTime = System.currentTimeMillis() - startTime
                 Timber.d("Asynchronous initialization completed in ${elapsedTime}ms")

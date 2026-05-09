@@ -1,0 +1,119 @@
+package com.chainlesschain.android.sync
+
+import com.chainlesschain.android.core.p2p.sync.SyncManager
+import com.chainlesschain.android.remote.p2p.P2PClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Phase 3d v1.1 #4: Android 端 sync auto-trigger 协调器。
+ *
+ * v1 痛点：Android 本地写入（friend / post / message）会进 SyncManager.
+ * pendingChanges in-memory 队列，但**没人调** pushPendingToDesktopRpc，所以
+ * desktop 必须主动 sync.pull 才能看到这些变更。这条路径对用户不友好。
+ *
+ * v1.1 #4 修法：监听 P2PClient.connectedPeer StateFlow，连上桌面后启动
+ * 30s 周期 coroutine：
+ *   - 若 SyncManager.pendingChanges 非空 → 调 pushPendingToDesktopRpc(peerId)
+ *   - 桌面端 MobileBridgeSync.handlePushRpc 应用 + 回 ack
+ *   - 失败留在 pendingChanges 等下一轮重试
+ *
+ * 断开 → cancel coroutine，重连 → 重新启动。所有状态都在 P2PClient
+ * .connectedPeer 一处真源。
+ *
+ * 启动入口：AppInitializer.initializeAsynchronously() 调 start()。
+ *
+ * 限制（v1.1 → v1.2 优化）：
+ *   - 只支持 1 个连接（P2PClient.connectedPeer 是单值 StateFlow，不是 list）。
+ *     多设备配对场景需要 v1.2 改成 N-peer 支持。
+ *   - 30s 间隔写死；可加 SharedPreferences 配置。
+ */
+@Singleton
+class SyncCoordinator @Inject constructor(
+    private val p2pClient: P2PClient,
+    private val syncManager: SyncManager
+) {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    /** 监听 connectedPeer 的外层 job */
+    @Volatile private var watcherJob: Job? = null
+
+    /** 当前连接对应的周期 push job；连接切换时 cancel + 重启 */
+    @Volatile private var periodicPushJob: Job? = null
+
+    private val pushIntervalMs = 30_000L
+
+    /**
+     * 启动协调器。Idempotent — 重复调不会启多个 watcher。
+     * 由 AppInitializer.initializeAsynchronously() 调用。
+     */
+    fun start() {
+        if (watcherJob?.isActive == true) {
+            Timber.d("[SyncCoordinator] already started, skipping")
+            return
+        }
+        Timber.i("[SyncCoordinator] starting connectedPeer watcher")
+        watcherJob = scope.launch {
+            p2pClient.connectedPeer.collect { peer ->
+                if (peer != null) {
+                    Timber.i("[SyncCoordinator] peer connected: ${peer.peerId}, starting push loop")
+                    startPeriodicPush(peer.peerId)
+                } else {
+                    Timber.i("[SyncCoordinator] peer disconnected, cancelling push loop")
+                    stopPeriodicPush()
+                }
+            }
+        }
+    }
+
+    /**
+     * 停止整个协调器。Application onTerminate / 测试 cleanup 用。
+     */
+    fun stop() {
+        Timber.i("[SyncCoordinator] stop()")
+        stopPeriodicPush()
+        watcherJob?.cancel()
+        watcherJob = null
+    }
+
+    private fun startPeriodicPush(peerId: String) {
+        // Cancel any existing loop (peer changed)
+        stopPeriodicPush()
+
+        periodicPushJob = scope.launch {
+            // 进入循环：每 pushIntervalMs 检查 pendingChanges
+            while (isActive) {
+                try {
+                    val pending = syncManager.getSyncStatistics().pendingChanges
+                    if (pending > 0) {
+                        Timber.d("[SyncCoordinator] pushing $pending pending changes to $peerId")
+                        val result = syncManager.pushPendingToDesktopRpc(peerId)
+                        Timber.d(
+                            "[SyncCoordinator] push result: pushed=${result.pushed} " +
+                                "conflicts=${result.conflicts} failed=${result.failed}"
+                        )
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Timber.w(e, "[SyncCoordinator] periodic push failed; will retry")
+                }
+                delay(pushIntervalMs)
+            }
+        }
+    }
+
+    private fun stopPeriodicPush() {
+        periodicPushJob?.cancel()
+        periodicPushJob = null
+    }
+}
