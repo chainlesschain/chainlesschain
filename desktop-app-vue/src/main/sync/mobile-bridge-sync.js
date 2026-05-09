@@ -22,6 +22,7 @@
 const externalStore = require("./sync-external-store");
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
+const didSigner = require("../did/did-signer");
 
 const PROVIDER_ID = "mobile";
 
@@ -1036,25 +1037,48 @@ class MobileBridgeSync {
    * 形状对齐 Android `app/remote/data/CommandProtocol.kt::AuthInfo`：
    *   {did, signature, timestamp, nonce}
    *
-   * v1.2 当前实现：signature 是占位字符串 "v1.2-placeholder-no-sig"。Android
-   * side SyncAuthVerifier 不验签（只验 timestamp/nonce/DID），所以 placeholder
-   * OK。未来真密码学签名（v1.2 next iteration）需：
-   *   - 拿 didManager.getCurrentIdentity().secretKey
-   *   - did-signer.signBytes(JCS({method, timestamp, nonce}), secretKey)
-   *   - Android side 也需 PC 公钥（v1.2 完整 QR pairing 时交换）
+   * **v1.2 next iteration（本 commit）**: signature 现在是真 Ed25519 detached
+   * sig over JCS({method, nonce, timestamp})（method 单独 param 不在 payload
+   * 内，因 _buildAuth 当下不知道 method — 改造由 _invokeRemote 调用方传入也
+   * 太大。当前 canonical input 只覆盖 timestamp+nonce+did，足够防 nonce 和
+   * 时间戳伪造，method 完整性靠 P2P channel 完整性兜底）。
    *
-   * didManager 缺失或没 currentIdentity 时 did 兜底 "did:cc:desktop-unknown"，
-   * Android side 看到这种 did 与 connectedPeer.did 不匹配会 reject — 让用户立刻
-   * 在日志看到 "DID mismatch" 而不是 silent fail。
+   * 构造路径：
+   *   1. didManager.getCurrentIdentity() → identity 对象
+   *      （包 public_key_sign base64 + private_key_ref JSON-string）
+   *   2. didSigner.signPayloadWithIdentity({timestamp, nonce, did}, identity)
+   *      → 真 Ed25519 detached signature, base64
+   *   3. 失败兜底（identity null / 字段缺失 / sign 抛）→ placeholder + warn-log
+   *
+   * Android side 当前 SyncAuthVerifier 不验签（v1.1 #2 文档说明）；这条
+   * commit 让 wire 上有真 sig，Android verify gate 4 是下次 iteration —
+   * 需要 Android 拿到 PC 公钥（扩 M4.5 双向 pairing 加 pubkey 字段）。
+   *
+   * didManager 缺失时 did 兜底 "did:cc:desktop-unknown"，Android 立即看到
+   * "DID mismatch" → fail-loud 而不是 silent fail。
    */
   _buildAuth() {
     const identity = this.didManager?.getCurrentIdentity?.();
-    return {
-      did: identity?.did || "did:cc:desktop-unknown",
-      signature: "v1.2-placeholder-no-sig",
-      timestamp: this.deps.now(),
-      nonce: crypto.randomBytes(16).toString("hex"),
-    };
+    const did = identity?.did || "did:cc:desktop-unknown";
+    const timestamp = this.deps.now();
+    const nonce = crypto.randomBytes(16).toString("hex");
+
+    let signature = "v1.2-placeholder-no-sig";
+    if (identity?.public_key_sign && identity?.private_key_ref) {
+      try {
+        const signed = didSigner.signPayloadWithIdentity(
+          { did, nonce, timestamp },
+          identity,
+        );
+        signature = signed.signature;
+      } catch (err) {
+        // 签名失败不阻止请求 — 走 placeholder，日志暴露原因便于诊断
+        logger.warn(
+          `[MobileBridgeSync] _buildAuth sign failed: ${err.message}; falling back to placeholder`,
+        );
+      }
+    }
+    return { did, signature, timestamp, nonce };
   }
 
   _inferResourceTypeFromTombstone(_ts) {
