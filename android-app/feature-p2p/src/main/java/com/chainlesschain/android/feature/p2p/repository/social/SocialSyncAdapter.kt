@@ -1,11 +1,13 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
 import timber.log.Timber
+import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.database.entity.social.*
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncItem
 import com.chainlesschain.android.core.p2p.sync.SyncManager
 import com.chainlesschain.android.core.p2p.sync.SyncOperation
+import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import dagger.Lazy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -26,7 +28,10 @@ class SocialSyncAdapter @Inject constructor(
     private val syncManager: SyncManager,
     private val friendRepository: Lazy<FriendRepository>,
     private val postRepository: Lazy<PostRepository>,
-    private val notificationRepository: Lazy<NotificationRepository>
+    private val notificationRepository: Lazy<NotificationRepository>,
+    // Phase 3d M3 step B：MESSAGE 出向 + applyMessageSync 路由到 P2PMessageRepository。
+    // dagger.Lazy 与其他 repo 同模式，避开 SocialSyncAdapter ↔ P2PMessageRepository 循环。
+    private val messageRepository: Lazy<P2PMessageRepository>
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -214,6 +219,56 @@ class SocialSyncAdapter @Inject constructor(
         Timber.d("Report submitted for post: ${report.postId}, reason: ${report.reason}")
     }
 
+    // ===== 消息同步（Phase 3d M3 step B）=====
+
+    /**
+     * 同步消息发送（本地新增）。Data 层直接序列化 P2PMessageEntity，desktop
+     * 端 _applyMessage 反序列化到 p2p_chat_messages 表。
+     */
+    fun syncMessageSent(message: P2PMessageEntity) {
+        val syncItem = SyncItem(
+            resourceId = message.id,
+            resourceType = ResourceType.MESSAGE,
+            operation = SyncOperation.CREATE,
+            data = json.encodeToString(message),
+            timestamp = message.timestamp
+        )
+        syncManager.recordChange(syncItem)
+        Timber.d("Message sent → sync queue: ${message.id}")
+    }
+
+    /**
+     * 同步消息状态变更（sendStatus / isAcknowledged 等）。timestamp 用当前
+     * 时间，让 LWW 用最新覆盖；message.timestamp 是创建时间不动。
+     */
+    fun syncMessageStatusChanged(message: P2PMessageEntity) {
+        val syncItem = SyncItem(
+            resourceId = message.id,
+            resourceType = ResourceType.MESSAGE,
+            operation = SyncOperation.UPDATE,
+            data = json.encodeToString(message),
+            timestamp = System.currentTimeMillis()
+        )
+        syncManager.recordChange(syncItem)
+        Timber.d("Message status → sync queue: ${message.id} (${message.sendStatus})")
+    }
+
+    /**
+     * 同步消息删除。Data 仅含 id，desktop _applyMessage DELETE 路径只读
+     * resourceId。
+     */
+    fun syncMessageDeleted(messageId: String) {
+        val syncItem = SyncItem(
+            resourceId = messageId,
+            resourceType = ResourceType.MESSAGE,
+            operation = SyncOperation.DELETE,
+            data = "{\"id\":\"$messageId\"}",
+            timestamp = System.currentTimeMillis()
+        )
+        syncManager.recordChange(syncItem)
+        Timber.d("Message deleted → sync queue: $messageId")
+    }
+
     // ===== 应用同步变更 =====
 
     /**
@@ -227,6 +282,7 @@ class SocialSyncAdapter @Inject constructor(
                 ResourceType.POST_LIKE -> applyLikeSync(syncItem)
                 ResourceType.POST_COMMENT -> applyCommentSync(syncItem)
                 ResourceType.NOTIFICATION -> applyNotificationSync(syncItem)
+                ResourceType.MESSAGE -> applyMessageSync(syncItem)
                 else -> Timber.w("Unsupported resource type: ${syncItem.resourceType}")
             }
         } catch (e: Exception) {
@@ -324,6 +380,22 @@ class SocialSyncAdapter @Inject constructor(
                 Timber.d("Notification synced: ${notification.id}")
             }
             else -> {}
+        }
+    }
+
+    /**
+     * 应用 MESSAGE 同步项 — 路由到 P2PMessageRepository 的 saveMessageFromSync /
+     * updateMessageFromSync / deleteMessageFromSync。这三个方法在 Phase 3d 之前
+     * 已经存在（DefaultSyncDataApplier 入向也走它们），所以路由就行。
+     */
+    private suspend fun applyMessageSync(syncItem: SyncItem) {
+        when (syncItem.operation) {
+            SyncOperation.CREATE ->
+                messageRepository.get().saveMessageFromSync(syncItem.resourceId, syncItem.data)
+            SyncOperation.UPDATE ->
+                messageRepository.get().updateMessageFromSync(syncItem.resourceId, syncItem.data)
+            SyncOperation.DELETE ->
+                messageRepository.get().deleteMessageFromSync(syncItem.resourceId)
         }
     }
 }

@@ -9,6 +9,8 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.feature.p2p.repository.social.SocialSyncAdapter
+import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,7 +36,11 @@ import javax.inject.Singleton
 class P2PMessageRepository @Inject constructor(
     private val p2pMessageDao: P2PMessageDao,
     private val sessionManager: PersistentSessionManager,
-    private val connectionManager: P2PConnectionManager
+    private val connectionManager: P2PConnectionManager,
+    // Phase 3d M3 step B：本地发送/接收的消息 → SyncManager.recordChange，
+    // 桌面端通过 sync.pull 拉到 p2p_chat_messages 表。dagger.Lazy 与社交 repos
+    // 同模式，避开 SocialSyncAdapter ↔ P2PMessageRepository 循环依赖。
+    private val syncAdapter: Lazy<SocialSyncAdapter>
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
@@ -136,7 +142,10 @@ class P2PMessageRepository @Inject constructor(
             p2pMessageDao.updateSendStatus(messageId, MessageSendStatus.SENT)
 
             Timber.d("Message sent successfully: $messageId")
-            Result.success(messageEntity.copy(sendStatus = MessageSendStatus.SENT))
+            val finalEntity = messageEntity.copy(sendStatus = MessageSendStatus.SENT)
+            // Phase 3d sync：本地新发的消息也推到桌面端
+            syncAdapter.get().syncMessageSent(finalEntity)
+            Result.success(finalEntity)
 
         } catch (e: Exception) {
             Timber.e(e, "Failed to send message")
@@ -188,6 +197,11 @@ class P2PMessageRepository @Inject constructor(
             if (p2pMessage.requiresAck) {
                 sendAck(p2pMessage.id, peerId, localDeviceId)
             }
+
+            // Phase 3d sync：收到的对端消息也推到桌面端，让多设备聊天历史一致。
+            // 注：P2P E2EE 是 alice ↔ bob，移动同步是 alice's android → alice's desktop。
+            // 接收方向也要 sync。
+            syncAdapter.get().syncMessageSent(messageEntity)
 
             Timber.d("Message received and processed: ${p2pMessage.id}")
             Result.success(messageEntity)
