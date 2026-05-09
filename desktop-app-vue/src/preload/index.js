@@ -1837,6 +1837,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
           ipcRenderer.removeListener("sync:webdav:progress", handler);
       },
     },
+
+    // Phase 3d — Mobile (Android) 外部同步
+    mobile: {
+      run: (deviceId) => ipcRenderer.invoke("sync:mobile:run", deviceId),
+      runAll: () => ipcRenderer.invoke("sync:mobile:run-all"),
+      status: () => ipcRenderer.invoke("sync:mobile:status"),
+      listPaired: () => ipcRenderer.invoke("sync:mobile:list-paired"),
+      unpair: (deviceId) => ipcRenderer.invoke("sync:mobile:unpair", deviceId),
+    },
   },
 
   // 插件管理

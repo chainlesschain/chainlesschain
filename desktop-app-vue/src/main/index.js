@@ -1498,6 +1498,29 @@ class ChainlessChainApp {
       // 连接到信令服务器
       await this.mobileBridge.connect();
 
+      // Phase 3d: 实例化 MobileBridgeSync（接 routeMobileCommand 的 sync.* 命令 +
+      // 给 IPC handler 用）。即使 dbManager 还没 ready 也先建实例，runOnce 时
+      // 会从依赖里拿；deviceManager 为可选。
+      try {
+        const MobileBridgeSync = require("./sync/mobile-bridge-sync");
+        const dbManager =
+          this.dbManager || this.databaseManager || this.database || null;
+        if (dbManager) {
+          this.mobileBridgeSync = new MobileBridgeSync({
+            mobileBridge: this.mobileBridge,
+            dbManager,
+            deviceManager: this.deviceManager || null,
+          });
+          logger.info("[Main] ✓ MobileBridgeSync 已实例化 (Phase 3d)");
+        } else {
+          logger.warn(
+            "[Main] dbManager 未初始化，跳过 MobileBridgeSync 创建（mobile sync 不可用）",
+          );
+        }
+      } catch (err) {
+        logger.error("[Main] MobileBridgeSync 实例化失败:", err);
+      }
+
       logger.info("[Main] ✓ 移动端桥接初始化完成");
       logger.info(`[Main]   信令服务器: ${signalingUrl}`);
     } catch (error) {
@@ -1640,8 +1663,32 @@ class ChainlessChainApp {
       case "skill":
         return this.handleSkillCommand(action, params);
 
+      case "sync":
+        return this.handleSyncCommand(action, params);
+
       default:
         throw new Error(`Unknown command namespace: ${namespace}`);
+    }
+  }
+
+  /**
+   * Phase 3d: dispatch sync.push / sync.pull / sync.ack 来自 Android 的请求到
+   * MobileBridgeSync。该方法在 mobileBridge.handleMobileCommand 路由命中
+   * `sync` namespace 时调用。
+   */
+  async handleSyncCommand(action, params) {
+    if (!this.mobileBridgeSync) {
+      throw new Error("MobileBridgeSync 未就绪");
+    }
+    switch (action) {
+      case "push":
+        return await this.mobileBridgeSync.handlePush(params || {});
+      case "pull":
+        return await this.mobileBridgeSync.handlePull(params || {});
+      case "ack":
+        return this.mobileBridgeSync.handleAck(params || {});
+      default:
+        throw new Error(`Unknown sync action: ${action}`);
     }
   }
 
