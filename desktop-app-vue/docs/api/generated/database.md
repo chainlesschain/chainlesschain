@@ -153,6 +153,17 @@ ensureOpsPlaybookDescription()
 
 ---
 
+## ensureSyncExternalTombstoneResourceType()
+
+```javascript
+ensureSyncExternalTombstoneResourceType()
+```
+
+* Phase 3d: ensure sync_external_tombstones has the resource_type column
+   * + the 5 new mobile-sync triggers' DROP/CREATE for old DBs.
+
+---
+
 ## migrateDatabase()
 
 ```javascript
