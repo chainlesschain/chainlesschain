@@ -40,6 +40,12 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   }
 
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
+  // Diagnostic note: when this helper is added/changed, ALL three E2E OS jobs
+  // (ubuntu/macos/windows) have been failing with "No team IPC interface
+  // found". Root cause is preload never exposing electronAPI/electron — but
+  // the original code swallowed that signal with catch+warn+continue. The
+  // logging below pipes renderer-side console + uncaught errors to test
+  // stdout so the next CI run shows the actual preload failure.
   const app = await electron.launch({
     args: [
       mainPath,
@@ -71,9 +77,29 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     timeout: 120000, // 120秒启动超时（应用初始化需要较长时间）
   });
 
+  // Pipe main-process stdout/stderr so a preload throw (which is reported on
+  // the main process) is visible in CI logs.
+  app.process().stdout?.on("data", (chunk) => {
+    process.stdout.write(`[electron-main:stdout] ${chunk}`);
+  });
+  app.process().stderr?.on("data", (chunk) => {
+    process.stderr.write(`[electron-main:stderr] ${chunk}`);
+  });
+
   // 等待并获取第一个窗口（增加超时以适应较慢的初始化）
   const window = await app.firstWindow({
     timeout: 90000, // 90秒窗口创建超时
+  });
+
+  // Pipe renderer console + uncaught errors so we can see preload failures.
+  window.on("console", (msg) => {
+    process.stdout.write(`[renderer:${msg.type()}] ${msg.text()}\n`);
+  });
+  window.on("pageerror", (err) => {
+    process.stderr.write(`[renderer:pageerror] ${err.stack || err.message}\n`);
+  });
+  window.on("crash", () => {
+    process.stderr.write("[renderer:crash]\n");
   });
 
   // 等待加载完成
@@ -81,7 +107,10 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     timeout: 30000,
   });
 
-  // 等待IPC API准备就绪（可选，某些应用可能不需要electronAPI）
+  // Wait for preload to expose at least one bridge object. Previously this
+  // catch+warn'd-and-continued, masking the only signal that preload didn't
+  // load. Now we throw with a snapshot of what *is* on window so CI tells us
+  // whether the preload script ran at all.
   try {
     await window.waitForFunction(
       () => {
@@ -94,7 +123,27 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       { timeout: 10000 },
     );
   } catch (error) {
-    console.warn("Warning: electronAPI not found, but continuing anyway");
+    const diagnostics = await window.evaluate(() => {
+      const w = window as any;
+      const keys = Object.keys(w).sort();
+      return {
+        url: w.location?.href,
+        readyState: w.document?.readyState,
+        title: w.document?.title,
+        // Truncate so we don't blow the CI log buffer.
+        windowKeys: keys.slice(0, 80),
+        windowKeyCount: keys.length,
+        hasElectronAPI: typeof w.electronAPI,
+        hasElectron: typeof w.electron,
+        hasApi: typeof w.api,
+        userAgent: w.navigator?.userAgent,
+      };
+    });
+    throw new Error(
+      `Preload bridge never exposed (electronAPI/electron/api all undefined after 10s). ` +
+        `Renderer state: ${JSON.stringify(diagnostics, null, 2)}. ` +
+        `Original error: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 
   const setupCompletedDuringLaunch = await ensureInitialSetup(window, userDataPath);
