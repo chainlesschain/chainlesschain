@@ -51,6 +51,9 @@ DEPLOYS = [
     # "v5.0.3.44" 卡 (中英对照); README.md / README_EN.md 顶部发布块 +
     # Current Version + Latest Update 块同步。release-sizes.json 自动 refresh
     # 到 v5.0.3.44 (GitHub Release published 2026-05-08T15:43:18Z, 28 assets).
+    # 2026-05-09 15:09 www-only refresh deployed — SiteHeader 移动端 hamburger 菜单
+    # 修复 (<md 整块 nav 含中英文切换原本被 hidden md:flex 隐藏, 无 fallback)。
+    # docs/design tars 仍指向同日 0738 stamp, 内容未变, 下次全量 deploy 仍可用。
     {
         "name": "docs.chainlesschain.com",
         "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.45-20260509-0738.tar.gz",
@@ -63,7 +66,7 @@ DEPLOYS = [
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.45-20260509-0738.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.45-20260509-150904.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
