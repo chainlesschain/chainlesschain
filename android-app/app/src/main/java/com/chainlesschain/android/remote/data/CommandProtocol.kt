@@ -43,13 +43,18 @@ data class CommandResponse(
 
 /**
  * 认证信息
+ *
+ * Phase 3d v1.2 (Android gate 4): senderPubkey 字段加入，让 SyncAuthVerifier
+ * 可以在不依赖预共享 pubkey infra 的情况下做签名校验。null 容忍（pre-v1.2
+ * desktop 客户端兼容窗口；Android gate 4 看到 null → warn-and-skip）。
  */
 @Serializable
 data class AuthInfo(
     val did: String,
     val signature: String,
     val timestamp: Long,
-    val nonce: String
+    val nonce: String,
+    val senderPubkey: String? = null
 )
 
 /**

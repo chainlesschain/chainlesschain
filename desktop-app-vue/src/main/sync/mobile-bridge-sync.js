@@ -1064,6 +1064,7 @@ class MobileBridgeSync {
     const nonce = crypto.randomBytes(16).toString("hex");
 
     let signature = "v1.2-placeholder-no-sig";
+    let senderPubkey = null;
     if (identity?.public_key_sign && identity?.private_key_ref) {
       try {
         const signed = didSigner.signPayloadWithIdentity(
@@ -1071,6 +1072,9 @@ class MobileBridgeSync {
           identity,
         );
         signature = signed.signature;
+        // v1.2 Android gate 4: 把 pubkey 一起发，让 Android 不需要预先存 PC pubkey
+        // 即可验证 sig（hash 链 pubkey→did + Ed25519 verify sig）。
+        senderPubkey = identity.public_key_sign;
       } catch (err) {
         // 签名失败不阻止请求 — 走 placeholder，日志暴露原因便于诊断
         logger.warn(
@@ -1078,7 +1082,7 @@ class MobileBridgeSync {
         );
       }
     }
-    return { did, signature, timestamp, nonce };
+    return { did, signature, timestamp, nonce, senderPubkey };
   }
 
   _inferResourceTypeFromTombstone(_ts) {
