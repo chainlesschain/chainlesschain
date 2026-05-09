@@ -16,8 +16,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     # macOS runners are slower; allow up to 60 minutes for all platforms
     timeout-minutes: 60
-    # E2E tests are heavy and flaky in CI; allow failures
-    continue-on-error: true
 
     strategy:
       fail-fast: false
