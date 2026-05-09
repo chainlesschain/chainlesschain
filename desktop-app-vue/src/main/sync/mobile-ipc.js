@@ -215,20 +215,54 @@ function registerMobileSyncIPC({
     }
   });
 
+  // ── sync:mobile:register-manual ───────────────────────────────
+  // Phase 3d M4.5：手动添加配对设备（v0 跳过 QR + 6 位码 + DID 互信流程）。
+  // 用户在 Android 端拿到 deviceId / DID / deviceName，在 desktop UI 输入。
+  // v1.1 替换为完整 DevicePairingHandler QR 流程。
+  ipcMain.handle("sync:mobile:register-manual", async (_event, payload) => {
+    const { deviceId, did, deviceName, platform } = payload || {};
+    if (!deviceId || typeof deviceId !== "string") {
+      return { success: false, error: "deviceId 必填" };
+    }
+    if (!did || typeof did !== "string") {
+      return { success: false, error: "DID 必填" };
+    }
+    const deviceManager = app?.deviceManager;
+    if (!deviceManager?.registerDevice) {
+      return { success: false, error: "DeviceManager 未就绪" };
+    }
+    try {
+      // userId 用 DID — DeviceManager 主 API 是 (userId, device) 二元，DID 是
+      // 用户身份的合理映射。
+      await deviceManager.registerDevice(did, {
+        deviceId,
+        deviceName: deviceName || `(unnamed) ${deviceId.slice(0, 8)}`,
+        platform: platform || "android",
+        did,
+        pairedAt: Date.now(),
+        lastActiveAt: Date.now(),
+      });
+      return { success: true, deviceId };
+    } catch (err) {
+      logger.error("[Mobile Sync IPC] register-manual 异常:", err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   // ── sync:mobile:unpair ────────────────────────────────────────
   ipcMain.handle("sync:mobile:unpair", async (_event, deviceId) => {
     if (!deviceId || typeof deviceId !== "string") {
       return { success: false, error: "deviceId 必填" };
     }
     try {
-      // 1) deviceManager 移除注册
+      // 1) deviceManager 移除注册（用 M4.5 新加的单参数 unregisterDeviceById）
       const deviceManager = app?.deviceManager;
-      if (deviceManager?.unregisterDevice) {
+      if (deviceManager?.unregisterDeviceById) {
         try {
-          deviceManager.unregisterDevice(deviceId);
+          await deviceManager.unregisterDeviceById(deviceId);
         } catch (e) {
           logger.warn(
-            "[Mobile Sync IPC] deviceManager.unregisterDevice 失败:",
+            "[Mobile Sync IPC] deviceManager.unregisterDeviceById 失败:",
             e?.message,
           );
         }

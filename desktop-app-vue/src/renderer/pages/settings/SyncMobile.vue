@@ -38,6 +38,64 @@
       description="主进程的 mobileBridgeSync 实例还未创建，可能是 P2P 初始化未完成。请等待几秒后刷新。"
     />
 
+    <!-- M4.5 手动配对 card (v0 — 完整 QR 流程在 v1.1) -->
+    <a-card class="devices-card" title="手动配对设备" size="small">
+      <template #extra>
+        <a-tag color="orange"> v0 临时方案 </a-tag>
+      </template>
+      <a-form
+        :model="pairForm"
+        layout="vertical"
+        :disabled="pairing"
+        autocomplete="off"
+      >
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="Android Device ID" required>
+              <a-input
+                v-model:value="pairForm.deviceId"
+                placeholder="从 Android 端拷贝 32 位 hex deviceId"
+                allow-clear
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="设备名称（可选）">
+              <a-input
+                v-model:value="pairForm.deviceName"
+                placeholder="例：Pixel 8 Pro"
+                allow-clear
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="Android DID" required>
+          <a-input
+            v-model:value="pairForm.did"
+            placeholder="did:cc:..."
+            allow-clear
+          />
+        </a-form-item>
+        <a-space>
+          <a-button
+            type="primary"
+            :loading="pairing"
+            :disabled="!canPair"
+            @click="onPairManual"
+          >
+            <template #icon>
+              <LinkOutlined />
+            </template>
+            添加设备
+          </a-button>
+          <span class="muted small">
+            v0：跳过 QR 扫码 + DID 互信，直接注册到 DeviceManager。生产环境建议
+            v1.1 走完整配对流程。
+          </span>
+        </a-space>
+      </a-form>
+    </a-card>
+
     <!-- 已配对设备列表 -->
     <a-card class="devices-card" title="已配对设备" size="small">
       <template #extra>
@@ -166,7 +224,9 @@ import {
   ReloadOutlined,
   SyncOutlined,
   DisconnectOutlined,
+  LinkOutlined,
 } from "@ant-design/icons-vue";
+import { computed } from "vue";
 import { logger } from "@/utils/logger";
 
 interface MobileDevice {
@@ -203,6 +263,17 @@ const status = ref<SyncMobileStatus | null>(null);
 const loading = ref(false);
 const runningAll = ref(false);
 const runningById = reactive<Record<string, boolean>>({});
+
+// M4.5 manual pairing form
+const pairForm = reactive({
+  deviceId: "",
+  did: "",
+  deviceName: "",
+});
+const pairing = ref(false);
+const canPair = computed(
+  () => pairForm.deviceId.trim().length > 0 && pairForm.did.trim().length > 0,
+);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -287,6 +358,35 @@ async function onRunAll() {
   }
 }
 
+async function onPairManual() {
+  if (!api?.registerManual) {
+    message.error("Pairing IPC 未就绪");
+    return;
+  }
+  pairing.value = true;
+  try {
+    const res = await api.registerManual({
+      deviceId: pairForm.deviceId.trim(),
+      did: pairForm.did.trim(),
+      deviceName: pairForm.deviceName.trim() || undefined,
+      platform: "android",
+    });
+    if (res?.success) {
+      message.success(`已添加设备：${res.deviceId.slice(0, 12)}…`);
+      pairForm.deviceId = "";
+      pairForm.did = "";
+      pairForm.deviceName = "";
+      await loadDevices();
+    } else {
+      message.error(`配对失败：${res?.error || "未知错误"}`);
+    }
+  } catch (err: any) {
+    message.error(err?.message || String(err));
+  } finally {
+    pairing.value = false;
+  }
+}
+
 async function onUnpair(deviceId: string) {
   if (!api) {
     return;
@@ -358,6 +458,9 @@ onBeforeUnmount(() => {
 }
 .muted {
   color: var(--cc-text-secondary, #999);
+}
+.small {
+  font-size: 12px;
 }
 .device-name {
   font-weight: 500;

@@ -1845,6 +1845,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       status: () => ipcRenderer.invoke("sync:mobile:status"),
       listPaired: () => ipcRenderer.invoke("sync:mobile:list-paired"),
       unpair: (deviceId) => ipcRenderer.invoke("sync:mobile:unpair", deviceId),
+      // Phase 3d M4.5 manual pairing (v0)
+      registerManual: (payload) =>
+        ipcRenderer.invoke("sync:mobile:register-manual", payload),
     },
   },
 

@@ -1498,6 +1498,22 @@ class ChainlessChainApp {
       // 连接到信令服务器
       await this.mobileBridge.connect();
 
+      // Phase 3d M4.5: 实例化 DeviceManager（持久化 mobile 配对设备列表）
+      // 必须在 MobileBridgeSync 之前 — 后者构造参数包含 deviceManager。
+      try {
+        const DeviceManager = require("./p2p/device-manager");
+        const { app: electronApp } = require("electron");
+        const dataPath = require("path").join(
+          electronApp.getPath("userData"),
+          "chainlesschain",
+        );
+        this.deviceManager = new DeviceManager({ dataPath });
+        await this.deviceManager.initialize();
+        logger.info("[Main] ✓ DeviceManager 已实例化 (Phase 3d M4.5)");
+      } catch (err) {
+        logger.error("[Main] DeviceManager 实例化失败:", err);
+      }
+
       // Phase 3d: 实例化 MobileBridgeSync（接 routeMobileCommand 的 sync.* 命令 +
       // 给 IPC handler 用）。即使 dbManager 还没 ready 也先建实例，runOnce 时
       // 会从依赖里拿；deviceManager 为可选。

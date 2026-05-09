@@ -400,6 +400,59 @@ class DeviceManager extends EventEmitter {
     }
   }
 
+  // ============================================================
+  // Phase 3d M4.5：mobile sync flat-API
+  //
+  // DeviceManager 主 API 是 (userId, device) 二元设计，给 multi-user
+  // 多设备场景用。Mobile sync 只关心"这台 PC 配对了哪些 Android"，
+  // 不在乎 userId 维度。下面三个方法把所有 userId 展平成扁平列表，
+  // 服务 sync:mobile:* IPC + DevicePairingHandler 的查询语义。
+  // ============================================================
+
+  /**
+   * 列所有已注册设备（跨 userId 展平）。
+   * 用于 sync:mobile:list-paired。
+   */
+  getRegisteredDevices() {
+    const all = [];
+    for (const userDevices of this.devices.values()) {
+      all.push(...userDevices);
+    }
+    return all;
+  }
+
+  /**
+   * 跨 userId 检查 deviceId 是否已注册。
+   * DevicePairingHandler.validatePairingCode 用。
+   */
+  isDeviceRegistered(deviceId) {
+    if (!deviceId) {
+      return false;
+    }
+    for (const userDevices of this.devices.values()) {
+      if (userDevices.some((d) => d.deviceId === deviceId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 单参数注销（跨 userId 搜并删）。
+   * 用于 sync:mobile:unpair（不知道 deviceId 属于哪个 userId）。
+   */
+  async unregisterDeviceById(deviceId) {
+    if (!deviceId) {
+      return { success: false, error: "deviceId required" };
+    }
+    for (const [userId, userDevices] of this.devices.entries()) {
+      if (userDevices.some((d) => d.deviceId === deviceId)) {
+        return this.unregisterDevice(userId, deviceId);
+      }
+    }
+    return { success: false, error: "Device not found" };
+  }
+
   /**
    * 获取所有设备统计
    */
