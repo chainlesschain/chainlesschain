@@ -40,16 +40,21 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   }
 
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
-  // Diagnostic note: when this helper is added/changed, ALL three E2E OS jobs
-  // (ubuntu/macos/windows) have been failing with "No team IPC interface
-  // found". Root cause is preload never exposing electronAPI/electron — but
-  // the original code swallowed that signal with catch+warn+continue. The
-  // logging below pipes renderer-side console + uncaught errors to test
-  // stdout so the next CI run shows the actual preload failure.
+  // Web-shell vs V5/V6 mode: shouldRunWebShell() defaults to TRUE since
+  // Phase 1.6 hard-flip (web-shell-bootstrap.js:366). The web-shell preload
+  // is minimal and intentionally does NOT expose `electronAPI` / `electron`
+  // — that's what made every E2E run on this helper fail with
+  // "Preload bridge never exposed". simple-api.e2e.test.ts exercises
+  // electronAPI.system / electronAPI.git / electronAPI.notification, which
+  // only exist in V5/V6 mode. Force opt-out via env + arg so the desktop
+  // renderer (with full preload bridge) loads.
   const app = await electron.launch({
     args: [
       mainPath,
       `--user-data-dir=${userDataPath}`,
+      // Force V5/V6 desktop renderer (NOT web-shell HTTP server). Both the
+      // env and the flag are checked; we set both for belt-and-braces.
+      "--no-web-shell",
       // 测试环境下禁用 GPU 加速以避免 GPU 进程崩溃
       "--disable-gpu",
       "--disable-gpu-compositing",
@@ -71,6 +76,8 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       MOCK_HARDWARE: "true",
       MOCK_LLM: "true",
       CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
+      // Pair with --no-web-shell argv: shouldRunWebShell() honours either.
+      CHAINLESSCHAIN_WEB_SHELL: "0",
       // Linux: 强制使用软件 OpenGL
       ...(process.platform === "linux" ? { LIBGL_ALWAYS_SOFTWARE: "1" } : {}),
     },
