@@ -42,6 +42,21 @@ const SyncOperation = Object.freeze({
 const DEFAULT_BATCH_SIZE = 100;
 
 /**
+ * 解析 social_posts.media TEXT 列（JSON 数组）；非法或空时返空数组。
+ */
+function _safeParseJsonArray(text) {
+  if (!text || typeof text !== "string") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * 测试可注入的依赖。生产环境下走默认 require。
  */
 const _deps = {
@@ -376,12 +391,14 @@ class MobileBridgeSync {
   _tableFetchers() {
     return [
       this._fetchP2PChatMessages.bind(this),
-      // TODO Phase 3d M2 step 3: 补 4 张表 walker
+      this._fetchFriends.bind(this),
+      this._fetchSocialPosts.bind(this),
+      this._fetchPostComments.bind(this),
+      this._fetchNotifications.bind(this),
+      // CONTACT 暂不走：Android DefaultSyncDataApplier.kt 把 CONTACT 与 FRIEND
+      // 都路由到 FriendRepository（同一份数据）；桌面 contacts 表是更广的通讯录
+      // 概念，无对等映射。v2 按需补。
       // this._fetchContacts.bind(this),
-      // this._fetchFriends.bind(this),
-      // this._fetchSocialPosts.bind(this),
-      // this._fetchPostComments.bind(this),
-      // this._fetchNotifications.bind(this),
     ];
   }
 
@@ -434,6 +451,160 @@ class MobileBridgeSync {
     }));
   }
 
+  /**
+   * friends walker。resourceId = friend_did（对齐 Android SocialSyncAdapter
+   * `resourceId = friend.did`）。游标 (updated_at, friend_did)。
+   */
+  async _fetchFriends(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT user_did, friend_did, nickname, avatar, status, notes,
+                created_at, updated_at
+         FROM friends
+         WHERE updated_at > ? OR (updated_at = ? AND friend_did > ?)
+         ORDER BY updated_at ASC, friend_did ASC
+         LIMIT ?`
+      : `SELECT user_did, friend_did, nickname, avatar, status, notes,
+                created_at, updated_at
+         FROM friends
+         WHERE updated_at > ?
+         ORDER BY updated_at ASC, friend_did ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.FRIEND,
+      resourceId: row.friend_did,
+      operation: SyncOperation.UPDATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: "",
+      data: JSON.stringify({
+        did: row.friend_did,
+        nickname: row.nickname,
+        avatar: row.avatar,
+        status: row.status,
+        remarkName: row.notes,
+        addedAt: row.created_at,
+      }),
+    }));
+  }
+
+  /**
+   * social_posts walker。游标 (updated_at, id)。
+   */
+  async _fetchSocialPosts(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, author_did, content, media, visibility, created_at, updated_at
+         FROM social_posts
+         WHERE updated_at > ? OR (updated_at = ? AND id > ?)
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, author_did, content, media, visibility, created_at, updated_at
+         FROM social_posts
+         WHERE updated_at > ?
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.POST,
+      resourceId: row.id,
+      operation: SyncOperation.UPDATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: "",
+      data: JSON.stringify({
+        id: row.id,
+        authorDid: row.author_did,
+        content: row.content,
+        images: _safeParseJsonArray(row.media),
+        visibility: row.visibility,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }),
+    }));
+  }
+
+  /**
+   * post_comments walker。schema 无 updated_at，用 created_at 作 cursor
+   * （评论是 append-only，UPDATE 极少见，本表实际是 CREATE 序列）。
+   */
+  async _fetchPostComments(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, post_id, author_did, content, parent_id, created_at
+         FROM post_comments
+         WHERE created_at > ? OR (created_at = ? AND id > ?)
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, post_id, author_did, content, parent_id, created_at
+         FROM post_comments
+         WHERE created_at > ?
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.POST_COMMENT,
+      resourceId: row.id,
+      operation: SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.created_at,
+      deviceId: "",
+      data: JSON.stringify({
+        id: row.id,
+        postId: row.post_id,
+        authorDid: row.author_did,
+        content: row.content,
+        parentCommentId: row.parent_id,
+        createdAt: row.created_at,
+      }),
+    }));
+  }
+
+  /**
+   * notifications walker。schema 无 updated_at，用 created_at 作 cursor。
+   */
+  async _fetchNotifications(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, user_did, type, title, content, data, is_read, created_at
+         FROM notifications
+         WHERE created_at > ? OR (created_at = ? AND id > ?)
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, user_did, type, title, content, data, is_read, created_at
+         FROM notifications
+         WHERE created_at > ?
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.NOTIFICATION,
+      resourceId: row.id,
+      operation: SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.created_at,
+      deviceId: "",
+      data: JSON.stringify({
+        id: row.id,
+        type: row.type,
+        title: row.title,
+        content: row.content,
+        data: row.data,
+        isRead: row.is_read === 1,
+        createdAt: row.created_at,
+      }),
+    }));
+  }
+
   // ============================================================
   // Apply（入向 SyncItem 写入本地表）
   // ============================================================
@@ -451,16 +622,23 @@ class MobileBridgeSync {
       }
 
       switch (item.resourceType) {
+        case ResourceType.MESSAGE:
+          await this._applyMessage(item);
+          break;
         case ResourceType.FRIEND:
           await this._applyFriend(item);
           break;
-        // TODO Phase 3d M2 step 4: 补 5 ResourceType apply
-        // case ResourceType.MESSAGE: await this._applyMessage(item); break;
-        // case ResourceType.CONTACT: await this._applyContact(item); break;
-        // case ResourceType.POST: await this._applyPost(item); break;
-        // case ResourceType.POST_COMMENT: await this._applyPostComment(item); break;
-        // case ResourceType.NOTIFICATION: await this._applyNotification(item); break;
+        case ResourceType.POST:
+          await this._applyPost(item);
+          break;
+        case ResourceType.POST_COMMENT:
+          await this._applyPostComment(item);
+          break;
+        case ResourceType.NOTIFICATION:
+          await this._applyNotification(item);
+          break;
         default:
+          // CONTACT 和未来类型走这里。CONTACT v1 不接，详见 _tableFetchers 注释。
           this.logger.warn(
             `[MobileBridgeSync] apply 跳过未实现 ResourceType: ${item.resourceType}`,
           );
@@ -477,27 +655,39 @@ class MobileBridgeSync {
   }
 
   /**
-   * FRIEND apply — exemplar。
-   * 字段对齐 friends 表 schema (database-schema.js 行 721)。
+   * FRIEND apply。字段对齐 friends 表（schema 行 721）：UNIQUE(user_did, friend_did)，
+   * 单本地用户假设下，user_did 来自 deviceManager。Android `FriendStatus` enum
+   * 是大写（`PENDING/ACCEPTED/BLOCKED`），desktop schema 是小写 CHECK，需 normalize。
    */
   async _applyFriend(item) {
     const data = JSON.parse(item.data || "{}");
+    const userDid = this._getLocalUserDid();
     if (item.operation === SyncOperation.DELETE) {
-      this.dbManager.run(`DELETE FROM friends WHERE friend_did = ?`, [
-        item.resourceId,
-      ]);
+      this.dbManager.run(
+        `DELETE FROM friends WHERE friend_did = ? AND user_did = ?`,
+        [item.resourceId, userDid],
+      );
       return;
     }
-    // CREATE / UPDATE 都走 INSERT OR REPLACE（last-write-wins 已在上层判过）
+    // ON CONFLICT(user_did, friend_did) 是 SQLite 3.24+ UPSERT 语法
     this.dbManager.run(
-      `INSERT OR REPLACE INTO friends
-       (friend_did, nickname, avatar, status, added_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO friends
+       (id, user_did, friend_did, nickname, avatar, status, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_did, friend_did) DO UPDATE SET
+         nickname = excluded.nickname,
+         avatar = excluded.avatar,
+         status = excluded.status,
+         notes = excluded.notes,
+         updated_at = excluded.updated_at`,
       [
         item.resourceId,
-        data.nickname || "",
+        userDid,
+        item.resourceId,
+        data.nickname || null,
         data.avatar || null,
-        data.status || "PENDING",
+        this._normalizeFriendStatus(data.status),
+        data.remarkName || null,
         data.addedAt || item.timestamp,
         item.timestamp,
       ],
@@ -505,14 +695,200 @@ class MobileBridgeSync {
   }
 
   /**
-   * 读本地 item 用于冲突判决。
+   * MESSAGE apply。字段对齐 p2p_chat_messages（schema 行 573）。
+   * 转发链 forwarded_from_id 可能 dangle，FK 在 ON DELETE SET NULL，无伤大雅。
+   */
+  async _applyMessage(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM p2p_chat_messages WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    this.dbManager.run(
+      `INSERT OR REPLACE INTO p2p_chat_messages
+       (id, session_id, sender_did, receiver_did, content, message_type,
+        file_path, file_size, encrypted, status, device_id, timestamp,
+        forwarded_from_id, forward_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.resourceId,
+        data.sessionId,
+        data.senderDid,
+        data.receiverDid,
+        data.content,
+        data.messageType || "text",
+        data.filePath || null,
+        data.fileSize || null,
+        data.encrypted === false ? 0 : 1,
+        data.status || "sent",
+        item.deviceId || null,
+        item.timestamp,
+        data.forwardedFromId || null,
+        data.forwardCount || 0,
+      ],
+    );
+  }
+
+  /**
+   * POST apply。images 数组写入 media TEXT 列（JSON serialize）。
+   * counts (likes/comments/shares) 不在 v1 sync，本地保留各自计数。
+   */
+  async _applyPost(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM social_posts WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    // INSERT OR REPLACE 会重置 counts；UPSERT 保留本地 counts
+    this.dbManager.run(
+      `INSERT INTO social_posts
+       (id, author_did, content, media, visibility, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         content = excluded.content,
+         media = excluded.media,
+         visibility = excluded.visibility,
+         updated_at = excluded.updated_at`,
+      [
+        item.resourceId,
+        data.authorDid,
+        data.content || "",
+        Array.isArray(data.images) ? JSON.stringify(data.images) : null,
+        this._normalizePostVisibility(data.visibility),
+        data.createdAt || item.timestamp,
+        data.updatedAt || item.timestamp,
+      ],
+    );
+  }
+
+  /**
+   * POST_COMMENT apply。schema 无 updated_at，UPDATE 等同 CREATE。
+   */
+  async _applyPostComment(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM post_comments WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    this.dbManager.run(
+      `INSERT OR REPLACE INTO post_comments
+       (id, post_id, author_did, content, parent_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        item.resourceId,
+        data.postId,
+        data.authorDid,
+        data.content || "",
+        data.parentCommentId || null,
+        data.createdAt || item.timestamp,
+      ],
+    );
+  }
+
+  /**
+   * NOTIFICATION apply。Android `NotificationType` enum 是大写，desktop schema
+   * CHECK 是 snake_case 小写，需 normalize。
+   */
+  async _applyNotification(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM notifications WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    this.dbManager.run(
+      `INSERT OR REPLACE INTO notifications
+       (id, user_did, type, title, content, data, is_read, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.resourceId,
+        this._getLocalUserDid(),
+        this._normalizeNotificationType(data.type),
+        data.title || "",
+        data.content || null,
+        data.targetId || data.actorDid
+          ? JSON.stringify({
+              targetId: data.targetId,
+              actorDid: data.actorDid,
+            })
+          : null,
+        data.isRead ? 1 : 0,
+        data.createdAt || item.timestamp,
+      ],
+    );
+  }
+
+  // ============================================================
+  // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
+  // ============================================================
+
+  _normalizeFriendStatus(status) {
+    const lower = String(status || "pending").toLowerCase();
+    return ["pending", "accepted", "blocked"].includes(lower)
+      ? lower
+      : "pending";
+  }
+
+  _normalizePostVisibility(v) {
+    const lower = String(v || "public").toLowerCase();
+    return ["public", "friends", "private"].includes(lower) ? lower : "public";
+  }
+
+  _normalizeNotificationType(t) {
+    const map = {
+      SYSTEM: "system",
+      LIKE: "like",
+      COMMENT: "comment",
+      MESSAGE: "message",
+      FRIEND_REQUEST: "friend_request",
+    };
+    const upper = String(t || "system").toUpperCase();
+    return map[upper] || "system";
+  }
+
+  /**
+   * 当前本地用户 DID。M3 接 deviceManager；scaffold 阶段允许空字符串
+   * 兜底（单用户 v1 不会撞 UNIQUE）。
+   */
+  _getLocalUserDid() {
+    if (this.deviceManager?.getLocalDid) {
+      return this.deviceManager.getLocalDid() || "";
+    }
+    return "";
+  }
+
+  /**
+   * 读本地 item 用于冲突判决。返回 {resourceId, version, timestamp, deviceId}
+   * 形状（与 SyncItem 子集兼容）。schema 没有 version 列，统一返 1。
    */
   async _readLocalItem(resourceType, resourceId) {
     switch (resourceType) {
+      case ResourceType.MESSAGE: {
+        const row = this.dbManager.get(
+          `SELECT id, device_id, timestamp FROM p2p_chat_messages WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.timestamp,
+              deviceId: row.device_id || "",
+            }
+          : null;
+      }
       case ResourceType.FRIEND: {
         const row = this.dbManager.get(
-          `SELECT friend_did, updated_at FROM friends WHERE friend_did = ?`,
-          [resourceId],
+          `SELECT friend_did, updated_at FROM friends
+           WHERE friend_did = ? AND user_did = ?`,
+          [resourceId, this._getLocalUserDid()],
         );
         return row
           ? {
@@ -523,7 +899,48 @@ class MobileBridgeSync {
             }
           : null;
       }
-      // TODO M2 step 4: 5 ResourceType 的 readLocal
+      case ResourceType.POST: {
+        const row = this.dbManager.get(
+          `SELECT id, updated_at FROM social_posts WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: "",
+            }
+          : null;
+      }
+      case ResourceType.POST_COMMENT: {
+        const row = this.dbManager.get(
+          `SELECT id, created_at FROM post_comments WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.created_at,
+              deviceId: "",
+            }
+          : null;
+      }
+      case ResourceType.NOTIFICATION: {
+        const row = this.dbManager.get(
+          `SELECT id, created_at FROM notifications WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.created_at,
+              deviceId: "",
+            }
+          : null;
+      }
       default:
         return null;
     }
