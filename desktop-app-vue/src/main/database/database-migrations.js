@@ -44,6 +44,73 @@ function ensureOpsPlaybookDescription(dbManager, logger) {
   }
 }
 
+/**
+ * Phase 3d: ensure sync_external_tombstones has the `resource_type` column.
+ * Phase 3c 期间该表只服务 knowledge_items（隐式 KNOWLEDGE_ITEM）。Phase 3d
+ * 加入 5 个新触发器（p2p_chat_messages / friends / social_posts /
+ * post_comments / notifications）后，需要 column 来区分 ResourceType。
+ *
+ * 操作：(1) 检测列存在；(2) 不存在则 ALTER ADD（NULL 兼容旧行，会被
+ * mobile-bridge-sync 的 resourceType 推断兜底）；(3) DROP 旧的
+ * trg_sync_ext_tombstone_on_delete（schema CREATE TRIGGER IF NOT EXISTS
+ * 不会替换已存在的 trigger）然后重新创建带 resource_type='KNOWLEDGE_ITEM'
+ * 的版本。其余 5 张表的触发器走 schema CREATE TRIGGER IF NOT EXISTS，
+ * 本函数不重复定义。
+ */
+function ensureSyncExternalTombstoneResourceType(dbManager, logger) {
+  try {
+    const cols = dbManager.db
+      .prepare("PRAGMA table_info(sync_external_tombstones)")
+      .all();
+    if (cols.length === 0) {
+      return; // table 还未创建（fresh install）— schema CREATE 会带新列
+    }
+    const hasResourceType = cols.some((c) => c.name === "resource_type");
+    if (hasResourceType) {
+      return; // 已迁移过，幂等返回
+    }
+
+    logger.info(
+      "[Database] 添加 sync_external_tombstones.resource_type 列 (Phase 3d)",
+    );
+    dbManager.db.run(
+      "ALTER TABLE sync_external_tombstones ADD COLUMN resource_type TEXT",
+    );
+
+    // 旧 trigger body 不写 resource_type，需 DROP + 重建
+    dbManager.db.run("DROP TRIGGER IF EXISTS trg_sync_ext_tombstone_on_delete");
+    dbManager.db.run(`
+      CREATE TRIGGER trg_sync_ext_tombstone_on_delete
+      AFTER DELETE ON knowledge_items
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT
+          c.provider_id,
+          c.account_key,
+          OLD.id,
+          'KNOWLEDGE_ITEM',
+          (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+    `);
+
+    // 兼容索引（schema 也定义了 IF NOT EXISTS，这里幂等执行无伤大雅）
+    dbManager.db.run(
+      "CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_resource_type ON sync_external_tombstones(resource_type)",
+    );
+
+    dbManager.saveToFile();
+    logger.info("[Database] ✓ sync_external_tombstones.resource_type 迁移完成");
+  } catch (error) {
+    logger.warn(
+      "[Database] sync_external_tombstones.resource_type 迁移失败（可忽略，下次启动重试）:",
+      error.message,
+    );
+  }
+}
+
 function ensureTaskBoardOwnerSchema(dbManager, logger) {
   try {
     const tableInfo = dbManager.db
@@ -1481,6 +1548,7 @@ function checkColumnExists(dbManager, logger, tableName, columnName) {
 module.exports = {
   ensureTaskBoardOwnerSchema,
   ensureOpsPlaybookDescription,
+  ensureSyncExternalTombstoneResourceType,
   migrateDatabase,
   runMigrationsOptimized,
   runMigrations,

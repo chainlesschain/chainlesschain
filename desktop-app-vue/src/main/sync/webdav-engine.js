@@ -86,10 +86,13 @@ async function runWebDAVSync(deps) {
   // ① ensure cursor 存在
   let cursor = store.ensureCursor(dbManager, providerId, accountKey);
 
-  // 进度条总数（push pending + tombstones 数量）
+  // 进度条总数（push pending + tombstones 数量）。Phase 3d 起 tombstones
+  // 表会含其他 ResourceType（mobile sync 等），用 filter 只看 KNOWLEDGE_ITEM。
   totalPending =
     walker.countPending(dbManager, cursor) +
-    store.listTombstones(dbManager, providerId, accountKey, 1000).length;
+    store.listTombstones(dbManager, providerId, accountKey, 1000, [
+      "KNOWLEDGE_ITEM",
+    ]).length;
 
   onProgress?.({
     phase: "start",
@@ -99,12 +102,14 @@ async function runWebDAVSync(deps) {
     totalPending,
   });
 
-  // ② drain tombstones
+  // ② drain tombstones (filter to KNOWLEDGE_ITEM since Phase 3d adds 5
+  // mobile-only ResourceTypes whose tombstones fan-out to webdav cursor too)
   const tombstones = store.listTombstones(
     dbManager,
     providerId,
     accountKey,
     1000,
+    ["KNOWLEDGE_ITEM"],
   );
   for (const t of tombstones) {
     const filename = cursor.remoteFilenameMap?.[t.item_id];

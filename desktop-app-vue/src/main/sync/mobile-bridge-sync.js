@@ -177,19 +177,26 @@ class MobileBridgeSync {
     let pushed = 0;
     let conflicts = 0;
 
-    // tombstones 先：远端先知道哪些 id 已删除，避免后续 INSERT 重新建
+    // tombstones 先：远端先知道哪些 id 已删除，避免后续 INSERT 重新建。
+    // resourceTypes 过滤让 mobile provider 只看自己关心的 ResourceType
+    // （knowledge_items 的 KNOWLEDGE_ITEM tombstone 留给 webdav/oss 处理）。
+    // 注：listTombstones 返回 raw SQLite 列（snake_case），形状与 getCursor
+    // 不一致是历史遗留，详见 sync-external-store.js listTombstones 注释。
     const tombstones = externalStoreApi.listTombstones(
       this.dbManager,
       PROVIDER_ID,
       deviceId,
+      200,
+      Object.values(ResourceType).filter((t) => t !== ResourceType.CONTACT),
     );
     for (const ts of tombstones) {
       const item = {
-        resourceType: this._inferResourceTypeFromTombstone(ts),
-        resourceId: ts.itemId,
+        resourceType:
+          ts.resource_type || this._inferResourceTypeFromTombstone(ts),
+        resourceId: ts.item_id,
         operation: SyncOperation.DELETE,
         version: 1,
-        timestamp: ts.deletedAt,
+        timestamp: ts.deleted_at,
         data: "{}",
       };
       const res = await this._sendItem(deviceId, item);
@@ -993,10 +1000,14 @@ class MobileBridgeSync {
   // 内部工具
   // ============================================================
 
-  _inferResourceTypeFromTombstone(ts) {
-    // tombstone 由 trigger 写入时不带 resourceType；从表名推断。
-    // TODO M2 step 4: trigger 写 tombstone 时带 resourceType column 直接拿
-    return ResourceType.MESSAGE;
+  /**
+   * Phase 3c 期间写入的旧 tombstone 行 resource_type 列为 NULL（迁移前）。
+   * 那批行必然是 knowledge_items（Phase 3c 是唯一来源），但 v1 mobile sync
+   * 不处理 KNOWLEDGE_ITEM；走兜底返回 null 让 caller 跳过。Phase 3d 之后
+   * 写入的所有 tombstone 都有 resource_type，正常路径不到这里。
+   */
+  _inferResourceTypeFromTombstone(_ts) {
+    return null;
   }
 
   /**

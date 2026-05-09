@@ -69,7 +69,8 @@ function _statusSummary(database) {
     itemsSkipped: cursor.itemsSkipped ?? 0,
     itemsDeleted: cursor.itemsDeleted ?? 0,
     pendingTombstones:
-      store.listTombstones(database, PROVIDER_ID, "", 1).length > 0,
+      store.listTombstones(database, PROVIDER_ID, "", 1, ["KNOWLEDGE_ITEM"])
+        .length > 0,
   };
 }
 

@@ -185,11 +185,27 @@ function recordPushedItem(
  * 列 tombstone — sync engine 取来批量执行远端 DELETE。
  * 排序 by deleted_at ASC（旧的先删），retry_count 限流由调用方处理。
  */
+/**
+ * 列 tombstone 行。**返回 raw SQLite 列形状（snake_case）**——与
+ * getCursor 的 camelCase 不一致是历史遗留，不在 Phase 3d 调（避免 break
+ * webdav-engine.js 的 t.item_id 访问 + 现有 webdav-engine.test.js）。
+ *
+ * @param {Object} dbManager
+ * @param {string} providerId
+ * @param {string} [accountKey='']
+ * @param {number} [limit=200]
+ * @param {string[]|null} [resourceTypes] 可选：仅返回这些 ResourceType
+ *   的 tombstone（Phase 3d）。null/undefined = 不过滤（向后兼容 Phase 3c
+ *   webdav 行为）。WebDAV/OSS 调用方应传 ['KNOWLEDGE_ITEM']，mobile
+ *   调用方传 5 个 mobile ResourceType；不过滤会让 webdav 看到 mobile
+ *   FRIEND/POST 等 tombstone 浪费一次 noop DELETE。
+ */
 function listTombstones(
   dbManager,
   providerId,
   accountKey = DEFAULT_ACCOUNT_KEY,
   limit = 200,
+  resourceTypes = null,
 ) {
   if (!dbManager?.db) {
     return [];
@@ -198,13 +214,17 @@ function listTombstones(
     1,
     Math.min(1000, Math.floor(Number(limit) || 200)),
   );
-  return dbManager.all(
+  const rows = dbManager.all(
     `SELECT * FROM sync_external_tombstones
      WHERE provider_id = ? AND account_key = ?
      ORDER BY deleted_at ASC
      LIMIT ${safeLimit}`,
     [providerId, accountKey],
   );
+  if (Array.isArray(resourceTypes) && resourceTypes.length > 0) {
+    return rows.filter((r) => resourceTypes.includes(r.resource_type));
+  }
+  return rows;
 }
 
 function deleteTombstone(dbManager, id) {

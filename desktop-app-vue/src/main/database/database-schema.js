@@ -4028,7 +4028,11 @@ function createTables(dbManager, logger) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         provider_id TEXT NOT NULL,
         account_key TEXT NOT NULL DEFAULT '',
-        item_id TEXT NOT NULL,                 -- knowledge_items.id
+        item_id TEXT NOT NULL,                 -- 被删行的 PK 或自然键
+        resource_type TEXT,                    -- Phase 3d：tombstone 所属 ResourceType
+                                               -- ('KNOWLEDGE_ITEM' / 'MESSAGE' / 'FRIEND'
+                                               -- / 'POST' / 'POST_COMMENT' / 'NOTIFICATION')
+                                               -- NULL 兼容 Phase 3c 期间已写入的旧行
         deleted_at INTEGER NOT NULL,           -- 本地删除时间 (ms)
         retry_count INTEGER NOT NULL DEFAULT 0,
         last_error TEXT,
@@ -4042,12 +4046,71 @@ function createTables(dbManager, logger) {
       FOR EACH ROW
       BEGIN
         INSERT OR IGNORE INTO sync_external_tombstones
-          (provider_id, account_key, item_id, deleted_at)
+          (provider_id, account_key, item_id, resource_type, deleted_at)
         SELECT
           c.provider_id,
           c.account_key,
           OLD.id,
+          'KNOWLEDGE_ITEM',
           (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      -- Phase 3d 移动同步：5 张社交子系统表的 tombstone 触发器。fan-out 到
+      -- 所有 provider 游标；mobile-bridge-sync 通过 resource_type 列过滤。
+      -- friends 表 tombstone 用 friend_did 作 item_id（与 walker emit 一致）。
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_p2p_chat_messages
+      AFTER DELETE ON p2p_chat_messages
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.id, 'MESSAGE',
+               (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_friends
+      AFTER DELETE ON friends
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.friend_did, 'FRIEND',
+               (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_social_posts
+      AFTER DELETE ON social_posts
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.id, 'POST',
+               (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_post_comments
+      AFTER DELETE ON post_comments
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.id, 'POST_COMMENT',
+               (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_notifications
+      AFTER DELETE ON notifications
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.id, 'NOTIFICATION',
+               (strftime('%s','now') * 1000)
         FROM sync_external_provider_cursor c;
       END;
 
@@ -4057,6 +4120,8 @@ function createTables(dbManager, logger) {
         ON sync_external_tombstones(provider_id, account_key);
       CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_item
         ON sync_external_tombstones(item_id);
+      CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_resource_type
+        ON sync_external_tombstones(resource_type);
       `);
 
     // 重新启用外键约束
@@ -4065,6 +4130,7 @@ function createTables(dbManager, logger) {
 
     dbManager.ensureTaskBoardOwnerSchema();
     dbManager.ensureOpsPlaybookDescription();
+    dbManager.ensureSyncExternalTombstoneResourceType();
 
     logger.info("[Database] ✓ 所有表和索引创建成功");
 

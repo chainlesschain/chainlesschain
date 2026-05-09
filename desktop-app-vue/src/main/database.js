@@ -743,6 +743,17 @@ class DatabaseManager {
   }
 
   /**
+   * Phase 3d: ensure sync_external_tombstones has the resource_type column
+   * + the 5 new mobile-sync triggers' DROP/CREATE for old DBs.
+   */
+  ensureSyncExternalTombstoneResourceType() {
+    const {
+      ensureSyncExternalTombstoneResourceType: _ensure,
+    } = require("./database/database-migrations");
+    return _ensure(this, logger);
+  }
+
+  /**
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {
