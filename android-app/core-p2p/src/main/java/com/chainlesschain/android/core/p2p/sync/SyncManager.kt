@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessageTransport
+import dagger.Lazy
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +30,11 @@ class SyncManager @Inject constructor(
     private val conflictResolver: ConflictResolver,
     private val syncDataApplier: SyncDataApplier,
     // Phase 3d M3 step C：游标 Room 持久化（replace ConcurrentHashMap）
-    private val syncRemoteCursorDao: SyncRemoteCursorDao
+    private val syncRemoteCursorDao: SyncRemoteCursorDao,
+    // Phase 3d M3 step D.5：出向 JSON-RPC（Android → desktop）。dagger.Lazy
+    // 因为 P2PClientSyncOutbound 注入 P2PClient → CommandRouter →
+    // SyncCommandRouter → SyncManager，间接循环。Lazy 解循环。
+    private val syncOutbound: Lazy<SyncOutbound>
 ) {
 
     companion object {
@@ -114,6 +119,124 @@ class SyncManager @Inject constructor(
             Timber.e(e, "Sync failed")
             _syncState.value = SyncState.Failed(e.message ?: "Unknown error")
         }
+    }
+
+    /**
+     * Phase 3d M3 step D.5：把 pendingChanges 推到桌面端（JSON-RPC 路径）。
+     *
+     * 与 performSync (binary P2PMessage path) 共存：
+     *   - performSync 仍服务 Android↔Android（KNOWLEDGE_SYNC / CONVERSATION_SYNC
+     *     binary envelope 走 messageQueue/DataChannelTransport）
+     *   - pushPendingToDesktopRpc 服务 Android↔Desktop（sync.push JSON-RPC 走
+     *     P2PClient.sendCommand → WebRTC DataChannel → desktop MobileBridge）
+     *
+     * 处理逻辑（match desktop mobile-bridge-sync.js pushPending）：
+     *   - "applied"：从 pendingChanges 移除，Room cursor lastPushTs 推进
+     *   - "conflict"：保留 pendingChanges，若 resolved!=null 视为对端胜出版，
+     *     applySyncItem(resolved) 让本地与对端一致
+     *   - "failed"：保留 pendingChanges 留下次重试，记 lastError
+     *
+     * 收尾：写 sync_remote_cursor 的 lastRunStatus / lastRunDurationMs 到 Room。
+     *
+     * @param desktopDeviceId 桌面对端 deviceId（pairing 阶段拿到的）
+     * @return 推送数 / 冲突数 / 失败数
+     */
+    suspend fun pushPendingToDesktopRpc(desktopDeviceId: String): RpcSyncResult {
+        if (pendingChanges.isEmpty()) {
+            Timber.d("No pending changes to push to desktop")
+            return RpcSyncResult(0, 0, 0)
+        }
+        Timber.i("Pushing ${pendingChanges.size} changes to desktop $desktopDeviceId")
+        _syncState.value = SyncState.Syncing(progress = 0)
+
+        val startedAt = System.currentTimeMillis()
+        val items = pendingChanges.values.toList()
+        val total = items.size
+        var pushed = 0
+        var conflicts = 0
+        var failed = 0
+        var lastError: String? = null
+
+        for ((idx, item) in items.withIndex()) {
+            try {
+                val response = syncOutbound.get().pushItem(desktopDeviceId, item)
+                when (response.status) {
+                    "applied" -> {
+                        pendingChanges.remove(item.resourceId)
+                        pushed++
+                    }
+                    "conflict" -> {
+                        conflicts++
+                        // 对端版本胜：把 resolved 应用到本地（远端已认定的 winning 版）
+                        response.resolved?.let { winner ->
+                            try {
+                                applySyncItem(winner)
+                                Timber.d("Conflict ${item.resourceId} → applied remote winner")
+                            } catch (e: Exception) {
+                                Timber.w(e, "Conflict resolution apply failed: ${item.resourceId}")
+                            }
+                        }
+                        // 不论 winner 是远端还是本地，都从 pendingChanges 移除（本地已与
+                        // 远端一致或将一致）
+                        pendingChanges.remove(item.resourceId)
+                    }
+                    "failed" -> {
+                        failed++
+                        lastError = response.error
+                        // 不移除，留下次重试
+                    }
+                    else -> {
+                        Timber.w("Unknown sync.push status: ${response.status} for ${item.resourceId}")
+                        failed++
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "sync.push exception for ${item.resourceId}")
+                failed++
+                lastError = e.message ?: e.javaClass.simpleName
+            }
+
+            _syncState.value = SyncState.Syncing(progress = ((idx + 1) * 100) / total)
+        }
+
+        val now = System.currentTimeMillis()
+        val durationMs = now - startedAt
+        lastSyncTimestamp[desktopDeviceId] = now
+        try {
+            if (pushed > 0) {
+                syncRemoteCursorDao.advancePush(
+                    deviceId = desktopDeviceId,
+                    resourceType = "ALL",
+                    lastPushTs = now,
+                    itemsPushedDelta = pushed.toLong(),
+                    now = now
+                )
+            }
+            val status = when {
+                failed > 0 -> "failed"
+                conflicts > 0 -> "conflict"
+                else -> "success"
+            }
+            syncRemoteCursorDao.recordRunResult(
+                deviceId = desktopDeviceId,
+                resourceType = "ALL",
+                status = status,
+                error = lastError,
+                durationMs = durationMs,
+                conflictedDelta = conflicts.toLong(),
+                now = now
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to persist desktop sync cursor")
+        }
+
+        _syncState.value =
+            if (failed > 0) SyncState.Failed(lastError ?: "Some pushes failed")
+            else SyncState.Completed
+        Timber.i("Pushed to desktop: $pushed applied / $conflicts conflict / $failed failed")
+        return RpcSyncResult(pushed = pushed, conflicts = conflicts, failed = failed)
     }
 
     /**
@@ -583,6 +706,16 @@ data class SyncStatistics(
 
     /** 各设备最后同步时间 */
     val lastSyncTimestamps: Map<String, Long>
+)
+
+/**
+ * pushPendingToDesktopRpc 返回值（Phase 3d M3 step D.5）。三个数应满足
+ * pushed + conflicts + failed == 推送尝试总数。
+ */
+data class RpcSyncResult(
+    val pushed: Int,
+    val conflicts: Int,
+    val failed: Int
 )
 
 // ============================================================

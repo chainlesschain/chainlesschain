@@ -47,7 +47,9 @@ class P2PClient @Inject constructor(
     private val didManager: DIDManager,
     private val webRTCClient: WebRTCClient,
     private val nonceManager: NonceManager,  // Nonce 持久化管理
-    private val deviceActivityManager: DeviceActivityManager  // 设备活动跟踪
+    private val deviceActivityManager: DeviceActivityManager,  // 设备活动跟踪
+    // Phase 3d M3 step D.5: 入向 COMMAND_REQUEST dispatch（PC → Android sync.* 命令）
+    private val commandRouter: CommandRouter
 ) : RemoteSkillProvider {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
@@ -484,6 +486,10 @@ class P2PClient @Inject constructor(
         try {
             val message = raw.fromJson<P2PMessage>()
             when (message.type) {
+                MessageTypes.COMMAND_REQUEST -> {
+                    // Phase 3d M3 step D.5: PC 端发来命令请求（sync.push / sync.pull / sync.ack 等）
+                    handleIncomingCommandRequest(message.payload)
+                }
                 MessageTypes.COMMAND_RESPONSE -> {
                     val response = message.payload.fromJson<CommandResponse>()
                     pendingRequests[response.id]?.deferred?.complete(response)
@@ -636,6 +642,74 @@ class P2PClient @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "[P2PClient] 取消流失败: $streamId")
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Phase 3d M3 step D.5: 处理 PC → Android 入向命令请求。
+     *
+     * payload 解为 CommandRequest 后按 method 分发给注入的 commandRouter
+     * （SyncCommandRouter 处理 sync.* 命名空间）。Result 回包成
+     * COMMAND_RESPONSE 走 webRTCClient 反向发回 PC。**v1 不验证 auth**——
+     * 已配对设备在 pairing 阶段做过 DID 互信，sync 路径暂跳过签名校验。v2 加。
+     */
+    private suspend fun handleIncomingCommandRequest(payload: String) {
+        var requestId = ""
+        try {
+            val request = payload.fromJson<CommandRequest>()
+            requestId = request.id
+            Timber.d("[P2PClient] incoming command: ${request.method} (id=${request.id})")
+
+            val result = commandRouter.route(request.method, request.params)
+            sendCommandResponse(requestId = requestId, result = result, error = null)
+        } catch (e: IllegalArgumentException) {
+            // CommandRouter 抛 IllegalArgumentException → method-not-found
+            Timber.w(e, "[P2PClient] METHOD_NOT_FOUND: id=$requestId")
+            sendCommandResponse(
+                requestId = requestId,
+                result = null,
+                error = ErrorInfo(ErrorCodes.METHOD_NOT_FOUND, e.message ?: "Method not found")
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "[P2PClient] command request failed: id=$requestId")
+            sendCommandResponse(
+                requestId = requestId,
+                result = null,
+                error = ErrorInfo(ErrorCodes.INTERNAL_ERROR, e.message ?: e.javaClass.simpleName)
+            )
+        }
+    }
+
+    /**
+     * 包 CommandResponse → P2PMessage(COMMAND_RESPONSE) → webRTCClient.sendMessage。
+     * result 走 Gson 序列化（@Contextual Any 兼容）；error 是 nullable
+     * @Serializable 直接走 kotlinx。
+     */
+    private fun sendCommandResponse(requestId: String, result: Any?, error: ErrorInfo?) {
+        try {
+            // 用 Gson 序列化 result 内嵌对象（与 sendCommandInternal 出向 result 解码对称）
+            // CommandResponse 走 @Contextual，需 JsonSerializer + 自定义 contextual ——
+            // 简化：构造一个 Map<String, Any?> 然后 Gson 序列化整体 payload。
+            val responseMap = mutableMapOf<String, Any?>(
+                "jsonrpc" to "2.0",
+                "id" to requestId
+            )
+            if (error != null) {
+                responseMap["error"] = mapOf(
+                    "code" to error.code,
+                    "message" to error.message,
+                    "data" to error.data
+                )
+            } else {
+                responseMap["result"] = result
+            }
+            val payload = gson.toJson(responseMap)
+            val message = P2PMessage(type = MessageTypes.COMMAND_RESPONSE, payload = payload)
+            webRTCClient.sendMessage(message.toJsonString())
+        } catch (e: Exception) {
+            Timber.e(e, "[P2PClient] sendCommandResponse 失败: id=$requestId")
         }
     }
 

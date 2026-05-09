@@ -9,6 +9,7 @@ import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
 import com.chainlesschain.android.core.database.entity.SyncRemoteCursorEntity
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.model.MessageType
+import dagger.Lazy
 
 /**
  * SyncManager单元测试
@@ -24,11 +25,16 @@ class SyncManagerTest {
     fun setup() {
         messageQueue = MessageQueue()
         conflictResolver = ConflictResolver()
+        val outbound: SyncOutbound = NoOpSyncOutbound()
+        val outboundLazy = object : Lazy<SyncOutbound> {
+            override fun get(): SyncOutbound = outbound
+        }
         syncManager = SyncManager(
             messageQueue,
             conflictResolver,
             NoOpSyncDataApplier(),
-            NoOpSyncRemoteCursorDao()
+            NoOpSyncRemoteCursorDao(),
+            outboundLazy
         )
     }
 
@@ -298,6 +304,62 @@ class SyncManagerTest {
         assertTrue(true)
     }
 
+    // ====================================================================
+    // Phase 3d M3 step D.5: pushPendingToDesktopRpc (outbound JSON-RPC)
+    // ====================================================================
+
+    @Test
+    fun `pushPendingToDesktopRpc returns zeros when no pending changes`() = runTest {
+        val result = syncManager.pushPendingToDesktopRpc("desktop-1")
+        assertEquals(0, result.pushed)
+        assertEquals(0, result.conflicts)
+        assertEquals(0, result.failed)
+    }
+
+    @Test
+    fun `pushPendingToDesktopRpc drains pendingChanges when all applied`() = runTest {
+        // NoOpSyncOutbound 默认返 status="applied"
+        syncManager.recordChange(createSyncItem("a"))
+        syncManager.recordChange(createSyncItem("b"))
+        assertEquals(2, syncManager.getSyncStatistics().pendingChanges)
+
+        val result = syncManager.pushPendingToDesktopRpc("desktop-1")
+        assertEquals(2, result.pushed)
+        assertEquals(0, result.conflicts)
+        assertEquals(0, result.failed)
+        assertEquals(0, syncManager.getSyncStatistics().pendingChanges)
+    }
+
+    @Test
+    fun `pushPendingToDesktopRpc leaves item in pending on failed response`() = runTest {
+        // 注入返 failed 的 outbound
+        val failingOutbound = object : SyncOutbound {
+            override suspend fun pushItem(deviceId: String, item: SyncItem) =
+                SyncPushResponse(status = "failed", error = "network down")
+            override suspend fun pullFromDevice(
+                deviceId: String, cursor: PullCursor,
+                resourceTypes: List<ResourceType>?, limit: Int
+            ) = SyncPullResponse(items = emptyList(), nextCursor = cursor, hasMore = false)
+        }
+        val failingLazy = object : Lazy<SyncOutbound> {
+            override fun get(): SyncOutbound = failingOutbound
+        }
+        val sm = SyncManager(
+            messageQueue,
+            conflictResolver,
+            NoOpSyncDataApplier(),
+            NoOpSyncRemoteCursorDao(),
+            failingLazy
+        )
+        sm.recordChange(createSyncItem("a"))
+
+        val result = sm.pushPendingToDesktopRpc("desktop-1")
+        assertEquals(0, result.pushed)
+        assertEquals(1, result.failed)
+        // 失败的 item 应留在 pendingChanges 等下次重试
+        assertEquals(1, sm.getSyncStatistics().pendingChanges)
+    }
+
     /** 测试用 no-op 实现 */
     private class NoOpSyncDataApplier : SyncDataApplier {
         override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {}
@@ -337,6 +399,22 @@ class SyncManagerTest {
         ) {}
         override suspend fun deleteCursorsForDevice(deviceId: String) {}
         override suspend fun deleteAll() {}
+    }
+
+    /** Phase 3d M3 step D.5：测试用 no-op 出向 outbound（不真发 RPC） */
+    private class NoOpSyncOutbound : SyncOutbound {
+        override suspend fun pushItem(deviceId: String, item: SyncItem): SyncPushResponse =
+            SyncPushResponse(status = "applied")
+        override suspend fun pullFromDevice(
+            deviceId: String,
+            cursor: PullCursor,
+            resourceTypes: List<ResourceType>?,
+            limit: Int
+        ): SyncPullResponse = SyncPullResponse(
+            items = emptyList(),
+            nextCursor = cursor,
+            hasMore = false
+        )
     }
 
     // Helper functions
