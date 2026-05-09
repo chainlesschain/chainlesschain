@@ -39,15 +39,31 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     hasResetTestProfile = true;
   }
 
+  // Pre-write app-config.json with `ui.useWebShellExperimental: false` BEFORE
+  // launching. Background: the Phase 1.6 hard-flip in database-config.js made
+  // useWebShellExperimental default to TRUE; AppConfig writes that default to
+  // app-config.json on every fresh launch. shouldRunWebShell() then sees
+  // `persisted === true` and short-circuits to web-shell mode IGNORING our
+  // --no-web-shell argv and CHAINLESSCHAIN_WEB_SHELL=0 env (settings are
+  // authoritative ahead of CLI flags by design — see
+  // web-shell-bootstrap.js:344). Run-25596369685 confirmed this: helper had
+  // both CLI signals and main still booted into WebShell. Pre-writing the
+  // file flips persisted to false before AppConfig.loadAsync gets a chance.
+  fs.mkdirSync(userDataPath, { recursive: true });
+  fs.writeFileSync(
+    path.join(userDataPath, "app-config.json"),
+    JSON.stringify(
+      { ui: { useWebShellExperimental: false, useV6ShellByDefault: false } },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
-  // Web-shell vs V5/V6 mode: shouldRunWebShell() defaults to TRUE since
-  // Phase 1.6 hard-flip (web-shell-bootstrap.js:366). The web-shell preload
-  // is minimal and intentionally does NOT expose `electronAPI` / `electron`
-  // — that's what made every E2E run on this helper fail with
-  // "Preload bridge never exposed". simple-api.e2e.test.ts exercises
-  // electronAPI.system / electronAPI.git / electronAPI.notification, which
-  // only exist in V5/V6 mode. Force opt-out via env + arg so the desktop
-  // renderer (with full preload bridge) loads.
+  // Belt-and-braces: settings pre-write above is the load-bearing fix; argv
+  // + env below are the secondary opt-out paths shouldRunWebShell honours
+  // when settings is unset (kept for defence-in-depth).
   const app = await electron.launch({
     args: [
       mainPath,
