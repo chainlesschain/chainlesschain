@@ -49,7 +49,10 @@ class P2PClient @Inject constructor(
     private val nonceManager: NonceManager,  // Nonce 持久化管理
     private val deviceActivityManager: DeviceActivityManager,  // 设备活动跟踪
     // Phase 3d M3 step D.5: 入向 COMMAND_REQUEST dispatch（PC → Android sync.* 命令）
-    private val commandRouter: CommandRouter
+    private val commandRouter: CommandRouter,
+    // Phase 3d v1.1 #2: sync.* 入向 auth 校验（dagger.Lazy 因 SyncAuthVerifier
+    // 反向注入 P2PClient — 用 Lazy 解循环）
+    private val syncAuthVerifier: dagger.Lazy<com.chainlesschain.android.sync.SyncAuthVerifier>
 ) : RemoteSkillProvider {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
@@ -660,8 +663,34 @@ class P2PClient @Inject constructor(
             requestId = request.id
             Timber.d("[P2PClient] incoming command: ${request.method} (id=${request.id})")
 
+            // Phase 3d v1.1 #2: sync.* 命名空间走 auth 校验（其他 namespace 暂保留
+            // 现有 v0 行为，避免破坏既有 remote skill 调用链。校验失败抛
+            // SecurityException 由下面 catch 包成 -32008 响应。
+            //
+            // request.auth 为 null 时 desktop 端尚未实现 createAuth — warn-log 后
+            // skip enforcement（v1.1 → v1.2 路径），不阻塞已通的 demo。
+            if (request.method.startsWith("sync.")) {
+                val auth = request.auth
+                if (auth == null) {
+                    Timber.w(
+                        "[P2PClient] sync.* request without auth (id=$requestId method=${request.method}); " +
+                            "v1.1 skip — desktop should add createAuth in v1.2"
+                    )
+                } else {
+                    syncAuthVerifier.get().verify(auth, request.method)
+                }
+            }
+
             val result = commandRouter.route(request.method, request.params)
             sendCommandResponse(requestId = requestId, result = result, error = null)
+        } catch (e: SecurityException) {
+            // v1.1 #2 auth 校验失败
+            Timber.w(e, "[P2PClient] AUTHENTICATION_FAILED: id=$requestId")
+            sendCommandResponse(
+                requestId = requestId,
+                result = null,
+                error = ErrorInfo(ErrorCodes.AUTHENTICATION_FAILED, e.message ?: "auth failed")
+            )
         } catch (e: IllegalArgumentException) {
             // CommandRouter 抛 IllegalArgumentException → method-not-found
             Timber.w(e, "[P2PClient] METHOD_NOT_FOUND: id=$requestId")

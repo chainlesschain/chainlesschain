@@ -13,6 +13,10 @@ import kotlinx.serialization.json.Json
 
 /**
  * 命令请求
+ *
+ * Phase 3d v1.1 #2: auth 改为 nullable 兼容 desktop side mobile-bridge-sync.js
+ * 暂未生成 AuthInfo 的情况；SyncAuthVerifier 看到 null auth 走 warn-log 跳过路径
+ * （v1.2 desktop 补 sign 后再 enforce）。其他出向 (Android → PC) 仍然总是带 auth。
  */
 @Serializable
 data class CommandRequest(
@@ -20,7 +24,7 @@ data class CommandRequest(
     val id: String,
     val method: String,
     val params: Map<String, @Contextual Any> = emptyMap(),
-    val auth: AuthInfo
+    val auth: AuthInfo? = null
 )
 
 /**

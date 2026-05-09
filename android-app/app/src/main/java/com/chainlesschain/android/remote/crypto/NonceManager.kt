@@ -175,6 +175,27 @@ class NonceManager @Inject constructor(
     }
 
     /**
+     * Phase 3d v1.1 #2：标记对端 nonce 为已使用（防重放）。
+     *
+     * 与 generateNonce 的区别：generateNonce 是本机出向请求自动记录；
+     * markNonceSeen 是收到 INCOMING 请求后由 SyncAuthVerifier 调用。
+     */
+    suspend fun markNonceSeen(did: String, nonce: String) {
+        try {
+            val nonceKey = "$did:$nonce"
+            val entity = UsedNonceEntity(
+                nonceKey = nonceKey,
+                did = did,
+                timestamp = System.currentTimeMillis()
+            )
+            nonceDao.insertNonce(entity)
+        } catch (e: Exception) {
+            // 不抛出 — 持久化失败不应阻断 sync 流，仅记录
+            Timber.w(e, "[NonceManager] markNonceSeen 失败")
+        }
+    }
+
+    /**
      * 启动定期清理任务
      */
     private fun startCleanupTask() {
