@@ -219,6 +219,85 @@ class SyncManagerTest {
         assertTrue(true)
     }
 
+    // ====================================================================
+    // Phase 3d M3 step D: JSON-RPC handlers
+    // ====================================================================
+
+    @Test
+    fun `handlePushRpc applies item when no conflict and returns applied`() = runTest {
+        val item = createSyncItem("remote-new")
+        val response = syncManager.handlePushRpc(item, deviceId = "desktop-1")
+        assertEquals("applied", response.status)
+        assertNull(response.error)
+        assertNull(response.resolved)
+    }
+
+    @Test
+    fun `handlePushRpc returns conflict with resolved when local has newer item`() = runTest {
+        // 给 SyncManager 注入更新的本地版（先 push 一个 timestamp=200 的远端 item，让
+        // localState 缓存里有这条；再 push 同 id timestamp=100 的版本触发冲突）
+        val newer = createSyncItem("contested", timestamp = 200, version = 2)
+        syncManager.handlePushRpc(newer)
+
+        val older = createSyncItem("contested", timestamp = 100, version = 1, data = "stale")
+        val response = syncManager.handlePushRpc(older)
+
+        assertEquals("conflict", response.status)
+        assertNotNull(response.resolved)
+    }
+
+    @Test
+    fun `handlePullRpc returns empty when no pending changes`() {
+        val response = syncManager.handlePullRpc(
+            cursor = PullCursor(ts = 0),
+            resourceTypes = null,
+            limit = 100
+        )
+        assertTrue(response.items.isEmpty())
+        assertEquals(false, response.hasMore)
+    }
+
+    @Test
+    fun `handlePullRpc returns pending changes above cursor in lex order`() {
+        syncManager.recordChange(createSyncItem("a", timestamp = 100))
+        syncManager.recordChange(createSyncItem("b", timestamp = 200))
+        syncManager.recordChange(createSyncItem("c", timestamp = 300))
+
+        val response = syncManager.handlePullRpc(
+            cursor = PullCursor(ts = 100),
+            resourceTypes = null,
+            limit = 100
+        )
+        // a (ts=100) 应被 cursor.ts=100 排除（因为 cursor.id=null，不走 tie-break 分支）
+        assertEquals(2, response.items.size)
+        assertEquals("b", response.items[0].resourceId)
+        assertEquals("c", response.items[1].resourceId)
+        assertEquals(300L, response.nextCursor.ts)
+    }
+
+    @Test
+    fun `handlePullRpc respects resourceTypes filter`() {
+        syncManager.recordChange(createSyncItem("k1", resourceType = ResourceType.KNOWLEDGE_ITEM))
+        syncManager.recordChange(createSyncItem("c1", resourceType = ResourceType.CONVERSATION))
+
+        val response = syncManager.handlePullRpc(
+            cursor = PullCursor(ts = 0),
+            resourceTypes = listOf(ResourceType.CONVERSATION),
+            limit = 100
+        )
+        assertEquals(1, response.items.size)
+        assertEquals("c1", response.items[0].resourceId)
+    }
+
+    @Test
+    fun `handleAckRpc does not throw on null inputs`() {
+        // fire-and-forget — 仅 log，应不抛
+        syncManager.handleAckRpc(requestId = null, status = null)
+        syncManager.handleAckRpc(requestId = "req-1", status = "applied")
+        syncManager.handleAckRpc(requestId = "req-2", status = "failed", error = "boom")
+        assertTrue(true)
+    }
+
     /** 测试用 no-op 实现 */
     private class NoOpSyncDataApplier : SyncDataApplier {
         override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {}

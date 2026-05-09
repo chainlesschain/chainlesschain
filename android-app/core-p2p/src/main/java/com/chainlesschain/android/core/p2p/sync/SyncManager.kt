@@ -357,6 +357,118 @@ class SyncManager @Inject constructor(
         }
     }
 
+    // ============================================================
+    // JSON-RPC handlers (Phase 3d M3 step D)
+    //
+    // 这三个方法是 desktop ↔ Android 走 MobileBridge JSON-RPC envelope 的
+    // 入向接口，对应桌面 src/main/sync/mobile-bridge-sync.js 的
+    // handlePush / handlePull / handleAck。Phase 3d v1 envelope 由 desktop
+    // routeMobileCommand("sync", action) → app.mobileBridgeSync.handleX 路由。
+    // Android 端需在 chainlesschain:command:request dispatcher 把
+    // method=sync.* 路由到这里（接线 = step D.5，因 Android command-request
+    // dispatcher pattern 待我下次补查时识别）。
+    //
+    // 与既有 handleSyncMessage(P2PMessage) 共存：v1 binary 路径用于
+    // Android ↔ Android（KNOWLEDGE_SYNC / CONVERSATION_SYNC 二进制 envelope），
+    // JSON-RPC 路径用于 Android ↔ desktop。两者复用同一份 detectConflict
+    // + applySyncItem + localState 缓存，不会撕裂状态。
+    // ============================================================
+
+    /**
+     * 处理 sync.push — 应用对端推过来的 SyncItem。复用 handleSyncMessage 内
+     * 的 conflict-resolve + apply 逻辑，但 envelope 已 JSON-RPC 解过，直接
+     * 拿 SyncItem。
+     *
+     * 与 desktop mobile-bridge-sync.js handlePush 行为对齐：
+     *   - 无冲突 → applySyncItem，返 status="applied"
+     *   - 冲突 → 不 apply（与 handleSyncMessage 一致），返 status="conflict"
+     *     带 resolvedItem，让对端拿到本地胜出版反向 apply
+     */
+    suspend fun handlePushRpc(
+        item: SyncItem,
+        @Suppress("UNUSED_PARAMETER") deviceId: String? = null
+    ): SyncPushResponse {
+        return try {
+            val conflict = detectConflict(item)
+            if (conflict != null) {
+                val resolution = conflictResolver.resolve(conflict)
+                Timber.d(
+                    "sync.push conflict ${item.resourceId} → strategy=${resolution.strategy}"
+                )
+                SyncPushResponse(
+                    status = "conflict",
+                    resolved = resolution.resolvedItem
+                )
+            } else {
+                applySyncItem(item)
+                Timber.d("sync.push applied ${item.resourceId}")
+                SyncPushResponse(status = "applied")
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "sync.push failed for ${item.resourceId}")
+            SyncPushResponse(
+                status = "failed",
+                error = e.message ?: e.javaClass.simpleName
+            )
+        }
+    }
+
+    /**
+     * 处理 sync.pull — 对端要求拉取本地 cursor 之后的变更。
+     *
+     * **v1 限制**：Android side 不枚举 Repository 历史数据；pendingChanges
+     * map 是 in-memory 待推队列，不是历史索引。当前 desktop 靠 Android
+     * push-on-write（recordChange）拿到所有变更，离线期间错过的变更**v1
+     * 不可恢复**。v1.1 补 walker queries 走 FriendDao / PostDao /
+     * NotificationDao / P2PMessageDao 的 updatedAt 索引枚举。
+     *
+     * v1 实现：返回 pendingChanges 里 timestamp > cursor.ts 的子集，给
+     * "Android 还没 push 出去的最近变更" 留一条 catch-up 路径（不完整但好
+     * 过 0）。注意：返回后 pendingChanges 不会自动清空——desktop 收到
+     * sync.pull 结果后应该 ack（v1 不实现 ack tracking），所以这些 item
+     * 后续仍可能被 sync.push 推一次（重复但 LWW 幂等）。
+     */
+    fun handlePullRpc(
+        cursor: PullCursor,
+        resourceTypes: List<ResourceType>?,
+        limit: Int
+    ): SyncPullResponse {
+        val safeLimit = limit.coerceIn(1, 500)
+        val typeFilter = resourceTypes?.toSet()
+        val pending = pendingChanges.values
+            .asSequence()
+            .filter {
+                it.timestamp > cursor.ts ||
+                    (it.timestamp == cursor.ts &&
+                        cursor.id != null &&
+                        it.resourceId > cursor.id)
+            }
+            .filter { typeFilter == null || typeFilter.contains(it.resourceType) }
+            .sortedWith(compareBy({ it.timestamp }, { it.resourceId }))
+            .take(safeLimit)
+            .toList()
+        val nextCursor = pending.lastOrNull()?.let {
+            PullCursor(ts = it.timestamp, id = it.resourceId)
+        } ?: cursor
+        return SyncPullResponse(
+            items = pending,
+            nextCursor = nextCursor,
+            hasMore = pending.size >= safeLimit
+        )
+    }
+
+    /**
+     * 处理 sync.ack — fire-and-forget telemetry。v1 仅 log；后续可累积到
+     * SyncStatistics 或 outbound pending tracker（当前 Android 不维护
+     * outbound pendingAcks，因为 binary path 走 MessageQueue 自己的 ACK 链）。
+     */
+    fun handleAckRpc(requestId: String?, status: String?, error: String? = null) {
+        val tail = if (error != null) " error=$error" else ""
+        Timber.d("sync.ack received: requestId=$requestId status=$status$tail")
+    }
+
     /**
      * 获取同步统计
      */
@@ -471,4 +583,45 @@ data class SyncStatistics(
 
     /** 各设备最后同步时间 */
     val lastSyncTimestamps: Map<String, Long>
+)
+
+// ============================================================
+// JSON-RPC envelope data classes (Phase 3d M3 step D)
+//
+// 与 desktop src/main/sync/mobile-bridge-sync.js 对齐，JSON-RPC over
+// MobileBridge 的 sync.* method 入参/出参形状。@Serializable 让
+// kotlinx.serialization 直接编解码 JSON。
+// ============================================================
+
+/**
+ * sync.pull / sync.pull response 的 cursor。(ts, id) lex 序，与 desktop
+ * walker 的 ORDER BY timestamp ASC, id ASC 对应。
+ */
+@Serializable
+data class PullCursor(
+    val ts: Long = 0,
+    val id: String? = null
+)
+
+/**
+ * sync.push response —— "applied" / "conflict" / "failed"。
+ *  - applied：本地已应用，对端不需要反向 apply
+ *  - conflict：本地版本胜，resolved 含 winning 版（对端拿去 apply）
+ *  - failed：异常，error 描述
+ */
+@Serializable
+data class SyncPushResponse(
+    val status: String,
+    val resolved: SyncItem? = null,
+    val error: String? = null
+)
+
+/**
+ * sync.pull response —— 含 items + 下一轮 cursor。
+ */
+@Serializable
+data class SyncPullResponse(
+    val items: List<SyncItem>,
+    val nextCursor: PullCursor,
+    val hasMore: Boolean
 )
