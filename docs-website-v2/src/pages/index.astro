@@ -71,6 +71,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.45',
+    title: 'cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复',
+    sub: 'QuickAsk 不再 60s timeout · 项目模式秒发不卡"理解中…" · chatStream queue+waiter · 占位卡 reactivity 修复',
+    desc: '四条联动收口。(1) cc ui llm.chat 路由（f41c4b4e2）：桌面 web-shell 自 4eaf90137 就有 llm.chat，cc ui 从未注册过 → QuickAsk 60s 卡 Stream idle timeout。新增 packages/cli/src/gateways/ws/llm-chat-protocol.js，frame 协议跟桌面 llm-handlers.js 完全对齐；新增 llm-creds.js 共享解析（explicit options → session creds → VOLCENGINE_API_KEY 等环境变量），任何源没拿到都立即 ok:false 帧不再 60s 挂死；chat-intent-protocol 同步切到这个 helper，顺手修一个 latent bug：原代码 session.baseUrl || "http://localhost:11434" 在 session 没设 baseUrl 时硬编码到 ollama 地址，所有云 provider 在用户本地没起 ollama 时都会跑死。(2) 意图理解 opt-in 开关（f41c4b4e2）：Chat / Agent 项目/文件模式 header 加 `<a-switch>`，**默认关闭**。原行为是 v5.0.3.43 起每条消息先调 LLM 提炼意图再走真发送 — LLM 慢/无 cred 时占位卡 90 秒；现在默认直发，需要意图卡片的用户手动打开开关（持久化到 localStorage cc.web-panel.chat.intentEnabled）。submitUserInput 第一行短路：if (mode === "global" || !intentEnabled.value) { sendMessage; return }。桌面壳同享 SPA bundle，跟 cc ui 行为一致。(3) chatStream 真流式（35f6e60ea）：packages/cli/src/lib/chat-core.js 的 chatStream 原本是 buffer 全部 token 后再循环 yield 的伪流式，消费者要等 LLM 整个回完才看到第一帧。改为 token queue + Promise waiter 模式：onToken push 后立刻 wake generator yield。Chat / Agent / QuickAsk / 意图理解 全部受益。(4) 意图占位卡片 Vue Proxy reactivity 修复（a76e451e2）：placeholder push 进 reactive messages[sessionId] 后被 wrap 成 Proxy，但本地 ref 仍指向 unwrap 之前 target → 后续 placeholder.metadata.X 直接改原对象绕过 Proxy set trap → 数据更新但不触发重渲染。修法：card = msgs[msgs.length - 1] push 后重新取 Proxy 引用。NPM: chainlesschain 0.161.5 → 0.161.6 → 0.161.7（0.161.6 已先于 productVersion 单独 publish 修复 hang；0.161.7 带 chatStream 真流式 + Vue Proxy 修复）。',
+  },
+  {
     tag: 'v5.0.3.44',
     title: 'LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底',
     sub: '截图三态 OCR · 18 channel × 23 用例首测 · 慢 LLM dribble 兜底',

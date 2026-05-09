@@ -1,5 +1,28 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-09 发布 — **v5.0.3.45 cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复**
+
+productVersion **v5.0.3.44 → v5.0.3.45**。`cc ui` 终于跟桌面 web-shell 在 LLM 路径上对齐；项目/文件模式聊天默认不再走"理解中…"占位 LLM 调用；`chatStream` 改为真正的 token-by-token 流式；意图卡片 Vue Proxy 引用 bug 修复让占位卡正确翻面。
+
+**新增**：
+
+- **`cc ui` `llm.chat` WS topic（commit `f41c4b4e2`）** —— 桌面 web-shell 自 `4eaf90137`（Phase 2）就有这个 topic，但 `cc ui`（CLI 的 ws-server）从未注册过。结果：QuickAsk 页面在 `cc ui` 模式下永远卡 60 秒后报 `Stream idle timeout`（dispatcher 返回的 `UNKNOWN_TYPE` 帧 SPA 不识别为流的终态）。新增 `packages/cli/src/gateways/ws/llm-chat-protocol.js`，handler 复用 chat-core 的 `streamOllama`/`streamOpenAI`/`streamAnthropic`，按 `<topic>.chunk` + `<topic>.result` 的 frame 协议跟桌面 `desktop-app-vue/src/main/web-shell/handlers/llm-handlers.js` 完全对齐。新增 `packages/cli/src/gateways/ws/llm-creds.js` 共享 cred 解析：explicit `options` → WS session creds → provider 环境变量（顺序：volcengine/openai/anthropic/deepseek/dashscope/gemini/kimi/minimax/mistral）；任何源没拿到都立即返回 ok:false 帧，不再 60 秒挂死。`chat-intent-protocol` 同步切到共享 helper，顺手修一个 latent bug：原代码 `session.baseUrl || "http://localhost:11434"` 在 session 没设 baseUrl 时硬编码到 ollama 地址，所有云 provider 在用户本地没起 ollama 时都会跑死。
+- **意图理解可见开关（commit `f41c4b4e2`）** —— Chat / Agent 项目/文件模式 header 加 `<a-switch>`，**默认关闭**。原行为：v5.0.3.43 起每条消息先调 LLM 提炼意图（`chat.intent.understand-stream`），再走真发送 —— LLM 慢/无 cred 时占位卡 90 秒；现在默认直发，需要意图卡片的用户手动打开开关（持久化到 `localStorage cc.web-panel.chat.intentEnabled`）。`submitUserInput` 第一行的短路：`if (mode === 'global' || !intentEnabled.value) { sendMessage; return }`。桌面壳同享这个 SPA bundle，所以桌面也跟 `cc ui` 行为一致。
+
+**修复**：
+
+- **`chatStream` 真正的 token 流式（commit `35f6e60ea`）** —— `packages/cli/src/lib/chat-core.js` 的 `chatStream` 原本是 buffer 全部 token 后再循环 yield 的伪流式 —— 消费者要等到 LLM 整个回完才看到第一帧。改为 token queue + Promise waiter 模式：onToken push 后立刻 wake generator yield。`streamPromise.finally` 翻 done flag 兜底空响应。Chat / Agent / QuickAsk / 意图理解 全部受益。
+- **意图占位卡片 Vue Proxy reactivity 修复（commit `a76e451e2`）** —— `submitUserInput` 创建 placeholder 后 push 进 reactive `messages[sessionId]` 会被 wrap 成 Proxy，但本地变量 ref 仍指向 unwrap 之前的 target；后续 `placeholder.metadata.X` 直接改原对象绕过 Proxy `set` trap → 数据更新但不触发重渲染。用户可见症状：意图卡片永久卡在"理解中… / 0 tokens / 意图: 未识别"，即使后端已经流完 30+ chunk + final。修法：`card = msgs[msgs.length - 1]` push 后重新取 Proxy 引用，所有后续 mutation 走 `card.metadata.X`。
+
+**测试**：
+
+- CLI ws gateway 16/16 绿（chat-intent 6 + 新 llm-chat 9 + 新增"无 cred 不调 LLM"环境清理 1）
+- web-panel chat-intent-flow 27/27 绿
+
+**部署 / 分发**：CLI npm `chainlesschain` 0.161.5 → 0.161.6 → **0.161.7**（0.161.6 已先于 productVersion 单独 publish 修复 hang；0.161.7 带 chatStream 真流式 + 意图卡片 Vue Proxy 修复）。桌面 binary 重新打过，auto-updater 比对 `5.0.3-alpha.45 > 5.0.3-alpha.44`，所有 v5.0.3.44 用户重启发现新版。GitHub Release 28 个 asset，6 个并行 workflow（Release / CLI CI / Code Quality / E2E / CI Tests / Full Test Automation）全绿。
+
+---
+
 ## 2026-05-08 发布 — **v5.0.3.44 LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底**
 
 productVersion **v5.0.3.43 → v5.0.3.44**。一条 user-visible feature（截图 LLM OCR）+ 三条质量收口。无破坏性变化，所有 v5.0.3.43 用户可直接 upgrade。
@@ -1909,14 +1932,14 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.44-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.45-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.5-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.7-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -1929,7 +1952,11 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.44 Evolution Edition (2026-05-08 · CLI 0.161.5 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · chat-panel-v5 三壳严格对齐 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · **截图 LLM OCR auto/llm/tesseract** · **audit-ipc 23 用例首测**)
+## ⭐ 当前版本: v5.0.3.45 Evolution Edition (2026-05-09 · CLI 0.161.7 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · chat-panel-v5 三壳严格对齐 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · 截图 LLM OCR auto/llm/tesseract · **cc ui llm.chat parity** · **意图理解 opt-in 开关** · **chatStream 真流式** · **意图卡片 Vue Proxy reactivity 修复**)
+
+### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
+
+四条联动收口：(1) **`cc ui` `llm.chat` WS topic**（`f41c4b4e2`）—— 桌面 web-shell 自 `4eaf90137` 就有 llm.chat，cc ui 从未注册过 → QuickAsk 60s 卡 `Stream idle timeout`。新增 `packages/cli/src/gateways/ws/llm-chat-protocol.js`，frame 协议跟桌面 `llm-handlers.js` 完全对齐；新增 `llm-creds.js` 共享解析（explicit options → session creds → `VOLCENGINE_API_KEY` 等环境变量），任何源没拿到都立即 ok:false 帧不再 60s 挂死；chat-intent-protocol 同步切到这个 helper，顺手修一个 latent bug：原代码 `session.baseUrl || "http://localhost:11434"` 在 session 没设 baseUrl 时硬编码到 ollama 地址，所有云 provider 在用户本地没起 ollama 时都会跑死。(2) **意图理解 opt-in 开关**（`f41c4b4e2`）—— Chat / Agent 项目/文件模式 header 加 `<a-switch>`，**默认关闭**。原行为是 v5.0.3.43 起每条消息先调 LLM 提炼意图再走真发送 — LLM 慢/无 cred 时占位卡 90 秒；现在默认直发，需要意图卡片的用户手动打开开关（持久化到 `localStorage cc.web-panel.chat.intentEnabled`）。`submitUserInput` 第一行短路。桌面壳同享 SPA bundle，跟 cc ui 行为一致。(3) **chatStream 真流式**（`35f6e60ea`）—— `packages/cli/src/lib/chat-core.js` 的 `chatStream` 原本是 buffer 全部 token 后再循环 yield 的伪流式，消费者要等 LLM 整个回完才看到第一帧。改为 token queue + Promise waiter 模式：onToken push 后立刻 wake generator yield。Chat / Agent / QuickAsk / 意图理解 全部受益。(4) **意图占位卡片 Vue Proxy reactivity 修复**（`a76e451e2`）—— placeholder push 进 reactive `messages[sessionId]` 后被 wrap 成 Proxy，但本地 ref 仍指向 unwrap 之前 target → 后续 `placeholder.metadata.X` 直接改原对象绕过 Proxy `set` trap → 数据更新但不触发重渲染。修法：`card = msgs[msgs.length - 1]` push 后重新取 Proxy 引用。NPM: `chainlesschain` 0.161.5 → 0.161.6 → **0.161.7**（0.161.6 已先于 productVersion 单独 publish 修复 hang；0.161.7 带 chatStream 真流式 + Vue Proxy 修复）。回归：CLI ws gateway 16/16 + chat-core 10/10 + web-panel chat-intent-flow 27/27。
 
 ### 最新更新 - LLM OCR + audit-ipc 覆盖 + chat-intent 90s 兜底 (v5.0.3.44, 2026-05-08)
 

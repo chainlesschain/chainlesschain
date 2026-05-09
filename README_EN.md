@@ -1,5 +1,28 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-09 Release — **v5.0.3.45 cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix**
+
+productVersion **v5.0.3.44 → v5.0.3.45**. `cc ui` finally aligns with the desktop web-shell on the LLM path; project/file-mode chat no longer routes through the "Understanding…" placeholder LLM call by default; `chatStream` is now a real token-by-token stream; intent placeholder card Vue Proxy reactivity bug fixed so the card flips correctly.
+
+**Added**:
+
+- **`cc ui` `llm.chat` WS topic (commit `f41c4b4e2`)** — The desktop web-shell has had `llm.chat` since `4eaf90137` (Phase 2), but `cc ui` (the CLI's ws-server) never registered it. Result: the QuickAsk page in `cc ui` mode hung 60 seconds and surfaced `Stream idle timeout` (the dispatcher's `UNKNOWN_TYPE` frame isn't recognized by the SPA as a stream terminus). New `packages/cli/src/gateways/ws/llm-chat-protocol.js` reuses `chat-core`'s `streamOllama` / `streamOpenAI` / `streamAnthropic` and mirrors the desktop's `<topic>.chunk` + `<topic>.result` frame protocol exactly. New `packages/cli/src/gateways/ws/llm-creds.js` shared resolver: explicit `options` → WS session creds → provider env vars (preferred order: volcengine / openai / anthropic / deepseek / dashscope / gemini / kimi / minimax / mistral); when none have creds, an instant `ok:false` frame is sent — no more 60-second hangs. `chat-intent-protocol` now uses the same resolver, fixing a latent bug along the way: `session.baseUrl || "http://localhost:11434"` previously hardcoded ollama whenever a session lacked baseUrl, killing every cloud provider on machines without local ollama.
+- **Intent understanding opt-in toggle (commit `f41c4b4e2`)** — Chat / Agent project/file mode header gets an `<a-switch>`, **off by default**. Pre-v5.0.3.45 every project/file message went through `chat.intent.understand-stream` first → 0.5–90s of latency that surprised users. Now defaults to direct send; users who want the confirmation card flip the switch (persisted to `localStorage cc.web-panel.chat.intentEnabled`). `submitUserInput` first-line short-circuit: `if (mode === 'global' || !intentEnabled.value) { sendMessage; return }`. The desktop shell shares this SPA bundle so its behaviour now matches `cc ui`.
+
+**Fixed**:
+
+- **`chatStream` truly streams tokens (commit `35f6e60ea`)** — `packages/cli/src/lib/chat-core.js` `chatStream` was a fake async generator that buffered every `onToken` delta into an array and only `yield`-ed them after `streamX(...)` settled — consumers saw zero progress for the full LLM round-trip. Replaced with a token queue + Promise waiter pattern: `onToken` push wakes the generator, which yields immediately. `streamPromise.finally` flips done + wakes a final time so calls that emit no tokens still terminate cleanly. Affects every consumer — Chat / Agent / QuickAsk / 意图理解 — all now stream live.
+- **Intent placeholder Vue Proxy reactivity fix (commit `a76e451e2`)** — `submitUserInput` created the placeholder, pushed it onto the reactive `messages[sessionId]` array, then mutated `placeholder.metadata.X` directly. Vue 3 reactivity caveat: pushing into a reactive collection wraps the value in a Proxy, but the local ref still points at the unwrapped target. Mutations through that ref bypass the Proxy `set` trap and never trigger a re-render — even though the data is updated. User-visible symptom: card sat pinned at "Understanding… / 0 tokens / Intent: unrecognised" for the full LLM round-trip even when 30+ chunks + final landed. Fix: re-acquire the Proxy via `card = msgs[msgs.length - 1]` after push and route every mutation through `card.metadata.X`.
+
+**Tests**:
+
+- CLI ws gateway 16/16 green (chat-intent 6 + new llm-chat 9 + new "no creds → no LLM call" env-cleanup 1)
+- web-panel chat-intent-flow 27/27 green
+
+**Distribution**: CLI npm `chainlesschain` 0.161.5 → 0.161.6 → **0.161.7** (0.161.6 was published ahead of productVersion to unblock npm-package users on the QuickAsk hang; 0.161.7 carries the chatStream streaming fix + Vue Proxy fix). Desktop binary rebuilt; auto-updater compares `5.0.3-alpha.45 > 5.0.3-alpha.44`, so all v5.0.3.44 desktop users will see a real "new version" prompt on restart. GitHub Release ships 28 assets; 6 parallel workflows (Release / CLI CI / Code Quality / E2E / CI Tests / Full Test Automation) all green.
+
+---
+
 ## 2026-05-08 Release — **v5.0.3.44 LLM OCR + audit-ipc coverage + chat-intent 90s safeguard**
 
 productVersion **v5.0.3.43 → v5.0.3.44**. One user-visible feature (screenshot LLM OCR) + three quality follow-ups. No breaking changes; v5.0.3.43 users can upgrade directly.
@@ -1676,14 +1699,14 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.44-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.45-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.5-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.7-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -1696,7 +1719,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.44 Evolution Edition (2026-05-08 · CLI 0.161.5 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · chat-panel-v5 Three-Shell Strict Parity · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · **Screenshot LLM OCR auto/llm/tesseract** · **audit-ipc 23 cases first coverage**)
+## ⭐ Current Version: v5.0.3.45 Evolution Edition (2026-05-09 · CLI 0.161.7 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · chat-panel-v5 Three-Shell Strict Parity · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · Screenshot LLM OCR auto/llm/tesseract · **cc ui llm.chat parity** · **intent opt-in toggle** · **chatStream true streaming** · **intent card Vue Proxy reactivity fix**)
+
+### Latest Update - cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix (v5.0.3.45, 2026-05-09)
+
+Four interlocking landings: (1) **`cc ui` `llm.chat` WS topic** (`f41c4b4e2`) — desktop web-shell has had llm.chat since `4eaf90137`, cc ui never registered → QuickAsk hung 60s. New `packages/cli/src/gateways/ws/llm-chat-protocol.js` mirrors desktop frame protocol; new `llm-creds.js` shares the resolver (explicit options → session creds → `VOLCENGINE_API_KEY`-style env vars); chat-intent-protocol picks up the same helper, fixing a latent bug along the way (session creds without baseUrl previously hardcoded ollama). (2) **Intent opt-in toggle** (`f41c4b4e2`) — Chat / Agent project/file mode header gets an `<a-switch>`, **off by default**. Pre-v5.0.3.45 every project/file message went through `chat.intent.understand-stream` first → 0.5–90s of latency; now defaults to direct send (persisted to `localStorage cc.web-panel.chat.intentEnabled`). Desktop shell shares this SPA bundle so its behaviour matches `cc ui`. (3) **`chatStream` truly streams** (`35f6e60ea`) — `chat-core.js` `chatStream` was a fake async generator buffering all `onToken` deltas. Replaced with token queue + Promise waiter so `onToken` push wakes the generator immediately. Affects Chat / Agent / QuickAsk / chat-intent. (4) **Intent placeholder Vue Proxy reactivity fix** (`a76e451e2`) — placeholder push to reactive `messages[sessionId]` wraps in Proxy but the local ref still pointed at the unwrapped target, so mutations bypassed the `set` trap → card sat pinned at "Understanding… / 0 tokens" even with 30+ chunks. Fix: `card = msgs[msgs.length - 1]` after push. NPM: `chainlesschain` 0.161.5 → 0.161.6 → **0.161.7**. Regression: CLI ws gateway 16/16 + chat-core 10/10 + web-panel chat-intent-flow 27/27.
 
 ### Latest Update - LLM OCR + audit-ipc coverage + chat-intent 90s safeguard (v5.0.3.44, 2026-05-08)
 
