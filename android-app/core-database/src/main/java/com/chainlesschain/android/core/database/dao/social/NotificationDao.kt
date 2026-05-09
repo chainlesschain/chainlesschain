@@ -98,6 +98,24 @@ interface NotificationDao {
     fun getRecentNotifications(limit: Int = 20): Flow<List<NotificationEntity>>
 
     /**
+     * Phase 3d v1.1: walker cursor (createdAt, id) lex 序。
+     * SocialSyncWalker 用此 enumerate 大于 cursor 的 notifications。
+     * notifications 是 append-mostly，cursor on createdAt 是合理的。
+     */
+    @Query("""
+        SELECT * FROM notifications
+        WHERE createdAt > :sinceMs
+           OR (createdAt = :sinceMs AND id > :sinceId)
+        ORDER BY createdAt ASC, id ASC
+        LIMIT :limit
+    """)
+    suspend fun getNotificationsSinceCursor(
+        sinceMs: Long,
+        sinceId: String,
+        limit: Int
+    ): List<NotificationEntity>
+
+    /**
      * 搜索通知
      */
     @Query("""

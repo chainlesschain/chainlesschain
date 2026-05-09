@@ -34,7 +34,11 @@ class SyncManager @Inject constructor(
     // Phase 3d M3 step D.5：出向 JSON-RPC（Android → desktop）。dagger.Lazy
     // 因为 P2PClientSyncOutbound 注入 P2PClient → CommandRouter →
     // SyncCommandRouter → SyncManager，间接循环。Lazy 解循环。
-    private val syncOutbound: Lazy<SyncOutbound>
+    private val syncOutbound: Lazy<SyncOutbound>,
+    // Phase 3d v1.1: handlePullRpc 用 walker 枚举 Repository 历史数据
+    // （否则 v1 只能看 in-memory pendingChanges）。Lazy 因为 SocialSyncWalker
+    // 在 feature-p2p 注入 4 DAOs，跨模块顺序敏感。
+    private val repositoryWalker: Lazy<SyncRepositoryWalker>
 ) {
 
     companion object {
@@ -541,26 +545,36 @@ class SyncManager @Inject constructor(
     /**
      * 处理 sync.pull — 对端要求拉取本地 cursor 之后的变更。
      *
-     * **v1 限制**：Android side 不枚举 Repository 历史数据；pendingChanges
-     * map 是 in-memory 待推队列，不是历史索引。当前 desktop 靠 Android
-     * push-on-write（recordChange）拿到所有变更，离线期间错过的变更**v1
-     * 不可恢复**。v1.1 补 walker queries 走 FriendDao / PostDao /
-     * NotificationDao / P2PMessageDao 的 updatedAt 索引枚举。
+     * Phase 3d v1.1: 走 SyncRepositoryWalker（SocialSyncWalker 实现）查
+     * Friend/Post/Notification/P2PMessage 4 张表 DAO 的 cursor 索引。这是
+     * "真历史数据 catch-up" 路径，不再是 v1 的 pendingChanges-only 兜底。
      *
-     * v1 实现：返回 pendingChanges 里 timestamp > cursor.ts 的子集，给
-     * "Android 还没 push 出去的最近变更" 留一条 catch-up 路径（不完整但好
-     * 过 0）。注意：返回后 pendingChanges 不会自动清空——desktop 收到
-     * sync.pull 结果后应该 ack（v1 不实现 ack tracking），所以这些 item
-     * 后续仍可能被 sync.push 推一次（重复但 LWW 幂等）。
+     * 还合并 pendingChanges 里 cursor 之后的项：覆盖 walker 抓不到的特殊
+     * 场景（如 friends 表 update 不动 addedAt 但 recordChange 已记录新版）。
+     * 相同 resourceId 出现在两边时，pendingChanges 版本胜（更可能是 fresher
+     * 的 in-memory 状态）。Desktop LWW 算法天然幂等，重复 push 一次无伤。
      */
-    fun handlePullRpc(
+    suspend fun handlePullRpc(
         cursor: PullCursor,
         resourceTypes: List<ResourceType>?,
         limit: Int
     ): SyncPullResponse {
         val safeLimit = limit.coerceIn(1, 500)
         val typeFilter = resourceTypes?.toSet()
-        val pending = pendingChanges.values
+
+        // 1) Walker 查 DAO 真数据
+        val walkerItems = try {
+            repositoryWalker.get().enumerate(cursor, resourceTypes, safeLimit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "sync.pull walker 失败，回退到 pendingChanges-only")
+            emptyList()
+        }
+
+        // 2) pendingChanges 补充（cursor 之后 + 类型匹配 + walker 未涵盖的 resourceId）
+        val walkerKeys = walkerItems.map { it.resourceType to it.resourceId }.toSet()
+        val pendingExtras = pendingChanges.values
             .asSequence()
             .filter {
                 it.timestamp > cursor.ts ||
@@ -569,16 +583,20 @@ class SyncManager @Inject constructor(
                         it.resourceId > cursor.id)
             }
             .filter { typeFilter == null || typeFilter.contains(it.resourceType) }
+            .filter { (it.resourceType to it.resourceId) !in walkerKeys }
+            .toList()
+
+        val merged = (walkerItems + pendingExtras)
             .sortedWith(compareBy({ it.timestamp }, { it.resourceId }))
             .take(safeLimit)
-            .toList()
-        val nextCursor = pending.lastOrNull()?.let {
+
+        val nextCursor = merged.lastOrNull()?.let {
             PullCursor(ts = it.timestamp, id = it.resourceId)
         } ?: cursor
         return SyncPullResponse(
-            items = pending,
+            items = merged,
             nextCursor = nextCursor,
-            hasMore = pending.size >= safeLimit
+            hasMore = merged.size >= safeLimit
         )
     }
 

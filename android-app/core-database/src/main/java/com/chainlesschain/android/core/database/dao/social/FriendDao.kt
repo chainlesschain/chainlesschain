@@ -85,6 +85,26 @@ interface FriendDao {
     @Query("SELECT COUNT(*) > 0 FROM friends WHERE did = :did AND status = 'ACCEPTED' AND isBlocked = 0")
     suspend fun isFriend(did: String): Boolean
 
+    /**
+     * Phase 3d v1.1: walker cursor (addedAt, did) lex 序枚举。
+     * SocialSyncWalker 用此 enumerate 大于 cursor 的好友。
+     * 注：addedAt 是创建时间不是 lastUpdated，addFriend 后的 update（status /
+     * remarkName 等）不会被 walker 重抓——那些走 SocialSyncAdapter.recordChange
+     * 实时同步路径。
+     */
+    @Query("""
+        SELECT * FROM friends
+        WHERE addedAt > :sinceMs
+           OR (addedAt = :sinceMs AND did > :sinceId)
+        ORDER BY addedAt ASC, did ASC
+        LIMIT :limit
+    """)
+    suspend fun getFriendsSinceCursor(
+        sinceMs: Long,
+        sinceId: String,
+        limit: Int
+    ): List<FriendEntity>
+
     // ===== 插入方法 =====
 
     /**

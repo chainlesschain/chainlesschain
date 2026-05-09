@@ -109,6 +109,23 @@ interface PostDao {
     @Query("SELECT COUNT(*) FROM posts WHERE authorDid = :did")
     suspend fun getPostCount(did: String): Int
 
+    /**
+     * Phase 3d v1.1: walker cursor (updatedAt, id) lex 序。
+     * SocialSyncWalker 用此 enumerate 大于 cursor 的 posts。
+     */
+    @Query("""
+        SELECT * FROM posts
+        WHERE updatedAt > :sinceMs
+           OR (updatedAt = :sinceMs AND id > :sinceId)
+        ORDER BY updatedAt ASC, id ASC
+        LIMIT :limit
+    """)
+    suspend fun getPostsSinceCursor(
+        sinceMs: Long,
+        sinceId: String,
+        limit: Int
+    ): List<PostEntity>
+
     // ===== 插入方法 =====
 
     /**

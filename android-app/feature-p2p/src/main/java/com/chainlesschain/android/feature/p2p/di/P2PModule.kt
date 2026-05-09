@@ -1,7 +1,9 @@
 package com.chainlesschain.android.feature.p2p.di
 
 import com.chainlesschain.android.core.p2p.sync.SyncDataApplier
+import com.chainlesschain.android.core.p2p.sync.SyncRepositoryWalker
 import com.chainlesschain.android.feature.p2p.sync.DefaultSyncDataApplier
+import com.chainlesschain.android.feature.p2p.sync.SocialSyncWalker
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -24,4 +26,13 @@ abstract class P2PModule {
     @Binds
     @Singleton
     abstract fun bindSyncDataApplier(impl: DefaultSyncDataApplier): SyncDataApplier
+
+    /**
+     * Phase 3d v1.1: 绑定 SyncRepositoryWalker → SocialSyncWalker。
+     * SyncManager 注入 dagger.Lazy<SyncRepositoryWalker>，handlePullRpc
+     * 用 walker enumerate Repository 历史数据（vs v1 只看 pendingChanges）。
+     */
+    @Binds
+    @Singleton
+    abstract fun bindSyncRepositoryWalker(impl: SocialSyncWalker): SyncRepositoryWalker
 }

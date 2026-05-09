@@ -29,12 +29,17 @@ class SyncManagerTest {
         val outboundLazy = object : Lazy<SyncOutbound> {
             override fun get(): SyncOutbound = outbound
         }
+        val walker: SyncRepositoryWalker = NoOpSyncRepositoryWalker()
+        val walkerLazy = object : Lazy<SyncRepositoryWalker> {
+            override fun get(): SyncRepositoryWalker = walker
+        }
         syncManager = SyncManager(
             messageQueue,
             conflictResolver,
             NoOpSyncDataApplier(),
             NoOpSyncRemoteCursorDao(),
-            outboundLazy
+            outboundLazy,
+            walkerLazy
         )
     }
 
@@ -253,7 +258,7 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `handlePullRpc returns empty when no pending changes`() {
+    fun `handlePullRpc returns empty when no pending changes and walker empty`() = runTest {
         val response = syncManager.handlePullRpc(
             cursor = PullCursor(ts = 0),
             resourceTypes = null,
@@ -264,7 +269,8 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `handlePullRpc returns pending changes above cursor in lex order`() {
+    fun `handlePullRpc returns pendingChanges as fallback when walker empty`() = runTest {
+        // v1.1: walker 空（NoOpWalker 总返 emptyList），pendingChanges 走 fallback 路径
         syncManager.recordChange(createSyncItem("a", timestamp = 100))
         syncManager.recordChange(createSyncItem("b", timestamp = 200))
         syncManager.recordChange(createSyncItem("c", timestamp = 300))
@@ -274,7 +280,7 @@ class SyncManagerTest {
             resourceTypes = null,
             limit = 100
         )
-        // a (ts=100) 应被 cursor.ts=100 排除（因为 cursor.id=null，不走 tie-break 分支）
+        // a (ts=100) 被 cursor.ts=100 排除（cursor.id=null 不走 tie-break）
         assertEquals(2, response.items.size)
         assertEquals("b", response.items[0].resourceId)
         assertEquals("c", response.items[1].resourceId)
@@ -282,7 +288,7 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `handlePullRpc respects resourceTypes filter`() {
+    fun `handlePullRpc respects resourceTypes filter on pendingChanges`() = runTest {
         syncManager.recordChange(createSyncItem("k1", resourceType = ResourceType.KNOWLEDGE_ITEM))
         syncManager.recordChange(createSyncItem("c1", resourceType = ResourceType.CONVERSATION))
 
@@ -293,6 +299,42 @@ class SyncManagerTest {
         )
         assertEquals(1, response.items.size)
         assertEquals("c1", response.items[0].resourceId)
+    }
+
+    @Test
+    fun `handlePullRpc merges walker results with pendingChanges`() = runTest {
+        // 注入 walker 返自定义 items
+        val walkerOutbound: SyncOutbound = NoOpSyncOutbound()
+        val walker = object : SyncRepositoryWalker {
+            override suspend fun enumerate(
+                cursor: PullCursor,
+                resourceTypes: List<ResourceType>?,
+                limit: Int
+            ): List<SyncItem> = listOf(
+                createSyncItem("walker-1", timestamp = 50),
+                createSyncItem("walker-2", timestamp = 250)
+            )
+        }
+        val sm = SyncManager(
+            messageQueue,
+            conflictResolver,
+            NoOpSyncDataApplier(),
+            NoOpSyncRemoteCursorDao(),
+            object : Lazy<SyncOutbound> { override fun get() = walkerOutbound },
+            object : Lazy<SyncRepositoryWalker> { override fun get() = walker }
+        )
+        sm.recordChange(createSyncItem("pending-1", timestamp = 100))
+
+        val response = sm.handlePullRpc(
+            cursor = PullCursor(ts = 0),
+            resourceTypes = null,
+            limit = 100
+        )
+        // walker (50, 250) + pending (100) → sorted by ts: walker-1, pending-1, walker-2
+        assertEquals(3, response.items.size)
+        assertEquals("walker-1", response.items[0].resourceId)
+        assertEquals("pending-1", response.items[1].resourceId)
+        assertEquals("walker-2", response.items[2].resourceId)
     }
 
     @Test
@@ -344,12 +386,16 @@ class SyncManagerTest {
         val failingLazy = object : Lazy<SyncOutbound> {
             override fun get(): SyncOutbound = failingOutbound
         }
+        val noOpWalkerLazy = object : Lazy<SyncRepositoryWalker> {
+            override fun get(): SyncRepositoryWalker = NoOpSyncRepositoryWalker()
+        }
         val sm = SyncManager(
             messageQueue,
             conflictResolver,
             NoOpSyncDataApplier(),
             NoOpSyncRemoteCursorDao(),
-            failingLazy
+            failingLazy,
+            noOpWalkerLazy
         )
         sm.recordChange(createSyncItem("a"))
 
@@ -415,6 +461,15 @@ class SyncManagerTest {
             nextCursor = cursor,
             hasMore = false
         )
+    }
+
+    /** Phase 3d v1.1：测试用 no-op walker（pull 走 pendingChanges fallback 路径） */
+    private class NoOpSyncRepositoryWalker : SyncRepositoryWalker {
+        override suspend fun enumerate(
+            cursor: PullCursor,
+            resourceTypes: List<ResourceType>?,
+            limit: Int
+        ): List<SyncItem> = emptyList()
     }
 
     // Helper functions

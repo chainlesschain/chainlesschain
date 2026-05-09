@@ -98,6 +98,24 @@ interface P2PMessageDao {
     """)
     suspend fun searchMessages(peerId: String, query: String): List<P2PMessageEntity>
 
+    /**
+     * Phase 3d v1.1: walker cursor (timestamp, id) lex 序。
+     * SocialSyncWalker 用此 enumerate 大于 cursor 的 messages（跨所有 peer）。
+     * 消息是 append-mostly，cursor on timestamp 合理。
+     */
+    @Query("""
+        SELECT * FROM p2p_messages
+        WHERE timestamp > :sinceMs
+           OR (timestamp = :sinceMs AND id > :sinceId)
+        ORDER BY timestamp ASC, id ASC
+        LIMIT :limit
+    """)
+    suspend fun getMessagesSinceCursor(
+        sinceMs: Long,
+        sinceId: String,
+        limit: Int
+    ): List<P2PMessageEntity>
+
     // ===== 插入方法 =====
 
     /**
