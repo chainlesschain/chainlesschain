@@ -214,17 +214,19 @@ function listTombstones(
     1,
     Math.min(1000, Math.floor(Number(limit) || 200)),
   );
-  const rows = dbManager.all(
-    `SELECT * FROM sync_external_tombstones
-     WHERE provider_id = ? AND account_key = ?
-     ORDER BY deleted_at ASC
-     LIMIT ${safeLimit}`,
-    [providerId, accountKey],
-  );
+  // Filter pushed into SQL so LIMIT cooperates with type filter — earlier
+  // app-level filter could drop ALL matches if a non-matching row filled the
+  // LIMIT bucket first.
+  let sql = `SELECT * FROM sync_external_tombstones
+             WHERE provider_id = ? AND account_key = ?`;
+  const params = [providerId, accountKey];
   if (Array.isArray(resourceTypes) && resourceTypes.length > 0) {
-    return rows.filter((r) => resourceTypes.includes(r.resource_type));
+    const placeholders = resourceTypes.map(() => "?").join(",");
+    sql += ` AND resource_type IN (${placeholders})`;
+    params.push(...resourceTypes);
   }
-  return rows;
+  sql += ` ORDER BY deleted_at ASC LIMIT ${safeLimit}`;
+  return dbManager.all(sql, params);
 }
 
 function deleteTombstone(dbManager, id) {

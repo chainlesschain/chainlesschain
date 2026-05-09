@@ -142,17 +142,24 @@ class MobileBridgeSync {
 
     const durationMs = this.deps.now() - startedAt;
 
-    externalStoreApi.updateCursor(this.dbManager, PROVIDER_ID, deviceId, {
-      lastRunStatus: lastError
-        ? "failed"
-        : conflicts > 0
-          ? "conflict"
-          : "success",
-      lastRunError: lastError,
-      lastRunDurationMs: durationMs,
-      itemsPushedDelta: pushed,
-      itemsSkippedDelta: conflicts,
-    });
+    // updateCursor 签名: (dbManager, providerId, fields, accountKey)
+    // itemsPushed / itemsSkipped 走累加路径（updateCursor 内 += 处理）
+    externalStoreApi.updateCursor(
+      this.dbManager,
+      PROVIDER_ID,
+      {
+        lastRunStatus: lastError
+          ? "failed"
+          : conflicts > 0
+            ? "conflict"
+            : "success",
+        lastRunError: lastError,
+        lastRunDurationMs: durationMs,
+        itemsPushed: pushed,
+        itemsSkipped: conflicts,
+      },
+      deviceId,
+    );
 
     return { pushed, pulled, conflicts, durationMs, error: lastError };
   }
@@ -210,7 +217,9 @@ class MobileBridgeSync {
       }
     }
 
-    // 5 张表的 walker。第一张为完整实现，其余 4 张是 TODO（Phase 3d M2 step 3）
+    // 5 张表的 walker。每条 item push 成功后推进 cursor (lastSyncAt, lastItemId)
+    // 让下一轮 fetchBatch 不重复扫已 push 行；走 (timestamp, id) lex 序对应
+    // 各 walker 的 ORDER BY 子句。
     for (const fetcher of this._tableFetchers()) {
       const batch = await fetcher(
         this.dbManager,
@@ -222,11 +231,11 @@ class MobileBridgeSync {
         const res = await this._sendItem(deviceId, item);
         if (res?.status === "applied") {
           pushed++;
-          externalStoreApi.recordPushedItem(
+          externalStoreApi.updateCursor(
             this.dbManager,
             PROVIDER_ID,
+            { lastSyncAt: item.timestamp, lastItemId: item.resourceId },
             deviceId,
-            item.resourceId,
           );
         } else if (res?.status === "conflict") {
           conflicts++;

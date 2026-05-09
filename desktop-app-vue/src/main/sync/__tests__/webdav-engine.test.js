@@ -93,6 +93,7 @@ beforeEach(() => {
       provider_id TEXT NOT NULL,
       account_key TEXT NOT NULL DEFAULT '',
       item_id TEXT NOT NULL,
+      resource_type TEXT,
       deleted_at INTEGER NOT NULL,
       retry_count INTEGER NOT NULL DEFAULT 0,
       last_error TEXT,
@@ -104,8 +105,8 @@ beforeEach(() => {
     FOR EACH ROW
     BEGIN
       INSERT OR IGNORE INTO sync_external_tombstones
-        (provider_id, account_key, item_id, deleted_at)
-      SELECT c.provider_id, c.account_key, OLD.id,
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.id, 'KNOWLEDGE_ITEM',
              (strftime('%s','now') * 1000)
       FROM sync_external_provider_cursor c;
     END;

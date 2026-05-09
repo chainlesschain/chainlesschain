@@ -151,14 +151,25 @@ function registerMobileSyncIPC({
     try {
       const ids = _listPairedDeviceIds(app);
       const devices = ids.map((id) => _statusForDevice(database, id));
-      const pendingTombstones =
-        store.listTombstones(database, PROVIDER_ID, "", 1, [
-          "MESSAGE",
-          "FRIEND",
-          "POST",
-          "POST_COMMENT",
-          "NOTIFICATION",
-        ]).length > 0;
+      // tombstone 按 (provider_id, account_key=deviceId) 分行写入；遍历 paired
+      // 设备 OR 起来。空设备列表 → 无 pendingTombstones。
+      const MOBILE_RESOURCE_TYPES = [
+        "MESSAGE",
+        "FRIEND",
+        "POST",
+        "POST_COMMENT",
+        "NOTIFICATION",
+      ];
+      const pendingTombstones = ids.some(
+        (id) =>
+          store.listTombstones(
+            database,
+            PROVIDER_ID,
+            id,
+            1,
+            MOBILE_RESOURCE_TYPES,
+          ).length > 0,
+      );
       return {
         success: true,
         devices,
