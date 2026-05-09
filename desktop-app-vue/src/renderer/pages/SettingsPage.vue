@@ -117,6 +117,9 @@
               <a-button @click="$router.push('/settings/sync-webdav')">
                 直达 WebDAV 配置
               </a-button>
+              <a-button @click="$router.push('/settings/sync-mobile')">
+                直达移动设备同步
+              </a-button>
             </a-space>
           </a-card>
         </a-tab-pane>
