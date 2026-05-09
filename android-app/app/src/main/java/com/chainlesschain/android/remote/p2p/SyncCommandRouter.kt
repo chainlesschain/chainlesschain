@@ -58,7 +58,7 @@ class SyncCommandRouter @Inject constructor(
         return syncManager.handlePushRpc(item, deviceId)
     }
 
-    private fun handleSyncPull(params: Map<String, Any>): Any {
+    private suspend fun handleSyncPull(params: Map<String, Any>): Any {
         val cursorMap = params["cursor"]
         val cursor = if (cursorMap != null) roundTrip<PullCursor>(cursorMap) else PullCursor()
         @Suppress("UNCHECKED_CAST")

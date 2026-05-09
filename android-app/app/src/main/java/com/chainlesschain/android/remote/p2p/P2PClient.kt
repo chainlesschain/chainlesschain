@@ -2,8 +2,10 @@ package com.chainlesschain.android.remote.p2p
 
 import com.chainlesschain.android.remote.data.AuthInfo
 import com.chainlesschain.android.remote.data.CommandCancelRequest
+import com.chainlesschain.android.remote.data.CommandRequest
 import com.chainlesschain.android.remote.data.CommandResponse
 import com.chainlesschain.android.remote.data.ErrorCodes
+import com.chainlesschain.android.remote.data.ErrorInfo
 import com.chainlesschain.android.remote.data.EventNotification
 import com.chainlesschain.android.remote.data.FileTransferProgress
 import com.chainlesschain.android.remote.data.MessageTypes
@@ -663,22 +665,17 @@ class P2PClient @Inject constructor(
             requestId = request.id
             Timber.d("[P2PClient] incoming command: ${request.method} (id=${request.id})")
 
-            // Phase 3d v1.1 #2: sync.* 命名空间走 auth 校验（其他 namespace 暂保留
-            // 现有 v0 行为，避免破坏既有 remote skill 调用链。校验失败抛
-            // SecurityException 由下面 catch 包成 -32008 响应。
-            //
-            // request.auth 为 null 时 desktop 端尚未实现 createAuth — warn-log 后
-            // skip enforcement（v1.1 → v1.2 路径），不阻塞已通的 demo。
+            // Phase 3d v1.2 #2 (flip strict): sync.* 命名空间强制 auth 非 null。
+            // Desktop side mobile-bridge-sync.js v1.2 #1 已开始发 AuthInfo；任何还
+            // 不发 auth 的 desktop 客户端会被拒（升级 desktop 即可）。
+            // 真密码学签名 v1.2 next iteration 加（需 peer pubkey 交换）。
             if (request.method.startsWith("sync.")) {
                 val auth = request.auth
-                if (auth == null) {
-                    Timber.w(
-                        "[P2PClient] sync.* request without auth (id=$requestId method=${request.method}); " +
-                            "v1.1 skip — desktop should add createAuth in v1.2"
+                    ?: throw SecurityException(
+                        "sync.* request requires auth field (method=${request.method}); " +
+                            "desktop client may be pre-v1.2 — please upgrade"
                     )
-                } else {
-                    syncAuthVerifier.get().verify(auth, request.method)
-                }
+                syncAuthVerifier.get().verify(auth, request.method)
             }
 
             val result = commandRouter.route(request.method, request.params)

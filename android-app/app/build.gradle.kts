@@ -74,7 +74,7 @@ android {
                 val keystoreProperties = Properties()
                 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
-                storeFile = file(keystoreProperties["release.storeFile"] as String)
+                storeFile = rootProject.file(keystoreProperties["release.storeFile"] as String)
                 storePassword = keystoreProperties["release.storePassword"] as String
                 keyAlias = keystoreProperties["release.keyAlias"] as String
                 keyPassword = keystoreProperties["release.keyPassword"] as String

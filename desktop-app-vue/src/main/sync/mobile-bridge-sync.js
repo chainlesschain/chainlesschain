@@ -21,6 +21,7 @@
 
 const externalStore = require("./sync-external-store");
 const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
 
 const PROVIDER_ID = "mobile";
 
@@ -66,13 +67,22 @@ const _deps = {
 };
 
 class MobileBridgeSync {
-  constructor({ mobileBridge, dbManager, deviceManager, deps = _deps } = {}) {
+  constructor({
+    mobileBridge,
+    dbManager,
+    deviceManager,
+    didManager,
+    deps = _deps,
+  } = {}) {
     if (!mobileBridge) {
       throw new Error("MobileBridgeSync 需要 mobileBridge");
     }
     if (!dbManager) {
       throw new Error("MobileBridgeSync 需要 dbManager");
     }
+    // didManager 可选：v1.2 #1 给出向 sync.* 加 AuthInfo 用；不传时 _buildAuth
+    // 仍能 produce placeholder did，Android side warn-and-skip 路径仍工作。
+    this.didManager = didManager || null;
 
     this.mobileBridge = mobileBridge;
     this.dbManager = dbManager;
@@ -986,6 +996,11 @@ class MobileBridgeSync {
         id: requestId,
         method,
         params,
+        // Phase 3d v1.2 #1: 给所有 sync.* 出向加 AuthInfo（did + signature 占位 +
+        // timestamp + nonce）。Android side SyncAuthVerifier 校验 timestamp 窗口、
+        // nonce 重放、DID 与 P2P 对端身份匹配。真密码学签名 v1.2 next iteration（需
+        // peer pubkey 交换 + 完整 QR pairing flow）。
+        auth: this._buildAuth(),
       }),
     };
 
@@ -1015,6 +1030,33 @@ class MobileBridgeSync {
    * 不处理 KNOWLEDGE_ITEM；走兜底返回 null 让 caller 跳过。Phase 3d 之后
    * 写入的所有 tombstone 都有 resource_type，正常路径不到这里。
    */
+  /**
+   * Phase 3d v1.2 #1: 构造 sync.* JSON-RPC 出向 AuthInfo。
+   *
+   * 形状对齐 Android `app/remote/data/CommandProtocol.kt::AuthInfo`：
+   *   {did, signature, timestamp, nonce}
+   *
+   * v1.2 当前实现：signature 是占位字符串 "v1.2-placeholder-no-sig"。Android
+   * side SyncAuthVerifier 不验签（只验 timestamp/nonce/DID），所以 placeholder
+   * OK。未来真密码学签名（v1.2 next iteration）需：
+   *   - 拿 didManager.getCurrentIdentity().secretKey
+   *   - did-signer.signBytes(JCS({method, timestamp, nonce}), secretKey)
+   *   - Android side 也需 PC 公钥（v1.2 完整 QR pairing 时交换）
+   *
+   * didManager 缺失或没 currentIdentity 时 did 兜底 "did:cc:desktop-unknown"，
+   * Android side 看到这种 did 与 connectedPeer.did 不匹配会 reject — 让用户立刻
+   * 在日志看到 "DID mismatch" 而不是 silent fail。
+   */
+  _buildAuth() {
+    const identity = this.didManager?.getCurrentIdentity?.();
+    return {
+      did: identity?.did || "did:cc:desktop-unknown",
+      signature: "v1.2-placeholder-no-sig",
+      timestamp: this.deps.now(),
+      nonce: crypto.randomBytes(16).toString("hex"),
+    };
+  }
+
   _inferResourceTypeFromTombstone(_ts) {
     return null;
   }

@@ -1526,6 +1526,8 @@ class ChainlessChainApp {
             mobileBridge: this.mobileBridge,
             dbManager,
             deviceManager: this.deviceManager || null,
+            // Phase 3d v1.2 #1: didManager 给出向 sync.* 加 AuthInfo
+            didManager: this.didManager || null,
           });
           logger.info("[Main] ✓ MobileBridgeSync 已实例化 (Phase 3d)");
         } else {
