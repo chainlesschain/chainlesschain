@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.p2p.sync
 
 import timber.log.Timber
+import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessageTransport
@@ -26,7 +27,9 @@ import javax.inject.Singleton
 class SyncManager @Inject constructor(
     private val messageQueue: MessageQueue,
     private val conflictResolver: ConflictResolver,
-    private val syncDataApplier: SyncDataApplier
+    private val syncDataApplier: SyncDataApplier,
+    // Phase 3d M3 step C：游标 Room 持久化（replace ConcurrentHashMap）
+    private val syncRemoteCursorDao: SyncRemoteCursorDao
 ) {
 
     companion object {
@@ -124,9 +127,11 @@ class SyncManager @Inject constructor(
 
         Timber.i("Starting sync (${pendingChanges.size} changes)")
 
+        val startedAt = System.currentTimeMillis()
         val changes = pendingChanges.values.toList()
         val totalChanges = changes.size
         var syncedCount = 0
+        var lastError: String? = null
 
         changes.forEach { change ->
             try {
@@ -149,12 +154,45 @@ class SyncManager @Inject constructor(
 
             } catch (e: Exception) {
                 Timber.e(e, "Failed to sync item: ${change.resourceId}")
+                lastError = e.message ?: e.javaClass.simpleName
             }
         }
 
-        // 更新最后同步时间
+        val now = System.currentTimeMillis()
+
+        // 更新最后同步时间。in-memory Map 保留供未读路径兜底；Room 是持久化主源。
         if (targetDeviceId != null) {
-            lastSyncTimestamp[targetDeviceId] = System.currentTimeMillis()
+            lastSyncTimestamp[targetDeviceId] = now
+
+            // Phase 3d M3 step C：游标 Room 持久化。使用 resourceType="ALL" sentinel
+            // 与原 ConcurrentHashMap<String, Long> 语义对齐（每设备一行）；后续若需
+            // 分 ResourceType 推进，按 SyncItem.resourceType 改写多行即可。
+            try {
+                syncRemoteCursorDao.advancePush(
+                    deviceId = targetDeviceId,
+                    resourceType = "ALL",
+                    lastPushTs = now,
+                    itemsPushedDelta = syncedCount.toLong(),
+                    now = now
+                )
+                val status = when {
+                    lastError != null -> "failed"
+                    syncedCount < totalChanges -> "partial"
+                    else -> "success"
+                }
+                syncRemoteCursorDao.recordRunResult(
+                    deviceId = targetDeviceId,
+                    resourceType = "ALL",
+                    status = status,
+                    error = lastError,
+                    durationMs = now - startedAt,
+                    conflictedDelta = 0,
+                    now = now
+                )
+            } catch (e: Exception) {
+                // Room 写失败不应阻塞 sync 流程（顶多丢统计）
+                Timber.w(e, "Failed to persist sync cursor for $targetDeviceId")
+            }
         }
 
         Timber.i("Sync completed: $syncedCount/$totalChanges")

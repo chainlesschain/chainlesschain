@@ -40,7 +40,8 @@ object DatabaseMigrations {
             MIGRATION_18_19,
             MIGRATION_19_20,
             MIGRATION_20_21,
-            MIGRATION_21_22
+            MIGRATION_21_22,
+            MIGRATION_22_23
         )
     }
 
@@ -1076,6 +1077,39 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_namespace_createdAt` ON `vector_embeddings` (`namespace`, `createdAt`)")
 
             Timber.i("Migration 21 to 22 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 22 -> 23
+     *
+     * Phase 3d M3 step C：新增 sync_remote_cursor 表，持久化与远端设备的同步游标
+     * （替代 SyncManager.lastSyncTimestamp ConcurrentHashMap）。复合主键
+     * (remote_device_id, resource_type) 让后续可以分 ResourceType 推进游标。
+     */
+    val MIGRATION_22_23 = object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Timber.i("Migrating database from version 22 to 23")
+
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `sync_remote_cursor` (
+                    `remote_device_id` TEXT NOT NULL,
+                    `resource_type` TEXT NOT NULL,
+                    `last_pull_ts` INTEGER NOT NULL DEFAULT 0,
+                    `last_pull_id` TEXT,
+                    `last_push_ts` INTEGER NOT NULL DEFAULT 0,
+                    `last_run_status` TEXT,
+                    `last_run_error` TEXT,
+                    `last_run_duration_ms` INTEGER,
+                    `items_pushed` INTEGER NOT NULL DEFAULT 0,
+                    `items_pulled` INTEGER NOT NULL DEFAULT 0,
+                    `items_conflicted` INTEGER NOT NULL DEFAULT 0,
+                    `updated_at` INTEGER NOT NULL,
+                    PRIMARY KEY(`remote_device_id`, `resource_type`)
+                )
+            """.trimIndent())
+
+            Timber.i("Migration 22 to 23 completed successfully")
         }
     }
 

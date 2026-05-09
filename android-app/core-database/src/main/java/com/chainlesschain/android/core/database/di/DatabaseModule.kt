@@ -21,6 +21,7 @@ import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
+import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
 import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
@@ -225,5 +226,14 @@ object DatabaseModule {
     @Singleton
     fun provideVectorEmbeddingDao(database: ChainlessChainDatabase): VectorEmbeddingDao {
         return database.vectorEmbeddingDao()
+    }
+
+    /**
+     * 提供同步游标DAO（Phase 3d M3 step C）
+     */
+    @Provides
+    @Singleton
+    fun provideSyncRemoteCursorDao(database: ChainlessChainDatabase): SyncRemoteCursorDao {
+        return database.syncRemoteCursorDao()
     }
 }

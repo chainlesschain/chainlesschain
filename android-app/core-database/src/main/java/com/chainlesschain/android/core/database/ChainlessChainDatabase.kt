@@ -22,6 +22,7 @@ import com.chainlesschain.android.core.database.dao.call.CallHistoryDao
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
+import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
 import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
@@ -53,6 +54,7 @@ import com.chainlesschain.android.core.database.entity.call.CallHistoryEntity
 import com.chainlesschain.android.core.database.entity.ModerationQueueEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
+import com.chainlesschain.android.core.database.entity.SyncRemoteCursorEntity
 import com.chainlesschain.android.core.database.entity.TaskEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
 import com.chainlesschain.android.core.database.util.Converters
@@ -102,8 +104,10 @@ import com.chainlesschain.android.core.database.util.Converters
         TaskEntity::class,
         // 向量嵌入实体
         VectorEmbeddingEntity::class,
+        // 同步游标实体（Phase 3d M3 step C）
+        SyncRemoteCursorEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -161,6 +165,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 向量嵌入DAO
     abstract fun vectorEmbeddingDao(): VectorEmbeddingDao
+
+    // 同步游标DAO（Phase 3d M3 step C）
+    abstract fun syncRemoteCursorDao(): SyncRemoteCursorDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"

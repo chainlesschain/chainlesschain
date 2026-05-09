@@ -5,6 +5,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import com.chainlesschain.android.core.database.dao.SyncRemoteCursorDao
+import com.chainlesschain.android.core.database.entity.SyncRemoteCursorEntity
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.model.MessageType
 
@@ -22,7 +24,12 @@ class SyncManagerTest {
     fun setup() {
         messageQueue = MessageQueue()
         conflictResolver = ConflictResolver()
-        syncManager = SyncManager(messageQueue, conflictResolver, NoOpSyncDataApplier())
+        syncManager = SyncManager(
+            messageQueue,
+            conflictResolver,
+            NoOpSyncDataApplier(),
+            NoOpSyncRemoteCursorDao()
+        )
     }
 
     @Test
@@ -217,6 +224,40 @@ class SyncManagerTest {
         override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {}
         override suspend fun update(resourceType: ResourceType, resourceId: String, data: String) {}
         override suspend fun delete(resourceType: ResourceType, resourceId: String) {}
+    }
+
+    /** Phase 3d M3 step C：测试用 no-op 游标 DAO（不持久化，单测不需要真 DB） */
+    private class NoOpSyncRemoteCursorDao : SyncRemoteCursorDao {
+        override suspend fun getCursor(deviceId: String, resourceType: String): SyncRemoteCursorEntity? = null
+        override suspend fun getCursorsForDevice(deviceId: String): List<SyncRemoteCursorEntity> = emptyList()
+        override suspend fun getAllCursors(): List<SyncRemoteCursorEntity> = emptyList()
+        override suspend fun upsert(cursor: SyncRemoteCursorEntity) {}
+        override suspend fun advancePush(
+            deviceId: String,
+            resourceType: String,
+            lastPushTs: Long,
+            itemsPushedDelta: Long,
+            now: Long
+        ) {}
+        override suspend fun advancePull(
+            deviceId: String,
+            resourceType: String,
+            lastPullTs: Long,
+            lastPullId: String?,
+            itemsPulledDelta: Long,
+            now: Long
+        ) {}
+        override suspend fun recordRunResult(
+            deviceId: String,
+            resourceType: String,
+            status: String?,
+            error: String?,
+            durationMs: Long?,
+            conflictedDelta: Long,
+            now: Long
+        ) {}
+        override suspend fun deleteCursorsForDevice(deviceId: String) {}
+        override suspend fun deleteAll() {}
     }
 
     // Helper functions
