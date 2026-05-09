@@ -6,7 +6,7 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1765 | 24.77 MB |
+| main | 1765 | 24.78 MB |
 | renderer | 22 | 0.09 MB |
 | shared | 0 | 0.00 MB |
 
@@ -25,7 +25,7 @@
 7. `src/main/remote/browser-extension-server.js` - 87.7 KB
 8. `src/main/monitoring/error-monitor.js` - 84.6 KB
 9. `src/main/llm/session-manager.js` - 78.2 KB
-10. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
+10. `src/main/index.js` - 78.2 KB
 
 ## renderer Module
 

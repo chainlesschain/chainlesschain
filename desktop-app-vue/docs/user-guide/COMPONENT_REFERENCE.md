@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 582
+**Total Components**: 583
 
 ---
 
@@ -879,6 +879,14 @@
 **File**: `src/renderer/pages/settings/SyncSettings.vue`
 
 **Description**: 全局自动同步控制
+
+---
+
+### SyncMobile
+
+**File**: `src/renderer/pages/settings/SyncMobile.vue`
+
+**Description**: Bridge ready 状态
 
 ---
 

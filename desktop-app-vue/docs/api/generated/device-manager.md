@@ -191,6 +191,39 @@ async cleanupInactiveDevices(maxAge = 7 * 24 * 60 * 60 * 1000)
 
 ---
 
+## getRegisteredDevices()
+
+```javascript
+getRegisteredDevices()
+```
+
+* 列所有已注册设备（跨 userId 展平）。
+   * 用于 sync:mobile:list-paired。
+
+---
+
+## isDeviceRegistered(deviceId)
+
+```javascript
+isDeviceRegistered(deviceId)
+```
+
+* 跨 userId 检查 deviceId 是否已注册。
+   * DevicePairingHandler.validatePairingCode 用。
+
+---
+
+## async unregisterDeviceById(deviceId)
+
+```javascript
+async unregisterDeviceById(deviceId)
+```
+
+* 单参数注销（跨 userId 搜并删）。
+   * 用于 sync:mobile:unpair（不知道 deviceId 属于哪个 userId）。
+
+---
+
 ## getStatistics()
 
 ```javascript
