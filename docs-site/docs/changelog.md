@@ -3,6 +3,64 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.46 / CLI 0.161.7 / Android 0.37.0] - 2026-05-10 (Phase 3d 桌面 ↔ Android 双向同步全套 + Android 七件套 + e2e CI 静默回归洞收口)
+
+> 真正打通桌面 ↔ Android 的双向社交数据同步（Phase 3d M2 → v1.2 共 12 个 commit，gate 1-4 全部 Ed25519 真签真验），Android 端一次落 7 件用户可见功能（Volcengine 语音 / APK 自更新 / Splash 重做 / Claude coral 主题 / i18n 三地区 / 生物识别 / DID Key 屏），CI 收掉 e2e-tests `continue-on-error` 这个把 3/3 OS 失败显示 success 的静默回归洞。
+
+### Added — Phase 3d Mobile-Bridge-Sync 桌面 ↔ Android 双向同步
+
+- **M2: 5 ResourceType walker + tombstones + IPC wire-up**（commits `491fb4758` `a052e51c0` `dd2156ec3` `a4fe653f9` `9a8e3635d`）—— 桌面侧 sync engine 落地：scaffold mobile-bridge-sync provider，drop dead `MobileSyncManager`；rewrite 5 ResourceType walker（`note` / `conversation` / `did` / `community` / `channel`）+ apply 路径；tombstone 触发器 + `resource_type` 列；`mobile.ts` 真 provider + IPC wire-up；52 个 mobile sync 测试，过程中找出并修 3 个 prod bug
+- **M3 step A→D.5: SocialSyncAdapter wiring + Room cursor + JSON-RPC handlers**（commits `28c85dad5` `647dc8699` `945001502` `510f6d2e0` `1131e35a2`）—— Android 侧：用 `dagger.Lazy` 解 4 处 Hilt 循环依赖；MESSAGE outgoing path；Room 持久化 `SyncRemoteCursor`；`sync.*` JSON-RPC handlers 在 SyncManager 落地；transport wiring + outbound JSON-RPC
+- **M4: 设置页 + DeviceManager + 手动配对**（commits `0bf5f00b9` `17ea9b69d`）—— Settings 加 SyncMobile 移动设备同步页面（设备列表 + 同步状态 + 触发 push/pull）；DeviceManager wire-up + 手动 pairing 表单
+- **v1.1: SocialSyncWalker for handlePullRpc 实数据 + DID auth 验证 + SyncCoordinator auto-trigger**（commits `2d841dfdc` `692e3e626` `b77e0773b`）—— Android 侧 walker 真填 `handlePullRpc` 不再 stub；`sync.*` topic 加 DID 签名验证；`SyncCoordinator` socket 连上后自动 trigger push/pull，不需要 UI 手动点
+- **v1.2: 真 Ed25519 签名 + Android gate 4**（commits `c739d77d0` `4ecb7c8ef`）—— 桌面侧把 placeholder 签名换成真 `@noble/ed25519` 签名；Android gate 4 即对端 Ed25519 验签（前 3 gate 在 v1.1 已开），桌面 ↔ Android 4 个 gate 全部 strict-verify
+
+### Added — Android 0.37.0（commit `1348636ad`，7 件用户可见功能）
+
+- **Volcengine SeedASR 语音识别** —— `WavRecorder`（16kHz mono PCM → WAV）+ `VolcengineAsrClient`（HTTP submit + 800ms poll）+ `HomeStatusViewModel` 状态机 + `AsrSettingsScreen`（x-api-key 入口）+ Recording dialog（pulsing coral mic + breathing ring + mm:ss + 72dp Stop 圆）+ Transcribing dialog（3-dot breathing，跟 splash 一致）
+- **APK 自更新（issue #21）** —— `UpdateChecker`（GitHub Releases API，tag prefix `android-v`，arm64-v8a asset 选择）+ `UpdateInstaller`（DownloadManager + FileProvider + ACTION_VIEW）+ `UpdateDialog`（changelog scroll + REQUEST_INSTALL_PACKAGES 权限流）+ Settings "检查更新" 入口带当前 versionName + Application 级 BroadcastReceiver 接 `DownloadManager.ACTION_DOWNLOAD_COMPLETE`
+- **Splash + 主题大改** —— SplashScreen 紫色渐变 + 旋转环 + TT logo + 3-dot + progress + stage；`rememberUpdatedState` 修 splash race（之前 `nextAfterSplash` 在 AuthVM load 完之前被 capture 成 stale）；`Theme.kt` 切 Claude coral palette（`#D97757` primary + warm-gray dark + `#FAF9F5` bg）；`Type.kt` 加粗 headlines + 拉宽 body line-height；`dynamicColor=false` 默认保品牌色（Android 12+ 否则会被 Material You 改色）
+- **i18n（issue #16）** —— `resourceConfigurations` 用 `zh-rCN` / `zh-rTW` / `zh-rHK` 显式 qualifier（fix：`zh` 作 language-only 在 build 时把 `values-zh-rCN/` 全过滤掉）；`AppCompatDelegate.setApplicationLocales` 在 SettingsScreen 接线；`MainActivity` → `AppCompatActivity` + `Theme.AppCompat.Light.NoActionBar` 父主题；`locales_config.xml` + `AppLocalesMetadataHolderService`（API <33 兼容）
+- **Auth + DID** —— `AuthRepository.register` 幂等回退到 `verifyPIN`（fix race：AuthVM 异步 DataStore read vs splash navigate 抢跑）；SettingsScreen 生物识别 toggle 接 AuthVM `enableBiometric` / `disableBiometric`；新增 `KeyManagementScreen`（DID + public key hex + clipboard + trusted devices + reset）
+- **Home page UX** —— LLM 未配置 banner 显示在 BrandSection 上方（点击跳 LLM Settings）；Send-from-home prefill 通路：home → NewConversation route 带 prefill；`ConversationViewModel.getDefaultModel()` + 自动建会话（prefill 跳过 picker UI）；BrandSection / AboutScreen logo 切 `R.mipmap.ic_launcher`（TT 品牌）；FunctionEntryCard 12 个硬编码彩色 → 统一 surfaceVariant + 44dp icon chip
+- **Launcher icons** —— 替换默认 Android 机器人 `mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher{,_round}.png` 为 TT logo（PIL LANCZOS resize）
+- **顺手修的 latent bug**：`OpenAIAdapter.{chat,chatWithTools,checkAvailability,streamChat}` 加 `withContext IO` + `flowOn`（之前 block main thread → 12s 主页冻结）；`RemoteConnectionManager.invoke{,WithRetry}` inline reified `<T : Any>`；`ProcessManagerViewModel.cpuUsage` Elvis fallback 改 `Double 0.0`；`SystemMonitorScreen.kt:149` `os?.type/version` null-safe；256 个 `rs_*` string stub 自动生成（remote/ui/* 屏 Phase 3d v1.3 work 平行编译需要）
+
+### Fixed
+
+- **Android `sync.*` DID auth strict-mode flip + release build unblock**（commit `49f1440ca`）—— `sync.*` topic 的 DID 鉴权从可选变强制；release build 之前因 lint baseline 漂移挂的 issue 一并修
+- **2 个 mobile-ipc 测试 stale after M4.5**（commit `d34de0ac0`）—— DeviceManager wire-up 改了 IPC shape，把测试同步对齐
+- **官网移动端 hamburger 菜单**（commit `0bb62675d`）—— `SiteHeader.astro` 在小屏下 nav 列表撑满整行无折叠，加 `<button>` toggle + tailwind `md:hidden`
+- **logo 资产送 docs+design 站 + www 文档跳链 retarget**（commit `61b8cd642`）—— 之前 docs/design 站 hero 引 `/logo.png` 但仓库里没有；www 部分 footer 链接还指着旧 docs 路径
+- **E2E preload 真错暴露 + force V5/V6 mode + app-config.json 早写**（commits `076474208` `1f61a18bf` `fc9cacc48`）—— preload 失败时 throw window snapshot 不再 catch+continue 吞信号；E2E 强制 V5/V6 模式让 preload bridge 真加载；测试启动前先 `writeFileSync app-config.json useWebShellExperimental:false`，绕过 Phase 1.6 hard-flip
+
+### CI
+
+- **drop e2e-tests workflow `continue-on-error: true`**（commit `e807d576c`）—— 之前 JOB 级 `continue-on-error` 让 3/3 OS 失败显示 success，"No team IPC interface found" 沉了几周
+- **e2e-tests workflow 加 npm cache + Playwright browsers cache**（commit `9460f05da`）—— `actions/cache@v4` 缓存 `~/.npm` 和 `~/Library/Caches/ms-playwright` / `%LOCALAPPDATA%\ms-playwright`，单 OS 跑时间预期从 ~14m 降到 ~6-8m
+
+### Android
+
+- **versionCode 36 → 37, versionName 0.36.0 → 0.37.0** —— minor bump 反映 7 件用户可见功能 + Phase 3d 双向同步落地
+
+### Tests
+
+- 桌面 mobile sync 52 测试全绿（M2 step 8）
+- Android Phase 3d v1.1/v1.2 sync 测试全绿（gates 1-4 完整）
+- mobile-ipc 12/12 绿（M4.5 wire-up 后）
+
+### NPM
+
+- `chainlesschain` 保持 0.161.7（CLI 自 v5.0.3.45 无源码改动）
+
+### Distribution
+
+- 桌面 binary 重新打过；auto-updater 比对 `5.0.3-alpha.46 > 5.0.3-alpha.45`，所有 v5.0.3.45 桌面用户重启会真发现新版
+- Android APK 走新 `android-v0.37.0` tag 发布（用户可在 Settings → 检查更新 看到）
+- 三大文档站本次同步刷新：tagline 升 v5.0.3.46 + 新增本节 changelog + 设计文档对齐
+
+---
+
 ## [5.0.3.45 / CLI 0.161.7] - 2026-05-09 (cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy reactivity 修复)
 
 > `cc ui` 终于跟桌面 web-shell 在 LLM 路径上对齐；项目/文件模式聊天默认不再走"理解中…"占位 LLM 调用；`chatStream` 改为真正的 token-by-token 流式；意图卡片 Vue Proxy 引用 bug 修复让占位卡正确翻面。
