@@ -74,17 +74,22 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          # NOTE: this workflow lives at android-app/.github/workflows/ and is
+          # **orphan** — GitHub Actions only reads .github/workflows/ at repo root,
+          # so this file is never executed. Kept for reference / potential
+          # restructure. Paths use the post-49f1440ca convention (rootProject.file()
+          # resolves from android-app/, no `../` prefix).
           if [ -z "$KEYSTORE_PASSWORD" ]; then
             echo "⚠️ Keystore secrets not found, using debug keystore"
             cat > android-app/keystore.properties <<EOF
-          release.storeFile=../keystore/debug.keystore
+          release.storeFile=keystore/debug.keystore
           release.storePassword=android
           release.keyAlias=androiddebugkey
           release.keyPassword=android
           EOF
           else
             cat > android-app/keystore.properties <<EOF
-          release.storeFile=../keystore/release.keystore
+          release.storeFile=keystore/release.keystore
           release.storePassword=$KEYSTORE_PASSWORD
           release.keyAlias=$KEY_ALIAS
           release.keyPassword=$KEY_PASSWORD

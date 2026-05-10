@@ -37,10 +37,12 @@ keytool -genkey -v -keystore release.keystore \
 
 ### 3. 配置 keystore.properties
 
-编辑 `android-app/keystore.properties`，填入真实配置：
+编辑 `android-app/keystore.properties`，填入真实配置（路径由 `build.gradle.kts`
+里 `rootProject.file()` 从 `android-app/` 起解析，所以 **不要加 `../` 前缀**，否则
+会跑到 repo 根目录之外，build 时报 "Keystore not found"）：
 
 ```properties
-release.storeFile=../keystore/release.keystore
+release.storeFile=keystore/release.keystore
 release.storePassword=your_actual_store_password
 release.keyAlias=chainlesschain_release
 release.keyPassword=your_actual_key_password
@@ -60,7 +62,7 @@ cd android-app
 
 ```properties
 # keystore.properties (仅开发环境)
-release.storeFile=../keystore/debug.keystore
+release.storeFile=keystore/debug.keystore
 release.storePassword=android
 release.keyAlias=androiddebugkey
 release.keyPassword=android
@@ -109,19 +111,23 @@ git status
 
 ```yaml
 - name: Decode Keystore
+  working-directory: android-app
   run: |
+    mkdir -p keystore
     echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > keystore/release.keystore
 
 - name: Create keystore.properties
+  working-directory: android-app
   run: |
     cat > keystore.properties <<EOF
-    release.storeFile=../keystore/release.keystore
+    release.storeFile=keystore/release.keystore
     release.storePassword=${{ secrets.KEYSTORE_PASSWORD }}
     release.keyAlias=${{ secrets.KEY_ALIAS }}
     release.keyPassword=${{ secrets.KEY_PASSWORD }}
     EOF
 
 - name: Build Release
+  working-directory: android-app
   run: ./gradlew bundleRelease
 ```
 
