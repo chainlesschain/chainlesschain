@@ -1,5 +1,46 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-05-10 Release — **v5.0.3.46 Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix**
+
+productVersion **v5.0.3.45 → v5.0.3.46**. Android **0.36.0 → 0.37.0** (versionCode 36 → 37). Three themes shipped together: (1) **Phase 3d Mobile-Bridge-Sync — full desktop ↔ Android two-way social-data sync** (M2 → v1.2 across 12 commits · 5 ResourceType walkers + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1–4 all Ed25519 strict-verify); (2) **Android 0.37.0 lands 7 user-visible features in one commit** (Volcengine SeedASR voice + APK auto-update issue #21 + splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen); (3) **e2e CI silent-regression fix** (drop the e2e-tests workflow JOB-level `continue-on-error: true` that masked 3/3 OS failures as success — "No team IPC interface found" had been buried for weeks — plus Playwright browser cache for speedup).
+
+**Added — Phase 3d desktop ↔ Android two-way sync**:
+
+- **M2 desktop sync engine landed** (commits `491fb4758` → `9a8e3635d`) — scaffold mobile-bridge-sync provider, drop dead `MobileSyncManager`; rewrite 5 ResourceType walkers (`note` / `conversation` / `did` / `community` / `channel`) + apply path; tombstone triggers + `resource_type` column; `mobile.ts` real provider + IPC wire-up; 52 mobile sync tests, surfacing and fixing 3 prod bugs along the way.
+- **M3 Android-side SocialSyncAdapter wiring + Room cursor + JSON-RPC handlers** (commits `28c85dad5` → `1131e35a2`) — break 4 Hilt cycles via `dagger.Lazy`; MESSAGE outgoing path; Room-persisted `SyncRemoteCursor`; `sync.*` JSON-RPC handlers in SyncManager; transport wiring + outbound JSON-RPC.
+- **M4 desktop settings page + DeviceManager + manual pairing** (commits `0bf5f00b9` `17ea9b69d`) — Settings adds SyncMobile mobile-device sync page; DeviceManager wire-up + manual pairing form.
+- **v1.1 real handlePullRpc + DID auth + auto-trigger** (commits `2d841dfdc` → `b77e0773b`) — Android walker actually returns data via `handlePullRpc` (no longer stub); `sync.*` topic gets DID signature verification; `SyncCoordinator` auto-triggers push/pull on socket connect.
+- **v1.2 real Ed25519 + Android gate 4** (commits `c739d77d0` `4ecb7c8ef`) — desktop placeholder signatures → real `@noble/ed25519`; Android gate 4 verifies, all 4 gates strict-verify.
+
+**Added — Android 0.37.0 (commit `1348636ad`)**:
+
+- **Volcengine SeedASR voice recognition** — `WavRecorder` (16kHz mono PCM → WAV) + `VolcengineAsrClient` (HTTP submit + 800ms poll) + `HomeStatusViewModel` state machine + `AsrSettingsScreen` x-api-key entry + Recording/Transcribing dialogs.
+- **APK auto-update (issue #21)** — `UpdateChecker` (GitHub Releases API, tag prefix `android-v`, arm64-v8a asset pick) + `UpdateInstaller` (DownloadManager + FileProvider + ACTION_VIEW) + `UpdateDialog` (changelog scroll + REQUEST_INSTALL_PACKAGES permission flow) + Settings "Check for updates" entry.
+- **Splash + theme overhaul** — SplashScreen purple gradient + rotating ring + TT logo + 3-dot breathing + progress; `rememberUpdatedState` fixes splash race; Claude coral palette (`#D97757` primary) + `dynamicColor=false` to preserve brand colour.
+- **i18n (issue #16)** — `resourceConfigurations` uses explicit `zh-rCN` / `zh-rTW` / `zh-rHK` qualifiers (fix: `zh` as language-only filtered out all `values-zh-rCN/` at build time); `AppCompatDelegate.setApplicationLocales` wired; `MainActivity` → `AppCompatActivity` + `Theme.AppCompat.Light.NoActionBar`.
+- **Auth + DID + biometric** — `AuthRepository.register` idempotent fallback to `verifyPIN` (fix race: AuthVM async DataStore read vs splash navigate); SettingsScreen biometric toggle; new `KeyManagementScreen` (DID + public key hex + clipboard + trusted devices + reset).
+- **Home page UX** — LLM-not-configured banner (taps → LLM Settings); send-from-home prefill plumbing; BrandSection / AboutScreen logo → `R.mipmap.ic_launcher`; FunctionEntryCard 12 hardcoded vivid colours → unified surfaceVariant + 44dp icon chip.
+- **Drive-by latent bug fixes**: `OpenAIAdapter.{chat,chatWithTools,checkAvailability,streamChat}` add `withContext IO` + `flowOn` (was blocking main thread → 12s home freeze); `RemoteConnectionManager.invoke{,WithRetry}` inline reified `<T : Any>`; `SystemMonitorScreen.kt:149` `os?.type/version` null-safe; 256 `rs_*` string stubs auto-generated.
+
+**Fixed**:
+
+- **Android `sync.*` DID auth strict-mode flip + release build unblock** (commit `49f1440ca`).
+- **2 mobile-ipc tests stale after M4.5** (commit `d34de0ac0`) — DeviceManager wire-up changed IPC shape, tests synced.
+- **Website mobile hamburger menu** (commit `0bb62675d`) — `SiteHeader.astro` nav list overflowed at small widths, added `<button>` toggle + tailwind `md:hidden`.
+- **Logo assets shipped to docs+design + www docs links retargeted** (commit `61b8cd642`).
+- **E2E preload real-error surfacing + force V5/V6 mode + early app-config.json write** (commits `076474208` `1f61a18bf` `fc9cacc48`).
+
+**CI**:
+
+- **Drop e2e-tests workflow `continue-on-error: true`** (commit `e807d576c`) — JOB-level `continue-on-error: true` was masking 3/3 OS failures as success; "No team IPC interface found" had been buried for weeks.
+- **e2e-tests workflow gets npm cache + Playwright browsers cache** (commit `9460f05da`) — `actions/cache@v4` for `~/.npm` and `~/Library/Caches/ms-playwright` / `%LOCALAPPDATA%\ms-playwright`; single-OS time expected to drop from ~14m to ~6–8m.
+
+**Tests**: desktop mobile sync 52 tests green (M2 step 8) + Android Phase 3d v1.1/v1.2 sync gates 1–4 complete + mobile-ipc 12/12 green.
+
+**Distribution**: CLI npm `chainlesschain` stays at 0.161.7 (no CLI source changes since v5.0.3.45). Desktop binary rebuilt; auto-updater compares `5.0.3-alpha.46 > 5.0.3-alpha.45`, so all v5.0.3.45 desktop users will see a real "new version" prompt on restart. Android APK ships under the new `android-v0.37.0` tag (visible to users at Settings → Check for updates). All three documentation sites refreshed in sync (tagline bumped to v5.0.3.46 + this section added to changelog).
+
+---
+
 ## 2026-05-09 Release — **v5.0.3.45 cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix**
 
 productVersion **v5.0.3.44 → v5.0.3.45**. `cc ui` finally aligns with the desktop web-shell on the LLM path; project/file-mode chat no longer routes through the "Understanding…" placeholder LLM call by default; `chatStream` is now a real token-by-token stream; intent placeholder card Vue Proxy reactivity bug fixed so the card flips correctly.
@@ -1699,7 +1740,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.45-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.46-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1719,7 +1760,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.45 Evolution Edition (2026-05-09 · CLI 0.161.7 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · chat-panel-v5 Three-Shell Strict Parity · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · Screenshot LLM OCR auto/llm/tesseract · **cc ui llm.chat parity** · **intent opt-in toggle** · **chatStream true streaming** · **intent card Vue Proxy reactivity fix**)
+## ⭐ Current Version: v5.0.3.46 Evolution Edition (2026-05-10 · CLI 0.161.7 · Android 0.37.0 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
 
 ### Latest Update - cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix (v5.0.3.45, 2026-05-09)
 

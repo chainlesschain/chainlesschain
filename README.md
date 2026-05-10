@@ -1,5 +1,46 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-05-10 发布 — **v5.0.3.46 Phase 3d 桌面 ↔ Android 双向同步全套 + Android 0.37.0 七件套 + e2e CI 静默回归洞收口**
+
+productVersion **v5.0.3.45 → v5.0.3.46**。Android **0.36.0 → 0.37.0**（versionCode 36 → 37）。本次主线三条：(1) **Phase 3d Mobile-Bridge-Sync 桌面 ↔ Android 双向社交数据同步全套落地**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）；(2) **Android 0.37.0 一次落 7 件用户可见功能**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）；(3) **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true` —— 之前让 3/3 OS 失败显示 success "No team IPC interface found" 沉了几周 + Playwright 浏览器 cache 加速）。
+
+**新增（Phase 3d 桌面 ↔ Android 双向同步）**：
+
+- **M2 桌面 sync engine 落地**（commits `491fb4758` → `9a8e3635d`）—— scaffold mobile-bridge-sync provider，drop dead `MobileSyncManager`；rewrite 5 ResourceType walker（`note` / `conversation` / `did` / `community` / `channel`）+ apply 路径；tombstone 触发器 + `resource_type` 列；`mobile.ts` 真 provider + IPC wire-up；52 个 mobile sync 测试，过程中找出并修 3 个 prod bug。
+- **M3 Android 侧 SocialSyncAdapter wiring + Room cursor + JSON-RPC handlers**（commits `28c85dad5` → `1131e35a2`）—— 用 `dagger.Lazy` 解 4 处 Hilt 循环依赖；MESSAGE outgoing path；Room 持久化 `SyncRemoteCursor`；`sync.*` JSON-RPC handlers 在 SyncManager 落地；transport wiring + outbound JSON-RPC。
+- **M4 桌面设置页 + DeviceManager + 手动配对**（commits `0bf5f00b9` `17ea9b69d`）—— Settings 加 SyncMobile 移动设备同步页面；DeviceManager wire-up + 手动 pairing 表单。
+- **v1.1 真填 handlePullRpc + DID auth + 自动 trigger**（commits `2d841dfdc` → `b77e0773b`）—— Android walker 真填 `handlePullRpc` 不再 stub；`sync.*` topic 加 DID 签名验证；`SyncCoordinator` socket 连上后自动 trigger push/pull。
+- **v1.2 真 Ed25519 + Android gate 4**（commits `c739d77d0` `4ecb7c8ef`）—— 桌面侧 placeholder 签名 → 真 `@noble/ed25519`；Android gate 4 验签，gate 1-4 全部 strict-verify。
+
+**新增（Android 0.37.0，commit `1348636ad`）**：
+
+- **Volcengine SeedASR 语音识别** —— `WavRecorder`（16kHz mono PCM → WAV）+ `VolcengineAsrClient`（HTTP submit + 800ms poll）+ `HomeStatusViewModel` 状态机 + `AsrSettingsScreen` x-api-key 入口 + Recording/Transcribing dialogs。
+- **APK 自更新（issue #21）** —— `UpdateChecker`（GitHub Releases API，tag prefix `android-v`，arm64-v8a asset 选择）+ `UpdateInstaller`（DownloadManager + FileProvider + ACTION_VIEW）+ `UpdateDialog`（changelog scroll + REQUEST_INSTALL_PACKAGES 权限流）+ Settings "检查更新" 入口。
+- **Splash + 主题大改** —— SplashScreen 紫色渐变 + 旋转环 + TT logo + 3-dot breathing + progress；`rememberUpdatedState` 修 splash race；Claude coral palette（`#D97757` primary）+ `dynamicColor=false` 默认保品牌色。
+- **i18n（issue #16）** —— `resourceConfigurations` 用 `zh-rCN` / `zh-rTW` / `zh-rHK` 显式 qualifier（fix：`zh` 作 language-only 在 build 时把 `values-zh-rCN/` 全过滤掉）；`AppCompatDelegate.setApplicationLocales` 接线；`MainActivity` → `AppCompatActivity` + `Theme.AppCompat.Light.NoActionBar`。
+- **Auth + DID + 生物识别** —— `AuthRepository.register` 幂等回退 verifyPIN（fix race：AuthVM 异步 DataStore read vs splash navigate 抢跑）；SettingsScreen 生物识别 toggle；新增 `KeyManagementScreen`（DID + public key hex + clipboard + trusted devices + reset）。
+- **Home page UX** —— LLM 未配置 banner（点击跳 LLM Settings）；Send-from-home prefill 通路；BrandSection / AboutScreen logo 切 `R.mipmap.ic_launcher`；FunctionEntryCard 12 硬编码彩色 → 统一 surfaceVariant + 44dp icon chip。
+- **顺手修的 latent bug**：`OpenAIAdapter.{chat,chatWithTools,checkAvailability,streamChat}` 加 `withContext IO` + `flowOn`（之前 block main thread → 12s 主页冻结）；`RemoteConnectionManager.invoke{,WithRetry}` inline reified `<T : Any>`；`SystemMonitorScreen.kt:149` `os?.type/version` null-safe；256 个 `rs_*` string stub 自动生成。
+
+**修复**：
+
+- **Android `sync.*` DID auth strict-mode flip + release build unblock**（commit `49f1440ca`）。
+- **2 个 mobile-ipc 测试 stale after M4.5**（commit `d34de0ac0`）—— DeviceManager wire-up 改了 IPC shape，把测试同步对齐。
+- **官网移动端 hamburger 菜单**（commit `0bb62675d`）—— `SiteHeader.astro` 在小屏下 nav 列表撑满整行无折叠，加 `<button>` toggle + tailwind `md:hidden`。
+- **logo 资产送 docs+design 站 + www 文档跳链 retarget**（commit `61b8cd642`）。
+- **E2E preload 真错暴露 + force V5/V6 mode + app-config.json 早写**（commits `076474208` `1f61a18bf` `fc9cacc48`）。
+
+**CI**：
+
+- **drop e2e-tests workflow `continue-on-error: true`**（commit `e807d576c`）—— 之前 JOB 级 `continue-on-error: true` 让 3/3 OS 失败显示 success，"No team IPC interface found" 沉了几周。
+- **e2e-tests workflow 加 npm cache + Playwright browsers cache**（commit `9460f05da`）—— `actions/cache@v4` 缓存 `~/.npm` 和 `~/Library/Caches/ms-playwright` / `%LOCALAPPDATA%\ms-playwright`，单 OS 跑时间预期从 ~14m 降到 ~6-8m。
+
+**测试**：桌面 mobile sync 52 测试全绿（M2 step 8）+ Android Phase 3d v1.1/v1.2 sync gates 1-4 完整 + mobile-ipc 12/12 绿。
+
+**部署 / 分发**：CLI npm `chainlesschain` 保持 0.161.7（CLI 自 v5.0.3.45 无源码改动）。桌面 binary 重新打过，auto-updater 比对 `5.0.3-alpha.46 > 5.0.3-alpha.45`，所有 v5.0.3.45 桌面用户重启发现新版。Android APK 走新 `android-v0.37.0` tag 发布（用户可在 Settings → 检查更新 看到）。三大文档站本次同步刷新（tagline 升 v5.0.3.46 + changelog 加本节）。
+
+---
+
 ## 2026-05-09 发布 — **v5.0.3.45 cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复**
 
 productVersion **v5.0.3.44 → v5.0.3.45**。`cc ui` 终于跟桌面 web-shell 在 LLM 路径上对齐；项目/文件模式聊天默认不再走"理解中…"占位 LLM 调用；`chatStream` 改为真正的 token-by-token 流式；意图卡片 Vue Proxy 引用 bug 修复让占位卡正确翻面。
@@ -1932,7 +1973,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.45-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.46-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1952,7 +1993,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.45 Evolution Edition (2026-05-09 · CLI 0.161.7 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · chat-panel-v5 三壳严格对齐 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · 截图 LLM OCR auto/llm/tesseract · **cc ui llm.chat parity** · **意图理解 opt-in 开关** · **chatStream 真流式** · **意图卡片 Vue Proxy reactivity 修复**)
+## ⭐ 当前版本: v5.0.3.46 Evolution Edition (2026-05-10 · CLI 0.161.7 · Android 0.37.0 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
 
 ### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
 
