@@ -3,6 +3,23 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [5.0.3.47 / CLI 0.161.7 / Android 0.37.0] - 2026-05-11 (Verification release：build-android keystore fix VERIFIED + density splits 14→4 用户侧首落 + outstanding `../` 全扫净)
+
+> 验证型发版。无桌面 / CLI / Android 源码改动，只把 v5.0.3.46 后陆续落的 3 个 release-pipeline 修复在 CI 实跑一遍证明 green。release.yml run #25632845952 全 11 个 job ✓（含 build-android、create-release、publish-cli、finalize-release），4 个 Android assets 入 GitHub Release v5.0.3.47。
+
+### Verified
+
+- **build-android keystore path mismatch（commit `f9a7ba716`）** —— 历史：`49f1440ca` (2026-05-09) 把 `android-app/app/build.gradle.kts:79` 从 `file(...)` 切到 `rootProject.file(...)`，让 `release.storeFile` 路径解析基准从 `:app` 模块改成 rootProject (`android-app/`)。`.github/workflows/release.yml` 的 `release.storeFile=../debug-ci.keystore` 在新基准下错位到 repo root，gradle 在 `<repo-root>/debug-ci.keystore` 找不到 keystore，v5.0.3.46 build-android 因此挂在 `:app:validateSigningRelease`。修法：去掉 workflow 里 `keystore.properties` 内容的 `../` 前缀。v5.0.3.47 build-android job 真绿 verified，4 Android assets 正确入 Release。
+- **Density APK splits 用户侧首落（commit `9865c5c08`）** —— v5.0.3.46 已合，但因 build-android 挂没产出，本轮首次用户可见：density × ABI splits 在 Android 5.0+ runtime resource selection 下作用不大，移除后 release asset count 14 → 4（3 APK + 1 AAB），AAB 走 `bundle{}` 块的 density delivery 上 Play Store。
+- **剩余 `../` 三处扫净（commit `5a06421cd`）** —— `keystore.properties.template` / `docs/guides/KEYSTORE_SETUP.md` / orphan `android-app/.github/workflows/android-release.yml` 同病一并扫。约定全 repo 统一：`release.storeFile=keystore/<name>.keystore`（无 `../`），物理 keystore 落 `android-app/keystore/<name>.keystore`。
+
+### Distribution
+
+- 桌面 binary 重打 v5.0.3.46 → v5.0.3.47（二进制内容与 v5.0.3.46 等价；auto-updater 比对 `5.0.3-alpha.47 > 5.0.3-alpha.46`，v5.0.3.46 用户重启拿到新 build）
+- `chainlesschain` npm 维持 0.161.7（无 CLI 改动，release.yml `cli-tests` job correctly skipped）
+- Android：versionCode 37 / versionName 0.37.0 不变（无源码改动），APK 因 density splits 关闭从 14 → 4 个产物
+- 三大文档站本次同步刷新：tagline 升 v5.0.3.47 + 加本节 changelog + deploy-all.py tar 路径同步
+
 ## [5.0.3.46 / CLI 0.161.7 / Android 0.37.0] - 2026-05-10 (Phase 3d 桌面 ↔ Android 双向同步全套 + Android 七件套 + e2e CI 静默回归洞收口)
 
 > 真正打通桌面 ↔ Android 的双向社交数据同步（Phase 3d M2 → v1.2 共 12 个 commit，gate 1-4 全部 Ed25519 真签真验），Android 端一次落 7 件用户可见功能（Volcengine 语音 / APK 自更新 / Splash 重做 / Claude coral 主题 / i18n 三地区 / 生物识别 / DID Key 屏），CI 收掉 e2e-tests `continue-on-error` 这个把 3/3 OS 失败显示 success 的静默回归洞。

@@ -1975,7 +1975,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.46-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.47-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -1995,7 +1995,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.46 Evolution Edition (2026-05-10 · CLI 0.161.7 · Android 0.37.0 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
+## ⭐ 当前版本: v5.0.3.47 Evolution Edition (2026-05-11 · CLI 0.161.7 · Android 0.37.0 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
 
 ### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
 

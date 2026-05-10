@@ -1,46 +1,46 @@
 {
-  "tag": "v5.0.3.45",
-  "fetchedAt": "2026-05-08T23:30:46.540Z",
+  "tag": "v5.0.3.47",
+  "fetchedAt": "2026-05-10T22:50:12.502Z",
   "sizes": {
     "android-universal": {
       "name": "app-universal-release.apk",
-      "bytes": 106280430,
-      "label": "101 MB"
+      "bytes": 106589106,
+      "label": "102 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.45-arm64.dmg",
-      "bytes": 469608435,
-      "label": "448 MB"
+      "name": "ChainlessChain-5.0.3-alpha.47-arm64.dmg",
+      "bytes": 473284563,
+      "label": "451 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.45.AppImage",
-      "bytes": 691902815,
-      "label": "660 MB"
+      "name": "ChainlessChain-5.0.3-alpha.47.AppImage",
+      "bytes": 695444867,
+      "label": "663 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.45.dmg",
-      "bytes": 474857712,
-      "label": "453 MB"
+      "name": "ChainlessChain-5.0.3-alpha.47.dmg",
+      "bytes": 478807925,
+      "label": "457 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.45.x86_64.rpm",
-      "bytes": 358431693,
-      "label": "342 MB"
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.47.x86_64.rpm",
+      "bytes": 360388169,
+      "label": "344 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.45_amd64.deb",
-      "bytes": 358436418,
-      "label": "342 MB"
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.47_amd64.deb",
+      "bytes": 360160486,
+      "label": "343 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.45.exe",
-      "bytes": 455707554,
-      "label": "435 MB"
+      "name": "ChainlessChain-Portable-5.0.3-alpha.47.exe",
+      "bytes": 458495638,
+      "label": "437 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.45.exe",
-      "bytes": 456027072,
-      "label": "435 MB"
+      "name": "ChainlessChain-Setup-5.0.3-alpha.47.exe",
+      "bytes": 458815142,
+      "label": "438 MB"
     }
   }
 }
