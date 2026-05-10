@@ -151,6 +151,14 @@ export default defineConfig({
               text: "桌面版 UI 重构 (v6 Shell P0–P6) ⭐NEW",
               link: "/desktop-ui-refactor",
             },
+            {
+              text: "Phase 3d 移动端同步 ⭐",
+              link: "/phase3d-mobile-sync",
+            },
+            {
+              text: "Android v1.0 重新定位 (L1+L2+L3) ⭐NEW",
+              link: "/android-repositioning",
+            },
           ],
         },
         {

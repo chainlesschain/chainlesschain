@@ -1,5 +1,7 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+> **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
+
 ## 2026-05-10 Release — **v5.0.3.46 Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix**
 
 productVersion **v5.0.3.45 → v5.0.3.46**. Android **0.36.0 → 0.37.0** (versionCode 36 → 37). Three themes shipped together: (1) **Phase 3d Mobile-Bridge-Sync — full desktop ↔ Android two-way social-data sync** (M2 → v1.2 across 12 commits · 5 ResourceType walkers + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1–4 all Ed25519 strict-verify); (2) **Android 0.37.0 lands 7 user-visible features in one commit** (Volcengine SeedASR voice + APK auto-update issue #21 + splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen); (3) **e2e CI silent-regression fix** (drop the e2e-tests workflow JOB-level `continue-on-error: true` that masked 3/3 OS failures as success — "No team IPC interface found" had been buried for weeks — plus Playwright browser cache for speedup).

@@ -47,6 +47,10 @@ const ROOT_FILE_MAP = {
   "默克尔树证书_MTC_v0.2_评审清单.md": "mtc-review-checklist.md",
   "MTC_联邦治理_v1.md": "mtc-federation-governance-v1.md",
   "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
+  "Android_重新定位_设计文档.md": "android-repositioning.md",
+  "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
+  "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
+  "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名

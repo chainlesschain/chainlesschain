@@ -1,5 +1,7 @@
 ﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+> **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
+
 ## 2026-05-10 发布 — **v5.0.3.46 Phase 3d 桌面 ↔ Android 双向同步全套 + Android 0.37.0 七件套 + e2e CI 静默回归洞收口**
 
 productVersion **v5.0.3.45 → v5.0.3.46**。Android **0.36.0 → 0.37.0**（versionCode 36 → 37）。本次主线三条：(1) **Phase 3d Mobile-Bridge-Sync 桌面 ↔ Android 双向社交数据同步全套落地**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）；(2) **Android 0.37.0 一次落 7 件用户可见功能**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）；(3) **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true` —— 之前让 3/3 OS 失败显示 success "No team IPC interface found" 沉了几周 + Playwright 浏览器 cache 加速）。

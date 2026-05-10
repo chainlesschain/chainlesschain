@@ -121,6 +121,7 @@ export default defineConfig({
             { text: "SIMKey高级安全", link: "/chainlesschain/simkey-advanced" },
             { text: "SIMKey企业版", link: "/chainlesschain/simkey-enterprise" },
             { text: "移动端同步", link: "/chainlesschain/mobile-sync" },
+            { text: "移动端定位与三层架构", link: "/chainlesschain/mobile-positioning" },
           ],
         },
         {
@@ -1381,6 +1382,23 @@ export default defineConfig({
             {
               text: "桌面版 UI 重构 (v6 Shell P0–P6)",
               link: "/design/desktop-ui-refactor",
+            },
+            {
+              text: "桌面 Web 壳架构与落地",
+              link: "/design/desktop-web-shell-architecture",
+            },
+          ],
+        },
+        {
+          text: "移动端定位 ⭐NEW",
+          items: [
+            {
+              text: "Phase 3d 移动端同步",
+              link: "/design/phase3d-mobile-sync",
+            },
+            {
+              text: "Android v1.0 重新定位 (L1+L2+L3)",
+              link: "/design/android-repositioning",
             },
           ],
         },
