@@ -71,6 +71,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.46',
+    title: 'Phase 3d 桌面 ↔ Android 双向同步全套 + Android 0.37.0 七件套 + e2e CI 静默回归洞收口',
+    sub: 'Mobile-bridge-sync M2 → v1.2 · gate 1-4 全部 Ed25519 · Volcengine 语音 / APK 自更新 / Splash 重做 / Coral 主题 / i18n 三地区 / 生物识别 / DID Key',
+    desc: '三条主线一次 ship。(1) Phase 3d 桌面 ↔ Android 双向同步（12 commit）：M2 桌面 sync engine 落地（5 ResourceType walker：note / conversation / did / community / channel + tombstones + IPC wire-up + 52 测试，过程中找出修 3 prod bug）；M3 Android 侧用 dagger.Lazy 解 4 处 Hilt 循环 + Room 持久化 SyncRemoteCursor + sync.* JSON-RPC handlers + transport wiring；M4 桌面 SyncMobile 设置页 + DeviceManager + 手动 pairing 表单；v1.1 SocialSyncWalker 真填 handlePullRpc + DID auth 验证 + SyncCoordinator socket 连上自动 trigger；v1.2 真 @noble/ed25519 签名 + Android gate 4 验签，gate 1-4 全部 strict-verify。(2) Android 0.37.0（commit 1348636ad，7 件用户可见）：Volcengine SeedASR 语音（16kHz mono PCM + 800ms poll + AsrSettingsScreen + Recording/Transcribing dialogs）；APK 自更新 issue #21（GitHub Releases android-v tag arm64-v8a + DownloadManager + REQUEST_INSTALL_PACKAGES + Settings 检查更新入口）；Splash 紫色渐变旋转环 + TT logo + 修 splash race；Claude coral 主题 #D97757 primary + dynamicColor=false 保品牌色；i18n issue #16 三地区 zh-rCN/rTW/rHK 显式 qualifier + AppCompatDelegate locales；生物识别 toggle 接 AuthVM；KeyManagementScreen DID + public key hex + trusted devices + reset；顺手修 OpenAIAdapter 主线程 12s 阻塞 + 256 个 rs_* string stub。(3) e2e CI 静默回归洞收口（commit e807d576c）：drop e2e-tests workflow JOB 级 continue-on-error: true —— 之前让 3/3 OS 失败显示 success，"No team IPC interface found" 沉了几周；同期加 Playwright browsers cache + npm cache，单 OS 时间 ~14m → ~6-8m。',
+  },
+  {
     tag: 'v5.0.3.45',
     title: 'cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复',
     sub: 'QuickAsk 不再 60s timeout · 项目模式秒发不卡"理解中…" · chatStream queue+waiter · 占位卡 reactivity 修复',
