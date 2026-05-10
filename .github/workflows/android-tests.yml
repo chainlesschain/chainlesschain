@@ -46,10 +46,13 @@ jobs:
       - name: Run Library Module Unit Tests
         working-directory: android-app
         run: |
-          # Run tests for library modules (excludes app module which has known compilation issues in remote/ package)
+          # 8 core-* modules. --parallel runs their :testDebugUnitTest tasks concurrently
+          # across projects; --max-workers=4 caps at ubuntu-latest's 4 vCPUs to avoid
+          # OOM from too many concurrent test JVMs.
           ./gradlew :core-common:testDebugUnitTest :core-database:testDebugUnitTest :core-security:testDebugUnitTest \
             :core-did:testDebugUnitTest :core-e2ee:testDebugUnitTest :core-p2p:testDebugUnitTest \
-            :core-blockchain:testDebugUnitTest :core-network:testDebugUnitTest --no-daemon
+            :core-blockchain:testDebugUnitTest :core-network:testDebugUnitTest \
+            --parallel --max-workers=4 --no-daemon
 
       # Removed continue-on-error so app-module compilation regressions
       # block the pipeline. Previous comment claimed "known compilation
