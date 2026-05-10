@@ -6,25 +6,25 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1765 | 24.78 MB |
+| main | 1766 | 24.78 MB |
 | renderer | 22 | 0.09 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1765
+**Files**: 1766
 
 **Top 10 Largest Files**:
 
 1. `src/main/remote/browser-extension/background.js` - 442.1 KB
-2. `src/main/database/database-schema.js` - 173.5 KB
+2. `src/main/database/database-schema.js` - 173.9 KB
 3. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 4. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
 5. `src/main/skill-tool-system/tools/data-tools.js` - 104.3 KB
 6. `src/main/browser/browser-ipc.js` - 97.0 KB
 7. `src/main/remote/browser-extension-server.js` - 87.7 KB
 8. `src/main/monitoring/error-monitor.js` - 84.6 KB
-9. `src/main/index.js` - 78.3 KB
+9. `src/main/index.js` - 78.9 KB
 10. `src/main/llm/session-manager.js` - 78.2 KB
 
 ## renderer Module

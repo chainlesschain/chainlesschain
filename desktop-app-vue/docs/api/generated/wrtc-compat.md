@@ -4,38 +4,31 @@
 
 ---
 
-## try
+## let polyfill = null;
 
 ```javascript
-try
+let polyfill = null;
 ```
 
-* WebRTC Compatibility Layer
+* WebRTC Compatibility Layer (v2 — node-datachannel)
  *
- * Optional WebRTC support via werift. werift is **deprecated** in this
- * project (removed from desktop-app-vue/package.json dependencies as of
- * v5.0.3.43+) because it transitively depends on the unmaintained `ip`
- * package, which has an unfixed SSRF advisory (CVE-2024-29415,
- * GHSA-78xj-cgh5-2h22). werift maintainer has not migrated off `ip`.
+ * Migrated from `werift` (deprecated, transitively depends on the unmaintained
+ * `ip` package — CVE-2024-29415 / GHSA-78xj-cgh5-2h22) to `node-datachannel`
+ * (libdatachannel C++ binding) at v5.0.3.46+.
  *
- * What this means for callers:
- *   - `available` is `false` by default (werift not installed)
- *   - Callers (mobile-bridge, voice-video-manager) gracefully degrade:
- *     mobile-bridge logs a warning and skips the WebRTC fast path;
- *     voice-video-manager throws a clear error when startCall() is
- *     invoked
- *   - To re-enable: `npm install werift@^0.22.2` in the desktop app
- *     after auditing the `ip` patch state. The CVE-2024-29415 monkey-
- *     patch below activates if werift is present.
+ * What works (Phase 3d mobile sync use case):
+ *   - RTCPeerConnection + RTCDataChannel (via node-datachannel/polyfill)
+ *   - SDP offer/answer negotiation, ICE candidates, DTLS
+ *   - All standard W3C signatures (no werift constructor quirks)
  *
- * Migration plan: replace werift with renderer-side WebRTC (Chromium
- * native, no node deps) for voice/video calling, and keep mobile-bridge
- * on a non-WebRTC transport (libp2p direct or signalling-only proxy).
+ * What does NOT work (acknowledged limitation):
+ *   - Audio/video MediaStream tracks. node-datachannel is data-channel-only;
+ *     voice-video-manager.js will throw a clear "voice/video unsupported on
+ *     desktop main process" error when invoked. Per-renderer Chromium WebRTC
+ *     is the long-term plan for voice/video.
  *
- * Usage:
- *   const wrtc = require('./wrtc-compat');
- *   if (!wrtc.available) { ... fall back ... }
- *   const pc = new wrtc.RTCPeerConnection(config);
+ * N-API v8 prebuild — same binary works in Node 18+ and Electron 28+ (shared
+ * ABI). No electron-rebuild needed.
 
 ---
 
@@ -45,32 +38,12 @@ try
 class MediaStreamCompat
 ```
 
-* MediaStream compatibility wrapper
- * werift doesn't have MediaStream built-in, so we create a simple implementation
-
----
-
-## class RTCSessionDescriptionCompat
-
-```javascript
-class RTCSessionDescriptionCompat
-```
-
-* RTCSessionDescription compatibility wrapper
+* MediaStream compatibility shim.
  *
- * IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
- * but the standard WebRTC API expects ({type, sdp}) as an init object.
- * This wrapper provides the standard API.
-
----
-
-## class RTCIceCandidateCompat
-
-```javascript
-class RTCIceCandidateCompat
-```
-
-* RTCIceCandidate compatibility wrapper
+ * node-datachannel doesn't ship a MediaStream — it's data-channel-only.
+ * We keep this shim so voice-video-manager.js code paths don't NPE on
+ * `new wrtc.MediaStream()`, but the resulting stream carries no tracks
+ * and any RTP-track flow throws downstream.
 
 ---
 

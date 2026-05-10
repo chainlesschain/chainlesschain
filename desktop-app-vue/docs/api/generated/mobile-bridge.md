@@ -179,6 +179,11 @@ handlePeerStatus(message)
 ```
 
 * 处理节点状态变更
+   *
+   * Phase 3d v1.3 fix: signaling WebSocket 与 datachannel 是两条独立通道。移动端
+   * 在 datachannel 建立后通常会主动断开 signaling WS 省电，这条信令"offline"
+   * 通知**不应**触发 datachannel 关闭——否则连上 5s 就被踢，sync 跑不起来。
+   * 只在 datachannel 不存在或已 closed 时才清理 PC 端连接。
 
 ---
 
