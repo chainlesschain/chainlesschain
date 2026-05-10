@@ -808,10 +808,13 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             # Decode release keystore from secrets
             echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-            # Create keystore.properties that build.gradle.kts reads
-            # storeFile path is relative to app/ module dir, so use ../ to reach android-app/
+            # Create keystore.properties that build.gradle.kts reads.
+            # storeFile is resolved via `rootProject.file(...)` (since 49f1440ca),
+            # which uses rootProject.projectDir = android-app/ as the base. So a
+            # bare path like `keystore.jks` resolves to `android-app/keystore.jks`
+            # — exactly where keytool wrote it after `cd android-app`. No `../`.
             cat > keystore.properties << EOF
-          release.storeFile=../keystore.jks
+          release.storeFile=keystore.jks
           release.storePassword=${KEYSTORE_PASSWORD}
           release.keyAlias=${KEY_ALIAS}
           release.keyPassword=${KEY_PASSWORD}
@@ -827,7 +830,7 @@ jobs:
               -storepass android -keypass android \
               -dname "CN=CI Build, OU=CI, O=ChainlessChain, L=Unknown, ST=Unknown, C=US"
             cat > keystore.properties << EOF
-          release.storeFile=../debug-ci.keystore
+          release.storeFile=debug-ci.keystore
           release.storePassword=android
           release.keyAlias=androiddebugkey
           release.keyPassword=android
