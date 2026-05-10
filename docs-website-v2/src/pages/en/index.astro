@@ -68,6 +68,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.46',
+    title: 'Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix',
+    sub: 'Mobile-bridge-sync M2 → v1.2 · gates 1–4 all real Ed25519 · Volcengine voice / APK auto-update / splash redesign / coral theme / i18n three regions / biometric / DID Key',
+    desc: 'Three themes shipped together. (1) Phase 3d desktop ↔ Android two-way sync (12 commits): M2 lands the desktop sync engine (5 ResourceType walkers — note / conversation / did / community / channel — with tombstones + IPC wire-up + 52 tests, surfacing and fixing 3 prod bugs along the way); M3 wires the Android side via dagger.Lazy to break 4 Hilt cycles + Room-persisted SyncRemoteCursor + sync.* JSON-RPC handlers + transport wiring; M4 adds the desktop SyncMobile settings page + DeviceManager + manual pairing form; v1.1 makes SocialSyncWalker actually return data via handlePullRpc + DID auth verification + SyncCoordinator auto-trigger when the socket connects; v1.2 swaps placeholder signatures for real @noble/ed25519 + Android gate 4 verify, so all 4 gates are now strict-verify. (2) Android 0.37.0 (commit 1348636ad, 7 user-visible features): Volcengine SeedASR voice (16kHz mono PCM + 800ms poll + AsrSettingsScreen + Recording/Transcribing dialogs); APK auto-update issue #21 (GitHub Releases android-v tag arm64-v8a + DownloadManager + REQUEST_INSTALL_PACKAGES + Settings "Check for updates" entry); splash purple gradient + rotating ring + TT logo + splash-race fix; Claude coral theme #D97757 primary + dynamicColor=false to preserve brand colour; i18n issue #16 three regions zh-rCN/rTW/rHK explicit qualifiers + AppCompatDelegate locales; biometric toggle wired to AuthVM; KeyManagementScreen DID + public key hex + trusted devices + reset; drive-by fixes for OpenAIAdapter main-thread 12s freeze + 256 rs_* string stubs. (3) e2e CI silent-regression fix (commit e807d576c): drop e2e-tests workflow JOB-level continue-on-error: true — it had been masking 3/3 OS failures as success, leaving "No team IPC interface found" buried for weeks; same batch adds Playwright browsers + npm cache, dropping single-OS time from ~14m to ~6–8m.',
+  },
+  {
     tag: 'v5.0.3.45',
     title: 'cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix',
     sub: 'QuickAsk no longer 60s timeout · project mode no longer stalls on "Understanding…" · chatStream queue+waiter · placeholder-card reactivity fix',
