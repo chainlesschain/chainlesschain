@@ -363,6 +363,8 @@ describe("Skill Handlers", () => {
       expect(typeof handler.execute).toBe("function");
     });
 
+    // Scans src/main IPC handlers across hundreds of files; per-test 120s timeout
+    // because parallel suite load can stretch this past the global 60s cap.
     it("should generate IPC reference", async () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
@@ -372,7 +374,7 @@ describe("Skill Handlers", () => {
       expect(result.success).toBe(true);
       expect(result.result.totalHandlers).toBeGreaterThan(0);
       expect(result.message).toContain("IPC Handler Reference");
-    });
+    }, 120000);
 
     it("should generate README for a directory", async () => {
       const projectRoot = path.resolve(__dirname, "../../..");
@@ -1144,6 +1146,8 @@ describe("Skill Handlers", () => {
       expect(typeof handler.execute).toBe("function");
     });
 
+    // Scans whole project for impact graph; per-test 120s timeout to absorb
+    // disk-IO contention when the suite is run alongside other batches.
     it("should analyze impact of a file", async () => {
       const projectRoot = path.resolve(__dirname, "../../..");
       const result = await handler.execute(
@@ -1152,7 +1156,7 @@ describe("Skill Handlers", () => {
       );
       expect(result.success).toBe(true);
       expect(result.result.targetFile).toBeDefined();
-    });
+    }, 120000);
   });
 
   // ============================================================
