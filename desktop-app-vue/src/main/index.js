@@ -1854,16 +1854,30 @@ class ChainlessChainApp {
         if (!this.llmManager) {
           throw new Error("LLM Manager not initialized");
         }
-        const { conversationId, message, model } = params;
+        const { conversationId, message, model, systemPrompt, temperature } =
+          params;
         logger.info(
           `[Main] AI chat 请求: conversationId=${conversationId}, model=${model}`,
         );
         logger.info(`[Main] 消息内容: ${message?.slice(0, 100)}...`);
 
-        // 简单的聊天请求处理
-        const chatResponse = await this.llmManager.chat({
-          messages: [{ role: "user", content: message }],
+        // Phase 3d v1.3 fix: LLMManager.chat 兼容签名是 chat(messagesArray, options)
+        // —— 此前传 {messages,model} 单对象当首参，触发「messages必须是数组」
+        // (llm-manager.js:468)。扁平化为 [{system?},{user}] 数组 + 单独 options。
+        const messages = [];
+        if (
+          systemPrompt &&
+          typeof systemPrompt === "string" &&
+          systemPrompt.length
+        ) {
+          messages.push({ role: "system", content: systemPrompt });
+        }
+        messages.push({ role: "user", content: message });
+
+        const chatResponse = await this.llmManager.chat(messages, {
           model: model,
+          conversationId,
+          temperature: temperature || 0.7,
         });
 
         logger.info(

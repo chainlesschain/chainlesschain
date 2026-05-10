@@ -88,10 +88,10 @@ fun PowerControlScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Power Control") },
+                title = { Text(stringResource(R.string.rs_power_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -127,7 +127,7 @@ fun PowerControlScreen(
                     ) {
                         Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_power_dismiss))
                         }
                     }
                 }
@@ -136,7 +136,7 @@ fun PowerControlScreen(
             // 最后操作
             uiState.lastAction?.let { action ->
                 Text(
-                    text = "Last action: $action",
+                    text = stringResource(R.string.rs_power_last_action_fmt, action),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -144,7 +144,7 @@ fun PowerControlScreen(
 
             // 电源操作
             Text(
-                text = "Power Actions",
+                text = stringResource(R.string.rs_power_actions),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -156,14 +156,14 @@ fun PowerControlScreen(
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.PowerSettingsNew,
-                    label = "Shutdown",
+                    label = stringResource(R.string.rs_power_shutdown),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.requestConfirmation("shutdown") }
                 )
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Refresh,
-                    label = "Restart",
+                    label = stringResource(R.string.rs_power_restart),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.requestConfirmation("restart") }
                 )
@@ -176,14 +176,14 @@ fun PowerControlScreen(
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Bedtime,
-                    label = "Sleep",
+                    label = stringResource(R.string.rs_power_sleep),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.requestConfirmation("sleep") }
                 )
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.DownloadDone,
-                    label = "Hibernate",
+                    label = stringResource(R.string.rs_power_hibernate),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.requestConfirmation("hibernate") }
                 )
@@ -196,14 +196,14 @@ fun PowerControlScreen(
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Lock,
-                    label = "Lock",
+                    label = stringResource(R.string.rs_power_lock),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.lock() }
                 )
                 PowerButton(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Logout,
-                    label = "Logout",
+                    label = stringResource(R.string.rs_power_logout),
                     enabled = connectionState == ConnectionState.CONNECTED && !uiState.isExecuting,
                     onClick = { viewModel.requestConfirmation("logout") }
                 )
@@ -213,7 +213,7 @@ fun PowerControlScreen(
 
             // 定时任务
             Text(
-                text = "Scheduled Tasks",
+                text = stringResource(R.string.rs_power_scheduled_tasks),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -229,9 +229,9 @@ fun PowerControlScreen(
                             .fillMaxWidth()
                             .padding(12.dp)
                     ) {
-                        Text("Action: ${info.action}")
-                        Text("Scheduled Time: ${info.scheduledTime ?: "N/A"}")
-                        Text("Remaining: ${info.remainingMinutes ?: 0} min")
+                        Text(stringResource(R.string.rs_power_action_fmt, info.action))
+                        Text(stringResource(R.string.rs_power_scheduled_time_fmt, info.scheduledTime ?: "N/A"))
+                        Text(stringResource(R.string.rs_power_remaining_fmt, info.remainingMinutes ?: 0))
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { viewModel.cancelSchedule() },
@@ -239,13 +239,13 @@ fun PowerControlScreen(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("Cancel Schedule")
+                            Text(stringResource(R.string.rs_power_cancel_schedule))
                         }
                     }
                 }
             } ?: run {
                 Text(
-                    text = "No scheduled tasks",
+                    text = stringResource(R.string.rs_power_no_scheduled),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -258,7 +258,7 @@ fun PowerControlScreen(
             ) {
                 Icon(Icons.Default.Schedule, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Schedule Shutdown")
+                Text(stringResource(R.string.rs_power_schedule_shutdown))
             }
 
             // 加载指示器
@@ -297,7 +297,7 @@ private fun ConnectionStatusCard(connectionState: ConnectionState) {
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Status: $connectionState")
+            Text(stringResource(R.string.rs_power_status_fmt, connectionState.toString()))
         }
     }
 }

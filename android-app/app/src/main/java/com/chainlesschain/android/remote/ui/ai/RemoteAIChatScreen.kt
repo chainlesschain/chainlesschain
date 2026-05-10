@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -102,6 +104,8 @@ import com.chainlesschain.android.remote.model.StepStatus
 import com.chainlesschain.android.remote.model.TaskItem
 import com.chainlesschain.android.remote.model.TaskPlan
 import com.chainlesschain.android.remote.model.TaskStatus
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.model.ThinkingStage
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import java.text.SimpleDateFormat
@@ -146,7 +150,7 @@ fun RemoteAIChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Remote AI Chat")
+                        Text(stringResource(R.string.rac_topbar_title))
                         uiState.selectedModel?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall)
                         }
@@ -265,8 +269,8 @@ fun RemoteAIChatScreen(
                         .padding(16.dp),
                     action = {
                         Row {
-                            TextButton(onClick = { viewModel.retryLastMessage() }) { Text("Retry") }
-                            TextButton(onClick = { viewModel.clearError() }) { Text("Close") }
+                            TextButton(onClick = { viewModel.retryLastMessage() }) { Text(stringResource(R.string.rac_retry)) }
+                            TextButton(onClick = { viewModel.clearError() }) { Text(stringResource(R.string.rac_close)) }
                         }
                     }
                 ) {
@@ -344,9 +348,9 @@ fun ContextModeSelector(
                     ) {
                         Text(
                             text = when (mode) {
-                                ContextMode.PROJECT -> "Project"
-                                ContextMode.FILE -> "File"
-                                ContextMode.GLOBAL -> "Global"
+                                ContextMode.PROJECT -> stringResource(R.string.rac_context_project)
+                                ContextMode.FILE -> stringResource(R.string.rac_context_file)
+                                ContextMode.GLOBAL -> stringResource(R.string.rac_context_global)
                             },
                             style = MaterialTheme.typography.labelMedium
                         )
@@ -385,12 +389,12 @@ fun ThinkingIndicator(
         )
 
         val stageText = when (stage) {
-            ThinkingStage.ANALYZING -> "Analyzing request..."
-            ThinkingStage.PLANNING -> "Planning response..."
-            ThinkingStage.GENERATING -> "Generating content..."
-            ThinkingStage.REVIEWING -> "Reviewing output..."
-            ThinkingStage.EXECUTING -> "Executing..."
-            null -> "AI is thinking..."
+            ThinkingStage.ANALYZING -> stringResource(R.string.rac_thinking_analyzing)
+            ThinkingStage.PLANNING -> stringResource(R.string.rac_thinking_planning)
+            ThinkingStage.GENERATING -> stringResource(R.string.rac_thinking_generating)
+            ThinkingStage.REVIEWING -> stringResource(R.string.rac_thinking_reviewing)
+            ThinkingStage.EXECUTING -> stringResource(R.string.rac_thinking_executing)
+            null -> stringResource(R.string.rac_thinking_default)
         }
 
         Text(
@@ -580,13 +584,13 @@ fun TaskPlanCard(
                 TextButton(onClick = onReject) {
                     Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Reject")
+                    Text(stringResource(R.string.rac_reject))
                 }
                 Spacer(Modifier.width(8.dp))
                 TextButton(onClick = onConfirm) {
                     Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Confirm & Execute")
+                    Text(stringResource(R.string.rac_confirm_execute))
                 }
             }
         }
@@ -672,7 +676,7 @@ fun IntentRecognitionCard(intent: String, confidence: Float) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Intent Recognized",
+                text = stringResource(R.string.rac_intent_recognized),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -840,17 +844,18 @@ fun FilePickerPopup(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (query.isEmpty()) "Select a file" else "Files matching \"$query\"",
+                    text = if (query.isEmpty()) stringResource(R.string.rac_files_select)
+                    else stringResource(R.string.rac_files_matching, query),
                     style = MaterialTheme.typography.labelMedium
                 )
                 IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rac_close))
                 }
             }
 
             if (files.isEmpty()) {
                 Text(
-                    text = "No files found",
+                    text = stringResource(R.string.rac_files_none),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
@@ -899,7 +904,8 @@ fun CreationProgressDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = if (progress.isComplete) "Creation Complete" else "Creating Project...",
+                    text = if (progress.isComplete) stringResource(R.string.rac_creation_complete)
+                    else stringResource(R.string.rac_creating_project),
                     style = MaterialTheme.typography.titleLarge
                 )
 
@@ -974,7 +980,8 @@ fun CreationProgressDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onCancel) {
-                        Text(if (progress.isComplete) "Close" else "Cancel")
+                        Text(if (progress.isComplete) stringResource(R.string.rac_close)
+                        else stringResource(R.string.rac_cancel))
                     }
                 }
             }
@@ -990,9 +997,9 @@ private fun EmptyConnectionState() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(Icons.Default.CloudOff, null, modifier = Modifier.size(64.dp))
-            Text("Not connected to PC")
+            Text(stringResource(R.string.rac_not_connected))
             Text(
-                "Connect on the main Remote Control screen first",
+                stringResource(R.string.rac_connect_first),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1007,9 +1014,12 @@ private fun EmptyConversationState(model: String?) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(Icons.Default.Chat, null, modifier = Modifier.size(64.dp))
-            Text("Start a conversation")
+            Text(stringResource(R.string.rac_start_conversation))
             Text(
-                "Chat with ${model ?: "LLM"} on your PC",
+                stringResource(
+                    R.string.rac_chat_with_pc,
+                    model ?: stringResource(R.string.rac_default_pc_label),
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1026,7 +1036,13 @@ fun ChatInputBar(
     onAttachClick: () -> Unit = {}
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // edge-to-edge 模式下 Activity (MainActivity:65) 把内容画到系统底栏
+            // 下方。给输入条加 navigationBarsPadding 让它待在底栏之上；imePadding
+            // 让键盘弹起时整条 bar 跟着上移。
+            .imePadding()
+            .navigationBarsPadding(),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 8.dp
     ) {
@@ -1044,7 +1060,7 @@ fun ChatInputBar(
             ) {
                 Icon(
                     Icons.Default.AttachFile,
-                    contentDescription = "Attach file",
+                    contentDescription = stringResource(R.string.rac_attach_cd),
                     tint = if (showFilePicker)
                         MaterialTheme.colorScheme.primary
                     else
@@ -1056,7 +1072,7 @@ fun ChatInputBar(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message... Use @ to reference files") },
+                placeholder = { Text(stringResource(R.string.rac_input_placeholder)) },
                 enabled = enabled,
                 minLines = 1,
                 maxLines = 4,
@@ -1068,7 +1084,7 @@ fun ChatInputBar(
                 enabled = enabled && value.isNotBlank(),
                 modifier = Modifier.size(48.dp)
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
+                Icon(Icons.Default.Send, contentDescription = stringResource(R.string.rac_send_cd))
             }
         }
     }
@@ -1094,7 +1110,7 @@ fun ModelSelectorDialog(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "Select Model",
+                    stringResource(R.string.rac_select_model),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -1116,12 +1132,12 @@ fun ModelSelectorDialog(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     Text(
-                        "No models available",
+                        stringResource(R.string.rac_no_models),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Make sure your PC is connected and has models configured",
+                        stringResource(R.string.rac_models_help),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -1140,7 +1156,7 @@ fun ModelSelectorDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.rac_close)) } }
     )
 }
 
@@ -1215,7 +1231,7 @@ private fun EnhancedModelCard(
                             color = MaterialTheme.colorScheme.tertiaryContainer
                         ) {
                             Text(
-                                text = "Recommended",
+                                text = stringResource(R.string.rac_model_recommended),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -1247,7 +1263,7 @@ private fun EnhancedModelCard(
             if (isSelected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.rac_model_selected_cd),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )

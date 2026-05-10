@@ -17,5 +17,10 @@ interface AppEntryPoint {
     fun appConfigManager(): AppConfigManager
     fun knowledgeRepository(): KnowledgeRepository
     fun database(): ChainlessChainDatabase
+
+    /**
+     * Phase 3d v1.3 — LAN auto-discovery for desktop signaling server via mDNS / NsdManager.
+     */
+    fun signalingNsdAutoDiscovery(): com.chainlesschain.android.core.p2p.discovery.SignalingNsdAutoDiscovery
 }
 

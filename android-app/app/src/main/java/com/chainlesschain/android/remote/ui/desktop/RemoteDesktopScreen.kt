@@ -39,10 +39,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,10 +63,10 @@ fun RemoteDesktopScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Remote Desktop") },
+                title = { Text(stringResource(R.string.rs_desktop_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -86,14 +88,14 @@ fun RemoteDesktopScreen(
                     enabled = !uiState.isConnected && !uiState.isLoading
                 ) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null)
-                    Text("Start", modifier = Modifier.padding(start = 6.dp))
+                    Text(stringResource(R.string.rs_desktop_start), modifier = Modifier.padding(start = 6.dp))
                 }
                 Button(
                     onClick = { viewModel.stopSession() },
                     enabled = uiState.isConnected
                 ) {
                     Icon(Icons.Default.Stop, contentDescription = null)
-                    Text("Stop", modifier = Modifier.padding(start = 6.dp))
+                    Text(stringResource(R.string.rs_desktop_stop), modifier = Modifier.padding(start = 6.dp))
                 }
             }
 
@@ -107,7 +109,7 @@ fun RemoteDesktopScreen(
                 if (frame != null) {
                     Image(
                         bitmap = frame.asImageBitmap(),
-                        contentDescription = "Remote frame",
+                        contentDescription = stringResource(R.string.rs_desktop_remote_frame),
                         modifier = Modifier
                             .fillMaxSize()
                             .onSizeChanged {
@@ -187,9 +189,9 @@ fun RemoteDesktopScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("No frame available")
+                        Text(stringResource(R.string.rs_desktop_no_frame))
                         Text(
-                            text = if (uiState.isConnected) "Waiting for first frame..." else "Start session to connect",
+                            text = if (uiState.isConnected) stringResource(R.string.rs_desktop_waiting_frame) else stringResource(R.string.rs_desktop_start_session_hint),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -201,14 +203,14 @@ fun RemoteDesktopScreen(
                     onClick = { viewModel.switchDisplay(first.id) },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Switch Display #${first.id}")
+                    Text(stringResource(R.string.rs_desktop_switch_display_fmt, first.id))
                 }
             }
 
             OutlinedTextField(
                 value = inputText,
                 onValueChange = { inputText = it },
-                label = { Text("Send text input") },
+                label = { Text(stringResource(R.string.rs_desktop_send_text_input)) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState.isConnected
             )
@@ -222,35 +224,35 @@ fun RemoteDesktopScreen(
                     },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Send Text")
+                    Text(stringResource(R.string.rs_desktop_send_text))
                 }
                 Button(
                     onClick = { viewModel.sendMouseClick() },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Click")
+                    Text(stringResource(R.string.rs_desktop_click))
                 }
                 Button(
                     onClick = { viewModel.sendMouseScroll(0, 120) },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Scroll Down")
+                    Text(stringResource(R.string.rs_desktop_scroll_down))
                 }
                 Button(
                     onClick = { viewModel.sendMouseScroll(0, -120) },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Scroll Up")
+                    Text(stringResource(R.string.rs_desktop_scroll_up))
                 }
             }
 
             Text(
-                text = "Frames: ${uiState.totalFrames}  Bytes: ${uiState.totalBytes}",
+                text = stringResource(R.string.rs_desktop_frames_fmt, uiState.totalFrames, uiState.totalBytes),
                 style = MaterialTheme.typography.bodySmall
             )
             stats?.let {
                 Text(
-                    text = "Active sessions: ${it.activeSessions}, Avg frame size: ${"%.1f".format(it.avgFrameSize)}",
+                    text = stringResource(R.string.rs_desktop_stats_fmt, it.activeSessions, "%.1f".format(it.avgFrameSize)),
                     style = MaterialTheme.typography.bodySmall
                 )
             }

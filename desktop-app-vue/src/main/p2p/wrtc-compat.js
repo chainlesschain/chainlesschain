@@ -1,78 +1,51 @@
 const { logger } = require("../utils/logger.js");
 
 /**
- * WebRTC Compatibility Layer
+ * WebRTC Compatibility Layer (v2 — node-datachannel)
  *
- * Optional WebRTC support via werift. werift is **deprecated** in this
- * project (removed from desktop-app-vue/package.json dependencies as of
- * v5.0.3.43+) because it transitively depends on the unmaintained `ip`
- * package, which has an unfixed SSRF advisory (CVE-2024-29415,
- * GHSA-78xj-cgh5-2h22). werift maintainer has not migrated off `ip`.
+ * Migrated from `werift` (deprecated, transitively depends on the unmaintained
+ * `ip` package — CVE-2024-29415 / GHSA-78xj-cgh5-2h22) to `node-datachannel`
+ * (libdatachannel C++ binding) at v5.0.3.46+.
  *
- * What this means for callers:
- *   - `available` is `false` by default (werift not installed)
- *   - Callers (mobile-bridge, voice-video-manager) gracefully degrade:
- *     mobile-bridge logs a warning and skips the WebRTC fast path;
- *     voice-video-manager throws a clear error when startCall() is
- *     invoked
- *   - To re-enable: `npm install werift@^0.22.2` in the desktop app
- *     after auditing the `ip` patch state. The CVE-2024-29415 monkey-
- *     patch below activates if werift is present.
+ * What works (Phase 3d mobile sync use case):
+ *   - RTCPeerConnection + RTCDataChannel (via node-datachannel/polyfill)
+ *   - SDP offer/answer negotiation, ICE candidates, DTLS
+ *   - All standard W3C signatures (no werift constructor quirks)
  *
- * Migration plan: replace werift with renderer-side WebRTC (Chromium
- * native, no node deps) for voice/video calling, and keep mobile-bridge
- * on a non-WebRTC transport (libp2p direct or signalling-only proxy).
+ * What does NOT work (acknowledged limitation):
+ *   - Audio/video MediaStream tracks. node-datachannel is data-channel-only;
+ *     voice-video-manager.js will throw a clear "voice/video unsupported on
+ *     desktop main process" error when invoked. Per-renderer Chromium WebRTC
+ *     is the long-term plan for voice/video.
  *
- * Usage:
- *   const wrtc = require('./wrtc-compat');
- *   if (!wrtc.available) { ... fall back ... }
- *   const pc = new wrtc.RTCPeerConnection(config);
+ * N-API v8 prebuild — same binary works in Node 18+ and Electron 28+ (shared
+ * ABI). No electron-rebuild needed.
  */
 
-// Mitigate GHSA-78xj-cgh5-2h22 (CVE-2024-29415) IF `ip` is somehow in
-// the tree (e.g., werift was manually installed). When werift is
-// removed, `ip` is also gone and this block is a harmless no-op caught
-// by the try/catch.
-try {
-  const ip = require("ip");
-  const origIsPublic = ip.isPublic;
-  ip.isPublic = function patchedIsPublic(addr) {
-    if (typeof addr !== "string") {
-      return false;
-    }
-    // 0.0.0.0 / :: are "this network" per RFC 1122 / RFC 4291 — never public
-    if (addr === "0.0.0.0" || addr === "::") {
-      return false;
-    }
-    // Reject hex / octal / leading-zero encodings (0x..., 010.0.0.1, etc.)
-    if (/^0[xX]/.test(addr) || /^0\d/.test(addr)) {
-      return false;
-    }
-    return origIsPublic.call(this, addr);
-  };
-} catch {
-  // `ip` not in tree — werift not installed, expected default.
-}
-
-let werift = null;
+let polyfill = null;
 let available = false;
 let loadError = null;
 
 try {
-  // Optional dep. Default: not installed (deprecated).
-  werift = require("werift");
+  // node-datachannel/polyfill exports W3C-standard RTCPeerConnection etc.
+  polyfill = require("node-datachannel/polyfill");
   available = true;
-  logger.info(
-    "[wrtc-compat] werift detected (deprecated; consider migrating off — see module header)",
-  );
+  logger.info("[wrtc-compat] node-datachannel polyfill loaded ✓");
 } catch (e) {
   loadError = e;
-  // Not a warning — werift being absent is the intended default.
+  logger.warn(
+    "[wrtc-compat] node-datachannel not available:",
+    e?.message || "unknown",
+  );
 }
 
 /**
- * MediaStream compatibility wrapper
- * werift doesn't have MediaStream built-in, so we create a simple implementation
+ * MediaStream compatibility shim.
+ *
+ * node-datachannel doesn't ship a MediaStream — it's data-channel-only.
+ * We keep this shim so voice-video-manager.js code paths don't NPE on
+ * `new wrtc.MediaStream()`, but the resulting stream carries no tracks
+ * and any RTP-track flow throws downstream.
  */
 class MediaStreamCompat {
   constructor(tracks = []) {
@@ -124,57 +97,6 @@ class MediaStreamCompat {
   }
 }
 
-/**
- * RTCSessionDescription compatibility wrapper
- *
- * IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
- * but the standard WebRTC API expects ({type, sdp}) as an init object.
- * This wrapper provides the standard API.
- */
-class RTCSessionDescriptionCompat {
-  constructor(init = {}) {
-    // Handle both standard API {type, sdp} and werift's (sdp, type) patterns
-    if (typeof init === "string") {
-      // werift-style: first arg is sdp string
-      this.sdp = init;
-      this.type = arguments[1] || "";
-    } else {
-      // Standard API: init object with type and sdp
-      this.type = init.type || "";
-      this.sdp = init.sdp || "";
-    }
-  }
-
-  toJSON() {
-    return {
-      type: this.type,
-      sdp: this.sdp,
-    };
-  }
-}
-
-/**
- * RTCIceCandidate compatibility wrapper
- */
-class RTCIceCandidateCompat {
-  constructor(init = {}) {
-    this.candidate = init.candidate || "";
-    this.sdpMid = init.sdpMid || null;
-    this.sdpMLineIndex = init.sdpMLineIndex ?? null;
-    this.usernameFragment = init.usernameFragment || null;
-  }
-
-  toJSON() {
-    return {
-      candidate: this.candidate,
-      sdpMid: this.sdpMid,
-      sdpMLineIndex: this.sdpMLineIndex,
-      usernameFragment: this.usernameFragment,
-    };
-  }
-}
-
-// Export the compatibility layer
 module.exports = {
   get available() {
     return available;
@@ -184,29 +106,16 @@ module.exports = {
     return loadError;
   },
 
-  // Use werift's RTCPeerConnection if available, otherwise provide a stub
-  RTCPeerConnection: available ? werift.RTCPeerConnection : null,
+  // node-datachannel polyfill exports W3C-standard ctors. No wrapping needed —
+  // RTCSessionDescriptionInit / RTCIceCandidateInit are plain dicts both at
+  // input (we pass `{type, sdp}` to setRemoteDescription) and output
+  // (createAnswer returns plain dict).
+  RTCPeerConnection: available ? polyfill.RTCPeerConnection : null,
+  RTCSessionDescription: available ? polyfill.RTCSessionDescription : null,
+  RTCIceCandidate: available ? polyfill.RTCIceCandidate : null,
+  RTCDataChannel: available ? polyfill.RTCDataChannel : null,
 
-  // Always use our compat layer because werift's RTCSessionDescription uses (sdp, type) constructor
-  // instead of the standard ({type, sdp}) init object pattern
-  RTCSessionDescription: RTCSessionDescriptionCompat,
-
-  // werift has its own RTCIceCandidate, use it or our compat layer
-  RTCIceCandidate: available
-    ? werift.RTCIceCandidate || RTCIceCandidateCompat
-    : RTCIceCandidateCompat,
-
-  // MediaStream - use our compat implementation
+  // MediaStream — local shim only (data-channel-only library, no native track
+  // support). voice-video-manager will throw clearly if used.
   MediaStream: MediaStreamCompat,
-
-  // Additional werift exports if available
-  ...(available
-    ? {
-        RTCRtpSender: werift.RTCRtpSender,
-        RTCRtpReceiver: werift.RTCRtpReceiver,
-        RTCDataChannel: werift.RTCDataChannel,
-        MediaStreamTrack: werift.MediaStreamTrack,
-        RTCRtpTransceiver: werift.RTCRtpTransceiver,
-      }
-    : {}),
 };

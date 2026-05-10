@@ -2,8 +2,22 @@ package com.chainlesschain.android.remote.data
 
 import com.google.gson.Gson
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 
 /**
  * 命令协议数据模型
@@ -373,12 +387,75 @@ data class DeviceStatus(
 )
 
 /**
+ * Phase 3d v1.3 fix: 给 @Contextual Any 字段（CommandRequest.params /
+ * CommandResponse.result / EventNotification.metadata 等）注册一个把任意值
+ * 桥接到 kotlinx.serialization JsonElement 树的 contextual serializer。
+ *
+ * 没这个的话，即使 params 是空 Map kotlinx.serialization 也会在 descriptor
+ * 构造期就抛 "Serializer for class 'Any' is not found"，让全部 sendCommand
+ * 失败。
+ *
+ * 编码：把 Kotlin 原生类型 (String/Number/Boolean/Map/List/null) 转成
+ * JsonElement 后写出。解码：读 JsonElement 后递归还原成 Kotlin 原生类型。
+ *
+ * 不支持：自定义对象（@Serializable 类应该自身声明，不该走 Any）。
+ */
+object AnyContextualSerializer : KSerializer<Any> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("Any") {
+            // empty — runtime structure
+        }
+
+    override fun serialize(encoder: Encoder, value: Any) {
+        require(encoder is JsonEncoder) { "AnyContextualSerializer requires JSON encoder" }
+        encoder.encodeJsonElement(value.toJsonElement())
+    }
+
+    override fun deserialize(decoder: Decoder): Any {
+        require(decoder is JsonDecoder) { "AnyContextualSerializer requires JSON decoder" }
+        return decoder.decodeJsonElement().toKotlinAny()
+            ?: error("null encountered for non-null Any")
+    }
+}
+
+private fun Any?.toJsonElement(): JsonElement = when (this) {
+    null -> JsonNull
+    is JsonElement -> this
+    is String -> JsonPrimitive(this)
+    is Boolean -> JsonPrimitive(this)
+    is Number -> JsonPrimitive(this)
+    is Map<*, *> -> JsonObject(
+        this.entries.associate { (k, v) -> k.toString() to v.toJsonElement() }
+    )
+    is Collection<*> -> JsonArray(this.map { it.toJsonElement() })
+    is Array<*> -> JsonArray(this.map { it.toJsonElement() })
+    else -> JsonPrimitive(this.toString()) // last-resort fallback
+}
+
+private fun JsonElement.toKotlinAny(): Any? = when (this) {
+    is JsonNull -> null
+    is JsonPrimitive -> when {
+        this.isString -> this.content
+        this.content == "true" -> true
+        this.content == "false" -> false
+        else -> this.content.toLongOrNull()
+            ?: this.content.toDoubleOrNull()
+            ?: this.content
+    }
+    is JsonObject -> this.mapValues { (_, v) -> v.toKotlinAny() }
+    is JsonArray -> this.map { it.toKotlinAny() }
+}
+
+/**
  * JSON 序列化器配置
  */
 val JsonSerializer = Json {
     ignoreUnknownKeys = true
     coerceInputValues = true
     encodeDefaults = true
+    serializersModule = SerializersModule {
+        contextual(Any::class, AnyContextualSerializer)
+    }
 }
 
 /**

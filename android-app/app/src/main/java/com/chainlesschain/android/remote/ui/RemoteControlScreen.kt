@@ -582,29 +582,43 @@ fun SystemStatusPanel(
             HorizontalDivider()
 
             if (systemStatus != null) {
-                // CPU 状态
-                StatusItem(
-                    icon = Icons.Default.Memory,
-                    label = stringResource(R.string.remote_cpu),
-                    value = stringResource(R.string.remote_cpu_usage, systemStatus.cpu.usage, systemStatus.cpu.cores),
-                    subtitle = systemStatus.cpu.model
-                )
+                // Phase 3d v1.3: cpu/memory 在 SystemCommands.kt 改为 nullable
+                // 兼容桌面响应缺字段；这里加 ?: 兜底，避免 NPE 闪退到公告屏。
+                val cpu = systemStatus.cpu
+                if (cpu != null) {
+                    StatusItem(
+                        icon = Icons.Default.Memory,
+                        label = stringResource(R.string.remote_cpu),
+                        value = stringResource(
+                            R.string.remote_cpu_usage,
+                            cpu.usage ?: "—",
+                            cpu.cores ?: 0,
+                        ),
+                        subtitle = cpu.model ?: "—",
+                    )
+                }
 
-                // 内存状态
-                StatusItem(
-                    icon = Icons.Default.Storage,
-                    label = stringResource(R.string.remote_memory),
-                    value = systemStatus.memory.usagePercent,
-                    subtitle = stringResource(R.string.remote_memory_usage, formatBytes(systemStatus.memory.used), formatBytes(systemStatus.memory.total))
-                )
+                val memory = systemStatus.memory
+                if (memory != null) {
+                    StatusItem(
+                        icon = Icons.Default.Storage,
+                        label = stringResource(R.string.remote_memory),
+                        value = memory.usagePercent ?: "—",
+                        subtitle = stringResource(
+                            R.string.remote_memory_usage,
+                            formatBytes(memory.used ?: 0L),
+                            formatBytes(memory.total ?: 0L),
+                        ),
+                    )
+                }
 
                 // 系统信息
                 systemInfo?.let { info ->
                     StatusItem(
                         icon = Icons.Default.Info,
                         label = stringResource(R.string.remote_system),
-                        value = "${info.os.platform} ${info.os.arch}",
-                        subtitle = info.hostname
+                        value = "${info.os?.platform ?: "—"} ${info.os?.arch ?: ""}",
+                        subtitle = info.hostname ?: "—"
                     )
                 }
             } else {

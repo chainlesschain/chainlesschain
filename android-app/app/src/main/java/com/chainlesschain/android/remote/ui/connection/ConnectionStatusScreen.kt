@@ -58,9 +58,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -88,31 +90,38 @@ fun ConnectionStatusScreen(
     }
 
     // Handle events
+    val msgConnected = stringResource(R.string.common_connected)
+    val msgDisconnected = stringResource(R.string.common_disconnected)
+    val msgErrorFmt = stringResource(R.string.error_prefix)
+    val msgReconnectScheduledFmt = stringResource(R.string.rs_conn_reconnect_scheduled_fmt)
+    val msgReconnectSuccessFmt = stringResource(R.string.rs_conn_reconnect_success_fmt)
+    val msgReconnectFailedFmt = stringResource(R.string.rs_conn_reconnect_failed_fmt)
+    val msgHeartbeatTimeout = stringResource(R.string.rs_conn_heartbeat_timeout)
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is ConnectionEvent.Connected -> {
-                    snackbarHostState.showSnackbar("Connected")
+                    snackbarHostState.showSnackbar(msgConnected)
                 }
                 is ConnectionEvent.Disconnected -> {
-                    snackbarHostState.showSnackbar("Disconnected")
+                    snackbarHostState.showSnackbar(msgDisconnected)
                 }
                 is ConnectionEvent.Error -> {
-                    snackbarHostState.showSnackbar("Error: ${event.message}")
+                    snackbarHostState.showSnackbar(msgErrorFmt.format(event.message))
                 }
                 is ConnectionEvent.ReconnectScheduled -> {
                     snackbarHostState.showSnackbar(
-                        "Reconnecting in ${event.delayMs / 1000}s (attempt ${event.attempt})"
+                        msgReconnectScheduledFmt.format(event.delayMs / 1000, event.attempt)
                     )
                 }
                 is ConnectionEvent.ReconnectSuccess -> {
-                    snackbarHostState.showSnackbar("Reconnected after ${event.totalAttempts} attempts")
+                    snackbarHostState.showSnackbar(msgReconnectSuccessFmt.format(event.totalAttempts))
                 }
                 is ConnectionEvent.ReconnectFailed -> {
-                    snackbarHostState.showSnackbar("Reconnection failed: ${event.reason}")
+                    snackbarHostState.showSnackbar(msgReconnectFailedFmt.format(event.reason))
                 }
                 is ConnectionEvent.HeartbeatTimeout -> {
-                    snackbarHostState.showSnackbar("Connection timeout detected")
+                    snackbarHostState.showSnackbar(msgHeartbeatTimeout)
                 }
                 else -> {}
             }
@@ -122,10 +131,10 @@ fun ConnectionStatusScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Connection Status") },
+                title = { Text(stringResource(R.string.rs_conn_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -175,12 +184,12 @@ fun ConnectionStatusScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Auto Reconnect",
+                            text = stringResource(R.string.rs_conn_auto_reconnect),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Automatically reconnect when connection is lost",
+                            text = stringResource(R.string.rs_conn_auto_reconnect_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -221,7 +230,7 @@ fun ConnectionStatusScreen(
                     ) {
                         Icon(Icons.Default.CloudOff, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Disconnect")
+                        Text(stringResource(R.string.rs_conn_disconnect))
                     }
                 } else if (!uiState.isConnecting && !uiState.isReconnecting) {
                     OutlinedButton(
@@ -230,7 +239,7 @@ fun ConnectionStatusScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Find Devices")
+                        Text(stringResource(R.string.rs_conn_find_devices))
                     }
                 }
             }
@@ -335,11 +344,11 @@ private fun ConnectionStatusCard(
             // Status Text
             Text(
                 text = when (connectionState) {
-                    ConnectionState.CONNECTED -> "Connected"
-                    ConnectionState.CONNECTING -> "Connecting..."
-                    ConnectionState.RECONNECTING -> "Reconnecting..."
-                    ConnectionState.ERROR -> "Connection Error"
-                    ConnectionState.DISCONNECTED -> "Disconnected"
+                    ConnectionState.CONNECTED -> stringResource(R.string.common_connected)
+                    ConnectionState.CONNECTING -> stringResource(R.string.common_connecting)
+                    ConnectionState.RECONNECTING -> stringResource(R.string.common_reconnecting)
+                    ConnectionState.ERROR -> stringResource(R.string.common_connection_error)
+                    ConnectionState.DISCONNECTED -> stringResource(R.string.common_disconnected)
                 },
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
@@ -370,7 +379,7 @@ private fun ConnectionStatusCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 val duration = currentTime - connectedSince
                 Text(
-                    text = "Connected for ${formatDuration(duration)}",
+                    text = stringResource(R.string.rs_conn_connected_for_fmt, formatDuration(duration)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,12 +419,12 @@ private fun ReconnectionStatusCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Reconnecting...",
+                            text = stringResource(R.string.common_reconnecting),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Attempt $attempt",
+                            text = stringResource(R.string.rs_conn_attempt_fmt, attempt),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -428,7 +437,7 @@ private fun ReconnectionStatusCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
 
@@ -444,7 +453,7 @@ private fun ReconnectionStatusCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Next attempt in ${nextDelayMs / 1000}s",
+                text = stringResource(R.string.rs_conn_next_attempt_fmt, nextDelayMs / 1000),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
@@ -470,16 +479,16 @@ private fun PeerInfoCard(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Connected Device",
+                text = stringResource(R.string.rs_conn_connected_device),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            InfoRow(label = "Peer ID", value = peerId.take(30) + "...")
-            InfoRow(label = "DID", value = peerDID.take(30) + "...")
-            InfoRow(label = "Connected", value = formatDateTime(connectedAt))
+            InfoRow(label = stringResource(R.string.rs_conn_peer_id), value = peerId.take(30) + "...")
+            InfoRow(label = stringResource(R.string.rs_conn_did), value = peerDID.take(30) + "...")
+            InfoRow(label = stringResource(R.string.rs_conn_connected), value = formatDateTime(connectedAt))
         }
     }
 }

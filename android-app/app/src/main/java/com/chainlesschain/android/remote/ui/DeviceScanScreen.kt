@@ -112,7 +112,7 @@ fun DeviceScanScreen(
 
             if (discoveredDevices.isNotEmpty()) {
                 Text(
-                    text = "发现的设备 (${discoveredDevices.size})",
+                    text = stringResource(R.string.rs_devscan_discovered_count_fmt, discoveredDevices.size),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(16.dp)
@@ -179,7 +179,7 @@ fun DeviceScanScreen(
             text = {
                 Column {
                     Text(
-                        text = uiState.lastScanDebugInfo.ifBlank { "暂无调试信息，请先扫描" },
+                        text = uiState.lastScanDebugInfo.ifBlank { stringResource(R.string.rs_devscan_no_debug_info) },
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                     )
@@ -222,21 +222,21 @@ fun ScanStatusCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = if (isScanning) "扫描中..." else "准备扫描",
+                text = if (isScanning) stringResource(R.string.rs_devscan_scanning_title) else stringResource(R.string.rs_devscan_ready_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (isScanning) "正在搜索局域网内的设备"
-                else "点击下方按钮发现可用的电脑",
+                text = if (isScanning) stringResource(R.string.rs_devscan_searching_lan)
+                else stringResource(R.string.rs_devscan_tap_button_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
             if (!isScanning && deviceCount > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "发现 $deviceCount 台设备",
+                    text = stringResource(R.string.rs_devscan_found_count_fmt, deviceCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -338,7 +338,7 @@ fun EmptyScanState() {
         Text(stringResource(R.string.device_scan_no_devices), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "请确保桌面应用在同一局域网内运行",
+            stringResource(R.string.rs_devscan_ensure_same_lan),
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center
         )
@@ -367,7 +367,7 @@ fun RegisterDeviceDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("IP: ${device.ipAddress}", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.rs_devscan_ip_fmt, device.ipAddress), style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {

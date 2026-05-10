@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.AudioDevice
 import com.chainlesschain.android.remote.commands.PlaybackStatus
 import com.chainlesschain.android.remote.p2p.ConnectionState
@@ -34,15 +36,15 @@ fun MediaControlScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Media Control") },
+                title = { Text(stringResource(R.string.rs_media_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,7 +77,7 @@ fun MediaControlScreen(
                         ) {
                             Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                             IconButton(onClick = { viewModel.clearError() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_media_dismiss))
                             }
                         }
                     }
@@ -110,7 +112,7 @@ fun MediaControlScreen(
             // 音频设备列表
             item {
                 Text(
-                    text = "Audio Devices",
+                    text = stringResource(R.string.rs_media_audio_devices),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -119,7 +121,7 @@ fun MediaControlScreen(
             if (audioDevices.isEmpty()) {
                 item {
                     Text(
-                        text = "No audio devices found",
+                        text = stringResource(R.string.rs_media_no_audio_devices),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -167,12 +169,12 @@ private fun VolumeControlCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Volume",
+                    text = stringResource(R.string.rs_media_volume),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (isMuted) "Muted" else "$volume%",
+                    text = if (isMuted) stringResource(R.string.rs_media_muted) else stringResource(R.string.rs_media_percent_fmt, volume),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (isMuted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -187,7 +189,7 @@ private fun VolumeControlCard(
                     onClick = onVolumeDown,
                     enabled = enabled
                 ) {
-                    Icon(Icons.Default.VolumeDown, contentDescription = "Volume Down")
+                    Icon(Icons.Default.VolumeDown, contentDescription = stringResource(R.string.rs_media_volume_down))
                 }
 
                 Slider(
@@ -202,7 +204,7 @@ private fun VolumeControlCard(
                     onClick = onVolumeUp,
                     enabled = enabled
                 ) {
-                    Icon(Icons.Default.VolumeUp, contentDescription = "Volume Up")
+                    Icon(Icons.Default.VolumeUp, contentDescription = stringResource(R.string.rs_media_volume_up))
                 }
             }
 
@@ -249,7 +251,7 @@ private fun VolumeControlCard(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isMuted) "Unmute" else "Mute")
+                Text(if (isMuted) stringResource(R.string.rs_media_unmute) else stringResource(R.string.rs_media_mute))
             }
         }
     }
@@ -276,18 +278,18 @@ private fun MediaPlaybackCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Media Playback",
+                text = stringResource(R.string.rs_media_playback),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
             playbackStatus?.let { status ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    status.title?.let { Text("Title: $it", style = MaterialTheme.typography.bodyMedium) }
-                    status.artist?.let { Text("Artist: $it", style = MaterialTheme.typography.bodySmall) }
-                    status.album?.let { Text("Album: $it", style = MaterialTheme.typography.bodySmall) }
+                    status.title?.let { Text(stringResource(R.string.rs_media_title_fmt, it), style = MaterialTheme.typography.bodyMedium) }
+                    status.artist?.let { Text(stringResource(R.string.rs_media_artist_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                    status.album?.let { Text(stringResource(R.string.rs_media_album_fmt, it), style = MaterialTheme.typography.bodySmall) }
                     Text(
-                        "Status: ${status.state ?: "Unknown"}",
+                        stringResource(R.string.rs_media_status_fmt, status.state ?: stringResource(R.string.rs_media_state_unknown)),
                         style = MaterialTheme.typography.bodySmall,
                         color = when (status.state) {
                             "playing" -> MaterialTheme.colorScheme.primary
@@ -297,7 +299,7 @@ private fun MediaPlaybackCard(
                     )
                 }
             } ?: Text(
-                "No playback info available",
+                stringResource(R.string.rs_media_no_playback_info),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -312,7 +314,7 @@ private fun MediaPlaybackCard(
                 ) {
                     Icon(
                         Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
+                        contentDescription = stringResource(R.string.rs_media_previous),
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -324,7 +326,7 @@ private fun MediaPlaybackCard(
                 ) {
                     Icon(
                         if (playbackStatus?.state == "playing") Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = "Play/Pause",
+                        contentDescription = stringResource(R.string.rs_media_play_pause),
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -335,7 +337,7 @@ private fun MediaPlaybackCard(
                 ) {
                     Icon(
                         Icons.Default.SkipNext,
-                        contentDescription = "Next",
+                        contentDescription = stringResource(R.string.rs_media_next),
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -346,7 +348,7 @@ private fun MediaPlaybackCard(
                 ) {
                     Icon(
                         Icons.Default.Stop,
-                        contentDescription = "Stop",
+                        contentDescription = stringResource(R.string.rs_media_stop),
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -398,7 +400,7 @@ private fun AudioDeviceItem(device: AudioDevice) {
             if (device.isDefault == true) {
                 Icon(
                     Icons.Default.Check,
-                    contentDescription = "Default",
+                    contentDescription = stringResource(R.string.rs_media_default),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

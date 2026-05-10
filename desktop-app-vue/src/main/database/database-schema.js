@@ -4038,7 +4038,15 @@ function createTables(dbManager, logger) {
         last_error TEXT,
         UNIQUE(provider_id, account_key, item_id)
       );
+      `);
 
+    // Phase 3d v1.2 fix: 老的 sql.js DB snapshot 上 sync_external_tombstones 没
+    // resource_type 列。CREATE TABLE IF NOT EXISTS 不更新已有表 → 后面 trigger
+    // CREATE 引用 resource_type 时 SQLite 编译期校验失败 ("no such column")。
+    // 这里在 trigger CREATE 前先跑 migration ALTER TABLE 加列。
+    dbManager.ensureSyncExternalTombstoneResourceType();
+
+    dbManager.db.exec(`
       -- knowledge_items 删除时自动 fan-out tombstone 到所有已存在的 provider 游标
       -- INSERT OR IGNORE：同一 item 重复删（理论上不该发生）不会重复行
       CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_on_delete

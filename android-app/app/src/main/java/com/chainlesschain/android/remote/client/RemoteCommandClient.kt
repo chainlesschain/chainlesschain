@@ -3,30 +3,57 @@ package com.chainlesschain.android.remote.client
 import com.chainlesschain.android.remote.p2p.CommandCancelledException
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.PendingCommandInfo
+import com.google.gson.reflect.TypeToken
 import timber.log.Timber
+import java.lang.reflect.Type
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * 远程命令客户端
  *
- * 提供类型安全的命令 API 封装
+ * 提供类型安全的命令 API 封装。
+ *
+ * Phase 3d v1.3 fix (2026-05-10): invoke<T> 改为 inline reified，捕获调用点 T
+ * 通过 Gson TypeToken 传给 P2PClient.sendCommand(typeOf=...)，避免 erased T
+ * 直接 cast LinkedHashMap → 业务 data class 时的 ClassCastException。
+ *
+ * 之前 invoke 是 `<T>` 走 P2PClient.sendCommand 的非 typed overload (line 331)
+ * 直接 `response.result as T`，T 编译期擦除，runtime 拿到 LinkedHashMap 但
+ * 类型签名是 ModelsResponse，调用方 `.models` 立刻闪退。
  */
 @Singleton
 class RemoteCommandClient @Inject constructor(
-    private val p2pClient: P2PClient
+    @PublishedApi internal val p2pClient: P2PClient
 ) {
     /**
-     * 发送命令（通用方法）
+     * 发送命令（通用方法）。inline + reified T 让 `T::class.java` 在调用点
+     * 拿到具体 Class，把 typed deserialize 委托给 P2PClient.sendCommand 的
+     * typed overload (走 Gson roundtrip)。
+     *
+     * 用 `T::class.java` 而不是 `object : TypeToken<T>(){}.type` —— 后者在
+     * suspend inline 上下文中 reify 不稳，实测 v1.3 第一版栽过：返回 LinkedHashMap
+     * 直接 cast 业务 data class 闪退。所有调用点目前都是 non-generic data class，
+     * 用 Class 足够。后续要 List<Foo> 之类泛型再加 typed overload。
      */
-    suspend fun <T> invoke(
+    suspend inline fun <reified T : Any> invoke(
         method: String,
         params: Map<String, Any> = emptyMap(),
         timeout: Long = 30000
     ): Result<T> {
+        return invokeTyped(method, params, timeout, T::class.java)
+    }
+
+    @PublishedApi
+    internal suspend fun <T> invokeTyped(
+        method: String,
+        params: Map<String, Any>,
+        timeout: Long,
+        type: Type
+    ): Result<T> {
         return try {
             Timber.d("调用命令: $method")
-            p2pClient.sendCommand(method, params, timeout)
+            p2pClient.sendCommand(method, params, timeout, type)
         } catch (e: CommandCancelledException) {
             Timber.w("命令已取消: $method - ${e.message}")
             Result.failure(e)
@@ -37,19 +64,20 @@ class RemoteCommandClient @Inject constructor(
     }
 
     /**
-     * 发送命令（带自动重试）
-     * 注意：被取消的命令不会重试
+     * 发送命令（带自动重试）。同样 inline reified 透传 T。
+     * 注意：被取消的命令不会重试。
      */
-    suspend fun <T> invokeWithRetry(
+    suspend inline fun <reified T : Any> invokeWithRetry(
         method: String,
         params: Map<String, Any> = emptyMap(),
         maxRetries: Int = 3,
         retryDelay: Long = 1000
     ): Result<T> {
         var lastError: Exception? = null
+        val type: Type = T::class.java
 
         repeat(maxRetries) { attempt ->
-            val result = invoke<T>(method, params)
+            val result = invokeTyped<T>(method, params, 30000, type)
 
             if (result.isSuccess) {
                 return result
@@ -57,7 +85,6 @@ class RemoteCommandClient @Inject constructor(
 
             lastError = result.exceptionOrNull() as? Exception
 
-            // 如果是取消异常，不重试
             if (lastError is CommandCancelledException) {
                 Timber.w("命令被取消，不重试: $method")
                 return Result.failure(lastError ?: Exception("Command cancelled"))

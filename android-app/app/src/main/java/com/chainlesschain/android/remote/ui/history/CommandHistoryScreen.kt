@@ -65,12 +65,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.data.CommandHistoryEntity
 import com.chainlesschain.android.remote.data.CommandStatistics
 import com.chainlesschain.android.remote.data.CommandStatus
@@ -110,23 +112,23 @@ fun CommandHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Command History") },
+                title = { Text(stringResource(R.string.rs_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { showFilterMenu = true }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                            Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.common_filter))
                         }
                         DropdownMenu(
                             expanded = showFilterMenu,
                             onDismissRequest = { showFilterMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("All") },
+                                text = { Text(stringResource(R.string.rs_history_filter_all)) },
                                 onClick = {
                                     viewModel.setFilter(HistoryFilter.All)
                                     showFilterMenu = false
@@ -134,7 +136,7 @@ fun CommandHistoryScreen(
                                 leadingIcon = { Icon(Icons.Default.List, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("AI") },
+                                text = { Text(stringResource(R.string.rs_history_filter_ai)) },
                                 onClick = {
                                     viewModel.setFilter(HistoryFilter.ByNamespace("ai"))
                                     showFilterMenu = false
@@ -142,7 +144,7 @@ fun CommandHistoryScreen(
                                 leadingIcon = { Icon(Icons.Default.Psychology, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("System") },
+                                text = { Text(stringResource(R.string.rs_history_filter_system)) },
                                 onClick = {
                                     viewModel.setFilter(HistoryFilter.ByNamespace("system"))
                                     showFilterMenu = false
@@ -150,7 +152,7 @@ fun CommandHistoryScreen(
                                 leadingIcon = { Icon(Icons.Default.Computer, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Success") },
+                                text = { Text(stringResource(R.string.rs_history_filter_success)) },
                                 onClick = {
                                     viewModel.setFilter(HistoryFilter.ByStatus(CommandStatus.SUCCESS))
                                     showFilterMenu = false
@@ -158,7 +160,7 @@ fun CommandHistoryScreen(
                                 leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Failed") },
+                                text = { Text(stringResource(R.string.rs_history_filter_failed)) },
                                 onClick = {
                                     viewModel.setFilter(HistoryFilter.ByStatus(CommandStatus.FAILURE))
                                     showFilterMenu = false
@@ -169,11 +171,11 @@ fun CommandHistoryScreen(
                     }
 
                     IconButton(onClick = { pagedCommands.refresh() }) {
-                        Icon(Icons.Default.History, contentDescription = "Refresh")
+                        Icon(Icons.Default.History, contentDescription = stringResource(R.string.common_refresh))
                     }
 
                     IconButton(onClick = { showClearDialog = true }, enabled = uiState.totalCount > 0) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "Clear")
+                        Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.common_clear))
                     }
                 }
             )
@@ -226,7 +228,7 @@ fun CommandHistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(Icons.Default.History, null, modifier = Modifier.size(64.dp))
-                            Text(if (uiState.searchQuery.isNotEmpty()) "No matching command" else "No command history")
+                            Text(if (uiState.searchQuery.isNotEmpty()) stringResource(R.string.rs_history_no_match) else stringResource(R.string.rs_history_empty))
                         }
                     }
                 }
@@ -270,7 +272,7 @@ fun CommandHistoryScreen(
 
             uiState.error?.let { error ->
                 Snackbar(modifier = Modifier.padding(16.dp), action = {
-                    TextButton(onClick = { viewModel.clearError() }) { Text("Close") }
+                    TextButton(onClick = { viewModel.clearError() }) { Text(stringResource(R.string.common_close)) }
                 }) {
                     Text(error)
                 }
@@ -278,7 +280,7 @@ fun CommandHistoryScreen(
 
             if (uiState.replaySuccess) {
                 Snackbar(modifier = Modifier.padding(16.dp), containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                    Text("Command replayed")
+                    Text(stringResource(R.string.rs_history_replayed))
                 }
             }
         }
@@ -319,11 +321,11 @@ fun SearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text("Search command...") },
+        placeholder = { Text(stringResource(R.string.rs_history_search_placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = onClear) { Icon(Icons.Default.Clear, "Clear") }
+                IconButton(onClick = onClear) { Icon(Icons.Default.Clear, stringResource(R.string.common_clear)) }
             }
         },
         singleLine = true,
@@ -345,7 +347,7 @@ fun CurrentFilterChip(
                 FilterChip(
                     selected = true,
                     onClick = onClearSearch,
-                    label = { Text("Search: $searchQuery") },
+                    label = { Text(stringResource(R.string.rs_history_search_chip_fmt, searchQuery)) },
                     trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) }
                 )
             }
@@ -359,9 +361,9 @@ fun CurrentFilterChip(
                     label = {
                         Text(
                             when (filter) {
-                                is HistoryFilter.ByNamespace -> "Namespace: ${filter.namespace}"
-                                is HistoryFilter.ByStatus -> "Status: ${filter.status.name}"
-                                else -> "All"
+                                is HistoryFilter.ByNamespace -> stringResource(R.string.rs_history_namespace_fmt, filter.namespace)
+                                is HistoryFilter.ByStatus -> stringResource(R.string.rs_history_status_fmt, filter.status.name)
+                                else -> stringResource(R.string.rs_history_filter_all)
                             }
                         )
                     },
@@ -384,10 +386,10 @@ fun StatisticsCard(statistics: CommandStatistics, modifier: Modifier = Modifier)
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            StatItem("Total", statistics.total.toString(), Icons.Default.List)
-            StatItem("Success", statistics.success.toString(), Icons.Default.CheckCircle, Color(0xFF4CAF50))
-            StatItem("Failed", statistics.failure.toString(), Icons.Default.Error, Color(0xFFF44336))
-            StatItem("Avg", "${statistics.avgDuration.toInt()}ms", Icons.Default.Timer)
+            StatItem(stringResource(R.string.rs_history_stat_total), statistics.total.toString(), Icons.Default.List)
+            StatItem(stringResource(R.string.rs_history_stat_success), statistics.success.toString(), Icons.Default.CheckCircle, Color(0xFF4CAF50))
+            StatItem(stringResource(R.string.rs_history_stat_failed), statistics.failure.toString(), Icons.Default.Error, Color(0xFFF44336))
+            StatItem(stringResource(R.string.rs_history_stat_avg), "${statistics.avgDuration.toInt()}ms", Icons.Default.Timer)
         }
     }
 }
@@ -467,7 +469,7 @@ fun CommandHistoryItem(
                 OutlinedButton(onClick = onReplay, enabled = canReplay, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Replay, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Replay")
+                    Text(stringResource(R.string.rs_history_action_replay))
                 }
                 OutlinedButton(
                     onClick = onDelete,
@@ -476,7 +478,7 @@ fun CommandHistoryItem(
                 ) {
                     Icon(Icons.Default.Delete, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete")
+                    Text(stringResource(R.string.common_delete))
                 }
             }
         }
@@ -486,10 +488,10 @@ fun CommandHistoryItem(
 @Composable
 fun CommandStatusBadge(status: CommandStatus) {
     val (text, color) = when (status) {
-        CommandStatus.SUCCESS -> "Success" to Color(0xFF4CAF50)
-        CommandStatus.FAILURE -> "Failure" to Color(0xFFF44336)
-        CommandStatus.PENDING -> "Pending" to Color(0xFFFF9800)
-        CommandStatus.CANCELLED -> "Cancelled" to Color(0xFF9E9E9E)
+        CommandStatus.SUCCESS -> stringResource(R.string.rs_history_status_success) to Color(0xFF4CAF50)
+        CommandStatus.FAILURE -> stringResource(R.string.rs_history_status_failure) to Color(0xFFF44336)
+        CommandStatus.PENDING -> stringResource(R.string.rs_history_status_pending) to Color(0xFFFF9800)
+        CommandStatus.CANCELLED -> stringResource(R.string.rs_history_status_cancelled) to Color(0xFF9E9E9E)
     }
 
     Surface(shape = CircleShape, color = color.copy(alpha = 0.15f)) {
@@ -515,14 +517,14 @@ fun CommandDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Command Details") },
+        title = { Text(stringResource(R.string.rs_history_detail_title)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { DetailItem("Command", "${command.namespace}.${command.action}") }
-                item { DetailItem("Status", command.status.name) }
-                item { DetailItem("Time", dateFormat.format(Date(command.timestamp))) }
-                item { DetailItem("Duration", "${command.duration}ms") }
-                item { DetailItem("Device", command.deviceDid) }
+                item { DetailItem(stringResource(R.string.rs_history_detail_command), "${command.namespace}.${command.action}") }
+                item { DetailItem(stringResource(R.string.rs_history_detail_status), command.status.name) }
+                item { DetailItem(stringResource(R.string.rs_history_detail_time), dateFormat.format(Date(command.timestamp))) }
+                item { DetailItem(stringResource(R.string.rs_history_detail_duration), "${command.duration}ms") }
+                item { DetailItem(stringResource(R.string.rs_history_detail_device), command.deviceDid) }
             }
         },
         confirmButton = {
@@ -530,12 +532,12 @@ fun CommandDetailDialog(
                 TextButton(onClick = onReplay) {
                     Icon(Icons.Default.Replay, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Replay")
+                    Text(stringResource(R.string.rs_history_action_replay))
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
         }
     )
 }
@@ -552,15 +554,15 @@ fun DetailItem(label: String, value: String) {
 fun ClearConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Clear Command History") },
-        text = { Text("Are you sure you want to clear all command history?") },
+        title = { Text(stringResource(R.string.rs_history_clear_title)) },
+        text = { Text(stringResource(R.string.rs_history_clear_message)) },
         confirmButton = {
             TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                Text("Confirm")
+                Text(stringResource(R.string.common_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

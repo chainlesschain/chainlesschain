@@ -54,10 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.ClipboardHistoryItem
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,29 +80,36 @@ fun ClipboardSyncScreen(
     var showHistory by remember { mutableStateOf(false) }
 
     // Handle events
+    val msgPushedToPC = stringResource(R.string.rs_clip_pushed_to_pc)
+    val msgPulledFromPC = stringResource(R.string.rs_clip_pulled_from_pc)
+    val msgSyncEnabled = stringResource(R.string.rs_clip_sync_enabled_msg)
+    val msgSyncDisabled = stringResource(R.string.rs_clip_sync_disabled_msg)
+    val msgHistoryCleared = stringResource(R.string.rs_clip_history_cleared)
+    val msgContentSet = stringResource(R.string.rs_clip_content_updated)
+    val msgChangedFromFmt = stringResource(R.string.rs_clip_changed_from_fmt)
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is ClipboardSyncEvent.PushedToPC -> {
-                    snackbarHostState.showSnackbar("Pushed to PC")
+                    snackbarHostState.showSnackbar(msgPushedToPC)
                 }
                 is ClipboardSyncEvent.PulledFromPC -> {
-                    snackbarHostState.showSnackbar("Pulled from PC")
+                    snackbarHostState.showSnackbar(msgPulledFromPC)
                 }
                 is ClipboardSyncEvent.SyncEnabled -> {
-                    snackbarHostState.showSnackbar("Clipboard sync enabled")
+                    snackbarHostState.showSnackbar(msgSyncEnabled)
                 }
                 is ClipboardSyncEvent.SyncDisabled -> {
-                    snackbarHostState.showSnackbar("Clipboard sync disabled")
+                    snackbarHostState.showSnackbar(msgSyncDisabled)
                 }
                 is ClipboardSyncEvent.HistoryCleared -> {
-                    snackbarHostState.showSnackbar("History cleared")
+                    snackbarHostState.showSnackbar(msgHistoryCleared)
                 }
                 is ClipboardSyncEvent.ContentSet -> {
-                    snackbarHostState.showSnackbar("Clipboard updated")
+                    snackbarHostState.showSnackbar(msgContentSet)
                 }
                 is ClipboardSyncEvent.ClipboardChanged -> {
-                    snackbarHostState.showSnackbar("Clipboard changed from ${event.source}")
+                    snackbarHostState.showSnackbar(msgChangedFromFmt.format(event.source))
                 }
             }
         }
@@ -109,10 +118,10 @@ fun ClipboardSyncScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Clipboard Sync") },
+                title = { Text(stringResource(R.string.rs_clip_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
@@ -120,7 +129,7 @@ fun ClipboardSyncScreen(
                         showHistory = !showHistory
                         if (showHistory) viewModel.loadHistory()
                     }) {
-                        Icon(Icons.Default.History, contentDescription = "History")
+                        Icon(Icons.Default.History, contentDescription = stringResource(R.string.rs_clip_history_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -164,12 +173,12 @@ fun ClipboardSyncScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Auto Sync",
+                                text = stringResource(R.string.rs_clip_auto_sync),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = if (syncEnabled) "Syncing with PC" else "Sync disabled",
+                                text = if (syncEnabled) stringResource(R.string.rs_clip_syncing_with_pc) else stringResource(R.string.rs_clip_sync_disabled),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -185,7 +194,7 @@ fun ClipboardSyncScreen(
             // Last Sync Time
             lastSyncTime?.let { time ->
                 Text(
-                    text = "Last sync: ${formatTime(time)}",
+                    text = stringResource(R.string.rs_clip_last_sync_fmt, formatTime(time)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -199,7 +208,7 @@ fun ClipboardSyncScreen(
                 // Local Clipboard
                 ClipboardCard(
                     modifier = Modifier.weight(1f),
-                    title = "Local",
+                    title = stringResource(R.string.rs_clip_local),
                     content = currentContent ?: uiState.localClipboard,
                     isLoading = false
                 )
@@ -207,7 +216,7 @@ fun ClipboardSyncScreen(
                 // PC Clipboard
                 ClipboardCard(
                     modifier = Modifier.weight(1f),
-                    title = "PC",
+                    title = stringResource(R.string.rs_clip_pc),
                     content = uiState.pcClipboard,
                     isLoading = false
                 )
@@ -232,7 +241,7 @@ fun ClipboardSyncScreen(
                         Icon(Icons.Default.ArrowUpward, contentDescription = null)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Push to PC")
+                    Text(stringResource(R.string.rs_clip_push_to_pc))
                 }
 
                 Button(
@@ -249,7 +258,7 @@ fun ClipboardSyncScreen(
                         Icon(Icons.Default.ArrowDownward, contentDescription = null)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Pull from PC")
+                    Text(stringResource(R.string.rs_clip_pull_from_pc))
                 }
             }
 
@@ -263,7 +272,7 @@ fun ClipboardSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "History",
+                        text = stringResource(R.string.rs_clip_history),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -277,7 +286,7 @@ fun ClipboardSyncScreen(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.common_clear), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -298,7 +307,7 @@ fun ClipboardSyncScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No history",
+                            text = stringResource(R.string.rs_clip_no_history),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -363,7 +372,7 @@ private fun ClipboardCard(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Text(
-                    text = content?.take(200) ?: "Empty",
+                    text = content?.take(200) ?: stringResource(R.string.rs_clip_empty),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
@@ -422,7 +431,7 @@ private fun HistoryItem(
             }
             Icon(
                 Icons.Default.ContentPaste,
-                contentDescription = "Use",
+                contentDescription = stringResource(R.string.rs_clip_use_cd),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )

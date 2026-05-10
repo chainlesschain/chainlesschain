@@ -64,10 +64,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.RunningWorkflow
 import com.chainlesschain.android.remote.commands.WorkflowExecutionHistory
 import com.chainlesschain.android.remote.commands.WorkflowListItem
@@ -90,25 +92,31 @@ fun WorkflowScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     // Handle events
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is WorkflowEvent.Created -> {
-                    snackbarHostState.showSnackbar("Workflow created")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_workflow_event_created))
                 }
                 is WorkflowEvent.Started -> {
-                    snackbarHostState.showSnackbar("Workflow started")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_workflow_event_started))
                 }
                 is WorkflowEvent.Completed -> {
-                    val msg = if (event.success) "Workflow completed" else "Workflow failed: ${event.error}"
+                    val msg = if (event.success) {
+                        context.getString(R.string.rs_workflow_event_completed)
+                    } else {
+                        context.getString(R.string.rs_workflow_event_failed_fmt, event.error ?: "")
+                    }
                     snackbarHostState.showSnackbar(msg)
                 }
                 is WorkflowEvent.Cancelled -> {
-                    snackbarHostState.showSnackbar("Workflow cancelled")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_workflow_event_cancelled))
                 }
                 is WorkflowEvent.Deleted -> {
-                    snackbarHostState.showSnackbar("Workflow deleted")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_workflow_event_deleted))
                 }
                 is WorkflowEvent.Progress -> {
                     // Progress is shown in running workflows section
@@ -121,15 +129,15 @@ fun WorkflowScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Workflows") },
+                title = { Text(stringResource(R.string.rs_workflow_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -139,7 +147,7 @@ fun WorkflowScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onCreateWorkflow) {
-                Icon(Icons.Default.Add, contentDescription = "Create Workflow")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rs_workflow_create))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -154,7 +162,7 @@ fun WorkflowScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Workflows") }
+                    text = { Text(stringResource(R.string.rs_workflow_tab_workflows)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
@@ -164,7 +172,7 @@ fun WorkflowScreen(
                     },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Running")
+                            Text(stringResource(R.string.rs_workflow_tab_running))
                             if (uiState.runningWorkflows.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Box(
@@ -190,7 +198,7 @@ fun WorkflowScreen(
                         selectedTab = 2
                         viewModel.loadHistory()
                     },
-                    text = { Text("History") }
+                    text = { Text(stringResource(R.string.rs_workflow_tab_history)) }
                 )
             }
 
@@ -235,19 +243,19 @@ fun WorkflowScreen(
         showDeleteDialog?.let { workflowId ->
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = null },
-                title = { Text("Delete Workflow") },
-                text = { Text("Are you sure you want to delete this workflow?") },
+                title = { Text(stringResource(R.string.rs_workflow_delete_title)) },
+                text = { Text(stringResource(R.string.rs_workflow_delete_message)) },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.deleteWorkflow(workflowId)
                         showDeleteDialog = null
                     }) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = null }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             )
@@ -284,12 +292,12 @@ private fun WorkflowListTab(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No workflows",
+                    text = stringResource(R.string.rs_workflow_empty),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Create a workflow to automate tasks",
+                    text = stringResource(R.string.rs_workflow_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -362,13 +370,13 @@ private fun WorkflowCard(
             ) {
                 Row {
                     Text(
-                        text = "${workflow.stepCount} steps",
+                        text = stringResource(R.string.rs_workflow_steps_fmt, workflow.stepCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Run ${workflow.runCount} times",
+                        text = stringResource(R.string.rs_workflow_run_count_fmt, workflow.runCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -378,21 +386,21 @@ private fun WorkflowCard(
                     IconButton(onClick = onExecute, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.PlayArrow,
-                            contentDescription = "Run",
+                            contentDescription = stringResource(R.string.rs_workflow_action_run),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Edit",
+                            contentDescription = stringResource(R.string.rs_workflow_action_edit),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = stringResource(R.string.rs_workflow_action_delete),
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
@@ -413,7 +421,7 @@ private fun RunningWorkflowsTab(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No running workflows",
+                text = stringResource(R.string.rs_workflow_no_running),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -461,7 +469,7 @@ private fun RunningWorkflowCard(
                 IconButton(onClick = onCancel, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Default.Stop,
-                        contentDescription = "Cancel",
+                        contentDescription = stringResource(R.string.rs_workflow_action_cancel),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -484,12 +492,12 @@ private fun RunningWorkflowCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = workflow.currentStep ?: "Running...",
+                    text = workflow.currentStep ?: stringResource(R.string.rs_workflow_running_step),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "${workflow.progress}%",
+                    text = stringResource(R.string.rs_workflow_progress_percent_fmt, workflow.progress),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -525,7 +533,7 @@ private fun HistoryTab(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No execution history",
+                    text = stringResource(R.string.rs_workflow_no_history),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

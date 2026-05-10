@@ -178,14 +178,14 @@ class SystemMonitorViewModel @Inject constructor(
      * 更新历史数据
      */
     private fun updateHistory(status: SystemStatus) {
-        // 解析 CPU 使用率
-        val cpuUsage = parseCpuUsage(status.cpu.usage)
+        // Phase 3d v1.3: cpu/memory 在 SystemCommands.kt 改 nullable 兜底
+        // 桌面响应字段缺失，这里 fallback 0% 占位。
+        val cpuUsage = parseCpuUsage(status.cpu?.usage ?: "")
         _cpuHistory.update { history ->
             (history + cpuUsage).takeLast(60) // 保留最近 60 个数据点
         }
 
-        // 解析内存使用率
-        val memoryUsage = parseMemoryUsage(status.memory.usagePercent)
+        val memoryUsage = parseMemoryUsage(status.memory?.usagePercent ?: "")
         _memoryHistory.update { history ->
             (history + memoryUsage).takeLast(60)
         }

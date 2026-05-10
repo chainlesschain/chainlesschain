@@ -26,9 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.AgentAction
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
@@ -47,15 +49,15 @@ fun RemoteAgentControlScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Remote Agent Control") },
+                title = { Text(stringResource(R.string.rs_agent_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refreshAllAgents(forceRemote = true) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -71,17 +73,17 @@ fun RemoteAgentControlScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Connection: $connectionState", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.rs_agent_connection_fmt, connectionState.toString()), style = MaterialTheme.typography.bodyMedium)
             connectedPeer?.let { peer ->
                 Text(
-                    text = "Target: ${peer.peerId} (${peer.did})",
+                    text = stringResource(R.string.rs_agent_target_fmt, peer.peerId, peer.did),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (uiState.isLoading) {
                 Text(
-                    text = "Refreshing agents...",
+                    text = stringResource(R.string.rs_agent_refreshing),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -101,26 +103,26 @@ fun RemoteAgentControlScreen(
                         ) {
                             Text(agent.name, fontWeight = FontWeight.Bold)
                             Text(agent.description, style = MaterialTheme.typography.bodySmall)
-                            Text("Status: ${agent.status}", style = MaterialTheme.typography.bodySmall)
-                            Text("Type: ${agent.type}", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.rs_agent_status_fmt, agent.status.toString()), style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.rs_agent_type_fmt, agent.type.toString()), style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
                                     onClick = { viewModel.controlAgent(agent.id, AgentAction.START) },
                                     enabled = actionEnabled
                                 ) {
-                                    Text("Start")
+                                    Text(stringResource(R.string.rs_agent_start))
                                 }
                                 Button(
                                     onClick = { viewModel.controlAgent(agent.id, AgentAction.STOP) },
                                     enabled = actionEnabled
                                 ) {
-                                    Text("Stop")
+                                    Text(stringResource(R.string.rs_agent_stop))
                                 }
                                 Button(
                                     onClick = { viewModel.controlAgent(agent.id, AgentAction.RESTART) },
                                     enabled = actionEnabled
                                 ) {
-                                    Text("Restart")
+                                    Text(stringResource(R.string.rs_agent_restart))
                                 }
                             }
                         }

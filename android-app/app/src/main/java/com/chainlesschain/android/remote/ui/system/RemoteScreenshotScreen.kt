@@ -60,9 +60,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -91,19 +93,19 @@ fun RemoteScreenshotScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Remote Screenshot") },
+                title = { Text(stringResource(R.string.rs_screenshot_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                     if (uiState.currentScreenshot != null) {
                         IconButton(onClick = { showFullScreen = true }) {
-                            Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
+                            Icon(Icons.Default.Fullscreen, contentDescription = stringResource(R.string.rs_screenshot_fullscreen))
                         }
                     }
                 }
@@ -120,7 +122,7 @@ fun RemoteScreenshotScreen(
                         )
                     },
                     icon = { Icon(Icons.Default.Screenshot, null) },
-                    text = { Text("Capture") },
+                    text = { Text(stringResource(R.string.rs_screenshot_capture)) },
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             }
@@ -133,10 +135,10 @@ fun RemoteScreenshotScreen(
         ) {
             when {
                 connectionState != ConnectionState.CONNECTED -> {
-                    EmptyState("Not connected to PC", Icons.Default.CloudOff)
+                    EmptyState(stringResource(R.string.rs_screenshot_not_connected), Icons.Default.CloudOff)
                 }
                 uiState.isTakingScreenshot -> {
-                    LoadingState("Capturing screenshot...")
+                    LoadingState(stringResource(R.string.rs_screenshot_capturing))
                 }
                 uiState.currentScreenshot != null -> {
                     val current = uiState.currentScreenshot ?: return@Column
@@ -153,7 +155,7 @@ fun RemoteScreenshotScreen(
                             if (uiState.isSaving) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                             } else {
-                                Icon(Icons.Default.Save, contentDescription = "Save")
+                                Icon(Icons.Default.Save, contentDescription = stringResource(R.string.common_save))
                             }
                         }
                     }
@@ -167,7 +169,7 @@ fun RemoteScreenshotScreen(
                     }
                 }
                 else -> {
-                    EmptyState("No screenshot yet", Icons.Default.Screenshot)
+                    EmptyState(stringResource(R.string.rs_screenshot_no_yet), Icons.Default.Screenshot)
                 }
             }
 
@@ -176,7 +178,7 @@ fun RemoteScreenshotScreen(
                     modifier = Modifier.padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Close")
+                            Text(stringResource(R.string.common_close))
                         }
                     }
                 ) {
@@ -191,7 +193,7 @@ fun RemoteScreenshotScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.CheckCircle, null)
-                        Text("Saved to gallery")
+                        Text(stringResource(R.string.rs_screenshot_saved))
                     }
                 }
             }
@@ -253,10 +255,10 @@ fun ScreenshotInfoCard(screenshot: ScreenshotItem) {
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            InfoItem("Resolution", "${screenshot.width}x${screenshot.height}")
-            InfoItem("Display", "#${screenshot.display}")
-            InfoItem("Format", screenshot.format.uppercase())
-            InfoItem("Time", timeFormat.format(Date(screenshot.timestamp)))
+            InfoItem(stringResource(R.string.rs_screenshot_resolution), "${screenshot.width}x${screenshot.height}")
+            InfoItem(stringResource(R.string.rs_screenshot_display), "#${screenshot.display}")
+            InfoItem(stringResource(R.string.rs_screenshot_format), screenshot.format.uppercase())
+            InfoItem(stringResource(R.string.rs_screenshot_time), timeFormat.format(Date(screenshot.timestamp)))
         }
     }
 }
@@ -287,7 +289,7 @@ fun ZoomableImage(screenshot: ScreenshotItem, modifier: Modifier = Modifier) {
     ) {
         Image(
             bitmap = screenshot.bitmap.asImageBitmap(),
-            contentDescription = "Screenshot",
+            contentDescription = stringResource(R.string.rs_screenshot_image_cd),
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
@@ -311,7 +313,7 @@ fun ScreenshotHistorySection(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("History (${screenshots.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_screenshot_history_fmt, screenshots.size), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(screenshots, key = { it.id }) { screenshot ->
                 ScreenshotThumbnail(
@@ -339,7 +341,7 @@ fun ScreenshotThumbnail(
     ) {
         Image(
             bitmap = screenshot.bitmap.asImageBitmap(),
-            contentDescription = "Thumbnail",
+            contentDescription = stringResource(R.string.rs_screenshot_thumbnail_cd),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -358,10 +360,10 @@ fun ScreenshotSettingsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Screenshot Settings") },
+        title = { Text(stringResource(R.string.rs_screenshot_settings)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                SettingRow("Display") {
+                SettingRow(stringResource(R.string.rs_screenshot_display)) {
                     (0..2).forEach { display ->
                         FilterChip(
                             selected = selectedDisplay == display,
@@ -371,7 +373,7 @@ fun ScreenshotSettingsDialog(
                     }
                 }
 
-                SettingRow("Format") {
+                SettingRow(stringResource(R.string.rs_screenshot_format)) {
                     FilterChip(
                         selected = selectedFormat == "png",
                         onClick = { onFormatChange("png") },
@@ -386,8 +388,8 @@ fun ScreenshotSettingsDialog(
 
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Quality", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text("$quality%")
+                        Text(stringResource(R.string.rs_screenshot_quality), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.rs_screenshot_percent_fmt, quality))
                     }
                     Slider(
                         value = quality.toFloat(),
@@ -399,7 +401,7 @@ fun ScreenshotSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.rs_screenshot_ok)) }
         }
     )
 }
@@ -419,7 +421,7 @@ fun FullScreenImageDialog(screenshot: ScreenshotItem, onDismiss: () -> Unit) {
     ) {
         ZoomableImage(screenshot = screenshot, modifier = Modifier.fillMaxSize())
         IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
-            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close), tint = Color.White)
         }
     }
 }

@@ -2332,6 +2332,26 @@ class P2PManager extends EventEmitter {
       }
 
       logger.info("[P2PManager] 嵌入式信令服务器已启动");
+
+      // Phase 3d v1.3: 用 mDNS / Bonjour 把信令服务器广播到局域网，让
+      // Android NsdManager / 同网段桌面零配置发现，免手填 IP。
+      try {
+        const {
+          SignalingMdnsAdvertiser,
+        } = require("./signaling-mdns-advertiser");
+        this.signalingMdns = new SignalingMdnsAdvertiser();
+        await this.signalingMdns.publish({
+          port: signalingConfig.port,
+          did: currentDevice?.deviceId || "",
+          name: currentDevice?.deviceName,
+        });
+      } catch (mdnsErr) {
+        logger.warn(
+          "[P2PManager] mDNS advertiser unavailable, manual IP config still works:",
+          mdnsErr?.message || mdnsErr,
+        );
+        this.signalingMdns = null;
+      }
     } catch (error) {
       logger.error("[P2PManager] 启动信令服务器失败:", error);
       this.signalingServer = null;
@@ -2342,6 +2362,14 @@ class P2PManager extends EventEmitter {
    * 停止嵌入式信令服务器
    */
   async stopSignalingServer() {
+    if (this.signalingMdns) {
+      try {
+        await this.signalingMdns.unpublish();
+      } catch (e) {
+        logger.warn("[P2PManager] mDNS unpublish error:", e?.message || e);
+      }
+      this.signalingMdns = null;
+    }
     if (this.signalingServer) {
       try {
         await this.signalingServer.stop();

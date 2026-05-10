@@ -1,12 +1,13 @@
 /**
- * Mobile Sync IPC 处理器（Phase 3d M2 step 7）
+ * Mobile Sync IPC 处理器（Phase 3d M2 step 7 + M4.5 register-manual）
  *
- * 暴露 5 个 IPC channel：
- *   sync:mobile:run         —— 对单个 paired 设备跑一轮 sync (push + pull)
- *   sync:mobile:run-all     —— 遍历所有 paired 设备跑 sync，返回汇总
- *   sync:mobile:status      —— 列已配对设备 + 各自的 cursor 状态
- *   sync:mobile:list-paired —— 仅列设备元信息（不读 cursor）
- *   sync:mobile:unpair      —— 解绑设备 + 清 cursor + 清相关 tombstone
+ * 暴露 6 个 IPC channel：
+ *   sync:mobile:run             —— 对单个 paired 设备跑一轮 sync (push + pull)
+ *   sync:mobile:run-all         —— 遍历所有 paired 设备跑 sync，返回汇总
+ *   sync:mobile:status          —— 列已配对设备 + 各自的 cursor 状态
+ *   sync:mobile:list-paired     —— 仅列设备元信息（不读 cursor）
+ *   sync:mobile:unpair          —— 解绑设备 + 清 cursor + 清相关 tombstone
+ *   sync:mobile:register-manual —— M4.5 手动配对：注册一个 mobile 设备到 deviceManager
  *
  * 设计：
  *   - dependencies-injection：registerMobileSyncIPC({ database, mainWindow, app })
@@ -293,7 +294,7 @@ function registerMobileSyncIPC({
 
   ipcGuard.markModuleRegistered("mobile-ipc");
   logger.info(
-    "[Mobile Sync IPC] ✓ 5 个 channel 已注册 (run / run-all / status / list-paired / unpair)",
+    "[Mobile Sync IPC] ✓ 6 个 channel 已注册 (run / run-all / status / list-paired / unpair / register-manual)",
   );
 }
 

@@ -9,10 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.DiskInfo
 import com.chainlesschain.android.remote.commands.LargeFile
 import com.chainlesschain.android.remote.commands.StorageStats
@@ -32,22 +34,26 @@ fun StorageInfoScreen(
     val largeFiles by viewModel.largeFiles.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Disks", "Large Files", "Cleanup")
+    val tabs = listOf(
+        stringResource(R.string.rs_storage_tab_disks),
+        stringResource(R.string.rs_storage_tab_large_files),
+        stringResource(R.string.rs_storage_tab_cleanup)
+    )
 
     val isConnected = connectionState == ConnectionState.CONNECTED
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Storage Info") },
+                title = { Text(stringResource(R.string.rs_storage_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,7 +97,7 @@ fun StorageInfoScreen(
                     ) {
                         Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_storage_dismiss))
                         }
                     }
                 }
@@ -160,7 +166,7 @@ private fun DisksTab(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "Storage Overview",
+                            text = stringResource(R.string.rs_storage_overview),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -169,9 +175,9 @@ private fun DisksTab(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            StatItem("Total", stats.totalFormatted ?: formatBytes(stats.total))
-                            StatItem("Used", stats.usedFormatted ?: formatBytes(stats.used))
-                            StatItem("Free", stats.freeFormatted ?: formatBytes(stats.free))
+                            StatItem(stringResource(R.string.rs_storage_total), stats.totalFormatted ?: formatBytes(stats.total))
+                            StatItem(stringResource(R.string.rs_storage_used), stats.usedFormatted ?: formatBytes(stats.used))
+                            StatItem(stringResource(R.string.rs_storage_free), stats.freeFormatted ?: formatBytes(stats.free))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
@@ -184,7 +190,7 @@ private fun DisksTab(
                             }
                         )
                         Text(
-                            text = "${stats.usagePercent.toInt()}% used",
+                            text = stringResource(R.string.rs_storage_used_percent_fmt, stats.usagePercent.toInt()),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.align(Alignment.End)
                         )
@@ -195,7 +201,7 @@ private fun DisksTab(
 
         item {
             Text(
-                text = "Disks",
+                text = stringResource(R.string.rs_storage_disks),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -204,7 +210,7 @@ private fun DisksTab(
         if (disks.isEmpty()) {
             item {
                 Text(
-                    text = "No disks found",
+                    text = stringResource(R.string.rs_storage_no_disks),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -275,12 +281,12 @@ private fun DiskItem(disk: DiskInfo, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Size: ${formatBytes(disk.size)}",
+                        text = stringResource(R.string.rs_storage_size_fmt, formatBytes(disk.size)),
                         style = MaterialTheme.typography.bodySmall
                     )
                     disk.type?.let {
                         Text(
-                            text = "Type: $it",
+                            text = stringResource(R.string.rs_storage_type_fmt, it),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -320,21 +326,21 @@ private fun LargeFilesTab(
             ) {
                 Icon(Icons.Default.Search, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Find Large Files (>100MB)")
+                Text(stringResource(R.string.rs_storage_find_large_files))
             }
         }
 
         if (largeFiles.isEmpty()) {
             item {
                 Text(
-                    text = "Click button above to search for large files",
+                    text = stringResource(R.string.rs_storage_click_to_search),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
             item {
                 Text(
-                    text = "${largeFiles.size} large files found",
+                    text = stringResource(R.string.rs_storage_large_files_found_fmt, largeFiles.size),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -405,7 +411,7 @@ private fun CleanupTab(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Disk Cleanup",
+            text = stringResource(R.string.rs_storage_disk_cleanup),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -421,7 +427,7 @@ private fun CleanupTab(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Clean temporary files, cache, and other unnecessary data.")
+                Text(stringResource(R.string.rs_storage_cleanup_desc))
 
                 Button(
                     onClick = onCleanup,
@@ -430,7 +436,7 @@ private fun CleanupTab(
                 ) {
                     Icon(Icons.Default.CleaningServices, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Run Cleanup")
+                    Text(stringResource(R.string.rs_storage_run_cleanup))
                 }
             }
         }
@@ -446,7 +452,7 @@ private fun CleanupTab(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Empty the Recycle Bin / Trash to free up space.")
+                Text(stringResource(R.string.rs_storage_empty_trash_desc))
 
                 Button(
                     onClick = onEmptyTrash,
@@ -458,7 +464,7 @@ private fun CleanupTab(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Empty Trash")
+                    Text(stringResource(R.string.rs_storage_empty_trash))
                 }
             }
         }
@@ -474,7 +480,7 @@ private fun CleanupTab(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Check disk health status (S.M.A.R.T. data).")
+                Text(stringResource(R.string.rs_storage_health_desc))
 
                 OutlinedButton(
                     onClick = onGetHealth,
@@ -483,7 +489,7 @@ private fun CleanupTab(
                 ) {
                     Icon(Icons.Default.HealthAndSafety, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Check Disk Health")
+                    Text(stringResource(R.string.rs_storage_check_health))
                 }
             }
         }

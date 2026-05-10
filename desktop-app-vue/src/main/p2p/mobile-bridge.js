@@ -12,20 +12,20 @@ const { logger } = require("../utils/logger.js");
 const WebSocket = require("ws");
 const EventEmitter = require("events");
 
-// Use wrtc-compat which provides WebRTC via werift (pure JavaScript, no native binaries)
-// This replaces the deprecated 'wrtc' package which doesn't support modern Electron/Node.js
+// wrtc-compat now wraps node-datachannel/polyfill (W3C-standard RTCPeerConnection
+// via libdatachannel C++ binding, N-API v8). Replaces werift in v5.0.3.46+.
 const wrtcCompat = require("./wrtc-compat");
 const wrtc = wrtcCompat;
 const wrtcAvailable = wrtcCompat.available;
 
 if (!wrtcAvailable) {
   logger.warn(
-    "[MobileBridge] WebRTC (werift) not available:",
+    "[MobileBridge] WebRTC (node-datachannel) not available:",
     wrtcCompat.loadError?.message || "unknown error",
   );
   logger.warn("[MobileBridge] Mobile bridging via WebRTC will be disabled");
 } else {
-  logger.info("[MobileBridge] WebRTC initialized via werift");
+  logger.info("[MobileBridge] WebRTC initialized via node-datachannel");
 }
 
 class MobileBridge extends EventEmitter {
@@ -287,11 +287,13 @@ class MobileBridge extends EventEmitter {
     logger.info("[MobileBridge] SDP前500字符(JSON转义): " + sdpEscaped);
     logger.info("========================================");
 
-    // 检查wrtc是否可用
-    if (!wrtc) {
+    // 检查 wrtc 是否可用 —— wrtc-compat 总是导出 module 对象，所以必须查
+    // wrtcAvailable / RTCPeerConnection 而非 truthy of module（v5.0.3.46+ 修
+    // 此前 if(!wrtc) 永远 false 的 silent-broken 谬）。
+    if (!wrtcAvailable || !wrtc.RTCPeerConnection) {
       logger.error("========================================");
-      logger.error("[MobileBridge] wrtc (werift) 不可用!");
-      logger.error("[MobileBridge] 无法处理WebRTC连接");
+      logger.error("[MobileBridge] wrtc (node-datachannel) 不可用!");
+      logger.error("[MobileBridge] 无法处理 WebRTC 连接");
       logger.error(
         "[MobileBridge] loadError: " + (wrtcCompat.loadError?.message || "无"),
       );
@@ -303,7 +305,7 @@ class MobileBridge extends EventEmitter {
       });
       return;
     }
-    logger.info("[MobileBridge] ✓ werift WebRTC可用");
+    logger.info("[MobileBridge] ✓ node-datachannel WebRTC 可用");
 
     try {
       // 检查连接池限制
@@ -751,6 +753,11 @@ class MobileBridge extends EventEmitter {
 
   /**
    * 处理节点状态变更
+   *
+   * Phase 3d v1.3 fix: signaling WebSocket 与 datachannel 是两条独立通道。移动端
+   * 在 datachannel 建立后通常会主动断开 signaling WS 省电，这条信令"offline"
+   * 通知**不应**触发 datachannel 关闭——否则连上 5s 就被踢，sync 跑不起来。
+   * 只在 datachannel 不存在或已 closed 时才清理 PC 端连接。
    */
   handlePeerStatus(message) {
     const { peerId, status } = message;
@@ -758,8 +765,17 @@ class MobileBridge extends EventEmitter {
     logger.info(`[MobileBridge] 节点状态变更: ${peerId} -> ${status}`);
 
     if (status === "offline") {
-      // 清理连接
-      this.closePeerConnection(peerId);
+      const channel = this.dataChannels.get(peerId);
+      const channelOpen =
+        channel &&
+        (channel.readyState === "open" || channel.readyState === "connecting");
+      if (channelOpen) {
+        logger.info(
+          `[MobileBridge] 忽略 signaling offline (${peerId}): datachannel 仍 ${channel.readyState}`,
+        );
+      } else {
+        this.closePeerConnection(peerId);
+      }
     }
 
     this.emit("peer-status", message);

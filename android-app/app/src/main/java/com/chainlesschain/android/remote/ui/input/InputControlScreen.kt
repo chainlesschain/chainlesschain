@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,10 +39,10 @@ fun InputControlScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Input Control") },
+                title = { Text(stringResource(R.string.rs_input_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -61,25 +63,25 @@ fun InputControlScreen(
                 Tab(
                     selected = uiState.inputMode == InputMode.KEYBOARD,
                     onClick = { viewModel.setInputMode(InputMode.KEYBOARD) },
-                    text = { Text("Keyboard") },
+                    text = { Text(stringResource(R.string.rs_input_tab_keyboard)) },
                     icon = { Icon(Icons.Default.Keyboard, contentDescription = null) }
                 )
                 Tab(
                     selected = uiState.inputMode == InputMode.MOUSE,
                     onClick = { viewModel.setInputMode(InputMode.MOUSE) },
-                    text = { Text("Mouse") },
+                    text = { Text(stringResource(R.string.rs_input_tab_mouse)) },
                     icon = { Icon(Icons.Default.Mouse, contentDescription = null) }
                 )
                 Tab(
                     selected = uiState.inputMode == InputMode.TOUCHPAD,
                     onClick = { viewModel.setInputMode(InputMode.TOUCHPAD) },
-                    text = { Text("Touchpad") },
+                    text = { Text(stringResource(R.string.rs_input_tab_touchpad)) },
                     icon = { Icon(Icons.Default.TouchApp, contentDescription = null) }
                 )
                 Tab(
                     selected = uiState.inputMode == InputMode.TEXT,
                     onClick = { viewModel.setInputMode(InputMode.TEXT) },
-                    text = { Text("Text") },
+                    text = { Text(stringResource(R.string.rs_input_tab_text)) },
                     icon = { Icon(Icons.Default.TextFields, contentDescription = null) }
                 )
             }
@@ -103,7 +105,7 @@ fun InputControlScreen(
                     ) {
                         Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_input_dismiss))
                         }
                     }
                 }
@@ -112,7 +114,7 @@ fun InputControlScreen(
             // 最后操作
             uiState.lastAction?.let { action ->
                 Text(
-                    text = "Last: $action",
+                    text = stringResource(R.string.rs_input_last_action_fmt, action),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -150,28 +152,28 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // 快捷操作
-        Text("Quick Actions", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_quick_actions), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            QuickActionButton(Modifier.weight(1f), "Copy", enabled) { viewModel.copy() }
-            QuickActionButton(Modifier.weight(1f), "Paste", enabled) { viewModel.paste() }
-            QuickActionButton(Modifier.weight(1f), "Cut", enabled) { viewModel.cut() }
-            QuickActionButton(Modifier.weight(1f), "Undo", enabled) { viewModel.undo() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_copy), enabled) { viewModel.copy() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_paste), enabled) { viewModel.paste() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_cut), enabled) { viewModel.cut() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_undo), enabled) { viewModel.undo() }
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            QuickActionButton(Modifier.weight(1f), "Select All", enabled) { viewModel.selectAll() }
-            QuickActionButton(Modifier.weight(1f), "Save", enabled) { viewModel.save() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_select_all), enabled) { viewModel.selectAll() }
+            QuickActionButton(Modifier.weight(1f), stringResource(R.string.rs_input_action_save), enabled) { viewModel.save() }
         }
 
         HorizontalDivider()
 
         // 功能键
-        Text("Function Keys", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_function_keys), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -192,7 +194,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
         HorizontalDivider()
 
         // 常用键
-        Text("Common Keys", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_common_keys), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -215,7 +217,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
         HorizontalDivider()
 
         // 方向键
-        Text("Arrow Keys", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_arrow_keys), fontWeight = FontWeight.Bold)
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -231,7 +233,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
         HorizontalDivider()
 
         // Windows 组合键
-        Text("Windows Shortcuts", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_windows_shortcuts), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -266,12 +268,12 @@ private fun MousePanel(
     ) {
         // 鼠标位置
         Text(
-            text = "Cursor: (${cursorPosition.first}, ${cursorPosition.second})",
+            text = stringResource(R.string.rs_input_cursor_fmt, cursorPosition.first, cursorPosition.second),
             style = MaterialTheme.typography.bodyMedium
         )
 
         // 鼠标按钮
-        Text("Mouse Buttons", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_mouse_buttons), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -281,28 +283,28 @@ private fun MousePanel(
                 enabled = enabled,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Left Click")
+                Text(stringResource(R.string.rs_input_left_click))
             }
             Button(
                 onClick = { viewModel.rightClick() },
                 enabled = enabled,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Right Click")
+                Text(stringResource(R.string.rs_input_right_click))
             }
             Button(
                 onClick = { viewModel.doubleClick() },
                 enabled = enabled,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Double Click")
+                Text(stringResource(R.string.rs_input_double_click))
             }
         }
 
         HorizontalDivider()
 
         // 滚动
-        Text("Scroll", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_scroll), fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -314,7 +316,7 @@ private fun MousePanel(
             ) {
                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Scroll Up")
+                Text(stringResource(R.string.rs_input_scroll_up))
             }
             Button(
                 onClick = { viewModel.scrollDown() },
@@ -323,14 +325,14 @@ private fun MousePanel(
             ) {
                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Scroll Down")
+                Text(stringResource(R.string.rs_input_scroll_down))
             }
         }
 
         HorizontalDivider()
 
         // 移动控制
-        Text("Move Cursor", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_move_cursor), fontWeight = FontWeight.Bold)
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -339,27 +341,27 @@ private fun MousePanel(
                 onClick = { viewModel.moveMouseRelative(0, -20) },
                 enabled = enabled
             ) {
-                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Up", Modifier.size(48.dp))
+                Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.rs_input_dir_up), Modifier.size(48.dp))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 IconButton(
                     onClick = { viewModel.moveMouseRelative(-20, 0) },
                     enabled = enabled
                 ) {
-                    Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Left", Modifier.size(48.dp))
+                    Icon(Icons.Default.KeyboardArrowLeft, contentDescription = stringResource(R.string.rs_input_dir_left), Modifier.size(48.dp))
                 }
                 IconButton(
                     onClick = { viewModel.moveMouseRelative(20, 0) },
                     enabled = enabled
                 ) {
-                    Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Right", Modifier.size(48.dp))
+                    Icon(Icons.Default.KeyboardArrowRight, contentDescription = stringResource(R.string.rs_input_dir_right), Modifier.size(48.dp))
                 }
             }
             IconButton(
                 onClick = { viewModel.moveMouseRelative(0, 20) },
                 enabled = enabled
             ) {
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Down", Modifier.size(48.dp))
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.rs_input_dir_down), Modifier.size(48.dp))
             }
         }
 
@@ -367,7 +369,7 @@ private fun MousePanel(
             onClick = { viewModel.loadCursorPosition() },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Text("Refresh Position")
+            Text(stringResource(R.string.rs_input_refresh_position))
         }
     }
 }
@@ -383,9 +385,9 @@ private fun TouchpadPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Touchpad", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_touchpad_label), fontWeight = FontWeight.Bold)
         Text(
-            text = "Drag to move cursor, tap to click",
+            text = stringResource(R.string.rs_input_touchpad_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -430,7 +432,7 @@ private fun TouchpadPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Touch Area",
+                text = stringResource(R.string.rs_input_touch_area),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -446,14 +448,14 @@ private fun TouchpadPanel(viewModel: InputControlViewModel, enabled: Boolean) {
                 enabled = enabled,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Left")
+                Text(stringResource(R.string.rs_input_btn_left))
             }
             Button(
                 onClick = { viewModel.rightClick() },
                 enabled = enabled,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Right")
+                Text(stringResource(R.string.rs_input_btn_right))
             }
         }
     }
@@ -472,9 +474,9 @@ private fun TextInputPanel(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Text Input", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_input_text_label), fontWeight = FontWeight.Bold)
         Text(
-            text = "Type text and send to PC",
+            text = stringResource(R.string.rs_input_text_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -485,7 +487,7 @@ private fun TextInputPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            placeholder = { Text("Enter text to send...") },
+            placeholder = { Text(stringResource(R.string.rs_input_text_placeholder)) },
             enabled = enabled
         )
 
@@ -505,7 +507,7 @@ private fun TextInputPanel(
             ) {
                 Icon(Icons.Default.Send, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Send Text")
+                Text(stringResource(R.string.rs_input_send_text))
             }
             OutlinedButton(
                 onClick = { onTextChange("") },
@@ -514,7 +516,7 @@ private fun TextInputPanel(
             ) {
                 Icon(Icons.Default.Clear, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Clear")
+                Text(stringResource(R.string.rs_input_clear))
             }
         }
 
@@ -523,7 +525,7 @@ private fun TextInputPanel(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Send Enter")
+            Text(stringResource(R.string.rs_input_send_enter))
         }
     }
 }

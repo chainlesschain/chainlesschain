@@ -615,10 +615,13 @@ class SystemCommands @Inject constructor(
  */
 @Serializable
 data class SystemStatus(
-    val cpu: CPUStatus,
-    val memory: MemoryStatus,
-    val system: SystemBasicInfo,
-    val timestamp: Long
+    // Phase 3d v1.3: 所有字段 nullable + 默认值 — 桌面端实现局部缺失字段时
+    // Gson roundtrip 把 null 喂进 non-null 属性，UI 访问触发 NPE 闪退（实测
+    // CPUStatus.getUsage() at RemoteControlScreen.kt:589）。这里保守做。
+    val cpu: CPUStatus? = null,
+    val memory: MemoryStatus? = null,
+    val system: SystemBasicInfo? = null,
+    val timestamp: Long = 0L
 )
 
 /**
@@ -626,9 +629,9 @@ data class SystemStatus(
  */
 @Serializable
 data class CPUStatus(
-    val usage: String,
-    val cores: Int,
-    val model: String
+    val usage: String? = null,
+    val cores: Int? = null,
+    val model: String? = null
 )
 
 /**
@@ -636,10 +639,10 @@ data class CPUStatus(
  */
 @Serializable
 data class MemoryStatus(
-    val total: Long,
-    val used: Long,
-    val free: Long,
-    val usagePercent: String
+    val total: Long? = null,
+    val used: Long? = null,
+    val free: Long? = null,
+    val usagePercent: String? = null
 )
 
 /**
@@ -647,10 +650,10 @@ data class MemoryStatus(
  */
 @Serializable
 data class SystemBasicInfo(
-    val platform: String,
-    val arch: String,
-    val hostname: String,
-    val uptime: Long
+    val platform: String? = null,
+    val arch: String? = null,
+    val hostname: String? = null,
+    val uptime: Long? = null
 )
 
 /**
@@ -658,12 +661,15 @@ data class SystemBasicInfo(
  */
 @Serializable
 data class SystemInfo(
-    val os: OSInfo,
-    val cpu: CPUInfo,
-    val memory: MemoryInfo,
-    val hostname: String,
-    val uptime: Long,
-    val timestamp: Long
+    // Phase 3d v1.3: 同 SystemStatus，所有 nested 字段 nullable + 默认值
+    // 防桌面响应缺字段 NPE 闪退（实测 OSInfo.getPlatform() at
+    // RemoteControlScreen.kt:620）。
+    val os: OSInfo? = null,
+    val cpu: CPUInfo? = null,
+    val memory: MemoryInfo? = null,
+    val hostname: String? = null,
+    val uptime: Long? = null,
+    val timestamp: Long? = null
 )
 
 /**
@@ -671,11 +677,11 @@ data class SystemInfo(
  */
 @Serializable
 data class OSInfo(
-    val type: String,
-    val platform: String,
-    val arch: String,
-    val release: String,
-    val version: String
+    val type: String? = null,
+    val platform: String? = null,
+    val arch: String? = null,
+    val release: String? = null,
+    val version: String? = null
 )
 
 /**
@@ -683,9 +689,9 @@ data class OSInfo(
  */
 @Serializable
 data class CPUInfo(
-    val model: String,
-    val cores: Int,
-    val speed: Int
+    val model: String? = null,
+    val cores: Int? = null,
+    val speed: Int? = null
 )
 
 /**
@@ -693,8 +699,8 @@ data class CPUInfo(
  */
 @Serializable
 data class MemoryInfo(
-    val total: Long,
-    val free: Long
+    val total: Long? = null,
+    val free: Long? = null
 )
 
 /**

@@ -59,10 +59,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.SearchResult
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
@@ -95,19 +97,19 @@ fun RemoteRAGSearchScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Remote RAG Search") },
+                title = { Text(stringResource(R.string.rs_rag_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                     if (searchResults.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearResults() }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear")
+                            Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.common_clear))
                         }
                     }
                 }
@@ -126,14 +128,14 @@ fun RemoteRAGSearchScreen(
             Box(modifier = Modifier.weight(1f)) {
                 when {
                     connectionState != ConnectionState.CONNECTED -> {
-                        EmptyState(Icons.Default.CloudOff, "Not connected to PC", "Connect first in Remote Control")
+                        EmptyState(Icons.Default.CloudOff, stringResource(R.string.rs_rag_not_connected), stringResource(R.string.rs_rag_connect_first))
                     }
                     uiState.isSearching -> {
                         LoadingState()
                     }
                     searchResults.isEmpty() && uiState.currentQuery == null -> {
                         if (searchHistory.isEmpty()) {
-                            EmptyState(Icons.Default.Search, "Search knowledge base", "Query notes/docs on your PC")
+                            EmptyState(Icons.Default.Search, stringResource(R.string.rs_rag_search_kb), stringResource(R.string.rs_rag_query_hint))
                         } else {
                             SearchHistorySection(
                                 history = searchHistory,
@@ -145,7 +147,7 @@ fun RemoteRAGSearchScreen(
                         }
                     }
                     searchResults.isEmpty() -> {
-                        EmptyState(Icons.Default.SearchOff, "No results", "Try a different query")
+                        EmptyState(Icons.Default.SearchOff, stringResource(R.string.rs_rag_no_results), stringResource(R.string.rs_rag_try_different))
                     }
                     else -> {
                         SearchResultsList(
@@ -165,8 +167,8 @@ fun RemoteRAGSearchScreen(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                         action = {
                             Row {
-                                TextButton(onClick = { viewModel.retryCurrentQuery() }) { Text("Retry") }
-                                TextButton(onClick = { viewModel.clearError() }) { Text("Close") }
+                                TextButton(onClick = { viewModel.retryCurrentQuery() }) { Text(stringResource(R.string.common_retry)) }
+                                TextButton(onClick = { viewModel.clearError() }) { Text(stringResource(R.string.common_close)) }
                             }
                         }
                     ) { Text(error) }
@@ -200,12 +202,12 @@ fun SearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text("Search knowledge base...") },
+        placeholder = { Text(stringResource(R.string.rs_rag_search_placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                 }
             }
         },
@@ -231,7 +233,7 @@ fun SearchResultsList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("$totalResults results for \"$query\"", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.rs_rag_results_for_fmt, totalResults, query), style = MaterialTheme.typography.bodyMedium)
         }
 
         items(results, key = { it.noteId }) { result ->
@@ -244,9 +246,9 @@ fun SearchResultsList(
                     if (isLoadingMore) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Loading...")
+                        Text(stringResource(R.string.common_loading))
                     } else {
-                        Text("Load More")
+                        Text(stringResource(R.string.rs_rag_load_more))
                     }
                 }
             }
@@ -280,7 +282,7 @@ fun SearchResultCard(result: SearchResult, onClick: () -> Unit) {
                 if (metadata.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         metadata.entries.take(3).forEach { (key, value) ->
-                            AssistChip(onClick = {}, label = { Text("$key: $value") })
+                            AssistChip(onClick = {}, label = { Text(stringResource(R.string.rs_rag_metadata_kv_fmt, key, value)) })
                         }
                     }
                 }
@@ -305,7 +307,7 @@ fun SimilarityScoreChip(score: Float) {
 @Composable
 fun SearchHistorySection(history: List<String>, onHistoryClick: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Recent Searches", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.rs_rag_recent_searches), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         history.forEach { query ->
             Card(modifier = Modifier.fillMaxWidth().clickable { onHistoryClick(query) }) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -323,7 +325,7 @@ fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CircularProgressIndicator()
-            Text("Searching...")
+            Text(stringResource(R.string.rs_rag_searching))
         }
     }
 }
@@ -348,14 +350,14 @@ fun ResultDetailDialog(result: SearchResult, onDismiss: () -> Unit) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Similarity", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.rs_rag_similarity), fontWeight = FontWeight.Bold)
                         SimilarityScoreChip(result.score)
                     }
                 }
                 item { Text(result.content) }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } }
     )
 }
 
@@ -363,16 +365,16 @@ fun ResultDetailDialog(result: SearchResult, onDismiss: () -> Unit) {
 fun SearchSettingsDialog(topK: Int, onTopKChange: (Int) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Search Settings") },
+        title = { Text(stringResource(R.string.rs_rag_search_settings)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Top K")
+                    Text(stringResource(R.string.rs_rag_top_k))
                     Text(topK.toString(), fontWeight = FontWeight.Bold)
                 }
                 Slider(value = topK.toFloat(), onValueChange = { onTopKChange(it.toInt()) }, valueRange = 1f..20f, steps = 18)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.rs_rag_ok)) } }
     )
 }

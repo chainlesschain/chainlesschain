@@ -63,10 +63,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.NotificationHistoryItem
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -87,24 +89,26 @@ fun RemoteNotificationScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     // Handle events
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is NotificationCenterEvent.NotificationSent -> {
-                    snackbarHostState.showSnackbar("Notification sent: ${event.title}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_notif_event_sent_fmt, event.title))
                 }
                 is NotificationCenterEvent.NotificationBroadcast -> {
-                    snackbarHostState.showSnackbar("Broadcast to ${event.deliveredCount} devices")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_notif_event_broadcast_fmt, event.deliveredCount))
                 }
                 is NotificationCenterEvent.AllMarkedAsRead -> {
-                    snackbarHostState.showSnackbar("Marked ${event.count} as read")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_notif_event_marked_read_fmt, event.count))
                 }
                 is NotificationCenterEvent.AllCleared -> {
-                    snackbarHostState.showSnackbar("Cleared ${event.count} notifications")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_notif_event_cleared_fmt, event.count))
                 }
                 is NotificationCenterEvent.NewNotification -> {
-                    snackbarHostState.showSnackbar("New: ${event.notification.title}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.rs_notif_event_new_fmt, event.notification.title))
                 }
                 else -> {}
             }
@@ -116,7 +120,7 @@ fun RemoteNotificationScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Notifications")
+                        Text(stringResource(R.string.rs_notif_title))
                         if (uiState.unreadCount > 0) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Box(
@@ -137,18 +141,18 @@ fun RemoteNotificationScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.markAllAsRead() }) {
-                        Icon(Icons.Default.DoneAll, contentDescription = "Mark all read")
+                        Icon(Icons.Default.DoneAll, contentDescription = stringResource(R.string.rs_notif_mark_all_read))
                     }
                     IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.rs_notif_settings))
                     }
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -158,7 +162,7 @@ fun RemoteNotificationScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showSendDialog = true }) {
-                Icon(Icons.Default.Send, contentDescription = "Send Notification")
+                Icon(Icons.Default.Send, contentDescription = stringResource(R.string.rs_notif_send))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -192,10 +196,10 @@ fun RemoteNotificationScreen(
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Notifications are disabled")
+                            Text(stringResource(R.string.rs_notif_disabled))
                         }
                         TextButton(onClick = { viewModel.toggleLocalNotifications(true) }) {
-                            Text("Enable")
+                            Text(stringResource(R.string.rs_notif_enable))
                         }
                     }
                 }
@@ -223,12 +227,12 @@ fun RemoteNotificationScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No notifications",
+                            text = stringResource(R.string.rs_notif_empty),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Notifications from PC will appear here",
+                            text = stringResource(R.string.rs_notif_empty_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -374,7 +378,7 @@ private fun NotificationCard(
                     IconButton(onClick = onMarkRead, modifier = Modifier.size(32.dp)) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "Mark read",
+                            contentDescription = stringResource(R.string.rs_notif_mark_read),
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -383,7 +387,7 @@ private fun NotificationCard(
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(R.string.common_delete),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -404,13 +408,13 @@ private fun SendNotificationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Send to PC") },
+        title = { Text(stringResource(R.string.rs_notif_send_to_pc)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(stringResource(R.string.rs_notif_field_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -418,7 +422,7 @@ private fun SendNotificationDialog(
                 OutlinedTextField(
                     value = body,
                     onValueChange = { body = it },
-                    label = { Text("Message") },
+                    label = { Text(stringResource(R.string.rs_notif_field_message)) },
                     minLines = 2,
                     maxLines = 4,
                     modifier = Modifier.fillMaxWidth()
@@ -436,13 +440,13 @@ private fun SendNotificationDialog(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Send")
+                    Text(stringResource(R.string.common_send))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -460,7 +464,7 @@ private fun NotificationSettingsContent(
             .padding(16.dp)
     ) {
         Text(
-            text = "Notification Settings",
+            text = stringResource(R.string.rs_notif_settings_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -473,7 +477,7 @@ private fun NotificationSettingsContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Enable Notifications")
+            Text(stringResource(R.string.rs_notif_enable_notifications))
             Switch(
                 checked = settings.enabled,
                 onCheckedChange = { onUpdateSettings(it, null, null, null) }
@@ -488,7 +492,7 @@ private fun NotificationSettingsContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Quiet Hours")
+            Text(stringResource(R.string.rs_notif_quiet_hours))
             Switch(
                 checked = settings.quietHoursEnabled,
                 onCheckedChange = { onUpdateSettings(null, it, null, null) }
@@ -504,14 +508,14 @@ private fun NotificationSettingsContent(
                 OutlinedTextField(
                     value = settings.quietHoursStart ?: "22:00",
                     onValueChange = { onUpdateSettings(null, null, it, null) },
-                    label = { Text("Start") },
+                    label = { Text(stringResource(R.string.rs_notif_quiet_start)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = settings.quietHoursEnd ?: "08:00",
                     onValueChange = { onUpdateSettings(null, null, null, it) },
-                    label = { Text("End") },
+                    label = { Text(stringResource(R.string.rs_notif_quiet_end)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -527,7 +531,7 @@ private fun NotificationSettingsContent(
         ) {
             Icon(Icons.Default.Delete, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Clear All Notifications")
+            Text(stringResource(R.string.rs_notif_clear_all))
         }
 
         Spacer(modifier = Modifier.height(32.dp))

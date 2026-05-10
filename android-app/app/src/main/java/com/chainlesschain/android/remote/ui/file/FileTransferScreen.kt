@@ -54,9 +54,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.data.FileTransferEntity
 import com.chainlesschain.android.remote.data.FileTransferStatistics
 import com.chainlesschain.android.remote.data.TransferDirection
@@ -109,21 +111,21 @@ fun FileTransferScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("File Transfer") },
+                title = { Text(stringResource(R.string.rs_file_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { filePickerLauncher.launch("*/*") }) {
-                        Icon(Icons.Default.CloudUpload, "Upload")
+                        Icon(Icons.Default.CloudUpload, stringResource(R.string.rs_file_upload))
                     }
                     IconButton(onClick = { showDownloadPanel = !showDownloadPanel }) {
-                        Icon(Icons.Default.CloudDownload, "Download")
+                        Icon(Icons.Default.CloudDownload, stringResource(R.string.rs_file_download))
                     }
                     IconButton(onClick = { viewModel.cleanupOldTransfers(30) }) {
-                        Icon(Icons.Default.CleaningServices, "Cleanup")
+                        Icon(Icons.Default.CleaningServices, stringResource(R.string.rs_file_cleanup))
                     }
                 }
             )
@@ -147,19 +149,19 @@ fun FileTransferScreen(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Remote Download", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.rs_file_remote_download), style = MaterialTheme.typography.titleSmall)
                         OutlinedTextField(
                             value = downloadRemotePath,
                             onValueChange = { downloadRemotePath = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Remote Path") },
+                            label = { Text(stringResource(R.string.rs_file_remote_path)) },
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = downloadFileName,
                             onValueChange = { downloadFileName = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Local File Name (Optional)") },
+                            label = { Text(stringResource(R.string.rs_file_local_name_optional)) },
                             singleLine = true
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -179,10 +181,10 @@ fun FileTransferScreen(
                                 },
                                 enabled = downloadRemotePath.isNotBlank()
                             ) {
-                                Text("Start Download")
+                                Text(stringResource(R.string.rs_file_start_download))
                             }
                             OutlinedButton(onClick = { showDownloadPanel = false }) {
-                                Text("Close")
+                                Text(stringResource(R.string.common_close))
                             }
                         }
                     }
@@ -200,7 +202,7 @@ fun FileTransferScreen(
 
             if (activeTransfers.isNotEmpty()) {
                 Text(
-                    text = "Active Transfers (${activeTransfers.size})",
+                    text = stringResource(R.string.rs_file_active_transfers_fmt, activeTransfers.size),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -219,7 +221,7 @@ fun FileTransferScreen(
             }
 
             Text(
-                text = "Transfer History",
+                text = stringResource(R.string.rs_file_transfer_history),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -244,14 +246,14 @@ fun FileTransferScreen(
         when (val state = uiState) {
             is FileTransferUiState.Uploading -> {
                 ProgressDialog(
-                    title = "Uploading",
+                    title = stringResource(R.string.rs_file_uploading),
                     fileName = state.fileName,
                     progress = state.progress
                 )
             }
             is FileTransferUiState.Downloading -> {
                 ProgressDialog(
-                    title = "Downloading",
+                    title = stringResource(R.string.rs_file_downloading),
                     fileName = state.fileName,
                     progress = state.progress
                 )
@@ -271,7 +273,7 @@ fun StatisticsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Transfer Statistics", style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(R.string.rs_file_stats_title), style = MaterialTheme.typography.titleMedium)
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -279,10 +281,10 @@ fun StatisticsCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem("Total", statistics.total.toString())
-                StatItem("Done", statistics.completed.toString(), MaterialTheme.colorScheme.primary)
-                StatItem("Failed", statistics.failed.toString(), MaterialTheme.colorScheme.error)
-                StatItem("Active", statistics.inProgress.toString(), MaterialTheme.colorScheme.tertiary)
+                StatItem(stringResource(R.string.rs_file_stat_total), statistics.total.toString())
+                StatItem(stringResource(R.string.rs_file_stat_done), statistics.completed.toString(), MaterialTheme.colorScheme.primary)
+                StatItem(stringResource(R.string.rs_file_stat_failed), statistics.failed.toString(), MaterialTheme.colorScheme.error)
+                StatItem(stringResource(R.string.rs_file_stat_active), statistics.inProgress.toString(), MaterialTheme.colorScheme.tertiary)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -291,9 +293,9 @@ fun StatisticsCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem("Upload", statistics.uploads.toString())
-                StatItem("Download", statistics.downloads.toString())
-                StatItem("Bytes", formatFileSize(statistics.totalBytes))
+                StatItem(stringResource(R.string.rs_file_stat_upload), statistics.uploads.toString())
+                StatItem(stringResource(R.string.rs_file_stat_download), statistics.downloads.toString())
+                StatItem(stringResource(R.string.rs_file_stat_bytes), formatFileSize(statistics.totalBytes))
             }
         }
     }
@@ -413,11 +415,11 @@ fun TransferItem(
                     TextButton(onClick = it) {
                         Icon(
                             imageVector = Icons.Default.Cancel,
-                            contentDescription = "Cancel",
+                            contentDescription = stringResource(R.string.common_cancel),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             }
@@ -425,7 +427,7 @@ fun TransferItem(
             transfer.error?.let { error ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Error: $error",
+                    text = stringResource(R.string.error_prefix, error),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -436,18 +438,18 @@ fun TransferItem(
 
 @Composable
 fun StatusChip(status: TransferStatus) {
-    val (text, color) = when (status) {
-        TransferStatus.PENDING -> "Pending" to MaterialTheme.colorScheme.secondary
-        TransferStatus.IN_PROGRESS -> "In Progress" to MaterialTheme.colorScheme.primary
-        TransferStatus.PAUSED -> "Paused" to MaterialTheme.colorScheme.tertiary
-        TransferStatus.COMPLETED -> "Completed" to MaterialTheme.colorScheme.primary
-        TransferStatus.FAILED -> "Failed" to MaterialTheme.colorScheme.error
-        TransferStatus.CANCELLED -> "Cancelled" to MaterialTheme.colorScheme.outline
+    val (textRes, color) = when (status) {
+        TransferStatus.PENDING -> R.string.rs_file_status_pending to MaterialTheme.colorScheme.secondary
+        TransferStatus.IN_PROGRESS -> R.string.rs_file_status_in_progress to MaterialTheme.colorScheme.primary
+        TransferStatus.PAUSED -> R.string.rs_file_status_paused to MaterialTheme.colorScheme.tertiary
+        TransferStatus.COMPLETED -> R.string.rs_file_status_completed to MaterialTheme.colorScheme.primary
+        TransferStatus.FAILED -> R.string.rs_file_status_failed to MaterialTheme.colorScheme.error
+        TransferStatus.CANCELLED -> R.string.rs_file_status_cancelled to MaterialTheme.colorScheme.outline
     }
 
     Surface(color = color.copy(alpha = 0.1f), shape = MaterialTheme.shapes.small) {
         Text(
-            text = text,
+            text = stringResource(textRes),
             style = MaterialTheme.typography.labelSmall,
             color = color,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

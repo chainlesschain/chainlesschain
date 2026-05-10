@@ -70,14 +70,14 @@ fun ProcessManagerScreen(
             title = { Text(process.name) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("PID: ${process.pid}")
-                    Text("CPU: ${formatPercent(process.cpu)}")
-                    Text("Memory: ${formatBytes(process.memory)}")
-                    process.user?.let { Text("User: $it") }
-                    process.status?.let { Text("Status: $it") }
-                    process.command?.let { Text("Command: $it", maxLines = 3, overflow = TextOverflow.Ellipsis) }
-                    process.startTime?.let { Text("Start Time: $it") }
-                    process.threads?.let { Text("Threads: $it") }
+                    Text(stringResource(R.string.rs_proc_pid_fmt, process.pid))
+                    Text(stringResource(R.string.rs_proc_cpu_fmt, formatPercent(process.cpu)))
+                    Text(stringResource(R.string.rs_proc_memory_fmt, formatBytes(process.memory)))
+                    process.user?.let { Text(stringResource(R.string.rs_proc_user_fmt, it)) }
+                    process.status?.let { Text(stringResource(R.string.rs_proc_status_fmt, it)) }
+                    process.command?.let { Text(stringResource(R.string.rs_proc_command_fmt, it), maxLines = 3, overflow = TextOverflow.Ellipsis) }
+                    process.startTime?.let { Text(stringResource(R.string.rs_proc_start_time_fmt, it)) }
+                    process.threads?.let { Text(stringResource(R.string.rs_proc_threads_fmt, it)) }
                 }
             },
             confirmButton = {
@@ -104,15 +104,15 @@ fun ProcessManagerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Process Manager") },
+                title = { Text(stringResource(R.string.rs_proc_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadProcesses() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                     IconButton(
                         onClick = {
@@ -122,7 +122,7 @@ fun ProcessManagerScreen(
                     ) {
                         Icon(
                             if (uiState.isAutoRefreshEnabled) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (uiState.isAutoRefreshEnabled) "Stop Auto" else "Start Auto"
+                            contentDescription = if (uiState.isAutoRefreshEnabled) stringResource(R.string.rs_proc_stop_auto) else stringResource(R.string.rs_proc_start_auto)
                         )
                     }
                 },
@@ -144,12 +144,12 @@ fun ProcessManagerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search processes...") },
+                placeholder = { Text(stringResource(R.string.rs_proc_search_placeholder)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                         }
                     }
                 },
@@ -172,9 +172,9 @@ fun ProcessManagerScreen(
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ResourceIndicator("CPU", formatPercent(usage.cpuUsage))
-                        ResourceIndicator("Memory", formatPercent(usage.memoryUsage))
-                        ResourceIndicator("Processes", "${usage.processCount}")
+                        ResourceIndicator(stringResource(R.string.rs_proc_cpu_label), formatPercent(usage.cpuUsage))
+                        ResourceIndicator(stringResource(R.string.rs_proc_memory_label), formatPercent(usage.memoryUsage))
+                        ResourceIndicator(stringResource(R.string.rs_proc_processes_label), "${usage.processCount}")
                     }
                 }
             }
@@ -202,7 +202,7 @@ fun ProcessManagerScreen(
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_proc_dismiss))
                         }
                     }
                 }
@@ -216,12 +216,12 @@ fun ProcessManagerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${filteredProcesses.size} / ${uiState.totalProcesses} processes",
+                    text = stringResource(R.string.rs_proc_count_fmt, filteredProcesses.size, uiState.totalProcesses),
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (uiState.isAutoRefreshEnabled) {
                     Text(
-                        text = "Auto-refresh ON",
+                        text = stringResource(R.string.rs_proc_auto_refresh_on),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -300,17 +300,17 @@ private fun ProcessItem(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "PID: ${process.pid}",
+                        text = stringResource(R.string.rs_proc_pid_fmt, process.pid),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "CPU: ${formatPercent(process.cpu)}",
+                        text = stringResource(R.string.rs_proc_cpu_fmt, formatPercent(process.cpu)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Mem: ${formatBytes(process.memory)}",
+                        text = stringResource(R.string.rs_proc_mem_fmt, formatBytes(process.memory)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -322,7 +322,7 @@ private fun ProcessItem(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Kill")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_proc_kill_cd))
             }
         }
     }

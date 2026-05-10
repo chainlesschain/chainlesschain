@@ -73,14 +73,14 @@ fun DeviceListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "已注册设备",
+                text = stringResource(R.string.rs_devlist_registered_devices),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
             if (devices.isEmpty()) {
                 Text(
-                    text = "暂无已注册设备，点击 + 扫描并注册设备",
+                    text = stringResource(R.string.rs_devlist_no_devices_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -105,7 +105,7 @@ fun DeviceListScreen(
                             ) {
                                 Text(text = device.deviceName, fontWeight = FontWeight.Medium)
                                 Text(
-                                    text = "${device.peerId} • ${device.ipAddress}",
+                                    text = stringResource(R.string.rs_devlist_peer_ip_fmt, device.peerId, device.ipAddress),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -121,7 +121,7 @@ fun DeviceListScreen(
 
             HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
             Text(
-                text = "提示：点击设备卡片进入远程控制",
+                text = stringResource(R.string.rs_devlist_tip),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

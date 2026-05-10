@@ -10,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.InstalledApp
 import com.chainlesschain.android.remote.commands.RunningApp
 import com.chainlesschain.android.remote.commands.RecentApp
@@ -35,7 +37,11 @@ fun ApplicationManagerScreen(
     val selectedApp by viewModel.selectedApp.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Running", "Installed", "Recent")
+    val tabs = listOf(
+        stringResource(R.string.rs_app_tab_running),
+        stringResource(R.string.rs_app_tab_installed),
+        stringResource(R.string.rs_app_tab_recent)
+    )
 
     val isConnected = connectionState == ConnectionState.CONNECTED
 
@@ -43,12 +49,12 @@ fun ApplicationManagerScreen(
     if (uiState.showCloseConfirmDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissCloseConfirmDialog() },
-            title = { Text("Close Application") },
-            text = { Text("Close ${uiState.pendingCloseName}?") },
+            title = { Text(stringResource(R.string.rs_app_close_title)) },
+            text = { Text(stringResource(R.string.rs_app_close_message_fmt, uiState.pendingCloseName ?: "")) },
             confirmButton = {
                 Row {
                     TextButton(onClick = { viewModel.confirmClose(force = false) }) {
-                        Text("Close")
+                        Text(stringResource(R.string.common_close))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     TextButton(
@@ -57,13 +63,13 @@ fun ApplicationManagerScreen(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Force Close")
+                        Text(stringResource(R.string.rs_app_force_close))
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissCloseConfirmDialog() }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -76,11 +82,11 @@ fun ApplicationManagerScreen(
             title = { Text(app.name) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    app.publisher?.let { Text("Publisher: $it") }
-                    app.version?.let { Text("Version: $it") }
-                    app.installDate?.let { Text("Installed: $it") }
-                    app.installPath?.let { Text("Path: $it", maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                    app.status?.let { Text("Status: $it") }
+                    app.publisher?.let { Text(stringResource(R.string.rs_app_publisher_fmt, it)) }
+                    app.version?.let { Text(stringResource(R.string.rs_app_version_fmt, it)) }
+                    app.installDate?.let { Text(stringResource(R.string.rs_app_installed_fmt, it)) }
+                    app.installPath?.let { Text(stringResource(R.string.rs_app_path_fmt, it), maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                    app.status?.let { Text(stringResource(R.string.rs_app_status_fmt, it)) }
                 }
             },
             confirmButton = {
@@ -88,12 +94,12 @@ fun ApplicationManagerScreen(
                     viewModel.clearSelectedApp()
                     viewModel.launchApp(app.name)
                 }) {
-                    Text("Launch")
+                    Text(stringResource(R.string.rs_app_launch))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.clearSelectedApp() }) {
-                    Text("Close")
+                    Text(stringResource(R.string.common_close))
                 }
             }
         )
@@ -102,15 +108,15 @@ fun ApplicationManagerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Applications") },
+                title = { Text(stringResource(R.string.rs_app_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -161,7 +167,7 @@ fun ApplicationManagerScreen(
                     ) {
                         Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_app_dismiss))
                         }
                     }
                 }
@@ -222,7 +228,7 @@ private fun RunningAppsTab(
     ) {
         item {
             Text(
-                "${apps.size} running applications",
+                stringResource(R.string.rs_app_running_count_fmt, apps.size),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -231,7 +237,7 @@ private fun RunningAppsTab(
         if (apps.isEmpty()) {
             item {
                 Text(
-                    "No running applications",
+                    stringResource(R.string.rs_app_no_running),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -281,9 +287,9 @@ private fun RunningAppItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    app.pid?.let { Text("PID: $it", style = MaterialTheme.typography.bodySmall) }
-                    app.cpu?.let { Text("CPU: ${formatPercent(it)}", style = MaterialTheme.typography.bodySmall) }
-                    app.memory?.let { Text("Mem: ${formatBytes(it)}", style = MaterialTheme.typography.bodySmall) }
+                    app.pid?.let { Text(stringResource(R.string.rs_proc_pid_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                    app.cpu?.let { Text(stringResource(R.string.rs_proc_cpu_fmt, formatPercent(it)), style = MaterialTheme.typography.bodySmall) }
+                    app.memory?.let { Text(stringResource(R.string.rs_proc_mem_fmt, formatBytes(it)), style = MaterialTheme.typography.bodySmall) }
                 }
                 app.title?.let {
                     Text(
@@ -296,7 +302,7 @@ private fun RunningAppItem(
                 }
             }
             IconButton(onClick = onFocus, enabled = enabled) {
-                Icon(Icons.Default.OpenInNew, contentDescription = "Focus")
+                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.rs_app_focus))
             }
             IconButton(
                 onClick = onClose,
@@ -305,7 +311,7 @@ private fun RunningAppItem(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
             }
         }
     }
@@ -329,7 +335,7 @@ private fun InstalledAppsTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Search installed apps...") },
+            placeholder = { Text(stringResource(R.string.rs_app_search_placeholder)) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
@@ -337,7 +343,7 @@ private fun InstalledAppsTab(
                         onSearchChange("")
                         onSearch("")
                     }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                     }
                 }
             },
@@ -351,7 +357,7 @@ private fun InstalledAppsTab(
         ) {
             item {
                 Text(
-                    "${apps.size} applications",
+                    stringResource(R.string.rs_app_count_fmt, apps.size),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -360,7 +366,7 @@ private fun InstalledAppsTab(
             if (apps.isEmpty()) {
                 item {
                     Text(
-                        "No applications found. Click search to load.",
+                        stringResource(R.string.rs_app_no_results),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -414,12 +420,12 @@ private fun InstalledAppItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    app.version?.let { Text("v$it", style = MaterialTheme.typography.bodySmall) }
+                    app.version?.let { Text(stringResource(R.string.rs_app_version_v_fmt, it), style = MaterialTheme.typography.bodySmall) }
                     app.publisher?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
             IconButton(onClick = onLaunch, enabled = enabled) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Launch")
+                Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.rs_app_launch))
             }
         }
     }
@@ -438,7 +444,7 @@ private fun RecentAppsTab(
     ) {
         item {
             Text(
-                "Recent Applications",
+                stringResource(R.string.rs_app_recent_apps),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -447,7 +453,7 @@ private fun RecentAppsTab(
         if (apps.isEmpty()) {
             item {
                 Text(
-                    "No recent applications",
+                    stringResource(R.string.rs_app_no_recent),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -491,7 +497,7 @@ private fun RecentAppsTab(
                         }
                         Icon(
                             Icons.Default.PlayArrow,
-                            contentDescription = "Launch",
+                            contentDescription = stringResource(R.string.rs_app_launch),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }

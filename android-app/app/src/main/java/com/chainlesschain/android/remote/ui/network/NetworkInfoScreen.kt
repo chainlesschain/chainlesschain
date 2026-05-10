@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.NetworkInterface
 import com.chainlesschain.android.remote.commands.NetworkStatusDetail
 import com.chainlesschain.android.remote.p2p.ConnectionState
@@ -31,7 +33,11 @@ fun NetworkInfoScreen(
     val wifiInfo by viewModel.wifiInfo.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Status", "Interfaces", "Tools")
+    val tabs = listOf(
+        stringResource(R.string.rs_net_tab_status),
+        stringResource(R.string.rs_net_tab_interfaces),
+        stringResource(R.string.rs_net_tab_tools)
+    )
 
     var pingHost by remember { mutableStateOf("") }
     var resolveHost by remember { mutableStateOf("") }
@@ -41,15 +47,15 @@ fun NetworkInfoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Network Info") },
+                title = { Text(stringResource(R.string.rs_net_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                     IconButton(
                         onClick = {
@@ -59,7 +65,7 @@ fun NetworkInfoScreen(
                     ) {
                         Icon(
                             if (uiState.isAutoRefreshEnabled) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Auto Refresh"
+                            contentDescription = stringResource(R.string.rs_net_auto_refresh)
                         )
                     }
                 },
@@ -103,7 +109,7 @@ fun NetworkInfoScreen(
                     ) {
                         Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                         IconButton(onClick = { viewModel.clearError() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rs_net_dismiss))
                         }
                     }
                 }
@@ -181,13 +187,13 @@ private fun StatusTab(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = if (networkStatus?.connected == true) "Connected" else "Disconnected",
+                            text = if (networkStatus?.connected == true) stringResource(R.string.common_connected) else stringResource(R.string.common_disconnected),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         networkStatus?.type?.let {
                             Text(
-                                text = "Type: $it",
+                                text = stringResource(R.string.rs_net_type_fmt, it),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -210,11 +216,11 @@ private fun StatusTab(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Network Details", fontWeight = FontWeight.Bold)
-                        status.ip?.let { Text("Local IP: $it") }
-                        status.gateway?.let { Text("Gateway: $it") }
-                        status.dns?.let { Text("DNS: ${it.joinToString(", ")}") }
-                        status.mac?.let { Text("MAC: $it") }
+                        Text(stringResource(R.string.rs_net_details), fontWeight = FontWeight.Bold)
+                        status.ip?.let { Text(stringResource(R.string.rs_net_local_ip_fmt, it)) }
+                        status.gateway?.let { Text(stringResource(R.string.rs_net_gateway_fmt, it)) }
+                        status.dns?.let { Text(stringResource(R.string.rs_net_dns_fmt, it.joinToString(", "))) }
+                        status.mac?.let { Text(stringResource(R.string.rs_net_mac_fmt, it)) }
                     }
                 }
             }
@@ -235,15 +241,15 @@ private fun StatusTab(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Public IP", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.rs_net_public_ip), fontWeight = FontWeight.Bold)
                         Text(
-                            text = publicIP ?: "Not fetched",
+                            text = publicIP ?: stringResource(R.string.rs_net_not_fetched),
                             color = if (publicIP != null) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onGetPublicIP) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Get Public IP")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.rs_net_get_public_ip))
                     }
                 }
             }
@@ -262,7 +268,7 @@ private fun StatusTab(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        Text("Bandwidth Usage", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.rs_net_bandwidth_usage), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -271,12 +277,12 @@ private fun StatusTab(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Text(bw.rxRateFormatted, fontWeight = FontWeight.Bold)
-                                Text("Download", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.rs_net_download), style = MaterialTheme.typography.bodySmall)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
                                 Text(bw.txRateFormatted, fontWeight = FontWeight.Bold)
-                                Text("Upload", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.rs_net_upload), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -292,7 +298,7 @@ private fun StatusTab(
             ) {
                 Icon(Icons.Default.Wifi, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Get WiFi Info")
+                Text(stringResource(R.string.rs_net_get_wifi_info))
             }
         }
 
@@ -309,11 +315,11 @@ private fun StatusTab(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("WiFi", fontWeight = FontWeight.Bold)
-                        wifi.ssid?.let { Text("SSID: $it") }
-                        wifi.signal?.let { Text("Signal: $it dBm") }
-                        wifi.channel?.let { Text("Channel: $it") }
-                        wifi.authentication?.let { Text("Security: $it") }
+                        Text(stringResource(R.string.rs_net_wifi), fontWeight = FontWeight.Bold)
+                        wifi.ssid?.let { Text(stringResource(R.string.rs_net_ssid_fmt, it)) }
+                        wifi.signal?.let { Text(stringResource(R.string.rs_net_signal_fmt, it)) }
+                        wifi.channel?.let { Text(stringResource(R.string.rs_net_channel_fmt, it)) }
+                        wifi.authentication?.let { Text(stringResource(R.string.rs_net_security_fmt, it)) }
                     }
                 }
             }
@@ -331,7 +337,7 @@ private fun InterfacesTab(interfaces: List<NetworkInterface>) {
         if (interfaces.isEmpty()) {
             item {
                 Text(
-                    "No network interfaces found",
+                    stringResource(R.string.rs_net_no_interfaces),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -358,16 +364,16 @@ private fun InterfacesTab(interfaces: List<NetworkInterface>) {
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = if (iface.up == true) "UP" else "DOWN",
+                                text = if (iface.up == true) stringResource(R.string.rs_net_iface_up) else stringResource(R.string.rs_net_iface_down),
                                 color = if (iface.up == true) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.error
                             )
                         }
-                        iface.type?.let { Text("Type: $it", style = MaterialTheme.typography.bodySmall) }
-                        iface.ip4?.let { Text("IPv4: $it", style = MaterialTheme.typography.bodySmall) }
-                        iface.ip6?.let { Text("IPv6: $it", style = MaterialTheme.typography.bodySmall) }
-                        iface.mac?.let { Text("MAC: $it", style = MaterialTheme.typography.bodySmall) }
-                        iface.speed?.let { Text("Speed: ${it}Mbps", style = MaterialTheme.typography.bodySmall) }
+                        iface.type?.let { Text(stringResource(R.string.rs_net_type_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                        iface.ip4?.let { Text(stringResource(R.string.rs_net_ipv4_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                        iface.ip6?.let { Text(stringResource(R.string.rs_net_ipv6_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                        iface.mac?.let { Text(stringResource(R.string.rs_net_mac_fmt, it), style = MaterialTheme.typography.bodySmall) }
+                        iface.speed?.let { Text(stringResource(R.string.rs_net_speed_fmt, it), style = MaterialTheme.typography.bodySmall) }
                     }
                 }
             }
@@ -409,12 +415,12 @@ private fun ToolsTab(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Ping", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.rs_net_ping), fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = pingHost,
                         onValueChange = onPingHostChange,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Enter host (e.g., google.com)") },
+                        placeholder = { Text(stringResource(R.string.rs_net_enter_host)) },
                         singleLine = true
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -422,13 +428,13 @@ private fun ToolsTab(
                             onClick = onPing,
                             enabled = enabled && pingHost.isNotBlank()
                         ) {
-                            Text("Ping")
+                            Text(stringResource(R.string.rs_net_ping))
                         }
                         OutlinedButton(
                             onClick = onTraceroute,
                             enabled = enabled && pingHost.isNotBlank()
                         ) {
-                            Text("Traceroute")
+                            Text(stringResource(R.string.rs_net_traceroute))
                         }
                     }
                     pingResult?.let {
@@ -454,19 +460,19 @@ private fun ToolsTab(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("DNS Lookup", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.rs_net_dns_lookup), fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = resolveHost,
                         onValueChange = onResolveHostChange,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Enter hostname") },
+                        placeholder = { Text(stringResource(R.string.rs_net_enter_hostname)) },
                         singleLine = true
                     )
                     Button(
                         onClick = onResolve,
                         enabled = enabled && resolveHost.isNotBlank()
                     ) {
-                        Text("Resolve")
+                        Text(stringResource(R.string.rs_net_resolve))
                     }
                     resolveResult?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall)
@@ -488,7 +494,7 @@ private fun ToolsTab(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Speed Test", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.rs_net_speed_test), fontWeight = FontWeight.Bold)
                     Button(
                         onClick = onSpeedTest,
                         enabled = enabled,
@@ -496,7 +502,7 @@ private fun ToolsTab(
                     ) {
                         Icon(Icons.Default.Speed, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Run Speed Test")
+                        Text(stringResource(R.string.rs_net_run_speed_test))
                     }
                     speedTestResult?.let {
                         Text(it, style = MaterialTheme.typography.bodyMedium)
