@@ -140,11 +140,12 @@ android {
             isUniversalApk = true
         }
 
-        // Density-based splits
+        // Density-based splits — disabled. Runtime resource selection on Android 5.0+
+        // already picks correct density assets; per-density APK splits added 10 release
+        // artifacts (5 densities × 2 ABIs) for negligible size win. AAB still does
+        // density delivery via the bundle{} block above for Play Store users.
         density {
-            isEnable = true
-            reset()
-            include("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")
+            isEnable = false
         }
     }
 
