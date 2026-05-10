@@ -35,7 +35,9 @@ class DatabaseMigrationsTest {
         // Then
         assertNotNull(migrations)
         assertTrue(migrations.isNotEmpty())
-        assertEquals(21, migrations.size)  // 更新：当前有21个迁移 (1->22)
+        // 自验证：1 -> maxEnd 共 maxEnd-1 个 migration（不要硬编码计数 — 历史上加 migration 忘改这里红了 CI 多次）
+        val maxEnd = migrations.maxOf { it.endVersion }
+        assertEquals(maxEnd - 1, migrations.size)
     }
 
     @Test
