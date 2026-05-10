@@ -1,263 +1,266 @@
 package com.chainlesschain.android.presentation.screens
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chainlesschain.android.R
 import kotlinx.coroutines.delay
 
 /**
- * 启动动画界面
+ * 启动 Splash —— 视觉对齐桌面端 ThinkingProcess loading 画面：
+ * 紫色渐变背景 + 旋转光环 + TT logo + 3 dot + 进度条 + 阶段文本。
+ *
+ * 显示约 2.5s 后调 [onComplete]，由调用方决定跳到 Login / Home / SetupPin。
  */
 @Composable
-fun SplashScreen(
-    onAnimationEnd: () -> Unit
-) {
-    var animationStarted by remember { mutableStateOf(false) }
+fun SplashScreen(onComplete: () -> Unit) {
+    val totalDurationMs = 2500
+    val stages = listOf(
+        "正在初始化运行时",
+        "加载身份与密钥",
+        "准备 AI 引擎",
+        "即将就绪"
+    )
 
-    // 启动动画
+    var progress by remember { mutableFloatStateOf(0f) }
+    var stageIndex by remember { mutableStateOf(0) }
+
+    // 用 rememberUpdatedState 锁住最新的 onComplete —— 否则 LaunchedEffect(Unit)
+    // 在第一次合成时捕获的 lambda 会 close over MainActivity 还没读完 DataStore
+    // 时算出的 stale `nextAfterSplash`（初始 isSetupComplete=false → SetupPin），
+    // 导致已注册用户被错误送回设置 PIN 页。
+    val currentOnComplete by rememberUpdatedState(onComplete)
+
     LaunchedEffect(Unit) {
-        animationStarted = true
-        delay(2500) // 显示2.5秒
-        onAnimationEnd()
+        val tickMs = 50L
+        val steps = totalDurationMs / tickMs.toInt()
+        for (i in 1..steps) {
+            delay(tickMs)
+            val frac = i.toFloat() / steps
+            progress = frac
+            stageIndex = (frac * stages.size).toInt().coerceIn(0, stages.size - 1)
+        }
+        currentOnComplete()
     }
 
-    // Logo缩放动画
-    val scale by animateFloatAsState(
-        targetValue = if (animationStarted) 1f else 0.3f,
-        animationSpec = tween(
-            durationMillis = 1000,
-            easing = FastOutSlowInEasing
-        ),
-        label = "scale"
-    )
-
-    // Logo透明度动画
-    val alpha by animateFloatAsState(
-        targetValue = if (animationStarted) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 800,
-            easing = LinearEasing
-        ),
-        label = "alpha"
-    )
-
-    // 文字透明度动画
-    val textAlpha by animateFloatAsState(
-        targetValue = if (animationStarted) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 800,
-            delayMillis = 400,
-            easing = LinearEasing
-        ),
-        label = "textAlpha"
+    val bg = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFB57BD8),
+            Color(0xFF7E40A8),
+            Color(0xFF4A1B7A)
+        )
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            ),
+            .background(bg),
         contentAlignment = Alignment.Center
     ) {
+        // 右上角 radial bloom（参考图右上的高光气泡）
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.18f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.85f, size.height * 0.18f),
+                    radius = size.width * 0.45f
+                ),
+                center = Offset(size.width * 0.85f, size.height * 0.18f),
+                radius = size.width * 0.45f
+            )
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
         ) {
-            // Logo图标
-            Box(
+            LogoWithRotatingRing(diameter = 140)
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                text = "CHAINLESSCHAIN",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 4.sp
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            ThreeDotIndicator()
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            LinearProgressIndicator(
+                progress = { progress },
                 modifier = Modifier
-                    .size(120.dp)
-                    .scale(scale)
-                    .alpha(alpha),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.25f)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 可以替换为实际的Logo图片
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_compass),
-                    contentDescription = "Logo",
-                    modifier = Modifier.fillMaxSize(),
-                    tint = Color.White
+                Text(
+                    text = "阶段 ${stageIndex + 1}: ${stages[stageIndex]}",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
-
-            // 应用名称
-            Text(
-                text = "ChainlessChain",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.alpha(textAlpha)
-            )
-
-            // 副标题
-            Text(
-                text = "去中心化个人AI管理系统",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.alpha(textAlpha)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // 加载指示器
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(32.dp)
-                    .alpha(textAlpha),
-                color = Color.White,
-                strokeWidth = 3.dp
-            )
-        }
-    }
-}
-
-/**
- * 带动画效果的启动屏幕（高级版）
- */
-@Composable
-fun AnimatedSplashScreen(
-    onAnimationEnd: () -> Unit
-) {
-    var currentPhase by remember { mutableStateOf(0) }
-
-    // 控制动画阶段
-    LaunchedEffect(Unit) {
-        delay(500)
-        currentPhase = 1  // Logo出现
-        delay(800)
-        currentPhase = 2  // 文字出现
-        delay(1200)
-        onAnimationEnd()
-    }
-
-    // 背景渐变动画
-    val bgColors by animateFloatAsState(
-        targetValue = if (currentPhase >= 1) 1f else 0f,
-        animationSpec = tween(800),
-        label = "bgAnimation"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Logo动画
-            AnimatedLogoSection(visible = currentPhase >= 1)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 文字动画
-            AnimatedTextSection(visible = currentPhase >= 2)
         }
     }
 }
 
 @Composable
-private fun AnimatedLogoSection(visible: Boolean) {
-    val scale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.5f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+private fun LogoWithRotatingRing(diameter: Int) {
+    val transition = rememberInfiniteTransition(label = "ring")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "logoScale"
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500),
-        label = "logoAlpha"
+        label = "ringAngle"
     )
 
     Box(
-        modifier = Modifier
-            .size(120.dp)
-            .scale(scale)
-            .alpha(alpha),
+        modifier = Modifier.size(diameter.dp),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            painter = painterResource(id = android.R.drawable.ic_menu_compass),
-            contentDescription = "Logo",
-            modifier = Modifier.fillMaxSize(),
-            tint = Color.White
+        // 旋转光环：sweep gradient arc
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .rotate(angle)
+        ) {
+            val stroke = 4.dp.toPx()
+            val sweepBrush = Brush.sweepGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.0f),
+                    Color.White.copy(alpha = 0.2f),
+                    Color.White.copy(alpha = 0.7f),
+                    Color.White.copy(alpha = 0.95f),
+                    Color.White.copy(alpha = 0.7f),
+                    Color.White.copy(alpha = 0.2f),
+                    Color.White.copy(alpha = 0.0f)
+                )
+            )
+            drawCircle(
+                brush = sweepBrush,
+                radius = (this.size.minDimension - stroke) / 2,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+        }
+
+        // 内圈半透明描边（给 logo 一个柔和的"框"）
+        Box(
+            modifier = Modifier
+                .size((diameter - 28).dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.08f))
+        )
+
+        // 中心 logo
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher),
+            contentDescription = null,
+            modifier = Modifier
+                .size((diameter - 56).dp)
+                .clip(CircleShape)
         )
     }
 }
 
 @Composable
-private fun AnimatedTextSection(visible: Boolean) {
-    val offsetY by animateDpAsState(
-        targetValue = if (visible) 0.dp else 20.dp,
-        animationSpec = tween(500),
-        label = "textOffset"
-    )
+private fun ThreeDotIndicator() {
+    val transition = rememberInfiniteTransition(label = "dots")
+    val cycleMs = 1200
+    val dotAnims = (0..2).map { idx ->
+        transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = cycleMs,
+                    delayMillis = idx * (cycleMs / 4),
+                    easing = LinearEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot$idx"
+        )
+    }
 
-    val alpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500),
-        label = "textAlpha"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .offset(y = offsetY)
-            .alpha(alpha)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            text = "ChainlessChain",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "去中心化个人AI管理系统",
-            fontSize = 14.sp,
-            color = Color.White.copy(alpha = 0.9f)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        CircularProgressIndicator(
-            modifier = Modifier.size(32.dp),
-            color = Color.White,
-            strokeWidth = 3.dp
-        )
+        dotAnims.forEach { alphaAnim ->
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = alphaAnim.value))
+            )
+        }
     }
 }

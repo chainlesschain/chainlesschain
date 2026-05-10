@@ -204,8 +204,8 @@ class ProcessManagerViewModel @Inject constructor(
                 val resources = result.getOrNull()?.resources
                 _resourceUsage.value = resources?.let {
                     ResourceUsage(
-                        cpuUsage = it.cpu.usage,
-                        memoryUsage = it.memory.usagePercent,
+                        cpuUsage = it.cpu?.usage ?: 0.0,
+                        memoryUsage = it.memory?.usagePercent ?: 0.0,
                         processCount = _processes.value.size
                     )
                 }

@@ -36,6 +36,7 @@ fun ChatScreen(
     conversationId: String,
     onNavigateBack: () -> Unit,
     onSettings: () -> Unit,
+    prefilledMessage: String? = null,
     viewModel: ConversationViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -50,6 +51,15 @@ fun ChatScreen(
     // 加载对话
     LaunchedEffect(conversationId) {
         viewModel.loadConversation(conversationId)
+    }
+
+    // 从首页带入的 prefill 文本（一次性注入，让用户确认后再发）
+    var prefillApplied by remember(conversationId) { mutableStateOf(false) }
+    LaunchedEffect(prefilledMessage, conversationId) {
+        if (!prefillApplied && !prefilledMessage.isNullOrBlank() && inputText.isBlank()) {
+            inputText = prefilledMessage
+            prefillApplied = true
+        }
     }
 
     // 自动滚动到底部

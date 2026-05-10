@@ -9,6 +9,7 @@ import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillCommandParser
 import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillExecutor
 import com.chainlesschain.android.feature.ai.cowork.skills.registry.SkillRegistry
+import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.llm.ChatWithToolsResponse
 import com.chainlesschain.android.feature.ai.data.llm.ToolCall
 import com.chainlesschain.android.feature.ai.data.rag.RAGRetriever
@@ -33,7 +34,8 @@ class ConversationViewModel @Inject constructor(
     private val ragRetriever: RAGRetriever,
     private val skillCommandParser: SkillCommandParser,
     private val skillExecutor: SkillExecutor,
-    private val skillRegistry: SkillRegistry
+    private val skillRegistry: SkillRegistry,
+    private val llmConfigManager: LLMConfigManager
 ) : ViewModel() {
 
     // UI状态
@@ -500,6 +502,55 @@ class ConversationViewModel @Inject constructor(
      */
     fun hasApiKey(provider: LLMProvider): Boolean {
         return repository.hasApiKey(provider)
+    }
+
+    /**
+     * 取当前默认 LLM 模型 —— 用于自动新建对话场景。
+     *
+     * 优先用 LLMConfigManager 里用户上次选中的 provider；如果该 provider 没存
+     * API Key（且不是 OLLAMA），fallback 到所有 provider 里第一个有 key 的；
+     * 都没有则回退到 OLLAMA 第一个模型（OLLAMA 不需要 key，本地部署）。
+     *
+     * 在所有 provider 都没配置 key 且 OLLAMA 也不可用时返回 null（让调用方
+     * 引导用户去 LLM 设置页）。
+     */
+    fun getDefaultModel(): LLMModel? {
+        // 1. 用户上次选的 provider
+        val preferredProvider = try {
+            llmConfigManager.load() // 确保读最新
+            llmConfigManager.getProvider()
+        } catch (e: Exception) {
+            Timber.w(e, "getDefaultModel: load LLMConfigManager failed")
+            null
+        }
+
+        // 2. 如果该 provider 已配置（OLLAMA 直接可用 / 其他需要 key）
+        if (preferredProvider != null) {
+            val ok = preferredProvider == LLMProvider.OLLAMA ||
+                repository.hasApiKey(preferredProvider)
+            if (ok) {
+                val configuredModelId = try {
+                    llmConfigManager.getCurrentModel()
+                } catch (_: Exception) {
+                    null
+                }
+                val models = LLMProvider.DEFAULT_MODELS[preferredProvider].orEmpty()
+                // 精确匹配 LLMConfigManager 里存的 model id；否则 first
+                return models.firstOrNull { it.id == configuredModelId }
+                    ?: models.firstOrNull()
+            }
+        }
+
+        // 3. fallback：扫所有 provider，找第一个有 key 的
+        for (p in LLMProvider.values()) {
+            if (p == LLMProvider.OLLAMA) continue
+            if (repository.hasApiKey(p)) {
+                return LLMProvider.DEFAULT_MODELS[p]?.firstOrNull()
+            }
+        }
+
+        // 4. 最后兜底：OLLAMA（如果用户跑了本地服务）
+        return LLMProvider.DEFAULT_MODELS[LLMProvider.OLLAMA]?.firstOrNull()
     }
 
     /**

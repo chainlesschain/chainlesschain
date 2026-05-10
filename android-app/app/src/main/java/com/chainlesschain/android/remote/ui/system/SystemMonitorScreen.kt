@@ -26,9 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,15 +52,15 @@ fun SystemMonitorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("System Monitor") },
+                title = { Text(stringResource(R.string.rs_sysmon_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refreshStatus() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,7 +77,7 @@ fun SystemMonitorScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Connection: $connectionState",
+                text = stringResource(R.string.rs_sysmon_connection_fmt, connectionState.toString()),
                 color = if (connectionState == ConnectionState.CONNECTED) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -84,14 +86,14 @@ fun SystemMonitorScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { viewModel.refreshStatus() }) { Text("Refresh") }
+                Button(onClick = { viewModel.refreshStatus() }) { Text(stringResource(R.string.common_refresh)) }
                 Button(
                     onClick = {
                         if (uiState.isAutoRefreshEnabled) viewModel.stopAutoRefresh()
                         else viewModel.startAutoRefresh(uiState.refreshInterval)
                     }
                 ) {
-                    Text(if (uiState.isAutoRefreshEnabled) "Stop Auto" else "Start Auto")
+                    Text(if (uiState.isAutoRefreshEnabled) stringResource(R.string.rs_sysmon_stop_auto) else stringResource(R.string.rs_sysmon_start_auto))
                 }
                 Button(
                     onClick = {
@@ -103,7 +105,7 @@ fun SystemMonitorScreen(
                         viewModel.setRefreshInterval(next)
                     }
                 ) {
-                    Text("${uiState.refreshInterval}s")
+                    Text(stringResource(R.string.rs_sysmon_interval_fmt, uiState.refreshInterval))
                 }
             }
 
@@ -111,15 +113,15 @@ fun SystemMonitorScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MetricCard(
                         modifier = Modifier.weight(1f),
-                        title = "CPU",
-                        value = s.cpu.usage,
-                        subtitle = "${s.cpu.cores} cores"
+                        title = stringResource(R.string.rs_sysmon_cpu),
+                        value = s.cpu?.usage ?: "—",
+                        subtitle = stringResource(R.string.rs_sysmon_cores_fmt, s.cpu?.cores ?: 0)
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
-                        title = "Memory",
-                        value = s.memory.usagePercent,
-                        subtitle = formatBytes(s.memory.used) + " / " + formatBytes(s.memory.total)
+                        title = stringResource(R.string.rs_sysmon_memory),
+                        value = s.memory?.usagePercent ?: "—",
+                        subtitle = formatBytes(s.memory?.used ?: 0L) + " / " + formatBytes(s.memory?.total ?: 0L)
                     )
                 }
 
@@ -135,23 +137,26 @@ fun SystemMonitorScreen(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Host: ${s.system.hostname}", fontWeight = FontWeight.Medium)
-                        Text("Platform: ${s.system.platform} ${s.system.arch}")
-                        Text("Uptime: ${formatDuration(s.system.uptime)}")
+                        Text(stringResource(R.string.rs_sysmon_host_fmt, s.system?.hostname ?: "—"), fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.rs_sysmon_platform_fmt, s.system?.platform ?: "—", s.system?.arch ?: ""))
+                        Text(stringResource(R.string.rs_sysmon_uptime_fmt, formatDuration(s.system?.uptime ?: 0L)))
                     }
                 }
-            } ?: Text("No status data yet.")
+            } ?: Text(stringResource(R.string.rs_sysmon_no_status))
 
             info?.let { systemInfo ->
                 Text(
-                    text = "OS: ${systemInfo.os.type} ${systemInfo.os.version}",
+                    text = stringResource(
+                        R.string.rs_sysmon_os_fmt,
+                        systemInfo.os?.type ?: "—",
+                        systemInfo.os?.version ?: "—"
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
             Text(
-                text = "CPU samples: ${cpuHistory.size}, Memory samples: ${memoryHistory.size}" +
-                    " | Last refresh: ${formatTime(uiState.lastRefreshTime)}",
+                text = stringResource(R.string.rs_sysmon_samples_fmt, cpuHistory.size, memoryHistory.size, formatTime(uiState.lastRefreshTime)),
                 style = MaterialTheme.typography.bodySmall
             )
             uiState.error?.let { error ->

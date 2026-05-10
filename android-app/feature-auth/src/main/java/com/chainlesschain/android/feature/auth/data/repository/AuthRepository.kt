@@ -52,12 +52,20 @@ class AuthRepository @Inject constructor(
 
     /**
      * 注册新用户（设置PIN码）
+     *
+     * 幂等行为：当 setup 已完成（DataStore 已存 PIN hash）时，把本次调用降级为
+     * 一次 PIN 验证 —— 输入与现有 PIN 相符就当登录成功，否则返回"PIN 错误"。
+     *
+     * 这是为了挡住 splash 路由 race condition：MainActivity 的 nextAfterSplash
+     * 在 AuthViewModel.checkSetupStatus 的 DataStore 读未完成前就被算成 SetupPin，
+     * 已注册用户被错误送回设置页时不再炸 IllegalStateException。
      */
     suspend fun register(pin: String): Result<User> {
         return try {
-            // 检查是否已注册
+            // 已注册时降级为登录验证（idempotent fallback）
             if (isSetupComplete()) {
-                return Result.error(IllegalStateException("User already registered"))
+                Timber.w("register() called but setup already complete — falling back to verifyPIN")
+                return verifyPIN(pin)
             }
 
             // 生成用户ID和设备ID

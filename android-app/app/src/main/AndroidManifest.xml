@@ -50,6 +50,21 @@
     <!-- 生物识别权限 -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- APK 自动更新：sideload 安装权限（API 26+ 需要用户授权一次） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Android 11+ 包可见性 —— 让 SpeechRecognizer.isRecognitionAvailable
+         能看到任何已安装的语音识别服务（搜狗/讯飞/百度/Google 等输入法都注册
+         android.speech.RecognitionService action） -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ChainlessChainApplication"
         android:allowBackup="true"
@@ -57,6 +72,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ChainlessChain"
@@ -73,6 +89,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AppCompat 1.6+ 提供的本地 locale 持久化服务（API <33 用） -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
 
         <!-- Disable default WorkManager initializer (using Hilt's HiltWorkerFactory) -->
         <provider

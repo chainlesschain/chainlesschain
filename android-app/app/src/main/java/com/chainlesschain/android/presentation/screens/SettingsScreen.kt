@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,8 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.R
 import com.chainlesschain.android.config.ThemeMode
+import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
+import com.chainlesschain.android.update.UpdateViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -33,12 +38,18 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAbout: () -> Unit = {},
     onNavigateToHelpFeedback: () -> Unit = {},
+    onNavigateToKeyManagement: () -> Unit = {},
+    onNavigateToAsrSettings: () -> Unit = {},
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
-    onThemeModeChanged: (ThemeMode) -> Unit = {}
+    onThemeModeChanged: (ThemeMode) -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
     val darkModeEnabled = currentThemeMode == ThemeMode.DARK
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var biometricEnabled by remember { mutableStateOf(false) }
+    val authState by authViewModel.uiState.collectAsState()
+    val biometricEnabled = authState.biometricEnabled
+    val biometricAvailable = authState.biometricAvailable
     var autoSaveEnabled by remember { mutableStateOf(true) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -163,9 +174,32 @@ fun SettingsScreen(
                 SettingsToggleItem(
                     icon = Icons.Default.Fingerprint,
                     title = stringResource(R.string.settings_biometric),
-                    subtitle = stringResource(R.string.settings_biometric_desc),
+                    subtitle = if (biometricAvailable) {
+                        stringResource(R.string.settings_biometric_desc)
+                    } else {
+                        authState.biometricMessage?.ifBlank { null }
+                            ?: stringResource(R.string.settings_biometric_desc)
+                    },
                     checked = biometricEnabled,
-                    onCheckedChange = { biometricEnabled = it }
+                    onCheckedChange = { enable ->
+                        if (enable) {
+                            // 启用前要求用户当场指纹/人脸验一次（确认本人）
+                            val activity = context as? FragmentActivity
+                            if (activity != null && biometricAvailable) {
+                                authViewModel.enableBiometric(activity)
+                            } else {
+                                scope.launch {
+                                    val msg = if (!biometricAvailable) {
+                                        authState.biometricMessage?.takeIf { it.isNotBlank() }
+                                            ?: context.getString(R.string.settings_biometric_desc)
+                                    } else "无法启用生物识别（Activity 类型不匹配）"
+                                    snackbarHostState.showSnackbar(msg)
+                                }
+                            }
+                        } else {
+                            authViewModel.disableBiometric()
+                        }
+                    }
                 )
             }
 
@@ -183,9 +217,25 @@ fun SettingsScreen(
                     icon = Icons.Default.Key,
                     title = stringResource(R.string.settings_key_management),
                     subtitle = stringResource(R.string.settings_key_management_desc),
-                    onClick = {
-                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
-                    }
+                    onClick = onNavigateToKeyManagement
+                )
+            }
+
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Default.Mic,
+                    title = "语音识别设置",
+                    subtitle = "豆包 SeedASR 大模型 API Key",
+                    onClick = onNavigateToAsrSettings
+                )
+            }
+
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Default.SystemUpdate,
+                    title = "检查更新",
+                    subtitle = "v${com.chainlesschain.android.BuildConfig.VERSION_NAME} —— GitHub Releases",
+                    onClick = { updateViewModel.checkForUpdates(silent = false) }
                 )
             }
 
@@ -274,14 +324,21 @@ fun SettingsScreen(
         )
     }
 
-    // 语言选择对话框
+    // 语言选择对话框 —— 真切到 AppCompatDelegate.setApplicationLocales。
+    // Android 13+ 走系统 per-app locale；<13 由 AppCompat 兜底（重建 Activity）。
     if (showLanguageDialog) {
+        val zhLabel = stringResource(R.string.settings_language_zh_cn)
+        val langOptions = listOf(
+            zhLabel to "zh-CN",
+            "English" to "en",
+            stringResource(R.string.settings_select_language) + " (系统)" to ""
+        )
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
             title = { Text(stringResource(R.string.settings_select_language)) },
             text = {
                 Column {
-                    listOf(stringResource(R.string.settings_language_zh_cn), "English").forEach { lang ->
+                    langOptions.forEach { (label, tag) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -289,19 +346,30 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
-                                selected = selectedLanguage == lang,
-                                onClick = { selectedLanguage = lang }
+                                selected = selectedLanguage == label,
+                                onClick = { selectedLanguage = label }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(lang)
+                            Text(label)
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
+                    val tag = langOptions.firstOrNull { it.first == selectedLanguage }?.second
                     showLanguageDialog = false
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_language_set_to, selectedLanguage)) }
+                    val locales = if (tag.isNullOrEmpty()) {
+                        androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                    } else {
+                        androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+                    }
+                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            context.getString(R.string.settings_language_set_to, selectedLanguage)
+                        )
+                    }
                 }) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
@@ -488,6 +556,9 @@ fun SettingsScreen(
             }
         )
     }
+
+    // 更新对话框（state-driven，由 updateViewModel.checkForUpdates 触发显示）
+    UpdateDialog(viewModel = updateViewModel)
 }
 
 /**

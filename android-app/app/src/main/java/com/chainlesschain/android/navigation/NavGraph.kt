@@ -43,11 +43,14 @@ import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditor
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.AboutScreen
+import com.chainlesschain.android.presentation.screens.AsrSettingsScreen
 import com.chainlesschain.android.presentation.screens.BookmarkScreen
 import com.chainlesschain.android.presentation.screens.HelpFeedbackScreen
+import com.chainlesschain.android.presentation.screens.KeyManagementScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.SettingsScreen
+import com.chainlesschain.android.presentation.screens.SplashScreen
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.remote.ui.DeviceListScreen
 import com.chainlesschain.android.remote.ui.DeviceScanScreen
@@ -85,10 +88,19 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String,
     authViewModel: AuthViewModel,
+    nextAfterSplash: String = Screen.Login.route,
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {}
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
+        composable(Screen.Splash.route) {
+            SplashScreen(onComplete = {
+                navController.navigate(nextAfterSplash) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+            })
+        }
+
         composable(Screen.SetupPin.route) {
             SetupPinScreen(
                 viewModel = authViewModel,
@@ -121,6 +133,12 @@ fun NavGraph(
                 },
                 onNavigateToKnowledgeList = { navController.navigate(Screen.KnowledgeList.route) },
                 onNavigateToAIChat = { navController.navigate(Screen.ConversationList.route) },
+                onNavigateToAIChatWithMessage = { msg ->
+                    // 跳过 ConversationList → 直接进 NewConversation；带 prefill 的
+                    // 情况下 NewConversationScreen 自动选默认模型 + 自动创建 → Chat
+                    // 全程用户只需 1 步发送。
+                    navController.navigate(Screen.NewConversation.createRoute(msg))
+                },
                 onNavigateToProjectDetail = { navController.navigate(Screen.ProjectDetail.createRoute(it)) },
                 onNavigateToFriendDetail = { navController.navigate(Screen.FriendDetail.createRoute(it)) },
                 onNavigateToAddFriend = { navController.navigate(Screen.AddFriend.route) },
@@ -166,34 +184,72 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.ConversationList.route) {
+        composable(
+            route = Screen.ConversationList.routePattern,
+            arguments = listOf(
+                navArgument("prefill") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val prefill = backStackEntry.arguments?.getString("prefill")
             ConversationListScreen(
-                onConversationClick = { navController.navigate(Screen.Chat.createRoute(it)) },
-                onNewConversation = { navController.navigate(Screen.NewConversation.route) },
+                onConversationClick = { id ->
+                    // ConversationList 现在也走 routePattern；老的 popUpTo 用 route 不匹配
+                    // 用户在列表点对话直接打开（带 prefill 注入到 Chat 输入框）
+                    navController.navigate(Screen.Chat.createRoute(id, prefill))
+                },
+                onNewConversation = {
+                    navController.navigate(Screen.NewConversation.createRoute(prefill))
+                },
                 onSettings = { navController.navigate(Screen.AISettings.route) }
             )
         }
 
-        composable(Screen.NewConversation.route) {
+        composable(
+            route = Screen.NewConversation.routePattern,
+            arguments = listOf(
+                navArgument("prefill") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val prefill = backStackEntry.arguments?.getString("prefill")
             NewConversationScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onConversationCreated = { conversationId ->
-                    navController.navigate(Screen.Chat.createRoute(conversationId)) {
-                        popUpTo(Screen.ConversationList.route)
+                    navController.navigate(Screen.Chat.createRoute(conversationId, prefill)) {
+                        // popUpTo 必须匹配 composable 注册时用的 routePattern
+                        // —— 用户回退不会回到自动跳过的中间页
+                        popUpTo(Screen.NewConversation.routePattern) { inclusive = true }
                     }
-                }
+                },
+                prefilledMessage = prefill
             )
         }
 
         composable(
-            route = "${Screen.Chat.route}/{conversationId}",
-            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+            route = Screen.Chat.routePattern,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType },
+                navArgument("prefill") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) { backStackEntry ->
             val conversationId = backStackEntry.arguments?.getString("conversationId") ?: return@composable
+            val prefilledMessage = backStackEntry.arguments?.getString("prefill")
             ChatScreen(
                 conversationId = conversationId,
                 onNavigateBack = { navController.popBackStack() },
-                onSettings = { }
+                onSettings = { },
+                prefilledMessage = prefilledMessage
             )
         }
 
@@ -251,9 +307,19 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
                 onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
+                onNavigateToKeyManagement = { navController.navigate(Screen.KeyManagement.route) },
+                onNavigateToAsrSettings = { navController.navigate(Screen.AsrSettings.route) },
                 currentThemeMode = currentThemeMode,
                 onThemeModeChanged = onThemeModeChanged
             )
+        }
+
+        composable(Screen.KeyManagement.route) {
+            KeyManagementScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.AsrSettings.route) {
+            AsrSettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(Screen.About.route) {
@@ -527,17 +593,35 @@ private fun androidx.navigation.NavGraphBuilder.registerPlaceholder(
 }
 
 sealed class Screen(val route: String) {
+    data object Splash : Screen("splash")
     data object SetupPin : Screen("setup_pin")
     data object Login : Screen("login")
     data object Home : Screen("home")
+    data object KeyManagement : Screen("key_management")
+    data object AsrSettings : Screen("asr_settings")
     data object KnowledgeList : Screen("knowledge_list")
     data object KnowledgeEditor : Screen("knowledge_editor") {
         fun createRoute(itemId: String) = "knowledge_editor/$itemId"
     }
-    data object ConversationList : Screen("conversation_list")
-    data object NewConversation : Screen("new_conversation")
+    data object ConversationList : Screen("conversation_list") {
+        const val routePattern = "conversation_list?prefill={prefill}"
+        fun createRoute(prefill: String? = null): String =
+            if (prefill.isNullOrEmpty()) "conversation_list"
+            else "conversation_list?prefill=${java.net.URLEncoder.encode(prefill, "UTF-8")}"
+    }
+    data object NewConversation : Screen("new_conversation") {
+        const val routePattern = "new_conversation?prefill={prefill}"
+        fun createRoute(prefill: String? = null): String =
+            if (prefill.isNullOrEmpty()) "new_conversation"
+            else "new_conversation?prefill=${java.net.URLEncoder.encode(prefill, "UTF-8")}"
+    }
     data object Chat : Screen("chat") {
-        fun createRoute(conversationId: String) = "chat/$conversationId"
+        const val routePattern = "chat/{conversationId}?prefill={prefill}"
+        fun createRoute(conversationId: String, prefill: String? = null): String {
+            val base = "chat/$conversationId"
+            return if (prefill.isNullOrEmpty()) base
+            else "$base?prefill=${java.net.URLEncoder.encode(prefill, "UTF-8")}"
+        }
     }
     data object AISettings : Screen("ai_settings")
     data object ProjectDetail : Screen("project_detail") {

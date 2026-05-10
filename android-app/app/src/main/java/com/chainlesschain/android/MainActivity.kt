@@ -4,8 +4,8 @@ import android.animation.ObjectAnimator
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AnticipateInterpolator
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +42,7 @@ import javax.inject.Inject
  * @AndroidEntryPoint 注解使Activity能够接收Hilt依赖注入
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var appConfigManager: AppConfigManager
@@ -80,9 +80,9 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = hiltViewModel()
 
-                    // 根据认证状态确定启动路由 (只在初始化时计算一次)
+                    // 启动总是从 Splash 进入；splash 结束后跳到下面计算的实际目的地。
                     val uiState = authViewModel.uiState.collectAsState().value
-                    val startDestination = remember(uiState.isSetupComplete, uiState.isAuthenticated) {
+                    val nextAfterSplash = remember(uiState.isSetupComplete, uiState.isAuthenticated) {
                         when {
                             !uiState.isSetupComplete -> Screen.SetupPin.route
                             !uiState.isAuthenticated -> Screen.Login.route
@@ -90,12 +90,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Timber.d("MainActivity: startDestination=$startDestination, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
+                    Timber.d("MainActivity: nextAfterSplash=$nextAfterSplash, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
 
                     NavGraph(
                         navController = navController,
-                        startDestination = startDestination,
+                        startDestination = Screen.Splash.route,
                         authViewModel = authViewModel,
+                        nextAfterSplash = nextAfterSplash,
                         currentThemeMode = appConfig.themeMode,
                         onThemeModeChanged = { newMode ->
                             appConfigManager.saveConfig(appConfig.copy(themeMode = newMode))

@@ -29,7 +29,9 @@ import javax.inject.Singleton
 @Singleton
 class RemoteConnectionManager @Inject constructor(
     private val p2pClient: P2PClient,
-    private val commandClient: RemoteCommandClient,
+    // @PublishedApi internal —— invokeWithRetry 是 inline + reified，body 引用 commandClient
+    // 必须不能是 private（Kotlin 拒绝 public-API inline 访问 non-public-API 字段）
+    @PublishedApi internal val commandClient: RemoteCommandClient,
     private val streamingClient: StreamingCommandClient,
     private val eventClient: EventSubscriptionClient,
 
@@ -126,10 +128,9 @@ class RemoteConnectionManager @Inject constructor(
 
     // ==================== 客户端访问 ====================
 
-    /**
-     * 获取基础命令客户端
-     */
-    fun getCommandClient(): RemoteCommandClient = commandClient
+    // getCommandClient() 显式 getter 删除 —— val commandClient (@PublishedApi internal)
+    // 自动生成 JVM getCommandClient()，二者签名相同必撞。Kotlin/Java 调用方都能继续
+    // 通过 .commandClient 访问。
 
     /**
      * 获取流式命令客户端
@@ -146,7 +147,7 @@ class RemoteConnectionManager @Inject constructor(
     /**
      * 发送命令（简化调用）
      */
-    suspend fun <T> invoke(
+    suspend inline fun <reified T : Any> invoke(
         method: String,
         params: Map<String, Any> = emptyMap(),
         timeout: Long = 30000
@@ -157,7 +158,7 @@ class RemoteConnectionManager @Inject constructor(
     /**
      * 发送命令（带重试）
      */
-    suspend fun <T> invokeWithRetry(
+    suspend inline fun <reified T : Any> invokeWithRetry(
         method: String,
         params: Map<String, Any> = emptyMap(),
         maxRetries: Int = 3,

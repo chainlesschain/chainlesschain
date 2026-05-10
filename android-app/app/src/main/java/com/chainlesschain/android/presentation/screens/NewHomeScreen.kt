@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,12 +26,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.Manifest
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.widget.Toast
+import androidx.compose.material3.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.outlined.WarningAmber
 import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
+import java.util.Locale
+import timber.log.Timber
 
 /**
  * 新首页设计
@@ -48,6 +70,7 @@ fun NewHomeScreen(
     onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
+    onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToSocialFeed: () -> Unit = {},
     onNavigateToMyQRCode: () -> Unit = {},
@@ -56,10 +79,58 @@ fun NewHomeScreen(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
-    socialUnreadCount: Int = 0
+    socialUnreadCount: Int = 0,
+    homeStatusViewModel: HomeStatusViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isLlmConfigured by homeStatusViewModel.isLlmConfigured.collectAsStateWithLifecycle()
+    val voiceState by homeStatusViewModel.voiceState.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // RECORD_AUDIO 运行时权限
+    val audioPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            homeStatusViewModel.startRecording()
+        } else {
+            Toast.makeText(
+                context,
+                "未授予麦克风权限。设置 → 应用 → ChainlessChain → 权限",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    // 语音识别完成 / 失败副作用：把 transcript 灌进输入框；error 弹 toast
+    LaunchedEffect(voiceState.phase, voiceState.transcript, voiceState.errorMessage) {
+        when (voiceState.phase) {
+            HomeStatusViewModel.VoicePhase.Done -> {
+                voiceState.transcript?.let { text ->
+                    inputText = if (inputText.isBlank()) text else "$inputText $text"
+                }
+                homeStatusViewModel.clearVoiceResult()
+            }
+            HomeStatusViewModel.VoicePhase.Error -> {
+                voiceState.errorMessage?.let { msg ->
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+                homeStatusViewModel.clearVoiceResult()
+            }
+            else -> Unit
+        }
+    }
+
+    // 每次首页重新出现都刷一次（覆盖从 LLM 设置页返回的场景）
+    LaunchedEffect(Unit) {
+        homeStatusViewModel.refresh()
+    }
+
+    // 系统 SpeechRecognizer Intent —— 弹出系统语音识别面板，返回 zh-CN 文本。
+    // 注意：v1 用 Android 内置 Google STT；后续若要切到豆包 ASR 需要单独
+    // Volcengine 语音技术 AppID/Token/Cluster（与 ARK LLM key 不同账户）。
+    // 语音识别相关 launchers / dialogs 已全部移除（C 方案：暂不支持）
 
     Column(
         modifier = Modifier
@@ -80,7 +151,15 @@ fun NewHomeScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 未配置 LLM 时的提示 banner（点击进入 LLM 设置）
+            if (!isLlmConfigured) {
+                LlmNotConfiguredBanner(onClick = onNavigateToLLMSettings)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 品牌区域
             BrandSection()
@@ -106,16 +185,48 @@ fun NewHomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
+        // 语音录音 / 识别中 — 自定义美化对话框
+        when (voiceState.phase) {
+            HomeStatusViewModel.VoicePhase.Recording ->
+                VoiceRecordingDialog(
+                    onStop = { homeStatusViewModel.stopAndTranscribe() },
+                    onCancel = { homeStatusViewModel.cancelRecording() }
+                )
+            HomeStatusViewModel.VoicePhase.Transcribing ->
+                VoiceTranscribingDialog()
+            else -> Unit
+        }
+
         // 底部输入框
         ChatInputBar(
             value = inputText,
             onValueChange = { inputText = it },
             onSendMessage = { message ->
-                inputText = ""
-                onNavigateToAIChat()
+                if (message.isNotBlank()) {
+                    val toSend = message
+                    inputText = ""
+                    onNavigateToAIChatWithMessage(toSend)
+                }
             },
             onVoiceInput = {
-                // Voice input will be available in a future release
+                Timber.tag("VoiceInput").i("mic tapped (SeedASR flow)")
+                if (!voiceState.asrConfigured) {
+                    Toast.makeText(
+                        context,
+                        "未配置 SeedASR API Key（设置 → LLM 设置 → 语音识别）",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        homeStatusViewModel.startRecording()
+                    } else {
+                        audioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }
             }
         )
     }
@@ -167,6 +278,55 @@ fun HomeTopBar(
 }
 
 /**
+ * 未配置 LLM API Key 时的首页提示条
+ */
+@Composable
+fun LlmNotConfiguredBanner(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "尚未配置 LLM API Key",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = "点此前往 LLM 设置 → 选择模型并填入 API Key",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+/**
  * 品牌区域
  */
 @Composable
@@ -174,21 +334,14 @@ fun BrandSection() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 应用图标/吉祥物
-        Box(
+        // 应用图标 — 复用桌面端 launcher logo（保持品牌一致）
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher),
+            contentDescription = null,
             modifier = Modifier
                 .size(80.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(48.dp)
-            )
-        }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -462,13 +615,14 @@ fun FunctionEntryCard(
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
+    // Claude 风：所有卡片用统一 surfaceVariant 底，图标包圆形浅色 chip（保留原色作 accent，alpha 0.18）
     Card(
         modifier = Modifier
             .aspectRatio(1f)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor.copy(alpha = 0.15f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -479,36 +633,46 @@ fun FunctionEntryCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (badgeCount > 0) {
-                BadgedBox(
-                    badge = {
-                        Badge {
-                            Text(if (badgeCount > 99) "99+" else badgeCount.toString())
+            // 图标 chip
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(backgroundColor.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (badgeCount > 0) {
+                    BadgedBox(
+                        badge = {
+                            Badge {
+                                Text(if (badgeCount > 99) "99+" else badgeCount.toString())
+                            }
                         }
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = backgroundColor,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
-                ) {
+                } else {
                     Icon(
                         imageVector = icon,
                         contentDescription = title,
                         tint = backgroundColor,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = backgroundColor,
-                    modifier = Modifier.size(32.dp)
-                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 2
             )
         }
     }

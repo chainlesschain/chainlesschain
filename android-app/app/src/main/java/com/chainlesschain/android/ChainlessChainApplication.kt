@@ -1,7 +1,14 @@
 package com.chainlesschain.android
 
 import android.app.Application
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.StrictMode
+import androidx.core.content.ContextCompat
+import com.chainlesschain.android.update.UpdateInstaller
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.work.Configuration
@@ -32,6 +39,19 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
     @Inject
     lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
 
+    @Inject
+    lateinit var updateInstaller: UpdateInstaller
+
+    private val downloadCompleteReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
+            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+            if (id == -1L) return
+            Timber.d("DownloadManager complete id=$id → install")
+            updateInstaller.installCompletedApk(id)
+        }
+    }
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -47,6 +67,14 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
         initTimber()
 
         Timber.d("ChainlessChain Application initialized (critical components only)")
+
+        // 监听 DownloadManager 完成事件，触发 UpdateInstaller 安装新 APK
+        ContextCompat.registerReceiver(
+            this,
+            downloadCompleteReceiver,
+            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+            ContextCompat.RECEIVER_EXPORTED
+        )
 
         // 延迟初始化：在后台线程初始化非必要组件
         delayedInit()
@@ -88,6 +116,21 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
 
                 // 初始化网络库（预连接常用接口）
                 initNetworkLibrary()
+
+                // Phase 3d v1.3: 后台尝试 mDNS 自动发现桌面信令服务器，
+                // 找到就持久化到 SharedPreferences。失败时静默 fallback，用户
+                // 仍可通过 Settings 手填 IP。5s 超时。
+                try {
+                    val url = entryPoint.signalingNsdAutoDiscovery()
+                        .discoverAndPersist(timeoutMs = 5_000L)
+                    if (url != null) {
+                        Timber.i("[App] auto-discovered signaling: $url")
+                    } else {
+                        Timber.d("[App] no signaling service found via mDNS — manual config still works")
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "[App] signaling auto-discovery failed")
+                }
 
                 Timber.d("Delayed initialization completed")
             } catch (e: Exception) {

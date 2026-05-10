@@ -4,9 +4,12 @@ import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
@@ -102,14 +105,14 @@ class OpenAIAdapter(
         } catch (e: Exception) {
             emit(StreamChunk("", isDone = true, error = e.message ?: "未知错误"))
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     override suspend fun chat(
         messages: List<Message>,
         model: String,
         temperature: Float,
         maxTokens: Int
-    ): String {
+    ): String = withContext(Dispatchers.IO) {
         val requestBody = OpenAIChatRequest(
             model = model,
             messages = messages.map { msg -> msg.toOpenAIMessage() },
@@ -133,7 +136,7 @@ class OpenAIAdapter(
             val responseBody = response.body?.string() ?: throw Exception("响应为空")
             val chatResponse = json.decodeFromString<OpenAIChatResponse>(responseBody)
 
-            return chatResponse.choices.firstOrNull()?.message?.content
+            chatResponse.choices.firstOrNull()?.message?.content
                 ?: throw Exception("无效响应")
         }
     }
@@ -144,7 +147,7 @@ class OpenAIAdapter(
         tools: List<Map<String, Any>>,
         temperature: Float,
         maxTokens: Int
-    ): ChatWithToolsResponse {
+    ): ChatWithToolsResponse = withContext(Dispatchers.IO) {
         // Convert tools maps to JsonElements for serialization
         val toolsJson: List<JsonElement>? = if (tools.isNotEmpty()) {
             tools.map { json.parseToJsonElement(json.encodeToString(kotlinx.serialization.serializer<Map<String, Any>>(), it)) }
@@ -179,7 +182,7 @@ class OpenAIAdapter(
             val responseMessage = choice.message
             val toolCallsList = responseMessage.tool_calls
 
-            return if (!toolCallsList.isNullOrEmpty()) {
+            if (!toolCallsList.isNullOrEmpty()) {
                 ChatWithToolsResponse(
                     content = responseMessage.content,
                     toolCalls = toolCallsList.map { tc ->
@@ -225,8 +228,8 @@ class OpenAIAdapter(
         }
     }
 
-    override suspend fun checkAvailability(): Boolean {
-        return try {
+    override suspend fun checkAvailability(): Boolean = withContext(Dispatchers.IO) {
+        try {
             Timber.tag("OpenAIAdapter").d("checkAvailability: baseUrl=$baseUrl, apiKey=${apiKey.take(10)}...")
             val url = "$baseUrl/models"
             Timber.tag("OpenAIAdapter").d("checkAvailability: requesting URL=$url")

@@ -144,6 +144,22 @@ data class GeminiConfig(
 )
 
 /**
+ * Volcengine SeedASR 大模型 (录音文件识别) —— submit+poll 异步模式。
+ * 在火山引擎控制台 → 语音技术 → 录音文件识别大模型 单独开通。
+ *
+ * - apiKey: x-api-key 鉴权（单个 key，跟 ARK LLM 是不同账号）
+ * - resourceId: 资源 ID，SeedASR 默认 "volc.seedasr.auc"
+ * - submitUrl/queryUrl: HTTP 端点，可改自部署
+ */
+@Serializable
+data class VolcengineAsrConfig(
+    val apiKey: String = "",
+    val resourceId: String = "volc.seedasr.auc",
+    val submitUrl: String = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit",
+    val queryUrl: String = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/query"
+)
+
+/**
  * 自定义提供商配置
  */
 @Serializable
@@ -185,6 +201,7 @@ data class LLMConfiguration(
     val spark: SparkConfig = SparkConfig(),
     val gemini: GeminiConfig = GeminiConfig(),
     val custom: CustomConfig = CustomConfig(),
+    val asrVolcengine: VolcengineAsrConfig = VolcengineAsrConfig(),
     val options: LLMOptions = LLMOptions(),
     val systemPrompt: String = "You are a helpful AI assistant for a knowledge management system.",
     val streamEnabled: Boolean = true,
@@ -520,6 +537,9 @@ class LLMConfigManager @Inject constructor(
                 ),
                 custom = _config.custom.copy(
                     apiKey = encryptedPrefs.getString("custom.apiKey", "") ?: ""
+                ),
+                asrVolcengine = _config.asrVolcengine.copy(
+                    apiKey = encryptedPrefs.getString("asr.volcengine.apiKey", "") ?: ""
                 )
             )
         } catch (e: Exception) {
@@ -544,6 +564,7 @@ class LLMConfigManager @Inject constructor(
                 putString("spark.apiKey", _config.spark.apiKey)
                 putString("gemini.apiKey", _config.gemini.apiKey)
                 putString("custom.apiKey", _config.custom.apiKey)
+                putString("asr.volcengine.apiKey", _config.asrVolcengine.apiKey)
                 apply()
             }
         } catch (e: Exception) {
@@ -566,7 +587,8 @@ class LLMConfigManager @Inject constructor(
             moonshot = config.moonshot.copy(apiKey = ""),
             spark = config.spark.copy(apiKey = ""),
             gemini = config.gemini.copy(apiKey = ""),
-            custom = config.custom.copy(apiKey = "")
+            custom = config.custom.copy(apiKey = ""),
+            asrVolcengine = config.asrVolcengine.copy(apiKey = "")
         )
     }
 }

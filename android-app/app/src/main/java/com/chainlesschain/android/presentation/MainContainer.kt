@@ -26,6 +26,7 @@ fun MainContainer(
     onLogout: () -> Unit,
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
+    onNavigateToAIChatWithMessage: (String) -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
     onNavigateToFriendDetail: (String) -> Unit = {},
     onNavigateToAddFriend: () -> Unit = {},
@@ -95,6 +96,7 @@ fun MainContainer(
                         onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                         onNavigateToAIChat = onNavigateToAIChat,
+                        onNavigateToAIChatWithMessage = onNavigateToAIChatWithMessage,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
                         onNavigateToSocialFeed = { selectedTab = 2 },  // 切换到社交tab
                         onNavigateToMyQRCode = onNavigateToMyQRCode,

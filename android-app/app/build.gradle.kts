@@ -58,7 +58,9 @@ android {
         }
 
         // Multi-language support
-        resourceConfigurations.addAll(listOf("zh", "en"))
+        // AGP resourceConfigurations 按精确 qualifier 匹配："zh" 只保留 values-zh/，
+        // 把 values-zh-rCN/ 等带地区的都过滤掉。必须用 "-r" 前缀显式列出地区。
+        resourceConfigurations.addAll(listOf("en", "zh-rCN", "zh-rTW", "zh-rHK"))
 
         // NDK support
         ndk {
@@ -298,6 +300,8 @@ dependencies {
 
     // AndroidX Core
     implementation("androidx.core:core-ktx:1.12.0")
+    // appcompat 1.6.1 提供 AppCompatDelegate.setApplicationLocales（per-app locale，API 33+ 走系统机制，更低版本 AndroidX 兜底）
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-process:2.7.0")
@@ -412,6 +416,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    // LeakCanary - Memory leak detection (Debug only)
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
+    // LeakCanary 暂时移除 —— 它会自己加一个桌面 launcher 图标（"Leaks"），
+    // 在并行装多个 debug app 时桌面很乱。需要排查内存泄漏时再加回这一行。
+    // debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
 }

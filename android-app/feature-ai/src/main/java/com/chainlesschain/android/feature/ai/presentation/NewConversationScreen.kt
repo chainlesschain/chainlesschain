@@ -25,6 +25,7 @@ import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 fun NewConversationScreen(
     onNavigateBack: () -> Unit,
     onConversationCreated: (String) -> Unit,
+    prefilledMessage: String? = null,
     viewModel: ConversationViewModel = hiltViewModel()
 ) {
     var title by remember { mutableStateOf("") }
@@ -35,6 +36,25 @@ fun NewConversationScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val defaultTitle = stringResource(R.string.new_conversation_default_title)
+
+    // 进入页面时自动选默认模型（避免每次让用户挑）。如果同时带了首页 prefill
+    // 文本，进一步直接 auto-create —— 用户根本看不见这个 picker UI，转 Chat。
+    var autoCreateAttempted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (autoCreateAttempted) return@LaunchedEffect
+        autoCreateAttempted = true
+        if (selectedModel == null) {
+            val auto = viewModel.getDefaultModel()
+            if (auto != null) {
+                selectedModel = auto
+                if (!prefilledMessage.isNullOrBlank()) {
+                    // 直接走 create — 等价于用户按下"创建"按钮
+                    viewModel.setCurrentModel(auto)
+                    viewModel.createConversation(defaultTitle, auto.id)
+                }
+            }
+        }
+    }
 
     // 当选择模型时，自动加载已保存的API Key
     LaunchedEffect(selectedModel) {

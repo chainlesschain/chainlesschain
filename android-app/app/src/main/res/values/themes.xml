@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ChainlessChain" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- 必须是 Theme.AppCompat.* 后裔 — MainActivity 改成 AppCompatActivity 后强制要求。
+         具体的颜色 / 字体仍由 Compose 的 ChainlessChainTheme（core-ui/Theme.kt）控制，
+         此 XML 主题只用于 launch screen + AppCompat 兼容层 wrapper. -->
+    <style name="Theme.ChainlessChain" parent="Theme.AppCompat.Light.NoActionBar" />
 </resources>

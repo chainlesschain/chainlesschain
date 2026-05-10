@@ -19,35 +19,73 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// ChainlessChain品牌色
-private val ChainlessPurple = Color(0xFF6750A4)
-private val ChainlessPurpleLight = Color(0xFF8E7CC3)
-private val ChainlessPurpleDark = Color(0xFF4F378B)
+// ChainlessChain 品牌色板 —— 视觉对齐 Claude app（暖珊瑚橙 + 暖灰底）
+// 启动 splash 仍保留紫色作为品牌瞬间，跟主题色板互补不冲突。
+private val ClaudeCoral = Color(0xFFD97757)         // primary
+private val ClaudeCoralDeep = Color(0xFFC15F40)     // pressed/active
+private val ClaudeCoralPale = Color(0xFFF5E0D6)     // primaryContainer light
+private val ClaudeCoralOnDark = Color(0xFF3E2820)   // primaryContainer dark backing
+
+private val LightBg = Color(0xFFFAF9F5)             // 米白底（不刺眼）
+private val LightSurface = Color(0xFFFFFFFF)
+private val LightSurfaceVariant = Color(0xFFF1EEE5)
+private val LightOnBg = Color(0xFF1F1E1B)
+private val LightOnSurfaceVariant = Color(0xFF6F6B61)
+private val LightOutline = Color(0xFFE5E1D8)
+private val LightOutlineVariant = Color(0xFFEDE9DE)
+
+private val DarkBg = Color(0xFF262624)              // 暖灰，不冷蓝
+private val DarkSurface = Color(0xFF30302E)
+private val DarkSurfaceVariant = Color(0xFF3A3A37)
+private val DarkOnBg = Color(0xFFEDEAE0)
+private val DarkOnSurfaceVariant = Color(0xFFA8A496)
+private val DarkOutline = Color(0xFF3E3D3A)
+private val DarkOutlineVariant = Color(0xFF35342F)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ChainlessPurple,
-    secondary = Color(0xFF625B71),
-    tertiary = Color(0xFF7D5260),
-    background = Color(0xFF1C1B1F),
-    surface = Color(0xFF1C1B1F),
+    primary = ClaudeCoral,
     onPrimary = Color.White,
+    primaryContainer = ClaudeCoralOnDark,
+    onPrimaryContainer = ClaudeCoralPale,
+    secondary = Color(0xFF7DA8B8),
     onSecondary = Color.White,
+    tertiary = Color(0xFFB8AB8A),
     onTertiary = Color.White,
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
+    background = DarkBg,
+    onBackground = DarkOnBg,
+    surface = DarkSurface,
+    onSurface = DarkOnBg,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    outline = DarkOutline,
+    outlineVariant = DarkOutlineVariant,
+    error = Color(0xFFE36F61),
+    onError = Color.White,
+    errorContainer = Color(0xFF4A2522),
+    onErrorContainer = Color(0xFFFFD0CC),
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = ChainlessPurple,
-    secondary = Color(0xFF625B71),
-    tertiary = Color(0xFF7D5260),
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = ClaudeCoral,
     onPrimary = Color.White,
+    primaryContainer = ClaudeCoralPale,
+    onPrimaryContainer = ClaudeCoralDeep,
+    secondary = Color(0xFF5A8A9C),
     onSecondary = Color.White,
+    tertiary = Color(0xFF8B7B5E),
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
+    background = LightBg,
+    onBackground = LightOnBg,
+    surface = LightSurface,
+    onSurface = LightOnBg,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant,
+    error = Color(0xFFB3261E),
+    onError = Color.White,
+    errorContainer = Color(0xFFFADBD7),
+    onErrorContainer = Color(0xFF410E0B),
 )
 
 /**
@@ -60,7 +98,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ChainlessChainTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // 默认关闭 dynamicColor —— 否则 Android 12+ 会用系统主题色覆盖品牌珊瑚橙
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
