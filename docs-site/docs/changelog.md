@@ -3,9 +3,9 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [5.0.3.48 / CLI 0.161.8 / Android 0.37.0] - 2026-05-12 (Android M3 capture suite 5/5 code + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口)
+## [5.0.3.48 / CLI 0.161.8 / Android 1.0.0 GA] - 2026-05-12 (Android M3 capture suite 5/5 code + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口 + **Android M7 GA flip versionCode 37 → 100 / versionName 0.37.0 → 1.0.0**)
 
-> Android v1.0 RFC M3 + M4 收尾批次（7 commit / 187 新单测）。把设计文档 §5.3 L2 捕获五件套补齐到代码层（VoiceMode / CameraOCR / LocationTagger / SharePayloadFlusher / PushNotifier）+ §6 M4 D1 RemoteSkillRegistry method-level 元数据 + §5.4 ApprovalUI 4-category 适配 + ProgressViewer 长时任务面板 + §8.3 alias 兼容窗口。Android 总单测 196+ → 383+。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道）。仍待用户出场（5 项）：M3 真机 E2E / M4 D2 真机 / FCM 凭证 / M6 性能实测 / M7 GA flip。
+> Android v1.0 RFC M3 + M4 收尾批次（7 commit / 187 新单测）+ **Android M7 GA flip 一并落地（commit `ffe722162`，versionCode 37 → 100，versionName 0.37.0 → 1.0.0）**。把设计文档 §5.3 L2 捕获五件套补齐到代码层（VoiceMode / CameraOCR / LocationTagger / SharePayloadFlusher / PushNotifier）+ §6 M4 D1 RemoteSkillRegistry method-level 元数据 + §5.4 ApprovalUI 4-category 适配 + ProgressViewer 长时任务面板 + §8.3 alias 兼容窗口。Android 总单测 196+ → 383+。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道）。Android v1.0 GA 仍待用户出场（4 项）：M3 真机 E2E / M4 D2 真机 / FCM 凭证 / M6 性能实测。
 
 ### Added — Android M3 capture suite (5/5 code)
 
@@ -33,7 +33,7 @@
 
 - 桌面 binary：v5.0.3.47 → v5.0.3.48 重打（无桌面源码改动；auto-updater 比对 `5.0.3-alpha.48 > 5.0.3-alpha.47`）
 - `chainlesschain` npm 0.161.7 → 0.161.8（CLI 自身 0 源码改动；force publish 走 release.yml 同步轨道）
-- Android：versionCode 37 / versionName 0.37.0 不变（Android 源码新增但仍在 v1.0 RFC 实施轨道，GA flip 待 M7）
+- **Android：versionCode 37 → 100, versionName 0.37.0 → 1.0.0 GA**（commit `ffe722162`）—— M7 GA flip 与本批 M3/M4 工作一并落地；android-app/CHANGELOG.md 加 [1.0.0] - 2026-05-12 GA entry 汇总 9 commit + 4 项已知限制（FCM 国内 / 单 peer / 离线队列 / QRPairing scaffold）；android-app/README.md 标题切 "🎉 v1.0.0 — GA"。下一步 tag `v1.0.0` 在 commit `ffe722162` 推 gitee+github
 - 三大文档站本次同步刷新：tagline 升 v5.0.3.48 + 加本节 changelog
 
 ## [5.0.3.47 / CLI 0.161.7 / Android 0.37.0] - 2026-05-11 (Verification release：build-android keystore fix VERIFIED + density splits 14→4 用户侧首落 + outstanding `../` 全扫净)
