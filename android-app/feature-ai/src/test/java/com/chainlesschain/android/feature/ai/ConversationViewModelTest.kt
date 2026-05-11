@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillCommandParser
 import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillExecutor
 import com.chainlesschain.android.feature.ai.cowork.skills.registry.SkillRegistry
+import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.rag.RAGRetriever
 import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
 import com.chainlesschain.android.feature.ai.domain.model.*
@@ -42,6 +43,7 @@ class ConversationViewModelTest {
     private val skillCommandParser = mockk<SkillCommandParser>(relaxed = true)
     private val skillExecutor = mockk<SkillExecutor>(relaxed = true)
     private val skillRegistry = SkillRegistry()
+    private val llmConfigManager = mockk<LLMConfigManager>(relaxed = true)
 
     private val testConversation = Conversation(
         id = "test-conv-id",
@@ -73,7 +75,8 @@ class ConversationViewModelTest {
             ragRetriever,
             skillCommandParser,
             skillExecutor,
-            skillRegistry
+            skillRegistry,
+            llmConfigManager
         )
     }
 
