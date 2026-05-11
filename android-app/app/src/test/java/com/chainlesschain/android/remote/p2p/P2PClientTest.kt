@@ -1,7 +1,9 @@
 package com.chainlesschain.android.remote.p2p
 
+import com.chainlesschain.android.remote.crypto.NonceManager
 import com.chainlesschain.android.remote.data.*
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
+import com.chainlesschain.android.sync.SyncAuthVerifier
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -28,17 +30,32 @@ class P2PClientTest {
     private lateinit var p2pClient: P2PClient
     private lateinit var mockWebRTCClient: WebRTCClient
     private lateinit var mockDIDManager: DIDManager
+    private lateinit var mockNonceManager: NonceManager
+    private lateinit var mockDeviceActivityManager: DeviceActivityManager
+    private lateinit var mockCommandRouter: CommandRouter
+    private lateinit var mockSyncAuthVerifier: dagger.Lazy<SyncAuthVerifier>
 
     @Before
     fun setup() {
         mockWebRTCClient = mockk(relaxed = true)
         mockDIDManager = mockk(relaxed = true)
+        mockNonceManager = mockk(relaxed = true)
+        mockDeviceActivityManager = mockk(relaxed = true)
+        mockCommandRouter = mockk(relaxed = true)
+        mockSyncAuthVerifier = mockk(relaxed = true)
 
         // P2PClient init calls initialize() and setOnMessageReceived()
         every { mockWebRTCClient.initialize() } just Runs
         every { mockWebRTCClient.setOnMessageReceived(any()) } just Runs
 
-        p2pClient = P2PClient(mockDIDManager, mockWebRTCClient)
+        p2pClient = P2PClient(
+            didManager = mockDIDManager,
+            webRTCClient = mockWebRTCClient,
+            nonceManager = mockNonceManager,
+            deviceActivityManager = mockDeviceActivityManager,
+            commandRouter = mockCommandRouter,
+            syncAuthVerifier = mockSyncAuthVerifier
+        )
     }
 
     @After
