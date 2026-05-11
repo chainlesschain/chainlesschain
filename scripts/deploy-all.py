@@ -58,19 +58,36 @@ DEPLOYS = [
     #     但仓库里从无 public/ 目录) — 新建 docs/public/ 含 5 个 logo 文件 (.png/.webp +
     #     32/64/128) + config head 改用 PNG icon 多档 (匹配 www 模式)。
     # (3) design: 同 docs 的 logo+favicon 404 老 bug, 同步修。
+    # 2026-05-12 v5.0.3.48 滚动更新 (3 站全刷):
+    # (1) Android v1.0 RFC M3 capture suite 5/5 全部进代码层 — VoiceMode 连续语音 (47bebed80) /
+    #     CameraOCR 拍照入 KB (a69269ced) / LocationTagger FusedLocation + Foreground Service
+    #     (3f5ac8647) / SharePayloadFlusher 接 SyncCoordinator (3d1a6e3a8) / PushNotifier 4 channel +
+    #     FCM 骨架 (c0d990c91)。
+    # (2) Android M4 收尾 — RemoteSkillRegistry method-level 元数据 + MethodMetadata accessor 套
+    #     (6e49270fd) / ApprovalUI 4-category + ProgressViewer 长时任务面板 (f4f83cc67) / §8.3 alias
+    #     兼容窗口 (0bc8e2797) / §8.1 README + v1.0 GA 检查清单 (3da484e9c)。
+    # (3) Tests: 187 新单测全绿 / Android 总单测 196+ → 383+。Desktop store 26 文件 / 773 测 ✓；
+    #     CLI lib 169 文件 / 7185 测 ✓ (确认 Android 工作未污染 desktop / CLI 路径)。
+    # 改动: 根 CHANGELOG.md + docs-site/docs/changelog.md v5.0.3.48 entry 已落 (CLI 修正
+    # 0.161.7→0.161.8); docs-site/docs/index.md + docs-site-design/docs/index.md tagline 升 .48;
+    # docs-site/docs/chainlesschain/overview.md ⭐ 块升 .48; docs-website-v2/src/pages/{index,
+    # en/index}.astro 顶一张 v5.0.3.48 卡 (中英对照); README.md + README_EN.md badge / CLI
+    # badge / ⭐ Current Version 块同步 .48 / 0.161.8。CLI npm 0.161.7 → 0.161.8 (CLI 自身 0 源码
+    # 改动，force publish 走 release.yml 同步轨道)。Android versionCode 37 / versionName 0.37.0
+    # 不变 (仍在 v1.0 RFC 实施轨道，GA flip 待 M7)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.47-20260511-0956.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.48-20260512-0655.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.47-20260511-0956.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.48-20260512-0655.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.47-20260511-0916.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.48-20260512-0655.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
