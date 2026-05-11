@@ -1,7 +1,6 @@
 package com.chainlesschain.android.remote.crypto
 
-import android.util.Base64
-import io.mockk.*
+import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -29,17 +28,10 @@ class DIDSignerTest {
 
     @Before
     fun setup() {
-        // Mock Android Base64
-        mockkStatic(Base64::class)
-        every { Base64.encodeToString(any(), any()) } answers {
-            java.util.Base64.getEncoder().encodeToString(firstArg())
-        }
-        every { Base64.decode(any<String>(), any()) } answers {
-            java.util.Base64.getDecoder().decode(firstArg<String>())
-        }
-        every { Base64.decode(any<ByteArray>(), any()) } answers {
-            firstArg()
-        }
+        // Robolectric provides android.util.Base64 natively via shadow, so we don't need
+        // to mockk it. The previous mockkStatic(Base64::class) + answers { java.util.Base64... }
+        // pattern caused intermittent "every/verify {} block were run several times" mockk
+        // flakes when the answers-lambda re-recorded across tests in the same class.
 
         // Use in-memory test implementation to avoid EncryptedSharedPreferences/KeyStore
         // (not available in Robolectric). AndroidDIDKeyStore requires Android Keystore hardware.
@@ -157,8 +149,13 @@ class DIDSignerTest {
         // When
         val result = signer.verify(testData, signature, invalidPublicKey)
 
-        // Then
-        assertTrue("验证应该失败", result.isFailure)
+        // Then — production DIDSigner.verifyWithEd25519 catches the
+        // require(publicKey.size == 32) IllegalArgumentException internally and
+        // returns `false`, so verify() returns Result.success(false) rather than
+        // Result.failure. The verification *fails* (returns false), but the call
+        // itself succeeds with a graceful "not a valid signature" answer.
+        assertTrue("verify call should succeed", result.isSuccess)
+        assertFalse("invalid public key should not validate", result.getOrThrow())
     }
 
     @Test
