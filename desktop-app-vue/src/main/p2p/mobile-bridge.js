@@ -55,6 +55,10 @@ class MobileBridge extends EventEmitter {
     this.dataChannels = new Map(); // mobilePeerId -> RTCDataChannel
     this.connectionStates = new Map(); // mobilePeerId -> state
 
+    // 反向 RPC：桌面发起 sign.request 等指令时记录 pending request,
+    // 收到匹配 id 的 response 时 resolve（M5 ADR-6 接通 MobileSignClient 的 transport 抽象）
+    this.pendingReverseRpc = new Map(); // requestId -> {resolve, reject, timer, peerId, method, sentAt}
+
     // 连接池管理
     this.maxConnections = options.maxConnections || 50;
     this.connectionTimeout = options.connectionTimeout || 30000;
@@ -850,6 +854,31 @@ class MobileBridge extends EventEmitter {
       this.stats.messagesForwarded++;
       this.stats.bytesTransferred += JSON.stringify(message).length;
 
+      // 反向 RPC 响应拦截：若 message 是 JSON-RPC 2.0 response (jsonrpc + id + result|error)
+      // 且 id 在 pendingReverseRpc 中，resolve pending Promise，不再 emit 给一般 P2P 流程。
+      if (
+        message &&
+        message.jsonrpc === "2.0" &&
+        typeof message.id === "string" &&
+        this.pendingReverseRpc.has(message.id) &&
+        (message.result !== undefined || message.error !== undefined)
+      ) {
+        const pending = this.pendingReverseRpc.get(message.id);
+        this.pendingReverseRpc.delete(message.id);
+        if (pending.timer) {
+          clearTimeout(pending.timer);
+        }
+        const latencyMs = Date.now() - pending.sentAt;
+        logger.info(
+          "[MobileBridge] 反向 RPC response 收到: id=%s method=%s latency=%dms",
+          message.id,
+          pending.method,
+          latencyMs,
+        );
+        pending.resolve(message);
+        return; // 不 emit
+      }
+
       // 触发事件，让P2PManager处理
       this.emit("message-from-mobile", {
         mobilePeerId,
@@ -930,6 +959,100 @@ class MobileBridge extends EventEmitter {
       logger.info("[MobileBridge] ========================================");
       throw error;
     }
+  }
+
+  /**
+   * 反向 JSON-RPC 请求（桌面 → Android）。
+   *
+   * 设计文档 M5 ADR-6 + MobileSignClient transport 抽象的真实接通：
+   *  1. request.id 唯一 → 存 pendingReverseRpc map
+   *  2. 通过 [sendToMobile] 推到 Android（DataChannel 或 signaling fallback）
+   *  3. timeoutMs 后未收到响应 → reject with timeout
+   *  4. Android 端 RemoteCommandClient 收到 sign.request 等 method → 路由
+   *     SignAsService → 返回 JSON-RPC response with matching id
+   *  5. response 经 channel.onmessage → bridgeToLibp2p → 拦截分支 resolve
+   *     本 Promise
+   *
+   * @param {string} mobilePeerId 目标 Android 设备 ID
+   * @param {Object} request JSON-RPC 2.0 request（含 jsonrpc:"2.0" + id + method + params）
+   * @param {number} [timeoutMs=60000] 超时（默认 60s 覆盖慢用户 BiometricPrompt）
+   * @returns {Promise<Object>} Android 端的 JSON-RPC response
+   */
+  async sendReverseRpcRequest(mobilePeerId, request, timeoutMs = 60000) {
+    if (
+      !request ||
+      request.jsonrpc !== "2.0" ||
+      !request.id ||
+      !request.method
+    ) {
+      throw new Error(
+        "sendReverseRpcRequest requires valid JSON-RPC 2.0 request with id + method",
+      );
+    }
+    if (this.pendingReverseRpc.has(request.id)) {
+      throw new Error(`Duplicate reverse RPC request id: ${request.id}`);
+    }
+
+    const resultPromise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (this.pendingReverseRpc.has(request.id)) {
+          this.pendingReverseRpc.delete(request.id);
+          logger.warn(
+            "[MobileBridge] 反向 RPC 超时: id=%s method=%s after %dms",
+            request.id,
+            request.method,
+            timeoutMs,
+          );
+          reject(
+            new Error(
+              `Reverse RPC timed out after ${timeoutMs}ms (method=${request.method}, peerId=${mobilePeerId})`,
+            ),
+          );
+        }
+      }, timeoutMs);
+
+      this.pendingReverseRpc.set(request.id, {
+        resolve,
+        reject,
+        timer,
+        peerId: mobilePeerId,
+        method: request.method,
+        sentAt: Date.now(),
+      });
+    });
+
+    // 同步启动 send；失败立刻 reject pending Promise（不等 timeout）。
+    // 拆开避免 ESLint no-async-promise-executor。
+    this.sendToMobile(mobilePeerId, request).then(
+      () => {
+        logger.info(
+          "[MobileBridge] 反向 RPC 已送出: id=%s method=%s peerId=%s",
+          request.id,
+          request.method,
+          mobilePeerId,
+        );
+      },
+      (err) => {
+        const pending = this.pendingReverseRpc.get(request.id);
+        if (pending) {
+          this.pendingReverseRpc.delete(request.id);
+          clearTimeout(pending.timer);
+          pending.reject(err);
+        }
+      },
+    );
+
+    return resultPromise;
+  }
+
+  /**
+   * 返回符合 [MobileSignClient] 期望的 transport 适配器：`{send(peerId, req) → Promise<resp>}`.
+   * 真接通 M5 反向 sign.request 路径。
+   */
+  asMobileSignTransport() {
+    return {
+      send: (peerId, request) => this.sendReverseRpcRequest(peerId, request),
+    };
   }
 
   /**
