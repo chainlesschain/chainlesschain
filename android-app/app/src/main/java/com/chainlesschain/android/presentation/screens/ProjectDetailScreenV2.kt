@@ -28,6 +28,7 @@ import com.chainlesschain.android.R
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatRole
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
+import com.chainlesschain.android.feature.project.ui.components.FileMentionPopup
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -67,6 +68,9 @@ fun ProjectDetailScreenV2(
     val chatMessages by viewModel.chatMessages.collectAsState()
     val chatInputText by viewModel.chatInputText.collectAsState()
     val isAiResponding by viewModel.isAiResponding.collectAsState()
+    val isFileMentionVisible by viewModel.isFileMentionVisible.collectAsState()
+    val fileMentionSearchQuery by viewModel.fileMentionSearchQuery.collectAsState()
+    val projectFiles by viewModel.projectFiles.collectAsState()
     val listState = rememberLazyListState()
 
     // 自动滚动到底部当有新消息时
@@ -93,12 +97,28 @@ fun ProjectDetailScreenV2(
             )
         },
         bottomBar = {
-            ProjectInputBar(
-                value = chatInputText,
-                onValueChange = { viewModel.updateChatInput(it) },
-                onSend = { viewModel.sendChatMessage() },
-                isLoading = isAiResponding
-            )
+            Column {
+                FileMentionPopup(
+                    isVisible = isFileMentionVisible,
+                    files = projectFiles,
+                    searchQuery = fileMentionSearchQuery,
+                    onSearchQueryChange = { viewModel.updateFileMentionSearchQuery(it) },
+                    onFileSelected = { viewModel.addFileMention(it) },
+                    onDismiss = { viewModel.hideFileMentionPopup() }
+                )
+                ProjectInputBar(
+                    value = chatInputText,
+                    onValueChange = { newText ->
+                        viewModel.updateChatInput(newText)
+                        viewModel.checkForFileMentionTrigger(newText)
+                        if (isFileMentionVisible) {
+                            viewModel.updateFileMentionSearchQuery(newText.substringAfterLast("@", ""))
+                        }
+                    },
+                    onSend = { viewModel.sendChatMessage() },
+                    isLoading = isAiResponding
+                )
+            }
         }
     ) { paddingValues ->
         when (val state = projectDetailState) {
