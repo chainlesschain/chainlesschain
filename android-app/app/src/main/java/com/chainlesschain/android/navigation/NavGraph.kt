@@ -46,6 +46,7 @@ import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.AboutScreen
 import com.chainlesschain.android.presentation.screens.AsrSettingsScreen
+import com.chainlesschain.android.presentation.screens.CodeViewerScreen
 import com.chainlesschain.android.presentation.screens.HelpFeedbackScreen
 import com.chainlesschain.android.presentation.screens.KeyManagementScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
@@ -373,8 +374,18 @@ fun NavGraph(
                         navController.context.getString(R.string.nav_file_imported),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
+                },
+                onOpenInEditor = { file ->
+                    navController.navigate(Screen.CodeViewer.createRoute(file.id))
                 }
             )
+        }
+
+        composable(
+            route = Screen.CodeViewer.routePattern,
+            arguments = listOf(navArgument("fileId") { type = NavType.StringType })
+        ) {
+            CodeViewerScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         registerPlaceholder(navController, Screen.PublishPost.route, "Publish Post")
@@ -656,6 +667,10 @@ sealed class Screen(val route: String) {
         fun createRoute(provider: String) = "llm_test/$provider"
     }
     data object FileBrowser : Screen("file_browser")
+    data object CodeViewer : Screen("code_viewer") {
+        const val routePattern = "code_viewer/{fileId}"
+        fun createRoute(fileId: String) = "code_viewer/${android.net.Uri.encode(fileId)}"
+    }
     data object PublishPost : Screen("publish_post")
     data object PostDetail : Screen("post_detail") {
         fun createRoute(postId: String) = "post_detail/$postId"

@@ -52,6 +52,7 @@ fun GlobalFileBrowserScreen(
     availableProjects: List<ProjectEntity> = emptyList(),
     onNavigateBack: () -> Unit,
     onFileImported: (String) -> Unit,
+    onOpenInEditor: ((ExternalFileEntity) -> Unit)? = null,
     viewModel: GlobalFileBrowserViewModel = hiltViewModel()
 ) {
     // State
@@ -287,7 +288,16 @@ fun GlobalFileBrowserScreen(
                             items(files, key = { it.id }) { file ->
                                 FileListItem(
                                     file = file,
-                                    onFileClick = { fileToPreview = file },
+                                    onFileClick = {
+                                        // 用户首选 UX：text/code 文件 tap → 全屏 EnhancedCodeEditor（readOnly）。
+                                        // 非 text/code 或调用方未提供 onOpenInEditor 时回落到 FilePreviewDialog。
+                                        // Import / favorite 行内按钮独立于 click，仍按原行为。
+                                        if (onOpenInEditor != null && isTextOrCode(file)) {
+                                            onOpenInEditor(file)
+                                        } else {
+                                            fileToPreview = file
+                                        }
+                                    },
                                     onImportClick = {
                                         if (projectId != null) {
                                             viewModel.importFile(file.id, projectId)
@@ -505,6 +515,21 @@ private fun EmptyStateContent() {
             )
         }
     }
+}
+
+/**
+ * Whether to route a tap to the code viewer instead of the preview dialog.
+ *
+ * 三个判定来源（任一命中即可）：
+ *  - 分类是 CODE（FileCategory.fromExtension 已把 .kt/.js/.json 等映射进来）
+ *  - MIME 是 text/* （ScannerProvider 给 .txt/.md/.log 等填的 text/plain）
+ *  - 扩展名是常见但未被 fromExtension 标记为 CODE 的纯文本（md/txt/log/csv）
+ */
+private fun isTextOrCode(file: ExternalFileEntity): Boolean {
+    if (file.category == FileCategory.CODE) return true
+    if (file.mimeType.startsWith("text/")) return true
+    val ext = file.extension?.lowercase() ?: return false
+    return ext in setOf("md", "txt", "log", "csv")
 }
 
 /**

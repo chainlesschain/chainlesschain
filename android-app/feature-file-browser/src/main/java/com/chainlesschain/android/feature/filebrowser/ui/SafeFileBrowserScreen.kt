@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 
 /**
@@ -24,7 +25,8 @@ fun SafeFileBrowserScreen(
     projectId: String?,
     availableProjects: List<ProjectEntity> = emptyList(),
     onNavigateBack: () -> Unit,
-    onFileImported: (String) -> Unit = {}
+    onFileImported: (String) -> Unit = {},
+    onOpenInEditor: ((ExternalFileEntity) -> Unit)? = null
 ) {
     // 使用 rememberSaveable 保存错误状态
     var initializationFailed by remember { mutableStateOf(false) }
@@ -47,7 +49,8 @@ fun SafeFileBrowserScreen(
             projectId = projectId,
             availableProjects = availableProjects,
             onNavigateBack = onNavigateBack,
-            onFileImported = onFileImported
+            onFileImported = onFileImported,
+            onOpenInEditor = onOpenInEditor
         )
     }
 }
