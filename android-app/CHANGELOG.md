@@ -7,6 +7,145 @@
 
 ---
 
+## [0.37.0] - 2026-05-11 — v1.0 RFC 实施轨道
+
+**状态**: 📋 RFC 评审与实施进行中 — Android v1.0 重新定位的 M1-M5 JVM-testable 部分已落地；
+M3 三件（Voice/Camera/Push）+ M4/M5 wire-up + M6 性能压测需真机环境推进。
+
+**关联设计文档**：
+
+- 📘 [Android 重新定位设计文档 v0.2](../docs/design/Android_重新定位_设计文档.md)
+- 📘 [移动端定位与三层架构 v1.1](../docs-site/docs/chainlesschain/mobile-positioning.md)
+- 📘 [REMOTE Commands Inventory](../docs/design/Android_REMOTE_commands_inventory.md)
+
+### 🏗️ M2 — L1 钥匙层（3 天，68 单测）
+
+#### D1: StrongBoxKeyManager 5-tier 密钥后端（25 单测）
+
+- **StrongBoxKeyManager.kt** — 双码路 wrapper-AES + native Ed25519 stub
+  - KeyTier 五档：NATIVE_STRONGBOX / NATIVE_TEE / WRAPPER_STRONGBOX / WRAPPER_TEE / SOFTWARE
+  - WrappedEd25519Key — 落盘加密 32-byte Ed25519 私钥（AES-256-GCM）
+  - KeystoreFacade 接口抽象，AndroidKeystoreFacade 真实现 + JVM-mockable
+  - 防 API 28+ class load 边界：StrongBoxUnavailableException 按类名匹配，不直接 import
+
+#### D2: DIDManager 多 DID + BIP-39 + 旧明文迁移（32 单测）
+
+- **DIDManager.kt** 重写：从单 DID 明文 JSON → 多 DID 加密 wallet
+  - **修复严重安全洞**：旧 `did_keypair.json` 把 Ed25519 私钥**明文**写到 filesDir，
+    现自动检测 → 用 StrongBoxKeyManager 加密 → 写新格式 → 旧文件 rename `.migrated.bak`
+  - 新 API：`createIdentityWithMnemonic / importFromMnemonic / listIdentities /
+    switchActive / markMnemonicVerified`
+  - 向后兼容：`createIdentity(deviceName)` 签名不变（callers KeyManagementScreen 等无需改）
+  - 每个 DID 用独立 wrap key alias：`did_wrap_<sha256(did)[0:8]hex>`
+- **MnemonicService.kt** — BIP-39 (novacrypto 库) + SLIP-0010 Ed25519 master 派生
+  - 24 字默认（256-bit entropy）；12/15/18/21/24 全 BIP-39 长度支持
+  - mnemonic + passphrase → 64-byte BIP-39 seed → SLIP-0010 HMAC-SHA512 → 32-byte Ed25519 私钥
+- 测试基建：FakeKeystoreFacade（真 AES-GCM，无 Android 依赖）
+
+#### D3: BiometricGate integration + wrap cache（11 单测）
+
+- WalletIdentityEntry 加 `requireBiometric` 字段，串通到 StrongBoxKeyManager.setupWrapperKey
+- **wrap cache 关键 UX 修复**：saveWallet 默认会每次重新加密所有私钥，biometric DID
+  每次 switchActive 都要 BiometricPrompt。改成 ciphertext 缓存，只首次 wrap，后续 save 复用
+- `DIDManager.requiresBiometric(did)` query helper 暴露给 UI 层做 gate 决策
+
+### 📸 M3 — L2 捕获层（首批 2 件，31 单测）
+
+#### D-share: ShareReceiverActivity + IntentPayloadParser
+
+- 接 Intent.ACTION_SEND / ACTION_SEND_MULTIPLE，文本 / URL / 单图 / 多图 / 通用文件 5 种 payload
+- IntentPayloadParser 纯函数（Android-free），JVM 单测无依赖
+- SharedInboxRepository 内存 FIFO + MAX_ENTRIES=200 滑动窗口
+- Manifest: 2 个 intent-filter（SEND for text 系 + image 系 + pdf，SEND_MULTIPLE for image 系）
+
+#### D-loc: LocationTagger + LocationProvider 抽象
+
+- LocationTag data class（lat/lon/accuracy/timestamp 全 invariant 校验）
+- LocationTagger 状态机（Idle/Running/PermissionRequired/HardwareUnavailable）+ StateFlow
+- FakeLocationProvider 测试 seam（真实 AndroidFusedLocationProvider 留 M3.1 + Play Services 真机验证）
+- Manifest: ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION + hardware.location[.gps] feature
+
+**M3 剩余**：D-voice (continuous Voice Mode, ASR/TTS 端点已存在需串联) / D-camera (CameraOCR pipeline,
+CAMERA 权限已声明) / D-push (FCM, 无 google-services.json) — 80% Android system API 集成，
+JVM 单测覆盖率有限，待真机 / emulator session。
+
+### 🌐 M4 — L3 REMOTE 收敛（2 天，80 单测）
+
+#### D1: RemoteSkillRegistry + 23-skill seed（39 单测）
+
+- **SkillMetadata.kt** — namespace / displayName / category / risk / requiresApproval / transport / methodCount
+- **SeedRegistry.kt** — 23 file-level entries 与 [M1 inventory](../docs/design/Android_REMOTE_commands_inventory.md)
+  严格对齐：23 文件 / 795 suspend fun 总和 verified
+  - 11 Privileged: extension/desktop/ai/system/file/power/process/workflow/device/security/network
+  - 1 transport="extension-ws" (extension 走 Chrome 扩展独立 WS 子系统), 22 "handler-rpc"
+- **RegistryStore.kt** — kotlinx-serialization JSON 落盘 + version mismatch 自动清理
+- **RemoteSkillRegistry.kt** — listAll / get / listByCategory / listByRisk / requiresApproval / updateFromRemote
+  - 未知 namespace 走保守路径：requiresApproval(unknown) = true
+  - StateFlow 暴露给 UI 做 reactivity
+
+#### D2: 桌面 mobile-skill-whitelist + approval channel + command-router gate（41 单测，desktop-app-vue）
+
+- **mobile-skill-whitelist.js** — pattern 匹配（namespace 通配 / 精确 method / 全通配）
+  - Fail-safe 默认：disabled / empty whitelist 都拒绝
+  - `isAllowed / requiresApproval / describeRejection`
+- **mobile-approval-channel.js** — Promise-based 异步审批流
+  - 60s 默认超时；onRequest transport 回调；resolveApproval / cancelApproval / clearAll
+- **command-router.js** 改造（向后兼容，只对 context.source === 'mobile' 生效）
+  - 新 ERROR_CODES.PERMISSION_DENIED = -32010
+  - Step 2.5 白名单 gate；Step 2.6 ApprovalUI gate（fail-safe：要求 approval 但 channel 未注入 → 拒绝）
+  - 通过 approval 后 context.mobileApproval = {requestId, signature} 供 handler 审计
+
+### ✍️ M5 — 反向 SignAsService（1 天，33 单测）
+
+ADR-6 落地：桌面（macOS / Linux 无 U-Key 用户）需要硬件签名时，反向 RPC 调 Android
+StrongBox。把 Android 变成"跨平台 USB key"。
+
+- **mobile-sign-client.js** (desktop) — MobileSignClient.requestSignature({peerId, payloadHash, description, requireStrongBox})
+  - 严格输入校验：64-char hex payloadHash；auto-lowercase
+  - Custom error types：SignError / SignDeniedError / SignTimeoutError
+  - hashPayload(str|Buffer) SHA-256 helper
+- **SignAsService.kt** (Android) — DIDManager + StrongBoxKeyManager + ApprovalGate 三方合作
+  - 失败路径全部返回 approved=false + deniedReason，**不抛**（reverse RPC 失败作为业务响应）
+  - 7 种 deniedReason: no-active-did / no-strongbox / user-declined / biometric-failed /
+    invalid-payload-hash / sign-failed
+- 测试含端到端：真 Ed25519 KeyPair + SignatureUtils.verify(sig) 确认 base64 签名加密学有效
+
+### 📊 累计变更（M1-M5）
+
+| 维度                | 数量                                |
+| ------------------- | ----------------------------------- |
+| 新增源文件          | 27（Android 22 + Desktop 5）        |
+| 新增测试            | **212**（Android 154 + Desktop 58） |
+| 新增 / 修改源代码行 | ~6000+                              |
+| 测试通过率          | 100% (所有 JVM 单测全绿)            |
+
+### 🚫 v1.0 GA 仍待真机推进
+
+以下需 Android 真设备 / emulator + 桌面真实对端，纯 JVM 单测不能覆盖：
+
+- **M3 D-voice / D-camera / D-push** — Android system API 集成
+- **M4/M5 wire-up** — mobile-bridge.js 注 `context.source = 'mobile'` + 反向 RPC send() impl
+  - Android RemoteCommandClient 接 Registry 做 invoke gate
+  - ApprovalUI Compose 屏 + BiometricAuthenticator 衔接到 ApprovalGate
+- **M6** — 性能 / 续航 / 弱网压测
+- **E2E** — 12 demo 路径真机走完（首启 / 配对 / 拍照 OCR / Voice Mode / Cowork 审批 /
+  marketplace 反向签名 / 23 commands 收敛验证等）
+
+### ⚠️ 破坏性变更（影响下游调用者）
+
+- `core-did/DIDManager` 构造器加 2 新依赖：`StrongBoxKeyManager` + `MnemonicService`
+  - Hilt 自动注入；手工 new 的代码需补构造参数
+  - 现有调用方 `KeyManagementScreen` / `RemoteDIDManager` / `P2P*ViewModel` 通过 Hilt 不受影响
+- 旧 `did_keypair.json` 明文格式启动时自动迁移（rename 为 `.migrated.bak`，保留一版回滚窗）
+- 现有 DIDManagerTest 19 测保留并通过新 wallet 流走（FakeKeystoreFacade 注入）
+
+### 🛠️ 工具链
+
+- 新增 dep `io.github.novacrypto:BIP39:2019.01.27`（core-did/build.gradle.kts）
+- 新增 module dep `core-did → core-security`（StrongBoxKeyManager 用）
+
+---
+
 ## [0.32.0] - 2026-01-26
 
 ### 🎉 重大更新
