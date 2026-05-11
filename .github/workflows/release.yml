@@ -1135,20 +1135,26 @@ jobs:
       - name: Resolve version
         id: cli-version
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          # CLI npm version is ALWAYS sourced from packages/cli/package.json —
+          # tag is only a trigger, not part of version decision. This prevents
+          # non-CLI tags (e.g. v1.0.0 for an Android GA release) from being
+          # stripped of the leading "v" and re-interpreted as a 3-segment CLI
+          # npm version (which would silently overwrite the npm latest dist-tag
+          # — see v5.0.3.48 / v1.0.0 incident on 2026-05-12).
+          #
+          # To ship a CLI release: bump packages/cli/package.json in a
+          # chore(release) commit, then tag. The check-published step below
+          # will skip publish when the version is already on npm, so re-running
+          # the workflow on a stale tag is safe.
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+            echo "🔧 workflow_dispatch override: $VERSION"
           else
-            VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          VERSION="${VERSION#v}"
-          # npm requires semver (3-segment). If tag has 4+ segments (e.g. 5.0.2.13),
-          # use the version from package.json instead.
-          if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
             VERSION=$(node -p "require('./packages/cli/package.json').version")
-            echo "⚠️ Tag has 4-segment version, using package.json version: $VERSION"
+            echo "📦 packages/cli/package.json version: $VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Resolved version: $VERSION"
 
       - name: Check if CLI version already published
         id: check-published
@@ -1287,7 +1293,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Sync CLI version from tag
+      - name: Confirm CLI version matches resolved version
+        # No-op safety net: VERSION already comes from packages/cli/package.json
+        # in publish-cli-precheck, so this `npm version --allow-same-version`
+        # is a no-op in normal flow. Kept in case workflow_dispatch override
+        # ever specifies a version different from what package.json holds.
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/cli
         run: |

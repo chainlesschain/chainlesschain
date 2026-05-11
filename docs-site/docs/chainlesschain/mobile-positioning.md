@@ -1,10 +1,10 @@
 # 移动端定位与三层架构
 
-> **版本: v1.1 (规划稿, 2026-05-11) | 状态: 📋 RFC 评审中 | Android v0.37.0 → v1.0.0 | 桌面对标: v5.0.3.47**
+> **版本: v1.2 (GA 发版稿, 2026-05-12) | 状态: 🎉 Android v1.0.0 GA (code 落地，+5,749 行 / 167 单测) | 桌面对标: v5.0.3.48**
 >
 > ChainlessChain Android 客户端定位为 **DID 钱包 + 移动场景捕获 + REMOTE 遥控器**，不重复实现桌面 139 skills，专注桌面无法替代的手机独占价值。本文档同时面向用户与开发者。
 >
-> v1.0 → v1.1 变更：基于 2026-05-11 二轮代码核实修正多处与实际不符的事实（mobile-app/ 路径 → android-app/ / 8 doc-only stub → 实际为已落地真代码 + 部分根本未立项 / 5 资源类型 → 实际 6 类型 / 8 REMOTE skills → 实际 23 commands + 18 ui 子模块等）。
+> v1.1 → v1.2 变更：M3 5/5 + M4 全部 code 落地 → v1.0.0 tag GA（仓库层面）。剩 5 项用户出场：M3 真机 E2E / M4 D2 真机 E2E / FCM 凭证 / M6 性能实测 / docs-site 同步（详 [v1.0.0 GA 检查清单](https://github.com/chainlesschain/chainlesschain/blob/v1.0.0/docs/v1.0_GA_checklist.md)）。
 
 ## 概述
 
@@ -415,9 +415,10 @@ L3 REMOTE 层：
 
 ### Q: Android 端目前支持哪些桌面能力？
 
-**A**: v0.37.0 状态：
-- **已 REMOTE 接通**：cowork（35 .kt 真代码）/ workflow（remote/ui/workflow + WorkflowCommands.kt）/ AI 对话（AICommands.kt）/ 文件浏览 / 通知 / 系统监控等 23 类 *Commands.kt 已落地，但**没有统一注册表**与桌面侧白名单
-- **桌面有 / Android REMOTE 待开通**：marketplace / RAG / BI / 多模态 → v1.0 通过 `mobileBridge.exposeRemoteSkills` 白名单按需开通即可，无需 native 实现
+**A**: v1.0.0 GA 状态：
+- **已 REMOTE 接通 + 统一注册表**：cowork（35 .kt 真代码）/ workflow / AI 对话 / 知识库 / 文件 / 通知 / 系统监控等 23 类 *Commands.kt 全部进 RemoteSkillRegistry（file + method 双粒度元数据 + alias 兼容窗口），桌面侧白名单 + 审批通道生效（M4 D2 desktop-side full + Android RPC 接收器 `ApprovalCommandRouter` 落地）
+- **ApprovalUI 4 类**：Sign / Cowork / Marketplace / SystemCritical，dialog 按 method 前缀自动 fromMethod 推断 category
+- **桌面有 / Android REMOTE 待开通**：marketplace / RAG / BI / 多模态 → 通过 `mobileBridge.exposeRemoteSkills` 白名单按需开通即可，无需 native 实现
 - **永不上手机**：MCP / Computer Use（架构决策，与 Claude Mobile 对标）
 
 ### Q: 推送在国内收不到？
@@ -658,6 +659,12 @@ class ShareReceiverActivity : ComponentActivity() {
 ---
 
 > **变更记录**
+> - 2026-05-12 v1.2 (GA 发版稿)：Android v1.0.0 GA flip。
+>   - 状态线 "📋 RFC 评审中" → "🎉 v1.0.0 GA (code 部分)"
+>   - 桌面对标 v5.0.3.47 → v5.0.3.48
+>   - 9 commits 落地：M3 L2 5 件齐落 (VoiceMode/CameraOCR/LocationTagger/ShareReceiver/PushNotifier, +3,861 行 / 99 单测) + M4 method-level + ApprovalUI 4 类 + ProgressViewer + §8.3 alias 兼容窗口 (+1,610 行 / 68 单测)
+>   - FAQ "Android 支持哪些桌面能力" 更新到 v1.0.0 GA 事实
+>   - 剩 5 项用户出场清单见 [docs/v1.0_GA_checklist.md](https://github.com/chainlesschain/chainlesschain/blob/v1.0.0/docs/v1.0_GA_checklist.md)
 > - 2026-05-11 v1.1 (调研收口稿)：基于 v0.2 设计文档同步事实修正：
 >   - 桌面对标 v5.0.3.46 → v5.0.3.47；Android 版本说明加 v0.37.0 起点
 >   - 关键文件路径全部修正（mobile-app/ → android-app/；desktop remote/command-handler.js → command-router.js + handlers/；desktop mobile/DevicePairingHandler.js → p2p/device-pairing-handler.js）

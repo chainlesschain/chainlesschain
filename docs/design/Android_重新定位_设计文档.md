@@ -1,8 +1,16 @@
 # Android 客户端重新定位设计文档
 
-> **版本**: v0.7 (M4 D2 全部落地：桌面胶水 + payload enrich + E2E 集成测 10 scenarios，2026-05-11) | **状态**: 🟡 ADR 8/8 accepted · M1/M5 ✅ · M2 ✅ D1-D3 / 🟠 D4 scaffold-only · M3 部分 · **M4 D1 ✅ / D2 ✅ desktop-side full**（真机 E2E 仍待） · M6/M7 文档就位待真机回填 | **关联**: Android v0.37.0 → v1.0.0 | **桌面对标**: v5.0.3.47
+> **版本**: v0.8 (Android v1.0.0 GA flip，2026-05-12) | **状态**: 🎉 ADR 8/8 accepted · M1/M2/M5 ✅ · **M3 5/5 code 全落（VoiceMode + CameraOCR + LocationTagger + ShareReceiver + PushNotifier，+3,861 行 / 99 单测，真机待用户出场）** · **M4 D1 ✅ method-level / D2 ✅ desktop-side full + Android RPC 接收器 + **ApprovalUI 4 类 category** + **ProgressViewer***（真机 E2E 仍待） · M6 性能预算文档就位待真机回填 · M7 GA flip ✅ tag `v1.0.0` + GitHub Release published | **关联**: Android **v1.0.0 GA** | **桌面对标**: v5.0.3.48
 >
 > 把 ChainlessChain Android 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 的二端分工，停止以 skill 数量对标桌面，转向场景独占价值。
+>
+> v0.7 → v0.8 变更（GA 发版稿）：
+> 1. **M3 收尾 5/5 code 全落**（commits `47bebed80` VoiceMode / `a69269ced` CameraOCR / `3f5ac8647` LocationTagger Play Services 接线 / `3d1a6e3a8` ShareReceiver→knowledge.createNote flush / `c0d990c91` PushNotifier 本地 channel + FCM 骨架）— D-voice/D-camera/D-push 真机 + FCM 凭证待用户出场（详 [v1.0.0 GA 检查清单](../v1.0_GA_checklist.md)）
+> 2. **M4 D1 method-level 元数据**（commit `6e49270fd`）：RemoteSkillRegistry 从 file-level 升 method-level 双粒度，ai.* + knowledge.* 各 10 method seed 含 8 riskOverride 演示
+> 3. **M4 ApprovalUI 4 类 category + ProgressViewer**（commit `f4f83cc67`）：M5 sign-only → Sign/Cowork/Marketplace/SystemCritical 4 类 dialog；新 LongTaskRegistry + TaskProgressCommandRouter `task.*` reverse-RPC + Compose 长时任务面板
+> 4. **§8.1 + §8.3 收敛**（commit `0bc8e2797`）：android-app/README.md versionName 同步；SkillMetadata.aliases + RemoteSkillRegistry.aliasIndex 1 版兼容窗口
+> 5. **M7 GA flip** ✅：android-app versionCode 37 → 100 / versionName 0.37.0 → 1.0.0；CHANGELOG v1.0.0 entry；tag `v1.0.0` 推 gitee+github；GitHub Release published with 4 APK assets + AAB
+> 6. **剩 5 项用户出场**（[v1.0_GA_checklist.md](../v1.0_GA_checklist.md)）：M3 真机 E2E / M4 D2 真机 E2E / FCM google-services.json 凭证 / M6 性能实测回填 / docs-site 全栈同步
 >
 > v0.6 → v0.7 变更：
 > 1. **M4 D2 桌面胶水全部落地**：
