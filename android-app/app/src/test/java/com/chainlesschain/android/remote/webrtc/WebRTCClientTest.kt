@@ -436,7 +436,10 @@ class WebRTCClientTest {
         val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
-        assertTrue(result.isSuccess)
+        assertTrue(
+            result.isSuccess,
+            "connect() should succeed but failed: ${result.exceptionOrNull()?.message}"
+        )
         // ICE candidate should be added after remote description is set.
         //
         // The remote-ICE listener runs on WebRTCClient.scope (Dispatchers.IO) — a REAL

@@ -433,13 +433,15 @@ class WebRTCClient @Inject constructor(
     }
 
     private fun drainPendingRemoteCandidates() {
-        if (pendingRemoteCandidates.isEmpty()) return
-        val iterator = pendingRemoteCandidates.iterator()
-        while (iterator.hasNext()) {
-            val candidate = iterator.next()
-            peerConnection?.addIceCandidate(candidate)
-            iterator.remove()
-        }
+        // CopyOnWriteArrayList's iterator.remove() throws UnsupportedOperationException
+        // (with null message — caught by connect()'s try/catch and surfaced as
+        // "连接失败: null"). Snapshot + removeAll instead. Drained candidates are
+        // applied first so a race-arriving candidate (added after snapshot but before
+        // removeAll) is left in the list for the next call.
+        val drained = pendingRemoteCandidates.toList()
+        if (drained.isEmpty()) return
+        drained.forEach { peerConnection?.addIceCandidate(it) }
+        pendingRemoteCandidates.removeAll(drained.toSet())
     }
 }
 
