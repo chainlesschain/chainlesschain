@@ -10,6 +10,7 @@ import com.chainlesschain.android.remote.data.CommandHistoryDao
 import com.chainlesschain.android.remote.data.CommandHistoryDatabase
 import com.chainlesschain.android.remote.data.FileTransferDao
 import com.chainlesschain.android.remote.p2p.CommandRouter
+import com.chainlesschain.android.remote.p2p.CompositeCommandRouter
 import com.chainlesschain.android.remote.p2p.DeviceActivityManager
 import com.chainlesschain.android.remote.p2p.DIDManager
 import com.chainlesschain.android.remote.p2p.DIDManagerImpl
@@ -48,13 +49,14 @@ abstract class RemoteModule {
     abstract fun bindRemoteSkillProvider(impl: P2PClient): RemoteSkillProvider
 
     /**
-     * Phase 3d M3 step D.5: P2PClient 入向 COMMAND_REQUEST 走 CommandRouter，
-     * v1 唯一实现是 SyncCommandRouter（sync.* 命名空间）。后续加其他命名空间
-     * 把 binding 换成 multi-binding 即可。
+     * Phase 3d M3 step D.5 + M4 D2: P2PClient 入向 COMMAND_REQUEST 走 CommandRouter，
+     * 现绑 [CompositeCommandRouter]，按命名空间分发：
+     *   - `sync.*` → [SyncCommandRouter]
+     *   - `approval.*` → [com.chainlesschain.android.remote.p2p.ApprovalCommandRouter]（M4 D2）
      */
     @Binds
     @Singleton
-    abstract fun bindCommandRouter(impl: SyncCommandRouter): CommandRouter
+    abstract fun bindCommandRouter(impl: CompositeCommandRouter): CommandRouter
 
     /**
      * Phase 3d M3 step D.5: SyncManager 出向调用走 SyncOutbound 接口，
