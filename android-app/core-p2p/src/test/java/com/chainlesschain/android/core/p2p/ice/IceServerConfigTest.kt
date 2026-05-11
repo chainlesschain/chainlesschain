@@ -17,6 +17,9 @@ import kotlin.test.assertTrue
  */
 class IceServerConfigTest {
 
+    // IceServerConfig.init 块预置 2 个 openrelay TURN 后备，影响所有 server-count 断言
+    private val DEFAULT_FALLBACK_TURN_COUNT = 2
+
     private lateinit var iceServerConfig: IceServerConfig
 
     @Before
@@ -66,7 +69,8 @@ class IceServerConfigTest {
         val servers = iceServerConfig.getIceServers()
 
         assertTrue(servers.isNotEmpty())
-        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size, servers.size)
+        // 默认 STUN + 2 个 openrelay 后备 TURN（init 块预置）
+        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size + DEFAULT_FALLBACK_TURN_COUNT, servers.size)
     }
 
     @Test
@@ -76,8 +80,8 @@ class IceServerConfigTest {
         iceServerConfig.addStunServer(customServer)
         val servers = iceServerConfig.getIceServers()
 
-        // 当有自定义服务器时，只使用自定义服务器
-        assertEquals(1, servers.size)
+        // 当有自定义 STUN 时，STUN 部分只用自定义；2 个默认 TURN 仍保留
+        assertEquals(1 + DEFAULT_FALLBACK_TURN_COUNT, servers.size)
     }
 
     @Test
@@ -88,7 +92,7 @@ class IceServerConfigTest {
         iceServerConfig.addStunServer(customServer)
         val servers = iceServerConfig.getIceServers()
 
-        assertEquals(1, servers.size)
+        assertEquals(1 + DEFAULT_FALLBACK_TURN_COUNT, servers.size)
     }
 
     @Test
@@ -100,8 +104,8 @@ class IceServerConfigTest {
         iceServerConfig.addTurnServer(turnUrl, username, password)
         val servers = iceServerConfig.getIceServers()
 
-        // 默认 STUN + 1 个 TURN
-        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size + 1, servers.size)
+        // 默认 STUN + 2 个默认 TURN + 1 个新增 TURN
+        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size + DEFAULT_FALLBACK_TURN_COUNT + 1, servers.size)
     }
 
     @Test
@@ -112,7 +116,8 @@ class IceServerConfigTest {
         iceServerConfig.removeTurnServer(turnUrl)
         val servers = iceServerConfig.getIceServers()
 
-        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size, servers.size)
+        // 只移除了新增的 TURN，2 个默认 TURN 仍在
+        assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size + DEFAULT_FALLBACK_TURN_COUNT, servers.size)
     }
 
     @Test
@@ -164,7 +169,8 @@ class IceServerConfigTest {
         val summary = iceServerConfig.getConfigSummary()
 
         assertEquals(IceServerConfig.DEFAULT_STUN_SERVERS.size, summary.stunServerCount)
-        assertEquals(2, summary.turnServerCount)
+        // 2 个默认 openrelay TURN + 2 个新增 TURN
+        assertEquals(DEFAULT_FALLBACK_TURN_COUNT + 2, summary.turnServerCount)
     }
 
     @Test
