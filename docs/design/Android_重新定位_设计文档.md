@@ -1,10 +1,10 @@
 # Android 客户端重新定位设计文档
 
-> **版本**: v0.5 (Phase D 桌面 + eb7489bc4 重分类校准, 2026-05-11) | **状态**: 🟡 ADR 8/8 accepted · M1/M5 ✅ · M2 ✅ D1-D3 / 🟠 D4 scaffold-only · M3 部分 · **M4 D1 ✅ / D2 ⚠️ 部分**（桌面 ✅ + Android M5 helper ✅，Android RPC 接收器 ❌）· M6/M7 ⏳ | **关联**: Android v0.37.0 → v1.0.0 | **桌面对标**: v5.0.3.47
+> **版本**: v0.6 (M4 D2 Android RPC 接收器落地 + 桌面 transport 平铺审计, 2026-05-11) | **状态**: 🟡 ADR 8/8 accepted · M1/M5 ✅ · M2 ✅ D1-D3 / 🟠 D4 scaffold-only · M3 部分 · **M4 D1 ✅ / D2 ⚠️ 部分**（桌面 channel ✅ + Android RPC 接收器 ✅，**剩桌面 transport 胶水 + payload enrich + E2E**）· M6/M7 ⏳ | **关联**: Android v0.37.0 → v1.0.0 | **桌面对标**: v5.0.3.47
 >
 > 把 ChainlessChain Android 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 的二端分工，停止以 skill 数量对标桌面，转向场景独占价值。
 >
-> v0.4 → v0.5 变更：**两处 v0.4 错分类校准**。(1) §5.5 桌面 `mobile-skill-whitelist.js` + `mobile-approval-channel.js` v0.4 标 ⏳ 新（Phase D 任务）—— 实际已在 `d6b3926fa` (2026-05-11 11:17) 全落地（133 + 150 行实现 + 18 + 11 单测 + `command-router-mobile-bridge.test.js` 集成测试 + `command-router.js` line 38/41/155 gate wire-up）。(2) v0.4 把 `eb7489bc4` 标成「M4 D2 Android ApprovalUI 落地」—— 经核 `AndroidApprovalGate.kt` 在 `com.chainlesschain.android.sign` 包下接 **M5 SignAsService** 流程（`sign.request` → gate → BiometricPrompt → StrongBox → 返桌面），不是 M4 D2 的「Android 接收桌面发起的 marketplace.purchase / cowork.spawnTeam approval-request」。M4 D2 真闭环还差 **Android RPC 接收器**（~0.5d，可复用 `AndroidApprovalGate.requestApproval` + `ApprovalDialogHost` 弹 dialog 机制）。事实声明未再变更。
+> v0.5 → v0.6 变更：(1) **Android RPC 接收器落地** `eba16a1d8`：`ApprovalCommandRouter.kt` 80 行接 `approval.request` → `ApprovalGate.requestApproval` 复用 `eb7489bc4` 落的 `AndroidApprovalGate` + `ApprovalDialogHost` dialog 机制；`CompositeCommandRouter.kt` 30 行按命名空间分发（sync.* → Sync，approval.* → Approval）；`RemoteModule.kt` binding 切；16 单测（10 + 6）。(2) **桌面 transport 平铺审计**：另一并行 session 的 `mobile-bridge.js` staged 改动 +102 行加 `pendingReverseRpc` Map + 入向 RPC response 拦截 + `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic transport + `asMobileSignTransport()` adapter。注释说是 M5 ADR-6 transport，但 **`sendReverseRpcRequest` 是 generic JSON-RPC 2.0**，M4 D2 也能借这条路。这让 M4 D2 桌面剩工从 ~0.5d 缩到 **~0.3d**：仅剩 `setOnRequest` 胶水（~20 行接 `sendReverseRpcRequest` + 后续 `resolveApproval`）+ payload enrich（~30 行算 hash + describe）+ 跨端 E2E。事实声明未再变更。
 
 ## 1. 背景与立项动机
 
@@ -376,11 +376,11 @@ Android 端 `core-p2p/.../sync/SyncManager.kt::ResourceType` enum 还包含 `KNO
 | **M1** | 0.5 天  | 文档评审 + REMOTE 23 commands 现状梳理 + ADR-5 能力对照表落地 | ✅ | RFC 8/8 ADR accepted + inventory PR `2244ced9f` 合并（file-level；method-level 推到 M4） |
 | **M2** | 3 天    | L1 钥匙层：StrongBox tier + DIDWallet 多身份+助记词 + BiometricGate + QRPairing 收敛 | ✅ D1-D3 / 🟠 D4 scaffold-only（推 v1.1） | 67 单测 + E2E 首启动落 DID（QRPairing 真落地推 v1.1，scaffold 存在但 stub） |
 | **M3** | 3 天    | L2 五件：Voice Mode + CameraOCR + LocationTagger + PushNotifier + ShareReceiver（v0.1 漏列后三件，工期 +1 天） | ⚠️ 部分（D-share/D-loc JVM 已落 `be6cb4974`） | 80+ 单测 + 5 件 E2E + Manifest 权限/intent-filter 改造 |
-| **M4** | 2 天    | L3 RemoteSkillRegistry + 桌面白名单 + ApprovalUI              | ⚠️ 部分（D1 ✅ `df61914ff` / D2 ⚠️：桌面 ✅ `d6b3926fa` + Android M5 helper ✅ `eb7489bc4`，**剩 Android RPC 接收器 + E2E**） | 55 单测（已落 29 桌面 + 4 Android helper）+ 桌面白名单严格生效 + 审批 E2E |
+| **M4** | 2 天    | L3 RemoteSkillRegistry + 桌面白名单 + ApprovalUI              | ⚠️ 部分（D1 ✅ `df61914ff` / D2 ⚠️：桌面 channel ✅ `d6b3926fa` + Android M5 helper ✅ `eb7489bc4` + Android RPC 接收器 ✅ `eba16a1d8` + 桌面 transport ✅ (另一 session staged 待 commit)，**剩桌面胶水 + payload enrich + E2E**） | 55 单测（已落 29 桌面 + 4 Android helper + 16 Android router）+ 桌面白名单严格生效 + 审批 E2E |
 | **M5** | 1 天    | 反向 SignAsService（桌面调手机签名，ADR-6）                   | ✅ `6d482d066` | 14 单测 + E2E 大额 marketplace 通过   |
 | **M6** | 1 天    | 性能 / 续航 / 弱网压测，回填 ✅ 实测值                         | ⏳ | 全部 §7.2 目标达标或解释偏差          |
 | **M7** | 0.5 天  | 用户文档同步至 docs-site，发版 v1.0；同步更新 README versionName 0.32.0 → v1.0.0 | ⏳ | docs-site 可访问 + CHANGELOG v1.0 + README 修订 |
-|        | **共 11 天**（v0.1 是 10 天，M3 +1 天） |                                       | **v1.0 已落 ≈ 8 天有效工**（含 桌面 M4 D2 `d6b3926fa` + Android M5 helper `eb7489bc4` + 29 桌面单测）；**v1.0 剩 ≈ 4 天**（M3 D-voice/D-cam/D-push + D-share/D-loc Manifest 收尾 / **M4 D2 Android RPC 接收器 ~0.5d** + 审批 E2E / M6 性能验收 / M7 发版）；**QRPairing 真落地 ~2.5d 推 v1.1**，与 §8.5 桌面 Mobile Bridge 面板合并 | |
+|        | **共 11 天**（v0.1 是 10 天，M3 +1 天） |                                       | **v1.0 已落 ≈ 8.5 天有效工**（M4 D2 桌面 `d6b3926fa` + Android M5 helper `eb7489bc4` + **Android RPC 接收器 `eba16a1d8` 16 单测** + 桌面 transport staged 待 commit）；**v1.0 剩 ≈ 3.5 天**（M3 D-voice/D-cam/D-push + D-share/D-loc Manifest 收尾 / **M4 D2 桌面胶水 ~0.3d + E2E ~0.5d** / M6 性能验收 / M7 发版）；**QRPairing 真落地 ~2.5d 推 v1.1**，与 §8.5 桌面 Mobile Bridge 面板合并 | |
 
 ### M2 拆分（3 天）
 
@@ -398,11 +398,15 @@ Android 端 `core-p2p/.../sync/SyncManager.kt::ResourceType` enum 还包含 `KNO
 ### M4 拆分（2 天）
 
 - D1: ⚠️ 部分 RemoteSkillRegistry — `df61914ff`（23-skill seed，file-level granularity）；剩 method-level 元数据补全 + 桌面 mobile-skill-whitelist.js 已 `d6b3926fa` ✅；剩单测（30 部分已落）
-- D2: ⚠️ 部分 ApprovalUI 落地分三段：
-  - **桌面侧** ✅ `d6b3926fa`：`mobile-skill-whitelist.js` + `mobile-approval-channel.js` + `command-router.js` gate wire-up + 18 + 11 单测 + 集成测试
-  - **Android M5 helper** ✅ `eb7489bc4`：`AndroidApprovalGate.kt` 104 + `ApprovalDialogHost.kt` 263 + Hilt DI 23 + 单测 184 + MainActivity +22 —— 但**这套 wire 到 M5 SignAsService**（`sign.request` 流程），不直接接 M4 D2 generic approval-request
-  - **Android RPC 接收器** ❌ **剩**：让 Android 从 mobile-bridge 收到桌面发起的 `approval.request` 类 RPC，dispatch 给 `AndroidApprovalGate.requestApproval(payloadDescription, payloadHash)`（payload 用 method+params 序列化 + JCS hash），用户响应 → 反向 RPC 回桌面 `MobileApprovalChannel.resolveApproval()`。~0.5d
-  - **E2E** ❌ **剩**：跨端审批 E2E（桌面 → mobile-bridge → Android RPC → AndroidApprovalGate → user → 反向 RPC → 桌面 resolve → command-router continue）。~0.5d
+- D2: ⚠️ 部分 ApprovalUI 落地分五段：
+  - **桌面 channel** ✅ `d6b3926fa`：`mobile-skill-whitelist.js` + `mobile-approval-channel.js` + `command-router.js` gate wire-up + 18 + 11 单测 + 集成测试
+  - **Android M5 helper（M4 D2 复用基座）** ✅ `eb7489bc4`：`AndroidApprovalGate.kt` 104 + `ApprovalDialogHost.kt` 263 + Hilt DI 23 + 单测 184 + MainActivity +22 —— 接 M5 SignAsService `sign.request` 流程；M4 D2 RPC 接收器复用其 `requestApproval` + dialog 机制
+  - **Android RPC 接收器** ✅ `eba16a1d8`：`ApprovalCommandRouter.kt` 80 + `CompositeCommandRouter.kt` 30 + `RemoteModule.kt` binding 切 + 16 单测（10 + 6）。`approval.request` method → `ApprovalGate.requestApproval` → 返 `{requestId, approved, deniedReason}` map → `P2PClient` 包成 CommandResponse 反向送回
+  - **桌面 transport** ✅ 另一 session 在 `mobile-bridge.js` staged（待落 commit）：`pendingReverseRpc` Map + 入向拦截 + `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic 反向 RPC + `asMobileSignTransport()` adapter。注释说 M5 ADR-6 transport，但 **`sendReverseRpcRequest` 是 generic JSON-RPC 2.0**，M4 D2 也能借
+  - **桌面胶水 + payload enrich** ❌ **剩**：
+    1. `mobileApprovalChannel.setOnRequest(payload → mobileBridge.sendReverseRpcRequest(payload.peerId, {jsonrpc:"2.0", id:payload.requestId, method:"approval.request", params:payload}).then(r => mobileApprovalChannel.resolveApproval(payload.requestId, r.result)))` ~20 行
+    2. `mobile-approval-channel.js requestApproval` 算 `payloadHash`（JCS(method+params+ts) SHA-256 hex）+ `payloadDescription`（method 描述）写进 payload ~30 行
+  - **E2E** ❌ **剩**：跨端审批 E2E（桌面 → mobile-bridge.sendReverseRpcRequest → Android `approval.request` → `ApprovalCommandRouter` → `AndroidApprovalGate` → user → `respondToApproval` → CommandResponse → mobile-bridge 入向拦截 → `setOnRequest` 回调 → `resolveApproval` → command-router continue）。~0.5d
 
 ## 7. v1.0 验收标准
 
@@ -539,6 +543,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 ## 变更记录
 
+- 2026-05-11 v0.6：M4 D2 Android RPC 接收器落地 + 桌面 transport 平铺审计。(1) **Android RPC 接收器** `eba16a1d8`：`ApprovalCommandRouter.kt` (~80 行) `approval.*` 命名空间路由器，`approval.request` 解析 `requestId/payloadDescription/payloadHash/requireBiometric` → `ApprovalGate.requestApproval` suspend 等用户决策 → 返 `{requestId, approved, deniedReason}` map；`CompositeCommandRouter.kt` (~30 行) 按命名空间分发（sync.* → SyncCommandRouter / approval.* → 本路由器）；`RemoteModule.kt` binding 切 `bindCommandRouter(impl: CompositeCommandRouter)`；16 单测（10 ApprovalCommandRouterTest FakeGate + 6 CompositeCommandRouterTest MockK）。(2) **桌面 transport 审计发现**：另一并行 session 在 `mobile-bridge.js` staged +102 行加 `pendingReverseRpc` Map + 入向 RPC response 拦截分支（line 858+）+ `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic JSON-RPC 2.0 反向 RPC + `asMobileSignTransport()` adapter。注释虽然写「M5 ADR-6 transport」，但 transport 是 **generic** 的，M4 D2 也能借这条路。这让 M4 D2 桌面剩工从 ~0.5d 缩到 ~0.3d：仅剩 `mobileApprovalChannel.setOnRequest` 胶水（~20 行接 `sendReverseRpcRequest` + response.result → `resolveApproval`）+ payload enrich（~30 行算 JCS+SHA-256 hash + describe）+ 跨端 E2E。M4 D2 状态升级为 4/5 段已落（剩桌面胶水 + payload enrich + E2E）。v1.0 已落 8d → 8.5d，剩 4d → 3.5d。事实声明未再变更。
 - 2026-05-11 v0.5：Phase D 桌面 + `eb7489bc4` 重分类校准。v0.4 两处错分类已修：(1) **桌面 mobile-skill-whitelist.js + mobile-approval-channel.js 不是 ⏳ 新（Phase D 任务），而是 ✅ `d6b3926fa`** (2026-05-11 11:17) —— 全实现 + 29 单测 + 集成测试 + `command-router.js` line 38/41/155 wire-up 都已落。§5.5 桌面表 + §6 M4 行 + M4 D2 拆分回填到现实。(2) **`eb7489bc4` 是 M5 ApprovalGate helper（接 SignAsService 流程），不是 M4 D2 完全落地**。`AndroidApprovalGate` 在 `com.chainlesschain.android.sign` 包下，wire 到 `sign.request` → gate → BiometricPrompt → StrongBox，**不接 generic approval-request from desktop**。M4 D2 真闭环还差 **Android RPC 接收器**：让 Android 从 mobile-bridge 收 `approval.request` RPC → dispatch 给 `AndroidApprovalGate.requestApproval` → 用户响应 → 反向 RPC 回桌面 `MobileApprovalChannel.resolveApproval()`。~0.5d 工 + ~0.5d E2E。v1.0 剩工预算 5d → 4d（桌面侧本就已经落，v0.4 错估让它显得没落）。事实声明未再变更。
 - 2026-05-11 v0.4：QRPairing audit + M4 D2 入账。(1) **M2 D4 QRPairing audit 结果**：2034 行 UI scaffold 真实存在，但 `PairingViewModel.kt` 是假 `delay()` stub（注释 `// This is simplified - in practice would need peer's pre-key bundle`）、`DEVICE_PAIRING_ROUTE` + `navigateToDevicePairing` 在 P2PNavigation 定义但 `android-app/app/` 0 调用（孤儿）、`feature-p2p/ui/QRCodeScannerScreen.kt` 实际 wire 到 E2EE Safety Numbers 而非 pairing JSON shape。M2 D4 状态从 ⚠️ 改成 🟠 scaffold-only；真落地 ~2.5d 推到 v1.1 与 §8.5 桌面 Mobile Bridge 面板（Q4）一起做。(2) **M4 D2 Android ApprovalUI 入账** `eb7489bc4`（`AndroidApprovalGate.kt` 104 + `ApprovalDialogHost.kt` 263 + DI 23 + 单测 184 + MainActivity +22）—— 之前被 lint-staged sweep 进 doc commit，本版正式回填到 §5.5 / §6 / M4 拆分。v1.0 剩工 7d → 5d。事实声明未再变更。
 - 2026-05-11 v0.3：实施进度回填稿。M1 RFC + inventory 已落 (`2244ced9f`)；M2 D1-D3 全落 (`4bce4ae2b` / `fd875149e` / `4124038d9`) + UI v0.37 (`f98d7b096`)；M3 D-share / D-loc 的 JVM-testable parts 落 (`be6cb4974`)；M4 D1 RemoteSkillRegistry 落 (`df61914ff`)；M5 全落 (`6d482d066`)。§5.2 / §5.3 / §5.4 / §5.5 / §6 状态表 + M2~M5 拆分逐项回填，header 状态从「RFC 评审中」→「ADR 8/8 accepted · M1/M2/M5 ✅ · M3/M4 部分 · M6/M7 ⏳」。剩余面（约 7 天有效工）：M3 D-voice / D-cam / D-push + D-share/D-loc 的 Manifest 接线、M4 ApprovalUI + 桌面 whitelist/approval-channel、M6 性能验收、M7 发版、QRPairing Android 扫码 UI audit。事实声明未再变更。
