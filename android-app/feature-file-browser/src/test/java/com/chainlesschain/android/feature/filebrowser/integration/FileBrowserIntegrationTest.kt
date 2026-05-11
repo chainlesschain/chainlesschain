@@ -312,10 +312,15 @@ class FileBrowserIntegrationTest {
 
     @Test
     fun `refresh workflow - rescan and reload`() = runTest {
-        // Initial scan
-        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
+        // ViewModel.observeScanProgress() re-runs loadFiles() only when
+        // scanProgress emits a *new* Completed value. Use a mutable flow the
+        // test can re-emit through so refresh() actually triggers the reload —
+        // a one-shot MutableStateFlow(Completed(50)) leaves scanProgress stuck
+        // and refresh() becomes a no-op observable.
+        val scanProgressFlow = MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(50)
         )
+        every { mockScanner.scanProgress } returns scanProgressFlow
         coEvery { mockScanner.scanAllFiles() } returns Result.success(50)
 
         val initialFiles = List(50) { createTestFile(id = "file_$it", name = "file_$it.txt") }
@@ -348,8 +353,10 @@ class FileBrowserIntegrationTest {
         coEvery { mockFileRepository.getFilesCount() } returns 75
         coEvery { mockScanner.scanAllFiles() } returns Result.success(75)
 
-        // Refresh
+        // Refresh — re-emit the scan-complete signal so observeScanProgress
+        // re-fires loadFiles() against the re-stubbed getAllFiles().
         viewModel.refresh()
+        scanProgressFlow.value = MediaStoreScanner.ScanProgress.Completed(75)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Verify updated state

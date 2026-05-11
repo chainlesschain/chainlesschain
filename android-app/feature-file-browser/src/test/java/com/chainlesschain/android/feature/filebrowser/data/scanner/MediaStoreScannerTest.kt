@@ -211,7 +211,14 @@ class MediaStoreScannerTest {
         } returns createMockCursor(emptyList())
 
         val batches = mutableListOf<List<ExternalFileEntity>>()
-        coJustRun { externalFileDao.insertAll(capture(batches)) }
+        // Snapshot each batch on insert. capture(batches) would store a reference
+        // to production's MutableList<ExternalFileEntity>, which clear()s itself
+        // right after insertAll — leaving batches[0] observably empty.
+        coEvery { externalFileDao.insertAll(any()) } coAnswers {
+            val captured = firstArg<List<ExternalFileEntity>>().toList()
+            batches.add(captured)
+            captured.map { 0L }
+        }
 
         // Act
         val result = mediaStoreScanner.scanAllFiles()
@@ -267,7 +274,12 @@ class MediaStoreScannerTest {
         } returns createMockCursor(emptyList())
 
         val insertedBatches = mutableListOf<List<ExternalFileEntity>>()
-        coJustRun { externalFileDao.insertAll(capture(insertedBatches)) }
+        // See "batch process files in groups of 500" — snapshot to dodge clear().
+        coEvery { externalFileDao.insertAll(any()) } coAnswers {
+            val captured = firstArg<List<ExternalFileEntity>>().toList()
+            insertedBatches.add(captured)
+            captured.map { 0L }
+        }
 
         // Act
         mediaStoreScanner.scanAllFiles()
