@@ -64,6 +64,22 @@ async initializeCommandRouter()
 
 ---
 
+## bindMobileBridge(mobileBridge)
+
+```javascript
+bindMobileBridge(mobileBridge)
+```
+
+* 接 MobileBridge 实例（M4 D2 桌面胶水末段）。在 index.js 的 MobileBridge
+   * 初始化完成后调用，把 approval channel 的 onRequest 桥到反向 RPC transport。
+   * 重复调用先 unwire 旧的，可以 hot-replace bridge（理论上 MobileBridge 单例，
+   * 但 unit 测试场景需要重置）。
+   *
+   * @param {Object} mobileBridge - mobile-bridge.js 的实例
+   * @returns {boolean} true=接通成功；false=channel 还没初始化（调用顺序错）
+
+---
+
 ## async initializeP2PCommandAdapter()
 
 ```javascript
