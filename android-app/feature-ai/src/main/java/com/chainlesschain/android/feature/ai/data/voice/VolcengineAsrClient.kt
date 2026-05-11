@@ -36,7 +36,7 @@ import javax.inject.Singleton
 @Singleton
 class VolcengineAsrClient @Inject constructor(
     private val configManager: LLMConfigManager
-) {
+) : AsrEngine {
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -52,7 +52,9 @@ class VolcengineAsrClient @Inject constructor(
      * @return 识别后的文字
      * @throws VolcengineAsrException 调用方应捕获并显示给用户
      */
-    suspend fun transcribe(audioFile: File, maxPollSeconds: Int = 30): String =
+    override suspend fun transcribe(audioFile: File): String = transcribe(audioFile, maxPollSeconds = 30)
+
+    suspend fun transcribe(audioFile: File, maxPollSeconds: Int): String =
         withContext(Dispatchers.IO) {
             configManager.load()
             val cfg = configManager.getConfig().asrVolcengine

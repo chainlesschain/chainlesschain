@@ -9,6 +9,12 @@ import com.chainlesschain.android.feature.ai.cowork.agent.AgentPool
 import com.chainlesschain.android.feature.ai.cowork.sandbox.FileSandbox
 import com.chainlesschain.android.feature.ai.cowork.task.LongRunningTaskManager
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
+import com.chainlesschain.android.feature.ai.data.voice.AsrEngine
+import com.chainlesschain.android.feature.ai.data.voice.AudioPlayer
+import com.chainlesschain.android.feature.ai.data.voice.AudioRecorder
+import com.chainlesschain.android.feature.ai.data.voice.VoicePlayer
+import com.chainlesschain.android.feature.ai.data.voice.VolcengineAsrClient
+import com.chainlesschain.android.feature.ai.data.voice.WavRecorder
 import com.chainlesschain.android.feature.ai.data.llm.DeepSeekAdapter
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
@@ -193,6 +199,24 @@ object AIModule {
     ): CoworkOrchestrator {
         return CoworkOrchestrator(agentPool, taskManager, fileSandbox)
     }
+
+    // ===== VoiceMode (M3 D1) =====
+    //
+    // 三个接口都 @Provides 桥接到 concrete impl，避免把 AIModule 重构成 abstract class
+    // 才能用 @Binds。VoiceModeManager 自身走 @Inject constructor 自动可注入，
+    // VoiceChatBridge 由 app 模块单独 @Binds（feature-ai 不依赖 app）。
+
+    @Provides
+    @Singleton
+    fun provideAudioRecorder(impl: WavRecorder): AudioRecorder = impl
+
+    @Provides
+    @Singleton
+    fun provideAsrEngine(impl: VolcengineAsrClient): AsrEngine = impl
+
+    @Provides
+    @Singleton
+    fun provideAudioPlayer(impl: VoicePlayer): AudioPlayer = impl
 }
 
 /**

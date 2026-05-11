@@ -27,7 +27,10 @@ import java.nio.ByteOrder
  * 给 Volcengine 一句话识别用 —— ASR 接受 wav/pcm/m4a 等，wav 16k mono 16-bit
  * 是兼容性最好的组合。文件存到 cacheDir，识别完调用方应自行删除。
  */
-class WavRecorder(private val context: Context) {
+@javax.inject.Singleton
+class WavRecorder @javax.inject.Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
+) : AudioRecorder {
 
     private val sampleRate = 16_000
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
@@ -39,12 +42,12 @@ class WavRecorder(private val context: Context) {
     @Volatile private var captureJob: Job? = null
 
     /** 是否有 RECORD_AUDIO 权限 */
-    fun hasPermission(): Boolean = ContextCompat.checkSelfPermission(
+    override fun hasPermission(): Boolean = ContextCompat.checkSelfPermission(
         context, Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
     /** 开始录音；幂等（重复调用先丢弃旧的） */
-    fun start(): Boolean {
+    override fun start(): Boolean {
         cancel()  // 清理旧实例
         if (!hasPermission()) {
             Timber.w("WavRecorder.start: no RECORD_AUDIO permission")
@@ -106,7 +109,7 @@ class WavRecorder(private val context: Context) {
     /**
      * 停止录音并写入 WAV 文件。返回 null 表示失败 / 空录音。
      */
-    suspend fun stopAndWriteWav(): File? {
+    override suspend fun stopAndWriteWav(): File? {
         val ar = recorder ?: return null
         val pcmOut = pcmBuffer
         captureJob?.cancelAndJoin()
@@ -136,7 +139,7 @@ class WavRecorder(private val context: Context) {
     }
 
     /** 取消录音 + 丢弃数据 */
-    fun cancel() {
+    override fun cancel() {
         captureJob?.cancel()
         captureJob = null
         try {
