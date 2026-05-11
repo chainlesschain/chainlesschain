@@ -50,6 +50,13 @@ class FileImportRepositoryTest {
 
     @After
     fun tearDown() {
+        // Defensive: a previous test may have left File::class constructor-mocked
+        // (see "write large file to filesystem" which calls mockkConstructor). MockK's
+        // clearAllMocks() does NOT undo mockkConstructor — without this, a failed
+        // large-file test leaks a File constructor mock into the rest of the suite
+        // and Robolectric's PluginFinder (which creates File instances during sandbox
+        // init) explodes with "Bad constructor mock handler for class java.io.File".
+        unmockkAll()
         clearAllMocks()
     }
 
@@ -69,7 +76,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1", fileCount = 5, totalSize = 10000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -99,7 +106,9 @@ class FileImportRepositoryTest {
 
         // Verify DAO calls
         coVerify { projectDao.insertFile(any()) }
-        coVerify { projectDao.updateProjectStats("project-1", 6, 10000L + externalFile.size) }
+        // updatedAt: Long defaults to System.currentTimeMillis() at the call site, so
+        // re-evaluating the default here yields a different timestamp than production. Use any().
+        coVerify { projectDao.updateProjectStats("project-1", 6, 10000L + externalFile.size, any()) }
     }
 
     @Test
@@ -130,7 +139,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1", fileCount = 0, totalSize = 0L)
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -148,7 +157,7 @@ class FileImportRepositoryTest {
 
         // Verify DAO calls
         coVerify { projectDao.insertFile(any()) }
-        coVerify { projectDao.updateProjectStats("project-1", 1, externalFile.size) }
+        coVerify { projectDao.updateProjectStats("project-1", 1, externalFile.size, any()) }
 
         unmockkConstructor(File::class)
     }
@@ -166,7 +175,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1", fileCount = 10, totalSize = 50000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -185,7 +194,7 @@ class FileImportRepositoryTest {
         assertNull(projectFile.hash) // No hash for LINK mode
 
         // Verify project stats updated (file count increases, but NOT total size)
-        coVerify { projectDao.updateProjectStats("project-1", 11, 50000L) } // Size unchanged
+        coVerify { projectDao.updateProjectStats("project-1", 11, 50000L, any()) } // Size unchanged
     }
 
     @Test
@@ -203,7 +212,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -260,7 +269,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -287,7 +296,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1", fileCount = 5, totalSize = 10000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         fileImportRepository.importFileToProject(
@@ -301,7 +310,8 @@ class FileImportRepositoryTest {
             projectDao.updateProjectStats(
                 "project-1",
                 6, // fileCount + 1
-                25000L // totalSize + externalFile.size
+                25000L, // totalSize + externalFile.size
+                any() // updatedAt: defaulted to System.currentTimeMillis() at the call site
             )
         }
     }
@@ -328,7 +338,7 @@ class FileImportRepositoryTest {
         assertTrue(result is FileImportRepository.ImportResult.Success)
 
         // Stats update should not fail even if project is null
-        coVerify(exactly = 0) { projectDao.updateProjectStats(any(), any(), any()) }
+        coVerify(exactly = 0) { projectDao.updateProjectStats(any(), any(), any(), any()) }
     }
 
     @Test
@@ -342,7 +352,7 @@ class FileImportRepositoryTest {
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
-        coJustRun { projectDao.updateProjectStats(any(), any(), any()) }
+        coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
         // Act
         val result = fileImportRepository.importFileToProject(
