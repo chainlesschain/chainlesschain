@@ -168,14 +168,21 @@ class KeyManagementViewModel @Inject constructor(
     fun importFromMnemonic(rawText: String, deviceName: String, requireBiometric: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Tokenize: 把任何非字母字符当分隔（空格 / 换行 / 逗号 / "1." 序号 / 制表符
+                // 全消化）。BIP-39 词全是 lowercase ASCII letters，过滤后留下纯词。
+                // 兼容用户从 MnemonicRevealDialog 长按选中复制把序号一起带上的场景。
                 val words = rawText
-                    .replace(",", " ")
-                    .replace("\n", " ")
-                    .split(" ")
-                    .map { it.trim().lowercase() }
-                    .filter { it.isNotEmpty() }
+                    .lowercase()
+                    .split(Regex("[^a-z]+"))
+                    .filter { it.length in 3..10 } // BIP-39 词长度 3-8，留 buffer
+                if (words.size !in BIP39_WORD_COUNTS) {
+                    _toastMessage.value = "助记词长度错误（解析出 ${words.size} 个词；" +
+                        "BIP-39 要求 12/15/18/21/24）"
+                    return@launch
+                }
                 if (!mnemonicService.validate(words)) {
-                    _toastMessage.value = "助记词无效（词表 / 长度 / 校验和不对）"
+                    _toastMessage.value =
+                        "助记词校验失败（可能拼写错、最后一个词不对、或来自其它词表）"
                     return@launch
                 }
                 val identity = didManager.importFromMnemonic(words, deviceName, requireBiometric)
@@ -201,6 +208,8 @@ class KeyManagementViewModel @Inject constructor(
         }
     }
 }
+
+private val BIP39_WORD_COUNTS = setOf(12, 15, 18, 21, 24)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
