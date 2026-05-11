@@ -254,9 +254,9 @@ class ConflictResolverTest {
 
     @Test
     fun `test getDefaultStrategy for different resource types`() {
-        // When & Then
+        // 5 enumerated types → CUSTOM; 7 社交 types → LAST_WRITE_WINS (else 分支)
         assertEquals(
-            ConflictStrategy.LAST_WRITE_WINS,
+            ConflictStrategy.CUSTOM,
             conflictResolver.getDefaultStrategy(ResourceType.KNOWLEDGE_ITEM)
         )
         assertEquals(
@@ -264,7 +264,7 @@ class ConflictResolverTest {
             conflictResolver.getDefaultStrategy(ResourceType.CONVERSATION)
         )
         assertEquals(
-            ConflictStrategy.LAST_WRITE_WINS,
+            ConflictStrategy.CUSTOM,
             conflictResolver.getDefaultStrategy(ResourceType.MESSAGE)
         )
         assertEquals(
@@ -274,6 +274,14 @@ class ConflictResolverTest {
         assertEquals(
             ConflictStrategy.CUSTOM,
             conflictResolver.getDefaultStrategy(ResourceType.SETTING)
+        )
+        assertEquals(
+            ConflictStrategy.LAST_WRITE_WINS,
+            conflictResolver.getDefaultStrategy(ResourceType.FRIEND)
+        )
+        assertEquals(
+            ConflictStrategy.LAST_WRITE_WINS,
+            conflictResolver.getDefaultStrategy(ResourceType.NOTIFICATION)
         )
     }
 
