@@ -7,11 +7,13 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.webrtc.*
 import java.nio.ByteBuffer
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * WebRTCClient 单元测试
@@ -41,6 +43,7 @@ class WebRTCClientTest {
     private var capturedDataChannelObserver: DataChannel.Observer? = null
 
     private val testPeerId = "pc-peer-test-123"
+    private val testLocalPeerId = "android-peer-test-456"
 
     @Before
     fun setup() {
@@ -170,12 +173,12 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.receiveIceCandidate() } throws Exception("No ICE")
 
         // Act
-        val result = webRTCClient.connect(testPeerId)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
         assertTrue(result.isSuccess, "Connection should succeed")
         coVerify { mockSignalClient.connect() }
-        verify { mockPeerConnectionFactory.createPeerConnection(any<PeerConnection.RTCConfiguration>(), any()) }
+        verify { mockPeerConnectionFactory.createPeerConnection(any<PeerConnection.RTCConfiguration>(), any<PeerConnection.Observer>()) }
         verify { mockPeerConnection.createDataChannel("command-channel", any()) }
         coVerify { mockSignalClient.sendOffer(testPeerId, mockOffer) }
         coVerify { mockSignalClient.waitForAnswer(testPeerId, 10000) }
@@ -188,7 +191,7 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.connect() } returns Result.failure(Exception("Signal server unreachable"))
 
         // Act
-        val result = webRTCClient.connect(testPeerId)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
         assertTrue(result.isFailure, "Connection should fail")
@@ -210,7 +213,7 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.receiveIceCandidate() } throws Exception("No ICE")
 
         // Act
-        val result = webRTCClient.connect(testPeerId)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
         assertTrue(result.isFailure, "Connection should fail")
@@ -251,7 +254,7 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.receiveIceCandidate() } throws Exception("No ICE")
 
         // Act
-        val result = webRTCClient.connect(testPeerId)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
         assertTrue(result.isFailure, "Connection should fail")
@@ -366,8 +369,8 @@ class WebRTCClientTest {
 
         // Simulate peer connection creation
         mockPeerConnectionFactory.createPeerConnection(
-            mockk(relaxed = true),
-            mockk(relaxed = true)
+            mockk<PeerConnection.RTCConfiguration>(relaxed = true),
+            mockk<PeerConnection.Observer>(relaxed = true)
         )
 
         // Act - Simulate ICE candidate generation
@@ -403,7 +406,7 @@ class WebRTCClientTest {
         iceChannel.send(mockIceCandidate)
 
         coEvery { mockSignalClient.sendOffer(any(), any()) } just Runs
-        coEvery { mockSignalClient.receiveIceCandidate() } answers {
+        coEvery { mockSignalClient.receiveIceCandidate() } coAnswers {
             iceChannel.receive()
         }
 
@@ -421,7 +424,7 @@ class WebRTCClientTest {
         }
 
         // Act
-        val result = webRTCClient.connect(testPeerId)
+        val result = webRTCClient.connect(testPeerId, testLocalPeerId)
 
         // Assert
         assertTrue(result.isSuccess)
@@ -437,8 +440,8 @@ class WebRTCClientTest {
         webRTCClient.initialize()
 
         mockPeerConnectionFactory.createPeerConnection(
-            mockk(relaxed = true),
-            mockk(relaxed = true)
+            mockk<PeerConnection.RTCConfiguration>(relaxed = true),
+            mockk<PeerConnection.Observer>(relaxed = true)
         )
 
         // Act - Simulate connection state changes
@@ -456,8 +459,8 @@ class WebRTCClientTest {
         webRTCClient.initialize()
 
         mockPeerConnectionFactory.createPeerConnection(
-            mockk(relaxed = true),
-            mockk(relaxed = true)
+            mockk<PeerConnection.RTCConfiguration>(relaxed = true),
+            mockk<PeerConnection.Observer>(relaxed = true)
         )
 
         val remoteDataChannel = mockk<DataChannel>(relaxed = true)
