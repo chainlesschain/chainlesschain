@@ -55,6 +55,17 @@ class AutoReconnectManagerTest {
         Dispatchers.resetMain()
     }
 
+    /**
+     * 包装 runTest 在 finally 中调 release()，让 production scope 内 start() launch
+     * 的两条无穷协程（reconnectEvents.collect + queueProcessJob while-delay）在测试
+     * body 返回**之前**就被 cancel。否则 runTest.advanceUntilIdle() 会等这两条协程
+     * 永远不完成的 delay()，整个测试 hang 直到 gradle task 超时。
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun runReconnectTest(testBody: suspend TestScope.() -> Unit): TestResult = runTest {
+        try { testBody() } finally { autoReconnectManager.release() }
+    }
+
     // ===== 设备缓存测试 =====
 
     @Test
@@ -89,7 +100,7 @@ class AutoReconnectManagerTest {
     // ===== 重连安排测试 =====
 
     @Test
-    fun `scheduleReconnect should add task to queue`() = runTest {
+    fun `scheduleReconnect should add task to queue`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -110,7 +121,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `scheduleReconnect without cached device should not add task`() = runTest {
+    fun `scheduleReconnect without cached device should not add task`() = runReconnectTest {
         // Given - no cached device
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
 
@@ -128,7 +139,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `scheduleReconnect when paused should not add task`() = runTest {
+    fun `scheduleReconnect when paused should not add task`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         autoReconnectManager.start { }
@@ -148,7 +159,7 @@ class AutoReconnectManagerTest {
     // ===== 重连取消测试 =====
 
     @Test
-    fun `cancelReconnect should remove task from queue`() = runTest {
+    fun `cancelReconnect should remove task from queue`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -173,7 +184,7 @@ class AutoReconnectManagerTest {
     // ===== 暂停/恢复测试 =====
 
     @Test
-    fun `pause should prevent new reconnect tasks`() = runTest {
+    fun `pause should prevent new reconnect tasks`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         autoReconnectManager.start { }
@@ -191,7 +202,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `resume should allow new reconnect tasks`() = runTest {
+    fun `resume should allow new reconnect tasks`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -214,7 +225,7 @@ class AutoReconnectManagerTest {
     // ===== 立即重连测试 =====
 
     @Test
-    fun `reconnectNow should execute reconnect immediately`() = runTest {
+    fun `reconnectNow should execute reconnect immediately`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
 
@@ -241,7 +252,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `reconnectNow without cached device should do nothing`() = runTest {
+    fun `reconnectNow without cached device should do nothing`() = runReconnectTest {
         // Given
         var reconnectCalled = false
         autoReconnectManager.start { reconnectCalled = true }
@@ -257,7 +268,7 @@ class AutoReconnectManagerTest {
     // ===== 重连状态事件测试 =====
 
     @Test
-    fun `scheduleReconnect should emit SCHEDULED event`() = runTest {
+    fun `scheduleReconnect should emit SCHEDULED event`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -289,7 +300,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `successful reconnect should emit SUCCESS event`() = runTest {
+    fun `successful reconnect should emit SUCCESS event`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -322,7 +333,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `failed reconnect should emit FAILED event and retry`() = runTest {
+    fun `failed reconnect should emit FAILED event and retry`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
@@ -358,7 +369,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `exhausted retries should emit EXHAUSTED event`() = runTest {
+    fun `exhausted retries should emit EXHAUSTED event`() = runReconnectTest {
         // Given
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 5
@@ -394,7 +405,7 @@ class AutoReconnectManagerTest {
     // ===== 多设备测试 =====
 
     @Test
-    fun `should handle multiple devices independently`() = runTest {
+    fun `should handle multiple devices independently`() = runReconnectTest {
         // Given
         val device1 = testDevice.copy(deviceId = "device-1", deviceName = "Device 1")
         val device2 = testDevice.copy(deviceId = "device-2", deviceName = "Device 2")
@@ -417,7 +428,7 @@ class AutoReconnectManagerTest {
     }
 
     @Test
-    fun `cancelReconnect should only affect specified device`() = runTest {
+    fun `cancelReconnect should only affect specified device`() = runReconnectTest {
         // Given
         val device1 = testDevice.copy(deviceId = "device-1")
         val device2 = testDevice.copy(deviceId = "device-2")
