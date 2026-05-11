@@ -1539,6 +1539,45 @@ class ChainlessChainApp {
         logger.error("[Main] MobileBridgeSync 实例化失败:", err);
       }
 
+      // M5 ADR-6: 实例化 MobileSignClient（桌面反向 sign.request 入口）。
+      // 用 mobileBridge.asMobileSignTransport() 作为 transport，复用 WebRTC
+      // DataChannel 路径。业务侧 (marketplace.purchase 阈值检查、did.delegate
+      // 等) 通过 this.mobileSignClient.requestSignature 调起 Android
+      // SignAsService → ApprovalDialog → StrongBox Ed25519 签名链路。
+      try {
+        const {
+          MobileSignClient,
+        } = require("./remote/handlers/mobile-sign-client");
+        this.mobileSignClient = new MobileSignClient({
+          transport: this.mobileBridge.asMobileSignTransport(),
+          // 60s 默认超时，覆盖慢用户 BiometricPrompt
+        });
+        logger.info(
+          "[Main] ✓ MobileSignClient 已实例化 (M5 ADR-6 反向 sign.request)",
+        );
+      } catch (err) {
+        logger.error("[Main] MobileSignClient 实例化失败:", err);
+      }
+
+      // M4 D2 桌面胶水末段：把 RemoteGateway 内的 MobileApprovalChannel
+      // 接到 MobileBridge 的 sendReverseRpcRequest。在 bridge.connect() 之后
+      // 调用 — 此时 transport 已就绪可发反向 RPC。
+      if (
+        this.remoteGateway &&
+        typeof this.remoteGateway.bindMobileBridge === "function"
+      ) {
+        try {
+          const bound = this.remoteGateway.bindMobileBridge(this.mobileBridge);
+          if (bound) {
+            logger.info(
+              "[Main] ✓ MobileApprovalChannel ↔ MobileBridge 已接通 (M4 D2 桌面胶水)",
+            );
+          }
+        } catch (err) {
+          logger.warn("[Main] MobileApprovalChannel 接通失败:", err.message);
+        }
+      }
+
       logger.info("[Main] ✓ 移动端桥接初始化完成");
       logger.info(`[Main]   信令服务器: ${signalingUrl}`);
     } catch (error) {
