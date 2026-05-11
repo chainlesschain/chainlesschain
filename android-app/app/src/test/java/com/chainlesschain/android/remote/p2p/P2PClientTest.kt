@@ -8,7 +8,11 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -144,8 +148,14 @@ class P2PClientTest {
     }
 
     @Test
-    fun `test disconnect completes pending requests with error`() = runTest {
-        // Arrange
+    fun `test disconnect completes pending requests with error`() = runBlocking {
+        // Use real runBlocking (not runTest) because sendCommand internally uses
+        // withContext(Dispatchers.IO) which schedules work on real IO threads.
+        // In runTest with StandardTestDispatcher, virtual-time delay(50) returns
+        // before the IO worker has actually added the request to pendingRequests,
+        // so disconnect() iterates an empty map and the async never completes.
+        // runBlocking with a real delay ensures the IO worker progresses through
+        // pendingRequests-add before disconnect() runs.
         val pcPeerId = "pc-peer-pending"
         val pcDID = "did:example:pc-pending"
 
@@ -166,8 +176,8 @@ class P2PClientTest {
             )
         }
 
-        // Wait a bit for request to be sent
-        delay(50)
+        // Real-time wait so the IO worker actually registers the pending request.
+        delay(200)
 
         // Act
         p2pClient.disconnect()
@@ -183,18 +193,25 @@ class P2PClientTest {
     @Test
     fun `test connection state flow updates`() = runTest {
         // Arrange
+        // Capture initial state before launching collector — MutableStateFlow.collect only
+        // replays the latest value, so a collect started after p2pClient.connect() runs would
+        // miss the DISCONNECTED → CONNECTING → CONNECTED transitions and only see CONNECTED.
         val states = mutableListOf<ConnectionState>()
+        states.add(p2pClient.connectionState.value)
+
         val job = launch {
-            p2pClient.connectionState.collect { states.add(it) }
+            p2pClient.connectionState.drop(1).collect { states.add(it) }
         }
+        // Ensure collector is registered before mutating state.
+        runCurrent()
 
         coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
 
         // Act
         p2pClient.connect("peer-123", "did:example:123")
 
-        // Wait for state updates
-        delay(100)
+        // Wait for state updates to propagate through the collector.
+        advanceUntilIdle()
 
         // Assert
         assertTrue(states.contains(ConnectionState.DISCONNECTED)) // Initial state
