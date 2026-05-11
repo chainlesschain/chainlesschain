@@ -2,6 +2,32 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-12 Release — **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias compat window**
+
+productVersion **v5.0.3.47 → v5.0.3.48**. Android v1.0 RFC M3 + M4 closing batch: 7 commits / 187 new unit tests / Android total 196+ → 383+. No desktop / CLI source changes; CLI npm 0.161.7 → 0.161.8 (force publish on the release.yml sync track); Android versionCode 37 / versionName 0.37.0 unchanged (still on the v1.0 RFC implementation track — the GA flip is queued for M7).
+
+**Added — Android M3 capture suite (5/5 code-layer)**:
+
+- **VoiceMode end-to-end voice chain** (commit `47bebed80`) — ASR → REMOTE chat → TTS pipeline wired from the home entry.
+- **CameraOCR snap-to-KB pipeline** (commit `a69269ced`) — `ai.ocrImage` + `knowledge.createNote` walked end-to-end; OCR metadata is written automatically.
+- **LocationTagger via Play Services FusedLocationProvider + Foreground Service** (commit `3f5ac8647`) — GPS data lands in `createNote.metadata`.
+- **SharePayloadFlusher feeds SyncCoordinator → knowledge.createNote** (commit `3d1a6e3a8`) — 5 SharePayload variants (Text / Url / SingleImage / MultiImage / GenericFile) → note fields; drained at the tail of the SyncCoordinator 30s push loop, failures re-enqueued. 19 new unit tests.
+- **PushNotifier local channel + FCM skeleton** (commit `c0d990c91`) — 4 NotificationChannel (Cowork / Marketplace / SystemAlert / ShareInbox) + protocol-neutral `CcPushNotificationService` entry; real FCM wiring follows the 5-step guide in `android-app/docs/M3_FCM_SETUP.md` (google-services.json stays on the user). 36 new unit tests.
+
+**Added — Android M4 closing**:
+
+- **RemoteSkillRegistry method-level metadata** (commit `6e49270fd`) — `MethodMetadata` data class + 4 accessors; `knowledge.*` and `ai.*` seeded with 10 methods each (8 riskOverride demos); the other 21 namespaces stay empty pending desktop `mobile-skill-whitelist` push. 16 new unit tests.
+- **ApprovalUI 4-category adapter** (commit `f4f83cc67`) — `ApprovalCategory` enum {Sign / Cowork / Marketplace / SystemCritical} + `fromMethod` inference; `AndroidApprovalGate` 4-arg overload carries category through; Dialog swaps icon / tint / title / footer per category. 9 new tests.
+- **ProgressViewer long-running task panel** (commit `f4f83cc67`) — `LongTaskRegistry` `@Singleton` MutableStateFlow + `TaskProgressCommandRouter` for `task.*` reverse-RPC + Compose `ProgressViewerScreen` (StatusChip + Linear / indeterminate Circular + dismiss / clear-terminal, MAX_TASKS=100 sliding window). 34 new tests.
+- **§8.3 RemoteSkillRegistry alias compat window** (commit `0bc8e2797`) — `SkillMetadata.aliases` field + internal `aliasIndex`; every public accessor routes through `resolveAlias`, so renaming a namespace doesn't break callers for one release window. 7 new tests.
+- **§8.1 README versionName fix + v1.0 GA checklist** (commits `0bc8e2797` `3da484e9c`) — `android-app/README.md` M3 (2/5) → (5/5 code); M4 row gains method-level + ApprovalUI + ProgressViewer; new `ANDROID_v1_GA_CHECKLIST.md` lists the 5 user-side items still owing for v1.0 GA (M3 device E2E / M4 D2 device E2E / FCM credentials / M6 perf measurements / M7 GA flip).
+
+**Tests**: 187 new Android unit tests green, covering capture / push / registry / task / approval-category / composite-router. Desktop store regression 26 files / 773 tests ✓; CLI lib 169 files / 7185 tests ✓ (confirming the Android work didn't pollute desktop / CLI paths).
+
+**Distribution**: Desktop binary rebuilt v5.0.3.47 → v5.0.3.48 (no desktop source changes; auto-updater compares `5.0.3-alpha.48 > 5.0.3-alpha.47`, so v5.0.3.47 desktop users will see a real "new version" prompt on restart). `chainlesschain` npm 0.161.7 → 0.161.8 (CLI itself has zero source changes; force publish on the release.yml sync track). All three documentation sites refreshed in sync (tagline bumped to v5.0.3.48 + this section added).
+
+---
+
 ## 2026-05-10 Release — **v5.0.3.46 Phase 3d desktop ↔ Android two-way sync suite + Android 0.37.0 seven-feature batch + e2e CI silent-regression fix**
 
 productVersion **v5.0.3.45 → v5.0.3.46**. Android **0.36.0 → 0.37.0** (versionCode 36 → 37). Three themes shipped together: (1) **Phase 3d Mobile-Bridge-Sync — full desktop ↔ Android two-way social-data sync** (M2 → v1.2 across 12 commits · 5 ResourceType walkers + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1–4 all Ed25519 strict-verify); (2) **Android 0.37.0 lands 7 user-visible features in one commit** (Volcengine SeedASR voice + APK auto-update issue #21 + splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen); (3) **e2e CI silent-regression fix** (drop the e2e-tests workflow JOB-level `continue-on-error: true` that masked 3/3 OS failures as success — "No team IPC interface found" had been buried for weeks — plus Playwright browser cache for speedup).
@@ -1742,14 +1768,14 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.47-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.48-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.7-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.8-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -1762,7 +1788,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.47 Evolution Edition (2026-05-11 · CLI 0.161.7 · Android 0.37.0 · 141 Desktop Skills + 28 Android Skills · 14,800+ Tests · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
+## ⭐ Current Version: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android 0.37.0 · 141 Desktop Skills + 28 Android Skills · 14,987+ Tests · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 closing** (VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier all five landed · RemoteSkillRegistry method-level metadata · ApprovalUI 4-category · ProgressViewer long-task panel · §8.3 alias compat window · 187 new tests / Android total 196+ → 383+ · 5 user-side items still owed: M3 device E2E / M4 D2 device / FCM creds / M6 perf / M7 GA flip) · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install 20m → ~5m · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
 
 ### Latest Update - cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix (v5.0.3.45, 2026-05-09)
 

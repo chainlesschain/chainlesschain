@@ -5,6 +5,41 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.48] - 2026-05-12 — Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口
+
+> Android v1.0 RFC M3 + M4 收尾批次（7 commit / 187 新单测）+ **Android M7 GA flip 一并落地（commit `ffe722162`，versionCode 37 → 100，versionName 0.37.0 → 1.0.0）**。把设计文档 §5.3 L2 捕获五件套补齐到代码层（VoiceMode / CameraOCR / LocationTagger / SharePayloadFlusher / PushNotifier）+ §6 M4 D1 RemoteSkillRegistry method-level 元数据 + §5.4 ApprovalUI 4-category 适配 + ProgressViewer 长时任务面板 + §8.3 alias 兼容窗口。Android 总单测 196+ → 383+。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道）。Android v1.0 GA 仍待用户出场（4 项）：M3 真机 E2E / M4 D2 真机 / FCM 凭证 / M6 性能实测。
+
+### Added — Android M3 capture suite (5/5 code)
+
+- **VoiceMode 连续语音串联**（commit `47bebed80`）—— ASR → REMOTE chat → TTS pipeline 在 home 入口串通。
+- **CameraOCR 拍照入 KB 流水线**（commit `a69269ced`）—— `ai.ocrImage` + `knowledge.createNote` 走完，自动写 OCR 元数据。
+- **LocationTagger Play Services FusedLocationProvider + Foreground Service**（commit `3f5ac8647`）—— GPS 数据进 `createNote.metadata`，前台服务保证后台采集合规。
+- **SharePayloadFlusher 接 SyncCoordinator → knowledge.createNote**（commit `3d1a6e3a8`）—— 5 种 SharePayload（Text / Url / SingleImage / MultiImage / GenericFile）转 note 字段；SyncCoordinator 30s push 循环末尾 `drain` SharedInboxRepository，失败 re-enqueue。19 新单测。
+- **PushNotifier 本地通道 + FCM 骨架**（commit `c0d990c91`）—— 4 NotificationChannel（Cowork DEFAULT / Marketplace HIGH / SystemAlert DEFAULT / ShareInbox LOW）+ 协议中立 `CcPushNotificationService` 入口；google-services.json 真接入按 `android-app/docs/M3_FCM_SETUP.md` 5 步（用户出场）。36 新单测。
+
+### Added — Android M4 收尾
+
+- **RemoteSkillRegistry method-level 元数据补全**（commit `6e49270fd`）—— `MethodMetadata`（name / paramCount / riskOverride / requiresApprovalOverride）+ `listMethods` / `getMethod` / `requiresApprovalForMethod` / `riskForMethod` accessor；`knowledge.*` + `ai.*` 各 10 methods seeded（8 riskOverride 演示）；其他 21 namespace pending 桌面 `mobile-skill-whitelist` 下发。16 新单测。
+- **ApprovalUI 4 category 适配**（commit `f4f83cc67`）—— `ApprovalCategory` enum {Sign / Cowork / Marketplace / SystemCritical} + `fromMethod` 推断；`AndroidApprovalGate` 4-arg overload 透传 category 透传到 dialog（旧 3-arg 自动 forward）；Dialog 按 category 切 icon / tint / title / footer。9 新单测。
+- **ProgressViewer 长时任务面板**（commit `f4f83cc67`）—— `LongTaskRegistry` `@Singleton` `MutableStateFlow<List<LongRunningTask>>`（Pending / Running / Completed / Failed / Cancelled，MAX_TASKS=100 滑窗）+ `TaskProgressCommandRouter` 接 `task.*` reverse-RPC（update / complete / fail / cancel / remove）+ Compose `ProgressViewerScreen`（StatusChip + Linear / indeterminate Circular + dismiss / clear-terminal）。34 新单测（15 + 19）。
+- **§8.3 RemoteSkillRegistry alias 兼容窗口**（commit `0bc8e2797`）—— `SkillMetadata.aliases: List<String>` + 内部 `aliasIndex` 反查；`get` / `listMethods` / `requiresApproval` / `risk*` 全部经 `resolveAlias` 路径自动解析；新增 `resolveAlias` public API。未来 namespace 改名时旧调用方 1 版内不 break。7 新单测。
+- **§8.1 README versionName 滞后修正 + v1.0 GA 检查清单**（commits `0bc8e2797` `3da484e9c`）—— `android-app/README.md` M3 行 (2/5) → (5/5 code)、M4 行补 method-level + ApprovalUI + ProgressViewer；新增 `ANDROID_v1_GA_CHECKLIST.md`：v1.0 GA 仍待用户出场 5 项。
+
+### Tests
+
+- Android 新增 **187 单测全绿**（`./gradlew :app:testDebugUnitTest --tests "*Test"` 对应 14 个测试文件）。回归覆盖 capture / push / registry / task / approval-category / composite-router 全部新模块。
+- Android 总单测 196+ → 383+（M1 0 + M2 68 + M3 130 + M4 152 + M5 33）。
+- Desktop store 回归 26 文件 / 773 测 ✓；CLI lib 169 文件 / 7185 测 ✓（确认 Android 工作未污染 desktop / CLI 路径）。
+
+### Distribution
+
+- 桌面 binary：v5.0.3.47 → v5.0.3.48 重打（无桌面源码改动；auto-updater 比对 `5.0.3-alpha.48 > 5.0.3-alpha.47`，v5.0.3.47 用户重启拿到新 build）。
+- `chainlesschain` npm 0.161.7 → 0.161.8（CLI 自身 0 源码改动；force publish 走 release.yml 同步轨道）。
+- **Android：versionCode 37 → 100, versionName 0.37.0 → 1.0.0 GA**（commit `ffe722162`）—— M7 GA flip 与本批 M3/M4 工作一并落地；android-app/CHANGELOG.md 加 [1.0.0] - 2026-05-12 GA entry 汇总 9 commit + 4 项已知限制（FCM 国内 / 单 peer / 离线队列 / QRPairing scaffold）；android-app/README.md 标题切 "🎉 当前版本 v1.0.0 — GA"。下一步 tag `v1.0.0` 在 commit `ffe722162` 推 gitee+github。
+- 三大文档站本次同步刷新：tagline 升 v5.0.3.48 + 加本节 changelog。
+
+---
+
 ## [v5.0.3.47] - 2026-05-11 — Verification release：build-android keystore fix VERIFIED + density splits 14→4 落地 + outstanding `../` 全扫净
 
 > 验证型发版。无桌面 / CLI / Android 源码改动，只把 v5.0.3.46 后陆续落的 3 个 release-pipeline 修复在 CI 实跑一遍证明 green。release.yml run #25632845952 全 11 个 job ✓（含 build-android、create-release、publish-cli、finalize-release），4 个 Android assets 入 GitHub Release v5.0.3.47。

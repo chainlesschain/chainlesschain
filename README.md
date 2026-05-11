@@ -2,6 +2,32 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-12 发布 — **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口**
+
+productVersion **v5.0.3.47 → v5.0.3.48**。Android v1.0 RFC M3 + M4 收尾批次：7 commit / 187 新单测 / Android 总单测 196+ → 383+。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道），Android versionCode 37 / versionName 0.37.0 不变（仍在 v1.0 RFC 实施轨道，GA flip 待 M7）。
+
+**新增 — Android M3 capture suite (5/5 代码层落地)**：
+
+- **VoiceMode 连续语音串联**（commit `47bebed80`）—— ASR → REMOTE chat → TTS pipeline 在 home 入口串通。
+- **CameraOCR 拍照入 KB 流水线**（commit `a69269ced`）—— `ai.ocrImage` + `knowledge.createNote` 走完，OCR 元数据自动写入。
+- **LocationTagger Play Services FusedLocationProvider + Foreground Service**（commit `3f5ac8647`）—— GPS 数据进 `createNote.metadata`。
+- **SharePayloadFlusher 接 SyncCoordinator → knowledge.createNote**（commit `3d1a6e3a8`）—— 5 种 SharePayload（Text / Url / SingleImage / MultiImage / GenericFile）转 note 字段；SyncCoordinator 30s push 循环末尾 drain SharedInboxRepository，失败 re-enqueue。19 新单测。
+- **PushNotifier 本地通道 + FCM 骨架**（commit `c0d990c91`）—— 4 NotificationChannel（Cowork / Marketplace / SystemAlert / ShareInbox）+ 协议中立 `CcPushNotificationService` 入口；FCM 真接入按 `android-app/docs/M3_FCM_SETUP.md` 5 步走（google-services.json 由用户出场）。36 新单测。
+
+**新增 — Android M4 收尾**：
+
+- **RemoteSkillRegistry method-level 元数据**（commit `6e49270fd`）—— `MethodMetadata` data class + 4 个 accessor；`knowledge.*` + `ai.*` 各 10 methods seeded（8 riskOverride 演示）；其他 21 namespace pending 桌面 mobile-skill-whitelist 下发。16 新单测。
+- **ApprovalUI 4 category 适配**（commit `f4f83cc67`）—— `ApprovalCategory` enum {Sign / Cowork / Marketplace / SystemCritical} + fromMethod 推断；`AndroidApprovalGate` 4-arg overload 透传 category；Dialog 按 category 切 icon / tint / title / footer。9 新单测。
+- **ProgressViewer 长时任务面板**（commit `f4f83cc67`）—— `LongTaskRegistry` `@Singleton` MutableStateFlow + `TaskProgressCommandRouter` 接 `task.*` reverse-RPC + Compose `ProgressViewerScreen`（StatusChip + Linear / indeterminate Circular + dismiss / clear-terminal，MAX_TASKS=100 滑窗）。34 新单测。
+- **§8.3 RemoteSkillRegistry alias 兼容窗口**（commit `0bc8e2797`）—— `SkillMetadata.aliases` 字段 + 内部 `aliasIndex` 反查；所有公共 accessor 自动经 `resolveAlias`。未来 namespace 改名 1 版内不 break。7 新单测。
+- **§8.1 README + v1.0 GA 检查清单**（commits `0bc8e2797` `3da484e9c`）—— `android-app/README.md` M3 (2/5) → (5/5 code)、M4 补 method-level + ApprovalUI + ProgressViewer；新增 `ANDROID_v1_GA_CHECKLIST.md` 列 v1.0 GA 仍待用户出场 5 项（M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能 / M7 GA flip）。
+
+**测试**：Android 187 新单测全绿，覆盖 capture / push / registry / task / approval-category / composite-router 全部新模块。Desktop store 回归 26 文件 / 773 测 ✓；CLI lib 169 文件 / 7185 测 ✓（确认 Android 工作未污染 desktop / CLI 路径）。
+
+**部署 / 分发**：桌面 binary 重打 v5.0.3.47 → v5.0.3.48（无桌面源码改动；auto-updater 比对 `5.0.3-alpha.48 > 5.0.3-alpha.47`，v5.0.3.47 用户重启拿到新 build）。`chainlesschain` npm 0.161.7 → 0.161.8（CLI 自身 0 源码改动；force publish 走 release.yml 同步轨道）。三大文档站本次同步刷新：tagline 升 v5.0.3.48 + 新增本节 changelog。
+
+---
+
 ## 2026-05-10 发布 — **v5.0.3.46 Phase 3d 桌面 ↔ Android 双向同步全套 + Android 0.37.0 七件套 + e2e CI 静默回归洞收口**
 
 productVersion **v5.0.3.45 → v5.0.3.46**。Android **0.36.0 → 0.37.0**（versionCode 36 → 37）。本次主线三条：(1) **Phase 3d Mobile-Bridge-Sync 桌面 ↔ Android 双向社交数据同步全套落地**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）；(2) **Android 0.37.0 一次落 7 件用户可见功能**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）；(3) **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true` —— 之前让 3/3 OS 失败显示 success "No team IPC interface found" 沉了几周 + Playwright 浏览器 cache 加速）。
@@ -1975,14 +2001,14 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.47-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.48-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.7-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.161.8-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -1995,7 +2021,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.47 Evolution Edition (2026-05-11 · CLI 0.161.7 · Android 0.37.0 · 141 桌面技能 + 28 Android 技能 · 14,800+ 测试 · **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
+## ⭐ 当前版本: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android 0.37.0 · 141 桌面技能 + 28 Android 技能 · 14,987+ 测试 · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · 187 新单测全绿 / Android 总单测 196+ → 383+ · 仍待用户出场 5 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能 / M7 GA flip）· **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
 
 ### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
 
