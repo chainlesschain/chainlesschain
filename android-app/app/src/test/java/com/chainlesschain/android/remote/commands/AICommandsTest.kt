@@ -53,7 +53,7 @@ class AICommandsTest {
         )
 
         coEvery {
-            mockClient.invoke<ChatResponse>("ai.chat", any(), any())
+            mockClient.invoke<Any>("ai.chat", any(), any())
         } returns Result.success(mockResponse)
 
         // When
@@ -65,7 +65,7 @@ class AICommandsTest {
         assertEquals("Hi there!", result.getOrNull()?.reply)
 
         coVerify {
-            mockClient.invoke<ChatResponse>(
+            mockClient.invoke<Any>(
                 "ai.chat",
                 match { params ->
                     params["message"] == message
@@ -91,7 +91,7 @@ class AICommandsTest {
         )
 
         coEvery {
-            mockClient.invoke<ChatResponse>(any(), any(), any())
+            mockClient.invoke<Any>(any(), any(), any())
         } returns Result.success(mockResponse)
 
         // When
@@ -107,7 +107,7 @@ class AICommandsTest {
         assertTrue("Result should be success", result.isSuccess)
 
         coVerify {
-            mockClient.invoke<ChatResponse>(
+            mockClient.invoke<Any>(
                 "ai.chat",
                 match { params ->
                     params["message"] == message &&
@@ -128,7 +128,7 @@ class AICommandsTest {
         val exception = Exception("Network error")
 
         coEvery {
-            mockClient.invoke<ChatResponse>(any(), any(), any())
+            mockClient.invoke<Any>(any(), any(), any())
         } returns Result.failure(exception)
 
         // When
@@ -155,7 +155,7 @@ class AICommandsTest {
         )
 
         coEvery {
-            mockClient.invoke<ChatResponse>(any(), any(), any())
+            mockClient.invoke<Any>(any(), any(), any())
         } returns Result.success(mockResponse)
 
         // When
