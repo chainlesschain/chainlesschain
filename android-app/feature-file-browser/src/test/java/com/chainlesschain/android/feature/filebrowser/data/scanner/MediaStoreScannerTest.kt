@@ -21,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.nio.file.Files
 
 /**
  * Unit tests for MediaStoreScanner
@@ -36,6 +37,8 @@ class MediaStoreScannerTest {
     private lateinit var contentResolver: ContentResolver
     private lateinit var externalFileDao: ExternalFileDao
     private lateinit var mediaStoreScanner: MediaStoreScanner
+    private lateinit var tempRoot: File
+    private lateinit var parentFolder: File
 
     @Before
     fun setup() {
@@ -45,21 +48,24 @@ class MediaStoreScannerTest {
 
         every { context.contentResolver } returns contentResolver
 
-        // Mock File constructor so File(filePath).exists() returns true
-        mockkConstructor(File::class)
-        every { anyConstructed<File>().exists() } returns true
-        val mockParent = mockk<File>(relaxed = true)
-        every { mockParent.name } returns "ParentFolder"
-        every { mockParent.absolutePath } returns "/storage/emulated/0/ParentFolder"
-        every { anyConstructed<File>().parentFile } returns mockParent
+        // Real temp dir structured as <tempRoot>/ParentFolder/<displayName>. Each
+        // createFileEntry() writes a real file there. mockkConstructor(File::class) was
+        // previously used so File(filePath).exists() returns true, but it deadlocks with
+        // Robolectric's SandboxClassLoader (Robolectric's jar-URL resolution constructs
+        // File internally, which re-enters MockK's constructor handler mid-installation
+        // → "Bad constructor mock handler for class java.io.File"). The real-file
+        // approach gives us .exists()=true, .parentFile.name="ParentFolder",
+        // .parentFile.absolutePath=<tempRoot>/ParentFolder naturally.
+        tempRoot = Files.createTempDirectory("mediastore-scanner-test").toFile()
+        parentFolder = File(tempRoot, "ParentFolder").apply { mkdirs() }
 
         mediaStoreScanner = MediaStoreScanner(context, externalFileDao)
     }
 
     @After
     fun tearDown() {
-        unmockkConstructor(File::class)
         clearAllMocks()
+        tempRoot.deleteRecursively()
     }
 
     @Test
@@ -478,10 +484,13 @@ class MediaStoreScannerTest {
         size: Long,
         category: FileCategory
     ): FileEntry {
+        // Write a real (empty) file under parentFolder so File(path).exists() == true
+        // and parentFile.name == "ParentFolder" naturally — no mockkConstructor needed.
+        val real = File(parentFolder, displayName).apply { if (!exists()) createNewFile() }
         return FileEntry(
             id = id,
             displayName = displayName,
-            path = "/storage/emulated/0/DCIM/$displayName",
+            path = real.absolutePath,
             mimeType = mimeType,
             size = size,
             dateModified = System.currentTimeMillis(),

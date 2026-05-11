@@ -17,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileOutputStream
+import java.nio.file.Files
 
 /**
  * Unit tests for FileImportRepository
@@ -33,31 +33,30 @@ class FileImportRepositoryTest {
     private lateinit var contentResolver: ContentResolver
     private lateinit var projectDao: ProjectDao
     private lateinit var fileImportRepository: FileImportRepository
-    private lateinit var filesDir: File
+    private lateinit var tempFilesDir: File
 
     @Before
     fun setup() {
         context = mockk(relaxed = true)
         contentResolver = mockk(relaxed = true)
         projectDao = mockk(relaxed = true)
-        filesDir = mockk(relaxed = true)
+        // Real temp directory for the large-file branch — using mockkConstructor(File::class)
+        // here would deadlock with Robolectric's SandboxClassLoader (which creates File
+        // instances during jar URL resolution → MockK constructor handler → infinite recursion
+        // → "Bad constructor mock handler for class java.io.File"). Real temp dir bypasses
+        // the issue entirely and lets the production code write a real file.
+        tempFilesDir = Files.createTempDirectory("file-import-repo-test").toFile()
 
         every { context.contentResolver } returns contentResolver
-        every { context.filesDir } returns filesDir
+        every { context.filesDir } returns tempFilesDir
 
         fileImportRepository = FileImportRepository(context, projectDao)
     }
 
     @After
     fun tearDown() {
-        // Defensive: a previous test may have left File::class constructor-mocked
-        // (see "write large file to filesystem" which calls mockkConstructor). MockK's
-        // clearAllMocks() does NOT undo mockkConstructor — without this, a failed
-        // large-file test leaks a File constructor mock into the rest of the suite
-        // and Robolectric's PluginFinder (which creates File instances during sandbox
-        // init) explodes with "Bad constructor mock handler for class java.io.File".
-        unmockkAll()
         clearAllMocks()
+        tempFilesDir.deleteRecursively()
     }
 
     @Test
@@ -127,21 +126,12 @@ class FileImportRepositoryTest {
         val inputStream2 = ByteArrayInputStream(largeFileContent.toByteArray())
         every { contentResolver.openInputStream(Uri.parse(externalFile.uri)) } returns inputStream1 andThen inputStream2
 
-        // Mock File constructor for filesystem operations
-        val mockOutputStream = mockk<FileOutputStream>(relaxed = true)
-
-        every { filesDir.absolutePath } returns "/data/app/files"
-        mockkConstructor(File::class)
-        every { anyConstructed<File>().mkdirs() } returns true
-        every { anyConstructed<File>().absolutePath } returns "/data/app/files/projects/project-1/mock-file-id"
-        every { anyConstructed<File>().outputStream() } returns mockOutputStream
-
         val project = createProject("project-1", fileCount = 0, totalSize = 0L)
         coEvery { projectDao.getProjectById("project-1") } returns project
         coJustRun { projectDao.insertFile(any()) }
         coJustRun { projectDao.updateProjectStats(any(), any(), any(), any()) }
 
-        // Act
+        // Act — production writes the real file under tempFilesDir/projects/project-1/<uuid>
         val result = fileImportRepository.importFileToProject(
             externalFile = externalFile,
             targetProjectId = "project-1",
@@ -152,14 +142,18 @@ class FileImportRepositoryTest {
         assertTrue(result is FileImportRepository.ImportResult.Success)
         val projectFile = (result as FileImportRepository.ImportResult.Success).projectFile
 
-        // Verify large file written to filesystem
-        assertNull(projectFile.content) // No database content
+        // Large file branch: content lives on filesystem, not in the entity
+        assertNull(projectFile.content)
+        assertTrue(
+            "path should point under temp dir, got ${projectFile.path}",
+            projectFile.path.startsWith(tempFilesDir.absolutePath)
+        )
+        assertTrue("written file should exist", File(projectFile.path).exists())
+        assertEquals(largeFileContent.length.toLong(), File(projectFile.path).length())
 
         // Verify DAO calls
         coVerify { projectDao.insertFile(any()) }
         coVerify { projectDao.updateProjectStats("project-1", 1, externalFile.size, any()) }
-
-        unmockkConstructor(File::class)
     }
 
     @Test
