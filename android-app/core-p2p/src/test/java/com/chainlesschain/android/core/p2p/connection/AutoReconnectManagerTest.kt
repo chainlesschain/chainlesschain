@@ -244,7 +244,10 @@ class AutoReconnectManagerTest {
 
         // When
         autoReconnectManager.reconnectNow(testDevice.deviceId)
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         assertEquals(testDevice.deviceId, reconnectedDevice?.deviceId)
@@ -259,7 +262,10 @@ class AutoReconnectManagerTest {
 
         // When
         autoReconnectManager.reconnectNow("unknown-device")
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         assertFalse(reconnectCalled)
@@ -291,7 +297,10 @@ class AutoReconnectManagerTest {
             1000L,
             ReconnectReason.HEARTBEAT_TIMEOUT
         )
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         job.cancel()
@@ -323,7 +332,10 @@ class AutoReconnectManagerTest {
             0L, // Execute immediately
             ReconnectReason.CONNECTION_LOST
         )
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         job.cancel()
@@ -359,7 +371,10 @@ class AutoReconnectManagerTest {
             0L,
             ReconnectReason.CONNECTION_LOST
         )
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         job.cancel()
@@ -393,7 +408,10 @@ class AutoReconnectManagerTest {
             0L,
             ReconnectReason.CONNECTION_LOST
         )
-        advanceUntilIdle()
+        // bounded advance — production startQueueProcessing 是 while(isActive) delay(1000ms)
+        // 无穷循环，advanceUntilIdle() 会 drain 永远。给 queue processor 跳 2-3 圈足以处理
+        // 0L/1000L delay 的 scheduleReconnect。
+        advanceTimeBy(2500); runCurrent()
 
         // Then
         job.cancel()
