@@ -1,170 +1,244 @@
 package com.chainlesschain.android.core.did.manager
 
 import android.content.Context
-import timber.log.Timber
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPairJson
 import com.chainlesschain.android.core.did.crypto.SignatureUtils
 import com.chainlesschain.android.core.did.crypto.TimestampedSignature
+import com.chainlesschain.android.core.did.crypto.hexToByteArray
+import com.chainlesschain.android.core.did.crypto.toHexString
 import com.chainlesschain.android.core.did.generator.DidKeyGenerator
 import com.chainlesschain.android.core.did.model.DIDDocument
-import com.chainlesschain.android.core.did.resolver.DIDResolver
 import com.chainlesschain.android.core.did.resolver.DidKeyResolver
+import com.chainlesschain.android.core.did.wallet.DIDIdentityMeta
+import com.chainlesschain.android.core.did.wallet.NewIdentityResult
+import com.chainlesschain.android.core.did.wallet.MnemonicService
+import com.chainlesschain.android.core.did.wallet.WalletIdentityEntry
+import com.chainlesschain.android.core.did.wallet.WalletStorage
+import com.chainlesschain.android.core.did.wallet.WrappedPrivateKeyStorage
+import com.chainlesschain.android.core.security.strongbox.StrongBoxKeyManager
+import com.chainlesschain.android.core.security.strongbox.WrappedEd25519Key
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import timber.log.Timber
 import java.io.File
+import java.security.MessageDigest
+import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * DID管理器
+ * DID 管理器（v0.2 wallet 形态）。
  *
- * 负责：
- * - 创建和管理DID身份
- * - 密钥对存储
- * - 签名和验证
- * - 信任设备管理
+ * 与旧版（v0.1）相比的变化：
+ *  - 多 DID 钱包（[identities] map + [activeDid] 指针），不再仅持单 DID
+ *  - 私钥加密落盘（[StrongBoxKeyManager.wrapEd25519Private]），不再明文 JSON
+ *  - 助记词（BIP-39，[MnemonicService]）支持，可恢复
+ *  - 旧 `did_keypair.json` 明文格式自动迁移到 `did_wallet.json`，旧文件 rename 备份
+ *
+ * 公开 API 向后兼容：
+ *  - [currentIdentity] / [sign] / [verify] / [createIdentity] / [trustedDevicesList] 等
+ *    保持不变；现有调用方无需修改
+ *  - 新增：[createIdentityWithMnemonic] / [importFromMnemonic] / [listIdentities]
+ *    / [switchActive] / [markMnemonicVerified]
+ *
+ * 设计文档：`docs/design/Android_重新定位_设计文档.md` v0.2 §5.2 + ADR-2。
  */
 @Singleton
 class DIDManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val didKeyResolver: DidKeyResolver
+    private val didKeyResolver: DidKeyResolver,
+    private val strongBoxKeyManager: StrongBoxKeyManager,
+    private val mnemonicService: MnemonicService,
 ) {
 
     companion object {
-        /** 密钥存储文件名 */
-        private const val KEY_FILE = "did_keypair.json"
-
-        /** 可信设备存储文件名 */
         private const val TRUSTED_DEVICES_FILE = "trusted_devices.json"
+        private const val WRAP_ALIAS_PREFIX = "did_wrap_"
+        private const val WRAP_ALIAS_HASH_BYTES = 8
     }
 
-    private val json = Json { prettyPrint = true }
+    private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
-    // 当前设备的DID身份
-    private var _currentIdentity = MutableStateFlow<DIDIdentity?>(null)
+    /** DID → 内存中的完整身份（含解密后的密钥对）。 */
+    private val identities = mutableMapOf<String, DIDIdentity>()
+
+    /** DID → 元数据（mnemonicVerified / hasMnemonic）。 */
+    private val entryMeta = mutableMapOf<String, EntryMetadata>()
+
+    /** 当前激活的 DID。 */
+    private var activeDid: String? = null
+
+    private val _currentIdentity = MutableStateFlow<DIDIdentity?>(null)
     val currentIdentity: StateFlow<DIDIdentity?> = _currentIdentity.asStateFlow()
 
-    // 可信设备列表
     private val trustedDevices = mutableMapOf<String, TrustedDevice>()
     private val _trustedDevicesList = MutableStateFlow<List<TrustedDevice>>(emptyList())
     val trustedDevicesList: StateFlow<List<TrustedDevice>> = _trustedDevicesList.asStateFlow()
 
+    // ─── lifecycle ──────────────────────────────────────────────────────
+
     /**
-     * 初始化DID管理器
+     * 初始化：尝试 1）加载现有 wallet；2）迁移旧明文格式；3）创建新 DID 作为兜底。
      */
     suspend fun initialize() {
-        Timber.i("Initializing DID Manager")
+        Timber.i("Initializing DID Manager (v0.2 wallet)")
 
-        // 加载或创建身份
-        val identity = loadIdentity() ?: createIdentity()
-        _currentIdentity.value = identity
+        if (loadWallet()) {
+            Timber.i("Wallet loaded with ${identities.size} identities, active=$activeDid")
+        } else if (migrateLegacyPlaintext()) {
+            Timber.i("Legacy plaintext DID migrated to encrypted wallet")
+        } else {
+            createIdentity(defaultDeviceName())
+            Timber.i("Fresh DID created (no existing identity)")
+        }
 
-        // 加载可信设备
         loadTrustedDevices()
+    }
 
-        Timber.i("DID Manager initialized: did=${identity.did}")
+    // ─── identity creation ──────────────────────────────────────────────
+
+    /**
+     * **向后兼容入口**：以纯随机熵创建新 DID。不返回助记词——这意味着用户**无法恢复**
+     * 该 DID。新代码应改用 [createIdentityWithMnemonic] 或 [importFromMnemonic]。
+     */
+    fun createIdentity(deviceName: String = defaultDeviceName()): DIDIdentity {
+        Timber.w(
+            "createIdentity(no-mnemonic) called — user has no backup path. " +
+                "Prefer createIdentityWithMnemonic for production flows."
+        )
+        val keyPair = Ed25519KeyPair.generate()
+        return finishAddIdentity(keyPair, deviceName, hasMnemonic = false, mnemonicVerified = false)
     }
 
     /**
-     * 创建新的DID身份
+     * 创建新 DID 并生成 24 字 BIP-39 助记词（256-bit entropy）。
      *
-     * @param deviceName 设备名称
-     * @return DID身份
+     * 调用者（UI）负责一次性展示 [NewIdentityResult.mnemonic] 给用户抄写，并通过
+     * [markMnemonicVerified] 确认。**助记词永不持久化**，丢失即无法恢复。
      */
-    fun createIdentity(deviceName: String = android.os.Build.MODEL ?: "Unknown Device"): DIDIdentity {
-        Timber.i("Creating new DID identity for device: $deviceName")
+    fun createIdentityWithMnemonic(deviceName: String = defaultDeviceName()): NewIdentityResult {
+        val mnemonic = mnemonicService.generate()
+        val seed = mnemonicService.toEd25519Seed(mnemonic)
+        val keyPair = Ed25519KeyPair.fromPrivateKey(seed)
+        val identity = finishAddIdentity(
+            keyPair = keyPair,
+            deviceName = deviceName,
+            hasMnemonic = true,
+            mnemonicVerified = false,
+        )
+        return NewIdentityResult(identity, mnemonic)
+    }
 
-        // 生成Ed25519密钥对
-        val keyPair = Ed25519KeyPair.generate()
+    /**
+     * 从已有助记词恢复 DID 到本设备钱包。
+     *
+     * - 若 derived DID 已在钱包中，则切换为 active 并返回已有身份
+     * - 若是新 DID，则添加到钱包；[DIDIdentityMeta.mnemonicVerified] 默认 true（用户能写
+     *   出助记词即已具备备份能力）
+     *
+     * @throws IllegalArgumentException 助记词非法
+     */
+    fun importFromMnemonic(
+        words: List<String>,
+        deviceName: String = defaultDeviceName(),
+    ): DIDIdentity {
+        require(mnemonicService.validate(words)) { "Invalid mnemonic phrase" }
 
-        // 生成did:key
+        val seed = mnemonicService.toEd25519Seed(words)
+        val keyPair = Ed25519KeyPair.fromPrivateKey(seed)
         val did = DidKeyGenerator.generate(keyPair)
 
-        // 生成DID Document
-        val didDocument = DidKeyGenerator.generateDocument(did)
+        identities[did]?.let { existing ->
+            Timber.i("Mnemonic import: DID $did already in wallet, switching active")
+            switchActive(did)
+            return existing
+        }
 
-        val identity = DIDIdentity(
-            did = did,
-            deviceName = deviceName,
+        return finishAddIdentity(
             keyPair = keyPair,
-            didDocument = didDocument,
-            createdAt = System.currentTimeMillis()
+            deviceName = deviceName,
+            hasMnemonic = true,
+            mnemonicVerified = true,
         )
+    }
 
-        // 保存到本地
-        saveIdentity(identity)
+    // ─── wallet management ──────────────────────────────────────────────
 
-        Timber.i("DID identity created: $did")
-
-        return identity
+    /** 列出钱包中所有 DID 的元数据。 */
+    fun listIdentities(): List<DIDIdentityMeta> {
+        return identities.values.map { identity ->
+            val meta = entryMeta[identity.did] ?: EntryMetadata(false, false)
+            DIDIdentityMeta(
+                did = identity.did,
+                deviceName = identity.deviceName,
+                createdAt = identity.createdAt,
+                isActive = identity.did == activeDid,
+                mnemonicVerified = meta.mnemonicVerified,
+                hasMnemonic = meta.hasMnemonic,
+            )
+        }
     }
 
     /**
-     * 获取当前DID
-     */
-    fun getCurrentDID(): String? {
-        return _currentIdentity.value?.did
-    }
-
-    /**
-     * 获取当前DID Document
-     */
-    fun getCurrentDIDDocument(): DIDDocument? {
-        return _currentIdentity.value?.didDocument
-    }
-
-    /**
-     * 签名消息
+     * 切换激活的 DID。
      *
-     * @param message 消息内容
-     * @return 签名
+     * @return false 表示 [did] 不在钱包内；true 表示切换成功并已持久化
      */
+    fun switchActive(did: String): Boolean {
+        val identity = identities[did] ?: return false
+        activeDid = did
+        _currentIdentity.value = identity
+        saveWallet()
+        Timber.i("Active DID switched to: $did")
+        return true
+    }
+
+    /**
+     * 用户确认已抄录助记词。
+     *
+     * @return false 表示 [did] 不在钱包 / 没有助记词可验证；true 表示已标记
+     */
+    fun markMnemonicVerified(did: String): Boolean {
+        val meta = entryMeta[did] ?: return false
+        if (!meta.hasMnemonic) {
+            Timber.w("Cannot mark mnemonic verified for DID without mnemonic: $did")
+            return false
+        }
+        if (meta.mnemonicVerified) return true
+        entryMeta[did] = meta.copy(mnemonicVerified = true)
+        saveWallet()
+        return true
+    }
+
+    // ─── signing & verification ─────────────────────────────────────────
+
+    fun getCurrentDID(): String? = _currentIdentity.value?.did
+
+    fun getCurrentDIDDocument(): DIDDocument? = _currentIdentity.value?.didDocument
+
     fun sign(message: ByteArray): ByteArray {
         val identity = _currentIdentity.value
             ?: throw IllegalStateException("No DID identity available")
-
         return SignatureUtils.sign(message, identity.keyPair)
     }
 
-    /**
-     * 签名消息（字符串）
-     */
-    fun sign(message: String): ByteArray {
-        return sign(message.toByteArray())
-    }
+    fun sign(message: String): ByteArray = sign(message.toByteArray())
 
-    /**
-     * 签名并附加时间戳
-     *
-     * @param message 消息内容
-     * @return 带时间戳的签名
-     */
     fun signWithTimestamp(message: ByteArray): TimestampedSignature {
         val identity = _currentIdentity.value
             ?: throw IllegalStateException("No DID identity available")
-
         return SignatureUtils.signWithTimestamp(message, identity.keyPair)
     }
 
-    /**
-     * 验证签名
-     *
-     * @param message 原始消息
-     * @param signature 签名
-     * @param did 签名者的DID
-     * @return 是否验证通过
-     */
     suspend fun verify(message: ByteArray, signature: ByteArray, did: String): Boolean {
         return try {
-            // 解析DID获取公钥
             val publicKey = DidKeyGenerator.extractPublicKey(did)
-
-            // 验证签名
             SignatureUtils.verify(message, signature, publicKey)
         } catch (e: Exception) {
             Timber.e(e, "Signature verification failed")
@@ -172,27 +246,15 @@ class DIDManager @Inject constructor(
         }
     }
 
-    /**
-     * 验证签名（字符串消息）
-     */
     suspend fun verify(message: String, signature: ByteArray, did: String): Boolean {
         return verify(message.toByteArray(), signature, did)
     }
 
-    /**
-     * 验证带时间戳的签名
-     *
-     * @param message 原始消息
-     * @param timestampedSignature 带时间戳的签名
-     * @param did 签名者的DID
-     * @param maxAgeMs 最大时间差
-     * @return 是否验证通过
-     */
     suspend fun verifyWithTimestamp(
         message: ByteArray,
         timestampedSignature: TimestampedSignature,
         did: String,
-        maxAgeMs: Long = 60000
+        maxAgeMs: Long = 60000,
     ): Boolean {
         return try {
             val publicKey = DidKeyGenerator.extractPublicKey(did)
@@ -203,202 +265,281 @@ class DIDManager @Inject constructor(
         }
     }
 
-    /**
-     * 添加可信设备
-     *
-     * @param did 设备的DID
-     * @param deviceName 设备名称
-     * @param publicKey 公钥
-     */
+    // ─── trusted devices (unchanged from v0.1) ──────────────────────────
+
     fun addTrustedDevice(did: String, deviceName: String, publicKey: ByteArray? = null) {
         Timber.i("Adding trusted device: $did ($deviceName)")
-
         val device = TrustedDevice(
             did = did,
             deviceName = deviceName,
             publicKey = publicKey ?: DidKeyGenerator.extractPublicKey(did),
-            trustedAt = System.currentTimeMillis()
+            trustedAt = System.currentTimeMillis(),
         )
-
         trustedDevices[did] = device
         _trustedDevicesList.value = trustedDevices.values.toList()
-
         saveTrustedDevices()
     }
 
-    /**
-     * 移除可信设备
-     */
     fun removeTrustedDevice(did: String) {
         Timber.i("Removing trusted device: $did")
-
         trustedDevices.remove(did)
         _trustedDevicesList.value = trustedDevices.values.toList()
-
         saveTrustedDevices()
     }
 
-    /**
-     * 检查设备是否可信
-     */
-    fun isTrustedDevice(did: String): Boolean {
-        return trustedDevices.containsKey(did)
+    fun isTrustedDevice(did: String): Boolean = trustedDevices.containsKey(did)
+
+    fun getTrustedDevice(did: String): TrustedDevice? = trustedDevices[did]
+
+    suspend fun resolveDID(did: String): DIDDocument? = didKeyResolver.resolveDocument(did)
+
+    // ─── internal helpers ───────────────────────────────────────────────
+
+    private fun defaultDeviceName(): String = android.os.Build.MODEL ?: "Unknown Device"
+
+    private fun finishAddIdentity(
+        keyPair: Ed25519KeyPair,
+        deviceName: String,
+        hasMnemonic: Boolean,
+        mnemonicVerified: Boolean,
+    ): DIDIdentity {
+        val did = DidKeyGenerator.generate(keyPair)
+        val didDocument = DidKeyGenerator.generateDocument(did)
+        val identity = DIDIdentity(
+            did = did,
+            deviceName = deviceName,
+            keyPair = keyPair,
+            didDocument = didDocument,
+            createdAt = System.currentTimeMillis(),
+        )
+        identities[did] = identity
+        entryMeta[did] = EntryMetadata(hasMnemonic = hasMnemonic, mnemonicVerified = mnemonicVerified)
+        activeDid = did
+        _currentIdentity.value = identity
+        saveWallet()
+        Timber.i("DID added to wallet: $did (hasMnemonic=$hasMnemonic, verified=$mnemonicVerified)")
+        return identity
     }
 
-    /**
-     * 获取可信设备
-     */
-    fun getTrustedDevice(did: String): TrustedDevice? {
-        return trustedDevices[did]
+    /** 为某个 DID 生成 deterministic wrapper key alias（避免不同 DID 共享一个 wrap key）。 */
+    private fun walletAliasFor(did: String): String {
+        val hash = MessageDigest.getInstance("SHA-256").digest(did.toByteArray(Charsets.UTF_8))
+        val short = hash.copyOfRange(0, WRAP_ALIAS_HASH_BYTES).toHexString()
+        return WRAP_ALIAS_PREFIX + short
     }
 
-    /**
-     * 解析DID
-     */
-    suspend fun resolveDID(did: String): DIDDocument? {
-        return didKeyResolver.resolveDocument(did)
-    }
-
-    /**
-     * 保存身份到本地
-     */
-    private fun saveIdentity(identity: DIDIdentity) {
+    private fun saveWallet() {
+        val current = activeDid
+            ?: throw IllegalStateException("Cannot save wallet without active DID")
+        if (identities.isEmpty()) {
+            throw IllegalStateException("Cannot save empty wallet")
+        }
         try {
-            val keyPairJson = Ed25519KeyPairJson.fromKeyPair(identity.keyPair)
-            val data = IdentityStorage(
-                did = identity.did,
-                deviceName = identity.deviceName,
-                keyPair = keyPairJson,
-                createdAt = identity.createdAt
+            val storage = WalletStorage(
+                version = WalletStorage.CURRENT_VERSION,
+                activeDid = current,
+                identities = identities.values.map { toEntry(it) },
             )
-
-            val jsonString = json.encodeToString(data)
-            val file = File(context.filesDir, KEY_FILE)
-            file.writeText(jsonString)
-
-            Timber.d("Identity saved to: ${file.absolutePath}")
+            val file = File(context.filesDir, WalletStorage.FILE_NAME)
+            file.writeText(json.encodeToString(storage))
+            Timber.d("Wallet saved: ${storage.identities.size} identities → ${file.absolutePath}")
         } catch (e: Exception) {
-            Timber.e(e, "Failed to save identity")
+            Timber.e(e, "Failed to save wallet")
+            throw e
         }
     }
 
-    /**
-     * 从本地加载身份
-     */
-    private fun loadIdentity(): DIDIdentity? {
+    private fun toEntry(identity: DIDIdentity): WalletIdentityEntry {
+        val alias = walletAliasFor(identity.did)
+        val wrapped = strongBoxKeyManager.wrapEd25519Private(alias, identity.keyPair.privateKey)
+        val meta = entryMeta[identity.did] ?: EntryMetadata(false, false)
+        val b64 = Base64.getEncoder()
+        return WalletIdentityEntry(
+            did = identity.did,
+            deviceName = identity.deviceName,
+            createdAt = identity.createdAt,
+            publicKeyHex = identity.keyPair.publicKey.toHexString(),
+            wrappedPrivate = WrappedPrivateKeyStorage(
+                version = wrapped.version,
+                keystoreAlias = wrapped.keystoreAlias,
+                ivBase64 = b64.encodeToString(wrapped.iv),
+                ciphertextBase64 = b64.encodeToString(wrapped.ciphertext),
+            ),
+            mnemonicVerified = meta.mnemonicVerified,
+            hasMnemonic = meta.hasMnemonic,
+        )
+    }
+
+    private fun loadWallet(): Boolean {
+        val file = File(context.filesDir, WalletStorage.FILE_NAME)
+        if (!file.exists()) return false
         return try {
-            val file = File(context.filesDir, KEY_FILE)
-            if (!file.exists()) {
-                Timber.d("No existing identity found")
-                return null
-            }
+            val storage = json.decodeFromString<WalletStorage>(file.readText())
+            identities.clear()
+            entryMeta.clear()
+            storage.identities.forEach { entry -> loadEntry(entry) }
+            activeDid = storage.activeDid
+            _currentIdentity.value = identities[storage.activeDid]
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load wallet from ${file.absolutePath}")
+            false
+        }
+    }
 
-            val jsonString = file.readText()
-            val data = json.decodeFromString<IdentityStorage>(jsonString)
+    private fun loadEntry(entry: WalletIdentityEntry) {
+        val b64 = Base64.getDecoder()
+        val wrapped = WrappedEd25519Key(
+            version = entry.wrappedPrivate.version,
+            keystoreAlias = entry.wrappedPrivate.keystoreAlias,
+            iv = b64.decode(entry.wrappedPrivate.ivBase64),
+            ciphertext = b64.decode(entry.wrappedPrivate.ciphertextBase64),
+        )
+        val privateBytes = strongBoxKeyManager.unwrapEd25519Private(wrapped)
+        val keyPair = Ed25519KeyPair.fromPrivateKey(privateBytes)
+        // sanity check: stored public key matches derived public key
+        val derivedPubHex = keyPair.publicKey.toHexString()
+        if (derivedPubHex != entry.publicKeyHex) {
+            throw IllegalStateException(
+                "Public key mismatch for DID ${entry.did}: " +
+                    "stored=${entry.publicKeyHex}, derived=$derivedPubHex"
+            )
+        }
+        val identity = DIDIdentity(
+            did = entry.did,
+            deviceName = entry.deviceName,
+            keyPair = keyPair,
+            didDocument = DidKeyGenerator.generateDocument(entry.did),
+            createdAt = entry.createdAt,
+        )
+        identities[entry.did] = identity
+        entryMeta[entry.did] = EntryMetadata(
+            hasMnemonic = entry.hasMnemonic,
+            mnemonicVerified = entry.mnemonicVerified,
+        )
+    }
 
-            val keyPair = data.keyPair.toKeyPair()
-            val didDocument = DidKeyGenerator.generateDocument(data.did)
+    /**
+     * 检测旧 `did_keypair.json` 明文格式并迁移到加密 wallet。
+     *
+     * 流程：
+     *  1. 读旧文件 → 解析 [LegacyIdentityStorage]
+     *  2. 用 StrongBoxKeyManager 加密私钥后保存为 wallet
+     *  3. 旧文件 rename 为 `.migrated.bak`（保留以备人工 rollback；不删除）
+     *
+     * @return true 迁移成功；false 旧文件不存在或迁移失败
+     */
+    private fun migrateLegacyPlaintext(): Boolean {
+        val legacy = File(context.filesDir, WalletStorage.LEGACY_FILE_NAME)
+        if (!legacy.exists()) return false
+        return try {
+            val legacyText = legacy.readText()
+            val legacyData = json.decodeFromString<LegacyIdentityStorage>(legacyText)
+            val keyPair = legacyData.keyPair.toKeyPair()
+            require(keyPair.hasPrivateKey()) { "Legacy storage missing private key" }
 
-            Timber.d("Identity loaded: ${data.did}")
-
-            DIDIdentity(
-                did = data.did,
-                deviceName = data.deviceName,
+            val didDocument = DidKeyGenerator.generateDocument(legacyData.did)
+            val identity = DIDIdentity(
+                did = legacyData.did,
+                deviceName = legacyData.deviceName,
                 keyPair = keyPair,
                 didDocument = didDocument,
-                createdAt = data.createdAt
+                createdAt = legacyData.createdAt,
             )
+            identities[identity.did] = identity
+            entryMeta[identity.did] = EntryMetadata(
+                hasMnemonic = false,
+                mnemonicVerified = false,
+            )
+            activeDid = identity.did
+            _currentIdentity.value = identity
+            saveWallet()
+
+            val backup = File(
+                context.filesDir,
+                WalletStorage.LEGACY_FILE_NAME + WalletStorage.LEGACY_BACKUP_SUFFIX,
+            )
+            if (backup.exists()) backup.delete()
+            legacy.renameTo(backup)
+
+            Timber.i(
+                "Migrated legacy plaintext DID ${identity.did} → wallet (backup at ${backup.absolutePath})"
+            )
+            true
         } catch (e: Exception) {
-            Timber.e(e, "Failed to load identity")
-            null
+            Timber.e(e, "Legacy migration failed")
+            false
         }
     }
 
-    /**
-     * 保存可信设备列表
-     */
     private fun saveTrustedDevices() {
         try {
             val data = trustedDevices.values.toList()
-            val jsonString = json.encodeToString(data)
-            val file = File(context.filesDir, TRUSTED_DEVICES_FILE)
-            file.writeText(jsonString)
-
-            Timber.d("Trusted devices saved: ${data.size} devices")
+            val text = json.encodeToString(data)
+            File(context.filesDir, TRUSTED_DEVICES_FILE).writeText(text)
         } catch (e: Exception) {
             Timber.e(e, "Failed to save trusted devices")
         }
     }
 
-    /**
-     * 加载可信设备列表
-     */
     private fun loadTrustedDevices() {
         try {
             val file = File(context.filesDir, TRUSTED_DEVICES_FILE)
-            if (!file.exists()) {
-                Timber.d("No trusted devices file found")
-                return
-            }
-
-            val jsonString = file.readText()
-            val data = json.decodeFromString<List<TrustedDevice>>(jsonString)
-
+            if (!file.exists()) return
+            val data = json.decodeFromString<List<TrustedDevice>>(file.readText())
             trustedDevices.clear()
-            data.forEach { device ->
-                trustedDevices[device.did] = device
-            }
+            data.forEach { trustedDevices[it.did] = it }
             _trustedDevicesList.value = trustedDevices.values.toList()
-
-            Timber.d("Trusted devices loaded: ${data.size} devices")
         } catch (e: Exception) {
             Timber.e(e, "Failed to load trusted devices")
         }
     }
+
+    // ─── private types ──────────────────────────────────────────────────
+
+    private data class EntryMetadata(
+        val hasMnemonic: Boolean,
+        val mnemonicVerified: Boolean,
+    )
+
+    /** 旧版（v0.1）单 DID 落盘格式，仅用于迁移读取。 */
+    @Serializable
+    private data class LegacyIdentityStorage(
+        val did: String,
+        val deviceName: String,
+        val keyPair: Ed25519KeyPairJson,
+        val createdAt: Long,
+    )
 }
 
+// ─── existing public data types (unchanged from v0.1) ──────────────────
+
 /**
- * DID身份
+ * DID 身份。
  */
 data class DIDIdentity(
-    /** DID标识符 */
     val did: String,
-
-    /** 设备名称 */
     val deviceName: String,
-
-    /** 密钥对 */
     val keyPair: Ed25519KeyPair,
-
-    /** DID Document */
     val didDocument: DIDDocument,
-
-    /** 创建时间 */
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
 )
 
 /**
- * 可信设备
+ * 可信设备。
  */
 @kotlinx.serialization.Serializable
 data class TrustedDevice(
-    /** DID标识符 */
     val did: String,
-
-    /** 设备名称 */
     val deviceName: String,
-
-    /** 公钥（十六进制） */
     val publicKey: String,
-
-    /** 信任时间 */
-    val trustedAt: Long
+    val trustedAt: Long,
 ) {
     constructor(did: String, deviceName: String, publicKey: ByteArray, trustedAt: Long) : this(
         did = did,
         deviceName = deviceName,
         publicKey = publicKey.joinToString("") { "%02x".format(it) },
-        trustedAt = trustedAt
+        trustedAt = trustedAt,
     )
 
     fun getPublicKeyBytes(): ByteArray {
@@ -407,14 +548,3 @@ data class TrustedDevice(
             .toByteArray()
     }
 }
-
-/**
- * 身份存储格式
- */
-@kotlinx.serialization.Serializable
-private data class IdentityStorage(
-    val did: String,
-    val deviceName: String,
-    val keyPair: Ed25519KeyPairJson,
-    val createdAt: Long
-)

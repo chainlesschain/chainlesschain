@@ -44,6 +44,9 @@ android {
 }
 
 dependencies {
+    // Project modules
+    implementation(project(":core-security"))
+
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
@@ -65,6 +68,9 @@ dependencies {
     // BouncyCastle (for Ed25519 support)
     implementation("org.bouncycastle:bcprov-jdk18on:1.77")
 
+    // BIP-39 mnemonic generation / restore (English word list bundled)
+    implementation("io.github.novacrypto:BIP39:2019.01.27")
+
     // Multibase/Multicodec encoding (for did:key)
     implementation("com.github.multiformats:java-multibase:v1.1.1")
 
@@ -79,6 +85,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.mockito:mockito-core:5.5.0")
+    testImplementation("io.mockk:mockk:1.13.9")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
