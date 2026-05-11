@@ -1,5 +1,8 @@
 package com.chainlesschain.android.remote.crypto
 
+import android.util.Base64
+import io.mockk.every
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -28,10 +31,23 @@ class DIDSignerTest {
 
     @Before
     fun setup() {
-        // Robolectric provides android.util.Base64 natively via shadow, so we don't need
-        // to mockk it. The previous mockkStatic(Base64::class) + answers { java.util.Base64... }
-        // pattern caused intermittent "every/verify {} block were run several times" mockk
-        // flakes when the answers-lambda re-recorded across tests in the same class.
+        // Restored from RZ4 — removing this caused ALL 10 tests to fail with
+        // `NoClassDefFoundError: android.app.SystemServiceRegistry` because Robolectric
+        // then tries to deeply init the Android class chain to get the real Base64
+        // shadow, and SystemServiceRegistry isn't on the unit-test classpath.
+        // Hypothesis "Robolectric provides android.util.Base64 natively without mockking"
+        // was wrong; the mockkStatic short-circuits Base64 to java.util.Base64 and
+        // avoids Robolectric's full SDK class-init.
+        mockkStatic(Base64::class)
+        every { Base64.encodeToString(any(), any()) } answers {
+            java.util.Base64.getEncoder().encodeToString(firstArg())
+        }
+        every { Base64.decode(any<String>(), any()) } answers {
+            java.util.Base64.getDecoder().decode(firstArg<String>())
+        }
+        every { Base64.decode(any<ByteArray>(), any()) } answers {
+            firstArg()
+        }
 
         // Use in-memory test implementation to avoid EncryptedSharedPreferences/KeyStore
         // (not available in Robolectric). AndroidDIDKeyStore requires Android Keystore hardware.
