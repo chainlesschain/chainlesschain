@@ -191,27 +191,27 @@ class P2PClientTest {
     }
 
     @Test
-    fun `test connection state flow updates`() = runTest {
-        // Arrange
-        // Capture initial state before launching collector — MutableStateFlow.collect only
-        // replays the latest value, so a collect started after p2pClient.connect() runs would
-        // miss the DISCONNECTED → CONNECTING → CONNECTED transitions and only see CONNECTED.
+    fun `test connection state flow updates`() = runBlocking {
+        // Use runBlocking with real delays — production p2pClient.connect uses
+        // withContext(Dispatchers.IO) which schedules on real IO threads. In runTest's
+        // StandardTestDispatcher the drop(1) + runCurrent + advanceUntilIdle dance
+        // wasn't reliably catching cross-dispatcher emissions; real-time delay closes
+        // that gap. Same pattern as `test disconnect completes pending requests`
+        // (caf512f5e). Capture initial state separately since MutableStateFlow.collect
+        // only replays the *current* value to a new subscriber.
         val states = mutableListOf<ConnectionState>()
-        states.add(p2pClient.connectionState.value)
+        states.add(p2pClient.connectionState.value) // DISCONNECTED captured up-front
 
         val job = launch {
             p2pClient.connectionState.drop(1).collect { states.add(it) }
         }
-        // Ensure collector is registered before mutating state.
-        runCurrent()
+        delay(100) // give the collector a real moment to register
 
         coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
 
         // Act
         p2pClient.connect("peer-123", "did:example:123")
-
-        // Wait for state updates to propagate through the collector.
-        advanceUntilIdle()
+        delay(300) // real-time wait for emissions to cross dispatchers
 
         // Assert
         assertTrue(states.contains(ConnectionState.DISCONNECTED)) // Initial state

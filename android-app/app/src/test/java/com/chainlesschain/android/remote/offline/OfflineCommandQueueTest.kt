@@ -150,10 +150,16 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.getPendingCommands() } returns commands
         coEvery { mockDao.update(any()) } just Runs
         coEvery { mockDao.deleteById(any()) } just Runs
-        // 3 args needed (method, params, timeout) — without explicit timeout matcher, mockk
-        // evaluates the production default `timeout: Long = config.requestTimeout` while
-        // recording the stub, which NPEs on `mockP2PClient.config` (private val on the mock).
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.success(mapOf("status" to "ok"))
+        // Use `coAnswers { Result.success(...) }` not `returns Result.success(...)`.
+        // The latter doesn't match production's actual invocation (likely because
+        // `Result<T>` is an inline value class and mockk's eager auto-boxing in
+        // `returns` doesn't align with the boxed return that mockk records at call
+        // time). coAnswers fires lazily on each invocation and matches reliably —
+        // same pattern the previously-passing `test dequeue marks command as sending
+        // before send` test in this file uses.
+        coEvery {
+            mockP2PClient.sendCommand<Any>(any(), any(), any())
+        } coAnswers { Result.success(mapOf("status" to "ok")) }
 
         // Act
         val result = queue.dequeueAndSend()
@@ -193,9 +199,14 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.update(any()) } just Runs
         coEvery { mockDao.deleteById("cmd-success") } just Runs
 
-        // First command succeeds, second fails — 3rd `any()` matches the `timeout` default
-        coEvery { mockP2PClient.sendCommand<Any>("ai.chat", any(), any()) } returns Result.success(mapOf("ok" to true))
-        coEvery { mockP2PClient.sendCommand<Any>("system.crash", any(), any()) } returns Result.failure(Exception("Command failed"))
+        // First command succeeds, second fails — coAnswers for the same Result<Any>
+        // inline-value-class reason described in `test dequeue and send success`.
+        coEvery {
+            mockP2PClient.sendCommand<Any>("ai.chat", any(), any())
+        } coAnswers { Result.success(mapOf("ok" to true)) }
+        coEvery {
+            mockP2PClient.sendCommand<Any>("system.crash", any(), any())
+        } coAnswers { Result.failure(Exception("Command failed")) }
 
         // Act
         val result = queue.dequeueAndSend()
@@ -222,7 +233,10 @@ class OfflineCommandQueueTest {
 
         coEvery { mockDao.getPendingCommands() } returns listOf(command)
         coEvery { mockDao.update(any()) } just Runs
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.failure(Exception("Network error"))
+        // coAnswers for same Result<Any> inline-class reason as the other dequeue tests.
+        coEvery {
+            mockP2PClient.sendCommand<Any>(any(), any(), any())
+        } coAnswers { Result.failure(Exception("Network error")) }
 
         // Act
         val result = queue.dequeueAndSend()
