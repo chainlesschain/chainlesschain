@@ -6,7 +6,10 @@ import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -137,7 +140,10 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.getPendingCommands() } returns commands
         coEvery { mockDao.update(any()) } just Runs
         coEvery { mockDao.deleteById(any()) } just Runs
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any()) } returns Result.success(mapOf("status" to "ok"))
+        // 3 args needed (method, params, timeout) — without explicit timeout matcher, mockk
+        // evaluates the production default `timeout: Long = config.requestTimeout` while
+        // recording the stub, which NPEs on `mockP2PClient.config` (private val on the mock).
+        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.success(mapOf("status" to "ok"))
 
         // Act
         val result = queue.dequeueAndSend()
@@ -146,7 +152,7 @@ class OfflineCommandQueueTest {
         assertTrue(result.isSuccess)
         assertEquals(2, result.getOrNull())
         coVerify(exactly = 2) { mockDao.deleteById(any()) }
-        coVerify(exactly = 2) { mockP2PClient.sendCommand<Any>(any(), any()) }
+        coVerify(exactly = 2) { mockP2PClient.sendCommand<Any>(any(), any(), any()) }
     }
 
     @Test
@@ -177,9 +183,9 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.update(any()) } just Runs
         coEvery { mockDao.deleteById("cmd-success") } just Runs
 
-        // First command succeeds, second fails
-        coEvery { mockP2PClient.sendCommand<Any>("ai.chat", any()) } returns Result.success(mapOf("ok" to true))
-        coEvery { mockP2PClient.sendCommand<Any>("system.crash", any()) } returns Result.failure(Exception("Command failed"))
+        // First command succeeds, second fails — 3rd `any()` matches the `timeout` default
+        coEvery { mockP2PClient.sendCommand<Any>("ai.chat", any(), any()) } returns Result.success(mapOf("ok" to true))
+        coEvery { mockP2PClient.sendCommand<Any>("system.crash", any(), any()) } returns Result.failure(Exception("Command failed"))
 
         // Act
         val result = queue.dequeueAndSend()
@@ -206,7 +212,7 @@ class OfflineCommandQueueTest {
 
         coEvery { mockDao.getPendingCommands() } returns listOf(command)
         coEvery { mockDao.update(any()) } just Runs
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any()) } returns Result.failure(Exception("Network error"))
+        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.failure(Exception("Network error"))
 
         // Act
         val result = queue.dequeueAndSend()
@@ -239,7 +245,7 @@ class OfflineCommandQueueTest {
 
         coEvery { mockDao.getPendingCommands() } returns listOf(command)
         coEvery { mockDao.update(any()) } just Runs
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any()) } returns Result.failure(Exception("Still failing"))
+        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.failure(Exception("Still failing"))
 
         // Act
         queue.dequeueAndSend()
@@ -330,7 +336,7 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.countPending() } returns 2
 
         connectionStateFlow.value = ConnectionState.CONNECTED
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any()) } returns Result.success(mapOf("ok" to true))
+        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } returns Result.success(mapOf("ok" to true))
 
         // Act
         val result = queue.retryFailedCommands()
@@ -368,19 +374,28 @@ class OfflineCommandQueueTest {
     }
 
     @Test
-    fun `test auto send starts when connected`() = runTest {
-        // Arrange
+    fun `test auto send starts when connected`() = runBlocking {
+        // Arrange — `initialize()` is what registers the connectionState collector that
+        // triggers startAutoSend on CONNECTED. The test must invoke it (launched, since
+        // it never returns — it keeps the collect open). runBlocking + real delays
+        // because the auto-send loop runs on the queue's internal Dispatchers.IO scope.
         coEvery { mockDao.countPending() } returns 3
         coEvery { mockDao.getPendingCommands() } returns emptyList()
+        coEvery { mockDao.getRecentCommands(any()) } returns emptyList()
+
+        val initJob = launch { queue.initialize() }
+        delay(200) // give the collector time to register
 
         // Act
         connectionStateFlow.value = ConnectionState.CONNECTED
 
-        // Wait for auto-send to check
-        kotlinx.coroutines.delay(100)
+        // Wait for auto-send to fire countPending() at least once
+        delay(500)
 
         // Assert
         coVerify(atLeast = 1) { mockDao.countPending() }
+
+        initJob.cancel()
     }
 
     @Test
@@ -441,7 +456,7 @@ class OfflineCommandQueueTest {
         coEvery { mockDao.getPendingCommands() } returns listOf(command)
         coEvery { mockDao.update(any()) } just Runs
         coEvery { mockDao.deleteById(any()) } just Runs
-        coEvery { mockP2PClient.sendCommand<Any>(any(), any()) } coAnswers {
+        coEvery { mockP2PClient.sendCommand<Any>(any(), any(), any()) } coAnswers {
             // Verify status was set to "sending" before this call
             coVerify { mockDao.update(match { it.status == "sending" }) }
             Result.success(mapOf("ok" to true))
