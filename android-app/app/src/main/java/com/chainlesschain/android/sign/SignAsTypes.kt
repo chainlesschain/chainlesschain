@@ -57,11 +57,26 @@ data class SignAsResponse(
  * 测试实现：FakeApprovalGate 返回 scripted 结果。
  */
 interface ApprovalGate {
+    /** v1.0 原签名 — Sign 类审批走这条；调用方默认场景。 */
     suspend fun requestApproval(
         payloadDescription: String,
         payloadHash: String,
         requireBiometric: Boolean,
     ): ApprovalResult
+
+    /**
+     * M4 ApprovalUI — 带 [ApprovalCategory] 的扩展签名。Cowork / Marketplace /
+     * SystemCritical 场景的 dialog 渲染按 category 适配。
+     *
+     * 默认 impl forward 到 3-arg 版本（fake gate / 旧 test 兼容）；
+     * [AndroidApprovalGate] 真实装把 category 透传到 PendingRequest，UI 端切换 dialog UX。
+     */
+    suspend fun requestApproval(
+        category: ApprovalCategory,
+        payloadDescription: String,
+        payloadHash: String,
+        requireBiometric: Boolean,
+    ): ApprovalResult = requestApproval(payloadDescription, payloadHash, requireBiometric)
 }
 
 /** [ApprovalGate.requestApproval] 的返回结果。 */

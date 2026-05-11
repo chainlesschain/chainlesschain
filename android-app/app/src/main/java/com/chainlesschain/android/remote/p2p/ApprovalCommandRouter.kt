@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.p2p
 
+import com.chainlesschain.android.sign.ApprovalCategory
 import com.chainlesschain.android.sign.ApprovalGate
 import timber.log.Timber
 import javax.inject.Inject
@@ -59,8 +60,9 @@ class ApprovalCommandRouter @Inject constructor(
         val requestId = params["requestId"] as? String
             ?: throw IllegalArgumentException("approval.request: missing 'requestId' param")
 
+        val originalMethod = params["method"] as? String
         val description = (params["payloadDescription"] as? String)
-            ?: (params["method"] as? String)
+            ?: originalMethod
             ?: throw IllegalArgumentException(
                 "approval.request: missing both 'payloadDescription' and 'method' params"
             )
@@ -69,12 +71,16 @@ class ApprovalCommandRouter @Inject constructor(
 
         val requireBiometric = (params["requireBiometric"] as? Boolean) ?: true
 
+        // M4 ApprovalUI: 从原 method 推断 category 让 dialog 渲染适配
+        val category = ApprovalCategory.fromMethod(originalMethod)
+
         Timber.d(
-            "approval.request routed: id=%s description=%s requireBio=%s",
-            requestId, description, requireBiometric
+            "approval.request routed: id=%s category=%s description=%s requireBio=%s",
+            requestId, category, description, requireBiometric
         )
 
         val result = approvalGate.requestApproval(
+            category = category,
             payloadDescription = description,
             payloadHash = hash,
             requireBiometric = requireBiometric,

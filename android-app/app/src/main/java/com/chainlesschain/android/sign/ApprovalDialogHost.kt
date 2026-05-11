@@ -12,8 +12,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,6 +80,7 @@ fun ApprovalDialogHost(
         val tier = remember { strongBoxKeyManager.detectMaxTier() }
 
         ApprovalDialog(
+            category = req.category,
             description = req.payloadDescription,
             payloadHash = req.payloadHash,
             requireBiometric = req.requireBiometric,
@@ -133,6 +138,7 @@ fun ApprovalDialogHost(
 
 @Composable
 private fun ApprovalDialog(
+    category: ApprovalCategory,
     description: String,
     payloadHash: String,
     requireBiometric: Boolean,
@@ -145,13 +151,13 @@ private fun ApprovalDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                Icons.Default.Security,
+                iconForCategory(category),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = tintForCategory(category),
                 modifier = Modifier.size(36.dp),
             )
         },
-        title = { Text("签名请求确认") },
+        title = { Text(titleForCategory(category)) },
         text = {
             Column {
                 Text(
@@ -233,8 +239,7 @@ private fun ApprovalDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "仅当确认这是你发起的操作时才同意。签名后桌面将拿到 Ed25519 签名" +
-                        if (requireBiometric) "，需先通过生物识别。" else "。",
+                    text = footerForCategory(category, requireBiometric),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = if (tier.isHardwareBacked) FontWeight.Normal else FontWeight.SemiBold,
@@ -245,7 +250,7 @@ private fun ApprovalDialog(
             Button(
                 onClick = onApprove,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = tintForCategory(category),
                 ),
             ) {
                 if (requireBiometric) {
@@ -259,5 +264,43 @@ private fun ApprovalDialog(
             TextButton(onClick = onDeny) { Text("拒绝") }
         },
     )
+}
+
+// ===== M4 ApprovalUI category 适配辅助 =====
+
+private fun iconForCategory(category: ApprovalCategory): ImageVector = when (category) {
+    ApprovalCategory.Sign -> Icons.Default.Security
+    ApprovalCategory.Cowork -> Icons.Default.Groups
+    ApprovalCategory.Marketplace -> Icons.Default.ShoppingCart
+    ApprovalCategory.SystemCritical -> Icons.Default.Warning
+}
+
+@Composable
+private fun tintForCategory(category: ApprovalCategory): androidx.compose.ui.graphics.Color = when (category) {
+    ApprovalCategory.Sign -> MaterialTheme.colorScheme.primary
+    ApprovalCategory.Cowork -> MaterialTheme.colorScheme.primary
+    ApprovalCategory.Marketplace -> MaterialTheme.colorScheme.tertiary
+    ApprovalCategory.SystemCritical -> MaterialTheme.colorScheme.error
+}
+
+private fun titleForCategory(category: ApprovalCategory): String = when (category) {
+    ApprovalCategory.Sign -> "签名请求确认"
+    ApprovalCategory.Cowork -> "Cowork 任务审批"
+    ApprovalCategory.Marketplace -> "交易审批"
+    ApprovalCategory.SystemCritical -> "关键操作审批"
+}
+
+private fun footerForCategory(category: ApprovalCategory, requireBiometric: Boolean): String {
+    val bioSuffix = if (requireBiometric) "，需先通过生物识别。" else "。"
+    return when (category) {
+        ApprovalCategory.Sign ->
+            "仅当确认这是你发起的操作时才同意。签名后桌面将拿到 Ed25519 签名$bioSuffix"
+        ApprovalCategory.Cowork ->
+            "Cowork 多智能体协作请求审批。同意后桌面会启动该任务$bioSuffix"
+        ApprovalCategory.Marketplace ->
+            "⚠️ 高风险交易/支付操作，仅当 100% 确认时同意$bioSuffix"
+        ApprovalCategory.SystemCritical ->
+            "⚠️ 系统级关键操作（不可逆 / 影响桌面状态）。请确认这是预期行为$bioSuffix"
+    }
 }
 

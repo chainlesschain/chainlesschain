@@ -16,13 +16,15 @@ class CompositeCommandRouterTest {
 
     private lateinit var syncRouter: SyncCommandRouter
     private lateinit var approvalRouter: ApprovalCommandRouter
+    private lateinit var taskRouter: TaskProgressCommandRouter
     private lateinit var composite: CompositeCommandRouter
 
     @Before
     fun setup() {
         syncRouter = mockk(relaxed = true)
         approvalRouter = mockk(relaxed = true)
-        composite = CompositeCommandRouter(syncRouter, approvalRouter)
+        taskRouter = mockk(relaxed = true)
+        composite = CompositeCommandRouter(syncRouter, approvalRouter, taskRouter)
     }
 
     @Test
@@ -90,5 +92,26 @@ class CompositeCommandRouterTest {
             }
         }
         assertTrue(ex.message!!.contains("Method namespace not handled"))
+    }
+
+    @Test
+    fun `task_update routes to TaskProgressCommandRouter`() = runTest {
+        coEvery { taskRouter.route("task.update", any()) } returns mapOf("ok" to true)
+
+        val result = composite.route("task.update", mapOf("id" to "t", "title" to "x"))
+
+        assertEquals(mapOf("ok" to true), result)
+        coVerify(exactly = 1) { taskRouter.route("task.update", any()) }
+        coVerify(exactly = 0) { syncRouter.route(any(), any()) }
+        coVerify(exactly = 0) { approvalRouter.route(any(), any()) }
+    }
+
+    @Test
+    fun `task_complete routes to TaskProgressCommandRouter`() = runTest {
+        coEvery { taskRouter.route("task.complete", any()) } returns mapOf("ok" to true, "found" to true)
+
+        composite.route("task.complete", mapOf("id" to "t"))
+
+        coVerify(exactly = 1) { taskRouter.route("task.complete", mapOf("id" to "t")) }
     }
 }
