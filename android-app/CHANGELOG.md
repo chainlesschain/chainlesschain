@@ -7,6 +7,49 @@
 
 ---
 
+## [1.0.0] - 2026-05-12 — GA
+
+**状态**: 🎉 v1.0 GA — Android 重新定位 ADR 1-8 全部 accepted + code 部分落地。
+**versionCode**: 100 / **versionName**: 1.0.0
+
+### 📐 三层定位（L1 Wallet + L2 Capture + L3 REMOTE）
+
+Android v1.0 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 二端分工。详见 [Android 重新定位设计文档](../docs/design/Android_重新定位_设计文档.md)。
+
+### 🎤 M3 L2 捕获 5 件齐落 (+3,861 行 / 99 新单测)
+
+- **VoiceMode 连续语音串联** — `47bebed80` — 长按麦克风 → ASR (火山 SeedASR) → REMOTE LLM chat → TTS → 自动 continuous 循环。22 单测。
+- **CameraOCR 拍照入 KB** — `a69269ced` — TakePicture → ai.ocrImage → 用户编辑 → knowledge.createNote。20 单测。
+- **LocationTagger GPS provider 接线** — `3f5ac8647` — Play Services FusedLocationProviderClient + Foreground Service + 笔记元数据 "📍 lat,lon ±Xm @ time" Markdown 头。+3 单测。
+- **ShareReceiver → SyncCoordinator → KB flush** — `3d1a6e3a8` — 5 种 SharePayload (Text/Url/SingleImage/MultiImage/GenericFile) 转 knowledge.createNote。19 单测。
+- **PushNotifier 本地 channel + FCM 骨架** — `c0d990c91` — 4 类 NotificationChannel (Cowork/Marketplace/SystemAlert/ShareInbox) + 协议中立 CcPushNotificationService 入口 + [M3_FCM_SETUP.md](docs/M3_FCM_SETUP.md) 5 步接入指南。35 单测。
+
+### 🎯 M4 L3 REMOTE 收敛 (+1,610 行 / +68 新单测)
+
+- **RemoteSkillRegistry method-level 元数据** — `6e49270fd` — file + method 双粒度；ai.* / knowledge.* 各 10 method seed with 8 riskOverride 演示；其它 21 namespace 通过 updateFromRemote 桌面下发。+16 单测。
+- **ApprovalUI 4 类 category 适配** — `f4f83cc67` — Sign / Cowork / Marketplace / SystemCritical，dialog icon/title/tint/footer 按 category 切换；从 sign-only 升级至通用审批入口。ApprovalCommandRouter 自动 fromMethod 推断 category。
+- **ProgressViewer 长时任务面板** — `f4f83cc67` — LongTaskRegistry + TaskProgressCommandRouter task.* reverse-RPC（task.update/complete/fail/cancel/remove）+ Compose 卡片渲染（状态 chip + LinearProgressIndicator/Indeterminate + dismiss）。45 单测。
+- **§8.1 README + §8.3 alias 兼容窗口** — `0bc8e2797` — SkillMetadata.aliases + RemoteSkillRegistry.aliasIndex 提供 1 版 namespace 改名兼容。+7 单测。
+
+### 📄 文档
+
+- **v1.0.0 GA 检查清单** — `3da484e9c` — [docs/v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md) — 5 项需用户出场的 step-by-step + Pre-flight 检查 + 中止条件
+- **M3 FCM 接入指南** — [android-app/docs/M3_FCM_SETUP.md](docs/M3_FCM_SETUP.md) — google-services.json 后 5 步激活 FCM
+
+### ⚠️ 已知限制（v1.0 不修，v1.1 上）
+
+- **FCM 国内可达性**：墙内不稳定，v1.1 接 OPPO/小米/华为统一推送（设计文档 §9.1 + Q2）
+- **单 peer pair**：v1.0 只支持 1 个桌面同步配对，多设备 N 端 v1.1
+- **离线消息队列**：桌面离线时 REMOTE 请求不缓存，恢复后无重放，v1.1
+- **QRPairing scaffold-only**：2034 行 UI 真实，但 PairingViewModel 是 delay() stub + DEVICE_PAIRING_ROUTE 孤儿，真落地 ~2.5d 推 v1.1（设计文档 §5.2 + §10）
+- **M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs-site 同步**：见 [v1.0_GA_checklist.md](../docs/v1.0_GA_checklist.md) 5 项用户出场清单
+
+### 📊 累计
+
+9 commits / +5,697 行 / **167 新单测全绿**（feature-ai + app 模块）。
+
+---
+
 ## [0.37.0] - 2026-05-11 — v1.0 RFC 实施轨道
 
 **状态**: 📋 RFC 评审与实施进行中 — Android v1.0 重新定位的 M1-M5 JVM-testable 部分已落地；
