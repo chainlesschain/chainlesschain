@@ -73,13 +73,58 @@ class RemoteSkillRegistry @Inject constructor(
         _skills.value.filter { it.risk == risk }
 
     /**
-     * 是否需要 ApprovalUI 二次确认。
+     * 是否需要 ApprovalUI 二次确认（namespace 级）。
      *
      * @return true 表示 UI 层必须在调用此 skill 前调起 ApprovalUI（带 BiometricPrompt
      * + 操作详情展示）；false 表示常规放行（仍需 Ed25519 签名）
      */
     fun requiresApproval(namespace: String): Boolean {
         return byNamespace[namespace]?.requiresApproval ?: true // 未知 skill 走保守路径
+    }
+
+    // ===== M4 D1 method-level accessors =====
+
+    /**
+     * 列出 namespace 下所有 method 元数据。
+     *
+     * @return 空 list 表示 namespace 未找到 / methods 未播种（调用方应回退 namespace 级数据）
+     */
+    fun listMethods(namespace: String): List<MethodMetadata> =
+        byNamespace[namespace]?.methods ?: emptyList()
+
+    /**
+     * 精确查找一个 method 的元数据。
+     *
+     * @return null = namespace 未注册 / methods 未播种 / method 名不匹配。调用方应回退到
+     *         namespace 级数据（[get] + [requiresApproval]）。
+     */
+    fun getMethod(namespace: String, methodName: String): MethodMetadata? =
+        byNamespace[namespace]?.methods?.firstOrNull { it.name == methodName }
+
+    /**
+     * 是否需要 ApprovalUI 二次确认（method 级，优先级最高）。
+     *
+     * 决策顺序：
+     *  1. method 的 [MethodMetadata.requiresApprovalOverride]（非 null）直接生效
+     *  2. method 的 [MethodMetadata.riskOverride] 推导（Privileged → true）
+     *  3. namespace 的 [SkillMetadata.requiresApproval]（兜底）
+     *  4. namespace 未知 → true（保守路径）
+     */
+    fun requiresApprovalForMethod(namespace: String, methodName: String): Boolean {
+        val skill = byNamespace[namespace] ?: return true
+        val method = skill.methods.firstOrNull { it.name == methodName }
+        method?.requiresApprovalOverride?.let { return it }
+        method?.riskOverride?.let { return it == SkillRiskTag.Privileged }
+        return skill.requiresApproval
+    }
+
+    /**
+     * Method 级 risk 解析。同上 fallback 顺序，但只看 risk（不看 approval）。
+     */
+    fun riskForMethod(namespace: String, methodName: String): SkillRiskTag {
+        val skill = byNamespace[namespace] ?: return SkillRiskTag.Privileged
+        val method = skill.methods.firstOrNull { it.name == methodName }
+        return method?.riskOverride ?: skill.risk
     }
 
     /**

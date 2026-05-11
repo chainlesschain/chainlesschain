@@ -208,4 +208,179 @@ class RemoteSkillRegistryTest {
         val second = registry.skills.value
         assertEquals(firstSize + 1, second.size)
     }
+
+    // ===== M4 D1 method-level metadata =====
+
+    @Test
+    fun `listMethods returns seeded methods for knowledge namespace`() {
+        registry.initialize()
+        val methods = registry.listMethods("knowledge")
+        assertTrue("knowledge seed should have methods", methods.isNotEmpty())
+        assertTrue("createNote should be seeded", methods.any { it.name == "createNote" })
+    }
+
+    @Test
+    fun `listMethods returns empty for namespaces without method seed`() {
+        registry.initialize()
+        // SystemCommands not seeded with method-level data per current SeedRegistry
+        val methods = registry.listMethods("system")
+        assertTrue("namespace without seed should return empty", methods.isEmpty())
+    }
+
+    @Test
+    fun `listMethods returns empty for unknown namespace`() {
+        registry.initialize()
+        assertTrue(registry.listMethods("nope").isEmpty())
+    }
+
+    @Test
+    fun `getMethod returns exact match by name`() {
+        registry.initialize()
+        val m = registry.getMethod("ai", "chat")
+        assertNotNull(m)
+        assertEquals("chat", m!!.name)
+        assertEquals(SkillRiskTag.Mutating, m.riskOverride)  // 显式降级 override
+    }
+
+    @Test
+    fun `getMethod returns null for unseeded method name`() {
+        registry.initialize()
+        assertNull(registry.getMethod("ai", "ghostMethod"))
+    }
+
+    @Test
+    fun `requiresApprovalForMethod uses requiresApprovalOverride when set`() {
+        registry.initialize()
+        // ai.deleteConversation has requiresApprovalOverride=true
+        assertTrue(registry.requiresApprovalForMethod("ai", "deleteConversation"))
+        // ai.controlAgent has requiresApprovalOverride=true
+        assertTrue(registry.requiresApprovalForMethod("ai", "controlAgent"))
+    }
+
+    @Test
+    fun `requiresApprovalForMethod derives from riskOverride when override is null`() {
+        registry.initialize()
+        // ai.chat: riskOverride=Mutating, requiresApprovalOverride=null → not approval-required
+        assertFalse(registry.requiresApprovalForMethod("ai", "chat"))
+        // ai.getModels: riskOverride=Safe → not approval-required
+        assertFalse(registry.requiresApprovalForMethod("ai", "getModels"))
+    }
+
+    @Test
+    fun `requiresApprovalForMethod falls back to namespace level for unseeded method`() {
+        registry.initialize()
+        // ai namespace is Privileged → unseeded method "nonExistent" should require approval
+        assertTrue(registry.requiresApprovalForMethod("ai", "anyUnseededMethod"))
+        // system.info namespace is Safe → unseeded method should NOT require approval
+        assertFalse(registry.requiresApprovalForMethod("system.info", "anyMethod"))
+    }
+
+    @Test
+    fun `requiresApprovalForMethod returns true for unknown namespace (conservative)`() {
+        registry.initialize()
+        assertTrue(registry.requiresApprovalForMethod("never-heard", "x"))
+    }
+
+    @Test
+    fun `riskForMethod returns method override when set`() {
+        registry.initialize()
+        // knowledge.deleteNote has riskOverride=Privileged (overriding knowledge=Mutating)
+        assertEquals(SkillRiskTag.Privileged, registry.riskForMethod("knowledge", "deleteNote"))
+        // knowledge.searchNotes has riskOverride=Safe
+        assertEquals(SkillRiskTag.Safe, registry.riskForMethod("knowledge", "searchNotes"))
+    }
+
+    @Test
+    fun `riskForMethod falls back to namespace level`() {
+        registry.initialize()
+        // knowledge.createNote has no riskOverride → namespace = Mutating
+        assertEquals(SkillRiskTag.Mutating, registry.riskForMethod("knowledge", "createNote"))
+        // ai.unseededMethod → namespace = Privileged
+        assertEquals(SkillRiskTag.Privileged, registry.riskForMethod("ai", "unseededMethod"))
+    }
+
+    @Test
+    fun `riskForMethod returns Privileged for unknown namespace (conservative)`() {
+        registry.initialize()
+        assertEquals(SkillRiskTag.Privileged, registry.riskForMethod("never-heard", "x"))
+    }
+
+    @Test
+    fun `MethodMetadata invariant rejects blank name`() {
+        try {
+            MethodMetadata(name = "  ", description = "x", paramCount = 0)
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `MethodMetadata invariant rejects negative paramCount`() {
+        try {
+            MethodMetadata(name = "x", description = "x", paramCount = -1)
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `SkillMetadata rejects duplicate method names`() {
+        try {
+            SkillMetadata(
+                namespace = "ns",
+                displayName = "n",
+                description = "d",
+                category = "c",
+                risk = SkillRiskTag.Safe,
+                androidSourceFile = "F.kt",
+                methodCount = 3,
+                methods = listOf(
+                    MethodMetadata("dup", "x", 0),
+                    MethodMetadata("dup", "y", 0),
+                ),
+            )
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `SkillMetadata rejects methods size exceeding methodCount`() {
+        try {
+            SkillMetadata(
+                namespace = "ns",
+                displayName = "n",
+                description = "d",
+                category = "c",
+                risk = SkillRiskTag.Safe,
+                androidSourceFile = "F.kt",
+                methodCount = 1,
+                methods = listOf(
+                    MethodMetadata("a", "x", 0),
+                    MethodMetadata("b", "y", 0),
+                ),
+            )
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `updateFromRemote replaces methods alongside file-level metadata`() {
+        registry.initialize()
+        val before = registry.listMethods("ai")
+        assertTrue(before.isNotEmpty())
+
+        val updated = SkillMetadata(
+            namespace = "ai",
+            displayName = "ai",
+            description = "d",
+            category = "ai",
+            risk = SkillRiskTag.Privileged,
+            androidSourceFile = "AICommands.kt",
+            methodCount = 53,
+            methods = listOf(MethodMetadata("brandNewMethod", "from desktop", 1)),
+        )
+        registry.updateFromRemote(listOf(updated))
+
+        val after = registry.listMethods("ai")
+        assertEquals(1, after.size)
+        assertEquals("brandNewMethod", after[0].name)
+    }
 }

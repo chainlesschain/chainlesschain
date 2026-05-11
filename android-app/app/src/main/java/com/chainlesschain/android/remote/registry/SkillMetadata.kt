@@ -5,8 +5,11 @@ import kotlinx.serialization.Serializable
 /**
  * 远程 skill 元数据（设计文档 v0.2 §5.4 + M1 Android_REMOTE_commands_inventory）。
  *
- * 当前粒度：**file 级**（23 entries 对应 23 个 XCommands.kt）。method 级元数据
- * 由 [RemoteSkillRegistry.updateFromRemote] 在桌面侧实施后下发并合并。
+ * 当前粒度：**file + method 双级**。
+ *  - file 级：23 entries 对应 23 个 XCommands.kt（namespace / displayName / methodCount 等）
+ *  - method 级：可选 [methods] 列表，由 SeedRegistry 提供部分高频 namespace 的初始值；
+ *    其余通过 [RemoteSkillRegistry.updateFromRemote] 从桌面侧 mobile-skill-whitelist
+ *    动态下发合并。
  */
 @Serializable
 data class SkillMetadata(
@@ -52,6 +55,14 @@ data class SkillMetadata(
 
     /** 该文件下 RPC 入口数量（即 suspend fun 数）；仅供 UI 展示。 */
     val methodCount: Int,
+
+    /**
+     * 方法级元数据（M4 D1）。可选；空 = 仅 file-level 数据，调用方按 namespace 默认值。
+     *
+     * SeedRegistry 当前为 knowledge.* / ai.* 提供 method 种子；其它 21 个 namespace
+     * 等桌面 mobile-skill-whitelist 通过 updateFromRemote 下发。
+     */
+    val methods: List<MethodMetadata> = emptyList(),
 ) {
     init {
         require(namespace.isNotBlank()) { "namespace must not be blank" }
@@ -60,10 +71,62 @@ data class SkillMetadata(
         require(transport in VALID_TRANSPORTS) {
             "transport must be one of $VALID_TRANSPORTS, got $transport"
         }
+        require(methods.size <= methodCount) {
+            "methods list ($methods.size) must not exceed methodCount ($methodCount)"
+        }
+        val dupes = methods.groupBy { it.name }.filter { it.value.size > 1 }.keys
+        require(dupes.isEmpty()) {
+            "method names must be unique within namespace, duplicates: $dupes"
+        }
     }
 
     companion object {
         val VALID_TRANSPORTS = setOf("handler-rpc", "extension-ws")
+    }
+}
+
+/**
+ * 方法级元数据（M4 D1）。
+ *
+ * 与 [SkillMetadata] 字段对应关系：
+ *  - method-level [risk] / [requiresApproval] 默认 null = 走 SkillMetadata 的 namespace 级；
+ *    非 null 时覆盖（用于"AI 大部分 mutating，但 ai.deleteConversation 标 Privileged"类细分）
+ *
+ * 参数信息保持 lightweight：仅记录 [paramCount] 和可选简短 [paramSummary]，不存类型签名 —
+ * 后者太重且容易过时；UI 需要时直接看 Android 源码。
+ */
+@Serializable
+data class MethodMetadata(
+    /** 方法名，如 "chat" / "createNote" / "ocrImage"。namespace 内唯一。 */
+    val name: String,
+
+    /** 一句话描述，从 KDoc 第一行取。 */
+    val description: String,
+
+    /** 参数数量（含必填+可选+default）；仅展示用。 */
+    val paramCount: Int,
+
+    /** 可选简短参数清单文字版，如 "title, content, folderId?, tags?"。 */
+    val paramSummary: String? = null,
+
+    /** 返回类型 hint，去 wrapper：直接写 "ChatResponse"、"List<Note>"，省略 Result<...>. */
+    val returnTypeHint: String? = null,
+
+    /**
+     * 风险覆盖。null 时继承 namespace 级 risk；
+     * 设置时优先于 namespace（如 ai.* 整体 Mutating，但 ai.deleteConversation override Privileged）
+     */
+    val riskOverride: SkillRiskTag? = null,
+
+    /**
+     * 审批覆盖。null 时按 [riskOverride] 或 namespace 推导；
+     * 设置时直接生效（如某个 Safe 方法因审计要求强制审批）。
+     */
+    val requiresApprovalOverride: Boolean? = null,
+) {
+    init {
+        require(name.isNotBlank()) { "method name must not be blank" }
+        require(paramCount >= 0) { "paramCount must be non-negative, got $paramCount" }
     }
 }
 
