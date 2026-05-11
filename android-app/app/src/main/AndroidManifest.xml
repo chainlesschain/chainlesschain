@@ -50,6 +50,12 @@
     <!-- 生物识别权限 -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- 位置权限（M3 D-loc LocationTagger：GPS 打卡笔记 / DID 凭证附带位置） -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
     <!-- APK 自动更新：sideload 安装权限（API 26+ 需要用户授权一次） -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -87,6 +93,29 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- M3 D-share：处理来自其它 app 的 ACTION_SEND / ACTION_SEND_MULTIPLE 分享。
+             Activity 不显示 UI，仅解析 Intent → enqueue 到 SharedInboxRepository → finish。
+             由 SyncCoordinator 下个 30s 循环 push 到桌面 KB。 -->
+        <activity
+            android:name=".capture.share.ShareReceiverActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
 
