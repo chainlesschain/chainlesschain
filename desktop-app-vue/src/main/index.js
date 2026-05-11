@@ -1555,6 +1555,38 @@ class ChainlessChainApp {
         logger.info(
           "[Main] ✓ MobileSignClient 已实例化 (M5 ADR-6 反向 sign.request)",
         );
+
+        // Debug IPC handler: 让 renderer 端可以一键触发桌面 → 手机反向
+        // 签名请求，验证完整 wire-up 端到端 (mobile-bridge transport +
+        // MobileSignClient + Android RemoteCommandClient + SignAsService +
+        // ApprovalDialog + BiometricPrompt + StrongBox sign + 返回)。
+        // 业务侧 (marketplace.purchase) 真接入前用此快速 verify.
+        const { ipcMain } = require("electron");
+        ipcMain.handle("mobile:sign:debug-test", async (_event, peerId) => {
+          if (!peerId || typeof peerId !== "string") {
+            return { ok: false, error: "peerId required (string)" };
+          }
+          if (!this.mobileSignClient) {
+            return { ok: false, error: "MobileSignClient not initialized" };
+          }
+          try {
+            const fakeHash = "deadbeef".repeat(8); // 64 chars
+            const result = await this.mobileSignClient.requestSignature({
+              peerId,
+              payloadHash: fakeHash,
+              description: "桌面调试: 反向 sign.request 端到端验证",
+              requireStrongBox: false,
+            });
+            return { ok: true, result };
+          } catch (err) {
+            return {
+              ok: false,
+              error: err.message || String(err),
+              name: err.name || "SignError",
+            };
+          }
+        });
+        logger.info("[Main] ✓ IPC handler 'mobile:sign:debug-test' 已注册");
       } catch (err) {
         logger.error("[Main] MobileSignClient 实例化失败:", err);
       }

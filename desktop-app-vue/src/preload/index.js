@@ -1851,6 +1851,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
   },
 
+  // M5 ADR-6 反向 sign.request — 桌面调手机 StrongBox 签名
+  mobileSign: {
+    /**
+     * Debug 触发器: 让 DevTools console 一键调起 Android ApprovalDialog
+     * + BiometricPrompt + Ed25519 签名，验证桌面→手机反向 RPC 端到端。
+     *
+     * 用法 (DevTools console):
+     *   const devs = await electronAPI.sync.mobile.listPaired();
+     *   const r = await electronAPI.mobileSign.debugTest(devs[0].deviceId);
+     *   console.log(r);  // { ok: true, result: { did, signature, signedAt, requestId } }
+     *
+     * 错误结构: { ok: false, error: <message>, name: SignError|SignDeniedError|SignTimeoutError }
+     */
+    debugTest: (peerId) => ipcRenderer.invoke("mobile:sign:debug-test", peerId),
+  },
+
   // 插件管理
   plugin: {
     // 插件查询
