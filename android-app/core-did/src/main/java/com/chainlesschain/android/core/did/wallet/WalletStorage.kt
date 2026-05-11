@@ -54,6 +54,17 @@ data class WalletIdentityEntry(
     val mnemonicVerified: Boolean = false,
     /** 该 DID 是否由 mnemonic 创建（false 表示纯随机生成，无助记词可恢复） */
     val hasMnemonic: Boolean = false,
+    /**
+     * 是否要求 BiometricPrompt 通过后才能解锁 wrapper key（AES）。
+     *
+     * true: wrap key 在 Keystore 中以 setUserAuthenticationRequired=true 创建，
+     * 解密私钥前必须在 [BiometricAuthenticator.userAuthValiditySec] 窗口内通过认证。
+     * UI 层（如 KeyManagementScreen）负责在 sign/switch 前调起 BiometricPrompt。
+     *
+     * 默认 false：常规 DID 不强制 biometric；建议高风险 DID（marketplace 大额签名 /
+     * 设备 delegate 操作的主 DID）打开。
+     */
+    val requireBiometric: Boolean = false,
 )
 
 /**

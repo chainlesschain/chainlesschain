@@ -71,6 +71,13 @@ class DIDManager @Inject constructor(
     /** DID → 元数据（mnemonicVerified / hasMnemonic）。 */
     private val entryMeta = mutableMapOf<String, EntryMetadata>()
 
+    /**
+     * Wrap 缓存：`saveWallet` 不再每次重新加密 32-byte 私钥（否则 biometric-bound
+     * DID 每次切换 active 都要重新认证）。仅在 [finishAddIdentity] / 显式 rotation
+     * 时填入；[loadEntry] 从磁盘 hydrate；其余 save 操作复用缓存的密文。
+     */
+    private val wrappedCache = mutableMapOf<String, WrappedPrivateKeyStorage>()
+
     /** 当前激活的 DID。 */
     private var activeDid: String? = null
 
@@ -106,14 +113,26 @@ class DIDManager @Inject constructor(
     /**
      * **向后兼容入口**：以纯随机熵创建新 DID。不返回助记词——这意味着用户**无法恢复**
      * 该 DID。新代码应改用 [createIdentityWithMnemonic] 或 [importFromMnemonic]。
+     *
+     * @param requireBiometric true 时该 DID 的 wrapper key 绑定 BiometricPrompt；UI
+     * 层负责在 sign/switchActive 前调起 [BiometricAuthenticator.authenticate]。
      */
-    fun createIdentity(deviceName: String = defaultDeviceName()): DIDIdentity {
+    fun createIdentity(
+        deviceName: String = defaultDeviceName(),
+        requireBiometric: Boolean = false,
+    ): DIDIdentity {
         Timber.w(
             "createIdentity(no-mnemonic) called — user has no backup path. " +
                 "Prefer createIdentityWithMnemonic for production flows."
         )
         val keyPair = Ed25519KeyPair.generate()
-        return finishAddIdentity(keyPair, deviceName, hasMnemonic = false, mnemonicVerified = false)
+        return finishAddIdentity(
+            keyPair = keyPair,
+            deviceName = deviceName,
+            hasMnemonic = false,
+            mnemonicVerified = false,
+            requireBiometric = requireBiometric,
+        )
     }
 
     /**
@@ -121,8 +140,13 @@ class DIDManager @Inject constructor(
      *
      * 调用者（UI）负责一次性展示 [NewIdentityResult.mnemonic] 给用户抄写，并通过
      * [markMnemonicVerified] 确认。**助记词永不持久化**，丢失即无法恢复。
+     *
+     * @param requireBiometric true 时该 DID 的 wrapper key 绑定 BiometricPrompt。
      */
-    fun createIdentityWithMnemonic(deviceName: String = defaultDeviceName()): NewIdentityResult {
+    fun createIdentityWithMnemonic(
+        deviceName: String = defaultDeviceName(),
+        requireBiometric: Boolean = false,
+    ): NewIdentityResult {
         val mnemonic = mnemonicService.generate()
         val seed = mnemonicService.toEd25519Seed(mnemonic)
         val keyPair = Ed25519KeyPair.fromPrivateKey(seed)
@@ -131,6 +155,7 @@ class DIDManager @Inject constructor(
             deviceName = deviceName,
             hasMnemonic = true,
             mnemonicVerified = false,
+            requireBiometric = requireBiometric,
         )
         return NewIdentityResult(identity, mnemonic)
     }
@@ -142,11 +167,15 @@ class DIDManager @Inject constructor(
      * - 若是新 DID，则添加到钱包；[DIDIdentityMeta.mnemonicVerified] 默认 true（用户能写
      *   出助记词即已具备备份能力）
      *
+     * @param requireBiometric true 时该 DID 的 wrapper key 绑定 BiometricPrompt。
+     * 若 DID 已在钱包中，此参数被**忽略**（已有 entry 的 requireBiometric 不变）。
+     *
      * @throws IllegalArgumentException 助记词非法
      */
     fun importFromMnemonic(
         words: List<String>,
         deviceName: String = defaultDeviceName(),
+        requireBiometric: Boolean = false,
     ): DIDIdentity {
         require(mnemonicService.validate(words)) { "Invalid mnemonic phrase" }
 
@@ -165,7 +194,18 @@ class DIDManager @Inject constructor(
             deviceName = deviceName,
             hasMnemonic = true,
             mnemonicVerified = true,
+            requireBiometric = requireBiometric,
         )
+    }
+
+    /**
+     * 查询某个 DID 是否需要 BiometricPrompt。
+     *
+     * UI 层在调用 [switchActive] / [sign] / [signWithTimestamp] 前应先调此方法，
+     * true 则触发 [BiometricAuthenticator.authenticate]（在 feature-auth）。
+     */
+    fun requiresBiometric(did: String): Boolean {
+        return entryMeta[did]?.requireBiometric ?: false
     }
 
     // ─── wallet management ──────────────────────────────────────────────
@@ -173,7 +213,7 @@ class DIDManager @Inject constructor(
     /** 列出钱包中所有 DID 的元数据。 */
     fun listIdentities(): List<DIDIdentityMeta> {
         return identities.values.map { identity ->
-            val meta = entryMeta[identity.did] ?: EntryMetadata(false, false)
+            val meta = entryMeta[identity.did] ?: EntryMetadata.DEFAULT
             DIDIdentityMeta(
                 did = identity.did,
                 deviceName = identity.deviceName,
@@ -181,6 +221,7 @@ class DIDManager @Inject constructor(
                 isActive = identity.did == activeDid,
                 mnemonicVerified = meta.mnemonicVerified,
                 hasMnemonic = meta.hasMnemonic,
+                requireBiometric = meta.requireBiometric,
             )
         }
     }
@@ -302,6 +343,7 @@ class DIDManager @Inject constructor(
         deviceName: String,
         hasMnemonic: Boolean,
         mnemonicVerified: Boolean,
+        requireBiometric: Boolean,
     ): DIDIdentity {
         val did = DidKeyGenerator.generate(keyPair)
         val didDocument = DidKeyGenerator.generateDocument(did)
@@ -312,13 +354,42 @@ class DIDManager @Inject constructor(
             didDocument = didDocument,
             createdAt = System.currentTimeMillis(),
         )
+        // Pre-create the wrapper key with the right biometric binding before wrap.
+        // wrapEd25519Private's auto-create defaults to no-biometric, so explicit
+        // setupWrapperKey here is required when requireBiometric=true.
+        val alias = walletAliasFor(did)
+        strongBoxKeyManager.setupWrapperKey(alias, requireBiometric = requireBiometric)
+
+        // Wrap once at create time; cache the ciphertext so subsequent saveWallet
+        // calls don't re-encrypt (otherwise biometric-bound DIDs would prompt on
+        // every metadata change). Re-wrap happens only on explicit key rotation.
+        val wrapped = strongBoxKeyManager.wrapEd25519Private(alias, keyPair.privateKey)
+        wrappedCache[did] = wrappedToStorage(wrapped)
+
         identities[did] = identity
-        entryMeta[did] = EntryMetadata(hasMnemonic = hasMnemonic, mnemonicVerified = mnemonicVerified)
+        entryMeta[did] = EntryMetadata(
+            hasMnemonic = hasMnemonic,
+            mnemonicVerified = mnemonicVerified,
+            requireBiometric = requireBiometric,
+        )
         activeDid = did
         _currentIdentity.value = identity
         saveWallet()
-        Timber.i("DID added to wallet: $did (hasMnemonic=$hasMnemonic, verified=$mnemonicVerified)")
+        Timber.i(
+            "DID added to wallet: $did (hasMnemonic=$hasMnemonic, " +
+                "verified=$mnemonicVerified, biometric=$requireBiometric)"
+        )
         return identity
+    }
+
+    private fun wrappedToStorage(wrapped: WrappedEd25519Key): WrappedPrivateKeyStorage {
+        val b64 = Base64.getEncoder()
+        return WrappedPrivateKeyStorage(
+            version = wrapped.version,
+            keystoreAlias = wrapped.keystoreAlias,
+            ivBase64 = b64.encodeToString(wrapped.iv),
+            ciphertextBase64 = b64.encodeToString(wrapped.ciphertext),
+        )
     }
 
     /** 为某个 DID 生成 deterministic wrapper key alias（避免不同 DID 共享一个 wrap key）。 */
@@ -350,23 +421,25 @@ class DIDManager @Inject constructor(
     }
 
     private fun toEntry(identity: DIDIdentity): WalletIdentityEntry {
-        val alias = walletAliasFor(identity.did)
-        val wrapped = strongBoxKeyManager.wrapEd25519Private(alias, identity.keyPair.privateKey)
-        val meta = entryMeta[identity.did] ?: EntryMetadata(false, false)
-        val b64 = Base64.getEncoder()
+        // Use cached wrap if available (normal path). Falls back to re-wrap only if
+        // cache is empty (e.g., legacy migration before cache hydration) — this re-wrap
+        // path will trigger biometric prompt if the alias requires it.
+        val wrappedStorage = wrappedCache[identity.did] ?: run {
+            Timber.w("Wrap cache miss for ${identity.did}, re-wrapping (may prompt biometric)")
+            val alias = walletAliasFor(identity.did)
+            wrappedToStorage(strongBoxKeyManager.wrapEd25519Private(alias, identity.keyPair.privateKey))
+                .also { wrappedCache[identity.did] = it }
+        }
+        val meta = entryMeta[identity.did] ?: EntryMetadata.DEFAULT
         return WalletIdentityEntry(
             did = identity.did,
             deviceName = identity.deviceName,
             createdAt = identity.createdAt,
             publicKeyHex = identity.keyPair.publicKey.toHexString(),
-            wrappedPrivate = WrappedPrivateKeyStorage(
-                version = wrapped.version,
-                keystoreAlias = wrapped.keystoreAlias,
-                ivBase64 = b64.encodeToString(wrapped.iv),
-                ciphertextBase64 = b64.encodeToString(wrapped.ciphertext),
-            ),
+            wrappedPrivate = wrappedStorage,
             mnemonicVerified = meta.mnemonicVerified,
             hasMnemonic = meta.hasMnemonic,
+            requireBiometric = meta.requireBiometric,
         )
     }
 
@@ -416,7 +489,9 @@ class DIDManager @Inject constructor(
         entryMeta[entry.did] = EntryMetadata(
             hasMnemonic = entry.hasMnemonic,
             mnemonicVerified = entry.mnemonicVerified,
+            requireBiometric = entry.requireBiometric,
         )
+        wrappedCache[entry.did] = entry.wrappedPrivate
     }
 
     /**
@@ -450,9 +525,16 @@ class DIDManager @Inject constructor(
             entryMeta[identity.did] = EntryMetadata(
                 hasMnemonic = false,
                 mnemonicVerified = false,
+                requireBiometric = false,
             )
             activeDid = identity.did
             _currentIdentity.value = identity
+            // Pre-create wrapper key without biometric (migrated DIDs preserve old security model;
+            // user can upgrade later via a UI flow that recreates the entry with requireBiometric=true).
+            strongBoxKeyManager.setupWrapperKey(
+                alias = walletAliasFor(identity.did),
+                requireBiometric = false,
+            )
             saveWallet()
 
             val backup = File(
@@ -500,7 +582,12 @@ class DIDManager @Inject constructor(
     private data class EntryMetadata(
         val hasMnemonic: Boolean,
         val mnemonicVerified: Boolean,
-    )
+        val requireBiometric: Boolean = false,
+    ) {
+        companion object {
+            val DEFAULT = EntryMetadata(hasMnemonic = false, mnemonicVerified = false, requireBiometric = false)
+        }
+    }
 
     /** 旧版（v0.1）单 DID 落盘格式，仅用于迁移读取。 */
     @Serializable

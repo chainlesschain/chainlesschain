@@ -23,4 +23,9 @@ data class DIDIdentityMeta(
     val isActive: Boolean,
     val mnemonicVerified: Boolean,
     val hasMnemonic: Boolean,
+    /**
+     * 该 DID 的 wrapper key 是否绑定了 BiometricPrompt。
+     * UI 层应据此在 [DIDManager.switchActive] / [DIDManager.sign] 前调起认证。
+     */
+    val requireBiometric: Boolean,
 )

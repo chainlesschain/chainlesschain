@@ -28,7 +28,19 @@ class FakeKeystoreFacade(
 ) : KeystoreFacade {
 
     private val keys = mutableMapOf<String, SecretKey>()
+    private val biometricRequiredAliases = mutableSetOf<String>()
     private val random = SecureRandom()
+
+    /**
+     * 模拟 biometric 认证状态：
+     *  - true（默认）：所有 decrypt 通过，相当于"用户刚在 BiometricPrompt 中通过认证"
+     *  - false：对要求 biometric 的 alias 的 decrypt 抛 [KeystoreFacadeException]，
+     *    模拟 Android Keystore 在 auth 窗口外拒绝解密的行为
+     *
+     * 测试可以通过 `fake.simulateBiometricAuthenticated = false` 验证"未认证时
+     * unwrap 失败"的路径。
+     */
+    var simulateBiometricAuthenticated: Boolean = true
 
     override fun isStrongBoxSupported(): Boolean = strongBoxSupported
 
@@ -44,12 +56,22 @@ class FakeKeystoreFacade(
         val gen = KeyGenerator.getInstance("AES")
         gen.init(KEY_BITS, random)
         keys[alias] = gen.generateKey()
+        if (requireUserAuthentication) {
+            biometricRequiredAliases.add(alias)
+        }
         return resolveTierFor(alias)
     }
 
     override fun encryptAesGcm(alias: String, plaintext: ByteArray): EncryptResult {
         val key = keys[alias]
             ?: throw KeystoreFacadeException("No key for alias=$alias")
+        // Encryption is allowed even if biometric required (Android Keystore behavior:
+        // setUserAuthenticationRequired affects only PRIVATE/DECRYPT operations on
+        // signing keys; for symmetric AES, ENCRYPT also requires auth in API 31+).
+        // We model this strictly for D3: if biometric required AND not authenticated,
+        // any cipher op fails. Real Android requires auth for both directions on
+        // symmetric keys when setUserAuthenticationRequired(true).
+        guardBiometric(alias)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key)
         val ct = cipher.doFinal(plaintext)
@@ -59,6 +81,7 @@ class FakeKeystoreFacade(
     override fun decryptAesGcm(alias: String, iv: ByteArray, ciphertext: ByteArray): ByteArray {
         val key = keys[alias]
             ?: throw KeystoreFacadeException("No key for alias=$alias")
+        guardBiometric(alias)
         return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
@@ -68,13 +91,26 @@ class FakeKeystoreFacade(
         }
     }
 
+    /** Throws if [alias] requires biometric and [simulateBiometricAuthenticated] is false. */
+    private fun guardBiometric(alias: String) {
+        if (alias in biometricRequiredAliases && !simulateBiometricAuthenticated) {
+            throw KeystoreFacadeException(
+                "Alias $alias requires user authentication (BiometricPrompt) — simulated denial"
+            )
+        }
+    }
+
     override fun isHardwareBackedFor(alias: String): Boolean = hardwareBacked
 
     override fun isStrongBoxBackedFor(alias: String): Boolean = strongBoxSupported
 
     override fun deleteAlias(alias: String) {
         keys.remove(alias)
+        biometricRequiredAliases.remove(alias)
     }
+
+    /** True iff [alias] was created with requireUserAuthentication=true. */
+    fun requiresBiometric(alias: String): Boolean = alias in biometricRequiredAliases
 
     private fun resolveTierFor(alias: String): KeyTier = when {
         strongBoxSupported -> KeyTier.WRAPPER_STRONGBOX
