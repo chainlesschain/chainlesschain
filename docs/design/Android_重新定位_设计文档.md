@@ -1,10 +1,23 @@
 # Android 客户端重新定位设计文档
 
-> **版本**: v0.6 (M4 D2 Android RPC 接收器落地 + 桌面 transport 平铺审计, 2026-05-11) | **状态**: 🟡 ADR 8/8 accepted · M1/M5 ✅ · M2 ✅ D1-D3 / 🟠 D4 scaffold-only · M3 部分 · **M4 D1 ✅ / D2 ⚠️ 部分**（桌面 channel ✅ + Android RPC 接收器 ✅，**剩桌面 transport 胶水 + payload enrich + E2E**）· M6/M7 ⏳ | **关联**: Android v0.37.0 → v1.0.0 | **桌面对标**: v5.0.3.47
+> **版本**: v0.7 (M4 D2 全部落地：桌面胶水 + payload enrich + E2E 集成测 10 scenarios，2026-05-11) | **状态**: 🟡 ADR 8/8 accepted · M1/M5 ✅ · M2 ✅ D1-D3 / 🟠 D4 scaffold-only · M3 部分 · **M4 D1 ✅ / D2 ✅ desktop-side full**（真机 E2E 仍待） · M6/M7 文档就位待真机回填 | **关联**: Android v0.37.0 → v1.0.0 | **桌面对标**: v5.0.3.47
 >
 > 把 ChainlessChain Android 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 的二端分工，停止以 skill 数量对标桌面，转向场景独占价值。
 >
-> v0.5 → v0.6 变更：(1) **Android RPC 接收器落地** `eba16a1d8`：`ApprovalCommandRouter.kt` 80 行接 `approval.request` → `ApprovalGate.requestApproval` 复用 `eb7489bc4` 落的 `AndroidApprovalGate` + `ApprovalDialogHost` dialog 机制；`CompositeCommandRouter.kt` 30 行按命名空间分发（sync.* → Sync，approval.* → Approval）；`RemoteModule.kt` binding 切；16 单测（10 + 6）。(2) **桌面 transport 平铺审计**：另一并行 session 的 `mobile-bridge.js` staged 改动 +102 行加 `pendingReverseRpc` Map + 入向 RPC response 拦截 + `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic transport + `asMobileSignTransport()` adapter。注释说是 M5 ADR-6 transport，但 **`sendReverseRpcRequest` 是 generic JSON-RPC 2.0**，M4 D2 也能借这条路。这让 M4 D2 桌面剩工从 ~0.5d 缩到 **~0.3d**：仅剩 `setOnRequest` 胶水（~20 行接 `sendReverseRpcRequest` + 后续 `resolveApproval`）+ payload enrich（~30 行算 hash + describe）+ 跨端 E2E。事实声明未再变更。
+> v0.6 → v0.7 变更：
+> 1. **M4 D2 桌面胶水全部落地**：
+>    - `mobile-approval-channel.js` requestApproval 加 `payloadHash`（recursive canonical-JSON + SHA-256 hex 64-char）+ `payloadDescription`（默认 `"<Namespace> · <Action>"`，业务可覆写）+ `requireBiometric`（默认 true）
+>    - 新文件 `mobile-approval-transport.js`（独立 transport 桥）— `MobileApprovalTransport.wire(channel, bridge)` 把 channel.setOnRequest 接到 `mobileBridge.sendReverseRpcRequest(peerId, {jsonrpc:'2.0', id:requestId, method:'approval.request', params:payload})`，处理 RPC success/error/empty-response/transport-throw 四种返回路径
+>    - `remote-gateway.js` 在 `initializeCommandRouter` 构造 `MobileSkillWhitelist` + `MobileApprovalChannel` 注入 CommandRouter；新增 `bindMobileBridge(mobileBridge)` 方法在 MobileBridge ready 后 wire transport；`stop()` 加 unwire + `clearAll('gateway-stopped')` 防 promise 永远挂起
+>    - `index.js` 在 `initializeMobileBridge` 末尾 (在 MobileSignClient 之后) 调 `this.remoteGateway.bindMobileBridge(this.mobileBridge)`
+> 2. **新增 30 单测 + 10 集成测试**：
+>    - `mobile-approval-channel.test.js` 加 9 个新 case（payloadHash 确定性 / payloadDescription 默认 + 覆写 / requireBiometric 默认 / canonicalJson 行为）
+>    - `mobile-approval-transport.test.js` 新 10 case（happy / RPC error / transport throw / empty response / unwire / 端到端 requestId 透传）
+>    - `m4-d2-cross-end-approval.test.js` 新 10 集成 scenarios — 真接通整个 desktop-side 链路（CommandRouter → whitelist → channel → transport → fake bridge → simulated Android response），含 happy/deny/biometric-fail/rpc-error/transport-error/timeout/non-approval/blocked/并发/desktop-internal-bypass
+> 3. **真机 E2E 验收清单**：新 `Android_M4_D2_E2E.md` — 跨端 7 demo scenarios，桌面侧 JVM-integration 10 绿是"差最后一公里"（真 WebRTC + 真 ApprovalDialog + 真 BiometricPrompt + 真 StrongBox）
+> 4. **M3 真机测试计划**：新 `Android_M3_Real_Device_Test_Plan.md` — D-share/D-loc Manifest 完整性已落 `be6cb4974`；D-voice/D-camera 待真机；**D-push 需补 google-services.json + FirebaseMessagingService + 5 步**
+> 5. **M6 性能验收方法学**：新 `Android_M6_Performance_Validation.md` — 8 个性能预算的 Macrobenchmark / Battery Historian / TC 弱网测量方法，可直接 release-time 回填
+> 6. **v0.6 → v0.7 删除"M4 D2 剩 0.3d"声明** — 桌面 desktop-side 已全完，整个 M4 D2 desktop-side scope 收敛到代码 + 测试 + 文档
 
 ## 1. 背景与立项动机
 
@@ -376,11 +389,11 @@ Android 端 `core-p2p/.../sync/SyncManager.kt::ResourceType` enum 还包含 `KNO
 | **M1** | 0.5 天  | 文档评审 + REMOTE 23 commands 现状梳理 + ADR-5 能力对照表落地 | ✅ | RFC 8/8 ADR accepted + inventory PR `2244ced9f` 合并（file-level；method-level 推到 M4） |
 | **M2** | 3 天    | L1 钥匙层：StrongBox tier + DIDWallet 多身份+助记词 + BiometricGate + QRPairing 收敛 | ✅ D1-D3 / 🟠 D4 scaffold-only（推 v1.1） | 67 单测 + E2E 首启动落 DID（QRPairing 真落地推 v1.1，scaffold 存在但 stub） |
 | **M3** | 3 天    | L2 五件：Voice Mode + CameraOCR + LocationTagger + PushNotifier + ShareReceiver（v0.1 漏列后三件，工期 +1 天） | ⚠️ 部分（D-share/D-loc JVM 已落 `be6cb4974`） | 80+ 单测 + 5 件 E2E + Manifest 权限/intent-filter 改造 |
-| **M4** | 2 天    | L3 RemoteSkillRegistry + 桌面白名单 + ApprovalUI              | ⚠️ 部分（D1 ✅ `df61914ff` / D2 ⚠️：桌面 channel ✅ `d6b3926fa` + Android M5 helper ✅ `eb7489bc4` + Android RPC 接收器 ✅ `eba16a1d8` + 桌面 transport ✅ (另一 session staged 待 commit)，**剩桌面胶水 + payload enrich + E2E**） | 55 单测（已落 29 桌面 + 4 Android helper + 16 Android router）+ 桌面白名单严格生效 + 审批 E2E |
+| **M4** | 2 天    | L3 RemoteSkillRegistry + 桌面白名单 + ApprovalUI              | ✅ desktop-side full（真机 E2E 待）：D1 ✅ `df61914ff` / D2 ✅ 桌面 channel `d6b3926fa` + Android M5 helper `eb7489bc4` + Android RPC 接收器 `eba16a1d8` + 桌面 transport `fc1793933` + **桌面胶水 + payload enrich + 集成 E2E (v0.7)** | 95 单测（29 桌面 channel/whitelist + 16 Android router + 4 Android M5 helper + 30 桌面胶水/transport + 10 端到端集成 + 6 router cross-namespace）+ 桌面白名单严格生效 + 真机 E2E 见 `Android_M4_D2_E2E.md` |
 | **M5** | 1 天    | 反向 SignAsService（桌面调手机签名，ADR-6）                   | ✅ `6d482d066` | 14 单测 + E2E 大额 marketplace 通过   |
 | **M6** | 1 天    | 性能 / 续航 / 弱网压测，回填 ✅ 实测值                         | ⏳ | 全部 §7.2 目标达标或解释偏差          |
 | **M7** | 0.5 天  | 用户文档同步至 docs-site，发版 v1.0；同步更新 README versionName 0.32.0 → v1.0.0 | ⏳ | docs-site 可访问 + CHANGELOG v1.0 + README 修订 |
-|        | **共 11 天**（v0.1 是 10 天，M3 +1 天） |                                       | **v1.0 已落 ≈ 8.5 天有效工**（M4 D2 桌面 `d6b3926fa` + Android M5 helper `eb7489bc4` + **Android RPC 接收器 `eba16a1d8` 16 单测** + 桌面 transport staged 待 commit）；**v1.0 剩 ≈ 3.5 天**（M3 D-voice/D-cam/D-push + D-share/D-loc Manifest 收尾 / **M4 D2 桌面胶水 ~0.3d + E2E ~0.5d** / M6 性能验收 / M7 发版）；**QRPairing 真落地 ~2.5d 推 v1.1**，与 §8.5 桌面 Mobile Bridge 面板合并 | |
+|        | **共 11 天**（v0.1 是 10 天，M3 +1 天） |                                       | **v1.0 已落 ≈ 9.0 天有效工 (v0.7)**（M4 D2 桌面 desktop-side full 收敛 + M3 / M6 / M7 验收文档就位）；**v1.0 剩 ≈ 2.5 天**（M3 D-voice / D-cam / D-push 真机验收 + D-push FCM 接入 / M4 D2 真机 E2E / M6 实测回填 / M7 GA flip versionName + CHANGELOG + docs-site 同步）；**QRPairing 真落地 ~2.5d 推 v1.1**，与 §8.5 桌面 Mobile Bridge 面板合并 | |
 
 ### M2 拆分（3 天）
 
@@ -398,15 +411,18 @@ Android 端 `core-p2p/.../sync/SyncManager.kt::ResourceType` enum 还包含 `KNO
 ### M4 拆分（2 天）
 
 - D1: ⚠️ 部分 RemoteSkillRegistry — `df61914ff`（23-skill seed，file-level granularity）；剩 method-level 元数据补全 + 桌面 mobile-skill-whitelist.js 已 `d6b3926fa` ✅；剩单测（30 部分已落）
-- D2: ⚠️ 部分 ApprovalUI 落地分五段：
+- D2: ✅ desktop-side full（真机 E2E 待，见 `Android_M4_D2_E2E.md`）分六段：
   - **桌面 channel** ✅ `d6b3926fa`：`mobile-skill-whitelist.js` + `mobile-approval-channel.js` + `command-router.js` gate wire-up + 18 + 11 单测 + 集成测试
   - **Android M5 helper（M4 D2 复用基座）** ✅ `eb7489bc4`：`AndroidApprovalGate.kt` 104 + `ApprovalDialogHost.kt` 263 + Hilt DI 23 + 单测 184 + MainActivity +22 —— 接 M5 SignAsService `sign.request` 流程；M4 D2 RPC 接收器复用其 `requestApproval` + dialog 机制
   - **Android RPC 接收器** ✅ `eba16a1d8`：`ApprovalCommandRouter.kt` 80 + `CompositeCommandRouter.kt` 30 + `RemoteModule.kt` binding 切 + 16 单测（10 + 6）。`approval.request` method → `ApprovalGate.requestApproval` → 返 `{requestId, approved, deniedReason}` map → `P2PClient` 包成 CommandResponse 反向送回
-  - **桌面 transport** ✅ 另一 session 在 `mobile-bridge.js` staged（待落 commit）：`pendingReverseRpc` Map + 入向拦截 + `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic 反向 RPC + `asMobileSignTransport()` adapter。注释说 M5 ADR-6 transport，但 **`sendReverseRpcRequest` 是 generic JSON-RPC 2.0**，M4 D2 也能借
-  - **桌面胶水 + payload enrich** ❌ **剩**：
-    1. `mobileApprovalChannel.setOnRequest(payload → mobileBridge.sendReverseRpcRequest(payload.peerId, {jsonrpc:"2.0", id:payload.requestId, method:"approval.request", params:payload}).then(r => mobileApprovalChannel.resolveApproval(payload.requestId, r.result)))` ~20 行
-    2. `mobile-approval-channel.js requestApproval` 算 `payloadHash`（JCS(method+params+ts) SHA-256 hex）+ `payloadDescription`（method 描述）写进 payload ~30 行
-  - **E2E** ❌ **剩**：跨端审批 E2E（桌面 → mobile-bridge.sendReverseRpcRequest → Android `approval.request` → `ApprovalCommandRouter` → `AndroidApprovalGate` → user → `respondToApproval` → CommandResponse → mobile-bridge 入向拦截 → `setOnRequest` 回调 → `resolveApproval` → command-router continue）。~0.5d
+  - **桌面 transport** ✅ `fc1793933`：`mobile-bridge.js` `pendingReverseRpc` Map + 入向拦截 + `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic 反向 RPC + `asMobileSignTransport()` adapter。`sendReverseRpcRequest` 是 generic JSON-RPC 2.0，M4 D2 + M5 共享
+  - **桌面胶水 + payload enrich** ✅ (v0.7)：
+    1. **mobile-approval-channel.js payload enrich**：`requestApproval` 新增 `payloadHash`（recursive canonical-JSON + SHA-256 hex 64-char，跨平台 deterministic）+ `payloadDescription`（默认 `"<Namespace> · <Action>"` derived，业务可覆写）+ `requireBiometric`（默认 true）— 与 Android `ApprovalCommandRouter` 读 params 字段名一致
+    2. **mobile-approval-transport.js**（新独立模块）：`MobileApprovalTransport.wire(channel, bridge)` 把 `channel.setOnRequest(...)` 接到 `bridge.sendReverseRpcRequest(...)`，处理 RPC success/error/empty/transport-throw 4 类回应路径，返 unwire 函数
+    3. **remote-gateway.js** 装配：`initializeCommandRouter` 构造 whitelist + channel 注入 CommandRouter；`bindMobileBridge(mobileBridge)` 在 MobileBridge ready 后被 index.js 调用，wire transport；`stop()` 加 unwire + `clearAll('gateway-stopped')`
+    4. **index.js** wire：`initializeMobileBridge` 末尾 (MobileSignClient 之后) 调 `this.remoteGateway.bindMobileBridge(this.mobileBridge)`
+  - **桌面集成 E2E（JVM）** ✅ (v0.7)：`m4-d2-cross-end-approval.test.js` 10 scenarios — 真接通整个 desktop-side 链路（CommandRouter → whitelist → channel → transport → fake bridge → 模拟 Android response），覆盖 happy / deny / biometric-fail / rpc-error / transport-error / timeout / non-approval / whitelist-blocked / 并发 / desktop-internal-bypass。**桌面侧 JVM 部分已无 gap**
+  - **真机 E2E** ⏳ 待：见 `Android_M4_D2_E2E.md` — 跨 WebRTC DataChannel + 真 Compose Dialog + 真 BiometricPrompt + 真 StrongBox 4 个"最后一公里"环节
 
 ## 7. v1.0 验收标准
 

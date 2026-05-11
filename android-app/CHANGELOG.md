@@ -10,7 +10,34 @@
 ## [0.37.0] - 2026-05-11 — v1.0 RFC 实施轨道
 
 **状态**: 📋 RFC 评审与实施进行中 — Android v1.0 重新定位的 M1-M5 JVM-testable 部分已落地；
-M3 三件（Voice/Camera/Push）+ M4/M5 wire-up + M6 性能压测需真机环境推进。
+M4 D2 桌面 desktop-side 全部收敛（含跨端 JVM-integration E2E）；
+M3 三件（Voice/Camera/Push）+ M4 D2 真机 E2E + M6 性能压测需真机环境推进。
+
+### 🔁 M4 D2 桌面胶水末段（desktop-side full closure，2026-05-11 dev box）
+
+**关联**: [Android_M4_D2_E2E.md](../docs/design/Android_M4_D2_E2E.md) (真机验收清单)
+
+桌面 5 段中前 4 段在 v0.6 前已落，本次补完第 5/6 段：
+
+- **mobile-approval-channel.js** payload enrich：`requestApproval` 加 `payloadHash`（recursive canonical-JSON + SHA-256 hex 64-char，与 Android `ApprovalCommandRouter` 跨平台 deterministic 对齐）+ `payloadDescription`（默认 `"<Namespace> · <Action>"` derived，业务可覆写）+ `requireBiometric`（默认 true，高风险 default-deny）
+- **mobile-approval-transport.js** 新独立桥模块：`MobileApprovalTransport.wire(channel, bridge)` 把 channel.onRequest 接到 `mobileBridge.sendReverseRpcRequest`，覆盖 RPC success / error / empty-response / transport-throw 4 路返回，返 unwire 用于 hot-replace + cleanup
+- **remote-gateway.js** 装配：`initializeCommandRouter` 构造 `MobileSkillWhitelist` + `MobileApprovalChannel` 注入 CommandRouter；新 `bindMobileBridge(bridge)` 方法在 MobileBridge ready 后被 index.js 调；`stop()` 加 unwire + `clearAll('gateway-stopped')` 防 promise 永远挂起
+- **index.js** wire：`initializeMobileBridge` 在 MobileSignClient (`d6ae3e3f8`) 之后调 `this.remoteGateway.bindMobileBridge(this.mobileBridge)`
+- **桌面集成 E2E** 新 `m4-d2-cross-end-approval.test.js` 10 scenarios — 真接通桌面侧整个 CommandRouter → whitelist → channel → transport → fake bridge 链路。覆盖 happy / deny / biometric-fail / rpc-error / transport-error / timeout / non-approval / whitelist-blocked / 并发 / desktop-internal-bypass。**桌面侧 JVM 部分零 gap**
+
+**测试**: 9 个新 unit case (mobile-approval-channel) + 10 unit case (mobile-approval-transport) + 10 integration case (cross-end E2E) = **+29 desktop 单测**
+
+**剩**: 真 WebRTC + 真 ApprovalDialog + 真 BiometricPrompt + 真 StrongBox 4 个真机环节 — `Android_M4_D2_E2E.md` §4 7 demo 场景
+
+### 📋 M3 / M6 / M7 真机验收方法学（v0.7 design doc 同步）
+
+- [Android_M3_Real_Device_Test_Plan.md](../docs/design/Android_M3_Real_Device_Test_Plan.md) — D-share/D-loc/D-voice/D-camera/D-push 真机测试清单 + D-push 需补 google-services.json + FirebaseMessagingService + 5 步
+- [Android_M6_Performance_Validation.md](../docs/design/Android_M6_Performance_Validation.md) — 8 性能预算的 Macrobenchmark / Battery Historian / TC 弱网测量方法，release-time 直接回填实测值
+- [Android_M4_D2_E2E.md](../docs/design/Android_M4_D2_E2E.md) — M4 D2 跨端审批 7 demo 场景真机验收清单
+
+---
+
+
 
 **关联设计文档**：
 
