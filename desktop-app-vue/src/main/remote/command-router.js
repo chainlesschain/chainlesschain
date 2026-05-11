@@ -10,7 +10,7 @@
  * @module remote/command-router
  */
 
-const { logger } = require('../utils/logger');
+const { logger } = require("../utils/logger");
 
 /**
  * 错误码
@@ -21,7 +21,9 @@ const ERROR_CODES = {
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
   HANDLER_NOT_FOUND: -32001,
-  HANDLER_ERROR: -32002
+  HANDLER_ERROR: -32002,
+  // M4 D2: mobileBridge whitelist 拒绝。仅当 context.source === 'mobile' 时可能返回。
+  PERMISSION_DENIED: -32010,
 };
 
 /**
@@ -33,7 +35,13 @@ class CommandRouter {
     this.options = {
       enableLogging: options.enableLogging !== false,
       enableStats: options.enableStats !== false,
-      ...options
+      // M4 D2: 可选注入 MobileSkillWhitelist 实例。仅对 context.source === 'mobile'
+      // 的请求生效，desktop 内部调用不受影响。null = 不启用（默认）。
+      mobileBridgeWhitelist: options.mobileBridgeWhitelist || null,
+      // M4 D2: 可选注入 MobileApprovalChannel 实例。当 whitelist.requiresApproval(method)
+      // 为 true 时使用本 channel 等待 Android 端 ApprovalUI 回复。null = 不启用。
+      mobileApprovalChannel: options.mobileApprovalChannel || null,
+      ...options,
     };
 
     // 命令处理器映射（namespace -> handler）
@@ -45,7 +53,7 @@ class CommandRouter {
       successCommands: 0,
       failedCommands: 0,
       byNamespace: {},
-      startTime: Date.now()
+      startTime: Date.now(),
     };
   }
 
@@ -55,8 +63,10 @@ class CommandRouter {
    * @param {Object} handler - 处理器实例（必须实现 handle 方法）
    */
   registerHandler(namespace, handler) {
-    if (!handler || typeof handler.handle !== 'function') {
-      throw new Error(`Handler for namespace '${namespace}' must implement handle() method`);
+    if (!handler || typeof handler.handle !== "function") {
+      throw new Error(
+        `Handler for namespace '${namespace}' must implement handle() method`,
+      );
     }
 
     this.handlers.set(namespace, handler);
@@ -66,7 +76,7 @@ class CommandRouter {
       this.stats.byNamespace[namespace] = {
         total: 0,
         success: 0,
-        failed: 0
+        failed: 0,
       };
     }
 
@@ -103,8 +113,12 @@ class CommandRouter {
 
     try {
       // 1. 验证请求格式
-      if (!method || typeof method !== 'string') {
-        return this.createErrorResponse(id, ERROR_CODES.INVALID_REQUEST, 'Method is required');
+      if (!method || typeof method !== "string") {
+        return this.createErrorResponse(
+          id,
+          ERROR_CODES.INVALID_REQUEST,
+          "Method is required",
+        );
       }
 
       // 2. 解析命名空间和动作
@@ -113,8 +127,68 @@ class CommandRouter {
         return this.createErrorResponse(
           id,
           ERROR_CODES.METHOD_NOT_FOUND,
-          `Invalid method format: ${method}. Expected format: namespace.action`
+          `Invalid method format: ${method}. Expected format: namespace.action`,
         );
+      }
+
+      // 2.5. Mobile bridge 白名单闸（M4 D2）。仅对 context.source === 'mobile' 生效。
+      //      desktop 内部调用 / 其它 context 来源不受影响（向后兼容）。
+      if (
+        this.options.mobileBridgeWhitelist &&
+        context &&
+        context.source === "mobile"
+      ) {
+        const whitelist = this.options.mobileBridgeWhitelist;
+        if (!whitelist.isAllowed(method)) {
+          const reason =
+            whitelist.describeRejection(method) || "method not whitelisted";
+          logger.warn(
+            `[CommandRouter] Mobile method rejected: ${method} — ${reason}`,
+          );
+          this.stats.failedCommands++;
+          return this.createErrorResponse(
+            id,
+            ERROR_CODES.PERMISSION_DENIED,
+            `Method '${method}' not allowed for mobile peers: ${reason}`,
+          );
+        }
+        // 2.6. 强 ApprovalUI gate：调起 mobile-approval-channel 等待用户确认 + StrongBox 签名。
+        //      未注入 channel 但要求 approval → 直接拒绝（fail-safe）。
+        if (whitelist.requiresApproval(method)) {
+          if (!this.options.mobileApprovalChannel) {
+            logger.warn(
+              `[CommandRouter] Method '${method}' requires approval but channel not configured`,
+            );
+            this.stats.failedCommands++;
+            return this.createErrorResponse(
+              id,
+              ERROR_CODES.PERMISSION_DENIED,
+              `Method '${method}' requires user approval but no approval channel is configured`,
+            );
+          }
+          const approval =
+            await this.options.mobileApprovalChannel.requestApproval({
+              peerId: context.peerId || context.did || "unknown-mobile-peer",
+              method,
+              params: params || {},
+            });
+          if (!approval.approved) {
+            logger.warn(
+              `[CommandRouter] Approval denied for ${method}: ${approval.deniedReason}`,
+            );
+            this.stats.failedCommands++;
+            return this.createErrorResponse(
+              id,
+              ERROR_CODES.PERMISSION_DENIED,
+              `User denied approval for '${method}': ${approval.deniedReason || "unknown"}`,
+            );
+          }
+          // approval 通过后，把签名挂到 context 供 handler 审计 / 落审计日志
+          context.mobileApproval = {
+            requestId: approval.requestId,
+            signature: approval.signature,
+          };
+        }
       }
 
       // 3. 查找处理器
@@ -124,7 +198,7 @@ class CommandRouter {
         return this.createErrorResponse(
           id,
           ERROR_CODES.HANDLER_NOT_FOUND,
-          `Handler not found for namespace: ${namespace}`
+          `Handler not found for namespace: ${namespace}`,
         );
       }
 
@@ -145,8 +219,8 @@ class CommandRouter {
         return this.createErrorResponse(
           id,
           error.code || ERROR_CODES.HANDLER_ERROR,
-          error.message || 'Handler execution failed',
-          error.data
+          error.message || "Handler execution failed",
+          error.data,
         );
       }
 
@@ -166,7 +240,7 @@ class CommandRouter {
       // 7. 返回成功响应
       return this.createSuccessResponse(id, result);
     } catch (error) {
-      logger.error('[CommandRouter] 路由命令异常:', error);
+      logger.error("[CommandRouter] 路由命令异常:", error);
 
       // 更新统计
       this.stats.failedCommands++;
@@ -175,8 +249,8 @@ class CommandRouter {
       return this.createErrorResponse(
         id,
         ERROR_CODES.INTERNAL_ERROR,
-        'Internal router error',
-        error.message
+        "Internal router error",
+        error.message,
       );
     }
   }
@@ -185,13 +259,13 @@ class CommandRouter {
    * 解析方法名（namespace.action）
    */
   parseMethod(method) {
-    const parts = method.split('.');
+    const parts = method.split(".");
     if (parts.length < 2) {
       return [null, null];
     }
 
     const namespace = parts[0];
-    const action = parts.slice(1).join('.');  // 支持多级，如 channel.telegram.send
+    const action = parts.slice(1).join("."); // 支持多级，如 channel.telegram.send
 
     return [namespace, action];
   }
@@ -201,9 +275,9 @@ class CommandRouter {
    */
   createSuccessResponse(id, result) {
     return {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
-      result: result !== undefined ? result : null
+      result: result !== undefined ? result : null,
     };
   }
 
@@ -212,12 +286,12 @@ class CommandRouter {
    */
   createErrorResponse(id, code, message, data = null) {
     const response = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       error: {
         code,
-        message
-      }
+        message,
+      },
     };
 
     if (data !== null && data !== undefined) {
@@ -249,9 +323,13 @@ class CommandRouter {
       ...this.stats,
       registeredHandlers: this.handlers.size,
       uptime: Date.now() - this.stats.startTime,
-      successRate: this.stats.totalCommands > 0
-        ? (this.stats.successCommands / this.stats.totalCommands * 100).toFixed(2) + '%'
-        : '0%'
+      successRate:
+        this.stats.totalCommands > 0
+          ? (
+              (this.stats.successCommands / this.stats.totalCommands) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -264,7 +342,7 @@ class CommandRouter {
       successCommands: 0,
       failedCommands: 0,
       byNamespace: {},
-      startTime: Date.now()
+      startTime: Date.now(),
     };
 
     // 重新初始化命名空间统计
@@ -272,15 +350,15 @@ class CommandRouter {
       this.stats.byNamespace[namespace] = {
         total: 0,
         success: 0,
-        failed: 0
+        failed: 0,
       };
     }
 
-    logger.info('[CommandRouter] 统计信息已重置');
+    logger.info("[CommandRouter] 统计信息已重置");
   }
 }
 
 module.exports = {
   CommandRouter,
-  ERROR_CODES
+  ERROR_CODES,
 };
