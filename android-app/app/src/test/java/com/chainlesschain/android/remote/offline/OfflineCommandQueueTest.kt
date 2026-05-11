@@ -32,6 +32,15 @@ class OfflineCommandQueueTest {
 
     @Before
     fun setup() {
+        // Defensive: gradle :app:testDebugUnitTest runs all test classes in a single JVM,
+        // and sibling tests (notably WebRTCClientTest) use class-level mockkStatic on
+        // PeerConnectionFactory/SessionDescription/IceCandidate. If they leak (or if a
+        // future sibling adds mockkConstructor without symmetric tearDown), residual
+        // global mockk state can break our coEvery/coVerify generic resolution on
+        // p2pClient.sendCommand<Any>. See memory `feedback_mockk_cross_file_jvm_pollution.md`
+        // — this was the documented root cause of OQ's 3 residual failures on #17.
+        unmockkAll()
+
         mockDao = mockk(relaxed = true)
         mockP2PClient = mockk(relaxed = true)
         connectionStateFlow = MutableStateFlow(ConnectionState.DISCONNECTED)
@@ -44,6 +53,7 @@ class OfflineCommandQueueTest {
     @After
     fun tearDown() {
         clearAllMocks()
+        unmockkAll()
     }
 
     @Test

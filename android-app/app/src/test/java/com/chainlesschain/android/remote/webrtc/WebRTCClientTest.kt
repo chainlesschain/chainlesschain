@@ -5,6 +5,7 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -389,8 +390,14 @@ class WebRTCClientTest {
     }
 
     @Test
-    fun `should queue remote ICE candidates before remote description is set`() = runTest {
-        // Arrange
+    fun `should queue remote ICE candidates before remote description is set`() = runBlocking {
+        // Use real runBlocking (not runTest) because production's startRemoteIceListener
+        // launches on scope=Dispatchers.IO (real threads), and waitForAnswer's `delay(200)`
+        // coAnswers crosses that real-time boundary. Under runTest's virtual-time
+        // StandardTestDispatcher, the IO listener's coroutine never gets the real time it
+        // needs to: (a) receive the queued mockIceCandidate from iceChannel, (b) observe
+        // the post-setRemoteDescription drainPendingRemoteCandidates path. Same pattern as
+        // P2PClientTest after `caf512f5e` (#17 RZ2). Issue #18 residual.
         webRTCClient.initialize()
 
         val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\n...")
@@ -430,8 +437,20 @@ class WebRTCClientTest {
 
         // Assert
         assertTrue(result.isSuccess)
-        // ICE candidate should be added after remote description is set
-        verify { mockPeerConnection.addIceCandidate(mockIceCandidate) }
+        // ICE candidate should be added after remote description is set.
+        //
+        // The remote-ICE listener runs on WebRTCClient.scope (Dispatchers.IO) — a REAL
+        // thread that runTest's StandardTestDispatcher does not drive. waitForAnswer's
+        // `delay(200)` is virtual time and fast-forwards instantly, so connect() can
+        // return success before the IO listener has had real time to pull the queued
+        // candidate from iceChannel and route it through addIceCandidate (either
+        // directly when isRemoteDescriptionSet is true, or via drainPendingRemoteCandidates).
+        //
+        // Use coVerify(timeout = 1000) to wait up to 1s real time for cross-dispatcher
+        // delivery — mirrors the established pattern at line 386-388 for sendIceCandidate.
+        coVerify(timeout = 1000) {
+            mockPeerConnection.addIceCandidate(mockIceCandidate)
+        }
     }
 
     // ==================== Connection State Tests ====================

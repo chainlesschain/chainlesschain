@@ -77,6 +77,7 @@ class OfflineCommandQueue @Inject constructor(
         private const val MAX_RETRIES = 3
         private const val RETRY_DELAY = 5000L // 5 秒
         private const val OLD_COMMAND_THRESHOLD = 7 * 24 * 60 * 60 * 1000L // 7 天
+        private const val SEND_TIMEOUT_MS = 30_000L // 与 P2PClientConfig.requestTimeout 默认对齐
     }
 
     /**
@@ -167,9 +168,14 @@ class OfflineCommandQueue @Inject constructor(
                     )
 
                     // 发送命令
+                    // 显式 timeout 避开 P2PClient.sendCommand 的 `timeout = config.requestTimeout`
+                    // 默认值——Kotlin 在 sendCommand$default 里用 GETFIELD 直读 `private val config`,
+                    // 绕过 mockk relaxed mock 的方法拦截, 在测试里 NPE; 单测靠 stub 兜不住, 必须从生产端
+                    // 不走 default-mask 路径. 数值跟 P2PClientConfig.requestTimeout 默认对齐.
                     val result = p2pClient.sendCommand<Any>(
                         method = request.method,
-                        params = request.params
+                        params = request.params,
+                        timeout = SEND_TIMEOUT_MS
                     )
 
                     if (result.isSuccess) {
