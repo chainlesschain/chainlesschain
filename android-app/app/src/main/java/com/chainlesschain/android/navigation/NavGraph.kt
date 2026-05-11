@@ -44,7 +44,6 @@ import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListSc
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.AboutScreen
 import com.chainlesschain.android.presentation.screens.AsrSettingsScreen
-import com.chainlesschain.android.presentation.screens.BookmarkScreen
 import com.chainlesschain.android.presentation.screens.HelpFeedbackScreen
 import com.chainlesschain.android.presentation.screens.KeyManagementScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
@@ -158,7 +157,6 @@ fun NavGraph(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
                 onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
-                onNavigateToBookmark = { navController.navigate(Screen.Bookmark.route) },
                 onNavigateToP2PChatSessionList = { navController.navigate(Screen.P2PChatSessionList.route) }
             )
         }
@@ -328,10 +326,6 @@ fun NavGraph(
 
         composable(Screen.HelpFeedback.route) {
             HelpFeedbackScreen(onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.Bookmark.route) {
-            BookmarkScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(Screen.FileBrowser.route) {
@@ -658,7 +652,6 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object About : Screen("about")
     data object HelpFeedback : Screen("help_feedback")
-    data object Bookmark : Screen("bookmark")
     data object DeviceManagement : Screen("device_management")
     data object DeviceScan : Screen("device_scan")
     data object RemoteControl : Screen("remote_control") {

@@ -384,50 +384,6 @@
     <string name="about_architecture">Architecture</string>
     <string name="about_di">Dependency Injection</string>
 
-    <!-- ==================== Bookmark Screen ==================== -->
-    <string name="bookmark_title">My Bookmarks</string>
-    <string name="bookmark_search_hint">Search bookmarks…</string>
-    <string name="bookmark_manage">Manage</string>
-    <string name="bookmark_manage_done">Done</string>
-    <string name="bookmark_removed">Bookmark removed</string>
-    <string name="bookmark_new_tag_title">New Tag</string>
-    <string name="bookmark_tag_name">Tag name</string>
-    <string name="bookmark_tag_created">Tag \"%s\" created</string>
-    <string name="bookmark_new_tag">+ New Tag</string>
-    <string name="bookmark_total">Total Bookmarks</string>
-    <string name="bookmark_projects">Projects</string>
-    <string name="bookmark_documents">Documents</string>
-    <string name="bookmark_knowledge">Knowledge Base</string>
-    <string name="bookmark_remove_cd">Remove bookmark</string>
-    <string name="bookmark_view_details_developing">View details feature in development</string>
-    <!-- Bookmark sample data -->
-    <string name="bookmark_sample_1_title">Complete Guide to Kotlin Coroutines</string>
-    <string name="bookmark_sample_1_desc">Deep understanding of Kotlin coroutine principles and best practices with practical examples</string>
-    <string name="bookmark_sample_2_title">AI-Powered Project Management System</string>
-    <string name="bookmark_sample_2_desc">Optimize project management with AI to improve team collaboration efficiency</string>
-    <string name="bookmark_sample_3_title">Android Compose Best Practices</string>
-    <string name="bookmark_sample_3_desc">Master the core concepts of Jetpack Compose from beginner to expert</string>
-    <string name="bookmark_sample_4_title">How to Build Decentralized Apps</string>
-    <string name="bookmark_sample_4_desc">Explore blockchain technology in application development</string>
-    <string name="bookmark_sample_5_title">Tech Trends Analysis 2024</string>
-    <string name="bookmark_sample_5_desc">Comprehensive review of the most notable technology trends this year</string>
-    <string name="bookmark_tag_tech">Tech</string>
-    <string name="bookmark_tag_learning">Learning</string>
-    <string name="bookmark_tag_work">Work</string>
-    <string name="bookmark_tag_life">Life</string>
-    <string name="bookmark_filter_all">All</string>
-    <string name="bookmark_filter_no_tag">No Tag</string>
-    <string name="bookmark_add">Add</string>
-    <string name="bookmark_all_count">All Bookmarks (%d)</string>
-    <string name="bookmark_undo">Undo</string>
-    <string name="bookmark_empty_title">No bookmarks yet</string>
-    <string name="bookmark_empty_desc">Browse the explore page and bookmark interesting content</string>
-    <!-- Bookmark type labels -->
-    <string name="bookmark_type_project">Project</string>
-    <string name="bookmark_type_document">Document</string>
-    <string name="bookmark_type_knowledge">Knowledge Base</string>
-    <string name="bookmark_type_ai_chat">AI Chat</string>
-
     <!-- ==================== Explore Screen ==================== -->
     <string name="explore_title">Explore</string>
     <string name="explore_like">Like</string>
@@ -526,8 +482,6 @@
     <string name="profile_help_desc">Get help</string>
     <string name="profile_usage_stats">Usage Statistics</string>
     <string name="profile_usage_stats_desc">View token usage and cost statistics</string>
-    <string name="profile_bookmarks">My Bookmarks</string>
-    <string name="profile_bookmarks_desc">View bookmarked content</string>
     <string name="profile_tab">Profile</string>
     <string name="profile_biometric_enabled">Biometric enabled</string>
     <string name="profile_biometric_disabled">Biometric disabled</string>

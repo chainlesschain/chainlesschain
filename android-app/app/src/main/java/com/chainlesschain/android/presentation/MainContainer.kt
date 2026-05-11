@@ -46,7 +46,6 @@ fun MainContainer(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToHelpFeedback: () -> Unit = {},
-    onNavigateToBookmark: () -> Unit = {},
     onNavigateToP2PChatSessionList: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
@@ -138,7 +137,6 @@ fun MainContainer(
                         onNavigateToSettings = onNavigateToSettings,
                         onNavigateToAbout = onNavigateToAbout,
                         onNavigateToHelpFeedback = onNavigateToHelpFeedback,
-                        onNavigateToBookmark = onNavigateToBookmark,
                         viewModel = viewModel
                     )
                 }

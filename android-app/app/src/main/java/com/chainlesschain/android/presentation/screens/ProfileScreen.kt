@@ -32,7 +32,6 @@ fun ProfileScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToHelpFeedback: () -> Unit = {},
-    onNavigateToBookmark: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -179,15 +178,6 @@ fun ProfileScreen(
                     title = stringResource(R.string.profile_p2p_devices),
                     subtitle = stringResource(R.string.profile_p2p_devices_desc),
                     onClick = onNavigateToP2P
-                )
-            }
-
-            item {
-                ProfileMenuItem(
-                    icon = Icons.Default.Bookmark,
-                    title = stringResource(R.string.profile_bookmarks),
-                    subtitle = stringResource(R.string.profile_bookmarks_desc),
-                    onClick = onNavigateToBookmark
                 )
             }
 

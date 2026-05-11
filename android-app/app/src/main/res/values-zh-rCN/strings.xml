@@ -384,50 +384,6 @@
     <string name="about_architecture">架构</string>
     <string name="about_di">依赖注入</string>
 
-    <!-- ==================== Bookmark Screen ==================== -->
-    <string name="bookmark_title">我的收藏</string>
-    <string name="bookmark_search_hint">搜索收藏内容…</string>
-    <string name="bookmark_manage">管理</string>
-    <string name="bookmark_manage_done">完成</string>
-    <string name="bookmark_removed">已移除收藏</string>
-    <string name="bookmark_new_tag_title">新建标签</string>
-    <string name="bookmark_tag_name">标签名称</string>
-    <string name="bookmark_tag_created">标签「%s」已创建</string>
-    <string name="bookmark_new_tag">+ 新建标签</string>
-    <string name="bookmark_total">总收藏</string>
-    <string name="bookmark_projects">项目</string>
-    <string name="bookmark_documents">文档</string>
-    <string name="bookmark_knowledge">知识库</string>
-    <string name="bookmark_remove_cd">移除收藏</string>
-    <string name="bookmark_view_details_developing">查看详情功能开发中</string>
-    <!-- Bookmark sample data -->
-    <string name="bookmark_sample_1_title">Kotlin协程完全指南</string>
-    <string name="bookmark_sample_1_desc">深入理解Kotlin协程的工作原理和最佳实践，包含大量实际案例</string>
-    <string name="bookmark_sample_2_title">AI驱动的项目管理系统</string>
-    <string name="bookmark_sample_2_desc">使用人工智能优化项目管理流程，提高团队协作效率</string>
-    <string name="bookmark_sample_3_title">Android Compose最佳实践</string>
-    <string name="bookmark_sample_3_desc">从入门到精通，掌握Jetpack Compose的核心概念</string>
-    <string name="bookmark_sample_4_title">如何构建去中心化应用</string>
-    <string name="bookmark_sample_4_desc">探索区块链技术在应用开发中的实践</string>
-    <string name="bookmark_sample_5_title">2024年技术趋势分析</string>
-    <string name="bookmark_sample_5_desc">全面解读今年最值得关注的技术方向</string>
-    <string name="bookmark_tag_tech">技术</string>
-    <string name="bookmark_tag_learning">学习</string>
-    <string name="bookmark_tag_work">工作</string>
-    <string name="bookmark_tag_life">生活</string>
-    <string name="bookmark_filter_all">全部</string>
-    <string name="bookmark_filter_no_tag">无标签</string>
-    <string name="bookmark_add">添加</string>
-    <string name="bookmark_all_count">全部收藏 (%d)</string>
-    <string name="bookmark_undo">撤销</string>
-    <string name="bookmark_empty_title">暂无收藏内容</string>
-    <string name="bookmark_empty_desc">浏览探索页面，收藏感兴趣的内容</string>
-    <!-- Bookmark type labels -->
-    <string name="bookmark_type_project">项目</string>
-    <string name="bookmark_type_document">文档</string>
-    <string name="bookmark_type_knowledge">知识库</string>
-    <string name="bookmark_type_ai_chat">AI对话</string>
-
     <!-- ==================== Explore Screen ==================== -->
     <string name="explore_title">探索</string>
     <string name="explore_like">点赞</string>
@@ -526,8 +482,6 @@
     <string name="profile_help_desc">获取帮助</string>
     <string name="profile_usage_stats">使用统计</string>
     <string name="profile_usage_stats_desc">查看Token使用和成本统计</string>
-    <string name="profile_bookmarks">我的收藏</string>
-    <string name="profile_bookmarks_desc">查看收藏的内容</string>
     <string name="profile_tab">我的</string>
     <string name="profile_biometric_enabled">生物识别已启用</string>
     <string name="profile_biometric_disabled">生物识别未启用</string>
