@@ -31,6 +31,9 @@ class RemoteSkillRegistry @Inject constructor(
 
     private val byNamespace = mutableMapOf<String, SkillMetadata>()
 
+    /** alias → canonical namespace 反查表（§8.3 1 版兼容窗口）。 */
+    private val aliasIndex = mutableMapOf<String, String>()
+
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills: StateFlow<List<SkillMetadata>> = _skills.asStateFlow()
 
@@ -61,8 +64,12 @@ class RemoteSkillRegistry @Inject constructor(
     /** 列出全部 skill。 */
     fun listAll(): List<SkillMetadata> = _skills.value
 
-    /** 按 namespace 精确查找。 */
-    fun get(namespace: String): SkillMetadata? = byNamespace[namespace]
+    /** 按 namespace 精确查找；若 namespace 未找到则按 alias 反查（§8.3 兼容窗口）。 */
+    fun get(namespace: String): SkillMetadata? =
+        byNamespace[namespace] ?: aliasIndex[namespace]?.let { byNamespace[it] }
+
+    /** 把 alias 解析到 canonical namespace；不是 alias 则原样返回。 */
+    fun resolveAlias(name: String): String = aliasIndex[name] ?: name
 
     /** 按类别筛选（如 "ai" / "system" / "data"）。 */
     fun listByCategory(category: String): List<SkillMetadata> =
@@ -73,33 +80,33 @@ class RemoteSkillRegistry @Inject constructor(
         _skills.value.filter { it.risk == risk }
 
     /**
-     * 是否需要 ApprovalUI 二次确认（namespace 级）。
+     * 是否需要 ApprovalUI 二次确认（namespace 级；alias 自动 resolve）。
      *
      * @return true 表示 UI 层必须在调用此 skill 前调起 ApprovalUI（带 BiometricPrompt
      * + 操作详情展示）；false 表示常规放行（仍需 Ed25519 签名）
      */
     fun requiresApproval(namespace: String): Boolean {
-        return byNamespace[namespace]?.requiresApproval ?: true // 未知 skill 走保守路径
+        return get(namespace)?.requiresApproval ?: true // 未知 skill 走保守路径
     }
 
     // ===== M4 D1 method-level accessors =====
 
     /**
-     * 列出 namespace 下所有 method 元数据。
+     * 列出 namespace 下所有 method 元数据（alias 自动 resolve）。
      *
      * @return 空 list 表示 namespace 未找到 / methods 未播种（调用方应回退 namespace 级数据）
      */
     fun listMethods(namespace: String): List<MethodMetadata> =
-        byNamespace[namespace]?.methods ?: emptyList()
+        get(namespace)?.methods ?: emptyList()
 
     /**
-     * 精确查找一个 method 的元数据。
+     * 精确查找一个 method 的元数据（alias 自动 resolve）。
      *
      * @return null = namespace 未注册 / methods 未播种 / method 名不匹配。调用方应回退到
      *         namespace 级数据（[get] + [requiresApproval]）。
      */
     fun getMethod(namespace: String, methodName: String): MethodMetadata? =
-        byNamespace[namespace]?.methods?.firstOrNull { it.name == methodName }
+        get(namespace)?.methods?.firstOrNull { it.name == methodName }
 
     /**
      * 是否需要 ApprovalUI 二次确认（method 级，优先级最高）。
@@ -111,7 +118,7 @@ class RemoteSkillRegistry @Inject constructor(
      *  4. namespace 未知 → true（保守路径）
      */
     fun requiresApprovalForMethod(namespace: String, methodName: String): Boolean {
-        val skill = byNamespace[namespace] ?: return true
+        val skill = get(namespace) ?: return true
         val method = skill.methods.firstOrNull { it.name == methodName }
         method?.requiresApprovalOverride?.let { return it }
         method?.riskOverride?.let { return it == SkillRiskTag.Privileged }
@@ -119,10 +126,10 @@ class RemoteSkillRegistry @Inject constructor(
     }
 
     /**
-     * Method 级 risk 解析。同上 fallback 顺序，但只看 risk（不看 approval）。
+     * Method 级 risk 解析。同上 fallback 顺序，但只看 risk（不看 approval）；alias 自动 resolve。
      */
     fun riskForMethod(namespace: String, methodName: String): SkillRiskTag {
-        val skill = byNamespace[namespace] ?: return SkillRiskTag.Privileged
+        val skill = get(namespace) ?: return SkillRiskTag.Privileged
         val method = skill.methods.firstOrNull { it.name == methodName }
         return method?.riskOverride ?: skill.risk
     }
@@ -140,9 +147,10 @@ class RemoteSkillRegistry @Inject constructor(
             Timber.w("updateFromRemote called with empty list, ignoring")
             return byNamespace.size
         }
+        // 先把更新合进 byNamespace（同 namespace 替换），再走 replaceAll 重建 aliasIndex
         newSkills.forEach { byNamespace[it.namespace] = it }
         val merged = byNamespace.values.toList()
-        _skills.value = merged
+        replaceAll(merged)
         store.save(merged)
         Timber.i("Registry updated from remote: +%d, total=%d", newSkills.size, merged.size)
         return merged.size
@@ -159,7 +167,13 @@ class RemoteSkillRegistry @Inject constructor(
 
     private fun replaceAll(skills: List<SkillMetadata>) {
         byNamespace.clear()
-        skills.forEach { byNamespace[it.namespace] = it }
+        aliasIndex.clear()
+        skills.forEach { skill ->
+            byNamespace[skill.namespace] = skill
+            for (alias in skill.aliases) {
+                aliasIndex[alias] = skill.namespace
+            }
+        }
         _skills.value = skills
     }
 

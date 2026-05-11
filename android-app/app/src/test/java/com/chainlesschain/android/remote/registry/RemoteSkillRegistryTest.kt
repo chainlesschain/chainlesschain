@@ -361,6 +361,143 @@ class RemoteSkillRegistryTest {
         } catch (_: IllegalArgumentException) { /* expected */ }
     }
 
+    // ===== §8.3 alias 兼容窗口 =====
+
+    @Test
+    fun `alias resolves to canonical namespace via get`() {
+        val skill = SkillMetadata(
+            namespace = "extension",
+            displayName = "Extension",
+            description = "d",
+            category = "browser",
+            risk = SkillRiskTag.Privileged,
+            androidSourceFile = "F.kt",
+            methodCount = 1,
+            aliases = listOf("browser.extension", "chrome-ext"),
+        )
+        store.save(listOf(skill))
+        registry.initialize()
+
+        assertNotNull(registry.get("extension"))
+        assertNotNull(registry.get("browser.extension"))  // alias
+        assertEquals("extension", registry.get("browser.extension")!!.namespace)
+        assertNotNull(registry.get("chrome-ext"))  // 2nd alias
+        assertNull(registry.get("unknown"))
+    }
+
+    @Test
+    fun `resolveAlias returns canonical for alias and identity for canonical`() {
+        val skill = SkillMetadata(
+            namespace = "extension",
+            displayName = "Extension",
+            description = "d",
+            category = "browser",
+            risk = SkillRiskTag.Privileged,
+            androidSourceFile = "F.kt",
+            methodCount = 1,
+            aliases = listOf("browser.extension"),
+        )
+        store.save(listOf(skill))
+        registry.initialize()
+
+        assertEquals("extension", registry.resolveAlias("browser.extension"))
+        assertEquals("extension", registry.resolveAlias("extension"))
+        assertEquals("not-a-known-name", registry.resolveAlias("not-a-known-name"))
+    }
+
+    @Test
+    fun `requiresApproval honors alias`() {
+        val skill = SkillMetadata(
+            namespace = "marketplace",
+            displayName = "MP",
+            description = "d",
+            category = "control",
+            risk = SkillRiskTag.Privileged,
+            androidSourceFile = "F.kt",
+            methodCount = 1,
+            aliases = listOf("payments"),
+        )
+        store.save(listOf(skill))
+        registry.initialize()
+
+        assertTrue(registry.requiresApproval("marketplace"))
+        assertTrue(registry.requiresApproval("payments"))  // alias path
+    }
+
+    @Test
+    fun `listMethods honors alias`() {
+        val skill = SkillMetadata(
+            namespace = "ai",
+            displayName = "AI",
+            description = "d",
+            category = "ai",
+            risk = SkillRiskTag.Mutating,
+            androidSourceFile = "AICommands.kt",
+            methodCount = 1,
+            methods = listOf(MethodMetadata("chat", "x", 0)),
+            aliases = listOf("llm"),
+        )
+        store.save(listOf(skill))
+        registry.initialize()
+
+        assertEquals(1, registry.listMethods("ai").size)
+        assertEquals(1, registry.listMethods("llm").size)
+    }
+
+    @Test
+    fun `alias rejects matching its own namespace via require`() {
+        try {
+            SkillMetadata(
+                namespace = "self",
+                displayName = "x",
+                description = "d",
+                category = "c",
+                risk = SkillRiskTag.Safe,
+                androidSourceFile = "F.kt",
+                methodCount = 1,
+                aliases = listOf("self"),
+            )
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `alias rejects blank entries via require`() {
+        try {
+            SkillMetadata(
+                namespace = "n",
+                displayName = "x",
+                description = "d",
+                category = "c",
+                risk = SkillRiskTag.Safe,
+                androidSourceFile = "F.kt",
+                methodCount = 1,
+                aliases = listOf("ok", "   "),
+            )
+            assertTrue("should have thrown", false)
+        } catch (_: IllegalArgumentException) { /* expected */ }
+    }
+
+    @Test
+    fun `updateFromRemote rebuilds aliasIndex on merge`() {
+        registry.initialize()
+        val update = SkillMetadata(
+            namespace = "newone",
+            displayName = "new",
+            description = "d",
+            category = "c",
+            risk = SkillRiskTag.Safe,
+            androidSourceFile = "F.kt",
+            methodCount = 1,
+            aliases = listOf("legacy-name"),
+        )
+        registry.updateFromRemote(listOf(update))
+
+        assertNotNull(registry.get("newone"))
+        assertNotNull(registry.get("legacy-name"))
+        assertEquals("newone", registry.get("legacy-name")!!.namespace)
+    }
+
     @Test
     fun `updateFromRemote replaces methods alongside file-level metadata`() {
         registry.initialize()

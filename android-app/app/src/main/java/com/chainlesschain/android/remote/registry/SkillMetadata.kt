@@ -63,6 +63,15 @@ data class SkillMetadata(
      * 等桌面 mobile-skill-whitelist 通过 updateFromRemote 下发。
      */
     val methods: List<MethodMetadata> = emptyList(),
+
+    /**
+     * 旧 namespace 名兼容窗口（M4 §8.3）。当 RemoteSkillRegistry 收到查询 alias 时，
+     * 自动 resolve 到本 [namespace]。1 版兼容窗口后移除 alias，让调用方迁移到新 namespace。
+     *
+     * 示例：把 "browser.extension" 改名为 "extension" 时，旧 alias 留一版，让在飞的
+     * 桌面端调用不会立刻 fail。
+     */
+    val aliases: List<String> = emptyList(),
 ) {
     init {
         require(namespace.isNotBlank()) { "namespace must not be blank" }
@@ -77,6 +86,12 @@ data class SkillMetadata(
         val dupes = methods.groupBy { it.name }.filter { it.value.size > 1 }.keys
         require(dupes.isEmpty()) {
             "method names must be unique within namespace, duplicates: $dupes"
+        }
+        require(aliases.none { it == namespace }) {
+            "alias must not equal namespace itself: $namespace"
+        }
+        require(aliases.none { it.isBlank() }) {
+            "aliases must not contain blank entries: $aliases"
         }
     }
 
