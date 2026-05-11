@@ -85,6 +85,7 @@ import com.chainlesschain.android.core.did.manager.TrustedDevice
 import com.chainlesschain.android.core.did.wallet.DIDIdentityMeta
 import com.chainlesschain.android.core.did.wallet.MnemonicService
 import com.chainlesschain.android.core.did.wallet.NewIdentityResult
+import com.chainlesschain.android.sign.AndroidApprovalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,6 +114,7 @@ import javax.inject.Inject
 class KeyManagementViewModel @Inject constructor(
     val didManager: DIDManager,
     private val mnemonicService: MnemonicService,
+    private val approvalGate: AndroidApprovalGate,
 ) : ViewModel() {
 
     val identity: StateFlow<DIDIdentity?> = didManager.currentIdentity
@@ -200,6 +202,28 @@ class KeyManagementViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Debug 触发器：模拟桌面发起 sign.request 反向 RPC，验证 ApprovalDialog UI
+     * 链路。生产环境签名请求来自 mobile-bridge.js 反向 RPC（未接入前用此 demo）。
+     *
+     * @param requireBiometric true 时 dialog 上"同意"按钮会调起 BiometricPrompt
+     */
+    fun triggerDebugApprovalDialog(requireBiometric: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val fakeHash = "deadbeef".repeat(8) // 64 chars
+            val result = approvalGate.requestApproval(
+                payloadDescription = "调试: 模拟桌面发起的签名请求",
+                payloadHash = fakeHash,
+                requireBiometric = requireBiometric,
+            )
+            _toastMessage.value = if (result.approved) {
+                "✓ 已同意（debug — backend 签名步骤跳过）"
+            } else {
+                "✗ 拒绝: ${result.deniedReason ?: "unknown"}"
+            }
+        }
+    }
+
     /** 旧"重置"路径（无助记词版本）— 保留向后兼容。 */
     fun resetIdentity(deviceName: String, onDone: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -271,6 +295,8 @@ fun KeyManagementScreen(
                 onCreateClick = { showCreateDialog = true },
                 onImportClick = { showImportDialog = true },
                 onResetClick = { showResetDialog = true },
+                onDebugApprovalClick = { viewModel.triggerDebugApprovalDialog(requireBiometric = false) },
+                onDebugApprovalWithBiometricClick = { viewModel.triggerDebugApprovalDialog(requireBiometric = true) },
             )
         }
     }
@@ -363,6 +389,8 @@ private fun KeyManagementContent(
     onCreateClick: () -> Unit,
     onImportClick: () -> Unit,
     onResetClick: () -> Unit,
+    onDebugApprovalClick: () -> Unit,
+    onDebugApprovalWithBiometricClick: () -> Unit,
 ) {
     val publicKeyHex = remember(identity) { identity.keyPair.publicKey.toHex() }
     val createdAt = remember(identity.createdAt) {
@@ -509,6 +537,60 @@ private fun KeyManagementContent(
                         Icon(Icons.Default.DeleteForever, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text("重置当前 DID")
+                    }
+                }
+            }
+        }
+
+        // Debug: 触发 ApprovalDialog（demo M5 反向 sign.request 路径）
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "调试 / Dev only",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                ),
+                elevation = CardDefaults.cardElevation(0.dp),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "触发 ApprovalDialog (M5 反向 sign.request demo)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "模拟桌面发起 sign.request → 弹 ApprovalDialog。生产路径走 mobile-bridge.js 反向 RPC（未接入前用此验证 UI 链路）。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onDebugApprovalClick,
+                        ) { Text("无 Biometric") }
+                        Button(
+                            onClick = onDebugApprovalWithBiometricClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = MaterialTheme.colorScheme.onTertiary,
+                            ),
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("需 Biometric")
+                        }
                     }
                 }
             }
