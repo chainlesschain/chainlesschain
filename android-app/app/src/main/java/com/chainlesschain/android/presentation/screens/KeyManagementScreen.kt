@@ -298,6 +298,14 @@ fun KeyManagementScreen(
     pendingMnemonic?.let { result ->
         MnemonicRevealDialog(
             result = result,
+            onCopyMnemonic = {
+                copyToClipboard(context, "助记词", result.mnemonic.joinToString(" "))
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        "已复制 ${result.mnemonic.size} 词到剪贴板，尽快粘贴并清剪贴板",
+                    )
+                }
+            },
             onConfirmWritten = { viewModel.confirmMnemonicWrittenDown(result.identity.did) },
             onDismiss = { viewModel.dismissMnemonicReveal() },
         )
@@ -713,6 +721,7 @@ private fun CreateIdentityDialog(
 @Composable
 private fun MnemonicRevealDialog(
     result: NewIdentityResult,
+    onCopyMnemonic: () -> Unit,
     onConfirmWritten: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -769,7 +778,20 @@ private fun MnemonicRevealDialog(
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = onCopyMnemonic,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("复制 ${result.mnemonic.size} 词到剪贴板（调试用 / 同设备 import 测试）")
+                }
+                Spacer(Modifier.height(4.dp))
                 Text(
                     "新 DID: ${result.identity.did}",
                     style = MaterialTheme.typography.labelSmall,
