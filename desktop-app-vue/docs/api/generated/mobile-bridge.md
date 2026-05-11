@@ -228,6 +228,41 @@ async sendToMobile(mobilePeerId, message)
 
 ---
 
+## async sendReverseRpcRequest(mobilePeerId, request, timeoutMs = 60000)
+
+```javascript
+async sendReverseRpcRequest(mobilePeerId, request, timeoutMs = 60000)
+```
+
+* 反向 JSON-RPC 请求（桌面 → Android）。
+   *
+   * 设计文档 M5 ADR-6 + MobileSignClient transport 抽象的真实接通：
+   *  1. request.id 唯一 → 存 pendingReverseRpc map
+   *  2. 通过 [sendToMobile] 推到 Android（DataChannel 或 signaling fallback）
+   *  3. timeoutMs 后未收到响应 → reject with timeout
+   *  4. Android 端 RemoteCommandClient 收到 sign.request 等 method → 路由
+   *     SignAsService → 返回 JSON-RPC response with matching id
+   *  5. response 经 channel.onmessage → bridgeToLibp2p → 拦截分支 resolve
+   *     本 Promise
+   *
+   * @param {string} mobilePeerId 目标 Android 设备 ID
+   * @param {Object} request JSON-RPC 2.0 request（含 jsonrpc:"2.0" + id + method + params）
+   * @param {number} [timeoutMs=60000] 超时（默认 60s 覆盖慢用户 BiometricPrompt）
+   * @returns {Promise<Object>} Android 端的 JSON-RPC response
+
+---
+
+## asMobileSignTransport()
+
+```javascript
+asMobileSignTransport()
+```
+
+* 返回符合 [MobileSignClient] 期望的 transport 适配器：`{send(peerId, req) → Promise<resp>}`.
+   * 真接通 M5 反向 sign.request 路径。
+
+---
+
 ## send(message)
 
 ```javascript
