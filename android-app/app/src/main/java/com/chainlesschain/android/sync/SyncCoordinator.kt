@@ -1,5 +1,6 @@
 package com.chainlesschain.android.sync
 
+import com.chainlesschain.android.capture.share.SharePayloadFlusher
 import com.chainlesschain.android.core.p2p.sync.SyncManager
 import com.chainlesschain.android.remote.p2p.P2PClient
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +40,8 @@ import javax.inject.Singleton
 @Singleton
 class SyncCoordinator @Inject constructor(
     private val p2pClient: P2PClient,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val sharePayloadFlusher: SharePayloadFlusher,
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -90,7 +92,7 @@ class SyncCoordinator @Inject constructor(
         stopPeriodicPush()
 
         periodicPushJob = scope.launch {
-            // 进入循环：每 pushIntervalMs 检查 pendingChanges
+            // 进入循环：每 pushIntervalMs 检查 pendingChanges + Inbox
             while (isActive) {
                 try {
                     val pending = syncManager.getSyncStatistics().pendingChanges
@@ -106,6 +108,21 @@ class SyncCoordinator @Inject constructor(
                     throw e
                 } catch (e: Exception) {
                     Timber.w(e, "[SyncCoordinator] periodic push failed; will retry")
+                }
+                // M3 D2 ShareReceiver flush —— 与 syncManager.pushPendingToDesktopRpc 解耦的
+                // 独立路径（Shared Inbox 走 knowledge.createNote 而非 sync RPC）
+                try {
+                    val flushed = sharePayloadFlusher.flushAll()
+                    if (flushed.total > 0) {
+                        Timber.d(
+                            "[SyncCoordinator] share flush: pushed=${flushed.pushed} " +
+                                "failed=${flushed.failed} (re-enqueued) total=${flushed.total}"
+                        )
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Timber.w(e, "[SyncCoordinator] share flush failed; entries left in inbox")
                 }
                 delay(pushIntervalMs)
             }
