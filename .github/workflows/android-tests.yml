@@ -43,16 +43,28 @@ jobs:
         working-directory: android-app
         run: ./gradlew :core-database:testDebugUnitTest --tests "*DaoTest*" --no-daemon
 
-      - name: Run Library Module Unit Tests
+      - name: Run Library Module Unit Tests (excl core-p2p)
         working-directory: android-app
         run: |
-          # 8 core-* modules. --parallel runs their :testDebugUnitTest tasks concurrently
+          # 7 core-* modules. --parallel runs their :testDebugUnitTest tasks concurrently
           # across projects; --max-workers=4 caps at ubuntu-latest's 4 vCPUs to avoid
           # OOM from too many concurrent test JVMs.
+          # core-p2p split into its own step below to isolate the hung-test
+          # diagnostic — see "Run core-p2p Unit Tests".
           ./gradlew :core-common:testDebugUnitTest :core-database:testDebugUnitTest :core-security:testDebugUnitTest \
-            :core-did:testDebugUnitTest :core-e2ee:testDebugUnitTest :core-p2p:testDebugUnitTest \
+            :core-did:testDebugUnitTest :core-e2ee:testDebugUnitTest \
             :core-blockchain:testDebugUnitTest :core-network:testDebugUnitTest \
             --parallel --max-workers=4 --no-daemon
+
+      # core-p2p:testDebugUnitTest hung indefinitely in run 25642034234 (53 min,
+      # no test output before timeout). Split out with tight timeout so the step
+      # fails fast; per-test event logging is configured in core-p2p/build.gradle.kts
+      # so the gradle log surfaces the specific Test class instead of going silent.
+      # Once the offending test is fixed, fold this back into the step above.
+      - name: Run core-p2p Unit Tests (isolated, diagnostic)
+        working-directory: android-app
+        timeout-minutes: 15
+        run: ./gradlew :core-p2p:testDebugUnitTest --no-daemon
 
       # Removed continue-on-error so app-module compilation regressions
       # block the pipeline. Previous comment claimed "known compilation

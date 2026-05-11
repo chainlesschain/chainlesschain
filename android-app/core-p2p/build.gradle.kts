@@ -76,3 +76,14 @@ dependencies {
 
 // Apply Jacoco configuration for code coverage
 apply(from = rootProject.file("jacoco-config.gradle.kts"))
+
+// 诊断 core-p2p 测试 hang（run 25642034234 卡 53min）：
+// - 每个 Test 启动/通过/失败/跳过时打 log，便于在 CI 上看见卡在哪个 class
+// - 单 Test 任务 10min 超时，避免再卡满整 job
+tasks.withType<Test>().configureEach {
+    timeout.set(java.time.Duration.ofMinutes(10))
+    testLogging {
+        events("started", "passed", "skipped", "failed")
+        showStandardStreams = false
+    }
+}
