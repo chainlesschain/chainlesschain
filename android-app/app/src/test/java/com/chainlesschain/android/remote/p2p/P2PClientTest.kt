@@ -207,7 +207,14 @@ class P2PClientTest {
         }
         delay(100) // give the collector a real moment to register
 
-        coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
+        // Force webRTCClient.connect to suspend briefly — otherwise mockk returns
+        // synchronously, production sets CONNECTING then CONNECTED without yielding,
+        // and MutableStateFlow conflates the intermediate CONNECTING value away
+        // before the collector observes it.
+        coEvery { mockWebRTCClient.connect(any(), any()) } coAnswers {
+            delay(20)
+            Result.success(Unit)
+        }
 
         // Act
         p2pClient.connect("peer-123", "did:example:123")
