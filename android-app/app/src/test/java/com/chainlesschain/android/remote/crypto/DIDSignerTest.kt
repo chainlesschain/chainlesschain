@@ -31,13 +31,20 @@ class DIDSignerTest {
 
     @Before
     fun setup() {
-        // Defensive clear before re-registering the static mock. Without this, the
-        // `验证错误的签名失败` test failed consistently at the `every { Base64... } answers
-        // { ... }` block (line 42) with `MockKException: every/verify {} block were run
-        // several times` — mockk's per-class recording layer accumulated state across
-        // tests under Robolectric's @Before/@After cycle, and @After's unmockkAll() alone
-        // didn't fully reset the recording graph for the answers-lambda path.
-        unmockkAll()
+        // Force android.util.Base64 to fully static-initialize BEFORE mockk's
+        // every{} matcher detector runs. mockk replays the `every { ... }` block
+        // multiple times to identify arg matchers; on the FIRST test executed in
+        // each Robolectric sandbox, round 1 captures both `__staticInitializer__`
+        // and `encodeToString`, while round 2 captures only `encodeToString`
+        // (class already loaded), and SignatureMatcherDetector throws
+        // "every/verify {} block were run several times" because the recorded-call
+        // count differs across rounds. Pre-initializing here makes both rounds
+        // see only `encodeToString`.
+        //
+        // Symptom: only `验证错误的签名失败` failed (the first test JUnit dispatched
+        // in this class); the other 9 tests passed because the class was already
+        // initialized by the time their @Before ran.
+        Class.forName(Base64::class.java.name, true, Base64::class.java.classLoader)
 
         // Restored from RZ4 — removing this caused ALL 10 tests to fail with
         // `NoClassDefFoundError: android.app.SystemServiceRegistry` because Robolectric
