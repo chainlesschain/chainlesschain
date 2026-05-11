@@ -522,7 +522,7 @@ private fun EmptyStateContent() {
  *
  * 三个判定来源（任一命中即可）：
  *  - 分类是 CODE（FileCategory.fromExtension 已把 .kt/.js/.json 等映射进来）
- *  - MIME 是 text/* （ScannerProvider 给 .txt/.md/.log 等填的 text/plain）
+ *  - MIME 以 `text/` 开头（ScannerProvider 给 .txt/.md/.log 等填的 text/plain）
  *  - 扩展名是常见但未被 fromExtension 标记为 CODE 的纯文本（md/txt/log/csv）
  */
 private fun isTextOrCode(file: ExternalFileEntity): Boolean {
