@@ -31,13 +31,20 @@ class DIDSignerTest {
 
     @Before
     fun setup() {
+        // Defensive clear before re-registering the static mock. Without this, the
+        // `验证错误的签名失败` test failed consistently at the `every { Base64... } answers
+        // { ... }` block (line 42) with `MockKException: every/verify {} block were run
+        // several times` — mockk's per-class recording layer accumulated state across
+        // tests under Robolectric's @Before/@After cycle, and @After's unmockkAll() alone
+        // didn't fully reset the recording graph for the answers-lambda path.
+        unmockkAll()
+
         // Restored from RZ4 — removing this caused ALL 10 tests to fail with
         // `NoClassDefFoundError: android.app.SystemServiceRegistry` because Robolectric
         // then tries to deeply init the Android class chain to get the real Base64
         // shadow, and SystemServiceRegistry isn't on the unit-test classpath.
-        // Hypothesis "Robolectric provides android.util.Base64 natively without mockking"
-        // was wrong; the mockkStatic short-circuits Base64 to java.util.Base64 and
-        // avoids Robolectric's full SDK class-init.
+        // The mockkStatic short-circuits Base64 to java.util.Base64 and avoids
+        // Robolectric's full SDK class-init.
         mockkStatic(Base64::class)
         every { Base64.encodeToString(any(), any()) } answers {
             java.util.Base64.getEncoder().encodeToString(firstArg())
