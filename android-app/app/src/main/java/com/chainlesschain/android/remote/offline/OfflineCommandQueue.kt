@@ -296,7 +296,8 @@ class OfflineCommandQueue @Inject constructor(
     /**
      * 更新统计信息
      */
-    private suspend fun updateStats() {
+    @androidx.annotation.VisibleForTesting
+    internal suspend fun updateStats() {
         try {
             val commands = dao.getRecentCommands(1000)
 
