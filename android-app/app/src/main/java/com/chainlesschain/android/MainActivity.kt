@@ -23,10 +23,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.chainlesschain.android.config.AppConfigManager
 import com.chainlesschain.android.config.ThemeMode
+import com.chainlesschain.android.core.security.strongbox.StrongBoxKeyManager
 import com.chainlesschain.android.core.ui.theme.ChainlessChainTheme
+import com.chainlesschain.android.feature.auth.data.biometric.BiometricAuthenticator
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.navigation.NavGraph
 import com.chainlesschain.android.navigation.Screen
+import com.chainlesschain.android.sign.AndroidApprovalGate
+import com.chainlesschain.android.sign.ApprovalDialogHost
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -46,6 +50,15 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var appConfigManager: AppConfigManager
+
+    @Inject
+    lateinit var approvalGate: AndroidApprovalGate
+
+    @Inject
+    lateinit var biometricAuthenticator: BiometricAuthenticator
+
+    @Inject
+    lateinit var strongBoxKeyManager: StrongBoxKeyManager
 
     private var isReady = false
 
@@ -101,6 +114,15 @@ class MainActivity : AppCompatActivity() {
                         onThemeModeChanged = { newMode ->
                             appConfigManager.saveConfig(appConfig.copy(themeMode = newMode))
                         }
+                    )
+
+                    // 全局 ApprovalDialog 宿主：监听 backend (SignAsService / 未来 M4 D2
+                    // 桌面 approval channel) 通过 AndroidApprovalGate 发起的确认请求，
+                    // 弹 BiometricPrompt + 同意/拒绝对话框。
+                    ApprovalDialogHost(
+                        approvalGate = approvalGate,
+                        biometricAuthenticator = biometricAuthenticator,
+                        strongBoxKeyManager = strongBoxKeyManager,
                     )
 
                     // 标记准备完成
