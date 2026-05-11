@@ -164,6 +164,7 @@ class AppConfigManagerTest {
             enableCrashReporting = false,
             enableAnalytics = false,
             enableP2P = false,
+            signalingServerUrl = "ws://test.example:9001/signal",
             imageCacheSize = 200L * 1024 * 1024,
             databaseCacheSize = 5000
         )
@@ -179,6 +180,7 @@ class AppConfigManagerTest {
         verify { mockEditor.putBoolean("enable_crash_reporting", false) }
         verify { mockEditor.putBoolean("enable_analytics", false) }
         verify { mockEditor.putBoolean("enable_p2p", false) }
+        verify { mockEditor.putString("signaling_server_url", "ws://test.example:9001/signal") }
         verify { mockEditor.putLong("image_cache_size", 200L * 1024 * 1024) }
         verify { mockEditor.putInt("database_cache_size", 5000) }
         verify { mockEditor.apply() }
