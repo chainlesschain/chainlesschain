@@ -117,7 +117,10 @@ class WebRTCClientTest {
         // Assert
         verify { PeerConnectionFactory.initialize(any()) }
         verify { PeerConnectionFactory.builder() }
-        verify { mockPeerConnectionFactory }
+        // Was `verify { mockPeerConnectionFactory }` — mockk requires a method-call
+        // inside verify {}, just referencing the mock raises "Missing calls inside verify {}".
+        // The mocked builder.createPeerConnectionFactory() returns mockPeerConnectionFactory,
+        // and the @Before setup already exercised that path.
     }
 
     @Test(expected = Exception::class)
@@ -138,13 +141,12 @@ class WebRTCClientTest {
         // Arrange
         webRTCClient.initialize()
 
-        val mockOffer = mockk<SessionDescription>(relaxed = true)
-        every { mockOffer.description } returns "v=0\no=- 123 456 IN IP4 0.0.0.0\n..."
-        every { mockOffer.type } returns SessionDescription.Type.OFFER
-
-        val mockAnswer = mockk<SessionDescription>(relaxed = true)
-        every { mockAnswer.description } returns "v=0\no=- 789 012 IN IP4 0.0.0.0\n..."
-        every { mockAnswer.type } returns SessionDescription.Type.ANSWER
+        // WebRTC's SessionDescription has public final fields (description, type) — not
+        // Kotlin properties — so `every { mockOffer.description } returns ...` doesn't
+        // record any method calls and mockk raises "Missing mocked calls inside every {}".
+        // Construct real SessionDescription instances instead.
+        val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\no=- 123 456 IN IP4 0.0.0.0\n...")
+        val mockAnswer = SessionDescription(SessionDescription.Type.ANSWER, "v=0\no=- 789 012 IN IP4 0.0.0.0\n...")
 
         // Mock SDP creation
         every {
@@ -228,11 +230,8 @@ class WebRTCClientTest {
         // Arrange
         webRTCClient.initialize()
 
-        val mockOffer = mockk<SessionDescription>(relaxed = true)
-        every { mockOffer.description } returns "v=0\n..."
-        every { mockOffer.type } returns SessionDescription.Type.OFFER
-
-        val mockAnswer = mockk<SessionDescription>(relaxed = true)
+        val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\n...")
+        val mockAnswer = SessionDescription(SessionDescription.Type.ANSWER, "v=0\n...")
 
         every { mockPeerConnection.createOffer(any(), any()) } answers {
             val observer = firstArg<SdpObserver>()
@@ -360,10 +359,12 @@ class WebRTCClientTest {
         // Arrange
         webRTCClient.initialize()
 
-        val mockIceCandidate = mockk<IceCandidate>(relaxed = true)
-        every { mockIceCandidate.sdpMid } returns "0"
-        every { mockIceCandidate.sdpMLineIndex } returns 0
-        every { mockIceCandidate.sdp } returns "candidate:1 1 UDP 123456 192.168.1.1 54321 typ host"
+        // IceCandidate also uses public final fields — must construct directly.
+        val mockIceCandidate = IceCandidate(
+            "0",
+            0,
+            "candidate:1 1 UDP 123456 192.168.1.1 54321 typ host"
+        )
 
         coEvery { mockSignalClient.sendIceCandidate(any(), any()) } just Runs
 
@@ -390,8 +391,7 @@ class WebRTCClientTest {
         // Arrange
         webRTCClient.initialize()
 
-        val mockOffer = mockk<SessionDescription>(relaxed = true)
-        every { mockOffer.description } returns "v=0\n..."
+        val mockOffer = SessionDescription(SessionDescription.Type.OFFER, "v=0\n...")
 
         every { mockPeerConnection.createOffer(any(), any()) } answers {
             firstArg<SdpObserver>().onCreateSuccess(mockOffer)
@@ -401,7 +401,7 @@ class WebRTCClientTest {
             firstArg<SdpObserver>().onSetSuccess()
         }
 
-        val mockIceCandidate = mockk<IceCandidate>(relaxed = true)
+        val mockIceCandidate = IceCandidate("0", 0, "candidate:1 1 UDP 123456 192.168.1.1 54321 typ host")
         val iceChannel = Channel<IceCandidate>(Channel.UNLIMITED)
         iceChannel.send(mockIceCandidate)
 
@@ -413,7 +413,7 @@ class WebRTCClientTest {
         every { mockPeerConnection.addIceCandidate(any()) } returns true
 
         // Mock answer reception
-        val mockAnswer = mockk<SessionDescription>(relaxed = true)
+        val mockAnswer = SessionDescription(SessionDescription.Type.ANSWER, "v=0\n...")
         coEvery { mockSignalClient.waitForAnswer(any(), any()) } coAnswers {
             delay(200) // Simulate delay
             mockAnswer
