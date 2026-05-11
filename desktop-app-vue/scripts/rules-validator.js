@@ -103,8 +103,12 @@ class RulesValidator {
           const isSafeDDL =
             (context.includes("CREATE TABLE") ||
               context.includes("CREATE INDEX") ||
+              context.includes("CREATE TRIGGER") ||
+              context.includes("CREATE VIEW") ||
               context.includes("DROP TABLE") ||
               context.includes("DROP INDEX") ||
+              context.includes("DROP TRIGGER") ||
+              context.includes("DROP VIEW") ||
               context.includes("ALTER TABLE")) &&
             !line.includes("${"); // 且不包含变量插值
 
@@ -299,10 +303,19 @@ class RulesValidator {
             file.includes(".test.") ||
             file.includes(".spec.");
 
+          // 排除 mDNS / bonjour 服务发现广播 — 这是公开 service-advertisement
+          // (RFC 6763 DNS-SD)，按设计不加密；DID 字段是公开身份标识。匹配
+          // bonjour-service / mdns 库的 publish() API，与 libp2p pubsub 无关。
+          const isMdnsServiceDiscovery =
+            file.includes("mdns") ||
+            contextLines.includes("bonjour") ||
+            contextLines.includes("Bonjour");
+
           if (
             !hasEncryption &&
             !isInternalSync &&
             !isTestFile &&
+            !isMdnsServiceDiscovery &&
             !line.trim().startsWith("//")
           ) {
             this.errors.push({
