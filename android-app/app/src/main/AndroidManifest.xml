@@ -46,6 +46,8 @@
     <!-- 前台服务权限（WorkManager foreground workers） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- M3 D2 LocationForegroundService 用，API 34+ 需特定子类型 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <!-- 生物识别权限 -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -128,6 +130,12 @@
                 android:name="autoStoreLocales"
                 android:value="true" />
         </service>
+
+        <!-- M3 D2 LocationTagger 后台采集前台服务（API 34+ 需 foregroundServiceType=location） -->
+        <service
+            android:name=".capture.location.LocationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Disable default WorkManager initializer (using Hilt's HiltWorkerFactory) -->
         <provider

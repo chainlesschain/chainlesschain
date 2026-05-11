@@ -213,6 +213,45 @@ class CameraOcrManagerTest {
     }
 
     @Test
+    fun `saveToKb contentPrefix prepends markdown header to bridge content`() = runTest {
+        val bridge = FakeBridge(ocr = OcrText("正文 OCR", "zh", 0.9f))
+        val mgr = newManager(bridge)
+        mgr.processImage(tmp())
+        mgr.saveToKb(
+            title = "标题",
+            contentPrefix = "> 📍 39.9042,116.4074 (±15m) @ 2026-05-11 14:32",
+        )
+        val sent = bridge.savedContents.last()
+        assertTrue(sent.startsWith("> 📍 39.9042,116.4074 (±15m) @ 2026-05-11 14:32"))
+        assertTrue(sent.endsWith("正文 OCR"))
+        // 中间 \n\n 分隔
+        assertTrue(sent.contains("\n\n正文 OCR"))
+    }
+
+    @Test
+    fun `saveToKb blank contentPrefix is ignored`() = runTest {
+        val bridge = FakeBridge(ocr = OcrText("正文", "zh", 0.9f))
+        val mgr = newManager(bridge)
+        mgr.processImage(tmp())
+        mgr.saveToKb(title = "t", contentPrefix = "   ")
+        assertEquals("正文", bridge.savedContents.last())
+    }
+
+    @Test
+    fun `saveToKb contentPrefix coexists with contentOverride`() = runTest {
+        val bridge = FakeBridge(ocr = OcrText("原文", "zh", 0.9f))
+        val mgr = newManager(bridge)
+        mgr.processImage(tmp())
+        mgr.saveToKb(
+            title = "t",
+            contentOverride = "用户改后",
+            contentPrefix = "> 📍 GPS",
+        )
+        val sent = bridge.savedContents.last()
+        assertEquals("> 📍 GPS\n\n用户改后", sent)
+    }
+
+    @Test
     fun `saveToKb after Saved is ignored (one-shot)`() = runTest {
         val bridge = FakeBridge()
         val mgr = newManager(bridge)

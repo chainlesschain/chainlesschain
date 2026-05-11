@@ -78,26 +78,32 @@ class CameraOcrManager @Inject constructor(
      * 保存当前 OCR 结果到 KB。仅在 Recognized 状态下生效。
      *
      * @param contentOverride 若用户编辑过文本，传修订后的版本；否则用 OCR 原文。
+     * @param contentPrefix  可选 Markdown 前缀，写在正文上方。M3 D2 LocationTagger 用此
+     *                       入口把 GPS 元数据（"📍 lat,lon ±Xm @ time"）附加到 note
+     *                       开头，避免 feature-ai 反向依赖 app 模块的 LocationTag 类。
      */
     suspend fun saveToKb(
         title: String,
         contentOverride: String? = null,
+        contentPrefix: String? = null,
         tags: List<String>? = listOf("ocr", "mobile"),
     ) {
         if (_state.value !is CameraOcrState.Recognized) {
             Timber.w("CameraOcrManager.saveToKb: ignored, state=${_state.value}")
             return
         }
-        val content = contentOverride ?: lastOcrText
-        if (content.isNullOrBlank()) {
+        val baseContent = contentOverride ?: lastOcrText
+        if (baseContent.isNullOrBlank()) {
             _state.value = CameraOcrState.Failed(
                 CameraOcrState.Failed.Stage.SAVE,
                 "无 OCR 文本可保存",
             )
             return
         }
+        val finalContent = if (contentPrefix.isNullOrBlank()) baseContent
+        else contentPrefix.trimEnd() + "\n\n" + baseContent
         _state.value = CameraOcrState.Saving(title)
-        val result = bridge.saveNote(title, content, tags)
+        val result = bridge.saveNote(title, finalContent, tags)
         val saved = result.getOrNull()
         if (saved == null) {
             _state.value = CameraOcrState.Failed(

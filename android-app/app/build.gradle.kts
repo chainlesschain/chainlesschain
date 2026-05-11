@@ -370,6 +370,9 @@ dependencies {
     // ML Kit barcode scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
+    // Play Services Location — FusedLocationProviderClient（M3 D2 LocationTagger 真实装）
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
     // Permission management
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
