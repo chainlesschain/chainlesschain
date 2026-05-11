@@ -518,6 +518,7 @@
     <!-- ==================== Project Detail V2 ==================== -->
     <string name="project_detail_add">Add</string>
     <string name="project_detail_import_file">Import file</string>
+    <string name="project_detail_task_list">Tasks</string>
     <string name="project_detail_attachment">Attachment</string>
     <string name="project_detail_voice">Voice</string>
     <string name="project_detail_share_text">ChainlessChain Project: %s</string>

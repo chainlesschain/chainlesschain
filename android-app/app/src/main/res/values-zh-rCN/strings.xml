@@ -518,6 +518,7 @@
     <!-- ==================== Project Detail V2 ==================== -->
     <string name="project_detail_add">添加</string>
     <string name="project_detail_import_file">导入文件</string>
+    <string name="project_detail_task_list">任务</string>
     <string name="project_detail_attachment">附件</string>
     <string name="project_detail_voice">语音</string>
     <string name="project_detail_share_text">ChainlessChain项目: %s</string>

@@ -41,6 +41,8 @@ import com.chainlesschain.android.feature.auth.presentation.LoginScreen
 import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
+import com.chainlesschain.android.feature.project.ui.screens.TaskCreateScreen
+import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.AboutScreen
 import com.chainlesschain.android.presentation.screens.AsrSettingsScreen
@@ -264,7 +266,29 @@ fun NavGraph(
                 projectId = projectId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSteps = { navController.navigate(Screen.StepDetail.createRoute(it)) },
-                onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) }
+                onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
+                onNavigateToTaskList = { navController.navigate(Screen.TaskList.route) }
+            )
+        }
+
+        composable(Screen.TaskList.route) {
+            val taskAuthViewModel: AuthViewModel = hiltViewModel()
+            val taskAuthState by taskAuthViewModel.uiState.collectAsState()
+            TaskListScreen(
+                userId = taskAuthState.currentUser?.id ?: "",
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTask = { /* Task detail wire-up pending */ },
+                onNavigateToCreateTask = { navController.navigate(Screen.TaskCreate.route) }
+            )
+        }
+
+        composable(Screen.TaskCreate.route) {
+            val taskAuthViewModel: AuthViewModel = hiltViewModel()
+            val taskAuthState by taskAuthViewModel.uiState.collectAsState()
+            TaskCreateScreen(
+                userId = taskAuthState.currentUser?.id ?: "",
+                onNavigateBack = { navController.popBackStack() },
+                onTaskCreated = { navController.popBackStack() }
             )
         }
 
@@ -624,6 +648,8 @@ sealed class Screen(val route: String) {
     data object StepDetail : Screen("step_detail") {
         fun createRoute(projectId: String) = "step_detail/$projectId"
     }
+    data object TaskList : Screen("task_list")
+    data object TaskCreate : Screen("task_create")
     data object LLMSettings : Screen("llm_settings")
     data object UsageStatistics : Screen("usage_statistics")
     data object LLMTest : Screen("llm_test") {

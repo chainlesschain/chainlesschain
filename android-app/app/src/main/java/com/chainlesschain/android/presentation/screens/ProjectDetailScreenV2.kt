@@ -44,6 +44,7 @@ fun ProjectDetailScreenV2(
     onNavigateBack: () -> Unit = {},
     onNavigateToSteps: (String) -> Unit = {},
     onNavigateToFileBrowser: (String) -> Unit = {},
+    onNavigateToTaskList: () -> Unit = {},
     viewModel: ProjectViewModel = hiltViewModel(),
     authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel()
 ) {
@@ -87,6 +88,7 @@ fun ProjectDetailScreenV2(
                 title = projectTitle,
                 onNavigateBack = onNavigateBack,
                 onNavigateToFileBrowser = { onNavigateToFileBrowser(projectId) },
+                onNavigateToTaskList = onNavigateToTaskList,
                 isLoading = projectDetailState is ProjectDetailState.Loading
             )
         },
@@ -197,6 +199,7 @@ fun ProjectDetailTopBar(
     title: String,
     onNavigateBack: () -> Unit,
     onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToTaskList: () -> Unit = {},
     isLoading: Boolean = false
 ) {
     val context = LocalContext.current
@@ -232,6 +235,9 @@ fun ProjectDetailTopBar(
             }
             IconButton(onClick = onNavigateToFileBrowser) {
                 Icon(Icons.Outlined.Folder, contentDescription = stringResource(R.string.project_detail_import_file))
+            }
+            IconButton(onClick = onNavigateToTaskList) {
+                Icon(Icons.Default.Assignment, contentDescription = stringResource(R.string.project_detail_task_list))
             }
             IconButton(onClick = {
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
