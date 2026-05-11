@@ -3,7 +3,12 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { MobileApprovalChannel } from "../handlers/mobile-approval-channel";
+import {
+  MobileApprovalChannel,
+  _canonicalJson,
+  _describeMethodDefault,
+} from "../handlers/mobile-approval-channel";
+import crypto from "crypto";
 
 describe("MobileApprovalChannel", () => {
   let channel;
@@ -155,5 +160,99 @@ describe("MobileApprovalChannel", () => {
     const result = await promise;
     expect(result.approved).toBe(false);
     expect(result.deniedReason).toBe("timeout");
+  });
+
+  // --- M4 D2 payload enrich: payloadHash + payloadDescription + requireBiometric ---
+
+  it("payload includes payloadHash (sha256 hex 64-char)", () => {
+    const cb = vi.fn();
+    channel.setOnRequest(cb);
+    channel.requestApproval({
+      peerId: "p1",
+      method: "marketplace.purchase",
+      params: { itemId: "X", amount: 25 },
+    });
+    const payload = cb.mock.calls[0][0];
+    expect(payload.payloadHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("payloadHash is deterministic for same {method, params, requestedAt}", () => {
+    // 同 method + params + requestedAt → 同 hash（独立调 canonicalJson 验证）
+    const canonical = _canonicalJson({
+      method: "marketplace.purchase",
+      params: { amount: 25, itemId: "X" }, // key 顺序无关
+      requestedAt: 1700000000000,
+    });
+    const expectedHex = crypto
+      .createHash("sha256")
+      .update(canonical, "utf8")
+      .digest("hex");
+    // 顺序换位后再算一次
+    const canonical2 = _canonicalJson({
+      requestedAt: 1700000000000,
+      params: { itemId: "X", amount: 25 },
+      method: "marketplace.purchase",
+    });
+    const hex2 = crypto
+      .createHash("sha256")
+      .update(canonical2, "utf8")
+      .digest("hex");
+    expect(hex2).toBe(expectedHex);
+  });
+
+  it("payloadDescription defaults to derived '<Namespace> · <Action>'", () => {
+    const cb = vi.fn();
+    channel.setOnRequest(cb);
+    channel.requestApproval({ peerId: "p1", method: "marketplace.purchase" });
+    const payload = cb.mock.calls[0][0];
+    expect(payload.payloadDescription).toBe("Marketplace · Purchase");
+  });
+
+  it("payloadDescription explicit override wins over default", () => {
+    const cb = vi.fn();
+    channel.setOnRequest(cb);
+    channel.requestApproval({
+      peerId: "p1",
+      method: "marketplace.purchase",
+      payloadDescription: "购买道具：金币 ×100（$25 USDT）",
+    });
+    const payload = cb.mock.calls[0][0];
+    expect(payload.payloadDescription).toBe("购买道具：金币 ×100（$25 USDT）");
+  });
+
+  it("requireBiometric defaults to true", () => {
+    const cb = vi.fn();
+    channel.setOnRequest(cb);
+    channel.requestApproval({ peerId: "p1", method: "did.delegate" });
+    expect(cb.mock.calls[0][0].requireBiometric).toBe(true);
+  });
+
+  it("requireBiometric can be explicitly set to false", () => {
+    const cb = vi.fn();
+    channel.setOnRequest(cb);
+    channel.requestApproval({
+      peerId: "p1",
+      method: "ai.chat",
+      requireBiometric: false,
+    });
+    expect(cb.mock.calls[0][0].requireBiometric).toBe(false);
+  });
+
+  it("_describeMethodDefault handles unknown/empty inputs", () => {
+    expect(_describeMethodDefault("")).toBe("(unknown method)");
+    expect(_describeMethodDefault(null)).toBe("(unknown method)");
+    expect(_describeMethodDefault("foo")).toBe("Foo · (action)");
+    expect(_describeMethodDefault("a.b.c")).toBe("A · B.c");
+  });
+
+  it("_canonicalJson sorts nested keys + survives arrays", () => {
+    const j = _canonicalJson({ z: 1, a: [3, 1, 2], n: { y: true, x: null } });
+    expect(j).toBe('{"a":[3,1,2],"n":{"x":null,"y":true},"z":1}');
+  });
+
+  it("_canonicalJson throws on non-finite number", () => {
+    expect(() => _canonicalJson(Number.POSITIVE_INFINITY)).toThrow(
+      /non-finite/,
+    );
   });
 });

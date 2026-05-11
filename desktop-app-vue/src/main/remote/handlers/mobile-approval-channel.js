@@ -26,6 +26,58 @@ const crypto = require("crypto");
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 
+/**
+ * Deterministic JSON serialization for hashing purposes (recursive, supports
+ * nested objects/arrays). Mirrors JCS sort-by-keys + canonical number / string
+ * encoding, scoped to the approval payload shape (method + params + ts).
+ *
+ * Not full RFC 8785: undefined → skipped; non-finite numbers throw.
+ * Sufficient for SHA-256 anchoring — both sides need only agree on the hash.
+ */
+function canonicalJson(v) {
+  if (v === null) {
+    return "null";
+  }
+  if (typeof v === "boolean") {
+    return v ? "true" : "false";
+  }
+  if (typeof v === "number") {
+    if (!Number.isFinite(v)) {
+      throw new TypeError("canonicalJson: non-finite number");
+    }
+    return JSON.stringify(v);
+  }
+  if (typeof v === "string") {
+    return JSON.stringify(v);
+  }
+  if (Array.isArray(v)) {
+    return "[" + v.map((e) => canonicalJson(e)).join(",") + "]";
+  }
+  if (typeof v === "object") {
+    const keys = Object.keys(v)
+      .filter((k) => v[k] !== undefined)
+      .sort();
+    return (
+      "{" +
+      keys.map((k) => JSON.stringify(k) + ":" + canonicalJson(v[k])).join(",") +
+      "}"
+    );
+  }
+  // bigint / symbol / function — not part of payload shape; skip safely.
+  return "null";
+}
+
+function describeMethodDefault(method) {
+  if (!method) {
+    return "(unknown method)";
+  }
+  // marketplace.purchase → "Marketplace · Purchase"
+  const [ns, ...rest] = method.split(".");
+  const action = rest.join(".") || "(action)";
+  const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  return `${cap(ns)} · ${cap(action)}`;
+}
+
 class MobileApprovalChannel {
   constructor(options = {}) {
     this.timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -50,20 +102,47 @@ class MobileApprovalChannel {
    * @param {Object} args
    * @param {string} args.peerId - 目标 Android 设备 ID
    * @param {string} args.method - 待审批的 REMOTE method
-   * @param {Object} args.params - 原始 RPC params（用于 ApprovalUI 展示）
+   * @param {Object} [args.params] - 原始 RPC params（用于 ApprovalUI 展示）
+   * @param {string} [args.payloadDescription] - 可选预生成的人类可读描述，未给则按 method 自动派生
+   * @param {boolean} [args.requireBiometric=true] - 是否要求 Android 端走 BiometricPrompt（高风险默认 true）
    * @returns {Promise<{approved: boolean, signature?: string, deniedReason?: string, requestId: string}>}
    */
-  requestApproval({ peerId, method, params }) {
+  requestApproval({
+    peerId,
+    method,
+    params,
+    payloadDescription,
+    requireBiometric,
+  }) {
     if (!peerId || !method) {
       return Promise.reject(new Error("peerId and method are required"));
     }
     const requestId = `apr-${crypto.randomUUID()}`;
+    const requestedAt = Date.now();
+    const safeParams = params || {};
+    // SHA-256 of canonical-JSON({method, params, requestedAt}) — Android 端
+    // ApprovalCommandRouter 读 `payloadHash` 仅作展示 / 审计锚定，不验签；
+    // 主签发由 ApprovalGate / StrongBox 完成（ADR-6）。
+    const payloadHash = crypto
+      .createHash("sha256")
+      .update(
+        canonicalJson({
+          method,
+          params: safeParams,
+          requestedAt,
+        }),
+        "utf8",
+      )
+      .digest("hex");
     const payload = {
       requestId,
       peerId,
       method,
-      params: params || {},
-      requestedAt: Date.now(),
+      params: safeParams,
+      requestedAt,
+      payloadHash,
+      payloadDescription: payloadDescription || describeMethodDefault(method),
+      requireBiometric: requireBiometric !== false,
     };
 
     return new Promise((resolve, reject) => {
@@ -147,4 +226,9 @@ class MobileApprovalChannel {
   }
 }
 
-module.exports = { MobileApprovalChannel };
+module.exports = {
+  MobileApprovalChannel,
+  // exported for unit tests / cross-module canonical hashing parity:
+  _canonicalJson: canonicalJson,
+  _describeMethodDefault: describeMethodDefault,
+};

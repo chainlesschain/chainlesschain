@@ -17,6 +17,11 @@ const { EventEmitter } = require("events");
 const { P2PCommandAdapter } = require("./p2p-command-adapter");
 const { PermissionGate } = require("./permission-gate");
 const { CommandRouter } = require("./command-router");
+const { MobileSkillWhitelist } = require("./handlers/mobile-skill-whitelist");
+const { MobileApprovalChannel } = require("./handlers/mobile-approval-channel");
+const {
+  MobileApprovalTransport,
+} = require("./handlers/mobile-approval-transport");
 
 // 导入命令处理器
 const AICommandHandler = require("./handlers/ai-handler");
@@ -75,6 +80,14 @@ class RemoteGateway extends EventEmitter {
     this.p2pCommandAdapter = null;
     this.permissionGate = null;
     this.commandRouter = null;
+
+    // M4 D2 mobile bridge 闸：白名单 + 审批通道。injected into CommandRouter，
+    // 仅对 context.source === 'mobile' 入向命令生效。approval channel 的 transport
+    // 在 [bindMobileBridge] 调用后才接通 — 之前来的 approval 请求会等到超时
+    // (channel 内置 60s) 自动 deny。
+    this.mobileSkillWhitelist = null;
+    this.mobileApprovalChannel = null;
+    this._unwireApprovalTransport = null;
 
     // 命令处理器
     this.handlers = {};
@@ -160,12 +173,64 @@ class RemoteGateway extends EventEmitter {
   async initializeCommandRouter() {
     logger.info("[RemoteGateway] 初始化命令路由器...");
 
+    // M4 D2 桌面胶水：whitelist + approval channel 在此构造，作为 CommandRouter
+    // 的 options 注入。具体 transport (channel ↔ mobile-bridge) 在
+    // [bindMobileBridge] 被调用后才接通。
+    const mobileBridgeConfig = this.options.mobileBridge || {};
+    this.mobileSkillWhitelist = new MobileSkillWhitelist(mobileBridgeConfig);
+    this.mobileApprovalChannel = new MobileApprovalChannel({
+      timeoutMs: mobileBridgeConfig.approvalTimeoutMs || 60_000,
+    });
+
     this.commandRouter = new CommandRouter({
       enableLogging: this.options.enableCommandLogging !== false,
       enableStats: this.options.enableCommandStats !== false,
+      mobileBridgeWhitelist: this.mobileSkillWhitelist,
+      mobileApprovalChannel: this.mobileApprovalChannel,
     });
 
     logger.info("[RemoteGateway] 命令路由器已初始化");
+  }
+
+  /**
+   * 接 MobileBridge 实例（M4 D2 桌面胶水末段）。在 index.js 的 MobileBridge
+   * 初始化完成后调用，把 approval channel 的 onRequest 桥到反向 RPC transport。
+   * 重复调用先 unwire 旧的，可以 hot-replace bridge（理论上 MobileBridge 单例，
+   * 但 unit 测试场景需要重置）。
+   *
+   * @param {Object} mobileBridge - mobile-bridge.js 的实例
+   * @returns {boolean} true=接通成功；false=channel 还没初始化（调用顺序错）
+   */
+  bindMobileBridge(mobileBridge) {
+    if (!this.mobileApprovalChannel) {
+      logger.warn(
+        "[RemoteGateway] bindMobileBridge 调用早于 initializeCommandRouter — skip",
+      );
+      return false;
+    }
+    if (!mobileBridge) {
+      logger.warn("[RemoteGateway] bindMobileBridge 收到 null bridge");
+      return false;
+    }
+    if (this._unwireApprovalTransport) {
+      try {
+        this._unwireApprovalTransport();
+      } catch (err) {
+        logger.warn(
+          "[RemoteGateway] 旧 approval transport unwire 失败:",
+          err.message,
+        );
+      }
+      this._unwireApprovalTransport = null;
+    }
+    this._unwireApprovalTransport = MobileApprovalTransport.wire(
+      this.mobileApprovalChannel,
+      mobileBridge,
+    );
+    logger.info(
+      "[RemoteGateway] ✓ MobileApprovalTransport 已接通到 mobile-bridge",
+    );
+    return true;
   }
 
   /**
@@ -723,6 +788,22 @@ class RemoteGateway extends EventEmitter {
     // 断开用户浏览器连接
     if (this.handlers.userBrowser) {
       await this.handlers.userBrowser.cleanup();
+    }
+
+    // 清空 mobile approval transport wire + cancel 所有 pending（防止 promise 永远挂起）
+    if (this._unwireApprovalTransport) {
+      try {
+        this._unwireApprovalTransport();
+      } catch (err) {
+        logger.warn(
+          "[RemoteGateway] approval transport unwire 失败:",
+          err.message,
+        );
+      }
+      this._unwireApprovalTransport = null;
+    }
+    if (this.mobileApprovalChannel) {
+      this.mobileApprovalChannel.clearAll("gateway-stopped");
     }
 
     logger.info("[RemoteGateway] 远程网关已停止");
