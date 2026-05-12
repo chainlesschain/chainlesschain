@@ -195,6 +195,29 @@ function bootstrapSchema(sqlDb) {
       deleted INTEGER DEFAULT 0
     );
 
+    -- v1.1 W5 (2026-05-12) issue #19 — CONVERSATION 同步用最小子集，不带 messages
+    -- 表（conversations 表本身的 walker round-trip 即可验证）。
+    CREATE TABLE conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      knowledge_id TEXT,
+      project_id TEXT,
+      context_type TEXT DEFAULT 'global',
+      context_data TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    -- v1.1 W5 (2026-05-12) issue #19 — POST_LIKE 表。append-only，无 updated_at /
+    -- 无 tombstone。UNIQUE 约束让 INSERT OR IGNORE 自然处理重复 push。
+    CREATE TABLE post_likes (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      user_did TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      UNIQUE(post_id, user_did)
+    );
+
     CREATE TABLE sync_external_provider_cursor (
       provider_id TEXT NOT NULL,
       account_key TEXT NOT NULL DEFAULT '',
@@ -1121,5 +1144,304 @@ describe("MobileBridgeSync · handlePull", () => {
     });
     const types = new Set(res.items.map((i) => i.resourceType));
     expect(types).toEqual(new Set([ResourceType.MESSAGE]));
+  });
+});
+
+// ============================================================
+// v1.1 W5 issue #19 — CONVERSATION + POST_LIKE walker (2026-05-12)
+// ============================================================
+describe("MobileBridgeSync · _fetchConversations (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits CONVERSATION SyncItem with required fields", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, knowledge_id, project_id, context_type, context_data, created_at, updated_at)
+       VALUES ('c1', 'Test Conv', 'k1', 'p1', 'project', '{"foo":"bar"}', 100, 200)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.CONVERSATION,
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE, // updated_at > created_at
+      timestamp: 200,
+      deviceId: "",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.title).toBe("Test Conv");
+    expect(decoded.knowledge_id).toBe("k1");
+    expect(decoded.project_id).toBe("p1");
+    expect(decoded.context_type).toBe("project");
+    expect(decoded.context_data).toBe('{"foo":"bar"}');
+  });
+
+  it("emits CREATE op when updated_at == created_at", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at)
+       VALUES ('c1', 'Fresh', 100, 100)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.CREATE);
+  });
+
+  it("respects (updated_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES
+       ('a', 't', 100, 100),
+       ('b', 't', 100, 100),
+       ('c', 't', 200, 200)`,
+    );
+    const rows = await sync._fetchConversations(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+});
+
+describe("MobileBridgeSync · _applyConversation (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new conversation", async () => {
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        title: "New",
+        knowledge_id: null,
+        project_id: null,
+        context_type: "global",
+        context_data: null,
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row).toMatchObject({
+      id: "c1",
+      title: "New",
+      context_type: "global",
+      created_at: 100,
+      updated_at: 100,
+    });
+  });
+
+  it("UPSERT updates existing row when newer updated_at", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'Old', 100, 100)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "Updated",
+        context_type: "project",
+        created_at: 100,
+        updated_at: 200,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row.title).toBe("Updated");
+    expect(row.context_type).toBe("project");
+    expect(row.updated_at).toBe(200);
+  });
+
+  it("LWW: stale incoming (older updated_at) does NOT overwrite", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'Newer', 100, 500)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "StaleIncoming",
+        created_at: 100,
+        updated_at: 200, // < existing 500
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row.title).toBe("Newer"); // unchanged
+    expect(row.updated_at).toBe(500);
+  });
+
+  it("DELETE removes the row", async () => {
+    dbManager.run(
+      `INSERT INTO conversations (id, title, created_at, updated_at) VALUES ('c1', 'X', 100, 100)`,
+    );
+    await sync._applyConversation({
+      resourceId: "c1",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get("SELECT * FROM conversations WHERE id = ?", [
+      "c1",
+    ]);
+    expect(row).toBeUndefined();
+  });
+});
+
+describe("MobileBridgeSync · _fetchPostLikes (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchPostLikes(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits POST_LIKE SyncItem with all fields", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at)
+       VALUES ('like-1', 'post-1', 'did:alice', 100)`,
+    );
+    const rows = await sync._fetchPostLikes(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.POST_LIKE,
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.post_id).toBe("post-1");
+    expect(decoded.user_did).toBe("did:alice");
+  });
+
+  it("respects (created_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES
+       ('a', 'p1', 'd:1', 100),
+       ('b', 'p1', 'd:2', 100),
+       ('c', 'p1', 'd:3', 200)`,
+    );
+    const rows = await sync._fetchPostLikes(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+});
+
+describe("MobileBridgeSync · _applyPostLike (v1.1 W5)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new like", async () => {
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        post_id: "p1",
+        user_did: "did:alice",
+        created_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row).toMatchObject({
+      id: "like-1",
+      post_id: "p1",
+      user_did: "did:alice",
+      created_at: 100,
+    });
+  });
+
+  it("INSERT OR IGNORE: duplicate (post_id, user_did) silently no-op", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES ('like-1', 'p1', 'did:alice', 100)`,
+    );
+    await sync._applyPostLike({
+      resourceId: "like-2", // 不同 PK 但 (p1, alice) 重复
+      operation: SyncOperation.CREATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        post_id: "p1",
+        user_did: "did:alice",
+        created_at: 200,
+      }),
+    });
+    const rows = dbManager.all(
+      "SELECT * FROM post_likes WHERE post_id = ? AND user_did = ?",
+      ["p1", "did:alice"],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("like-1"); // 原 row 保留
+  });
+
+  it("DELETE removes the row", async () => {
+    dbManager.run(
+      `INSERT INTO post_likes (id, post_id, user_did, created_at) VALUES ('like-1', 'p1', 'did:alice', 100)`,
+    );
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row).toBeUndefined();
+  });
+
+  it("camelCase fallback: postId / userDid keys also accepted", async () => {
+    await sync._applyPostLike({
+      resourceId: "like-1",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        postId: "p1", // camelCase
+        userDid: "did:alice",
+        created_at: 100,
+      }),
+    });
+    const row = dbManager.get("SELECT * FROM post_likes WHERE id = ?", [
+      "like-1",
+    ]);
+    expect(row.post_id).toBe("p1");
+    expect(row.user_did).toBe("did:alice");
+  });
+});
+
+describe("MobileBridgeSync · ResourceType v1.1 W5 enum coverage", () => {
+  it("enum exports CONVERSATION + POST_LIKE", () => {
+    expect(ResourceType.CONVERSATION).toBe("CONVERSATION");
+    expect(ResourceType.POST_LIKE).toBe("POST_LIKE");
+  });
+
+  it("enum has 10 active types (excludes CONTACT v1 not synced)", () => {
+    const all = Object.values(ResourceType);
+    expect(all).toContain("KNOWLEDGE_ITEM");
+    expect(all).toContain("MESSAGE");
+    expect(all).toContain("FRIEND");
+    expect(all).toContain("POST");
+    expect(all).toContain("POST_COMMENT");
+    expect(all).toContain("NOTIFICATION");
+    expect(all).toContain("PROJECT");
+    expect(all).toContain("CONVERSATION");
+    expect(all).toContain("POST_LIKE");
+    // CONTACT 在 enum 但 walker not active；不强求总数
   });
 });

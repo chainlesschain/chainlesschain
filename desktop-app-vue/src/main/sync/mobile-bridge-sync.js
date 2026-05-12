@@ -42,6 +42,11 @@ const ResourceType = Object.freeze({
   // v1.2 (2026-05-12) 项目元数据。v1 只走 CREATE/UPDATE，DELETE 待 v2 加 tombstone
   // trigger（参考 trg_sync_ext_tombstone_knowledge 模式建 trg_sync_ext_tombstone_project）。
   PROJECT: "PROJECT",
+  // v1.1 W5 (2026-05-12) issue #19 — 双端 ResourceType 对齐，加 2 类（CONVERSATION + POST_LIKE）。
+  // SETTING / FRIEND_GROUP / POST_SHARE 缺桌面 schema，推 v1.2 (各自 +1 张表 + migration)。
+  // 两类同 PROJECT 走 CREATE/UPDATE（无 tombstone）。
+  CONVERSATION: "CONVERSATION",
+  POST_LIKE: "POST_LIKE",
 });
 
 const SyncOperation = Object.freeze({
@@ -437,10 +442,17 @@ class MobileBridgeSync {
       this._fetchNotifications.bind(this),
       // v1.2 项目元数据。仅 CREATE/UPDATE，DELETE 待 v2 加 tombstone trigger。
       this._fetchProjects.bind(this),
+      // v1.1 W5 issue #19 — 双端 ResourceType 对齐 (2026-05-12)。
+      // CONVERSATION (聊天会话) + POST_LIKE (社交点赞)。两者都仅 CREATE/UPDATE，
+      // DELETE 待 v2 加 tombstone trigger。
+      this._fetchConversations.bind(this),
+      this._fetchPostLikes.bind(this),
       // CONTACT 暂不走：Android DefaultSyncDataApplier.kt 把 CONTACT 与 FRIEND
       // 都路由到 FriendRepository（同一份数据）；桌面 contacts 表是更广的通讯录
       // 概念，无对等映射。v2 按需补。
       // this._fetchContacts.bind(this),
+      // v1.2 follow-up：SETTING / FRIEND_GROUP / POST_SHARE 缺桌面 schema，
+      // 实施前需先 +3 张表 + migration。详见 docs/design/ResourceType_Walker_Extension.md。
     ];
   }
 
@@ -768,6 +780,99 @@ class MobileBridgeSync {
     }));
   }
 
+  /**
+   * v1.1 W5 issue #19 — CONVERSATION 聊天会话同步 (2026-05-12)。
+   *
+   * 表 `conversations` 字段：id / title / knowledge_id / project_id / context_type /
+   * context_data / created_at / updated_at。无 device_id / 无 tombstone — 仅
+   * CREATE/UPDATE，DELETE 待 v2 加 trigger。
+   *
+   * 字段策略：双端共同子集 (id / title / knowledge_id? / project_id? / context_type /
+   * context_data? / created_at / updated_at)。Android `ConversationEntity` 接收时
+   * 对 nullable 字段做兜底。
+   */
+  async _fetchConversations(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, title, knowledge_id, project_id, context_type, context_data,
+                created_at, updated_at
+         FROM conversations
+         WHERE updated_at > ? OR (updated_at = ? AND id > ?)
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, title, knowledge_id, project_id, context_type, context_data,
+                created_at, updated_at
+         FROM conversations
+         WHERE updated_at > ?
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.CONVERSATION,
+      resourceId: row.id,
+      operation:
+        row.updated_at > row.created_at
+          ? SyncOperation.UPDATE
+          : SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: "",
+      data: JSON.stringify({
+        id: row.id,
+        title: row.title,
+        knowledge_id: row.knowledge_id,
+        project_id: row.project_id,
+        context_type: row.context_type || "global",
+        context_data: row.context_data,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }),
+    }));
+  }
+
+  /**
+   * v1.1 W5 issue #19 — POST_LIKE 社交点赞同步 (2026-05-12)。
+   *
+   * 表 `post_likes` 字段：id (PK) / post_id / user_did / created_at。UNIQUE(post_id,
+   * user_did) — 业务上 1 用户 1 帖子最多 1 个 like。无 updated_at / 无 tombstone —
+   * 仅 CREATE 路径（unlike = DELETE 行，待 v2 tombstone trigger）。
+   *
+   * 游标用 created_at（点赞按时间 append-only）。
+   */
+  async _fetchPostLikes(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, post_id, user_did, created_at
+         FROM post_likes
+         WHERE created_at > ? OR (created_at = ? AND id > ?)
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, post_id, user_did, created_at
+         FROM post_likes
+         WHERE created_at > ?
+         ORDER BY created_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.POST_LIKE,
+      resourceId: row.id,
+      operation: SyncOperation.CREATE, // append-only：点赞行 immutable
+      version: 1,
+      timestamp: row.created_at,
+      deviceId: "",
+      data: JSON.stringify({
+        id: row.id,
+        post_id: row.post_id,
+        user_did: row.user_did,
+        created_at: row.created_at,
+      }),
+    }));
+  }
+
   // ============================================================
   // Apply（入向 SyncItem 写入本地表）
   // ============================================================
@@ -805,6 +910,13 @@ class MobileBridgeSync {
           break;
         case ResourceType.PROJECT:
           await this._applyProject(item);
+          break;
+        // v1.1 W5 issue #19 — 双端 ResourceType 对齐 (2026-05-12)。
+        case ResourceType.CONVERSATION:
+          await this._applyConversation(item);
+          break;
+        case ResourceType.POST_LIKE:
+          await this._applyPostLike(item);
           break;
         default:
           // CONTACT 和未来类型走这里。CONTACT v1 不接，详见 _tableFetchers 注释。
@@ -1087,6 +1199,74 @@ class MobileBridgeSync {
     );
   }
 
+  /**
+   * v1.1 W5 issue #19 — CONVERSATION apply (2026-05-12)。
+   *
+   * UPSERT 保留本地独有字段（v1 schema 仅有共同子集，无独有列）。LWW by updated_at
+   * 通过 `WHERE excluded.updated_at > existing.updated_at` 保证。无 tombstone — 仅
+   * CREATE/UPDATE，DELETE 待 v2 加 trigger。
+   */
+  async _applyConversation(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM conversations WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    this.dbManager.run(
+      `INSERT INTO conversations
+       (id, title, knowledge_id, project_id, context_type, context_data,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         knowledge_id = excluded.knowledge_id,
+         project_id = excluded.project_id,
+         context_type = excluded.context_type,
+         context_data = excluded.context_data,
+         updated_at = excluded.updated_at
+       WHERE excluded.updated_at > conversations.updated_at`,
+      [
+        item.resourceId,
+        data.title || "",
+        data.knowledge_id || null,
+        data.project_id || null,
+        data.context_type || "global",
+        data.context_data || null,
+        data.created_at || item.timestamp,
+        data.updated_at || item.timestamp,
+      ],
+    );
+  }
+
+  /**
+   * v1.1 W5 issue #19 — POST_LIKE apply (2026-05-12)。
+   *
+   * 行 immutable（点赞行只 CREATE，unlike 走 DELETE）。INSERT OR IGNORE 让重复 push
+   * (同 post + user_did) 自然 no-op，符合 UNIQUE(post_id, user_did) 约束。
+   */
+  async _applyPostLike(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM post_likes WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    this.dbManager.run(
+      `INSERT OR IGNORE INTO post_likes
+       (id, post_id, user_did, created_at)
+       VALUES (?, ?, ?, ?)`,
+      [
+        item.resourceId,
+        data.post_id || data.postId || "",
+        data.user_did || data.userDid || "",
+        data.created_at || item.timestamp,
+      ],
+    );
+  }
+
   // ============================================================
   // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
   // ============================================================
@@ -1285,6 +1465,35 @@ class MobileBridgeSync {
       case ResourceType.NOTIFICATION: {
         const row = this.dbManager.get(
           `SELECT id, created_at FROM notifications WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.created_at,
+              deviceId: "",
+            }
+          : null;
+      }
+      // v1.1 W5 issue #19 — 双端 ResourceType 对齐 (2026-05-12)。
+      case ResourceType.CONVERSATION: {
+        const row = this.dbManager.get(
+          `SELECT id, updated_at FROM conversations WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: "",
+            }
+          : null;
+      }
+      case ResourceType.POST_LIKE: {
+        const row = this.dbManager.get(
+          `SELECT id, created_at FROM post_likes WHERE id = ?`,
           [resourceId],
         );
         return row
