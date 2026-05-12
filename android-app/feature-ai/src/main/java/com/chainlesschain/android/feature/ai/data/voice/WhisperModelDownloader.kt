@@ -3,9 +3,11 @@ package com.chainlesschain.android.feature.ai.data.voice
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -141,7 +143,7 @@ class WhisperModelDownloader @Inject constructor(
                         val buf = ByteArray(BUFFER_BYTES)
                         while (true) {
                             // 协程取消 check (cooperative)
-                            if (!kotlinx.coroutines.currentCoroutineContext().isActive) {
+                            if (!currentCoroutineContext().isActive) {
                                 tmpFile.delete()
                                 _downloadState.value = DownloadState.Idle
                                 return@withContext Result.failure(
