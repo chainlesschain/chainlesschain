@@ -48,6 +48,7 @@ const ROOT_FILE_MAP = {
   "MTC_联邦治理_v1.md": "mtc-federation-governance-v1.md",
   "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
   "Android_重新定位_设计文档.md": "android-repositioning.md",
+  "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
   "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
   "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
   "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
