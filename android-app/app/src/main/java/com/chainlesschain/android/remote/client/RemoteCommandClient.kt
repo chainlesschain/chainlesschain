@@ -1,11 +1,14 @@
 package com.chainlesschain.android.remote.client
 
+import com.chainlesschain.android.remote.data.CommandRequest
+import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.remote.p2p.CommandCancelledException
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.PendingCommandInfo
 import com.google.gson.reflect.TypeToken
 import timber.log.Timber
 import java.lang.reflect.Type
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,7 +27,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class RemoteCommandClient @Inject constructor(
-    @PublishedApi internal val p2pClient: P2PClient
+    @PublishedApi internal val p2pClient: P2PClient,
+    @PublishedApi internal val offlineCommandQueue: OfflineCommandQueue,
 ) {
     /**
      * 发送命令（通用方法）。inline + reified T 让 `T::class.java` 在调用点
@@ -100,6 +104,52 @@ class RemoteCommandClient @Inject constructor(
     }
 
     /**
+     * v1.1 issue #19 OfflineQueue：peer 离线时 enqueue，在线时正常 invoke。
+     *
+     * 决策语义：
+     *  - peer 已连接 → 委托给 [invoke]（typed deserialize 走 inline reified T 路径）
+     *  - peer 未连接 → 不立即 fail，而是构造 [CommandRequest] 入队 [OfflineCommandQueue]，
+     *    返回 `Result.failure(OfflineQueuedException(commandId))`。调用方语义上知道命令
+     *    已被记下，恢复连接后由 [OfflineCommandQueue.dequeueAndSend] 自动重发。
+     *  - peer 未连接 + 入队失败 → `Result.failure(<storage error>)`
+     *
+     * 用法（fire-and-forget 类）：
+     * ```
+     * val r = client.invokeOrEnqueue<Any>("notification.markRead", mapOf("id" to id))
+     * if (r.exceptionOrNull() is OfflineQueuedException) showToast("已离线缓存，恢复后重发")
+     * ```
+     *
+     * 不适合需要立即返回数据的同步场景（chat/search 等）— 那些 caller 应直接调 [invoke]
+     * 让在线检查/失败立即冒上来。
+     */
+    suspend inline fun <reified T : Any> invokeOrEnqueue(
+        method: String,
+        params: Map<String, Any> = emptyMap(),
+        timeout: Long = 30000,
+    ): Result<T> {
+        return invokeOrEnqueueTyped(method, params, timeout, T::class.java)
+    }
+
+    @PublishedApi
+    internal suspend fun <T> invokeOrEnqueueTyped(
+        method: String,
+        params: Map<String, Any>,
+        timeout: Long,
+        type: Type,
+    ): Result<T> {
+        if (p2pClient.connectedPeer.value == null) {
+            val id = UUID.randomUUID().toString()
+            val request = CommandRequest(id = id, method = method, params = params, auth = null)
+            Timber.d("invokeOrEnqueue: peer offline, enqueueing %s as %s", method, id)
+            return offlineCommandQueue.enqueue(request).fold(
+                onSuccess = { Result.failure(OfflineQueuedException(id, method)) },
+                onFailure = { Result.failure(it) },
+            )
+        }
+        return invokeTyped(method, params, timeout, type)
+    }
+
+    /**
      * 取消正在执行的命令
      *
      * @param commandId 命令 ID
@@ -140,3 +190,16 @@ class RemoteCommandClient @Inject constructor(
         return cancelledCount
     }
 }
+
+/**
+ * v1.1 OfflineQueue：[RemoteCommandClient.invokeOrEnqueue] 在 peer 离线 + 成功入队时
+ * 抛出此 exception 通过 [Result.failure] 返回。调用方通过 `is OfflineQueuedException`
+ * 判断"已被缓存等待重发"语义，区别于真正的网络/桌面错误。
+ *
+ * @property commandId 入队命令的 UUID。可用于后续 status 查询 / 取消。
+ * @property method 入队的 RPC method 名（debug 用）。
+ */
+class OfflineQueuedException(
+    val commandId: String,
+    val method: String,
+) : Exception("OfflineQueued: $method (id=$commandId)")

@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
+import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.sync.SyncCoordinator
 // Firebase imports - uncomment when google-services.json is available
 // import com.google.firebase.analytics.FirebaseAnalytics
@@ -38,6 +39,9 @@ class AppInitializer @Inject constructor(
 
     // Phase 3d v1.1 #4: 移动同步 auto-trigger，让本地写入自动推到桌面
     private val syncCoordinator: Lazy<SyncCoordinator>,
+
+    // v1.1 issue #19: OfflineCommandQueue.initialize() 监听 P2P 连接 + auto-send queued commands
+    private val offlineCommandQueue: Lazy<OfflineCommandQueue>,
 
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
@@ -101,6 +105,17 @@ class AppInitializer @Inject constructor(
                         Timber.d("SyncCoordinator started")
                     } catch (e: Exception) {
                         Timber.w(e, "SyncCoordinator start failed (non-fatal)")
+                    }
+                }
+
+                // 6. v1.1 issue #19: OfflineCommandQueue 监听 P2P 连接 + 7-day TTL cleanup +
+                //    连上桌面后 auto-send pending commands。initialize() 是 suspend
+                //    且持续 collect connectionState，所以独立 launch 不 await。
+                launch {
+                    try {
+                        offlineCommandQueue.get().initialize()
+                    } catch (e: Exception) {
+                        Timber.w(e, "OfflineCommandQueue.initialize failed (non-fatal)")
                     }
                 }
 
