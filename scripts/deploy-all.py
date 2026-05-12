@@ -77,12 +77,12 @@ DEPLOYS = [
     # 不变 (仍在 v1.0 RFC 实施轨道，GA flip 待 M7)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.48-20260512-0655.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.48-20260512-0833.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.48-20260512-0655.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.48-20260512-0833.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
