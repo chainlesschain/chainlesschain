@@ -2,6 +2,45 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-12 发布 — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Flow B QR pairing 收口 + 测试补丁**
+
+productVersion **v5.0.3.48 → v5.0.3.49**。本版三条主线：
+
+**(1) `@chainlesschain/core-multisig` package + `cc multisig` CLI 落地**（commit `3c890dcac`，v1.2 m-of-n Phase 1d）—— 新建 npm workspace package 含 5 lib（policy / store / proposals / signing / governance-log），CLI 加 8 subcommands（propose / sign / cancel / finalize / list / show / sweep / policy）；75 lib 单测 + 10 CLI integration 测试全过。SQLite native（better-sqlite3-multiple-ciphers）→ sql.js WASM 自动 fallback，CLI 跨平台开箱即用。
+
+**(2) Phase 2a marketplace.purchase mediator**（commit `2755093d0`，设计文档 §6.1 落地）—— `cc marketplace purchase <itemId>` 大额（≥¥1000 默认 `LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen）自动走 M-of-N 多签 propose，小额走 direct；`cc marketplace consume <proposalId>` 在 threshold 达成后 finalize + 执行业务。抽出 `packages/cli/src/lib/multisig-runtime.js` 共享 SQLite cascade + manager loader 让 multisig + marketplace 复用（−130 行 dedup，Phase 1 10/10 零行为变更）。8 新 E2E 测试全过（大额 2-of-2 全 walkthrough / 小额 direct / `--threshold-fen` override / 6 个错配 exit 2）。marketplace.purchase / did.rotate / 跨链 bridge 三大典型 domain 由此真接通业务侧 — marketplace 是第一个 mediator 实例。总 **18 multisig integration test 全 green**（Phase 1 10 + Phase 2 8）。
+
+**(3) Android v1.1 W3.7 Flow B QR pairing 落地**（commit `c47cbc649`）—— desktop 显 QR / phone 摄像头扫的主流应用通用 UX（微信/支付宝/Discord/WhatsApp Web 同模式），Xiaomi 24115RA8EC 真机 E2E verified。9 项实战坑全排清。同步补齐 Flow B commit 漏掉的 2 个测试文件：`ScanDesktopPairingViewModelTest` 10 项 + `desktop-pair-handlers.test.js` 19 项。
+
+**新增 — M-of-N multisig core（v1.2 #20 P0.3 Phase 1d）**：
+
+- **`@chainlesschain/core-multisig` package** —— lib 5 文件：`policy.js`（域级 `{m, n, members[], requirePqc, defaultExpiryMs}` validate + normalize）/ `store.js`（SQLite 3 表 schema + helpers）/ `proposals.js`（状态机 `pending → reached → consumed` + `cancelled` / `expired` terminal）/ `signing.js`（JCS canonicalize + DOMAIN_PREFIX `"MULTISIG:"` 防回放 + Ed25519/SLH-DSA dispatcher + verifyThreshold strip-all-sigs）/ `governance-log.js`（append-only JSON Lines 审计，每态转捕）；75 单测全过。
+- **`cc multisig` CLI 8 subcommands** —— `propose` / `sign` / `cancel` / `finalize` / `list` / `show` / `sweep` / `policy {set, show}`；全 `--json` 输出；10 CLI integration 测试全过。
+- **SQLite driver cascade** —— native `better-sqlite3-multiple-ciphers` / `better-sqlite3` 失败时自动降级 `sql.js` WASM，无须每平台预装 native prebuild（per memory `feedback_sqlite_wasm_fallback`）。
+- **测试基础修复 3 项**：`core-multisig vitest.config.js` 设 `globals: true`（vitest 4 不接 CJS `require("vitest")`）；5 test 文件改 ESM import；`multisig-cli.test.js` import 路径 `@chainlesschain/core-mtc/signers/ed25519.js` → 去 `.js` 后缀（core-mtc exports key 无后缀）。
+
+**新增 — Phase 2a marketplace.purchase mediator（v1.2 #20 P0.3 Phase 2）**：
+
+- **`cc marketplace purchase <itemId>` + `cc marketplace consume <proposalId>` 两 subcommand** —— amount ≥ threshold 必须有 `marketplace.purchase` policy 才能 propose；threshold 默认 ¥1000（`LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen），可 `--threshold-fen` 覆盖；amount < threshold 走 direct path 不创 proposal；`consume` 校验 `domain == "marketplace.purchase"` + `state == "reached"` 后 finalize + 打印订单 + governance log 写 `consumed` 事件。
+- **共享运行时** `packages/cli/src/lib/multisig-runtime.js` —— 抽出 commands/multisig.js 内联的 SQLite cascade + manager loader + readSecretKey/readJsonArg helpers，commands/marketplace.js 复用。multisig.js 同步 refactor 替代内联，-130 行 dedup，Phase 1 10/10 integration test 零行为变更。
+- **8 新 E2E test 全过**（`marketplace-multisig-e2e.test.js`）：大额 ¥1500 2-of-2 全 walkthrough（policy → purchase → sign×2 → reached → consume → governance.log `proposed`/`signed`×2/`reached`/`consumed`）/ 小额 ¥500 direct / threshold override / 大额无 policy exit 2 / consume pending exit 2 / consume 错域 exit 2 / `--help`。
+
+**新增 — Android v1.1 W3.7 Flow B QR pairing（issue #19）**：
+
+- **跨模块 DI 拆解** —— `PairingSignalingGate.sendAck` interface 落 `:core-p2p` 避免 `:feature-p2p` 反依赖 `:app`；`WebSocketPairingSignalingGate.sendAck` 实现在 `:app` 内 `ensureRegistered + Mutex` 串行化；`WebRTCClient.SignalClient.sendForwardedMessage(toPeerId, payload)` 桥接 mobile 端的 signaling forward。
+- **Mobile 端 UI**：`ScanDesktopPairingScreen` + `ScanDesktopPairingViewModel` 用非-social `QRCodeScannerScreen`（ZXing 透传，social variant 校验 reject 我们的 desktop-pairing JSON）；NavGraph + SettingsScreen 加"扫描桌面 QR"入口。
+- **Desktop 端 WS topics 三件套** `desktop-pair-handlers.js`：`desktop.pair.generate-qr` / `poll-ack` / `reset`；`mobile-bridge.js` 加 `this.peerId` 持久化 + 拦截 `type=pair-ack` 经 `recordPairAck` 匹配 + 写 SQLite。
+- **Vue UI** `MobileBridge.vue` Flow B tab（默认）+ Flow A + 手输 3-tab；`antd.js` 注册 `AQrcode`。
+
+**测试补丁**：
+
+- **Android `:feature-p2p:testDebugUnitTest` 41s 全绿**（138 actionable tasks）—— 新 `ScanDesktopPairingViewModelTest` 10 测试 + existing `DesktopPairingViewModelTest` + MessageQueueViewModelTest + P2PChatViewModelTest + P2PDeviceViewModelTest。
+- **Desktop 3 文件 / 45 测试全绿** —— 新 `desktop-pair-handlers.test.js` 19 测试 + `mobile-pair-handlers.test.js` 9 测试 + `web-shell-bootstrap.test.js` 17 测试。
+
+**部署 / 分发**：桌面 binary：v5.0.3.48 → v5.0.3.49 重打（含 Flow B + multisig 新代码；auto-updater 比对 `5.0.3-alpha.49 > 5.0.3-alpha.48`）。`chainlesschain` npm 0.161.8 → 0.161.9（cli 加 multisig command + dep `@chainlesschain/core-multisig`）。Android：versionCode/Name 不变（v1.0.0 GA 维持）；Flow B 桌面端首发，后续 Android v1.1 minor release 一并 ship 完整移动客户端。三大文档站本次同步刷新：docs-site / docs-site-design / docs-website-v2 tagline 升 v5.0.3.49 + 加本节 changelog。
+
+---
+
 ## 2026-05-12 发布 — **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口**
 
 productVersion **v5.0.3.47 → v5.0.3.48**。Android v1.0 RFC M3 + M4 收尾批次：7 commit / 187 新单测 / Android 总单测 196+ → 383+。**Android M7 GA flip 一并落地（commit `ffe722162`）：versionCode 37 → 100，versionName 0.37.0 → 1.0.0 GA**。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道）。下一步 tag `v1.0.0` 在 `ffe722162` 推 gitee+github。

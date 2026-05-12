@@ -5,6 +5,54 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.49] - 2026-05-12 — M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Flow B QR pairing 收口 + 测试补丁
+
+> 本版三条主线：(1) **`@chainlesschain/core-multisig` package + `cc multisig` CLI 落地**（commit `3c890dcac`，v1.2 m-of-n Phase 1d）—— Phase 1 完整 5-lib（policy / store / proposals / signing / governance-log），CLI 8 subcommands（propose / sign / cancel / finalize / list / show / sweep / policy），75 lib 单测 + 10 CLI integration 测试全过。(2) **Phase 2a marketplace.purchase mediator**（commit `2755093d0`）—— 设计文档 §6.1 落地：`cc marketplace purchase` 大额（≥¥1000）自动走 M-of-N 多签 propose，小额走 direct；`cc marketplace consume` 在 threshold 达成后 finalize + 执行业务；抽 `multisig-runtime.js` 共享 SQLite cascade（-130 行 dedup，Phase 1 10/10 零行为变更）；8 新 E2E 测试全过。marketplace.purchase 是第一个真实接通业务侧的 mediator。(3) **Android v1.1 W3.7 Flow B QR pairing 落地**（commit `c47cbc649`）—— desktop 显 QR / phone 扫的主流应用通用 UX（微信/支付宝同模式），Xiaomi 24115RA8EC 真机 E2E verified。同步补齐 Flow B 漏掉的 2 个测试文件：`ScanDesktopPairingViewModelTest` 10 项 + `desktop-pair-handlers.test.js` 19 项。
+
+### Added — M-of-N multisig core（v1.2 #20 P0.3 Phase 1d）
+
+- **`@chainlesschain/core-multisig` npm workspace package**（commit `3c890dcac`）—— 5 个 lib 文件：
+  - `policy.js` 域级 policy `{m, n, members[], requirePqc, defaultExpiryMs}` validate + normalize
+  - `store.js` SQLite schema 3 表（proposals / signatures / policies）+ 5 操作 helper
+  - `proposals.js` 状态机 propose / sign / cancel / finalize / expireStale；`pending → reached → consumed` + `cancelled` / `expired` terminal
+  - `signing.js` JCS canonicalize + DOMAIN_PREFIX `"MULTISIG:"` 防回放 + Ed25519 / SLH-DSA dispatcher + verifyThreshold strip-all-sigs
+  - `governance-log.js` append-only JSON Lines 审计 log（proposed / signed / reached / consumed / cancelled / expired / expired_sweep）
+  - 75 单测全过（policy 14 + signing 21 + proposals 20 + store 12 + governance-log 8）
+- **`cc multisig` CLI 8 subcommands**（commit `3c890dcac`）—— propose / sign / cancel / finalize / list / show / sweep / policy {set, show}；全 `--json` 输出。
+- **SQLite driver cascade native → WASM**（per memory `feedback_sqlite_wasm_fallback`）—— `better-sqlite3-multiple-ciphers` / `better-sqlite3` 加载失败时自动降级 `sql.js` (WASM)，CLI 跨平台开箱即用，无须每平台预装 native prebuild。
+- **测试基础修复 3 项**：core-multisig `vitest.config.js` 设 `globals: true`（vitest 4 不接 CJS `require("vitest")`，memory `cli_ci_sharding_lessons`）；5 个 test 文件改 ESM `import` 头；`multisig-cli.test.js` import 路径修 `@chainlesschain/core-mtc/signers/ed25519.js` → 去 `.js` 后缀（core-mtc exports key 无后缀）。
+- 10/10 CLI integration tests pass。
+
+### Added — Phase 2a marketplace.purchase mediator（v1.2 #20 P0.3 Phase 2）
+
+- **共享运行时抽取** `packages/cli/src/lib/multisig-runtime.js`（commit `2755093d0`，新文件）—— Phase 1 commands/multisig.js 内联的 SQLite cascade（better-sqlite3-multiple-ciphers → better-sqlite3 → sql.js）+ manager loader 抽出公共模块，让 commands/marketplace.js 复用同一份。
+- **commands/multisig.js refactor**（commit `2755093d0`）—— 用 `multisig-runtime.js` 替代内联 `_openManager` / `_openDatabase` / `_adaptSqlJs` / `_readKey` / `_readJsonArg`，−130 行 dedup。Phase 1 10/10 integration test 全 green，零行为变更。
+- **`cc marketplace purchase <itemId>` 新 subcommand** —— `--amount-fen N --buyer <did> --key <hex> [--threshold-fen N] [--item-name <name>]`：amount < threshold (default `LARGE_PURCHASE_THRESHOLD_FEN = 100_000` fen = ¥1000) 走 direct path（CLI stub 打印 "purchased"）；amount ≥ threshold 必须有 `marketplace.purchase` 域 policy，否则 exit 2 `no_policy`；有 policy 调 `mgr.propose` 返 proposalId 让其他签名方加签。
+- **`cc marketplace consume <proposalId>` 新 subcommand** —— 校验 `domain == "marketplace.purchase"` + `state == "reached"` 才执行；finalize 后打印订单 payload + governance log 写 `consumed`。错域 / 错态都 exit 2。
+- **8 新 E2E test 全 green**（`packages/cli/__tests__/integration/marketplace-multisig-e2e.test.js`）：大额 ¥1500 2-of-2 walkthrough（policy → purchase → sign×2 → consume → governance.log 4 类事件 `proposed`/`signed`×2/`reached`/`consumed`）/ 小额 ¥500 direct path / `--threshold-fen` override / 大额无 policy → exit 2 / consume pending → exit 2 / consume 错域 → exit 2 / `--help` 文本。
+- 总 **18 multisig integration test 全 green**（Phase 1 10 + Phase 2 8）。
+
+### Added — Android v1.1 W3.7 Flow B QR pairing（issue #19）
+
+- **Mobile 端扫描桌面 QR 完整链路**（commit `c47cbc649`）—— Phone 摄像头扫桌面屏幕 QR 比反向（desktop webcam 扫小手机屏）识别率高得多，是主流应用通用 UX 模式。9 项实战坑全排清（memory `desktop_qr_pairing_flow_b.md`）：`<a-qrcode>` 必须显式 async-register / `parseJsonOutput` log-prefix vs JSON-array regex / `mobileBridge.peerId` 必须 `this.` / social `QRCodeScannerViewModel` 校验 reject 非好友 QR / pair-ack 拦截在 bridgeToLibp2p 前 / in-memory ack vs CLI 写 DB 双轨 / 跨模块 DI / adb reverse 无域名 E2E / Flow B QR 字段含 `pcPeerId`。
+- **跨模块 DI 拆解**：`PairingSignalingGate.sendAck` interface 落 `:core-p2p` 避免 `:feature-p2p` 反依赖 `:app`；`WebSocketPairingSignalingGate.sendAck` 实现在 `:app` 内 `ensureRegistered + Mutex` 串行化；`WebRTCClient.SignalClient.sendForwardedMessage(toPeerId, payload)` 桥接 mobile 端的 signaling forward。
+- **Desktop 端 WS topics 三件套** `desktop-pair-handlers.js`：`desktop.pair.generate-qr`（生成 6 位 code + payload + pcPeerId 三段 fallback：`mobileBridge.peerId` → `deviceManager.getCurrentDevice` → `"desktop-unknown"`）/ `desktop.pair.poll-ack`（idle / waiting / acked / expired 四态）/ `desktop.pair.reset`；`mobile-bridge.js` 加 `this.peerId` 持久化 + 拦截 `type=pair-ack` 经 `recordPairAck` 匹配 + 写 SQLite paired_devices。
+- **Vue UI** `MobileBridge.vue` Flow B tab（默认）+ Flow A + 手输 3-tab；`antd.js` 注册 `AQrcode`。
+- **真机 E2E verified**：Xiaomi 24115RA8EC desktop QR → ML Kit 扫 → signaling pair-ack → desktop mobileBridge 拦截 → recordPairAck 匹配 → CLI `pair-from-qr` 写 SQLite → Vue 列表刷新。
+
+### Added — 单元测试补丁
+
+- **`ScanDesktopPairingViewModelTest.kt`**（新增 10 测试）—— 覆盖 ScanDesktopPairingViewModel `onQrScanned` 全部 validation 分支 + happy path + retry + idempotent + malformed JSON。MockK + StandardTestDispatcher + FakeGate（捕获 sendAckCallCount）。
+- **`desktop-pair-handlers.test.js`**（新增 19 测试）—— 覆盖 3 个 handler factory + `recordPairAck`：generate-qr 6 case / poll-ack 4 case（用 `vi.useFakeTimers` 验 expired 态）/ reset 1 case / recordPairAck 4 case。
+- **Android `:feature-p2p:testDebugUnitTest` 41s 全绿**（138 actionable tasks）；Desktop 3 文件 / 45 测试全绿。
+
+### Distribution
+
+- 桌面 binary：v5.0.3.48 → v5.0.3.49 重打（含 Flow B + multisig 新代码；auto-updater 比对 `5.0.3-alpha.49 > 5.0.3-alpha.48`）
+- `chainlesschain` npm 0.161.8 → 0.161.9（cli 加 multisig command + dep `@chainlesschain/core-multisig`）
+- Android：versionCode/Name 不变（v1.0.0 GA 维持），Flow B 走桌面端首发；后续 Android v1.1 minor release 一并 ship 完整移动客户端
+- 三大文档站同步刷新：docs-site / docs-site-design / docs-website-v2 tagline 升 v5.0.3.49 + 加本节 changelog；CHANGELOG.md + README.md / README_EN.md 同步
+
 ## [v5.0.3.48] - 2026-05-12 — Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias 兼容窗口
 
 > Android v1.0 RFC M3 + M4 收尾批次（7 commit / 187 新单测）+ **Android M7 GA flip 一并落地（commit `ffe722162`，versionCode 37 → 100，versionName 0.37.0 → 1.0.0）**。把设计文档 §5.3 L2 捕获五件套补齐到代码层（VoiceMode / CameraOCR / LocationTagger / SharePayloadFlusher / PushNotifier）+ §6 M4 D1 RemoteSkillRegistry method-level 元数据 + §5.4 ApprovalUI 4-category 适配 + ProgressViewer 长时任务面板 + §8.3 alias 兼容窗口。Android 总单测 196+ → 383+。无桌面 / CLI 源码改动，CLI npm 0.161.7 → 0.161.8（force publish 走 release.yml 同步轨道）。Android v1.0 GA 仍待用户出场（4 项）：M3 真机 E2E / M4 D2 真机 / FCM 凭证 / M6 性能实测。

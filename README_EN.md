@@ -2,6 +2,46 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-12 Release — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Flow B QR pairing closing + test backfill**
+
+productVersion **v5.0.3.48 → v5.0.3.49**. Three main lines:
+
+**(1) `@chainlesschain/core-multisig` package + `cc multisig` CLI lands** (commit `3c890dcac`, v1.2 m-of-n Phase 1d) — new npm workspace package with 5 libs (policy / store / proposals / signing / governance-log), CLI gains 8 subcommands (propose / sign / cancel / finalize / list / show / sweep / policy); 75 lib unit tests + 10 CLI integration tests all pass. SQLite native (better-sqlite3-multiple-ciphers) → sql.js WASM auto-fallback — CLI works out of the box on any platform.
+
+**(2) Phase 2a marketplace.purchase mediator** (commit `2755093d0`, design doc §6.1 lands) — `cc marketplace purchase <itemId>` routes large purchases (≥¥1000 by default `LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen) through the M-of-N propose flow and lets small ones execute directly; `cc marketplace consume <proposalId>` finalizes after the threshold is reached and runs the business operation. Extracted `packages/cli/src/lib/multisig-runtime.js` (SQLite cascade + manager loader) so both `multisig` and `marketplace` commands share one implementation (−130 lines dedup, Phase 1 10/10 unchanged behaviour). 8 new E2E tests pass (full ¥1500 2-of-2 walkthrough / ¥500 direct path / `--threshold-fen` override / six error exits). Three canonical domains — marketplace.purchase / did.rotate / cross-chain bridge — unlock here; marketplace is the first mediator wired to a real business path. **18 multisig integration tests green total** (Phase 1 10 + Phase 2 8).
+
+**(3) Android v1.1 W3.7 Flow B QR pairing lands** (commit `c47cbc649`) — desktop displays QR / phone scans, the standard UX pattern in mainstream apps (WeChat / Alipay / Discord / WhatsApp Web); verified end-to-end on real Xiaomi 24115RA8EC hardware. Nine production traps swept. Backfilled the 2 test files the original commit omitted: `ScanDesktopPairingViewModelTest` (10 tests) + `desktop-pair-handlers.test.js` (19 tests).
+
+**Added — M-of-N multisig core (v1.2 #20 P0.3 Phase 1d)**:
+
+- **`@chainlesschain/core-multisig` package** — 5 lib files: `policy.js` (domain policy `{m, n, members[], requirePqc, defaultExpiryMs}` validate + normalize) / `store.js` (SQLite 3-table schema + helpers) / `proposals.js` (state machine `pending → reached → consumed` + `cancelled` / `expired` terminal) / `signing.js` (JCS canonicalize + DOMAIN_PREFIX `"MULTISIG:"` replay protection + Ed25519/SLH-DSA dispatcher + verifyThreshold strip-all-sigs) / `governance-log.js` (append-only JSON Lines audit log capturing every state transition); 75 unit tests pass.
+- **`cc multisig` CLI 8 subcommands** — `propose` / `sign` / `cancel` / `finalize` / `list` / `show` / `sweep` / `policy {set, show}`; all support `--json`; 10 CLI integration tests pass.
+- **SQLite driver cascade** — native `better-sqlite3-multiple-ciphers` / `better-sqlite3` auto-falls-back to `sql.js` WASM on load failure; no per-platform native prebuild required (per memory `feedback_sqlite_wasm_fallback`).
+- **Test infrastructure fixes** (3): `core-multisig vitest.config.js` set `globals: true` (vitest 4 rejects CJS `require("vitest")`); 5 test files switched to ESM `import`; `multisig-cli.test.js` import path `@chainlesschain/core-mtc/signers/ed25519.js` → dropped `.js` suffix (core-mtc exports key has no suffix).
+
+**Added — Phase 2a marketplace.purchase mediator (v1.2 #20 P0.3 Phase 2)**:
+
+- **`cc marketplace purchase <itemId>` + `cc marketplace consume <proposalId>` two new subcommands** — amount ≥ threshold requires a `marketplace.purchase` policy before proposing; threshold defaults to ¥1000 (`LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen), overridable via `--threshold-fen`; amount < threshold takes the direct path without creating a proposal; `consume` verifies `domain == "marketplace.purchase"` and `state == "reached"`, then finalizes + prints the order payload + writes `consumed` to governance log.
+- **Shared runtime** `packages/cli/src/lib/multisig-runtime.js` — extracted from commands/multisig.js (SQLite cascade + manager loader + readSecretKey / readJsonArg helpers); commands/marketplace.js reuses the same module. The multisig refactor drops 130 lines while leaving Phase 1 behaviour unchanged (10/10 integration tests still pass).
+- **8 new E2E tests pass** (`marketplace-multisig-e2e.test.js`): full ¥1500 2-of-2 walkthrough (policy → purchase → sign×2 → reached → consume → governance.log records `proposed`/`signed`×2/`reached`/`consumed`) / ¥500 direct path / `--threshold-fen` override / large purchase without policy → exit 2 / consume on pending → exit 2 / consume on wrong domain → exit 2 / `--help` text.
+
+**Added — Android v1.1 W3.7 Flow B QR pairing (issue #19)**:
+
+- **Cross-module DI** — `PairingSignalingGate.sendAck` interface lives in `:core-p2p` so `:feature-p2p` doesn't reverse-depend on `:app`; `WebSocketPairingSignalingGate.sendAck` implementation in `:app` serializes via `ensureRegistered + Mutex`; `WebRTCClient.SignalClient.sendForwardedMessage(toPeerId, payload)` bridges the mobile signaling forward.
+- **Mobile UI** — `ScanDesktopPairingScreen` + `ScanDesktopPairingViewModel` use the non-social `QRCodeScannerScreen` (ZXing pass-through; the social variant validates and would reject our desktop-pairing JSON); NavGraph + SettingsScreen gain a "Scan desktop QR" entry.
+- **Desktop WS topics trio** `desktop-pair-handlers.js`: `desktop.pair.generate-qr` / `poll-ack` / `reset`; `mobile-bridge.js` adds `this.peerId` persistence + intercepts `type=pair-ack` and routes via `recordPairAck` matching + writes to SQLite paired_devices.
+- **Vue UI** — `MobileBridge.vue` gets a Flow B tab (default) + Flow A + manual entry 3-tab layout; `antd.js` registers `AQrcode` (ant-design-vue qrcode async loaded).
+- **Real-device E2E verified**: Xiaomi 24115RA8EC desktop QR → ML Kit scan → signaling pair-ack → desktop mobileBridge intercept → recordPairAck match → CLI `pair-from-qr` writes SQLite → Vue refreshes device list.
+
+**Test backfill**:
+
+- **Android `:feature-p2p:testDebugUnitTest` 41s all green** (138 actionable tasks) — new `ScanDesktopPairingViewModelTest` (10 tests) + existing `DesktopPairingViewModelTest` + MessageQueueViewModelTest + P2PChatViewModelTest + P2PDeviceViewModelTest.
+- **Desktop 3 files / 45 tests all green** — new `desktop-pair-handlers.test.js` (19 tests) + `mobile-pair-handlers.test.js` (9 tests) + `web-shell-bootstrap.test.js` (17 tests).
+
+**Distribution**: Desktop binary v5.0.3.48 → v5.0.3.49 rebuilt (now carries Flow B + multisig source; auto-updater compares `5.0.3-alpha.49 > 5.0.3-alpha.48`). `chainlesschain` npm 0.161.8 → 0.161.9 (CLI gains multisig command + dep `@chainlesschain/core-multisig`). Android versionCode/Name unchanged (v1.0.0 GA holds); Flow B desktop-first this release, full mobile client ships in the next Android v1.1 minor. Three doc sites synchronized this round: docs-site / docs-site-design / docs-website-v2 taglines bumped to v5.0.3.49 + this changelog entry added.
+
+---
+
 ## 2026-05-12 Release — **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 RemoteSkillRegistry method-level + ApprovalUI 4-category + ProgressViewer + alias compat window**
 
 productVersion **v5.0.3.47 → v5.0.3.48**. Android v1.0 RFC M3 + M4 closing batch: 7 commits / 187 new unit tests / Android total 196+ → 383+. **Android M7 GA flip lands together (commit `ffe722162`): versionCode 37 → 100, versionName 0.37.0 → 1.0.0 GA**. No desktop / CLI source changes; CLI npm 0.161.7 → 0.161.8 (force publish on the release.yml sync track). Next step: tag `v1.0.0` at `ffe722162` and push to gitee + github.
