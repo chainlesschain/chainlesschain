@@ -53,6 +53,7 @@ const ROOT_FILE_MAP = {
   "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
   "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
   "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
+  "MofN_多签_应用扩展_v1.md": "mofn-multisig-extension-v1.md",
 };
 
 // modules/ 文件：01-xxx 格式（无 m 前缀，与 config.js sidebar 一致）
