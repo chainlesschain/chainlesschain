@@ -9,10 +9,43 @@
 | Phase | 状态 | 实现 |
 |---|---|---|
 | Phase 0 | ✅ 设计文档（本文） | docs/design/MofN_多签_应用扩展_v1.md (`24d168739`) |
-| Phase 1 | ✅ 核心库 + CLI | `packages/core-multisig/` + `packages/cli/src/commands/multisig.js` |
-| Phase 2 | ⬜ marketplace.purchase 接线 | v1.2 内 follow-up |
+| Phase 1 | ✅ 核心库 + CLI | `packages/core-multisig/` + `packages/cli/src/commands/multisig.js` (`3c890dcac`) |
+| Phase 2a | ✅ marketplace.purchase 接线 (CLI) | `packages/cli/src/commands/marketplace.js` purchase/consume + `lib/multisig-runtime.js` |
+| Phase 2b | ⬜ Desktop V6 multisig plugin | v1.2 内 follow-up |
 | Phase 3 | ⬜ DID rotate + Android UI + air-gapped QR | v1.3 |
 | Phase 4 | ⬜ 跨链桥 outbound + PQC 强制策略 | v1.3 |
+
+### Phase 2a 落地清单 (2026-05-12)
+
+代码位置：
+- `packages/cli/src/lib/multisig-runtime.js` (新) — shared SQLite cascade + manager loader，commands/multisig.js 与 commands/marketplace.js 共享
+- `packages/cli/src/commands/marketplace.js`：
+  - `LARGE_PURCHASE_THRESHOLD_FEN = 100_000` (¥1000) — 默认大额阈值
+  - `MULTISIG_DOMAIN = "marketplace.purchase"`
+  - `cc marketplace purchase <itemId> --amount-fen N --buyer <did> --key <hex>` — 大额自动 propose multisig，小额走 direct
+  - `cc marketplace consume <proposalId>` — multisig 达到 threshold 后 finalize + 执行（CLI stub 仅 echo payload）
+
+CLI 流程（设计文档 §6.1 落地）：
+
+```
+$ cc multisig policy set marketplace.purchase --m 2 --members members.json
+$ cc marketplace purchase item-001 --amount-fen 150000 --buyer A --key A.hex
+  ↪ Routed through multisig (¥1500 ≥ ¥1000 threshold)
+  proposalId: msp_xxx, needs 2 of 2 signatures
+$ cc multisig sign msp_xxx --signer B --key B.hex
+  ✓ Threshold reached
+$ cc marketplace consume msp_xxx
+  ✓ Purchase consumed — order item-001 for ¥1500
+```
+
+E2E 测试 (`packages/cli/__tests__/integration/marketplace-multisig-e2e.test.js`，8 个全 green):
+- ¥1500 大额 2-of-2 full walkthrough（policy set → purchase → sign → consume → governance.log 4 类事件）
+- ¥500 小额走 direct path，不创 proposal
+- `--threshold-fen` override 行为
+- 大额无 policy → exit 2 blocked
+- consume pending 提案 → exit 2 `proposal_state_pending`
+- consume 错域提案 → exit 2 `wrong_domain`
+- `--help` 文本验证
 
 ### Phase 1 落地清单
 

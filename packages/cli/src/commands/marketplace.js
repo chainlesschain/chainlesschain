@@ -34,6 +34,17 @@ import {
   setInvocationStatus,
   getMarketplaceStatsV2,
 } from "../lib/skill-marketplace.js";
+import {
+  openMultisigManager,
+  defaultMultisigDbPath,
+  defaultMultisigLogPath,
+  readSecretKey,
+} from "../lib/multisig-runtime.js";
+
+// v1.2 m-of-n Phase 2 — marketplace.purchase 大额触发阈值。设计文档 §1 写的
+// "商品 price ≥ ¥1000"。fen = ¥ × 100。可由命令行 --threshold-fen 覆盖（测试用）。
+export const LARGE_PURCHASE_THRESHOLD_FEN = 100_000;
+const MULTISIG_DOMAIN = "marketplace.purchase";
 
 function _dbFromCtx(ctx) {
   if (!ctx.db) {
@@ -576,6 +587,281 @@ export function registerMarketplaceCommand(program) {
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  /* ── v1.2 m-of-n Phase 2: marketplace.purchase mediator ─────── */
+
+  mp.command("purchase <itemId>")
+    .description(
+      "Initiate a purchase. Large orders (≥ threshold) route through M-of-N multisig.",
+    )
+    .requiredOption("--amount-fen <n>", "Order amount in fen (¥ × 100)", (v) =>
+      parseInt(v, 10),
+    )
+    .requiredOption("--buyer <did>", "Buyer DID (multisig initiator)")
+    .option("--alg <alg>", "Initiator signing alg", "Ed25519")
+    .option("--key <hex|path>", "Initiator secret key hex / file")
+    .option(
+      "--threshold-fen <n>",
+      `Override large-order threshold (default ${LARGE_PURCHASE_THRESHOLD_FEN})`,
+      (v) => parseInt(v, 10),
+    )
+    .option("--item-name <name>", "Optional item display name")
+    .option("--db <path>", "Multisig DB path", defaultMultisigDbPath())
+    .option("--log <path>", "Governance log path", defaultMultisigLogPath())
+    .option("--json", "Output JSON")
+    .action(async (itemId, options) => {
+      try {
+        const threshold = options.thresholdFen ?? LARGE_PURCHASE_THRESHOLD_FEN;
+        const amountFen = options.amountFen;
+        if (!Number.isFinite(amountFen) || amountFen <= 0) {
+          logger.error("--amount-fen must be positive integer");
+          process.exit(2);
+        }
+        const requiresMultisig = amountFen >= threshold;
+
+        if (!requiresMultisig) {
+          // Below threshold: direct path. No real payment processor in CLI scope
+          // — emit a "purchased" record. Phase 2 doesn't aim to wire a real
+          // payment gateway; it aims to gate large orders through multisig.
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  status: "purchased",
+                  itemId,
+                  amountFen,
+                  buyer: options.buyer,
+                  path: "direct",
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.log(
+              chalk.green(
+                `✓ Purchase executed (direct, below ¥${(threshold / 100).toFixed(2)} threshold)`,
+              ),
+            );
+            logger.log(`  itemId: ${itemId}`);
+            logger.log(`  amount: ¥${(amountFen / 100).toFixed(2)}`);
+          }
+          return;
+        }
+
+        // Above threshold: route through multisig.
+        const { store, mgr, close } = await openMultisigManager(
+          options.db,
+          options.log,
+        );
+        try {
+          const policy = store.getPolicy(MULTISIG_DOMAIN);
+          if (!policy) {
+            const msg = `No multisig policy for domain "${MULTISIG_DOMAIN}" — cannot route ¥${(amountFen / 100).toFixed(2)} (≥ threshold). Run: cc multisig policy set ${MULTISIG_DOMAIN} --m <M> --members <json>`;
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  {
+                    status: "blocked",
+                    reason: "no_policy",
+                    itemId,
+                    amountFen,
+                    path: "multisig",
+                  },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(chalk.red(`✗ ${msg}`));
+            }
+            process.exit(2);
+          }
+          const secretKey = readSecretKey(options.key);
+          const result = mgr.propose({
+            domain: MULTISIG_DOMAIN,
+            payload: {
+              itemId,
+              amountFen,
+              buyer: options.buyer,
+              itemName: options.itemName || null,
+            },
+            policy,
+            initiator: {
+              did: options.buyer,
+              alg: options.alg,
+              secretKey,
+            },
+          });
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  status: "needs_co_sign",
+                  path: "multisig",
+                  proposalId: result.proposal.id,
+                  reachedThreshold: result.reachedThreshold,
+                  requiredSigs: policy.m,
+                  itemId,
+                  amountFen,
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.log(
+              chalk.cyan(
+                `↪ Routed through multisig (¥${(amountFen / 100).toFixed(2)} ≥ ¥${(threshold / 100).toFixed(2)} threshold)`,
+              ),
+            );
+            logger.log(`  proposalId: ${result.proposal.id}`);
+            logger.log(
+              `  needs ${policy.m} of ${policy.members.length} signatures`,
+            );
+            if (result.reachedThreshold) {
+              logger.log(
+                chalk.green(
+                  "  ✓ threshold reached on first signature — run: cc marketplace consume",
+                ),
+              );
+            } else {
+              logger.log(
+                `  next: co-signers run: cc multisig sign ${result.proposal.id}`,
+              );
+            }
+          }
+        } finally {
+          close();
+        }
+      } catch (err) {
+        logger.error(`Purchase failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  mp.command("consume <proposalId>")
+    .description(
+      "Execute a multisig-gated purchase after threshold reached (marks proposal consumed)",
+    )
+    .option("--db <path>", "Multisig DB path", defaultMultisigDbPath())
+    .option("--log <path>", "Governance log path", defaultMultisigLogPath())
+    .option("--json", "Output JSON")
+    .action(async (proposalId, options) => {
+      try {
+        const { mgr, close } = await openMultisigManager(
+          options.db,
+          options.log,
+        );
+        try {
+          const got = mgr.get(proposalId);
+          if (!got) {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  { status: "error", reason: "proposal_not_found" },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(chalk.red(`No proposal: ${proposalId}`));
+            }
+            process.exit(2);
+          }
+          if (got.proposal.domain !== MULTISIG_DOMAIN) {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  {
+                    status: "error",
+                    reason: "wrong_domain",
+                    expected: MULTISIG_DOMAIN,
+                    actual: got.proposal.domain,
+                  },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(
+                chalk.red(
+                  `Proposal domain "${got.proposal.domain}" is not "${MULTISIG_DOMAIN}" — use cc multisig finalize instead.`,
+                ),
+              );
+            }
+            process.exit(2);
+          }
+          if (got.proposal.state !== "reached") {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  {
+                    status: "error",
+                    reason: `proposal_state_${got.proposal.state}`,
+                  },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(
+                chalk.red(
+                  `Proposal state is "${got.proposal.state}", need "reached" — sign more before consume.`,
+                ),
+              );
+            }
+            process.exit(2);
+          }
+
+          // Execute purchase from proposal payload (CLI stub — Phase 2 doesn't
+          // ship a real payment processor). Just print the order, then finalize.
+          const order = JSON.parse(got.proposal.payloadJcs);
+          const finalizeRes = mgr.finalize(proposalId);
+          if (!finalizeRes.ok) {
+            if (options.json) {
+              console.log(
+                JSON.stringify(
+                  { status: "error", reason: finalizeRes.reason },
+                  null,
+                  2,
+                ),
+              );
+            } else {
+              logger.error(chalk.red(`Finalize failed: ${finalizeRes.reason}`));
+            }
+            process.exit(1);
+          }
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  status: "consumed",
+                  proposalId,
+                  order,
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.log(
+              chalk.green(
+                `✓ Purchase consumed — order ${order.itemId} for ¥${(order.amountFen / 100).toFixed(2)}`,
+              ),
+            );
+            logger.log(`  buyer: ${order.buyer}`);
+            if (order.itemName) logger.log(`  item: ${order.itemName}`);
+            logger.log(`  proposalId: ${proposalId}`);
+          }
+        } finally {
+          close();
+        }
+      } catch (err) {
+        logger.error(`Consume failed: ${err.message}`);
         process.exit(1);
       }
     });

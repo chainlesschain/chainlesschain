@@ -18,151 +18,26 @@
  *      Phase 1d 内 keystore 集成留 v1.3 (与 core-did/UnifiedKeyStore 接通)。
  */
 
-import fs from "node:fs";
-import path from "node:path";
-import { createRequire } from "node:module";
 import chalk from "chalk";
 import multisig from "@chainlesschain/core-multisig";
-import { getHomeDir } from "../lib/paths.js";
+import {
+  openMultisigManager,
+  defaultMultisigDbPath,
+  defaultMultisigLogPath,
+  readSecretKey,
+  readJsonArg,
+} from "../lib/multisig-runtime.js";
 
-const requireCjs = createRequire(import.meta.url);
+const { normalizePolicy } = multisig;
 
-const {
-  applySchema,
-  createStore,
-  createProposalsManager,
-  validatePolicy,
-  normalizePolicy,
-  appendGovernanceEvent,
-  readGovernanceLog,
-} = multisig;
-
-/**
- * SQLite driver loader — native (better-sqlite3-multiple-ciphers / better-sqlite3)
- * cascades to sql.js (WASM). 与 cc db check / repair 同模式（memo
- * feedback_sqlite_wasm_fallback：always cascade native → WASM）。
- */
-async function _openDatabase(dbPath) {
-  for (const pkg of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
-    try {
-      const Database = requireCjs(pkg);
-      const db = new Database(dbPath);
-      db.pragma("journal_mode = WAL");
-      db.pragma("foreign_keys = ON");
-      return { kind: "native", db, close: () => db.close() };
-    } catch (_e) {
-      /* try next */
-    }
-  }
-  // sql.js fallback — load existing file if present, persist on close.
-  const initSqlJs = requireCjs("sql.js");
-  const SQL = await initSqlJs();
-  const buf = fs.existsSync(dbPath) ? fs.readFileSync(dbPath) : undefined;
-  const sqlDb = new SQL.Database(buf);
-  return {
-    kind: "wasm",
-    db: _adaptSqlJs(sqlDb),
-    close: () => {
-      const out = sqlDb.export();
-      fs.writeFileSync(dbPath, Buffer.from(out));
-      sqlDb.close();
-    },
-  };
-}
-
-/** sql.js → better-sqlite3-style adapter (subset needed by core-multisig/store.js). */
-function _adaptSqlJs(sqlDb) {
-  return {
-    prepare(sql) {
-      const norm = (params) =>
-        params.map((p) => (Buffer.isBuffer(p) ? new Uint8Array(p) : p));
-      return {
-        run(...params) {
-          const stmt = sqlDb.prepare(sql);
-          try {
-            stmt.bind(norm(params));
-            stmt.step();
-            return { changes: sqlDb.getRowsModified(), lastInsertRowid: 0 };
-          } finally {
-            stmt.free();
-          }
-        },
-        get(...params) {
-          const stmt = sqlDb.prepare(sql);
-          try {
-            stmt.bind(norm(params));
-            return stmt.step() ? stmt.getAsObject() : undefined;
-          } finally {
-            stmt.free();
-          }
-        },
-        all(...params) {
-          const stmt = sqlDb.prepare(sql);
-          try {
-            stmt.bind(norm(params));
-            const rows = [];
-            while (stmt.step()) rows.push(stmt.getAsObject());
-            return rows;
-          } finally {
-            stmt.free();
-          }
-        },
-      };
-    },
-    exec(sql) {
-      sqlDb.exec(sql);
-    },
-  };
-}
-
-function _defaultDbPath() {
-  return path.join(getHomeDir(), "multisig.db");
-}
-
-function _defaultLogPath() {
-  return path.join(getHomeDir(), "multisig.governance.log");
-}
-
-async function _openManager(
-  dbPath = _defaultDbPath(),
-  logPath = _defaultLogPath(),
-) {
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  const handle = await _openDatabase(dbPath);
-  applySchema(handle.db);
-  const store = createStore(handle.db);
-  const mgr = createProposalsManager(store, {
-    logEvent: (event) => appendGovernanceEvent(logPath, event),
-  });
-  return {
-    db: handle.db,
-    close: handle.close,
-    store,
-    mgr,
-  };
-}
-
-function _readKey(arg) {
-  if (!arg) {
-    throw new Error("--key or --key-file required (provide signer secret key)");
-  }
-  // 接受 hex string 直接；或文件路径
-  if (/^[0-9a-fA-F]+$/.test(arg)) {
-    return Buffer.from(arg, "hex");
-  }
-  if (fs.existsSync(arg)) {
-    const raw = fs.readFileSync(arg, "utf-8").trim();
-    return Buffer.from(raw, "hex");
-  }
-  throw new Error(`--key: not hex and not an existing file path: ${arg}`);
-}
-
-function _readJsonArg(arg) {
-  if (fs.existsSync(arg)) {
-    return JSON.parse(fs.readFileSync(arg, "utf-8"));
-  }
-  return JSON.parse(arg);
-}
+// Phase 2 refactor: open / readKey / readJsonArg moved to lib/multisig-runtime.js
+// so commands/marketplace.js can reuse the same SQLite cascade + manager loader.
+// Aliases below preserve Phase 1 internal names without rewriting every callsite.
+const _openManager = openMultisigManager;
+const _defaultDbPath = defaultMultisigDbPath;
+const _defaultLogPath = defaultMultisigLogPath;
+const _readKey = readSecretKey;
+const _readJsonArg = readJsonArg;
 
 function _formatProposalTable(proposal, sigs = []) {
   const lines = [
