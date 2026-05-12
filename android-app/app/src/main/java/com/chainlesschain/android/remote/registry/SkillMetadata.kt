@@ -72,6 +72,19 @@ data class SkillMetadata(
      * 桌面端调用不会立刻 fail。
      */
     val aliases: List<String> = emptyList(),
+
+    /**
+     * Optional manifest signature (forward-compat for ADR-8 amend, #21 A.3 AI-3).
+     *
+     * Null = no signature claim (current v1.2/v1.3 stage — `RemoteSkillRegistry.
+     * updateFromRemote` push 来源即可信)。Non-null = base64url-encoded Ed25519
+     * (或未来 SLH-DSA hybrid) 签名 over JCS-canonical 表示。
+     *
+     * [RemoteSkillRegistry] runs [ManifestSignatureVerifier] 在 `updateFromRemote`
+     * 接受之前；默认 [NoOpManifestVerifier] 全接受，等 marketplace M0 上线时通过
+     * [RemoteSkillRegistry.setManifestVerifier] 注入真验签 (#21 A.3 AI-5)。
+     */
+    val signature: String? = null,
 ) {
     init {
         require(namespace.isNotBlank()) { "namespace must not be blank" }
@@ -92,6 +105,14 @@ data class SkillMetadata(
         }
         require(aliases.none { it.isBlank() }) {
             "aliases must not contain blank entries: $aliases"
+        }
+        // signature null = legacy unsigned manifest (current state). Non-null
+        // must not be blank; real signature validation runs in
+        // ManifestSignatureVerifier (not here — invariants stay format-only).
+        if (signature != null) {
+            require(signature.isNotBlank()) {
+                "signature must not be blank when set (use null for unsigned)"
+            }
         }
     }
 

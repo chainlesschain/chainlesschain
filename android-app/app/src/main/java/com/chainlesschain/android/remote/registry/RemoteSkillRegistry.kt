@@ -34,11 +34,31 @@ class RemoteSkillRegistry @Inject constructor(
     /** alias → canonical namespace 反查表（§8.3 1 版兼容窗口）。 */
     private val aliasIndex = mutableMapOf<String, String>()
 
+    /**
+     * Manifest signature verifier (forward-compat for ADR-8 amend, #21 A.3 AI-3).
+     *
+     * Default [NoOpManifestVerifier] accepts everything — current v1.2/v1.3 stage
+     * 不 enforce signature verification (push-based updateFromRemote 来源即可信)。
+     * Marketplace M0 (#21 A.3 AI-5) 上线时, app 启动注入真验签 implementation
+     * via [setManifestVerifier]。
+     */
+    @Volatile
+    private var manifestVerifier: ManifestSignatureVerifier = NoOpManifestVerifier
+
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills: StateFlow<List<SkillMetadata>> = _skills.asStateFlow()
 
     private val _initialized = MutableStateFlow(false)
     val initialized: StateFlow<Boolean> = _initialized.asStateFlow()
+
+    /**
+     * Replace the manifest signature verifier (forward-compat #21 A.3 AI-3).
+     * Defaults to [NoOpManifestVerifier]; real Ed25519 / SLH-DSA hybrid verifier
+     * wires in when marketplace M0 lands.
+     */
+    fun setManifestVerifier(v: ManifestSignatureVerifier) {
+        manifestVerifier = v
+    }
 
     /**
      * 启动初始化：先尝试从 disk 加载；失败则使用 [SeedRegistry]。幂等。
@@ -147,12 +167,41 @@ class RemoteSkillRegistry @Inject constructor(
             Timber.w("updateFromRemote called with empty list, ignoring")
             return byNamespace.size
         }
-        // 先把更新合进 byNamespace（同 namespace 替换），再走 replaceAll 重建 aliasIndex
-        newSkills.forEach { byNamespace[it.namespace] = it }
+        // Manifest signature gate (forward-compat #21 A.3 AI-3). NoOpManifestVerifier
+        // accepts everything by default; real verifier (post-marketplace M0) will
+        // reject skills with invalid signatures, which we skip + log rather than
+        // failing the whole update — partial-acceptance is the safer default for
+        // a verifier whose policy may evolve.
+        val accepted = mutableListOf<SkillMetadata>()
+        val rejected = mutableListOf<Pair<String, String>>()
+        for (skill in newSkills) {
+            when (val result = manifestVerifier.verify(skill)) {
+                is VerificationResult.Accepted -> accepted.add(skill)
+                is VerificationResult.Rejected ->
+                    rejected.add(skill.namespace to result.reason)
+            }
+        }
+        if (rejected.isNotEmpty()) {
+            Timber.w(
+                "updateFromRemote rejected %d skill(s) by manifest verifier: %s",
+                rejected.size,
+                rejected,
+            )
+        }
+        if (accepted.isEmpty()) {
+            // Verifier rejected everything — don't churn store / state.
+            return byNamespace.size
+        }
+        accepted.forEach { byNamespace[it.namespace] = it }
         val merged = byNamespace.values.toList()
         replaceAll(merged)
         store.save(merged)
-        Timber.i("Registry updated from remote: +%d, total=%d", newSkills.size, merged.size)
+        Timber.i(
+            "Registry updated from remote: +%d accepted, %d rejected, total=%d",
+            accepted.size,
+            rejected.size,
+            merged.size,
+        )
         return merged.size
     }
 
