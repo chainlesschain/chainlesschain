@@ -62,7 +62,12 @@ interface OfflineCommandDao {
 @Singleton
 class OfflineCommandQueue @Inject constructor(
     private val dao: OfflineCommandDao,
-    private val p2pClient: P2PClient
+    private val p2pClient: P2PClient,
+    // v1.2 prep #1：用户可配 TTL，替代写死的 OLD_COMMAND_THRESHOLD 7 天常量。
+    // 测试构造时 mockk(relaxed = true) 即可；relaxed mock 的 ttlMillis 返 0 →
+    // cleanupOldCommands 退化为不清理 (now - 0 > timestamp 永真... 实际 cleanup 函数有
+    // fallback 保护，详 cleanupOldCommands)。
+    private val preferences: OfflineQueuePreferences,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -76,7 +81,9 @@ class OfflineCommandQueue @Inject constructor(
     companion object {
         private const val MAX_RETRIES = 3
         private const val RETRY_DELAY = 5000L // 5 秒
-        private const val OLD_COMMAND_THRESHOLD = 7 * 24 * 60 * 60 * 1000L // 7 天
+        // v1.2 prep #1：v1.0 写死 7d；v1.2 改读 [OfflineQueuePreferences.ttlMillis]
+        // (默认 7d 兼容)。本常量保留给测试 fallback 用 — 详 [cleanupOldCommands]。
+        private const val FALLBACK_TTL_MS = 7L * 24 * 60 * 60 * 1000
         private const val SEND_TIMEOUT_MS = 30_000L // 与 P2PClientConfig.requestTimeout 默认对齐
     }
 
@@ -287,13 +294,18 @@ class OfflineCommandQueue @Inject constructor(
     }
 
     /**
-     * 清理旧命令（超过 7 天）
+     * 清理旧命令（超过 [OfflineQueuePreferences.ttlMillis] — 默认 7 天，用户在 Settings
+     * 可配 1d/7d/14d/30d/custom）。
+     *
+     * v1.2 prep #1：从 v1.0 写死 7d 改为从 preferences 读。relaxed mock 返 0 时退化到
+     * [FALLBACK_TTL_MS] 7d，保护测试不误清未到期数据。
      */
     suspend fun cleanupOldCommands() {
         try {
-            val threshold = System.currentTimeMillis() - OLD_COMMAND_THRESHOLD
+            val ttlMs = preferences.ttlMillis.takeIf { it > 0 } ?: FALLBACK_TTL_MS
+            val threshold = System.currentTimeMillis() - ttlMs
             dao.deleteOldCommands(threshold)
-            Timber.d("旧命令已清理")
+            Timber.d("旧命令已清理 (ttl=${ttlMs / (24 * 60 * 60 * 1000)}d)")
         } catch (e: Exception) {
             Timber.e(e, "清理旧命令失败")
         }

@@ -47,7 +47,13 @@ class OfflineCommandQueueTest {
 
         every { mockP2PClient.connectionState } returns connectionStateFlow
 
-        queue = OfflineCommandQueue(mockDao, mockP2PClient)
+        // v1.2 prep #1：preferences mock，ttlMillis 默认 7d 兼容 v1.0 行为。
+        // relaxed mock 返 0L 时，cleanupOldCommands 走 FALLBACK_TTL_MS 7d 路径
+        // (详 OfflineCommandQueue.cleanupOldCommands)。
+        val mockPreferences = mockk<OfflineQueuePreferences>(relaxed = true)
+        every { mockPreferences.ttlMillis } returns 7L * 24 * 60 * 60 * 1000
+
+        queue = OfflineCommandQueue(mockDao, mockP2PClient, mockPreferences)
     }
 
     @After

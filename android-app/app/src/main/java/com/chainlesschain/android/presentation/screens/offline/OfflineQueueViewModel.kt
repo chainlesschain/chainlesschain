@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.offline.OfflineCommandEntity
 import com.chainlesschain.android.remote.offline.OfflineCommandQueue
+import com.chainlesschain.android.remote.offline.OfflineQueuePreferences
 import com.chainlesschain.android.remote.offline.QueueStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,17 +15,21 @@ import javax.inject.Inject
 
 /**
  * v1.1 issue #19 OfflineQueue Settings 页 ViewModel — 包 [OfflineCommandQueue]，给 UI
- * 暴露 stats / recent commands / 4 个动作 (refresh / dismiss / retry-failed / clear-all)。
+ * 暴露 stats / recent commands / 4 个动作 + v1.2 prep #1 user-configurable TTL。
  */
 @HiltViewModel
 class OfflineQueueViewModel @Inject constructor(
     private val queue: OfflineCommandQueue,
+    private val preferences: OfflineQueuePreferences,
 ) : ViewModel() {
 
     val stats: StateFlow<QueueStats> = queue.stats
 
     private val _recent = MutableStateFlow<List<OfflineCommandEntity>>(emptyList())
     val recent: StateFlow<List<OfflineCommandEntity>> = _recent.asStateFlow()
+
+    /** v1.2 prep #1：当前用户配置的 TTL 天数（默认 7）。 */
+    val ttlDays: StateFlow<Int> = preferences.ttlDays
 
     init {
         refresh()
@@ -50,5 +55,10 @@ class OfflineQueueViewModel @Inject constructor(
             queue.clear()
             refresh()
         }
+    }
+
+    /** v1.2 prep #1：用户在 Settings 改 TTL 天数（被 [OfflineQueuePreferences] clamp 1-90）。 */
+    fun setTtlDays(days: Int) {
+        preferences.setTtlDays(days)
     }
 }

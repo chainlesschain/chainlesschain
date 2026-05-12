@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -57,6 +58,7 @@ fun OfflineQueueScreen(
 ) {
     val stats by viewModel.stats.collectAsState()
     val recent by viewModel.recent.collectAsState()
+    val ttlDays by viewModel.ttlDays.collectAsState()
 
     Scaffold(
         topBar = {
@@ -72,6 +74,39 @@ fun OfflineQueueScreen(
             .fillMaxSize()
             .padding(padding)) {
             StatsHeader(stats.total, stats.pending, stats.sending, stats.failed)
+
+            // v1.2 prep #1：TTL Quick-pick row（用户可配，1d/7d/14d/30d quick-pick）
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        "保留期限 (TTL)",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        "超过 $ttlDays 天的命令自动清理；下次启动 + 每 push tick 时校验",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (days in com.chainlesschain.android.remote.offline.OfflineQueuePreferences.QUICK_PICK_DAYS) {
+                            FilterChip(
+                                selected = ttlDays == days,
+                                onClick = { viewModel.setTtlDays(days) },
+                                label = { Text("${days}d") },
+                            )
+                        }
+                    }
+                }
+            }
 
             // 操作按钮
             Row(
