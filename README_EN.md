@@ -4904,6 +4904,14 @@ git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
+(Optional) For contributors who want commits dual-pushed to gitee + github mirrors, add the gitee remote:
+
+```bash
+git remote add gitee git@gitee.com:chainlesschaincn/chainlesschain.git
+```
+
+Once added, the `.husky/post-commit` hook (auto-activated by `npm install`) pushes every commit to both gitee and github, keeping the mirrors in lockstep. The hook safely skips any remote that isn't configured, so it works even without this step.
+
 #### 2. Start PC Desktop App
 
 ```bash

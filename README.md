@@ -3878,6 +3878,14 @@ git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
+（可选）如要参与开发并双推到 gitee + github 镜像，再加一个 gitee 远程：
+
+```bash
+git remote add gitee git@gitee.com:chainlesschaincn/chainlesschain.git
+```
+
+加上之后，`.husky/post-commit` 钩子（`npm install` 后自动激活）会在每次 commit 后并行推送到 gitee + github，保持两个镜像同步。不加也能跑，钩子会安全跳过未配置的远程。
+
 #### 2. 启动PC端桌面应用
 
 ```bash
