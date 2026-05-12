@@ -935,6 +935,11 @@ class ChainlessChainApp {
         // surface only ever yields a boolean.
         syncCredentials: require("./sync/sync-credentials"),
         p2pManager: this.p2pManager ?? null,
+        // v1.1 W3.6 (issue #19): lazy getters for mobile.pair.send-confirmation
+        // WS handler. mobileBridge 在 initializeMobileBridge() async tail 才赋
+        // 值（startWebShell 之后），所以注册时传函数避免捕 null。
+        getMobileBridge: () => this.mobileBridge ?? null,
+        getP2pManager: () => this.p2pManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
         // ui.useWebShellExperimental opt-out from inside web-panel.

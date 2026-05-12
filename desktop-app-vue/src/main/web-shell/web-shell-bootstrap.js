@@ -60,6 +60,9 @@ const {
 const {
   createCommunityMtcHandlers,
 } = require("./handlers/community-mtc-handlers");
+const {
+  createMobilePairConfirmationHandler,
+} = require("./handlers/mobile-pair-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -256,6 +259,22 @@ async function startWebShell(options = {}) {
       // run-now). Optional; missing manager yields error envelope.
       autoArchiveScheduler: options.autoArchiveScheduler ?? null,
       p2pManager: options.p2pManager ?? null,
+    }),
+    // v1.1 W3.6 (issue #19): pairing:confirmation 信令 round-trip。web-panel
+    // MobileBridge.vue 扫码 + cc p2p pair-from-qr 写 DB 后调本 topic 让 desktop
+    // 通过 mobileBridge.send 把 confirmation 经信令服务器发到 mobile。mobileBridge
+    // 未就绪时 handler 自身返 error envelope，不会撞 dispatcher。
+    "mobile.pair.send-confirmation": createMobilePairConfirmationHandler({
+      // Lazy getters because this.mobileBridge / this.p2pManager 在 main/index.js
+      // startWebShell 之后才赋值（initializeMobileBridge 是 async tail）。
+      getMobileBridge:
+        typeof options.getMobileBridge === "function"
+          ? options.getMobileBridge
+          : () => options.mobileBridge ?? null,
+      getP2pManager:
+        typeof options.getP2pManager === "function"
+          ? options.getP2pManager
+          : () => options.p2pManager ?? null,
     }),
     ...(options.extraHandlers || {}),
   };

@@ -98,6 +98,7 @@ import {
   QrcodeOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useShellMode } from '../composables/useShellMode.js'
 import QrScannerModal from '../components/QrScannerModal.vue'
 
 const ws = useWsStore()
@@ -132,23 +133,56 @@ async function refresh() {
 
 async function onQrScanned(qrData) {
   showScanner.value = false
+  let pairedPayload = null
   try {
-    // v1.1 W3.5: shell-escape via JSON.stringify wrapping — qrData is raw JSON
-    // string from QR code; pass as quoted argv to cc p2p pair-from-qr
+    // v1.1 W3.5: 1) CLI 写 paired_devices SQLite — qrData 是从 QR 解码的
+    // raw JSON 字符串，shell-escape via JSON.stringify wrapping。
     const safeArg = JSON.stringify(qrData)
     const { output } = await ws.execute(
       `p2p pair-from-qr ${safeArg} --json`,
       15000,
     )
     const result = parseJsonOutput(output)
-    if (result?.success) {
-      message.success(`配对成功: ${result.deviceName || result.deviceId.slice(0, 8)}`)
-      await refresh()
-    } else {
+    if (!result?.success) {
       message.error(`配对失败: ${result?.error || '未知错误'}`)
+      return
     }
+    // Parse QR payload for the next signaling step (need .did + .code)
+    try {
+      pairedPayload = JSON.parse(qrData)
+    } catch {
+      // Shouldn't happen — pair-from-qr already validated, but guard
+    }
+    message.success(`已写入配对: ${result.deviceName || result.deviceId.slice(0, 8)}`)
+    await refresh()
   } catch (e) {
     message.error(`配对失败: ${e.message}`)
+    return
+  }
+
+  // v1.1 W3.6: 2) Embedded mode 下让 desktop 经信令服务器给 mobile 发
+  // pairing:confirmation，让 Android DesktopPairingViewModel 进入 Completed
+  // 状态。cc ui standalone 模式跳过（无 mobileBridge），UI 提示用户。
+  if (!pairedPayload) return
+  const { isEmbedded } = useShellMode()
+  if (!isEmbedded) {
+    message.info('CLI 模式下已写本地 paired_devices；手机端确认状态留 cc desktop')
+    return
+  }
+  try {
+    const reply = await ws.sendRaw(
+      { type: 'mobile.pair.send-confirmation', qrPayload: pairedPayload },
+      10000,
+    )
+    if (reply && reply.ok !== false) {
+      message.success('已通知手机端完成握手')
+    } else {
+      message.warning(
+        `desktop 已写库，但通知手机端失败: ${reply?.error || 'unknown'}`,
+      )
+    }
+  } catch (e) {
+    message.warning(`通知手机端失败: ${e.message}（desktop 已写库）`)
   }
 }
 

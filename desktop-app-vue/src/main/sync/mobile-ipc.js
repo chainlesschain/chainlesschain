@@ -292,9 +292,71 @@ function registerMobileSyncIPC({
     }
   });
 
+  // ── sync:mobile:send-pairing-confirmation (v1.1 W3.6 issue #19) ─
+  // 给 web-shell MobileBridge.vue 在扫码成功后调，把 desktop 的 pairing:confirmation
+  // 经信令服务器发给 mobile。Mobile 端 PairingMessageBus 监听 → 匹配 pairingCode →
+  // DesktopPairingViewModel.markConfirmed → 状态进 Completed。
+  //
+  // Payload 字段与 desktop `device-pairing-handler.js::sendConfirmation` 的
+  // confirmationMessage 形状对齐；mobile 端 `WebSocketSignalClient.handlePairingConfirmation`
+  // 期望 {type:"pairing:confirmation", pairingCode, pcPeerId, deviceInfo, timestamp}。
+  //
+  // 不通过 DevicePairingHandler 实例（该类目前是 dead-code 未实例化）；直接走
+  // mobileBridge.send 内联组装 message。
+  ipcMain.handle(
+    "sync:mobile:send-pairing-confirmation",
+    async (_event, qrPayload) => {
+      if (!qrPayload || typeof qrPayload !== "object") {
+        return { success: false, error: "qrPayload 必填且为 object" };
+      }
+      if (!qrPayload.did || typeof qrPayload.did !== "string") {
+        return { success: false, error: "qrPayload.did 必填" };
+      }
+      if (!qrPayload.code || typeof qrPayload.code !== "string") {
+        return { success: false, error: "qrPayload.code 必填" };
+      }
+      const mobileBridge = app?.mobileBridge;
+      if (!mobileBridge) {
+        return { success: false, error: "mobileBridge 未就绪" };
+      }
+      if (!mobileBridge.isConnected) {
+        return { success: false, error: "信令服务器未连接" };
+      }
+      try {
+        const p2pManager = app?.p2pManager;
+        const pcPeerId = p2pManager?.peerId
+          ? String(p2pManager.peerId)
+          : "desktop-unknown";
+        const confirmationMessage = {
+          type: "pairing:confirmation",
+          pairingCode: qrPayload.code,
+          pcPeerId,
+          deviceInfo: {
+            name: require("os").hostname(),
+            platform: process.platform,
+            version: process.env.npm_package_version || "v1.1",
+          },
+          timestamp: Date.now(),
+        };
+        mobileBridge.send({
+          type: "message",
+          to: qrPayload.did,
+          payload: confirmationMessage,
+        });
+        logger.info(
+          `[Mobile Sync IPC] pairing:confirmation 已发往 ${qrPayload.did} (code=${qrPayload.code})`,
+        );
+        return { success: true };
+      } catch (err) {
+        logger.error("[Mobile Sync IPC] send-pairing-confirmation 异常:", err);
+        return { success: false, error: err?.message || String(err) };
+      }
+    },
+  );
+
   ipcGuard.markModuleRegistered("mobile-ipc");
   logger.info(
-    "[Mobile Sync IPC] ✓ 6 个 channel 已注册 (run / run-all / status / list-paired / unpair / register-manual)",
+    "[Mobile Sync IPC] ✓ 7 个 channel 已注册 (run / run-all / status / list-paired / unpair / register-manual / send-pairing-confirmation)",
   );
 }
 
