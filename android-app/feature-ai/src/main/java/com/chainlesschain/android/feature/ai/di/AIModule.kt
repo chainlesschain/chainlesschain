@@ -10,6 +10,7 @@ import com.chainlesschain.android.feature.ai.cowork.sandbox.FileSandbox
 import com.chainlesschain.android.feature.ai.cowork.task.LongRunningTaskManager
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.voice.AsrEngine
+import com.chainlesschain.android.feature.ai.data.voice.AsrEngineRouter
 import com.chainlesschain.android.feature.ai.data.voice.AudioPlayer
 import com.chainlesschain.android.feature.ai.data.voice.AudioRecorder
 import com.chainlesschain.android.feature.ai.data.voice.VoicePlayer
@@ -210,9 +211,15 @@ object AIModule {
     @Singleton
     fun provideAudioRecorder(impl: WavRecorder): AudioRecorder = impl
 
+    /**
+     * v1.1 issue #19 W4：AsrEngine 改路由到 [AsrEngineRouter]，让 user 能在 Settings →
+     * ASR 引擎切换 Volcengine / Whisper。VolcengineAsrClient + WhisperAsrEngine 都 @Inject
+     * @Singleton，Hilt 自动 wire 进 router；本 @Provides 把 router 暴露成 AsrEngine 接口
+     * 给现有 VoiceModeManager 等调用方透明使用。
+     */
     @Provides
     @Singleton
-    fun provideAsrEngine(impl: VolcengineAsrClient): AsrEngine = impl
+    fun provideAsrEngine(impl: AsrEngineRouter): AsrEngine = impl
 
     @Provides
     @Singleton
