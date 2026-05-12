@@ -693,7 +693,9 @@ enum class ResourceType {
     POST_COMMENT,
     POST_LIKE,
     POST_SHARE,
-    NOTIFICATION
+    NOTIFICATION,
+    // 项目管理资源类型（v1：仅 PROJECT 元数据；PROJECT_FILE 待 v2）
+    PROJECT
 }
 
 /**

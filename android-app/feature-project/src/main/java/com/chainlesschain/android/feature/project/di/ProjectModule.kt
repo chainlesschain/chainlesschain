@@ -5,10 +5,13 @@ import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.TaskDao
+import com.chainlesschain.android.core.p2p.sync.ProjectSyncApplier
+import com.chainlesschain.android.feature.project.data.sync.ProjectSyncApplierImpl
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import com.chainlesschain.android.feature.project.repository.TaskRepository
 import com.chainlesschain.android.feature.project.util.ProjectFileStorage
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -66,4 +69,18 @@ object ProjectModule {
     fun provideTaskRepository(taskDao: TaskDao): TaskRepository {
         return TaskRepository(taskDao)
     }
+}
+
+/**
+ * v1.2：把 ProjectSyncApplierImpl 绑到 core-p2p 定义的接口上。同 KnowledgeSyncModule
+ * 模式，单独 abstract class 因为 object module 不能用 @Binds。
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class ProjectSyncModule {
+    @Binds
+    @Singleton
+    abstract fun bindProjectSyncApplier(
+        impl: ProjectSyncApplierImpl,
+    ): ProjectSyncApplier
 }

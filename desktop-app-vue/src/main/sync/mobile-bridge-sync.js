@@ -39,6 +39,9 @@ const ResourceType = Object.freeze({
   POST: "POST",
   POST_COMMENT: "POST_COMMENT",
   NOTIFICATION: "NOTIFICATION",
+  // v1.2 (2026-05-12) 项目元数据。v1 只走 CREATE/UPDATE，DELETE 待 v2 加 tombstone
+  // trigger（参考 trg_sync_ext_tombstone_knowledge 模式建 trg_sync_ext_tombstone_project）。
+  PROJECT: "PROJECT",
 });
 
 const SyncOperation = Object.freeze({
@@ -432,6 +435,8 @@ class MobileBridgeSync {
       this._fetchSocialPosts.bind(this),
       this._fetchPostComments.bind(this),
       this._fetchNotifications.bind(this),
+      // v1.2 项目元数据。仅 CREATE/UPDATE，DELETE 待 v2 加 tombstone trigger。
+      this._fetchProjects.bind(this),
       // CONTACT 暂不走：Android DefaultSyncDataApplier.kt 把 CONTACT 与 FRIEND
       // 都路由到 FriendRepository（同一份数据）；桌面 contacts 表是更广的通讯录
       // 概念，无对等映射。v2 按需补。
@@ -699,6 +704,70 @@ class MobileBridgeSync {
     }));
   }
 
+  /**
+   * projects walker — v1.2 (2026-05-12)。
+   *
+   * 字段策略：同步桌面 + Android 共同子集（id / user_id / name / description /
+   * project_type / status / root_path / file_count / total_size / tags / metadata /
+   * created_at / updated_at / device_id）。Android 独有列（isFavorite / isArchived /
+   * git* / lastAccessedAt / accessCount）不下传，由 Android 端的字段级 merge
+   * 保留；桌面独有列（template_id / cover_image_url / sync_status / synced_at /
+   * category_id / delivered_at）也不上线，避免污染 Android schema。
+   *
+   * 过滤 deleted=1：软删的项目不参与 push（DELETE 走 tombstone，但 v1 没建 trigger，
+   * 等 v2）。
+   *
+   * 游标 (updated_at, id) lex 序，与其他 walker 一致。
+   */
+  async _fetchProjects(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, user_id, name, description, project_type, status, root_path,
+                file_count, total_size, tags, metadata, created_at, updated_at,
+                device_id
+         FROM projects
+         WHERE deleted = 0
+           AND (updated_at > ? OR (updated_at = ? AND id > ?))
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, user_id, name, description, project_type, status, root_path,
+                file_count, total_size, tags, metadata, created_at, updated_at,
+                device_id
+         FROM projects
+         WHERE deleted = 0 AND updated_at > ?
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.PROJECT,
+      resourceId: row.id,
+      operation:
+        row.updated_at > row.created_at
+          ? SyncOperation.UPDATE
+          : SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: row.device_id || "",
+      data: JSON.stringify({
+        id: row.id,
+        user_id: row.user_id,
+        name: row.name,
+        description: row.description,
+        project_type: row.project_type,
+        status: row.status,
+        root_path: row.root_path,
+        file_count: row.file_count,
+        total_size: row.total_size,
+        tags: row.tags,
+        metadata: row.metadata,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }),
+    }));
+  }
+
   // ============================================================
   // Apply（入向 SyncItem 写入本地表）
   // ============================================================
@@ -733,6 +802,9 @@ class MobileBridgeSync {
           break;
         case ResourceType.NOTIFICATION:
           await this._applyNotification(item);
+          break;
+        case ResourceType.PROJECT:
+          await this._applyProject(item);
           break;
         default:
           // CONTACT 和未来类型走这里。CONTACT v1 不接，详见 _tableFetchers 注释。
@@ -965,6 +1037,56 @@ class MobileBridgeSync {
     );
   }
 
+  /**
+   * PROJECT apply — v1.2 (2026-05-12)。
+   *
+   * 桌面 projects.project_type 有 CHECK：('web','document','data','app',
+   * 'presentation','spreadsheet','design','code','workflow','knowledge')；
+   * status 有 CHECK：('draft','active','completed','archived')。Android 端的
+   * project_type 值集是 desktop 超集（含 android/backend/data_science/...），
+   * 直接落库会被 CHECK 拒。normalize 兜底：Android 独有类型 → 'code'（最近邻），
+   * Android 独有 status (paused/deleted) → 'active' / DELETE 路径。
+   *
+   * v1 不接 Android 上行 push（Android 端 SyncOutbound 也没接 PROJECT walker），
+   * 所以本 apply 实际只在桌面 ↔ 桌面回环 / 未来 v2 Android push 时跑。
+   */
+  async _applyProject(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      // 软删：与桌面本地 deleteProject 路径一致
+      this.dbManager.run(
+        `UPDATE projects SET deleted = 1, updated_at = ? WHERE id = ?`,
+        [item.timestamp || this.deps.now(), item.resourceId],
+      );
+      return;
+    }
+    const projectType = this._normalizeProjectType(data.project_type);
+    const status = this._normalizeProjectStatus(data.status);
+    this.dbManager.run(
+      `INSERT OR REPLACE INTO projects
+       (id, user_id, name, description, project_type, status, root_path,
+        file_count, total_size, tags, metadata, created_at, updated_at,
+        sync_status, device_id, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, 0)`,
+      [
+        item.resourceId,
+        data.user_id || "",
+        data.name || "",
+        data.description || null,
+        projectType,
+        status,
+        data.root_path || null,
+        data.file_count || 0,
+        data.total_size || 0,
+        data.tags || null,
+        data.metadata || null,
+        data.created_at || item.timestamp,
+        data.updated_at || item.timestamp,
+        item.deviceId || "",
+      ],
+    );
+  }
+
   // ============================================================
   // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
   // ============================================================
@@ -986,6 +1108,59 @@ class MobileBridgeSync {
     return ["pending", "accepted", "blocked"].includes(lower)
       ? lower
       : "pending";
+  }
+
+  /**
+   * project_type normalize — v1.2 (2026-05-12)。
+   *
+   * Android ProjectType 值集是 desktop CHECK 超集；Android 独有类型（android /
+   * backend / data_science / multiplatform / flutter / research / other）发上来会
+   * 触发 SQLite CHECK 拒绝。映射到 desktop 现有最近邻类型（多数 → 'code'，
+   * research/document → 'document'，other → 'document' 兜底）。
+   */
+  _normalizeProjectType(t) {
+    const lower = String(t || "document").toLowerCase();
+    const desktopAllowed = [
+      "web",
+      "document",
+      "data",
+      "app",
+      "presentation",
+      "spreadsheet",
+      "design",
+      "code",
+      "workflow",
+      "knowledge",
+    ];
+    if (desktopAllowed.includes(lower)) {
+      return lower;
+    }
+    // Android 独有 → 最近邻
+    const map = {
+      android: "code",
+      backend: "code",
+      data_science: "data",
+      multiplatform: "code",
+      flutter: "code",
+      research: "document",
+      other: "document",
+    };
+    return map[lower] || "document";
+  }
+
+  /**
+   * project status normalize — v1.2 (2026-05-12)。
+   *
+   * Desktop CHECK: ('draft','active','completed','archived')。
+   * Android 独有 ('paused' / 'deleted')：paused → active（桌面无对应概念），
+   * deleted 走 DELETE 路径不应该进这里；保守兜底 active。
+   */
+  _normalizeProjectStatus(s) {
+    const lower = String(s || "active").toLowerCase();
+    if (["draft", "active", "completed", "archived"].includes(lower)) {
+      return lower;
+    }
+    return "active";
   }
 
   _normalizePostVisibility(v) {
@@ -1090,6 +1265,20 @@ class MobileBridgeSync {
               version: 1,
               timestamp: row.created_at,
               deviceId: "",
+            }
+          : null;
+      }
+      case ResourceType.PROJECT: {
+        const row = this.dbManager.get(
+          `SELECT id, device_id, updated_at FROM projects WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: row.device_id || "",
             }
           : null;
       }

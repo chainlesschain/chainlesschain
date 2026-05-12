@@ -34,7 +34,10 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DesignServices
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Web
@@ -114,6 +117,27 @@ fun CreateProjectScreen(
     var isAiThinking by remember { mutableStateOf(false) }
     var aiSuggestion by remember { mutableStateOf<String?>(null) }
 
+    // SAF folder picker - 选择手机本地文件夹作为项目根
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            val effectiveUserId = userId ?: currentUserId
+            if (effectiveUserId == null) {
+                scope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.login_required_to_create))
+                }
+            } else {
+                viewModel.setCurrentUser(effectiveUserId)
+                viewModel.importExternalFolderAsProject(
+                    treeUri = uri,
+                    projectName = name.trim().takeIf { it.isNotEmpty() },
+                    type = selectedType
+                )
+            }
+        }
+    }
+
     // 处理 UI 事件
     LaunchedEffect(Unit) {
         viewModel.uiEvents.collect { event ->
@@ -152,6 +176,14 @@ fun CreateProjectScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // 选择本地文件夹作为项目根
+            OpenLocalFolderCard(
+                onPickFolder = { folderPickerLauncher.launch(null) },
+                enabled = !isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // AI Assistant Section
             AiAssistantSection(
                 showAssistant = showAiAssistant,
@@ -593,6 +625,63 @@ private fun AiAssistantSection(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * 选择本地文件夹作为项目根 - SAF tree picker 入口卡片
+ *
+ * 与桌面端 "打开文件夹作为项目" 对齐。点击后弹系统目录选择器，用户选完一个文件夹：
+ * - ViewModel 持久化 URI 权限
+ * - 创建项目（rootPath = treeUri）
+ * - BFS 遍历目录树落库为 ProjectFileEntity（path 存 content:// URI）
+ * - AI 聊天通过 loadFileContent() 按需读取
+ */
+@Composable
+private fun OpenLocalFolderCard(
+    onPickFolder: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.FolderOpen,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "选择本地文件夹",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "把手机里的文件夹作为项目根目录，可直接用 AI 聊它的内容",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onPickFolder,
+                enabled = enabled
+            ) {
+                Text("选择")
             }
         }
     }

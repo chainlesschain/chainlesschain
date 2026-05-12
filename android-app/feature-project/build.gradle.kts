@@ -56,6 +56,8 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-ui"))
     implementation(project(":core-security"))
+    // v1.2 项目同步：ProjectSyncApplier 接口 + ResourceType.PROJECT 在 core-p2p
+    implementation(project(":core-p2p"))
 
     // Feature modules (for AI integration)
     implementation(project(":feature-ai"))
@@ -66,6 +68,9 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    // SAF (Storage Access Framework) — 用户选择手机本地文件夹作为项目根目录
+    // activity-compose 已通过 navigation-compose 传递引入，无需重复声明
+    implementation("androidx.documentfile:documentfile:1.0.1")
 
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))

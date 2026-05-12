@@ -173,6 +173,28 @@ function bootstrapSchema(sqlDb) {
       created_at INTEGER NOT NULL
     );
 
+    -- v1.2 (2026-05-12) PROJECT 同步：projects 表最小列子集（生产 schema 见
+    -- database-schema.js;149）。CHECK 与生产一致，确保 _normalizeProjectType /
+    -- _normalizeProjectStatus 兜底逻辑能在测试里 exercise。
+    CREATE TABLE projects (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
+      status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
+      root_path TEXT,
+      file_count INTEGER DEFAULT 0,
+      total_size INTEGER DEFAULT 0,
+      tags TEXT,
+      metadata TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      sync_status TEXT DEFAULT 'pending',
+      device_id TEXT,
+      deleted INTEGER DEFAULT 0
+    );
+
     CREATE TABLE sync_external_provider_cursor (
       provider_id TEXT NOT NULL,
       account_key TEXT NOT NULL DEFAULT '',

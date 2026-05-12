@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.p2p.sync
 
 import timber.log.Timber
 import com.chainlesschain.android.core.p2p.sync.KnowledgeSyncApplier
+import com.chainlesschain.android.core.p2p.sync.ProjectSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncDataApplier
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
@@ -28,12 +29,14 @@ class DefaultSyncDataApplier @Inject constructor(
     private val postRepository: PostRepository,
     private val notificationRepository: NotificationRepository,
     private val knowledgeSyncApplier: KnowledgeSyncApplier,
+    private val projectSyncApplier: ProjectSyncApplier,
 ) : SyncDataApplier {
 
     override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {
         Timber.d("Creating $resourceType: $resourceId")
         when (resourceType) {
             ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.saveFromSync(resourceId, data)
+            ResourceType.PROJECT -> projectSyncApplier.saveFromSync(resourceId, data)
             ResourceType.MESSAGE -> messageRepository.saveMessageFromSync(resourceId, data)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.saveFriendFromSync(resourceId, data)
             ResourceType.POST -> postRepository.savePostFromSync(resourceId, data)
@@ -47,6 +50,7 @@ class DefaultSyncDataApplier @Inject constructor(
         Timber.d("Updating $resourceType: $resourceId")
         when (resourceType) {
             ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.updateFromSync(resourceId, data)
+            ResourceType.PROJECT -> projectSyncApplier.updateFromSync(resourceId, data)
             ResourceType.MESSAGE -> messageRepository.updateMessageFromSync(resourceId, data)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.updateFriendFromSync(resourceId, data)
             ResourceType.POST -> postRepository.updatePostFromSync(resourceId, data)
@@ -60,6 +64,7 @@ class DefaultSyncDataApplier @Inject constructor(
         Timber.d("Deleting $resourceType: $resourceId")
         when (resourceType) {
             ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.deleteFromSync(resourceId)
+            ResourceType.PROJECT -> projectSyncApplier.deleteFromSync(resourceId)
             ResourceType.MESSAGE -> messageRepository.deleteMessageFromSync(resourceId)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.deleteFriendFromSync(resourceId)
             ResourceType.POST -> postRepository.deletePostFromSync(resourceId)

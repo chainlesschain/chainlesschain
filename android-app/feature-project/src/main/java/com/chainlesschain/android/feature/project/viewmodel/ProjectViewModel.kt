@@ -85,9 +85,9 @@ class ProjectViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val DEFAULT_MODEL = "deepseek-chat"
-        private const val DEFAULT_PROVIDER = "DEEPSEEK"
-        private const val MAX_CONTEXT_TOKENS = 4000  // DeepSeek 默认上下文窗口
+        // 仅作为冷启动 bootstrap 值，init {} 立即用 resolveDefaultProviderAndModel() 覆盖
+        private const val BOOTSTRAP_MODEL = "qwen2:7b"
+        private const val MAX_CONTEXT_TOKENS = 4000
     }
 
     // Context Manager
@@ -160,10 +160,11 @@ class ProjectViewModel @Inject constructor(
     private val _isAiResponding = MutableStateFlow(false)
     val isAiResponding: StateFlow<Boolean> = _isAiResponding.asStateFlow()
 
-    private val _currentModel = MutableStateFlow(DEFAULT_MODEL)
+    // bootstrap 值；init {} 块会调 llmConfigManager.load() 后用 resolveDefaultProviderAndModel() 覆盖
+    private val _currentModel = MutableStateFlow(BOOTSTRAP_MODEL)
     val currentModel: StateFlow<String> = _currentModel.asStateFlow()
 
-    private val _currentProvider = MutableStateFlow(llmConfigManager.getProvider())  // 从配置读取
+    private val _currentProvider = MutableStateFlow(LLMProvider.OLLAMA)
     val currentProvider: StateFlow<LLMProvider> = _currentProvider.asStateFlow()
 
     // ===== Context Mode State =====
@@ -217,6 +218,55 @@ class ProjectViewModel @Inject constructor(
 
     private var currentStreamingJob: Job? = null
     private var lastUserMessage: String = ""
+
+    init {
+        // 与 ConversationViewModel.getDefaultModel() 对齐：先 load 最新配置，再按 fallback 链
+        // 选 provider/model。否则用户冷启动直入 Project chat 时，singleton 里 _config 还是
+        // 默认 LLMConfiguration()（provider=ollama），但旧代码硬编码 model=deepseek-chat
+        // → 给 Ollama 发 deepseek-chat 模型 ID，整条流断在 adapter 层。
+        try {
+            llmConfigManager.load()
+            resolveDefaultProviderAndModel()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to load LLM config; keeping bootstrap defaults")
+        }
+    }
+
+    /**
+     * 解析默认 provider/model。fallback 链与 ConversationViewModel.getDefaultModel() 对齐：
+     * 1. 用户在 LLM 设置里保存的 provider，且该 provider 已可用（OLLAMA 直接可用，其它需 key）
+     * 2. 扫所有非 OLLAMA provider 找第一个有 key 的
+     * 3. 最后兜底 OLLAMA
+     */
+    private fun resolveDefaultProviderAndModel() {
+        val preferred = llmConfigManager.getProvider()
+        val configuredModelId = try { llmConfigManager.getCurrentModel() } catch (_: Exception) { null }
+
+        val preferredOk = preferred == LLMProvider.OLLAMA ||
+            conversationRepository.hasApiKey(preferred)
+        if (preferredOk) {
+            _currentProvider.value = preferred
+            val models = LLMProvider.DEFAULT_MODELS[preferred].orEmpty()
+            _currentModel.value = models.firstOrNull { it.id == configuredModelId }?.id
+                ?: models.firstOrNull()?.id
+                ?: configuredModelId
+                ?: BOOTSTRAP_MODEL
+            return
+        }
+
+        for (p in LLMProvider.values()) {
+            if (p == LLMProvider.OLLAMA) continue
+            if (conversationRepository.hasApiKey(p)) {
+                _currentProvider.value = p
+                _currentModel.value = LLMProvider.DEFAULT_MODELS[p]?.firstOrNull()?.id ?: continue
+                return
+            }
+        }
+
+        _currentProvider.value = LLMProvider.OLLAMA
+        _currentModel.value = LLMProvider.DEFAULT_MODELS[LLMProvider.OLLAMA]?.firstOrNull()?.id
+            ?: BOOTSTRAP_MODEL
+    }
 
     /**
      * 设置当前用户
@@ -500,6 +550,142 @@ class ProjectViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * 从外部文件夹导入为项目（SAF tree URI）
+     *
+     * 与桌面端 "打开文件夹作为项目" 对齐：用户通过 ACTION_OPEN_DOCUMENT_TREE 选一个手机本地
+     * 文件夹，我们持久化 URI 权限、创建项目（rootPath = treeUri 字符串），并 BFS 遍历目录树
+     * 把每个条目落库为 ProjectFileEntity（path 字段存 content:// URI）。AI 聊天的
+     * loadFileContent() 已经支持读 content:// URI，所以入库后就能直接对项目内文件提问。
+     *
+     * 注意：
+     * - 不复制文件内容，按需懒加载（避免大文件 OOM）
+     * - 遍历有 maxEntries 上限，防止扫到 NAS / 整张 SD 卡时卡死
+     * - 权限被持久化（需 takePersistableUriPermission），应用重启后仍可访问；若用户撤销
+     *   或文件夹被移除/卸载，AI 读取时会进 catch 给"加载外部文件失败"
+     */
+    fun importExternalFolderAsProject(
+        treeUri: android.net.Uri,
+        projectName: String? = null,
+        type: String = ProjectType.OTHER,
+        maxEntries: Int = 1000
+    ) {
+        val userId = _currentUserId.value
+        if (userId == null) {
+            Timber.e("Cannot import folder: userId is null")
+            viewModelScope.launch {
+                _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // 1. 持久化 URI 权限（应用重启后还能读写）
+                withContext(Dispatchers.IO) {
+                    try {
+                        appContext.contentResolver.takePersistableUriPermission(
+                            treeUri,
+                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        )
+                    } catch (e: SecurityException) {
+                        Timber.w(e, "takePersistableUriPermission failed; URI may not survive reboot")
+                    }
+                }
+
+                // 2. 解析根目录
+                val rootDoc = androidx.documentfile.provider.DocumentFile.fromTreeUri(appContext, treeUri)
+                if (rootDoc == null || !rootDoc.isDirectory) {
+                    _uiEvents.emit(ProjectUiEvent.ShowError("无法读取所选文件夹"))
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val resolvedName = projectName?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: rootDoc.name?.takeIf { it.isNotEmpty() }
+                    ?: "外部文件夹"
+
+                // 3. 创建项目，rootPath 存 tree URI 字符串
+                val createResult = projectRepository.createProject(
+                    CreateProjectRequest(
+                        name = resolvedName,
+                        description = "从本地文件夹导入: ${rootDoc.uri}",
+                        type = type,
+                        userId = userId,
+                        rootPath = treeUri.toString()
+                    )
+                )
+                val project = createResult.getOrNull()
+                if (project == null) {
+                    _uiEvents.emit(ProjectUiEvent.ShowError(
+                        createResult.exceptionOrNull()?.message ?: "项目创建失败"
+                    ))
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                // 4. BFS 遍历目录树，把每个条目入库（IO 线程）
+                val imported = withContext(Dispatchers.IO) {
+                    walkAndInsertSafTree(project.id, rootDoc, maxEntries)
+                }
+
+                _uiEvents.emit(ProjectUiEvent.ShowMessage(
+                    "已导入 $imported 个条目" +
+                        if (imported >= maxEntries) "（已截断到上限 $maxEntries）" else ""
+                ))
+                _uiEvents.emit(ProjectUiEvent.NavigateToProject(project.id))
+                loadStatistics()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to import external folder")
+                _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: ${e.message ?: "未知错误"}"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * BFS 遍历 SAF DocumentFile tree，把每个条目落库为 ProjectFileEntity
+     * - file: path = doc.uri.toString()，content = null（按需懒加载）
+     * - folder: 占位条目，用于父子关系（path 同样存 URI 方便后续重扫）
+     */
+    private suspend fun walkAndInsertSafTree(
+        projectId: String,
+        root: androidx.documentfile.provider.DocumentFile,
+        maxEntries: Int
+    ): Int {
+        data class QItem(val doc: androidx.documentfile.provider.DocumentFile, val parentId: String?)
+        val queue: ArrayDeque<QItem> = ArrayDeque()
+        root.listFiles().forEach { queue.addLast(QItem(it, parentId = null)) }
+
+        var count = 0
+        while (queue.isNotEmpty() && count < maxEntries) {
+            val (doc, parentId) = queue.removeFirst()
+            val name = doc.name ?: continue
+            val isFolder = doc.isDirectory
+
+            val result = projectRepository.addFile(
+                projectId = projectId,
+                name = name,
+                path = doc.uri.toString(),
+                type = if (isFolder) "folder" else "file",
+                parentId = parentId,
+                mimeType = if (isFolder) null else doc.type,
+                size = if (isFolder) 0L else doc.length(),
+                content = null
+            )
+            count++
+
+            val inserted = result.getOrNull() ?: continue
+            if (isFolder) {
+                doc.listFiles().forEach { queue.addLast(QItem(it, parentId = inserted.id)) }
+            }
+        }
+        return count
     }
 
     /**
@@ -1004,6 +1190,17 @@ class ProjectViewModel @Inject constructor(
         isQuickAction: Boolean = false,
         quickActionType: String? = null
     ) {
+        // 与 ConversationViewModel.sendMessage() 对齐：非 OLLAMA 必须有 API Key，否则
+        // adapter 层会抛 IllegalArgumentException 而用户看到的只是一句裸 message。
+        // 提前拦截并给可操作指引。
+        val provider = _currentProvider.value
+        if (provider != LLMProvider.OLLAMA && !conversationRepository.hasApiKey(provider)) {
+            _uiEvents.emit(ProjectUiEvent.ShowError(
+                "${provider.displayName} 未配置 API Key，请到「设置 → LLM 设置」配置，或在模型选择器切换到 Ollama 本地模型"
+            ))
+            return
+        }
+
         _isAiResponding.value = true
         _currentThinkingStage.value = ThinkingStage.UNDERSTANDING
         currentStreamingJob?.cancel()
