@@ -9,10 +9,37 @@ plugins {
 android {
     namespace = "com.chainlesschain.android.feature.ai"
     compileSdk = 35
+    // Pinned to GitHub-hosted ubuntu-latest preinstalled NDK (W4a baseline).
+    // Local dev: run `sdkmanager "ndk;25.2.9519653" "cmake;3.22.1"` once.
+    ndkVersion = "25.2.9519653"
 
     defaultConfig {
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // W4a: only arm64-v8a + armeabi-v7a ship.
+        //   - x86_64 emulator skipped (whisper.cpp x86 SIMD off; rebuild cost ↑↑)
+        //   - per-ABI splits handled at app module level (App Bundle).
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += listOf(
+                    "-DANDROID_STL=c++_shared",
+                    "-DANDROID_TOOLCHAIN=clang",
+                )
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     compileOptions {
