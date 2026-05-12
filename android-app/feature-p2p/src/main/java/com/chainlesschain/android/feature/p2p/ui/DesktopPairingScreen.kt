@@ -76,7 +76,7 @@ fun DesktopPairingScreen(
 
                 is DesktopPairingState.Displaying -> {
                     Text(
-                        "在桌面端打开 设置 → 移动桥 → 扫描配对",
+                        "在桌面端打开 设置 → 移动桥 → 扫描或手动输入",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                     )
@@ -84,7 +84,7 @@ fun DesktopPairingScreen(
                     QrPlaceholder(s.payloadJson)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "或手动输入配对码：",
+                        "或在桌面手动输入：",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -95,6 +95,14 @@ fun DesktopPairingScreen(
                         fontFamily = FontFamily.Monospace,
                         letterSpacing = 8.sp,
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // v1.1 W3.6 manual-entry support: 显示 DID + deviceId 让用户在桌面
+                    // 手动输入表单里读取（摄像头扫码无法用时的 fallback 路径）
+                    PairingMetaRow(label = "DID", value = s.payload.did)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    PairingMetaRow(label = "Device ID", value = s.payload.deviceInfo.deviceId)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    PairingMetaRow(label = "设备名", value = s.payload.deviceInfo.name)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "5 分钟内有效",
@@ -124,6 +132,31 @@ fun DesktopPairingScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * v1.1 W3.6 manual-entry：在 QR 下方展示 DID / Device ID / 设备名让用户在桌面
+ * 手动输入表单里照填。Label 灰色短标 + Value monospace 长串可全选复制（Compose
+ * SelectionContainer 自动支持）。
+ */
+@Composable
+private fun PairingMetaRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "$label：",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 

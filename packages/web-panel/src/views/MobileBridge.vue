@@ -5,19 +5,94 @@
         <h2 class="page-title">移动桥</h2>
         <p class="page-sub">已配对的 Android 设备 · QR pairing 完成后会出现在此</p>
       </div>
-      <a-space>
-        <a-button type="primary" @click="showScanner = true">
-          <template #icon><QrcodeOutlined /></template>
-          扫描配对
-        </a-button>
-        <a-button type="primary" ghost :loading="loading" @click="refresh">
-          <template #icon><ReloadOutlined /></template>
-          刷新
-        </a-button>
-      </a-space>
+      <a-button type="primary" ghost :loading="loading" @click="refresh">
+        <template #icon><ReloadOutlined /></template>
+        刷新
+      </a-button>
     </div>
 
-    <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+    <!-- v1.1 W3.6 manual entry: 添加配对面板支持两种方式 -->
+    <a-card
+      title="新增配对"
+      style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;"
+    >
+      <a-tabs v-model:activeKey="addMode">
+        <a-tab-pane key="manual" tab="手动输入（推荐）">
+          <a-alert
+            type="info"
+            show-icon
+            style="margin-bottom: 16px;"
+            message="在手机上 设置 → 配对桌面 显示 QR 后，照着屏幕填写下方三个字段"
+          />
+          <a-form layout="vertical" :model="manualForm">
+            <a-form-item label="DID" :required="true">
+              <a-input
+                v-model:value="manualForm.did"
+                placeholder="did:cc:..."
+                style="font-family: monospace;"
+              />
+            </a-form-item>
+            <a-form-item label="配对码 (6 位数字)" :required="true">
+              <a-input
+                v-model:value="manualForm.code"
+                placeholder="123456"
+                maxlength="6"
+                style="font-family: monospace; font-size: 20px; letter-spacing: 4px; text-align: center;"
+              />
+            </a-form-item>
+            <a-form-item label="设备 ID" :required="true">
+              <a-input
+                v-model:value="manualForm.deviceId"
+                placeholder="android-xxx-xxx"
+                style="font-family: monospace;"
+              />
+            </a-form-item>
+            <a-form-item label="设备名（可选）">
+              <a-input
+                v-model:value="manualForm.deviceName"
+                placeholder="My Pixel 8"
+              />
+            </a-form-item>
+            <a-form-item>
+              <a-button
+                type="primary"
+                :loading="manualSubmitting"
+                :disabled="!manualForm.did || !manualForm.code || !manualForm.deviceId"
+                @click="onManualSubmit"
+              >
+                <template #icon><CheckOutlined /></template>
+                提交配对
+              </a-button>
+              <a-button
+                style="margin-left: 8px;"
+                :disabled="manualSubmitting"
+                @click="resetManualForm"
+              >
+                清空
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </a-tab-pane>
+        <a-tab-pane key="scan" tab="扫描手机 QR（高级）">
+          <a-alert
+            type="warning"
+            show-icon
+            style="margin-bottom: 16px;"
+            message="需要桌面摄像头，对小屏 QR 识别率不稳定"
+            description="无摄像头或扫描失败请用 “手动输入” 标签页"
+          />
+          <a-button type="primary" @click="showScanner = true">
+            <template #icon><QrcodeOutlined /></template>
+            打开摄像头扫描
+          </a-button>
+        </a-tab-pane>
+      </a-tabs>
+    </a-card>
+
+    <a-card
+      title="已配对设备"
+      style="background: var(--bg-card); border-color: var(--border-color);"
+    >
       <template #extra>
         <a-tag color="blue">{{ devices.length }} 台</a-tag>
       </template>
@@ -96,6 +171,7 @@ import {
   MobileOutlined,
   DisconnectOutlined,
   QrcodeOutlined,
+  CheckOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useShellMode } from '../composables/useShellMode.js'
@@ -107,6 +183,54 @@ const loading = ref(false)
 const error = ref('')
 const unpairingId = ref('')
 const showScanner = ref(false)
+
+// v1.1 W3.6 manual entry tab state
+const addMode = ref('manual')
+const manualSubmitting = ref(false)
+const manualForm = ref({
+  did: '',
+  code: '',
+  deviceId: '',
+  deviceName: '',
+})
+
+function resetManualForm() {
+  manualForm.value = { did: '', code: '', deviceId: '', deviceName: '' }
+}
+
+/**
+ * v1.1 W3.6 manual entry: 用户在手机 QR 屏照填的 DID/code/deviceId/deviceName
+ * 构造与 Flow A 完全一致的 PairingQrPayload，复用现有 pair-from-qr CLI + 信令
+ * confirmation 完整 round-trip。
+ */
+async function onManualSubmit() {
+  if (manualSubmitting.value) return
+  // 6 位数字 validate（与 cc p2p pair-from-qr / desktop validatePairingCode 对齐）
+  if (!/^\d{6}$/.test(manualForm.value.code.trim())) {
+    message.error('配对码必须是 6 位数字')
+    return
+  }
+  manualSubmitting.value = true
+  const constructed = {
+    type: 'device-pairing',
+    code: manualForm.value.code.trim(),
+    did: manualForm.value.did.trim(),
+    deviceInfo: {
+      deviceId: manualForm.value.deviceId.trim(),
+      name: manualForm.value.deviceName.trim() || '(unnamed)',
+      platform: 'android',
+    },
+    // 后端 5min stale 检查用当前 ts 让手动输入不被拒
+    timestamp: Date.now(),
+  }
+  try {
+    await onQrScanned(JSON.stringify(constructed))
+    // 成功后清空表单方便下一次配对
+    resetManualForm()
+  } finally {
+    manualSubmitting.value = false
+  }
+}
 
 const columns = [
   { title: '设备 ID', key: 'device_id', dataIndex: 'device_id', width: 280 },

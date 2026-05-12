@@ -243,3 +243,87 @@ sqlite3 ~/.chainlesschain/chainlesschain.db \
 1. 更新 issue #19 W3.6 标 ✅，附 commit SHA + 测试 device 型号 / Android 版本
 2. 关 W3 全段（如已经全做完）
 3. memory 写入"W3 真机验收 lessons learned"（如有非显错踩坑）
+
+---
+
+## 8. 未来生产部署：跨网（手机外面 / 电脑在家）
+
+本计划默认 **LAN 同 WiFi** 或 **USB adb reverse** 跑 E2E。真正用户场景手机
+出门后用 cell 数据或别处 WiFi，信令服务器必须公网可达。三个不需要购买
+域名的方案 + 一个标准域名部署，按成本/复杂度排序：
+
+### 方案 A: Cloudflare Tunnel（推荐 — 免费 + 免费子域名）
+
+```bash
+# 1) 安装 cloudflared
+# Windows: scoop install cloudflare-cloudflared 或 winget install cloudflared
+# Linux:   curl -L https://github.com/cloudflare/cloudflared/... -o /usr/local/bin/cloudflared
+
+# 2) 启 signaling server（不变）
+cd signaling-server && npm start
+
+# 3) 起 tunnel — 自动分配 *.trycloudflare.com 子域名
+cloudflared tunnel --url http://localhost:9001
+# 输出形如：https://random-words.trycloudflare.com → 9001
+
+# 4) 手机 app Settings → 信令服务器配置 → 改为 wss://random-words.trycloudflare.com
+#    （trycloudflare 子域名自动配 TLS，必须用 wss://，不是 ws://）
+```
+
+**优点**: 0 成本 / 0 域名 / 自动 TLS / 公网立刻可达
+**缺点**: trycloudflare 子域名是临时的（重启 tunnel 换地址）；要稳定地址
+需走 Cloudflare 账号绑定自己买的域名（年 ~$10）或 named tunnel
+
+### 方案 B: Tailscale（免费 P2P VPN — 把两端拉进同一虚拟 LAN）
+
+```bash
+# 1) 两端各装 Tailscale: https://tailscale.com/download
+# 2) 同账号登录 → 两端进同一 tailnet → 自动分配 100.x.x.x 内网 IP
+# 3) signaling server 仍 bind 0.0.0.0:9001（不变）
+# 4) 手机 app Settings → ws://<desktop-tailscale-ip>:9001
+```
+
+**优点**: 0 成本 / 0 域名 / 稳定 IP（同账号永远不变）/ 端到端加密
+**缺点**: 两端都要装 Tailscale 客户端（手机有 app）；商业用户达 100 设备
+后开始收费
+
+### 方案 C: ngrok 临时 tunnel（最快验证）
+
+```bash
+ngrok http 9001
+# 输出 https://xxx.ngrok-free.app → localhost:9001
+# 手机 app 用 wss://xxx.ngrok-free.app
+```
+
+**优点**: 1 行命令；自动 TLS
+**缺点**: 免费版每次重启换 URL；同时连接数有限制；流量经 ngrok 服务器
+
+### 方案 D: 自己买云 VPS + 域名（生产 stable 方案）
+
+```bash
+# 1) 买 VPS (Aliyun / Vultr / Linode ¥10-50/月) + 域名 (¥30-80/年)
+# 2) signaling-server 提供了 Dockerfile：
+#    docker-compose up -d signaling-server
+# 3) 加 Caddy / Nginx 反向代理：domain → wss://signaling.your-domain.com → :9001
+# 4) DNS A 记录指 VPS IP
+# 5) 手机 app SignalingConfig.DEFAULT_SIGNALING_URL 默认值改成你的 wss://...
+# 6) Android release build 后无须用户配，开箱即用
+```
+
+**优点**: 完全自主 / 域名稳定 / 可扩容
+**缺点**: 年成本 ~¥100-700 / 需运维 / 需 TLS 证书（Let's Encrypt 免费但需配）
+
+### 切换路径推荐
+
+| 阶段 | 方案 | 何时 |
+|---|---|---|
+| 今天 E2E | LAN + adb reverse | 已用 |
+| Beta 测试（少量真机） | Cloudflare Tunnel + 自有域名 | W3 真机闭环后 |
+| 小规模放量 | VPS + 自有域名 | v1.1 GA |
+| 大规模 | 多区域信令 + 负载均衡 + 容灾 | v1.2+ |
+
+### Android 端切配适配代码（已就绪）
+
+- `SignalingConfig.kt` 优先级 SharedPreferences > env > debug fallback > production default
+- 用户在 app Settings 改 `custom_signaling_url` 即可热切换信令地址，不用重打包
+- production default `DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"` 是占位 — 真生产前替换或保留占位让 prefs 强制覆写

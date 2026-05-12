@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.p2p.pairing.PairingMessageBus
+import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -45,6 +46,9 @@ class DesktopPairingViewModel @Inject constructor(
     private val deviceInfoProvider: PairingDeviceInfoProvider,
     // v1.1 W3.3b: 监听 desktop 经信令发的 pairing:confirmation
     private val pairingMessageBus: PairingMessageBus,
+    // v1.1 W3.6: 主动触发 signaling connect + register，使 mobile 能监听
+    // pairing:confirmation。SignalClient.connect 默认 lazy，必须显式触发。
+    private val pairingSignalingGate: PairingSignalingGate,
     private val clock: PairingClock = PairingClock.System,
     private val codeGenerator: PairingCodeGenerator = PairingCodeGenerator.Random,
 ) : ViewModel() {
@@ -96,6 +100,20 @@ class DesktopPairingViewModel @Inject constructor(
                     expiresAt = timestamp + PAIRING_TIMEOUT_MS,
                 )
                 scheduleExpiry()
+
+                // v1.1 W3.6: 触发 signaling connect + register 让 mobile 收
+                // desktop 经信令发的 pairing:confirmation。peer-id **必须用 DID**
+                // 因为 desktop sendConfirmation 用 `to: qrPayload.did` 路由——
+                // mobile 注册的 peer-id 必须匹配，否则信令服务器找不到目标 drop 消息。
+                // 失败不阻断 UI 流程（用户仍能看 QR；只是收不到 confirmation 自动 Completed）。
+                val localPeerId = identity.did
+                val gateResult = pairingSignalingGate.ensureRegistered(localPeerId)
+                if (gateResult.isFailure) {
+                    Timber.w(
+                        "[DesktopPairingViewModel] signaling gate failed: ${gateResult.exceptionOrNull()?.message}; " +
+                            "QR shown but auto-completion disabled",
+                    )
+                }
             } catch (e: Exception) {
                 _pairingState.value = DesktopPairingState.Failed(e.message ?: "未知错误")
             }

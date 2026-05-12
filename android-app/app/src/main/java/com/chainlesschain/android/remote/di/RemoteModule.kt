@@ -17,8 +17,10 @@ import com.chainlesschain.android.remote.p2p.DIDManagerImpl
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.P2PClientSyncOutbound
 import com.chainlesschain.android.remote.p2p.SyncCommandRouter
+import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
+import com.chainlesschain.android.remote.webrtc.WebSocketPairingSignalingGate
 import com.chainlesschain.android.remote.webrtc.WebSocketSignalClient
 import dagger.Binds
 import dagger.Module
@@ -39,6 +41,15 @@ abstract class RemoteModule {
     @Binds
     @Singleton
     abstract fun bindSignalClient(impl: WebSocketSignalClient): SignalClient
+
+    // v1.1 W3.6: 让 DesktopPairingViewModel 在 startPairing 时主动触发
+    // signaling connect + register，使其能监听 desktop 经信令发的
+    // pairing:confirmation。否则 SignalClient 仅在 WebRTC pairing 时 lazy 连。
+    @Binds
+    @Singleton
+    abstract fun bindPairingSignalingGate(
+        impl: WebSocketPairingSignalingGate,
+    ): PairingSignalingGate
 
     @Binds
     @Singleton

@@ -90,6 +90,14 @@ class DesktopPairingViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private val fakeGate = object : com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate {
+        var lastPeerId: String? = null
+        override suspend fun ensureRegistered(localPeerId: String): Result<Unit> {
+            lastPeerId = localPeerId
+            return Result.success(Unit)
+        }
+    }
+
     private fun makeVM(
         code: String = "123456",
         nowMs: Long = 1_700_000_000_000L,
@@ -97,6 +105,7 @@ class DesktopPairingViewModelTest {
         didManager = didManager,
         deviceInfoProvider = fakeDeviceInfo,
         pairingMessageBus = pairingBus,
+        pairingSignalingGate = fakeGate,
         clock = fixedClock(nowMs),
         codeGenerator = fixedCodeGen(code),
     )
@@ -242,6 +251,7 @@ class DesktopPairingViewModelTest {
             didManager = didManager,
             deviceInfoProvider = fakeDeviceInfo,
             pairingMessageBus = pairingBus,
+            pairingSignalingGate = fakeGate,
             clock = fixedClock(1_700_000_000_000L),
             codeGenerator = object : PairingCodeGenerator {
                 override fun generate() = genQueue.removeFirst()
