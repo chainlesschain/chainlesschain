@@ -458,7 +458,10 @@ interface SignalClient {
 
 class WebSocketSignalClient @Inject constructor(
     private val okHttpClient: okhttp3.OkHttpClient,
-    private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig
+    private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig,
+    // v1.1 W3.3b：desktop pairing:confirmation 经信令到达时投递到 bus，让
+    // feature-p2p 的 DesktopPairingViewModel 不依赖 :app 也能消费。
+    private val pairingMessageBus: com.chainlesschain.android.core.p2p.pairing.PairingMessageBus
 ) : SignalClient {
 
     @Volatile
@@ -694,14 +697,26 @@ class WebSocketSignalClient @Inject constructor(
                     Timber.d("Message received via signaling server: ${payload.toString().take(100)}...")
 
                     if (payload != null) {
-                        // 将消息转发到P2P消息处理流程
-                        val messageStr = when (payload) {
-                            is org.json.JSONObject -> payload.toString()
-                            is String -> payload
-                            else -> payload.toString()
+                        // v1.1 W3.3b：识别 pairing:confirmation payload（desktop
+                        // device-pairing-handler.js sendConfirmation 发的），路由到
+                        // PairingMessageBus 让 DesktopPairingViewModel 消费。
+                        // 非 pairing payload 仍走 onForwardedMessageCallback（WebRTC
+                        // DataChannel 回退路径）。
+                        val payloadObj = payload as? org.json.JSONObject
+                        if (payloadObj != null &&
+                            payloadObj.optString("type") == "pairing:confirmation"
+                        ) {
+                            handlePairingConfirmation(payloadObj)
+                        } else {
+                            // 将消息转发到P2P消息处理流程
+                            val messageStr = when (payload) {
+                                is org.json.JSONObject -> payload.toString()
+                                is String -> payload
+                                else -> payload.toString()
+                            }
+                            Timber.d("Forwarding message to WebRTCClient: ${messageStr.take(100)}...")
+                            onForwardedMessageCallback?.invoke(messageStr)
                         }
-                        Timber.d("Forwarding message to WebRTCClient: ${messageStr.take(100)}...")
-                        onForwardedMessageCallback?.invoke(messageStr)
                     }
                 }
 
@@ -716,6 +731,37 @@ class WebSocketSignalClient @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "Handle signaling message failed: $message")
+        }
+    }
+
+    /**
+     * v1.1 W3.3b: 解析 desktop 经信令发的 pairing:confirmation payload，发到
+     * [PairingMessageBus]。字段对齐 desktop `device-pairing-handler.js::
+     * sendConfirmation`。
+     */
+    private fun handlePairingConfirmation(payload: org.json.JSONObject) {
+        try {
+            val pairingCode = payload.optString("pairingCode", "")
+            val pcPeerId = payload.optString("pcPeerId", "")
+            val timestamp = payload.optLong("timestamp", 0L)
+            if (pairingCode.isBlank() || pcPeerId.isBlank()) {
+                Timber.w("[SignalClient] pairing:confirmation missing pairingCode/pcPeerId, skipping")
+                return
+            }
+            val deviceInfoJson = payload.optJSONObject("deviceInfo")
+            val deviceInfo = deviceInfoJson?.let { obj ->
+                obj.keys().asSequence().associateWith { obj.optString(it, "") }
+            }
+            val confirmation = com.chainlesschain.android.core.p2p.pairing.PairingConfirmation(
+                pairingCode = pairingCode,
+                pcPeerId = pcPeerId,
+                deviceInfo = deviceInfo,
+                timestamp = timestamp,
+            )
+            pairingMessageBus.emit(confirmation)
+            Timber.i("[SignalClient] pairing:confirmation routed to bus (code=$pairingCode)")
+        } catch (e: Exception) {
+            Timber.e(e, "[SignalClient] failed to parse pairing:confirmation payload")
         }
     }
 

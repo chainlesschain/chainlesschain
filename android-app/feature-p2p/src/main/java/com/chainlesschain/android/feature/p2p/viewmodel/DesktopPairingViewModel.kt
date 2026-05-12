@@ -3,16 +3,20 @@ package com.chainlesschain.android.feature.p2p.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.did.manager.DIDManager
+import com.chainlesschain.android.core.p2p.pairing.PairingMessageBus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -39,6 +43,8 @@ import javax.inject.Inject
 class DesktopPairingViewModel @Inject constructor(
     private val didManager: DIDManager,
     private val deviceInfoProvider: PairingDeviceInfoProvider,
+    // v1.1 W3.3b: 监听 desktop 经信令发的 pairing:confirmation
+    private val pairingMessageBus: PairingMessageBus,
     private val clock: PairingClock = PairingClock.System,
     private val codeGenerator: PairingCodeGenerator = PairingCodeGenerator.Random,
 ) : ViewModel() {
@@ -47,6 +53,15 @@ class DesktopPairingViewModel @Inject constructor(
     val pairingState: StateFlow<DesktopPairingState> = _pairingState.asStateFlow()
 
     private var expiryJob: Job? = null
+
+    init {
+        // v1.1 W3.3b: 长存订阅 — bus 是 SharedFlow（replay=0），早到的 confirmation
+        // 会被丢弃；考虑到 mobile 必须先 startPairing 显示 QR 才有 code 给 desktop
+        // 扫，时序上 desktop 不可能在 mobile init 前发 confirmation，丢弃是安全的。
+        pairingMessageBus.confirmations
+            .onEach { confirmation -> onConfirmationReceived(confirmation) }
+            .launchIn(viewModelScope)
+    }
 
     /**
      * 开始配对流程：生成 code + payload 进 Displaying 状态。idempotent — 反复调用
@@ -97,8 +112,8 @@ class DesktopPairingViewModel @Inject constructor(
     }
 
     /**
-     * W3.3 桌面端 `pairing:confirmation` 信令到达时由 listener 调用。
-     * 当前 commit 暴露 internal API，方便 W3.3 + 单测触发。
+     * 桌面端 `pairing:confirmation` 信令到达时调用（W3.3b：从 [pairingMessageBus]
+     * 自动驱动；测试可直接调用）。
      */
     internal fun markConfirmed() {
         if (_pairingState.value is DesktopPairingState.Displaying) {
@@ -106,6 +121,32 @@ class DesktopPairingViewModel @Inject constructor(
             expiryJob = null
             _pairingState.value = DesktopPairingState.Completed
         }
+    }
+
+    /**
+     * v1.1 W3.3b: 收到 [com.chainlesschain.android.core.p2p.pairing.PairingConfirmation] 时
+     * 校验 pairingCode 是否匹配当前 Displaying state 的 code，匹配才 transition。
+     *
+     * 不匹配（陈旧 / 别的设备的 confirmation） → 静默丢弃 + warn-log。
+     * 不在 Displaying 状态（Idle / Completed / Expired / Failed） → 同样忽略。
+     */
+    private fun onConfirmationReceived(
+        confirmation: com.chainlesschain.android.core.p2p.pairing.PairingConfirmation,
+    ) {
+        val state = _pairingState.value as? DesktopPairingState.Displaying ?: run {
+            Timber.d(
+                "[DesktopPairingViewModel] confirmation ignored (state=${_pairingState.value::class.simpleName})",
+            )
+            return
+        }
+        if (state.payload.code != confirmation.pairingCode) {
+            Timber.w(
+                "[DesktopPairingViewModel] confirmation code mismatch (expected=${state.payload.code}, got=${confirmation.pairingCode})",
+            )
+            return
+        }
+        Timber.i("[DesktopPairingViewModel] pairing confirmed by desktop (pcPeerId=${confirmation.pcPeerId})")
+        markConfirmed()
     }
 
     private fun scheduleExpiry() {

@@ -2,11 +2,16 @@ package com.chainlesschain.android.feature.p2p.viewmodel
 
 import com.chainlesschain.android.core.did.manager.DIDIdentity
 import com.chainlesschain.android.core.did.manager.DIDManager
+import com.chainlesschain.android.core.p2p.pairing.PairingConfirmation
+import com.chainlesschain.android.core.p2p.pairing.PairingMessageBus
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -44,6 +49,19 @@ class DesktopPairingViewModelTest {
     private lateinit var didIdentityFlow: MutableStateFlow<DIDIdentity?>
     private val testDispatcher = StandardTestDispatcher()
 
+    /** 测试用 in-memory bus，可手动 emit confirmation */
+    private class FakePairingMessageBus : PairingMessageBus {
+        private val _flow = MutableSharedFlow<PairingConfirmation>(
+            replay = 0,
+            extraBufferCapacity = 8,
+        )
+        override val confirmations: SharedFlow<PairingConfirmation> = _flow.asSharedFlow()
+        override fun emit(confirmation: PairingConfirmation) {
+            _flow.tryEmit(confirmation)
+        }
+    }
+    private lateinit var pairingBus: FakePairingMessageBus
+
     private val fakeDeviceInfo = object : PairingDeviceInfoProvider {
         override fun deviceId() = "android-test-uuid-123"
         override fun name() = "Pixel Test Device"
@@ -64,6 +82,7 @@ class DesktopPairingViewModelTest {
         didManager = mockk(relaxed = true)
         didIdentityFlow = MutableStateFlow(null)
         every { didManager.currentIdentity } returns didIdentityFlow
+        pairingBus = FakePairingMessageBus()
     }
 
     @After
@@ -77,6 +96,7 @@ class DesktopPairingViewModelTest {
     ) = DesktopPairingViewModel(
         didManager = didManager,
         deviceInfoProvider = fakeDeviceInfo,
+        pairingMessageBus = pairingBus,
         clock = fixedClock(nowMs),
         codeGenerator = fixedCodeGen(code),
     )
@@ -221,6 +241,7 @@ class DesktopPairingViewModelTest {
         val vm = DesktopPairingViewModel(
             didManager = didManager,
             deviceInfoProvider = fakeDeviceInfo,
+            pairingMessageBus = pairingBus,
             clock = fixedClock(1_700_000_000_000L),
             codeGenerator = object : PairingCodeGenerator {
                 override fun generate() = genQueue.removeFirst()
@@ -234,5 +255,72 @@ class DesktopPairingViewModelTest {
         vm.startPairing()
         runCurrent() // 只跑 startPairing launch 不触发 delayed expiry job
         assertEquals("222222", (vm.pairingState.value as DesktopPairingState.Displaying).payload.code)
+    }
+
+    // ============================================================
+    // W3.3b — Signaling listener (PairingMessageBus) integration
+    // ============================================================
+
+    @Test
+    fun `W3_3b bus confirmation with matching code transitions Displaying to Completed`() = runTest(testDispatcher) {
+        seedActiveDid()
+        val vm = makeVM(code = "987654")
+        vm.startPairing()
+        runCurrent()
+        assertTrue(vm.pairingState.value is DesktopPairingState.Displaying)
+
+        pairingBus.emit(
+            PairingConfirmation(
+                pairingCode = "987654",
+                pcPeerId = "pc-peer-test",
+                deviceInfo = mapOf("name" to "Desktop Host"),
+                timestamp = 1_700_000_001_000L,
+            )
+        )
+        runCurrent()
+
+        assertEquals(DesktopPairingState.Completed, vm.pairingState.value)
+    }
+
+    @Test
+    fun `W3_3b bus confirmation with mismatched code is ignored`() = runTest(testDispatcher) {
+        seedActiveDid()
+        val vm = makeVM(code = "111111")
+        vm.startPairing()
+        runCurrent()
+        val displayingBefore = vm.pairingState.value
+
+        pairingBus.emit(
+            PairingConfirmation(
+                pairingCode = "999999", // 不同于当前 displayed 111111
+                pcPeerId = "pc-peer-x",
+                deviceInfo = null,
+                timestamp = 1L,
+            )
+        )
+        runCurrent()
+
+        // 仍然 Displaying（不变）
+        assertEquals(displayingBefore, vm.pairingState.value)
+    }
+
+    @Test
+    fun `W3_3b bus confirmation in Idle state is ignored (no Displaying to transition from)`() = runTest(testDispatcher) {
+        seedActiveDid()
+        val vm = makeVM()
+        // 不调 startPairing — 状态保持 Idle
+        assertEquals(DesktopPairingState.Idle, vm.pairingState.value)
+
+        pairingBus.emit(
+            PairingConfirmation(
+                pairingCode = "123456",
+                pcPeerId = "pc-peer-x",
+                deviceInfo = null,
+                timestamp = 1L,
+            )
+        )
+        runCurrent()
+
+        assertEquals(DesktopPairingState.Idle, vm.pairingState.value)
     }
 }
