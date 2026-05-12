@@ -1,8 +1,59 @@
 # M-of-N 多签应用扩展 v1（v1.2 prep #3）
 
-> **状态**：设计草案 / 2026-05-12 / 仅设计、不变更代码  
+> **状态**：Phase 1 已落地 / 2026-05-12 / 含 core-multisig 包 + CLI surface  
 > **范围**：把已有的 MTC `publisher_signature` M-of-N 多签 (Phase 4 federation MTCA) 复用到 **MTC 之外** 的其它高价值原子操作  
 > **不替代**：[MTC 联邦治理 v1](./MTC_联邦治理_v1.md) 仍是 MTC 内部治理的权威文档
+
+## 实施进度 (2026-05-12)
+
+| Phase | 状态 | 实现 |
+|---|---|---|
+| Phase 0 | ✅ 设计文档（本文） | docs/design/MofN_多签_应用扩展_v1.md (`24d168739`) |
+| Phase 1 | ✅ 核心库 + CLI | `packages/core-multisig/` + `packages/cli/src/commands/multisig.js` |
+| Phase 2 | ⬜ marketplace.purchase 接线 | v1.2 内 follow-up |
+| Phase 3 | ⬜ DID rotate + Android UI + air-gapped QR | v1.3 |
+| Phase 4 | ⬜ 跨链桥 outbound + PQC 强制策略 | v1.3 |
+
+### Phase 1 落地清单
+
+代码位置：
+- `packages/core-multisig/lib/policy.js` — `validatePolicy` / `normalizePolicy` / SUPPORTED_ALGS
+- `packages/core-multisig/lib/signing.js` — `canonicalizeForSigning` (JCS + DOMAIN_PREFIX) / `signRaw` / `verifyOne` / `verifyThreshold`（dispatch by alg，requirePqc 检查）
+- `packages/core-multisig/lib/schema.js` — SQLite DDL: `multisig_proposals` / `multisig_signatures` / `multisig_policies`
+- `packages/core-multisig/lib/store.js` — better-sqlite3-style API wrapper
+- `packages/core-multisig/lib/proposals.js` — `createProposalsManager` 状态机 (pending → reached → consumed | cancelled | expired)
+- `packages/core-multisig/lib/governance-log.js` — append-only JSONL audit trail
+- `packages/cli/src/commands/multisig.js` — `cc multisig` 命令簇
+
+CLI surface（已实现）：
+- `cc multisig policy set <domain> --m <M> --members <json|file>` ✅
+- `cc multisig policy show <domain>` ✅
+- `cc multisig propose <domain> --payload-file --initiator --key` ✅
+- `cc multisig sign <id> --signer --key` ✅
+- `cc multisig cancel <id> [--reason]` ✅
+- `cc multisig finalize <id>` ✅ (Phase 2 业务侧标 consumed)
+- `cc multisig list [--state --domain --limit]` ✅
+- `cc multisig show <id>` ✅
+- `cc multisig sweep` ✅ (expire stale pending)
+
+复用 MTC：
+- `@chainlesschain/core-mtc/jcs` — JCS RFC 8785 canonicalization
+- `@chainlesschain/core-mtc/signers/ed25519` — Ed25519 keypair / sign / pubkey JWK
+- `@chainlesschain/core-mtc/signers/slh-dsa` — SLH-DSA-SHA2-128F (FIPS 205)
+
+差异：
+- 不与 MTC 共用 `_stripSigsForPublisher`（MTC 那个剥的是 landmark 特定字段；多签 producer/verifier 都喂 `payloadCore`，从设计上不含 sigs 数组，无需 strip）
+- 域分隔 prefix `"MULTISIG:"` 防与 MTC tree-head 签名混用回放
+
+测试：
+- `packages/core-multisig/__tests__/policy.test.js` — 14 个 policy 验证测
+- `packages/core-multisig/__tests__/signing.test.js` — 18 个签/验/threshold 测（含 PQC）
+- `packages/core-multisig/__tests__/store.test.js` — 14 个 SQLite store 测（用 sql.js 适配器）
+- `packages/core-multisig/__tests__/proposals.test.js` — 18 个 propose/sign/finalize/cancel/expire 测
+- `packages/core-multisig/__tests__/governance-log.test.js` — 7 个 JSONL append/read 测
+- `packages/cli/__tests__/integration/multisig-cli.test.js` — 10 个端到端 subprocess 测
+
+合计 81 个 multisig 测，远超设计目标的 30 单元 + 集成测。
 
 ## 1. 背景与目标
 

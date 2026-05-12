@@ -195,6 +195,7 @@ import { registerRuntimeCommand } from "./commands/runtime.js";
 import { registerIpfsCommand } from "./commands/ipfs.js";
 // MTC: Merkle Tree Certificates (Phase 1 Week 3)
 import { registerMtcCommand } from "./commands/mtc.js";
+import { registerMultisigCommand } from "./commands/multisig.js";
 // Phase 27: Multimodal Collaboration
 import { registerMultimodalCommand } from "./commands/multimodal.js";
 // Phase 22: Performance auto-tuning
@@ -579,6 +580,7 @@ export function createProgram(opts = {}) {
   registerRuntimeCommand(program);
   registerIpfsCommand(program);
   registerMtcCommand(program);
+  registerMultisigCommand(program);
   registerMultimodalCommand(program);
   registerPerfCommand(program);
   registerAgentNetworkCommand(program);

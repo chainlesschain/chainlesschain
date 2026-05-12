@@ -1,0 +1,26 @@
+{
+  "name": "@chainlesschain/core-multisig",
+  "version": "0.1.0",
+  "description": "M-of-N multi-signature coordination beyond MTC publisher_signature — marketplace large purchases, DID rotation, cross-chain bridge.",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./policy": "./lib/policy.js",
+    "./store": "./lib/store.js",
+    "./proposals": "./lib/proposals.js",
+    "./signing": "./lib/signing.js",
+    "./governance-log": "./lib/governance-log.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@chainlesschain/core-mtc": "*",
+    "canonicalize": "^2.0.0"
+  },
+  "devDependencies": {
+    "sql.js": "^1.10.3",
+    "vitest": "^4.0.0"
+  }
+}
