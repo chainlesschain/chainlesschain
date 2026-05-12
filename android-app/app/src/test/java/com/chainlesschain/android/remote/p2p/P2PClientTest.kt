@@ -290,4 +290,108 @@ class P2PClientTest {
         // Wait for heartbeat to trigger (should be configured at 30s but we just verify connection)
         assertEquals(ConnectionState.CONNECTED, p2pClient.connectionState.value)
     }
+
+    // ============================================================
+    // W2.1 — connectedPeers Map data model (issue #19)
+    //
+    // 测试覆盖新 API 的 Map<peerId, PeerInfo> invariants：
+    //   - 初始空 Map
+    //   - connect 把 peer 用 peerId 作 key 写进
+    //   - disconnect 清空
+    //   - reconnect 之后 Map 只剩最新 peer（W2.1 lifecycle 仍单 peer at a time）
+    //   - 老 connectedPeer derived StateFlow 与 connectedPeers 一致
+    //
+    // W2.2 lifecycle 多目标时再加：connect(peerA) + connect(peerB) → 2 entries
+    // ============================================================
+
+    @Test
+    fun `W2_1 initial connectedPeers is empty Map`() {
+        @Suppress("DEPRECATION")
+        run {
+            assertNull(p2pClient.connectedPeer.value)
+        }
+        assertEquals(emptyMap<String, PeerInfo>(), p2pClient.connectedPeers.value)
+    }
+
+    @Test
+    fun `W2_1 connect adds peer to Map with peerId key`() = runTest {
+        // Arrange
+        val pcPeerId = "pc-w21-add"
+        val pcDID = "did:example:w21-add"
+        coEvery { mockWebRTCClient.connect(pcPeerId, any()) } returns Result.success(Unit)
+
+        // Act
+        p2pClient.connect(pcPeerId, pcDID)
+
+        // Assert — new API
+        val peers = p2pClient.connectedPeers.value
+        assertEquals(1, peers.size)
+        assertTrue(peers.containsKey(pcPeerId))
+        val entry = peers[pcPeerId]
+        assertNotNull(entry)
+        assertEquals(pcPeerId, entry?.peerId)
+        assertEquals(pcDID, entry?.did)
+    }
+
+    @Test
+    fun `W2_1 disconnect clears all peers from Map`() = runTest {
+        // Arrange
+        coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
+        every { mockWebRTCClient.disconnect() } just Runs
+        p2pClient.connect("pc-w21-clear", "did:w21-clear")
+        assertEquals(1, p2pClient.connectedPeers.value.size)
+
+        // Act
+        p2pClient.disconnect()
+
+        // Assert
+        assertEquals(emptyMap<String, PeerInfo>(), p2pClient.connectedPeers.value)
+    }
+
+    @Test
+    fun `W2_1 reconnect cycle leaves only the latest peer (single-peer lifecycle invariant)`() = runTest {
+        // Arrange
+        coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
+        every { mockWebRTCClient.disconnect() } just Runs
+
+        // Act — connect peer-A, then peer-B (connect 内部先 disconnect)
+        p2pClient.connect("peer-A", "did:A")
+        p2pClient.connect("peer-B", "did:B")
+
+        // Assert — Map 只含 peer-B；peer-A 在第二次 connect() 进入时被内部 disconnect() 清掉
+        val peers = p2pClient.connectedPeers.value
+        assertEquals(1, peers.size)
+        assertTrue(peers.containsKey("peer-B"))
+        assertTrue(!peers.containsKey("peer-A"))
+    }
+
+    @Test
+    fun `W2_1 connectedPeer (deprecated) stays in sync with connectedPeers`() = runTest {
+        // Arrange
+        coEvery { mockWebRTCClient.connect(any(), any()) } returns Result.success(Unit)
+        every { mockWebRTCClient.disconnect() } just Runs
+
+        // Act + Assert — empty/full/empty cycle
+        @Suppress("DEPRECATION")
+        run {
+            assertNull(p2pClient.connectedPeer.value)
+        }
+
+        p2pClient.connect("peer-sync", "did:sync")
+        // 等 derived StateFlow 的 map+stateIn pipeline 同步
+        delay(50)
+        @Suppress("DEPRECATION")
+        run {
+            assertEquals("peer-sync", p2pClient.connectedPeer.value?.peerId)
+        }
+        assertEquals(1, p2pClient.connectedPeers.value.size)
+
+        p2pClient.disconnect()
+        delay(50)
+        @Suppress("DEPRECATION")
+        run {
+            assertNull(p2pClient.connectedPeer.value)
+        }
+        assertEquals(emptyMap<String, PeerInfo>(), p2pClient.connectedPeers.value)
+    }
 }

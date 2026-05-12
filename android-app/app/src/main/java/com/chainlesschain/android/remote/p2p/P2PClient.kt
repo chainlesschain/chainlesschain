@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,7 +100,27 @@ class P2PClient @Inject constructor(
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
+    // ==================== Connected peers (v1.1 W2.1 data model) ====================
+    //
+    // 内部用 `Map<peerId, PeerInfo>` keyed by peerId 方便 W2.2 lifecycle 多目标 connect/disconnect
+    // 时按 peerId 增删；W2.1 范围内 lifecycle 仍单 peer-at-a-time（connect 前先 disconnect 当前），
+    // 但底层数据结构已能容纳 N 个，为 W2.2-7 解锁。
+    //
+    // 老 API `connectedPeer: StateFlow<PeerInfo?>` 标 @Deprecated 但保留为同步镜像 MutableStateFlow，
+    // 让 15+ callsites (RemoteConnectionManager / ConnectionViewModel / RemoteAgentControlViewModel /
+    // 3 Compose Screen + RemoteCommandClient null guard + 7 test 断言) 在 W2.2-5 里逐步迁移，
+    // 不在本 commit 一刀切。两个 StateFlow 在 P2PClient 内 connect/disconnect 三个 mutation 点同步写，
+    // 避免 stateIn 的 IO-scope 异步 lag（老测试 runTest sync read .value 拿不到值）。
+    private val _connectedPeers = MutableStateFlow<Map<String, PeerInfo>>(emptyMap())
+    val connectedPeers: StateFlow<Map<String, PeerInfo>> = _connectedPeers.asStateFlow()
+
     private val _connectedPeer = MutableStateFlow<PeerInfo?>(null)
+
+    @Deprecated(
+        "v1.1 W2.1: data model 升 Map<peerId, PeerInfo>；本字段返回任意一个 peer。" +
+            "新代码用 connectedPeers；UI 多设备视图见 W2.5 Settings 已配对设备列表。",
+        ReplaceWith("connectedPeers.value.values.firstOrNull()"),
+    )
     val connectedPeer: StateFlow<PeerInfo?> = _connectedPeer.asStateFlow()
 
     // Reconnection events for UI updates
@@ -147,11 +168,15 @@ class P2PClient @Inject constructor(
             }
 
             _connectionState.value = ConnectionState.CONNECTED
-            _connectedPeer.value = PeerInfo(
+            // W2.1: 进 Map 不替换。W2.1 lifecycle 仍 single-peer-at-a-time（connect 前已 disconnect()），
+            // 所以 Map 此刻只会有这一条；W2.2 会放开 lifecycle 让 N 个 peer 并存。
+            val newPeer = PeerInfo(
                 peerId = pcPeerId,
                 did = pcDID,
                 connectedAt = System.currentTimeMillis()
             )
+            _connectedPeers.update { it + (pcPeerId to newPeer) }
+            _connectedPeer.value = newPeer // @Deprecated 镜像，同步
 
             // Reset reconnection state on successful connect
             resetReconnectionState()
@@ -458,7 +483,9 @@ class P2PClient @Inject constructor(
             pending.deferred.completeExceptionally(Exception("Connection closed"))
         }
         pendingRequests.clear()
-        _connectedPeer.value = null
+        // W2.1: 单 peer-at-a-time invariant，clear all。W2.2 改为 disconnect(peerId) 按目标移除。
+        _connectedPeers.value = emptyMap()
+        _connectedPeer.value = null // @Deprecated 镜像
         _connectionState.value = ConnectionState.DISCONNECTED
 
         // Clear stored peer info
@@ -478,7 +505,8 @@ class P2PClient @Inject constructor(
             pending.deferred.completeExceptionally(Exception("Connection closed temporarily"))
         }
         pendingRequests.clear()
-        _connectedPeer.value = null
+        _connectedPeers.value = emptyMap()
+        _connectedPeer.value = null // @Deprecated 镜像
         _connectionState.value = ConnectionState.DISCONNECTED
 
         // Don't clear lastConnectedPeerId/DID so auto-reconnect can work
