@@ -1,9 +1,10 @@
 package com.chainlesschain.android.sign
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -23,6 +25,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -74,20 +79,57 @@ fun ApprovalDialogHost(
     val pending by approvalGate.pendingRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Snackbar 容器 — 渲染在 ApprovalDialog 同级。AlertDialog 关闭瞬间
+    // pendingRequest 变 null → dialog 消失，下面的 Box 占满屏底部 align 出现 Snackbar。
+    Box(modifier = Modifier.fillMaxSize()) {
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            snackbar = { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            },
+        )
+    }
 
     pending?.let { req ->
         val activity = context as? FragmentActivity
         val tier = remember { strongBoxKeyManager.detectMaxTier() }
+
+        // 决策为同意时，如果多签链路还需其它 signer，在用户同意之后弹 Snackbar 提示
+        // 等待 desktop U-Key（典型场景：phone 先签，desktop U-Key 后签）。
+        val maybeShowPostSignToast: () -> Unit = {
+            req.multisig?.let { ms ->
+                if (!ms.isFinalSigner()) {
+                    val remaining = ms.remainingAfterThisSign()
+                    scope.launch {
+                        // 提示文案与设计文档 §10 P0.3 验收 "签完仍 pending 时 toast
+                        // '等待 desktop U-Key'" 对齐。剩余 >1 时多签 setup 即将变常态，
+                        // 这里给具体数字让用户知道还差几把。
+                        val msg = if (remaining <= 1) "等待 desktop U-Key"
+                        else "等待 desktop U-Key 等 $remaining 个签名"
+                        snackbarHostState.showSnackbar(message = msg)
+                    }
+                }
+            }
+        }
 
         ApprovalDialog(
             category = req.category,
             description = req.payloadDescription,
             payloadHash = req.payloadHash,
             requireBiometric = req.requireBiometric,
+            multisig = req.multisig,
             tier = tier,
             onApprove = {
                 if (!req.requireBiometric) {
                     approvalGate.respondToApproval(req.requestId, approved = true)
+                    maybeShowPostSignToast()
                     return@ApprovalDialog
                 }
                 if (activity == null) {
@@ -102,6 +144,7 @@ fun ApprovalDialogHost(
                     when (val result = biometricAuthenticator.authenticate(activity)) {
                         is Result.Success -> {
                             approvalGate.respondToApproval(req.requestId, approved = true)
+                            maybeShowPostSignToast()
                         }
                         is Result.Error -> {
                             approvalGate.respondToApproval(
@@ -142,6 +185,7 @@ private fun ApprovalDialog(
     description: String,
     payloadHash: String,
     requireBiometric: Boolean,
+    multisig: MultisigState?,
     tier: KeyTier,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
@@ -217,6 +261,11 @@ private fun ApprovalDialog(
                     }
                 }
 
+                if (multisig != null) {
+                    Spacer(Modifier.height(12.dp))
+                    MultisigProgressSection(multisig)
+                }
+
                 Spacer(Modifier.height(12.dp))
                 Text(
                     "待签名内容哈希:",
@@ -264,6 +313,77 @@ private fun ApprovalDialog(
             TextButton(onClick = onDeny) { Text("拒绝") }
         },
     )
+}
+
+// ===== v1.2 #20 P0.3 m-of-n 多签 progress section =====
+
+@Composable
+private fun MultisigProgressSection(state: MultisigState) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Groups,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "多签进度",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    text = state.progressLabel(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "(本设备签后)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // 显示其它待签 signer（去掉本设备，本设备已在 dialog 上下文中）
+        // 由于桌面给的 pendingSigners 集包含本设备，这里展示规模而非具体哪一个；
+        // 用户对每个 signer DID 一般无认知，列前 2-3 个截短足够确认 "等谁"。
+        val others = state.pendingSigners.take(3)
+        if (others.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.HourglassEmpty,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(12.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                val label = if (state.isFinalSigner()) {
+                    "本设备为最后一签"
+                } else {
+                    val joined = others.joinToString("、") { state.shortDid(it) }
+                    val suffix = if (state.pendingSigners.size > others.size) " +${state.pendingSigners.size - others.size}" else ""
+                    "等签: $joined$suffix"
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+        }
+    }
 }
 
 // ===== M4 ApprovalUI category 适配辅助 =====

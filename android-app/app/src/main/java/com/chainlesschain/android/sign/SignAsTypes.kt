@@ -77,6 +77,21 @@ interface ApprovalGate {
         payloadHash: String,
         requireBiometric: Boolean,
     ): ApprovalResult = requestApproval(payloadDescription, payloadHash, requireBiometric)
+
+    /**
+     * v1.2 #20 P0.3 — 带 [MultisigState] 的扩展签名。Marketplace m-of-n 走这条；
+     * dialog 渲染 X/Y 进度 + 本设备签完仍需等其它 signer 时弹 snackbar。
+     *
+     * 默认 impl forward 到 4-arg 版本（旧测试 / 非多签调用方兼容）；
+     * [AndroidApprovalGate] 真实装把 multisig 透传到 PendingRequest，UI 端按状态渲染。
+     */
+    suspend fun requestApproval(
+        category: ApprovalCategory,
+        payloadDescription: String,
+        payloadHash: String,
+        requireBiometric: Boolean,
+        multisig: MultisigState?,
+    ): ApprovalResult = requestApproval(category, payloadDescription, payloadHash, requireBiometric)
 }
 
 /** [ApprovalGate.requestApproval] 的返回结果。 */

@@ -154,6 +154,53 @@ class AndroidApprovalGateTest {
     }
 
     @Test
+    fun `requestApproval propagates multisig state to PendingRequest`() = runTest {
+        val ms = MultisigState(
+            m = 2,
+            n = 2,
+            collected = 1,
+            signerDids = listOf("did:cc:phone", "did:cc:desktop-ukey"),
+            pendingSigners = listOf("did:cc:phone"),
+        )
+        val deferred = async {
+            gate.requestApproval(
+                category = ApprovalCategory.Marketplace,
+                payloadDescription = "Buy item 25",
+                payloadHash = "a".repeat(64),
+                requireBiometric = true,
+                multisig = ms,
+            )
+        }
+        advanceUntilIdle()
+
+        val pending = gate.pendingRequest.value!!
+        assertEquals(ms, pending.multisig)
+        assertEquals(ApprovalCategory.Marketplace, pending.category)
+
+        gate.respondToApproval(pending.requestId, approved = true)
+        val result = deferred.await()
+        assertTrue(result.approved)
+    }
+
+    @Test
+    fun `requestApproval without multisig leaves PendingRequest multisig null`() = runTest {
+        val deferred = async {
+            gate.requestApproval(
+                category = ApprovalCategory.Sign,
+                payloadDescription = "non-multisig sign",
+                payloadHash = "b".repeat(64),
+                requireBiometric = false,
+            )
+        }
+        advanceUntilIdle()
+
+        val pending = gate.pendingRequest.value!!
+        assertNull(pending.multisig)
+        gate.respondToApproval(pending.requestId, approved = true)
+        deferred.await()
+    }
+
+    @Test
     fun `concurrent requestApproval calls serialize via mutex`() = runTest(StandardTestDispatcher()) {
         val deferred1 = async { gate.requestApproval("Op 1", "1".repeat(64), false) }
         val deferred2 = async { gate.requestApproval("Op 2", "2".repeat(64), false) }

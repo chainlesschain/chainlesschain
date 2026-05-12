@@ -52,6 +52,20 @@ class AndroidApprovalGate @Inject constructor() : ApprovalGate {
         payloadDescription: String,
         payloadHash: String,
         requireBiometric: Boolean,
+    ): ApprovalResult = requestApproval(
+        category = category,
+        payloadDescription = payloadDescription,
+        payloadHash = payloadHash,
+        requireBiometric = requireBiometric,
+        multisig = null,
+    )
+
+    override suspend fun requestApproval(
+        category: ApprovalCategory,
+        payloadDescription: String,
+        payloadHash: String,
+        requireBiometric: Boolean,
+        multisig: MultisigState?,
     ): ApprovalResult = serialMutex.withLock {
         val requestId = "apr-${UUID.randomUUID()}"
         val deferred = CompletableDeferred<ApprovalResult>()
@@ -61,10 +75,14 @@ class AndroidApprovalGate @Inject constructor() : ApprovalGate {
             payloadDescription = payloadDescription,
             payloadHash = payloadHash,
             requireBiometric = requireBiometric,
+            multisig = multisig,
             deferred = deferred,
         )
-        Timber.i("ApprovalGate request: id=%s category=%s description=%s requireBiometric=%s",
-            requestId, category, payloadDescription, requireBiometric)
+        Timber.i(
+            "ApprovalGate request: id=%s category=%s description=%s requireBiometric=%s multisig=%s",
+            requestId, category, payloadDescription, requireBiometric,
+            multisig?.let { "${it.m}-of-${it.n} collected=${it.collected}" } ?: "none",
+        )
         _pendingRequest.value = req
         try {
             val result = deferred.await()
@@ -113,6 +131,7 @@ class AndroidApprovalGate @Inject constructor() : ApprovalGate {
         val payloadDescription: String,
         val payloadHash: String,
         val requireBiometric: Boolean,
+        val multisig: MultisigState? = null,
         internal val deferred: CompletableDeferred<ApprovalResult>,
     )
 }
