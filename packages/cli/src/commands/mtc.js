@@ -11,7 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
-import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519";
+import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519.js";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import { getAllIdentities, getIdentity } from "../lib/did-manager.js";

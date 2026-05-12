@@ -9,11 +9,13 @@
  * so we can flip to PQC by swapping this module without touching CLI / cache.
  */
 
-const { ed25519 } = require("@noble/curves/ed25519");
+const { ed25519 } = require("@noble/curves/ed25519.js");
 const { sha256 } = require("../hash.js");
 const { jcs } = require("../jcs.js");
 
 const ALG = "Ed25519";
+const randomSecretKey =
+  ed25519.utils.randomSecretKey || ed25519.utils.randomPrivateKey;
 
 /**
  * Compute the canonical pubkey_id for an Ed25519 public key.
@@ -50,7 +52,7 @@ function jwkToPublicKey(jwk) {
  * @returns {{ secretKey: Buffer, publicKey: Buffer, pubkeyId: string }}
  */
 function generateKeyPair() {
-  const secretKey = Buffer.from(ed25519.utils.randomPrivateKey());
+  const secretKey = Buffer.from(randomSecretKey());
   const publicKey = Buffer.from(ed25519.getPublicKey(secretKey));
   return {
     secretKey,

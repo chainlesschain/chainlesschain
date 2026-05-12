@@ -92,7 +92,7 @@ function verifyOne(signingInput, sig, alg, pubkeyJwk) {
       if (!pk) return false;
       // 借 makeVerifier 的内部 verify 路径，但跳过 pubkey_id Map 查找：
       // 直接调 @noble/curves/ed25519.verify 走更直白。
-      const { ed25519 } = require("@noble/curves/ed25519");
+      const { ed25519 } = require("@noble/curves/ed25519.js");
       if (!Buffer.isBuffer(sig) || sig.length !== 64) return false;
       try {
         return ed25519.verify(sig, signingInput, pk);

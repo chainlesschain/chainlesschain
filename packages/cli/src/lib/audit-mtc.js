@@ -20,7 +20,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519";
+import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519.js";
 import mtcLib from "@chainlesschain/core-mtc";
 
 const { sha256, jcs, encodeHashStr, ed25519, assembleBatch } = mtcLib;

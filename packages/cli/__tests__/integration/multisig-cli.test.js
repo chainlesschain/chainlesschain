@@ -12,10 +12,12 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519";
+import { ed25519 as nobleEd25519 } from "@noble/curves/ed25519.js";
 import ed25519Signer from "@chainlesschain/core-mtc/signers/ed25519";
 
 const CLI_BIN = path.resolve(process.cwd(), "bin/chainlesschain.js");
+const randomSecretKey =
+  nobleEd25519.utils.randomSecretKey || nobleEd25519.utils.randomPrivateKey;
 
 function extractJson(text) {
   const lines = text.split(/\r?\n/);
@@ -35,7 +37,7 @@ function extractJson(text) {
 }
 
 function genKeyPair(idx) {
-  const sk = Buffer.from(nobleEd25519.utils.randomPrivateKey());
+  const sk = Buffer.from(randomSecretKey());
   const pk = Buffer.from(nobleEd25519.getPublicKey(sk));
   return {
     did: `did:cc:test-${idx}`,
