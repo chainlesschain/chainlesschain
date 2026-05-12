@@ -164,6 +164,16 @@ ensureSyncExternalTombstoneResourceType()
 
 ---
 
+## ensureUserSettingsTable()
+
+```javascript
+ensureUserSettingsTable()
+```
+
+* v1.2 prep #4: ensure user_settings table + tombstone trigger exist.
+
+---
+
 ## migrateDatabase()
 
 ```javascript
