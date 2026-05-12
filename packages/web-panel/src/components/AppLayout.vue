@@ -87,6 +87,7 @@
             <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template>{{ $t('appLayout.items.audit') }}</a-menu-item>
             <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template>{{ $t('appLayout.items.mtc') }}</a-menu-item>
             <a-menu-item key="mtc-audit"><template #icon><SafetyOutlined /></template>{{ $t('appLayout.items.mtcAudit', 'MTC 审计') }}</a-menu-item>
+            <a-menu-item key="multisig"><template #icon><TeamOutlined /></template>{{ $t('appLayout.items.multisig', 'M-of-N 多签') }}</a-menu-item>
             <a-menu-item key="did"><template #icon><IdcardOutlined /></template>{{ $t('appLayout.items.did') }}</a-menu-item>
             <a-menu-item key="permissions"><template #icon><LockOutlined /></template>{{ $t('appLayout.items.permissions') }}</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>{{ $t('appLayout.items.p2p') }}</a-menu-item>
@@ -172,6 +173,7 @@
           <a-menu-item key="audit"><template #icon><FileSearchOutlined /></template></a-menu-item>
           <a-menu-item key="mtc"><template #icon><SafetyOutlined /></template></a-menu-item>
           <a-menu-item key="mtc-audit"><template #icon><SafetyOutlined /></template></a-menu-item>
+          <a-menu-item key="multisig"><template #icon><TeamOutlined /></template></a-menu-item>
           <a-menu-item key="did"><template #icon><IdcardOutlined /></template></a-menu-item>
           <a-menu-item key="permissions"><template #icon><LockOutlined /></template></a-menu-item>
           <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>

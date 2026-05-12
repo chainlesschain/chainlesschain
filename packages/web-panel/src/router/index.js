@@ -63,6 +63,7 @@ const routes = [
       { path: 'video',       name: 'VideoEditing', component: () => import('../views/VideoEditing.vue') },
       { path: 'mtc',         name: 'Mtc',         component: () => import('../views/Mtc.vue') },
       { path: 'mtc-audit',   name: 'MtcAudit',    component: () => import('../views/MtcAudit.vue') },
+      { path: 'multisig',    name: 'Multisig',    component: () => import('../views/Multisig.vue') },
     ]
   }
 ]
