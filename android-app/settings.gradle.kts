@@ -61,3 +61,7 @@ include(":feature-performance")
 // 数据模块
 include(":data-knowledge")
 include(":data-ai")
+
+// v1.2 #20 P0.2 — Wear OS 独立 APK（applicationId 与 :app 同；
+// 不依赖 :app 的 feature/core libs，保持 wear bundle 小）
+include(":wear-app")
