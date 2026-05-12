@@ -41,6 +41,7 @@ import com.chainlesschain.android.feature.auth.presentation.LoginScreen
 import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
+import com.chainlesschain.android.feature.p2p.ui.DesktopPairingScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskCreateScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
 import com.chainlesschain.android.presentation.MainContainer
@@ -332,9 +333,14 @@ fun NavGraph(
                 onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
                 onNavigateToKeyManagement = { navController.navigate(Screen.KeyManagement.route) },
                 onNavigateToAsrSettings = { navController.navigate(Screen.AsrSettings.route) },
+                onNavigateToDesktopPairing = { navController.navigate(Screen.DesktopPairing.route) },
                 currentThemeMode = currentThemeMode,
                 onThemeModeChanged = onThemeModeChanged
             )
+        }
+
+        composable(Screen.DesktopPairing.route) {
+            DesktopPairingScreen(onClose = { navController.popBackStack() })
         }
 
         composable(Screen.KeyManagement.route) {
@@ -691,6 +697,7 @@ sealed class Screen(val route: String) {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
     data object Settings : Screen("settings")
+    data object DesktopPairing : Screen("desktop_pairing") // v1.1 W3.2 mobile↔desktop QR pairing
     data object About : Screen("about")
     data object HelpFeedback : Screen("help_feedback")
     data object DeviceManagement : Screen("device_management")

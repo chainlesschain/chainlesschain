@@ -8,6 +8,8 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.feature.p2p.repository.social.SocialSyncAdapter
+import dagger.Lazy
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,6 +35,7 @@ class P2PMessageRepositoryTest {
     private lateinit var p2pMessageDao: P2PMessageDao
     private lateinit var sessionManager: PersistentSessionManager
     private lateinit var connectionManager: P2PConnectionManager
+    private lateinit var syncAdapter: Lazy<SocialSyncAdapter>
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -47,13 +50,15 @@ class P2PMessageRepositoryTest {
         p2pMessageDao = mockk(relaxed = true)
         sessionManager = mockk(relaxed = true)
         connectionManager = mockk(relaxed = true)
+        syncAdapter = mockk(relaxed = true)
 
         every { connectionManager.receivedMessages } returns receivedMessagesFlow
 
         repository = P2PMessageRepository(
             p2pMessageDao = p2pMessageDao,
             sessionManager = sessionManager,
-            connectionManager = connectionManager
+            connectionManager = connectionManager,
+            syncAdapter = syncAdapter
         )
     }
 

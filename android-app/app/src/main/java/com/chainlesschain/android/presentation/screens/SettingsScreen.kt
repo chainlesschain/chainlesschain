@@ -40,6 +40,7 @@ fun SettingsScreen(
     onNavigateToHelpFeedback: () -> Unit = {},
     onNavigateToKeyManagement: () -> Unit = {},
     onNavigateToAsrSettings: () -> Unit = {},
+    onNavigateToDesktopPairing: () -> Unit = {},
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
@@ -227,6 +228,16 @@ fun SettingsScreen(
                     title = "语音识别设置",
                     subtitle = "豆包 SeedASR 大模型 API Key",
                     onClick = onNavigateToAsrSettings
+                )
+            }
+
+            // v1.1 W3.2 Mobile↔Desktop QR pairing entry (issue #19)
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Default.QrCode2,
+                    title = "配对桌面",
+                    subtitle = "显示二维码让桌面端扫描，建立 P2P 连接",
+                    onClick = onNavigateToDesktopPairing
                 )
             }
 
