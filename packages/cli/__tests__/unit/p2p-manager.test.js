@@ -243,6 +243,38 @@ describe("P2P Manager", () => {
       const devices = getPairedDevices(db);
       expect(devices).toHaveLength(2);
     });
+
+    // v1.1 W3.4a: --type filter
+    it("should filter by device_type when provided", () => {
+      pairDevice(db, "Phone-A", "mobile");
+      pairDevice(db, "Phone-B", "mobile");
+      pairDevice(db, "Tablet-A", "tablet");
+      pairDevice(db, "Mac", "desktop");
+
+      const mobiles = getPairedDevices(db, "mobile");
+      expect(mobiles).toHaveLength(2);
+      expect(mobiles.every((d) => d.device_type === "mobile")).toBe(true);
+
+      const tablets = getPairedDevices(db, "tablet");
+      expect(tablets).toHaveLength(1);
+      expect(tablets[0].device_name).toBe("Tablet-A");
+
+      const desktops = getPairedDevices(db, "desktop");
+      expect(desktops).toHaveLength(1);
+    });
+
+    it("should return empty array when type has no matches", () => {
+      pairDevice(db, "Phone", "mobile");
+      const tablets = getPairedDevices(db, "tablet");
+      expect(tablets).toEqual([]);
+    });
+
+    it("should fall back to all when type is null", () => {
+      pairDevice(db, "Phone", "mobile");
+      pairDevice(db, "Mac", "desktop");
+      expect(getPairedDevices(db, null)).toHaveLength(2);
+      expect(getPairedDevices(db)).toHaveLength(2); // no arg → undefined → same as null
+    });
   });
 
   describe("unpairDevice", () => {

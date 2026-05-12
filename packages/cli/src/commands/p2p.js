@@ -239,22 +239,38 @@ export function registerP2pCommand(program) {
     .command("devices")
     .description("List paired devices")
     .option("--json", "Output as JSON")
+    .option("--type <type>", "Filter by device type (desktop|mobile|tablet)")
     .action(async (options) => {
       try {
+        // v1.1 W3.4a: validate --type before DB query (避免 SQL 注入 + 友好报错)
+        const validTypes = ["desktop", "mobile", "tablet"];
+        if (options.type && !validTypes.includes(options.type)) {
+          logger.error(
+            `Invalid --type "${options.type}". Must be: ${validTypes.join(", ")}`,
+          );
+          process.exit(1);
+        }
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
           logger.error("Database not available");
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const devices = getPairedDevices(db);
+        const devices = getPairedDevices(db, options.type || null);
 
         if (options.json) {
           console.log(JSON.stringify(devices, null, 2));
         } else if (devices.length === 0) {
-          logger.info("No paired devices");
+          logger.info(
+            options.type
+              ? `No paired devices of type "${options.type}"`
+              : "No paired devices",
+          );
         } else {
-          logger.log(chalk.bold(`Paired Devices (${devices.length}):\n`));
+          const header = options.type
+            ? `Paired ${options.type} Devices (${devices.length})`
+            : `Paired Devices (${devices.length})`;
+          logger.log(chalk.bold(`${header}:\n`));
           for (const d of devices) {
             const status =
               d.status === "active"
@@ -278,17 +294,32 @@ export function registerP2pCommand(program) {
     .command("unpair")
     .description("Unpair a device")
     .argument("<device-id>", "Device ID to unpair")
-    .action(async (deviceId) => {
+    .option("--json", "Output result as JSON")
+    .action(async (deviceId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
-          logger.error("Database not available");
+          if (options.json) {
+            console.log(JSON.stringify({ ok: false, error: "db unavailable" }));
+          } else {
+            logger.error("Database not available");
+          }
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
         const ok = unpairDevice(db, deviceId);
 
-        if (ok) {
+        // v1.1 W3.4a: --json shape `{ok, deviceId, error?}` 让 web-panel
+        // MobileBridge.vue 解析可靠。device 不存在不 exit(1)，由 ok:false 传达。
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              ok
+                ? { ok: true, deviceId }
+                : { ok: false, deviceId, error: "not_found" },
+            ),
+          );
+        } else if (ok) {
           logger.success("Device unpaired");
         } else {
           logger.error(`Device not found: ${deviceId}`);
@@ -296,7 +327,13 @@ export function registerP2pCommand(program) {
 
         await shutdown();
       } catch (err) {
-        logger.error(`Failed: ${err.message}`);
+        if (options.json) {
+          console.log(
+            JSON.stringify({ ok: false, deviceId, error: err.message }),
+          );
+        } else {
+          logger.error(`Failed: ${err.message}`);
+        }
         process.exit(1);
       }
     });

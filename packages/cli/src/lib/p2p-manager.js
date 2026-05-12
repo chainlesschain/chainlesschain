@@ -242,10 +242,20 @@ export function confirmPairing(db, deviceId, code) {
 }
 
 /**
- * Get all paired devices.
+ * Get all paired devices, optionally filtered by device_type.
+ *
+ * v1.1 W3.4a (issue #19)：`type` filter 让 web-panel MobileBridge.vue
+ * 只拉 mobile 子集。`type` 必须 ∈ {'desktop','mobile','tablet'} 或不传。
  */
-export function getPairedDevices(db) {
+export function getPairedDevices(db, type = null) {
   ensureP2PTables(db);
+  if (type) {
+    return db
+      .prepare(
+        "SELECT * FROM p2p_paired_devices WHERE device_type = ? ORDER BY paired_at DESC",
+      )
+      .all(type);
+  }
   return db
     .prepare("SELECT * FROM p2p_paired_devices ORDER BY paired_at DESC")
     .all();

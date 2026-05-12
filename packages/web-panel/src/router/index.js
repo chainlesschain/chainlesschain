@@ -30,6 +30,7 @@ const routes = [
       { path: 'did',        name: 'DID',         component: () => import('../views/DID.vue') },
       { path: 'permissions', name: 'Permissions', component: () => import('../views/Permissions.vue') },
       { path: 'p2p',         name: 'P2P',         component: () => import('../views/P2P.vue') },
+      { path: 'mobile-bridge', name: 'MobileBridge', component: () => import('../views/MobileBridge.vue') },
       { path: 'git',         name: 'Git',         component: () => import('../views/Git.vue') },
       { path: 'projects',    name: 'Projects',    component: () => import('../views/Projects.vue') },
       { path: 'wallet',      name: 'Wallet',      component: () => import('../views/Wallet.vue') },
