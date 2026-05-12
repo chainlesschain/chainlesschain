@@ -17,6 +17,15 @@ function alwaysAcceptSignatureVerifier() {
   return true;
 }
 
+// Strict PQ mode: classical algorithms that strict mode refuses to accept.
+// Add future classical algs here as they're added (e.g. ECDSA P-256).
+// Anything NOT in this list is treated as PQ-acceptable.
+const CLASSICAL_ALGS = ["Ed25519"];
+
+function isClassicalAlg(alg) {
+  return typeof alg === "string" && CLASSICAL_ALGS.includes(alg);
+}
+
 function encodeIdForFs(treeHeadId) {
   return treeHeadId.replace(/:/g, "_");
 }
@@ -39,6 +48,12 @@ class LandmarkCache {
     // (see batch.js producer change a634a00f3) and with hand-built test
     // fixtures that use placeholder sig values.
     this._verifyPublisherSig = opts.verifyPublisherSignature === true;
+    // Opt-in strict PQ mode (#21 B.6): reject any landmark whose
+    // publisher_signature OR per-snapshot signatures contain classical
+    // (non-PQ) algs. Useful for NIST-regulated deployments requiring
+    // post-quantum posture across all signers. Default off — mixed
+    // heterogeneous Ed25519+SLH-DSA federations remain valid.
+    this._strictPqMode = opts.strictPqMode === true;
     this._byNamespace = new Map();
     this._persistDir = opts.persistDir || null;
   }
@@ -48,6 +63,10 @@ class LandmarkCache {
     if (landmark.schema !== SCHEMA_LANDMARK) throw this._err("BAD_LANDMARK_SCHEMA");
     if (!Array.isArray(landmark.snapshots) || landmark.snapshots.length === 0) {
       throw this._err("BAD_LANDMARK_SCHEMA");
+    }
+
+    if (this._strictPqMode) {
+      this._assertStrictPqMode(landmark);
     }
 
     if (this._verifyPublisherSig) {
@@ -116,6 +135,61 @@ class LandmarkCache {
 
     if (!this._signatureVerifier(signingInput, sigObj)) {
       throw this._err("BAD_LANDMARK_SIG");
+    }
+  }
+
+  /**
+   * Strict PQ mode gate (#21 B.6).
+   *
+   * Refuses landmarks whose publisher_signature OR any snapshot signature
+   * uses a classical (non-PQ) algorithm — per [CLASSICAL_ALGS] above. Today
+   * that means rejecting Ed25519; SLH-DSA-SHA2-128F (and future PQ algs)
+   * pass through.
+   *
+   * Semantics: every member's partial signature in `snap.signatures[]` must
+   * be PQ. The threshold logic itself isn't relaxed — strict mode is a
+   * separate gate at landmark intake, before threshold counting starts.
+   *
+   * Note: this is **Reading A** of the B.6 spec ("strict mode requires all
+   * members to use SLH-DSA, no hybrid pair per member"). The alternative
+   * Reading B (each member produces both Ed25519+SLH-DSA pair) would
+   * require a data-format change adding e.g. `sig_pq` to each member sig;
+   * deferred until/if there's a concrete regulatory ask for that shape.
+   * @see docs/design/Android_重新定位_设计文档.md §10 v1.3+ B.6
+   */
+  _assertStrictPqMode(landmark) {
+    const ps = landmark.publisher_signature;
+    if (ps && isClassicalAlg(ps.alg)) {
+      const e = this._err("STRICT_PQ_MODE_VIOLATION");
+      e.violation = "publisher_signature";
+      e.alg = ps.alg;
+      throw e;
+    }
+    for (let i = 0; i < landmark.snapshots.length; i++) {
+      const snap = landmark.snapshots[i];
+      if (!snap || typeof snap !== "object") continue;
+      // Federated path: snap.signatures[] — every member sig must be PQ
+      if (Array.isArray(snap.signatures)) {
+        for (let j = 0; j < snap.signatures.length; j++) {
+          const sig = snap.signatures[j];
+          if (sig && isClassicalAlg(sig.alg)) {
+            const e = this._err("STRICT_PQ_MODE_VIOLATION");
+            e.violation = "snapshot_signature";
+            e.snapshotIndex = i;
+            e.signatureIndex = j;
+            e.alg = sig.alg;
+            throw e;
+          }
+        }
+      }
+      // Single-signer path: snap.signature
+      if (snap.signature && isClassicalAlg(snap.signature.alg)) {
+        const e = this._err("STRICT_PQ_MODE_VIOLATION");
+        e.violation = "snapshot_signature";
+        e.snapshotIndex = i;
+        e.alg = snap.signature.alg;
+        throw e;
+      }
     }
   }
 
@@ -285,4 +359,10 @@ class LandmarkCache {
   }
 }
 
-module.exports = { LandmarkCache, alwaysAcceptSignatureVerifier, encodeIdForFs };
+module.exports = {
+  LandmarkCache,
+  alwaysAcceptSignatureVerifier,
+  encodeIdForFs,
+  CLASSICAL_ALGS,
+  isClassicalAlg,
+};

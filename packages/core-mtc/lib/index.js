@@ -48,6 +48,9 @@ module.exports = {
   alwaysAcceptSignatureVerifier:
     landmarkCacheModule.alwaysAcceptSignatureVerifier,
   encodeIdForFs: landmarkCacheModule.encodeIdForFs,
+  // #21 B.6 strict PQ mode helpers
+  CLASSICAL_ALGS: landmarkCacheModule.CLASSICAL_ALGS,
+  isClassicalAlg: landmarkCacheModule.isClassicalAlg,
 
   // Ed25519 signer (Phase 1 default — small signatures, classical security)
   ed25519: ed25519Signer,
