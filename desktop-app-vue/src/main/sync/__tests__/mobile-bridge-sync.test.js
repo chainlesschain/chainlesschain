@@ -218,6 +218,19 @@ function bootstrapSchema(sqlDb) {
       UNIQUE(post_id, user_did)
     );
 
+    -- v1.2 prep #4 (2026-05-12) — user_settings 表 (复合 PK scope+key)。
+    CREATE TABLE user_settings (
+      scope TEXT NOT NULL DEFAULT 'global',
+      key TEXT NOT NULL,
+      value TEXT,
+      value_type TEXT DEFAULT 'string' CHECK(value_type IN ('string', 'number', 'boolean', 'json')),
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      device_id TEXT,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (scope, key)
+    );
+
     CREATE TABLE sync_external_provider_cursor (
       provider_id TEXT NOT NULL,
       account_key TEXT NOT NULL DEFAULT '',
@@ -1431,7 +1444,7 @@ describe("MobileBridgeSync · ResourceType v1.1 W5 enum coverage", () => {
     expect(ResourceType.POST_LIKE).toBe("POST_LIKE");
   });
 
-  it("enum has 10 active types (excludes CONTACT v1 not synced)", () => {
+  it("enum has SETTING (v1.2 prep #4) + active types (excludes CONTACT v1)", () => {
     const all = Object.values(ResourceType);
     expect(all).toContain("KNOWLEDGE_ITEM");
     expect(all).toContain("MESSAGE");
@@ -1442,6 +1455,210 @@ describe("MobileBridgeSync · ResourceType v1.1 W5 enum coverage", () => {
     expect(all).toContain("PROJECT");
     expect(all).toContain("CONVERSATION");
     expect(all).toContain("POST_LIKE");
+    expect(all).toContain("SETTING");
     // CONTACT 在 enum 但 walker not active；不强求总数
+  });
+});
+
+describe("MobileBridgeSync · _fetchUserSettings (v1.2 prep #4)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits SETTING SyncItem with composite resourceId scope:key", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at, device_id)
+       VALUES ('global', 'ui.theme', 'dark', 'string', 100, 200, 'desktop-1')`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.SETTING,
+      resourceId: "global:ui.theme",
+      operation: SyncOperation.UPDATE, // updated_at > created_at
+      timestamp: 200,
+      deviceId: "desktop-1",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.scope).toBe("global");
+    expect(decoded.key).toBe("ui.theme");
+    expect(decoded.value).toBe("dark");
+    expect(decoded.value_type).toBe("string");
+  });
+
+  it("emits CREATE op when updated_at == created_at", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'zh-CN', 'string', 100, 100)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.CREATE);
+  });
+
+  it("respects (updated_at, scope:key) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at) VALUES
+       ('global', 'a', '1', 'string', 100, 100),
+       ('global', 'b', '2', 'string', 100, 100),
+       ('user:did1', 'c', '3', 'string', 200, 200)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 100, "global:a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["global:b", "user:did1:c"]);
+  });
+
+  it("excludes deleted rows (deleted = 1 filtered)", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at, deleted)
+       VALUES ('global', 'gone', 'x', 'string', 100, 100, 1)`,
+    );
+    const rows = await sync._fetchUserSettings(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("MobileBridgeSync · _applySetting (v1.2 prep #4)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new setting splits scope:key", async () => {
+    await sync._applySetting({
+      resourceId: "global:ui.theme",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      deviceId: "android-1",
+      data: JSON.stringify({
+        scope: "global",
+        key: "ui.theme",
+        value: "dark",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "ui.theme"],
+    );
+    expect(row).toMatchObject({
+      scope: "global",
+      key: "ui.theme",
+      value: "dark",
+      value_type: "string",
+      device_id: "android-1",
+      deleted: 0,
+    });
+  });
+
+  it("UPSERT updates value when newer updated_at", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'en-US', 'string', 100, 100)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:lang",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        value: "zh-CN",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 200,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "lang"],
+    );
+    expect(row.value).toBe("zh-CN");
+    expect(row.updated_at).toBe(200);
+  });
+
+  it("LWW: stale incoming (older updated_at) does NOT overwrite", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'lang', 'newer', 'string', 100, 500)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:lang",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        value: "stale-incoming",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 200, // < existing 500
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "lang"],
+    );
+    expect(row.value).toBe("newer");
+    expect(row.updated_at).toBe(500);
+  });
+
+  it("DELETE removes the row by scope+key", async () => {
+    dbManager.run(
+      `INSERT INTO user_settings (scope, key, value, value_type, created_at, updated_at)
+       VALUES ('global', 'gone', 'x', 'string', 100, 100)`,
+    );
+    await sync._applySetting({
+      resourceId: "global:gone",
+      operation: SyncOperation.DELETE,
+      timestamp: 200,
+      data: "{}",
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "gone"],
+    );
+    expect(row).toBeUndefined();
+  });
+
+  it("invalid value_type falls back to 'string'", async () => {
+    await sync._applySetting({
+      resourceId: "global:foo",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        value: "v",
+        value_type: "bogus", // not in CHECK whitelist
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["global", "foo"],
+    );
+    expect(row.value_type).toBe("string");
+  });
+
+  it("scope key with embedded colon: treats first colon as separator", async () => {
+    // resourceId "user:did:foo.bar" → scope="user", key="did:foo.bar"
+    await sync._applySetting({
+      resourceId: "user:did:foo.bar",
+      operation: SyncOperation.CREATE,
+      timestamp: 100,
+      data: JSON.stringify({
+        value: "v",
+        value_type: "string",
+        created_at: 100,
+        updated_at: 100,
+      }),
+    });
+    const row = dbManager.get(
+      "SELECT * FROM user_settings WHERE scope = ? AND key = ?",
+      ["user", "did:foo.bar"],
+    );
+    expect(row).toBeDefined();
   });
 });

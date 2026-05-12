@@ -111,6 +111,50 @@ function ensureSyncExternalTombstoneResourceType(dbManager, logger) {
   }
 }
 
+/**
+ * v1.2 prep #4 (2026-05-12): user_settings 表 + tombstone trigger 兜底创建。
+ *
+ * Schema 已在 database-schema.js 里写了 CREATE TABLE IF NOT EXISTS，新鲜安装不走这里。
+ * 老 DB 第一次升级到 v1.2 时，dbManager 复用 .db snapshot，schema 里的 CREATE 在
+ * createTables 路径会跑到；本函数是双保险——确保 trigger 也建好（trigger 引用表，
+ * 表先建 trigger 才生效）。幂等：IF NOT EXISTS 多次跑 no-op。
+ */
+function ensureUserSettingsTable(dbManager, logger) {
+  try {
+    dbManager.db.exec(`
+      CREATE TABLE IF NOT EXISTS user_settings (
+        scope TEXT NOT NULL DEFAULT 'global',
+        key TEXT NOT NULL,
+        value TEXT,
+        value_type TEXT DEFAULT 'string' CHECK(value_type IN ('string', 'number', 'boolean', 'json')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        device_id TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (scope, key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_settings_updated ON user_settings(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_user_settings_scope ON user_settings(scope);
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_user_settings
+      AFTER DELETE ON user_settings
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.scope || ':' || OLD.key,
+               'SETTING', (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+    `);
+    dbManager.saveToFile();
+  } catch (error) {
+    logger.warn(
+      "[Database] user_settings table/trigger 迁移失败（可忽略，下次启动重试）:",
+      error.message,
+    );
+  }
+}
+
 function ensureTaskBoardOwnerSchema(dbManager, logger) {
   try {
     const tableInfo = dbManager.db
@@ -1549,6 +1593,7 @@ module.exports = {
   ensureTaskBoardOwnerSchema,
   ensureOpsPlaybookDescription,
   ensureSyncExternalTombstoneResourceType,
+  ensureUserSettingsTable,
   migrateDatabase,
   runMigrationsOptimized,
   runMigrations,

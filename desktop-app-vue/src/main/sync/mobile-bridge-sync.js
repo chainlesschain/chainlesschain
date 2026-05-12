@@ -47,6 +47,10 @@ const ResourceType = Object.freeze({
   // 两类同 PROJECT 走 CREATE/UPDATE（无 tombstone）。
   CONVERSATION: "CONVERSATION",
   POST_LIKE: "POST_LIKE",
+  // v1.2 prep #4 (2026-05-12)：SETTING 用户偏好同步 (user_settings 表)。完整 CRUD —
+  // CREATE/UPDATE 走 walker LWW UPSERT，DELETE 走 trg_sync_ext_tombstone_user_settings
+  // tombstone trigger（item_id = "scope:key"）。
+  SETTING: "SETTING",
 });
 
 const SyncOperation = Object.freeze({
@@ -447,12 +451,15 @@ class MobileBridgeSync {
       // DELETE 待 v2 加 tombstone trigger。
       this._fetchConversations.bind(this),
       this._fetchPostLikes.bind(this),
+      // v1.2 prep #4 (2026-05-12) SETTING — user_settings 表 + tombstone trigger 已
+      // 全 CRUD（CREATE/UPDATE/DELETE）。LWW by updated_at。
+      this._fetchUserSettings.bind(this),
       // CONTACT 暂不走：Android DefaultSyncDataApplier.kt 把 CONTACT 与 FRIEND
       // 都路由到 FriendRepository（同一份数据）；桌面 contacts 表是更广的通讯录
       // 概念，无对等映射。v2 按需补。
       // this._fetchContacts.bind(this),
-      // v1.2 follow-up：SETTING / FRIEND_GROUP / POST_SHARE 缺桌面 schema，
-      // 实施前需先 +3 张表 + migration。详见 docs/design/ResourceType_Walker_Extension.md。
+      // v1.2 follow-up：FRIEND_GROUP / POST_SHARE 仍缺桌面 schema，
+      // 详见 docs/design/ResourceType_Walker_Extension.md。
     ];
   }
 
@@ -873,6 +880,57 @@ class MobileBridgeSync {
     }));
   }
 
+  /**
+   * v1.2 prep #4 issue #19 — SETTING 用户偏好同步 (2026-05-12)。
+   *
+   * 表 `user_settings` 字段：(scope, key) 联合 PK / value / value_type / created_at /
+   * updated_at / device_id / deleted。resourceId 用 "scope:key" 复合（与 tombstone
+   * trigger 的 item_id 对齐）；游标 (updated_at, "scope:key") lex。
+   *
+   * 字段策略：双端共同子集 (scope / key / value / value_type / created_at / updated_at)。
+   * Android 端按 LWW 解决冲突即可（与 ConflictResolver.resolveSettingConflict 的
+   * keep-local 默认策略并存——按 scope 分类决定走哪条路：global preference → LWW，
+   * device:hardware → keep-local，由 Android 端按 key 前缀判断，不走桌面层）。
+   */
+  async _fetchUserSettings(dbManager, sinceMs, sinceId, limit) {
+    // sinceId 是 "scope:key" 字符串形式
+    const sql = sinceId
+      ? `SELECT scope, key, value, value_type, created_at, updated_at, device_id
+         FROM user_settings
+         WHERE deleted = 0
+           AND (updated_at > ? OR (updated_at = ? AND (scope || ':' || key) > ?))
+         ORDER BY updated_at ASC, scope ASC, key ASC
+         LIMIT ?`
+      : `SELECT scope, key, value, value_type, created_at, updated_at, device_id
+         FROM user_settings
+         WHERE deleted = 0 AND updated_at > ?
+         ORDER BY updated_at ASC, scope ASC, key ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.SETTING,
+      resourceId: `${row.scope}:${row.key}`,
+      operation:
+        row.updated_at > row.created_at
+          ? SyncOperation.UPDATE
+          : SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: row.device_id || "",
+      data: JSON.stringify({
+        scope: row.scope,
+        key: row.key,
+        value: row.value,
+        value_type: row.value_type || "string",
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }),
+    }));
+  }
+
   // ============================================================
   // Apply（入向 SyncItem 写入本地表）
   // ============================================================
@@ -917,6 +975,10 @@ class MobileBridgeSync {
           break;
         case ResourceType.POST_LIKE:
           await this._applyPostLike(item);
+          break;
+        // v1.2 prep #4 (2026-05-12)：用户偏好同步。
+        case ResourceType.SETTING:
+          await this._applySetting(item);
           break;
         default:
           // CONTACT 和未来类型走这里。CONTACT v1 不接，详见 _tableFetchers 注释。
@@ -1267,6 +1329,60 @@ class MobileBridgeSync {
     );
   }
 
+  /**
+   * v1.2 prep #4 issue #19 — SETTING apply (2026-05-12)。
+   *
+   * resourceId 是 "scope:key"，反解出来作为 PK。UPSERT LWW by updated_at；DELETE
+   * 走真删（user_settings tombstone trigger 会 fan-out）。value_type 用 enum 校验，
+   * 落不在白名单回退 'string' 防 CHECK 拒绝。
+   */
+  async _applySetting(item) {
+    const data = JSON.parse(item.data || "{}");
+    const sepIdx = item.resourceId.indexOf(":");
+    const scope =
+      sepIdx > 0 ? item.resourceId.slice(0, sepIdx) : data.scope || "global";
+    const key =
+      sepIdx > 0
+        ? item.resourceId.slice(sepIdx + 1)
+        : data.key || item.resourceId;
+
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(
+        `DELETE FROM user_settings WHERE scope = ? AND key = ?`,
+        [scope, key],
+      );
+      return;
+    }
+
+    const valueType = ["string", "number", "boolean", "json"].includes(
+      data.value_type,
+    )
+      ? data.value_type
+      : "string";
+
+    this.dbManager.run(
+      `INSERT INTO user_settings
+       (scope, key, value, value_type, created_at, updated_at, device_id, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+       ON CONFLICT(scope, key) DO UPDATE SET
+         value = excluded.value,
+         value_type = excluded.value_type,
+         updated_at = excluded.updated_at,
+         device_id = excluded.device_id,
+         deleted = 0
+       WHERE excluded.updated_at > user_settings.updated_at`,
+      [
+        scope,
+        key,
+        data.value == null ? null : String(data.value),
+        valueType,
+        data.created_at || item.timestamp,
+        data.updated_at || item.timestamp,
+        item.deviceId || "",
+      ],
+    );
+  }
+
   // ============================================================
   // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
   // ============================================================
@@ -1502,6 +1618,28 @@ class MobileBridgeSync {
               version: 1,
               timestamp: row.created_at,
               deviceId: "",
+            }
+          : null;
+      }
+      // v1.2 prep #4 (2026-05-12) SETTING — resourceId = "scope:key" 复合
+      case ResourceType.SETTING: {
+        const sepIdx = resourceId.indexOf(":");
+        if (sepIdx <= 0) {
+          return null;
+        }
+        const scope = resourceId.slice(0, sepIdx);
+        const key = resourceId.slice(sepIdx + 1);
+        const row = this.dbManager.get(
+          `SELECT scope, key, device_id, updated_at FROM user_settings
+           WHERE scope = ? AND key = ?`,
+          [scope, key],
+        );
+        return row
+          ? {
+              resourceId: `${row.scope}:${row.key}`,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: row.device_id || "",
             }
           : null;
       }

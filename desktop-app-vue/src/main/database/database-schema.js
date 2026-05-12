@@ -291,6 +291,25 @@ function createTables(dbManager, logger) {
         updated_at INTEGER NOT NULL
       );
 
+      -- v1.2 prep #4 (2026-05-12) 用户/设备级设置表，区别于上方进程级 system_settings。
+      -- 与 mobile-bridge-sync ResourceType.SETTING 对接，让桌面 ↔ Android 双向同步用户偏好
+      -- (UI 主题 / 通知开关 / 语言等)。scope 区分多账户，PRIMARY KEY (scope, key)；按
+      -- updated_at LWW，与 Android core-p2p ConflictResolver.resolveSettingConflict 共存
+      -- (Android 默认 keep-local 适合设备物理设置，云端同步 LWW 适合"用户偏好类设置")。
+      CREATE TABLE IF NOT EXISTS user_settings (
+        scope TEXT NOT NULL DEFAULT 'global',
+        key TEXT NOT NULL,
+        value TEXT,
+        value_type TEXT DEFAULT 'string' CHECK(value_type IN ('string', 'number', 'boolean', 'json')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        device_id TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (scope, key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_settings_updated ON user_settings(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_user_settings_scope ON user_settings(scope);
+
       -- 项目评论表
       CREATE TABLE IF NOT EXISTS project_comments (
         id TEXT PRIMARY KEY,
@@ -4122,6 +4141,18 @@ function createTables(dbManager, logger) {
         FROM sync_external_provider_cursor c;
       END;
 
+      -- v1.2 prep #4：user_settings 删除 fan-out tombstone（item_id = scope:key）。
+      CREATE TRIGGER IF NOT EXISTS trg_sync_ext_tombstone_user_settings
+      AFTER DELETE ON user_settings
+      FOR EACH ROW
+      BEGIN
+        INSERT OR IGNORE INTO sync_external_tombstones
+          (provider_id, account_key, item_id, resource_type, deleted_at)
+        SELECT c.provider_id, c.account_key, OLD.scope || ':' || OLD.key,
+               'SETTING', (strftime('%s','now') * 1000)
+        FROM sync_external_provider_cursor c;
+      END;
+
       CREATE INDEX IF NOT EXISTS idx_sync_ext_cursor_provider
         ON sync_external_provider_cursor(provider_id);
       CREATE INDEX IF NOT EXISTS idx_sync_ext_tombstones_provider
@@ -4139,6 +4170,7 @@ function createTables(dbManager, logger) {
     dbManager.ensureTaskBoardOwnerSchema();
     dbManager.ensureOpsPlaybookDescription();
     dbManager.ensureSyncExternalTombstoneResourceType();
+    dbManager.ensureUserSettingsTable();
 
     logger.info("[Database] ✓ 所有表和索引创建成功");
 

@@ -754,6 +754,16 @@ class DatabaseManager {
   }
 
   /**
+   * v1.2 prep #4: ensure user_settings table + tombstone trigger exist.
+   */
+  ensureUserSettingsTable() {
+    const {
+      ensureUserSettingsTable: _ensure,
+    } = require("./database/database-migrations");
+    return _ensure(this, logger);
+  }
+
+  /**
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {
