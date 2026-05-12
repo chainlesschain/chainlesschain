@@ -529,14 +529,15 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 - FCM 国内可达性是 Google 服务，需文档明示并提供本地 channel 兜底
 - 老设备 StrongBox 缺席率随机，无法控制，仅能降级 + 提示
 
-## 10. 后续 milestone（v1.1 / v1.2 占位）
+## 10. 后续 milestone（v1.1 / v1.2 / v1.3+ 占位）
 
-> **GitHub milestones / tracking issues**（2026-05-12 创建）：
+> **GitHub milestones / tracking issues**（2026-05-12 创建 / 更新）：
 >
 > | milestone | due | tracking issue | scope 概要 |
 > |---|---|---|---|
 > | [Android v1.1](https://github.com/chainlesschain/chainlesschain/milestone/1) | 2026-09-30 | [#19](https://github.com/chainlesschain/chainlesschain/issues/19) | P0 §10 6 件 + P1 §8/§9 散落 2 件 + P2 v1.0.0 GA 遗留 4 件 |
-> | [Android v1.2](https://github.com/chainlesschain/chainlesschain/milestone/2) | 2026-12-31 | [#20](https://github.com/chainlesschain/chainlesschain/issues/20) | P0 §10 3 件 + P1 性能/包体优化（前置 v1.1） |
+> | [Android v1.2](https://github.com/chainlesschain/chainlesschain/milestone/2) | 2026-12-31 | [#20](https://github.com/chainlesschain/chainlesschain/issues/20) | P0 §10 3 件（Auto/Wear/m-of-n）+ P1 性能/包体优化（前置 v1.1） |
+> | Android v1.3+ | 2027-Q1+ | (待开 #21) | 跨平台基础设施 + m-of-n Phase 3+ + Wear long-tail；等 v1.2 GA 上架反馈触发 |
 >
 > 设计文档 §10 仍是 scope 的 **single source of truth**；issues 是执行追踪面。两者更新规则：
 >
@@ -563,6 +564,43 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 **前置依赖**：v1.2 必须等 v1.1（[#19](https://github.com/chainlesschain/chainlesschain/issues/19)）close — OfflineQueue / N-peer / Whisper 是 v1.2 (Auto + Wear) 的基础设施。
 
+### v1.3+（目标 2027-Q1+，milestone 暂未开 — 等 v1.2 GA 上架反馈触发 #21）
+
+来源：v1.0/v1.1/v1.2 实施过程发现的需求积累。**不属于 §10 三层定位的直接落地**，但支撑 GA 上架审核 + 跨平台长期一致性 + Marketplace marketing 价值。每项启动前需对照当时真实 codebase 复评（v1.2 路上可能有部分提前掉队）。
+
+**A. 跨平台基础设施（GA 上架 + 长期 demo 必经）**
+
+- 桌面端 Linux native 配对：v1.0/v1.1 仅 Win/macOS 测过 `device-pairing-handler.js` + libp2p transport；Linux 需补 mDNS systemd 单元 / Wayland 屏幕权限 / headless server 模式（CI runner + 公司开发机友好）
+- 跨手机/手表/桌面三端 UI consistency 设计文档：v1.2 让三端同时存在，但各 surface 风格独立（Android Compose Material3 / Wear Compose-for-Wear / Desktop V6 Claude-Desktop shell + Vue3 Ant Design）。需文档明确 *必须一致*（语义颜色 / 高风险红 / DID 短显示规则 / m-of-n 进度展示） vs *必须不同*（手表大按钮 / 桌面侧栏 / 车载语音 only）
+- v2.0 重新评估 ADR：8 个 ADR（ADR-1 ~ ADR-8）实施一年后回看，已预感被影响：
+  - **ADR-2**（StrongBox 优先 + TEE 降级 + 软件 Ed25519 三阶段）— Pixel 9 起 StrongBox 默认覆盖率提升后，软件兜底是否可降级为 dev-only？
+  - **ADR-7**（cc-mobile.json 独立配置）— Phase 3d `user_settings` 表双端同步落地后，配置文件还该独立吗？
+  - **ADR-8**（开机拉 skill registry）— Marketplace 上线后是否改 lazy fetch + signed manifest 验证？
+
+**B. m-of-n Phase 3+（[#20](https://github.com/chainlesschain/chainlesschain/issues/20) P0.3 已落 Phase 1+2+Android UI；下一阶段下推 v1.3）**
+
+桌面 core-multisig + marketplace mediator + web-shell 入口 + Android dialog 已就位。v1.3 候选：
+
+- **web-shell private key signing UI**：v1.2 `/multisig` 只能列 + 取消 + 执行已达阈提案，*不能本地签*（私钥在 desktop main 进程 / U-Key 硬件，渲染层拿不到）。需先接通 Unified KeyStore（v1.2 还没收口），再加 SignProposalModal
+- **削 cc subprocess 冷启**：v1.2 web-shell `/multisig` 走 `ws.execute("cc multisig …")` 子进程，asar:true 后冷启 6-10s（见 memory `desktop_release_b4_surgery_lessons.md`）。改 in-process WS handlers 直接调 `@chainlesschain/core-multisig` JS API
+- **DID rotate**：手机/桌面 DID 长期不变 → 设备丢失后所有 m-of-n 提案的 signer DID 引用全失效。需要受控 rotation：广播旧→新 DID attestation 让 `core-multisig.policy` 自动重写 signer 列表
+- **air-gapped QR signing**：U-Key 离线机签字。手机/桌面 export 提案为 QR → 离线机扫描签字 → 输出 QR → 重扫入链。比较硬，列在这里要先开 spike 估准工，不必 v1.3 做完
+- **跨链桥 outbound 接入**：v1.2 多签只签内部 marketplace consume；接入 EVM/Cosmos outbound 后 m-of-n 直接成跨链 gateway governance 层（marketing 价值 > air-gapped，优先级建议更高）
+- **PQC 严格模式**：MTC v0.11 已支持 Ed25519+SLH-DSA hybrid（memory `mtc_landing_v0_11.md`）。严格模式 = 拒收纯 Ed25519，强制每个 partial signature 必带 SLH-DSA 段（受 NIST 监管类客户欢迎，代价签名包 +几 KB）
+
+**C. Wear long-tail（[#20](https://github.com/chainlesschain/chainlesschain/issues/20) P0.2 已完 Phase 0-3 主体；下一阶段下推 v1.3）**
+
+- **watch face → VoiceMode shortcut**：v1.2 wear 端用 ApprovalCard tap 进决策路径，watch face 直达 voice 还需 phone Auto Phase 1 voice intent 抽出 generic `cc.voice.start` IPC（v1.2 是 Auto 私有），wear 复用同一 intent
+- **LongTask running count complication**：v1.2 用 pending approval count 兜底；真接 LongTask 状态 stream 需 phone expose `cowork.longTask.running` 给 wear Data Layer，相当于半个新 sync channel
+- **Instrumented test 真路径（Tile / ComplicationRequest）**：JVM 单测里 `com.google.wear.services.tiles.TileInstance NoClassDefFoundError` 是 Google 设计上 JVM-impossible（见 v1.2 commit `dc26f9572` 测试 KDoc）。要么开 gradle managed device AVD CI / 真机 farm / 接受这维度无 coverage
+
+**D. 触发与风险**
+
+- v1.3 milestone **何时开**：看 v1.2 GA 上架审核 + 真用户实测反馈。如果 P0.3 m-of-n 生产被频繁误触 / Wear 在不同 watch face 上崩 / Auto DHU 真车测出新问题，v1.3 scope 会被这些 P0/P1 抢占
+- v1.3 与 **v2.0 ADR 重评估** 互相约束：若 ADR-2 决定砍 TEE 中间层，v1.3 m-of-n DID rotate 的 attestation 格式可能需重设计
+- 跨链桥 outbound + air-gapped 两项足够长，每项都可能独立长成 milestone；v1.3 scope 框可能仅容其一
+- v1.3 milestone **暂不立即开 issue** — 等 v1.2（[#20](https://github.com/chainlesschain/chainlesschain/issues/20)）close 时再依本节起 #21
+
 ## 11. 与既有设计文档的关系
 
 | 文档                                                 | 关系                                              |
@@ -585,6 +623,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 ## 变更记录
 
+- 2026-05-12 v0.7：§10 补 v1.3+ 占位段（issue [#20](https://github.com/chainlesschain/chainlesschain/issues/20) P0.3 Android UI 落地 `7fd2a2566` 后回填）。新增 4 组：A 跨平台基础设施（Linux native 配对 / 三端 UI consistency / v2.0 ADR 重评估）/ B m-of-n Phase 3+ 6 子项（web-shell private key signing UI / 削 cc subprocess 冷启 / DID rotate / air-gapped QR / 跨链桥 outbound / PQC 严格模式）/ C Wear long-tail 3 子项（watch face VoiceMode shortcut / LongTask complication / Instrumented test 真路径）/ D 触发与风险（v2.0 ADR 互相约束 + 跨链桥 + air-gapped 可能各成 milestone）。§10 顶部表加 v1.3+ 行（milestone 暂未开，等 v1.2 GA 上架反馈触发 #21）。事实声明未变更。
 - 2026-05-11 v0.6：M4 D2 Android RPC 接收器落地 + 桌面 transport 平铺审计。(1) **Android RPC 接收器** `eba16a1d8`：`ApprovalCommandRouter.kt` (~80 行) `approval.*` 命名空间路由器，`approval.request` 解析 `requestId/payloadDescription/payloadHash/requireBiometric` → `ApprovalGate.requestApproval` suspend 等用户决策 → 返 `{requestId, approved, deniedReason}` map；`CompositeCommandRouter.kt` (~30 行) 按命名空间分发（sync.* → SyncCommandRouter / approval.* → 本路由器）；`RemoteModule.kt` binding 切 `bindCommandRouter(impl: CompositeCommandRouter)`；16 单测（10 ApprovalCommandRouterTest FakeGate + 6 CompositeCommandRouterTest MockK）。(2) **桌面 transport 审计发现**：另一并行 session 在 `mobile-bridge.js` staged +102 行加 `pendingReverseRpc` Map + 入向 RPC response 拦截分支（line 858+）+ `sendReverseRpcRequest(peerId, req, timeoutMs=60s)` generic JSON-RPC 2.0 反向 RPC + `asMobileSignTransport()` adapter。注释虽然写「M5 ADR-6 transport」，但 transport 是 **generic** 的，M4 D2 也能借这条路。这让 M4 D2 桌面剩工从 ~0.5d 缩到 ~0.3d：仅剩 `mobileApprovalChannel.setOnRequest` 胶水（~20 行接 `sendReverseRpcRequest` + response.result → `resolveApproval`）+ payload enrich（~30 行算 JCS+SHA-256 hash + describe）+ 跨端 E2E。M4 D2 状态升级为 4/5 段已落（剩桌面胶水 + payload enrich + E2E）。v1.0 已落 8d → 8.5d，剩 4d → 3.5d。事实声明未再变更。
 - 2026-05-11 v0.5：Phase D 桌面 + `eb7489bc4` 重分类校准。v0.4 两处错分类已修：(1) **桌面 mobile-skill-whitelist.js + mobile-approval-channel.js 不是 ⏳ 新（Phase D 任务），而是 ✅ `d6b3926fa`** (2026-05-11 11:17) —— 全实现 + 29 单测 + 集成测试 + `command-router.js` line 38/41/155 wire-up 都已落。§5.5 桌面表 + §6 M4 行 + M4 D2 拆分回填到现实。(2) **`eb7489bc4` 是 M5 ApprovalGate helper（接 SignAsService 流程），不是 M4 D2 完全落地**。`AndroidApprovalGate` 在 `com.chainlesschain.android.sign` 包下，wire 到 `sign.request` → gate → BiometricPrompt → StrongBox，**不接 generic approval-request from desktop**。M4 D2 真闭环还差 **Android RPC 接收器**：让 Android 从 mobile-bridge 收 `approval.request` RPC → dispatch 给 `AndroidApprovalGate.requestApproval` → 用户响应 → 反向 RPC 回桌面 `MobileApprovalChannel.resolveApproval()`。~0.5d 工 + ~0.5d E2E。v1.0 剩工预算 5d → 4d（桌面侧本就已经落，v0.4 错估让它显得没落）。事实声明未再变更。
 - 2026-05-11 v0.4：QRPairing audit + M4 D2 入账。(1) **M2 D4 QRPairing audit 结果**：2034 行 UI scaffold 真实存在，但 `PairingViewModel.kt` 是假 `delay()` stub（注释 `// This is simplified - in practice would need peer's pre-key bundle`）、`DEVICE_PAIRING_ROUTE` + `navigateToDevicePairing` 在 P2PNavigation 定义但 `android-app/app/` 0 调用（孤儿）、`feature-p2p/ui/QRCodeScannerScreen.kt` 实际 wire 到 E2EE Safety Numbers 而非 pairing JSON shape。M2 D4 状态从 ⚠️ 改成 🟠 scaffold-only；真落地 ~2.5d 推到 v1.1 与 §8.5 桌面 Mobile Bridge 面板（Q4）一起做。(2) **M4 D2 Android ApprovalUI 入账** `eb7489bc4`（`AndroidApprovalGate.kt` 104 + `ApprovalDialogHost.kt` 263 + DI 23 + 单测 184 + MainActivity +22）—— 之前被 lint-staged sweep 进 doc commit，本版正式回填到 §5.5 / §6 / M4 拆分。v1.0 剩工 7d → 5d。事实声明未再变更。
