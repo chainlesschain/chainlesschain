@@ -68,6 +68,7 @@ const {
   createDesktopPairPollAckHandler,
   createDesktopPairResetHandler,
 } = require("./handlers/desktop-pair-handlers");
+const { createMultisigHandlers } = require("./handlers/multisig-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -200,6 +201,11 @@ async function startWebShell(options = {}) {
     // 6-10s，Mtc.vue onMounted 三发并发必爆原 8s timeout。in-process 直查
     // ~/.chainlesschain/audit-mtc & cross-chain-mtc 文件，零 spawn。
     ...createMtcStatusHandlers(),
+    // 2026-05-12 — multisig.* + marketplace.consume 同模式（#21 B.6）。Multisig.vue
+    // 原 7 处 ws.executeJson('multisig …') / ws.executeJson('marketplace consume …')
+    // 走 _executeCommand 子进程，asar:true 同样 6-10s 冷启。改 in-process 调
+    // @chainlesschain/core-multisig v0.1.0，每次 open 一个 SQLite handle（~20ms）。
+    ...createMultisigHandlers(),
     // Phase 3c.5 — git.config-* topics. 复用 git-config.json 单例（getGitConfig），
     // web-panel 用户也能配 Git 仓库，不必切回 V5/V6 桌面 shell。
     ...createGitConfigHandlers(),

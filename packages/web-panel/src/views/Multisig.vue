@@ -264,8 +264,26 @@ import {
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useShellMode } from '../composables/useShellMode.js'
 
 const ws = useWsStore()
+const { isEmbedded } = useShellMode()
+
+// #21 B.2 — desktop web-shell registers in-process multisig.* + marketplace.consume
+// topics that avoid the 6-10s asar:true subprocess cold-start. cc serve mode
+// (isEmbedded=false) keeps the original ws.executeJson('cc multisig ...') path
+// since there's no asar overhead in standalone node.
+async function callMultisigTopic(topic, msg, fallbackCmd, timeoutMs = 8000) {
+  if (isEmbedded) {
+    const reply = await ws.sendRaw({ type: topic, ...msg }, timeoutMs)
+    if (!reply?.ok) {
+      const err = reply?.error
+      throw new Error(typeof err === 'string' ? err : err?.message || `${topic} failed`)
+    }
+    return reply.result
+  }
+  return ws.executeJson(fallbackCmd, timeoutMs)
+}
 const loading = ref(false)
 const proposals = ref([])
 const policies = ref([])
@@ -332,12 +350,22 @@ async function loadAll() {
   loading.value = true
   try {
     const [propList, polList] = await Promise.all([
-      ws.executeJson('multisig list --limit 500 --json', 10000).catch(() => []),
+      callMultisigTopic(
+        'multisig.list',
+        { limit: 500 },
+        'multisig list --limit 500 --json',
+        10000,
+      ).catch(() => []),
       // Policies don't have a list command in Phase 1 yet — try domains we know about
       Promise.all(
         ['marketplace.purchase', 'did.rotate', 'crosschain.outbound'].map(async (d) => {
           try {
-            const p = await ws.executeJson(`multisig policy show ${d} --json`, 8000)
+            const p = await callMultisigTopic(
+              'multisig.policy.show',
+              { domain: d },
+              `multisig policy show ${d} --json`,
+              8000,
+            )
             return { domain: d, policy: p, updatedAtMs: Date.now() }
           } catch {
             return null
@@ -356,7 +384,12 @@ async function loadAll() {
 
 async function openDetail(record) {
   try {
-    const got = await ws.executeJson(`multisig show ${record.id} --json`, 8000)
+    const got = await callMultisigTopic(
+      'multisig.show',
+      { proposalId: record.id },
+      `multisig show ${record.id} --json`,
+      8000,
+    )
     detail.value = got
     detailOpen.value = true
   } catch (err) {
@@ -377,7 +410,9 @@ async function onCancel(record) {
     cancelText: '保持',
     onOk: async () => {
       try {
-        const r = await ws.executeJson(
+        const r = await callMultisigTopic(
+          'multisig.cancel',
+          { proposalId: record.id, reason: 'web-shell' },
           `multisig cancel ${record.id} --reason web-shell --json`,
           8000,
         )
@@ -397,7 +432,12 @@ async function onCancel(record) {
 
 async function onConsume(record) {
   try {
-    const r = await ws.executeJson(`marketplace consume ${record.id} --json`, 10000)
+    const r = await callMultisigTopic(
+      'marketplace.consume',
+      { proposalId: record.id },
+      `marketplace consume ${record.id} --json`,
+      10000,
+    )
     if (r.status === 'consumed') {
       message.success(`订单 ${r.order.itemId} 已执行 (¥${(r.order.amountFen / 100).toFixed(2)})`)
       detailOpen.value = false
@@ -412,7 +452,12 @@ async function onConsume(record) {
 
 async function onFinalize(record) {
   try {
-    const r = await ws.executeJson(`multisig finalize ${record.id} --json`, 8000)
+    const r = await callMultisigTopic(
+      'multisig.finalize',
+      { proposalId: record.id },
+      `multisig finalize ${record.id} --json`,
+      8000,
+    )
     if (r.ok) {
       message.success('提案已 finalize')
       detailOpen.value = false
@@ -427,7 +472,12 @@ async function onFinalize(record) {
 
 async function onSweep() {
   try {
-    const r = await ws.executeJson('multisig sweep --json', 8000)
+    const r = await callMultisigTopic(
+      'multisig.sweep',
+      {},
+      'multisig sweep --json',
+      8000,
+    )
     if (r.expired === 0) {
       message.info('无过期提案')
     } else {
