@@ -167,7 +167,7 @@ const badges = [
   { icon: '🔒', label: '军事级加密' },
   { icon: '⭐', label: 'GitHub 10k+ Star' },
   { icon: '✅', label: '等保三级认证' },
-  { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025' },
+  { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
 ---
 <BaseLayout>
@@ -215,10 +215,17 @@ const badges = [
         <!-- Trust badges -->
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
           {badges.map((b) => (
-            <div class="flex items-center gap-2 text-sm text-muted">
-              <span class="text-base">{b.icon}</span>
-              <span>{b.label}</span>
-            </div>
+            b.href ? (
+              <a href={b.href} target="_blank" rel="noopener" class="flex items-center gap-2 text-sm text-muted hover:text-ink transition-colors">
+                <span class="text-base">{b.icon}</span>
+                <span>{b.label}</span>
+              </a>
+            ) : (
+              <div class="flex items-center gap-2 text-sm text-muted">
+                <span class="text-base">{b.icon}</span>
+                <span>{b.label}</span>
+              </div>
+            )
           ))}
         </div>
       </div>
