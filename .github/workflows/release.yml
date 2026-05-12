@@ -1138,24 +1138,20 @@ jobs:
         id: cli-version
         run: |
           # CLI npm version is ALWAYS sourced from packages/cli/package.json —
-          # tag is only a trigger, not part of version decision. This prevents
-          # non-CLI tags (e.g. v1.0.0 for an Android GA release) from being
-          # stripped of the leading "v" and re-interpreted as a 3-segment CLI
-          # npm version (which would silently overwrite the npm latest dist-tag
-          # — see v5.0.3.48 / v1.0.0 incident on 2026-05-12).
+          # tag / workflow_dispatch input is only a trigger, not part of the
+          # version decision. This prevents non-CLI version strings (e.g.
+          # product tag v5.0.3.49 — 4-segment, not valid semver; or Android
+          # GA v1.0.0 — would silently overwrite the npm latest dist-tag) from
+          # being stripped of the leading "v" and re-interpreted as a 3-segment
+          # CLI npm version (see v5.0.3.48 / v1.0.0 incident on 2026-05-12 and
+          # v5.0.3.49 workflow_dispatch override 4-segment incident).
           #
           # To ship a CLI release: bump packages/cli/package.json in a
           # chore(release) commit, then tag. The check-published step below
           # will skip publish when the version is already on npm, so re-running
           # the workflow on a stale tag is safe.
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-            VERSION="${VERSION#v}"
-            echo "🔧 workflow_dispatch override: $VERSION"
-          else
-            VERSION=$(node -p "require('./packages/cli/package.json').version")
-            echo "📦 packages/cli/package.json version: $VERSION"
-          fi
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          echo "📦 packages/cli/package.json version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if CLI version already published
