@@ -3,6 +3,8 @@ package com.chainlesschain.android.initializer
 import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
+import com.chainlesschain.android.config.TurnServerPreferences
+import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.sync.SyncCoordinator
@@ -42,6 +44,10 @@ class AppInitializer @Inject constructor(
 
     // v1.1 issue #19: OfflineCommandQueue.initialize() 监听 P2P 连接 + auto-send queued commands
     private val offlineCommandQueue: Lazy<OfflineCommandQueue>,
+
+    // v1.1 issue #19 W3: 启动期把 SharedPreferences 里的 user TURN servers 灌进 IceServerConfig
+    private val turnServerPreferences: Lazy<TurnServerPreferences>,
+    private val iceServerConfig: Lazy<IceServerConfig>,
 
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
@@ -117,6 +123,24 @@ class AppInitializer @Inject constructor(
                     } catch (e: Exception) {
                         Timber.w(e, "OfflineCommandQueue.initialize failed (non-fatal)")
                     }
+                }
+
+                // 7. v1.1 issue #19 W3: 把 SharedPreferences 里的 user TURN servers 灌进
+                //    IceServerConfig (覆盖 init 里的 openrelay 兜底)。policy 同步生效。
+                //    SharedPreferences 读快，无需独立 launch。
+                try {
+                    val prefs = turnServerPreferences.get()
+                    val ice = iceServerConfig.get()
+                    val userTurns = prefs.turnServers.value
+                    for (t in userTurns) {
+                        ice.addTurnServer(t.url, t.username, t.password)
+                    }
+                    ice.setIceTransportPolicy(prefs.transportPolicy.value)
+                    if (userTurns.isNotEmpty()) {
+                        Timber.i("TURN: loaded ${userTurns.size} user-configured server(s) from preferences")
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "TURN preferences load failed (non-fatal)")
                 }
 
                 val elapsedTime = System.currentTimeMillis() - startTime

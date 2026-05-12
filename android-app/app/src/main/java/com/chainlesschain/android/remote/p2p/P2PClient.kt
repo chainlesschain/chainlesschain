@@ -138,6 +138,8 @@ class P2PClient @Inject constructor(
     }
 
     suspend fun connect(pcPeerId: String, pcDID: String): Result<Unit> = withContext(Dispatchers.IO) {
+        // v1.1 W3 latency 埋点：start time → 走完 webRTCClient.connect() 总耗时 + 当前 ICE policy
+        val connectStartMs = System.currentTimeMillis()
         try {
             Timber.i("========================================")
             Timber.i("[P2PClient] connect() 被调用")
@@ -163,9 +165,18 @@ class P2PClient @Inject constructor(
             Timber.i("[P2PClient] 正在调用 webRTCClient.connect()...")
             val result = webRTCClient.connect(pcPeerId, localPeerId)
             if (result.isFailure) {
+                val elapsedFail = System.currentTimeMillis() - connectStartMs
+                Timber.w("[P2PClient.metric] connect FAILED elapsed=${elapsedFail}ms peerId=$pcPeerId")
                 _connectionState.value = ConnectionState.ERROR
                 return@withContext Result.failure(result.exceptionOrNull() ?: Exception("Connect failed"))
             }
+
+            // v1.1 W3 connect-success 埋点（M6 性能 LAN p50 < 200ms / NAT p50 < 800ms 验收用）。
+            // 单条 Timber.i + 'metric' tag 让 release-time 简单 grep 'P2PClient.metric' 收数。
+            val elapsed = System.currentTimeMillis() - connectStartMs
+            Timber.i(
+                "[P2PClient.metric] connect SUCCESS elapsed=${elapsed}ms peerId=$pcPeerId did=${pcDID.take(20)}…"
+            )
 
             _connectionState.value = ConnectionState.CONNECTED
             // W2.1: 进 Map 不替换。W2.1 lifecycle 仍 single-peer-at-a-time（connect 前已 disconnect()），
