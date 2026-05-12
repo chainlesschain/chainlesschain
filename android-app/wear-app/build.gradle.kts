@@ -26,8 +26,8 @@ android {
         applicationId = "com.chainlesschain.android"
         minSdk = 26  // Wear OS 3.0+
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0-wear"
+        versionCode = 2
+        versionName = "1.2.0-wear"
     }
 
     buildTypes {
