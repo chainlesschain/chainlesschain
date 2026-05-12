@@ -5,9 +5,9 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v5.0.3.49] - 2026-05-12 — M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Flow B QR pairing 收口 + 测试补丁
+## [v5.0.3.49] - 2026-05-12 — M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing 收口 + 测试补丁
 
-> 本版三条主线：(1) **`@chainlesschain/core-multisig` package + `cc multisig` CLI 落地**（commit `3c890dcac`，v1.2 m-of-n Phase 1d）—— Phase 1 完整 5-lib（policy / store / proposals / signing / governance-log），CLI 8 subcommands（propose / sign / cancel / finalize / list / show / sweep / policy），75 lib 单测 + 10 CLI integration 测试全过。(2) **Phase 2a marketplace.purchase mediator**（commit `2755093d0`）—— 设计文档 §6.1 落地：`cc marketplace purchase` 大额（≥¥1000）自动走 M-of-N 多签 propose，小额走 direct；`cc marketplace consume` 在 threshold 达成后 finalize + 执行业务；抽 `multisig-runtime.js` 共享 SQLite cascade（-130 行 dedup，Phase 1 10/10 零行为变更）；8 新 E2E 测试全过。marketplace.purchase 是第一个真实接通业务侧的 mediator。(3) **Android v1.1 W3.7 Flow B QR pairing 落地**（commit `c47cbc649`）—— desktop 显 QR / phone 扫的主流应用通用 UX（微信/支付宝同模式），Xiaomi 24115RA8EC 真机 E2E verified。同步补齐 Flow B 漏掉的 2 个测试文件：`ScanDesktopPairingViewModelTest` 10 项 + `desktop-pair-handlers.test.js` 19 项。
+> 本版四条主线：(1) **`@chainlesschain/core-multisig` package + `cc multisig` CLI 落地**（commit `3c890dcac`，v1.2 m-of-n Phase 1d）—— Phase 1 完整 5-lib（policy / store / proposals / signing / governance-log），CLI 8 subcommands（propose / sign / cancel / finalize / list / show / sweep / policy），75 lib 单测 + 10 CLI integration 测试全过。(2) **Phase 2a marketplace.purchase mediator**（commit `2755093d0`）—— 设计文档 §6.1 落地：`cc marketplace purchase` 大额（≥¥1000）自动走 M-of-N 多签 propose，小额走 direct；`cc marketplace consume` 在 threshold 达成后 finalize + 执行业务；抽 `multisig-runtime.js` 共享 SQLite cascade（-130 行 dedup，Phase 1 10/10 零行为变更）；8 新 E2E 测试全过。marketplace.purchase 是第一个真实接通业务侧的 mediator。(3) **Phase 2b web-panel Multisig 视图落地**（commit `c758492d9`）—— 设计文档 §8.1 落地：web-shell（默认桌面入口）加 M-of-N 多签查看 / 操作面板，Phase 1 CLI 的 `cc multisig list/show/cancel` + `cc marketplace consume` 通过 `ws.executeJson(...)` 走 CLI 子进程；同份 SPA 在 desktop web-shell + cc ui 两边都自动可用。(4) **Android v1.1 W3.7 Flow B QR pairing 落地**（commit `c47cbc649`）—— desktop 显 QR / phone 扫的主流应用通用 UX（微信/支付宝同模式），Xiaomi 24115RA8EC 真机 E2E verified。同步补齐 Flow B 漏掉的 2 个测试文件：`ScanDesktopPairingViewModelTest` 10 项 + `desktop-pair-handlers.test.js` 19 项。
 
 ### Added — M-of-N multisig core（v1.2 #20 P0.3 Phase 1d）
 
@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cc marketplace consume <proposalId>` 新 subcommand** —— 校验 `domain == "marketplace.purchase"` + `state == "reached"` 才执行；finalize 后打印订单 payload + governance log 写 `consumed`。错域 / 错态都 exit 2。
 - **8 新 E2E test 全 green**（`packages/cli/__tests__/integration/marketplace-multisig-e2e.test.js`）：大额 ¥1500 2-of-2 walkthrough（policy → purchase → sign×2 → consume → governance.log 4 类事件 `proposed`/`signed`×2/`reached`/`consumed`）/ 小额 ¥500 direct path / `--threshold-fen` override / 大额无 policy → exit 2 / consume pending → exit 2 / consume 错域 → exit 2 / `--help` 文本。
 - 总 **18 multisig integration test 全 green**（Phase 1 10 + Phase 2 8）。
+
+### Added — Phase 2b web-panel Multisig 视图（v1.2 #20 P0.3 Phase 2b）
+
+- **`packages/web-panel/src/views/Multisig.vue`**（commit `c758492d9`，新文件 468 行）—— 6-card 顶部 stats（总数 / pending / reached / consumed / cancelled / expired）+ 两个 tab：**提案列表**（columns ID / Domain / State / Sigs / Created / Expires / Actions + state 过滤 + domain 过滤 + 行 actions 详情 / 取消 / 执行购买）/ **域策略**（列 marketplace.purchase / did.rotate / crosschain.outbound 已知 domain policy + 成员展开）+ 640px Detail drawer（Descriptions 显 domain / state / threshold / sigs / initiator / timestamps / payload JSON + 签名列表 + 操作按钮 取消 / 执行购买 / finalize）+ info Alert "web shell 不持私钥 sign 走 CLI"。
+- **router/index.js + AppLayout.vue**（commit `c758492d9`）—— 加 `/multisig` 路由 + sidebar security/audit 组 multisig menu item（TeamOutlined icon）+ 折叠模式同步 + i18n fallback "M-of-N 多签"。
+- **WS 通信走 CLI 子进程** —— `ws.executeJson('multisig list --json')` 等通过 CLI WS server `_executeCommand` 路径；冷启动 6-10s（asar:true 开销）Phase 2 可接受；Phase 3 可加 in-process WS handlers 削延迟。
+- **同份 SPA 复用** —— desktop web-shell + cc ui 两边自动可用（per memory `feedback_cross_shell_feature_pattern`）。
+- **Phase 3 follow-up**：私钥签名 UI（需 Unified KeyStore 接通）、in-process WS handlers、实时推送（现 onMounted 拉一次）、Marketplace.vue purchase modal 集成。
 
 ### Added — Android v1.1 W3.7 Flow B QR pairing（issue #19）
 

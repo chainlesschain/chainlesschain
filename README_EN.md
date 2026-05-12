@@ -2,15 +2,17 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-## 2026-05-12 Release — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Flow B QR pairing closing + test backfill**
+## 2026-05-12 Release — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing closing + test backfill**
 
-productVersion **v5.0.3.48 → v5.0.3.49**. Three main lines:
+productVersion **v5.0.3.48 → v5.0.3.49**. Four main lines:
 
 **(1) `@chainlesschain/core-multisig` package + `cc multisig` CLI lands** (commit `3c890dcac`, v1.2 m-of-n Phase 1d) — new npm workspace package with 5 libs (policy / store / proposals / signing / governance-log), CLI gains 8 subcommands (propose / sign / cancel / finalize / list / show / sweep / policy); 75 lib unit tests + 10 CLI integration tests all pass. SQLite native (better-sqlite3-multiple-ciphers) → sql.js WASM auto-fallback — CLI works out of the box on any platform.
 
 **(2) Phase 2a marketplace.purchase mediator** (commit `2755093d0`, design doc §6.1 lands) — `cc marketplace purchase <itemId>` routes large purchases (≥¥1000 by default `LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen) through the M-of-N propose flow and lets small ones execute directly; `cc marketplace consume <proposalId>` finalizes after the threshold is reached and runs the business operation. Extracted `packages/cli/src/lib/multisig-runtime.js` (SQLite cascade + manager loader) so both `multisig` and `marketplace` commands share one implementation (−130 lines dedup, Phase 1 10/10 unchanged behaviour). 8 new E2E tests pass (full ¥1500 2-of-2 walkthrough / ¥500 direct path / `--threshold-fen` override / six error exits). Three canonical domains — marketplace.purchase / did.rotate / cross-chain bridge — unlock here; marketplace is the first mediator wired to a real business path. **18 multisig integration tests green total** (Phase 1 10 + Phase 2 8).
 
-**(3) Android v1.1 W3.7 Flow B QR pairing lands** (commit `c47cbc649`) — desktop displays QR / phone scans, the standard UX pattern in mainstream apps (WeChat / Alipay / Discord / WhatsApp Web); verified end-to-end on real Xiaomi 24115RA8EC hardware. Nine production traps swept. Backfilled the 2 test files the original commit omitted: `ScanDesktopPairingViewModelTest` (10 tests) + `desktop-pair-handlers.test.js` (19 tests).
+**(3) Phase 2b web-panel Multisig view lands** (commit `c758492d9`, design doc §8.1 lands) — web-shell (default desktop entry) gets an M-of-N multisig view + operations panel. New `packages/web-panel/src/views/Multisig.vue` (468 lines): 6-card top stats (total / pending / reached / consumed / cancelled / expired) + two tabs — Proposal list (state + domain filters, row actions: detail / cancel / execute purchase) and Domain policy (lists known domains marketplace.purchase / did.rotate / crosschain.outbound with member expansion) + 640px Detail drawer (Descriptions for domain / state / threshold / sigs / initiator / timestamps / payload JSON + signature list + operation buttons cancel / execute purchase / finalize) + info Alert "web shell does not hold private keys; sign goes through CLI". AppLayout.vue + router/index.js add the sidebar entry (TeamOutlined icon) + `/multisig` route + i18n fallback "M-of-N 多签". WS goes through CLI subprocess via `ws.executeJson('multisig list --json')`; cold-start 6–10s (asar:true cost) is acceptable for Phase 2 — Phase 3 follow-up can add in-process WS handlers to shave latency, plus private-key signing UI wired to UnifiedKeyStore, real-time push, and Marketplace.vue purchase modal integration. Same SPA is auto-available in both desktop web-shell and `cc ui` (per memory `feedback_cross_shell_feature_pattern`).
+
+**(4) Android v1.1 W3.7 Flow B QR pairing lands** (commit `c47cbc649`) — desktop displays QR / phone scans, the standard UX pattern in mainstream apps (WeChat / Alipay / Discord / WhatsApp Web); verified end-to-end on real Xiaomi 24115RA8EC hardware. Nine production traps swept. Backfilled the 2 test files the original commit omitted: `ScanDesktopPairingViewModelTest` (10 tests) + `desktop-pair-handlers.test.js` (19 tests).
 
 **Added — M-of-N multisig core (v1.2 #20 P0.3 Phase 1d)**:
 
@@ -24,6 +26,13 @@ productVersion **v5.0.3.48 → v5.0.3.49**. Three main lines:
 - **`cc marketplace purchase <itemId>` + `cc marketplace consume <proposalId>` two new subcommands** — amount ≥ threshold requires a `marketplace.purchase` policy before proposing; threshold defaults to ¥1000 (`LARGE_PURCHASE_THRESHOLD_FEN = 100000` fen), overridable via `--threshold-fen`; amount < threshold takes the direct path without creating a proposal; `consume` verifies `domain == "marketplace.purchase"` and `state == "reached"`, then finalizes + prints the order payload + writes `consumed` to governance log.
 - **Shared runtime** `packages/cli/src/lib/multisig-runtime.js` — extracted from commands/multisig.js (SQLite cascade + manager loader + readSecretKey / readJsonArg helpers); commands/marketplace.js reuses the same module. The multisig refactor drops 130 lines while leaving Phase 1 behaviour unchanged (10/10 integration tests still pass).
 - **8 new E2E tests pass** (`marketplace-multisig-e2e.test.js`): full ¥1500 2-of-2 walkthrough (policy → purchase → sign×2 → reached → consume → governance.log records `proposed`/`signed`×2/`reached`/`consumed`) / ¥500 direct path / `--threshold-fen` override / large purchase without policy → exit 2 / consume on pending → exit 2 / consume on wrong domain → exit 2 / `--help` text.
+
+**Added — Phase 2b web-panel Multisig view (v1.2 #20 P0.3 Phase 2b)**:
+
+- **`packages/web-panel/src/views/Multisig.vue`** — 6-card stats + Proposal list tab (state/domain filters + detail/cancel/execute-purchase actions) + Domain policy tab (marketplace.purchase / did.rotate / crosschain.outbound known policies) + 640px Detail drawer (domain / state / threshold / sigs / initiator / payload JSON + signature list + operation buttons) + info Alert "web shell does not hold private keys; sign goes through CLI".
+- **router + AppLayout** — `/multisig` route + sidebar security/audit group multisig entry (TeamOutlined icon) + collapsed-mode parity + i18n fallback "M-of-N 多签".
+- **WS through CLI subprocess** — `ws.executeJson('multisig list --json')` reuses Phase 1 CLI; cold-start 6–10s (asar:true cost) acceptable.
+- **Phase 3 follow-up**: private-key signing UI (needs UnifiedKeyStore), in-process WS handlers, real-time push, Marketplace.vue integration entry.
 
 **Added — Android v1.1 W3.7 Flow B QR pairing (issue #19)**:
 
