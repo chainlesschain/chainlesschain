@@ -381,6 +381,9 @@ dependencies {
     // Wear-app (separate APK) has its own copy of this dep; phone needs it too
     // so MessageClient.sendMessage is available from WearPushForwarder.
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
+    // Provides Tasks→suspend bridge (kotlinx.coroutines.tasks.await) used by
+    // WearPushForwarder to await getNodeClient.connectedNodes / sendMessage.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Permission management
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
