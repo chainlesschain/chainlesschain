@@ -45,6 +45,34 @@ class TurnServerPreferences @Inject constructor(
     private val _transportPolicy = MutableStateFlow(loadTransportPolicy())
     val transportPolicy: StateFlow<PeerConnection.IceTransportsType> = _transportPolicy.asStateFlow()
 
+    // ===== v1.2 prep #2: ephemeral token mode =====
+    //
+    // 静态 username/password 适合个人 v1.1；生产 / 多用户场景应升 ephemeral：客户端定期
+    // 调 [ephemeralEndpointUrl] 取时效 token (Twilio-style /turn-credentials)，避免
+    // long-term 凭证泄露后 TURN 被滥用。详 docs/guides/TURN_Setup.md §4.1。
+    //
+    // 配置项：enabled toggle + endpoint URL；token 缓存与过期由 TurnEphemeralRefresher
+    // 维护。endpoint 必须是 HTTPS（防 MITM 篡改 token）。
+
+    private val _ephemeralEnabled = MutableStateFlow(prefs.getBoolean(KEY_EPHEMERAL_ENABLED, false))
+    val ephemeralEnabled: StateFlow<Boolean> = _ephemeralEnabled.asStateFlow()
+
+    private val _ephemeralEndpointUrl = MutableStateFlow(prefs.getString(KEY_EPHEMERAL_URL, "") ?: "")
+    val ephemeralEndpointUrl: StateFlow<String> = _ephemeralEndpointUrl.asStateFlow()
+
+    fun setEphemeralEnabled(enabled: Boolean) {
+        _ephemeralEnabled.value = enabled
+        prefs.edit { putBoolean(KEY_EPHEMERAL_ENABLED, enabled) }
+        Timber.i("TurnServerPreferences: ephemeralEnabled=$enabled")
+    }
+
+    fun setEphemeralEndpointUrl(url: String) {
+        val trimmed = url.trim()
+        _ephemeralEndpointUrl.value = trimmed
+        prefs.edit { putString(KEY_EPHEMERAL_URL, trimmed) }
+        Timber.i("TurnServerPreferences: ephemeralEndpointUrl set (len=${trimmed.length})")
+    }
+
     fun addTurnServer(url: String, username: String, password: String): Boolean {
         if (url.isBlank() || username.isBlank() || password.isBlank()) {
             Timber.w("TurnServerPreferences.addTurnServer: blank field rejected")
@@ -131,5 +159,8 @@ class TurnServerPreferences @Inject constructor(
         private const val PREF_NAME = "turn_server_prefs"
         private const val KEY_TURN_SERVERS = "turn_servers_json"
         private const val KEY_POLICY = "ice_transport_policy"
+        // v1.2 prep #2
+        private const val KEY_EPHEMERAL_ENABLED = "ephemeral_enabled"
+        private const val KEY_EPHEMERAL_URL = "ephemeral_endpoint_url"
     }
 }

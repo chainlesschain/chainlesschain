@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -68,8 +69,12 @@ fun TurnSettingsScreen(
     val turnServers by viewModel.turnServers.collectAsState()
     val transportPolicy by viewModel.transportPolicy.collectAsState()
     val testResult by viewModel.testResult.collectAsState()
+    val ephemeralEnabled by viewModel.ephemeralEnabled.collectAsState()
+    val ephemeralEndpointUrl by viewModel.ephemeralEndpointUrl.collectAsState()
+    val ephemeralCreds = viewModel.currentEphemeral()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var ephemeralUrlDraft by remember(ephemeralEndpointUrl) { mutableStateOf(ephemeralEndpointUrl) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("中继服务器 (TURN)") }) }
@@ -154,6 +159,78 @@ fun TurnSettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = stunResultColor(result),
                                 fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // v1.2 prep #2: Ephemeral TURN credentials section
+            item {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "短期 TURN Token (Twilio 兼容)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "启用后定期从 endpoint 拉取临时 username/password (TTL 默认 24h)，避免长期凭据泄漏。endpoint 必须 HTTPS。",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = ephemeralEnabled,
+                                onCheckedChange = { viewModel.setEphemeralEnabled(it) },
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = ephemeralUrlDraft,
+                            onValueChange = { ephemeralUrlDraft = it },
+                            label = { Text("Endpoint URL (https://...)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Button(
+                                onClick = { viewModel.setEphemeralEndpointUrl(ephemeralUrlDraft.trim()) },
+                                enabled = ephemeralUrlDraft.trim() != ephemeralEndpointUrl,
+                            ) { Text("保存 URL") }
+                            OutlinedButton(
+                                onClick = { ephemeralUrlDraft = ephemeralEndpointUrl },
+                                enabled = ephemeralUrlDraft != ephemeralEndpointUrl,
+                            ) { Text("撤销") }
+                        }
+                        if (ephemeralCreds != null) {
+                            Spacer(Modifier.height(8.dp))
+                            val remainingMin = ((ephemeralCreds.expiresAtMs - System.currentTimeMillis()) / 60_000L)
+                                .coerceAtLeast(0)
+                            Text(
+                                "当前 token: user=${ephemeralCreds.username.take(8)}…  剩余 ${remainingMin} 分钟  uris=${ephemeralCreds.uris.size}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        } else if (ephemeralEnabled) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "尚未取到 token (URL 未配置或刚启用)。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

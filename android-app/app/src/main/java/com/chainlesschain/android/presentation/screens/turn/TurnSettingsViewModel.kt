@@ -2,6 +2,8 @@ package com.chainlesschain.android.presentation.screens.turn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.config.TurnEphemeralCredentials
+import com.chainlesschain.android.config.TurnEphemeralRefresher
 import com.chainlesschain.android.config.TurnServerPreferences
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.ice.StunTestResult
@@ -26,13 +28,22 @@ import javax.inject.Inject
 class TurnSettingsViewModel @Inject constructor(
     private val preferences: TurnServerPreferences,
     private val iceConfig: IceServerConfig,
+    // v1.2 prep #2: ephemeral mode refresher
+    private val ephemeralRefresher: TurnEphemeralRefresher,
 ) : ViewModel() {
 
     val turnServers: StateFlow<List<TurnServerCredentials>> = preferences.turnServers
     val transportPolicy: StateFlow<PeerConnection.IceTransportsType> = preferences.transportPolicy
 
+    // v1.2 prep #2 ephemeral state for UI
+    val ephemeralEnabled: StateFlow<Boolean> = preferences.ephemeralEnabled
+    val ephemeralEndpointUrl: StateFlow<String> = preferences.ephemeralEndpointUrl
+
     private val _testResult = MutableStateFlow<StunTestResult?>(null)
     val testResult: StateFlow<StunTestResult?> = _testResult.asStateFlow()
+
+    /** v1.2 prep #2：当前 refresher 取到的 ephemeral creds snapshot；UI 可显示状态。 */
+    fun currentEphemeral(): TurnEphemeralCredentials? = ephemeralRefresher.current()
 
     fun addTurnServer(url: String, username: String, password: String): Boolean {
         val ok = preferences.addTurnServer(url, username, password)
@@ -61,5 +72,21 @@ class TurnSettingsViewModel @Inject constructor(
 
     fun clearTestResult() {
         _testResult.value = null
+    }
+
+    // ===== v1.2 prep #2 ephemeral mode =====
+
+    fun setEphemeralEnabled(enabled: Boolean) {
+        preferences.setEphemeralEnabled(enabled)
+        // toggle on → 立即启动 refresher 取 token；off → cancel loop
+        ephemeralRefresher.restart()
+    }
+
+    fun setEphemeralEndpointUrl(url: String) {
+        preferences.setEphemeralEndpointUrl(url)
+        // URL 变化时 enabled 已 on 则重启 refresher 用新 URL
+        if (preferences.ephemeralEnabled.value) {
+            ephemeralRefresher.restart()
+        }
     }
 }

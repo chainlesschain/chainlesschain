@@ -3,6 +3,7 @@ package com.chainlesschain.android.initializer
 import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
+import com.chainlesschain.android.config.TurnEphemeralRefresher
 import com.chainlesschain.android.config.TurnServerPreferences
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
@@ -48,6 +49,9 @@ class AppInitializer @Inject constructor(
     // v1.1 issue #19 W3: 启动期把 SharedPreferences 里的 user TURN servers 灌进 IceServerConfig
     private val turnServerPreferences: Lazy<TurnServerPreferences>,
     private val iceServerConfig: Lazy<IceServerConfig>,
+
+    // v1.2 prep #2: TURN ephemeral token refresher（只在用户 Settings 启用时实际跑）
+    private val turnEphemeralRefresher: Lazy<TurnEphemeralRefresher>,
 
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
@@ -141,6 +145,16 @@ class AppInitializer @Inject constructor(
                     }
                 } catch (e: Exception) {
                     Timber.w(e, "TURN preferences load failed (non-fatal)")
+                }
+
+                // 8. v1.2 prep #2: TURN ephemeral refresher。仅当 ephemeralEnabled +
+                //    endpoint URL 都设置时实际跑后台 refresh loop；否则 start() 是 no-op。
+                launch {
+                    try {
+                        turnEphemeralRefresher.get().start()
+                    } catch (e: Exception) {
+                        Timber.w(e, "TurnEphemeralRefresher.start failed (non-fatal)")
+                    }
                 }
 
                 val elapsedTime = System.currentTimeMillis() - startTime
