@@ -11,6 +11,7 @@
 > 4. **§8.1 + §8.3 收敛**（commit `0bc8e2797`）：android-app/README.md versionName 同步；SkillMetadata.aliases + RemoteSkillRegistry.aliasIndex 1 版兼容窗口
 > 5. **M7 GA flip** ✅：android-app versionCode 37 → 100 / versionName 0.37.0 → 1.0.0；CHANGELOG v1.0.0 entry；tag `v1.0.0` 推 gitee+github；GitHub Release published with 4 APK assets + AAB
 > 6. **剩 5 项用户出场**（[v1.0_GA_checklist.md](../v1.0_GA_checklist.md)）：M3 真机 E2E / M4 D2 真机 E2E / FCM google-services.json 凭证 / M6 性能实测回填 / docs-site 全栈同步
+> 7. **§10 加 GitHub milestone 引用** — [Android v1.1 milestone #1](https://github.com/chainlesschain/chainlesschain/milestone/1) tracking [#19](https://github.com/chainlesschain/chainlesschain/issues/19) (due 2026-09-30) + [Android v1.2 milestone #2](https://github.com/chainlesschain/chainlesschain/milestone/2) tracking [#20](https://github.com/chainlesschain/chainlesschain/issues/20) (due 2026-12-31)；本文档 §10 仍是 single source of truth，issues 是执行追踪面
 >
 > v0.6 → v0.7 变更：
 > 1. **M4 D2 桌面胶水全部落地**：
@@ -530,7 +531,20 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 ## 10. 后续 milestone（v1.1 / v1.2 占位）
 
-### v1.1（+7.5 天，目标 2026-Q3）
+> **GitHub milestones / tracking issues**（2026-05-12 创建）：
+>
+> | milestone | due | tracking issue | scope 概要 |
+> |---|---|---|---|
+> | [Android v1.1](https://github.com/chainlesschain/chainlesschain/milestone/1) | 2026-09-30 | [#19](https://github.com/chainlesschain/chainlesschain/issues/19) | P0 §10 6 件 + P1 §8/§9 散落 2 件 + P2 v1.0.0 GA 遗留 4 件 |
+> | [Android v1.2](https://github.com/chainlesschain/chainlesschain/milestone/2) | 2026-12-31 | [#20](https://github.com/chainlesschain/chainlesschain/issues/20) | P0 §10 3 件 + P1 性能/包体优化（前置 v1.1） |
+>
+> 设计文档 §10 仍是 scope 的 **single source of truth**；issues 是执行追踪面。两者更新规则：
+>
+> - **scope 增减** 改设计文档 → issues 体在下次 review 时同步
+> - **执行进度勾选** 在 issue checklist 完成 → 设计文档不动
+> - 关键决策（如 §8.4 Q5 ResourceType 双端对齐方向）改设计文档同时更新 issue 描述
+
+### v1.1（+7.5 天，目标 2026-Q3 — [milestone #1](https://github.com/chainlesschain/chainlesschain/milestone/1) / tracking [#19](https://github.com/chainlesschain/chainlesschain/issues/19)）
 
 - OfflineQueue：桌面离线时 REMOTE 排队 + 恢复回放
 - 多设备 N 端 pair（解 §8.2）
@@ -538,12 +552,16 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 - Whisper local ASR（解 §9.1 中文识别）
 - ResourceType enum 双端对齐（解 §8.4）
 - **QRPairing 真落地**（~2.5d，从 v1.0 M2 D4 推下）：(a) `p2pGraph()` 接进 app NavGraph + 加 Settings → "配对桌面" 入口 (b) `PairingViewModel` stub 换实 `RemoteCommandClient.invoke("device.pairing.handleQRCodeScan", ...)` (c) pairing QR scanner 接桌面 `device-pairing-handler.js` 的 `{type:"device-pairing",code,did,expiresAt}` JSON shape (d) 18 单测 + 1 E2E。与 §8.5 桌面 Settings → Mobile Bridge 子面板（Q4 决策）合并实施
+- 国内 push 厂商 SDK（OPPO / 小米 / 华为 / vivo，解 §9.1 + Q2 决策）
+- v1.0.0 GA 遗留：M3 真机 E2E / M4 D2 真机 E2E / M6 性能实测 / FCM 真接入（详 [docs/v1.0_GA_checklist.md](../v1.0_GA_checklist.md)）
 
-### v1.2（目标 2026-Q4）
+### v1.2（目标 2026-Q4 — [milestone #2](https://github.com/chainlesschain/chainlesschain/milestone/2) / tracking [#20](https://github.com/chainlesschain/chainlesschain/issues/20)）
 
-- Android Auto 入口（车载 Voice Mode + 推送）
-- Wear OS 入口（手表 ApprovalUI + 推送）
-- m-of-n 多签（手机 + 桌面 U-Key 联签，复用 MTC publisher_signature M-of-N 机制）
+- Android Auto 入口（车载 Voice Mode + 推送，driving safety 合规：语音 confirm/deny ApprovalUI、不依赖触摸）
+- Wear OS 入口（独立 wear/ Gradle module + tile + 简化 ApprovalDialog with vibration + Wear OS 4 BiometricPrompt 本地）
+- m-of-n 多签（手机 + 桌面 U-Key 联签，复用 [`@chainlesschain/core-mtc/publisher-signing`](../../packages/core-mtc/src/publisher-signing.js) 的 strip-all-sigs JCS 机制；marketplace.purchase $1000+ 强 2-of-2）
+
+**前置依赖**：v1.2 必须等 v1.1（[#19](https://github.com/chainlesschain/chainlesschain/issues/19)）close — OfflineQueue / N-peer / Whisper 是 v1.2 (Auto + Wear) 的基础设施。
 
 ## 11. 与既有设计文档的关系
 
