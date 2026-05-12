@@ -129,8 +129,7 @@ fun DesktopPairingScreen(
 
 @Composable
 private fun QrPlaceholder(payloadJson: String) {
-    // W3.3 will replace with zxing bitmap render. For now show JSON in a bordered card
-    // 让 QA 能用 desktop debug input 手输配对码绕过摄像头扫码。
+    // W3.3a: 真 zxing QR bitmap。BG 白色 card 包一层保证暗色主题下扫描对比度足够。
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,24 +140,15 @@ private fun QrPlaceholder(payloadJson: String) {
                 shape = RoundedCornerShape(12.dp),
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(Color.White),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                "[QR Placeholder — W3.3 will render real QR]",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
+            QrCodeImage(
                 text = payloadJson,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                color = Color(0xFF666666),
+                size = 240.dp,
             )
         }
     }
