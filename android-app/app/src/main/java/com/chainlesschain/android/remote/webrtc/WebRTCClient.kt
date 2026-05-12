@@ -452,6 +452,14 @@ interface SignalClient {
     suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate)
     suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription
     suspend fun receiveIceCandidate(): org.webrtc.IceCandidate
+
+    /**
+     * v1.1 W3.7 Flow B: 发任意 payload 给指定 peer 经信令服务器 forward。
+     * 用于 `pair-ack`、自定义消息 等非 WebRTC 标准 signaling 路径。
+     * 信令服务器会用 type:"message" + to:<toPeerId> 路由到目标。
+     */
+    suspend fun sendForwardedMessage(toPeerId: String, payload: org.json.JSONObject): Result<Unit>
+
     fun disconnect()
     fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?)
 }
@@ -814,6 +822,33 @@ class WebSocketSignalClient @Inject constructor(
 
         sendWebSocketMessage(json.toString())
         Timber.i("[SignalClient] ✓ Offer 消息已发送到 $peerId")
+    }
+
+    /**
+     * v1.1 W3.7 Flow B: 把任意 payload 经信令服务器 forward 给目标 peer。
+     * Wire shape: {type:"message", to:<peerId>, payload:<JSONObject>}。
+     * 信令服务器收到后 forward 给目标 peer，其 onmessage 解 payload.type 自行 dispatch。
+     */
+    override suspend fun sendForwardedMessage(
+        toPeerId: String,
+        payload: org.json.JSONObject,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!isConnected || webSocket == null) {
+                return@withContext Result.failure(Exception("signaling not connected"))
+            }
+            val json = org.json.JSONObject().apply {
+                put("type", "message")
+                put("to", toPeerId)
+                put("payload", payload)
+            }
+            sendWebSocketMessage(json.toString())
+            Timber.i("[SignalClient] forwarded message → $toPeerId (payload.type=${payload.optString("type")})")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "[SignalClient] sendForwardedMessage failed")
+            Result.failure(e)
+        }
     }
 
     override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {

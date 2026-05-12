@@ -24,4 +24,15 @@ interface PairingSignalingGate {
      * 可降级到"无 confirmation"模式（仍显 QR 让用户重试）。
      */
     suspend fun ensureRegistered(localPeerId: String): Result<Unit>
+
+    /**
+     * v1.1 W3.7 Flow B: phone 扫桌面 QR 完成本地写库后，经信令发 pair-ack
+     * 给 desktop 的 pcPeerId，让 desktop web-panel 看到 acked 状态。
+     *
+     * Payload 字段（与 desktop `desktop-pair-handlers.recordPairAck` 期望对齐）:
+     *   {type:"pair-ack", pairingCode, mobileDid, deviceInfo:{deviceId,name,platform}, timestamp}
+     *
+     * impl 内部先 ensureRegistered 保证 signaling 已连，再 sendForwardedMessage。
+     */
+    suspend fun sendAck(toPeerId: String, ackPayload: Map<String, Any?>): Result<Unit>
 }

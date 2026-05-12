@@ -63,6 +63,11 @@ const {
 const {
   createMobilePairConfirmationHandler,
 } = require("./handlers/mobile-pair-handlers");
+const {
+  createDesktopPairGenerateHandler,
+  createDesktopPairPollAckHandler,
+  createDesktopPairResetHandler,
+} = require("./handlers/desktop-pair-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -276,6 +281,22 @@ async function startWebShell(options = {}) {
           ? options.getP2pManager
           : () => options.p2pManager ?? null,
     }),
+    // v1.1 W3.7 Flow B (desktop QR / phone scans). 三个 topic 形成
+    // 完整 round-trip：generate-qr 产生 payload → Vue 渲染 → phone 扫
+    // 经信令发 pair-ack → mobile-bridge incoming router recordPairAck →
+    // Vue poll-ack 看到状态变 acked → 刷新设备列表。
+    "desktop.pair.generate-qr": createDesktopPairGenerateHandler({
+      getMobileBridge:
+        typeof options.getMobileBridge === "function"
+          ? options.getMobileBridge
+          : () => options.mobileBridge ?? null,
+      getDeviceManager:
+        typeof options.getDeviceManager === "function"
+          ? options.getDeviceManager
+          : () => options.deviceManager ?? null,
+    }),
+    "desktop.pair.poll-ack": createDesktopPairPollAckHandler(),
+    "desktop.pair.reset": createDesktopPairResetHandler(),
     ...(options.extraHandlers || {}),
   };
 

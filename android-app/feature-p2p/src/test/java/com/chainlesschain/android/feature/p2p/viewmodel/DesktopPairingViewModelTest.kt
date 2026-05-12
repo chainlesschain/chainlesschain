@@ -96,6 +96,10 @@ class DesktopPairingViewModelTest {
             lastPeerId = localPeerId
             return Result.success(Unit)
         }
+        override suspend fun sendAck(
+            toPeerId: String,
+            ackPayload: Map<String, Any?>,
+        ): Result<Unit> = Result.success(Unit)
     }
 
     private fun makeVM(

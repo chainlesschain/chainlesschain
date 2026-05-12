@@ -42,6 +42,7 @@ import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
 import com.chainlesschain.android.feature.p2p.ui.DesktopPairingScreen
+import com.chainlesschain.android.feature.p2p.ui.ScanDesktopPairingScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskCreateScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
 import com.chainlesschain.android.presentation.MainContainer
@@ -334,6 +335,7 @@ fun NavGraph(
                 onNavigateToKeyManagement = { navController.navigate(Screen.KeyManagement.route) },
                 onNavigateToAsrSettings = { navController.navigate(Screen.AsrSettings.route) },
                 onNavigateToDesktopPairing = { navController.navigate(Screen.DesktopPairing.route) },
+                onNavigateToScanDesktopPairing = { navController.navigate(Screen.ScanDesktopPairing.route) },
                 currentThemeMode = currentThemeMode,
                 onThemeModeChanged = onThemeModeChanged
             )
@@ -341,6 +343,10 @@ fun NavGraph(
 
         composable(Screen.DesktopPairing.route) {
             DesktopPairingScreen(onClose = { navController.popBackStack() })
+        }
+
+        composable(Screen.ScanDesktopPairing.route) {
+            ScanDesktopPairingScreen(onClose = { navController.popBackStack() })
         }
 
         composable(Screen.KeyManagement.route) {
@@ -698,6 +704,7 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object DesktopPairing : Screen("desktop_pairing") // v1.1 W3.2 mobile↔desktop QR pairing
+    data object ScanDesktopPairing : Screen("scan_desktop_pairing") // v1.1 W3.7 Flow B
     data object About : Screen("about")
     data object HelpFeedback : Screen("help_feedback")
     data object DeviceManagement : Screen("device_management")

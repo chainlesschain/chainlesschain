@@ -940,6 +940,9 @@ class ChainlessChainApp {
         // 值（startWebShell 之后），所以注册时传函数避免捕 null。
         getMobileBridge: () => this.mobileBridge ?? null,
         getP2pManager: () => this.p2pManager ?? null,
+        // v1.1 W3.7 Flow B: deviceManager 作 mobileBridge.peerId 的备胎来源
+        // （pcPeerId 真实值 = currentDevice.deviceId）
+        getDeviceManager: () => this.deviceManager ?? null,
         mainWindow: this.mainWindow,
         // Phase 1.6 — lazy getter so `shell.switch` topic can persist the
         // ui.useWebShellExperimental opt-out from inside web-panel.

@@ -16,8 +16,59 @@
       title="新增配对"
       style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 16px;"
     >
-      <a-tabs v-model:activeKey="addMode">
-        <a-tab-pane key="manual" tab="手动输入（推荐）">
+      <a-tabs v-model:activeKey="addMode" @change="onTabChange">
+        <a-tab-pane key="desktop-qr" tab="桌面 QR（推荐）">
+          <a-alert
+            type="info"
+            show-icon
+            style="margin-bottom: 16px;"
+            message="在手机上 设置 → 扫描桌面 QR，对准下方二维码即可"
+          />
+          <div style="text-align: center;">
+            <div v-if="desktopQrLoading">
+              <a-spin /> 生成 QR 中…
+            </div>
+            <div v-else-if="desktopQrError" style="color: #ff4d4f;">
+              {{ desktopQrError }}
+              <div style="margin-top: 12px;">
+                <a-button @click="regenerateDesktopQr">重试</a-button>
+              </div>
+            </div>
+            <div v-else-if="desktopQrPayload">
+              <div
+                style="display: inline-block; background: #fff; padding: 16px; border-radius: 8px; border: 2px solid var(--border-color);"
+              >
+                <a-qrcode
+                  :value="desktopQrPayloadJson"
+                  :size="280"
+                  error-level="H"
+                />
+              </div>
+              <div style="margin-top: 16px; color: var(--text-muted); font-size: 12px;">
+                配对码（手机也可手输）：
+              </div>
+              <div
+                style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin-top: 4px;"
+              >
+                {{ desktopQrPayload.code }}
+              </div>
+              <div style="margin-top: 16px;">
+                <a-tag :color="desktopAckStatus.color">
+                  {{ desktopAckStatus.label }}
+                </a-tag>
+                <a-button
+                  size="small"
+                  type="link"
+                  style="margin-left: 8px;"
+                  @click="regenerateDesktopQr"
+                >
+                  重新生成
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </a-tab-pane>
+        <a-tab-pane key="manual" tab="手动输入">
           <a-alert
             type="info"
             show-icon
@@ -164,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ReloadOutlined,
@@ -184,8 +235,16 @@ const error = ref('')
 const unpairingId = ref('')
 const showScanner = ref(false)
 
+// v1.1 W3.7 Flow B default tab — desktop QR / phone scans
+const addMode = ref('desktop-qr')
+const desktopQrLoading = ref(false)
+const desktopQrError = ref('')
+const desktopQrPayload = ref(null)
+const desktopQrPayloadJson = ref('')
+const desktopAckStatus = ref({ label: '等待手机扫描…', color: 'blue' })
+let desktopAckPollTimer = null
+
 // v1.1 W3.6 manual entry tab state
-const addMode = ref('manual')
 const manualSubmitting = ref(false)
 const manualForm = ref({
   did: '',
@@ -193,6 +252,115 @@ const manualForm = ref({
   deviceId: '',
   deviceName: '',
 })
+
+async function generateDesktopQr() {
+  desktopQrLoading.value = true
+  desktopQrError.value = ''
+  desktopQrPayload.value = null
+  desktopAckStatus.value = { label: '等待手机扫描…', color: 'blue' }
+  try {
+    const reply = await ws.sendRaw({ type: 'desktop.pair.generate-qr' }, 10000)
+    const r = reply?.result ?? reply
+    if (r?.payload && r?.payloadJson) {
+      desktopQrPayload.value = r.payload
+      desktopQrPayloadJson.value = r.payloadJson
+      startAckPolling()
+    } else {
+      desktopQrError.value = reply?.error || '生成失败：mobileBridge 未就绪？'
+    }
+  } catch (e) {
+    desktopQrError.value = `生成失败: ${e.message}`
+  } finally {
+    desktopQrLoading.value = false
+  }
+}
+
+async function regenerateDesktopQr() {
+  stopAckPolling()
+  try {
+    await ws.sendRaw({ type: 'desktop.pair.reset' }, 3000)
+  } catch {
+    // best-effort cleanup
+  }
+  await generateDesktopQr()
+}
+
+function startAckPolling() {
+  stopAckPolling()
+  desktopAckPollTimer = setInterval(async () => {
+    try {
+      const reply = await ws.sendRaw({ type: 'desktop.pair.poll-ack' }, 3000)
+      const r = reply?.result ?? reply
+      if (r?.status === 'acked') {
+        desktopAckStatus.value = {
+          label: `手机已扫描确认 (${r.ack?.deviceInfo?.name || r.ack?.mobileDid?.slice(0, 12) || ''})`,
+          color: 'green',
+        }
+        stopAckPolling()
+        // v1.1 W3.7 Flow B: ack 到了只是内存 session 状态变 acked，要把这条
+        // mobile 设备写进 p2p_paired_devices SQLite 表才会在"已配对设备"
+        // 列表显示。复用 pair-from-qr CLI 路径，构 PairingQrPayload 提交。
+        await registerPairedFromAck(r.ack)
+        await refresh()
+      } else if (r?.status === 'expired') {
+        desktopAckStatus.value = { label: 'QR 已过期（5min），点重新生成', color: 'orange' }
+        stopAckPolling()
+      }
+    } catch {
+      // transient WS hiccup; keep polling
+    }
+  }, 2500)
+}
+
+async function registerPairedFromAck(ack) {
+  if (!ack || !ack.pairingCode || !ack.mobileDid || !ack.deviceInfo?.deviceId) {
+    message.warning('配对成功但 ack 字段不全，无法写入设备表')
+    return
+  }
+  const payload = {
+    type: 'device-pairing',
+    code: ack.pairingCode,
+    did: ack.mobileDid,
+    deviceInfo: {
+      deviceId: ack.deviceInfo.deviceId,
+      name: ack.deviceInfo.name || '(unnamed)',
+      platform: ack.deviceInfo.platform || 'android',
+    },
+    timestamp: Date.now(),
+  }
+  try {
+    const safeArg = JSON.stringify(JSON.stringify(payload))
+    const { output } = await ws.execute(`p2p pair-from-qr ${safeArg} --json`, 15000)
+    const result = parseJsonOutput(output)
+    if (result?.success) {
+      message.success(`配对成功: ${result.deviceName || result.deviceId.slice(0, 8)}`)
+    } else {
+      message.warning(`写入设备表失败: ${result?.error || 'unknown'}`)
+    }
+  } catch (e) {
+    message.warning(`写入设备表异常: ${e.message}`)
+  }
+}
+
+function stopAckPolling() {
+  if (desktopAckPollTimer) {
+    clearInterval(desktopAckPollTimer)
+    desktopAckPollTimer = null
+  }
+}
+
+function onTabChange(key) {
+  if (key === 'desktop-qr') {
+    if (!desktopQrPayload.value) {
+      generateDesktopQr()
+    } else if (!desktopAckPollTimer) {
+      startAckPolling()
+    }
+  } else {
+    // 切到其它 tab 停 poll，省 ws 流量
+    stopAckPolling()
+  }
+}
 
 function resetManualForm() {
   manualForm.value = { did: '', code: '', deviceId: '', deviceName: '' }
@@ -344,12 +512,21 @@ function parseJsonOutput(raw) {
   } catch {
     // intentional fallthrough
   }
-  // Strip lines that don't look like JSON (logger prefixes etc)
-  const lines = raw.split('\n').filter((l) => l.trim())
-  // Find first line starting with { or [
-  const startIdx = lines.findIndex((l) => /^\s*[\{\[]/.test(l))
+  // CLI 前缀 `[AppConfig]` `[DatabaseManager]` 等以 `[Letter` 开头，与真 JSON
+  // 数组 `[` (后跟空白 / 引号 / 数字 / `{` / 换行) 区分。同样兼容 `{...}` 起点。
+  const lines = raw.split('\n')
+  const startIdx = lines.findIndex((l) => {
+    const t = l.trim()
+    return /^[\[\{](\s*$|[\s"'\d\[\{\-])/.test(t)
+  })
   if (startIdx < 0) return null
-  const jsonText = lines.slice(startIdx).join('\n')
+  // 尾部 CLI 后缀 `[DatabaseManager] Database closed` 等同样 strip
+  const endIdx = lines.length - 1 - [...lines].reverse().findIndex((l) => {
+    const t = l.trim()
+    return /^[\]\}]/.test(t) && !/^[\]\}][A-Za-z]/.test(t)
+  })
+  if (endIdx < startIdx) return null
+  const jsonText = lines.slice(startIdx, endIdx + 1).join('\n')
   try {
     return JSON.parse(jsonText)
   } catch {
@@ -373,7 +550,17 @@ function formatTime(t) {
   }
 }
 
-onMounted(refresh)
+onMounted(async () => {
+  await refresh()
+  // v1.1 W3.7: 默认 tab 是 desktop-qr，挂载时生成 QR + 起轮询
+  if (addMode.value === 'desktop-qr') {
+    generateDesktopQr()
+  }
+})
+
+onUnmounted(() => {
+  stopAckPolling()
+})
 </script>
 
 <style scoped>

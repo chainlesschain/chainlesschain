@@ -201,6 +201,11 @@ class MobileBridge extends EventEmitter {
     logger.info("[MobileBridge] 最终注册 peerId:", peerId);
     logger.info("[MobileBridge] ========================================");
 
+    // v1.1 W3.7 Flow B: expose 已注册的 peerId on instance 让 desktop-pair
+    // WS topic 能填入 QR payload pcPeerId 字段。否则 phone scan 后 ack 到
+    // "desktop-unknown" 信令服务器找不到 forward 目标。
+    this.peerId = peerId;
+
     this.send({
       type: "register",
       peerId,
@@ -826,6 +831,29 @@ class MobileBridge extends EventEmitter {
     const { from, payload } = message;
 
     logger.info("[MobileBridge] 收到P2P消息:", from);
+
+    // v1.1 W3.7 Flow B (issue #19): pair-ack 拦截 — mobile 扫桌面 QR 完成后
+    // 经信令发 {type:"pair-ack"} 到 desktop 的 pcPeerId。捕获后调
+    // desktop-pair-handlers.recordPairAck 让 Vue poll 看到 acked 状态。
+    // 不 bridgeToLibp2p，pair-ack 是 desktop-pairing 协议专用，不走 libp2p。
+    if (payload && payload.type === "pair-ack") {
+      try {
+        const {
+          recordPairAck,
+        } = require("../web-shell/handlers/desktop-pair-handlers");
+        const matched = recordPairAck(payload);
+        if (!matched) {
+          logger.warn(
+            "[MobileBridge] pair-ack 无活跃 session 或 code 不匹配，丢弃",
+          );
+        } else {
+          logger.info("[MobileBridge] ✓ pair-ack 已记录 desktop session");
+        }
+      } catch (e) {
+        logger.error("[MobileBridge] recordPairAck 调用失败:", e?.message);
+      }
+      return;
+    }
 
     // 桥接到libp2p网络
     await this.bridgeToLibp2p(from, JSON.stringify(payload));

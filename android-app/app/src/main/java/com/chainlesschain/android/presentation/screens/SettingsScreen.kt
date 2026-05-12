@@ -41,6 +41,7 @@ fun SettingsScreen(
     onNavigateToKeyManagement: () -> Unit = {},
     onNavigateToAsrSettings: () -> Unit = {},
     onNavigateToDesktopPairing: () -> Unit = {},
+    onNavigateToScanDesktopPairing: () -> Unit = {},
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
@@ -231,12 +232,23 @@ fun SettingsScreen(
                 )
             }
 
-            // v1.1 W3.2 Mobile↔Desktop QR pairing entry (issue #19)
+            // v1.1 W3.7 Flow B (推荐入口): 扫描桌面 QR — 默认主路径，手机摄像头
+            // 对桌面屏 QR 识别率高且符合主流配对 UX (微信 / 支付宝 / Discord 同模式)
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Default.QrCodeScanner,
+                    title = "扫描桌面 QR",
+                    subtitle = "扫描桌面端 移动桥 显示的 QR 完成配对（推荐）",
+                    onClick = onNavigateToScanDesktopPairing
+                )
+            }
+
+            // v1.1 W3.2 Flow A (高级 / fallback): 手机显 QR / 桌面扫
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.QrCode2,
-                    title = "配对桌面",
-                    subtitle = "显示二维码让桌面端扫描，建立 P2P 连接",
+                    title = "配对桌面（手机显 QR）",
+                    subtitle = "高级路径：本机生成 QR，让桌面摄像头扫或手输",
                     onClick = onNavigateToDesktopPairing
                 )
             }
