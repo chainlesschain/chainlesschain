@@ -7,6 +7,15 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
+    <!-- v1.2 #1 Android Auto — CarApp template host 调 CarAppService 必需 -->
+    <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+
+    <!-- v1.2 #1 Android Auto feature gate — Auto host 用 hardware.type.automotive
+         过滤 launcher；required=false 让 phone APK 仍可装非 Auto 设备 -->
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="false" />
+
     <!-- 存储权限 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -136,6 +145,22 @@
             android:name=".capture.location.LocationForegroundService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- v1.2 #1 Android Auto — CarAppService entry。Auto host 通过
+             androidx.car.app.CarAppService category + automotiveApp meta-data
+             发现并 launch 本服务。Phase 0 仅占位 Voice Mode；Phase 1 接 ASR。 -->
+        <service
+            android:name=".auto.CcCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT" />
+            </intent-filter>
+        </service>
+        <!-- 必需：Auto host 读 automotive_app_desc.xml 决定 app 类别 -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
 
         <!-- Disable default WorkManager initializer (using Hilt's HiltWorkerFactory) -->
         <provider

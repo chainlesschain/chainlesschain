@@ -311,6 +311,10 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    // v1.2 #1 Android Auto — CarAppService + templates。1.4.0 是 androidx.car.app
+    // 当前 stable，要求 minSdk 23（与 :app 一致）。
+    implementation("androidx.car.app:app:1.4.0")
+
     // Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
     implementation(composeBom)
@@ -413,6 +417,9 @@ dependencies {
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("androidx.test:core-ktx:1.5.0")
     testImplementation("androidx.test.ext:junit:1.1.5")
+
+    // v1.2 #1 Android Auto — SessionController + TestCarContext for Screen unit tests
+    testImplementation("androidx.car.app:app-testing:1.4.0")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
