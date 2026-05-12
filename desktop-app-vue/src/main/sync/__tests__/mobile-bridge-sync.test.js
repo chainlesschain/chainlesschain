@@ -92,11 +92,28 @@ beforeAll(async () => {
 });
 
 /**
- * 建最小 schema：5 张目标表 + cursor + tombstone（带 resource_type）+ 6 个 trigger。
+ * 建最小 schema：6 张目标表 + cursor + tombstone（带 resource_type）+ 4 个 trigger。
  * 镜像 database-schema.js 的相关定义；列限制范围最小化（只有 walker / apply 用得到的）。
+ *
+ * v1.1 W1 (2026-05-12)：加 knowledge_items 表 + trigger，让 KNOWLEDGE_ITEM 走全链路
+ * round-trip。trigger 一刻同时写所有已建游标的 provider（包括 mobile + webdav + oss），
+ * 这是 Phase 3c 的 fan-out per-provider 设计；本测试只验 mobile provider 路径。
  */
 function bootstrapSchema(sqlDb) {
   sqlDb.exec(`
+    CREATE TABLE knowledge_items (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('note', 'document', 'conversation', 'web_clip')),
+      content TEXT,
+      content_path TEXT,
+      embedding_path TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      git_commit_hash TEXT,
+      device_id TEXT,
+      sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict'))
+    );
     CREATE TABLE p2p_chat_messages (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
@@ -185,6 +202,13 @@ function bootstrapSchema(sqlDb) {
       UNIQUE(provider_id, account_key, item_id)
     );
 
+    CREATE TRIGGER trg_knowledge_items_del
+    AFTER DELETE ON knowledge_items FOR EACH ROW BEGIN
+      INSERT OR IGNORE INTO sync_external_tombstones
+        (provider_id, account_key, item_id, resource_type, deleted_at)
+      SELECT c.provider_id, c.account_key, OLD.id, 'KNOWLEDGE_ITEM', 1234567890
+      FROM sync_external_provider_cursor c;
+    END;
     CREATE TRIGGER trg_p2p_chat_messages_del
     AFTER DELETE ON p2p_chat_messages FOR EACH ROW BEGIN
       INSERT OR IGNORE INTO sync_external_tombstones
@@ -641,7 +665,7 @@ describe("MobileBridgeSync · handleAck", () => {
 // pushPending — tombstone iteration with resourceType filter
 // ============================================================
 describe("MobileBridgeSync · pushPending tombstone integration", () => {
-  it("iterates only mobile-5 ResourceType tombstones (not knowledge)", async () => {
+  it("iterates mobile-aware ResourceType tombstones incl. KNOWLEDGE_ITEM (v1.1 W1), excl. CONTACT", async () => {
     const sync = makeSync();
 
     // 为 mobile provider 建 cursor 让 trigger fan-out
@@ -656,24 +680,267 @@ describe("MobileBridgeSync · pushPending tombstone integration", () => {
     );
     dbManager.run(`DELETE FROM friends WHERE friend_did = 'did:x'`);
 
-    // 手动塞一行 KNOWLEDGE_ITEM tombstone（来自 Phase 3c webdav 路径）
+    // 删一个 knowledge_items → trigger 写 KNOWLEDGE_ITEM tombstone
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, content, created_at, updated_at)
+       VALUES ('k1', 'old note', 'note', 'body', 1, 1)`,
+    );
+    dbManager.run(`DELETE FROM knowledge_items WHERE id = 'k1'`);
+
+    // 手动塞一行 CONTACT tombstone（v1 不在 mobile-aware filter 内）
     dbManager.run(
       `INSERT INTO sync_external_tombstones (provider_id, account_key, item_id, resource_type, deleted_at)
-       VALUES ('mobile', 'dev-1', 'k1', 'KNOWLEDGE_ITEM', 999)`,
+       VALUES ('mobile', 'dev-1', 'c1', 'CONTACT', 999)`,
     );
 
     // stub _invokeRemote 让 push 不真发网络
     patchInvokeRemote(sync, () => ({ status: "applied" }));
 
     const result = await sync.pushPending("dev-1");
-    // 只有 FRIEND tombstone 应被 push（KNOWLEDGE_ITEM 跳过）
-    expect(result.pushed).toBe(1);
+    // FRIEND + KNOWLEDGE_ITEM 应被 push（CONTACT 跳过）
+    expect(result.pushed).toBe(2);
     const calls = sync._invokeRemote.mock.calls;
     const pushCalls = calls.filter((c) => c[1] === "sync.push");
-    expect(pushCalls).toHaveLength(1);
-    expect(pushCalls[0][2].item.resourceType).toBe(ResourceType.FRIEND);
-    expect(pushCalls[0][2].item.resourceId).toBe("did:x");
-    expect(pushCalls[0][2].item.operation).toBe(SyncOperation.DELETE);
+    expect(pushCalls).toHaveLength(2);
+    const pushedTypes = pushCalls.map((c) => c[2].item.resourceType).sort();
+    expect(pushedTypes).toEqual([
+      ResourceType.FRIEND,
+      ResourceType.KNOWLEDGE_ITEM,
+    ]);
+    expect(
+      pushCalls.every((c) => c[2].item.operation === SyncOperation.DELETE),
+    ).toBe(true);
+  });
+});
+
+// ============================================================
+// Walker — knowledge_items (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · _fetchKnowledgeItems", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns empty when table empty", async () => {
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows).toEqual([]);
+  });
+
+  it("emits SyncItem with KNOWLEDGE_ITEM resourceType + JSON-encoded data", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, created_at, updated_at, device_id)
+       VALUES ('k1', 'My Note', 'note', 'body text', 100, 100, 'dev-a')`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resourceType: ResourceType.KNOWLEDGE_ITEM,
+      resourceId: "k1",
+      operation: SyncOperation.CREATE, // updated_at == created_at
+      timestamp: 100,
+      deviceId: "dev-a",
+    });
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.title).toBe("My Note");
+    expect(decoded.type).toBe("note");
+    expect(decoded.content).toBe("body text");
+  });
+
+  it("emits UPDATE op when updated_at > created_at", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at)
+       VALUES ('k2', 'Edited', 'document', 100, 500)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    expect(rows[0].operation).toBe(SyncOperation.UPDATE);
+  });
+
+  it("respects (updated_at, id) lex cursor", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at) VALUES
+       ('a', 'A', 'note', 100, 100),
+       ('b', 'B', 'note', 100, 100),
+       ('c', 'C', 'note', 200, 200)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 100, "a", 100);
+    expect(rows.map((r) => r.resourceId)).toEqual(["b", "c"]);
+  });
+
+  it("skips local-only columns from payload (no content_path / embedding_path / git_commit_hash)", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, content_path, embedding_path, git_commit_hash,
+        created_at, updated_at)
+       VALUES ('k3', 't', 'note', 'c', '/local/path', '/emb', 'abc123', 1, 1)`,
+    );
+    const rows = await sync._fetchKnowledgeItems(dbManager, 0, null, 100);
+    const decoded = JSON.parse(rows[0].data);
+    expect(decoded.content_path).toBeUndefined();
+    expect(decoded.embedding_path).toBeUndefined();
+    expect(decoded.git_commit_hash).toBeUndefined();
+  });
+});
+
+// ============================================================
+// Apply — KNOWLEDGE_ITEM (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · _applyKnowledgeItem", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("INSERT new knowledge_item with type normalize + sync_status=synced", async () => {
+    await sync._applyKnowledgeItem({
+      resourceId: "k1",
+      operation: SyncOperation.CREATE,
+      timestamp: 500,
+      deviceId: "dev-android",
+      data: JSON.stringify({
+        title: "Mobile Note",
+        type: "NOTE", // Android KnowledgeType.value 实为 lowercase 但兜底 normalize
+        content: "from phone",
+        createdAt: 100,
+        updatedAt: 500,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = ?`, [
+      "k1",
+    ]);
+    expect(row.title).toBe("Mobile Note");
+    expect(row.type).toBe("note");
+    expect(row.content).toBe("from phone");
+    expect(row.sync_status).toBe("synced");
+    expect(row.device_id).toBe("dev-android");
+  });
+
+  it("UPSERT preserves local-only columns (content_path / embedding_path / git_commit_hash)", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, content_path, embedding_path, git_commit_hash,
+        created_at, updated_at, sync_status)
+       VALUES ('k2', 'Old', 'note', 'old body', '/local/x.md', '/emb/x.bin',
+               'sha1', 100, 100, 'synced')`,
+    );
+    await sync._applyKnowledgeItem({
+      resourceId: "k2",
+      operation: SyncOperation.UPDATE,
+      timestamp: 200,
+      data: JSON.stringify({
+        title: "New",
+        type: "note",
+        content: "new body",
+        createdAt: 100,
+        updatedAt: 200,
+      }),
+    });
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = 'k2'`);
+    expect(row.title).toBe("New");
+    expect(row.content).toBe("new body");
+    // 本地独有列未被清空
+    expect(row.content_path).toBe("/local/x.md");
+    expect(row.embedding_path).toBe("/emb/x.bin");
+    expect(row.git_commit_hash).toBe("sha1");
+  });
+
+  it("DELETE removes by id", async () => {
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, created_at, updated_at)
+       VALUES ('k3', 't', 'note', 1, 1)`,
+    );
+    await sync._applyKnowledgeItem({
+      resourceId: "k3",
+      operation: SyncOperation.DELETE,
+      timestamp: 999,
+    });
+    expect(dbManager.all(`SELECT * FROM knowledge_items`)).toHaveLength(0);
+  });
+
+  it("invalid type falls back to 'note' (防绕过 CHECK 约束)", async () => {
+    await sync._applyKnowledgeItem({
+      resourceId: "k4",
+      operation: SyncOperation.CREATE,
+      timestamp: 1,
+      data: JSON.stringify({
+        title: "Bad Type",
+        type: "GARBAGE",
+        content: "x",
+      }),
+    });
+    const row = dbManager.get(
+      `SELECT type FROM knowledge_items WHERE id = 'k4'`,
+    );
+    expect(row.type).toBe("note");
+  });
+
+  it("_normalizeKnowledgeType accepts all 4 KnowledgeType values + falls back", () => {
+    expect(sync._normalizeKnowledgeType("note")).toBe("note");
+    expect(sync._normalizeKnowledgeType("document")).toBe("document");
+    expect(sync._normalizeKnowledgeType("conversation")).toBe("conversation");
+    expect(sync._normalizeKnowledgeType("web_clip")).toBe("web_clip");
+    expect(sync._normalizeKnowledgeType("NOTE")).toBe("note"); // case-insensitive
+    expect(sync._normalizeKnowledgeType(null)).toBe("note");
+    expect(sync._normalizeKnowledgeType("anything")).toBe("note");
+  });
+});
+
+// ============================================================
+// handlePush — KNOWLEDGE_ITEM round-trip (v1.1 W1)
+// ============================================================
+describe("MobileBridgeSync · handlePush KNOWLEDGE_ITEM", () => {
+  it("applies remote KB item when local doesn't exist", async () => {
+    const sync = makeSync();
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.KNOWLEDGE_ITEM,
+        resourceId: "k-remote",
+        operation: SyncOperation.CREATE,
+        version: 1,
+        timestamp: 100,
+        data: JSON.stringify({
+          title: "From Phone",
+          type: "note",
+          content: "captured via OCR",
+          createdAt: 50,
+          updatedAt: 100,
+        }),
+      },
+    });
+    expect(res.status).toBe("applied");
+    const row = dbManager.get(`SELECT * FROM knowledge_items WHERE id = ?`, [
+      "k-remote",
+    ]);
+    expect(row.title).toBe("From Phone");
+    expect(row.sync_status).toBe("synced");
+  });
+
+  it("returns conflict when local KB newer (LWW)", async () => {
+    const sync = makeSync();
+    dbManager.run(
+      `INSERT INTO knowledge_items (id, title, type, content, created_at, updated_at, device_id, sync_status)
+       VALUES ('k-conf', 'LOCAL', 'note', 'local body', 100, 5000, 'desktop', 'synced')`,
+    );
+    const res = await sync.handlePush({
+      item: {
+        resourceType: ResourceType.KNOWLEDGE_ITEM,
+        resourceId: "k-conf",
+        operation: SyncOperation.UPDATE,
+        version: 1,
+        timestamp: 100, // 比本地 5000 旧
+        data: JSON.stringify({
+          title: "REMOTE",
+          type: "note",
+          content: "remote body",
+        }),
+      },
+    });
+    expect(res.status).toBe("conflict");
+    expect(
+      dbManager.get(`SELECT title FROM knowledge_items WHERE id = 'k-conf'`)
+        .title,
+    ).toBe("LOCAL");
   });
 });
 

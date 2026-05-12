@@ -6,8 +6,13 @@
  * sync.push / sync.pull / sync.ack。详见 docs/design/Phase3d_Mobile_Sync_设计文档.md。
  *
  * 表结构：cursor + tombstone 复用 Phase 3c 的 sync_external_* 表（provider_id='mobile'，
- * account_key=<mobileDeviceId>）。Walker 针对 5 张社交子系统表做 incremental 扫描：
- * p2p_chat_messages / contacts / friends / social_posts / post_comments / notifications。
+ * account_key=<mobileDeviceId>）。Walker 针对 6 张表做 incremental 扫描：
+ * knowledge_items / p2p_chat_messages / friends / social_posts / post_comments / notifications。
+ *
+ * v1.1 W1 (2026-05-12)：扩 KNOWLEDGE_ITEM 走 mobile provider。Phase 3c 的
+ * `trg_sync_ext_tombstone_knowledge` trigger 已经为所有已建游标的 provider fan-out
+ * KNOWLEDGE_ITEM tombstone（包括 mobile），原 walker 只是 listTombstones 过滤把
+ * KNOWLEDGE_ITEM 漏了；本 commit 把 ResourceType 加上后过滤自动包含。
  *
  * 冲突：last-write-wins by (version DESC, timestamp DESC, deviceId DESC tie-break)，
  * 严格对齐 Android `core-p2p/sync/ConflictResolver.kt` 的算法。
@@ -27,6 +32,7 @@ const didSigner = require("../did/did-signer");
 const PROVIDER_ID = "mobile";
 
 const ResourceType = Object.freeze({
+  KNOWLEDGE_ITEM: "KNOWLEDGE_ITEM",
   MESSAGE: "MESSAGE",
   CONTACT: "CONTACT",
   FRIEND: "FRIEND",
@@ -196,8 +202,10 @@ class MobileBridgeSync {
     let conflicts = 0;
 
     // tombstones 先：远端先知道哪些 id 已删除，避免后续 INSERT 重新建。
-    // resourceTypes 过滤让 mobile provider 只看自己关心的 ResourceType
-    // （knowledge_items 的 KNOWLEDGE_ITEM tombstone 留给 webdav/oss 处理）。
+    // resourceTypes 过滤让 mobile provider 只看自己关心的 ResourceType。
+    // CONTACT 单独排除（无对等映射，详见 _tableFetchers 注释）；KNOWLEDGE_ITEM
+    // 自 v1.1 W1 起 mobile 也消费（Phase 3c trigger 已 fan-out per-provider，
+    // 每 provider 拿到独立的 tombstone 行，删一份不影响 webdav/oss 的另一份）。
     // 注：listTombstones 返回 raw SQLite 列（snake_case），形状与 getCursor
     // 不一致是历史遗留，详见 sync-external-store.js listTombstones 注释。
     const tombstones = externalStoreApi.listTombstones(
@@ -417,6 +425,8 @@ class MobileBridgeSync {
    */
   _tableFetchers() {
     return [
+      // v1.1 W1：KNOWLEDGE_ITEM 排第一，KB 同步是 L2/L3 核心价值。
+      this._fetchKnowledgeItems.bind(this),
       this._fetchP2PChatMessages.bind(this),
       this._fetchFriends.bind(this),
       this._fetchSocialPosts.bind(this),
@@ -427,6 +437,63 @@ class MobileBridgeSync {
       // 概念，无对等映射。v2 按需补。
       // this._fetchContacts.bind(this),
     ];
+  }
+
+  /**
+   * knowledge_items walker — v1.1 W1。
+   *
+   * 字段策略：只同步 Android+桌面 schema 共同的最小子集
+   * （id / title / type / content / created_at / updated_at / device_id）。
+   * 桌面独有列（content_path / embedding_path / git_commit_hash / sync_status）
+   * 不上线；Android 独有列（folderId / tags / isFavorite / isPinned）也不下传，
+   * 仍保留为本地状态。v1.1 next iteration 视用户反馈再扩。
+   *
+   * 类型 CHECK 完全对齐：desktop ('note'|'document'|'conversation'|'web_clip')
+   * = Android KnowledgeType.value，零 normalize。
+   *
+   * 游标 (updated_at, id) lex 序，与其他 walker 一致。
+   */
+  async _fetchKnowledgeItems(dbManager, sinceMs, sinceId, limit) {
+    const sql = sinceId
+      ? `SELECT id, title, type, content, created_at, updated_at, device_id
+         FROM knowledge_items
+         WHERE updated_at > ? OR (updated_at = ? AND id > ?)
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`
+      : `SELECT id, title, type, content, created_at, updated_at, device_id
+         FROM knowledge_items
+         WHERE updated_at > ?
+         ORDER BY updated_at ASC, id ASC
+         LIMIT ?`;
+    const params = sinceId
+      ? [sinceMs, sinceMs, sinceId, limit]
+      : [sinceMs, limit];
+    const rows = dbManager.all(sql, params);
+    return rows.map((row) => ({
+      resourceType: ResourceType.KNOWLEDGE_ITEM,
+      resourceId: row.id,
+      // updated_at == created_at 视为 CREATE，否则 UPDATE。两端 apply 路径
+      // 都用 UPSERT，op 区分只是 telemetry / conflict-resolve 不区分两者。
+      operation:
+        row.updated_at > row.created_at
+          ? SyncOperation.UPDATE
+          : SyncOperation.CREATE,
+      version: 1,
+      timestamp: row.updated_at,
+      deviceId: row.device_id || "",
+      data: JSON.stringify({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        content: row.content || "",
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        // deviceId 内嵌 data：Android KnowledgeItemEntity.deviceId 是 NOT NULL
+        // 字段，kotlinx.serialization decodeFromString 需要 JSON 内有它才能
+        // 构造 entity。其他 walker 不放是因为对应 entity 允许 deviceId 缺省。
+        deviceId: row.device_id || "",
+      }),
+    }));
   }
 
   /**
@@ -649,6 +716,9 @@ class MobileBridgeSync {
       }
 
       switch (item.resourceType) {
+        case ResourceType.KNOWLEDGE_ITEM:
+          await this._applyKnowledgeItem(item);
+          break;
         case ResourceType.MESSAGE:
           await this._applyMessage(item);
           break;
@@ -679,6 +749,49 @@ class MobileBridgeSync {
       this.logger.error("[MobileBridgeSync] apply 失败:", err);
       return { status: "failed", error: err.message || String(err) };
     }
+  }
+
+  /**
+   * KNOWLEDGE_ITEM apply — v1.1 W1。
+   *
+   * 字段子集：仅 id/title/type/content/created_at/updated_at/device_id 同步；
+   * 本地独有列（content_path / embedding_path / git_commit_hash / sync_status）
+   * 由 INSERT 默认值兜底，UPSERT 时不覆盖。
+   *
+   * type 走 _normalizeKnowledgeType 防对端发来 unexpected 值绕过 CHECK 约束。
+   * sync_status 入库时永远写 'synced'（item 来自对端 = 已被同步过的状态）。
+   */
+  async _applyKnowledgeItem(item) {
+    const data = JSON.parse(item.data || "{}");
+    if (item.operation === SyncOperation.DELETE) {
+      this.dbManager.run(`DELETE FROM knowledge_items WHERE id = ?`, [
+        item.resourceId,
+      ]);
+      return;
+    }
+    // ON CONFLICT(id) DO UPDATE 保留 content_path/embedding_path/git_commit_hash
+    // 等本地独有列；只覆写来自对端的字段。
+    this.dbManager.run(
+      `INSERT INTO knowledge_items
+       (id, title, type, content, created_at, updated_at, device_id, sync_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'synced')
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         type = excluded.type,
+         content = excluded.content,
+         updated_at = excluded.updated_at,
+         device_id = excluded.device_id,
+         sync_status = 'synced'`,
+      [
+        item.resourceId,
+        data.title || "",
+        this._normalizeKnowledgeType(data.type),
+        data.content || null,
+        data.createdAt || item.timestamp,
+        data.updatedAt || item.timestamp,
+        item.deviceId || null,
+      ],
+    );
   }
 
   /**
@@ -856,6 +969,18 @@ class MobileBridgeSync {
   // 字段 normalizer（处理 Android enum 大写 vs schema CHECK 小写）
   // ============================================================
 
+  /**
+   * KnowledgeType normalize — v1.1 W1。Android KnowledgeType.value 与 desktop
+   * CHECK 约束完全对齐（note/document/conversation/web_clip），常规路径无 work；
+   * 兜底防对端发来 unexpected 值绕过 CHECK 约束（如 typo / 未来 enum 添加）。
+   */
+  _normalizeKnowledgeType(type) {
+    const lower = String(type || "note").toLowerCase();
+    return ["note", "document", "conversation", "web_clip"].includes(lower)
+      ? lower
+      : "note";
+  }
+
   _normalizeFriendStatus(status) {
     const lower = String(status || "pending").toLowerCase();
     return ["pending", "accepted", "blocked"].includes(lower)
@@ -897,6 +1022,20 @@ class MobileBridgeSync {
    */
   async _readLocalItem(resourceType, resourceId) {
     switch (resourceType) {
+      case ResourceType.KNOWLEDGE_ITEM: {
+        const row = this.dbManager.get(
+          `SELECT id, device_id, updated_at FROM knowledge_items WHERE id = ?`,
+          [resourceId],
+        );
+        return row
+          ? {
+              resourceId: row.id,
+              version: 1,
+              timestamp: row.updated_at,
+              deviceId: row.device_id || "",
+            }
+          : null;
+      }
       case ResourceType.MESSAGE: {
         const row = this.dbManager.get(
           `SELECT id, device_id, timestamp FROM p2p_chat_messages WHERE id = ?`,

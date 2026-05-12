@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.sync
 
 import timber.log.Timber
+import com.chainlesschain.android.core.p2p.sync.KnowledgeSyncApplier
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncDataApplier
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
@@ -15,18 +16,24 @@ import javax.inject.Singleton
  *
  * 将同步数据分发到对应的Repository进行数据库持久化。
  * 根据 ResourceType 路由到不同的Repository。
+ *
+ * v1.1 W1 (2026-05-12)：增 KNOWLEDGE_ITEM 路径。跨模块走 core-p2p
+ * `KnowledgeSyncApplier` 接口（feature-knowledge 实现），避免 feature-p2p →
+ * feature-knowledge 横向依赖。
  */
 @Singleton
 class DefaultSyncDataApplier @Inject constructor(
     private val messageRepository: P2PMessageRepository,
     private val friendRepository: FriendRepository,
     private val postRepository: PostRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val knowledgeSyncApplier: KnowledgeSyncApplier,
 ) : SyncDataApplier {
 
     override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {
         Timber.d("Creating $resourceType: $resourceId")
         when (resourceType) {
+            ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.saveFromSync(resourceId, data)
             ResourceType.MESSAGE -> messageRepository.saveMessageFromSync(resourceId, data)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.saveFriendFromSync(resourceId, data)
             ResourceType.POST -> postRepository.savePostFromSync(resourceId, data)
@@ -39,6 +46,7 @@ class DefaultSyncDataApplier @Inject constructor(
     override suspend fun update(resourceType: ResourceType, resourceId: String, data: String) {
         Timber.d("Updating $resourceType: $resourceId")
         when (resourceType) {
+            ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.updateFromSync(resourceId, data)
             ResourceType.MESSAGE -> messageRepository.updateMessageFromSync(resourceId, data)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.updateFriendFromSync(resourceId, data)
             ResourceType.POST -> postRepository.updatePostFromSync(resourceId, data)
@@ -51,6 +59,7 @@ class DefaultSyncDataApplier @Inject constructor(
     override suspend fun delete(resourceType: ResourceType, resourceId: String) {
         Timber.d("Deleting $resourceType: $resourceId")
         when (resourceType) {
+            ResourceType.KNOWLEDGE_ITEM -> knowledgeSyncApplier.deleteFromSync(resourceId)
             ResourceType.MESSAGE -> messageRepository.deleteMessageFromSync(resourceId)
             ResourceType.CONTACT, ResourceType.FRIEND -> friendRepository.deleteFriendFromSync(resourceId)
             ResourceType.POST -> postRepository.deletePostFromSync(resourceId)

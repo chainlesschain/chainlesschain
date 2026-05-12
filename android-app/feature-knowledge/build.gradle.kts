@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-ui"))
+    implementation(project(":core-p2p")) // v1.1 W1: KnowledgeSyncApplier interface
     implementation(project(":data-knowledge"))
 
     // Kotlin Serialization
