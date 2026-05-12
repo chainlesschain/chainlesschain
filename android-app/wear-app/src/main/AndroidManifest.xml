@@ -44,7 +44,20 @@
             </intent-filter>
         </activity>
 
-        <!-- Phase 1 (next commit) registers WearableListenerService here -->
+        <!-- v1.2 Wear Phase 1: 接收 phone → watch Wearable Data Layer push -->
+        <service
+            android:name=".sync.CcWearListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <!-- pathPrefix 限 /cc/，让其它 Wearable app 的 message 不抖动 service -->
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/cc/" />
+            </intent-filter>
+        </service>
+
         <!-- Phase 3 registers TileService + ComplicationDataSourceService -->
 
     </application>

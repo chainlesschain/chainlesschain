@@ -53,6 +53,9 @@ class AppInitializer @Inject constructor(
     // v1.2 prep #2: TURN ephemeral token refresher（只在用户 Settings 启用时实际跑）
     private val turnEphemeralRefresher: Lazy<TurnEphemeralRefresher>,
 
+    // v1.2 #20 P0.2 Wear Phase 1: AutoPushBus → wear node forwarder
+    private val wearPushForwarder: Lazy<com.chainlesschain.android.wear.WearPushForwarder>,
+
     // 其他需要异步初始化的组件
     // private val imageCache: Lazy<ImageCache>,
     // private val analyticsService: Lazy<AnalyticsService>,
@@ -154,6 +157,16 @@ class AppInitializer @Inject constructor(
                         turnEphemeralRefresher.get().start()
                     } catch (e: Exception) {
                         Timber.w(e, "TurnEphemeralRefresher.start failed (non-fatal)")
+                    }
+                }
+
+                // 9. v1.2 #20 P0.2 Wear Phase 1: 启动 AutoPushBus → wear push forwarder。
+                //    无 wear node 配对时 forward() 内部 connectedNodes 空，自然 no-op。
+                launch {
+                    try {
+                        wearPushForwarder.get().start()
+                    } catch (e: Exception) {
+                        Timber.w(e, "WearPushForwarder.start failed (non-fatal)")
                     }
                 }
 
