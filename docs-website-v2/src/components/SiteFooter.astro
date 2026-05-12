@@ -23,6 +23,7 @@ const t = isEn ? {
   business: 'Business Inquiries',
   rights: 'Xiamen Chainlesschain Technology Co., Ltd. · Unit 431-H, Floor 4, Building C, Xiamen International Shipping Center, 93 Xiangyu Rd., Xiamen FTZ',
   cert: 'MLPS Level 3',
+  standard: 'Intrinsic Security of AI Agent · T/ZGCMCA 023—2025',
 } : {
   tagline: '让数据主权回归个人，AI 效率触手可及。基于 CLI 与硬件加密的去中心化个人 AI 管理系统。',
   productH: '产品',
@@ -40,6 +41,7 @@ const t = isEn ? {
   business: '商务合作',
   rights: '厦门无链之链科技有限公司 · 自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H',
   cert: '等保三级认证',
+  standard: '《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025',
 };
 
 const p = (path) => isEn ? `/en${path}` : path;
@@ -108,7 +110,7 @@ const p = (path) => isEn ? `/en${path}` : path;
         <span>·</span>
         <span>{t.cert}</span>
         <span>·</span>
-        <span>T/ZGCMCA 023—2025</span>
+        <a href="https://www.ttbz.org.cn/StandardManage/Detail/162166/" target="_blank" rel="noopener" class="hover:text-ink/80 transition-colors">{t.standard}</a>
       </div>
     </div>
   </div>
