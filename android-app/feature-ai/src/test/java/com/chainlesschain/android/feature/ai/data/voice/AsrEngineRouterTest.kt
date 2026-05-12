@@ -95,14 +95,15 @@ class AsrEngineRouterTest {
         val realPrefs = mockk<AsrEnginePreferences>()
         every { realPrefs.whisperModel } returns MutableStateFlow(WhisperModel.Base)
 
-        val realWhisper = WhisperAsrEngine(realPrefs)
+        val mockDownloader = mockk<WhisperModelDownloader>()
+        every { mockDownloader.isModelInstalled(any()) } returns false
+        val realWhisper = WhisperAsrEngine(realPrefs, mockDownloader)
 
         try {
             realWhisper.transcribe(dummyAudio)
             fail("expected WhisperNotInstalledException")
         } catch (e: WhisperNotInstalledException) {
             assertEquals(WhisperModel.Base, e.model)
-            assertTrue(e.message!!.contains("v1.1 stub"))
             assertTrue(e.message!!.contains("docs/guides/Whisper_Local_ASR_Setup.md"))
         }
     }
@@ -113,7 +114,9 @@ class AsrEngineRouterTest {
         val modelFlow2 = MutableStateFlow(WhisperModel.Tiny)
         every { realPrefs.whisperModel } returns modelFlow2
 
-        val realWhisper = WhisperAsrEngine(realPrefs)
+        val mockDownloader = mockk<WhisperModelDownloader>()
+        every { mockDownloader.isModelInstalled(any()) } returns false
+        val realWhisper = WhisperAsrEngine(realPrefs, mockDownloader)
 
         try {
             realWhisper.transcribe(dummyAudio)
@@ -132,14 +135,37 @@ class AsrEngineRouterTest {
     }
 
     @Test
-    fun `whisper stub isModelInstalled always returns false in v1_1`() {
+    fun `whisper transcribe still throws even when model installed (W4d pending)`() = runTest {
+        // 覆盖 W4c→W4d 缺口：模型已下载，但 transcribe 仍 stub 抛 NotInstalled
+        // (因 WAV→PCM converter + native 真路径 W4d 才接通)。
         val realPrefs = mockk<AsrEnginePreferences>()
         every { realPrefs.whisperModel } returns MutableStateFlow(WhisperModel.Base)
-        val realWhisper = WhisperAsrEngine(realPrefs)
+        val mockDownloader = mockk<WhisperModelDownloader>()
+        every { mockDownloader.isModelInstalled(WhisperModel.Base) } returns true
+        val realWhisper = WhisperAsrEngine(realPrefs, mockDownloader)
 
-        for (model in WhisperModel.values()) {
-            assertEquals(false, realWhisper.isModelInstalled(model))
+        try {
+            realWhisper.transcribe(dummyAudio)
+            fail("expected throw — W4d transcribe path not yet wired")
+        } catch (e: WhisperNotInstalledException) {
+            assertEquals(WhisperModel.Base, e.model)
         }
+    }
+
+    @Test
+    fun `whisper isModelInstalled delegates to downloader`() {
+        val realPrefs = mockk<AsrEnginePreferences>()
+        every { realPrefs.whisperModel } returns MutableStateFlow(WhisperModel.Base)
+        val mockDownloader = mockk<WhisperModelDownloader>()
+        // Tiny=true, Base=false, Small=true — verify it really delegates per-model
+        every { mockDownloader.isModelInstalled(WhisperModel.Tiny) } returns true
+        every { mockDownloader.isModelInstalled(WhisperModel.Base) } returns false
+        every { mockDownloader.isModelInstalled(WhisperModel.Small) } returns true
+        val realWhisper = WhisperAsrEngine(realPrefs, mockDownloader)
+
+        assertEquals(true, realWhisper.isModelInstalled(WhisperModel.Tiny))
+        assertEquals(false, realWhisper.isModelInstalled(WhisperModel.Base))
+        assertEquals(true, realWhisper.isModelInstalled(WhisperModel.Small))
     }
 
     @Test

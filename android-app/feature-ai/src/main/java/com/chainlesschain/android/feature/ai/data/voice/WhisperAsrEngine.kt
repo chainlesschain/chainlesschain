@@ -6,37 +6,54 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * v1.1 issue #19 W4：Whisper local ASR **stub** 实装。
+ * v1.1 issue #19 W4：Whisper local ASR 实装。
  *
- * **状态**: 🟡 stub — 接口骨架就位，真集成（whisper.cpp NDK + JNI binding + ggml 模型
- * 下载）推 v1.2。详见 [docs/guides/Whisper_Local_ASR_Setup.md](../../../../../../../../docs/guides/Whisper_Local_ASR_Setup.md)。
+ * **状态**:
+ *   - ✅ W4 骨架 (391aa3cae)
+ *   - ✅ W4a native build infra (378b09a1a)
+ *   - ✅ W4b JNI 真接口 (576af4374) — [WhisperNative.initContext/transcribe/freeContext]
+ *   - ✅ W4c WhisperModelDownloader (本 commit) — [isModelInstalled] 接真文件检测
+ *   - 🟡 W4d WAV→16kHz PCM converter + transcribe() 真调 [WhisperNative]
+ *   - 🟡 W4e 真机 bench
  *
- * 用户在 Settings → ASR 引擎切换到 Whisper 后调用 transcribe 会抛
- * [WhisperNotInstalledException]，UI 应捕获并提示用户安装步骤。VoiceMode 状态机的
- * Failed.Stage.TRANSCRIBE 路径自然显示该异常 message。
+ * 详 [docs/guides/Whisper_Local_ASR_Setup.md](../../../../../../../../docs/guides/Whisper_Local_ASR_Setup.md)。
  *
- * v1.2 真集成时只需把 transcribe() body 换成实际 JNI 调用，本类签名不动；
- * AsrEngineRouter / Settings UI / VoiceMode 全链路 zero change。
+ * 用户在 Settings → ASR 引擎切换到 Whisper 后 transcribe 会抛
+ * [WhisperNotInstalledException]（如模型未下载）。UI 应捕获并引导去 Settings
+ * 下载模型 + 切回 Volcengine。VoiceMode 状态机的 Failed.Stage.TRANSCRIBE 路径
+ * 自然显示该异常 message。
  */
 @Singleton
 class WhisperAsrEngine @Inject constructor(
     private val preferences: AsrEnginePreferences,
+    private val downloader: WhisperModelDownloader,
 ) : AsrEngine {
 
     override suspend fun transcribe(audioFile: File): String {
         val model = preferences.whisperModel.value
+        if (!isModelInstalled(model)) {
+            Timber.w(
+                "WhisperAsrEngine.transcribe: model %s not installed → throw",
+                model.name,
+            )
+            throw WhisperNotInstalledException(model)
+        }
+        // W4d: 真 transcribe 路径将走 WhisperNative.initContext + transcribe + freeContext。
+        // W4c 阶段 isModelInstalled 真实判断，但 transcribe body 仍 stub —— 防止
+        // 用户下载模型后没 WAV→PCM 转换链路时 native 调失败崩 app。
         Timber.w(
-            "WhisperAsrEngine.transcribe called with stub impl (model=%s, audio=%s)",
-            model.name, audioFile.name,
+            "WhisperAsrEngine.transcribe (W4c): model %s installed but transcribe path待 W4d (WAV→PCM converter)",
+            model.name,
         )
         throw WhisperNotInstalledException(model)
     }
 
     /**
-     * v1.2 真集成 entry-point — 检查 ggml 模型文件是否已下载到 internal storage。
-     * v1.1 stub 永远返 false。
+     * 检查 [model] ggml 文件是否已下载到 internal storage 且大小合理。
+     * 委托 [WhisperModelDownloader.isModelInstalled]。
      */
-    fun isModelInstalled(model: WhisperModel = preferences.whisperModel.value): Boolean = false
+    fun isModelInstalled(model: WhisperModel = preferences.whisperModel.value): Boolean =
+        downloader.isModelInstalled(model)
 }
 
 /**
@@ -47,7 +64,7 @@ class WhisperAsrEngine @Inject constructor(
 class WhisperNotInstalledException(
     val model: WhisperModel,
 ) : Exception(
-    "Whisper local ASR 未集成（v1.1 stub）。模型 ${model.displayName} 待安装。" +
-        "v1.2 路线：whisper.cpp NDK build + ggml 模型下载。当前请在 Settings → ASR 引擎切回火山豆包。" +
+    "Whisper 模型 ${model.displayName} 未下载或 transcribe 路径未接通。" +
+        "请在 Settings → ASR 引擎 下载 ${model.ggmlFilename} (${model.sizeMB} MB)，或切回火山豆包。" +
         "详见 docs/guides/Whisper_Local_ASR_Setup.md。"
 )
