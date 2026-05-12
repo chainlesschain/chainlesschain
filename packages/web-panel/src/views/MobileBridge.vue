@@ -5,10 +5,16 @@
         <h2 class="page-title">移动桥</h2>
         <p class="page-sub">已配对的 Android 设备 · QR pairing 完成后会出现在此</p>
       </div>
-      <a-button type="primary" ghost :loading="loading" @click="refresh">
-        <template #icon><ReloadOutlined /></template>
-        刷新
-      </a-button>
+      <a-space>
+        <a-button type="primary" @click="showScanner = true">
+          <template #icon><QrcodeOutlined /></template>
+          扫描配对
+        </a-button>
+        <a-button type="primary" ghost :loading="loading" @click="refresh">
+          <template #icon><ReloadOutlined /></template>
+          刷新
+        </a-button>
+      </a-space>
     </div>
 
     <a-card style="background: var(--bg-card); border-color: var(--border-color);">
@@ -73,6 +79,12 @@
 
       <div v-if="error" style="margin-top: 12px; color: #ff4d4f; font-size: 12px;">{{ error }}</div>
     </a-card>
+
+    <QrScannerModal
+      :open="showScanner"
+      @scanned="onQrScanned"
+      @cancel="showScanner = false"
+    />
   </div>
 </template>
 
@@ -83,14 +95,17 @@ import {
   ReloadOutlined,
   MobileOutlined,
   DisconnectOutlined,
+  QrcodeOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
+import QrScannerModal from '../components/QrScannerModal.vue'
 
 const ws = useWsStore()
 const devices = ref([])
 const loading = ref(false)
 const error = ref('')
 const unpairingId = ref('')
+const showScanner = ref(false)
 
 const columns = [
   { title: '设备 ID', key: 'device_id', dataIndex: 'device_id', width: 280 },
@@ -112,6 +127,28 @@ async function refresh() {
     devices.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function onQrScanned(qrData) {
+  showScanner.value = false
+  try {
+    // v1.1 W3.5: shell-escape via JSON.stringify wrapping — qrData is raw JSON
+    // string from QR code; pass as quoted argv to cc p2p pair-from-qr
+    const safeArg = JSON.stringify(qrData)
+    const { output } = await ws.execute(
+      `p2p pair-from-qr ${safeArg} --json`,
+      15000,
+    )
+    const result = parseJsonOutput(output)
+    if (result?.success) {
+      message.success(`配对成功: ${result.deviceName || result.deviceId.slice(0, 8)}`)
+      await refresh()
+    } else {
+      message.error(`配对失败: ${result?.error || '未知错误'}`)
+    }
+  } catch (e) {
+    message.error(`配对失败: ${e.message}`)
   }
 }
 

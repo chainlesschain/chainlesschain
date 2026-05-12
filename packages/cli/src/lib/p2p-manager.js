@@ -224,6 +224,90 @@ export function pairDevice(db, deviceName, deviceType) {
 }
 
 /**
+ * v1.1 W3.5 (issue #19): Pair a device from a scanned QR payload.
+ *
+ * payload 字段对齐 desktop `device-pairing-handler.js::validatePairingCode`
+ * + Android `DesktopPairingViewModel::PairingQrPayload`：
+ *   {type:"device-pairing", code, did, deviceInfo:{deviceId,name,platform}, timestamp}
+ *
+ * 与 [pairDevice] 区别：deviceId 来自 QR（移动端的稳定 ID）不是 host 生成，
+ * 这样 desktop unpair → 重扫 QR 能复用同 deviceId 而非每次生新条。INSERT OR
+ * REPLACE upsert，重复扫同一 QR 是 idempotent。
+ *
+ * Validate 项与 desktop validatePairingCode 对齐：
+ *   - payload.type === "device-pairing"
+ *   - payload.code 匹配 /^\d{6}$/
+ *   - payload.did 非空
+ *   - payload.deviceInfo.deviceId 非空
+ *   - payload.timestamp 不超 5min（与 desktop pairingTimeout 对齐）
+ *
+ * 返回 {success: true, deviceId, deviceName, did, status:'active'}
+ *      或 {success: false, error}
+ */
+export function pairDeviceFromQr(db, payload, opts = {}) {
+  ensureP2PTables(db);
+  const { now = Date.now(), maxAgeMs = 5 * 60 * 1000 } = opts;
+
+  if (!payload || typeof payload !== "object") {
+    return { success: false, error: "payload 不是对象" };
+  }
+  if (payload.type !== "device-pairing") {
+    return { success: false, error: "无效的 QR 类型，期望 device-pairing" };
+  }
+  if (!/^\d{6}$/.test(String(payload.code || ""))) {
+    return { success: false, error: "code 必须是 6 位数字" };
+  }
+  if (!payload.did || typeof payload.did !== "string") {
+    return { success: false, error: "did 必填" };
+  }
+  const info = payload.deviceInfo || {};
+  if (!info.deviceId || typeof info.deviceId !== "string") {
+    return { success: false, error: "deviceInfo.deviceId 必填" };
+  }
+  const ts = Number(payload.timestamp);
+  if (!Number.isFinite(ts)) {
+    return { success: false, error: "timestamp 必填且为数字" };
+  }
+  const age = now - ts;
+  if (age > maxAgeMs) {
+    return {
+      success: false,
+      error: `QR 已过期（${Math.round(age / 1000)}s > ${maxAgeMs / 1000}s）`,
+    };
+  }
+
+  const deviceName = info.name || "(unnamed)";
+  const platform = (info.platform || "mobile").toLowerCase();
+  // desktop validatePairingCode 接受 platform 为 string 不限值；这里 normalize
+  // 进 p2p_paired_devices.device_type 的 desktop/mobile/tablet 三档：
+  //   - "android"/"ios" → "mobile"
+  //   - 其它已知值保留
+  //   - 缺省 "mobile"
+  const deviceType = ["mobile", "tablet", "desktop"].includes(platform)
+    ? platform
+    : ["android", "ios"].includes(platform)
+      ? "mobile"
+      : "mobile";
+
+  // INSERT OR REPLACE 让重复扫同 deviceId 是 idempotent；status="active" 因
+  // QR 流程的 6 位 code 视作 desktop 已确认，无需 pending 中间态。
+  db.prepare(
+    `INSERT OR REPLACE INTO p2p_paired_devices
+     (device_id, device_name, device_type, pairing_code, paired_at, status)
+     VALUES (?, ?, ?, ?, datetime('now'), 'active')`,
+  ).run(info.deviceId, deviceName, deviceType, payload.code);
+
+  return {
+    success: true,
+    deviceId: info.deviceId,
+    deviceName,
+    deviceType,
+    did: payload.did,
+    status: "active",
+  };
+}
+
+/**
  * Confirm device pairing with code.
  */
 export function confirmPairing(db, deviceId, code) {

@@ -15,6 +15,7 @@ import {
   pairDevice,
   confirmPairing,
   getPairedDevices,
+  pairDeviceFromQr,
   unpairDevice,
   deletePeer,
   P2PBridge,
@@ -274,6 +275,106 @@ describe("P2P Manager", () => {
       pairDevice(db, "Mac", "desktop");
       expect(getPairedDevices(db, null)).toHaveLength(2);
       expect(getPairedDevices(db)).toHaveLength(2); // no arg → undefined → same as null
+    });
+  });
+
+  // v1.1 W3.5: pairDeviceFromQr
+  describe("pairDeviceFromQr", () => {
+    function freshPayload(overrides = {}) {
+      return {
+        type: "device-pairing",
+        code: "123456",
+        did: "did:cc:phone-test",
+        deviceInfo: {
+          deviceId: "android-xyz-abc",
+          name: "Pixel 8",
+          platform: "android",
+        },
+        timestamp: 1_700_000_000_000,
+        ...overrides,
+      };
+    }
+
+    it("inserts a new paired device with QR fields", () => {
+      const result = pairDeviceFromQr(db, freshPayload(), {
+        now: 1_700_000_000_000 + 1000,
+      });
+      expect(result.success).toBe(true);
+      expect(result.deviceId).toBe("android-xyz-abc");
+      expect(result.deviceName).toBe("Pixel 8");
+      expect(result.deviceType).toBe("mobile");
+      expect(result.did).toBe("did:cc:phone-test");
+      expect(result.status).toBe("active");
+
+      const devices = getPairedDevices(db);
+      expect(devices).toHaveLength(1);
+      expect(devices[0].device_id).toBe("android-xyz-abc");
+      expect(devices[0].device_type).toBe("mobile");
+    });
+
+    it("rejects wrong type", () => {
+      const r = pairDeviceFromQr(db, freshPayload({ type: "something-else" }), {
+        now: 1_700_000_000_000,
+      });
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/device-pairing/);
+    });
+
+    it("rejects code not matching 6-digit regex", () => {
+      const r = pairDeviceFromQr(db, freshPayload({ code: "abcdef" }), {
+        now: 1_700_000_000_000,
+      });
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/6 位数字/);
+    });
+
+    it("rejects missing did", () => {
+      const r = pairDeviceFromQr(db, freshPayload({ did: "" }), {
+        now: 1_700_000_000_000,
+      });
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/did/);
+    });
+
+    it("rejects missing deviceInfo.deviceId", () => {
+      const r = pairDeviceFromQr(
+        db,
+        freshPayload({ deviceInfo: { name: "x", platform: "android" } }),
+        { now: 1_700_000_000_000 },
+      );
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/deviceId/);
+    });
+
+    it("rejects stale QR (timestamp > 5min ago)", () => {
+      const r = pairDeviceFromQr(db, freshPayload(), {
+        now: 1_700_000_000_000 + 6 * 60 * 1000, // 6 min past
+      });
+      expect(r.success).toBe(false);
+      expect(r.error).toMatch(/过期/);
+    });
+
+    it("is idempotent: re-scanning same QR doesn't duplicate", () => {
+      const now = 1_700_000_000_000 + 1000;
+      const payload = freshPayload();
+      pairDeviceFromQr(db, payload, { now });
+      pairDeviceFromQr(db, payload, { now });
+      pairDeviceFromQr(db, payload, { now });
+      expect(getPairedDevices(db)).toHaveLength(1);
+    });
+
+    it("normalizes android/ios platform to mobile device_type", () => {
+      pairDeviceFromQr(
+        db,
+        freshPayload({
+          deviceInfo: { deviceId: "ios-1", name: "iPhone", platform: "ios" },
+        }),
+        {
+          now: 1_700_000_000_000,
+        },
+      );
+      const devices = getPairedDevices(db);
+      expect(devices[0].device_type).toBe("mobile");
     });
   });
 

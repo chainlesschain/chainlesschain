@@ -15,6 +15,7 @@ import {
   markMessageRead,
   getMessageCount,
   pairDevice,
+  pairDeviceFromQr,
   confirmPairing,
   getPairedDevices,
   unpairDevice,
@@ -230,6 +231,75 @@ export function registerP2pCommand(program) {
         await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // p2p pair-from-qr (v1.1 W3.5 issue #19)
+  p2p
+    .command("pair-from-qr")
+    .description("Pair a device from scanned QR JSON payload")
+    .argument(
+      "<json>",
+      "QR payload JSON string (from mobile DesktopPairingScreen)",
+    )
+    .option("--json", "Output result as JSON")
+    .action(async (jsonString, options) => {
+      const respondJson = options.json;
+      try {
+        let payload;
+        try {
+          payload = JSON.parse(jsonString);
+        } catch (e) {
+          if (respondJson) {
+            console.log(
+              JSON.stringify({
+                success: false,
+                error: `JSON parse: ${e.message}`,
+              }),
+            );
+          } else {
+            logger.error(`Failed to parse QR JSON: ${e.message}`);
+          }
+          process.exit(1);
+        }
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          if (respondJson) {
+            console.log(
+              JSON.stringify({ success: false, error: "db unavailable" }),
+            );
+          } else {
+            logger.error("Database not available");
+          }
+          process.exit(1);
+        }
+        const db = ctx.db.getDatabase();
+        const result = pairDeviceFromQr(db, payload);
+
+        if (respondJson) {
+          console.log(JSON.stringify(result));
+        } else if (result.success) {
+          logger.success("Device paired from QR");
+          logger.log(
+            `  ${chalk.bold("Device ID:")}   ${chalk.cyan(result.deviceId)}`,
+          );
+          logger.log(`  ${chalk.bold("Device Name:")} ${result.deviceName}`);
+          logger.log(
+            `  ${chalk.bold("DID:")}         ${chalk.gray(result.did)}`,
+          );
+        } else {
+          logger.error(`Pair failed: ${result.error}`);
+        }
+
+        await shutdown();
+        if (!result.success) process.exit(1);
+      } catch (err) {
+        if (respondJson) {
+          console.log(JSON.stringify({ success: false, error: err.message }));
+        } else {
+          logger.error(`Failed: ${err.message}`);
+        }
         process.exit(1);
       }
     });
