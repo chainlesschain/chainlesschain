@@ -98,6 +98,13 @@ dependencies {
     // Google Play Services — Wearable Data Layer
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
 
+    // v1.2 Wear Phase 2 — biometric for 高风险 approval (sign / Critical alerts)
+    implementation("androidx.biometric:biometric:1.1.0")
+    // BiometricPrompt 需要 FragmentActivity (来自 androidx.fragment)
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    // Tasks.await() — coroutine bridge for play-services Task<T>
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
     // Timber for logging consistency with phone module
     implementation("com.jakewharton.timber:timber:5.0.1")
 

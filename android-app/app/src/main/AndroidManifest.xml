@@ -162,6 +162,19 @@
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <!-- v1.2 #20 P0.2 Wear Phase 2: watch → phone decision listener -->
+        <service
+            android:name=".wear.CcPhoneDecisionListener"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/cc/" />
+            </intent-filter>
+        </service>
+
         <!-- Disable default WorkManager initializer (using Hilt's HiltWorkerFactory) -->
         <provider
             android:name="androidx.startup.InitializationProvider"

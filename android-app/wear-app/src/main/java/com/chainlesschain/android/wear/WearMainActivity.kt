@@ -3,12 +3,14 @@ package com.chainlesschain.android.wear
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -108,7 +110,12 @@ private fun EmptyState() {
 
 @Composable
 internal fun ApprovalCard(request: ApprovalRequest) {
-    Card(onClick = { /* Phase 2: navigate to ApprovalScreen */ }) {
+    val context = LocalContext.current
+    Card(
+        onClick = {
+            context.startActivity(WearApprovalActivity.newIntent(context, request.id))
+        },
+    ) {
         Column(modifier = Modifier.padding(8.dp)) {
             Text(
                 text = request.title,

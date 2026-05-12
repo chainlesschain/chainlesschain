@@ -44,6 +44,14 @@
             </intent-filter>
         </activity>
 
+        <!-- v1.2 Wear Phase 2: approval screen with BiometricPrompt -->
+        <activity
+            android:name=".WearApprovalActivity"
+            android:exported="false"
+            android:label="审批"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+
         <!-- v1.2 Wear Phase 1: 接收 phone → watch Wearable Data Layer push -->
         <service
             android:name=".sync.CcWearListenerService"
