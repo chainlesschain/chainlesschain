@@ -49,6 +49,14 @@ cd packages/cli && npm install && npm test
 docker-compose up -d
 ```
 
+## Git Workflow — auto dual-push (installed 2026-05-12)
+
+After every `git commit` on this repo, `.husky/post-commit` automatically pushes to both `gitee` and `github` remotes (skips `github-https`). **No manual `git push gitee main && git push github main` needed** — that runs by default. Uses `--no-verify` to skip the pre-push `vue-tsc` check (~60s saved per commit); type-checking still runs in CI.
+
+If the hook fires but a push fails, it prints `[post-commit] WARN <remote> push FAILED` with the last 5 lines of error. Retry manually with `git push <remote> main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
+
+Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `core.hooksPath=.husky/_`). To also push to gitee, run once: `git remote add gitee git@gitee.com:chainlesschaincn/chainlesschain.git` — the hook gracefully skips unconfigured remotes.
+
 ## CLI Commands Reference
 
 **See [`docs/CLI_COMMANDS_REFERENCE.md`](docs/CLI_COMMANDS_REFERENCE.md)** for the full 90-command reference (thin index → 6 sub-files in `docs/cli/`). Read on demand, not auto-loaded.
