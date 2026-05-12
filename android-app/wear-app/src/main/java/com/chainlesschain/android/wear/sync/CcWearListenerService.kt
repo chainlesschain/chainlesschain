@@ -1,5 +1,9 @@
 package com.chainlesschain.android.wear.sync
 
+import androidx.wear.tiles.TileService
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import com.chainlesschain.android.wear.tile.PendingApprovalsComplicationService
+import com.chainlesschain.android.wear.tile.PendingApprovalsTileService
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.serialization.json.Json
@@ -49,5 +53,25 @@ class CcWearListenerService : WearableListenerService() {
                 return
             }
         WearApprovalStore.upsert(req)
+        notifyTileAndComplication()
+    }
+
+    /**
+     * Phase 3: store 变化时主动刷 Tile + Complication（system 不会自动 redraw
+     * 直到下次 freshness interval 过；推送场景必须立即更）。失败吞并 — 通知
+     * 链上 system 服务不可用，下次 system 主动询问时仍会读最新 store。
+     */
+    private fun notifyTileAndComplication() {
+        runCatching {
+            TileService.getUpdater(applicationContext)
+                .requestUpdate(PendingApprovalsTileService::class.java)
+        }.onFailure { Timber.w(it, "Tile update request failed") }
+
+        runCatching {
+            ComplicationDataSourceUpdateRequester.create(
+                applicationContext,
+                PendingApprovalsComplicationService.componentName(packageName),
+            ).requestUpdateAll()
+        }.onFailure { Timber.w(it, "Complication update request failed") }
     }
 }

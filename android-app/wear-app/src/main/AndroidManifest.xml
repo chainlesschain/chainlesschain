@@ -52,6 +52,39 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
 
+        <!-- v1.2 Wear Phase 3: pending approvals Tile -->
+        <service
+            android:name=".tile.PendingApprovalsTileService"
+            android:exported="true"
+            android:label="待审批"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <!-- Tile preview shown in Watch face customization picker -->
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:value="@android:drawable/sym_def_app_icon" />
+        </service>
+
+        <!-- v1.2 Wear Phase 3: complication data source -->
+        <service
+            android:name=".tile.PendingApprovalsComplicationService"
+            android:exported="true"
+            android:icon="@android:drawable/sym_def_app_icon"
+            android:label="待审批数"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
         <!-- v1.2 Wear Phase 1: 接收 phone → watch Wearable Data Layer push -->
         <service
             android:name=".sync.CcWearListenerService"

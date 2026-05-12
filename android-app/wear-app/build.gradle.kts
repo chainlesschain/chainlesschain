@@ -98,6 +98,16 @@ dependencies {
     // Google Play Services — Wearable Data Layer
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
 
+    // v1.2 Wear Phase 3 — Tile + Complication 表盘扩展
+    implementation("androidx.wear.tiles:tiles:1.4.0")
+    implementation("androidx.wear.protolayout:protolayout:1.2.0")
+    implementation("androidx.wear.protolayout:protolayout-material:1.2.0")
+    implementation("androidx.wear.protolayout:protolayout-expression:1.2.0")
+    // ComplicationDataSourceService API (Wear OS 3+)
+    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
+    // Tile + Complication 用 Guava ListenableFuture，需要 listenablefuture 桥到 coroutines
+    implementation("com.google.guava:guava:32.1.3-android")
+
     // v1.2 Wear Phase 2 — biometric for 高风险 approval (sign / Critical alerts)
     implementation("androidx.biometric:biometric:1.1.0")
     // BiometricPrompt 需要 FragmentActivity (来自 androidx.fragment)
