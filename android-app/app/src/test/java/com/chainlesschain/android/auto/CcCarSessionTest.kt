@@ -24,15 +24,18 @@ import kotlin.test.assertNotNull
 class CcCarSessionTest {
 
     @Test
-    fun `ctor injection passes manager into screen builder lambda`() {
+    fun `ctor injection passes manager and bus into screen builder lambdas`() {
         val fakeManager = VoiceModeManager(
             recorder = mockk<AudioRecorder>(relaxed = true),
             asr = mockk<AsrEngine>(relaxed = true),
             chatBridge = mockk<VoiceChatBridge>(relaxed = true),
             player = mockk<AudioPlayer>(relaxed = true),
         )
-        val session = CcCarSession(voiceManagerProvider = { fakeManager })
-        // 触发 lambda 但不真创建 Screen（需 attached carContext）；至少验 ctor 完成
+        val fakeBus = AutoPushBus()
+        val session = CcCarSession(
+            voiceManagerProvider = { fakeManager },
+            pushBusProvider = { fakeBus },
+        )
         assertNotNull(session)
     }
 }

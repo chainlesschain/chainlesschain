@@ -11,7 +11,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.chainlesschain.android.MainActivity
 import com.chainlesschain.android.R
+import com.chainlesschain.android.auto.AutoModeTracker
+import com.chainlesschain.android.auto.AutoPushBus
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,9 +37,16 @@ import javax.inject.Singleton
 @Singleton
 class NotificationCenter @Inject constructor(
     @ApplicationContext private val context: Context,
+    // v1.2 #1 Android Auto Phase 2：Auto 模式下额外路由到 AutoPushBus。
+    // 这两个依赖是 Singleton，与 NotificationCenter 同 graph，循环依赖不会触发。
+    private val autoModeTracker: AutoModeTracker,
+    private val autoPushBus: AutoPushBus,
 ) {
 
     private val mgrCompat by lazy { NotificationManagerCompat.from(context) }
+
+    // 用 SupervisorJob 隔离：emit 失败不应 crash NotificationCenter。
+    private val busScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** 创建 4 个 channel（幂等），dispatch 前必须调过一次。 */
     fun ensureChannels() {
@@ -58,7 +71,25 @@ class NotificationCenter @Inject constructor(
         // no-op，不抛异常。SecurityException 仅在某些 OEM ROM 出现，用 runCatching 兜。
         runCatching { mgrCompat.notify(rendered.notificationId, notif) }
             .onFailure { Timber.w(it, "NotificationCenter.dispatch: notify failed") }
+
+        // v1.2 #1 Android Auto Phase 2：Auto 模式下额外把 Marketplace / SystemAlert
+        // 类别推到 AutoPushBus。Cowork / ShareInbox 不推（车载场景仅审 high-value 推送，
+        // 任务请求 / 入箱回执留在手机端常规通知）。系统通知不抑制 — Auto 断开时手机
+        // 仍可见，作为 fallback。
+        if (autoModeTracker.isAutoActive.value && payload.isAutoRoutable()) {
+            busScope.launch {
+                runCatching { autoPushBus.emit(payload) }
+                    .onFailure { Timber.w(it, "NotificationCenter: AutoPushBus.emit failed") }
+            }
+        }
         return rendered.notificationId
+    }
+
+    private fun NotificationPayload.isAutoRoutable(): Boolean = when (category) {
+        NotificationCategory.Marketplace,
+        NotificationCategory.SystemAlert -> true
+        NotificationCategory.Cowork,
+        NotificationCategory.ShareInbox -> false
     }
 
     private fun buildNotification(rendered: NotificationRender): android.app.Notification {

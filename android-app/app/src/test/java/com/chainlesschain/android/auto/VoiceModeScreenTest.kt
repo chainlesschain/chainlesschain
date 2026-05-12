@@ -10,6 +10,7 @@ import com.chainlesschain.android.feature.ai.data.voice.VoiceChatBridge
 import com.chainlesschain.android.feature.ai.data.voice.VoiceChatReply
 import com.chainlesschain.android.feature.ai.data.voice.VoiceModeManager
 import com.chainlesschain.android.feature.ai.data.voice.VoiceModeState
+import com.chainlesschain.android.push.NotificationPayload
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -39,6 +40,7 @@ class VoiceModeScreenTest {
     private lateinit var bridge: VoiceChatBridge
     private lateinit var player: AudioPlayer
     private lateinit var manager: VoiceModeManager
+    private lateinit var pushBus: AutoPushBus
     private lateinit var screen: VoiceModeScreen
 
     @Before
@@ -56,7 +58,8 @@ class VoiceModeScreenTest {
             VoiceChatReply(reply = "hi", conversationId = "c1"),
         )
         manager = VoiceModeManager(recorder, asr, bridge, player)
-        screen = VoiceModeScreen(carContext, manager)
+        pushBus = AutoPushBus()
+        screen = VoiceModeScreen(carContext, manager, pushBus)
     }
 
     @Test
@@ -176,5 +179,96 @@ class VoiceModeScreenTest {
         val t = screen.onGetTemplate()
         assertNotNull(t)
         assertTrue(t is MessageTemplate)
+    }
+
+    // ============ Phase 2: push approval template ============
+
+    @Test
+    fun `approval template renders when pendingApproval is set - Marketplace`() {
+        screen.setPendingApprovalForTest(
+            NotificationPayload.MarketplacePurchaseApproval(
+                orderId = "ord-42",
+                total = "1500",
+                currency = "CNY",
+                itemName = "Premium Plan",
+            ),
+        )
+        val template = screen.onGetTemplate() as MessageTemplate
+        assertEquals("Marketplace 审批", template.title?.toString())
+        val body = template.message.toString()
+        assertTrue(body.contains("ord-42"))
+        assertTrue(body.contains("1500"))
+        assertTrue(body.contains("CNY"))
+        assertTrue(body.contains("Premium Plan"))
+        val titles = template.actions.map { it.title?.toString() ?: "" }
+        assertTrue(titles.any { it.contains("同意") })
+        assertTrue(titles.any { it.contains("拒绝") })
+    }
+
+    @Test
+    fun `approval template renders when pendingApproval is set - SystemAlert`() {
+        screen.setPendingApprovalForTest(
+            NotificationPayload.SystemAlertNotice(
+                title = "同步冲突",
+                body = "knowledge_items 3 行需手动 resolve",
+                severity = NotificationPayload.SystemAlertNotice.Severity.Critical,
+            ),
+        )
+        val template = screen.onGetTemplate() as MessageTemplate
+        assertEquals("系统警报", template.title?.toString())
+        val body = template.message.toString()
+        assertTrue(body.contains("同步冲突"))
+        assertTrue(body.contains("knowledge_items 3 行"))
+        assertTrue(body.contains("Critical"))
+    }
+
+    @Test
+    fun `Marketplace approval body skips itemName when null`() {
+        screen.setPendingApprovalForTest(
+            NotificationPayload.MarketplacePurchaseApproval(
+                orderId = "ord-7",
+                total = "200",
+                itemName = null,
+            ),
+        )
+        val template = screen.onGetTemplate() as MessageTemplate
+        val body = template.message.toString()
+        assertTrue(body.contains("ord-7"))
+        assertFalse(body.contains("商品: null"), "should not print 'null' for missing item name")
+    }
+
+    @Test
+    fun `pendingApproval takes precedence over voice state`() {
+        // 即使 voice 在 Recording，pending approval 仍优先显示
+        manager.startRecording()
+        assertEquals(VoiceModeState.Recording, manager.state.value)
+        screen.setPendingApprovalForTest(
+            NotificationPayload.SystemAlertNotice("x", "y"),
+        )
+        val template = screen.onGetTemplate() as MessageTemplate
+        assertEquals("系统警报", template.title?.toString())
+    }
+
+    @Test
+    fun `approvalTitle maps each NotificationPayload subtype`() {
+        assertEquals(
+            "Marketplace 审批",
+            screen.approvalTitle(
+                NotificationPayload.MarketplacePurchaseApproval("x", "1"),
+            ),
+        )
+        assertEquals(
+            "系统警报",
+            screen.approvalTitle(
+                NotificationPayload.SystemAlertNotice("a", "b"),
+            ),
+        )
+        // Cowork / ShareInbox 用通用 "通知" 标题（Auto 当前不路由这两类，但默认安全）
+        assertEquals(
+            "通知",
+            screen.approvalTitle(
+                NotificationPayload.CoworkRequest("t1", "summary"),
+            ),
+        )
     }
 }
