@@ -137,10 +137,12 @@ class RemoteCommandClient @Inject constructor(
         timeout: Long,
         type: Type,
     ): Result<T> {
-        if (p2pClient.connectedPeer.value == null) {
+        // v1.1 W2.4: 多 peer 检测用 connectedPeers Map 替代单 peer null check。
+        // peers.isEmpty() == true → 所有 peer 都掉线，触发 enqueue。
+        if (p2pClient.connectedPeers.value.isEmpty()) {
             val id = UUID.randomUUID().toString()
             val request = CommandRequest(id = id, method = method, params = params, auth = null)
-            Timber.d("invokeOrEnqueue: peer offline, enqueueing %s as %s", method, id)
+            Timber.d("invokeOrEnqueue: no peers connected, enqueueing %s as %s", method, id)
             return offlineCommandQueue.enqueue(request).fold(
                 onSuccess = { Result.failure(OfflineQueuedException(id, method)) },
                 onFailure = { Result.failure(it) },

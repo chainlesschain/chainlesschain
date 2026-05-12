@@ -63,14 +63,19 @@ class SyncCoordinator @Inject constructor(
             Timber.d("[SyncCoordinator] already started, skipping")
             return
         }
-        Timber.i("[SyncCoordinator] starting connectedPeer watcher")
+        Timber.i("[SyncCoordinator] starting connectedPeers watcher (v1.1 W2.3 multi-peer)")
         watcherJob = scope.launch {
-            p2pClient.connectedPeer.collect { peer ->
-                if (peer != null) {
-                    Timber.i("[SyncCoordinator] peer connected: ${peer.peerId}, starting push loop")
-                    startPeriodicPush(peer.peerId)
+            // v1.1 W2.3: 切到 connectedPeers Map (peerId → PeerInfo)
+            // - lifecycle 仍 single-peer-at-a-time（W2.1 范围内 connect() 前先 disconnect 现连接），
+            //   所以本 collect 在 v1.1 收到的 Map 实际只有 0 或 1 entry
+            // - W2.2 放开 lifecycle 后 N 个 peer 并存，本 collect 自动适配（已迭代 Map.values）
+            p2pClient.connectedPeers.collect { peers ->
+                if (peers.isNotEmpty()) {
+                    val peerIds = peers.keys.joinToString(",")
+                    Timber.i("[SyncCoordinator] peers connected (${peers.size}): $peerIds, starting push loop")
+                    startPeriodicPush(peers.keys.toList())
                 } else {
-                    Timber.i("[SyncCoordinator] peer disconnected, cancelling push loop")
+                    Timber.i("[SyncCoordinator] all peers disconnected, cancelling push loop")
                     stopPeriodicPush()
                 }
             }
@@ -87,8 +92,8 @@ class SyncCoordinator @Inject constructor(
         watcherJob = null
     }
 
-    private fun startPeriodicPush(peerId: String) {
-        // Cancel any existing loop (peer changed)
+    private fun startPeriodicPush(peerIds: List<String>) {
+        // Cancel any existing loop (peer set changed)
         stopPeriodicPush()
 
         periodicPushJob = scope.launch {
@@ -97,12 +102,18 @@ class SyncCoordinator @Inject constructor(
                 try {
                     val pending = syncManager.getSyncStatistics().pendingChanges
                     if (pending > 0) {
-                        Timber.d("[SyncCoordinator] pushing $pending pending changes to $peerId")
-                        val result = syncManager.pushPendingToDesktopRpc(peerId)
-                        Timber.d(
-                            "[SyncCoordinator] push result: pushed=${result.pushed} " +
-                                "conflicts=${result.conflicts} failed=${result.failed}"
-                        )
+                        // v1.1 W2.3: 多 peer 时各自调 pushPendingToDesktopRpc(peerId)。
+                        // pendingChanges 是设备级总数，每 peer 看到同一份 pending；
+                        // pushPendingToDesktopRpc per-peer ack 后会 mark resource synced，
+                        // 第二个 peer 看到的 pending 就少了。最终所有 peer 拿到相同状态。
+                        for (peerId in peerIds) {
+                            Timber.d("[SyncCoordinator] pushing $pending pending changes to $peerId")
+                            val result = syncManager.pushPendingToDesktopRpc(peerId)
+                            Timber.d(
+                                "[SyncCoordinator] push to $peerId: pushed=${result.pushed} " +
+                                    "conflicts=${result.conflicts} failed=${result.failed}"
+                            )
+                        }
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
@@ -110,7 +121,8 @@ class SyncCoordinator @Inject constructor(
                     Timber.w(e, "[SyncCoordinator] periodic push failed; will retry")
                 }
                 // M3 D2 ShareReceiver flush —— 与 syncManager.pushPendingToDesktopRpc 解耦的
-                // 独立路径（Shared Inbox 走 knowledge.createNote 而非 sync RPC）
+                // 独立路径（Shared Inbox 走 knowledge.createNote 而非 sync RPC）。
+                // 单调用即可（knowledge.createNote 不区分目标 peer，桌面侧 KB 写入是全局）
                 try {
                     val flushed = sharePayloadFlusher.flushAll()
                     if (flushed.total > 0) {

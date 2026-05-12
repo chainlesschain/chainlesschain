@@ -62,16 +62,19 @@ class SyncAuthVerifier @Inject constructor(
             )
         }
 
-        // 3) DID 与当前 P2P 对端 DID 匹配
-        val connectedDid = p2pClient.connectedPeer.value?.did
-        if (connectedDid == null) {
+        // 3) DID 与当前任一 P2P 对端 DID 匹配（v1.1 W2.6 多 peer 适配）。
+        //    遍历 connectedPeers，只要 auth.did 匹配 set 中任意一个就放行；
+        //    全空时 fail；都不匹配时报详细 mismatch list。
+        val connectedDids = p2pClient.connectedPeers.value.values.map { it.did }
+        if (connectedDids.isEmpty()) {
             throw SecurityException(
                 "no active P2P peer to validate against (auth.did=${auth.did.take(30)}…) for $method"
             )
         }
-        if (connectedDid != auth.did) {
+        if (auth.did !in connectedDids) {
+            val didsPreview = connectedDids.joinToString(",") { it.take(30) + "…" }
             throw SecurityException(
-                "DID mismatch: connected=${connectedDid.take(30)}… vs auth.did=${auth.did.take(30)}… for $method"
+                "DID mismatch: connected=[$didsPreview] vs auth.did=${auth.did.take(30)}… for $method"
             )
         }
 
