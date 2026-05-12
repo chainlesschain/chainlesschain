@@ -1,5 +1,5 @@
 /**
- * `multisig.*` + `marketplace.consume` WS handlers — #21 B.6 (削 cc subprocess 冷启).
+ * `multisig.*` + `marketplace.consume` WS handlers — #21 B.2 (削 cc subprocess 冷启).
  *
  * Replaces 7 `ws.execute('cc multisig …')` / `ws.execute('cc marketplace consume …')`
  * subprocess invocations from `packages/web-panel/src/views/Multisig.vue` with
