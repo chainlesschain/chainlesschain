@@ -97,7 +97,7 @@ DEPLOYS = [
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.50-20260514-0605.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.50-20260514-0635.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
