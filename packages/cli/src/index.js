@@ -196,6 +196,8 @@ import { registerIpfsCommand } from "./commands/ipfs.js";
 // MTC: Merkle Tree Certificates (Phase 1 Week 3)
 import { registerMtcCommand } from "./commands/mtc.js";
 import { registerMultisigCommand } from "./commands/multisig.js";
+// #21 P1: cc project — shared desktop SQLite, Phase 3d sync to mobile
+import { registerProjectCommand } from "./commands/project.js";
 // Phase 27: Multimodal Collaboration
 import { registerMultimodalCommand } from "./commands/multimodal.js";
 // Phase 22: Performance auto-tuning
@@ -581,6 +583,7 @@ export function createProgram(opts = {}) {
   registerIpfsCommand(program);
   registerMtcCommand(program);
   registerMultisigCommand(program);
+  registerProjectCommand(program);
   registerMultimodalCommand(program);
   registerPerfCommand(program);
   registerAgentNetworkCommand(program);

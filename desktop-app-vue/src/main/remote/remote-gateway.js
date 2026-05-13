@@ -29,6 +29,8 @@ const SystemCommandHandler = require("./handlers/system-handler");
 const { FileTransferHandler } = require("./handlers/file-transfer-handler");
 const { RemoteDesktopHandler } = require("./handlers/remote-desktop-handler");
 const KnowledgeHandler = require("./handlers/knowledge-handler");
+// #21 P1: project-management for mobile L3 REMOTE
+const ProjectManagementHandler = require("./handlers/project-management-handler");
 const CommandHistoryHandler = require("./handlers/command-history-handler");
 const { DeviceManagerHandler } = require("./handlers/device-manager-handler");
 const { ClipboardHandler } = require("./handlers/clipboard-handler");
@@ -288,6 +290,10 @@ class RemoteGateway extends EventEmitter {
       this.ragManager,
     );
     this.commandRouter.registerHandler("knowledge", this.handlers.knowledge);
+
+    // 5b. 项目管理处理器 (#21 P1 — 桌面项目暴露给 mobile REMOTE)
+    this.handlers.project = new ProjectManagementHandler(this.database);
+    this.commandRouter.registerHandler("project", this.handlers.project);
 
     // 6. 命令历史处理器
     this.handlers.history = new CommandHistoryHandler(
