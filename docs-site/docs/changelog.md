@@ -3,9 +3,66 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [Unreleased] - 2026-05-13 — Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix ([#21](https://github.com/chainlesschain/chainlesschain/issues/21))
+## [Unreleased] - 2026-05-13 (later) — Android 社交功能产线化（demo → production）
 
-> v1.2 GA 上架前的 P0 前置批次。A.3 ADR review / B.6 PQC 严格模式 verifier / B.2 削 web-shell `/multisig` cc subprocess 冷启三项 GA-independent 部分齐落，另 ADR-8 amend 的 forward-compat seam (AI-3) 也补上，sweep 出 2 个相关 bug 顺手修。**version 不 bump** —— v1.2 GA 上架反馈到位后与 P1 主体一起 release。
+> 14 屏 + 9 ViewModel + 4 Repository 的社交骨架 (~10K LOC) 建好已久，但 NavGraph 只接通 MyQRCode / QRCodeScanner 两路由，其它 7 路由是 `registerPlaceholder("temporarily simplified")`；`SocialScreen` Friends / Timeline 两 tab 显示固定字串；`PostRepository.reportPost` 构造完 entity 不入库；`FriendRepository.searchUserByDid` 非本地 DID 返回 null。本次一次性收口，**不 bump version**。
+
+### Added
+
+- **NavGraph 7 占位换实屏 + 2 新路由** —— `PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost` 全部接 Composable；新增 `NotificationCenter` / `BlockedUsers` 两路由（前者作为 deep-link target，后者由 `FriendListScreen` 新加 dropdown 入口可达）。DID 文档加载期渲染 `CircularProgressIndicator` 占位。
+- **`SocialScreen.kt` 三 tab 升级** —— Friends → `FriendListScreen`（保留 P2P chat 入口 CTA）；Timeline → `TimelineScreen`，myDid 走 `DIDViewModel.didDocument`；Notifications → `NotificationCenterScreen`（带筛选 / 批量已读 / 清理菜单）。
+- **`PostReportDao` 落地** —— entity 早在 schema v23 在册，但 DAO 一直缺。新建 DAO（去重 + status 流转 + 7 个查询/更新方法）+ 注册到数据库 + Hilt `@Provides`。`PostRepository.reportPost()` 改走 DAO 入库 + `(postId, reporterDid)` idempotent；`getUserReports()` 走 DAO 查询不再 hardcode 空。
+- **PROFILE_QUERY / RESPONSE 协议** —— 2 新 `MessageType` + `SelfProfileProvider` 接口 + `SelfProfileSnapshot` data class。`RealtimeEventManager.queryProfile(targetDid, 5s timeout)` 用 `onSubscription` 解 SharedFlow replay=0 订阅竞态。`DefaultSelfProfileProvider`（DID 末 8 位占位昵称，与现 `MyQRCodeViewModel` 同规则）在 `ChainlessChainApplication.delayedInit` 注入。`FriendRepository.searchUserByDid()` 本地未命中即 fallback。
+- **`BlockedUsersScreen` 接 ViewModel** —— `FriendViewModel` 注入 `DIDManager`、加 `loadBlockedUsers()` + `unblockFriend` 走完整 `unblockUser(myDid, did)` 路径（清 `BlockedUserEntity` 行）。
+
+### Tests — 39 new, all green
+
+- Unit (core-p2p) `RealtimeEventManagerProfileQueryTest` 6
+- Unit (feature-p2p) `Post/Friend/FriendViewModel/DefaultSelfProfile` 14
+- Integration (core-database) `PostReportDaoTest` Robolectric + in-memory Room 8
+- Regression (app) `SocialRouteRegressionTest / SocialScreenTabRegressionTest` 11
+
+**学习——race-fix**：`queryProfile resolves` 测试用 `runTest` 跑挂——manager 内部 scope 用 `Dispatchers.IO` 与 virtual-time TestDispatcher 不在同图，2s timeout 在 virtual 时间瞬时跳完，IO 协程没来得及处理就 fail。改 `runBlocking + withTimeout(10_000)` 后过。
+
+[详细设计文档 →](/design/Android_Social_Wiring_2026-05)
+
+---
+
+## [Unreleased] - 2026-05-13 — v1.2 GA 反馈整合：P0 前置 + project workflow + 11 daily templates + 6 bug fix ([#21](https://github.com/chainlesschain/chainlesschain/issues/21))
+
+> 本批分两阶段。**阶段 1** (v1.2 GA 上架前)：A.3 ADR review / B.6 PQC 严格模式 verifier / B.2 削 web-shell `/multisig` cc subprocess 冷启三项 GA-independent + AI-3 forward-compat seam + 2 相关 bug fix。**阶段 2** (v1.2 GA 反馈到位)：5+3 反馈整合 #2 (删除 bug) / #3 (模板改日常 11 个) / #4-#7 (桌面↔手机项目工作流: CLI + REMOTE handler + 双向 sync walker) / #8 (web-shell 项目菜单 + 双端一致 view) 落地 P1+P2+P3 Part A。**version 不 bump** —— v1.2 GA 反馈仍在收集中, 与未来 P1 主体一起 release。
+
+### Added — v1.2 GA 反馈整合 5+3 项 ([#21](https://github.com/chainlesschain/chainlesschain/issues/21) #2/#3/#4/#5/#7/#8)
+
+- **#2 项目无法删除 fix** (commit `fc24f9856`) —— `ProjectScreen.kt::EnhancedProjectCard` 完全没有 delete UI（feature-project/.../ProjectListScreen.kt delete 代码是死代码未连入 NavGraph）。加 3-dot 菜单 + AlertDialog 确认 → DAO softDelete → Room Flow 自动从列表移除。
+- **#3 项目模板改日常 11 个** (commit `99d38bf69`) —— 砍掉 11 IDE 模板 (Android/React/Spring/Flutter 等)，整个 `ProjectTemplates` 重写为日常生活模板：购物清单 / 旅行计划 / 读书笔记 / 灵感收集 / 健身计划 / 食谱记录 / 学习计划 / 家庭账本 / 工作日志 / 会议记录 / 空白。`TemplateCategory` 加 5 个新类目 (DAILY/TRAVEL/STUDY/HEALTH/FINANCE)。
+- **#4/#7 桌面 CLI + REMOTE handler P1** (commit `32ccabdb5`) —— `cc project init/list/show/delete` 4 subcommands 直写 desktop chainlesschain.db (WAL 并发安全)。`project-management-handler.js` 暴露 6 actions 给 Android L3 REMOTE 调用，复用 desktop DatabaseManager。CLI 7 + handler 21 unit tests。
+- **#4 Android→Desktop 反向 sync P2** (commit `2646bbb4e`) —— 修补 audit 发现的反向同步缺口 (SocialSyncWalker 不含 projects 表)。新增 `ProjectSyncWalker` (feature-project) + `CompositeSyncRepositoryWalker` (`:app` 聚合 Social + Project) + `SyncWalkerModule` (Hilt 绑定)。CREATE/UPDATE/DELETE op mapping 完整。
+- **#5/#8 web-shell Projects view + in-process WS P3 Part A** (commit `bfdde637d`) —— 6 in-process WS topics 包装 P1 ProjectManagementHandler (DRY: 同一 handler 同时服务 web-shell + mobile L3 REMOTE)。新 `Projects.vue` 项目管理列表 (stats + filter + Detail drawer + Create modal)，`useShellMode().isEmbedded` 分发 in-process vs subprocess。原 Projects.vue 内容保留为 `ProjectInit.vue` (`/project-init`)。
+
+### Fixed
+
+- **wear test imports** (commit `c0d061328`) —— `CcPhoneDecisionListenerTest.kt` 缺 4 `kotlinx.coroutines` imports block 整个 `:app:compileDebugUnitTestKotlin`，加 imports 解锁。
+- **B.6 strict mode disk-load gate** (P0 sweep) —— `LandmarkCache.loadFromDisk()` bypass strict-mode gate；per-snapshot 严格检查移到 `_validateAndStoreSnapshot()` 头部，+2 disk-load integration tests 锁回归。
+- **feature-project pre-existing kotlin.test imports** (P2 sweep) —— 5 文件用 `kotlin.test.*` 但 deps 无；改 `org.junit.Assert.*` 解锁 `:feature-project:compileDebugUnitTestKotlin`。
+
+### Tests
+
+阶段 1 (P0)：
+- `landmark-cache-strict-pq-mode.test.js` 11/11
+- `multisig-handlers.test.js` 23/23
+- `ManifestSignatureVerifierTest.kt` 10/10 + regression `SkillMetadataTest` 9/9 + `RemoteSkillRegistryTest` 38/38
+
+阶段 2 (project workflow)：
+- `project-management-handler.test.js` 21/21 (P1 desktop handler)
+- `project-cli.test.js` 7/7 (P1 CLI integration via sql.js WASM)
+- `ProjectSyncWalkerTest.kt` 12 tests (P2 — pending CI, 本地 feature-project pre-existing test failures 不相关)
+- `CompositeSyncRepositoryWalkerTest.kt` 7/7 (P2 :app aggregate)
+- `project-handlers.test.js` 7/7 (P3A web-shell wrapper)
+- Android `:app:testDebugUnitTest` regression **80/80**
+- Desktop combined **51/51**
+
+## [Unreleased-Phase1-Legacy] - 2026-05-13 — Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix（已并入上方 Unreleased 主条目）
 
 ### Added — [#21](https://github.com/chainlesschain/chainlesschain/issues/21) P0 前置三项
 

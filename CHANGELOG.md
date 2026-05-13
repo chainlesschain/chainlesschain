@@ -5,9 +5,55 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-05-13 — Android v1.3+ P0 前置三项 + AI-3 forward-compat + 2 bug fix ([#21](https://github.com/chainlesschain/chainlesschain/issues/21))
+## [Unreleased] - 2026-05-13 (later) — Android 社交功能产线化（demo → production）
 
-> v1.2 GA 上架前的 P0 前置批次：A.3 ADR review / B.6 PQC 严格模式 verifier / B.2 削 web-shell `/multisig` cc subprocess 冷启 三项 GA-independent 部分齐落，另 ADR-8 amend 的 forward-compat seam (AI-3) 落地，以及 sweep 出 2 个相关 bug 顺手修。**version 不 bump** — 这批是 v1.2 GA 前置，等 v1.2 GA 上架反馈到位时与 P1 主体一起 release。
+> 14 屏 + 9 ViewModel + 4 Repository 的社交骨架 (~10K LOC) 建好已久，但 NavGraph 只接通 MyQRCode / QRCodeScanner 两路由，其它 7 路由是 `registerPlaceholder("temporarily simplified")`；`SocialScreen` Friends / Timeline 两 tab 显示固定字串；`PostRepository.reportPost` 构造完 entity 不入库；`FriendRepository.searchUserByDid` 非本地 DID 返回 null。本次一次性收口，**不 bump version**，与本日早期 P0 前置一起 release。
+
+### Added
+
+- **NavGraph 7 占位换实屏 + 2 新路由** — `PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost` 全部接 Composable；新增 `NotificationCenter` / `BlockedUsers` 两路由（前者作为 deep-link target，后者由 `FriendListScreen` 新加 dropdown 入口可达）。DID 文档加载期渲染 `CircularProgressIndicator` 占位。
+- **`SocialScreen.kt` 三 tab 升级** — Friends → `FriendListScreen`（保留 P2P chat 入口 CTA）；Timeline → `TimelineScreen`，myDid 走 `DIDViewModel.didDocument.collectAsState()`；Notifications → `NotificationCenterScreen`（带筛选 / 批量已读 / 清理菜单），删旧的内联 basic 列表 + 2 个 `R.string.social_*_placeholder` 引用。
+- **`PostReportDao` 落地** — `PostReportEntity` 早在 schema v23 在册，但 DAO 一直缺。新建 `core-database/.../dao/social/PostReportDao.kt`（7 个查询/更新方法）+ 注册到 `ChainlessChainDatabase` + `DatabaseModule` `@Provides`。`PostRepository.reportPost()` 改走 `postReportDao.insertReport()` + `hasReporterReportedPost()` 去重让重复举报 idempotent；`getUserReports()` 走 `postReportDao.getReportsByReporter().asResult()` 不再 hardcode 空；新增 `getPostReports() / getPendingReportCount()` 供 moderation 排序信号。
+- **PROFILE_QUERY / PROFILE_RESPONSE 协议** — `MessageType` 加 2 项；`core-p2p/.../realtime/SelfProfileProvider.kt` 接口 + `SelfProfileSnapshot` data class；`RealtimeEventManager.queryProfile(targetDid, timeoutMs=5_000L)` 用 `onSubscription { send }` 在订阅完成后才发请求，解 `_profileResponseEvents` (replay=0) 的订阅竞态；`handleProfileQuery` 通过 `AtomicReference<SelfProfileProvider?>` 读取注入的 provider 自动回包，未注入或返回 null 时静默忽略（向后兼容旧节点）。`feature-p2p/.../repository/social/DefaultSelfProfileProvider.kt` 默认实现：DID 末 8 位占位昵称（与 `MyQRCodeViewModel.kt` L100 同规则），在 `ChainlessChainApplication.delayedInit()` 走 `AppEntryPoint` 注入。`FriendRepository.searchUserByDid()` 本地未命中即 fallback 远端查询，超时返回 `Result.Success(null)`（UI 显示"未找到"，不弹错误）。
+- **`BlockedUsersScreen` 接 ViewModel** — 之前 `blockedUsers = mutableStateOf(emptyList())` 写死 + TODO 注释。`FriendViewModel` 注入 `DIDManager`、新增 `loadBlockedUsers()` + state field `blockedUsers / isLoadingBlockedUsers`；`unblockFriend(did)` 现在走完整 `friendRepository.unblockUser(myDid, did)` 路径（同时清 `BlockedUserEntity` 行），未登录态 fallback 到 flag-only `unblockFriend(did)`，避免孤儿屏蔽记录。`FriendListScreen` dropdown 加 "屏蔽用户" 入口，通过 `MainContainer → SocialScreen → FriendListScreen → NavGraph.Screen.BlockedUsers.route` 链路打开。
+
+### Tests — 39 new, all green
+
+| 层 | 文件 | 数量 |
+|----|------|------|
+| Unit (core-p2p) | `RealtimeEventManagerProfileQueryTest` | 6 |
+| Unit (feature-p2p) | `PostRepositoryReportTest / FriendRepositoryRemoteLookupTest / FriendViewModelBlockedUsersTest / DefaultSelfProfileProviderTest` | 4+4+4+2 = 14 |
+| Integration (core-database) | `PostReportDaoTest` (Robolectric + in-memory Room) | 8 |
+| Regression (app) | `SocialRouteRegressionTest / SocialScreenTabRegressionTest` | 6+5 = 11 |
+
+**关键学习——race-fix**：`queryProfile resolves with matching PROFILE_RESPONSE` 这个测试最初用 `runTest` 跑 fail——`RealtimeEventManager` 内部 `scope = CoroutineScope(Dispatchers.IO + SupervisorJob())` 与 `runTest` virtual-time TestDispatcher 不在同一调度图，2s timeout 在 virtual 时间瞬时跳完，IO 协程还没来得及 `handleRealtimeMessage` 就 fail。改 `runBlocking + withTimeout(10_000)` 跑真实并发后通过。
+
+### Files
+
+```
+新增 (5):
+  android-app/core-database/src/main/java/.../dao/social/PostReportDao.kt
+  android-app/core-p2p/src/main/java/.../realtime/SelfProfileProvider.kt
+  android-app/feature-p2p/src/main/java/.../repository/social/DefaultSelfProfileProvider.kt
+  + 8 测试文件 + 1 设计文档 (docs/design/Android_Social_Wiring_2026-05.md)
+
+修改 (14 Kotlin + 8 文档):
+  Application / AppEntryPoint / NavGraph / MainContainer / SocialScreen
+  ChainlessChainDatabase / DatabaseModule
+  P2PDevice / RealtimeEventManager
+  FriendRepository / PostRepository / BlockedUsersScreen / FriendListScreen / FriendViewModel
+  README.md / README_EN.md / docs/FEATURES.md
+  docs-website-v2/src/pages/{,en/}mobile.astro
+  docs-site/docs/design/* (sync) / docs-site-design/docs/* (sync)
+```
+
+[详细设计文档 →](docs/design/Android_Social_Wiring_2026-05.md)
+
+---
+
+## [Unreleased] - 2026-05-13 — v1.2 GA 反馈整合：P0 前置 + project workflow + 11 daily templates + 6 bug fix ([#21](https://github.com/chainlesschain/chainlesschain/issues/21))
+
+> 本批分两阶段。**阶段 1** (v1.2 GA 上架前)：A.3 ADR review / B.6 PQC 严格模式 verifier / B.2 削 web-shell `/multisig` cc subprocess 冷启三项 GA-independent + AI-3 forward-compat seam + 2 相关 bug fix。**阶段 2** (v1.2 GA 反馈到位)：5+3 反馈整合 #2 (删除 bug) / #3 (模板改日常) / #4-#7 (桌面↔手机项目工作流: CLI + REMOTE handler + 双向 sync walker) / #8 (web-shell 项目菜单 + 双端一致 view) 落地 P1+P2+P3 Part A。**version 不 bump** — v1.2 GA 反馈仍在收集中, 与未来 P1 主体一起 release。
 
 ### Added — [#21](https://github.com/chainlesschain/chainlesschain/issues/21) P0 前置三项 GA-independent
 
@@ -21,12 +67,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **wear test imports**（commit `c0d061328`）—— `CcPhoneDecisionListenerTest.kt` 自 `cc08da0b0` (v1.2 #20 P0.2 wear Phase 2) 起用 `kotlinx.coroutines.GlobalScope.launch { ... delay() }` 写 smoke 测试，但 imports 缺 `launch`/`delay`/`GlobalScope`/`DelicateCoroutinesApi` —— `launch` 是 extension function，fully-qualified `GlobalScope.launch` 也必须 import 才能 resolve。block 了整个 `:app:compileDebugUnitTestKotlin`。加 4 imports 解锁。CI 此前未报可能因 wear test 未纳入 `:app` 测试目标或 continue-on-error 沉默。
 - **B.6 strict mode disk-load gate**（test-driven 发现于本次 QA sweep）—— `LandmarkCache.loadFromDisk()` 直接调 `_validateAndStoreSnapshot()`，bypassing `ingest()` 里的 `_assertStrictPqMode()` 调用。结果：strict mode OFF 时写入磁盘的 Ed25519 landmark，下次 strict mode ON 加载时**仍接受**（silent strict invariant 违反）。修：把 per-snapshot 严格检查移到 `_validateAndStoreSnapshot()` 头部，让 ingest + loadFromDisk 两条路径都有 gate；`_assertStrictPqMode(landmark)` 简化为只查 publisher_signature。+2 新 disk-load integration tests 锁回归。
 
+### Added — v1.2 GA 反馈整合 5+3 项 ([#21](https://github.com/chainlesschain/chainlesschain/issues/21) #2/#3/#4/#5/#7/#8)
+
+- **#2 项目无法删除 fix** (commit `fc24f9856`) —— `ProjectScreen.kt::EnhancedProjectCard` 完全没有 delete UI（feature-project/.../ProjectListScreen.kt 的 delete 代码是死代码未连入 NavGraph）。加 3-dot 菜单 + AlertDialog 确认 + `onDeleteClick` → `viewModel.deleteProject` → DAO softDelete (status='deleted') → Room Flow 自动从列表移除。
+- **#3 项目模板改日常** (commit `99d38bf69`) —— L1+L2+L3 mobile 定位下用户不是程序员，原 11 IDE 模板 (Android/React/Spring/Flutter 等) 跟使用场景不符。整个 `ProjectTemplates` 重写为 11 日常生活模板：购物清单 / 旅行计划 / 读书笔记 / 灵感收集 / 健身计划 / 食谱记录 / 学习计划 / 家庭账本 / 工作日志 / 会议记录 / 空白。`TemplateCategory` 加 5 个日常类目 (DAILY/TRAVEL/STUDY/HEALTH/FINANCE)。`TemplateLibrary` `getCategoryIcon`/`getCategoryType` when 表达式补 5 个新分支防 compilation error。strings.xml 加 5 新 string (zh-rCN + en)。
+- **#4/#7 桌面 CLI + REMOTE handler P1** (commit `32ccabdb5`) —— `packages/cli/src/lib/project-runtime.js` (SQLite cascade + Electron userData path resolution Win/macOS/Linux) + `packages/cli/src/commands/project.js` (`cc project init/list/show/delete` 4 subcommands 直写 desktop chainlesschain.db, WAL mode 并发安全)。`desktop-app-vue/src/main/remote/handlers/project-management-handler.js` (6 actions: list/get/init/delete/listFiles/getFile) 暴露给 Android L3 REMOTE 调用, 复用 desktop DatabaseManager。CLI 7 integration tests + handler 21 unit tests 全过。
+- **#4 Android→Desktop 反向 sync P2** (commit `2646bbb4e`) —— audit 发现：桌面→手机 sync 通 (mobile-bridge-sync `_fetchProjects` walker + Android `ProjectSyncApplierImpl`), 反向手机→桌面断 (`SocialSyncWalker` 不含 projects 表)。新增 `ProjectDao.getProjectsSinceCursor` (无 status 过滤让 status='deleted' 也 emit) + `ProjectSyncWalker.kt` (feature-project, ~120 LOC, op mapping CREATE/UPDATE/DELETE, snake_case JSON 对齐 desktop) + `CompositeSyncRepositoryWalker.kt` (`:app`/sync 聚合 SocialSyncWalker + ProjectSyncWalker) + `SyncWalkerModule.kt` (Hilt `@Binds → Composite` replaces feature-p2p single-walker binding)。P2PModule.kt 注释旧 binding。ProjectSyncWalker 12 tests + CompositeSyncRepositoryWalker 7 tests。顺手修 5 个 pre-existing feature-project 测试 `kotlin.test.*` → `org.junit.Assert.*` imports unblock `:feature-project:compileDebugUnitTestKotlin`。
+- **#5/#8 web-shell Projects view + in-process WS topics P3 Part A** (commit `bfdde637d`) —— `desktop-app-vue/src/main/web-shell/handlers/project-handlers.js` 6 in-process WS topics 包装 P1 ProjectManagementHandler (DRY: 同一 handler 同时服务 web-shell + mobile L3 REMOTE, 避免 ws.execute('cc project …') asar:true 6-10s 子进程冷启)。新 `packages/web-panel/src/views/Projects.vue` 项目管理列表 (4 stats + filter + table + Detail drawer 含文件列表 + Create modal 10 types)，`useShellMode().isEmbedded` 分发 in-process vs `ws.executeJson` 兜底。原 Projects.vue "项目 init/setup/templates" 内容移到新 `views/ProjectInit.vue` (路由 `/project-init`) 保留 backward 访问。project-handlers 7 unit tests。
+
+### Fixed
+
+- **wear test imports**（commit `c0d061328`）—— `CcPhoneDecisionListenerTest.kt` 自 `cc08da0b0` (v1.2 #20 P0.2 wear Phase 2) 起用 `kotlinx.coroutines.GlobalScope.launch { ... delay() }` 写 smoke 测试，但 imports 缺 `launch`/`delay`/`GlobalScope`/`DelicateCoroutinesApi`。block 了整个 `:app:compileDebugUnitTestKotlin`。加 4 imports 解锁。
+- **B.6 strict mode disk-load gate**（test-driven 发现于 P0 QA sweep）—— `LandmarkCache.loadFromDisk()` 直接调 `_validateAndStoreSnapshot()`，bypassing `ingest()` 里的 `_assertStrictPqMode()` 调用。修：把 per-snapshot 严格检查移到 `_validateAndStoreSnapshot()` 头部，让 ingest + loadFromDisk 两条路径都有 gate；`_assertStrictPqMode(landmark)` 简化为只查 publisher_signature。+2 disk-load integration tests 锁回归。
+- **feature-project pre-existing kotlin.test imports** (P2 sweep) —— `CodeCompletionTest` / `CodeFoldingTest` / `EditorTabManagerTest` / `Phase6IntegrationTest` / `Phase9IntegrationTest` 5 文件用 `kotlin.test.assertEquals/assertTrue` 但 deps 无 `kotlin.test`，block `:feature-project:compileDebugUnitTestKotlin`。改成 `org.junit.Assert.*` 解锁。
+
 ### Tests
 
+阶段 1 (P0):
 - **`landmark-cache-strict-pq-mode.test.js`** 11/11 pass（原 9 + 2 disk-load integration tests for strict mode persistence）
-- **`multisig-handlers.test.js`** 23/23 pass（B.2 unit tests via `runtimeFactory` 注入 seam）
-- **`ManifestSignatureVerifierTest.kt`** 10/10 pass（AI-3）+ `SkillMetadataTest` 9/9 + `RemoteSkillRegistryTest` 38/38 regression 全过（本地 NDK install 修复后 `./gradlew :app:testDebugUnitTest` 2m21s 全绿）
-- **web-shell** 379 regression 全过（25 test files）
+- **`multisig-handlers.test.js`** 23/23 pass（B.2 via `runtimeFactory` 注入 seam）
+- **`ManifestSignatureVerifierTest.kt`** 10/10 + `SkillMetadataTest` 9/9 + `RemoteSkillRegistryTest` 38/38 regression 全过
+
+阶段 2 (project workflow):
+- **`project-management-handler.test.js`** 21/21 pass（P1 desktop handler）
+- **`project-cli.test.js`** 7/7 pass（P1 `cc project` CLI integration via sql.js WASM temp DB）
+- **`ProjectSyncWalkerTest.kt`** 12 tests (P2 Android walker — pending CI run，本地 feature-project test 套有 pre-existing 不相关 failures)
+- **`CompositeSyncRepositoryWalkerTest.kt`** 7/7 pass（P2 :app 聚合，2026-05-13 Phase 4 加）
+- **`project-handlers.test.js`** 7/7 pass（P3A web-shell wrapper）
+- Android `:app:testDebugUnitTest` regression: **80/80 pass** (ManifestSignatureVerifier 10 + RemoteSkillRegistry 38 + SkillMetadata 9 + SeedRegistry 10 + RegistryStore 6 + CompositeSyncRepositoryWalker 7)
+- Desktop combined: **51/51 pass** (project-handlers 7 + multisig-handlers 23 + project-management-handler 21)
 
 ## [v5.0.3.49] - 2026-05-12 — M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing 收口 + 测试补丁
 

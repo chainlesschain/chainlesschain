@@ -2,7 +2,31 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-## 2026-05-13 Follow-up — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 prerequisites GA-independent + AI-3 forward-compat + 2 bug fixes**
+## 2026-05-13 Follow-up — **Android social goes production (demo → real)**
+
+10K LOC of social scaffolding (14 screens + 9 ViewModels + 4 repos) was built long ago but only 2 routes were actually wired; the other 7 were `registerPlaceholder("temporarily simplified")`, and the `SocialScreen` Friends/Timeline tabs were hardcoded placeholder strings. Closed it all in one pass:
+
+- **`NavGraph.kt` — replaced 7 placeholders with real composables + 2 new routes** (`PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost` now bound to the real screens; added `NotificationCenter` + `BlockedUsers` routes; a `CircularProgressIndicator` is shown while the DID document is loading)
+- **`SocialScreen.kt` — three tabs upgraded** — Friends → `FriendListScreen`; Timeline → `TimelineScreen` (myDid resolved via `DIDViewModel.didDocument`); Notifications → `NotificationCenterScreen` (with filter / mark-all-read / cleanup menus, deleting the old inline basic list)
+- **`PostReportDao` landed** — the entity has been in schema v23 forever but the DAO was missing: `reportPost()` was building entities without inserting + `getUserReports()` returned a hardcoded empty list. New DAO adds dedupe (`(postId, reporterDid)` idempotent) + status transitions + 8 Robolectric in-memory Room tests
+- **PROFILE_QUERY/RESPONSE protocol** — 2 new `MessageType`s; `RealtimeEventManager.queryProfile(targetDid, 5s timeout)` uses `onSubscription` to eliminate the SharedFlow replay=0 subscribe-race; `SelfProfileProvider` interface + `DefaultSelfProfileProvider` (DID-suffix placeholder) wired in `ChainlessChainApplication.delayedInit`; `FriendRepository.searchUserByDid()` falls back to a P2P lookup when the local DID misses
+- **`BlockedUsersScreen` wired to ViewModel** — `FriendViewModel` now injects `DIDManager` and gains `loadBlockedUsers()` + `unblockFriend` taking the full `unblockUser(myDid, did)` path (also clears the `BlockedUserEntity` row, no more orphaned records via the flag-only path)
+
+**Tests**: 39 new unit + integration tests all green — 6× `RealtimeEventManagerProfileQueryTest` (race-fix: switched the round-trip test from `runTest` to `runBlocking` because the manager's internal scope uses `Dispatchers.IO`, off the virtual-time TestDispatcher graph) + 4×3 feature-p2p repo / VM + 2 `DefaultSelfProfileProvider` + 8 `PostReportDaoTest` real in-memory Room + 11 NavGraph + tab structural regressions (no emulator needed). Design doc: [Android_Social_Wiring_2026-05.md](docs/design/Android_Social_Wiring_2026-05.md). All three doc sites refreshed this round.
+
+## 2026-05-13 Mid-stage — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) v1.2 GA feedback integration: project workflow P1+P2+P3A + #2 delete fix + #3 daily templates**
+
+v1.2 GA feedback 5+3 items integrated (#2/#3/#4/#5/#7/#8). North star: "phone-side AI project interaction should be as smooth as desktop."
+
+- **#2 project delete fix** (`fc24f9856`) — `EnhancedProjectCard` was missing delete UI entirely; added 3-dot menu + confirm dialog → DAO softDelete → Room Flow auto-removes from list.
+- **#3 templates → daily life, 11 entries** (`99d38bf69`) — dropped 11 IDE templates; rewrote `ProjectTemplates` as: shopping list / travel plan / reading notes / idea capture / fitness plan / recipe / study plan / household ledger / work journal / meeting minutes / blank. Added 5 new `TemplateCategory` entries.
+- **#4/#7 Desktop CLI + REMOTE handler P1** (`32ccabdb5`) — `cc project init/list/show/delete` writes directly to desktop `chainlesschain.db` (WAL-safe concurrent) + `project-management-handler.js` exposes 6 actions to Android L3 REMOTE. CLI 7 + handler 21 tests.
+- **#4 Android→Desktop reverse sync P2** (`2646bbb4e`) — patched the reverse-sync gap. Added `ProjectSyncWalker` + `CompositeSyncRepositoryWalker` (`:app` aggregate) + Hilt binding. Full CREATE/UPDATE/DELETE op mapping. Composite 7/7 + walker 12 tests.
+- **#5/#8 web-shell Projects + in-process WS P3 Part A** (`bfdde637d`) — 6 in-process WS topics wrapping the P1 handler (DRY: same handler serves web-shell + mobile L3). New `Projects.vue` project management list + old init/setup content moved to `ProjectInit.vue`. project-handlers 7/7 tests.
+
+**Tests**: Phase 1 (P0) all pass + Phase 2 (project workflow): Android `:app` 80/80 + Desktop combined 51/51. **P3 Part B pending**: Android `ProjectCommands.kt` (so mobile can call project.* via REMOTE on desktop projects) — wait for user verification of P1+P2+P3A first.
+
+## 2026-05-13 Earlier — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 prerequisites GA-independent + AI-3 forward-compat + 2 bug fixes**
 
 P0 prerequisite batch before v1.2 GA (**no version bump**; will release alongside P1 main scope after v1.2 GA feedback):
 

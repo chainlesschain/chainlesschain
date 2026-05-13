@@ -2,7 +2,31 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-## 2026-05-13 后续推进 — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix**
+## 2026-05-13 后续推进 — **Android 社交功能产线化（demo → production）**
+
+10K LOC 社交骨架（14 屏 + 9 VM + 4 Repo）建好已久，但只有 2 路由真接通；其它 7 个 `registerPlaceholder("temporarily simplified")`，`SocialScreen` 三 tab 中 Friends/Timeline 显示固定字串。本次一次性收口：
+
+- **`NavGraph.kt` 7 占位换实屏 + 2 新路由**（`PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost` 实接 Composable；新增 `NotificationCenter` + `BlockedUsers` 路由，DID 加载期渲染 spinner 占位）
+- **`SocialScreen.kt` 3 tab 全升级** — Friends → `FriendListScreen`；Timeline → `TimelineScreen`（myDid 走 `DIDViewModel.didDocument`）；Notifications → `NotificationCenterScreen`（带筛选/批量已读/清理菜单，删旧内联 basic 列表）
+- **`PostReportDao` 落地** — entity 早在 schema v23 在册，但 DAO 缺失：`reportPost()` 构造完 entity 不入库 + `getUserReports()` hardcoded 空。新 DAO 加去重（`(postId, reporterDid)` idempotent）+ status 流转 + Robolectric 8 测试覆盖
+- **PROFILE_QUERY/RESPONSE 协议** — `MessageType` 加 2 项；`RealtimeEventManager.queryProfile(targetDid, 5s timeout)` 用 `onSubscription` 解 SharedFlow replay=0 订阅竞态；`SelfProfileProvider` 接口 + `DefaultSelfProfileProvider`（DID-suffix 占位）在 `ChainlessChainApplication.delayedInit` 注入；`FriendRepository.searchUserByDid()` 本地未命中即 fallback 远端
+- **`BlockedUsersScreen` 接 ViewModel** — `FriendViewModel` 注入 `DIDManager`，加 `loadBlockedUsers()` + `unblockFriend` 走完整 `unblockUser(myDid, did)` 路径（清 `BlockedUserEntity` 行，不再 flag-only 留孤儿记录）
+
+**测试**：39 新单测全绿——6 个 `RealtimeEventManagerProfileQueryTest`（race-fix：`runTest` 跑挂改 `runBlocking`，因 manager 内部 scope 用 `Dispatchers.IO` 与 virtual-time TestDispatcher 不在同一调度图）+ 4×3 feature-p2p（Post/Friend repo + FriendViewModel）+ 2 `DefaultSelfProfileProvider` + 8 `PostReportDaoTest` 真 Room in-memory + 11 路由 + tab 结构性回归（不需要模拟器）。设计文档 [Android_Social_Wiring_2026-05.md](docs/design/Android_Social_Wiring_2026-05.md)，三大文档站本次同步刷新。
+
+## 2026-05-13 中期推进 — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) v1.2 GA 反馈整合：项目工作流 P1+P2+P3A + #2 删除 fix + #3 日常模板**
+
+v1.2 GA 反馈 5+3 项整合（#2/#3/#4/#5/#7/#8）。北极星："手机端做 AI 项目交互要像电脑端那样丝滑"。
+
+- **#2 项目无法删除 fix** (`fc24f9856`) — `EnhancedProjectCard` 完全没有 delete UI；加 3-dot 菜单 + 确认 dialog → DAO softDelete → Room Flow 自动从列表移除。
+- **#3 模板改日常 11 个** (`99d38bf69`) — 砍 11 IDE 模板，整个 `ProjectTemplates` 重写：购物清单 / 旅行计划 / 读书笔记 / 灵感收集 / 健身计划 / 食谱记录 / 学习计划 / 家庭账本 / 工作日志 / 会议记录 / 空白。`TemplateCategory` 加 5 个新类目。
+- **#4/#7 桌面 CLI + REMOTE handler P1** (`32ccabdb5`) — `cc project init/list/show/delete` 直写 desktop `chainlesschain.db`（WAL 并发安全）+ `project-management-handler.js` 6 actions 给 Android L3 REMOTE。CLI 7 + handler 21 tests。
+- **#4 Android→Desktop 反向 sync P2** (`2646bbb4e`) — 修补反向同步缺口；新增 `ProjectSyncWalker` + `CompositeSyncRepositoryWalker`（`:app` 聚合）+ Hilt 绑定。CREATE/UPDATE/DELETE 完整。Composite 7/7 + walker 12 tests。
+- **#5/#8 web-shell Projects + in-process WS P3 Part A** (`bfdde637d`) — 6 in-process WS topics 包装 P1 handler（DRY: 同 handler 服 web-shell + mobile L3）。新 `Projects.vue` 项目管理列表 + 移老内容到 `ProjectInit.vue`。project-handlers 7/7 tests。
+
+**测试**：阶段 1 P0 全过 + 阶段 2 project workflow：Android `:app` 80/80 + Desktop combined 51/51。**P3 Part B 待办**：Android `ProjectCommands.kt`（让手机用 REMOTE 调 project.* 看/操作桌面项目），等用户验证 P1+P2+P3A 后再做。
+
+## 2026-05-13 前期推进 — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix**
 
 v1.2 GA 上架前的 P0 前置批次（**未 bump version**，与 P1 主体一起 release）：
 
