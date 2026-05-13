@@ -210,6 +210,12 @@ enum class MessageType {
     /** 正在输入指示 */
     TYPING_INDICATOR,
 
+    /** 用户资料查询请求（按 DID 查 nickname/bio/avatar） */
+    PROFILE_QUERY,
+
+    /** 用户资料查询响应 */
+    PROFILE_RESPONSE,
+
     // Reliability Message Types
 
     /** 批量确认 */

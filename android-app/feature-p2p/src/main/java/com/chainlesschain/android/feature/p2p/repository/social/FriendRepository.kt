@@ -10,6 +10,7 @@ import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
 import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
 import com.chainlesschain.android.core.p2p.discovery.NSDDiscovery
+import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import dagger.Lazy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -30,6 +31,7 @@ class FriendRepository @Inject constructor(
     private val friendDao: FriendDao,
     private val blockedUserDao: BlockedUserDao,
     private val nsdDiscovery: NSDDiscovery,
+    private val realtimeEventManager: RealtimeEventManager,
     // dagger.Lazy 解决 SocialSyncAdapter ↔ FriendRepository 循环依赖
     private val syncAdapter: Lazy<SocialSyncAdapter>,
 ) {
@@ -106,8 +108,22 @@ class FriendRepository @Inject constructor(
                 return Result.Success(searchResult)
             }
 
-            // P2P network or backend API query for non-local users not yet available
-            Result.Success(null)
+            // 非本地 DID：向 libp2p 网络发 PROFILE_QUERY，最多等 5s。
+            // 远端 SelfProfileProvider 在线时会回包；超时返回 null（UI 显示"未找到"）。
+            val remoteProfile = realtimeEventManager.queryProfile(targetDid = did)
+            if (remoteProfile != null) {
+                Result.Success(
+                    com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(
+                        did = remoteProfile.did,
+                        nickname = remoteProfile.nickname,
+                        avatar = remoteProfile.avatarUrl,
+                        bio = remoteProfile.bio,
+                        isFriend = false
+                    )
+                )
+            } else {
+                Result.Success(null)
+            }
         } catch (e: Exception) {
             Result.Error(e)
         }

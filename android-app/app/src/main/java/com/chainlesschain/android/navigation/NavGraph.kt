@@ -84,8 +84,18 @@ import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import com.chainlesschain.android.feature.project.model.ProjectListState
 import com.chainlesschain.android.feature.p2p.ui.ChatSessionListScreen
 import com.chainlesschain.android.feature.p2p.ui.P2PChatScreen
+import com.chainlesschain.android.feature.p2p.ui.social.AddFriendScreen
+import com.chainlesschain.android.feature.p2p.ui.social.BlockedUsersScreen
+import com.chainlesschain.android.feature.p2p.ui.social.CommentDetailScreen
+import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
+import com.chainlesschain.android.feature.p2p.ui.social.FriendDetailScreen
 import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
+import com.chainlesschain.android.feature.p2p.ui.social.NotificationCenterScreen
+import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
+import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
 import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
+import com.chainlesschain.android.feature.p2p.ui.social.UserProfileScreen
+import com.chainlesschain.android.feature.p2p.viewmodel.DIDViewModel
 
 @Composable
 fun NavGraph(
@@ -151,6 +161,7 @@ fun NavGraph(
                 onNavigateToUserProfile = { navController.navigate(Screen.UserProfile.createRoute(it)) },
                 onNavigateToEditPost = { navController.navigate(Screen.EditPost.createRoute(it)) },
                 onNavigateToComment = { navController.navigate(Screen.CommentDetail.createRoute(it)) },
+                onNavigateToBlockedUsers = { navController.navigate(Screen.BlockedUsers.route) },
                 onNavigateToMyQRCode = { navController.navigate(Screen.MyQRCode.route) },
                 onNavigateToQRScanner = { navController.navigate(Screen.QRCodeScanner.route) },
                 onNavigateToLLMSettings = { navController.navigate(Screen.LLMSettings.route) },
@@ -400,12 +411,105 @@ fun NavGraph(
             CodeViewerScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        registerPlaceholder(navController, Screen.PublishPost.route, "Publish Post")
-        registerPlaceholder(navController, "${Screen.PostDetail.route}/{postId}", "Post Detail", "postId")
-        registerPlaceholder(navController, "${Screen.FriendDetail.route}/{did}", "Friend Detail", "did")
-        registerPlaceholder(navController, "${Screen.UserProfile.route}/{did}", "User Profile", "did")
-        registerPlaceholder(navController, Screen.AddFriend.route, "Add Friend")
-        registerPlaceholder(navController, "${Screen.CommentDetail.route}/{commentId}", "Comment Detail", "commentId")
+        composable(Screen.PublishPost.route) {
+            val didViewModel: DIDViewModel = hiltViewModel()
+            val didDocument by didViewModel.didDocument.collectAsState()
+            val myDid = didDocument?.id
+            if (myDid.isNullOrBlank()) {
+                // DID 还没加载完——给 hilt 一帧时间，渲染 spinner 占位
+                androidx.compose.foundation.layout.Box(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            } else {
+                PublishPostScreen(
+                    myDid = myDid,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(
+            route = "${Screen.PostDetail.route}/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            val didViewModel: DIDViewModel = hiltViewModel()
+            val didDocument by didViewModel.didDocument.collectAsState()
+            val myDid = didDocument?.id
+            if (myDid.isNullOrBlank()) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            } else {
+                PostDetailScreen(
+                    postId = postId,
+                    myDid = myDid,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToUserProfile = { did ->
+                        navController.navigate(Screen.UserProfile.createRoute(did))
+                    }
+                )
+            }
+        }
+
+        composable(
+            route = "${Screen.FriendDetail.route}/{did}",
+            arguments = listOf(navArgument("did") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val friendDid = backStackEntry.arguments?.getString("did") ?: return@composable
+            FriendDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { peerId ->
+                    // 已存在的 P2P chat 路由用 peerId+peerName 两段；用 friendDid 当 peer 显示名兜底
+                    navController.navigate(Screen.P2PChat.createRoute(peerId, friendDid))
+                },
+                onNavigateToCallHistory = { /* 通话功能已移除 */ }
+            )
+        }
+
+        composable(
+            route = "${Screen.UserProfile.route}/{did}",
+            arguments = listOf(navArgument("did") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did") ?: return@composable
+            UserProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { peerId ->
+                    navController.navigate(Screen.P2PChat.createRoute(peerId, did))
+                }
+            )
+        }
+
+        composable(Screen.AddFriend.route) {
+            AddFriendScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToQRScanner = { navController.navigate(Screen.QRCodeScanner.route) }
+            )
+        }
+
+        composable(
+            route = "${Screen.CommentDetail.route}/{commentId}",
+            arguments = listOf(navArgument("commentId") { type = NavType.StringType })
+        ) { _ ->
+            CommentDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                }
+            )
+        }
         // 我的二维码页面
         composable(Screen.MyQRCode.route) {
             MyQRCodeScreen(
@@ -427,7 +531,41 @@ fun NavGraph(
                 }
             )
         }
-        registerPlaceholder(navController, "${Screen.EditPost.route}/{postId}", "Edit Post", "postId")
+        composable(
+            route = "${Screen.EditPost.route}/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            EditPostScreen(
+                postId = postId,
+                onNavigateBack = { navController.popBackStack() },
+                onPostUpdated = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.NotificationCenter.route) {
+            NotificationCenterScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToFriendRequest = { did ->
+                    navController.navigate(Screen.FriendDetail.createRoute(did))
+                },
+                onNavigateToFriendProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToComment = { commentId ->
+                    navController.navigate(Screen.CommentDetail.createRoute(commentId))
+                }
+            )
+        }
+
+        composable(Screen.BlockedUsers.route) {
+            BlockedUsersScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         composable(Screen.DeviceManagement.route) {
             DeviceListScreen(
                 onNavigateToDeviceDetail = { peerId, did ->
@@ -702,6 +840,8 @@ sealed class Screen(val route: String) {
     data object EditPost : Screen("edit_post") {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
+    data object NotificationCenter : Screen("notification_center")
+    data object BlockedUsers : Screen("blocked_users")
     data object Settings : Screen("settings")
     data object DesktopPairing : Screen("desktop_pairing") // v1.1 W3.2 mobile↔desktop QR pairing
     data object ScanDesktopPairing : Screen("scan_desktop_pairing") // v1.1 W3.7 Flow B

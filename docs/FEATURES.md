@@ -317,6 +317,19 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 Uses same SKILL.md format as desktop. Details in `MEMORY.md`.
 
+### Social — production wiring (2026-05-13)
+
+之前 14 个 social Composable + 9 个 ViewModel + 4 个 Repository 已建好但只有 `MyQRCode/QRCodeScanner` 两路由真接通，其它 7 路由都是 `registerPlaceholder("temporarily simplified for build stability")`。本次收口：
+
+- **`NavGraph.kt` 7 路由换实屏** — `PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost` 全部接 Composable，DID 加载期间渲染 spinner 占位
+- **新增 2 路由** — `NotificationCenter`（deep-link target）+ `BlockedUsers`（由 FriendListScreen dropdown 入口可达）
+- **`SocialScreen.kt` 3 个 tab 换实屏** — Friends → `FriendListScreen`、Timeline → `TimelineScreen`(myDid 走 `DIDViewModel.didDocument`)、Notifications → `NotificationCenterScreen`（带筛选 / mark-all-read / cleanup 菜单，替换内联 basic 列表）
+- **PostReportDao 落地** — 之前 `PostRepository.reportPost()` 只构造 `PostReportEntity` 不入库、`getUserReports()` hardcoded 空。新 DAO 走 Room（entity 早在 schema v23 在册）+ `(postId, reporterDid)` 去重 + status 流转。8 个 in-memory Room 测试覆盖
+- **远端 DID profile 查询** — `MessageType.PROFILE_QUERY/RESPONSE` 走现有 P2P 通道；`RealtimeEventManager.queryProfile(targetDid, 5s timeout)` 用 `onSubscription` 解决 SharedFlow replay=0 订阅竞态；`SelfProfileProvider` 接口 + `DefaultSelfProfileProvider`（DID-suffix 占位）在 `ChainlessChainApplication.delayedInit` 注入；`FriendRepository.searchUserByDid()` 本地未命中即 fallback
+- **`BlockedUsersScreen` 接 ViewModel** — 之前 `blockedUsers` 永远空 + TODO 注释；现 `FriendViewModel` 注入 `DIDManager`、新增 `loadBlockedUsers()` + `unblockFriend` 走完整 `unblockUser(myDid, targetDid)` 路径（清 `BlockedUserEntity` 行）
+
+测试：39 个新单测 + 集成测试（6 core-p2p / 14 feature-p2p / 8 core-database Room / 11 app 路由 + tab 结构性回归）全绿。架构 + 协议详见 `docs/design/android-social-wiring-2026-05.md`。
+
 ## System Quality & Testing (Phase 102+)
 
 ### Unit Tests — Pinia Store Coverage

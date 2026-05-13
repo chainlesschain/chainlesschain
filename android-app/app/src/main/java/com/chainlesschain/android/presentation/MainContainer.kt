@@ -35,6 +35,7 @@ fun MainContainer(
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
+    onNavigateToBlockedUsers: () -> Unit = {},
     onNavigateToMyQRCode: () -> Unit = {},
     onNavigateToQRScanner: () -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
@@ -123,6 +124,7 @@ fun MainContainer(
                         onNavigateToUserProfile = onNavigateToUserProfile,
                         onNavigateToEditPost = onNavigateToEditPost,
                         onNavigateToComment = onNavigateToComment,
+                        onNavigateToBlockedUsers = onNavigateToBlockedUsers,
                         onNavigateToP2PChat = onNavigateToP2PChatSessionList
                     )
                 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,6 +48,12 @@ class RealtimeEventManager @Inject constructor(
 
     private val _typingEvents = MutableSharedFlow<TypingEvent>(replay = 0, extraBufferCapacity = 10)
     val typingEvents: SharedFlow<TypingEvent> = _typingEvents.asSharedFlow()
+
+    private val _profileResponseEvents = MutableSharedFlow<ProfileResponseEvent>(replay = 0, extraBufferCapacity = 32)
+    val profileResponseEvents: SharedFlow<ProfileResponseEvent> = _profileResponseEvents.asSharedFlow()
+
+    // 由 app 层在启动时通过 [setSelfProfileProvider] 注入。未注入时收到 PROFILE_QUERY 直接忽略。
+    private val selfProfileProviderRef = AtomicReference<SelfProfileProvider?>(null)
 
     private var isListening = false
 
@@ -159,6 +166,57 @@ class RealtimeEventManager @Inject constructor(
     }
 
     /**
+     * 注册自身资料提供者。
+     *
+     * 调用后，RealtimeEventManager 收到 PROFILE_QUERY 时会用 [SelfProfileProvider.loadSelfProfile]
+     * 取本机资料并回包 PROFILE_RESPONSE。未注册时静默忽略——保持与 v0 demo 兼容。
+     *
+     * 重复调用会替换上一次注入，方便测试 / app 切换用户态。
+     */
+    fun setSelfProfileProvider(provider: SelfProfileProvider?) {
+        selfProfileProviderRef.set(provider)
+        Timber.d("SelfProfileProvider ${if (provider == null) "cleared" else "registered"}")
+    }
+
+    /**
+     * 查询远程 DID 的展示资料。
+     *
+     * 发起 PROFILE_QUERY，订阅 [profileResponseEvents] 等待 requestId 匹配的响应；
+     * 超时（默认 5s）返回 null。
+     *
+     * 注意：本地数据库已有的好友/曾交互过的 DID 应优先走本地查找——这是远程 fallback。
+     */
+    suspend fun queryProfile(targetDid: String, timeoutMs: Long = 5_000L): SelfProfileSnapshot? {
+        val requestId = java.util.UUID.randomUUID().toString()
+        val payload = ProfileQueryPayload(
+            requestId = requestId,
+            targetDid = targetDid,
+            timestamp = System.currentTimeMillis()
+        )
+
+        return try {
+            // onSubscription 保证订阅完成后才发请求，避免响应抢在订阅前到达
+            // （_profileResponseEvents 是 replay=0 SharedFlow，订阅前发出的事件会丢）
+            val event = withTimeoutOrNull(timeoutMs) {
+                profileResponseEvents
+                    .onSubscription {
+                        sendRealtimeMessage(
+                            toDeviceId = targetDid,
+                            type = MessageType.PROFILE_QUERY,
+                            payload = json.encodeToString(ProfileQueryPayload.serializer(), payload),
+                            requiresAck = false
+                        )
+                    }
+                    .first { it.requestId == requestId }
+            }
+            event?.profile
+        } catch (e: Exception) {
+            Timber.w(e, "Profile query failed for DID: $targetDid")
+            null
+        }
+    }
+
+    /**
      * 发送正在输入指示
      */
     suspend fun sendTypingIndicator(targetDid: String, isTyping: Boolean) {
@@ -188,6 +246,8 @@ class RealtimeEventManager @Inject constructor(
             MessageType.MENTION_NOTIFICATION,
             MessageType.POST_NOTIFICATION -> handleNotification(message)
             MessageType.TYPING_INDICATOR -> handleTypingIndicator(message)
+            MessageType.PROFILE_QUERY -> handleProfileQuery(message)
+            MessageType.PROFILE_RESPONSE -> handleProfileResponse(message)
             else -> Timber.w("Unhandled realtime message type: ${message.type}")
         }
     }
@@ -252,6 +312,44 @@ class RealtimeEventManager @Inject constructor(
         Timber.d("Typing indicator: ${message.fromDeviceId} -> ${payload.isTyping}")
     }
 
+    private suspend fun handleProfileQuery(message: P2PMessage) {
+        val payload = json.decodeFromString(ProfileQueryPayload.serializer(), message.payload)
+        val provider = selfProfileProviderRef.get()
+        if (provider == null) {
+            Timber.d("Received PROFILE_QUERY but no SelfProfileProvider registered; ignoring")
+            return
+        }
+        val profile = provider.loadSelfProfile()
+        if (profile == null) {
+            Timber.d("Received PROFILE_QUERY but provider returned null (no self DID?); ignoring")
+            return
+        }
+        val responsePayload = ProfileResponsePayload(
+            requestId = payload.requestId,
+            profile = profile,
+            timestamp = System.currentTimeMillis()
+        )
+        sendRealtimeMessage(
+            toDeviceId = message.fromDeviceId,
+            type = MessageType.PROFILE_RESPONSE,
+            payload = json.encodeToString(ProfileResponsePayload.serializer(), responsePayload),
+            requiresAck = false
+        )
+        Timber.d("Responded to PROFILE_QUERY from ${message.fromDeviceId} (requestId=${payload.requestId})")
+    }
+
+    private suspend fun handleProfileResponse(message: P2PMessage) {
+        val payload = json.decodeFromString(ProfileResponsePayload.serializer(), message.payload)
+        val event = ProfileResponseEvent(
+            fromDid = message.fromDeviceId,
+            requestId = payload.requestId,
+            profile = payload.profile,
+            timestamp = payload.timestamp
+        )
+        _profileResponseEvents.emit(event)
+        Timber.d("PROFILE_RESPONSE received from ${message.fromDeviceId} (requestId=${payload.requestId})")
+    }
+
     /**
      * 发送实时消息（不经过队列，直接发送）
      */
@@ -287,7 +385,9 @@ class RealtimeEventManager @Inject constructor(
             MessageType.COMMENT_NOTIFICATION,
             MessageType.MENTION_NOTIFICATION,
             MessageType.CHAT_MESSAGE,
-            MessageType.TYPING_INDICATOR -> true
+            MessageType.TYPING_INDICATOR,
+            MessageType.PROFILE_QUERY,
+            MessageType.PROFILE_RESPONSE -> true
             else -> false
         }
     }
@@ -353,6 +453,16 @@ data class TypingEvent(
     val timestamp: Long
 )
 
+/**
+ * 远端资料响应事件
+ */
+data class ProfileResponseEvent(
+    val fromDid: String,
+    val requestId: String,
+    val profile: SelfProfileSnapshot,
+    val timestamp: Long
+)
+
 // ===== 消息负载模型 =====
 
 @Serializable
@@ -385,6 +495,20 @@ data class NotificationPayload(
 @Serializable
 data class TypingPayload(
     val isTyping: Boolean,
+    val timestamp: Long
+)
+
+@Serializable
+data class ProfileQueryPayload(
+    val requestId: String,
+    val targetDid: String,
+    val timestamp: Long
+)
+
+@Serializable
+data class ProfileResponsePayload(
+    val requestId: String,
+    val profile: SelfProfileSnapshot,
     val timestamp: Long
 )
 

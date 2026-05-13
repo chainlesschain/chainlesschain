@@ -31,13 +31,13 @@ fun BlockedUsersScreen(
     onNavigateBack: () -> Unit,
     viewModel: FriendViewModel = hiltViewModel()
 ) {
-    var blockedUsers by remember { mutableStateOf<List<BlockedUserEntity>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsState()
+    val blockedUsers = uiState.blockedUsers
+    val isLoading = uiState.isLoadingBlockedUsers
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Blocked user list loading requires ViewModel integration with FriendRepository.getBlockedUsers()
     LaunchedEffect(Unit) {
-        isLoading = false
+        viewModel.loadBlockedUsers()
     }
 
     Scaffold(
@@ -80,7 +80,6 @@ fun BlockedUsersScreen(
                             blockedUser = blockedUser,
                             onUnblock = {
                                 viewModel.unblockFriend(blockedUser.blockedDid)
-                                blockedUsers = blockedUsers - blockedUser
                             }
                         )
                     }

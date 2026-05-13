@@ -18,6 +18,7 @@ import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
+import com.chainlesschain.android.core.database.dao.social.PostReportDao
 import com.chainlesschain.android.core.database.dao.call.CallHistoryDao
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
@@ -153,6 +154,7 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
     abstract fun postInteractionDao(): PostInteractionDao
     abstract fun notificationDao(): NotificationDao
     abstract fun postEditHistoryDao(): PostEditHistoryDao
+    abstract fun postReportDao(): PostReportDao
 
     // 通话功能DAO
     abstract fun callHistoryDao(): CallHistoryDao

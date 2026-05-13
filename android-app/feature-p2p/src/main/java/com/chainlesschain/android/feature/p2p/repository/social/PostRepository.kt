@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
+import com.chainlesschain.android.core.database.dao.social.PostReportDao
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
@@ -32,6 +33,7 @@ class PostRepository @Inject constructor(
     private val postDao: PostDao,
     private val interactionDao: PostInteractionDao,
     private val postEditHistoryDao: PostEditHistoryDao,
+    private val postReportDao: PostReportDao,
     // dagger.Lazy 解决 SocialSyncAdapter ↔ PostRepository 循环依赖
     private val syncAdapter: Lazy<SocialSyncAdapter>,
 ) {
@@ -531,20 +533,21 @@ class PostRepository @Inject constructor(
         description: String? = null
     ): Result<Unit> {
         return try {
+            // 去重：同一人对同一帖子只举报一次，重复请求 idempotent 返回 Success
+            if (postReportDao.hasReporterReportedPost(postId, reporterDid)) {
+                return Result.Success(Unit)
+            }
             val report = PostReportEntity(
-                id = "report_${System.currentTimeMillis()}",
+                id = "report_${reporterDid.take(8)}_${postId.take(8)}_${System.currentTimeMillis()}",
                 postId = postId,
                 reporterDid = reporterDid,
                 reason = reason,
                 description = description,
                 createdAt = System.currentTimeMillis()
             )
-
-            // Bookmark persistence via DAO not yet implemented
-
-            // 发送到后端审核（如果有）
+            postReportDao.insertReport(report)
+            // 同步到后端审核 / P2P moderation 网络
             syncAdapter.get().syncReportSubmitted(report)
-
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -557,9 +560,24 @@ class PostRepository @Inject constructor(
      * @param reporterDid 举报人DID
      */
     fun getUserReports(reporterDid: String): Flow<Result<List<PostReportEntity>>> {
-        // Bookmark DAO query not yet implemented
-        return kotlinx.coroutines.flow.flow {
-            emit(Result.Success(emptyList()))
+        return postReportDao.getReportsByReporter(reporterDid).asResult()
+    }
+
+    /**
+     * 获取某条动态收到的全部举报（管理员/审核界面用）
+     */
+    fun getPostReports(postId: String): Flow<Result<List<PostReportEntity>>> {
+        return postReportDao.getReportsByPost(postId).asResult()
+    }
+
+    /**
+     * 获取某条动态的待处理举报数（moderation 排序信号）
+     */
+    suspend fun getPendingReportCount(postId: String): Result<Int> {
+        return try {
+            Result.Success(postReportDao.getReportCountByPost(postId))
+        } catch (e: Exception) {
+            Result.Error(e)
         }
     }
 

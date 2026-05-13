@@ -2,15 +2,9 @@ package com.chainlesschain.android.presentation.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,17 +15,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.res.stringResource
 import com.chainlesschain.android.R
-import com.chainlesschain.android.core.database.entity.social.NotificationEntity
-import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.chainlesschain.android.feature.p2p.ui.social.FriendListScreen
+import com.chainlesschain.android.feature.p2p.ui.social.NotificationCenterScreen
+import com.chainlesschain.android.feature.p2p.ui.social.TimelineScreen
+import com.chainlesschain.android.feature.p2p.viewmodel.DIDViewModel
+import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendViewModel
 
 @Composable
 fun SocialScreen(
@@ -42,6 +33,7 @@ fun SocialScreen(
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
+    onNavigateToBlockedUsers: () -> Unit = {},
     onNavigateToP2PChat: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -51,6 +43,13 @@ fun SocialScreen(
         context.getString(R.string.social_tab_timeline),
         context.getString(R.string.social_tab_notifications)
     )
+
+    // 共享 ViewModel：Friends tab 列表数据 + Timeline tab 计算 friendDids 都用这一份。
+    val friendViewModel: FriendViewModel = hiltViewModel()
+    val didViewModel: DIDViewModel = hiltViewModel()
+    val friendUiState by friendViewModel.uiState.collectAsState()
+    val didDocument by didViewModel.didDocument.collectAsState()
+    val myDid = didDocument?.id
 
     Scaffold { paddingValues ->
         Column(
@@ -68,17 +67,15 @@ fun SocialScreen(
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (selectedTab) {
                     0 -> {
-                        // Friends tab with Messages entry
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Messages entry card
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // P2P 聊天入口（顶部 CTA，保留旧 demo 入口避免功能回退）
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
                                     .clickable(onClick = onNavigateToP2PChat),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -109,86 +106,39 @@ fun SocialScreen(
                                     )
                                 }
                             }
-
-                            // Remaining placeholder
-                            Text(
-                                text = context.getString(R.string.social_friends_placeholder),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium
+                            // 嵌入到 tab：好友列表只暴露子集，onNavigateBack 是 no-op（不可见的返回箭头本来就没出现在 FriendListScreen TopAppBar 里）。
+                            FriendListScreen(
+                                onNavigateBack = {},
+                                onNavigateToFriendDetail = onNavigateToFriendDetail,
+                                onNavigateToAddFriend = onNavigateToAddFriend,
+                                onNavigateToBlockedUsers = onNavigateToBlockedUsers,
+                                viewModel = friendViewModel
                             )
                         }
                     }
-                    1 -> Text(context.getString(R.string.social_timeline_placeholder))
-                    2 -> NotificationsTab()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotificationsTab(
-    viewModel: NotificationViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val notifications = uiState.allNotifications
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Header with mark all read
-        if (uiState.unreadCount > 0) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${uiState.unreadCount} 条未读",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                TextButton(onClick = { viewModel.markAllAsRead() }) {
-                    Text(stringResource(R.string.social_mark_all_read))
-                }
-            }
-        }
-
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (notifications.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsNone,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "暂无通知",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(notifications, key = { it.id }) { notification ->
-                    NotificationItem(
-                        notification = notification,
-                        onClick = { viewModel.onNotificationClick(notification) }
+                    1 -> {
+                        val resolvedMyDid = myDid
+                        if (resolvedMyDid.isNullOrBlank()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        } else {
+                            TimelineScreen(
+                                myDid = resolvedMyDid,
+                                friendDids = friendUiState.friends.map { it.did },
+                                onNavigateToPublishPost = onNavigateToPublishPost,
+                                onNavigateToPostDetail = onNavigateToPostDetail,
+                                onNavigateToUserProfile = onNavigateToUserProfile,
+                                onNavigateToEditPost = onNavigateToEditPost
+                            )
+                        }
+                    }
+                    2 -> NotificationCenterScreen(
+                        onNavigateBack = {},
+                        onNavigateToFriendRequest = onNavigateToFriendDetail,
+                        onNavigateToFriendProfile = onNavigateToUserProfile,
+                        onNavigateToPost = onNavigateToPostDetail,
+                        onNavigateToComment = onNavigateToComment
                     )
                 }
             }
@@ -196,82 +146,3 @@ private fun NotificationsTab(
     }
 }
 
-@Composable
-private fun NotificationItem(
-    notification: NotificationEntity,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = if (!notification.isRead) Icons.Default.Notifications else Icons.Default.NotificationsNone,
-                contentDescription = null,
-                tint = if (!notification.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = notification.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (!notification.isRead) FontWeight.SemiBold else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                notification.content?.let { content ->
-                    Text(
-                        text = content,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = formatNotificationTime(notification.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (!notification.isRead) {
-                Icon(
-                    imageVector = Icons.Default.Circle,
-                    contentDescription = stringResource(R.string.social_unread),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(8.dp)
-                )
-            }
-        }
-    }
-}
-
-private fun formatNotificationTime(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-
-    return when {
-        diff < 60 * 1000 -> "刚刚"
-        diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)} 分钟前"
-        diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)} 小时前"
-        diff < 7 * 24 * 60 * 60 * 1000 -> "${diff / (24 * 60 * 60 * 1000)} 天前"
-        else -> {
-            val sdf = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
-            sdf.format(Date(timestamp))
-        }
-    }
-}

@@ -108,6 +108,11 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
                 )
                 entryPoint.didManager().initialize()
 
+                // 让本机能响应远端 PROFILE_QUERY（社交：搜索非本地好友的 DID 时用）。
+                // DefaultSelfProfileProvider 目前返回 DID 占位昵称，待正式 SelfProfileStore 上线后替换。
+                entryPoint.realtimeEventManager()
+                    .setSelfProfileProvider(entryPoint.defaultSelfProfileProvider())
+
                 // 初始化应用配置（从配置文件加载）
                 entryPoint.appConfigManager().initialize()
 

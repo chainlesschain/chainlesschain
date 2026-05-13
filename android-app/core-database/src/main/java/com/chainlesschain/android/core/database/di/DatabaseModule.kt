@@ -213,6 +213,13 @@ object DatabaseModule {
     fun providePostEditHistoryDao(database: ChainlessChainDatabase) = database.postEditHistoryDao()
 
     /**
+     * 提供动态举报DAO
+     */
+    @Provides
+    @Singleton
+    fun providePostReportDao(database: ChainlessChainDatabase) = database.postReportDao()
+
+    /**
      * 提供内容审核队列DAO
      */
     @Provides

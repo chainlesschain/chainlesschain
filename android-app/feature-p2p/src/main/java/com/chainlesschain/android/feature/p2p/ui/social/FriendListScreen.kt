@@ -36,6 +36,7 @@ fun FriendListScreen(
     onNavigateBack: () -> Unit,
     onNavigateToFriendDetail: (String) -> Unit,
     onNavigateToAddFriend: () -> Unit,
+    onNavigateToBlockedUsers: () -> Unit = {},
     viewModel: FriendViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -128,6 +129,16 @@ fun FriendListScreen(
                                             if (uiState.isGridView) Icons.Default.ViewList else Icons.Default.GridView,
                                             contentDescription = null
                                         )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("屏蔽用户") },
+                                    onClick = {
+                                        showMenu = false
+                                        onNavigateToBlockedUsers()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Block, contentDescription = null)
                                     }
                                 )
                             }

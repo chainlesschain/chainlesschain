@@ -22,5 +22,15 @@ interface AppEntryPoint {
      * Phase 3d v1.3 — LAN auto-discovery for desktop signaling server via mDNS / NsdManager.
      */
     fun signalingNsdAutoDiscovery(): com.chainlesschain.android.core.p2p.discovery.SignalingNsdAutoDiscovery
+
+    /**
+     * 实时事件管理器（启动时需注入 SelfProfileProvider 让 PROFILE_QUERY 能被响应）
+     */
+    fun realtimeEventManager(): com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
+
+    /**
+     * 默认自身资料提供者（DID 占位昵称版；待 SelfProfileStore 上线后替换）
+     */
+    fun defaultSelfProfileProvider(): com.chainlesschain.android.feature.p2p.repository.social.DefaultSelfProfileProvider
 }
 

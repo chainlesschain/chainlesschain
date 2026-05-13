@@ -1,0 +1,337 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import rootPkg from '../../../package.json';
+import releaseSizes from '../data/release-sizes.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+const ANDROID_TAG = releaseSizes.androidTag || 'v1.0.0';
+const ANDROID_VERSION = ANDROID_TAG.replace(/^android-/, '');
+const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
+const dl = (key) => {
+  const s = releaseSizes.sizes[key];
+  if (!s) return null;
+  return {
+    href: `https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${s.name}`,
+    name: s.name,
+    label: s.label,
+  };
+};
+const apkArm64 = dl('android-arm64-v8a');
+const apkArmV7 = dl('android-armeabi-v7a');
+const apkUniversal = dl('android-universal');
+const aab = dl('android-aab');
+---
+<BaseLayout
+  title={`移动版 ${ANDROID_VERSION} — Android 原生应用 · DID 钱包 · 移动捕获 · REMOTE 遥控器 | ChainlessChain`}
+  description={`ChainlessChain Android ${ANDROID_VERSION} GA：Jetpack Compose + Kotlin 原生应用。三层定位（L1 StrongBox DID 钱包 / L2 Voice·Camera·Location·Share·Push 移动捕获 / L3 REMOTE 远程调用桌面 skill）+ 28 Skills + 383+ 单测 + W3.7 Flow B 真机扫码配对。直接下载 APK，也可上 Google Play (AAB)。`}
+  canonical="https://www.chainlesschain.com/mobile"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">ANDROID · {ANDROID_VERSION} · GA</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          手机不是迷你桌面，<br/>
+          是<span class="italic text-ember">钥匙 · 捕获器 · 遥控器</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          Android v1.0 重新定位：StrongBox 硬件 DID 钱包 + 语音/拍照/位置/分享/推送 5 件移动捕获 + REMOTE 远程调用桌面 139 skill。
+          对齐 Claude Desktop / Mobile 的二端分工 —— 桌面是 AI 工作站，手机是它的延伸。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="#download" class="btn-ember">下载 APK ↓</a>
+          <a href="/desktop" class="btn-ghost">桌面端在这里 →</a>
+        </div>
+        <div class="mt-6 text-sm text-muted">
+          桌面端走 <code class="font-mono bg-cream px-1 rounded">v5.0.3.*</code> 产品线 · 移动端走 <code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code> 独立轨道，互不阻塞。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三层定位 -->
+  <section class="py-16 md:py-24 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-4">三层定位</div>
+        <h2 class="text-4xl md:text-5xl leading-tight font-display">L1 · L2 · L3 — 各司其职。</h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          不再以 skill 数量对标桌面。手机做手机最擅长的三件事：保管私钥、采集现场数据、远程指挥桌面。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L1 · WALLET</div>
+          <h3 class="font-display text-2xl mb-3">StrongBox DID 钱包</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            硬件级密钥库（Android Keystore + StrongBox HSM）保管 W3C DID v2 私钥。BIP-39 助记词、生物识别（指纹/面容）解锁、多 DID 切换、旧明文自动迁移。
+          </p>
+          <div class="text-xs text-muted font-mono">68 单测 · M2 落地</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L2 · CAPTURE</div>
+          <h3 class="font-display text-2xl mb-3">移动现场捕获</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            五件齐落：<strong class="text-ink">VoiceMode</strong>（连续语音 SeedASR → LLM → TTS）· <strong class="text-ink">CameraOCR</strong>（拍照 OCR → 入笔记）· <strong class="text-ink">LocationTagger</strong>（GPS 前台服务）· <strong class="text-ink">ShareReceiver</strong>（5 种 SharePayload → 知识库）· <strong class="text-ink">PushNotifier</strong>（4 类通知 + FCM 骨架）。
+          </p>
+          <div class="text-xs text-muted font-mono">130 单测 · M3 落地（code 5/5）</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L3 · REMOTE</div>
+          <h3 class="font-display text-2xl mb-3">REMOTE 远程遥控</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            手机 → 桌面 23 个 REMOTE command（795 suspend fun 盘点）。RemoteSkillRegistry 文件 + 方法双粒度白名单 · ApprovalUI 4 类审批（Sign / Cowork / Marketplace / SystemCritical）· ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口。
+          </p>
+          <div class="text-xs text-muted font-mono">152 单测 · M4 落地</div>
+        </div>
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">硬件隔离</div>
+          <div class="text-sm text-ink/80">StrongBox HSM · 私钥永不导出 · 解锁需生物识别 · 多次错误自动锁。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">SignAsService</div>
+          <div class="text-sm text-ink/80">M5 反向签名：macOS / Linux 桌面调手机硬件签名 —— 跨平台 U-Key 替代。33 单测。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">28 Skills</div>
+          <div class="text-sm text-ink/80">12 Kotlin handler + 8 doc-only + 8 REMOTE（调桌面），按手机定位精选。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- W3.7 Flow B QR pairing -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">W3.7 · 2026-05-12 · Xiaomi 真机 verified</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Flow B 扫码配对（默认）</h2>
+        <p class="text-muted leading-relaxed">
+          桌面显二维码、手机摄像头扫桌面屏 —— 跟微信 / 支付宝 / Discord / WhatsApp Web 一个套路。
+          手机摄像头扫桌面屏的识别率比反向（webcam 扫小手机屏）高得多。Xiaomi 24115RA8EC 真机
+          E2E 走通：desktop QR → ML Kit 扫 → signaling pair-ack → CLI 写 SQLite → Vue 列表刷新。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">入口</strong>：手机设置 → "扫描桌面 QR"（推荐路径）/ 桌面 V5 V6 web-shell 三壳同入</li>
+          <li>· <strong class="text-ink">实战测试</strong>：ScanDesktopPairingViewModel 10 测 + desktop-pair-handlers 19 测 · ZXing / ML Kit 透传 · adb reverse 无域名 E2E 链路完整</li>
+          <li>· <strong class="text-ink">高级路径</strong>：Flow A（手机生码桌面扫，Signal e2ee）保留为可选</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_%E9%87%8D%E6%96%B0%E5%AE%9A%E4%BD%8D_%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >设计文档：Android 重新定位 v0.2 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 桌面 ↔ Android 双向同步 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3d · 2026-05-09</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">桌面 ↔ Android 双向同步</h2>
+        <p class="text-muted leading-relaxed">
+          Note / Conversation / DID / Community / Channel 五类资源 + tombstones 双向 walker。
+          dagger.Lazy 解 4 处 Hilt 循环；Room 持久化 SyncRemoteCursor；sync.* JSON-RPC handlers；
+          gate 1–4 全部 strict Ed25519 验签。私钥不离手机，密码不上线。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">M2 → v1.2 12 commits</strong> · 桌面侧 5 ResourceType walker + 52 测试 · Android 侧 SocialSyncWalker 真填 handlePullRpc + DID auth</li>
+          <li>· <strong class="text-ink">入口</strong>：桌面 Settings → 同步 → SyncMobile 设备管理 + 手动 pairing；移动 Settings → 同步</li>
+          <li>· <strong class="text-ink">协议</strong>：CommandRequest.auth nullable · listTombstones SQL filter · Android 用 P2P session DID 兜替 device registry</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 社交功能产线化 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">社交收口 · 2026-05-13</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">社交功能从 demo 走到上线。</h2>
+        <p class="text-muted leading-relaxed">
+          14 屏 + 9 ViewModel + 4 Repository 的社交骨架（约 10K LOC）建好已久，但只有
+          MyQRCode / QRCodeScanner 两路由真接通；其它 7 路由是
+          <code class="font-mono bg-paper px-1 rounded">registerPlaceholder("temporarily simplified")</code>，
+          SocialScreen 中 Friends/Timeline 两 tab 只显示固定字串。本次一次性收口：路由全部接实屏、
+          NotificationCenter / BlockedUsers 两路由新增、PostReportDao 落地（之前 schema 有 entity DAO 缺失）、
+          远端 DID 资料查询 PROFILE_QUERY/RESPONSE 协议补齐。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">NavGraph 7 占位换实屏 + 2 新路由</strong> · PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost / NotificationCenter / BlockedUsers · DID 加载期渲染 spinner 占位</li>
+          <li>· <strong class="text-ink">SocialScreen 三 tab 升级</strong> · Friends → FriendListScreen · Timeline → TimelineScreen（myDid 走 DIDViewModel） · Notifications → NotificationCenterScreen（筛选 / 批量已读 / 清理菜单）</li>
+          <li>· <strong class="text-ink">PostReportDao</strong> · 之前 reportPost 构造完 entity 不入库 + getUserReports 返空。新 DAO 加去重 idempotent + status 流转 + 8 个 in-memory Room 测试</li>
+          <li>· <strong class="text-ink">PROFILE_QUERY/RESPONSE 协议</strong> · RealtimeEventManager.queryProfile 5s timeout · onSubscription 解 SharedFlow replay=0 订阅竞态 · DefaultSelfProfileProvider 在 Application.delayedInit 注入</li>
+          <li>· <strong class="text-ink">39 个新单测全绿</strong> · 6 core-p2p / 14 feature-p2p / 8 core-database Room / 11 NavGraph + tab 结构性回归 · 不需要模拟器</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Social_Wiring_2026-05.md" target="_blank" rel="noopener">设计文档：Android Social Wiring 2026-05 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 测试与质量基线 -->
+  <section class="py-16 md:py-20 bg-cream/50 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-4">质量基线</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">383+ 单测 · GA 标准。</h2>
+        <p class="text-muted leading-relaxed">
+          M1–M5 JVM 部分全部 green。M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs 同步 5 项用户出场清单见
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md" target="_blank" rel="noopener">v1.0 GA checklist</a>。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: 'M1', label: 'REMOTE inventory', tests: '795 fn 盘点' },
+          { n: 'M2', label: 'L1 钱包', tests: '68 测' },
+          { n: 'M3', label: 'L2 捕获 (5/5)', tests: '130 测' },
+          { n: 'M4', label: 'L3 REMOTE 收敛', tests: '152 测' },
+          { n: 'M5', label: 'SignAsService', tests: '33 测' },
+        ].map((m) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{m.n}</div>
+            <div class="font-display text-base mb-1">{m.label}</div>
+            <div class="text-xs text-muted">{m.tests}</div>
+          </div>
+        ))}
+      </div>
+
+      <p class="mt-6 text-sm text-muted">
+        架构：Jetpack Compose · Kotlin · Hilt DI · Room · MockK + Robolectric ·
+        Play Services（FusedLocationProvider / FCM 骨架）· StrongBox Keystore ·
+        ML Kit / ZXing 扫码 · 火山 SeedASR 16 kHz 流式语音。
+      </p>
+    </div>
+  </section>
+
+  <!-- 已知限制（v1.0 不修，v1.1 上） -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">已知限制 · v1.1 待修</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">v1.0 不修的几件事。</h2>
+        <ul class="mt-6 space-y-2.5 text-muted">
+          <li>· <strong class="text-ink">FCM 国内可达性</strong>：墙内不稳定 · v1.1 接 OPPO / 小米 / 华为统一推送</li>
+          <li>· <strong class="text-ink">单 peer pair</strong>：v1.0 仅 1 个桌面配对 · 多设备 N 端走 v1.1</li>
+          <li>· <strong class="text-ink">离线消息队列</strong>：桌面离线时 REMOTE 请求不缓存 · v1.1 加重放</li>
+          <li>· <strong class="text-ink">M3 真机 / M4 D2 真机 / M6 性能 / FCM 凭证 / docs 同步</strong>：5 项用户出场清单</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download" class="py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">下载 · Android {ANDROID_VERSION}</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">挑一个适合你的包。</h2>
+        <p class="mt-6 text-muted">
+          多数 2019 年后的国行 / 海外设备选 <strong class="text-ink">arm64-v8a</strong>。老设备或不确定就用 universal。
+          Google Play 上架走 AAB（开发者侧）。所有包均由 GitHub Actions release.yml 签名出包。
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        {apkArm64 && (
+          <a
+            href={apkArm64.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border-2 border-ember bg-ember/5 hover:bg-ember/10 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-ember">ARM64-V8A · 推荐</div>
+              <span class="font-mono text-xs text-ember">{apkArm64.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-arm64-v8a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">64-bit ARM 设备 · Android 8.0+ · 主流首选</div>
+            <div class="text-xs text-muted">小米 / 红米 / 华为 / OPPO / vivo / 一加 / 三星 / Pixel 等 2019+</div>
+            <div class="mt-6 text-sm text-ember">下载 APK ↓</div>
+          </a>
+        )}
+
+        {apkUniversal && (
+          <a
+            href={apkUniversal.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">UNIVERSAL</div>
+              <span class="font-mono text-xs text-muted">{apkUniversal.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-universal-release.apk</h3>
+            <div class="text-sm text-ink mb-3">通用包 · 双架构合一 · 不确定就用这个</div>
+            <div class="text-xs text-muted">体积更大但兼容所有 ARM 架构 · 一包通吃</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 APK ↓</div>
+          </a>
+        )}
+
+        {apkArmV7 && (
+          <a
+            href={apkArmV7.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">ARMEABI-V7A</div>
+              <span class="font-mono text-xs text-muted">{apkArmV7.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-armeabi-v7a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">32-bit ARM · 老设备 fallback</div>
+            <div class="text-xs text-muted">2018 年前的低端设备 · 体积最小</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 APK ↓</div>
+          </a>
+        )}
+
+        {aab && (
+          <a
+            href={aab.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">AAB · DEVELOPER</div>
+              <span class="font-mono text-xs text-muted">{aab.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-release.aab</h3>
+            <div class="text-sm text-ink mb-3">Android App Bundle · Google Play 上架专用</div>
+            <div class="text-xs text-muted">不是给终端用户的直装包 —— 普通用户请选 APK</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">下载 AAB ↓</div>
+          </a>
+        )}
+      </div>
+
+      <div class="mt-10 p-6 rounded-2xl bg-cream/70 border border-line text-sm text-muted leading-relaxed">
+        <strong class="text-ink">安装说明：</strong> 国行设备首次安装本地 APK 需在系统设置允许"来自此来源的应用"。
+        Android 自更新由应用内 <code class="font-mono bg-paper px-1 rounded">设置 → 检查更新</code> 入口走 GitHub
+        Releases <code class="font-mono bg-paper px-1 rounded">{ANDROID_TAG}</code> tag → DownloadManager →
+        REQUEST_INSTALL_PACKAGES 闭环。iOS 版本即将上线。
+      </div>
+
+      <p class="mt-6 text-sm text-muted text-center">
+        看一下完整版本说明？前往 <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="text-ember hover:underline">GitHub Release {ANDROID_TAG} ↗</a>
+        或 <a href="https://github.com/chainlesschain/chainlesschain/blob/main/android-app/CHANGELOG.md" target="_blank" rel="noopener" class="text-ember hover:underline">Android CHANGELOG ↗</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

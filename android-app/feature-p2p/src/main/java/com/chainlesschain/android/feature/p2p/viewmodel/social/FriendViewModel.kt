@@ -7,9 +7,11 @@ import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
+import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.p2p.realtime.PresenceInfo
 import com.chainlesschain.android.core.p2p.realtime.PresenceManager
 import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
@@ -30,7 +32,8 @@ import javax.inject.Inject
 class FriendViewModel @Inject constructor(
     private val friendRepository: FriendRepository,
     private val realtimeEventManager: RealtimeEventManager,
-    private val presenceManager: PresenceManager
+    private val presenceManager: PresenceManager,
+    private val didManager: DIDManager
 ) : BaseViewModel<FriendUiState, FriendEvent>(
     initialState = FriendUiState()
 ) {
@@ -306,15 +309,43 @@ class FriendViewModel @Inject constructor(
     }
 
     /**
-     * 取消屏蔽
+     * 取消屏蔽（删除好友表 blocked flag + BlockedUserEntity 记录）
      */
     fun unblockFriend(did: String) = launchSafely {
-        friendRepository.unblockFriend(did)
+        val myDid = didManager.getCurrentDID()
+        val outcome = if (myDid != null) {
+            friendRepository.unblockUser(myDid, did)
+        } else {
+            friendRepository.unblockFriend(did)
+        }
+        outcome
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("已取消屏蔽"))
             }.onError { error ->
                 handleError(error)
             }
+    }
+
+    /**
+     * 加载被屏蔽用户列表（BlockedUserEntity 表，来源于 blockUser 调用）
+     */
+    fun loadBlockedUsers() {
+        val myDid = didManager.getCurrentDID()
+        if (myDid.isNullOrBlank()) {
+            updateState { copy(blockedUsers = emptyList(), isLoadingBlockedUsers = false) }
+            return
+        }
+        viewModelScope.launch(exceptionHandler) {
+            updateState { copy(isLoadingBlockedUsers = true) }
+            friendRepository.getBlockedUsersList(myDid).collectLatest { result ->
+                result.onSuccess { list ->
+                    updateState { copy(blockedUsers = list, isLoadingBlockedUsers = false) }
+                }.onError { error ->
+                    updateState { copy(isLoadingBlockedUsers = false) }
+                    handleError(error)
+                }
+            }
+        }
     }
 
     // ===== 分组管理 =====
@@ -429,9 +460,11 @@ data class FriendUiState(
     val groups: List<FriendGroupEntity> = emptyList(),
     val pendingRequests: List<FriendEntity> = emptyList(),
     val pendingRequestCount: Int = 0,
+    val blockedUsers: List<BlockedUserEntity> = emptyList(),
     val selectedFriend: FriendEntity? = null,
     val isLoadingFriends: Boolean = true,
     val isLoadingRequests: Boolean = true,
+    val isLoadingBlockedUsers: Boolean = true,
     val isSearching: Boolean = false,
     val searchQuery: String = "",
     val showFriendMenu: Boolean = false,
