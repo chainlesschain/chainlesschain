@@ -537,6 +537,13 @@ Use common conventions and best practices for the chosen technology stack."""
 
     private fun getCategoryIcon(category: TemplateCategory): String {
         return when (category) {
+            // #21 #3 日常类目
+            TemplateCategory.DAILY -> "📋"
+            TemplateCategory.TRAVEL -> "✈️"
+            TemplateCategory.STUDY -> "🎓"
+            TemplateCategory.HEALTH -> "💪"
+            TemplateCategory.FINANCE -> "💰"
+            // legacy 程序员类目
             TemplateCategory.ANDROID -> "🤖"
             TemplateCategory.WEB -> "🌐"
             TemplateCategory.BACKEND -> "⚙️"
@@ -552,6 +559,13 @@ Use common conventions and best practices for the chosen technology stack."""
 
     private fun getCategoryType(category: TemplateCategory): String {
         return when (category) {
+            // #21 #3 日常类目 (使用 ProjectType.DOCUMENT)
+            TemplateCategory.DAILY -> "document"
+            TemplateCategory.TRAVEL -> "document"
+            TemplateCategory.STUDY -> "document"
+            TemplateCategory.HEALTH -> "document"
+            TemplateCategory.FINANCE -> "document"
+            // legacy 程序员类目
             TemplateCategory.ANDROID -> "android"
             TemplateCategory.WEB -> "web"
             TemplateCategory.BACKEND -> "backend"

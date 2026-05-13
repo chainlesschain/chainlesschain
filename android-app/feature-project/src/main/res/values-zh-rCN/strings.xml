@@ -278,6 +278,12 @@
     <string name="template_cat_multiplatform">跨平台</string>
     <string name="template_cat_flutter">Flutter</string>
     <string name="template_cat_other">其他</string>
+    <!-- #21 v1.2 GA 反馈 #3: 日常模板类目 -->
+    <string name="template_cat_daily">日常</string>
+    <string name="template_cat_travel">旅行</string>
+    <string name="template_cat_study">学习</string>
+    <string name="template_cat_health">健康</string>
+    <string name="template_cat_finance">财务</string>
 
     <!-- Template Names and Descriptions -->
     <string name="template_name_blank">空白项目</string>

@@ -278,6 +278,12 @@
     <string name="template_cat_multiplatform">Multiplatform</string>
     <string name="template_cat_flutter">Flutter</string>
     <string name="template_cat_other">Other</string>
+    <!-- #21 v1.2 GA feedback #3: daily template categories -->
+    <string name="template_cat_daily">Daily</string>
+    <string name="template_cat_travel">Travel</string>
+    <string name="template_cat_study">Study</string>
+    <string name="template_cat_health">Health</string>
+    <string name="template_cat_finance">Finance</string>
 
     <!-- Template Names and Descriptions -->
     <string name="template_name_blank">Blank Project</string>

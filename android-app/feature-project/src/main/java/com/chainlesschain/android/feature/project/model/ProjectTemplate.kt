@@ -25,8 +25,20 @@ data class ProjectTemplate(
 
 /**
  * Template category
+ *
+ * #21 v1.2 GA 反馈 #3 "项目模板要改为日常模板": L1+L2+L3 重新定位下 mobile
+ * 不是 IDE，需要日常生活模板（购物清单 / 旅行计划 / 读书笔记 等），不是
+ * 程序员模板。原 ANDROID/WEB/BACKEND 等留作 dead enum (Phase 4 cleanup),
+ * 新增 DAILY 等 5 大日常类目作为新 default。
  */
 enum class TemplateCategory(@StringRes val displayNameResId: Int) {
+    // 日常生活类目 (#21 #3)
+    DAILY(R.string.template_cat_daily),         // 购物 / 灵感 / 工作日志 等通用日常
+    TRAVEL(R.string.template_cat_travel),       // 旅行 / 出差 / 出游
+    STUDY(R.string.template_cat_study),         // 学习 / 读书 / 培训
+    HEALTH(R.string.template_cat_health),       // 健身 / 饮食 / 健康打卡
+    FINANCE(R.string.template_cat_finance),     // 财务 / 账本 / 预算
+    // 程序员类目 (legacy, 通过 ai-template-generator 仍可触达)
     ANDROID(R.string.template_cat_android),
     WEB(R.string.template_cat_web),
     BACKEND(R.string.template_cat_backend),
@@ -58,6 +70,14 @@ data class TemplateFile(
 
 /**
  * Predefined project templates
+ *
+ * #21 v1.2 GA 反馈 #3: 已替换为日常生活模板 (L1+L2+L3 mobile 定位下用户不需要
+ * IDE 模板)。11 daily templates 覆盖最常见使用场景: 购物 / 旅行 / 读书 / 灵感 /
+ * 健身 / 食谱 / 学习 / 账本 / 工作日志 / 会议 / 空白。
+ *
+ * 程序员模板 (Android/React/Spring/Flutter 等) 整体砍掉 — 桌面端有完整 IDE,
+ * 路上想新建代码项目极少, 真要也可以走 ai-template-generator (TemplateLibrary.kt
+ * AI 生成) 不需要硬编码。
  */
 object ProjectTemplates {
 
@@ -66,17 +86,17 @@ object ProjectTemplates {
      */
     fun getAllTemplates(): List<ProjectTemplate> {
         return listOf(
-            androidAppTemplate,
-            reactWebAppTemplate,
-            nodeJsApiTemplate,
-            pythonDataScienceTemplate,
-            kotlinMultiplatformTemplate,
-            springBootTemplate,
-            flutterAppTemplate,
-            vueWebAppTemplate,
-            expressApiTemplate,
-            djangoWebTemplate,
-            emptyProjectTemplate
+            emptyProjectTemplate,
+            shoppingListTemplate,
+            travelPlanTemplate,
+            readingNotesTemplate,
+            ideaCollectionTemplate,
+            fitnessTrackerTemplate,
+            recipeTemplate,
+            studyPlanTemplate,
+            householdLedgerTemplate,
+            workJournalTemplate,
+            meetingMinutesTemplate
         )
     }
 
@@ -94,843 +114,618 @@ object ProjectTemplates {
         return getAllTemplates().find { it.id == id }
     }
 
-    // ===== Template Definitions =====
+    // ===== Daily Template Definitions (#21 v1.2 GA 反馈 #3) =====
 
     val emptyProjectTemplate = ProjectTemplate(
         id = "empty",
         name = "空白项目",
         description = "从头开始的空白项目",
         icon = "📄",
-        category = TemplateCategory.OTHER,
+        category = TemplateCategory.DAILY,
         type = ProjectType.OTHER,
         structure = ProjectStructure(),
         nameResId = R.string.template_name_blank,
         descriptionResId = R.string.template_desc_blank
     )
 
-    val androidAppTemplate = ProjectTemplate(
-        id = "android-app",
-        name = "Android 应用",
-        description = "标准 Android 应用项目结构",
-        icon = "🤖",
-        category = TemplateCategory.ANDROID,
-        type = ProjectType.ANDROID,
-        tags = listOf("android", "kotlin", "mobile"),
-        nameResId = R.string.template_name_android_app,
-        descriptionResId = R.string.template_desc_android_app,
+    val shoppingListTemplate = ProjectTemplate(
+        id = "shopping-list",
+        name = "购物清单",
+        description = "分类整理购物需求 + 预算追踪",
+        icon = "🛒",
+        category = TemplateCategory.DAILY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("购物", "清单", "日常"),
         structure = ProjectStructure(
-            folders = listOf(
-                "app/src/main/java",
-                "app/src/main/res/layout",
-                "app/src/main/res/drawable",
-                "app/src/main/res/values",
-                "app/src/test/java",
-                "app/src/androidTest/java"
-            ),
             files = listOf(
                 TemplateFile(
-                    "app/build.gradle.kts",
+                    "购物清单.md",
                     """
-                    plugins {
-                        id("com.android.application")
-                        id("org.jetbrains.kotlin.android")
-                    }
+                    # 购物清单
 
-                    android {
-                        namespace = "com.example.myapp"
-                        compileSdk = 34
+                    创建于：${"$"}{new Date().toLocaleDateString()}
+                    预算：¥___
 
-                        defaultConfig {
-                            applicationId = "com.example.myapp"
-                            minSdk = 24
-                            targetSdk = 34
-                            versionCode = 1
-                            versionName = "1.0"
-                        }
+                    ## 食品生鲜
+                    - [ ]
 
-                        compileOptions {
-                            sourceCompatibility = JavaVersion.VERSION_17
-                            targetCompatibility = JavaVersion.VERSION_17
-                        }
+                    ## 日用百货
+                    - [ ]
 
-                        kotlinOptions {
-                            jvmTarget = "17"
-                        }
-                    }
+                    ## 服装鞋帽
+                    - [ ]
 
-                    dependencies {
-                        implementation("androidx.core:core-ktx:1.12.0")
-                        implementation("androidx.appcompat:appcompat:1.6.1")
-                        implementation("com.google.android.material:material:1.11.0")
-                        testImplementation("junit:junit:4.13.2")
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "app/src/main/java/MainActivity.kt",
-                    """
-                    package com.example.myapp
+                    ## 数码电器
+                    - [ ]
 
-                    import android.os.Bundle
-                    import androidx.appcompat.app.AppCompatActivity
+                    ## 其他
+                    - [ ]
 
-                    class MainActivity : AppCompatActivity() {
-                        override fun onCreate(savedInstanceState: Bundle?) {
-                            super.onCreate(savedInstanceState)
-                            setContentView(R.layout.activity_main)
-                        }
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "app/src/main/AndroidManifest.xml",
-                    """
-                    <?xml version="1.0" encoding="utf-8"?>
-                    <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-                        <application
-                            android:allowBackup="true"
-                            android:icon="@mipmap/ic_launcher"
-                            android:label="@string/app_name"
-                            android:theme="@style/Theme.MyApp">
-                            <activity
-                                android:name=".MainActivity"
-                                android:exported="true">
-                                <intent-filter>
-                                    <action android:name="android.intent.action.MAIN" />
-                                    <category android:name="android.intent.category.LAUNCHER" />
-                                </intent-filter>
-                            </activity>
-                        </application>
-                    </manifest>
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "README.md",
-                    """
-                    # Android App
-
-                    A standard Android application project.
-
-                    ## Setup
-
-                    1. Open project in Android Studio
-                    2. Sync Gradle
-                    3. Run on emulator or device
-
-                    ## Structure
-
-                    - `app/` - Main application module
-                    - `app/src/main/` - Source code
-                    - `app/src/test/` - Unit tests
+                    ## 备注
+                    - 优惠券：
+                    - 比价：
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val reactWebAppTemplate = ProjectTemplate(
-        id = "react-webapp",
-        name = "React Web 应用",
-        description = "React + TypeScript 前端项目",
-        icon = "⚛️",
-        category = TemplateCategory.WEB,
-        type = ProjectType.WEB,
-        tags = listOf("react", "typescript", "web", "frontend"),
-        nameResId = R.string.template_name_react_web,
-        descriptionResId = R.string.template_desc_react_web,
+    val travelPlanTemplate = ProjectTemplate(
+        id = "travel-plan",
+        name = "旅行计划",
+        description = "行程 + 打包清单 + 预算 三件套",
+        icon = "✈️",
+        category = TemplateCategory.TRAVEL,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("旅行", "出游", "计划"),
         structure = ProjectStructure(
-            folders = listOf(
-                "src/components",
-                "src/pages",
-                "src/hooks",
-                "src/utils",
-                "src/styles",
-                "public"
-            ),
             files = listOf(
                 TemplateFile(
-                    "package.json",
+                    "行程.md",
                     """
-                    {
-                      "name": "my-react-app",
-                      "version": "1.0.0",
-                      "private": true,
-                      "dependencies": {
-                        "react": "^18.2.0",
-                        "react-dom": "^18.2.0",
-                        "typescript": "^5.0.0"
-                      },
-                      "scripts": {
-                        "start": "react-scripts start",
-                        "build": "react-scripts build",
-                        "test": "react-scripts test"
-                      }
-                    }
+                    # 旅行行程
+
+                    目的地：
+                    出发日期：
+                    返回日期：
+                    同行人：
+
+                    ## Day 1
+                    - 上午：
+                    - 中午：
+                    - 下午：
+                    - 晚上：
+                    - 住宿：
+
+                    ## Day 2
+                    - 上午：
+                    - 中午：
+                    - 下午：
+                    - 晚上：
+                    - 住宿：
+
+                    ## 重要联系方式
+                    - 酒店：
+                    - 当地紧急电话：
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "src/App.tsx",
+                    "打包清单.md",
                     """
-                    import React from 'react';
-                    import './App.css';
+                    # 打包清单
 
-                    function App() {
-                      return (
-                        <div className="App">
-                          <header className="App-header">
-                            <h1>Welcome to React</h1>
-                          </header>
-                        </div>
-                      );
-                    }
+                    ## 证件
+                    - [ ] 身份证
+                    - [ ] 护照（出境）
+                    - [ ] 机票/车票
 
-                    export default App;
+                    ## 电子设备
+                    - [ ] 手机 + 充电器
+                    - [ ] 充电宝
+                    - [ ] 相机
+                    - [ ] 转换插头（出境）
+
+                    ## 衣物
+                    - [ ] 外套
+                    - [ ] T恤 _ 件
+                    - [ ] 内衣 _ 套
+                    - [ ] 鞋子
+
+                    ## 洗漱
+                    - [ ] 牙膏牙刷
+                    - [ ] 护肤品
+                    - [ ] 防晒霜
+
+                    ## 药品
+                    - [ ] 感冒药
+                    - [ ] 创可贴
+                    - [ ] 个人药品
+
+                    ## 其他
+                    - [ ] 雨伞
+                    - [ ] 零食
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "src/index.tsx",
+                    "预算.md",
                     """
-                    import React from 'react';
-                    import ReactDOM from 'react-dom/client';
-                    import './index.css';
-                    import App from './App';
+                    # 旅行预算
 
-                    const root = ReactDOM.createRoot(
-                      document.getElementById('root') as HTMLElement
-                    );
-                    root.render(
-                      <React.StrictMode>
-                        <App />
-                      </React.StrictMode>
-                    );
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "tsconfig.json",
-                    """
-                    {
-                      "compilerOptions": {
-                        "target": "ES2020",
-                        "lib": ["ES2020", "DOM"],
-                        "jsx": "react-jsx",
-                        "module": "ESNext",
-                        "moduleResolution": "node",
-                        "strict": true,
-                        "esModuleInterop": true
-                      },
-                      "include": ["src"]
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "README.md",
-                    """
-                    # React Web App
+                    总预算：¥___
 
-                    A React + TypeScript web application.
-
-                    ## Getting Started
-
-                    ```bash
-                    npm install
-                    npm start
-                    ```
-
-                    ## Available Scripts
-
-                    - `npm start` - Run development server
-                    - `npm build` - Build for production
-                    - `npm test` - Run tests
+                    | 类别 | 预算 | 实际 |
+                    | --- | --- | --- |
+                    | 交通 |  |  |
+                    | 住宿 |  |  |
+                    | 餐饮 |  |  |
+                    | 景点门票 |  |  |
+                    | 购物 |  |  |
+                    | 其他 |  |  |
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val nodeJsApiTemplate = ProjectTemplate(
-        id = "nodejs-api",
-        name = "Node.js API",
-        description = "Express + TypeScript REST API",
-        icon = "🟢",
-        category = TemplateCategory.BACKEND,
-        type = ProjectType.BACKEND,
-        tags = listOf("nodejs", "typescript", "api", "backend"),
-        nameResId = R.string.template_name_nodejs_api,
-        descriptionResId = R.string.template_desc_nodejs_api,
+    val readingNotesTemplate = ProjectTemplate(
+        id = "reading-notes",
+        name = "读书笔记",
+        description = "书籍信息 + 章节笔记 + 金句收集",
+        icon = "📚",
+        category = TemplateCategory.STUDY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("读书", "笔记", "学习"),
         structure = ProjectStructure(
-            folders = listOf(
-                "src/routes",
-                "src/controllers",
-                "src/models",
-                "src/middlewares",
-                "src/utils",
-                "tests"
-            ),
             files = listOf(
                 TemplateFile(
-                    "package.json",
+                    "书籍信息.md",
                     """
-                    {
-                      "name": "my-api",
-                      "version": "1.0.0",
-                      "main": "dist/index.js",
-                      "scripts": {
-                        "start": "node dist/index.js",
-                        "dev": "ts-node-dev src/index.ts",
-                        "build": "tsc",
-                        "test": "jest"
-                      },
-                      "dependencies": {
-                        "express": "^4.18.2",
-                        "dotenv": "^16.0.3"
-                      },
-                      "devDependencies": {
-                        "@types/express": "^4.17.17",
-                        "@types/node": "^20.0.0",
-                        "typescript": "^5.0.0",
-                        "ts-node-dev": "^2.0.0"
-                      }
-                    }
+                    # 书籍信息
+
+                    书名：
+                    作者：
+                    出版社：
+                    出版年份：
+                    ISBN：
+
+                    ## 阅读记录
+                    - 开始日期：
+                    - 完成日期：
+                    - 阅读进度：
+
+                    ## 推荐指数
+                    ⭐⭐⭐⭐⭐ ( /5)
+
+                    ## 一句话总结
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "src/index.ts",
+                    "章节笔记.md",
                     """
-                    import express from 'express';
-                    import dotenv from 'dotenv';
+                    # 章节笔记
 
-                    dotenv.config();
+                    ## 第 _ 章 _____
 
-                    const app = express();
-                    const PORT = process.env.PORT || 3000;
+                    ### 核心观点
 
-                    app.use(express.json());
+                    ### 自己的思考
 
-                    app.get('/health', (req, res) => {
-                      res.json({ status: 'ok' });
-                    });
-
-                    app.listen(PORT, () => {
-                      console.log(`Server running on port ${'$'}{PORT}`);
-                    });
+                    ### 待研究问题
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "tsconfig.json",
+                    "金句摘录.md",
                     """
-                    {
-                      "compilerOptions": {
-                        "target": "ES2020",
-                        "module": "commonjs",
-                        "outDir": "./dist",
-                        "rootDir": "./src",
-                        "strict": true,
-                        "esModuleInterop": true,
-                        "skipLibCheck": true
-                      },
-                      "include": ["src/**/*"],
-                      "exclude": ["node_modules", "dist"]
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    ".env.example",
-                    """
-                    PORT=3000
-                    NODE_ENV=development
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "README.md",
-                    """
-                    # Node.js API
+                    # 金句摘录
 
-                    A RESTful API built with Express and TypeScript.
+                    > 引用文字
+                    > —— 第 _ 页
 
-                    ## Setup
+                    备注：
 
-                    ```bash
-                    npm install
-                    cp .env.example .env
-                    npm run dev
-                    ```
+                    ---
 
-                    ## Scripts
+                    > 引用文字
+                    > —— 第 _ 页
 
-                    - `npm run dev` - Development server with hot reload
-                    - `npm run build` - Build for production
-                    - `npm start` - Start production server
+                    备注：
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val pythonDataScienceTemplate = ProjectTemplate(
-        id = "python-datascience",
-        name = "Python 数据科学",
-        description = "数据分析和机器学习项目",
-        icon = "🐍",
-        category = TemplateCategory.DATA_SCIENCE,
-        type = ProjectType.DATA_SCIENCE,
-        tags = listOf("python", "data-science", "ml", "analytics"),
-        nameResId = R.string.template_name_python_ds,
-        descriptionResId = R.string.template_desc_python_ds,
+    val ideaCollectionTemplate = ProjectTemplate(
+        id = "idea-collection",
+        name = "灵感收集",
+        description = "随手记录想法、问题、奇思妙想",
+        icon = "💡",
+        category = TemplateCategory.DAILY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("灵感", "笔记", "创意"),
         structure = ProjectStructure(
-            folders = listOf(
-                "data/raw",
-                "data/processed",
-                "notebooks",
-                "src",
-                "models",
-                "reports"
-            ),
             files = listOf(
                 TemplateFile(
-                    "requirements.txt",
+                    "灵感.md",
                     """
-                    numpy==1.24.3
-                    pandas==2.0.2
-                    matplotlib==3.7.1
-                    seaborn==0.12.2
-                    scikit-learn==1.2.2
-                    jupyter==1.0.0
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "src/data_loader.py",
-                    """
-                    import pandas as pd
+                    # 灵感收集
 
-                    def load_data(file_path):
-                        \"\"\"Load data from CSV file\"\"\"
-                        return pd.read_csv(file_path)
+                    ## ${"$"}{new Date().toLocaleDateString()}
 
-                    def save_data(df, file_path):
-                        \"\"\"Save DataFrame to CSV\"\"\"
-                        df.to_csv(file_path, index=False)
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "notebooks/exploratory_analysis.ipynb",
-                    """
-                    {
-                      "cells": [],
-                      "metadata": {},
-                      "nbformat": 4,
-                      "nbformat_minor": 4
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "README.md",
-                    """
-                    # Python Data Science Project
+                    ### 💡 灵感
+                    >
 
-                    A data science project template with common tools.
+                    ### 🔄 触发场景
 
-                    ## Setup
 
-                    ```bash
-                    python -m venv venv
-                    source venv/bin/activate
-                    pip install -r requirements.txt
-                    ```
+                    ### 🎯 可能的应用
+                    -
 
-                    ## Structure
+                    ### 📌 下一步行动
+                    - [ ]
 
-                    - `data/` - Data files (raw and processed)
-                    - `notebooks/` - Jupyter notebooks
-                    - `src/` - Python modules
-                    - `models/` - Trained models
-                    - `reports/` - Analysis reports
+                    ---
+
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val kotlinMultiplatformTemplate = ProjectTemplate(
-        id = "kotlin-multiplatform",
-        name = "Kotlin Multiplatform",
-        description = "跨平台 Kotlin 项目",
-        icon = "🎯",
-        category = TemplateCategory.MOBILE,
-        type = ProjectType.MULTIPLATFORM,
-        tags = listOf("kotlin", "multiplatform", "mobile"),
-        nameResId = R.string.template_name_kotlin_mp,
-        descriptionResId = R.string.template_desc_kotlin_mp,
+    val fitnessTrackerTemplate = ProjectTemplate(
+        id = "fitness-tracker",
+        name = "健身计划",
+        description = "训练计划 + 进度记录 + 目标追踪",
+        icon = "💪",
+        category = TemplateCategory.HEALTH,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("健身", "运动", "健康"),
         structure = ProjectStructure(
-            folders = listOf(
-                "shared/src/commonMain/kotlin",
-                "shared/src/androidMain/kotlin",
-                "shared/src/iosMain/kotlin",
-                "androidApp/src/main/kotlin",
-                "iosApp"
-            ),
             files = listOf(
                 TemplateFile(
-                    "shared/build.gradle.kts",
+                    "训练计划.md",
                     """
-                    plugins {
-                        kotlin("multiplatform")
-                        id("com.android.library")
-                    }
+                    # 训练计划
 
-                    kotlin {
-                        android()
-                        ios()
+                    目标：
+                    周期：
+                    开始日期：
 
-                        sourceSets {
-                            val commonMain by getting
-                            val androidMain by getting
-                            val iosMain by getting
-                        }
-                    }
+                    ## 周一：胸 + 三头
+                    - 卧推 _ 组 × _ 次
+                    - 哑铃飞鸟 _ 组 × _ 次
+                    - 绳索下压 _ 组 × _ 次
+
+                    ## 周三：背 + 二头
+                    - 引体向上 _ 组 × _ 次
+                    - 划船 _ 组 × _ 次
+                    - 弯举 _ 组 × _ 次
+
+                    ## 周五：腿 + 肩
+                    - 深蹲 _ 组 × _ 次
+                    - 硬拉 _ 组 × _ 次
+                    - 推举 _ 组 × _ 次
+
+                    ## 周日：有氧
+                    - 跑步 _ 分钟 / 游泳 _ 米
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "README.md",
+                    "进度记录.md",
                     """
-                    # Kotlin Multiplatform Project
+                    # 进度记录
 
-                    Share code between Android and iOS.
+                    | 日期 | 体重 | 体脂率 | 围度 | 备注 |
+                    | --- | --- | --- | --- | --- |
+                    |  |  |  |  |  |
+                    """.trimIndent()
+                ),
+                TemplateFile(
+                    "目标.md",
+                    """
+                    # 健身目标
 
-                    ## Structure
+                    ## 短期目标 (1-3 个月)
+                    - [ ]
 
-                    - `shared/` - Shared Kotlin code
-                    - `androidApp/` - Android app
-                    - `iosApp/` - iOS app
+                    ## 中期目标 (3-6 个月)
+                    - [ ]
+
+                    ## 长期目标 (1 年)
+                    - [ ]
+
+                    ## 关键指标
+                    - 起始体重：
+                    - 目标体重：
+                    - 起始体脂：
+                    - 目标体脂：
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val springBootTemplate = ProjectTemplate(
-        id = "spring-boot",
-        name = "Spring Boot API",
-        description = "Spring Boot REST API 项目",
-        icon = "🍃",
-        category = TemplateCategory.BACKEND,
-        type = ProjectType.BACKEND,
-        tags = listOf("java", "spring", "backend", "api"),
-        nameResId = R.string.template_name_spring_boot,
-        descriptionResId = R.string.template_desc_spring_boot,
+    val recipeTemplate = ProjectTemplate(
+        id = "recipe",
+        name = "食谱记录",
+        description = "食材 + 步骤 + 心得",
+        icon = "🍳",
+        category = TemplateCategory.DAILY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("食谱", "烹饪", "美食"),
         structure = ProjectStructure(
-            folders = listOf(
-                "src/main/java/com/example/demo/controller",
-                "src/main/java/com/example/demo/service",
-                "src/main/java/com/example/demo/model",
-                "src/main/java/com/example/demo/repository",
-                "src/main/resources",
-                "src/test/java"
-            ),
             files = listOf(
                 TemplateFile(
-                    "pom.xml",
+                    "食材.md",
                     """
-                    <?xml version="1.0" encoding="UTF-8"?>
-                    <project>
-                        <modelVersion>4.0.0</modelVersion>
-                        <groupId>com.example</groupId>
-                        <artifactId>demo</artifactId>
-                        <version>0.0.1-SNAPSHOT</version>
-                        <parent>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-parent</artifactId>
-                            <version>3.2.0</version>
-                        </parent>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.springframework.boot</groupId>
-                                <artifactId>spring-boot-starter-web</artifactId>
-                            </dependency>
-                        </dependencies>
-                    </project>
+                    # 菜名：
+
+                    分量：_ 人份
+                    用时：_ 分钟
+                    难度：⭐⭐⭐ ( /5)
+
+                    ## 主料
+                    -
+
+                    ## 辅料
+                    -
+
+                    ## 调料
+                    -
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "README.md",
+                    "步骤.md",
                     """
-                    # Spring Boot API
+                    # 烹饪步骤
 
-                    A RESTful API built with Spring Boot.
+                    1.
+                    2.
+                    3.
+                    4.
+                    5.
 
-                    ## Run
+                    ## 火候要点
+                    -
 
-                    ```bash
-                    ./mvnw spring-boot:run
-                    ```
+                    ## 时间节点
+                    -
+                    """.trimIndent()
+                ),
+                TemplateFile(
+                    "心得.md",
+                    """
+                    # 烹饪心得
+
+                    ## 成功之处
+                    -
+
+                    ## 改进空间
+                    -
+
+                    ## 下次试试
+                    -
+
+                    ## 配菜搭配
+                    -
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val flutterAppTemplate = ProjectTemplate(
-        id = "flutter-app",
-        name = "Flutter 应用",
-        description = "跨平台 Flutter 移动应用",
-        icon = "🦋",
-        category = TemplateCategory.MOBILE,
-        type = ProjectType.FLUTTER,
-        tags = listOf("flutter", "dart", "mobile"),
-        nameResId = R.string.template_name_flutter_app,
-        descriptionResId = R.string.template_desc_flutter_app,
+    val studyPlanTemplate = ProjectTemplate(
+        id = "study-plan",
+        name = "学习计划",
+        description = "目标 + 课程 + 进度",
+        icon = "🎓",
+        category = TemplateCategory.STUDY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("学习", "课程", "成长"),
         structure = ProjectStructure(
-            folders = listOf(
-                "lib/screens",
-                "lib/widgets",
-                "lib/models",
-                "lib/services",
-                "assets/images",
-                "test"
-            ),
             files = listOf(
                 TemplateFile(
-                    "pubspec.yaml",
+                    "目标.md",
                     """
-                    name: my_flutter_app
-                    description: A Flutter application
-                    version: 1.0.0+1
+                    # 学习目标
 
-                    environment:
-                      sdk: '>=3.0.0 <4.0.0'
+                    课程/技能：
+                    周期：
+                    开始日期：
+                    预计完成：
 
-                    dependencies:
-                      flutter:
-                        sdk: flutter
+                    ## 为什么学
+
+
+                    ## 学完能做什么
+                    -
+
+                    ## 衡量指标
+                    -
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "lib/main.dart",
+                    "课程安排.md",
                     """
-                    import 'package:flutter/material.dart';
+                    # 课程安排
 
-                    void main() {
-                      runApp(const MyApp());
-                    }
+                    ## 第 1 周
+                    - [ ]
+                    - [ ]
 
-                    class MyApp extends StatelessWidget {
-                      const MyApp({Key? key}) : super(key: key);
+                    ## 第 2 周
+                    - [ ]
+                    - [ ]
 
-                      @override
-                      Widget build(BuildContext context) {
-                        return MaterialApp(
-                          title: 'Flutter App',
-                          theme: ThemeData(
-                            primarySwatch: Colors.blue,
-                          ),
-                          home: const HomePage(),
-                        );
-                      }
-                    }
+                    ## 第 3 周
+                    - [ ]
 
-                    class HomePage extends StatelessWidget {
-                      const HomePage({Key? key}) : super(key: key);
-
-                      @override
-                      Widget build(BuildContext context) {
-                        return Scaffold(
-                          appBar: AppBar(
-                            title: const Text('Home'),
-                          ),
-                          body: const Center(
-                            child: Text('Hello Flutter!'),
-                          ),
-                        );
-                      }
-                    }
+                    ## 第 4 周
+                    - [ ]
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "README.md",
+                    "进度.md",
                     """
-                    # Flutter App
+                    # 学习进度
 
-                    A cross-platform Flutter application.
-
-                    ## Getting Started
-
-                    ```bash
-                    flutter pub get
-                    flutter run
-                    ```
+                    | 日期 | 学习内容 | 时长 | 收获 | 待复习 |
+                    | --- | --- | --- | --- | --- |
+                    |  |  |  |  |  |
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val vueWebAppTemplate = ProjectTemplate(
-        id = "vue-webapp",
-        name = "Vue Web 应用",
-        description = "Vue 3 + TypeScript 前端项目",
-        icon = "💚",
-        category = TemplateCategory.WEB,
-        type = ProjectType.WEB,
-        tags = listOf("vue", "typescript", "web", "frontend"),
-        nameResId = R.string.template_name_vue_web,
-        descriptionResId = R.string.template_desc_vue_web,
+    val householdLedgerTemplate = ProjectTemplate(
+        id = "household-ledger",
+        name = "家庭账本",
+        description = "收支记录 + 分类统计",
+        icon = "💰",
+        category = TemplateCategory.FINANCE,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("记账", "家庭", "财务"),
         structure = ProjectStructure(
-            folders = listOf(
-                "src/components",
-                "src/views",
-                "src/router",
-                "src/stores",
-                "src/assets",
-                "public"
-            ),
             files = listOf(
                 TemplateFile(
-                    "package.json",
+                    "本月.md",
                     """
-                    {
-                      "name": "my-vue-app",
-                      "version": "1.0.0",
-                      "scripts": {
-                        "dev": "vite",
-                        "build": "vite build"
-                      },
-                      "dependencies": {
-                        "vue": "^3.3.0",
-                        "vue-router": "^4.2.0",
-                        "pinia": "^2.1.0"
-                      },
-                      "devDependencies": {
-                        "@vitejs/plugin-vue": "^4.2.0",
-                        "typescript": "^5.0.0",
-                        "vite": "^4.3.0"
-                      }
-                    }
+                    # ${"$"}{new Date().getFullYear()} 年 ${"$"}{new Date().getMonth() + 1} 月
+
+                    ## 收入
+                    | 日期 | 项目 | 金额 |
+                    | --- | --- | --- |
+                    |  | 工资 |  |
+                    |  | 副业 |  |
+
+                    ## 支出
+                    | 日期 | 类别 | 项目 | 金额 |
+                    | --- | --- | --- | --- |
+                    |  | 餐饮 |  |  |
+                    |  | 交通 |  |  |
+                    |  | 购物 |  |  |
+                    |  | 房租 |  |  |
+                    |  | 水电 |  |  |
+                    |  | 其他 |  |  |
+
+                    ## 统计
+                    - 总收入：¥
+                    - 总支出：¥
+                    - 结余：¥
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "README.md",
+                    "分类预算.md",
                     """
-                    # Vue Web App
+                    # 月度预算
 
-                    A Vue 3 + TypeScript application.
-
-                    ## Setup
-
-                    ```bash
-                    npm install
-                    npm run dev
-                    ```
+                    | 类别 | 预算 | 实际 | 差额 |
+                    | --- | --- | --- | --- |
+                    | 餐饮 |  |  |  |
+                    | 交通 |  |  |  |
+                    | 购物 |  |  |  |
+                    | 娱乐 |  |  |  |
+                    | 储蓄 |  |  |  |
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val expressApiTemplate = ProjectTemplate(
-        id = "express-api",
-        name = "Express API",
-        description = "简单的 Express REST API",
-        icon = "🚂",
-        category = TemplateCategory.BACKEND,
-        type = ProjectType.BACKEND,
-        tags = listOf("nodejs", "express", "api"),
-        nameResId = R.string.template_name_express_api,
-        descriptionResId = R.string.template_desc_express_api,
+    val workJournalTemplate = ProjectTemplate(
+        id = "work-journal",
+        name = "工作日志",
+        description = "今日完成 + 明日计划 + 复盘",
+        icon = "📝",
+        category = TemplateCategory.DAILY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("工作", "日志", "复盘"),
         structure = ProjectStructure(
-            folders = listOf("routes", "controllers", "models", "middleware"),
             files = listOf(
                 TemplateFile(
-                    "package.json",
+                    "今日.md",
                     """
-                    {
-                      "name": "express-api",
-                      "version": "1.0.0",
-                      "main": "index.js",
-                      "scripts": {
-                        "start": "node index.js",
-                        "dev": "nodemon index.js"
-                      },
-                      "dependencies": {
-                        "express": "^4.18.2"
-                      }
-                    }
-                    """.trimIndent()
-                ),
-                TemplateFile(
-                    "index.js",
-                    """
-                    const express = require('express');
-                    const app = express();
-                    const PORT = process.env.PORT || 3000;
+                    # 工作日志 - ${"$"}{new Date().toLocaleDateString()}
 
-                    app.use(express.json());
+                    ## 今日完成
+                    - [ ]
+                    - [ ]
+                    - [ ]
 
-                    app.get('/', (req, res) => {
-                      res.json({ message: 'API is running' });
-                    });
+                    ## 遇到问题
+                    1.
+                       - 解决方案：
+                    2.
+                       - 待解决：
 
-                    app.listen(PORT, () => {
-                      console.log(`Server on port ${'$'}{PORT}`);
-                    });
+                    ## 明日计划
+                    - [ ]
+                    - [ ]
+
+                    ## 心得 / 反思
+
                     """.trimIndent()
                 )
             )
         )
     )
 
-    val djangoWebTemplate = ProjectTemplate(
-        id = "django-web",
-        name = "Django Web 应用",
-        description = "Python Django 全栈项目",
-        icon = "🎸",
-        category = TemplateCategory.WEB,
-        type = ProjectType.WEB,
-        tags = listOf("python", "django", "web", "fullstack"),
-        nameResId = R.string.template_name_django_web,
-        descriptionResId = R.string.template_desc_django_web,
+    val meetingMinutesTemplate = ProjectTemplate(
+        id = "meeting-minutes",
+        name = "会议记录",
+        description = "议程 + 讨论 + 行动项",
+        icon = "👥",
+        category = TemplateCategory.DAILY,
+        type = ProjectType.DOCUMENT,
+        tags = listOf("会议", "记录", "工作"),
         structure = ProjectStructure(
-            folders = listOf(
-                "mysite",
-                "mysite/settings",
-                "apps",
-                "templates",
-                "static"
-            ),
             files = listOf(
                 TemplateFile(
-                    "requirements.txt",
+                    "议程.md",
                     """
-                    Django==4.2.0
-                    django-environ==0.10.0
+                    # 会议议程
+
+                    时间：
+                    地点：
+                    主持：
+                    参会人员：
+
+                    ## 议题
+                    1.
+                    2.
+                    3.
                     """.trimIndent()
                 ),
                 TemplateFile(
-                    "manage.py",
+                    "讨论.md",
                     """
-                    #!/usr/bin/env python
-                    import os
-                    import sys
+                    # 讨论记录
 
-                    if __name__ == '__main__':
-                        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
-                        from django.core.management import execute_from_command_line
-                        execute_from_command_line(sys.argv)
-                    """.trimIndent(),
-                    isExecutable = true
+                    ## 议题 1：
+                    - 发言：
+                    - 共识：
+                    - 分歧：
+
+                    ## 议题 2：
+                    - 发言：
+                    - 共识：
+                    - 分歧：
+                    """.trimIndent()
                 ),
                 TemplateFile(
-                    "README.md",
+                    "行动项.md",
                     """
-                    # Django Web Application
+                    # 行动项
 
-                    A full-stack web application built with Django.
+                    | 行动项 | 负责人 | 截止日期 | 状态 |
+                    | --- | --- | --- | --- |
+                    |  |  |  | ⏳ |
+                    |  |  |  | ⏳ |
 
-                    ## Setup
-
-                    ```bash
-                    pip install -r requirements.txt
-                    python manage.py migrate
-                    python manage.py runserver
-                    ```
+                    ## 下次会议
+                    - 时间：
+                    - 议题：
                     """.trimIndent()
                 )
             )
