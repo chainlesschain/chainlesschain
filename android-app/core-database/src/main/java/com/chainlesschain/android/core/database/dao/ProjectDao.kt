@@ -241,6 +241,20 @@ interface ProjectDao {
     @Query("DELETE FROM project_activities WHERE projectId = :projectId AND createdAt < :cutoffTime")
     suspend fun deleteOldActivities(projectId: String, cutoffTime: Long)
 
+    // ===== Sync 增量游标查询 (Phase 3d v1.2 #21 P2 — Android → Desktop reverse) =====
+
+    /**
+     * 按 (updatedAt, id) lex 序拉取大于 cursor 的项目，无 status 过滤——deleted
+     * 状态也要 push，让对端同步删除信号。供 ProjectSyncWalker 使用。
+     */
+    @Query("""
+        SELECT * FROM projects
+        WHERE updatedAt > :sinceMs OR (updatedAt = :sinceMs AND id > :sinceId)
+        ORDER BY updatedAt ASC, id ASC
+        LIMIT :limit
+    """)
+    suspend fun getProjectsSinceCursor(sinceMs: Long, sinceId: String, limit: Int): List<ProjectEntity>
+
     // ===== 辅助数据类 =====
 
     data class TypeCount(

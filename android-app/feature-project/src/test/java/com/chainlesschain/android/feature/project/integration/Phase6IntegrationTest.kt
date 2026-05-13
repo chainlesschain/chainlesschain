@@ -34,9 +34,9 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.util.UUID
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 
 /**
  * Phase 6: AI Session Integration Tests

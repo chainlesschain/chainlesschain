@@ -28,11 +28,16 @@ abstract class P2PModule {
     abstract fun bindSyncDataApplier(impl: DefaultSyncDataApplier): SyncDataApplier
 
     /**
-     * Phase 3d v1.1: 绑定 SyncRepositoryWalker → SocialSyncWalker。
-     * SyncManager 注入 dagger.Lazy<SyncRepositoryWalker>，handlePullRpc
-     * 用 walker enumerate Repository 历史数据（vs v1 只看 pendingChanges）。
+     * Phase 3d v1.1: SyncRepositoryWalker 原绑定 → SocialSyncWalker。
+     *
+     * Phase 3d v1.2 #21 P2 (2026-05-13): 改在 :app/sync 绑定到
+     * CompositeSyncRepositoryWalker (含 Social + Project)。本 binding 注释
+     * 留作历史，避免 Hilt 双 binding 冲突。
+     *
+     * SocialSyncWalker 仍走 @Inject constructor 自动绑定，可直接被 Composite
+     * 注入。
      */
-    @Binds
-    @Singleton
-    abstract fun bindSyncRepositoryWalker(impl: SocialSyncWalker): SyncRepositoryWalker
+    // @Binds
+    // @Singleton
+    // abstract fun bindSyncRepositoryWalker(impl: SocialSyncWalker): SyncRepositoryWalker
 }

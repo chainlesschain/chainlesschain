@@ -4,9 +4,9 @@ import com.chainlesschain.android.feature.project.ui.components.CodeFoldingManag
 import com.chainlesschain.android.feature.project.ui.components.FoldableRegionType
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 /**
  * Unit tests for CodeFoldingManager and FoldingStateManager
