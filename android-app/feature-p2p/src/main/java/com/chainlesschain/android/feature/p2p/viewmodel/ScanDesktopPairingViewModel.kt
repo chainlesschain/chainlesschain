@@ -159,6 +159,11 @@ class ScanDesktopPairingViewModel @Inject constructor(
                     }
                     Timber.i("[ScanDesktopPairing] ✓ relay sendAck succeeded — remote mode")
                 }
+                // v1.3+ plan B — ICE servers (STUN/TURN) + 24h 凭证；直接原样存 JSON
+                val iceServersJson = payload["iceServers"]?.toString()
+                val iceExpiry = payload["iceExpiry"]?.jsonPrimitive?.contentOrNull
+                    ?.toLongOrNull() ?: 0L
+
                 // v1.3+ 持久化：写本地 prefs，让首页 DesktopConnectionCard 不再读
                 // live WS 连接（扫码后信令立刻断），改读这个表 → 显示"已连接 X 台"
                 pairedDesktopsStore.upsert(
@@ -169,6 +174,8 @@ class ScanDesktopPairingViewModel @Inject constructor(
                             ?: "desktop",
                         lanSignalingUrl = signalingUrl,
                         relayUrl = relayUrl,
+                        iceServersJson = iceServersJson,
+                        iceExpiry = iceExpiry,
                         pairedAt = clock.nowMillis(),
                         lastSeenAt = clock.nowMillis(),
                     ),

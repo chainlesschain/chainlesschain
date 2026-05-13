@@ -37,6 +37,57 @@ const os = require("os");
 const { logger } = require("../../utils/logger.js");
 
 /**
+ * v1.3+ plan B — coturn time-limited credentials.
+ *
+ * 在 QR 生成时签发 24h TTL 的 ICE 凭证，手机扫码后持久化 + WebRTC 建连用。
+ * 客户端**不需要知道 shared secret**（只在桌面端，从 env 读）— 桌面签好直接塞 QR。
+ *
+ * 凭证算法（与 turnserver.conf use-auth-secret 匹配）：
+ *   username = <expiry-unix-ts>:<user-id>
+ *   credential = base64(HMAC-SHA1(secret, username))
+ *
+ * 必填 env：`CC_TURN_SECRET`（与 /opt/cc-turn/turnserver.conf 的
+ * `use-auth-secret` 必须匹配，否则 TURN server 拒绝凭证）。无 fallback —
+ * 不在源码里硬编码 shared secret，任何人 fork 都不该拿到生效凭证。
+ * dev 起 desktop 时也必须设；可以本地起 coturn 用任意私有 secret。
+ */
+const TURN_URL = process.env.CC_TURN_URL || "turn.chainlesschain.com";
+const TURN_SECRET = process.env.CC_TURN_SECRET;
+const TURN_TTL_SEC = 24 * 60 * 60; // 24h
+
+function signIceCredentials(userId) {
+  if (!TURN_SECRET) {
+    throw new Error(
+      "CC_TURN_SECRET env var not set — required for plan B WebRTC TURN credentials. " +
+        "Set it to the same value as your coturn server's `use-auth-secret`. " +
+        "For dev without TURN, set CC_TURN_SECRET=dev to disable cred validation " +
+        "(STUN-only mode still works, TURN relay will reject).",
+    );
+  }
+  const expiry = Math.floor(Date.now() / 1000) + TURN_TTL_SEC;
+  const username = `${expiry}:${userId}`;
+  const credential = crypto
+    .createHmac("sha1", TURN_SECRET)
+    .update(username)
+    .digest("base64");
+  return {
+    iceServers: [
+      { urls: [`stun:${TURN_URL}:3478`] },
+      {
+        urls: [
+          `turn:${TURN_URL}:3478?transport=udp`,
+          `turn:${TURN_URL}:3478?transport=tcp`,
+          `turns:${TURN_URL}:5349`,
+        ],
+        username,
+        credential,
+      },
+    ],
+    expiry,
+  };
+}
+
+/**
  * 探测桌面的 LAN IPv4 地址，用于把 `ws://<ip>:9001` 塞进 QR payload，
  * 手机扫到后可直接连上桌面信令服务器 — 免去 NSD mDNS 发现的时间窗口与
  * 多播被路由器抑制的风险（issue #21 v1.3+ Connect timeout 复现根因）。
@@ -283,6 +334,24 @@ function createDesktopPairGenerateHandler(options = {}) {
     // 环境变量可 override（dev / 私有部署）。
     const relayUrl =
       process.env.CC_RELAY_URL || "wss://signaling.chainlesschain.com";
+    // v1.3+ plan B — 签发 24h ICE 凭证，手机扫码后直接用，不需要 shared secret
+    // 无 CC_TURN_SECRET env 时降级到 STUN-only（LAN + 双 NAT 友好场景仍能跑，
+    // 跨 NAT TURN relay 不可用）。dev 启动也能 pair，无强依赖部署 env。
+    let iceConfig;
+    try {
+      iceConfig = signIceCredentials(pcPeerId);
+    } catch (e) {
+      logger.warn(
+        `[desktop.pair WS] TURN credentials unavailable (${e.message}) — STUN-only mode`,
+      );
+      iceConfig = {
+        iceServers: [
+          { urls: ["stun:stun.l.google.com:19302"] },
+          { urls: ["stun:stun1.l.google.com:19302"] },
+        ],
+        expiry: 0,
+      };
+    }
     const payload = {
       type: "desktop-pairing",
       code,
@@ -296,6 +365,9 @@ function createDesktopPairGenerateHandler(options = {}) {
       signalingUrl,
       // v1.3+ — 公网中继 URL；LAN 不通时手机自动 fallback 到这里
       relayUrl,
+      // v1.3+ plan B — WebRTC ICE servers (STUN+TURN) + 24h TTL ephemeral creds
+      iceServers: iceConfig.iceServers,
+      iceExpiry: iceConfig.expiry,
       timestamp: Date.now(),
     };
     sessionState.code = code;

@@ -31,7 +31,8 @@ enum class P2PConnectionState {
 @Singleton
 class WebRTCClient @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
-    private val signalClient: SignalClient
+    private val signalClient: SignalClient,
+    private val pairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore,
 ) {
     @Volatile
     private var peerConnectionFactory: PeerConnectionFactory? = null
@@ -47,10 +48,58 @@ class WebRTCClient @Inject constructor(
     @Volatile
     private var isRemoteDescriptionSet = false
 
-    private val iceServers = listOf(
+    /** Google STUN fallback — 当 PairedDesktopsStore 没存 iceServers 时用。 */
+    private val fallbackIceServers = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
         PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
     )
+
+    /**
+     * v1.3+ plan B — 当前连接对应 pcPeerId 的 iceServers (优先) + Google STUN fallback。
+     * `connect(pcPeerId,...)` 时设置；`createPeerConnection` 读取。
+     *
+     * iceServers JSON shape (from desktop-pair-handlers signIceCredentials):
+     *   [{urls: ["stun:...", "turn:...?..."], username?, credential?}, ...]
+     */
+    @Volatile
+    private var currentIceServers: List<PeerConnection.IceServer> = fallbackIceServers
+
+    private fun resolveIceServersFor(pcPeerId: String): List<PeerConnection.IceServer> {
+        val desktop = pairedDesktopsStore.devices.value.firstOrNull { it.pcPeerId == pcPeerId }
+        val json = desktop?.iceServersJson ?: return fallbackIceServers
+        val now = System.currentTimeMillis() / 1000
+        if (desktop.iceExpiry > 0 && now > desktop.iceExpiry) {
+            Timber.w("[WebRTCClient] iceServers expired for $pcPeerId (exp=${desktop.iceExpiry}) — fallback Google STUN")
+            return fallbackIceServers
+        }
+        return try {
+            parseIceServersJson(json).ifEmpty { fallbackIceServers }
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTCClient] parseIceServersJson failed — fallback")
+            fallbackIceServers
+        }
+    }
+
+    private fun parseIceServersJson(raw: String): List<PeerConnection.IceServer> {
+        val arr = org.json.JSONArray(raw)
+        val result = mutableListOf<PeerConnection.IceServer>()
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val urlsRaw = obj.opt("urls")
+            val urls = when (urlsRaw) {
+                is String -> listOf(urlsRaw)
+                is org.json.JSONArray -> (0 until urlsRaw.length()).map { urlsRaw.getString(it) }
+                else -> emptyList()
+            }
+            for (url in urls) {
+                val builder = PeerConnection.IceServer.builder(url)
+                obj.optString("username", null)?.let { builder.setUsername(it) }
+                obj.optString("credential", null)?.let { builder.setPassword(it) }
+                result.add(builder.createIceServer())
+            }
+        }
+        return result
+    }
 
     @Volatile
     private var onMessageReceived: ((String) -> Unit)? = null
@@ -172,8 +221,13 @@ class WebRTCClient @Inject constructor(
 
     private fun createPeerConnection(pcPeerId: String) {
         Timber.d("Creating peer connection")
+        // v1.3+ plan B — 用桌面 QR 签发的 ICE servers (含 turn.chainlesschain.com TURN)，
+        // fallback Google STUN。这样 WAN 跨 NAT 下 WebRTC 也能打洞。
+        currentIceServers = resolveIceServersFor(pcPeerId)
+        Timber.i("[WebRTCClient] ice servers (${currentIceServers.size}) for $pcPeerId: " +
+            currentIceServers.joinToString { it.urls.firstOrNull() ?: "?" })
 
-        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+        val rtcConfig = PeerConnection.RTCConfiguration(currentIceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
         }
 

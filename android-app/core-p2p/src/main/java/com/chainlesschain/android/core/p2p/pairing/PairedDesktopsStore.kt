@@ -104,6 +104,15 @@ data class PairedDesktop(
     val lanSignalingUrl: String? = null,
     /** 公网中继 URL，远程模式 fallback。 */
     val relayUrl: String? = null,
+    /**
+     * v1.3+ plan B — WebRTC ICE servers (JSON 字符串原样保存,
+     * `[{urls, username?, credential?}, ...]`)。
+     * 桌面 QR 生成时用 HMAC-SHA1 签发 24h 凭证。
+     * 解析在 `WebRTCClient.iceServersFromJson(...)`。
+     */
+    val iceServersJson: String? = null,
+    /** ICE 凭证过期 unix-ts (秒)。过期后需要重新配对刷新。 */
+    val iceExpiry: Long = 0L,
     val pairedAt: Long = System.currentTimeMillis(),
     /** 最近一次成功通信时间，用于「最近活跃」展示（暂未串）。 */
     val lastSeenAt: Long = System.currentTimeMillis(),

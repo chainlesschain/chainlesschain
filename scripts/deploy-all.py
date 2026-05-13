@@ -75,19 +75,34 @@ DEPLOYS = [
     # badge / ⭐ Current Version 块同步 .48 / 0.161.8。CLI npm 0.161.7 → 0.161.8 (CLI 自身 0 源码
     # 改动，force publish 走 release.yml 同步轨道)。Android versionCode 37 / versionName 0.37.0
     # 不变 (仍在 v1.0 RFC 实施轨道，GA flip 待 M7)。
+    # 2026-05-14 v5.0.3.50 滚动更新 (3 站全刷):
+    # Plan C Android Remote Operate signaling-forward RPC 落地:
+    #   - SignalingRpcClient (mobile RPC entry) + 30s withTimeout + LAN→relay 自动 fallback
+    #   - RemoteOperateScreen + ViewModel (3 chip buttons + JSON 响应 + NavGraph)
+    #   - PairedDesktopsStore SharedPreferences 持久化已配对桌面 idempotent by pcPeerId
+    #   - Desktop RelayClient outbound wss://signaling.chainlesschain.com 长连 + 指数退避自重连
+    #   - mobile-bridge.handlePairAckFromRelay bug fix (?. 静默吞 relay pair-ack 修复)
+    #   - MobileBridgeHeaderStatus.vue header 显示已配对 mobile 数量 5s 轮询
+    #   - 11 i18n 字符串 → values/strings.xml + values-zh-rCN/strings.xml
+    #   - 3 新单测文件 / 20 测试全绿 (PairedDesktopsStore 7 + SignalingRpc 7 + RemoteOperateVM 6)
+    #   - 设计文档 Android_Remote_Operate_Plan_C.md (新增)
+    # 改动: README + README_EN 加 2026-05-13 v5.0.3.50 section;
+    # docs-site/docs/index.md tagline .49 → .50 + 加 Plan C 摘要;
+    # docs-website-v2/src/pages/{index,en/index}.astro 顶一张 v5.0.3.50 卡 (中英对照);
+    # 设计文档同步 docs-site/docs/design/ + docs-site-design/docs/ (147 files synced).
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.48-20260512-0833.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.50-20260514-0605.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.48-20260512-0833.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.50-20260514-0605.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.48-20260512-1002.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.50-20260514-0605.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
