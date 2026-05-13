@@ -25,9 +25,10 @@ import { useRouter } from 'vue-router'
 import { MobileOutlined } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 
-// Inline mini-parser — CLI sometimes prefixes `[AppConfig]` / `[DatabaseManager]`
-// noise before/after the JSON payload. Mirror of MobileBridge.vue's parser
-// but trimmed: header status only needs the happy path + a graceful [].
+// Inline mini-parser — CLI prefixes `[AppConfig] Configuration loaded` /
+// `[DatabaseManager]` log lines before/after JSON payload. 必须区分 log 前缀
+// 与真 JSON：`[` 后跟字母是 log（[AppConfig]），后跟空白/引号/数字/嵌套/负号
+// 才是 JSON array start。MobileBridge.vue 原版同款 regex。
 function parseJsonOutput(raw) {
   if (!raw) return []
   try {
@@ -36,8 +37,19 @@ function parseJsonOutput(raw) {
     // fall through
   }
   const lines = String(raw).split('\n')
-  const start = lines.findIndex((l) => /^[\[\{]/.test(l.trim()))
+  // 跳过 CLI log 前缀 [AppConfig] / [DatabaseManager] 等 — bracket 后跟字母即 log
+  const start = lines.findIndex((l) => {
+    const t = l.trim()
+    if (!t) return false
+    const first = t[0]
+    if (first !== '[' && first !== '{') return false
+    if (t.length === 1) return true
+    const second = t[1]
+    // 字母 = CLI log 前缀，跳过；其余视作 JSON 开头
+    return !((second >= 'A' && second <= 'Z') || (second >= 'a' && second <= 'z'))
+  })
   if (start < 0) return []
+  // 尾部反向找闭合 `]` / `}`，跳过 `[DatabaseManager]` 等以字母接 `]` 的 log 行
   for (let end = lines.length - 1; end >= start; end--) {
     const t = lines[end].trim()
     if (/^[\]\}]/.test(t) && !/^[\]\}][A-Za-z]/.test(t)) {

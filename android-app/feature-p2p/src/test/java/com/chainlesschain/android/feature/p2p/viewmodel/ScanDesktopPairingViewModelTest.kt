@@ -234,11 +234,15 @@ class ScanDesktopPairingViewModelTest {
         vm.onQrScanned(validQrJson())
         advanceUntilIdle()
 
+        // v1.3+: LAN sendAck failure triggers retry on relay. Same FakeGate
+        // result returns failure on the second call too, so we end up in the
+        // "LAN+relay both fail" branch — error message contains both prefixes
+        // and sendAckCallCount is 2.
         val state = vm.state.value as? ScanDesktopPairingState.Failed
         assertNotNull(state)
         assertTrue(state.error.contains("通知桌面失败"), "got ${state.error}")
         assertTrue(state.error.contains("ws broken"), "got ${state.error}")
-        assertEquals(1, gate.sendAckCallCount)
+        assertEquals(2, gate.sendAckCallCount)
     }
 
     @Test
