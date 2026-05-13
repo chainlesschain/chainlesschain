@@ -53,12 +53,14 @@ import com.chainlesschain.android.presentation.screens.HelpFeedbackScreen
 import com.chainlesschain.android.presentation.screens.KeyManagementScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
+import com.chainlesschain.android.presentation.screens.ProjectFilesScreen
 import com.chainlesschain.android.presentation.screens.SettingsScreen
 import com.chainlesschain.android.presentation.screens.SplashScreen
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.remote.ui.DeviceListScreen
 import com.chainlesschain.android.remote.ui.DeviceScanScreen
 import com.chainlesschain.android.remote.ui.RemoteControlScreen
+import com.chainlesschain.android.remote.ui.RemoteOperateScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteRAGSearchScreen
@@ -153,6 +155,10 @@ fun NavGraph(
                     // 全程用户只需 1 步发送。
                     navController.navigate(Screen.NewConversation.createRoute(msg))
                 },
+                // 最近会话 chip 点击 → 直接打开对应 Chat 路由
+                onNavigateToConversation = { conversationId ->
+                    navController.navigate(Screen.Chat.createRoute(conversationId))
+                },
                 onNavigateToProjectDetail = { navController.navigate(Screen.ProjectDetail.createRoute(it)) },
                 onNavigateToFriendDetail = { navController.navigate(Screen.FriendDetail.createRoute(it)) },
                 onNavigateToAddFriend = { navController.navigate(Screen.AddFriend.route) },
@@ -170,6 +176,13 @@ fun NavGraph(
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
                 onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) },
+                // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
+                onNavigateToScanDesktopPairing = { navController.navigate(Screen.ScanDesktopPairing.route) },
+                // v1.3+ issue #21 plan C — 首页已连接桌面卡点击 → 走 signaling forward
+                // 路径的 RemoteOperate 简单页（不依赖 WebRTC P2P，跨 NAT 也能用）。
+                onNavigateToRemoteOperate = { pcPeerId ->
+                    navController.navigate(Screen.RemoteOperate.createRoute(pcPeerId))
+                },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
                 onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
@@ -280,7 +293,8 @@ fun NavGraph(
                 projectId = projectId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSteps = { navController.navigate(Screen.StepDetail.createRoute(it)) },
-                onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
+                // #21: folder icon now opens this project's files, not the global file browser
+                onNavigateToFileBrowser = { navController.navigate(Screen.ProjectFiles.createRoute(projectId)) },
                 onNavigateToTaskList = { navController.navigate(Screen.TaskList.route) }
             )
         }
@@ -401,6 +415,17 @@ fun NavGraph(
                 onOpenInEditor = { file ->
                     navController.navigate(Screen.CodeViewer.createRoute(file.id))
                 }
+            )
+        }
+
+        composable(
+            route = Screen.ProjectFiles.routePattern,
+            arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId") ?: return@composable
+            ProjectFilesScreen(
+                projectId = projectId,
+                onNavigateBack = { navController.popBackStack() },
             )
         }
 
@@ -584,6 +609,14 @@ fun NavGraph(
                     navController.navigate(Screen.RemoteControl.createRoute(peerId, resolvedDid))
                 }
             )
+        }
+        composable(
+            route = Screen.RemoteOperate.routePattern,
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+            ),
+        ) {
+            RemoteOperateScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.RemoteControl.route) {
             RemoteControlScreen(
@@ -817,6 +850,11 @@ sealed class Screen(val route: String) {
         fun createRoute(provider: String) = "llm_test/$provider"
     }
     data object FileBrowser : Screen("file_browser")
+    // #21 user feedback "在项目管理要可以查看本项目文件" — project-scoped file list
+    data object ProjectFiles : Screen("project_files") {
+        const val routePattern = "project_files/{projectId}"
+        fun createRoute(projectId: String) = "project_files/$projectId"
+    }
     data object CodeViewer : Screen("code_viewer") {
         const val routePattern = "code_viewer/{fileId}"
         fun createRoute(fileId: String) = "code_viewer/${android.net.Uri.encode(fileId)}"
@@ -851,6 +889,11 @@ sealed class Screen(val route: String) {
     data object DeviceScan : Screen("device_scan")
     data object RemoteControl : Screen("remote_control") {
         fun createRoute(peerId: String, did: String) = "remote_control/$peerId/$did"
+    }
+    // v1.3+ issue #21 plan C — signaling forward 简单远程操控页
+    data object RemoteOperate : Screen("remote_operate") {
+        const val routePattern = "remote_operate/{peerId}"
+        fun createRoute(peerId: String) = "remote_operate/$peerId"
     }
     data object RemoteAIChat : Screen("remote_ai_chat")
     data object RemoteRAGSearch : Screen("remote_rag_search")

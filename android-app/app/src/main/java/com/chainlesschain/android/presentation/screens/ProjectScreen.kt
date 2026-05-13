@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,12 +31,17 @@ import com.chainlesschain.android.feature.project.model.ProjectListState
 import com.chainlesschain.android.feature.project.model.ProjectSortBy
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.documentfile.provider.DocumentFile
 import com.chainlesschain.android.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import android.content.Intent
+import android.net.Uri
 
 /**
  * 项目页面（整合任务功能）
@@ -58,8 +64,42 @@ fun ProjectScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // 获取认证状态
+    // 获取认证状态 (#21 P4 folderPickerLauncher 需提前到这里访问)
     val authState by authViewModel.uiState.collectAsState()
+
+    // #21 P4: SAF folder picker — 选文件夹作项目根目录
+    // ActivityResultContracts.OpenDocumentTree 弹系统文件夹选择器 (Documents UI)
+    // 返回 tree URI (content://com.android.externalstorage.documents/tree/...)。
+    // takePersistableUriPermission 让 app 重启后仍能读写该 URI。
+    // DocumentFile.fromTreeUri(uri).name 拿用户可读的文件夹显示名作项目名。
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val currentUser = authState.currentUser
+        if (currentUser == null) {
+            scope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.project_login_first))
+            }
+            return@rememberLauncherForActivityResult
+        }
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        } catch (e: SecurityException) {
+            Timber.w(e, "takePersistableUriPermission failed for $uri")
+        }
+        val folderName = DocumentFile.fromTreeUri(context, uri)?.name ?: "未命名文件夹"
+        projectViewModel.setCurrentUser(currentUser.id)
+        projectViewModel.createProject(
+            name = folderName,
+            description = "本地文件夹：${uri.lastPathSegment ?: uri}",
+            type = ProjectType.OTHER,
+            rootPath = uri.toString(),
+        )
+    }
 
     // 初始化用户上下文
     LaunchedEffect(authState.currentUser) {
@@ -152,7 +192,14 @@ fun ProjectScreen(
                         IconButton(onClick = { showAddDialog = true }) {
                             Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_new_project))
                         }
-                    }
+                        // #21 P4: 选本地文件夹建项目
+                        IconButton(onClick = { folderPickerLauncher.launch(null) }) {
+                            Icon(
+                                Icons.Default.CreateNewFolder,
+                                contentDescription = "选文件夹建项目",
+                            )
+                        }
+}
                 )
             }
         },
@@ -574,8 +621,18 @@ fun EnhancedProjectCard(
                     }
                 }
 
-                // 状态标签 + 3-dot 菜单
+                // 状态标签 + 同步指示 + 3-dot 菜单 (#21 P3 fix: 让用户看出哪些项目是桌面同步过来的)
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 桌面同步过来的项目: 小云图标 + 已同步标记 (基于 isSynced field,
+                    // 由 ProjectSyncApplierImpl 在 applier 走 sync 路径写 entity 时 set true)
+                    if (project.isSynced) {
+                        Icon(
+                            imageVector = Icons.Outlined.CloudDone,
+                            contentDescription = "已同步",
+                            tint = Color(0xFF1677ff),
+                            modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                        )
+                    }
                     Surface(
                         color = statusColor.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(6.dp)

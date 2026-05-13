@@ -257,6 +257,10 @@
             </button>
           </a-tooltip>
 
+          <!-- Mobile bridge status — pill showing online/total paired phones.
+               Click to /mobile-bridge. Polls every 5s via `p2p devices` CLI. -->
+          <MobileBridgeHeaderStatus />
+
           <!-- Notification bell — only meaningful in the embedded web-shell
                where notification.* WS topics are registered. In pure-browser
                mode the composable returns empty / no-op shapes, so the badge
@@ -321,6 +325,7 @@ import { useShellMode } from '../composables/useShellMode.js'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '../plugins/i18n.js'
 import NotificationBell from './NotificationBell.vue'
+import MobileBridgeHeaderStatus from './MobileBridgeHeaderStatus.vue'
 
 const router  = useRouter()
 const route   = useRoute()

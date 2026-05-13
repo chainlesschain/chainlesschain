@@ -2,6 +2,8 @@ package com.chainlesschain.android.presentation.screens.peers
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
+import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.PeerInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,8 +31,10 @@ import javax.inject.Inject
 @HiltViewModel
 class PairedDevicesViewModel @Inject constructor(
     private val p2pClient: P2PClient,
+    private val pairedDesktopsStore: PairedDesktopsStore,
 ) : ViewModel() {
 
+    /** Live WS 连接列表（v1.1，online 状态用）。 */
     @Suppress("DEPRECATION") // connectedPeers 才是 v1.1 推荐 API；本处直接用
     val pairedDevices: StateFlow<List<PeerInfo>> = p2pClient.connectedPeers
         .map { map -> map.values.sortedBy { it.connectedAt } }
@@ -40,10 +44,18 @@ class PairedDevicesViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
+    /** v1.3+ 持久化 paired desktop 列表 — 首页 DesktopConnectionCard 用这个。 */
+    val persistedDesktops: StateFlow<List<PairedDesktop>> = pairedDesktopsStore.devices
+
     /** 全部断开。v1.2 W2.2 lifecycle 多 peer 落地后改为 disconnectAll() vs disconnect(peerId) 两路。 */
     fun disconnectAll() {
         viewModelScope.launch {
             p2pClient.disconnect()
         }
+    }
+
+    /** 移除指定已配对桌面 — Settings 「解除配对」用。 */
+    fun unpair(pcPeerId: String) {
+        pairedDesktopsStore.remove(pcPeerId)
     }
 }

@@ -97,7 +97,13 @@ fun ProjectDetailScreenV2(
             )
         },
         bottomBar = {
-            Column {
+            // #21 P3 fix: 输入框被系统导航栏遮挡 → 加 navigationBarsPadding + imePadding,
+            // 让输入栏自动上移避开系统底部导航条 + 软键盘
+            Column(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding()
+            ) {
                 FileMentionPopup(
                     isVisible = isFileMentionVisible,
                     files = projectFiles,
@@ -198,6 +204,7 @@ fun ProjectDetailScreenV2(
                         item {
                             EmptyConversationHint(
                                 projectName = state.project.name,
+                                projectType = state.project.type,
                                 onQuickAction = { actionType ->
                                     viewModel.executeQuickAction(actionType)
                                 }
@@ -446,13 +453,18 @@ fun AiMessageBubble(
                 modifier = Modifier.widthIn(max = 300.dp)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    // 如果正在流式传输，显示打字效果
+                    // #21 P3 fix: AI 消息用 MarkdownText 渲染 (用户反馈 AI 回复
+                    // 里 # ## * 等符号裸显)。streaming 中持续追加 + 渲染 cursor;
+                    // 完成后用纯渲染版本。
                     if (message.isStreaming) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = message.content,
+                            com.chainlesschain.android.core.ui.components.MarkdownText(
+                                markdown = message.content,
+                                textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                linkColor = MaterialTheme.colorScheme.primary,
+                                // #21 P3 fix: 字号与用户气泡 bodyMedium 一致 (用户反馈 AI 输出比输入偏大)
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                modifier = Modifier.weight(1f, fill = false),
                             )
                             Text(
                                 text = "▋",
@@ -461,10 +473,12 @@ fun AiMessageBubble(
                             )
                         }
                     } else {
-                        Text(
-                            text = message.content,
+                        com.chainlesschain.android.core.ui.components.MarkdownText(
+                            markdown = message.content,
+                            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            linkColor = MaterialTheme.colorScheme.primary,
+                            // #21 P3 fix: 字号与用户气泡 bodyMedium 一致
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -583,12 +597,25 @@ fun AiTypingIndicator() {
 
 /**
  * 空对话提示
+ *
+ * #21 P3 fix: 按 projectType 分两组快捷操作。code 类型 (code/android/web/app/
+ * backend/data_science/multiplatform/flutter) 保留原 3 个程序员场景操作
+ * (生成 README / 解释项目代码 / 建议改进)；其它（日常项目: document/data/
+ * design/research/other 等）换 3 个非程序员快捷操作 (整理要点 / 列出待办 /
+ * 给点建议)。
+ *
+ * 用户反馈："做个旅行计划怎么还有代码解释 明显不对"。
  */
 @Composable
 fun EmptyConversationHint(
     projectName: String,
+    projectType: String = "",
     onQuickAction: (String) -> Unit
 ) {
+    val isCodeProject = projectType in setOf(
+        "code", "android", "web", "app", "backend",
+        "data_science", "multiplatform", "flutter",
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -615,26 +642,46 @@ fun EmptyConversationHint(
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
 
-        // 快捷操作按钮
+        // 快捷操作按钮 — 按 projectType 分组渲染 (#21 P3 fix)
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            QuickActionButton(
-                icon = Icons.Default.Description,
-                text = stringResource(R.string.project_detail_generate_readme),
-                onClick = { onQuickAction("generate_readme") }
-            )
-            QuickActionButton(
-                icon = Icons.Default.Code,
-                text = stringResource(R.string.project_detail_explain_code),
-                onClick = { onQuickAction("explain_project") }
-            )
-            QuickActionButton(
-                icon = Icons.Default.Lightbulb,
-                text = stringResource(R.string.project_detail_suggest_improvements),
-                onClick = { onQuickAction("suggest_improvements") }
-            )
+            if (isCodeProject) {
+                // 程序员场景：保持原 3 个快捷操作
+                QuickActionButton(
+                    icon = Icons.Default.Description,
+                    text = stringResource(R.string.project_detail_generate_readme),
+                    onClick = { onQuickAction("generate_readme") }
+                )
+                QuickActionButton(
+                    icon = Icons.Default.Code,
+                    text = stringResource(R.string.project_detail_explain_code),
+                    onClick = { onQuickAction("explain_project") }
+                )
+                QuickActionButton(
+                    icon = Icons.Default.Lightbulb,
+                    text = stringResource(R.string.project_detail_suggest_improvements),
+                    onClick = { onQuickAction("suggest_improvements") }
+                )
+            } else {
+                // 日常项目场景：旅行计划/购物清单/读书笔记等
+                QuickActionButton(
+                    icon = Icons.Default.FormatListBulleted,
+                    text = stringResource(R.string.project_detail_summarize_points),
+                    onClick = { onQuickAction("summarize_points") }
+                )
+                QuickActionButton(
+                    icon = Icons.Default.CheckBox,
+                    text = stringResource(R.string.project_detail_list_todos),
+                    onClick = { onQuickAction("list_todos") }
+                )
+                QuickActionButton(
+                    icon = Icons.Default.Lightbulb,
+                    text = stringResource(R.string.project_detail_advise),
+                    onClick = { onQuickAction("advise") }
+                )
+            }
         }
     }
 }

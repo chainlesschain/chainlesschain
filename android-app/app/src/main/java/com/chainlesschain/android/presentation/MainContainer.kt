@@ -27,6 +27,7 @@ fun MainContainer(
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
+    onNavigateToConversation: (String) -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
     onNavigateToFriendDetail: (String) -> Unit = {},
     onNavigateToAddFriend: () -> Unit = {},
@@ -44,6 +45,8 @@ fun MainContainer(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    onNavigateToScanDesktopPairing: () -> Unit = {},
+    onNavigateToRemoteOperate: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToHelpFeedback: () -> Unit = {},
@@ -97,6 +100,7 @@ fun MainContainer(
                         onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                         onNavigateToAIChat = onNavigateToAIChat,
                         onNavigateToAIChatWithMessage = onNavigateToAIChatWithMessage,
+                        onNavigateToConversation = onNavigateToConversation,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
                         onNavigateToSocialFeed = { selectedTab = 2 },  // 切换到社交tab
                         onNavigateToMyQRCode = onNavigateToMyQRCode,
@@ -105,6 +109,8 @@ fun MainContainer(
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
                         onNavigateToRemoteControl = onNavigateToRemoteControl,
                         onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
+                        onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
+                        onNavigateToRemoteOperate = onNavigateToRemoteOperate,
                         socialUnreadCount = notificationState.unreadCount
                     )
                 }

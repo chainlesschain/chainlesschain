@@ -116,4 +116,20 @@ class WebSocketPairingSignalingGate @Inject constructor(
             Result.failure(e)
         }
     }
+
+    /**
+     * 切 URL 前清掉 signaling client 的连接 + 本类缓存，确保下次
+     * ensureRegistered 真的重连新 URL（不被 registeredPeerId 短路）。
+     */
+    override suspend fun reset() {
+        mutex.withLock {
+            try {
+                signalClient.disconnect()
+            } catch (e: Exception) {
+                Timber.w(e, "[PairingSignalingGate] disconnect threw (ok)")
+            }
+            registeredPeerId = null
+            Timber.i("[PairingSignalingGate] reset — cleared cache, signaling disconnected")
+        }
+    }
 }

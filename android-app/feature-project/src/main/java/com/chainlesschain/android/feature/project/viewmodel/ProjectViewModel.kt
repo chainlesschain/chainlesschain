@@ -416,7 +416,8 @@ class ProjectViewModel @Inject constructor(
         name: String,
         description: String? = null,
         type: String = ProjectType.OTHER,
-        tags: List<String>? = null
+        tags: List<String>? = null,
+        rootPath: String? = null,  // #21 P4: SAF tree URI as project root
     ) {
         val userId = _currentUserId.value
 
@@ -440,7 +441,8 @@ class ProjectViewModel @Inject constructor(
                     description = description,
                     type = type,
                     userId = userId,
-                    tags = tags
+                    tags = tags,
+                    rootPath = rootPath,
                 )
             )
 
@@ -840,9 +842,9 @@ class ProjectViewModel @Inject constructor(
     }
 
     /**
-     * 加载项目文件
+     * 加载项目文件 (#21 P3 user feedback: ProjectFilesScreen 也要能调)
      */
-    private fun loadProjectFiles(projectId: String) {
+    fun loadProjectFiles(projectId: String) {
         viewModelScope.launch {
             projectRepository.getProjectFiles(projectId)
                 .catch { e ->
@@ -1170,6 +1172,10 @@ class ProjectViewModel @Inject constructor(
                 ProjectQuickAction.SUGGEST_FILES -> "Based on this project's structure, suggest what additional files might be useful to add."
                 "explain_project" -> "What does this project do? Explain its purpose and main functionality."
                 "suggest_improvements" -> "Analyze this project and suggest specific improvements for code quality, performance, and maintainability."
+                // #21 P3 fix: 日常项目快捷操作（非 code 类型用，旅行计划/购物清单/读书笔记等）
+                "summarize_points" -> "请把这个项目里的内容整理成核心要点，按类别分组。如果文件不止一个，分别给出每个文件的要点。"
+                "list_todos" -> "基于这个项目当前的内容和目标，列出接下来需要做的待办事项。按优先级排序，每项尽量具体可执行。"
+                "advise" -> "针对这个项目的内容和目标，给出具体、可行的改进建议。指出潜在遗漏、可优化的地方，以及值得参考的做法。"
                 else -> actionType
             }
 

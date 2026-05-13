@@ -34,6 +34,8 @@
 
         <SyncStatusButton />
 
+        <MobileBridgeStatus />
+
         <DatabaseEncryptionStatus />
 
         <LanguageSwitcher />
@@ -88,6 +90,7 @@ import { useAppStore } from "../../stores/app";
 import { useSocialStore } from "../../stores/social";
 import HeaderBreadcrumbs from "./HeaderBreadcrumbs.vue";
 import SyncStatusButton from "./SyncStatusButton.vue";
+import MobileBridgeStatus from "./MobileBridgeStatus.vue";
 import DatabaseEncryptionStatus from "../DatabaseEncryptionStatus.vue";
 import LanguageSwitcher from "../LanguageSwitcher.vue";
 import DIDInvitationNotifier from "../DIDInvitationNotifier.vue";

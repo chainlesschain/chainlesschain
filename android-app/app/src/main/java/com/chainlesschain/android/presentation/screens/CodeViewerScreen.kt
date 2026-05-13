@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,6 +33,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Preview
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.project.ui.components.EnhancedCodeEditor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -221,13 +233,60 @@ fun CodeViewerScreen(
                 }
 
                 else -> {
-                    EnhancedCodeEditor(
-                        content = state.content,
-                        onContentChange = { /* readOnly = true，不写回 */ },
-                        language = state.language,
-                        modifier = Modifier.fillMaxSize(),
-                        readOnly = true,
-                    )
+                    // #21 P3 fix: .md/.markdown 文件走 Preview + Edit (源码) 双 tab
+                    // 默认 Preview，用户反馈"看 md 格式文件比较不美观"
+                    val isMarkdown = state.displayName.endsWith(".md", ignoreCase = true) ||
+                        state.displayName.endsWith(".markdown", ignoreCase = true)
+                    if (isMarkdown) {
+                        var selectedTab by remember { mutableIntStateOf(0) }  // 0 = Preview, 1 = Source
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            TabRow(selectedTabIndex = selectedTab) {
+                                Tab(
+                                    selected = selectedTab == 0,
+                                    onClick = { selectedTab = 0 },
+                                    text = { Text("预览") },
+                                    icon = { Icon(Icons.Default.Preview, null) },
+                                )
+                                Tab(
+                                    selected = selectedTab == 1,
+                                    onClick = { selectedTab = 1 },
+                                    text = { Text("源码") },
+                                    icon = { Icon(Icons.Default.Code, null) },
+                                )
+                            }
+                            if (selectedTab == 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(16.dp),
+                                ) {
+                                    MarkdownText(
+                                        markdown = state.content,
+                                        textColor = MaterialTheme.colorScheme.onSurface,
+                                        linkColor = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            } else {
+                                EnhancedCodeEditor(
+                                    content = state.content,
+                                    onContentChange = { /* readOnly */ },
+                                    language = "markdown",
+                                    modifier = Modifier.fillMaxSize(),
+                                    readOnly = true,
+                                )
+                            }
+                        }
+                    } else {
+                        EnhancedCodeEditor(
+                            content = state.content,
+                            onContentChange = { /* readOnly = true，不写回 */ },
+                            language = state.language,
+                            modifier = Modifier.fillMaxSize(),
+                            readOnly = true,
+                        )
+                    }
                 }
             }
         }

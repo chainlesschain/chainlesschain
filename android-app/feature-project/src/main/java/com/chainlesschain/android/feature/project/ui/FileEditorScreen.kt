@@ -102,7 +102,10 @@ fun FileEditorScreen(
     val showFindReplace by viewModel.showFindReplace.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // #21 P3 fix: .md 文件默认进 Preview tab (用户反馈 "用户看 md 格式文件比较
+    // 不美观")。0 = Edit, 1 = Preview。非 md 文件 tab 不显示, selectedTab 值
+    // 无影响 — 直接走 SyntaxHighlightedEditor 分支。
+    var selectedTab by remember { mutableIntStateOf(1) }
     var showExitDialog by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
     var showAIAssistDialog by remember { mutableStateOf(false) }

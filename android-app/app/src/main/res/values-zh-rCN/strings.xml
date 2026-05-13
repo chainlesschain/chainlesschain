@@ -68,7 +68,9 @@
     <string name="nav_qr_scan_success">扫描成功: %s</string>
 
     <!-- ==================== Home Screen ==================== -->
-    <string name="home_subtitle">你的AI办公空间</string>
+    <!-- 与官网 chainlesschain.com hero (docs-website-v2/index.astro) 保持一致 -->
+    <string name="home_subtitle">让数据主权回归个人 · AI 效率触手可及</string>
+    <string name="home_tagline">CLI 驱动的本地 AI × 硬件级加密</string>
     <string name="home_usage_statistics">使用统计</string>
     <string name="home_profile_center">个人中心</string>
     <string name="home_more_features">更多功能</string>
@@ -532,6 +534,10 @@
     <string name="project_detail_generate_readme">生成 README</string>
     <string name="project_detail_explain_code">解释项目代码</string>
     <string name="project_detail_suggest_improvements">建议改进</string>
+    <!-- #21 P3 fix: 日常项目快捷操作（非 code 类型用，旅行计划/购物清单/读书笔记等） -->
+    <string name="project_detail_summarize_points">整理要点</string>
+    <string name="project_detail_list_todos">列出待办</string>
+    <string name="project_detail_advise">给点建议</string>
     <string name="llm_discovery_no_service">未发现服务，请确保PC端Ollama正在运行</string>
     <string name="llm_discovery_found">发现 %d 个服务</string>
 

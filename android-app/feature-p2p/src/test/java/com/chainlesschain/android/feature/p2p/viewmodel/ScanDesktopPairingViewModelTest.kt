@@ -95,6 +95,8 @@ class ScanDesktopPairingViewModelTest {
         val vm = ScanDesktopPairingViewModel(
             didManager = didManager,
             signalingGate = gate,
+            signalingConfig = io.mockk.mockk(relaxed = true),
+            pairedDesktopsStore = io.mockk.mockk(relaxed = true),
             deviceInfoProvider = fakeDeviceInfo,
             clock = fixedClock(nowMs),
         )

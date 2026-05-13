@@ -28,8 +28,16 @@ class SignalingConfig @Inject constructor(
         const val MAX_RECONNECT_ATTEMPTS = 5
         const val PING_INTERVAL_SECONDS = 20L
 
+        /**
+         * v1.3+ 公网中继默认 URL。桌面 outbound 长连此地址，外网手机也连此
+         * 地址，互相经 relay 路由 pair-ack / WebRTC 信令。LAN 配对失败时自动
+         * fallback 到这里。
+         */
+        const val DEFAULT_RELAY_URL = "wss://signaling.chainlesschain.com"
+
         private const val PREFS_NAME = "signaling_prefs"
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
+        private const val KEY_RELAY_URL = "relay_signaling_url"
         private const val ENV_SIGNALING_URL = "SIGNALING_SERVER_URL"
     }
 
@@ -81,5 +89,27 @@ class SignalingConfig @Inject constructor(
 
     fun isProduction(): Boolean {
         return getSignalingUrl().startsWith("wss://")
+    }
+
+    /**
+     * v1.3+ 公网中继 URL — 与 LAN signaling URL 解耦持久化。扫桌面 QR 时
+     * relayUrl 字段写到这里，[getRelayUrl] 返回，外网失败时 fallback。
+     */
+    fun setRelayUrl(url: String?) {
+        val value = url?.trim().orEmpty()
+        if (value.isBlank()) {
+            prefs.edit().remove(KEY_RELAY_URL).apply()
+        } else {
+            prefs.edit().putString(KEY_RELAY_URL, value).apply()
+        }
+    }
+
+    /**
+     * 返回当前 effective 中继 URL — prefs > DEFAULT_RELAY_URL。
+     */
+    fun getRelayUrl(): String {
+        val stored = prefs.getString(KEY_RELAY_URL, null)?.trim().orEmpty()
+        if (stored.isNotBlank()) return stored
+        return DEFAULT_RELAY_URL
     }
 }

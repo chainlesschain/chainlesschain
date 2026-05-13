@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -80,11 +80,16 @@ private fun StatusContent(
     secondaryAction: (() -> Unit)? = null,
     secondaryLabel: String? = null,
 ) {
-    Scaffold { padding ->
+    // 用 Surface 而非 Scaffold —— 用户反馈 Success state 白屏，定位是 Scaffold
+    // 默认 containerColor 在某些 SDK 下与 ScanningCameraPreview 残留 surface
+    // 互相覆盖；Surface 显式 fillMaxSize + colorScheme.background 兜底不透明。
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -68,7 +68,9 @@
     <string name="nav_qr_scan_success">Scan success: %s</string>
 
     <!-- ==================== Home Screen ==================== -->
-    <string name="home_subtitle">Your AI workspace</string>
+    <!-- Slogan kept in sync with chainlesschain.com hero (docs-website-v2/index.astro) -->
+    <string name="home_subtitle">Data sovereignty for individuals · AI at hand</string>
+    <string name="home_tagline">CLI-driven local AI × hardware-level encryption</string>
     <string name="home_usage_statistics">Usage Statistics</string>
     <string name="home_profile_center">Profile</string>
     <string name="home_more_features">More Features</string>
@@ -532,6 +534,10 @@
     <string name="project_detail_generate_readme">Generate README</string>
     <string name="project_detail_explain_code">Explain Project Code</string>
     <string name="project_detail_suggest_improvements">Suggest Improvements</string>
+    <!-- #21 P3 fix: daily project quick actions (used for non-code types: travel plan / shopping list / reading notes / etc.) -->
+    <string name="project_detail_summarize_points">Summarize Key Points</string>
+    <string name="project_detail_list_todos">List To-dos</string>
+    <string name="project_detail_advise">Give Advice</string>
     <string name="llm_discovery_no_service">No service found. Please ensure Ollama is running on PC.</string>
     <string name="llm_discovery_found">Found %d services</string>
 

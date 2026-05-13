@@ -1620,8 +1620,89 @@ class ChainlessChainApp {
 
       logger.info("[Main] ✓ 移动端桥接初始化完成");
       logger.info(`[Main]   信令服务器: ${signalingUrl}`);
+
+      // v1.3+ remote 模式 — outbound 连公网中继 wss://signaling.chainlesschain.com
+      // 让外网手机也能配对/反向调用。失败/断开自动重连，不挂应用主流程。
+      this.startRelayClient();
     } catch (error) {
       logger.error("[Main] 移动端桥接初始化失败:", error);
+    }
+  }
+
+  /**
+   * 启 RelayClient outbound 长连到公网中继 (issue #21 v1.3+ 远程模式)。
+   * 桌面以同一 pcPeerId 在 LAN 信令 + 公网中继**两处都登记**，外网手机扫
+   * 桌面 QR 后即可经中继发 pair-ack / forward 消息到桌面。
+   *
+   * 落地策略：
+   *   - 收到 type=message 时，本地 onMobileMessage 跑同一逻辑（recordPairAck
+   *     + handleMobileCommand 等），与 LAN 路径完全等价。
+   *   - 任意 transient 失败都不抛，只 warn — 用户至少还能用 LAN 配对。
+   */
+  startRelayClient() {
+    try {
+      const {
+        RelayClient,
+        DEFAULT_RELAY_URL,
+      } = require("./p2p/relay-client.js");
+      // *必须* 用 mobileBridge.peerId — 与 LAN signaling 注册的 ID 一致，
+      // 也与 QR payload.pcPeerId 一致。早期版本用 deviceManager.deviceId 导致
+      // 两套 ID 不一致，外网手机找不到目标 peer。
+      const peerId =
+        this.mobileBridge?.peerId ||
+        this.deviceManager?.getCurrentDevice?.()?.deviceId;
+      if (!peerId) {
+        logger.warn(
+          "[Main] RelayClient: no peerId (mobileBridge未注册), skip relay outbound",
+        );
+        return;
+      }
+      logger.info(
+        `[Main] RelayClient peerId source: ${this.mobileBridge?.peerId ? "mobileBridge" : "deviceManager"} → ${peerId.slice(0, 16)}…`,
+      );
+      // 允许通过环境变量覆盖（dev 测试用）；默认走生产中继域名
+      const relayUrl = process.env.CC_RELAY_URL || DEFAULT_RELAY_URL;
+
+      this.relayClient = new RelayClient({
+        peerId,
+        url: relayUrl,
+        deviceInfo: {
+          name: require("os").hostname(),
+          platform: process.platform,
+          version: process.env.npm_package_version || "v1.3",
+        },
+        onMessage: (msg) => {
+          // 中继转发来的消息，路由进与 LAN 同样的处理函数。message 字段
+          // 与 LAN signaling-handlers.forwardMessage 等价（from/to/payload）。
+          try {
+            // pair-ack 走 desktop-pair-handlers.recordPairAck，沿用 mobile-bridge 路径
+            if (msg.payload?.type === "pair-ack" || msg.type === "pair-ack") {
+              const ack = msg.payload || msg;
+              const {
+                recordPairAck,
+              } = require("./web-shell/handlers/desktop-pair-handlers.js");
+              recordPairAck(ack);
+              // 通知 mobile-bridge UI polling 也能感知（与 LAN 路径一致）
+              if (this.mobileBridge?.handlePairAckFromRelay) {
+                this.mobileBridge.handlePairAckFromRelay(ack, msg.from);
+              }
+              return;
+            }
+            // 一般 mobile 命令 — 走 handleMobileCommand 同一管道
+            const mobilePeerId = msg.from;
+            if (mobilePeerId && msg.payload) {
+              this.handleMobileCommand({ mobilePeerId, message: msg.payload });
+            }
+          } catch (e) {
+            logger.warn(`[Main] RelayClient onMessage 处理失败: ${e.message}`);
+          }
+        },
+      });
+      this.relayClient.start();
+      logger.info(`[Main] ✓ RelayClient 启动 (${relayUrl})`);
+    } catch (e) {
+      // 中继失败不影响 LAN 模式
+      logger.warn(`[Main] RelayClient 启动失败 (LAN 配对仍可用): ${e.message}`);
     }
   }
 
@@ -1885,6 +1966,10 @@ class ChainlessChainApp {
    */
   async handleSystemCommand(action, params) {
     switch (action) {
+      // v1.3+ issue #21 plan C — 简单存活探活，给手机端 Ping 按钮用
+      case "ping":
+        return { pong: true, ts: Date.now(), version: app.getVersion() };
+
       case "getStatus":
         return {
           status: "online",

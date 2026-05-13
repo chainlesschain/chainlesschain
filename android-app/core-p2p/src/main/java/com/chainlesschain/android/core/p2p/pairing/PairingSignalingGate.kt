@@ -35,4 +35,11 @@ interface PairingSignalingGate {
      * impl 内部先 ensureRegistered 保证 signaling 已连，再 sendForwardedMessage。
      */
     suspend fun sendAck(toPeerId: String, ackPayload: Map<String, Any?>): Result<Unit>
+
+    /**
+     * v1.3+ 强制断开当前 signaling 连接 + 清缓存。切换 signaling URL（LAN ↔
+     * 中继 fallback）时必须调一次，否则 [ensureRegistered] 会因缓存的
+     * registeredPeerId 短路，不重连新 URL。
+     */
+    suspend fun reset() {}
 }

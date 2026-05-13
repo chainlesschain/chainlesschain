@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Assignment
@@ -50,7 +52,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.outlined.WarningAmber
 import com.chainlesschain.android.R
+import com.chainlesschain.android.feature.ai.presentation.ConversationViewModel
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
+import com.chainlesschain.android.presentation.screens.peers.PairedDevicesViewModel
 import java.util.Locale
 import timber.log.Timber
 
@@ -71,6 +75,8 @@ fun NewHomeScreen(
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToAIChatWithMessage: (String) -> Unit = {},
+    // 最近会话点击 → 打开对应 Chat 路由（filling the gap below the function grid）
+    onNavigateToConversation: (String) -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToSocialFeed: () -> Unit = {},
     onNavigateToMyQRCode: () -> Unit = {},
@@ -79,12 +85,23 @@ fun NewHomeScreen(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    // 用户反馈："设置里扫描桌面 QR 按钮隐藏太深放首页来；首页要显示连接桌面的状态"
+    onNavigateToScanDesktopPairing: () -> Unit = {},
+    // v1.3+ 点已连接桌面卡片 → 进 RemoteControl 操作页（带 pcPeerId）
+    onNavigateToRemoteOperate: (String) -> Unit = {},
     socialUnreadCount: Int = 0,
-    homeStatusViewModel: HomeStatusViewModel = hiltViewModel()
+    homeStatusViewModel: HomeStatusViewModel = hiltViewModel(),
+    pairedDevicesViewModel: PairedDevicesViewModel = hiltViewModel(),
+    conversationViewModel: ConversationViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLlmConfigured by homeStatusViewModel.isLlmConfigured.collectAsStateWithLifecycle()
     val voiceState by homeStatusViewModel.voiceState.collectAsStateWithLifecycle()
+    // v1.3+：首页桌面连接卡读 *持久化* 列表（不再读 live WS 连接 — 扫码完信令
+    // 立刻断，那个列表永远空，首页永远显示「未连接」）。
+    val pairedDesktops by pairedDevicesViewModel.persistedDesktops.collectAsStateWithLifecycle()
+    val recentConversations by conversationViewModel.conversations
+        .collectAsStateWithLifecycle(initialValue = emptyList())
     var inputText by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -159,12 +176,25 @@ fun NewHomeScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
+            // 桌面连接状态卡片（用户反馈：首页要显示连接桌面的状态 + 扫描 QR 入口）
+            DesktopConnectionCard(
+                connectedCount = pairedDesktops.size,
+                onScanClick = onNavigateToScanDesktopPairing,
+                // 已连接时点卡片 → 进 RemoteControl 远程操作页（带第一个已配对桌面的 pcPeerId）。
+                // v1.4 单一桌面占大多数；多桌面情况后续加选择 sheet。
+                onManageClick = {
+                    val first = pairedDesktops.firstOrNull()
+                    if (first != null) {
+                        onNavigateToRemoteOperate(first.pcPeerId)
+                    } else {
+                        onNavigateToP2P()
+                    }
+                },
+            )
+
+            // slogan 已搬到 HomeTopBar；body 不再保留品牌/口号区，
+            // 给项目管理那排腾出空间（用户反馈：底部显示不全）
             Spacer(modifier = Modifier.height(8.dp))
-
-            // 品牌区域
-            BrandSection()
-
-            Spacer(modifier = Modifier.height(32.dp))
 
             // 功能入口网格 (3x3 = 9个核心功能)
             FunctionEntryGrid(
@@ -181,6 +211,16 @@ fun NewHomeScreen(
                 onNavigateToP2P = onNavigateToP2P,
                 socialUnreadCount = socialUnreadCount
             )
+
+            // 最近会话 — 占据网格下方原本的留白，最多 5 条横向滚动
+            if (recentConversations.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                RecentConversationsRow(
+                    conversations = recentConversations.take(5),
+                    onClick = onNavigateToConversation,
+                    onSeeAll = onNavigateToAIChat,
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -242,7 +282,39 @@ fun HomeTopBar(
     onNavigateToUsageStatistics: () -> Unit
 ) {
     TopAppBar(
-        title = { },
+        title = {
+            // 左上：logo + 品牌 + 口号（与官网 hero 文案对齐）
+            // 用户反馈：左上方看不到 logo 和品牌；口号也搬进头部 → 让出 body 给内容
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = "ChainlessChain",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = stringResource(R.string.home_subtitle),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
         actions = {
             // 使用统计入口
             IconButton(onClick = onNavigateToUsageStatistics) {
@@ -273,7 +345,11 @@ fun HomeTopBar(
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        // MainContainer 的 Scaffold 已经把 statusBars inset 应用到内容区，
+        // 这里再用 TopAppBarDefaults.windowInsets (默认含 statusBars) 会双计 →
+        // 头部出现一大块空白。归零让 TopAppBar 紧贴 Scaffold 边界。
+        windowInsets = WindowInsets(0, 0, 0, 0),
     )
 }
 
@@ -327,39 +403,194 @@ fun LlmNotConfiguredBanner(onClick: () -> Unit) {
 }
 
 /**
+ * 桌面连接状态卡片（用户反馈："首页要显示连接桌面的状态" + "扫描桌面 QR 按钮放首页来"）。
+ *
+ * connectedCount = 0：橙色 banner + "扫描桌面 QR" 大按钮
+ * connectedCount > 0：绿色 banner + "已连接 N 台" + 点击进设备管理
+ */
+@Composable
+fun DesktopConnectionCard(
+    connectedCount: Int,
+    onScanClick: () -> Unit,
+    onManageClick: () -> Unit,
+) {
+    val isConnected = connectedCount > 0
+    val bgColor = if (isConnected)
+        Color(0xFF52c41a).copy(alpha = 0.15f)
+    else
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    val accentColor = if (isConnected)
+        Color(0xFF389e0d)
+    else
+        MaterialTheme.colorScheme.primary
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = if (isConnected) onManageClick else onScanClick),
+        shape = RoundedCornerShape(12.dp),
+        color = bgColor,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = if (isConnected) Icons.Outlined.CloudDone
+                    else Icons.Outlined.CloudOff,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(28.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (isConnected) "已连接 $connectedCount 台桌面"
+                        else "未连接桌面",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                )
+                Text(
+                    text = if (isConnected) "点击查看 / 管理已配对设备"
+                        else "点击扫描桌面 QR 完成配对，开启项目 / 知识库同步",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = accentColor.copy(alpha = 0.85f),
+                )
+            }
+            if (!isConnected) {
+                FilledTonalButton(
+                    onClick = onScanClick,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = accentColor.copy(alpha = 0.2f),
+                        contentColor = accentColor,
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("扫描", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+/**
  * 品牌区域
  */
 @Composable
-fun BrandSection() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 应用图标 — 复用桌面端 launcher logo（保持品牌一致）
-        Image(
-            painter = painterResource(id = R.mipmap.ic_launcher),
-            contentDescription = null,
-            modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(20.dp))
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 应用名称
-        Text(
-            text = "ChainlessChain",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
+fun RecentConversationsRow(
+    conversations: List<com.chainlesschain.android.feature.ai.domain.model.Conversation>,
+    onClick: (String) -> Unit,
+    onSeeAll: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "最近会话",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onSeeAll, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                Text(text = "查看全部", style = MaterialTheme.typography.labelMedium)
+            }
+        }
         Spacer(modifier = Modifier.height(4.dp))
+        // 5 张 chip 用 Row + horizontalScroll 即可，不需要 LazyRow 的 recycler
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            conversations.forEach { conv ->
+                Card(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(72.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onClick(conv.id) },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = conv.title.ifBlank { "未命名会话" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = formatRelativeTime(conv.updatedAt),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
-        // 副标题
+private fun formatRelativeTime(epochMillis: Long): String {
+    val diff = System.currentTimeMillis() - epochMillis
+    return when {
+        diff < 60_000L -> "刚刚"
+        diff < 3_600_000L -> "${diff / 60_000L} 分钟前"
+        diff < 86_400_000L -> "${diff / 3_600_000L} 小时前"
+        diff < 604_800_000L -> "${diff / 86_400_000L} 天前"
+        else -> {
+            val d = java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
+            d.format(java.util.Date(epochMillis))
+        }
+    }
+}
+
+@Composable
+fun CompactSlogan() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // 主 slogan — 与官网 hero h1 对齐
         Text(
             text = stringResource(R.string.home_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        // 副 tagline — 与官网 hero h1 下方 p 对齐
+        Text(
+            text = stringResource(R.string.home_tagline),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -619,6 +850,8 @@ fun FunctionEntryCard(
     Card(
         modifier = Modifier
             .aspectRatio(1f)
+            // 显式 clip 到圆角，确保 ripple / 子元素不会越界出方角（解决底部那行看上去"少圆角"）
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(

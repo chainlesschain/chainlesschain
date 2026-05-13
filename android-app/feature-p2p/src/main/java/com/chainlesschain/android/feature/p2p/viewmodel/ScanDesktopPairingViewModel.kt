@@ -3,6 +3,9 @@ package com.chainlesschain.android.feature.p2p.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.did.manager.DIDManager
+import com.chainlesschain.android.core.p2p.config.SignalingConfig
+import com.chainlesschain.android.core.p2p.pairing.PairedDesktop
+import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
 import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +39,8 @@ import javax.inject.Inject
 class ScanDesktopPairingViewModel @Inject constructor(
     private val didManager: DIDManager,
     private val signalingGate: PairingSignalingGate,
+    private val signalingConfig: SignalingConfig,
+    private val pairedDesktopsStore: PairedDesktopsStore,
     private val deviceInfoProvider: PairingDeviceInfoProvider,
     private val clock: PairingClock = PairingClock.System,
 ) : ViewModel() {
@@ -56,7 +61,17 @@ class ScanDesktopPairingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                val payload = json.parseToJsonElement(rawJson).jsonObject
+                Timber.i("[ScanDesktopPairing] raw QR (len=${rawJson.length}): ${rawJson.take(200)}")
+                val rootElement = json.parseToJsonElement(rawJson)
+                if (rootElement !is JsonObject) {
+                    // 用户扫到的不是 desktop pairing JSON object — 可能是 DID 字符串、URL、或其他 QR。
+                    val preview = rawJson.take(60)
+                    _state.value = ScanDesktopPairingState.Failed(
+                        "扫到的 QR 不是桌面配对码，请扫桌面 → 设置 → 移动桥 → 重新生成的 QR\n收到: $preview",
+                    )
+                    return@launch
+                }
+                val payload = rootElement
                 val type = payload["type"]?.jsonPrimitive?.contentOrNull
                 if (type != "desktop-pairing") {
                     _state.value = ScanDesktopPairingState.Failed("不是桌面配对 QR (type=$type)")
@@ -85,6 +100,23 @@ class ScanDesktopPairingViewModel @Inject constructor(
                 val desktopName = desktopDeviceInfo?.get("name")?.jsonPrimitive?.contentOrNull
                     ?: "Desktop"
 
+                // v1.3+ 零配置：QR 含 signalingUrl 时立刻持久化到 SignalingConfig，
+                // 后续 PairingSignalingGate.sendAck 会读到这个 URL。修复 #21 中
+                // "Connect timeout" 复现（debug 默认 192.168.1.1 占位、NSD mDNS
+                // 多播被路由器抑制）。
+                val signalingUrl = payload["signalingUrl"]?.jsonPrimitive?.contentOrNull
+                if (!signalingUrl.isNullOrBlank() && signalingUrl.startsWith("ws")) {
+                    signalingConfig.setCustomSignalingUrl(signalingUrl)
+                    Timber.i("[ScanDesktopPairing] ✓ persisted signalingUrl from QR: $signalingUrl")
+                }
+                // v1.3+ 中继 URL：与 LAN URL 解耦，sendAck 失败时 fallback 到这里。
+                // 桌面 dev 默认 wss://signaling.chainlesschain.com（已部署）。
+                val relayUrl = payload["relayUrl"]?.jsonPrimitive?.contentOrNull
+                if (!relayUrl.isNullOrBlank() && relayUrl.startsWith("ws")) {
+                    signalingConfig.setRelayUrl(relayUrl)
+                    Timber.i("[ScanDesktopPairing] ✓ persisted relayUrl from QR: $relayUrl")
+                }
+
                 val identity = didManager.currentIdentity.value
                 if (identity == null) {
                     _state.value = ScanDesktopPairingState.Failed("本地未找到 DID，请先创建身份")
@@ -104,12 +136,43 @@ class ScanDesktopPairingViewModel @Inject constructor(
                     ),
                     "timestamp" to clock.nowMillis(),
                 )
-                val sendResult = signalingGate.sendAck(pcPeerId, ackPayload)
+                // v1.3+：先试 LAN，失败 → 自动切到中继再试一次。
+                // 桌面 outbound 也长连中继，所以同 pcPeerId 在两处都登记，
+                // 不用区分目标地址。
+                var sendResult = signalingGate.sendAck(pcPeerId, ackPayload)
                 if (sendResult.isFailure) {
-                    val err = sendResult.exceptionOrNull()?.message ?: "信令发送失败"
-                    _state.value = ScanDesktopPairingState.Failed("通知桌面失败: $err")
-                    return@launch
+                    val lanErr = sendResult.exceptionOrNull()?.message ?: "?"
+                    Timber.w("[ScanDesktopPairing] LAN sendAck failed ($lanErr), falling back to relay")
+                    // 切 URL 前 reset signaling — 否则 gate 的 registeredPeerId 缓存会
+                    // 让 ensureRegistered 短路，不真的重连新 URL。
+                    signalingGate.reset()
+                    val relayUrl = signalingConfig.getRelayUrl()
+                    signalingConfig.setCustomSignalingUrl(relayUrl)
+                    Timber.i("[ScanDesktopPairing] switching to relay: $relayUrl")
+                    sendResult = signalingGate.sendAck(pcPeerId, ackPayload)
+                    if (sendResult.isFailure) {
+                        val relayErr = sendResult.exceptionOrNull()?.message ?: "信令发送失败"
+                        _state.value = ScanDesktopPairingState.Failed(
+                            "通知桌面失败 (LAN: $lanErr; 中继: $relayErr)",
+                        )
+                        return@launch
+                    }
+                    Timber.i("[ScanDesktopPairing] ✓ relay sendAck succeeded — remote mode")
                 }
+                // v1.3+ 持久化：写本地 prefs，让首页 DesktopConnectionCard 不再读
+                // live WS 连接（扫码后信令立刻断），改读这个表 → 显示"已连接 X 台"
+                pairedDesktopsStore.upsert(
+                    PairedDesktop(
+                        pcPeerId = pcPeerId,
+                        deviceName = desktopName,
+                        platform = desktopDeviceInfo?.get("platform")?.jsonPrimitive?.contentOrNull
+                            ?: "desktop",
+                        lanSignalingUrl = signalingUrl,
+                        relayUrl = relayUrl,
+                        pairedAt = clock.nowMillis(),
+                        lastSeenAt = clock.nowMillis(),
+                    ),
+                )
                 _state.value = ScanDesktopPairingState.Success(desktopName)
                 Timber.i("[ScanDesktopPairing] ✓ paired with $desktopName ($pcPeerId)")
             } catch (e: Exception) {
