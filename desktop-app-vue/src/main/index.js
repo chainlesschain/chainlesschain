@@ -1462,6 +1462,8 @@ class ChainlessChainApp {
           { urls: "stun:stun1.l.google.com:19302" },
         ],
       });
+      // v1.3+ plan B — 暴露给 desktop-pair-handlers.pushIceServersToMobile 用
+      global.__ccMobileBridge = this.mobileBridge;
 
       // 设置事件处理
       this.mobileBridge.on("registered", (data) => {

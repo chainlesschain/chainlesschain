@@ -80,6 +80,40 @@ class WebRTCClient @Inject constructor(
         }
     }
 
+    /**
+     * v1.3+ plan B — 收到桌面 push 的 ice:config 时持久化到 PairedDesktopsStore，
+     * 后续 createPeerConnection 拿。Wire shape (desktop pushIceServersToMobile):
+     *   `{type:"chainlesschain:ice:config", payload:{pcPeerId, iceServers, iceExpiry}}`
+     */
+    private fun persistIceConfigMessage(msg: org.json.JSONObject) {
+        try {
+            val payloadRaw = msg.opt("payload")
+            val payload = when (payloadRaw) {
+                is String -> org.json.JSONObject(payloadRaw)
+                is org.json.JSONObject -> payloadRaw
+                else -> return
+            }
+            val pcPeerId = payload.optString("pcPeerId", null) ?: return
+            val iceServersJson = payload.opt("iceServers")?.toString() ?: return
+            val iceExpiry = payload.optLong("iceExpiry", 0L)
+            val existing = pairedDesktopsStore.devices.value
+                .firstOrNull { it.pcPeerId == pcPeerId }
+                ?: run {
+                    Timber.w("[WebRTCClient] ice:config for unknown pcPeerId=$pcPeerId")
+                    return
+                }
+            pairedDesktopsStore.upsert(
+                existing.copy(
+                    iceServersJson = iceServersJson,
+                    iceExpiry = iceExpiry,
+                ),
+            )
+            Timber.i("[WebRTCClient] ✓ iceServers persisted for $pcPeerId (expiry=$iceExpiry)")
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTCClient] persistIceConfigMessage failed")
+        }
+    }
+
     private fun parseIceServersJson(raw: String): List<PeerConnection.IceServer> {
         val arr = org.json.JSONArray(raw)
         val result = mutableListOf<PeerConnection.IceServer>()
@@ -135,6 +169,15 @@ class WebRTCClient @Inject constructor(
             // 设置信令服务器转发消息的回调
             signalClient.setOnForwardedMessageReceived { message ->
                 Timber.d("Received forwarded message via signaling: ${message.take(100)}...")
+                // v1.3+ plan B — 拦截 ice:config 持久化 iceServers，再透传给下游
+                try {
+                    val msg = org.json.JSONObject(message)
+                    if (msg.optString("type") == "chainlesschain:ice:config") {
+                        persistIceConfigMessage(msg)
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "[WebRTCClient] ice:config parse failed")
+                }
                 onMessageReceived?.invoke(message)
                 _messages.tryEmit(message)
             }

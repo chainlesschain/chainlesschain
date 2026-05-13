@@ -276,7 +276,58 @@ function recordPairAck(ackPayload) {
   logger.info(
     `[desktop.pair WS] pair-ack matched, mobile DID=${ackPayload.mobileDid}`,
   );
+
+  // v1.3+ plan B — pair-ack 收到后异步把 iceServers 经信令 push 给手机。
+  // 因 iceServers JSON ~400 字符塞 QR 让识别率暴跌，改成扫码后由信令通道下发。
+  // 双发：本地 LAN signaling + 公网中继（手机连哪边都能收到）。
+  pushIceServersToMobile(ackPayload);
   return true;
+}
+
+/**
+ * v1.3+ plan B 配套 — 把 sessionState.iceConfig 经信令转发给刚配对的手机。
+ * 手机端 RemoteOperateViewModel/PairingSignalingGate 收到 type=ice:config 后
+ * 持久化到 PairedDesktopsStore.iceServersJson。
+ */
+function pushIceServersToMobile(ackPayload) {
+  if (!sessionState.iceConfig) {
+    return; // dev 未设 CC_TURN_SECRET 时跳过 (STUN-only mode)
+  }
+  const mobileDid = ackPayload?.mobileDid;
+  if (!mobileDid) {
+    return;
+  }
+  const message = {
+    type: "chainlesschain:ice:config",
+    payload: {
+      pcPeerId: sessionState.pcPeerId,
+      iceServers: sessionState.iceConfig.iceServers,
+      iceExpiry: sessionState.iceConfig.expiry,
+      timestamp: Date.now(),
+    },
+  };
+  // 双发：mobile-bridge 走本地 LAN signaling，relay 走公网中继
+  try {
+    const main = global.__ccMobileBridge;
+    if (main && typeof main.sendToMobile === "function") {
+      main.sendToMobile(mobileDid, message).catch((e) => {
+        logger.warn(`[desktop.pair WS] LAN ice push failed: ${e?.message}`);
+      });
+    }
+  } catch (e) {
+    logger.warn(`[desktop.pair WS] LAN ice push threw: ${e.message}`);
+  }
+  try {
+    const relay = global.__ccRelayClient;
+    if (relay && typeof relay.send === "function") {
+      relay.send(mobileDid, { type: "message", payload: message });
+    }
+  } catch (e) {
+    logger.warn(`[desktop.pair WS] relay ice push threw: ${e.message}`);
+  }
+  logger.info(
+    `[desktop.pair WS] ✓ iceServers pushed to ${mobileDid.slice(0, 16)}… (expiry=${sessionState.iceConfig.expiry})`,
+  );
 }
 
 function resetSession() {
@@ -352,6 +403,9 @@ function createDesktopPairGenerateHandler(options = {}) {
         expiry: 0,
       };
     }
+    // v1.3+ plan B — iceServers 不塞 QR（高纠错 280px QR 装不下，扫码识别率暴跌）。
+    // 配对后通过 sessionState 缓存，pair-ack 收到时经信令 forward 回手机。
+    // QR 保持精简: type/code/pcPeerId/deviceInfo/signalingUrl/relayUrl/timestamp。
     const payload = {
       type: "desktop-pairing",
       code,
@@ -365,9 +419,6 @@ function createDesktopPairGenerateHandler(options = {}) {
       signalingUrl,
       // v1.3+ — 公网中继 URL；LAN 不通时手机自动 fallback 到这里
       relayUrl,
-      // v1.3+ plan B — WebRTC ICE servers (STUN+TURN) + 24h TTL ephemeral creds
-      iceServers: iceConfig.iceServers,
-      iceExpiry: iceConfig.expiry,
       timestamp: Date.now(),
     };
     sessionState.code = code;
@@ -375,6 +426,8 @@ function createDesktopPairGenerateHandler(options = {}) {
     sessionState.payload = payload;
     sessionState.generatedAt = Date.now();
     sessionState.ack = null;
+    // iceConfig 留在 sessionState 里给 pair-ack 后续 push
+    sessionState.iceConfig = iceConfig;
     logger.info(
       `[desktop.pair WS] new pairing session code=${code} pcPeerId=${pcPeerId.slice(0, 12)}…`,
     );

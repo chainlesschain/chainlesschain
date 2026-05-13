@@ -38,6 +38,7 @@ class SignalingRpcClient @Inject constructor(
     private val signalClient: SignalClient,
     private val didManager: DIDManager,
     private val signalingConfig: SignalingConfig,
+    private val pairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore,
 ) {
 
     private val pending = ConcurrentHashMap<String, CompletableDeferred<JSONObject>>()
@@ -145,10 +146,19 @@ class SignalingRpcClient @Inject constructor(
         signalClient.setOnForwardedMessageReceived { raw ->
             try {
                 val msg = JSONObject(raw)
+                val msgType = msg.optString("type")
+
+                // v1.3+ plan B — 桌面 pair-ack 后 push iceServers。手机持久化到
+                // PairedDesktopsStore，下次 WebRTCClient.createPeerConnection 用。
+                if (msgType == "chainlesschain:ice:config") {
+                    handleIceConfigMessage(msg)
+                    return@setOnForwardedMessageReceived
+                }
+
                 // 桌面响应 wire shape (handleMobileCommand → sendToMobile):
                 //   {type:"chainlesschain:command:response", payload: stringified JSON-RPC 2.0
                 //     containing {jsonrpc, id, result, error}}
-                if (msg.optString("type") != "chainlesschain:command:response") {
+                if (msgType != "chainlesschain:command:response") {
                     return@setOnForwardedMessageReceived
                 }
                 val payloadRaw = msg.opt("payload")
@@ -177,5 +187,41 @@ class SignalingRpcClient @Inject constructor(
         }
         responseListenerInstalled = true
         Timber.i("[SignalingRpc] response listener installed")
+    }
+
+    /**
+     * v1.3+ plan B — 处理桌面 push 来的 iceServers 配置消息。
+     *
+     * Wire: `{type:"chainlesschain:ice:config", payload:{pcPeerId, iceServers, iceExpiry, timestamp}}`
+     * 桌面 desktop-pair-handlers.pushIceServersToMobile 在 pair-ack matched 后异步发送。
+     * 收到后 upsert 到 PairedDesktopsStore，下次 WebRTCClient 建连时按 pcPeerId 拿。
+     */
+    private fun handleIceConfigMessage(msg: JSONObject) {
+        try {
+            val payloadRaw = msg.opt("payload")
+            val payload = when (payloadRaw) {
+                is String -> JSONObject(payloadRaw)
+                is JSONObject -> payloadRaw
+                else -> return
+            }
+            val pcPeerId = payload.optString("pcPeerId", null) ?: return
+            val iceServersJson = payload.opt("iceServers")?.toString() ?: return
+            val iceExpiry = payload.optLong("iceExpiry", 0L)
+            val existing = pairedDesktopsStore.devices.value
+                .firstOrNull { it.pcPeerId == pcPeerId }
+                ?: run {
+                    Timber.w("[SignalingRpc] ice:config for unknown pcPeerId=$pcPeerId")
+                    return
+                }
+            pairedDesktopsStore.upsert(
+                existing.copy(
+                    iceServersJson = iceServersJson,
+                    iceExpiry = iceExpiry,
+                ),
+            )
+            Timber.i("[SignalingRpc] ✓ iceServers updated for $pcPeerId (expiry=$iceExpiry)")
+        } catch (e: Exception) {
+            Timber.w(e, "[SignalingRpc] handleIceConfigMessage failed")
+        }
     }
 }
