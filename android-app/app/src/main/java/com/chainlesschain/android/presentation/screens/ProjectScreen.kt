@@ -300,7 +300,10 @@ fun ProjectScreen(
             items(filteredProjects, key = { it.project.id }) { projectWithStats ->
                 EnhancedProjectCard(
                     projectWithStats = projectWithStats,
-                    onClick = { onProjectClick(projectWithStats.project.id) }
+                    onClick = { onProjectClick(projectWithStats.project.id) },
+                    onDeleteClick = {
+                        projectViewModel.deleteProject(projectWithStats.project.id)
+                    }
                 )
             }
         }
@@ -449,20 +452,64 @@ fun ProjectStatItem(
 
 /**
  * 增强的项目卡片（使用真实数据）
+ *
+ * #2 fix: v1.2 GA 反馈 "项目无法删除" 根因—— EnhancedProjectCard 之前完全没有删除 UI
+ * (feature-project/.../ProjectListScreen.kt 的 delete 代码是死代码,未连入 NavGraph)。
+ * 加 3-dot 菜单 + 确认 dialog。删除调 [ProjectViewModel.deleteProject]
+ * (软删 status='deleted', Room Flow 自动从列表移除)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedProjectCard(
     projectWithStats: ProjectWithStats,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit = {}
 ) {
     val project = projectWithStats.project
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val statusColor = when (project.status) {
         ProjectStatus.ACTIVE -> MaterialTheme.colorScheme.primary
         ProjectStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
         ProjectStatus.PAUSED -> MaterialTheme.colorScheme.secondary
         ProjectStatus.ARCHIVED -> MaterialTheme.colorScheme.onSurfaceVariant
         else -> MaterialTheme.colorScheme.outline
+    }
+
+    // 删除确认对话框
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("删除项目") },
+            text = {
+                Text("确定要删除项目 \"${project.name}\" 吗？此操作不可撤销。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteClick()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 
     Card(
@@ -527,18 +574,57 @@ fun EnhancedProjectCard(
                     }
                 }
 
-                // 状态标签
-                Surface(
-                    color = statusColor.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = project.getStatusDisplayName(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusColor,
-                        fontWeight = FontWeight.Medium
-                    )
+                // 状态标签 + 3-dot 菜单
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = statusColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = project.getStatusDisplayName(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "更多操作",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "删除项目",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteConfirm = true
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
