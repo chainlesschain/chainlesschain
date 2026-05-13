@@ -37,7 +37,7 @@ class SignalingRpcClient @Inject constructor(
     private val signalingGate: PairingSignalingGate,
     private val signalClient: SignalClient,
     private val didManager: DIDManager,
-    @Suppress("unused") private val signalingConfig: SignalingConfig,
+    private val signalingConfig: SignalingConfig,
 ) {
 
     private val pending = ConcurrentHashMap<String, CompletableDeferred<JSONObject>>()
@@ -85,12 +85,27 @@ class SignalingRpcClient @Inject constructor(
             signalingGate.ensureRegistered(identity.did).getOrThrow()
             val payload = mutableMapOf<String, Any?>()
             for (k in request.keys()) payload[k] = request.get(k)
-            val sendRes = signalingGate.sendAck(pcPeerId, payload)
+            var sendRes = signalingGate.sendAck(pcPeerId, payload)
+            // v1.3+: LAN signaling 不通时自动 fallback 到公网中继再试一次，
+            // 模式与 ScanDesktopPairingViewModel 配对路径一致：reset gate →
+            // switch URL → re-register → resend。桌面 outbound 也连同一中
+            // 继，pcPeerId 两处都登记，无需切换目标地址。
             if (sendRes.isFailure) {
-                pending.remove(requestId)
-                return Result.failure(
-                    sendRes.exceptionOrNull() ?: Exception("信令转发失败"),
-                )
+                val lanErr = sendRes.exceptionOrNull()?.message ?: "?"
+                Timber.w("[SignalingRpc] LAN sendForwarded failed ($lanErr), falling back to relay")
+                signalingGate.reset()
+                val relayUrl = signalingConfig.getRelayUrl()
+                signalingConfig.setCustomSignalingUrl(relayUrl)
+                Timber.i("[SignalingRpc] switching to relay: $relayUrl")
+                signalingGate.ensureRegistered(identity.did).getOrThrow()
+                sendRes = signalingGate.sendAck(pcPeerId, payload)
+                if (sendRes.isFailure) {
+                    pending.remove(requestId)
+                    return Result.failure(
+                        sendRes.exceptionOrNull() ?: Exception("信令转发失败 (LAN+relay)"),
+                    )
+                }
+                Timber.i("[SignalingRpc] ✓ relay sendForwarded succeeded — remote mode")
             }
             Timber.i("[SignalingRpc] → $pcPeerId $method (rid=${requestId.take(8)}…)")
 

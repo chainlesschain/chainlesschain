@@ -1699,6 +1699,8 @@ class ChainlessChainApp {
         },
       });
       this.relayClient.start();
+      // v1.3+ plan C — 暴露给 mobile-bridge 等模块做"双发"响应信令
+      global.__ccRelayClient = this.relayClient;
       logger.info(`[Main] ✓ RelayClient 启动 (${relayUrl})`);
     } catch (e) {
       // 中继失败不影响 LAN 模式

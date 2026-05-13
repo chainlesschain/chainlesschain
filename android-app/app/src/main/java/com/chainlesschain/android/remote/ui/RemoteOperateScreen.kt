@@ -9,10 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -105,7 +107,7 @@ fun RemoteOperateScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("远程操控")
+                        Text(stringResource(R.string.ro_title))
                         Text(
                             state.desktopName,
                             style = MaterialTheme.typography.labelSmall,
@@ -115,7 +117,10 @@ fun RemoteOperateScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
                     }
                 },
             )
@@ -136,26 +141,33 @@ fun RemoteOperateScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "通过信令中继与桌面通信",
+                        text = stringResource(R.string.ro_subtitle),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "PC peer-id: ${state.pcPeerId.take(20)}…",
+                        text = stringResource(R.string.ro_peer_id_fmt, state.pcPeerId.take(20)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            Text("快捷命令", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = stringResource(R.string.ro_quick_commands),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
 
+            val pingLabel = stringResource(R.string.ro_cmd_ping)
+            val statusLabel = stringResource(R.string.ro_cmd_system_status)
+            val infoLabel = stringResource(R.string.ro_cmd_system_info)
             CommandRow(
                 buttons = listOf(
-                    "Ping" to { viewModel.invoke("Ping", "system.ping") },
-                    "系统状态" to { viewModel.invoke("系统状态", "system.getStatus") },
-                    "系统信息" to { viewModel.invoke("系统信息", "system.getInfo") },
+                    pingLabel to { viewModel.invoke(pingLabel, "system.ping") },
+                    statusLabel to { viewModel.invoke(statusLabel, "system.getStatus") },
+                    infoLabel to { viewModel.invoke(infoLabel, "system.getInfo") },
                 ),
                 busy = state.busy,
             )
@@ -163,7 +175,7 @@ fun RemoteOperateScreen(
             if (state.busy) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
-                    text = "正在执行: ${state.lastLabel ?: ""}",
+                    text = stringResource(R.string.ro_executing_fmt, state.lastLabel ?: ""),
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
@@ -176,7 +188,7 @@ fun RemoteOperateScreen(
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
-                            "错误",
+                            text = stringResource(R.string.ro_error_label),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -190,7 +202,11 @@ fun RemoteOperateScreen(
             }
 
             state.lastResult?.let { res ->
-                Text("响应", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = stringResource(R.string.ro_response_label),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Surface(
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -212,7 +228,7 @@ fun RemoteOperateScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("解除配对")
+                Text(stringResource(R.string.ro_unpair))
             }
         }
     }

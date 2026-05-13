@@ -1,7 +1,7 @@
 <template>
   <a-tooltip :title="tooltip">
     <a-badge
-      :count="onlineCount"
+      :count="totalCount"
       :show-zero="false"
       :overflow-count="9"
       :offset="[-2, 4]"
@@ -31,29 +31,20 @@ const onlineCount = computed(
 const totalCount = computed(() => devices.value.length);
 
 const iconColor = computed(() => {
-  if (!bridgeReady.value) {
-    return "#bfbfbf";
-  }
   if (totalCount.value === 0) {
     return "#bfbfbf";
-  }
-  if (onlineCount.value === 0) {
-    return "#faad14";
   }
   return "#52c41a";
 });
 
 const tooltip = computed(() => {
-  if (!bridgeReady.value) {
+  if (!bridgeReady.value && totalCount.value === 0) {
     return "移动桥未启用 — 点击进入配对";
   }
   if (totalCount.value === 0) {
     return "尚未配对任何手机 — 点击进入配对";
   }
-  if (onlineCount.value === 0) {
-    return `已配对 ${totalCount.value} 台手机（当前离线） — 点击管理`;
-  }
-  return `${onlineCount.value}/${totalCount.value} 台手机在线 — 点击管理`;
+  return `已配对 ${totalCount.value} 台手机 — 点击管理`;
 });
 
 async function refresh() {

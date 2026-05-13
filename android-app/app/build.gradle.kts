@@ -430,6 +430,10 @@ dependencies {
 
     // v1.2 #1 Android Auto — SessionController + TestCarContext for Screen unit tests
     testImplementation("androidx.car.app:app-testing:1.4.0")
+    // Real org.json for JVM unit tests — Android SDK stub returns defaults
+    // (isReturnDefaultValues=true) which makes JSONObject silently lose data,
+    // breaking SignalingRpcClientTest / RemoteOperateViewModelTest.
+    testImplementation("org.json:json:20240303")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

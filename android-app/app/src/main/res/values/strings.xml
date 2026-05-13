@@ -1158,4 +1158,17 @@
     <string name="rs_workflow_no_history">No execution history</string>
     <string name="rs_workflow_delete_title">Delete Workflow</string>
     <string name="rs_workflow_delete_message">Are you sure you want to delete this workflow?</string>
+
+    <!-- ==================== Remote Operate (Plan C signaling forward, v1.3+) ==================== -->
+    <string name="ro_title">Remote Operate</string>
+    <string name="ro_subtitle">Communicating with desktop via signaling relay</string>
+    <string name="ro_peer_id_fmt">PC peer-id: %1$s…</string>
+    <string name="ro_quick_commands">Quick Commands</string>
+    <string name="ro_cmd_ping">Ping</string>
+    <string name="ro_cmd_system_status">System Status</string>
+    <string name="ro_cmd_system_info">System Info</string>
+    <string name="ro_executing_fmt">Running: %1$s</string>
+    <string name="ro_error_label">Error</string>
+    <string name="ro_response_label">Response</string>
+    <string name="ro_unpair">Unpair</string>
 </resources>

@@ -1158,4 +1158,17 @@
     <string name="rs_workflow_no_history">暂无执行历史</string>
     <string name="rs_workflow_delete_title">删除工作流</string>
     <string name="rs_workflow_delete_message">确定要删除此工作流吗？</string>
+
+    <!-- ==================== Remote Operate (Plan C signaling forward, v1.3+) ==================== -->
+    <string name="ro_title">远程操控</string>
+    <string name="ro_subtitle">通过信令中继与桌面通信</string>
+    <string name="ro_peer_id_fmt">PC peer-id: %1$s…</string>
+    <string name="ro_quick_commands">快捷命令</string>
+    <string name="ro_cmd_ping">Ping</string>
+    <string name="ro_cmd_system_status">系统状态</string>
+    <string name="ro_cmd_system_info">系统信息</string>
+    <string name="ro_executing_fmt">正在执行: %1$s</string>
+    <string name="ro_error_label">错误</string>
+    <string name="ro_response_label">响应</string>
+    <string name="ro_unpair">解除配对</string>
 </resources>

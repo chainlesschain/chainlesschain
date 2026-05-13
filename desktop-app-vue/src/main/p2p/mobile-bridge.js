@@ -959,12 +959,32 @@ class MobileBridge extends EventEmitter {
       logger.warn("[MobileBridge]   channel存在:", !!channel);
       logger.warn("[MobileBridge]   readyState:", channel?.readyState);
 
-      // 通过信令服务器转发
+      // 通过本地 LAN 信令服务器转发（如果手机连的是 LAN）
       this.send({
         type: "message",
         to: mobilePeerId,
         payload: message,
       });
+
+      // v1.3+ issue #21 plan C — 同时经公网中继发一份。手机可能连的是
+      // wss://signaling.chainlesschain.com 而不是 LAN，中继路径才能命中。
+      // 双发：信令 server 仅 forward 到自己 known peers，目标只 register 在一处，
+      // 不会重复递送；如果手机两处都连，按 jsonrpc id 自然去重。
+      try {
+        const relayClient = global.__ccRelayClient;
+        if (relayClient && typeof relayClient.send === "function") {
+          relayClient.send(mobilePeerId, {
+            type: "message",
+            payload: message,
+          });
+          logger.info(
+            "[MobileBridge] 双发：同时经公网中继转发响应 to=" + mobilePeerId,
+          );
+        }
+      } catch (e) {
+        logger.warn(`[MobileBridge] 中继转发失败: ${e.message}`);
+      }
+
       logger.info("[MobileBridge] ========================================");
       return;
     }
@@ -1081,6 +1101,29 @@ class MobileBridge extends EventEmitter {
     return {
       send: (peerId, request) => this.sendReverseRpcRequest(peerId, request),
     };
+  }
+
+  /**
+   * 由 RelayClient 在收到公网中继转发的 pair-ack 时调用 — v1.3+ remote
+   * 模式补全。LAN 路径走 [handleP2PMessage] 的 pair-ack 拦截分支调
+   * recordPairAck；relay 路径在 `main/index.js startRelayClient.onMessage`
+   * 已直调 recordPairAck，本方法只补 EventEmitter 通知，让 IPC 监听端
+   * （Vue store / web-panel WS subscriber）与 LAN 行为对称。
+   *
+   * 此前 [index.js] 调 `this.mobileBridge?.handlePairAckFromRelay(...)` 但
+   * 该方法不存在，optional-chain `?.` silently 吞掉，relay 路径 pair-ack
+   * 不触发任何事件。bug fix。
+   */
+  handlePairAckFromRelay(ack, fromPeerId) {
+    try {
+      logger.info(
+        `[MobileBridge] ← relay pair-ack from=${fromPeerId?.slice?.(0, 16) || "?"} code=${ack?.pairingCode || ack?.code || "?"}`,
+      );
+      this.stats.messagesForwarded++;
+      this.emit("pair-ack", { ack, from: fromPeerId, transport: "relay" });
+    } catch (e) {
+      logger.warn(`[MobileBridge] handlePairAckFromRelay failed: ${e.message}`);
+    }
   }
 
   /**
