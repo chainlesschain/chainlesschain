@@ -1,45 +1,45 @@
 {
-  "tag": "v1.0.0",
-  "fetchedAt": "2026-05-12T00:41:46.183Z",
+  "tag": "v5.0.3.50",
+  "fetchedAt": "2026-05-13T22:43:03.259Z",
   "sizes": {
     "android-universal": {
       "name": "app-universal-release.apk",
-      "bytes": 106841042,
-      "label": "102 MB"
+      "bytes": 129579308,
+      "label": "124 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.48-arm64.dmg",
-      "bytes": 473307595,
-      "label": "451 MB"
+      "name": "ChainlessChain-5.0.3-alpha.50-arm64.dmg",
+      "bytes": 473805798,
+      "label": "452 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.48.AppImage",
-      "bytes": 695469639,
-      "label": "663 MB"
+      "name": "ChainlessChain-5.0.3-alpha.50.AppImage",
+      "bytes": 695806002,
+      "label": "664 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.48.dmg",
-      "bytes": 478753675,
+      "name": "ChainlessChain-5.0.3-alpha.50.dmg",
+      "bytes": 479262825,
       "label": "457 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.48.x86_64.rpm",
-      "bytes": 360456401,
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.50.x86_64.rpm",
+      "bytes": 360973585,
       "label": "344 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.48_amd64.deb",
-      "bytes": 360142502,
-      "label": "343 MB"
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.50_amd64.deb",
+      "bytes": 360446800,
+      "label": "344 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.48.exe",
-      "bytes": 458633632,
-      "label": "437 MB"
+      "name": "ChainlessChain-Portable-5.0.3-alpha.50.exe",
+      "bytes": 458996439,
+      "label": "438 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.48.exe",
-      "bytes": 458953227,
+      "name": "ChainlessChain-Setup-5.0.3-alpha.50.exe",
+      "bytes": 459315967,
       "label": "438 MB"
     }
   }
