@@ -1672,26 +1672,33 @@ class ChainlessChainApp {
           version: process.env.npm_package_version || "v1.3",
         },
         onMessage: (msg) => {
-          // 中继转发来的消息，路由进与 LAN 同样的处理函数。message 字段
-          // 与 LAN signaling-handlers.forwardMessage 等价（from/to/payload）。
+          // 中继转发来的消息 — 统一路由进 mobileBridge.handleSignalingMessage，
+          // 与 LAN signaling 完全一样的 dispatch。覆盖：
+          //   - pair-ack       → recordPairAck (desktop-pair sessionState)
+          //   - command:request → bridgeToLibp2p → emit → handleMobileCommand
+          //   - offer/answer/ice → handleOffer/handleAnswer/handleICECandidate (A)
+          //   - message         → handleP2PMessage
+          // 这样 plan A (WebRTC 透传) 自然落地：mobile 发 offer 到中继 →
+          // RelayClient onMessage → handleSignalingMessage("offer") →
+          // 走 setRemoteDescription/createAnswer 的现有 LAN 路径。
           try {
-            // pair-ack 走 desktop-pair-handlers.recordPairAck，沿用 mobile-bridge 路径
+            // pair-ack 仍走单独 sessionState 持久化 — mobileBridge 也会处理
+            // 但 desktop-pair-handlers 必须先 record，否则 web-panel poll 看不到
             if (msg.payload?.type === "pair-ack" || msg.type === "pair-ack") {
               const ack = msg.payload || msg;
               const {
                 recordPairAck,
               } = require("./web-shell/handlers/desktop-pair-handlers.js");
               recordPairAck(ack);
-              // 通知 mobile-bridge UI polling 也能感知（与 LAN 路径一致）
-              if (this.mobileBridge?.handlePairAckFromRelay) {
-                this.mobileBridge.handlePairAckFromRelay(ack, msg.from);
-              }
-              return;
+              // 不 return — 让 mobileBridge.handleP2PMessage 也跑一遍 (pair-ack
+              // 在 handleP2PMessage 内部 early-return，不会重复递送)
             }
-            // 一般 mobile 命令 — 走 handleMobileCommand 同一管道
-            const mobilePeerId = msg.from;
-            if (mobilePeerId && msg.payload) {
-              this.handleMobileCommand({ mobilePeerId, message: msg.payload });
+            // 直接交给 mobile-bridge — 它内部按 type 分发到 handleOffer /
+            // handleAnswer / handleICECandidate / handleP2PMessage 等。
+            if (this.mobileBridge?.handleSignalingMessage) {
+              this.mobileBridge.handleSignalingMessage(msg).catch((e) => {
+                logger.warn(`[Main] mobileBridge dispatch 失败: ${e.message}`);
+              });
             }
           } catch (e) {
             logger.warn(`[Main] RelayClient onMessage 处理失败: ${e.message}`);
