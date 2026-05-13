@@ -2,7 +2,11 @@ package com.chainlesschain.android.wear
 
 import com.chainlesschain.android.auto.AutoPushBus
 import com.chainlesschain.android.auto.AutoPushEvent
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Test
