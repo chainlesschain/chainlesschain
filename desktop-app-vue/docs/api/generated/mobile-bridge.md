@@ -263,6 +263,24 @@ asMobileSignTransport()
 
 ---
 
+## handlePairAckFromRelay(ack, fromPeerId)
+
+```javascript
+handlePairAckFromRelay(ack, fromPeerId)
+```
+
+* 由 RelayClient 在收到公网中继转发的 pair-ack 时调用 — v1.3+ remote
+   * 模式补全。LAN 路径走 [handleP2PMessage] 的 pair-ack 拦截分支调
+   * recordPairAck；relay 路径在 `main/index.js startRelayClient.onMessage`
+   * 已直调 recordPairAck，本方法只补 EventEmitter 通知，让 IPC 监听端
+   * （Vue store / web-panel WS subscriber）与 LAN 行为对称。
+   *
+   * 此前 [index.js] 调 `this.mobileBridge?.handlePairAckFromRelay(...)` 但
+   * 该方法不存在，optional-chain `?.` silently 吞掉，relay 路径 pair-ack
+   * 不触发任何事件。bug fix。
+
+---
+
 ## send(message)
 
 ```javascript
