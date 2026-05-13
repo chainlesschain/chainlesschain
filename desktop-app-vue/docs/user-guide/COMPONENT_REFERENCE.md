@@ -1,6 +1,6 @@
 # Component Reference
 
-**Total Components**: 583
+**Total Components**: 584
 
 ---
 
@@ -3713,6 +3713,12 @@
 ### SidebarContextMenu
 
 **File**: `src/renderer/components/layout/SidebarContextMenu.vue`
+
+---
+
+### MobileBridgeStatus
+
+**File**: `src/renderer/components/layout/MobileBridgeStatus.vue`
 
 ---
 
