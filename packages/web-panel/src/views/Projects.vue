@@ -2,398 +2,415 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">{{ t('projects.title') }}</h2>
-        <p class="page-sub">{{ t('projects.subtitle') }}</p>
+        <h2 class="page-title">项目</h2>
+        <p class="page-sub">桌面 / CLI / 手机 三端共享同一份项目数据，Phase 3d sync 自动同步 (<router-link to="/project-init">项目初始化 / 环境设置</router-link>)</p>
       </div>
-      <a-button type="primary" ghost :loading="statusLoading" @click="refreshStatus">
-        <template #icon><ReloadOutlined /></template>
-        {{ t('projects.refresh') }}
-      </a-button>
+      <a-space>
+        <a-button :loading="loading" @click="loadAll">
+          <template #icon><ReloadOutlined /></template>
+          刷新
+        </a-button>
+        <a-button type="primary" @click="onShowCreate">
+          <template #icon><PlusOutlined /></template>
+          新建项目
+        </a-button>
+      </a-space>
     </div>
 
-    <!-- Status -->
+    <!-- Stats -->
     <a-row :gutter="[16, 16]" style="margin-bottom: 20px;">
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col :xs="12" :sm="8" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic
-            :title="t('projects.stats.system')"
-            :value="statusInfo.running ? t('projects.stats.running') : t('projects.stats.notRunning')"
-            :value-style="{ color: statusInfo.running ? '#52c41a' : '#888', fontSize: '16px' }"
-          >
+          <a-statistic title="总项目" :value="projects.length" :value-style="{ color: '#1677ff', fontSize: '20px' }">
+            <template #prefix><FolderOutlined /></template>
+          </a-statistic>
+        </a-card>
+      </a-col>
+      <a-col :xs="12" :sm="8" :lg="6">
+        <a-card style="background: var(--bg-card); border-color: var(--border-color);">
+          <a-statistic title="活跃" :value="countByStatus.active" :value-style="{ color: '#52c41a', fontSize: '20px' }">
             <template #prefix><CheckCircleOutlined /></template>
           </a-statistic>
-          <div v-if="statusInfo.edition" style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">
-            {{ t('projects.stats.editionPrefix', { edition: statusInfo.edition }) }}
-          </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col :xs="12" :sm="8" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic
-            :title="t('projects.stats.llmProvider')"
-            :value="statusInfo.llmProvider || t('projects.stats.notConfigured')"
-            :value-style="{ color: statusInfo.llmProvider ? '#1677ff' : '#888', fontSize: '16px' }"
-          >
-            <template #prefix><RocketOutlined /></template>
+          <a-statistic title="草稿" :value="countByStatus.draft" :value-style="{ color: '#8c8c8c', fontSize: '20px' }">
+            <template #prefix><FileTextOutlined /></template>
           </a-statistic>
-          <div v-if="statusInfo.llmModel" style="margin-top: 6px; color: var(--text-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            {{ statusInfo.llmModel }}
-          </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col :xs="12" :sm="8" :lg="6">
         <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic
-            :title="t('projects.stats.init')"
-            :value="statusInfo.setupDone ? t('projects.stats.done') : t('projects.stats.notDone')"
-            :value-style="{ color: statusInfo.setupDone ? '#52c41a' : '#faad14', fontSize: '16px' }"
-          >
-            <template #prefix><CheckCircleOutlined /></template>
-          </a-statistic>
-          <div v-if="statusInfo.setupDate" style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">
-            {{ statusInfo.setupDate }}
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
-        <a-card style="background: var(--bg-card); border-color: var(--border-color);">
-          <a-statistic
-            :title="t('projects.stats.config')"
-            :value="configLoaded ? t('projects.stats.loaded') : t('projects.stats.notLoaded')"
-            :value-style="{ color: configLoaded ? '#52c41a' : '#888', fontSize: '16px' }"
-          >
-            <template #prefix><ProjectOutlined /></template>
+          <a-statistic title="已完成" :value="countByStatus.completed" :value-style="{ color: '#13c2c2', fontSize: '20px' }">
+            <template #prefix><CheckSquareOutlined /></template>
           </a-statistic>
         </a-card>
       </a-col>
     </a-row>
 
-    <!-- Project Config Detail -->
-    <a-card
-      v-if="configItems.length"
-      :title="t('projects.configCardTitle')"
-      style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
+    <!-- Filter -->
+    <div class="filter-bar" style="margin-bottom: 12px; display: flex; gap: 12px; align-items: center;">
+      <a-radio-group v-model:value="statusFilter" size="small" button-style="solid">
+        <a-radio-button value="">全部</a-radio-button>
+        <a-radio-button value="active">活跃</a-radio-button>
+        <a-radio-button value="draft">草稿</a-radio-button>
+        <a-radio-button value="completed">已完成</a-radio-button>
+        <a-radio-button value="archived">已归档</a-radio-button>
+      </a-radio-group>
+      <a-input-search v-model:value="nameFilter" placeholder="按名称过滤" style="max-width: 260px;" allow-clear />
+    </div>
+
+    <a-alert
+      v-if="!projects.length && !loading"
+      type="info"
+      message="还没有项目"
+      description='运行 `cc project init <name>` 或点击右上角"新建项目"按钮创建。桌面 / CLI / 手机三端共享同一份数据。'
+      show-icon
+      style="margin-bottom: 16px;"
+    />
+
+    <a-table
+      v-if="projects.length || loading"
+      :columns="columns"
+      :data-source="filteredProjects"
+      :loading="loading"
+      :pagination="{ pageSize: 20, showSizeChanger: true }"
+      row-key="id"
+      :custom-row="onRowClick"
     >
-      <a-descriptions :column="{ xs: 1, sm: 2, lg: 3 }" bordered size="small">
-        <a-descriptions-item
-          v-for="item in configItems"
-          :key="item.key"
-          :label="item.key"
-        >
-          <span style="font-family: monospace; color: #ccc;">{{ item.value }}</span>
-        </a-descriptions-item>
-      </a-descriptions>
-    </a-card>
-
-    <!-- Project Initialization -->
-    <a-card
-      :title="t('projects.initCardTitle')"
-      style="background: var(--bg-card); border-color: var(--border-color); margin-bottom: 20px;"
-    >
-      <template #extra>
-        <a-tag color="blue">{{ t('projects.templateCount', { count: templates.length }) }}</a-tag>
-      </template>
-
-      <a-row :gutter="[16, 16]">
-        <a-col v-for="tpl in templates" :key="tpl.name" :xs="24" :sm="12" :lg="8">
-          <a-card
-            size="small"
-            hoverable
-            :class="['template-card', { 'template-selected': selectedTemplate === tpl.name }]"
-            style="background: var(--bg-card); border-color: var(--border-color); cursor: pointer;"
-            @click="selectedTemplate = tpl.name"
-          >
-            <div style="display: flex; align-items: flex-start; gap: 10px;">
-              <component :is="tpl.icon" style="font-size: 24px; color: #1677ff; flex-shrink: 0; margin-top: 2px;" />
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 500; color: #e0e0e0; font-size: 14px; font-family: monospace; margin-bottom: 4px;">
-                  {{ tpl.name }}
-                </div>
-                <div style="color: var(--text-secondary); font-size: 12px; line-height: 1.5;">
-                  {{ tpl.description }}
-                </div>
-              </div>
-            </div>
-            <div v-if="selectedTemplate === tpl.name" style="margin-top: 8px; text-align: right;">
-              <a-tag color="green">{{ t('projects.selected') }}</a-tag>
-            </div>
-          </a-card>
-        </a-col>
-      </a-row>
-
-      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <a-button
-          type="primary"
-          :loading="initLoading"
-          :disabled="!selectedTemplate || (selectedFolder && selectedFolderInitialized)"
-          @click="initProject"
-        >
-          <template #icon><RocketOutlined /></template>
-          {{ selectedFolder ? t('projects.actions.initInFolder') : t('projects.actions.initCwd') }}
-        </a-button>
-        <a-button
-          :loading="folderPickerLoading"
-          @click="pickProjectFolder"
-        >
-          <template #icon><FolderOpenOutlined /></template>
-          {{ t('projects.actions.pickFolder') }}
-        </a-button>
-        <a-button
-          v-if="selectedFolder"
-          size="small"
-          type="text"
-          @click="clearSelectedFolder"
-        >
-          {{ t('projects.actions.clear') }}
-        </a-button>
-        <span v-if="selectedTemplate" style="color: var(--text-secondary); font-size: 12px;">
-          {{ t('projects.actions.templatePrefix', { name: selectedTemplate }) }}
-        </span>
-      </div>
-      <div
-        v-if="selectedFolder"
-        style="margin-top: 12px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 10px;"
-      >
-        <FolderOpenOutlined :style="{ color: selectedFolderInitialized ? '#52c41a' : '#1677ff' }" />
-        <span style="font-family: monospace; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          {{ selectedFolder }}
-        </span>
-        <a-tag v-if="selectedFolderInitialized" color="green">{{ t('projects.folder.alreadyProject') }}</a-tag>
-        <a-tag v-else color="blue">{{ t('projects.folder.pendingInit') }}</a-tag>
-      </div>
-      <a-alert
-        v-if="selectedFolder && selectedFolderInitialized"
-        type="info"
-        show-icon
-        style="margin-top: 12px;"
-        :message="t('projects.folder.alreadyMessage')"
-        :description="t('projects.folder.alreadyDescription')"
-      />
-
-      <a-alert
-        v-if="initResult"
-        :message="initResult.success ? t('projects.initResult.success') : t('projects.initResult.failure')"
-        :type="initResult.success ? 'success' : 'error'"
-        show-icon
-        closable
-        style="margin-top: 16px;"
-        @close="initResult = null"
-      >
-        <template #description>
-          <pre style="margin: 0; font-size: 12px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">{{ initResult.output }}</pre>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'id'">
+          <code style="font-size: 12px; color: #888;">{{ record.id.slice(0, 8) }}…</code>
         </template>
-      </a-alert>
-    </a-card>
-
-    <!-- Doctor -->
-    <a-card
-      :title="t('projects.doctor.cardTitle')"
-      style="background: var(--bg-card); border-color: var(--border-color);"
-    >
-      <template #extra>
-        <a-button
-          :loading="doctorLoading"
-          @click="runDoctor"
-          style="background: var(--bg-card-hover); border-color: var(--border-color);"
-        >
-          <template #icon><MedicineBoxOutlined /></template>
-          {{ t('projects.doctor.runButton') }}
-        </a-button>
+        <template v-else-if="column.key === 'name'">
+          <strong>{{ record.name }}</strong>
+          <div v-if="record.description" style="color: #888; font-size: 12px;">{{ record.description }}</div>
+        </template>
+        <template v-else-if="column.key === 'project_type'">
+          <a-tag>{{ record.project_type }}</a-tag>
+        </template>
+        <template v-else-if="column.key === 'status'">
+          <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
+        </template>
+        <template v-else-if="column.key === 'sync_status'">
+          <a-tag :color="syncColor(record.sync_status)">{{ record.sync_status || 'unknown' }}</a-tag>
+        </template>
+        <template v-else-if="column.key === 'updated_at'">
+          {{ formatTime(record.updated_at) }}
+        </template>
+        <template v-else-if="column.key === 'actions'">
+          <a-space @click.stop>
+            <a-button size="small" @click="openDetail(record)">详情</a-button>
+            <a-popconfirm
+              :title="`删除项目 '${record.name}' ？`"
+              ok-text="删除"
+              ok-type="danger"
+              cancel-text="取消"
+              @confirm="onDelete(record)"
+            >
+              <a-button size="small" danger>删除</a-button>
+            </a-popconfirm>
+          </a-space>
+        </template>
       </template>
+    </a-table>
 
-      <div v-if="doctorLoading" style="text-align: center; padding: 30px;">
-        <a-spin />
-        <div style="color: var(--text-muted); margin-top: 8px;">{{ t('projects.doctor.runningHint') }}</div>
-      </div>
+    <!-- Detail drawer -->
+    <a-drawer
+      v-model:open="detailOpen"
+      :title="detail?.name || '项目详情'"
+      width="640"
+      placement="right"
+    >
+      <a-descriptions v-if="detail" :column="1" bordered size="small">
+        <a-descriptions-item label="ID"><code>{{ detail.id }}</code></a-descriptions-item>
+        <a-descriptions-item label="名称">{{ detail.name }}</a-descriptions-item>
+        <a-descriptions-item label="描述">{{ detail.description || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="类型"><a-tag>{{ detail.project_type }}</a-tag></a-descriptions-item>
+        <a-descriptions-item label="状态">
+          <a-tag :color="statusColor(detail.status)">{{ detail.status }}</a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="同步状态">
+          <a-tag :color="syncColor(detail.sync_status)">{{ detail.sync_status || 'unknown' }}</a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="用户">{{ detail.user_id }}</a-descriptions-item>
+        <a-descriptions-item label="根路径">
+          <code v-if="detail.root_path">{{ detail.root_path }}</code>
+          <span v-else style="color: #888;">(无)</span>
+        </a-descriptions-item>
+        <a-descriptions-item label="文件数">{{ detail.file_count || 0 }}</a-descriptions-item>
+        <a-descriptions-item label="创建">{{ formatTime(detail.created_at) }}</a-descriptions-item>
+        <a-descriptions-item label="更新">{{ formatTime(detail.updated_at) }}</a-descriptions-item>
+      </a-descriptions>
 
-      <div v-else-if="doctorOutput">
-        <pre style="background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: #aaa; font-size: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;">{{ doctorOutput }}</pre>
-      </div>
+      <a-divider>文件</a-divider>
+      <a-spin :spinning="filesLoading">
+        <a-empty v-if="!files.length && !filesLoading" description="无文件 (仅元数据项目)" />
+        <a-list v-else size="small" :data-source="files">
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <span>{{ item.is_folder ? '📁' : '📄' }} {{ item.file_path }}</span>
+              <template #extra>
+                <span v-if="item.file_size" style="color: #888; font-size: 12px;">{{ item.file_size }} B</span>
+              </template>
+            </a-list-item>
+          </template>
+        </a-list>
+      </a-spin>
+    </a-drawer>
 
-      <a-empty v-else :description="t('projects.doctor.emptyHint')" />
-    </a-card>
+    <!-- Create modal -->
+    <a-modal
+      v-model:open="createOpen"
+      title="新建项目"
+      :confirm-loading="creating"
+      ok-text="创建"
+      cancel-text="取消"
+      @ok="onCreate"
+    >
+      <a-form layout="vertical">
+        <a-form-item label="项目名称" required>
+          <a-input v-model:value="newProject.name" placeholder="例如：旅行计划-上海" />
+        </a-form-item>
+        <a-form-item label="描述">
+          <a-textarea v-model:value="newProject.description" :rows="2" />
+        </a-form-item>
+        <a-form-item label="类型">
+          <a-select v-model:value="newProject.type">
+            <a-select-option value="document">文档 (document)</a-select-option>
+            <a-select-option value="data">数据 (data)</a-select-option>
+            <a-select-option value="web">Web</a-select-option>
+            <a-select-option value="app">应用 (app)</a-select-option>
+            <a-select-option value="presentation">演示文稿</a-select-option>
+            <a-select-option value="spreadsheet">表格</a-select-option>
+            <a-select-option value="design">设计</a-select-option>
+            <a-select-option value="code">代码</a-select-option>
+            <a-select-option value="workflow">工作流</a-select-option>
+            <a-select-option value="knowledge">知识库</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="根路径 (可选)">
+          <a-input v-model:value="newProject.rootPath" placeholder="留空则仅元数据" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed, onMounted } from 'vue'
 import {
-  ProjectOutlined, RocketOutlined, MedicineBoxOutlined,
-  ReloadOutlined, CheckCircleOutlined, FolderOpenOutlined
+  ReloadOutlined,
+  PlusOutlined,
+  FolderOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+  CheckSquareOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
-import { useFs } from '../composables/useFs.js'
+import { useShellMode } from '../composables/useShellMode.js'
 
-const { t } = useI18n()
 const ws = useWsStore()
-const fs = useFs()
+const { isEmbedded } = useShellMode()
 
-const statusLoading = ref(false)
-const initLoading = ref(false)
-const doctorLoading = ref(false)
-const folderPickerLoading = ref(false)
-const selectedTemplate = ref('')
-const doctorOutput = ref('')
-const initResult = ref(null)
-const configLoaded = ref(false)
-const configItems = ref([])
-const selectedFolder = ref(null)
-const selectedFolderInitialized = ref(false)
+// #21 P3 — embedded shell 走 in-process WS topic (避免 cc subprocess 冷启 6-10s)；
+// cc serve 模式仍用 ws.executeJson 兜底 (subprocess 在裸 node 无 asar 开销可接受)。
+async function callProjectTopic(topic, msg, fallbackCmd, timeoutMs = 8000) {
+  if (isEmbedded) {
+    const reply = await ws.sendRaw({ type: topic, ...msg }, timeoutMs)
+    if (!reply?.ok) {
+      const err = reply?.error
+      throw new Error(typeof err === 'string' ? err : err?.message || `${topic} failed`)
+    }
+    return reply.result
+  }
+  return ws.executeJson(fallbackCmd, timeoutMs)
+}
 
-const statusInfo = reactive({
-  running: false,
-  edition: '',
-  llmProvider: '',
-  llmModel: '',
-  setupDone: false,
-  setupDate: '',
-})
+const loading = ref(false)
+const projects = ref([])
+const statusFilter = ref('')
+const nameFilter = ref('')
 
-const TEMPLATE_DEFS = [
-  { name: 'code-project', icon: ProjectOutlined },
-  { name: 'medical-triage', icon: MedicineBoxOutlined },
-  { name: 'agriculture-expert', icon: RocketOutlined },
-  { name: 'general-assistant', icon: CheckCircleOutlined },
-  { name: 'ai-media-creator', icon: RocketOutlined },
-  { name: 'ai-doc-creator', icon: ProjectOutlined },
+const detailOpen = ref(false)
+const detail = ref(null)
+const files = ref([])
+const filesLoading = ref(false)
+
+const createOpen = ref(false)
+const creating = ref(false)
+const newProject = ref({ name: '', description: '', type: 'document', rootPath: '' })
+
+const columns = [
+  { title: 'ID', key: 'id', width: 110 },
+  { title: '名称', key: 'name' },
+  { title: '类型', key: 'project_type', width: 120 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '同步', key: 'sync_status', width: 100 },
+  { title: '更新', key: 'updated_at', width: 160 },
+  { title: '操作', key: 'actions', width: 180, fixed: 'right' },
 ]
 
-const templates = computed(() =>
-  TEMPLATE_DEFS.map(tpl => ({
-    ...tpl,
-    description: t(`projects.templates.${tpl.name}`),
-  })),
-)
-
-function parseStatus(output) {
-  statusInfo.running = output.includes('Desktop app running') || output.includes('Running')
-
-  const edMatch = output.match(/Edition:\s+(\S+)/i)
-  if (edMatch) statusInfo.edition = edMatch[1]
-
-  const llmMatch = output.match(/LLM:\s+(\S+)\s+\(([^)]+)\)/i)
-  if (llmMatch) {
-    statusInfo.llmProvider = llmMatch[1]
-    statusInfo.llmModel = llmMatch[2]
-  } else {
-    const llm2 = output.match(/LLM:\s+(\S+)/i)
-    if (llm2) statusInfo.llmProvider = llm2[1]
+const countByStatus = computed(() => {
+  const c = { active: 0, draft: 0, completed: 0, archived: 0 }
+  for (const p of projects.value) {
+    if (c[p.status] !== undefined) c[p.status] += 1
   }
+  return c
+})
 
-  statusInfo.setupDone = output.includes('Setup completed')
-  const dateMatch = output.match(/Setup completed \(([^)]+)\)/i)
-  if (dateMatch) {
-    try { statusInfo.setupDate = new Date(dateMatch[1]).toLocaleDateString('zh-CN') } catch { statusInfo.setupDate = '' }
+const filteredProjects = computed(() => {
+  return projects.value.filter((p) => {
+    if (statusFilter.value && p.status !== statusFilter.value) return false
+    if (nameFilter.value && !p.name.toLowerCase().includes(nameFilter.value.toLowerCase())) return false
+    return true
+  })
+})
+
+function statusColor(s) {
+  switch (s) {
+    case 'active': return 'green'
+    case 'draft': return 'default'
+    case 'completed': return 'cyan'
+    case 'archived': return 'gold'
+    default: return 'default'
   }
 }
 
-function parseConfig(output) {
-  const items = []
-  const lines = output.split('\n')
-  for (const line of lines) {
-    const m = line.match(/^\s*(\S+)\s*[=:]\s*(.+)$/)
-    if (m) {
-      items.push({ key: m[1].trim(), value: m[2].trim() })
-    }
+function syncColor(s) {
+  switch (s) {
+    case 'synced': return 'green'
+    case 'pending': return 'orange'
+    case 'conflict': return 'red'
+    case 'error': return 'red'
+    default: return 'default'
   }
-  configItems.value = items
-  configLoaded.value = items.length > 0
 }
 
-async function refreshStatus() {
-  statusLoading.value = true
+function formatTime(ms) {
+  if (!ms && ms !== 0) return '-'
+  const d = new Date(typeof ms === 'number' ? ms : parseInt(ms, 10))
+  return d.toLocaleString('zh-CN', { hour12: false })
+}
+
+async function loadAll() {
+  loading.value = true
   try {
-    const [statusRes, configRes] = await Promise.all([
-      ws.execute('status', 15000),
-      ws.execute('config list', 15000),
-    ])
-    parseStatus(statusRes.output)
-    parseConfig(configRes.output)
-  } catch (e) {
-    console.error('refresh failed:', e)
+    const result = await callProjectTopic(
+      'project.list',
+      { limit: 500 },
+      'project list --limit 500 --json',
+      10000,
+    )
+    projects.value = Array.isArray(result?.projects)
+      ? result.projects
+      : Array.isArray(result)
+        ? result
+        : []
+  } catch (err) {
+    message.error('加载失败: ' + (err.message || err))
+    projects.value = []
   } finally {
-    statusLoading.value = false
+    loading.value = false
   }
 }
 
-async function initProject() {
-  if (!selectedTemplate.value) return
-  if (selectedFolder.value && selectedFolderInitialized.value) {
-    message.info(t('projects.messages.alreadyProjectInfo'))
+function onRowClick(record) {
+  return { onClick: () => openDetail(record) }
+}
+
+async function openDetail(record) {
+  detail.value = record
+  detailOpen.value = true
+  filesLoading.value = true
+  files.value = []
+  try {
+    const r = await callProjectTopic(
+      'project.listFiles',
+      { projectId: record.id, limit: 200 },
+      `project list-files ${record.id} --json`,
+      8000,
+    )
+    files.value = Array.isArray(r?.files) ? r.files : []
+  } catch {
+    files.value = []
+  } finally {
+    filesLoading.value = false
+  }
+}
+
+async function onDelete(record) {
+  try {
+    const r = await callProjectTopic(
+      'project.delete',
+      { id: record.id },
+      `project delete ${record.id} --json`,
+      8000,
+    )
+    if (r?.ok) {
+      message.success(`已删除项目 '${record.name}'`)
+      detailOpen.value = false
+      await loadAll()
+    } else {
+      message.error('删除失败')
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  }
+}
+
+function onShowCreate() {
+  newProject.value = { name: '', description: '', type: 'document', rootPath: '' }
+  createOpen.value = true
+}
+
+async function onCreate() {
+  if (!newProject.value.name.trim()) {
+    message.warning('请输入项目名称')
     return
   }
-  initLoading.value = true
-  initResult.value = null
+  creating.value = true
   try {
-    let cmd = `init --template ${selectedTemplate.value} --yes`
-    if (selectedFolder.value) {
-      cmd += ` --cwd "${selectedFolder.value}"`
+    const r = await callProjectTopic(
+      'project.init',
+      {
+        name: newProject.value.name.trim(),
+        description: newProject.value.description || null,
+        type: newProject.value.type,
+        rootPath: newProject.value.rootPath || null,
+      },
+      `project init "${newProject.value.name.trim()}" --type ${newProject.value.type} --json`,
+      8000,
+    )
+    if (r?.id) {
+      message.success(`已创建项目 '${r.name}'`)
+      createOpen.value = false
+      await loadAll()
+    } else {
+      message.error('创建失败')
     }
-    const { output, exitCode } = await ws.execute(cmd, 30000)
-    initResult.value = { success: exitCode === 0, output }
-    if (exitCode === 0) {
-      if (selectedFolder.value) {
-        selectedFolderInitialized.value = true
-      }
-      await refreshStatus()
-    }
-  } catch (e) {
-    initResult.value = { success: false, output: t('projects.messages.initFailed', { err: e.message }) }
+  } catch (err) {
+    message.error(err.message || String(err))
   } finally {
-    initLoading.value = false
+    creating.value = false
   }
 }
 
-async function pickProjectFolder() {
-  folderPickerLoading.value = true
-  try {
-    const r = await fs.pickDirectory({ title: t('projects.folder.pickerTitle') })
-    if (r.unsupported) {
-      message.warning(t('projects.messages.browserUnsupported'))
-      return
-    }
-    if (r.canceled) return
-    selectedFolder.value = r.path
-    selectedFolderInitialized.value = r.initialized
-  } catch (e) {
-    message.error(t('projects.messages.pickFolderFailed', { err: e.message }))
-  } finally {
-    folderPickerLoading.value = false
-  }
-}
-
-function clearSelectedFolder() {
-  selectedFolder.value = null
-  selectedFolderInitialized.value = false
-}
-
-async function runDoctor() {
-  doctorLoading.value = true
-  doctorOutput.value = ''
-  try {
-    const { output } = await ws.execute('doctor', 30000)
-    doctorOutput.value = output
-  } catch (e) {
-    doctorOutput.value = t('projects.messages.doctorFailed', { err: e.message })
-  } finally {
-    doctorLoading.value = false
-  }
-}
-
-onMounted(refreshStatus)
+onMounted(() => {
+  loadAll()
+})
 </script>
 
 <style scoped>
-.template-card {
-  transition: border-color 0.2s, box-shadow 0.2s;
+.page-title {
+  margin: 0 0 4px;
+  font-size: 20px;
 }
-.template-card:hover {
-  border-color: #1677ff !important;
-}
-.template-selected {
-  border-color: #1677ff !important;
-  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+.page-sub {
+  margin: 0;
+  color: #888;
+  font-size: 13px;
 }
 </style>

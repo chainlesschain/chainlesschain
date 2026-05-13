@@ -69,6 +69,7 @@ const {
   createDesktopPairResetHandler,
 } = require("./handlers/desktop-pair-handlers");
 const { createMultisigHandlers } = require("./handlers/multisig-handlers");
+const { createProjectHandlers } = require("./handlers/project-handlers");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -206,6 +207,11 @@ async function startWebShell(options = {}) {
     // 走 _executeCommand 子进程，asar:true 同样 6-10s 冷启。改 in-process 调
     // @chainlesschain/core-multisig v0.1.0，每次 open 一个 SQLite handle（~20ms）。
     ...createMultisigHandlers(),
+    // 2026-05-13 — project.* in-process WS handlers（#21 P3）。Projects.vue
+    // 走这条避免 ws.execute('cc project …') 子进程冷启 6-10s。复用 P1 已落地
+    // 的 ProjectManagementHandler（mobile L3 REMOTE 也用同一份），同份 handler
+    // 同时服务 web-shell + mobile, "丝滑" 双端一致基础。
+    ...createProjectHandlers({ database: options.database ?? null }),
     // Phase 3c.5 — git.config-* topics. 复用 git-config.json 单例（getGitConfig），
     // web-panel 用户也能配 Git 仓库，不必切回 V5/V6 桌面 shell。
     ...createGitConfigHandlers(),

@@ -33,6 +33,7 @@ const routes = [
       { path: 'mobile-bridge', name: 'MobileBridge', component: () => import('../views/MobileBridge.vue') },
       { path: 'git',         name: 'Git',         component: () => import('../views/Git.vue') },
       { path: 'projects',    name: 'Projects',    component: () => import('../views/Projects.vue') },
+      { path: 'project-init', name: 'ProjectInit', component: () => import('../views/ProjectInit.vue') },
       { path: 'wallet',      name: 'Wallet',      component: () => import('../views/Wallet.vue') },
       { path: 'organization', name: 'Organization', component: () => import('../views/Organization.vue') },
       { path: 'analytics',   name: 'Analytics',   component: () => import('../views/Analytics.vue') },
