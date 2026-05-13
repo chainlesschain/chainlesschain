@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-13 后续推进 — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix**
+
+v1.2 GA 上架前的 P0 前置批次（**未 bump version**，与 P1 主体一起 release）：
+
+- **A.3 ADR Review v2.0** (`348896382`) — 8 ADR 全 audit 结论 **5 keep / 2 amend / 1 revise**。新增 [Android_ADR_重评估_v2.0.md](docs/design/Android_ADR_重评估_v2.0.md)。ADR-2（M2 DID wallet 走软件 Ed25519，blocks B.3 DID rotate）待 v1.2 GA Play Console API level 数据决策选项 A/B/C；ADR-7/ADR-8 文本 amend 对齐真实（cc-mobile.json 从未创建走 user_settings + `mobile.*` scope；registry 实际 disk-first + push-based 非 pull）。同 commit §10 v1.3+ scope triage 分层（12 子项 P0/P1/P2 + 5 依赖链）。
+- **B.6 PQC 严格模式 verifier gate** (`e24386d00`) — `LandmarkCache.strictPqMode` opt-in，拒收任何 `alg === "Ed25519"` 的 partial sig + publisher_signature；与现 heterogeneous federation 数据格式兼容，0 schema 改动；生产者侧 0 改动。
+- **B.2 in-process multisig.* + marketplace.consume topics** (`b1c7cfd95`) — 7 个 in-process WS topics 镜像 CLI `--json` 输出 shape，desktop web-shell `Multisig.vue` 用 `useShellMode().isEmbedded` 分发；**性能 asar:true 子进程冷启 6-10s → in-process ~20ms (SQLite open) + 查询，60-100× 提升**。UX 0 改动。
+- **A.3 AI-3 SkillMetadata.signature forward-compat** (`45a88270e`) — Android `ManifestSignatureVerifier` interface + `NoOpManifestVerifier` always-accept stub + `RemoteSkillRegistry.setManifestVerifier()` swap seam，为 marketplace M0 上线（#21 AI-5）做接线准备。
+- **修复 wear test imports** (`c0d061328`) — `CcPhoneDecisionListenerTest` 缺 `kotlinx.coroutines.{launch,delay,GlobalScope,DelicateCoroutinesApi}` imports 自 v1.2 P0.2 起 block 整个 `:app:compileDebugUnitTestKotlin`，加 4 imports 解锁。
+- **修复 B.6 strict mode disk-load gate**（本次 QA sweep 发现）— `LandmarkCache.loadFromDisk()` bypass strict-mode gate，重构 per-snapshot 严格检查到 `_validateAndStoreSnapshot()` 头部，+2 新 disk-load integration tests 锁回归。
+
+**测试**：B.6 strictPqMode 11/11 + B.2 multisig-handlers 23/23 + AI-3 ManifestSignatureVerifier 10/10 + Android `:app` regression 57/57 + web-shell 379 regression（25 files）全过。
+
 ## 2026-05-12 发布 — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing 收口 + 测试补丁**
 
 productVersion **v5.0.3.48 → v5.0.3.49**。本版四条主线：

@@ -191,6 +191,75 @@ describe("LandmarkCache strict PQ mode (#21 B.6)", () => {
     expect(result.accepted).toBe(1);
   });
 
+  it("strict mode applies to disk-loaded snapshots too (loadFromDisk gate)", async () => {
+    // Regression for a bug fix made alongside #21 B.6 verifier:
+    // loadFromDisk goes straight into _validateAndStoreSnapshot, bypassing
+    // ingest's _assertStrictPqMode. Without the per-snap strict gate inside
+    // _validateAndStoreSnapshot, an Ed25519 landmark cached when strict mode
+    // was off would survive a later strict-mode load — silently violating
+    // the strict invariant.
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const persistDir = fs.mkdtempSync(path.join(os.tmpdir(), "mtc-strict-disk-"));
+
+    try {
+      // 1. Cache classical Ed25519 landmark with strict mode OFF — write to disk
+      const keys = ed25519.generateKeyPair();
+      const { landmark } = assembleBatch([{ a: 1 }], keys, META);
+      const writeCache = new LandmarkCache({
+        signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
+        persistDir,
+      });
+      writeCache.ingest(landmark);
+
+      // 2. Fresh cache with strict mode ON — load same disk
+      const strictCache = new LandmarkCache({
+        signatureVerifier: ed25519.makeVerifierFromLandmark(landmark),
+        strictPqMode: true,
+        persistDir,
+      });
+      const result = strictCache.loadFromDisk();
+
+      // The Ed25519 snapshot on disk must be rejected by strict mode
+      expect(result.loaded).toBe(0);
+      expect(result.failed.length).toBe(1);
+      expect(result.failed[0].code).toBe("STRICT_PQ_MODE_VIOLATION");
+    } finally {
+      fs.rmSync(persistDir, { recursive: true, force: true });
+    }
+  });
+
+  it("strict mode + disk: SLH-DSA snapshot survives disk round-trip", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const persistDir = fs.mkdtempSync(path.join(os.tmpdir(), "mtc-strict-disk-pq-"));
+
+    try {
+      const keys = slhDsa.generateKeyPair();
+      const { landmark } = assembleBatch([{ a: 1 }], keys, META, slhDsa);
+      const writeCache = new LandmarkCache({
+        signatureVerifier: slhDsa.makeVerifierFromLandmark(landmark),
+        strictPqMode: true,
+        persistDir,
+      });
+      writeCache.ingest(landmark);
+
+      const readCache = new LandmarkCache({
+        signatureVerifier: slhDsa.makeVerifierFromLandmark(landmark),
+        strictPqMode: true,
+        persistDir,
+      });
+      const result = readCache.loadFromDisk();
+
+      expect(result.loaded).toBe(1);
+      expect(result.failed).toEqual([]);
+    } finally {
+      fs.rmSync(persistDir, { recursive: true, force: true });
+    }
+  });
+
   it("strict mode runs gate BEFORE verifyPublisherSignature (fails fast on alg, not sig bytes)", () => {
     // Single-signer Ed25519 with tampered publisher_signature.sig.
     // Without strict mode, this would fail BAD_LANDMARK_SIG.

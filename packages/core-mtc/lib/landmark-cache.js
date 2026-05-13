@@ -158,6 +158,9 @@ class LandmarkCache {
    * @see docs/design/Android_重新定位_设计文档.md §10 v1.3+ B.6
    */
   _assertStrictPqMode(landmark) {
+    // Landmark-level: publisher_signature. Per-snap checks happen inside
+    // _validateAndStoreSnapshot (called by both ingest's loop and
+    // loadFromDisk), so we don't duplicate the snap iteration here.
     const ps = landmark.publisher_signature;
     if (ps && isClassicalAlg(ps.alg)) {
       const e = this._err("STRICT_PQ_MODE_VIOLATION");
@@ -165,36 +168,52 @@ class LandmarkCache {
       e.alg = ps.alg;
       throw e;
     }
-    for (let i = 0; i < landmark.snapshots.length; i++) {
-      const snap = landmark.snapshots[i];
-      if (!snap || typeof snap !== "object") continue;
-      // Federated path: snap.signatures[] — every member sig must be PQ
-      if (Array.isArray(snap.signatures)) {
-        for (let j = 0; j < snap.signatures.length; j++) {
-          const sig = snap.signatures[j];
-          if (sig && isClassicalAlg(sig.alg)) {
-            const e = this._err("STRICT_PQ_MODE_VIOLATION");
-            e.violation = "snapshot_signature";
-            e.snapshotIndex = i;
-            e.signatureIndex = j;
-            e.alg = sig.alg;
-            throw e;
-          }
+  }
+
+  /**
+   * Per-snapshot strict-mode gate — runs from both [ingest] (via
+   * [_assertStrictPqMode]) and [loadFromDisk] (so disk-cached snapshots
+   * can't sneak Ed25519 sigs past a strict-mode cache).
+   *
+   * publisher_signature is intentionally NOT checked here — it lives at
+   * landmark level (not persisted on disk per snapshot), so the only thing
+   * this helper can sanely verify is per-snapshot signature alg(s).
+   */
+  _assertStrictPqModeForSnapshot(snap, snapshotIndex) {
+    if (!snap || typeof snap !== "object") return;
+    // Federated path: snap.signatures[] — every member sig must be PQ
+    if (Array.isArray(snap.signatures)) {
+      for (let j = 0; j < snap.signatures.length; j++) {
+        const sig = snap.signatures[j];
+        if (sig && isClassicalAlg(sig.alg)) {
+          const e = this._err("STRICT_PQ_MODE_VIOLATION");
+          e.violation = "snapshot_signature";
+          e.snapshotIndex = snapshotIndex;
+          e.signatureIndex = j;
+          e.alg = sig.alg;
+          throw e;
         }
       }
-      // Single-signer path: snap.signature
-      if (snap.signature && isClassicalAlg(snap.signature.alg)) {
-        const e = this._err("STRICT_PQ_MODE_VIOLATION");
-        e.violation = "snapshot_signature";
-        e.snapshotIndex = i;
-        e.alg = snap.signature.alg;
-        throw e;
-      }
+    }
+    // Single-signer path: snap.signature
+    if (snap.signature && isClassicalAlg(snap.signature.alg)) {
+      const e = this._err("STRICT_PQ_MODE_VIOLATION");
+      e.violation = "snapshot_signature";
+      e.snapshotIndex = snapshotIndex;
+      e.alg = snap.signature.alg;
+      throw e;
     }
   }
 
   _validateAndStoreSnapshot(snap) {
     if (!snap || typeof snap !== "object") throw this._err("BAD_TREE_HEAD_SCHEMA");
+    // Strict PQ mode applies here too (called from both ingest + loadFromDisk).
+    // ingest's _assertStrictPqMode already covers landmark-level fields and
+    // delegates here per-snapshot; loadFromDisk goes straight here without an
+    // outer landmark wrapper, so the per-snapshot gate must be local.
+    if (this._strictPqMode) {
+      this._assertStrictPqModeForSnapshot(snap, 0);
+    }
     const th = snap.tree_head;
     if (!th || th.schema !== SCHEMA_TREE_HEAD) throw this._err("BAD_TREE_HEAD_SCHEMA");
     if (typeof th.namespace !== "string" || !NAMESPACE_RE.test(th.namespace)) {

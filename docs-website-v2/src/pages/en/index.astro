@@ -3,9 +3,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Terminal from '../../components/Terminal.astro';
 import rootPkg from '../../../../package.json';
 import cliPkg from '../../../../packages/cli/package.json';
+import releaseSizes from '../../data/release-sizes.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
 const CLI_VERSION = cliPkg.version;
+const ANDROID_TAG = releaseSizes.androidTag || 'v1.0.0';
+const ANDROID_VERSION = ANDROID_TAG.replace(/^android-/, '');
+const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
+const androidArm64 = releaseSizes.sizes['android-arm64-v8a'];
+const androidUniversal = releaseSizes.sizes['android-universal'];
 
 const templates = [
   { id: 'doc-convert', name: 'Document Conversion', tools: 'pandoc · LibreOffice' },
@@ -67,6 +73,12 @@ const everyday = [
 ];
 
 const highlights = [
+  {
+    tag: '#21 P0 unreleased',
+    title: 'Android v1.3+ P0 prerequisites GA-independent closed + AI-3 forward-compat + 2 bug fixes',
+    sub: 'A.3 ADR Review v2.0 (8 ADRs audited: 5 keep / 2 amend / 1 revise) · B.6 LandmarkCache.strictPqMode opt-in rejects Ed25519 partial sigs · B.2 web-shell multisig.* in-process WS topics cold-start 6-10s → ~20ms 60-100x speedup · AI-3 SkillMetadata.signature forward-compat + NoOpManifestVerifier swap seam · 2 bug fixes (wear test imports + B.6 disk-load gate) · tests 11+23+10+57+379 all pass · no version bump (will release with P1 main scope after v1.2 GA)',
+    desc: 'P0 prerequisite batch before v1.2 GA. Issue 21 https://github.com/chainlesschain/chainlesschain/issues/21 A.3 ADR review + AI-1 amend (commit 348896382): 8 ADRs audited — 5 keep + 2 amend (ADR-7 cc-mobile.json was never created and actually goes through user_settings + mobile.* scope; ADR-8 registry is disk-first + push-based, not pull) + 1 revise (ADR-2 M2 DID wallet still uses software Ed25519, which blocks B.3 DID rotate). ADR-2 option A/B/C decision waits on v1.2 GA Play Console API-level data. Same commit adds design doc §10 v1.3+ scope triage layering across 12 sub-items (P0/P1/P2) plus 5 dependency chains. B.6 PQC strict-mode verifier (commit e24386d00): packages/core-mtc/lib/landmark-cache.js gains strictPqMode opt-in flag + _assertStrictPqMode landmark-level gate + _assertStrictPqModeForSnapshot per-snap gate + STRICT_PQ_MODE_VIOLATION error code + CLASSICAL_ALGS constant. Reading A semantic rejects any partial sig + publisher_signature where alg === Ed25519. Backward-compatible with the existing heterogeneous federation data format (zero schema changes, zero producer-side changes). B.2 skip cc subprocess cold-start (commit b1c7cfd95): desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js adds 7 in-process WS topics that mirror the CLI --json output shape (multisig.list / show / policy.show / cancel / finalize / sweep + marketplace.consume). The topics invoke openMultisigManager() from the CLI multisig-runtime.js via dynamic-import across the CJS/ESM boundary. Multisig.vue gains callMultisigTopic() helper that dispatches via useShellMode().isEmbedded; all 7 ws.executeJson sites switch. Perf: asar:true subprocess cold-start 6-10s → in-process ~20ms (SQLite open) + query, 60-100x speedup. Zero UX changes. AI-3 SkillMetadata.signature forward-compat (commit 45a88270e): Android Kotlin adds ManifestSignatureVerifier interface + sealed VerificationResult.{Accepted/Rejected(reason)} + object NoOpManifestVerifier always-accept stub. SkillMetadata gains signature: String? = null field + init invariant. RemoteSkillRegistry gains @Volatile manifestVerifier + setManifestVerifier(v) swap seam + updateFromRemote runs the verifier per-skill (Accepted merges; Rejected Timber.w warn-logs + skips). When marketplace M0 (#21 AI-5) lands, app injection of a real Ed25519/SLH-DSA hybrid verifier is enough; callers do not change. Bug fix 1 wear test imports (commit c0d061328): CcPhoneDecisionListenerTest since cc08da0b0 (v1.2 #20 P0.2) used kotlinx.coroutines.GlobalScope.launch with delay() but the imports were missing launch / delay / GlobalScope / DelicateCoroutinesApi, which blocked the entire :app:compileDebugUnitTestKotlin. Added 4 imports to unblock. Bug fix 2 B.6 disk-load gate (test-driven discovery in this QA sweep): LandmarkCache.loadFromDisk() called _validateAndStoreSnapshot directly, bypassing ingest\'s strict-mode gate; an Ed25519 landmark cached when strictPqMode was off would later be accepted by a strictPqMode=true cache on disk reload (silent strict invariant violation). Fix: moved the per-snapshot strict check into _validateAndStoreSnapshot so both ingest and disk-load paths run through the gate; +2 disk-load integration tests lock the regression. Tests: B.6 landmark-cache-strict-pq-mode 11/11 (9 original + 2 disk-load integration) + B.2 multisig-handlers 23/23 unit tests via runtimeFactory injection seam + AI-3 ManifestSignatureVerifier 10/10 + SkillMetadataTest 9/9 + RemoteSkillRegistryTest 38/38 regression + web-shell 379 regression across 25 test files, all pass. No version bump: this batch is the v1.2 GA prerequisite; will release with P1 main scope after v1.2 GA feedback lands.',
+  },
   {
     tag: 'v5.0.3.49',
     title: 'M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Android v1.1 W3.7 Flow B QR pairing closes + test backfill',
@@ -820,13 +832,29 @@ const badges = [
           <p class="text-sm text-muted">Electron 39 · Vue 3.4 · 139 skills</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
-          <div class="font-mono text-xs text-muted mb-3">MOBILE · {PRODUCT_VERSION}</div>
+          <div class="font-mono text-xs text-muted mb-3">MOBILE · Android {ANDROID_VERSION} · GA</div>
           <h3 class="font-display text-2xl mb-3">Android</h3>
           <div class="flex flex-wrap gap-2 mb-4">
-            <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" target="_blank" rel="noopener" class="chip hover:bg-ember hover:text-cream transition-colors">APK</a>
+            {androidArm64 && (
+              <a
+                href={`https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${androidArm64.name}`}
+                target="_blank"
+                rel="noopener"
+                class="chip hover:bg-ember hover:text-cream transition-colors"
+              >arm64-v8a · {androidArm64.label}</a>
+            )}
+            {androidUniversal && (
+              <a
+                href={`https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${androidUniversal.name}`}
+                target="_blank"
+                rel="noopener"
+                class="chip hover:bg-ember hover:text-cream transition-colors"
+              >universal · {androidUniversal.label}</a>
+            )}
             <span class="chip opacity-60">iOS coming</span>
           </div>
-          <p class="text-sm text-muted">28 skills · P2P remote desktop</p>
+          <p class="text-sm text-muted mb-3">L1 DID wallet · L2 mobile capture · L3 REMOTE · 28 skills · 383+ tests</p>
+          <a href="/en/mobile" class="text-sm text-ember hover:underline">See the mobile edition →</a>
         </div>
       </div>
     </div>

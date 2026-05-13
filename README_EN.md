@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-13 Follow-up — **[#21](https://github.com/chainlesschain/chainlesschain/issues/21) Android v1.3+ P0 prerequisites GA-independent + AI-3 forward-compat + 2 bug fixes**
+
+P0 prerequisite batch before v1.2 GA (**no version bump**; will release alongside P1 main scope after v1.2 GA feedback):
+
+- **A.3 ADR Review v2.0** (`348896382`) — full audit of 8 ADRs: **5 keep / 2 amend / 1 revise**. New [Android_ADR_重评估_v2.0.md](docs/design/Android_ADR_重评估_v2.0.md). ADR-2 (M2 DID wallet still uses software Ed25519, blocks B.3 DID rotate) waits for v1.2 GA Play Console API-level data to pick option A/B/C; ADR-7/ADR-8 text amends align with reality (cc-mobile.json was never created — actually uses user_settings + `mobile.*` scope; registry is disk-first + push-based, not pull). Same commit adds §10 v1.3+ scope triage (12 sub-items P0/P1/P2 + 5 dependency chains).
+- **B.6 PQC strict mode verifier gate** (`e24386d00`) — `LandmarkCache.strictPqMode` opt-in flag rejects any partial sig or publisher_signature with `alg === "Ed25519"`. Compatible with existing heterogeneous federation data format (0 schema changes); 0 producer-side changes.
+- **B.2 in-process multisig.* + marketplace.consume topics** (`b1c7cfd95`) — 7 in-process WS topics mirror the CLI `--json` output shape; desktop web-shell `Multisig.vue` dispatches via `useShellMode().isEmbedded`. **Perf: asar:true subprocess cold-start 6-10s → in-process ~20ms (SQLite open) + query, 60-100× speedup**. 0 UX changes.
+- **A.3 AI-3 SkillMetadata.signature forward-compat** (`45a88270e`) — Android `ManifestSignatureVerifier` interface + `NoOpManifestVerifier` always-accept stub + `RemoteSkillRegistry.setManifestVerifier()` swap seam, wired for marketplace M0 (#21 AI-5).
+- **Fix wear test imports** (`c0d061328`) — `CcPhoneDecisionListenerTest` was missing `kotlinx.coroutines.{launch,delay,GlobalScope,DelicateCoroutinesApi}` imports since v1.2 P0.2, blocking all `:app:compileDebugUnitTestKotlin`. Added 4 imports.
+- **Fix B.6 strict mode disk-load gate** (discovered during this QA sweep) — `LandmarkCache.loadFromDisk()` bypassed the strict-mode gate. Moved per-snapshot strict check into `_validateAndStoreSnapshot()` so both ingest + disk-load paths go through the gate. +2 disk-load integration tests lock the regression.
+
+**Tests**: B.6 strictPqMode 11/11 + B.2 multisig-handlers 23/23 + AI-3 ManifestSignatureVerifier 10/10 + Android `:app` regression 57/57 + web-shell 379 regression (25 files) all pass.
+
 ## 2026-05-12 Release — **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing closing + test backfill**
 
 productVersion **v5.0.3.48 → v5.0.3.49**. Four main lines:

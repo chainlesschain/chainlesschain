@@ -3,6 +3,29 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] - 2026-05-13 — Android v1.3+ P0 前置三项 GA-independent + AI-3 forward-compat + 2 bug fix ([#21](https://github.com/chainlesschain/chainlesschain/issues/21))
+
+> v1.2 GA 上架前的 P0 前置批次。A.3 ADR review / B.6 PQC 严格模式 verifier / B.2 削 web-shell `/multisig` cc subprocess 冷启三项 GA-independent 部分齐落，另 ADR-8 amend 的 forward-compat seam (AI-3) 也补上，sweep 出 2 个相关 bug 顺手修。**version 不 bump** —— v1.2 GA 上架反馈到位后与 P1 主体一起 release。
+
+### Added — [#21](https://github.com/chainlesschain/chainlesschain/issues/21) P0 前置三项
+
+- **A.3 ADR Review v2.0**（commit `348896382`）—— 新增 [`Android_ADR_重评估_v2.0.md`](./design/android-adr-review-v2.md) v1.0；8 ADR audit 结论 **5 keep / 2 amend / 1 revise**：ADR-2 (M2 DID wallet 走软件 Ed25519，blocks B.3 DID rotate) 待 v1.2 GA Play Console API level 数据决策选项 A/B/C；ADR-7 / ADR-8 文本 amend 落 §4 对齐真实（cc-mobile.json 从未创建，registry 实际 disk-first + push-based 非 pull）。同 commit §10 v1.3+ scope triage 分层（12 子项 P0/P1/P2 + 5 依赖链）。
+- **B.6 PQC 严格模式 verifier gate**（commit `e24386d00`）—— `packages/core-mtc/lib/landmark-cache.js` 加 `strictPqMode` opt-in flag + 两层 gate (`_assertStrictPqMode` landmark-level / `_assertStrictPqModeForSnapshot` per-snap) + `STRICT_PQ_MODE_VIOLATION` error code + `CLASSICAL_ALGS` 常量 + `isClassicalAlg` helper。Reading A 语义：拒收任何 `alg === "Ed25519"` 的 partial sig + publisher_signature；与现 heterogeneous federation 数据格式兼容，0 schema 改动；生产者侧 0 改动。
+- **B.2 in-process multisig.* + marketplace.consume topics**（commit `b1c7cfd95` + label fix `c21ba9346`）—— `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` 新增 7 个 in-process WS topics 镜像 CLI `--json` 输出 shape：`multisig.list / show / policy.show / cancel / finalize / sweep` + `marketplace.consume`。Topics 调 `openMultisigManager()` from CLI `multisig-runtime.js`（per-call open SQLite WAL ~20ms），dynamic-import 跨 CJS/ESM 边界。`Multisig.vue` 加 `callMultisigTopic()` helper 用 `useShellMode().isEmbedded` 分发；7 处 `ws.executeJson` 全切；非 embedded（cc serve）保留原 subprocess fallback。**性能：asar:true 子进程冷启 6-10s → in-process ~20ms (SQLite open) + 查询，60-100× 提升**。UX 0 改动。
+- **A.3 AI-3 SkillMetadata.signature forward-compat**（commit `45a88270e`）—— Android Kotlin。新增 `ManifestSignatureVerifier.kt`：`interface` + sealed `VerificationResult.{Accepted | Rejected(reason)}` + `object NoOpManifestVerifier` always-accept stub。`SkillMetadata.kt` 加 `signature: String? = null` field + init invariant。`RemoteSkillRegistry.kt` 加 `@Volatile manifestVerifier` + `setManifestVerifier(v)` swap seam + `updateFromRemote()` per-skill 验签 partial-acceptance + empty-result 短路。Marketplace M0 (#21 AI-5) 上线时注入真 Ed25519/SLH-DSA hybrid verifier 即可，调用方 0 改动。
+
+### Fixed
+
+- **wear test imports**（commit `c0d061328`）—— `CcPhoneDecisionListenerTest.kt` 自 `cc08da0b0` (v1.2 #20 P0.2) 起用 `kotlinx.coroutines.GlobalScope.launch { delay() }` 写 smoke 测试，但 imports 缺 `launch`/`delay`/`GlobalScope`/`DelicateCoroutinesApi`。block 了整个 `:app:compileDebugUnitTestKotlin`，加 4 imports 解锁。
+- **B.6 strict mode disk-load gate**（test-driven 发现于本次 QA sweep）—— `LandmarkCache.loadFromDisk()` 直接调 `_validateAndStoreSnapshot()` bypassing ingest's strict-mode gate；strict mode OFF 写入磁盘的 Ed25519 landmark，下次 strict mode ON 加载时仍接受（silent invariant 违反）。修：per-snapshot 严格检查移到 `_validateAndStoreSnapshot()` 头部统一处理，+2 新 disk-load integration tests 锁回归。
+
+### Tests
+
+- **`landmark-cache-strict-pq-mode.test.js`** 11/11 pass（9 原 + 2 disk-load integration）
+- **`multisig-handlers.test.js`** 23/23 pass（B.2 unit tests via `runtimeFactory` 注入 seam）
+- **`ManifestSignatureVerifierTest.kt`** 10/10 + `SkillMetadataTest` 9/9 + `RemoteSkillRegistryTest` 38/38 regression 全过（本地 NDK install 修复后 `./gradlew :app:testDebugUnitTest` 2m21s 全绿）
+- **web-shell** 379 regression 全过（25 test files）
+
 ## [5.0.3.49 / CLI 0.161.9 / Android 1.0.0 GA] - 2026-05-12 (M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel multisig view + Flow B QR pairing 收口 + 测试补丁)
 
 > 本版四条主线：(1) **`@chainlesschain/core-multisig` package + `cc multisig` CLI 落地**（commit `3c890dcac`，v1.2 m-of-n Phase 1d）—— Phase 1 完整 5-lib：policy / store / proposals / signing / governance-log；CLI 8 subcommands propose / sign / cancel / finalize / list / show / sweep / policy；75 lib 单测 + 10 CLI integration 测试全过。(2) **Phase 2a marketplace.purchase mediator**（commit `2755093d0`）—— 设计文档 §6.1 落地：`cc marketplace purchase` 大额（≥¥1000）自动走 M-of-N 多签 propose，小额走 direct execute；`cc marketplace consume` 在 threshold 达成后 finalize + 执行业务操作；抽 `multisig-runtime.js` 共享 SQLite cascade（-130 行 dedup，Phase 1 10/10 零行为变更）；8 新 E2E 测试全过。marketplace.purchase / did.rotate / 跨链 bridge 三大典型 domain 由此解锁，marketplace.purchase 是第一个真实接通业务侧的 mediator。(3) **Phase 2b web-panel Multisig 视图落地**（commit `c758492d9`）—— 设计文档 §8.1 落地：web-shell（默认桌面入口）加 M-of-N 多签查看 / 操作面板，Phase 1 CLI 的 `cc multisig list/show/cancel` + `cc marketplace consume` 通过 `ws.executeJson(...)` 走 CLI 子进程；同份 SPA 在 desktop web-shell + cc ui 两边都自动可用（per memory `feedback_cross_shell_feature_pattern`）。(4) **Android v1.1 W3.7 Flow B QR pairing 落地**（commit `c47cbc649`）—— desktop 显 QR / phone 扫的主流应用通用 UX，Xiaomi 24115RA8EC 真机 E2E verified。同时把 Flow B 漏掉的 2 个测试文件补齐：ScanDesktopPairingViewModelTest 10 项 + desktop-pair-handlers.test.js 19 项。
