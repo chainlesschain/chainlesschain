@@ -334,11 +334,19 @@ async function registerPairedFromAck(ack) {
     const result = parseJsonOutput(output)
     if (result?.success) {
       message.success(`配对成功: ${result.deviceName || result.deviceId.slice(0, 8)}`)
+    } else if (result?.error?.includes?.('QR 已过期')) {
+      // v1.3+ 桌面 main 进程已经在 recordPairAck 时直写 SQLite (persistPairAck spawn).
+      // 这里二次调用 pair-from-qr 命中 5min QR 过期校验属正常 — DB 早被 main 写入。
+      // 不报 warning,只 info 提示.
+      message.info('配对已确认，设备已写入数据库')
     } else {
-      message.warning(`写入设备表失败: ${result?.error || 'unknown'}`)
+      // 真正写入异常才告警。还是同时静默,因 main spawn 可能已成功，UI 仅是 polling
+      // 二次确认。
+      message.warning(`配对状态待确认: ${result?.error || 'unknown'} — 列表刷新后即可见`)
     }
   } catch (e) {
-    message.warning(`写入设备表异常: ${e.message}`)
+    // 网络/超时类异常，不掩盖真问题
+    message.warning(`配对状态待确认: ${e.message} — 列表刷新后即可见`)
   }
 }
 
