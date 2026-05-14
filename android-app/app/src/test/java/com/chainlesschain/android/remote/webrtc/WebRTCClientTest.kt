@@ -5,6 +5,7 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -57,8 +58,15 @@ class WebRTCClientTest {
         coEvery { mockSignalClient.connect() } returns Result.success(Unit)
         coEvery { mockSignalClient.disconnect() } just Runs
 
-        // Mock PairedDesktopsStore (Plan B v1.3+ ICE servers persistence)
+        // Mock PairedDesktopsStore (Plan B v1.3+ ICE servers persistence).
+        // `devices` is `StateFlow<List<PairedDesktop>>`. A bare relaxed mock returns
+        // a relaxed StateFlow whose `.value` is a relaxed `Any`, not a `List`, so
+        // production-side `pairedDesktopsStore.devices.value.firstOrNull { ... }`
+        // would crash with "class java.lang.Object cannot be cast to java.lang.Iterable"
+        // and `connect()` would surface "连接失败: ..." (see WebRTCClient.kt:70).
+        // Stub with a real MutableStateFlow so the generic erasure stays sound.
         mockPairedDesktopsStore = mockk(relaxed = true)
+        every { mockPairedDesktopsStore.devices } returns MutableStateFlow(emptyList())
 
         // Mock PeerConnectionFactory static initialization
         mockkStatic(PeerConnectionFactory::class)

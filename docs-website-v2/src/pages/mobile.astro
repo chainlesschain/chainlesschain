@@ -203,6 +203,36 @@ const aab = dl('android-aab');
     </div>
   </section>
 
+  <!-- Plan A.1 远程终端 WebRTC DataChannel 直连 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A.1 远程终端 · v5.0.3.53 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">同一天再升级：4 跳信令砍到 1 跳 DataChannel 直连。</h2>
+        <p class="text-muted leading-relaxed">
+          v5.0.3.52 Plan A 真机首测（Xiaomi 24115RA8EC × Win desktop dev）暴露了一个<strong class="text-ink">架构性</strong>问题：
+          手机 → 路由器 → 公网中继 → 桌面 RelayClient 这条 4 跳信令链路，
+          NAT idle / 蜂窝运营商间歇杀 TCP 时任一跳断即整体失败。Plan A.1 把高频高吞吐的终端流量切到
+          <strong class="text-ink">WebRTC DataChannel 直连</strong>，绕开中间所有跳；signaling 路径保留兜底。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Phase 1 Trap 1 修</strong>：SignalClient.forwardedMessages 改 multi-subscribe SharedFlow 替代单 listener，治 ice:config 拦截器被 TerminalRpcClient.start() 后写覆盖 → iceServers 24h 过期跨 NAT 完全不通的 bug；+ WebRTCClient.dataChannelReady StateFlow（READY 才真意味 DC OPEN）</li>
+          <li>· <strong class="text-ink">Phase 2 DC fast path</strong>：SignalingRpcClient.invoke 内置 transport selector，connectionState==READY → DC 发；失败或未 ready → fallback signaling。两路 listener 同 requestId 同 CompletableDeferred，dual delivery 二次 complete 是 no-op 无需显式 dedup</li>
+          <li>· <strong class="text-ink">Phase 3 触发 + UI 指示</strong>：TerminalListViewModel 进屏异步触发 RemoteConnectionManager.connect；chip 显示 "P2P 直连"（绿）vs "中继路径"（黄）</li>
+          <li>· <strong class="text-ink">Phase 4 双向 LRU 去重</strong>：Android stdout 按 sessionId|seq 256-LRU + exit 按 sessionId 64-LRU 双订双流；桌面 mobile-bridge.bridgeToLibp2p 加 128-LRU / 30s-TTL 按 payload.id 去重 mobile→desktop command request 防 PtyManager 误处理</li>
+          <li>· <strong class="text-ink">Phase 5 零新代码</strong>：DC 失效 fallback / 自动重建 / 恢复切回 / UI 实时映射 都是 Phase 2 + P2PClient 既有 wiring 的免费副产物</li>
+          <li>· <strong class="text-ink">性能</strong>：RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN · p99 1.5-30s timeout → 200-800ms · 稳定性 20s-2min 间歇断 → 数小时持续</li>
+          <li>· <strong class="text-ink">测试</strong>：Android +8（TerminalRpcClient 3 dedup / SignalingRpcClient 4 transport / WebRTCClient 1 Trap 1）+ desktop +14（LRU dedup 5 + sendToMobile 5 + guard rails 2）· 三套件全绿（11 + 15 + 21 Android + 14 desktop）· 修 mockk relaxed StateFlow 泛型擦除致 12-test regression</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A1.md" target="_blank" rel="noopener">设计文档：Android Remote Terminal Plan A.1 →</a>
+          ·
+          真机 e2e §5.3 5 场景矩阵（LAN / 蜂窝 / 双 NAT / DC 强制失效 / DC 恢复）移交用户
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Plan A 远程终端 -->
   <section class="py-16 md:py-20 border-b border-line">
     <div class="container-wide">

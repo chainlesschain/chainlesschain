@@ -2,6 +2,24 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-14 发布 — **v5.0.3.53 Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连（Phase 1–5 一日全落）**
+
+> v5.0.3.52 Plan A 真机首测（Xiaomi 24115RA8EC × Win desktop dev）暴露 1 个**架构性**问题：4 跳信令链路（手机→路由器→公网中继→桌面 RelayClient）NAT idle / 蜂窝运营商间歇杀 TCP，整链路 fragile。  
+> 落地：**Plan A.1** — 把高频高吞吐终端流量从 signaling 链路切到 **WebRTC DataChannel 直连**，绕开中间所有跳；signaling 路径保留为兜底。
+
+性能预期 → 端到端 RTT p50 200-500ms → **30-80ms LAN / 50-200ms TURN**；p99 1.5-30s timeout 频发 → **200-800ms**；稳定性 20s-2min 间歇断 → **数小时持续**（依赖 ICE keepalive）。
+
+- **Phase 1 — Trap 1 修复 + DC 路由 helper**（commits `d22b7ac8a` + `bb759bc78`）— `SignalClient.forwardedMessages` 改 **multi-subscribe SharedFlow**（替代单 listener 的 `setOnForwardedMessageReceived`）。原 bug：`WebRTCClient.initialize` 装的 ice:config 拦截器在用户进 TerminalListScreen 时被 `TerminalRpcClient.start()` 后写覆盖 → ice:config 推送丢 → iceServers 24h 过期后跨 NAT 完全不通。新增 `WebRTCClient.dataChannelReady: StateFlow<Boolean>` derived flag（READY 才真意味 DC `OPEN`，避免 ICE-connected 但 DC 未开的误判）。
+- **Phase 2 — DC fast path + 双 listener pending pool**（commit `a01eeac47`）— `SignalingRpcClient.invoke` 内置 transport selector：`connectionState==READY && preferDataChannel` → `webRTCClient.sendMessage`（DC），失败或未 ready → fallback signaling。两路 listener 同时订阅 `signalClient.forwardedMessages` + `webRTCClient.messages`，同一 `requestId` 对同一 `CompletableDeferred`（二次 complete 是 no-op，dual delivery 安全无需显式 dedup）。所有 RPC clients（TerminalRpc + system.*/ai.*）单点 chokepoint 自动受益。
+- **Phase 3 — Android 触发 handshake + UI 路径指示**（commit `91e77e489`）— `TerminalListViewModel.init` 检测 DC 未 ready 即异步触发 `RemoteConnectionManager.connect`；UI chip 显示 "P2P 直连"（绿）vs "中继路径"（黄），用户可见路径状态。
+- **Phase 4 — 双向 LRU 去重**（commit `dd9b1227e` Android + `fc3752360` desktop）— Android `TerminalRpcClient` 双订阅 signaling + DC SharedFlow，stdout 按 `(sessionId|seq)` 256-LRU 去重 / exit 按 `sessionId` 64-LRU。桌面 `mobile-bridge.bridgeToLibp2p` 加 128-LRU / 30s-TTL 按 `payload.id` 去重 mobile→desktop command request（防 `terminal.stdin` 双跑 / PtyManager 误处理）。
+- **Phase 5 — 既有 wiring 组合**（无新代码）— DC 失效 fallback = Phase 2 `trySendViaDataChannel` 抛 IllegalStateException 自动落 signaling；自动重建 = `P2PClient.scheduleReconnect` 指数退避 1s→60s / maxAttempts 10（既有）；恢复后自动切回 = `isDcReady()` 每次 `invoke()` 入口重检；UI 实时映射 = Phase 3 `dataChannelReady` chip。
+- **测试**：Android `TerminalRpcClientTest` +3 dedup / `SignalingRpcClientTest` +4 transport selection / `WebRTCClientTest` +1 Trap 1 回归；desktop `mobile-bridge.test.js` 新 14 测覆盖 LRU dedup 5 维 + sendToMobile DC 优先 vs signaling-relay 双发兜底 5 维。3 套件全绿（11 + 15 + 21 Android + 14 desktop 新 + 既有未动）。真机 e2e §5.3 矩阵移交用户（LAN / 蜂窝 / 双 NAT / DC 强制失效 / DC 恢复 5 场景）。
+- **bug 修**：WebRTCClientTest 12 个测试 regression — `mockk(relaxed=true)` 对 `StateFlow<List<X>>` 泛型擦除致 `.value` 返 relaxed Object 而非 List → 生产端 `pairedDesktopsStore.devices.value.firstOrNull { ... }` 抛 `Object cannot be cast to Iterable` → `connect()` catch 套成 `"连接失败: ..."`；测试 setup 加 `every { mockPairedDesktopsStore.devices } returns MutableStateFlow(emptyList())` 修。
+- **设计文档**：[`docs/design/Android_Remote_Terminal_Plan_A1.md`](docs/design/Android_Remote_Terminal_Plan_A1.md) v1.0（含 §1.2 三个 trap 完整分析 + §3.7 不复用 :core-p2p DataChannelTransport 的决策 + §5.3 真机 e2e 5 场景验收矩阵）。
+- **遥测**：`[SignalingRpc.metric] path=dc|signaling reqId=...` 埋点上线，发版第一周观察 fast-path 占比，目标 ≥80%（用户基数 ≥10 设备）。
+- **分发**：桌面 binary v5.0.3.52 → v5.0.3.53 重打；CLI `chainlesschain` 0.161.12 不变（Plan A.1 不动 packages/cli/）；Android versionCode/Name 不变（v1.0.0 GA 维持，本批 desktop + Android `app/` 共改）。
+
 ## 2026-05-14 发布 — **v5.0.3.52 Plan A 远程终端：Android↔桌面 PTY 全链路（Phase 1–4 全部 + 162 测试全绿）**
 
 > 用户痛点："PC 上开了很多终端，能不能在 Android 上看到这些终端的输出并远程输入指令？"  

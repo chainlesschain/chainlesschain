@@ -212,6 +212,38 @@ const aab = dl('android-aab');
     </div>
   </section>
 
+  <!-- Plan A.1 remote terminal WebRTC DataChannel direct -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A.1 Remote Terminal · v5.0.3.53 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Same day, upgraded: 4-hop signaling collapsed to a 1-hop DataChannel.</h2>
+        <p class="text-muted leading-relaxed">
+          v5.0.3.52 Plan A real-device validation (Xiaomi 24115RA8EC × Win desktop dev) surfaced one
+          <strong class="text-ink">architectural</strong> issue: a 4-hop signaling chain
+          (phone → router → public relay → desktop RelayClient) is fragile under NAT idle / cellular
+          carrier-side TCP RST — any hop down kills the whole chain. Plan A.1 moves high-frequency /
+          high-throughput terminal traffic onto a <strong class="text-ink">WebRTC DataChannel direct
+          connection</strong>, bypassing every middle hop; signaling stays as a fallback.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Phase 1 Trap 1 fix</strong>: SignalClient.forwardedMessages migrated to multi-subscribe SharedFlow replacing the single-listener setOnForwardedMessageReceived → the ice:config interceptor was no longer silently overwritten when TerminalRpcClient.start() ran, fixing the bug where iceServers expired in 24h and cross-NAT became unreachable; + new WebRTCClient.dataChannelReady StateFlow (READY truly means DC OPEN)</li>
+          <li>· <strong class="text-ink">Phase 2 DC fast path</strong>: SignalingRpcClient.invoke embeds a transport selector — connectionState==READY → send via DC; throws or not-ready → fallback signaling. Two listeners consume both streams; same requestId → same CompletableDeferred (second complete is a no-op, dual delivery is safe without explicit dedup)</li>
+          <li>· <strong class="text-ink">Phase 3 handshake trigger + UI indicator</strong>: TerminalListViewModel async-triggers RemoteConnectionManager.connect on entry; chip shows "P2P direct" (green) vs "Relay path" (yellow)</li>
+          <li>· <strong class="text-ink">Phase 4 bidirectional LRU dedup</strong>: Android dedups stdout by (sessionId|seq) with 256-LRU + exit by sessionId with 64-LRU on dual streams; desktop mobile-bridge.bridgeToLibp2p gets a 128-LRU / 30s-TTL keyed by payload.id for mobile→desktop command requests, guarding against duplicate PtyManager side effects</li>
+          <li>· <strong class="text-ink">Phase 5 zero new code</strong>: DC failure fallback / auto-reconnect / recovery auto-switch / live UI mapping all fall out of Phase 2 + P2PClient's existing wiring for free</li>
+          <li>· <strong class="text-ink">Perf</strong>: RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN · p99 1.5-30s with timeouts → 200-800ms · stability 20s-2min outages → hours-long sustained</li>
+          <li>· <strong class="text-ink">Tests</strong>: Android +8 (TerminalRpcClient 3 dedup / SignalingRpcClient 4 transport / WebRTCClient 1 Trap 1) + desktop +14 (LRU dedup 5 + sendToMobile 5 + guard rails 2) · all 3 suites green (11 + 15 + 21 Android + 14 desktop) · 12-test regression fix (mockk relaxed StateFlow generic erasure)</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A1.md" target="_blank" rel="noopener">Design doc: Android Remote Terminal Plan A.1 →</a>
+          ·
+          Real-device E2E §5.3 5-scenario matrix (LAN / cellular / double-NAT / DC forced-down / DC recovered) is on the user.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Plan A remote terminal -->
   <section class="py-16 md:py-20 border-b border-line">
     <div class="container-wide">
