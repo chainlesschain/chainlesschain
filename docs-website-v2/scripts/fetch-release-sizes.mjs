@@ -24,7 +24,10 @@ function classify(name) {
   if (/\.AppImage$/.test(name)) return 'linux-appimage';
   if (/_amd64\.deb$/.test(name)) return 'linux-deb';
   if (/x86_64\.rpm$/.test(name)) return 'linux-rpm';
+  if (/app-arm64-v8a-release\.apk$/.test(name)) return 'android-arm64-v8a';
+  if (/app-armeabi-v7a-release\.apk$/.test(name)) return 'android-armeabi-v7a';
   if (/app-universal-release\.apk$/.test(name)) return 'android-universal';
+  if (/app-release\.aab$/.test(name)) return 'android-aab';
   return null;
 }
 
