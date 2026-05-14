@@ -30,6 +30,7 @@ fun TerminalListScreen(
     viewModel: TerminalListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val dcReady by viewModel.dataChannelReady.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -63,11 +64,41 @@ fun TerminalListScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                "桌面: ${pcPeerId.take(16)}…",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "桌面: ${pcPeerId.take(16)}…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                // Plan A.1 — 显示传输路径标识。dcReady=true 时是 P2P 直连，否则是
+                // 信令转发（4 跳，间歇 NAT idle 风险）。颜色 hint: 绿=DC, 黄=relay。
+                AssistChip(
+                    onClick = {},
+                    enabled = false,
+                    label = {
+                        Text(
+                            if (dcReady) "P2P 直连" else "中继路径",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        disabledContainerColor = if (dcReady) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        },
+                        disabledLabelColor = if (dcReady) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onTertiaryContainer
+                        },
+                    ),
+                )
+            }
             state.error?.let { err ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Text(err, modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
