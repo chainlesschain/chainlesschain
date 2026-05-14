@@ -2,7 +2,7 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-## 2026-05-14 Landed — **Plan A Remote Terminal: Android↔Desktop PTY end-to-end (Phase 1–4 all + 162 tests green)**
+## 2026-05-14 Release — **v5.0.3.52 Plan A Remote Terminal: Android↔Desktop PTY end-to-end (Phase 1–4 all + 162 tests green)**
 
 > User pain point: "I have many terminals open on my PC, can my Android phone see their output and remotely send commands?"  
 > Hard constraint: external terminals already running on Windows **cannot be attached** by another process (OS handles are private to the parent).  
@@ -58,6 +58,21 @@ P0 prerequisite batch before v1.2 GA (**no version bump**; will release alongsid
 - **Fix B.6 strict mode disk-load gate** (discovered during this QA sweep) — `LandmarkCache.loadFromDisk()` bypassed the strict-mode gate. Moved per-snapshot strict check into `_validateAndStoreSnapshot()` so both ingest + disk-load paths go through the gate. +2 disk-load integration tests lock the regression.
 
 **Tests**: B.6 strictPqMode 11/11 + B.2 multisig-handlers 23/23 + AI-3 ManifestSignatureVerifier 10/10 + Android `:app` regression 57/57 + web-shell 379 regression (25 files) all pass.
+
+## 2026-05-13 Release — **v5.0.3.51 Remote Operate Plan A + B infrastructure landed (WebRTC signaling relay + STUN/TURN deployment + iceServers credential signing)**
+
+productVersion **v5.0.3.50 → v5.0.3.51**. Plan C (v5.0.3.50) wired signaling-forward through to 100-400ms p99 for low-frequency commands, but two hard constraints remain: throughput (the relay's bandwidth is shared across all clients → streaming tokens / files / video can't pass through) + privacy (the relay server can read plaintext payloads beyond the public wss TLS layer). Plan A+B closes both: real WebRTC P2P DataChannel = end-to-end encryption + direct-link bandwidth. The complete three-tier picture: low-frequency commands ride Plan C signaling forward / high-throughput streaming tokens + files ride Plan A WebRTC DC / NAT traversal fallback rides Plan B STUN/TURN. Design doc: [Android Remote Operate Plan A+B](docs/design/Android_Remote_Operate_Plan_AB.md).
+
+- **Plan A — WebRTC signaling pass-through relay** (commits `e9f9d6275` + `af11daa6e`) — signaling-relay `server.js` `handleMessage` switch adds case `offer/answer/ice-candidate/ice-candidates/peer-status` on the same forwarding path as `type=message` with the `from` field injected (parity with LAN signaling-handlers). Desktop main `startRelayClient.onMessage` collapses to a unified dispatch: pair-ack still routes alone to write sessionState; everything else (command:request / offer / answer / ice) goes through `mobileBridge.handleSignalingMessage` — the LAN path and relay path become fully equivalent.
+- **Plan B — coturn STUN/TURN deployment** — `turn.chainlesschain.com` (47.111.5.128) listens on `0.0.0.0:3478` UDP+TCP + `5349` TLS + `49152-65535` UDP relay; docker compose host-network mode avoids NAT; Let's Encrypt via gitee-mirrored acme.sh handles renewal; `use-auth-secret` for time-limited credentials.
+- **iceServers HMAC-SHA1 24h ephemeral creds** — `signIceCredentials(userId)` mints `username = expiry-ts:user-id` + `credential = base64(HMAC-SHA1(TURN_SECRET, username))` and returns the three-tier `stun:turn.chainlesschain.com:3478` + `turn:3478?transport=udp/tcp` + `turns:5349` priority list with credentials. The `CC_TURN_SECRET` env is **mandatory** with no source-level fallback and **never hardcoded** (no fork can mint working credentials); without it the system degrades to STUN-only.
+- **iceServers no longer in QR — pushed via signaling instead** — a 650+ char QR payload + high error-correction at 280px crashed scan recognition (verified 2026-05-14: 30s blocking with no detection); switched to async push after scan: when desktop pair-ack matches it calls `pushIceServersToMobile(ackPayload)` over both LAN signaling + the public relay (**dual-send**) with `type chainlesschain:ice:config` payload `{pcPeerId, iceServers, iceExpiry}`. Android `WebRTCClient.setOnForwardedMessageReceived` intercepts + `persistIceConfigMessage` upserts into `PairedDesktopsStore.iceServersJson`; `SignalingRpcClient.handleIceConfigMessage` keeps a race-tolerant backup.
+- **Android `WebRTCClient.createPeerConnection`** — `PairedDesktopsStore` is injected; `resolveIceServersFor(pcPeerId)` reads stored iceServers (TURN included), with expiry/missing fallback to Google STUN; `parseIceServersJson` accepts `urls` as either string or array.
+- **`backend/signaling-relay-service/` enters the repo** — `server.js` + `Dockerfile` + `docker-compose.yml` + nginx vhost + `deploy.sh` + README, giving second-party deployments a working blueprint.
+
+**Known constraints / trade-offs**: iceServers TTL 24h — once expired, fallback to Google STUN won't traverse NAT (mobile-side detection of approaching expiry to request fresh credentials over signaling lands before v1.4 GA); WebRTC P2P real-device cross-NAT verification still pending (full file-transfer test on phone 4G + desktop home WiFi); Signal Protocol E2EE waits for Plan A DC to land first (DC is already direct + TLS, marginal gain from Signal); Aliyun security groups must allow UDP 3478 / TCP 3478 / TCP 5349 / UDP 49152-65535 to 0.0.0.0/0 — without it coturn runs but is externally unreachable, ICE gathering fails.
+
+**Distribution**: desktop binary v5.0.3.50 → v5.0.3.51 rebuilt; signaling-relay-service deployed at `47.111.5.128`; CLI `chainlesschain` 0.161.10 → 0.161.11; Android versionCode/Name unchanged; all three doc sites synchronized this round: docs-site / docs-site-design tagline bumped to v5.0.3.51 + Plan A+B design doc synced.
 
 ## 2026-05-13 Release — **v5.0.3.50 Android Remote Operate Plan C signaling-forward RPC (mobile remote really wired to desktop)**
 

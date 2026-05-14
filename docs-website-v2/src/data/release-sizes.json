@@ -1,6 +1,6 @@
 {
   "tag": "v5.0.3.52",
-  "fetchedAt": "2026-05-14T05:55:43.036Z",
+  "fetchedAt": "2026-05-14T06:21:45.977Z",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",
@@ -12,15 +12,15 @@
       "bytes": 61411590,
       "label": "59 MB"
     },
-    "android-universal": {
-      "name": "app-universal-release.apk",
-      "bytes": 129668157,
-      "label": "124 MB"
-    },
     "android-aab": {
       "name": "app-release.aab",
       "bytes": 73979305,
       "label": "71 MB"
+    },
+    "android-universal": {
+      "name": "app-universal-release.apk",
+      "bytes": 129668157,
+      "label": "124 MB"
     },
     "mac-arm64": {
       "name": "ChainlessChain-5.0.3-alpha.52-arm64.dmg",
