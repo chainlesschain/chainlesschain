@@ -5,6 +5,26 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
+
+> v5.0.3.53 发版后真机 E2E 暴露 8 个独立 bug，从"打不开 / 黑屏 / 无法输入 / cc/claude 不可用"到端到端完整可用。`f54a6fcd0` 收口（Xiaomi 24115RA8EC ↔ Windows git-bash longfa 验证）。
+
+### Fixed — 远程终端真机端到端打通
+
+- **fix1** `P2PClient.handleIncoming` 加 `chainlesschain:*` envelope guard — 避免协议消息被当业务消息触发 spurious peer state 变化
+- **fix2** `WebRTCClient.sendOffer` 移除 `currentPeerId = peerId` 误赋值（peerId 是 target ≠ self） — echo loop 真因：WS 重连 auto-re-register 把 mobile 注册成桌面 peerId 后路由回自己
+- **fix3** desktop `mobile-bridge` + `desktop-pair-handlers` 加 `maybeRefreshIceForMobile` 12h 节流自动 refresh iceServers — 跨 24h TTL 仍可用
+- **fix4** signaling-relay `server.js handleMessage` 注入 `msg.from = ws._peerId` 中继路由 forward 缺 from 字段（中继 deploy `docker compose up -d --build --force-recreate` 47.111.5.128）
+- **fix5** `TerminalRpcClient` stdout dedup gate 移除（gate 表达式永远 true 让每条 stdout 被 drop）
+- **fix7** `TerminalListViewModel.createSession.onSuccess` closure shadow 真因：`it.copy(lastCreatedId = it.lastCreatedId)` 把 `CreatedSession` 参数名 shadow 成 state，永远不更新；改用 `created.sessionId` + List 屏 `LaunchedEffect(state.lastCreatedId)` 自动 navigate
+- **fix11** `TerminalWebView` `LayoutParams MATCH_PARENT × MATCH_PARENT` — Compose AndroidView 默认 WRAP_CONTENT + HTML `body { height: 100% }` 死锁让 WebView 永远 0 高，xterm.fit() 返回 cols=49 rows=1 → 桌面 PTY 被 resize 成 1 行 → 用户看到的"全黑"其实是底色 #1e1e1e（fix9/10 ResizeObserver + DOM size guard 三层定位）
+- **fix12** `PtyManager` login shell + git-bash probe — `pty.spawn(cmd, [], ...)` 无 args 让 bash/wsl 不走 login mode → `~/.bashrc` 不加载；`bash.exe` PATH 优先匹配 WSL bash → 进 root 用户无 npm-global PATH。改返回 `{cmd, args}`，bash 走 `-l`，wsl 走 `-- bash -l`，shell=bash 优先 probe `Program Files/Git/bin/bash.exe`。Android 端选 `bash` 后能用 `cc` / `claude` / `npm` 等用户全局 CLI
+
+### Lessons captured
+
+- `feedback_currentpeerid_target_vs_self_trap.md` — sendOffer 不能拿 target peerId 设 currentPeerId（self）
+- `android_webview_xterm_resize_observer.md` — Compose AndroidView WRAP_CONTENT × HTML height:100% 死锁三连坑 + 三层修法
+
 ## [v5.0.3.53] - 2026-05-14 — Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连
 
 > Plan A v5.0.3.52 把 terminal 命令通道架在 signaling 转发 (Plan C, 4 跳链路) 上，真机 e2e 暴露 5 个 reliability bug：APK 中文 GBK 乱码 / 每次 invoke 新 peerId 让 server cleanup 误杀 / OkHttp pingInterval 太短 / WS reconnect 不自动 re-register / **NAT idle + 蜂窝间歇杀 TCP 让 4 跳链路任一跳断即整体失败 (架构性)**。Plan A.1 治本：稳态命令 + stdout/exit 推送从 4 跳 signaling 切到 1 跳 WebRTC DataChannel 直连，绕开中继 + NAT idle，p50 RTT 200-500ms→30-80ms。失败 silent fallback signaling，保留兜底。

@@ -3,6 +3,21 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
+
+> v5.0.3.53 发版后真机 E2E 暴露 8 个独立 bug，从"打不开 / 黑屏 / 无法输入 / cc/claude 不可用"到端到端完整可用。`f54a6fcd0` 收口（Xiaomi 24115RA8EC ↔ Windows git-bash longfa 验证）。
+
+**核心修复**（详细 entry 见根 `CHANGELOG.md`）：
+
+- **fix1-5** WebRTC echo loop + iceServers 自动 refresh + 中继 `msg.from` 注入 + TerminalRpc dedup gate
+- **fix7** `TerminalListViewModel` closure shadow + List 屏自动 navigate 到新 session
+- **fix11** `TerminalWebView LayoutParams MATCH_PARENT` — Compose AndroidView WRAP_CONTENT + HTML body `height:100%` 死锁让 WebView 永远 0 高（"全黑"真因）
+- **fix12** `PtyManager` login shell + git-bash probe — `cc` / `claude` / `npm` 等用户全局 CLI 在 Android 远程终端可用（之前 PATH 解析到 WSL bash root 用户没 PATH）
+
+记忆复盘：`feedback_currentpeerid_target_vs_self_trap.md` + `android_webview_xterm_resize_observer.md`
+
+---
+
 ## [v5.0.3.53] - 2026-05-14 — Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连
 
 > Plan A v5.0.3.52 真机 e2e 暴露 5 个 reliability bug，其中 1 个是**架构性**：signaling 4 跳链路（手机 → 路由器 → 中继 → 桌面 RelayClient）任一跳被 NAT idle / 蜂窝运营商间歇杀 TCP 即整体失败。Plan A.1 治本：稳态命令 + stdout/exit 推送从 4 跳 signaling 切到 1 跳 WebRTC DataChannel 直连，绕开中继 + NAT idle，p50 RTT 200-500ms → 30-80ms。失败 silent fallback signaling，保留兜底。
