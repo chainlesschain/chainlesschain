@@ -59,6 +59,13 @@ class MobileBridge extends EventEmitter {
     // 收到匹配 id 的 response 时 resolve（M5 ADR-6 接通 MobileSignClient 的 transport 抽象）
     this.pendingReverseRpc = new Map(); // requestId -> {resolve, reject, timer, peerId, method, sentAt}
 
+    // Plan A.1 Phase 4 — 反向去重 mobile→desktop command request。Android 可能
+    // 同时经 DC 和 signaling 双发同一 requestId（保险 / DC 失败再 fallback 但旧
+    // request 还在路上等场景）。LRU 128 容量 + 30s TTL。命中即跳过 emit。
+    this.recentMobileRequests = new Map(); // requestId -> insertedAt(ms)
+    this.RECENT_MOBILE_REQUEST_TTL_MS = 30_000;
+    this.RECENT_MOBILE_REQUEST_MAX = 128;
+
     // 连接池管理
     this.maxConnections = options.maxConnections || 50;
     this.connectionTimeout = options.connectionTimeout || 30000;
@@ -860,6 +867,22 @@ class MobileBridge extends EventEmitter {
   }
 
   /**
+   * Plan A.1 Phase 4 — 回收 [recentMobileRequests] 里超过 TTL 的条目。
+   * 在每次入站 dedup check 前调一次，无独立 timer（避免 leaking）。
+   */
+  _gcRecentMobileRequests() {
+    const cutoff = Date.now() - this.RECENT_MOBILE_REQUEST_TTL_MS;
+    for (const [reqId, ts] of this.recentMobileRequests) {
+      if (ts < cutoff) {
+        this.recentMobileRequests.delete(reqId);
+      } else {
+        // Map insertion order → first kept-alive entry means rest are newer.
+        break;
+      }
+    }
+  }
+
+  /**
    * 桥接消息到libp2p网络
    */
   async bridgeToLibp2p(mobilePeerId, data) {
@@ -905,6 +928,30 @@ class MobileBridge extends EventEmitter {
         );
         pending.resolve(message);
         return; // 不 emit
+      }
+
+      // Plan A.1 Phase 4 — mobile→desktop command request 去重。Android 同一
+      // requestId 可能 DC + signaling 双路到达；下游 handleMobileCommand 跑
+      // 两次会让 PtyManager 重复执行 stdin / 双倍 stdout 发回。LRU 30s TTL。
+      const reqId = message?.payload?.id;
+      const isMobileRequest =
+        typeof reqId === "string" &&
+        (message.type === "chainlesschain:command:request" ||
+          message.type === "command:request");
+      if (isMobileRequest) {
+        this._gcRecentMobileRequests();
+        if (this.recentMobileRequests.has(reqId)) {
+          logger.debug(
+            `[MobileBridge] dedup mobile request id=${reqId} (already seen <30s ago)`,
+          );
+          return;
+        }
+        this.recentMobileRequests.set(reqId, Date.now());
+        if (this.recentMobileRequests.size > this.RECENT_MOBILE_REQUEST_MAX) {
+          // Drop oldest (Map preserves insertion order).
+          const oldest = this.recentMobileRequests.keys().next().value;
+          this.recentMobileRequests.delete(oldest);
+        }
       }
 
       // 触发事件，让P2PManager处理
