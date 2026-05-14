@@ -228,7 +228,7 @@ function startHeartbeatSweeper() {
 const http = require("http");
 const httpServer = http.createServer((req, res) => {
   if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
     res.end(
       JSON.stringify({
         ok: true,
@@ -240,7 +240,7 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
   if (req.url === "/") {
-    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("ChainlessChain Signaling Relay — connect via WebSocket\n");
     return;
   }
