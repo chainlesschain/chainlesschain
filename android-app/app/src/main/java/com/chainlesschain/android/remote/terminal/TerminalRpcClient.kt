@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.terminal
 
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import com.chainlesschain.android.remote.webrtc.SignalClient
+import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.Collections
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -46,6 +48,10 @@ import javax.inject.Singleton
 class TerminalRpcClient @Inject constructor(
     private val rpc: SignalingRpcClient,
     private val signalClient: SignalClient,
+    // Plan A.1 Phase 4 — DC 直连路径上的 chainlesschain:event push（terminal.stdout
+    // / terminal.exit）通过 [WebRTCClient.messages] 到达；要双路监听 + 按
+    // (sessionId, seq) / (sessionId, exitCode-marker) 去重避免 UI 重复渲染输出。
+    private val webRTCClient: WebRTCClient,
 ) {
 
     data class CreatedSession(
@@ -75,7 +81,23 @@ class TerminalRpcClient @Inject constructor(
     fun observeExit(): SharedFlow<ExitEvent> = _exit.asSharedFlow()
 
     @Volatile private var pushListenerInstalled = false
-    @Volatile private var listenerJob: Job? = null
+    @Volatile private var signalingListenerJob: Job? = null
+    @Volatile private var dcListenerJob: Job? = null
+
+    // Plan A.1 Phase 4 — 反向去重 LRU。stdout 按 "sessionId|seq" 索引；exit 按
+    // "sessionId|exit"（每 session 只允许 emit 一次 exit）。LinkedHashMap +
+    // synchronized + accessOrder=true 实现简易 LRU；上限 256 是合理的 burst 容量
+    // （桌面 ring buffer 也是 256KB 量级）。
+    private val recentStdoutKeys: MutableSet<String> = Collections.newSetFromMap(
+        Collections.synchronizedMap(object : LinkedHashMap<String, Boolean>(256, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>): Boolean = size > 256
+        }),
+    )
+    private val recentExitKeys: MutableSet<String> = Collections.newSetFromMap(
+        Collections.synchronizedMap(object : LinkedHashMap<String, Boolean>(64, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>): Boolean = size > 64
+        }),
+    )
 
     // Plan A.1 — Dispatchers.Main.immediate 让 listener job 跟随 Dispatchers.setMain
     // 在测试里走 TestDispatcher 受 runCurrent 控制。生产下处理量小（JSON parse +
@@ -84,21 +106,31 @@ class TerminalRpcClient @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     /**
-     * 必须在使用 [observeStdout] 之前调用一次。订阅 [SignalClient.forwardedMessages]
-     * SharedFlow，只 emit `terminal.stdout` / `terminal.exit` 事件，其余路过。
+     * 必须在使用 [observeStdout] 之前调用一次。订阅**双路**消息流，挑
+     * `terminal.stdout` / `terminal.exit` 事件 emit 到 [_stdout] / [_exit]。
      *
-     * Plan A.1 — 从单 callback `setOnForwardedMessageReceived` 切到 SharedFlow，
-     * 修 WebRTCClient / SignalingRpcClient / 本类三方互覆盖的 Trap 1：之前 RPC
-     * invoke 第一次后 SignalingRpc 会覆盖本类的 callback，stdout/exit 事件全部
-     * 默默丢失。
+     * Plan A.1 Phase 4 — 双路监听：
+     *   1. [SignalClient.forwardedMessages] — 信令转发路径
+     *   2. [WebRTCClient.messages] — DC 直连路径（也含 signaling 入，因
+     *      WebRTCClient.initialize callback 同步 emit 到此 flow）
+     *
+     * 按 (sessionId, seq) 去重 stdout；按 sessionId 去重 exit（每会话一次）。
+     * desktop sendToMobile DC ready 时**只发 DC**（Phase 4 desktop 收紧），
+     * 但保留双路监听作为防御兜底——网络分区或竞态下 listener 都能正常工作。
+     *
+     * Plan A.1 Phase 1 — 从单 callback `setOnForwardedMessageReceived` 切到
+     * SharedFlow，修 WebRTCClient / SignalingRpcClient / 本类三方互覆盖的 Trap 1。
      */
     fun start() {
         if (pushListenerInstalled) return
-        listenerJob = signalClient.forwardedMessages
+        signalingListenerJob = signalClient.forwardedMessages
+            .onEach { raw -> handleForwardedEvent(raw) }
+            .launchIn(scope)
+        dcListenerJob = webRTCClient.messages
             .onEach { raw -> handleForwardedEvent(raw) }
             .launchIn(scope)
         pushListenerInstalled = true
-        Timber.i("[TerminalRpc] push listener installed (via forwardedMessages SharedFlow)")
+        Timber.i("[TerminalRpc] push listener installed (forwardedMessages + webRTCClient.messages)")
     }
 
     private fun handleForwardedEvent(raw: String) {
@@ -113,18 +145,31 @@ class TerminalRpcClient @Inject constructor(
             }
             when (payload.optString("event")) {
                 "terminal.stdout" -> {
+                    val sessionId = payload.optString("sessionId")
+                    val seq = payload.optLong("seq")
+                    val key = "$sessionId|$seq"
+                    if (!recentStdoutKeys.add(key)) {
+                        // 重复（DC + signaling 双路到达）— 静默丢弃。
+                        Timber.v("[TerminalRpc] dedup stdout $key")
+                        return
+                    }
                     _stdout.tryEmit(
                         StdoutEvent(
-                            sessionId = payload.optString("sessionId"),
+                            sessionId = sessionId,
                             data = payload.optString("data"),
-                            seq = payload.optLong("seq"),
+                            seq = seq,
                         ),
                     )
                 }
                 "terminal.exit" -> {
+                    val sessionId = payload.optString("sessionId")
+                    if (!recentExitKeys.add(sessionId)) {
+                        Timber.v("[TerminalRpc] dedup exit for session $sessionId")
+                        return
+                    }
                     _exit.tryEmit(
                         ExitEvent(
-                            sessionId = payload.optString("sessionId"),
+                            sessionId = sessionId,
                             exitCode = if (payload.isNull("exitCode")) null else payload.optInt("exitCode"),
                             signal = if (payload.isNull("signal")) null else payload.optString("signal"),
                         ),

@@ -2,7 +2,9 @@
 
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import com.chainlesschain.android.remote.webrtc.SignalClient
+import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,8 @@ class TerminalRpcClientTest {
 
     private lateinit var rpc: SignalingRpcClient
     private lateinit var signalClient: FakeSignalClient
+    private lateinit var webRTCClient: WebRTCClient
+    private lateinit var dcMessages: MutableSharedFlow<String>
     private lateinit var client: TerminalRpcClient
 
     private class FakeSignalClient : SignalClient {
@@ -70,7 +74,10 @@ class TerminalRpcClientTest {
         Dispatchers.setMain(testDispatcher)
         rpc = mockk()
         signalClient = FakeSignalClient()
-        client = TerminalRpcClient(rpc, signalClient)
+        webRTCClient = mockk(relaxed = true)
+        dcMessages = MutableSharedFlow(extraBufferCapacity = 64)
+        every { webRTCClient.messages } returns dcMessages.asSharedFlow()
+        client = TerminalRpcClient(rpc, signalClient, webRTCClient)
     }
 
     @After
@@ -278,6 +285,97 @@ class TerminalRpcClientTest {
         runCurrentScheduler()
         // External callback must still be the one we installed — start() did not touch it.
         assertEquals(externalCallback, signalClient.callback)
+    }
+
+    /**
+     * Plan A.1 Phase 4 — same (sessionId, seq) arriving from BOTH transports
+     * (DC + signaling) must be dedup'd. UI must see exactly one stdout event.
+     */
+    @Test
+    fun `Plan A1 — stdout duplicate from DC and signaling is dedup'd`() = runTest(testDispatcher) {
+        client.start()
+        val received = mutableListOf<TerminalRpcClient.StdoutEvent>()
+        val job = launch {
+            client.observeStdout().collect { received.add(it) }
+        }
+        runCurrentScheduler()
+
+        val frame = JSONObject()
+            .put("type", "chainlesschain:event")
+            .put(
+                "payload",
+                JSONObject()
+                    .put("event", "terminal.stdout")
+                    .put("sessionId", "s1")
+                    .put("data", "hello")
+                    .put("seq", 42),
+            ).toString()
+
+        // First delivery via signaling, second via DC — same (s1, 42).
+        signalClient.emitForwarded(frame)
+        dcMessages.emit(frame)
+        runCurrentScheduler()
+
+        assertEquals(1, received.size, "duplicate (s1, 42) must collapse to one emit")
+        assertEquals("hello", received[0].data)
+        job.cancel()
+    }
+
+    @Test
+    fun `Plan A1 — exit duplicate per session is dedup'd`() = runTest(testDispatcher) {
+        client.start()
+        val received = mutableListOf<TerminalRpcClient.ExitEvent>()
+        val job = launch {
+            client.observeExit().collect { received.add(it) }
+        }
+        runCurrentScheduler()
+
+        val frame = JSONObject()
+            .put("type", "chainlesschain:event")
+            .put(
+                "payload",
+                JSONObject()
+                    .put("event", "terminal.exit")
+                    .put("sessionId", "s1")
+                    .put("exitCode", 0)
+                    .put("signal", JSONObject.NULL),
+            ).toString()
+
+        signalClient.emitForwarded(frame)
+        dcMessages.emit(frame)
+        runCurrentScheduler()
+
+        assertEquals(1, received.size, "duplicate exit for s1 must collapse")
+        job.cancel()
+    }
+
+    @Test
+    fun `Plan A1 — DC path delivers stdout when signaling silent`() = runTest(testDispatcher) {
+        client.start()
+        val received = mutableListOf<TerminalRpcClient.StdoutEvent>()
+        val job = launch {
+            client.observeStdout().collect { received.add(it) }
+        }
+        runCurrentScheduler()
+
+        val frame = JSONObject()
+            .put("type", "chainlesschain:event")
+            .put(
+                "payload",
+                JSONObject()
+                    .put("event", "terminal.stdout")
+                    .put("sessionId", "s1")
+                    .put("data", "dc-only")
+                    .put("seq", 7),
+            ).toString()
+
+        // Only DC path delivers.
+        dcMessages.emit(frame)
+        runCurrentScheduler()
+
+        assertEquals(1, received.size)
+        assertEquals("dc-only", received[0].data)
+        job.cancel()
     }
 
     @Test
