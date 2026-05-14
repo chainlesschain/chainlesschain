@@ -527,6 +527,19 @@ class P2PClient @Inject constructor(
     }
 
     private suspend fun handleIncoming(raw: String) {
+        // Plan A.1 Trap 2 guard: chainlesschain:* envelopes (Plan A.1 Phase 2
+        // wire format used by TerminalRpcClient / SignalingRpcClient) share
+        // the same WebRTCClient.messages SharedFlow as P2PMessage frames —
+        // both DC and signaling forwards emit there. P2PMessage's serializer
+        // expects payload: String but Plan A.1 envelopes have payload: Object,
+        // so blindly decoding crashes with "Expected beginning of the string,
+        // but got {" at offset ~51. Skip silently so TerminalRpc subscriber
+        // can take it.
+        if (raw.contains("\"type\":\"chainlesschain:") ||
+            raw.contains("\"type\": \"chainlesschain:")
+        ) {
+            return
+        }
         try {
             val message = raw.fromJson<P2PMessage>()
             when (message.type) {

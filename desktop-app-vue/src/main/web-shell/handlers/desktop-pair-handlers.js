@@ -339,6 +339,92 @@ function resetSession() {
 }
 
 /**
+ * Plan A.1 v5.0.3.53-fix3 — paired mobile peer 重上线时自动续 iceServers。
+ *
+ * Why: iceServers 24h TTL（signIceCredentials），pair-ack 后只 push 一次。
+ * 24h 后 mobile 重连，PairedDesktopsStore 里 iceServersJson 已过期 → fallback
+ * Google STUN → 跨 NAT WebRTC 完全不通 → DC 永远 fail → 用户体验 Plan A 4 跳
+ * signaling fragile。
+ *
+ * Fix: mobile-bridge.bridgeToLibp2p 任何 inbound 调本函数。本函数 12h 半 TTL
+ * rate-limit per mobileDid，命中即 signIceCredentials() 签发新凭证 + 双发
+ * push（LAN signaling + 公网中继），让 mobile PairedDesktopsStore 自动更新。
+ *
+ * @param {string} mobileDid - sender peerId from signaling msg. 只 push 给 DID 形式
+ *   的（did:key:z…），跳过 transient WebRTC peerId（mobile-XXXX）— 后者非
+ *   paired 身份，push 给它无意义。
+ * @param {string} [pcPeerId] - 我们的 pcPeerId；若 null fallback sessionState
+ */
+const _iceLastPushAt = new Map(); // mobileDid -> insertedAt(ms)
+const ICE_REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000; // half of 24h TTL
+
+function maybeRefreshIceForMobile(mobileDid, pcPeerId = null) {
+  if (!mobileDid || typeof mobileDid !== "string") {
+    return;
+  }
+  if (!mobileDid.startsWith("did:")) {
+    // 跳过 transient mobile-XXXX peerIds — 它们是 WebRTC handshake 时一次性
+    // local peerId，不是 PairedDesktopsStore 里持久的 DID
+    return;
+  }
+  if (!TURN_SECRET) {
+    return; // dev STUN-only mode — no creds to sign
+  }
+  const now = Date.now();
+  const lastAt = _iceLastPushAt.get(mobileDid) || 0;
+  if (now - lastAt < ICE_REFRESH_INTERVAL_MS) {
+    return; // 已在 12h 内 push 过，不重复
+  }
+  try {
+    const fresh = signIceCredentials(mobileDid);
+    const resolvedPcPeerId = pcPeerId || sessionState.pcPeerId;
+    if (!resolvedPcPeerId) {
+      logger.warn(
+        `[ice-auto-refresh] no pcPeerId resolved for ${mobileDid.slice(0, 16)}…, skip push`,
+      );
+      return;
+    }
+    sessionState.iceConfig = fresh; // 保持 backward compat
+    const message = {
+      type: "chainlesschain:ice:config",
+      payload: {
+        pcPeerId: resolvedPcPeerId,
+        iceServers: fresh.iceServers,
+        iceExpiry: fresh.expiry,
+        timestamp: now,
+      },
+    };
+    // 双发：LAN signaling + 公网中继
+    try {
+      const bridge = global.__ccMobileBridge;
+      if (bridge && typeof bridge.sendToMobile === "function") {
+        bridge.sendToMobile(mobileDid, message).catch((e) => {
+          logger.warn(`[ice-auto-refresh] LAN push failed: ${e?.message}`);
+        });
+      }
+    } catch (e) {
+      logger.warn(`[ice-auto-refresh] LAN push threw: ${e.message}`);
+    }
+    try {
+      const relay = global.__ccRelayClient;
+      if (relay && typeof relay.send === "function") {
+        relay.send(mobileDid, { type: "message", payload: message });
+      }
+    } catch (e) {
+      logger.warn(`[ice-auto-refresh] relay push threw: ${e.message}`);
+    }
+    _iceLastPushAt.set(mobileDid, now);
+    logger.info(
+      `[ice-auto-refresh] ✓ fresh iceServers pushed to ${mobileDid.slice(0, 16)}… (expiry=${fresh.expiry}, every 12h)`,
+    );
+  } catch (e) {
+    logger.warn(
+      `[ice-auto-refresh] failed for ${mobileDid?.slice?.(0, 16)}…: ${e.message}`,
+    );
+  }
+}
+
+/**
  * `desktop.pair.generate-qr` handler — 生成新 pairing session。同时只一个
  * 活跃 session，反复调本 handler 会覆盖前一个。
  *
@@ -471,7 +557,10 @@ module.exports = {
   createDesktopPairResetHandler,
   // exposed for mobile-bridge incoming-message router
   recordPairAck,
+  // Plan A.1 v5.0.3.53-fix3: auto-refresh iceServers when paired mobile re-online
+  maybeRefreshIceForMobile,
   // exposed for testing
   _sessionState: sessionState,
   _resetSession: resetSession,
+  _resetIcePushAt: () => _iceLastPushAt.clear(),
 };

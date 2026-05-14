@@ -33,6 +33,18 @@ fun TerminalListScreen(
     val dcReady by viewModel.dataChannelReady.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
 
+    // Plan A.1 v5.0.3.53-fix7: 监听 createSession 成功后填充的 lastCreatedId，
+    // 立即 navigate 到 SessionScreen 让用户能看到新会话的 WebView。
+    // 真机 E2E 发现：之前 Dialog 关掉但不跳转 → 用户停 List 屏看不到任何
+    // 终端输出 → 误以为"打不开"。消费一次即清，避免重新进 List 时重复跳转。
+    LaunchedEffect(state.lastCreatedId) {
+        val newId = state.lastCreatedId
+        if (!newId.isNullOrBlank()) {
+            onOpenSession(newId)
+            viewModel.consumeLastCreatedId()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

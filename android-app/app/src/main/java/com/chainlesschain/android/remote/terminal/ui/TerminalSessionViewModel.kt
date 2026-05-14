@@ -54,13 +54,19 @@ class TerminalSessionViewModel @Inject constructor(
     }
 
     private fun observePushEvents() {
+        Timber.i("[TerminalSessionVM] observePushEvents start mySessionId=${sessionId.take(8)}…")
         viewModelScope.launch {
             terminalRpc.observeStdout()
-                .filter { it.sessionId == sessionId }
                 .collect { evt ->
-                    if (evt.seq > lastSeq) {
+                    // Plan A.1 v5.0.3.53-fix6: 完整诊断 — log 每条 stdout 进 collector
+                    // 显示 sessionId match 状态 + lastSeq gate 状态，最终 emit 与否。
+                    val matches = evt.sessionId == sessionId
+                    val pastGate = evt.seq > lastSeq
+                    Timber.d("[TerminalSessionVM] stdout sessionMatch=$matches gate=$pastGate (evt.seq=${evt.seq} lastSeq=$lastSeq) dataLen=${evt.data.length} evtSid=${evt.sessionId.take(8)}… mySid=${sessionId.take(8)}…")
+                    if (matches && pastGate) {
                         lastSeq = evt.seq
-                        _stdoutToUi.tryEmit(evt.data)
+                        val ok = _stdoutToUi.tryEmit(evt.data)
+                        Timber.d("[TerminalSessionVM] → _stdoutToUi.tryEmit ok=$ok")
                     }
                 }
         }

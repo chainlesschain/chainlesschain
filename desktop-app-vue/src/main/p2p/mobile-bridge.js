@@ -954,6 +954,22 @@ class MobileBridge extends EventEmitter {
         }
       }
 
+      // Plan A.1 v5.0.3.53-fix3: paired mobile peer 重上线时自动续 iceServers。
+      // 24h TTL，half-TTL rate-limited per mobileDid（详见 desktop-pair-handlers.js
+      // maybeRefreshIceForMobile 注释）。只 did:* 前缀的 mobileDid 触发，跳过
+      // transient mobile-XXXX。fire-and-forget；失败仅 warn，绝不阻塞主路径。
+      try {
+        const {
+          maybeRefreshIceForMobile,
+        } = require("../web-shell/handlers/desktop-pair-handlers.js");
+        maybeRefreshIceForMobile(mobilePeerId, this.peerId);
+      } catch (e) {
+        // require / handler 缺失时 noop — 不应阻塞 message-from-mobile emit
+        logger.debug(
+          `[MobileBridge] ice-auto-refresh hook skipped: ${e?.message}`,
+        );
+      }
+
       // 触发事件，让P2PManager处理
       this.emit("message-from-mobile", {
         mobilePeerId,

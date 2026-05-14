@@ -48,6 +48,47 @@
   var term = null;
   var fitAddon = null;
 
+  var readyFired = false;
+  var lastCols = 0;
+  var lastRows = 0;
+
+  function refit() {
+    if (!term || !fitAddon) return;
+    // Plan A.1 v5.0.3.53-fix10 — guard on DOM size, not xterm cols/rows.
+    // xterm.fit() in a 0×0 container returns garbage like cols=49 rows=1
+    // (>0 so the previous guard let it through). Check the host's actual
+    // clientWidth/clientHeight to decide if we have a real layout pass.
+    var host = document.getElementById('term');
+    var hw = host ? host.clientWidth : -1;
+    var hh = host ? host.clientHeight : -1;
+    if (!host || hw < 10 || hh < 10) {
+      console.log('[xterm-shell] refit skip — host size ' + hw + 'x' + hh);
+      return;
+    }
+    try {
+      fitAddon.fit();
+      var c = term.cols;
+      var r = term.rows;
+      console.log('[xterm-shell] refit fit ok host=' + hw + 'x' + hh + ' cols=' + c + ' rows=' + r);
+      if (c <= 0 || r <= 0) return;
+      // Plan A.1 v5.0.3.53-fix9 真机 E2E 真因：AndroidView WebView 早期 layout
+      // size=0×0，window.resize 不会因 WebView 自身 size 变化而触发；导致 onReady
+      // 在 cols=49 rows=1 时 fired，桌面 PTY 被 resize 成 1 行 → 用户看到全黑。
+      // 改用 ResizeObserver 监听 #term，size>0 才 fire onReady，后续 size 变化
+      // 仅 emit onResize 让 Kotlin/桌面 PTY 同步真实尺寸。
+      if (!readyFired) {
+        readyFired = true;
+        lastCols = c; lastRows = r;
+        try { TerminalBridge.onReady(c, r); } catch (e) {}
+        return;
+      }
+      if (c !== lastCols || r !== lastRows) {
+        lastCols = c; lastRows = r;
+        try { TerminalBridge.onResize(c, r); } catch (e) {}
+      }
+    } catch (e) { /* benign — container still 0×0 */ }
+  }
+
   function init() {
     term = new X({
       cursorBlink: true,
@@ -60,23 +101,36 @@
       fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
     }
-    term.open(document.getElementById('term'));
-    try { fitAddon && fitAddon.fit(); } catch (e) { /* container 0×0 */ }
+    var host = document.getElementById('term');
+    term.open(host);
 
     // stdin: xterm.onData → Kotlin
     term.onData(function (data) {
       try { TerminalBridge.onUserInput(data); } catch (e) { /* Kotlin bridge unavailable */ }
     });
 
-    // Resize hook — fitAddon fires when dimensions change.
-    window.addEventListener('resize', function () {
+    // Primary size-change hook — ResizeObserver fires when the host div
+    // is laid out (Compose AndroidView grows from 0×0 to full extent).
+    if (typeof ResizeObserver === 'function') {
       try {
-        fitAddon && fitAddon.fit();
-        TerminalBridge.onResize(term.cols, term.rows);
-      } catch (e) { /* benign */ }
-    });
+        var ro = new ResizeObserver(function () { refit(); });
+        ro.observe(host);
+      } catch (e) { /* fall through to interval */ }
+    }
+    // window.resize as a secondary hook (rotation / IME show).
+    window.addEventListener('resize', refit);
+    // Belt-and-suspenders polling for the first 3s in case ResizeObserver
+    // isn't supported on this WebView build — covers the 0×0 → full-size
+    // layout transition that AndroidView triggers asynchronously.
+    var pollCount = 0;
+    var pollId = setInterval(function () {
+      refit();
+      if (++pollCount > 30 || readyFired) clearInterval(pollId);
+    }, 100);
 
-    try { TerminalBridge.onReady(term.cols, term.rows); } catch (e) {}
+    // Initial fit attempt — may be a no-op when host is still 0×0,
+    // ResizeObserver / polling will catch the next layout pass.
+    refit();
   }
 
   // Public surface for Kotlin → JS calls.

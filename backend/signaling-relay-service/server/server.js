@@ -110,6 +110,15 @@ function handleMessage(ws, msg) {
     send(ws, { type: "error", error: "message requires to" });
     return;
   }
+  // Plan A.1 v5.0.3.53-fix4 真机 e2e 根因：mobile client 发 type=message 不
+  // 带 from 字段，server 之前直接 forward 原消息 → desktop 收到 from=? → 桌面
+  // bridgeToLibp2p mobilePeerId 为空 → 桌面回 response 时 to=空 → relay 拒
+  // 'message requires to' → 命令进黑洞，terminal.create / ping 全部 timeout。
+  // Fix: 在转发前用 ws._peerId（handleRegister 时 set）注入 from，保证 desktop
+  // 始终知道是谁发的，能正确回响应。
+  if (!msg.from && ws._peerId) {
+    msg.from = ws._peerId;
+  }
   const target = peers.get(to);
   if (target && target.ws.readyState === WebSocket.OPEN) {
     if (send(target.ws, msg)) {

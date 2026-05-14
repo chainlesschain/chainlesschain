@@ -148,32 +148,46 @@ class TerminalRpcClient @Inject constructor(
                     val sessionId = payload.optString("sessionId")
                     val seq = payload.optLong("seq")
                     val key = "$sessionId|$seq"
-                    if (!recentStdoutKeys.add(key)) {
-                        // 重复（DC + signaling 双路到达）— 静默丢弃。
-                        Timber.v("[TerminalRpc] dedup stdout $key")
-                        return
-                    }
-                    _stdout.tryEmit(
+                    // Plan A.1 v5.0.3.53-fix5 真机 E2E 真因：listener fires 4 次 per
+                    // stdout event（forwardedMessages + _messages 双 emit + 老
+                    // callback 残留），dedup 把所有 4 次都 drop（前次 emit 已 race
+                    // 到 LRU）→ WebView 永远黑屏。
+                    // 解：去掉 dedup gate，让所有 stdout 直接 emit。xterm.js 收重复
+                    // chunk 只是多渲染一次同样字节，对用户不可感（PtyManager 每条
+                    // chunk 都是 fresh bytes，重复 emit = 同字节渲染 N 次，最多视觉
+                    // 上轻微重复，无功能损坏）。等 §3.5 双发去重设计 v0.2 真正
+                    // 走 (sessionId, seq, payload-hash) + emit-first-add-after 模式
+                    // 时再开 dedup。
+                    val emitted = _stdout.tryEmit(
                         StdoutEvent(
                             sessionId = sessionId,
                             data = payload.optString("data"),
                             seq = seq,
                         ),
                     )
+                    if (!emitted) {
+                        Timber.w("[TerminalRpc] _stdout SharedFlow buffer full, dropping seq=$seq sessionId=$sessionId")
+                    } else {
+                        Timber.d("[TerminalRpc] stdout emit → UI sessionId=${sessionId.take(8)}… seq=$seq dataLen=${payload.optString("data").length}")
+                    }
+                    // recentStdoutKeys 保留只为 future v0.2 hardening，当前 noop
+                    recentStdoutKeys.add(key)
                 }
                 "terminal.exit" -> {
                     val sessionId = payload.optString("sessionId")
-                    if (!recentExitKeys.add(sessionId)) {
-                        Timber.v("[TerminalRpc] dedup exit for session $sessionId")
-                        return
-                    }
-                    _exit.tryEmit(
+                    // 同上：去掉 dedup gate；exit 多 emit 是 idempotent（ViewModel
+                    // 只用第一次的 exitCode 关 session）。
+                    val emitted = _exit.tryEmit(
                         ExitEvent(
                             sessionId = sessionId,
                             exitCode = if (payload.isNull("exitCode")) null else payload.optInt("exitCode"),
                             signal = if (payload.isNull("signal")) null else payload.optString("signal"),
                         ),
                     )
+                    if (emitted) {
+                        Timber.d("[TerminalRpc] exit emit → UI sessionId=${sessionId.take(8)}…")
+                    }
+                    recentExitKeys.add(sessionId)
                 }
                 else -> { /* ignore non-terminal events */ }
             }

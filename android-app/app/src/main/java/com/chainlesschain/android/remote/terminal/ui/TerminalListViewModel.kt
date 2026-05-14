@@ -105,14 +105,30 @@ class TerminalListViewModel @Inject constructor(
         _state.update { it.copy(creating = true, error = null) }
         viewModelScope.launch {
             terminalRpc.create(pcPeerId, shell = shell)
-                .onSuccess {
-                    _state.update { it.copy(creating = false, lastCreatedId = it.lastCreatedId) }
+                .onSuccess { created ->
+                    // Plan A.1 v5.0.3.53-fix7 真机 E2E 真因：原 `it.copy(lastCreatedId = it.lastCreatedId)`
+                    // 把 onSuccess 闭包参数 `it`（CreatedSession）shadow 了，又用 state.it.lastCreatedId
+                    // 拿 state 现存值 → state.lastCreatedId 永远不更新 → UI LaunchedEffect 不触发
+                    // navigation → 用户停在 List 屏看不到新 session 的 WebView。
+                    // 用 named param `created.sessionId` 才正确。
+                    timber.log.Timber.i(
+                        "[TerminalListVM] createSession ✓ sessionId=%s pid=%d",
+                        created.sessionId,
+                        created.pid,
+                    )
+                    _state.update { it.copy(creating = false, lastCreatedId = created.sessionId) }
                     refresh()
                 }
                 .onFailure { e ->
+                    timber.log.Timber.w(e, "[TerminalListVM] createSession failed")
                     _state.update { it.copy(creating = false, error = e.message ?: "创建失败") }
                 }
         }
+    }
+
+    /** Plan A.1 fix7: 调用方触发 navigation 后调此方法清掉 lastCreatedId，避免下次进 list 屏重复跳转。 */
+    fun consumeLastCreatedId() {
+        _state.update { it.copy(lastCreatedId = null) }
     }
 
     fun closeSession(sessionId: String) {

@@ -157,6 +157,10 @@ private fun SoftKeyToolbar(
     onToggleCtrl: () -> Unit,
     onSendKey: (String) -> Unit,
 ) {
+    // Edge-to-edge: Scaffold's bottomBar doesn't auto-consume nav-bar / IME
+    // insets in our setup, so the toolbar would slide under the Android
+    // gesture bar (real-device E2E bug 2: 2026-05-14). Use Surface.contentWindowInsets
+    // not available pre-1.3; explicit .windowInsetsPadding on the Row.
     Surface(
         tonalElevation = 2.dp,
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -164,6 +168,9 @@ private fun SoftKeyToolbar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.navigationBars.union(WindowInsets.ime)
+                )
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {

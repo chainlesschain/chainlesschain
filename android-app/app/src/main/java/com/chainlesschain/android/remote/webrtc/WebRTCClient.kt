@@ -975,7 +975,13 @@ class WebSocketSignalClient @Inject constructor(
         Timber.i("[SignalClient] SDP 长度: ${offer.description.length}")
         Timber.i("[SignalClient] ========================================")
 
-        currentPeerId = peerId
+        // ⚠️ DO NOT touch currentPeerId here — `peerId` is the TARGET (desktop's
+        // pcPeerId), not our self id. Original buggy line `currentPeerId = peerId`
+        // (Plan A.1 v5.0.3.53-fix1 real-device E2E) caused: reconnect-then auto
+        // re-register pulled `currentPeerId` and registered THIS mobile AS the
+        // desktop's pcPeerId → server routed mobile's own `to: fb8380...` back
+        // to itself = echo loop, desktop never saw `terminal.create` →
+        // 「打不开」symptom. currentPeerId is exclusively owned by register().
 
         val json = org.json.JSONObject().apply {
             put("type", "offer")
