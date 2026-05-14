@@ -203,6 +203,62 @@ const aab = dl('android-aab');
     </div>
   </section>
 
+  <!-- v5.0.3.54 真机 E2E 收口：远程终端打通可用 -->
+  <section class="py-16 md:py-20 border-b border-line bg-paper">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 远程终端真机可用 · v5.0.3.54 · 2026-05-14</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">从"打不开"到"完整可用" —— 8 个 bug 一次扫净。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          v5.0.3.53 远程终端的协议链路是通的，但真机 E2E（Xiaomi 24115RA8EC ↔ Windows git-bash）压出 8 个独立 bug
+          —— 从"开不了 session" 到 "黑屏看不到输出" 到 "cc/claude 命令找不到"。v5.0.3.54 一次性收口：手机端真的能在路上敲
+          <code class="font-mono bg-cream px-1 rounded">cc</code> / <code class="font-mono bg-cream px-1 rounded">claude</code>
+          指挥桌面，远程终端从演示走到了能用。
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">WebRTC echo loop 真因</strong>：sendOffer 误把 target peerId 写进 self currentPeerId → WS 重连 auto-re-register 让 mobile 注册成桌面 peerId → 消息路由回自己。修法：currentPeerId 只在 register() 写</li>
+          <li>· <strong class="text-ink">中继 from 字段注入</strong>：signaling-relay server.js handleMessage 给 forwarded 消息注入 <code class="font-mono bg-cream px-1 rounded">msg.from = ws._peerId</code> ——之前中继只校验 to 不补 from，desktop 回包 to=undefined 被中继 reject 死循环</li>
+          <li>· <strong class="text-ink">iceServers 自动 refresh</strong>：mobile-bridge + desktop-pair-handlers 加 maybeRefreshIceForMobile 12h 节流，跨 24h TTL 仍可保 TURN 可用</li>
+          <li>· <strong class="text-ink">WebView 0 高死锁（"全黑"真因）</strong>：Compose AndroidView 默认 WRAP_CONTENT + HTML body height:100% → 父级 0 高 → 死锁 → xterm.fit() 返回 cols=49 rows=1 → 桌面 PTY 被 resize 成 1 行。修法：TerminalWebView LayoutParams MATCH_PARENT × MATCH_PARENT + ResizeObserver + DOM clientWidth/Height guard</li>
+          <li>· <strong class="text-ink">cc/claude 远程终端可用</strong>：PtyManager pty.spawn 无 args → bash/wsl 不走 login mode → ~/.bashrc 不加载 → 用户全局 CLI 找不到。修法：返回 {cmd, args}，bash 加 -l，shell=bash 优先 probe Program Files/Git/bin/bash.exe 避免 WSL 拦截</li>
+          <li>· <strong class="text-ink">TerminalListViewModel closure shadow</strong>：onSuccess { it.copy(lastCreatedId = it.lastCreatedId) } 把 CreatedSession 参数名 shadow → 永远不更新；改 named param + LaunchedEffect 自动 navigate 新 session</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v5.0.3.54 CHANGELOG →</a>
+          ·
+          真机验证：登陆 → 配对桌面 → "+ 新会话" 选 bash → 直接敲 cc -v / claude / npm 可用
+        </p>
+
+        <!-- 真机截图：Android 上跑 Claude Code -->
+        <div class="mt-10 grid md:grid-cols-2 gap-6 items-center">
+          <div>
+            <h3 class="font-display text-2xl mb-3">手机上跑 Claude Code，不是截图蒙太奇。</h3>
+            <p class="text-muted leading-relaxed text-sm mb-4">
+              Xiaomi 24115RA8EC × Windows 桌面，配对完成后在手机"终端会话"里敲
+              <code class="font-mono bg-cream px-1 rounded">claude</code>，桌面 git-bash 启动
+              Claude Code，Welcome back · Opus 4.7 · Claude Max · <code class="font-mono bg-cream px-1 rounded">C:\code\test1</code>
+              工作目录、softkey toolbar、xterm.js 渲染全部在地铁里能用。
+            </p>
+            <p class="text-muted leading-relaxed text-sm">
+              这是 v5.0.3.54 把 8 个 bug 全扫净后的真实手机画面 —— 之前的版本进 SessionScreen 黑屏，敲
+              <code class="font-mono bg-cream px-1 rounded">cc</code> 提示 "command not found"。
+            </p>
+            <p class="mt-4 text-xs text-muted font-mono">
+              prompt: <code class="bg-cream px-1 rounded">longfa@DESKTOP-MTMV2RE MINGW64 /c/code/test1</code>
+            </p>
+          </div>
+          <div>
+            <img src="/screenshots/android-claude-code-remote-terminal.jpg"
+                 alt="Android 远程终端运行 Claude Code（Opus 4.7 / Claude Max）— Xiaomi 24115RA8EC × Windows git-bash 真机 E2E"
+                 class="rounded-2xl border border-line shadow-lg w-full max-w-sm mx-auto"
+                 loading="lazy" />
+            <p class="mt-3 text-xs text-muted text-center">v5.0.3.54 真机 E2E · 手机 Android · 桌面 Windows git-bash longfa 用户</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Plan A.1 远程终端 WebRTC DataChannel 直连 -->
   <section class="py-16 md:py-20 border-b border-line">
     <div class="container-wide">
