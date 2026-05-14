@@ -36,6 +36,10 @@ class WebSocketPairingSignalingGate @Inject constructor(
     override suspend fun ensureRegistered(localPeerId: String): Result<Unit> =
         mutex.withLock {
             try {
+                // short-circuit 仅在还连着原始 socket 时有效。WebSocketSignalClient
+                // 的 reconnect 路径会在 onOpen 自动重发上次 register（见
+                // WebSocketSignalClient.kt 的 onOpen handler）。所以这里 short-circuit
+                // 安全 — 即使 WS 断过、reconnect 后 server 仍认得这个 peer。
                 if (registeredPeerId == localPeerId) {
                     Timber.d("[PairingSignalingGate] already registered as $localPeerId — no-op")
                     return@withLock Result.success(Unit)
@@ -78,9 +82,17 @@ class WebSocketPairingSignalingGate @Inject constructor(
         toPeerId: String,
         ackPayload: Map<String, Any?>,
     ): Result<Unit> {
-        // 自己 register peer-id 用 ack 里的 mobileDid（如果有）— signaling 服务器
-        // 要 client 已 register 才接受 forward 请求。
+        // 自己 register peer-id 优先级：
+        //   1. ackPayload.mobileDid — pair-ack 路径会带（W3.7 Flow B）
+        //   2. registeredPeerId — 已经注册过就复用（避免每次 invoke 都产生新 mobile-${ts}）
+        //   3. 兜底 mobile-${ts} — 首次且无 DID 的极少数情况
+        // 之前 bug: SignalingRpcClient.invoke() 走 command request 路径，payload 没
+        // mobileDid → fallback 每次拉新 timestamp peerId，desktop signaling server 上同
+        // 一个 socket 反复被 register 不同 peerId，最后 socket.peerId 被最新 register 覆盖，
+        // 旧的 mobile-${ts} 在 registry 里的 socket reference 跟 socket.peerId 不一致，
+        // server isOnline() 查不到匹配 → response forward 失败 → Android UI spinner 永转。
         val selfPeerId = ackPayload["mobileDid"]?.toString()
+            ?: registeredPeerId
             ?: "mobile-${System.currentTimeMillis()}"
         val regResult = ensureRegistered(selfPeerId)
         if (regResult.isFailure) {

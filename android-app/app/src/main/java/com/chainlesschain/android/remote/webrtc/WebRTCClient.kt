@@ -576,6 +576,11 @@ class WebSocketSignalClient @Inject constructor(
 
     @Volatile
     private var currentPeerId: String? = null
+    // Saved deviceInfo from last register() call. WS reconnect 后 onOpen 自动用
+    // (currentPeerId, lastDeviceInfo) 重发 register 消息 — server 上新 socket
+    // 立刻拿到 peerId 绑定，避免 from=unknown / to=undefined 命令路由黑洞。
+    @Volatile
+    private var lastDeviceInfo: Map<String, String>? = null
     @Volatile
     private var isConnected = false
     @Volatile
@@ -618,6 +623,27 @@ class WebSocketSignalClient @Inject constructor(
                 override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
                     Timber.d("WebSocket connected")
                     isConnected = true
+                    // Reconnect 后自动重发上次的 register —— server 上新 socket 立刻拿到
+                    // peerId 绑定。否则 socket.peerId=undefined，转发响应时 from=unknown /
+                    // to=undefined，命令进黑洞 30s 超时。
+                    val pid = currentPeerId
+                    val info = lastDeviceInfo
+                    if (pid != null && info != null) {
+                        try {
+                            val json = org.json.JSONObject().apply {
+                                put("type", "register")
+                                put("peerId", pid)
+                                put("deviceType", "mobile")
+                                put("deviceInfo", org.json.JSONObject().apply {
+                                    info.forEach { (k, v) -> put(k, v) }
+                                })
+                            }
+                            webSocket.send(json.toString())
+                            Timber.i("[SignalClient] ✓ auto re-registered after reconnect as $pid")
+                        } catch (e: Exception) {
+                            Timber.w(e, "[SignalClient] auto re-register failed")
+                        }
+                    }
                 }
 
                 override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
@@ -673,6 +699,7 @@ class WebSocketSignalClient @Inject constructor(
 
     override suspend fun register(peerId: String, deviceInfo: Map<String, String>) {
         currentPeerId = peerId
+        lastDeviceInfo = deviceInfo  // 保存供 reconnect 自动重发
         Timber.i("[SignalClient] ========================================")
         Timber.i("[SignalClient] 注册到信令服务器")
         Timber.i("[SignalClient] peerId: $peerId")
