@@ -51,7 +51,11 @@ class SignalingRpcClient @Inject constructor(
     private val pending = ConcurrentHashMap<String, CompletableDeferred<JSONObject>>()
     @Volatile private var responseListenerInstalled = false
     @Volatile private var listenerJob: Job? = null
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    // Plan A.1 — Dispatchers.Main.immediate 让 listener job 跟随 Dispatchers.setMain
+    // 在测试里走 TestDispatcher 受 runCurrent 控制。生产下处理量小（JSON parse +
+    // deferred complete），跑 Main 无压力。
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     /**
      * 调用桌面命令。method/params 与 desktop AICommands/SystemCommands 期望一致。

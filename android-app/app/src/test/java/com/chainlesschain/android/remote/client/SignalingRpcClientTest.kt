@@ -11,7 +11,10 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -24,7 +27,6 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -51,6 +53,13 @@ class SignalingRpcClientTest {
     private class FakeSignalClient : SignalClient {
         var onForwardedCallback: ((String) -> Unit)? = null
         var setCallbackCount = 0
+        private val _forwardedMessages = MutableSharedFlow<String>(extraBufferCapacity = 64)
+        override val forwardedMessages: SharedFlow<String> = _forwardedMessages.asSharedFlow()
+
+        /** Test helper — emit 一帧 forwarded message 模拟桌面经信令转发的响应。 */
+        suspend fun emitForwarded(raw: String) {
+            _forwardedMessages.emit(raw)
+        }
 
         override suspend fun connect(): Result<Unit> = Result.success(Unit)
         override suspend fun register(peerId: String, deviceInfo: Map<String, String>) {}
@@ -138,14 +147,17 @@ class SignalingRpcClientTest {
             signalClient = fakeSignalClient,
             didManager = didManager,
             signalingConfig = signalingConfig,
+            pairedDesktopsStore = mockk(relaxed = true),
         )
 
     /**
      * Synthesize a forwarded RPC response and feed it into the response listener,
      * matching the wire shape from desktop `handleMobileCommand`:
      *   {type:"chainlesschain:command:response", payload:"<jsonrpc-2.0 stringified>"}
+     *
+     * Plan A.1 — emit via SharedFlow（替代旧的单 callback path）。
      */
-    private fun simulateResponse(
+    private suspend fun simulateResponse(
         requestId: String,
         resultMap: Map<String, Any?>? = mapOf("ok" to true),
         errorMap: Map<String, Any?>? = null,
@@ -160,7 +172,7 @@ class SignalingRpcClientTest {
             put("type", "chainlesschain:command:response")
             put("payload", rpc.toString())
         }
-        fakeSignalClient.onForwardedCallback?.invoke(outer.toString())
+        fakeSignalClient.emitForwarded(outer.toString())
     }
 
     private fun extractRequestId(gate: CapturingGate): String {
@@ -193,7 +205,9 @@ class SignalingRpcClientTest {
         runCurrent()
 
         assertEquals(1, gate.sendAckCallCount)
-        assertNotNull(fakeSignalClient.onForwardedCallback, "response listener installed")
+        // Plan A.1: listener 安装确认走 SharedFlow 订阅；下面 simulateResponse 能让
+        // deferred 完成本身就是 listener active 的证据，单独 assertNotNull callback
+        // 已不适用（callback path 仅 WebRTCClient.initialize 用）。
 
         simulateResponse(extractRequestId(gate))
         runCurrent()

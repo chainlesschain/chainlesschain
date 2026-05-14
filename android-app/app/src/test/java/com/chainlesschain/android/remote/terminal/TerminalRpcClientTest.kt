@@ -1,18 +1,24 @@
-package com.chainlesschain.android.remote.terminal
+﻿package com.chainlesschain.android.remote.terminal
 
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -29,12 +35,20 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class TerminalRpcClientTest {
 
+    private val testDispatcher = StandardTestDispatcher()
+
     private lateinit var rpc: SignalingRpcClient
     private lateinit var signalClient: FakeSignalClient
     private lateinit var client: TerminalRpcClient
 
     private class FakeSignalClient : SignalClient {
         var callback: ((String) -> Unit)? = null
+        private val _forwardedMessages = MutableSharedFlow<String>(extraBufferCapacity = 64)
+        override val forwardedMessages: SharedFlow<String> = _forwardedMessages.asSharedFlow()
+        suspend fun emitForwarded(raw: String) = _forwardedMessages.emit(raw)
+        /** Expose subscription count for idempotency tests (SharedFlow API hides it). */
+        val subscriberCount: Int get() = _forwardedMessages.subscriptionCount.value
+
         override suspend fun connect(): Result<Unit> = Result.success(Unit)
         override suspend fun register(peerId: String, deviceInfo: Map<String, String>) {}
         override suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription) {}
@@ -53,13 +67,19 @@ class TerminalRpcClientTest {
 
     @Before
     fun setUp() {
+        Dispatchers.setMain(testDispatcher)
         rpc = mockk()
         signalClient = FakeSignalClient()
         client = TerminalRpcClient(rpc, signalClient)
     }
 
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
     @Test
-    fun `create returns CreatedSession from JSON result`() = runTest {
+    fun `create returns CreatedSession from JSON result`() = runTest(testDispatcher) {
         coEvery { rpc.invoke("pc-1", "terminal.create", any(), any()) } returns
             Result.success(
                 JSONObject()
@@ -78,7 +98,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `list parses sessions array`() = runTest {
+    fun `list parses sessions array`() = runTest(testDispatcher) {
         coEvery { rpc.invoke("pc-1", "terminal.list", any(), any()) } returns
             Result.success(
                 JSONObject().put(
@@ -111,7 +131,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `list returns empty when sessions array missing`() = runTest {
+    fun `list returns empty when sessions array missing`() = runTest(testDispatcher) {
         coEvery { rpc.invoke("pc-1", "terminal.list", any(), any()) } returns
             Result.success(JSONObject())
         val res = client.list("pc-1")
@@ -120,7 +140,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `stdin forwards data param`() = runTest {
+    fun `stdin forwards data param`() = runTest(testDispatcher) {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.stdin", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
@@ -131,7 +151,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `resize forwards cols and rows`() = runTest {
+    fun `resize forwards cols and rows`() = runTest(testDispatcher) {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.resize", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
@@ -141,7 +161,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `close forwards sessionId`() = runTest {
+    fun `close forwards sessionId`() = runTest(testDispatcher) {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.close", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
@@ -150,7 +170,7 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `history decodes chunks and truncated flag`() = runTest {
+    fun `history decodes chunks and truncated flag`() = runTest(testDispatcher) {
         coEvery { rpc.invoke("pc-1", "terminal.history", any(), any()) } returns
             Result.success(
                 JSONObject()
@@ -171,13 +191,15 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `start installs push listener and dispatches terminal_stdout to flow`() = runTest {
+    fun `start installs push listener and dispatches terminal_stdout to flow`() = runTest(testDispatcher) {
         client.start()
-        val testScope = TestScope(StandardTestDispatcher(testScheduler))
         val received = mutableListOf<TerminalRpcClient.StdoutEvent>()
         val job = launch {
             client.observeStdout().collect { received.add(it) }
         }
+        // Ensure both client's forwardedMessages collect AND test's observeStdout collect
+        // are subscribed before we emit (SharedFlow has no replay — missed = lost).
+        runCurrentScheduler()
 
         val frame = JSONObject()
             .put("type", "chainlesschain:event")
@@ -189,7 +211,7 @@ class TerminalRpcClientTest {
                     .put("data", "hello world")
                     .put("seq", 99),
             )
-        signalClient.callback?.invoke(frame.toString())
+        signalClient.emitForwarded(frame.toString())
         runCurrentScheduler()
 
         assertEquals(1, received.size)
@@ -200,12 +222,13 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `start dispatches terminal_exit to flow`() = runTest {
+    fun `start dispatches terminal_exit to flow`() = runTest(testDispatcher) {
         client.start()
         val received = mutableListOf<TerminalRpcClient.ExitEvent>()
         val job = launch {
             client.observeExit().collect { received.add(it) }
         }
+        runCurrentScheduler()  // Subscribers attach before emit (no-replay SharedFlow).
         val frame = JSONObject()
             .put("type", "chainlesschain:event")
             .put(
@@ -216,7 +239,7 @@ class TerminalRpcClientTest {
                     .put("exitCode", 0)
                     .put("signal", JSONObject.NULL),
             )
-        signalClient.callback?.invoke(frame.toString())
+        signalClient.emitForwarded(frame.toString())
         runCurrentScheduler()
 
         assertEquals(1, received.size)
@@ -226,21 +249,45 @@ class TerminalRpcClientTest {
     }
 
     @Test
-    fun `start is idempotent — second call is a no-op`() {
+    fun `start is idempotent — second call is a no-op`() = runTest(testDispatcher) {
+        // Plan A.1: start switched to forwardedMessages SharedFlow.
+        // Idempotency is verified via subscriptionCount — two starts still yield
+        // 1 subscriber, proving no duplicate collect job was created.
         client.start()
-        val first = signalClient.callback
+        runCurrentScheduler()
+        val afterFirst = signalClient.subscriberCount
         client.start()
-        // The callback should be the same instance (not re-installed).
-        assertEquals(first, signalClient.callback)
+        runCurrentScheduler()
+        assertEquals(afterFirst, signalClient.subscriberCount)
+    }
+
+    /**
+     * Plan A.1 Trap 1 regression — verify that `TerminalRpcClient.start()` does NOT
+     * call `signalClient.setOnForwardedMessageReceived`, so a previously-installed
+     * callback (production: `WebRTCClient.initialize` ice:config handler) stays alive.
+     *
+     * Pre Plan A.1 this test would fail: start() called setOnForwardedMessageReceived,
+     * silently replacing any earlier handler.
+     */
+    @Test
+    fun `start does not overwrite externally-installed forward callback (Trap 1 regression)`() = runTest(testDispatcher) {
+        var externalHits = 0
+        val externalCallback: (String) -> Unit = { externalHits++ }
+        signalClient.setOnForwardedMessageReceived(externalCallback)
+        client.start()
+        runCurrentScheduler()
+        // External callback must still be the one we installed — start() did not touch it.
+        assertEquals(externalCallback, signalClient.callback)
     }
 
     @Test
-    fun `start ignores non-terminal events`() = runTest {
+    fun `start ignores non-terminal events`() = runTest(testDispatcher) {
         client.start()
         val received = mutableListOf<TerminalRpcClient.StdoutEvent>()
         val job = launch {
             client.observeStdout().collect { received.add(it) }
         }
+        runCurrentScheduler()  // Subscribers attach before emit.
         val frame = JSONObject()
             .put("type", "chainlesschain:event")
             .put(
@@ -249,7 +296,7 @@ class TerminalRpcClientTest {
                     .put("event", "unrelated.event")
                     .put("sessionId", "s1"),
             )
-        signalClient.callback?.invoke(frame.toString())
+        signalClient.emitForwarded(frame.toString())
         runCurrentScheduler()
         assertEquals(0, received.size)
         job.cancel()

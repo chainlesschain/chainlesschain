@@ -2,9 +2,15 @@ package com.chainlesschain.android.remote.terminal
 
 import com.chainlesschain.android.remote.client.SignalingRpcClient
 import com.chainlesschain.android.remote.webrtc.SignalClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
@@ -69,50 +75,66 @@ class TerminalRpcClient @Inject constructor(
     fun observeExit(): SharedFlow<ExitEvent> = _exit.asSharedFlow()
 
     @Volatile private var pushListenerInstalled = false
+    @Volatile private var listenerJob: Job? = null
+
+    // Plan A.1 — Dispatchers.Main.immediate 让 listener job 跟随 Dispatchers.setMain
+    // 在测试里走 TestDispatcher 受 runCurrent 控制。生产下处理量小（JSON parse +
+    // emit 到 SharedFlow），跑 Main 无压力。Phase 2 DC 路径上线后如果 stdout 流量
+    // 大（>100KB/s），考虑切回 IO。
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     /**
-     * 必须在使用 [observeStdout] 之前调用一次。安装 SignalClient 上的 forward
-     * message 钩子，只 emit `terminal.stdout` / `terminal.exit` 事件，其余路过。
+     * 必须在使用 [observeStdout] 之前调用一次。订阅 [SignalClient.forwardedMessages]
+     * SharedFlow，只 emit `terminal.stdout` / `terminal.exit` 事件，其余路过。
+     *
+     * Plan A.1 — 从单 callback `setOnForwardedMessageReceived` 切到 SharedFlow，
+     * 修 WebRTCClient / SignalingRpcClient / 本类三方互覆盖的 Trap 1：之前 RPC
+     * invoke 第一次后 SignalingRpc 会覆盖本类的 callback，stdout/exit 事件全部
+     * 默默丢失。
      */
     fun start() {
         if (pushListenerInstalled) return
-        signalClient.setOnForwardedMessageReceived { raw ->
-            try {
-                val msg = JSONObject(raw)
-                if (msg.optString("type") != "chainlesschain:event") return@setOnForwardedMessageReceived
-                val payloadRaw = msg.opt("payload")
-                val payload = when (payloadRaw) {
-                    is String -> JSONObject(payloadRaw)
-                    is JSONObject -> payloadRaw
-                    else -> return@setOnForwardedMessageReceived
-                }
-                when (payload.optString("event")) {
-                    "terminal.stdout" -> {
-                        _stdout.tryEmit(
-                            StdoutEvent(
-                                sessionId = payload.optString("sessionId"),
-                                data = payload.optString("data"),
-                                seq = payload.optLong("seq"),
-                            ),
-                        )
-                    }
-                    "terminal.exit" -> {
-                        _exit.tryEmit(
-                            ExitEvent(
-                                sessionId = payload.optString("sessionId"),
-                                exitCode = if (payload.isNull("exitCode")) null else payload.optInt("exitCode"),
-                                signal = if (payload.isNull("signal")) null else payload.optString("signal"),
-                            ),
-                        )
-                    }
-                    else -> { /* ignore non-terminal events */ }
-                }
-            } catch (e: Exception) {
-                Timber.w(e, "[TerminalRpc] event parse failed")
-            }
-        }
+        listenerJob = signalClient.forwardedMessages
+            .onEach { raw -> handleForwardedEvent(raw) }
+            .launchIn(scope)
         pushListenerInstalled = true
-        Timber.i("[TerminalRpc] push listener installed")
+        Timber.i("[TerminalRpc] push listener installed (via forwardedMessages SharedFlow)")
+    }
+
+    private fun handleForwardedEvent(raw: String) {
+        try {
+            val msg = JSONObject(raw)
+            if (msg.optString("type") != "chainlesschain:event") return
+            val payloadRaw = msg.opt("payload")
+            val payload = when (payloadRaw) {
+                is String -> JSONObject(payloadRaw)
+                is JSONObject -> payloadRaw
+                else -> return
+            }
+            when (payload.optString("event")) {
+                "terminal.stdout" -> {
+                    _stdout.tryEmit(
+                        StdoutEvent(
+                            sessionId = payload.optString("sessionId"),
+                            data = payload.optString("data"),
+                            seq = payload.optLong("seq"),
+                        ),
+                    )
+                }
+                "terminal.exit" -> {
+                    _exit.tryEmit(
+                        ExitEvent(
+                            sessionId = payload.optString("sessionId"),
+                            exitCode = if (payload.isNull("exitCode")) null else payload.optInt("exitCode"),
+                            signal = if (payload.isNull("signal")) null else payload.optString("signal"),
+                        ),
+                    )
+                }
+                else -> { /* ignore non-terminal events */ }
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[TerminalRpc] event parse failed")
+        }
     }
 
     suspend fun create(

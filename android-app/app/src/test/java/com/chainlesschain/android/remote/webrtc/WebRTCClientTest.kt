@@ -35,6 +35,7 @@ class WebRTCClientTest {
     private lateinit var webRTCClient: WebRTCClient
     private lateinit var mockContext: Context
     private lateinit var mockSignalClient: SignalClient
+    private lateinit var mockPairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
     private lateinit var mockPeerConnectionFactory: PeerConnectionFactory
     private lateinit var mockPeerConnection: PeerConnection
     private lateinit var mockDataChannel: DataChannel
@@ -55,6 +56,9 @@ class WebRTCClientTest {
         mockSignalClient = mockk(relaxed = true)
         coEvery { mockSignalClient.connect() } returns Result.success(Unit)
         coEvery { mockSignalClient.disconnect() } just Runs
+
+        // Mock PairedDesktopsStore (Plan B v1.3+ ICE servers persistence)
+        mockPairedDesktopsStore = mockk(relaxed = true)
 
         // Mock PeerConnectionFactory static initialization
         mockkStatic(PeerConnectionFactory::class)
@@ -98,7 +102,7 @@ class WebRTCClientTest {
         } returns mockDataChannel
 
         // Create WebRTCClient instance
-        webRTCClient = WebRTCClient(mockContext, mockSignalClient)
+        webRTCClient = WebRTCClient(mockContext, mockSignalClient, mockPairedDesktopsStore)
     }
 
     @After
