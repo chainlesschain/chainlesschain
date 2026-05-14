@@ -5,6 +5,63 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.53] - 2026-05-14 — Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连
+
+> Plan A v5.0.3.52 把 terminal 命令通道架在 signaling 转发 (Plan C, 4 跳链路) 上，真机 e2e 暴露 5 个 reliability bug：APK 中文 GBK 乱码 / 每次 invoke 新 peerId 让 server cleanup 误杀 / OkHttp pingInterval 太短 / WS reconnect 不自动 re-register / **NAT idle + 蜂窝间歇杀 TCP 让 4 跳链路任一跳断即整体失败 (架构性)**。Plan A.1 治本：稳态命令 + stdout/exit 推送从 4 跳 signaling 切到 1 跳 WebRTC DataChannel 直连，绕开中继 + NAT idle，p50 RTT 200-500ms→30-80ms。失败 silent fallback signaling，保留兜底。
+
+### Added — Phase 1 Trap 1 修复 + DC 状态 helper
+
+- `WebRTCClient.dataChannelReady: StateFlow<Boolean>` derived flow（`connectionState == READY` 才 true，比 `DATA_CHANNEL_OPEN` 字面更精确——后者只是 ICE 通了 DC 未必 open）。
+- `SignalClient.forwardedMessages: SharedFlow<String>` 多订阅入口替换单 `setOnForwardedMessageReceived` callback。后者"set 不是 add"的反模式让 WebRTCClient/SignalingRpc/TerminalRpc 三方互覆盖（Trap 1），TerminalRpc.start 第一次 invoke 后 SignalingRpc 会偷走 ice:config 拦截器，iceServers 24h TTL 到期跨 NAT 失效。`WebSocketSignalClient` 同步 emit SharedFlow + invoke callback 向后兼容（ice:config 仍走 callback canonical handler）。
+
+### Added — Phase 2 DC fast path
+
+- `SignalingRpcClient.invoke` 内部 `trySendViaDataChannel` 优先 `webRTCClient.sendMessage(envelope)`，DC 未 ready 或 sendMessage 抛 IllegalStateException 时自动 fallback signaling LAN+relay 既有路径。**所有 RPC 客户端**（terminal + system.* + ai.*）自动受益，pending pool 共享。
+- `preferDataChannel: Boolean = true` feature flag（in-memory；后期接 SharedPreferences）允许诊断切回纯 signaling。
+- `ensureResponseListener` 双路监听 `SignalClient.forwardedMessages` + `WebRTCClient.messages`，响应从任一路到达都 complete 同一 pending deferred；二次 complete 被 CompletableDeferred 安全忽略，无需显式去重。
+- 埋点 `[SignalingRpc.metric] path=dc|signaling → method`，发版 grep logcat 算 fast path 占比（验收 > 80% / 一周内）。
+
+### Added — Phase 3 触发 + UI 标识
+
+- `TerminalListViewModel.init` 检测 `dataChannelReady=false` 时异步调 `RemoteConnectionManager.connect(pcPeerId, "did:peer:$pcPeerId")` 触发 WebRTC 握手（pcDID 占位 — `PairedDesktop` 不存 DID，P2PClient 也只把它当 metadata）。失败 silent，命令仍走 signaling fallback。
+- `TerminalListScreen` 顶部 chip 实时显示 "P2P 直连" / "中继路径"，订阅 `webRTCClient.dataChannelReady` 自动切换。
+
+### Added — Phase 4 双路 push + 双向去重
+
+- `TerminalRpcClient.start()` 双订 `SignalClient.forwardedMessages` + `WebRTCClient.messages`。Phase 3 DC handshake landing 后，DC 路径上的 `chainlesschain:event` (terminal.stdout / exit) push 才能被本类拿到 — pre-Phase-4 只订 signaling 路径，用户看 UI 命令回显但收不到输出。
+- LRU 反向去重：256-key stdout `"sessionId|seq"` / 64-key exit `sessionId`。同一 (s, seq) 经 DC + signaling 双路到达，UI 只看到一次。`Collections.synchronizedMap(LinkedHashMap accessOrder)` + `removeEldestEntry`。
+- 桌面 `mobile-bridge.js bridgeToLibp2p` 入口 LRU dedup `payload.id`（128 容量 / 30s TTL），防 PtyManager 双执行（同 stdin 跑两次 / 双倍 stdout fanout）。`_gcRecentMobileRequests` 惰性 GC 无 timer。
+
+### Phase 5 — DC 失效 fallback + 自动重建（零新代码 / Phase 2 + P2PClient 既有 wiring 副产品）
+
+- DC 抛 IllegalStateException → Phase 2 `trySendViaDataChannel` 返 false → signaling fallback。
+- DC 死 → `P2PClient.handleDisconnection` 监听 `webRTCClient.setOnDisconnected` → `scheduleReconnect` 指数退避（base 1s / cap 60s / factor 2.0 / maxAttempts 10）。已存在 piggy-back。
+- DC 恢复 → `isDcReady()` 在每次 invoke 重新读 connectionState，下次 invoke 自然走 DC，无显式切换动作。
+
+### Fixed — Plan A 真机 e2e 暴露的 4 bug（v5.0.3.52 临门修，发 53 一起 sweep）
+
+1. APK 中文显示乱码：gradle.properties + compileOptions.encoding 加 `-Dfile.encoding=UTF-8`
+2. 每次 invoke 新 `mobile-${ts}` peerId 让 server cleanup 误杀：`WebSocketPairingSignalingGate.sendAck` 复用 register 的 DID
+3. OkHttp pingInterval(20s) 太短：拉到 60s 容纳桌面慢命令处理
+4. WS reconnect 不自动 re-register：onOpen 加 auto re-register 避免 server peerId=undefined 黑洞
+
+### Tests — Plan A.1 新增 10 个 unit test，所有现有测试保持绿
+
+- `SignalingRpcClientTest`: 4 个新测试（DC ready 走 DC + flag-off 走 signaling + DC 不 ready fallback + DC throws fallback），envelope 共享 pending deferred 验证
+- `TerminalRpcClientTest`: 3 个新测试（DC + signaling 重复 dedup stdout / dedup exit / DC 单路投递 stdout）+ Trap 1 回归测试
+- `WebRTCClientTest`: pre-existing pairedDesktopsStore 缺参修补（v1.3+ Plan B 留的 stale test）
+
+### Real-device E2E — §5.3 矩阵移交用户
+
+- Xiaomi 24115RA8EC（已有 device）+ 桌面 Windows dev 模式
+- 场景：(1) LAN 同 WiFi 期望 DC 秒级握手 (2) 蜂窝 + LAN 桌面 TURN relay (3) 双 NAT 3G symmetric fallback signaling (4) 模拟 DC 失效 fallback ≤3s (5) DC 恢复自动切回
+
+### Design doc
+
+- `docs/design/Android_Remote_Terminal_Plan_A1.md` v0.1 → v1.0（一日 7 commit 完成 Phase 1-5；落地反思：Phase 5 是 Phase 2 + P2PClient.scheduleReconnect 的免费副产物，零新代码）
+
+---
+
 ## [v5.0.3.52] - 2026-05-14 — Plan A 远程终端：Android↔桌面 PTY 全链路
 
 > Phase 1 – 4 全部落地：用户从 Android 配对桌面的 RemoteOperateScreen 点 "打开远程终端" → TerminalListScreen → 新建会话 (pwsh/cmd/bash/wsl) → TerminalSessionScreen 嵌 xterm.js WebView 真键入并查看 stdout。桌面端 PtyManager 单例同时被 web-shell WS 网关 + cc ui WS 网关 + V6 native IPC 共享。

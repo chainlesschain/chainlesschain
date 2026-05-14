@@ -3,6 +3,26 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.53] - 2026-05-14 — Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连
+
+> Plan A v5.0.3.52 真机 e2e 暴露 5 个 reliability bug，其中 1 个是**架构性**：signaling 4 跳链路（手机 → 路由器 → 中继 → 桌面 RelayClient）任一跳被 NAT idle / 蜂窝运营商间歇杀 TCP 即整体失败。Plan A.1 治本：稳态命令 + stdout/exit 推送从 4 跳 signaling 切到 1 跳 WebRTC DataChannel 直连，绕开中继 + NAT idle，p50 RTT 200-500ms → 30-80ms。失败 silent fallback signaling，保留兜底。
+
+**核心改动**（详细 entry 见根 `CHANGELOG.md`）：
+
+- **Phase 1** Trap 1 修复 + `dataChannelReady` derived StateFlow（治三方互覆盖 `setOnForwardedMessageReceived` 单 callback 的 latent bug，让 ice:config 拦截不再被偷走）
+- **Phase 2** `SignalingRpcClient.invoke` DC fast path + 双 listener pending pool；DC 抛异常或未 ready 自动 fallback signaling LAN+relay 双发既有路径
+- **Phase 3** TerminalListScreen 进入时触发 WebRTC handshake + UI chip 实时显示 "P2P 直连 / 中继路径"
+- **Phase 4** TerminalRpc 双订 `forwardedMessages + webRTCClient.messages` + (sessionId, seq) 反向 LRU 去重；桌面 `mobile-bridge.bridgeToLibp2p` 加 reqId LRU dedup 防 PtyManager 双执行
+- **Phase 5** 零新代码：DC 失效 fallback + 自动重建是 Phase 2 + P2PClient 既有 `scheduleReconnect` 的免费副产品
+
+**Plan A 真机 e2e 临门 sweep 的 4 个 bug**（53 一起带版）：APK 中文 GBK 乱码 / 每次 invoke 新 peerId 让 server cleanup 误杀 / OkHttp pingInterval 太短 / WS reconnect 不自动 re-register。
+
+**真机 e2e §5.3 矩阵移交用户**：Xiaomi 24115RA8EC × 桌面 Windows dev — 5 场景（LAN / 蜂窝 / 双 NAT / DC 失效 / DC 恢复）。
+
+详细设计：`docs/design/Android_Remote_Terminal_Plan_A1.md` v1.0（一日 7 commit 完成 Phase 1-5）。
+
+---
+
 ## [v5.0.3.52] - 2026-05-14 — Plan A 远程终端：Android↔桌面 PTY 全链路
 
 > 用户痛点："PC 上开了很多终端，能不能在 Android 上看到这些终端的输出并远程输入指令？"  
