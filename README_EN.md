@@ -2,6 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-14 Landed — **Plan A Remote Terminal: Android↔Desktop PTY end-to-end (Phase 1–4 all + 162 tests green)**
+
+> User pain point: "I have many terminals open on my PC, can my Android phone see their output and remotely send commands?"  
+> Hard constraint: external terminals already running on Windows **cannot be attached** by another process (OS handles are private to the parent).  
+> Solution: **Plan A** — ChainlessChain desktop uses `node-pty` to host **new** terminal sessions; reuses the existing #21 Remote Operate signaling-relay channel to stream stdin/stdout to Android.
+
+Desktop `PtyManager` is a **singleton** shared by web-shell WS gateway + cc ui WS gateway + V6 native IPC — a session opened in any shell is visible in the others.
+
+- **Desktop main process** — `PtyManager` (lazy `node-pty` + 256KB ring buffer + 24h idle kill + shell whitelist `pwsh/cmd/bash/wsl` + 8 concurrent limit) + `terminal-handlers.js` (8 WS topics: create/list/stdin/resize/close/history + server-push stdout/exit) + `terminal-ipc.js` (V6 native IPC bridge) + `confirmation-dialog.js` (dangerous-keyword Electron messageBox + permanent trust per-cmd cache). `handleMobileCommand` adds `terminal.*` namespace + per-mobile-peer stdout/exit subscription fanout.
+- **CLI workspace mirror** — `attachTopicHandlers` shared helper (extracted from `ws-cli-loader` dispatcher wrap as an ESM helper); `agent-runtime.startUiServer` attaches it — `cc ui` users also get `/terminal`. `node-pty` added as optionalDependencies (workspace hoist resolves it without breaking install on platforms without prebuilds).
+- **Web Panel** — `useTerminal` composable (singleton fanout + base64↔UTF-8 encoding) + `Terminal.vue` route `/terminal` (xterm.js lazy import + multi-session tabs + history backfill + ResizeObserver + dangerous-keyword toast) + sidebar entry + i18n.
+- **V6 plugin widget** — `plugins-builtin/terminal/plugin.json` + `shell/widgets/TerminalWidget.vue` + `shell/TerminalPanel.vue` (xterm.js embed + IPC bridge `electronAPI.terminal.*`) + slash command `/terminal`.
+- **Android** — `TerminalRpcClient.kt` (reuses `SignalingRpcClient` envelope pattern + observeStdout/observeExit SharedFlow) + `TerminalWebView.kt` (WebView ↔ Kotlin JS bridge) + `xterm-shell.html` + xterm.js / addon-fit / xterm.css vendored to `assets/terminal/` + `TerminalListScreen` / `TerminalSessionScreen` Compose + softkey toolbar (Ctrl/Tab/Esc/arrows/Ctrl+C/D) + NavGraph 2 routes + `RemoteOperateScreen` "Open Remote Terminal" entry.
+
+**Tests: 162 new, all green** — Desktop main 61 (RingBuffer 7 + PtyManager 15 + terminal-handlers 15 + terminal-ipc 12 + confirmation-dialog 5 + ws-smoke 6 + **real-PTY spawn cmd.exe integration 1 — really spawns `cmd.exe`, really sends `echo PLAN_A_PROBE_42`, stdout stream contains the probe**) + CLI cc ui 21 (PtyManager 10 + handlers 8 + ws-mirror-smoke 3 with real `ChainlessChainWSServer` + `attachTopicHandlers` + real WS client) + Web Panel 17 useTerminal composable + **3 e2e** (real `cc ui` subprocess + real WebSocket + real shell stdin/stdout round-trip via probe echo) + Android 10 `TerminalRpcClientTest`.
+
+**Pre-existing test drift swept** — `widget-registry.test.ts` (PREVIEW_WIDGETS already extended to 7 entries) / `dashboard-store.test.js` (missing `mcp.list_tools` sendRaw mock) / `views-mount-smoke.test.js` 5 tail views (Notification + Pinia cross-test pollution; Projects i18n fixed + 4 others split into dedicated worker) / `Projects-folder-picker.test.js` deleted (tested UI no longer exists).
+
+**Docs**: [Android Remote Terminal Plan A design](docs/design/Android_Remote_Terminal_Plan_A.md) + [user doc](docs-site/docs/guide/remote-terminal.md) (synced to both doc sites). Future A.1 stream traffic through WebRTC DataChannel to bypass relay bandwidth / Future B read-only snapshot of already-running external terminals via screenshot + OCR + Win32 SendInput left for later.
+
 ## 2026-05-13 Follow-up — **Android social goes production (demo → real)**
 
 10K LOC of social scaffolding (14 screens + 9 ViewModels + 4 repos) was built long ago but only 2 routes were actually wired; the other 7 were `registerPlaceholder("temporarily simplified")`, and the `SocialScreen` Friends/Timeline tabs were hardcoded placeholder strings. Closed it all in one pass:

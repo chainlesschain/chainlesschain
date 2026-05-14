@@ -15,6 +15,9 @@ import { startAgentRepl } from "../gateways/repl/agent-repl.js";
 import { startChatRepl } from "../gateways/repl/chat-repl.js";
 import { ChainlessChainWSServer } from "../gateways/ws/ws-server.js";
 import { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
+import { attachTopicHandlers } from "../gateways/ws/topic-handler-attachment.js";
+import { PtyManager } from "../gateways/terminal/PtyManager.js";
+import { createTerminalHandlers } from "../gateways/terminal/terminal-handlers.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
 import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
 import sharedManagedToolPolicy from "./coding-agent-managed-tool-policy.cjs";
@@ -525,6 +528,32 @@ export class AgentRuntime {
 
     const actualWsPort = wsServer.port;
 
+    // Plan A remote-terminal mirror (cc ui parity with desktop web-shell):
+    // attach terminal.* topic handlers to the freshly-started server. The
+    // attachTopicHandlers helper mutates server._dispatcher to route
+    // matching topics through `terminalHandlers.handlers`, falling back to
+    // the original CLI dispatcher for everything else.
+    const wsBroadcastRef = { current: null };
+    const ptyManager = new PtyManager();
+    const terminal = createTerminalHandlers({
+      ptyManager,
+      broadcast: (frame) => wsBroadcastRef.current?.(frame),
+    });
+    const attached = attachTopicHandlers(wsServer, {
+      handlers: terminal.handlers,
+    });
+    wsBroadcastRef.current = attached.broadcast;
+    terminal.attachServerEvents();
+    // Stash for SIGINT cleanup below (PtyManager.shutdown kills all PTYs;
+    // important on Ctrl+C so node-pty children don't outlive cc ui).
+    this._terminalCleanup = () => {
+      try {
+        ptyManager.shutdown();
+      } catch {
+        /* best effort during teardown */
+      }
+    };
+
     const httpServer = this.deps.createWebServer({
       wsPort: actualWsPort,
       wsToken: this.policy.token,
@@ -610,6 +639,10 @@ export class AgentRuntime {
       if (mcpClient && typeof mcpClient.disconnectAll === "function") {
         await mcpClient.disconnectAll().catch(() => undefined);
       }
+      // Kill all PTY sessions before WS so the SPA gets clean terminal.exit
+      // frames; without this, node-pty children would outlive cc ui until
+      // their OS parent (the cc ui process) actually exits.
+      this._terminalCleanup?.();
       await Promise.all([
         new Promise((resolve) => httpServer.close(resolve)),
         wsServer.stop(),

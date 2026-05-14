@@ -3,6 +3,38 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.52] - 2026-05-14 — Plan A 远程终端：Android↔桌面 PTY 全链路
+
+> 用户痛点："PC 上开了很多终端，能不能在 Android 上看到这些终端的输出并远程输入指令？"  
+> 硬约束：Windows 上已经在跑的外部终端不能被另一进程 attach（OS 句柄私有）。  
+> 落地：方案 A — ChainlessChain 桌面端用 `node-pty` 托管新开终端，复用 #21 Remote Operate signaling-relay 通道把 stdin/stdout 流到 Android。
+
+### Added — Plan A Phase 1 – 4 全部落地
+
+- **桌面主进程** — `PtyManager`（lazy node-pty + 256KB ring buffer + 24h idle kill + shell 白名单 `pwsh/cmd/bash/wsl` + 8 session 上限）+ `RingBuffer`（byte-aware FIFO）+ `terminal-handlers.js`（8 个 WS topics：create/list/stdin/resize/close/history + server-push stdout/exit）+ `terminal-ipc.js`（V6 native IPC bridge）+ `confirmation-dialog.js`（高危关键字 systray 弹窗 + 永久信任）。`startWebShell` 接 `ptyManager` + `terminalRequireConfirmation`；`handleMobileCommand` 加 `terminal.*` namespace + mobile-bridge stdout/exit fanout（per-peer subscription map）。
+- **共享 helper** — `packages/cli/src/gateways/ws/topic-handler-attachment.js` 抽出 `ws-cli-loader` 的 dispatcher 包装为 ESM helper；cc ui 的 `agent-runtime.startUiServer` 调一遍 → cc ui 也能 `/terminal`。
+- **Web Panel** — `useTerminal` composable（singleton fan-out via module-level sub map，base64↔UTF-8 编解码）+ `Terminal.vue` route `/terminal`（xterm.js lazy import + 多 session 标签 + history 补帧 + ResizeObserver + 高危关键字拦截 toast）+ 侧栏菜单 + i18n。
+- **V6 plugin widget** — `plugins-builtin/terminal/plugin.json` + `shell/widgets/TerminalWidget.vue` + `shell/TerminalPanel.vue`（xterm.js 嵌入 + IPC bridge `electronAPI.terminal.*`）+ slash 命令 `/terminal`。
+- **Android** — `TerminalRpcClient.kt`（复用 `SignalingRpcClient` envelope pattern + observeStdout/observeExit SharedFlow）+ `TerminalWebView.kt`（WebView ↔ Kotlin JS bridge）+ `xterm-shell.html` + xterm.js / addon-fit / xterm.css vendored 入 `assets/terminal/` + `TerminalListScreen` / `TerminalSessionScreen` Compose + softkey toolbar（Ctrl/Tab/Esc/方向/Ctrl+C/D）+ NavGraph 2 路由 + `RemoteOperateScreen` 加 "打开远程终端" 按钮。
+- **设计文档** + 用户文档 — `docs/design/Android_Remote_Terminal_Plan_A.md` + `docs-site/docs/guide/remote-terminal.md`（双站同步）。
+
+### Tests — 162 新增，全绿
+
+- Desktop main process: 61 测（RingBuffer 7 + PtyManager 15 + terminal-handlers 15 + terminal-ipc 12 + confirmation-dialog 5 + ws-smoke integration 6 + **real PTY spawn cmd.exe integration 1**）
+- CLI cc ui: 21 测（PtyManager 10 + handlers 8 + ws-mirror-smoke 3）
+- Web Panel: 17 测 useTerminal composable + **3 e2e**（real `cc ui` subprocess + real WebSocket + real shell stdin/stdout round-trip）
+- Android: 10 测 `TerminalRpcClientTest`（happy / list / stdin / resize / close / history / stdout fan-out / exit fan-out / idempotent start / non-terminal events）
+
+### Fixed — pre-existing test drift swept by full suite run
+
+- `docs-site/scripts/sync-design-docs.js` + `docs-site-design/scripts/sync-docs.js` ROOT_FILE_MAP 各加 `Android_Remote_Terminal_Plan_A.md` 映射，双站同步 149 文件
+- `desktop-app-vue` `widget-registry.test.ts` 期望 5 个 widget id，PREVIEW_WIDGETS 已扩到 7（`bridge-mtc` + `federation-governance` 此前漏更新）
+- `web-panel` `dashboard-store.test.js` 没 mock `mcp.list_tools` 的 sendRaw 回应（commit `d9cc41432` 后漂移）
+- `web-panel` `views-mount-smoke.test.js` 5 个尾部视图（Projects/VideoEditing/P2P/Memory/Git）在 50+ 文件并行套件下撞 `Notification + Pinia` 跨测试状态污染：Projects 修 i18n title + 其余 4 个拆 `views-mount-smoke-tail.test.js` 独立 worker
+- `web-panel` `Projects-folder-picker.test.js` 测试 commit `bfdde637d` 已重构掉的 UI，删除过时测试
+
+---
+
 ## [Unreleased] - 2026-05-13 (later) — Android 社交功能产线化（demo → production）
 
 > 14 屏 + 9 ViewModel + 4 Repository 的社交骨架 (~10K LOC) 建好已久，但 NavGraph 只接通 MyQRCode / QRCodeScanner 两路由，其它 7 路由是 `registerPlaceholder("temporarily simplified")`；`SocialScreen` Friends / Timeline 两 tab 显示固定字串；`PostRepository.reportPost` 构造完 entity 不入库；`FriendRepository.searchUserByDid` 非本地 DID 返回 null。本次一次性收口，**不 bump version**。

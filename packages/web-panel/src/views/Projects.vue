@@ -2,7 +2,7 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 class="page-title">项目</h2>
+        <h2 class="page-title">{{ t('projects.title') }}</h2>
         <p class="page-sub">桌面 / CLI / 手机 三端共享同一份项目数据，Phase 3d sync 自动同步 (<router-link to="/project-init">项目初始化 / 环境设置</router-link>)</p>
       </div>
       <a-space>
@@ -209,9 +209,11 @@ import {
   CheckSquareOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { useWsStore } from '../stores/ws.js'
 import { useShellMode } from '../composables/useShellMode.js'
 
+const { t } = useI18n()
 const ws = useWsStore()
 const { isEmbedded } = useShellMode()
 

@@ -98,6 +98,7 @@ data class RemoteOperateState(
 @Composable
 fun RemoteOperateScreen(
     onBack: () -> Unit,
+    onOpenTerminal: (peerId: String) -> Unit = {},
     viewModel: RemoteOperateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -171,6 +172,13 @@ fun RemoteOperateScreen(
                 ),
                 busy = state.busy,
             )
+
+            // Plan A 远程终端入口 — 在配对桌面上开 PTY 会话并远程操作。
+            Button(
+                onClick = { onOpenTerminal(state.pcPeerId) },
+                enabled = state.pcPeerId.isNotEmpty() && !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("打开远程终端") }
 
             if (state.busy) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

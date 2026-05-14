@@ -52,6 +52,7 @@ const ROOT_FILE_MAP = {
   "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
   "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
   "Android_Remote_Operate_Plan_C.md": "Android_Remote_Operate_Plan_C.md",
+  "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",
   "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
   "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
   "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",

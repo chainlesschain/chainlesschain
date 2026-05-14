@@ -2,6 +2,26 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-14 落地 — **Plan A 远程终端：Android↔桌面 PTY 全链路（Phase 1–4 全部 + 162 测试全绿）**
+
+> 用户痛点："PC 上开了很多终端，能不能在 Android 上看到这些终端的输出并远程输入指令？"  
+> 硬约束：Windows 上已经在跑的外部终端**不能被另一进程 attach**（OS 句柄私有）。  
+> 落地：**Plan A** — ChainlessChain 桌面端用 `node-pty` 托管**新开**终端，复用 #21 Remote Operate signaling-relay 通道把 stdin/stdout 流到 Android。
+
+桌面端 `PtyManager` **单例**同时被 web-shell WS 网关 + cc ui WS 网关 + V6 native IPC 共享 — 用户在任一壳开会话，其它壳都能看到。
+
+- **桌面主进程** — `PtyManager`（lazy `node-pty` + 256KB ring buffer + 24h idle kill + shell 白名单 `pwsh/cmd/bash/wsl` + 8 session 上限）+ `terminal-handlers.js`（8 个 WS topics: create/list/stdin/resize/close/history + server-push stdout/exit）+ `terminal-ipc.js`（V6 native IPC bridge）+ `confirmation-dialog.js`（高危关键字 Electron messageBox + 永久信任 per-cmd cache）。`handleMobileCommand` 加 `terminal.*` namespace + mobile-bridge per-peer stdout/exit subscription fanout。
+- **CLI workspace mirror** — `attachTopicHandlers` 共享 helper（抽出 `ws-cli-loader` dispatcher 包装为 ESM helper）；`agent-runtime.startUiServer` 调一遍 → `cc ui` 也能 `/terminal`。`node-pty` 加为 optionalDependencies（workspace hoist 解决 + 装不上不破坏 install）。
+- **Web Panel** — `useTerminal` composable（singleton fan-out + base64↔UTF-8 编解码）+ `Terminal.vue` route `/terminal`（xterm.js lazy import + 多 session 标签 + history 补帧 + ResizeObserver + 高危关键字拦截 toast）+ 侧栏菜单 + i18n。
+- **V6 plugin widget** — `plugins-builtin/terminal/plugin.json` + `shell/widgets/TerminalWidget.vue` + `shell/TerminalPanel.vue`（xterm.js 嵌入 + IPC bridge `electronAPI.terminal.*`）+ slash 命令 `/terminal`。
+- **Android** — `TerminalRpcClient.kt`（复用 `SignalingRpcClient` envelope pattern + observeStdout/observeExit SharedFlow）+ `TerminalWebView.kt`（WebView ↔ Kotlin JS bridge）+ `xterm-shell.html` + xterm.js / addon-fit / xterm.css vendored 入 `assets/terminal/` + `TerminalListScreen` / `TerminalSessionScreen` Compose + softkey toolbar（Ctrl/Tab/Esc/方向/Ctrl+C/D）+ NavGraph 2 路由 + `RemoteOperateScreen` 加 "打开远程终端" 按钮。
+
+**测试 162 新增全绿** —— Desktop main 61（RingBuffer 7 + PtyManager 15 + terminal-handlers 15 + terminal-ipc 12 + confirmation-dialog 5 + ws-smoke 6 + **真 PTY spawn cmd.exe integration 1 — 真 spawn `cmd.exe`、真发 `echo PLAN_A_PROBE_42`、stdout 流回包含 probe**）+ CLI cc ui 21（PtyManager 10 + handlers 8 + ws-mirror-smoke 3 含真 `ChainlessChainWSServer` + `attachTopicHandlers` + 真 WS client）+ Web Panel 17 useTerminal composable + **3 e2e**（真 `cc ui` subprocess + 真 WebSocket + 真 shell stdin/stdout round-trip via probe echo）+ Android 10 `TerminalRpcClientTest`。
+
+**修 pre-existing test drift** —— `widget-registry.test.ts`（PREVIEW_WIDGETS 已扩到 7 个）/ `dashboard-store.test.js`（缺 `mcp.list_tools` mock）/ `views-mount-smoke.test.js` 5 个尾部视图（Notification + Pinia 状态污染：Projects i18n 修 + 其余 4 个拆独立 worker）/ 删除过时 `Projects-folder-picker.test.js`。
+
+**文档**：[Android Remote Terminal Plan A 设计文档](docs/design/Android_Remote_Terminal_Plan_A.md) + [用户文档](docs-site/docs/guide/remote-terminal.md)（双站同步）。Future A.1 流量切 WebRTC DataChannel 绕中继带宽 / Future B 已开外部终端只读快照（截图 + OCR + Win32 SendInput）留后续。
+
 ## 2026-05-13 后续推进 — **Android 社交功能产线化（demo → production）**
 
 10K LOC 社交骨架（14 屏 + 9 VM + 4 Repo）建好已久，但只有 2 路由真接通；其它 7 个 `registerPlaceholder("temporarily simplified")`，`SocialScreen` 三 tab 中 Friends/Timeline 显示固定字串。本次一次性收口：

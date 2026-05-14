@@ -2,10 +2,16 @@
  * shell-preview/widgets — registry unit tests
  *
  * Covers:
- *  - PREVIEW_WIDGETS exposes exactly the 4 canonical entry ids
+ *  - PREVIEW_WIDGETS exposes exactly the canonical entry ids
  *  - Each entry has a component + non-empty title
  *  - getPreviewWidget() returns undefined for unknown ids
  *  - Registry ids match the DecentralEntries handler contract
+ *
+ * Entry list grew over time:
+ *   - p2p / trade / social / ukey (P9 baseline, 2026-04-20)
+ *   - mtc (Phase 4 V6 status widget, d75abe6e8)
+ *   - bridge-mtc (federation governance CLI + bridge MTCA, 1c1e4096d)
+ *   - federation-governance (governance GUI, a8fff1f52)
  */
 
 import { describe, it, expect } from "vitest";
@@ -22,9 +28,11 @@ describe("shell-preview/widgets registry", () => {
     "social",
     "ukey",
     "mtc",
+    "bridge-mtc",
+    "federation-governance",
   ];
 
-  it("exposes the 5 canonical decentralized entry ids (p2p/trade/social/ukey/mtc)", () => {
+  it("exposes the 7 canonical decentralized entry ids", () => {
     expect(Object.keys(PREVIEW_WIDGETS).sort()).toEqual(
       [...EXPECTED_IDS].sort(),
     );

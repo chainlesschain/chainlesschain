@@ -159,6 +159,14 @@ export default defineConfig({
               text: "Android v1.0 重新定位 (L1+L2+L3) ⭐NEW",
               link: "/android-repositioning",
             },
+            {
+              text: "Android Remote Operate Plan C (signaling forward) ⭐",
+              link: "/Android_Remote_Operate_Plan_C",
+            },
+            {
+              text: "Android Remote Terminal Plan A (PTY 远程操控) ⭐NEW",
+              link: "/Android_Remote_Terminal_Plan_A",
+            },
           ],
         },
         {

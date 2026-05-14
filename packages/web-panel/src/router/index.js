@@ -13,6 +13,7 @@ const routes = [
       { path: 'cowork',     name: 'Cowork',      component: () => import('../views/Cowork.vue') },
       { path: 'services',   name: 'Services',    component: () => import('../views/Services.vue') },
       { path: 'logs',       name: 'Logs',        component: () => import('../views/Logs.vue') },
+      { path: 'terminal',   name: 'Terminal',    component: () => import('../views/Terminal.vue') },
       { path: 'skills',     name: 'Skills',      component: () => import('../views/Skills.vue') },
       { path: 'providers',  name: 'Providers',   component: () => import('../views/Providers.vue') },
       { path: 'mcp',        name: 'McpTools',    component: () => import('../views/McpTools.vue') },

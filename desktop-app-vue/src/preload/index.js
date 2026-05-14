@@ -3304,6 +3304,35 @@ contextBridge.exposeInMainWorld("electronAPI", {
           ),
       },
     },
+    // Plan A remote-terminal — V6 native bridge to PtyManager via IPC.
+    // The same singleton PtyManager backs both the web-shell WS gateway
+    // and this IPC, so sessions created in one shell appear in the other.
+    // Data is UTF-8 strings (Electron structured-clone handles binary
+    // safely — no base64 layer needed here, unlike the WS path).
+    terminal: {
+      create: (req) => ipcRenderer.invoke("terminal:create", req || {}),
+      list: () => ipcRenderer.invoke("terminal:list"),
+      stdin: (sessionId, data) =>
+        ipcRenderer.invoke("terminal:stdin", { sessionId, data }),
+      resize: (sessionId, cols, rows) =>
+        ipcRenderer.invoke("terminal:resize", { sessionId, cols, rows }),
+      close: (sessionId) => ipcRenderer.invoke("terminal:close", { sessionId }),
+      history: (sessionId, fromSeq) =>
+        ipcRenderer.invoke("terminal:history", {
+          sessionId,
+          fromSeq: fromSeq || 0,
+        }),
+      onStdout: (handler) => {
+        const listener = (_ev, payload) => handler(payload);
+        ipcRenderer.on("terminal:stdout", listener);
+        return () => ipcRenderer.removeListener("terminal:stdout", listener);
+      },
+      onExit: (handler) => {
+        const listener = (_ev, payload) => handler(payload);
+        ipcRenderer.on("terminal:exit", listener);
+        return () => ipcRenderer.removeListener("terminal:exit", listener);
+      },
+    },
   },
 });
 

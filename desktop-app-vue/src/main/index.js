@@ -873,6 +873,36 @@ class ChainlessChainApp {
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
     this.setupIPC();
 
+    // Plan A remote-terminal: singleton PtyManager shared between web-shell
+    // WS gateway and V6 native IPC bridge. Created here (always-on) so V6
+    // users can open terminal panels without flipping into web-shell mode.
+    // The same manager is passed into startWebShell({ ptyManager }) below
+    // when isWebShell is true, so sessions appear in both shells.
+    try {
+      const { PtyManager } = require("./terminal/PtyManager");
+      const { setupTerminalIpc } = require("./terminal/terminal-ipc");
+      const {
+        createTerminalConfirmation,
+      } = require("./terminal/confirmation-dialog");
+      const { ipcMain } = require("electron");
+      this.ptyManager = new PtyManager();
+      this._disposeTerminalIpc = setupTerminalIpc({
+        ptyManager: this.ptyManager,
+        ipcMain,
+      });
+      // Bind dangerous-keyword confirmation to a native message box. The
+      // hook fires only on the WS path (remote callers); local V6 IPC
+      // bypasses the gate per terminal-ipc.js design (same-user trust).
+      this.terminalRequireConfirmation = createTerminalConfirmation({
+        getMainWindow: () => this.mainWindow || null,
+      });
+      logger.info("[Main] terminal IPC bridge registered (Plan A)");
+    } catch (e) {
+      logger.warn("[Main] terminal IPC bridge setup failed:", e.message);
+      this.ptyManager = null;
+      this.terminalRequireConfirmation = null;
+    }
+
     if (isWebShell) {
       // Phase 0 path: embed web-ui-server (CLI HTTP) + ws-bridge with a pre-
       // registered ukey.status handler, load web-panel dist. V5/V6 IPC stays
@@ -890,6 +920,10 @@ class ChainlessChainApp {
         mode: "global",
         projectName: "ChainlessChain Desktop",
         ukeyManager: this.ukeyManager,
+        // Plan A: share PtyManager so terminal sessions are visible in both
+        // web-shell SPA and V6 native (when user toggles between them).
+        ptyManager: this.ptyManager,
+        terminalRequireConfirmation: this.terminalRequireConfirmation,
         // Phase 2: pass the (possibly-null) MCP singleton so mcp.list_tools /
         // mcp.call_tool can surface desktop MCP servers to the embedded SPA.
         // initializeMCPSystem() ran before createWindow() in both legacy and
@@ -1781,7 +1815,9 @@ class ChainlessChainApp {
       let error = null;
 
       try {
-        result = await this.routeMobileCommand(method, params);
+        result = await this.routeMobileCommand(method, params, {
+          mobilePeerId,
+        });
       } catch (e) {
         logger.error(`[Main] 命令执行失败: ${method}`, e);
         error = {
@@ -1825,7 +1861,83 @@ class ChainlessChainApp {
    * @param {Object} params - 命令参数
    * @returns {Promise<any>} 命令结果
    */
-  async routeMobileCommand(method, params = {}) {
+  /**
+   * Lazily wire PtyManager 'stdout' / 'exit' events to mobile-bridge
+   * fan-out. Each subscribed peer receives `terminal.stdout` /
+   * `terminal.exit` chainlesschain:event frames matching the WS shape
+   * (sessionId / seq / data / exitCode). Idempotent.
+   */
+  _ensureMobileTerminalFanout() {
+    if (this._mobileTerminalFanoutAttached) {
+      return;
+    }
+    if (!this.ptyManager) {
+      return;
+    }
+    this._mobileTerminalSubs = new Map(); // sessionId → Set<peerId>
+    this._mobileTerminalFanoutAttached = true;
+
+    this.ptyManager.on("stdout", ({ sessionId, data, seq }) => {
+      const subs = this._mobileTerminalSubs.get(sessionId);
+      if (!subs || subs.size === 0 || !this.mobileBridge) {
+        return;
+      }
+      const frame = {
+        type: "chainlesschain:event",
+        payload: JSON.stringify({
+          event: "terminal.stdout",
+          sessionId,
+          // Mobile protocol uses plain string (Android's JSON parser is
+          // happy with UTF-8 directly; we keep base64 only on the
+          // browser-side WS protocol to dodge JSON.stringify escape edge
+          // cases that arise in xterm.js binary streams).
+          data: Buffer.isBuffer(data) ? data.toString("utf-8") : String(data),
+          seq,
+        }),
+      };
+      for (const peerId of subs) {
+        this.mobileBridge.sendToMobile(peerId, frame).catch((err) => {
+          logger.warn(
+            `[Main] terminal.stdout fanout failed for ${peerId}:`,
+            err?.message,
+          );
+        });
+      }
+    });
+
+    this.ptyManager.on("exit", ({ sessionId, exitCode, signal }) => {
+      const subs = this._mobileTerminalSubs.get(sessionId);
+      if (!subs || subs.size === 0 || !this.mobileBridge) {
+        this._mobileTerminalSubs.delete(sessionId);
+        return;
+      }
+      const frame = {
+        type: "chainlesschain:event",
+        payload: JSON.stringify({
+          event: "terminal.exit",
+          sessionId,
+          exitCode,
+          signal,
+        }),
+      };
+      for (const peerId of subs) {
+        this.mobileBridge.sendToMobile(peerId, frame).catch(() => {});
+      }
+      this._mobileTerminalSubs.delete(sessionId);
+    });
+  }
+
+  _subscribeMobileToSession(peerId, sessionId) {
+    if (!this._mobileTerminalSubs) {
+      return;
+    }
+    if (!this._mobileTerminalSubs.has(sessionId)) {
+      this._mobileTerminalSubs.set(sessionId, new Set());
+    }
+    this._mobileTerminalSubs.get(sessionId).add(peerId);
+  }
+
+  async routeMobileCommand(method, params = {}, ctx = {}) {
     const [namespace, action] = method.split(".");
 
     logger.info(`[Main] 路由命令: ${namespace}.${action}`);
@@ -1855,8 +1967,121 @@ class ChainlessChainApp {
       case "sync":
         return this.handleSyncCommand(action, params);
 
+      case "terminal":
+        return this.handleTerminalCommand(action, params, ctx);
+
       default:
         throw new Error(`Unknown command namespace: ${namespace}`);
+    }
+  }
+
+  /**
+   * Plan A — Android remote-terminal command router.
+   * Methods (mirror the WS terminal.* topics):
+   *   terminal.create / list / stdin / resize / close / history
+   *
+   * Trust gate: handleMobileCommand callers go through the upstream
+   * permissionGate verification (see p2p-command-adapter.js handle
+   * CommandRequest), so by the time we reach here the device is already
+   * authenticated. We additionally re-verify against `p2p_paired_devices`
+   * status='active' as defense-in-depth — a missing manager (pre-init)
+   * returns a clean error envelope rather than crashing.
+   *
+   * params.data is plain UTF-8 string (the mobile-command JSON protocol
+   * doesn't base64 anything — distinct from the WS path's base64 layer).
+   */
+  async handleTerminalCommand(action, params = {}, ctx = {}) {
+    if (!this.ptyManager) {
+      throw new Error("pty_manager_not_ready");
+    }
+    this._ensureMobileTerminalFanout();
+    switch (action) {
+      case "create": {
+        const created = this.ptyManager.create({
+          shell: params.shell,
+          cwd: params.cwd,
+          env: params.env,
+          cols: params.cols,
+          rows: params.rows,
+        });
+        // Subscribe this mobile peer to the new session's stdout/exit so
+        // every chunk is fanned out via sendToMobile. Cleared on
+        // terminal.close or pty exit (see _ensureMobileTerminalFanout).
+        if (ctx.mobilePeerId) {
+          this._subscribeMobileToSession(ctx.mobilePeerId, created.sessionId);
+        }
+        return created;
+      }
+      case "list":
+        // Adopt — subscribe this mobile to all currently live sessions so
+        // it can join an existing terminal opened from another shell.
+        if (ctx.mobilePeerId) {
+          for (const s of this.ptyManager.list()) {
+            if (s.alive) {
+              this._subscribeMobileToSession(ctx.mobilePeerId, s.id);
+            }
+          }
+        }
+        return { sessions: this.ptyManager.list() };
+      case "stdin": {
+        if (!params.sessionId) {
+          throw new Error("session_id_required");
+        }
+        const text = typeof params.data === "string" ? params.data : "";
+        // Apply the same dangerous-keyword gate as the WS path. Android is
+        // a remote trust boundary so requireConfirmation runs in main and
+        // surfaces the native dialog.
+        if (this.terminalRequireConfirmation) {
+          const DANGEROUS = [
+            /\brm\s+-rf\b/i,
+            /\bformat\s+[a-z]:/i,
+            /\bshutdown\b/i,
+            /\bdel\s+\/[sq]/i,
+            /\bdiskpart\b/i,
+          ];
+          if (DANGEROUS.some((re) => re.test(text))) {
+            const ok = await this.terminalRequireConfirmation(
+              text,
+              params.sessionId,
+            );
+            if (!ok) {
+              throw new Error("dangerous_keyword_blocked");
+            }
+          }
+        }
+        this.ptyManager.write(params.sessionId, text);
+        return { ok: true };
+      }
+      case "resize":
+        if (!params.sessionId) {
+          throw new Error("session_id_required");
+        }
+        this.ptyManager.resize(params.sessionId, params.cols, params.rows);
+        return { ok: true };
+      case "close":
+        if (!params.sessionId) {
+          throw new Error("session_id_required");
+        }
+        this.ptyManager.close(params.sessionId);
+        return { ok: true };
+      case "history": {
+        if (!params.sessionId) {
+          throw new Error("session_id_required");
+        }
+        const { chunks, truncated } = this.ptyManager.history(
+          params.sessionId,
+          params.fromSeq || 0,
+        );
+        return {
+          chunks: chunks.map((c) => ({
+            seq: c.seq,
+            data: c.data.toString("utf-8"),
+          })),
+          truncated,
+        };
+      }
+      default:
+        throw new Error(`Unknown terminal action: ${action}`);
     }
   }
 

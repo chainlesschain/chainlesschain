@@ -70,6 +70,8 @@ const {
 } = require("./handlers/desktop-pair-handlers");
 const { createMultisigHandlers } = require("./handlers/multisig-handlers");
 const { createProjectHandlers } = require("./handlers/project-handlers");
+const { createTerminalHandlers } = require("./handlers/terminal-handlers");
+const { PtyManager } = require("../terminal/PtyManager");
 
 /** CLI flag / env var that opts in to the web-shell entry point. */
 const WEB_SHELL_FLAG = "--web-shell";
@@ -137,7 +139,30 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
 async function startWebShell(options = {}) {
   const host = options.host || "127.0.0.1";
 
+  // Plan A remote-terminal (docs/design/Android_Remote_Terminal_Plan_A.md):
+  // PtyManager is a singleton; sessions are shared between the web-shell
+  // WS gateway and the V6 native IPC bridge so the user can open a session
+  // in one shell and see it in the other. Caller (main/index.js) passes
+  // an externally-owned instance via `options.ptyManager`; if absent (e.g.
+  // unit tests) we fall back to a local one.
+  const ptyManager =
+    options.ptyManager ||
+    new PtyManager({ config: options.terminalConfig || undefined });
+  // Whether to call shutdown() on close — only when we own the instance.
+  const ownsPtyManager = !options.ptyManager;
+  // ws.broadcast isn't available until startWsCliBackend resolves below.
+  // Use a mutable ref the handler closures can read at call time; the
+  // bootstrap assigns ws.broadcast into ref.current after ws starts.
+  const wsBroadcastRef = { current: null };
+  const terminal = createTerminalHandlers({
+    ptyManager,
+    broadcast: (frame) => wsBroadcastRef.current?.(frame),
+    requireConfirmation: options.terminalRequireConfirmation,
+    verifyTrustedSource: options.terminalVerifyTrustedSource,
+  });
+
   const wsHandlers = {
+    ...terminal.handlers,
     "ukey.status": createUKeyStatusHandler({
       ukeyManager: options.ukeyManager ?? null,
     }),
@@ -320,6 +345,11 @@ async function startWebShell(options = {}) {
     sessionManager: options.sessionManager,
   });
 
+  // Plan A: now that ws.broadcast exists, hand it to the terminal handler
+  // closure and subscribe PtyManager events → broadcast frame fan-out.
+  wsBroadcastRef.current = ws.broadcast;
+  terminal.attachServerEvents();
+
   let http;
   try {
     http = await startWebUIServer({
@@ -349,10 +379,21 @@ async function startWebShell(options = {}) {
       return;
     }
     closed = true;
+    // Kill PTY sessions only when we own the manager (caller-injected
+    // managers are owned by main/index.js's lifecycle and must outlive
+    // the web-shell so V6 IPC stays alive when user toggles shell mode).
+    if (ownsPtyManager) {
+      try {
+        ptyManager.shutdown();
+      } catch {
+        /* best-effort */
+      }
+    }
     await Promise.allSettled([ws.close(), http.close()]);
   }
 
   return {
+    ptyManager,
     httpUrl: http.url,
     wsUrl: ws.url,
     host,

@@ -61,6 +61,8 @@ import com.chainlesschain.android.remote.ui.DeviceListScreen
 import com.chainlesschain.android.remote.ui.DeviceScanScreen
 import com.chainlesschain.android.remote.ui.RemoteControlScreen
 import com.chainlesschain.android.remote.ui.RemoteOperateScreen
+import com.chainlesschain.android.remote.terminal.ui.TerminalListScreen
+import com.chainlesschain.android.remote.terminal.ui.TerminalSessionScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteRAGSearchScreen
@@ -616,7 +618,34 @@ fun NavGraph(
                 navArgument("peerId") { type = NavType.StringType },
             ),
         ) {
-            RemoteOperateScreen(onBack = { navController.popBackStack() })
+            RemoteOperateScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTerminal = { peerId ->
+                    navController.navigate(Screen.TerminalList.createRoute(peerId))
+                },
+            )
+        }
+        composable(
+            route = Screen.TerminalList.routePattern,
+            arguments = listOf(navArgument("peerId") { type = NavType.StringType }),
+        ) { backStack ->
+            val peerId = backStack.arguments?.getString("peerId").orEmpty()
+            TerminalListScreen(
+                pcPeerId = peerId,
+                onBack = { navController.popBackStack() },
+                onOpenSession = { sessionId ->
+                    navController.navigate(Screen.TerminalSession.createRoute(peerId, sessionId))
+                },
+            )
+        }
+        composable(
+            route = Screen.TerminalSession.routePattern,
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+                navArgument("sessionId") { type = NavType.StringType },
+            ),
+        ) {
+            TerminalSessionScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.RemoteControl.route) {
             RemoteControlScreen(
@@ -894,6 +923,16 @@ sealed class Screen(val route: String) {
     data object RemoteOperate : Screen("remote_operate") {
         const val routePattern = "remote_operate/{peerId}"
         fun createRoute(peerId: String) = "remote_operate/$peerId"
+    }
+    // Plan A 远程终端 — list + single session
+    data object TerminalList : Screen("terminal_list") {
+        const val routePattern = "terminal_list/{peerId}"
+        fun createRoute(peerId: String) = "terminal_list/$peerId"
+    }
+    data object TerminalSession : Screen("terminal_session") {
+        const val routePattern = "terminal_session/{peerId}/{sessionId}"
+        fun createRoute(peerId: String, sessionId: String) =
+            "terminal_session/$peerId/$sessionId"
     }
     data object RemoteAIChat : Screen("remote_ai_chat")
     data object RemoteRAGSearch : Screen("remote_rag_search")

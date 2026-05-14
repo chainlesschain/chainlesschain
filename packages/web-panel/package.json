@@ -21,6 +21,8 @@
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
     "@tanstack/virtual-core": "^3.14.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "ant-design-vue": "^4.2.6",
     "dompurify": "^3.4.0",
     "echarts": "^6.0.0",

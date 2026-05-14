@@ -91,6 +91,10 @@
       v-model:open="memoryBankPanelOpen"
       :prefill-text="memoryBankPrefill"
     />
+    <TerminalPanel
+      v-model:open="terminalPanelOpen"
+      :prefill-text="terminalPrefill"
+    />
   </a-layout>
 </template>
 
@@ -124,6 +128,7 @@ import AIChatPanel from "./AIChatPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import FriendsPanel from "./FriendsPanel.vue";
 import MemoryBankPanel from "./MemoryBankPanel.vue";
+import TerminalPanel from "./TerminalPanel.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 
 const sidebarCollapsed = ref(false);
@@ -162,6 +167,8 @@ const friendsPanelOpen = ref(false);
 const friendsPrefill = ref("");
 const memoryBankPanelOpen = ref(false);
 const memoryBankPrefill = ref("");
+const terminalPanelOpen = ref(false);
+const terminalPrefill = ref("");
 
 const registry = useExtensionRegistryStore();
 const artifactStore = useArtifactStore();
@@ -206,6 +213,7 @@ let unregisterAIChatHandler: (() => void) | null = null;
 let unregisterSettingsHandler: (() => void) | null = null;
 let unregisterFriendsHandler: (() => void) | null = null;
 let unregisterMemoryBankHandler: (() => void) | null = null;
+let unregisterTerminalHandler: (() => void) | null = null;
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -327,6 +335,13 @@ onMounted(async () => {
       memoryBankPanelOpen.value = true;
     },
   );
+  unregisterTerminalHandler = registerSlashHandler(
+    "builtin:openTerminalPanel",
+    ({ args }) => {
+      terminalPrefill.value = args ?? "";
+      terminalPanelOpen.value = true;
+    },
+  );
   await registry.refreshAll();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
@@ -369,6 +384,8 @@ onBeforeUnmount(() => {
   unregisterFriendsHandler = null;
   unregisterMemoryBankHandler?.();
   unregisterMemoryBankHandler = null;
+  unregisterTerminalHandler?.();
+  unregisterTerminalHandler = null;
 });
 </script>
 

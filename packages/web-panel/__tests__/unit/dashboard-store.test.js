@@ -116,10 +116,17 @@ describe('dashboard store', () => {
         output: JSON.stringify([{ name: 'alpha' }, { name: 'beta' }]),
       })
     listSessions.mockResolvedValueOnce([{ id: 's1' }, { id: 's2' }])
-    sendRaw.mockResolvedValueOnce({
-      type: 'compression-stats',
-      summary: { samples: 3 },
-    })
+    // Dashboard fires mcp.list_tools (fire-and-forget) BEFORE awaiting
+    // refreshCompression. Both go through ws.sendRaw — mocks are
+    // consumed in call order.
+    sendRaw
+      .mockResolvedValueOnce({
+        result: { servers: [{ name: 'srv-a' }, { name: 'srv-b' }] },
+      })
+      .mockResolvedValueOnce({
+        type: 'compression-stats',
+        summary: { samples: 3 },
+      })
 
     const store = useDashboardStore()
     await store.refresh()

@@ -5,6 +5,35 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.52] - 2026-05-14 — Plan A 远程终端：Android↔桌面 PTY 全链路
+
+> Phase 1 – 4 全部落地：用户从 Android 配对桌面的 RemoteOperateScreen 点 "打开远程终端" → TerminalListScreen → 新建会话 (pwsh/cmd/bash/wsl) → TerminalSessionScreen 嵌 xterm.js WebView 真键入并查看 stdout。桌面端 PtyManager 单例同时被 web-shell WS 网关 + cc ui WS 网关 + V6 native IPC 共享。
+
+### Added
+
+- **Desktop main process**: `PtyManager` (lazy node-pty + 256KB ring buffer + 24h idle kill + 4-shell whitelist + 8 concurrent limit) + `terminal-handlers.js` (8 WS topics: create/list/stdin/resize/close/history + server-push stdout/exit) + `terminal-ipc.js` (V6 native IPC bridge) + `confirmation-dialog.js` (dangerous-keyword Electron messageBox + permanent trust per-cmd cache). `handleMobileCommand` adds `terminal.*` namespace + per-mobile-peer stdout/exit subscription fanout.
+- **CLI workspace mirror**: `attachTopicHandlers` shared helper (extracted from `ws-cli-loader` dispatcher wrap, ESM); `agent-runtime.startUiServer` attaches `terminal.*` handlers — `cc ui` users get the same terminal route as desktop web-shell. `node-pty` added as optionalDependencies (workspace hoist resolves it without breaking install on platforms without prebuilds).
+- **Web Panel**: `useTerminal` composable + `Terminal.vue` route `/terminal` (xterm.js lazy import + multi-session tabs + history backfill + ResizeObserver + dangerous-keyword toast) + sidebar entry under "去中心化" group.
+- **V6 plugin widget**: `plugins-builtin/terminal/plugin.json` + `shell/widgets/TerminalWidget.vue` + `shell/TerminalPanel.vue` modal (xterm.js + `electronAPI.terminal.*`) + slash command `/terminal`.
+- **Android**: `TerminalRpcClient.kt` (reuses `SignalingRpcClient` envelope pattern, observeStdout/observeExit SharedFlow) + `TerminalWebView.kt` (Kotlin↔JS bridge) + `xterm-shell.html` + bundled xterm.js / addon-fit / xterm.css under `assets/terminal/` + `TerminalListScreen` / `TerminalSessionScreen` Compose + softkey toolbar (Ctrl/Tab/Esc/arrows/Ctrl+C/D) + NavGraph routes + RemoteOperateScreen "打开远程终端" entry.
+- **Docs**: `docs/design/Android_Remote_Terminal_Plan_A.md` + `docs-site/docs/guide/remote-terminal.md`; both doc sites resynced.
+
+### Tests — 162 new, all green
+
+- Desktop main: 61 (RingBuffer 7 + PtyManager 15 + terminal-handlers 15 + terminal-ipc 12 + confirmation-dialog 5 + ws-smoke 6 + **real-pty smoke 1, spawns cmd.exe and asserts probe in stdout**)
+- CLI cc ui: 21 (PtyManager 10 + handlers 8 + ws-mirror-smoke 3)
+- Web Panel: 17 useTerminal unit + **3 e2e** (real `cc ui` subprocess + real WebSocket + real shell stdin/stdout round-trip via probe echo)
+- Android: 10 `TerminalRpcClientTest` (full happy path + flow event fanout)
+
+### Fixed — pre-existing test drift swept during the full-suite run
+
+- `widget-registry.test.ts` expected 5 ids, PREVIEW_WIDGETS already at 7 (`bridge-mtc` + `federation-governance` drift since commits `a8fff1f52`/`1c1e4096d`).
+- `dashboard-store.test.js` missing `mcp.list_tools` sendRaw mock (drift since `d9cc41432`).
+- `views-mount-smoke.test.js` 5 tail views: Projects.vue had static title (i18n drift since `bfdde637d`); 4 others (VideoEditing/P2P/Memory/Git) split into `views-mount-smoke-tail.test.js` for fresh worker context.
+- `Projects-folder-picker.test.js` deleted — tested UI no longer exists.
+
+---
+
 ## [Unreleased] - 2026-05-13 (later) — Android 社交功能产线化（demo → production）
 
 > 14 屏 + 9 ViewModel + 4 Repository 的社交骨架 (~10K LOC) 建好已久，但 NavGraph 只接通 MyQRCode / QRCodeScanner 两路由，其它 7 路由是 `registerPlaceholder("temporarily simplified")`；`SocialScreen` Friends / Timeline 两 tab 显示固定字串；`PostRepository.reportPost` 构造完 entity 不入库；`FriendRepository.searchUserByDid` 非本地 DID 返回 null。本次一次性收口，**不 bump version**，与本日早期 P0 前置一起 release。
