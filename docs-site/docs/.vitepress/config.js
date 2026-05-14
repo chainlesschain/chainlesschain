@@ -36,6 +36,7 @@ export default defineConfig({
       {
         text: "专题指南 ⭐",
         items: [
+          { text: "移动端 Android (v1.0 GA)", link: "/guide/mobile-android" },
           { text: "社交协议生态", link: "/guide/social-protocols" },
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
           { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
@@ -80,6 +81,19 @@ export default defineConfig({
           ],
         },
         {
+          text: "移动端 Android ⭐NEW",
+          items: [
+            {
+              text: "Android v1.0 GA 用户文档（三层定位 / 扫码配对 / REMOTE / 远程终端 / 同步 / 故障排查）",
+              link: "/guide/mobile-android",
+            },
+            {
+              text: "远程终端 Plan A (Android↔桌面 PTY)",
+              link: "/guide/remote-terminal",
+            },
+          ],
+        },
+        {
           text: "专题指南",
           items: [
             {
@@ -93,10 +107,6 @@ export default defineConfig({
             {
               text: "默克尔树证书 MTC (后量子安全) ⭐NEW",
               link: "/guide/mtc-merkle-tree-certs",
-            },
-            {
-              text: "远程终端 Plan A (Android↔桌面 PTY) ⭐NEW",
-              link: "/guide/remote-terminal",
             },
           ],
         },

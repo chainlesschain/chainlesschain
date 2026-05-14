@@ -115,21 +115,10 @@ const aab = dl('android-aab');
         <h2 class="text-3xl md:text-4xl mb-4 font-display">Flow B 扫码配对（默认）</h2>
         <p class="text-muted leading-relaxed">
           桌面显二维码、手机摄像头扫桌面屏 —— 跟微信 / 支付宝 / Discord / WhatsApp Web 一个套路。
-          手机摄像头扫桌面屏的识别率比反向（webcam 扫小手机屏）高得多。Xiaomi 24115RA8EC 真机
-          E2E 走通：desktop QR → ML Kit 扫 → signaling pair-ack → CLI 写 SQLite → Vue 列表刷新。
+          1 秒完成配对，Xiaomi 真机验证。Flow A（手机生码桌面扫，Signal e2ee）保留为高级路径。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">入口</strong>：手机设置 → "扫描桌面 QR"（推荐路径）/ 桌面 V5 V6 web-shell 三壳同入</li>
-          <li>· <strong class="text-ink">实战测试</strong>：ScanDesktopPairingViewModel 10 测 + desktop-pair-handlers 19 测 · ZXing / ML Kit 透传 · adb reverse 无域名 E2E 链路完整</li>
-          <li>· <strong class="text-ink">高级路径</strong>：Flow A（手机生码桌面扫，Signal e2ee）保留为可选</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a
-            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_%E9%87%8D%E6%96%B0%E5%AE%9A%E4%BD%8D_%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3.md"
-            class="text-ember hover:underline"
-            target="_blank"
-            rel="noopener"
-          >设计文档：Android 重新定位 v0.2 →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_3-首次设置-扫码配对桌面（w3-7-flow-b）" target="_blank" rel="noopener">用户文档：扫码配对完整步骤 + 故障排查 →</a>
         </p>
       </div>
     </div>
@@ -142,15 +131,12 @@ const aab = dl('android-aab');
         <div class="chip mb-4">Phase 3d · 2026-05-09</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">桌面 ↔ Android 双向同步</h2>
         <p class="text-muted leading-relaxed">
-          Note / Conversation / DID / Community / Channel 五类资源 + tombstones 双向 walker。
-          dagger.Lazy 解 4 处 Hilt 循环；Room 持久化 SyncRemoteCursor；sync.* JSON-RPC handlers；
-          gate 1–4 全部 strict Ed25519 验签。私钥不离手机，密码不上线。
+          Note / Conversation / DID / Community / Channel + tombstones 五类资源双向同步。
+          全链路 Ed25519 严格验签，私钥不离手机，密码不上线。30 分钟后台 wifi 自动同步 + 手动触发。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">M2 → v1.2 12 commits</strong> · 桌面侧 5 ResourceType walker + 52 测试 · Android 侧 SocialSyncWalker 真填 handlePullRpc + DID auth</li>
-          <li>· <strong class="text-ink">入口</strong>：桌面 Settings → 同步 → SyncMobile 设备管理 + 手动 pairing；移动 Settings → 同步</li>
-          <li>· <strong class="text-ink">协议</strong>：CommandRequest.auth nullable · listTombstones SQL filter · Android 用 P2P session DID 兜替 device registry</li>
-        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_8-桌面-↔-android-双向同步（phase-3d-v1-3）" target="_blank" rel="noopener">用户文档：同步资源 / 触发时机 / 故障排查 →</a>
+        </p>
       </div>
     </div>
   </section>
@@ -162,18 +148,11 @@ const aab = dl('android-aab');
         <div class="chip mb-4">远程操控 Plan C · v5.0.3.50 · 2026-05-13</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">遥控器先通：信令转发 RPC。</h2>
         <p class="text-muted leading-relaxed">
-          手机当遥控器调桌面 skill / 列表 / 状态，第一段先走低带宽路径 —— signaling-relay
-          做 JSON-RPC 2.0 转发，桌面侧 RelayClient + handlePairAckFromRelay，Android 侧
-          SignalingRpcClient + RemoteOperateScreen。LAN 直连优先，失败回落公网中继，
-          PairedDesktopsStore 持久化已配对 peer。
+          手机当遥控器调桌面 skill / 列表 / 状态，第一段先走低带宽路径。
+          LAN 直连优先，失败回落公网中继，实测 Ping 100–400ms，日常遥控完全够用。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">3 路径决策</strong>：Plan C 信令转发（先落地）/ Plan A WebRTC DC（高吞吐）/ Plan B STUN+TURN（NAT 穿透）三段位组合</li>
-          <li>· <strong class="text-ink">实测 Ping</strong>：100–400ms（取决于 relay 区域），日常遥控完全够用；后续走 Plan A 切 DC 绕带宽瓶颈</li>
-          <li>· <strong class="text-ink">20 个新单测</strong> · 关键修复：runCurrent 替代 advanceUntilIdle 解 SharedFlow race / org.json 替代 kotlinx-serialization 减依赖</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Operate_Plan_C.md" target="_blank" rel="noopener">设计文档：Android Remote Operate Plan C →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-远程操控架构（plan-a-b-c-三段位）" target="_blank" rel="noopener">用户文档：Plan A/B/C 三段位完整说明 →</a>
         </p>
       </div>
     </div>
@@ -186,18 +165,11 @@ const aab = dl('android-aab');
         <div class="chip mb-4">Plan A + B 基础设施 · v5.0.3.51</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">WebRTC 透传 + STUN/TURN 兜底。</h2>
         <p class="text-muted leading-relaxed">
-          signaling-relay 加 offer/answer/ice-candidate 透传 + 注入 from 字段（取 ws.peerId），
-          LAN 与 relay 路径在 mobileBridge.handleSignalingMessage 完全等价。coturn 4.6 部署
-          turn.chainlesschain.com（3478 UDP/TCP + 5349 TLS + 49152-65535 relay UDP），Let's
-          Encrypt acme.sh 自动续证，HMAC-SHA1 use-auth-secret 24h TTL ephemeral 凭证。
+          WebRTC P2P 通道 + TURN 自动接管 NAT 穿透。双 NAT / 蜂窝运营商 / 防火墙重重场景下，
+          照样能稳定连上。HMAC-SHA1 24h TTL ephemeral 凭证，零硬编码 secret。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">iceServers 不进 QR</strong>：实测 650 字符 + 280px + error-H 阻塞 30s。改扫码后异步推送 — desktop pair-ack matched 后 pushIceServersToMobile LAN + relay 双发 <code class="font-mono bg-cream px-1 rounded">chainlesschain:ice:config</code></li>
-          <li>· <strong class="text-ink">Android 持久化</strong>：WebRTCClient.setOnForwardedMessageReceived 拦截写 PairedDesktopsStore.iceServersJson · SignalingRpcClient 同步备份 race-tolerant</li>
-          <li>· <strong class="text-ink">零硬编码</strong>：CC_TURN_SECRET 强制必填 · 阿里云安全组需开 UDP/TCP 3478 / TCP 5349 / UDP 49152-65535 全 0.0.0.0/0</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Operate_Plan_AB.md" target="_blank" rel="noopener">设计文档：Android Remote Operate Plan A+B →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-4-plan-a-b-基础设施（v5-0-3-51）" target="_blank" rel="noopener">用户文档：TURN 部署 / 5 场景验收矩阵 →</a>
         </p>
       </div>
     </div>
@@ -208,25 +180,16 @@ const aab = dl('android-aab');
     <div class="container-wide">
       <div class="max-w-3xl">
         <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 远程终端真机可用 · v5.0.3.54 · 2026-05-14</div>
-        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">从"打不开"到"完整可用" —— 8 个 bug 一次扫净。</h2>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">远程终端真机可用 —— 地铁里敲 cc / claude 指挥桌面。</h2>
         <p class="text-muted leading-relaxed text-lg">
-          v5.0.3.53 远程终端的协议链路是通的，但真机 E2E（Xiaomi 24115RA8EC ↔ Windows git-bash）压出 8 个独立 bug
-          —— 从"开不了 session" 到 "黑屏看不到输出" 到 "cc/claude 命令找不到"。v5.0.3.54 一次性收口：手机端真的能在路上敲
-          <code class="font-mono bg-cream px-1 rounded">cc</code> / <code class="font-mono bg-cream px-1 rounded">claude</code>
-          指挥桌面，远程终端从演示走到了能用。
+          Xiaomi 真机 × Windows git-bash 真机 E2E 跑通：登录 → 配对桌面 → "+ 新会话" 选 bash → 直接敲
+          <code class="font-mono bg-cream px-1 rounded">cc -v</code> / <code class="font-mono bg-cream px-1 rounded">claude</code> / <code class="font-mono bg-cream px-1 rounded">npm</code>。
+          手机端从"演示截图"走到了"地铁里能干活"。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">WebRTC echo loop 真因</strong>：sendOffer 误把 target peerId 写进 self currentPeerId → WS 重连 auto-re-register 让 mobile 注册成桌面 peerId → 消息路由回自己。修法：currentPeerId 只在 register() 写</li>
-          <li>· <strong class="text-ink">中继 from 字段注入</strong>：signaling-relay server.js handleMessage 给 forwarded 消息注入 <code class="font-mono bg-cream px-1 rounded">msg.from = ws._peerId</code> ——之前中继只校验 to 不补 from，desktop 回包 to=undefined 被中继 reject 死循环</li>
-          <li>· <strong class="text-ink">iceServers 自动 refresh</strong>：mobile-bridge + desktop-pair-handlers 加 maybeRefreshIceForMobile 12h 节流，跨 24h TTL 仍可保 TURN 可用</li>
-          <li>· <strong class="text-ink">WebView 0 高死锁（"全黑"真因）</strong>：Compose AndroidView 默认 WRAP_CONTENT + HTML body height:100% → 父级 0 高 → 死锁 → xterm.fit() 返回 cols=49 rows=1 → 桌面 PTY 被 resize 成 1 行。修法：TerminalWebView LayoutParams MATCH_PARENT × MATCH_PARENT + ResizeObserver + DOM clientWidth/Height guard</li>
-          <li>· <strong class="text-ink">cc/claude 远程终端可用</strong>：PtyManager pty.spawn 无 args → bash/wsl 不走 login mode → ~/.bashrc 不加载 → 用户全局 CLI 找不到。修法：返回 <code class="font-mono bg-cream px-1 rounded">cmd + args</code> 元组，bash 加 -l，shell=bash 优先 probe Program Files/Git/bin/bash.exe 避免 WSL 拦截</li>
-          <li>· <strong class="text-ink">TerminalListViewModel closure shadow</strong>：<code class="font-mono bg-cream px-1 rounded">onSuccess</code> 闭包参数 <code class="font-mono bg-cream px-1 rounded">it</code>（CreatedSession）被内层 <code class="font-mono bg-cream px-1 rounded">_state.update</code> 的 <code class="font-mono bg-cream px-1 rounded">it</code>（state）shadow → <code class="font-mono bg-cream px-1 rounded">lastCreatedId</code> 永远不更新；改用 named param <code class="font-mono bg-cream px-1 rounded">created.sessionId</code> + LaunchedEffect 自动 navigate 新 session</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline font-medium" href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v5.0.3.54 CHANGELOG →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_7-远程终端（android-操控桌面-pty）" target="_blank" rel="noopener">用户文档：8 个 bug 详解 + 故障排查 →</a>
           ·
-          真机验证：登陆 → 配对桌面 → "+ 新会话" 选 bash → 直接敲 cc -v / claude / npm 可用
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" rel="noopener">v5.0.3.54 CHANGELOG →</a>
         </p>
 
         <!-- 真机截图：Android 上跑 Claude Code -->
@@ -234,14 +197,12 @@ const aab = dl('android-aab');
           <div>
             <h3 class="font-display text-2xl mb-3">手机上跑 Claude Code，不是截图蒙太奇。</h3>
             <p class="text-muted leading-relaxed text-sm mb-4">
-              Xiaomi 24115RA8EC × Windows 桌面，配对完成后在手机"终端会话"里敲
-              <code class="font-mono bg-cream px-1 rounded">claude</code>，桌面 git-bash 启动
-              Claude Code，Welcome back · Opus 4.7 · Claude Max · <code class="font-mono bg-cream px-1 rounded">C:\code\test1</code>
-              工作目录、softkey toolbar、xterm.js 渲染全部在地铁里能用。
+              手机敲 <code class="font-mono bg-cream px-1 rounded">claude</code>，桌面 git-bash 启动 Claude Code，
+              Welcome back · Opus 4.7 · Claude Max · 工作目录、softkey toolbar、xterm.js 渲染全部就绪。
+              地铁里照样能继续昨晚的对话。
             </p>
             <p class="text-muted leading-relaxed text-sm">
-              这是 v5.0.3.54 把 8 个 bug 全扫净后的真实手机画面 —— 之前的版本进 SessionScreen 黑屏，敲
-              <code class="font-mono bg-cream px-1 rounded">cc</code> 提示 "command not found"。
+              支持任意 CLI：cc / claude / git / npm / kubectl / docker / pytest …… 桌面跑什么 shell 都行（pwsh / cmd / bash / wsl）。
             </p>
             <p class="mt-4 text-xs text-muted font-mono">
               prompt: <code class="bg-cream px-1 rounded">longfa@DESKTOP-MTMV2RE MINGW64 /c/code/test1</code>
@@ -266,24 +227,12 @@ const aab = dl('android-aab');
         <div class="chip mb-4">Plan A.1 远程终端 · v5.0.3.53 · 2026-05-14</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">同一天再升级：4 跳信令砍到 1 跳 DataChannel 直连。</h2>
         <p class="text-muted leading-relaxed">
-          v5.0.3.52 Plan A 真机首测（Xiaomi 24115RA8EC × Win desktop dev）暴露了一个<strong class="text-ink">架构性</strong>问题：
-          手机 → 路由器 → 公网中继 → 桌面 RelayClient 这条 4 跳信令链路，
-          NAT idle / 蜂窝运营商间歇杀 TCP 时任一跳断即整体失败。Plan A.1 把高频高吞吐的终端流量切到
-          <strong class="text-ink">WebRTC DataChannel 直连</strong>，绕开中间所有跳；signaling 路径保留兜底。
+          高频高吞吐的终端流量切到 <strong class="text-ink">WebRTC DataChannel 直连</strong>，绕开公网中转。
+          RTT p50 从 200-500ms 降到 30-80ms（LAN）/ 50-200ms（TURN），p99 从 1.5-30s 降到 200-800ms，
+          稳定性从"间歇断"到"数小时持续"。signaling 路径保留兜底。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">Phase 1 Trap 1 修</strong>：SignalClient.forwardedMessages 改 multi-subscribe SharedFlow 替代单 listener，治 ice:config 拦截器被 TerminalRpcClient.start() 后写覆盖 → iceServers 24h 过期跨 NAT 完全不通的 bug；+ WebRTCClient.dataChannelReady StateFlow（READY 才真意味 DC OPEN）</li>
-          <li>· <strong class="text-ink">Phase 2 DC fast path</strong>：SignalingRpcClient.invoke 内置 transport selector，connectionState==READY → DC 发；失败或未 ready → fallback signaling。两路 listener 同 requestId 同 CompletableDeferred，dual delivery 二次 complete 是 no-op 无需显式 dedup</li>
-          <li>· <strong class="text-ink">Phase 3 触发 + UI 指示</strong>：TerminalListViewModel 进屏异步触发 RemoteConnectionManager.connect；chip 显示 "P2P 直连"（绿）vs "中继路径"（黄）</li>
-          <li>· <strong class="text-ink">Phase 4 双向 LRU 去重</strong>：Android stdout 按 sessionId|seq 256-LRU + exit 按 sessionId 64-LRU 双订双流；桌面 mobile-bridge.bridgeToLibp2p 加 128-LRU / 30s-TTL 按 payload.id 去重 mobile→desktop command request 防 PtyManager 误处理</li>
-          <li>· <strong class="text-ink">Phase 5 零新代码</strong>：DC 失效 fallback / 自动重建 / 恢复切回 / UI 实时映射 都是 Phase 2 + P2PClient 既有 wiring 的免费副产物</li>
-          <li>· <strong class="text-ink">性能</strong>：RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN · p99 1.5-30s timeout → 200-800ms · 稳定性 20s-2min 间歇断 → 数小时持续</li>
-          <li>· <strong class="text-ink">测试</strong>：Android +8（TerminalRpcClient 3 dedup / SignalingRpcClient 4 transport / WebRTCClient 1 Trap 1）+ desktop +14（LRU dedup 5 + sendToMobile 5 + guard rails 2）· 三套件全绿（11 + 15 + 21 Android + 14 desktop）· 修 mockk relaxed StateFlow 泛型擦除致 12-test regression</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A1.md" target="_blank" rel="noopener">设计文档：Android Remote Terminal Plan A.1 →</a>
-          ·
-          真机 e2e §5.3 5 场景矩阵（LAN / 蜂窝 / 双 NAT / DC 强制失效 / DC 恢复）移交用户
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_9-3-plan-a-1-webrtc-dc-直连（v5-0-3-53-4-跳信令砍到-1-跳）" target="_blank" rel="noopener">用户文档：Plan A.1 5 phase 拆分 + 性能对比 →</a>
         </p>
       </div>
     </div>
@@ -296,22 +245,14 @@ const aab = dl('android-aab');
         <div class="chip mb-4">Plan A 远程终端 · v5.0.3.52 · 2026-05-14</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">手机里看到桌面终端的输出。</h2>
         <p class="text-muted leading-relaxed">
-          用户痛点："PC 上开了很多终端，能不能在 Android 上看到这些终端的输出并远程输入指令？"。
-          硬约束 Windows 已运行的外部终端不能被另一进程 attach（OS 句柄私有）。落地方案 —
-          ChainlessChain 桌面用 node-pty 托管<strong class="text-ink">新开</strong>终端，复用
-          signaling-relay 把 stdin / stdout 流到 Android xterm.js WebView。
+          手机当桌面终端的"远程显示器 + 键盘"。可以跑 cc / claude / git / npm / kubectl 等任意 CLI，
+          但不能 attach 桌面已经打开的外部终端（OS 限制）。出差路上查 CI、家里改服务器、凌晨被告警唤起，
+          不用开电脑也能干活。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">桌面 Phase 1</strong>：PtyManager（lazy node-pty + 256KB ring buffer + 24h idle kill + shell 白名单 pwsh/cmd/bash/wsl + 8 session 上限）· 8 WS topics（create/list/stdin/resize/close/history + server-push stdout/exit）· 高危关键字 Electron messageBox 确认 + 永久信任 per-cmd 缓存</li>
-          <li>· <strong class="text-ink">Phase 1.5 三壳齐落</strong>：V5/V6 web-shell + V6 plugin widget + cc ui mirror（agent-runtime.startUiServer 复用 dispatcher）· /terminal 路由 + 侧栏菜单 + slash 命令</li>
-          <li>· <strong class="text-ink">Android Phase 3</strong>：TerminalRpcClient 复用 envelope · WebView ↔ Kotlin JS bridge · xterm.js vendored 入 assets/terminal/ · softkey toolbar 给 Ctrl/Tab/Esc/方向/Ctrl+C/D</li>
-          <li>· <strong class="text-ink">Phase 4 韧性</strong>：paired_devices/permission-gate · mobile-bridge stdout/exit per-peer 订阅 fan-out · 重连 terminal.history 补帧</li>
-          <li>· <strong class="text-ink">162 新单测全绿</strong> · 桌面 61 / CLI 21 / Web Panel 17 + 3 真 e2e（cc ui subprocess + 真 WS + shell stdin/stdout round-trip）/ Android 10 · 含真 spawn cmd.exe stdout 流回 probe</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A.md" target="_blank" rel="noopener">设计文档：Android Remote Terminal Plan A →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/remote-terminal.html" target="_blank" rel="noopener">用户文档：远程终端使用指南 →</a>
           ·
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs-site/docs/guide/remote-terminal.md" target="_blank" rel="noopener">用户文档：远程终端使用指南 →</a>
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/guide/mobile-android.html#_7-远程终端（android-操控桌面-pty）" target="_blank" rel="noopener">移动端远程终端章节 →</a>
         </p>
       </div>
     </div>
@@ -324,22 +265,11 @@ const aab = dl('android-aab');
         <div class="chip mb-4">社交收口 · 2026-05-13</div>
         <h2 class="text-3xl md:text-4xl mb-4 font-display">社交功能从 demo 走到上线。</h2>
         <p class="text-muted leading-relaxed">
-          14 屏 + 9 ViewModel + 4 Repository 的社交骨架（约 10K LOC）建好已久，但只有
-          MyQRCode / QRCodeScanner 两路由真接通；其它 7 路由是
-          <code class="font-mono bg-paper px-1 rounded">registerPlaceholder("temporarily simplified")</code>，
-          SocialScreen 中 Friends/Timeline 两 tab 只显示固定字串。本次一次性收口：路由全部接实屏、
-          NotificationCenter / BlockedUsers 两路由新增、PostReportDao 落地（之前 schema 有 entity DAO 缺失）、
-          远端 DID 资料查询 PROFILE_QUERY/RESPONSE 协议补齐。
+          发帖 / 朋友圈 / 好友 / 用户资料 / 评论 / 通知中心 / 屏蔽 / 举报全部接通真实屏幕，
+          不再是占位符。跨设备 DID 资料查询走端到端协议，5 秒超时；通知中心支持筛选 / 批量已读 / 清理菜单。
         </p>
-        <ul class="mt-6 space-y-2 text-sm text-muted">
-          <li>· <strong class="text-ink">NavGraph 7 占位换实屏 + 2 新路由</strong> · PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost / NotificationCenter / BlockedUsers · DID 加载期渲染 spinner 占位</li>
-          <li>· <strong class="text-ink">SocialScreen 三 tab 升级</strong> · Friends → FriendListScreen · Timeline → TimelineScreen（myDid 走 DIDViewModel） · Notifications → NotificationCenterScreen（筛选 / 批量已读 / 清理菜单）</li>
-          <li>· <strong class="text-ink">PostReportDao</strong> · 之前 reportPost 构造完 entity 不入库 + getUserReports 返空。新 DAO 加去重 idempotent + status 流转 + 8 个 in-memory Room 测试</li>
-          <li>· <strong class="text-ink">PROFILE_QUERY/RESPONSE 协议</strong> · RealtimeEventManager.queryProfile 5s timeout · onSubscription 解 SharedFlow replay=0 订阅竞态 · DefaultSelfProfileProvider 在 Application.delayedInit 注入</li>
-          <li>· <strong class="text-ink">39 个新单测全绿</strong> · 6 core-p2p / 14 feature-p2p / 8 core-database Room / 11 NavGraph + tab 结构性回归 · 不需要模拟器</li>
-        </ul>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Social_Wiring_2026-05.md" target="_blank" rel="noopener">设计文档：Android Social Wiring 2026-05 →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_10-社交功能（v5-0-3-53-产线化）" target="_blank" rel="noopener">用户文档：社交功能完整说明 →</a>
         </p>
       </div>
     </div>
