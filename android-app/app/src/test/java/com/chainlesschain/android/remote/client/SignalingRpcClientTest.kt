@@ -7,6 +7,7 @@ import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -141,14 +142,33 @@ class SignalingRpcClientTest {
         )
     }
 
-    private fun makeClient(gate: CapturingGate): SignalingRpcClient =
+    private fun makeClient(
+        gate: CapturingGate,
+        webRTCClient: com.chainlesschain.android.remote.webrtc.WebRTCClient = defaultWebRTCMock(),
+    ): SignalingRpcClient =
         SignalingRpcClient(
             signalingGate = gate,
             signalClient = fakeSignalClient,
             didManager = didManager,
             signalingConfig = signalingConfig,
             pairedDesktopsStore = mockk(relaxed = true),
+            webRTCClient = webRTCClient,
         )
+
+    /**
+     * Default WebRTCClient mock — DC NOT ready (DISCONNECTED). Most existing tests
+     * exercise the signaling fallback path; Plan A.1 DC fast-path tests below
+     * override this to inject a READY state.
+     */
+    private fun defaultWebRTCMock(): com.chainlesschain.android.remote.webrtc.WebRTCClient {
+        val m = mockk<com.chainlesschain.android.remote.webrtc.WebRTCClient>(relaxed = true)
+        val state = MutableStateFlow(com.chainlesschain.android.remote.webrtc.P2PConnectionState.DISCONNECTED)
+        every { m.connectionState } returns state
+        // messages flow — required by ensureResponseListener.launchIn collect
+        val msgs = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 64)
+        every { m.messages } returns msgs.asSharedFlow()
+        return m
+    }
 
     /**
      * Synthesize a forwarded RPC response and feed it into the response listener,
@@ -309,6 +329,107 @@ class SignalingRpcClientTest {
         simulateResponse(extractRequestId(gate))
         runCurrent()
 
+        assertTrue(deferred.await().isSuccess)
+    }
+
+    // ==================== Plan A.1 Phase 2 — DC fast path tests ====================
+
+    /** WebRTCClient mock in READY state with a working sendMessage stub. */
+    private fun readyWebRTCMock(): com.chainlesschain.android.remote.webrtc.WebRTCClient {
+        val m = mockk<com.chainlesschain.android.remote.webrtc.WebRTCClient>(relaxed = true)
+        every { m.connectionState } returns
+            MutableStateFlow(com.chainlesschain.android.remote.webrtc.P2PConnectionState.READY)
+        every { m.messages } returns
+            MutableSharedFlow<String>(extraBufferCapacity = 64).asSharedFlow()
+        every { m.sendMessage(any()) } returns Unit
+        return m
+    }
+
+    @Test
+    fun `Plan A1 — DC ready uses DC path, signaling untouched`() = runTest(testDispatcher) {
+        seedDid()
+        val gate = CapturingGate()
+        val webRTC = readyWebRTCMock()
+        // Capture DC envelope so we can extract the requestId (gate.lastPayload would
+        // be null — DC path bypasses signaling).
+        val dcEnvelope = slot<String>()
+        every { webRTC.sendMessage(capture(dcEnvelope)) } returns Unit
+        val client = makeClient(gate, webRTC)
+
+        val deferred = async { client.invoke("pc-1", "system.ping") }
+        runCurrent()
+
+        // DC path: sendMessage called once, signaling gate.sendAck NOT called.
+        verify(exactly = 1) { webRTC.sendMessage(any()) }
+        assertEquals(0, gate.sendAckCallCount, "signaling gate must NOT be hit when DC is ready")
+        assertEquals(0, gate.ensureRegisteredCallCount)
+
+        // Extract requestId from the captured DC envelope.
+        val rid = JSONObject(dcEnvelope.captured)
+            .getJSONObject("payload")
+            .getString("id")
+
+        // Response can come via either path — emit via signaling SharedFlow.
+        simulateResponse(rid)
+        runCurrent()
+
+        assertTrue(deferred.await().isSuccess)
+    }
+
+    @Test
+    fun `Plan A1 — preferDataChannel=false forces signaling even when DC ready`() = runTest(testDispatcher) {
+        seedDid()
+        val gate = CapturingGate()
+        val webRTC = readyWebRTCMock()
+        val client = makeClient(gate, webRTC)
+        client.preferDataChannel = false  // feature flag off
+
+        val deferred = async { client.invoke("pc-1", "system.ping") }
+        runCurrent()
+
+        // DC NOT used; signaling path taken.
+        verify(exactly = 0) { webRTC.sendMessage(any()) }
+        assertEquals(1, gate.sendAckCallCount)
+
+        simulateResponse(extractRequestId(gate))
+        runCurrent()
+        assertTrue(deferred.await().isSuccess)
+    }
+
+    @Test
+    fun `Plan A1 — DC not ready falls through to signaling`() = runTest(testDispatcher) {
+        seedDid()
+        val gate = CapturingGate()
+        // default mock has DISCONNECTED state
+        val client = makeClient(gate)
+
+        val deferred = async { client.invoke("pc-1", "system.ping") }
+        runCurrent()
+
+        assertEquals(1, gate.sendAckCallCount)
+
+        simulateResponse(extractRequestId(gate))
+        runCurrent()
+        assertTrue(deferred.await().isSuccess)
+    }
+
+    @Test
+    fun `Plan A1 — DC sendMessage throws falls back to signaling`() = runTest(testDispatcher) {
+        seedDid()
+        val gate = CapturingGate()
+        val webRTC = readyWebRTCMock()
+        every { webRTC.sendMessage(any()) } throws IllegalStateException("Data channel not open")
+        val client = makeClient(gate, webRTC)
+
+        val deferred = async { client.invoke("pc-1", "system.ping") }
+        runCurrent()
+
+        // DC was attempted then fallback signaling kicked in.
+        verify(exactly = 1) { webRTC.sendMessage(any()) }
+        assertEquals(1, gate.sendAckCallCount, "fallback signaling must have been taken after DC threw")
+
+        simulateResponse(extractRequestId(gate))
+        runCurrent()
         assertTrue(deferred.await().isSuccess)
     }
 }
