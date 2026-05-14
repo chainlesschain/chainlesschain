@@ -47,23 +47,32 @@ Plan A.1 上线后，桌面 `sendToMobile` 已经优先 DC（mobile-bridge.js:95
 
 Plan A.1 不能简单"把 TerminalRpcClient 切到 P2PClient.sendCommand"——会破协议对称性（desktop side handler 按 envelope.type 分发）。正确路径是：TerminalRpcClient 自己挑 transport（DC vs signaling），两边都发**同一 envelope 格式**到对应 transport。
 
-### 1.3 现有 WebRTC 基建（已落地）
+### 1.3 现有 WebRTC 基建（已落地，含状态机精确语义）
 
-✅ Android 端：
-- `app/.../remote/webrtc/WebRTCClient.kt:192` `connect(pcPeerId, localPeerId)` — 5 步 WebRTC handshake (signaling connect → register → createPeerConnection + createDataChannel → createOffer → waitForAnswer)
-- `app/.../remote/p2p/P2PClient.kt` — 包装 WebRTCClient 暴露 `connectionState` Flow
-- `app/.../remote/RemoteConnectionManager.kt:88` `connect(pcPeerId, pcDID)` — 业务层入口
+✅ Android 端 `WebRTCClient.kt`（`@Singleton`，Hilt 注入）：
+- `connect(pcPeerId, localPeerId)` (L192) — 5 步 handshake：signaling connect → register → createPeerConnection + createDataChannel → createOffer → waitForAnswer
+- `sendMessage(message: String)` (L456) — 直接 DC 发，DC 非 OPEN 时抛 `IllegalStateException("Data channel not open")`
+- `connectionState: StateFlow<P2PConnectionState>` (L143-144) — 8 态。**关键语义**：`P2PConnectionState.READY` 才意味 DC `DataChannel.State.OPEN`（在 `setupDataChannel.onStateChange` 设置，L383）；`DATA_CHANNEL_OPEN` 字面虽含 "OPEN" **只是 ICE 通了**（L314 在 IceConnectionState.CONNECTED 时设），DC 未必 open。所以判 DC 可用的正确谓词是 `connectionState.value == READY`，不是 DATA_CHANNEL_OPEN
+- `messages: SharedFlow<String>` (L147) — DC 入站（L395 `_messages.tryEmit`）和 signaling forward 入站（L182 `_messages.tryEmit`）**都会 emit 到这**，多订阅安全，是 Plan A.1 的统一入口候选
 
-✅ 桌面端：
-- `desktop-app-vue/src/main/p2p/mobile-bridge.js:930` `sendToMobile(mobilePeerId, message)` — **已经优先 DataChannel**，DC 未 ready 才 fallback signaling forward
-- `dataChannels: Map<mobilePeerId, RTCDataChannel>` 状态管理
-- handleOffer / handleAnswer / handleICECandidate / handleP2PMessage 接 WebRTC 信令帧
+✅ Android 端 `P2PClient.kt`（`@Singleton` 包装层）：
+- `connect(pcPeerId, pcDID): Result<Unit>` (L140) — 业务入口，自带指数退避自动重连（maxAttempts=10，base 1s/cap 60s/factor 2.0）+ 心跳（30s 间隔，90s 超时）
+- `connectionState: StateFlow<ConnectionState>` — 业务粗粒度 (DISCONNECTED/CONNECTING/CONNECTED/RECONNECTING/ERROR)
+- `sendCommand` (L367, L399) — DC-only，但用 `P2PMessage(type, payload)` + `CommandRequest/Response` 协议，**与 TerminalRpc envelope 不通**（见 Trap 3）
 
-✅ 公网中继：
-- `wss://signaling.chainlesschain.com` 转发 offer/answer/ice-candidate（含 LAN unreachable 时 fallback）
+✅ Android 端 `RemoteConnectionManager.kt`：业务入口（UI 调它 → P2PClient.connect）
+
+✅ 桌面端 `mobile-bridge.js`：
+- `sendToMobile(mobilePeerId, message)` (L930) — **优先 DC**（接受 "open"/"Open"/1/"OPEN" 多形 readyState，werift 兼容），未 ready 时 **LAN signaling + 公网中继双发**（L957-986）。**注意已是双发兜底**（不是单发），Plan A.1 设计去重时要算进这条
+- `dataChannels: Map<mobilePeerId, RTCDataChannel>` 状态表
+- `handleOffer / handleAnswer / handleICECandidate / handleP2PMessage` 接 WebRTC 信令帧
+
+✅ 公网基建：
+- `wss://signaling.chainlesschain.com` 转发 offer/answer/ice-candidate（LAN unreachable 时备份）
 - coturn `turn.chainlesschain.com:3478/5349` NAT 穿透
+- iceServers 24h TTL，`desktop-pair-handlers.signIceCredentials` 签发，pair-ack 后 push `chainlesschain:ice:config`（Trap 1 风险点）
 
-### 1.3 缺什么
+### 1.4 缺什么
 
 ❌ **TerminalRpcClient 写死走 signaling**——`SignalingRpcClient.invoke()` 内部 `signalingGate.sendAck()` → `signalClient.sendForwardedMessage()` 调用链全在 signaling 层，没有 DC 分支判断
 
@@ -167,22 +176,33 @@ TerminalRpcClient
 
 ### 3.2 命令路由策略
 
+正确谓词应基于 `WebRTCClient.connectionState`（不是 P2PClient.connectionState — 后者粗粒度，CONNECTED 时 DC 可能还在 ICE 阶段没 OPEN）：
+
 ```kotlin
-suspend fun invoke(method: String, params: Map<String, Any?>): Result<JSONObject> {
-    val dc = dcTransport.currentDataChannel  // null if not ready
-    if (dc != null && dc.state == OPEN && featureFlag.useDcForTerminal) {
-        // Fast path: DC
-        val result = sendViaDc(dc, envelope, timeoutMs = 5_000)
-        if (result.isSuccess) return result
-        Timber.w("DC send failed, falling back to signaling")
-        // fallthrough
+// in TerminalRpcClient (or a new TransportSelector)
+private fun isDcReady(): Boolean =
+    webRTCClient.connectionState.value == P2PConnectionState.READY
+        && featureFlag.preferDataChannel
+
+suspend fun invoke(
+    pcPeerId: String,
+    method: String,
+    params: Map<String, Any?>,
+): Result<JSONObject> {
+    val envelope = buildEnvelope(method, params)   // 同 SignalingRpcClient 用的 envelope
+    if (isDcReady()) {
+        val dcResult = sendViaDc(envelope, timeoutMs = 5_000)  // 注册 pending[reqId] + dc.send
+        if (dcResult.isSuccess) return dcResult
+        Timber.w("[TerminalRpc] DC path failed, fallback signaling: ${dcResult.exceptionOrNull()?.message}")
+        // 落到下面 signaling 路径
     }
-    // Slow path: signaling (existing)
-    return signalingRpcClient.invoke(pcPeerId, method, params)
+    return rpc.invoke(pcPeerId, method, params)  // 现有路径，envelope 完全一样
 }
 ```
 
-**幂等性**：requestId 是 UUID。DC 和 signaling 双发不会重复处理（desktop 用 requestId 去重）。
+**关键**：DC 路径和 signaling 路径用**同一 envelope 格式 + 同一 requestId 池**（pendingDeferred 共享），所以无论响应从哪条路回都能匹配到同一 Deferred。
+
+**幂等性**：v0.1 单发（DC 通就只走 DC），不会重复。**但 desktop sendToMobile 现有就是 LAN+relay 双发兜底**（mobile-bridge.js:957-986），所以**反向响应 stream 上原本就要做去重**——见 Phase 4。
 
 ### 3.3 stdout/exit push 路由
 
@@ -201,46 +221,92 @@ dataChannel.observeMessages().collect { rawMsg ->
 
 ### 3.4 DC 断开 fallback
 
-- DC 死 → 临时全部 fallback 到 signaling
-- 后台尝试 reconnect DC（3 次指数退避）
-- DC 恢复 → 切回 DC
+触发条件 — **覆盖三个状态**（不只是 FAILED）：
+- `WebRTCClient.connectionState.value` ∈ {FAILED, DISCONNECTED}（PeerConnection / ICE 层）
+- `DataChannel.state()` ∈ {CLOSING, CLOSED}（DC 层，独立于 PeerConnection）
+- `sendViaDc` 抛 `IllegalStateException` 或超时
 
-### 3.5 双发去重
+降级行为：
+- 单次失败 → 即刻 fallback signaling（同 requestId，pendingDeferred 复用）
+- **不在 TerminalRpcClient 重写重连**——直接复用 `P2PClient.scheduleReconnect`（P2PClient.kt:242，指数退避 1s→60s，maxAttempts=10）。Plan A.1 只暴露一个 `onDcLost()` 钩子触发 P2PClient 进入 RECONNECTING 状态
+- DC 恢复（`connectionState` 再次 READY）→ 路由器自动切回 DC（下次 invoke 时 isDcReady() 检查通过即可，无显式切换动作）
 
-如果 Android 同时走 DC + signaling 双发（保险路径），desktop 端按 envelope.requestId 去重：
+### 3.5 双发去重（v0.1 范围）
 
-```js
-// mobile-bridge.js: handleMobileCommand
-const recentRequests = new LRU({ max: 100, ttl: 30_000 });
-if (recentRequests.has(payload.id)) {
-    logger.debug(`Duplicate request ${payload.id}, ignoring`);
-    return;
+**v0.1 Android 出向不双发**（DC 通就只走 DC）。但 **desktop → mobile 反向已经在双发**——mobile-bridge.js:957-986 当 DC 未 ready 时同时 LAN signaling + 公网中继发，二者目的地可能都是同一个 mobile（手机如果两处都连）。所以 Android 端必须做**反向去重**：
+
+```kotlin
+// in TerminalRpcClient or where _messages 被 collect
+private val seenResponseIds = LruCache<String, Boolean>(128)  // ~30s TTL by replace
+
+// 收到 chainlesschain:command:response 时
+val responseId = payload.optString("id")
+if (seenResponseIds.put(responseId, true) != null) {
+    Timber.d("[TerminalRpc] duplicate response $responseId, ignoring")
+    return
 }
-recentRequests.set(payload.id, true);
+// 否则 emit 到 pendingDeferred[responseId]
 ```
 
-但 v0.1 默认 **不双发**（DC 通就只走 DC），保留单路径简洁。双发留作 future hardening。
+push 事件（`chainlesschain:event` terminal.stdout/exit）也同理，按 `(sessionId, seq)` 二元组去重。
+
+**v0.1 desktop 入向去重**：mobile-bridge.js `handleMobileCommand` 加 LRU(128, 30s)，按 `payload.id` 去重。即使 Android 不双发，也防止"未来某场景双发"或"网络重传"造成的桌面 PtyManager 误处理（例如同一 stdin 被执行两次）。这是 robust default，不是 over-engineering。
+
+**双发出向**留作 v0.2 hardening（DC 测试出"DC send 成功但桌面没收到"的边缘 case 时再上）。
+
+### 3.6 Feature flag 位置
+
+Plan A.1 **必须挂 flag**——首批发版回滚成本低于回滚 APK。
+
+| Key | 默认 | 位置 |
+|---|---|---|
+| `terminal.preferDataChannel` | `true` (v5.0.3.53+) | Android: `SharedPreferences("plan_a1_flags")` + 桌面 `.chainlesschain/config.json` 镜像 |
+| `terminal.dcSendTimeoutMs` | `5000` | 同上 |
+| `terminal.fallbackOnDcFailure` | `true` | 同上（false = DC 死直接报错给用户，便于诊断） |
+
+Android 端 Hilt 注入 `Plan A1FeatureFlags` provider 读 SharedPreferences；桌面用 `unified-config-manager.js` `terminal.*` 子节点。两端独立可配，**调试时 Android 改 flag 不需要桌面同步**（Android 决定从哪发，桌面只是接收者）。
+
+### 3.7 与 Phase3d `core-p2p:DataChannelTransport` 的关系
+
+Phase3d Mobile Sync 已有 `core-p2p/transport/DataChannelTransport.kt`（256KB 分片 + 1MB/256KB 高低水位线 + 背压超时 30s），但**那一份是为 sync 二进制 P2PMessage 设计**，与 terminal 的 envelope JSON 协议不通。
+
+**决定不复用**——理由：
+1. 分片机制 terminal 不需要（单 envelope < 64KB，stdout chunk 桌面侧已分片）
+2. 背压窗口 terminal 不适用（terminal 是 RPC 式 req/res，不是 streaming push）
+3. `core-p2p:DataChannelTransport` 跑在 P2PClient 内 wraps `webRTCClient.sendMessage`，复用反而要解 P2PMessage envelope 双重包装
+
+**做法**：Plan A.1 在 `app/.../remote/terminal/` 内部直接调 `webRTCClient.sendMessage` + 监听 `webRTCClient.messages` SharedFlow。**不抽 DataChannelTransport 类**，原 doc 的 Phase 1 改名 Phase 1 "DC 状态暴露 + Trap 1 修复"（见下）。
 
 ## 4. Phase 划分
 
-### Phase 1 — Android `DataChannelTransport` 抽象 + DC 状态暴露
+### Phase 1 — Trap 1 修复 + DC 路由 helper
 
-新增 `app/.../remote/p2p/DataChannelTransport.kt`：
+不抽 DataChannelTransport（见 §3.7）。本 Phase 干两件事：
+
+**A. 修 Trap 1**（单 listener 覆盖 ice:config bug）
+
+`SignalClient` 接口扩展为多订阅模式，或更小侵入：把 `WebRTCClient.initialize` 和 `TerminalRpcClient.start` 都改成订阅 `webRTCClient.messages: SharedFlow<String>`（已存在，L147）而不是 `signalClient.setOnForwardedMessageReceived`。
+
+具体：
+- `WebRTCClient.initialize`：`signalClient.setOnForwardedMessageReceived` 内部已 `_messages.tryEmit(message)`（L182），ice:config 拦截逻辑前置到这里，**不改成 set callback override**——保持现状但加一句注释 "Plan A.1 之后此 callback 是 ice:config-only"
+- `TerminalRpcClient.start`：删 `signalClient.setOnForwardedMessageReceived` 调用，改 `scope.launch { webRTCClient.messages.collect { handleForwarded(it) } }`
+
+**验证**：
+- 测试 `TerminalRpcClient.start` 不再覆盖 ice:config 拦截器
+- 真机测试桌面 push 一次 ice:config 仍能持久化到 PairedDesktopsStore
+
+**B. DC 状态 helper**
+
+`WebRTCClient.kt` 加一个 derived flag：
 ```kotlin
-@Singleton
-class DataChannelTransport @Inject constructor(
-    private val webRTCClient: WebRTCClient,
-) {
-    val state: StateFlow<DcState>  // CLOSED | CONNECTING | OPEN | FAILED
-    suspend fun send(envelope: String): Result<Unit>
-    fun observeMessages(): SharedFlow<String>
-}
+val dataChannelReady: StateFlow<Boolean> =
+    connectionState.map { it == P2PConnectionState.READY }
+        .stateIn(scope, SharingStarted.Eagerly, false)
 ```
 
-- 包 `WebRTCClient.dataChannel` 的 send / onMessage
-- 暴露状态 Flow 让 UI 显示 "P2P 直连/中继" 标识
+UI 直接订阅 `dataChannelReady` 渲染 "P2P 直连/中继" 标识。
 
-**验证**：单元测试 + UI 显示状态
+**验证**：单元测试 state 流转 + UI 显示状态
 
 ### Phase 2 — `TerminalRpcClient` 双路径 routing
 
@@ -276,13 +342,18 @@ suspend fun create(pcPeerId: String, shell: String): Result<CreatedSession> {
 
 **验证**：手动测试握手时机 + stdout 推送计时
 
-### Phase 4 — Desktop 端 requestId 去重 + sendToMobile 强化
+### Phase 4 — 反向去重 + sendToMobile 路径收紧
 
 桌面 mobile-bridge.js:
-- 增 LRU dedupe (`recentRequests` 30s TTL)
-- sendToMobile 当 DC 已 open 时不再 signaling 兜底（避免双发）
+- 增 LRU dedupe (`recentRequests` 128 entries / 30s TTL) 在 `handleMobileCommand` 入口，按 `payload.id`
+- **保留** DC 未 ready 时 LAN signaling + 公网中继双发兜底（L957-986 既有逻辑）——这是稳定性兜底，不是 bug。但 DC 已 open 时**只发 DC** 不再兜底，避免一次响应到达两次
 
-**验证**：双路径压测 + 抓 packet 确认走 DC
+Android 端：
+- `TerminalRpcClient` 收响应 / event 时按 `(responseId)` / `(sessionId, seq)` 反向去重（§3.5 已述）
+
+**验证**：
+- 双路径压测：mock DC + signaling 两路同时收同一 responseId，pendingDeferred 只完成一次
+- 真机抓 packet（adb tcpdump）确认 DC open 时 sendToMobile 走单路径
 
 ### Phase 5 — DC 断开 fallback + 自动重建
 
@@ -297,9 +368,11 @@ suspend fun create(pcPeerId: String, shell: String): Result<CreatedSession> {
 
 ### 5.1 单元测试
 
-- `DataChannelTransport` mock WebRTCClient 测 state 流转
-- `TerminalRpcClient` 双路径选择测试（DC open / closed / failing）
-- `dedupe LRU` (desktop side) 单元测
+- `TerminalRpcClient` 双路径选择测试（覆盖 4 种组合：DC open + flag on / DC open + flag off / DC closed / DC send fails 抛 IllegalStateException）
+- `webRTCClient.dataChannelReady: StateFlow<Boolean>` derived flow 测试（READY → true，其它 7 态 → false）
+- Android 端 LRU dedupe 单元测（同 id 二次入 emit 一次）
+- desktop `mobile-bridge.js` handleMobileCommand LRU dedupe 单元测
+- **Trap 1 回归测试**：`TerminalRpcClient.start()` 调用后桌面 push ice:config 仍能被 `WebRTCClient.persistIceConfigMessage` 处理（断言 PairedDesktopsStore.upsert 被调用）
 
 ### 5.2 集成测试
 
@@ -314,7 +387,8 @@ suspend fun create(pcPeerId: String, shell: String): Result<CreatedSession> {
   1. LAN 同 WiFi — DC 应秒级握手成功
   2. 蜂窝网 + LAN 桌面 — TURN relay 路径
   3. 双 NAT (3G symmetric) — 应 fallback 到 signaling
-  4. DC 工作中拔网线 — 应 graceful fallback 信令
+  4. DC 工作中模拟 DC 失效（**不是杀 WS**——WS 是 signaling，反过来会让信令也死）：在 WebRTCClient 暴露 debug 方法 `simulateDataChannelFailure()` 或 adb 直接 disable WebRTC UDP 端口段 → 期望 `connectionState` 进 FAILED → fallback signaling 接管 ≤ 3s
+  5. DC 恢复后（重启 WiFi / 重 adb enable port）— 期望 isDcReady() 复检通过，下一 invoke 自然走 DC
 
 ## 6. 已知风险
 
@@ -340,21 +414,23 @@ suspend fun create(pcPeerId: String, shell: String): Result<CreatedSession> {
 
 | Phase | 工程量 | 建议 |
 |---|---|---|
-| Phase 1 DataChannelTransport | 0.5d | 独立 PR |
-| Phase 2 双路径 routing | 0.5d | 独立 PR |
-| Phase 3 触发 + listener | 0.5d | 独立 PR（含真机验证）|
-| Phase 4 桌面 dedupe + sendToMobile | 0.3d | 独立 PR |
-| Phase 5 fallback + 重建 | 0.7d | 独立 PR + 联调测试 |
-| **合计** | **~2.5 天聚焦工作** | 5 PR 渐进交付 |
+| Phase 1 Trap 1 修复 + DC 状态 helper | 0.5d | 独立 PR（含 ice:config 回归测试） |
+| Phase 2 双路径 routing + envelope 共享 pendingDeferred | 0.5d | 独立 PR |
+| Phase 3 触发 + DC listener + UI 状态显示 | 1.0d | 独立 PR（**含真机 e2e**，按 W3.7 pattern 估实） |
+| Phase 4 双向去重（Android + desktop LRU） | 0.5d | 独立 PR |
+| Phase 5 fallback + 复用 P2PClient 重连 | 0.5d | 独立 PR + 联调测试 |
+| **合计** | **~3.0 天聚焦工作** | 5 PR 渐进交付 |
 
 ## 9. 验收标准
 
 - [ ] LAN 同 WiFi 场景：DC 握手 ≤ 2s，terminal.create RTT ≤ 200ms
 - [ ] 蜂窝网场景：TURN 路径建立 ≤ 5s，RTT ≤ 500ms
 - [ ] 持续 30 分钟 stdout 流式输出（`watch -n 0.5 date`）无中断
-- [ ] DC 故意断开（adb 杀 WS）后 fallback 信令延迟 ≤ 3s，UI 显式 "中继路径"
+- [ ] DC 故意失效（见 §5.3 step 4）后 fallback 信令延迟 ≤ 3s，UI 显式 "中继路径"
 - [ ] DC 恢复后自动切回，UI 显式 "P2P 直连"
 - [ ] 桌面 PtyManager 无 session 泄漏（24h 跑 100 次握手循环）
+- [ ] **Trap 1 回归**：100 次进退 TerminalListScreen 后桌面仍能 push ice:config 让 Android 持久化 iceServers（grep logcat `[WebRTCClient] ✓ iceServers persisted` 必出现）
+- [ ] **telemetry**：埋点 `[TerminalRpc.metric] path=dc|signaling reqId=...`，发版后第一周 fast path 占比 > 80%（用户基数 ≥10 设备）。低于 80% 说明 DC 不通比预想多，需诊断
 
 ## 10. 相关 commits / memory
 
@@ -370,3 +446,4 @@ suspend fun create(pcPeerId: String, shell: String): Result<CreatedSession> {
 | 版本 | 日期 | 说明 |
 |---|---|---|
 | v0.1 | 2026-05-14 | 设计调研初稿，含 Plan A 真机 e2e 发现的 4+1 bug 列表，5 phase 划分待评审 |
+| v0.2 | 2026-05-14 | 对齐真实代码后第二轮：(1) 加 §1.2 三个现有架构 trap（含 setOnForwardedMessageReceived 单 listener bug），(2) §3.2 谓词改用 WebRTCClient.connectionState==READY（更精确），(3) §3.4 fallback 状态覆盖 PeerConnection+DC 双层 + 复用 P2PClient 重连，(4) §3.5 反向去重才是必需（出向单发），(5) §3.6 feature flag 落点，(6) §3.7 不复用 :core-p2p DataChannelTransport 的决定，(7) Phase 1 改为治 Trap 1 + 暴露 dataChannelReady helper，(8) Phase 3 估算 0.5→1.0d 含真机，(9) §5.3 step 4 改"模拟 DC 失效"非"杀 WS"，(10) §9 加 Trap 1 回归 + path=dc/signaling telemetry 验收。 |
