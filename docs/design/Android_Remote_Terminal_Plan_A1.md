@@ -20,7 +20,34 @@ Plan A v5.0.3.52 把 terminal 命令通道架在 #21 Remote Operate 的 **signal
 
 bug 1-4 修完后基础链路稳定性显著改善，但 5 是**架构性问题**——signaling 路径长度=4，每跳都可能 TCP RST。Plan A.1 的目标：**把高频高吞吐流量从 signaling 链路切到 WebRTC DataChannel 直连**，绕开中间所有跳。
 
-### 1.2 现有 WebRTC 基建（已落地）
+### 1.2 现有架构关键 trap（动手前必看）
+
+#### Trap 1 — `setOnForwardedMessageReceived` 是单 listener，后写覆盖前写
+
+`SignalClient.setOnForwardedMessageReceived(callback)` 是 **set**（不是 add）。当前代码中**两处都在调它**：
+
+- `WebRTCClient.initialize()` (WebRTCClient.kt:170-183) — 装回调拦 `chainlesschain:ice:config` 持久化 iceServers + 转发到 `_messages` SharedFlow
+- `TerminalRpcClient.start()` (TerminalRpcClient.kt:79) — 装回调挑 `chainlesschain:event` 里的 `terminal.stdout / .exit` emit 到 `_stdout / _exit` SharedFlow
+
+谁后调谁赢。当前实际顺序（Hilt 注入 → init 顺序）是 `WebRTCClient.initialize()` 先 → 用户进 TerminalListScreen 后 `TerminalRpcClient.start()` 覆盖 → **ice:config 拦截器被悄无声息地踢掉**，桌面后续 push 新 TURN 凭证手机不会持久化，iceExpiry 到期后跨 NAT 不通。
+
+Plan A.1 必须**先治这个 trap**：把 `setOnForwardedMessageReceived` 改成 **多订阅** 的 SharedFlow 模型，或者让 TerminalRpcClient 改听 `WebRTCClient.messages: SharedFlow<String>`（已存在，WebRTCClient.kt:147）而不是覆盖回调。后者侵入更小，推荐。
+
+#### Trap 2 — DC 入向 message 走 `webRTCClient.setOnMessageReceived`，与 signaling forward 是两条独立路径
+
+WebRTC DataChannel 的 `onMessage`（WebRTCClient.kt:387-399）和 signaling 的 `onForwardedMessage` 路由到**不同 SharedFlow**：
+- DC 入：`_messages` (WebRTCClient.kt:147)
+- Signaling 入：经 `onForwardedMessageCallback` 处理（不进 `_messages`，除非 callback 主动 emit）
+
+Plan A.1 上线后，桌面 `sendToMobile` 已经优先 DC（mobile-bridge.js:957），所以稳态 stdout 是经 DC 进 `_messages`。**TerminalRpcClient 必须同时订阅这两条流**（或者订阅统一后的 `_messages`，前提是 Trap 1 已治）。
+
+#### Trap 3 — `P2PClient.sendCommand` 已是 DC-only，但有自己的 envelope 协议
+
+`P2PClient.sendCommandInternal`（P2PClient.kt:438-480）走 `webRTCClient.sendMessage`，已经 DC-only。但它的 wire format 是 `P2PMessage(type, payload)` + 自定义 `CommandRequest/Response`，**与 TerminalRpcClient 经 signaling 用的 envelope (`{type:"chainlesschain:command:request", payload:{id, method, params, auth}}`) 不兼容**。
+
+Plan A.1 不能简单"把 TerminalRpcClient 切到 P2PClient.sendCommand"——会破协议对称性（desktop side handler 按 envelope.type 分发）。正确路径是：TerminalRpcClient 自己挑 transport（DC vs signaling），两边都发**同一 envelope 格式**到对应 transport。
+
+### 1.3 现有 WebRTC 基建（已落地）
 
 ✅ Android 端：
 - `app/.../remote/webrtc/WebRTCClient.kt:192` `connect(pcPeerId, localPeerId)` — 5 步 WebRTC handshake (signaling connect → register → createPeerConnection + createDataChannel → createOffer → waitForAnswer)
