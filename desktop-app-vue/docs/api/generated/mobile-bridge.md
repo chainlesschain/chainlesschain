@@ -208,6 +208,17 @@ async handleP2PMessage(message)
 
 ---
 
+## _gcRecentMobileRequests()
+
+```javascript
+_gcRecentMobileRequests()
+```
+
+* Plan A.1 Phase 4 — 回收 [recentMobileRequests] 里超过 TTL 的条目。
+   * 在每次入站 dedup check 前调一次，无独立 timer（避免 leaking）。
+
+---
+
 ## async bridgeToLibp2p(mobilePeerId, data)
 
 ```javascript
