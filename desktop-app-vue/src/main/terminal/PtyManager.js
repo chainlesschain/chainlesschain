@@ -34,25 +34,58 @@ const DEFAULT_CONFIG = Object.freeze({
   idleKillMs: 24 * 60 * 60 * 1000,
 });
 
-// Map whitelisted shell name → resolved executable. node-pty needs a real
-// path / command name to spawn. Resolution is intentionally minimal: rely
-// on PATH for `pwsh` / `bash` / `wsl`; map `cmd` to the Windows comspec.
+// Map whitelisted shell name → resolved executable + args. node-pty needs a
+// real path / command name to spawn. Login-shell flags ensure ~/.bashrc /
+// ~/.profile load so user PATH (npm-global, cargo, brew etc.) is visible —
+// otherwise `cc` / `claude` / other globally-installed CLIs are unreachable
+// in the remote terminal (real-device E2E feedback, 2026-05-14).
 function resolveShellCmd(shell) {
   if (process.platform === "win32") {
     if (shell === "cmd") {
-      return process.env.ComSpec || "cmd.exe";
+      return { cmd: process.env.ComSpec || "cmd.exe", args: [] };
     }
     if (shell === "pwsh") {
-      return "pwsh.exe";
+      // pwsh auto-loads $PROFILE unless -NoProfile is passed; Windows PATH
+      // already contains npm-global so cc/claude work out of the box.
+      return { cmd: "pwsh.exe", args: [] };
     }
     if (shell === "wsl") {
-      return "wsl.exe";
+      // wsl.exe with no args picks default distro + default user. To inherit
+      // the user's PATH we force bash login shell explicitly.
+      return { cmd: "wsl.exe", args: ["--", "bash", "-l"] };
     }
     if (shell === "bash") {
-      return "bash.exe";
-    } // git-bash on PATH
+      // git-bash on Windows — -l = login shell, loads ~/.bash_profile.
+      // PATH-resolved `bash.exe` often matches WSL's bash first (under
+      // C:\Windows\System32\bash.exe), which logs into WSL as root user
+      // and bypasses the dev's Windows PATH (node/npm-global → cc/claude
+      // unreachable). Probe well-known git-bash install paths first.
+      const fs = require("node:fs");
+      const candidates = [
+        process.env.GIT_BASH, // user override
+        "C:\\Program Files\\Git\\bin\\bash.exe",
+        "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+        process.env.LOCALAPPDATA
+          ? `${process.env.LOCALAPPDATA}\\Programs\\Git\\bin\\bash.exe`
+          : null,
+      ].filter(Boolean);
+      for (const p of candidates) {
+        try {
+          if (fs.existsSync(p)) {
+            return { cmd: p, args: ["-l"] };
+          }
+        } catch {
+          /* keep probing */
+        }
+      }
+      return { cmd: "bash.exe", args: ["-l"] }; // fallback to PATH
+    }
   }
-  return shell; // posix: pwsh/bash on PATH
+  // posix: pwsh/bash on PATH; -l on bash to load ~/.bashrc
+  if (shell === "bash") {
+    return { cmd: "bash", args: ["-l"] };
+  }
+  return { cmd: shell, args: [] };
 }
 
 class PtyManager extends EventEmitter {
@@ -111,9 +144,9 @@ class PtyManager extends EventEmitter {
     const cwd = req.cwd || this.config.defaultCwd || process.cwd();
     const cols = Number.isFinite(req.cols) ? req.cols : 80;
     const rows = Number.isFinite(req.rows) ? req.rows : 24;
-    const cmd = resolveShellCmd(shell);
+    const { cmd, args } = resolveShellCmd(shell);
 
-    const proc = pty.spawn(cmd, [], {
+    const proc = pty.spawn(cmd, args, {
       name: "xterm-256color",
       cols,
       rows,
