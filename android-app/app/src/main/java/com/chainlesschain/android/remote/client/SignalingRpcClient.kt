@@ -5,7 +5,13 @@ import com.chainlesschain.android.core.p2p.config.SignalingConfig
 import com.chainlesschain.android.core.p2p.pairing.PairingSignalingGate
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import timber.log.Timber
@@ -38,11 +44,14 @@ class SignalingRpcClient @Inject constructor(
     private val signalClient: SignalClient,
     private val didManager: DIDManager,
     private val signalingConfig: SignalingConfig,
+    @Suppress("unused") // Plan A.1 — ice:config 拦截搬回 WebRTCClient.initialize；构造参数保留避免改 Hilt 注入图
     private val pairedDesktopsStore: com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore,
 ) {
 
     private val pending = ConcurrentHashMap<String, CompletableDeferred<JSONObject>>()
     @Volatile private var responseListenerInstalled = false
+    @Volatile private var listenerJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * 调用桌面命令。method/params 与 desktop AICommands/SystemCommands 期望一致。
@@ -139,89 +148,57 @@ class SignalingRpcClient @Inject constructor(
      * 安装信令响应 listener：收到 type=chainlesschain:command:response 的
      * forward message 时按 requestId 查 pending → complete deferred。
      *
-     * 一次性安装（idempotent），signalClient 内部以 callback 形式触发。
+     * Plan A.1 — 改订阅 [SignalClient.forwardedMessages] SharedFlow 替代旧的
+     * [SignalClient.setOnForwardedMessageReceived] 单 callback；后者曾被
+     * TerminalRpcClient.start 覆盖造成 RPC 响应永远到不了 (Trap 1)。
+     *
+     * ice:config 拦截 **不再** 在本类做——由 WebRTCClient.initialize 的
+     * canonical handler 独占（保留向后兼容路径）。
+     *
+     * 一次性安装（idempotent），多次 invoke 复用同一 collect job。
      */
     private fun ensureResponseListener() {
         if (responseListenerInstalled) return
-        signalClient.setOnForwardedMessageReceived { raw ->
-            try {
-                val msg = JSONObject(raw)
-                val msgType = msg.optString("type")
-
-                // v1.3+ plan B — 桌面 pair-ack 后 push iceServers。手机持久化到
-                // PairedDesktopsStore，下次 WebRTCClient.createPeerConnection 用。
-                if (msgType == "chainlesschain:ice:config") {
-                    handleIceConfigMessage(msg)
-                    return@setOnForwardedMessageReceived
-                }
-
-                // 桌面响应 wire shape (handleMobileCommand → sendToMobile):
-                //   {type:"chainlesschain:command:response", payload: stringified JSON-RPC 2.0
-                //     containing {jsonrpc, id, result, error}}
-                if (msgType != "chainlesschain:command:response") {
-                    return@setOnForwardedMessageReceived
-                }
-                val payloadRaw = msg.opt("payload")
-                val rpcResponse = when (payloadRaw) {
-                    is String -> try { JSONObject(payloadRaw) } catch (_: Exception) { null }
-                    is JSONObject -> payloadRaw
-                    else -> null
-                } ?: return@setOnForwardedMessageReceived
-                val rid = rpcResponse.optString("id", null) ?: return@setOnForwardedMessageReceived
-                val deferred = pending.remove(rid) ?: run {
-                    Timber.w("[SignalingRpc] response for unknown rid=$rid")
-                    return@setOnForwardedMessageReceived
-                }
-                // 把 jsonrpc-2.0 response 暴露给调用方：result+error
-                val out = JSONObject().apply {
-                    if (rpcResponse.has("result")) put("result", rpcResponse.opt("result"))
-                    if (rpcResponse.has("error") && !rpcResponse.isNull("error")) {
-                        put("error", rpcResponse.opt("error"))
-                    }
-                }
-                deferred.complete(out)
-                Timber.i("[SignalingRpc] ← response (rid=${rid.take(8)}…)")
-            } catch (e: Exception) {
-                Timber.w(e, "[SignalingRpc] onForwardedMessage parse failed")
-            }
-        }
+        listenerJob = signalClient.forwardedMessages
+            .onEach { raw -> handleForwardedMessage(raw) }
+            .launchIn(scope)
         responseListenerInstalled = true
-        Timber.i("[SignalingRpc] response listener installed")
+        Timber.i("[SignalingRpc] response listener installed (via forwardedMessages SharedFlow)")
     }
 
-    /**
-     * v1.3+ plan B — 处理桌面 push 来的 iceServers 配置消息。
-     *
-     * Wire: `{type:"chainlesschain:ice:config", payload:{pcPeerId, iceServers, iceExpiry, timestamp}}`
-     * 桌面 desktop-pair-handlers.pushIceServersToMobile 在 pair-ack matched 后异步发送。
-     * 收到后 upsert 到 PairedDesktopsStore，下次 WebRTCClient 建连时按 pcPeerId 拿。
-     */
-    private fun handleIceConfigMessage(msg: JSONObject) {
+    private fun handleForwardedMessage(raw: String) {
         try {
-            val payloadRaw = msg.opt("payload")
-            val payload = when (payloadRaw) {
-                is String -> JSONObject(payloadRaw)
-                is JSONObject -> payloadRaw
-                else -> return
+            val msg = JSONObject(raw)
+            val msgType = msg.optString("type")
+
+            // 桌面响应 wire shape (handleMobileCommand → sendToMobile):
+            //   {type:"chainlesschain:command:response", payload: stringified JSON-RPC 2.0
+            //     containing {jsonrpc, id, result, error}}
+            if (msgType != "chainlesschain:command:response") {
+                return
             }
-            val pcPeerId = payload.optString("pcPeerId", null) ?: return
-            val iceServersJson = payload.opt("iceServers")?.toString() ?: return
-            val iceExpiry = payload.optLong("iceExpiry", 0L)
-            val existing = pairedDesktopsStore.devices.value
-                .firstOrNull { it.pcPeerId == pcPeerId }
-                ?: run {
-                    Timber.w("[SignalingRpc] ice:config for unknown pcPeerId=$pcPeerId")
-                    return
+            val payloadRaw = msg.opt("payload")
+            val rpcResponse = when (payloadRaw) {
+                is String -> try { JSONObject(payloadRaw) } catch (_: Exception) { null }
+                is JSONObject -> payloadRaw
+                else -> null
+            } ?: return
+            val rid = rpcResponse.optString("id", null) ?: return
+            val deferred = pending.remove(rid) ?: run {
+                Timber.w("[SignalingRpc] response for unknown rid=$rid")
+                return
+            }
+            // 把 jsonrpc-2.0 response 暴露给调用方：result+error
+            val out = JSONObject().apply {
+                if (rpcResponse.has("result")) put("result", rpcResponse.opt("result"))
+                if (rpcResponse.has("error") && !rpcResponse.isNull("error")) {
+                    put("error", rpcResponse.opt("error"))
                 }
-            pairedDesktopsStore.upsert(
-                existing.copy(
-                    iceServersJson = iceServersJson,
-                    iceExpiry = iceExpiry,
-                ),
-            )
-            Timber.i("[SignalingRpc] ✓ iceServers updated for $pcPeerId (expiry=$iceExpiry)")
+            }
+            deferred.complete(out)
+            Timber.i("[SignalingRpc] ← response (rid=${rid.take(8)}…)")
         } catch (e: Exception) {
-            Timber.w(e, "[SignalingRpc] handleIceConfigMessage failed")
+            Timber.w(e, "[SignalingRpc] onForwardedMessage parse failed")
         }
     }
 }

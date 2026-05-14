@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import org.webrtc.*
 import timber.log.Timber
 import javax.inject.Inject
@@ -145,6 +147,22 @@ class WebRTCClient @Inject constructor(
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
+
+    /**
+     * Plan A.1 — DataChannel 真 OPEN 才 true。
+     *
+     * 关键语义提醒：[P2PConnectionState.DATA_CHANNEL_OPEN] 字面虽含 "OPEN" 但
+     * 只是 ICE 通了（在 [PeerConnection.IceConnectionState.CONNECTED] 时设，
+     * 见 onIceConnectionChange），DC 此时未必 open。真 DC OPEN 是
+     * [P2PConnectionState.READY]（在 [setupDataChannel.onStateChange] 收到
+     * [DataChannel.State.OPEN] 时设）。
+     *
+     * 消费者订阅本 flag 即可判断"可经 DC 发送"，无需自己理解 8 态状态机。
+     */
+    val dataChannelReady: StateFlow<Boolean> =
+        _connectionState
+            .map { it == P2PConnectionState.READY }
+            .stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
 
     companion object {
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
@@ -558,6 +576,20 @@ interface SignalClient {
     suspend fun sendForwardedMessage(toPeerId: String, payload: org.json.JSONObject): Result<Unit>
 
     fun disconnect()
+
+    /**
+     * Plan A.1 — 多订阅 forwarded message 流（信令服务器 type:"message" 转发）。
+     *
+     * 替代 [setOnForwardedMessageReceived] 的单 listener 模型——后者的 "set 不是 add"
+     * 语义曾导致 WebRTCClient / SignalingRpcClient / TerminalRpcClient 三方互相覆盖
+     * (memory: Plan A.1 Trap 1)，ice:config 拦截 + RPC 响应 + terminal.stdout push
+     * 互相吞掉。所有新代码应订阅本 flow。
+     *
+     * 现有 [setOnForwardedMessageReceived] callback 保留作向后兼容（WebRTCClient.initialize
+     * 仍占用 — 它是 ice:config 拦截的 canonical handler），但**不再用于业务路径**。
+     */
+    val forwardedMessages: kotlinx.coroutines.flow.SharedFlow<String>
+
     fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?)
 }
 
@@ -600,6 +632,11 @@ class WebSocketSignalClient @Inject constructor(
     // 用于转发来自信令服务器的 P2P 消息
     @Volatile
     private var onForwardedMessageCallback: ((String) -> Unit)? = null
+
+    // Plan A.1 — 多订阅版本，与 [onForwardedMessageCallback] 并存。SharedFlow 不丢消息
+    // （extraBufferCapacity=64 与 [WebRTCClient._messages] 对齐），多消费者各 collect。
+    private val _forwardedMessages = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    override val forwardedMessages: SharedFlow<String> = _forwardedMessages.asSharedFlow()
 
     override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {
         onForwardedMessageCallback = callback
@@ -847,6 +884,11 @@ class WebSocketSignalClient @Inject constructor(
                                 else -> payload.toString()
                             }
                             Timber.d("Forwarding message to WebRTCClient: ${messageStr.take(100)}...")
+                            // Plan A.1 — 同时 emit 到多订阅 SharedFlow（SignalingRpc /
+                            // TerminalRpc 各自 collect，不再争抢单 callback）。
+                            // callback 路径保留：WebRTCClient.initialize 用它做
+                            // ice:config 拦截 + 转发到 webRTCClient._messages。
+                            _forwardedMessages.tryEmit(messageStr)
                             onForwardedMessageCallback?.invoke(messageStr)
                         }
                     }
