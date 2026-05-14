@@ -1,6 +1,6 @@
 # Android 远程终端 — Plan A.1（WebRTC DataChannel 直连）设计文档
 
-> 状态：📝 设计调研中（2026-05-14）
+> 状态：✅ Phase 1-5 全部落地（2026-05-14；真机 e2e 由用户验，§5.3 矩阵）
 > 关联：[Plan A](Android_Remote_Terminal_Plan_A.md) / [Plan AB 基础设施](Android_Remote_Operate_Plan_AB.md) / [Plan C 信令转发](Android_Remote_Operate_Plan_C.md)
 > 前置：Plan A v5.0.3.52 已落（PtyManager + WS topics + 三壳 UI + Android UI），signaling 转发路径在真机测试暴露 4+1 个 bug
 
@@ -355,14 +355,16 @@ Android 端：
 - 双路径压测：mock DC + signaling 两路同时收同一 responseId，pendingDeferred 只完成一次
 - 真机抓 packet（adb tcpdump）确认 DC open 时 sendToMobile 走单路径
 
-### Phase 5 — DC 断开 fallback + 自动重建
+### Phase 5 — DC 断开 fallback + 自动重建（无新代码 — Phase 2 + P2PClient 既有 wiring 组合）
 
-- DataChannelTransport 状态变 FAILED 时
-- TerminalRpcClient 路由切 signaling
-- 后台 retry handshake（指数退避 1s/4s/16s）
-- UI banner "P2P 已断，使用中继路径"
+实施反思：Phase 5 设计目标在前 4 个 Phase 完成时已经成立，**不需要新代码**：
 
-**验证**：手动 disable DC 测试 + reconnect 时序
+- **DC 失效 fallback**：Phase 2 `trySendViaDataChannel`（SignalingRpcClient.kt）在 DC 抛 `IllegalStateException("Data channel not open")` 或 isDcReady=false 时返 false，caller 自动走 signaling 路径。Phase 2 测试 `Plan A1 — DC sendMessage throws falls back to signaling` 直接覆盖。
+- **自动重建**：`P2PClient.handleDisconnection` (P2PClient.kt:222) 监听 `webRTCClient.setOnDisconnected`，DC 死 → 调 `scheduleReconnect` (P2PClient.kt:242) 指数退避（base 1s / cap 60s / factor 2.0 / maxAttempts 10）。已存在，Plan A.1 piggy-back。
+- **DC 恢复后自动切回**：`isDcReady()` (SignalingRpcClient.kt) 在每次 `invoke()` 入口重新读 `webRTCClient.connectionState.value`。READY 即用 DC，否则 signaling。无显式 "切回" 动作。
+- **UI banner**：Phase 3 已加 — `dataChannelReady` StateFlow 驱动 TerminalListScreen chip 颜色（green=DC, yellow=relay），是同一概念的实时映射，不需要额外 banner。
+
+**测试**：Phase 2 + Phase 4 测试矩阵已 cover；真机 e2e 跑 §5.3 step 4-5 验证 fallback / 恢复时序。
 
 ## 5. 测试
 
@@ -434,8 +436,17 @@ Android 端：
 
 ## 10. 相关 commits / memory
 
-- bug 1-4 修复 commits：本 session 改动（android-app/{gradle.properties, app/build.gradle.kts, NetworkModule.kt, WebSocketPairingSignalingGate.kt, WebRTCClient.kt}）
-- 历史背景：[Plan A 设计文档](Android_Remote_Terminal_Plan_A.md) §1-3
+实施 commits（2026-05-14 一日完成 Phase 1-5）：
+- `aee5f1d8f` fix(remote-terminal): 4 bug fixes uncovered by Plan A real-device e2e（§1.1 bug 1-4）
+- `d22b7ac8a` feat(remote-terminal): Plan A.1 Phase 1 prep — dataChannelReady + forwardedMessages multi-subscribe（WebRTCClient + SignalingRpcClient 主体改造）
+- `bb759bc78` feat(remote-terminal): Plan A.1 Phase 1 close — multi-subscribe migration + Trap 1 regression test（TerminalRpc 迁移 + 双 client 测试 + WebRTCClientTest 修 pre-existing pairedDesktopsStore 缺参）
+- `a01eeac47` feat(remote-terminal): Plan A.1 Phase 2 — DC fast path + dual-listener pending pool（SignalingRpcClient.invoke 接 DC fast path + 反向双 listener；4 个 transport-selection 测试）
+- `91e77e489` feat(remote-terminal): Plan A.1 Phase 3 — trigger DC handshake on TerminalListScreen entry + UI path indicator（TerminalListViewModel + Screen chip）
+- `dd9b1227e` feat(remote-terminal): Plan A.1 Phase 4 (Android) — dual-listener push events + LRU dedup（TerminalRpc 双订 + (sessionId, seq) 去重；3 dedup 测试）
+- `fc3752360` feat(remote-terminal): Plan A.1 Phase 4 (desktop) — mobile-bridge LRU dedup for command requests（bridgeToLibp2p reqId LRU 128/30s）
+
+历史背景：
+- [Plan A 设计文档](Android_Remote_Terminal_Plan_A.md) §1-3（terminal Plan A 全套）
 - WebRTC 现有基建：memory `signaling_relay_and_turn_deploy.md` + `android_remote_operate_plan_c_first.md`
 - 配对 + DC handshake 路径：memory `desktop_qr_pairing_flow_b.md`
 
@@ -447,3 +458,4 @@ Android 端：
 |---|---|---|
 | v0.1 | 2026-05-14 | 设计调研初稿，含 Plan A 真机 e2e 发现的 4+1 bug 列表，5 phase 划分待评审 |
 | v0.2 | 2026-05-14 | 对齐真实代码后第二轮：(1) 加 §1.2 三个现有架构 trap（含 setOnForwardedMessageReceived 单 listener bug），(2) §3.2 谓词改用 WebRTCClient.connectionState==READY（更精确），(3) §3.4 fallback 状态覆盖 PeerConnection+DC 双层 + 复用 P2PClient 重连，(4) §3.5 反向去重才是必需（出向单发），(5) §3.6 feature flag 落点，(6) §3.7 不复用 :core-p2p DataChannelTransport 的决定，(7) Phase 1 改为治 Trap 1 + 暴露 dataChannelReady helper，(8) Phase 3 估算 0.5→1.0d 含真机，(9) §5.3 step 4 改"模拟 DC 失效"非"杀 WS"，(10) §9 加 Trap 1 回归 + path=dc/signaling telemetry 验收。 |
+| v1.0 | 2026-05-14 | Phase 1-5 全部 land（7 commits 一日完成）。设计在落地过程中两处偏离 v0.2：(a) Phase 1 没等真"加 derived dataChannelReady"才发 Phase 2，并行 session `d22b7ac8a` 同时把 dataChannelReady + forwardedMessages SharedFlow 都加了，本会话 close 收 listener migration + Trap 1 回归测试；(b) Phase 5 实施反思发现 fallback + 重建已是 Phase 2 + P2PClient 既有 wiring 的免费副产物，零新代码。其余按 v0.2 跑通。真机 e2e §5.3 矩阵移交用户。 |
