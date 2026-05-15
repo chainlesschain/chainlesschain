@@ -1,10 +1,10 @@
-# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.3
+# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.4
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) B.5（GA 后续 scope · P1）
-> **状态**: 🟢 Layer 1 PR1 ✅ + PR2 ✅ landed (2026-05-15) · PR3-4 待启
+> **状态**: 🟢 Layer 1 PR1 ✅ + PR2 ✅ + PR3 ✅ landed (2026-05-15) · PR4 待启
 > **作者**: 2026-05-15
 > **关联**: [m-of-n 应用扩展 v1](MofN_多签_应用扩展_v1.md) / [MTC 跨链桥 v1](MTC_跨链桥_v1.md) / memory `mtc_landing_v0_11.md` Q-COMP-3
-> **下一步**: PR3 Multisig.vue 接通 callMultisigTopic + domain icon + PR4 文档
+> **下一步**: PR4 `MofN_多签_应用扩展_v1.md` §9 "Crosschain Outbound" 段
 
 ---
 
@@ -55,7 +55,7 @@ bridge --from ethereum --to chainless --amount 100 --require-multisig
 |---|---|---|---|
 | 1 | ✅ landed | `packages/cli/src/commands/crosschain.js` + `__tests__/integration/crosschain-multisig-e2e.test.js` | `bridge --require-multisig` flag + `bridge-consume <proposalId>` 子命令 + `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 + `_bridgePropose` / `_bridgeConsume` helpers；**11 E2E tests** 全过（happy 2-of-2 / 1-of-1 reaches immediately / 4 error paths / 3 regression paths / text output）+ 103 既有 crosschain 测试 0 regression |
 | 2 | ✅ landed | `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` + `__tests__/multisig-handlers.test.js` | 加 `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 + `crosschain.bridge.consume` in-process WS topic（mirror `marketplace.consume`：domain gate + state gate + finalize + return `{status, proposalId, payload}`）；**8 new unit tests** + 23 既有 multisig handler 测试 0 regression + 27 web-shell test files / 409 tests 全过；bootstrap spread 自动注入新 topic 无需改 wiring |
-| 3 | ⏳ pending | `packages/web-panel/src/views/Multisig.vue` | 列表 / 详情 已 generic（domain 是 string），可能 0 改；如要分类显示加 domain icon ~50 行；接通 `callMultisigTopic("crosschain.bridge.consume", {proposalId})` 让 reached 状态的 crosschain proposals 走新 topic |
+| 3 | ✅ landed | `packages/web-panel/src/views/Multisig.vue` | (1) 列表 + 详情 各加 "执行跨链桥" 按钮（reached + domain === crosschain.bridge.outbound 时显示）(2) 新 `onBridgeConsume()` 调 `callMultisigTopic("crosschain.bridge.consume", ...)` (3) 双路径 UX：isEmbedded 走 in-process topic 只 finalize，弹 Modal 提示 CLI follow-up；cc serve 走 subprocess 真插入 cc_bridges row 显示 bridgeId (4) fix typo `crosschain.outbound` → `crosschain.bridge.outbound` 在 loadAll policies discovery (5) alert 文案重写覆盖新 domain；build 通过 + postbuild auto-sync 到 CLI assets；1867/1867 web-panel 测试 0 regression |
 | 4 | ⏳ pending | `docs/design/MofN_多签_应用扩展_v1.md` §8 加 §9 "Crosschain Outbound" 段 | 文档同步 |
 
 **PR2 实测（2026-05-15）**：

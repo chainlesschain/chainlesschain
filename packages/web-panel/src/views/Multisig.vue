@@ -129,6 +129,12 @@
                   type="primary"
                   @click.stop="onConsume(record)"
                 >执行购买</a-button>
+                <a-button
+                  v-if="record.state === 'reached' && record.domain === 'crosschain.bridge.outbound'"
+                  size="small"
+                  type="primary"
+                  @click.stop="onBridgeConsume(record)"
+                >执行跨链桥</a-button>
               </a-space>
             </template>
           </template>
@@ -224,7 +230,7 @@
         <a-divider />
         <a-alert
           message="签名 / 执行操作需通过 CLI 提供私钥"
-          description="Web shell 不直接持有私钥（v1.3 接 Unified KeyStore）。本面板用于查看提案状态，操作请用：cc multisig sign / cancel，或 cc marketplace consume。"
+          description="Web shell 不直接持有私钥（接 Unified KeyStore 仍未收口）。本面板用于查看提案状态，签名请用 cc multisig sign；执行已 reached 的提案可在此面板按 domain 直达（marketplace.purchase / crosschain.bridge.outbound），其它 domain 走 cc multisig finalize。"
           type="info"
           show-icon
           style="margin-bottom: 12px;"
@@ -241,7 +247,12 @@
             @click="onConsume(detail.proposal)"
           >执行购买 (cc marketplace consume)</a-button>
           <a-button
-            v-if="detail.proposal.state === 'reached' && detail.proposal.domain !== 'marketplace.purchase'"
+            v-if="detail.proposal.state === 'reached' && detail.proposal.domain === 'crosschain.bridge.outbound'"
+            type="primary"
+            @click="onBridgeConsume(detail.proposal)"
+          >执行跨链桥 (cc crosschain bridge-consume)</a-button>
+          <a-button
+            v-if="detail.proposal.state === 'reached' && detail.proposal.domain !== 'marketplace.purchase' && detail.proposal.domain !== 'crosschain.bridge.outbound'"
             type="primary"
             @click="onFinalize(detail.proposal)"
           >finalize (cc multisig finalize)</a-button>
@@ -358,7 +369,7 @@ async function loadAll() {
       ).catch(() => []),
       // Policies don't have a list command in Phase 1 yet — try domains we know about
       Promise.all(
-        ['marketplace.purchase', 'did.rotate', 'crosschain.outbound'].map(async (d) => {
+        ['marketplace.purchase', 'crosschain.bridge.outbound', 'did.rotate'].map(async (d) => {
           try {
             const p = await callMultisigTopic(
               'multisig.policy.show',
@@ -440,6 +451,44 @@ async function onConsume(record) {
     )
     if (r.status === 'consumed') {
       message.success(`订单 ${r.order.itemId} 已执行 (¥${(r.order.amountFen / 100).toFixed(2)})`)
+      detailOpen.value = false
+      await loadAll()
+    } else {
+      message.error('执行失败: ' + (r.reason || JSON.stringify(r)))
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  }
+}
+
+// #21 B.5 Layer 1 PR3 — crosschain bridge outbound consume.
+// Web-shell (isEmbedded=true) path: in-process topic finalizes the proposal
+//   and returns {status, proposalId, payload}. cc_bridges row insert still
+//   requires `cc crosschain bridge-consume <id>` (web-shell doesn't own the
+//   crosschain DB handle). Modal prompts the user.
+// cc serve (isEmbedded=false) path: spawnSync the CLI, which returns
+//   {status, proposalId, bridgeId, fee, payload} — bridgeId presence signals
+//   the row was actually inserted; no follow-up needed.
+async function onBridgeConsume(record) {
+  try {
+    const r = await callMultisigTopic(
+      'crosschain.bridge.consume',
+      { proposalId: record.id },
+      `crosschain bridge-consume ${record.id} --json`,
+      10000,
+    )
+    if (r.status === 'consumed') {
+      const p = r.payload || {}
+      const route = `${p.fromChain || '?'} → ${p.toChain || '?'} (amount ${p.amount ?? '?'})`
+      if (r.bridgeId) {
+        message.success(`跨链桥已执行: ${route} · bridgeId ${r.bridgeId}`)
+      } else {
+        message.success(`跨链桥提案已 finalize: ${route}`)
+        Modal.info({
+          title: '跨链桥提案 finalize 完成',
+          content: `Proposal 已标记 consumed。\n\n在 CLI 侧运行以下命令完成 cc_bridges 行插入：\n\n  cc crosschain bridge-consume ${record.id}\n\nweb-shell 不持有 crosschain DB 句柄，实际 SQLite 插入仍由 CLI 端执行。`,
+        })
+      }
       detailOpen.value = false
       await loadAll()
     } else {
