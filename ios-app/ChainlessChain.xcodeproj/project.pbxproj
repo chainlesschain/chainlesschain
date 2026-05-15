@@ -73,7 +73,6 @@
 		840D891CCE4A9FE8CA4B838C /* LLMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF9AEB956CE81E6C7B5760F /* LLMSettingsView.swift */; };
 		884371C2479CD1776238C392 /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 944D367A679EB3E346ACC467 /* ProjectListView.swift */; };
 		8FA69F582D80033048DFC83F /* GitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B959368FBD9EEB49804FD52 /* GitViewModel.swift */; };
-		901E10F381D4F7C2701787D4 /* KnowledgeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533F7C7F3200356B4250CBDF /* KnowledgeItem.swift */; };
 		9120F0EFBA7FE20B659EA98E /* AIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC34FC12027FAB2B6A93DD30 /* AIChatView.swift */; };
 		93162748D4A5A53E8F018CD0 /* AIConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B115EAEFD486ED6F244AA3C /* AIConversationListView.swift */; };
 		9A263A878A44A401BB5625BF /* FileTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE37CB0FBE2A949619321677 /* FileTreeView.swift */; };
@@ -135,7 +134,6 @@
 		4C85522FB9250032DB6529DE /* SyncManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncManager.swift; path = ./ChainlessChain/Features/Project/Services/SyncManager.swift; sourceTree = "<group>"; };
 		4D65B47DA8B60BAA96960C5C /* IntentUnderstandingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = IntentUnderstandingService.swift; path = ./ChainlessChain/Features/AI/Services/IntentUnderstandingService.swift; sourceTree = "<group>"; };
 		4EA5678FA815776F8A6EAC2F /* DocumentExportManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DocumentExportManager.swift; path = ./ChainlessChain/Features/Project/Services/DocumentExportManager.swift; sourceTree = "<group>"; };
-		533F7C7F3200356B4250CBDF /* KnowledgeItem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KnowledgeItem.swift; path = ./ChainlessChain/Features/Knowledge/Models/KnowledgeItem.swift; sourceTree = "<group>"; };
 		541484F5325784212A983066 /* ConversationListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ConversationListView.swift; path = ./ChainlessChain/Features/Social/Views/ConversationListView.swift; sourceTree = "<group>"; };
 		68552D4BBFCF392CA5A57433 /* VectorStoreRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VectorStoreRepository.swift; path = ./ChainlessChain/Features/Knowledge/Services/VectorStoreRepository.swift; sourceTree = "<group>"; };
 		6D4C92583A747A6963014DC5 /* PushNotificationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PushNotificationManager.swift; path = ./ChainlessChain/Features/Common/Services/PushNotificationManager.swift; sourceTree = "<group>"; };
@@ -203,30 +201,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXFileReference section */
-		4698B70DA9DAA42728C80F40 /* ToolModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolModels.swift; sourceTree = "<group>"; };
-		F010556B9D5579AEDAE02443 /* ComputerUseTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseTypes.swift; sourceTree = "<group>"; };
-		604927DEBB1CE9C7E9BB85FF /* ComputerUseResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseResult.swift; sourceTree = "<group>"; };
-		D534C42D08C421E09F70DBB8 /* ComputerUseMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseMetrics.swift; sourceTree = "<group>"; };
-		80DC5CE7F486DD929C7A5416 /* AuditLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogger.swift; sourceTree = "<group>"; };
-		1C5DFEE7A4D104052FDCB3BC /* CoordinateAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateAction.swift; sourceTree = "<group>"; };
-		6021060335312387CEFDA78A /* MobileAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAction.swift; sourceTree = "<group>"; };
-		E99D0409733F669F306B67DA /* ElementHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElementHighlighter.swift; sourceTree = "<group>"; };
-		1676C1C99279F8E20784A4C6 /* VisionAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionAction.swift; sourceTree = "<group>"; };
-		E4BE6FE0B59957804C190009 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkInterceptor.swift; sourceTree = "<group>"; };
-		5EAAC03F450F9F493A6AF476 /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
-		4E531C7F06848A6A124A4DCB /* ActionReplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionReplay.swift; sourceTree = "<group>"; };
-		83E917C8DB24EC8A5B9D73B8 /* SafeMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeMode.swift; sourceTree = "<group>"; };
-		793FAAEBDB5A2F025F7B1970 /* TemplateActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateActions.swift; sourceTree = "<group>"; };
-		2821E11BB24B48AEA77D5B13 /* ComputerUseWorkflowEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseWorkflowEngine.swift; sourceTree = "<group>"; };
-		D5892706D86D35FF6E717CAD /* ComputerUseAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseAgent.swift; sourceTree = "<group>"; };
-		8F2C66BC51A62F4495136BEC /* ComputerUseToolRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseToolRegistration.swift; sourceTree = "<group>"; };
-		7802AECA16E2342D34CE8D5F /* ComputerUseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseViewModel.swift; sourceTree = "<group>"; };
-		F679E27F0C6CAF667927C49B /* ComputerUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseView.swift; sourceTree = "<group>"; };
-		863C072E80907BFF0009D75C /* ComputerUseBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseBrowserView.swift; sourceTree = "<group>"; };
-		DCCB001656A6211F34416EA2 /* ComputerUseControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerUseControlPanel.swift; sourceTree = "<group>"; };
-		F1692041F89D208B087B08B3 /* AuditLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogView.swift; sourceTree = "<group>"; };
-		B4B88B9832F862383826B971 /* RecordingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingListView.swift; sourceTree = "<group>"; };
-		0045B7BB0A9130F0BBB618DA /* WorkflowEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowEditorView.swift; sourceTree = "<group>"; };
+		4698B70DA9DAA42728C80F40 /* ToolModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ToolModels.swift; path = ./ChainlessChain/Features/AI/SkillToolSystem/ToolModels.swift; sourceTree = "<group>"; };
+		F010556B9D5579AEDAE02443 /* ComputerUseTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseTypes.swift; path = ./ChainlessChain/Features/ComputerUse/Models/ComputerUseTypes.swift; sourceTree = "<group>"; };
+		604927DEBB1CE9C7E9BB85FF /* ComputerUseResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseResult.swift; path = ./ChainlessChain/Features/ComputerUse/Models/ComputerUseResult.swift; sourceTree = "<group>"; };
+		D534C42D08C421E09F70DBB8 /* ComputerUseMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseMetrics.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ComputerUseMetrics.swift; sourceTree = "<group>"; };
+		80DC5CE7F486DD929C7A5416 /* AuditLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AuditLogger.swift; path = ./ChainlessChain/Features/ComputerUse/Services/AuditLogger.swift; sourceTree = "<group>"; };
+		1C5DFEE7A4D104052FDCB3BC /* CoordinateAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CoordinateAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/CoordinateAction.swift; sourceTree = "<group>"; };
+		6021060335312387CEFDA78A /* MobileAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MobileAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/MobileAction.swift; sourceTree = "<group>"; };
+		E99D0409733F669F306B67DA /* ElementHighlighter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ElementHighlighter.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ElementHighlighter.swift; sourceTree = "<group>"; };
+		1676C1C99279F8E20784A4C6 /* VisionAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VisionAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/VisionAction.swift; sourceTree = "<group>"; };
+		E4BE6FE0B59957804C190009 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkInterceptor.swift; path = ./ChainlessChain/Features/ComputerUse/Services/NetworkInterceptor.swift; sourceTree = "<group>"; };
+		5EAAC03F450F9F493A6AF476 /* ScreenRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScreenRecorder.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ScreenRecorder.swift; sourceTree = "<group>"; };
+		4E531C7F06848A6A124A4DCB /* ActionReplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ActionReplay.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ActionReplay.swift; sourceTree = "<group>"; };
+		83E917C8DB24EC8A5B9D73B8 /* SafeMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SafeMode.swift; path = ./ChainlessChain/Features/ComputerUse/Services/SafeMode.swift; sourceTree = "<group>"; };
+		793FAAEBDB5A2F025F7B1970 /* TemplateActions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TemplateActions.swift; path = ./ChainlessChain/Features/ComputerUse/Services/TemplateActions.swift; sourceTree = "<group>"; };
+		2821E11BB24B48AEA77D5B13 /* ComputerUseWorkflowEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseWorkflowEngine.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ComputerUseWorkflowEngine.swift; sourceTree = "<group>"; };
+		D5892706D86D35FF6E717CAD /* ComputerUseAgent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseAgent.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ComputerUseAgent.swift; sourceTree = "<group>"; };
+		8F2C66BC51A62F4495136BEC /* ComputerUseToolRegistration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseToolRegistration.swift; path = ./ChainlessChain/Features/ComputerUse/Tools/ComputerUseToolRegistration.swift; sourceTree = "<group>"; };
+		7802AECA16E2342D34CE8D5F /* ComputerUseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseViewModel.swift; path = ./ChainlessChain/Features/ComputerUse/ViewModels/ComputerUseViewModel.swift; sourceTree = "<group>"; };
+		F679E27F0C6CAF667927C49B /* ComputerUseView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/ComputerUseView.swift; sourceTree = "<group>"; };
+		863C072E80907BFF0009D75C /* ComputerUseBrowserView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseBrowserView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/ComputerUseBrowserView.swift; sourceTree = "<group>"; };
+		DCCB001656A6211F34416EA2 /* ComputerUseControlPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseControlPanel.swift; path = ./ChainlessChain/Features/ComputerUse/Views/ComputerUseControlPanel.swift; sourceTree = "<group>"; };
+		F1692041F89D208B087B08B3 /* AuditLogView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AuditLogView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/AuditLogView.swift; sourceTree = "<group>"; };
+		B4B88B9832F862383826B971 /* RecordingListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecordingListView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/RecordingListView.swift; sourceTree = "<group>"; };
+		0045B7BB0A9130F0BBB618DA /* WorkflowEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WorkflowEditorView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/WorkflowEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -258,7 +256,6 @@
 		0D8AB12216BFB69CB1135923 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				533F7C7F3200356B4250CBDF /* KnowledgeItem.swift */,
 			);
 			name = Models;
 			sourceTree = "<group>";
@@ -944,7 +941,6 @@
 				07ED6D0BA69E10FCECFC6083 /* PushNotificationManager.swift in Sources */,
 				EB19410DE32A9D5F79CC47B0 /* PerformanceProfiler.swift in Sources */,
 				088E9363943C38724066CC52 /* KnowledgeViewModel.swift in Sources */,
-				901E10F381D4F7C2701787D4 /* KnowledgeItem.swift in Sources */,
 				F1933B823C498574916CA24A /* KnowledgeDetailView.swift in Sources */,
 				BF7E270BF1267F3EC3031F4E /* KnowledgeListView.swift in Sources */,
 				E08D805CD6E18DCA022F31FF /* EmbeddingsService.swift in Sources */,
