@@ -98,6 +98,9 @@ class IntentClassifier {
         "deploy",
         "推送到服务器",
         "发布到",
+        // disambiguating phrases — "打包" 同时在 EXPORT_FILE 出现，靠
+        // length-weighted score 解 tie ("打包生产环境" → DEPLOY 不 EXPORT)
+        "生产环境",
       ],
     };
 

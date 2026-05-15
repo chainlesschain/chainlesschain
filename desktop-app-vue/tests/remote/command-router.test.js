@@ -271,6 +271,9 @@ describe("CommandRouter", () => {
   // Method validation is handled internally by parseMethod() and route()
   // No public isValidMethodFormat() method exists in CommandRouter
 
+  // SKIP: CommandRouter 不暴露 routeBatch() 方法（仅 route() 单请求 + parseMethod
+  // / registerHandler / hasHandler / getStats）。是 future feature 还是显式不做，
+  // 无 roadmap 信号；要 unskip 需先在 command-router.js 实现 routeBatch(requests[])。
   describe.skip("batch routing", () => {
     it("should route multiple commands in batch", async () => {
       const requests = [
@@ -326,6 +329,9 @@ describe("CommandRouter", () => {
     });
   });
 
+  // SKIP: CommandRouter 不暴露 use("pre"|"post", fn) middleware seam。同 batch
+  // routing，未实现的 future feature 或显式不做。要 unskip 需先在 command-router.js
+  // 加 middleware 注册 + route() pre/post hook chain。
   describe.skip("handler middleware", () => {
     it("should apply pre-handler middleware", async () => {
       const preMiddleware = vi.fn(async (request, next) => {

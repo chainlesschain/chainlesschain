@@ -246,13 +246,7 @@ describe("IntentClassifier", () => {
         expect(result.intent).toBe(classifier.INTENTS.DEPLOY_PROJECT);
       });
 
-      it.skip('should classify "打包生产环境" as DEPLOY_PROJECT', async () => {
-        // SKIP: 源代码问题 - "打包"关键词在 EXPORT_FILE 和 DEPLOY_PROJECT 都存在
-        // 由于关键词权重计算，"打包"在EXPORT_FILE中得分更高
-        //
-        // 修复建议: intent-classifier.js
-        // 1. 为不同意图的相同关键词设置不同权重
-        // 2. 或者使用上下文来消歧（如"打包生产环境"应优先DEPLOY_PROJECT）
+      it('should classify "打包生产环境" as DEPLOY_PROJECT', async () => {
         const result = await classifier.classify("打包生产环境");
         expect(result.intent).toBe(classifier.INTENTS.DEPLOY_PROJECT);
       });
