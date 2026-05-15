@@ -564,9 +564,202 @@ export function closeBatch(dir, opts = {}) {
 
 // ─────────────────────────────────────────────────────────────────────
 // v0.2 — Multi-hop envelope (envelope-of-envelope)
+// v0.3 — #21 B.5 Layer 2 PR2: m-of-n multisig provenance on the wrapper
 // ─────────────────────────────────────────────────────────────────────
 
 const SCHEMA_MULTI_HOP_BRIDGE = "mtc-bridge-multihop/v1";
+
+const MULTISIG_PROVENANCE_REQUIRED_FIELDS = Object.freeze([
+  "proposal_id",
+  "threshold_m",
+  "member_count_n",
+  "signers",
+  "partial_sigs",
+]);
+
+const MULTISIG_SUPPORTED_ALGS = Object.freeze(["Ed25519", "SLH-DSA-128F"]);
+
+/**
+ * Attach m-of-n multisig provenance to a bridge envelope (single-hop or
+ * multi-hop wrapper). Returns a new envelope object — does not mutate.
+ *
+ * Provenance carries the proposal id, the m/n policy at consume time, the
+ * sorted-ASC signer DID list, and per-signer {did, alg, sig:hex} entries.
+ * Mirrors the cc_bridges columns introduced in #21 B.5 Layer 2 PR1.
+ *
+ * Layer 3 onchain broadcasters read this field to construct the m-of-n
+ * proof bundle expected by destination-chain verifier contracts.
+ *
+ * @param {object} envelope    - mtc-envelope/v1 or mtc-bridge-multihop/v1
+ * @param {{
+ *   proposalId: string,
+ *   thresholdM: number,
+ *   memberCountN: number,
+ *   signers: string[],
+ *   partialSigs: Array<{did: string, alg: string, sig: string}>,
+ * }} provenance
+ * @returns {object} new envelope with `multisig_provenance` field
+ */
+export function attachMultisigProvenance(envelope, provenance) {
+  if (!envelope || typeof envelope !== "object") {
+    throw new TypeError("attachMultisigProvenance: envelope required");
+  }
+  if (!provenance || typeof provenance !== "object") {
+    throw new TypeError("attachMultisigProvenance: provenance required");
+  }
+  return {
+    ...envelope,
+    multisig_provenance: {
+      proposal_id: provenance.proposalId,
+      threshold_m: provenance.thresholdM,
+      member_count_n: provenance.memberCountN,
+      signers: Array.isArray(provenance.signers) ? [...provenance.signers] : [],
+      partial_sigs: Array.isArray(provenance.partialSigs)
+        ? provenance.partialSigs.map((s) => ({
+            did: s.did,
+            alg: s.alg,
+            sig: s.sig,
+          }))
+        : [],
+    },
+  };
+}
+
+/**
+ * Strip-all-sigs canonical form for a bridge envelope carrying
+ * `multisig_provenance`. Returns a clone with every `partial_sigs[*].sig`
+ * replaced by `""` so producer and verifier can feed an identical byte
+ * sequence into JCS for m-of-n threshold tolerance.
+ *
+ * Mirrors `@chainlesschain/core-mtc/lib/publisher-signing.js
+ * _stripSigsForPublisher` (memory `mtc_publisher_sig_threshold.md`) — both
+ * the publisher_signature on a landmark and a wrapper-level m-of-n proof
+ * need the same canonical-skeleton-without-sigs invariant.
+ *
+ * Reused by PR3 verifier when checking each partial sig against the
+ * canonical wrapper bytes.
+ *
+ * @param {object} envelope - envelope with `multisig_provenance`
+ * @returns {object} clone with sigs zeroed; same envelope returned when no
+ *                   provenance is attached
+ */
+export function stripMultisigSigsForCanonical(envelope) {
+  if (!envelope || !envelope.multisig_provenance) return envelope;
+  return {
+    ...envelope,
+    multisig_provenance: {
+      ...envelope.multisig_provenance,
+      partial_sigs: (envelope.multisig_provenance.partial_sigs || []).map(
+        (s) => ({ ...s, sig: "" }),
+      ),
+    },
+  };
+}
+
+/**
+ * Structural validation of multisig_provenance on a bridge envelope.
+ * Does NOT verify cryptographic signatures (deferred to PR3 — would need
+ * the proposal's payload JCS + member pubkey lookup). Confirms:
+ *   - provenance is present and well-formed
+ *   - partial_sigs.length >= threshold_m
+ *   - every signer DID is in the policy.members allow-list (when supplied)
+ *   - every partial_sig has a supported alg + non-empty hex sig
+ *   - signer list is sorted ASC (canonical form invariant)
+ *
+ * @param {object} envelope - envelope with `multisig_provenance` to check
+ * @param {{ m: number, members?: Array<{did:string}> }} [policy] - optional
+ *   policy spec; when present, signer-membership and threshold are checked
+ *   against it instead of provenance's own `threshold_m` field
+ * @returns {{ ok: boolean, code?: string, detail?: string }}
+ */
+export function verifyMultisigProvenance(envelope, policy) {
+  if (!envelope || typeof envelope !== "object") {
+    return { ok: false, code: "BAD_ENVELOPE" };
+  }
+  const prov = envelope.multisig_provenance;
+  if (!prov || typeof prov !== "object") {
+    return { ok: false, code: "MISSING_PROVENANCE" };
+  }
+  for (const f of MULTISIG_PROVENANCE_REQUIRED_FIELDS) {
+    if (prov[f] === undefined || prov[f] === null) {
+      return { ok: false, code: "INCOMPLETE_PROVENANCE", detail: f };
+    }
+  }
+  if (typeof prov.proposal_id !== "string" || !prov.proposal_id) {
+    return { ok: false, code: "BAD_PROPOSAL_ID" };
+  }
+  if (
+    !Number.isInteger(prov.threshold_m) ||
+    prov.threshold_m < 1 ||
+    !Number.isInteger(prov.member_count_n) ||
+    prov.member_count_n < prov.threshold_m
+  ) {
+    return { ok: false, code: "BAD_THRESHOLD" };
+  }
+  if (!Array.isArray(prov.signers) || !Array.isArray(prov.partial_sigs)) {
+    return { ok: false, code: "BAD_PROVENANCE_SHAPE" };
+  }
+  if (prov.signers.length !== prov.partial_sigs.length) {
+    return { ok: false, code: "SIGNERS_SIGS_LENGTH_MISMATCH" };
+  }
+  const requiredM =
+    policy && Number.isInteger(policy.m) ? policy.m : prov.threshold_m;
+  if (prov.partial_sigs.length < requiredM) {
+    return {
+      ok: false,
+      code: "BELOW_THRESHOLD",
+      detail: `${prov.partial_sigs.length} < ${requiredM}`,
+    };
+  }
+  const sorted = [...prov.signers].sort();
+  for (let i = 0; i < prov.signers.length; i++) {
+    if (prov.signers[i] !== sorted[i]) {
+      return { ok: false, code: "SIGNERS_NOT_SORTED" };
+    }
+  }
+  const allowed =
+    policy && Array.isArray(policy.members)
+      ? new Set(policy.members.map((m) => m.did))
+      : null;
+  for (let i = 0; i < prov.partial_sigs.length; i++) {
+    const s = prov.partial_sigs[i];
+    if (!s || typeof s !== "object") {
+      return { ok: false, code: "BAD_PARTIAL_SIG", detail: `index ${i}` };
+    }
+    if (typeof s.did !== "string" || !s.did) {
+      return { ok: false, code: "BAD_PARTIAL_SIG_DID", detail: `index ${i}` };
+    }
+    if (s.did !== prov.signers[i]) {
+      return {
+        ok: false,
+        code: "SIGNER_DID_MISMATCH",
+        detail: `signers[${i}]=${prov.signers[i]} vs partial_sigs[${i}].did=${s.did}`,
+      };
+    }
+    if (!MULTISIG_SUPPORTED_ALGS.includes(s.alg)) {
+      return {
+        ok: false,
+        code: "UNSUPPORTED_ALG",
+        detail: `index ${i} alg=${s.alg}`,
+      };
+    }
+    if (typeof s.sig !== "string" || !/^[0-9a-fA-F]+$/.test(s.sig) || !s.sig) {
+      return {
+        ok: false,
+        code: "BAD_PARTIAL_SIG_HEX",
+        detail: `index ${i}`,
+      };
+    }
+    if (allowed && !allowed.has(s.did)) {
+      return {
+        ok: false,
+        code: "SIGNER_NOT_IN_POLICY",
+        detail: s.did,
+      };
+    }
+  }
+  return { ok: true };
+}
 
 /**
  * Build a multi-hop bridge envelope by chaining single-hop envelopes.
@@ -579,9 +772,23 @@ const SCHEMA_MULTI_HOP_BRIDGE = "mtc-bridge-multihop/v1";
  *
  * @param {Array<object>} legEnvelopes - ≥ 2 single-hop bridge envelopes
  * @param {{ route_id?: string, total_amount?: string, asset?: string }} [meta]
+ * @param {{
+ *   proposalId: string,
+ *   thresholdM: number,
+ *   memberCountN: number,
+ *   signers: string[],
+ *   partialSigs: Array<{did:string,alg:string,sig:string}>,
+ * }} [multisigProvenance] - #21 B.5 Layer 2 PR2: optional m-of-n provenance
+ *   carried over from a multisig-gated bridge consume. Attached via
+ *   `attachMultisigProvenance` so canonical form (strip-all-sigs JCS) and
+ *   verifier path (`verifyMultisigProvenance`) work uniformly.
  * @returns {object} multi-hop wrapper envelope
  */
-export function buildMultiHopBridgeEnvelope(legEnvelopes, meta = {}) {
+export function buildMultiHopBridgeEnvelope(
+  legEnvelopes,
+  meta = {},
+  multisigProvenance = null,
+) {
   if (!Array.isArray(legEnvelopes) || legEnvelopes.length < 2) {
     throw new RangeError(
       "buildMultiHopBridgeEnvelope: need at least 2 leg envelopes",
@@ -616,7 +823,7 @@ export function buildMultiHopBridgeEnvelope(legEnvelopes, meta = {}) {
     legEnvelopes[0].leaf.src_chain,
     ...legEnvelopes.map((e) => e.leaf.dst_chain),
   ];
-  return {
+  const wrapper = {
     schema: SCHEMA_MULTI_HOP_BRIDGE,
     route_id:
       meta.route_id ||
@@ -629,6 +836,10 @@ export function buildMultiHopBridgeEnvelope(legEnvelopes, meta = {}) {
     asset: meta.asset || null,
     issued_at: new Date().toISOString(),
   };
+  if (multisigProvenance) {
+    return attachMultisigProvenance(wrapper, multisigProvenance);
+  }
+  return wrapper;
 }
 
 /**

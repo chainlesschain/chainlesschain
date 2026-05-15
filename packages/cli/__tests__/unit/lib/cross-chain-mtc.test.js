@@ -26,6 +26,9 @@ import {
   closeBatch,
   buildMultiHopBridgeEnvelope,
   verifyMultiHopBridgeEnvelope,
+  attachMultisigProvenance,
+  stripMultisigSigsForCanonical,
+  verifyMultisigProvenance,
   shouldCloseBatchGasAware,
   getBridgeMtcSlaMetrics,
   _internal,
@@ -787,6 +790,257 @@ describe("cross-chain-mtc lib", () => {
       ]);
       expect(r.ok).toBe(false);
       expect(r.code).toBe("LEG_CACHE_COUNT_MISMATCH");
+    });
+  });
+
+  // ─── v0.3 #21 B.5 Layer 2 PR2 — multisig provenance ──────────
+
+  describe("attachMultisigProvenance + verifyMultisigProvenance", () => {
+    const baseProvenance = {
+      proposalId: "msp_test_1",
+      thresholdM: 2,
+      memberCountN: 3,
+      // signers MUST be sorted ASC for canonical form check.
+      signers: ["did:cc:a", "did:cc:b"],
+      partialSigs: [
+        { did: "did:cc:a", alg: "Ed25519", sig: "deadbeef01" },
+        { did: "did:cc:b", alg: "Ed25519", sig: "deadbeef02" },
+      ],
+    };
+
+    function makeWrapper(extraLegs) {
+      const keys = ed25519.generateKeyPair();
+      const mk = (src, dst, seq) => {
+        const op = {
+          bridge_op: "lock",
+          src_chain: src,
+          dst_chain: dst,
+          src_tx_hash: `0x${src}-${dst}-${seq}`,
+          amount: "100",
+          asset: "USDC",
+          issued_at: new Date().toISOString(),
+        };
+        return assembleBridgeBatch([op], keys, {
+          src_chain: src,
+          dst_chain: dst,
+          batch_seq: seq,
+          issuer: "mtca:cc:test",
+        }).envelopes[0];
+      };
+      return buildMultiHopBridgeEnvelope(
+        [mk("ethereum", "polygon", 1), mk("polygon", "arbitrum", 1)],
+        { total_amount: "100", asset: "USDC" },
+        extraLegs ? baseProvenance : null,
+      );
+    }
+
+    it("buildMultiHopBridgeEnvelope without provenance leaves field absent", () => {
+      const w = makeWrapper(false);
+      expect(w.multisig_provenance).toBeUndefined();
+    });
+
+    it("buildMultiHopBridgeEnvelope with provenance attaches sorted shape", () => {
+      const w = makeWrapper(true);
+      expect(w.multisig_provenance).toBeDefined();
+      expect(w.multisig_provenance.proposal_id).toBe("msp_test_1");
+      expect(w.multisig_provenance.threshold_m).toBe(2);
+      expect(w.multisig_provenance.member_count_n).toBe(3);
+      expect(w.multisig_provenance.signers).toEqual(["did:cc:a", "did:cc:b"]);
+      expect(w.multisig_provenance.partial_sigs).toHaveLength(2);
+      expect(w.multisig_provenance.partial_sigs[0]).toEqual({
+        did: "did:cc:a",
+        alg: "Ed25519",
+        sig: "deadbeef01",
+      });
+    });
+
+    it("attachMultisigProvenance does not mutate the input envelope", () => {
+      const w = makeWrapper(false);
+      const before = JSON.stringify(w);
+      const attached = attachMultisigProvenance(w, baseProvenance);
+      expect(JSON.stringify(w)).toBe(before);
+      expect(attached.multisig_provenance).toBeDefined();
+    });
+
+    it("attachMultisigProvenance copies sig array — caller mutation does not leak", () => {
+      const env = {};
+      const sigs = [
+        { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+        { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+      ];
+      const attached = attachMultisigProvenance(env, {
+        ...baseProvenance,
+        partialSigs: sigs,
+      });
+      sigs[0].sig = "ZZZZ_TAMPER";
+      expect(attached.multisig_provenance.partial_sigs[0].sig).toBe("aa");
+    });
+
+    it("stripMultisigSigsForCanonical zeros sig bytes only (preserves did/alg)", () => {
+      const w = makeWrapper(true);
+      const stripped = stripMultisigSigsForCanonical(w);
+      expect(stripped.multisig_provenance.partial_sigs).toEqual([
+        { did: "did:cc:a", alg: "Ed25519", sig: "" },
+        { did: "did:cc:b", alg: "Ed25519", sig: "" },
+      ]);
+      // Original wrapper unchanged.
+      expect(w.multisig_provenance.partial_sigs[0].sig).toBe("deadbeef01");
+    });
+
+    it("stripMultisigSigsForCanonical returns same envelope when no provenance", () => {
+      const w = makeWrapper(false);
+      expect(stripMultisigSigsForCanonical(w)).toBe(w);
+    });
+
+    it("verifyMultisigProvenance happy path returns ok", () => {
+      const w = makeWrapper(true);
+      const r = verifyMultisigProvenance(w);
+      expect(r.ok).toBe(true);
+    });
+
+    it("verifyMultisigProvenance rejects when provenance absent", () => {
+      const w = makeWrapper(false);
+      expect(verifyMultisigProvenance(w)).toMatchObject({
+        ok: false,
+        code: "MISSING_PROVENANCE",
+      });
+    });
+
+    it("verifyMultisigProvenance rejects below threshold (override via policy.m)", () => {
+      const w = makeWrapper(true);
+      const r = verifyMultisigProvenance(w, { m: 3 });
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("BELOW_THRESHOLD");
+      expect(r.detail).toBe("2 < 3");
+    });
+
+    it("verifyMultisigProvenance rejects signer not in policy.members", () => {
+      const w = makeWrapper(true);
+      const r = verifyMultisigProvenance(w, {
+        m: 2,
+        members: [{ did: "did:cc:a" }, { did: "did:cc:OTHER" }],
+      });
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("SIGNER_NOT_IN_POLICY");
+      expect(r.detail).toBe("did:cc:b");
+    });
+
+    it("verifyMultisigProvenance accepts when policy.members covers all signers", () => {
+      const w = makeWrapper(true);
+      const r = verifyMultisigProvenance(w, {
+        m: 2,
+        members: [
+          { did: "did:cc:a" },
+          { did: "did:cc:b" },
+          { did: "did:cc:c" },
+        ],
+      });
+      expect(r.ok).toBe(true);
+    });
+
+    it("verifyMultisigProvenance rejects unsorted signers", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        signers: ["did:cc:b", "did:cc:a"], // reversed
+        partialSigs: [
+          { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+          { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+        ],
+      });
+      expect(verifyMultisigProvenance(tampered)).toMatchObject({
+        ok: false,
+        code: "SIGNERS_NOT_SORTED",
+      });
+    });
+
+    it("verifyMultisigProvenance rejects mismatched signer/sig DIDs at same index", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        partialSigs: [
+          { did: "did:cc:ZZZ", alg: "Ed25519", sig: "aa" }, // index 0 mismatch
+          { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+        ],
+      });
+      const r = verifyMultisigProvenance(tampered);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("SIGNER_DID_MISMATCH");
+    });
+
+    it("verifyMultisigProvenance rejects unsupported alg", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        partialSigs: [
+          { did: "did:cc:a", alg: "RSA-512", sig: "aa" },
+          { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+        ],
+      });
+      expect(verifyMultisigProvenance(tampered)).toMatchObject({
+        ok: false,
+        code: "UNSUPPORTED_ALG",
+      });
+    });
+
+    it("verifyMultisigProvenance accepts SLH-DSA-128F alg (PQC hybrid)", () => {
+      const w = makeWrapper(false);
+      const hybrid = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        partialSigs: [
+          { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+          { did: "did:cc:b", alg: "SLH-DSA-128F", sig: "bb" },
+        ],
+      });
+      expect(verifyMultisigProvenance(hybrid).ok).toBe(true);
+    });
+
+    it("verifyMultisigProvenance rejects non-hex sig", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        partialSigs: [
+          { did: "did:cc:a", alg: "Ed25519", sig: "not_hex_!!" },
+          { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+        ],
+      });
+      expect(verifyMultisigProvenance(tampered)).toMatchObject({
+        ok: false,
+        code: "BAD_PARTIAL_SIG_HEX",
+      });
+    });
+
+    it("verifyMultisigProvenance rejects threshold_m > member_count_n", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        thresholdM: 5,
+        memberCountN: 3,
+      });
+      expect(verifyMultisigProvenance(tampered)).toMatchObject({
+        ok: false,
+        code: "BAD_THRESHOLD",
+      });
+    });
+
+    it("verifyMultisigProvenance rejects signers/sigs length mismatch", () => {
+      const w = makeWrapper(false);
+      const tampered = attachMultisigProvenance(w, {
+        ...baseProvenance,
+        signers: ["did:cc:a", "did:cc:b", "did:cc:c"], // 3 signers
+        partialSigs: baseProvenance.partialSigs, // 2 sigs
+      });
+      expect(verifyMultisigProvenance(tampered)).toMatchObject({
+        ok: false,
+        code: "SIGNERS_SIGS_LENGTH_MISMATCH",
+      });
+    });
+
+    it("stripMultisigSigsForCanonical output is deterministic — verifier and producer agree", () => {
+      const w = makeWrapper(true);
+      const a = stripMultisigSigsForCanonical(w);
+      const b = stripMultisigSigsForCanonical(w);
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     });
   });
 
