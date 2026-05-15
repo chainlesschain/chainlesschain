@@ -90,19 +90,41 @@ DEPLOYS = [
     # docs-site/docs/index.md tagline .49 → .50 + 加 Plan C 摘要;
     # docs-website-v2/src/pages/{index,en/index}.astro 顶一张 v5.0.3.50 卡 (中英对照);
     # 设计文档同步 docs-site/docs/design/ + docs-site-design/docs/ (147 files synced).
+    # 2026-05-15 v5.0.3.55 滚动更新 (3 站全刷):
+    # (1) iOS Phase 1+2+3+4 完整移植 (commits c30b415a8 → 5877b5d84): 桌面配对三流 +
+    #     远程终端 + 远程操控 framework + 4 typed skill + Notification skill。~313 单测
+    #     across 26+ suites / 4 设计文档 / 4 trap memory。镜像 Android 已 Xiaomi 真机
+    #     E2E 验证版，UI 信息架构 1:1。剩 Phase 1.7 / 2.7 / 3.7 / 4.7 真机 E2E 移交用户。
+    # (2) #21 P1 主体 5/5 全闭环: A.1 Linux native 配对 (cc pair preflight + cc pair
+    #     token 子命令组 + systemd hardening 模板 + docs/linux/PAIRING.md 9 段指南) +
+    #     A.2 三端 UI consistency 设计文档 v0.1 + B.1 web-shell 私钥签字 UI + B.5 跨链桥
+    #     m-of-n 多签 Layer 1+2 + C.1 wear→phone voice forward。~270 单测。
+    # (3) CLI 0.161.12 → 0.162.0 minor: cc pair preflight + cc pair token 子命令组。
+    # (4) Continuation 泄漏 P0 修 — RemoteCommandClient.invoke + waitForAnswer。
+    # 改动: 根 CHANGELOG.md + docs-site/docs/changelog.md [Unreleased] → [v5.0.3.55]
+    # rename; docs-site/docs/index.md + docs-site-design/docs/index.md tagline v54 → v55
+    # + CLI 0.161.12 → 0.162.0 + Android 5.0.3.54 → 5.0.3.55 (versionCode 503054 → 503055);
+    # docs-site/docs/chainlesschain/overview.md 当前版本块同步; docs-website-v2/src/pages/
+    # {index,en/index}.astro highlights 顶一张 v5.0.3.55 iOS Phase 1-4 + #21 P1 5/5 卡
+    # (中英对照, results-only per feedback_official_site_results_only.md); mobile.astro
+    # chip "#21 P1 主体 5/5 unreleased" → "v5.0.3.55"; release-sizes.json 自动 refresh
+    # 到 v5.0.3.55 (GitHub Release published 2026-05-15T10:44:06Z, 18 assets: 8 desktop +
+    # 4 Android + iOS placeholder + 3 latest.yml + 3 blockmap)。fix iOS Phase 2/3/4 设计
+    # 文档 prose 中 unescaped <code>/<commit>/<source> 致 VitePress build fail (Vue 把
+    # <code> 当 HTML start tag)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.54-20260514-2303.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.55-20260515-212515.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.54-20260514-2303.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.55-20260515-212515.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.54-20260514-2303.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.55-20260515-212515.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]

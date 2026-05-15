@@ -454,7 +454,7 @@ Phase 2 `TerminalRpcClientTests` 通过 closures inject sender/inbound 测试 in
 
 Android `SeedRegistry.kt` 393 LOC 是手写 23 个 SkillMetadata literals；iOS port 同样手写 23 个 + UnitTest 对照 Android 文件做 namespace + displayName + risk 字段一致性检查。
 
-**修法**：写 iOS SeedRegistry 时**严格逐行对照 Android 文件**，commit msg 标 "mirrors android-app/.../SeedRegistry.kt @<commit>"。Phase 3.1 单测加 `testSeedHasAllAndroidNamespaces` 写死预期 23 namespaces 列表。
+**修法**：写 iOS SeedRegistry 时**严格逐行对照 Android 文件**，commit msg 标 `mirrors android-app/.../SeedRegistry.kt @<commit>`。Phase 3.1 单测加 `testSeedHasAllAndroidNamespaces` 写死预期 23 namespaces 列表。
 
 ### 7.3 OfflineCommandQueue UserDefaults 大 list 性能
 

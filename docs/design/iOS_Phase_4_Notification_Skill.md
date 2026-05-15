@@ -400,7 +400,7 @@ key = notificationId（Android 端服务器生成 UUID），相同 id 30s 内重
 
 **Risk**：直接调 scheduleSystemNotification 可能与既有 categoryIdentifier / threadIdentifier 冲突。
 
-**Fix**：Phase 4.2 实施时在 PushManager 加一个 method `scheduleRemoteNotification(notificationId: String, title: String, body: String, priority: NotificationPriority)`（~30 LOC），用独立的 categoryIdentifier `REMOTE_NOTIFICATION` 避免与既有冲突，threadIdentifier = "remote.<source>"（pc 通知统一一组）。
+**Fix**：Phase 4.2 实施时在 PushManager 加一个 method `scheduleRemoteNotification(notificationId: String, title: String, body: String, priority: NotificationPriority)`（~30 LOC），用独立的 categoryIdentifier `REMOTE_NOTIFICATION` 避免与既有冲突，threadIdentifier = `"remote.<source>"`（pc 通知统一一组）。
 
 ### 7.2 quiet hours 双重判断
 

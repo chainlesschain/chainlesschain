@@ -550,7 +550,7 @@ actor isolation 已天然串行化 — 内部数据结构无需 NSLock。Android
 - **多 session 并发管理 UI**（Android v0.1 也是单 session）→ Phase 2 v0.2 hardening
 - **session 持久化（杀 app 后恢复）** → 桌面 PtyManager 30min idle 自然 GC，iOS UI Phase 2 不做恢复
 - **iOS WatchOS 远程终端入口** → 不在路线图
-- **Desktop pair-code:<code> 别名扩展（multiple devices via same alias）** → 单设备模式足够；Android 也单设备
+- **Desktop `pair-code:<code>` 别名扩展（multiple devices via same alias）** → 单设备模式足够；Android 也单设备
 
 ---
 
