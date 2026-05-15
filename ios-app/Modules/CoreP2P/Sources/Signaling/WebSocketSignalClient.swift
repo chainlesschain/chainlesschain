@@ -33,6 +33,10 @@ public actor WebSocketSignalClient: SignalClient {
 
     private var explicitlyClosed = false
 
+    // Phase 2.4 — 多订阅 forwardedMessages stream（与 Android Trap 1 防御对齐）
+    private let forwardedContinuation: AsyncStream<String>.Continuation
+    public nonisolated let forwardedMessages: AsyncStream<String>
+
     public init(
         signalingConfig: SignalingConfig,
         messageBus: PairingMessageBus,
@@ -45,6 +49,10 @@ public actor WebSocketSignalClient: SignalClient {
         self.transportFactory = transportFactory
         self.backoff = backoff
         self.pingIntervalSeconds = pingIntervalSeconds
+
+        var fwdLocal: AsyncStream<String>.Continuation!
+        self.forwardedMessages = AsyncStream(bufferingPolicy: .bufferingNewest(64)) { c in fwdLocal = c }
+        self.forwardedContinuation = fwdLocal
     }
 
     // MARK: SignalClient
@@ -190,12 +198,17 @@ public actor WebSocketSignalClient: SignalClient {
             // ack 类型，无需上层动作
             break
         case "message":
-            // 检查 payload 是不是 pairing:confirmation；是则路由到 messageBus
+            // Phase 2.4: 所有 type=message forwarded raw 都 yield 到 forwardedMessages
+            // 多订阅流，让 RemoteWebRTCClient（answer/ICE）+ TerminalRpcClient
+            // (chainlesschain:*) 各自 collect 关心的子集。
+            forwardedContinuation.yield(text)
+
+            // Phase 1 backwards-compat：pairing:confirmation 仍同时投到 PairingMessageBus
+            // —— DesktopPairingViewModel + ManualPairingViewModel 已订阅那里。
             guard let payload = json["payload"] as? [String: Any] else { return }
             if payload["type"] as? String == "pairing:confirmation" {
                 routePairingConfirmation(payload: payload)
             }
-            // 非 pairing payload：Phase 1 不处理（Phase 2+ 远程终端会扩展为多订阅）
         case "peer-offline", "error", "peer-status", "offline-message":
             // Phase 1 不处理；保留 type 走 default 不让 noisy log
             break

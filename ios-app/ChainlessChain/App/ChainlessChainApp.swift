@@ -9,12 +9,17 @@ struct ChainlessChainApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState.shared
     @StateObject private var authViewModel = AuthViewModel()
-    @StateObject private var pairingDeps = PairingDependencies(
-        currentDIDProvider: { AppState.shared.currentDID }
-    )
+    @StateObject private var pairingDeps: PairingDependencies
+    // Phase 2.4 — 远程终端 deps，依赖同一份 pairingDeps 实例
+    @StateObject private var remoteDeps: RemoteDependencies
 
     init() {
         setupApp()
+        // @StateObject wrappedValue 闭包在视图首次创建时执行；同步 init 确保
+        // remoteDeps 用同一份 pairingDeps 实例（避免两份 SignalClient + 两条 WS）
+        let deps = PairingDependencies(currentDIDProvider: { AppState.shared.currentDID })
+        _pairingDeps = StateObject(wrappedValue: deps)
+        _remoteDeps = StateObject(wrappedValue: RemoteDependencies(pairingDeps: deps))
     }
 
     var body: some Scene {
@@ -23,6 +28,7 @@ struct ChainlessChainApp: App {
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
                 .environmentObject(pairingDeps)
+                .environmentObject(remoteDeps)
                 .onAppear {
                     handleAppLaunch()
                 }

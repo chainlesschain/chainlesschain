@@ -26,15 +26,20 @@ struct PairedDevicesListView: View {
                 List {
                     Section {
                         ForEach(devices) { device in
-                            DeviceRow(device: device)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        deviceToRemove = device
-                                        showRemoveAlert = true
-                                    } label: {
-                                        Label("解除配对", systemImage: "trash")
-                                    }
+                            // Phase 2.4: tap row → 进入远程终端列表 (TerminalListView)
+                            NavigationLink {
+                                TerminalListView(pcPeerId: device.pcPeerId, deviceName: device.deviceName)
+                            } label: {
+                                DeviceRow(device: device)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    deviceToRemove = device
+                                    showRemoveAlert = true
+                                } label: {
+                                    Label("解除配对", systemImage: "trash")
                                 }
+                            }
                         }
                     } header: {
                         Text("\(devices.count) 台桌面已配对")

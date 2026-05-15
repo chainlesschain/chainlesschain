@@ -159,6 +159,21 @@ actor FakeSignalClient: SignalClient {
     private(set) var registerCalls: [RegisterCall] = []
     private(set) var sentForwardedMessages: [ForwardedCall] = []
 
+    // Phase 2.4 — SignalClient.forwardedMessages 多订阅流；fake 让测试可手动 emit
+    nonisolated let forwardedMessages: AsyncStream<String>
+    private nonisolated let forwardedContinuation: AsyncStream<String>.Continuation
+
+    init() {
+        var local: AsyncStream<String>.Continuation!
+        self.forwardedMessages = AsyncStream(bufferingPolicy: .bufferingNewest(64)) { c in local = c }
+        self.forwardedContinuation = local
+    }
+
+    /// 测试触发：模拟 server 发来一条 forwarded message。
+    nonisolated func simulateForwarded(_ raw: String) {
+        forwardedContinuation.yield(raw)
+    }
+
     private var connectErrorToThrow: Error?
     private var registerErrorToThrow: Error?
     private var sendErrorToThrow: Error?

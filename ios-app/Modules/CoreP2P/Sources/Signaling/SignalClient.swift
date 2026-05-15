@@ -22,4 +22,20 @@ public protocol SignalClient: AnyObject, Sendable {
     /// 经 signaling server forward 一条消息到 toPeerId。
     /// payload 必须能 JSON-encode（[String: Any] 或 NSDictionary 兼容）。
     func sendForwardedMessage(toPeerId: String, payload: [String: Any]) async throws
+
+    /// **所有** 入站 type=message forwarded 帧的 raw JSON string —
+    /// Phase 2.4 加的多订阅入口（与 Android `SignalClient.forwardedMessages:
+    /// SharedFlow<String>` 对齐）。
+    ///
+    /// **scope**：`{type:"message", from, payload, timestamp}` 形态的所有
+    /// inbound 都 emit 到此流。订阅者按 `payload.type` 自分发：
+    /// - Phase 2.4 `RemoteDependencies` 路由 `answer/ice-candidate/
+    ///   chainlesschain:*` 给 `RemoteWebRTCClient.handle*`
+    /// - Phase 1 pairing flow 仍通过 [PairingMessageBus] 收 `pairing:confirmation`
+    ///   （WebSocketSignalClient 内部既 emit 到 messageBus 也 yield 到本流，
+    ///   两条路径并存，订阅者只听自己关心的）
+    ///
+    /// **注**：与 Android Trap 1（setOnForwardedMessageReceived 单 listener
+    /// 后写覆盖前写）防御 — iOS 从一开始就用 AsyncStream 多订阅。
+    var forwardedMessages: AsyncStream<String> { get }
 }
