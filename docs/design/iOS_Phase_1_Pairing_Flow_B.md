@@ -1,9 +1,10 @@
 # iOS Phase 1 — Mobile↔Desktop Pairing (Flow B 主, Flow A + 手输 code 同期落地)
 
-> 状态：草案 / 等评审
+> **状态**：Phase 1.1-1.6 落地（commit `c30b415a8`，2026-05-15）— Flow A + Flow B + 手输 code 三流齐落 + 持久化 + 已配对列表 live 订阅 + DI 完整接通；71 unit tests across 7 suites。**未跑**：1.7 真机 E2E（Mac+iPhone 在场再做）+ 1.8 收口（含本 doc + memory `ios_qr_pairing_three_flows.md`）+ 桌面 follow-up（§6.5 修订版的 `pairing-code:<code>` 别名 register，~30 LOC additive）。
+>
 > 对齐版本：Android v1.1 W3.7 (commit `c47cbc649`，2026-05-12 真机 E2E 通过)
 > 桌面版本：v5.0.3.54+
-> 关联文档：`docs/design/Android_W3_Pairing_E2E.md`、memory `desktop_qr_pairing_flow_b.md` / `desktop_qr_pairing_flow_a.md`
+> 关联文档：`docs/design/Android_W3_Pairing_E2E.md`、memory `desktop_qr_pairing_flow_b.md` / `desktop_qr_pairing_flow_a.md` / `ios_qr_pairing_three_flows.md`（实施 traps）
 
 ---
 
