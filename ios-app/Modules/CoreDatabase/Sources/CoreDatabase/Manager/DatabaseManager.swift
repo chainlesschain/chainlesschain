@@ -352,8 +352,10 @@ public class DatabaseManager {
         switch version {
         case 1:
             try migration_v1()
-        case 2:
-            try migration_v2()
+        // case 2 → migration_v2() lives in Sources/CoreDatabase/Migrations/
+        // BlockchainMigration.swift which is currently excluded from compile
+        // (Package.swift exclude: [...]). Re-enable when Migrations folder
+        // dependencies are implemented.
         default:
             break
         }
