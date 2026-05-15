@@ -15,10 +15,10 @@ let package = Package(
             name: "CoreSecurity",
             targets: ["CoreSecurity"]
         ),
-        // CoreDatabase 暂移除 — 依赖 sqlcipher/sqlcipher repo 但该 repo
-        // 是 C 库，根目录无 Package.swift，SPM 无法 resolve。
-        // 待替换为有 SPM 支持的 SQLCipher fork 后恢复。Modules/CoreDatabase/
-        // 源文件保留，不删。
+        .library(
+            name: "CoreDatabase",
+            targets: ["CoreDatabase"]
+        ),
         .library(
             name: "CoreDID",
             targets: ["CoreDID"]
@@ -81,7 +81,18 @@ let package = Package(
             path: "Modules/CoreSecurity"
         ),
 
-        // CoreDatabase target removed (sqlcipher dep unavailable via SPM).
+        .target(
+            name: "CoreDatabase",
+            dependencies: [
+                "CoreCommon",
+                "CoreSecurity"
+                // sqlcipher dep removed in iter 11 (commit 27bc06a91) — was a
+                // false-positive concern: grep -r 'import SQLCipher\|sqlcipher_'
+                // 在 CoreDatabase/Sources/ 0 命中。CoreDatabase 实际只用 Apple
+                // 内置 SQLite3 framework，不需要 sqlcipher SPM dep。
+            ],
+            path: "Modules/CoreDatabase"
+        ),
 
         .target(
             name: "CoreDID",
@@ -132,7 +143,11 @@ let package = Package(
             path: "Tests/CoreSecurityTests"
         ),
 
-        // CoreDatabaseTests removed alongside CoreDatabase target.
+        .testTarget(
+            name: "CoreDatabaseTests",
+            dependencies: ["CoreDatabase"],
+            path: "Tests/CoreDatabaseTests"
+        ),
 
         .testTarget(
             name: "CoreDIDTests",

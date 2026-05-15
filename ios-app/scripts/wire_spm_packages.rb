@@ -14,7 +14,7 @@ require 'xcodeproj'
 
 PROJECT_PATH = 'ChainlessChain.xcodeproj'
 APP_TARGET   = 'ChainlessChain'
-PRODUCTS     = %w[CoreCommon CoreSecurity CoreDID CoreE2EE CoreP2P].freeze
+PRODUCTS     = %w[CoreCommon CoreSecurity CoreDatabase CoreDID CoreE2EE CoreP2P].freeze
 
 abort "❌ Package.swift not found at #{Dir.pwd}/Package.swift — run from ios-app/" unless File.exist?('Package.swift')
 abort "❌ #{PROJECT_PATH} not found — run from ios-app/" unless File.exist?(PROJECT_PATH)
