@@ -3,7 +3,7 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [Unreleased] - 2026-05-15 — Android GA 后续 scope #21 P1 主体 5/5 全闭环
+## [v5.0.3.55] - 2026-05-15 — Android GA 后续 #21 P1 主体 5/5 + iOS Phase 1+2+3+4 完整移植
 
 > 桌面 Android v1.0 GA (`v5.0.3.53`) 上架后，issue #21 P1 主体 5 项一日内全部 land — A.1+A.2+B.1+B.5+C.1 闭环，~270 单测 + 5 设计文档 + Linux 用户配对指南。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。
 
@@ -53,7 +53,7 @@ issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设
 
 ---
 
-## [Unreleased] - 2026-05-15 — iOS Phase 1+2+3 完整移植 + 2 P0 修
+## [v5.0.3.55] - 2026-05-15 (cont) — iOS Phase 1+2+3+4 完整移植 + 2 P0 修
 
 > Android v1.0 GA 验证后启动 iOS 镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。
 

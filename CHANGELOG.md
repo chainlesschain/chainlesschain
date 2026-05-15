@@ -5,7 +5,7 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-05-15 — iOS Phase 1+2+3 完整移植 + 2 P0 修
+## [v5.0.3.55] - 2026-05-15 — iOS Phase 1+2+3+4 完整移植 + 2 P0 修
 
 > Android v1.0 GA 验证后，iOS 端启动镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。代码 review 后期修两处 continuation 泄漏 P0。
 
