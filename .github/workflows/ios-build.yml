@@ -60,12 +60,32 @@ jobs:
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
+
+      - name: Pick iOS simulator for tests
+        id: pick-sim
+        shell: bash
+        run: |
+          SIM_ID=$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[]
+             | select(.key | test("iOS"))
+             | .value[]
+             | select(.name | startswith("iPhone"))
+            ] | (max_by(.name) // empty) | .udid // empty')
+          if [ -z "$SIM_ID" ]; then
+            echo "::error::No iPhone simulator available on runner"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          SIM_NAME=$(xcrun simctl list devices available -j | jq -r --arg id "$SIM_ID" '
+            [.devices | to_entries[] | .value[] | select(.udid == $id)][0].name')
+          echo "Picked simulator: $SIM_NAME ($SIM_ID)"
+          echo "sim_id=$SIM_ID" >> "$GITHUB_OUTPUT"
 
       - name: Run Unit Tests
         working-directory: ios-app
@@ -75,7 +95,7 @@ jobs:
           xcodebuild test \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
+            -destination "platform=iOS Simulator,id=${{ steps.pick-sim.outputs.sim_id }}" \
             -derivedDataPath build/DerivedData \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
