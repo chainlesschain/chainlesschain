@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -25,6 +26,7 @@ import kotlin.test.assertTrue
  * wear→phone path with a real Wearable Data Layer.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class CcPhoneVoiceListenerTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

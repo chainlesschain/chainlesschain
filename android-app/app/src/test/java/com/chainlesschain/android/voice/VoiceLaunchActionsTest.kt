@@ -4,6 +4,7 @@ import android.content.Intent
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertNotNull
@@ -17,6 +18,7 @@ import kotlin.test.assertNotNull
  * instrumented tests once the full chain is wired.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class VoiceLaunchActionsTest {
 
     // ─── constants (防误改) ─────────────────────────────────
