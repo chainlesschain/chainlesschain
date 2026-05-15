@@ -214,6 +214,11 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
     expect(consumed.payload.fromChain).toBe("ethereum");
     expect(consumed.payload.toChain).toBe("polygon");
     expect(consumed.payload.amount).toBe(100);
+    // Layer 2 provenance — both DIDs end up in the consume response,
+    // sorted ASC by signer_did per store.getSignatures contract.
+    expect(consumed.signers).toHaveLength(2);
+    expect(consumed.partialSigCount).toBe(2);
+    expect([...consumed.signers].sort()).toEqual(consumed.signers);
 
     // Proposal state → consumed
     const showRes = runCli([
@@ -228,6 +233,26 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
     ]);
     const detail = extractJson(showRes.stdout);
     expect(detail.proposal.state).toBe("consumed");
+
+    // Layer 2 PR1 — cc_bridges row persists multisig provenance.
+    const bridgeShowRes = runCli([
+      "crosschain",
+      "bridge-show",
+      consumed.bridgeId,
+      "--json",
+    ]);
+    expect(bridgeShowRes.status, bridgeShowRes.stderr).toBe(0);
+    const bridgeRow = extractJson(bridgeShowRes.stdout);
+    expect(bridgeRow.multisig_proposal_id).toBe(proposed.proposalId);
+    expect(JSON.parse(bridgeRow.signers_did_json)).toEqual(consumed.signers);
+    const partialSigs = JSON.parse(bridgeRow.partial_sigs_json);
+    expect(partialSigs).toHaveLength(2);
+    for (const s of partialSigs) {
+      expect(s.alg).toBe("Ed25519");
+      expect(typeof s.sig).toBe("string");
+      expect(s.sig).toMatch(/^[0-9a-f]+$/);
+      expect(s.sig.length).toBeGreaterThan(0);
+    }
   });
 
   it("1-of-1 reaches threshold on first signature", () => {
@@ -252,7 +277,63 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
 
     const consumeRes = consume(proposed.proposalId);
     expect(consumeRes.status, consumeRes.stderr).toBe(0);
-    expect(extractJson(consumeRes.stdout).status).toBe("consumed");
+    const consumed = extractJson(consumeRes.stdout);
+    expect(consumed.status).toBe("consumed");
+    expect(consumed.signers).toHaveLength(1);
+    expect(consumed.signers[0]).toBe(members[0].did);
+    expect(consumed.partialSigCount).toBe(1);
+  });
+
+  it("Layer 2: legacy direct bridge leaves multisig provenance NULL", () => {
+    // Non-multisig path — no --require-multisig, so no proposal context.
+    const r = runCli([
+      "crosschain",
+      "bridge",
+      "ethereum",
+      "polygon",
+      "75",
+      "--sender",
+      "0xSENDER",
+      "--json",
+    ]);
+    expect(r.status, r.stderr).toBe(0);
+    const out = extractJson(r.stdout);
+    expect(out.bridgeId).toBeTruthy();
+
+    const showRes = runCli([
+      "crosschain",
+      "bridge-show",
+      out.bridgeId,
+      "--json",
+    ]);
+    expect(showRes.status, showRes.stderr).toBe(0);
+    const row = extractJson(showRes.stdout);
+    expect(row.multisig_proposal_id).toBeFalsy();
+    expect(row.signers_did_json).toBeFalsy();
+    expect(row.partial_sigs_json).toBeFalsy();
+  });
+
+  it("Layer 2: bridge-show text output surfaces multisig provenance when present", () => {
+    fs.writeFileSync(
+      membersFile,
+      JSON.stringify([
+        {
+          did: members[0].did,
+          alg: members[0].alg,
+          pubkeyJwk: members[0].pubkeyJwk,
+        },
+      ]),
+      "utf-8",
+    );
+    expect(setPolicy(1).status).toBe(0);
+    const proposed = extractJson(propose().stdout);
+    const consumed = extractJson(consume(proposed.proposalId).stdout);
+
+    const showRes = runCli(["crosschain", "bridge-show", consumed.bridgeId]);
+    expect(showRes.status, showRes.stderr).toBe(0);
+    expect(showRes.stdout).toMatch(/Multisig:\s+msp_/);
+    expect(showRes.stdout).toMatch(new RegExp(`Signers:\\s+1`));
+    expect(showRes.stdout).toMatch(/Sigs:\s+1 partial \(Ed25519\)/);
   });
 
   it("propose without --initiator → exit 2 missing_initiator", () => {

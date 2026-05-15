@@ -1,10 +1,10 @@
-# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.5
+# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.6
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) B.5（GA 后续 scope · P1）
-> **状态**: 🟢 Layer 1 收口 — PR1 ✅ + PR2 ✅ + PR3 ✅ + PR4 ✅ landed (2026-05-15)
+> **状态**: 🟢 Layer 1 ✅ 收口 + Layer 2 PR1 ✅ landed (2026-05-15)
 > **作者**: 2026-05-15
 > **关联**: [m-of-n 应用扩展 v1](MofN_多签_应用扩展_v1.md) / [MTC 跨链桥 v1](MTC_跨链桥_v1.md) / memory `mtc_landing_v0_11.md` Q-COMP-3
-> **下一步**: Layer 2 envelope m-of-n signing（需 `cc_bridges` schema 升级，详 §2 Layer 2）— 用户决定何时启动
+> **下一步**: Layer 2 PR2 — 把 `partial_sigs_json` 喂进 `cross-chain-mtc.js:buildMultiHopBridgeEnvelope` 的 publisher_signature（MTC v0.11 hybrid pattern 复用）
 
 ---
 
@@ -70,18 +70,19 @@ bridge --from ethereum --to chainless --amount 100 --require-multisig
 - 错误路径：缺 --initiator / 缺 --key / 缺 policy / pending state / not_found / wrong_domain / already_consumed 全部返 exit code 2 + structured JSON
 - 兼容性：不传 `--require-multisig` 走原 direct path，0 regression
 
-### Layer 2 — bridge envelope m-of-n signing（~1d 工，需 schema 升级）
+### Layer 2 — bridge envelope m-of-n signing（PR1 ✅ landed 2026-05-15）
 
 Layer 1 只把 **是否推进 bridge** gate 在多签后，但 bridge envelope 本身（`bridgeAsset` 写入 SQLite 的 row 数据）仍是单 signer 的。Layer 2 把多签 partial sigs 嵌入 bridge envelope，让 onchain verifier 能验 m-of-n。
 
-需要 schema 升级 `cc_bridges` 表：
-- 加 `multisig_proposal_id` 字段（FK to `multisig_proposals.id`）
-- 加 `signers_did_json` 字段（达阈时谁签了）
-- 加 `partial_sigs_json` 字段（嵌进 envelope 后给 onchain verifier）
+**Layer 2 PR 拆分**：
 
-`cross-chain-mtc.js:buildMultiHopBridgeEnvelope` 已经有 MTC publisher_signature 层，Layer 2 = 把 publisher_signature 从 single producer key 改成 **strip-all-sigs JCS + m-of-n partial sigs concatenation**（参 memory `mtc_publisher_sig_threshold.md`，MTC v0.11 已支持 hybrid）。
+| PR | 状态 | 文件 | 描述 |
+|---|---|---|---|
+| 1 | ✅ landed | `packages/cli/src/lib/cross-chain.js` + `packages/cli/src/commands/crosschain.js` + 测试扩展 | (1) `cc_bridges` schema 加 3 列（`multisig_proposal_id` / `signers_did_json` / `partial_sigs_json`）+ index 走 idempotent `_addColumnIfMissing(db, table, col, def)` ALTER TABLE helper (2) `bridgeAsset(db, args, multisigContext?)` 第三参数收 `{proposalId, signers, partialSigs}` 并 INSERT 进新列 (3) `_bridgeConsume` 从 `got.signatures` 抽 signer DID + alg + sig hex 喂进 multisigContext (4) `bridge-show` 文本输出加 Multisig / Signers / Sigs 三行，opt-out 当列 NULL (5) `consumeResult` 返回 `signers[]` + `partialSigCount` 给 caller (6) 13 E2E tests（happy 2-of-2 加 6 行 provenance 断言 + 1-of-1 加 3 行 + 2 新 test cases：legacy direct bridge 三列 NULL / bridge-show 文本输出含 Multisig 段）+ 83 cross-chain unit + 130 crosschain-mtc 测试 0 regression |
+| 2 | ⏳ pending | `packages/cli/src/lib/cross-chain-mtc.js:buildMultiHopBridgeEnvelope` | 把 `partial_sigs_json` 喂进 publisher_signature；改 single producer key → **strip-all-sigs JCS + m-of-n partial sigs concatenation**（参 memory `mtc_publisher_sig_threshold.md`，MTC v0.11 已支持 hybrid Ed25519+SLH-DSA）。verifier 加 m-of-n 路径接受多个 alg 混合 |
+| 3 | ⏳ pending | `cross-chain-mtc.js:verifyBridgeEnvelope` + `verifyMultiHopBridgeEnvelope` | verifier 侧识别带 m-of-n provenance 的 envelope；reject 不达 threshold；同 alg + cross-alg 都覆盖 |
 
-**前置依赖**：Layer 1 必先落 — Layer 2 需要稳定的 multisig proposal lifecycle 作 input。
+**前置依赖**：Layer 1 必先落 — Layer 2 需要稳定的 multisig proposal lifecycle 作 input。✅ PR1 已落，PR2/PR3 自然解锁。
 
 ### Layer 3 — 真链上 broadcast（external-blocked，不在本 spike）
 

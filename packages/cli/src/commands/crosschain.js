@@ -289,14 +289,34 @@ async function _bridgeConsume({
     }
 
     const payload = JSON.parse(got.proposal.payloadJcs);
-    const bridgeResult = bridgeAsset(db, {
-      fromChain: payload.fromChain,
-      toChain: payload.toChain,
-      asset: payload.asset,
-      amount: payload.amount,
-      senderAddress: payload.sender,
-      recipientAddress: payload.recipient,
-    });
+
+    // #21 B.5 Layer 2 PR1 — extract m-of-n provenance from the reached
+    // proposal and persist it alongside the bridge row. signatures are
+    // returned sorted by signer_did ASC (store.getSignatures), so the array
+    // ordering is canonical for any downstream onchain verifier.
+    const signatures = got.signatures || [];
+    const multisigContext = {
+      proposalId: got.proposal.id,
+      signers: signatures.map((s) => s.signerDid),
+      partialSigs: signatures.map((s) => ({
+        did: s.signerDid,
+        alg: s.alg,
+        sig: Buffer.isBuffer(s.sig) ? s.sig.toString("hex") : String(s.sig),
+      })),
+    };
+
+    const bridgeResult = bridgeAsset(
+      db,
+      {
+        fromChain: payload.fromChain,
+        toChain: payload.toChain,
+        asset: payload.asset,
+        amount: payload.amount,
+        senderAddress: payload.sender,
+        recipientAddress: payload.recipient,
+      },
+      multisigContext,
+    );
     if (!bridgeResult.bridgeId) {
       const out = {
         status: "error",
@@ -334,6 +354,9 @@ async function _bridgeConsume({
       bridgeId: bridgeResult.bridgeId,
       fee: bridgeResult.fee,
       payload,
+      // Layer 2 provenance — surface what was persisted on the bridge row.
+      signers: multisigContext.signers,
+      partialSigCount: multisigContext.partialSigs.length,
     };
     if (json) {
       console.log(JSON.stringify(out, null, 2));
@@ -547,6 +570,31 @@ export function registerCrossChainCommand(program) {
       if (b.lock_tx_hash) console.log(`Lock TX:   ${b.lock_tx_hash}`);
       if (b.mint_tx_hash) console.log(`Mint TX:   ${b.mint_tx_hash}`);
       if (b.error_message) console.log(`Error:     ${b.error_message}`);
+      // #21 B.5 Layer 2 PR1 — surface m-of-n provenance when present.
+      if (b.multisig_proposal_id) {
+        console.log(`Multisig:  ${b.multisig_proposal_id}`);
+        try {
+          const signers = b.signers_did_json
+            ? JSON.parse(b.signers_did_json)
+            : [];
+          const sigs = b.partial_sigs_json
+            ? JSON.parse(b.partial_sigs_json)
+            : [];
+          console.log(
+            `Signers:   ${signers.length} — ${signers.join(", ") || "(none)"}`,
+          );
+          if (sigs.length) {
+            const algs = [...new Set(sigs.map((s) => s.alg))].join("+");
+            console.log(`Sigs:      ${sigs.length} partial (${algs})`);
+          }
+        } catch (_err) {
+          /* malformed provenance JSON — show raw cell content */
+          if (b.signers_did_json)
+            console.log(`Signers:   ${b.signers_did_json}`);
+          if (b.partial_sigs_json)
+            console.log(`Sigs:      ${b.partial_sigs_json}`);
+        }
+      }
     });
 
   cc.command("bridges")

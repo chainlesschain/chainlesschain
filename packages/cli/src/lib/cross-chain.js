@@ -117,6 +117,17 @@ function _strip(row) {
 
 /* ── Schema ────────────────────────────────────────────── */
 
+/**
+ * Idempotent column add — PRAGMA table_info is widely supported on both
+ * better-sqlite3 and sql.js. Skips when column exists; runs ALTER otherwise.
+ */
+function _addColumnIfMissing(db, table, column, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+  }
+}
+
 export function ensureCrossChainTables(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS cc_bridges (
     id TEXT PRIMARY KEY,
@@ -137,6 +148,16 @@ export function ensureCrossChainTables(db) {
   )`);
   db.exec("CREATE INDEX IF NOT EXISTS idx_ccb_status ON cc_bridges(status)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_ccb_from ON cc_bridges(from_chain)");
+
+  // #21 B.5 Layer 2 PR1 — m-of-n provenance columns. Idempotent for existing
+  // DBs via ALTER TABLE. NULL on rows created before this migration or via
+  // the legacy direct-bridge path (no --require-multisig).
+  _addColumnIfMissing(db, "cc_bridges", "multisig_proposal_id", "TEXT");
+  _addColumnIfMissing(db, "cc_bridges", "signers_did_json", "TEXT");
+  _addColumnIfMissing(db, "cc_bridges", "partial_sigs_json", "TEXT");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_ccb_proposal ON cc_bridges(multisig_proposal_id)",
+  );
 
   db.exec(`CREATE TABLE IF NOT EXISTS cc_swaps (
     id TEXT PRIMARY KEY,
@@ -217,6 +238,7 @@ function _validateChain(chainId) {
 export function bridgeAsset(
   db,
   { fromChain, toChain, asset, amount, senderAddress, recipientAddress },
+  multisigContext = null,
 ) {
   if (!_validateChain(fromChain))
     return { bridgeId: null, reason: "unsupported_chain", chain: fromChain };
@@ -231,6 +253,23 @@ export function bridgeAsset(
   const id = _id();
   const now = _now();
   const fee = Math.round(amount * DEFAULT_CONFIG.feePercentage * 10) / 1000;
+
+  // #21 B.5 Layer 2 PR1 — optional multisig provenance. caller passes
+  //   { proposalId, signers, partialSigs } extracted from a reached/consumed
+  //   multisig proposal. We persist all three so an onchain verifier can later
+  //   check m-of-n. Legacy direct-bridge calls leave all three NULL.
+  let multisigProposalId = null;
+  let signersDidJson = null;
+  let partialSigsJson = null;
+  if (multisigContext && typeof multisigContext === "object") {
+    multisigProposalId = multisigContext.proposalId || null;
+    if (Array.isArray(multisigContext.signers)) {
+      signersDidJson = JSON.stringify(multisigContext.signers);
+    }
+    if (Array.isArray(multisigContext.partialSigs)) {
+      partialSigsJson = JSON.stringify(multisigContext.partialSigs);
+    }
+  }
 
   const bridge = {
     id,
@@ -248,12 +287,16 @@ export function bridgeAsset(
     error_message: null,
     created_at: now,
     completed_at: null,
+    multisig_proposal_id: multisigProposalId,
+    signers_did_json: signersDidJson,
+    partial_sigs_json: partialSigsJson,
   };
 
   db.prepare(
     `INSERT INTO cc_bridges (id, from_chain, to_chain, asset, amount, sender_address, recipient_address,
-     lock_tx_hash, mint_tx_hash, status, fee_amount, fee_chain, error_message, created_at, completed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     lock_tx_hash, mint_tx_hash, status, fee_amount, fee_chain, error_message, created_at, completed_at,
+     multisig_proposal_id, signers_did_json, partial_sigs_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     fromChain,
@@ -270,6 +313,9 @@ export function bridgeAsset(
     null,
     now,
     null,
+    multisigProposalId,
+    signersDidJson,
+    partialSigsJson,
   );
 
   _bridges.set(id, bridge);
