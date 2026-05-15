@@ -1,13 +1,14 @@
-# 移动端 iOS（Phase 1+2+3 框架完整移植，待真机 E2E）
+# 移动端 iOS（Phase 1+2+3+4 框架完整移植，待真机 E2E）
 
-> **版本: Phase 1+2+3 (productVersion `v5.0.3.54+`, 2026-05-15) | 状态: 框架完整 / 待真机 E2E | ~264 单测 across 20+ suites | 4 typed skill**
+> **版本: Phase 1+2+3+4 (productVersion `v5.0.3.54+`, 2026-05-15) | 状态: 框架完整 / 待真机 E2E | ~313 单测 across 24+ suites | 4 typed skill + 1 Notification skill**
 >
 > ChainlessChain iOS 客户端 — SwiftUI + Swift Concurrency + Google WebRTC SDK 原生应用。镜像 Android v1.0 GA 已 Xiaomi 真机 E2E 验证版的 三层定位 + 桌面配对 + 远程终端 + 远程操控。**信息架构 / 流程 / 字段顺序 1:1 对齐 Android Compose Screen**，HIG 偏离仅限 6 项白名单。
 
 ::: warning 实现状态
 - **Phase 1 配对** + **Phase 2 远程终端** + **Phase 3 远程操控 framework + 4 typed skill** 框架级落地（commit `c30b415a8` + `7613ea710` + `759a1e907`）
 - **真机 E2E 待跑**（需 Mac+iPhone+真桌面）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次
-- iOS 暂未上 App Store；Phase 4+ 增量解锁剩余 19 个 Android REMOTE command（AI/Browser/Knowledge 等）按需启动
+- **Phase 4 Notification skill 已 land**（commits `cf7a7be78` design + `45b485fdd` → `5877b5d84` 6 sub-phase impl）— 11 method + LRU dedup + UN center push + 乐观更新 + offline gate；41 新单测；RemoteOperateView 加第 6 tab "通知" + horizontal scroll picker + unread badge
+- iOS 暂未上 App Store；Phase 5+ 增量解锁剩余 18 个 Android REMOTE command（AI/Browser/Knowledge 等）按需启动
 :::
 
 ## 概述
@@ -18,7 +19,7 @@ iOS 端 ≠ Android 端的 1:1 重写，而是**二级镜像**：在 Android v1.
 |---|---|---|---|
 | **L1** | 配对 + 已配对桌面 | 桌面 ↔ iPhone 三流配对 + 持久化 + live publisher | `Modules/CoreP2P/Pairing/` 9 swift + `Features/Pairing/` 8 swift |
 | **L2** | 远程桌面终端 | xterm.js WKWebView + WebRTC DataChannel 直连 + softkey toolbar | `Modules/CoreP2P/RemoteTerminal/` 13 swift + `Features/RemoteTerminal/` 6 swift + 4 xterm.js bundle resources |
-| **L3** | 远程操控 framework + 4 skill | 5-tab segmented shell + Clipboard / File / Screenshot / SystemInfo | `Modules/CoreP2P/RemoteSkills/` 16 swift + `Features/RemoteOperate/` 6 swift |
+| **L3** | 远程操控 framework + 4 skill | 6-tab horizontal scroll shell + Clipboard / File / Screenshot / SystemInfo / Notification | `Modules/CoreP2P/RemoteSkills/` 19 swift + `Features/RemoteOperate/` 7 swift |
 
 ## 用户体验闭环
 
@@ -30,7 +31,7 @@ iOS 端 ≠ Android 端的 1:1 重写，而是**二级镜像**：在 Android v1.
        ↓
   已配对桌面列表 (live publisher + swipe 删除)
        ↓ 单击桌面行
-  RemoteOperateView 5-tab segmented shell (Phase 3.6)
+  RemoteOperateView 6-tab horizontal scroll shell (Phase 4.5)
        ├─ 终端 Tab：xterm.js WKWebView + DC 直连 (Phase 2)
        │   - 拉/写 PTY stdin/stdout 双向流
        │   - softkey toolbar: Esc / Tab / 方向键 / Ctrl+C
@@ -45,10 +46,16 @@ iOS 端 ≠ Android 端的 1:1 重写，而是**二级镜像**：在 Android v1.
        ├─ 截屏 Tab：触发桌面截屏 (Phase 3.5)
        │   - capture button → DC 触发桌面截屏
        │   - iOS 显图 + 显式 PHPhotoLibrary 保存按钮 (HIG 第一次 prompt)
-       └─ 系统 Tab：CPU/Mem/Disk/Net 实时 (Phase 3.5)
-           - 4 cards 真数字 + 5s polling
-           - onAppear 立即拉一次 + 起 polling
-           - onDisappear 严格 cancel polling
+       ├─ 系统 Tab：CPU/Mem/Disk/Net 实时 (Phase 3.5)
+       │   - 4 cards 真数字 + 5s polling
+       │   - onAppear 立即拉一次 + 起 polling
+       │   - onDisappear 严格 cancel polling
+       └─ 通知 Tab：桌面 push 收件箱 + 历史 (Phase 4) 🆕
+           - segmented filter "全部 / 未读"
+           - List + swipe markAsRead/delete
+           - detail sheet (priority badge / data dict)
+           - settings sheet (iOS 端跳系统 / 桌面端 readonly)
+           - 桌面 push 自动弹 banner + tab badge 显未读数 + app icon badge
 ```
 
 ## Phase 1 — 桌面配对三流
@@ -154,6 +161,7 @@ dismantleUIView 必 `removeScriptMessageHandler(forName: "cc")` 防 retain cycle
 | Phase 1 | 71 | 7 |
 | Phase 2 | 163（累计 234） | 12 |
 | Phase 3 | ~30 新增（累计 ~264） | 8+ |
+| Phase 4 | 41 新增（累计 ~313）| 3 (NotificationCommands 18 + EventDispatcher 10 + ViewModel 13) |
 | **集成（跨 Phase）** | **6** | **`Phase3IntegrationTests.swift`** |
 
 集成测试覆盖：
@@ -163,6 +171,49 @@ dismantleUIView 必 `removeScriptMessageHandler(forName: "cc")` 防 retain cycle
 4. Offline enqueue → 网络恢复 → drain 全成功 + 队列清空
 5. 3 concurrent invoke 共享 client pool + reqId distinct
 6. timeout 后立即新 invoke 必须成功（regression for P0 continuation 泄漏）
+
+## Phase 4 — Notification skill (新增)
+
+镜像 Android `NotificationCommands.kt` (343 LOC, 11 method) + `NotificationCenterScreen.kt` (14 屏 social 收口版)。
+
+### 11 method typed wrapper
+
+`NotificationCommands` actor delegate 到 Phase 3 抽出的 `RemoteCommandClient` (与 Clipboard/File/Screenshot/SystemInfo 共享同一 invoke 池)：
+
+| Method | 用途 |
+|--------|------|
+| `send` | 在桌面端发本地通知 |
+| `sendToMobile` | 桌面端推送通知到指定 mobile 设备 |
+| `broadcast` | 广播到所有连接的设备 |
+| `getHistory` | 拉历史通知列表 (limit/offset/unreadOnly) |
+| `markAsRead` | 标某条已读 |
+| `markAllAsRead` | 标全部已读 |
+| `delete` | 删除某条 |
+| `clearAll` | 清空所有 |
+| `getUnreadCount` | 获取未读数量 |
+| `getSettings` | 拉桌面端 settings (quiet hours / sound / vibration) |
+| `updateSettings` | 部分更新桌面端 settings |
+
+### server-push event 触发 iOS 系统通知
+
+桌面 `notification.send` 触发 → mobile-bridge 经 DC 发 `notification.received` envelope → iOS `NotificationEventDispatcher` 订阅 `commandClient.events` 流 + LRU dedup 256 + 调既有 `PushNotificationManager.scheduleSystemNotification` → iOS UN center 弹 banner / 锁屏 push / 进 NC。
+
+**既有 PushManager 0 改动** — 仅加 1 行 `extension PushNotificationManager: RemoteNotificationPushTarget {}`。
+
+### 乐观更新 + offline gate 三分支
+
+VM 每个 mutating action (markAsRead / markAllAsRead / delete / clearAll) 处理 3 状态：
+- DC ready → server 调 → 失败 rollback + refresh (eventual consistency)
+- DC 不通 → enqueue OfflineQueue + 本地仍乐观 + lastError "已加入离线队列"
+- 都不可用 → rollback + lastError "桌面端未连接"
+
+### Phase 4.5 picker 改造（per design §7.9 备选 B）
+
+5-tab segmented 是 iOS HIG 软上限；6 tab 拥挤 + segmented 无原生 badge → SkillTabPickerView REWRITE 为 `ScrollView(.horizontal)` + Button row + 自定义 Capsule unread badge overlay (与 Discord/Slack 移动端 channel switcher pattern 一致)。Notification tab unread > 0 时 icon 自动切 `bell.badge.fill`。
+
+### 新发现 trap (设计 §7 未覆盖)
+
+**events fan-out**: `cmdClient.events` 是单消费者 AsyncStream；Phase 3 仅 terminalRpc 1 订阅 OK，Phase 4 加 dispatcher 后两订阅切分事件。修法 = `RemoteDependencies` 内加 fan-out task 单一消费 → yield 到 2 子流 (terminalEventsStream + notificationEventsStream)。
 
 ## Bug 修（P0 — 2026-05-15 code review 后）
 
@@ -189,6 +240,7 @@ dismantleUIView 必 `removeScriptMessageHandler(forName: "cc")` 防 retain cycle
 - [iOS Phase 1 Pairing Flow B](../design/iOS_Phase_1_Pairing_Flow_B.md) — 含 §6 sub-phase + §6.5 Manual wire 修订（HTTP → signaling alias）
 - [iOS Phase 2 Remote Terminal](../design/iOS_Phase_2_Remote_Terminal.md) — 含 §3 OQ 4 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E 4 场景
 - [iOS Phase 3 Remote Operate Framework](../design/iOS_Phase_3_Remote_Operate_Framework.md) — 含 §3 OQ 5 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E
+- [iOS Phase 4 Notification Skill](../design/iOS_Phase_4_Notification_Skill.md) — 含 §3 OQ 5 项决策 + §6 sub-phase + §7 9 forward-looking traps + §8.3 真机 E2E 8 场景
 
 ## 真机 E2E（待用户 Mac+iPhone+真桌面）
 
@@ -217,6 +269,19 @@ dismantleUIView 必 `removeScriptMessageHandler(forName: "cc")` 防 retain cycle
 2. **File**：浏览 `~/Documents` 列表 + tap `.txt`/`.md` 看内容
 3. **Screenshot**：触发桌面截屏 → iPhone 显图 → 保存相册（PHPhotoLibrary 第一次 prompt）
 4. **SystemInfo**：4 cards CPU/Mem/Disk/Net 真数字 + 5s polling 自动刷新
+
+### Phase 4.7：8 通知场景
+
+| # | 场景 | 通过标准 |
+|---|------|---------|
+| 1 | iPhone 进通知 tab → 拉历史 | ≤ 500ms 显示历史；空时显空状态 |
+| 2 | 桌面 cc cli `notification.send` → iPhone | 锁屏 banner ≤ 2s + tab badge "+1" + app icon badge |
+| 3 | 桌面 push 3 条 (DC + signaling 双发) | 都收到 + 顺序对 + LRU dedup 不重复 banner |
+| 4 | iPhone swipe markAsRead → 桌面 verify | cc 查 markedCount = 1 |
+| 5 | iPhone 离线 swipe markAsRead → 网络恢复 | OfflineQueue.totalCount=1 → 恢复 → drain → 桌面真已读 |
+| 6 | quiet hours 内桌面 push (silenced=true) | iPhone 收 envelope 但**不**弹 banner（仅入历史）|
+| 7 | iPhone authorization denied → 桌面 push | 不崩；in-app banner 显 "通知权限被拒"；历史 tab 仍正常 |
+| 8 | iPhone app 后台 → 桌面 push 3 条 → 1 min 后回前台 | 历史 refresh 看到 3 条 unread；不弹 banner（已过时机）|
 
 ## 故障排查
 

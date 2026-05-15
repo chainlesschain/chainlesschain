@@ -15,18 +15,19 @@
 
 详见 [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21) + [Android 重新定位 §10 GA 后续 scope](docs/design/Android_重新定位_设计文档.md)。
 
-## 2026-05-15 发布 — **iOS Phase 1+2+3 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 skill）**
+## 2026-05-15 发布 — **iOS Phase 1+2+3+4 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 skill + Notification skill）**
 
-> Android 端 v1.0 GA 验证后，iOS 端启动镜像移植。一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 完整设计文档 / 3 实施 trap memory。
+> Android 端 v1.0 GA 验证后，iOS 端启动镜像移植。**一日内四 Phase 框架级全 land**：~145 文件 / ~313 单测 / 4 完整设计文档 / 4 实施 trap memory。
 
 - **Phase 1 — 桌面配对三流**（commit `c30b415a8`）— Flow B 摄像头扫桌面 QR（最常用） + Flow A 桌面扫手机 QR（Signal e2ee 高级路径） + 手输 6 位 code 兜底；`Modules/CoreP2P/Pairing/` (9 files) + `Features/Pairing/` (8 files) + 71 单测 7 套件；桌面端 follow-up `pairing-code:<code>` signaling 别名监听 220 LOC。
 - **Phase 2 — 远程桌面终端 (Plan A.1 移植)**（commit `7613ea710`）— `RemoteWebRTCClient` 5 步 handshake actor + `WebRTCPeerConnectionTransport` Google SDK 抽象 + `TerminalRpcClient` 双路径 invoke + xterm.js WKWebView + `TerminalListView`/`SessionView` 全套；163 单测 12 套件；Phase 1 SignalClient `forwardedMessages: AsyncStream` 多订阅入口同期补齐（实施暴露后回填）。
 - **Phase 3 — 远程操控 framework + 4 typed skill**（commit `759a1e907`）— `RemoteCommandClient` 通用 RPC actor (Phase 2 `TerminalRpcClient.invoke` 抽出) + `RemoteSkillRegistry` 23 SeedRegistry 1:1 mirror Android (795 method) + `OfflineCommandQueue` UserDefaults JSON crash recovery + `OfflineQueueDrainer` false→true edge detection + 4 typed skill (Clipboard / File / Screenshot / SystemInfo) + `RemoteOperateView` 5-tab segmented shell + 4 skill UI；~264 单测累计 20+ 套件。**Phase 3.6 refactor 提前到 3.3**：`TerminalRpcClient.invoke` 删除 + delegate to commandClient + 改用 commandClient.events 流（修 AsyncStream 单消费者切分事件 bug）。
 - **bug 修 (P0)** — code review 后期修两处 continuation 泄漏：`RemoteCommandClient.invoke` timeout 不清 `pendingResponses[reqId]` + `RemoteWebRTCClient.waitForAnswer` 同模式不清 `pendingAnswer`；长期运行下 pool 涨。修法 `do/catch` 包 TaskGroup 显式清池 + 加 `pendingCount()`/`hasPendingAnswer()` 诊断 accessor；2 regression test + 1 集成 test 验池清。
 - **集成测试** — `Tests/CoreP2PTests/Integration/Phase3IntegrationTests.swift` 6 跨组件测试覆盖 ClipboardCommands 端到端 / TerminalRpc demux / Drainer 边缘 / 离线 → 恢复 → drain / concurrent invoke 池共享 / continuation 泄漏防御。
-- **设计文档**：[`docs/design/iOS_Phase_1_Pairing_Flow_B.md`](docs/design/iOS_Phase_1_Pairing_Flow_B.md) + [`iOS_Phase_2_Remote_Terminal.md`](docs/design/iOS_Phase_2_Remote_Terminal.md) + [`iOS_Phase_3_Remote_Operate_Framework.md`](docs/design/iOS_Phase_3_Remote_Operate_Framework.md) — 各含 §6 sub-phase + §7 实施 traps + §8.3 真机 E2E 矩阵。
+- **Phase 4 — Notification skill**（design `cf7a7be78` + 6 sub-phase commits `45b485fdd` → `5877b5d84`）— `NotificationCommands` actor (11 method 1:1 mirror Android `NotificationCommands.kt`) + `NotificationEventDispatcher` 订 commandClient.events + LRU dedup + 触发既有 `PushNotificationManager.scheduleSystemNotification` (531 LOC PushManager 0 改动，仅加 1 行 `extension PushNotificationManager: RemoteNotificationPushTarget {}`) + `RemoteNotificationsViewModel` 乐观更新 + offline gate 三分支 + `NotificationsView` UI 镜像 Android `NotificationCenterScreen.kt` (filter / List + swipe / detail sheet / settings sheet) + `RemoteOperateView` 第 6 tab "通知" + `SkillTabPickerView` REWRITE 为 horizontal scroll + button row + Capsule unread badge (per design §7.9 备选 B，Discord/Slack pattern)。**41 新 unit tests** (18 + 10 + 13)。**新发现 trap**: events fan-out — cmdClient.events 单消费者，多 skill 订阅必须 RemoteDeps 内 fan-out task 拆。
+- **设计文档**：[`docs/design/iOS_Phase_1_Pairing_Flow_B.md`](docs/design/iOS_Phase_1_Pairing_Flow_B.md) + [`iOS_Phase_2_Remote_Terminal.md`](docs/design/iOS_Phase_2_Remote_Terminal.md) + [`iOS_Phase_3_Remote_Operate_Framework.md`](docs/design/iOS_Phase_3_Remote_Operate_Framework.md) + [`iOS_Phase_4_Notification_Skill.md`](docs/design/iOS_Phase_4_Notification_Skill.md) — 各含 §6 sub-phase + §7 实施 traps + §8.3 真机 E2E 矩阵。
 - **iOS UI 镜像 Android 已验证布局** — 用户拍板 "iOS 页面布局参考安卓端，安卓端有检测过"。Compose Screen 信息架构 / 流程 / 字段顺序照抄到 SwiftUI；HIG 偏离限白名单 6 项（NavigationLink / Form / ToolbarItemGroup keyboard / Sheet / Alert / Segmented Picker）。
-- **剩余真机 E2E**（需 Mac+iPhone+真桌面）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次。Win dev box 不可验，移交用户。
+- **剩余真机 E2E**（需 Mac+iPhone+真桌面）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次 + **Phase 4.7 8 通知场景** (拉历史 / 桌面 push 弹 banner / LRU dedup / markAsRead 双轨 / 离线 enqueue / quiet hours silenced / authorization denied / 后台 1min)。Win dev box 不可验，移交用户。
 
 ## 2026-05-14 发布 — **v5.0.3.53 Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连（Phase 1–5 一日全落）**
 

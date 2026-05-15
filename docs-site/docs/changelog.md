@@ -80,9 +80,20 @@ issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设
 - `RemoteWebRTCClient.waitForAnswer` 同模式不清 `pendingAnswer`；修同上
 - 2 regression test + 1 集成 test 验池清
 
-**剩余真机 E2E**（需 Mac+iPhone+真桌面，移交用户）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次。
+**剩余真机 E2E**（需 Mac+iPhone+真桌面，移交用户）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次 + Phase 4.7 8 通知场景。
 
-设计文档：[iOS Phase 1 配对](./design/iOS_Phase_1_Pairing_Flow_B.md) · [iOS Phase 2 终端](./design/iOS_Phase_2_Remote_Terminal.md) · [iOS Phase 3 操控 framework](./design/iOS_Phase_3_Remote_Operate_Framework.md)
+**iOS Phase 4 — Notification skill 追加**（design `cf7a7be78` + 6 sub-phase impl `45b485fdd` → `5877b5d84`）：
+
+- **NotificationCommands actor** (11 method, 1:1 mirror Android `NotificationCommands.kt`) + 18 unit tests
+- **NotificationEventDispatcher** @MainActor class — 订 commandClient.events + LRU dedup 256 + 触发 PushNotificationManager.scheduleSystemNotification + 10 unit tests
+- **RemoteNotificationsViewModel** — 6 user actions + 乐观更新 + offline gate 三分支 + 13 unit tests
+- **NotificationsView** UI — 镜像 Android NotificationCenterScreen + filter / List + swipe / detail sheet / settings sheet
+- **RemoteOperateView 第 6 tab "通知"** + SkillTabPickerView REWRITE 为 horizontal scroll + button row + Capsule unread badge (per design §7.9 备选 B; HIG 5-tab segmented 软上限解决方案)
+- **既有 PushNotificationManager (531 LOC) 0 改动** — 仅加 1 行 `extension PushNotificationManager: RemoteNotificationPushTarget {}` 显式 conformance
+- **新发现 trap (设计 §7 未覆盖)**：events fan-out — cmdClient.events 单消费者，多 skill 订阅必须 RemoteDeps 内 fan-out task 拆成多子流；Phase 3 仅 1 订阅 OK，Phase 4 加 dispatcher 后必现冲突。修法落地在 RemoteDependencies init。
+- **41 新 unit tests across 3 files**；iOS 单测累计 ~313
+
+设计文档：[iOS Phase 1 配对](./design/iOS_Phase_1_Pairing_Flow_B.md) · [iOS Phase 2 终端](./design/iOS_Phase_2_Remote_Terminal.md) · [iOS Phase 3 操控 framework](./design/iOS_Phase_3_Remote_Operate_Framework.md) · [iOS Phase 4 通知 skill](./design/iOS_Phase_4_Notification_Skill.md)
 
 ## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
 

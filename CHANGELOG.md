@@ -41,18 +41,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Tests/CoreP2PTests/Integration/Phase3IntegrationTests.swift` 6 跨组件测试：(1) ClipboardCommands DC 端到端 + envelope shape + 解码 / (2) TerminalRpcClient 通过 `commandClient.events` demux stdout / (3) `OfflineQueueDrainer` false→true edge 触发 drain + 重复 false 不重 drain + true→true 不重 drain / (4) Offline enqueue → 网络恢复 → drain 全成功 + 队列清空 / (5) 3 concurrent invoke 共享 client pool + reqId distinct / (6) timeout 后立即新 invoke 必须成功（regression）。
 
+### Added — iOS Phase 4: Notification skill（design `cf7a7be78` + 6 sub-phase impl `45b485fdd` → `5877b5d84`）
+
+- `Modules/CoreP2P/RemoteSkills/Notification/` 3 swift — `NotificationModels` (Codable wire 协议: Priority enum / HistoryItem / Settings / 6 Response / ReceivedEvent.parseFromEnvelope) + `NotificationCommands` actor (11 method 1:1 mirror Android `NotificationCommands.kt`，与 Clipboard/File/Screenshot/SystemInfo 共享 commandClient invoke 池) + `NotificationEventDispatcher` @MainActor class (LRU dedup 256 + 触发 PushNotificationManager.scheduleSystemNotification + @Published latestPush/unreadCount + Combine SwiftUI 集成)
+- `Modules/CoreP2P/RemoteSkills/Notification/RemoteNotificationsViewModel.swift` (322 LOC) — @MainActor ObservableObject; 6 user actions (loadHistory/refresh/markAsRead/markAllAsRead/delete/clearAll/loadDesktopSettings/clearError); **乐观更新 + offline gate 三分支模式** (DC ready → server 调，失败 rollback + refresh; DC 不通 → enqueue OfflineQueue + 本地仍乐观)
+- `ChainlessChain/Features/RemoteOperate/Views/NotificationsView.swift` (517 LOC) — UI 镜像 Android `NotificationCenterScreen.kt`: filter Picker(.segmented) "全部/未读" + List(.insetGrouped) + ForEach + swipe markAsRead/delete + .refreshable + .toolbar Menu (全部已读/清空/设置) + detail sheet (priority badge/data dict/时间) + settings sheet (iOS 端跳系统设置 + 桌面端 readonly per OQ-4)
+- `ChainlessChain/Features/Common/Services/PushNotificationManager+RemoteTarget.swift` (12 LOC) — 1 行 `extension PushNotificationManager: RemoteNotificationPushTarget {}` (既有 PushManager 531 LOC 0 改动 — Phase 4 设计承诺)
+- `ChainlessChain/Features/RemoteTerminal/RemoteDependencies.swift` (+52 LOC) — wire NotificationCommands + dispatcher + **events fan-out task** (修 Phase 4 实施暴露的新 trap：cmdClient.events 单消费者 AsyncStream，多 skill 订阅必须分流) + 启动 Task `MainActor.run { dispatcher.attach(PushNotificationManager.shared); dispatcher.start() }`
+- `ChainlessChain/Features/RemoteOperate/Views/RemoteOperateView.swift` (+24 LOC) — SkillTab enum 加 .notification + body switch + .onChange 进 tab 时 dispatcher.resetUnreadCount
+- `ChainlessChain/Features/RemoteOperate/Views/SkillTabPickerView.swift` (REWRITE 27 → 83 LOC) — 从 Picker(.segmented) 改 ScrollView(.horizontal) + Button row + Capsule unread badge overlay (per design §7.9 备选 B；HIG 5-tab segmented 软上限 + 无原生 badge 接口；Discord/Slack 移动端 channel switcher pattern)
+- 41 新 unit tests across 3 files (NotificationCommandsTests 18 + NotificationEventDispatcherTests 10 + RemoteNotificationsViewModelTests 13)；iOS 单测累计 ~313
+
 ### Documentation
 
 - `docs/design/iOS_Phase_1_Pairing_Flow_B.md` v1.0 — 含 §6 sub-phase + §6.5 修订（Manual wire 从 HTTP pivot 到 signaling alias）
 - `docs/design/iOS_Phase_2_Remote_Terminal.md` v1.0 — 含 §3 OQ 4 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E 4 场景
 - `docs/design/iOS_Phase_3_Remote_Operate_Framework.md` v1.0 — 含 §3 OQ 5 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E
-- Memory：`ios_qr_pairing_three_flows.md` (6 trap) + `ios_remote_terminal_phase2.md` (9 trap) + `ios_remote_operate_phase3.md` (9 trap) + `feedback_ios_ui_mirrors_validated_android.md` (HIG 偏离白名单)
+- `docs/design/iOS_Phase_4_Notification_Skill.md` v1.0 (676 LOC, full doc) — 含 §3 OQ 5 项决策 + §6 sub-phase + §7 9 forward-looking traps + §8.3 真机 E2E 8 场景
+- Memory：`ios_qr_pairing_three_flows.md` (6 trap) + `ios_remote_terminal_phase2.md` (9 trap) + `ios_remote_operate_phase3.md` (9 trap) + `ios_remote_notification_phase4.md` (8 trap) + `feedback_ios_ui_mirrors_validated_android.md` (HIG 偏离白名单)
 
 ### Pending — 真机 E2E（需 Mac+iPhone+真桌面，移交用户）
 
 - Phase 1.7：桌面配对三流各跑一次（Flow A / B / 手输）+ LAN→relay fallback
 - Phase 2.7：远程终端 4 场景（LAN / TURN / DC failover / 30min stdout 持续）+ Xcode 资源 `Features/RemoteTerminal/Bundle/` "Create folder references"
 - Phase 3.7：4 skill 各跑一次（Clipboard 双向 / File ~/Documents / Screenshot 保存相册 / SystemInfo 4 cards + 5s polling）
+- Phase 4.7：8 通知场景（拉历史 ≤500ms / 桌面 push 弹 banner ≤2s + tab badge + app icon badge / LRU dedup 桌面 DC+signaling 双发不重复 / markAsRead 双轨 / 离线 enqueue → drainer 自动 / quiet hours silenced=true 不弹 banner / authorization denied in-app banner / 后台 1min 回前台 refresh 看到 unread）
 
 ## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
 
