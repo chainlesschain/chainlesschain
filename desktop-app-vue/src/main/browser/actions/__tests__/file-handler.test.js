@@ -12,8 +12,12 @@ const {
 } = require("../file-handler");
 
 // Create mock fs module for testing
+// IMPORTANT: existsSync 默认 false — file-handler `_generateUniqueName` 循环
+// `while (existsSync(...)) counter++`，若 mock 一律返回 true 会无限循环吃光 V8 heap
+// 把 worker 撞挂（166s + native stack trace + OOM）。先前 4 个 describe.skip
+// 的 "memory issues due to fetch mock" 真根因就是这条 mock。
 const createMockFs = () => ({
-  existsSync: vi.fn().mockReturnValue(true),
+  existsSync: vi.fn().mockReturnValue(false),
   mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
   statSync: vi.fn().mockReturnValue({
@@ -97,8 +101,7 @@ describe("FileHandler", () => {
     });
   });
 
-  // SKIP: These tests cause memory issues due to fetch mock - need to be fixed
-  describe.skip("startDownload", () => {
+  describe("startDownload", () => {
     it("should start a download", async () => {
       const result = await handler.startDownload(
         "tab1",
@@ -134,8 +137,7 @@ describe("FileHandler", () => {
     });
   });
 
-  // SKIP: These tests use startDownload which has memory issues
-  describe.skip("cancelDownload", () => {
+  describe("cancelDownload", () => {
     it("should cancel a download", async () => {
       const startResult = await handler.startDownload(
         "tab1",
@@ -160,8 +162,7 @@ describe("FileHandler", () => {
     });
   });
 
-  // SKIP: These tests use startDownload which has memory issues
-  describe.skip("getDownload", () => {
+  describe("getDownload", () => {
     it("should get download by ID", async () => {
       const startResult = await handler.startDownload(
         "tab1",
@@ -180,8 +181,7 @@ describe("FileHandler", () => {
     });
   });
 
-  // SKIP: These tests use startDownload which has memory issues
-  describe.skip("listDownloads", () => {
+  describe("listDownloads", () => {
     it("should list all downloads", async () => {
       await handler.startDownload("tab1", "https://example.com/file1.pdf");
       await handler.startDownload("tab1", "https://example.com/file2.pdf");

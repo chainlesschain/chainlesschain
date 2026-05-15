@@ -11,15 +11,18 @@
  * @version 0.27.0
  */
 
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WorkflowPipeline, WorkflowManager } from '../../src/main/workflow/workflow-pipeline.js';
-import { SnapshotWorkflowStageFactory } from '../../src/main/workflow/snapshot-workflow-stage.js';
-import { SnapshotManager } from '../../src/main/workflow/workflow-snapshot.js';
-import { QualityGateManager } from '../../src/main/workflow/quality-gate-manager.js';
-import path from 'path';
-import fs from 'fs/promises';
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  WorkflowPipeline,
+  WorkflowManager,
+} from "../../src/main/workflow/workflow-pipeline.js";
+import { SnapshotWorkflowStageFactory } from "../../src/main/workflow/snapshot-workflow-stage.js";
+import { SnapshotManager } from "../../src/main/workflow/workflow-snapshot.js";
+import { QualityGateManager } from "../../src/main/workflow/quality-gate-manager.js";
+import path from "path";
+import fs from "fs/promises";
 
-describe('工作流管道 - 6阶段完整执行测试', () => {
+describe("工作流管道 - 6阶段完整执行测试", () => {
   let workflow;
   let snapshotManager;
   let executionLog;
@@ -29,7 +32,12 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
     executionLog = [];
 
     // 创建快照管理器
-    const testBackupDir = path.join(process.cwd(), 'tests', 'temp', 'wf-test-' + Date.now());
+    const testBackupDir = path.join(
+      process.cwd(),
+      "tests",
+      "temp",
+      "wf-test-" + Date.now(),
+    );
     snapshotManager = new SnapshotManager({
       backupDir: testBackupDir,
     });
@@ -41,11 +49,11 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
@@ -53,34 +61,34 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
     // 创建阶段执行器
     const executors = {
       stage_1: async (input, context) => {
-        executionLog.push('stage_1_executed');
-        return { ...input, stage1Result: 'analysis_done' };
+        executionLog.push("stage_1_executed");
+        return { ...input, stage1Result: "analysis_done" };
       },
       stage_2: async (input, context) => {
-        executionLog.push('stage_2_executed');
-        return { ...input, stage2Result: 'design_done' };
+        executionLog.push("stage_2_executed");
+        return { ...input, stage2Result: "design_done" };
       },
       stage_3: async (input, context) => {
-        executionLog.push('stage_3_executed');
-        return { ...input, stage3Result: 'generation_done' };
+        executionLog.push("stage_3_executed");
+        return { ...input, stage3Result: "generation_done" };
       },
       stage_4: async (input, context) => {
-        executionLog.push('stage_4_executed');
-        return { ...input, stage4Result: 'validation_done' };
+        executionLog.push("stage_4_executed");
+        return { ...input, stage4Result: "validation_done" };
       },
       stage_5: async (input, context) => {
-        executionLog.push('stage_5_executed');
-        return { ...input, stage5Result: 'integration_done' };
+        executionLog.push("stage_5_executed");
+        return { ...input, stage5Result: "integration_done" };
       },
       stage_6: async (input, context) => {
-        executionLog.push('stage_6_executed');
-        return { ...input, stage6Result: 'delivery_done' };
+        executionLog.push("stage_6_executed");
+        return { ...input, stage6Result: "delivery_done" };
       },
     };
 
     // 创建工作流管道（使用 stageExecutors 参数和 mock 质量门禁管理器）
     workflow = new WorkflowPipeline({
-      title: '测试工作流',
+      title: "测试工作流",
       stageExecutors: executors,
       qualityGateManager: mockQualityGateManager,
     });
@@ -92,9 +100,9 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
     }
   });
 
-  test('应该成功执行所有6个阶段', async () => {
-    const input = { projectName: 'Test Project' };
-    const context = { userId: 'user-123' };
+  test("应该成功执行所有6个阶段", async () => {
+    const input = { projectName: "Test Project" };
+    const context = { userId: "user-123" };
 
     const result = await workflow.execute(input, context);
 
@@ -102,50 +110,50 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
     expect(result.results).toBeTruthy();
 
     // 验证所有阶段都执行了
-    expect(executionLog).toContain('stage_1_executed');
-    expect(executionLog).toContain('stage_2_executed');
-    expect(executionLog).toContain('stage_3_executed');
-    expect(executionLog).toContain('stage_4_executed');
-    expect(executionLog).toContain('stage_5_executed');
-    expect(executionLog).toContain('stage_6_executed');
+    expect(executionLog).toContain("stage_1_executed");
+    expect(executionLog).toContain("stage_2_executed");
+    expect(executionLog).toContain("stage_3_executed");
+    expect(executionLog).toContain("stage_4_executed");
+    expect(executionLog).toContain("stage_5_executed");
+    expect(executionLog).toContain("stage_6_executed");
 
     // 验证阶段按顺序执行
-    expect(executionLog[0]).toBe('stage_1_executed');
-    expect(executionLog[5]).toBe('stage_6_executed');
+    expect(executionLog[0]).toBe("stage_1_executed");
+    expect(executionLog[5]).toBe("stage_6_executed");
 
     // 验证工作流状态
-    expect(workflow.stateMachine.getState()).toBe('completed');
+    expect(workflow.stateMachine.getState()).toBe("completed");
   });
 
-  test('应该在阶段之间传递结果', async () => {
-    const input = { initial: 'data' };
+  test("应该在阶段之间传递结果", async () => {
+    const input = { initial: "data" };
     const result = await workflow.execute(input);
 
     // 验证最后阶段的结果包含所有中间结果
     const finalResult = workflow.results.stage_6;
 
-    expect(finalResult.initial).toBe('data');
-    expect(finalResult.stage1Result).toBe('analysis_done');
-    expect(finalResult.stage2Result).toBe('design_done');
-    expect(finalResult.stage6Result).toBe('delivery_done');
+    expect(finalResult.initial).toBe("data");
+    expect(finalResult.stage1Result).toBe("analysis_done");
+    expect(finalResult.stage2Result).toBe("design_done");
+    expect(finalResult.stage6Result).toBe("delivery_done");
   });
 
-  test('应该正确报告整体进度', async () => {
+  test("应该正确报告整体进度", async () => {
     const progressUpdates = [];
 
-    workflow.on('workflow:progress', (data) => {
+    workflow.on("workflow:progress", (data) => {
       progressUpdates.push(data.overall.percent);
     });
 
-    await workflow.execute({ test: 'data' });
+    await workflow.execute({ test: "data" });
 
     // 验证进度从0增长到100
     expect(progressUpdates.length).toBeGreaterThan(0);
     expect(progressUpdates[progressUpdates.length - 1]).toBe(100);
   });
 
-  test('应该记录执行时间', async () => {
-    const result = await workflow.execute({ test: 'data' });
+  test("应该记录执行时间", async () => {
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.duration).toBeGreaterThan(0);
     expect(workflow.startTime).toBeTruthy();
@@ -153,26 +161,26 @@ describe('工作流管道 - 6阶段完整执行测试', () => {
     expect(workflow.endTime).toBeGreaterThan(workflow.startTime);
   });
 
-  test('应该触发阶段事件', async () => {
+  test("应该触发阶段事件", async () => {
     const events = [];
 
-    workflow.on('workflow:stage-start', (data) => {
-      events.push({ type: 'start', stage: data.id });
+    workflow.on("workflow:stage-start", (data) => {
+      events.push({ type: "start", stage: data.id });
     });
 
-    workflow.on('workflow:stage-complete', (data) => {
-      events.push({ type: 'complete', stage: data.id });
+    workflow.on("workflow:stage-complete", (data) => {
+      events.push({ type: "complete", stage: data.id });
     });
 
-    await workflow.execute({ test: 'data' });
+    await workflow.execute({ test: "data" });
 
     // 验证每个阶段都触发了开始和完成事件
-    expect(events.filter((e) => e.type === 'start').length).toBe(6);
-    expect(events.filter((e) => e.type === 'complete').length).toBe(6);
+    expect(events.filter((e) => e.type === "start").length).toBe(6);
+    expect(events.filter((e) => e.type === "complete").length).toBe(6);
   });
 });
 
-describe('工作流管道 - 阶段失败和回滚测试', () => {
+describe("工作流管道 - 阶段失败和回滚测试", () => {
   let workflow;
   let snapshotManager;
   let executionLog;
@@ -181,7 +189,12 @@ describe('工作流管道 - 阶段失败和回滚测试', () => {
   beforeEach(() => {
     executionLog = [];
 
-    const testBackupDir = path.join(process.cwd(), 'tests', 'temp', 'wf-fail-' + Date.now());
+    const testBackupDir = path.join(
+      process.cwd(),
+      "tests",
+      "temp",
+      "wf-fail-" + Date.now(),
+    );
     snapshotManager = new SnapshotManager({
       backupDir: testBackupDir,
     });
@@ -193,46 +206,46 @@ describe('工作流管道 - 阶段失败和回滚测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
 
     const executors = {
       stage_1: async (input, context) => {
-        executionLog.push('stage_1_executed');
-        context.stage1Data = 'data1';
-        return { ...input, stage1: 'ok' };
+        executionLog.push("stage_1_executed");
+        context.stage1Data = "data1";
+        return { ...input, stage1: "ok" };
       },
       stage_2: async (input, context) => {
-        executionLog.push('stage_2_executed');
-        context.stage2Data = 'data2';
-        return { ...input, stage2: 'ok' };
+        executionLog.push("stage_2_executed");
+        context.stage2Data = "data2";
+        return { ...input, stage2: "ok" };
       },
       stage_3: async (input, context) => {
-        executionLog.push('stage_3_failed');
-        throw new Error('Stage 3 failed');
+        executionLog.push("stage_3_failed");
+        throw new Error("Stage 3 failed");
       },
       stage_4: async (input, context) => {
-        executionLog.push('stage_4_executed');
-        return { ...input, stage4: 'ok' };
+        executionLog.push("stage_4_executed");
+        return { ...input, stage4: "ok" };
       },
       stage_5: async (input, context) => {
-        executionLog.push('stage_5_executed');
-        return { ...input, stage5: 'ok' };
+        executionLog.push("stage_5_executed");
+        return { ...input, stage5: "ok" };
       },
       stage_6: async (input, context) => {
-        executionLog.push('stage_6_executed');
-        return { ...input, stage6: 'ok' };
+        executionLog.push("stage_6_executed");
+        return { ...input, stage6: "ok" };
       },
     };
 
     workflow = new WorkflowPipeline({
-      title: '失败测试工作流',
+      title: "失败测试工作流",
       stageExecutors: executors,
       qualityGateManager: mockQualityGateManager,
     });
@@ -244,48 +257,52 @@ describe('工作流管道 - 阶段失败和回滚测试', () => {
     }
   });
 
-  test('应该在阶段失败时停止执行', async () => {
-    const result = await workflow.execute({ test: 'data' });
+  test("应该在阶段失败时停止执行", async () => {
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Stage 3 failed');
+    expect(result.error).toContain("Stage 3 failed");
 
     // 验证只执行了前3个阶段
-    expect(executionLog).toContain('stage_1_executed');
-    expect(executionLog).toContain('stage_2_executed');
-    expect(executionLog).toContain('stage_3_failed');
-    expect(executionLog).not.toContain('stage_4_executed');
-    expect(executionLog).not.toContain('stage_5_executed');
+    expect(executionLog).toContain("stage_1_executed");
+    expect(executionLog).toContain("stage_2_executed");
+    expect(executionLog).toContain("stage_3_failed");
+    expect(executionLog).not.toContain("stage_4_executed");
+    expect(executionLog).not.toContain("stage_5_executed");
 
     // 验证工作流状态
-    expect(workflow.stateMachine.getState()).toBe('failed');
+    expect(workflow.stateMachine.getState()).toBe("failed");
   });
 
-  test('应该记录失败的阶段索引', async () => {
-    const result = await workflow.execute({ test: 'data' });
+  test("应该记录失败的阶段索引", async () => {
+    const result = await workflow.execute({ test: "data" });
 
-    expect(result.failedStage).toBe('stage_3');
+    expect(result.failedStage).toBe("stage_3");
   });
 
-  test('应该触发错误事件', async () => {
+  test("应该触发错误事件", async () => {
     let errorEvent = null;
 
-    workflow.on('workflow:error', (data) => {
+    workflow.on("workflow:error", (data) => {
       errorEvent = data;
     });
 
-    await workflow.execute({ test: 'data' });
+    await workflow.execute({ test: "data" });
 
     expect(errorEvent).toBeTruthy();
-    expect(errorEvent.error).toContain('Stage 3 failed');
+    expect(errorEvent.error).toContain("Stage 3 failed");
   });
 
-  test.skip('带快照的阶段失败时应该自动回滚', async () => {
-    // TODO: 此测试需要使用 SnapshotWorkflowStage 才能正确测试快照功能
-    // 当前工作流使用普通阶段，不会创建快照
-    const context = { initialData: 'test' };
+  // SKIP: 真 architectural gap — `WorkflowPipeline._initializeStages()` (line 76 of
+  // workflow-pipeline.js) hard-code 用 `WorkflowStageFactory.createDefaultStages()`，
+  // 不接受 `options.stageFactory` injection，无法让用户传 `SnapshotWorkflowStageFactory`。
+  // 要 unskip 需先扩 WorkflowPipeline constructor 加 `stageFactory` 可选参，默认 fallback
+  // 当前工厂。修法不在 test-side。SnapshotWorkflowStage 类自身的 rollback 逻辑已通过
+  // 其他测试 (workflow-snapshot.test.js / snapshot-workflow-stage 单测) 覆盖。
+  test.skip("带快照的阶段失败时应该自动回滚（架构 gap，需 WorkflowPipeline 接受 stageFactory）", async () => {
+    const context = { initialData: "test" };
 
-    const result = await workflow.execute({ test: 'data' }, context);
+    const result = await workflow.execute({ test: "data" }, context);
 
     expect(result.success).toBe(false);
 
@@ -295,7 +312,7 @@ describe('工作流管道 - 阶段失败和回滚测试', () => {
   });
 });
 
-describe('工作流管道 - 暂停/恢复/取消测试', () => {
+describe("工作流管道 - 暂停/恢复/取消测试", () => {
   let workflow;
   let mockQualityGateManager;
 
@@ -307,11 +324,11 @@ describe('工作流管道 - 暂停/恢复/取消测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
@@ -319,42 +336,42 @@ describe('工作流管道 - 暂停/恢复/取消测试', () => {
     const executors = {
       stage_1: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage1: 'ok' };
+        return { ...input, stage1: "ok" };
       },
       stage_2: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage2: 'ok' };
+        return { ...input, stage2: "ok" };
       },
       stage_3: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage3: 'ok' };
+        return { ...input, stage3: "ok" };
       },
       stage_4: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage4: 'ok' };
+        return { ...input, stage4: "ok" };
       },
       stage_5: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage5: 'ok' };
+        return { ...input, stage5: "ok" };
       },
       stage_6: async (input, context) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return { ...input, stage6: 'ok' };
+        return { ...input, stage6: "ok" };
       },
     };
 
     workflow = new WorkflowPipeline({
-      title: '暂停测试工作流',
+      title: "暂停测试工作流",
       stageExecutors: executors,
       qualityGateManager: mockQualityGateManager,
     });
   });
 
-  test('应该能够暂停和恢复工作流', async () => {
+  test("应该能够暂停和恢复工作流", async () => {
     let pauseTriggered = false;
 
     // 在第2阶段开始时暂停
-    workflow.on('workflow:stage-start', (data) => {
+    workflow.on("workflow:stage-start", (data) => {
       if (data.stageIndex === 2 && !pauseTriggered) {
         pauseTriggered = true;
         workflow.pause();
@@ -367,7 +384,7 @@ describe('工作流管道 - 暂停/恢复/取消测试', () => {
     });
 
     const startTime = Date.now();
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
     const duration = Date.now() - startTime;
 
     expect(result.success).toBe(true);
@@ -377,67 +394,67 @@ describe('工作流管道 - 暂停/恢复/取消测试', () => {
     expect(duration).toBeGreaterThan(1500);
   });
 
-  test('应该能够取消工作流', async () => {
+  test("应该能够取消工作流", async () => {
     // 在第2阶段开始时取消
-    workflow.on('workflow:stage-start', (data) => {
+    workflow.on("workflow:stage-start", (data) => {
       if (data.stageIndex === 2) {
-        workflow.cancel('用户取消');
+        workflow.cancel("用户取消");
       }
     });
 
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.success).toBe(false);
-    expect(workflow.stateMachine.getState()).toBe('cancelled');
+    expect(workflow.stateMachine.getState()).toBe("cancelled");
   });
 
-  test('暂停时应该触发事件', async () => {
+  test("暂停时应该触发事件", async () => {
     let pausedEvent = null;
     let resumedEvent = null;
 
-    workflow.on('workflow:paused', (data) => {
+    workflow.on("workflow:paused", (data) => {
       pausedEvent = data;
     });
 
-    workflow.on('workflow:resumed', (data) => {
+    workflow.on("workflow:resumed", (data) => {
       resumedEvent = data;
     });
 
     // 在第1阶段完成后暂停
-    workflow.on('workflow:stage-complete', (data) => {
+    workflow.on("workflow:stage-complete", (data) => {
       if (data.stageIndex === 0) {
         workflow.pause();
         setTimeout(() => workflow.resume(), 100);
       }
     });
 
-    await workflow.execute({ test: 'data' });
+    await workflow.execute({ test: "data" });
 
     expect(pausedEvent).toBeTruthy();
     expect(resumedEvent).toBeTruthy();
   });
 
-  test('取消时应该触发事件', async () => {
+  test("取消时应该触发事件", async () => {
     let cancelledEvent = null;
 
-    workflow.on('workflow:cancelled', (data) => {
+    workflow.on("workflow:cancelled", (data) => {
       cancelledEvent = data;
     });
 
-    workflow.on('workflow:stage-start', (data) => {
+    workflow.on("workflow:stage-start", (data) => {
       if (data.stageIndex === 1) {
-        workflow.cancel('测试取消');
+        workflow.cancel("测试取消");
       }
     });
 
-    await workflow.execute({ test: 'data' });
+    await workflow.execute({ test: "data" });
 
     expect(cancelledEvent).toBeTruthy();
-    expect(cancelledEvent.reason).toBe('测试取消');
+    expect(cancelledEvent.reason).toBe("测试取消");
   });
 });
 
-describe('工作流管道 - 质量门禁测试', () => {
+describe("工作流管道 - 质量门禁测试", () => {
   let workflow;
   let qualityGateManager;
 
@@ -451,26 +468,26 @@ describe('工作流管道 - 质量门禁测试', () => {
     };
 
     workflow = new WorkflowPipeline({
-      title: '质量门禁测试',
+      title: "质量门禁测试",
       stageExecutors: executors,
       qualityGateManager,
     });
   });
 
-  test('质量门禁通过时应该继续执行', async () => {
+  test("质量门禁通过时应该继续执行", async () => {
     // Mock质量门禁检查（全部通过）
     qualityGateManager.check = vi.fn().mockResolvedValue({
       passed: true,
       blocking: false,
-      message: '质量检查通过',
+      message: "质量检查通过",
     });
 
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.success).toBe(true);
   });
 
-  test('阻塞性质量门禁失败时应该停止执行', async () => {
+  test("阻塞性质量门禁失败时应该停止执行", async () => {
     let checkCount = 0;
 
     // Mock质量门禁检查（第2次失败）
@@ -480,7 +497,7 @@ describe('工作流管道 - 质量门禁测试', () => {
         return {
           passed: false,
           blocking: true,
-          message: '质量检查失败',
+          message: "质量检查失败",
         };
       }
       return {
@@ -489,28 +506,28 @@ describe('工作流管道 - 质量门禁测试', () => {
       };
     });
 
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('质量门禁失败');
+    expect(result.error).toContain("质量门禁失败");
   });
 
-  test('非阻塞性质量门禁失败时应该继续执行', async () => {
+  test("非阻塞性质量门禁失败时应该继续执行", async () => {
     // Mock质量门禁检查（失败但非阻塞）
     qualityGateManager.check = vi.fn().mockResolvedValue({
       passed: false,
       blocking: false,
-      message: '质量警告',
+      message: "质量警告",
     });
 
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
 
     // 应该成功完成（因为门禁不阻塞）
     expect(result.success).toBe(true);
   });
 });
 
-describe('工作流管道 - 重试机制测试', () => {
+describe("工作流管道 - 重试机制测试", () => {
   let workflow;
   let attemptCount;
   let mockQualityGateManager;
@@ -525,37 +542,37 @@ describe('工作流管道 - 重试机制测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
 
     const executors = {
-      stage_1: async () => ({ stage1: 'ok' }),
+      stage_1: async () => ({ stage1: "ok" }),
       stage_2: async () => {
         attemptCount++;
         if (attemptCount === 1) {
-          throw new Error('First attempt failed');
+          throw new Error("First attempt failed");
         }
-        return { stage2: 'ok' };
+        return { stage2: "ok" };
       },
-      stage_3: async () => ({ stage3: 'ok' }),
+      stage_3: async () => ({ stage3: "ok" }),
     };
 
     workflow = new WorkflowPipeline({
-      title: '重试测试工作流',
+      title: "重试测试工作流",
       stageExecutors: executors,
       qualityGateManager: mockQualityGateManager,
     });
   });
 
-  test('应该能够重试失败的工作流', async () => {
+  test("应该能够重试失败的工作流", async () => {
     // 第一次执行（会在stage_2失败）
-    const firstResult = await workflow.execute({ test: 'data' });
+    const firstResult = await workflow.execute({ test: "data" });
     expect(firstResult.success).toBe(false);
 
     // 重试
@@ -566,7 +583,7 @@ describe('工作流管道 - 重试机制测试', () => {
   });
 });
 
-describe('工作流管理器 - 多工作流管理测试', () => {
+describe("工作流管理器 - 多工作流管理测试", () => {
   let workflowManager;
   let mockQualityGateManager;
 
@@ -580,23 +597,23 @@ describe('工作流管理器 - 多工作流管理测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
   });
 
-  test('应该能够创建多个工作流', () => {
+  test("应该能够创建多个工作流", () => {
     const wf1 = workflowManager.createWorkflow({
-      title: '工作流1',
+      title: "工作流1",
       qualityGateManager: mockQualityGateManager,
     });
     const wf2 = workflowManager.createWorkflow({
-      title: '工作流2',
+      title: "工作流2",
       qualityGateManager: mockQualityGateManager,
     });
 
@@ -604,9 +621,9 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(workflowManager.workflows.size).toBe(2);
   });
 
-  test('应该能够获取工作流', () => {
+  test("应该能够获取工作流", () => {
     const wf = workflowManager.createWorkflow({
-      title: '测试工作流',
+      title: "测试工作流",
       qualityGateManager: mockQualityGateManager,
     });
     const retrieved = workflowManager.getWorkflow(wf.id);
@@ -614,9 +631,9 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(retrieved).toBe(wf);
   });
 
-  test('应该能够删除工作流', () => {
+  test("应该能够删除工作流", () => {
     const wf = workflowManager.createWorkflow({
-      title: '测试工作流',
+      title: "测试工作流",
       qualityGateManager: mockQualityGateManager,
     });
     const deleted = workflowManager.deleteWorkflow(wf.id);
@@ -625,20 +642,20 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(workflowManager.workflows.size).toBe(0);
   });
 
-  test('应该能够并发执行多个工作流', async () => {
+  test("应该能够并发执行多个工作流", async () => {
     const executor = async (input) => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       return { ...input, done: true };
     };
 
     const wf1 = workflowManager.createWorkflow({
-      title: '工作流1',
+      title: "工作流1",
       stageExecutors: { stage_1: executor },
       qualityGateManager: mockQualityGateManager,
     });
 
     const wf2 = workflowManager.createWorkflow({
-      title: '工作流2',
+      title: "工作流2",
       stageExecutors: { stage_1: executor },
       qualityGateManager: mockQualityGateManager,
     });
@@ -658,35 +675,39 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(duration).toBeLessThan(12000);
   }, 15000); // 增加超时时间到15秒
 
-  test('应该转发工作流事件', async () => {
+  test("应该转发工作流事件", async () => {
     const events = [];
     const passthrough = async (input) => input;
 
-    workflowManager.on('workflow:start', (data) => {
-      events.push('start');
+    workflowManager.on("workflow:start", (data) => {
+      events.push("start");
     });
 
-    workflowManager.on('workflow:complete', (data) => {
-      events.push('complete');
+    workflowManager.on("workflow:complete", (data) => {
+      events.push("complete");
     });
 
     const wf = workflowManager.createWorkflow({
-      title: '测试工作流',
+      title: "测试工作流",
       stageExecutors: {
-        stage_1: passthrough, stage_2: passthrough, stage_3: passthrough,
-        stage_4: passthrough, stage_5: passthrough, stage_6: passthrough,
+        stage_1: passthrough,
+        stage_2: passthrough,
+        stage_3: passthrough,
+        stage_4: passthrough,
+        stage_5: passthrough,
+        stage_6: passthrough,
       },
       qualityGateManager: mockQualityGateManager,
     });
 
-    await wf.execute({ test: 'data' });
+    await wf.execute({ test: "data" });
 
-    expect(events).toContain('start');
-    expect(events).toContain('complete');
+    expect(events).toContain("start");
+    expect(events).toContain("complete");
   });
 });
 
-describe('工作流管道 - 边界条件测试', () => {
+describe("工作流管道 - 边界条件测试", () => {
   let mockQualityGateManager;
 
   beforeEach(() => {
@@ -697,23 +718,27 @@ describe('工作流管道 - 边界条件测试', () => {
         blocking: false,
         score: 1,
         checks: [],
-        message: '质量检查通过',
+        message: "质量检查通过",
       }),
       getGateByStage: vi.fn().mockReturnValue(null),
       getAllStatuses: vi.fn().mockReturnValue({}),
-      on: vi.fn(),  // Mock EventEmitter methods
+      on: vi.fn(), // Mock EventEmitter methods
       emit: vi.fn(),
       removeListener: vi.fn(),
     };
   });
 
-  test('应该处理空输入', async () => {
+  test("应该处理空输入", async () => {
     const passthrough = async (input) => input || {};
     const workflow = new WorkflowPipeline({
-      title: '空输入测试',
+      title: "空输入测试",
       stageExecutors: {
-        stage_1: passthrough, stage_2: passthrough, stage_3: passthrough,
-        stage_4: passthrough, stage_5: passthrough, stage_6: passthrough,
+        stage_1: passthrough,
+        stage_2: passthrough,
+        stage_3: passthrough,
+        stage_4: passthrough,
+        stage_5: passthrough,
+        stage_6: passthrough,
       },
       qualityGateManager: mockQualityGateManager,
     });
@@ -723,15 +748,15 @@ describe('工作流管道 - 边界条件测试', () => {
     expect(result.success).toBe(true);
   });
 
-  test('应该处理大量数据', async () => {
+  test("应该处理大量数据", async () => {
     const largeData = {
       items: Array(1000)
         .fill(null)
-        .map((_, i) => ({ id: i, data: 'x'.repeat(100) })),
+        .map((_, i) => ({ id: i, data: "x".repeat(100) })),
     };
 
     const workflow = new WorkflowPipeline({
-      title: '大数据测试',
+      title: "大数据测试",
       stageExecutors: {
         stage_1: async (input) => input,
       },
@@ -744,9 +769,9 @@ describe('工作流管道 - 边界条件测试', () => {
     expect(result.results.stage_1.items.length).toBe(1000);
   }, 15000); // 大数据测试需要更长时间
 
-  test('应该处理长时间运行的阶段', async () => {
+  test("应该处理长时间运行的阶段", async () => {
     const workflow = new WorkflowPipeline({
-      title: '长时间运行测试',
+      title: "长时间运行测试",
       stageExecutors: {
         stage_1: async (input) => {
           await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -756,7 +781,7 @@ describe('工作流管道 - 边界条件测试', () => {
       qualityGateManager: mockQualityGateManager,
     });
 
-    const result = await workflow.execute({ test: 'data' });
+    const result = await workflow.execute({ test: "data" });
 
     expect(result.success).toBe(true);
     expect(result.duration).toBeGreaterThan(2000);

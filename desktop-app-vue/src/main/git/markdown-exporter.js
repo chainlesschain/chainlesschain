@@ -227,15 +227,13 @@ class MarkdownExporter {
 
       // 获取数据库中的所有项
       const items = this.database.getKnowledgeItems(9999, 0);
-      const itemIds = new Set(items.map((item) => item.id));
 
       // 导出所有项
       const exportedFiles = await this.exportAll();
-      const exportedIds = new Set(
-        exportedFiles.map((filename) => filename.split("-")[0]),
-      );
 
       // 查找需要删除的文件（数据库中不存在的项）
+      // filename pattern = `${item.id}-${cleanTitle}.md`，item.id 自身可含连字符（如 "note-001"），
+      // 故用 `startsWith(`${id}-`)` 前缀匹配而非 split("-")[0]。
       const files = fs.existsSync(this.exportPath)
         ? fs.readdirSync(this.exportPath)
         : [];
@@ -243,13 +241,17 @@ class MarkdownExporter {
       let deletedCount = 0;
 
       for (const file of files) {
-        if (file.endsWith(".md")) {
-          const fileId = file.split("-")[0];
+        if (!file.endsWith(".md")) {
+          continue;
+        }
 
-          if (!itemIds.has(fileId)) {
-            this.deleteExportedFile(file);
-            deletedCount++;
-          }
+        const hasMatchingItem = items.some((item) =>
+          file.startsWith(`${item.id}-`),
+        );
+
+        if (!hasMatchingItem) {
+          this.deleteExportedFile(file);
+          deletedCount++;
         }
       }
 
