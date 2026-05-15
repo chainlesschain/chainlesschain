@@ -421,6 +421,12 @@ function stagedFileName(op) {
  * Stage one bridge op for inclusion in the next batch close.
  * Idempotent: same op written twice -> single staging file.
  *
+ * #21 B.5 Layer 2 PR4 — when `op.multisig_provenance` is present, validate
+ * its structure via `verifyMultisigProvenance` before writing. Invalid
+ * provenance is rejected (`INVALID_MULTISIG_PROVENANCE`) instead of being
+ * silently persisted so downstream `closeBatch` / wrapper attachment
+ * cannot pick up malformed data.
+ *
  * @param {string} dir
  * @param {object} op
  * @param {{ requireEnabled?: boolean }} [opts]
@@ -434,6 +440,18 @@ export function stageBridgeOp(dir, op, opts = {}) {
     return { staged: false, path: null, reason: "DISABLED" };
   }
   validateBridgeOp(op);
+  if (op.multisig_provenance) {
+    const pv = verifyMultisigProvenance({
+      multisig_provenance: op.multisig_provenance,
+    });
+    if (!pv.ok) {
+      return {
+        staged: false,
+        path: null,
+        reason: `INVALID_MULTISIG_PROVENANCE:${pv.code}${pv.detail ? `:${pv.detail}` : ""}`,
+      };
+    }
+  }
   const file = path.join(stagingDir(dir), stagedFileName(op));
   if (fs.existsSync(file)) {
     return { staged: false, path: file, reason: "ALREADY_STAGED" };

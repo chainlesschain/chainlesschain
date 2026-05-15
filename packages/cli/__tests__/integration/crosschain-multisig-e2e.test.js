@@ -313,6 +313,90 @@ describe("cc crosschain bridge --require-multisig — Layer 1 E2E (#21 B.5)", ()
     expect(row.partial_sigs_json).toBeFalsy();
   });
 
+  it("Layer 2 PR4: bridge-consume --mtc stages op with multisig_provenance into MTC staging dir", () => {
+    fs.writeFileSync(
+      membersFile,
+      JSON.stringify([
+        {
+          did: members[0].did,
+          alg: members[0].alg,
+          pubkeyJwk: members[0].pubkeyJwk,
+        },
+      ]),
+      "utf-8",
+    );
+    expect(setPolicy(1).status).toBe(0);
+
+    // Enable MTC integration in a tmp config dir so staging is allowed.
+    const mtcConfigDir = path.join(tmpDir, "mtc-config");
+    fs.mkdirSync(mtcConfigDir, { recursive: true });
+    const enableRes = runCli([
+      "crosschain",
+      "mtc-config",
+      "--config-dir",
+      mtcConfigDir,
+      "--enable",
+      "true",
+      "--json",
+    ]);
+    // mtc-config command may not exist; fall back to env-based enable via
+    // direct file write if necessary.
+    if (enableRes.status !== 0) {
+      const cfgFile = path.join(mtcConfigDir, "cross-chain-mtc", "config.json");
+      fs.mkdirSync(path.dirname(cfgFile), { recursive: true });
+      fs.writeFileSync(
+        cfgFile,
+        JSON.stringify(
+          {
+            enabled: true,
+            batch_interval_seconds: 60,
+            alg: "ed25519",
+            mode: "independent",
+            issuer: "mtca:cc:test",
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+    }
+
+    const proposed = extractJson(propose().stdout);
+    const consumeRes = runCli([
+      "crosschain",
+      "bridge-consume",
+      proposed.proposalId,
+      "--multisig-db",
+      dbPath,
+      "--multisig-log",
+      logPath,
+      "--mtc",
+      "--mtc-config-dir",
+      mtcConfigDir,
+      "--json",
+    ]);
+    expect(consumeRes.status, consumeRes.stderr).toBe(0);
+    const consumed = extractJson(consumeRes.stdout);
+    expect(consumed.status).toBe("consumed");
+    expect(consumed.mtc).toBeDefined();
+    expect(consumed.mtc.staged).toBe(true);
+    expect(consumed.mtc.path).toMatch(/cross-chain-mtc[\\/]staging/);
+
+    // Inspect the staged op JSON — multisig_provenance MUST be carried.
+    const stagedRaw = fs.readFileSync(consumed.mtc.path, "utf-8");
+    const stagedOp = JSON.parse(stagedRaw);
+    expect(stagedOp.bridge_op).toBe("lock");
+    expect(stagedOp.src_chain).toBe("ethereum");
+    expect(stagedOp.dst_chain).toBe("polygon");
+    expect(stagedOp.multisig_provenance).toBeDefined();
+    expect(stagedOp.multisig_provenance.proposal_id).toBe(proposed.proposalId);
+    expect(stagedOp.multisig_provenance.threshold_m).toBe(1);
+    expect(stagedOp.multisig_provenance.member_count_n).toBe(1);
+    expect(stagedOp.multisig_provenance.signers).toEqual([members[0].did]);
+    expect(stagedOp.multisig_provenance.partial_sigs).toHaveLength(1);
+    expect(stagedOp.multisig_provenance.partial_sigs[0].alg).toBe("Ed25519");
+  });
+
   it("Layer 2: bridge-show text output surfaces multisig provenance when present", () => {
     fs.writeFileSync(
       membersFile,

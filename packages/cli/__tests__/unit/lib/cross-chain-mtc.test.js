@@ -603,6 +603,126 @@ describe("cross-chain-mtc lib", () => {
       );
     });
 
+    // ─── PR4 — multisig_provenance carry-forward ──────────────
+
+    function makeProvOp(overrides = {}) {
+      return makeOp({
+        multisig_provenance: {
+          proposal_id: "msp_pr4",
+          threshold_m: 2,
+          member_count_n: 3,
+          signers: ["did:cc:a", "did:cc:b"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+          ],
+        },
+        ...overrides,
+      });
+    }
+
+    it("stageBridgeOp PR4: writes valid multisig_provenance through to file", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const r = stageBridgeOp(dir, makeProvOp());
+      expect(r.staged).toBe(true);
+      const raw = JSON.parse(fs.readFileSync(r.path, "utf-8"));
+      expect(raw.multisig_provenance.proposal_id).toBe("msp_pr4");
+      expect(raw.multisig_provenance.signers).toEqual(["did:cc:a", "did:cc:b"]);
+      expect(raw.multisig_provenance.partial_sigs).toHaveLength(2);
+    });
+
+    it("stageBridgeOp PR4: rejects unsorted signers (canonical-form invariant)", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const bad = makeOp({
+        multisig_provenance: {
+          proposal_id: "msp_x",
+          threshold_m: 2,
+          member_count_n: 3,
+          signers: ["did:cc:b", "did:cc:a"],
+          partial_sigs: [
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+          ],
+        },
+      });
+      const r = stageBridgeOp(dir, bad);
+      expect(r.staged).toBe(false);
+      expect(r.reason).toMatch(
+        /^INVALID_MULTISIG_PROVENANCE:SIGNERS_NOT_SORTED/,
+      );
+    });
+
+    it("stageBridgeOp PR4: rejects unsupported alg in partial_sigs", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const bad = makeOp({
+        multisig_provenance: {
+          proposal_id: "msp_alg",
+          threshold_m: 2,
+          member_count_n: 3,
+          signers: ["did:cc:a", "did:cc:b"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "RSA-2048", sig: "aa" },
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+          ],
+        },
+      });
+      const r = stageBridgeOp(dir, bad);
+      expect(r.staged).toBe(false);
+      expect(r.reason).toMatch(/^INVALID_MULTISIG_PROVENANCE:UNSUPPORTED_ALG/);
+    });
+
+    it("stageBridgeOp PR4: rejects threshold_m > member_count_n", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const bad = makeOp({
+        multisig_provenance: {
+          proposal_id: "msp_thr",
+          threshold_m: 5,
+          member_count_n: 3,
+          signers: ["did:cc:a", "did:cc:b"],
+          partial_sigs: [
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+          ],
+        },
+      });
+      const r = stageBridgeOp(dir, bad);
+      expect(r.staged).toBe(false);
+      expect(r.reason).toMatch(/^INVALID_MULTISIG_PROVENANCE:BAD_THRESHOLD/);
+    });
+
+    it("stageBridgeOp PR4: legacy op without multisig_provenance still works", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      const r = stageBridgeOp(dir, makeOp());
+      expect(r.staged).toBe(true);
+      const raw = JSON.parse(fs.readFileSync(r.path, "utf-8"));
+      expect(raw.multisig_provenance).toBeUndefined();
+    });
+
+    it("stageBridgeOp PR4: closeBatch carries multisig_provenance into envelope leaf", () => {
+      saveCrossChainMtcConfig(dir, { enabled: true });
+      stageBridgeOp(dir, makeProvOp());
+      const { batches } = closeBatch(dir);
+      expect(batches).toHaveLength(1);
+      const envFiles = fs
+        .readdirSync(batches[0].dir)
+        .filter((f) => f.startsWith("envelope-"));
+      expect(envFiles).toHaveLength(1);
+      const env = JSON.parse(
+        fs.readFileSync(path.join(batches[0].dir, envFiles[0]), "utf-8"),
+      );
+      expect(env.leaf.multisig_provenance).toBeDefined();
+      expect(env.leaf.multisig_provenance.proposal_id).toBe("msp_pr4");
+      expect(env.leaf.multisig_provenance.signers).toEqual([
+        "did:cc:a",
+        "did:cc:b",
+      ]);
+      expect(env.leaf.multisig_provenance.partial_sigs).toHaveLength(2);
+      // Legacy bridge fields preserved alongside provenance.
+      expect(env.leaf.bridge_op).toBe("lock");
+      expect(env.leaf.src_chain).toBe("ethereum");
+      expect(env.leaf.dst_chain).toBe("polygon");
+    });
+
     it("listStagedOps groups by chain-pair (lex-ordered)", () => {
       saveCrossChainMtcConfig(dir, { enabled: true });
       stageBridgeOp(

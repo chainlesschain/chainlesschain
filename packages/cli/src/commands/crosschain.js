@@ -241,6 +241,10 @@ async function _bridgePropose({
  * #21 B.5 Layer 1 — finalize an outbound bridge after multisig threshold.
  * Reads the proposal's payload, executes the actual bridgeAsset() insert,
  * then marks the proposal consumed. Mirrors marketplace.consume.
+ *
+ * PR4 — when `mtc=true`, additionally stage the bridge op with multisig
+ * provenance via `_maybeStageMtc` so closeBatch carries it into the MTC
+ * envelope leaf (and downstream wrapper attachment / Layer 3 broadcast).
  */
 async function _bridgeConsume({
   db,
@@ -248,6 +252,8 @@ async function _bridgeConsume({
   multisigDb,
   multisigLog,
   json,
+  mtc,
+  mtcConfigDir,
 }) {
   const { mgr, close } = await openMultisigManager(multisigDb, multisigLog);
   try {
@@ -295,8 +301,15 @@ async function _bridgeConsume({
     // returned sorted by signer_did ASC (store.getSignatures), so the array
     // ordering is canonical for any downstream onchain verifier.
     const signatures = got.signatures || [];
+    // PR4 adds thresholdM + memberCountN so the carry-forward MTC staging
+    // can build the canonical multisig_provenance shape required by
+    // attachMultisigProvenance / verifyMultisigProvenance.
     const multisigContext = {
       proposalId: got.proposal.id,
+      thresholdM: got.proposal.thresholdM,
+      memberCountN: Array.isArray(got.proposal.memberSet)
+        ? got.proposal.memberSet.length
+        : signatures.length,
       signers: signatures.map((s) => s.signerDid),
       partialSigs: signatures.map((s) => ({
         did: s.signerDid,
@@ -348,6 +361,29 @@ async function _bridgeConsume({
       return out;
     }
 
+    // PR4 — opt-in MTC staging carries the multisig provenance forward into
+    // closeBatch / wrapper envelope. Same `_maybeStageMtc` helper as the
+    // legacy direct-bridge path, just with an enriched op shape including
+    // the canonical `multisig_provenance` field.
+    const mtcStaged = _maybeStageMtc({ mtc, mtcConfigDir }, () => ({
+      bridge_op: "lock",
+      src_chain: payload.fromChain,
+      dst_chain: payload.toChain,
+      src_tx_hash: bridgeResult.bridgeId,
+      amount: String(payload.amount),
+      asset: payload.asset || "native",
+      src_did: payload.sender || null,
+      dst_did: payload.recipient || null,
+      issued_at: new Date().toISOString(),
+      multisig_provenance: {
+        proposal_id: multisigContext.proposalId,
+        threshold_m: multisigContext.thresholdM,
+        member_count_n: multisigContext.memberCountN,
+        signers: multisigContext.signers,
+        partial_sigs: multisigContext.partialSigs,
+      },
+    }));
+
     const out = {
       status: "consumed",
       proposalId,
@@ -357,6 +393,8 @@ async function _bridgeConsume({
       // Layer 2 provenance — surface what was persisted on the bridge row.
       signers: multisigContext.signers,
       partialSigCount: multisigContext.partialSigs.length,
+      // PR4 — surface MTC staging result when --mtc was passed.
+      mtc: mtcStaged,
     };
     if (json) {
       console.log(JSON.stringify(out, null, 2));
@@ -368,6 +406,10 @@ async function _bridgeConsume({
         `  bridgeId: ${bridgeResult.bridgeId} (fee ${bridgeResult.fee})`,
       );
       console.log(`  proposalId: ${proposalId}`);
+      if (mtcStaged?.staged)
+        console.log(`  MTC envelope staged: ${mtcStaged.path}`);
+      else if (mtcStaged && !mtcStaged.staged)
+        console.log(`  MTC stage skipped: ${mtcStaged.reason}`);
     }
     return out;
   } finally {
@@ -524,6 +566,11 @@ export function registerCrossChainCommand(program) {
       "--multisig-log <path>",
       "Multisig governance log path (default ~/.chainlesschain/multisig.governance.log)",
     )
+    .option(
+      "--mtc",
+      "On success, stage an MTC bridge envelope carrying the multisig provenance (requires cc crosschain mtc-batch to close)",
+    )
+    .option("--mtc-config-dir <dir>", "Override MTC config root")
     .option("--json", "JSON output")
     .action(async (proposalId, opts) => {
       const db = _dbFromCtx(cc);
@@ -533,6 +580,8 @@ export function registerCrossChainCommand(program) {
         multisigDb: opts.multisigDb || defaultMultisigDbPath(),
         multisigLog: opts.multisigLog || defaultMultisigLogPath(),
         json: opts.json,
+        mtc: opts.mtc,
+        mtcConfigDir: opts.mtcConfigDir,
       });
     });
 
