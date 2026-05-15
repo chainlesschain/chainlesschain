@@ -33,11 +33,9 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Signal Protocol
-        .package(
-            url: "https://github.com/signalapp/libsignal.git",
-            from: "0.30.0"
-        ),
+        // libsignal dep removed — signalapp/libsignal repo root 无 Package.swift
+        // (Swift bindings 在 swift/ 子目录)，SPM 无法 resolve。CoreE2EE 源码
+        // 实际未 import LibSignalClient，是 dead declaration。
         // SQLCipher dep removed alongside CoreDatabase target — see note above.
         // WebRTC
         .package(
@@ -100,8 +98,7 @@ let package = Package(
             dependencies: [
                 "CoreCommon",
                 "CoreSecurity",
-                "CoreDID",
-                .product(name: "LibSignalClient", package: "libsignal")
+                "CoreDID"
             ],
             path: "Modules/CoreE2EE"
         ),
