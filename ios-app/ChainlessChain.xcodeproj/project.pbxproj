@@ -15,6 +15,7 @@
 		0F87D71FE3ABC2CFC106F26C /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91E8D777AF659EB8D796B10 /* ProjectDetailView.swift */; };
 		1336099663F92233E35B344F /* ProjectRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0438A671A0E909077997601 /* ProjectRepository.swift */; };
 		14DFB998360E1216B54E605B /* AnthropicClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA4C2847E5E1667206CFDEF /* AnthropicClient.swift */; };
+		18994B052CF9EB59E983B906 /* CoreDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 2563F8AECF5A054BA581AE04 /* CoreDatabase */; };
 		1B8A75FA6FFE146B71643520 /* ComputerUseResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604927DEBB1CE9C7E9BB85FF /* ComputerUseResult.swift */; };
 		1F4CEA88DDB6275B5787C483 /* ComputerUseToolRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2C66BC51A62F4495136BEC /* ComputerUseToolRegistration.swift */; };
 		2317F49A7812C0B688B2B852 /* GitOperationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7237A81DA921E12351908A7A /* GitOperationsView.swift */; };
@@ -218,6 +219,7 @@
 				BE3CA1F835ABE75D572E27C4 /* CoreDID in Frameworks */,
 				0C6CC89DCDF1C1286E7893C3 /* CoreE2EE in Frameworks */,
 				4C47AC2C77F8FD2A17C94B87 /* CoreP2P in Frameworks */,
+				18994B052CF9EB59E983B906 /* CoreDatabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -844,6 +846,7 @@
 				0FBB8AB2243984EBAD0DE409 /* CoreDID */,
 				434E9B731381EADCADFF01BB /* CoreE2EE */,
 				A1731A7AB73826161D115FA8 /* CoreP2P */,
+				2563F8AECF5A054BA581AE04 /* CoreDatabase */,
 			);
 			productName = ChainlessChain;
 			productReference = BA0E63DDF7F96537017E376A /* ChainlessChain.app */;
@@ -1195,6 +1198,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA2EE3DCFDE3AB20C8B162AD /* XCLocalSwiftPackageReference "." */;
 			productName = CoreDID;
+		};
+		2563F8AECF5A054BA581AE04 /* CoreDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA2EE3DCFDE3AB20C8B162AD /* XCLocalSwiftPackageReference "." */;
+			productName = CoreDatabase;
 		};
 		434E9B731381EADCADFF01BB /* CoreE2EE */ = {
 			isa = XCSwiftPackageProductDependency;
