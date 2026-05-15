@@ -35,6 +35,7 @@
 const crypto = require("crypto");
 const os = require("os");
 const { logger } = require("../../utils/logger.js");
+const { startManualPairAliasListeners } = require("./manual-pair-listener.js");
 
 /**
  * v1.3+ plan B — coturn time-limited credentials.
@@ -277,6 +278,10 @@ function recordPairAck(ackPayload) {
     `[desktop.pair WS] pair-ack matched, mobile DID=${ackPayload.mobileDid}`,
   );
 
+  // iOS Phase 1.6 follow-up — pair-ack 已收，alias listeners 不再需要，立刻停掉
+  // 释放 socket。下个 QR 会重新 start。
+  stopManualPairAliasListeners();
+
   // v1.3+ plan B — pair-ack 收到后异步把 iceServers 经信令 push 给手机。
   // 因 iceServers JSON ~400 字符塞 QR 让识别率暴跌，改成扫码后由信令通道下发。
   // 双发：本地 LAN signaling + 公网中继（手机连哪边都能收到）。
@@ -330,12 +335,31 @@ function pushIceServersToMobile(ackPayload) {
   );
 }
 
+/**
+ * iOS Phase 1.6 follow-up — alias listeners handle (一对 LAN+relay WS 连接)。
+ * QR 生成时 start，cancel/expire/successful pair-ack 时 stop。永远只有一个
+ * 活跃 handle（覆盖前一个）。
+ */
+let activeManualPairAliasHandle = null;
+
+function stopManualPairAliasListeners() {
+  if (activeManualPairAliasHandle) {
+    try {
+      activeManualPairAliasHandle.stop();
+    } catch (e) {
+      logger.warn(`[desktop.pair WS] alias listener stop threw: ${e.message}`);
+    }
+    activeManualPairAliasHandle = null;
+  }
+}
+
 function resetSession() {
   sessionState.code = null;
   sessionState.pcPeerId = null;
   sessionState.payload = null;
   sessionState.generatedAt = 0;
   sessionState.ack = null;
+  stopManualPairAliasListeners();
 }
 
 /**
@@ -517,6 +541,24 @@ function createDesktopPairGenerateHandler(options = {}) {
     logger.info(
       `[desktop.pair WS] new pairing session code=${code} pcPeerId=${pcPeerId.slice(0, 12)}…`,
     );
+
+    // iOS Phase 1.6 follow-up — 起 alias listeners 让 iOS Manual flow 能
+    // 经 signaling 路由到桌面。覆盖前一个（若有）。Factory 注入让测试可 stub。
+    stopManualPairAliasListeners();
+    const factory =
+      options.startManualPairAliasListeners || startManualPairAliasListeners;
+    try {
+      activeManualPairAliasHandle = factory({
+        code,
+        onPairAck: recordPairAck,
+      });
+    } catch (e) {
+      logger.warn(
+        `[desktop.pair WS] alias listeners start failed: ${e.message}`,
+      );
+      activeManualPairAliasHandle = null;
+    }
+
     return { payload, payloadJson: JSON.stringify(payload) };
   };
 }
@@ -562,5 +604,7 @@ module.exports = {
   // exposed for testing
   _sessionState: sessionState,
   _resetSession: resetSession,
+  _getActiveManualPairAliasHandle: () => activeManualPairAliasHandle,
+  _stopManualPairAliasListeners: stopManualPairAliasListeners,
   _resetIcePushAt: () => _iceLastPushAt.clear(),
 };

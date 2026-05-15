@@ -14,6 +14,21 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// iOS Phase 1.6 follow-up — mock manual-pair-listener 避免测试时打开真 WS
+// 连接 (LAN ws://localhost:9001 + relay wss://signaling.chainlesschain.com)。
+// 注意：vi.mock 会被 hoist 到 import 之前。
+vi.mock("../handlers/manual-pair-listener.js", () => ({
+  startManualPairAliasListeners: vi.fn(() => ({
+    listeners: [],
+    stop: vi.fn(),
+  })),
+  ManualPairAliasListener: class {
+    constructor() {}
+    start() {}
+    stop() {}
+  },
+}));
+
 const {
   createDesktopPairGenerateHandler,
   createDesktopPairPollAckHandler,
