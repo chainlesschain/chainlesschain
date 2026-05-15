@@ -124,6 +124,12 @@
                   @click.stop="onCancel(record)"
                 >取消</a-button>
                 <a-button
+                  v-if="record.state === 'pending'"
+                  size="small"
+                  type="primary"
+                  @click.stop="onSignFromList(record)"
+                >签名</a-button>
+                <a-button
                   v-if="record.state === 'reached' && record.domain === 'marketplace.purchase'"
                   size="small"
                   type="primary"
@@ -242,6 +248,11 @@
             @click="onCancel(detail.proposal)"
           >取消提案</a-button>
           <a-button
+            v-if="detail.proposal.state === 'pending'"
+            type="primary"
+            @click="onSignFromDetail()"
+          >签名 (multisig.sign)</a-button>
+          <a-button
             v-if="detail.proposal.state === 'reached' && detail.proposal.domain === 'marketplace.purchase'"
             type="primary"
             @click="onConsume(detail.proposal)"
@@ -259,6 +270,13 @@
         </a-space>
       </div>
     </a-drawer>
+
+    <!-- #21 B.1 PR2b — Sign Proposal Modal -->
+    <SignProposalModal
+      v-model:open="signOpen"
+      :proposal="signProposalDetail"
+      @signed="onSigned"
+    />
   </div>
 </template>
 
@@ -276,6 +294,7 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useShellMode } from '../composables/useShellMode.js'
+import SignProposalModal from './SignProposalModal.vue'
 
 const ws = useWsStore()
 const { isEmbedded } = useShellMode()
@@ -304,6 +323,10 @@ const domainFilter = ref('')
 
 const detailOpen = ref(false)
 const detail = ref(null)
+
+// #21 B.1 PR2b — sign proposal modal state
+const signOpen = ref(false)
+const signProposalDetail = ref(null)
 
 const columns = [
   { title: 'ID', key: 'id', width: 200 },
@@ -439,6 +462,36 @@ async function onCancel(record) {
       }
     },
   })
+}
+
+// #21 B.1 PR2b — sign flow (list / detail entry points)
+async function onSignFromList(record) {
+  try {
+    // Need full detail (memberSet, signatures, payloadHash) to render Modal.
+    const got = await callMultisigTopic(
+      'multisig.show',
+      { proposalId: record.id },
+      `multisig show ${record.id} --json`,
+      8000,
+    )
+    signProposalDetail.value = got
+    signOpen.value = true
+  } catch (err) {
+    message.error('加载提案详情失败: ' + (err.message || err))
+  }
+}
+
+function onSignFromDetail() {
+  if (!detail.value) return
+  signProposalDetail.value = detail.value
+  signOpen.value = true
+}
+
+async function onSigned() {
+  // Modal already emitted success toast — refresh list + close detail drawer
+  // so the user sees the new sig count / state.
+  detailOpen.value = false
+  await loadAll()
 }
 
 async function onConsume(record) {

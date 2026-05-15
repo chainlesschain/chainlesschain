@@ -24,6 +24,7 @@ import {
   KEY_SOURCES,
   _hexToSecret,
   _pathToSecret,
+  buildUkeyManagerSigner,
 } from "../multisig-signer.js";
 
 function makeFakeRuntime(mgrImpl) {
@@ -365,6 +366,120 @@ describe("MultisigSigner.signProposal invalid input", () => {
         params: { keyPath: "/nonexistent-xyz-12345" },
       }),
     ).rejects.toMatchObject({ code: "KEY_PATH_NOT_FOUND" });
+  });
+});
+
+describe("buildUkeyManagerSigner (#21 B.1 PR2b)", () => {
+  it("rejects when ukeyManager is missing or lacks sign()", () => {
+    expect(() => buildUkeyManagerSigner(null)).toThrowError(
+      /ukeyManager\.sign\(data\) function required/,
+    );
+    expect(() => buildUkeyManagerSigner({})).toThrowError(
+      /ukeyManager\.sign\(data\) function required/,
+    );
+    expect(() =>
+      buildUkeyManagerSigner({ sign: "not-a-function" }),
+    ).toThrowError(/ukeyManager\.sign\(data\) function required/);
+  });
+
+  it("passes Buffer through when driver returns Buffer directly", async () => {
+    const fakeSig = Buffer.from("aabbccdd", "hex");
+    const ukm = { sign: vi.fn(async () => fakeSig) };
+    const sign = buildUkeyManagerSigner(ukm);
+    const r = await sign(Buffer.from("hello"), "Ed25519");
+    expect(r).toBe(fakeSig);
+    expect(ukm.sign).toHaveBeenCalledTimes(1);
+    expect(ukm.sign.mock.calls[0][0]).toEqual(Buffer.from("hello"));
+  });
+
+  it("extracts signature field when driver returns { signature: Buffer }", async () => {
+    const fakeSig = Buffer.from("deadbeef", "hex");
+    const ukm = {
+      sign: vi.fn(async () => ({ success: true, signature: fakeSig })),
+    };
+    const sign = buildUkeyManagerSigner(ukm);
+    const r = await sign(Buffer.from("x"), "Ed25519");
+    expect(r).toBe(fakeSig);
+  });
+
+  it("converts hex signature string to Buffer", async () => {
+    const ukm = { sign: vi.fn(async () => ({ signature: "deadbeef" })) };
+    const sign = buildUkeyManagerSigner(ukm);
+    const r = await sign(Buffer.from("x"), "Ed25519");
+    expect(r).toBeInstanceOf(Buffer);
+    expect(r.toString("hex")).toBe("deadbeef");
+  });
+
+  it("converts base64 signature string to Buffer (fallback)", async () => {
+    // 'AAEC' base64 = 0x000102; not hex-looking (contains uppercase + '+/')
+    // Use a non-hex string to force base64 branch.
+    const b64 = Buffer.from([0x00, 0x01, 0x02]).toString("base64"); // 'AAEC'
+    const ukm = { sign: vi.fn(async () => ({ signature: b64 })) };
+    const sign = buildUkeyManagerSigner(ukm);
+    const r = await sign(Buffer.from("x"), "Ed25519");
+    expect(r.toString("hex")).toBe("000102");
+  });
+
+  it("accepts 'sig' field when 'signature' missing", async () => {
+    const ukm = {
+      sign: vi.fn(async () => ({ sig: Buffer.from("0102", "hex") })),
+    };
+    const sign = buildUkeyManagerSigner(ukm);
+    const r = await sign(Buffer.from("x"), "Ed25519");
+    expect(r.toString("hex")).toBe("0102");
+  });
+
+  it("throws when driver returns success=false", async () => {
+    const ukm = {
+      sign: vi.fn(async () => ({
+        success: false,
+        reason: "device_locked",
+        message: "Insert U-Key first",
+      })),
+    };
+    const sign = buildUkeyManagerSigner(ukm);
+    await expect(sign(Buffer.from("x"), "Ed25519")).rejects.toMatchObject({
+      code: "device_locked",
+    });
+  });
+
+  it("throws UKEY_BAD_RESULT when result lacks any signature field", async () => {
+    const ukm = { sign: vi.fn(async () => ({ unrelated: "stuff" })) };
+    const sign = buildUkeyManagerSigner(ukm);
+    await expect(sign(Buffer.from("x"), "Ed25519")).rejects.toMatchObject({
+      code: "UKEY_BAD_RESULT",
+    });
+  });
+
+  it("throws UKEY_BAD_RESULT when result is primitive (not object)", async () => {
+    const ukm = { sign: vi.fn(async () => "raw-string-not-hex-len") };
+    const sign = buildUkeyManagerSigner(ukm);
+    await expect(sign(Buffer.from("x"), "Ed25519")).rejects.toMatchObject({
+      code: "UKEY_BAD_RESULT",
+    });
+  });
+
+  it("integrates with createMultisigSigner: source=ukey uses ukeyManager", async () => {
+    const fakeSig = Buffer.from("11223344", "hex");
+    const ukm = { sign: vi.fn(async () => ({ signature: fakeSig })) };
+    const mgrSignWithExternal = vi.fn(async ({ signCallback }) => {
+      // Simulate mgr passing canonical bytes; verify the signCallback works.
+      const sig = await signCallback(Buffer.from("canonical-bytes"), "Ed25519");
+      expect(sig).toBe(fakeSig);
+      return { accepted: true, reachedThreshold: false };
+    });
+    const { signer } = withSigner(
+      { sign: vi.fn(), signWithExternal: mgrSignWithExternal },
+      { ukeySigner: buildUkeyManagerSigner(ukm) },
+    );
+    const r = await signer.signProposal({
+      proposalId: "msp_b1_pr2b",
+      signerDid: "did:cc:a",
+      source: KEY_SOURCES.UKEY,
+      params: {},
+    });
+    expect(r.accepted).toBe(true);
+    expect(ukm.sign).toHaveBeenCalledTimes(1);
   });
 });
 

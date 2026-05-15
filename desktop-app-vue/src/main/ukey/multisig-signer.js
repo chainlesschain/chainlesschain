@@ -211,8 +211,81 @@ function createMultisigSigner(options = {}) {
   return { signProposal, KEY_SOURCES };
 }
 
+/**
+ * #21 B.1 PR2b — adapt main-process `ukeyManager.sign(data)` into the
+ * `signCallback(bytes, alg) → Promise<Buffer>` shape required by
+ * `core-multisig.signWithExternal` / `MultisigSigner.source='ukey'`.
+ *
+ * Driver return shapes vary (Windows hardware vs simulation vs
+ * cross-platform adapter). This wrapper normalises:
+ *
+ *   - Direct Buffer            → return as-is
+ *   - { signature: Buffer }    → return result.signature
+ *   - { signature: hex string }→ Buffer.from(hex, 'hex')
+ *   - { signature: base64 }    → Buffer.from(base64, 'base64')  (fallback)
+ *   - { success: false, ... }  → throw with reason+message
+ *   - { sig: ... }             → same lookup as signature
+ *   - anything else            → throw 'unexpected_ukey_result'
+ *
+ * The `alg` argument is forwarded to the driver via the data envelope
+ * (driver-specific) when the driver exposes a sig-with-alg API; today's
+ * adapters ignore alg, so the wrapper just passes the bytes through.
+ *
+ * Throws on any failure so `mgr.signWithExternal` catches it and returns
+ * `{accepted: false, reason: 'sign_callback_failed', detail: <message>}`.
+ *
+ * @param {object} ukeyManager - main-process UKey singleton (sign(data)→Result)
+ * @returns {(bytes: Buffer, alg: string) => Promise<Buffer>}
+ */
+function buildUkeyManagerSigner(ukeyManager) {
+  if (!ukeyManager || typeof ukeyManager.sign !== "function") {
+    throw new TypeError(
+      "buildUkeyManagerSigner: ukeyManager.sign(data) function required",
+    );
+  }
+  return async function ukeySign(bytes /* , alg */) {
+    const result = await ukeyManager.sign(bytes);
+    // Driver might return Buffer directly (no envelope).
+    if (Buffer.isBuffer(result)) {
+      return result;
+    }
+    if (!result || typeof result !== "object") {
+      const e = new Error(
+        `unexpected_ukey_result: ${typeof result}=${String(result).slice(0, 80)}`,
+      );
+      e.code = "UKEY_BAD_RESULT";
+      throw e;
+    }
+    if (result.success === false) {
+      const e = new Error(
+        result.message || result.reason || "ukey_sign_failed",
+      );
+      e.code = result.reason || "UKEY_SIGN_FAILED";
+      throw e;
+    }
+    const sig = result.signature ?? result.sig ?? result.data;
+    if (Buffer.isBuffer(sig)) {
+      return sig;
+    }
+    if (typeof sig === "string") {
+      // Heuristic: lowercase hex only (drivers conventionally emit lowercase).
+      // Uppercase chars / '+' / '/' / '=' fall to base64. Empty length odd → fail.
+      if (/^[0-9a-f]+$/.test(sig) && sig.length % 2 === 0 && sig.length >= 2) {
+        return Buffer.from(sig, "hex");
+      }
+      return Buffer.from(sig, "base64");
+    }
+    const e = new Error(
+      `unexpected_ukey_result: no signature field (keys: ${Object.keys(result).join(",")})`,
+    );
+    e.code = "UKEY_BAD_RESULT";
+    throw e;
+  };
+}
+
 module.exports = {
   createMultisigSigner,
+  buildUkeyManagerSigner,
   KEY_SOURCES,
   // Exported for unit tests + reuse from CLI plumbing.
   _hexToSecret,

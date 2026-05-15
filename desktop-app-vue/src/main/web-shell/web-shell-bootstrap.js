@@ -69,6 +69,10 @@ const {
   createDesktopPairResetHandler,
 } = require("./handlers/desktop-pair-handlers");
 const { createMultisigHandlers } = require("./handlers/multisig-handlers");
+const {
+  createMultisigSigner,
+  buildUkeyManagerSigner,
+} = require("../ukey/multisig-signer");
 const { createProjectHandlers } = require("./handlers/project-handlers");
 const { createTerminalHandlers } = require("./handlers/terminal-handlers");
 const { PtyManager } = require("../terminal/PtyManager");
@@ -231,7 +235,19 @@ async function startWebShell(options = {}) {
     // 原 7 处 ws.executeJson('multisig …') / ws.executeJson('marketplace consume …')
     // 走 _executeCommand 子进程，asar:true 同样 6-10s 冷启。改 in-process 调
     // @chainlesschain/core-multisig v0.1.0，每次 open 一个 SQLite handle（~20ms）。
-    ...createMultisigHandlers(),
+    //
+    // 2026-05-15 PR2b (#21 B.1) — inject ukeySigner so multisig.sign 的
+    // source='ukey' 路径走真硬件（或 macOS/Linux simulation 驱动）。当
+    // options.ukeyManager 缺席（早 boot / 测试）就退回 PR1 行为：source='ukey'
+    // 仍能注入但会被 mgr.signWithExternal 在 callback 执行时报错。
+    ...createMultisigHandlers({
+      signerFactory: () =>
+        createMultisigSigner({
+          ukeySigner: options.ukeyManager
+            ? buildUkeyManagerSigner(options.ukeyManager)
+            : null,
+        }),
+    }),
     // 2026-05-13 — project.* in-process WS handlers（#21 P3）。Projects.vue
     // 走这条避免 ws.execute('cc project …') 子进程冷启 6-10s。复用 P1 已落地
     // 的 ProjectManagementHandler（mobile L3 REMOTE 也用同一份），同份 handler

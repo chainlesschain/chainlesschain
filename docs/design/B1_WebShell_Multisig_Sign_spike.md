@@ -1,10 +1,10 @@
-# B.1 web-shell private key signing — spike v0.2
+# B.1 web-shell private key signing — spike v0.3
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) B.1（GA 后续 scope · P1）
-> **状态**: 🟢 PR1 ✅ + PR2a ✅ landed (2026-05-15)
+> **状态**: 🟢 PR1 ✅ + PR2a ✅ + PR2b ✅ landed (2026-05-15) — Layer "签名能在 web-shell 端发起" 收口
 > **作者**: 2026-05-15
 > **关联**: [Android 重新定位 §10 B.1](Android_重新定位_设计文档.md) / [MofN 多签应用扩展](MofN_多签_应用扩展_v1.md) / [三端 UI Consistency §2.4](三端_UI_Consistency_设计文档.md)
-> **下一步**: PR2b SignProposalModal.vue + ukeyManager.sign callback factory / PR3 unified-key-manager DID↔key 索引
+> **下一步**: PR3 unified-key-manager DID↔key 索引 + CLI `--keystore` flag
 
 ---
 
@@ -37,7 +37,7 @@
 |---|---|---|---|
 | 1 | ✅ landed (2026-05-15) | `ukey/multisig-signer.js` + `web-shell/handlers/multisig-handlers.js` + 2 测试文件 | (1) `createMultisigSigner({runtimeFactory?, ukeySigner?})` 工厂；4 sources 派发（hex / path / ukey / unified）(2) `signProposal({proposalId, signerDid, alg?, source, params})` API 返 `mgr.sign` shape (3) `multisig.sign` WS topic mirror marketplace.consume pattern，domain 错码（INVALID_KEY / UKEY_NOT_WIRED / UNIFIED_NOT_IMPLEMENTED / INVALID_SOURCE / KEY_PATH_NOT_FOUND / KEY_PATH_NOT_FILE）软化成 `{accepted:false, reason}`，programming 错误（INVALID_ARGS）re-throw (4) 22 MultisigSigner unit + 9 handler unit tests + 31 既有 handler 0 regression |
 | 2a | ✅ landed (2026-05-15) | `core-multisig/lib/proposals.js` + `ukey/multisig-signer.js` + 16 new tests | (1) **core-multisig** `mgr.signWithExternal({proposalId, signer, signCallback})` 新 async API — caller 提供 `signCallback(canonicalBytes, alg) → Promise<Buffer>` 代替 secretKey；secret 永远不进函数 input。mirror sign() 检查 (state/membership/alg/duplicate)，加 5 个外部错码（`missing_sign_callback` / `sign_callback_failed` (含 detail) / `sign_callback_returned_non_buffer` / `sig_self_verify_failed` 既有） (2) **MultisigSigner** source='ukey' 直接走 `mgr.signWithExternal(..., signCallback: ukeySigner)` — 不再 throw NOT_IMPLEMENTED；hex/path 仍走原 `mgr.sign` 同步路径 (3) 10 core-multisig signWithExternal unit tests (happy / missing callback / not_found / duplicate / not_a_member / alg_mismatch / sig_self_verify_failed / non-buffer / callback throw / hybrid Ed25519+SLH-DSA / mgr.sign+signWithExternal interop) (4) 5 MultisigSigner ukey path tests (NOT_WIRED / delegation / error pass-through / alg default / close on throw) (5) 0 regression in 31 existing handler tests |
-| 2b | ⏳ pending | `SignProposalModal.vue` + `ukey-ipc.js` `electronAPI.ukey.signMultisig(canonicalBytes, alg)` IPC + web-panel renderer | (1) `SignProposalModal.vue` — domain 显示 + payload hash 短码 (per A.2 §2.4.c) + signer DID 选择 dropdown + 4 source picker + result toast (2) renderer-side `ukeySigner` factory wraps electronAPI to expose `(bytes, alg) → Promise<Buffer>` matching MultisigSigner contract (3) `Multisig.vue` 加 "签名" 按钮 (state==='pending') 调 `callMultisigTopic('multisig.sign', ...)` |
+| 2b | ✅ landed (2026-05-15) | `multisig-signer.js` (`buildUkeyManagerSigner` helper) + `web-shell-bootstrap.js` (wire `signerFactory`) + `SignProposalModal.vue` (new) + `Multisig.vue` (签名按钮 + onSign 流程) | (1) **architecture pivot**: renderer 不持 electronAPI（web-panel 通过 WS 走主进程）；改在 **main 进程 web-shell-bootstrap** wire `ukeySigner` 回调，注入 `createMultisigSigner` via `signerFactory` 选项 (2) `buildUkeyManagerSigner(ukeyManager) → (bytes, alg) → Promise<Buffer>` adapter — 4 normalised driver return shapes (direct Buffer / `{signature:Buffer\|hex\|base64}` / `{sig:...}` / 失败 throw) (3) `SignProposalModal.vue` — domain badge + Proposal ID + 阈值 + 已签数 + payload hash 短码 (per A.2 §2.4.c head 8 + tail 4) + signer DID dropdown + source picker (ukey 推荐 / hex 调试) + danger 按钮 (per A.2 §2.1.a) + 高风险警示 alert (4) `Multisig.vue` 列表 actions 加 "签名" 按钮 (state===pending) + 详情 drawer 同步加按钮 + `onSignFromList` / `onSignFromDetail` / `onSigned` 流程 (5) `multisig.sign` topic 路径走通：embedded 走 `ws.sendRaw`，cc serve 走 `crosschain bridge-consume` fallback (6) +10 buildUkeyManagerSigner unit tests + 75/75 全过 + web-panel build green |
 | 3 | ⏳ pending | `ukey/unified-key-manager.js` schema + DID↔key 索引 + `MultisigSigner unified` 真实现 | (1) `unified_keys` 表加 `did TEXT` 列 + index (2) `findKeyForDid(did)` 查询 (3) MultisigSigner unified source 走 unified-key-manager + 在 software case 直接拿 secretKey、ukey case 走 PR2 callback path (4) CLI `cc multisig sign --keystore --signer <did>` 替代 `--key <hex|path>` 当 unified-key-manager 有这个 DID 时 |
 
 ---
@@ -131,5 +131,6 @@ cc multisig sign <proposalId> --signer <did> --ukey      # 走硬件 (Win only)
 
 ## 变更记录
 
+- 2026-05-15 v0.3：**PR2b landed** — `buildUkeyManagerSigner` adapter + `web-shell-bootstrap.js` 注入 `signerFactory` + `SignProposalModal.vue` (payload hash 短码 / danger 按钮 / source picker) + `Multisig.vue` "签名" 按钮 (list/detail) 加 `onSignFromList` / `onSignFromDetail` / `onSigned` 流程。架构 pivot：renderer 走 WS topic 而非 electronAPI（与 web-panel embedded 设计一致），ukeySigner 在 **main 进程** boot 时 wire。10 PR2b unit tests + 75/75 全过 + web-panel build green。
 - 2026-05-15 v0.2：**PR2a landed** — `core-multisig.signWithExternal(...)` async API（caller 提供 `signCallback` 代替 secretKey）+ `MultisigSigner` source='ukey' 真 wiring。10 core-multisig + 5 MultisigSigner 新 unit tests + 0 regression (86 core-multisig + 65 desktop multisig)。PR2 拆 PR2a (backend，已落) + PR2b (UI 端 SignProposalModal + ukey IPC factory，下一步)。
 - 2026-05-15 v0.1：A.2 baseline 后即开 B.1 PR1。重评 Unified KeyStore 准入条件（infra 已 ready）+ 落地 MultisigSigner middleware + multisig.sign WS topic + 31 tests + 0 regression。PR2/3 列入下一步。
