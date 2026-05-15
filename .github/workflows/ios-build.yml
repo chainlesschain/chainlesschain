@@ -55,9 +55,15 @@ jobs:
       # 不被 xcodebuild CLI 正确解析（resolves 成 /Package.swift 绝对路径）。
       # 重命名 .xcodeproj 是 force SPM auto-detect 最可靠的方式。
 
-      - name: Disable .xcodeproj (force SPM auto-detect)
+      - name: Disable .xcodeproj + .swiftpm workspace (force Package.swift)
         working-directory: ios-app
-        run: mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
+        run: |
+          mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
+          # .swiftpm/xcode/package.xcworkspace 的 "self:" 路径被 xcodebuild
+          # CLI 解析成 /Package.swift（系统绝对路径），所以也要藏掉。
+          if [ -d .swiftpm/xcode ]; then
+            mv .swiftpm/xcode .swiftpm/xcode.disabled
+          fi
 
       - name: Resolve Swift Package dependencies
         working-directory: ios-app
@@ -111,12 +117,15 @@ jobs:
             -clonedSourcePackagesDirPath .spm-cache \
             | xcpretty
 
-      - name: Restore .xcodeproj
+      - name: Restore .xcodeproj + .swiftpm workspace
         if: always()
         working-directory: ios-app
         run: |
           if [ -d ChainlessChain.xcodeproj.disabled ]; then
             mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
+          fi
+          if [ -d .swiftpm/xcode.disabled ]; then
+            mv .swiftpm/xcode.disabled .swiftpm/xcode
           fi
 
       - name: Upload test results
@@ -170,9 +179,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      - name: Disable .xcodeproj (force SPM auto-detect)
+      - name: Disable .xcodeproj + .swiftpm workspace (force Package.swift)
         working-directory: ios-app
-        run: mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
+        run: |
+          mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
+          # .swiftpm/xcode/package.xcworkspace 的 "self:" 路径被 xcodebuild
+          # CLI 解析成 /Package.swift（系统绝对路径），所以也要藏掉。
+          if [ -d .swiftpm/xcode ]; then
+            mv .swiftpm/xcode .swiftpm/xcode.disabled
+          fi
 
       - name: Resolve Swift Package dependencies
         working-directory: ios-app
@@ -195,12 +210,15 @@ jobs:
             -clonedSourcePackagesDirPath .spm-cache \
             | xcpretty
 
-      - name: Restore .xcodeproj
+      - name: Restore .xcodeproj + .swiftpm workspace
         if: always()
         working-directory: ios-app
         run: |
           if [ -d ChainlessChain.xcodeproj.disabled ]; then
             mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
+          fi
+          if [ -d .swiftpm/xcode.disabled ]; then
+            mv .swiftpm/xcode.disabled .swiftpm/xcode
           fi
 
   # Job 4: Security Analysis
