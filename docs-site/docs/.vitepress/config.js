@@ -37,6 +37,7 @@ export default defineConfig({
         text: "专题指南 ⭐",
         items: [
           { text: "移动端 Android (v1.0 GA)", link: "/guide/mobile-android" },
+          { text: "移动端 iOS (Phase 1+2+3)", link: "/guide/mobile-ios" },
           { text: "社交协议生态", link: "/guide/social-protocols" },
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
           { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
@@ -90,6 +91,15 @@ export default defineConfig({
             {
               text: "远程终端 Plan A (Android↔桌面 PTY)",
               link: "/guide/remote-terminal",
+            },
+          ],
+        },
+        {
+          text: "移动端 iOS ⭐NEW",
+          items: [
+            {
+              text: "iOS Phase 1+2+3 用户文档（桌面配对 + 远程终端 + 远程操控 framework + 4 skill）",
+              link: "/guide/mobile-ios",
             },
           ],
         },

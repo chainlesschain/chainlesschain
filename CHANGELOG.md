@@ -5,6 +5,55 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-05-15 — iOS Phase 1+2+3 完整移植 + 2 P0 修
+
+> Android v1.0 GA 验证后，iOS 端启动镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。代码 review 后期修两处 continuation 泄漏 P0。
+
+### Added — iOS Phase 1: 桌面配对三流（commit `c30b415a8`）
+
+- `Modules/CoreP2P/Pairing/` (9 swift) + `Features/Pairing/` (8 swift) — Flow B 摄像头扫桌面 QR + Flow A 桌面扫手机 QR (Signal e2ee) + 手输 6 位 code 兜底
+- `PairingSignalingGate` 接口 + `DefaultPairingSignalingGate` + `PairingMessageBus` + `PairedDesktopsStore` (UserDefaults JSON 持久化) + 3 ViewModel
+- 71 unit tests across 7 suites
+- 桌面端 follow-up `desktop-app-vue/src/main/web-shell/handlers/manual-pair-listener.js` (220 LOC) — `pairing-code:<6digit>` signaling 别名监听 + LAN 与中继双连接
+
+### Added — iOS Phase 2: 远程桌面终端 Plan A.1 移植（commit `7613ea710`）
+
+- `Modules/CoreP2P/RemoteTerminal/` (13 swift) — `RemoteWebRTCClient` 5 步 handshake actor + `WebRTCPeerConnectionTransport` Google SDK 抽象 + `TerminalRpcClient` 6 method wrapper + `WebRTCRuntime` actor
+- `Features/RemoteTerminal/` (6 swift + 4 xterm.js bundle resources) — `TerminalListView` + `TerminalSessionView` + `TerminalWebView` (WKWebView 嵌 xterm.js)
+- `Modules/CoreP2P/Signaling/SignalClient.forwardedMessages: AsyncStream<String>` (Phase 2.4 prereq 回填 Phase 1 设计 gap)
+- 163 unit tests across 12 suites（累计 234）
+- 镜像 Android Plan A.1 (`docs/design/Android_Remote_Terminal_Plan_A1.md`) 已 Xiaomi 真机 E2E 验证版
+
+### Added — iOS Phase 3: 远程操控 framework + 4 typed skill（commit `759a1e907`）
+
+- `Modules/CoreP2P/RemoteSkills/` (16 swift) — `RemoteCommandClient` 通用 RPC actor (Phase 2 `TerminalRpcClient.invoke` 抽出 sibling) + `RemoteSkillRegistry` 23 SeedRegistry 1:1 mirror Android (795 method) + `OfflineCommandQueue` UserDefaults JSON crash recovery + `OfflineQueueDrainer` false→true edge detection + 4 typed skill (Clipboard / File / Screenshot / SystemInfo) + `ManifestSignatureVerifier` (NoOp 默认，Marketplace M0 forward-compat)
+- `Features/RemoteOperate/Views/` (6 swift) — `RemoteOperateView` 5-tab segmented shell (Terminal embeds 既有 TerminalListView，4 新 tab) + ClipboardView / FileBrowserView / ScreenshotView (PHPhotoLibrary 显式保存) / SystemInfoView (5s polling)
+- `RemoteCommandClient` 单消费者 fix — 把 `webRTCClient.inboundMessages` 订阅 owner 收口到 commandClient，TerminalRpcClient 改订 `commandClient.events` 流（避 AsyncStream 单消费者切分事件 bug；Phase 3.6 refactor 提前到 3.3）
+- ~264 unit tests across 20+ suites（累计）
+
+### Fixed (P0) — Continuation 泄漏（2026-05-15 code review 后修）
+
+- `RemoteCommandClient.invoke` — `withThrowingTaskGroup` timeout 路径不会 auto-resume 池中 continuation，长期运行下 `pendingResponses` 泄漏。修：`do/catch` 包，catch 显式 `pendingResponses.removeValue(forKey: reqId)?.resume(throwing: error)`。
+- `RemoteWebRTCClient.waitForAnswer` — 同模式不清 `pendingAnswer`，下次 connect 与残留 continuation 撞。修同上 + 加 `hasPendingAnswer()` 诊断 accessor。
+- 2 regression test (`testInvokeTimeoutClearsPendingResponses` / `testAnswerTimeoutClearsPendingAnswer`) + 1 集成 test (`testTimeoutFollowedByImmediateInvokeSucceeds`) 验池清干净。
+
+### Added — iOS 集成测试套件
+
+- `Tests/CoreP2PTests/Integration/Phase3IntegrationTests.swift` 6 跨组件测试：(1) ClipboardCommands DC 端到端 + envelope shape + 解码 / (2) TerminalRpcClient 通过 `commandClient.events` demux stdout / (3) `OfflineQueueDrainer` false→true edge 触发 drain + 重复 false 不重 drain + true→true 不重 drain / (4) Offline enqueue → 网络恢复 → drain 全成功 + 队列清空 / (5) 3 concurrent invoke 共享 client pool + reqId distinct / (6) timeout 后立即新 invoke 必须成功（regression）。
+
+### Documentation
+
+- `docs/design/iOS_Phase_1_Pairing_Flow_B.md` v1.0 — 含 §6 sub-phase + §6.5 修订（Manual wire 从 HTTP pivot 到 signaling alias）
+- `docs/design/iOS_Phase_2_Remote_Terminal.md` v1.0 — 含 §3 OQ 4 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E 4 场景
+- `docs/design/iOS_Phase_3_Remote_Operate_Framework.md` v1.0 — 含 §3 OQ 5 项决策 + §6 sub-phase + §7 9 traps + §8.3 真机 E2E
+- Memory：`ios_qr_pairing_three_flows.md` (6 trap) + `ios_remote_terminal_phase2.md` (9 trap) + `ios_remote_operate_phase3.md` (9 trap) + `feedback_ios_ui_mirrors_validated_android.md` (HIG 偏离白名单)
+
+### Pending — 真机 E2E（需 Mac+iPhone+真桌面，移交用户）
+
+- Phase 1.7：桌面配对三流各跑一次（Flow A / B / 手输）+ LAN→relay fallback
+- Phase 2.7：远程终端 4 场景（LAN / TURN / DC failover / 30min stdout 持续）+ Xcode 资源 `Features/RemoteTerminal/Bundle/` "Create folder references"
+- Phase 3.7：4 skill 各跑一次（Clipboard 双向 / File ~/Documents / Screenshot 保存相册 / SystemInfo 4 cards + 5s polling）
+
 ## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
 
 > v5.0.3.53 发版后真机 E2E 暴露 8 个独立 bug，从"打不开 / 黑屏 / 无法输入 / cc/claude 不可用"到端到端完整可用。`f54a6fcd0` 收口（Xiaomi 24115RA8EC ↔ Windows git-bash longfa 验证）。

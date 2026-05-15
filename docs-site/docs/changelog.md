@@ -3,6 +3,37 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] - 2026-05-15 — iOS Phase 1+2+3 完整移植 + 2 P0 修
+
+> Android v1.0 GA 验证后启动 iOS 镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。
+
+**iOS 端用户闭环**（仅框架，待真机 E2E）：
+
+- 桌面配对三流（Flow B 摄像头扫桌面 QR / Flow A 桌面扫手机 QR Signal e2ee / 手输 6 位 code）
+- 已配对桌面列表 → 单击桌面 → `RemoteOperateView` 5-tab segmented shell：
+  - **终端 Tab**（Phase 2）：xterm.js WKWebView + WebRTC DataChannel 直连 + softkey toolbar
+  - **剪贴板 Tab**（Phase 3.3）：双向读写 + iOS UIPasteboard 集成
+  - **文件 Tab**（Phase 3.4）：浏览 home dir + 面包屑 + 看文本 + 24 文件 icon
+  - **截屏 Tab**（Phase 3.5）：触发桌面截屏 + iOS 显图 + PHPhotoLibrary 显式保存
+  - **系统 Tab**（Phase 3.5）：CPU/Mem/Disk/Net 4 cards + 5s polling
+
+**架构 highlight**：
+
+- `RemoteCommandClient` 通用 RPC actor (Phase 2 `TerminalRpcClient.invoke` 抽出 sibling) — 4+N skill 共享同一 invoke 池 + DC/signaling 双路径 + LRU dedup + pending pool
+- `RemoteSkillRegistry` 23 SeedRegistry 1:1 mirror Android (795 method)
+- `OfflineCommandQueue` UserDefaults JSON crash recovery (sending → pending) + `OfflineQueueDrainer` `dataChannelReady` false→true edge detection
+- 镜像 Android 已 Xiaomi 真机 E2E 验证版的 layout（HIG 偏离仅白名单 6 项）
+
+**bug 修 (P0)**（code review 后期）：
+
+- `RemoteCommandClient.invoke` continuation 泄漏 — `withThrowingTaskGroup` timeout 路径不会 auto-resume 池中 continuation；修法 `do/catch` 显式清池
+- `RemoteWebRTCClient.waitForAnswer` 同模式不清 `pendingAnswer`；修同上
+- 2 regression test + 1 集成 test 验池清
+
+**剩余真机 E2E**（需 Mac+iPhone+真桌面，移交用户）：Phase 1.7 三流配对 + Phase 2.7 4 终端场景 + Phase 3.7 4 skill 各跑一次。
+
+设计文档：[iOS Phase 1 配对](./design/iOS_Phase_1_Pairing_Flow_B.md) · [iOS Phase 2 终端](./design/iOS_Phase_2_Remote_Terminal.md) · [iOS Phase 3 操控 framework](./design/iOS_Phase_3_Remote_Operate_Framework.md)
+
 ## [v5.0.3.54] - 2026-05-14 — Plan A.1 真机 E2E 收口（8 bugs：UI 黑屏 + cc/claude 可用）
 
 > v5.0.3.53 发版后真机 E2E 暴露 8 个独立 bug，从"打不开 / 黑屏 / 无法输入 / cc/claude 不可用"到端到端完整可用。`f54a6fcd0` 收口（Xiaomi 24115RA8EC ↔ Windows git-bash longfa 验证）。
