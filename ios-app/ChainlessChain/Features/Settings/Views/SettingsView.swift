@@ -68,6 +68,15 @@ struct SettingsView: View {
                     }
                 }
 
+                // Desktop Pairing (Phase 1.1 scaffold)
+                Section("桌面配对") {
+                    NavigationLink {
+                        PairingHomeView()
+                    } label: {
+                        Label("桌面配对", systemImage: "iphone.and.arrow.forward")
+                    }
+                }
+
                 // Sync Settings
                 Section("同步") {
                     Toggle("自动同步", isOn: $autoSyncEnabled)

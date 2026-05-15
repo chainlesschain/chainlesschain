@@ -9,6 +9,9 @@ struct ChainlessChainApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState.shared
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var pairingDeps = PairingDependencies(
+        currentDIDProvider: { AppState.shared.currentDID }
+    )
 
     init() {
         setupApp()
@@ -19,6 +22,7 @@ struct ChainlessChainApp: App {
             ContentView()
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
+                .environmentObject(pairingDeps)
                 .onAppear {
                     handleAppLaunch()
                 }

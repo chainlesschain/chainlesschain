@@ -1,340 +1,120 @@
 import XCTest
 @testable import CoreP2P
-@testable import CoreCommon
-@testable import CoreE2EE
 
-final class CoreP2PTests: XCTestCase {
+/// Phase 1.1 scaffold sanity tests — 验证 CoreP2P 模块内符号存在且能基本互通。
+///
+/// **历史**：本文件之前是 aspirational ghost code（引用 P2PMessage / MessageQueue /
+/// MessageDeduplicator / PeerInfo / SignalingMessage / BatchProcessor /
+/// ExponentialBackoff / WebRTCManagerDelegate 等不存在的类型），@testable
+/// import CoreP2P 也无源可 import（CoreP2P 目录之前不存在）。Phase 1.1 创建
+/// 模块时一并替换为这套 scaffold sanity test，避免 build break。完整 unit
+/// 覆盖在 Phase 1.2-1.4（参见 design doc §10.1 测试矩阵）。
+final class CoreP2PScaffoldTests: XCTestCase {
 
-    // MARK: - Message Manager Tests
+    // MARK: - PairedDesktop Codable round-trip
 
-    func testMessageCreation() {
-        let message = P2PMessage(
-            id: "msg-123",
-            from: "peer-alice",
-            to: "peer-bob",
-            type: .text,
-            content: "Hello, Bob!",
-            timestamp: Date()
+    func testPairedDesktopCodableRoundTrip() throws {
+        let original = PairedDesktop(
+            pcPeerId: "pc-abcdef123",
+            deviceName: "Test Desktop",
+            platform: "win32",
+            lanSignalingUrl: "ws://192.168.1.10:9001",
+            relayUrl: "wss://signaling.chainlesschain.com",
+            iceServersJson: #"[{"urls":"stun:stun.l.google.com:19302"}]"#,
+            iceExpiry: 1_700_000_000,
+            pairedAt: 1_700_000_000_000,
+            lastSeenAt: 1_700_000_000_000
         )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(PairedDesktop.self, from: data)
 
-        XCTAssertEqual(message.id, "msg-123")
-        XCTAssertEqual(message.from, "peer-alice")
-        XCTAssertEqual(message.to, "peer-bob")
-        XCTAssertEqual(message.type, .text)
-        XCTAssertEqual(message.content, "Hello, Bob!")
+        XCTAssertEqual(decoded.pcPeerId, "pc-abcdef123")
+        XCTAssertEqual(decoded.deviceName, "Test Desktop")
+        XCTAssertEqual(decoded.platform, "win32")
+        XCTAssertEqual(decoded.lanSignalingUrl, "ws://192.168.1.10:9001")
+        XCTAssertEqual(decoded.relayUrl, "wss://signaling.chainlesschain.com")
+        XCTAssertEqual(decoded.iceExpiry, 1_700_000_000)
+        XCTAssertEqual(decoded.pairedAt, 1_700_000_000_000)
+        XCTAssertEqual(decoded, original)
     }
 
-    func testMessageSerialization() throws {
-        let message = P2PMessage(
-            id: "msg-456",
-            from: "alice",
-            to: "bob",
-            type: .text,
-            content: "Test message",
-            timestamp: Date()
+    func testPairedDesktopIdMatchesPeerId() {
+        let d = PairedDesktop(pcPeerId: "pc-1", deviceName: "x", pairedAt: 0, lastSeenAt: 0)
+        XCTAssertEqual(d.id, d.pcPeerId)
+    }
+
+    // MARK: - PairingConfirmation
+
+    func testPairingConfirmationFields() {
+        let c = PairingConfirmation(
+            pairingCode: "123456",
+            pcPeerId: "pc-xyz",
+            deviceInfo: ["name": "MacBook Pro", "platform": "darwin"],
+            timestamp: 1_700_000_000_000
         )
-
-        let encoded = try JSONEncoder().encode(message)
-        let decoded = try JSONDecoder().decode(P2PMessage.self, from: encoded)
-
-        XCTAssertEqual(decoded.id, message.id)
-        XCTAssertEqual(decoded.content, message.content)
+        XCTAssertEqual(c.pairingCode, "123456")
+        XCTAssertEqual(c.pcPeerId, "pc-xyz")
+        XCTAssertEqual(c.deviceInfo?["platform"], "darwin")
     }
 
-    func testMessageTypes() {
-        XCTAssertEqual(P2PMessageType.text.rawValue, "text")
-        XCTAssertEqual(P2PMessageType.image.rawValue, "image")
-        XCTAssertEqual(P2PMessageType.file.rawValue, "file")
-        XCTAssertEqual(P2PMessageType.system.rawValue, "system")
+    // MARK: - PairingClock
+
+    func testSystemPairingClockReturnsCurrentMillis() {
+        let clock = SystemPairingClock()
+        let now = clock.nowMillis()
+        let expected = Int64(Date().timeIntervalSince1970 * 1000)
+        // 允许 1 秒漂移
+        XCTAssertLessThan(abs(now - expected), 1000)
     }
 
-    // MARK: - Message Queue Tests
+    // MARK: - SignalingConfig
 
-    func testMessageQueueEnqueue() {
-        let queue = MessageQueue()
-
-        queue.enqueue(P2PMessage(
-            id: "1",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "First",
-            timestamp: Date()
-        ))
-
-        queue.enqueue(P2PMessage(
-            id: "2",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "Second",
-            timestamp: Date()
-        ))
-
-        XCTAssertEqual(queue.count, 2)
+    func testSignalingConfigRelayUrlDefault() {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let config = SignalingConfig(userDefaults: suite)
+        XCTAssertEqual(config.getRelayUrl(), SignalingConfig.defaultRelayUrl)
+        XCTAssertNil(config.getCustomSignalingUrl())
     }
 
-    func testMessageQueueDequeue() {
-        let queue = MessageQueue()
-
-        queue.enqueue(P2PMessage(
-            id: "1",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "First",
-            timestamp: Date()
-        ))
-
-        queue.enqueue(P2PMessage(
-            id: "2",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "Second",
-            timestamp: Date()
-        ))
-
-        let first = queue.dequeue()
-        XCTAssertEqual(first?.id, "1")
-        XCTAssertEqual(queue.count, 1)
-
-        let second = queue.dequeue()
-        XCTAssertEqual(second?.id, "2")
-        XCTAssertEqual(queue.count, 0)
+    func testSignalingConfigPersistence() {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let config = SignalingConfig(userDefaults: suite)
+        config.setCustomSignalingUrl("ws://192.168.1.20:9001")
+        config.setRelayUrl("wss://relay.example.com")
+        XCTAssertEqual(config.getCustomSignalingUrl(), "ws://192.168.1.20:9001")
+        XCTAssertEqual(config.getRelayUrl(), "wss://relay.example.com")
     }
 
-    func testMessageQueuePriority() {
-        let queue = MessageQueue()
+    // MARK: - PairingMessageBus
 
-        queue.enqueue(P2PMessage(
-            id: "normal",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "Normal",
-            timestamp: Date(),
-            priority: .normal
-        ))
-
-        queue.enqueue(P2PMessage(
-            id: "high",
-            from: "a",
-            to: "b",
-            type: .text,
-            content: "High Priority",
-            timestamp: Date(),
-            priority: .high
-        ))
-
-        // High priority should come first
-        let first = queue.dequeue()
-        XCTAssertEqual(first?.id, "high")
-    }
-
-    // MARK: - Message Deduplication Tests
-
-    func testMessageDeduplication() {
-        let deduplicator = MessageDeduplicator()
-        let messageId = "msg-123"
-
-        // First occurrence
-        XCTAssertFalse(deduplicator.isDuplicate(messageId))
-        deduplicator.markSeen(messageId)
-
-        // Second occurrence should be duplicate
-        XCTAssertTrue(deduplicator.isDuplicate(messageId))
-    }
-
-    func testDeduplicatorCleanup() {
-        let deduplicator = MessageDeduplicator(maxAge: 0.1) // 100ms
-
-        deduplicator.markSeen("old-message")
-
-        // Wait for message to expire
-        Thread.sleep(forTimeInterval: 0.2)
-        deduplicator.cleanup()
-
-        // Should no longer be considered duplicate
-        XCTAssertFalse(deduplicator.isDuplicate("old-message"))
-    }
-
-    // MARK: - Connection State Tests
-
-    func testConnectionState() {
-        XCTAssertEqual(ConnectionState.disconnected.description, "Disconnected")
-        XCTAssertEqual(ConnectionState.connecting.description, "Connecting")
-        XCTAssertEqual(ConnectionState.connected.description, "Connected")
-        XCTAssertEqual(ConnectionState.reconnecting.description, "Reconnecting")
-    }
-
-    func testConnectionStateTransitions() {
-        var state = ConnectionState.disconnected
-
-        // Valid transition: disconnected -> connecting
-        state = .connecting
-        XCTAssertEqual(state, .connecting)
-
-        // Valid transition: connecting -> connected
-        state = .connected
-        XCTAssertEqual(state, .connected)
-
-        // Valid transition: connected -> disconnected
-        state = .disconnected
-        XCTAssertEqual(state, .disconnected)
-    }
-
-    // MARK: - Peer Info Tests
-
-    func testPeerInfo() {
-        let peer = PeerInfo(
-            id: "peer-123",
-            did: "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
-            displayName: "Alice",
-            publicKey: Data([0x01, 0x02, 0x03])
+    func testDefaultPairingMessageBusEmitAndReceive() async {
+        let bus = DefaultPairingMessageBus()
+        let confirmation = PairingConfirmation(
+            pairingCode: "654321",
+            pcPeerId: "pc-1",
+            deviceInfo: nil,
+            timestamp: 0
         )
-
-        XCTAssertEqual(peer.id, "peer-123")
-        XCTAssertTrue(peer.did.hasPrefix("did:key:"))
-        XCTAssertEqual(peer.displayName, "Alice")
-    }
-
-    func testPeerInfoEquality() {
-        let peer1 = PeerInfo(id: "peer-1", did: "did:1", displayName: "Test", publicKey: Data())
-        let peer2 = PeerInfo(id: "peer-1", did: "did:1", displayName: "Test", publicKey: Data())
-        let peer3 = PeerInfo(id: "peer-2", did: "did:2", displayName: "Other", publicKey: Data())
-
-        XCTAssertEqual(peer1, peer2)
-        XCTAssertNotEqual(peer1, peer3)
-    }
-
-    // MARK: - Signaling Message Tests
-
-    func testSignalingOffer() throws {
-        let offer = SignalingMessage.offer(
-            from: "alice",
-            to: "bob",
-            sdp: "v=0\r\no=- 123456 2 IN IP4 127.0.0.1\r\n..."
-        )
-
-        XCTAssertEqual(offer.type, .offer)
-        XCTAssertEqual(offer.from, "alice")
-        XCTAssertEqual(offer.to, "bob")
-    }
-
-    func testSignalingAnswer() throws {
-        let answer = SignalingMessage.answer(
-            from: "bob",
-            to: "alice",
-            sdp: "v=0\r\no=- 654321 2 IN IP4 127.0.0.1\r\n..."
-        )
-
-        XCTAssertEqual(answer.type, .answer)
-    }
-
-    func testSignalingICECandidate() throws {
-        let ice = SignalingMessage.iceCandidate(
-            from: "alice",
-            to: "bob",
-            candidate: "candidate:1 1 UDP 2122252543 192.168.1.1 54321 typ host",
-            sdpMid: "0",
-            sdpMLineIndex: 0
-        )
-
-        XCTAssertEqual(ice.type, .iceCandidate)
-    }
-
-    // MARK: - Batch Processing Tests
-
-    func testBatchProcessor() {
-        let processor = BatchProcessor<P2PMessage>(
-            batchSize: 3,
-            flushInterval: 1.0
-        ) { batch in
-            XCTAssertEqual(batch.count, 3)
+        // 起订阅前发不出去（buffer-newest，没人接 = 丢）；订阅起来后再发
+        let task = Task { () -> PairingConfirmation? in
+            for await c in bus.confirmations {
+                return c
+            }
+            return nil
         }
-
-        for i in 0..<3 {
-            processor.add(P2PMessage(
-                id: "\(i)",
-                from: "a",
-                to: "b",
-                type: .text,
-                content: "Message \(i)",
-                timestamp: Date()
-            ))
-        }
-
-        processor.flush()
+        // 给订阅者一点时间起 task
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        bus.emit(confirmation)
+        let received = await task.value
+        XCTAssertEqual(received?.pairingCode, "654321")
     }
 
-    // MARK: - Retry Logic Tests
+    // MARK: - PairedDesktopsStore (Phase 1.4 占位)
 
-    func testExponentialBackoff() {
-        let backoff = ExponentialBackoff(
-            initialDelay: 1.0,
-            maxDelay: 60.0,
-            multiplier: 2.0
-        )
-
-        XCTAssertEqual(backoff.nextDelay(attempt: 0), 1.0)
-        XCTAssertEqual(backoff.nextDelay(attempt: 1), 2.0)
-        XCTAssertEqual(backoff.nextDelay(attempt: 2), 4.0)
-        XCTAssertEqual(backoff.nextDelay(attempt: 3), 8.0)
-
-        // Should cap at max delay
-        XCTAssertEqual(backoff.nextDelay(attempt: 10), 60.0)
-    }
-
-    func testBackoffWithJitter() {
-        let backoff = ExponentialBackoff(
-            initialDelay: 1.0,
-            maxDelay: 60.0,
-            multiplier: 2.0,
-            jitter: 0.1
-        )
-
-        let delay1 = backoff.nextDelay(attempt: 1)
-        let delay2 = backoff.nextDelay(attempt: 1)
-
-        // With jitter, delays should vary slightly
-        XCTAssertTrue(delay1 >= 1.8 && delay1 <= 2.2)
-        XCTAssertTrue(delay2 >= 1.8 && delay2 <= 2.2)
-    }
-}
-
-// MARK: - P2P Error Tests
-
-final class P2PErrorTests: XCTestCase {
-
-    func testP2PErrorDescriptions() {
-        let connectionError = P2PError.connectionFailed("test")
-        XCTAssertTrue(connectionError.localizedDescription.contains("Connection"))
-
-        let peerNotFoundError = P2PError.peerNotFound("peer123")
-        XCTAssertTrue(peerNotFoundError.localizedDescription.contains("not found"))
-
-        let signalingError = P2PError.signalingFailed("timeout")
-        XCTAssertTrue(signalingError.localizedDescription.contains("Signaling"))
-    }
-}
-
-// MARK: - Mock Classes for Testing
-
-private class MockWebRTCDelegate: WebRTCManagerDelegate {
-    var onConnected: ((String) -> Void)?
-    var onDisconnected: ((String) -> Void)?
-    var onMessageReceived: ((String, Data) -> Void)?
-
-    func webRTCManager(_ manager: WebRTCManager, didConnectTo peerId: String) {
-        onConnected?(peerId)
-    }
-
-    func webRTCManager(_ manager: WebRTCManager, didDisconnectFrom peerId: String) {
-        onDisconnected?(peerId)
-    }
-
-    func webRTCManager(_ manager: WebRTCManager, didReceiveMessage data: Data, from peerId: String) {
-        onMessageReceived?(peerId, data)
+    func testPairedDesktopsStoreInitialState() async {
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let store = PairedDesktopsStore(userDefaults: suite, key: "test")
+        let devices = await store.devices()
+        XCTAssertTrue(devices.isEmpty, "Phase 1.1 占位返空，1.4 接 UserDefaults 持久化")
     }
 }
