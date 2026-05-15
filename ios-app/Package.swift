@@ -15,10 +15,10 @@ let package = Package(
             name: "CoreSecurity",
             targets: ["CoreSecurity"]
         ),
-        .library(
-            name: "CoreDatabase",
-            targets: ["CoreDatabase"]
-        ),
+        // CoreDatabase 暂移除 — 依赖 sqlcipher/sqlcipher repo 但该 repo
+        // 是 C 库，根目录无 Package.swift，SPM 无法 resolve。
+        // 待替换为有 SPM 支持的 SQLCipher fork 后恢复。Modules/CoreDatabase/
+        // 源文件保留，不删。
         .library(
             name: "CoreDID",
             targets: ["CoreDID"]
@@ -38,11 +38,7 @@ let package = Package(
             url: "https://github.com/signalapp/libsignal.git",
             from: "0.30.0"
         ),
-        // SQLCipher
-        .package(
-            url: "https://github.com/sqlcipher/sqlcipher.git",
-            from: "4.5.6"
-        ),
+        // SQLCipher dep removed alongside CoreDatabase target — see note above.
         // WebRTC
         .package(
             url: "https://github.com/stasel/WebRTC.git",
@@ -87,15 +83,7 @@ let package = Package(
             path: "Modules/CoreSecurity"
         ),
 
-        .target(
-            name: "CoreDatabase",
-            dependencies: [
-                "CoreCommon",
-                "CoreSecurity",
-                .product(name: "SQLCipher", package: "sqlcipher")
-            ],
-            path: "Modules/CoreDatabase"
-        ),
+        // CoreDatabase target removed (sqlcipher dep unavailable via SPM).
 
         .target(
             name: "CoreDID",
@@ -143,11 +131,7 @@ let package = Package(
             path: "Tests/CoreSecurityTests"
         ),
 
-        .testTarget(
-            name: "CoreDatabaseTests",
-            dependencies: ["CoreDatabase"],
-            path: "Tests/CoreDatabaseTests"
-        ),
+        // CoreDatabaseTests removed alongside CoreDatabase target.
 
         .testTarget(
             name: "CoreDIDTests",
