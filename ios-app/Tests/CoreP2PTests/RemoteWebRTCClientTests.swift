@@ -125,6 +125,24 @@ final class RemoteWebRTCClientTests: XCTestCase {
         if case .failed = state { /* ok */ } else { XCTFail("expected .failed state") }
     }
 
+    /// **Regression** — 修 P0 continuation 泄漏：answer timeout 后 pendingAnswer
+    /// 必须清空，否则下次 connect 会和上次未清的 continuation 撞。
+    func testAnswerTimeoutClearsPendingAnswer() async {
+        let (client, _, _, _, _) = makeClient(answerTimeoutSeconds: 1)
+        // 第一次 connect → timeout 失败
+        do {
+            try await client.connect(pcPeerId: "pc-x", localPeerId: "did:cc:y")
+            XCTFail("expected timeout")
+        } catch RemoteWebRTCError.answerTimeout {
+            // ok
+        } catch {
+            XCTFail("wrong: \(error)")
+        }
+        // pendingAnswer 必须已清
+        let hasPending = await client.hasPendingAnswer()
+        XCTAssertFalse(hasPending, "answerTimeout 后 pendingAnswer 必须清空，否则 P0 continuation 泄漏复发")
+    }
+
     func testOfferFailureFailsConnect() async {
         let (client, transport, _, _, _) = makeClient()
         transport.offerErrorToThrow = RemoteWebRTCError.offerFailed("test")

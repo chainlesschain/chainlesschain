@@ -77,6 +77,11 @@ public actor RemoteCommandClient {
         }
     }
 
+    /// 当前 pending RPC 数量 — 诊断用 + 单测验池泄漏。
+    public func pendingCount() -> Int {
+        pendingResponses.count
+    }
+
     /// 停 inbound 监听 + cancel 所有 pending continuation。
     public func stop() {
         inboundTask?.cancel()
@@ -105,24 +110,33 @@ public actor RemoteCommandClient {
             mobileDid: mobileDid
         )
 
-        let response: TerminalRpcResponse = try await withThrowingTaskGroup(of: TerminalRpcResponse.self) { group in
-            group.addTask { [self] in
-                try await withCheckedThrowingContinuation { cont in
-                    Task { await self.registerPending(reqId: reqId, cont: cont) }
-                    Task { await self.dispatchSend(reqId: reqId, pcPeerId: pcPeerId, envelopeJson: envelopeJson) }
+        do {
+            let response: TerminalRpcResponse = try await withThrowingTaskGroup(of: TerminalRpcResponse.self) { group in
+                group.addTask { [self] in
+                    try await withCheckedThrowingContinuation { cont in
+                        Task { await self.registerPending(reqId: reqId, cont: cont) }
+                        Task { await self.dispatchSend(reqId: reqId, pcPeerId: pcPeerId, envelopeJson: envelopeJson) }
+                    }
                 }
+                group.addTask { [self] in
+                    try await Task.sleep(nanoseconds: self.responseTimeoutSeconds * 1_000_000_000)
+                    throw TerminalRpcError.timeout(reqId: reqId)
+                }
+                guard let result = try await group.next() else {
+                    throw TerminalRpcError.timeout(reqId: reqId)
+                }
+                group.cancelAll()
+                return result
             }
-            group.addTask { [self] in
-                try await Task.sleep(nanoseconds: self.responseTimeoutSeconds * 1_000_000_000)
-                throw TerminalRpcError.timeout(reqId: reqId)
+            return response
+        } catch {
+            // Continuation 泄漏防御 — timeout / 上游 throw 不会自动 resume continuation；
+            // 若 pendingResponses 仍含 reqId（响应未到达），手动 resume 错误并清池
+            if let cont = pendingResponses.removeValue(forKey: reqId) {
+                cont.resume(throwing: error)
             }
-            guard let result = try await group.next() else {
-                throw TerminalRpcError.timeout(reqId: reqId)
-            }
-            group.cancelAll()
-            return result
+            throw error
         }
-        return response
     }
 
     // MARK: - Internals

@@ -183,6 +183,26 @@ final class RemoteCommandClientTests: XCTestCase {
         XCTAssertTrue(result?.contains("terminal.stdout") ?? false)
     }
 
+    /// **Regression** — 修 P0 continuation 泄漏：timeout 后 pendingResponses
+    /// 必须清空，否则长期运行 invoke → timeout → invoke 链路 pool 无限涨。
+    func testInvokeTimeoutClearsPendingResponses() async {
+        let (client, _, _) = makeClient(responseTimeoutSeconds: 1)
+        await client.start()
+        // 连续 3 次 timeout
+        for _ in 0..<3 {
+            do {
+                _ = try await client.invoke(pcPeerId: "pc", method: "slow", params: [:])
+                XCTFail("expected timeout")
+            } catch TerminalRpcError.timeout {
+                // ok
+            } catch {
+                XCTFail("wrong: \(error)")
+            }
+        }
+        let pending = await client.pendingCount()
+        XCTAssertEqual(pending, 0, "timeout 后 pendingResponses 必须清空，否则 P0 continuation 泄漏复发")
+    }
+
     func testStopCancelsAllPending() async throws {
         let (client, _, _) = makeClient(responseTimeoutSeconds: 5)
         await client.start()

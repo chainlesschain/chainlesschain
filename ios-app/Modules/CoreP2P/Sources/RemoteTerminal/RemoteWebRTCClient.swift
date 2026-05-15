@@ -149,6 +149,11 @@ public actor RemoteWebRTCClient {
         try await transport.sendDataChannelMessage(text)
     }
 
+    /// 是否有 pending answer continuation — 诊断用 + 单测验泄漏。
+    public func hasPendingAnswer() -> Bool {
+        pendingAnswer != nil
+    }
+
     /// caller 收到 desktop 经 signaling 发回的 answer SDP 时调本方法。
     public func handleAnswerFromSignaling(_ answer: SdpDescription) {
         guard let cont = pendingAnswer else { return }
@@ -177,21 +182,31 @@ public actor RemoteWebRTCClient {
 
     private func waitForAnswer() async throws -> SdpDescription {
         // 用 race pattern：waitForContinuation vs Task.sleep timeout
-        return try await withThrowingTaskGroup(of: SdpDescription.self) { group in
-            group.addTask { [self] in
-                try await withCheckedThrowingContinuation { cont in
-                    Task { await self.setPendingAnswer(cont) }
+        do {
+            return try await withThrowingTaskGroup(of: SdpDescription.self) { group in
+                group.addTask { [self] in
+                    try await withCheckedThrowingContinuation { cont in
+                        Task { await self.setPendingAnswer(cont) }
+                    }
                 }
+                group.addTask { [self] in
+                    try await Task.sleep(nanoseconds: self.answerTimeoutSeconds * 1_000_000_000)
+                    throw RemoteWebRTCError.answerTimeout
+                }
+                guard let result = try await group.next() else {
+                    throw RemoteWebRTCError.answerTimeout
+                }
+                group.cancelAll()
+                return result
             }
-            group.addTask { [self] in
-                try await Task.sleep(nanoseconds: self.answerTimeoutSeconds * 1_000_000_000)
-                throw RemoteWebRTCError.answerTimeout
+        } catch {
+            // Continuation 泄漏防御 — timeout 路径不会自动 resume pendingAnswer；
+            // 手动 resume 错误并清状态，下次 connect 才能正常 register 新 continuation
+            if let cont = pendingAnswer {
+                pendingAnswer = nil
+                cont.resume(throwing: error)
             }
-            guard let result = try await group.next() else {
-                throw RemoteWebRTCError.answerTimeout
-            }
-            group.cancelAll()
-            return result
+            throw error
         }
     }
 
