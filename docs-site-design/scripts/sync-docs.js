@@ -63,6 +63,7 @@ const ROOT_FILE_MAP = {
   "iOS_Phase_2_Remote_Terminal.md": "iOS_Phase_2_Remote_Terminal.md",
   "iOS_Phase_3_Remote_Operate_Framework.md": "iOS_Phase_3_Remote_Operate_Framework.md",
   "iOS_Phase_4_Notification_Skill.md": "iOS_Phase_4_Notification_Skill.md",
+  "iOS_Phase_5_AI_Chat_Skill.md": "iOS_Phase_5_AI_Chat_Skill.md",
   "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
   "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
   "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
