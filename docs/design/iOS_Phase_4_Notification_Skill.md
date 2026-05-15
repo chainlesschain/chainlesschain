@@ -1,6 +1,6 @@
 # iOS Phase 4 — Notification Skill (Remote 通知同步 + 系统级 push)
 
-> **状态**：设计阶段（2026-05-15）— full design doc 跟 Phase 3 同重；实施暂停等 Phase 3 真机 E2E 完成后再启 sub-phase。本 Phase 不创建新框架，**接通 Phase 3 RemoteCommandClient 与既有 `PushNotificationManager.swift`（531 LOC 已 UN center 集成）**。
+> **状态**：Phase 4.1-4.5 全部 落地（4.6 commit 标记，2026-05-15）— Models + NotificationCommands + EventDispatcher + ViewModel + NotificationsView UI + RemoteOperateView 第 6 tab + horizontal scroll picker + 未读 badge 全套；events fan-out task 修 Phase 4 实施暴露的新 trap (设计 §7 未覆盖的多 events 订阅冲突)；DI wiring 在 4.4 一并前移完成。**41 新 unit tests across 4 test suites**（NotificationModels via NotificationCommands 18 + EventDispatcher 10 + ViewModel 13）。**iOS 单测累计 ~313**。**未跑**：Phase 4.7 真机 E2E (Mac+iPhone+真桌面 在场再做，8 场景：拉历史 / 桌面 push 弹 banner / LRU dedup / markAsRead 双轨 / 离线 enqueue / quiet hours silenced / authorization denied / 后台 1min)。
 >
 > **依赖**：iOS Phase 3.1-3.6 已落 (`759a1e907`) — RemoteCommandClient + RemoteSkillRegistry + OfflineCommandQueue 全套；PushNotificationManager.swift 已就位（authorization/scheduleNotification/quiet hours/badge/categories 全有）；Phase 3.7 真机 E2E 不阻 Phase 4 设计（独立）
 >
