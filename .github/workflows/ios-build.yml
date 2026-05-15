@@ -23,8 +23,6 @@ jobs:
     name: Build & Test
     runs-on: macos-latest
     timeout-minutes: 45
-    # Stage 1: Allow failures during early development
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,17 +34,6 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
-
-      - name: Install Ruby dependencies
-        run: |
-          gem install xcodeproj
-          echo "xcodeproj gem installed"
-
-      - name: Generate Xcode project
-        working-directory: ios-app
-        run: |
-          ruby create_xcode_project.rb
-          echo "Xcode project generated"
 
       - name: Cache Swift Package Manager
         uses: actions/cache@v4
@@ -66,7 +53,9 @@ jobs:
 
       - name: Build for Simulator
         working-directory: ios-app
+        shell: bash
         run: |
+          set -o pipefail
           xcodebuild build \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -76,11 +65,13 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || true
+            | xcpretty
 
       - name: Run Unit Tests
         working-directory: ios-app
+        shell: bash
         run: |
+          set -o pipefail
           xcodebuild test \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -89,7 +80,7 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || echo "Tests completed (some may have been skipped)"
+            | xcpretty
 
       - name: Upload test results
         if: always()
@@ -123,24 +114,13 @@ jobs:
     name: Build Release (Unsigned)
     runs-on: macos-latest
     needs: [build-test, lint]
-    # Always run even if dependencies fail (Stage 1 development)
-    if: always()
     timeout-minutes: 30
-    # Stage 1: Allow failures during early development
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-      - name: Install Ruby dependencies
-        run: gem install xcodeproj
-
-      - name: Generate Xcode project
-        working-directory: ios-app
-        run: ruby create_xcode_project.rb
 
       - name: Cache Swift Package Manager
         uses: actions/cache@v4
@@ -160,7 +140,9 @@ jobs:
 
       - name: Build Release for Simulator
         working-directory: ios-app
+        shell: bash
         run: |
+          set -o pipefail
           xcodebuild build \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -170,7 +152,7 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || echo "Release build completed (may have warnings)"
+            | xcpretty
 
       - name: Package Simulator App
         working-directory: ios-app
