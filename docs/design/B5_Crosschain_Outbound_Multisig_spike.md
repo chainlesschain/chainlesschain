@@ -1,0 +1,140 @@
+# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.2
+
+> **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) B.5（GA 后续 scope · P1）
+> **状态**: 🟢 Layer 1 PR1 ✅ landed (2026-05-15) · PR2-4 待启
+> **作者**: 2026-05-15
+> **关联**: [m-of-n 应用扩展 v1](MofN_多签_应用扩展_v1.md) / [MTC 跨链桥 v1](MTC_跨链桥_v1.md) / memory `mtc_landing_v0_11.md` Q-COMP-3
+> **下一步**: PR2 web-shell handler in-process WS topics + PR3 Multisig.vue domain icon + PR4 文档
+
+---
+
+## 1. 现状摸底（2026-05-15 真实代码）
+
+| 表面 | 现状 | 文件 |
+|---|---|---|
+| **核心 multisig 包** | `@chainlesschain/core-multisig` v0.1.0 — pending/reached/consumed/cancelled/expired 状态机；任意 string `domain` 字段 | `packages/core-multisig/` |
+| **唯一被多签 gate 的 domain** | `marketplace.purchase` → finalize via `marketplace.consume` | `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js:36` |
+| **crosschain CLI 命令** | `cc crosschain bridge / swap / message`（Phase 89，1575 行）— **纯 SQLite accounting，0 真 RPC** | `packages/cli/src/commands/crosschain.js` + `packages/cli/src/lib/cross-chain.js` |
+| **crosschain 支持的链** | ethereum (chainId 1) / polygon (137) / bsc (56) / arbitrum (42161) / chainless (0) 5 条 | `cross-chain.js:SUPPORTED_CHAINS` |
+| **crosschain × MTC** | `cross-chain-mtc.js` 已落 trust anchor / bridge envelope / multi-hop / SLA — **MTC 签名层接，但无 m-of-n** | `packages/cli/src/lib/cross-chain-mtc.js` |
+| **真链上 RPC** | 0 调用（`grep -c "ethers\\|cosmjs\\|broadcastTx" cross-chain*.js` = 0） | — |
+
+**核心发现**：基础设施 80% 已经在了。差的只是把 m-of-n gate 从 `marketplace.*` 扩展到 `crosschain.*`，以及把现有 crosschain `lock_tx_hash` / `mint_tx_hash` 字段 wired 到真 ethers.js/cosmjs broadcast。
+
+---
+
+## 2. 三层分解（按工期 + 外部依赖排序）
+
+### Layer 1 — multisig domain gating（~0.5d 工，0 外部依赖）
+
+把 `cc crosschain bridge` 命令加 `--require-multisig` opt-in flag。流程：
+
+```
+bridge --from ethereum --to chainless --amount 100 --require-multisig
+  ↓
+1. core-multisig.propose({domain: "crosschain.bridge.outbound", payload: {...bridge args}})
+   返回 proposalId + 首签
+2. 其它 signer 通过 web-shell /multisig 看到提案 → 各自签
+3. 达 m-of-n 阈值 → multisig state → "reached"
+4. 调 crosschain.bridge.consume(proposalId) → bridgeAsset() 真正 insert cc_bridges row
+                                                  + multisig state → "consumed"
+```
+
+**镜像 marketplace.purchase 已有 pattern**：
+
+| marketplace | crosschain | 备注 |
+|---|---|---|
+| `marketplace.purchase` domain | `crosschain.bridge.outbound` domain | 一对一 |
+| `marketplace.consume` finalize topic | `crosschain.bridge.consume` finalize topic | 一对一 |
+| `multisig-handlers.js` 已有 `MULTISIG_PURCHASE_DOMAIN` 常量 | 加 `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 | 同一文件 |
+| Multisig.vue `callMultisigTopic` 已抽 helper | 复用，0 改 | UI 0 改 |
+
+**Layer 1 PR 拆分（建议各 ~150-300 行）**：
+
+| PR | 状态 | 文件 | 描述 |
+|---|---|---|---|
+| 1 | ✅ landed | `packages/cli/src/commands/crosschain.js` + `__tests__/integration/crosschain-multisig-e2e.test.js` | `bridge --require-multisig` flag + `bridge-consume <proposalId>` 子命令 + `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 + `_bridgePropose` / `_bridgeConsume` helpers；**11 E2E tests** 全过（happy 2-of-2 / 1-of-1 reaches immediately / 4 error paths / 3 regression paths / text output）+ 103 既有 crosschain 测试 0 regression |
+| 2 | ⏳ pending | `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` | 加 `crosschain.bridge.outbound` domain 常量 + `crosschain.bridge.consume` in-process WS topic；~8 unit tests |
+| 3 | ⏳ pending | `packages/web-panel/src/views/Multisig.vue` | 列表 / 详情 已 generic（domain 是 string），可能 0 改；如要分类显示加 domain icon ~50 行 |
+| 4 | ⏳ pending | `docs/design/MofN_多签_应用扩展_v1.md` §8 加 §9 "Crosschain Outbound" 段 | 文档同步 |
+
+**PR1 实测（2026-05-15）**：
+- CLI 调用：`cc crosschain bridge ethereum polygon 100 --require-multisig --initiator did:cc:foo --key /tmp/foo.hex` → 返 `{status:"needs_co_sign", proposalId, requiredSigs, payload}`
+- 其它 signer：`cc multisig sign <proposalId> --signer did:cc:bar --key /tmp/bar.hex` → 达阈
+- 完成：`cc crosschain bridge-consume <proposalId>` → 真 insert `cc_bridges` row + proposal state → `consumed`
+- 错误路径：缺 --initiator / 缺 --key / 缺 policy / pending state / not_found / wrong_domain / already_consumed 全部返 exit code 2 + structured JSON
+- 兼容性：不传 `--require-multisig` 走原 direct path，0 regression
+
+### Layer 2 — bridge envelope m-of-n signing（~1d 工，需 schema 升级）
+
+Layer 1 只把 **是否推进 bridge** gate 在多签后，但 bridge envelope 本身（`bridgeAsset` 写入 SQLite 的 row 数据）仍是单 signer 的。Layer 2 把多签 partial sigs 嵌入 bridge envelope，让 onchain verifier 能验 m-of-n。
+
+需要 schema 升级 `cc_bridges` 表：
+- 加 `multisig_proposal_id` 字段（FK to `multisig_proposals.id`）
+- 加 `signers_did_json` 字段（达阈时谁签了）
+- 加 `partial_sigs_json` 字段（嵌进 envelope 后给 onchain verifier）
+
+`cross-chain-mtc.js:buildMultiHopBridgeEnvelope` 已经有 MTC publisher_signature 层，Layer 2 = 把 publisher_signature 从 single producer key 改成 **strip-all-sigs JCS + m-of-n partial sigs concatenation**（参 memory `mtc_publisher_sig_threshold.md`，MTC v0.11 已支持 hybrid）。
+
+**前置依赖**：Layer 1 必先落 — Layer 2 需要稳定的 multisig proposal lifecycle 作 input。
+
+### Layer 3 — 真链上 broadcast（external-blocked，不在本 spike）
+
+调 ethers.js / cosmjs / @polkadot 等 SDK 把 Layer 2 envelope 推到真链：
+
+```javascript
+const provider = new ethers.JsonRpcProvider(chain.rpcUrl);
+const wallet = new ethers.Wallet(hotKey, provider);
+const tx = await wallet.sendTransaction({ to: bridgeContract, data: envelopeAbiData });
+db.update("cc_bridges", { lock_tx_hash: tx.hash, status: "submitted" });
+```
+
+**为什么 external-blocked**（memory `mtc_landing_v0_11.md` Q-COMP-3 已 sign-off）：
+- 测试网账户需要先充值（Sepolia ETH / OPS Mumbai MATIC 等），需 marketing/finance 决策
+- 真桥合约部署需要外部 auditor sign-off（Halborn / OpenZeppelin Audit 估 6-8w/合约）
+- 主网 broadcast 需要 KYC + 跨境合规（设计文档 §1 三层定位的"链下治理 + 链上结算"分割原则要明确）
+
+**建议**：Layer 3 单独开 spike issue（不属 B.5 当前 scope），需要 finance + legal sign-off 后再启动。
+
+---
+
+## 3. spike 验收（Layer 1 落地的判断标准）
+
+- [ ] `cc crosschain bridge --require-multisig --from ethereum --to chainless --amount 100` 返回 `proposalId`，不 insert `cc_bridges` row
+- [ ] `cc multisig sign <proposalId> --did <signer-did>` 各 signer 可签（complete with existing multisig CLI）
+- [ ] 达 m-of-n 阈值后 `cc crosschain bridge consume <proposalId>` 真正 insert row + 多签 state → consumed
+- [ ] web-shell `/multisig` 列表能看到 `crosschain.bridge.outbound` 提案，详情显示 payload `{fromChain, toChain, amount, sender, recipient}`
+- [ ] 已达阈 proposal 在 `Multisig.vue` 可点 "执行" 调 `crosschain.bridge.consume` WS topic
+- [ ] 单测：~25 unit + 1 integration（CLI propose → CLI sign×M → web-shell finalize → DB 行真存在）
+- [ ] 文档：本 spike doc + `MofN_多签_应用扩展_v1.md` §8 加 crosschain 段
+
+---
+
+## 4. 与既有设计文档的关系
+
+| 文档 | 关系 |
+|---|---|
+| [`MofN_多签_应用扩展_v1.md`](MofN_多签_应用扩展_v1.md) | §8 "Mobile（Android v1.2+）" 之后加 §9 "Crosschain Outbound（GA 后续 scope）" |
+| [`MTC_跨链桥_v1.md`](MTC_跨链桥_v1.md) | bridge envelope 的 MTC publisher_signature 层是 Layer 2 的扩展点 |
+| Android 重新定位设计文档 §10 B.5 | 本 spike 是 B.5 的实施细节落地 |
+
+---
+
+## 5. 风险 & 决策点
+
+| 风险 | 缓解 | 决策点 |
+|---|---|---|
+| **Layer 2 schema 改动 backward-compat**：`cc_bridges` 加列对老 row 兼容？ | 加 `ALTER TABLE` migration + default null；老 row `multisig_proposal_id IS NULL` 走 legacy 路径 | Layer 2 启动前文档化 migration |
+| **跨平台一致性**：CLI bridge propose 后 mobile/web-shell 都能签？ | core-multisig 是 transport-agnostic，proposal store 是 shared SQLite，自然同步 | 0 |
+| **Q-COMP-3 法律 sign-off 推迟到 Layer 3** | Layer 1+2 纯链下，与法律无关 | Layer 3 issue 单独开时再处理 |
+| **marketplace.purchase 与 crosschain.bridge.outbound 同时进行 sweep**？ | 两 domain 独立 policy，互不影响 | 0 |
+
+---
+
+## 6. 下一步
+
+1. **用户审视本 spike** — 同意三层分解 + Layer 1 PR 拆法
+2. 批 Layer 1 — 4 PR 顺序 land（CLI / web-shell handler / UI / docs）
+3. Layer 2 开新 spike doc（依赖 Layer 1 落地后的实际 envelope shape）
+4. Layer 3 开独立 GA 后续 scope issue（external sign-off chain）
+

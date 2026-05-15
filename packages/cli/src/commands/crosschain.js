@@ -1,5 +1,10 @@
 /**
  * `cc crosschain` — CLI surface for Phase 89 Cross-Chain Interoperability.
+ *
+ * #21 B.5 Layer 1 PR1 (2026-05-15): `cc crosschain bridge --require-multisig`
+ * opt-in routes outbound bridge through m-of-n multisig (domain
+ * `crosschain.bridge.outbound`); `cc crosschain bridge-consume <proposalId>`
+ * finalizes after threshold is reached. Mirrors marketplace purchase/consume.
  */
 
 import fs from "node:fs";
@@ -8,6 +13,14 @@ import { Command } from "commander";
 
 import { bootstrap } from "../runtime/bootstrap.js";
 import { getHomeDir } from "../lib/paths.js";
+import {
+  openMultisigManager,
+  defaultMultisigDbPath,
+  defaultMultisigLogPath,
+  readSecretKey,
+} from "../lib/multisig-runtime.js";
+
+const MULTISIG_BRIDGE_OUTBOUND_DOMAIN = "crosschain.bridge.outbound";
 import {
   getCrossChainMtcDir,
   getBridgeMtcStatus,
@@ -111,6 +124,234 @@ function _maybeStageMtc(opts, opBuilder) {
   }
 }
 
+/**
+ * #21 B.5 Layer 1 — open a multisig proposal for an outbound bridge.
+ * Does NOT insert into cc_bridges yet; bridge-consume does that after
+ * the proposal reaches threshold. Mirrors marketplace.purchase.
+ */
+async function _bridgePropose({
+  fromChain,
+  toChain,
+  amount,
+  asset,
+  sender,
+  recipient,
+  initiator,
+  alg,
+  key,
+  multisigDb,
+  multisigLog,
+  json,
+}) {
+  if (!initiator) {
+    const out = {
+      status: "blocked",
+      reason: "missing_initiator",
+      path: "multisig",
+    };
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else
+      console.error(
+        "✗ --initiator <did> required when --require-multisig is set",
+      );
+    process.exitCode = 2;
+    return out;
+  }
+  if (!key) {
+    const out = {
+      status: "blocked",
+      reason: "missing_key",
+      path: "multisig",
+    };
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else
+      console.error(
+        "✗ --key <hex|path> required when --require-multisig is set",
+      );
+    process.exitCode = 2;
+    return out;
+  }
+
+  const { store, mgr, close } = await openMultisigManager(
+    multisigDb,
+    multisigLog,
+  );
+  try {
+    const policy = store.getPolicy(MULTISIG_BRIDGE_OUTBOUND_DOMAIN);
+    if (!policy) {
+      const out = {
+        status: "blocked",
+        reason: "no_policy",
+        path: "multisig",
+        domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+      };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else
+        console.error(
+          `✗ No multisig policy for domain "${MULTISIG_BRIDGE_OUTBOUND_DOMAIN}". Run: cc multisig policy set ${MULTISIG_BRIDGE_OUTBOUND_DOMAIN} --m <M> --members <json>`,
+        );
+      process.exitCode = 2;
+      return out;
+    }
+
+    const secretKey = readSecretKey(key);
+    const payload = {
+      fromChain,
+      toChain,
+      asset: asset || "native",
+      amount,
+      sender: sender || null,
+      recipient: recipient || null,
+    };
+    const result = mgr.propose({
+      domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+      payload,
+      policy,
+      initiator: { did: initiator, alg: alg || "Ed25519", secretKey },
+    });
+    const out = {
+      status: "needs_co_sign",
+      path: "multisig",
+      proposalId: result.proposal.id,
+      reachedThreshold: result.reachedThreshold,
+      requiredSigs: policy.m,
+      memberCount: policy.members.length,
+      payload,
+    };
+    if (json) {
+      console.log(JSON.stringify(out, null, 2));
+    } else {
+      console.log(
+        `↪ Routed through multisig (domain ${MULTISIG_BRIDGE_OUTBOUND_DOMAIN})`,
+      );
+      console.log(`  proposalId: ${result.proposal.id}`);
+      console.log(`  needs ${policy.m} of ${policy.members.length} signatures`);
+      if (result.reachedThreshold)
+        console.log(
+          `  ✓ threshold reached on first signature — run: cc crosschain bridge-consume ${result.proposal.id}`,
+        );
+    }
+    return out;
+  } finally {
+    close();
+  }
+}
+
+/**
+ * #21 B.5 Layer 1 — finalize an outbound bridge after multisig threshold.
+ * Reads the proposal's payload, executes the actual bridgeAsset() insert,
+ * then marks the proposal consumed. Mirrors marketplace.consume.
+ */
+async function _bridgeConsume({
+  db,
+  proposalId,
+  multisigDb,
+  multisigLog,
+  json,
+}) {
+  const { mgr, close } = await openMultisigManager(multisigDb, multisigLog);
+  try {
+    const got = mgr.get(proposalId);
+    if (!got) {
+      const out = { status: "error", reason: "proposal_not_found" };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else console.error(`✗ No proposal: ${proposalId}`);
+      process.exitCode = 2;
+      return out;
+    }
+    if (got.proposal.domain !== MULTISIG_BRIDGE_OUTBOUND_DOMAIN) {
+      const out = {
+        status: "error",
+        reason: "wrong_domain",
+        expected: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+        actual: got.proposal.domain,
+      };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else
+        console.error(
+          `✗ Proposal domain "${got.proposal.domain}" is not "${MULTISIG_BRIDGE_OUTBOUND_DOMAIN}" — use the matching consume command for that domain instead.`,
+        );
+      process.exitCode = 2;
+      return out;
+    }
+    if (got.proposal.state !== "reached") {
+      const out = {
+        status: "error",
+        reason: `proposal_state_${got.proposal.state}`,
+      };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else
+        console.error(
+          `✗ Proposal state is "${got.proposal.state}", need "reached" — sign more before consume.`,
+        );
+      process.exitCode = 2;
+      return out;
+    }
+
+    const payload = JSON.parse(got.proposal.payloadJcs);
+    const bridgeResult = bridgeAsset(db, {
+      fromChain: payload.fromChain,
+      toChain: payload.toChain,
+      asset: payload.asset,
+      amount: payload.amount,
+      senderAddress: payload.sender,
+      recipientAddress: payload.recipient,
+    });
+    if (!bridgeResult.bridgeId) {
+      const out = {
+        status: "error",
+        reason: `bridge_insert_failed_${bridgeResult.reason}`,
+        proposalId,
+      };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else
+        console.error(
+          `✗ Bridge insert failed: ${bridgeResult.reason} — proposal left in "reached" state`,
+        );
+      process.exitCode = 1;
+      return out;
+    }
+    const finalizeRes = mgr.finalize(proposalId);
+    if (!finalizeRes.ok) {
+      const out = {
+        status: "error",
+        reason: finalizeRes.reason,
+        proposalId,
+        bridgeId: bridgeResult.bridgeId,
+      };
+      if (json) console.log(JSON.stringify(out, null, 2));
+      else
+        console.error(
+          `✗ Finalize failed: ${finalizeRes.reason} (bridge row ${bridgeResult.bridgeId} already inserted)`,
+        );
+      process.exitCode = 1;
+      return out;
+    }
+
+    const out = {
+      status: "consumed",
+      proposalId,
+      bridgeId: bridgeResult.bridgeId,
+      fee: bridgeResult.fee,
+      payload,
+    };
+    if (json) {
+      console.log(JSON.stringify(out, null, 2));
+    } else {
+      console.log(
+        `✓ Bridge consumed — ${payload.fromChain} → ${payload.toChain}, amount ${payload.amount} ${payload.asset}`,
+      );
+      console.log(
+        `  bridgeId: ${bridgeResult.bridgeId} (fee ${bridgeResult.fee})`,
+      );
+      console.log(`  proposalId: ${proposalId}`);
+    }
+    return out;
+  } finally {
+    close();
+  }
+}
+
 export function registerCrossChainCommand(program) {
   const cc = new Command("crosschain")
     .description("Cross-chain interoperability (Phase 89)")
@@ -174,9 +415,49 @@ export function registerCrossChainCommand(program) {
       "On success, stage an MTC bridge envelope (requires cc crosschain mtc-batch to close)",
     )
     .option("--mtc-config-dir <dir>", "Override MTC config root")
+    .option(
+      "--require-multisig",
+      "Route through m-of-n multisig (domain crosschain.bridge.outbound). Requires --initiator + --key + policy set.",
+    )
+    .option(
+      "--initiator <did>",
+      "Initiator DID for multisig proposal (required when --require-multisig)",
+    )
+    .option("--alg <alg>", "Initiator signing alg", "Ed25519")
+    .option(
+      "--key <hex|path>",
+      "Initiator secret key hex or path to hex file (required when --require-multisig)",
+    )
+    .option(
+      "--multisig-db <path>",
+      "Multisig SQLite DB path (default ~/.chainlesschain/multisig.db)",
+    )
+    .option(
+      "--multisig-log <path>",
+      "Multisig governance log path (default ~/.chainlesschain/multisig.governance.log)",
+    )
     .option("--json", "JSON output")
-    .action((fromChain, toChain, amount, opts) => {
+    .action(async (fromChain, toChain, amount, opts) => {
       const db = _dbFromCtx(cc);
+
+      if (opts.requireMultisig) {
+        return _bridgePropose({
+          db,
+          fromChain,
+          toChain,
+          amount: parseFloat(amount),
+          asset: opts.asset,
+          sender: opts.sender,
+          recipient: opts.recipient,
+          initiator: opts.initiator,
+          alg: opts.alg,
+          key: opts.key,
+          multisigDb: opts.multisigDb || defaultMultisigDbPath(),
+          multisigLog: opts.multisigLog || defaultMultisigLogPath(),
+          json: opts.json,
+        });
+      }
+
       const result = bridgeAsset(db, {
         fromChain,
         toChain,
@@ -206,6 +487,30 @@ export function registerCrossChainCommand(program) {
       if (mtc?.staged) console.log(`MTC envelope staged: ${mtc.path}`);
       else if (mtc && !mtc.staged)
         console.log(`MTC stage skipped: ${mtc.reason}`);
+    });
+
+  cc.command("bridge-consume <proposalId>")
+    .description(
+      "Finalize a multisig-gated bridge after threshold reached — performs the SQLite insert and marks proposal consumed",
+    )
+    .option(
+      "--multisig-db <path>",
+      "Multisig SQLite DB path (default ~/.chainlesschain/multisig.db)",
+    )
+    .option(
+      "--multisig-log <path>",
+      "Multisig governance log path (default ~/.chainlesschain/multisig.governance.log)",
+    )
+    .option("--json", "JSON output")
+    .action(async (proposalId, opts) => {
+      const db = _dbFromCtx(cc);
+      return _bridgeConsume({
+        db,
+        proposalId,
+        multisigDb: opts.multisigDb || defaultMultisigDbPath(),
+        multisigLog: opts.multisigLog || defaultMultisigLogPath(),
+        json: opts.json,
+      });
     });
 
   cc.command("bridge-status <bridge-id> <status>")
