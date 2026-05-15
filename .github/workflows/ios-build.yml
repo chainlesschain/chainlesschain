@@ -18,9 +18,20 @@ env:
   IOS_DEPLOYMENT_TARGET: "15.0"
 
 jobs:
-  # Job 1: Build and Test
+  # Job 1: Build SPM modules + run tests via swift CLI
+  #
+  # App target ChainlessChain.xcodeproj 缺 SPM 本地 package 引用
+  # (XCLocalSwiftPackageReference + XCSwiftPackageProductDependency 都 0)
+  # → AppState.swift `import CoreCommon` 失败。需要 Xcode GUI Add Package
+  # Dependency 才能补齐（手 sed pbxproj 风险大）。在那之前 CI 通过
+  # Package.swift 直接 build 7 个 lib + run 6 个 testTarget (Phase 1-5
+  # 代码全在 Modules/，~263 unit tests 在 Tests/)。
+  #
+  # 用 `swift` CLI 原生模式而不是 xcodebuild —— xcodebuild 即使把 .xcodeproj
+  # 和 .swiftpm/xcode 都 disable 后，仍把 Package.swift 错解析成 /Package.swift
+  # 绝对路径。`swift build/test` 直接读 ios-app/Package.swift，无歧义。
   build-test:
-    name: Build & Test
+    name: Build & Test (SPM)
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -30,111 +41,43 @@ jobs:
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-      - name: Show Xcode version
+      - name: Show toolchain version
         run: |
           xcodebuild -version
           swift --version
 
-      - name: Cache Swift Package Manager
+      - name: Cache SPM .build directory
         uses: actions/cache@v4
         with:
-          path: ios-app/.spm-cache
-          key: ${{ runner.os }}-spm-${{ hashFiles('ios-app/Package.swift') }}
+          path: ios-app/.build
+          key: ${{ runner.os }}-spm-${{ hashFiles('ios-app/Package.swift', 'ios-app/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
-
-      # App target ChainlessChain.xcodeproj 缺 SPM 本地 package 引用
-      # (XCLocalSwiftPackageReference + XCSwiftPackageProductDependency 都 0)
-      # → AppState.swift `import CoreCommon` 失败。需要 Xcode GUI Add
-      # Package Dependency 才能补齐（手 sed pbxproj 风险大）。在那之前
-      # CI 通过 Package.swift 直接 build SPM 7 lib + 测 6 testTarget
-      # （Phase 1-5 代码全在 Modules/ 下，263 unit tests 在 Tests/ 下）。
-      #
-      # Hide .xcodeproj so xcodebuild auto-detects Package.swift instead.
-      # SPM-generated .swiftpm/xcode/package.xcworkspace 的 "self:" 路径
-      # 不被 xcodebuild CLI 正确解析（resolves 成 /Package.swift 绝对路径）。
-      # 重命名 .xcodeproj 是 force SPM auto-detect 最可靠的方式。
-
-      - name: Disable .xcodeproj + .swiftpm workspace (force Package.swift)
-        working-directory: ios-app
-        run: |
-          mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
-          # .swiftpm/xcode/package.xcworkspace 的 "self:" 路径被 xcodebuild
-          # CLI 解析成 /Package.swift（系统绝对路径），所以也要藏掉。
-          if [ -d .swiftpm/xcode ]; then
-            mv .swiftpm/xcode .swiftpm/xcode.disabled
-          fi
-
-      - name: Resolve Swift Package dependencies
-        working-directory: ios-app
-        shell: bash
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -scheme CoreP2P \
-            -clonedSourcePackagesDirPath .spm-cache
 
       - name: Build SPM modules for iOS Simulator
         working-directory: ios-app
         shell: bash
         run: |
           set -o pipefail
-          xcodebuild build \
-            -scheme CoreP2P \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
-            -clonedSourcePackagesDirPath .spm-cache \
-            | xcpretty
+          SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ARCH=$(uname -m)  # arm64 on M-series runners
+          swift build \
+            --triple ${ARCH}-apple-ios15.0-simulator \
+            --sdk "$SDK_PATH" \
+            -c debug \
+            --product CoreP2P
 
-      - name: Pick iOS simulator for tests
-        id: pick-sim
-        shell: bash
-        run: |
-          SIM_ID=$(xcrun simctl list devices available -j | jq -r '
-            [.devices | to_entries[]
-             | select(.key | test("iOS"))
-             | .value[]
-             | select(.name | startswith("iPhone"))
-            ] | (max_by(.name) // empty) | .udid // empty')
-          if [ -z "$SIM_ID" ]; then
-            echo "::error::No iPhone simulator available on runner"
-            xcrun simctl list devices available
-            exit 1
-          fi
-          SIM_NAME=$(xcrun simctl list devices available -j | jq -r --arg id "$SIM_ID" '
-            [.devices | to_entries[] | .value[] | select(.udid == $id)][0].name')
-          echo "Picked simulator: $SIM_NAME ($SIM_ID)"
-          echo "sim_id=$SIM_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Run SPM tests (CoreP2P + transitive)
+      - name: Run SPM tests (host platform)
         working-directory: ios-app
         shell: bash
         run: |
           set -o pipefail
-          xcodebuild test \
-            -scheme CoreP2P \
-            -destination "platform=iOS Simulator,id=${{ steps.pick-sim.outputs.sim_id }}" \
-            -derivedDataPath build/DerivedData \
-            -clonedSourcePackagesDirPath .spm-cache \
-            | xcpretty
-
-      - name: Restore .xcodeproj + .swiftpm workspace
-        if: always()
-        working-directory: ios-app
-        run: |
-          if [ -d ChainlessChain.xcodeproj.disabled ]; then
-            mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
-          fi
-          if [ -d .swiftpm/xcode.disabled ]; then
-            mv .swiftpm/xcode.disabled .swiftpm/xcode
-          fi
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: ios-app/build/DerivedData/Logs/Test/
-          if-no-files-found: warn
+          # `swift test` on iOS simulator triple has no test runner binary,
+          # so tests run on host (macOS) instead. Most CoreP2P tests are
+          # platform-agnostic logic (event dispatchers, LRU dedup, OfflineQueue,
+          # etc). Tests that genuinely need iOS-only APIs (UIKit/WebRTC) will
+          # need a separate xcodebuild path once .xcodeproj+SPM wiring is fixed.
+          swift test
 
   # Job 2: Code Quality - SwiftLint
   lint:
@@ -155,12 +98,9 @@ jobs:
         run: |
           swiftlint lint --reporter github-actions-logging || echo "Linting completed with warnings"
 
-  # Job 3: Build Release (Unsigned) — SPM Release config
-  # App target Release build skipped until ChainlessChain.xcodeproj 接通 SPM
-  # 本地 package 引用（见 build-test job 注释）。当前只 release-build
-  # SPM 模块。
+  # Job 3: Build Release config (SPM)
   build-release:
-    name: Build Release (Unsigned)
+    name: Build Release (SPM, unsigned)
     runs-on: macos-latest
     needs: [build-test, lint]
     timeout-minutes: 30
@@ -171,55 +111,26 @@ jobs:
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-      - name: Cache Swift Package Manager
+      - name: Cache SPM .build directory
         uses: actions/cache@v4
         with:
-          path: ios-app/.spm-cache
-          key: ${{ runner.os }}-spm-${{ hashFiles('ios-app/Package.swift') }}
+          path: ios-app/.build
+          key: ${{ runner.os }}-spm-release-${{ hashFiles('ios-app/Package.swift', 'ios-app/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      - name: Disable .xcodeproj + .swiftpm workspace (force Package.swift)
-        working-directory: ios-app
-        run: |
-          mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
-          # .swiftpm/xcode/package.xcworkspace 的 "self:" 路径被 xcodebuild
-          # CLI 解析成 /Package.swift（系统绝对路径），所以也要藏掉。
-          if [ -d .swiftpm/xcode ]; then
-            mv .swiftpm/xcode .swiftpm/xcode.disabled
-          fi
-
-      - name: Resolve Swift Package dependencies
-        working-directory: ios-app
-        shell: bash
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -scheme CoreP2P \
-            -clonedSourcePackagesDirPath .spm-cache
-
-      - name: Build SPM modules (Release config)
+      - name: Build SPM modules (Release, iOS Simulator)
         working-directory: ios-app
         shell: bash
         run: |
           set -o pipefail
-          xcodebuild build \
-            -scheme CoreP2P \
-            -configuration Release \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
-            -clonedSourcePackagesDirPath .spm-cache \
-            | xcpretty
-
-      - name: Restore .xcodeproj + .swiftpm workspace
-        if: always()
-        working-directory: ios-app
-        run: |
-          if [ -d ChainlessChain.xcodeproj.disabled ]; then
-            mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
-          fi
-          if [ -d .swiftpm/xcode.disabled ]; then
-            mv .swiftpm/xcode.disabled .swiftpm/xcode
-          fi
+          SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ARCH=$(uname -m)
+          swift build \
+            --triple ${ARCH}-apple-ios15.0-simulator \
+            --sdk "$SDK_PATH" \
+            -c release \
+            --product CoreP2P
 
   # Job 4: Security Analysis
   security-scan:
