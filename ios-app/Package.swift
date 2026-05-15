@@ -107,7 +107,11 @@ let package = Package(
             name: "CoreP2P",
             dependencies: [
                 "CoreCommon",
-                "CoreE2EE",
+                // CoreE2EE 暂从 CoreP2P deps 移除 — grep 显示 Modules/CoreP2P/
+                // 实际不 import CoreE2EE，是 stale 声明。CoreE2EE transitively
+                // 拉 CoreSecurity，而 CoreSecurity/CryptoManager.swift 用
+                // `Data.bytes`（CryptoSwift 1.10 已无此扩展，需改 Array(data)）
+                // 阻塞编译。修 CryptoManager 后再恢复此 dep。
                 .product(name: "WebRTC", package: "WebRTC"),
                 "Starscream"
             ],
