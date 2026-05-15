@@ -1,10 +1,10 @@
-# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.2
+# B.5 跨链桥 outbound × m-of-n 多签 — spike v0.3
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) B.5（GA 后续 scope · P1）
-> **状态**: 🟢 Layer 1 PR1 ✅ landed (2026-05-15) · PR2-4 待启
+> **状态**: 🟢 Layer 1 PR1 ✅ + PR2 ✅ landed (2026-05-15) · PR3-4 待启
 > **作者**: 2026-05-15
 > **关联**: [m-of-n 应用扩展 v1](MofN_多签_应用扩展_v1.md) / [MTC 跨链桥 v1](MTC_跨链桥_v1.md) / memory `mtc_landing_v0_11.md` Q-COMP-3
-> **下一步**: PR2 web-shell handler in-process WS topics + PR3 Multisig.vue domain icon + PR4 文档
+> **下一步**: PR3 Multisig.vue 接通 callMultisigTopic + domain icon + PR4 文档
 
 ---
 
@@ -54,9 +54,14 @@ bridge --from ethereum --to chainless --amount 100 --require-multisig
 | PR | 状态 | 文件 | 描述 |
 |---|---|---|---|
 | 1 | ✅ landed | `packages/cli/src/commands/crosschain.js` + `__tests__/integration/crosschain-multisig-e2e.test.js` | `bridge --require-multisig` flag + `bridge-consume <proposalId>` 子命令 + `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 + `_bridgePropose` / `_bridgeConsume` helpers；**11 E2E tests** 全过（happy 2-of-2 / 1-of-1 reaches immediately / 4 error paths / 3 regression paths / text output）+ 103 既有 crosschain 测试 0 regression |
-| 2 | ⏳ pending | `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` | 加 `crosschain.bridge.outbound` domain 常量 + `crosschain.bridge.consume` in-process WS topic；~8 unit tests |
-| 3 | ⏳ pending | `packages/web-panel/src/views/Multisig.vue` | 列表 / 详情 已 generic（domain 是 string），可能 0 改；如要分类显示加 domain icon ~50 行 |
+| 2 | ✅ landed | `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js` + `__tests__/multisig-handlers.test.js` | 加 `MULTISIG_BRIDGE_OUTBOUND_DOMAIN` 常量 + `crosschain.bridge.consume` in-process WS topic（mirror `marketplace.consume`：domain gate + state gate + finalize + return `{status, proposalId, payload}`）；**8 new unit tests** + 23 既有 multisig handler 测试 0 regression + 27 web-shell test files / 409 tests 全过；bootstrap spread 自动注入新 topic 无需改 wiring |
+| 3 | ⏳ pending | `packages/web-panel/src/views/Multisig.vue` | 列表 / 详情 已 generic（domain 是 string），可能 0 改；如要分类显示加 domain icon ~50 行；接通 `callMultisigTopic("crosschain.bridge.consume", {proposalId})` 让 reached 状态的 crosschain proposals 走新 topic |
 | 4 | ⏳ pending | `docs/design/MofN_多签_应用扩展_v1.md` §8 加 §9 "Crosschain Outbound" 段 | 文档同步 |
+
+**PR2 实测（2026-05-15）**：
+- WS topic `crosschain.bridge.consume`：mirror `marketplace.consume` shape，gate 4 路径（not_found / wrong_domain / state ≠ reached / finalize-fail）+ happy path 返 `{status:"consumed", proposalId, payload}`
+- 设计注：web-shell 不持 crosschain DB，**不做 `cc_bridges` row insert**；插入交给 caller（CLI `cc crosschain bridge-consume` 或 future executor）。Mirror marketplace.consume 也只 finalize 不 process payment，stub 语义一致
+- 异步 `_safeParseJcs` 容错保留：payloadJcs 解析失败返 null，handler 仍走 finalize 路径不挂
 
 **PR1 实测（2026-05-15）**：
 - CLI 调用：`cc crosschain bridge ethereum polygon 100 --require-multisig --initiator did:cc:foo --key /tmp/foo.hex` → 返 `{status:"needs_co_sign", proposalId, requiredSigs, payload}`

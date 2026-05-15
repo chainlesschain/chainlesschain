@@ -13,6 +13,7 @@ import {
   shapeProposalForList,
   shapeProposalDetail,
   MULTISIG_PURCHASE_DOMAIN,
+  MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
 } from "../handlers/multisig-handlers.js";
 
 function makeFakeRuntime(impl) {
@@ -388,6 +389,153 @@ describe("marketplace.consume handler", () => {
   it("rejects INVALID_ARGS when proposalId missing", async () => {
     const { handlers } = withRuntimeFactory({});
     await expect(handlers["marketplace.consume"]({})).rejects.toMatchObject({
+      code: "INVALID_ARGS",
+    });
+  });
+});
+
+describe("crosschain.bridge.consume handler (#21 B.5 PR2)", () => {
+  function makeMgr({ proposal, state, finalizeOk = true }) {
+    return {
+      get: vi.fn(() =>
+        proposal === null
+          ? null
+          : { proposal: { ...proposal, state }, signatures: [] },
+      ),
+      finalize: vi.fn(() => ({
+        ok: finalizeOk,
+        reason: finalizeOk ? null : "fail",
+      })),
+    };
+  }
+
+  it("succeeds when proposal is reached + correct domain → returns payload", async () => {
+    const payload = {
+      fromChain: "ethereum",
+      toChain: "polygon",
+      asset: "native",
+      amount: 100,
+      sender: "0xSENDER",
+      recipient: "did:cc:recipient",
+    };
+    const mgr = makeMgr({
+      proposal: {
+        id: "msp_b1",
+        domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+        payloadJcs: JSON.stringify(payload),
+      },
+      state: "reached",
+    });
+    const { handlers } = withRuntimeFactory({ mgr });
+
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "msp_b1",
+    });
+
+    expect(r).toEqual({
+      status: "consumed",
+      proposalId: "msp_b1",
+      payload,
+    });
+    expect(mgr.finalize).toHaveBeenCalledWith("msp_b1");
+  });
+
+  it("returns error when proposal not found", async () => {
+    const mgr = makeMgr({ proposal: null });
+    const { handlers } = withRuntimeFactory({ mgr });
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "missing",
+    });
+    expect(r).toEqual({ status: "error", reason: "proposal_not_found" });
+    expect(mgr.finalize).not.toHaveBeenCalled();
+  });
+
+  it("returns error wrong_domain for non-bridge proposals", async () => {
+    const mgr = makeMgr({
+      proposal: { domain: MULTISIG_PURCHASE_DOMAIN, payloadJcs: "{}" },
+      state: "reached",
+    });
+    const { handlers } = withRuntimeFactory({ mgr });
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "msp_wd",
+    });
+    expect(r).toMatchObject({
+      status: "error",
+      reason: "wrong_domain",
+      expected: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+      actual: MULTISIG_PURCHASE_DOMAIN,
+    });
+    expect(mgr.finalize).not.toHaveBeenCalled();
+  });
+
+  it("returns proposal_state_X when not yet reached", async () => {
+    const mgr = makeMgr({
+      proposal: {
+        domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+        payloadJcs: "{}",
+      },
+      state: "pending",
+    });
+    const { handlers } = withRuntimeFactory({ mgr });
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "msp_p",
+    });
+    expect(r).toEqual({
+      status: "error",
+      reason: "proposal_state_pending",
+    });
+    expect(mgr.finalize).not.toHaveBeenCalled();
+  });
+
+  it("returns proposal_state_consumed when already consumed", async () => {
+    const mgr = makeMgr({
+      proposal: {
+        domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+        payloadJcs: "{}",
+      },
+      state: "consumed",
+    });
+    const { handlers } = withRuntimeFactory({ mgr });
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "msp_c",
+    });
+    expect(r).toEqual({
+      status: "error",
+      reason: "proposal_state_consumed",
+    });
+    expect(mgr.finalize).not.toHaveBeenCalled();
+  });
+
+  it("returns finalize error if finalize fails after all gates pass", async () => {
+    const mgr = makeMgr({
+      proposal: {
+        domain: MULTISIG_BRIDGE_OUTBOUND_DOMAIN,
+        payloadJcs: '{"fromChain":"ethereum","toChain":"polygon","amount":1}',
+      },
+      state: "reached",
+      finalizeOk: false,
+    });
+    const { handlers } = withRuntimeFactory({ mgr });
+    const r = await handlers["crosschain.bridge.consume"]({
+      proposalId: "msp_f",
+    });
+    expect(r).toEqual({ status: "error", reason: "fail" });
+  });
+
+  it("rejects INVALID_ARGS when proposalId missing", async () => {
+    const { handlers } = withRuntimeFactory({});
+    await expect(
+      handlers["crosschain.bridge.consume"]({}),
+    ).rejects.toMatchObject({
+      code: "INVALID_ARGS",
+    });
+  });
+
+  it("rejects INVALID_ARGS when proposalId not a string", async () => {
+    const { handlers } = withRuntimeFactory({});
+    await expect(
+      handlers["crosschain.bridge.consume"]({ proposalId: 123 }),
+    ).rejects.toMatchObject({
       code: "INVALID_ARGS",
     });
   });
