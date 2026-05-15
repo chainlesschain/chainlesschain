@@ -91,7 +91,18 @@ let package = Package(
                 // 在 CoreDatabase/Sources/ 0 命中。CoreDatabase 实际只用 Apple
                 // 内置 SQLite3 framework，不需要 sqlcipher SPM dep。
             ],
-            path: "Modules/CoreDatabase"
+            path: "Modules/CoreDatabase",
+            // DAO + Migrations 暂排除编译 — 引用大量未实现 model 类型
+            // (DatabaseEntity / KnowledgeItem / AIConversation / AIMessage /
+            //  Contact / Setting / AIMessageRole / ContactStatus)，是
+            // Phase 1-5 之前的半成品 scaffold。AppState 等只用
+            // DatabaseManager.{open,close,queryOne,databaseExists} 4 个 API，
+            // 不直接 import DAO 或 Migrations。等 model 类型补齐后从 exclude
+            // 列表移除恢复编译。
+            exclude: [
+                "Sources/CoreDatabase/DAO",
+                "Sources/CoreDatabase/Migrations"
+            ]
         ),
 
         .target(
