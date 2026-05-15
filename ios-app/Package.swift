@@ -31,10 +31,6 @@ let package = Package(
             name: "CoreP2P",
             targets: ["CoreP2P"]
         ),
-        .library(
-            name: "CoreBlockchain",
-            targets: ["CoreBlockchain"]
-        ),
     ],
     dependencies: [
         // Signal Protocol
@@ -67,16 +63,9 @@ let package = Package(
             url: "https://github.com/Flight-School/AnyCodable.git",
             from: "0.6.0"
         ),
-        // WalletCore - HD Wallet & Multi-chain support
-        .package(
-            url: "https://github.com/trustwallet/wallet-core.git",
-            from: "4.0.0"
-        ),
-        // WalletConnect v2 SDK
-        .package(
-            url: "https://github.com/WalletConnect/WalletConnectSwiftV2.git",
-            from: "1.9.0"
-        ),
+        // WalletCore / WalletConnectSwiftV2 deps removed along with
+        // CoreBlockchain target — Modules/CoreBlockchain/ directory does
+        // not exist (declared but never created).
     ],
     targets: [
         // MARK: - Core Modules
@@ -138,21 +127,6 @@ let package = Package(
                 "Starscream"
             ],
             path: "Modules/CoreP2P"
-        ),
-
-        .target(
-            name: "CoreBlockchain",
-            dependencies: [
-                "CoreCommon",
-                "CoreSecurity",
-                "CoreDatabase",
-                .product(name: "WalletCore", package: "wallet-core"),
-                .product(name: "WalletConnectSign", package: "WalletConnectSwiftV2"),
-                .product(name: "WalletConnectPairing", package: "WalletConnectSwiftV2"),
-                .product(name: "WalletConnectNetworking", package: "WalletConnectSwiftV2"),
-                "CryptoSwift"
-            ],
-            path: "Modules/CoreBlockchain"
         ),
 
         // MARK: - Test Targets
