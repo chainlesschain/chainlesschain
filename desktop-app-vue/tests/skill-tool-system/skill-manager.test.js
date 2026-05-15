@@ -73,8 +73,7 @@ describe("SkillManager", () => {
       await expect(skillManager.registerSkill(invalidSkill)).rejects.toThrow();
     });
 
-    // NOTE: Implementation changed - registerSkill uses upsert pattern now
-    it.skip("应该防止重复ID", async () => {
+    it("应该防止重复ID", async () => {
       const skillData = {
         id: "test_skill",
         name: "测试技能",
@@ -114,8 +113,7 @@ describe("SkillManager", () => {
     });
   });
 
-  // NOTE: enableSkill/disableSkill call updateSkill internally with different parameter format
-  describe.skip("enableSkill / disableSkill", () => {
+  describe("enableSkill / disableSkill", () => {
     it("应该启用技能", async () => {
       const mockSkill = { id: "test_skill", name: "测试技能" };
       mockDatabase.get.mockResolvedValue(mockSkill);
@@ -143,8 +141,7 @@ describe("SkillManager", () => {
     });
   });
 
-  // NOTE: addToolToSkill now validates skill and tool existence before proceeding
-  describe.skip("addToolToSkill", () => {
+  describe("addToolToSkill", () => {
     it("应该成功添加工具到技能", async () => {
       const mockSkill = { id: "test_skill", name: "测试技能" };
       const mockTool = { id: "test_tool", name: "测试工具" };
@@ -181,8 +178,7 @@ describe("SkillManager", () => {
     });
   });
 
-  // NOTE: getSkillsByCategory now returns { success, skills } instead of array
-  describe.skip("getSkillsByCategory", () => {
+  describe("getSkillsByCategory", () => {
     it("应该返回指定分类的所有技能", async () => {
       const mockSkills = [
         { id: "skill1", category: "code", config: "{}", tags: "[]" },
@@ -199,8 +195,7 @@ describe("SkillManager", () => {
     });
   });
 
-  // NOTE: recordSkillUsage implementation may have changed
-  describe.skip("recordSkillUsage", () => {
+  describe("recordSkillUsage", () => {
     it("应该记录技能使用统计", async () => {
       const mockSkill = {
         id: "test_skill",
