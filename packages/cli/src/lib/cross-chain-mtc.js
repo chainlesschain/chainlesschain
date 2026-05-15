@@ -847,11 +847,30 @@ export function buildMultiHopBridgeEnvelope(
  * own landmark + the chain path must be continuous + at least one leg
  * must be the "lock" op (the trigger).
  *
+ * #21 B.5 Layer 2 PR3 — when `wrapper.multisig_provenance` is present OR
+ * `options.requireMultisig === true`, also runs `verifyMultisigProvenance`
+ * (structural). Result includes nested `multisig_result`. Cryptographic
+ * verification of each partial sig against canonical wrapper bytes is
+ * deferred (would require per-signer pubkey lookup; see Layer 3).
+ *
  * @param {object} wrapper - multi-hop envelope from buildMultiHopBridgeEnvelope
  * @param {Array<{landmark: object}>} legCacheEntries - one per leg, in order
- * @returns {{ ok: boolean, code?: string, leg_results?: Array<{ok, code?}> }}
+ * @param {{
+ *   expectedMultisigPolicy?: { m: number, members?: Array<{did:string}> },
+ *   requireMultisig?: boolean,
+ * }} [options]
+ * @returns {{
+ *   ok: boolean,
+ *   code?: string,
+ *   leg_results?: Array<{ok, code?}>,
+ *   multisig_result?: { ok: boolean, code?: string, detail?: string },
+ * }}
  */
-export function verifyMultiHopBridgeEnvelope(wrapper, legCacheEntries) {
+export function verifyMultiHopBridgeEnvelope(
+  wrapper,
+  legCacheEntries,
+  options = {},
+) {
   if (!wrapper || wrapper.schema !== SCHEMA_MULTI_HOP_BRIDGE) {
     return { ok: false, code: "BAD_MULTIHOP_SCHEMA" };
   }
@@ -890,8 +909,29 @@ export function verifyMultiHopBridgeEnvelope(wrapper, legCacheEntries) {
       }
     }
   }
-  const allOk = results.every((r) => r.ok);
-  return { ok: allOk, leg_results: results };
+  const legsOk = results.every((r) => r.ok);
+  const hasProvenance = !!wrapper.multisig_provenance;
+  const requireMultisig = !!options.requireMultisig;
+  if (hasProvenance || requireMultisig) {
+    const multisigResult = verifyMultisigProvenance(
+      wrapper,
+      options.expectedMultisigPolicy,
+    );
+    if (!multisigResult.ok) {
+      return {
+        ok: false,
+        code: "MULTISIG_PROVENANCE_INVALID",
+        leg_results: results,
+        multisig_result: multisigResult,
+      };
+    }
+    return {
+      ok: legsOk,
+      leg_results: results,
+      multisig_result: multisigResult,
+    };
+  }
+  return { ok: legsOk, leg_results: results };
 }
 
 // ─────────────────────────────────────────────────────────────────────

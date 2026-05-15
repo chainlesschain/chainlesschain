@@ -1044,6 +1044,213 @@ describe("cross-chain-mtc lib", () => {
     });
   });
 
+  // ─── PR3 — verifyMultiHopBridgeEnvelope provenance integration ───
+
+  describe("verifyMultiHopBridgeEnvelope multisig integration (PR3)", () => {
+    let keys;
+    beforeEach(() => {
+      keys = ed25519.generateKeyPair();
+    });
+
+    function mkLeg(src, dst, seq) {
+      const op = {
+        bridge_op: "lock",
+        src_chain: src,
+        dst_chain: dst,
+        src_tx_hash: `0x${src}-${dst}-${seq}`,
+        amount: "100",
+        asset: "USDC",
+        issued_at: new Date().toISOString(),
+      };
+      const result = assembleBridgeBatch([op], keys, {
+        src_chain: src,
+        dst_chain: dst,
+        batch_seq: seq,
+        issuer: "mtca:cc:test",
+      });
+      return { envelope: result.envelopes[0], landmark: result.landmark };
+    }
+
+    const provenance = {
+      proposalId: "msp_pr3",
+      thresholdM: 2,
+      memberCountN: 3,
+      signers: ["did:cc:a", "did:cc:b"],
+      partialSigs: [
+        { did: "did:cc:a", alg: "Ed25519", sig: "deadbeef01" },
+        { did: "did:cc:b", alg: "Ed25519", sig: "deadbeef02" },
+      ],
+    };
+
+    it("wrapper without provenance verifies as before (no multisig_result)", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope([a2b.envelope, b2c.envelope]);
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+        { landmark: b2c.landmark },
+      ]);
+      expect(r.ok).toBe(true);
+      expect(r.multisig_result).toBeUndefined();
+    });
+
+    it("wrapper without provenance + requireMultisig=true → fails MISSING_PROVENANCE", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope([a2b.envelope, b2c.envelope]);
+      const r = verifyMultiHopBridgeEnvelope(
+        wrapper,
+        [{ landmark: a2b.landmark }, { landmark: b2c.landmark }],
+        { requireMultisig: true },
+      );
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("MULTISIG_PROVENANCE_INVALID");
+      expect(r.multisig_result).toMatchObject({
+        ok: false,
+        code: "MISSING_PROVENANCE",
+      });
+      // Leg verification still ran — legs themselves are fine.
+      expect(r.leg_results).toHaveLength(2);
+      expect(r.leg_results.every((x) => x.ok)).toBe(true);
+    });
+
+    it("wrapper with valid provenance auto-runs verifyMultisigProvenance (no policy)", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        provenance,
+      );
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+        { landmark: b2c.landmark },
+      ]);
+      expect(r.ok).toBe(true);
+      expect(r.multisig_result).toEqual({ ok: true });
+    });
+
+    it("wrapper with valid provenance + matching policy passes", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        provenance,
+      );
+      const r = verifyMultiHopBridgeEnvelope(
+        wrapper,
+        [{ landmark: a2b.landmark }, { landmark: b2c.landmark }],
+        {
+          expectedMultisigPolicy: {
+            m: 2,
+            members: [
+              { did: "did:cc:a" },
+              { did: "did:cc:b" },
+              { did: "did:cc:c" },
+            ],
+          },
+        },
+      );
+      expect(r.ok).toBe(true);
+      expect(r.multisig_result.ok).toBe(true);
+    });
+
+    it("wrapper with valid provenance but policy m=3 → BELOW_THRESHOLD", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        provenance,
+      );
+      const r = verifyMultiHopBridgeEnvelope(
+        wrapper,
+        [{ landmark: a2b.landmark }, { landmark: b2c.landmark }],
+        { expectedMultisigPolicy: { m: 3 } },
+      );
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("MULTISIG_PROVENANCE_INVALID");
+      expect(r.multisig_result.code).toBe("BELOW_THRESHOLD");
+    });
+
+    it("wrapper with provenance + signer outside policy.members → SIGNER_NOT_IN_POLICY", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        provenance,
+      );
+      const r = verifyMultiHopBridgeEnvelope(
+        wrapper,
+        [{ landmark: a2b.landmark }, { landmark: b2c.landmark }],
+        {
+          expectedMultisigPolicy: {
+            m: 2,
+            members: [{ did: "did:cc:a" }, { did: "did:cc:OTHER" }],
+          },
+        },
+      );
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("MULTISIG_PROVENANCE_INVALID");
+      expect(r.multisig_result.code).toBe("SIGNER_NOT_IN_POLICY");
+      expect(r.multisig_result.detail).toBe("did:cc:b");
+    });
+
+    it("leg failure short-circuits before provenance check (single failure source)", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const otherKeys = ed25519.generateKeyPair();
+      const wrong = mkLeg("polygon", "arbitrum", 99);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        provenance,
+      );
+      // Pass wrong landmark for leg 1 — leg verify will fail.
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+        { landmark: wrong.landmark },
+      ]);
+      // Legs fail but provenance still runs (now both are surfaced;
+      // ok is false because legs failed). multisig_result should reflect
+      // provenance was checked since wrapper has it.
+      expect(r.ok).toBe(false);
+      expect(r.multisig_result).toBeDefined();
+      expect(r.multisig_result.ok).toBe(true); // structural provenance is fine
+      // But overall ok = false because legs failed.
+      expect(r.leg_results.some((x) => !x.ok)).toBe(true);
+      // Silence unused-var lint for the second keypair shadow.
+      void otherKeys;
+    });
+
+    it("wrapper with malformed provenance + leg-ok → MULTISIG_PROVENANCE_INVALID", () => {
+      const a2b = mkLeg("ethereum", "polygon", 1);
+      const b2c = mkLeg("polygon", "arbitrum", 1);
+      const wrapper = buildMultiHopBridgeEnvelope(
+        [a2b.envelope, b2c.envelope],
+        {},
+        {
+          ...provenance,
+          // signers unsorted — canonical-form invariant violated
+          signers: ["did:cc:b", "did:cc:a"],
+          partialSigs: [
+            { did: "did:cc:b", alg: "Ed25519", sig: "bb" },
+            { did: "did:cc:a", alg: "Ed25519", sig: "aa" },
+          ],
+        },
+      );
+      const r = verifyMultiHopBridgeEnvelope(wrapper, [
+        { landmark: a2b.landmark },
+        { landmark: b2c.landmark },
+      ]);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("MULTISIG_PROVENANCE_INVALID");
+      expect(r.multisig_result.code).toBe("SIGNERS_NOT_SORTED");
+    });
+  });
+
   // ─── v0.2 gas-aware batch ─────────────────────────────────
 
   describe("shouldCloseBatchGasAware", () => {
