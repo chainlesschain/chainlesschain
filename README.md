@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-15 发布 — **Android GA 后续 scope #21 P1 主体 5/5 全闭环**（A.1 + A.2 + B.1 + B.5 + C.1）
+
+> v1.0 GA 上架后 issue #21 跟进的 5 项主体 scope 一日内全部 land，累计约 270 单测全绿，最终 sweep 修 2 个 Robolectric `@Config(sdk=[33])` 漏标。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。
+
+- **A.1 桌面 Linux native 配对**（57 单测）— `cc pair preflight` 5 项 LAN 诊断（平台 / 网卡 / multicast / port 5353 holders / firewall hint，exit 0/1/2 分级 CI 可用）+ `cc pair token generate/list/show/revoke` 子命令组（one-active-DID 不变量 + atomic file write，SSH dev box 场景预生成）+ [`dist-tools/systemd/chainlesschain.service`](dist-tools/systemd/chainlesschain.service) hardening 全套模板 + [`docs/linux/PAIRING.md`](docs/linux/PAIRING.md) 9 段用户指南（3 场景 / 5 blocker 修复 / 诊断包收集）。**Audit 反驳**：设计文档说"Linux 需补 mDNS systemd 单元"是误解 — `@libp2p/mdns` + `bonjour-service` 纯 JS 不依赖 avahi-daemon。
+- **A.2 三端 UI consistency 设计文档** v0.1 baseline（[`docs/design/三端_UI_Consistency_设计文档.md`](docs/design/三端_UI_Consistency_设计文档.md)）— 4 项必须一致（语义色 / 高风险红色 hex / DID 短显规则 6+4 字符 / m-of-n 进度展示 m/n + 分隔符）+ 4 项必须不同（手表大按钮 ≥48dp / 桌面侧栏 / 车载 voice-only / 手机 thumb zone）。
+- **B.1 web-shell 私钥签字 UI**（113 单测）— `MultisigSigner` ukeyManager adapter（4 driver return shape normalisation）+ `multisig.sign` in-process WS topic（绕开 cc subprocess 6-10s 冷启）+ `signWithExternal` async API（core-multisig 新增）+ `SignProposalModal.vue`（Pinia store + member dropdown + dev-only hex source）+ `unified-key-manager` DID-based signer routing。
+- **B.5 跨链桥 outbound × m-of-n 多签**（Layer 1+2 共 8 PRs）— Layer 1：CLI `bridge --require-multisig` + `bridge-consume` + web-shell `crosschain.bridge.consume` in-process topic + Multisig.vue 执行按钮。Layer 2：`cc_bridges` m-of-n provenance 列 + crosschain-mtc `attachMultisigProvenance`/`stripMultisigSigsForCanonical` helpers + `buildMultiHopBridgeEnvelope` 3rd arg + `verifyMultiHopBridgeEnvelope` auto-runs provenance check + `bridge-consume --mtc` 把 multisig provenance 带入 staging。Layer 3 external-blocked Q-COMP-3（真 testnet 锚定 + contract audit + KYC）不计入本 scope。
+- **C.1 watch face → VoiceMode shortcut**（33 单测）— phone-side `VoiceLaunchActions` + `VoiceTriggerSource` 4 enum + NavGraph 路由 + `CcPhoneVoiceListener` Data Layer service（`/cc/voice/start` MessageClient path）+ wear `VoiceSender` + `VoiceShortcutTileService` standalone tile + `VoiceComplicationService` + `VoiceForwardActivity`（intent + 50ms vibration + 3s timeout）。**安全约束**：`trigger_source` 字段 wear 侧仅信息用途，phone 侧锁 `WEAR_FORWARD` 防伪 — 防 wear 端伪造 trigger_source 提权到 `AUTO_BUTTON`/`PHONE_SHORTCUT`。
+- **最终 sweep bug 修**（commit `f1d283833`）— C.1 PR1 `VoiceLaunchActionsTest` + PR2 `CcPhoneVoiceListenerTest` 漏标 `@Config(sdk=[33])`，Robolectric `DefaultSdkPicker` 拒收 compileSdk=35（maxSdkVersion=34）— 统一与 `:app` 其它 Robolectric 测试一致。
+
+详见 [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21) + [Android 重新定位 §10 GA 后续 scope](docs/design/Android_重新定位_设计文档.md)。
+
 ## 2026-05-15 发布 — **iOS Phase 1+2+3 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 skill）**
 
 > Android 端 v1.0 GA 验证后，iOS 端启动镜像移植。一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 完整设计文档 / 3 实施 trap memory。

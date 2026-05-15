@@ -3,6 +3,56 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased] - 2026-05-15 — Android GA 后续 scope #21 P1 主体 5/5 全闭环
+
+> 桌面 Android v1.0 GA (`v5.0.3.53`) 上架后，issue #21 P1 主体 5 项一日内全部 land — A.1+A.2+B.1+B.5+C.1 闭环，~270 单测 + 5 设计文档 + Linux 用户配对指南。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。
+
+**A.1 桌面 Linux native 配对**（PR1+PR2+PR3，57 单测）：
+
+- `cc pair preflight` — 5 项 LAN 诊断（平台 / 网卡 / multicast / port 5353 holders / firewall hint），exit 0/1/2 分级
+- `cc pair token generate/list/show/revoke` — one-active-DID 不变量 + atomic file write
+- `dist-tools/systemd/chainlesschain.service` — hardening 全套 systemd 模板（NoNewPrivileges / ProtectSystem=strict / ReadWritePaths whitelist）
+- `docs/linux/PAIRING.md` — 9 段用户指南（3 场景 / 5 blocker 修复 / 诊断包收集）
+- **Audit 反驳**："Linux 需补 mDNS systemd 单元"是误解 — `@libp2p/mdns` + `bonjour-service` 纯 JS 不依赖 avahi-daemon
+
+**A.2 三端 UI consistency 设计文档** v0.1 baseline — 4 项 *必须一致*（语义色 / 高风险红 / DID 短显 / m-of-n 进度展示）+ 4 项 *必须不同*（手表大按钮 ≥48dp / 桌面侧栏 / 车载 voice-only / 手机 thumb zone）
+
+**B.1 web-shell 私钥签字 UI**（PR1+2a+2b+3，113 单测）：
+
+- `MultisigSigner` + `buildUkeyManagerSigner` adapter + `multisig.sign` WS topic（in-process，绕开 cc subprocess 6-10s 冷启）
+- `signWithExternal` async API（core-multisig 新增）
+- `SignProposalModal.vue`（Pinia store + member dropdown + dev-only hex source）
+- `unified-key-manager` DID-based signer routing — 同 DID 跨 driver 自动路由
+
+**B.5 跨链桥 outbound × m-of-n 多签**（Layer 1+2，8 PRs）：
+
+- Layer 1：CLI `bridge --require-multisig` + `bridge-consume` + web-shell `crosschain.bridge.consume` 直接 topic + Multisig.vue 执行按钮
+- Layer 2：`cc_bridges` m-of-n provenance 列 + crosschain-mtc `attachMultisigProvenance` / `stripMultisigSigsForCanonical` helpers + `buildMultiHopBridgeEnvelope` 3rd arg + `verifyMultiHopBridgeEnvelope` auto-runs provenance check + `bridge-consume --mtc` carries multisig provenance into staging
+- Layer 3（external-blocked Q-COMP-3）：真 testnet 锚定 + contract audit + KYC + bridge counterparty 选型 — 不计入本 scope
+
+**C.1 watch face → VoiceMode shortcut**（PR1+PR2+PR3，33 单测）：
+
+- Phone-side `VoiceLaunchActions` + `VoiceTriggerSource`（AUTO_BUTTON / PHONE_SHORTCUT / WEAR_FORWARD / VOICE_TRIGGER 4 enum）
+- `CcPhoneVoiceListener` Data Layer service — `/cc/voice/start` MessageClient path
+- Wear-app `VoiceSender` / `VoiceShortcutTileService` / `VoiceComplicationService`
+- **安全**：`trigger_source` 字段 wear 侧仅信息用途，phone 侧锁 `WEAR_FORWARD` 防伪
+- **Audit reframe**：设计文档说"需先抽 generic `cc.voice.start` IPC"不准 — Auto Phase 1 实际是 in-process VM event，没有公开 IPC；wear 走 Wearable Data Layer MessageClient 直 forward 更直
+
+**bug 修**（最终 sweep）：
+
+- C.1 PR1+PR2 两个 Robolectric 测试漏标 `@Config(sdk = [33])`，Robolectric DefaultSdkPicker 拒收 compileSdk=35（maxSdkVersion=34）；统一与 `:app` 其它 Robolectric 测试一致 — `f1d283833`
+
+**剩余 follow-ups**（gated）：
+
+- A.1 full headless WS signaling listener + IPv6 multicast + WSL2 helper（gated on GA reflection）
+- B.5 Layer 3 真链上锚定（external-blocked，Q-COMP-3 待 testnet 资金 + contract audit + KYC 决策）
+- B.1 F1-F4：encrypted software secret store / CLI --keystore flag / SignProposalModal 'unified' radio / UnifiedKeyManager IPC bind-did
+- C.1 真机 instrumented E2E + 预览 drawables + phone shortcut tile
+
+issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设计文档：[Android 重新定位 §10 GA 后续 scope](./design/Android_重新定位_设计文档.md)
+
+---
+
 ## [Unreleased] - 2026-05-15 — iOS Phase 1+2+3 完整移植 + 2 P0 修
 
 > Android v1.0 GA 验证后启动 iOS 镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。
