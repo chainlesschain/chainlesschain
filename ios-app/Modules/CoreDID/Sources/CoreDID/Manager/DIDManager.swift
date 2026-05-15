@@ -11,6 +11,10 @@ public class DIDManager {
     private let crypto = CryptoManager.shared
     private let logger = Logger.shared
 
+    /// 当前活跃身份（external 调用方读取，例如发消息用我的 DID）。
+    /// 持久化加载逻辑 TODO — 当前仅声明 stored property 满足编译。
+    public var currentDID: DIDIdentity?
+
     private init() {}
 
     // MARK: - DID Generation
