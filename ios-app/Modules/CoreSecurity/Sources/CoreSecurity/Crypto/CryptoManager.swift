@@ -2,6 +2,12 @@ import Foundation
 import CryptoSwift
 import CoreCommon
 
+// CryptoSwift 1.10+ removed the `Data.bytes` extension. Restore it locally
+// so existing call sites (data.bytes → [UInt8]) keep working.
+private extension Data {
+    var bytes: [UInt8] { Array(self) }
+}
+
 /// 加密管理器
 public class CryptoManager {
     public static let shared = CryptoManager()

@@ -194,10 +194,9 @@ public class KeychainManager {
             throw KeychainError.loadFailed(status)
         }
 
-        guard let key = result as? SecKey else {
-            throw KeychainError.invalidData
-        }
-
+        // SecKey is a CoreFoundation type — conditional downcast always
+        // succeeds, so use force cast (compiler enforces).
+        let key = result as! SecKey
         return key
     }
 
