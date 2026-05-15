@@ -628,22 +628,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Build for iOS — SPM Phase 1-5 modules only
+  # Build for iOS
   #
-  # 历史现状：ChainlessChain.xcodeproj 缺 XCLocalSwiftPackageReference +
-  # XCSwiftPackageProductDependency 把 7 个本地 Modules wire 进 app target，
-  # AppState.swift `import CoreCommon` 失败 → app target 无法 build → .ipa
-  # / 真 Simulator .app 都产不出。需要 Mac Xcode UI File → Add Package
-  # Dependency 手工接好（不在本 workflow 范围）。
+  # commit 159fc2403 接通了 .xcodeproj 的 SPM 本地 package 引用
+  # (XCLocalSwiftPackageReference + 5 个 XCSwiftPackageProductDependency)，
+  # AppState.swift `import CoreCommon` 不再失败，app target 应该能编。
   #
-  # 在此之前 release-time iOS 只 build SPM 模块产物（验证 Phase 1-5 代码
-  # 编译性，不产生可安装的 iOS 包）。与 .github/workflows/ios-build.yml
-  # 同一套 swift build --target CoreP2P 路径。
+  # 关键约束：**不能**跑 `ruby scripts/create_xcode_project.rb` —— 那个
+  # 脚本会从 0 重生 pbxproj，会覆盖 commit 159fc2403 加进去的 SPM wiring。
+  # CI 检出 git 上的 pbxproj 直接用，xcodeproj gem 写出来的 format
+  # xcodebuild CLI 认。
   #
-  # 之前版本（v5.0.3.55 及更早）走 xcodebuild + create_xcode_project.rb
-  # 路径，叠加 `|| echo "⚠️ Build completed with warnings"` mask，build
-  # 假绿但 Simulator zip 只有 2.4KB 破壳。本次 unmask + pivot 让 build
-  # 真挂或真过。
+  # 双轨：
+  # - Signed 路径：有 IOS_CERTIFICATE_BASE64 secret 时走 archive + IPA export
+  # - Unsigned 路径：无 secret 时走 simulator build + zip
+  # 两路径均**无 mask**：失败就真失败（前 16 iter 收口的教训）。
   build-ios:
     runs-on: macos-latest
     timeout-minutes: 60
@@ -659,7 +658,9 @@ jobs:
           xcodebuild -version
           swift --version
 
-      - name: Build SPM modules (Release, iOS Simulator)
+      # SPM Phase 1-5 模块单独编一遍作为 Phase 1-5 代码健康度回归（与
+      # ios-build.yml 重合，但 release-time 也跑一次保险）。
+      - name: Build SPM modules (Phase 1-5 sanity)
         working-directory: ios-app
         shell: bash
         run: |
@@ -672,11 +673,141 @@ jobs:
             -c release \
             --target CoreP2P
 
-      # 暂不上传 iOS artifact 到 release-assets — swift build --target 只
-      # 产 .o object files + .framework 包，不是可安装的 .app/.ipa。
-      # 在 .xcodeproj SPM wiring 修好前，release page 显示无 iOS 资产比
-      # 显示 2.4KB 破 zip 诚实。下游 create-release prepare-assets step 的
-      # `*.ipa` / `ChainlessChain-ios-simulator.zip` glob 自然 no-match 跳过。
+      - name: Resolve Swift Package dependencies for xcodeproj
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -clonedSourcePackagesDirPath .spm-cache
+
+      - name: Decode signing certificate (if secrets configured)
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -n "$IOS_CERTIFICATE_BASE64" ]; then
+            KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security set-keychain-settings -lut 21600 build.keychain
+
+            echo "$IOS_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+            security import certificate.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+            rm certificate.p12
+
+            if [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ]; then
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            fi
+
+            echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
+            echo "✓ Signing configured"
+          else
+            echo "SIGNING_AVAILABLE=false" >> $GITHUB_ENV
+            echo "ℹ️  No IOS_CERTIFICATE_BASE64 secret — falling back to unsigned simulator build"
+          fi
+
+      - name: Build iOS app archive (signed)
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        shell: bash
+        env:
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -archivePath build/ChainlessChain.xcarchive \
+            -destination 'generic/platform=iOS' \
+            -clonedSourcePackagesDirPath .spm-cache \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            -allowProvisioningUpdates | xcpretty
+
+      - name: Export IPA (signed)
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>teamID</key>
+            <string>${{ secrets.IOS_TEAM_ID }}</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/ChainlessChain.xcarchive \
+            -exportPath build/output \
+            -exportOptionsPlist ExportOptions.plist | xcpretty
+          ls -la build/output/
+
+      - name: Build iOS app for Simulator (unsigned fallback)
+        if: env.SIGNING_AVAILABLE != 'true'
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            -clonedSourcePackagesDirPath .spm-cache \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+
+          mkdir -p build/output
+          APP_PATH="build/DerivedData/Build/Products/Release-iphonesimulator/ChainlessChain.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Build succeeded but $APP_PATH not produced"
+            exit 1
+          fi
+          # Sanity: app bundle should be > 1MB (real build), not 2.4KB placeholder
+          APP_SIZE=$(du -k "$APP_PATH" | cut -f1)
+          if [ "$APP_SIZE" -lt 1024 ]; then
+            echo "::error::$APP_PATH is only ${APP_SIZE} KB — likely empty/broken bundle"
+            exit 1
+          fi
+          echo "✓ ChainlessChain.app: ${APP_SIZE} KB"
+          cd build/DerivedData/Build/Products/Release-iphonesimulator
+          zip -r ../../../../output/ChainlessChain-ios-simulator.zip ChainlessChain.app
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-artifacts
+          path: |
+            ios-app/build/output/*.ipa
+            ios-app/build/output/*.zip
+          if-no-files-found: error
+          retention-days: 7
 
   # Build for Android
   build-android:
@@ -865,9 +996,8 @@ jobs:
           - \`app-release.aab\` - Android App Bundle (Google Play Store)
 
           #### iOS
-          - 本版本暂无 iOS 安装包（.ipa/.app）— ChainlessChain.xcodeproj
-            缺 SPM 本地 package wiring，app target 编译失败。CI 仍 build
-            CoreP2P SPM 模块验证 Phase 1-5 代码编译性。
+          - \`ChainlessChain.ipa\` - iOS App (Ad-hoc distribution, signed builds only)
+          - \`ChainlessChain-ios-simulator.zip\` - iOS Simulator build (unsigned, for testing)
 
           ### System Requirements
 
