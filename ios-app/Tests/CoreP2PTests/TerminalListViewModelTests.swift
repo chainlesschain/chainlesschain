@@ -2,16 +2,10 @@ import XCTest
 @testable import CoreP2P
 
 /// Phase 2.4 — `TerminalListViewModel` 测试。
-///
-/// 用 `FakeWebRTCPeerConnectionTransport` + `FakeSignalClient` + 自建
-/// `TerminalRpcClient` (closures fake-driven) 验证：handshake 触发 / sessions
-/// 加载 / create / close / dataChannelReady 流转。
+/// **Phase 3.3 refactor 适配**：TerminalRpcClient 改 commandClient 注入。
 @MainActor
 final class TerminalListViewModelTests: XCTestCase {
 
-    // MARK: - Test harness
-
-    /// 测试 inbound stream + writer pair（与 TerminalRpcClientTests 同模式）
     private final class InboundChannel {
         let stream: AsyncStream<String>
         let continuation: AsyncStream<String>.Continuation
@@ -40,7 +34,7 @@ final class TerminalListViewModelTests: XCTestCase {
         let signalClient: FakeSignalClient
     }
 
-    private func makeSetup(currentDID: String? = "did:cc:me", pcPeerId: String = "pc-1") -> Setup {
+    private func makeSetup(currentDID: String? = "did:cc:me", pcPeerId: String = "pc-1") async -> Setup {
         let signalClient = FakeSignalClient()
         let signalingGate = DefaultPairingSignalingGate(signalClient: signalClient)
         let bus = DefaultPairingMessageBus()
@@ -54,7 +48,8 @@ final class TerminalListViewModelTests: XCTestCase {
         )
         let rpcTransport = FakeRpcTransport()
         let inbound = InboundChannel()
-        let rpc = TerminalRpcClient(
+        // Phase 3.3 refactor: 先建 RemoteCommandClient (closures)，再包 TerminalRpcClient
+        let commandClient = RemoteCommandClient(
             dataChannelSender: { text in
                 rpcTransport.lock.lock()
                 rpcTransport.sentDC.append(text)
@@ -70,6 +65,8 @@ final class TerminalListViewModelTests: XCTestCase {
             featureFlags: PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "tlvm-\(UUID())")!),
             responseTimeoutSeconds: 2
         )
+        await commandClient.start()
+        let rpc = TerminalRpcClient(commandClient: commandClient, eventStream: commandClient.events)
         let vm = TerminalListViewModel(
             pcPeerId: pcPeerId,
             webRTCClient: webRTC,
@@ -81,7 +78,6 @@ final class TerminalListViewModelTests: XCTestCase {
                      signalClient: signalClient)
     }
 
-    /// 抓 reqId from outbound DC envelope JSON
     private func reqIdFrom(_ json: String) throws -> String {
         guard let data = json.data(using: .utf8),
               let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -103,25 +99,18 @@ final class TerminalListViewModelTests: XCTestCase {
     // MARK: - Tests
 
     func testOnAppearTriggersHandshakeAndRefresh() async throws {
-        let s = makeSetup()
-        // 起 onAppear（async 内含等 answer 阻塞，所以放 Task）
+        let s = await makeSetup()
         let appearTask = Task { await s.vm.onAppear() }
         try await Task.sleep(nanoseconds: 100_000_000)
-        // 此时 webRTCClient.connect 在等 answer；触发 handshake state 进 .connecting
         XCTAssertEqual(s.vm.handshakeState, .connecting)
 
-        // 模拟 answer 到达
         await s.webRTC.handleAnswerFromSignaling(SdpDescription(type: .answer, sdp: "fake"))
         try await Task.sleep(nanoseconds: 50_000_000)
-
-        // 触发 DC OPEN 让 dataChannelReady stream emit true
         await s.webRTCTransport.simulateDcStateChange(.open)
         try await Task.sleep(nanoseconds: 100_000_000)
 
-        // 同时 refresh 调用了 list — 抓 outbound + 喂 response
-        // (因为 dcReady=true 默认，list 走 DC)
         let outbound = s.rpcTransport.sentDC
-        XCTAssertGreaterThanOrEqual(outbound.count, 1, "list should have been sent via DC")
+        XCTAssertGreaterThanOrEqual(outbound.count, 1)
         let reqId = try reqIdFrom(outbound[0])
         s.inbound.send(try responseRaw(reqId: reqId, result: ["sessions": []]))
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -132,8 +121,7 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testRefreshPopulatesSessions() async throws {
-        let s = makeSetup()
-        // 直接 refresh，跳过 handshake 复杂性
+        let s = await makeSetup()
         let refreshTask = Task { await s.vm.refresh() }
         try await Task.sleep(nanoseconds: 50_000_000)
         let reqId = try reqIdFrom(s.rpcTransport.sentDC[0])
@@ -151,16 +139,14 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testCreateSessionReturnsCreatedAndRefreshes() async throws {
-        let s = makeSetup()
+        let s = await makeSetup()
         let createTask = Task { await s.vm.createSession(shell: "/bin/zsh") }
         try await Task.sleep(nanoseconds: 50_000_000)
-        // 第一笔 outbound = create
         let createReqId = try reqIdFrom(s.rpcTransport.sentDC[0])
         s.inbound.send(try responseRaw(reqId: createReqId, result: [
             "sessionId": "new-1", "pid": 9999, "shell": "/bin/zsh", "createdAt": 1700000000000
         ]))
         try await Task.sleep(nanoseconds: 100_000_000)
-        // 第二笔 outbound = refresh (list)
         let listReqId = try reqIdFrom(s.rpcTransport.sentDC[1])
         s.inbound.send(try responseRaw(reqId: listReqId, result: [
             "sessions": [["id": "new-1", "shell": "/bin/zsh", "cwd": NSNull(), "alive": true, "lastSeq": 0]]
@@ -172,7 +158,7 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testCreateFailureSetsLastError() async throws {
-        let s = makeSetup()
+        let s = await makeSetup()
         let createTask = Task { await s.vm.createSession(shell: "/bin/x") }
         try await Task.sleep(nanoseconds: 50_000_000)
         let reqId = try reqIdFrom(s.rpcTransport.sentDC[0])
@@ -188,14 +174,12 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testCloseSessionFlow() async throws {
-        let s = makeSetup()
+        let s = await makeSetup()
         let closeTask = Task { await s.vm.closeSession(sessionId: "sess-x") }
         try await Task.sleep(nanoseconds: 50_000_000)
-        // 第一笔 = close
         let closeReqId = try reqIdFrom(s.rpcTransport.sentDC[0])
         s.inbound.send(try responseRaw(reqId: closeReqId, result: ["ok": true]))
         try await Task.sleep(nanoseconds: 100_000_000)
-        // 第二笔 = refresh
         let listReqId = try reqIdFrom(s.rpcTransport.sentDC[1])
         s.inbound.send(try responseRaw(reqId: listReqId, result: ["sessions": []]))
         await closeTask.value
@@ -203,7 +187,7 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testHandshakeFailsWhenNoDID() async {
-        let s = makeSetup(currentDID: nil)
+        let s = await makeSetup(currentDID: nil)
         let appearTask = Task { await s.vm.onAppear() }
         try? await Task.sleep(nanoseconds: 100_000_000)
         if case .failed(let reason) = s.vm.handshakeState {
@@ -215,16 +199,13 @@ final class TerminalListViewModelTests: XCTestCase {
     }
 
     func testDataChannelReadyStreamUpdatesHandshakeState() async throws {
-        let s = makeSetup()
-        // 触发 handshake → state 经 dataChannelReady stream 转 .connectedDataChannel
+        let s = await makeSetup()
         let appearTask = Task { await s.vm.onAppear() }
         try await Task.sleep(nanoseconds: 100_000_000)
         await s.webRTC.handleAnswerFromSignaling(SdpDescription(type: .answer, sdp: "x"))
         try await Task.sleep(nanoseconds: 100_000_000)
         await s.webRTCTransport.simulateDcStateChange(.open)
-        // 等 dataChannelReady 流 emit true
         try await Task.sleep(nanoseconds: 200_000_000)
-        // 同时 list response
         if !s.rpcTransport.sentDC.isEmpty {
             let reqId = try reqIdFrom(s.rpcTransport.sentDC[0])
             s.inbound.send(try responseRaw(reqId: reqId, result: ["sessions": []]))

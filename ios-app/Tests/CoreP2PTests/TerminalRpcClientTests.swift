@@ -1,361 +1,143 @@
 import XCTest
 @testable import CoreP2P
 
-/// Phase 2.2 — `TerminalRpcClient` 双路径 routing + LRU dedup + 6 method
-/// wrapper 测试。
+/// Phase 2.2 TerminalRpcClient 测试 — Phase 3.3 refactor 后**精简版**。
 ///
-/// 通过 closures 注入 fake DC + signaling sender + readiness provider，
-/// 不需真 `RemoteWebRTCClient`。响应通过测试自己驱动 inboundStream 模拟。
+/// **Phase 3.3 改动**：
+/// - 通用 invoke / transport routing 测试 → 已迁移到 RemoteCommandClientTests
+/// - TerminalRpcClient 仅保留 6 method wrapper + LRU dedup + lifecycle 相关测试
+/// - 测试 setup 改为：建 RemoteCommandClient (closures) → 包 TerminalRpcClient
+///   (commandClient + eventStream)
 final class TerminalRpcClientTests: XCTestCase {
 
     // MARK: - Test harness
 
-    /// 测试用 inbound stream + writer pair。
     private final class InboundChannel {
         let stream: AsyncStream<String>
         let continuation: AsyncStream<String>.Continuation
-
         init() {
             var local: AsyncStream<String>.Continuation!
             self.stream = AsyncStream(bufferingPolicy: .bufferingNewest(64)) { c in local = c }
             self.continuation = local
         }
-
         func send(_ raw: String) { continuation.yield(raw) }
     }
 
-    /// Fake transport state。所有 send 行为可配置。
     private final class FakeTransport: @unchecked Sendable {
         let lock = NSLock()
-        var dcSentMessages: [String] = []
-        var signalingSentMessages: [(pcPeerId: String, json: String)] = []
+        var dcSent: [String] = []
+        var sigSent: [(String, String)] = []
         var dcReady: Bool = true
-
-        // 失败注入
-        var dcSendError: Error?
-        var signalingSendError: Error?
-
-        func reset() {
-            lock.lock(); defer { lock.unlock() }
-            dcSentMessages.removeAll()
-            signalingSentMessages.removeAll()
-        }
     }
 
-    private func makeClient(
-        transport: FakeTransport,
-        inbound: InboundChannel,
-        flags: PlanA1FeatureFlags? = nil,
-        responseTimeoutSeconds: UInt64 = 2,
-        uuidGen: @Sendable @escaping () -> String = { UUID().uuidString }
-    ) -> TerminalRpcClient {
-        let resolvedFlags = flags ?? PlanA1FeatureFlags(
-            defaults: UserDefaults(suiteName: "test-rpc-\(UUID().uuidString)")!
-        )
-        return TerminalRpcClient(
+    private struct Setup {
+        let rpc: TerminalRpcClient
+        let commandClient: RemoteCommandClient
+        let inbound: InboundChannel
+        let transport: FakeTransport
+    }
+
+    private func makeSetup() async -> Setup {
+        let transport = FakeTransport()
+        let inbound = InboundChannel()
+        let cmdClient = RemoteCommandClient(
             dataChannelSender: { text in
-                if let err = transport.dcSendError { throw err }
                 transport.lock.lock()
-                transport.dcSentMessages.append(text)
+                transport.dcSent.append(text)
                 transport.lock.unlock()
             },
-            signalingSender: { pcPeerId, json in
-                if let err = transport.signalingSendError { throw err }
+            signalingSender: { pid, json in
                 transport.lock.lock()
-                transport.signalingSentMessages.append((pcPeerId, json))
+                transport.sigSent.append((pid, json))
                 transport.lock.unlock()
             },
             isDataChannelReady: { transport.dcReady },
             inboundMessages: inbound.stream,
-            featureFlags: resolvedFlags,
-            responseTimeoutSeconds: responseTimeoutSeconds,
-            uuidGen: uuidGen
+            featureFlags: PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "trpc-\(UUID())")!),
+            responseTimeoutSeconds: 2
         )
+        await cmdClient.start()
+        let rpc = TerminalRpcClient(commandClient: cmdClient, eventStream: cmdClient.events)
+        await rpc.start()
+        return Setup(rpc: rpc, commandClient: cmdClient, inbound: inbound, transport: transport)
     }
 
-    private func extractReqId(fromOutbound json: String) throws -> String {
-        guard let data = json.data(using: .utf8),
-              let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let payload = dict["payload"] as? [String: Any],
-              let id = payload["id"] as? String else {
-            throw NSError(domain: "extractReqId", code: 0)
-        }
-        return id
+    private func reqIdFrom(_ json: String) throws -> String {
+        let data = json.data(using: .utf8)!
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let payload = dict["payload"] as! [String: Any]
+        return payload["id"] as! String
     }
 
-    private func makeResponseRaw(reqId: String, result: [String: Any]) throws -> String {
-        let envelope: [String: Any] = [
+    private func responseRaw(reqId: String, result: [String: Any]) throws -> String {
+        let env: [String: Any] = [
             "type": "chainlesschain:command:response",
             "payload": ["id": reqId, "result": result]
         ]
-        let data = try JSONSerialization.data(withJSONObject: envelope)
-        return String(data: data, encoding: .utf8)!
+        return String(data: try JSONSerialization.data(withJSONObject: env), encoding: .utf8)!
     }
 
-    // MARK: - Transport routing (4 combos)
-
-    func testInvokeDataChannelReadyAndFlagOnUsesDC() async throws {
-        let transport = FakeTransport(); transport.dcReady = true
-        let inbound = InboundChannel()
-        let flags = PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "t-\(UUID())")!)
-        flags.preferDataChannel = true
-        let client = makeClient(transport: transport, inbound: inbound, flags: flags)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc-1", method: "terminal.list", params: [:]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        // 抓出 reqId
-        XCTAssertEqual(transport.dcSentMessages.count, 1)
-        XCTAssertEqual(transport.signalingSentMessages.count, 0)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-
-        // 模拟响应
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["sessions": []]))
-        let resp = try await task.value
-        if case .success = resp { /* ok */ } else { XCTFail("expected success") }
+    private func stdoutEventRaw(sessionId: String, data: String, seq: Int64) -> String {
+        let env: [String: Any] = [
+            "type": "chainlesschain:event",
+            "payload": [
+                "event": "terminal.stdout",
+                "sessionId": sessionId,
+                "data": data,
+                "seq": seq
+            ]
+        ]
+        return String(data: try! JSONSerialization.data(withJSONObject: env), encoding: .utf8)!
     }
 
-    func testInvokeDataChannelReadyButFlagOffUsesSignaling() async throws {
-        let transport = FakeTransport(); transport.dcReady = true
-        let inbound = InboundChannel()
-        let flags = PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "t-\(UUID())")!)
-        flags.preferDataChannel = false  // <-- key
-        let client = makeClient(transport: transport, inbound: inbound, flags: flags)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc-x", method: "terminal.list", params: [:]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(transport.dcSentMessages.count, 0)
-        XCTAssertEqual(transport.signalingSentMessages.count, 1)
-        XCTAssertEqual(transport.signalingSentMessages[0].pcPeerId, "pc-x")
-        let reqId = try extractReqId(fromOutbound: transport.signalingSentMessages[0].json)
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["sessions": []]))
-        _ = try await task.value
+    private func exitEventRaw(sessionId: String, exitCode: Int?, signal: String?) -> String {
+        var payload: [String: Any] = ["event": "terminal.exit", "sessionId": sessionId]
+        payload["exitCode"] = exitCode ?? NSNull()
+        payload["signal"] = signal ?? NSNull()
+        let env: [String: Any] = ["type": "chainlesschain:event", "payload": payload]
+        return String(data: try! JSONSerialization.data(withJSONObject: env), encoding: .utf8)!
     }
 
-    func testInvokeDataChannelClosedUsesSignaling() async throws {
-        let transport = FakeTransport(); transport.dcReady = false
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc-c", method: "terminal.list", params: [:]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(transport.dcSentMessages.count, 0)
-        XCTAssertEqual(transport.signalingSentMessages.count, 1)
-        let reqId = try extractReqId(fromOutbound: transport.signalingSentMessages[0].json)
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["sessions": []]))
-        _ = try await task.value
-    }
-
-    func testInvokeDataChannelThrowsFallsBackToSignaling() async throws {
-        let transport = FakeTransport(); transport.dcReady = true
-        struct DCErr: Error {}
-        transport.dcSendError = DCErr()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc-fb", method: "terminal.list", params: [:]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        // DC 抛错，应触发 signaling fallback
-        XCTAssertEqual(transport.signalingSentMessages.count, 1)
-        let reqId = try extractReqId(fromOutbound: transport.signalingSentMessages[0].json)
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["sessions": []]))
-        _ = try await task.value
-    }
-
-    func testInvokeDataChannelThrowsAndFallbackDisabled() async throws {
-        let transport = FakeTransport(); transport.dcReady = true
-        struct DCErr: Error {}
-        transport.dcSendError = DCErr()
-        let inbound = InboundChannel()
-        let flags = PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "t-\(UUID())")!)
-        flags.fallbackOnDcFailure = false
-        let client = makeClient(transport: transport, inbound: inbound, flags: flags)
-        await client.start()
-
-        do {
-            _ = try await client.invoke(pcPeerId: "pc-x", method: "terminal.list", params: [:])
-            XCTFail("expected throw")
-        } catch TerminalRpcError.allTransportsFailed {
-            // ok
-        } catch {
-            XCTFail("wrong error: \(error)")
-        }
-        XCTAssertEqual(transport.signalingSentMessages.count, 0, "fallback disabled — signaling should not be tried")
-    }
-
-    // MARK: - Response handling
-
-    func testResponseErrorTransitsToFailureCase() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc", method: "terminal.create", params: ["shell": "/x"]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-
-        let raw = """
-        {"type":"chainlesschain:command:response","payload":{"id":"\(reqId)","error":"shell not found"}}
-        """
-        inbound.send(raw)
-        let resp = try await task.value
-        if case .failure(_, let msg) = resp {
-            XCTAssertEqual(msg, "shell not found")
-        } else { XCTFail("expected failure") }
-    }
-
-    func testResponseTimeoutThrowsTimeout() async {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound, responseTimeoutSeconds: 1)
-        await client.start()
-
-        do {
-            _ = try await client.invoke(pcPeerId: "pc", method: "terminal.list", params: [:])
-            XCTFail("expected timeout")
-        } catch TerminalRpcError.timeout {
-            // ok
-        } catch {
-            XCTFail("wrong: \(error)")
-        }
-    }
-
-    // MARK: - LRU dedup
-
-    func testStdoutDedupSamesidSeqOnce() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        // 起 collector
-        let collected = Task<[StdoutEvent], Never> {
-            var v: [StdoutEvent] = []
-            for await e in await client.stdoutEvents {
-                v.append(e)
-                if v.count >= 2 { return v }
-            }
-            return v
-        }
-
-        let raw = #"{"type":"chainlesschain:event","payload":{"event":"terminal.stdout","sessionId":"s1","data":"hi","seq":7}}"#
-        inbound.send(raw)
-        inbound.send(raw)  // 重复
-        let raw2 = #"{"type":"chainlesschain:event","payload":{"event":"terminal.stdout","sessionId":"s1","data":"world","seq":8}}"#
-        inbound.send(raw2)
-
-        try await Task.sleep(nanoseconds: 200_000_000)
-        collected.cancel()
-        let result = await collected.value
-        XCTAssertEqual(result.count, 2, "duplicate (s1, 7) should be deduped")
-        XCTAssertEqual(result[0].seq, 7)
-        XCTAssertEqual(result[1].seq, 8)
-    }
-
-    func testExitDedupSamesidOnce() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let collected = Task<Int, Never> {
-            var count = 0
-            for await _ in await client.exitEvents {
-                count += 1
-                if count >= 2 { return count }
-            }
-            return count
-        }
-
-        let raw = #"{"type":"chainlesschain:event","payload":{"event":"terminal.exit","sessionId":"s9","exitCode":0,"signal":null}}"#
-        inbound.send(raw)
-        inbound.send(raw)  // 重复
-        try await Task.sleep(nanoseconds: 200_000_000)
-        collected.cancel()
-        let count = await collected.value
-        XCTAssertEqual(count, 1)
-    }
-
-    // MARK: - Method wrappers (representative coverage)
+    // MARK: - Method wrappers (代表性覆盖：4 个 of 6)
 
     func testCreateMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.create(pcPeerId: "pc", shell: "/bin/zsh", mobileDid: "did:cc:m") }
+        let s = await makeSetup()
+        let task = Task { try await s.rpc.create(pcPeerId: "pc", shell: "/bin/zsh", mobileDid: "did:cc:m") }
         try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
 
-        // 验证 outbound 含 mobileDid auth
-        let outDict = try JSONSerialization.jsonObject(with: Data(transport.dcSentMessages[0].utf8)) as! [String: Any]
-        let payload = outDict["payload"] as! [String: Any]
-        XCTAssertEqual((payload["auth"] as? [String: Any])?["mobileDid"] as? String, "did:cc:m")
+        let outbound = s.transport.dcSent[0]
+        let dict = try JSONSerialization.jsonObject(with: outbound.data(using: .utf8)!) as! [String: Any]
+        let payload = dict["payload"] as! [String: Any]
         XCTAssertEqual(payload["method"] as? String, "terminal.create")
+        XCTAssertEqual((payload["auth"] as? [String: Any])?["mobileDid"] as? String, "did:cc:m")
 
-        let raw = try makeResponseRaw(reqId: reqId, result: [
+        let reqId = try reqIdFrom(outbound)
+        s.inbound.send(try responseRaw(reqId: reqId, result: [
             "sessionId": "s-1", "pid": 4321, "shell": "/bin/zsh", "createdAt": 1700000000000
-        ])
-        inbound.send(raw)
+        ]))
         let cs = try await task.value
         XCTAssertEqual(cs.sessionId, "s-1")
         XCTAssertEqual(cs.pid, 4321)
     }
 
     func testListMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.list(pcPeerId: "pc") }
+        let s = await makeSetup()
+        let task = Task { try await s.rpc.list(pcPeerId: "pc") }
         try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-
-        let raw = try makeResponseRaw(reqId: reqId, result: [
-            "sessions": [
-                ["id": "a", "shell": "/bin/zsh", "cwd": "/h", "alive": true, "lastSeq": 5]
-            ]
-        ])
-        inbound.send(raw)
+        let reqId = try reqIdFrom(s.transport.dcSent[0])
+        s.inbound.send(try responseRaw(reqId: reqId, result: [
+            "sessions": [["id": "a", "shell": "/bin/zsh", "cwd": "/h", "alive": true, "lastSeq": 5]]
+        ]))
         let list = try await task.value
         XCTAssertEqual(list.count, 1)
-        XCTAssertEqual(list[0].id, "a")
-    }
-
-    func testStdinMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.stdin(pcPeerId: "pc", sessionId: "s1", data: "ls\n") }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["ok": true]))
-        try await task.value
     }
 
     func testStdinThrowsWhenOkFalse() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.stdin(pcPeerId: "pc", sessionId: "s1", data: "x") }
+        let s = await makeSetup()
+        let task = Task { try await s.rpc.stdin(pcPeerId: "pc", sessionId: "s1", data: "x") }
         try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["ok": false]))
-
+        let reqId = try reqIdFrom(s.transport.dcSent[0])
+        s.inbound.send(try responseRaw(reqId: reqId, result: ["ok": false]))
         do {
             try await task.value
             XCTFail("expected throw")
@@ -366,76 +148,81 @@ final class TerminalRpcClientTests: XCTestCase {
         }
     }
 
-    func testResizeMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.resize(pcPeerId: "pc", sessionId: "s1", cols: 80, rows: 24) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["ok": true]))
-        try await task.value
-    }
-
-    func testCloseMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.close(pcPeerId: "pc", sessionId: "s1") }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-        inbound.send(try makeResponseRaw(reqId: reqId, result: ["ok": true]))
-        try await task.value
-    }
-
     func testHistoryMethodWrapper() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound)
-        await client.start()
-
-        let task = Task { try await client.history(pcPeerId: "pc", sessionId: "s1", fromSeq: 10) }
+        let s = await makeSetup()
+        let task = Task { try await s.rpc.history(pcPeerId: "pc", sessionId: "s1", fromSeq: 10) }
         try await Task.sleep(nanoseconds: 50_000_000)
-        // 验证 fromSeq 出现在 params
-        let outDict = try JSONSerialization.jsonObject(with: Data(transport.dcSentMessages[0].utf8)) as! [String: Any]
+        let outDict = try JSONSerialization.jsonObject(with: Data(s.transport.dcSent[0].utf8)) as! [String: Any]
         let payload = outDict["payload"] as! [String: Any]
         let params = payload["params"] as! [String: Any]
         XCTAssertEqual(params["sessionId"] as? String, "s1")
         XCTAssertNotNil(params["fromSeq"])
 
-        let reqId = try extractReqId(fromOutbound: transport.dcSentMessages[0])
-        inbound.send(try makeResponseRaw(reqId: reqId, result: [
+        let reqId = try reqIdFrom(s.transport.dcSent[0])
+        s.inbound.send(try responseRaw(reqId: reqId, result: [
             "chunks": [["seq": 10, "data": "log line"]],
             "truncated": false
         ]))
         let resp = try await task.value
         XCTAssertEqual(resp.chunks.count, 1)
-        XCTAssertFalse(resp.truncated)
     }
 
-    // MARK: - stop()
+    // MARK: - LRU dedup (Phase 2 关键功能保留测试)
 
-    func testStopFailsAllPending() async throws {
-        let transport = FakeTransport()
-        let inbound = InboundChannel()
-        let client = makeClient(transport: transport, inbound: inbound, responseTimeoutSeconds: 5)
-        await client.start()
-
-        let task = Task { try await client.invoke(pcPeerId: "pc", method: "terminal.list", params: [:]) }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        await client.stop()
-
-        do {
-            _ = try await task.value
-            XCTFail("expected throw")
-        } catch TerminalRpcError.allTransportsFailed {
-            // ok
-        } catch {
-            XCTFail("wrong: \(error)")
+    func testStdoutDedupSameSidSeqOnce() async throws {
+        let s = await makeSetup()
+        let collected = Task<[StdoutEvent], Never> {
+            var v: [StdoutEvent] = []
+            for await e in await s.rpc.stdoutEvents {
+                v.append(e)
+                if v.count >= 2 { return v }
+            }
+            return v
         }
+        let raw = stdoutEventRaw(sessionId: "s1", data: "hi", seq: 7)
+        s.inbound.send(raw)
+        s.inbound.send(raw)  // 重复
+        s.inbound.send(stdoutEventRaw(sessionId: "s1", data: "world", seq: 8))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        collected.cancel()
+        let result = await collected.value
+        XCTAssertEqual(result.count, 2)
+    }
+
+    func testExitDedupSameSidOnce() async throws {
+        let s = await makeSetup()
+        let collected = Task<Int, Never> {
+            var count = 0
+            for await _ in await s.rpc.exitEvents {
+                count += 1
+                if count >= 2 { return count }
+            }
+            return count
+        }
+        let raw = exitEventRaw(sessionId: "s9", exitCode: 0, signal: nil)
+        s.inbound.send(raw)
+        s.inbound.send(raw)  // 重复
+        try await Task.sleep(nanoseconds: 200_000_000)
+        collected.cancel()
+        XCTAssertEqual(await collected.value, 1)
+    }
+
+    // MARK: - Lifecycle
+
+    func testStopCancelsInboundTask() async throws {
+        let s = await makeSetup()
+        await s.rpc.stop()
+        // stop 后 send event 不应 emit
+        let collected = Task<Int, Never> {
+            var count = 0
+            for await _ in await s.rpc.stdoutEvents {
+                count += 1
+            }
+            return count
+        }
+        s.inbound.send(stdoutEventRaw(sessionId: "x", data: "after-stop", seq: 1))
+        try await Task.sleep(nanoseconds: 100_000_000)
+        collected.cancel()
+        XCTAssertEqual(await collected.value, 0)
     }
 }

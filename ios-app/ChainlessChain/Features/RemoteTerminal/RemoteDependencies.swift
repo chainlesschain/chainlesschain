@@ -1,24 +1,56 @@
 import Foundation
 import CoreP2P
 
-/// 远程终端 DI container — Phase 2.4 (design doc §4.3)。
+/// 远程操控 DI container — Phase 2.4 (基础) → Phase 3.3 (扩展 framework + skill)。
 ///
-/// 单例模式：v0.1 同时只支持一台已配对桌面的远程终端会话（与 Android Plan A.1
+/// 单例模式：v0.1 同时只支持一台已配对桌面的远程操控会话（与 Android Plan A.1
 /// v0.1 一致）。切换桌面前必须先 `disconnect()`。
 ///
 /// **职责**：
-/// 1. 从 [PairingDependencies] 接力构造 RemoteWebRTCClient + TerminalRpcClient
-///    + PlanA1FeatureFlags
-/// 2. 起一个长存 forwarding task：订阅 `pairingDeps.signalClient.forwardedMessages`
-///    把 answer / ice-candidate / chainlesschain:* 路由到 RemoteWebRTCClient 的对应
-///    handler — 这是 Phase 2.1 留的 wiring 缺口（没人喂 handleAnswerFromSignaling）
+/// 1. 从 [PairingDependencies] 接力构造 RemoteWebRTCClient + RemoteCommandClient
+///    + TerminalRpcClient + RemoteSkillRegistry + OfflineCommandQueue + OfflineQueueDrainer
+///    + 4 个 Phase 3 typed skill commands (clipboard / file / screenshot / systemInfo)
+/// 2. 起 forwarding task：订阅 `pairingDeps.signalClient.forwardedMessages`
+///    路由 answer / ice-candidate / chainlesschain:* 给 RemoteWebRTCClient
+///
+/// **Phase 3.3 关键架构变化**：
+/// - `commandClient` 是 `webRTCClient.inboundMessages` 的**唯一订阅者**（避免
+///   AsyncStream 单消费者切分事件）
+/// - `terminalRpc` 改用 `commandClient.events` 流（仅 chainlesschain:event 类型）
+/// - 4 个 skill commands 共享 `commandClient.invoke` 池
 public final class RemoteDependencies: ObservableObject {
+    // Phase 2 既有
     public let webRTCClient: RemoteWebRTCClient
     public let terminalRpc: TerminalRpcClient
     public let featureFlags: PlanA1FeatureFlags
 
+    // Phase 3.1 新增（framework core）
+    public let commandClient: RemoteCommandClient
+    public let skillRegistry: RemoteSkillRegistry
+
+    // Phase 3.2 新增（offline queue）
+    public let offlineQueue: OfflineCommandQueue
+    public let offlineDrainer: OfflineQueueDrainer
+
+    // Phase 3.3 新增（typed skill: clipboard）
+    public let clipboard: ClipboardCommands
+
+    // Phase 3.4 新增（typed skill: file browse + read text）
+    public let file: FileCommands
+
+    // Phase 3.5 新增（typed skill: screenshot + system info）
+    public let screenshot: ScreenshotCommands
+    public let systemInfo: SystemInfoCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
+
+    /// pcPeerId provider — v0.1 单 active 桌面 from PairedDesktopsStore.devices.first.
+    /// Phase 4+ 改 user-explicit selection 时这里得改。
+    public var currentPcPeerIdProvider: @Sendable () async -> String? {
+        let store = pairingDeps.pairedDesktopsStore
+        return { await store.devices().first?.pcPeerId }
+    }
 
     public init(pairingDeps: PairingDependencies) {
         self.pairingDeps = pairingDeps
@@ -38,8 +70,9 @@ public final class RemoteDependencies: ObservableObject {
         )
         self.webRTCClient = webRTC
 
+        // Phase 3.1: commandClient 是 inboundMessages 的唯一订阅者
         let flags = self.featureFlags
-        self.terminalRpc = TerminalRpcClient(
+        let cmdClient = RemoteCommandClient(
             dataChannelSender: { text in
                 try await webRTC.sendMessage(text)
             },
@@ -57,6 +90,36 @@ public final class RemoteDependencies: ObservableObject {
             inboundMessages: webRTC.inboundMessages,
             featureFlags: flags
         )
+        self.commandClient = cmdClient
+
+        // Phase 3.3 refactor: terminalRpc 改用 commandClient.events 流
+        self.terminalRpc = TerminalRpcClient(
+            commandClient: cmdClient,
+            eventStream: cmdClient.events
+        )
+
+        // Phase 3.1: SkillRegistry
+        self.skillRegistry = RemoteSkillRegistry(store: RegistryStore())
+
+        // Phase 3.2: OfflineQueue + Drainer
+        let queue = OfflineCommandQueue()
+        self.offlineQueue = queue
+        self.offlineDrainer = OfflineQueueDrainer(
+            queue: queue,
+            commandClient: cmdClient,
+            pcPeerIdProvider: { await pairingStore.devices().first?.pcPeerId },
+            dataChannelReadyStream: webRTC.dataChannelReady
+        )
+
+        // Phase 3.3: ClipboardCommands
+        self.clipboard = ClipboardCommands(client: cmdClient)
+
+        // Phase 3.4: FileCommands
+        self.file = FileCommands(client: cmdClient)
+
+        // Phase 3.5: ScreenshotCommands + SystemInfoCommands
+        self.screenshot = ScreenshotCommands(client: cmdClient)
+        self.systemInfo = SystemInfoCommands(client: cmdClient)
 
         // 起 forwarding task — SignalClient.forwardedMessages → 路由到 webRTC
         let signalClient = pairingDeps.signalClient
@@ -67,10 +130,19 @@ public final class RemoteDependencies: ObservableObject {
                 await Self.routeForwardedToWebRTC(raw: raw, client: webRTC)
             }
         }
+
+        // 启动 commandClient + terminalRpc + offlineDrainer
+        Task {
+            await cmdClient.start()
+            await self.terminalRpc.start()
+            self.offlineDrainer.start()
+            _ = await self.skillRegistry.initialize()
+        }
     }
 
     deinit {
         forwardingTask?.cancel()
+        offlineDrainer.stop()
     }
 
     /// 解析 forwarded 帧 + 路由到 RemoteWebRTCClient 的对应 handler。
@@ -79,7 +151,7 @@ public final class RemoteDependencies: ObservableObject {
     /// - `payload.type == "answer"` → `handleAnswerFromSignaling`（PC 5 步握手第 5 步）
     /// - `payload.type == "ice-candidate"` → `handleRemoteIceCandidate`（trickle ICE）
     /// - `payload.type` 以 `chainlesschain:` 开头 → `emitInboundFromSignaling`
-    ///   （Plan A.1 fallback 路径下 stdout/exit/response 会从 signaling 来）
+    ///   （fallback 路径下 stdout/exit/response 会从 signaling 来）
     private static func routeForwardedToWebRTC(raw: String, client: RemoteWebRTCClient) async {
         guard let data = raw.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data),
@@ -90,8 +162,6 @@ public final class RemoteDependencies: ObservableObject {
         }
         switch type {
         case "answer":
-            // 桌面 wire 格式可能是 {"type":"answer","answer":{"type":"answer","sdp":"..."}}
-            // 或简化 {"type":"answer","sdp":"..."}
             let sdp: String?
             if let nested = payload["answer"] as? [String: Any] {
                 sdp = nested["sdp"] as? String
@@ -101,8 +171,6 @@ public final class RemoteDependencies: ObservableObject {
             guard let answerSdp = sdp, !answerSdp.isEmpty else { return }
             await client.handleAnswerFromSignaling(SdpDescription(type: .answer, sdp: answerSdp))
         case "ice-candidate":
-            // 桌面格式: {"type":"ice-candidate","candidate":{"candidate":"...","sdpMid":"0","sdpMLineIndex":0}}
-            // 兼容 flat: {"type":"ice-candidate","candidate":"...","sdpMid":"0","sdpMLineIndex":0}
             let cSdp: String?
             let cMid: String?
             let cLine: Int?
@@ -120,17 +188,13 @@ public final class RemoteDependencies: ObservableObject {
                 OutboundIceCandidate(sdp: sdp, sdpMid: mid, sdpMLineIndex: Int32(line))
             )
         default:
-            // chainlesschain:command:response / chainlesschain:event 等业务 envelope
             if type.hasPrefix("chainlesschain:") {
-                // 转 inner payload 为完整 envelope 字符串再 emit（TerminalRpcClient 期望
-                // 入站是 envelope JSON，而非 forwarded wrapper）
                 let inner: [String: Any] = ["type": type, "payload": payload["payload"] ?? [:]]
                 if let innerData = try? JSONSerialization.data(withJSONObject: inner),
                    let innerStr = String(data: innerData, encoding: .utf8) {
                     await client.emitInboundFromSignaling(innerStr)
                 }
             }
-            // 其它 type (pairing:* 等) 由各自订阅者处理
         }
     }
 }

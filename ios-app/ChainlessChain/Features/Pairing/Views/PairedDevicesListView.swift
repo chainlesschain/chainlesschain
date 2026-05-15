@@ -26,9 +26,10 @@ struct PairedDevicesListView: View {
                 List {
                     Section {
                         ForEach(devices) { device in
-                            // Phase 2.4: tap row → 进入远程终端列表 (TerminalListView)
+                            // Phase 3.3: tap row → 进入远程操控 5-tab shell (RemoteOperateView)
+                            // 替换 Phase 2.4 直接进 TerminalListView (现已成 RemoteOperateView 第一个 tab)
                             NavigationLink {
-                                TerminalListView(pcPeerId: device.pcPeerId, deviceName: device.deviceName)
+                                RemoteOperateView(pcPeerId: device.pcPeerId, deviceName: device.deviceName)
                             } label: {
                                 DeviceRow(device: device)
                             }

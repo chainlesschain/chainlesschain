@@ -44,7 +44,8 @@ final class TerminalSessionViewModelTests: XCTestCase {
     ) async -> Setup {
         let transport = FakeRpcTransport()
         let inbound = InboundChannel()
-        let rpc = TerminalRpcClient(
+        // Phase 3.3 refactor: 先建 RemoteCommandClient (closures)，再包 TerminalRpcClient
+        let commandClient = RemoteCommandClient(
             dataChannelSender: { text in
                 if let err = transport.dcSendError { throw err }
                 transport.lock.lock()
@@ -61,7 +62,9 @@ final class TerminalSessionViewModelTests: XCTestCase {
             featureFlags: PlanA1FeatureFlags(defaults: UserDefaults(suiteName: "tsvm-\(UUID())")!),
             responseTimeoutSeconds: 2
         )
-        await rpc.start()  // 起 inbound 监听
+        await commandClient.start()
+        let rpc = TerminalRpcClient(commandClient: commandClient, eventStream: commandClient.events)
+        await rpc.start()
         let vm = TerminalSessionViewModel(
             pcPeerId: pcPeerId,
             sessionId: sessionId,
