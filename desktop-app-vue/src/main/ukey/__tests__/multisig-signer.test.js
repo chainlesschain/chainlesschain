@@ -295,8 +295,8 @@ describe("MultisigSigner.signProposal source=ukey (PR2a wired)", () => {
   });
 });
 
-describe("MultisigSigner.signProposal source=unified", () => {
-  it("rejects with UNIFIED_NOT_IMPLEMENTED (PR3 placeholder)", async () => {
+describe("MultisigSigner.signProposal source=unified (PR3 wired)", () => {
+  it("rejects without unifiedKeyManager (UNIFIED_NOT_WIRED)", async () => {
     const { signer } = withSigner({ sign: vi.fn() });
     await expect(
       signer.signProposal({
@@ -305,7 +305,122 @@ describe("MultisigSigner.signProposal source=unified", () => {
         source: KEY_SOURCES.UNIFIED,
         params: {},
       }),
-    ).rejects.toMatchObject({ code: "UNIFIED_NOT_IMPLEMENTED" });
+    ).rejects.toMatchObject({ code: "UNIFIED_NOT_WIRED" });
+  });
+
+  it("rejects UNIFIED_DID_NOT_FOUND when DID has no entry", async () => {
+    const ukm = { findKeyForDid: vi.fn(async () => null) };
+    const { signer } = withSigner(
+      { sign: vi.fn() },
+      { unifiedKeyManager: ukm },
+    );
+    await expect(
+      signer.signProposal({
+        proposalId: "msp_n",
+        signerDid: "did:cc:unbound",
+        source: KEY_SOURCES.UNIFIED,
+        params: {},
+      }),
+    ).rejects.toMatchObject({ code: "UNIFIED_DID_NOT_FOUND" });
+    expect(ukm.findKeyForDid).toHaveBeenCalledWith("did:cc:unbound");
+  });
+
+  it("ukey-sourced entry delegates to ukeySigner via signWithExternal", async () => {
+    const ukm = {
+      findKeyForDid: vi.fn(async () => ({
+        id: "k-1",
+        did: "did:cc:a",
+        source: "ukey",
+        purpose: "signing",
+        algorithm: "ed25519",
+      })),
+    };
+    const fakeUkeySigner = vi.fn(async () => Buffer.from("aa", "hex"));
+    const mgrSignWithExternal = vi.fn(async () => ({
+      accepted: true,
+      reachedThreshold: false,
+    }));
+    const { signer } = withSigner(
+      { sign: vi.fn(), signWithExternal: mgrSignWithExternal },
+      { ukeySigner: fakeUkeySigner, unifiedKeyManager: ukm },
+    );
+    const r = await signer.signProposal({
+      proposalId: "msp_unified",
+      signerDid: "did:cc:a",
+      source: KEY_SOURCES.UNIFIED,
+      params: {},
+    });
+    expect(r.accepted).toBe(true);
+    expect(mgrSignWithExternal).toHaveBeenCalledTimes(1);
+    const arg = mgrSignWithExternal.mock.calls[0][0];
+    expect(arg.signer.did).toBe("did:cc:a");
+    expect(arg.signCallback).toBe(fakeUkeySigner);
+  });
+
+  it("ukey-sourced entry but no ukeySigner wired → UKEY_NOT_WIRED", async () => {
+    const ukm = {
+      findKeyForDid: vi.fn(async () => ({
+        id: "k-1",
+        did: "did:cc:a",
+        source: "ukey",
+      })),
+    };
+    const { signer } = withSigner(
+      { sign: vi.fn() },
+      { unifiedKeyManager: ukm },
+    );
+    await expect(
+      signer.signProposal({
+        proposalId: "msp_n",
+        signerDid: "did:cc:a",
+        source: KEY_SOURCES.UNIFIED,
+        params: {},
+      }),
+    ).rejects.toMatchObject({ code: "UKEY_NOT_WIRED" });
+  });
+
+  it("software-sourced entry → UNIFIED_SOURCE_NOT_IMPLEMENTED", async () => {
+    const ukm = {
+      findKeyForDid: vi.fn(async () => ({
+        id: "k-2",
+        did: "did:cc:b",
+        source: "software",
+      })),
+    };
+    const { signer } = withSigner(
+      { sign: vi.fn() },
+      { unifiedKeyManager: ukm, ukeySigner: vi.fn() },
+    );
+    await expect(
+      signer.signProposal({
+        proposalId: "msp_n",
+        signerDid: "did:cc:b",
+        source: KEY_SOURCES.UNIFIED,
+        params: {},
+      }),
+    ).rejects.toMatchObject({ code: "UNIFIED_SOURCE_NOT_IMPLEMENTED" });
+  });
+
+  it("simkey-sourced entry → UNIFIED_SOURCE_NOT_IMPLEMENTED", async () => {
+    const ukm = {
+      findKeyForDid: vi.fn(async () => ({
+        id: "k-3",
+        did: "did:cc:c",
+        source: "simkey",
+      })),
+    };
+    const { signer } = withSigner(
+      { sign: vi.fn() },
+      { unifiedKeyManager: ukm, ukeySigner: vi.fn() },
+    );
+    await expect(
+      signer.signProposal({
+        proposalId: "msp_n",
+        signerDid: "did:cc:c",
+        source: KEY_SOURCES.UNIFIED,
+        params: {},
+      }),
+    ).rejects.toMatchObject({ code: "UNIFIED_SOURCE_NOT_IMPLEMENTED" });
   });
 });
 

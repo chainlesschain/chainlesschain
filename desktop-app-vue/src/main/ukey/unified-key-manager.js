@@ -61,7 +61,9 @@ class UnifiedKeyManager extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS unified_keys (
@@ -83,6 +85,77 @@ class UnifiedKeyManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_unified_keys_source ON unified_keys(source);
       CREATE INDEX IF NOT EXISTS idx_unified_keys_hash ON unified_keys(key_hash);
     `);
+
+    // #21 B.1 PR3 — add `did TEXT` column for multisig signer DID routing.
+    // Idempotent migration via PRAGMA table_info; same pattern as
+    // packages/cli/src/lib/cross-chain.js Layer 2 PR1. NULL on rows created
+    // before this migration; setDidForKey(keyId, did) binds it post-hoc.
+    const cols = this.database.db
+      .prepare("PRAGMA table_info(unified_keys)")
+      .all();
+    if (!cols.some((c) => c.name === "did")) {
+      this.database.db.exec("ALTER TABLE unified_keys ADD COLUMN did TEXT");
+    }
+    this.database.db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_unified_keys_did ON unified_keys(did)",
+    );
+  }
+
+  /**
+   * #21 B.1 PR3 — look up the unified_keys entry bound to a signer DID.
+   * Returns null when no entry has that DID (caller should fall back to
+   * other key sources or surface NOT_FOUND).
+   *
+   * @param {string} did - signer DID (multisig member.did)
+   * @returns {Object|null} key entry (id, purpose, source, did, ...) or null
+   */
+  async findKeyForDid(did) {
+    try {
+      if (!this.database || !this.database.db) {
+        return null;
+      }
+      if (typeof did !== "string" || !did) {
+        return null;
+      }
+      return (
+        this.database.db
+          .prepare("SELECT * FROM unified_keys WHERE did = ? LIMIT 1")
+          .get(did) || null
+      );
+    } catch (error) {
+      logger.error("[UnifiedKeyManager] findKeyForDid failed:", error);
+      return null;
+    }
+  }
+
+  /**
+   * #21 B.1 PR3 — bind a unified_keys entry to a signer DID. Used to attach
+   * an existing key (typically derived from U-Key hardware) to a multisig
+   * member DID so future `multisig.sign source='unified'` can route to it.
+   *
+   * @param {string} keyId
+   * @param {string} did
+   * @returns {{ success: boolean, keyId: string, did: string }} or throws
+   */
+  async setDidForKey(keyId, did) {
+    if (typeof keyId !== "string" || !keyId) {
+      throw new TypeError("setDidForKey: keyId required");
+    }
+    if (typeof did !== "string" || !did) {
+      throw new TypeError("setDidForKey: did required");
+    }
+    const key = this.database.db
+      .prepare("SELECT id FROM unified_keys WHERE id = ?")
+      .get(keyId);
+    if (!key) {
+      throw new Error("Key not found");
+    }
+    this.database.db
+      .prepare("UPDATE unified_keys SET did = ?, updated_at = ? WHERE id = ?")
+      .run(did, Date.now(), keyId);
+    this.database.saveToFile();
+    this.emit("key:did-bound", { keyId, did });
+    return { success: true, keyId, did };
   }
 
   /**
@@ -93,7 +166,10 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async deriveKey(purpose, options = {}) {
     try {
-      const path = options.path || DERIVATION_PATHS[purpose.toUpperCase()] || `m/44'/0'/0'/${Date.now() % 100}`;
+      const path =
+        options.path ||
+        DERIVATION_PATHS[purpose.toUpperCase()] ||
+        `m/44'/0'/0'/${Date.now() % 100}`;
       const source = options.source || KEY_SOURCES.SOFTWARE;
 
       // Generate key pair (in production, this would use actual BIP-32 derivation)
@@ -101,7 +177,11 @@ class UnifiedKeyManager extends EventEmitter {
 
       const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
       const publicKeyDer = publicKey.export({ type: "spki", format: "der" });
-      const keyHash = crypto.createHash("sha256").update(publicKeyDer).digest("hex").substring(0, 32);
+      const keyHash = crypto
+        .createHash("sha256")
+        .update(publicKeyDer)
+        .digest("hex")
+        .substring(0, 32);
 
       const id = uuidv4();
       const now = Date.now();
@@ -128,7 +208,13 @@ class UnifiedKeyManager extends EventEmitter {
       this.database.saveToFile();
 
       // Cache in memory (without private key for security)
-      this._derivedKeys.set(keyHash, { id, purpose, source, path, publicKey: publicKeyPem });
+      this._derivedKeys.set(keyHash, {
+        id,
+        purpose,
+        source,
+        path,
+        publicKey: publicKeyPem,
+      });
 
       this.emit("key:derived", { id, purpose, source, path, keyHash });
 
@@ -154,10 +240,14 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async getKeysByPurpose(purpose) {
     try {
-      if (!this.database || !this.database.db) {return [];}
+      if (!this.database || !this.database.db) {
+        return [];
+      }
 
       return this.database.db
-        .prepare("SELECT * FROM unified_keys WHERE purpose = ? ORDER BY is_primary DESC, created_at DESC")
+        .prepare(
+          "SELECT * FROM unified_keys WHERE purpose = ? ORDER BY is_primary DESC, created_at DESC",
+        )
         .all(purpose);
     } catch (error) {
       logger.error("[UnifiedKeyManager] Get keys failed:", error);
@@ -172,10 +262,14 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async getPrimaryKey(purpose) {
     try {
-      if (!this.database || !this.database.db) {return null;}
+      if (!this.database || !this.database.db) {
+        return null;
+      }
 
       return this.database.db
-        .prepare("SELECT * FROM unified_keys WHERE purpose = ? AND is_primary = 1 LIMIT 1")
+        .prepare(
+          "SELECT * FROM unified_keys WHERE purpose = ? AND is_primary = 1 LIMIT 1",
+        )
         .get(purpose);
     } catch (error) {
       logger.error("[UnifiedKeyManager] Get primary key failed:", error);
@@ -194,7 +288,9 @@ class UnifiedKeyManager extends EventEmitter {
         .prepare("SELECT * FROM unified_keys WHERE id = ?")
         .get(keyId);
 
-      if (!key) {throw new Error("Key not found");}
+      if (!key) {
+        throw new Error("Key not found");
+      }
 
       // Unset current primary
       this.database.db
@@ -203,7 +299,9 @@ class UnifiedKeyManager extends EventEmitter {
 
       // Set new primary
       this.database.db
-        .prepare("UPDATE unified_keys SET is_primary = 1, updated_at = ? WHERE id = ?")
+        .prepare(
+          "UPDATE unified_keys SET is_primary = 1, updated_at = ? WHERE id = ?",
+        )
         .run(Date.now(), keyId);
 
       this.database.saveToFile();
@@ -220,10 +318,14 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async listKeys() {
     try {
-      if (!this.database || !this.database.db) {return [];}
+      if (!this.database || !this.database.db) {
+        return [];
+      }
 
       return this.database.db
-        .prepare("SELECT id, purpose, source, derivation_path, key_hash, algorithm, device_id, is_primary, created_at FROM unified_keys ORDER BY created_at DESC")
+        .prepare(
+          "SELECT id, purpose, source, derivation_path, key_hash, algorithm, device_id, is_primary, created_at FROM unified_keys ORDER BY created_at DESC",
+        )
         .all();
     } catch (error) {
       logger.error("[UnifiedKeyManager] List keys failed:", error);
@@ -261,7 +363,9 @@ class UnifiedKeyManager extends EventEmitter {
 
 let _instance;
 function getUnifiedKeyManager() {
-  if (!_instance) {_instance = new UnifiedKeyManager();}
+  if (!_instance) {
+    _instance = new UnifiedKeyManager();
+  }
   return _instance;
 }
 

@@ -91,6 +91,12 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  * @property {number} [wsPort]               WS port. 0 = OS-assigned.
  * @property {{ detect?: () => Promise<any> } | null} [ukeyManager]
  *                                            UKey singleton; nullable for early boot.
+ * @property {{ findKeyForDid?: (did:string) => Promise<any> } | null} [unifiedKeyManager]
+ *                                            UnifiedKeyManager singleton; nullable.
+ *                                            #21 B.1 PR3 — drives multisig.sign
+ *                                            source='unified' DID↔key lookup,
+ *                                            delegating ukey-sourced entries
+ *                                            back to ukeyManager.
  * @property {object | null} [mcpManager]    MCPClientManager singleton (or null
  *                                            when MCP is disabled). Surfaced to the
  *                                            embedded SPA via mcp.list_tools /
@@ -240,12 +246,17 @@ async function startWebShell(options = {}) {
     // source='ukey' 路径走真硬件（或 macOS/Linux simulation 驱动）。当
     // options.ukeyManager 缺席（早 boot / 测试）就退回 PR1 行为：source='ukey'
     // 仍能注入但会被 mgr.signWithExternal 在 callback 执行时报错。
+    // 2026-05-15 PR3 (#21 B.1) — inject unifiedKeyManager so multisig.sign 的
+    // source='unified' 走 DID lookup → 当 entry.source==='ukey' 委托同一
+    // ukeySigner callback。无 unifiedKeyManager 时 source='unified' 报
+    // UNIFIED_NOT_WIRED（renderer 退回 ukey/hex picker）。
     ...createMultisigHandlers({
       signerFactory: () =>
         createMultisigSigner({
           ukeySigner: options.ukeyManager
             ? buildUkeyManagerSigner(options.ukeyManager)
             : null,
+          unifiedKeyManager: options.unifiedKeyManager ?? null,
         }),
     }),
     // 2026-05-13 — project.* in-process WS handlers（#21 P3）。Projects.vue

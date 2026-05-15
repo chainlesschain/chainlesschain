@@ -19,9 +19,12 @@
  * PR1 fully implements 'hex' + 'path'.
  * PR2a (2026-05-15) wires 'ukey' via core-multisig.signWithExternal — caller
  * provides `ukeySigner(canonicalBytes, alg) → Promise<Buffer>` callback;
- * secretKey never crosses the IPC boundary. PR2b will add the PIN/Biometric
- * prompt + SignProposalModal.vue.
- * 'unified' throws NOT_IMPLEMENTED until PR3 lands the DID↔key index.
+ * secretKey never crosses the IPC boundary. PR2b ships PIN/Biometric prompt
+ * + SignProposalModal.vue.
+ * PR3 (2026-05-15) wires 'unified' via UnifiedKeyManager.findKeyForDid(did) —
+ * when the bound entry has source==='ukey', signing delegates to the same
+ * ukeySigner callback used by source='ukey'. Software-stored secrets remain
+ * out of scope (no encrypted secret store today).
  *
  * Lives next to unified-key-manager so future PR3 can inject that manager
  * via factory rather than reaching across the main process tree.
@@ -120,6 +123,9 @@ async function _loadRuntime() {
 function createMultisigSigner(options = {}) {
   const factory = options.runtimeFactory ?? _loadRuntime;
   const ukeySigner = options.ukeySigner ?? null;
+  // #21 B.1 PR3 — optional UnifiedKeyManager for source='unified' DID routing.
+  // When null, source='unified' throws UNIFIED_NOT_WIRED.
+  const unifiedKeyManager = options.unifiedKeyManager ?? null;
 
   /**
    * Sign a pending multisig proposal on behalf of `signerDid`.
@@ -176,6 +182,49 @@ function createMultisigSigner(options = {}) {
         });
       }
 
+      // PR3 — unified source: look up DID via UnifiedKeyManager, then
+      // delegate to the appropriate key path. Today only entry.source==='ukey'
+      // is wired (delegates to ukeySigner); software-stored secrets would
+      // need an encrypted secret store which doesn't exist yet.
+      if (source === KEY_SOURCES.UNIFIED) {
+        if (!unifiedKeyManager) {
+          const e = new Error(
+            "unified source not wired — pass options.unifiedKeyManager (PR3)",
+          );
+          e.code = "UNIFIED_NOT_WIRED";
+          throw e;
+        }
+        const entry = await unifiedKeyManager.findKeyForDid(input.signerDid);
+        if (!entry) {
+          const e = new Error(
+            `unified-key-manager has no entry for DID: ${input.signerDid}`,
+          );
+          e.code = "UNIFIED_DID_NOT_FOUND";
+          throw e;
+        }
+        // entry.source values: 'ukey' / 'simkey' / 'tee' / 'software'.
+        // Only 'ukey' is wired in PR3 (delegates to existing ukeySigner).
+        if (entry.source === "ukey") {
+          if (!ukeySigner) {
+            const e = new Error(
+              "unified DID routed to ukey but ukeySigner not wired",
+            );
+            e.code = "UKEY_NOT_WIRED";
+            throw e;
+          }
+          return await mgr.signWithExternal({
+            proposalId: input.proposalId,
+            signer: { did: input.signerDid, alg },
+            signCallback: ukeySigner,
+          });
+        }
+        const e = new Error(
+          `unified-key-manager entry source='${entry.source}' not yet wired (PR3+: needs encrypted secret store)`,
+        );
+        e.code = "UNIFIED_SOURCE_NOT_IMPLEMENTED";
+        throw e;
+      }
+
       let secretKey;
       switch (source) {
         case KEY_SOURCES.HEX:
@@ -184,13 +233,6 @@ function createMultisigSigner(options = {}) {
         case KEY_SOURCES.PATH:
           secretKey = _pathToSecret(params.keyPath);
           break;
-        case KEY_SOURCES.UNIFIED: {
-          const e = new Error(
-            "unified-key-manager DID↔key lookup not yet implemented (PR3)",
-          );
-          e.code = "UNIFIED_NOT_IMPLEMENTED";
-          throw e;
-        }
         default: {
           const e = new Error(`unknown key source: ${source}`);
           e.code = "INVALID_SOURCE";
