@@ -55,6 +55,7 @@ jobs:
         shell: bash
         run: |
           xcodebuild -resolvePackageDependencies \
+            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -clonedSourcePackagesDirPath .spm-cache
 
@@ -64,6 +65,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
+            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData \
@@ -96,6 +98,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
+            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -destination "platform=iOS Simulator,id=${{ steps.pick-sim.outputs.sim_id }}" \
             -derivedDataPath build/DerivedData \
@@ -158,6 +161,7 @@ jobs:
         shell: bash
         run: |
           xcodebuild -resolvePackageDependencies \
+            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -clonedSourcePackagesDirPath .spm-cache
 
@@ -167,6 +171,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
+            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -configuration Release \
             -destination 'generic/platform=iOS Simulator' \
