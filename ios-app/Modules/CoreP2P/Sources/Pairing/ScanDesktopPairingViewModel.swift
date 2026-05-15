@@ -65,6 +65,11 @@ public final class ScanDesktopPairingViewModel: ObservableObject {
         do {
             let payload = try parsePayload(rawJson)
             try validate(payload: payload)
+            // validate() guarantees pcPeerId is non-nil; bind to local for downstream uses.
+            guard let peerId = payload.pcPeerId else {
+                state = .failed(reason: "缺少 pcPeerId")
+                return
+            }
 
             // v1.3+ 零配置：QR 含 signalingUrl 时立刻持久化（修 #21 「Connect timeout」复现）
             if let url = payload.signalingUrl, url.hasPrefix("ws") {
@@ -94,7 +99,7 @@ public final class ScanDesktopPairingViewModel: ObservableObject {
             ]
 
             do {
-                try await signalingGate.sendAck(toPeerId: payload.pcPeerId, ackPayload: ackPayload)
+                try await signalingGate.sendAck(toPeerId: peerId, ackPayload: ackPayload)
             } catch {
                 let lanErr = (error as NSError).localizedDescription
                 // LAN 失败 → 切到 relay 重试一次（与 Android 行 142-161 一致）
@@ -102,7 +107,7 @@ public final class ScanDesktopPairingViewModel: ObservableObject {
                 let relayUrl = signalingConfig.getRelayUrl()
                 signalingConfig.setCustomSignalingUrl(relayUrl)
                 do {
-                    try await signalingGate.sendAck(toPeerId: payload.pcPeerId, ackPayload: ackPayload)
+                    try await signalingGate.sendAck(toPeerId: peerId, ackPayload: ackPayload)
                 } catch {
                     let relayErr = (error as NSError).localizedDescription
                     state = .failed(reason: "通知桌面失败 (LAN: \(lanErr); 中继: \(relayErr))")
@@ -113,7 +118,7 @@ public final class ScanDesktopPairingViewModel: ObservableObject {
             // 持久化已配对桌面（v1.3+，让首页 PairedDevicesListView 不再依赖 live WS）
             let now = clock.nowMillis()
             let paired = PairedDesktop(
-                pcPeerId: payload.pcPeerId,
+                pcPeerId: peerId,
                 deviceName: payload.desktopName,
                 platform: payload.desktopPlatform ?? "desktop",
                 lanSignalingUrl: payload.signalingUrl,

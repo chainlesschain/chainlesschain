@@ -43,7 +43,7 @@ public final class DesktopPairingViewModel: ObservableObject {
         deviceInfoProvider: PairingDeviceInfoProvider,
         clock: PairingClock = SystemPairingClock(),
         currentDIDProvider: @escaping () -> String?,
-        codeGenerator: @escaping () -> String = Self.defaultCodeGenerator
+        codeGenerator: @escaping () -> String = DesktopPairingViewModel.defaultCodeGenerator
     ) {
         self.signalingGate = signalingGate
         self.messageBus = messageBus

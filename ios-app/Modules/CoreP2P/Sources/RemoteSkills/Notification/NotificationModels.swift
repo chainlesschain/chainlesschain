@@ -466,7 +466,7 @@ public struct NotificationReceivedEvent: Sendable, Equatable {
         else if let v = payload["timestamp"] as? Int { timestamp = Int64(v) }
         else if let v = payload["timestamp"] as? Double { timestamp = Int64(v) }
         else { timestamp = 0 }
-        let data = payload["data"] as? [String: String]
+        let extras = payload["data"] as? [String: String]
         return NotificationReceivedEvent(
             notificationId: id,
             title: title,
@@ -474,7 +474,7 @@ public struct NotificationReceivedEvent: Sendable, Equatable {
             priority: priority,
             source: source,
             timestamp: timestamp,
-            data: data
+            data: extras
         )
     }
 }
