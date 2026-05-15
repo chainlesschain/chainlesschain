@@ -185,10 +185,14 @@ describe("MultisigSigner.signProposal source=path", () => {
   });
 });
 
-describe("MultisigSigner.signProposal source=ukey", () => {
+describe("MultisigSigner.signProposal source=ukey (PR2a wired)", () => {
   it("rejects without ukeySigner wired (UKEY_NOT_WIRED)", async () => {
     const mgrSign = vi.fn();
-    const { signer } = withSigner({ sign: mgrSign });
+    const mgrSignWithExternal = vi.fn();
+    const { signer } = withSigner({
+      sign: mgrSign,
+      signWithExternal: mgrSignWithExternal,
+    });
     await expect(
       signer.signProposal({
         proposalId: "msp_u",
@@ -197,16 +201,87 @@ describe("MultisigSigner.signProposal source=ukey", () => {
         params: {},
       }),
     ).rejects.toMatchObject({ code: "UKEY_NOT_WIRED" });
-    expect(mgrSign).not.toHaveBeenCalled();
+    expect(mgrSignWithExternal).not.toHaveBeenCalled();
   });
 
-  it("rejects with ukeySigner wired but flagged NOT_IMPLEMENTED in PR1", async () => {
+  it("with ukeySigner wired: delegates to mgr.signWithExternal", async () => {
     const mgrSign = vi.fn();
-    const fakeUkeySigner = vi.fn(async () => Buffer.alloc(64));
+    const mgrSignWithExternal = vi.fn(async () => ({
+      accepted: true,
+      reachedThreshold: true,
+    }));
+    const fakeUkeySigner = vi.fn(async () => Buffer.alloc(64, 0xaa));
     const { signer } = withSigner(
-      { sign: mgrSign },
+      { sign: mgrSign, signWithExternal: mgrSignWithExternal },
       { ukeySigner: fakeUkeySigner },
     );
+
+    const r = await signer.signProposal({
+      proposalId: "msp_u",
+      signerDid: "did:cc:a",
+      alg: "Ed25519",
+      source: KEY_SOURCES.UKEY,
+      params: {},
+    });
+
+    expect(r).toEqual({ accepted: true, reachedThreshold: true });
+    expect(mgrSign).not.toHaveBeenCalled();
+    expect(mgrSignWithExternal).toHaveBeenCalledTimes(1);
+    const arg = mgrSignWithExternal.mock.calls[0][0];
+    expect(arg.proposalId).toBe("msp_u");
+    expect(arg.signer).toEqual({ did: "did:cc:a", alg: "Ed25519" });
+    expect(arg.signCallback).toBe(fakeUkeySigner);
+  });
+
+  it("forwards mgr.signWithExternal error result (sig_self_verify_failed)", async () => {
+    const mgrSignWithExternal = vi.fn(async () => ({
+      accepted: false,
+      reachedThreshold: false,
+      reason: "sig_self_verify_failed",
+    }));
+    const fakeUkeySigner = vi.fn(async () =>
+      Buffer.from("00".repeat(64), "hex"),
+    );
+    const { signer } = withSigner(
+      { sign: vi.fn(), signWithExternal: mgrSignWithExternal },
+      { ukeySigner: fakeUkeySigner },
+    );
+    const r = await signer.signProposal({
+      proposalId: "msp_u",
+      signerDid: "did:cc:a",
+      source: KEY_SOURCES.UKEY,
+      params: {},
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("sig_self_verify_failed");
+  });
+
+  it("defaults alg to Ed25519 in ukey path when omitted", async () => {
+    const mgrSignWithExternal = vi.fn(async () => ({ accepted: true }));
+    const { signer } = withSigner(
+      { sign: vi.fn(), signWithExternal: mgrSignWithExternal },
+      { ukeySigner: vi.fn() },
+    );
+    await signer.signProposal({
+      proposalId: "msp_u",
+      signerDid: "did:cc:a",
+      source: KEY_SOURCES.UKEY,
+      params: {},
+    });
+    expect(mgrSignWithExternal.mock.calls[0][0].signer.alg).toBe("Ed25519");
+  });
+
+  it("closes the multisig handle even when ukeySigner throws", async () => {
+    const fake = makeFakeRuntime({
+      sign: vi.fn(),
+      signWithExternal: vi.fn(async () => {
+        throw new Error("ukey signer exploded");
+      }),
+    });
+    const signer = createMultisigSigner({
+      runtimeFactory: async () => fake,
+      ukeySigner: vi.fn(),
+    });
     await expect(
       signer.signProposal({
         proposalId: "msp_u",
@@ -214,10 +289,8 @@ describe("MultisigSigner.signProposal source=ukey", () => {
         source: KEY_SOURCES.UKEY,
         params: {},
       }),
-    ).rejects.toMatchObject({ code: "UKEY_NOT_IMPLEMENTED" });
-    expect(mgrSign).not.toHaveBeenCalled();
-    // ukeySigner not invoked because the implementation gate triggers first.
-    expect(fakeUkeySigner).not.toHaveBeenCalled();
+    ).rejects.toThrow(/ukey signer exploded/);
+    expect(fake._close).toHaveBeenCalledTimes(1);
   });
 });
 

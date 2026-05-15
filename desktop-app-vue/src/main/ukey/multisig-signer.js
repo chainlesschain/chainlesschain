@@ -16,9 +16,12 @@
  *   - source = 'unified'  → query unified-key-manager by signer DID (PR3 —
  *                           requires DID↔key mapping table column first)
  *
- * PR1 fully implements 'hex' + 'path'. 'ukey' wired but throws
- * NOT_IMPLEMENTED until PR2 lands the PIN-confirmation contract. 'unified'
- * throws NOT_IMPLEMENTED until PR3 lands the DID↔key index.
+ * PR1 fully implements 'hex' + 'path'.
+ * PR2a (2026-05-15) wires 'ukey' via core-multisig.signWithExternal — caller
+ * provides `ukeySigner(canonicalBytes, alg) → Promise<Buffer>` callback;
+ * secretKey never crosses the IPC boundary. PR2b will add the PIN/Biometric
+ * prompt + SignProposalModal.vue.
+ * 'unified' throws NOT_IMPLEMENTED until PR3 lands the DID↔key index.
  *
  * Lives next to unified-key-manager so future PR3 can inject that manager
  * via factory rather than reaching across the main process tree.
@@ -155,26 +158,31 @@ function createMultisigSigner(options = {}) {
     const runtime = await factory();
     const { mgr, close } = await runtime.openMultisigManager();
     try {
+      // PR2a — ukey source goes through mgr.signWithExternal which does
+      // NOT take a secretKey; the callback is the boundary. hex/path still
+      // resolve to a Buffer and go through mgr.sign synchronously.
+      if (source === KEY_SOURCES.UKEY) {
+        if (!ukeySigner) {
+          const e = new Error(
+            "ukey source not wired — pass options.ukeySigner (PR2b)",
+          );
+          e.code = "UKEY_NOT_WIRED";
+          throw e;
+        }
+        return await mgr.signWithExternal({
+          proposalId: input.proposalId,
+          signer: { did: input.signerDid, alg },
+          signCallback: ukeySigner,
+        });
+      }
+
       let secretKey;
-      let usedUkey = false;
       switch (source) {
         case KEY_SOURCES.HEX:
           secretKey = _hexToSecret(params.secretKeyHex);
           break;
         case KEY_SOURCES.PATH:
           secretKey = _pathToSecret(params.keyPath);
-          break;
-        case KEY_SOURCES.UKEY:
-          if (!ukeySigner) {
-            const e = new Error(
-              "ukey source not wired — pass options.ukeySigner (PR2)",
-            );
-            e.code = "UKEY_NOT_WIRED";
-            throw e;
-          }
-          // PR2 wire — placeholder seam. We don't have core-multisig API
-          // for "signCallback" yet, so PR1 only documents the path.
-          usedUkey = true;
           break;
         case KEY_SOURCES.UNIFIED: {
           const e = new Error(
@@ -188,15 +196,6 @@ function createMultisigSigner(options = {}) {
           e.code = "INVALID_SOURCE";
           throw e;
         }
-      }
-
-      if (usedUkey) {
-        // PR2 will implement this branch by submitting the canonical
-        // signing input to the U-Key hardware and inserting the returned
-        // signature through a future core-multisig.signWithExternal API.
-        const e = new Error("ukey signing path not landed in PR1");
-        e.code = "UKEY_NOT_IMPLEMENTED";
-        throw e;
       }
 
       const result = mgr.sign({

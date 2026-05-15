@@ -227,6 +227,140 @@ function createProposalsManager(store, options = {}) {
   }
 
   /**
+   * #21 B.1 PR2a — 异步外部 signer 加签。同 sign() 检查，但调用方提供
+   * `signCallback(canonicalBytes, alg) → Promise<Buffer>` 代替 secretKey。
+   *
+   * 设计动机：renderer 端、U-Key 硬件、TEE 内的私钥永远 **不离开** 那个边界 ——
+   * caller 把 canonical bytes 通过 IPC/硬件接口送进去签，外部返回 sig bytes，
+   * 我们这边做 self-verify + insertSignature。secretKey: Buffer 不出现在
+   * 这个 API 的输入里。
+   *
+   * 与 sign() 区别：
+   *   sign()              ← caller 持 secretKey Buffer（CLI / Node 集成）
+   *   signWithExternal()  ← caller 持 signCallback（renderer / hardware / TEE）
+   *
+   * 校验 mirror sign()：proposal 状态 / 成员 / alg 匹配 / 未重复 / 自验通过 →
+   * 入库 + log + _checkReached。差异：不可能拿到 secretKey 时 fail-fast 早些，
+   * 只能在 self-verify 失败时拒收（callback 签错了或 alg 错了）。
+   *
+   * @param {{ proposalId: string,
+   *           signer: { did: string, alg: string },
+   *           signCallback: (canonicalBytes: Buffer, alg: string) => Promise<Buffer> }} input
+   * @returns {Promise<{ accepted: boolean, reachedThreshold: boolean, reason?: string }>}
+   */
+  async function signWithExternal(input) {
+    if (typeof input.signCallback !== "function") {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "missing_sign_callback",
+      };
+    }
+    const proposal = store.getProposal(input.proposalId);
+    if (!proposal) {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "proposal_not_found",
+      };
+    }
+    if (proposal.state !== "pending") {
+      return {
+        accepted: false,
+        reachedThreshold: proposal.state === "reached",
+        reason: `proposal_state_${proposal.state}`,
+      };
+    }
+    if (proposal.expiresAtMs <= now()) {
+      store.updateProposalState(proposal.id, "expired", now());
+      logEvent({
+        at: new Date(now()).toISOString(),
+        type: "expired",
+        proposalId: proposal.id,
+      });
+      return { accepted: false, reachedThreshold: false, reason: "expired" };
+    }
+    const member = proposal.memberSet.find(
+      (m) => m.did === input.signer.did,
+    );
+    if (!member) {
+      return { accepted: false, reachedThreshold: false, reason: "not_a_member" };
+    }
+    if (member.alg !== input.signer.alg) {
+      return { accepted: false, reachedThreshold: false, reason: "alg_mismatch" };
+    }
+    if (store.hasSignature(proposal.id, input.signer.did)) {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "duplicate_signer",
+      };
+    }
+
+    const signingCore = {
+      domain: proposal.domain,
+      payload: JSON.parse(proposal.payloadJcs),
+      nonce: proposal.nonce,
+      expiresAtMs: proposal.expiresAtMs,
+      m: proposal.thresholdM,
+      members: proposal.memberSet,
+    };
+    const signingInput = canonicalizeForSigning(signingCore);
+
+    let sig;
+    try {
+      sig = await input.signCallback(signingInput, input.signer.alg);
+    } catch (err) {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "sign_callback_failed",
+        detail: err && err.message ? err.message : String(err),
+      };
+    }
+    if (!Buffer.isBuffer(sig)) {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "sign_callback_returned_non_buffer",
+      };
+    }
+
+    const selfVerify = verifyOne(
+      signingInput,
+      sig,
+      input.signer.alg,
+      member.pubkeyJwk,
+    );
+    if (!selfVerify) {
+      return {
+        accepted: false,
+        reachedThreshold: false,
+        reason: "sig_self_verify_failed",
+      };
+    }
+
+    const signedAtMs = now();
+    store.insertSignature({
+      proposalId: proposal.id,
+      signerDid: input.signer.did,
+      sig,
+      alg: input.signer.alg,
+      signedAtMs,
+    });
+    logEvent({
+      at: new Date(signedAtMs).toISOString(),
+      type: "signed",
+      proposalId: proposal.id,
+      signerDid: input.signer.did,
+      alg: input.signer.alg,
+      external: true,
+    });
+    const reached = _checkReached(proposal.id);
+    return { accepted: true, reachedThreshold: reached };
+  }
+
+  /**
    * 取消 proposal — 任一 signer 可调（业务侧应在调用前鉴权 signer 身份）。
    * consumed/expired 不允许 cancel。
    */
@@ -334,6 +468,7 @@ function createProposalsManager(store, options = {}) {
   return {
     propose,
     sign,
+    signWithExternal,
     cancel,
     finalize,
     expireStale,

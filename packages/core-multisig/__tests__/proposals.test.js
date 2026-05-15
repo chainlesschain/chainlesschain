@@ -271,6 +271,194 @@ describe("proposals.sign", () => {
   });
 });
 
+describe("proposals.signWithExternal (#21 B.1 PR2a)", () => {
+  let store;
+  beforeEach(() => {
+    store = setupStore();
+  });
+
+  function proposeFresh(mgr, members, secretKeys, m, n) {
+    return mgr.propose({
+      domain: "test.purchase",
+      payload: { orderId: "o-y", total: "2200" },
+      policy: {
+        domain: "test.purchase",
+        m,
+        n,
+        members: members.map((mm) => ({
+          did: mm.did,
+          alg: mm.alg,
+          pubkeyJwk: mm.pubkeyJwk,
+        })),
+      },
+      initiator: {
+        did: members[0].did,
+        alg: members[0].alg,
+        secretKey: secretKeys[members[0].did],
+      },
+    });
+  }
+
+  it("happy path: callback signature accepted + threshold reached", async () => {
+    const { signRaw } = require("../lib/signing.js");
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+
+    const signCallback = async (canonicalBytes, alg) => {
+      return signRaw(canonicalBytes, secretKeys[members[1].did], alg);
+    };
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback,
+    });
+    expect(r.accepted).toBe(true);
+    expect(r.reachedThreshold).toBe(true);
+    expect(store.getProposal(proposal.id).state).toBe("reached");
+  });
+
+  it("rejects missing signCallback", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("missing_sign_callback");
+  });
+
+  it("rejects proposal_not_found", async () => {
+    const mgr = createProposalsManager(store);
+    const r = await mgr.signWithExternal({
+      proposalId: "msp_nonexistent",
+      signer: { did: "did:cc:a", alg: "Ed25519" },
+      signCallback: async () => Buffer.alloc(64),
+    });
+    expect(r.reason).toBe("proposal_not_found");
+  });
+
+  it("rejects duplicate_signer (initiator already signed)", async () => {
+    const { signRaw } = require("../lib/signing.js");
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[0].did, alg: members[0].alg },
+      signCallback: async (bytes, alg) =>
+        signRaw(bytes, secretKeys[members[0].did], alg),
+    });
+    expect(r.reason).toBe("duplicate_signer");
+  });
+
+  it("rejects not_a_member when signer DID not in policy", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const intruder = makeEd25519Member(99);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: intruder.did, alg: intruder.alg },
+      signCallback: async () => Buffer.alloc(64),
+    });
+    expect(r.reason).toBe("not_a_member");
+  });
+
+  it("rejects alg_mismatch when signer alg differs from member alg", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: "SLH-DSA-128F" }, // member is Ed25519
+      signCallback: async () => Buffer.alloc(64),
+    });
+    expect(r.reason).toBe("alg_mismatch");
+  });
+
+  it("rejects when callback returns garbage (sig_self_verify_failed)", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback: async () => Buffer.alloc(64, 0xff), // 64 0xff bytes — not a valid Ed25519 sig
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("sig_self_verify_failed");
+  });
+
+  it("rejects when callback returns non-buffer", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback: async () => "not-a-buffer-string",
+    });
+    expect(r.reason).toBe("sign_callback_returned_non_buffer");
+  });
+
+  it("captures callback throw with sign_callback_failed + detail", async () => {
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback: async () => {
+        throw new Error("PIN cancelled by user");
+      },
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("sign_callback_failed");
+    expect(r.detail).toBe("PIN cancelled by user");
+  });
+
+  it("hybrid Ed25519+SLH-DSA: SLH-DSA member signs via external callback", async () => {
+    const { signRaw } = require("../lib/signing.js");
+    const mgr = createProposalsManager(store);
+    // setupPolicy withPqc=true makes member[0] SLH-DSA.
+    const { secretKeys, members } = setupPolicy({
+      m: 2,
+      n: 3,
+      withPqc: true,
+    });
+    // members[0] (SLH-DSA) is initiator → already signed during propose.
+    // Make members[1] (Ed25519) sign via external callback.
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback: async (bytes, alg) =>
+        signRaw(bytes, secretKeys[members[1].did], alg),
+    });
+    expect(r.accepted).toBe(true);
+    expect(r.reachedThreshold).toBe(true);
+  });
+
+  it("interop with sign(): mgr.sign initiator + mgr.signWithExternal cosigner reaches threshold", async () => {
+    const { signRaw } = require("../lib/signing.js");
+    const mgr = createProposalsManager(store);
+    const { secretKeys, members } = setupPolicy({ m: 2, n: 3 });
+    const { proposal } = proposeFresh(mgr, members, secretKeys, 2, 3);
+    // member[0] already signed via propose (sync path); member[1] external.
+    const r = await mgr.signWithExternal({
+      proposalId: proposal.id,
+      signer: { did: members[1].did, alg: members[1].alg },
+      signCallback: async (bytes, alg) =>
+        signRaw(bytes, secretKeys[members[1].did], alg),
+    });
+    expect(r.accepted).toBe(true);
+    expect(r.reachedThreshold).toBe(true);
+  });
+});
+
 describe("proposals.cancel + finalize + expire", () => {
   let store;
   beforeEach(() => {
