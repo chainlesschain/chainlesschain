@@ -31,6 +31,31 @@ chainlesschain pack        # 把当前项目环境打成单文件 .exe（v0.2 Ph
                            #   详见 docs/design/CC_PACK_打包指令设计文档.md
 ```
 
+## Pair {#pair}
+
+LAN pairing utilities — Linux LAN-pairing 诊断 + pairing token 预生成（#21 A.1）。
+完整 Linux setup 指南见 [docs/linux/PAIRING.md](./linux/PAIRING.md)。
+
+```bash
+# Preflight 诊断（5 项检查：interfaces / multicast bind / port 5353 holders /
+# platform-aware distro detect / firewall hint）
+chainlesschain pair preflight                       # 人类可读输出
+chainlesschain pair preflight --json                # CI 用 JSON + exit 0/1/2
+chainlesschain pair preflight --show-firewall       # 总是显示 firewall fix
+
+# Pairing token 预生成 / 管理（CI / SSH dev box 场景）
+chainlesschain pair token generate --did <did> [--name <n>] [--device-id <id>] [--json]
+chainlesschain pair token list [--status pending|consumed|revoked|expired] [--did <d>] [--json]
+chainlesschain pair token show <code> [--json]
+chainlesschain pair token revoke <code> [--json]
+```
+
+Token 存 `~/.chainlesschain/pairing-tokens.json`。同 DID 新 token 自动 revoke
+前 pending（one-active-token-per-DID 不变量）。Token QR shape 兼容 Electron
+desktop `device-pairing-handler.js` `handleQRCodeScan`。
+
+systemd 部署模板：[`dist-tools/systemd/chainlesschain.service`](../dist-tools/systemd/chainlesschain.service)（运行 `cc ui` 作为 long-lived web-panel 服务）。
+
 ## Headless Commands (no GUI required)
 
 ```bash

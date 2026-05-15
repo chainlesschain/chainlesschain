@@ -1,10 +1,10 @@
-# A.1 桌面 Linux native 配对 — spike v0.2
+# A.1 桌面 Linux native 配对 — spike v0.3
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) A.1（GA 后续 scope · P1，但 GA-反馈优先级敏感）
-> **状态**: 🟢 PR1 ✅ preflight + PR2 ✅ token issuer landed (2026-05-15)
+> **状态**: 🟢 PR1 ✅ + PR2 ✅ + PR3 ✅ landed (2026-05-15) — **A.1 主体闭环**
 > **作者**: 2026-05-15
-> **关联**: [Android 重新定位 §10 A.1](Android_重新定位_设计文档.md) / [Phase3d_Mobile_Sync 设计文档](Phase3d_Mobile_Sync_设计文档.md) (mDNS auto-discovery)
-> **下一步**: PR3 systemd unit template + Linux setup docs。**Full headless signaling server** (`cc pair init` + 完整 WS listener) 设计上属 PR3+，需评估额外的 libp2p / SQLite bootstrap 投入比；PR1+PR2 已覆盖 CI/SSH 主要场景的 80%
+> **关联**: [Android 重新定位 §10 A.1](Android_重新定位_设计文档.md) / [Phase3d_Mobile_Sync 设计文档](Phase3d_Mobile_Sync_设计文档.md) (mDNS auto-discovery) / [docs/linux/PAIRING.md](../linux/PAIRING.md) 用户指南
+> **下一步**: A.1 主体已闭环。Follow-ups（gated on GA reflection）：(1) full headless WS signaling listener — 让 `cc` 直接接 mobile pairing 连接，免 Electron 兜底；涉及 libp2p + crypto bootstrap 跨 CLI/Electron 边界 (2) WSL2 vEthernet detection helper (3) IPv6 multicast (ff02::fb) 支持
 
 ---
 
@@ -46,7 +46,7 @@
 |---|---|---|---|
 | 1 | ✅ landed (2026-05-15) | `packages/cli/src/lib/lan-pairing-preflight.js` (新) + `packages/cli/src/commands/pair.js` (新) + index 注册 + tests | **`cc pair preflight` Linux LAN 配对诊断 CLI** — pure-JS 检查 5 项：(a) network interfaces 列表（非 loopback IPv4）(b) UDP multicast bind test (尝试 bind `0.0.0.0:5353`)(c) Linux 上 `/proc/net/udp` 扫 port 5353 占用（提示 avahi-daemon 冲突）(d) `os.platform()` 上下文 + linux release info (e) firewall 推荐命令模板（ufw / firewalld syntax）。`--json` 输出供 CI；exit code 0=clean, 1=warning, 2=blocker |
 | 2 | ✅ landed (2026-05-15) | `packages/cli/src/lib/lan-pairing-tokens.js` (新) + `packages/cli/src/commands/pair.js` (扩展) + 35 tests | **`cc pair token` subcommand** — pairing token issuer/manager（**narrowed scope from full headless signaling**：full WS signaling listener 需要 libp2p + crypto bootstrap 跨 CLI/Electron 边界，PR3+ 评估）。落地 (a) `cc pair token generate --did X` 生成 6 位 code + qrData JSON（兼容现 `device-pairing-handler.js` `handleQRCodeScan` 验证逻辑）(b) `cc pair token list` 列出所有 tokens，支持 `--status` / `--did` filter，自动 sweep expired (c) `cc pair token show <code>` 查单个 token (d) `cc pair token revoke <code>` 标记 revoked (e) 存 `~/.chainlesschain/pairing-tokens.json`（atomic rename write，tolerant read：missing/malformed → empty store）(f) one-active-token-per-DID 不变量：同 DID 新 token 自动 revoke 前个 pending (g) 26 unit + 9 E2E tests |
-| 3 | ⏳ pending | `docs/linux/` (新) + `dist-tools/systemd/chainlesschain.service` template + `docs/CLI_COMMANDS_REFERENCE.md` 加 `cc pair` 段 | **Linux setup docs + systemd template** — 文档化 Linux LAN 配对常见坑（firewall 配置 / avahi 冲突 / Docker bridge）；提供可选 systemd unit template 让用户跑桌面 as service；CLI 帮助文档同步 |
+| 3 | ✅ landed (2026-05-15) | `dist-tools/systemd/chainlesschain.service` (新) + `docs/linux/PAIRING.md` (新，9 段) + `docs/CLI_COMMANDS_REFERENCE.md` 加 `#pair` 锚段 + spike v0.3 | **Linux setup docs + systemd template** — (a) `dist-tools/systemd/chainlesschain.service` 跑 `cc ui --port 9000 --host 127.0.0.1` 作 long-lived 服务（hardening: NoNewPrivileges/PrivateTmp/ProtectSystem=strict/ProtectHome=read-only/ReadWritePaths=用户 .chainlesschain；非 root 用户跑）— 注：**Electron 桌面不在 systemd template scope**（需 graphical session，靠 distro 的 .desktop entry），此 template 专为 SSH-tunneled web-panel 部署 (b) `docs/linux/PAIRING.md` 9 段用户指南：准入条件 audit + preflight 解读 + 5 常见 blocker 修复（ufw/firewalld/nftables/iptables/Docker bridge/WSL2/multicast kernel flag）+ 3 场景路径（Linux 桌面/SSH dev box/server systemd）+ 故障调试包收集 (c) CLI reference `#pair` 锚段同步 |
 
 ---
 
@@ -119,5 +119,6 @@ Linux 用户配对失败时最常问 "为什么"。现路径要看 Electron 日�
 
 ## 变更记录
 
+- 2026-05-15 v0.3：**PR3 landed — A.1 主体闭环** — `dist-tools/systemd/chainlesschain.service` template（hardening + `cc ui` headless 模式）+ `docs/linux/PAIRING.md` 9 段用户指南（5 blocker 修复 + 3 场景路径 + 故障调试包）+ `docs/CLI_COMMANDS_REFERENCE.md` `#pair` 锚段同步。**Scope 范围**：systemd template 专为 SSH-tunneled web-panel 部署，**不**覆盖 Electron 桌面 auto-start（需 graphical session，distro pkg 路径）。Full headless WS signaling listener 移至 GA-reflection follow-up。
 - 2026-05-15 v0.2：**PR2 landed** — `cc pair token` subcommand 群 (generate/list/show/revoke) + `lan-pairing-tokens.js` lib + `~/.chainlesschain/pairing-tokens.json` 持久化 store + 35 tests (26 unit + 9 E2E)。**Scope narrowing**：原 PR2 设想的 "full headless signaling listener" 改为 PR3+ 评估（涉及 libp2p + crypto bootstrap 跨 CLI/Electron 边界，工作量大且 GA 反馈优先级敏感）。PR2 narrowed 为 token issuer/manager 已覆盖 CI/SSH dev box 主要痛点：用户 SSH 进 Linux box → 生成 token → 复制到 mobile → mobile 后续通过 Electron 桌面端完成 pairing。one-active-token-per-DID 不变量防止 stale code 泄漏。
 - 2026-05-15 v0.1：A.1 audit 重评准入条件 + 3 PR 拆分 + PR1 `cc pair preflight` 落地。原 spike framing "Linux 需补 mDNS systemd 单元 + Wayland 权限" 大部分不准确（纯 JS mDNS 不依赖系统 daemon，配对 UI 不抓屏），真缺口是 preflight 诊断 + headless mode + docs。

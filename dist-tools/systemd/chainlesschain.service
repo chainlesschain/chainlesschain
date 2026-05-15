@@ -1,0 +1,100 @@
+# ChainlessChain headless web-panel server systemd unit.
+#
+# #21 A.1 PR3 (2026-05-15) — Linux dev-box / CI-runner / SSH-only host
+# template. Runs `cc ui` (web-panel HTTP+WS server) as a long-lived service
+# so users can:
+#
+#   - SSH-tunnel a port from their workstation:
+#       ssh -L 9000:localhost:9000 dev-box.example.com
+#   - Browse to http://localhost:9000 for the same web-panel UI that
+#     desktop Electron renders
+#   - Manage pairing tokens, projects, multisig, knowledge base — all
+#     without an X server / Wayland / Electron running on the box
+#
+# NOT for desktop Electron auto-start — Electron requires a graphical
+# session and is best launched from the user's desktop environment.
+# If you want desktop auto-start, install via your distro's package
+# manager and let it set up the .desktop entry.
+#
+# Install:
+#   1. Copy this file to /etc/systemd/system/chainlesschain.service
+#      (or ~/.config/systemd/user/chainlesschain.service for user-scoped)
+#   2. Edit the User= / Group= / WorkingDirectory= / Environment= lines
+#      to match your deployment
+#   3. Reload + enable:
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now chainlesschain.service
+#        sudo systemctl status chainlesschain.service
+#
+# Logs:
+#   journalctl -u chainlesschain.service -f
+#
+# Spike doc: docs/design/A1_Linux_Native_Pairing_spike.md §2 PR3
+
+[Unit]
+Description=ChainlessChain web-panel server (cc ui headless)
+Documentation=https://github.com/chainlesschain/chainlesschain
+Documentation=file:///usr/share/doc/chainlesschain/linux/PAIRING.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# ───── EDIT THESE for your deployment ─────────────────────────
+# User/Group that owns ~/.chainlesschain/ and runs the service.
+# DO NOT use root — ChainlessChain stores DIDs / keys in this user's home.
+User=chainlesschain
+Group=chainlesschain
+
+# Working dir — typically the user's home where ~/.chainlesschain/ lives.
+WorkingDirectory=/home/chainlesschain
+
+# PATH including the location where `cc` is installed (npm global / nvm /
+# custom). Match the path you get from `which cc` as your service user.
+Environment="PATH=/usr/local/bin:/usr/bin:/home/chainlesschain/.npm-global/bin"
+# Override XDG_CONFIG_HOME if you keep config outside the default
+# ~/.config — usually unnecessary.
+# Environment="XDG_CONFIG_HOME=/home/chainlesschain/.config"
+
+# The actual command. Pick a port your firewall allows + that your SSH
+# tunnel binds. Default 9000 keeps it out of well-known port range.
+ExecStart=/usr/local/bin/cc ui --port 9000 --host 127.0.0.1
+# ─────────────────────────────────────────────────────────────
+
+# Restart policy: restart on crash but not on intentional stop.
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Resource limits — tune to your box. Defaults below are conservative
+# enough for a small dev box, generous enough for casual use.
+LimitNOFILE=8192
+MemoryMax=2G
+TasksMax=1024
+
+# Hardening — least privilege beyond running as non-root user.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# Allow writes only to user's ~/.chainlesschain dir.
+# Adjust if you store data elsewhere.
+ReadWritePaths=/home/chainlesschain/.chainlesschain
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# stdout/stderr → systemd journal.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chainlesschain
+
+[Install]
+WantedBy=multi-user.target
