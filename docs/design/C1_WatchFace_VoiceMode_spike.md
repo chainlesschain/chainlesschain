@@ -1,10 +1,10 @@
-# C.1 watch face → VoiceMode — spike v0.2
+# C.1 watch face → VoiceMode — spike v0.3
 
 > **Issue**: [#21](https://github.com/chainlesschain/chainlesschain/issues/21) C.1（GA 后续 scope · P1）
-> **状态**: 🟢 PR1 ✅ + PR2 ✅ landed (2026-05-15) — phone-side wear-forward 链路完整
+> **状态**: 🟢 PR1 ✅ + PR2 ✅ + PR3 ✅ landed (2026-05-15) — **C.1 主体闭环**
 > **作者**: 2026-05-15
 > **关联**: [Android 重新定位 §10 C.1](Android_重新定位_设计文档.md) / [三端 UI Consistency §3.1 + §3.4](三端_UI_Consistency_设计文档.md)
-> **下一步**: PR3 Wear UI 加 Voice entry point (complication+tile+watch-face) + wear-side `WearVoiceSender.send()` via `MessageClient.sendMessage("/cc/voice/start", json)`
+> **下一步**: C.1 主体已闭环。Follow-ups（不在 C.1 scope 内）：(1) instrumented test 真表+真机 E2E (2) wear tile/complication 在 watch face customization picker 中显示的 vector preview drawable (3) phone shortcut tile / Quick Settings tile (4) wear vibration 失败 toast UX 增强
 
 ---
 
@@ -32,7 +32,7 @@
 |---|---|---|---|
 | 1 | ✅ landed (2026-05-15) | `android-app/app/src/main/.../voice/VoiceLaunchActions.kt` (新) + `navigation/NavGraph.kt` + `MainActivity.kt` + `AndroidManifest.xml` + tests | **Phone-side intent + NavGraph 注册** — 定义 `ACTION_START_VOICE_MODE` (`com.chainlesschain.android.action.START_VOICE_MODE`) Android Intent constant + Source enum (PHONE_SHORTCUT / AUTO_BUTTON / WEAR_FORWARD / EXTERNAL) + `EXTRA_TRIGGER_SOURCE` extra；NavGraph 加 `Screen.VoiceMode` + 路由 composable 接 phone-side `VoiceModeScreen`；MainActivity onCreate / onNewIntent 处理 intent action → 若匹配则 navigate；manifest exported 的 `<intent-filter>` |
 | 2 | ✅ landed (2026-05-15) | `android-app/app/src/main/.../wear/CcPhoneVoiceListener.kt` (新) + manifest service entry + 11 Robolectric tests | **Phone-side Data Layer listener** — `WearableListenerService` `@AndroidEntryPoint` (Hilt) 监听**精确路径** `/cc/voice/start`（manifest `android:path` 而非 `pathPrefix`，与现 `CcPhoneDecisionListener` `/cc/` prefix 不互扰）→ parse `VoiceForwardWire` JSON (`trigger_source` / `wear_node_id` / `client_request_id` / `issued_at_ms`) → `startVoiceActivity` helper 调 `VoiceLaunchActions.buildIntent(WEAR_FORWARD, clientRequestId)` + `FLAG_ACTIVITY_NEW_TASK` + `FLAG_ACTIVITY_RESET_TASK_IF_NEEDED` + `setPackage(this.packageName)` → `startActivity`。**安全锁**：payload `trigger_source` field 忽略，固定 source=WEAR_FORWARD（wear-side 攻击者不能伪 AUTO_BUTTON / PHONE_SHORTCUT）。11 Robolectric tests cover path constant lock / wire 序列化往返+缺字段+未知字段 (forward-compat) / Intent action+extras+flags+package+null-safety / 攻击者 forge 防御 / full JSON→Intent→extract pipeline |
-| 3 | ⏳ pending | `android-app/wear-app/.../tile/PendingApprovalsComplicationService.kt` + 新 `VoiceShortcutTileService.kt` + wear `WearVoiceSender.kt` (新) | **Wear UI entry point** — (a) complication tap 加 long-press fallback action 触发 wear→phone voice forward (b) 新 standalone Voice tile（"对话"图标 + tap 立刻 forward）(c) watch face complication slot 可设此 tile (d) `WearVoiceSender.send()` 通过 `MessageClient.sendMessage("/cc/voice/start", json)` 发往 phone listener (PR2) |
+| 3 | ✅ landed (2026-05-15) | `wear-app/.../sync/WearVoiceSender.kt` + `wear-app/.../VoiceForwardActivity.kt` + `wear-app/.../tile/VoiceComplicationService.kt` + `wear-app/.../tile/VoiceShortcutTileService.kt` + wear manifest + 7 unit tests | **Wear UI entry point** — (a) `WearVoiceSender.send()` 异步发 `MessageClient.sendMessage("/cc/voice/start", VoiceForwardPayload-json)` 到第一个 connected node + 返回 `VoiceForwardResult{status, clientRequestId, targetNodeId}` 三态（OK / NO_PHONE / SEND_FAIL）支持 caller 决定 vibration + toast (b) `VoiceForwardActivity` invisible trampoline — `vibrate(50ms)` 入场 + 异步 send + 失败 100ms 双震 + 立刻 finish() 不留 UI (c) `VoiceComplicationService` SHORT_TEXT complication "语音/对话" → tap PendingIntent → trampoline (d) `VoiceShortcutTileService` 全屏 tile — Column 三行 ("语音" title + "对话" 大字 + "tap → 手机" caption) + 整体 clickable LaunchAction → trampoline；FRESHNESS_INTERVAL = 1 day (static content) (e) manifest 注册 1 activity + 2 services (BIND_TILE_PROVIDER / BIND_COMPLICATION_PROVIDER) (f) 长按非 Wear 原生，故抛弃 "complication long-press fallback"，用独立 Voice complication 替代 (g) 7 单测 — PATH_VOICE_START 锁、snake_case JSON 序列化往返、VoiceForwardStatus 3 变体 lock、VoiceForwardResult 字段 (h) **Wearable Data Layer IO 不可 JVM 单测**（Play Services 限制），mirror 现 WearDecisionSenderTest 做协议形状测；真 E2E 留 instrumented (PR4 follow-up) |
 
 ---
 
@@ -141,5 +141,6 @@ Listener 路由：构造 ACTION_START_VOICE_MODE Intent，加 EXTRA_TRIGGER_SOUR
 
 ## 变更记录
 
+- 2026-05-15 v0.3：**PR3 landed — C.1 主体闭环** — wear-side `WearVoiceSender` (异步发 `/cc/voice/start` json，三态结果 OK/NO_PHONE/SEND_FAIL) + `VoiceForwardActivity` invisible trampoline (vibration 50ms 入场，失败 100ms 双震) + `VoiceComplicationService` SHORT_TEXT 静态 "语音/对话" tap-to-trampoline + `VoiceShortcutTileService` 全屏 tile "语音 / 对话 / tap → 手机" 三行 LaunchAction-to-trampoline + wear manifest 注册 1 activity + 2 services。**长按非 Wear 原生**改用独立 Voice complication 与现 PendingApprovals 共存。7 unit tests（PATH 锁、snake_case JSON 往返、status enum 3 变体、result 字段），Wearable Data Layer IO 不可 JVM 测留 instrumented PR4。
 - 2026-05-15 v0.2：**PR2 landed** — `CcPhoneVoiceListener` WearableListenerService 接收 wear→phone `/cc/voice/start` Data Layer messages → `VoiceForwardWire` 解析 → `startVoiceActivity` 走 PR1 的 VoiceLaunchActions.buildIntent → `startActivity`。manifest exact-path 与现 decision listener prefix `/cc/` 共存不互扰；payload trigger_source field 不可信，源固定 WEAR_FORWARD 防 forge。11 Robolectric tests。phone-side 链路收口；PR3 wear UI 是下一步。
 - 2026-05-15 v0.1：C.1 准入条件 audit + 重新拆 3 PR + PR1 phone-side intent 同 commit 落地。`cc.voice.start` framing 不准确（实际是从零建立），spike doc 记录真实状态。

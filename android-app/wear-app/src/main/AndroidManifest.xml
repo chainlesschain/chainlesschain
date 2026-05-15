@@ -52,6 +52,20 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
 
+        <!--
+            #21 C.1 PR3: invisible trampoline that wear tile / complication tap
+            launches; it fires WearVoiceSender → /cc/voice/start to phone and
+            finishes immediately. android:noHistory keeps the back-stack clean
+            so repeated wear taps don't accumulate stale entries.
+        -->
+        <activity
+            android:name=".VoiceForwardActivity"
+            android:exported="false"
+            android:label="语音对话"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+
         <!-- v1.2 Wear Phase 3: pending approvals Tile -->
         <service
             android:name=".tile.PendingApprovalsTileService"
@@ -73,6 +87,46 @@
             android:exported="true"
             android:icon="@android:drawable/sym_def_app_icon"
             android:label="待审批数"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
+        <!--
+            #21 C.1 PR3: Voice shortcut tile. Users add via wear watch face
+            tile editor; tile carousel page shows "对话" big button → tap
+            launches VoiceForwardActivity → wear→phone /cc/voice/start.
+        -->
+        <service
+            android:name=".tile.VoiceShortcutTileService"
+            android:exported="true"
+            android:label="语音对话"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:value="@android:drawable/sym_def_app_icon" />
+        </service>
+
+        <!--
+            #21 C.1 PR3: Voice complication. Users add via watch face
+            complication slot; tap fires VoiceForwardActivity (same as tile).
+            Content is static "对话" / "语音" — no UPDATE_PERIOD needed.
+        -->
+        <service
+            android:name=".tile.VoiceComplicationService"
+            android:exported="true"
+            android:icon="@android:drawable/sym_def_app_icon"
+            android:label="语音对话"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
