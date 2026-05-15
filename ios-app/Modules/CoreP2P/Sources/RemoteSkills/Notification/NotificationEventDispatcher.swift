@@ -118,6 +118,14 @@ public final class NotificationEventDispatcher: ObservableObject {
         self.pushTarget = pushTarget
     }
 
+    /// Phase 4.4 wiring helper — RemoteDependencies init 在 nonisolated 上下文，
+    /// 不能直接 new dispatcher 时传 PushNotificationManager.shared (@MainActor)。
+    /// 改用 init(pushTarget: nil) + 启动 Task `await MainActor.run { dispatcher.
+    /// attach(pushTarget: .shared) }` 模式。
+    public func attach(pushTarget: RemoteNotificationPushTarget) {
+        self.pushTarget = pushTarget
+    }
+
     deinit {
         subscription?.cancel()
     }

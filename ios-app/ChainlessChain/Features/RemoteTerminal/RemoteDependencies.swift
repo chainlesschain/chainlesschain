@@ -42,8 +42,13 @@ public final class RemoteDependencies: ObservableObject {
     public let screenshot: ScreenshotCommands
     public let systemInfo: SystemInfoCommands
 
+    // Phase 4.4 新增（typed skill: notification）
+    public let notification: NotificationCommands
+    public let notificationDispatcher: NotificationEventDispatcher
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
+    private var eventFanOutTask: Task<Void, Never>?
 
     /// pcPeerId provider — v0.1 单 active 桌面 from PairedDesktopsStore.devices.first.
     /// Phase 4+ 改 user-explicit selection 时这里得改。
@@ -92,10 +97,23 @@ public final class RemoteDependencies: ObservableObject {
         )
         self.commandClient = cmdClient
 
-        // Phase 3.3 refactor: terminalRpc 改用 commandClient.events 流
+        // Phase 4.4 — events fan-out：cmdClient.events 是单消费者 AsyncStream，
+        // terminalRpc + notificationDispatcher 两订阅会切分事件 → 单一 fan-out
+        // task 消费 cmdClient.events，yield 到两子流分别给 terminal / notification。
+        // (Phase 3.3 trap 同模式：单消费者 AsyncStream 解；当只有 1 订阅者时 fan-out
+        //  task 透传无副作用)
+        var termLocal: AsyncStream<String>.Continuation!
+        let terminalEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(256)) { c in termLocal = c }
+        let terminalEventsContinuation = termLocal!
+        var notiLocal: AsyncStream<String>.Continuation!
+        let notificationEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(256)) { c in notiLocal = c }
+        let notificationEventsContinuation = notiLocal!
+
+        // Phase 3.3 refactor: terminalRpc 改用 commandClient.events 流（Phase 4.4
+        // 起改用 fan-out 后的 terminalEventsStream，语义不变）
         self.terminalRpc = TerminalRpcClient(
             commandClient: cmdClient,
-            eventStream: cmdClient.events
+            eventStream: terminalEventsStream
         )
 
         // Phase 3.1: SkillRegistry
@@ -121,6 +139,27 @@ public final class RemoteDependencies: ObservableObject {
         self.screenshot = ScreenshotCommands(client: cmdClient)
         self.systemInfo = SystemInfoCommands(client: cmdClient)
 
+        // Phase 4.4: NotificationCommands + EventDispatcher
+        // dispatcher 的 PushTarget 在 @MainActor 启动 Task 内 set（避免 init 时
+        // 跨 isolation 调用 PushNotificationManager.shared）— Phase 4.4 v0.1 暂用
+        // nil 占位，启动 Task 内 attach。
+        self.notification = NotificationCommands(client: cmdClient)
+        self.notificationDispatcher = NotificationEventDispatcher(
+            eventStream: notificationEventsStream,
+            pushTarget: nil
+        )
+
+        // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
+        // notification 两子流（避 AsyncStream 单消费者切分 bug）
+        self.eventFanOutTask = Task {
+            for await raw in cmdClient.events {
+                terminalEventsContinuation.yield(raw)
+                notificationEventsContinuation.yield(raw)
+            }
+            terminalEventsContinuation.finish()
+            notificationEventsContinuation.finish()
+        }
+
         // 起 forwarding task — SignalClient.forwardedMessages → 路由到 webRTC
         let signalClient = pairingDeps.signalClient
         self.forwardingTask = Task { [weak webRTC] in
@@ -131,17 +170,25 @@ public final class RemoteDependencies: ObservableObject {
             }
         }
 
-        // 启动 commandClient + terminalRpc + offlineDrainer
+        // 启动 commandClient + terminalRpc + offlineDrainer + notificationDispatcher
+        let dispatcher = self.notificationDispatcher
         Task {
             await cmdClient.start()
             await self.terminalRpc.start()
             self.offlineDrainer.start()
             _ = await self.skillRegistry.initialize()
+            // Phase 4.4 — dispatcher 启动需 @MainActor (它本身是 @MainActor class);
+            // attach PushNotificationManager.shared (@MainActor singleton) 后 start
+            await MainActor.run {
+                dispatcher.attach(pushTarget: PushNotificationManager.shared)
+                dispatcher.start()
+            }
         }
     }
 
     deinit {
         forwardingTask?.cancel()
+        eventFanOutTask?.cancel()
         offlineDrainer.stop()
     }
 
