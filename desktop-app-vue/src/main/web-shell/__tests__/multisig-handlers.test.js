@@ -394,6 +394,163 @@ describe("marketplace.consume handler", () => {
   });
 });
 
+describe("multisig.sign handler (#21 B.1 PR1)", () => {
+  function withSignerStub(signerImpl) {
+    const fakeSigner = { signProposal: vi.fn(signerImpl) };
+    const handlers = createMultisigHandlers({
+      runtimeFactory: async () => ({
+        openMultisigManager: vi.fn(async () => ({
+          db: {},
+          store: {},
+          mgr: {},
+          close: vi.fn(),
+        })),
+      }),
+      signerFactory: () => fakeSigner,
+    });
+    return { handlers, fakeSigner };
+  }
+
+  it("delegates to MultisigSigner with full message shape", async () => {
+    const { handlers, fakeSigner } = withSignerStub(async () => ({
+      accepted: true,
+      reachedThreshold: false,
+    }));
+    const r = await handlers["multisig.sign"]({
+      proposalId: "msp_b1",
+      signerDid: "did:cc:a",
+      alg: "Ed25519",
+      source: "hex",
+      params: { secretKeyHex: "deadbeef" },
+    });
+    expect(r).toEqual({ accepted: true, reachedThreshold: false });
+    expect(fakeSigner.signProposal).toHaveBeenCalledWith({
+      proposalId: "msp_b1",
+      signerDid: "did:cc:a",
+      alg: "Ed25519",
+      source: "hex",
+      params: { secretKeyHex: "deadbeef" },
+    });
+  });
+
+  it("forwards reachedThreshold=true when signer reports it", async () => {
+    const { handlers } = withSignerStub(async () => ({
+      accepted: true,
+      reachedThreshold: true,
+    }));
+    const r = await handlers["multisig.sign"]({
+      proposalId: "msp_b2",
+      signerDid: "did:cc:b",
+      source: "hex",
+      params: { secretKeyHex: "ff" },
+    });
+    expect(r.reachedThreshold).toBe(true);
+  });
+
+  it("converts domain errors (INVALID_KEY) to {accepted:false, reason:CODE}", async () => {
+    const { handlers } = withSignerStub(async () => {
+      const e = new Error("hex secret malformed");
+      e.code = "INVALID_KEY";
+      throw e;
+    });
+    const r = await handlers["multisig.sign"]({
+      proposalId: "msp_e",
+      signerDid: "did:cc:a",
+      source: "hex",
+      params: { secretKeyHex: "ZZZ" },
+    });
+    expect(r).toEqual({
+      accepted: false,
+      reachedThreshold: false,
+      reason: "INVALID_KEY",
+      detail: "hex secret malformed",
+    });
+  });
+
+  it("converts UKEY_NOT_WIRED to soft error result", async () => {
+    const { handlers } = withSignerStub(async () => {
+      const e = new Error("ukey source not wired");
+      e.code = "UKEY_NOT_WIRED";
+      throw e;
+    });
+    const r = await handlers["multisig.sign"]({
+      proposalId: "msp_u",
+      signerDid: "did:cc:a",
+      source: "ukey",
+      params: {},
+    });
+    expect(r.accepted).toBe(false);
+    expect(r.reason).toBe("UKEY_NOT_WIRED");
+  });
+
+  it("converts INVALID_SOURCE to soft error", async () => {
+    const { handlers } = withSignerStub(async () => {
+      const e = new Error("unknown key source: bogus");
+      e.code = "INVALID_SOURCE";
+      throw e;
+    });
+    const r = await handlers["multisig.sign"]({
+      proposalId: "msp_x",
+      signerDid: "did:cc:a",
+      source: "bogus",
+      params: {},
+    });
+    expect(r.reason).toBe("INVALID_SOURCE");
+  });
+
+  it("does NOT convert programming errors (INVALID_ARGS) — re-throws", async () => {
+    const { handlers } = withSignerStub(async () => {
+      const e = new Error("signProposal: proposalId required");
+      e.code = "INVALID_ARGS";
+      throw e;
+    });
+    // INVALID_ARGS thrown by the signer (deep) propagates because it's a
+    // caller programming bug (renderer sent malformed message) — should not
+    // be silently soft-erred.
+    await expect(
+      handlers["multisig.sign"]({
+        proposalId: "msp_x",
+        signerDid: "did:cc:a",
+        source: "hex",
+        params: { secretKeyHex: "aa" },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ARGS" });
+  });
+
+  it("rejects topic-level INVALID_ARGS when proposalId missing", async () => {
+    const { handlers } = withSignerStub(async () => ({ accepted: true }));
+    await expect(
+      handlers["multisig.sign"]({
+        signerDid: "did:cc:a",
+        source: "hex",
+        params: { secretKeyHex: "aa" },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ARGS" });
+  });
+
+  it("rejects topic-level INVALID_ARGS when signerDid missing", async () => {
+    const { handlers } = withSignerStub(async () => ({ accepted: true }));
+    await expect(
+      handlers["multisig.sign"]({
+        proposalId: "msp_x",
+        source: "hex",
+        params: { secretKeyHex: "aa" },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ARGS" });
+  });
+
+  it("rejects topic-level INVALID_ARGS when source missing", async () => {
+    const { handlers } = withSignerStub(async () => ({ accepted: true }));
+    await expect(
+      handlers["multisig.sign"]({
+        proposalId: "msp_x",
+        signerDid: "did:cc:a",
+        params: { secretKeyHex: "aa" },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ARGS" });
+  });
+});
+
 describe("crosschain.bridge.consume handler (#21 B.5 PR2)", () => {
   function makeMgr({ proposal, state, finalizeOk = true }) {
     return {

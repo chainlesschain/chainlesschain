@@ -1,7 +1,8 @@
 /**
  * `multisig.*` + `marketplace.consume` + `crosschain.bridge.consume` WS handlers.
  *
- * #21 B.2 (削 cc subprocess 冷启) + #21 B.5 Layer 1 PR2 (crosschain outbound).
+ * #21 B.2 (削 cc subprocess 冷启) + #21 B.5 Layer 1 PR2 (crosschain outbound)
+ *   + #21 B.1 PR1 (web-shell private key signing seam).
  *
  * Replaces `ws.execute('cc …')` subprocess invocations with in-process calls
  * into `@chainlesschain/core-multisig` v0.1.0. asar:true 后子进程冷启
@@ -17,6 +18,7 @@
  *   multisig.cancel           mgr.cancel(proposalId, reason?)
  *   multisig.finalize         mgr.finalize(proposalId)
  *   multisig.sweep            mgr.expireStale()
+ *   multisig.sign             #21 B.1 PR1 — sign via MultisigSigner middleware
  *   marketplace.consume       domain-gated finalize for marketplace.purchase
  *   crosschain.bridge.consume domain-gated finalize for crosschain.bridge.outbound (#21 B.5 PR2)
  *
@@ -30,6 +32,8 @@
 
 const path = require("path");
 const { pathToFileURL } = require("url");
+
+const { createMultisigSigner } = require("../../ukey/multisig-signer");
 
 const MULTISIG_RUNTIME_REL =
   "../../../../../packages/cli/src/lib/multisig-runtime.js";
@@ -127,6 +131,22 @@ function createMultisigHandlers(options = {}) {
     return runtime.openMultisigManager();
   }
 
+  // #21 B.1 PR1 — lazy-built MultisigSigner so tests can inject a custom
+  // signer via options.signerFactory; production path reuses the same
+  // runtime factory so the underlying SQLite handle is consistent.
+  let _cachedSigner = null;
+  function _signer() {
+    if (_cachedSigner) {
+      return _cachedSigner;
+    }
+    if (typeof options.signerFactory === "function") {
+      _cachedSigner = options.signerFactory();
+    } else {
+      _cachedSigner = createMultisigSigner({ runtimeFactory: factory });
+    }
+    return _cachedSigner;
+  }
+
   return {
     "multisig.list": async (msg = {}) => {
       const { store, close } = await _open();
@@ -193,6 +213,60 @@ function createMultisigHandlers(options = {}) {
         return mgr.cancel(msg.proposalId, msg.reason);
       } finally {
         close();
+      }
+    },
+
+    "multisig.sign": async (msg = {}) => {
+      // #21 B.1 PR1 — accepts {proposalId, signerDid, alg?, source, params}.
+      // Renderer-driven sign delegates to MultisigSigner middleware which
+      // owns key-source dispatch (hex / path / ukey / unified). Returns
+      // the same shape as mgr.sign(...) for renderer code-path uniformity.
+      if (!msg.proposalId || typeof msg.proposalId !== "string") {
+        const e = new Error("multisig.sign: proposalId required");
+        e.code = "INVALID_ARGS";
+        throw e;
+      }
+      if (!msg.signerDid || typeof msg.signerDid !== "string") {
+        const e = new Error("multisig.sign: signerDid required");
+        e.code = "INVALID_ARGS";
+        throw e;
+      }
+      if (!msg.source || typeof msg.source !== "string") {
+        const e = new Error("multisig.sign: source required");
+        e.code = "INVALID_ARGS";
+        throw e;
+      }
+      try {
+        return await _signer().signProposal({
+          proposalId: msg.proposalId,
+          signerDid: msg.signerDid,
+          alg: msg.alg,
+          source: msg.source,
+          params: msg.params || {},
+        });
+      } catch (err) {
+        // Domain errors (INVALID_KEY, UKEY_NOT_WIRED, etc.) surface as
+        // {accepted:false} so the renderer can render a reason without a
+        // raw throw breaking the WS round-trip.
+        if (
+          err &&
+          (err.code === "INVALID_KEY" ||
+            err.code === "INVALID_KEY_PATH" ||
+            err.code === "KEY_PATH_NOT_FOUND" ||
+            err.code === "KEY_PATH_NOT_FILE" ||
+            err.code === "UKEY_NOT_WIRED" ||
+            err.code === "UKEY_NOT_IMPLEMENTED" ||
+            err.code === "UNIFIED_NOT_IMPLEMENTED" ||
+            err.code === "INVALID_SOURCE")
+        ) {
+          return {
+            accepted: false,
+            reachedThreshold: false,
+            reason: err.code,
+            detail: err.message,
+          };
+        }
+        throw err;
       }
     },
 
