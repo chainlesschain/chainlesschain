@@ -49,13 +49,21 @@ jobs:
       # Package Dependency 才能补齐（手 sed pbxproj 风险大）。在那之前
       # CI 通过 Package.swift 直接 build SPM 7 lib + 测 6 testTarget
       # （Phase 1-5 代码全在 Modules/ 下，263 unit tests 在 Tests/ 下）。
+      #
+      # Hide .xcodeproj so xcodebuild auto-detects Package.swift instead.
+      # SPM-generated .swiftpm/xcode/package.xcworkspace 的 "self:" 路径
+      # 不被 xcodebuild CLI 正确解析（resolves 成 /Package.swift 绝对路径）。
+      # 重命名 .xcodeproj 是 force SPM auto-detect 最可靠的方式。
+
+      - name: Disable .xcodeproj (force SPM auto-detect)
+        working-directory: ios-app
+        run: mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
 
       - name: Resolve Swift Package dependencies
         working-directory: ios-app
         shell: bash
         run: |
           xcodebuild -resolvePackageDependencies \
-            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -clonedSourcePackagesDirPath .spm-cache
 
@@ -65,7 +73,6 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
-            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData \
@@ -98,12 +105,19 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
-            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -destination "platform=iOS Simulator,id=${{ steps.pick-sim.outputs.sim_id }}" \
             -derivedDataPath build/DerivedData \
             -clonedSourcePackagesDirPath .spm-cache \
             | xcpretty
+
+      - name: Restore .xcodeproj
+        if: always()
+        working-directory: ios-app
+        run: |
+          if [ -d ChainlessChain.xcodeproj.disabled ]; then
+            mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
+          fi
 
       - name: Upload test results
         if: always()
@@ -156,12 +170,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
+      - name: Disable .xcodeproj (force SPM auto-detect)
+        working-directory: ios-app
+        run: mv ChainlessChain.xcodeproj ChainlessChain.xcodeproj.disabled
+
       - name: Resolve Swift Package dependencies
         working-directory: ios-app
         shell: bash
         run: |
           xcodebuild -resolvePackageDependencies \
-            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -clonedSourcePackagesDirPath .spm-cache
 
@@ -171,13 +188,20 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
-            -workspace .swiftpm/xcode/package.xcworkspace \
             -scheme CoreP2P \
             -configuration Release \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData \
             -clonedSourcePackagesDirPath .spm-cache \
             | xcpretty
+
+      - name: Restore .xcodeproj
+        if: always()
+        working-directory: ios-app
+        run: |
+          if [ -d ChainlessChain.xcodeproj.disabled ]; then
+            mv ChainlessChain.xcodeproj.disabled ChainlessChain.xcodeproj
+          fi
 
   # Job 4: Security Analysis
   security-scan:
