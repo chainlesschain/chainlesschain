@@ -50,6 +50,7 @@ const ROOT_FILE_MAP = {
   "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
   "Android_重新定位_设计文档.md": "android-repositioning.md",
   "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
+  "三端_UI_Consistency_设计文档.md": "three-surface-ui-consistency.md",
   "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
   "Android_Remote_Operate_Plan_C.md": "Android_Remote_Operate_Plan_C.md",
   "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",

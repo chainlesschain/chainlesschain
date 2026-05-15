@@ -362,6 +362,8 @@ domain ↔ marketplace 对照：
 - 走 P2P sync via mobile-bridge-sync 的 SETTING walker（v1.2 prep #4）
 - Push notification（v1.1 P1 vendor push SDK 已具备）
 
+> **三端 UI consistency 约束**：m-of-n 进度展示 / DID 短显示 / 高风险二次确认 形态应跨 surface 一致 — 详 [`三端_UI_Consistency_设计文档.md`](三端_UI_Consistency_设计文档.md) §2.2 / §2.3 / §2.4。现有 `Multisig.vue` 列表 tag `${m}/${n}` 缺空格 + `Marketplace.vue` 等 4 处 DID short 不统一已列入该文档 §4 opportunistic sweep。
+
 ### 8.3 web-panel Multisig.vue（Phase 2b + 4a 接通 2026-05-15）
 
 落地位置：`packages/web-panel/src/views/Multisig.vue` + `desktop-app-vue/src/main/web-shell/handlers/multisig-handlers.js`。
