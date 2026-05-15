@@ -8,6 +8,7 @@ import { registerServicesCommand } from "./commands/services.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
+import { registerPairCommand } from "./commands/pair.js";
 import { registerDbCommand } from "./commands/db.js";
 import { registerNoteCommand } from "./commands/note.js";
 import { registerChatCommand } from "./commands/chat.js";
@@ -393,6 +394,7 @@ export function createProgram(opts = {}) {
   registerConfigCommand(program);
   registerUpdateCommand(program);
   registerDoctorCommand(program);
+  registerPairCommand(program);
 
   // Headless commands
   registerDbCommand(program);
