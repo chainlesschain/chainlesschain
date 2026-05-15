@@ -1,6 +1,7 @@
 package com.chainlesschain.android
 
 import android.animation.ObjectAnimator
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AnticipateInterpolator
@@ -31,6 +32,8 @@ import com.chainlesschain.android.navigation.NavGraph
 import com.chainlesschain.android.navigation.Screen
 import com.chainlesschain.android.sign.AndroidApprovalGate
 import com.chainlesschain.android.sign.ApprovalDialogHost
+import com.chainlesschain.android.voice.VoiceLaunchActions
+import com.chainlesschain.android.voice.VoiceTriggerSource
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -62,6 +65,14 @@ class MainActivity : AppCompatActivity() {
 
     private var isReady = false
 
+    /**
+     * #21 C.1 PR1 — class-level state so onNewIntent (activity already
+     * running) can also trigger VoiceMode navigation. NavGraph LaunchedEffect
+     * reads this + navigates + resets to null. Cold-start populates this in
+     * onCreate before setContent.
+     */
+    private val pendingVoiceTrigger = mutableStateOf<VoiceTriggerSource?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // 安装 SplashScreen（必须在 super.onCreate 之前）
         val splashScreen = installSplashScreen()
@@ -70,6 +81,14 @@ class MainActivity : AppCompatActivity() {
 
         Timber.d("MainActivity onCreate - start")
         val startTime = System.currentTimeMillis()
+
+        // #21 C.1 PR1 — pick up ACTION_START_VOICE_MODE on cold start.
+        pendingVoiceTrigger.value = VoiceLaunchActions.extractTriggerSource(intent)
+        if (pendingVoiceTrigger.value != null) {
+            Timber.i(
+                "MainActivity onCreate: VoiceMode launch intent received, source=${pendingVoiceTrigger.value}",
+            )
+        }
 
         // 配置 SplashScreen
         setupSplashScreen(splashScreen)
@@ -116,6 +135,24 @@ class MainActivity : AppCompatActivity() {
                         }
                     )
 
+                    // #21 C.1 PR1 — wire ACTION_START_VOICE_MODE into NavGraph.
+                    // We wait until auth is done (otherwise SetupPin / Login
+                    // get jumped over) — voice intent on unauthenticated boot
+                    // is silently dropped per spike doc §3.3.
+                    val pendingTrigger = pendingVoiceTrigger.value
+                    LaunchedEffect(pendingTrigger, uiState.isAuthenticated) {
+                        if (pendingTrigger != null && uiState.isAuthenticated) {
+                            Timber.i("MainActivity: navigating to VoiceMode (source=$pendingTrigger)")
+                            navController.navigate(Screen.VoiceMode.route)
+                            pendingVoiceTrigger.value = null
+                        } else if (pendingTrigger != null && !uiState.isAuthenticated) {
+                            Timber.w(
+                                "MainActivity: voice intent received but auth not done — dropping (source=$pendingTrigger)",
+                            )
+                            pendingVoiceTrigger.value = null
+                        }
+                    }
+
                     // 全局 ApprovalDialog 宿主：监听 backend (SignAsService / 未来 M4 D2
                     // 桌面 approval channel) 通过 AndroidApprovalGate 发起的确认请求，
                     // 弹 BiometricPrompt + 同意/拒绝对话框。
@@ -133,6 +170,21 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * #21 C.1 PR1 — handle ACTION_START_VOICE_MODE when activity is already
+     * running. The LaunchedEffect in setContent observes pendingVoiceTrigger
+     * and navigates as soon as the value flips non-null.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val src = VoiceLaunchActions.extractTriggerSource(intent)
+        if (src != null) {
+            Timber.i("MainActivity onNewIntent: VoiceMode launch, source=$src")
+            pendingVoiceTrigger.value = src
         }
     }
 

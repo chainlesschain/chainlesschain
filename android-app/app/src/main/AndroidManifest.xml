@@ -105,6 +105,20 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+                #21 C.1 PR1 — generic VoiceMode launch action. Reachable by:
+                  - PR2 wear-forward: CcPhoneVoiceListener WearableListenerService
+                  - PR3 wear UI (complication / tile / watch face)
+                  - PR4 (future) phone shortcut / Quick Settings tile
+                  - External apps (Tasker / Shortcuts) via VoiceTriggerSource.EXTERNAL
+                Receivers must use VoiceLaunchActions.buildIntent(...) for
+                proper extras + use VoiceLaunchActions.extractTriggerSource()
+                to parse incoming intents.
+            -->
+            <intent-filter>
+                <action android:name="com.chainlesschain.android.action.START_VOICE_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <!-- M3 D-share：处理来自其它 app 的 ACTION_SEND / ACTION_SEND_MULTIPLE 分享。

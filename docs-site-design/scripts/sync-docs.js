@@ -51,6 +51,7 @@ const ROOT_FILE_MAP = {
   "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
   "三端_UI_Consistency_设计文档.md": "three-surface-ui-consistency.md",
   "B1_WebShell_Multisig_Sign_spike.md": "b1-webshell-multisig-sign.md",
+  "C1_WatchFace_VoiceMode_spike.md": "c1-watchface-voicemode.md",
   "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
   "Android_Remote_Operate_Plan_C.md": "Android_Remote_Operate_Plan_C.md",
   "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",

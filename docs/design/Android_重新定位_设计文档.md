@@ -1,6 +1,6 @@
 # Android 客户端重新定位设计文档
 
-> **版本**: v0.13 (§10 B.1 全 4 PR 闭环 — renderer-driven multisig signing，2026-05-15) | **状态**: 🎉 ADR 8/8 accepted · M1/M2/M5 ✅ · **M3 5/5 code 全落（VoiceMode + CameraOCR + LocationTagger + ShareReceiver + PushNotifier，+3,861 行 / 99 单测，真机待用户出场）** · **M4 D1 ✅ method-level / D2 ✅ desktop-side full + Android RPC 接收器 + **ApprovalUI 4 类 category** + **ProgressViewer***（真机 E2E 仍待） · M6 性能预算文档就位待真机回填 · M7 GA flip ✅ tag `v1.0.0` + GitHub Release published | **关联**: Android **v1.0.0 GA** | **桌面对标**: v5.0.3.48
+> **版本**: v0.14 (§10 C.1 PR1 landed + 准入条件重评 — phone-side voice intent，2026-05-15) | **状态**: 🎉 ADR 8/8 accepted · M1/M2/M5 ✅ · **M3 5/5 code 全落（VoiceMode + CameraOCR + LocationTagger + ShareReceiver + PushNotifier，+3,861 行 / 99 单测，真机待用户出场）** · **M4 D1 ✅ method-level / D2 ✅ desktop-side full + Android RPC 接收器 + **ApprovalUI 4 类 category** + **ProgressViewer***（真机 E2E 仍待） · M6 性能预算文档就位待真机回填 · M7 GA flip ✅ tag `v1.0.0` + GitHub Release published | **关联**: Android **v1.0.0 GA** | **桌面对标**: v5.0.3.48
 >
 > 把 ChainlessChain Android 从"对桌面 skill 数量的弱化追赶"重新定位为 **DID 钱包 + 移动端捕获 + REMOTE 遥控器** 三层模型，对齐 Claude Desktop / Mobile 的二端分工，停止以 skill 数量对标桌面，转向场景独占价值。
 >
@@ -632,7 +632,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 **C. Wear long-tail（[#20](https://github.com/chainlesschain/chainlesschain/issues/20) P0.2 已完 Phase 0-3 主体；下一阶段下推到 GA 后续 scope）**
 
-- **C.1（P1，明确前置）watch face → VoiceMode shortcut**：v1.2 wear 端用 ApprovalCard tap 进决策路径，watch face 直达 voice 还需 phone Auto Phase 1 voice intent 抽出 generic `cc.voice.start` IPC（v1.2 是 Auto 私有），wear 复用同一 intent。GA 反馈决定哪些 watch face 优先适配
+- **C.1（P1）watch face → VoiceMode shortcut** 🟢 PR1 ✅ landed (2026-05-15 [`C1_WatchFace_VoiceMode_spike.md`](C1_WatchFace_VoiceMode_spike.md))：**准入条件重评** — 原 framing "Auto Phase 1 voice intent 抽出 generic" 不准确 (`cc.voice.start` 仓库内 0 匹配；Auto VoiceMode 用 `androidx.car.app` Screen API 不是 Intent；phone VoiceModeScreen 完全孤儿，无 NavGraph 注册)。**真实 scope = 从零建立** phone-side intent + NavGraph 路由 + wear→phone Data Layer 桥 (3 PR)。**PR1 ✅** (本次)：`VoiceLaunchActions.ACTION_START_VOICE_MODE` Android Intent constant + `VoiceTriggerSource` 4-enum (PHONE_SHORTCUT/AUTO_BUTTON/WEAR_FORWARD/EXTERNAL) + `Screen.VoiceMode` route + NavGraph composable + MainActivity `onCreate`/`onNewIntent` 处理 + manifest `<intent-filter>` + 15 Robolectric unit tests (常量值锁 + wire round-trip + bogus extra defense)。**PR2 ⏳**：`CcPhoneVoiceListener` WearableListenerService 监听 `/cc/voice/start` → startActivity intent。**PR3 ⏳**：wear 端 `WearVoiceSender` + tile/complication "Voice" entry point
 - **C.2（P2，工作量大）LongTask running count complication**：v1.2 用 pending approval count 兜底；真接 LongTask 状态 stream 需 phone expose `cowork.longTask.running` 给 wear Data Layer，相当于半个新 sync channel。可推下个 milestone
 - **C.3（P2，CI 基础设施）Instrumented test 真路径（Tile / ComplicationRequest）**：JVM 单测里 `com.google.wear.services.tiles.TileInstance NoClassDefFoundError` 是 Google 设计上 JVM-impossible（见 v1.2 commit `dc26f9572` 测试 KDoc）。要么开 gradle managed device AVD CI / 真机 farm / 接受这维度无 coverage。CI infra 投资，可推
 
@@ -666,6 +666,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 ## 变更记录
 
+- 2026-05-15 v0.14：**§10 C.1 PR1 landed + 准入条件重评** — Audit 显示 `cc.voice.start` 仓库内 0 匹配（spike doc framing 失实），phone VoiceModeScreen 是孤儿，wear 现 complication tap 只回 WearMainActivity。重新写 3 PR 拆分。PR1 加 `VoiceLaunchActions.kt` (ACTION_START_VOICE_MODE constant + VoiceTriggerSource enum 4 个 source) + NavGraph 注册 phone VoiceModeScreen + MainActivity cold-start/onNewIntent 处理 + manifest intent-filter + 15 Robolectric unit tests + spike doc `C1_WatchFace_VoiceMode_spike.md` v0.1。PR2 phone wear listener + PR3 wear UI 列入下一步。
 - 2026-05-15 v0.13：**§10 B.1 全 4 PR 闭环** — PR1 (middleware seam) + PR2a (signWithExternal API) + PR2b (UI + ukey wire) + PR3 (DID routing) 全部 land。113 tests / 0 regression。Follow-ups F1-F4 列入 spike doc。renderer 经 WS 调 main 进程 ukeyManager，secretKey 永不出边界。
 - 2026-05-15 v0.12：**§10 B.1 PR1 landed + 准入重评** — Unified KeyStore audit 显示 infra 已 ready（v1.1.0），原 "v1.2 还没收口" framing 不成立。`B1_WebShell_Multisig_Sign_spike.md` v0.1 收稿。PR1 `MultisigSigner` middleware + `multisig.sign` WS topic + 31 tests 0 regression。PR2/3 列入 follow-up。
 - 2026-05-15 v0.11：**§10 A.2 baseline landed** — `三端_UI_Consistency_设计文档.md` v0.1 收稿（GA-independent 部分）。三端 surface inventory + 4 must-be-consistent rules（语义颜色 / DID 短显示 canonical helper / m-of-n 进度三档语境 / 高风险二次确认）+ 4 must-be-different rules（Wear 大按钮+vibration / Desktop 侧栏+drawer+table / Phone BottomSheet+Biometric / Auto 语音 only）。~0.9d opportunistic sweep 清单（DID short 字符数 / 省略号 / m-of-n 列表 tag / Wear payload hash 短码）。docs-site / docs-site-design ROOT_FILE_MAP 双副本同步。GA 反馈触发 v0.2 复评 DID nickname 替代 / hex 完全拉齐 / 二次确认形态对齐。事实声明无变更，仅 baseline 设计文档。

@@ -57,6 +57,7 @@ import com.chainlesschain.android.presentation.screens.ProjectFilesScreen
 import com.chainlesschain.android.presentation.screens.SettingsScreen
 import com.chainlesschain.android.presentation.screens.SplashScreen
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
+import com.chainlesschain.android.presentation.screens.voice.VoiceModeScreen as PhoneVoiceModeScreen
 import com.chainlesschain.android.remote.ui.DeviceListScreen
 import com.chainlesschain.android.remote.ui.DeviceScanScreen
 import com.chainlesschain.android.remote.ui.RemoteControlScreen
@@ -374,6 +375,15 @@ fun NavGraph(
 
         composable(Screen.ScanDesktopPairing.route) {
             ScanDesktopPairingScreen(onClose = { navController.popBackStack() })
+        }
+
+        // #21 C.1 PR1 — phone VoiceMode entry. PhoneVoiceModeScreen lives
+        // in presentation/screens/voice and was previously orphan (no
+        // NavGraph entry). Reachable now via ACTION_START_VOICE_MODE
+        // intent (see voice/VoiceLaunchActions.kt + MainActivity routing)
+        // and future wear-forward (PR2) / phone shortcut (PR4).
+        composable(Screen.VoiceMode.route) {
+            PhoneVoiceModeScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.KeyManagement.route) {
@@ -910,6 +920,10 @@ sealed class Screen(val route: String) {
     data object NotificationCenter : Screen("notification_center")
     data object BlockedUsers : Screen("blocked_users")
     data object Settings : Screen("settings")
+    // #21 C.1 PR1 — phone-side VoiceMode entry. Reachable via
+    // ACTION_START_VOICE_MODE intent (manifest filter on MainActivity) +
+    // future wear-forward (PR2) + phone shortcut (PR4 follow-up).
+    data object VoiceMode : Screen("voice_mode")
     data object DesktopPairing : Screen("desktop_pairing") // v1.1 W3.2 mobile↔desktop QR pairing
     data object ScanDesktopPairing : Screen("scan_desktop_pairing") // v1.1 W3.7 Flow B
     data object About : Screen("about")
