@@ -366,27 +366,23 @@ struct ExploreView: View {
                 ) { EmptyView() }
             }
 
-            // AI Conversation navigation
-            NavigationLink(
-                destination: Group {
-                    if let conversation = selectedConversation {
-                        AIChatView(conversation: conversation.toConversation())
-                    }
-                },
-                tag: selectedConversation,
-                selection: $selectedConversation
-            ) { EmptyView() }
+            // AI Conversation navigation — same optional-tag gate as Knowledge.
+            if let conversation = selectedConversation {
+                NavigationLink(
+                    destination: AIChatView(conversation: conversation.toConversation()),
+                    tag: conversation,
+                    selection: $selectedConversation
+                ) { EmptyView() }
+            }
 
-            // Project navigation
-            NavigationLink(
-                destination: Group {
-                    if let project = selectedProject {
-                        ProjectDetailView(project: project)
-                    }
-                },
-                tag: selectedProject,
-                selection: $selectedProject
-            ) { EmptyView() }
+            // Project navigation — same optional-tag gate.
+            if let project = selectedProject {
+                NavigationLink(
+                    destination: ProjectDetailView(project: project),
+                    tag: project,
+                    selection: $selectedProject
+                ) { EmptyView() }
+            }
         }
     }
 

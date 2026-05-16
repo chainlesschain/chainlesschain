@@ -240,33 +240,40 @@ struct GroupChatView: View {
     }
 
     private var selectedImagesPreview: some View {
+        // ForEach with `Array(.enumerated())` + tuple destructure was causing
+        // @ViewBuilder inference fail. Use `indices` + index access — Range
+        // is Hashable so `id: \.self` is cheap and unambiguous.
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
-                    ZStack(alignment: .topTrailing) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 60, height: 60)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        Button(action: {
-                            withAnimation {
-                                selectedImages.remove(at: index)
-                            }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                                .font(.caption)
-                        }
-                        .offset(x: 6, y: -6)
-                    }
+                ForEach(selectedImages.indices, id: \.self) { index in
+                    selectedImageTile(at: index)
                 }
             }
             .padding(.horizontal)
             .padding(.top, 8)
+        }
+    }
+
+    private func selectedImageTile(at index: Int) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: selectedImages[index])
+                .resizable()
+                .scaledToFill()
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            Button(action: {
+                withAnimation {
+                    selectedImages.remove(at: index)
+                }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+                    .font(.caption)
+            }
+            .offset(x: 6, y: -6)
         }
     }
 

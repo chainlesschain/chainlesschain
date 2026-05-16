@@ -90,7 +90,7 @@ struct RemoteOperateView: View {
                 case .notification:
                     NotificationsView(pcPeerId: pcPeerId)
                 case .aiChat:
-                    AIChatView(pcPeerId: pcPeerId)
+                    RemoteAIChatView(pcPeerId: pcPeerId)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

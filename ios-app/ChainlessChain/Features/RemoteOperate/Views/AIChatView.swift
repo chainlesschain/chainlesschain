@@ -1,7 +1,13 @@
 import SwiftUI
 import CoreP2P
 
-/// AI chat skill 主 view — Phase 5.4。
+/// 远程 AI chat skill 主 view — Phase 5.4。
+///
+/// **命名**：`RemoteAIChatView` 而非 `AIChatView`，避开既有
+/// `Features/AI/Views/AIChatView.swift` 顶层 struct 同名冲突
+/// （那是项目自有 AI chat，走 AIConversationEntity / MessageBubble；
+/// 与本 view 走 RemoteAIChatViewModel + AIChatCommands 通过 P2P 远程
+/// 桌面 LLM 是两套独立 stack — per Phase 5 design OQ-4 决议 A）。
 ///
 /// **布局参考**（per Phase 5 design §6.4）：
 /// Apple Messages / ChatGPT iOS 公开布局子集。顶部 toolbar 标题 + "更多" Menu
@@ -13,7 +19,7 @@ import CoreP2P
 /// - 长按 bubble 触发 .contextMenu 复制（per §7.9）
 /// - send box 跟随键盘 inset 上推
 /// - streaming 状态闪烁 cursor 提示
-struct AIChatView: View {
+struct RemoteAIChatView: View {
     let pcPeerId: String
 
     @EnvironmentObject var remoteDeps: RemoteDependencies
