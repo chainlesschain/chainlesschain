@@ -68,7 +68,7 @@ struct RemoteAIChatConversationListView: View {
     private var listView: some View {
         List {
             ForEach(vm.conversations) { conv in
-                ConversationRow(
+                RemoteAIChatConversationRow(
                     conversation: conv,
                     isCurrent: conv.id == vm.currentConversation?.id
                 )
@@ -121,7 +121,7 @@ struct RemoteAIChatConversationListView: View {
 
 // MARK: - Row
 
-private struct ConversationRow: View {
+private struct RemoteAIChatConversationRow: View {
     let conversation: Conversation
     let isCurrent: Bool
 
