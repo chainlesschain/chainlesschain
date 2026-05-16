@@ -317,12 +317,28 @@ class P2PManager: ObservableObject {
             throw P2PError.signalingNotAvailable
         }
 
+        // sdpType derived from outer `type` parameter rather than
+        // `sdp?.type.rawValue` — the WebRTC binding here doesn't expose
+        // `RTCSessionDescription.type` as a plain instance property
+        // (Swift sees it as a static type member). Outer `type` already
+        // disambiguates offer / answer / iceCandidate at the protocol layer.
+        let sdpTypeString: String?
+        if sdp != nil {
+            switch type {
+            case .offer: sdpTypeString = "offer"
+            case .answer: sdpTypeString = "answer"
+            default: sdpTypeString = nil
+            }
+        } else {
+            sdpTypeString = nil
+        }
+
         let message = SignalingMessage(
             from: getCurrentUserId(),
             to: peerId,
             type: type,
             sdp: sdp?.sdp,
-            sdpType: sdp?.type.rawValue,
+            sdpType: sdpTypeString,
             candidate: candidate?.sdp,
             candidateSdpMid: candidate?.sdpMid,
             candidateSdpMLineIndex: candidate?.sdpMLineIndex
