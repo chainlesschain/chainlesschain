@@ -263,8 +263,15 @@ struct GroupChatView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Button(action: {
+                // `_ = ...` discards the `-> Element` return value of
+                // Array.remove(at:) so `withAnimation { ... }` (which is
+                // `@autoclosure () -> Result`) can infer `Result = Void`.
+                // Without the discard, Result inference picks Element and
+                // collides with overload resolution → "ambiguous use of
+                // 'remove(at:)'". Parallel session found this in
+                // ImagePickerView; carry the same fix here.
                 withAnimation {
-                    selectedImages.remove(at: index)
+                    _ = selectedImages.remove(at: index)
                 }
             }) {
                 Image(systemName: "xmark.circle.fill")
