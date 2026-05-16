@@ -329,6 +329,10 @@ struct GitOperationsView: View {
             return .red
         case .renamed:
             return .blue
+        case .untracked:
+            return .gray
+        case .conflicted:
+            return .red
         }
     }
 
@@ -391,7 +395,7 @@ struct GitOperationsView: View {
                         .foregroundColor(.secondary)
                         .padding()
                 } else {
-                    ForEach(viewModel.commits, id: \.hash) { commit in
+                    ForEach(viewModel.commits, id: \.id) { commit in
                         commitRow(commit: commit)
                     }
                 }
@@ -403,7 +407,7 @@ struct GitOperationsView: View {
     private func commitRow(commit: GitCommit) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(String(commit.hash.prefix(7)))
+                Text(commit.shortId)
                     .font(.system(.caption, design: .monospaced))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -413,7 +417,7 @@ struct GitOperationsView: View {
 
                 Spacer()
 
-                Text(commit.date.formatted(date: .abbreviated, time: .shortened))
+                Text(commit.timestamp.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -430,7 +434,7 @@ struct GitOperationsView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .onTapGesture {
-            viewModel.showCommitDetails(commitHash: commit.hash)
+            viewModel.showCommitDetails(commitHash: commit.id)
         }
     }
 
@@ -472,7 +476,7 @@ struct GitOperationsView: View {
                     .font(.subheadline)
                     .fontWeight(branch.isCurrent ? .semibold : .regular)
 
-                if let lastCommit = branch.lastCommit {
+                if let lastCommit = branch.lastCommitId {
                     Text(lastCommit.prefix(7))
                         .font(.caption)
                         .foregroundColor(.secondary)

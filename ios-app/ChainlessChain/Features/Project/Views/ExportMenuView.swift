@@ -226,32 +226,50 @@ class ExportViewModel: ObservableObject {
         error = nil
 
         do {
-            let options = DocumentExportManager.ExportOptions(
-                format: selectedFormat.rawValue,
-                theme: theme,
-                includeTOC: includeTOC,
-                includeStyles: includeStyles,
-                includeHeaderFooter: includeHeaderFooter
-            )
+            // Map local ExportFormat → DocumentExportManager.ExportFormat. Both
+            // use same rawValues ("pdf"/"html"/"markdown"/"txt") so init by rawValue.
+            // Manager's enum case for plain text is `.plainText` (rawValue "txt").
+            guard let managerFormat = DocumentExportManager.ExportFormat(rawValue: selectedFormat.rawValue) else {
+                throw DocumentExportError.emptyContent
+            }
 
-            let result: DocumentExportManager.ExportResult
+            // ExportOptions has these fields: includeMetadata/includeTableOfContents/
+            // pageSize/margin/fontSize/title/author. View's includeTOC maps to
+            // includeTableOfContents; other view-only toggles (theme/styles/headerFooter)
+            // have no manager-level equivalent yet so are ignored — wire them in when
+            // DocumentExportManager exposes them.
+            var options = DocumentExportManager.ExportOptions()
+            options.includeTableOfContents = includeTOC
+            options.title = file?.name
 
+            // Run export. Both code paths return data + filename in-memory; write
+            // to a per-call temp file so caller can hand the URL to Share/Save.
+            let primary: DocumentExportManager.ExportResult
             if exportScope == .currentFile, let file = file {
-                result = try await exportManager.exportDocument(
-                    content: file.content ?? "",
-                    title: file.name,
+                primary = try await exportManager.exportDocument(
+                    file: file,
+                    format: managerFormat,
                     options: options
                 )
             } else {
-                result = try await exportManager.exportProjectDocuments(
+                let results = try await exportManager.exportProjectDocuments(
                     projectId: projectId,
-                    options: options
+                    format: managerFormat,
+                    fileIds: nil
                 )
+                guard let first = results.first else {
+                    throw DocumentExportError.emptyContent
+                }
+                primary = first
             }
 
-            logger.info("Export completed: \(result.fileName)", category: "Export")
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(primary.fileName)
+            try primary.data.write(to: tempURL)
+
+            logger.info("Export completed: \(primary.fileName)", category: "Export")
             isExporting = false
-            return result.fileURL
+            return tempURL
 
         } catch {
             self.error = "导出失败: \(error.localizedDescription)"
