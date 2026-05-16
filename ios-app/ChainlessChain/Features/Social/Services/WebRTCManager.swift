@@ -344,6 +344,7 @@ class WebRTCManager: NSObject, ObservableObject {
 // MARK: - Peer Connection Delegate
 
 private class PeerConnectionDelegate: NSObject, RTCPeerConnectionDelegate {
+    private let logger = Logger.shared
     let peerId: String
     weak var manager: WebRTCManager?
 
@@ -393,6 +394,7 @@ private class PeerConnectionDelegate: NSObject, RTCPeerConnectionDelegate {
 // MARK: - Data Channel Delegate
 
 private class DataChannelDelegate: NSObject, RTCDataChannelDelegate {
+    private let logger = Logger.shared
     let peerId: String
     weak var manager: WebRTCManager?
 

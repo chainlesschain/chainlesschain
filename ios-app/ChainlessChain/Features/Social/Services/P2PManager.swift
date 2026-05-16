@@ -724,6 +724,7 @@ enum P2PError: LocalizedError {
 // MARK: - Signaling Service
 
 class SignalingService {
+    private let logger = Logger.shared
     private let serverURL: String
     private var webSocket: URLSessionWebSocketTask?
     private var isConnected = false
