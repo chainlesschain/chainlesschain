@@ -106,7 +106,7 @@ struct NotificationSettingsView: View {
             } header: {
                 Text("显示设置")
             } footer: {
-                Text("关闭内容预览后，通知将仅显示"发来了一条消息"")
+                Text("关闭内容预览后，通知将仅显示\"发来了一条消息\"")
             }
 
             // MARK: - Quiet Hours

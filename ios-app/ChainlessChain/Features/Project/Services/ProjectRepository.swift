@@ -526,7 +526,7 @@ class ProjectRepository {
 // MARK: - Entity Models
 
 /// 项目实体
-struct ProjectEntity: Identifiable {
+struct ProjectEntity: Identifiable, Codable {
     let id: String
     var name: String
     var description: String?
@@ -606,7 +606,7 @@ struct ProjectEntity: Identifiable {
 }
 
 /// 项目文件实体
-struct ProjectFileEntity: Identifiable {
+struct ProjectFileEntity: Identifiable, Codable {
     let id: String
     let projectId: String
     var name: String
@@ -683,7 +683,7 @@ struct ProjectFileEntity: Identifiable {
 }
 
 /// 项目活动实体
-struct ProjectActivityEntity: Identifiable {
+struct ProjectActivityEntity: Identifiable, Codable {
     let id: String
     let projectId: String
     let action: String

@@ -706,10 +706,6 @@ struct ProjectExportData: Codable {
     let exportedAt: Date
 }
 
-// Make entities Codable for export
-extension ProjectEntity: Codable {}
-extension ProjectFileEntity: Codable {}
-extension ProjectActivityEntity: Codable {}
 extension ProjectType: Codable {}
 extension ProjectStatus: Codable {}
 extension SyncStatus: Codable {}
