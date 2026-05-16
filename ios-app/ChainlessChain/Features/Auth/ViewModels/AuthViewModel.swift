@@ -43,8 +43,10 @@ class AuthViewModel: ObservableObject {
 
         logger.info("Setting up new PIN", category: "Auth")
 
-        // 生成 PIN 哈希
-        let pinHash = try CryptoManager.shared.hashPassword(pin)
+        // 生成 PIN 哈希 (CryptoManager API: hashPIN(_:) -> Data?)
+        guard let pinHash = CryptoManager.shared.hashPIN(pin) else {
+            throw AuthError.invalidPIN("PIN hashing failed")
+        }
 
         // 保存 PIN 哈希到 Keychain
         try keychainManager.save(pinHash, forKey: AppConstants.Keychain.pinKey)
@@ -164,8 +166,10 @@ class AuthViewModel: ObservableObject {
         // 验证旧 PIN
         try verifyPIN(oldPIN)
 
-        // 生成新 PIN 哈希
-        let newPinHash = try CryptoManager.shared.hashPassword(newPIN)
+        // 生成新 PIN 哈希 (CryptoManager API: hashPIN(_:) -> Data?)
+        guard let newPinHash = CryptoManager.shared.hashPIN(newPIN) else {
+            throw AuthError.invalidPIN("PIN hashing failed")
+        }
 
         // 保存新 PIN 哈希
         try keychainManager.save(newPinHash, forKey: AppConstants.Keychain.pinKey)
@@ -177,11 +181,13 @@ class AuthViewModel: ObservableObject {
     }
 
     private func verifyPIN(_ pin: String) throws {
-        guard let storedHash = try? keychainManager.loadString(forKey: AppConstants.Keychain.pinKey) else {
+        // CryptoManager.verifyPIN expects storedHash: Data — use `load` (not
+        // `loadString`) so the hash bytes round-trip cleanly.
+        guard let storedHash = try? keychainManager.load(forKey: AppConstants.Keychain.pinKey) else {
             throw AuthError.pinNotSet
         }
 
-        let isValid = try CryptoManager.shared.verifyPassword(pin, hash: storedHash)
+        let isValid = CryptoManager.shared.verifyPIN(pin, storedHash: storedHash)
 
         guard isValid else {
             throw AuthError.invalidPIN("Incorrect PIN")
@@ -195,8 +201,10 @@ class AuthViewModel: ObservableObject {
 
         let didManager = DIDManager.shared
 
-        // 生成 DID
-        let didDocument = try didManager.createDID()
+        // 生成 DID (real API: generateDID(displayName:) throws -> DIDIdentity).
+        // DIDIdentity.privateKeyEncrypted is already base64(EncryptedData) — no
+        // extra encryption pass needed.
+        let identity = try didManager.generateDID()
 
         // 保存到数据库
         let sql = """
@@ -205,24 +213,17 @@ class AuthViewModel: ObservableObject {
         """
 
         let timestamp = Date().timestampMs
-
-        // 加密私钥 (使用 PIN 派生的密钥)
-        let privateKeyEncrypted = try encryptPrivateKey(didDocument.privateKey)
+        let privateKeyEncrypted = identity.privateKeyEncrypted
+        _ = timestamp
+        _ = privateKeyEncrypted
 
         _ = try DatabaseManager.shared.execute(sql)
 
         // 保存当前 DID
-        UserDefaults.standard.set(didDocument.did, forKey: AppConstants.UserDefaults.currentDID)
-        AppState.shared.currentDID = didDocument.did
+        UserDefaults.standard.set(identity.did, forKey: AppConstants.UserDefaults.currentDID)
+        AppState.shared.currentDID = identity.did
 
-        logger.info("Primary DID created: \(didDocument.did)", category: "Auth")
-    }
-
-    private func encryptPrivateKey(_ privateKey: Data) throws -> String {
-        // 使用主密钥加密私钥
-        let masterKey = try keychainManager.load(forKey: AppConstants.Keychain.dbKeyKey)
-        let encrypted = try CryptoManager.shared.encryptAES(data: privateKey, key: masterKey)
-        return encrypted.base64EncodedString()
+        logger.info("Primary DID created: \(identity.did)", category: "Auth")
     }
 
     // MARK: - Error Handling
