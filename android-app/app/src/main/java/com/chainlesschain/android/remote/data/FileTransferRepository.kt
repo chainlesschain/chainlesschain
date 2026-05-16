@@ -1,8 +1,13 @@
 package com.chainlesschain.android.remote.data
 
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Base64
+import android.webkit.MimeTypeMap
 import com.chainlesschain.android.remote.commands.FileCommands
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +36,18 @@ class FileTransferRepository @Inject constructor(
 
     // 默认分块大小（256KB）
     private val DEFAULT_CHUNK_SIZE = 256 * 1024
+
+    // transferId → 下载落点的 content:// uri (MediaStore.Downloads insert 返回值)。
+    // 不持久化 — entity 不带 @Ignore 字段（Room 限制），且 process 重启后 uri
+    // 通常仍有效但缺再次访问的稳定性保证。后续如需"打开历史下载"，应改 MediaStore
+    // .Files 按 DISPLAY_NAME query 反向定位。
+    private val downloadUris = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /**
+     * 获取下载完成后的 content:// uri。VM 用它 Intent.ACTION_VIEW 拉起系统 viewer。
+     * 未找到 → null（fallback 打开 Downloads 文件夹）。
+     */
+    fun getDownloadUri(transferId: String): String? = downloadUris[transferId]
 
     /**
      * 上传文件（Android → PC）
@@ -160,11 +177,14 @@ class FileTransferRepository @Inject constructor(
             // 8. 清理临时文件
             tempFile.delete()
 
-            // 9. 返回最终状态
+            // 9. 返回最终状态：把 completeResponse 返回的 PC 绝对路径写回 entity.remotePath
+            //    供 UI 显示「上传到 C:\Users\...\Downloads\<name>」让用户知道落点。
             val finalTransfer = dao.getById(uploadRequest.transferId)
                 ?: return@withContext Result.failure(Exception("Transfer not found"))
+            val patched = finalTransfer.copy(remotePath = completeResponse.filePath)
+            dao.update(patched)
 
-            Result.success(finalTransfer)
+            Result.success(patched)
 
         } catch (e: Exception) {
             Timber.e(e, "Upload failed")
@@ -194,11 +214,29 @@ class FileTransferRepository @Inject constructor(
 
             val downloadRequest = requestResult.getOrThrow()
 
-            // 2. 创建本地文件
-            val downloadDir = File(context.getExternalFilesDir(null), "downloads")
-            downloadDir.mkdirs()
-
-            val localFile = File(downloadDir, downloadRequest.fileName)
+            // 2. 决定写入位置：API 29+ 走 MediaStore.Downloads 写到手机公共下载目录
+            //    （/storage/emulated/0/Download/<file>），用户用「文件」App、相册、
+            //    Chrome 下载页都能直接打开；不需要 WRITE_EXTERNAL_STORAGE 权限。
+            //    API <29 fallback 到 app-private external（老逻辑），避免引入运行
+            //    时权限请求。displayPath 是给用户看的友好字符串。
+            val (writeUri, fallbackFile, displayPath) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, downloadRequest.fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, guessMimeType(downloadRequest.fileName))
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = context.contentResolver.insert(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values,
+                ) ?: return@withContext Result.failure(Exception("MediaStore insert 失败"))
+                Triple(uri, null as File?, "手机 Download/${downloadRequest.fileName}")
+            } else {
+                val downloadDir = File(context.getExternalFilesDir(null), "downloads")
+                downloadDir.mkdirs()
+                val f = File(downloadDir, downloadRequest.fileName)
+                Triple(null as Uri?, f, f.absolutePath)
+            }
 
             // 3. 创建传输记录
             val transfer = FileTransferEntity(
@@ -210,63 +248,83 @@ class FileTransferRepository @Inject constructor(
                 status = TransferStatus.IN_PROGRESS,
                 chunkSize = downloadRequest.chunkSize,
                 totalChunks = downloadRequest.totalChunks,
-                localPath = localFile.absolutePath,
+                localPath = displayPath,
                 remotePath = remotePath,
                 checksum = downloadRequest.checksum
             )
 
             dao.insert(transfer)
 
-            // 4. 下载分块
+            // 4. 下载分块（写到 MediaStore uri 或 fallback File）
             val totalChunks = downloadRequest.totalChunks
-
-            FileOutputStream(localFile).use { outputStream ->
-                for (chunkIndex in 0 until totalChunks) {
-                    // 下载分块
-                    val chunkResult = fileCommands.downloadChunk(
-                        transferId = downloadRequest.transferId,
-                        chunkIndex = chunkIndex
-                    )
-
-                    if (chunkResult.isFailure) {
-                        localFile.delete()
-                        dao.updateStatus(
-                            id = downloadRequest.transferId,
-                            status = TransferStatus.FAILED,
-                            error = chunkResult.exceptionOrNull()?.message
-                        )
-                        return@withContext Result.failure(chunkResult.exceptionOrNull() ?: Exception("Unknown error"))
-                    }
-
-                    val chunkResponse = chunkResult.getOrThrow()
-
-                    // 解码并写入数据
-                    val chunkData = Base64.decode(chunkResponse.chunkData, Base64.NO_WRAP)
-                    outputStream.write(chunkData)
-
-                    // 更新进度
-                    val progress = chunkResponse.progress
-                    val bytesTransferred = ((downloadRequest.fileSize * progress) / 100).toLong()
-
-                    dao.updateProgress(
-                        id = downloadRequest.transferId,
-                        progress = progress,
-                        bytesTransferred = bytesTransferred
-                    )
-
-                    onProgress?.invoke(progress)
-
-                    Timber.d("Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
-                }
+            val outputStream = if (writeUri != null) {
+                context.contentResolver.openOutputStream(writeUri, "w")
+                    ?: return@withContext Result.failure(Exception("openOutputStream 失败"))
+            } else {
+                FileOutputStream(fallbackFile!!)
             }
 
-            // 5. 验证校验和（如果提供）
-            if (downloadRequest.checksum != null) {
-                val actualChecksum = calculateMD5(localFile)
+            try {
+                outputStream.use { os ->
+                    for (chunkIndex in 0 until totalChunks) {
+                        val chunkResult = fileCommands.downloadChunk(
+                            transferId = downloadRequest.transferId,
+                            chunkIndex = chunkIndex
+                        )
+
+                        if (chunkResult.isFailure) {
+                            cleanupFailedDownload(writeUri, fallbackFile)
+                            dao.updateStatus(
+                                id = downloadRequest.transferId,
+                                status = TransferStatus.FAILED,
+                                error = chunkResult.exceptionOrNull()?.message
+                            )
+                            return@withContext Result.failure(chunkResult.exceptionOrNull() ?: Exception("Unknown error"))
+                        }
+
+                        val chunkResponse = chunkResult.getOrThrow()
+                        val chunkData = Base64.decode(chunkResponse.chunkData, Base64.NO_WRAP)
+                        os.write(chunkData)
+
+                        val progress = chunkResponse.progress
+                        val bytesTransferred = ((downloadRequest.fileSize * progress) / 100).toLong()
+
+                        dao.updateProgress(
+                            id = downloadRequest.transferId,
+                            progress = progress,
+                            bytesTransferred = bytesTransferred
+                        )
+                        onProgress?.invoke(progress)
+                        Timber.d("Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
+                    }
+                }
+            } catch (e: Exception) {
+                cleanupFailedDownload(writeUri, fallbackFile)
+                throw e
+            }
+
+            // 4.5 标 MediaStore 条目为非 pending（让 file picker / 文件管理器看到）
+            //      + 把 uri 存进内存 map 供 VM 取出做 Intent.ACTION_VIEW。
+            if (writeUri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val finalize = ContentValues().apply {
+                    put(MediaStore.MediaColumns.IS_PENDING, 0)
+                }
+                context.contentResolver.update(writeUri, finalize, null, null)
+                downloadUris[downloadRequest.transferId] = writeUri.toString()
+            } else if (fallbackFile != null) {
+                // 老 Android (< API 29) fallback：app-private 路径，Intent.ACTION_VIEW
+                // 需要 FileProvider；先 skip uri，让 VM fallback 打开 Downloads 文件夹
+                // (其实是 app-private 看不见)。可后续补 FileProvider 适配。
+            }
+
+            // 5. 验证校验和（如果提供）— 期望 "md5:" 前缀的完整 MD5。
+            //    PC 端目前 skip，所以这段几乎走不到；保留兼容旧 PC 端。
+            if (downloadRequest.checksum != null && fallbackFile != null) {
+                val actualChecksum = calculateMD5(fallbackFile)
                 val expectedChecksum = downloadRequest.checksum.removePrefix("md5:")
 
                 if (actualChecksum != expectedChecksum) {
-                    localFile.delete()
+                    cleanupFailedDownload(writeUri, fallbackFile)
                     dao.updateStatus(
                         id = downloadRequest.transferId,
                         status = TransferStatus.FAILED,
@@ -410,5 +468,30 @@ class FileTransferRepository @Inject constructor(
 
         val digest = md.digest()
         return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * 根据文件扩展名猜 MIME。MediaStore.MediaColumns.MIME_TYPE 需要这个值否则
+     * 部分文管把文件当 application/octet-stream 显示不出预览。
+     */
+    private fun guessMimeType(fileName: String): String {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+            ?: "application/octet-stream"
+    }
+
+    /**
+     * 下载失败时清理残留：MediaStore Uri 删条目；fallback File 删文件。
+     */
+    private fun cleanupFailedDownload(uri: Uri?, file: File?) {
+        try {
+            if (uri != null) {
+                context.contentResolver.delete(uri, null, null)
+            } else {
+                file?.delete()
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "cleanupFailedDownload 失败")
+        }
     }
 }

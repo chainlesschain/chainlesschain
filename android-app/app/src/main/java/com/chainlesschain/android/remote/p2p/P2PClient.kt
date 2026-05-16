@@ -527,16 +527,22 @@ class P2PClient @Inject constructor(
     }
 
     private suspend fun handleIncoming(raw: String) {
-        // Plan A.1 Trap 2 guard: chainlesschain:* envelopes (Plan A.1 Phase 2
-        // wire format used by TerminalRpcClient / SignalingRpcClient) share
-        // the same WebRTCClient.messages SharedFlow as P2PMessage frames —
-        // both DC and signaling forwards emit there. P2PMessage's serializer
-        // expects payload: String but Plan A.1 envelopes have payload: Object,
-        // so blindly decoding crashes with "Expected beginning of the string,
-        // but got {" at offset ~51. Skip silently so TerminalRpc subscriber
-        // can take it.
-        if (raw.contains("\"type\":\"chainlesschain:") ||
-            raw.contains("\"type\": \"chainlesschain:")
+        // Plan A.1 Trap 2 guard: chainlesschain:command:request envelope (Plan
+        // A.1 Phase 2 wire format used by TerminalRpcClient / SignalingRpcClient)
+        // shares the same WebRTCClient.messages SharedFlow as P2PMessage frames.
+        // SignalingRpcClient sends payload as a JSONObject (not stringified), so
+        // blindly decoding through P2PMessage would crash with "Expected beginning
+        // of the string, but got {". Skip incoming requests silently so the
+        // TerminalRpc / SignalingRpc subscriber can take them.
+        //
+        // BUT: chainlesschain:command:response **must** pass through here — this
+        // is P2PClient.sendCommand's own reply path (PC always returns payload
+        // as stringified JSON-RPC 2.0). Skipping responses leaves pendingRequests
+        // forever orphan → timeout → "Job was cancelled". Phase 3 file/clipboard/
+        // notification 等 RemoteCommandClient 通道走 P2PClient.sendCommand 全
+        // 踩这条雷（2026-05-16 file.listDirectory 实测复现）。
+        if (raw.contains("\"type\":\"chainlesschain:command:request\"") ||
+            raw.contains("\"type\": \"chainlesschain:command:request\"")
         ) {
             return
         }

@@ -19,10 +19,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,8 +43,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,9 +61,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.os.Build
+import android.os.Environment
+import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.data.FileTransferEntity
@@ -78,11 +92,16 @@ fun FileTransferScreen(
     val recentTransfers by viewModel.recentTransfers.collectAsState()
     val activeTransfers by viewModel.activeTransfers.collectAsState()
     val statistics by viewModel.statistics.collectAsState()
+    val remoteFiles by viewModel.remoteFiles.collectAsState()
+    val currentRemotePath by viewModel.currentPath.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var downloadRemotePath by remember { mutableStateOf("") }
     var downloadFileName by remember { mutableStateOf("") }
     var showDownloadPanel by remember { mutableStateOf(false) }
+    var showBrowsePanel by remember { mutableStateOf(false) }
+    // 默认浏览起点：用户家目录 占位符 "~"；PC 端 file-handler 应识别并解析为当前系统的 home。
+    var pathInput by remember { mutableStateOf("~") }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -93,6 +112,9 @@ fun FileTransferScreen(
         }
     }
 
+    val clipboardManager = LocalClipboardManager.current
+    val ctx = LocalContext.current
+
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is FileTransferUiState.Error -> {
@@ -100,7 +122,30 @@ fun FileTransferScreen(
                 viewModel.resetUiState()
             }
             is FileTransferUiState.Success -> {
-                snackbarHostState.showSnackbar(state.message)
+                val pathHint = state.pathHint
+                val openUri = state.openUri
+                val displayMsg = if (pathHint != null) "${state.message}\n$pathHint" else state.message
+                // 优先「打开」按钮（下载场景，有 content:// uri），其次「复制路径」
+                // （上传场景，PC 路径无法在 Android 端打开）。两种场景不会冲突。
+                val actionLabel = when {
+                    openUri != null -> "打开"
+                    pathHint != null -> "复制路径"
+                    else -> null
+                }
+                val res = snackbarHostState.showSnackbar(
+                    message = displayMsg,
+                    actionLabel = actionLabel,
+                    duration = if (actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
+                )
+                if (res == SnackbarResult.ActionPerformed) {
+                    if (openUri != null) {
+                        openDownloadedFile(ctx, openUri)
+                    } else if (pathHint != null) {
+                        val raw = pathHint.removePrefix("PC: ").trim()
+                        clipboardManager.setText(AnnotatedString(raw))
+                        Toast.makeText(ctx, "路径已复制", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 viewModel.resetUiState()
             }
             else -> Unit
@@ -118,6 +163,18 @@ fun FileTransferScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        showBrowsePanel = !showBrowsePanel
+                        if (showBrowsePanel && remoteFiles.isEmpty()) {
+                            // 首次打开默认浏览家目录；用户可改 pathInput 后再"进入"。
+                            viewModel.browseRemoteFiles(pathInput)
+                        }
+                    }) {
+                        Icon(
+                            if (showBrowsePanel) Icons.Default.FolderOpen else Icons.Default.Folder,
+                            contentDescription = "浏览远程目录",
+                        )
+                    }
                     IconButton(onClick = { filePickerLauncher.launch("*/*") }) {
                         Icon(Icons.Default.CloudUpload, stringResource(R.string.rs_file_upload))
                     }
@@ -136,6 +193,13 @@ fun FileTransferScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // 顶部引导卡（始终显示）：让用户一眼看到右上角 4 个图标对应什么操作。
+            HelpBanner(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+
             if (showDownloadPanel) {
                 Card(
                     modifier = Modifier
@@ -189,6 +253,43 @@ fun FileTransferScreen(
                         }
                     }
                 }
+            }
+
+            if (showBrowsePanel) {
+                RemoteBrowsePanel(
+                    currentPath = currentRemotePath,
+                    pathInput = pathInput,
+                    onPathInputChange = { pathInput = it },
+                    files = remoteFiles,
+                    isLoading = uiState is FileTransferUiState.Loading,
+                    onEnter = {
+                        val target = pathInput.trim().ifEmpty { "~" }
+                        viewModel.browseRemoteFiles(target)
+                    },
+                    onRefresh = {
+                        viewModel.browseRemoteFiles(currentRemotePath.ifEmpty { pathInput })
+                    },
+                    onParent = {
+                        val parent = parentPath(currentRemotePath)
+                        pathInput = parent
+                        viewModel.browseRemoteFiles(parent)
+                    },
+                    onDirClick = { dir ->
+                        pathInput = dir.path
+                        viewModel.browseRemoteFiles(dir.path)
+                    },
+                    onFileDownload = { file ->
+                        viewModel.downloadFile(
+                            remotePath = file.path,
+                            fileName = file.name,
+                            deviceDid = deviceDid,
+                        )
+                    },
+                    onClose = { showBrowsePanel = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
 
             statistics?.let { stats ->
@@ -503,4 +604,301 @@ fun formatSpeed(bytesPerSecond: Double): String {
 fun formatTimestamp(timestamp: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     return formatter.format(Date(timestamp))
+}
+
+/**
+ * 触发系统 viewer 打开下载到 Downloads 文件夹的文件。
+ *
+ * 主路径：Intent.ACTION_VIEW + content:// uri + FLAG_GRANT_READ_URI_PERMISSION。
+ * 系统会根据 MIME 拉起对应应用（图片→相册、PDF→阅读器、视频→播放器、其它→文件管理器）。
+ *
+ * Fallback：如果文件类型没有 viewer（应用未安装等），尝试打开 Downloads 文件夹本身
+ * 让用户手动找。再失败 toast 提示。
+ */
+private fun openDownloadedFile(context: android.content.Context, uriString: String) {
+    val uri = Uri.parse(uriString)
+    try {
+        // 用 ContentResolver 探 MIME，没拿到就让系统 sniff
+        val mime = try {
+            context.contentResolver.getType(uri)
+        } catch (_: Exception) {
+            null
+        }
+        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime ?: "*/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        // 用 chooser 避免某些 ROM 直接 silent fail
+        val chooser = Intent.createChooser(viewIntent, "打开文件").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooser)
+    } catch (e: Exception) {
+        // 文件类型无 viewer 或 uri 失效 → fallback 打开 Downloads 文件夹
+        try {
+            val downloadsIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(
+                    Uri.parse(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            // 标准 DocumentsUI 打开 Downloads 树
+                            "content://com.android.externalstorage.documents/document/primary:Download"
+                        } else {
+                            Environment.getExternalStoragePublicDirectory(
+                                Environment.DIRECTORY_DOWNLOADS,
+                            ).absolutePath
+                        },
+                    ),
+                    "resource/folder",
+                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(downloadsIntent)
+        } catch (e2: Exception) {
+            Toast.makeText(
+                context,
+                "无法打开文件，请到「文件管理 → 内部存储 → Download」查看",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+}
+
+@Composable
+private fun HelpBanner(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "操作指引（右上角图标）",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "📁 浏览远程目录（输入 ~ 看 PC 家目录；C:/ 看 Windows 盘根；/ 看 macOS/Linux 根）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "☁️↑ 上传本机文件到 PC（默认落 PC 用户 Downloads 目录）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "☁️↓ 输入远程路径直接下载（或在浏览面板里点文件）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "🧹 清理 30 天前的传输历史",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
+
+/**
+ * 返回 path 的父目录（兼容 Windows `\` 与 POSIX `/`）。
+ * 顶层（"/" / "C:\" / "~"）返回自身。
+ */
+internal fun parentPath(path: String): String {
+    if (path.isBlank() || path == "/" || path == "~") return path
+    // Windows 盘根 "C:\" / "C:/"
+    if (path.length == 3 && path[1] == ':' && (path[2] == '\\' || path[2] == '/')) return path
+    val sep = if (path.contains('\\')) '\\' else '/'
+    val trimmed = path.trimEnd(sep)
+    val idx = trimmed.lastIndexOf(sep)
+    if (idx <= 0) {
+        // "C:\foo" → "C:\" ; "/foo" → "/"
+        if (trimmed.length >= 2 && trimmed[1] == ':') return trimmed.substring(0, 2) + sep
+        return sep.toString()
+    }
+    return trimmed.substring(0, idx)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RemoteBrowsePanel(
+    currentPath: String,
+    pathInput: String,
+    onPathInputChange: (String) -> Unit,
+    files: List<RemoteFileInfo>,
+    isLoading: Boolean,
+    onEnter: () -> Unit,
+    onRefresh: () -> Unit,
+    onParent: () -> Unit,
+    onDirClick: (RemoteFileInfo) -> Unit,
+    onFileDownload: (RemoteFileInfo) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // 标题行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "远程目录浏览",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                TextButton(onClick = onClose) {
+                    Text(stringResource(R.string.common_close))
+                }
+            }
+
+            // 路径输入 + 进入按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = pathInput,
+                    onValueChange = onPathInputChange,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("远程路径") },
+                    placeholder = { Text("~ 或 C:\\Users\\... 或 /home/...") },
+                    singleLine = true,
+                )
+                Button(onClick = onEnter, enabled = !isLoading) {
+                    Text("进入")
+                }
+            }
+
+            // 操作行：当前位置 + 上级 + 刷新
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "当前: ${currentPath.ifEmpty { "(未浏览)" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onParent,
+                    enabled = !isLoading && currentPath.isNotEmpty(),
+                ) {
+                    Icon(Icons.Default.ArrowUpward, contentDescription = "上级目录")
+                }
+                IconButton(onClick = onRefresh, enabled = !isLoading) {
+                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                }
+            }
+
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            HorizontalDivider()
+
+            // 文件列表（最高 320dp，避免吞掉整个屏幕；超过滚动）
+            if (files.isEmpty() && !isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (currentPath.isEmpty()) "点击「进入」浏览远程目录" else "目录为空",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(items = files, key = { it.path }) { entry ->
+                        RemoteFileRow(
+                            entry = entry,
+                            onClick = {
+                                if (entry.isDirectory) onDirClick(entry) else onFileDownload(entry)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RemoteFileRow(
+    entry: RemoteFileInfo,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth(),
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (entry.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
+                contentDescription = null,
+                tint = if (entry.isDirectory) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (entry.isDirectory) "目录" else formatFileSize(entry.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!entry.isDirectory) {
+                Icon(
+                    Icons.Default.CloudDownload,
+                    contentDescription = "下载",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
 }

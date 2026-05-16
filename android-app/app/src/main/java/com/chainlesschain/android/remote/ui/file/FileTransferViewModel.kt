@@ -185,7 +185,11 @@ class FileTransferViewModel @Inject constructor(
             )
 
             _uiState.value = if (result.isSuccess) {
-                FileTransferUiState.Success("文件上传成功: $fileName")
+                val pcPath = result.getOrNull()?.remotePath
+                FileTransferUiState.Success(
+                    "文件上传成功: $fileName",
+                    pathHint = pcPath?.let { "PC: $it" },
+                )
             } else {
                 FileTransferUiState.Error(
                     result.exceptionOrNull()?.message ?: context.getString(R.string.error_upload_failed)
@@ -215,7 +219,13 @@ class FileTransferViewModel @Inject constructor(
             )
 
             _uiState.value = if (result.isSuccess) {
-                FileTransferUiState.Success("文件下载成功: $fileName")
+                val entity = result.getOrNull()
+                val uri = entity?.id?.let { repository.getDownloadUri(it) }
+                FileTransferUiState.Success(
+                    "文件下载成功: $fileName",
+                    pathHint = entity?.localPath,
+                    openUri = uri,
+                )
             } else {
                 FileTransferUiState.Error(
                     result.exceptionOrNull()?.message ?: context.getString(R.string.error_download_failed)
@@ -643,6 +653,10 @@ sealed class FileTransferUiState {
         val usedSpace: Long
     ) : FileTransferUiState()
 
-    data class Success(val message: String) : FileTransferUiState()
+    data class Success(
+        val message: String,
+        val pathHint: String? = null,
+        val openUri: String? = null,
+    ) : FileTransferUiState()
     data class Error(val message: String) : FileTransferUiState()
 }

@@ -633,6 +633,10 @@ fun NavGraph(
                 onOpenTerminal = { peerId ->
                     navController.navigate(Screen.TerminalList.createRoute(peerId))
                 },
+                onOpenFileTransfer = { peerId ->
+                    // Plan C 入口下用户没有真 DID，沿用 RemoteControl 的兜替规则。
+                    navController.navigate(Screen.RemoteFileTransfer.createRoute("did:key:$peerId"))
+                },
             )
         }
         composable(

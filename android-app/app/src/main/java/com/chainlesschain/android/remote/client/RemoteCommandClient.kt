@@ -1,10 +1,12 @@
 package com.chainlesschain.android.remote.client
 
+import com.chainlesschain.android.core.p2p.pairing.PairedDesktopsStore
 import com.chainlesschain.android.remote.data.CommandRequest
 import com.chainlesschain.android.remote.offline.OfflineCommandQueue
 import com.chainlesschain.android.remote.p2p.CommandCancelledException
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.PendingCommandInfo
+import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import timber.log.Timber
 import java.lang.reflect.Type
@@ -29,7 +31,12 @@ import javax.inject.Singleton
 class RemoteCommandClient @Inject constructor(
     @PublishedApi internal val p2pClient: P2PClient,
     @PublishedApi internal val offlineCommandQueue: OfflineCommandQueue,
+    @PublishedApi internal val signalingRpc: SignalingRpcClient,
+    @PublishedApi internal val pairedDesktopsStore: PairedDesktopsStore,
 ) {
+    @PublishedApi
+    internal val gson: Gson = Gson()
+
     /**
      * 发送命令（通用方法）。inline + reified T 让 `T::class.java` 在调用点
      * 拿到具体 Class，把 typed deserialize 委托给 P2PClient.sendCommand 的
@@ -57,7 +64,32 @@ class RemoteCommandClient @Inject constructor(
     ): Result<T> {
         return try {
             Timber.d("调用命令: $method")
-            p2pClient.sendCommand(method, params, timeout, type)
+            // Plan C 路径下 P2PClient.connectionState 默认 DISCONNECTED（没人调
+            // P2PClient.connect()），sendCommand 第一行就 "Not connected" 返回。
+            // 改走 SignalingRpcClient（terminal 验证过的 DC fast-path + signaling
+            // fallback），pcPeerId 从 PairedDesktopsStore 取已配对桌面 firstOrNull。
+            // 多桌面场景下后续可让 caller 显式传 pcPeerId。
+            val pcPeerId = pairedDesktopsStore.devices.value.firstOrNull()?.pcPeerId
+            if (pcPeerId == null) {
+                Timber.w("invokeTyped: 无已配对桌面，method=$method 拒绝")
+                return Result.failure(Exception("无已配对桌面"))
+            }
+            val nonNullParams: Map<String, Any?> = params
+            val raw = signalingRpc.invoke(pcPeerId, method, nonNullParams, timeout)
+                .getOrElse { return Result.failure(it) }
+            // SignalingRpcClient.invoke 已经把响应里的 result 字段抽出来返回（标量
+            // 会包成 {"value": ...}），失败会 Result.failure。这里把 JSONObject 通过
+            // Gson roundtrip 转 T。注意 T 可能是 JSONObject 本身或 String。
+            @Suppress("UNCHECKED_CAST")
+            val converted: T = when {
+                type === org.json.JSONObject::class.java -> raw as T
+                type === String::class.java -> raw.toString() as T
+                else -> {
+                    val json = raw.toString()
+                    gson.fromJson<T>(json, type)
+                }
+            }
+            Result.success(converted)
         } catch (e: CommandCancelledException) {
             Timber.w("命令已取消: $method - ${e.message}")
             Result.failure(e)

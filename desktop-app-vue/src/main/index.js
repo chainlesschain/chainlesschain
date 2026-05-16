@@ -1953,7 +1953,7 @@ class ChainlessChainApp {
         return this.handleConversationCommand(action, params);
 
       case "file":
-        return this.handleFileCommand(action, params);
+        return this.handleFileCommand(action, params, ctx);
 
       case "desktop":
         return this.handleDesktopCommand(action, params);
@@ -2375,72 +2375,27 @@ class ChainlessChainApp {
   /**
    * 处理文件命令
    */
-  async handleFileCommand(action, params) {
-    switch (action) {
-      case "list": {
-        if (this.database) {
-          try {
-            const projectId = params.projectId;
-            if (projectId) {
-              // 按项目查询文件
-              const files = this.database.getProjectFiles(projectId);
-              return { files };
-            }
-            // 查询所有未删除的文件（带分页）
-            const limit = params.limit || 50;
-            const offset = params.offset || 0;
-            const files = this.database.db
-              .prepare(
-                `SELECT id, project_id, file_name, file_path, file_type, file_size,
-                        created_at, updated_at
-                 FROM project_files
-                 WHERE deleted = 0
-                 ORDER BY updated_at DESC
-                 LIMIT ? OFFSET ?`,
-              )
-              .all(limit, offset);
-            return { files };
-          } catch (err) {
-            logger.warn("[Main] 查询文件列表失败:", err.message);
-            return { files: [] };
-          }
-        }
-        return { files: [] };
-      }
-
-      case "requestUpload": {
-        const { dialog } = require("electron");
-        const fs = require("fs");
-
-        // 打开文件选择对话框
-        const result = await dialog.showOpenDialog(this.mainWindow, {
-          title: "选择要上传的文件",
-          properties: ["openFile", "multiSelections"],
-        });
-
-        if (result.canceled || result.filePaths.length === 0) {
-          return { uploadId: null, canceled: true };
-        }
-
-        const uploadId = `upload_${Date.now()}`;
-        const uploadedFiles = [];
-
-        for (const filePath of result.filePaths) {
-          const stat = fs.statSync(filePath);
-          uploadedFiles.push({
-            name: path.basename(filePath),
-            path: filePath,
-            size: stat.size,
-            type: path.extname(filePath).slice(1) || "unknown",
-          });
-        }
-
-        return { uploadId, files: uploadedFiles, success: true };
-      }
-
-      default:
-        throw new Error(`Unknown file action: ${action}`);
+  async handleFileCommand(action, params, ctx = {}) {
+    // Plan C 远程文件协议适配器。
+    //
+    // 历史：旧 stub `case "requestUpload"` 错误地用 dialog.showOpenDialog 在 PC
+    // 端弹文件选择框，`case "list"` 查 project_files SQL 表（语义错位）；同时
+    // FileTransferHandler 是 sandboxed-in-userData 给 web-shell 内部用的，path
+    // / 字段命名都对不上 Android FileCommands.kt 协议。
+    //
+    // 改用专门的 AndroidFileHandler — 无 sandbox（trusted paired mobile peer）+
+    // 字段对齐 Android model + in-memory transferId 状态机。
+    if (!this._androidFileHandler) {
+      const {
+        AndroidFileHandler,
+      } = require("./remote/handlers/android-file-handler");
+      this._androidFileHandler = new AndroidFileHandler();
+      logger.info("[Main] ✓ AndroidFileHandler 已实例化 (lazy)");
     }
+    return await this._androidFileHandler.handle(action, params, {
+      source: "mobile",
+      peerId: ctx.mobilePeerId,
+    });
   }
 
   /**

@@ -99,6 +99,7 @@ data class RemoteOperateState(
 fun RemoteOperateScreen(
     onBack: () -> Unit,
     onOpenTerminal: (peerId: String) -> Unit = {},
+    onOpenFileTransfer: (peerId: String) -> Unit = {},
     viewModel: RemoteOperateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -179,6 +180,14 @@ fun RemoteOperateScreen(
                 enabled = state.pcPeerId.isNotEmpty() && !state.busy,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("打开远程终端") }
+
+            // 文件传输入口 — 跳到 FileTransferScreen，支持远程目录浏览 + 上传/下载。
+            // 当前走 signaling 转发 (4 跳)；大文件可能 fragile，待 Plan A.1 WebRTC DC 落地后更稳。
+            Button(
+                onClick = { onOpenFileTransfer(state.pcPeerId) },
+                enabled = state.pcPeerId.isNotEmpty() && !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("文件传输 / 浏览远程目录") }
 
             if (state.busy) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
