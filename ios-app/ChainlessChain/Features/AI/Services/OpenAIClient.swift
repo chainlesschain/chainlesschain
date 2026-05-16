@@ -69,9 +69,9 @@ class OpenAIClient: LLMClient {
               (200...299).contains(httpResponse.statusCode) else {
             // Try to parse error message
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw LLMError.apiError(errorResponse.error.message)
+                throw LLMError.apiError(httpResponse.statusCode, errorResponse.error.message)
             }
-            throw LLMError.apiError("HTTP error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
         }
 
         let chatResponse = try JSONDecoder().decode(ChatCompletionResponse.self, from: data)
@@ -123,7 +123,7 @@ class OpenAIClient: LLMClient {
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            throw LLMError.apiError("HTTP error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
         }
 
         var fullText = ""
@@ -234,7 +234,7 @@ class OpenAIClient: LLMClient {
 
 /// DeepSeek Client (uses OpenAI-compatible API)
 class DeepSeekClient: OpenAIClient {
-    init(config: LLMManager.LLMConfig) {
+    override init(config: LLMManager.LLMConfig) {
         var deepseekConfig = config
         if deepseekConfig.baseURL == "http://localhost:11434" {
             deepseekConfig.baseURL = "https://api.deepseek.com/v1"
@@ -248,7 +248,7 @@ class DeepSeekClient: OpenAIClient {
 
 /// Volcengine Client (uses OpenAI-compatible API)
 class VolcengineClient: OpenAIClient {
-    init(config: LLMManager.LLMConfig) {
+    override init(config: LLMManager.LLMConfig) {
         var volcengineConfig = config
         if volcengineConfig.baseURL == "http://localhost:11434" {
             volcengineConfig.baseURL = "https://ark.cn-beijing.volces.com/api/v3"

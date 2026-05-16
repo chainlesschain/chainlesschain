@@ -70,9 +70,9 @@ class AnthropicClient: LLMClient {
               (200...299).contains(httpResponse.statusCode) else {
             // Try to parse error message
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw LLMError.apiError(errorResponse.error.message)
+                throw LLMError.apiError(httpResponse.statusCode, errorResponse.error.message)
             }
-            throw LLMError.apiError("HTTP error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
         }
 
         let messagesResponse = try JSONDecoder().decode(MessagesResponse.self, from: data)
@@ -133,7 +133,7 @@ class AnthropicClient: LLMClient {
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            throw LLMError.apiError("HTTP error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
         }
 
         var fullText = ""
