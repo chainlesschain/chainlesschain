@@ -1,3 +1,4 @@
+import CoreCommon
 import SwiftUI
 
 struct ContentView: View {
