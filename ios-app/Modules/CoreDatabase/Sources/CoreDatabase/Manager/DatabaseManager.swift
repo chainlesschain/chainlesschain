@@ -156,6 +156,23 @@ public class DatabaseManager {
         }
     }
 
+    /// 更改加密密钥（SQLCipher PRAGMA rekey）。newKey 是已派生好的原始密钥 bytes，
+    /// 调用方负责 PBKDF2 派生（与 [setEncryptionKey] 保持对称）。
+    public func changeEncryptionKey(_ newKey: Data) throws {
+        guard let database = db else {
+            throw DatabaseError.notOpen
+        }
+        let keyHex = newKey.hexString
+        let pragmaRekey = "PRAGMA rekey = \"x'\(keyHex)'\";"
+        let result = sqlite3_exec(database, pragmaRekey, nil, nil, nil)
+        guard result == SQLITE_OK else {
+            let errorMessage = String(cString: sqlite3_errmsg(database))
+            logger.database("Failed to rekey database: \(errorMessage)", level: .error)
+            throw DatabaseError.encryptionFailed(errorMessage)
+        }
+        logger.database("Database encryption key changed successfully")
+    }
+
     /// 验证数据库可读性
     private func verifyDatabase() throws {
         guard let database = db else {

@@ -72,7 +72,9 @@ public enum AppConstants {
     public enum Keychain {
         public static let service = "com.chainlesschain.ios"
         public static let pinKey = "user.pin"
+        public static let pinHashKey = "user.pin.hash"
         public static let dbKeyKey = "database.key"
+        public static let dbSaltKey = "database.salt"
         public static let didPrivateKeyPrefix = "did.privatekey."
         public static let masterKeyKey = "master.key"
     }

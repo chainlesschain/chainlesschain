@@ -436,6 +436,7 @@ enum LLMError: LocalizedError {
     case networkError(String)
     case apiError(Int, String)
     case invalidResponse
+    case invalidConfiguration(String)
     case timeout
     case embeddingsNotSupported
 
@@ -449,6 +450,8 @@ enum LLMError: LocalizedError {
             return "API error (\(code)): \(message)"
         case .invalidResponse:
             return "Invalid response from LLM service"
+        case .invalidConfiguration(let message):
+            return "Invalid configuration: \(message)"
         case .timeout:
             return "Request timeout"
         case .embeddingsNotSupported:
