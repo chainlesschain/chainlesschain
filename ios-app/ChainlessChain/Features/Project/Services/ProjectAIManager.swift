@@ -1625,4 +1625,28 @@ extension LLMManager {
             "model": resp.model ?? ""
         ]
     }
+
+    /// Dict-style chatStream adapter — same shape as `chat(messages:options:)`
+    /// but streams chunks via the closure (line 228 ProjectAIManager.swift).
+    func chatStream(
+        messages dictMessages: [[String: String]],
+        options dictOpts: [String: Any] = [:],
+        onChunk: @escaping (String) -> Void
+    ) async throws -> [String: Any] {
+        let typedMessages: [LLMMessage] = dictMessages.map {
+            LLMMessage(role: $0["role"] ?? "user", content: $0["content"] ?? "")
+        }
+        var typedOpts = ChatOptions.default
+        if let t = dictOpts["temperature"] as? Double { typedOpts.temperature = t }
+        if let t = dictOpts["temperature"] as? Int { typedOpts.temperature = Double(t) }
+        if let p = dictOpts["topP"] as? Double { typedOpts.topP = p }
+        if let m = dictOpts["maxTokens"] as? Int { typedOpts.maxTokens = m }
+        if let mdl = dictOpts["model"] as? String { typedOpts.model = mdl }
+        let resp = try await chatStream(messages: typedMessages, options: typedOpts, onChunk: onChunk)
+        return [
+            "content": resp.text,
+            "tokens": resp.tokens,
+            "model": resp.model ?? ""
+        ]
+    }
 }
