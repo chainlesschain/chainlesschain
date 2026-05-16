@@ -425,8 +425,14 @@ class SignalProtocolManager: ObservableObject {
             throw SignalProtocolError.encryptionFailed
         }
 
-        // Derive message key from sending chain
-        let messageKey = session.deriveMessageKey(fromChainKey: &session.sendingChainKey, isSending: true)
+        // Derive message key from sending chain.
+        // Copy the chain key to a local so the inout argument doesn't overlap
+        // with the implicit `inout self` (deriveMessageKey is mutating).
+        // Swift exclusivity flags `&session.sendingChainKey` + `session.method(...)`
+        // as overlapping access otherwise.
+        var sendingChainKeyLocal = session.sendingChainKey
+        let messageKey = session.deriveMessageKey(fromChainKey: &sendingChainKeyLocal, isSending: true)
+        session.sendingChainKey = sendingChainKeyLocal
 
         // Generate nonce from message number
         var nonceData = Data(count: 12)
@@ -480,8 +486,12 @@ class SignalProtocolManager: ObservableObject {
             }
         }
 
-        // Derive message key from receiving chain
-        let messageKey = session.deriveMessageKey(fromChainKey: &session.receivingChainKey, isSending: false)
+        // Derive message key from receiving chain. See sending-side comment
+        // above: local copy to dodge Swift exclusivity overlap on
+        // `&session.receivingChainKey` + mutating `session.method(...)`.
+        var receivingChainKeyLocal = session.receivingChainKey
+        let messageKey = session.deriveMessageKey(fromChainKey: &receivingChainKeyLocal, isSending: false)
+        session.receivingChainKey = receivingChainKeyLocal
 
         // Generate nonce from message number
         var nonceData = Data(count: 12)
