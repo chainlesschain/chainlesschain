@@ -9,6 +9,7 @@
 //  synthetic DOM events instead of Puppeteer CDP protocol.
 //
 
+import CoreCommon
 import Foundation
 import WebKit
 

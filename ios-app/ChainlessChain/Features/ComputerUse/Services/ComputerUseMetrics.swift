@@ -6,6 +6,7 @@
 //  Adapted from: desktop-app-vue/src/main/browser/actions/computer-use-metrics.js
 //
 
+import CoreCommon
 import Foundation
 import Combine
 

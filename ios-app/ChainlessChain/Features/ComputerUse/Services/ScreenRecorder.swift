@@ -9,6 +9,7 @@
 //  Frames stored as JPEG in a temporary directory with metadata.json.
 //
 
+import CoreCommon
 import Foundation
 import UIKit
 import WebKit

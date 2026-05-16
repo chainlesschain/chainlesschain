@@ -9,6 +9,7 @@
 //  No system-level mouse/keyboard control on iOS.
 //
 
+import CoreCommon
 import UIKit
 import WebKit
 

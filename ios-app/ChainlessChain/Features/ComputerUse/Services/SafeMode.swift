@@ -6,6 +6,7 @@
 //  Adapted from: desktop-app-vue/src/main/browser/actions/safe-mode.js
 //
 
+import CoreCommon
 import Foundation
 import UIKit
 import Combine

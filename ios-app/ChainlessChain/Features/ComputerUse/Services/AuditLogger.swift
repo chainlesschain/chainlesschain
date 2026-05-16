@@ -6,6 +6,7 @@
 //  Adapted from: desktop-app-vue/src/main/browser/actions/audit-logger.js
 //
 
+import CoreCommon
 import Foundation
 import Combine
 

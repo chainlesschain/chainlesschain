@@ -9,6 +9,7 @@
 //  This engine is specifically for Computer Use automation workflows.
 //
 
+import CoreCommon
 import Foundation
 import WebKit
 import JavaScriptCore

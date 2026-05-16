@@ -6,6 +6,7 @@
 //  Maps desktop tool names to iOS implementations.
 //
 
+import CoreCommon
 import Foundation
 import WebKit
 

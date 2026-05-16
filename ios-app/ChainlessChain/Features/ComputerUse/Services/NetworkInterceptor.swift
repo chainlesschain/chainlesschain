@@ -9,6 +9,7 @@
 //  and WKContentRuleListStore for URL blocking, instead of CDP interception.
 //
 
+import CoreCommon
 import Foundation
 import WebKit
 import Combine

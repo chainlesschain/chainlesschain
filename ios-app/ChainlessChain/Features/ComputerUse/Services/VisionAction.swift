@@ -10,6 +10,7 @@
 //  - LLMManager.shared: Cloud LLM multimodal analysis (Claude/GPT-4V)
 //
 
+import CoreCommon
 import Foundation
 import UIKit
 import WebKit

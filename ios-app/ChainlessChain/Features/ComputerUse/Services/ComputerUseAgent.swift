@@ -6,6 +6,7 @@
 //  Adapted from: desktop-app-vue/src/main/browser/computer-use-agent.js
 //
 
+import CoreCommon
 import Foundation
 import WebKit
 import Combine
