@@ -11,12 +11,14 @@ import Combine
 /// "stream chunk 乱序 + 缺失 chunk 处理"）。
 ///
 /// `isComplete` = true 由 `ai.chat.end` 事件触发。`error` 由 `ai.chat.error` 触发。
-struct StreamBuffer: Sendable {
-    var accumulatedText: String = ""
-    var nextExpectedIdx: Int = 0
-    var pendingChunks: [Int: String] = [:]
-    var isComplete: Bool = false
-    var error: String? = nil
+public struct StreamBuffer: Sendable {
+    public var accumulatedText: String = ""
+    public var nextExpectedIdx: Int = 0
+    public var pendingChunks: [Int: String] = [:]
+    public var isComplete: Bool = false
+    public var error: String? = nil
+
+    public init() {}
 }
 
 // MARK: - AIChatEventDispatcher
