@@ -1,6 +1,6 @@
 # iOS Phase 5 — AI Chat Skill (Remote LLM 对话 + 流式响应 + 对话管理)
 
-> **状态**：设计阶段（2026-05-15）— full design doc 跟 Phase 3 + Phase 4 同重；实施暂停等 Phase 1.7/2.7/3.7/4.7 真机 E2E 完成后再启 sub-phase。本 Phase 不创建新框架，**接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out 模式 + 既有 iOS LLM 模型协议**。
+> **状态**：Phase 5.1-5.5 落地（2026-05-16）；Phase 5.6 commit 标记本设计 doc 收口。41 新单测（5.1 17 + 5.2 11 + 5.3 13 + 5.4/5.5/5.6 UI/wiring/无单测）。真机 E2E (Phase 5.7) 待 Mac+iPhone+真桌面。本 Phase 不创建新框架，**接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out 模式（fan-out 加第 3 子流 buffer 512）+ 既有 iOS LLM 模型协议**。memory `ios_remote_ai_chat_phase5.md` 6 实施 trap。
 >
 > **依赖**：iOS Phase 3.1-3.6 已落 (`759a1e907`) — RemoteCommandClient framework 全套；Phase 4.1-4.6 已落 (`45b485fdd` → `5877b5d84`) — events fan-out task + Notification skill 落地范式可复用；iOS app target 既有 chat UI 组件 (AudioEngine 等) 可参考 SwiftUI bubble 风格
 >

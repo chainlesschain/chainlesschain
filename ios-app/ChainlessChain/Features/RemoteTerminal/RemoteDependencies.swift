@@ -46,6 +46,10 @@ public final class RemoteDependencies: ObservableObject {
     public let notification: NotificationCommands
     public let notificationDispatcher: NotificationEventDispatcher
 
+    // Phase 5.6 新增（typed skill: AI chat — 远程 LLM 对话 + 流式响应 + 对话管理）
+    public let aiChat: AIChatCommands
+    public let aiChatDispatcher: AIChatEventDispatcher
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -98,17 +102,24 @@ public final class RemoteDependencies: ObservableObject {
         )
         self.commandClient = cmdClient
 
-        // Phase 4.4 — events fan-out：cmdClient.events 是单消费者 AsyncStream，
-        // terminalRpc + notificationDispatcher 两订阅会切分事件 → 单一 fan-out
-        // task 消费 cmdClient.events，yield 到两子流分别给 terminal / notification。
+        // Phase 4.4 → Phase 5.6 — events fan-out：cmdClient.events 是单消费者
+        // AsyncStream，terminalRpc + notificationDispatcher + aiChatDispatcher 三订
+        // 阅会切分事件 → 单一 fan-out task 消费 cmdClient.events，yield 到三子流
+        // 分别给 terminal / notification / aiChat。
         // (Phase 3.3 trap 同模式：单消费者 AsyncStream 解；当只有 1 订阅者时 fan-out
         //  task 透传无副作用)
+        // Phase 5.6 aiChat 子流 buffer 512（vs terminal/notification 256）— chat
+        // stream chunk 涌得快（token 间隔 50-200ms），更大 buffer 减少丢 chunk 概率
+        // (LRU 在 dispatcher 兜底重复)。
         var termLocal: AsyncStream<String>.Continuation!
         let terminalEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(256)) { c in termLocal = c }
         let terminalEventsContinuation = termLocal!
         var notiLocal: AsyncStream<String>.Continuation!
         let notificationEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(256)) { c in notiLocal = c }
         let notificationEventsContinuation = notiLocal!
+        var aiLocal: AsyncStream<String>.Continuation!
+        let aiChatEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(512)) { c in aiLocal = c }
+        let aiChatEventsContinuation = aiLocal!
 
         // Phase 3.3 refactor: terminalRpc 改用 commandClient.events 流（Phase 4.4
         // 起改用 fan-out 后的 terminalEventsStream，语义不变）
@@ -150,15 +161,24 @@ public final class RemoteDependencies: ObservableObject {
             pushTarget: nil
         )
 
+        // Phase 5.6: AIChatCommands + EventDispatcher (远程 LLM 对话 streaming)
+        self.aiChat = AIChatCommands(client: cmdClient)
+        self.aiChatDispatcher = AIChatEventDispatcher(
+            eventStream: aiChatEventsStream
+        )
+
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
-        // notification 两子流（避 AsyncStream 单消费者切分 bug）
+        // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
+        // Phase 5.6: 加第 3 子流 aiChat (chat.delta/end/error 事件路由)。
         self.eventFanOutTask = Task {
             for await raw in cmdClient.events {
                 terminalEventsContinuation.yield(raw)
                 notificationEventsContinuation.yield(raw)
+                aiChatEventsContinuation.yield(raw)
             }
             terminalEventsContinuation.finish()
             notificationEventsContinuation.finish()
+            aiChatEventsContinuation.finish()
         }
 
         // 起 forwarding task — SignalClient.forwardedMessages → 路由到 webRTC
@@ -171,18 +191,21 @@ public final class RemoteDependencies: ObservableObject {
             }
         }
 
-        // 启动 commandClient + terminalRpc + offlineDrainer + notificationDispatcher
+        // 启动 commandClient + terminalRpc + offlineDrainer + notification/aiChat dispatchers
         let dispatcher = self.notificationDispatcher
+        let aiDispatcher = self.aiChatDispatcher
         Task {
             await cmdClient.start()
             await self.terminalRpc.start()
             self.offlineDrainer.start()
             _ = await self.skillRegistry.initialize()
-            // Phase 4.4 — dispatcher 启动需 @MainActor (它本身是 @MainActor class);
-            // attach PushNotificationManager.shared (@MainActor singleton) 后 start
+            // Phase 4.4/5.6 — dispatchers 启动需 @MainActor (它们是 @MainActor class);
+            // notification: attach PushNotificationManager.shared 后 start
+            // aiChat: 无外部 push target，直接 start
             await MainActor.run {
                 dispatcher.attach(pushTarget: PushNotificationManager.shared)
                 dispatcher.start()
+                aiDispatcher.start()
             }
         }
     }
