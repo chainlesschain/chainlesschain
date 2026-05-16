@@ -104,15 +104,22 @@ struct P2PChatView: View {
                 }
             }
             .sheet(isPresented: $showingVoiceRecorder) {
-                VoiceMessageRecorder(
-                    onComplete: { data, duration in
-                        showingVoiceRecorder = false
-                        sendVoiceMessage(data: data, duration: duration)
-                    },
-                    onCancel: {
+                // VoiceMessageRecorder.swift not wired into app target pbxproj
+                // (per memory `ios_app_target_compile_state.md`). Stub sheet
+                // body so the sheet binding compiles; voice recording UX is
+                // deferred until VoiceMessageRecorder.swift is wired via
+                // wire_app_sources.rb.
+                VStack(spacing: 16) {
+                    Text("语音消息暂不可用")
+                        .font(.headline)
+                    Text("此功能等待启用，请使用文字或图片消息")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("关闭") {
                         showingVoiceRecorder = false
                     }
-                )
+                }
+                .padding()
                 .presentationDetents([.medium])
             }
             .toast(isPresented: $showToast, message: toastMessage, type: toastType)
@@ -617,11 +624,20 @@ struct EnhancedMessageBubble: View {
             .background(Color(.systemGray6))
             .cornerRadius(16)
         } else if message.isVoiceMessage {
-            // Voice message
-            VoiceMessageBubble(
-                message: message,
-                isOutgoing: message.isOutgoing
-            )
+            // VoiceMessageBubble.swift not wired into app target pbxproj
+            // (per memory `ios_app_target_compile_state.md`). Stub bubble
+            // showing "Voice message (unavailable)" until wired via
+            // wire_app_sources.rb.
+            HStack(spacing: 6) {
+                Image(systemName: "waveform.circle")
+                    .font(.title3)
+                Text("语音消息（暂不可用）")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(16)
         } else if message.isImageMessage {
             // Image message
             ImageMessageView(
@@ -744,26 +760,12 @@ struct EnhancedMessageBubble: View {
     }
 }
 
-// MARK: - Legacy Message Bubble (for compatibility)
-
-struct MessageBubble: View {
-    let message: P2PViewModel.ChatMessage
-    var onRecall: ((String) -> Void)?
-    var onEdit: ((String, String) -> Void)?
-    var onResend: ((String) -> Void)?
-
-    @Environment(\.colorScheme) var colorScheme
-
-    var body: some View {
-        EnhancedMessageBubble(
-            message: message,
-            colorScheme: colorScheme,
-            onRecall: onRecall,
-            onEdit: onEdit,
-            onResend: onResend
-        )
-    }
-}
+// Legacy `struct MessageBubble` removed — it was a dead-code passthrough to
+// `EnhancedMessageBubble` and collided by name with the top-level
+// `MessageBubble` in `Features/AI/Views/AIChatView.swift` ("invalid
+// redeclaration"). 0 callers grepped across the codebase. If P2P-specific
+// MessageBubble wrapping is needed in the future, define as
+// `P2PMessageBubble` to avoid the AI module collision.
 
 // MARK: - Edit Message Sheet
 
