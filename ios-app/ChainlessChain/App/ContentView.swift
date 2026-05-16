@@ -599,50 +599,6 @@ struct SearchBarView: View {
     }
 }
 
-struct ExploreCardView: View {
-    let title: String
-    let description: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "folder.fill")
-                    .foregroundColor(.blue)
-
-                Text(title)
-                    .font(.headline)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Text(description)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-
-            HStack {
-                Label("5 个任务", systemImage: "checklist")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Text("2天前")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-    }
-}
-
 struct TaskCardView: View {
     let title: String
     let status: String
@@ -678,4 +634,136 @@ struct TaskCardView: View {
     ContentView()
         .environmentObject(AppState.shared)
         .environmentObject(AuthViewModel())
+}
+
+// MARK: - Explore Type Stubs
+//
+// Minimal in-pbxproj stubs so ExploreView (above) compiles. The real
+// implementations live in Features/Common/{ViewModels/ExploreFeedViewModel.swift,
+// Views/ExploreCardViews.swift} (~800 LOC total) but neither file is wired into
+// xcodeproj sources yet, and ExploreFeedViewModel calls a non-existent
+// KnowledgeRepository.getAllItems(...) — so inlining isn't free either.
+// When those files are wired in (and getAllItems → getAll bug fixed), delete
+// this section.
+
+enum ContentFilter: String, CaseIterable, Hashable {
+    case all = "全部"
+    case knowledge = "知识库"
+    case aiConversation = "AI对话"
+    case project = "项目"
+
+    var icon: String {
+        switch self {
+        case .all: return "square.grid.2x2"
+        case .knowledge: return "book.fill"
+        case .aiConversation: return "message.fill"
+        case .project: return "folder.fill"
+        }
+    }
+}
+
+enum SortOption: String, CaseIterable, Hashable {
+    case latest = "最新"
+    case mostViewed = "最常访问"
+    case favorite = "收藏"
+
+    var icon: String {
+        switch self {
+        case .latest: return "clock.fill"
+        case .mostViewed: return "eye.fill"
+        case .favorite: return "star.fill"
+        }
+    }
+}
+
+struct ExploreStatistics {
+    let totalKnowledge: Int
+    let totalConversations: Int
+    let totalProjects: Int
+    let favoriteKnowledge: Int
+
+    var total: Int { totalKnowledge + totalConversations + totalProjects }
+
+    init(
+        totalKnowledge: Int = 0,
+        totalConversations: Int = 0,
+        totalProjects: Int = 0,
+        favoriteKnowledge: Int = 0
+    ) {
+        self.totalKnowledge = totalKnowledge
+        self.totalConversations = totalConversations
+        self.totalProjects = totalProjects
+        self.favoriteKnowledge = favoriteKnowledge
+    }
+}
+
+enum ExploreCardType {
+    case knowledge(KnowledgeItem)
+    case aiConversation(AIConversationEntity)
+    case project(ProjectEntity)
+}
+
+struct ExploreCardModel: Identifiable {
+    let id = UUID()
+    let type: ExploreCardType
+}
+
+@MainActor
+class ExploreFeedViewModel: ObservableObject {
+    @Published var cards: [ExploreCardModel] = []
+    @Published var isLoading = false
+    @Published var searchText = ""
+    @Published var selectedFilter: ContentFilter = .all
+    @Published var selectedSort: SortOption = .latest
+    @Published var errorMessage: String?
+    @Published var statistics = ExploreStatistics()
+
+    func loadFeed() async {}
+    func refresh() async {}
+    func applyFiltersAndSort() {}
+}
+
+struct ExploreStatsOverview: View {
+    let statistics: ExploreStatistics
+    var body: some View {
+        HStack(spacing: 16) {
+            statItem("\(statistics.totalKnowledge)", "知识")
+            statItem("\(statistics.totalConversations)", "对话")
+            statItem("\(statistics.totalProjects)", "项目")
+        }
+        .padding()
+    }
+    private func statItem(_ value: String, _ label: String) -> some View {
+        VStack {
+            Text(value).font(.title3).bold()
+            Text(label).font(.caption).foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct ExploreEmptyView: View {
+    let filter: ContentFilter
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: filter.icon).font(.system(size: 48)).foregroundColor(.secondary)
+            Text("暂无\(filter.rawValue)").font(.headline).foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+}
+
+struct ExploreCardView: View {
+    let card: ExploreCardModel
+    var body: some View {
+        switch card.type {
+        case .knowledge(let item):
+            Text(item.title).padding()
+        case .aiConversation(let conv):
+            Text(conv.title ?? "未命名对话").padding()
+        case .project(let proj):
+            Text(proj.name).padding()
+        }
+    }
 }
