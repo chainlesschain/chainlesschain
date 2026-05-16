@@ -227,13 +227,18 @@ public class ComputerUseWorkflowEngine: ObservableObject {
     @MainActor
     private func executeSteps(_ steps: [CUWorkflowStep]) async throws {
         for (index, step) in steps.enumerated() {
-            guard state == .running else {
+            // `guard ... else { ... }` requires the else body to exit the
+            // enclosing scope, but the "paused → resumed → state=running"
+            // path needs to fall through and execute the step. Use `if`
+            // instead so the resumed path naturally continues.
+            if state != .running {
                 if state == .paused {
                     // Wait for resume
                     while state == .paused {
                         try await Task.sleep(nanoseconds: 100_000_000) // 100ms
                     }
                     if state == .cancelled { throw CUWorkflowError.cancelled }
+                    // resumed → fall through and execute step
                 } else if state == .cancelled {
                     throw CUWorkflowError.cancelled
                 } else {

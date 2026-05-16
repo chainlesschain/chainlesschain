@@ -14,12 +14,18 @@ struct ChainlessChainApp: App {
     @StateObject private var remoteDeps: RemoteDependencies
 
     init() {
-        setupApp()
-        // @StateObject wrappedValue 闭包在视图首次创建时执行；同步 init 确保
-        // remoteDeps 用同一份 pairingDeps 实例（避免两份 SignalClient + 两条 WS）
+        // Initialize @StateObject backing storage BEFORE calling any instance
+        // method (Swift requires all stored properties initialized before
+        // `self` is fully formed). setupApp() now uses no instance state, so
+        // it can run after property init. @StateObject wrappedValue closure
+        // executes on first view creation; synchronous init here ensures
+        // remoteDeps shares the SAME pairingDeps instance (avoid two
+        // SignalClient + two WS connections).
         let deps = PairingDependencies(currentDIDProvider: { AppState.shared.currentDID })
         _pairingDeps = StateObject(wrappedValue: deps)
         _remoteDeps = StateObject(wrappedValue: RemoteDependencies(pairingDeps: deps))
+
+        setupApp()
     }
 
     var body: some Scene {

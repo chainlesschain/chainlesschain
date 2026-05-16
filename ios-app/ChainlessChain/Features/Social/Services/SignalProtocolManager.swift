@@ -88,8 +88,17 @@ class SignalProtocolManager: ObservableObject {
         var remoteDhPublicKey: P256.KeyAgreement.PublicKey?
         let timestamp: Date
 
-        /// Derive message keys from chain key using HKDF
-        mutating func deriveMessageKey(fromChainKey chainKey: inout Data, isSending: Bool) -> SymmetricKey {
+        /// Derive message keys from chain key using HKDF.
+        ///
+        /// Not `mutating` — only mutates the `inout chainKey` parameter, not
+        /// `self`. The `mutating` modifier was unnecessary and caused Swift
+        /// exclusivity errors at call sites like
+        /// `session.deriveMessageKey(&session.sendingChainKey, ...)` —
+        /// `session.deriveMessageKey` would have taken exclusive access to
+        /// `session` while `&session.X` simultaneously took exclusive access
+        /// to a property of `session`. Without `mutating`, only the inout
+        /// parameter's specific field is accessed exclusively.
+        func deriveMessageKey(fromChainKey chainKey: inout Data, isSending: Bool) -> SymmetricKey {
             // KDF Chain: chain_key, message_key = HKDF(chain_key, info)
             let info = isSending ? SignalProtocolManager.messageKeySendInfo : SignalProtocolManager.messageKeyRecvInfo
             let salt = SignalProtocolManager.chainSalt
