@@ -83,17 +83,16 @@ FILES.each do |rel|
     next
   end
 
-  # Walk/create the group hierarchy mirroring the on-disk folder structure.
-  # find_subpath(true) creates groups as needed; passing nil parent means
-  # start from project.main_group.
-  parent_dir = File.dirname(rel) # e.g. "ChainlessChain/Features/Pairing/Views"
-  group = project.main_group.find_subpath(parent_dir, true)
-  group.set_source_tree('<group>')
-
-  # Create file reference. Use path relative to the group's source tree.
-  file_ref = group.new_reference(basename)
+  # Add file reference DIRECTLY to project.main_group with a FULL relative path
+  # (./ChainlessChain/Features/.../Foo.swift) — mirrors existing entries in
+  # this pbxproj. Previous attempt used find_subpath to create nested groups,
+  # but those groups had no `path` attribute set, so xcodebuild resolved each
+  # file as `ios-app/<basename>` (project root) and failed with "Build input
+  # files cannot be found" (run 25957731721, commit b6ebe0c37 → revert
+  # aac975c64).
+  file_ref = project.main_group.new_reference("./#{rel}")
+  file_ref.name = basename                             # display name in Xcode
   file_ref.set_source_tree('<group>')
-  file_ref.set_explicit_file_type(nil) # let Xcode infer from extension
   file_ref.set_last_known_file_type('sourcecode.swift')
 
   # Add to target's Sources build phase.
