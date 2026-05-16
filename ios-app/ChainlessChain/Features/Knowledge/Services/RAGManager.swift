@@ -366,11 +366,12 @@ class RAGManager: ObservableObject {
         // Add to vector index
         let embedding = try await embeddingsService.generateEmbedding(text)
 
+        let isoFormatter = ISO8601DateFormatter()
         let metadata = VectorStore.VectorMetadata(
             title: item.title,
             type: item.type,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt
+            createdAt: isoFormatter.string(from: item.createdAt),
+            updatedAt: isoFormatter.string(from: item.updatedAt)
         )
 
         try await vectorStore.addVector(

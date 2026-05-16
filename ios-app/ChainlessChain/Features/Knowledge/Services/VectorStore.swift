@@ -7,6 +7,10 @@ import Accelerate
 /// iOS implementation uses SQLite-based persistent storage via VectorStoreRepository
 @MainActor
 class VectorStore: ObservableObject {
+    /// Shared ISO8601 formatter for Date → String serialization to VectorMetadata
+    /// (the repository layer persists timestamps as strings)
+    fileprivate static let isoFormatter = ISO8601DateFormatter()
+
     private let logger = Logger.shared
 
     // Configuration
@@ -33,8 +37,8 @@ class VectorStore: ObservableObject {
     struct VectorMetadata: Codable, Equatable {
         let title: String
         let type: String
-        let createdAt: Date?
-        let updatedAt: Date?
+        let createdAt: String?
+        let updatedAt: String?
     }
 
     struct SearchResult {
@@ -445,8 +449,8 @@ class VectorStore: ObservableObject {
                 let metadata = VectorMetadata(
                     title: item.title,
                     type: item.type,
-                    createdAt: item.createdAt,
-                    updatedAt: item.updatedAt
+                    createdAt: VectorStore.isoFormatter.string(from: item.createdAt),
+                    updatedAt: VectorStore.isoFormatter.string(from: item.updatedAt)
                 )
 
                 batchItems.append((

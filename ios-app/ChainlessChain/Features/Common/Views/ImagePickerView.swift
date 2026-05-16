@@ -169,7 +169,9 @@ struct ImagePickerView: View {
             .padding()
         }
         .frame(height: 100)
-        .background(Color(uiColor: UIColor.secondarySystemGroupedBackground))
+        .background {
+            Color(uiColor: UIColor.secondarySystemGroupedBackground)
+        }
     }
 
     // MARK: - Load Images
