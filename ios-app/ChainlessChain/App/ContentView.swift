@@ -340,29 +340,31 @@ struct ExploreView: View {
 
     private var navigationLinks: some View {
         Group {
-            // Knowledge navigation
-            NavigationLink(
-                destination: Group {
-                    if let item = selectedKnowledge {
-                        KnowledgeDetailView(
-                            item: item,
-                            onUpdate: { _ in
-                                Task {
-                                    await viewModel.refresh()
-                                }
-                            },
-                            onDelete: {
-                                selectedKnowledge = nil
-                                Task {
-                                    await viewModel.refresh()
-                                }
+            // Knowledge navigation — `tag:` requires a non-optional value but
+            // selectedKnowledge is `KnowledgeItem?`. Gate the whole link on
+            // `if let` so the tag receives the unwrapped value. Activation
+            // semantics unchanged: when selectedKnowledge transitions nil →
+            // item, link appears and immediately matches selection.
+            if let item = selectedKnowledge {
+                NavigationLink(
+                    destination: KnowledgeDetailView(
+                        item: item,
+                        onUpdate: { _ in
+                            Task {
+                                await viewModel.refresh()
                             }
-                        )
-                    }
-                },
-                tag: selectedKnowledge,
-                selection: $selectedKnowledge
-            ) { EmptyView() }
+                        },
+                        onDelete: {
+                            selectedKnowledge = nil
+                            Task {
+                                await viewModel.refresh()
+                            }
+                        }
+                    ),
+                    tag: item,
+                    selection: $selectedKnowledge
+                ) { EmptyView() }
+            }
 
             // AI Conversation navigation
             NavigationLink(

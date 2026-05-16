@@ -196,37 +196,12 @@ struct GroupChatView: View {
     // MARK: - Input Bar
 
     private var inputBar: some View {
+        // Extracted to reduce @ViewBuilder inference complexity (was failing
+        // with "type of expression is ambiguous" — too many nested
+        // closures + conditionals in a single body).
         VStack(spacing: 0) {
-            // Selected images preview
             if !selectedImages.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
-                            ZStack(alignment: .topTrailing) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                Button(action: {
-                                    withAnimation {
-                                        selectedImages.remove(at: index)
-                                    }
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.white)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                        .font(.caption)
-                                }
-                                .offset(x: 6, y: -6)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                }
+                selectedImagesPreview
             }
 
             HStack(spacing: 12) {
@@ -261,6 +236,37 @@ struct GroupChatView: View {
                     ? Color(.systemGray6)
                     : Color(.systemGroupedBackground)
             )
+        }
+    }
+
+    private var selectedImagesPreview: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Button(action: {
+                            withAnimation {
+                                selectedImages.remove(at: index)
+                            }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                                .font(.caption)
+                        }
+                        .offset(x: 6, y: -6)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
     }
 

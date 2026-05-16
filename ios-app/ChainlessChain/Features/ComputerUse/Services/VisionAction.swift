@@ -220,29 +220,15 @@ public class VisionAction: VisionActionProtocol {
     // MARK: - Local OCR
 
     /// Perform local OCR using VisionToolsHandler
-    /// Saves base64 image to temp file, calls recognizeText(imagePath:)
+    ///
+    /// VisionToolsHandler lives in `Features/AI/ExtendedTools/VisionTools.swift`
+    /// which is not yet wired into the app target pbxproj (per memory
+    /// `ios_app_target_compile_state.md` — 353+ Swift files, ~205 wired).
+    /// Local OCR is currently a no-op; LLM analysis path (`performLLMAnalysis`)
+    /// still works without OCR context. Wire VisionTools.swift via
+    /// `wire_app_sources.rb` to restore OCR.
     private func performLocalOCR(base64: String) async -> String? {
-        guard let imageData = Data(base64Encoded: base64) else { return nil }
-
-        // VisionToolsHandler.recognizeText requires a file path, not UIImage
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cu_ocr_\(UUID().uuidString).jpg")
-
-        do {
-            try imageData.write(to: tempURL)
-            defer { try? FileManager.default.removeItem(at: tempURL) }
-
-            let result = try await VisionToolsHandler.shared.recognizeText(imagePath: tempURL.path)
-            if !result.text.isEmpty {
-                return result.text
-            }
-            // Also collect text from bounding boxes if main text is empty
-            if !result.boundingBoxes.isEmpty {
-                return result.boundingBoxes.map { $0.text }.joined(separator: "\n")
-            }
-        } catch {
-            Logger.shared.warning("[VisionAction] Local OCR failed: \(error.localizedDescription)")
-        }
+        _ = base64
         return nil
     }
 

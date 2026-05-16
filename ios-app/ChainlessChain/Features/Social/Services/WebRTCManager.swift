@@ -389,6 +389,16 @@ private class PeerConnectionDelegate: NSObject, RTCPeerConnectionDelegate {
     func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
         logger.debug("[WebRTC] Should negotiate")
     }
+
+    // MARK: - Required RTCPeerConnectionDelegate stubs (protocol conformance)
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didChange stateChanged: RTCSignalingState) {
+        logger.debug("[WebRTC] Signaling state: \(stateChanged.rawValue)")
+    }
+
+    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove candidates: [RTCIceCandidate]) {
+        logger.debug("[WebRTC] Removed \(candidates.count) ICE candidates")
+    }
 }
 
 // MARK: - Data Channel Delegate

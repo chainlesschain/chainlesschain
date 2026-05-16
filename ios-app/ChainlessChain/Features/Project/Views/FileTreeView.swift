@@ -433,6 +433,10 @@ struct FileTreeNodeView: View {
             return .red
         case .renamed:
             return .blue
+        case .untracked:
+            return .gray
+        case .conflicted:
+            return .purple
         }
     }
 

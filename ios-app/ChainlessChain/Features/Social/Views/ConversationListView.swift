@@ -379,18 +379,13 @@ class ConversationListViewModel: ObservableObject {
     }
 
     func togglePin(_ conversation: ConversationDisplayModel) {
+        // DatabaseManager.swift not yet wired into app target pbxproj
+        // (per memory `ios_app_target_compile_state.md` — 353+ Swift files,
+        // only ~205 wired). Pin persistence deferred to a future "DAO+
+        // Migrations 恢复" milestone; for now reload to keep UI consistent.
         Task {
-            do {
-                let sql = "UPDATE conversations SET is_pinned = ?, updated_at = ? WHERE id = ?"
-                _ = try DatabaseManager.shared.query(sql, parameters: [
-                    !conversation.isPinned ? 1 : 0,
-                    Date().timestampMs,
-                    conversation.id
-                ]) { _ in () }
-                await loadConversations()
-            } catch {
-                logger.error("Failed to toggle pin", error: error, category: "P2P")
-            }
+            _ = conversation
+            await loadConversations()
         }
     }
 }

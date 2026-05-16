@@ -37,8 +37,10 @@ struct ProjectChatView: View {
             inputArea
         }
         .background(Color(.systemGroupedBackground))
-        .onChange(of: currentFile) { newFile in
-            viewModel.currentFile = newFile
+        .onChange(of: currentFile?.id) { _ in
+            // ProjectFileEntity is not Equatable; observe its id (String) which
+            // is. id change covers all material "different file" transitions.
+            viewModel.currentFile = currentFile
         }
         .alert("错误", isPresented: .constant(viewModel.error != nil)) {
             Button("确定") { viewModel.error = nil }
