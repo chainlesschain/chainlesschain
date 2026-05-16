@@ -33,6 +33,7 @@
 		3CA26E1824D81DADC04FAD04 /* ImageStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2608689829ED73A12B5F641 /* ImageStorageManager.swift */; };
 		3D84AACB4102CE896326A77D /* RecordingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B88B9832F862383826B971 /* RecordingListView.swift */; };
 		3FF7228021D9BD19FFDBD669 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0435AA490476517B94AE2FA /* Foundation.framework */; };
+		422A3798EDF6DC1DFEB6FE42 /* RemoteAIChatConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734598EDDED3AE75BBB95CFC /* RemoteAIChatConversationListView.swift */; };
 		4374EEA54C0A5517847475E1 /* ComputerUseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7802AECA16E2342D34CE8D5F /* ComputerUseViewModel.swift */; };
 		44CFAEB286612E5FA260A800 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A74FD9564BBB42F746CA375 /* AppState.swift */; };
 		45405D3B8EA0B7CD7D3E1FC3 /* VisionAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1676C1C99279F8E20784A4C6 /* VisionAction.swift */; };
@@ -129,12 +130,14 @@
 		F7B44D98434D21A959567921 /* ProjectChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724B143492030ABF800C75AC /* ProjectChatViewModel.swift */; };
 		FA9500DD3590367797980802 /* GenericQRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */; };
 		FCCED5F1537C1005EA885597 /* RemoteDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03FC00A9EF45A1774EF86B69 /* RemoteDependencies.swift */; };
+		FDEB2F7CB52BC0068C1E8FDE /* RemoteAIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034D09F21F3FF08BDC0EC689 /* RemoteAIChatView.swift */; };
 		FE7364C06C86B193C0B94321 /* DesktopPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629324AA76B65A31BE422695 /* DesktopPairingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0045B7BB0A9130F0BBB618DA /* WorkflowEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WorkflowEditorView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/WorkflowEditorView.swift; sourceTree = "<group>"; };
 		009BF35AC92B10F851AD2236 /* PerformanceManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerformanceManager.swift; path = ./ChainlessChain/Features/Common/Services/PerformanceManager.swift; sourceTree = "<group>"; };
+		034D09F21F3FF08BDC0EC689 /* RemoteAIChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteAIChatView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatView.swift; sourceTree = "<group>"; };
 		03FC00A9EF45A1774EF86B69 /* RemoteDependencies.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteDependencies.swift; path = ./ChainlessChain/Features/RemoteTerminal/RemoteDependencies.swift; sourceTree = "<group>"; };
 		0CB391751412456271E6E40F /* FileEditorViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileEditorViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/FileEditorViewModel.swift; sourceTree = "<group>"; };
 		0EC322FF4A527C4BCE04FABC /* RAGManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RAGManager.swift; path = ./ChainlessChain/Features/Knowledge/Services/RAGManager.swift; sourceTree = "<group>"; };
@@ -178,6 +181,7 @@
 		7237A81DA921E12351908A7A /* GitOperationsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GitOperationsView.swift; path = ./ChainlessChain/Features/Project/Views/GitOperationsView.swift; sourceTree = "<group>"; };
 		724B143492030ABF800C75AC /* ProjectChatViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectChatViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/ProjectChatViewModel.swift; sourceTree = "<group>"; };
 		732AFB61FA1B6BA9F9F6BF40 /* ProjectAIManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectAIManager.swift; path = ./ChainlessChain/Features/Project/Services/ProjectAIManager.swift; sourceTree = "<group>"; };
+		734598EDDED3AE75BBB95CFC /* RemoteAIChatConversationListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteAIChatConversationListView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatConversationListView.swift; sourceTree = "<group>"; };
 		75281313C02214F6DC9C2CE8 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NotificationSettingsView.swift; path = ./ChainlessChain/Features/Settings/Views/NotificationSettingsView.swift; sourceTree = "<group>"; };
 		7802AECA16E2342D34CE8D5F /* ComputerUseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseViewModel.swift; path = ./ChainlessChain/Features/ComputerUse/ViewModels/ComputerUseViewModel.swift; sourceTree = "<group>"; };
 		790BB7D492AEE9CC85253673 /* OfflineMessageQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OfflineMessageQueue.swift; path = ./ChainlessChain/Features/Social/Services/OfflineMessageQueue.swift; sourceTree = "<group>"; };
@@ -651,6 +655,8 @@
 				E5CD4195A694F0A1EFF248A7 /* PushNotificationManager+RemoteTarget.swift */,
 				C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */,
 				E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */,
+				734598EDDED3AE75BBB95CFC /* RemoteAIChatConversationListView.swift */,
+				034D09F21F3FF08BDC0EC689 /* RemoteAIChatView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1084,6 +1090,8 @@
 				81268F40E665EF358A9CCEE0 /* PushNotificationManager+RemoteTarget.swift in Sources */,
 				FA9500DD3590367797980802 /* GenericQRScannerView.swift in Sources */,
 				5BDE261524618A78F370BABF /* QrCodeImage.swift in Sources */,
+				422A3798EDF6DC1DFEB6FE42 /* RemoteAIChatConversationListView.swift in Sources */,
+				FDEB2F7CB52BC0068C1E8FDE /* RemoteAIChatView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
