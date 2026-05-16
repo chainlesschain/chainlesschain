@@ -50,6 +50,9 @@ FILES = %w[
   ChainlessChain/Features/RemoteOperate/Views/SystemInfoView.swift
 
   ChainlessChain/Features/Common/Services/PushNotificationManager+RemoteTarget.swift
+
+  ChainlessChain/Features/Common/Views/GenericQRScannerView.swift
+  ChainlessChain/Features/Common/Views/QrCodeImage.swift
 ].freeze
 
 abort "❌ #{PROJECT_PATH} not found — run from ios-app/" unless File.exist?(PROJECT_PATH)
