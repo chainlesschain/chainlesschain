@@ -49,7 +49,7 @@ public actor RemoteWebRTCClient {
     /// 本地 ICE candidate — caller 应消费此流，经 signaling 发给 desktop pcPeerId。
     public nonisolated let outboundIceCandidates: AsyncStream<OutboundIceCandidate>
 
-    private(set) var currentState: RemoteWebRTCState = .disconnected
+    public private(set) var currentState: RemoteWebRTCState = .disconnected
 
     // MARK: Init
 

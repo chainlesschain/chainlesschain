@@ -63,7 +63,7 @@ private struct Inner: View {
         HStack(spacing: 8) {
             Image(systemName: vm.busy ? "arrow.clockwise.circle" : "clock")
                 .foregroundColor(.blue)
-                .symbolEffect(.rotate, isActive: vm.busy)
+                .symbolEffect(.pulse, isActive: vm.busy)
             if let updated = vm.lastUpdated {
                 Text("更新于 \(formatTime(updated))")
                     .font(.caption)

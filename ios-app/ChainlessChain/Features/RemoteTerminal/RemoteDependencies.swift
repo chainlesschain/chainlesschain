@@ -57,6 +57,7 @@ public final class RemoteDependencies: ObservableObject {
         return { await store.devices().first?.pcPeerId }
     }
 
+    @MainActor
     public init(pairingDeps: PairingDependencies) {
         self.pairingDeps = pairingDeps
         self.featureFlags = PlanA1FeatureFlags()

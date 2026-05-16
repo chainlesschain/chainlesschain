@@ -64,7 +64,7 @@ class PushNotificationManager: NSObject, ObservableObject {
 
         super.init()
         setupNotificationCategories()
-        checkAuthorizationStatus()
+        Task { await checkAuthorizationStatus() }
     }
 
     // MARK: - Authorization

@@ -33,6 +33,7 @@ private struct Inner: View {
     @StateObject private var vm: TerminalSessionViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showCloseConfirm = false
+    private let shell: String
 
     init(
         pcPeerId: String,
@@ -41,6 +42,7 @@ private struct Inner: View {
         remoteDeps: RemoteDependencies,
         pairingDeps: PairingDependencies
     ) {
+        self.shell = shell
         _vm = StateObject(wrappedValue: TerminalSessionViewModel(
             pcPeerId: pcPeerId,
             sessionId: sessionId,
