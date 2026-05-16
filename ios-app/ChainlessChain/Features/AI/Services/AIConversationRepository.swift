@@ -386,7 +386,19 @@ class AIConversationRepository {
 // MARK: - Entity Models
 
 /// AI 对话实体
-struct AIConversationEntity: Identifiable {
+struct AIConversationEntity: Identifiable, Hashable {
+    // Hashable conformance is id-based so the struct can be used as a
+    // NavigationLink `tag:` (ContentView selectedConversation routing).
+    // Manual to avoid auto-synthesis pulling in mutable fields like
+    // `title` whose equality is irrelevant for navigation identity.
+    static func == (lhs: AIConversationEntity, rhs: AIConversationEntity) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
     let id: String
     var title: String?
     let model: String

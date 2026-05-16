@@ -526,7 +526,19 @@ class ProjectRepository {
 // MARK: - Entity Models
 
 /// 项目实体
-struct ProjectEntity: Identifiable, Codable {
+struct ProjectEntity: Identifiable, Codable, Hashable {
+    // Hashable conformance is id-based so the struct can be used as a
+    // NavigationLink `tag:` (ContentView selectedProject routing).
+    // Manual to avoid auto-synthesis pulling in mutable fields whose
+    // equality is irrelevant for navigation identity.
+    static func == (lhs: ProjectEntity, rhs: ProjectEntity) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
     let id: String
     var name: String
     var description: String?
