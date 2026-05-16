@@ -14,7 +14,7 @@ class GitViewModel: ObservableObject {
     @Published var currentBranch: String = "main"
     @Published var commits: [GitCommit] = []
     @Published var selectedCommit: GitCommit?
-    @Published var diff: GitDiff?
+    @Published var diff: [GitDiff] = []
 
     @Published var isLoading: Bool = false
     @Published var error: String?
@@ -49,7 +49,7 @@ class GitViewModel: ObservableObject {
         error = nil
 
         // Check if initialized
-        isInitialized = gitManager.isInitialized(projectId: projectId)
+        isInitialized = gitManager.isGitInitialized(projectId: projectId)
 
         if isInitialized {
             loadStatus()
@@ -152,8 +152,8 @@ class GitViewModel: ObservableObject {
             stagedFiles.removeAll()
             loadStatus()
             loadCommits()
-            successMessage = "提交成功: \(commit.hash.prefix(7))"
-            logger.info("Committed: \(commit.hash)", category: "Git")
+            successMessage = "提交成功: \(commit.shortId)"
+            logger.info("Committed: \(commit.id)", category: "Git")
         } catch {
             self.error = "提交失败: \(error.localizedDescription)"
             logger.error("Failed to commit", error: error, category: "Git")
@@ -278,7 +278,7 @@ class GitViewModel: ObservableObject {
         error = nil
 
         do {
-            try gitManager.deleteBranch(projectId: projectId, name: name)
+            try gitManager.deleteBranch(projectId: projectId, branchName: name)
             loadBranches()
             successMessage = "分支 '\(name)' 已删除"
             logger.info("Deleted branch: \(name)", category: "Git")
@@ -290,20 +290,27 @@ class GitViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// 查看提交详情
+    /// 查看提交详情. GitManager.showCommit returns (commit, diff) tuple.
     func showCommitDetails(commitHash: String) {
         do {
-            selectedCommit = try gitManager.showCommit(projectId: projectId, commitHash: commitHash)
+            let result = try gitManager.showCommit(projectId: projectId, commitId: commitHash)
+            selectedCommit = result.commit
+            diff = result.diff
         } catch {
             self.error = "获取提交详情失败: \(error.localizedDescription)"
             logger.error("Failed to show commit", error: error, category: "Git")
         }
     }
 
-    /// 获取差异
+    /// 获取差异. GitManager.getDiff(commit1:commit2:) ranges between two commits;
+    /// nil/nil = working tree vs HEAD. For a single commit, diff its parent → it.
     func getDiff(commitHash: String? = nil) {
         do {
-            diff = try gitManager.getDiff(projectId: projectId, commitHash: commitHash)
+            if let hash = commitHash {
+                diff = try gitManager.getDiff(projectId: projectId, commit1: "\(hash)^", commit2: hash)
+            } else {
+                diff = try gitManager.getDiff(projectId: projectId, commit1: nil, commit2: nil)
+            }
         } catch {
             logger.error("Failed to get diff", error: error, category: "Git")
         }

@@ -125,7 +125,7 @@ class FileTreeViewModel: ObservableObject {
 
     /// 创建新文件夹
     func createFolder(name: String, parentId: String? = nil) async throws {
-        _ = try projectManager.createFolder(
+        _ = try projectManager.createDirectory(
             projectId: projectId,
             name: name,
             parentId: parentId
@@ -373,5 +373,46 @@ extension Color {
         default:
             return .gray
         }
+    }
+}
+
+// MARK: - ProjectManager id-based file ops adapters
+//
+// FileTreeViewModel works in UI-flow terms (user taps row → has fileId String)
+// but ProjectManager's real methods take ProjectFileEntity. These thin
+// adapters load the entity via ProjectRepository, then forward. Same pattern
+// as the SyncManager / LLMManager helpers (commits cb35e7a38 / f29d888bb).
+
+extension ProjectManager {
+    /// Delete file by ID (loads entity first).
+    func deleteFile(fileId: String) throws {
+        guard let file = try ProjectRepository.shared.getProjectFile(id: fileId) else {
+            throw ProjectError.fileNotFound
+        }
+        try deleteFile(file)
+    }
+
+    /// Rename file by ID (loads entity first).
+    func renameFile(fileId: String, newName: String) throws {
+        guard let file = try ProjectRepository.shared.getProjectFile(id: fileId) else {
+            throw ProjectError.fileNotFound
+        }
+        try renameFile(file, newName: newName)
+    }
+
+    /// Move file by ID (loads entity first; uses real label `toParentId`).
+    func moveFile(fileId: String, targetParentId: String?) throws {
+        guard let file = try ProjectRepository.shared.getProjectFile(id: fileId) else {
+            throw ProjectError.fileNotFound
+        }
+        try moveFile(file, toParentId: targetParentId)
+    }
+
+    /// Copy file by ID (loads entity first; uses real label `toParentId`).
+    func copyFile(fileId: String, targetParentId: String?) throws {
+        guard let file = try ProjectRepository.shared.getProjectFile(id: fileId) else {
+            throw ProjectError.fileNotFound
+        }
+        _ = try copyFile(file, toParentId: targetParentId, newName: nil)
     }
 }
