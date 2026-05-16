@@ -45,6 +45,9 @@ secrets/
 .env.local
 .env.*.local
 
+# Signed legal documents (scans of authorization letters, NDAs, signed contracts)
+docs/legal/signed/
+
 # U盾和SIMKey测试数据
 ukey-test/
 simkey-test/
