@@ -202,3 +202,78 @@ public enum ToolOutput {
 
 /// Closure type for executing a tool
 public typealias ToolExecutor = (ToolInput) async throws -> ToolOutput
+
+// MARK: - Skill Category (mirror of Features/AI/Skills/SkillSystem.swift)
+
+/// 技能分类 — copied here so the in-pbxproj subset of files (ToolModels +
+/// ComputerUseToolRegistration) sees it. The original definition in
+/// SkillSystem.swift is not in xcodeproj compile sources yet.
+public enum SkillCategory: String, Codable, CaseIterable {
+    case codeReview = "code-review"
+    case git
+    case documentation
+    case testing
+    case refactoring
+    case debugging
+    case analysis
+    case generation
+    case general
+    case custom
+    case document
+    case data
+    case web
+    case knowledge
+    case code
+    case system
+    case blockchain
+    case communication
+    case media
+}
+
+// MARK: - Tool Error (mirror of ToolManager.swift)
+
+/// 工具错误 — mirror of ToolManager.swift definition so ToolModels.swift
+/// throw-site at line 117 compiles before ToolManager.swift is wired in.
+public enum ToolError: LocalizedError {
+    case toolNotFound(String)
+    case executorNotFound(String)
+    case executionFailed(String, String)
+    case rateLimitExceeded(Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .toolNotFound(let id):
+            return "工具未找到: \(id)"
+        case .executorNotFound(let id):
+            return "工具执行器未找到: \(id)"
+        case .executionFailed(let name, let error):
+            return "工具执行失败 '\(name)': \(error)"
+        case .rateLimitExceeded(let limit):
+            return "超出速率限制: 每分钟最多 \(limit) 次调用"
+        }
+    }
+}
+
+// MARK: - Tool Manager (minimal stub)
+
+/// 工具管理器 — minimal stub so ComputerUseToolRegistration.shared.register/.unregister
+/// compile. Real implementation in ToolManager.swift (not in xcodeproj compile
+/// sources yet). When that file is wired in, delete this stub.
+public final class ToolManager {
+    public static let shared = ToolManager()
+
+    private var toolsById: [String: Tool] = [:]
+    private var executors: [String: ToolExecutor] = [:]
+
+    private init() {}
+
+    public func register(_ tool: Tool, executor: @escaping ToolExecutor) {
+        toolsById[tool.id] = tool
+        executors[tool.id] = executor
+    }
+
+    public func unregister(toolId: String) {
+        toolsById.removeValue(forKey: toolId)
+        executors.removeValue(forKey: toolId)
+    }
+}
