@@ -98,7 +98,7 @@ class RAGManager: ObservableObject {
 
         do {
             // Get all knowledge items
-            let items = repository.getAllItems()
+            let items = (try? repository.getAll(limit: 10_000, offset: 0)) ?? []
 
             guard !items.isEmpty else {
                 logger.debug("[RAGManager] Knowledge base is empty")
@@ -223,7 +223,7 @@ class RAGManager: ObservableObject {
         }
 
         // Search knowledge base using FTS
-        let items = repository.searchItems(query: query, limit: topK)
+        let items = (try? repository.search(query: query, limit: topK)) ?? []
 
         // Convert to RetrievedDocument with estimated score
         return items.map { item in

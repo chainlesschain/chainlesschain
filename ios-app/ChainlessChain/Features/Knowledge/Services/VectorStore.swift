@@ -30,11 +30,11 @@ class VectorStore: ObservableObject {
         let timestamp: Date
     }
 
-    struct VectorMetadata: Codable {
+    struct VectorMetadata: Codable, Equatable {
         let title: String
         let type: String
-        let createdAt: String?
-        let updatedAt: String?
+        let createdAt: Date?
+        let updatedAt: Date?
     }
 
     struct SearchResult {
@@ -282,7 +282,7 @@ class VectorStore: ObservableObject {
     }
 
     /// Internal scored result for heap operations
-    private struct ScoredResult: Comparable {
+    private struct ScoredResult: Equatable, Comparable {
         let id: String
         let score: Float
         let metadata: VectorMetadata
