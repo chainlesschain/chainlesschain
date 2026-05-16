@@ -3,6 +3,17 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.57] - 2026-05-17 — Android FileTransferScreen 本机下载浏览面板
+
+> Plan C Android↔PC 文件传输 (`3463e059a`) 落地后的 UX 补强：Android 端新增「本机下载文件夹」面板，用户可以直接在 app 内浏览公共 Downloads 目录里下载到的文件，点击调系统应用打开，免去跳 Files app 翻找。
+
+**已完成**：
+- `FileTransferScreen` TopBar 增加 `PhoneAndroid` 图标按钮，切换显示 `LocalDownloadsPanel`
+- `queryLocalDownloads()` 通过 `MediaStore.Downloads.EXTERNAL_CONTENT_URI` 查询（API 29+ 公共 Downloads 目录），按 `DATE_ADDED DESC` 排序，每行展示文件名 / 大小 / 时间 + 「打开」按钮
+- 面板内置刷新 / 关闭 / loading 态 / 空态提示，最大高度 360dp + LazyColumn
+
+**背景**：Plan C 落地后用户反馈，下载完文件只看到 Toast「已保存到 Downloads」，但不知道具体哪里、也无法直接打开。这次面板就在 FileTransferScreen 内集成，UX 闭环。
+
 ## [v5.0.3.56] - 2026-05-16 — iOS CI 真编译收口 (Phase 1-5 SPM 绿) + release.yml 防 mask
 
 > 2026-05-15/16 一晚 20 iter 推进 iOS GitHub Actions 真编译。Phase 1-5 时代所有 iOS CI 显示 success 实际从未真编译——双层 mask 让失败假绿。本次收口让 Phase 1-5 SPM 模块（CoreP2P 起 263 unit tests 基底）真编绿，揭示 app target 412 个老代码 compile error。

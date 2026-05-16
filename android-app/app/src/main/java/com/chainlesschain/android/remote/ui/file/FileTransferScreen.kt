@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -67,10 +68,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.ContentUris
 import android.content.Intent
 import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.data.FileTransferEntity
@@ -102,6 +107,11 @@ fun FileTransferScreen(
     var showBrowsePanel by remember { mutableStateOf(false) }
     // 默认浏览起点：用户家目录 占位符 "~"；PC 端 file-handler 应识别并解析为当前系统的 home。
     var pathInput by remember { mutableStateOf("~") }
+
+    var showLocalPanel by remember { mutableStateOf(false) }
+    var localDownloads by remember { mutableStateOf<List<LocalDownloadItem>>(emptyList()) }
+    var isLocalLoading by remember { mutableStateOf(false) }
+    var localRefreshTick by remember { mutableStateOf(0) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -181,6 +191,9 @@ fun FileTransferScreen(
                     IconButton(onClick = { showDownloadPanel = !showDownloadPanel }) {
                         Icon(Icons.Default.CloudDownload, stringResource(R.string.rs_file_download))
                     }
+                    IconButton(onClick = { showLocalPanel = !showLocalPanel }) {
+                        Icon(Icons.Default.PhoneAndroid, contentDescription = "本机下载文件夹")
+                    }
                     IconButton(onClick = { viewModel.cleanupOldTransfers(30) }) {
                         Icon(Icons.Default.CleaningServices, stringResource(R.string.rs_file_cleanup))
                     }
@@ -199,6 +212,26 @@ fun FileTransferScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
+
+            if (showLocalPanel) {
+                LaunchedEffect(showLocalPanel, localRefreshTick) {
+                    isLocalLoading = true
+                    localDownloads = queryLocalDownloads(ctx)
+                    isLocalLoading = false
+                }
+                LocalDownloadsPanel(
+                    items = localDownloads,
+                    isLoading = isLocalLoading,
+                    onItemClick = { item ->
+                        openDownloadedFile(ctx, item.uri.toString())
+                    },
+                    onRefresh = { localRefreshTick++ },
+                    onClose = { showLocalPanel = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
 
             if (showDownloadPanel) {
                 Card(
@@ -607,6 +640,193 @@ fun formatTimestamp(timestamp: Long): String {
 }
 
 /**
+ * 本机 Downloads 目录下的一条文件，用于 LocalDownloadsPanel 列表。
+ */
+internal data class LocalDownloadItem(
+    val displayName: String,
+    val size: Long,
+    val mimeType: String,
+    val dateAdded: Long,   // 毫秒
+    val uri: android.net.Uri,
+)
+
+/**
+ * 查询本机公共 Downloads 目录的所有文件 (按 dateAdded DESC)。
+ * API 29+ 通过 MediaStore.Downloads；老版本暂返回空（fallback app-private 路径
+ * 用户不需要在 app 内浏览，他们也访问不到）。
+ */
+internal suspend fun queryLocalDownloads(
+    context: android.content.Context,
+): List<LocalDownloadItem> = withContext(Dispatchers.IO) {
+    val items = mutableListOf<LocalDownloadItem>()
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return@withContext items
+    val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    val projection = arrayOf(
+        MediaStore.MediaColumns._ID,
+        MediaStore.MediaColumns.DISPLAY_NAME,
+        MediaStore.MediaColumns.SIZE,
+        MediaStore.MediaColumns.MIME_TYPE,
+        MediaStore.MediaColumns.DATE_ADDED,
+    )
+    runCatching {
+        context.contentResolver.query(
+            collection,
+            projection,
+            null,
+            null,
+            "${MediaStore.MediaColumns.DATE_ADDED} DESC",
+        )?.use { cursor ->
+            val idIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+            val nameIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+            val sizeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+            val mimeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+            val dateIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idIdx)
+                items.add(
+                    LocalDownloadItem(
+                        displayName = cursor.getString(nameIdx) ?: "(未命名)",
+                        size = cursor.getLong(sizeIdx),
+                        mimeType = cursor.getString(mimeIdx) ?: "*/*",
+                        dateAdded = cursor.getLong(dateIdx) * 1000L,
+                        uri = ContentUris.withAppendedId(collection, id),
+                    ),
+                )
+            }
+        }
+    }
+    items
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalDownloadsPanel(
+    items: List<LocalDownloadItem>,
+    isLoading: Boolean,
+    onItemClick: (LocalDownloadItem) -> Unit,
+    onRefresh: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = "本机下载文件夹",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "内部存储 / Download (${items.size} 个)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row {
+                    IconButton(onClick = onRefresh, enabled = !isLoading) {
+                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                    }
+                    TextButton(onClick = onClose) {
+                        Text(stringResource(R.string.common_close))
+                    }
+                }
+            }
+
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            HorizontalDivider()
+
+            if (items.isEmpty() && !isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "暂无下载文件",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(360.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(items = items, key = { it.uri.toString() }) { item ->
+                        LocalDownloadRow(item = item, onClick = { onItemClick(item) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalDownloadRow(
+    item: LocalDownloadItem,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.InsertDriveFile,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${formatFileSize(item.size)} · ${formatTimestamp(item.dateAdded)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = "打开",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/**
  * 触发系统 viewer 打开下载到 Downloads 文件夹的文件。
  *
  * 主路径：Intent.ACTION_VIEW + content:// uri + FLAG_GRANT_READ_URI_PERMISSION。
@@ -692,6 +912,11 @@ private fun HelpBanner(modifier: Modifier = Modifier) {
             )
             Text(
                 text = "☁️↓ 输入远程路径直接下载（或在浏览面板里点文件）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "📱 本机下载文件夹 — 列出 Download 目录已下载文件，点击直接打开（不跳出 app）",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )

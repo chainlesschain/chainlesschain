@@ -5,6 +5,19 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.57] - 2026-05-17 — Android FileTransferScreen 本机下载浏览面板
+
+> Plan C Android↔PC 文件传输落地 (`3463e059a`) 后的 UX 补强：Android 端新增「本机下载文件夹」面板，让用户直接在 app 里浏览公共 Downloads 目录里已下载的文件（之前只能跳 Files app 找）。
+
+### Added
+
+- `android-app/.../remote/ui/file/FileTransferScreen.kt` — 新增 `LocalDownloadsPanel` Composable + `queryLocalDownloads()` suspend fn：通过 `MediaStore.Downloads.EXTERNAL_CONTENT_URI` 查询公共 Downloads 目录（API 29+，老版本返回空），按 `DATE_ADDED DESC` 排序，每行显示文件名 / 大小 / 时间 + 点击调系统打开
+- TopBar 加 `PhoneAndroid` 图标 IconButton 切换面板显隐 (`showLocalPanel` state)；面板内含刷新按钮 + 关闭按钮 + LinearProgressIndicator loading 态 + 空态提示
+
+### Why
+
+- Plan C 落地后用户实测反馈：下载完文件只看到 Toast「已保存到 Downloads」，但不知道具体哪里、也无法直接打开。这次面板就在 FileTransferScreen 内集成，UX 闭环
+
 ## [v5.0.3.56] - 2026-05-16 — iOS CI 真编译收口 (Phase 1-5 SPM 绿) + release.yml 防 mask
 
 > 2026-05-15/16 一晚 20 iter 推进 iOS GitHub Actions 真编译。之前 Phase 1-5 时代所有 iOS CI 假绿（双层 mask：`continue-on-error` job 级 + `xcodebuild | xcpretty || true` pipe 级），从未真编译过。本次收口让 Phase 1-5 SPM 模块（CoreP2P + transitive deps）真编绿，揭示 app target 412 个老代码 compile error。
