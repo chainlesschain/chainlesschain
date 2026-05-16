@@ -1,15 +1,19 @@
 import SwiftUI
 import CoreP2P
 
-/// AI 对话列表 sheet — Phase 5.4。
+/// 远程 AI 对话列表 sheet — Phase 5.4。
 ///
-/// 从 [AIChatView] toolbar Menu "历史对话" 或空状态 button 弹出。
+/// **命名**：`RemoteAIChatConversationListView` 而非 `ConversationListView`，
+/// 避开 `Features/Social/Views/ConversationListView.swift:5` 同名 struct 冲突
+/// （那是 P2P 社交聊天会话列表，与本 view 远程 AI 对话是两套独立 stack）。
+///
+/// 从 [RemoteAIChatView] toolbar Menu "历史对话" 或空状态 button 弹出。
 /// List(.insetGrouped) of Conversation rows，swipe-to-delete + tap → selectConversation。
 /// 顶部 "+ 新对话" toolbar button + pull-to-refresh + 空状态。
 ///
 /// **owner**: 父 view 持有 vm（@StateObject）；本 view 用 @ObservedObject 共享。
 /// dismiss callback 由父决定（@State var showConversationList）。
-struct ConversationListView: View {
+struct RemoteAIChatConversationListView: View {
     @ObservedObject var vm: RemoteAIChatViewModel
     let onDismiss: () -> Void
 

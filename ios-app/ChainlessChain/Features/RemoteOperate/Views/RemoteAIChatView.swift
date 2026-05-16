@@ -97,7 +97,7 @@ private struct Inner: View {
             await vm.loadConversations()
         }
         .sheet(isPresented: $showConversationList) {
-            ConversationListView(vm: vm) {
+            RemoteAIChatConversationListView(vm: vm) {
                 showConversationList = false
             }
         }

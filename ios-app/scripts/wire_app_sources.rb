@@ -44,6 +44,8 @@ FILES = %w[
   ChainlessChain/Features/RemoteOperate/Views/ClipboardView.swift
   ChainlessChain/Features/RemoteOperate/Views/FileBrowserView.swift
   ChainlessChain/Features/RemoteOperate/Views/NotificationsView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatConversationListView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatView.swift
   ChainlessChain/Features/RemoteOperate/Views/RemoteOperateView.swift
   ChainlessChain/Features/RemoteOperate/Views/ScreenshotView.swift
   ChainlessChain/Features/RemoteOperate/Views/SkillTabPickerView.swift
