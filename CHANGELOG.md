@@ -5,6 +5,40 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.56] - 2026-05-16 — iOS CI 真编译收口 (Phase 1-5 SPM 绿) + release.yml 防 mask
+
+> 2026-05-15/16 一晚 20 iter 推进 iOS GitHub Actions 真编译。之前 Phase 1-5 时代所有 iOS CI 假绿（双层 mask：`continue-on-error` job 级 + `xcodebuild | xcpretty || true` pipe 级），从未真编译过。本次收口让 Phase 1-5 SPM 模块（CoreP2P + transitive deps）真编绿，揭示 app target 412 个老代码 compile error。
+
+### Fixed — iOS CI workflow 16 iter 主线收口
+
+- `.github/workflows/ios-build.yml` — 拔双层 mask，destination 改 `generic/platform=iOS Simulator`，pivot 到 native `swift build --target CoreP2P`（绕开 xcodebuild + Package.swift CLI 不可靠的坑）。Phase 1-5 CoreP2P 真编译验证（run 25923999179）
+- `ios-app/Package.swift` 清理：删 dead targets（CoreBlockchain 目录从未创建 / sqlcipher repo 没 Package.swift / libsignal repo 没 root Package.swift）；恢复 CoreDatabase target（之前误删——其实只用 Apple 内置 SQLite3）；CoreDatabase DAO+Migrations 暂排除编译（缺 8 个未实现 model 类型）
+- `ios-app/ChainlessChain.xcodeproj/project.pbxproj`：commit `5ea6c47bf` 修 25 个 broken file path（24 改 ./ChainlessChain/Features/.../X.swift 全路径 + 删 KnowledgeItem.swift 孤儿引用）；commit `159fc2403` 程序化加 XCLocalSwiftPackageReference + 6 个 XCSwiftPackageProductDependency（via `wire_spm_packages.rb`）
+- `.gitignore` `models/` 改 `/models/` — anchor 顶层，避免 case-insensitive 误杀子目录 Modules/iOS Features/*/Models/（实战屏蔽 7 个 Swift 文件 silent）
+- `.github/workflows/release.yml` build-ios job — 删 `ruby scripts/create_xcode_project.rb`（会覆盖 wiring）+ 删所有 mask + 临时回退 SPM-only 路径（待 app target 412 错消化后再恢复 xcodebuild archive + IPA export）
+
+### Added — iOS 缺失类型补 stubs
+
+- `Modules/CoreDID/Sources/CoreDID/Models/DIDIdentity.swift` — Codable struct
+- `Modules/CoreDID/Sources/CoreDID/Crypto/Ed25519.swift` + `Ed25519KeyPair.swift` — CryptoKit Curve25519.Signing 包装
+- `Modules/CoreDID/Sources/CoreDID/Crypto/Base58.swift` — pure Swift base58btc 编解码 (~70 行)
+- `Modules/CoreSecurity/Sources/CoreSecurity/Crypto/CryptoManager.swift` 加 `private extension Data { var bytes: [UInt8] }`（CryptoSwift 1.10 移除原 extension）
+- `Modules/CoreP2P/Sources/Pairing/{Desktop,ScanDesktop}PairingViewModel.swift` 3 处 Phase 1-5 时未真编验过的 Swift bug（covariant Self default arg / unwrap nil pcPeerId / redeclaration data）
+
+### Added — iOS CI 工具链
+
+- `ios-app/scripts/wire_spm_packages.rb`（~70 行）+ `.github/workflows/ios-wire-spm.yml`（manual dispatch）— 程序化把本地 SPM library 接进 .xcodeproj，避免 Mac Xcode UI 手工
+- `.github/workflows/ios-app-target-test.yml`（manual dispatch）— 验证 app target xcodebuild 编译进度，跑 unsigned simulator build
+
+### Known limitations
+
+- iOS app target 真编暴露 412 个 compile error 跨 30+ 文件，是 Phase 1-5 之前的 scaffold + 半实现老债（缺 ViewModel/Model/Entity ~150 个 + iOS 15 vs 16/17 API 兼容 + SyncStatus 歧义 + Codable ext 综合 + Logger.configure mismatch）。详见 memory `ios_app_target_compile_state.md`。修复 path 4 级（极轻 30min → 极重 1-2 周）
+- v5.0.3.56 release 不产 iOS 安装包（.ipa/.app）— `release.yml` build-ios 临时 SPM-only。`docs-site/docs/changelog.md` 同步说明
+
+### Changed
+
+- 5 个 orphaned Swift models 入库（Blockchain/ChainConfig+Wallet / Collaboration/CollaborativeDocument+Version / Enterprise/Workspace），早于 Phase 1-5 创建但被 `.gitignore models/` silent 屏蔽几月
+
 ## [v5.0.3.55] - 2026-05-15 — iOS Phase 1+2+3+4 完整移植 + 2 P0 修
 
 > Android v1.0 GA 验证后，iOS 端启动镜像移植，一日内三 Phase 框架级落地：133 文件 / ~264 单测 / 3 设计文档 / 3 trap memory。代码 review 后期修两处 continuation 泄漏 P0。

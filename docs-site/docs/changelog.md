@@ -3,6 +3,20 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.56] - 2026-05-16 — iOS CI 真编译收口 (Phase 1-5 SPM 绿) + release.yml 防 mask
+
+> 2026-05-15/16 一晚 20 iter 推进 iOS GitHub Actions 真编译。Phase 1-5 时代所有 iOS CI 显示 success 实际从未真编译——双层 mask 让失败假绿。本次收口让 Phase 1-5 SPM 模块（CoreP2P 起 263 unit tests 基底）真编绿，揭示 app target 412 个老代码 compile error。
+
+**已完成**：
+- `.github/workflows/ios-build.yml` 全 mask 拔除 + native `swift build --target CoreP2P` 路径稳定，Phase 1-5 真编验证（run 25923999179）
+- `.xcodeproj` 程序化接 SPM wiring（`ios-app/scripts/wire_spm_packages.rb` + manual-dispatch workflow `ios-wire-spm.yml`）
+- 补缺失类型（DIDIdentity / Ed25519 / Ed25519KeyPair / Base58 / Data.bytes ext / SecKey force-cast）
+- 修 Phase 1-5 真 Swift 编译 bug（covariant Self / pcPeerId unwrap / data redeclaration）
+- `.gitignore models/` → `/models/` anchor，解屏蔽 7 个 iOS Swift 文件
+- `release.yml` build-ios 删 stale `create_xcode_project.rb`、删全 mask、临时 SPM-only 路径不阻塞 release
+
+**已知限制**：iOS app target 412 编译错（pre-Phase-1-5 老 scaffold），本版本暂不产 .ipa/.app 安装包。修复路径详见 memory `ios_app_target_compile_state.md`，4 级工作量评估（极轻 30min → 极重 1-2 周）。
+
 ## [v5.0.3.55] - 2026-05-15 — Android GA 后续 #21 P1 主体 5/5 + iOS Phase 1+2+3+4 完整移植
 
 > 桌面 Android v1.0 GA (`v5.0.3.53`) 上架后，issue #21 P1 主体 5 项一日内全部 land — A.1+A.2+B.1+B.5+C.1 闭环，~270 单测 + 5 设计文档 + Linux 用户配对指南。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。
