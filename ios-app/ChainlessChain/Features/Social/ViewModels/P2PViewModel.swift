@@ -319,7 +319,10 @@ class P2PViewModel: ObservableObject {
     }
 
     /// Synchronous image compression (runs off main thread)
-    private static func compressImageSync(_ image: UIImage) -> (Data?, Data?, CGSize) {
+    /// `nonisolated` because @MainActor on the enclosing class would otherwise
+    /// require `await` from Task.detached context, which we don't want for a
+    /// pure sync helper.
+    private nonisolated static func compressImageSync(_ image: UIImage) -> (Data?, Data?, CGSize) {
         let maxDimension: CGFloat = 1920
         let thumbnailDimension: CGFloat = 200
         let compressionQuality: CGFloat = 0.7
@@ -854,9 +857,9 @@ class P2PViewModel: ObservableObject {
                         )
                     }
 
-                    logger.debug("[P2PViewModel] Received and saved message: \(messageId)")
+                    self.logger.debug("[P2PViewModel] Received and saved message: \(messageId)")
                 } catch {
-                    logger.debug("[P2PViewModel] Error saving received message: \(error)")
+                    self.logger.debug("[P2PViewModel] Error saving received message: \(error)")
                 }
             }
         }
@@ -1005,8 +1008,8 @@ class P2PViewModel: ObservableObject {
             return cachedName
         }
 
-        // Try to get from contacts repository
-        if let contact = try? P2PContactRepository.shared.getContact(did: peerId) {
+        // Try to get from contacts repository — peerId is a DID string
+        if let contact = try? P2PContactRepository.shared.getContactByDid(did: peerId) {
             let name = contact.displayName ?? String(peerId.prefix(8))
 
             // Cache the result

@@ -314,8 +314,11 @@ class GroupChatViewModel: ObservableObject {
 
     private func loadMemberNames(dids: [String]) async {
         for did in dids {
-            if let contact = try? contactRepository.getContact(did: did) {
-                memberNames[did] = contact.displayName ?? contact.nickname ?? String(did.prefix(8))
+            if let contact = try? contactRepository.getContactByDid(did: did) {
+                // P2PContactEntity.displayName is a non-optional computed
+                // String (returns truncated DID if name empty) — no nil
+                // coalescing needed and no `nickname` field exists.
+                memberNames[did] = contact.displayName
             } else {
                 memberNames[did] = String(did.prefix(8))
             }
@@ -331,7 +334,7 @@ class GroupChatViewModel: ObservableObject {
             availableContacts = contacts.map { $0.did }
 
             for contact in contacts {
-                memberNames[contact.did] = contact.displayName ?? contact.nickname ?? String(contact.did.prefix(8))
+                memberNames[contact.did] = contact.displayName
             }
         } catch {
             logger.debug("[GroupChatViewModel] Error loading contacts: \(error)")

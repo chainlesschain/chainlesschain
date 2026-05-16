@@ -318,18 +318,22 @@ class FileEditorViewModel: ObservableObject {
 
 // MARK: - ProjectManager Extension
 
+// Extension lives in a separate file from `class ProjectManager` so the
+// `private let repository = ProjectRepository.shared` field is not in scope.
+// Use the public singleton directly — same instance the private field points
+// to, just accessed via the public API.
 extension ProjectManager {
     func getFile(fileId: String) throws -> ProjectFileEntity? {
-        try repository.getFile(id: fileId)
+        try ProjectRepository.shared.getProjectFile(id: fileId)
     }
 
     func updateFileContent(fileId: String, content: String) throws {
-        guard var file = try repository.getFile(id: fileId) else {
+        guard var file = try ProjectRepository.shared.getProjectFile(id: fileId) else {
             throw ProjectError.fileNotFound
         }
         file.content = content
         file.size = Int64(content.utf8.count)
         file.updatedAt = Date()
-        try repository.updateFile(file)
+        try ProjectRepository.shared.updateProjectFile(file)
     }
 }
