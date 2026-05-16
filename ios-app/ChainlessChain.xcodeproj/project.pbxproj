@@ -47,6 +47,7 @@
 		564B4B46F23B7A38B0899634 /* PairedDevicesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB4E5405259278E2E79C0AD5 /* PairedDevicesListView.swift */; };
 		56752372A10D322DDC6F4624 /* GroupChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9ABC912104F75749E37B15 /* GroupChatViewModel.swift */; };
 		5B498BE3D725AF2A77328C95 /* ComputerUseAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5892706D86D35FF6E717CAD /* ComputerUseAgent.swift */; };
+		5BDE261524618A78F370BABF /* QrCodeImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */; };
 		5C99DC01439495ADA824F78E /* PerformanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009BF35AC92B10F851AD2236 /* PerformanceManager.swift */; };
 		5FC92F7B71BECCC860771E8B /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAAC03F450F9F493A6AF476 /* ScreenRecorder.swift */; };
 		60227C667B04B3FCBA164D40 /* GitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0FAE3E4E80C97984455A4E /* GitManager.swift */; };
@@ -126,6 +127,7 @@
 		F6CCA74976CF5336A59239C7 /* MessageStatusManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48631B8C1263C905AAB2F71E /* MessageStatusManager.swift */; };
 		F72DDC516B73B33349D8159F /* WebRTCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC62BDC254550A9098A68D56 /* WebRTCManager.swift */; };
 		F7B44D98434D21A959567921 /* ProjectChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724B143492030ABF800C75AC /* ProjectChatViewModel.swift */; };
+		FA9500DD3590367797980802 /* GenericQRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */; };
 		FCCED5F1537C1005EA885597 /* RemoteDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03FC00A9EF45A1774EF86B69 /* RemoteDependencies.swift */; };
 		FE7364C06C86B193C0B94321 /* DesktopPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629324AA76B65A31BE422695 /* DesktopPairingView.swift */; };
 /* End PBXBuildFile section */
@@ -216,6 +218,7 @@
 		C2608689829ED73A12B5F641 /* ImageStorageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageStorageManager.swift; path = ./ChainlessChain/Features/Knowledge/Services/ImageStorageManager.swift; sourceTree = "<group>"; };
 		C54A55654F05014B5595D33D /* RemoteOperateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteOperateView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteOperateView.swift; sourceTree = "<group>"; };
 		C8C6947D0A060543F26F5179 /* OllamaClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OllamaClient.swift; path = ./ChainlessChain/Features/AI/Services/OllamaClient.swift; sourceTree = "<group>"; };
+		C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GenericQRScannerView.swift; path = ./ChainlessChain/Features/Common/Views/GenericQRScannerView.swift; sourceTree = "<group>"; };
 		CB4E5405259278E2E79C0AD5 /* PairedDevicesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PairedDevicesListView.swift; path = ./ChainlessChain/Features/Pairing/Views/PairedDevicesListView.swift; sourceTree = "<group>"; };
 		CC0FAE3E4E80C97984455A4E /* GitManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GitManager.swift; path = ./ChainlessChain/Features/Project/Services/GitManager.swift; sourceTree = "<group>"; };
 		CC62BDC254550A9098A68D56 /* WebRTCManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebRTCManager.swift; path = ./ChainlessChain/Features/Social/Services/WebRTCManager.swift; sourceTree = "<group>"; };
@@ -231,6 +234,7 @@
 		DE207B983149F4C73DA62947 /* ProjectRAGManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectRAGManager.swift; path = ./ChainlessChain/Features/Project/Services/ProjectRAGManager.swift; sourceTree = "<group>"; };
 		DE37CB0FBE2A949619321677 /* FileTreeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileTreeView.swift; path = ./ChainlessChain/Features/Project/Views/FileTreeView.swift; sourceTree = "<group>"; };
 		DEE5BC1E2E2834D363B94DE5 /* SignalProtocolManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SignalProtocolManager.swift; path = ./ChainlessChain/Features/Social/Services/SignalProtocolManager.swift; sourceTree = "<group>"; };
+		E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = QrCodeImage.swift; path = ./ChainlessChain/Features/Common/Views/QrCodeImage.swift; sourceTree = "<group>"; };
 		E3C88C6FD8BE8AE16B62086A /* AppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppConfig.swift; path = ./ChainlessChain/Features/Common/Constants/AppConfig.swift; sourceTree = "<group>"; };
 		E4AE728CAE5C6A8663560DBA /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = ./ChainlessChain/App/ContentView.swift; sourceTree = "<group>"; };
 		E4BE6FE0B59957804C190009 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkInterceptor.swift; path = ./ChainlessChain/Features/ComputerUse/Services/NetworkInterceptor.swift; sourceTree = "<group>"; };
@@ -645,6 +649,8 @@
 				302A64B83CC87FFF4F916DCF /* SkillTabPickerView.swift */,
 				BF29C93A541D0E20AC59F14C /* SystemInfoView.swift */,
 				E5CD4195A694F0A1EFF248A7 /* PushNotificationManager+RemoteTarget.swift */,
+				C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */,
+				E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1076,6 +1082,8 @@
 				C7F544EDEB11BA752853A6B0 /* SkillTabPickerView.swift in Sources */,
 				A3ACA8960B497A34E172AD06 /* SystemInfoView.swift in Sources */,
 				81268F40E665EF358A9CCEE0 /* PushNotificationManager+RemoteTarget.swift in Sources */,
+				FA9500DD3590367797980802 /* GenericQRScannerView.swift in Sources */,
+				5BDE261524618A78F370BABF /* QrCodeImage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
