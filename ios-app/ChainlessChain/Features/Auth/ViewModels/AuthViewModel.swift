@@ -231,6 +231,17 @@ class AuthViewModel: ObservableObject {
         logger.error("Auth error", error: error, category: "Auth")
         errorMessage = error.localizedDescription
     }
+
+    // MARK: - Logout
+
+    /// Sign out the current user — clear auth state.
+    /// Note: DB close is a follow-up (DatabaseManager has no close() yet).
+    func logout() {
+        AppState.shared.isAuthenticated = false
+        AppState.shared.isDatabaseUnlocked = false
+        AppState.shared.currentDID = nil
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaults.currentDID)
+    }
 }
 
 // MARK: - Auth Error

@@ -721,6 +721,7 @@ class ExploreFeedViewModel: ObservableObject {
     func loadFeed() async {}
     func refresh() async {}
     func applyFiltersAndSort() {}
+    func loadMore() {}
 }
 
 struct ExploreStatsOverview: View {
