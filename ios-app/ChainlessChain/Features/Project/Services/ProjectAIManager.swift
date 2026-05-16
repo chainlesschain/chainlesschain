@@ -1385,13 +1385,17 @@ class ProjectAIManager: ObservableObject {
 
     /// 开始新会话
     func startNewConversation(projectId: String) async throws {
-        // Create new conversation
+        // Create new conversation. AIConversationEntity init requires `model: String`;
+        // pick the first available model or fall back to "default" if LLM not
+        // initialized yet (ProjectAIManager runs before LLM provider is configured
+        // in some bootstrap paths).
+        let model = llmManager.availableModels.first ?? "default"
         let conversation = AIConversationEntity(
             title: "项目对话 - \(Date().formatted())",
-            summary: nil
+            model: model
         )
 
-        try aiConversationRepository.saveConversation(conversation)
+        try aiConversationRepository.createConversation(conversation)
         currentConversationId = conversation.id
         conversationHistory = []
 
@@ -1408,7 +1412,7 @@ class ProjectAIManager: ObservableObject {
     func getProjectConversations(projectId: String) -> [AIConversationEntity] {
         // Filter conversations by project context
         // For now, return all conversations
-        return aiConversationRepository.getAllConversations()
+        return (try? aiConversationRepository.getAllConversations()) ?? []
     }
 
     // MARK: - Private Helpers
@@ -1557,15 +1561,16 @@ class ProjectAIManager: ObservableObject {
     private func saveConversation(projectId: String) async throws {
         guard let conversationId = currentConversationId else { return }
 
-        // Save messages to database
-        for (index, msg) in conversationHistory.enumerated() {
+        // Save messages to database. AIMessageEntity has no `orderIndex` — ordering
+        // is derived from `createdAt` at read time. Real method is addMessage, not
+        // saveMessage.
+        for msg in conversationHistory {
             let messageEntity = AIMessageEntity(
                 conversationId: conversationId,
                 role: msg.role,
-                content: msg.content,
-                orderIndex: index
+                content: msg.content
             )
-            try aiConversationRepository.saveMessage(messageEntity)
+            try aiConversationRepository.addMessage(messageEntity)
         }
     }
 }
@@ -1586,5 +1591,38 @@ enum ProjectAIError: LocalizedError {
         case .chatFailed(let message):
             return "AI 对话失败: \(message)"
         }
+    }
+}
+
+// MARK: - LLMManager Dict-Style Adapter
+//
+// ProjectAIManager was scaffolded against a JS-style dict API (messages:
+// [[String:String]] + options: [String:Any] → returns [String:Any]) but the
+// current LLMManager.chat takes typed [LLMMessage] + ChatOptions and returns
+// LLMResponse. Rather than touch 13 call sites this file uses an adapter that
+// translates both directions.
+//
+// When ProjectAIManager itself is rewritten against the typed API, delete
+// this extension.
+
+extension LLMManager {
+    /// Dict-style chat adapter — accepts old `[[String:String]]` messages +
+    /// `[String:Any]` options and returns `[String:Any]` ({content, tokens, model}).
+    func chat(messages dictMessages: [[String: String]], options dictOpts: [String: Any] = [:]) async throws -> [String: Any] {
+        let typedMessages: [LLMMessage] = dictMessages.map {
+            LLMMessage(role: $0["role"] ?? "user", content: $0["content"] ?? "")
+        }
+        var typedOpts = ChatOptions.default
+        if let t = dictOpts["temperature"] as? Double { typedOpts.temperature = t }
+        if let t = dictOpts["temperature"] as? Int { typedOpts.temperature = Double(t) }
+        if let p = dictOpts["topP"] as? Double { typedOpts.topP = p }
+        if let m = dictOpts["maxTokens"] as? Int { typedOpts.maxTokens = m }
+        if let mdl = dictOpts["model"] as? String { typedOpts.model = mdl }
+        let resp = try await chat(messages: typedMessages, options: typedOpts)
+        return [
+            "content": resp.text,
+            "tokens": resp.tokens,
+            "model": resp.model ?? ""
+        ]
     }
 }
