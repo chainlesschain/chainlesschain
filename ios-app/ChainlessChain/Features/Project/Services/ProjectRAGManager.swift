@@ -395,13 +395,11 @@ class ProjectRAGManager: ObservableObject {
 
     private func generateEmbedding(for text: String) async throws -> [Float] {
         // Use LLM manager to generate embeddings
-        let result = try await llmManager.generateEmbedding(text: text)
-
-        guard let embedding = result["embedding"] as? [Float], !embedding.isEmpty else {
+        let embedding = try await llmManager.generateEmbedding(text)
+        if embedding.isEmpty {
             // Fallback: generate simple TF-IDF-like embedding
             return generateSimpleEmbedding(for: text)
         }
-
         return embedding
     }
 

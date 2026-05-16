@@ -140,6 +140,10 @@ struct ImagePickerView: View {
 
     // MARK: - Selected Images Preview
 
+    private var selectedImagesPreviewBackground: Color {
+        Color(uiColor: UIColor.secondarySystemGroupedBackground)
+    }
+
     private var selectedImagesPreview: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
@@ -169,9 +173,7 @@ struct ImagePickerView: View {
             .padding()
         }
         .frame(height: 100)
-        .background {
-            Color(uiColor: UIColor.secondarySystemGroupedBackground)
-        }
+        .background(selectedImagesPreviewBackground)
     }
 
     // MARK: - Load Images
