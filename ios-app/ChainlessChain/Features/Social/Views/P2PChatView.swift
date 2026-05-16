@@ -370,37 +370,12 @@ struct P2PChatView: View {
     // MARK: - Input Bar
 
     private func inputBar(peer: P2PViewModel.PeerInfo) -> some View {
+        // Image preview extracted to reduce @ViewBuilder inference complexity
+        // (deeply nested ScrollView+ForEach+ZStack+Button caused ambiguity at
+        // line 373 VStack — same pattern fixed in GroupChatView).
         VStack(spacing: 0) {
-            // Selected images preview
             if !selectedImages.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
-                            ZStack(alignment: .topTrailing) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                Button(action: {
-                                    withAnimation {
-                                        selectedImages.remove(at: index)
-                                    }
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.white)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                        .font(.caption)
-                                }
-                                .offset(x: 6, y: -6)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                }
+                inputBarImagePreview
             }
 
             HStack(spacing: 12) {
@@ -455,6 +430,41 @@ struct P2PChatView: View {
                     ? Color(.systemGray6)
                     : Color(.systemGroupedBackground)
             )
+        }
+    }
+
+    private var inputBarImagePreview: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(selectedImages.indices, id: \.self) { index in
+                    inputBarImageTile(at: index)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+        }
+    }
+
+    private func inputBarImageTile(at index: Int) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: selectedImages[index])
+                .resizable()
+                .scaledToFill()
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            Button(action: {
+                withAnimation {
+                    selectedImages.remove(at: index)
+                }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+                    .font(.caption)
+            }
+            .offset(x: 6, y: -6)
         }
     }
 

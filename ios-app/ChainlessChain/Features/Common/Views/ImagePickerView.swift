@@ -145,35 +145,41 @@ struct ImagePickerView: View {
     }
 
     private var selectedImagesPreview: some View {
+        // Use `.indices` + index access + extracted tile to avoid
+        // @ViewBuilder inference ambiguity from `Array(.enumerated())`
+        // tuple destructure (same pattern as P2PChatView/GroupChatView).
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
-                    ZStack(alignment: .topTrailing) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 80, height: 80)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        // Delete button
-                        Button(action: {
-                            withAnimation {
-                                selectedImages.remove(at: index)
-                            }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                        }
-                        .offset(x: 8, y: -8)
-                    }
+                ForEach(selectedImages.indices, id: \.self) { index in
+                    selectedImageTile(at: index)
                 }
             }
             .padding()
         }
         .frame(height: 100)
         .background(selectedImagesPreviewBackground)
+    }
+
+    private func selectedImageTile(at index: Int) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: selectedImages[index])
+                .resizable()
+                .scaledToFill()
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            Button(action: {
+                withAnimation {
+                    selectedImages.remove(at: index)
+                }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+            }
+            .offset(x: 8, y: -8)
+        }
     }
 
     // MARK: - Load Images
