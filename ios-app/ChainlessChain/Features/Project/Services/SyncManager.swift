@@ -1,8 +1,10 @@
 import Foundation
 import CoreCommon
 
-/// 同步状态
-enum SyncStatus: String, Codable {
+/// 同步操作状态（局部 — 表示 SyncManager 操作生命周期）。
+/// 区别于 ProjectRepository.SyncStatus（local/synced/pending/conflict/error）—
+/// 后者是 ProjectEntity 字段值。两者名字若同会 ambiguous-lookup。
+enum SyncOperationStatus: String, Codable {
     case idle = "idle"
     case syncing = "syncing"
     case synced = "synced"
@@ -108,7 +110,7 @@ class SyncManager: ObservableObject {
 
     // MARK: - Published Properties
 
-    @Published var syncStatus: SyncStatus = .idle
+    @Published var syncStatus: SyncOperationStatus = .idle
     @Published var lastSyncTime: Date?
     @Published var syncProgress: Double = 0.0
     @Published var pendingChanges: Int = 0
@@ -176,7 +178,7 @@ class SyncManager: ObservableObject {
                 syncProgress = Double(index + 1) / Double(max(totalProjects, 1))
 
                 // Check if project needs syncing
-                if project.syncStatus == "synced" && !hasLocalChanges(project: project) {
+                if project.syncStatus == .synced && !hasLocalChanges(project: project) {
                     skipped.append(project.id)
                     continue
                 }
@@ -217,14 +219,15 @@ class SyncManager: ObservableObject {
     func syncProject(projectId: String) async throws {
         logger.info("Syncing project: \(projectId)", category: "Sync")
 
-        guard let project = try repository.getProjectById(projectId) else {
+        guard let project = try repository.getProject(id: projectId) else {
             throw SyncError.projectNotFound
         }
+        _ = project // silence unused warning; project fetched for validation
 
         // Check for backend connectivity
         guard let backendUrl = config.backendUrl, !backendUrl.isEmpty else {
             // No backend configured, mark as pending
-            try repository.updateProject(projectId, updates: ["sync_status": "pending"])
+            try repository.updateProject(projectId) { $0.syncStatus = .pending }
             throw SyncError.noBackendConfigured
         }
 
@@ -233,19 +236,17 @@ class SyncManager: ObservableObject {
         try await Task.sleep(nanoseconds: 200_000_000)
 
         // Update sync status
-        try repository.updateProject(projectId, updates: [
-            "sync_status": "synced",
-            "synced_at": Date().timeIntervalSince1970 * 1000
-        ])
+        try repository.updateProject(projectId) {
+            $0.syncStatus = .synced
+            $0.lastSyncedAt = Date()
+        }
 
         logger.info("Project \(projectId) synced successfully", category: "Sync")
     }
 
     /// 标记项目为待同步
     func markForSync(projectId: String) throws {
-        try repository.updateProject(projectId, updates: [
-            "sync_status": "pending"
-        ])
+        try repository.updateProject(projectId) { $0.syncStatus = .pending }
         pendingChanges += 1
     }
 
@@ -448,10 +449,8 @@ class SyncManager: ObservableObject {
             // Keep local, mark for sync to push to server
             try markForSync(projectId: conflict.projectId)
         case .newest:
-            // Use the most recently modified version
-            let localTime = conflict.localVersion.updatedAt ?? 0
-            let serverTime = conflict.serverVersion.updatedAt ?? 0
-            if serverTime > localTime {
+            // Use the most recently modified version (updatedAt is non-optional Date)
+            if conflict.serverVersion.updatedAt > conflict.localVersion.updatedAt {
                 try repository.updateProject(conflict.projectId, from: conflict.serverVersion)
             } else {
                 try markForSync(projectId: conflict.projectId)
@@ -527,18 +526,19 @@ class SyncManager: ObservableObject {
     }
 
     private func hasLocalChanges(project: ProjectEntity) -> Bool {
-        // Check if project has been modified since last sync
-        guard let syncedAt = project.syncedAt,
-              let updatedAt = project.updatedAt else {
+        // Check if project has been modified since last sync.
+        // ProjectEntity.lastSyncedAt is optional Date; updatedAt is non-optional Date.
+        // No lastSyncedAt = never synced = has changes by definition.
+        guard let lastSyncedAt = project.lastSyncedAt else {
             return true
         }
-        return updatedAt > syncedAt
+        return project.updatedAt > lastSyncedAt
     }
 
     private func refreshPendingChanges() async {
         do {
             let projects = try repository.getAllProjects()
-            pendingChanges = projects.filter { $0.syncStatus == "pending" }.count
+            pendingChanges = projects.filter { $0.syncStatus == .pending }.count
         } catch {
             logger.error("Failed to refresh pending changes", error: error, category: "Sync")
         }
@@ -582,26 +582,15 @@ class SyncManager: ObservableObject {
             throw SyncError.backupCorrupted
         }
 
-        // Restore project
+        // Restore project — decoded entity already has all fields populated.
         let project = try JSONDecoder().decode(ProjectEntity.self, from: metadata.originalData)
-        _ = try repository.createProject(
-            name: project.name,
-            description: project.description,
-            type: ProjectType(rawValue: project.projectType ?? "document") ?? .document,
-            tags: project.tagsList
-        )
+        try repository.createProject(project)
 
-        // Restore files
+        // Restore files — same: decoded entities pass through.
         if let filesData = try? Data(contentsOf: filesPath),
            let files = try? JSONDecoder().decode([ProjectFileEntity].self, from: filesData) {
             for file in files {
-                _ = try? repository.createProjectFile(
-                    projectId: projectId,
-                    name: file.name,
-                    type: file.type,
-                    content: file.content,
-                    parentId: file.parentId
-                )
+                try? repository.createProjectFile(file)
             }
         }
 
@@ -675,29 +664,50 @@ enum SyncError: LocalizedError {
     }
 }
 
-// MARK: - ProjectEntity Extension
-
-extension ProjectEntity {
-    var syncStatus: String? {
-        metadata?["sync_status"]
-    }
-
-    var syncedAt: TimeInterval? {
-        guard let value = metadata?["synced_at"] else { return nil }
-        return TimeInterval(value)
-    }
-}
-
-// MARK: - ProjectRepository Extension
+// MARK: - ProjectRepository Sync Helpers
+//
+// Two thin convenience methods over the real updateProject(_:ProjectEntity).
+// SyncManager uses them to avoid load-mutate-save boilerplate.
+//
+// (Removed an older ProjectEntity extension that read sync_status/synced_at
+// from a non-existent metadata: [String: String]? property. The current
+// ProjectEntity stores syncStatus + lastSyncedAt as first-class typed fields.)
 
 extension ProjectRepository {
-    func updateProject(_ projectId: String, from entity: ProjectEntity) throws {
-        try updateProject(projectId, updates: [
-            "name": entity.name,
-            "description": entity.description ?? "",
-            "project_type": entity.projectType ?? "document",
-            "status": entity.status ?? "active",
-            "tags": entity.tags ?? "[]"
-        ])
+    /// Apply field updates to an existing project by ID. Loads → mutates → saves.
+    func updateProject(_ id: String, _ mutate: (inout ProjectEntity) -> Void) throws {
+        guard var entity = try getProject(id: id) else {
+            throw ProjectError.projectNotFound
+        }
+        mutate(&entity)
+        try updateProject(entity)
+    }
+
+    /// Overwrite an existing project with a fresh entity body (preserving its id).
+    func updateProject(_ id: String, from entity: ProjectEntity) throws {
+        var copy = entity
+        if copy.id != id {
+            // Caller intent: persist `entity`'s fields under the existing `id`.
+            // The current ProjectEntity has `let id` so we can't rewrite it inline;
+            // fall back to load → field-by-field copy.
+            guard var target = try getProject(id: id) else {
+                throw ProjectError.projectNotFound
+            }
+            target.name = entity.name
+            target.description = entity.description
+            target.type = entity.type
+            target.status = entity.status
+            target.tagsJson = entity.tagsJson
+            target.fileCount = entity.fileCount
+            target.totalSize = entity.totalSize
+            target.isShared = entity.isShared
+            target.shareToken = entity.shareToken
+            target.syncStatus = entity.syncStatus
+            target.lastSyncedAt = entity.lastSyncedAt
+            target.metadata = entity.metadata
+            target.updatedAt = Date()
+            copy = target
+        }
+        try updateProject(copy)
     }
 }
