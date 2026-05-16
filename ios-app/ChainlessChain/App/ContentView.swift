@@ -338,51 +338,56 @@ struct ExploreView: View {
 
     // MARK: - Navigation Links
 
+    // Group {} of 3 `if let { NavigationLink }` branches blew @ViewBuilder
+    // inference (Result = TupleView<(C1,C2,C3)> with deeply nested closures).
+    // Extract each link into its own property + compose via ViewBuilder so
+    // each sub-expression is type-checked in isolation.
+    @ViewBuilder
     private var navigationLinks: some View {
-        Group {
-            // Knowledge navigation — `tag:` requires a non-optional value but
-            // selectedKnowledge is `KnowledgeItem?`. Gate the whole link on
-            // `if let` so the tag receives the unwrapped value. Activation
-            // semantics unchanged: when selectedKnowledge transitions nil →
-            // item, link appears and immediately matches selection.
-            if let item = selectedKnowledge {
-                NavigationLink(
-                    destination: KnowledgeDetailView(
-                        item: item,
-                        onUpdate: { _ in
-                            Task {
-                                await viewModel.refresh()
-                            }
-                        },
-                        onDelete: {
-                            selectedKnowledge = nil
-                            Task {
-                                await viewModel.refresh()
-                            }
-                        }
-                    ),
-                    tag: item,
-                    selection: $selectedKnowledge
-                ) { EmptyView() }
-            }
+        knowledgeNavigationLink
+        conversationNavigationLink
+        projectNavigationLink
+    }
 
-            // AI Conversation navigation — same optional-tag gate as Knowledge.
-            if let conversation = selectedConversation {
-                NavigationLink(
-                    destination: AIChatView(conversation: conversation.toConversation()),
-                    tag: conversation,
-                    selection: $selectedConversation
-                ) { EmptyView() }
-            }
+    @ViewBuilder
+    private var knowledgeNavigationLink: some View {
+        if let item = selectedKnowledge {
+            NavigationLink(
+                destination: KnowledgeDetailView(
+                    item: item,
+                    onUpdate: { _ in
+                        Task { await viewModel.refresh() }
+                    },
+                    onDelete: {
+                        selectedKnowledge = nil
+                        Task { await viewModel.refresh() }
+                    }
+                ),
+                tag: item,
+                selection: $selectedKnowledge
+            ) { EmptyView() }
+        }
+    }
 
-            // Project navigation — same optional-tag gate.
-            if let project = selectedProject {
-                NavigationLink(
-                    destination: ProjectDetailView(project: project),
-                    tag: project,
-                    selection: $selectedProject
-                ) { EmptyView() }
-            }
+    @ViewBuilder
+    private var conversationNavigationLink: some View {
+        if let conversation = selectedConversation {
+            NavigationLink(
+                destination: AIChatView(conversation: conversation.toConversation()),
+                tag: conversation,
+                selection: $selectedConversation
+            ) { EmptyView() }
+        }
+    }
+
+    @ViewBuilder
+    private var projectNavigationLink: some View {
+        if let project = selectedProject {
+            NavigationLink(
+                destination: ProjectDetailView(project: project),
+                tag: project,
+                selection: $selectedProject
+            ) { EmptyView() }
         }
     }
 

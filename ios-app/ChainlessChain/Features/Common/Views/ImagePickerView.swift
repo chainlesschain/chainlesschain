@@ -170,7 +170,13 @@ struct ImagePickerView: View {
 
             Button(action: {
                 withAnimation {
-                    selectedImages.remove(at: index)
+                    // Combined: (1) explicit Int re-bind disambiguates
+                    // Array.remove(at:) vs RangeReplaceableCollection.remove(at:)
+                    // overload; (2) `_ =` discards `-> Element` return so
+                    // withAnimation infers Result = Void. Same pattern in
+                    // GroupChatView and P2PChatView.
+                    let i: Int = index
+                    _ = selectedImages.remove(at: i)
                 }
             }) {
                 Image(systemName: "xmark.circle.fill")
