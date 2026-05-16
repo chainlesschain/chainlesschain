@@ -236,21 +236,26 @@ ChainlessChain follows [Semantic Versioning](https://semver.org/):
 
 ### Updating Version
 
-1. **In `desktop-app-vue/package.json`**:
+Single source of truth is **`package.json.productVersion`** in the repo root (format `vX.Y.Z.N`). Five surfaces derive from it and must be kept in sync on every bump:
 
-   ```json
-   {
-     "version": "0.21.0"
-   }
-   ```
+| # | Surface | Path | Format | Example |
+|---|---------|------|--------|---------|
+| 1 | Product line (SoT) | `package.json` → `productVersion` | `vX.Y.Z.N` | `v5.0.3.56` |
+| 2 | Desktop app | `desktop-app-vue/package.json` → `version` | `X.Y.Z-alpha.N` | `5.0.3-alpha.56` |
+| 3 | CLI (independent track) | `packages/cli/package.json` → `version` | semver | `0.156.2` |
+| 4 | Monorepo root (independent) | `package.json` → `version` | semver | `5.0.3` |
+| 5 | **iOS app** | `ios-app/ChainlessChain/Resources/Info.plist` | `CFBundleShortVersionString=X.Y.Z` + `CFBundleVersion=N` | `5.0.3` + `56` |
 
-2. **Using npm version command**:
-   ```bash
-   cd desktop-app-vue
-   npm version patch  # 0.20.0 -> 0.20.1
-   npm version minor  # 0.20.1 -> 0.21.0
-   npm version major  # 0.21.0 -> 1.0.0
-   ```
+**iOS rules** (App Store Connect rejects mismatches):
+- `CFBundleShortVersionString` accepts **at most 3 numeric segments**, each `≤9999`. Use `productVersion` 前 3 段 (`5.0.3`).
+- `CFBundleVersion` must monotonically increase per marketing version. Use `productVersion` 第 4 段 (`56`).
+- 4-segment marketing strings (`5.0.3.56`) will fail upload — keep this in mind.
+
+```bash
+npm version patch  # 0.20.0 -> 0.20.1
+npm version minor  # 0.20.1 -> 0.21.0
+npm version major  # 0.21.0 -> 1.0.0
+```
 
 ### Release Types
 
@@ -289,7 +294,10 @@ ChainlessChain follows [Semantic Versioning](https://semver.org/):
 
 Before creating a release:
 
-- [ ] Update version in `desktop-app-vue/package.json`
+- [ ] Bump `package.json.productVersion` (single source of truth)
+- [ ] Sync `desktop-app-vue/package.json` `version` field (`X.Y.Z-alpha.N` form — required for electron-updater)
+- [ ] Sync iOS `Info.plist`: `CFBundleShortVersionString` (X.Y.Z) + `CFBundleVersion` (N) at `ios-app/ChainlessChain/Resources/Info.plist`
+- [ ] Run `node scripts/check-version-sync.js` — must exit 0 (verifies all derived surfaces match productVersion)
 - [ ] Update CHANGELOG.md with changes
 - [ ] Test all features on target platforms
 - [ ] Run tests: `npm run test:all`
