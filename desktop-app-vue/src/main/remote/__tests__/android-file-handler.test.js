@@ -184,20 +184,24 @@ describe("AndroidFileHandler", () => {
       expect(stat.isDirectory()).toBe(true);
     });
 
-    it("delete file", async () => {
+    it("delete file (via handle dispatch)", async () => {
       const f = path.join(tmpRoot, "x.txt");
       await fsPromises.writeFile(f, "x");
-      const r = await handler.delete({ path: f });
+      const r = await handler.handle("delete", { path: f }, {});
       expect(r.success).toBe(true);
       await expect(fsPromises.stat(f)).rejects.toThrow();
     });
 
-    it("delete directory needs recursive=true", async () => {
+    it("delete directory (recursive=true)", async () => {
       const d = path.join(tmpRoot, "d");
       await fsPromises.mkdir(d);
       await fsPromises.writeFile(path.join(d, "x"), "x");
 
-      const r = await handler.delete({ path: d, recursive: true });
+      const r = await handler.handle(
+        "delete",
+        { path: d, recursive: true },
+        {},
+      );
       expect(r.success).toBe(true);
       await expect(fsPromises.stat(d)).rejects.toThrow();
     });

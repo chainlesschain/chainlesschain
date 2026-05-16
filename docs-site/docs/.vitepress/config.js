@@ -42,6 +42,7 @@ export default defineConfig({
           { text: "合规与威胁情报", link: "/guide/compliance-threat-intel" },
           { text: "默克尔树证书 MTC", link: "/guide/mtc-merkle-tree-certs" },
           { text: "远程终端 (Android↔桌面 PTY)", link: "/guide/remote-terminal" },
+          { text: "远程文件 (Android↔桌面 浏览/上传/下载)", link: "/guide/remote-file" },
         ],
       },
       { text: "API参考", link: "/api/introduction" },
@@ -91,6 +92,10 @@ export default defineConfig({
             {
               text: "远程终端 Plan A (Android↔桌面 PTY)",
               link: "/guide/remote-terminal",
+            },
+            {
+              text: "远程文件 (Android↔桌面 浏览/上传/下载)",
+              link: "/guide/remote-file",
             },
           ],
         },

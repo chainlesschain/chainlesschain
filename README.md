@@ -2,6 +2,16 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-17 发布 — **Android 远程文件 skill 端到端（浏览 / 上传 / 下载 / app 内打开）**
+
+> Android 手机配对桌面后，三大能力一次性落地：浏览 PC 任意目录（无 sandbox）、上传本机文件到 PC `~/Downloads/`、PC 文件下载到手机**公共 Download 目录**（MediaStore.Downloads，原生「文件管理」/「相册」/「阅读器」都能直接看到）。Snackbar 「打开」按钮 `Intent.ACTION_VIEW(content://...)` 拉系统 viewer，**不跳出 app**。
+
+- **修 6 个互锁 bug**（[设计文档 §4-§5](docs/design/Android_Remote_File_Skill.md)）：(1) `P2PClient.kt:538-542` chainlesschain:* skip guard 太宽屏蔽 P2PClient 自己的响应 → 缩窄成只 skip incoming `request` / (2) Plan C 不调 `P2PClient.connect()` 致 `sendCommand` 立即 `"Not connected"` → `RemoteCommandClient` 改 delegate `SignalingRpcClient` / (3) PC `handleFileCommand` 旧 stub 含 `dialog.showOpenDialog` 弹文件夹框 + 缺 `listDirectory` case → 新 `android-file-handler.js` 11 action / (4) `FileTransferHandler` (web-shell sandboxed) 不可复用 → 不复用 / (5) checksum `"sha256-prefix:"` vs Repository 期望 `"md5:"` → 返 null / (6) `getExternalFilesDir` 用户找不到下载文件 → `MediaStore.Downloads` 公共目录。
+- **5 个 UI 入口**：📁 浏览远程目录 + ☁️↑ 上传 + ☁️↓ 下载面板 + 📱 **app 内**本机下载文件夹列表 + 🧹 清理历史。
+- **测试**：PC 单测 `android-file-handler.test.js` 30 cases 全绿；Android `RemoteCommandClientTest.kt` 4 cases 锁死 SignalingRpc delegate + 不走 `p2pClient.sendCommand`；真机 E2E 8 场景已跑通（Xiaomi 24115RA8EC × Windows 桌面）。
+- **设计文档**：[`docs/design/Android_Remote_File_Skill.md`](docs/design/Android_Remote_File_Skill.md) — 协议接口 11 action + 字段映射 + 4 互锁 bug + 2 UX 坑 + 真机 E2E 8 场景。
+- **用户文档**：[`docs-site/docs/guide/remote-file.md`](docs-site/docs/guide/remote-file.md)。
+
 ## 2026-05-15 发布 — **Android GA 后续 scope #21 P1 主体 5/5 全闭环**（A.1 + A.2 + B.1 + B.5 + C.1）
 
 > v1.0 GA 上架后 issue #21 跟进的 5 项主体 scope 一日内全部 land，累计约 270 单测全绿，最终 sweep 修 2 个 Robolectric `@Config(sdk=[33])` 漏标。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。

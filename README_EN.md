@@ -2,6 +2,16 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-17 Release — **Android Remote File Skill end-to-end (browse / upload / download / open in-app)**
+
+> Three capabilities landed in one batch on top of the desktop pairing: browse any PC directory (no sandbox); upload local Android file to PC `~/Downloads/`; download PC file to **public Download/** on the phone via `MediaStore.Downloads` (visible to native Files / Gallery / PDF readers). Snackbar "Open" button fires `Intent.ACTION_VIEW(content://...)` → system viewer, no jumping out of the app.
+
+- **Fixed 6 interlocking bugs** ([design doc §4–§5](docs/design/Android_Remote_File_Skill.md)): (1) `P2PClient.kt:538-542` chainlesschain:* skip guard was too wide and swallowed P2PClient's own responses → narrowed to only skip incoming `request`. (2) Plan C never calls `P2PClient.connect()`, so `sendCommand` fails with `"Not connected"` → `RemoteCommandClient` delegates to `SignalingRpcClient` instead. (3) Desktop `handleFileCommand` was an old stub with `dialog.showOpenDialog` popping a folder picker and missing `listDirectory` case → new `android-file-handler.js` covers 11 actions. (4) The web-shell `FileTransferHandler` is sandboxed inside userData and uses incompatible field names → not reused. (5) checksum `"sha256-prefix:"` mismatched Repository's `"md5:"` parser → return `null` to skip validation. (6) `getExternalFilesDir` lands files where users can't find them → `MediaStore.Downloads` writes to public Download/ instead.
+- **5 UI entries**: 📁 browse remote dirs + ☁️↑ upload + ☁️↓ download panel + 📱 in-app local Download folder list + 🧹 cleanup history.
+- **Tests**: PC unit tests `android-file-handler.test.js` 30 cases all green; Android `RemoteCommandClientTest.kt` 4 cases lock down the SignalingRpc delegate path + assert `p2pClient.sendCommand` is never called; real-device E2E 8 scenarios verified (Xiaomi 24115RA8EC × Windows desktop).
+- **Design doc**: [`docs/design/Android_Remote_File_Skill.md`](docs/design/Android_Remote_File_Skill.md) — protocol (11 actions) + Android↔PC field mapping + 4 interlocking bugs + 2 UX traps + real-device E2E 8 scenarios.
+- **User doc**: [`docs-site/docs/guide/remote-file.md`](docs-site/docs/guide/remote-file.md).
+
 ## 2026-05-15 Release — **Android GA Follow-up Scope #21 P1 — all 5 main items closed** (A.1 + A.2 + B.1 + B.5 + C.1)
 
 > Following Android v1.0 GA (`v5.0.3.53`), issue #21's 5 P1 main items landed in a single day. ~270 unit tests green; final sweep fixed 2 missing `@Config(sdk=[33])` Robolectric annotations. P2 candidates (B.3 / B.4 / C.2 / C.3) wait on GA Play Store + real-user feedback.

@@ -117,7 +117,7 @@ class AndroidFileHandler {
       case "exists":
         return this.exists(params);
       case "delete":
-        return this.deleteFile(params);
+        return this.delete(params);
       case "createDirectory":
         return this.createDirectory(params);
       case "requestUpload":
@@ -260,7 +260,7 @@ class AndroidFileHandler {
     }
   }
 
-  async deleteFile(params) {
+  async delete(params) {
     const fullPath = this._resolvePath(params.path);
     const { recursive = false, force = false } = params;
     try {

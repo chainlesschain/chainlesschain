@@ -60,6 +60,7 @@ const ROOT_FILE_MAP = {
   "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",
   "Android_Remote_Terminal_Plan_A1.md": "Android_Remote_Terminal_Plan_A1.md",
   "Android_Remote_Operate_Plan_AB.md": "Android_Remote_Operate_Plan_AB.md",
+  "Android_Remote_File_Skill.md": "Android_Remote_File_Skill.md",
   "iOS_Phase_1_Pairing_Flow_B.md": "iOS_Phase_1_Pairing_Flow_B.md",
   "iOS_Phase_2_Remote_Terminal.md": "iOS_Phase_2_Remote_Terminal.md",
   "iOS_Phase_3_Remote_Operate_Framework.md": "iOS_Phase_3_Remote_Operate_Framework.md",
