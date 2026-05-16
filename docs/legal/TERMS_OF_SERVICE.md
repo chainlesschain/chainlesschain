@@ -119,7 +119,7 @@ ChainlessChain 集成多种 AI 模型（本地 Ollama / 用户配置的外部 LL
 
 ### 1. Parties
 
-These Terms of Service ("Terms") are between you ("User") and **Xiamen Wulianzhilian Technology Co., Ltd.** ("we", "us", or "Company"), governing your use of the ChainlessChain application and related services (collectively, the "Service").
+These Terms of Service ("Terms") are between you ("User") and **Xiamen Chainlesschain Technology Co., Ltd.** ("we", "us", or "Company"), governing your use of the ChainlessChain application and related services (collectively, the "Service").
 
 **By clicking "I agree", registering, or continuing to use the Service, you acknowledge that you have read, understood, and accepted these Terms in full.**
 
@@ -216,7 +216,7 @@ We may update these Terms. Material changes will be announced in-app at least 7 
 
 ### 14. Contact
 
-- **Company**: Xiamen Wulianzhilian Technology Co., Ltd.
+- **Company**: Xiamen Chainlesschain Technology Co., Ltd.
 - **Service Line**: 400-1068-687
 - **Email**: legal@chainlesschain.com
 - **Postal Code**: 361000

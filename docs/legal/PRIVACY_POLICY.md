@@ -84,7 +84,7 @@ ChainlessChain **不面向 14 周岁以下未成年人**。如发现未成年人
 
 ### 1. Overview
 
-Xiamen Wulianzhilian Technology Co., Ltd. ("we") respects and protects user privacy. ChainlessChain is a **decentralized** personal AI management application built on P2P end-to-end encryption. Your data is **stored primarily on your local device** and does not pass through our centralized servers.
+Xiamen Chainlesschain Technology Co., Ltd. ("we") respects and protects user privacy. ChainlessChain is a **decentralized** personal AI management application built on P2P end-to-end encryption. Your data is **stored primarily on your local device** and does not pass through our centralized servers.
 
 This policy applies to ChainlessChain across iOS, Android, Desktop (macOS/Windows/Linux), and Web.
 
@@ -144,7 +144,7 @@ We may update this policy. Material changes will be announced in-app and reflect
 
 ### 9. Contact
 
-- **Company**: Xiamen Wulianzhilian Technology Co., Ltd.
+- **Company**: Xiamen Chainlesschain Technology Co., Ltd.
 - **Service Line**: 400-1068-687
 - **Email**: privacy@chainlesschain.com
 - **Postal Code**: 361000
