@@ -394,7 +394,7 @@ class GitManager: ObservableObject {
             author: config.userName ?? "ChainlessChain User",
             email: config.userEmail ?? "user@chainlesschain.local",
             timestamp: Date(),
-            parentIds: lastCommit != nil ? [lastCommit!.id] : []
+            parentIds: lastCommit != nil ? [lastCommit!.commit.id] : []
         )
 
         // Save commit with files snapshot

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 import CoreCommon
 
 /// 项目聊天视图模型
@@ -278,11 +279,3 @@ class ProjectChatViewModel: ObservableObject {
     }
 }
 
-// MARK: - ProjectAIManager Extension
-
-extension ProjectAIManager {
-    func clearConversation() {
-        conversationHistory.removeAll()
-        currentConversationId = nil
-    }
-}

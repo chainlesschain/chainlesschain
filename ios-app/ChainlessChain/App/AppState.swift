@@ -96,7 +96,9 @@ class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.isDatabaseUnlocked = true
+            MainActor.assumeIsolated {
+                self?.isDatabaseUnlocked = true
+            }
         }
         notificationObservers.append(databaseUnlockedObserver)
 
@@ -105,7 +107,9 @@ class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.isAuthenticated = true
+            MainActor.assumeIsolated {
+                self?.isAuthenticated = true
+            }
         }
         notificationObservers.append(authenticatedObserver)
     }
