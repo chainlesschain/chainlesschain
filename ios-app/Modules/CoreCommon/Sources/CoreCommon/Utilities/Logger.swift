@@ -57,6 +57,18 @@ public class Logger {
             logger.critical("\(message, privacy: .public)")
         }
     }
+
+    /// warn alias for warning — call-site compatibility (e.g. WalletViewModel).
+    public func warn(_ message: String, category: String = "General") {
+        warning(message, category: category)
+    }
+
+    /// configure stub — call-site compatibility (ChainlessChainApp).
+    /// os.Logger has no runtime level threshold; this is a no-op. Filtering
+    /// happens via OSLogStore / Console.app filters, not in-process.
+    public func configure(level: LogLevel) {
+        _ = level
+    }
 }
 
 // MARK: - Convenience Methods

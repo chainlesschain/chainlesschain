@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SQLite3
 
 /// 余额服务
 /// 负责查询和缓存钱包余额
