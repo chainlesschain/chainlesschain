@@ -58,7 +58,8 @@ class OllamaClient: LLMClient {
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw LLMError.apiError(code, "HTTP error: \(code)")
         }
 
         let chatResponse = try JSONDecoder().decode(ChatResponse.self, from: data)
@@ -100,7 +101,8 @@ class OllamaClient: LLMClient {
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw LLMError.apiError(code, "HTTP error: \(code)")
         }
 
         var fullText = ""

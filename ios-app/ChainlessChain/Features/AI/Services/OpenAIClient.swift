@@ -69,9 +69,11 @@ class OpenAIClient: LLMClient {
               (200...299).contains(httpResponse.statusCode) else {
             // Try to parse error message
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw LLMError.apiError(httpResponse.statusCode, errorResponse.error.message)
+                let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                throw LLMError.apiError(code, errorResponse.error.message)
             }
-            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw LLMError.apiError(code, "HTTP error: \(code)")
         }
 
         let chatResponse = try JSONDecoder().decode(ChatCompletionResponse.self, from: data)
@@ -123,7 +125,8 @@ class OpenAIClient: LLMClient {
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
-            throw LLMError.apiError(httpResponse.statusCode, "HTTP error: \(httpResponse.statusCode)")
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw LLMError.apiError(code, "HTTP error: \(code)")
         }
 
         var fullText = ""
