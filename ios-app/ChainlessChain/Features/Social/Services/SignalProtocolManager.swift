@@ -194,7 +194,7 @@ class SignalProtocolManager: ObservableObject {
         // Generate one-time pre-keys (100 keys)
         let basePreKeyId = UInt32.random(in: 1...16777215)
         for i in 0..<100 {
-            let preKeyId = (basePreKeyId + i) % 16777215
+            let preKeyId = (basePreKeyId &+ UInt32(i)) % 16777215
             let keyPair = KeyPair(
                 publicKey: P256.KeyAgreement.PrivateKey().publicKey,
                 privateKey: P256.KeyAgreement.PrivateKey()
@@ -430,7 +430,8 @@ class SignalProtocolManager: ObservableObject {
 
         // Generate nonce from message number
         var nonceData = Data(count: 12)
-        withUnsafeMutableBytes(of: session.sendingMessageNumber.bigEndian) { bytes in
+        var sendingMessageNumberBE = session.sendingMessageNumber.bigEndian
+        withUnsafeMutableBytes(of: &sendingMessageNumberBE) { bytes in
             nonceData.replaceSubrange(8..<12, with: bytes)
         }
         let nonce = try AES.GCM.Nonce(data: nonceData)
@@ -484,7 +485,8 @@ class SignalProtocolManager: ObservableObject {
 
         // Generate nonce from message number
         var nonceData = Data(count: 12)
-        withUnsafeMutableBytes(of: envelope.messageNumber.bigEndian) { bytes in
+        var messageNumberBE = envelope.messageNumber.bigEndian
+        withUnsafeMutableBytes(of: &messageNumberBE) { bytes in
             nonceData.replaceSubrange(8..<12, with: bytes)
         }
         let nonce = try AES.GCM.Nonce(data: nonceData)

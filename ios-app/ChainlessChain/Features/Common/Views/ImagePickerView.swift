@@ -140,7 +140,7 @@ struct ImagePickerView: View {
 
     // MARK: - Selected Images Preview
 
-    private var selectedImagesPreviewBackground: Color {
+    private var selectedImagesPreviewBackground: some View {
         Color(uiColor: UIColor.secondarySystemGroupedBackground)
     }
 
