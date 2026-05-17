@@ -721,6 +721,9 @@ jobs:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
           set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — surface real errors
+          # to CI log + persist to artifact for post-mortem).
           xcodebuild archive \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -732,7 +735,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             PROVISIONING_PROFILE_SPECIFIER=adhoc \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            -allowProvisioningUpdates | xcpretty
+            -allowProvisioningUpdates \
+            2>&1 | tee build/xcodebuild-archive.log
 
       - name: Export IPA (signed)
         if: env.SIGNING_AVAILABLE == 'true'
@@ -767,7 +771,8 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath build/ChainlessChain.xcarchive \
             -exportPath build/output \
-            -exportOptionsPlist ExportOptions.plist | xcpretty
+            -exportOptionsPlist ExportOptions.plist \
+            2>&1 | tee build/xcodebuild-export.log
           ls -la build/output/
 
       - name: Build iOS app for Simulator (unsigned fallback)
@@ -807,6 +812,17 @@ jobs:
         if: always()
         run: |
           security delete-keychain build.keychain 2>/dev/null || true
+
+      - name: Upload xcodebuild logs (diagnostics, always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-xcodebuild-logs
+          path: |
+            ios-app/build/xcodebuild-archive.log
+            ios-app/build/xcodebuild-export.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
