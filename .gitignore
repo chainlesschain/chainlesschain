@@ -40,6 +40,7 @@ backend/standalone/
 *.pem
 *.p12
 *.pfx
+*.mobileprovision
 secrets/
 .env
 .env.local
