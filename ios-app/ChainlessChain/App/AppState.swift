@@ -91,12 +91,17 @@ class AppState: ObservableObject {
     // MARK: - Notification Observers
 
     private func setupNotificationObservers() {
+        // NOTE: `MainActor.assumeIsolated` requires iOS 17+. Deployment target
+        // here is iOS 16, so calling it directly on iOS 16 hits a missing
+        // symbol → dyld crash the moment the notification fires (right after
+        // PIN unlocks the database). Use `Task { @MainActor in … }` which
+        // back-deploys to iOS 13.
         let databaseUnlockedObserver = NotificationCenter.default.addObserver(
             forName: AppConstants.Notification.databaseUnlocked,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated {
+            Task { @MainActor in
                 self?.isDatabaseUnlocked = true
             }
         }
@@ -107,7 +112,7 @@ class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated {
+            Task { @MainActor in
                 self?.isAuthenticated = true
             }
         }
