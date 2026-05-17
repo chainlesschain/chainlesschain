@@ -9,6 +9,8 @@
  *   2. desktop-app-vue/package.json.version    (must be "X.Y.Z-alpha.N")
  *   3. ios-app/.../Info.plist CFBundleShortVersionString  (must be "X.Y.Z")
  *   4. ios-app/.../Info.plist CFBundleVersion             (must be "N")
+ *   5. android-app/app/build.gradle.kts versionName       (must be "X.Y.Z.N")
+ *   6. android-app/app/build.gradle.kts versionCode       (must be M*100000 + m*10000 + p*1000 + b)
  *
  * Independent tracks (not enforced, reported only):
  *   - packages/cli/package.json.version          (CLI alpha-prerelease, decoupled)
@@ -62,9 +64,15 @@ const sot = rootPkg.productVersion;
 const parts = parseProductVersion(sot);
 const xyz = `${parts.major}.${parts.minor}.${parts.patch}`;
 const expectedDesktop = `${xyz}-alpha.${parts.build}`;
+const expectedAndroidName = `${xyz}.${parts.build}`;
+const expectedAndroidCode =
+  Number(parts.major) * 100000 +
+  Number(parts.minor) * 10000 +
+  Number(parts.patch) * 1000 +
+  Number(parts.build);
 
 console.log(`Source of truth: package.json.productVersion = ${sot}`);
-console.log(`Expected derivations: desktop=${expectedDesktop}, ios.short=${xyz}, ios.build=${parts.build}`);
+console.log(`Expected derivations: desktop=${expectedDesktop}, ios.short=${xyz}, ios.build=${parts.build}, android.name=${expectedAndroidName}, android.code=${expectedAndroidCode}`);
 console.log();
 
 // 2. desktop-app-vue/package.json
@@ -101,6 +109,35 @@ if (iosPlist) {
     );
   } else {
     console.log(`  OK  ios Info.plist CFBundleVersion = ${bundleVer}`);
+  }
+}
+
+// 5 + 6. Android build.gradle.kts
+const androidGradlePath = "android-app/app/build.gradle.kts";
+let androidGradle;
+try {
+  androidGradle = read(androidGradlePath);
+} catch (err) {
+  failures.push(`cannot read ${androidGradlePath}: ${err.message}`);
+}
+if (androidGradle) {
+  const nameMatch = /versionName\s*=\s*"([^"]+)"/.exec(androidGradle);
+  const codeMatch = /versionCode\s*=\s*(\d+)/.exec(androidGradle);
+  const androidName = nameMatch ? nameMatch[1] : null;
+  const androidCode = codeMatch ? Number(codeMatch[1]) : null;
+  if (androidName !== expectedAndroidName) {
+    failures.push(
+      `${androidGradlePath} versionName = "${androidName}", expected "${expectedAndroidName}"`,
+    );
+  } else {
+    console.log(`  OK  android build.gradle.kts versionName = ${androidName}`);
+  }
+  if (androidCode !== expectedAndroidCode) {
+    failures.push(
+      `${androidGradlePath} versionCode = ${androidCode}, expected ${expectedAndroidCode} (formula: M*100000 + m*10000 + p*1000 + b)`,
+    );
+  } else {
+    console.log(`  OK  android build.gradle.kts versionCode = ${androidCode}`);
   }
 }
 

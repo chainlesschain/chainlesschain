@@ -6,6 +6,21 @@ BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
 echo "📌 当前分支: $BRANCH"
 echo ""
 
+# 0. 版本号一致性 (productVersion ↔ desktop / iOS / Android)
+# 防 v5.0.3.53→57 Android 漂移类问题 (UpdateChecker 拿 BuildConfig.VERSION_NAME 比对 release tag)
+echo "🔢 版本号一致性检查..."
+node scripts/check-version-sync.js
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ 版本号不一致 — 请同步所有表面后再 push"
+  echo "   常见漏 bump 表面: android-app/app/build.gradle.kts (versionName + versionCode)"
+  echo "   ios-app/.../Info.plist (CFBundleVersion)"
+  echo ""
+  echo "如需跳过检查（不推荐 — 会让 in-app 自动更新失效），使用: git push --no-verify"
+  exit 1
+fi
+echo ""
+
 # 进入 desktop-app-vue 目录
 cd desktop-app-vue || exit 1
 

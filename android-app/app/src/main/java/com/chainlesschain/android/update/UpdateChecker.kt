@@ -18,12 +18,16 @@ import javax.inject.Singleton
 /**
  * APK 更新检查器 —— 走 GitHub Releases API。
  *
- * 约定：Android release 用 tag 前缀 `android-v`（区分桌面端 release）：
- *   - `android-v0.36.0` → versionName=0.36.0
- *   - 桌面端 release 用 `v5.0.3.45` / 类似格式 —— 自动跳过
+ * 约定（2026-05-14 起 Android 跟桌面同一个 release tag，per
+ * memory feedback_android_tag_follows_desktop.md）：
+ *   - 新格式 `v5.0.3.57` —— 桌面 + Android assets 同挂一个 tag
+ *   - 老格式 `android-v1.0.0` —— v1.0 GA 前的独立 Android 标签，向后兼容
  *
- * APK 资产命名要求 release 至少含 `app-arm64-v8a-release.apk`（multi-abi 包
- * 也支持 `app-universal-release.apk` 兜底）。
+ * 识别策略：tag 必须以 `v` 或 `android-v` 开头 **且** release 真挂了 `.apk`
+ * asset（防把桌面 dmg-only release 当成 Android update）。
+ *
+ * APK 资产命名优先级：`app-arm64-v8a-release.apk` > `app-universal-release.apk`
+ * > 第一个 `.apk` 兜底。
  */
 @Singleton
 class UpdateChecker @Inject constructor(
@@ -61,11 +65,19 @@ class UpdateChecker @Inject constructor(
                     val tag = release.jsonObject["tag_name"]?.jsonPrimitive?.content ?: ""
                     val isDraft = release.jsonObject["draft"]?.jsonPrimitive?.content == "true"
                     val isPre = release.jsonObject["prerelease"]?.jsonPrimitive?.content == "true"
-                    tag.startsWith("android-v") && !isDraft && !isPre
+                    if (isDraft || isPre) return@firstOrNull false
+                    if (!tag.startsWith("v") && !tag.startsWith("android-v")) return@firstOrNull false
+                    // 跟桌面同 tag 后必须验证真挂了 .apk asset，否则纯桌面 release 会被误识别
+                    val assets = release.jsonObject["assets"]?.jsonArray ?: return@firstOrNull false
+                    assets.any { asset ->
+                        val name = asset.jsonObject["name"]?.jsonPrimitive?.content ?: ""
+                        name.endsWith(".apk")
+                    }
                 }?.jsonObject ?: return@withContext null
 
                 val tag = androidRelease["tag_name"]?.jsonPrimitive?.content ?: return@withContext null
-                val remoteVersion = tag.removePrefix("android-v")
+                // 链式 strip：`android-v5.0.3.57` → `5.0.3.57`；`v5.0.3.57` → `5.0.3.57`
+                val remoteVersion = tag.removePrefix("android-v").removePrefix("v")
                 val current = BuildConfig.VERSION_NAME
                 if (!isNewer(remoteVersion, current)) {
                     Timber.tag("UpdateChecker").i("local=$current remote=$remoteVersion (no update)")
