@@ -299,7 +299,11 @@ fun NavGraph(
                 onNavigateToSteps = { navController.navigate(Screen.StepDetail.createRoute(it)) },
                 // #21: folder icon now opens this project's files, not the global file browser
                 onNavigateToFileBrowser = { navController.navigate(Screen.ProjectFiles.createRoute(projectId)) },
-                onNavigateToTaskList = { navController.navigate(Screen.TaskList.route) }
+                onNavigateToTaskList = { navController.navigate(Screen.TaskList.route) },
+                // Sub-phase 7.5: 远程文件 CRUD
+                onNavigateToRemoteFiles = { pid, name ->
+                    navController.navigate(Screen.RemoteProjectFiles.createRoute(pid, name))
+                },
             )
         }
 
@@ -317,8 +321,10 @@ fun NavGraph(
         // Sub-phase 10 (2026-05-17): RemoteProjectBrowser — PC→Android 选择性拉项目
         // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
         composable(Screen.RemoteProjectBrowser.route) {
-            val browserAuthVm: AuthViewModel = hiltViewModel()
-            val browserAuthState by browserAuthVm.uiState.collectAsState()
+            // 用 NavGraph 传入的 shared authViewModel（含已登录 user state），
+            // 不要 hiltViewModel() 拿新 instance — 后者 currentUser 为 null，
+            // userId 空触发桌面端 PERMISSION_DENIED。
+            val browserAuthState by authViewModel.uiState.collectAsState()
             com.chainlesschain.android.remote.ui.project.RemoteProjectBrowserScreen(
                 userId = browserAuthState.currentUser?.id ?: "",
                 onNavigateBack = { navController.popBackStack() },
@@ -327,6 +333,23 @@ fun NavGraph(
                         popUpTo(Screen.RemoteProjectBrowser.route) { inclusive = true }
                     }
                 },
+            )
+        }
+
+        // Sub-phase 7.5 (2026-05-17): 远程项目文件 CRUD
+        composable(
+            route = Screen.RemoteProjectFiles.routePattern,
+            arguments = listOf(
+                navArgument("projectId") { type = NavType.StringType },
+                navArgument("projectName") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            val pid = entry.arguments?.getString("projectId") ?: return@composable
+            val name = entry.arguments?.getString("projectName")?.let { android.net.Uri.decode(it) } ?: ""
+            com.chainlesschain.android.remote.ui.project.RemoteProjectFilesScreen(
+                projectId = pid,
+                projectName = name,
+                onNavigateBack = { navController.popBackStack() },
             )
         }
 
@@ -907,6 +930,13 @@ sealed class Screen(val route: String) {
     // Sub-phase 10 (2026-05-17): Android 项目管理 → 远程终端入口 — PC→Android 选择性拉
     // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
     data object RemoteProjectBrowser : Screen("remote_project_browser")
+
+    // Sub-phase 7.5 (2026-05-17): 远程项目文件 CRUD 屏
+    data object RemoteProjectFiles : Screen("remote_project_files/{projectId}/{projectName}") {
+        const val routePattern = "remote_project_files/{projectId}/{projectName}"
+        fun createRoute(projectId: String, projectName: String) =
+            "remote_project_files/$projectId/${android.net.Uri.encode(projectName)}"
+    }
     data object LLMSettings : Screen("llm_settings")
     data object UsageStatistics : Screen("usage_statistics")
     data object LLMTest : Screen("llm_test") {

@@ -1970,9 +1970,69 @@ class ChainlessChainApp {
       case "terminal":
         return this.handleTerminalCommand(action, params, ctx);
 
+      case "project":
+        return this.handleProjectCommand(action, params, ctx);
+
       default:
         throw new Error(`Unknown command namespace: ${namespace}`);
     }
+  }
+
+  /**
+   * v1.3 (2026-05-17) Android 项目管理 → 远程终端入口 Sub-phase 10
+   * 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+   *
+   * Proxies to MobileBridgeSync handleProjectList / handleProjectPullSingle.
+   */
+  async handleProjectCommand(action, params, ctx) {
+    if (!this.mobileBridgeSync) {
+      throw new Error("MobileBridgeSync 未就绪");
+    }
+    switch (action) {
+      case "list":
+        return await this.mobileBridgeSync.handleProjectList(params || {}, ctx);
+      case "pullSingle":
+        return await this.mobileBridgeSync.handleProjectPullSingle(
+          params || {},
+          ctx,
+        );
+      // Sub-phase 7.2 (2026-05-17): Android 也能调 file CRUD — 委派到既有
+      // ProjectManagementHandler（与 web-shell 共享 handler 实例，写同 SQLite）
+      case "listFiles":
+      case "createFile":
+      case "createFolder":
+      case "writeFile":
+      case "deleteFile": {
+        const handler = this._getProjectManagementHandler();
+        if (!handler) {
+          throw new Error("ProjectManagementHandler 未就绪");
+        }
+        return await handler.handle(action, params || {}, ctx || {});
+      }
+      default:
+        throw new Error(`Unknown project action: ${action}`);
+    }
+  }
+
+  /**
+   * 获取或懒初始化 ProjectManagementHandler 单例（与 web-shell 共享）。
+   * Sub-phase 7.2: Android RPC 调 project.createFile 等也走此 handler。
+   */
+  _getProjectManagementHandler() {
+    if (!this._projectManagementHandler) {
+      try {
+        const ProjectManagementHandler = require("./remote/handlers/project-management-handler");
+        // L1567 同款 fallback：不同初始化路径 binding 名不一致
+        const db =
+          this.dbManager || this.databaseManager || this.database || null;
+        if (db) {
+          this._projectManagementHandler = new ProjectManagementHandler(db);
+        }
+      } catch (e) {
+        logger.warn("[Main] ProjectManagementHandler 初始化失败:", e.message);
+      }
+    }
+    return this._projectManagementHandler;
   }
 
   /**

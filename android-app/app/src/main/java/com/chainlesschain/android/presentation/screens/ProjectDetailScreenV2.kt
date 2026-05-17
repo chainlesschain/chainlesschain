@@ -46,6 +46,7 @@ fun ProjectDetailScreenV2(
     onNavigateToSteps: (String) -> Unit = {},
     onNavigateToFileBrowser: (String) -> Unit = {},
     onNavigateToTaskList: () -> Unit = {},
+    onNavigateToRemoteFiles: (String, String) -> Unit = { _, _ -> },
     viewModel: ProjectViewModel = hiltViewModel(),
     authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel()
 ) {
@@ -93,6 +94,7 @@ fun ProjectDetailScreenV2(
                 onNavigateBack = onNavigateBack,
                 onNavigateToFileBrowser = { onNavigateToFileBrowser(projectId) },
                 onNavigateToTaskList = onNavigateToTaskList,
+                onNavigateToRemoteFiles = { onNavigateToRemoteFiles(projectId, projectTitle) },
                 isLoading = projectDetailState is ProjectDetailState.Loading
             )
         },
@@ -227,6 +229,7 @@ fun ProjectDetailTopBar(
     onNavigateBack: () -> Unit,
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToTaskList: () -> Unit = {},
+    onNavigateToRemoteFiles: () -> Unit = {},
     isLoading: Boolean = false
 ) {
     val context = LocalContext.current
@@ -262,6 +265,10 @@ fun ProjectDetailTopBar(
             }
             IconButton(onClick = onNavigateToFileBrowser) {
                 Icon(Icons.Outlined.Folder, contentDescription = stringResource(R.string.project_detail_import_file))
+            }
+            // Sub-phase 7.5 (2026-05-17): 远程文件 CRUD 入口（PC 端项目实时读写）
+            IconButton(onClick = onNavigateToRemoteFiles) {
+                Icon(Icons.Default.Cloud, contentDescription = "远程文件")
             }
             IconButton(onClick = onNavigateToTaskList) {
                 Icon(Icons.Default.Assignment, contentDescription = stringResource(R.string.project_detail_task_list))

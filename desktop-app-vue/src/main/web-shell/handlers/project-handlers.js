@@ -49,6 +49,10 @@ function createProjectHandlers(options = {}) {
       "project.delete": unavailable,
       "project.listFiles": unavailable,
       "project.getFile": unavailable,
+      "project.createFile": unavailable,
+      "project.createFolder": unavailable,
+      "project.writeFile": unavailable,
+      "project.deleteFile": unavailable,
     };
   }
 
@@ -61,10 +65,25 @@ function createProjectHandlers(options = {}) {
   return {
     "project.list": async (msg = {}) => handler.list(msg, ctx),
     "project.show": async (msg = {}) => handler.get(msg, ctx),
-    "project.init": async (msg = {}) => handler.init(msg, ctx),
+    "project.init": async (msg = {}) => {
+      // WS routing key `type: "project.init"` 与 handler.init 参数 `type` (project
+      // type，如 "document") 同名冲突。从 msg 剥离 `type`（routing field）+ 接受
+      // `projectType` 作为 alias 传给 handler。详见 Projects.vue:222 修复注释。
+      const { type: _routingType, projectType, ...rest } = msg;
+      const params = {
+        ...rest,
+        type: projectType || rest.type || "document",
+      };
+      return handler.init(params, ctx);
+    },
     "project.delete": async (msg = {}) => handler.delete(msg, ctx),
     "project.listFiles": async (msg = {}) => handler.listFiles(msg, ctx),
     "project.getFile": async (msg = {}) => handler.getFile(msg, ctx),
+    // Sub-phase 7.2 (2026-05-17): file CRUD topics
+    "project.createFile": async (msg = {}) => handler.createFile(msg, ctx),
+    "project.createFolder": async (msg = {}) => handler.createFolder(msg, ctx),
+    "project.writeFile": async (msg = {}) => handler.writeFile(msg, ctx),
+    "project.deleteFile": async (msg = {}) => handler.deleteFile(msg, ctx),
   };
 }
 

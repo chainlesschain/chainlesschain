@@ -411,44 +411,40 @@ class MobileBridgeSync {
    * v0.1 简化版用内存 Map，进程重启重置。
    */
   async handleProjectList(params, ctx = {}) {
-    const userId = params?.userId;
     const limit = Math.min(Math.max(Number(params?.limit) || 100, 1), 500);
     const offset = Math.max(Number(params?.offset) || 0, 0);
     const includeFileCount = Boolean(params?.includeFileCount);
 
     // rate-limit
-    const sourcePeerId = ctx?.peerId || ctx?.fromPeerId || "unknown";
+    const sourcePeerId =
+      ctx?.peerId || ctx?.fromPeerId || ctx?.mobilePeerId || "unknown";
     if (!this._checkRateLimit("project.list", sourcePeerId)) {
       return { projects: [], total: 0, hasMore: false, reason: "RATE_LIMITED" };
     }
 
-    if (!userId) {
-      return {
-        projects: [],
-        total: 0,
-        hasMore: false,
-        reason: "PERMISSION_DENIED",
-      };
-    }
+    // v1.3 fix2 (2026-05-17 真机 E2E)：P2P pairing 模型下两端 userId 永远不可能
+    // 相等（不同设备不同账号 ID — 桌面 web-shell 创建走 "default" 兜底，Android
+    // 端发的是手机 User.id 如 "e81acad3-..."），eq filter 永远不命中。
+    // pairing 信令层已通过 auth.did 校验 trust，应用层无需再按 userId 过滤。
+    // 完全忽略 params.userId — 返全部活跃项目。
 
     // 总数（用 deleted=0 过滤）
     const totalRow = this.dbManager.get(
-      `SELECT COUNT(*) AS c FROM projects WHERE deleted = 0 AND user_id = ?`,
-      [userId],
+      `SELECT COUNT(*) AS c FROM projects WHERE deleted = 0`,
     );
     const total = totalRow?.c || 0;
 
     // 实际列表（select 字段视 includeFileCount 而定 — file_count/total_size 列已在表里，不必额外 join）
     const rows = this.dbManager.all(
       `SELECT id, user_id, name, description, project_type, status,
-              root_path, created_at, updated_at, device_id,
-              source_peer_id, pc_root_path, tags,
-              ${includeFileCount ? "file_count, total_size" : "NULL AS file_count, NULL AS total_size"}
-       FROM projects
-       WHERE deleted = 0 AND user_id = ?
-       ORDER BY updated_at DESC, id ASC
-       LIMIT ? OFFSET ?`,
-      [userId, limit, offset],
+                  root_path, created_at, updated_at, device_id,
+                  source_peer_id, pc_root_path, tags,
+                  ${includeFileCount ? "file_count, total_size" : "NULL AS file_count, NULL AS total_size"}
+           FROM projects
+           WHERE deleted = 0
+           ORDER BY updated_at DESC, id ASC
+           LIMIT ? OFFSET ?`,
+      [limit, offset],
     );
 
     const projects = rows.map((row) => ({
@@ -508,9 +504,10 @@ class MobileBridgeSync {
       return { error: "PROJECT_NOT_FOUND" };
     }
 
-    if (userId && row.user_id !== userId) {
-      return { error: "PERMISSION_DENIED" };
-    }
+    // v1.3 fix2 (2026-05-17): 同 handleProjectList — P2P pairing 模型下两端
+    // userId 永远不同（desktop web-shell 创建走 "default" 兜底；Android 端发
+    // 真实手机 User.id），eq check 永远拒。信任由 signaling auth.did + pairing
+    // 关系兜底，应用层不再 userId 过滤。
 
     const project = {
       id: row.id,

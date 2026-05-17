@@ -63,7 +63,128 @@ class ProjectCommands @Inject constructor(
         }
         return client.invoke("project.pullSingle", params)
     }
+
+    /**
+     * Sub-phase 7.4 (2026-05-17): 列出项目下文件清单（活跃文件）。
+     */
+    suspend fun listFiles(projectId: String, limit: Int = 100, offset: Int = 0): Result<ProjectFilesResponse> {
+        val params = mapOf("projectId" to projectId, "limit" to limit, "offset" to offset)
+        return client.invoke("project.listFiles", params)
+    }
+
+    /**
+     * Sub-phase 7.4: 在项目下新建文件（PC 端 SQLite）。
+     */
+    suspend fun createFile(
+        projectId: String,
+        filePath: String,
+        content: String = "",
+    ): Result<RemoteFileMutation> {
+        val params = mapOf(
+            "projectId" to projectId,
+            "filePath" to filePath,
+            "content" to content,
+        )
+        return client.invoke("project.createFile", params)
+    }
+
+    /**
+     * Sub-phase 7.4: 在项目下新建文件夹。
+     */
+    suspend fun createFolder(
+        projectId: String,
+        folderPath: String,
+    ): Result<RemoteFileMutation> {
+        val params = mapOf(
+            "projectId" to projectId,
+            "folderPath" to folderPath,
+        )
+        return client.invoke("project.createFolder", params)
+    }
+
+    /**
+     * Sub-phase 7.4: 更新文件内容。
+     */
+    suspend fun writeFile(fileId: String, content: String): Result<RemoteFileMutation> {
+        val params = mapOf("fileId" to fileId, "content" to content)
+        return client.invoke("project.writeFile", params)
+    }
+
+    /**
+     * Sub-phase 7.4: 软删文件/文件夹。
+     */
+    suspend fun deleteFile(fileId: String): Result<RemoteFileMutation> {
+        val params = mapOf("fileId" to fileId)
+        return client.invoke("project.deleteFile", params)
+    }
+
+    /**
+     * Sub-phase 7.4: 读单文件内容（含 content 字段）。
+     */
+    suspend fun getFile(fileId: String): Result<RemoteFileFull> {
+        val params = mapOf("fileId" to fileId)
+        return client.invoke("project.getFile", params)
+    }
 }
+
+/**
+ * project.listFiles 响应。
+ */
+data class ProjectFilesResponse(
+    val files: List<RemoteProjectFileFull> = emptyList(),
+    val count: Int = 0,
+)
+
+/**
+ * project_files row 完整字段（与桌面 schema 对齐）。
+ */
+data class RemoteProjectFileFull(
+    val id: String,
+    @SerializedName("project_id") val projectId: String,
+    @SerializedName("file_path") val filePath: String,
+    @SerializedName("file_name") val fileName: String,
+    @SerializedName("file_type") val fileType: String? = null,
+    @SerializedName("file_size") val fileSize: Long = 0,
+    @SerializedName("content_hash") val contentHash: String? = null,
+    val version: Int = 1,
+    @SerializedName("is_folder") val isFolder: Int = 0,
+    @SerializedName("created_at") val createdAt: Long = 0,
+    @SerializedName("updated_at") val updatedAt: Long = 0,
+    @SerializedName("sync_status") val syncStatus: String? = null,
+)
+
+/**
+ * createFile / createFolder / writeFile / deleteFile 通用响应（含 id + message）。
+ */
+data class RemoteFileMutation(
+    val id: String? = null,
+    @SerializedName("project_id") val projectId: String? = null,
+    @SerializedName("file_path") val filePath: String? = null,
+    @SerializedName("file_name") val fileName: String? = null,
+    @SerializedName("file_size") val fileSize: Long = 0,
+    @SerializedName("is_folder") val isFolder: Int = 0,
+    val deleted: Boolean? = null,
+    val message: String? = null,
+    val error: String? = null,
+)
+
+/**
+ * project.getFile 响应（与 listFiles 同字段但带 content）。
+ */
+data class RemoteFileFull(
+    val id: String,
+    @SerializedName("project_id") val projectId: String,
+    @SerializedName("file_path") val filePath: String,
+    @SerializedName("file_name") val fileName: String,
+    @SerializedName("file_type") val fileType: String? = null,
+    @SerializedName("file_size") val fileSize: Long = 0,
+    val content: String? = null,
+    @SerializedName("content_hash") val contentHash: String? = null,
+    val version: Int = 1,
+    @SerializedName("is_folder") val isFolder: Int = 0,
+    @SerializedName("created_at") val createdAt: Long = 0,
+    @SerializedName("updated_at") val updatedAt: Long = 0,
+)
 
 /**
  * project.list 响应模型。

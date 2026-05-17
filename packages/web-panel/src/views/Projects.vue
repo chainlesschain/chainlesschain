@@ -145,20 +145,60 @@
       </a-descriptions>
 
       <a-divider>文件</a-divider>
+      <!-- Sub-phase 7.3 (2026-05-17): 文件 CRUD toolbar -->
+      <a-space style="margin-bottom: 12px;">
+        <a-button size="small" type="primary" :disabled="!detail" @click="openCreateFile">
+          <FileAddOutlined /> 新建文件
+        </a-button>
+        <a-button size="small" :disabled="!detail" @click="openCreateFolder">
+          <FolderAddOutlined /> 新建文件夹
+        </a-button>
+      </a-space>
       <a-spin :spinning="filesLoading">
-        <a-empty v-if="!files.length && !filesLoading" description="无文件 (仅元数据项目)" />
+        <a-empty v-if="!files.length && !filesLoading" description="无文件 (点上方按钮新建)" />
         <a-list v-else size="small" :data-source="files">
           <template #renderItem="{ item }">
             <a-list-item>
-              <span>{{ item.is_folder ? '📁' : '📄' }} {{ item.file_path }}</span>
+              <span style="cursor: pointer;" @click="openEditFile(item)">{{ item.is_folder ? '📁' : '📄' }} {{ item.file_path }}</span>
               <template #extra>
-                <span v-if="item.file_size" style="color: #888; font-size: 12px;">{{ item.file_size }} B</span>
+                <a-space>
+                  <span v-if="item.file_size" style="color: #888; font-size: 12px;">{{ item.file_size }} B</span>
+                  <a-popconfirm :title="`删除 ${item.is_folder ? '文件夹' : '文件'} '${item.file_name}' ？`" ok-text="删除" ok-type="danger" cancel-text="取消" @confirm="onDeleteFile(item)">
+                    <a-button size="small" danger>×</a-button>
+                  </a-popconfirm>
+                </a-space>
               </template>
             </a-list-item>
           </template>
         </a-list>
       </a-spin>
     </a-drawer>
+
+    <!-- Sub-phase 7.3: Create file modal -->
+    <a-modal v-model:open="createFileOpen" title="新建文件" :confirm-loading="creatingFile" ok-text="创建" cancel-text="取消" @ok="onCreateFile">
+      <a-form layout="vertical">
+        <a-form-item label="文件路径（项目内）" required>
+          <a-input v-model:value="newFile.path" placeholder="例如 README.md 或 src/main.kt" />
+        </a-form-item>
+        <a-form-item label="初始内容（可选）">
+          <a-textarea v-model:value="newFile.content" :rows="6" placeholder="留空创建空文件" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- Sub-phase 7.3: Create folder modal -->
+    <a-modal v-model:open="createFolderOpen" title="新建文件夹" :confirm-loading="creatingFolder" ok-text="创建" cancel-text="取消" @ok="onCreateFolder">
+      <a-form layout="vertical">
+        <a-form-item label="文件夹路径（项目内）" required>
+          <a-input v-model:value="newFolder.path" placeholder="例如 src/utils" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- Sub-phase 7.3: Edit file content modal -->
+    <a-modal v-model:open="editFileOpen" :title="`编辑 ${editingFile?.file_name || ''}`" :confirm-loading="savingFile" ok-text="保存" cancel-text="取消" @ok="onSaveFile" width="720">
+      <a-textarea v-model:value="editFileContent" :rows="18" :auto-size="{ minRows: 12, maxRows: 24 }" style="font-family: monospace;" />
+    </a-modal>
 
     <!-- Create modal -->
     <a-modal
@@ -207,6 +247,8 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
   CheckSquareOutlined,
+  FileAddOutlined,
+  FolderAddOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useI18n } from 'vue-i18n'
@@ -221,7 +263,11 @@ const { isEmbedded } = useShellMode()
 // cc serve 模式仍用 ws.executeJson 兜底 (subprocess 在裸 node 无 asar 开销可接受)。
 async function callProjectTopic(topic, msg, fallbackCmd, timeoutMs = 8000) {
   if (isEmbedded) {
-    const reply = await ws.sendRaw({ type: topic, ...msg }, timeoutMs)
+    // 修复 (2026-05-17): 旧写法 `{ type: topic, ...msg }` 让 msg.type='document'
+    // 覆盖 routing type='project.init'，导致 WS dispatcher 找不到 topic →
+    // "Invalid type" 错误。改为：先 spread msg，再用 type 覆盖。同时 msg 端
+    // 把 `type` 字段改名 `projectType` 避免语义混淆（handler 端会两个 key 都接）。
+    const reply = await ws.sendRaw({ ...msg, type: topic }, timeoutMs)
     if (!reply?.ok) {
       const err = reply?.error
       throw new Error(typeof err === 'string' ? err : err?.message || `${topic} failed`)
@@ -380,7 +426,9 @@ async function onCreate() {
       {
         name: newProject.value.name.trim(),
         description: newProject.value.description || null,
-        type: newProject.value.type,
+        // 用 projectType 而非 type，避免与 WS routing key 冲突。handler 端
+        // (project-handlers.js) 兼容 projectType ↔ type 双 key。
+        projectType: newProject.value.type,
         rootPath: newProject.value.rootPath || null,
       },
       `project init "${newProject.value.name.trim()}" --type ${newProject.value.type} --json`,
@@ -397,6 +445,165 @@ async function onCreate() {
     message.error(err.message || String(err))
   } finally {
     creating.value = false
+  }
+}
+
+// Sub-phase 7.3 (2026-05-17): 文件 CRUD state + handlers
+const createFileOpen = ref(false)
+const creatingFile = ref(false)
+const newFile = ref({ path: '', content: '' })
+const createFolderOpen = ref(false)
+const creatingFolder = ref(false)
+const newFolder = ref({ path: '' })
+const editFileOpen = ref(false)
+const editingFile = ref(null)
+const editFileContent = ref('')
+const savingFile = ref(false)
+
+function openCreateFile() {
+  newFile.value = { path: '', content: '' }
+  createFileOpen.value = true
+}
+function openCreateFolder() {
+  newFolder.value = { path: '' }
+  createFolderOpen.value = true
+}
+
+async function refreshFiles() {
+  if (!detail.value) return
+  filesLoading.value = true
+  try {
+    const r = await callProjectTopic(
+      'project.listFiles',
+      { projectId: detail.value.id, limit: 200 },
+      `project list-files ${detail.value.id} --json`,
+      8000,
+    )
+    files.value = Array.isArray(r?.files) ? r.files : []
+  } catch (err) {
+    message.error('刷新文件失败: ' + (err.message || err))
+  } finally {
+    filesLoading.value = false
+  }
+}
+
+async function onCreateFile() {
+  if (!newFile.value.path.trim()) { message.warning('请输入文件路径'); return }
+  if (!detail.value) return
+  creatingFile.value = true
+  try {
+    const r = await callProjectTopic(
+      'project.createFile',
+      {
+        projectId: detail.value.id,
+        filePath: newFile.value.path.trim(),
+        content: newFile.value.content || '',
+      },
+      `project create-file ${detail.value.id} "${newFile.value.path.trim()}" --json`,
+      8000,
+    )
+    if (r?.id) {
+      message.success(`已创建文件 '${r.file_name}'`)
+      createFileOpen.value = false
+      await refreshFiles()
+      await loadAll()  // refresh project list to reflect file_count
+    } else {
+      message.error('创建文件失败')
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  } finally {
+    creatingFile.value = false
+  }
+}
+
+async function onCreateFolder() {
+  if (!newFolder.value.path.trim()) { message.warning('请输入文件夹路径'); return }
+  if (!detail.value) return
+  creatingFolder.value = true
+  try {
+    const r = await callProjectTopic(
+      'project.createFolder',
+      {
+        projectId: detail.value.id,
+        folderPath: newFolder.value.path.trim(),
+      },
+      `project create-folder ${detail.value.id} "${newFolder.value.path.trim()}" --json`,
+      8000,
+    )
+    if (r?.id) {
+      message.success(`已创建文件夹 '${r.file_name}'`)
+      createFolderOpen.value = false
+      await refreshFiles()
+      await loadAll()
+    } else {
+      message.error('创建文件夹失败')
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  } finally {
+    creatingFolder.value = false
+  }
+}
+
+async function onDeleteFile(item) {
+  try {
+    const r = await callProjectTopic(
+      'project.deleteFile',
+      { fileId: item.id },
+      `project delete-file ${item.id} --json`,
+      8000,
+    )
+    if (r?.deleted) {
+      message.success(`已删除 '${item.file_name}'`)
+      await refreshFiles()
+      await loadAll()
+    } else {
+      message.error('删除失败')
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  }
+}
+
+async function openEditFile(item) {
+  if (item.is_folder) { message.info('文件夹无内容可编辑'); return }
+  try {
+    const r = await callProjectTopic(
+      'project.getFile',
+      { fileId: item.id },
+      `project get-file ${item.id} --json`,
+      8000,
+    )
+    editingFile.value = item
+    editFileContent.value = r?.content || ''
+    editFileOpen.value = true
+  } catch (err) {
+    message.error('读取文件失败: ' + (err.message || err))
+  }
+}
+
+async function onSaveFile() {
+  if (!editingFile.value) return
+  savingFile.value = true
+  try {
+    const r = await callProjectTopic(
+      'project.writeFile',
+      { fileId: editingFile.value.id, content: editFileContent.value },
+      `project write-file ${editingFile.value.id} --json`,
+      8000,
+    )
+    if (r?.id) {
+      message.success('已保存')
+      editFileOpen.value = false
+      await refreshFiles()
+    } else {
+      message.error('保存失败')
+    }
+  } catch (err) {
+    message.error(err.message || String(err))
+  } finally {
+    savingFile.value = false
   }
 }
 
