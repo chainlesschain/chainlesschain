@@ -730,6 +730,8 @@ jobs:
             -clonedSourcePackagesDirPath .spm-cache \
             DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER=adhoc \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
             -allowProvisioningUpdates | xcpretty
 
       - name: Export IPA (signed)
@@ -747,6 +749,13 @@ jobs:
             <string>ad-hoc</string>
             <key>teamID</key>
             <string>${{ secrets.IOS_TEAM_ID }}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.chainlesschain.ChainlessChain</key>
+              <string>adhoc</string>
+            </dict>
             <key>compileBitcode</key>
             <false/>
             <key>stripSwiftSymbols</key>
