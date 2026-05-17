@@ -662,6 +662,22 @@ function migrateDatabase(dbManager, logger) {
       dbManager.db.run("ALTER TABLE projects ADD COLUMN delivered_at TEXT");
     }
 
+    // ==================== Android 项目管理 → 远程终端入口迁移 (V7) ====================
+    // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md Sub-phase 2
+    logger.info("[Database] 执行 Android 远程终端入口字段迁移 (V7)...");
+
+    const projectsInfoV7 = dbManager.db
+      .prepare("PRAGMA table_info(projects)")
+      .all();
+    if (!projectsInfoV7.some((col) => col.name === "source_peer_id")) {
+      logger.info("[Database] 添加 projects.source_peer_id 列");
+      dbManager.db.run("ALTER TABLE projects ADD COLUMN source_peer_id TEXT");
+    }
+    if (!projectsInfoV7.some((col) => col.name === "pc_root_path")) {
+      logger.info("[Database] 添加 projects.pc_root_path 列");
+      dbManager.db.run("ALTER TABLE projects ADD COLUMN pc_root_path TEXT");
+    }
+
     // ==================== Phase 6: Enterprise Edition Migrations ====================
     // Add team_type column to org_teams for department support (Feature 1)
     const orgTeamsInfo = dbManager.db

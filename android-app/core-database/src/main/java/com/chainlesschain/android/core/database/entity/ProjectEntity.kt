@@ -27,6 +27,17 @@ object ProjectType {
 }
 
 /**
+ * 项目来源枚举（不存表，从 pcRootPath + sourcePeerId 派生）
+ *
+ * - LOCAL：手机端 SAF 选目录创建的项目，pcRootPath/sourcePeerId 均 null
+ * - FROM_PC：从配对 PC sync 下来的项目，pcRootPath/sourcePeerId 都不为 null
+ *
+ * Android 项目管理 → 远程终端入口 / 文件 ops / Git chip 全部按此枚举决定 UI 显隐。
+ * 详见 `docs/design/Android_Project_Remote_Terminal_Entry.md` §4.1。
+ */
+enum class ProjectSource { LOCAL, FROM_PC }
+
+/**
  * 项目状态枚举
  */
 object ProjectStatus {
@@ -79,8 +90,27 @@ data class ProjectEntity(
     /** 所属用户ID */
     val userId: String,
 
-    /** 项目根路径（本地文件系统） */
+    /** 项目根路径（本地文件系统 - 在 Android 端通常是 SAF tree URI；legacy 字段，也可能含 PC path） */
     val rootPath: String? = null,
+
+    /**
+     * PC 文件系统路径 — 项目在配对 PC 上的绝对路径。
+     *
+     * FROM_PC sync 来的项目由桌面 walker 写入；本地新建项目此字段为 null。
+     * 用于：(a) 远程终端入口 `terminal.create(cwd=pcRootPath)`；(b) 文件
+     * 上传/下载锁定项目目录；(c) `git.status(repoPath=pcRootPath)` 查询。
+     *
+     * 详见 `docs/design/Android_Project_Remote_Terminal_Entry.md` §4.1。
+     */
+    val pcRootPath: String? = null,
+
+    /**
+     * 项目来源 PC 的 peerId — 同步该项目过来的桌面设备唯一标识。
+     *
+     * 用于：远程终端 / 文件 ops / git.status 调用时路由到正确的 PC（用户配多
+     * PC 时不歧义）。FROM_PC 项目才有；LOCAL 项目为 null。
+     */
+    val sourcePeerId: String? = null,
 
     /** 项目图标（Base64或URL） */
     val icon: String? = null,
@@ -151,6 +181,14 @@ data class ProjectEntity(
     /** 完成时间 */
     val completedAt: Long? = null
 ) {
+    /**
+     * 派生项目来源：LOCAL（手机自建）或 FROM_PC（从配对 PC 同步过来）。
+     *
+     * 详见 [ProjectSource] 文档与设计文档 §4.1。
+     */
+    val source: ProjectSource
+        get() = if (pcRootPath != null && sourcePeerId != null) ProjectSource.FROM_PC else ProjectSource.LOCAL
+
     /**
      * 获取标签列表
      */

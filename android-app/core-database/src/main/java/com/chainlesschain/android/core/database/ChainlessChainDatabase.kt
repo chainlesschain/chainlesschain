@@ -108,7 +108,7 @@ import com.chainlesschain.android.core.database.util.Converters
         // 同步游标实体（Phase 3d M3 step C）
         SyncRemoteCursorEntity::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

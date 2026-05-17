@@ -43,6 +43,7 @@ fun MainContainer(
     onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteProjectBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
@@ -118,6 +119,7 @@ fun MainContainer(
                     ProjectScreen(
                         onProjectClick = onNavigateToProjectDetail,
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
+                        onNavigateToRemoteProjectBrowser = onNavigateToRemoteProjectBrowser,
                         authViewModel = viewModel  // 传递共享的AuthViewModel实例
                     )
                 }

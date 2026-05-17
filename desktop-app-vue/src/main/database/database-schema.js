@@ -167,7 +167,10 @@ function createTables(dbManager, logger) {
         device_id TEXT,
         deleted INTEGER DEFAULT 0,
         category_id TEXT,
-        delivered_at TEXT
+        delivered_at TEXT,
+        -- Android 项目管理 → 远程终端入口（详见 docs/design/Android_Project_Remote_Terminal_Entry.md）
+        source_peer_id TEXT,  -- 同步来源 PC peerId（FROM_PC 项目）
+        pc_root_path TEXT     -- 项目在 PC 文件系统的绝对路径（FROM_PC 项目）
       );
 
       -- 项目文件表

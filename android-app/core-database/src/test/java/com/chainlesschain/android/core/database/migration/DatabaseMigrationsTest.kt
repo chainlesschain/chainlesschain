@@ -398,6 +398,55 @@ class DatabaseMigrationsTest {
         }
     }
 
+    // ===== MIGRATION_23_24: projects 表加 pcRootPath + sourcePeerId =====
+    // 详见 `docs/design/Android_Project_Remote_Terminal_Entry.md` Sub-phase 1
+
+    @Test
+    fun `MIGRATION_23_24 has correct version range`() {
+        val migration = DatabaseMigrations.MIGRATION_23_24
+        assertEquals(23, migration.startVersion)
+        assertEquals(24, migration.endVersion)
+    }
+
+    @Test
+    fun `MIGRATION_23_24 adds pcRootPath column to projects table`() {
+        DatabaseMigrations.MIGRATION_23_24.migrate(mockDatabase)
+
+        verify {
+            mockDatabase.execSQL(match {
+                it.contains("ALTER TABLE `projects`") &&
+                it.contains("ADD COLUMN `pcRootPath`") &&
+                it.contains("TEXT")
+            })
+        }
+    }
+
+    @Test
+    fun `MIGRATION_23_24 adds sourcePeerId column to projects table`() {
+        DatabaseMigrations.MIGRATION_23_24.migrate(mockDatabase)
+
+        verify {
+            mockDatabase.execSQL(match {
+                it.contains("ALTER TABLE `projects`") &&
+                it.contains("ADD COLUMN `sourcePeerId`") &&
+                it.contains("TEXT")
+            })
+        }
+    }
+
+    @Test
+    fun `MIGRATION_23_24 columns are nullable (no NOT NULL)`() {
+        DatabaseMigrations.MIGRATION_23_24.migrate(mockDatabase)
+
+        // 老项目升级到 v24 后 pcRootPath/sourcePeerId 必须 null → source = LOCAL（兼容现行 UX）
+        verify {
+            mockDatabase.execSQL(match {
+                (it.contains("ADD COLUMN `pcRootPath`") || it.contains("ADD COLUMN `sourcePeerId`")) &&
+                !it.contains("NOT NULL")
+            })
+        }
+    }
+
     @Test
     fun `migrations are ordered correctly`() {
         // When

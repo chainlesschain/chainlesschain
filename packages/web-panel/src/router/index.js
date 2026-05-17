@@ -32,6 +32,9 @@ const routes = [
       { path: 'permissions', name: 'Permissions', component: () => import('../views/Permissions.vue') },
       { path: 'p2p',         name: 'P2P',         component: () => import('../views/P2P.vue') },
       { path: 'mobile-bridge', name: 'MobileBridge', component: () => import('../views/MobileBridge.vue') },
+      // Sub-phase 10 (2026-05-17) Android 项目管理 → 远程终端入口 — PC web-shell placeholder
+      // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10.4 + trap 7.18
+      { path: 'mobile-projects', name: 'MobileProjects', component: () => import('../views/MobileProjects.vue') },
       { path: 'git',         name: 'Git',         component: () => import('../views/Git.vue') },
       { path: 'projects',    name: 'Projects',    component: () => import('../views/Projects.vue') },
       { path: 'project-init', name: 'ProjectInit', component: () => import('../views/ProjectInit.vue') },

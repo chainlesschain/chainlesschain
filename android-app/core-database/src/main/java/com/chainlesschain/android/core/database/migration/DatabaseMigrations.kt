@@ -41,7 +41,8 @@ object DatabaseMigrations {
             MIGRATION_19_20,
             MIGRATION_20_21,
             MIGRATION_21_22,
-            MIGRATION_22_23
+            MIGRATION_22_23,
+            MIGRATION_23_24
         )
     }
 
@@ -1110,6 +1111,29 @@ object DatabaseMigrations {
             """.trimIndent())
 
             Timber.i("Migration 22 to 23 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 23 -> 24
+     *
+     * Android 项目管理 → 远程终端入口 / 文件 ops / Git 感知（详见
+     * `docs/design/Android_Project_Remote_Terminal_Entry.md` §4.1 Sub-phase 1）。
+     *
+     * projects 表新增 2 个 nullable 列：
+     * - pc_root_path: 项目在配对 PC 上的绝对路径（FROM_PC 项目由桌面 walker 写）
+     * - source_peer_id: 同步该项目过来的 PC peerId
+     *
+     * 老数据：既有项目两列全 null → source 派生为 LOCAL，与现行 UX 完全兼容。
+     */
+    val MIGRATION_23_24 = object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Timber.i("Migrating database from version 23 to 24")
+
+            db.execSQL("ALTER TABLE `projects` ADD COLUMN `pcRootPath` TEXT")
+            db.execSQL("ALTER TABLE `projects` ADD COLUMN `sourcePeerId` TEXT")
+
+            Timber.i("Migration 23 to 24 completed successfully")
         }
     }
 

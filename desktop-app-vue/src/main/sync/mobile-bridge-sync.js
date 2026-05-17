@@ -133,6 +133,14 @@ class MobileBridgeSync {
     commandRouter.register("sync.ack", (params, ctx) =>
       this.handleAck(params, ctx),
     );
+    // v1.3 (2026-05-17) Android 项目管理 → 远程终端入口 Sub-phase 10
+    // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+    commandRouter.register("project.list", (params, ctx) =>
+      this.handleProjectList(params, ctx),
+    );
+    commandRouter.register("project.pullSingle", (params, ctx) =>
+      this.handleProjectPullSingle(params, ctx),
+    );
   }
 
   // ============================================================
@@ -384,6 +392,195 @@ class MobileBridgeSync {
       resolve(params);
     }
     return {};
+  }
+
+  // ============================================================
+  // v1.3 (2026-05-17) project.list / project.pullSingle
+  // Android 项目管理 → 远程终端入口 Sub-phase 10（选项 C：PC→Android 单向选择性拉）
+  // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+  // ============================================================
+
+  /**
+   * 处理对端 project.list：返桌面端所有项目元数据（不含文件内容）。
+   *
+   * params: { userId?, includeFileCount?, limit?, offset? }
+   * response: { projects: [...], total, hasMore }
+   *
+   * 安全：userId 不匹配返空列表 + reason="USER_MISMATCH"（trap 7.14）。
+   * rate-limit token-bucket 10/min/sourcePeerId（trap 7.17）通过 _checkRateLimit 实现；
+   * v0.1 简化版用内存 Map，进程重启重置。
+   */
+  async handleProjectList(params, ctx = {}) {
+    const userId = params?.userId;
+    const limit = Math.min(Math.max(Number(params?.limit) || 100, 1), 500);
+    const offset = Math.max(Number(params?.offset) || 0, 0);
+    const includeFileCount = Boolean(params?.includeFileCount);
+
+    // rate-limit
+    const sourcePeerId = ctx?.peerId || ctx?.fromPeerId || "unknown";
+    if (!this._checkRateLimit("project.list", sourcePeerId)) {
+      return { projects: [], total: 0, hasMore: false, reason: "RATE_LIMITED" };
+    }
+
+    if (!userId) {
+      return {
+        projects: [],
+        total: 0,
+        hasMore: false,
+        reason: "PERMISSION_DENIED",
+      };
+    }
+
+    // 总数（用 deleted=0 过滤）
+    const totalRow = this.dbManager.get(
+      `SELECT COUNT(*) AS c FROM projects WHERE deleted = 0 AND user_id = ?`,
+      [userId],
+    );
+    const total = totalRow?.c || 0;
+
+    // 实际列表（select 字段视 includeFileCount 而定 — file_count/total_size 列已在表里，不必额外 join）
+    const rows = this.dbManager.all(
+      `SELECT id, user_id, name, description, project_type, status,
+              root_path, created_at, updated_at, device_id,
+              source_peer_id, pc_root_path, tags,
+              ${includeFileCount ? "file_count, total_size" : "NULL AS file_count, NULL AS total_size"}
+       FROM projects
+       WHERE deleted = 0 AND user_id = ?
+       ORDER BY updated_at DESC, id ASC
+       LIMIT ? OFFSET ?`,
+      [userId, limit, offset],
+    );
+
+    const projects = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      type: row.project_type,
+      status: row.status,
+      rootPath: row.root_path,
+      sourcePeerId: row.source_peer_id || row.device_id || null,
+      pcRootPath: row.pc_root_path || row.root_path || null,
+      fileCount: row.file_count,
+      totalSize: row.total_size,
+      tags: row.tags,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+
+    return {
+      projects,
+      total,
+      hasMore: offset + projects.length < total,
+    };
+  }
+
+  /**
+   * 处理对端 project.pullSingle：返指定项目元数据 + 文件清单（不含文件内容）。
+   *
+   * params: { projectId, userId, includeFileList? }
+   * response: { project: {...}, files: [...] } 或 { error: "PROJECT_NOT_FOUND" }
+   *
+   * 文件内容走既有 file.download chunked（Sub-phase 7 复用）。
+   */
+  async handleProjectPullSingle(params, ctx = {}) {
+    const projectId = params?.projectId;
+    const userId = params?.userId;
+    const includeFileList = params?.includeFileList !== false; // 默认 true
+
+    if (!projectId) {
+      return { error: "MISSING_PROJECT_ID" };
+    }
+
+    const sourcePeerId = ctx?.peerId || ctx?.fromPeerId || "unknown";
+    if (!this._checkRateLimit("project.pullSingle", sourcePeerId)) {
+      return { error: "RATE_LIMITED" };
+    }
+
+    const row = this.dbManager.get(
+      `SELECT id, user_id, name, description, project_type, status,
+              root_path, file_count, total_size, tags, metadata,
+              created_at, updated_at, device_id, source_peer_id, pc_root_path
+       FROM projects WHERE id = ? AND deleted = 0`,
+      [projectId],
+    );
+
+    if (!row) {
+      return { error: "PROJECT_NOT_FOUND" };
+    }
+
+    if (userId && row.user_id !== userId) {
+      return { error: "PERMISSION_DENIED" };
+    }
+
+    const project = {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      description: row.description,
+      type: row.project_type,
+      status: row.status,
+      rootPath: row.root_path,
+      sourcePeerId: row.source_peer_id || row.device_id || null,
+      pcRootPath: row.pc_root_path || row.root_path || null,
+      fileCount: row.file_count,
+      totalSize: row.total_size,
+      tags: row.tags,
+      metadata: row.metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+
+    let files = [];
+    let filesPreviewOnly = false;
+    if (includeFileList) {
+      const fileRows = this.dbManager.all(
+        `SELECT id, file_path, file_size, content_hash, updated_at
+         FROM project_files
+         WHERE project_id = ? AND deleted = 0 AND is_folder = 0
+         ORDER BY file_path ASC
+         LIMIT 5000`,
+        [projectId],
+      );
+      // trap 7.15：大项目预防性截断，> 1000 文件时仅返 preview，由 client 走分页拉
+      filesPreviewOnly = fileRows.length > 1000;
+      files = (filesPreviewOnly ? fileRows.slice(0, 50) : fileRows).map(
+        (f) => ({
+          id: f.id,
+          path: f.file_path,
+          size: f.file_size,
+          hash: f.content_hash,
+          updatedAt: f.updated_at,
+        }),
+      );
+    }
+
+    return {
+      project,
+      files,
+      filesCount: row.file_count || 0,
+      filesPreviewOnly,
+    };
+  }
+
+  /**
+   * 简化版 token-bucket rate limit（v0.1）。
+   * 每 sourcePeerId × method 各自 10/min 上限。
+   */
+  _checkRateLimit(method, sourcePeerId) {
+    if (!this._rateLimitState) {
+      this._rateLimitState = new Map();
+    }
+    const key = `${method}:${sourcePeerId}`;
+    const now = Date.now();
+    const entry = this._rateLimitState.get(key) || { times: [] };
+    // 保留最近 60s 内的请求
+    entry.times = entry.times.filter((t) => now - t < 60_000);
+    if (entry.times.length >= 10) {
+      return false;
+    }
+    entry.times.push(now);
+    this._rateLimitState.set(key, entry);
+    return true;
   }
 
   // ============================================================
@@ -724,7 +921,7 @@ class MobileBridgeSync {
   }
 
   /**
-   * projects walker — v1.2 (2026-05-12)。
+   * projects walker — v1.3 (2026-05-17)。
    *
    * 字段策略：同步桌面 + Android 共同子集（id / user_id / name / description /
    * project_type / status / root_path / file_count / total_size / tags / metadata /
@@ -732,6 +929,12 @@ class MobileBridgeSync {
    * git* / lastAccessedAt / accessCount）不下传，由 Android 端的字段级 merge
    * 保留；桌面独有列（template_id / cover_image_url / sync_status / synced_at /
    * category_id / delivered_at）也不上线，避免污染 Android schema。
+   *
+   * v1.3 新增（Android 项目管理 → 远程终端入口，详见
+   * docs/design/Android_Project_Remote_Terminal_Entry.md）：
+   *   - source_peer_id: PC 设备 peerId（本机项目用 device_id 兜底；source_peer_id
+   *     列已存则用之 — sync 回环幂等）
+   *   - pc_root_path: 项目在 PC 文件系统的路径（用 row.root_path 兜底）
    *
    * 过滤 deleted=1：软删的项目不参与 push（DELETE 走 tombstone，但 v1 没建 trigger，
    * 等 v2）。
@@ -742,7 +945,7 @@ class MobileBridgeSync {
     const sql = sinceId
       ? `SELECT id, user_id, name, description, project_type, status, root_path,
                 file_count, total_size, tags, metadata, created_at, updated_at,
-                device_id
+                device_id, source_peer_id, pc_root_path
          FROM projects
          WHERE deleted = 0
            AND (updated_at > ? OR (updated_at = ? AND id > ?))
@@ -750,7 +953,7 @@ class MobileBridgeSync {
          LIMIT ?`
       : `SELECT id, user_id, name, description, project_type, status, root_path,
                 file_count, total_size, tags, metadata, created_at, updated_at,
-                device_id
+                device_id, source_peer_id, pc_root_path
          FROM projects
          WHERE deleted = 0 AND updated_at > ?
          ORDER BY updated_at ASC, id ASC
@@ -783,6 +986,9 @@ class MobileBridgeSync {
         metadata: row.metadata,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        // v1.3 新字段：Android 远程终端入口
+        source_peer_id: row.source_peer_id || row.device_id || null,
+        pc_root_path: row.pc_root_path || row.root_path || null,
       }),
     }));
   }
@@ -1212,7 +1418,7 @@ class MobileBridgeSync {
   }
 
   /**
-   * PROJECT apply — v1.2 (2026-05-12)。
+   * PROJECT apply — v1.3 (2026-05-17)。
    *
    * 桌面 projects.project_type 有 CHECK：('web','document','data','app',
    * 'presentation','spreadsheet','design','code','workflow','knowledge')；
@@ -1221,8 +1427,12 @@ class MobileBridgeSync {
    * 直接落库会被 CHECK 拒。normalize 兜底：Android 独有类型 → 'code'（最近邻），
    * Android 独有 status (paused/deleted) → 'active' / DELETE 路径。
    *
-   * v1 不接 Android 上行 push（Android 端 SyncOutbound 也没接 PROJECT walker），
-   * 所以本 apply 实际只在桌面 ↔ 桌面回环 / 未来 v2 Android push 时跑。
+   * v1.3 改字段级 merge（Android 项目管理 → 远程终端入口，详见
+   * docs/design/Android_Project_Remote_Terminal_Entry.md Sub-phase 2）：
+   *   - 入站 payload 缺 source_peer_id / pc_root_path 时**保留**桌面已有值
+   *     （Android 不知道这俩字段，不能让 push 把桌面值清零）
+   *   - 实现：INSERT OR REPLACE 前先 SELECT existing → COALESCE(incoming, existing)
+   *     合并；纯新建（existing 不存在）走默认 null
    */
   async _applyProject(item) {
     const data = JSON.parse(item.data || "{}");
@@ -1236,12 +1446,27 @@ class MobileBridgeSync {
     }
     const projectType = this._normalizeProjectType(data.project_type);
     const status = this._normalizeProjectStatus(data.status);
+
+    // v1.3 字段级 merge：先读 existing，再 COALESCE(incoming, existing) 合并
+    const existing = this.dbManager.get(
+      `SELECT source_peer_id, pc_root_path FROM projects WHERE id = ?`,
+      [item.resourceId],
+    );
+    const sourcePeerId =
+      data.source_peer_id !== undefined && data.source_peer_id !== null
+        ? data.source_peer_id
+        : existing?.source_peer_id || null;
+    const pcRootPath =
+      data.pc_root_path !== undefined && data.pc_root_path !== null
+        ? data.pc_root_path
+        : existing?.pc_root_path || null;
+
     this.dbManager.run(
       `INSERT OR REPLACE INTO projects
        (id, user_id, name, description, project_type, status, root_path,
         file_count, total_size, tags, metadata, created_at, updated_at,
-        sync_status, device_id, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, 0)`,
+        sync_status, device_id, deleted, source_peer_id, pc_root_path)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, 0, ?, ?)`,
       [
         item.resourceId,
         data.user_id || "",
@@ -1257,6 +1482,8 @@ class MobileBridgeSync {
         data.created_at || item.timestamp,
         data.updated_at || item.timestamp,
         item.deviceId || "",
+        sourcePeerId,
+        pcRootPath,
       ],
     );
   }

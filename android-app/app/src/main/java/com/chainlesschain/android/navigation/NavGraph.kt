@@ -177,6 +177,7 @@ fun NavGraph(
                 onNavigateToUsageStatistics = { navController.navigate(Screen.UsageStatistics.route) },
                 onNavigateToLLMTest = { navController.navigate(Screen.LLMTest.route) },
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
+                onNavigateToRemoteProjectBrowser = { navController.navigate(Screen.RemoteProjectBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
                 onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) },
                 // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
@@ -310,6 +311,22 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTask = { /* Task detail wire-up pending */ },
                 onNavigateToCreateTask = { navController.navigate(Screen.TaskCreate.route) }
+            )
+        }
+
+        // Sub-phase 10 (2026-05-17): RemoteProjectBrowser — PC→Android 选择性拉项目
+        // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+        composable(Screen.RemoteProjectBrowser.route) {
+            val browserAuthVm: AuthViewModel = hiltViewModel()
+            val browserAuthState by browserAuthVm.uiState.collectAsState()
+            com.chainlesschain.android.feature.project.ui.RemoteProjectBrowserScreen(
+                userId = browserAuthState.currentUser?.id ?: "",
+                onNavigateBack = { navController.popBackStack() },
+                onProjectPulled = { projectId ->
+                    navController.navigate(Screen.ProjectDetail.createRoute(projectId)) {
+                        popUpTo(Screen.RemoteProjectBrowser.route) { inclusive = true }
+                    }
+                },
             )
         }
 
@@ -887,6 +904,9 @@ sealed class Screen(val route: String) {
     }
     data object TaskList : Screen("task_list")
     data object TaskCreate : Screen("task_create")
+    // Sub-phase 10 (2026-05-17): Android 项目管理 → 远程终端入口 — PC→Android 选择性拉
+    // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+    data object RemoteProjectBrowser : Screen("remote_project_browser")
     data object LLMSettings : Screen("llm_settings")
     data object UsageStatistics : Screen("usage_statistics")
     data object LLMTest : Screen("llm_test") {

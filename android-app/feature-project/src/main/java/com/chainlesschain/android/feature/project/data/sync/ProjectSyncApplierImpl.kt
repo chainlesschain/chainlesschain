@@ -16,7 +16,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * ProjectSyncApplier 实现 — Android v1.2 (2026-05-12)。
+ * ProjectSyncApplier 实现 — Android v1.3 (2026-05-17)。
  *
  * 直接走 ProjectDao（绕开 ProjectRepository.createProject 那条 UUID 生成的快路径），
  * 要保留对端 id + 对端 createdAt/updatedAt。
@@ -37,8 +37,14 @@ import javax.inject.Singleton
  *   metadata     → metadata         (JSON 字符串直通)
  *   created_at   → createdAt
  *   updated_at   → updatedAt
+ *   source_peer_id → sourcePeerId   (v1.3: Android 项目管理 → 远程终端入口)
+ *   pc_root_path   → pcRootPath     (v1.3: 同上；fallback to root_path)
  *
- * 删除策略：softDelete (status='deleted')，与本地 deleteProject(hard=false) 一致。
+ * 删除策略 (v1.3 改)：
+ *   - LOCAL 项目（无 sourcePeerId）→ softDelete (status='deleted')，与本地 deleteProject(hard=false) 一致
+ *   - FROM_PC 项目（有 sourcePeerId）→ **不联级删**，标 metadata.orphan=true + orphanedAt
+ *     ProjectDetailScreenV2 检测 orphan tag 显 banner，用户决定是否归档或彻底删
+ *     详见 docs/design/Android_Project_Remote_Terminal_Entry.md trap 7.13
  */
 @Singleton
 class ProjectSyncApplierImpl @Inject constructor(
@@ -79,11 +85,50 @@ class ProjectSyncApplierImpl @Inject constructor(
 
     override suspend fun deleteFromSync(resourceId: String) {
         try {
-            projectDao.softDeleteProject(resourceId)
-            Timber.d("[ProjectSyncApplier] soft-deleted $resourceId (from sync)")
+            val existing = projectDao.getProjectById(resourceId)
+            if (existing != null && existing.sourcePeerId != null) {
+                // v1.3 FROM_PC 项目：不联级删，标 orphan tag + 保留本地（用户决定后续处理）
+                val orphanedMetadata = mergeOrphanIntoMetadata(existing.metadata)
+                projectDao.insertProject(
+                    existing.copy(
+                        metadata = orphanedMetadata,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                Timber.i(
+                    "[ProjectSyncApplier] orphan-tagged $resourceId (FROM_PC project; PC side deleted)",
+                )
+            } else {
+                projectDao.softDeleteProject(resourceId)
+                Timber.d("[ProjectSyncApplier] soft-deleted $resourceId (from sync)")
+            }
         } catch (e: Exception) {
             Timber.e(e, "[ProjectSyncApplier] deleteFromSync $resourceId failed")
         }
+    }
+
+    /**
+     * 把 orphan=true + orphanedAt=<now> 合并进 metadata JSON。
+     *
+     * existing 可能：(a) null → 新建 `{"orphan":true,"orphanedAt":...}` (b) 已是 JSON object
+     * → 覆盖加这两 key (c) bad JSON → 用 (a) 兜底。
+     */
+    internal fun mergeOrphanIntoMetadata(existing: String?): String {
+        val now = System.currentTimeMillis()
+        val orphanFields = mapOf(
+            "orphan" to kotlinx.serialization.json.JsonPrimitive(true),
+            "orphanedAt" to kotlinx.serialization.json.JsonPrimitive(now),
+        )
+        val baseMap: Map<String, kotlinx.serialization.json.JsonElement> = if (existing == null) {
+            emptyMap()
+        } else {
+            try {
+                json.parseToJsonElement(existing).jsonObject.toMap()
+            } catch (_: Exception) {
+                emptyMap()
+            }
+        }
+        return kotlinx.serialization.json.JsonObject(baseMap + orphanFields).toString()
     }
 
     private fun parseJsonObject(data: String): JsonObject? =
@@ -115,6 +160,16 @@ class ProjectSyncApplierImpl @Inject constructor(
             ?: existing?.userId
             ?: ""
         val rootPath = obj.stringOrNull("root_path") ?: obj.stringOrNull("rootPath") ?: existing?.rootPath
+        // v1.3 Android 项目管理 → 远程终端入口字段
+        val sourcePeerId = obj.stringOrNull("source_peer_id")
+            ?: obj.stringOrNull("sourcePeerId")
+            ?: existing?.sourcePeerId
+        // pc_root_path 兜底链：显式 pc_root_path → 顶层 root_path（桌面端 walker
+        // 兼容兜底）→ existing。在 Android 端 rootPath 通常存 SAF URI，pcRootPath
+        // 才是 PC 路径，所以**不**复用 rootPath 当兜底。
+        val pcRootPath = obj.stringOrNull("pc_root_path")
+            ?: obj.stringOrNull("pcRootPath")
+            ?: existing?.pcRootPath
         val tags = obj.stringOrNull("tags") ?: existing?.tags
         val metadata = obj.stringOrNull("metadata") ?: existing?.metadata
         val fileCount = obj.intOrDefault("file_count", existing?.fileCount ?: 0)
@@ -130,6 +185,8 @@ class ProjectSyncApplierImpl @Inject constructor(
             status = status,
             userId = userId,
             rootPath = rootPath,
+            pcRootPath = pcRootPath,                // v1.3
+            sourcePeerId = sourcePeerId,            // v1.3
             icon = existing?.icon,                  // 本地独有：保留
             coverImage = existing?.coverImage,
             tags = tags,

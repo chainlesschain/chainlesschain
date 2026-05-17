@@ -52,6 +52,7 @@ import android.net.Uri
 fun ProjectScreen(
     onProjectClick: (String) -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteProjectBrowser: () -> Unit = {},
     projectViewModel: ProjectViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -185,6 +186,14 @@ fun ProjectScreen(
                     actions = {
                         IconButton(onClick = onNavigateToFileBrowser) {
                             Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.feature_file_browser))
+                        }
+                        // Sub-phase 10 (2026-05-17): 浏览 PC 端项目并选择性拉取
+                        // 详见 docs/design/Android_Project_Remote_Terminal_Entry.md §6.10
+                        IconButton(onClick = onNavigateToRemoteProjectBrowser) {
+                            Icon(
+                                Icons.Default.CloudDownload,
+                                contentDescription = "浏览 PC 项目",
+                            )
                         }
                         IconButton(onClick = { showSearchBar = true }) {
                             Icon(Icons.Default.Search, contentDescription = stringResource(R.string.common_search))

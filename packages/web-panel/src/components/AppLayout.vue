@@ -92,6 +92,7 @@
             <a-menu-item key="permissions"><template #icon><LockOutlined /></template>{{ $t('appLayout.items.permissions') }}</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>{{ $t('appLayout.items.p2p') }}</a-menu-item>
             <a-menu-item key="mobile-bridge"><template #icon><MobileOutlined /></template>{{ $t('appLayout.items.mobileBridge', '移动桥') }}</a-menu-item>
+            <a-menu-item key="mobile-projects"><template #icon><MobileOutlined /></template>{{ $t('appLayout.items.mobileProjects', '手机项目 (v0.2)') }}</a-menu-item>
             <a-menu-item key="terminal"><template #icon><DesktopOutlined /></template>{{ $t('appLayout.items.terminal', '远程终端') }}</a-menu-item>
             <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>{{ $t('appLayout.items.backup') }}</a-menu-item>
             <a-menu-item key="git"><template #icon><CodeOutlined /></template>{{ $t('appLayout.items.git') }}</a-menu-item>
