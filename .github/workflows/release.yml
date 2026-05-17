@@ -724,6 +724,12 @@ jobs:
           mkdir -p build
           # Raw xcodebuild output (no xcpretty filter — surface real errors
           # to CI log + persist to artifact for post-mortem).
+          # Signing settings (CODE_SIGN_STYLE/IDENTITY, PROVISIONING_PROFILE_SPECIFIER)
+          # live in ChainlessChain.xcodeproj on the app target's Release config
+          # so they don't leak to SPM resource-bundle targets (which reject any
+          # PROVISIONING_PROFILE_SPECIFIER with "does not support provisioning
+          # profiles"). Only DEVELOPMENT_TEAM is injected from CI secret because
+          # it's not committed to source.
           xcodebuild archive \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -732,9 +738,6 @@ jobs:
             -destination 'generic/platform=iOS' \
             -clonedSourcePackagesDirPath .spm-cache \
             DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER=adhoc \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
             -allowProvisioningUpdates \
             2>&1 | tee build/xcodebuild-archive.log
 
