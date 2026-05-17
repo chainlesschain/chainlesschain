@@ -123,7 +123,7 @@ class EditorTabManagerTest {
 
         // Then
         assertNotNull(closedTab)
-        assertEquals(file2.id, closedTab.file.id)
+        assertEquals(file2.id, closedTab!!.file.id)
 
         val tabs = tabManager.tabs.first()
         assertEquals(2, tabs.size)
@@ -371,7 +371,7 @@ class EditorTabManagerTest {
 
         // Then
         assertNotNull(tab)
-        assertEquals(file.id, tab.file.id)
+        assertEquals(file.id, tab!!.file.id)
         assertNull(nonExistent)
     }
 

@@ -145,7 +145,8 @@ class ProjectSyncApplierImplTest {
 
         applier.deleteFromSync("p-5")
 
-        coVerify(exactly = 1) { projectDao.softDeleteProject("p-5") }
+        // softDeleteProject 有默认 updatedAt 参数，verify 时必须 any() 覆盖
+        coVerify(exactly = 1) { projectDao.softDeleteProject("p-5", any()) }
         coVerify(exactly = 0) { projectDao.insertProject(any()) }
     }
 

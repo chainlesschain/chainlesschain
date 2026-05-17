@@ -2,7 +2,8 @@ package com.chainlesschain.android.feature.project.integration
 
 import android.content.Context
 import android.net.Uri
-import androidx.test.core.app.ApplicationProvider
+// androidx.test.core 在 androidTest sourceSet 才有；本测试是单测 JVM 跑，
+// 删 import + 不调 ApplicationProvider（test mocks 替代）
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
@@ -80,8 +81,8 @@ class Phase6IntegrationTest {
         every { mockContext.filesDir } returns mockk(relaxed = true)
         every { mockContext.contentResolver } returns mockContentResolver
 
-        // Setup repositories
-        externalFileRepository = ExternalFileRepository(mockContext, mockExternalFileDao)
+        // Setup repositories — ExternalFileRepository 构造签名已简化为单参数
+        externalFileRepository = ExternalFileRepository(mockExternalFileDao)
         fileImportRepository = FileImportRepository(mockContext, mockProjectDao)
     }
 
@@ -108,14 +109,16 @@ class Phase6IntegrationTest {
             createExternalFile("readme.md", FileCategory.DOCUMENT)
         )
 
+        // ExternalFileDao.getRecentFiles(fromTimestamp: Long, limit: Int): Flow<List<...>>
+        // 不接 categories（仅 by-category 路径走 getRecentFilesByCategory）
         coEvery {
             mockExternalFileDao.getRecentFiles(
-                categories = listOf(FileCategory.DOCUMENT, FileCategory.CODE),
+                fromTimestamp = any(),
                 limit = 20
             )
-        } returns testFiles.filter { it.category in listOf(FileCategory.DOCUMENT, FileCategory.CODE) }
+        } returns flowOf(testFiles.filter { it.category in listOf(FileCategory.DOCUMENT, FileCategory.CODE) })
 
-        // When
+        // When — ExternalFileRepository.getRecentFiles 现在是 suspend 单返
         val result = externalFileRepository.getRecentFiles(
             categories = listOf(FileCategory.DOCUMENT, FileCategory.CODE),
             limit = 20
@@ -151,8 +154,9 @@ class Phase6IntegrationTest {
         )
 
         coEvery { mockProjectDao.getProjectById(projectId) } returns mockProject
-        coEvery { mockProjectDao.insertFile(any()) } returns Unit
-        coEvery { mockProjectDao.updateProjectStats(any(), any(), any()) } returns Unit
+        // insertFile: Long, updateProjectStats: Unit (4-arg with default updatedAt)
+        coEvery { mockProjectDao.insertFile(any()) } returns 1L
+        coEvery { mockProjectDao.updateProjectStats(any(), any(), any(), any()) } returns Unit
 
         // When
         val result = fileImportRepository.importFileToProject(
@@ -238,26 +242,28 @@ class Phase6IntegrationTest {
             createExternalFile("code1.kt", FileCategory.CODE)
         )
 
+        // ExternalFileDao.searchFiles 真实签名: searchFiles(query: String, limit: Int = 50)
+        // 不接 category 参数（category 路径走 searchFilesByCategory）
         coEvery {
             mockExternalFileDao.searchFiles(
                 query = "test",
-                category = null,
                 limit = 20
             )
         } returns flowOf(testFiles)
 
+        // ExternalFileDao.getRecentFiles(fromTimestamp: Long, limit: Int): Flow<List<...>>
         coEvery {
             mockExternalFileDao.getRecentFiles(
-                categories = any(),
+                fromTimestamp = any(),
                 limit = any()
             )
-        } returns testFiles
+        } returns flowOf(testFiles)
 
         // When - search with query
         externalFileRepository.searchFiles("test", null, 20).first()
 
         // Then
-        coVerify { mockExternalFileDao.searchFiles("test", null, 20) }
+        coVerify { mockExternalFileDao.searchFiles("test", 20) }
     }
 
     /**
@@ -283,12 +289,13 @@ class Phase6IntegrationTest {
             totalSize = 500L
         )
 
-        // Setup mocks
+        // Setup mocks — ProjectDao.insertFile(): Long、updateProjectStats() 默认值参数 + Unit
         coEvery { mockProjectDao.getProjectById(projectId) } returns mockProject
-        coEvery { mockProjectDao.insertFile(any()) } returns Unit
-        coEvery { mockProjectDao.updateProjectStats(any(), any(), any()) } returns Unit
+        coEvery { mockProjectDao.insertFile(any()) } returns 1L
+        coEvery { mockProjectDao.updateProjectStats(any(), any(), any(), any()) } returns Unit
+        // ExternalFileDao.searchFiles(query, limit) 2 参数（无 category）
         coEvery {
-            mockExternalFileDao.searchFiles(any(), any(), any())
+            mockExternalFileDao.searchFiles(any(), any())
         } returns flowOf(listOf(externalFile))
 
         // When - complete workflow
@@ -363,7 +370,7 @@ class Phase6IntegrationTest {
         )
 
         coEvery {
-            mockExternalFileDao.searchFiles("important", null, 20)
+            mockExternalFileDao.searchFiles("important", 20)
         } returns flowOf(testFiles.filter {
             it.displayName.contains("important", ignoreCase = true)
         })
