@@ -47,8 +47,8 @@ android {
         applicationId = "com.chainlesschain.android"
         minSdk = 26  // Android 8.0
         targetSdk = 35  // Android 15
-        versionCode = 503062
-        versionName = "5.0.3.62"
+        versionCode = 503063
+        versionName = "5.0.3.63"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"

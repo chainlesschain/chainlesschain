@@ -5,6 +5,31 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.63] - 2026-05-17 — iOS 16 PIN 闪退修复 + AppIcon 全幅 + Sub-phase 5-6 移动远程终端体验
+
+> v5.0.3.62 (iOS deployment target 降到 16) 部署后真机 E2E 暴露两类问题：(1) iOS 16 上 PIN 设置 / 解锁均闪退，根因是 `AppState.swift` 用了 iOS 17 only 的 `MainActor.assumeIsolated`；(2) AppIcon 缩成小图四周大片白边。同时 Android 端 Sub-phase 5-6 LOCAL 项目首次远程终端体验需要：放宽 v2 fallback gate（只要有 paired desktop 就显示 Terminal icon）+ LOCAL 项目（`pcRootPath=null`）首次点终端弹框补填 PC 端工作目录避免 PtyManager 落 Electron cwd。
+
+### Fixed
+
+- **iOS PIN 闪退（iOS 16 兼容）** — `AppState.swift:99,110` 由 `MainActor.assumeIsolated` 改 `Task { @MainActor in ... }`（iOS 13 back-deploy，语义等价）；`databaseUnlocked` / `didAuthenticated` 通知触发时不再 trap。Sub-agent 复审 518 个 `.swift` 文件，0 处其它裸调 iOS 17 API（`@Observable` / `SwiftData` / `scrollPosition` / `containerRelativeFrame` / `KeyframeAnimator` / `visualEffect` / `sensoryFeedback` / `ContentUnavailableView` / 4-参 `fileImporter` / iOS 17 Charts / iOS 17 Map 等），唯一的 `.symbolEffect` 在 `SystemInfoView.swift:68` 已用 `#available(iOS 17, *)` 包好（v5.0.3.62 引入）。
+- **iOS AppIcon 全幅满图** — 用 `desktop-app-vue/assets/icon.png`（1282×1282 全幅）sharp 重生成 18 张 AppIcon + 3 张 LaunchIcon，扁平化到白底（App Store 不允许 alpha 通道的 app icon）。
+
+### Changed
+
+- **Sub-phase 5-6 LOCAL 项目远程终端入口** — `RemoteContextViewModel.kt`（新文件，`presentation/screens/helper/`）：
+  - `pairedDesktops StateFlow` 兜替 `project.sourcePeerId` 判定 Terminal icon 可见性
+  - `findPcProjectPathByName()`：异步调桌面 `project.list` 自动预填同名项目路径
+  - `pushPcRootPathToDesktop()`：双向同步写回桌面 `projects.pc_root_path`
+- `ProjectDetailScreenV2.kt` terminal-gate 重写（v2 fallback）+ `AlertDialog` 含 lookup 进度条 + 预填提示 + diag log `tag=ProjectDetail`
+- `ProjectDao` + `ProjectRepository` + `ProjectViewModel` 加 `updatePcRootPath` 链路（**不**发 `ProjectEvent.Updated` 避免触发 `mobile-bridge-sync` 反向 sync）
+- `mobile-bridge-sync.js` 新 `project.updatePath` topic：UPDATE `projects` 同时 `COALESCE` 一份到 `root_path` 兼容旧 row（只有 `root_path` 字段的旧客户端）
+
+### Validated
+
+- `scripts/check-version-sync.js` 5 surface 全 sync (productVersion / desktop alpha / ios CFBundleShortVersionString+Version / android versionName+Code)
+- iOS 16 真机 PIN 首次设置 + 重新登录 PIN 解锁两条路径均通过
+- Android Xiaomi 24115RA8EC：LOCAL 项目首次点终端 → 弹框 lookup 进度 → 找到同名 PC 项目自动预填 → 写回桌面 `pc_root_path` → PtyManager 落正确工作目录
+
 ## [v5.0.3.62] - 2026-05-17 — iOS deployment target 降到 iOS 16 (覆盖 iPhone 8 起)
 
 > v5.0.3.61 .ipa 出包成功后用户反馈 iOS 17 baseline 太高；audit 后发现 app 实际只用 1 处 iOS 17-only API (`SystemInfoView` 的 `.symbolEffect`)，降低成本极小。降到 iOS 16 后覆盖 2017 年以来所有 iPhone 机型（iPhone 8+），扩大测试 / 试用人群约 30%。

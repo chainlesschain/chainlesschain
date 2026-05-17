@@ -3,6 +3,20 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.63] - 2026-05-17 — iOS 16 PIN 闪退修复 + AppIcon 全幅 + Sub-phase 5-6 移动远程终端体验
+
+> v5.0.3.62 部署 iOS 16 后真机暴露两类问题：(1) iOS 16 上 PIN 设置 / 解锁均闪退，根因 `AppState.swift` 用了 iOS 17 only `MainActor.assumeIsolated`；(2) AppIcon 缩成小图四周大片白边。同时 Android 端 Sub-phase 5-6 LOCAL 项目首次远程终端体验：放宽 v2 fallback gate + 弹框补填 PC 端工作目录避免 PtyManager 落 Electron cwd。
+
+**已完成**：
+- iOS PIN 闪退（iOS 16）— `AppState.swift` `MainActor.assumeIsolated` → `Task { @MainActor in ... }`；518 个 `.swift` 复审 0 处其它裸调 iOS 17 API
+- iOS AppIcon — `desktop-app-vue/assets/icon.png`（1282×1282 全幅）sharp 重生成 18 张 AppIcon + 3 张 LaunchIcon，扁平化白底
+- Android Sub-phase 5-6 LOCAL 项目终端入口 — `RemoteContextViewModel.kt`（新）：`pairedDesktops` StateFlow 兜替 `sourcePeerId` 判 Terminal icon 可见 / `findPcProjectPathByName()` 自动预填同名项目路径 / `pushPcRootPathToDesktop()` 双向同步
+- `ProjectDetailScreenV2.kt` v2 fallback + `AlertDialog` lookup 进度条 + 预填
+- `mobile-bridge-sync.js` 新 `project.updatePath` topic 兼容 `root_path` 旧 row
+- 5 个 version surface 全 sync 验证通过
+- iOS 16 真机 PIN 首次设置 + 重新登录解锁两条路径通过
+- Android Xiaomi 24115RA8EC：LOCAL 项目首次点终端 → 弹框预填 → 写回桌面 `pc_root_path` → PtyManager 落正确工作目录
+
 ## [v5.0.3.62] - 2026-05-17 — iOS deployment target 降到 iOS 16
 
 > v5.0.3.61 .ipa 出包后审计发现 iOS 17 baseline 偏高；app 实际只用 1 处 iOS 17-only API（SystemInfoView 的 `.symbolEffect` pulse 动画）。降到 iOS 16 后覆盖 2017 年以来所有 iPhone 机型（iPhone 8+），可测试 / 试用人群约扩大 30%。
