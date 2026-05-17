@@ -3,7 +3,10 @@ package com.chainlesschain.android.feature.p2p.repository
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
+import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.model.MessageType
@@ -50,7 +53,12 @@ class P2PMessageRepositoryTest {
         p2pMessageDao = mockk(relaxed = true)
         sessionManager = mockk(relaxed = true)
         connectionManager = mockk(relaxed = true)
+        // dagger.Lazy 是接口，relaxed mock 的 `.get()` 默认返 null →
+        // production `syncAdapter.get().syncMessageSent(...)` 抛 NPE → Result.failure。
+        // 显式 stub get() 返一个 relaxed SocialSyncAdapter mock。
+        val syncAdapterImpl = mockk<SocialSyncAdapter>(relaxed = true)
         syncAdapter = mockk(relaxed = true)
+        every { syncAdapter.get() } returns syncAdapterImpl
 
         every { connectionManager.receivedMessages } returns receivedMessagesFlow
 
@@ -71,9 +79,18 @@ class P2PMessageRepositoryTest {
 
     @Test
     fun `sendMessage should encrypt and save message`() = runTest {
-        // Given
+        // Given — 用真实 RatchetMessage 不 mockk<RatchetMessage>()：production 调
+        // json.encodeToString(encryptedMessage) 走 kotlinx.serialization 编译序列化，
+        // 给 mock 会因找不到真实字段抛 SerializationException → Result.failure。
         val content = "Hello, World!"
-        val encryptedMessage = mockk<RatchetMessage>()
+        val encryptedMessage = RatchetMessage(
+            header = MessageHeader(
+                ratchetKey = ByteArray(32),
+                previousChainLength = 0,
+                messageNumber = 0,
+            ),
+            ciphertext = "encrypted".toByteArray(),
+        )
 
         every { sessionManager.hasSession(testPeerId) } returns true
         coEvery { sessionManager.encrypt(testPeerId, content) } returns encryptedMessage
@@ -127,8 +144,16 @@ class P2PMessageRepositoryTest {
 
     @Test
     fun `receiveMessage should decrypt and save message`() = runTest {
-        // Given
-        val encryptedPayload = """{"ciphertext":"abc123"}"""
+        // Given — encryptedPayload 必须是有效 RatchetMessage JSON（含 header.ratchetKey
+        // / previousChainLength / messageNumber + ciphertext），否则
+        // production L171 json.decodeFromString<RatchetMessage> 抛
+        // SerializationException → Result.failure。
+        val testJson = Json { ignoreUnknownKeys = true }
+        val realRatchet = RatchetMessage(
+            header = MessageHeader(ratchetKey = ByteArray(32), previousChainLength = 0, messageNumber = 0),
+            ciphertext = "abc123".toByteArray(),
+        )
+        val encryptedPayload = testJson.encodeToString(realRatchet)
         val decryptedContent = "Hello from peer"
 
         val p2pMessage = P2PMessage(
@@ -162,13 +187,18 @@ class P2PMessageRepositoryTest {
 
     @Test
     fun `receiveMessage should send ACK when required`() = runTest {
-        // Given
+        // Given — payload "{}" 缺 RatchetMessage 必填字段会让 decode 抛异常。改真 JSON。
+        val testJson = Json { ignoreUnknownKeys = true }
+        val realRatchet = RatchetMessage(
+            header = MessageHeader(ratchetKey = ByteArray(32), previousChainLength = 0, messageNumber = 0),
+            ciphertext = "dummy".toByteArray(),
+        )
         val p2pMessage = P2PMessage(
             id = "msg-123",
             fromDeviceId = testPeerId,
             toDeviceId = testLocalDeviceId,
             type = MessageType.TEXT,
-            payload = "{}",
+            payload = testJson.encodeToString(realRatchet),
             timestamp = System.currentTimeMillis(),
             requiresAck = true,
             isAcknowledged = false

@@ -11,9 +11,12 @@ import kotlin.test.assertTrue
  */
 class SignalingMessageTest {
 
+    // prettyPrint=true 让 substring 断言失败（key 与 value 间会被插空格）。
+    // encodeDefaults=true 让 `type = "answer"` / `timestamp` 等默认值字段也输出；
+    // 否则 `assertTrue(jsonString.contains("\"type\":\"answer\""))` 永远 false。
     private val json = Json {
         ignoreUnknownKeys = true
-        prettyPrint = true
+        encodeDefaults = true
     }
 
     @Test
@@ -167,11 +170,13 @@ class SignalingMessageTest {
             sdp = "test-sdp"
         )
 
-        // When
+        // When — 不用 polymorphic SignalingMessage.serializer()（Offer 的 `type`
+        // 字段与 kotlinx.serialization 的 class discriminator 冲突）；直接用具体
+        // 子类 Offer.serializer() 走单态序列化。生产代码同样不依赖 sealed 多态序列化。
         val envelope = SignalingEnvelope(
             type = "offer",
             payload = json.encodeToJsonElement(
-                serializer = SignalingMessage.serializer(),
+                serializer = SignalingMessage.Offer.serializer(),
                 value = offer
             )
         )

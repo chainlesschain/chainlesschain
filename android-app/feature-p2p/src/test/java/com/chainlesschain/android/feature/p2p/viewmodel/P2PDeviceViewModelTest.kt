@@ -7,6 +7,7 @@ import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import io.mockk.Awaits
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -152,9 +153,10 @@ class P2PDeviceViewModelTest {
 
     @Test
     fun `disconnectDevice should delete session`() = runTest {
-        // Given
+        // Given — 用 just Runs 让 deleteSession 立即完成；just Awaits 会让 suspend
+        // 永久挂起，后续 `_uiState.value = Disconnected` 永不执行。
         val peerId = "peer1"
-        coEvery { sessionManager.deleteSession(peerId) } just Awaits
+        coEvery { sessionManager.deleteSession(peerId) } just Runs
 
         // When
         viewModel.disconnectDevice(peerId)
@@ -181,11 +183,12 @@ class P2PDeviceViewModelTest {
 
     @Test
     fun `clearError should reset UI state to Idle`() = runTest {
-        // Given
+        // Given — clearError 只在 state 是 Error 时切 Idle (production L202-205)。
+        // 触发 startScanning 失败让 state 进 Error。
+        coEvery { deviceDiscovery.startDiscovery() } throws RuntimeException("scan failed")
         viewModel.startScanning()
         advanceUntilIdle()
-        // Simulate error by directly setting state
-        val errorState = DeviceUiState.Error("Test error")
+        assertIs<DeviceUiState.Error>(viewModel.uiState.value)
 
         // When
         viewModel.clearError()

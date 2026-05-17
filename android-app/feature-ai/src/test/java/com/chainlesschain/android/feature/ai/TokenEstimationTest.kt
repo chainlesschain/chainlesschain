@@ -113,13 +113,12 @@ class TokenEstimationTest {
 
     @Test
     fun `特殊字符估算`() {
-        // 包含标点、数字、符号
+        // 包含标点、数字、符号 — 实际 32 字符（不是注释里的 36）
         val text = "123!@#$%^&*()_+-=[]{}|;':\",./<>?"
         val tokens = estimateTokens(text)
 
-        // 所有特殊字符按英文计算
-        // 36个字符 / 4 = 9 tokens
-        assertTrue("特殊字符估算应合理", tokens in 9..10)
+        // 所有特殊字符按英文计算，32 / 4 = 8 tokens
+        assertTrue("特殊字符估算应合理 ($tokens)", tokens in 8..10)
     }
 
     @Test

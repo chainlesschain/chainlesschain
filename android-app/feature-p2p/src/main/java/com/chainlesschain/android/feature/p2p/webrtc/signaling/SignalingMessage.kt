@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.webrtc.signaling
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -11,8 +12,15 @@ import kotlinx.serialization.json.JsonElement
  * 2. Responder sends ANSWER with SDP
  * 3. Both sides exchange ICE_CANDIDATE as they're discovered
  * 4. Either side sends BYE to terminate
+ *
+ * **Why `@JsonClassDiscriminator("_kind")`**：每个子类有 `val type: String` 字段
+ * (e.g. Offer 默认 "offer"), 与 kotlinx.serialization sealed 多态序列化的默认
+ * class discriminator `"type"` 冲突，序列化时抛 IllegalStateException。改用 `_kind`
+ * 作鉴别字段名规避冲突；子类的 `type` 字段保留兼容现有线协议。
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 @Serializable
+@JsonClassDiscriminator("_kind")
 sealed class SignalingMessage {
     abstract val from: String
     abstract val to: String

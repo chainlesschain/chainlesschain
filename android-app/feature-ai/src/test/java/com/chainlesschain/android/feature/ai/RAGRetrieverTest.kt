@@ -93,7 +93,9 @@ class RAGRetrieverTest {
             nextKey = null
         )
 
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
+        // Production 调 searchItems(ftsQuery)（不是 searchItemsSimple），传入的是
+        // buildFtsQuery(query) 转换后的字符串。用 any() 匹配避免硬编码 fts 转换格式。
+        coEvery { knowledgeItemDao.searchItems(any()) } returns pagingSource
         coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
@@ -320,7 +322,10 @@ class RAGRetrieverTest {
             prevKey = null,
             nextKey = null
         )
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
+        // Production 调 searchItems(ftsQuery) 不是 searchItemsSimple；其它 strategy
+        // 内部还可能调 getAllItemsSync 等其它方法，用 any() + 共享 mock 兼容。
+        coEvery { knowledgeItemDao.searchItems(any()) } returns pagingSource
+        coEvery { knowledgeItemDao.getAllItemsSync() } returns testItems
         coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
