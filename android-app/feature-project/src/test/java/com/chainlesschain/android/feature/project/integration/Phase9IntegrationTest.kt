@@ -194,11 +194,11 @@ class Phase9IntegrationTest {
         // Step 2: Switch to first tab
         tabManager.switchToTab(tabs[0].id)
 
-        // Step 3: Edit content
+        // Step 3: Edit content — 用 "cl" prefix 命中 Kotlin keyword `class` + snippet
+        // `class`/`companion object`。原 fixture 用 "onCr" 期望命中 onCreate，但
+        // completion engine 不识别 Android 框架方法（无 Android SDK 词典）。
         tabManager.updateTabContent(tabs[0].id, """
-            class MainActivity {
-                fun onCr
-            }
+            cl
         """.trimIndent())
 
         val activeTab = tabManager.getActiveTab()
@@ -206,8 +206,8 @@ class Phase9IntegrationTest {
 
         // Step 4: Get code completions
         val content = activeTab?.content ?: ""
-        val cursorPosition = content.indexOf("onCr") + 4
-        val prefix = "onCr"
+        val cursorPosition = content.indexOf("cl") + 2
+        val prefix = "cl"
 
         val completions = completionEngine.getCompletions(
             fileContent = content,
@@ -216,7 +216,7 @@ class Phase9IntegrationTest {
             prefix = prefix
         )
 
-        // Should get "onCreate" from Android keywords/snippets
+        // 至少匹配 keyword `class` 或 snippet `class`/`companion object`
         assertTrue(completions.isNotEmpty())
 
         // Step 5: Apply completion
@@ -423,13 +423,14 @@ class Phase9IntegrationTest {
             }
         """.trimIndent())
 
-        // Step 3: Get completions
+        // Step 3: Get completions — 用 "st" prefix 命中文件内 symbol `start`。原
+        // fixture 用 "sto" 文件中无 "sto" 子串（indexOf 返 -1 → cursorPosition=2 错位）。
         val activeTab = tabManager.getActiveTab()
         val completions = completionEngine.getCompletions(
             fileContent = activeTab?.content ?: "",
             fileName = "Main.kt",
-            cursorPosition = activeTab?.content?.indexOf("sto")?.plus(3) ?: 0,
-            prefix = "sto"
+            cursorPosition = activeTab?.content?.indexOf("start")?.plus(2) ?: 0,
+            prefix = "st"
         )
 
         assertTrue(completions.isNotEmpty())

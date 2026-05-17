@@ -4,6 +4,7 @@ import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,9 +42,10 @@ class EditorTabManager @Inject constructor() {
             return false // 达到最大标签数
         }
 
-        // 创建新标签
+        // 创建新标签 — 用 UUID 保证唯一（之前用 currentTimeMillis 同毫秒会冲突，
+        // 真机 / 单测快速连开 3 个 tab 时全部 id 相同）
         val newTab = EditorTab(
-            id = "tab_${System.currentTimeMillis()}",
+            id = UUID.randomUUID().toString(),
             file = file,
             content = content,
             isDirty = false

@@ -44,10 +44,13 @@ class CodeFoldingManager(
     }
 
     /**
-     * Check if a line is in a folded region
+     * Check if a line is in a folded region.
+     *
+     * 注意：start line 保持可见（显示 "..." 折叠提示），与 [getVisibleLines]
+     * 语义一致。`fun test() {` 行折叠后仍显示，仅 body 被隐藏。
      */
     fun isLineFolded(lineNumber: Int): Boolean {
-        return foldedRegions.any { lineNumber in it }
+        return foldedRegions.any { lineNumber > it.first && lineNumber in it }
     }
 
     /**
@@ -97,19 +100,25 @@ class CodeFoldingManager(
             val trimmed = line.trim()
 
             // Function/class/object declaration
-            when {
-                trimmed.startsWith("fun ") ||
-                trimmed.startsWith("class ") ||
+            // Kotlin functions 常带 modifier 前缀：suspend/private/internal/public/inline/
+            // override/operator/tailrec/external/infix/expect/actual/data 等。识别 "fun "
+            // 子串（带前导空白或行首）而非仅 startsWith。
+            val isFunctionLine = trimmed.startsWith("fun ") ||
+                Regex("""^(suspend|private|internal|public|protected|inline|override|operator|tailrec|external|infix|expect|actual|abstract|open|final)(\s+\w+)*\s+fun\s""").containsMatchIn(trimmed)
+            val isClassLike = trimmed.startsWith("class ") ||
                 trimmed.startsWith("object ") ||
                 trimmed.startsWith("interface ") ||
                 trimmed.startsWith("enum class ") ||
+                trimmed.startsWith("data class ") ||
+                trimmed.startsWith("sealed class ") ||
+                trimmed.startsWith("abstract class ") ||
+                trimmed.startsWith("open class ") ||
                 trimmed.contains(" class {") ||
-                trimmed.contains(" object {") -> {
+                trimmed.contains(" object {")
+            when {
+                isFunctionLine || isClassLike -> {
                     if (trimmed.endsWith("{")) {
-                        val type = when {
-                            trimmed.startsWith("fun ") -> FoldableRegionType.FUNCTION
-                            else -> FoldableRegionType.CLASS
-                        }
+                        val type = if (isFunctionLine) FoldableRegionType.FUNCTION else FoldableRegionType.CLASS
                         stack.add(index to type)
                     }
                 }
@@ -134,13 +143,13 @@ class CodeFoldingManager(
                     stack.add(index to FoldableRegionType.COMMENT)
                 }
                 trimmed.endsWith("*/") && stack.lastOrNull()?.second == FoldableRegionType.COMMENT -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
                 }
                 trimmed == "}" && stack.isNotEmpty() -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start && type != FoldableRegionType.COMMENT) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
@@ -168,6 +177,23 @@ class CodeFoldingManager(
                  trimmed.contains(" enum ")) -> {
                     if (trimmed.endsWith("{")) {
                         stack.add(index to FoldableRegionType.CLASS)
+                    }
+                }
+                // catch/finally 同行关闭+打开：`} catch (...) {` 或 `} finally {`
+                // 必须在 method/control 分支之前判断，否则会被误识别。
+                trimmed.startsWith("} catch ") ||
+                trimmed.startsWith("} catch(") ||
+                trimmed.startsWith("} finally") -> {
+                    // 先 pop 前一 try block
+                    if (stack.isNotEmpty()) {
+                        val (start, type) = stack.removeAt(stack.lastIndex)
+                        if (index > start && type != FoldableRegionType.COMMENT) {
+                            regions.add(FoldableRegion(start, index, type, lines[start].trim()))
+                        }
+                    }
+                    // 再 push 当前 catch/finally block
+                    if (trimmed.endsWith("{")) {
+                        stack.add(index to FoldableRegionType.CONTROL_FLOW)
                     }
                 }
                 trimmed.matches(Regex(".*\\s+\\w+\\s*\\([^)]*\\)\\s*\\{.*")) -> {
@@ -199,13 +225,13 @@ class CodeFoldingManager(
                     stack.add(index to FoldableRegionType.COMMENT)
                 }
                 trimmed.endsWith("*/") && stack.lastOrNull()?.second == FoldableRegionType.COMMENT -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
                 }
                 trimmed == "}" && stack.isNotEmpty() -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start && type != FoldableRegionType.COMMENT) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
@@ -229,7 +255,7 @@ class CodeFoldingManager(
             val trimmed = line.trim()
 
             when {
-                trimmed.startsWith("def ") -> {
+                trimmed.startsWith("def ") || trimmed.startsWith("async def ") -> {
                     blockStart?.let { start ->
                         blockType?.let { type ->
                             regions.add(FoldableRegion(start, index - 1, type, lines[start].trim()))
@@ -325,7 +351,11 @@ class CodeFoldingManager(
                 trimmed.startsWith("try {") ||
                 trimmed.startsWith("catch ") ||
                 trimmed.startsWith("catch(") ||
-                trimmed.startsWith("finally {") -> {
+                trimmed.startsWith("finally {") ||
+                // catch/finally 通常跟在前一个 block 的 `}` 后同行：`} catch (...) {`
+                trimmed.startsWith("} catch ") ||
+                trimmed.startsWith("} catch(") ||
+                trimmed.startsWith("} finally") -> {
                     if (trimmed.endsWith("{")) {
                         stack.add(index to FoldableRegionType.CONTROL_FLOW)
                     }
@@ -334,13 +364,13 @@ class CodeFoldingManager(
                     stack.add(index to FoldableRegionType.COMMENT)
                 }
                 trimmed.endsWith("*/") && stack.lastOrNull()?.second == FoldableRegionType.COMMENT -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
                 }
                 trimmed == "}" && stack.isNotEmpty() -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start && type != FoldableRegionType.COMMENT) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
@@ -393,13 +423,13 @@ class CodeFoldingManager(
                     stack.add(index to FoldableRegionType.COMMENT)
                 }
                 trimmed.endsWith("*/") && stack.lastOrNull()?.second == FoldableRegionType.COMMENT -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
                 }
                 trimmed == "}" && stack.isNotEmpty() -> {
-                    val (start, type) = stack.removeLast()
+                    val (start, type) = stack.removeAt(stack.lastIndex)
                     if (index > start && type != FoldableRegionType.COMMENT) {
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }

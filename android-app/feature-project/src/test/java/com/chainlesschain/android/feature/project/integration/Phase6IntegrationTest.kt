@@ -109,14 +109,22 @@ class Phase6IntegrationTest {
             createExternalFile("readme.md", FileCategory.DOCUMENT)
         )
 
-        // ExternalFileDao.getRecentFiles(fromTimestamp: Long, limit: Int): Flow<List<...>>
-        // 不接 categories（仅 by-category 路径走 getRecentFilesByCategory）
+        // ExternalFileRepository.getRecentFiles(categories) 内部对每个 category 调
+        // getRecentFilesByCategory(category, fromTimestamp, limit)，不是 getRecentFiles。
         coEvery {
-            mockExternalFileDao.getRecentFiles(
+            mockExternalFileDao.getRecentFilesByCategory(
+                category = FileCategory.DOCUMENT,
                 fromTimestamp = any(),
-                limit = 20
+                limit = any()
             )
-        } returns flowOf(testFiles.filter { it.category in listOf(FileCategory.DOCUMENT, FileCategory.CODE) })
+        } returns flowOf(testFiles.filter { it.category == FileCategory.DOCUMENT })
+        coEvery {
+            mockExternalFileDao.getRecentFilesByCategory(
+                category = FileCategory.CODE,
+                fromTimestamp = any(),
+                limit = any()
+            )
+        } returns flowOf(testFiles.filter { it.category == FileCategory.CODE })
 
         // When — ExternalFileRepository.getRecentFiles 现在是 suspend 单返
         val result = externalFileRepository.getRecentFiles(
@@ -124,10 +132,12 @@ class Phase6IntegrationTest {
             limit = 20
         )
 
-        // Then
+        // Then — 文档 2 (document.pdf, readme.md) + 代码 1 (code.kt) = 3
         assertEquals(3, result.size)
         assertTrue(result.all { it.category in listOf(FileCategory.DOCUMENT, FileCategory.CODE) })
-        coVerify { mockExternalFileDao.getRecentFiles(any(), any()) }
+        // Repository 调 getRecentFilesByCategory（per category 一次），不是
+        // getRecentFiles（time-only fan-in）
+        coVerify { mockExternalFileDao.getRecentFilesByCategory(any(), any(), any()) }
     }
 
     /**
@@ -177,11 +187,14 @@ class Phase6IntegrationTest {
         assertEquals(null, projectFile.content)
 
         // Verify project stats updated (fileCount +1, totalSize unchanged)
+        // updateProjectStats(projectId, fileCount, totalSize, updatedAt=default current ms)
+        // updatedAt 用 any() 因为 production 内部传 System.currentTimeMillis()
         coVerify {
             mockProjectDao.updateProjectStats(
                 projectId,
                 6, // fileCount + 1
-                1000L // totalSize unchanged for LINK mode
+                1000L, // totalSize unchanged for LINK mode
+                any() // updatedAt — production 自填，不能 eq 比对
             )
         }
     }
@@ -320,9 +333,9 @@ class Phase6IntegrationTest {
         assertEquals(null, importedFile.content)
         assertEquals(projectId, importedFile.projectId)
 
-        // Verify project stats updated
+        // Verify project stats updated — 第 4 arg updatedAt 默认值，any() 兜底
         coVerify {
-            mockProjectDao.updateProjectStats(projectId, 4, 500L)
+            mockProjectDao.updateProjectStats(projectId, 4, 500L, any())
         }
     }
 

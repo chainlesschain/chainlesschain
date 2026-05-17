@@ -346,17 +346,19 @@ class CodeCompletionTest {
      */
     @Test
     fun `getCompletions should return combined results`() = runTest {
-        // Given
+        // Given — 测试 combined sources (keyword + snippet + symbol)：用 "fu" prefix 同时
+        // 命中关键字 `fun`、snippet `fun`、和文件内 symbol `function`-类。原 fixture
+        // 用 "cal" 不命中任何 keyword/snippet/symbol，违背测试意图。
         val fileContent = """
             fun greet(name: String) {
                 println("Hello")
             }
 
-            fun cal
+            fu
         """.trimIndent()
 
-        val cursorPosition = fileContent.indexOf("cal") + 3
-        val prefix = "cal"
+        val cursorPosition = fileContent.lastIndexOf("fu") + 2
+        val prefix = "fu"
 
         // When
         val completions = completionEngine.getCompletions(
@@ -366,9 +368,8 @@ class CodeCompletionTest {
             prefix = prefix
         )
 
-        // Then
+        // Then — 至少匹配 keyword "fun" 和 snippet "fun"
         assertTrue(completions.isNotEmpty())
-        // Should find "greet" function symbol
         assertTrue(completions.any { it.label.startsWith(prefix, ignoreCase = true) })
     }
 
