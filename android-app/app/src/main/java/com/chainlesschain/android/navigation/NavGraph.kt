@@ -304,6 +304,10 @@ fun NavGraph(
                 onNavigateToRemoteFiles = { pid, name ->
                     navController.navigate(Screen.RemoteProjectFiles.createRoute(pid, name))
                 },
+                // Sub-phase 5-6: 远程终端入口 — Terminal icon → TerminalList(peerId, cwd=pcRootPath)
+                onNavigateToRemoteTerminal = { peerId, cwd ->
+                    navController.navigate(Screen.TerminalList.createRoute(peerId, cwd))
+                },
             )
         }
 
@@ -681,15 +685,24 @@ fun NavGraph(
         }
         composable(
             route = Screen.TerminalList.routePattern,
-            arguments = listOf(navArgument("peerId") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+                navArgument("cwd") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
         ) { backStack ->
             val peerId = backStack.arguments?.getString("peerId").orEmpty()
+            val cwd = backStack.arguments?.getString("cwd")?.let { android.net.Uri.decode(it) }
             TerminalListScreen(
                 pcPeerId = peerId,
                 onBack = { navController.popBackStack() },
                 onOpenSession = { sessionId ->
                     navController.navigate(Screen.TerminalSession.createRoute(peerId, sessionId))
                 },
+                initialCwd = cwd,
             )
         }
         composable(
@@ -993,9 +1006,15 @@ sealed class Screen(val route: String) {
         fun createRoute(peerId: String) = "remote_operate/$peerId"
     }
     // Plan A 远程终端 — list + single session
+    // Sub-phase 5-6 (2026-05-17): 加 cwd 可选 query 让项目详情页 Terminal icon
+    // 入口能预填 PC 端项目根目录。
     data object TerminalList : Screen("terminal_list") {
-        const val routePattern = "terminal_list/{peerId}"
-        fun createRoute(peerId: String) = "terminal_list/$peerId"
+        const val routePattern = "terminal_list/{peerId}?cwd={cwd}"
+        fun createRoute(peerId: String, cwd: String? = null): String {
+            val base = "terminal_list/$peerId"
+            return if (cwd.isNullOrEmpty()) base
+            else "$base?cwd=${java.net.URLEncoder.encode(cwd, "UTF-8")}"
+        }
     }
     data object TerminalSession : Screen("terminal_session") {
         const val routePattern = "terminal_session/{peerId}/{sessionId}"

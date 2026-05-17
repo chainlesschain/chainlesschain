@@ -100,11 +100,11 @@ class TerminalListViewModel @Inject constructor(
         }
     }
 
-    fun createSession(shell: String) {
+    fun createSession(shell: String, cwd: String? = null) {
         if (pcPeerId.isEmpty()) return
         _state.update { it.copy(creating = true, error = null) }
         viewModelScope.launch {
-            terminalRpc.create(pcPeerId, shell = shell)
+            terminalRpc.create(pcPeerId, shell = shell, cwd = cwd)
                 .onSuccess { created ->
                     // Plan A.1 v5.0.3.53-fix7 真机 E2E 真因：原 `it.copy(lastCreatedId = it.lastCreatedId)`
                     // 把 onSuccess 闭包参数 `it`（CreatedSession）shadow 了，又用 state.it.lastCreatedId

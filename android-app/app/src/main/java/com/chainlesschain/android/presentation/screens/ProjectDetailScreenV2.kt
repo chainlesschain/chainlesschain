@@ -47,6 +47,7 @@ fun ProjectDetailScreenV2(
     onNavigateToFileBrowser: (String) -> Unit = {},
     onNavigateToTaskList: () -> Unit = {},
     onNavigateToRemoteFiles: (String, String) -> Unit = { _, _ -> },
+    onNavigateToRemoteTerminal: (pcPeerId: String, cwd: String?) -> Unit = { _, _ -> },
     viewModel: ProjectViewModel = hiltViewModel(),
     authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel()
 ) {
@@ -87,6 +88,17 @@ fun ProjectDetailScreenV2(
         else -> stringResource(R.string.project_detail_default_title)
     }
 
+    // Sub-phase 5-6 (2026-05-17): 远程终端入口仅在项目源自 PC（sourcePeerId != null）时显示。
+    // cwd 用 pcRootPath（PC 端项目根目录）让 shell 启动后就停在项目里。
+    val pcPeerIdForTerminal = when (val state = projectDetailState) {
+        is ProjectDetailState.Success -> state.project.sourcePeerId
+        else -> null
+    }
+    val pcRootPathForTerminal = when (val state = projectDetailState) {
+        is ProjectDetailState.Success -> state.project.pcRootPath
+        else -> null
+    }
+
     Scaffold(
         topBar = {
             ProjectDetailTopBar(
@@ -95,6 +107,9 @@ fun ProjectDetailScreenV2(
                 onNavigateToFileBrowser = { onNavigateToFileBrowser(projectId) },
                 onNavigateToTaskList = onNavigateToTaskList,
                 onNavigateToRemoteFiles = { onNavigateToRemoteFiles(projectId, projectTitle) },
+                onNavigateToRemoteTerminal = pcPeerIdForTerminal?.let { peerId ->
+                    { onNavigateToRemoteTerminal(peerId, pcRootPathForTerminal) }
+                },
                 isLoading = projectDetailState is ProjectDetailState.Loading
             )
         },
@@ -230,6 +245,7 @@ fun ProjectDetailTopBar(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToTaskList: () -> Unit = {},
     onNavigateToRemoteFiles: () -> Unit = {},
+    onNavigateToRemoteTerminal: (() -> Unit)? = null,
     isLoading: Boolean = false
 ) {
     val context = LocalContext.current
@@ -269,6 +285,13 @@ fun ProjectDetailTopBar(
             // Sub-phase 7.5 (2026-05-17): 远程文件 CRUD 入口（PC 端项目实时读写）
             IconButton(onClick = onNavigateToRemoteFiles) {
                 Icon(Icons.Default.Cloud, contentDescription = "远程文件")
+            }
+            // Sub-phase 5-6 (2026-05-17): 远程终端入口 — 仅 PC→Android 拉取的项目可见。
+            // 点击直接进 TerminalList(peerId=pcPeerId, cwd=pcRootPath) → 自动开 session。
+            onNavigateToRemoteTerminal?.let { handler ->
+                IconButton(onClick = handler) {
+                    Icon(Icons.Default.Terminal, contentDescription = "远程终端")
+                }
             }
             IconButton(onClick = onNavigateToTaskList) {
                 Icon(Icons.Default.Assignment, contentDescription = stringResource(R.string.project_detail_task_list))

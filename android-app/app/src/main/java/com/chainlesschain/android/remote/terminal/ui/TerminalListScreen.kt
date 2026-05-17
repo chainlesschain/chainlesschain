@@ -27,11 +27,24 @@ fun TerminalListScreen(
     pcPeerId: String,
     onBack: () -> Unit,
     onOpenSession: (sessionId: String) -> Unit,
+    initialCwd: String? = null,
     viewModel: TerminalListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val dcReady by viewModel.dataChannelReady.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
+    var autoCreated by remember { mutableStateOf(false) }
+
+    // Sub-phase 5-6 (2026-05-17): 项目详情页 Terminal icon 入口传 initialCwd
+    // → 进 list 屏自动创建一个落 cwd 的 session，省点 "新会话 → 选 shell"。
+    // 双 guard: dcReady (P2P 直连可走) 或 至少 list 加载完（fallback signaling）。
+    // autoCreated 防 LaunchedEffect 重入。
+    LaunchedEffect(initialCwd, state.loading) {
+        if (!autoCreated && !initialCwd.isNullOrBlank() && !state.creating && !state.loading) {
+            autoCreated = true
+            viewModel.createSession(shell = "pwsh", cwd = initialCwd)
+        }
+    }
 
     // Plan A.1 v5.0.3.53-fix7: 监听 createSession 成功后填充的 lastCreatedId，
     // 立即 navigate 到 SessionScreen 让用户能看到新会话的 WebView。
