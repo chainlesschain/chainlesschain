@@ -319,7 +319,7 @@ fun NavGraph(
         composable(Screen.RemoteProjectBrowser.route) {
             val browserAuthVm: AuthViewModel = hiltViewModel()
             val browserAuthState by browserAuthVm.uiState.collectAsState()
-            com.chainlesschain.android.feature.project.ui.RemoteProjectBrowserScreen(
+            com.chainlesschain.android.remote.ui.project.RemoteProjectBrowserScreen(
                 userId = browserAuthState.currentUser?.id ?: "",
                 onNavigateBack = { navController.popBackStack() },
                 onProjectPulled = { projectId ->

@@ -1,4 +1,4 @@
-package com.chainlesschain.android.feature.project.ui
+package com.chainlesschain.android.remote.ui.project
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,9 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chainlesschain.android.feature.project.viewmodel.BrowserItem
-import com.chainlesschain.android.feature.project.viewmodel.BrowserState
-import com.chainlesschain.android.feature.project.viewmodel.RemoteProjectBrowserViewModel
+// BrowserItem / BrowserState / RemoteProjectBrowserViewModel 在同 package，无 import 需要
 
 /**
  * 浏览 PC 端项目列表 + 选择性拉取屏 — Sub-phase 10 (选项 C 单向 PC→Android)。

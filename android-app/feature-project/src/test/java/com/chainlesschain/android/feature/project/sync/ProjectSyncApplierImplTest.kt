@@ -69,7 +69,7 @@ class ProjectSyncApplierImplTest {
     fun `saveFromSync writes sourcePeerId and pcRootPath when present`() = runTest {
         coEvery { projectDao.getProjectById("p-1") } returns null
         val entitySlot = slot<ProjectEntity>()
-        coEvery { projectDao.insertProject(capture(entitySlot)) } returns Unit
+        coEvery { projectDao.insertProject(capture(entitySlot)) } returns 1L
 
         applier.saveFromSync(
             "p-1",
@@ -84,7 +84,7 @@ class ProjectSyncApplierImplTest {
     fun `saveFromSync leaves new fields null for LOCAL-style payload`() = runTest {
         coEvery { projectDao.getProjectById("p-2") } returns null
         val entitySlot = slot<ProjectEntity>()
-        coEvery { projectDao.insertProject(capture(entitySlot)) } returns Unit
+        coEvery { projectDao.insertProject(capture(entitySlot)) } returns 1L
 
         applier.saveFromSync("p-2", jsonPayload("p-2"))
 
@@ -104,7 +104,7 @@ class ProjectSyncApplierImplTest {
         )
         coEvery { projectDao.getProjectById("p-3") } returns existing
         val entitySlot = slot<ProjectEntity>()
-        coEvery { projectDao.insertProject(capture(entitySlot)) } returns Unit
+        coEvery { projectDao.insertProject(capture(entitySlot)) } returns 1L
 
         applier.updateFromSync("p-3", jsonPayload("p-3", name = "updated"))
 
@@ -118,7 +118,7 @@ class ProjectSyncApplierImplTest {
         // Android 端 rootPath 是 SAF URI；pcRootPath 是 PC 路径。两者语义不同，不能互相兜底。
         coEvery { projectDao.getProjectById("p-4") } returns null
         val entitySlot = slot<ProjectEntity>()
-        coEvery { projectDao.insertProject(capture(entitySlot)) } returns Unit
+        coEvery { projectDao.insertProject(capture(entitySlot)) } returns 1L
 
         applier.saveFromSync(
             "p-4",
@@ -161,7 +161,7 @@ class ProjectSyncApplierImplTest {
         )
         coEvery { projectDao.getProjectById("p-6") } returns fromPc
         val entitySlot = slot<ProjectEntity>()
-        coEvery { projectDao.insertProject(capture(entitySlot)) } returns Unit
+        coEvery { projectDao.insertProject(capture(entitySlot)) } returns 1L
 
         applier.deleteFromSync("p-6")
 

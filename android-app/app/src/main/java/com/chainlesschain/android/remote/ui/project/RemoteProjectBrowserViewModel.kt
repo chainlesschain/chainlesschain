@@ -1,4 +1,4 @@
-package com.chainlesschain.android.feature.project.viewmodel
+package com.chainlesschain.android.remote.ui.project
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
