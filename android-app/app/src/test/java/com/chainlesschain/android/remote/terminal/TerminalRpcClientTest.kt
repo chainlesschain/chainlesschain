@@ -288,11 +288,19 @@ class TerminalRpcClientTest {
     }
 
     /**
-     * Plan A.1 Phase 4 — same (sessionId, seq) arriving from BOTH transports
-     * (DC + signaling) must be dedup'd. UI must see exactly one stdout event.
+     * Plan A.1 Phase 4 → v5.0.3.53-fix5 真机 E2E 修订：dedup gate 被**故意去掉**
+     * （详见 [TerminalRpcClient] L151-160 注释）。真机上 listener fires 4 次 per
+     * stdout event（forwardedMessages + _messages 双 emit + 老 callback 残留），
+     * dedup 把所有 4 次都 drop → WebView 永远黑屏。
+     *
+     * 当前行为：DC + signaling 双发都 emit 到 SharedFlow；xterm.js 收重复 chunk
+     * 只是渲染同样字节 N 次，对用户不可感（视觉上轻微重复，无功能损坏）。
+     *
+     * v0.2 dedup-redesign：(sessionId, seq, payload-hash) + emit-first-add-after
+     * 模式 — 届时本测试期望改回 1。
      */
     @Test
-    fun `Plan A1 — stdout duplicate from DC and signaling is dedup'd`() = runTest(testDispatcher) {
+    fun `Plan A1 — stdout from DC and signaling double-emits per v5_0_3_53 fix5 (dedup disabled)`() = runTest(testDispatcher) {
         client.start()
         val received = mutableListOf<TerminalRpcClient.StdoutEvent>()
         val job = launch {
@@ -316,13 +324,19 @@ class TerminalRpcClientTest {
         dcMessages.emit(frame)
         runCurrentScheduler()
 
-        assertEquals(1, received.size, "duplicate (s1, 42) must collapse to one emit")
+        // v5.0.3.53-fix5: dedup disabled — 双发各 emit 一次
+        assertEquals(2, received.size, "dedup disabled — both DC + signaling emit (v0.2 will re-enable)")
         assertEquals("hello", received[0].data)
+        assertEquals("hello", received[1].data)
         job.cancel()
     }
 
+    /**
+     * v5.0.3.53-fix5: 同 stdout dedup 一并去除。exit 多 emit 是 idempotent（ViewModel
+     * 只用第一次的 exitCode 关 session），UI 不受影响。详见 [TerminalRpcClient] L178-179。
+     */
     @Test
-    fun `Plan A1 — exit duplicate per session is dedup'd`() = runTest(testDispatcher) {
+    fun `Plan A1 — exit from DC and signaling double-emits per v5_0_3_53 fix5 (dedup disabled)`() = runTest(testDispatcher) {
         client.start()
         val received = mutableListOf<TerminalRpcClient.ExitEvent>()
         val job = launch {
@@ -345,7 +359,8 @@ class TerminalRpcClientTest {
         dcMessages.emit(frame)
         runCurrentScheduler()
 
-        assertEquals(1, received.size, "duplicate exit for s1 must collapse")
+        // dedup disabled — 双 emit，但 ViewModel 用 first-write-wins 兼容
+        assertEquals(2, received.size, "dedup disabled — both emit (idempotent at ViewModel layer)")
         job.cancel()
     }
 
