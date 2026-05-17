@@ -1,6 +1,6 @@
 {
-  "tag": "v5.0.3.56",
-  "fetchedAt": "2026-05-16T01:59:44.519Z",
+  "tag": "v5.0.3.57",
+  "fetchedAt": "2026-05-17T00:34:42.963Z",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",
@@ -14,7 +14,7 @@
     },
     "android-aab": {
       "name": "app-release.aab",
-      "bytes": 74032935,
+      "bytes": 74072707,
       "label": "71 MB"
     },
     "android-universal": {
@@ -23,39 +23,39 @@
       "label": "124 MB"
     },
     "mac-arm64": {
-      "name": "ChainlessChain-5.0.3-alpha.56-arm64.dmg",
-      "bytes": 491209400,
+      "name": "ChainlessChain-5.0.3-alpha.57-arm64.dmg",
+      "bytes": 491246312,
       "label": "468 MB"
     },
     "linux-appimage": {
-      "name": "ChainlessChain-5.0.3-alpha.56.AppImage",
-      "bytes": 712457268,
+      "name": "ChainlessChain-5.0.3-alpha.57.AppImage",
+      "bytes": 712477362,
       "label": "679 MB"
     },
     "mac-intel": {
-      "name": "ChainlessChain-5.0.3-alpha.56.dmg",
-      "bytes": 496665358,
+      "name": "ChainlessChain-5.0.3-alpha.57.dmg",
+      "bytes": 496631306,
       "label": "474 MB"
     },
     "linux-rpm": {
-      "name": "chainlesschain-desktop-vue-5.0.3-alpha.56.x86_64.rpm",
-      "bytes": 369166069,
+      "name": "chainlesschain-desktop-vue-5.0.3-alpha.57.x86_64.rpm",
+      "bytes": 369168949,
       "label": "352 MB"
     },
     "linux-deb": {
-      "name": "chainlesschain-desktop-vue_5.0.3-alpha.56_amd64.deb",
-      "bytes": 364582296,
+      "name": "chainlesschain-desktop-vue_5.0.3-alpha.57_amd64.deb",
+      "bytes": 364633024,
       "label": "348 MB"
     },
     "win-portable": {
-      "name": "ChainlessChain-Portable-5.0.3-alpha.56.exe",
-      "bytes": 473142147,
+      "name": "ChainlessChain-Portable-5.0.3-alpha.57.exe",
+      "bytes": 473095867,
       "label": "451 MB"
     },
     "win-setup": {
-      "name": "ChainlessChain-Setup-5.0.3-alpha.56.exe",
-      "bytes": 473461678,
-      "label": "452 MB"
+      "name": "ChainlessChain-Setup-5.0.3-alpha.57.exe",
+      "bytes": 473415463,
+      "label": "451 MB"
     }
   }
 }

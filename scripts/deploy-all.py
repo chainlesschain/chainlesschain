@@ -112,19 +112,42 @@ DEPLOYS = [
     # 4 Android + iOS placeholder + 3 latest.yml + 3 blockmap)。fix iOS Phase 2/3/4 设计
     # 文档 prose 中 unescaped <code>/<commit>/<source> 致 VitePress build fail (Vue 把
     # <code> 当 HTML start tag)。
+    # 2026-05-17 v5.0.3.57 滚动更新 (3 站全刷):
+    # Android 远程文件 skill 接通 (commits 3463e059a + a84b1c075 + dfcaed668):
+    #   - Plan C Android↔PC 文件传输 完整 UX: 浏览 PC 任意目录无 sandbox / 上传到 PC
+    #     Downloads 防覆盖 (1)/(2) 后缀 / 下载到手机公共 Download 目录走 MediaStore.Downloads
+    #     + Intent.ACTION_VIEW app 内打开 / 本机下载文件夹 app 内 LazyColumn 浏览。
+    #   - desktop-app-vue/src/main/remote/handlers/android-file-handler.js 460 行新写,
+    #     11 个 action 字段对齐 Android FileCommands.kt。
+    #   - 一晚扫平 6 互锁雷: P2PClient skip guard 太宽 / Plan C 不调 connect / handleFileCommand
+    #     弹 PC 框 + 缺 listDirectory case / FileTransferHandler sandbox 在 userData /
+    #     checksum sha256-prefix vs md5 自删 / getExternalFilesDir 用户找不到。
+    #   - 34 新单测全绿 (PC vitest 30 + Android RemoteCommandClient 4)。
+    #   - Xiaomi 24115RA8EC × Win desktop 真机 E2E 8 场景全跑通。
+    # 改动: 根 CHANGELOG.md + docs-site/docs/changelog.md v5.0.3.57 entry 已落;
+    # docs-site/docs/index.md + docs-site-design/docs/index.md tagline v55 → v57 +
+    # 加远程文件 skill 摘要; docs-site/docs/chainlesschain/overview.md ⭐ 当前版本块同步;
+    # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张 v5.0.3.57 卡 (中英对照);
+    # docs-website-v2/src/pages/mobile.astro 加 🎯 重点功能 远程文件 section;
+    # docs-site/docs/.vitepress/config.js sidebar 加 remote-file 链接;
+    # docs-site/docs/guide/remote-file.md 新建用户文档; docs/design/Android_Remote_File_Skill.md
+    # 新建设计文档 (~240 行); sync-design-docs.js + sync-docs.js 各加 1 entry 让设计文档自动
+    # 落到两 doc-site 副本; release-sizes.json 自动 refresh 到 v5.0.3.57 (GitHub Release
+    # published 2026-05-16T17:58:49Z, 18 assets: 8 desktop + 4 Android + latest.yml × 3
+    # + blockmap × 3)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.56-20260516-094704.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.57-20260517-084356.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.56-20260516-094704.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.57-20260517-084356.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.56-20260516-094704.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.57-20260517-084356.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
