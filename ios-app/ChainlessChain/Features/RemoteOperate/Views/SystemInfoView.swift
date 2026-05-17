@@ -61,9 +61,16 @@ private struct Inner: View {
 
     private var statusBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: vm.busy ? "arrow.clockwise.circle" : "clock")
-                .foregroundColor(.blue)
-                .symbolEffect(.pulse, isActive: vm.busy)
+            Group {
+                if #available(iOS 17, *) {
+                    Image(systemName: vm.busy ? "arrow.clockwise.circle" : "clock")
+                        .foregroundColor(.blue)
+                        .symbolEffect(.pulse, isActive: vm.busy)
+                } else {
+                    Image(systemName: vm.busy ? "arrow.clockwise.circle" : "clock")
+                        .foregroundColor(.blue)
+                }
+            }
             if let updated = vm.lastUpdated {
                 Text("更新于 \(formatTime(updated))")
                     .font(.caption)

@@ -3,6 +3,18 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.62] - 2026-05-17 — iOS deployment target 降到 iOS 16
+
+> v5.0.3.61 .ipa 出包后审计发现 iOS 17 baseline 偏高；app 实际只用 1 处 iOS 17-only API（SystemInfoView 的 `.symbolEffect` pulse 动画）。降到 iOS 16 后覆盖 2017 年以来所有 iPhone 机型（iPhone 8+），可测试 / 试用人群约扩大 30%。
+
+**已完成**：
+- `ChainlessChain.xcodeproj` Debug + Release config `IPHONEOS_DEPLOYMENT_TARGET = 16.0`
+- `Package.swift` platforms `.iOS(.v16)`，SPM 模块跟随
+- `SystemInfoView` pulse 动画 `if #available(iOS 17, *)` 包装，iOS 16 fallback 为静态图标
+- 5 个 version surface (productVersion / desktop / ios.short / ios.build / android.name/code) 全 sync 验证通过
+
+**审计结果**：app 无 `@Observable` macro / `ContentUnavailableView` / 显式 `@available(iOS 17, *)` 标注，迁移成本极低。
+
 ## [v5.0.3.61] - 2026-05-17 — iOS CI 真签名 .ipa 出包
 
 > v5.0.3.56 揭示 iOS app target 412 编译错后，build-ios 临时回退 SPM-only 不产 .ipa。app target 0 错 (`a8dc88b13`) 后，本版本恢复 xcodebuild archive + ExportArchive 路径，配 Hua Zhang Apple 账号 ad-hoc 证书（Team `2GMR44F922`），每次发版自动产签名 `.ipa`（7.4MB）随 GitHub Release。

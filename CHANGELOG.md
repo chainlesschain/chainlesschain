@@ -5,6 +5,22 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.62] - 2026-05-17 — iOS deployment target 降到 iOS 16 (覆盖 iPhone 8 起)
+
+> v5.0.3.61 .ipa 出包成功后用户反馈 iOS 17 baseline 太高；audit 后发现 app 实际只用 1 处 iOS 17-only API (`SystemInfoView` 的 `.symbolEffect`)，降低成本极小。降到 iOS 16 后覆盖 2017 年以来所有 iPhone 机型（iPhone 8+），扩大测试 / 试用人群约 30%。
+
+### Changed
+
+- `ios-app/ChainlessChain.xcodeproj/project.pbxproj` — `IPHONEOS_DEPLOYMENT_TARGET = 17.0` → `16.0`（Debug + Release 两 config 同步）
+- `ios-app/Package.swift` — `platforms: [.iOS(.v17)]` → `.iOS(.v16)`，SPM 模块 (CoreP2P / CoreDID / CoreSecurity / CoreDatabase 等) 全部跟随
+- `ios-app/.../RemoteOperate/Views/SystemInfoView.swift` — pulse 动画 (`Image.symbolEffect(.pulse, isActive:)`) 加 `if #available(iOS 17, *)` guard，iOS 16 上 fallback 为静态图标（无 pulse 动画，其它行为不变）
+
+### Validated
+
+- `scripts/check-version-sync.js` 5 surface 全 sync (productVersion / desktop alpha / ios CFBundleShortVersionString+Version / android versionName+Code)
+- Audit 表明无 `@Observable` macro / `ContentUnavailableView` / 显式 `@available(iOS 17, *)` 标注，仅 1 处 `.symbolEffect` 已处理
+- 之前 ios-build.yml SPM phase 1-5 已用 `--triple ios15.0-simulator` 编译验证，源码层面对 iOS 16 兼容性无忧
+
 ## [v5.0.3.61] - 2026-05-17 — iOS CI 真签名 .ipa 出包 (Hua Zhang 团队 ad-hoc 配置)
 
 > v5.0.3.56 揭示 iOS app target 412 编译错后，那次 release.yml build-ios 回退到 SPM-only (`faa8e267f`) 暂不产 .ipa。之后 app target 0 错 (`a8dc88b13`) 已落，本版本恢复 xcodebuild archive + ExportArchive 路径，并打通 4 个 GitHub Secret + Apple Developer 账号 (Team `2GMR44F922`)，每次发版自动产真签名 ad-hoc `.ipa`（7.4MB）随 GitHub Release。
