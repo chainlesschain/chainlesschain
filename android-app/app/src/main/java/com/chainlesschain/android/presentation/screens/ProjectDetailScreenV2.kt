@@ -30,6 +30,7 @@ import com.chainlesschain.android.core.database.entity.ProjectChatRole
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
 import com.chainlesschain.android.feature.project.ui.components.FileMentionPopup
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +50,8 @@ fun ProjectDetailScreenV2(
     onNavigateToRemoteFiles: (String, String) -> Unit = { _, _ -> },
     onNavigateToRemoteTerminal: (pcPeerId: String, cwd: String?) -> Unit = { _, _ -> },
     viewModel: ProjectViewModel = hiltViewModel(),
-    authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel()
+    authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel(),
+    remoteContextViewModel: com.chainlesschain.android.presentation.screens.helper.RemoteContextViewModel = hiltViewModel(),
 ) {
     // 获取认证状态并初始化用户上下文
     val authState by authViewModel.uiState.collectAsState()
@@ -88,15 +90,34 @@ fun ProjectDetailScreenV2(
         else -> stringResource(R.string.project_detail_default_title)
     }
 
-    // Sub-phase 5-6 (2026-05-17): 远程终端入口仅在项目源自 PC（sourcePeerId != null）时显示。
-    // cwd 用 pcRootPath（PC 端项目根目录）让 shell 启动后就停在项目里。
-    val pcPeerIdForTerminal = when (val state = projectDetailState) {
-        is ProjectDetailState.Success -> state.project.sourcePeerId
-        else -> null
+    // Sub-phase 5-6 (2026-05-17): 远程终端入口逻辑
+    //   v2 (放宽 fallback): 只要有 paired desktop 就显示 Terminal icon。
+    //   - 优先: project.sourcePeerId（理想情况，但桌面端 source_peer_id/device_id 列
+    //     可能为 null —— 见 mobile-bridge-sync.js handleProjectList §457 兜替链）
+    //   - 兜底: 任何已配对的桌面 (typically only 1) → 用其 pcPeerId
+    //   - 真无 paired desktop（纯本地用户）→ 不显示
+    val pairedDesktops by remoteContextViewModel.pairedDesktops.collectAsState()
+    val currentProject = (projectDetailState as? ProjectDetailState.Success)?.project
+    val pcPeerIdForTerminal: String? = currentProject?.let { p ->
+        p.sourcePeerId ?: pairedDesktops.firstOrNull()?.pcPeerId
     }
-    val pcRootPathForTerminal = when (val state = projectDetailState) {
-        is ProjectDetailState.Success -> state.project.pcRootPath
-        else -> null
+    val pcRootPathForTerminal: String? = currentProject?.pcRootPath
+
+    // Sub-phase 5-6 fix (2026-05-17): LOCAL 项目（pcRootPath=null）打开远程终端前
+    // 弹框让用户填 PC 端工作目录。无此 gate 时桌面 PtyManager fallback 到
+    // process.cwd()，落 Electron 启动目录（如 desktop-app-vue/）与项目无关。
+    // 弹框时异步调桌面 project.list 找同名项目自动预填路径（lookup 期间显示提示）。
+    var showPcPathDialog by remember { mutableStateOf(false) }
+    var pendingPcPath by remember { mutableStateOf("") }
+    var isLookingUpPcPath by remember { mutableStateOf(false) }
+    val pcPathLookupScope = rememberCoroutineScope()
+    // 一次性 diag log，logcat tag=ProjectDetail 用来对照真值
+    LaunchedEffect(currentProject?.id, pairedDesktops.size) {
+        val p = currentProject ?: return@LaunchedEffect
+        timber.log.Timber.tag("ProjectDetail").i(
+            "remote-terminal-gate: project=%s sourcePeerId=%s pcRootPath=%s pairedCount=%d showIcon=%b",
+            p.id, p.sourcePeerId, p.pcRootPath, pairedDesktops.size, pcPeerIdForTerminal != null,
+        )
     }
 
     Scaffold(
@@ -108,7 +129,27 @@ fun ProjectDetailScreenV2(
                 onNavigateToTaskList = onNavigateToTaskList,
                 onNavigateToRemoteFiles = { onNavigateToRemoteFiles(projectId, projectTitle) },
                 onNavigateToRemoteTerminal = pcPeerIdForTerminal?.let { peerId ->
-                    { onNavigateToRemoteTerminal(peerId, pcRootPathForTerminal) }
+                    {
+                        if (pcRootPathForTerminal.isNullOrBlank()) {
+                            pendingPcPath = ""
+                            showPcPathDialog = true
+                            // 异步查桌面同名项目预填路径。currentProject 在弹框时一定非空
+                            // （icon gate 已保证），用 name 当 lookup key。
+                            currentProject?.name?.takeIf { it.isNotBlank() }?.let { pname ->
+                                isLookingUpPcPath = true
+                                pcPathLookupScope.launch {
+                                    val found = remoteContextViewModel
+                                        .findPcProjectPathByName(peerId, pname)
+                                    if (!found.isNullOrBlank() && pendingPcPath.isBlank()) {
+                                        pendingPcPath = found
+                                    }
+                                    isLookingUpPcPath = false
+                                }
+                            }
+                        } else {
+                            onNavigateToRemoteTerminal(peerId, pcRootPathForTerminal)
+                        }
+                    }
                 },
                 isLoading = projectDetailState is ProjectDetailState.Loading
             )
@@ -231,6 +272,77 @@ fun ProjectDetailScreenV2(
                 }
             }
         }
+    }
+
+    // Sub-phase 5-6 fix (2026-05-17): LOCAL 项目 PC 路径补填弹框。
+    val peerIdForDialog = pcPeerIdForTerminal
+    if (showPcPathDialog && peerIdForDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showPcPathDialog = false },
+            title = { Text("设置 PC 工作目录") },
+            text = {
+                Column {
+                    Text(
+                        "本地项目暂无 PC 端对应路径。请输入桌面上要打开的目录" +
+                            "（例如 C:\\code\\my-project 或 /home/user/proj）。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (isLookingUpPcPath) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "正在从桌面查找同名项目…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    } else if (pendingPcPath.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "已根据项目名 \"${currentProject?.name.orEmpty()}\" 自动预填，可修改。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = pendingPcPath,
+                        onValueChange = { pendingPcPath = it },
+                        label = { Text("PC 路径") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pendingPcPath.isNotBlank(),
+                    onClick = {
+                        viewModel.updatePcRootPath(projectId, pendingPcPath) { savedPath ->
+                            showPcPathDialog = false
+                            // 双向同步：fire-and-forget 推到桌面 projects.pc_root_path。
+                            // 失败 silent — 不阻塞本地保存 + 终端打开。
+                            pcPathLookupScope.launch {
+                                remoteContextViewModel.pushPcRootPathToDesktop(
+                                    peerIdForDialog,
+                                    projectId,
+                                    savedPath,
+                                )
+                            }
+                            onNavigateToRemoteTerminal(peerIdForDialog, savedPath)
+                        }
+                    },
+                ) { Text("保存并打开") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPcPathDialog = false }) { Text("取消") }
+            },
+        )
     }
 }
 

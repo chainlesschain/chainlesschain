@@ -59,6 +59,11 @@ interface ProjectDao {
     @Query("UPDATE projects SET isFavorite = :isFavorite, updatedAt = :updatedAt WHERE id = :projectId")
     suspend fun updateFavorite(projectId: String, isFavorite: Boolean, updatedAt: Long = System.currentTimeMillis())
 
+    // Sub-phase 5-6 fix (2026-05-17): LOCAL 项目允许用户手动补填 PC 端工作目录，
+    // 让远程终端图标在 LOCAL 项目下也能正确落在用户选定的桌面路径。
+    @Query("UPDATE projects SET pcRootPath = :pcRootPath, updatedAt = :updatedAt WHERE id = :projectId")
+    suspend fun updatePcRootPath(projectId: String, pcRootPath: String?, updatedAt: Long = System.currentTimeMillis())
+
     @Query("UPDATE projects SET isArchived = :isArchived, status = CASE WHEN :isArchived = 1 THEN 'archived' ELSE 'active' END, updatedAt = :updatedAt WHERE id = :projectId")
     suspend fun updateArchived(projectId: String, isArchived: Boolean, updatedAt: Long = System.currentTimeMillis())
 

@@ -141,6 +141,12 @@ class MobileBridgeSync {
     commandRouter.register("project.pullSingle", (params, ctx) =>
       this.handleProjectPullSingle(params, ctx),
     );
+    // Sub-phase 5-6 fix (2026-05-17): Android 端 LOCAL 项目首次配 PC 路径后双向
+    // 同步 — 把路径写回桌面 projects.pc_root_path，下次其它设备 project.list
+    // 就能拿到值，避免每台设备各自手动重输。详见 ProjectDetailScreenV2 dialog。
+    commandRouter.register("project.updatePath", (params, ctx) =>
+      this.handleProjectUpdatePath(params, ctx),
+    );
   }
 
   // ============================================================
@@ -468,6 +474,46 @@ class MobileBridgeSync {
       total,
       hasMore: offset + projects.length < total,
     };
+  }
+
+  /**
+   * Sub-phase 5-6 fix (2026-05-17): Android LOCAL 项目首次设 PC 工作目录后写回
+   * 桌面 `projects.pc_root_path`。空串 / null 视为清空。同时 COALESCE 一份到
+   * `root_path` 让历史 row（只有 root_path 字段的旧客户端）也能命中。
+   *
+   * params: { projectId, pcRootPath }
+   * response: { ok: true, pcRootPath } 或 { ok: false, error }
+   */
+  async handleProjectUpdatePath(params, ctx = {}) {
+    const projectId = params?.projectId;
+    if (!projectId) {
+      return { ok: false, error: "MISSING_PROJECT_ID" };
+    }
+    const sourcePeerId =
+      ctx?.peerId || ctx?.fromPeerId || ctx?.mobilePeerId || "unknown";
+    if (!this._checkRateLimit("project.updatePath", sourcePeerId)) {
+      return { ok: false, error: "RATE_LIMITED" };
+    }
+
+    const raw = params?.pcRootPath;
+    const normalized = typeof raw === "string" ? raw.trim() || null : null;
+
+    try {
+      const res = this.dbManager.run(
+        `UPDATE projects
+            SET pc_root_path = ?,
+                root_path = COALESCE(root_path, ?),
+                updated_at = ?
+          WHERE id = ? AND deleted = 0`,
+        [normalized, normalized, Date.now(), projectId],
+      );
+      if (!res || res.changes === 0) {
+        return { ok: false, error: "PROJECT_NOT_FOUND" };
+      }
+      return { ok: true, pcRootPath: normalized };
+    } catch (e) {
+      return { ok: false, error: e?.message || String(e) };
+    }
   }
 
   /**

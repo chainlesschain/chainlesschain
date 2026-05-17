@@ -259,6 +259,25 @@ class ProjectRepository @Inject constructor(
     }
 
     /**
+     * Sub-phase 5-6 fix (2026-05-17): LOCAL 项目补填 PC 端工作目录。
+     * 不走 sync push（LOCAL 项目桌面无对应记录），不发 ProjectEvent.Updated 避免触发
+     * mobile-bridge-sync 的反向 sync。空串视为清空（回到 null）。
+     */
+    suspend fun updatePcRootPath(projectId: String, pcRootPath: String?): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val normalized = pcRootPath?.trim()?.takeIf { it.isNotEmpty() }
+                projectDao.updatePcRootPath(projectId, normalized)
+                Timber.i("Updated pcRootPath for project $projectId: $normalized")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to update pcRootPath: $projectId")
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
      * 更新项目状态
      */
     suspend fun updateProjectStatus(projectId: String, status: String): Result<Unit> {

@@ -713,6 +713,29 @@ class ProjectViewModel @Inject constructor(
     }
 
     /**
+     * Sub-phase 5-6 fix (2026-05-17): LOCAL 项目补填 PC 端工作目录。
+     * 保存成功后调 onSuccess（用于跳转远程终端，需带刚保存的路径）。
+     */
+    fun updatePcRootPath(
+        projectId: String,
+        pcRootPath: String,
+        onSuccess: (String) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val result = projectRepository.updatePcRootPath(projectId, pcRootPath)
+            result.fold(
+                onSuccess = {
+                    _uiEvents.emit(ProjectUiEvent.ShowMessage("PC 工作目录已保存"))
+                    onSuccess(pcRootPath.trim())
+                },
+                onFailure = { error ->
+                    _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "保存失败"))
+                },
+            )
+        }
+    }
+
+    /**
      * 删除项目
      */
     fun deleteProject(projectId: String, hard: Boolean = false) {
