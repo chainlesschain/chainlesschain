@@ -37,7 +37,7 @@ struct SettingsView: View {
                 // Security Settings
                 Section("安全") {
                     Toggle("生物识别解锁", isOn: $biometricEnabled)
-                        .onChange(of: biometricEnabled) { _, newValue in
+                        .onChange(of: biometricEnabled) { newValue in
                             UserDefaults.standard.set(newValue, forKey: AppConstants.UserDefaults.biometricEnabled)
                             if newValue {
                                 enableBiometricAuth()
@@ -80,7 +80,7 @@ struct SettingsView: View {
                 // Sync Settings
                 Section("同步") {
                     Toggle("自动同步", isOn: $autoSyncEnabled)
-                        .onChange(of: autoSyncEnabled) { _, newValue in
+                        .onChange(of: autoSyncEnabled) { newValue in
                             UserDefaults.standard.set(newValue, forKey: AppConstants.UserDefaults.autoSyncEnabled)
                         }
 

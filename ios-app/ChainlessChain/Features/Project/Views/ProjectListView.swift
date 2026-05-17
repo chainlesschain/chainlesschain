@@ -34,7 +34,7 @@ struct ProjectListView: View {
             }
             .navigationTitle("项目")
             .searchable(text: $searchText, prompt: "搜索项目")
-            .onChange(of: searchText) { _, newValue in
+            .onChange(of: searchText) { newValue in
                 debounceSearch(query: newValue)
             }
             .toolbar {

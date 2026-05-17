@@ -94,7 +94,7 @@ private struct Inner: View {
                 .multilineTextAlignment(.center)
                 .font(.system(size: 36, weight: .bold, design: .monospaced))
                 .focused($codeFieldFocused)
-                .onChange(of: vm.code) { _, new in
+                .onChange(of: vm.code) { new in
                     // 限制 6 位数字
                     let filtered = new.filter { $0.isNumber }.prefix(6)
                     if filtered != Substring(new) {

@@ -56,7 +56,7 @@ struct BridgeHistoryView: View {
         .onAppear {
             viewModel.loadBridges()
         }
-        .onChange(of: selectedFilter) { _, newFilter in
+        .onChange(of: selectedFilter) { newFilter in
             viewModel.filterByStatus(newFilter)
         }
     }

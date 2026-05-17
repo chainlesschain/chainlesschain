@@ -132,7 +132,7 @@ public struct KnowledgeGraphView: View {
                 layoutEngine.bounds = CGRect(origin: .zero, size: geometry.size)
                 loadGraphData()
             }
-            .onChange(of: geometry.size) { _, newSize in
+            .onChange(of: geometry.size) { newSize in
                 viewSize = newSize
                 layoutEngine.bounds = CGRect(origin: .zero, size: newSize)
             }
@@ -182,7 +182,7 @@ public struct KnowledgeGraphView: View {
 
                 TextField("搜索节点...", text: $viewState.searchText)
                     .textFieldStyle(.plain)
-                    .onChange(of: viewState.searchText) { _, newValue in
+                    .onChange(of: viewState.searchText) { newValue in
                         viewState.searchNodes(newValue)
                     }
 

@@ -74,12 +74,12 @@ struct SetupPINView: View {
                 .frame(maxWidth: 300)
                 .multilineTextAlignment(.center)
                 .font(.title2)
-                .onChange(of: pin) { oldValue, newValue in
+                .onChange(of: pin) { newValue in
                     if newValue.count > 8 {
                         pin = String(newValue.prefix(8))
                     }
                 }
-                .onChange(of: confirmPin) { oldValue, newValue in
+                .onChange(of: confirmPin) { newValue in
                     if newValue.count > 8 {
                         confirmPin = String(newValue.prefix(8))
                     }
@@ -171,7 +171,7 @@ struct PINEntryView: View {
                 .multilineTextAlignment(.center)
                 .font(.title2)
                 .focused($isFocused)
-                .onChange(of: pin) { oldValue, newValue in
+                .onChange(of: pin) { newValue in
                     if newValue.count > 8 {
                         pin = String(newValue.prefix(8))
                     }

@@ -195,7 +195,7 @@ struct CrossChainBridgeView: View {
                     .keyboardType(.decimalPad)
                     .font(.title2)
                     .fontWeight(.medium)
-                    .onChange(of: viewModel.amountInput) { _, _ in
+                    .onChange(of: viewModel.amountInput) { _ in
                         viewModel.validateAndEstimateFee()
                     }
 

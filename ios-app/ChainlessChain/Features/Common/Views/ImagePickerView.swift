@@ -519,6 +519,7 @@ struct FullScreenImageViewer: View {
     }
 }
 
+@available(iOS 17, *)
 #Preview {
     @Previewable @State var images: [UIImage] = []
     @Previewable @State var isPresented = true

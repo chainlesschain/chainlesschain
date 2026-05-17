@@ -247,7 +247,7 @@ public struct InteractiveGraphView: View {
             .onAppear {
                 viewSize = geometry.size
             }
-            .onChange(of: geometry.size) { _, newSize in
+            .onChange(of: geometry.size) { newSize in
                 viewSize = newSize
             }
         }

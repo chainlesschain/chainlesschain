@@ -17,6 +17,7 @@ public struct CollaborativeEditorView: View {
 
     @StateObject private var manager = CollaborationManager.shared
     @State private var content: String = ""
+    @State private var previousContent: String = ""
     @State private var cursorPosition: CursorPosition?
     @State private var selection: TextSelection?
 
@@ -143,8 +144,9 @@ public struct CollaborativeEditorView: View {
             TextEditor(text: $content)
                 .font(.body)
                 .padding()
-                .onChange(of: content) { oldValue, newValue in
-                    handleContentChange(old: oldValue, new: newValue)
+                .onChange(of: content) { newValue in
+                    handleContentChange(old: previousContent, new: newValue)
+                    previousContent = newValue
                 }
 
             // Remote cursors overlay

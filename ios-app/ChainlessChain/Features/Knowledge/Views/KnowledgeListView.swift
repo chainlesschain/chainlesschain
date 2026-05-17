@@ -275,7 +275,7 @@ struct KnowledgeFilterView: View {
             Form {
                 Section("搜索选项") {
                     Toggle("语义搜索", isOn: $viewModel.useSemanticSearch)
-                        .onChange(of: viewModel.useSemanticSearch) { _, _ in
+                        .onChange(of: viewModel.useSemanticSearch) { _ in
                             viewModel.applyFilters()
                         }
 
@@ -292,7 +292,7 @@ struct KnowledgeFilterView: View {
 
                 Section("过滤选项") {
                     Toggle("仅显示收藏", isOn: $viewModel.showFavoritesOnly)
-                        .onChange(of: viewModel.showFavoritesOnly) { _, _ in
+                        .onChange(of: viewModel.showFavoritesOnly) { _ in
                             viewModel.applyFilters()
                         }
                 }
@@ -304,7 +304,7 @@ struct KnowledgeFilterView: View {
                             Text(category).tag(category as String?)
                         }
                     }
-                    .onChange(of: viewModel.selectedCategory) { _, _ in
+                    .onChange(of: viewModel.selectedCategory) { _ in
                         viewModel.applyFilters()
                     }
                 }
@@ -316,7 +316,7 @@ struct KnowledgeFilterView: View {
                             Text(tag).tag(tag as String?)
                         }
                     }
-                    .onChange(of: viewModel.selectedTag) { _, _ in
+                    .onChange(of: viewModel.selectedTag) { _ in
                         viewModel.applyFilters()
                     }
                 }
