@@ -5,6 +5,40 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.61] - 2026-05-17 — iOS CI 真签名 .ipa 出包 (Hua Zhang 团队 ad-hoc 配置)
+
+> v5.0.3.56 揭示 iOS app target 412 编译错后，那次 release.yml build-ios 回退到 SPM-only (`faa8e267f`) 暂不产 .ipa。之后 app target 0 错 (`a8dc88b13`) 已落，本版本恢复 xcodebuild archive + ExportArchive 路径，并打通 4 个 GitHub Secret + Apple Developer 账号 (Team `2GMR44F922`)，每次发版自动产真签名 ad-hoc `.ipa`（7.4MB）随 GitHub Release。
+
+### Fixed — iOS CI signing 链路恢复 (4 iter)
+
+- `release.yml` revert `faa8e267f` 回到 xcodebuild archive 路径（`43bb85c99`）
+- 揭示 archive step 失败「requires a provisioning profile」→ 加 `PROVISIONING_PROFILE_SPECIFIER=adhoc` + `CODE_SIGN_IDENTITY="iPhone Distribution"`（`91704c030`）
+- 仍失败但 xcpretty 吞错 → 删 xcpretty + `2>&1 | tee build/xcodebuild-*.log` + `if: always()` upload-artifact `ios-xcodebuild-logs`（`0d1d66482`）
+- raw log 终于显形真因：CLI 上的 `PROVISIONING_PROFILE_SPECIFIER` 注入到所有 target 包括 SPM resource bundle (`CryptoSwift_CryptoSwiftResources` / `Starscream_Starscream`) → 它们拒绝任何 profile。修法：把 signing setting 放进 `ChainlessChain.xcodeproj` 的 app target Release config（per-target），CLI 只传 `DEVELOPMENT_TEAM`（`7baf33bd7`）
+- ExportOptions.plist 加 `signingStyle=manual` + `provisioningProfiles` map 避免 export step 重蹈覆辙
+
+### Added — iOS signing infra
+
+- 4 个 repo-level GitHub Secret: `IOS_CERTIFICATE_BASE64` / `IOS_CERTIFICATE_PASSWORD` / `IOS_PROVISIONING_PROFILE_BASE64` / `IOS_TEAM_ID`
+- Cert: `iPhone Distribution: Hua Zhang (2GMR44F922)` (Team `2GMR44F922`，过期 ~2027-04-23)
+- Profile: `adhoc` ad-hoc method（bundle `com.chainlesschain.ChainlessChain`，单 UDID `b9a7376832...`，过期 2027-05-09）
+- 源文件: `tools/未命名文件夹 36/{adhoc,dev}.{p12,mobileprovision}`（gitignored, dev box only）
+- `release.yml` build-ios job 加 `Upload xcodebuild logs (diagnostics, always)` step，失败可秒拉 raw 日志
+
+### Test — Android cross-module runtime 35 fail 收口
+
+- `83b7b8a5b` 一晚解 Android 跨模块 runtime 失败 35 个（与本版本 iOS 工作并行 land）
+
+### Validated
+
+- Test draft run `25987829449` produced `ChainlessChain.ipa` 7,720,753 bytes, signed (embedded.mobileprovision matches adhoc profile), attached to GitHub Release alongside 17 other assets
+- 整 release.yml 11 job 全绿 (5 builds + create-release + publish-cli + update-changelog + finalize-release)
+
+### Known Limitations
+
+- .ipa 仅可装 Hua Zhang 测试 iPhone (UDID `b9a7376832...`)。加新设备需 Apple Developer Portal 加 UDID + 重签 profile + 更新 `IOS_PROVISIONING_PROFILE_BASE64` secret
+- App Store distribution 不在此版本范围（需要换 App Store method profile）
+
 ## [v5.0.3.57] - 2026-05-17 — Android FileTransferScreen 本机下载浏览面板
 
 > Plan C Android↔PC 文件传输落地 (`3463e059a`) 后的 UX 补强：Android 端新增「本机下载文件夹」面板，让用户直接在 app 里浏览公共 Downloads 目录里已下载的文件（之前只能跳 Files app 找）。
