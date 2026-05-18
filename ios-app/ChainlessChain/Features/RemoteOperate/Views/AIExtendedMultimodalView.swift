@@ -20,6 +20,7 @@ struct AIExtendedMultimodalView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var audioPlaying: Bool = false
     @State private var showAudioPicker: Bool = false
+    @StateObject private var recorder = MultimodalAudioRecorder()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -272,16 +273,20 @@ struct AIExtendedMultimodalView: View {
     private var transcribeAudioSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("音频转文字").font(.headline)
-            Text("从文件选音频，桌面 Whisper/ASR 识别")
+            Text("v0.3 — 实时录音（AVAudioRecorder + 16kHz mono AAC）或文件选音频，桌面 Whisper/ASR 识别")
                 .font(.caption).foregroundColor(.secondary)
-            Text("v0.2 用文件 picker；实时录音（需麦克权限）留 v0.3")
-                .font(.caption2).foregroundColor(.orange)
 
+            // v0.3：实时录音区
+            recordingControls
+
+            // 文件 picker fallback
+            Divider().padding(.vertical, 4)
             Button(action: { showAudioPicker = true }) {
-                Label(viewModel.audioFilename ?? "选择音频文件",
-                      systemImage: "waveform")
+                Label(viewModel.audioFilename ?? "或从文件选音频…",
+                      systemImage: "doc.badge.plus")
             }
             .buttonStyle(.bordered)
+            .disabled(recorder.isRecording)
 
             Picker("语言", selection: $viewModel.transcribeLanguage) {
                 Text("自动").tag("auto")
@@ -298,7 +303,8 @@ struct AIExtendedMultimodalView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(viewModel.multimodalLoading || viewModel.audioBase64 == nil)
+            .disabled(viewModel.multimodalLoading || viewModel.audioBase64 == nil
+                      || recorder.isRecording)
 
             if let r = viewModel.transcribeResult {
                 Divider().padding(.vertical, 4)
@@ -317,6 +323,51 @@ struct AIExtendedMultimodalView: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
                     .textSelection(.enabled)
+            }
+        }
+    }
+
+    private var recordingControls: some View {
+        HStack(spacing: 12) {
+            if recorder.isRecording {
+                // 录音中：闪烁红点 + 时长 + 停止/取消
+                HStack(spacing: 4) {
+                    Circle().fill(Color.red).frame(width: 10, height: 10)
+                        .opacity(Int(recorder.duration * 2) % 2 == 0 ? 1.0 : 0.3)
+                    Text(String(format: "%.1fs", recorder.duration))
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundColor(.red)
+                }
+                Spacer()
+                Button {
+                    if let (url, b64) = recorder.stop() {
+                        viewModel.audioBase64 = b64
+                        viewModel.audioFilename = url.lastPathComponent
+                    }
+                } label: {
+                    Label("停止", systemImage: "stop.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+
+                Button {
+                    recorder.cancel()
+                } label: {
+                    Label("取消", systemImage: "xmark.circle")
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Button {
+                    Task { _ = await recorder.requestPermissionAndStart() }
+                } label: {
+                    Label("开始录音", systemImage: "mic.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+
+                if let err = recorder.error {
+                    Text(err).font(.caption2).foregroundColor(.red).lineLimit(2)
+                }
             }
         }
     }
