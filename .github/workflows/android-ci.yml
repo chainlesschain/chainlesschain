@@ -254,8 +254,12 @@ jobs:
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
+      # Step-level continue-on-error dropped 2026-05-18 second sweep: was
+      # redundant with the job-level `continue-on-error: true` above (L204).
+      # Double-masking made the step outcome lie — gradle result is now the
+      # source of truth, with the outer job-level mask still keeping emulator
+      # flakiness from blocking the pipeline.
       - name: Run Instrumented Tests
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -263,9 +267,6 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # Inner `|| true` removed 2026-05-18 — was redundant masking on top
-          # of `continue-on-error: true`. Step outcome now reflects gradle result
-          # (matching the sweep in 350157a46 for android-tests.yml P1/P2 jobs).
           script: cd android-app && ./gradlew connectedDebugAndroidTest
 
       - name: Upload Instrumented Test Results
@@ -307,9 +308,16 @@ jobs:
         working-directory: android-app
         run: chmod +x ./gradlew
 
+      # Inline `|| true` promoted to step-level continue-on-error 2026-05-18
+      # second sweep: undocumented inline mask was hiding real OWASP findings
+      # behind a green step icon. Step outcome now reflects actual scan result
+      # (failure if vulns found); job still doesn't block on this (the notify
+      # job's gate only checks lint/test/build, not security-scan), so the
+      # advisory model is preserved without the false-green.
       - name: Run Dependency Check
         working-directory: android-app
-        run: ./gradlew dependencyCheckAnalyze || true
+        continue-on-error: true
+        run: ./gradlew dependencyCheckAnalyze
 
       - name: Upload Security Report
         if: always()
