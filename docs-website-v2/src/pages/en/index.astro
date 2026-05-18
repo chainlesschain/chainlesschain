@@ -183,9 +183,9 @@ const highlights = [
   },
   {
     tag: 'v5.0.3.39',
-    title: 'B4 ASAR surgery — Win install 20m → ~5m',
+    title: 'B4 ASAR surgery — Win install dramatically faster',
     sub: 'issue #8 · 23 unit + integration tests',
-    desc: 'Windows install time back from ~20 min to ~5 min. Re-enabled asar:true (v5.0.3.4-13 fell back to asar:false because the electron-builder walker dropped 4 transitive deps from the manifest — cost: ~110k loose files in NSIS = ~20 min install floor). New surgery runs in afterPack: extract → inject the 4 walker-dropped packages → repack while preserving the original unpackDir decisions. Win wrapper handles workspace symlinks.',
+    desc: 'Windows install substantially reduced: dev-box (NVMe SSD + Defender OFF) measured 190.9s vs 1201s legacy baseline = 6.3× speedup; HDD + Defender ON default-environment strict parity not measured. Re-enabled asar:true (v5.0.3.4-13 fell back to asar:false because the electron-builder walker dropped 4 transitive deps). New surgery runs in afterPack: extract → inject the 4 walker-dropped packages → repack while preserving the original unpackDir decisions. Win wrapper handles workspace symlinks.',
   },
   {
     tag: 'v5.0.3.5',

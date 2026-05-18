@@ -947,10 +947,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装 20m → ~5m, issue #8）
+## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装显著加速, issue #8）
 
 ### Fixed
-- Windows installer time from ~20 min back to ~5 min by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`).
+- Windows installer time substantially reduced by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`). **Measured: 190.9s on dev-box (NVMe SSD + Defender OFF) vs 1201s legacy baseline (issue #6) = 6.3× speedup. HDD + Defender ON default-environment strict parity not measured** — see [issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) for methodology caveats.
 
 ### Added
 - `scripts/asar-surgery.js` — extract → inject → repack with original unpackDir preserved + verification gate.

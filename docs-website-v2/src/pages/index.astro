@@ -198,9 +198,9 @@ const highlights = [
   },
   {
     tag: 'v5.0.3.39',
-    title: 'B4 ASAR surgery — Win 安装 20m → ~5m',
+    title: 'B4 ASAR surgery — Win 安装显著加速',
     sub: 'issue #8 · 23 单元 + 集成测试',
-    desc: 'Windows 安装时间从 ~20 分钟回到 ~5 分钟。重启 asar:true（v5.0.3.4-13 因 walker 漏 4 个 transitive deps 改 asar:false 兜底，代价是 ~110k loose files 入 NSIS = ~20 分钟安装地板）。新 afterPack 钩子里跑 surgery：extract → inject 4 个 walker-dropped 包 → repack 保留原始 unpackDir 决策；Win 包装脚本处理 workspace symlinks。',
+    desc: 'Windows 安装显著加速：dev-box (NVMe SSD + Defender OFF) 实测 190.9s vs 1201s 旧 baseline = 6.3× 提速；HDD + Defender ON 默认环境严格 parity 数据未测。重启 asar:true（v5.0.3.4-13 因 walker 漏 4 个 transitive deps 改 asar:false 兜底）。新 afterPack 钩子里跑 surgery：extract → inject 4 个 walker-dropped 包 → repack 保留原始 unpackDir 决策；Win 包装脚本处理 workspace symlinks。',
   },
   {
     tag: 'v5.0.3.5',

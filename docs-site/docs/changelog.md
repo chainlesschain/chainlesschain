@@ -826,11 +826,11 @@ issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设
 - standalone `cc serve` 模式下 `loadBridgeStatus` 仍受 lib-vs-SPA shape mismatch 影响（pre-existing bug），桥状态显示 defaults——只在浏览器直连场景出现，桌面 v5.0.3.40 默认壳不受影响。
 - 四个 fix 互不相关、互不依赖、互不冲突；任一单独应用都比 .39 现状好，捆绑发布只是节省一次 release 仪式。
 
-## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装 20m → ~5m, issue #8)
+## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装显著加速, issue #8)
 
 ### Fixed
 
-- **Windows 安装时间从 ~20 分钟回到 ~5 分钟**（commit `e11b46913`）—— v5.0.3.4-13 因 electron-builder prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms 文件级 LZMA dict reset + NTFS transaction + Defender scan = ~20 分钟安装地板。本版本（B4 plan）走第三条路：`asar: true` + post-pack ASAR surgery。
+- **Windows 安装显著加速**（commit `e11b46913`）—— **dev-box (NVMe SSD + Defender OFF) 实测 190.9s vs 1201s 旧 baseline (issue #6) = 6.3× 提速**；HDD + Defender ON 默认环境严格 parity 数据未测（[issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) 详述 methodology caveats）。v5.0.3.4-13 因 electron-builder prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms 文件级 LZMA dict reset + NTFS transaction + Defender scan = 旧 baseline 上 ~20 分钟安装地板。本版本（B4 plan）走第三条路：`asar: true` + post-pack ASAR surgery。
 
 ### Added
 
