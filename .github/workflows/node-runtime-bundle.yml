@@ -327,22 +327,50 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Pack chainlesschain CLI snapshot
+      - name: Pack chainlesschain CLI snapshot (with prod deps)
         if: matrix.abi == 'aarch64'
         run: |
           set -euo pipefail
           ASSET_DIR=android-app/feature-local-terminal/src/main/assets/local-terminal
           mkdir -p "$ASSET_DIR"
-          # Pack the local workspace package (not the registry version) so
-          # this run captures the current main HEAD. `npm pack` writes a
-          # versioned filename — rename to a stable name for the asset.
+
+          # `npm pack` writes only the files listed in package.json — NOT
+          # node_modules/. The unpacked CLI on-device fails with
+          # ERR_MODULE_NOT_FOUND when it imports `commander` etc. We need
+          # to hydrate node_modules too.
+          #
+          # Strategy: pack → extract → npm install --omit=dev → re-tar.
+          # This adds ~15-30MB to the asset but is the only way to keep
+          # the on-device extraction step pure-Kotlin (no Node-on-device
+          # `npm install` which would need network).
+
+          # 1. Pack the workspace package (captures main HEAD, not registry).
           PACKED=$(cd packages/cli && npm pack --silent)
-          mv "packages/cli/$PACKED" "$ASSET_DIR/cc-cli.tgz"
-          ls -lh "$ASSET_DIR/cc-cli.tgz"
-          # Compute USR_VERSION-style hash so the bootstrap marker file can
-          # detect snapshot changes across APK upgrades. (Bootstrapper reads
-          # BuildConfig.USR_VERSION; build.gradle pulls the hash from this
-          # tgz file's mtime + size at assemble time.)
+          mv "packages/cli/$PACKED" /tmp/cc-cli-source.tgz
+          echo "Source pack: $(du -h /tmp/cc-cli-source.tgz | cut -f1)"
+
+          # 2. Extract → hydrate prod deps. Use a clean temp dir so any
+          # pre-existing CI workspace junk doesn't leak in.
+          rm -rf /tmp/cc-cli-hydrate
+          mkdir /tmp/cc-cli-hydrate
+          tar -xzf /tmp/cc-cli-source.tgz -C /tmp/cc-cli-hydrate
+          # tar leaves a single `package/` directory inside.
+          cd /tmp/cc-cli-hydrate/package
+          # `npm install` with no lockfile — install latest minor
+          # versions per semver in package.json. Skip dev deps, scripts,
+          # and audit (no network calls beyond registry GETs).
+          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
+                      --prefer-online --no-package-lock --silent
+          echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
+          echo "Top-level deps: $(ls node_modules | wc -l)"
+
+          # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
+          # `--strip-components=1`-style tar parser keeps working unchanged.
+          cd /tmp/cc-cli-hydrate
+          tar -czf /tmp/cc-cli.tgz package/
+          cd "$GITHUB_WORKSPACE"
+          mv /tmp/cc-cli.tgz "$ASSET_DIR/cc-cli.tgz"
+          echo "Hydrated pack: $(du -h "$ASSET_DIR/cc-cli.tgz" | cut -f1)"
           sha256sum "$ASSET_DIR/cc-cli.tgz" | head -c 16
           echo "  ← cc-cli.tgz sha256 prefix"
 
