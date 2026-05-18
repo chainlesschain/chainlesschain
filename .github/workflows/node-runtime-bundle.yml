@@ -1,0 +1,262 @@
+name: Node.js Runtime Bundle (Termux)
+
+# Phase 2.5 CI gate — package Termux's pre-built Node.js + transitive
+# .so dependencies into a relocatable set that we can ship inside our
+# APK's lib/<abi>/ directory.
+#
+# Why:
+#  - Building Node.js from upstream on Android NDK is heavy (~30+ min
+#    CI per ABI, fragile patches). Termux maintainers already ship a
+#    working aarch64 Node binary; we re-use it.
+#  - Termux's Node has DT_RUNPATH hardcoded to
+#    /data/data/com.termux/files/usr/lib. We patchelf that to $ORIGIN
+#    so the libs work from any prefix (we'll drop them in $PREFIX/lib).
+#  - Termux SONAME convention uses .so.N (e.g. libcrypto.so.3). Android
+#    packager rejects that for jniLibs/<abi>/, so we rename .so.N → .so
+#    and update SONAME + DT_NEEDED references via patchelf.
+#
+# Out: artifact `node-runtime-aarch64` containing all .so files ready
+# to drop into feature-local-terminal/src/main/jniLibs/arm64-v8a/.
+#
+# Phase 2.5 sub-phase b (next session) will:
+#  - Download artifact, commit to jniLibs/
+#  - Bootstrapper extracts symlinks + LD_LIBRARY_PATH env
+#  - Bundle chainlesschain CLI npm pack snapshot
+#  - Real-device validate `cc -v`
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/node-runtime-bundle.yml"
+  workflow_dispatch:
+    inputs:
+      abis:
+        description: "Space-separated list of ABIs to build (aarch64 / arm / x86_64 / i686)"
+        default: "aarch64"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    name: Bundle Termux Node + deps (${{ matrix.abi }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [aarch64]
+        # NOTE: arm + x86_64 + i686 are Termux ABIs (NDK calls them
+        # armeabi-v7a / x86_64 / x86). They're listed but not built in
+        # the default push trigger to keep iteration fast. Manual
+        # dispatch with abis="aarch64 arm x86_64" expands the matrix.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install patchelf + xz-utils
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y patchelf xz-utils binutils
+          patchelf --version
+
+      - name: Resolve + download Termux .debs
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/termux-debs
+
+          # Packages.gz lists all available Termux packages with their
+          # relative pool paths. Parse once + look up the 8 we need.
+          PKG_INDEX="$(curl -fsSL --retry 3 --retry-delay 2 \
+            https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-${{ matrix.abi }}/Packages.gz \
+            | gunzip)"
+          echo "Index size: $(echo "$PKG_INDEX" | wc -l) lines"
+
+          # Required packages — direct DT_NEEDED of Termux's Node binary,
+          # excluding system libs (libc/libm/libdl which are Bionic-native).
+          # libc++ is the Termux package providing libc++_shared.so —
+          # we *might* be able to use NDK's own copy but include for
+          # ABI compatibility safety.
+          PKGS="nodejs libc++ openssl libsqlite libicu c-ares zlib libandroid-support"
+
+          for pkg in $PKGS; do
+            filename=$(echo "$PKG_INDEX" | awk -v p="$pkg" '
+              /^Package: /{cur=$2}
+              cur==p && /^Filename:/{print $2; exit}
+            ')
+            if [ -z "$filename" ]; then
+              echo "::error::Cannot find $pkg in Termux ${{ matrix.abi }} repo"
+              exit 1
+            fi
+            url="https://packages.termux.dev/apt/termux-main/$filename"
+            out="/tmp/termux-debs/${pkg}.deb"
+            echo "Fetch $pkg → $out (from $url)"
+            curl -fsSL --retry 3 --retry-delay 2 -o "$out" "$url"
+            echo "  $(stat -c%s "$out") bytes"
+          done
+          ls -lh /tmp/termux-debs/
+
+      - name: Extract all .debs
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/extracted
+          for deb in /tmp/termux-debs/*.deb; do
+            name=$(basename "$deb" .deb)
+            tmpdir=$(mktemp -d)
+            ( cd "$tmpdir" && ar x "$deb" )
+            # data.tar may be .xz or .gz or .zst
+            if   [ -f "$tmpdir/data.tar.xz"  ]; then tar -xJf "$tmpdir/data.tar.xz"  -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar.gz"  ]; then tar -xzf "$tmpdir/data.tar.gz"  -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar.zst" ]; then tar --zstd -xf "$tmpdir/data.tar.zst" -C /tmp/extracted
+            elif [ -f "$tmpdir/data.tar"     ]; then tar -xf  "$tmpdir/data.tar"     -C /tmp/extracted
+            else echo "::error::No data tarball in $deb"; exit 1
+            fi
+            rm -rf "$tmpdir"
+            echo "Extracted $name"
+          done
+
+      - name: Inventory raw extracted ELF files
+        run: |
+          set -euo pipefail
+          USR=/tmp/extracted/data/data/com.termux/files/usr
+          echo "::group::node binary"
+          ls -la "$USR/bin/node" 2>/dev/null || echo "no node"
+          file "$USR/bin/node" 2>/dev/null || true
+          echo "::endgroup::"
+
+          echo "::group::all *.so* under lib/"
+          find "$USR/lib" -maxdepth 2 \( -type f -o -type l \) -name "*.so*" \
+            -printf "%-6y %s\t%p -> %l\n" | sort
+          echo "::endgroup::"
+
+      - name: Stage + rename libs (`.so.N` → `.so`)
+        id: stage
+        run: |
+          set -euo pipefail
+          USR=/tmp/extracted/data/data/com.termux/files/usr
+          STAGE=/tmp/staged
+          mkdir -p "$STAGE"
+
+          # Copy node first, renamed to libnode.so so Android packager
+          # accepts it as a jniLibs entry. The exec bit is preserved.
+          cp -L "$USR/bin/node" "$STAGE/libnode.so"
+          chmod +x "$STAGE/libnode.so"
+
+          # Copy each .so file resolved through symlinks (cp -L). Termux
+          # ships libcrypto.so.3 + symlink libcrypto.so → libcrypto.so.3.
+          # We want the actual file, renamed to libcrypto.so (no version).
+          for f in $(find "$USR/lib" -maxdepth 2 -type f -name "*.so*"); do
+            base=$(basename "$f")
+            # Strip the ".so.<digits>" suffix to plain ".so". E.g.
+            # libcrypto.so.3        → libcrypto.so
+            # libicui18n.so.78.1    → libicui18n.so
+            # libz.so.1.3.1         → libz.so
+            new=$(echo "$base" | sed -E 's/(\.so)\.[0-9].*$/\1/')
+            cp -L "$f" "$STAGE/$new"
+            echo "  $base → $new"
+          done
+          echo "::group::Stage contents"
+          ls -lh "$STAGE/"
+          echo "::endgroup::"
+
+      - name: Patch RUNPATH + SONAME + DT_NEEDED
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+
+          # Pass 1: every .so + libnode.so → RUNPATH = $ORIGIN so loader
+          # searches the same directory the binary itself lives in.
+          for f in "$STAGE"/*.so; do
+            # Termux libs have stale RUNPATH=/data/data/com.termux/...
+            patchelf --remove-rpath "$f"
+            patchelf --set-rpath '$ORIGIN' "$f"
+          done
+
+          # Pass 2: SONAME on every .so → its file basename (without
+          # version suffix). Without this, libnode.so's "libcrypto.so.3"
+          # DT_NEEDED can't find libcrypto.so even though it's right there
+          # (Android linker matches by SONAME, not filename).
+          for f in "$STAGE"/*.so; do
+            soname=$(basename "$f")
+            if [ "$soname" != "libnode.so" ]; then
+              patchelf --set-soname "$soname" "$f"
+            fi
+          done
+
+          # Pass 3: replace every `.so.N`-style DT_NEEDED reference with
+          # `.so`. Walk libnode + every lib in case Termux's libs cross-
+          # depend (e.g. libssl.so.3 → libcrypto.so.3).
+          for f in "$STAGE"/*.so; do
+            for old in $(patchelf --print-needed "$f"); do
+              new=$(echo "$old" | sed -E 's/(\.so)\.[0-9].*$/\1/')
+              if [ "$old" != "$new" ]; then
+                patchelf --replace-needed "$old" "$new" "$f"
+                echo "  $(basename "$f"): NEEDED $old → $new"
+              fi
+            done
+          done
+
+      - name: Verify final ELF metadata
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+          echo "::group::Per-file inventory"
+          for f in "$STAGE"/*.so; do
+            sz=$(stat -c%s "$f")
+            printf "  %-30s %8d B\n" "$(basename "$f")" "$sz"
+          done
+          echo "::endgroup::"
+
+          echo "::group::libnode.so dynamic deps after patching"
+          patchelf --print-needed "$STAGE/libnode.so"
+          echo "  RUNPATH: $(patchelf --print-rpath "$STAGE/libnode.so")"
+          echo "::endgroup::"
+
+          # Sanity check: no remaining `.so.<digit>` references — those
+          # would crash the Android linker at runtime.
+          echo "::group::Stray version refs"
+          fail=0
+          for f in "$STAGE"/*.so; do
+            for n in $(patchelf --print-needed "$f"); do
+              if echo "$n" | grep -qE '\.so\.[0-9]'; then
+                echo "::error::$(basename "$f") still NEEDS $n"
+                fail=1
+              fi
+            done
+          done
+          [ "$fail" = 0 ] || exit 1
+          echo "  (none — all references normalised to .so)"
+          echo "::endgroup::"
+
+      - name: Total size summary
+        run: |
+          set -euo pipefail
+          STAGE=/tmp/staged
+          total=$(du -sb "$STAGE" | awk '{print $1}')
+          mb=$((total / 1024 / 1024))
+          {
+            echo "## Termux Node.js Bundle (${{ matrix.abi }})"
+            echo ""
+            echo "Total: **${mb} MB** ($total bytes)"
+            echo ""
+            echo "| File | Size |"
+            echo "|---|---|"
+            for f in "$STAGE"/*.so; do
+              echo "| $(basename "$f") | $(numfmt --to=iec-i --suffix=B $(stat -c%s "$f")) |"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-runtime-${{ matrix.abi }}
+          path: /tmp/staged/*.so
+          retention-days: 30
+          if-no-files-found: error
