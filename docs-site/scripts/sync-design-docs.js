@@ -66,6 +66,7 @@ const ROOT_FILE_MAP = {
   "iOS_Phase_3_Remote_Operate_Framework.md": "iOS_Phase_3_Remote_Operate_Framework.md",
   "iOS_Phase_4_Notification_Skill.md": "iOS_Phase_4_Notification_Skill.md",
   "iOS_Phase_5_AI_Chat_Skill.md": "iOS_Phase_5_AI_Chat_Skill.md",
+  "iOS_对标_Android_Phase_6_Plan.md": "iOS_Phase_6_Mirror_Android_Plan.md",
   "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
   "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
   "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
@@ -200,14 +201,20 @@ function getTargetFilename(filename, isModule) {
   const map = isModule ? MODULE_FILE_MAP : ROOT_FILE_MAP;
   if (map[filename]) return map[filename];
 
-  // 未映射的文件：若已是 ASCII 则保留，否则生成占位名
+  // 未映射的文件：若已是 ASCII 则保留同名
   if (/^[\x20-\x7e]+$/.test(filename)) return filename;
 
-  const numMatch = filename.match(/^(\d+)/);
-  const prefix = numMatch ? numMatch[1] : "unknown";
-  const ext = filename.endsWith(".md") ? ".md" : "";
-  console.warn(`  ⚠ 未映射文件: ${filename} → ${prefix}-unmapped${ext}`);
-  return `${prefix}-unmapped${ext}`;
+  // 含 CJK 字符且未映射 → 硬失败。之前 fall-through 返回 "unknown-unmapped.md"
+  // 会让多个未映射文件 silently 互相覆盖（见 memory
+  // docs_site_sync_unmapped_fallthrough）。强制要求显式映射。
+  const mapName = isModule ? "MODULE_FILE_MAP" : "ROOT_FILE_MAP";
+  const srcRel = `docs/design/${isModule ? "modules/" : ""}${filename}`;
+  throw new Error(
+    `[sync-design-docs] 未映射的非 ASCII 文件名: ${filename}\n` +
+      `  源文件: ${srcRel}\n` +
+      `  请在 docs-site/scripts/sync-design-docs.js 的 ${mapName} 中添加显式映射，\n` +
+      `  或将源文件重命名为纯 ASCII（regex /^[\\x20-\\x7e]+$/）。`,
+  );
 }
 
 /**
