@@ -37,6 +37,9 @@ struct RemoteOperateView: View {
         case system
         case notification
         case aiChat
+        case input          // Phase 6.1.7 — 远程键鼠输入 (主屏)
+        case display        // Phase 6.1.7 — 显示器信息 + 截屏 + 窗口
+        case systemTools    // Phase 6.1.7 — 9 后台 skill 集合 (app/security/userBrowser/power/process/network/storage/device/sysinfo)
 
         public var id: String { rawValue }
 
@@ -49,6 +52,9 @@ struct RemoteOperateView: View {
             case .system:       return "系统"
             case .notification: return "通知"
             case .aiChat:       return "AI"
+            case .input:        return "操作"
+            case .display:      return "显示器"
+            case .systemTools:  return "工具"
             }
         }
 
@@ -61,6 +67,9 @@ struct RemoteOperateView: View {
             case .system:       return "cpu"
             case .notification: return "bell"
             case .aiChat:       return "brain.head.profile"
+            case .input:        return "cursorarrow.rays"
+            case .display:      return "display"
+            case .systemTools:  return "wrench.and.screwdriver"
             }
         }
     }
@@ -91,6 +100,12 @@ struct RemoteOperateView: View {
                     NotificationsView(pcPeerId: pcPeerId)
                 case .aiChat:
                     RemoteAIChatView(pcPeerId: pcPeerId)
+                case .input:
+                    RemoteInputView(pcPeerId: pcPeerId)
+                case .display:
+                    RemoteDisplayView(pcPeerId: pcPeerId)
+                case .systemTools:
+                    SystemToolsView(pcPeerId: pcPeerId)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
