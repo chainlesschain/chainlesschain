@@ -38,25 +38,26 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Run Jest tests (no coverage)
+        id: jest
         run: npm run test:jest
-        continue-on-error: true
 
       - name: Run Vitest tests (no coverage)
+        id: vitest
+        if: ${{ !cancelled() }}
         run: npx vitest run tests/unit/ai/ai-engine-workflow.test.js tests/unit/ai/ai-skill-scheduler.test.js
-        continue-on-error: true
 
       - name: Comment PR
         uses: actions/github-script@v7
         if: always()
         with:
           script: |
-            const output = `
-            ## 🧪 Test Results
+            const mark = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : '❌';
+            const jest = '${{ steps.jest.outcome }}';
+            const vitest = '${{ steps.vitest.outcome }}';
+            const output = `## 🧪 Test Results
 
-            Quick tests have been executed on this PR.
-
-            - ✅ Jest tests completed
-            - ✅ Vitest tests completed
+            - ${mark(jest)} Jest tests: \`${jest}\`
+            - ${mark(vitest)} Vitest tests: \`${vitest}\`
 
             For detailed coverage reports, please check the full test workflow.
             `;
