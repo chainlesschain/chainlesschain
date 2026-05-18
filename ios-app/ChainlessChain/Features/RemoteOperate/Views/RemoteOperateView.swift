@@ -42,6 +42,7 @@ struct RemoteOperateView: View {
         case systemTools    // Phase 6.1.7 — 9 后台 skill 集合 (app/security/userBrowser/power/process/network/storage/device/sysinfo)
         case media          // Phase 6.2 — 音量 / 播放控制 / 音频设备
         case browser        // Phase 6.2 — 内置 chromium 自动化 (vs userBrowser 控用户已装 Chrome)
+        case desktop        // Phase 6.6 — 远程桌面 (实时画面 + 触控板 + 虚拟键盘)
 
         public var id: String { rawValue }
 
@@ -59,6 +60,7 @@ struct RemoteOperateView: View {
             case .systemTools:  return "工具"
             case .media:        return "媒体"
             case .browser:      return "浏览器"
+            case .desktop:      return "桌面"
             }
         }
 
@@ -76,6 +78,7 @@ struct RemoteOperateView: View {
             case .systemTools:  return "wrench.and.screwdriver"
             case .media:        return "speaker.wave.2"
             case .browser:      return "globe"
+            case .desktop:      return "display.2"
             }
         }
     }
@@ -116,6 +119,8 @@ struct RemoteOperateView: View {
                     RemoteMediaView(pcPeerId: pcPeerId)
                 case .browser:
                     RemoteBrowserView(pcPeerId: pcPeerId)
+                case .desktop:
+                    RemoteDesktopView(pcPeerId: pcPeerId)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
