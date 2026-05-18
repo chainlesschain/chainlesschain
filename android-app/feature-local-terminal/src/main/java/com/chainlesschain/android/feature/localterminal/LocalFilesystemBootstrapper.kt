@@ -463,6 +463,13 @@ class LocalFilesystemBootstrapper @Inject constructor(
             MOTD_SHOWN=1
             export MOTD_SHOWN
         fi
+
+        # Source mkshrc so its aliases (incl. cc/chainlesschain/clc/clchain)
+        # are active. mksh -l only auto-loads __D__ENV (= this profile);
+        # interactive mkshrc is NOT loaded for login shells by default.
+        if [ -f "__D__PREFIX/etc/mkshrc" ]; then
+            . "__D__PREFIX/etc/mkshrc"
+        fi
     """.trimIndent().replace("__D__", "\$") + "\n"
 
     private fun mkshrcContents(): String = """
