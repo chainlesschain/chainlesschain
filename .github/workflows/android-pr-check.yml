@@ -46,23 +46,27 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run Detekt
+        id: detekt
         working-directory: android-app
-        continue-on-error: true
+        continue-on-error: true  # advisory: lint warnings do not block PR
         run: ./gradlew detekt
 
       - name: Run Unit Tests
+        id: unit-tests
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew testDebugUnitTest
 
       - name: Generate Test Coverage
+        id: coverage
+        if: ${{ !cancelled() }}
         working-directory: android-app
-        continue-on-error: true
+        continue-on-error: true  # coverage derived; report-gen failure does not block PR
         run: ./gradlew jacocoTestReport
 
       - name: Build Debug APK
+        id: build-apk
+        if: ${{ !cancelled() }}
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew assembleDebug
 
       - name: Comment PR with Results
@@ -71,16 +75,21 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const mark = (s) => s === 'success' ? '✅ Passed' : s === 'skipped' ? '⏭️ Skipped' : '❌ Failed';
+            const detekt = '${{ steps.detekt.outcome }}';
+            const unitTests = '${{ steps.unit-tests.outcome }}';
+            const coverage = '${{ steps.coverage.outcome }}';
+            const buildApk = '${{ steps.build-apk.outcome }}';
 
             let comment = '## 🤖 Android PR Check Results\n\n';
             comment += '| Check | Status |\n';
             comment += '|-------|--------|\n';
-            comment += '| Detekt | ✅ Passed |\n';
-            comment += '| Unit Tests | ✅ Passed |\n';
-            comment += '| Build | ✅ Passed |\n';
+            comment += `| Detekt | ${mark(detekt)} |\n`;
+            comment += `| Unit Tests | ${mark(unitTests)} |\n`;
+            comment += `| Build | ${mark(buildApk)} |\n`;
             comment += '\n';
             comment += '### 📊 Test Coverage\n';
-            comment += 'Coverage report is available in the workflow artifacts.\n';
+            comment += `Coverage report generation: ${mark(coverage)}. Artifacts in workflow run.\n`;
             comment += '\n';
             comment += '### 📦 APK Size\n';
 
