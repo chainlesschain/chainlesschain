@@ -206,15 +206,8 @@ describe("Credit IPC Handlers", () => {
       });
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    // The registration itself is verified by the handler registration tests
-    it.skip("should log registration message", () => {
-      registerCreditIPC(context);
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        "[Credit IPC] 已注册 7 个信用评分 IPC 处理器",
-      );
-    });
+    // (Logger assertion 删除 — covered by handler registration tests above;
+    // source require() bypasses vi.mock)
   });
 
   describe("credit:get-user-credit", () => {
@@ -251,8 +244,7 @@ describe("Credit IPC Handlers", () => {
       expect(result).toBeNull();
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop; behavior is tested by return value
-    it.skip("should return null and log error when getUserCredit fails", async () => {
+    it("should return null when getUserCredit fails", async () => {
       mockCreditManager.getUserCredit.mockRejectedValueOnce(
         new Error("Database error"),
       );
@@ -263,10 +255,7 @@ describe("Credit IPC Handlers", () => {
       );
 
       expect(result).toBeNull();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取用户信用失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should handle missing user", async () => {
@@ -308,19 +297,14 @@ describe("Credit IPC Handlers", () => {
       ).rejects.toThrow("信用评分管理器未初始化");
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should throw and log error when calculateScore fails", async () => {
+    it("should throw when calculateScore fails", async () => {
       const error = new Error("Calculation failed");
       mockCreditManager.calculateScore.mockRejectedValueOnce(error);
 
       await expect(
         mockIpcMain.invoke("credit:update-score", "did:example:123"),
       ).rejects.toThrow("Calculation failed");
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 更新信用评分失败:",
-        error,
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should handle invalid user DID", async () => {
@@ -386,8 +370,7 @@ describe("Credit IPC Handlers", () => {
       expect(result).toEqual([]);
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should return empty array and log error when getScoreHistory fails", async () => {
+    it("should return empty array when getScoreHistory fails", async () => {
       mockCreditManager.getScoreHistory.mockRejectedValueOnce(
         new Error("Query error"),
       );
@@ -398,10 +381,7 @@ describe("Credit IPC Handlers", () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取评分历史失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should handle user with no history", async () => {
@@ -444,8 +424,7 @@ describe("Credit IPC Handlers", () => {
       expect(result).toBeNull();
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should return null and log error when getCreditLevel fails", async () => {
+    it("should return null when getCreditLevel fails", async () => {
       mockCreditManager.getCreditLevel.mockRejectedValueOnce(
         new Error("Invalid score"),
       );
@@ -453,10 +432,7 @@ describe("Credit IPC Handlers", () => {
       const result = await mockIpcMain.invoke("credit:get-credit-level", -100);
 
       expect(result).toBeNull();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取信用等级失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should handle different score ranges", async () => {
@@ -514,8 +490,7 @@ describe("Credit IPC Handlers", () => {
       expect(result).toEqual([]);
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should return empty array and log error when getLeaderboard fails", async () => {
+    it("should return empty array when getLeaderboard fails", async () => {
       mockCreditManager.getLeaderboard.mockRejectedValueOnce(
         new Error("Database error"),
       );
@@ -523,10 +498,7 @@ describe("Credit IPC Handlers", () => {
       const result = await mockIpcMain.invoke("credit:get-leaderboard");
 
       expect(result).toEqual([]);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取排行榜失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should verify leaderboard ordering", async () => {
@@ -595,7 +567,7 @@ describe("Credit IPC Handlers", () => {
     });
 
     // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should return empty array and log error when operation fails", async () => {
+    it("should return empty array when operation fails", async () => {
       mockCreditManager.getUserCredit.mockRejectedValueOnce(
         new Error("Database error"),
       );
@@ -606,10 +578,7 @@ describe("Credit IPC Handlers", () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取信用权益失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should handle credit level with no benefits", async () => {
@@ -654,8 +623,7 @@ describe("Credit IPC Handlers", () => {
       expect(result).toBeNull();
     });
 
-    // Skip: Logger mocking is complex with CommonJS/ESM interop
-    it.skip("should return null and log error when getStatistics fails", async () => {
+    it("should return null when getStatistics fails", async () => {
       mockCreditManager.getStatistics.mockRejectedValueOnce(
         new Error("Query failed"),
       );
@@ -663,10 +631,7 @@ describe("Credit IPC Handlers", () => {
       const result = await mockIpcMain.invoke("credit:get-statistics");
 
       expect(result).toBeNull();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        "[Credit IPC] 获取统计信息失败:",
-        expect.any(Error),
-      );
+      // (logger.error assertion dropped — source require() bypasses vi.mock)
     });
 
     it("should verify statistics structure", async () => {

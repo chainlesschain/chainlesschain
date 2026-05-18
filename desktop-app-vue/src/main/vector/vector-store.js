@@ -8,8 +8,17 @@ const { logger } = require("../utils/logger.js");
 const { ChromaClient } = require("chromadb");
 const EventEmitter = require("events");
 const path = require("path");
-const { app } = require("electron");
 const fs = require("fs");
+
+// electron.app is lazy + tolerant of test envs where electron isn't bootstrapped.
+// Tests that pass `cacheDir` in config bypass this path entirely.
+function _getElectronApp() {
+  try {
+    return require("electron").app;
+  } catch (_e) {
+    return null;
+  }
+}
 
 /**
  * 向量存储配置
@@ -41,10 +50,18 @@ class VectorStore extends EventEmitter {
 
     this.config = { ...DEFAULT_CONFIG, ...config };
 
-    // 设置缓存目录
+    // 设置缓存目录 — 优先用 config 注入的 cacheDir；否则尝试 electron.app
     if (!this.config.cacheDir) {
-      const userDataPath = app.getPath("userData");
-      this.config.cacheDir = path.join(userDataPath, "vector-cache");
+      const app = _getElectronApp();
+      if (app && typeof app.getPath === "function") {
+        const userDataPath = app.getPath("userData");
+        this.config.cacheDir = path.join(userDataPath, "vector-cache");
+      } else {
+        // 测试环境无 electron + 调用方没传 cacheDir
+        throw new Error(
+          "VectorStore: cacheDir required when electron.app unavailable",
+        );
+      }
     }
 
     this.client = null;
