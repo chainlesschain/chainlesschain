@@ -214,6 +214,29 @@ jobs:
             done
           done
 
+          # Pass 4: rename libc++_shared.so → libtermux_cxx.so + repoint
+          # every DT_NEEDED reference. Why: AGP merges jniLibs from all
+          # modules into a single APK lib/<abi>/ dir. The NDK's
+          # libc++_shared.so (used by libpty_jni, libtoybox, etc) lacks
+          # specific symbol instantiations (e.g.
+          # `_ZTVNSt6__ndk119basic_ostringstream*`) that Termux Node 25
+          # depends on. AGP's first-wins merge non-deterministically
+          # picks the NDK's smaller stripped variant → libnode fails to
+          # link at runtime ("cannot locate symbol"). Renaming gives our
+          # Termux libc++ a unique SONAME so it coexists with NDK's.
+          if [ -f "$STAGE/libc++_shared.so" ]; then
+            mv "$STAGE/libc++_shared.so" "$STAGE/libtermux_cxx.so"
+            patchelf --set-soname "libtermux_cxx.so" "$STAGE/libtermux_cxx.so"
+            for f in "$STAGE"/*.so; do
+              for old in $(patchelf --print-needed "$f"); do
+                if [ "$old" = "libc++_shared.so" ]; then
+                  patchelf --replace-needed "libc++_shared.so" "libtermux_cxx.so" "$f"
+                  echo "  $(basename "$f"): NEEDED libc++_shared.so → libtermux_cxx.so"
+                fi
+              done
+            done
+          fi
+
       - name: Verify final ELF metadata
         run: |
           set -euo pipefail
