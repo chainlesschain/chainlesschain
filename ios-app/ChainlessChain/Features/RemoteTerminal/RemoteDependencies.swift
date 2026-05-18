@@ -50,6 +50,13 @@ public final class RemoteDependencies: ObservableObject {
     public let aiChat: AIChatCommands
     public let aiChatDispatcher: AIChatEventDispatcher
 
+    // Phase 6.1B1 第 1 批 100% wired skill（typed RPC，无 push event 子流）
+    public let input: InputCommands
+    public let display: DisplayCommands
+    public let application: ApplicationCommands
+    public let security: SecurityCommands
+    public let userBrowser: UserBrowserCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -166,6 +173,19 @@ public final class RemoteDependencies: ObservableObject {
         self.aiChatDispatcher = AIChatEventDispatcher(
             eventStream: aiChatEventsStream
         )
+
+        // Phase 6.1B1: 第 1 批 5 个 100% wired skill（Coverage doc §1.4：
+        // input/display/userBrowser/security/app 均为 A=D=✓ 完全对齐）
+        // - input (10 method): 远程键鼠输入
+        // - display (11 method): 显示器信息 / 亮度 / 截屏 / 窗口列表
+        // - application (8 method, namespace=`app`): 应用列表 / 启停 / 聚焦
+        // - security (8 method): 锁屏 / 防火墙 / AV / 加密 / 更新 状态
+        // - userBrowser (18 method): CDP 直连 Chrome/Edge/Brave 控浏览器
+        self.input = InputCommands(client: cmdClient)
+        self.display = DisplayCommands(client: cmdClient)
+        self.application = ApplicationCommands(client: cmdClient)
+        self.security = SecurityCommands(client: cmdClient)
+        self.userBrowser = UserBrowserCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
