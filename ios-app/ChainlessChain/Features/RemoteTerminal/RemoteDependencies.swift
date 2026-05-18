@@ -89,6 +89,15 @@ public final class RemoteDependencies: ObservableObject {
     // Phase 6 skill 同 DC RPC 路径 — Plan §7 Trap T4 误判，本 actor 不连本地 WS)
     public let chromeExtension: ExtensionCommands
 
+    // Phase 6.3 typed skill: knowledge (31 method — CRUD 9 + getNotes 通用 list + Folders 5
+    //   + Tags CRUD 3 + Versions 4 + Star/Pin 6 + Archive 3 + Export 2 + Import 2 + Tags 高级 3)
+    public let knowledge: KnowledgeCommands
+
+    // Phase 6.4 typed skill: ai extended (25 method — Conversations 高级 5 + Prompts 3
+    //   + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4)
+    //   与 aiChat (Phase 5, 12 method) 并列共 37 ai method 全覆盖桌面
+    public let aiExtended: AIExtendedCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -274,6 +283,12 @@ public final class RemoteDependencies: ObservableObject {
 
         // Phase 6.7.1: ExtensionCommands (Chrome 扩展控制 — 30 method 子集)
         self.chromeExtension = ExtensionCommands(client: cmdClient)
+
+        // Phase 6.3: KnowledgeCommands (31 method — 桌面 30/30 完成)
+        self.knowledge = KnowledgeCommands(client: cmdClient)
+
+        // Phase 6.4: AIExtendedCommands (25 method — 桌面 ai 后 25)
+        self.aiExtended = AIExtendedCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
