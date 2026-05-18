@@ -96,10 +96,15 @@ class LocalTerminalWebView(context: Context) : WebView(context) {
     }
 
     /** Load the bundled HTML — call once after [bind]. The HTML calls
-     *  `LocalTerminalBridge.onReady` once xterm has initialised. */
+     *  `LocalTerminalBridge.onReady` once xterm has initialised.
+     *
+     *  Asset path is `local-terminal/` (not `terminal/`) so that AGP's
+     *  asset merger doesn't let `:app`'s legacy `assets/terminal/xterm-shell.html`
+     *  (which uses the `TerminalBridge` JavascriptInterface name) override
+     *  our `LocalTerminalBridge`-bound copy. Phase 4 real-device trap. */
     fun loadShell() {
-        Timber.i("[LocalTerminalWebView] loadShell → file:///android_asset/terminal/xterm-shell.html")
-        loadUrl("file:///android_asset/terminal/xterm-shell.html")
+        Timber.i("[LocalTerminalWebView] loadShell → file:///android_asset/local-terminal/xterm-shell.html")
+        loadUrl("file:///android_asset/local-terminal/xterm-shell.html")
     }
 
     /** Push stdout bytes (decoded as UTF-8) into the terminal renderer. */

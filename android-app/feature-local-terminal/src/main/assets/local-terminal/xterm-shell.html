@@ -18,7 +18,7 @@
   backfill, stdin/stdout routing, exit handling) is on the Kotlin side; the
   WebView is pure VT100 emulator.
 -->
-<link rel="stylesheet" href="file:///android_asset/terminal/xterm.css" />
+<link rel="stylesheet" href="file:///android_asset/local-terminal/xterm.css" />
 <style>
   html, body {
     margin: 0; padding: 0;
@@ -39,8 +39,8 @@
 </head>
 <body>
   <div id="term"></div>
-  <script src="file:///android_asset/terminal/xterm.js"></script>
-  <script src="file:///android_asset/terminal/addon-fit.js"></script>
+  <script src="file:///android_asset/local-terminal/xterm.js"></script>
+  <script src="file:///android_asset/local-terminal/addon-fit.js"></script>
   <script>
 (function () {
   var X = window.Terminal;

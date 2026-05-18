@@ -1,10 +1,13 @@
 package com.chainlesschain.android.feature.localterminal.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,30 +66,42 @@ fun LocalTerminalScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize().background(Color(0xFF1E1E1E))) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF1E1E1E))
+            // Phase 4 — status bar + nav bar would otherwise overlap our
+            // banner and the bottom of the xterm grid. AndroidView WebView
+            // doesn't honor Compose insets automatically; we pad the
+            // wrapping Column instead.
+            .padding(WindowInsets.systemBars.asPaddingValues())
+    ) {
         StatusBanner(state)
-        Box(modifier = Modifier.fillMaxSize()) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    LocalTerminalWebView(ctx).apply {
-                        bind(object : LocalTerminalWebView.Callbacks {
-                            override fun onUserInput(data: String) {
-                                viewModel.writeStdin(data.toByteArray(Charsets.UTF_8))
-                            }
-                            override fun onResize(cols: Int, rows: Int) {
-                                viewModel.resize(cols = cols, rows = rows)
-                            }
-                            override fun onReady(cols: Int, rows: Int) {
-                                viewModel.resize(cols = cols, rows = rows)
-                            }
-                        })
-                        loadShell()
-                        webViewHolder.value = this
-                    }
-                },
-            )
-        }
+        // Crucial: AndroidView with weight(1f).fillMaxWidth() so the WebView
+        // receives a finite non-zero size at first layout pass. Wrapping in
+        // a Box(fillMaxSize) inside a non-weighted Column gives the WebView
+        // a 0×0 measure → xterm.js fit() bails → terminal renders as a thin
+        // cursor stripe (Plan A.1 v5.0.3.53-fix11 lesson, now in LocalTerminal).
+        AndroidView(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            factory = { ctx ->
+                LocalTerminalWebView(ctx).apply {
+                    bind(object : LocalTerminalWebView.Callbacks {
+                        override fun onUserInput(data: String) {
+                            viewModel.writeStdin(data.toByteArray(Charsets.UTF_8))
+                        }
+                        override fun onResize(cols: Int, rows: Int) {
+                            viewModel.resize(cols = cols, rows = rows)
+                        }
+                        override fun onReady(cols: Int, rows: Int) {
+                            viewModel.resize(cols = cols, rows = rows)
+                        }
+                    })
+                    loadShell()
+                    webViewHolder.value = this
+                }
+            },
+        )
     }
 }
 
