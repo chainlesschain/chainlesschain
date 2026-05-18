@@ -33,7 +33,7 @@ class AICommandHandler {
     this._ensureSchema();
 
     logger.info(
-      "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method commit 1)",
+      "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method commit 2)",
     );
   }
 
@@ -277,6 +277,26 @@ class AICommandHandler {
         return await this.ragListDocuments(params, context);
       case "ragStats":
         return await this.ragStats(params, context);
+
+      // Phase 6.4 commit 2 — Multimodal 4
+      case "generateImage":
+        return await this.generateImage(params, context);
+      case "ocrImage":
+        return await this.ocrImage(params, context);
+      case "transcribeAudio":
+        return await this.transcribeAudio(params, context);
+      case "textToSpeech":
+        return await this.textToSpeech(params, context);
+
+      // Phase 6.4 commit 2 — Code helpers 4
+      case "generateCode":
+        return await this.generateCode(params, context);
+      case "explainCode":
+        return await this.explainCode(params, context);
+      case "refactorCode":
+        return await this.refactorCode(params, context);
+      case "fixCode":
+        return await this.fixCode(params, context);
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -1551,6 +1571,225 @@ class AICommandHandler {
       return { success: true, available: true, ...s };
     }
     return { success: true, available: false, totalDocs: 0, totalVectors: 0 };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 2 — Multimodal 4 (delegate to aiEngine 多模态 sub-API)
+  // ============================================================================
+
+  /**
+   * 文本生图。aiEngine.generateImage(prompt, options) → { images, model }。
+   * options 含 size (e.g. "1024x1024") / n (生成张数) / model (engine id)。
+   */
+  async generateImage(params, _context) {
+    const { prompt, model, size, n = 1, options = {} } = params;
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("prompt is required");
+    }
+    if (!this.aiEngine) {
+      throw new Error("AI engine not available");
+    }
+    if (typeof this.aiEngine.generateImage !== "function") {
+      throw new Error("aiEngine.generateImage not implemented");
+    }
+    const result = await this.aiEngine.generateImage(prompt, {
+      model: model || this.options.imageModel,
+      size: size || "1024x1024",
+      n: Math.max(1, Math.min(10, n | 0)),
+      ...options,
+    });
+    return {
+      success: true,
+      prompt,
+      model: result.model || model,
+      images: Array.isArray(result.images) ? result.images : [],
+      raw: result,
+    };
+  }
+
+  /**
+   * OCR 图像文字识别。imageData (base64) 或 imagePath 二选一。
+   * aiEngine.ocrImage(imageOrPath, options) → { text, confidence, language }。
+   */
+  async ocrImage(params, _context) {
+    const { imageData, imagePath, language = "auto" } = params;
+    if (!imageData && !imagePath) {
+      throw new Error("imageData or imagePath is required");
+    }
+    if (!this.aiEngine) {
+      throw new Error("AI engine not available");
+    }
+    if (typeof this.aiEngine.ocrImage !== "function") {
+      throw new Error("aiEngine.ocrImage not implemented");
+    }
+    const result = await this.aiEngine.ocrImage(imageData || imagePath, {
+      language,
+      isPath: !!imagePath,
+    });
+    return {
+      success: true,
+      text: result.text || "",
+      confidence: result.confidence || 0,
+      language: result.language || language,
+      raw: result,
+    };
+  }
+
+  /**
+   * 音频转文字。audioData (base64) 或 audioPath 二选一。
+   */
+  async transcribeAudio(params, _context) {
+    const { audioData, audioPath, language = "auto", model } = params;
+    if (!audioData && !audioPath) {
+      throw new Error("audioData or audioPath is required");
+    }
+    if (!this.aiEngine) {
+      throw new Error("AI engine not available");
+    }
+    if (typeof this.aiEngine.transcribeAudio !== "function") {
+      throw new Error("aiEngine.transcribeAudio not implemented");
+    }
+    const result = await this.aiEngine.transcribeAudio(audioData || audioPath, {
+      language,
+      model: model || this.options.asrModel,
+      isPath: !!audioPath,
+    });
+    return {
+      success: true,
+      text: result.text || "",
+      language: result.language || language,
+      duration: result.duration,
+      raw: result,
+    };
+  }
+
+  /**
+   * 文字转语音 (TTS)。返 base64 audio data + format。
+   */
+  async textToSpeech(params, _context) {
+    const { text, voice = "default", speed = 1.0, format = "mp3" } = params;
+    if (!text || typeof text !== "string") {
+      throw new Error("text is required");
+    }
+    if (!this.aiEngine) {
+      throw new Error("AI engine not available");
+    }
+    if (typeof this.aiEngine.textToSpeech !== "function") {
+      throw new Error("aiEngine.textToSpeech not implemented");
+    }
+    const result = await this.aiEngine.textToSpeech(text, {
+      voice,
+      speed,
+      format,
+    });
+    return {
+      success: true,
+      audioData: result.audioData || result.data || "",
+      format: result.format || format,
+      voice,
+      duration: result.duration,
+    };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 2 — Code helpers 4 (用 aiEngine.chat 走 system prompt)
+  // ============================================================================
+
+  /**
+   * 通用内部 helper — 用 aiEngine.chat 跑一次 system+user prompt 拿到 content。
+   * 4 个 code helper 都共用此模板，避免重复 chat 失败兜底逻辑。
+   */
+  async _chatOnce(systemPrompt, userPrompt, options = {}) {
+    if (!this.aiEngine || typeof this.aiEngine.chat !== "function") {
+      throw new Error("AI engine chat not available");
+    }
+    const messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ];
+    const aiResult = await this.aiEngine.chat(messages, {
+      model:
+        options.model || this.options.codeModel || this.options.defaultModel,
+      temperature: options.temperature ?? 0.2, // 低温度更准
+    });
+    return aiResult.content || aiResult.reply || aiResult.message || "";
+  }
+
+  /** 自然语言生成代码。 */
+  async generateCode(params, _context) {
+    const { prompt, language, framework } = params;
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("prompt is required");
+    }
+    const langPart = language ? ` in ${language}` : "";
+    const fwPart = framework ? ` using ${framework}` : "";
+    const sys = `You are an expert programmer. Generate clean, idiomatic code${langPart}${fwPart}. Output only the code, no prose explanation unless asked.`;
+    const code = await this._chatOnce(sys, prompt, params.options);
+    return {
+      success: true,
+      code,
+      language: language || null,
+      framework: framework || null,
+    };
+  }
+
+  /** 代码解释。 */
+  async explainCode(params, _context) {
+    const { code, language } = params;
+    if (!code || typeof code !== "string") {
+      throw new Error("code is required");
+    }
+    const langHint = language ? ` (${language})` : "";
+    const sys = `You are a code reviewer. Explain the given code${langHint} clearly and concisely. Cover: purpose, key logic, potential issues.`;
+    const explanation = await this._chatOnce(sys, code, params.options);
+    return {
+      success: true,
+      explanation,
+      language: language || null,
+    };
+  }
+
+  /** 代码重构。 */
+  async refactorCode(params, _context) {
+    const {
+      code,
+      language,
+      instructions = "Improve readability and maintainability",
+    } = params;
+    if (!code || typeof code !== "string") {
+      throw new Error("code is required");
+    }
+    const langHint = language ? ` (${language})` : "";
+    const sys = `You are an expert refactoring assistant. Refactor the given code${langHint} per instruction. Output the refactored code first, then a brief change summary.`;
+    const userMsg = `Instruction: ${instructions}\n\nCode:\n${code}`;
+    const refactoredCode = await this._chatOnce(sys, userMsg, params.options);
+    return {
+      success: true,
+      refactoredCode,
+      language: language || null,
+      instructions,
+    };
+  }
+
+  /** 代码修 bug，给出错误信息后返修复版本。 */
+  async fixCode(params, _context) {
+    const { code, error, language } = params;
+    if (!code || typeof code !== "string") {
+      throw new Error("code is required");
+    }
+    if (!error || typeof error !== "string") {
+      throw new Error("error is required");
+    }
+    const langHint = language ? ` (${language})` : "";
+    const sys = `You are an expert debugger. Fix the bug in the given code${langHint}. Output the fixed code first, then a brief explanation of what was wrong.`;
+    const userMsg = `Error: ${error}\n\nCode:\n${code}`;
+    const fixedCode = await this._chatOnce(sys, userMsg, params.options);
+    return {
+      success: true,
+      fixedCode,
+      language: language || null,
+      error,
+    };
   }
 }
 
