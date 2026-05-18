@@ -81,6 +81,10 @@ public final class RemoteDependencies: ObservableObject {
     // touch drag → applyDelta → 发 sendInput mouse_move)
     public let desktopVirtualCursor: DesktopVirtualCursor
 
+    // Phase 6.6.3 frame 流式拉取 actor (OQ-1 A pull-based + OQ-2 B in-flight=1 +
+    // OQ-7 A drop-old cap=1 + Trap D6 退避 + maxConsecutiveErrors=5 fatal)
+    public let desktopFrameStreamer: DesktopFrameStreamer
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -246,6 +250,23 @@ public final class RemoteDependencies: ObservableObject {
         // Phase 6.6.2: DesktopVirtualCursor (OQ-4 A — startSession 后调
         // display.getDisplays + display.getCursorPosition 初始化 screen + reset)
         self.desktopVirtualCursor = DesktopVirtualCursor()
+
+        // Phase 6.6.3: DesktopFrameStreamer (OQ-1 A pull loop)
+        // 通过 closure 注入 desktop.getFrame — 解耦 actor 测试时可 mock
+        let desktopCmds = self.desktop
+        self.desktopFrameStreamer = DesktopFrameStreamer(
+            getFrameFn: { [weak desktopCmds, pairingStore] sessionId in
+                guard let pcPeerId = await pairingStore.devices().first?.pcPeerId else {
+                    throw RemoteSkillError.transportFailed("no paired desktop for frame stream")
+                }
+                guard let cmds = desktopCmds else {
+                    throw RemoteSkillError.transportFailed("DesktopCommands deallocated")
+                }
+                return try await cmds.getFrame(pcPeerId: pcPeerId, sessionId: sessionId)
+            },
+            backoffMs: 50,
+            maxConsecutiveErrors: 5
+        )
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
