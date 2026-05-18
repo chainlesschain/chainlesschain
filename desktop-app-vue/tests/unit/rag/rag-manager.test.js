@@ -144,6 +144,9 @@ vi.mock("../../../src/main/rag/metrics.js", () => ({
   },
 }));
 
+// VectorStore 在测试环境用 cacheDir 绕过 electron app.getPath（source 已支持 fall-through）
+const MOCK_CACHE_DIR = "/mock/cache/vector-cache";
+
 describe("RAGManager", () => {
   let RAGManager;
   let ragManager;
@@ -178,13 +181,15 @@ describe("RAGManager", () => {
     }
   });
 
-  describe.skip("构造函数", () => {
+  describe("构造函数", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
     // vi.mock('electron') doesn't intercept CommonJS require() in VectorStore
     // Similar to LRU cache CommonJS issue in embeddings-service.test.js
 
     it("应该创建实例", () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
 
       expect(ragManager).toBeDefined();
       expect(ragManager.db).toBe(mockDatabaseManager);
@@ -192,7 +197,9 @@ describe("RAGManager", () => {
     });
 
     it("应该初始化默认配置", () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
 
       expect(ragManager.config).toBeDefined();
       expect(ragManager.config.topK).toBe(10);
@@ -201,6 +208,7 @@ describe("RAGManager", () => {
 
     it("应该接受自定义配置", () => {
       ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
         topK: 20,
         enableRAG: true,
       });
@@ -210,7 +218,9 @@ describe("RAGManager", () => {
     });
 
     it("应该创建组件实例", () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
 
       expect(ragManager.embeddingsService).toBeDefined();
       expect(ragManager.vectorStore).toBeDefined();
@@ -219,24 +229,34 @@ describe("RAGManager", () => {
     });
 
     it("应该初始化为未初始化状态", () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
 
       expect(ragManager.isInitialized).toBe(false);
     });
 
     it("应该继承EventEmitter", () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
 
       expect(typeof ragManager.on).toBe("function");
       expect(typeof ragManager.emit).toBe("function");
     });
   });
 
+  // FIXME (out of scope): 4 tests asserting on mockEmbeddingsService.initialize /
+  // mockVectorStore.initialize — these mocks aren't intercepting source require()
+  // (vi.mock CJS interop limit). Needs T1 seam in RAGManager constructor for
+  // EmbeddingsService / VectorStore / Reranker / RecursiveCharacterTextSplitter /
+  // QueryRewriter / RAGMetrics (6 deps). Bigger refactor than current sweep.
   describe.skip("initialize", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
       ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
         enableRAG: false, // Disable to skip index building
       });
     });
@@ -293,11 +313,13 @@ describe("RAGManager", () => {
     });
   });
 
-  describe.skip("retrieve", () => {
+  describe("retrieve", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
       ragManager.isInitialized = true;
     });
 
@@ -344,11 +366,13 @@ describe("RAGManager", () => {
     });
   });
 
-  describe.skip("_deduplicateResults", () => {
+  describe("_deduplicateResults", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
     });
 
     it("应该去除重复结果", () => {
@@ -384,11 +408,13 @@ describe("RAGManager", () => {
     });
   });
 
-  describe.skip("updateConfig", () => {
+  describe("updateConfig", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
     });
 
     it("应该更新配置", () => {
@@ -405,18 +431,22 @@ describe("RAGManager", () => {
       expect(ragManager.config.enableReranking).toBe(originalReranking);
     });
 
-    it("应该更新重排序器配置", () => {
+    // FIXME (out of scope): mockReranker.updateConfig 不被 source require() 拦截，需 Reranker seam
+    it.skip("应该更新重排序器配置", () => {
       ragManager.updateConfig({ enableReranking: false });
 
       expect(mockReranker.updateConfig).toHaveBeenCalled();
     });
   });
 
+  // FIXME (source mismatch): RAGManager.prototype.getConfig 不存在 — source 仅暴露 this.config 直接访问
   describe.skip("getConfig", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
     });
 
     it("应该返回配置副本", () => {
@@ -436,11 +466,14 @@ describe("RAGManager", () => {
     });
   });
 
+  // FIXME (source mismatch): RAGManager.prototype.getMetrics 不存在 — source 暴露 this.metrics 实例直接访问
   describe.skip("getMetrics", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
     beforeEach(() => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
     });
 
     it("应该返回指标数据", () => {
@@ -458,6 +491,8 @@ describe("RAGManager", () => {
     });
   });
 
+  // FIXME (out of scope): 边界 case 测 null db/llm 需 RAGManager 构造时跳 VectorStore 创建（source
+  // 当前无条件 new VectorStore(...) 会触发 cacheDir guard）。属 source 容错优化，单独考虑。
   describe.skip("边界情况", () => {
     // NOTE: Skipped - VectorStore constructor requires Electron app.getPath() which is not available in unit test environment
 
@@ -474,7 +509,9 @@ describe("RAGManager", () => {
     });
 
     it("应该处理空查询", async () => {
-      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager);
+      ragManager = new RAGManager(mockDatabaseManager, mockLLMManager, {
+        cacheDir: MOCK_CACHE_DIR,
+      });
       ragManager.config.enableRAG = true;
 
       const results = await ragManager.retrieve("");

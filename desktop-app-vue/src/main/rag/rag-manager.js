@@ -72,6 +72,9 @@ class RAGManager extends EventEmitter {
       chromaUrl: this.config.chromaUrl,
       similarityThreshold: this.config.similarityThreshold,
       topK: this.config.topK,
+      // Pass cacheDir if caller provided one; otherwise VectorStore falls back to
+      // electron app.getPath("userData") (production default).
+      cacheDir: this.config.cacheDir,
     });
 
     // 重排序器
