@@ -55,7 +55,7 @@
 - 新 v2：pullSingle 之后循环调 `project.getFile(fileId)` 真把每个文件 content 存 Room project_files
   - 单文件 getFile 失败 → continue + log warn（不阻塞整体）
   - content > 1MB → skip 写占位 row（size + hash 保留，content=null）防 OOM
-  - PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"
+  - PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + `下载文件 N/M: <path>`
   - 完成后 metadata.pullState 升 "files_downloaded"
 
 **测试覆盖**：78 新单元 + 集成测试全绿
