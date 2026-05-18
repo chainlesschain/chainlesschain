@@ -514,17 +514,18 @@ iOS Phase 5 单测累计 **45** → 总 iOS 单测 ~313 + 45 = **~358**。
 
 **Reproducer 操作步骤**（每场景跑一次，按表顺序）：
 
-- **前置**：Mac 装 ChainlessChain 桌面 v5.0.3.63+；iPhone 装 ChainlessChain iOS v5.0.3.63+；同局域网；mobile-bridge.js 已 register `pairing-code:*` alias；已完成 Flow A QR 配对（W3.7 c47cbc649 默认 UX）。
-- **场景 1**：iPhone 主页 → RemoteOperate → 第 7 tab "AI"。秒表起：进 tab 到列表首屏。验 conversation row 显示桌面端真实 title + messageCount。
-- **场景 2**：iPhone 点右上 + → 弹 alert 输入 "Quick test" → 创建。回 chat view 输入 "Hello, who are you?" → send。验 token-by-token 渲染（不是 lump-sum，能肉眼看到逐 token 出）。Mac 上 `cc ai recent` 验 conversation 实有此消息。
-- **场景 3**：再发一条 "请写一首长诗" → 流式中点 iPhone 红色 stop button。验：iPhone bubble 立即冻结，文本停在 cancel 时刻；桌面 LLM 进程 1s 内中断（`ps aux | grep ollama` 或 chat-handler log "cancelled by client"）；输入框马上可点 send（isStreamingMessage=false）。
-- **场景 4**：流式中切到 Terminal tab 1s 后切回 → 当前对话末条 streaming 继续；切回 Terminal tab 一直等完 → 切回，messages 末条已 finalized（finalText）。
-- **场景 5**：iPhone 飞行模式 → AI tab → 输入 → send。验 lastError banner = "需在线发起对话（请检查桌面连接）"；OfflineQueue 不增条目（`cc memory ls --filter offlineQueue` 验空）。
-- **场景 6**：iPhone 飞行模式 → swipe delete 任意对话。验 banner = "已加入离线队列"，conversation 从 list 移除（乐观）；关飞行模式 → DC 恢复 → drainer 自动跑 → 桌面端 `cc ai conversations` 验该对话消失。
-- **场景 7**：桌面端先用 `cc ai chat -c <id>` 重复发 ~200 条消息撑长对话 → iPhone 进对话 → 验 loadMessages ≤ 1s；scroll 顶 / 底之间无 hitch；末位发新 token 时 scroll 跟随平滑。
-- **场景 8**：iPhone 进 AI tab 看现有对话列表 → 锁屏 1 分钟 → 桌面端 `cc ai create-conversation "新对话从桌面"` → iPhone 解锁。pull-to-refresh on conversation list sheet → 验新对话出现。**注意 Phase 5 v0.1 无桌面 push event 通知新对话**，依赖 pull-to-refresh。
+- **前置**：Mac 装 ChainlessChain 桌面 v5.0.3.63+；iPhone 装 ChainlessChain iOS v5.0.3.63+；同局域网；mobile-bridge.js 已 register `pairing-code:*` alias；已完成 **Flow B** QR 配对（W3.7 `c47cbc649` 默认 UX — 手机扫桌面 QR）。
+- **桌面验证路径**：所有"桌面端验证 conversation 状态"通过 **Electron 桌面 GUI 的 AI 对话面板** 完成（侧栏 → AI Chat / 知识库 → 对话历史）—— Phase 5 v0.1 没有 `cc ai *` CLI 命令，不要用 CLI 验。
+- **场景 1**：iPhone 主页 → RemoteOperate → 第 7 tab "AI"（icon `brain.head.profile`）。秒表起：进 tab 到列表首屏。验 conversation row 显示桌面端真实 title + messageCount + relative date。
+- **场景 2**：iPhone 点右上「更多 → 新对话」（或空状态 + button）→ alert 输入 "Quick test" → 创建。回 chat view 输入 "Hello, who are you?" → send。验 **token-by-token 渲染**（不是 lump-sum，肉眼能看到逐 token 出现；BlinkingCursor 闪烁）。Mac 桌面 GUI 打开 chat panel 验同名 conversation 已出现 + 末条 messages 与 iPhone 一致。
+- **场景 3**：再发一条 "请写一首 200 字以上的长诗" → 等至少 5 个 token 渲出 → 点 iPhone 红色 stop button。验：(a) iPhone bubble 立即冻结，文本停在 cancel 时刻（保留 5+ token，非空）；(b) 桌面 LLM 进程 1s 内中断（`Get-Process ollama` PowerShell 看 CPU 掉 / chat-handler 日志看 "cancelled by client" 或类似）；(c) iPhone 输入框马上可点 send（红色 stop → 蓝色 send 切回）。
+- **场景 4**：流式中切到 Terminal tab 1s 后切回 AI tab → 当前对话末条 streaming **继续**（VM filter 内存仍在）；另测：切到 Terminal tab 一直等到 stream 自然结束（`ai.chat.end`）→ 切回 AI tab，messages 末条已 finalized 用 finalText、`isStreaming=false`。
+- **场景 5**：iPhone 开飞行模式 → AI tab 选已有对话 → 输入 → send。验 lastError banner = **"需在线发起对话（请检查桌面连接）"**（红色 banner），messages **不追加占位 user/assistant**（VM 的 DC gate 在乐观追加前）。
+- **场景 6**：iPhone 飞行模式 → swipe delete 任意非当前对话。验 banner = **"已加入离线队列"**（橙色 banner，UI 在 `errorBanner` 内据 "离线" 字符串选色），conversation 从 list 移除（乐观）；关飞行模式 → DC 恢复 → drainer 自动跑（前台等 5-10s）→ 桌面 GUI chat panel 验该对话消失。
+- **场景 7**：桌面 GUI chat panel 先选一个 conversation → 手工持续追问 ~200 条短消息撑长对话（约 5 min）→ iPhone 进对话 → 验 loadMessages 桌面端默认 `limit=100` ≤ 1s（应只显示最近 100 条，不是 200）；scroll 顶 / 底之间无 hitch；末位发新 token 时 scroll 跟随平滑（`scrollToLast` `withAnimation easeOut 0.2s`）。
+- **场景 8**：iPhone 进 AI tab 看现有对话列表 sheet → 锁屏 1 分钟 → 桌面 GUI chat panel 新建一个 conversation 名 "新对话从桌面" → iPhone 解锁回 sheet → **pull-to-refresh**（`refreshable → vm.refresh → loadConversations`）→ 验新对话出现。**Phase 5 v0.1 无桌面 push event 通知新对话**，依赖手动 pull-to-refresh，不动就看不到（设计 §7.7 已注明）。
 
-**重要 trap**（per §7.6 + 5.7 收口）：场景 3 的 cancel 测试必须等到至少 5 个 token 已渲染再点 stop — 验证 partial text 真保留（Bug 修复 #4 涉及 finalizeStreamingPlaceholder 保留 oldMsg.content 路径）。
+**重要 trap**（per §7.6）：场景 3 的 cancel 测试必须等到至少 5 个 token 已渲染再点 stop — 此时本地占位 assistant msg 的 `content` 字段已非空（dispatcher 累积 → `updateStreamingAssistantContent`）。Cancel 路径走 `cancelCurrentStream → finalizeStreamingPlaceholder(finalText: nil)`，`finalText ?? oldMsg.content` 落到 else 分支保留累积；若 cancel 太早 token 还没渲，content="" 也合规但**没法验保留行为**，会与早期 cancel 路径无区分。这是验 cancel 设计正确性的关键步骤，跟 §8.3 4 bug 修无直接关系（cancel 的 content 保留是 Phase 5.3 既有不变量）。
 
 ## 9. 工作量 & 时序估算
 
