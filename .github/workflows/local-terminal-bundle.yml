@@ -132,19 +132,19 @@ jobs:
           echo "::endgroup::"
 
           # Hard-gate: each ABI must produce all three of {mksh, toybox, pty_jni}.
-          # Toybox failure on Linux would be a regression — fail the workflow
-          # so we don't ship without the bundled coreutils.
+          # AGP picks the CXX build dir based on Kotlin build type — `Release`
+          # for plain `assembleRelease`, `RelWithDebInfo` for the optimization
+          # path our module triggers (see release variant kotlinOptions).
+          # Match either to be robust against future kotlin build-type swaps.
           for abi in arm64-v8a armeabi-v7a x86_64; do
             for lib in libmksh.so libtoybox.so libpty_jni.so; do
-              path="build/intermediates/cxx/Release/*/obj/${abi}/${lib}"
-              # shellcheck disable=SC2086
-              if ! ls ${path} > /dev/null 2>&1; then
+              path=$(ls build/intermediates/cxx/*/*/obj/${abi}/${lib} 2>/dev/null | head -1)
+              if [ -z "${path}" ]; then
                 echo "::error::missing ${lib} for ${abi}"
                 exit 1
               fi
-              # shellcheck disable=SC2086
-              size=$(stat -c%s ${path})
-              echo "  ${abi}/${lib} -> ${size} bytes"
+              size=$(stat -c%s "${path}")
+              echo "  ${abi}/${lib} -> ${size} bytes ($path)"
             done
           done
 
@@ -162,7 +162,7 @@ jobs:
           )
           for abi in arm64-v8a armeabi-v7a x86_64; do
             for lib in libmksh.so libtoybox.so libpty_jni.so; do
-              path=$(ls build/intermediates/cxx/Release/*/obj/${abi}/${lib} 2>/dev/null | head -1)
+              path=$(ls build/intermediates/cxx/*/*/obj/${abi}/${lib} 2>/dev/null | head -1)
               [ -n "${path}" ] || { echo "::error::no ${lib} for ${abi}"; exit 1; }
               got=$(file "${path}")
               echo "  ${path}"
@@ -179,7 +179,7 @@ jobs:
         with:
           name: local-terminal-native-bundle
           path: |
-            android-app/feature-local-terminal/build/intermediates/cxx/Release/*/obj/*/lib*.so
+            android-app/feature-local-terminal/build/intermediates/cxx/*/*/obj/*/lib*.so
             android-app/feature-local-terminal/build/outputs/aar/feature-local-terminal-release.aar
           if-no-files-found: error
           retention-days: 30
@@ -196,7 +196,7 @@ jobs:
             for abi in arm64-v8a armeabi-v7a x86_64; do
               row="| ${abi} |"
               for lib in libmksh.so libtoybox.so libpty_jni.so; do
-                path=$(ls build/intermediates/cxx/Release/*/obj/${abi}/${lib} 2>/dev/null | head -1)
+                path=$(ls build/intermediates/cxx/*/*/obj/${abi}/${lib} 2>/dev/null | head -1)
                 if [ -n "${path}" ]; then
                   sz=$(stat -c%s "${path}")
                   row="${row} ${sz} B |"
