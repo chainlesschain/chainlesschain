@@ -106,6 +106,12 @@ class LocalFilesystemBootstrapper @Inject constructor(
             // last bootstrap.
             relinkLibraries()
             relinkBinSymlinks()
+            relinkNodeIfPresent()
+
+            // Phase 2.5 — extract chainlesschain CLI snapshot from assets
+            // (if present). Idempotent: re-extract only when the bundled
+            // version differs from the on-disk one.
+            extractCcCliIfPresent()
 
             // Ensure $HOME / $TMPDIR exist (untouched by $PREFIX rebootstrap).
             homeDir.mkdirs()
@@ -202,6 +208,186 @@ class LocalFilesystemBootstrapper @Inject constructor(
                 "libtoybox.so not in \$PREFIX/lib (likely Windows-host build); " +
                     "skipping ${TOYBOX_COMMANDS.size} bin/<cmd> symlinks"
             )
+        }
+    }
+
+    /**
+     * Phase 2.5 — establish `$PREFIX/bin/node` if Termux Node.js binary
+     * (`libnode.so`) shipped in our APK. Also creates `$PREFIX/bin/npm`
+     * if npm-cli.js was extracted (see [extractCcCliIfPresent]).
+     *
+     * libnode.so is the relocated Termux Node 25 binary with RUNPATH
+     * patched to `$ORIGIN` — it loads libcrypto/libssl/libicu* from the
+     * same lib/<abi>/ directory at runtime. See workflow
+     * `node-runtime-bundle.yml` for the patchelf details.
+     */
+    private fun relinkNodeIfPresent() {
+        val libDir = File(prefixDir, "lib")
+        val binDir = File(prefixDir, "bin")
+        val nodeLib = File(libDir, "libnode.so")
+        if (!nodeLib.exists()) {
+            Timber.tag(TAG).i("libnode.so absent — \$PREFIX/bin/node not created (Phase 2.5 not bundled)")
+            return
+        }
+        createBinSymlink(binDir, "node", "../lib/libnode.so")
+        Timber.tag(TAG).i("\$PREFIX/bin/node → ../lib/libnode.so wired")
+    }
+
+    /**
+     * Phase 2.5 — extract `assets/local-terminal/cc-cli.tgz` (if shipped)
+     * to `$PREFIX/lib/node_modules/chainlesschain/`, then symlink
+     * `$PREFIX/bin/{cc,chainlesschain,npm}` to the right node-modules
+     * entries.
+     *
+     * Idempotent via `$PREFIX/var/lib/cc/.bundled-version` sentinel
+     * matched against [BuildConfig.USR_VERSION] (bumped at the same
+     * time as the rest of \$PREFIX changes).
+     */
+    private fun extractCcCliIfPresent() {
+        val tgzAsset = "local-terminal/cc-cli.tgz"
+        val markerFile = File(prefixDir, "var/lib/cc/.bundled-version")
+        val targetVersion = BuildConfig.USR_VERSION
+
+        // Skip if asset isn't shipped (Phase 0-4 baseline)
+        val assetSize = try {
+            context.assets.openFd(tgzAsset).use { it.length }
+        } catch (_: Exception) {
+            -1L
+        }
+        if (assetSize <= 0) {
+            Timber.tag(TAG).i("$tgzAsset absent — cc CLI not bundled (Phase 2.5 not landed)")
+            return
+        }
+
+        val ccModule = File(prefixDir, "lib/node_modules/chainlesschain")
+        if (markerFile.exists() &&
+            markerFile.readText().trim() == targetVersion &&
+            ccModule.isDirectory
+        ) {
+            // Already extracted at this version — just refresh symlinks.
+            wireCcCliSymlinks()
+            return
+        }
+
+        Timber.tag(TAG).i("Extracting cc CLI snapshot from $tgzAsset")
+        if (ccModule.exists()) ccModule.deleteRecursively()
+        ccModule.parentFile?.mkdirs()
+
+        context.assets.open(tgzAsset).use { tgzIn ->
+            java.util.zip.GZIPInputStream(tgzIn).use { gzIn ->
+                extractTarToDir(gzIn, ccModule)
+            }
+        }
+        wireCcCliSymlinks()
+
+        markerFile.parentFile?.mkdirs()
+        markerFile.writeText(targetVersion)
+        Timber.tag(TAG).i("cc CLI snapshot extracted → ${ccModule.absolutePath}")
+    }
+
+    /** Create `$PREFIX/bin/{cc,chainlesschain}` → node_modules entry. */
+    private fun wireCcCliSymlinks() {
+        val binDir = File(prefixDir, "bin")
+        val ccTarget = "../lib/node_modules/chainlesschain/bin/chainlesschain.js"
+        for (name in listOf("cc", "chainlesschain", "clc", "clchain")) {
+            val link = File(binDir, name)
+            if (link.exists() || java.nio.file.Files.isSymbolicLink(link.toPath())) {
+                link.delete()
+            }
+            try {
+                Files.createSymbolicLink(link.toPath(), Paths.get(ccTarget))
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "bin/$name → $ccTarget failed")
+            }
+        }
+    }
+
+    /**
+     * Minimal tar reader — extracts an uncompressed tar stream to [destDir].
+     * Handles regular files, directories, and symlinks. Hand-rolled to avoid
+     * the commons-compress ~600KB dep (the module already declares
+     * `org.tukaani:xz` for gzip not needed; GZIPInputStream is JDK-built-in).
+     */
+    private fun extractTarToDir(tarIn: java.io.InputStream, destDir: File) {
+        val buf = ByteArray(512)
+        destDir.mkdirs()
+        while (true) {
+            // Read tar header (512 bytes per block)
+            var read = 0
+            while (read < 512) {
+                val n = tarIn.read(buf, read, 512 - read)
+                if (n < 0) return  // EOF, normal termination
+                read += n
+            }
+            // All zeros = end-of-archive marker
+            if (buf.all { it == 0.toByte() }) return
+
+            val name = parseTarString(buf, 0, 100)
+            if (name.isEmpty()) return
+            val sizeOctal = parseTarString(buf, 124, 12).trim()
+            val size = if (sizeOctal.isEmpty()) 0L else sizeOctal.toLong(8)
+            val typeFlag = buf[156].toInt().toChar()
+            val linkName = parseTarString(buf, 157, 100)
+            val prefix = parseTarString(buf, 345, 155)
+            val fullName = if (prefix.isNotEmpty()) "$prefix/$name" else name
+
+            // npm pack output starts with `package/` — strip the leading
+            // segment so we extract directly into destDir (matching `tar
+            // --strip-components=1` behaviour).
+            val effective = fullName.removePrefix("package/")
+            if (effective.isEmpty() || effective.startsWith("/")) {
+                skipPadding(tarIn, size)
+                continue
+            }
+            val target = File(destDir, effective)
+
+            when (typeFlag) {
+                '5' -> target.mkdirs()  // directory
+                '2' -> {                // symlink
+                    target.parentFile?.mkdirs()
+                    if (target.exists()) target.delete()
+                    try {
+                        Files.createSymbolicLink(target.toPath(), Paths.get(linkName))
+                    } catch (_: Exception) {
+                        // ignore — symlinks in npm packs are rare
+                    }
+                }
+                else -> {                // regular file (also covers ' ')
+                    target.parentFile?.mkdirs()
+                    target.outputStream().use { fileOut ->
+                        var remaining = size
+                        while (remaining > 0) {
+                            val want = minOf(remaining, 8192L).toInt()
+                            val tmp = ByteArray(want)
+                            var got = 0
+                            while (got < want) {
+                                val n = tarIn.read(tmp, got, want - got)
+                                if (n < 0) return  // truncated
+                                got += n
+                            }
+                            fileOut.write(tmp, 0, got)
+                            remaining -= got
+                        }
+                    }
+                }
+            }
+            skipPadding(tarIn, size)
+        }
+    }
+
+    private fun parseTarString(buf: ByteArray, off: Int, len: Int): String {
+        val end = (off until off + len).firstOrNull { buf[it] == 0.toByte() } ?: (off + len)
+        return String(buf, off, end - off, Charsets.UTF_8)
+    }
+
+    private fun skipPadding(input: java.io.InputStream, size: Long) {
+        // tar pads each entry to 512-byte boundary
+        val pad = ((size + 511) / 512 * 512 - size).toInt()
+        var remaining = pad
+        while (remaining > 0) {
+            val n = input.skip(remaining.toLong())
+            if (n <= 0) break
+            remaining -= n.toInt()
         }
     }
 

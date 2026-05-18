@@ -57,6 +57,16 @@ class PtyEnvironment @Inject constructor(
             "LANG" to "en_US.UTF-8",
             "PREFIX" to prefix,
             "ENV" to "$prefix/etc/profile",
+            // Phase 2.5 — Node.js DT_RUNPATH was patched to $ORIGIN, so libnode.so
+            // finds libcrypto/libssl/libicu* in the same lib/<abi>/ dir. But
+            // libnode itself is exec'd via the `$PREFIX/bin/node` symlink whose
+            // parent dir is bin/ — to keep the loader happy across symlink
+            // chains, also set LD_LIBRARY_PATH explicitly.
+            "LD_LIBRARY_PATH" to "$prefix/lib",
+            // Where global node_modules live — chainlesschain CLI is installed
+            // under $PREFIX/lib/node_modules/, so `require()` resolution from
+            // the shim binary picks it up.
+            "NODE_PATH" to "$prefix/lib/node_modules",
         )
 
         val merged = defaults + extra
