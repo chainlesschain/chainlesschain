@@ -87,9 +87,14 @@ jobs:
           PKGS="nodejs libc++ openssl libsqlite libicu c-ares zlib libandroid-support"
 
           for pkg in $PKGS; do
-            filename=$(echo "$PKG_INDEX" | awk -v p="$pkg" '
-              /^Package: /{cur=$2}
-              cur==p && /^Filename:/{print $2; exit}
+            # awk MUST NOT `exit` early — under `set -o pipefail` the
+            # echo at the head of the pipe gets SIGPIPE (exit 141) and
+            # the substitution propagates it, aborting the script. Use
+            # END instead so awk reads to EOF and exits cleanly.
+            filename=$(printf '%s\n' "$PKG_INDEX" | awk -v p="$pkg" '
+              /^Package: /{cur=$2; next}
+              cur==p && /^Filename:/{f=$2}
+              END {print f}
             ')
             if [ -z "$filename" ]; then
               echo "::error::Cannot find $pkg in Termux ${{ matrix.abi }} repo"
