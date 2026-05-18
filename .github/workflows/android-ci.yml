@@ -253,7 +253,10 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd android-app && ./gradlew connectedDebugAndroidTest || true
+          # Inner `|| true` removed 2026-05-18 — was redundant masking on top
+          # of `continue-on-error: true`. Step outcome now reflects gradle result
+          # (matching the sweep in 350157a46 for android-tests.yml P1/P2 jobs).
+          script: cd android-app && ./gradlew connectedDebugAndroidTest
 
       - name: Upload Instrumented Test Results
         if: always()

@@ -232,8 +232,12 @@ jobs:
         working-directory: android-app
         continue-on-error: true
         run: |
-          ./gradlew test --no-daemon || true
-          ./gradlew jacocoTestReport --no-daemon || true
+          # Inner `|| true` removed 2026-05-18 — was redundant masking on top
+          # of `continue-on-error: true`. Step outcome now honestly reflects
+          # whether test/jacoco runs succeeded (matching the sweep in 350157a46
+          # for P1/P2 jobs).
+          ./gradlew test --no-daemon
+          ./gradlew jacocoTestReport --no-daemon
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4

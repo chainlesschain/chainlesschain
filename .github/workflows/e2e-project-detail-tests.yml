@@ -79,96 +79,116 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
-      # Run Active Tests (Week 1 + fixes) - 8 tests, 100% pass rate
+      # Run Active Tests (Week 1 + fixes) - 8 tests, expected 100% pass rate.
+      # No continue-on-error: failures here block the workflow (matrix-level
+      # c-o-e still allows windows-latest to fail per line 41).
       - name: Run Active Tests (Week 1)
+        id: active-tests
         if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'active-tests' || github.event.inputs.test-suite == '' }}
         working-directory: ./desktop-app-vue
         shell: bash
         run: |
+          # 2026-05-18 audit: dropped `|| echo "... status $?"` masks that hid
+          # playwright failures behind a successful echo. set -e ensures the
+          # first failure exits the step with the real exit code.
+          set -e
           echo "Running Active Tests (Week 1 + fixes)..."
 
           # Run AI creating tests (7 tests)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-ai-creating.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "AI creating tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-ai-creating.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "AI creating tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
         env:
           CI: true
           ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
           ELECTRON_ENABLE_LOGGING: 'true'
 
-      # Run Perfect Score Tests (100% pass rate) - Panels, UI State, Navigation
-      - name: Run Perfect Score Tests (100% pass rate)
+      # Run Perfect Score Tests - Panels, UI State, Navigation (expected 100%).
+      # No continue-on-error: failures block the workflow.
+      - name: Run Perfect Score Tests
+        id: perfect-score-tests
         if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'perfect-score-tests' || github.event.inputs.test-suite == '' }}
         working-directory: ./desktop-app-vue
         shell: bash
         run: |
+          # 2026-05-18 audit: dropped `|| echo` masks. set -e exits on first
+          # failure with the real playwright exit code.
+          set -e
           echo "Running Perfect Score Tests..."
 
           # Run Panels tests (5/5 passing)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-panels.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Panels tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-panels.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Panels tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
 
           # Run UI State tests (3/3 passing)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-ui-state.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "UI State tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-ui-state.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "UI State tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
 
           # Run Navigation tests (5/5 passing)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-navigation.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Navigation tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-navigation.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Navigation tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
         env:
           CI: true
           ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
           ELECTRON_ENABLE_LOGGING: 'true'
 
-      # Run All New Tests (Week 2) - Optional, includes modal and button tests
+      # Run All New Tests (Week 2) - includes modal/button tests with mixed
+      # results that document UI behavior. Step-level continue-on-error: true
+      # is the legitimate advisory gate here.
       - name: Run All New Tests (Week 2)
+        id: new-tests
         if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'new-tests' }}
         working-directory: ./desktop-app-vue
         shell: bash
         run: |
+          # 2026-05-18 audit: dropped `|| echo` (was redundant on top of
+          # step-level continue-on-error). Step outcome now honestly reflects
+          # whether mixed-results suites failed; the outer c-o-e keeps it
+          # advisory for the job.
+          set -e
           echo "Running All New Tests (Week 2)..."
 
           # Run Buttons tests (2/3 passing)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-buttons.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Buttons tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-buttons.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Buttons tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
 
           # Run Modals tests (1/5 passing - documents UI behavior)
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
               npx playwright test tests/e2e/project/detail/project-detail-modals.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Modals tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/project/detail/project-detail-modals.e2e.test.ts \
-              --timeout=180000 --reporter=list,html || echo "Modals tests completed with status $?"
+              --timeout=180000 --reporter=list,html
           fi
         env:
           CI: true
@@ -217,39 +237,41 @@ jobs:
           path: all-test-results
 
       - name: Generate test summary
+        env:
+          JOB_RESULT: ${{ needs.e2e-project-detail.result }}
         run: |
+          # 2026-05-18 audit: removed hardcoded ✅ + "100% pass rate" / "67% pass
+          # rate" / "~83%" literal claims that printed regardless of test
+          # outcome. Status now reflects the actual e2e-project-detail job
+          # result (which is honest now that the step-level `|| echo` masks
+          # were dropped on Active + Perfect Score steps).
+          case "$JOB_RESULT" in
+            success) ICON="✅"; STATUS="Required suites passed" ;;
+            skipped) ICON="⏭️"; STATUS="Skipped" ;;
+            cancelled) ICON="🚫"; STATUS="Cancelled" ;;
+            *) ICON="❌"; STATUS="One or more required suites failed" ;;
+          esac
+
           echo "# 🧪 E2E Project Detail Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Date:** $(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow:** Project Detail Frontend-Only Tests" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** $ICON $STATUS (\`$JOB_RESULT\`)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "## 📊 Test Categories" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Active Tests (Week 1 + Fixes)" >> $GITHUB_STEP_SUMMARY
-          echo "- **AI Creating Mode:** 7 tests (100% pass rate)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ✅ All passing" >> $GITHUB_STEP_SUMMARY
+          echo "Required suites (failures block the workflow):" >> $GITHUB_STEP_SUMMARY
+          echo "- **Active Tests (Week 1):** AI Creating Mode (7 tests)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Perfect Score Tests:** Panels (5) + UI State (3) + Navigation (5) = 13 tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Advisory suites (continue-on-error: documents UI behavior):" >> $GITHUB_STEP_SUMMARY
+          echo "- **Buttons:** 3 tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Modals:** 5 tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          echo "### Perfect Score Tests (Week 2)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Panels:** 5 tests (100% pass rate) ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **UI State:** 3 tests (100% pass rate) ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **Navigation:** 5 tests (100% pass rate) ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total:** 13 tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### Additional Tests (Week 2)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Buttons:** 3 tests (67% pass rate) ⚠️" >> $GITHUB_STEP_SUMMARY
-          echo "- **Modals:** 5 tests (20% pass rate - documents UI behavior) ℹ️" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "## 🎯 Overall Statistics" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total Tests:** 29 tests (8 active + 21 new)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Expected Pass Rate:** ~83% (24/29 tests)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Test Files at 100%:** 4 files (AI Creating, Panels, UI State, Navigation)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Frontend-Only:** Yes (No backend dependencies)" >> $GITHUB_STEP_SUMMARY
-          echo "- **CI/CD Ready:** Yes" >> $GITHUB_STEP_SUMMARY
+          echo "> Per-suite outcomes are visible in the matrix job logs above." >> $GITHUB_STEP_SUMMARY
+          echo "> Detailed playwright reports are uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "## 📋 Test Results by Platform" >> $GITHUB_STEP_SUMMARY
@@ -258,16 +280,16 @@ jobs:
           for os in ubuntu-latest windows-latest; do
             echo "### $os" >> $GITHUB_STEP_SUMMARY
 
-            # Check if artifacts exist
+            # Artifact presence is a coarse signal — it means the matrix job
+            # reached the upload step, not that tests passed. The real status
+            # is the job outcome above.
             result_dir="all-test-results/playwright-results-$os-${{ github.run_number }}"
             if [ -d "$result_dir" ]; then
-              echo "✅ Tests executed" >> $GITHUB_STEP_SUMMARY
-
-              # Count test files
+              echo "Artifacts uploaded" >> $GITHUB_STEP_SUMMARY
               test_count=$(find "$result_dir" -name "*.xml" 2>/dev/null | wc -l || echo "0")
               echo "- Test result files: $test_count" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ No artifacts uploaded (matrix job may have failed before upload step)" >> $GITHUB_STEP_SUMMARY
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
           done
@@ -288,19 +310,29 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // 2026-05-18 audit: removed hardcoded ✅ + "100% pass rate" literal
+            // claims that printed regardless of test outcome. Status is now
+            // derived from the e2e-project-detail job result.
+            const jobResult = '${{ needs.e2e-project-detail.result }}';
+            const mark = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : s === 'cancelled' ? '🚫' : '❌';
+            const statusLine = jobResult === 'success'
+              ? '✅ Required suites passed'
+              : jobResult === 'cancelled' ? '🚫 Cancelled'
+              : jobResult === 'skipped' ? '⏭️ Skipped'
+              : '❌ One or more required suites failed';
+
             const output = `
             ## 🧪 E2E Project Detail Test Results
 
-            **Status:** Tests completed
+            **Status:** ${statusLine} (\`${jobResult}\`)
             **Test Suite:** Project Detail Frontend-Only Tests
 
             ### 📊 Test Coverage
-            - ✅ **Active Tests (Week 1):** 8 tests (100% pass rate)
-            - ✅ **Perfect Score Tests (Week 2):** 13 tests (100% pass rate)
-            - ⚠️ **Additional Tests:** 8 tests (mixed results - some document UI behavior)
+            - ${mark(jobResult)} **Required suites** (Active Tests + Perfect Score, 20 tests total) — block on failure
+            - ℹ️ **Advisory suites** (Buttons + Modals, 8 tests) — documents UI behavior, continue-on-error
 
             ### 🎯 Key Metrics
-            - **Total Tests:** 29 frontend-only tests
+            - **Total Tests:** 28 frontend-only tests (20 required + 8 advisory)
             - **No Backend Required:** Tests run without external services
             - **CI/CD Ready:** Fully automated execution
 
@@ -309,7 +341,7 @@ jobs:
 
             ---
 
-            Check the **Actions** tab for detailed test reports and screenshots.
+            Check the **Actions** tab for matrix job logs, per-suite outcomes, and uploaded playwright reports.
             `;
 
             github.rest.issues.createComment({
