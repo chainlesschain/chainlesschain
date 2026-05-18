@@ -101,11 +101,11 @@ public enum SeedRegistry {
         SkillMetadata(
             namespace: "ai",
             displayName: "AI 对话",
-            description: "LLM 对话 / RAG / agent / 多模态 / TTS / ASR",
+            description: "LLM 对话 / RAG / agent / 多模态 / TTS / ASR — Phase 5 + 6.4 共 37 method (chat 12 + extended 25)",
             category: "ai",
             risk: .Privileged,
-            nativeSourceFile: "NotImplementedYet.swift",
-            methodCount: 53,
+            nativeSourceFile: "AIChatCommands.swift + AIExtendedCommands.swift",
+            methodCount: 37,
             methods: [
                 MethodMetadata(name: "chat", description: "LLM 对话（带 conversationId 维持上下文）",
                                paramCount: 5, paramSummary: "message, conversationId?, model?, systemPrompt?, temperature?",
