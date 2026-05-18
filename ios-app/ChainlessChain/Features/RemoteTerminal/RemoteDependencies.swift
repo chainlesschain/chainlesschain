@@ -57,6 +57,14 @@ public final class RemoteDependencies: ObservableObject {
     public let security: SecurityCommands
     public let userBrowser: UserBrowserCommands
 
+    // Phase 6.1B3 红档桌面已支持子集 batch（D ⊂ A，iOS impl 桌面已支持 method）
+    public let power: PowerCommands
+    public let process: ProcessCommands
+    public let network: NetworkCommands
+    public let storage: StorageCommands
+    public let device: DeviceCommands
+    // sysinfo 既有 Phase 3.5 SystemInfoCommands，扩展 10 个 sysinfo.X method 已落 inline
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -186,6 +194,18 @@ public final class RemoteDependencies: ObservableObject {
         self.application = ApplicationCommands(client: cmdClient)
         self.security = SecurityCommands(client: cmdClient)
         self.userBrowser = UserBrowserCommands(client: cmdClient)
+
+        // Phase 6.1B3: 红档桌面已支持子集 (Coverage doc §1.4)
+        // - power (10/34): 关机/重启/睡眠/休眠/锁屏/注销/定时
+        // - process (6/30): list/get/search/kill/start/getResources
+        // - network (11/53): status/interfaces/DNS/publicIP/wifi/bandwidth/speed/ping/resolve/traceroute/connections
+        // - storage (10/41): disks/partitions/usage/folderSize/largeFiles/recentFiles/stats/driveHealth/cleanup/emptyTrash
+        // - device (4/12 intersection): register/disconnect/setPermission/updateDevice
+        self.power = PowerCommands(client: cmdClient)
+        self.process = ProcessCommands(client: cmdClient)
+        self.network = NetworkCommands(client: cmdClient)
+        self.storage = StorageCommands(client: cmdClient)
+        self.device = DeviceCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
