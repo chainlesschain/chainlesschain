@@ -131,7 +131,99 @@ add_dependencies(pty_jni mksh_binary)
 # -----------------------------------------------------------------------------
 # Phase 0.3 — toybox multi-call binary (output: libtoybox.so)
 # -----------------------------------------------------------------------------
-# Uncomment after vendoring third_party/toybox in Phase 0.3.
+# toybox needs GNU Make + a working HOSTCC (to compile kconfig parser and
+# install.c). NDK ships GNU Make at prebuilt/<host>/bin/make, but no HOSTCC.
+# On Linux/macOS dev boxes the system gcc/clang serves as HOSTCC. On Windows
+# without MinGW/MSYS2 there's no HOSTCC available (bare NDK clang.exe can't
+# find Windows stdio.h), so we skip the toybox build with a clear message and
+# rely on CI's ubuntu-latest runner to build it. See VENDOR_INFO.md.
+
+set(TOYBOX_VENDOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/toybox)
+set(TOYBOX_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/toybox-build-${ANDROID_ABI})
+set(TOYBOX_OUTPUT_BIN ${TOYBOX_BUILD_DIR}/toybox)
+set(TOYBOX_OUTPUT_SO ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libtoybox.so)
+
+# Locate GNU Make (NDK prebuilt → system → fail)
+if(CMAKE_HOST_WIN32)
+    set(TOYBOX_MAKE_PATH "${ANDROID_NDK}/prebuilt/windows-x86_64/bin/make.exe")
+elseif(CMAKE_HOST_APPLE)
+    set(TOYBOX_MAKE_PATH "${ANDROID_NDK}/prebuilt/darwin-x86_64/bin/make")
+else()
+    set(TOYBOX_MAKE_PATH "${ANDROID_NDK}/prebuilt/linux-x86_64/bin/make")
+endif()
+
+# Locate HOSTCC. On Windows without MinGW, NDK clang.exe alone can't find
+# Windows stdio.h, so toybox can't be built. Detect and skip cleanly.
+#
+# Trap: ChainlessChain CLI ships a `cc` shim binary (npm `chainlesschain` package
+# installs `cc.cmd` on Windows). find_program(... NAMES cc) would match it. Be
+# explicit about the C compiler binary names on each host:
+#   - Windows: only `gcc` (MinGW/MSYS2 convention; bare `cc` is ambiguous)
+#   - Linux: `gcc` or `clang` (avoid `cc` symlink ambiguity)
+#   - macOS: `clang` from xcode-select, fallback `gcc`
+set(TOYBOX_SKIP_REASON "")
+if(CMAKE_HOST_WIN32)
+    find_program(TOYBOX_HOSTCC NAMES gcc HINTS ENV PATH)
+    if(NOT TOYBOX_HOSTCC)
+        set(TOYBOX_SKIP_REASON "Windows host without MinGW/MSYS2 (no HOSTCC). Install via 'pacman -S mingw-w64-x86_64-gcc make' or rely on CI.")
+    endif()
+elseif(CMAKE_HOST_APPLE)
+    find_program(TOYBOX_HOSTCC NAMES clang gcc HINTS ENV PATH)
+    if(NOT TOYBOX_HOSTCC)
+        set(TOYBOX_SKIP_REASON "macOS host without xcode-select clang.")
+    endif()
+else()
+    find_program(TOYBOX_HOSTCC NAMES gcc clang HINTS ENV PATH)
+    if(NOT TOYBOX_HOSTCC)
+        set(TOYBOX_SKIP_REASON "Linux host without gcc/clang. Install build-essential.")
+    endif()
+endif()
+
+if(NOT EXISTS "${TOYBOX_MAKE_PATH}")
+    set(TOYBOX_SKIP_REASON "${TOYBOX_SKIP_REASON} (and GNU Make not found at ${TOYBOX_MAKE_PATH})")
+endif()
+
+if(TOYBOX_SKIP_REASON)
+    message(WARNING "Skipping toybox build for ${ANDROID_ABI}: ${TOYBOX_SKIP_REASON}")
+    message(WARNING "    libtoybox.so will NOT be produced. The local terminal will lack basic Unix commands at runtime until CI rebuilds.")
+else()
+    # Stage the vendor source into a per-ABI build dir (toybox writes to cwd).
+    file(MAKE_DIRECTORY ${TOYBOX_BUILD_DIR})
+
+    # Recursive copy — toybox source tree has subdirs (toys/, kconfig/, scripts/, lib/, generated/)
+    file(GLOB_RECURSE TOYBOX_VENDOR_FILES
+        LIST_DIRECTORIES false
+        RELATIVE ${TOYBOX_VENDOR_DIR}
+        ${TOYBOX_VENDOR_DIR}/*
+    )
+
+    # CMake's file(COPY) handles directory structure; do this at configure-time
+    # so build dir is ready for the make invocation.
+    file(COPY ${TOYBOX_VENDOR_DIR}/ DESTINATION ${TOYBOX_BUILD_DIR})
+
+    # toybox android_defconfig + make all
+    add_custom_command(
+        OUTPUT ${TOYBOX_OUTPUT_SO}
+        WORKING_DIRECTORY ${TOYBOX_BUILD_DIR}
+        COMMAND ${CMAKE_COMMAND} -E env
+                "CC=${MKSH_CC_PATH}"    # Same NDK clang as mksh
+                "HOSTCC=${TOYBOX_HOSTCC}"
+                "CROSS_COMPILE="
+                ${TOYBOX_MAKE_PATH} android_defconfig
+        COMMAND ${CMAKE_COMMAND} -E env
+                "CC=${MKSH_CC_PATH}"
+                "HOSTCC=${TOYBOX_HOSTCC}"
+                "CROSS_COMPILE="
+                ${TOYBOX_MAKE_PATH} -j4
+        COMMAND ${CMAKE_COMMAND} -E copy ${TOYBOX_OUTPUT_BIN} ${TOYBOX_OUTPUT_SO}
+        DEPENDS ${TOYBOX_VENDOR_DIR}/Makefile ${TOYBOX_VENDOR_DIR}/Config.in
+        COMMENT "Building toybox for ${ANDROID_ABI} via upstream Make"
+        VERBATIM
+    )
+
+    add_custom_target(toybox_binary ALL DEPENDS ${TOYBOX_OUTPUT_SO})
+    add_dependencies(pty_jni toybox_binary)
+endif()
 
 # -----------------------------------------------------------------------------
 # Phase 0.4 — termux-exec LD_PRELOAD shim (output: libtermux-exec.so)
