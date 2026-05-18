@@ -52,15 +52,23 @@ set(MKSH_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/mksh-build-${ANDROID_ABI})
 set(MKSH_OUTPUT_BIN ${MKSH_BUILD_DIR}/mksh)
 set(MKSH_OUTPUT_SO ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmksh.so)
 
-# Build.sh requires a POSIX shell — explicitly bash (NOT /bin/sh) on every
-# host. On Ubuntu CI runners /bin/sh is dash, which subtly diverges from
-# bash for several constructs Build.sh uses (`[[ ]]`-tolerant pieces, etc).
-# Windows Git Bash, macOS, and Linux all ship bash; use it consistently.
+# Build.sh requires a POSIX shell.
+#
+# Per-host quirks:
+#   - Windows: PATH `bash` may resolve to **WSL bash** (Microsoft
+#     Linux subsystem), which then runs `cc` as Linux executable that
+#     can't find /c/nvm4w/nodejs/cc → "exec: node: not found". Use
+#     `sh` (git-bash's MSYS sh) explicitly — that's already bash under
+#     the hood and lives in the Win32 PATH alongside the rest of git
+#     toolchain.
+#   - Linux/macOS: `/bin/bash` is unambiguous. /bin/sh is dash on
+#     Ubuntu, which doesn't break Build.sh in practice but isn't worth
+#     the divergence.
 #
 # IMPORTANT: when cross-compiling to Android, WIN32 reflects the TARGET
 # (always Android = not WIN32). Use CMAKE_HOST_WIN32 for the build machine.
 if(CMAKE_HOST_WIN32)
-    set(MKSH_SH_CMD bash)
+    set(MKSH_SH_CMD sh)
 else()
     set(MKSH_SH_CMD /bin/bash)
 endif()
