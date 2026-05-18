@@ -16,7 +16,25 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+
+// Module-level let + seam for vi.mock CJS interop (RFC T1).
+// Test side injects fakes via `_setIpcMainForTesting` / `_setCodeEngineForTesting` /
+// `_setCodeExecutorForTesting`; production code path unchanged.
+let _ipcMain = require("electron").ipcMain;
+let _getCodeEngine = require("../engines/code-engine").getCodeEngine;
+let _getCodeExecutor = require("../engines/code-executor").getCodeExecutor;
+
+function _setIpcMainForTesting(impl) {
+  _ipcMain = impl ?? require("electron").ipcMain;
+}
+
+function _setCodeEngineForTesting(fn) {
+  _getCodeEngine = fn ?? require("../engines/code-engine").getCodeEngine;
+}
+
+function _setCodeExecutorForTesting(fn) {
+  _getCodeExecutor = fn ?? require("../engines/code-executor").getCodeExecutor;
+}
 
 /**
  * 注册所有代码工具相关的 IPC handlers
@@ -26,35 +44,36 @@ function registerCodeIPC(context) {
   const { llmManager } = context;
 
   // 生成代码
-  ipcMain.handle("code:generate", async (_event, description, options = {}) => {
-    try {
-      logger.info("[Main] 生成代码:", description);
+  _ipcMain.handle(
+    "code:generate",
+    async (_event, description, options = {}) => {
+      try {
+        logger.info("[Main] 生成代码:", description);
 
-      const { getCodeEngine } = require("../engines/code-engine");
-      const codeEngine = getCodeEngine(llmManager);
+        const codeEngine = _getCodeEngine(llmManager);
 
-      const result = await codeEngine.handleProjectTask({
-        taskType: "generateCode",
-        description: description,
-        language: options.language || "javascript",
-        options: options,
-      });
+        const result = await codeEngine.handleProjectTask({
+          taskType: "generateCode",
+          description: description,
+          language: options.language || "javascript",
+          options: options,
+        });
 
-      logger.info("[Main] 代码生成完成");
-      return result;
-    } catch (error) {
-      logger.error("[Main] 代码生成失败:", error);
-      throw error;
-    }
-  });
+        logger.info("[Main] 代码生成完成");
+        return result;
+      } catch (error) {
+        logger.error("[Main] 代码生成失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // 生成单元测试
-  ipcMain.handle("code:generateTests", async (_event, code, language) => {
+  _ipcMain.handle("code:generateTests", async (_event, code, language) => {
     try {
       logger.info("[Main] 生成单元测试:", language);
 
-      const { getCodeEngine } = require("../engines/code-engine");
-      const codeEngine = getCodeEngine(llmManager);
+      const codeEngine = _getCodeEngine(llmManager);
 
       const result = await codeEngine.handleProjectTask({
         taskType: "generateTests",
@@ -71,12 +90,11 @@ function registerCodeIPC(context) {
   });
 
   // 代码审查
-  ipcMain.handle("code:review", async (_event, code, language) => {
+  _ipcMain.handle("code:review", async (_event, code, language) => {
     try {
       logger.info("[Main] 代码审查:", language);
 
-      const { getCodeEngine } = require("../engines/code-engine");
-      const codeEngine = getCodeEngine(llmManager);
+      const codeEngine = _getCodeEngine(llmManager);
 
       const result = await codeEngine.handleProjectTask({
         taskType: "reviewCode",
@@ -93,14 +111,13 @@ function registerCodeIPC(context) {
   });
 
   // 代码重构
-  ipcMain.handle(
+  _ipcMain.handle(
     "code:refactor",
     async (_event, code, language, refactoringType) => {
       try {
         logger.info("[Main] 代码重构:", refactoringType);
 
-        const { getCodeEngine } = require("../engines/code-engine");
-        const codeEngine = getCodeEngine(llmManager);
+        const codeEngine = _getCodeEngine(llmManager);
 
         const result = await codeEngine.handleProjectTask({
           taskType: "refactorCode",
@@ -119,12 +136,11 @@ function registerCodeIPC(context) {
   );
 
   // 解释代码
-  ipcMain.handle("code:explain", async (_event, code, language) => {
+  _ipcMain.handle("code:explain", async (_event, code, language) => {
     try {
       logger.info("[Main] 解释代码:", language);
 
-      const { getCodeEngine } = require("../engines/code-engine");
-      const codeEngine = getCodeEngine(llmManager);
+      const codeEngine = _getCodeEngine(llmManager);
 
       const result = await codeEngine.handleProjectTask({
         taskType: "explainCode",
@@ -141,14 +157,13 @@ function registerCodeIPC(context) {
   });
 
   // 修复bug
-  ipcMain.handle(
+  _ipcMain.handle(
     "code:fixBug",
     async (_event, code, language, errorMessage) => {
       try {
         logger.info("[Main] 修复bug:", language);
 
-        const { getCodeEngine } = require("../engines/code-engine");
-        const codeEngine = getCodeEngine(llmManager);
+        const codeEngine = _getCodeEngine(llmManager);
 
         const result = await codeEngine.handleProjectTask({
           taskType: "fixBugs",
@@ -167,14 +182,13 @@ function registerCodeIPC(context) {
   );
 
   // 生成项目脚手架
-  ipcMain.handle(
+  _ipcMain.handle(
     "code:generateScaffold",
     async (_event, projectType, options = {}) => {
       try {
         logger.info("[Main] 生成项目脚手架:", projectType);
 
-        const { getCodeEngine } = require("../engines/code-engine");
-        const codeEngine = getCodeEngine(llmManager);
+        const codeEngine = _getCodeEngine(llmManager);
 
         const result = await codeEngine.handleProjectTask({
           taskType: "createScaffold",
@@ -194,12 +208,11 @@ function registerCodeIPC(context) {
   );
 
   // 执行Python代码
-  ipcMain.handle("code:executePython", async (_event, code, options = {}) => {
+  _ipcMain.handle("code:executePython", async (_event, code, options = {}) => {
     try {
       logger.info("[Main] 执行Python代码...");
 
-      const { getCodeExecutor } = require("../engines/code-executor");
-      const codeExecutor = getCodeExecutor();
+      const codeExecutor = _getCodeExecutor();
 
       await codeExecutor.initialize();
 
@@ -231,36 +244,37 @@ function registerCodeIPC(context) {
   });
 
   // 执行代码文件
-  ipcMain.handle("code:executeFile", async (_event, filepath, options = {}) => {
-    try {
-      logger.info("[Main] 执行代码文件:", filepath);
+  _ipcMain.handle(
+    "code:executeFile",
+    async (_event, filepath, options = {}) => {
+      try {
+        logger.info("[Main] 执行代码文件:", filepath);
 
-      const { getCodeExecutor } = require("../engines/code-executor");
-      const codeExecutor = getCodeExecutor();
+        const codeExecutor = _getCodeExecutor();
 
-      await codeExecutor.initialize();
+        await codeExecutor.initialize();
 
-      const result = await codeExecutor.executeFile(filepath, options);
+        const result = await codeExecutor.executeFile(filepath, options);
 
-      logger.info("[Main] 代码文件执行完成");
-      return result;
-    } catch (error) {
-      logger.error("[Main] 代码文件执行失败:", error);
-      return {
-        success: false,
-        error: "execution_failed",
-        message: error.message,
-        stdout: "",
-        stderr: error.message,
-      };
-    }
-  });
+        logger.info("[Main] 代码文件执行完成");
+        return result;
+      } catch (error) {
+        logger.error("[Main] 代码文件执行失败:", error);
+        return {
+          success: false,
+          error: "execution_failed",
+          message: error.message,
+          stdout: "",
+          stderr: error.message,
+        };
+      }
+    },
+  );
 
   // 检查代码安全性
-  ipcMain.handle("code:checkSafety", async (_event, code) => {
+  _ipcMain.handle("code:checkSafety", async (_event, code) => {
     try {
-      const { getCodeExecutor } = require("../engines/code-executor");
-      const codeExecutor = getCodeExecutor();
+      const codeExecutor = _getCodeExecutor();
 
       return codeExecutor.checkSafety(code);
     } catch (error) {
@@ -277,4 +291,7 @@ function registerCodeIPC(context) {
 
 module.exports = {
   registerCodeIPC,
+  _setIpcMainForTesting,
+  _setCodeEngineForTesting,
+  _setCodeExecutorForTesting,
 };

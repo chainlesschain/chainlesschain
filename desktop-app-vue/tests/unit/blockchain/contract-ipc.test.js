@@ -14,8 +14,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Mock ipcMain at the top level
-let ipcHandlers = {};
+// vi.mock 仅用于让 source `require("electron")` 在测试环境下不炸；
+// 实际拦截走 `_setIpcMainForTesting` seam (RFC T1).
+const ipcHandlers = {};
 const mockIpcMain = {
   handle: vi.fn((channel, handler) => {
     ipcHandlers[channel] = handler;
@@ -23,10 +24,22 @@ const mockIpcMain = {
   removeHandler: vi.fn(),
 };
 
-// Mock electron module before any imports
 vi.mock("electron", () => ({
   ipcMain: mockIpcMain,
 }));
+
+// contract-templates 走 seam 注入；vi.mock 只是兜底防 require 时连锁加载 contract-engine。
+vi.mock("../../../src/main/trade/contract-templates", () => ({
+  getAllTemplates: vi.fn(),
+  validateParams: vi.fn(),
+  createFromTemplate: vi.fn(),
+}));
+
+import {
+  registerContractIPC,
+  _setIpcMainForTesting,
+  _setContractTemplatesForTesting,
+} from "../../../src/main/blockchain/contract-ipc";
 
 // 获取源文件路径
 const __filename = fileURLToPath(import.meta.url);
@@ -425,25 +438,28 @@ describe("智能合约 IPC - 静态分析", () => {
 // 动态模拟测试 - 测试实际执行逻辑
 // ============================================================
 
-// NOTE: Skipped - ipcMain not properly mocked for dynamic execution tests
-describe.skip("智能合约 IPC - 动态执行测试", () => {
+describe("智能合约 IPC - 动态执行测试", () => {
   let mockContractEngine;
   let mockContractTemplates;
-  let localHandlers = {};
-  let registerContractIPC;
+  let localHandlers;
+  let localMockIpcMain;
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  function setupHandlers(contractEngine) {
     localHandlers = {};
-
-    // Create a local mock ipcMain for this test suite
-    const localMockIpcMain = {
+    localMockIpcMain = {
       handle: vi.fn((channel, handler) => {
         localHandlers[channel] = handler;
       }),
+      removeHandler: vi.fn(),
     };
+    _setIpcMainForTesting(localMockIpcMain);
+    _setContractTemplatesForTesting(mockContractTemplates);
+    registerContractIPC({ contractEngine });
+  }
 
-    // Mock contractEngine
+  beforeEach(() => {
+    vi.clearAllMocks();
+
     mockContractEngine = {
       createContract: vi.fn(),
       activateContract: vi.fn(),
@@ -460,39 +476,19 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
       _getDeployedContract: vi.fn(),
     };
 
-    // Mock ContractTemplates
     mockContractTemplates = {
       getAllTemplates: vi.fn(),
       validateParams: vi.fn(),
       createFromTemplate: vi.fn(),
     };
 
-    // Reset the module cache and re-mock electron
-    vi.resetModules();
-    vi.doMock("electron", () => ({
-      ipcMain: localMockIpcMain,
-    }));
-
-    // Mock contract-templates
-    vi.doMock(
-      "../../../src/main/trade/contract-templates.js",
-      () => mockContractTemplates,
-    );
-
-    // 动态导入模块 - 使用时间戳确保每次都是新的导入
-    const module = await import(
-      "../../../src/main/blockchain/contract-ipc.js?t=" + Date.now()
-    );
-    registerContractIPC = module.registerContractIPC;
-
-    // 注册 IPC handlers
-    registerContractIPC({ contractEngine: mockContractEngine });
+    setupHandlers(mockContractEngine);
   });
 
   afterEach(() => {
+    _setIpcMainForTesting(null);
+    _setContractTemplatesForTesting(null);
     vi.restoreAllMocks();
-    vi.doUnmock("electron");
-    vi.doUnmock("../../../src/main/trade/contract-templates.js");
   });
 
   // ============================================================
@@ -519,21 +515,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      // Re-register without contractEngine
-      localHandlers = {};
-      const tempMockIpcMain = {
-        handle: vi.fn((channel, handler) => {
-          localHandlers[channel] = handler;
-        }),
-      };
-      vi.doMock("electron", () => ({
-        ipcMain: tempMockIpcMain,
-      }));
-      const module = await import(
-        "../../../src/main/blockchain/contract-ipc.js?t=" + Date.now()
-      );
-      module.registerContractIPC({ contractEngine: null });
-
+      setupHandlers(null);
       await expect(localHandlers["contract:create"]({}, {})).rejects.toThrow(
         "智能合约引擎未初始化",
       );
@@ -569,11 +551,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:activate"]({}, "contract-1"),
@@ -616,11 +594,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:sign"]({}, "contract-1", "sig"),
@@ -660,11 +634,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return default value when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:check-conditions"](
         {},
@@ -704,11 +674,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:execute"]({}, "contract-1"),
@@ -751,11 +717,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:cancel"]({}, "contract-1", "reason"),
@@ -794,11 +756,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return null when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:get"]({}, "contract-1");
 
@@ -836,11 +794,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return empty array when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:get-list"]({}, {});
 
@@ -885,11 +839,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return empty array when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:get-conditions"](
         {},
@@ -932,11 +882,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return empty array when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:get-events"](
         {},
@@ -985,11 +931,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:initiate-arbitration"](
@@ -1046,11 +988,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should throw error when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       await expect(
         localHandlers["contract:resolve-arbitration"]({}, "arb-1", {}),
@@ -1094,11 +1032,7 @@ describe.skip("智能合约 IPC - 动态执行测试", () => {
     });
 
     it("should return null when contractEngine is not initialized", async () => {
-      localHandlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        localHandlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      setupHandlers(null);
 
       const result = await localHandlers["contract:get-blockchain-info"](
         {},
