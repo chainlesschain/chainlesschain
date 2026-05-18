@@ -32,7 +32,9 @@ class AICommandHandler {
     // chat() 保存历史那段一直 silent 失败。本次新建专用 ai_* 表。
     this._ensureSchema();
 
-    logger.info("[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 9 method)");
+    logger.info(
+      "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method commit 1)",
+    );
   }
 
   /**
@@ -85,6 +87,31 @@ class AICommandHandler {
         .prepare(
           `
         CREATE INDEX IF NOT EXISTS idx_ai_messages_conv ON ai_messages(conversation_id, created_at)
+      `,
+        )
+        .run();
+      // Phase 6.4 commit 1 — Prompt templates 表
+      this.database
+        .prepare(
+          `
+        CREATE TABLE IF NOT EXISTS ai_prompt_templates (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          template TEXT NOT NULL,
+          variables TEXT,
+          category TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `,
+        )
+        .run();
+      this.database
+        .prepare(
+          `
+        CREATE INDEX IF NOT EXISTS idx_prompt_templates_category
+        ON ai_prompt_templates(category)
       `,
         )
         .run();
@@ -218,6 +245,38 @@ class AICommandHandler {
 
       case "getMessages":
         return await this.getMessages(params, context);
+
+      // Phase 6.4 commit 1 — Conversations 高级 5
+      case "updateConversation":
+        return await this.updateConversation(params, context);
+      case "archiveConversation":
+        return await this.archiveConversation(params, context);
+      case "unarchiveConversation":
+        return await this.unarchiveConversation(params, context);
+      case "searchConversations":
+        return await this.searchConversations(params, context);
+      case "exportConversation":
+        return await this.exportConversation(params, context);
+
+      // Phase 6.4 commit 1 — Prompt templates 3
+      case "getPromptTemplates":
+        return await this.getPromptTemplates(params, context);
+      case "savePromptTemplate":
+        return await this.savePromptTemplate(params, context);
+      case "deletePromptTemplate":
+        return await this.deletePromptTemplate(params, context);
+
+      // Phase 6.4 commit 1 — RAG 5
+      case "ragSearchAdvanced":
+        return await this.ragSearchAdvanced(params, context);
+      case "ragIndex":
+        return await this.ragIndex(params, context);
+      case "ragDelete":
+        return await this.ragDelete(params, context);
+      case "ragListDocuments":
+        return await this.ragListDocuments(params, context);
+      case "ragStats":
+        return await this.ragStats(params, context);
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -1074,6 +1133,424 @@ class AICommandHandler {
       isStreaming: !!r.is_streaming,
     }));
     return { success: true, messages, total: messages.length };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 1 — Conversations 高级 5
+  // ============================================================================
+
+  /** 改 conversation 元信息 (title / model / systemPrompt 任一改)。 */
+  async updateConversation(params, _context) {
+    const { conversationId, title, model, systemPrompt } = params;
+    if (!conversationId || typeof conversationId !== "string") {
+      throw new Error("conversationId is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const sets = [];
+    const args = [];
+    if (title !== undefined) {
+      sets.push("title = ?");
+      args.push(String(title));
+    }
+    if (model !== undefined) {
+      sets.push("model = ?");
+      args.push(model || null);
+    }
+    if (systemPrompt !== undefined) {
+      sets.push("system_prompt = ?");
+      args.push(systemPrompt || null);
+    }
+    if (sets.length === 0) {
+      throw new Error("At least one of title/model/systemPrompt required");
+    }
+    args.push(conversationId);
+    const stmt = this.database.prepare(
+      `UPDATE ai_conversations SET ${sets.join(", ")} WHERE id = ?`,
+    );
+    const result = stmt.run(...args);
+    if (result.changes === 0) {
+      throw new Error("Conversation not found");
+    }
+    return { conversationId, message: "Conversation updated" };
+  }
+
+  /** 归档 conversation (archived=1)。隐藏在 getConversations 默认列表外。 */
+  async archiveConversation(params, _context) {
+    const { conversationId } = params;
+    if (!conversationId) {
+      throw new Error("conversationId is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const result = this.database
+      .prepare(
+        "UPDATE ai_conversations SET archived = 1, last_message_at = ? WHERE id = ?",
+      )
+      .run(Date.now(), conversationId);
+    if (result.changes === 0) {
+      throw new Error("Conversation not found");
+    }
+    return { conversationId, archived: true };
+  }
+
+  async unarchiveConversation(params, _context) {
+    const { conversationId } = params;
+    if (!conversationId) {
+      throw new Error("conversationId is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const result = this.database
+      .prepare(
+        "UPDATE ai_conversations SET archived = 0, last_message_at = ? WHERE id = ?",
+      )
+      .run(Date.now(), conversationId);
+    if (result.changes === 0) {
+      throw new Error("Conversation not found");
+    }
+    return { conversationId, archived: false };
+  }
+
+  /**
+   * 搜 conversation by title / 内容（messages.content LIKE）。
+   * archived 默认 false (排除归档)，传 true 仅在归档里找。
+   */
+  async searchConversations(params, _context) {
+    const { query, limit = 20, archived = false } = params;
+    if (!query || typeof query !== "string") {
+      throw new Error("query is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const archivedFlag = archived ? 1 : 0;
+    // 双路：1) title LIKE 2) messages.content LIKE (DISTINCT)
+    const rows = this.database
+      .prepare(
+        `
+        SELECT DISTINCT c.id, c.title, c.model, c.message_count, c.last_message_at,
+                        c.created_at, c.archived
+        FROM ai_conversations c
+        LEFT JOIN ai_messages m ON m.conversation_id = c.id
+        WHERE c.archived = ?
+          AND (c.title LIKE ? OR m.content LIKE ?)
+        ORDER BY c.last_message_at DESC NULLS LAST
+        LIMIT ?
+      `,
+      )
+      .all(archivedFlag, `%${query}%`, `%${query}%`, Math.max(1, limit | 0));
+    return {
+      success: true,
+      query,
+      conversations: rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        model: r.model,
+        messageCount: r.message_count || 0,
+        lastMessageAt: r.last_message_at,
+        createdAt: r.created_at,
+        archived: !!r.archived,
+      })),
+      total: rows.length,
+    };
+  }
+
+  /**
+   * 导出 conversation 完整消息历史。format: markdown (default) / json。
+   */
+  async exportConversation(params, _context) {
+    const { conversationId, format = "markdown" } = params;
+    if (!conversationId) {
+      throw new Error("conversationId is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const conv = this.database
+      .prepare(
+        "SELECT id, title, model, system_prompt, created_at, message_count FROM ai_conversations WHERE id = ?",
+      )
+      .get(conversationId);
+    if (!conv) {
+      throw new Error("Conversation not found");
+    }
+    const messages = this.database
+      .prepare(
+        `SELECT role, content, created_at, model_used
+         FROM ai_messages WHERE conversation_id = ?
+         ORDER BY created_at ASC`,
+      )
+      .all(conversationId);
+    let content;
+    let mime;
+    if (format === "json") {
+      content = JSON.stringify({ conversation: conv, messages }, null, 2);
+      mime = "application/json";
+    } else {
+      // markdown
+      const lines = [`# ${conv.title}`, ""];
+      if (conv.model) {
+        lines.push(`> Model: ${conv.model}`);
+      }
+      if (conv.system_prompt) {
+        lines.push("", "**System:**", "", conv.system_prompt);
+      }
+      for (const m of messages) {
+        lines.push("", `## ${m.role}`, "", m.content || "");
+      }
+      content = lines.join("\n") + "\n";
+      mime = "text/markdown";
+    }
+    return {
+      conversationId,
+      format,
+      mime,
+      content,
+      messageCount: messages.length,
+    };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 1 — Prompt templates 3
+  // ============================================================================
+
+  async getPromptTemplates(params, _context) {
+    const { category, limit = 50 } = params || {};
+    if (!this.database) {
+      return { success: true, templates: [], total: 0 };
+    }
+    let sql =
+      "SELECT id, name, description, template, variables, category, created_at, updated_at FROM ai_prompt_templates";
+    const args = [];
+    if (category) {
+      sql += " WHERE category = ?";
+      args.push(category);
+    }
+    sql += " ORDER BY updated_at DESC LIMIT ?";
+    args.push(Math.max(1, limit | 0));
+    const rows = this.database.prepare(sql).all(...args);
+    const templates = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      template: r.template,
+      variables: r.variables ? JSON.parse(r.variables) : [],
+      category: r.category,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+    return { success: true, templates, total: templates.length };
+  }
+
+  /**
+   * 创建或更新 prompt template (id 传入则 upsert，缺省自动生成新 id)。
+   * variables: 字符串数组，例 ["topic", "tone"] 表示模板含 {{topic}} / {{tone}} 占位。
+   */
+  async savePromptTemplate(params, _context) {
+    const { id, name, template, description, variables, category } = params;
+    if (!name || typeof name !== "string") {
+      throw new Error("name is required");
+    }
+    if (!template || typeof template !== "string") {
+      throw new Error("template is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const now = Date.now();
+    const templateId =
+      id || `tpl_${now}_${Math.random().toString(36).slice(2, 9)}`;
+    const variablesJson = Array.isArray(variables)
+      ? JSON.stringify(variables)
+      : "[]";
+    this.database
+      .prepare(
+        `
+        INSERT INTO ai_prompt_templates
+          (id, name, description, template, variables, category, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          description = excluded.description,
+          template = excluded.template,
+          variables = excluded.variables,
+          category = excluded.category,
+          updated_at = excluded.updated_at
+      `,
+      )
+      .run(
+        templateId,
+        name,
+        description || null,
+        template,
+        variablesJson,
+        category || null,
+        now,
+        now,
+      );
+    return {
+      templateId,
+      name,
+      message: id ? "Template updated" : "Template created",
+    };
+  }
+
+  async deletePromptTemplate(params, _context) {
+    const { templateId } = params;
+    if (!templateId) {
+      throw new Error("templateId is required");
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const result = this.database
+      .prepare("DELETE FROM ai_prompt_templates WHERE id = ?")
+      .run(templateId);
+    if (result.changes === 0) {
+      throw new Error("Template not found");
+    }
+    return { templateId, deleted: true };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 1 — RAG 5
+  // ============================================================================
+
+  /**
+   * 高级 RAG 检索：含 filters (metadata 过滤) / scoreThreshold (低分截断) / namespace 隔离。
+   * 若 ragManager.searchAdvanced 不存在，fallback 到普通 search 然后客户端侧过滤。
+   */
+  async ragSearchAdvanced(params, _context) {
+    const {
+      query,
+      topK = 5,
+      filters,
+      scoreThreshold = 0.0,
+      namespace,
+    } = params;
+    if (!query || typeof query !== "string") {
+      throw new Error("query is required");
+    }
+    if (!this.ragManager) {
+      throw new Error("RAG manager not available");
+    }
+    let results;
+    if (typeof this.ragManager.searchAdvanced === "function") {
+      results = await this.ragManager.searchAdvanced({
+        query,
+        topK: Math.max(1, topK | 0),
+        filters,
+        scoreThreshold,
+        namespace,
+      });
+    } else if (typeof this.ragManager.search === "function") {
+      const raw = await this.ragManager.search(query, {
+        limit: Math.max(1, topK | 0),
+        namespace,
+      });
+      const list = Array.isArray(raw)
+        ? raw
+        : raw && raw.results
+          ? raw.results
+          : [];
+      results = list.filter((r) => {
+        if (scoreThreshold > 0 && (r.score || 0) < scoreThreshold) {
+          return false;
+        }
+        if (filters && r.metadata) {
+          for (const k of Object.keys(filters)) {
+            if (r.metadata[k] !== filters[k]) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+    } else {
+      throw new Error("ragManager has no search method");
+    }
+    return { success: true, query, results, total: results.length };
+  }
+
+  /** 手动 index 一段 text 到向量库。docId 可传或自动生成。 */
+  async ragIndex(params, _context) {
+    const { text, metadata = {}, docId } = params;
+    if (!text || typeof text !== "string") {
+      throw new Error("text is required");
+    }
+    if (!this.ragManager) {
+      throw new Error("RAG manager not available");
+    }
+    const id =
+      docId || `doc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    if (typeof this.ragManager.indexDocument === "function") {
+      await this.ragManager.indexDocument({ id, text, metadata });
+    } else if (typeof this.ragManager.index === "function") {
+      await this.ragManager.index({ id, text, metadata });
+    } else {
+      throw new Error("ragManager has no index method");
+    }
+    return { docId: id, indexed: true };
+  }
+
+  async ragDelete(params, _context) {
+    const { docId } = params;
+    if (!docId) {
+      throw new Error("docId is required");
+    }
+    if (!this.ragManager) {
+      throw new Error("RAG manager not available");
+    }
+    if (typeof this.ragManager.deleteDocument === "function") {
+      await this.ragManager.deleteDocument(docId);
+    } else if (typeof this.ragManager.delete === "function") {
+      await this.ragManager.delete(docId);
+    } else {
+      throw new Error("ragManager has no delete method");
+    }
+    return { docId, deleted: true };
+  }
+
+  async ragListDocuments(params, _context) {
+    const { limit = 50, offset = 0, namespace } = params || {};
+    if (!this.ragManager) {
+      return { success: true, documents: [], total: 0 };
+    }
+    let docs = [];
+    if (typeof this.ragManager.listDocuments === "function") {
+      docs = await this.ragManager.listDocuments({
+        limit: Math.max(1, limit | 0),
+        offset: Math.max(0, offset | 0),
+        namespace,
+      });
+    } else if (typeof this.ragManager.list === "function") {
+      docs = await this.ragManager.list({ limit, offset, namespace });
+    }
+    const arr = Array.isArray(docs)
+      ? docs
+      : docs && docs.documents
+        ? docs.documents
+        : [];
+    return { success: true, documents: arr, total: arr.length };
+  }
+
+  async ragStats(_params, _context) {
+    if (!this.ragManager) {
+      return { success: true, totalDocs: 0, totalVectors: 0, available: false };
+    }
+    if (typeof this.ragManager.stats === "function") {
+      const s = await this.ragManager.stats();
+      return { success: true, available: true, ...s };
+    }
+    if (typeof this.ragManager.getStats === "function") {
+      const s = await this.ragManager.getStats();
+      return { success: true, available: true, ...s };
+    }
+    return { success: true, available: false, totalDocs: 0, totalVectors: 0 };
   }
 }
 
