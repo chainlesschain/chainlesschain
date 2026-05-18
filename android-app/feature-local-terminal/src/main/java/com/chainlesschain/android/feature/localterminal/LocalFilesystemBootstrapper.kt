@@ -471,6 +471,17 @@ class LocalFilesystemBootstrapper @Inject constructor(
         alias ll='ls -la'
         alias ..='cd ..'
         alias ...='cd ../..'
+
+        # chainlesschain CLI aliases. We cannot ship bin/cc as an executable
+        # wrapper script: SELinux on Android rejects execve of files in
+        # __D__PREFIX (app_data_file context) with execute_no_trans denial.
+        # Aliases work because mksh expands them inline before execve, so
+        # the actual exec target is bin/node which IS exec-allowed under
+        # W^X (it resolves through ../lib/libnode.so to nativeLibraryDir).
+        alias cc='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias chainlesschain='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias clc='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
+        alias clchain='__D__PREFIX/bin/node __D__PREFIX/lib/node_modules/chainlesschain/bin/chainlesschain.js'
     """.trimIndent().replace("__D__", "\$") + "\n"
 
     private fun motdContents(): String = """
