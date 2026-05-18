@@ -66,16 +66,19 @@ else()
 endif()
 
 # Map ANDROID_ABI → clang wrapper basename. NDK ships per-API clang wrappers
-# named like `aarch64-linux-android26-clang` (Linux) or `.cmd` (Windows). The
-# minSdk=26 baseline for this module dictates the API suffix.
+# named like `aarch64-linux-android28-clang` (Linux) or `.cmd` (Windows).
+# API target is **28** to match this module's `defaultConfig.minSdk = 28`.
+# Bumped from 26 → 28 (2026-05-18) because toybox's lib/portability.c uses
+# getentropy() which Android Bionic declares only when __ANDROID_API__ >= 28;
+# CI run 26026112459 caught the implicit-declaration error.
 if(ANDROID_ABI STREQUAL "arm64-v8a")
-    set(MKSH_TRIPLE "aarch64-linux-android26")
+    set(MKSH_TRIPLE "aarch64-linux-android28")
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
-    set(MKSH_TRIPLE "armv7a-linux-androideabi26")
+    set(MKSH_TRIPLE "armv7a-linux-androideabi28")
 elseif(ANDROID_ABI STREQUAL "x86_64")
-    set(MKSH_TRIPLE "x86_64-linux-android26")
+    set(MKSH_TRIPLE "x86_64-linux-android28")
 elseif(ANDROID_ABI STREQUAL "x86")
-    set(MKSH_TRIPLE "i686-linux-android26")
+    set(MKSH_TRIPLE "i686-linux-android28")
 else()
     message(FATAL_ERROR "Unsupported ABI for mksh build: ${ANDROID_ABI}")
 endif()
