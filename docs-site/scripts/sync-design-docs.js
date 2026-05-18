@@ -205,7 +205,8 @@ function getTargetFilename(filename, isModule) {
   if (/^[\x20-\x7e]+$/.test(filename)) return filename;
 
   // 含 CJK 字符且未映射 → 硬失败。之前 fall-through 返回 "unknown-unmapped.md"
-  // 会让多个未映射文件 silently 互相覆盖。强制要求显式映射。
+  // 会让多个未映射文件 silently 互相覆盖（见 memory
+  // docs_site_sync_unmapped_fallthrough）。强制要求显式映射。
   const mapName = isModule ? "MODULE_FILE_MAP" : "ROOT_FILE_MAP";
   const srcRel = `docs/design/${isModule ? "modules/" : ""}${filename}`;
   throw new Error(
