@@ -41,17 +41,30 @@ FILES = %w[
   ChainlessChain/Features/RemoteTerminal/Views/TerminalSessionView.swift
   ChainlessChain/Features/RemoteTerminal/Views/TerminalWebView.swift
 
+  ChainlessChain/Features/RemoteOperate/Views/AIExtendedAgentsView.swift
+  ChainlessChain/Features/RemoteOperate/Views/AIExtendedMultimodalView.swift
+  ChainlessChain/Features/RemoteOperate/Views/AIExtendedView.swift
   ChainlessChain/Features/RemoteOperate/Views/ClipboardView.swift
+  ChainlessChain/Features/RemoteOperate/Views/DesktopFrameView.swift
   ChainlessChain/Features/RemoteOperate/Views/FileBrowserView.swift
+  ChainlessChain/Features/RemoteOperate/Views/KnowledgeView.swift
+  ChainlessChain/Features/RemoteOperate/Views/MultimodalAudioRecorder.swift
   ChainlessChain/Features/RemoteOperate/Views/NotificationsView.swift
   ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatConversationListView.swift
   ChainlessChain/Features/RemoteOperate/Views/RemoteAIChatView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteBrowserView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteDesktopView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteDisplayView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteInputView.swift
+  ChainlessChain/Features/RemoteOperate/Views/RemoteMediaView.swift
   ChainlessChain/Features/RemoteOperate/Views/RemoteOperateView.swift
   ChainlessChain/Features/RemoteOperate/Views/ScreenshotView.swift
   ChainlessChain/Features/RemoteOperate/Views/SkillTabPickerView.swift
   ChainlessChain/Features/RemoteOperate/Views/SystemInfoView.swift
+  ChainlessChain/Features/RemoteOperate/Views/SystemToolsView.swift
 
   ChainlessChain/Features/Common/Services/PushNotificationManager+RemoteTarget.swift
+  ChainlessChain/Features/Common/UpdateBannerView.swift
 
   ChainlessChain/Features/Common/Views/GenericQRScannerView.swift
   ChainlessChain/Features/Common/Views/QrCodeImage.swift
