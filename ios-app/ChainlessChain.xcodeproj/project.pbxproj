@@ -13,20 +13,24 @@
 		0C6CC89DCDF1C1286E7893C3 /* CoreE2EE in Frameworks */ = {isa = PBXBuildFile; productRef = 434E9B731381EADCADFF01BB /* CoreE2EE */; };
 		0D4C613E2E00C737FB312010 /* ProjectRAGManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE207B983149F4C73DA62947 /* ProjectRAGManager.swift */; };
 		0F87D71FE3ABC2CFC106F26C /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91E8D777AF659EB8D796B10 /* ProjectDetailView.swift */; };
+		0FEEEB853BDD8C17EDB05BB4 /* RemoteDesktopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E697B50863E3FBD86C799D5 /* RemoteDesktopView.swift */; };
 		1336099663F92233E35B344F /* ProjectRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0438A671A0E909077997601 /* ProjectRepository.swift */; };
 		14DFB998360E1216B54E605B /* AnthropicClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA4C2847E5E1667206CFDEF /* AnthropicClient.swift */; };
 		18994B052CF9EB59E983B906 /* CoreDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 2563F8AECF5A054BA581AE04 /* CoreDatabase */; };
 		1B8A75FA6FFE146B71643520 /* ComputerUseResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604927DEBB1CE9C7E9BB85FF /* ComputerUseResult.swift */; };
 		1F4CEA88DDB6275B5787C483 /* ComputerUseToolRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2C66BC51A62F4495136BEC /* ComputerUseToolRegistration.swift */; };
 		2317F49A7812C0B688B2B852 /* GitOperationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7237A81DA921E12351908A7A /* GitOperationsView.swift */; };
+		23E44218C4D598FF579EB1B7 /* DesktopFrameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E590D87E984EE194DBCE6A3 /* DesktopFrameView.swift */; };
 		25236AE19C0D1727508C9FE4 /* ProjectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D42D0AC511CFF9E48C46171 /* ProjectManager.swift */; };
 		25251E6D6B2E070AA0593DAC /* ManualPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E36D2E0629C3ABAEC76ABB /* ManualPairingView.swift */; };
 		256DB890DE3F355B4C925932 /* ConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541484F5325784212A983066 /* ConversationListView.swift */; };
 		26327E613622241E3564F2BD /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F1B9EF753A4C69BDBE8124 /* ImageProcessor.swift */; };
+		27EB4172156D28C18CFE6628 /* RemoteMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1697A5492BDD29610B5E64EC /* RemoteMediaView.swift */; };
 		29B95258A1AC762A396B6517 /* SignalProtocolManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEE5BC1E2E2834D363B94DE5 /* SignalProtocolManager.swift */; };
 		2C973CFA77E9206051319183 /* P2PChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D569285B5CBD46DA3D8A82F /* P2PChatView.swift */; };
 		2E7F5D501CF66BC66CF32042 /* ComputerUseWorkflowEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2821E11BB24B48AEA77D5B13 /* ComputerUseWorkflowEngine.swift */; };
 		32163354ED456BC77EC3E6B2 /* CoordinateAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5DFEE7A4D104052FDCB3BC /* CoordinateAction.swift */; };
+		333E7CC1D5B18E3BD57F9D89 /* RemoteBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72139FA75E27E8DDC4B21A7F /* RemoteBrowserView.swift */; };
 		3340FC1074E029178C3D5928 /* IntentUnderstandingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65B47DA8B60BAA96960C5C /* IntentUnderstandingService.swift */; };
 		366B1EEBFC5EB1B8FAD0F3B5 /* SocialFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2714270CED201264AC6460 /* SocialFeedView.swift */; };
 		368995B347BB5ED4E39435E0 /* ProjectAIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732AFB61FA1B6BA9F9F6BF40 /* ProjectAIManager.swift */; };
@@ -42,6 +46,7 @@
 		4CBD70B594A0F3B18600140D /* SafeMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E917C8DB24EC8A5B9D73B8 /* SafeMode.swift */; };
 		4E668640EC8C763A43BCF67A /* DocumentExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA5678FA815776F8A6EAC2F /* DocumentExportManager.swift */; };
 		4E74D996854F8ED81B35A7AA /* LLMManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D4F4857E5FB6FEC07307F8 /* LLMManager.swift */; };
+		4F6254D02770D12E09C9E3F6 /* RemoteDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 189A681AA089B6D4FFBC3875 /* RemoteDisplayView.swift */; };
 		5155B7065BC6B13A3687B182 /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D90AF93619FEC440C29AF3 /* OpenAIClient.swift */; };
 		534F8F59B7847F958277FFC4 /* AuditLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1692041F89D208B087B08B3 /* AuditLogView.swift */; };
 		53B2B00440D0D05A6086EDE8 /* OllamaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C6947D0A060543F26F5179 /* OllamaClient.swift */; };
@@ -49,7 +54,9 @@
 		56752372A10D322DDC6F4624 /* GroupChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9ABC912104F75749E37B15 /* GroupChatViewModel.swift */; };
 		5B498BE3D725AF2A77328C95 /* ComputerUseAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5892706D86D35FF6E717CAD /* ComputerUseAgent.swift */; };
 		5BDE261524618A78F370BABF /* QrCodeImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */; };
+		5C5D10E3373D6CB8F81D4E84 /* RemoteInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A01C58AF48CF5B06DE390F /* RemoteInputView.swift */; };
 		5C99DC01439495ADA824F78E /* PerformanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009BF35AC92B10F851AD2236 /* PerformanceManager.swift */; };
+		5E4EB73169ED25544BE40663 /* AIExtendedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187AA6A29A554B75C6DF609B /* AIExtendedView.swift */; };
 		5FC92F7B71BECCC860771E8B /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAAC03F450F9F493A6AF476 /* ScreenRecorder.swift */; };
 		60227C667B04B3FCBA164D40 /* GitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0FAE3E4E80C97984455A4E /* GitManager.swift */; };
 		6D78EF242C67E47BD06FDA4A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4D3C05603995C161C99970 /* SettingsView.swift */; };
@@ -63,6 +70,7 @@
 		83E0351B702D414934D9E628 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C88C6FD8BE8AE16B62086A /* AppConfig.swift */; };
 		840D891CCE4A9FE8CA4B838C /* LLMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF9AEB956CE81E6C7B5760F /* LLMSettingsView.swift */; };
 		869158F92CCF69BFE182024A /* TerminalWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E46E06F599D01E0EBEF7377 /* TerminalWebView.swift */; };
+		883E15190B57CF13A3B93DA7 /* KnowledgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549CFBBFACB7AC2B2C713131 /* KnowledgeView.swift */; };
 		884371C2479CD1776238C392 /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 944D367A679EB3E346ACC467 /* ProjectListView.swift */; };
 		892EFF507DA0737C3D5FD278 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2EDB604AE52709C8D655B70 /* NotificationsView.swift */; };
 		8998FA43385D91FB112756DA /* ElementHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E99D0409733F669F306B67DA /* ElementHighlighter.swift */; };
@@ -74,6 +82,7 @@
 		9A53987B37B9F86FA638F40E /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75281313C02214F6DC9C2CE8 /* NotificationSettingsView.swift */; };
 		9A934D4D30716BDC94D98FAB /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B37360A840844DFC4DAF55E /* ImagePickerView.swift */; };
 		9F367DADDBBA7251A98F9DFB /* ComputerUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F679E27F0C6CAF667927C49B /* ComputerUseView.swift */; };
+		A26C5401E3ACDC6749BAC951 /* AIExtendedMultimodalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF343F21818086F409825EDC /* AIExtendedMultimodalView.swift */; };
 		A27B741B576871C29AE790D3 /* CoreCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 54D003D41D16467CE9515FBC /* CoreCommon */; };
 		A3ACA8960B497A34E172AD06 /* SystemInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF29C93A541D0E20AC59F14C /* SystemInfoView.swift */; };
 		A3DD59D4BBB250B710DBEE35 /* TerminalBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45036B1FFFF1A015DC77BEBE /* TerminalBridge.swift */; };
@@ -85,6 +94,7 @@
 		B1B34451EF547051C639F12A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996D8B311198D98CAC516A12 /* AuthView.swift */; };
 		B1D8F957250911A331CA9CFB /* CoreSecurity in Frameworks */ = {isa = PBXBuildFile; productRef = 6C2955DD555EB07028A26B67 /* CoreSecurity */; };
 		B520C389D1E69EA831B4C90D /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F512A8EF49D53BEDC7328067 /* GroupChatView.swift */; };
+		B558C98CB3F82B940B16DA85 /* MultimodalAudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE78A543BC40C95723DD98C9 /* MultimodalAudioRecorder.swift */; };
 		B5E40050A4583D607B774333 /* CreateProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 806D55AFAF66C178F5A56726 /* CreateProjectView.swift */; };
 		B63CBFEF09852A4EB3ECC5AD /* MobileAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6021060335312387CEFDA78A /* MobileAction.swift */; };
 		B6FEA3A4B20CA3A98A4C670A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A3C19E9D99C34283407A76B /* AuthViewModel.swift */; };
@@ -93,6 +103,7 @@
 		BF4FD65BA62C1D49F6B5A1E3 /* NetworkInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BE6FE0B59957804C190009 /* NetworkInterceptor.swift */; };
 		BF7E270BF1267F3EC3031F4E /* KnowledgeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04DA9E1FF219F71551B8A2F /* KnowledgeListView.swift */; };
 		C18E4E1F26B88C8B322E53EE /* FileTreeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8865AA863705E133694B068D /* FileTreeViewModel.swift */; };
+		C4CEBBC17C9DAA2E0E59102D /* UpdateBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CA8EC034E58B56F370AAD6 /* UpdateBannerView.swift */; };
 		C51CCD463EAE70A39C245220 /* AIConversationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9278245FA65C82EB70F1AF3E /* AIConversationRepository.swift */; };
 		C76896ECEDCFDF5499EBEC6F /* ComputerUseTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F010556B9D5579AEDAE02443 /* ComputerUseTypes.swift */; };
 		C7F544EDEB11BA752853A6B0 /* SkillTabPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302A64B83CC87FFF4F916DCF /* SkillTabPickerView.swift */; };
@@ -104,6 +115,7 @@
 		CF0C6E6D6B3756453AB34393 /* P2PContactRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4685B9A08B2CC91314BC9384 /* P2PContactRepository.swift */; };
 		D068D7EFA07D87806C02BE6A /* MessageDeliveryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1220AC44FE697A994DB02ACC /* MessageDeliveryManager.swift */; };
 		D3EAE7FD17746D44BCF4480A /* ComputerUseControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCB001656A6211F34416EA2 /* ComputerUseControlPanel.swift */; };
+		D3F0739B2E12F5671717C006 /* SystemToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21168AE7CC6FABCC350A7042 /* SystemToolsView.swift */; };
 		D6E5F16A1E759AEFB2657306 /* KnowledgeRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 976BCBCF3EF175BA3FBB912D /* KnowledgeRepository.swift */; };
 		DC0E40675AADFD11B599060D /* String+Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB21B41CF0D8DCD714CE6207 /* String+Localization.swift */; };
 		E08D805CD6E18DCA022F31FF /* EmbeddingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 161F66C5D3BA76A4C2AE7B5C /* EmbeddingsService.swift */; };
@@ -132,6 +144,7 @@
 		FCCED5F1537C1005EA885597 /* RemoteDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03FC00A9EF45A1774EF86B69 /* RemoteDependencies.swift */; };
 		FDEB2F7CB52BC0068C1E8FDE /* RemoteAIChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034D09F21F3FF08BDC0EC689 /* RemoteAIChatView.swift */; };
 		FE7364C06C86B193C0B94321 /* DesktopPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629324AA76B65A31BE422695 /* DesktopPairingView.swift */; };
+		FFFC775AEAABD9E9217FAC32 /* AIExtendedAgentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00656585B8CCCF26236F40F /* AIExtendedAgentsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -145,9 +158,14 @@
 		13F1B9EF753A4C69BDBE8124 /* ImageProcessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageProcessor.swift; path = ./ChainlessChain/Features/Knowledge/Services/ImageProcessor.swift; sourceTree = "<group>"; };
 		161F66C5D3BA76A4C2AE7B5C /* EmbeddingsService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EmbeddingsService.swift; path = ./ChainlessChain/Features/Knowledge/Services/EmbeddingsService.swift; sourceTree = "<group>"; };
 		1676C1C99279F8E20784A4C6 /* VisionAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VisionAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/VisionAction.swift; sourceTree = "<group>"; };
+		1697A5492BDD29610B5E64EC /* RemoteMediaView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteMediaView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteMediaView.swift; sourceTree = "<group>"; };
+		187AA6A29A554B75C6DF609B /* AIExtendedView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AIExtendedView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/AIExtendedView.swift; sourceTree = "<group>"; };
+		189A681AA089B6D4FFBC3875 /* RemoteDisplayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteDisplayView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteDisplayView.swift; sourceTree = "<group>"; };
 		1C5DFEE7A4D104052FDCB3BC /* CoordinateAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CoordinateAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/CoordinateAction.swift; sourceTree = "<group>"; };
 		1D569285B5CBD46DA3D8A82F /* P2PChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = P2PChatView.swift; path = ./ChainlessChain/Features/Social/Views/P2PChatView.swift; sourceTree = "<group>"; };
 		1DD58B03718ABFC25F587893 /* TerminalSessionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TerminalSessionView.swift; path = ./ChainlessChain/Features/RemoteTerminal/Views/TerminalSessionView.swift; sourceTree = "<group>"; };
+		1E590D87E984EE194DBCE6A3 /* DesktopFrameView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DesktopFrameView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/DesktopFrameView.swift; sourceTree = "<group>"; };
+		21168AE7CC6FABCC350A7042 /* SystemToolsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SystemToolsView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/SystemToolsView.swift; sourceTree = "<group>"; };
 		26867BA14DB4AFF62461348C /* ScreenshotView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScreenshotView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/ScreenshotView.swift; sourceTree = "<group>"; };
 		2821E11BB24B48AEA77D5B13 /* ComputerUseWorkflowEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseWorkflowEngine.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ComputerUseWorkflowEngine.swift; sourceTree = "<group>"; };
 		2B959368FBD9EEB49804FD52 /* GitViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GitViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/GitViewModel.swift; sourceTree = "<group>"; };
@@ -166,8 +184,10 @@
 		4C85522FB9250032DB6529DE /* SyncManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncManager.swift; path = ./ChainlessChain/Features/Project/Services/SyncManager.swift; sourceTree = "<group>"; };
 		4D65B47DA8B60BAA96960C5C /* IntentUnderstandingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = IntentUnderstandingService.swift; path = ./ChainlessChain/Features/AI/Services/IntentUnderstandingService.swift; sourceTree = "<group>"; };
 		4E531C7F06848A6A124A4DCB /* ActionReplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ActionReplay.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ActionReplay.swift; sourceTree = "<group>"; };
+		4E697B50863E3FBD86C799D5 /* RemoteDesktopView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteDesktopView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteDesktopView.swift; sourceTree = "<group>"; };
 		4EA5678FA815776F8A6EAC2F /* DocumentExportManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DocumentExportManager.swift; path = ./ChainlessChain/Features/Project/Services/DocumentExportManager.swift; sourceTree = "<group>"; };
 		541484F5325784212A983066 /* ConversationListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ConversationListView.swift; path = ./ChainlessChain/Features/Social/Views/ConversationListView.swift; sourceTree = "<group>"; };
+		549CFBBFACB7AC2B2C713131 /* KnowledgeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KnowledgeView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/KnowledgeView.swift; sourceTree = "<group>"; };
 		5EAAC03F450F9F493A6AF476 /* ScreenRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScreenRecorder.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ScreenRecorder.swift; sourceTree = "<group>"; };
 		6021060335312387CEFDA78A /* MobileAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MobileAction.swift; path = ./ChainlessChain/Features/ComputerUse/Services/MobileAction.swift; sourceTree = "<group>"; };
 		604927DEBB1CE9C7E9BB85FF /* ComputerUseResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseResult.swift; path = ./ChainlessChain/Features/ComputerUse/Models/ComputerUseResult.swift; sourceTree = "<group>"; };
@@ -178,6 +198,7 @@
 		6D9A5BE8BFBA5F2A22A42E64 /* ChainlessChainApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChainlessChainApp.swift; path = ./ChainlessChain/App/ChainlessChainApp.swift; sourceTree = "<group>"; };
 		6E46E06F599D01E0EBEF7377 /* TerminalWebView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TerminalWebView.swift; path = ./ChainlessChain/Features/RemoteTerminal/Views/TerminalWebView.swift; sourceTree = "<group>"; };
 		70ECB0BEEED00A9057A4A30B /* ClipboardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ClipboardView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/ClipboardView.swift; sourceTree = "<group>"; };
+		72139FA75E27E8DDC4B21A7F /* RemoteBrowserView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteBrowserView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteBrowserView.swift; sourceTree = "<group>"; };
 		7237A81DA921E12351908A7A /* GitOperationsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GitOperationsView.swift; path = ./ChainlessChain/Features/Project/Views/GitOperationsView.swift; sourceTree = "<group>"; };
 		724B143492030ABF800C75AC /* ProjectChatViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectChatViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/ProjectChatViewModel.swift; sourceTree = "<group>"; };
 		732AFB61FA1B6BA9F9F6BF40 /* ProjectAIManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectAIManager.swift; path = ./ChainlessChain/Features/Project/Services/ProjectAIManager.swift; sourceTree = "<group>"; };
@@ -194,6 +215,7 @@
 		83E917C8DB24EC8A5B9D73B8 /* SafeMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SafeMode.swift; path = ./ChainlessChain/Features/ComputerUse/Services/SafeMode.swift; sourceTree = "<group>"; };
 		8566053DDB3C446929224648 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = Info.plist; path = ./ChainlessChain/Resources/Info.plist; sourceTree = "<group>"; };
 		863C072E80907BFF0009D75C /* ComputerUseBrowserView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseBrowserView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/ComputerUseBrowserView.swift; sourceTree = "<group>"; };
+		86A01C58AF48CF5B06DE390F /* RemoteInputView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteInputView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteInputView.swift; sourceTree = "<group>"; };
 		8734630F3C99D60145A54E86 /* KnowledgeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KnowledgeDetailView.swift; path = ./ChainlessChain/Features/Knowledge/Views/KnowledgeDetailView.swift; sourceTree = "<group>"; };
 		87E36D2E0629C3ABAEC76ABB /* ManualPairingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ManualPairingView.swift; path = ./ChainlessChain/Features/Pairing/Views/ManualPairingView.swift; sourceTree = "<group>"; };
 		8865AA863705E133694B068D /* FileTreeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileTreeViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/FileTreeViewModel.swift; sourceTree = "<group>"; };
@@ -226,6 +248,7 @@
 		CB4E5405259278E2E79C0AD5 /* PairedDevicesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PairedDevicesListView.swift; path = ./ChainlessChain/Features/Pairing/Views/PairedDevicesListView.swift; sourceTree = "<group>"; };
 		CC0FAE3E4E80C97984455A4E /* GitManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GitManager.swift; path = ./ChainlessChain/Features/Project/Services/GitManager.swift; sourceTree = "<group>"; };
 		CC62BDC254550A9098A68D56 /* WebRTCManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebRTCManager.swift; path = ./ChainlessChain/Features/Social/Services/WebRTCManager.swift; sourceTree = "<group>"; };
+		D00656585B8CCCF26236F40F /* AIExtendedAgentsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AIExtendedAgentsView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/AIExtendedAgentsView.swift; sourceTree = "<group>"; };
 		D0438A671A0E909077997601 /* ProjectRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectRepository.swift; path = ./ChainlessChain/Features/Project/Services/ProjectRepository.swift; sourceTree = "<group>"; };
 		D04DA9E1FF219F71551B8A2F /* KnowledgeListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KnowledgeListView.swift; path = ./ChainlessChain/Features/Knowledge/Views/KnowledgeListView.swift; sourceTree = "<group>"; };
 		D2EDB604AE52709C8D655B70 /* NotificationsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NotificationsView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/NotificationsView.swift; sourceTree = "<group>"; };
@@ -238,11 +261,13 @@
 		DE207B983149F4C73DA62947 /* ProjectRAGManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectRAGManager.swift; path = ./ChainlessChain/Features/Project/Services/ProjectRAGManager.swift; sourceTree = "<group>"; };
 		DE37CB0FBE2A949619321677 /* FileTreeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileTreeView.swift; path = ./ChainlessChain/Features/Project/Views/FileTreeView.swift; sourceTree = "<group>"; };
 		DEE5BC1E2E2834D363B94DE5 /* SignalProtocolManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SignalProtocolManager.swift; path = ./ChainlessChain/Features/Social/Services/SignalProtocolManager.swift; sourceTree = "<group>"; };
+		DF343F21818086F409825EDC /* AIExtendedMultimodalView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AIExtendedMultimodalView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/AIExtendedMultimodalView.swift; sourceTree = "<group>"; };
 		E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = QrCodeImage.swift; path = ./ChainlessChain/Features/Common/Views/QrCodeImage.swift; sourceTree = "<group>"; };
 		E3C88C6FD8BE8AE16B62086A /* AppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppConfig.swift; path = ./ChainlessChain/Features/Common/Constants/AppConfig.swift; sourceTree = "<group>"; };
 		E4AE728CAE5C6A8663560DBA /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = ./ChainlessChain/App/ContentView.swift; sourceTree = "<group>"; };
 		E4BE6FE0B59957804C190009 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkInterceptor.swift; path = ./ChainlessChain/Features/ComputerUse/Services/NetworkInterceptor.swift; sourceTree = "<group>"; };
 		E5CD4195A694F0A1EFF248A7 /* PushNotificationManager+RemoteTarget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "PushNotificationManager+RemoteTarget.swift"; path = "./ChainlessChain/Features/Common/Services/PushNotificationManager+RemoteTarget.swift"; sourceTree = "<group>"; };
+		E8CA8EC034E58B56F370AAD6 /* UpdateBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UpdateBannerView.swift; path = ./ChainlessChain/Features/Common/UpdateBannerView.swift; sourceTree = "<group>"; };
 		E91E8D777AF659EB8D796B10 /* ProjectDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProjectDetailView.swift; path = ./ChainlessChain/Features/Project/Views/ProjectDetailView.swift; sourceTree = "<group>"; };
 		E99D0409733F669F306B67DA /* ElementHighlighter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ElementHighlighter.swift; path = ./ChainlessChain/Features/ComputerUse/Services/ElementHighlighter.swift; sourceTree = "<group>"; };
 		EA4D3C05603995C161C99970 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = ./ChainlessChain/Features/Settings/Views/SettingsView.swift; sourceTree = "<group>"; };
@@ -256,6 +281,7 @@
 		F679E27F0C6CAF667927C49B /* ComputerUseView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ComputerUseView.swift; path = ./ChainlessChain/Features/ComputerUse/Views/ComputerUseView.swift; sourceTree = "<group>"; };
 		F684EAA6D0FD3685354FC073 /* PairingHomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PairingHomeView.swift; path = ./ChainlessChain/Features/Pairing/Views/PairingHomeView.swift; sourceTree = "<group>"; };
 		F878E76979C1491EFB6802AA /* ExportMenuView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExportMenuView.swift; path = ./ChainlessChain/Features/Project/Views/ExportMenuView.swift; sourceTree = "<group>"; };
+		FE78A543BC40C95723DD98C9 /* MultimodalAudioRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultimodalAudioRecorder.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/MultimodalAudioRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -657,6 +683,19 @@
 				E25C9F763FBE5F968E61B843 /* QrCodeImage.swift */,
 				734598EDDED3AE75BBB95CFC /* RemoteAIChatConversationListView.swift */,
 				034D09F21F3FF08BDC0EC689 /* RemoteAIChatView.swift */,
+				D00656585B8CCCF26236F40F /* AIExtendedAgentsView.swift */,
+				DF343F21818086F409825EDC /* AIExtendedMultimodalView.swift */,
+				187AA6A29A554B75C6DF609B /* AIExtendedView.swift */,
+				1E590D87E984EE194DBCE6A3 /* DesktopFrameView.swift */,
+				549CFBBFACB7AC2B2C713131 /* KnowledgeView.swift */,
+				FE78A543BC40C95723DD98C9 /* MultimodalAudioRecorder.swift */,
+				72139FA75E27E8DDC4B21A7F /* RemoteBrowserView.swift */,
+				4E697B50863E3FBD86C799D5 /* RemoteDesktopView.swift */,
+				189A681AA089B6D4FFBC3875 /* RemoteDisplayView.swift */,
+				86A01C58AF48CF5B06DE390F /* RemoteInputView.swift */,
+				1697A5492BDD29610B5E64EC /* RemoteMediaView.swift */,
+				21168AE7CC6FABCC350A7042 /* SystemToolsView.swift */,
+				E8CA8EC034E58B56F370AAD6 /* UpdateBannerView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1092,6 +1131,19 @@
 				5BDE261524618A78F370BABF /* QrCodeImage.swift in Sources */,
 				422A3798EDF6DC1DFEB6FE42 /* RemoteAIChatConversationListView.swift in Sources */,
 				FDEB2F7CB52BC0068C1E8FDE /* RemoteAIChatView.swift in Sources */,
+				FFFC775AEAABD9E9217FAC32 /* AIExtendedAgentsView.swift in Sources */,
+				A26C5401E3ACDC6749BAC951 /* AIExtendedMultimodalView.swift in Sources */,
+				5E4EB73169ED25544BE40663 /* AIExtendedView.swift in Sources */,
+				23E44218C4D598FF579EB1B7 /* DesktopFrameView.swift in Sources */,
+				883E15190B57CF13A3B93DA7 /* KnowledgeView.swift in Sources */,
+				B558C98CB3F82B940B16DA85 /* MultimodalAudioRecorder.swift in Sources */,
+				333E7CC1D5B18E3BD57F9D89 /* RemoteBrowserView.swift in Sources */,
+				0FEEEB853BDD8C17EDB05BB4 /* RemoteDesktopView.swift in Sources */,
+				4F6254D02770D12E09C9E3F6 /* RemoteDisplayView.swift in Sources */,
+				5C5D10E3373D6CB8F81D4E84 /* RemoteInputView.swift in Sources */,
+				27EB4172156D28C18CFE6628 /* RemoteMediaView.swift in Sources */,
+				D3F0739B2E12F5671717C006 /* SystemToolsView.swift in Sources */,
+				C4CEBBC17C9DAA2E0E59102D /* UpdateBannerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
