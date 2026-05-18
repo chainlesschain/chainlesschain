@@ -3,6 +3,42 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [iOS Phase 6 sprint] - 2026-05-18 — Knowledge 30 + AI Extended 25 全 hybrid + 15 main tab + 多模态 v0.3 + Agent streaming（19 commits, 绿基线 `1fb947b32`）
+
+> 一晚 19 commits 收口 iOS Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C）。桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab + 多模态实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修；绿基线 `1fb947b32`（Build & Test SPM + Build Release SPM 三 job 全绿）。
+
+**Phase 6.3 — Knowledge 30 method**：桌面 `knowledge-handler.js` 39 method（老 9 + step 1+2+3 = 30）；iOS `KnowledgeCommands` actor 31 wrap method（30 + getNote alias）；新 SQLite 表 knowledge_folders + knowledge_note_versions + ALTER notes 加 starred/pinned/last_viewed_at/archived。**92 cumulative tests**。
+
+**Phase 6.4 — AI Extended 25 method**：桌面 `ai-handler.js` 37 method（老 5 + Phase 5 fix 7 + Phase 6.4 25）；iOS `AIExtendedCommands` actor 25 wrap method + 与 AIChat (Phase 5 12) 并列共 37 method。新表 ai_prompt_templates。RAG/Multimodal/Agents 用 defensive 双路径方法检测 + 优雅降级。**101 cumulative ai tests**。
+
+**iOS UI — 15 main tab + 5 sub-tab**：
+- KnowledgeView（4 filter segmented + 搜索 + 新建 sheet + swipe action）
+- AIExtendedView 5 sub-tab：Templates CRUD / Code（解释/生成/重构 3 mode）/ RAG / Multimodal / Agents
+- 5 sub-tab 触 HIG 软上限 → picker 切 horizontal scroll + capsule highlight（与 Phase 4.5 NotificationsView 同模式）
+- RemoteOperateView 13 → 15 tab
+
+**v0.2 / v0.3 增量功能**：
+- Multimodal v0.2：PhotosUI PhotosPicker OCR / 文本生图 AsyncImage / TTS AVAudioPlayer 播放 / .fileImporter 音频转文字
+- Multimodal v0.3：`MultimodalAudioRecorder.swift` (@MainActor + AVAudioSession + 16kHz mono AAC) + UI 闪烁红点 + 时长 monospaced + 停止/取消
+- Agents v0.2：list/detail/run/stop + 4 色 status chip
+- Agents v0.3：runAgentStream 桌面 (复用 activeStreams Map 与 chat stream 共用) + iOS 3 wrap + VM 后台 250ms poll loop + 实时累积 UI 渲染
+
+**iOS CI 真编验证**（commits `fa0746860` + `1fb947b32`）：
+- 真 bug #1：`RemoteAIExtendedViewModel.swift:425` `nextChunkIdx: Int?` → `Int` 类型不匹配 → `?? sinceChunk`
+- 真 bug #2：`StreamChunkResponse` 模型缺 `error` 字段 → 加 (backward-compat)
+- Win 无 Swift，iOS CI 是 1500+ LOC Swift 唯一编译验证路径
+- 绿基线 `1fb947b32`（3 job 全绿）
+
+**设计文档**（4 个新 doc）：
+- `iOS_对标_Android_Phase_6_Plan.md` §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式
+- `iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md` — debt 审计
+- `iOS_Phase_6_6_Desktop_Skill.md` + `iOS_Phase_6_7_Extension_Skill.md` — Coverage Trap T2/T4 误判修正
+- `iOS_Phase_6_0_RealDevice_E2E_Plan.md` v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级
+
+**剩余真机 E2E**（plan §11.4 唯一未闭环）：Mac + iPhone + 桌面跑 38 场景。Win dev box 不可推进，等用户。
+
+---
+
 ## [Sub-phase 5-6 v2 + 10 v2] - 2026-05-18 — Android LOCAL 项目终端 picker + 全量项目内容拉取（commit `09bd0ec0f`）
 
 > 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。

@@ -10,6 +10,10 @@ on:
     branches: [main, develop]
     paths:
       - "ios-app/**"
+  # Phase 6.4 v0.3 收尾加：允许手动触发，让 Win dev box (无 Swift) 也可
+  # 通过 `gh workflow run ios-build.yml --ref main` 主动验当前 main 编译状态
+  # (用于纯 docs commit 后 want-to-verify iOS 仍绿场景)
+  workflow_dispatch:
   # Note: Release builds are handled by the main release.yml workflow
   # This workflow focuses on testing and quality checks
 

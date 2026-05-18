@@ -2,6 +2,25 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-18 收口 — **iOS Phase 6 sprint 全套：Knowledge 30 + AI Extended 25 + 15 main tab + 多模态 v0.3 + Agent streaming**
+
+> 一晚 19 commits 收口 iOS 端 Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修，**绿基线 `1fb947b32`**。
+
+- **Phase 6.3 — Knowledge 桌面 30 method 全 hybrid**（commits `d5525c1d1` → `874b3b83c`）—`knowledge-handler.js` 老 9 + step 1 (folders 5 + tags CRUD 3 + getNote alias 2) + step 2 (versions 4 + star/pin 6) + step 3 (archive 3 + import-export 4 + tags 高级 3) = **30/30 完成 ✅**。新增 SQLite 表 `knowledge_folders` + `knowledge_note_versions` + ALTER notes 加 starred/pinned/last_viewed_at/archived 列。**92 cumulative tests** 联跑 7.94s。
+- **Phase 6.3 — iOS KnowledgeCommands actor wrap 31 method**（commit `5b0e82c97`）—`Modules/CoreP2P/Sources/RemoteSkills/Knowledge/`：actor 31 method（30 + getNote alias）+ 25 Sendable Response struct + 35 envelope/decode tests。复用 `invokeAndDecode` helper 模板。
+- **Phase 6.4 — AI Handler 桌面 25 method 全 hybrid**（commits `b6da42ef2` + `d23d41cc9` + `d0bb48733`）—`ai-handler.js` 老 5 + Phase 5 fix 7 + Phase 6.4 25 = **37 method total**：Conversations 高级 5 + Prompt templates 3 + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4。新表 `ai_prompt_templates`。RAG/Multimodal/Agents 用 defensive method 检测（双路径 `mgr.list || mgr.listAgents`），查询缺 dep 降级 `available: false`，mutating throw。**101 cumulative ai tests** 联跑 1.7s。
+- **Phase 6.4 — iOS AIExtendedCommands actor wrap 25 method**（commit `cf75e822f`）—与 AIChat (Phase 5 12) 并列共 37 ai method 完全覆盖桌面。SeedRegistry methodCount 53 → 37 对齐真实。
+- **Phase 6.4 UI — KnowledgeView + AIExtendedView 2 新 tab → RemoteOperateView 15 main tab**（commit `b92ffe640`）—Knowledge 4 filter segmented + 搜索 + 新建 sheet + swipe action；AIExtended 5 sub-tab（Templates/Code 3 mode/RAG）。iOS 16 PhotosUI / TextField axis: .vertical / SwiftUI Outer/Inner + StateObject init 模式（解 `@EnvironmentObject` init() 不可用）。
+- **Phase 6.4 v0.2 — Multimodal + Agents UI**（commit `d897d3cdf`）—AIExtendedView +2 sub-tab → 5 sub-tab（5 触 HIG 软上限，picker 切 horizontal scroll）。Multimodal：PhotosPicker → OCR / 文本生图 AsyncImage / TTS AVAudioPlayer / file picker 转文字。Agents：list/detail/run/stop + 4 色状态 chip。
+- **Phase 6.4 v0.3 — Agent streaming + 实时录音**（commits `a2d41fc7e` + `073af9ed4`）：
+  - 桌面 `runAgentStream` 复用既有 `activeStreams` Map（streamId-agnostic 与 chat stream 共用），10 desktop tests
+  - iOS 3 wrap method (runAgentStream + getAgentStreamChunk + cancelAgentStream) + VM 后台 Task 250ms poll loop + Agents UI 闪烁蓝点 + 实时累积渲染，4 iOS VM tests
+  - 新文件 `MultimodalAudioRecorder.swift` (@MainActor + AVAudioSession + 16kHz mono AAC 录到 NSTemporaryDirectory) + transcribeAudioSection 加 [开始录音] 红色 button + 闪烁红点 + 时长 monospaced
+- **iOS CI 真编 verify**（commits `fa0746860` + `1fb947b32`）—iOS GitHub Actions `ios-build.yml` 2 轮抓 2 真 bug 修：(1) `RemoteAIExtendedViewModel.swift:425` `nextChunkIdx: Int?` 类型不匹配 → `?? sinceChunk` (2) `StreamChunkResponse` 模型缺 `error` 字段 → 加。Win 无 Swift 编译器，iOS CI 是 1500+ LOC Swift 唯一编译验证路径。绿基线 **`1fb947b32`**（Build & Test SPM + Build Release SPM 三 job 全绿）。
+- **设计文档**：(1) [`iOS_对标_Android_Phase_6_Plan.md`](docs/design/iOS_对标_Android_Phase_6_Plan.md) §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式；(2) [`iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md`](docs/design/iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md) — Phase 6.3/6.4 debt 审计；(3) [`iOS_Phase_6_6_Desktop_Skill.md`](docs/design/iOS_Phase_6_6_Desktop_Skill.md) + [`iOS_Phase_6_7_Extension_Skill.md`](docs/design/iOS_Phase_6_7_Extension_Skill.md) — Coverage Trap T2/T4 误判修正；(4) [`iOS_Phase_6_0_RealDevice_E2E_Plan.md`](docs/design/iOS_Phase_6_0_RealDevice_E2E_Plan.md) v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级。
+- **memory** 新增 4 entries（type=feedback/project）：`phase_6_knowledge_ai_hybrid_complete` / `better_sqlite3_text_number_trap` (Number→TEXT "1.0" 5 处 String() 包) / `ios_inner_view_stateobject_pattern` / `ios_ci_only_verify_path_on_win`（Win 无 Swift，"Phase X 完成 ✅" 必须等 iOS CI 真绿）。
+- **剩余真机 E2E**（plan §11.4 唯一未闭环 follow-up）：Mac + iPhone + 桌面在场跑 38 场景。Win dev box 不可推进，移交用户。
+
 ## 2026-05-18 发布 — **Android Sub-phase 5-6 v2 + 10 v2：LOCAL 项目终端 picker + 全量项目内容拉取**
 
 > 承接 `3319febc4` 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一次性收口。
