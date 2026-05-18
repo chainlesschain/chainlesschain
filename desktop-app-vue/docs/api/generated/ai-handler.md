@@ -202,3 +202,180 @@ async getMessages(params, _context)
 
 ---
 
+## async updateConversation(params, _context)
+
+```javascript
+async updateConversation(params, _context)
+```
+
+改 conversation 元信息 (title / model / systemPrompt 任一改)。
+
+---
+
+## async archiveConversation(params, _context)
+
+```javascript
+async archiveConversation(params, _context)
+```
+
+归档 conversation (archived=1)。隐藏在 getConversations 默认列表外。
+
+---
+
+## async searchConversations(params, _context)
+
+```javascript
+async searchConversations(params, _context)
+```
+
+* 搜 conversation by title / 内容（messages.content LIKE）。
+   * archived 默认 false (排除归档)，传 true 仅在归档里找。
+
+---
+
+## async exportConversation(params, _context)
+
+```javascript
+async exportConversation(params, _context)
+```
+
+* 导出 conversation 完整消息历史。format: markdown (default) / json。
+
+---
+
+## async savePromptTemplate(params, _context)
+
+```javascript
+async savePromptTemplate(params, _context)
+```
+
+* 创建或更新 prompt template (id 传入则 upsert，缺省自动生成新 id)。
+   * variables: 字符串数组，例 ["topic", "tone"] 表示模板含 {{topic}} / {{tone}} 占位。
+
+---
+
+## async ragSearchAdvanced(params, _context)
+
+```javascript
+async ragSearchAdvanced(params, _context)
+```
+
+* 高级 RAG 检索：含 filters (metadata 过滤) / scoreThreshold (低分截断) / namespace 隔离。
+   * 若 ragManager.searchAdvanced 不存在，fallback 到普通 search 然后客户端侧过滤。
+
+---
+
+## async ragIndex(params, _context)
+
+```javascript
+async ragIndex(params, _context)
+```
+
+手动 index 一段 text 到向量库。docId 可传或自动生成。
+
+---
+
+## async generateImage(params, _context)
+
+```javascript
+async generateImage(params, _context)
+```
+
+* 文本生图。aiEngine.generateImage(prompt, options) → { images, model }。
+   * options 含 size (e.g. "1024x1024") / n (生成张数) / model (engine id)。
+
+---
+
+## async ocrImage(params, _context)
+
+```javascript
+async ocrImage(params, _context)
+```
+
+* OCR 图像文字识别。imageData (base64) 或 imagePath 二选一。
+   * aiEngine.ocrImage(imageOrPath, options) → { text, confidence, language }。
+
+---
+
+## async transcribeAudio(params, _context)
+
+```javascript
+async transcribeAudio(params, _context)
+```
+
+* 音频转文字。audioData (base64) 或 audioPath 二选一。
+
+---
+
+## async textToSpeech(params, _context)
+
+```javascript
+async textToSpeech(params, _context)
+```
+
+* 文字转语音 (TTS)。返 base64 audio data + format。
+
+---
+
+## async _chatOnce(systemPrompt, userPrompt, options =
+
+```javascript
+async _chatOnce(systemPrompt, userPrompt, options =
+```
+
+* 通用内部 helper — 用 aiEngine.chat 跑一次 system+user prompt 拿到 content。
+   * 4 个 code helper 都共用此模板，避免重复 chat 失败兜底逻辑。
+
+---
+
+## async generateCode(params, _context)
+
+```javascript
+async generateCode(params, _context)
+```
+
+自然语言生成代码。
+
+---
+
+## async explainCode(params, _context)
+
+```javascript
+async explainCode(params, _context)
+```
+
+代码解释。
+
+---
+
+## async refactorCode(params, _context)
+
+```javascript
+async refactorCode(params, _context)
+```
+
+代码重构。
+
+---
+
+## async fixCode(params, _context)
+
+```javascript
+async fixCode(params, _context)
+```
+
+代码修 bug，给出错误信息后返修复版本。
+
+---
+
+## async runAgent(params, _context)
+
+```javascript
+async runAgent(params, _context)
+```
+
+* 跑指定 agent。input 是 agent 起始 prompt；options 可含 timeout / model / contextId。
+   * 返 runId 让 caller 可后续 stopAgent / 查询状态。
+
+---
+
