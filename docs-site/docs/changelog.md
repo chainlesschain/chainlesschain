@@ -3,6 +3,39 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Sub-phase 5-6 v2 + 10 v2] - 2026-05-18 — Android LOCAL 项目终端 picker + 全量项目内容拉取（commit `09bd0ec0f`）
+
+> 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。
+
+**Issue 1: LOCAL 项目终端入口改为 PC 项目 picker**
+- 旧 v1：手输 Windows 路径 dialog（仅自动预填同名项目）；同名不命中 → 移动端键盘敲长路径，UX 失败
+- 新 v2：dialog 打开调 `project.list` 拉所有桌面项目 → LazyColumn picker → tap row → 直接保存 pcRootPath + 跳终端
+  - 同名匹配项目仍保留高亮 "同名" 标在 picker 顶部
+  - 列表为空（桌面项目都没 rootPath）→ 自动展开 "自定义路径" 折叠区 + error hint
+  - 自定义路径输入作 fallback，保留 v1 流程
+
+**Issue 2: PC→Android 全量项目内容拉取**
+- 旧 v1（`504bd6dde` Sub-phase 7）：pullSingle 只拉 metadata + 文件清单，文件内容 "由 caller 跳 FileTransferScreen 拉" — 实际从未接通
+- 新 v2：pullSingle 之后循环调 `project.getFile(fileId)` 真把每个文件 content 存 Room project_files
+  - 单文件 getFile 失败 → continue + log warn（不阻塞整体）
+  - content > 1MB → skip 写占位 row（size + hash 保留，content=null）防 OOM
+  - PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"
+  - 完成后 metadata.pullState 升 "files_downloaded"
+
+**测试覆盖**：78 新单元 + 集成测试全绿
+- `RemoteContextViewModelTest.kt` × 16（listPcProjects / findPcProjectPathByName / pushPcRootPathToDesktop）
+- `RemoteProjectBrowserViewModelTest.kt` × 7（pullProject happy / 失败 continue / exception continue / >1MB skip / 空 files / lifecycle / 并发 ignore）
+- `mobile-bridge-sync.test.js` × 15（含 6 新 handleProjectUpdatePath）
+- `project-management-handler.test.js` × 33（含 9 新 createFile/createFolder/writeFile/deleteFile + getFile Android Room 契约）
+- `project-handlers.test.js` × 7（10 topic dispatch + pre-bootstrap）
+- 修了 3 个 stale 测试断言（504bd6dde 改 userId 过滤后没同步更新）
+
+**剩余真机 E2E §12.3 8 场景**：picker 命中 / 自定义路径 fallback / FROM_PC 不弹 dialog / 拉取 10 文件 progress 跑完 / >1MB skip / 单文件失败 continue 等。需 Mac/Win PC + Android 双机配对环境。
+
+详见 [设计文档 §12](/design/Android_Project_Remote_Terminal_Entry#12-sub-phase-5-6-v2-sub-phase-10-v2-2026-05-18-commit-09bd0ec0f)。
+
+---
+
 ## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
 
 > v5.0.3.63 release 后用户反馈:(1) iOS Settings 「版本」只显示 3 段制 `5.0.3` 或 stale `0.32.0`（实际几个月没更过硬编码常量）;(2) PIN 闪退问题仍报告(待 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码改为从 `Bundle.main` 动态读;**B** 加 iOS 17 API 二次审计(全仓 596 个 `.swift` × 29 个 pattern 扫描,0 处新增违规);**C** 加单元测试 + 集成测试 + UITest 三层覆盖。

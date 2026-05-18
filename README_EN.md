@@ -2,6 +2,27 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-18 Ship — **Android Sub-phase 5-6 v2 + 10 v2: LOCAL project terminal picker + full project content pull**
+
+> Follow-up to `3319febc4` real-device feedback: "PC path dialog opens but can't find same-name PC project" + "project file sync not done" — two blocking issues, both closed in one commit.
+
+- **Issue 1 LOCAL terminal entry → PC project picker**: old v1 forced users to type Windows long paths on mobile (failed UX). New v2 dialog opens, fetches `project.list` from desktop → LazyColumn picker with all PC projects → tap row → save pcRootPath + jump to terminal, zero input. Same-name match highlighted as "Match" badge at top; empty list auto-expands custom-path fallback.
+- **Issue 2 Full content pull**: old v1 (Sub-phase 7) only stored metadata; users pulled then opened the project offline → 0 files visible. New v2: after pullSingle, loop `project.getFile(fileId)` for each file and store content in Room project_files. Per-file failure → continue + log; content > 1MB → skip with placeholder row (size+hash kept) to avoid OOM. PullProgress StateFlow exposes progress → UI shows LinearProgressIndicator + "Downloading N/M: <path>".
+- **78 new tests**: `RemoteContextViewModelTest` × 16 / `RemoteProjectBrowserViewModelTest` × 7 / `mobile-bridge-sync.test.js` × 15 (incl 6 new `handleProjectUpdatePath`) / `project-management-handler.test.js` × 33 (incl 9 new file CRUD) / `project-handlers.test.js` × 7. Also fixed 3 stale test assertions (after `504bd6dde` removed userId filtering, the asserts were never updated).
+- **Design doc**: [`docs/design/Android_Project_Remote_Terminal_Entry.md §12`](docs/design/Android_Project_Remote_Terminal_Entry.md) added v2 picker design + full content pull design + real-device E2E 8-scenario matrix.
+- **Commit**: `09bd0ec0f` (`feat(mobile): LOCAL 项目终端 picker + 全量项目内容拉取`).
+- **Pending real-device E2E**: 8 scenarios need Mac/Win PC + Android paired environment, can't be validated on dev box alone.
+
+## 2026-05-18 Ship — **iOS v5.0.3.64: 4-segment version display + AppConstants stale hardcodes wiped + 3-tier test coverage**
+
+> Post-v5.0.3.63 user feedback: (1) iOS Settings "Version" only shows 3-segment `5.0.3` or stale `0.32.0` (the hardcoded constant has been stale for months); (2) PIN crash still reported (crash log pending). Three changes:
+
+- **A. Fix stale hardcodes (real bug, root-caused)**: `AppConstants.App.version` has been hardcoded `"0.32.0"` for months, `buildNumber` was `"32"`, `bundleId` was wrong (`com.chainlesschain.ios`; CodeSign actually uses `.ChainlessChain`) → all switched to read dynamically from `Bundle.main`. Also swept `AIDashboardView.swift:95` hardcoded `v0.16.0` + `PluginManager.swift:118` fallback `1.7.0`.
+- **B. iOS 17 API second audit**: scanned all 596 `.swift` files × 29 patterns (`assumeIsolated` / `@Observable` / `SwiftData` / `symbolEffect` / `ContentUnavailableView` / `KeyframeAnimator` / `sensoryFeedback` / `Previewable` etc.) — **0 new violations**. `AppState.swift` v5.0.3.63 fix (`assumeIsolated` → `Task @MainActor`) is in place.
+- **C. 3-tier test coverage**: 11 BundleVersionTests + 7 AppStateNotificationTests + 2 XCUITest (`testSettingsVersionDisplaysFourSegmentTag` / `testPINUnlockDoesNotCrashOnFirstLaunch`), locking down version format + PIN-unlock-doesn't-crash regressions.
+- **New Bundle extension**: `Bundle.appShortVersion` / `appBuildNumber` / `appFullVersion` (4-segment `5.0.3.64`) / `appFullVersionTag` (`v5.0.3.64`) / `appDisplayName` — unified across UI. SettingsView now shows `v5.0.3.64` full 4-segment + a new "Bundle ID" row so users can directly confirm the installed build.
+- **Pending user feedback**: the v5.0.3.63 PIN crash root cause was not reproducible at the code level. If v5.0.3.64 still crashes, please attach a crash log (Xcode → Devices and Simulators → View Device Logs). The new "Bundle ID" row in SettingsView lets you confirm you're running v5.0.3.64.
+
 ## 2026-05-18 Closing — **iOS Phase 5 AI Chat static audit: 4 real bugs fixed + 4 integration tests**
 
 > Phase 5.1-5.6 (remote LLM chat + token-by-token streaming + 8 methods + cancel + conversation management + offline enqueue) landed previously, but the 41 unit tests were all same-module mocks — no end-to-end integration, no UI/VM interaction edge cases. This round: static audit found 4 real bugs (1 regression test each); added 4 integration tests against the real fan-out chain.

@@ -5,6 +5,27 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Sub-phase 5-6 v2 + 10 v2] - 2026-05-18 — Android LOCAL 项目终端 picker + 全量项目内容拉取（commit `09bd0ec0f`）
+
+> 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。
+
+**Issue 1: LOCAL 项目终端入口改为 PC 项目 picker**
+- 旧 v1 手输 Windows 路径太难用；新 v2 dialog 打开调 `project.list` 拉所有桌面项目 → LazyColumn picker → tap row → 保存 pcRootPath + 跳终端
+- 同名匹配项目高亮 "同名" 标顶部；列表为空时自动展开自定义路径折叠区 + error hint
+- 触点：`RemoteContextViewModel.listPcProjects` / `ProjectDetailScreenV2` AlertDialog 全重写
+
+**Issue 2: PC→Android 全量项目内容拉取**
+- 旧 v1 pullSingle 只拉 metadata + 文件清单；新 v2 之后循环 `project.getFile(fileId)` 把每个文件 content 存 Room project_files
+- 单文件失败 continue + log warn；content > 1MB skip 占位 row 防 OOM
+- PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + 当前文件名行
+- 触点：`RemoteProjectBrowserViewModel.pullProject` 加 files 循环 + remoteFileToEntity / `RemoteProjectBrowserScreen` 进度 row
+
+**测试覆盖**：78 新单元 + 集成测试全绿（详见 [设计文档 §12.4](docs/design/Android_Project_Remote_Terminal_Entry.md)）；同步修了 3 个 stale 测试断言。
+
+**剩余真机 E2E §12.3 8 场景**：需 Mac/Win PC + Android 双机配对环境，dev box 无法独验。
+
+---
+
 ## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
 
 > v5.0.3.63 release 后用户反馈：(1) iOS Settings 「版本」显示只有 3 段制 `5.0.3` 或 stale `0.32.0`(实际几个月没更过 hardcode 常量); (2) PIN 闪退问题仍报告(待用户提供 v5.0.3.63 .ipa 上的具体 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码 (0.32.0 / 32 / com.chainlesschain.ios) 改为从 `Bundle.main` 动态读, Settings 「关于」展示完整 `v5.0.3.64` 4 段制; **B** 加 iOS 17 API 二次审计(对全仓 596 个 `.swift` 跑 29 个 pattern,确认 0 新增违规, `AppState.swift` `assumeIsolated` → `Task @MainActor` 的 v5.0.3.63 修复已就位); **C** 加单元测试 + 集成测试 + UITest 三层覆盖锁死版本号显示 + PIN 解锁不崩两类回归。

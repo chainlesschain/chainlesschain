@@ -2,6 +2,27 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-18 发布 — **Android Sub-phase 5-6 v2 + 10 v2：LOCAL 项目终端 picker + 全量项目内容拉取**
+
+> 承接 `3319febc4` 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一次性收口。
+
+- **Issue 1 LOCAL 终端入口改 picker**：旧 v1 让用户在手机上敲 Windows 长路径，UX 失败。新 v2 dialog 打开拉桌面 `project.list` 显示 PC 项目列表 → tap row → 直接保存 pcRootPath + 跳终端，零输入。同名项目高亮 "同名" 标置顶；列表为空时自动展开自定义路径 fallback。
+- **Issue 2 全量内容拉取**：旧 v1（Sub-phase 7）只存 metadata；用户拉了之后离线打开项目还是 0 文件。新 v2 在 pullSingle 之后循环 `project.getFile(fileId)` 真把每个文件 content 存 Room project_files。单文件失败 continue + log；content > 1MB skip 占位 row 防 OOM；PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"。
+- **78 新测试**：`RemoteContextViewModelTest` × 16 / `RemoteProjectBrowserViewModelTest` × 7 / `mobile-bridge-sync.test.js` × 15（含 6 新 `handleProjectUpdatePath`）/ `project-management-handler.test.js` × 33（含 9 新 file CRUD）/ `project-handlers.test.js` × 7。同步修了 3 个 stale 测试断言（504bd6dde 改 userId 过滤后没同步更新）。
+- **设计文档**：[`docs/design/Android_Project_Remote_Terminal_Entry.md §12`](docs/design/Android_Project_Remote_Terminal_Entry.md) 加 v2 picker 设计 + 全量拉文件设计 + 真机 E2E 8 场景矩阵。
+- **commit**：`09bd0ec0f` (`feat(mobile): LOCAL 项目终端 picker + 全量项目内容拉取`)。
+- **剩余真机 E2E**：8 场景需 Mac/Win PC + Android 双机配对环境，dev box 无法独验。
+
+## 2026-05-18 发布 — **iOS v5.0.3.64：版本号 4 段制 + AppConstants stale 硬编码清零 + 测试三层覆盖**
+
+> v5.0.3.63 发版后用户反馈：(1) iOS Settings 「版本」只显示 3 段制 `5.0.3` 或 stale `0.32.0`（实际几个月没更过硬编码常量）；(2) PIN 闪退仍报告（待 crash log 复现）。本版三件事：
+
+- **A 修 stale 硬编码（真 bug，找到根因）**：`AppConstants.App.version` 几个月一直写死 `"0.32.0"`、`buildNumber` 写死 `"32"`、`bundleId` 写死错值 `"com.chainlesschain.ios"`（CodeSign 实际用 `.ChainlessChain`）→ 全改用 `Bundle.main` 动态读。`AIDashboardView.swift:95` 硬编码 `v0.16.0` + `PluginManager.swift:118` fallback `1.7.0` 一并扫净。
+- **B iOS 17 API 二次审计**：全仓 596 个 `.swift` × 29 个 pattern（`assumeIsolated` / `@Observable` / `SwiftData` / `symbolEffect` / `ContentUnavailableView` / `KeyframeAnimator` / `sensoryFeedback` / `Previewable` 等）扫描，**0 处新增违规**。`AppState.swift` v5.0.3.63 修（`assumeIsolated` → `Task @MainActor`）已就位。
+- **C 测试三层覆盖**：11 BundleVersionTests + 7 AppStateNotificationTests + 2 XCUITest（`testSettingsVersionDisplaysFourSegmentTag` / `testPINUnlockDoesNotCrashOnFirstLaunch`），锁死版本号格式 + PIN 解锁不崩两类回归。
+- **新 Bundle extension**：`Bundle.appShortVersion` / `appBuildNumber` / `appFullVersion`（4 段制 `5.0.3.64`）/ `appFullVersionTag`（`v5.0.3.64`）/ `appDisplayName`，所有 UI 统一调。SettingsView 关于栏显示 `v5.0.3.64` 完整 4 段制 + 加「Bundle ID」一栏让用户能直接确认安装的真版本。
+- **待用户反馈**：v5.0.3.63 PIN 闪退根因未在代码层复现。装 v5.0.3.64 仍崩请附 crash log（Xcode → Devices and Simulators → View Device Logs）。SettingsView 新「Bundle ID」字段可帮确认安装的是 v5.0.3.64 真版本。
+
 ## 2026-05-17 发布 — **Android 远程文件 skill 端到端（浏览 / 上传 / 下载 / app 内打开）**
 
 > Android 手机配对桌面后，三大能力一次性落地：浏览 PC 任意目录（无 sandbox）、上传本机文件到 PC `~/Downloads/`、PC 文件下载到手机**公共 Download 目录**（MediaStore.Downloads，原生「文件管理」/「相册」/「阅读器」都能直接看到）。Snackbar 「打开」按钮 `Intent.ACTION_VIEW(content://...)` 拉系统 viewer，**不跳出 app**。
