@@ -81,6 +81,37 @@ jobs:
           which make
           make --version | head -1
 
+      # First-CI-run diagnostic: mksh's Build.sh wraps every clang call in
+      # `clang ... || rm -f conftest*` to clean up after expected probe
+      # failures — but that pattern also swallows the real stderr if the
+      # FINAL link line fails. Pre-run Build.sh manually so we see the
+      # actual ld error before the gradle CMake invocation does the same
+      # thing through ninja (which only surfaces "build stopped").
+      - name: Debug — run mksh Build.sh standalone (capture link stderr)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/mksh-probe
+          cp -r android-app/third_party/mksh/. /tmp/mksh-probe/
+          cd /tmp/mksh-probe
+          export CC="${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          export TARGET_OS=Linux
+          export TARGET_OSREV=5.10.0
+          echo "::group::Build.sh stdout/stderr (manual probe)"
+          # Run with verbose link (-v on clang shows ld invocation when
+          # link fails). Drop -Q to get more output.
+          if ! bash Build.sh -r 2>&1 | tail -120; then
+            echo "::error::Build.sh exited non-zero"
+          fi
+          echo "::endgroup::"
+          echo "::group::Final link retry with -v (force linker invocation print)"
+          if ls *.o > /dev/null 2>&1; then
+            # Retry the failing link line with -v to dump invoked linker + libs.
+            ${CC} -v -O2 -Wall -fwrapv -o mksh-debug *.o 2>&1 | tail -40 || true
+          else
+            echo "no .o files left; previous compile failed earlier"
+          fi
+          echo "::endgroup::"
+
       - name: Grant gradlew exec
         run: chmod +x android-app/gradlew
 
