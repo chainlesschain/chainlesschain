@@ -179,6 +179,7 @@ fun NavGraph(
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
                 onNavigateToRemoteProjectBrowser = { navController.navigate(Screen.RemoteProjectBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
+                onNavigateToLocalTerminal = { navController.navigate(Screen.LocalTerminal.route) },
                 onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) },
                 // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
                 onNavigateToScanDesktopPairing = { navController.navigate(Screen.ScanDesktopPairing.route) },
@@ -436,6 +437,17 @@ fun NavGraph(
 
         composable(Screen.AsrSettings.route) {
             AsrSettingsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Phase 4 — local terminal (feature-local-terminal module).
+        // Self-contained: bootstrap + mksh + xterm.js on device, no pairing
+        // dependency. ViewModel pulled via Hilt's @HiltViewModel.
+        composable(Screen.LocalTerminal.route) {
+            val vm: com.chainlesschain.android.feature.localterminal.ui.LocalSessionViewModel =
+                hiltViewModel()
+            com.chainlesschain.android.feature.localterminal.ui.LocalTerminalScreen(
+                viewModel = vm,
+            )
         }
 
         composable(Screen.About.route) {
@@ -907,6 +919,8 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object KeyManagement : Screen("key_management")
     data object AsrSettings : Screen("asr_settings")
+    /** Phase 4 — local terminal (mksh in $PREFIX, no pairing required). */
+    data object LocalTerminal : Screen("local_terminal")
     data object KnowledgeList : Screen("knowledge_list")
     data object KnowledgeEditor : Screen("knowledge_editor") {
         fun createRoute(itemId: String) = "knowledge_editor/$itemId"

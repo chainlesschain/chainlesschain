@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.feature.localterminal.LocalFilesystemBootstrapper
 import com.chainlesschain.android.feature.localterminal.LocalPtyClient
 import com.chainlesschain.android.feature.localterminal.PtyEnvironment
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * ViewModel for one local-terminal session — owns one [LocalPtyClient],
@@ -22,15 +24,22 @@ import timber.log.Timber
  * Map<SessionId, LocalPtyClient> into a session-list VM when wiring into
  * RemoteOperate's tab strip.
  */
-class LocalSessionViewModel(
+@HiltViewModel
+class LocalSessionViewModel @Inject constructor(
     private val bootstrapper: LocalFilesystemBootstrapper,
     private val env: PtyEnvironment,
-    clientFactory: (CoroutineScope) -> LocalPtyClient = { LocalPtyClient(it) },
 ) : ViewModel() {
 
     /** Created with viewModelScope so the PTY's read+wait coroutines and any
-     *  shutdown work are torn down automatically on onCleared. */
-    val client: LocalPtyClient = clientFactory(viewModelScope)
+     *  shutdown work are torn down automatically on onCleared. Wrapped in
+     *  lazy so the JNI library load defers to first use — keeps the VM's
+     *  construction fast and lets tests inject a fake via the [clientForTesting]
+     *  hook. */
+    val client: LocalPtyClient by lazy { clientFactoryForTesting?.invoke(viewModelScope) ?: LocalPtyClient(viewModelScope) }
+
+    /** Test seam — Phase 2/3 tests construct this VM with a fake client.
+     *  Production Hilt-driven path leaves this null. */
+    internal var clientFactoryForTesting: ((CoroutineScope) -> LocalPtyClient)? = null
 
     enum class Status { INITIALIZING, RUNNING, EXITED, ERROR }
 

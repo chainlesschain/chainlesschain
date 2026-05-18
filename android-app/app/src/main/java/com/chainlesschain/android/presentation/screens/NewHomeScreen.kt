@@ -84,6 +84,7 @@ fun NewHomeScreen(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     // 用户反馈："设置里扫描桌面 QR 按钮隐藏太深放首页来；首页要显示连接桌面的状态"
     onNavigateToScanDesktopPairing: () -> Unit = {},
@@ -208,6 +209,7 @@ fun NewHomeScreen(
                 onNavigateToProjectTab = onNavigateToProjectTab,
                 onNavigateToFileBrowser = onNavigateToFileBrowser,
                 onNavigateToRemoteControl = onNavigateToRemoteControl,
+                onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                 onNavigateToP2P = onNavigateToP2P,
                 socialUnreadCount = socialUnreadCount
             )
@@ -611,6 +613,7 @@ fun FunctionEntryGrid(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     socialUnreadCount: Int = 0
 ) {
@@ -628,6 +631,7 @@ fun FunctionEntryGrid(
         onNavigateToFileBrowser,
         onNavigateToP2P,
         onNavigateToRemoteControl,
+        onNavigateToLocalTerminal,
         socialUnreadCount
     ) {
         listOf(
@@ -648,6 +652,8 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
             // 远程控制
             FunctionEntryItem(context.getString(R.string.feature_remote_control), Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
+            // 本地终端 — Phase 4: mksh + xterm.js in $PREFIX, no pairing needed.
+            FunctionEntryItem("本地终端", Icons.Outlined.Terminal, Color(0xFF455A64), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToLocalTerminal),
             // 第四行：统计分析
             FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
         )

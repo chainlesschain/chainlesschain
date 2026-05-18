@@ -2,6 +2,7 @@ package com.chainlesschain.android.feature.localterminal
 
 import android.content.Context
 import com.chainlesschain.android.feature.localterminal.BuildConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,9 +57,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class LocalFilesystemBootstrapper @Inject constructor(
-    private val context: Context,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    @ApplicationContext private val context: Context,
 ) {
+    // Hilt @Inject ctor can't have Kotlin-defaulted args, so the ioDispatcher
+    // knob is hard-coded. Tests that need a deterministic dispatcher should
+    // wrap calls in runBlocking with a TestScope rather than swapping it.
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
     /** Returns the `$PREFIX` directory; safe to call before bootstrap (no
      *  side effects). */

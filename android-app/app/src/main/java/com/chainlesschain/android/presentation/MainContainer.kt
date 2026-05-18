@@ -45,6 +45,7 @@ fun MainContainer(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteProjectBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
     onNavigateToRemoteOperate: (String) -> Unit = {},
@@ -109,6 +110,7 @@ fun MainContainer(
                         onNavigateToProjectTab = { selectedTab = 1 },  // 切换到项目tab
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
                         onNavigateToRemoteControl = onNavigateToRemoteControl,
+                        onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                         onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
                         onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
                         onNavigateToRemoteOperate = onNavigateToRemoteOperate,
