@@ -60,6 +60,16 @@ android {
             isReturnDefaultValues = true
         }
     }
+
+    // W^X requires libmksh.so / libtoybox.so to be extracted to
+    // /data/app/<pkg>/lib/<abi>/ so ProcessBuilder can exec them.
+    // AGP 8+ defaults to extractNativeLibs=false (APK-resident dlopen only),
+    // which works for libpty_jni.so but blocks executable use of the shells.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
