@@ -6,8 +6,8 @@ package com.chainlesschain.android.feature.localterminal.internal
  * its first sub-phase commit (e.g. Phase 1.1 sets PHASE_1).
  */
 internal object PhaseMarker {
-    const val CURRENT: String = "0.1"
+    const val CURRENT: String = "0.2"
     const val DESCRIPTION: String =
-        "NDK toolchain + module skeleton. Real native binaries (mksh / toybox / " +
-            "termux-exec) and PTY JNI surface land in Phase 0.2-0.4 + 1.1."
+        "mksh R59c vendored + cross-compiled to libmksh.so per ABI via upstream " +
+            "Build.sh. Remaining: toybox (0.3) + termux-exec (0.4) + PTY JNI (1.1)."
 }

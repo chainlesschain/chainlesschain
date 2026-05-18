@@ -14,15 +14,15 @@ import org.junit.Test
  */
 class PhaseMarkerTest {
     @Test
-    fun `current phase is 0_1`() {
-        assertEquals("0.1", PhaseMarker.CURRENT)
+    fun `current phase is 0_2`() {
+        assertEquals("0.2", PhaseMarker.CURRENT)
     }
 
     @Test
-    fun `description mentions skeleton scope`() {
+    fun `description mentions mksh`() {
         assertTrue(
-            "description should mention skeleton scope so future-me knows the marker is still on phase 0.1",
-            PhaseMarker.DESCRIPTION.contains("skeleton", ignoreCase = true)
+            "description should mention mksh so future-me knows the marker is on phase 0.2 (mksh vendored)",
+            PhaseMarker.DESCRIPTION.contains("mksh", ignoreCase = true)
         )
     }
 }
