@@ -19,6 +19,10 @@ import javax.inject.Inject
  *
  * Sub-phase 5-6 fix (2026-05-17): 加 [findPcProjectPathByName] 让 LOCAL 项目设置
  * PC 路径时能从桌面 project.list 查同名项目自动预填。
+ *
+ * Sub-phase 5-6 v2 (2026-05-18): 加 [listPcProjects] 让 LOCAL 项目终端入口直接
+ * 选 PC 项目（避免手输 Windows 长路径）。同名匹配 [findPcProjectPathByName]
+ * 仍保留作建议高亮，但不再是唯一路径。
  */
 @HiltViewModel
 class RemoteContextViewModel @Inject constructor(
@@ -26,6 +30,42 @@ class RemoteContextViewModel @Inject constructor(
     private val rpc: SignalingRpcClient,
 ) : ViewModel() {
     val pairedDesktops: StateFlow<List<PairedDesktop>> = pairedDesktopsStore.devices
+
+    /**
+     * Sub-phase 5-6 v2 (2026-05-18): 拉桌面项目列表用作 picker UI 数据源。
+     * 限制 200 条；只返带 pcRootPath 或 rootPath 的活跃项目（没有路径的项目
+     * 选中也开不了终端，过滤掉避免 dead row）。
+     */
+    suspend fun listPcProjects(pcPeerId: String): List<PcProjectChoice> {
+        if (pcPeerId.isBlank()) return emptyList()
+        return runCatching {
+            val res = rpc.invoke(
+                pcPeerId,
+                "project.list",
+                mapOf("limit" to 200),
+                timeoutMs = 5_000L,
+            )
+            val json = res.getOrNull() ?: return@runCatching emptyList()
+            val arr = json.optJSONArray("projects") ?: return@runCatching emptyList()
+            val out = mutableListOf<PcProjectChoice>()
+            for (i in 0 until arr.length()) {
+                val item = arr.optJSONObject(i) ?: continue
+                val rawPc = if (item.isNull("pcRootPath")) "" else item.optString("pcRootPath", "")
+                val rawRoot = if (item.isNull("rootPath")) "" else item.optString("rootPath", "")
+                val path = rawPc.takeIf { it.isNotBlank() } ?: rawRoot.takeIf { it.isNotBlank() }
+                if (path.isNullOrBlank()) continue
+                out += PcProjectChoice(
+                    id = item.optString("id"),
+                    name = item.optString("name"),
+                    type = item.optString("type", "").takeIf { it.isNotBlank() },
+                    pcRootPath = path,
+                )
+            }
+            Timber.i("[RemoteCtxVM] listPcProjects ok: %d eligible (of %d)", out.size, arr.length())
+            out
+        }.onFailure { Timber.w(it, "[RemoteCtxVM] listPcProjects exception") }
+            .getOrDefault(emptyList())
+    }
 
     /**
      * 调桌面 `project.list` RPC 找同名项目，返其 `pcRootPath`。
@@ -100,3 +140,13 @@ class RemoteContextViewModel @Inject constructor(
         }.onFailure { Timber.w(it, "[RemoteCtxVM] project.updatePath exception") }.getOrDefault(false)
     }
 }
+
+/**
+ * Sub-phase 5-6 v2 (2026-05-18): PC 项目 picker dialog 单 row 数据。
+ */
+data class PcProjectChoice(
+    val id: String,
+    val name: String,
+    val type: String? = null,
+    val pcRootPath: String,
+)

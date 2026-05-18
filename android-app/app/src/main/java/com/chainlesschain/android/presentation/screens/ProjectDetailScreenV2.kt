@@ -103,13 +103,19 @@ fun ProjectDetailScreenV2(
     }
     val pcRootPathForTerminal: String? = currentProject?.pcRootPath
 
-    // Sub-phase 5-6 fix (2026-05-17): LOCAL 项目（pcRootPath=null）打开远程终端前
-    // 弹框让用户填 PC 端工作目录。无此 gate 时桌面 PtyManager fallback 到
-    // process.cwd()，落 Electron 启动目录（如 desktop-app-vue/）与项目无关。
-    // 弹框时异步调桌面 project.list 找同名项目自动预填路径（lookup 期间显示提示）。
+    // Sub-phase 5-6 v2 (2026-05-18): LOCAL 项目（pcRootPath=null）打开远程终端前
+    // 弹 PC 项目 picker 让用户从桌面已有项目中选一个；选完保存其 pcRootPath
+    // 到本地 + push 回桌面 + 自动跳终端。同名匹配 [findPcProjectPathByName]
+    // 仍保留作"建议"高亮。
+    // 兜底"自定义路径"折叠区可手输（之前唯一路径，现在 fallback）。
     var showPcPathDialog by remember { mutableStateOf(false) }
     var pendingPcPath by remember { mutableStateOf("") }
     var isLookingUpPcPath by remember { mutableStateOf(false) }
+    var pcProjects by remember { mutableStateOf<List<com.chainlesschain.android.presentation.screens.helper.PcProjectChoice>?>(null) }
+    var pcProjectsLoading by remember { mutableStateOf(false) }
+    var pcProjectsError by remember { mutableStateOf<String?>(null) }
+    var suggestedProjectId by remember { mutableStateOf<String?>(null) }
+    var showCustomPathInput by remember { mutableStateOf(false) }
     val pcPathLookupScope = rememberCoroutineScope()
     // 一次性 diag log，logcat tag=ProjectDetail 用来对照真值
     LaunchedEffect(currentProject?.id, pairedDesktops.size) {
@@ -131,17 +137,36 @@ fun ProjectDetailScreenV2(
                 onNavigateToRemoteTerminal = pcPeerIdForTerminal?.let { peerId ->
                     {
                         if (pcRootPathForTerminal.isNullOrBlank()) {
+                            // 重置 dialog state；picker 异步加载
                             pendingPcPath = ""
+                            showCustomPathInput = false
+                            pcProjects = null
+                            pcProjectsError = null
+                            suggestedProjectId = null
+                            isLookingUpPcPath = false
                             showPcPathDialog = true
-                            // 异步查桌面同名项目预填路径。currentProject 在弹框时一定非空
-                            // （icon gate 已保证），用 name 当 lookup key。
+
+                            // 并发加载 PC 项目列表 + 异步 lookup 同名项目作建议
+                            pcProjectsLoading = true
+                            pcPathLookupScope.launch {
+                                val list = remoteContextViewModel.listPcProjects(peerId)
+                                pcProjects = list
+                                pcProjectsLoading = false
+                                if (list.isEmpty()) {
+                                    pcProjectsError = "桌面没有可用项目（缺 rootPath）；用下方自定义路径"
+                                    showCustomPathInput = true
+                                }
+                            }
                             currentProject?.name?.takeIf { it.isNotBlank() }?.let { pname ->
                                 isLookingUpPcPath = true
                                 pcPathLookupScope.launch {
                                     val found = remoteContextViewModel
                                         .findPcProjectPathByName(peerId, pname)
-                                    if (!found.isNullOrBlank() && pendingPcPath.isBlank()) {
-                                        pendingPcPath = found
+                                    if (!found.isNullOrBlank()) {
+                                        // 高亮同名项目而非 prefill 输入框 — UX 更明确
+                                        pcProjects?.firstOrNull { it.pcRootPath == found || it.name == pname }
+                                            ?.let { suggestedProjectId = it.id }
+                                        if (pendingPcPath.isBlank()) pendingPcPath = found
                                     }
                                     isLookingUpPcPath = false
                                 }
@@ -274,70 +299,192 @@ fun ProjectDetailScreenV2(
         }
     }
 
-    // Sub-phase 5-6 fix (2026-05-17): LOCAL 项目 PC 路径补填弹框。
+    // Sub-phase 5-6 v2 (2026-05-18): LOCAL 项目 PC 工作目录 picker。
+    // 优先 picker（tap row 直接保存 + 跳）；自定义路径折叠区作 fallback。
     val peerIdForDialog = pcPeerIdForTerminal
     if (showPcPathDialog && peerIdForDialog != null) {
         AlertDialog(
             onDismissRequest = { showPcPathDialog = false },
-            title = { Text("设置 PC 工作目录") },
+            title = { Text("选择 PC 工作目录") },
             text = {
-                Column {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "本地项目暂无 PC 端对应路径。请输入桌面上要打开的目录" +
-                            "（例如 C:\\code\\my-project 或 /home/user/proj）。",
+                        "本地项目暂无 PC 端对应路径。请从下方桌面项目中选一个，或展开\"自定义路径\"手输。",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (isLookingUpPcPath) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(8.dp))
+                            CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(6.dp))
                             Text(
-                                "正在从桌面查找同名项目…",
-                                style = MaterialTheme.typography.bodySmall,
+                                "正在匹配同名项目…",
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline,
                             )
                         }
-                    } else if (pendingPcPath.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
+                    }
+                    Spacer(Modifier.height(10.dp))
+
+                    // ===== PC 项目 picker =====
+                    when {
+                        pcProjectsLoading -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("加载桌面项目列表…", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        pcProjectsError != null -> {
+                            Text(
+                                pcProjectsError!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        pcProjects != null -> {
+                            val items = pcProjects!!.sortedByDescending { it.id == suggestedProjectId }
+                            if (items.isEmpty()) {
+                                Text(
+                                    "桌面没有可选项目（list 为空），请展开下方自定义路径手输。",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            } else {
+                                Text(
+                                    "桌面项目（${items.size}）",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 280.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    items(items, key = { it.id }) { proj ->
+                                        val isSuggested = proj.id == suggestedProjectId
+                                        OutlinedCard(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    // tap row → 保存 + 跳终端
+                                                    viewModel.updatePcRootPath(
+                                                        projectId,
+                                                        proj.pcRootPath,
+                                                    ) { savedPath ->
+                                                        showPcPathDialog = false
+                                                        pcPathLookupScope.launch {
+                                                            remoteContextViewModel.pushPcRootPathToDesktop(
+                                                                peerIdForDialog,
+                                                                projectId,
+                                                                savedPath,
+                                                            )
+                                                        }
+                                                        onNavigateToRemoteTerminal(peerIdForDialog, savedPath)
+                                                    }
+                                                },
+                                            colors = if (isSuggested) {
+                                                CardDefaults.outlinedCardColors(
+                                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                                        .copy(alpha = 0.4f),
+                                                )
+                                            } else CardDefaults.outlinedCardColors(),
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        proj.name.ifBlank { "(未命名)" },
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Medium,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f),
+                                                    )
+                                                    if (isSuggested) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                        ) {
+                                                            Text(
+                                                                "同名",
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Text(
+                                                    proj.pcRootPath,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    // ===== 自定义路径 fallback =====
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showCustomPathInput = !showCustomPathInput },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            if (showCustomPathInput) Icons.Default.KeyboardArrowDown
+                            else Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                        )
                         Text(
-                            "已根据项目名 \"${currentProject?.name.orEmpty()}\" 自动预填，可修改。",
-                            style = MaterialTheme.typography.bodySmall,
+                            "自定义路径",
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline,
                         )
                     }
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = pendingPcPath,
-                        onValueChange = { pendingPcPath = it },
-                        label = { Text("PC 路径") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    if (showCustomPathInput) {
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = pendingPcPath,
+                            onValueChange = { pendingPcPath = it },
+                            label = { Text("PC 路径") },
+                            placeholder = { Text("C:\\code\\my-project 或 /home/user/proj") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(
-                    enabled = pendingPcPath.isNotBlank(),
-                    onClick = {
-                        viewModel.updatePcRootPath(projectId, pendingPcPath) { savedPath ->
-                            showPcPathDialog = false
-                            // 双向同步：fire-and-forget 推到桌面 projects.pc_root_path。
-                            // 失败 silent — 不阻塞本地保存 + 终端打开。
-                            pcPathLookupScope.launch {
-                                remoteContextViewModel.pushPcRootPathToDesktop(
-                                    peerIdForDialog,
-                                    projectId,
-                                    savedPath,
-                                )
+                if (showCustomPathInput) {
+                    TextButton(
+                        enabled = pendingPcPath.isNotBlank(),
+                        onClick = {
+                            viewModel.updatePcRootPath(projectId, pendingPcPath) { savedPath ->
+                                showPcPathDialog = false
+                                pcPathLookupScope.launch {
+                                    remoteContextViewModel.pushPcRootPathToDesktop(
+                                        peerIdForDialog,
+                                        projectId,
+                                        savedPath,
+                                    )
+                                }
+                                onNavigateToRemoteTerminal(peerIdForDialog, savedPath)
                             }
-                            onNavigateToRemoteTerminal(peerIdForDialog, savedPath)
-                        }
-                    },
-                ) { Text("保存并打开") }
+                        },
+                    ) { Text("使用此路径") }
+                } else {
+                    Spacer(Modifier.size(0.dp))
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showPcPathDialog = false }) { Text("取消") }

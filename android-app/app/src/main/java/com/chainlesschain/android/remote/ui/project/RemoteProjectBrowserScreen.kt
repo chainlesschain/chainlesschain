@@ -65,6 +65,7 @@ fun RemoteProjectBrowserScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val pullingId by viewModel.pullingId.collectAsState()
+    val pullProgress by viewModel.pullProgress.collectAsState()
 
     LaunchedEffect(userId) {
         viewModel.loadProjects(userId)
@@ -99,9 +100,11 @@ fun RemoteProjectBrowserScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(s.items, key = { it.remote.id }) { item ->
+                            val isPulling = pullingId == item.remote.id
                             ProjectRow(
                                 item = item,
-                                isPulling = pullingId == item.remote.id,
+                                isPulling = isPulling,
+                                progress = pullProgress.takeIf { isPulling },
                                 onPull = {
                                     viewModel.pullProject(item.remote.id, userId, onProjectPulled)
                                 },
@@ -131,6 +134,7 @@ fun RemoteProjectBrowserScreen(
 private fun ProjectRow(
     item: BrowserItem,
     isPulling: Boolean,
+    progress: PullProgress?,
     onPull: () -> Unit,
 ) {
     Card(
@@ -143,59 +147,72 @@ private fun ProjectRow(
             },
         ),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Default.Folder,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    item.remote.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp),
                 )
-                item.remote.description?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        item.remote.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         overflow = TextOverflow.Ellipsis,
-                        maxLines = 2,
+                        maxLines = 1,
+                    )
+                    item.remote.description?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 2,
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "${item.remote.type} · ${item.remote.fileCount ?: 0} 文件" +
+                            (item.remote.totalSize?.let { " · ${formatSize(it)}" } ?: ""),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Spacer(Modifier.width(12.dp))
+                if (item.alreadyLocal) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "已在本地",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                } else if (isPulling) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    Button(onClick = onPull) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("拉取")
+                    }
+                }
+            }
+            // v2 (2026-05-18): pull 进度条 + 当前文件名
+            if (isPulling && progress != null && progress.total > 0) {
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { (progress.currentIdx + 1f) / progress.total },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${item.remote.type} · ${item.remote.fileCount ?: 0} 文件" +
-                        (item.remote.totalSize?.let { " · ${formatSize(it)}" } ?: ""),
+                    "下载文件 ${progress.currentIdx + 1}/${progress.total}: ${progress.currentFile}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-            Spacer(Modifier.width(12.dp))
-            if (item.alreadyLocal) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = "已在本地",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            } else if (isPulling) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-            } else {
-                Button(onClick = onPull) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("拉取")
-                }
             }
         }
     }

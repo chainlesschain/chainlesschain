@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ProjectEntity
+import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.remote.commands.ProjectCommands
@@ -25,11 +26,15 @@ import javax.inject.Inject
  * 责任：
  *   - 调 ProjectCommands.list 拉桌面项目元数据
  *   - client-side dedup：与本地 ProjectDao 求交集，标 "已在本地" vs "未拉取"
- *   - tap "拉取" → pullSingle → 写本地 ProjectEntity（source=FROM_PC）
+ *   - tap "拉取" → pullSingle → 写本地 ProjectEntity（source=FROM_PC）+ 循环
+ *     project.getFile 拉所有文件内容写 ProjectFileEntity（v2 2026-05-18）
  *   - 进度状态 + 错误处理（rate-limited / userId 不匹配 / 离线）
  *
- * 文件内容拉取（含 chunked download）由 Sub-phase 7 FileTransferRepository 负责，
- * 本 VM 仅触发后导航或返回。
+ * v2 (2026-05-18): "全量项目内容拉取" — pullSingle 之后循环 getFile 把每个文件
+ * 真内容存进 Room project_files 表，让 ProjectDetailScreenV2 离线也能看到文件。
+ * v0.1 简化：单文件 size 上限走桌面默认 5000 row + 1000 preview-only；超大文件
+ * (>1MB content) skip + 标 isEncrypted=false 占位 row 让用户后续从 PC 端编辑器
+ * 直接操作。单文件失败不阻塞整体（log warn + continue next）。
  */
 @HiltViewModel
 class RemoteProjectBrowserViewModel @Inject constructor(
@@ -42,6 +47,10 @@ class RemoteProjectBrowserViewModel @Inject constructor(
 
     private val _pullingId = MutableStateFlow<String?>(null)
     val pullingId: StateFlow<String?> = _pullingId.asStateFlow()
+
+    /** v2: 文件内容下载进度 (当前 idx / 总数 / 当前文件名)。pulling 时非 null。 */
+    private val _pullProgress = MutableStateFlow<PullProgress?>(null)
+    val pullProgress: StateFlow<PullProgress?> = _pullProgress.asStateFlow()
 
     /**
      * 加载桌面项目列表 + 本地 dedup。
@@ -120,6 +129,49 @@ class RemoteProjectBrowserViewModel @Inject constructor(
                     "[RemoteProjectBrowserVM] pulled project ${remote.id} (${response.filesCount} files)" +
                         if (response.filesPreviewOnly) " [preview-only, files require pagination]" else "",
                 )
+
+                // v2 (2026-05-18): 循环 getFile 真拉文件内容存 Room
+                val files = response.files
+                if (files.isNotEmpty()) {
+                    _pullProgress.value = PullProgress(0, files.size, files.first().path)
+                    var ok = 0
+                    var skipped = 0
+                    files.forEachIndexed { idx, file ->
+                        _pullProgress.value = PullProgress(idx, files.size, file.path)
+                        try {
+                            val result = projectCommands.getFile(file.id)
+                            val fileRes = result.getOrNull()
+                            if (fileRes == null) {
+                                Timber.w(
+                                    result.exceptionOrNull(),
+                                    "[RemoteProjectBrowserVM] getFile ${file.path} failed",
+                                )
+                                skipped++
+                                return@forEachIndexed
+                            }
+                            // size 软上限 1 MB content（防 OOM 单文件拉巨型 binary）
+                            val rawContent = fileRes.content
+                            val safeContent = if (rawContent != null && rawContent.length > 1_048_576) {
+                                Timber.w("[RemoteProjectBrowserVM] skip content ${file.path}: ${rawContent.length} chars > 1MB")
+                                null
+                            } else rawContent
+                            projectDao.insertFile(remoteFileToEntity(file, remote.id, fileRes, safeContent))
+                            ok++
+                        } catch (e: Exception) {
+                            Timber.w(e, "[RemoteProjectBrowserVM] getFile ${file.path} exception, continuing")
+                            skipped++
+                        }
+                    }
+                    Timber.i("[RemoteProjectBrowserVM] downloaded $ok/${files.size} files content (skipped $skipped)")
+                    // 更新 metadata pullState 为 "files_downloaded"
+                    projectDao.insertProject(
+                        entity.copy(
+                            metadata = buildMetadataWithPullState(remote.metadata, pullState = "files_downloaded"),
+                        ),
+                    )
+                }
+                _pullProgress.value = null
+
                 onPulled(remote.id)
                 // 刷新列表 dedup（"已拉取" badge 显示）
                 loadProjects(userId)
@@ -128,8 +180,47 @@ class RemoteProjectBrowserViewModel @Inject constructor(
                 _state.value = BrowserState.Error(e.message ?: "未知错误")
             } finally {
                 _pullingId.value = null
+                _pullProgress.value = null
             }
         }
+    }
+
+    /**
+     * v2 (2026-05-18): 把 pullSingle 返的 RemoteProjectFile + getFile 返的 content 合并
+     * 成本地 ProjectFileEntity。
+     *
+     * - parentId=null（v0.1 不重建 folder 树；ProjectDetailScreenV2 用 path 渲染 flat 列表）
+     * - extension 从 path 后缀推断
+     * - hash 从 pullSingle 的 file.hash（content_hash 哈希值）
+     */
+    private fun remoteFileToEntity(
+        file: com.chainlesschain.android.remote.commands.RemoteProjectFile,
+        projectId: String,
+        full: com.chainlesschain.android.remote.commands.RemoteFileFull,
+        content: String?,
+    ): ProjectFileEntity {
+        val name = file.path.substringAfterLast('/').substringAfterLast('\\')
+        val ext = name.substringAfterLast('.', "").takeIf { it.isNotBlank() }
+        val now = System.currentTimeMillis()
+        return ProjectFileEntity(
+            id = file.id,
+            projectId = projectId,
+            parentId = null,
+            name = name.ifBlank { file.path },
+            path = file.path,
+            type = "file",
+            mimeType = null,
+            size = file.size,
+            extension = ext,
+            content = content,
+            isEncrypted = false,
+            hash = file.hash,
+            isOpen = false,
+            isDirty = false,
+            createdAt = full.createdAt.takeIf { it > 0 } ?: now,
+            updatedAt = full.updatedAt.takeIf { it > 0 } ?: file.updatedAt.takeIf { it > 0 } ?: now,
+            lastAccessedAt = null,
+        )
     }
 
     /**
@@ -219,4 +310,15 @@ sealed class BrowserState {
 data class BrowserItem(
     val remote: RemoteProjectItem,
     val alreadyLocal: Boolean,
+)
+
+/**
+ * v2 (2026-05-18): 文件内容拉取进度。
+ * - currentIdx 0-based；UI 显示用 currentIdx+1
+ * - currentFile 当前正在下载的文件路径（用于 UI 显示）
+ */
+data class PullProgress(
+    val currentIdx: Int,
+    val total: Int,
+    val currentFile: String,
 )
