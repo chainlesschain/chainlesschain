@@ -448,6 +448,58 @@ public actor AIExtendedCommands {
         )
     }
 
+    // MARK: - Agent streaming (v0.3)
+    //
+    // 复用 AIChat 的 StreamStartResponse / StreamChunkResponse 模型 — 桌面端
+    // activeStreams Map 是 streamId-agnostic，chat / agent 共用一套协议。
+
+    /// 启动 agent 流式运行，返 `streamId`。后续调 [getAgentStreamChunk] 轮询拉
+    /// 增量 chunks；调 [cancelAgentStream] 取消（与 chat stream 共用桌面 store）。
+    public func runAgentStream(
+        pcPeerId: String, agentId: String, input: String,
+        options: [String: String]? = nil, mobileDid: String? = nil
+    ) async throws -> StreamStartResponse {
+        guard !agentId.isEmpty else {
+            throw RemoteSkillError.invalidArgument("ai.runAgentStream: agentId empty")
+        }
+        var params: [String: Any] = ["agentId": agentId, "input": input]
+        if let o = options { params["options"] = o }
+        return try await invokeAndDecode(
+            pcPeerId: pcPeerId, method: "ai.runAgentStream",
+            params: params, mobileDid: mobileDid,
+            decoder: StreamStartResponse.decode
+        )
+    }
+
+    /// 轮询 agent stream chunks（method 名与 chat 用的 `ai.getStreamChunk` 同 —
+    /// 桌面 activeStreams 不区分来源）。
+    public func getAgentStreamChunk(
+        pcPeerId: String, streamId: String, sinceChunk: Int = 0,
+        mobileDid: String? = nil
+    ) async throws -> StreamChunkResponse {
+        guard !streamId.isEmpty else {
+            throw RemoteSkillError.invalidArgument("ai.getStreamChunk streamId empty")
+        }
+        return try await invokeAndDecode(
+            pcPeerId: pcPeerId, method: "ai.getStreamChunk",
+            params: ["streamId": streamId, "sinceChunk": sinceChunk],
+            mobileDid: mobileDid, decoder: StreamChunkResponse.decode
+        )
+    }
+
+    public func cancelAgentStream(
+        pcPeerId: String, streamId: String, mobileDid: String? = nil
+    ) async throws -> CancelStreamResponse {
+        guard !streamId.isEmpty else {
+            throw RemoteSkillError.invalidArgument("ai.cancelStream streamId empty")
+        }
+        return try await invokeAndDecode(
+            pcPeerId: pcPeerId, method: "ai.cancelStream",
+            params: ["streamId": streamId],
+            mobileDid: mobileDid, decoder: CancelStreamResponse.decode
+        )
+    }
+
     // MARK: - 内部
 
     private func invokeAndDecode<T>(

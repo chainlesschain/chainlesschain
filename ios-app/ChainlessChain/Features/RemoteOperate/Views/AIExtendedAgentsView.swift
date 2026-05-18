@@ -119,11 +119,18 @@ struct AIExtendedAgentsView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(8)
 
+            Toggle(isOn: $viewModel.agentStreamEnabled) {
+                Label("流式输出 (v0.3)", systemImage: "waveform.path.ecg")
+                    .font(.caption)
+            }
+            .toggleStyle(.switch)
+            .disabled(viewModel.agentRunning)
+
             HStack {
                 Button {
                     Task { await viewModel.runSelectedAgent() }
                 } label: {
-                    if viewModel.agentRunning {
+                    if viewModel.agentRunning && !viewModel.agentStreamEnabled {
                         ProgressView()
                     } else {
                         Label("执行", systemImage: "play.fill")
@@ -132,7 +139,8 @@ struct AIExtendedAgentsView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(viewModel.agentRunning || viewModel.selectedAgent == nil)
 
-                if viewModel.agentRun != nil {
+                if viewModel.agentRun != nil
+                    && (!viewModel.agentStreamEnabled || !viewModel.agentStreamComplete) {
                     Button {
                         Task { await viewModel.stopCurrentAgentRun() }
                     } label: {
@@ -149,11 +157,24 @@ struct AIExtendedAgentsView: View {
 
     private var runResultSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("运行结果").font(.headline)
+            HStack {
+                Text("运行结果").font(.headline)
+                if viewModel.agentStreamEnabled && !viewModel.agentStreamComplete
+                    && viewModel.agentStreamId != nil {
+                    // 流式进行中 — 闪烁点指示
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.blue).frame(width: 8, height: 8)
+                            .opacity(0.6)
+                        Text("流式接收中…").font(.caption).foregroundColor(.blue)
+                    }
+                }
+                Spacer()
+            }
             if let run = viewModel.agentRun {
                 HStack {
                     if let id = run.runId {
-                        Text("Run ID: \(id)").font(.caption).foregroundColor(.secondary)
+                        Text("Run ID: \(id)").font(.caption2).foregroundColor(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
                     }
                     Spacer()
                     Text(run.status)
@@ -163,9 +184,13 @@ struct AIExtendedAgentsView: View {
                         .foregroundColor(statusColor(run.status))
                         .cornerRadius(4)
                 }
-                if let output = run.output, !output.isEmpty {
+                // v0.3 streaming: 优先显累积的 streamOutput；fallback 用 run.output
+                let displayed: String = viewModel.agentStreamEnabled
+                    ? viewModel.agentStreamOutput
+                    : (run.output ?? "")
+                if !displayed.isEmpty {
                     ScrollView {
-                        Text(output)
+                        Text(displayed)
                             .font(.system(.body, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
@@ -174,10 +199,17 @@ struct AIExtendedAgentsView: View {
                             .textSelection(.enabled)
                     }
                     .frame(maxHeight: 300)
-                } else {
-                    Text("(无输出 — 可能 streaming 模式，留 v0.3 支持)")
-                        .font(.caption).foregroundColor(.secondary)
+                } else if viewModel.agentStreamEnabled && !viewModel.agentStreamComplete {
+                    Text("等待第一个 chunk…").font(.caption).foregroundColor(.secondary)
                         .padding(.vertical, 8)
+                } else {
+                    Text("(无输出)").font(.caption).foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                }
+                if let err = viewModel.agentStreamError {
+                    Text("⚠️ \(err)")
+                        .font(.caption).foregroundColor(.red)
+                        .padding(.top, 4)
                 }
             }
         }

@@ -308,6 +308,11 @@ class AICommandHandler {
       case "stopAgent":
         return await this.stopAgent(params, context);
 
+      // Phase 6.4 v0.3 — Agent streaming
+      // 启动后返 streamId，iOS 用既有 getStreamChunk / cancelStream 轮询（与 chat 同管道）
+      case "runAgentStream":
+        return await this.runAgentStream(params, context);
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -1918,6 +1923,93 @@ class AICommandHandler {
       agentId: agentId || null,
       stopped: true,
     };
+  }
+
+  // ============================================================================
+  // Phase 6.4 v0.3 — Agent streaming
+  // ============================================================================
+
+  /**
+   * 启动 agent 流式运行。返 `{streamId, agentId}`，iOS 端用既有 `getStreamChunk`
+   * 轮询 `activeStreams.get(streamId)` 看 chunks（与 chat stream 共用一套 Map +
+   * 协议；`getStreamChunk` / `cancelStream` 已是 streamId-agnostic）。
+   *
+   * agent manager 接口契约：必须 `agents.runStream(agentId, input, options, onChunk)`
+   * 或 `agents.run` 配合 onChunk callback。缺则 fallback 到非流式 `runAgent` 一次
+   * 性返回（iOS UI 会一次性显示）。
+   *
+   * **错误降级**：缺 manager → throw（mutating action 不能 silent）。
+   */
+  async runAgentStream(params, _context) {
+    const { agentId, input, options = {} } = params;
+    if (!agentId) {
+      throw new Error("agentId is required");
+    }
+    if (input === undefined || input === null) {
+      throw new Error("input is required");
+    }
+    const mgr = this._getAgentManager();
+    if (!mgr) {
+      throw new Error("Agent manager not available");
+    }
+
+    const streamId = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const streamState = {
+      chunks: [],
+      done: false,
+      cancelled: false,
+      error: null,
+      agentId,
+      startedAt: Date.now(),
+    };
+    this.activeStreams.set(streamId, streamState);
+
+    // 异步跑 agent；不 await（让响应立即返 streamId）
+    (async () => {
+      const onChunk = (text) => {
+        if (streamState.cancelled) {
+          return;
+        }
+        if (typeof text === "string" && text.length > 0) {
+          streamState.chunks.push(text);
+        } else if (
+          text &&
+          typeof text === "object" &&
+          typeof text.content === "string"
+        ) {
+          // 兼容 {content, ...} chunk 格式
+          streamState.chunks.push(text.content);
+        }
+      };
+      try {
+        if (typeof mgr.runStream === "function") {
+          await mgr.runStream(agentId, input, options, onChunk);
+        } else if (typeof mgr.run === "function") {
+          // fallback：调老 run，把完整 output 当一个 chunk 推
+          const result = await mgr.run(agentId, input, { ...options, onChunk });
+          const out = result?.output || result?.result;
+          if (
+            typeof out === "string" &&
+            out.length > 0 &&
+            streamState.chunks.length === 0
+          ) {
+            streamState.chunks.push(out);
+          }
+        } else {
+          throw new Error("agentManager has no runStream or run method");
+        }
+      } catch (err) {
+        if (!streamState.cancelled) {
+          streamState.error = String(err.message || err);
+        }
+      } finally {
+        streamState.done = true;
+        // 5 min 后清理（与 chat stream 一致）
+        setTimeout(() => this.activeStreams.delete(streamId), 5 * 60 * 1000);
+      }
+    })();
+
+    return { success: true, streamId, agentId };
   }
 }
 

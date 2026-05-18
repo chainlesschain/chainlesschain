@@ -405,4 +405,131 @@ final class RemoteAIExtendedViewModelTests: XCTestCase {
         XCTAssertEqual(s.transport.dcSent.count, 0)
         s.transport.lock.unlock()
     }
+
+    // MARK: - v0.3 Agent streaming
+
+    /// 等 dcSent 累到指定 count 然后返回 send 序号；不超时即返
+    private func waitForSendCount(_ s: Setup, count: Int, timeoutMs: Int = 800) async -> Bool {
+        let steps = timeoutMs / 10
+        for _ in 0..<steps {
+            s.transport.lock.lock()
+            let n = s.transport.dcSent.count
+            s.transport.lock.unlock()
+            if n >= count { return true }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        return false
+    }
+
+    func testRunStreamEnabledRoutesToRunAgentStream() async throws {
+        let s = await makeSetup()
+        s.vm.agentStreamEnabled = true
+        s.vm.agentStreamPollIntervalNs = 5_000_000  // 5ms 快测试
+        s.vm.selectedAgent = AgentInfo(id: "a1", name: "Stream")
+        s.vm.agentInput = "go"
+        let task = Task { await s.vm.runSelectedAgent() }
+        // 第 1 个 send: runAgentStream
+        try await waitForSend(s, count: 1)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.runAgentStream")
+        let startId = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: startId, result: [
+            "streamId": "agent_xyz", "agentId": "a1"
+        ])
+        // 等任务进入 poll loop 发第 2 个 send
+        _ = await waitForSendCount(s, count: 2)
+        // 完成 task — 第 1 个 poll 即 isComplete=true 退出
+        let pollId = try reqIdFrom(s.transport.dcSent[1])
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[1]), "ai.getStreamChunk")
+        try respond(s.inbound, reqId: pollId, result: [
+            "chunks": ["Hello", " world"],
+            "isComplete": true, "nextChunkIdx": 2
+        ])
+        await task.value
+        // 给后台 task 完成 + UI 更新一点时间
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(s.vm.agentStreamOutput, "Hello world")
+        XCTAssertTrue(s.vm.agentStreamComplete)
+        XCTAssertEqual(s.vm.agentStreamId, "agent_xyz")
+        XCTAssertEqual(s.vm.agentRun?.status, "complete")
+    }
+
+    func testRunStreamMultiplePollsAccumulateChunks() async throws {
+        let s = await makeSetup()
+        s.vm.agentStreamEnabled = true
+        s.vm.agentStreamPollIntervalNs = 5_000_000
+        s.vm.selectedAgent = AgentInfo(id: "a1")
+        s.vm.agentInput = "x"
+        let task = Task { await s.vm.runSelectedAgent() }
+        try await waitForSend(s, count: 1)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[0]), result: [
+            "streamId": "sid", "agentId": "a1"
+        ])
+        // poll 1: chunks A
+        _ = await waitForSendCount(s, count: 2)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[1]), result: [
+            "chunks": ["A"], "isComplete": false, "nextChunkIdx": 1
+        ])
+        // poll 2: chunks B
+        _ = await waitForSendCount(s, count: 3)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[2]), result: [
+            "chunks": ["B"], "isComplete": false, "nextChunkIdx": 2
+        ])
+        // poll 3: chunks C + complete
+        _ = await waitForSendCount(s, count: 4)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[3]), result: [
+            "chunks": ["C"], "isComplete": true, "nextChunkIdx": 3
+        ])
+        await task.value
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(s.vm.agentStreamOutput, "ABC")
+        XCTAssertTrue(s.vm.agentStreamComplete)
+    }
+
+    func testStopStreamingRunCancelsTaskAndCallsCancelStream() async throws {
+        let s = await makeSetup()
+        s.vm.agentStreamEnabled = true
+        s.vm.agentStreamPollIntervalNs = 5_000_000
+        s.vm.selectedAgent = AgentInfo(id: "a1")
+        let task = Task { await s.vm.runSelectedAgent() }
+        try await waitForSend(s, count: 1)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[0]), result: [
+            "streamId": "sid-cancel", "agentId": "a1"
+        ])
+        _ = await waitForSendCount(s, count: 2)
+        // 不响应 poll — 用户中途 stop
+        await s.vm.stopCurrentAgentRun()
+        // stop 应触发 ai.cancelStream send
+        _ = await waitForSendCount(s, count: 3)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[2]), "ai.cancelStream")
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[2]), result: [
+            "cancelled": true
+        ])
+        // 关 runSelectedAgent task 任务 (它在等 poll 响应，task.cancel 之前需要 timeout)
+        // 这里不再 await task.value 防 hang — VM 内部状态 already updated
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(s.vm.agentStreamComplete)
+        XCTAssertEqual(s.vm.agentRun?.status, "stopped")
+        task.cancel()
+    }
+
+    func testRunStreamErrorFromGetStreamChunkSetsError() async throws {
+        let s = await makeSetup()
+        s.vm.agentStreamEnabled = true
+        s.vm.agentStreamPollIntervalNs = 5_000_000
+        s.vm.selectedAgent = AgentInfo(id: "a1")
+        let task = Task { await s.vm.runSelectedAgent() }
+        try await waitForSend(s, count: 1)
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[0]), result: [
+            "streamId": "sid-err", "agentId": "a1"
+        ])
+        _ = await waitForSendCount(s, count: 2)
+        // 桌面回 isComplete=true + error 字段
+        try respond(s.inbound, reqId: try reqIdFrom(s.transport.dcSent[1]), result: [
+            "chunks": [], "isComplete": true, "error": "agent crashed", "nextChunkIdx": 0
+        ])
+        await task.value
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(s.vm.agentStreamError, "agent crashed")
+        XCTAssertEqual(s.vm.agentRun?.status, "failed")
+    }
 }

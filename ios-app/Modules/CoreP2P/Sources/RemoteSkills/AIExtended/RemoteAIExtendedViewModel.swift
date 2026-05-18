@@ -315,6 +315,16 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
     @Published public var agentRun: RunAgentResponse?
     @Published public var agentRunning: Bool = false
 
+    // v0.3 streaming
+    @Published public var agentStreamEnabled: Bool = true   // 默认开
+    @Published public var agentStreamOutput: String = ""
+    @Published public var agentStreamId: String?
+    @Published public var agentStreamComplete: Bool = false
+    @Published public var agentStreamError: String?
+    private var agentStreamTask: Task<Void, Never>?
+    /// 测试 hook — 调小 polling 间隔。生产 250ms ≈ 4Hz UI 更新。
+    public var agentStreamPollIntervalNs: UInt64 = 250_000_000
+
     public func loadAgents() async {
         agentsLoading = true; errorMessage = nil
         defer { agentsLoading = false }
@@ -336,6 +346,11 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
         guard let a = selectedAgent else {
             errorMessage = "请先选择 agent"; return
         }
+        // v0.3：streaming 模式走分支
+        if agentStreamEnabled {
+            await runSelectedAgentStream(agent: a)
+            return
+        }
         agentRunning = true; errorMessage = nil
         defer { agentRunning = false }
         guard let pc = await pcPeerIdProvider() else {
@@ -352,9 +367,109 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
         }
     }
 
+    /// v0.3 — 流式跑 agent：runAgentStream → 后台轮询 getAgentStreamChunk
+    /// 累积 chunks 到 `agentStreamOutput`，直到 isComplete=true 退出。
+    /// 用户调 [stopCurrentAgentRun] 时 cancel 任务 + 调 cancelAgentStream。
+    private func runSelectedAgentStream(agent: AgentInfo) async {
+        agentRunning = true; errorMessage = nil
+        agentStreamOutput = ""
+        agentStreamComplete = false
+        agentStreamError = nil
+        agentStreamId = nil
+        agentRun = nil
+        defer { agentRunning = false }
+
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+
+        let startResp: StreamStartResponse
+        do {
+            startResp = try await commands.runAgentStream(
+                pcPeerId: pc, agentId: agent.id, input: agentInput
+            )
+        } catch {
+            self.errorMessage = String(describing: error)
+            return
+        }
+        let streamId = startResp.streamId
+        self.agentStreamId = streamId
+        // 占位 agentRun 让 UI 显示 status/Stop 按钮
+        self.agentRun = RunAgentResponse(
+            agentId: agent.id, runId: streamId, status: "streaming"
+        )
+
+        agentStreamTask = Task { [weak self] in
+            guard let self = self else { return }
+            var sinceChunk = 0
+            let pollInterval = await self.agentStreamPollIntervalNs
+            while !Task.isCancelled {
+                let resp: StreamChunkResponse
+                do {
+                    resp = try await self.commands.getAgentStreamChunk(
+                        pcPeerId: pc, streamId: streamId, sinceChunk: sinceChunk
+                    )
+                } catch {
+                    await MainActor.run {
+                        self.agentStreamError = String(describing: error)
+                        self.agentStreamComplete = true
+                    }
+                    return
+                }
+                // 累积新 chunks
+                if !resp.chunks.isEmpty {
+                    let added = resp.chunks.joined()
+                    await MainActor.run {
+                        self.agentStreamOutput += added
+                    }
+                    sinceChunk = resp.nextChunkIdx
+                }
+                if resp.isComplete {
+                    await MainActor.run {
+                        self.agentStreamComplete = true
+                        if let err = resp.error, !err.isEmpty {
+                            self.agentStreamError = err
+                        }
+                        // 同步 agentRun.status 用于 UI 颜色
+                        if let cur = self.agentRun {
+                            self.agentRun = RunAgentResponse(
+                                agentId: cur.agentId,
+                                runId: cur.runId,
+                                status: resp.error != nil ? "failed" : "complete",
+                                output: self.agentStreamOutput
+                            )
+                        }
+                    }
+                    return
+                }
+                try? await Task.sleep(nanoseconds: pollInterval)
+            }
+        }
+    }
+
     public func stopCurrentAgentRun() async {
         guard let run = agentRun else { return }
         guard let pc = await pcPeerIdProvider() else { return }
+
+        // v0.3 streaming 模式：先 cancel 任务 + 调 cancelAgentStream
+        if let streamId = agentStreamId, !agentStreamComplete {
+            agentStreamTask?.cancel()
+            agentStreamTask = nil
+            do {
+                _ = try await commands.cancelAgentStream(pcPeerId: pc, streamId: streamId)
+            } catch {
+                // 忽略 cancel 错误 — 用户意图是停
+            }
+            self.agentStreamComplete = true
+            if let cur = agentRun {
+                self.agentRun = RunAgentResponse(
+                    agentId: cur.agentId, runId: cur.runId,
+                    status: "stopped", output: agentStreamOutput
+                )
+            }
+            return
+        }
+
         do {
             _ = try await commands.stopAgent(
                 pcPeerId: pc,
