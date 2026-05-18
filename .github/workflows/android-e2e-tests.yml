@@ -125,12 +125,16 @@ jobs:
               fi
             done
 
+      # Inner `|| true` removed 2026-05-18 — was redundant masking on top of
+      # `continue-on-error: true`. Step outcome now honestly reflects whether
+      # jacoco report generation succeeded (matching the sweep in 350157a46 for
+      # android-tests.yml P1/P2 jobs).
       - name: Generate JaCoCo Coverage Report
         if: always()
         working-directory: android-app
         continue-on-error: true
         run: |
-          ./gradlew jacocoE2ETestReport --stacktrace --no-daemon || true
+          ./gradlew jacocoE2ETestReport --stacktrace --no-daemon
 
       - name: Upload Test Results
         if: always()
@@ -201,18 +205,35 @@ jobs:
           merge-multiple: true
 
       - name: Generate Test Summary
+        env:
+          JOB_RESULT: ${{ needs.e2e-tests.result }}
         run: |
+          # 2026-05-18 audit: per-API ✅ icons used to be hardcoded based on
+          # artifact-dir existence, but the upload step has `if: always()` so
+          # failed tests still upload partial results — making artifact presence
+          # a misleading signal of pass/fail. Now the aggregate job outcome is
+          # the source of truth, with per-API rows distinguishing
+          # "artifacts present" from "no artifacts".
+          case "$JOB_RESULT" in
+            success) HEADLINE="✅ All matrix instances passed" ;;
+            skipped) HEADLINE="⏭️ Skipped" ;;
+            cancelled) HEADLINE="🚫 Cancelled" ;;
+            *) HEADLINE="❌ One or more matrix instances failed" ;;
+          esac
+
           echo "# E2E Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Results by API Level" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall**: $HEADLINE (\`$JOB_RESULT\`)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts by API Level" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           for api in 26 30 33; do
             echo "### API Level $api" >> $GITHUB_STEP_SUMMARY
             if [ -d "test-results/test-results-api-$api" ]; then
-              echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
+              echo "Artifacts uploaded (see per-API matrix job logs for actual pass/fail)" >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ Tests failed or incomplete" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ No artifacts uploaded (matrix job may have failed before upload)" >> $GITHUB_STEP_SUMMARY
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
           done

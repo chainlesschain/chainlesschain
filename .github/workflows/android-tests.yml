@@ -414,16 +414,26 @@ jobs:
               comment.body.includes('Test Results Summary')
             );
 
+            // 2026-05-18 audit: prefix-✅ icons were hardcoded regardless of
+            // job outcome (the result interpolated alongside told the truth,
+            // but the ✅ in front made every line look like a pass). Switched
+            // to a mark() helper that renders the icon from the actual result.
+            // Also dropped the hardcoded "269+ tests" / "~87%" literal claims —
+            // those numbers are stale snapshots, not measurements of this run.
+            const mark = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : s === 'cancelled' ? '🚫' : '❌';
+            const unit = '${{ needs.unit-tests.result }}';
+            const instr = '${{ needs.instrumented-tests.result }}';
+            const cov = '${{ needs.code-coverage.result }}';
+            const lint = '${{ needs.lint-and-detekt.result }}';
+            const overall = (unit === 'success' && instr === 'success') ? '✅ PASSED' : '❌ FAILED';
             const body = `## 🧪 Test Results Summary
 
-            - ✅ Unit Tests: ${{ needs.unit-tests.result }}
-            - ✅ Instrumented Tests: ${{ needs.instrumented-tests.result }}
-            - ✅ Code Coverage: ${{ needs.code-coverage.result }}
-            - ✅ Lint: ${{ needs.lint-and-detekt.result }}
+            - ${mark(unit)} Unit Tests: \`${unit}\`
+            - ${mark(instr)} Instrumented Tests: \`${instr}\`
+            - ${mark(cov)} Code Coverage: \`${cov}\`
+            - ${mark(lint)} Lint: \`${lint}\`
 
-            **Total Tests**: 269+ tests
-            **Coverage**: ~87%
-            **Status**: ${{ needs.unit-tests.result == 'success' && needs.instrumented-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+            **Status**: ${overall}
             `;
 
             if (botComment) {
