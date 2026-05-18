@@ -33,7 +33,7 @@ class AICommandHandler {
     this._ensureSchema();
 
     logger.info(
-      "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method commit 2)",
+      "[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 25 method 全完成 + 5 老 + 7 Action1 = 37 method)",
     );
   }
 
@@ -297,6 +297,16 @@ class AICommandHandler {
         return await this.refactorCode(params, context);
       case "fixCode":
         return await this.fixCode(params, context);
+
+      // Phase 6.4 commit 3 — Agents 4
+      case "listAgents":
+        return await this.listAgents(params, context);
+      case "getAgent":
+        return await this.getAgent(params, context);
+      case "runAgent":
+        return await this.runAgent(params, context);
+      case "stopAgent":
+        return await this.stopAgent(params, context);
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -1789,6 +1799,124 @@ class AICommandHandler {
       fixedCode,
       language: language || null,
       error,
+    };
+  }
+
+  // ============================================================================
+  // Phase 6.4 commit 3 — Agents 4
+  // ============================================================================
+  // Agents 是桌面 AI Engine 自带的子系统 (aiEngine.agents 或 aiEngine.agentManager)。
+  // 老的 controlAgent 是粗粒度的 action 触发器；listAgents/getAgent/runAgent/stopAgent
+  // 是细粒度对象操作。3 个查询 method 在缺 agentManager 时优雅降级；
+  // runAgent / stopAgent 在缺时 throw (mutating action 不能 silent no-op)。
+
+  _getAgentManager() {
+    if (!this.aiEngine) {
+      return null;
+    }
+    return this.aiEngine.agents || this.aiEngine.agentManager || null;
+  }
+
+  async listAgents(_params, _context) {
+    const mgr = this._getAgentManager();
+    if (!mgr) {
+      return { success: true, agents: [], total: 0, available: false };
+    }
+    let raw;
+    if (typeof mgr.list === "function") {
+      raw = await mgr.list();
+    } else if (typeof mgr.listAgents === "function") {
+      raw = await mgr.listAgents();
+    } else {
+      return { success: true, agents: [], total: 0, available: false };
+    }
+    const agents = Array.isArray(raw)
+      ? raw
+      : raw && raw.agents
+        ? raw.agents
+        : [];
+    return { success: true, agents, total: agents.length, available: true };
+  }
+
+  async getAgent(params, _context) {
+    const { agentId } = params;
+    if (!agentId) {
+      throw new Error("agentId is required");
+    }
+    const mgr = this._getAgentManager();
+    if (!mgr) {
+      throw new Error("Agent manager not available");
+    }
+    let agent;
+    if (typeof mgr.get === "function") {
+      agent = await mgr.get(agentId);
+    } else if (typeof mgr.getAgent === "function") {
+      agent = await mgr.getAgent(agentId);
+    } else {
+      throw new Error("agentManager has no get method");
+    }
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+    return { success: true, agent };
+  }
+
+  /**
+   * 跑指定 agent。input 是 agent 起始 prompt；options 可含 timeout / model / contextId。
+   * 返 runId 让 caller 可后续 stopAgent / 查询状态。
+   */
+  async runAgent(params, _context) {
+    const { agentId, input, options = {} } = params;
+    if (!agentId) {
+      throw new Error("agentId is required");
+    }
+    if (input === undefined || input === null) {
+      throw new Error("input is required");
+    }
+    const mgr = this._getAgentManager();
+    if (!mgr) {
+      throw new Error("Agent manager not available");
+    }
+    let result;
+    if (typeof mgr.run === "function") {
+      result = await mgr.run(agentId, input, options);
+    } else if (typeof mgr.runAgent === "function") {
+      result = await mgr.runAgent(agentId, input, options);
+    } else {
+      throw new Error("agentManager has no run method");
+    }
+    return {
+      success: true,
+      agentId,
+      runId: result.runId || result.id || null,
+      status: result.status || "running",
+      output: result.output || result.result || null,
+      raw: result,
+    };
+  }
+
+  async stopAgent(params, _context) {
+    const { runId, agentId } = params;
+    if (!runId && !agentId) {
+      throw new Error("runId or agentId is required");
+    }
+    const mgr = this._getAgentManager();
+    if (!mgr) {
+      throw new Error("Agent manager not available");
+    }
+    const identifier = runId || agentId;
+    if (typeof mgr.stop === "function") {
+      await mgr.stop(identifier);
+    } else if (typeof mgr.stopAgent === "function") {
+      await mgr.stopAgent(identifier);
+    } else {
+      throw new Error("agentManager has no stop method");
+    }
+    return {
+      success: true,
+      runId: runId || null,
+      agentId: agentId || null,
+      stopped: true,
     };
   }
 }
