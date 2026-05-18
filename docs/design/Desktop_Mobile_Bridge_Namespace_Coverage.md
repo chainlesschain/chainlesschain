@@ -51,7 +51,7 @@
 | **userBrowser** | 18 | 18 | **18** | **100%** | 🟢 | CDP-based 浏览器控制，完全对齐 |
 | **security** | 8 | 8 | **8** | **100%** | 🟢 | 完全对齐 |
 | **app** | 8 | 8 | **8** | **100%** | 🟢 | listInstalled/Running/getInfo/launch/close — 完全对齐 |
-| **extension** | 95 | 490 | 93 | **97%** | 🟢 | 桌面 `browser-extension-server.js` 含 490 unique case 远超 Android — Chrome 扩展是重点投入区 |
+| **extension** | 95 | 490 | 93 | **97%** | 🟢 | 桌面 `browser-extension-server.js` 含 490 unique case 远超 Android — Chrome 扩展是重点投入区。**Phase 6.7 已 wire iOS 30 method 子集（commit `d7e029406`）**。**架构修正**：Plan §7 Trap T4 "iOS 需直连本地 WS" 实为误判 — iOS 走 DC RPC `extension.X` → 桌面 ExtensionBrowserHandler 内部 proxy 到 127.0.0.1:18790；iOS **不接触**本地 WS。详 `iOS_Phase_6_7_Extension_Skill.md` §1.1。 |
 | **clipboard** | 7 | 10 | 6 | **85%** | 🟢 | 桌面多 3 case (files/html/image/text) 是内容类型 sub-dispatch；Android 用 `type` param 区分 — 实际语义 ≈ 100% |
 | **workflow** | 13 | 10 | 10 | **76%** | 🟡 | Android 多 3 method (待 case-by-case 看) |
 | **notification** | 11 | 7 | 6 | **54%** | 🟡 | 桌面缺：`broadcast` / `clearAll` / `delete` / `getUnreadCount` / `markAllAsRead`；Android 缺：桌面的 `clearHistory` |

@@ -545,8 +545,8 @@ Phase 4.5 改 horizontal scroll picker 解决 5 tab 之上；但 17–20 tab 时
 #### Trap T3 — 30 FPS 输入流批量 protocol 与 Android 不兼容
 Phase 6.6 desktop skill batching protocol 必须与桌面 mobile-bridge.js 双向对齐。Android `InputCommands.kt` 是否走 batching？需先看 Android impl。若 Android 没 batching（每帧一个 RPC），iOS 加 batching 后桌面端要兼容 vs 不兼容两种 client；建议 Android 一起加 batching。**6.6 启动前先验 Android InputCommands 实现**。
 
-#### Trap T4 — extension skill 独立 WS gateway 在 iOS LAN 不可达
-桌面端 extension WS 通常 bind 127.0.0.1 only（Chrome 扩展走 localhost）。iOS 需 LAN/relay 接入，桌面端需 bind 0.0.0.0 + auth token 控制。**6.7 启动前先验桌面 extension WS gateway 是否对 LAN 暴露 + 安全模型**。
+#### Trap T4 — extension skill 独立 WS gateway 在 iOS LAN 不可达 ✅ 已解决（2026-05-18, Phase 6.7 doc §1.1）
+**误判修正**：iOS 完全不接触本地 WS。架构是 `iOS → DC RPC extension.X → 桌面 remote-gateway → ExtensionBrowserHandler (proxy) → 本地 WS (127.0.0.1:18790) → Chrome 扩展`。iOS 仅做 typed wrapper + 标准 DC RPC，与 Phase 6.1B1 / 6.6 完全同模式。详见 `iOS_Phase_6_7_Extension_Skill.md` §1.1。
 
 #### Trap T5 — .ipa 恢复后 vX.Y.Z.N tag 出包失败但不可见
 memory `feedback_xcpretty_swallows_xcodebuild_errors.md`：xcpretty silent drop 让 archive 失败 11s zero 错误行。6.0.7 必带 `2>&1 | tee build/xcodebuild-archive.log` + `if: always()` upload-artifact，避免 silent fail。
