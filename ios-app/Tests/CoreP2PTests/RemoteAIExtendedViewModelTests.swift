@@ -236,4 +236,173 @@ final class RemoteAIExtendedViewModelTests: XCTestCase {
         await s.vm.searchRag()
         XCTAssertEqual(s.vm.ragResults.count, 0)
     }
+
+    // MARK: - Multimodal (v0.2)
+
+    func testRunGenerateImageRoutes() async throws {
+        let s = await makeSetup()
+        s.vm.imagePrompt = "a cat"
+        let task = Task { await s.vm.runGenerateImage() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.generateImage")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "prompt": "a cat",
+            "images": [["url": "https://x.png"]]
+        ])
+        await task.value
+        XCTAssertEqual(s.vm.generatedImages.count, 1)
+        XCTAssertEqual(s.vm.generatedImages[0].url, "https://x.png")
+    }
+
+    func testRunGenerateImageEmptyPromptSkips() async {
+        let s = await makeSetup()
+        s.vm.imagePrompt = "   "
+        await s.vm.runGenerateImage()
+        XCTAssertEqual(s.vm.generatedImages.count, 0)
+        s.transport.lock.lock()
+        XCTAssertEqual(s.transport.dcSent.count, 0)
+        s.transport.lock.unlock()
+    }
+
+    func testRunOcrImageWithoutImageThrowsError() async {
+        let s = await makeSetup()
+        s.vm.ocrImageBase64 = nil
+        await s.vm.runOcrImage()
+        XCTAssertEqual(s.vm.errorMessage, "请先选择图片")
+    }
+
+    func testRunOcrImageWithImageRoutes() async throws {
+        let s = await makeSetup()
+        s.vm.ocrImageBase64 = "Zm9v"
+        let task = Task { await s.vm.runOcrImage() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.ocrImage")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "text": "Hello", "confidence": 0.95, "language": "en"
+        ])
+        await task.value
+        XCTAssertEqual(s.vm.ocrResult?.text, "Hello")
+    }
+
+    func testRunTextToSpeechRoutes() async throws {
+        let s = await makeSetup()
+        s.vm.ttsInput = "hello world"
+        s.vm.ttsVoice = "alloy"
+        let task = Task { await s.vm.runTextToSpeech() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.textToSpeech")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "audioData": "Zm9v", "format": "mp3", "voice": "alloy", "duration": 1.5
+        ])
+        await task.value
+        XCTAssertEqual(s.vm.ttsResult?.audioData, "Zm9v")
+        XCTAssertEqual(s.vm.ttsResult?.voice, "alloy")
+    }
+
+    func testRunTranscribeAudioWithoutFileShowsError() async {
+        let s = await makeSetup()
+        s.vm.audioBase64 = nil
+        await s.vm.runTranscribeAudio()
+        XCTAssertEqual(s.vm.errorMessage, "请先选择音频文件")
+    }
+
+    func testRunTranscribeAudioWithFileRoutes() async throws {
+        let s = await makeSetup()
+        s.vm.audioBase64 = "audioBase64"
+        s.vm.audioFilename = "demo.mp3"
+        let task = Task { await s.vm.runTranscribeAudio() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.transcribeAudio")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "text": "hello", "language": "en", "duration": 2.0
+        ])
+        await task.value
+        XCTAssertEqual(s.vm.transcribeResult?.text, "hello")
+    }
+
+    // MARK: - Agents (v0.2)
+
+    func testLoadAgentsPopulates() async throws {
+        let s = await makeSetup()
+        let task = Task { await s.vm.loadAgents() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.listAgents")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "agents": [
+                ["id": "a1", "name": "Summarizer"],
+                ["id": "a2", "name": "Translator"]
+            ],
+            "total": 2, "available": true
+        ])
+        await task.value
+        XCTAssertTrue(s.vm.agentsAvailable)
+        XCTAssertEqual(s.vm.agents.count, 2)
+    }
+
+    func testLoadAgentsUnavailableSetsFlag() async throws {
+        let s = await makeSetup()
+        let task = Task { await s.vm.loadAgents() }
+        try await waitForSend(s)
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "agents": [], "total": 0, "available": false
+        ])
+        await task.value
+        XCTAssertFalse(s.vm.agentsAvailable)
+        XCTAssertEqual(s.vm.agents.count, 0)
+    }
+
+    func testRunSelectedAgentRequiresSelection() async {
+        let s = await makeSetup()
+        s.vm.selectedAgent = nil
+        s.vm.agentInput = "x"
+        await s.vm.runSelectedAgent()
+        XCTAssertEqual(s.vm.errorMessage, "请先选择 agent")
+    }
+
+    func testRunSelectedAgentPopulatesRun() async throws {
+        let s = await makeSetup()
+        s.vm.selectedAgent = AgentInfo(id: "a1", name: "Helper")
+        s.vm.agentInput = "summarize"
+        let task = Task { await s.vm.runSelectedAgent() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.runAgent")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "agentId": "a1", "runId": "run-1", "status": "running",
+            "output": "Processing..."
+        ])
+        await task.value
+        XCTAssertEqual(s.vm.agentRun?.runId, "run-1")
+        XCTAssertEqual(s.vm.agentRun?.output, "Processing...")
+    }
+
+    func testStopCurrentAgentRunClearsState() async throws {
+        let s = await makeSetup()
+        s.vm.agentRun = RunAgentResponse(agentId: "a1", runId: "run-1", status: "running")
+        let task = Task { await s.vm.stopCurrentAgentRun() }
+        try await waitForSend(s)
+        XCTAssertEqual(try methodFrom(s.transport.dcSent[0]), "ai.stopAgent")
+        let id = try reqIdFrom(s.transport.dcSent[0])
+        try respond(s.inbound, reqId: id, result: [
+            "runId": "run-1", "stopped": true
+        ])
+        await task.value
+        XCTAssertNil(s.vm.agentRun)
+    }
+
+    func testStopCurrentAgentRunNoRunIsNoop() async {
+        let s = await makeSetup()
+        s.vm.agentRun = nil
+        await s.vm.stopCurrentAgentRun()
+        // 不应触发任何 DC 发送
+        s.transport.lock.lock()
+        XCTAssertEqual(s.transport.dcSent.count, 0)
+        s.transport.lock.unlock()
+    }
 }

@@ -3,9 +3,9 @@ import CoreP2P
 
 /// Phase 6.4 — 远程 AI 扩展 UI（AIExtendedCommands 25 method 用得起来的入口）。
 ///
-/// MVP scope：3 sub-tab — Templates (CRUD) / Code (explain/generate/refactor 文本)
-/// / RAG (search + stats 摘要)。Multimodal (image/audio) + Agents 子界面 v0.2
-/// 单独 view（multimodal 需 image picker / audio recorder, agents 需 metadata 设计）。
+/// **v0.1**：3 sub-tab — Templates (CRUD) / Code (explain/generate/refactor) / RAG (search+stats)
+/// **v0.2** (本版)：+2 sub-tab — Multimodal (4 mode 含 PhotosPicker + TTS 播放) / Agents (list/run/stop)
+///   picker 从 .segmented 切到 horizontal ScrollView + button row（5 tab 触 HIG 软上限 + 与 Phase 4.5 NotificationsView 同模式）
 ///
 /// 入口：RemoteOperateView → 第 15 tab "AI+"。
 struct AIExtendedView: View {
@@ -45,6 +45,10 @@ private struct Inner: View {
                     codeView
                 case .rag:
                     ragView
+                case .multimodal:
+                    AIExtendedMultimodalView(viewModel: viewModel)
+                case .agents:
+                    AIExtendedAgentsView(viewModel: viewModel)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -58,8 +62,10 @@ private struct Inner: View {
                     if viewModel.templates.isEmpty { await viewModel.loadTemplates() }
                 case .rag:
                     if viewModel.ragStats == nil { await viewModel.loadRagStats() }
-                case .code:
-                    break
+                case .agents:
+                    if viewModel.agents.isEmpty { await viewModel.loadAgents() }
+                case .code, .multimodal:
+                    break // 子 view .task 自负责（或纯 demand-trigger）
                 }
             }
         }
@@ -86,14 +92,31 @@ private struct Inner: View {
                })
     }
 
+    // 5 sub-tab 触 HIG segmented 软上限 → 切 horizontal scroll + button row
+    // （与 Phase 4.5 NotificationsView SkillTabPickerView 同模式）
     private var subTabPicker: some View {
-        Picker("视图", selection: $selectedSub) {
-            ForEach(RemoteAIExtendedViewModel.SubTab.allCases) { tab in
-                Label(tab.label, systemImage: tab.icon).tag(tab)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(RemoteAIExtendedViewModel.SubTab.allCases) { tab in
+                    Button {
+                        selectedSub = tab
+                    } label: {
+                        Label(tab.label, systemImage: tab.icon)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(
+                                selectedSub == tab
+                                ? Color.accentColor
+                                : Color(.systemGray5)
+                            )
+                            .foregroundColor(selectedSub == tab ? .white : .primary)
+                            .cornerRadius(20)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal)
         }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
         .padding(.vertical, 8)
     }
 

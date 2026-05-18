@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Phase 6.4 — `AIExtendedView` 的 @MainActor ViewModel。
 ///
-/// 3 sub-tab (Templates / Code / RAG) 独立状态 + 错误 / loading。Multimodal (image/
-/// audio) 和 Agents 留 v0.2 单独 view（multimodal 需 image picker / audio recorder
-/// infrastructure，agents 需 agent metadata 设计）。
+/// **v0.1**：3 sub-tab (Templates / Code / RAG)。
+/// **v0.2** (本版)：+2 sub-tab (Multimodal / Agents)，total 5 sub-tab，picker 从
+///   segmented 切到 horizontal scroll（HIG 5-tab 软上限 + Phase 4.5 同模式）。
 @MainActor
 public final class RemoteAIExtendedViewModel: ObservableObject {
 
@@ -13,12 +13,16 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
         case templates
         case code
         case rag
+        case multimodal     // v0.2 — generateImage / ocrImage / transcribeAudio / textToSpeech
+        case agents         // v0.2 — list / get / run / stop
         public var id: String { rawValue }
         public var label: String {
             switch self {
             case .templates: return "模板"
             case .code: return "代码"
             case .rag: return "RAG"
+            case .multimodal: return "多模态"
+            case .agents: return "Agents"
             }
         }
         public var icon: String {
@@ -26,6 +30,8 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
             case .templates: return "doc.text"
             case .code: return "chevron.left.forwardslash.chevron.right"
             case .rag: return "magnifyingglass.circle"
+            case .multimodal: return "photo.on.rectangle.angled"
+            case .agents: return "person.3.sequence"
             }
         }
     }
@@ -174,6 +180,190 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
         } catch {
             self.errorMessage = String(describing: error)
             self.ragResults = []
+        }
+    }
+
+    // MARK: - Multimodal (v0.2)
+
+    public enum MultimodalMode: String, CaseIterable, Identifiable {
+        case generateImage, ocrImage, textToSpeech, transcribeAudio
+        public var id: String { rawValue }
+        public var label: String {
+            switch self {
+            case .generateImage: return "生图"
+            case .ocrImage: return "OCR"
+            case .textToSpeech: return "TTS"
+            case .transcribeAudio: return "语音转文字"
+            }
+        }
+        public var icon: String {
+            switch self {
+            case .generateImage: return "wand.and.stars"
+            case .ocrImage: return "text.viewfinder"
+            case .textToSpeech: return "speaker.wave.2"
+            case .transcribeAudio: return "waveform"
+            }
+        }
+    }
+
+    @Published public var multimodalMode: MultimodalMode = .generateImage
+    @Published public var multimodalLoading: Bool = false
+
+    // generateImage
+    @Published public var imagePrompt: String = ""
+    @Published public var generatedImages: [GeneratedImage] = []
+
+    // ocrImage
+    @Published public var ocrImageBase64: String?       // 用户选完后填
+    @Published public var ocrLanguage: String = "auto"
+    @Published public var ocrResult: OCRResponse?
+
+    // textToSpeech
+    @Published public var ttsInput: String = ""
+    @Published public var ttsVoice: String = "default"
+    @Published public var ttsResult: TTSResponse?
+
+    // transcribeAudio
+    @Published public var audioBase64: String?
+    @Published public var audioFilename: String?
+    @Published public var transcribeLanguage: String = "auto"
+    @Published public var transcribeResult: TranscriptionResponse?
+
+    public func runGenerateImage() async {
+        let p = imagePrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !p.isEmpty else { return }
+        multimodalLoading = true; errorMessage = nil
+        defer { multimodalLoading = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.generateImage(pcPeerId: pc, prompt: p, n: 1)
+            self.generatedImages = r.images
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.generatedImages = []
+        }
+    }
+
+    public func runOcrImage() async {
+        guard let b64 = ocrImageBase64, !b64.isEmpty else {
+            errorMessage = "请先选择图片"; return
+        }
+        multimodalLoading = true; errorMessage = nil
+        defer { multimodalLoading = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.ocrImage(
+                pcPeerId: pc, imageData: b64, language: ocrLanguage
+            )
+            self.ocrResult = r
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.ocrResult = nil
+        }
+    }
+
+    public func runTextToSpeech() async {
+        let t = ttsInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return }
+        multimodalLoading = true; errorMessage = nil
+        defer { multimodalLoading = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.textToSpeech(
+                pcPeerId: pc, text: t, voice: ttsVoice
+            )
+            self.ttsResult = r
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.ttsResult = nil
+        }
+    }
+
+    public func runTranscribeAudio() async {
+        guard let b64 = audioBase64, !b64.isEmpty else {
+            errorMessage = "请先选择音频文件"; return
+        }
+        multimodalLoading = true; errorMessage = nil
+        defer { multimodalLoading = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.transcribeAudio(
+                pcPeerId: pc, audioData: b64, language: transcribeLanguage
+            )
+            self.transcribeResult = r
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.transcribeResult = nil
+        }
+    }
+
+    // MARK: - Agents (v0.2)
+
+    @Published public var agents: [AgentInfo] = []
+    @Published public var agentsAvailable: Bool = false
+    @Published public var agentsLoading: Bool = false
+    @Published public var selectedAgent: AgentInfo?
+    @Published public var agentInput: String = ""
+    @Published public var agentRun: RunAgentResponse?
+    @Published public var agentRunning: Bool = false
+
+    public func loadAgents() async {
+        agentsLoading = true; errorMessage = nil
+        defer { agentsLoading = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.listAgents(pcPeerId: pc)
+            self.agents = r.agents
+            self.agentsAvailable = r.available
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.agents = []
+            self.agentsAvailable = false
+        }
+    }
+
+    public func runSelectedAgent() async {
+        guard let a = selectedAgent else {
+            errorMessage = "请先选择 agent"; return
+        }
+        agentRunning = true; errorMessage = nil
+        defer { agentRunning = false }
+        guard let pc = await pcPeerIdProvider() else {
+            errorMessage = "未配对桌面"; return
+        }
+        do {
+            let r = try await commands.runAgent(
+                pcPeerId: pc, agentId: a.id, input: agentInput
+            )
+            self.agentRun = r
+        } catch {
+            self.errorMessage = String(describing: error)
+            self.agentRun = nil
+        }
+    }
+
+    public func stopCurrentAgentRun() async {
+        guard let run = agentRun else { return }
+        guard let pc = await pcPeerIdProvider() else { return }
+        do {
+            _ = try await commands.stopAgent(
+                pcPeerId: pc,
+                runId: run.runId,
+                agentId: run.runId == nil ? run.agentId : nil
+            )
+            self.agentRun = nil
+        } catch {
+            self.errorMessage = String(describing: error)
         }
     }
 }
