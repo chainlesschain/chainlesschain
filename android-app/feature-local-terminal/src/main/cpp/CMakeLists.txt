@@ -52,15 +52,17 @@ set(MKSH_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/mksh-build-${ANDROID_ABI})
 set(MKSH_OUTPUT_BIN ${MKSH_BUILD_DIR}/mksh)
 set(MKSH_OUTPUT_SO ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libmksh.so)
 
-# Build.sh requires a POSIX shell. On Windows we rely on Git Bash being on PATH;
-# the NDK clang for the Windows host is at <ndk>/toolchains/llvm/prebuilt/windows-x86_64/.
-# On Linux/macOS dev boxes the system sh + matching NDK prebuilt is used.
-# IMPORTANT: when cross-compiling to Android, WIN32 reflects the TARGET (always
-# Android = not WIN32). Use CMAKE_HOST_WIN32 for the build-machine OS.
+# Build.sh requires a POSIX shell — explicitly bash (NOT /bin/sh) on every
+# host. On Ubuntu CI runners /bin/sh is dash, which subtly diverges from
+# bash for several constructs Build.sh uses (`[[ ]]`-tolerant pieces, etc).
+# Windows Git Bash, macOS, and Linux all ship bash; use it consistently.
+#
+# IMPORTANT: when cross-compiling to Android, WIN32 reflects the TARGET
+# (always Android = not WIN32). Use CMAKE_HOST_WIN32 for the build machine.
 if(CMAKE_HOST_WIN32)
-    set(MKSH_SH_CMD sh)
+    set(MKSH_SH_CMD bash)
 else()
-    set(MKSH_SH_CMD /bin/sh)
+    set(MKSH_SH_CMD /bin/bash)
 endif()
 
 # Map ANDROID_ABI → clang wrapper basename. NDK ships per-API clang wrappers
