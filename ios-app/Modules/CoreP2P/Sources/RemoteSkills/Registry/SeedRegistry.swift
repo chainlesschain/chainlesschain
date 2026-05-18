@@ -48,11 +48,11 @@ public enum SeedRegistry {
         SkillMetadata(
             namespace: "knowledge",
             displayName: "知识库",
-            description: "RAG / 笔记 CRUD / 检索",
+            description: "RAG / 笔记 CRUD / 检索 / 版本 / 归档 / 导入导出 — Phase 6.3 30 method 已 wired",
             category: "data",
             risk: .Mutating,
-            nativeSourceFile: "NotImplementedYet.swift",
-            methodCount: 55,
+            nativeSourceFile: "KnowledgeCommands.swift",
+            methodCount: 30,
             methods: [
                 MethodMetadata(name: "createNote", description: "创建笔记（Markdown 内容 + 可选 folder/tags）",
                                paramCount: 4, paramSummary: "title, content, folderId?, tags?",
