@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreCommon
 
 /// AI系统主控制面板
 public struct AIDashboardView: View {
@@ -92,7 +93,7 @@ public struct AIDashboardView: View {
 
                 // 关于
                 Section(header: Text("关于")) {
-                    InfoRow(label: "版本", value: "v0.16.0")
+                    InfoRow(label: "版本", value: AppConstants.App.fullVersionTag)
                     InfoRow(label: "AI引擎", value: "16个")
                     InfoRow(label: "工具数量", value: "21个")
                     InfoRow(label: "技能数量", value: "80+")

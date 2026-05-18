@@ -108,15 +108,18 @@ struct SettingsView: View {
                     HStack {
                         Text("版本")
                         Spacer()
-                        Text(AppConstants.App.version)
+                        Text(AppConstants.App.fullVersionTag)
                             .foregroundColor(.gray)
+                            .accessibilityIdentifier("settings.app.version")
                     }
 
                     HStack {
-                        Text("构建号")
+                        Text("Bundle ID")
                         Spacer()
-                        Text(AppConstants.App.buildNumber)
+                        Text(AppConstants.App.bundleId)
                             .foregroundColor(.gray)
+                            .font(.system(.footnote, design: .monospaced))
+                            .accessibilityIdentifier("settings.app.bundleId")
                     }
 
                     Link("项目主页", destination: URL(string: "https://github.com/chainlesschain/chainlesschain")!)

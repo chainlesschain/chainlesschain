@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreCommon
 
 // MARK: - PluginManager
 /// Central plugin management coordinator
@@ -115,7 +116,7 @@ class PluginManager: ObservableObject, PluginAPIProvider, PluginSandboxDelegate 
     private init() {
         self.loader = PluginLoader()
         self.registry = PluginRegistry()
-        self.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.7.0"
+        self.appVersion = Bundle.appShortVersion
     }
 
     // MARK: - Initialization

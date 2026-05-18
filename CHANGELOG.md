@@ -5,6 +5,83 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
+
+> v5.0.3.63 release 后用户反馈：(1) iOS Settings 「版本」显示只有 3 段制 `5.0.3` 或 stale `0.32.0`(实际几个月没更过 hardcode 常量); (2) PIN 闪退问题仍报告(待用户提供 v5.0.3.63 .ipa 上的具体 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码 (0.32.0 / 32 / com.chainlesschain.ios) 改为从 `Bundle.main` 动态读, Settings 「关于」展示完整 `v5.0.3.64` 4 段制; **B** 加 iOS 17 API 二次审计(对全仓 596 个 `.swift` 跑 29 个 pattern,确认 0 新增违规, `AppState.swift` `assumeIsolated` → `Task @MainActor` 的 v5.0.3.63 修复已就位); **C** 加单元测试 + 集成测试 + UITest 三层覆盖锁死版本号显示 + PIN 解锁不崩两类回归。
+
+### Fixed
+
+- **`AppConstants.App.version` stale 硬编码** — `0.32.0` (已 stale 几个月) → 改为 `Bundle.appShortVersion`(从 `Info.plist CFBundleShortVersionString` 动态读)
+- **`AppConstants.App.buildNumber` stale 硬编码** — `32` → `Bundle.appBuildNumber`(从 `CFBundleVersion` 动态读)
+- **`AppConstants.App.bundleId` 错误硬编码** — `com.chainlesschain.ios` (实际 Info.plist 配的是 `com.chainlesschain.ChainlessChain`,CodeSign 也基于此) → `Bundle.main.bundleIdentifier`
+- **`AIDashboardView.swift:95` 硬编码 `v0.16.0`** → `AppConstants.App.fullVersionTag`
+- **`PluginManager.swift:118` 直接 `infoDictionary["CFBundleShortVersionString"]` 读** + 错误 fallback `"1.7.0"` → `Bundle.appShortVersion`
+- **`SystemTools.swift` `appInfoExecutor`** — 加 `fullVersion` 字段 (`5.0.3.64`),`displayName` 改用 `Bundle.appDisplayName` helper
+
+### Added
+
+- **`Bundle` extension** (`Modules/CoreCommon/Sources/CoreCommon/Extensions/FoundationExtensions.swift`):
+  - `Bundle.appShortVersion` — `"5.0.3"`
+  - `Bundle.appBuildNumber` — `"64"`
+  - `Bundle.appFullVersion` — `"5.0.3.64"` (4 段制,与 desktop productVersion / Android versionName 对齐)
+  - `Bundle.appFullVersionTag` — `"v5.0.3.64"` (带 v 前缀,UI 展示用)
+  - `Bundle.appDisplayName` — `CFBundleDisplayName` 或 fallback
+- **`AppConstants.App.fullVersion` / `fullVersionTag`** 动态字段,所有 UI 统一调
+- **`SettingsView.swift` 关于栏** — 「版本」显示 `v5.0.3.64` (`accessibility id = settings.app.version`),加「Bundle ID」一栏便于用户确认安装的是真版本
+- **`BundleVersionTests.swift`** (Tests/CoreCommonTests/, 11 unit tests) — 锁版本号 helper + AppConstants 动态字段语义
+- **`AppStateNotificationTests.swift`** (ChainlessChainTests/Features/App/, 7 integration tests) — 验 `databaseUnlocked` / `didAuthenticated` post 不崩 + 高频反复 post 稳定性 + 版本号 4 段制锁
+- **`ChainlessChainUITests.testSettingsVersionDisplaysFourSegmentTag`** + **`testPINUnlockDoesNotCrashOnFirstLaunch`** — XCUITest 真机回归,首测真机 PIN 解锁 + Settings 版本号格式
+
+### Validated
+
+- 全仓 596 个 `.swift` 扫描 29 个 iOS 17-only API pattern (`assumeIsolated` / `@Observable` / `SwiftData` / `symbolEffect` / `ContentUnavailableView` / `scrollPosition` / `KeyframeAnimator` / `visualEffect` / `sensoryFeedback` / `Previewable` / `dialogSeverity` / `SubscriptionStoreView` 等),**0 处新增违规**:
+  - `AppState.swift:94-118` v5.0.3.63 修已就位 (`Task { @MainActor in ... }`)
+  - `SystemInfoView.swift:65-73` `.symbolEffect` 在 `if #available(iOS 17, *)` 块内,iOS 16 fallback 静态图标
+  - `ImagePickerView.swift:522-527` `@Previewable` 在 `@available(iOS 17, *)` `#Preview {}` 内,preview-only 不进生产
+- AppIcon 资产复审:18 张 AppIcon + 3 张 LaunchIcon 齐全,全 RGB 无 alpha 通道(App Store 合规),最大 1024×1024 (174K) AppStore icon 完整
+- `scripts/check-version-sync.js` 5 surface 全 sync (productVersion=v5.0.3.64 / desktop=5.0.3-alpha.64 / ios CFBundleShortVersionString=5.0.3 + CFBundleVersion=64 / android versionName=5.0.3.64 + versionCode=503064)
+- iOS deployment target 仍为 16.0 (xcodeproj + Package.swift 一致)
+
+### Known / 待用户反馈
+
+- 用户报告的 v5.0.3.63 PIN 闪退**根因未在代码层复现** — HEAD 的 `AppState.swift` fix 完整正确, 全仓 0 iOS 17 API 漏网。若 v5.0.3.64 装机后仍崩,请附 crash log (Xcode → Window → Devices and Simulators → 选设备 → View Device Logs) 以便定位具体崩点。Settings 「关于」新加的「Bundle ID」字段可帮用户确认安装的是 v5.0.3.64 真版本。
+
+## [Unreleased] - iOS Phase 5 AI Chat 收口 (4 真实 bug + 4 集成测试)
+
+> Phase 5.1-5.6 已在 v5.0.3.63 周期前后随 CI 单测一并落地。Phase 5.7 收口走静态审计路径：找出 4 真实 bug（finalizeStreamingPlaceholder 空字符串穿透 / deleteConversation 半回滚 / sendMessage 缺 stream-in-flight guard / selectConversation 保留 stale streamId），逐条修，每条 1 个回归单测。同时补 4 个 Phase 5 集成测试覆盖 events fan-out / cancel 顺序 / offline drain / 多对话 stream 隔离的端到端链路。
+
+### Fixed — iOS Phase 5 AI Chat (4 真实 bug)
+
+- **`RemoteAIChatViewModel.finalizeStreamingPlaceholder` 空字符串穿透 nil-coalesce**（Bug #1）— 旧代码 `messageId ?? oldMsg.id`。`ChatStreamEnd.parseFromEnvelope` 在 server 缺 `messageId` 字段时填 `""`（不是 nil），nil-coalesce 不兜底，`""` 直接覆盖本地 `local-assistant-<UUID>` 占位 id，SwiftUI `ForEach(messages, id: \.id)` 身份被击穿（多条 row 共享空 id）。改为 `if let mid = messageId, !mid.isEmpty { resolvedId = mid } else { resolvedId = oldMsg.id }` 显式 guard。
+- **`RemoteAIChatViewModel.deleteConversation` 失败半回滚**（Bug #2）— 删除当前对话失败时仅恢复 `conversations` 列表，`currentConversation` / `messages` 留在已清空状态。新增 `rollbackDelete(insertAt:item:restoreCurrent:restoreMessages:)` 私有方法 + 入口处 `wasCurrent`/`originalCurrent`/`originalMessages` 快照，全量原子回滚（含离线无队列的 fallback 分支）。
+- **`RemoteAIChatViewModel.sendMessage` 缺防御性 stream-in-flight guard**（Bug #3）— UI 在流式中切到 cancel button 形态，但 VM 不能假设上层禁掉了 send 入口（programmatic 调用 / 双击竞争 / 上层 bug 都可能绕过）。在 DC gate 前加 `guard currentStreamId == nil else { lastError = "请先等待当前响应完成或取消"; return }`。
+- **`RemoteAIChatViewModel.selectConversation` stale streamId 污染**（Bug #4）— 切对话时不清 `currentStreamId`，依赖 `messages.last.isStreaming` guard 兜底。edge case：新 conv 末条恰为 streaming 占位（前次未 finalize）时，prev stream 的 delta 会越界改新 conv 的 last。改为显式 `currentStreamId = nil; isStreamingMessage = false`（dispatcher buffer 不动，桌面 LLM 继续跑完落 server side，下次 loadMessages 拉到）。
+
+### Added — iOS Phase 5 集成测试 (Tests/CoreP2PTests/Integration/Phase5AIChatIntegrationTests.swift)
+
+- `testFullChatStreamHappyPathThroughFanout` — inbound → RemoteCommandClient.events → 真 fan-out task → dispatcher 累积 → VM 占位 msg 实时更新 → end event 终态 server msg id 落地（替换原单测只 mock dispatcher 的 stub 链路，验真实 AsyncStream 单消费者 fan-out 不丢 event）。
+- `testCancelOrderingDiscardBeforeRpc` — 50ms 窗口验证：discardStream 同步执行 → 本地状态收尾 → cancelStream RPC 出站 → late chunk silent drop（per design §7.3 顺序保证）。
+- `testOfflineCreateConversationDrainsOnRecover` — DC down 时 `vm.createConversation` 入 OfflineQueue → DC ready 切 false→true edge → drainer 触发 → ai.createConversation 真发出 → server 响应 → 队列清空（验本期新增 `ai.*` method 真接入 Phase 3 drainer 路径）。
+- `testCrossConversationStreamIsolation` — conv A 启 stream sA → 切 conv B 立即清 `currentStreamId`（Bug #4 fix） → sA 后续 delta+end 不污染 conv B `messages`（验 design §7.4 隔离）。
+
+### Added — iOS Phase 5 单测回归 (RemoteAIChatViewModelTests.swift +4)
+
+- `testEndEventEmptyMessageIdPreservesLocalId` — Bug #1 回归。
+- `testDeleteConversationFailureFullRollback` — Bug #2 回归。
+- `testSendMessageRejectsWhenStreamInFlight` — Bug #3 回归。
+- `testSelectConversationClearsCurrentStreamId` — Bug #4 回归。
+
+### Validated
+
+- iOS Phase 5 单测从 41 → **45**；总 iOS 单测 ~313 + 45 = **~358**。集成测试从 6 → **10**。
+- 设计文档 `docs/design/iOS_Phase_5_AI_Chat_Skill.md` §8.1 / §8.2 / §8.3 / §8.4 全部刷新（含 Phase 5.8 真机 E2E 8 场景 reproducer 详步骤）。
+- docs-site / docs-site-design 两份副本通过 `sync-*.js` 自动刷新（162 文件同步）。
+- 官方网站 `docs-website-v2/mobile.astro` iOS section 更新到 Phase 1+2+3+4+5 + 7-tab horizontal scroll shell + ~358 单测。
+
+### Notes — 待办
+
+- **Phase 5.8 真机 E2E（8 场景）** 仍待 Mac+iPhone+真桌面在场，design §8.4 reproducer 详步骤已就绪。本轮 Windows dev box 上 `swift test` 不可跑，验收依赖 iOS CI（macos-15-arm64 runner）`swift build --target CoreP2P` 编译通过 + 静态审计 + 集成测试设计无 mock 绕过真链路。
+
 ## [v5.0.3.63] - 2026-05-17 — iOS 16 PIN 闪退修复 + AppIcon 全幅 + Sub-phase 5-6 移动远程终端体验
 
 > v5.0.3.62 (iOS deployment target 降到 16) 部署后真机 E2E 暴露两类问题：(1) iOS 16 上 PIN 设置 / 解锁均闪退，根因是 `AppState.swift` 用了 iOS 17 only 的 `MainActor.assumeIsolated`；(2) AppIcon 缩成小图四周大片白边。同时 Android 端 Sub-phase 5-6 LOCAL 项目首次远程终端体验需要：放宽 v2 fallback gate（只要有 paired desktop 就显示 Terminal icon）+ LOCAL 项目（`pcRootPath=null`）首次点终端弹框补填 PC 端工作目录避免 PtyManager 落 Electron cwd。

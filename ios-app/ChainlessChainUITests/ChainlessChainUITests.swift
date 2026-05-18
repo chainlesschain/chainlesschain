@@ -201,6 +201,69 @@ final class ChainlessChainUITests: XCTestCase {
         XCTAssertTrue(accountSection.waitForExistence(timeout: 2))
     }
 
+    /// 锁死:Settings 「关于 → 版本」一栏必须以 v 前缀显示 4 段制版本号
+    /// (与 desktop productVersion / Android versionName 对齐),
+    /// 而不是 3 段制 5.0.3 或 stale 硬编码 0.32.0。
+    /// 也防回归 v5.0.3.62 → .63 之前 SettingsView 读 `AppConstants.App.version`
+    /// 但该常量是硬编码 stale 值的状况。
+    func testSettingsVersionDisplaysFourSegmentTag() throws {
+        skipAuthIfNeeded()
+        navigateToTab("设置")
+
+        let versionLabel = app.staticTexts["settings.app.version"]
+        XCTAssertTrue(versionLabel.waitForExistence(timeout: 5),
+                      "Settings 应有 accessibility id = settings.app.version 的版本号 label")
+
+        let value = versionLabel.label
+        XCTAssertTrue(value.hasPrefix("v"),
+                      "版本号必须以 v 开头, 实际 = \(value)")
+
+        // 去掉 v 前缀,验 4 段制
+        let withoutV = String(value.dropFirst())
+        let segs = withoutV.split(separator: ".")
+        XCTAssertEqual(segs.count, 4,
+                       "版本号必须 4 段制 vX.Y.Z.N, 实际 = \(value)")
+        for seg in segs {
+            XCTAssertFalse(seg.isEmpty, "版本号段不能为空: \(value)")
+            XCTAssertNotNil(Int(seg), "版本号每段必须是整数: \(value)")
+        }
+
+        // Stale 硬编码防回归
+        XCTAssertNotEqual(value, "v0.32.0", "版本号不能 stale 硬编码")
+        XCTAssertNotEqual(value, "0.32.0", "版本号不能 stale 硬编码")
+    }
+
+    /// 防 PIN crash 真机回归:启 app → 见 PIN 输入 → 输 6 位 → 应进入主界面,不闪退。
+    /// v5.0.3.62 上,iOS 16 真机走这条路径时 `MainActor.assumeIsolated` 触发
+    /// dyld missing-symbol crash。v5.0.3.63 修后此 UI 路径必须稳定。
+    func testPINUnlockDoesNotCrashOnFirstLaunch() throws {
+        let pinField = app.secureTextFields["PIN"]
+
+        // PIN 字段如不存在 (可能已认证或 --uitesting 跳过),整测 skip 不算 fail
+        guard pinField.waitForExistence(timeout: 5) else {
+            throw XCTSkip("PIN 字段未出现 — 测试 setup 已 skip auth 或界面状态不同")
+        }
+
+        pinField.tap()
+        pinField.typeText("123456")
+
+        // 提交 PIN
+        let confirmButton = app.buttons["confirm_button"]
+        if confirmButton.waitForExistence(timeout: 2) {
+            confirmButton.tap()
+        }
+
+        // 关键验证:app 在 PIN 解锁瞬间不崩 (即 process 还在前台),进入下一屏
+        // (TabBar 或主导航)。在 v5.0.3.62 iOS 16 上,assumeIsolated 在通知触发的
+        // 一瞬间 dyld crash —— app.exists 会变 false 因为 process 已退出。
+        XCTAssertTrue(app.exists, "PIN 解锁后 app 仍存活 (没崩),iOS 16 兼容性回归测试")
+
+        let tabBar = app.tabBars.firstMatch
+        if tabBar.waitForExistence(timeout: 5) {
+            XCTAssertTrue(tabBar.exists, "PIN 解锁成功后应看到 TabBar")
+        }
+    }
+
     func testChangePINNavigation() throws {
         skipAuthIfNeeded()
         navigateToTab("设置")

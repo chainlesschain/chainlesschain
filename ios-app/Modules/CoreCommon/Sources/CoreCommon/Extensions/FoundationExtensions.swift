@@ -137,6 +137,37 @@ public extension Dictionary {
     }
 }
 
+// MARK: - Bundle Extensions
+
+public extension Bundle {
+    /// `CFBundleShortVersionString` 单段，e.g. "5.0.3"
+    static var appShortVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+    }
+
+    /// `CFBundleVersion` build number，e.g. "63"
+    static var appBuildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+    }
+
+    /// 4 段制完整版本号（与 desktop/Android productVersion 对齐），e.g. "5.0.3.63"
+    static var appFullVersion: String {
+        "\(appShortVersion).\(appBuildNumber)"
+    }
+
+    /// 带 `v` 前缀的完整版本号，e.g. "v5.0.3.63"
+    static var appFullVersionTag: String {
+        "v\(appFullVersion)"
+    }
+
+    /// `CFBundleDisplayName` 或 fallback `CFBundleName`
+    static var appDisplayName: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? "ChainlessChain"
+    }
+}
+
 // MARK: - CommonCrypto Import
 
 import CommonCrypto

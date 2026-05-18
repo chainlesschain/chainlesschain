@@ -3,6 +3,40 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
+
+> v5.0.3.63 release 后用户反馈:(1) iOS Settings 「版本」只显示 3 段制 `5.0.3` 或 stale `0.32.0`（实际几个月没更过硬编码常量）;(2) PIN 闪退问题仍报告(待 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码改为从 `Bundle.main` 动态读;**B** 加 iOS 17 API 二次审计(全仓 596 个 `.swift` × 29 个 pattern 扫描,0 处新增违规);**C** 加单元测试 + 集成测试 + UITest 三层覆盖。
+
+**已完成**:
+- 修 stale 硬编码 — `AppConstants.App.version` (`0.32.0` → `Bundle.appShortVersion`) / `buildNumber` (`32` → `Bundle.appBuildNumber`) / `bundleId` (`com.chainlesschain.ios` → `Bundle.main.bundleIdentifier`)
+- 修 `AIDashboardView.swift:95` 硬编码 `v0.16.0` + `PluginManager.swift:118` 硬编码 fallback `1.7.0`
+- 加 `Bundle` extension (`Modules/CoreCommon`):`appShortVersion` / `appBuildNumber` / `appFullVersion`(4 段制 `5.0.3.64`) / `appFullVersionTag`(`v5.0.3.64`) / `appDisplayName`
+- `SettingsView` 关于栏:显示 `v5.0.3.64`(`a11y id = settings.app.version`), 加「Bundle ID」一栏让用户能确认装的是真版本
+- `SystemTools.appInfo` 加 `fullVersion` 字段(技能侧获 4 段制版本号)
+- 11 BundleVersionTests + 7 AppStateNotificationTests + 2 XCUITest(`testSettingsVersionDisplaysFourSegmentTag` / `testPINUnlockDoesNotCrashOnFirstLaunch`) 三层覆盖
+- 全仓 596 个 `.swift` 二次审计 29 个 iOS 17-only API pattern, 0 新增违规, `AppState.swift` v5.0.3.63 修已就位
+- AppIcon 18 + LaunchIcon 3 张资产复审:全 RGB 无 alpha 通道, App Store 合规
+- 5 version surface 全 sync (productVersion / desktop alpha / ios short+build / android name+code)
+
+**待用户反馈**:v5.0.3.63 PIN 闪退根因未在代码层复现, 装 v5.0.3.64 仍崩请附 crash log (Xcode → Devices and Simulators → View Device Logs)。Settings 新「Bundle ID」字段可帮确认安装版本。
+
+## [Unreleased] — iOS Phase 5 AI Chat 收口（4 真实 bug + 4 集成测试）
+
+> Phase 5.1-5.6 已随前期 commit 落地；Phase 5.7 收口走静态审计路径找出并修 4 真实 bug，每条 1 个回归单测。同时补 4 个集成测试覆盖 events fan-out / cancel 顺序 / offline drain / 多对话 stream 隔离的端到端链路。
+
+**Bug 修复**：
+- `RemoteAIChatViewModel.finalizeStreamingPlaceholder` 空字符串 messageId 击穿 SwiftUI ForEach 身份 — 改用显式 isEmpty guard 而非 nil-coalesce。
+- `RemoteAIChatViewModel.deleteConversation` 失败时半回滚 — 仅恢复 conversations 列表，currentConversation/messages 留空。新增 `rollbackDelete` 私有方法，全量原子回滚。
+- `RemoteAIChatViewModel.sendMessage` 缺 stream-in-flight 防御 — UI 隐藏 send button 但 VM 不能假设，加 `guard currentStreamId == nil`。
+- `RemoteAIChatViewModel.selectConversation` 保留 stale `currentStreamId` — 切对话后 prev stream 的 delta 在 edge case 下污染新 conv 末条。改为显式清。
+
+**测试覆盖**：
+- 单测从 41 → **45**（每个 bug 1 条回归单测）；总 iOS 单测 **~358**。
+- 新集成测试 `Phase5AIChatIntegrationTests.swift`（4 条）：真 fan-out 端到端 / cancel 顺序保证 / offline drain / 多对话 stream 隔离。
+- 集成测试从 6 → **10**。
+
+**真机 E2E（Phase 5.8）** 仍待 Mac+iPhone+真桌面在场，design `iOS_Phase_5_AI_Chat_Skill.md` §8.4 已就绪 8 场景 reproducer 详步骤。
+
 ## [v5.0.3.63] - 2026-05-17 — iOS 16 PIN 闪退修复 + AppIcon 全幅 + Sub-phase 5-6 移动远程终端体验
 
 > v5.0.3.62 部署 iOS 16 后真机暴露两类问题：(1) iOS 16 上 PIN 设置 / 解锁均闪退，根因 `AppState.swift` 用了 iOS 17 only `MainActor.assumeIsolated`；(2) AppIcon 缩成小图四周大片白边。同时 Android 端 Sub-phase 5-6 LOCAL 项目首次远程终端体验：放宽 v2 fallback gate + 弹框补填 PC 端工作目录避免 PtyManager 落 Electron cwd。

@@ -5,9 +5,24 @@ public enum AppConstants {
     /// 应用信息
     public enum App {
         public static let name = "ChainlessChain"
-        public static let bundleId = "com.chainlesschain.ios"
-        public static let version = "0.32.0"
-        public static let buildNumber = "32"
+
+        /// 实际 bundle id 由 Info.plist `CFBundleIdentifier` 决定（生产 = `com.chainlesschain.ChainlessChain`）。
+        /// 这里从 `Bundle.main.bundleIdentifier` 动态读，避免硬编码 stale。
+        public static var bundleId: String {
+            Bundle.main.bundleIdentifier ?? "com.chainlesschain.ChainlessChain"
+        }
+
+        /// `CFBundleShortVersionString`，例如 "5.0.3"
+        public static var version: String { Bundle.appShortVersion }
+
+        /// `CFBundleVersion` build number，例如 "63"
+        public static var buildNumber: String { Bundle.appBuildNumber }
+
+        /// 4 段制完整版本号 (与 desktop productVersion / Android versionName 对齐)，例如 "5.0.3.63"
+        public static var fullVersion: String { Bundle.appFullVersion }
+
+        /// 带 v 前缀的展示用版本号，例如 "v5.0.3.63"
+        public static var fullVersionTag: String { Bundle.appFullVersionTag }
     }
 
     /// API 端点

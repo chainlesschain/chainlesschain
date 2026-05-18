@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import CoreCommon
 
 /// 系统工具集 - 设备信息、数据验证、网络检查
 public enum SystemTools {
@@ -70,9 +71,11 @@ public enum SystemTools {
 
         var info: [String: String] = [:]
         info["bundleId"] = Bundle.main.bundleIdentifier
-        info["version"] = infoDictionary["CFBundleShortVersionString"] as? String
-        info["build"] = infoDictionary["CFBundleVersion"] as? String
-        info["displayName"] = infoDictionary["CFBundleDisplayName"] as? String ?? infoDictionary["CFBundleName"] as? String
+        info["version"] = Bundle.appShortVersion
+        info["build"] = Bundle.appBuildNumber
+        info["fullVersion"] = Bundle.appFullVersion
+        info["displayName"] = Bundle.appDisplayName
+        _ = infoDictionary // silence unused-binding (defensive: guarded above)
 
         return .success(data: info)
     }
