@@ -1,0 +1,61 @@
+{
+  "id": "tpl_health_checkup_008",
+  "name": "medical_checkup_tracker",
+  "display_name": "体检与健康追踪",
+  "description": "定期体检记录与健康指标追踪，包含体检报告解读和健康改善计划",
+  "icon": "🏥",
+  "category": "health",
+  "subcategory": "medical",
+  "tags": [
+    "体检",
+    "健康指标",
+    "医疗记录",
+    "预防保健"
+  ],
+  "project_type": "document",
+  "prompt_template": "健康体检追踪记录\n\n**体检日期：** {{checkupDate}}\n**体检机构：** {{institution}}\n**体检类型：** {{checkupType}}\n**年龄：** {{age}}岁\n**性别：** {{gender}}\n\n# 健康体检完整档案\n\n## 1. 基础信息\n\n**姓名：** {{name}}\n**出生日期：** {{birthDate}}\n**血型：** {{bloodType}}\n**身高：** {{height}} cm\n**体重：** {{weight}} kg\n**BMI：** {{bmi}}\n\n**家族病史：**\n{{familyHistory}}\n\n**个人病史：**\n{{medicalHistory}}\n\n**过敏史：**\n{{allergies}}\n\n**正在服用药物：**\n{{currentMedications}}\n\n---\n\n## 2. 生命体征\n\n### 2.1 血压\n\n**收缩压/舒张压：** {{systolic}}/{{diastolic}} mmHg\n**心率：** {{heartRate}} 次/分\n\n**参考范围：**\n- 正常血压：<120/80 mmHg\n- 正常心率：60-100次/分\n\n**评估：** {{bloodPressureAssessment}}\n\n### 2.2 体温与呼吸\n\n**体温：** {{temperature}}°C\n**呼吸频率：** {{respiratoryRate}} 次/分\n\n---\n\n## 3. 血液检查\n\n### 3.1 血常规\n\n| 项目 | 结果 | 参考范围 | 状态 |\n|------|------|----------|------|\n| 白细胞计数(WBC) | {{wbc}} | 3.5-9.5 ×10⁹/L | {{wbcStatus}} |\n| 红细胞计数(RBC) | {{rbc}} | 4.3-5.8 ×10¹²/L | {{rbcStatus}} |\n| 血红蛋白(HGB) | {{hgb}} | 130-175 g/L | {{hgbStatus}} |\n| 血小板计数(PLT) | {{plt}} | 125-350 ×10⁹/L | {{pltStatus}} |\n\n**医生解读：**\n{{bloodTestInterpretation}}\n\n### 3.2 生化检查\n\n**血糖：**\n- 空腹血糖：{{fastingGlucose}} mmol/L（参考：3.9-6.1）\n- 糖化血红蛋白：{{hba1c}}%（参考：<5.7%）\n\n**血脂：**\n- 总胆固醇：{{totalCholesterol}} mmol/L（参考：<5.2）\n- 甘油三酯：{{triglycerides}} mmol/L（参考：<1.7）\n- 低密度脂蛋白(LDL)：{{ldl}} mmol/L（参考：<3.4）\n- 高密度脂蛋白(HDL)：{{hdl}} mmol/L（参考：>1.0）\n\n**肝功能：**\n- 谷丙转氨酶(ALT)：{{alt}} U/L（参考：<40）\n- 谷草转氨酶(AST)：{{ast}} U/L（参考：<40）\n\n**肾功能：**\n- 肌酐：{{creatinine}} μmol/L（参考：44-133）\n- 尿素氮：{{bun}} mmol/L（参考：2.9-8.2）\n- 尿酸：{{uricAcid}} μmol/L（参考：208-428）\n\n**电解质：**\n- 钠(Na)：{{sodium}} mmol/L（参考：137-147）\n- 钾(K)：{{potassium}} mmol/L（参考：3.5-5.3）\n\n---\n\n## 4. 尿液检查\n\n| 项目 | 结果 | 参考值 | 状态 |\n|------|------|--------|------|\n| pH值 | {{urinePH}} | 4.5-8.0 | {{phStatus}} |\n| 蛋白质 | {{urineProtein}} | 阴性 | {{proteinStatus}} |\n| 葡萄糖 | {{urineGlucose}} | 阴性 | {{glucoseStatus}} |\n| 红细胞 | {{urineRBC}} | 阴性 | {{rbcUrineStatus}} |\n| 白细胞 | {{urineWBC}} | 阴性 | {{wbcUrineStatus}} |\n\n---\n\n## 5. 影像学检查\n\n### 5.1 X光检查\n\n**胸部X光：**\n{{chestXray}}\n\n### 5.2 超声检查\n\n**腹部超声：**\n- 肝脏：{{liverUltrasound}}\n- 胆囊：{{gallbladderUltrasound}}\n- 脾脏：{{spleenUltrasound}}\n- 肾脏：{{kidneyUltrasound}}\n\n**甲状腺超声：**\n{{thyroidUltrasound}}\n\n### 5.3 心电图\n\n**ECG结果：**\n{{ecgResult}}\n\n---\n\n## 6. 专科检查\n\n### 6.1 眼科\n\n**视力：**\n- 左眼：{{leftEyeVision}}\n- 右眼：{{rightEyeVision}}\n\n**眼压：**\n- 左眼：{{leftEyePressure}} mmHg\n- 右眼：{{rightEyePressure}} mmHg\n\n**眼底检查：**\n{{fundusExam}}\n\n### 6.2 口腔科\n\n**牙齿状况：**\n{{dentalStatus}}\n\n**牙周健康：**\n{{periodontalHealth}}\n\n### 6.3 耳鼻喉科\n\n**听力测试：**\n{{hearingTest}}\n\n---\n\n## 7. 肿瘤标志物（如适用）\n\n| 标志物 | 结果 | 参考范围 | 状态 |\n|--------|------|----------|------|\n| CEA | {{cea}} | <5 ng/ml | {{ceaStatus}} |\n| AFP | {{afp}} | <20 ng/ml | {{afpStatus}} |\n| CA125 | {{ca125}} | <35 U/ml | {{ca125Status}} |\n| CA199 | {{ca199}} | <37 U/ml | {{ca199Status}} |\n| PSA(男) | {{psa}} | <4 ng/ml | {{psaStatus}} |\n\n---\n\n## 8. 综合评估\n\n### 8.1 健康风险评估\n\n**总体健康状况：** {{overallHealth}}\n\n**发现的问题：**\n1. {{finding1}}\n2. {{finding2}}\n3. {{finding3}}\n\n**风险等级：**\n- 心血管疾病风险：{{cardiovascularRisk}}\n- 糖尿病风险：{{diabetesRisk}}\n- 代谢综合征风险：{{metabolicRisk}}\n\n### 8.2 医生建议\n\n**需要复查的项目：**\n{{followUpItems}}\n\n**复查时间：**\n{{followUpDate}}\n\n**转诊建议：**\n{{referralAdvice}}\n\n---\n\n## 9. 健康改善计划\n\n### 9.1 饮食建议\n\n**推荐饮食模式：** {{dietRecommendation}}\n\n**需要增加：**\n- {{increaseFood1}}\n- {{increaseFood2}}\n\n**需要减少：**\n- {{reduceFood1}}\n- {{reduceFood2}}\n\n### 9.2 运动建议\n\n**推荐运动类型：** {{exerciseType}}\n**运动频率：** {{exerciseFrequency}}\n**运动时长：** {{exerciseDuration}}\n\n### 9.3 生活方式调整\n\n**睡眠：** {{sleepAdvice}}\n**压力管理：** {{stressManagement}}\n**戒烟戒酒：** {{substanceAdvice}}\n\n---\n\n## 10. 历史对比\n\n### 10.1 关键指标趋势\n\n| 指标 | 本次 | 上次({{lastCheckupDate}}) | 变化 |\n|------|------|---------------------------|------|\n| 体重 | {{weight}}kg | {{lastWeight}}kg | {{weightChange}} |\n| BMI | {{bmi}} | {{lastBMI}} | {{bmiChange}} |\n| 血压 | {{systolic}}/{{diastolic}} | {{lastBP}} | {{bpChange}} |\n| 空腹血糖 | {{fastingGlucose}} | {{lastGlucose}} | {{glucoseChange}} |\n| 总胆固醇 | {{totalCholesterol}} | {{lastCholesterol}} | {{cholesterolChange}} |\n\n### 10.2 改善情况\n\n**好转的指标：**\n{{improvedMetrics}}\n\n**恶化的指标：**\n{{worsenedMetrics}}\n\n---\n\n## 11. 预防保健计划\n\n### 11.1 疫苗接种\n\n**已接种：**\n- {{vaccine1}}（日期：{{vaccine1Date}}）\n- {{vaccine2}}（日期：{{vaccine2Date}}）\n\n**建议接种：**\n- {{recommendedVaccine1}}（建议时间：{{vaccine1Schedule}}）\n- {{recommendedVaccine2}}（建议时间：{{vaccine2Schedule}}）\n\n### 11.2 定期筛查计划\n\n根据年龄和性别的筛查建议：\n\n**年度体检：** {{annualCheckup}}\n**专项筛查：**\n- {{screening1}}（频率：{{screening1Frequency}}）\n- {{screening2}}（频率：{{screening2Frequency}}）\n- {{screening3}}（频率：{{screening3Frequency}}）\n\n---\n\n## 12. 行动清单\n\n### 短期（1个月内）\n- [ ] {{action1}}\n- [ ] {{action2}}\n- [ ] {{action3}}\n\n### 中期（3个月内）\n- [ ] {{midTermAction1}}\n- [ ] {{midTermAction2}}\n\n### 长期（持续）\n- [ ] {{longTermAction1}}\n- [ ] {{longTermAction2}}\n\n---\n\n## 附录\n\n### A. 健康指标参考\n\n**BMI分类：**\n- <18.5：体重过轻\n- 18.5-23.9：正常\n- 24-27.9：超重\n- ≥28：肥胖\n\n**血压分类：**\n- 正常：<120/80\n- 正常高值：120-139/80-89\n- 高血压：≥140/90\n\n### B. 下次体检提醒\n\n**建议下次体检时间：** {{nextCheckupDate}}\n**需要准备：** {{checkupPreparation}}\n",
+  "variables_schema": [
+    {
+      "name": "checkupDate",
+      "label": "体检日期",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "institution",
+      "label": "体检机构",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "checkupType",
+      "label": "体检类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "annual", "label": "年度体检"},
+        {"value": "employment", "label": "入职体检"},
+        {"value": "comprehensive", "label": "全面体检"},
+        {"value": "specialized", "label": "专项检查"}
+      ]
+    },
+    {
+      "name": "age",
+      "label": "年龄",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "体检报告-{{checkupDate}}",
+    "files": [
+      {"path": "体检报告.docx", "type": "document"},
+      {"path": "指标趋势.xlsx", "type": "spreadsheet"},
+      {"path": "报告扫描件/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

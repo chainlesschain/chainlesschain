@@ -1,0 +1,457 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import rootPkg from '../../../../package.json';
+import releaseSizes from '../../data/release-sizes.json';
+
+const PRODUCT_VERSION = rootPkg.productVersion;
+const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
+const ANDROID_VERSION = ANDROID_TAG;
+const ANDROID_RELEASE_URL = `https://github.com/chainlesschain/chainlesschain/releases/tag/${ANDROID_TAG}`;
+const dl = (key) => {
+  const s = releaseSizes.sizes[key];
+  if (!s) return null;
+  return {
+    href: `https://github.com/chainlesschain/chainlesschain/releases/download/${ANDROID_TAG}/${s.name}`,
+    name: s.name,
+    label: s.label,
+  };
+};
+const apkArm64 = dl('android-arm64-v8a');
+const apkArmV7 = dl('android-armeabi-v7a');
+const apkUniversal = dl('android-universal');
+const aab = dl('android-aab');
+---
+<BaseLayout
+  title={`Mobile ${ANDROID_VERSION} — Native Android app · DID wallet · Mobile capture · REMOTE control | ChainlessChain`}
+  description={`ChainlessChain Android ${ANDROID_VERSION} GA: native Jetpack Compose + Kotlin. Three-layer model (L1 StrongBox DID wallet / L2 Voice·Camera·Location·Share·Push capture / L3 REMOTE invocation of desktop skills) + 28 skills + 383+ unit tests + W3.7 Flow B real-device QR pairing. Direct APK or Google Play (AAB).`}
+  canonical="https://www.chainlesschain.com/en/mobile"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">ANDROID · {ANDROID_VERSION} · GA</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          Phones aren't tiny desktops.<br/>
+          They're a <span class="italic text-ember">key, a capture rig, a remote</span>.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          Android v1.0 is repositioned around three jobs: StrongBox hardware DID wallet, five mobile-capture pieces
+          (voice / camera / location / share / push), and REMOTE invocation of the 139 desktop skills. Mirrors
+          Claude Desktop / Mobile's split — desktop is the workstation, phone is its extension.
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="#download" class="btn-ember">Download APK ↓</a>
+          <a href="/en/desktop" class="btn-ghost">Desktop is here →</a>
+        </div>
+        <div class="mt-6 text-sm text-muted">
+          Desktop and mobile ship on the same version, same tag: <code class="font-mono bg-cream px-1 rounded">{ANDROID_TAG}</code>. Each release tag carries 8 desktop bundles + 4 Android bundles together.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-24 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-4">Three layers</div>
+        <h2 class="text-4xl md:text-5xl leading-tight font-display">L1 · L2 · L3 — each layer earns its keep.</h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          We stopped competing with desktop on skill count. The phone does the three things it's actually best at:
+          guard the private key, capture from the field, drive the desktop remotely.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L1 · WALLET</div>
+          <h3 class="font-display text-2xl mb-3">StrongBox DID wallet</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            Hardware key store (Android Keystore + StrongBox HSM) guards W3C DID v2 private keys.
+            BIP-39 mnemonic, biometric (fingerprint / face) unlock, multi-DID switching, automatic
+            migration from any legacy plaintext store.
+          </p>
+          <div class="text-xs text-muted font-mono">68 unit tests · M2 landed</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L2 · CAPTURE</div>
+          <h3 class="font-display text-2xl mb-3">Field capture, five pieces</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            All five wired: <strong class="text-ink">VoiceMode</strong> (continuous SeedASR → LLM → TTS),
+            <strong class="text-ink">CameraOCR</strong> (photo → OCR → note),
+            <strong class="text-ink">LocationTagger</strong> (GPS foreground service),
+            <strong class="text-ink">ShareReceiver</strong> (5 SharePayload kinds → KB),
+            <strong class="text-ink">PushNotifier</strong> (4 notification channels + FCM scaffold).
+          </p>
+          <div class="text-xs text-muted font-mono">130 unit tests · M3 landed (code 5/5)</div>
+        </div>
+
+        <div class="p-8 rounded-2xl border border-line bg-paper hover:border-ember transition-colors">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">L3 · REMOTE</div>
+          <h3 class="font-display text-2xl mb-3">REMOTE control</h3>
+          <p class="text-muted leading-relaxed text-sm mb-4">
+            Phone → desktop, 23 REMOTE commands (audit of 795 suspend fns). RemoteSkillRegistry with
+            file + method dual-granularity whitelist · ApprovalUI in 4 categories (Sign / Cowork /
+            Marketplace / SystemCritical) · ProgressViewer for long tasks · §8.3 alias compat window.
+          </p>
+          <div class="text-xs text-muted font-mono">152 unit tests · M4 landed</div>
+        </div>
+      </div>
+
+      <div class="mt-10 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Hardware isolation</div>
+          <div class="text-sm text-ink/80">StrongBox HSM · private keys never leave · biometric unlock · auto-lock on retry.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">SignAsService</div>
+          <div class="text-sm text-ink/80">M5 reverse signing: macOS/Linux desktop calls the phone for hardware sigs — cross-platform U-Key replacement. 33 tests.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-cream/50 border border-line">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">28 Skills</div>
+          <div class="text-sm text-ink/80">12 Kotlin handlers + 8 doc-only + 8 REMOTE (delegate to desktop) — curated for mobile.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">W3.7 · 2026-05-12 · Xiaomi real-device verified</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Flow B QR pairing (default)</h2>
+        <p class="text-muted leading-relaxed">
+          Desktop shows the QR, phone camera scans the desktop screen — same UX as WeChat / Alipay /
+          Discord / WhatsApp Web. Phone-scans-desktop has dramatically better recognition rates than
+          desktop-webcam-scans-tiny-phone-screen. Xiaomi 24115RA8EC E2E walked the full chain:
+          desktop QR → ML Kit scan → signaling pair-ack → CLI writes SQLite → Vue list refreshes.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Entry</strong>: phone Settings → "Scan desktop QR" (recommended) / desktop V5, V6, web-shell all three</li>
+          <li>· <strong class="text-ink">Tests</strong>: ScanDesktopPairingViewModel 10 · desktop-pair-handlers 19 · ZXing / ML Kit pass-through · adb-reverse E2E proven</li>
+          <li>· <strong class="text-ink">Advanced path</strong>: Flow A (phone-generates / desktop-scans, Signal e2ee) kept as opt-in</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a
+            href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_%E9%87%8D%E6%96%B0%E5%AE%9A%E4%BD%8D_%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3.md"
+            class="text-ember hover:underline"
+            target="_blank"
+            rel="noopener"
+          >Design doc: Android repositioning v0.2 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Phase 3d · 2026-05-09</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Desktop ↔ Android two-way sync</h2>
+        <p class="text-muted leading-relaxed">
+          Five resource types — Note / Conversation / DID / Community / Channel — plus tombstones,
+          bidirectional walker. dagger.Lazy untangles 4 Hilt cycles; Room persists SyncRemoteCursor;
+          sync.* JSON-RPC handlers wire transport. Gates 1–4 are strict Ed25519 verify. Private keys
+          stay on phone, passwords never on the wire.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">M2 → v1.2, 12 commits</strong>: desktop side 5 ResourceType walker + 52 tests · Android side SocialSyncWalker fills handlePullRpc + DID auth</li>
+          <li>· <strong class="text-ink">Entry</strong>: desktop Settings → Sync → SyncMobile device manager + manual pairing; mobile Settings → Sync</li>
+          <li>· <strong class="text-ink">Protocol</strong>: CommandRequest.auth nullable · listTombstones SQL filter · Android substitutes P2P session DID for device registry</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan C signaling forward -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Remote Operate Plan C · v5.0.3.50 · 2026-05-13</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Remote first: signaling-forward RPC.</h2>
+        <p class="text-muted leading-relaxed">
+          Phone as remote — call desktop skills / list / status from the phone, low-bandwidth
+          path first. signaling-relay forwards JSON-RPC 2.0; desktop side runs RelayClient +
+          handlePairAckFromRelay, Android side runs SignalingRpcClient + RemoteOperateScreen.
+          LAN direct first, falls back to public relay; PairedDesktopsStore persists paired peers.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Three-path decision</strong>: Plan C signal-forward (shipped first) / Plan A WebRTC DC (throughput) / Plan B STUN+TURN (NAT traversal) — three tiers compose</li>
+          <li>· <strong class="text-ink">Measured ping</strong>: 100–400ms (relay region dependent); fine for everyday remote, Plan A migrates the hot path to DC</li>
+          <li>· <strong class="text-ink">20 new unit tests</strong> · key fixes: runCurrent over advanceUntilIdle for SharedFlow race / org.json over kotlinx-serialization to slim deps</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Operate_Plan_C.md" target="_blank" rel="noopener">Design doc: Android Remote Operate Plan C →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A+B infrastructure -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A + B infrastructure · v5.0.3.51</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">WebRTC forwarding + STUN/TURN fallback.</h2>
+        <p class="text-muted leading-relaxed">
+          signaling-relay forwards offer/answer/ice-candidate and injects the from field
+          (from ws.peerId), so LAN and relay paths are interchangeable in
+          mobileBridge.handleSignalingMessage. coturn 4.6 deployed at
+          turn.chainlesschain.com (3478 UDP/TCP + 5349 TLS + 49152-65535 relay UDP),
+          Let's Encrypt acme.sh auto-renew, HMAC-SHA1 use-auth-secret 24h-TTL ephemeral creds.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">iceServers don't ship in the QR</strong>: 650 chars + 280px + error-H stalls 30s in practice. Pushed async after scan — desktop pair-ack matched ⇒ pushIceServersToMobile dual-send LAN + relay <code class="font-mono bg-cream px-1 rounded">chainlesschain:ice:config</code></li>
+          <li>· <strong class="text-ink">Android persistence</strong>: WebRTCClient.setOnForwardedMessageReceived intercepts ⇒ PairedDesktopsStore.iceServersJson · SignalingRpcClient mirror race-tolerant</li>
+          <li>· <strong class="text-ink">No hardcoded secrets</strong>: CC_TURN_SECRET strictly required · Alibaba Cloud SG must open UDP/TCP 3478 / TCP 5349 / UDP 49152-65535 to 0.0.0.0/0</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Operate_Plan_AB.md" target="_blank" rel="noopener">Design doc: Android Remote Operate Plan A+B →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A.1 remote terminal WebRTC DataChannel direct -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A.1 Remote Terminal · v5.0.3.53 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Same day, upgraded: 4-hop signaling collapsed to a 1-hop DataChannel.</h2>
+        <p class="text-muted leading-relaxed">
+          v5.0.3.52 Plan A real-device validation (Xiaomi 24115RA8EC × Win desktop dev) surfaced one
+          <strong class="text-ink">architectural</strong> issue: a 4-hop signaling chain
+          (phone → router → public relay → desktop RelayClient) is fragile under NAT idle / cellular
+          carrier-side TCP RST — any hop down kills the whole chain. Plan A.1 moves high-frequency /
+          high-throughput terminal traffic onto a <strong class="text-ink">WebRTC DataChannel direct
+          connection</strong>, bypassing every middle hop; signaling stays as a fallback.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Phase 1 Trap 1 fix</strong>: SignalClient.forwardedMessages migrated to multi-subscribe SharedFlow replacing the single-listener setOnForwardedMessageReceived → the ice:config interceptor was no longer silently overwritten when TerminalRpcClient.start() ran, fixing the bug where iceServers expired in 24h and cross-NAT became unreachable; + new WebRTCClient.dataChannelReady StateFlow (READY truly means DC OPEN)</li>
+          <li>· <strong class="text-ink">Phase 2 DC fast path</strong>: SignalingRpcClient.invoke embeds a transport selector — connectionState==READY → send via DC; throws or not-ready → fallback signaling. Two listeners consume both streams; same requestId → same CompletableDeferred (second complete is a no-op, dual delivery is safe without explicit dedup)</li>
+          <li>· <strong class="text-ink">Phase 3 handshake trigger + UI indicator</strong>: TerminalListViewModel async-triggers RemoteConnectionManager.connect on entry; chip shows "P2P direct" (green) vs "Relay path" (yellow)</li>
+          <li>· <strong class="text-ink">Phase 4 bidirectional LRU dedup</strong>: Android dedups stdout by (sessionId|seq) with 256-LRU + exit by sessionId with 64-LRU on dual streams; desktop mobile-bridge.bridgeToLibp2p gets a 128-LRU / 30s-TTL keyed by payload.id for mobile→desktop command requests, guarding against duplicate PtyManager side effects</li>
+          <li>· <strong class="text-ink">Phase 5 zero new code</strong>: DC failure fallback / auto-reconnect / recovery auto-switch / live UI mapping all fall out of Phase 2 + P2PClient's existing wiring for free</li>
+          <li>· <strong class="text-ink">Perf</strong>: RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN · p99 1.5-30s with timeouts → 200-800ms · stability 20s-2min outages → hours-long sustained</li>
+          <li>· <strong class="text-ink">Tests</strong>: Android +8 (TerminalRpcClient 3 dedup / SignalingRpcClient 4 transport / WebRTCClient 1 Trap 1) + desktop +14 (LRU dedup 5 + sendToMobile 5 + guard rails 2) · all 3 suites green (11 + 15 + 21 Android + 14 desktop) · 12-test regression fix (mockk relaxed StateFlow generic erasure)</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A1.md" target="_blank" rel="noopener">Design doc: Android Remote Terminal Plan A.1 →</a>
+          ·
+          Real-device E2E §5.3 5-scenario matrix (LAN / cellular / double-NAT / DC forced-down / DC recovered) is on the user.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan A remote terminal -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Plan A Remote Terminal · v5.0.3.52 · 2026-05-14</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">See your desktop terminals on your phone.</h2>
+        <p class="text-muted leading-relaxed">
+          User pain: "I have many terminals open on the PC, can I see their output and type
+          commands from Android?". Hard constraint — Windows externally-running terminals
+          can't be attached by another process (OS handles are private). Solution:
+          ChainlessChain desktop spawns <strong class="text-ink">new</strong> terminals via
+          node-pty and streams stdin/stdout through signaling-relay into an Android xterm.js
+          WebView.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">Desktop Phase 1</strong>: PtyManager (lazy node-pty + 256 KB ring buffer + 24h idle kill + shell allowlist pwsh/cmd/bash/wsl + 8-session cap) · 8 WS topics (create/list/stdin/resize/close/history + server-push stdout/exit) · dangerous-keyword Electron messageBox confirm + permanent trust per-cmd cache</li>
+          <li>· <strong class="text-ink">Phase 1.5 three shells</strong>: V5/V6 web-shell + V6 plugin widget + cc ui mirror (agent-runtime.startUiServer reuses dispatcher) · /terminal route + sidebar menu + slash command</li>
+          <li>· <strong class="text-ink">Android Phase 3</strong>: TerminalRpcClient reuses envelope · WebView ↔ Kotlin JS bridge · xterm.js vendored into assets/terminal/ · softkey toolbar Ctrl/Tab/Esc/arrows/Ctrl+C/D</li>
+          <li>· <strong class="text-ink">Phase 4 resilience</strong>: paired_devices/permission-gate · mobile-bridge stdout/exit per-peer subscription fan-out · reconnect terminal.history backfill</li>
+          <li>· <strong class="text-ink">162 new unit tests, all green</strong> · Desktop 61 / CLI 21 / Web Panel 17 + 3 real e2e (cc ui subprocess + real WS + shell stdin/stdout round-trip) / Android 10 · including real cmd.exe spawn streaming probe stdout back</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Remote_Terminal_Plan_A.md" target="_blank" rel="noopener">Design doc: Android Remote Terminal Plan A →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs-site/docs/guide/remote-terminal.md" target="_blank" rel="noopener">User guide: Remote terminal →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Social wiring goes production -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Social wiring · 2026-05-13</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">Social goes from demo to production.</h2>
+        <p class="text-muted leading-relaxed">
+          The 14-screen + 9-ViewModel + 4-Repository social scaffold (≈10K LOC) was built long ago,
+          but only MyQRCode / QRCodeScanner were actually wired; the other seven routes were
+          <code class="font-mono bg-paper px-1 rounded">registerPlaceholder("temporarily simplified")</code>,
+          and the SocialScreen Friends/Timeline tabs were hardcoded placeholder strings. Closed in one
+          pass: all routes bound to real composables, two new routes for NotificationCenter / BlockedUsers,
+          PostReportDao landed (the entity was in schema, DAO was missing), and PROFILE_QUERY/RESPONSE
+          protocol added for remote DID profile lookup.
+        </p>
+        <ul class="mt-6 space-y-2 text-sm text-muted">
+          <li>· <strong class="text-ink">NavGraph: 7 placeholders → real screens + 2 new routes</strong> · PublishPost / PostDetail / FriendDetail / UserProfile / AddFriend / CommentDetail / EditPost / NotificationCenter / BlockedUsers · spinner shown while the DID document loads</li>
+          <li>· <strong class="text-ink">SocialScreen three tabs upgraded</strong> · Friends → FriendListScreen · Timeline → TimelineScreen (myDid via DIDViewModel) · Notifications → NotificationCenterScreen (filter / mark-all-read / cleanup menus)</li>
+          <li>· <strong class="text-ink">PostReportDao</strong> · reportPost was building entities without inserting + getUserReports returned a hardcoded empty list. New DAO adds idempotent dedupe + status transitions + 8 in-memory Room tests</li>
+          <li>· <strong class="text-ink">PROFILE_QUERY/RESPONSE protocol</strong> · RealtimeEventManager.queryProfile with 5s timeout · onSubscription clears the SharedFlow replay=0 subscribe-race · DefaultSelfProfileProvider wired in Application.delayedInit</li>
+          <li>· <strong class="text-ink">39 new tests, all green</strong> · 6 core-p2p / 14 feature-p2p / 8 core-database Room / 11 NavGraph + tab structural regressions · no emulator required</li>
+        </ul>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/Android_Social_Wiring_2026-05.md" target="_blank" rel="noopener">Design doc: Android Social Wiring 2026-05 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-20 bg-cream/50 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <div class="chip mb-4">Quality baseline</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">383+ unit tests · GA grade.</h2>
+        <p class="text-muted leading-relaxed">
+          M1–M5 JVM-side fully green. Real-device M3 / M4 D2 / M6 perf / FCM credentials / docs sync —
+          the five user-driven items — are tracked in the
+          <a class="text-ember hover:underline" href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/v1.0_GA_checklist.md" target="_blank" rel="noopener">v1.0 GA checklist</a>.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {[
+          { n: 'M1', label: 'REMOTE inventory', tests: '795 fn audit' },
+          { n: 'M2', label: 'L1 wallet', tests: '68 tests' },
+          { n: 'M3', label: 'L2 capture (5/5)', tests: '130 tests' },
+          { n: 'M4', label: 'L3 REMOTE', tests: '152 tests' },
+          { n: 'M5', label: 'SignAsService', tests: '33 tests' },
+        ].map((m) => (
+          <div class="bg-paper p-5 text-center">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-2">{m.n}</div>
+            <div class="font-display text-base mb-1">{m.label}</div>
+            <div class="text-xs text-muted">{m.tests}</div>
+          </div>
+        ))}
+      </div>
+
+      <p class="mt-6 text-sm text-muted">
+        Stack: Jetpack Compose · Kotlin · Hilt DI · Room · MockK + Robolectric ·
+        Play Services (FusedLocationProvider / FCM scaffold) · StrongBox Keystore ·
+        ML Kit / ZXing scanner · Volcengine SeedASR 16 kHz streaming.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4">Known limitations · scheduled for v1.1</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">What v1.0 doesn't ship.</h2>
+        <ul class="mt-6 space-y-2.5 text-muted">
+          <li>· <strong class="text-ink">FCM in mainland China</strong>: unreliable behind the GFW · v1.1 will unify OPPO / Xiaomi / Huawei push channels</li>
+          <li>· <strong class="text-ink">Single-peer pairing</strong>: v1.0 pairs one desktop · multi-device N-end in v1.1</li>
+          <li>· <strong class="text-ink">Offline message queue</strong>: REMOTE requests aren't queued while desktop is offline · v1.1 adds replay</li>
+          <li>· <strong class="text-ink">Real-device M3 / M4 D2, M6 perf, FCM creds, docs sync</strong>: 5 user-driven steps tracked in the GA checklist</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">Download · Android {ANDROID_VERSION}</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Pick the right package.</h2>
+        <p class="mt-6 text-muted">
+          Most devices since 2019 want <strong class="text-ink">arm64-v8a</strong>. If unsure or older,
+          go universal. Google Play uploads use the AAB (developer-only). Every artifact is signed by
+          GitHub Actions release.yml.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        {apkArm64 && (
+          <a
+            href={apkArm64.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border-2 border-ember bg-ember/5 hover:bg-ember/10 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-ember">ARM64-V8A · RECOMMENDED</div>
+              <span class="font-mono text-xs text-ember">{apkArm64.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-arm64-v8a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">64-bit ARM · Android 8.0+ · best for most users</div>
+            <div class="text-xs text-muted">Xiaomi / Redmi / Huawei / OPPO / vivo / OnePlus / Samsung / Pixel 2019+</div>
+            <div class="mt-6 text-sm text-ember">Download APK ↓</div>
+          </a>
+        )}
+
+        {apkUniversal && (
+          <a
+            href={apkUniversal.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">UNIVERSAL</div>
+              <span class="font-mono text-xs text-muted">{apkUniversal.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-universal-release.apk</h3>
+            <div class="text-sm text-ink mb-3">Both ABIs in one APK · grab this when unsure</div>
+            <div class="text-xs text-muted">Bigger but covers every ARM device · one APK fits all</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download APK ↓</div>
+          </a>
+        )}
+
+        {apkArmV7 && (
+          <a
+            href={apkArmV7.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">ARMEABI-V7A</div>
+              <span class="font-mono text-xs text-muted">{apkArmV7.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-armeabi-v7a-release.apk</h3>
+            <div class="text-sm text-ink mb-3">32-bit ARM · fallback for legacy devices</div>
+            <div class="text-xs text-muted">Pre-2018 budget hardware · smallest footprint</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download APK ↓</div>
+          </a>
+        )}
+
+        {aab && (
+          <a
+            href={aab.href}
+            target="_blank"
+            rel="noopener"
+            class="group p-8 rounded-2xl border border-line hover:border-ember hover:bg-ember/5 transition-all block"
+          >
+            <div class="flex items-baseline justify-between mb-3">
+              <div class="font-mono text-xs text-muted">AAB · DEVELOPER</div>
+              <span class="font-mono text-xs text-muted">{aab.label}</span>
+            </div>
+            <h3 class="font-display text-3xl mb-2">app-release.aab</h3>
+            <div class="text-sm text-ink mb-3">Android App Bundle · for Google Play uploads</div>
+            <div class="text-xs text-muted">Not an end-user installer — regular users pick an APK</div>
+            <div class="mt-6 text-sm text-ember opacity-0 group-hover:opacity-100 transition-opacity">Download AAB ↓</div>
+          </a>
+        )}
+      </div>
+
+      <div class="mt-10 p-6 rounded-2xl bg-cream/70 border border-line text-sm text-muted leading-relaxed">
+        <strong class="text-ink">Install note:</strong> first-time sideloading on most regional ROMs
+        requires enabling "install from this source" in system settings. In-app self-update lives at
+        <code class="font-mono bg-paper px-1 rounded">Settings → Check for updates</code> — it walks
+        GitHub Releases <code class="font-mono bg-paper px-1 rounded">{ANDROID_TAG}</code> → DownloadManager →
+        REQUEST_INSTALL_PACKAGES. iOS coming.
+      </div>
+
+      <p class="mt-6 text-sm text-muted text-center">
+        Want the full notes? See <a href={ANDROID_RELEASE_URL} target="_blank" rel="noopener" class="text-ember hover:underline">GitHub Release {ANDROID_TAG} ↗</a>
+        or the <a href="https://github.com/chainlesschain/chainlesschain/blob/main/android-app/CHANGELOG.md" target="_blank" rel="noopener" class="text-ember hover:underline">Android CHANGELOG ↗</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

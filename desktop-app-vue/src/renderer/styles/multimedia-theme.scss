@@ -1,0 +1,490 @@
+/**
+ * 多媒体主题样式
+ *
+ * 提供CSS变量和主题特定样式
+ */
+
+// ==================== CSS变量定义 ====================
+
+:root {
+  // 默认主题（亮色）
+  --multimedia-background: #ffffff;
+  --multimedia-background-secondary: #f5f5f5;
+  --multimedia-background-tertiary: #fafafa;
+  --multimedia-text-primary: #262626;
+  --multimedia-text-secondary: #595959;
+  --multimedia-text-tertiary: #8c8c8c;
+  --multimedia-border: #d9d9d9;
+  --multimedia-border-light: #f0f0f0;
+  --multimedia-primary: #667eea;
+  --multimedia-primary-hover: #5a67d8;
+  --multimedia-primary-active: #4c51bf;
+  --multimedia-success: #52c41a;
+  --multimedia-warning: #faad14;
+  --multimedia-error: #f5222d;
+  --multimedia-info: #1890ff;
+  --multimedia-shadow: rgba(0, 0, 0, 0.1);
+  --multimedia-shadow-light: rgba(0, 0, 0, 0.05);
+
+  // 过渡动画
+  --multimedia-transition-fast: 0.15s ease;
+  --multimedia-transition-normal: 0.3s ease;
+  --multimedia-transition-slow: 0.5s ease;
+
+  // 圆角
+  --multimedia-radius-sm: 4px;
+  --multimedia-radius-md: 6px;
+  --multimedia-radius-lg: 8px;
+  --multimedia-radius-xl: 12px;
+
+  // 间距
+  --multimedia-spacing-xs: 4px;
+  --multimedia-spacing-sm: 8px;
+  --multimedia-spacing-md: 16px;
+  --multimedia-spacing-lg: 24px;
+  --multimedia-spacing-xl: 32px;
+
+  // 字体大小
+  --multimedia-font-size-xs: 12px;
+  --multimedia-font-size-sm: 13px;
+  --multimedia-font-size-md: 14px;
+  --multimedia-font-size-lg: 16px;
+  --multimedia-font-size-xl: 18px;
+  --multimedia-font-size-2xl: 24px;
+}
+
+// 暗色主题
+.multimedia-theme-dark {
+  --multimedia-background: #1f1f1f;
+  --multimedia-background-secondary: #2d2d2d;
+  --multimedia-background-tertiary: #3a3a3a;
+  --multimedia-text-primary: #f5f5f5;
+  --multimedia-text-secondary: #d9d9d9;
+  --multimedia-text-tertiary: #8c8c8c;
+  --multimedia-border: #434343;
+  --multimedia-border-light: #303030;
+  --multimedia-primary: #7c3aed;
+  --multimedia-primary-hover: #8b5cf6;
+  --multimedia-primary-active: #a78bfa;
+  --multimedia-success: #73d13d;
+  --multimedia-warning: #ffc53d;
+  --multimedia-error: #ff4d4f;
+  --multimedia-info: #40a9ff;
+  --multimedia-shadow: rgba(0, 0, 0, 0.4);
+  --multimedia-shadow-light: rgba(0, 0, 0, 0.2);
+}
+
+// ==================== 主题样式 ====================
+
+// 基础容器样式
+.multimedia-container {
+  background: var(--multimedia-background);
+  color: var(--multimedia-text-primary);
+  transition: background var(--multimedia-transition-normal),
+    color var(--multimedia-transition-normal);
+}
+
+// 卡片样式
+.multimedia-card {
+  background: var(--multimedia-background);
+  border: 1px solid var(--multimedia-border);
+  border-radius: var(--multimedia-radius-lg);
+  box-shadow: 0 2px 8px var(--multimedia-shadow-light);
+  transition: all var(--multimedia-transition-normal);
+
+  &:hover {
+    box-shadow: 0 4px 16px var(--multimedia-shadow);
+  }
+}
+
+// 按钮样式
+.multimedia-button {
+  background: var(--multimedia-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--multimedia-radius-md);
+  padding: var(--multimedia-spacing-sm) var(--multimedia-spacing-md);
+  font-size: var(--multimedia-font-size-md);
+  cursor: pointer;
+  transition: all var(--multimedia-transition-fast);
+
+  &:hover {
+    background: var(--multimedia-primary-hover);
+  }
+
+  &:active {
+    background: var(--multimedia-primary-active);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  // 次要按钮
+  &.secondary {
+    background: var(--multimedia-background-secondary);
+    color: var(--multimedia-text-primary);
+    border: 1px solid var(--multimedia-border);
+
+    &:hover {
+      background: var(--multimedia-background-tertiary);
+    }
+  }
+
+  // 危险按钮
+  &.danger {
+    background: var(--multimedia-error);
+
+    &:hover {
+      background: #ff7875;
+    }
+  }
+}
+
+// 输入框样式
+.multimedia-input {
+  background: var(--multimedia-background);
+  color: var(--multimedia-text-primary);
+  border: 1px solid var(--multimedia-border);
+  border-radius: var(--multimedia-radius-md);
+  padding: var(--multimedia-spacing-sm);
+  font-size: var(--multimedia-font-size-md);
+  transition: all var(--multimedia-transition-fast);
+
+  &:focus {
+    outline: none;
+    border-color: var(--multimedia-primary);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+
+  &::placeholder {
+    color: var(--multimedia-text-tertiary);
+  }
+}
+
+// 进度条样式
+.multimedia-progress {
+  background: var(--multimedia-background-secondary);
+  border-radius: var(--multimedia-radius-sm);
+  overflow: hidden;
+
+  &-bar {
+    background: var(--multimedia-primary);
+    transition: width var(--multimedia-transition-normal);
+  }
+
+  &.success &-bar {
+    background: var(--multimedia-success);
+  }
+
+  &.warning &-bar {
+    background: var(--multimedia-warning);
+  }
+
+  &.error &-bar {
+    background: var(--multimedia-error);
+  }
+}
+
+// 标签样式
+.multimedia-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--multimedia-spacing-xs) var(--multimedia-spacing-sm);
+  border-radius: var(--multimedia-radius-sm);
+  font-size: var(--multimedia-font-size-xs);
+  font-weight: 500;
+
+  &.primary {
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--multimedia-primary);
+  }
+
+  &.success {
+    background: rgba(82, 196, 26, 0.1);
+    color: var(--multimedia-success);
+  }
+
+  &.warning {
+    background: rgba(250, 173, 20, 0.1);
+    color: var(--multimedia-warning);
+  }
+
+  &.error {
+    background: rgba(245, 34, 45, 0.1);
+    color: var(--multimedia-error);
+  }
+
+  &.info {
+    background: rgba(24, 144, 255, 0.1);
+    color: var(--multimedia-info);
+  }
+}
+
+// 分隔线
+.multimedia-divider {
+  border: none;
+  border-top: 1px solid var(--multimedia-border-light);
+  margin: var(--multimedia-spacing-md) 0;
+}
+
+// 滚动条样式
+.multimedia-scrollbar {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--multimedia-background-secondary);
+    border-radius: var(--multimedia-radius-sm);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--multimedia-border);
+    border-radius: var(--multimedia-radius-sm);
+    transition: background var(--multimedia-transition-fast);
+
+    &:hover {
+      background: var(--multimedia-text-tertiary);
+    }
+  }
+}
+
+// ==================== 组件特定样式 ====================
+
+// ProgressMonitor主题样式
+.progress-monitor {
+  .monitor-header {
+    background: linear-gradient(
+      135deg,
+      var(--multimedia-primary) 0%,
+      var(--multimedia-primary-active) 100%
+    );
+  }
+
+  .task-item {
+    background: var(--multimedia-background-secondary);
+    border-color: var(--multimedia-border-light);
+
+    &:hover {
+      background: var(--multimedia-background-tertiary);
+    }
+  }
+}
+
+// MediaProcessor主题样式
+.media-processor {
+  .main-tabs {
+    background: var(--multimedia-background);
+
+    .ant-tabs-tab-active {
+      background: linear-gradient(
+        135deg,
+        var(--multimedia-primary) 0%,
+        var(--multimedia-primary-active) 100%
+      );
+    }
+  }
+}
+
+// VideoEditor主题样式
+.video-editor {
+  .filter-preview {
+    border-color: var(--multimedia-border);
+  }
+
+  .filter-controls {
+    background: var(--multimedia-background-secondary);
+  }
+}
+
+// ==================== 响应式设计 ====================
+
+@media (max-width: 768px) {
+  :root {
+    --multimedia-spacing-md: 12px;
+    --multimedia-spacing-lg: 16px;
+    --multimedia-spacing-xl: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --multimedia-font-size-md: 13px;
+    --multimedia-font-size-lg: 14px;
+    --multimedia-font-size-xl: 16px;
+  }
+}
+
+// ==================== 打印样式 ====================
+
+@media print {
+  .multimedia-container {
+    background: white;
+    color: black;
+  }
+
+  .multimedia-button,
+  .multimedia-tag {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+// ==================== 无障碍支持 ====================
+
+// 高对比度模式
+@media (prefers-contrast: high) {
+  :root {
+    --multimedia-border: #000000;
+    --multimedia-text-primary: #000000;
+  }
+
+  .multimedia-theme-dark {
+    --multimedia-border: #ffffff;
+    --multimedia-text-primary: #ffffff;
+  }
+}
+
+// 减少动画
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ==================== 工具类 ====================
+
+// 文本颜色
+.text-primary {
+  color: var(--multimedia-text-primary);
+}
+
+.text-secondary {
+  color: var(--multimedia-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--multimedia-text-tertiary);
+}
+
+// 背景色
+.bg-primary {
+  background: var(--multimedia-background);
+}
+
+.bg-secondary {
+  background: var(--multimedia-background-secondary);
+}
+
+.bg-tertiary {
+  background: var(--multimedia-background-tertiary);
+}
+
+// 边框
+.border {
+  border: 1px solid var(--multimedia-border);
+}
+
+.border-light {
+  border: 1px solid var(--multimedia-border-light);
+}
+
+// 圆角
+.rounded-sm {
+  border-radius: var(--multimedia-radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--multimedia-radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--multimedia-radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--multimedia-radius-xl);
+}
+
+// 间距
+.p-xs {
+  padding: var(--multimedia-spacing-xs);
+}
+
+.p-sm {
+  padding: var(--multimedia-spacing-sm);
+}
+
+.p-md {
+  padding: var(--multimedia-spacing-md);
+}
+
+.p-lg {
+  padding: var(--multimedia-spacing-lg);
+}
+
+.p-xl {
+  padding: var(--multimedia-spacing-xl);
+}
+
+// 阴影
+.shadow {
+  box-shadow: 0 2px 8px var(--multimedia-shadow);
+}
+
+.shadow-light {
+  box-shadow: 0 1px 4px var(--multimedia-shadow-light);
+}
+
+.shadow-none {
+  box-shadow: none;
+}
+
+// ==================== 动画 ====================
+
+@keyframes multimedia-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes multimedia-slide-in {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes multimedia-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.fade-in {
+  animation: multimedia-fade-in var(--multimedia-transition-normal);
+}
+
+.slide-in {
+  animation: multimedia-slide-in var(--multimedia-transition-normal);
+}
+
+.pulse {
+  animation: multimedia-pulse 2s ease-in-out infinite;
+}

@@ -1,0 +1,35 @@
+{
+  "id": "tpl_techdoc_design_009",
+  "name": "system_design_doc",
+  "display_name": "系统设计文档",
+  "description": "技术架构设计文档，包含系统架构、技术选型、模块设计和部署方案",
+  "icon": "🏗️",
+  "category": "tech-docs",
+  "subcategory": "architecture",
+  "tags": ["系统设计", "架构", "技术方案", "设计文档"],
+  "project_type": "document",
+  "prompt_template": "系统设计文档\n\n**系统名称：** {{systemName}}\n**版本：** {{version}}\n**设计人员：** {{designer}}\n**日期：** {{date}}\n\n# {{systemName}} 系统设计文档\n\n## 1. 系统概述\n\n**系统目标：** {{systemGoal}}\n**核心功能：** {{coreFeatures}}\n**预期用户：** {{targetUsers}}\n\n---\n\n## 2. 架构设计\n\n### 2.1 整体架构\n\n**架构模式：** {{architecturePattern}}\n\n**系统分层：**\n```\n┌─────────────────────────────────┐\n│      前端层 (Frontend)          │\n├─────────────────────────────────┤\n│    应用层 (Application)         │\n├─────────────────────────────────┤\n│      业务层 (Business)          │\n├─────────────────────────────────┤\n│      数据层 (Data)              │\n└─────────────────────────────────┘\n```\n\n### 2.2 技术栈\n\n| 层级 | 技术选型 | 版本 | 说明 |\n|------|----------|------|------|\n| 前端 | {{frontendTech}} | {{frontendVersion}} | {{frontendReason}} |\n| 后端 | {{backendTech}} | {{backendVersion}} | {{backendReason}} |\n| 数据库 | {{databaseTech}} | {{dbVersion}} | {{dbReason}} |\n| 缓存 | {{cacheTech}} | {{cacheVersion}} | {{cacheReason}} |\n| 消息队列 | {{mqTech}} | {{mqVersion}} | {{mqReason}} |\n\n---\n\n## 3. 模块设计\n\n### 模块1：{{module1Name}}\n\n**职责：** {{module1Responsibility}}\n**输入：** {{module1Input}}\n**输出：** {{module1Output}}\n**核心接口：** {{module1Interfaces}}\n\n### 模块2：{{module2Name}}\n\n**职责：** {{module2Responsibility}}\n**输入：** {{module2Input}}\n**输出：** {{module2Output}}\n**核心接口：** {{module2Interfaces}}\n\n---\n\n## 4. 数据库设计\n\n### 4.1 ER图\n\n{{erDiagram}}\n\n### 4.2 核心表结构\n\n**表1：{{table1Name}}**\n\n| 字段 | 类型 | 约束 | 说明 |\n|------|------|------|------|\n| {{field1}} | {{field1Type}} | {{field1Constraint}} | {{field1Desc}} |\n| {{field2}} | {{field2Type}} | {{field2Constraint}} | {{field2Desc}} |\n\n---\n\n## 5. 接口设计\n\n**API规范：** RESTful\n**数据格式：** JSON\n**认证方式：** {{authMethod}}\n\n**核心接口：**\n- {{api1}}\n- {{api2}}\n- {{api3}}\n\n---\n\n## 6. 安全设计\n\n**安全措施：**\n1. {{security1}}\n2. {{security2}}\n3. {{security3}}\n\n---\n\n## 7. 性能设计\n\n**性能指标：**\n- 响应时间：{{responseTime}}\n- 并发用户：{{concurrentUsers}}\n- 吞吐量：{{throughput}}\n\n**优化策略：**\n{{performanceOptimization}}\n\n---\n\n## 8. 部署方案\n\n**部署架构：** {{deploymentArch}}\n**服务器配置：** {{serverConfig}}\n**容器化方案：** {{containerization}}\n\n---\n\n## 9. 风险与挑战\n\n**技术风险：** {{techRisks}}\n**应对措施：** {{mitigation}}\n",
+  "variables_schema": [
+    {"name": "systemName", "label": "系统名称", "type": "string", "required": true},
+    {"name": "version", "label": "版本号", "type": "string", "required": false},
+    {"name": "architecturePattern", "label": "架构模式", "type": "select", "required": false,
+      "options": [
+        {"value": "MVC", "label": "MVC"},
+        {"value": "微服务", "label": "微服务"},
+        {"value": "分层架构", "label": "分层架构"},
+        {"value": "事件驱动", "label": "事件驱动"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "系统设计-{{systemName}}",
+    "files": [
+      {"path": "设计文档.md", "type": "document"},
+      {"path": "架构图/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

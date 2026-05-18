@@ -1,0 +1,3326 @@
+/**
+ * 浏览器扩展 WebSocket 服务器
+ *
+ * 提供 WebSocket 服务，让浏览器扩展可以连接并执行命令
+ *
+ * 功能：
+ * - 接收扩展连接
+ * - 向扩展发送命令
+ * - 接收扩展事件
+ * - 管理多个扩展连接
+ *
+ * @module remote/browser-extension-server
+ */
+
+const { logger } = require("../utils/logger");
+const { EventEmitter } = require("events");
+const WebSocket = require("ws");
+
+/**
+ * 默认配置
+ */
+const DEFAULT_CONFIG = {
+  port: 18790,
+  host: "127.0.0.1",
+  maxConnections: 10,
+  heartbeatInterval: 30000,
+  commandTimeout: 30000,
+};
+
+/**
+ * 浏览器扩展服务器类
+ */
+class BrowserExtensionServer extends EventEmitter {
+  constructor(options = {}) {
+    super();
+    this.options = { ...DEFAULT_CONFIG, ...options };
+
+    // WebSocket 服务器
+    this.wss = null;
+
+    // 连接的客户端
+    this.clients = new Map(); // clientId -> { ws, info, connectedAt }
+
+    // 请求跟踪
+    this.requestId = 0;
+    this.pendingRequests = new Map();
+
+    // 统计
+    this.stats = {
+      startTime: null,
+      totalConnections: 0,
+      currentConnections: 0,
+      messagesSent: 0,
+      messagesReceived: 0,
+      commandsExecuted: 0,
+    };
+
+    // 心跳定时器
+    this.heartbeatTimer = null;
+
+    logger.info("[BrowserExtensionServer] 服务器已创建");
+  }
+
+  /**
+   * 启动服务器
+   */
+  async start() {
+    if (this.wss) {
+      logger.warn("[BrowserExtensionServer] 服务器已运行");
+      return;
+    }
+
+    logger.info(
+      `[BrowserExtensionServer] 启动服务器 ${this.options.host}:${this.options.port}...`,
+    );
+
+    return new Promise((resolve, reject) => {
+      try {
+        this.wss = new WebSocket.Server({
+          host: this.options.host,
+          port: this.options.port,
+        });
+
+        this.wss.on("listening", () => {
+          logger.info(
+            `[BrowserExtensionServer] ✅ 服务器启动成功 ws://${this.options.host}:${this.options.port}`,
+          );
+          this.stats.startTime = Date.now();
+          this.startHeartbeat();
+          this.emit("started");
+          resolve();
+        });
+
+        this.wss.on("connection", (ws, req) => {
+          this.handleConnection(ws, req);
+        });
+
+        this.wss.on("error", (error) => {
+          logger.error("[BrowserExtensionServer] 服务器错误:", error);
+          this.emit("error", error);
+          reject(error);
+        });
+      } catch (error) {
+        logger.error("[BrowserExtensionServer] 启动失败:", error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 处理新连接
+   */
+  handleConnection(ws, req) {
+    const clientId = this.generateClientId();
+    const clientIp = req.socket.remoteAddress;
+
+    logger.info(
+      `[BrowserExtensionServer] 新连接: ${clientId} from ${clientIp}`,
+    );
+
+    // 检查连接限制
+    if (this.clients.size >= this.options.maxConnections) {
+      logger.warn("[BrowserExtensionServer] 达到最大连接数，拒绝连接");
+      ws.close(1013, "Max connections reached");
+      return;
+    }
+
+    // 保存客户端信息
+    const clientInfo = {
+      ws,
+      id: clientId,
+      ip: clientIp,
+      connectedAt: Date.now(),
+      lastActivity: Date.now(),
+      info: null, // 等待注册消息
+    };
+
+    this.clients.set(clientId, clientInfo);
+    this.stats.totalConnections++;
+    this.stats.currentConnections = this.clients.size;
+
+    // 设置消息处理
+    ws.on("message", (data) => {
+      this.handleMessage(clientId, data);
+    });
+
+    ws.on("close", () => {
+      this.handleDisconnect(clientId);
+    });
+
+    ws.on("error", (error) => {
+      logger.error(`[BrowserExtensionServer] 客户端错误 ${clientId}:`, error);
+    });
+
+    ws.on("pong", () => {
+      const client = this.clients.get(clientId);
+      if (client) {
+        client.lastActivity = Date.now();
+      }
+    });
+
+    this.emit("connection", { clientId, ip: clientIp });
+  }
+
+  /**
+   * 处理消息
+   */
+  handleMessage(clientId, data) {
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    client.lastActivity = Date.now();
+    this.stats.messagesReceived++;
+
+    try {
+      const message = JSON.parse(data.toString("utf8"));
+
+      // 处理注册消息
+      if (message.type === "register") {
+        client.info = message.data;
+        logger.info(
+          `[BrowserExtensionServer] 客户端注册: ${clientId}`,
+          message.data,
+        );
+        this.emit("registered", { clientId, info: message.data });
+        return;
+      }
+
+      // 处理响应
+      if (message.id && this.pendingRequests.has(message.id)) {
+        const { resolve, reject } = this.pendingRequests.get(message.id);
+        this.pendingRequests.delete(message.id);
+
+        if (message.error) {
+          reject(new Error(message.error.message));
+        } else {
+          resolve(message.result);
+        }
+        return;
+      }
+
+      // 处理事件
+      if (message.type === "event") {
+        this.emit("browserEvent", {
+          clientId,
+          event: message.event,
+          data: message.data,
+        });
+        return;
+      }
+
+      // 未知消息类型
+      logger.debug(`[BrowserExtensionServer] 未知消息类型: ${message.type}`);
+    } catch (error) {
+      logger.error(`[BrowserExtensionServer] 解析消息失败 ${clientId}:`, error);
+    }
+  }
+
+  /**
+   * 处理断开连接
+   */
+  handleDisconnect(clientId) {
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    logger.info(`[BrowserExtensionServer] 客户端断开: ${clientId}`);
+
+    this.clients.delete(clientId);
+    this.stats.currentConnections = this.clients.size;
+
+    this.emit("disconnection", { clientId });
+  }
+
+  /**
+   * 向扩展发送命令
+   */
+  async sendCommand(clientId, method, params = {}) {
+    const client = this.clients.get(clientId);
+    if (!client || client.ws.readyState !== WebSocket.OPEN) {
+      throw new Error(`Client not connected: ${clientId}`);
+    }
+
+    const id = ++this.requestId;
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`Command timeout: ${method}`));
+      }, this.options.commandTimeout);
+
+      this.pendingRequests.set(id, {
+        resolve: (result) => {
+          clearTimeout(timeout);
+          this.stats.commandsExecuted++;
+          resolve(result);
+        },
+        reject: (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        },
+      });
+
+      client.ws.send(JSON.stringify({ id, method, params }));
+      this.stats.messagesSent++;
+    });
+  }
+
+  /**
+   * 向所有扩展广播命令
+   */
+  async broadcastCommand(method, params = {}) {
+    const results = [];
+
+    for (const [clientId, client] of this.clients) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        try {
+          const result = await this.sendCommand(clientId, method, params);
+          results.push({ clientId, success: true, result });
+        } catch (error) {
+          results.push({ clientId, success: false, error: error.message });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 获取第一个连接的客户端 ID
+   */
+  getFirstClientId() {
+    const [clientId] = this.clients.keys();
+    return clientId || null;
+  }
+
+  /**
+   * 获取所有客户端
+   */
+  getClients() {
+    return Array.from(this.clients.entries()).map(([id, client]) => ({
+      id,
+      ip: client.ip,
+      connectedAt: client.connectedAt,
+      lastActivity: client.lastActivity,
+      info: client.info,
+    }));
+  }
+
+  /**
+   * 启动心跳
+   */
+  startHeartbeat() {
+    this.heartbeatTimer = setInterval(() => {
+      const now = Date.now();
+
+      for (const [clientId, client] of this.clients) {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          // 检查是否超时
+          if (now - client.lastActivity > this.options.heartbeatInterval * 2) {
+            logger.warn(`[BrowserExtensionServer] 客户端心跳超时: ${clientId}`);
+            client.ws.terminate();
+            continue;
+          }
+
+          // 发送 ping
+          client.ws.ping();
+        }
+      }
+    }, this.options.heartbeatInterval);
+  }
+
+  /**
+   * 停止服务器
+   */
+  async stop() {
+    logger.info("[BrowserExtensionServer] 停止服务器...");
+
+    // 停止心跳
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+
+    // 关闭所有连接
+    for (const [_clientId, client] of this.clients) {
+      client.ws.close(1001, "Server shutting down");
+    }
+    this.clients.clear();
+
+    // 关闭服务器
+    if (this.wss) {
+      return new Promise((resolve) => {
+        this.wss.close(() => {
+          this.wss = null;
+          logger.info("[BrowserExtensionServer] ✅ 服务器已停止");
+          this.emit("stopped");
+          resolve();
+        });
+      });
+    }
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStats() {
+    return {
+      ...this.stats,
+      uptime: this.stats.startTime ? Date.now() - this.stats.startTime : 0,
+    };
+  }
+
+  /**
+   * 生成客户端 ID
+   */
+  generateClientId() {
+    return `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * 检查是否运行中
+   */
+  isRunning() {
+    return this.wss !== null;
+  }
+}
+
+// ==================== 便捷方法 ====================
+
+/**
+ * 扩展浏览器处理器 - 基于扩展服务器的浏览器操作
+ */
+class ExtensionBrowserHandler extends EventEmitter {
+  constructor(server) {
+    super();
+    this.server = server;
+  }
+
+  /**
+   * 处理命令
+   */
+  async handle(action, params, _context) {
+    const clientId = params.clientId || this.server.getFirstClientId();
+
+    if (!clientId) {
+      throw new Error(
+        "No browser extension connected. Please install and connect the ChainlessChain Browser Extension.",
+      );
+    }
+
+    switch (action) {
+      // 标签页操作
+      case "listTabs":
+        return await this.server.sendCommand(clientId, "tabs.list", params);
+      case "getTab":
+        return await this.server.sendCommand(clientId, "tabs.get", params);
+      case "createTab":
+        return await this.server.sendCommand(clientId, "tabs.create", params);
+      case "closeTab":
+        return await this.server.sendCommand(clientId, "tabs.close", params);
+      case "focusTab":
+        return await this.server.sendCommand(clientId, "tabs.focus", params);
+      case "navigate":
+        return await this.server.sendCommand(clientId, "tabs.navigate", params);
+      case "reload":
+        return await this.server.sendCommand(clientId, "tabs.reload", params);
+      case "goBack":
+        return await this.server.sendCommand(clientId, "tabs.goBack", params);
+      case "goForward":
+        return await this.server.sendCommand(
+          clientId,
+          "tabs.goForward",
+          params,
+        );
+
+      // 页面操作
+      case "getPageContent":
+        return await this.server.sendCommand(
+          clientId,
+          "page.getContent",
+          params,
+        );
+      case "executeScript":
+        return await this.server.sendCommand(
+          clientId,
+          "page.executeScript",
+          params,
+        );
+      case "screenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "page.screenshot",
+          params,
+        );
+
+      // 书签
+      case "getBookmarks":
+        return await this.server.sendCommand(
+          clientId,
+          "bookmarks.getTree",
+          params,
+        );
+      case "searchBookmarks":
+        return await this.server.sendCommand(
+          clientId,
+          "bookmarks.search",
+          params,
+        );
+      case "createBookmark":
+        return await this.server.sendCommand(
+          clientId,
+          "bookmarks.create",
+          params,
+        );
+      case "removeBookmark":
+        return await this.server.sendCommand(
+          clientId,
+          "bookmarks.remove",
+          params,
+        );
+
+      // 历史
+      case "getHistory":
+        return await this.server.sendCommand(
+          clientId,
+          "history.search",
+          params,
+        );
+      case "deleteHistory":
+        return await this.server.sendCommand(
+          clientId,
+          "history.delete",
+          params,
+        );
+
+      // 剪贴板
+      case "readClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.read",
+          params,
+        );
+      case "writeClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.write",
+          params,
+        );
+
+      // 通知
+      case "showNotification":
+        return await this.server.sendCommand(
+          clientId,
+          "notification.show",
+          params,
+        );
+
+      // 状态
+      case "getStatus":
+        return await this.server.sendCommand(clientId, "status.get", params);
+
+      // Cookie 管理
+      case "getCookies":
+        return await this.server.sendCommand(
+          clientId,
+          "cookies.getAll",
+          params,
+        );
+      case "getCookie":
+        return await this.server.sendCommand(clientId, "cookies.get", params);
+      case "setCookie":
+        return await this.server.sendCommand(clientId, "cookies.set", params);
+      case "removeCookie":
+        return await this.server.sendCommand(
+          clientId,
+          "cookies.remove",
+          params,
+        );
+      case "clearCookies":
+        return await this.server.sendCommand(clientId, "cookies.clear", params);
+
+      // 下载管理
+      case "listDownloads":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.list",
+          params,
+        );
+      case "download":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.download",
+          params,
+        );
+      case "cancelDownload":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.cancel",
+          params,
+        );
+      case "pauseDownload":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.pause",
+          params,
+        );
+      case "resumeDownload":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.resume",
+          params,
+        );
+      case "openDownload":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.open",
+          params,
+        );
+      case "showDownload":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.show",
+          params,
+        );
+      case "eraseDownloads":
+        return await this.server.sendCommand(
+          clientId,
+          "downloads.erase",
+          params,
+        );
+
+      // 窗口管理
+      case "getAllWindows":
+        return await this.server.sendCommand(
+          clientId,
+          "windows.getAll",
+          params,
+        );
+      case "getWindow":
+        return await this.server.sendCommand(clientId, "windows.get", params);
+      case "createWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "windows.create",
+          params,
+        );
+      case "updateWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "windows.update",
+          params,
+        );
+      case "removeWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "windows.remove",
+          params,
+        );
+      case "getCurrentWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "windows.getCurrent",
+          params,
+        );
+
+      // 存储访问
+      case "getLocalStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getLocal",
+          params,
+        );
+      case "setLocalStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.setLocal",
+          params,
+        );
+      case "getSessionStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getSession",
+          params,
+        );
+      case "setSessionStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.setSession",
+          params,
+        );
+      case "clearLocalStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.clearLocal",
+          params,
+        );
+      case "clearSessionStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.clearSession",
+          params,
+        );
+
+      // 元素交互
+      case "hoverElement":
+        return await this.server.sendCommand(clientId, "element.hover", params);
+      case "focusElement":
+        return await this.server.sendCommand(clientId, "element.focus", params);
+      case "blurElement":
+        return await this.server.sendCommand(clientId, "element.blur", params);
+      case "selectText":
+        return await this.server.sendCommand(
+          clientId,
+          "element.select",
+          params,
+        );
+      case "getAttribute":
+        return await this.server.sendCommand(
+          clientId,
+          "element.getAttribute",
+          params,
+        );
+      case "setAttribute":
+        return await this.server.sendCommand(
+          clientId,
+          "element.setAttribute",
+          params,
+        );
+      case "getBoundingRect":
+        return await this.server.sendCommand(
+          clientId,
+          "element.getBoundingRect",
+          params,
+        );
+      case "isVisible":
+        return await this.server.sendCommand(
+          clientId,
+          "element.isVisible",
+          params,
+        );
+      case "waitForSelector":
+        return await this.server.sendCommand(
+          clientId,
+          "element.waitForSelector",
+          params,
+        );
+      case "dragDrop":
+        return await this.server.sendCommand(
+          clientId,
+          "element.dragDrop",
+          params,
+        );
+
+      // 页面操作
+      case "printPage":
+        return await this.server.sendCommand(clientId, "page.print", params);
+      case "saveToPdf":
+        return await this.server.sendCommand(clientId, "page.pdf", params);
+      case "getConsoleLogs":
+        return await this.server.sendCommand(
+          clientId,
+          "page.getConsole",
+          params,
+        );
+      case "setViewport":
+        return await this.server.sendCommand(
+          clientId,
+          "page.setViewport",
+          params,
+        );
+      case "emulateDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "page.emulateDevice",
+          params,
+        );
+      case "setGeolocation":
+        return await this.server.sendCommand(
+          clientId,
+          "page.setGeolocation",
+          params,
+        );
+
+      // 浏览数据
+      case "clearBrowsingData":
+        return await this.server.sendCommand(
+          clientId,
+          "browsingData.clear",
+          params,
+        );
+
+      // 网络拦截
+      case "enableNetworkInterception":
+        return await this.server.sendCommand(
+          clientId,
+          "network.enableInterception",
+          params,
+        );
+      case "disableNetworkInterception":
+        return await this.server.sendCommand(
+          clientId,
+          "network.disableInterception",
+          params,
+        );
+      case "setRequestBlocking":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setRequestBlocking",
+          params,
+        );
+      case "clearRequestBlocking":
+        return await this.server.sendCommand(
+          clientId,
+          "network.clearRequestBlocking",
+          params,
+        );
+      case "getNetworkRequests":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getRequests",
+          params,
+        );
+      case "mockResponse":
+        return await this.server.sendCommand(
+          clientId,
+          "network.mockResponse",
+          params,
+        );
+
+      // 控制台捕获
+      case "enableConsoleCapture":
+        return await this.server.sendCommand(
+          clientId,
+          "console.enable",
+          params,
+        );
+      case "disableConsoleCapture":
+        return await this.server.sendCommand(
+          clientId,
+          "console.disable",
+          params,
+        );
+      case "getCapturedConsoleLogs":
+        return await this.server.sendCommand(
+          clientId,
+          "console.getLogs",
+          params,
+        );
+      case "clearConsoleLogs":
+        return await this.server.sendCommand(clientId, "console.clear", params);
+
+      // IndexedDB
+      case "getIndexedDBDatabases":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.getDatabases",
+          params,
+        );
+      case "getIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.getData",
+          params,
+        );
+      case "setIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.setData",
+          params,
+        );
+      case "deleteIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.deleteData",
+          params,
+        );
+      case "clearIndexedDBStore":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.clearStore",
+          params,
+        );
+
+      // 性能
+      case "getPerformanceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getMetrics",
+          params,
+        );
+      case "getPerformanceEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getEntries",
+          params,
+        );
+      case "startPerformanceTrace":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.startTrace",
+          params,
+        );
+      case "stopPerformanceTrace":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.stopTrace",
+          params,
+        );
+
+      // CSS 注入
+      case "injectCSS":
+        return await this.server.sendCommand(clientId, "css.inject", params);
+      case "removeCSS":
+        return await this.server.sendCommand(clientId, "css.remove", params);
+
+      // 无障碍
+      case "getAccessibilityTree":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getTree",
+          params,
+        );
+      case "getElementRole":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getRole",
+          params,
+        );
+
+      // 框架管理
+      case "listFrames":
+        return await this.server.sendCommand(clientId, "frames.list", params);
+      case "executeScriptInFrame":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.executeScript",
+          params,
+        );
+
+      // ==================== Phase 17: Advanced Debugging ====================
+
+      // WebSocket Debugging
+      case "enableWebSocketDebugging":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.enable",
+          params,
+        );
+      case "disableWebSocketDebugging":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.disable",
+          params,
+        );
+      case "getWebSocketConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.getConnections",
+          params,
+        );
+      case "getWebSocketMessages":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.getMessages",
+          params,
+        );
+      case "sendWebSocketMessage":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.send",
+          params,
+        );
+      case "closeWebSocketConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.close",
+          params,
+        );
+
+      // Service Worker Management
+      case "listServiceWorkers":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.list",
+          params,
+        );
+      case "getServiceWorkerInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.getInfo",
+          params,
+        );
+      case "unregisterServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.unregister",
+          params,
+        );
+      case "updateServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.update",
+          params,
+        );
+      case "postMessageToServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.postMessage",
+          params,
+        );
+
+      // Cache Storage
+      case "listCaches":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.listCaches",
+          params,
+        );
+      case "listCacheEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.listEntries",
+          params,
+        );
+      case "getCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.getEntry",
+          params,
+        );
+      case "deleteCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.deleteEntry",
+          params,
+        );
+      case "deleteCache":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.deleteCache",
+          params,
+        );
+      case "addCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.addEntry",
+          params,
+        );
+
+      // Security Info
+      case "getCertificateInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getCertificate",
+          params,
+        );
+      case "getSecurityState":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getSecurityState",
+          params,
+        );
+      case "checkMixedContent":
+        return await this.server.sendCommand(
+          clientId,
+          "security.checkMixedContent",
+          params,
+        );
+      case "getSitePermissions":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getPermissions",
+          params,
+        );
+
+      // Animation Control
+      case "listAnimations":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.list",
+          params,
+        );
+      case "pauseAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.pause",
+          params,
+        );
+      case "playAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.play",
+          params,
+        );
+      case "setAnimationSpeed":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.setSpeed",
+          params,
+        );
+      case "seekAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.seekTo",
+          params,
+        );
+      case "cancelAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.cancel",
+          params,
+        );
+
+      // Layout Inspection
+      case "getBoxModel":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getBoxModel",
+          params,
+        );
+      case "getComputedLayout":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getComputedLayout",
+          params,
+        );
+      case "highlightNode":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.highlightNode",
+          params,
+        );
+      case "hideHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.hideHighlight",
+          params,
+        );
+      case "getNodeInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getNodeInfo",
+          params,
+        );
+      case "forceElementState":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.forceElementState",
+          params,
+        );
+
+      // Coverage Analysis
+      case "startJSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.startJSCoverage",
+          params,
+        );
+      case "stopJSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.stopJSCoverage",
+          params,
+        );
+      case "startCSSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.startCSSCoverage",
+          params,
+        );
+      case "stopCSSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.stopCSSCoverage",
+          params,
+        );
+      case "getJSCoverageResults":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.getJSCoverage",
+          params,
+        );
+      case "getCSSCoverageResults":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.getCSSCoverage",
+          params,
+        );
+
+      // Memory Profiling
+      case "getMemoryInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getInfo",
+          params,
+        );
+      case "takeHeapSnapshot":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.takeHeapSnapshot",
+          params,
+        );
+      case "startMemorySampling":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.startSampling",
+          params,
+        );
+      case "stopMemorySampling":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.stopSampling",
+          params,
+        );
+      case "forceGarbageCollection":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.forceGC",
+          params,
+        );
+
+      // ==================== Phase 18: DOM & Input Tools ====================
+
+      // DOM Mutation Observer
+      case "observeMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.observeMutations",
+          params,
+        );
+      case "stopObservingMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.stopObserving",
+          params,
+        );
+      case "getMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.getMutations",
+          params,
+        );
+      case "clearMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.clearMutations",
+          params,
+        );
+
+      // Event Listener Inspector
+      case "getEventListeners":
+        return await this.server.sendCommand(
+          clientId,
+          "events.getListeners",
+          params,
+        );
+      case "removeEventListener":
+        return await this.server.sendCommand(
+          clientId,
+          "events.removeListener",
+          params,
+        );
+      case "monitorEvents":
+        return await this.server.sendCommand(
+          clientId,
+          "events.monitorEvents",
+          params,
+        );
+      case "stopMonitoringEvents":
+        return await this.server.sendCommand(
+          clientId,
+          "events.stopMonitoring",
+          params,
+        );
+      case "getEventLog":
+        return await this.server.sendCommand(clientId, "events.getLog", params);
+
+      // Input Recording
+      case "startInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.startRecording",
+          params,
+        );
+      case "stopInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.stopRecording",
+          params,
+        );
+      case "getInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.getRecording",
+          params,
+        );
+      case "replayInputs":
+        return await this.server.sendCommand(clientId, "input.replay", params);
+      case "clearInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.clearRecording",
+          params,
+        );
+
+      // Media Emulation
+      case "emulateColorScheme":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateColorScheme",
+          params,
+        );
+      case "emulateReducedMotion":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateReducedMotion",
+          params,
+        );
+      case "emulateForcedColors":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateForcedColors",
+          params,
+        );
+      case "emulateVisionDeficiency":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateVisionDeficiency",
+          params,
+        );
+      case "clearMediaEmulation":
+        return await this.server.sendCommand(
+          clientId,
+          "media.clearEmulation",
+          params,
+        );
+
+      // Page Lifecycle
+      case "getPageLifecycleState":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.getState",
+          params,
+        );
+      case "subscribeLifecycleChanges":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.onStateChange",
+          params,
+        );
+      case "freezePage":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.freeze",
+          params,
+        );
+      case "resumePage":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.resume",
+          params,
+        );
+
+      // Font Inspector
+      case "getUsedFonts":
+        return await this.server.sendCommand(clientId, "fonts.getUsed", params);
+      case "getComputedFonts":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.getComputed",
+          params,
+        );
+      case "checkFontAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.checkAvailability",
+          params,
+        );
+
+      // Measurement Tools
+      case "measureDistance":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.getDistance",
+          params,
+        );
+      case "measureElementSize":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.getElementSize",
+          params,
+        );
+      case "enableRuler":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.enableRuler",
+          params,
+        );
+      case "disableRuler":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.disableRuler",
+          params,
+        );
+
+      // Color Picker
+      case "pickColorFromPoint":
+        return await this.server.sendCommand(
+          clientId,
+          "color.pickFromPoint",
+          params,
+        );
+      case "getElementColors":
+        return await this.server.sendCommand(
+          clientId,
+          "color.getElementColors",
+          params,
+        );
+      case "enableColorPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "color.enablePicker",
+          params,
+        );
+      case "disableColorPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "color.disablePicker",
+          params,
+        );
+
+      // Storage Inspector (Enhanced)
+      case "getStorageQuota":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getQuota",
+          params,
+        );
+      case "getStorageUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getUsage",
+          params,
+        );
+      case "exportAllStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.exportAll",
+          params,
+        );
+      case "importAllStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.importAll",
+          params,
+        );
+
+      // ==================== Phase 19: Network & Device Emulation ====================
+
+      // Network Throttling
+      case "setNetworkThrottling":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setThrottling",
+          params,
+        );
+      case "clearNetworkThrottling":
+        return await this.server.sendCommand(
+          clientId,
+          "network.clearThrottling",
+          params,
+        );
+      case "getThrottlingProfiles":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getThrottlingProfiles",
+          params,
+        );
+      case "setOfflineMode":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setOffline",
+          params,
+        );
+
+      // Device Emulation
+      case "setUserAgent":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setUserAgent",
+          params,
+        );
+      case "getUserAgent":
+        return await this.server.sendCommand(
+          clientId,
+          "device.getUserAgent",
+          params,
+        );
+      case "setTimezone":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setTimezone",
+          params,
+        );
+      case "setLocale":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setLocale",
+          params,
+        );
+      case "setGeolocationOverride":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setGeolocation",
+          params,
+        );
+      case "clearGeolocationOverride":
+        return await this.server.sendCommand(
+          clientId,
+          "device.clearGeolocation",
+          params,
+        );
+
+      // Touch Emulation
+      case "enableTouchEmulation":
+        return await this.server.sendCommand(clientId, "touch.enable", params);
+      case "disableTouchEmulation":
+        return await this.server.sendCommand(clientId, "touch.disable", params);
+      case "emulateTap":
+        return await this.server.sendCommand(clientId, "touch.tap", params);
+      case "emulateSwipe":
+        return await this.server.sendCommand(clientId, "touch.swipe", params);
+      case "emulatePinch":
+        return await this.server.sendCommand(clientId, "touch.pinch", params);
+
+      // Sensor Emulation
+      case "setSensorOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setOrientation",
+          params,
+        );
+      case "setAccelerometer":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setAccelerometer",
+          params,
+        );
+      case "setAmbientLight":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setAmbientLight",
+          params,
+        );
+      case "clearSensorOverrides":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.clearOverrides",
+          params,
+        );
+
+      // Viewport Management (Enhanced - Phase 19)
+      case "setViewportEmulation":
+        return await this.server.sendCommand(clientId, "viewport.set", params);
+      case "getViewportInfo":
+        return await this.server.sendCommand(clientId, "viewport.get", params);
+      case "setDeviceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.setDeviceMetrics",
+          params,
+        );
+      case "clearDeviceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.clearDeviceMetrics",
+          params,
+        );
+      case "getViewportPresets":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.getPresets",
+          params,
+        );
+
+      // Screenshot Comparison
+      case "captureScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.capture",
+          params,
+        );
+      case "captureElementScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.captureElement",
+          params,
+        );
+      case "compareScreenshots":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.compare",
+          params,
+        );
+      case "captureFullPageScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.captureFullPage",
+          params,
+        );
+
+      // Clipboard Advanced
+      case "readRichClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.readRich",
+          params,
+        );
+      case "writeRichClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.writeRich",
+          params,
+        );
+      case "getClipboardFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.getFormats",
+          params,
+        );
+      case "writeImageToClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.writeImage",
+          params,
+        );
+
+      // Print/PDF Enhanced
+      case "getPrintPreview":
+        return await this.server.sendCommand(clientId, "print.preview", params);
+      case "printToPDF":
+        return await this.server.sendCommand(clientId, "print.toPDF", params);
+      case "getPrintSettings":
+        return await this.server.sendCommand(
+          clientId,
+          "print.getSettings",
+          params,
+        );
+
+      // ==================== Phase 20: Web APIs & System Info ====================
+
+      // Web Workers
+      case "listWebWorkers":
+        return await this.server.sendCommand(clientId, "workers.list", params);
+      case "terminateWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.terminate",
+          params,
+        );
+      case "postMessageToWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.postMessage",
+          params,
+        );
+      case "getSharedWorkers":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.getSharedWorkers",
+          params,
+        );
+
+      // Broadcast Channel
+      case "createBroadcastChannel":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.create",
+          params,
+        );
+      case "broadcastMessage":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.postMessage",
+          params,
+        );
+      case "closeBroadcastChannel":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.close",
+          params,
+        );
+      case "listBroadcastChannels":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.list",
+          params,
+        );
+
+      // Web Audio
+      case "getAudioContexts":
+        return await this.server.sendCommand(
+          clientId,
+          "audio.getContexts",
+          params,
+        );
+      case "suspendAudioContext":
+        return await this.server.sendCommand(clientId, "audio.suspend", params);
+      case "resumeAudioContext":
+        return await this.server.sendCommand(clientId, "audio.resume", params);
+      case "getAudioNodes":
+        return await this.server.sendCommand(
+          clientId,
+          "audio.getNodes",
+          params,
+        );
+
+      // Canvas/WebGL
+      case "listCanvasElements":
+        return await this.server.sendCommand(clientId, "canvas.list", params);
+      case "getCanvasContext":
+        return await this.server.sendCommand(
+          clientId,
+          "canvas.getContext",
+          params,
+        );
+      case "canvasToDataURL":
+        return await this.server.sendCommand(
+          clientId,
+          "canvas.toDataURL",
+          params,
+        );
+      case "getWebGLInfo":
+        return await this.server.sendCommand(clientId, "webgl.getInfo", params);
+      case "getWebGLExtensions":
+        return await this.server.sendCommand(
+          clientId,
+          "webgl.getExtensions",
+          params,
+        );
+
+      // Media Devices
+      case "enumerateMediaDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "media.enumerateDevices",
+          params,
+        );
+      case "getSupportedConstraints":
+        return await this.server.sendCommand(
+          clientId,
+          "media.getSupportedConstraints",
+          params,
+        );
+      case "getDisplayMediaCapabilities":
+        return await this.server.sendCommand(
+          clientId,
+          "media.getDisplayMedia",
+          params,
+        );
+
+      // System Info
+      case "getBatteryInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getBattery",
+          params,
+        );
+      case "getConnectionInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getConnection",
+          params,
+        );
+      case "getDeviceMemory":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getMemory",
+          params,
+        );
+      case "getHardwareInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getHardware",
+          params,
+        );
+
+      // Permissions
+      case "queryPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.query",
+          params,
+        );
+      case "queryAllPermissions":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.queryAll",
+          params,
+        );
+      case "requestPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.request",
+          params,
+        );
+
+      // Notifications
+      case "getNotificationPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.getPermission",
+          params,
+        );
+      case "requestNotificationPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.requestPermission",
+          params,
+        );
+      case "createPageNotification":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.create",
+          params,
+        );
+
+      // Fullscreen
+      case "enterFullscreen":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.enter",
+          params,
+        );
+      case "exitFullscreen":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.exit",
+          params,
+        );
+      case "getFullscreenState":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.getState",
+          params,
+        );
+
+      // Pointer Lock
+      case "requestPointerLock":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.request",
+          params,
+        );
+      case "exitPointerLock":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.exit",
+          params,
+        );
+      case "getPointerLockState":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.getState",
+          params,
+        );
+
+      // ==================== Phase 21: Accessibility & Performance ====================
+
+      // Accessibility (Enhanced)
+      // Note: getAccessibilityTree is already defined in earlier phase
+      case "getARIAProperties":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getARIA",
+          params,
+        );
+      case "checkColorContrast":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkContrast",
+          params,
+        );
+      case "getFocusOrder":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getFocusOrder",
+          params,
+        );
+      case "getAccessibilityLandmarks":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getLandmarks",
+          params,
+        );
+      case "getHeadingStructure":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getHeadingStructure",
+          params,
+        );
+      case "checkAltTexts":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkAlt",
+          params,
+        );
+      case "checkFormLabels":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkLabels",
+          params,
+        );
+      case "simulateAccessibility":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.simulate",
+          params,
+        );
+      case "runAccessibilityAudit":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.runAudit",
+          params,
+        );
+
+      // Performance Metrics (Enhanced)
+      // Note: getPerformanceMetrics is already defined in earlier phase
+      case "getPerformanceTimeline":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getTimeline",
+          params,
+        );
+      case "getLongTasks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getLongTasks",
+          params,
+        );
+      case "getLayoutShifts":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getLayoutShifts",
+          params,
+        );
+      case "getPaintTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getPaintTiming",
+          params,
+        );
+      case "getResourceTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getResourceTiming",
+          params,
+        );
+      case "getNavigationTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getNavigationTiming",
+          params,
+        );
+      case "measureElementPerformance":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.measureElement",
+          params,
+        );
+      case "createPerformanceMark":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.startMark",
+          params,
+        );
+      case "measureBetweenMarks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.measureBetweenMarks",
+          params,
+        );
+      case "clearPerformanceMarks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.clearMarks",
+          params,
+        );
+      // Note: getPerformanceEntries is already defined in earlier phase
+
+      // Memory Analysis
+      case "getMemoryUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getUsage",
+          params,
+        );
+      case "measureHeapUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.measureHeap",
+          params,
+        );
+      case "getJSHeapSize":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getJSHeapSize",
+          params,
+        );
+      case "detectMemoryLeaks":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.detectLeaks",
+          params,
+        );
+
+      // Frame Analysis
+      case "getAllFrames":
+        return await this.server.sendCommand(clientId, "frames.getAll", params);
+      case "getFrameInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.getInfo",
+          params,
+        );
+      case "executeInFrame":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.executeInFrame",
+          params,
+        );
+      case "getFrameTree":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.getFrameTree",
+          params,
+        );
+
+      // Security Analysis
+      case "getSecurityInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getInfo",
+          params,
+        );
+      case "getCSPInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getCSP",
+          params,
+        );
+      // Note: checkMixedContent and getCertificateInfo are already defined in earlier phase
+      case "checkCORSIssues":
+        return await this.server.sendCommand(
+          clientId,
+          "security.checkCORS",
+          params,
+        );
+
+      // Network Timing
+      case "getNetworkTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getTiming",
+          params,
+        );
+      case "getNetworkWaterfall":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getWaterfall",
+          params,
+        );
+      case "analyzeNetworkRequests":
+        return await this.server.sendCommand(
+          clientId,
+          "network.analyzeRequests",
+          params,
+        );
+
+      // ==================== Phase 22: WebRTC & Advanced Storage ====================
+
+      // WebRTC
+      case "getWebRTCPeerConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getPeerConnections",
+          params,
+        );
+      case "getWebRTCConnectionStats":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getConnectionStats",
+          params,
+        );
+      case "getWebRTCDataChannels":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getDataChannels",
+          params,
+        );
+      case "getWebRTCMediaStreams":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getMediaStreams",
+          params,
+        );
+      case "getICECandidates":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getICECandidates",
+          params,
+        );
+      case "getLocalDescription":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getLocalDescription",
+          params,
+        );
+      case "getRemoteDescription":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getRemoteDescription",
+          params,
+        );
+      case "monitorWebRTCConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.monitorConnection",
+          params,
+        );
+      case "closeWebRTCConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.closeConnection",
+          params,
+        );
+
+      // Advanced IndexedDB
+      case "listIndexedDBDatabases":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.listDatabases",
+          params,
+        );
+      case "getIndexedDBDatabaseInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getDatabaseInfo",
+          params,
+        );
+      case "getIndexedDBObjectStores":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getObjectStores",
+          params,
+        );
+      case "getIndexedDBStoreData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getStoreData",
+          params,
+        );
+      case "getIndexedDBStoreIndexes":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getStoreIndexes",
+          params,
+        );
+      case "queryIndexedDBByIndex":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.queryByIndex",
+          params,
+        );
+      case "countIndexedDBRecords":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.countRecords",
+          params,
+        );
+      case "deleteIndexedDBDatabase":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.deleteDatabase",
+          params,
+        );
+      // Note: clearIndexedDBStore is already defined in earlier phase
+      case "exportIndexedDBDatabase":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.exportDatabase",
+          params,
+        );
+
+      // Web Components / Shadow DOM
+      case "getCustomElements":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getCustomElements",
+          params,
+        );
+      case "getShadowRoots":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getShadowRoots",
+          params,
+        );
+      case "queryShadowDOM":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.queryShadowDOM",
+          params,
+        );
+      case "getSlottedContent":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getSlots",
+          params,
+        );
+      case "getAdoptedStylesheets":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getAdoptedStylesheets",
+          params,
+        );
+
+      // Drag and Drop
+      case "simulateDrag":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.simulateDrag",
+          params,
+        );
+      case "simulateFileDrop":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.simulateFileDrop",
+          params,
+        );
+      case "getDropZones":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.getDropZones",
+          params,
+        );
+      case "getDraggableElements":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.getDraggableElements",
+          params,
+        );
+
+      // Selection & Range
+      case "getTextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.getSelection",
+          params,
+        );
+      case "setTextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.setSelection",
+          params,
+        );
+      case "selectAllText":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.selectAll",
+          params,
+        );
+      case "clearSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.clearSelection",
+          params,
+        );
+      case "getSelectedHTML":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.getSelectedHTML",
+          params,
+        );
+
+      // History & Navigation
+      case "getHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.getState",
+          params,
+        );
+      case "pushHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.pushState",
+          params,
+        );
+      case "replaceHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.replaceState",
+          params,
+        );
+      case "getHistoryLength":
+        return await this.server.sendCommand(
+          clientId,
+          "history.getLength",
+          params,
+        );
+      case "historyGo":
+        return await this.server.sendCommand(clientId, "history.go", params);
+
+      // Intersection Observer
+      case "observeIntersection":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.observe",
+          params,
+        );
+      case "getVisibleElements":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.getVisibleElements",
+          params,
+        );
+      case "checkElementVisibility":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.checkVisibility",
+          params,
+        );
+
+      // Resize Observer
+      case "observeResize":
+        return await this.server.sendCommand(
+          clientId,
+          "resize.observe",
+          params,
+        );
+      case "getElementSizes":
+        return await this.server.sendCommand(
+          clientId,
+          "resize.getElementSizes",
+          params,
+        );
+
+      // Mutation Summary
+      case "getMutationSummary":
+        return await this.server.sendCommand(
+          clientId,
+          "mutation.getSummary",
+          params,
+        );
+      case "getMutationChangeHistory":
+        return await this.server.sendCommand(
+          clientId,
+          "mutation.getChangeHistory",
+          params,
+        );
+
+      // ==================== Phase 23: Advanced Web APIs ====================
+
+      // Web Share API
+      case "canShare":
+        return await this.server.sendCommand(
+          clientId,
+          "share.canShare",
+          params,
+        );
+      case "share":
+        return await this.server.sendCommand(clientId, "share.share", params);
+      case "shareFiles":
+        return await this.server.sendCommand(
+          clientId,
+          "share.shareFiles",
+          params,
+        );
+      case "getShareTargets":
+        return await this.server.sendCommand(
+          clientId,
+          "share.getShareTargets",
+          params,
+        );
+
+      // Credential Management API
+      case "getCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.get",
+          params,
+        );
+      case "storeCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.store",
+          params,
+        );
+      case "createCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.create",
+          params,
+        );
+      case "preventSilentAccess":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.preventSilentAccess",
+          params,
+        );
+      case "isConditionalMediationAvailable":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.isConditionalMediationAvailable",
+          params,
+        );
+      case "getPublicKeyCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.getPublicKeyCredential",
+          params,
+        );
+
+      // Screen Wake Lock API
+      case "requestWakeLock":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.request",
+          params,
+        );
+      case "releaseWakeLock":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.release",
+          params,
+        );
+      case "getWakeLockState":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.getState",
+          params,
+        );
+      case "isWakeLockSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.isSupported",
+          params,
+        );
+
+      // File System Access API
+      case "showOpenFilePicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showOpenFilePicker",
+          params,
+        );
+      case "showSaveFilePicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showSaveFilePicker",
+          params,
+        );
+      case "showDirectoryPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showDirectoryPicker",
+          params,
+        );
+      case "getFileSystemHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.getFileHandle",
+          params,
+        );
+      case "readFileFromHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.readFile",
+          params,
+        );
+      case "writeFileToHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.writeFile",
+          params,
+        );
+      case "getFileHandleInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.getHandleInfo",
+          params,
+        );
+      case "removeFileEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.removeEntry",
+          params,
+        );
+
+      // Tab Groups API
+      case "createTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.create",
+          params,
+        );
+      case "getTabGroup":
+        return await this.server.sendCommand(clientId, "tabGroups.get", params);
+      case "getAllTabGroups":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.getAll",
+          params,
+        );
+      case "updateTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.update",
+          params,
+        );
+      case "moveTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.move",
+          params,
+        );
+      case "ungroupTabs":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.ungroup",
+          params,
+        );
+
+      // Eye Dropper API
+      case "openEyeDropper":
+        return await this.server.sendCommand(
+          clientId,
+          "eyeDropper.open",
+          params,
+        );
+      case "isEyeDropperSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "eyeDropper.isSupported",
+          params,
+        );
+
+      // Speech Synthesis API
+      case "speak":
+        return await this.server.sendCommand(clientId, "speech.speak", params);
+      case "cancelSpeech":
+        return await this.server.sendCommand(clientId, "speech.cancel", params);
+      case "pauseSpeech":
+        return await this.server.sendCommand(clientId, "speech.pause", params);
+      case "resumeSpeech":
+        return await this.server.sendCommand(clientId, "speech.resume", params);
+      case "getVoices":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.getVoices",
+          params,
+        );
+      case "isSpeaking":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isSpeaking",
+          params,
+        );
+      case "isSpeechPending":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isPending",
+          params,
+        );
+      case "isSpeechPaused":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isPaused",
+          params,
+        );
+
+      // Background Sync API
+      case "registerBackgroundSync":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.register",
+          params,
+        );
+      case "getBackgroundSyncTags":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getTags",
+          params,
+        );
+      case "getBackgroundSyncRegistration":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getRegistration",
+          params,
+        );
+      case "getBackgroundSyncRegistrations":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getRegistrations",
+          params,
+        );
+
+      // Periodic Background Sync API
+      case "registerPeriodicSync":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.register",
+          params,
+        );
+      case "unregisterPeriodicSync":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.unregister",
+          params,
+        );
+      case "getPeriodicSyncTags":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.getTags",
+          params,
+        );
+      case "getPeriodicSyncMinInterval":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.getMinInterval",
+          params,
+        );
+
+      // Idle Detection API
+      case "requestIdleDetectionPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "idle.requestPermission",
+          params,
+        );
+      case "startIdleDetection":
+        return await this.server.sendCommand(clientId, "idle.start", params);
+      case "stopIdleDetection":
+        return await this.server.sendCommand(clientId, "idle.stop", params);
+      case "getIdleState":
+        return await this.server.sendCommand(clientId, "idle.getState", params);
+
+      // Device Memory API (navigator.deviceMemory)
+      case "getNavigatorDeviceMemory":
+        return await this.server.sendCommand(
+          clientId,
+          "deviceMemory.get",
+          params,
+        );
+
+      // Network Information API
+      case "getNetworkInformation":
+        return await this.server.sendCommand(
+          clientId,
+          "networkInfo.get",
+          params,
+        );
+      case "onNetworkChange":
+        return await this.server.sendCommand(
+          clientId,
+          "networkInfo.onChange",
+          params,
+        );
+
+      // Vibration API
+      case "vibrate":
+        return await this.server.sendCommand(
+          clientId,
+          "vibration.vibrate",
+          params,
+        );
+      case "cancelVibration":
+        return await this.server.sendCommand(
+          clientId,
+          "vibration.cancel",
+          params,
+        );
+
+      // Screen Orientation API
+      case "getScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.get",
+          params,
+        );
+      case "lockScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.lock",
+          params,
+        );
+      case "unlockScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.unlock",
+          params,
+        );
+
+      // Presentation API
+      case "getPresentationAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.getAvailability",
+          params,
+        );
+      case "startPresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.startPresentation",
+          params,
+        );
+      case "reconnectPresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.reconnect",
+          params,
+        );
+      case "getPresentationConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.getConnections",
+          params,
+        );
+      case "terminatePresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.terminate",
+          params,
+        );
+
+      // Reporting API
+      case "getReports":
+        return await this.server.sendCommand(
+          clientId,
+          "reporting.getReports",
+          params,
+        );
+      case "clearReports":
+        return await this.server.sendCommand(
+          clientId,
+          "reporting.clearReports",
+          params,
+        );
+
+      // ==================== Phase 24: Hardware & Media APIs ====================
+
+      // Web Bluetooth API
+      case "requestBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.requestDevice",
+          params,
+        );
+      case "getBluetoothDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getDevices",
+          params,
+        );
+      case "getBluetoothAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getAvailability",
+          params,
+        );
+      case "connectBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.connect",
+          params,
+        );
+      case "disconnectBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.disconnect",
+          params,
+        );
+      case "getBluetoothServices":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getServices",
+          params,
+        );
+
+      // Web USB API
+      case "requestUSBDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.requestDevice",
+          params,
+        );
+      case "getUSBDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.getDevices",
+          params,
+        );
+      case "openUSBDevice":
+        return await this.server.sendCommand(clientId, "usb.open", params);
+      case "closeUSBDevice":
+        return await this.server.sendCommand(clientId, "usb.close", params);
+      case "selectUSBConfiguration":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.selectConfiguration",
+          params,
+        );
+      case "claimUSBInterface":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.claimInterface",
+          params,
+        );
+
+      // Web Serial API
+      case "requestSerialPort":
+        return await this.server.sendCommand(
+          clientId,
+          "serial.requestPort",
+          params,
+        );
+      case "getSerialPorts":
+        return await this.server.sendCommand(
+          clientId,
+          "serial.getPorts",
+          params,
+        );
+      case "openSerialPort":
+        return await this.server.sendCommand(clientId, "serial.open", params);
+      case "closeSerialPort":
+        return await this.server.sendCommand(clientId, "serial.close", params);
+      case "readSerialPort":
+        return await this.server.sendCommand(clientId, "serial.read", params);
+      case "writeSerialPort":
+        return await this.server.sendCommand(clientId, "serial.write", params);
+
+      // Gamepad API
+      case "getGamepads":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.getGamepads",
+          params,
+        );
+      case "getGamepadState":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.getState",
+          params,
+        );
+      case "vibrateGamepad":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.vibrate",
+          params,
+        );
+      case "isGamepadSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.isSupported",
+          params,
+        );
+
+      // Web MIDI API
+      case "requestMIDIAccess":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.requestAccess",
+          params,
+        );
+      case "getMIDIInputs":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.getInputs",
+          params,
+        );
+      case "getMIDIOutputs":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.getOutputs",
+          params,
+        );
+      case "sendMIDIMessage":
+        return await this.server.sendCommand(clientId, "midi.send", params);
+      case "closeMIDIAccess":
+        return await this.server.sendCommand(clientId, "midi.close", params);
+
+      // Picture-in-Picture API
+      case "requestPictureInPicture":
+        return await this.server.sendCommand(clientId, "pip.request", params);
+      case "exitPictureInPicture":
+        return await this.server.sendCommand(clientId, "pip.exit", params);
+      case "getPictureInPictureWindow":
+        return await this.server.sendCommand(clientId, "pip.getWindow", params);
+      case "isPictureInPictureEnabled":
+        return await this.server.sendCommand(clientId, "pip.isEnabled", params);
+      case "isPictureInPictureSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "pip.isSupported",
+          params,
+        );
+
+      // Document Picture-in-Picture API
+      case "requestDocumentPictureInPicture":
+        return await this.server.sendCommand(
+          clientId,
+          "documentPip.request",
+          params,
+        );
+      case "getDocumentPictureInPictureWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "documentPip.getWindow",
+          params,
+        );
+
+      // Web Locks API
+      case "requestLock":
+        return await this.server.sendCommand(clientId, "locks.request", params);
+      case "queryLocks":
+        return await this.server.sendCommand(clientId, "locks.query", params);
+      case "releaseLock":
+        return await this.server.sendCommand(clientId, "locks.release", params);
+      case "isLocksSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "locks.isSupported",
+          params,
+        );
+
+      // Badging API
+      case "setBadge":
+        return await this.server.sendCommand(clientId, "badge.set", params);
+      case "clearBadge":
+        return await this.server.sendCommand(clientId, "badge.clear", params);
+      case "isBadgeSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "badge.isSupported",
+          params,
+        );
+
+      // Local Font Access API
+      case "queryLocalFonts":
+        return await this.server.sendCommand(clientId, "fonts.query", params);
+      case "getFontPostscriptNames":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.getPostscriptNames",
+          params,
+        );
+      case "isLocalFontsSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.isSupported",
+          params,
+        );
+
+      // Window Management API
+      case "getScreenDetails":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getScreens",
+          params,
+        );
+      case "getCurrentScreen":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getCurrentScreen",
+          params,
+        );
+      case "isMultiScreenEnvironment":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.isMultiScreen",
+          params,
+        );
+      case "requestScreensPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.requestPermission",
+          params,
+        );
+      case "getScreenById":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getScreenById",
+          params,
+        );
+
+      // Compute Pressure API
+      case "observeComputePressure":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.observe",
+          params,
+        );
+      case "unobserveComputePressure":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.unobserve",
+          params,
+        );
+      case "getComputePressureState":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.getState",
+          params,
+        );
+      case "isComputePressureSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.isSupported",
+          params,
+        );
+
+      // ==================== Phase 25: Detection & Utility APIs ====================
+
+      // Barcode Detection API
+      case "detectBarcodes":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.detect",
+          params,
+        );
+      case "getSupportedBarcodeFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.getSupportedFormats",
+          params,
+        );
+      case "isBarcodeDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.isSupported",
+          params,
+        );
+
+      // Shape Detection - Face Detection API
+      case "detectFaces":
+        return await this.server.sendCommand(clientId, "face.detect", params);
+      case "isFaceDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "face.isSupported",
+          params,
+        );
+
+      // Shape Detection - Text Detection API
+      case "detectText":
+        return await this.server.sendCommand(clientId, "text.detect", params);
+      case "isTextDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "text.isSupported",
+          params,
+        );
+
+      // Web Codecs - Video API
+      case "createVideoDecoder":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.createDecoder",
+          params,
+        );
+      case "createVideoEncoder":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.createEncoder",
+          params,
+        );
+      case "isVideoCodecSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.isSupported",
+          params,
+        );
+
+      // Web Codecs - Audio API
+      case "createAudioDecoder":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.createDecoder",
+          params,
+        );
+      case "createAudioEncoder":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.createEncoder",
+          params,
+        );
+      case "isAudioCodecSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.isSupported",
+          params,
+        );
+
+      // Media Session API
+      case "setMediaSessionMetadata":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setMetadata",
+          params,
+        );
+      case "setMediaSessionPlaybackState":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setPlaybackState",
+          params,
+        );
+      case "setMediaSessionPositionState":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setPositionState",
+          params,
+        );
+      case "setMediaSessionActionHandler":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setActionHandler",
+          params,
+        );
+      case "getMediaSessionMetadata":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.getMetadata",
+          params,
+        );
+
+      // Background Fetch API
+      case "backgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.fetch",
+          params,
+        );
+      case "getBackgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.get",
+          params,
+        );
+      case "getBackgroundFetchIds":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.getIds",
+          params,
+        );
+      case "abortBackgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.abort",
+          params,
+        );
+      case "isBackgroundFetchSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.isSupported",
+          params,
+        );
+
+      // Compression Streams API
+      case "compressData":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.compress",
+          params,
+        );
+      case "decompressData":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.decompress",
+          params,
+        );
+      case "getSupportedCompressionFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.getSupportedFormats",
+          params,
+        );
+      case "isCompressionSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.isSupported",
+          params,
+        );
+
+      // Navigation API
+      case "navigateToUrl":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.navigate",
+          params,
+        );
+      case "reloadNavigation":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.reload",
+          params,
+        );
+      case "traverseNavigation":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.traverse",
+          params,
+        );
+      case "getNavigationEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.entries",
+          params,
+        );
+      case "getCurrentNavigationEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.currentEntry",
+          params,
+        );
+      case "canNavigateBack":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.canGoBack",
+          params,
+        );
+      case "canNavigateForward":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.canGoForward",
+          params,
+        );
+
+      // View Transitions API
+      case "startViewTransition":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.start",
+          params,
+        );
+      case "skipViewTransition":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.skip",
+          params,
+        );
+      case "getViewTransitionState":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.getState",
+          params,
+        );
+      case "isViewTransitionSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.isSupported",
+          params,
+        );
+
+      // Sanitizer API
+      case "sanitizeHTML":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.sanitize",
+          params,
+        );
+      case "getSanitizerConfig":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.getConfig",
+          params,
+        );
+      case "isSanitizerSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.isSupported",
+          params,
+        );
+
+      // Popover API
+      case "showPopover":
+        return await this.server.sendCommand(clientId, "popover.show", params);
+      case "hidePopover":
+        return await this.server.sendCommand(clientId, "popover.hide", params);
+      case "togglePopover":
+        return await this.server.sendCommand(
+          clientId,
+          "popover.toggle",
+          params,
+        );
+      case "isPopoverSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "popover.isSupported",
+          params,
+        );
+
+      // Highlight API
+      case "createHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.create",
+          params,
+        );
+      case "removeHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.remove",
+          params,
+        );
+      case "clearHighlights":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.clear",
+          params,
+        );
+      case "isHighlightSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.isSupported",
+          params,
+        );
+
+      // EditContext API
+      case "createEditContext":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.create",
+          params,
+        );
+      case "updateEditContextText":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.updateText",
+          params,
+        );
+      case "updateEditContextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.updateSelection",
+          params,
+        );
+      case "isEditContextSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.isSupported",
+          params,
+        );
+
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+  }
+}
+
+module.exports = {
+  BrowserExtensionServer,
+  ExtensionBrowserHandler,
+};

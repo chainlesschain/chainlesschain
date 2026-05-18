@@ -1,0 +1,114 @@
+{
+  "id": "tpl_cooking_meal_prep_002",
+  "name": "weekly_meal_prep",
+  "display_name": "每周膳食准备",
+  "description": "健康饮食的每周膳食准备计划，包含营养搭配和备餐流程",
+  "icon": "📅",
+  "category": "lifestyle",
+  "subcategory": "meal-prep",
+  "tags": [
+    "膳食准备",
+    "健康饮食",
+    "营养搭配",
+    "备餐"
+  ],
+  "project_type": "document",
+  "prompt_template": "每周膳食准备计划\n\n**计划信息：**\n- 计划周期：{{weekStart}} - {{weekEnd}}\n- 饮食目标：{{dietGoal}}\n- 每日卡路里：{{dailyCalories}} kcal\n- 用餐人数：{{servings}}人\n\n# 每周膳食准备计划\n\n## 营养目标\n\n**宏量营养素分配：**\n- 蛋白质：{{proteinPercent}}%\n- 碳水化合物：{{carbsPercent}}%\n- 脂肪：{{fatPercent}}%\n\n**饮食类型：**{{dietType}}\n\n{{#eq dietType \"生酮饮食\"}}\n**生酮要点：**\n- 净碳水：<20g/天\n- 脂肪：70-75%\n- 中链脂肪酸来源：椰子油、MCT油\n{{/eq}}\n\n{{#eq dietType \"低碳水饮食\"}}\n**低碳要点：**\n- 碳水：50-100g/天\n- 优质蛋白：瘦肉、鱼、蛋\n- 好脂肪：坚果、橄榄油、鳄梨\n{{/eq}}\n\n{{#eq dietType \"地中海饮食\"}}\n**地中海要点：**\n- 橄榄油为主要脂肪来源\n- 大量蔬菜水果\n- 适量鱼类和家禽\n- 少量红肉\n{{/eq}}\n\n## 本周菜单\n\n### 周一\n**早餐：**{{monBreakfast}}\n**午餐：**{{monLunch}}\n**晚餐：**{{monDinner}}\n**加餐：**{{monSnack}}\n\n### 周二\n**早餐：**{{tueBreakfast}}\n**午餐：**{{tueLunch}}\n**晚餐：**{{tueDinner}}\n\n### 周三\n**早餐：**{{wedBreakfast}}\n**午餐：**{{wedLunch}}\n**晚餐：**{{wedDinner}}\n\n### 周四\n**早餐：**{{thuBreakfast}}\n**午餐：**{{thuLunch}}\n**晚餐：**{{thuDinner}}\n\n### 周五\n**早餐：**{{friBreakfast}}\n**午餐：**{{friLunch}}\n**晚餐：**{{friDinner}}\n\n### 周六\n**早餐：**{{satBreakfast}}\n**午餐：**{{satLunch}}\n**晚餐：**{{satDinner}}\n\n### 周日\n**早餐：**{{sunBreakfast}}\n**午餐：**{{sunLunch}}\n**晚餐：**{{sunDinner}}\n\n## 采购清单\n\n### 蛋白质\n- [ ] 鸡胸肉 {{chickenAmount}}g\n- [ ] 三文鱼 {{salmonAmount}}g\n- [ ] 鸡蛋 {{eggAmount}}个\n- [ ] 豆腐 {{tofuAmount}}盒\n\n### 蔬菜\n- [ ] 西兰花 {{broccoliAmount}}g\n- [ ] 菠菜 {{spinachAmount}}g\n- [ ] 胡萝卜 {{carrotAmount}}g\n- [ ] 番茄 {{tomatoAmount}}个\n\n### 主食\n- [ ] 糙米 {{brownRiceAmount}}g\n- [ ] 燕麦 {{oatsAmount}}g\n- [ ] 红薯 {{sweetPotatoAmount}}g\n\n### 其他\n- [ ] 橄榄油 {{oliveOilAmount}}ml\n- [ ] 坚果 {{nutsAmount}}g\n\n**预算：**¥{{weeklyBudget}}\n\n## 备餐流程\n\n### 周日准备（2-3小时）\n\n**步骤1：洗切蔬菜**\n- 清洗所有蔬菜\n- 切好本周要用的蔬菜\n- 分装到保鲜盒\n\n**步骤2：烹饪蛋白质**\n- 烤鸡胸肉（180°C，25分钟）\n- 煮鸡蛋（10个）\n- 蒸鱼\n\n**步骤3：准备主食**\n- 煮糙米饭（5份）\n- 蒸红薯\n\n**步骤4：分装**\n- 使用meal prep容器\n- 标注日期和内容\n- 冷藏/冷冻保存\n\n## 储存建议\n\n**冷藏（3-4天）：**\n- 煮熟的肉类\n- 切好的蔬菜\n- 煮好的主食\n\n**冷冻（1-3个月）：**\n- 烹饪好的汤类\n- 未煮的肉类\n\n## 营养追踪\n\n**使用App：**{{trackingApp}}\n- 记录每日摄入\n- 监测宏量营养素\n- 调整计划",
+  "variables_schema": [
+    {
+      "name": "weekStart",
+      "label": "计划开始日期",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "weekEnd",
+      "label": "计划结束日期",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "dietGoal",
+      "label": "饮食目标",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "减脂",
+          "label": "减脂"
+        },
+        {
+          "value": "增肌",
+          "label": "增肌"
+        },
+        {
+          "value": "维持",
+          "label": "维持健康"
+        },
+        {
+          "value": "运动表现",
+          "label": "提升运动表现"
+        }
+      ]
+    },
+    {
+      "name": "dietType",
+      "label": "饮食类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "均衡饮食",
+          "label": "均衡饮食"
+        },
+        {
+          "value": "生酮饮食",
+          "label": "生酮饮食"
+        },
+        {
+          "value": "低碳水饮食",
+          "label": "低碳水饮食"
+        },
+        {
+          "value": "地中海饮食",
+          "label": "地中海饮食"
+        },
+        {
+          "value": "素食",
+          "label": "素食"
+        }
+      ]
+    },
+    {
+      "name": "dailyCalories",
+      "label": "每日卡路里目标",
+      "type": "number",
+      "required": false,
+      "default": 2000
+    },
+    {
+      "name": "servings",
+      "label": "用餐人数",
+      "type": "number",
+      "required": false,
+      "default": 1
+    }
+  ],
+  "file_structure": {
+    "root": "膳食准备-{{weekStart}}",
+    "files": [
+      {
+        "path": "每周菜单.docx",
+        "type": "document"
+      },
+      {
+        "path": "采购清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

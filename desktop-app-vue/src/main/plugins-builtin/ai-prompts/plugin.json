@@ -1,0 +1,31 @@
+{
+  "id": "ai-prompts",
+  "name": "AI 提示模板",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "V6 shell 内置：/prompts 斜杠命令 + Home 页快速提示卡片（V5 AIPromptsPage 的 V6 探针迁移）",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "prompts",
+        "trigger": "/prompts",
+        "handler": "builtin:openPromptsPanel",
+        "description": "打开 AI 提示模板面板",
+        "icon": "BulbOutlined"
+      }
+    },
+    {
+      "point": "ui.home-widget",
+      "priority": 10,
+      "config": {
+        "id": "suggested-prompts",
+        "component": "builtin:AIPromptsWidget",
+        "size": "medium",
+        "order": 20,
+        "title": "AI 提示模板"
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+=== Dry-run output of dist-tools/post-mastodon-thread.sh ===
+Captured: 2026-05-15 · v5.0.3.55 announcement validation
+Command: DRY_RUN=1 MASTODON_INSTANCE=https://fosstodon.org MASTODON_TOKEN=dummy_token_dry_run bash dist-tools/post-mastodon-thread.sh
+Purpose: pre-flight verification — confirms 3 toots ≤ 500 chars each + reply-chain wiring works before live post
+Note: DRY_RUN_<timestamp> IDs are ephemeral (nanosecond clock); rerun gives different numbers
+
+=== Mastodon thread post — v5.0.3.55 ===
+instance: https://fosstodon.org
+dry-run:  1
+
+[mastodon] posting toot (473 chars)...
+[dry-run] would POST https://fosstodon.org/api/v1/statuses
+[dry-run]   status: 🚀 ChainlessChain v5.0.3.55 ships.
+
+Android v1.0 GA was real-device validated last week. iOS mirror port started the next day — all 4 phases landed framework-complete inside 24h....
+[mastodon] posting toot (479 chars)...
+[mastodon]   reply to: DRY_RUN_1778854522089892400
+[dry-run] would POST https://fosstodon.org/api/v1/statuses
+[dry-run]   status: The "4 phases / 1 day" trick: mirror an already-validated Android version.
+
+1️⃣ Pairing — Flow A/B QR + 6-digit fallback (71 tests)...
+[mastodon] posting toot (447 chars)...
+[mastodon]   reply to: DRY_RUN_1778854525436313800
+[dry-run] would POST https://fosstodon.org/api/v1/statuses
+[dry-run]   status: Also in v5.0.3.55:
+
+• CLI 0.162.0 — `cc pair preflight` Linux LAN diagnostics + `cc pair token` headless pairing...
+
+=== Done. Thread head: https://fosstodon.org/web/statuses/DRY_RUN_1778854522089892400 ===
+
+Rollback (delete the thread):
+  for id in DRY_RUN_1778854528788263900 DRY_RUN_1778854525436313800 DRY_RUN_1778854522089892400; do
+    curl -X DELETE -H "Authorization: Bearer $MASTODON_TOKEN" \
+      "https://fosstodon.org/api/v1/statuses/$id"
+  done

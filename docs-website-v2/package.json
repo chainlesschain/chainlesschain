@@ -1,0 +1,17 @@
+{
+  "name": "chainlesschain-website-v2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "fetch:sizes": "node scripts/fetch-release-sizes.mjs",
+    "build": "node scripts/fetch-release-sizes.mjs && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^4.16.18",
+    "@astrojs/tailwind": "^5.1.4",
+    "tailwindcss": "^3.4.17"
+  }
+}

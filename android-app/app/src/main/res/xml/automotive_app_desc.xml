@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  v1.2 #1 Android Auto — Auto host 读这文件决定 app 在车机上 surface 什么。
+
+  use name="template"：声明本 app 是 template-based（不是 media / messaging
+  app），允许 CarAppService 提供 MessageTemplate / ListTemplate / Pane 等
+  Auto-approved 模板（不允许任意 Activity / Compose UI 在车机上 launch）。
+
+  详见 https://developer.android.com/training/cars/apps#manifest
+-->
+<automotiveApp>
+    <uses name="template" />
+</automotiveApp>

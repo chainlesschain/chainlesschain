@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_news_001",
+  "name": "news_monitoring",
+  "display_name": "新闻监控与速报",
+  "description": "演示新闻监控技能，自动追踪行业动态并生成每日速报",
+  "icon": "📰",
+  "category": "content",
+  "subcategory": "monitoring",
+  "tags": ["news", "monitor", "alert", "industry", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我设置新闻监控：\n\n**监控主题：** {{topic}}\n**监控频率：** {{frequency}}\n**关注领域：** {{domain}}\n\n**配置步骤：**\n\n### 步骤1：设置监控\n```\n/news-monitor watch \"{{topic}}\" --domain {{domain}}\n```\n\n### 步骤2：获取最新资讯\n```\n/news-monitor latest \"{{topic}}\"\n```\n\n### 步骤3：生成速报\n根据监控结果生成结构化速报，包含：\n- 热点新闻摘要\n- 关键数据变化\n- 行业趋势分析\n\n### 步骤4：保存分析\n```\n/memory-management save \"新闻速报: {{topic}} - {{domain}}\"\n```\n\n**使用的技能：** news-monitor, memory-management, smart-search",
+  "variables_schema": [
+    {
+      "name": "topic",
+      "label": "监控主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "AI人工智能、区块链、新能源..."
+    },
+    {
+      "name": "frequency",
+      "label": "监控频率",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "realtime", "label": "实时" },
+        { "value": "hourly", "label": "每小时" },
+        { "value": "daily", "label": "每日" }
+      ]
+    },
+    {
+      "name": "domain",
+      "label": "关注领域",
+      "type": "select",
+      "required": false,
+      "default": "tech",
+      "options": [
+        { "value": "tech", "label": "科技" },
+        { "value": "finance", "label": "金融" },
+        { "value": "health", "label": "医疗健康" },
+        { "value": "general", "label": "综合" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["news-monitor", "memory-management", "smart-search"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

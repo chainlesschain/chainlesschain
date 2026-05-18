@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO优化 -->
+    <title>技术文档- 220,000+行开源代码，完全透明可审计| ChainlessChain</title>
+    <meta name="description" content="ChainlessChain完整技术文档：220,000+行开源代码、系统架构设计、技术栈详解、API文档。基于Electron+Vue3+Spring Boot+FastAPI，完全透明可审计，MIT开源协议。">
+    <meta name="keywords" content="开源代码,技术文档,系统架构,技术栈,Vue3,Electron,Spring Boot,FastAPI,AI技术,去中心化技术">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ChainlessChain技术文档- 开源透明">
+    <meta property="og:description" content="220,000+行开源代码，完全透明可审计">
+    <meta property="og:url" content="https://www.chainlesschain.com/technology/technical-docs.html">
+
+    <!-- 样式 -->
+    <link rel="preload" href="../css/style.css" as="style">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 技术文档专用样式*/
+        .tech-hero {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 140px 0 100px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tech-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90" fill="rgba(255,255,255,0.05)">{ }</text></svg>');
+            background-size: 100px 100px;
+            opacity: 0.3;
+        }
+
+        .tech-hero .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .tech-hero .subtitle {
+            font-size: 24px;
+            opacity: 0.95;
+            margin-bottom: 40px;
+        }
+
+        /* 统计数据 */
+        .tech-stats {
+            padding: 100px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 40px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: all 0.3s;
+            border-top: 4px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(79,172,254,0.2);
+            border-top-color: #4facfe;
+        }
+
+        .stat-card h3 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #4facfe;
+            margin-bottom: 12px;
+        }
+
+        .stat-card p {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-card .detail {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* 文档预览 */
+        .doc-preview {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .doc-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-top: 40px;
+        }
+
+        .doc-card h3 {
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+        }
+
+        .doc-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .doc-card li {
+            padding: 16px 0;
+            padding-left: 40px;
+            position: relative;
+            font-size: 16px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .doc-card li:last-child {
+            border-bottom: none;
+        }
+
+        .doc-card li::before {
+            content: "📄";
+            position: absolute;
+            left: 0;
+            font-size: 24px;
+        }
+
+        .doc-card .btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .doc-card .btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        /* 技术栈 */
+        .tech-stack {
+            padding: 100px 0;
+        }
+
+        .stack-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .stack-category {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .stack-category h3 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .stack-category ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .stack-category li {
+            padding: 12px 0;
+            padding-left: 32px;
+            position: relative;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .stack-category li::before {
+            content: "►";
+            position: absolute;
+            left: 0;
+            color: #4facfe;
+            font-weight: 700;
+        }
+
+        /* README亮点 */
+        .readme-highlights {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .highlights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .highlight-card {
+            background: white;
+            padding: 40px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .highlight-card h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .highlight-card ol,
+        .highlight-card ul {
+            padding-left: 24px;
+        }
+
+        .highlight-card li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .highlight-card .btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        /* GitHub信息 */
+        .github-info {
+            padding: 100px 0;
+        }
+
+        .github-card {
+            background: white;
+            padding: 60px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .github-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .github-stat {
+            text-align: center;
+        }
+
+        .github-stat .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #4facfe;
+            margin-bottom: 8px;
+        }
+
+        .github-stat .label {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .github-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .github-buttons a {
+            display: inline-block;
+            padding: 16px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .github-buttons .btn-github {
+            background: #24292e;
+            color: white;
+        }
+
+        .github-buttons .btn-github:hover {
+            background: #000;
+            transform: translateY(-2px);
+        }
+
+        .github-buttons .btn-gitee {
+            background: #c71d23;
+            color: white;
+        }
+
+        .github-buttons .btn-gitee:hover {
+            background: #a01117;
+            transform: translateY(-2px);
+        }
+
+        /* 响应式?*/
+        @media (max-width: 768px) {
+            .tech-hero h1 {
+                font-size: 36px;
+            }
+
+            .tech-hero .subtitle {
+                font-size: 18px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stack-categories,
+            .highlights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .github-stats {
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .github-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="../index.html">
+                        <img src="../logo.png" alt="ChainlessChain" class="logo-image" loading="lazy">
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="../index.html" class="nav-link">首页</a>
+                    <a href="../index.html#products" class="nav-link">产品</a>
+                    <a href="../index.html#download" class="nav-link">下载</a>
+                    <a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" class="nav-link" target="_blank">文档</a>
+                    <a href="#" class="nav-link active">技术</a>
+                    <a href="../index.html#about" class="nav-link">关于我们</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank">GitHub</a>
+                    <a href="../index.html#download" class="btn-primary">立即下载</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero区域 -->
+    <section class="tech-hero">
+        <div class="container">
+            <h1>技术透明，值得信赖</h1>
+            <p class="subtitle">220,000+行开源代码，完全透明可审计</p>
+        </div>
+    </section>
+
+    <!-- 统计数据 -->
+    <section class="tech-stats">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">项目数据一览</h2>
+                <p class="section-subtitle">用数据说话，用代码证明</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>220,000+</h3>
+                    <p>代码总行数/p>
+                    <span class="detail">完全开源可审计</span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>243</h3>
+                    <p>Vue组件</p>
+                    <span class="detail">现代化前端架构/span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>100%</h3>
+                    <p>整体完成度/p>
+                    <span class="detail">生产就绪</span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>149</h3>
+                    <p>API端点</p>
+                    <span class="detail">完整后端服务</span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>35</h3>
+                    <p>数据库表</p>
+                    <span class="detail">完善的数据模型/span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>138</h3>
+                    <p>内置技能</p>
+                    <span class="detail">15大类别</span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>19</h3>
+                    <p>AI引擎</p>
+                    <span class="detail">专业场景覆盖</span>
+                </div>
+
+                <div class="stat-card">
+                    <h3>6</h3>
+                    <p>智能合约</p>
+                    <span class="detail">区块链集成/span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 系统设计文档 -->
+    <section class="doc-preview">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">完整的系统设计文档</h2>
+                <p class="section-subtitle">从架构设计到实现细节，全面透明</p>
+            </div>
+
+            <div class="doc-card">
+                <h3>核心设计文档</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                    我们相信，只有完整的文档才能建立真正的信任。所有设计文档都在GitHub开源仓库中。                </p>
+                <ul>
+                    <li>
+                        <strong>系统设计_个人移动AI管理系统.md</strong>
+                        <span style="color: var(--text-light); margin-left: 16px;">(123KB)</span>
+                        <br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">
+                            完整的系统架构设计、模块划分、技术选型、实施路线图
+                        </span>
+                    </li>
+                    <li>
+                        <strong>ENTERPRISE_EDITION_DESIGN.md</strong>
+                        <br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">
+                            企业版（去中心化组织）完整设计方案、多身份架构、P2P网络设计
+                        </span>
+                    </li>
+                    <li>
+                        <strong>README.md</strong>
+                        <br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">
+                            项目总览、功能列表、技术栈、开发路线图、版本历史                        </span>
+                    </li>
+                    <li>
+                        <strong>IMPLEMENTATION_COMPLETE.md</strong>
+                        <br>
+                        <span style="color: var(--text-secondary); font-size: 14px;">
+                            实现状态报告、模块完成度、测试情况、已知问题                        </span>
+                    </li>
+                </ul>
+                <a href="https://github.com/chainlesschain/chainlesschain/blob/main/docs/design/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1_%E4%B8%BB%E6%96%87%E6%A1%A3.md"
+                   class="btn" target="_blank" rel="noopener">
+                    查看完整设计文档 →                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术栈详情 -->
+    <section class="tech-stack">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">技术栈详情</h2>
+                <p class="section-subtitle">采用业界领先的技术和工具</p>
+            </div>
+
+            <div class="stack-categories">
+                <div class="stack-category">
+                    <h3>🖥️ 前端技术</h3>
+                    <ul>
+                        <li>Electron 39.2.6 - 跨平台桌面框架/li>
+                        <li>Vue 3.4 + TypeScript 5.3</li>
+                        <li>Ant Design Vue 4.1.2</li>
+                        <li>Pinia 2.1.7 - 状态管理/li>
+                        <li>Vue Router 4.2.5</li>
+                        <li>Vite 7.2.7 - 构建工具</li>
+                        <li>Milkdown 7.17.3 - Markdown编辑</li>
+                        <li>Monaco Editor - 代码编辑</li>
+                    </ul>
+                </div>
+
+                <div class="stack-category">
+                    <h3>⚙️ 后端服务</h3>
+                    <ul>
+                        <li>Spring Boot 3.1.11 + Java 17</li>
+                        <li>FastAPI + Python 3.9+</li>
+                        <li>PostgreSQL 16</li>
+                        <li>MySQL 8.0</li>
+                        <li>Redis 7</li>
+                        <li>MyBatis Plus 3.5.7</li>
+                        <li>HikariCP - 连接池</li>
+                        <li>SpringDoc OpenAPI 2.2.0</li>
+                    </ul>
+                </div>
+
+                <div class="stack-category">
+                    <h3>🤖 AI/ML技术/h3>
+                    <ul>
+                        <li>Ollama - 本地LLM运行时/li>
+                        <li>Qdrant 1.7.0+ - 向量数据库/li>
+                        <li>ChromaDB 3.1.8 - 向量存储</li>
+                        <li>Sentence Transformers 2.3.0</li>
+                        <li>14+ 云LLM API支持</li>
+                        <li>Tesseract.js 5.0 - OCR</li>
+                        <li>Sharp 0.33 - 图像处理</li>
+                        <li>RAG检索增强生成/li>
+                    </ul>
+                </div>
+
+                <div class="stack-category">
+                    <h3>🔒 安全/P2P</h3>
+                    <ul>
+                        <li>SQLCipher - AES-256数据库加密/li>
+                        <li>libp2p 3.1.2 - P2P网络</li>
+                        <li>Signal Protocol - E2E加密</li>
+                        <li>node-forge - 加密库</li>
+                        <li>TweetNaCl - 高性能加密</li>
+                        <li>U盾SDK - 硬件密钥</li>
+                        <li>Koffi FFI - 原生调用</li>
+                        <li>Kademlia DHT - 分布式哈希表</li>
+                    </ul>
+                </div>
+
+                <div class="stack-category">
+                    <h3>⛓️ 区块链</h3>
+                    <ul>
+                        <li>Hardhat 2.28 - 开发框架/li>
+                        <li>Solidity 0.8+ - 智能合约</li>
+                        <li>Ethers.js v6.13 - Web3库/li>
+                        <li>OpenZeppelin Contracts 5.4</li>
+                        <li>MetaMask - 外部钱包</li>
+                        <li>WalletConnect v1</li>
+                        <li>BIP39 + BIP44 - HD钱包</li>
+                        <li>Ethereum/Polygon支持</li>
+                    </ul>
+                </div>
+
+                <div class="stack-category">
+                    <h3>🛠️ 开发工具</h3>
+                    <ul>
+                        <li>Git + isomorphic-git 1.25.10</li>
+                        <li>Docker + Docker Compose</li>
+                        <li>Playwright - E2E测试</li>
+                        <li>Vitest - 单元测试</li>
+                        <li>ESLint + Prettier</li>
+                        <li>Electron Builder - 打包</li>
+                        <li>GitHub Actions - CI/CD</li>
+                        <li>Swagger/OpenAPI - API文档</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- README核心亮点 -->
+    <section class="readme-highlights">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">README 核心亮点</h2>
+                <p class="section-subtitle">快速了解项目的核心功能和特性/p>
+            </div>
+
+            <div class="highlights-grid">
+                <div class="highlight-card">
+                    <h3>三大核心功能</h3>
+                    <ol>
+                        <li><strong>知识库管理(100%完成)</strong><br>
+                            SQL.js + SQLCipher + RAG检索+ Git同步
+                        </li>
+                        <li><strong>去中心化社交 (85%完成)</strong><br>
+                            DID身份 + P2P通信 + Signal加密
+                        </li>
+                        <li><strong>去中心化交易 (85%完成)</strong><br>
+                            8大模块+ 智能合约 + 信用评分
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="highlight-card">
+                    <h3>企业版功能(40%完成)</h3>
+                    <ul>
+                        <li>多身份架构（个人+多组织）</li>
+                        <li>组织管理（创建加入/成员管理）/li>
+                        <li>RBAC权限系统</li>
+                        <li>9个新数据库表</li>
+                        <li>数据完全隔离</li>
+                        <li>零部署成本/li>
+                    </ul>
+                </div>
+
+                <div class="highlight-card">
+                    <h3>项目管理 (90%完成)</h3>
+                    <ul>
+                        <li>19个专业AI引擎</li>
+                        <li>对话式项目创建</li>
+                        <li>智能代码/文档生成</li>
+                        <li>知识库深度集成/li>
+                        <li>Git版本控制</li>
+                        <li>任务智能拆解</li>
+                    </ul>
+                </div>
+
+                <div class="highlight-card">
+                    <h3>区块链集成(50%完成)</h3>
+                    <ul>
+                        <li>6个智能合约（ERC-20/721/托管/订阅）/li>
+                        <li>HD钱包系统</li>
+                        <li>MetaMask + WalletConnect</li>
+                        <li>Hardhat开发环境/li>
+                        <li>45+测试用例</li>
+                        <li>多链支持</li>
+                    </ul>
+                </div>
+
+                <div class="highlight-card">
+                    <h3>技能工具系统(100%完成)</h3>
+                    <ul>
+                        <li>138个桌面内置技能</li>
+                        <li>28个Android技能</li>
+                        <li>15大类别</li>
+                        <li>四层动态加载</li>
+                        <li>热更新支持</li>
+                        <li>插件生态2.0</li>
+                    </ul>
+                </div>
+
+                <div class="highlight-card">
+                    <h3>测试覆盖 (100%完成)</h3>
+                    <ul>
+                        <li>Playwright E2E测试框架</li>
+                        <li>2500+测试用例</li>
+                        <li>Vitest单元测试</li>
+                        <li>集成测试</li>
+                        <li>性能测试</li>
+                        <li>安全测试(OWASP)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 60px;">
+                <a href="https://github.com/chainlesschain/chainlesschain#readme"
+                   class="btn-primary"
+                   target="_blank"
+                   rel="noopener"
+                   style="display: inline-block; padding: 16px 32px; text-decoration: none; border-radius: 8px;">
+                    查看完整README →                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- GitHub仓库信息 -->
+    <section class="github-info">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">开源仓库</h2>
+                <p class="section-subtitle">欢迎Star、Fork和贡献代码</p>
+            </div>
+
+            <div class="github-card">
+                <h3 style="font-size: 32px; margin-bottom: 16px; color: var(--text-primary);">
+                    🌟 完全开源，欢迎贡献
+                </h3>
+                <p style="font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto 40px;">
+                    ChainlessChain 是一个完全开源的项目，采用?MIT 开源协议。<br>
+                    我们欢迎所有形式的贡献：代码、文档、问题反馈、功能建议。                </p>
+
+                <div class="github-stats">
+                    <div class="github-stat">
+                        <div class="number">220,000+</div>
+                        <div class="label">代码行数</div>
+                    </div>
+                    <div class="github-stat">
+                        <div class="number">243+</div>
+                        <div class="label">组件数量</div>
+                    </div>
+                    <div class="github-stat">
+                        <div class="number">100%</div>
+                        <div class="label">完成度</div>
+                    </div>
+                    <div class="github-stat">
+                        <div class="number">MIT</div>
+                        <div class="label">开源协议</div>
+                    </div>
+                </div>
+
+                <div class="github-buttons">
+                    <a href="https://github.com/chainlesschain/chainlesschain"
+                       class="btn-github"
+                       target="_blank"
+                       rel="noopener">
+                        <svg width="20" height="20" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                            <path d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V19c0 .27.16.59.67.5C17.14 18.16 20 14.42 20 10A10 10 0 0010 0z"/>
+                        </svg>
+                        GitHub 仓库
+                    </a>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain"
+                       class="btn-gitee"
+                       target="_blank"
+                       rel="noopener">
+                        Gitee 仓库（国内镜像）
+                    </a>
+                </div>
+
+                <div style="margin-top: 40px; padding-top: 40px; border-top: 1px solid var(--border-color);">
+                    <h4 style="font-size: 20px; margin-bottom: 16px; color: var(--text-primary);">📚 相关资源</h4>
+                    <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+                        <a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" style="color: var(--primary-color); text-decoration: none;" target="_blank">
+                            📖 在线文档
+                        </a>
+                        <a href="https://forum.chainlesschain.com" style="color: var(--primary-color); text-decoration: none;" target="_blank">
+                            💬 社区论坛
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/issues" style="color: var(--primary-color); text-decoration: none;" target="_blank">
+                            🐛 问题反馈
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/blob/main/CONTRIBUTING.md" style="color: var(--primary-color); text-decoration: none;" target="_blank">
+                            🤝 贡献指南
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 100px 0; text-align: center;">
+        <div class="container">
+            <h2 style="font-size: 42px; margin-bottom: 16px;">代码不会说谎</h2>
+            <p style="font-size: 20px; opacity: 0.95; margin-bottom: 40px;">
+                所有代码开源，欢迎审计和贡献            </p>
+            <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 40px;">
+                <a href="https://github.com/chainlesschain/chainlesschain"
+                   class="btn-primary"
+                   style="background: white; color: #4facfe; padding: 16px 32px; font-size: 16px; border: none; border-radius: 8px; text-decoration: none; display: inline-block;"
+                   target="_blank">
+                    查看源代码                </a>
+                <a href="../index.html#download"
+                   class="btn-outline"
+                   style="background: transparent; color: white; border: 2px solid white; padding: 16px 32px; font-size: 16px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                    立即下载
+                </a>
+            </div>
+            <p style="font-size: 14px; opacity: 0.8; margin-top: 32px; line-height: 1.8;">
+                💡 当前版本：v5.0.1.8 (Phase 1-102全部完成，生产就绪)<br>
+                🔓 开源协议：MIT License<br>
+                📞 技术咨询：400-1068-687 | zhanglongfa@chainlesschain.com
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: var(--text-primary); color: white; padding: 60px 0 20px;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 40px;">
+                <div>
+                    <h3 style="margin-bottom: 20px;">ChainlessChain</h3>
+                    <p style="color: rgba(255,255,255,0.8); line-height: 1.8;">
+                        技术驱动，开源透明<br>
+                        220,000+行代码，完全可审计                    </p>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">产品</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="../products/knowledge-base.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">知识库管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="../products/project-management.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">项目管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="../products/enterprise.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">企业版</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">技术</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="technical-docs.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">技术文档</a></li>
+                        <li style="margin-bottom: 12px;"><a href="https://github.com/chainlesschain" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">GitHub</a></li>
+                        <li style="margin-bottom: 12px;"><a href="https://github.com/chainlesschain/chainlesschain/tree/main/docs" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">在线文档</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">联系我们</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📞 400-1068-687</li>
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📧 zhanglongfa@chainlesschain.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);">
+                <p>&copy; 2025 厦门无链之链科技有限公司. All rights reserved. | MIT License</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255,255,255,0.98)';
+                navbar.style.boxShadow = '0 2px 20px rgba(0,0,0,0.1)';
+            } else {
+                navbar.style.background = 'rgba(255,255,255,0.95)';
+                navbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+    </script>
+</body>
+</html>

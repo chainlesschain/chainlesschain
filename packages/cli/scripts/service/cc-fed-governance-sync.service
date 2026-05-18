@@ -1,0 +1,38 @@
+# systemd unit for `cc mtc federation governance-sync-serve` (v0.9 daemon).
+# Mirrors cc-bridge-mtc.service. Adjust the FEDERATION_ID + DROP_ZONE
+# environment variables (or hardcode in ExecStart) before installing.
+#
+# Install:
+#   sudo cp cc-fed-governance-sync.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cc-fed-governance-sync
+
+[Unit]
+Description=ChainlessChain — Federation governance.log sync daemon
+Documentation=https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chainlesschain
+Group=chainlesschain
+WorkingDirectory=/home/chainlesschain
+# Override these in /etc/default/cc-fed-governance-sync if you prefer
+Environment="FEDERATION_ID=fed-prod"
+Environment="DROP_ZONE=/srv/shared/cc-governance"
+ExecStart=/bin/sh -c '/usr/local/bin/cc mtc federation governance-sync-serve "$FEDERATION_ID" --drop-zone "$DROP_ZONE" --interval 60 --verify --json'
+KillSignal=SIGTERM
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/chainlesschain/.chainlesschain /srv/shared/cc-governance
+
+[Install]
+WantedBy=multi-user.target

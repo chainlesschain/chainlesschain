@@ -1,0 +1,317 @@
+package com.chainlesschain.android.core.ui.image
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import coil.compose.SubcomposeAsyncImage
+
+/**
+ * 图片网格布局
+ *
+ * 自动根据图片数量调整布局：
+ * - 1 张：单图，宽高比 16:9
+ * - 2 张：横向两列
+ * - 3 张：左1右2
+ * - 4 张：2x2 网格
+ * - 5-9 张：3x3 网格（多余图片显示 +N）
+ *
+ * @param images 图片 URL 列表
+ * @param modifier Modifier
+ * @param spacing 图片间距
+ * @param cornerRadius 圆角半径
+ * @param onImageClick 点击图片回调（index, url）
+ */
+@Composable
+fun ImageGrid(
+    images: List<String>,
+    modifier: Modifier = Modifier,
+    spacing: Dp = 4.dp,
+    cornerRadius: Dp = 8.dp,
+    onImageClick: (Int, String) -> Unit = { _, _ -> }
+) {
+    when (images.size) {
+        0 -> { /* 无图片 */ }
+        1 -> SingleImageLayout(images[0], modifier, cornerRadius, onImageClick)
+        2 -> TwoImagesLayout(images, modifier, spacing, cornerRadius, onImageClick)
+        3 -> ThreeImagesLayout(images, modifier, spacing, cornerRadius, onImageClick)
+        4 -> FourImagesLayout(images, modifier, spacing, cornerRadius, onImageClick)
+        else -> MultiImagesLayout(images, modifier, spacing, cornerRadius, onImageClick)
+    }
+}
+
+/**
+ * 单图布局
+ */
+@Composable
+private fun SingleImageLayout(
+    imageUrl: String,
+    modifier: Modifier,
+    cornerRadius: Dp,
+    onImageClick: (Int, String) -> Unit
+) {
+    GridImage(
+        url = imageUrl,
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(cornerRadius))
+            .clickable { onImageClick(0, imageUrl) }
+    )
+}
+
+/**
+ * 双图布局
+ */
+@Composable
+private fun TwoImagesLayout(
+    images: List<String>,
+    modifier: Modifier,
+    spacing: Dp,
+    cornerRadius: Dp,
+    onImageClick: (Int, String) -> Unit
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        images.forEachIndexed { index, url ->
+            GridImage(
+                url = url,
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(cornerRadius))
+                    .clickable { onImageClick(index, url) }
+            )
+        }
+    }
+}
+
+/**
+ * 三图布局（左1右2）
+ */
+@Composable
+private fun ThreeImagesLayout(
+    images: List<String>,
+    modifier: Modifier,
+    spacing: Dp,
+    cornerRadius: Dp,
+    onImageClick: (Int, String) -> Unit
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        // 左侧大图
+        GridImage(
+            url = images[0],
+            modifier = Modifier
+                .weight(1f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(cornerRadius))
+                .clickable { onImageClick(0, images[0]) }
+        )
+        // 右侧两小图
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(spacing)
+        ) {
+            images.drop(1).forEachIndexed { index, url ->
+                GridImage(
+                    url = url,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f)
+                        .clip(RoundedCornerShape(cornerRadius))
+                        .clickable { onImageClick(index + 1, url) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 四图布局（2x2）
+ */
+@Composable
+private fun FourImagesLayout(
+    images: List<String>,
+    modifier: Modifier,
+    spacing: Dp,
+    cornerRadius: Dp,
+    onImageClick: (Int, String) -> Unit
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        for (row in 0..1) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                for (col in 0..1) {
+                    val index = row * 2 + col
+                    val url = images[index]
+                    GridImage(
+                        url = url,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(cornerRadius))
+                            .clickable { onImageClick(index, url) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 多图布局（3x3，最多显示 9 张）
+ */
+@Composable
+private fun MultiImagesLayout(
+    images: List<String>,
+    modifier: Modifier,
+    spacing: Dp,
+    cornerRadius: Dp,
+    onImageClick: (Int, String) -> Unit
+) {
+    val displayImages = images.take(9)
+    val remainingCount = images.size - 9
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        for (row in 0..2) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                for (col in 0..2) {
+                    val index = row * 3 + col
+                    if (index < displayImages.size) {
+                        val url = displayImages[index]
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                        ) {
+                            GridImage(
+                                url = url,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(cornerRadius))
+                                    .clickable { onImageClick(index, url) }
+                            )
+                            // 最后一张显示剩余数量
+                            if (index == 8 && remainingCount > 0) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(cornerRadius)),
+                                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "+$remainingCount",
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            color = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 可重试的图片加载组件
+ */
+@Composable
+private fun GridImage(
+    url: String,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    var retryKey by remember { mutableIntStateOf(0) }
+
+    key(retryKey) {
+        SubcomposeAsyncImage(
+            model = url,
+            contentDescription = null,
+            modifier = modifier,
+            contentScale = contentScale,
+            loading = { ImageLoadingPlaceholder() },
+            error = {
+                ImageErrorPlaceholder(onRetry = { retryKey++ })
+            }
+        )
+    }
+}
+
+@Composable
+private fun ImageLoadingPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
+    }
+}
+
+@Composable
+private fun ImageErrorPlaceholder(onRetry: (() -> Unit)? = null) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (onRetry != null) Modifier.clickable { onRetry() } else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.BrokenImage,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (onRetry != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "点击重试",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}

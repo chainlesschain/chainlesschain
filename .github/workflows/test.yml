@@ -1,0 +1,351 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 快速单元测试（排除不稳定测试）
+  unit-tests:
+    name: Unit Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    # Vitest 4 (vitest-dev/vitest#8297) made birpc respect user-configured
+    # timeouts, so the Windows-only 60s onTaskUpdate heartbeat that gated
+    # this matrix is gone. continue-on-error stayed on Windows until the
+    # v4 bump landed; closes #5.
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app-vue/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      - name: Run TypeScript type check
+        working-directory: ./desktop-app-vue
+        # vue-tsc on 164k+ LOC trips macOS runner's 7GB RAM ceiling without
+        # this; SIGABRT (exit 134). Match the 4GB cap used in release.yml.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: npm run type-check
+
+      - name: Fetch base branch for diff
+        run: |
+          git fetch origin ${{ github.base_ref || 'main' }}:refs/remotes/origin/${{ github.base_ref || 'main' }}
+
+      - name: Run intelligent test selection
+        id: test-selector
+        working-directory: ./desktop-app-vue
+        shell: bash
+        run: |
+          echo "🧪 Running Cowork intelligent test selection..."
+          node scripts/cowork-ci-test-selector.js
+        continue-on-error: true
+
+      - name: Run stable unit tests (fallback)
+        if: steps.test-selector.outcome == 'failure'
+        working-directory: ./desktop-app-vue
+        shell: bash
+        # `--silent=passed-only` keeps the worker→main RPC quiet on the
+        # 390-file suite; vitest 4 dropped the legacy `basic` reporter.
+        # `--pool=threads` overrides vitest.config.ts's forks default for
+        # this CI step only (the config comment notes threads have broken
+        # CJS/ESM interop locally; we accept that here in CI to keep RPC
+        # traffic light). vitest 4 also fixed the hardcoded birpc 60s
+        # heartbeat (vitest-dev/vitest#8297), so the Windows continue-on-
+        # error gate is gone.
+        run: |
+          echo "⚠️  Intelligent test selection failed, running stable test suite..."
+          npx vitest run tests/unit \
+            --reporter=default --silent=passed-only --pool=threads \
+            --exclude="**/media/ocr-service.test.js" \
+            --exclude="**/mcp/**" \
+            --exclude="**/p2p/**" \
+            --exclude="**/ukey/**" \
+            --exclude="**/blockchain/**" \
+            --exclude="**/import/**" \
+            --exclude="**/extended-tools*.test.js" \
+            --exclude="**/llm/session-manager*.test.js" \
+            --exclude="**/llm/llm-performance.test.js" \
+            --exclude="**/tools/tool-manager.test.js" \
+            --exclude="**/ai/skill-manager.test.js" \
+            --exclude="**/document/word-engine.test.js" \
+            --exclude="**/media/image-engine.test.js" \
+            --exclude="**/did/did-invitation.test.js" \
+            --exclude="**/core/ipc-guard.test.js" \
+            --exclude="**/security/permission-system.test.js" \
+            --exclude="**/api/**" \
+            --exclude="**/sync/**" \
+            --exclude="**/ai/builtin-tools.test.js" \
+            --exclude="**/document/pdf-engine.test.js" \
+            --exclude="**/document/ppt-engine.test.js" \
+            --exclude="**/integration/p2p-sync-engine.test.js" \
+            --exclude="**/core/function-caller.test.js" \
+            --exclude="**/core/response-parser.test.js" \
+            --exclude="**/media/speech-recognizer.test.js" \
+            --exclude="**/planning/task-planner*.test.js" \
+            --exclude="**/planning/taskPlanner.test.js" \
+            --exclude="**/src/main/**/__tests__/**" \
+            --exclude="**/tests/integration/**" \
+            --exclude="**/database/key-manager.test.js" \
+            --exclude="**/knowledge/static-site-exporter.test.js" \
+            --exclude="**/document/doc-generator.test.js"
+
+      - name: Test Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Unit Tests (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.test-selector.outcome }}" == "success" ]; then
+            echo "✅ Intelligent test selection passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Fell back to stable test suite" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # 代码质量检查
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app-vue/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      - name: Run ESLint
+        working-directory: ./desktop-app-vue
+        run: npm run lint --if-present
+
+      - name: Run rules validator
+        working-directory: ./desktop-app-vue
+        run: npm run validate:rules
+        continue-on-error: true
+
+  # 构建检查
+  build:
+    name: Build Check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app-vue/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      - name: Build main process
+        working-directory: ./desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: ./desktop-app-vue
+        run: npm run build:renderer
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            desktop-app-vue/dist/
+          retention-days: 7
+
+  # CLI 全局安装冒烟（验证 postinstall 在 Windows/Linux 都不炸）
+  cli-install-smoke:
+    name: CLI Global Install Smoke
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Pack CLI tarball
+        working-directory: ./packages/cli
+        shell: bash
+        run: |
+          npm pack
+          ls chainlesschain-*.tgz
+
+      - name: Global install from tarball (exercises postinstall)
+        working-directory: ./packages/cli
+        shell: bash
+        run: npm install -g ./chainlesschain-*.tgz
+
+      - name: Verify CLI executable
+        shell: bash
+        run: |
+          cc --version
+          chainlesschain --version
+
+  # 数据库测试（仅 Linux，需要 SQLite）
+  database-tests:
+    name: Database Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app-vue/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      - name: Run database tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:db
+
+  # 完整测试（可选，手动触发或定时运行）
+  full-tests:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app-vue/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      - name: Run all unit tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:unit
+
+      - name: Run test coverage
+        working-directory: ./desktop-app-vue
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./desktop-app-vue/coverage/lcov.info
+          flags: unittests
+          name: codecov-full
+          fail_ci_if_error: false
+
+      - name: Archive coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: desktop-app-vue/coverage/
+          retention-days: 30

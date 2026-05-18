@@ -1,0 +1,103 @@
+{
+  "id": "tpl_education_exam_101",
+  "name": "exam-generator",
+  "display_name": "试卷命题助手",
+  "description": "根据知识点和难度要求生成试卷",
+  "icon": "📄",
+  "category": "education",
+  "subcategory": "考试评价",
+  "tags": [
+    "试卷",
+    "命题",
+    "考试",
+    "评测"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成试卷：\n\n试卷名称：{{examName}}\n学科：{{subject}}\n年级：{{grade}}\n考试时长：{{duration}}\n总分：{{totalScore}}\n\n考查知识点：\n{{knowledgePoints}}\n\n难度分布：\n{{difficultyDistribution}}\n\n题型要求：\n{{questionTypes}}\n\n请生成完整的试卷，包括：\n1. 试卷头（考试信息、注意事项）\n2. 各类型题目及标准答案\n3. 评分标准\n4. 参考答案和解析",
+  "variables_schema": [
+    {
+      "name": "examName",
+      "type": "text",
+      "label": "试卷名称",
+      "required": true,
+      "default": "五年级语文期中测试"
+    },
+    {
+      "name": "subject",
+      "type": "text",
+      "label": "学科",
+      "required": true,
+      "default": "语文"
+    },
+    {
+      "name": "grade",
+      "type": "text",
+      "label": "年级",
+      "required": true,
+      "default": "五年级"
+    },
+    {
+      "name": "duration",
+      "type": "text",
+      "label": "考试时长",
+      "default": "90分钟",
+      "required": true
+    },
+    {
+      "name": "totalScore",
+      "type": "text",
+      "label": "总分",
+      "default": "100",
+      "required": true
+    },
+    {
+      "name": "knowledgePoints",
+      "type": "textarea",
+      "label": "考查知识点",
+      "required": true,
+      "default": "1. 词语理解与运用\n2. 句子成分分析\n3. 阅读理解\n4. 写作技巧"
+    },
+    {
+      "name": "difficultyDistribution",
+      "type": "textarea",
+      "label": "难度分布",
+      "default": "容易30%，中等50%，困难20%",
+      "required": false
+    },
+    {
+      "name": "questionTypes",
+      "type": "textarea",
+      "label": "题型要求",
+      "required": true,
+      "default": "选择题"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "试卷-{{examName}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "试卷.md"
+      },
+      {
+        "type": "file",
+        "name": "答案与解析.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

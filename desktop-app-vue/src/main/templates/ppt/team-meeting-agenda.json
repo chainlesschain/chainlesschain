@@ -1,0 +1,38 @@
+{
+  "id": "tpl_ppt_meeting_008",
+  "name": "team_meeting_agenda",
+  "display_name": "团队会议PPT",
+  "description": "团队会议演示文稿，适用于周会、月会、项目复盘等场景",
+  "icon": "👥",
+  "category": "ppt",
+  "subcategory": "management",
+  "tags": ["会议", "团队管理", "周会", "复盘"],
+  "project_type": "presentation",
+  "prompt_template": "团队会议PPT\n\n**会议类型：** {{meetingType}}\n**日期：** {{meetingDate}}\n**主持人：** {{host}}\n**参会人：** {{attendees}}\n\n# 团队会议PPT结构\n\n## 幻灯片 1：封面\n\n**{{meetingType}}**\n\n{{#eq meetingType \"周会\"}}\n**第{{weekNumber}}周团队周会**\n{{/eq}}\n\n{{#eq meetingType \"月会\"}}\n**{{month}}月团队月度会议**\n{{/eq}}\n\n{{#eq meetingType \"项目复盘\"}}\n**{{projectName}} 项目复盘会议**\n{{/eq}}\n\n**日期：** {{meetingDate}}\n**主持：** {{host}}\n\n---\n\n## 幻灯片 2：会议议程\n\n**今日议程：**\n\n1. {{agendaItem1}} - {{agenda1Duration}}分钟\n2. {{agendaItem2}} - {{agenda2Duration}}分钟\n3. {{agendaItem3}} - {{agenda3Duration}}分钟\n4. {{agendaItem4}} - {{agenda4Duration}}分钟\n5. 开放讨论 - {{discussionDuration}}分钟\n\n**会议时长：** {{totalDuration}}分钟\n\n---\n\n{{#eq meetingType \"周会\"}}\n## 幻灯片 3：上周回顾\n\n**上周目标完成情况：**\n\n| 目标 | 负责人 | 计划进度 | 实际进度 | 状态 |\n|------|--------|----------|----------|------|\n| {{lastWeekGoal1}} | {{goal1Owner}} | {{goal1Planned}}% | {{goal1Actual}}% | {{goal1Status}} |\n| {{lastWeekGoal2}} | {{goal2Owner}} | {{goal2Planned}}% | {{goal2Actual}}% | {{goal2Status}} |\n| {{lastWeekGoal3}} | {{goal3Owner}} | {{goal3Planned}}% | {{goal3Actual}}% | {{goal3Status}} |\n\n**整体完成率：** {{overallCompletion}}%\n\n---\n\n## 幻灯片 4：本周数据看板\n\n**关键指标：**\n\n| 指标 | 本周 | 上周 | 环比 | 目标 | 达成率 |\n|------|------|------|------|------|--------|\n| {{kpi1}} | {{kpi1This}} | {{kpi1Last}} | {{kpi1Change}} | {{kpi1Target}} | {{kpi1Achievement}}% |\n| {{kpi2}} | {{kpi2This}} | {{kpi2Last}} | {{kpi2Change}} | {{kpi2Target}} | {{kpi2Achievement}}% |\n| {{kpi3}} | {{kpi3This}} | {{kpi3Last}} | {{kpi3Change}} | {{kpi3Target}} | {{kpi3Achievement}}% |\n\n**视觉：** 使用折线图/柱状图展示趋势\n\n---\n\n## 幻灯片 5：本周工作安排\n\n**优先级排序：**\n\n**P0（本周必须完成）：**\n- [ ] {{p0Task1}} - {{p0Owner1}} - {{p0Deadline1}}\n- [ ] {{p0Task2}} - {{p0Owner2}} - {{p0Deadline2}}\n\n**P1（本周尽量完成）：**\n- [ ] {{p1Task1}} - {{p1Owner1}}\n- [ ] {{p1Task2}} - {{p1Owner2}}\n\n**P2（下周计划）：**\n- [ ] {{p2Task1}} - {{p2Owner1}}\n\n**资源需求：** {{resourceNeeds}}\n\n---\n\n## 幻灯片 6：问题与风险\n\n**当前问题：**\n\n🔴 **问题 1：{{issue1}}**\n- 影响：{{issue1Impact}}\n- 负责人：{{issue1Owner}}\n- 解决方案：{{issue1Solution}}\n- 截止日期：{{issue1Deadline}}\n\n🟡 **问题 2：{{issue2}}**\n- 影响：{{issue2Impact}}\n- 负责人：{{issue2Owner}}\n\n**风险预警：**\n- {{risk1}}\n- {{risk2}}\n\n---\n\n## 幻灯片 7：团队动态\n\n**本周亮点：**\n⭐ {{highlight1}}\n⭐ {{highlight2}}\n\n**团队公告：**\n- {{announcement1}}\n- {{announcement2}}\n\n**下周休假：**\n- {{vacation1}}\n\n{{/eq}}\n\n{{#eq meetingType \"月会\"}}\n## 幻灯片 3：月度总结\n\n**{{month}}月工作回顾：**\n\n**目标达成情况：**\n- 月度目标1：{{monthlyGoal1}} - {{goal1Status}}\n- 月度目标2：{{monthlyGoal2}} - {{goal2Status}}\n- 月度目标3：{{monthlyGoal3}} - {{goal3Status}}\n\n**整体评分：** {{monthlyScore}}/10\n\n---\n\n## 幻灯片 4：数据分析\n\n**月度数据看板：**\n\n| 指标 | 本月 | 上月 | 环比 | 年度目标 | 进度 |\n|------|------|------|------|----------|------|\n| {{metric1}} | {{m1This}} | {{m1Last}} | {{m1Change}} | {{m1YearTarget}} | {{m1Progress}}% |\n| {{metric2}} | {{m2This}} | {{m2Last}} | {{m2Change}} | {{m2YearTarget}} | {{m2Progress}}% |\n| {{metric3}} | {{m3This}} | {{m3Last}} | {{m3Change}} | {{m3YearTarget}} | {{m3Progress}}% |\n\n**趋势分析：** {{trendAnalysis}}\n\n---\n\n## 幻灯片 5：项目进展\n\n**进行中项目：**\n\n| 项目 | 进度 | 状态 | 风险 | 预期完成 |\n|------|------|------|------|----------|\n| {{project1}} | {{proj1Progress}}% | {{proj1Status}} | {{proj1Risk}} | {{proj1ETC}} |\n| {{project2}} | {{proj2Progress}}% | {{proj2Status}} | {{proj2Risk}} | {{proj2ETC}} |\n| {{project3}} | {{proj3Progress}}% | {{proj3Status}} | {{proj3Risk}} | {{proj3ETC}} |\n\n**已完成项目：**\n- ✅ {{completedProject1}}\n- ✅ {{completedProject2}}\n\n---\n\n## 幻灯片 6：下月规划\n\n**{{nextMonth}}月工作重点：**\n\n**战略重点：**\n1. {{nextMonthPriority1}}\n2. {{nextMonthPriority2}}\n3. {{nextMonthPriority3}}\n\n**关键里程碑：**\n- {{milestone1}} - {{milestone1Date}}\n- {{milestone2}} - {{milestone2Date}}\n\n**资源分配：**\n{{resourceAllocation}}\n\n---\n\n## 幻灯片 7：团队建设\n\n**本月团队亮点：**\n🏆 {{teamHighlight1}}\n🏆 {{teamHighlight2}}\n\n**优秀员工：**\n⭐ {{mvp}} - {{mvpReason}}\n\n**团队活动：**\n- {{teamActivity}}\n\n{{/eq}}\n\n{{#eq meetingType \"项目复盘\"}}\n## 幻灯片 3：项目概况\n\n**项目名称：** {{projectName}}\n**项目周期：** {{projectStartDate}} - {{projectEndDate}}\n**项目成员：** {{projectTeam}}\n\n**目标回顾：**\n- 目标1：{{projectObjective1}}\n- 目标2：{{projectObjective2}}\n- 目标3：{{projectObjective3}}\n\n---\n\n## 幻灯片 4：成果展示\n\n**交付成果：**\n\n✅ **成果1：{{deliverable1}}**\n- 质量评分：{{del1Quality}}/10\n- 按时交付：{{del1OnTime}}\n\n✅ **成果2：{{deliverable2}}**\n- 质量评分：{{del2Quality}}/10\n- 按时交付：{{del2OnTime}}\n\n**关键数据：**\n- {{keyData1}}\n- {{keyData2}}\n- {{keyData3}}\n\n---\n\n## 幻灯片 5：4L复盘法\n\n**Liked（做得好的）：**\n1. {{liked1}}\n2. {{liked2}}\n3. {{liked3}}\n\n**Learned（学到的）：**\n1. {{learned1}}\n2. {{learned2}}\n\n**Lacked（欠缺的）：**\n1. {{lacked1}}\n2. {{lacked2}}\n\n**Longed For（期望的）：**\n1. {{longedFor1}}\n2. {{longedFor2}}\n\n---\n\n## 幻灯片 6：问题分析\n\n**遇到的挑战：**\n\n| 问题 | 影响 | 根因 | 解决方法 | 效果 |\n|------|------|------|----------|------|\n| {{problem1}} | {{prob1Impact}} | {{prob1RootCause}} | {{prob1Solution}} | {{prob1Result}} |\n| {{problem2}} | {{prob2Impact}} | {{prob2RootCause}} | {{prob2Solution}} | {{prob2Result}} |\n\n**未解决问题：**\n- {{unresolvedIssue1}}\n\n---\n\n## 幻灯片 7：经验沉淀\n\n**最佳实践：**\n✅ {{bestPractice1}}\n✅ {{bestPractice2}}\n✅ {{bestPractice3}}\n\n**避免重复的坑：**\n❌ {{avoidPitfall1}}\n❌ {{avoidPitfall2}}\n\n**流程优化建议：**\n{{processImprovement}}\n\n---\n\n## 幻灯片 8：后续行动\n\n**改进措施：**\n\n| 措施 | 负责人 | 截止日期 | 优先级 |\n|------|--------|----------|--------|\n| {{action1}} | {{action1Owner}} | {{action1Deadline}} | {{action1Priority}} |\n| {{action2}} | {{action2Owner}} | {{action2Deadline}} | {{action2Priority}} |\n| {{action3}} | {{action3Owner}} | {{action3Deadline}} | {{action3Priority}} |\n\n**下一个项目应用：** {{nextProjectApplication}}\n\n{{/eq}}\n\n---\n\n## 幻灯片 8：行动事项\n\n**待办事项（Action Items）：**\n\n| 事项 | 负责人 | 截止日期 | 优先级 |\n|------|--------|----------|--------|\n| {{actionItem1}} | {{ai1Owner}} | {{ai1Deadline}} | {{ai1Priority}} |\n| {{actionItem2}} | {{ai2Owner}} | {{ai2Deadline}} | {{ai2Priority}} |\n| {{actionItem3}} | {{ai3Owner}} | {{ai3Deadline}} | {{ai3Priority}} |\n\n**跟进机制：** {{followUpMechanism}}\n\n---\n\n## 幻灯片 9：Q&A / 开放讨论\n\n**讨论话题：**\n\n1. {{discussionTopic1}}\n2. {{discussionTopic2}}\n3. {{discussionTopic3}}\n\n**头脑风暴：** {{brainstormTopic}}\n\n---\n\n## 幻灯片 10：会议总结\n\n**本次会议要点：**\n\n✅ {{summary1}}\n✅ {{summary2}}\n✅ {{summary3}}\n\n**下次会议：**\n- 时间：{{nextMeetingDate}}\n- 主题：{{nextMeetingTopic}}\n\n**感谢参与！**\n\n---\n\n## 附录：会议纪要模板\n\n**会议信息：**\n- 会议名称：{{meetingName}}\n- 时间：{{meetingDateTime}}\n- 地点：{{meetingLocation}}\n- 参会人：{{participants}}\n- 记录人：{{noteTaker}}\n\n**会议内容：**\n{{meetingContent}}\n\n**决策事项：**\n{{decisions}}\n\n**待办事项：**\n{{actionItems}}\n",
+  "variables_schema": [
+    {
+      "name": "meetingType",
+      "label": "会议类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "周会", "label": "周会"},
+        {"value": "月会", "label": "月会"},
+        {"value": "项目复盘", "label": "项目复盘"}
+      ]
+    },
+    {"name": "meetingDate", "label": "会议日期", "type": "string", "required": false},
+    {"name": "host", "label": "主持人", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "团队会议-{{meetingType}}-{{meetingDate}}",
+    "files": [
+      {"path": "会议PPT.pptx", "type": "presentation"},
+      {"path": "会议纪要.md", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -1,0 +1,209 @@
+{
+  "id": "tpl_data_analysis_001",
+  "name": "data_analysis_report_template",
+  "display_name": "数据分析报告",
+  "description": "生成专业的数据分析报告，包含数据探索、统计分析、可视化和洞察结论",
+  "icon": "📊",
+  "category": "data-science",
+  "subcategory": "analysis",
+  "tags": [
+    "数据分析",
+    "报告",
+    "统计",
+    "可视化"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成数据分析报告框架，要求:\n\n**分析项目信息：**\n- 报告标题：{{reportTitle}}\n- 分析目的：{{analysisPurpose}}\n- 数据来源：{{dataSource}}\n- 分析工具：{{analysisTools}}\n- 时间范围：{{timeRange}}\n\n---\n\n# {{reportTitle}}\n\n**分析师**：{{analyst}}\n**分析日期**：{{analysisDate}}\n**数据时间范围**：{{timeRange}}\n**报告版本**：v1.0\n\n---\n\n## 执行摘要 (Executive Summary)\n\n### 分析目标\n{{analysisPurpose}}\n\n### 关键发现（Top 3）\n1. **发现1**：[核心洞察]\n   - 数据支撑：[关键指标]\n   - 影响程度：高/中/低\n\n2. **发现2**：[重要趋势]\n   - 数据支撑：[统计数据]\n   - 影响程度：高/中/低\n\n3. **发现3**：[异常现象]\n   - 数据支撑：[证据]\n   - 影响程度：高/中/低\n\n### 核心建议\n{{#eq analysisPurpose \"业务决策\"}}\n1. **短期行动**（1个月内）：\n   - 建议A：[具体行动]\n   - 预期效果：[量化目标]\n\n2. **中期策略**（3-6个月）：\n   - 建议B：[战略调整]\n   - 预期效果：[KPI提升]\n\n3. **长期规划**（6个月以上）：\n   - 建议C：[系统优化]\n   - 预期效果：[长期收益]\n{{/eq}}\n\n---\n\n## 1. 背景与目标\n\n### 1.1 业务背景\n{{businessBackground}}\n\n### 1.2 分析问题\n**核心问题**：\n{{#eq analysisType \"描述性分析\"}}\n- 发生了什么？（What happened?）\n- 现状如何？（What is the current state?）\n{{/eq}}\n{{#eq analysisType \"诊断性分析\"}}\n- 为什么发生？（Why did it happen?）\n- 根本原因是什么？（Root cause?）\n{{/eq}}\n{{#eq analysisType \"预测性分析\"}}\n- 将会发生什么？（What will happen?）\n- 趋势如何？（What are the trends?）\n{{/eq}}\n{{#eq analysisType \"处方性分析\"}}\n- 应该怎么做？（What should we do?）\n- 最优方案是什么？（Best action?）\n{{/eq}}\n\n**具体目标**：\n1. 目标1：{{goal1}}\n2. 目标2：{{goal2}}\n3. 目标3：{{goal3}}\n\n### 1.3 分析范围\n- **时间范围**：{{timeRange}}\n- **数据范围**：{{dataScope}}\n- **分析维度**：{{dimensions}}\n\n---\n\n## 2. 数据概述\n\n### 2.1 数据来源\n\n| 数据源 | 数据量 | 更新频率 | 质量评估 |\n|--------|--------|----------|----------|\n| {{dataSource1}} | {{dataVolume1}} | {{updateFreq1}} | {{quality1}} |\n| {{dataSource2}} | {{dataVolume2}} | {{updateFreq2}} | {{quality2}} |\n\n### 2.2 数据字段说明\n\n**关键字段**：\n\n| 字段名 | 类型 | 说明 | 示例 |\n|--------|------|------|------|\n| {{field1}} | {{type1}} | {{desc1}} | {{example1}} |\n| {{field2}} | {{type2}} | {{desc2}} | {{example2}} |\n| {{field3}} | {{type3}} | {{desc3}} | {{example3}} |\n\n### 2.3 数据质量检查\n\n**完整性**：\n- 总记录数：{{totalRecords}}\n- 缺失值比例：{{missingRate}}%\n- 处理方式：{{missingHandling}}\n\n**准确性**：\n- 异常值检测：{{outlierDetection}}\n- 数据验证：{{dataValidation}}\n\n**一致性**：\n- 重复记录：{{duplicates}}条（{{duplicateRate}}%）\n- 处理方式：去重/保留\n\n---\n\n## 3. 探索性数据分析 (EDA)\n\n### 3.1 描述性统计\n\n**核心指标统计**：\n\n```python\n# 示例代码\nimport pandas as pd\nimport numpy as np\n\n# 基础统计\ndf.describe()\n\n统计量      {{metric1}}    {{metric2}}    {{metric3}}\n-------     ----------     ----------     ----------\n均值        {{mean1}}      {{mean2}}      {{mean3}}\n中位数      {{median1}}    {{median2}}    {{median3}}\n标准差      {{std1}}       {{std2}}       {{std3}}\n最小值      {{min1}}       {{min2}}       {{min3}}\n最大值      {{max1}}       {{max2}}       {{max3}}\n```\n\n**分布特征**：\n- {{metric1}}：呈{{distribution1}}分布，偏度={{skewness1}}\n- {{metric2}}：呈{{distribution2}}分布，峰度={{kurtosis2}}\n\n### 3.2 数据可视化\n\n**图表1：时间序列趋势图**\n```python\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\n# 时间序列图\nplt.figure(figsize=(12, 6))\nplt.plot(df['date'], df['{{metric1}}'], label='{{metric1}}')\nplt.title('{{metric1}}时间趋势')\nplt.xlabel('日期')\nplt.ylabel('{{metric1}}')\nplt.legend()\nplt.show()\n```\n\n**发现**：\n- 整体趋势：{{trend}}\n- 季节性：{{seasonality}}\n- 周期性：{{cyclical}}\n\n**图表2：分布直方图**\n```python\n# 分布图\nplt.figure(figsize=(10, 6))\nsns.histplot(df['{{metric2}}'], kde=True, bins=30)\nplt.title('{{metric2}}分布')\nplt.show()\n```\n\n**发现**：\n- 分布形态：{{distributionShape}}\n- 集中趋势：{{centralTendency}}\n\n**图表3：相关性热力图**\n```python\n# 相关性分析\ncorr_matrix = df[['{{metric1}}', '{{metric2}}', '{{metric3}}']].corr()\nsns.heatmap(corr_matrix, annot=True, cmap='coolwarm')\nplt.title('指标相关性')\nplt.show()\n```\n\n**发现**：\n- 强相关（|r| > 0.7）：{{strongCorr}}\n- 中度相关（0.4 < |r| < 0.7）：{{moderateCorr}}\n- 弱相关（|r| < 0.4）：{{weakCorr}}\n\n### 3.3 分组分析\n\n{{#eq analysisType \"业务分析\"}}\n**按{{dimension1}}分组**：\n\n| {{dimension1}} | 数量 | 占比 | {{metric1}}均值 | {{metric2}}均值 |\n|----------------|------|------|-----------------|------------------|\n| 组1            | {{count1}} | {{ratio1}}% | {{avg1_1}} | {{avg1_2}} |\n| 组2            | {{count2}} | {{ratio2}}% | {{avg2_1}} | {{avg2_2}} |\n| 组3            | {{count3}} | {{ratio3}}% | {{avg3_1}} | {{avg3_2}} |\n\n**洞察**：\n- 组1表现最佳，{{metric1}}高出平均{{percentage}}%\n- 组3需要重点关注，存在{{issue}}问题\n{{/eq}}\n\n---\n\n## 4. 深度分析\n\n### 4.1 趋势分析\n\n**长期趋势**：\n- 使用移动平均（MA）识别趋势\n- {{timeRange}}期间，{{metric1}}呈{{trendDirection}}趋势\n- 增长率：{{growthRate}}%\n\n```python\n# 移动平均\ndf['MA_7'] = df['{{metric1}}'].rolling(window=7).mean()\ndf['MA_30'] = df['{{metric1}}'].rolling(window=30).mean()\n```\n\n**短期波动**：\n- 标准差：{{volatility}}\n- 变异系数：{{cv}}\n\n### 4.2 对比分析\n\n**同比分析（YoY）**：\n- {{currentYear}} vs {{lastYear}}\n- {{metric1}}同比增长：{{yoyGrowth}}%\n- {{metric2}}同比变化：{{yoyChange}}%\n\n**环比分析（MoM）**：\n- {{currentMonth}} vs {{lastMonth}}\n- {{metric1}}环比变化：{{momChange}}%\n\n### 4.3 异常检测\n\n**异常值识别**：\n```python\n# 使用IQR方法\nQ1 = df['{{metric1}}'].quantile(0.25)\nQ3 = df['{{metric1}}'].quantile(0.75)\nIQR = Q3 - Q1\n\noutliers = df[(df['{{metric1}}'] < Q1 - 1.5*IQR) | \n              (df['{{metric1}}'] > Q3 + 1.5*IQR)]\n```\n\n**异常情况**：\n- 异常日期：{{anomalyDates}}\n- 异常原因：{{anomalyReasons}}\n- 处理建议：{{anomalyHandling}}\n\n### 4.4 细分市场分析（如适用）\n\n{{#eq analysisType \"用户分析\"}}\n**用户分群（RFM分析）**：\n\n| 用户群 | 用户数 | 占比 | 特征 | 价值 |\n|--------|--------|------|------|------|\n| 重要价值客户 | {{segment1Count}} | {{segment1Ratio}}% | 高R高F高M | ⭐⭐⭐⭐⭐ |\n| 重要发展客户 | {{segment2Count}} | {{segment2Ratio}}% | 高R低F低M | ⭐⭐⭐⭐ |\n| 重要保持客户 | {{segment3Count}} | {{segment3Ratio}}% | 低R高F高M | ⭐⭐⭐⭐ |\n| 一般客户     | {{segment4Count}} | {{segment4Ratio}}% | 中等指标  | ⭐⭐⭐ |\n\n**策略建议**：\n- 重要价值客户：VIP服务，增加粘性\n- 重要发展客户：促进消费频次\n- 重要保持客户：召回激活\n{{/eq}}\n\n---\n\n## 5. 统计检验（如适用）\n\n### 5.1 假设检验\n\n{{#if includeStatTest}}\n**假设**：\n- H0（原假设）：{{nullHypothesis}}\n- H1（备择假设）：{{altHypothesis}}\n\n**检验方法**：{{testMethod}}\n\n**检验结果**：\n```python\nfrom scipy import stats\n\n# t检验示例\nt_stat, p_value = stats.ttest_ind(group1, group2)\n\nprint(f't统计量: {t_stat}')\nprint(f'p值: {p_value}')\nprint(f'显著性水平: 0.05')\n```\n\n- t统计量：{{tStat}}\n- p值：{{pValue}}\n- 结论：{{conclusion}}（p < 0.05则拒绝原假设）\n{{/if}}\n\n### 5.2 回归分析（如适用）\n\n{{#if includeRegression}}\n**线性回归模型**：\n```python\nfrom sklearn.linear_model import LinearRegression\n\nmodel = LinearRegression()\nmodel.fit(X, y)\n\nprint(f'R²: {model.score(X, y)}')\nprint(f'系数: {model.coef_}')\n```\n\n**模型结果**：\n- R²（决定系数）：{{rSquared}}\n- 影响因素排序：\n  1. {{factor1}}：系数={{coef1}}\n  2. {{factor2}}：系数={{coef2}}\n  3. {{factor3}}：系数={{coef3}}\n\n**解释**：\n{{factor1}}每增加1单位，{{dependent}}平均变化{{coef1}}单位\n{{/if}}\n\n---\n\n## 6. 洞察与结论\n\n### 6.1 关键洞察\n\n**洞察1：{{insight1Title}}**\n- **数据事实**：{{insight1Fact}}\n- **业务含义**：{{insight1Meaning}}\n- **影响程度**：{{insight1Impact}}\n- **可信度**：高/中/低\n\n**洞察2：{{insight2Title}}**\n- **数据事实**：{{insight2Fact}}\n- **业务含义**：{{insight2Meaning}}\n- **影响程度**：{{insight2Impact}}\n\n**洞察3：{{insight3Title}}**\n- **数据事实**：{{insight3Fact}}\n- **业务含义**：{{insight3Meaning}}\n- **影响程度**：{{insight3Impact}}\n\n### 6.2 回答核心问题\n\n**Q1：{{question1}}**\n- **答案**：{{answer1}}\n- **依据**：{{evidence1}}\n\n**Q2：{{question2}}**\n- **答案**：{{answer2}}\n- **依据**：{{evidence2}}\n\n### 6.3 风险与机会\n\n**风险**：\n1. **风险1**：{{risk1}}\n   - 概率：{{risk1Prob}}\n   - 影响：{{risk1Impact}}\n   - 缓解措施：{{risk1Mitigation}}\n\n**机会**：\n1. **机会1**：{{opportunity1}}\n   - 潜力：{{opp1Potential}}\n   - 实现条件：{{opp1Condition}}\n\n---\n\n## 7. 建议与行动计划\n\n### 7.1 数据驱动的建议\n\n**建议1：{{recommendation1}}**\n- **理由**：基于{{insight1}}，数据显示{{dataSupport1}}\n- **预期效果**：{{expectedImpact1}}\n- **实施难度**：低/中/高\n- **优先级**：P0/P1/P2\n\n**建议2：{{recommendation2}}**\n- **理由**：{{reason2}}\n- **预期效果**：{{expectedImpact2}}\n- **实施难度**：低/中/高\n- **优先级**：P0/P1/P2\n\n**建议3：{{recommendation3}}**\n- **理由**：{{reason3}}\n- **预期效果**：{{expectedImpact3}}\n- **实施难度**：低/中/高\n- **优先级**：P0/P1/P2\n\n### 7.2 行动计划\n\n| 行动项 | 负责人 | 时间节点 | 成功指标 | 状态 |\n|--------|--------|----------|----------|------|\n| {{action1}} | {{owner1}} | {{deadline1}} | {{kpi1}} | 待启动 |\n| {{action2}} | {{owner2}} | {{deadline2}} | {{kpi2}} | 待启动 |\n| {{action3}} | {{owner3}} | {{deadline3}} | {{kpi3}} | 待启动 |\n\n### 7.3 后续监测\n\n**监控指标**：\n1. {{monitorMetric1}}：目标值={{target1}}，监测频率={{frequency1}}\n2. {{monitorMetric2}}：目标值={{target2}}，监测频率={{frequency2}}\n\n**复盘计划**：\n- {{reviewDate1}}：第一次复盘\n- {{reviewDate2}}：第二次复盘\n\n---\n\n## 8. 局限性与未来方向\n\n### 8.1 分析局限性\n\n1. **数据限制**：{{dataLimitation}}\n2. **方法限制**：{{methodLimitation}}\n3. **时间限制**：{{timeLimitation}}\n\n### 8.2 未来分析方向\n\n1. **深化分析**：{{futureAnalysis1}}\n2. **新数据源**：{{newDataSource}}\n3. **预测模型**：{{predictiveModel}}\n\n---\n\n## 附录\n\n### A. 技术细节\n\n**分析环境**：\n- Python版本：{{pythonVersion}}\n- 主要库：pandas {{pandasVersion}}, numpy {{numpyVersion}}, scikit-learn {{sklearnVersion}}\n\n**数据处理流程**：\n```python\n# 数据加载\ndf = pd.read_csv('{{dataFile}}')\n\n# 数据清洗\ndf = df.dropna()\ndf = df.drop_duplicates()\n\n# 特征工程\ndf['{{newFeature}}'] = df['{{feature1}}'] / df['{{feature2}}']\n\n# 分析\nresult = df.groupby('{{groupBy}}')['{{metric}}'].agg(['mean', 'sum', 'count'])\n```\n\n### B. 代码仓库\n\n完整分析代码：{{codeRepo}}\n\n### C. 数据字典\n\n详见：{{dataDictionary}}\n\n---\n\n**报告说明**：\n- 本报告基于{{dataSource}}的数据，时间范围为{{timeRange}}\n- 分析使用{{analysisTools}}完成\n- 报告中所有结论均有数据支撑\n- 如有疑问，请联系：{{contact}}\n\n**版本历史**：\n- v1.0 ({{analysisDate}})：初版发布\n\n---\n\n**分析方法论参考**：\n1. CRISP-DM数据挖掘标准流程\n2. 探索性数据分析（EDA）最佳实践\n3. 统计推断方法\n4. 数据可视化原则",
+  "variables_schema": [
+    {
+      "name": "reportTitle",
+      "label": "报告标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2025年Q1用户增长分析报告"
+    },
+    {
+      "name": "analysisPurpose",
+      "label": "分析目的",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "业务决策",
+          "label": "业务决策支持"
+        },
+        {
+          "value": "问题诊断",
+          "label": "问题诊断分析"
+        },
+        {
+          "value": "趋势预测",
+          "label": "趋势预测"
+        },
+        {
+          "value": "用户洞察",
+          "label": "用户洞察"
+        }
+      ]
+    },
+    {
+      "name": "dataSource",
+      "label": "数据来源",
+      "type": "string",
+      "required": false,
+      "default": "业务数据库",
+      "placeholder": "例如：MySQL、CSV文件、API"
+    },
+    {
+      "name": "analysisTools",
+      "label": "分析工具",
+      "type": "select",
+      "required": false,
+      "default": "Python",
+      "options": [
+        {
+          "value": "Python",
+          "label": "Python (pandas/numpy)"
+        },
+        {
+          "value": "R",
+          "label": "R语言"
+        },
+        {
+          "value": "SQL",
+          "label": "SQL"
+        },
+        {
+          "value": "Excel",
+          "label": "Excel"
+        },
+        {
+          "value": "Tableau",
+          "label": "Tableau/Power BI"
+        }
+      ]
+    },
+    {
+      "name": "timeRange",
+      "label": "时间范围",
+      "type": "string",
+      "required": false,
+      "default": "2025-01 至 2025-03",
+      "placeholder": "例如：2025-01-01 至 2025-12-31"
+    },
+    {
+      "name": "analyst",
+      "label": "分析师姓名",
+      "type": "string",
+      "required": false,
+      "default": "数据分析师",
+      "placeholder": "您的姓名"
+    },
+    {
+      "name": "analysisDate",
+      "label": "分析日期",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：2025-12-30"
+    },
+    {
+      "name": "analysisType",
+      "label": "分析类型",
+      "type": "select",
+      "required": false,
+      "default": "描述性分析",
+      "options": [
+        {
+          "value": "描述性分析",
+          "label": "描述性分析（What happened）"
+        },
+        {
+          "value": "诊断性分析",
+          "label": "诊断性分析（Why）"
+        },
+        {
+          "value": "预测性分析",
+          "label": "预测性分析（What will happen）"
+        },
+        {
+          "value": "处方性分析",
+          "label": "处方性分析（What to do）"
+        }
+      ]
+    },
+    {
+      "name": "includeStatTest",
+      "label": "包含统计检验",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含假设检验"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeRegression",
+      "label": "包含回归分析",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含回归模型"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{reportTitle}}",
+    "files": [
+      {
+        "path": "分析报告.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据探索.ipynb",
+        "type": "document"
+      },
+      {
+        "path": "可视化图表/",
+        "type": "directory"
+      },
+      {
+        "path": "数据文件/",
+        "type": "directory"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_data_science",
+    "skill_data_analysis",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_data_preprocessor",
+    "tool_chart_generator",
+    "tool_python_project_setup",
+    "tool_word_generator"
+  ],
+  "execution_engine": "ml"
+}

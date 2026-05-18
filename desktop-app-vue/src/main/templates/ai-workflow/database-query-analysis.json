@@ -1,0 +1,55 @@
+{
+  "id": "tpl_demo_dbquery_001",
+  "name": "database_query_analysis",
+  "display_name": "数据库查询与分析",
+  "description": "演示数据库查询技能，自然语言转 SQL 查询并分析结果",
+  "icon": "🗃️",
+  "category": "ai-workflow",
+  "subcategory": "data",
+  "tags": ["database", "sql", "query", "analysis", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我执行数据库查询与分析：\n\n**查询目标：** {{queryDescription}}\n**数据库类型：** {{dbType}}\n**输出格式：** {{outputFormat}}\n\n**执行步骤：**\n\n### 步骤1：生成 SQL 查询\n```\n/database-query \"{{queryDescription}}\" --db {{dbType}}\n```\n\n### 步骤2：执行查询\n运行生成的 SQL 查询并获取结果。\n\n### 步骤3：分析结果\n对查询结果进行统计分析和可视化。\n\n### 步骤4：保存分析\n```\n/memory-management save \"数据库分析: {{queryDescription}}\"\n```\n\n**使用的技能：** database-query, memory-management",
+  "variables_schema": [
+    {
+      "name": "queryDescription",
+      "label": "查询描述",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：查找最近30天活跃用户数量"
+    },
+    {
+      "name": "dbType",
+      "label": "数据库类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "sqlite", "label": "SQLite" },
+        { "value": "postgresql", "label": "PostgreSQL" },
+        { "value": "mysql", "label": "MySQL" }
+      ]
+    },
+    {
+      "name": "outputFormat",
+      "label": "输出格式",
+      "type": "select",
+      "required": false,
+      "default": "table",
+      "options": [
+        { "value": "table", "label": "表格" },
+        { "value": "json", "label": "JSON" },
+        { "value": "csv", "label": "CSV" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["database-query", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

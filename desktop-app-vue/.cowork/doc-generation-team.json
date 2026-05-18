@@ -1,0 +1,228 @@
+{
+  "version": "1.0.0",
+  "name": "Documentation Generation Team",
+  "description": "Multi-agent team for automated documentation generation",
+  "created": "2026-01-27",
+  "agents": [
+    {
+      "id": "api-doc-generator",
+      "role": "API Documentation Generator",
+      "description": "Analyzes source code and generates API reference documentation",
+      "skills": ["code-analysis", "jsdoc-extraction", "markdown-generation"],
+      "responsibilities": [
+        "Extract JSDoc comments from source files",
+        "Generate API reference pages",
+        "Create function/class documentation",
+        "Link related APIs together"
+      ],
+      "tools": [
+        "ast-parser",
+        "jsdoc-extractor",
+        "markdown-formatter"
+      ],
+      "outputFormats": ["markdown", "html"],
+      "targetFiles": [
+        "src/main/**/*.js",
+        "src/renderer/stores/**/*.js",
+        "src/renderer/utils/**/*.js"
+      ]
+    },
+    {
+      "id": "user-guide-writer",
+      "role": "User Guide Writer",
+      "description": "Creates user-friendly guides and tutorials from features",
+      "skills": ["feature-analysis", "tutorial-writing", "screenshot-generation"],
+      "responsibilities": [
+        "Analyze Vue components and pages",
+        "Write step-by-step tutorials",
+        "Create component usage examples",
+        "Generate user-facing documentation"
+      ],
+      "tools": [
+        "vue-parser",
+        "component-analyzer",
+        "example-generator"
+      ],
+      "outputFormats": ["markdown", "pdf"],
+      "targetFiles": [
+        "src/renderer/pages/**/*.vue",
+        "src/renderer/components/**/*.vue"
+      ]
+    },
+    {
+      "id": "architecture-documenter",
+      "role": "Architecture Documenter",
+      "description": "Documents system architecture and design patterns",
+      "skills": ["architecture-analysis", "diagram-generation", "pattern-recognition"],
+      "responsibilities": [
+        "Analyze module structure",
+        "Identify design patterns",
+        "Generate architecture diagrams",
+        "Document system dependencies"
+      ],
+      "tools": [
+        "dependency-analyzer",
+        "mermaid-generator",
+        "pattern-detector"
+      ],
+      "outputFormats": ["markdown", "mermaid", "plantuml"],
+      "targetFiles": [
+        "src/main/**/*.js",
+        "src/renderer/**/*.js",
+        "package.json",
+        "electron.vite.config.js"
+      ]
+    },
+    {
+      "id": "changelog-maintainer",
+      "role": "Changelog Maintainer",
+      "description": "Generates and maintains changelog from git history",
+      "skills": ["git-analysis", "changelog-formatting", "semver-parsing"],
+      "responsibilities": [
+        "Parse git commit history",
+        "Group commits by type (feat/fix/docs)",
+        "Generate semantic changelog",
+        "Update CHANGELOG.md automatically"
+      ],
+      "tools": [
+        "git-log-parser",
+        "conventional-commits-parser",
+        "changelog-formatter"
+      ],
+      "outputFormats": ["markdown"],
+      "targetFiles": [".git/logs", "CHANGELOG.md"]
+    }
+  ],
+  "workflow": {
+    "steps": [
+      {
+        "id": "analyze-changes",
+        "description": "Analyze what has changed since last documentation update",
+        "agents": ["api-doc-generator", "architecture-documenter"],
+        "parallelizable": true,
+        "estimatedTime": "30 seconds"
+      },
+      {
+        "id": "generate-api-docs",
+        "description": "Generate API reference documentation",
+        "agents": ["api-doc-generator"],
+        "parallelizable": false,
+        "estimatedTime": "2-3 minutes",
+        "outputs": ["docs/api/generated/*.md"]
+      },
+      {
+        "id": "generate-user-guides",
+        "description": "Create user guides and tutorials",
+        "agents": ["user-guide-writer"],
+        "parallelizable": true,
+        "estimatedTime": "3-4 minutes",
+        "outputs": ["docs/user-guide/*.md"]
+      },
+      {
+        "id": "update-architecture-docs",
+        "description": "Update architecture documentation",
+        "agents": ["architecture-documenter"],
+        "parallelizable": true,
+        "estimatedTime": "2-3 minutes",
+        "outputs": ["docs/architecture/*.md"]
+      },
+      {
+        "id": "update-changelog",
+        "description": "Update changelog from git history",
+        "agents": ["changelog-maintainer"],
+        "parallelizable": false,
+        "estimatedTime": "1 minute",
+        "outputs": ["CHANGELOG.md"]
+      },
+      {
+        "id": "cross-link-docs",
+        "description": "Add cross-references between documentation pages",
+        "agents": ["api-doc-generator", "user-guide-writer"],
+        "parallelizable": false,
+        "estimatedTime": "1 minute"
+      }
+    ],
+    "totalEstimatedTime": "10-15 minutes"
+  },
+  "triggers": {
+    "pre-release": {
+      "enabled": true,
+      "description": "Generate all documentation before release",
+      "command": "node scripts/cowork-doc-generator.js --type all"
+    },
+    "pre-commit": {
+      "enabled": false,
+      "description": "Update relevant docs when code changes (optional)",
+      "command": "node scripts/cowork-doc-generator.js --type api"
+    },
+    "weekly": {
+      "enabled": true,
+      "description": "Weekly documentation refresh",
+      "schedule": "0 0 * * 0",
+      "command": "node scripts/cowork-doc-generator.js --type all"
+    }
+  },
+  "quality": {
+    "checks": [
+      "All public APIs have documentation",
+      "All user-facing features have guides",
+      "Architecture diagrams are up-to-date",
+      "Changelog follows semantic versioning",
+      "No broken internal links"
+    ],
+    "coverage": {
+      "target": 95,
+      "current": 70,
+      "improvement": "+25%"
+    }
+  },
+  "integration": {
+    "cicd": {
+      "enabled": true,
+      "workflow": ".github/workflows/documentation.yml"
+    },
+    "preRelease": {
+      "enabled": true,
+      "script": "npm run docs:generate"
+    },
+    "localDev": {
+      "enabled": true,
+      "watchMode": false,
+      "command": "npm run docs:dev"
+    }
+  },
+  "outputs": {
+    "api": {
+      "path": "docs/api/generated",
+      "format": "markdown",
+      "autoUpdate": true
+    },
+    "userGuide": {
+      "path": "docs/user-guide",
+      "format": "markdown",
+      "autoUpdate": false
+    },
+    "architecture": {
+      "path": "docs/architecture",
+      "format": "markdown",
+      "autoUpdate": true
+    },
+    "changelog": {
+      "path": "CHANGELOG.md",
+      "format": "markdown",
+      "autoUpdate": true
+    }
+  },
+  "collaboration": {
+    "coordinationStrategy": "parallel-first",
+    "conflictResolution": "last-writer-wins",
+    "reviewRequired": false,
+    "autoMerge": true
+  },
+  "performance": {
+    "maxConcurrentAgents": 3,
+    "timeout": 600000,
+    "cacheEnabled": true,
+    "incrementalUpdates": true
+  }
+}

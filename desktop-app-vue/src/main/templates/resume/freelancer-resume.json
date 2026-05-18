@@ -1,0 +1,39 @@
+{
+  "id": "tpl_resume_freelancer_008",
+  "name": "freelancer_resume",
+  "display_name": "自由职业者简历",
+  "description": "展示项目经验和客户评价的自由职业者简历，适合独立设计师、开发者、顾问等",
+  "icon": "🌟",
+  "category": "resume",
+  "subcategory": "freelance",
+  "tags": ["自由职业", "简历", "项目", "Portfolio"],
+  "project_type": "document",
+  "prompt_template": "自由职业者简历\n\n**姓名：** {{name}}\n**职业：** {{profession}}\n**个人品牌：** {{personalBrand}}\n\n# {{name}}\n\n## {{profession}} | {{personalBrand}}\n\n---\n\n### 联系方式\n\n📞 {{phone}}  \n📧 {{email}}  \n🌐 Website: {{website}}  \n💼 Portfolio: {{portfolioUrl}}  \n🔗 LinkedIn: {{linkedin}}  \n📍 {{location}}\n\n---\n\n### 个人简介\n\n{{bio}}\n\n**专长领域：**\n- {{specialty1}}\n- {{specialty2}}\n- {{specialty3}}\n\n**服务客户：** {{clientCount}}+ 企业/个人\n**项目经验：** {{projectCount}}+ 项目\n**满意度：** {{satisfactionRate}}%\n\n---\n\n### 核心技能\n\n**{{skillCategory1}}：**\n- {{skill1_1}}（精通）\n- {{skill1_2}}（精通）\n- {{skill1_3}}（熟练）\n\n**{{skillCategory2}}：**\n- {{skill2_1}}\n- {{skill2_2}}\n- {{skill2_3}}\n\n**{{skillCategory3}}：**\n- {{skill3_1}}\n- {{skill3_2}}\n\n**工具/软件：**\n{{tools}}\n\n---\n\n### 精选项目\n\n#### 项目1：{{project1Name}}\n\n**客户：** {{project1Client}}  \n**时间：** {{project1Date}}  \n**预算：** {{project1Budget}}  \n**项目类型：** {{project1Type}}\n\n**项目背景：**\n{{project1Background}}\n\n**我的角色：** {{project1Role}}\n\n**交付成果：**\n- {{project1Deliverable1}}\n- {{project1Deliverable2}}\n- {{project1Deliverable3}}\n\n**使用技术/工具：**\n{{project1Tech}}\n\n**项目成果：**\n- 📈 {{project1Result1}}\n- ⭐ {{project1Result2}}\n- 💰 {{project1Result3}}\n\n**客户评价：**\n> \"{{project1Testimonial}}\" - {{project1ClientName}}, {{project1ClientTitle}}\n\n**项目链接：** {{project1Url}}\n**案例展示：** [查看详情]({{project1CaseStudyUrl}})\n\n---\n\n#### 项目2：{{project2Name}}\n\n**客户：** {{project2Client}}  \n**时间：** {{project2Date}}  \n**项目类型：** {{project2Type}}\n\n**我的角色：** {{project2Role}}\n\n**交付成果：**\n{{project2Deliverables}}\n\n**项目成果：**\n{{project2Results}}\n\n**客户评价：**\n> \"{{project2Testimonial}}\" - {{project2ClientName}}\n\n---\n\n#### 项目3：{{project3Name}}\n\n**客户：** {{project3Client}}  \n**时间：** {{project3Date}}  \n**项目类型：** {{project3Type}}\n\n**项目亮点：**\n{{project3Highlights}}\n\n---\n\n### 客户与合作\n\n**服务过的客户类型：**\n- 🏢 企业客户：{{corporateClients}}%\n- 👤 个人客户：{{individualClients}}%\n- 🚀 初创公司：{{startupClients}}%\n\n**知名客户：**\n- {{notableClient1}}\n- {{notableClient2}}\n- {{notableClient3}}\n\n**长期合作客户：**\n- {{longTermClient1}}（合作{{ltc1Duration}}）\n- {{longTermClient2}}（合作{{ltc2Duration}}）\n\n---\n\n### 服务与定价\n\n**主要服务：**\n\n**服务1：{{service1}}**\n- 描述：{{service1Description}}\n- 交付周期：{{service1Timeline}}\n- 价格范围：{{service1Price}}\n\n**服务2：{{service2}}**\n- 描述：{{service2Description}}\n- 交付周期：{{service2Timeline}}\n- 价格范围：{{service2Price}}\n\n**服务3：{{service3}}**\n- 描述：{{service3Description}}\n\n**合作模式：**\n- 项目制\n- 时薪制（¥{{hourlyRate}}/小时）\n- 月度Retainer\n\n---\n\n### 工作流程\n\n**我的工作方式：**\n\n1. **需求沟通**（{{step1Duration}}）\n   - 深入了解需求\n   - 提供专业建议\n   - 确定项目范围\n\n2. **方案设计**（{{step2Duration}}）\n   - 制定详细方案\n   - 提供初稿/原型\n   - 客户反馈修改\n\n3. **执行交付**（{{step3Duration}}）\n   - 按里程碑推进\n   - 定期同步进展\n   - 质量把控\n\n4. **验收优化**（{{step4Duration}}）\n   - 客户验收\n   - 后期支持\n   - 迭代优化\n\n**沟通方式：** {{communicationTools}}\n**响应时间：** {{responseTime}}\n\n---\n\n### 教育与培训\n\n**学历：**\n{{degree}} | {{major}}  \n{{university}} | {{graduationYear}}\n\n**专业培训/证书：**\n- {{certification1}}\n- {{certification2}}\n- {{certification3}}\n\n**在线课程/自学：**\n- {{onlineCourse1}}\n- {{onlineCourse2}}\n\n---\n\n### 社区贡献\n\n**开源项目：**\n- {{openSource1}} - {{os1Description}}\n- {{openSource2}} - {{os2Description}}\n\n**文章/教程：**\n- {{article1}} - {{article1Platform}}\n- {{article2}} - {{article2Platform}}\n\n**演讲/分享：**\n- {{talk1}} - {{talk1Event}}\n\n**GitHub：** {{githubUrl}}（{{githubStars}}⭐）\n\n---\n\n### 客户评价\n\n⭐⭐⭐⭐⭐  \n> \"{{testimonial1}}\" - {{testimonial1Client}}\n\n⭐⭐⭐⭐⭐  \n> \"{{testimonial2}}\" - {{testimonial2Client}}\n\n⭐⭐⭐⭐⭐  \n> \"{{testimonial3}}\" - {{testimonial3Client}}\n\n**平台评分：**\n- Upwork: {{upworkRating}}/5（{{upworkReviews}}条评价）\n- Freelancer: {{freelancerRating}}/5\n\n---\n\n### 为什么选择我\n\n✅ **专业可靠**\n- {{professionalPoint1}}\n- {{professionalPoint2}}\n\n✅ **高效交付**\n- 按时交付率：{{onTimeRate}}%\n- 平均响应时间：{{avgResponseTime}}\n\n✅ **持续优化**\n- 提供{{supportDuration}}售后支持\n- 根据反馈迭代优化\n\n---\n\n### 可用性\n\n**当前状态：** {{availability}}\n\n{{#eq availability \"可接新项目\"}}\n✅ 可立即开始新项目\n{{/eq}}\n\n{{#eq availability \"部分可用\"}}\n⚠️ 可接小型项目或咨询\n{{/eq}}\n\n{{#eq availability \"暂不可用\"}}\n❌ 当前项目已满，{{availableDate}}后可用\n{{/eq}}\n\n**最快开始时间：** {{earliestStartDate}}\n**每月可接项目数：** {{monthlyCapacity}}个\n\n---\n\n### 联系合作\n\n**如何开始合作：**\n\n1. 发送项目简介至：{{contactEmail}}\n2. 预约免费咨询：{{bookingUrl}}\n3. 微信/WhatsApp：{{wechat}}\n\n**期待与您合作！**\n\n---\n\n### 附录\n\n**完整作品集：** {{portfolioUrl}}  \n**推荐信：** 可提供  \n**案例研究：** {{caseStudiesUrl}}\n",
+  "variables_schema": [
+    {"name": "name", "label": "姓名", "type": "string", "required": true},
+    {"name": "profession", "label": "职业（如：独立设计师）", "type": "string", "required": true},
+    {"name": "personalBrand", "label": "个人品牌/Slogan", "type": "string", "required": false},
+    {
+      "name": "availability",
+      "label": "当前可用性",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "可接新项目", "label": "可接新项目"},
+        {"value": "部分可用", "label": "部分可用"},
+        {"value": "暂不可用", "label": "暂不可用"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "简历-{{name}}-自由职业",
+    "files": [
+      {"path": "{{name}}-Portfolio.pdf", "type": "document"},
+      {"path": "案例展示/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -1,0 +1,38 @@
+# Python Sandbox Dependencies
+# 预装常用数据科学和工具包
+
+# 数值计算
+numpy>=1.24.0
+scipy>=1.10.0
+
+# 数据处理
+pandas>=2.0.0
+
+# 可视化（无头模式）
+matplotlib>=3.7.0
+
+# 符号计算
+sympy>=1.12
+
+# JSON 处理
+orjson>=3.9.0
+
+# 日期时间
+python-dateutil>=2.8.0
+
+# 数据验证
+pydantic>=2.0.0
+
+# 统计
+statistics
+
+# 字符串处理
+regex>=2023.0.0
+
+# CSV 处理
+csvkit>=1.1.0
+
+# YAML 处理
+pyyaml>=6.0.0
+
+# 安全：不包含网络、系统、文件操作相关的危险包

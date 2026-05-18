@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PostgreSQL Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-postgres",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the PostgreSQL server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-postgres"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "connection": {
+      "type": "object",
+      "description": "PostgreSQL connection configuration",
+      "properties": {
+        "host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "Database host"
+        },
+
+        "port": {
+          "type": "integer",
+          "default": 5432,
+          "description": "Database port"
+        },
+
+        "database": {
+          "type": "string",
+          "default": "chainlesschain",
+          "description": "Database name"
+        },
+
+        "user": {
+          "type": "string",
+          "description": "Database user"
+        },
+
+        "password": {
+          "type": "string",
+          "description": "Database password (use environment variable in production)"
+        },
+
+        "ssl": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable SSL connection"
+        },
+
+        "connectionString": {
+          "type": "string",
+          "description": "Full connection string (overrides other connection settings)"
+        }
+      },
+      "required": ["host", "database", "user"]
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for database access",
+      "properties": {
+        "allowedSchemas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["public"],
+          "description": "Schemas that are allowed for operations"
+        },
+
+        "forbiddenTables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["users", "credentials", "api_keys"],
+          "description": "Tables that are always blocked"
+        },
+
+        "readOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, only SELECT queries are allowed"
+        },
+
+        "maxResultRows": {
+          "type": "integer",
+          "default": 1000,
+          "description": "Maximum number of rows to return"
+        }
+      }
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for database operations",
+      "properties": {
+        "enableTransactions": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable transaction support (requires write access)"
+        },
+
+        "enableStoredProcedures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow calling stored procedures"
+        },
+
+        "enableExplainPlan": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable EXPLAIN PLAN for query optimization"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "Query timeout in milliseconds"
+        },
+
+        "poolSize": {
+          "type": "integer",
+          "default": 5,
+          "description": "Connection pool size"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logQueries": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all SQL queries"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        }
+      }
+    }
+  },
+
+  "required": ["connection"],
+
+  "examples": [
+    {
+      "enabled": false,
+      "autoConnect": false,
+      "connection": {
+        "host": "localhost",
+        "port": 5432,
+        "database": "chainlesschain",
+        "user": "chainlesschain",
+        "password": "${DB_PASSWORD}",
+        "ssl": false
+      },
+      "permissions": {
+        "allowedSchemas": ["public"],
+        "forbiddenTables": ["users", "credentials"],
+        "readOnly": true,
+        "maxResultRows": 1000
+      },
+      "features": {
+        "enableTransactions": false,
+        "enableStoredProcedures": false
+      },
+      "performance": {
+        "timeout": 30000,
+        "poolSize": 5
+      },
+      "logging": {
+        "enabled": true,
+        "logQueries": true
+      }
+    }
+  ]
+}

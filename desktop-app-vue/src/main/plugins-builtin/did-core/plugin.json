@@ -1,0 +1,64 @@
+{
+  "id": "did-core",
+  "name": "DID 核心",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "签名 Artifact + 可验证凭证 (VC) Artifact + @did 引用",
+  "extensionPoints": [
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "sign",
+        "renderer": "builtin:SignArtifact",
+        "icon": "CheckCircleOutlined",
+        "label": "签名",
+        "actions": [
+          { "id": "verify", "label": "验证" },
+          { "id": "export", "label": "导出" }
+        ]
+      }
+    },
+    {
+      "point": "ui.artifact",
+      "config": {
+        "type": "vc",
+        "renderer": "builtin:VCArtifact",
+        "icon": "SafetyCertificateOutlined",
+        "label": "可验证凭证",
+        "actions": [
+          { "id": "verify", "label": "验证" },
+          { "id": "present", "label": "出示" },
+          { "id": "revoke", "label": "吊销" }
+        ]
+      }
+    },
+    {
+      "point": "ui.slash",
+      "config": {
+        "id": "sign-last",
+        "trigger": "sign",
+        "description": "为最近的 Artifact 加签",
+        "icon": "EditOutlined"
+      }
+    },
+    {
+      "point": "ui.mention",
+      "config": {
+        "prefix": "did",
+        "source": "did-directory",
+        "label": "DID",
+        "icon": "UserOutlined"
+      }
+    },
+    {
+      "point": "ui.status-bar",
+      "config": {
+        "id": "did-indicator",
+        "component": "builtin:DidIndicator",
+        "position": "left",
+        "order": 5,
+        "tooltip": "当前 DID / U-Key 状态"
+      }
+    }
+  ]
+}

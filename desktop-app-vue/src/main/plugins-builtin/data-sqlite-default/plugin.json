@@ -1,0 +1,26 @@
+{
+  "id": "data-sqlite-default",
+  "name": "SQLCipher 本地存储（默认）",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "默认 AES-256 SQLCipher 本地存储；企业 Profile 可替换为 PostgreSQL/IPFS",
+  "extensionPoints": [
+    {
+      "point": "data.storage",
+      "priority": 10,
+      "config": {
+        "id": "sqlite-sqlcipher",
+        "name": "SQLCipher (local)",
+        "kind": "sqlite",
+        "priority": 10,
+        "capabilities": {
+          "encrypted": true,
+          "fullText": true,
+          "transactions": true,
+          "offline": true,
+          "sync": false
+        }
+      }
+    }
+  ]
+}

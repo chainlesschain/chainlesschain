@@ -1,0 +1,48 @@
+{
+  "id": "tpl_business_cs_playbook_001",
+  "name": "customer_success_playbook",
+  "display_name": "客户成功手册",
+  "description": "SaaS/企业服务的客户成功运营手册，包含客户生命周期管理、健康度评分、续约策略等",
+  "icon": "🎯",
+  "category": "business",
+  "subcategory": "customer-success",
+  "tags": ["客户成功", "CSM", "SaaS运营", "客户留存"],
+  "project_type": "document",
+  "prompt_template": "# {{companyName}} 客户成功手册\n## Customer Success Playbook\n\n**版本**：{{version}}\n**生效日期**：{{effectiveDate}}\n**负责部门**：客户成功部\n**审核人**：{{approver}}\n\n---\n\n## 一、客户成功理念\n\n### 1.1 使命与愿景\n\n**使命**：{{csMission}}\n\n**愿景**：{{csVision}}\n\n### 1.2 核心指标\n\n| 指标 | 定义 | 目标值 | 当前值 |\n|------|------|--------|--------|\n| NRR（净收入留存率） | {{nrrDefinition}} | {{nrrTarget}}% | {{nrrCurrent}}% |\n| GRR（总收入留存率） | {{grrDefinition}} | {{grrTarget}}% | {{grrCurrent}}% |\n| NPS（净推荐值） | {{npsDefinition}} | {{npsTarget}} | {{npsCurrent}} |\n| 客户健康度 | {{healthScoreDefinition}} | {{healthTarget}} | {{healthCurrent}} |\n| 续约率 | {{renewalDefinition}} | {{renewalTarget}}% | {{renewalCurrent}}% |\n| 流失率 | {{churnDefinition}} | <{{churnTarget}}% | {{churnCurrent}}% |\n\n### 1.3 团队结构\n\n{{teamStructure}}\n\n## 二、客户生命周期管理\n\n### 2.1 客户旅程地图\n\n{{customerJourneyMap}}\n\n### 2.2 阶段1：销售交接（Pre-Onboarding）\n\n**目标**：确保平滑交接，设定正确期望\n\n**关键活动**：\n1. {{preOnboarding1}}\n2. {{preOnboarding2}}\n3. {{preOnboarding3}}\n\n**交付物**：\n- 客户交接文档\n- 成功标准确认\n\n**时长**：{{preOnboardingDuration}}\n\n### 2.3 阶段2：客户启动（Onboarding）\n\n**目标**：{{onboardingGoal}}\n\n**里程碑**：\n- Day 1：{{day1Milestone}}\n- Day 7：{{day7Milestone}}\n- Day 30：{{day30Milestone}}\n- Day 60：{{day60Milestone}}\n- Day 90：{{day90Milestone}}\n\n**启动检查清单**：\n- [ ] {{onboardingChecklist1}}\n- [ ] {{onboardingChecklist2}}\n- [ ] {{onboardingChecklist3}}\n- [ ] {{onboardingChecklist4}}\n- [ ] {{onboardingChecklist5}}\n\n**触发事件**：\n{{onboardingTriggers}}\n\n**最佳实践**：\n{{onboardingBestPractices}}\n\n### 2.4 阶段3：价值实现（Value Realization）\n\n**目标**：客户首次实现业务价值\n\n**成功指标**：\n- {{valueMetric1}}\n- {{valueMetric2}}\n- {{valueMetric3}}\n\n**常见价值场景**：\n1. {{valueScenario1}}\n2. {{valueScenario2}}\n3. {{valueScenario3}}\n\n**快速成功方案（Quick Wins）**：\n{{quickWins}}\n\n### 2.5 阶段4：持续采用（Adoption）\n\n**目标**：{{adoptionGoal}}\n\n**采用率指标**：\n- 活跃用户数：{{activeUsers}}\n- 功能使用深度：{{featureAdoption}}%\n- 登录频率：{{loginFrequency}}\n\n**驱动采用策略**：\n{{adoptionStrategies}}\n\n### 2.6 阶段5：扩展增长（Expansion）\n\n**目标**：识别并推动扩展机会\n\n**扩展信号**：\n- {{expansionSignal1}}\n- {{expansionSignal2}}\n- {{expansionSignal3}}\n\n**增购产品包**：\n{{expansionProducts}}\n\n**向上销售策略**：\n{{upsellStrategy}}\n\n**交叉销售策略**：\n{{crossSellStrategy}}\n\n### 2.7 阶段6：续约管理（Renewal）\n\n**目标**：实现高续约率和扩大合同价值\n\n**续约时间线**：\n\n| 时间点 | 活动 | 负责人 | 交付物 |\n|--------|------|--------|--------|\n| T-120天 | {{renewal120}} | CSM | {{deliverable120}} |\n| T-90天 | {{renewal90}} | CSM | {{deliverable90}} |\n| T-60天 | {{renewal60}} | CSM+销售 | {{deliverable60}} |\n| T-30天 | {{renewal30}} | 销售 | {{deliverable30}} |\n| T-0天 | {{renewalDay}} | 财务 | {{deliverableDay}} |\n\n**续约风险管理**：\n{{renewalRiskManagement}}\n\n### 2.8 阶段7：客户倡导（Advocacy）\n\n**目标**：将满意客户转化为品牌倡导者\n\n**倡导者画像**：\n{{advocateProfile}}\n\n**倡导项目**：\n1. **客户案例**：{{caseStudyProgram}}\n2. **推荐计划**：{{referralProgram}}\n3. **客户咨询委员会**：{{cab}}\n4. **演讲嘉宾**：{{speakerProgram}}\n\n## 三、客户健康度管理\n\n### 3.1 健康度评分模型\n\n**总分构成**（满分100分）：\n\n| 维度 | 权重 | 评分标准 |\n|------|------|----------|\n| 产品使用 | {{usageWeight}}% | {{usageScore}} |\n| 商业成果 | {{outcomeWeight}}% | {{outcomeScore}} |\n| 关系质量 | {{relationshipWeight}}% | {{relationshipScore}} |\n| 支持满意度 | {{supportWeight}}% | {{supportScore}} |\n| 续约意向 | {{intentWeight}}% | {{intentScore}} |\n\n**健康度等级**：\n- **绿色（健康）**：80-100分\n- **黄色（警告）**：60-79分\n- **红色（风险）**：0-59分\n\n### 3.2 预警机制\n\n**红旗信号**：\n1. {{redFlag1}}\n2. {{redFlag2}}\n3. {{redFlag3}}\n4. {{redFlag4}}\n\n**自动预警触发**：\n{{automaticAlerts}}\n\n### 3.3 客户分层策略\n\n#### Tier 1（战略客户）\n- **定义**：{{tier1Definition}}\n- **服务频率**：{{tier1Frequency}}\n- **服务内容**：{{tier1Services}}\n\n#### Tier 2（高价值客户）\n{{tier2Details}}\n\n#### Tier 3（标准客户）\n{{tier3Details}}\n\n#### Tier 4（低接触/数字化客户）\n{{tier4Details}}\n\n## 四、客户互动规范\n\n### 4.1 定期业务回顾（QBR）\n\n**频率**：{{qbrFrequency}}\n\n**QBR议程模板**：\n1. 开场与上季度回顾（{{qbrSection1Duration}}分钟）\n2. 业务成果复盘（{{qbrSection2Duration}}分钟）\n3. 产品使用洞察（{{qbrSection3Duration}}分钟）\n4. 下季度目标与行动计划（{{qbrSection4Duration}}分钟）\n5. 问题答疑与反馈收集（{{qbrSection5Duration}}分钟）\n\n**QBR准备清单**：\n{{qbrPreparation}}\n\n### 4.2 日常沟通节奏\n\n{{communicationCadence}}\n\n### 4.3 升级流程\n\n**内部升级路径**：\n{{internalEscalation}}\n\n**客户升级处理**：\n{{customerEscalation}}\n\n## 五、流失预防与挽回\n\n### 5.1 流失预警\n\n**早期预警信号**：\n{{earlyChurnSignals}}\n\n**流失风险评分**：\n{{churnRiskScore}}\n\n### 5.2 挽留策略\n\n**挽留剧本（Save Play）**：\n\n**步骤1**：{{saveStep1}}\n**步骤2**：{{saveStep2}}\n**步骤3**：{{saveStep3}}\n\n**让步策略**：\n{{concessionStrategy}}\n\n### 5.3 流失后分析\n\n**流失访谈**：\n{{churnInterview}}\n\n**改进措施**：\n{{churnLessonsLearned}}\n\n## 六、工具与资源\n\n### 6.1 CS技术栈\n\n- **CRM系统**：{{crm}}\n- **CS平台**：{{csPlatform}}\n- **数据分析**：{{analytics}}\n- **沟通工具**：{{communication}}\n\n### 6.2 内容资源库\n\n{{contentLibrary}}\n\n### 6.3 培训计划\n\n{{trainingProgram}}\n\n## 七、团队管理\n\n### 7.1 CSM职责\n\n{{csmResponsibilities}}\n\n### 7.2 绩效考核\n\n{{performanceMetrics}}\n\n### 7.3 职业发展路径\n\n{{careerPath}}\n\n---\n\n## 附录\n\n### 附录A：客户细分矩阵\n\n{{segmentationMatrix}}\n\n### 附录B：常用话术模板\n\n{{scriptTemplates}}\n\n### 附录C：案例库\n\n{{caseStudies}}",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "nrrTarget",
+      "label": "NRR目标（%）",
+      "type": "number",
+      "required": true,
+      "default": 110
+    },
+    {
+      "name": "renewalTarget",
+      "label": "续约率目标（%）",
+      "type": "number",
+      "required": true,
+      "default": 90
+    }
+  ],
+  "file_structure": {
+    "root": "客户成功手册-{{companyName}}",
+    "files": [
+      {"path": "客户成功手册.docx", "type": "document"},
+      {"path": "健康度评分模型.xlsx", "type": "spreadsheet"},
+      {"path": "QBR模板.pptx", "type": "presentation"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_customer_success_management", "skill_data_analysis", "skill_relationship_management"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator", "tool_ppt_generator"],
+  "execution_engine": "document"
+}

@@ -1,0 +1,1188 @@
+/**
+ * 统一配置管理器
+ *
+ * 基于 OpenClaude 最佳实践，集中管理所有配置、日志、缓存和会话数据
+ *
+ * 目录结构（位于 Electron userData 目录下）：
+ * .chainlesschain/
+ * ├── config.json              # 核心配置
+ * ├── rules.md                 # 项目规则
+ * ├── memory/                  # 会话与学习数据
+ * │   ├── sessions/            # 会话历史
+ * │   ├── preferences/         # 用户偏好
+ * │   └── learned-patterns/    # 学习到的模式
+ * ├── logs/                    # 操作日志
+ * │   ├── error.log
+ * │   ├── performance.log
+ * │   └── llm-usage.log
+ * ├── cache/                   # 缓存数据
+ * │   ├── embeddings/          # 向量缓存
+ * │   ├── query-results/       # 查询结果缓存
+ * │   └── model-outputs/       # 模型输出缓存
+ * └── checkpoints/             # 检查点和备份
+ *     └── auto-backup/
+ *
+ * @version 1.1.0
+ * @since 2026-01-16
+ * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
+ */
+
+import { logger } from "../utils/logger.js";
+import fs from "fs";
+import path from "path";
+import { app } from "electron";
+
+const fsp = fs.promises;
+
+/**
+ * 获取配置目录路径
+ * 优先使用 Electron 的 userData 目录，确保开发和生产环境一致
+ * @returns {string} 配置目录路径
+ */
+function getConfigDir() {
+  try {
+    // 使用 Electron 的 userData 目录
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, ".chainlesschain");
+  } catch {
+    // 回退到 process.cwd()（仅用于测试或非 Electron 环境）
+    logger.warn(
+      "[UnifiedConfigManager] Electron app not available, falling back to cwd",
+    );
+    return path.join(process.cwd(), ".chainlesschain");
+  }
+}
+
+// 延迟初始化的配置目录（在第一次访问时确定）
+let _CONFIG_DIR = null;
+
+/**
+ * 统一配置管理器类
+ */
+class UnifiedConfigManager {
+  constructor() {
+    // 确保 _CONFIG_DIR 已初始化
+    if (!_CONFIG_DIR) {
+      _CONFIG_DIR = getConfigDir();
+    }
+
+    this.configDir = _CONFIG_DIR;
+    this.configPath = path.join(_CONFIG_DIR, "config.json");
+    this.config = null;
+
+    // 项目根目录的配置（用于迁移）
+    this.projectRootConfigDir = path.join(process.cwd(), ".chainlesschain");
+
+    this.paths = {
+      root: _CONFIG_DIR,
+      config: path.join(_CONFIG_DIR, "config.json"),
+      rules: path.join(_CONFIG_DIR, "rules.md"),
+      memory: path.join(_CONFIG_DIR, "memory"),
+      sessions: path.join(_CONFIG_DIR, "memory", "sessions"),
+      preferences: path.join(_CONFIG_DIR, "memory", "preferences"),
+      learnedPatterns: path.join(_CONFIG_DIR, "memory", "learned-patterns"),
+      logs: path.join(_CONFIG_DIR, "logs"),
+      cache: path.join(_CONFIG_DIR, "cache"),
+      embeddings: path.join(_CONFIG_DIR, "cache", "embeddings"),
+      queryResults: path.join(_CONFIG_DIR, "cache", "query-results"),
+      modelOutputs: path.join(_CONFIG_DIR, "cache", "model-outputs"),
+      checkpoints: path.join(_CONFIG_DIR, "checkpoints"),
+      autoBackup: path.join(_CONFIG_DIR, "checkpoints", "auto-backup"),
+      // 新增：报告和备份目录
+      reports: path.join(_CONFIG_DIR, "memory", "reports"),
+      backups: path.join(_CONFIG_DIR, "memory", "backups"),
+    };
+  }
+
+  /**
+   * 初始化配置管理器
+   * - 迁移旧配置（从项目根目录）
+   * - 创建目录结构
+   * - 加载配置文件
+   * - 合并环境变量
+   */
+  initialize() {
+    if (this._initialized) {
+      return;
+    }
+
+    // 0. 尝试从项目根目录迁移配置
+    this.migrateFromProjectRoot();
+
+    // 1. 确保目录结构存在
+    this.ensureDirectoryStructure();
+
+    // 2. 加载配置
+    this.loadConfig();
+
+    // 3. 验证配置
+    this.validateConfig();
+
+    this._initialized = true;
+    logger.info("[UnifiedConfigManager] 配置已加载");
+    logger.info("[UnifiedConfigManager] 配置目录:", this.configDir);
+  }
+
+  /**
+   * 异步初始化（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 mkdir / 迁移 / 读取 操作移出事件循环。
+   * 完成后，后续 getUnifiedConfigManager() 的同步调用将走快路径。
+   */
+  async initializeAsync() {
+    if (this._initialized) {
+      return;
+    }
+
+    await this.migrateFromProjectRootAsync();
+    await this.ensureDirectoryStructureAsync();
+    await this.loadConfigAsync();
+    this.validateConfig();
+
+    this._initialized = true;
+    logger.info("[UnifiedConfigManager] 配置已异步加载");
+    logger.info("[UnifiedConfigManager] 配置目录:", this.configDir);
+  }
+
+  async migrateFromProjectRootAsync() {
+    try {
+      if (await this._existsAsync(this.configPath)) {
+        return;
+      }
+      const oldConfigPath = path.join(this.projectRootConfigDir, "config.json");
+      const oldRulesPath = path.join(this.projectRootConfigDir, "rules.md");
+      if (!(await this._existsAsync(oldConfigPath))) {
+        return;
+      }
+      logger.info(
+        "[UnifiedConfigManager] 检测到项目根目录的旧配置，开始异步迁移...",
+      );
+      await fsp.mkdir(this.configDir, { recursive: true });
+      await fsp.copyFile(oldConfigPath, this.configPath);
+      if (await this._existsAsync(oldRulesPath)) {
+        await fsp.copyFile(oldRulesPath, this.paths.rules);
+      }
+      await this._migrateDirectoryAsync(
+        path.join(this.projectRootConfigDir, "memory"),
+        this.paths.memory,
+      );
+      logger.info("[UnifiedConfigManager] 配置迁移完成");
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 异步迁移失败:", error);
+    }
+  }
+
+  async _migrateDirectoryAsync(srcDir, destDir) {
+    if (!(await this._existsAsync(srcDir))) {
+      return;
+    }
+    await fsp.mkdir(destDir, { recursive: true });
+    const items = await fsp.readdir(srcDir);
+    for (const item of items) {
+      const srcPath = path.join(srcDir, item);
+      const destPath = path.join(destDir, item);
+      const stat = await fsp.stat(srcPath);
+      if (stat.isDirectory()) {
+        await this._migrateDirectoryAsync(srcPath, destPath);
+      } else if (stat.isFile() && !(await this._existsAsync(destPath))) {
+        await fsp.copyFile(srcPath, destPath);
+      }
+    }
+  }
+
+  async ensureDirectoryStructureAsync() {
+    const filePaths = ["config", "rules"];
+    const dirEntries = Object.entries(this.paths).filter(
+      ([key]) => !filePaths.includes(key),
+    );
+    await Promise.all(
+      dirEntries.map(async ([, dirPath]) => {
+        await fsp.mkdir(dirPath, { recursive: true });
+      }),
+    );
+
+    if (!(await this._existsAsync(this.configPath))) {
+      let examplePath = path.join(this.configDir, "config.json.example");
+      if (!(await this._existsAsync(examplePath))) {
+        examplePath = path.join(
+          this.projectRootConfigDir,
+          "config.json.example",
+        );
+      }
+      if (await this._existsAsync(examplePath)) {
+        await fsp.copyFile(examplePath, this.configPath);
+        logger.info("[UnifiedConfigManager] 已从模板创建配置文件");
+      } else {
+        await fsp.writeFile(
+          this.configPath,
+          JSON.stringify(this.getDefaultConfig(), null, 2),
+          "utf-8",
+        );
+        logger.info("[UnifiedConfigManager] 已创建默认配置文件");
+      }
+    }
+
+    // .gitkeep 在后台异步处理（不阻塞启动）
+    setImmediate(() => {
+      try {
+        this.createGitkeepFiles();
+      } catch (_e) {
+        /* 非关键 */
+      }
+    });
+  }
+
+  async loadConfigAsync() {
+    try {
+      const configContent = await fsp.readFile(this.configPath, "utf-8");
+      const fileConfig = JSON.parse(configContent);
+      const envConfig = this.getEnvConfig();
+      this.config = this.mergeConfigs(
+        this.getDefaultConfig(),
+        fileConfig,
+        envConfig,
+      );
+      try {
+        await fsp.writeFile(
+          this.configPath,
+          JSON.stringify(this.config, null, 2),
+          "utf-8",
+        );
+      } catch (_e) {
+        /* 保存失败不影响启动 */
+      }
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 异步加载配置失败:", error);
+      this.config = this.getDefaultConfig();
+    }
+  }
+
+  async _existsAsync(p) {
+    try {
+      await fsp.access(p);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 从项目根目录迁移配置到 userData 目录
+   * 仅在 userData 目录没有配置文件时执行
+   */
+  migrateFromProjectRoot() {
+    try {
+      // 如果 userData 配置已存在，跳过迁移
+      if (fs.existsSync(this.configPath)) {
+        return;
+      }
+
+      const oldConfigPath = path.join(this.projectRootConfigDir, "config.json");
+      const oldRulesPath = path.join(this.projectRootConfigDir, "rules.md");
+
+      // 检查旧配置是否存在
+      if (!fs.existsSync(oldConfigPath)) {
+        return;
+      }
+
+      logger.info(
+        "[UnifiedConfigManager] 检测到项目根目录的旧配置，开始迁移...",
+      );
+
+      // 确保目标目录存在
+      if (!fs.existsSync(this.configDir)) {
+        fs.mkdirSync(this.configDir, { recursive: true });
+      }
+
+      // 迁移配置文件
+      if (fs.existsSync(oldConfigPath)) {
+        fs.copyFileSync(oldConfigPath, this.configPath);
+        logger.info("[UnifiedConfigManager] 已迁移 config.json");
+      }
+
+      // 迁移规则文件
+      if (fs.existsSync(oldRulesPath)) {
+        fs.copyFileSync(oldRulesPath, this.paths.rules);
+        logger.info("[UnifiedConfigManager] 已迁移 rules.md");
+      }
+
+      // 迁移 memory 目录下的文件
+      this.migrateDirectory(
+        path.join(this.projectRootConfigDir, "memory"),
+        this.paths.memory,
+      );
+
+      logger.info("[UnifiedConfigManager] 配置迁移完成");
+      logger.info(`[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`);
+      logger.info(`[UnifiedConfigManager] 到: ${this.configDir}`);
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 迁移配置失败:", error);
+      // 迁移失败不影响应用启动
+    }
+  }
+
+  /**
+   * 递归迁移目录
+   * @param {string} srcDir - 源目录
+   * @param {string} destDir - 目标目录
+   */
+  migrateDirectory(srcDir, destDir) {
+    if (!fs.existsSync(srcDir)) {
+      return;
+    }
+
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    const items = fs.readdirSync(srcDir);
+    for (const item of items) {
+      const srcPath = path.join(srcDir, item);
+      const destPath = path.join(destDir, item);
+
+      const stat = fs.statSync(srcPath);
+      if (stat.isDirectory()) {
+        this.migrateDirectory(srcPath, destPath);
+      } else if (stat.isFile() && !fs.existsSync(destPath)) {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+
+  /**
+   * 确保目录结构存在
+   */
+  ensureDirectoryStructure() {
+    // 文件路径（不应创建为目录）
+    const filePaths = ["config", "rules"];
+
+    // 只为真正的目录创建目录结构
+    Object.entries(this.paths).forEach(([key, dirPath]) => {
+      // 跳过文件路径，只创建目录
+      if (filePaths.includes(key)) {
+        return;
+      }
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        logger.info(`[UnifiedConfigManager] 已创建目录: ${key}`);
+      }
+    });
+
+    // 如果配置文件不存在，尝试从多个位置获取模板
+    if (!fs.existsSync(this.configPath)) {
+      // 尝试从 userData 目录的模板
+      let examplePath = path.join(this.configDir, "config.json.example");
+
+      // 如果不存在，尝试从项目根目录的模板
+      if (!fs.existsSync(examplePath)) {
+        examplePath = path.join(
+          this.projectRootConfigDir,
+          "config.json.example",
+        );
+      }
+
+      if (fs.existsSync(examplePath)) {
+        fs.copyFileSync(examplePath, this.configPath);
+        logger.info("[UnifiedConfigManager] 已从模板创建配置文件");
+      } else {
+        // 创建默认配置
+        fs.writeFileSync(
+          this.configPath,
+          JSON.stringify(this.getDefaultConfig(), null, 2),
+        );
+        logger.info("[UnifiedConfigManager] 已创建默认配置文件");
+      }
+    }
+
+    // 创建 .gitkeep 文件保持空目录
+    this.createGitkeepFiles();
+  }
+
+  /**
+   * 在空目录中创建 .gitkeep 文件
+   */
+  createGitkeepFiles() {
+    const dirsToKeep = [
+      this.paths.sessions,
+      this.paths.preferences,
+      this.paths.learnedPatterns,
+      this.paths.logs,
+      this.paths.embeddings,
+      this.paths.queryResults,
+      this.paths.modelOutputs,
+      this.paths.autoBackup,
+      this.paths.reports,
+      this.paths.backups,
+    ];
+
+    dirsToKeep.forEach((dir) => {
+      const gitkeepPath = path.join(dir, ".gitkeep");
+      if (fs.existsSync(dir) && !fs.existsSync(gitkeepPath)) {
+        try {
+          // 检查目录是否为空
+          const files = fs.readdirSync(dir);
+          if (files.length === 0) {
+            fs.writeFileSync(gitkeepPath, "");
+          }
+        } catch {
+          // 忽略错误
+        }
+      }
+    });
+  }
+
+  /**
+   * 加载配置文件
+   */
+  loadConfig() {
+    try {
+      // 读取配置文件
+      const configContent = fs.readFileSync(this.configPath, "utf-8");
+      const fileConfig = JSON.parse(configContent);
+
+      // 合并环境变量
+      const envConfig = this.getEnvConfig();
+
+      // 深度合并配置
+      this.config = this.mergeConfigs(
+        this.getDefaultConfig(),
+        fileConfig,
+        envConfig,
+      );
+
+      // 保存合并后的配置
+      this.saveConfig();
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 加载配置失败:", error);
+      this.config = this.getDefaultConfig();
+    }
+  }
+
+  /**
+   * 获取默认配置
+   */
+  getDefaultConfig() {
+    return {
+      model: {
+        defaultProvider: "ollama",
+        temperature: 0.1,
+        maxTokens: 4000,
+        enableMemory: true,
+        enableStreaming: true,
+      },
+      cost: {
+        monthlyBudget: 50,
+        alertThreshold: 40,
+        preferLocalModels: true,
+      },
+      performance: {
+        cacheEnabled: true,
+        cacheTTL: 3600,
+        contextCompressionThreshold: 10,
+      },
+      quality: {
+        preCommitChecks: true,
+        autoFix: true,
+        securityScanning: true,
+      },
+      logging: {
+        level: "INFO",
+        enableFile: true,
+        enableConsole: true,
+        maxFileSize: 10, // MB
+        maxFiles: 30,
+      },
+      mcp: {
+        enabled: false,
+        servers: {},
+        trustedServers: [
+          "@modelcontextprotocol/server-filesystem",
+          "@modelcontextprotocol/server-postgres",
+          "@modelcontextprotocol/server-github",
+        ],
+        allowUntrustedServers: false,
+        defaultPermissions: {
+          requireConsent: true,
+          readOnly: false,
+        },
+      },
+      paths: {
+        logsDir: this.paths.logs,
+        cacheDir: this.paths.cache,
+        memoryDir: this.paths.memory,
+        checkpointsDir: this.paths.checkpoints,
+      },
+      socialAI: {
+        enabled: true,
+        topicAnalysis: true,
+        socialGraph: true,
+        enhancedReplies: true,
+        trendingTopicsInterval: 3600000,
+        recommendationEnabled: true,
+        recommendationLimit: 20,
+        interestProfileUpdateInterval: 86400000,
+      },
+      activitypub: {
+        enabled: false,
+        domain: "localhost",
+        autoSync: false,
+        syncIntervalMs: 300000,
+        httpSignatures: true,
+        webfinger: true,
+      },
+      compliance: {
+        enabled: false,
+        soc2AutoCollect: false,
+        dataClassification: true,
+        classificationPolicies: ["pii", "phi", "pci"],
+        evidenceRetentionDays: 365,
+        dlpEnabled: false,
+        dlpDefaultAction: "alert",
+        dlpChannels: ["email", "chat", "file_transfer", "clipboard", "export"],
+        siemEnabled: false,
+        siemTargets: [],
+        siemFormat: "json",
+        siemBatchSize: 100,
+      },
+      scim: {
+        enabled: false,
+        autoSync: false,
+        syncIntervalMs: 900000,
+        providers: [],
+      },
+      unifiedKey: {
+        enabled: true,
+        defaultSource: "software",
+        fido2Enabled: true,
+        autoDerive: true,
+        crossPlatformUSB: true,
+        bleEnabled: false,
+        bleScanTimeout: 10000,
+        bleAutoReconnect: true,
+      },
+      thresholdSecurity: {
+        enabled: false,
+        threshold: 2,
+        totalShares: 3,
+        defaultSources: ["ukey", "simkey", "tee"],
+      },
+      nostr: {
+        enabled: false,
+        defaultRelays: ["wss://relay.damus.io", "wss://nos.lol"],
+        autoSync: false,
+        syncIntervalMs: 300000,
+      },
+      pqc: {
+        enabled: false,
+        defaultAlgorithm: "ML-KEM-768",
+        hybridMode: true,
+        autoMigrate: false,
+      },
+      firmwareOta: {
+        enabled: false,
+        autoCheck: true,
+        channel: "stable",
+        allowRollback: true,
+        chunkSizeBytes: 65536,
+      },
+      governance: {
+        enabled: false,
+        aiAnalysisEnabled: true,
+        votingDurationMs: 604800000,
+        quorumPercentage: 51,
+      },
+      matrix: {
+        enabled: false,
+        defaultHomeserver: "https://matrix.org",
+        e2eeEnabled: true,
+        syncIntervalMs: 30000,
+      },
+      terraform: {
+        enabled: false,
+        binaryPath: "",
+        defaultVersion: "1.9.0",
+        maxConcurrentRuns: 3,
+      },
+      hardening: {
+        enabled: false,
+        baselineCollectionIntervalMs: 3600000,
+        regressionThresholds: {
+          ipcLatencyP95: 1.5,
+          memoryRss: 1.3,
+          dbQueryP95: 1.5,
+        },
+        autoAuditOnStartup: false,
+      },
+      federationHardening: {
+        enabled: false,
+        circuitBreakerThreshold: 5,
+        healthCheckIntervalMs: 60000,
+        maxPoolSize: 10,
+        retryBackoffMs: 1000,
+      },
+      stressTest: {
+        enabled: false,
+        maxNodeCount: 100,
+        defaultConcurrentTasks: 5,
+        defaultDurationMs: 60000,
+      },
+      reputationOptimizer: {
+        enabled: false,
+        bayesianIterations: 100,
+        anomalyThreshold: 2.5,
+        temporalWindowMs: 604800000,
+      },
+      sla: {
+        enabled: false,
+        defaultMaxExecutionMs: 30000,
+        defaultMinAvailability: 0.99,
+        complianceCheckIntervalMs: 3600000,
+        autoEscalation: true,
+      },
+      techLearning: {
+        enabled: false,
+        autoDetect: true,
+        supportedManifests: [
+          "package.json",
+          "pom.xml",
+          "requirements.txt",
+          "Cargo.toml",
+          "go.mod",
+        ],
+        docCacheMaxAge: 86400000,
+        autoPromoteConfidence: 0.85,
+      },
+      autonomousDev: {
+        enabled: false,
+        maxConversationTurns: 20,
+        codeGenTimeout: 120000,
+        selfReviewEnabled: true,
+        reviewChecks: [
+          "security",
+          "performance",
+          "maintainability",
+          "correctness",
+        ],
+      },
+      collaborationGovernance: {
+        enabled: false,
+        confidenceThreshold: 0.7,
+        autoApproveAbove: 0.95,
+        initialAutonomyLevel: 2,
+        maxAutonomyLevel: 10,
+        requireApprovalFor: ["architecture", "migration", "security"],
+      },
+      evomap: {
+        enabled: false,
+        hubUrl: "https://evomap.ai",
+        autoPublish: false,
+        autoFetch: false,
+        publishThresholds: {
+          minInstinctConfidence: 0.7,
+          minWorkflowSuccessRate: 0.8,
+          minDecisionSuccessRate: 0.7,
+        },
+        privacyFilter: {
+          excludePatterns: [],
+          anonymize: true,
+          requireReview: true,
+        },
+        heartbeatEnabled: true,
+        fetchLimit: 20,
+        workerEnabled: false,
+        workerDomains: [],
+      },
+      skillService: {
+        enabled: false,
+        maxConcurrentInvocations: 10,
+        defaultTimeout: 30000,
+        publishRequiresApproval: true,
+      },
+      tokenIncentive: {
+        enabled: false,
+        initialBalance: 0,
+        rewardMultiplier: 1.0,
+        reputationWeightEnabled: true,
+      },
+      inferenceNetwork: {
+        enabled: false,
+        maxNodes: 100,
+        heartbeatIntervalMs: 30000,
+        defaultPrivacyMode: "standard",
+        federatedLearningEnabled: false,
+      },
+      trustRoot: {
+        enabled: false,
+        attestationIntervalMs: 3600000,
+        bootVerificationEnabled: true,
+        fingerprintBindingRequired: false,
+      },
+      pqcEcosystem: {
+        fullMigrationEnabled: false,
+        hybridTransitionPeriodDays: 90,
+      },
+      satellite: {
+        enabled: false,
+        provider: "iridium",
+        compressionEnabled: true,
+        maxMessageSizeBytes: 65536,
+        revocationBroadcastTimeoutMs: 10000,
+      },
+      hsmAdapter: {
+        enabled: false,
+        supportedVendors: ["yubikey", "ledger", "trezor"],
+        complianceLevel: "FIPS-140-3",
+        autoDiscovery: true,
+      },
+      protocolFusion: {
+        enabled: false,
+        supportedProtocols: ["did", "activitypub", "nostr", "matrix"],
+        autoSyncEnabled: false,
+        identityVerificationRequired: true,
+      },
+      aiSocialEnhancement: {
+        enabled: false,
+        defaultTargetLang: "en",
+        cacheEnabled: true,
+        qualityThreshold: 0.5,
+      },
+      decentralizedStorage: {
+        enabled: false,
+        filecoinEnabled: false,
+        maxDealSizeBytes: 1073741824,
+        cacheHotContentEnabled: true,
+      },
+      antiCensorship: {
+        enabled: false,
+        torEnabled: false,
+        domainFrontingEnabled: false,
+        meshNetworkEnabled: false,
+      },
+      evoMapFederation: {
+        enabled: false,
+        maxHubs: 50,
+        syncIntervalMs: 60000,
+        evolutionPressureEnabled: true,
+        recombinationEnabled: true,
+      },
+      evoMapGovernance: {
+        enabled: false,
+        votingDurationMs: 604800000,
+        quorumPercentage: 10,
+        disputeArbitrationEnabled: true,
+      },
+    };
+  }
+
+  /**
+   * 从环境变量获取配置
+   */
+  getEnvConfig() {
+    return {
+      model: {
+        defaultProvider: process.env.LLM_PROVIDER,
+        temperature: process.env.LLM_TEMPERATURE
+          ? parseFloat(process.env.LLM_TEMPERATURE)
+          : undefined,
+        maxTokens: process.env.LLM_MAX_TOKENS
+          ? parseInt(process.env.LLM_MAX_TOKENS)
+          : undefined,
+      },
+      cost: {
+        monthlyBudget: process.env.LLM_MONTHLY_BUDGET
+          ? parseFloat(process.env.LLM_MONTHLY_BUDGET)
+          : undefined,
+        preferLocalModels:
+          process.env.PREFER_LOCAL_MODELS === "true" ? true : undefined,
+      },
+      logging: {
+        level: process.env.LOG_LEVEL,
+      },
+    };
+  }
+
+  /**
+   * 深度合并配置对象
+   */
+  mergeConfigs(...configs) {
+    const result = {};
+
+    for (const config of configs) {
+      for (const key in config) {
+        if (
+          config[key] &&
+          typeof config[key] === "object" &&
+          !Array.isArray(config[key])
+        ) {
+          result[key] = this.mergeConfigs(result[key] || {}, config[key]);
+        } else if (
+          config[key] !== undefined &&
+          config[key] !== null &&
+          config[key] !== ""
+        ) {
+          result[key] = config[key];
+        } else if (result[key] === undefined) {
+          result[key] = config[key];
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 验证配置
+   */
+  validateConfig() {
+    // 验证必需的配置项
+    if (!this.config.model || !this.config.model.defaultProvider) {
+      logger.warn("[UnifiedConfigManager] 缺少 LLM 提供商配置");
+    }
+
+    if (!this.config.logging || !this.config.logging.level) {
+      logger.warn("[UnifiedConfigManager] 缺少日志级别配置");
+    }
+
+    // 验证预算设置
+    if (this.config.cost.monthlyBudget <= 0) {
+      logger.warn("[UnifiedConfigManager] 月度预算必须大于 0");
+    }
+  }
+
+  /**
+   * 保存配置文件
+   */
+  saveConfig() {
+    try {
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        "utf-8",
+      );
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 保存配置失败:", error);
+    }
+  }
+
+  /**
+   * 获取所有配置
+   */
+  getAllConfig() {
+    return JSON.parse(JSON.stringify(this.config)); // 深拷贝
+  }
+
+  /**
+   * 获取特定配置
+   */
+  getConfig(category) {
+    return this.config[category]
+      ? JSON.parse(JSON.stringify(this.config[category]))
+      : null;
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(updates) {
+    this.config = this.mergeConfigs(this.config, updates);
+    this.saveConfig();
+    logger.info("[UnifiedConfigManager] 配置已更新");
+  }
+
+  /**
+   * 重置为默认配置
+   */
+  resetConfig() {
+    this.config = this.getDefaultConfig();
+    this.saveConfig();
+    logger.info("[UnifiedConfigManager] 配置已重置为默认值");
+  }
+
+  /**
+   * 获取路径配置
+   */
+  getPaths() {
+    return { ...this.paths };
+  }
+
+  /**
+   * 获取日志目录
+   */
+  getLogsDir() {
+    return this.paths.logs;
+  }
+
+  /**
+   * 获取缓存目录
+   */
+  getCacheDir() {
+    return this.paths.cache;
+  }
+
+  /**
+   * 获取会话目录
+   */
+  getSessionsDir() {
+    return this.paths.sessions;
+  }
+
+  /**
+   * 获取检查点目录
+   */
+  getCheckpointsDir() {
+    return this.paths.checkpoints;
+  }
+
+  /**
+   * 清理缓存
+   * @param {string} type - 缓存类型：'all', 'embeddings', 'queryResults', 'modelOutputs'
+   */
+  clearCache(type = "all") {
+    try {
+      const cacheDirs = {
+        all: [
+          this.paths.embeddings,
+          this.paths.queryResults,
+          this.paths.modelOutputs,
+        ],
+        embeddings: [this.paths.embeddings],
+        queryResults: [this.paths.queryResults],
+        modelOutputs: [this.paths.modelOutputs],
+      };
+
+      const dirsToClean = cacheDirs[type] || cacheDirs.all;
+
+      dirsToClean.forEach((dir) => {
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          files.forEach((file) => {
+            const filePath = path.join(dir, file);
+            try {
+              if (fs.statSync(filePath).isFile()) {
+                fs.unlinkSync(filePath);
+              }
+            } catch (err) {
+              logger.error(`Failed to delete cache file: ${filePath}`, err);
+            }
+          });
+        }
+      });
+
+      logger.info(`[UnifiedConfigManager] 已清理缓存: ${type}`);
+      return { success: true, type };
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 清理缓存失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 清理旧日志文件
+   * @param {number} maxFiles - 保留的最大文件数
+   */
+  cleanOldLogs(maxFiles = 30) {
+    try {
+      const logFiles = fs
+        .readdirSync(this.paths.logs)
+        .filter((f) => f.endsWith(".log"))
+        .map((f) => ({
+          name: f,
+          path: path.join(this.paths.logs, f),
+          time: fs.statSync(path.join(this.paths.logs, f)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      // 删除超过数量限制的文件
+      if (logFiles.length > maxFiles) {
+        const filesToDelete = logFiles.slice(maxFiles);
+        filesToDelete.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            logger.error(`Failed to delete log file: ${file.name}`, error);
+          }
+        });
+        logger.info(
+          `[UnifiedConfigManager] 已清理 ${filesToDelete.length} 个旧日志文件`,
+        );
+      }
+
+      return { success: true, cleaned: logFiles.length - maxFiles };
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 清理日志失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 导出配置
+   * @param {string} exportPath - 导出路径
+   */
+  exportConfig(exportPath) {
+    try {
+      const exportData = {
+        config: this.config,
+        paths: this.paths,
+        exportedAt: new Date().toISOString(),
+      };
+
+      fs.writeFileSync(
+        exportPath,
+        JSON.stringify(exportData, null, 2),
+        "utf-8",
+      );
+      logger.info("[UnifiedConfigManager] 配置已导出到:", exportPath);
+      return { success: true, path: exportPath };
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 导出配置失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 导入配置
+   * @param {string} importPath - 导入路径
+   */
+  importConfig(importPath) {
+    try {
+      const content = fs.readFileSync(importPath, "utf-8");
+      const importData = JSON.parse(content);
+
+      if (importData.config) {
+        this.config = importData.config;
+        this.saveConfig();
+        logger.info("[UnifiedConfigManager] 配置已从文件导入:", importPath);
+        return { success: true };
+      } else {
+        throw new Error("Invalid config file format");
+      }
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 导入配置失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 获取配置摘要（用于调试）
+   */
+  getConfigSummary() {
+    return {
+      provider: this.config.model.defaultProvider,
+      loggingLevel: this.config.logging.level,
+      cacheEnabled: this.config.performance.cacheEnabled,
+      monthlyBudget: this.config.cost.monthlyBudget,
+      configPath: this.configPath,
+      configDir: this.configDir,
+      paths: {
+        root: this.paths.root,
+        logs: this.paths.logs,
+        cache: this.paths.cache,
+        memory: this.paths.memory,
+        sessions: this.paths.sessions,
+        preferences: this.paths.preferences,
+        learnedPatterns: this.paths.learnedPatterns,
+      },
+    };
+  }
+
+  /**
+   * 获取目录统计信息
+   * @returns {Object} 目录统计
+   */
+  getDirectoryStats() {
+    const stats = {};
+
+    Object.entries(this.paths).forEach(([key, dirPath]) => {
+      // 跳过文件路径
+      if (key === "config" || key === "rules") {
+        stats[key] = {
+          path: dirPath,
+          exists: fs.existsSync(dirPath),
+          type: "file",
+        };
+        return;
+      }
+
+      try {
+        if (fs.existsSync(dirPath)) {
+          const files = fs.readdirSync(dirPath);
+          const fileCount = files.filter((f) => {
+            const filePath = path.join(dirPath, f);
+            return fs.statSync(filePath).isFile();
+          }).length;
+
+          stats[key] = {
+            path: dirPath,
+            exists: true,
+            fileCount,
+            type: "directory",
+          };
+        } else {
+          stats[key] = {
+            path: dirPath,
+            exists: false,
+            type: "directory",
+          };
+        }
+      } catch {
+        stats[key] = {
+          path: dirPath,
+          exists: false,
+          error: true,
+          type: "directory",
+        };
+      }
+    });
+
+    return stats;
+  }
+}
+
+// 单例模式
+let unifiedConfigInstance = null;
+
+/**
+ * 获取统一配置管理器实例
+ */
+function getUnifiedConfigManager() {
+  if (!unifiedConfigInstance) {
+    unifiedConfigInstance = new UnifiedConfigManager();
+  }
+  if (!unifiedConfigInstance._initialized) {
+    unifiedConfigInstance.initialize();
+  }
+  return unifiedConfigInstance;
+}
+
+/**
+ * 异步预热统一配置管理器（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 mkdir/迁移/读取移出事件循环。
+ * 完成后，所有同步 getUnifiedConfigManager() 将走快路径。
+ */
+async function prewarmUnifiedConfigManager() {
+  if (!unifiedConfigInstance) {
+    unifiedConfigInstance = new UnifiedConfigManager();
+  }
+  if (!unifiedConfigInstance._initialized) {
+    await unifiedConfigInstance.initializeAsync();
+  }
+  return unifiedConfigInstance;
+}
+
+/**
+ * 获取当前配置目录路径
+ * @returns {string} 配置目录路径
+ */
+function getCurrentConfigDir() {
+  if (!_CONFIG_DIR) {
+    _CONFIG_DIR = getConfigDir();
+  }
+  return _CONFIG_DIR;
+}
+
+export {
+  UnifiedConfigManager,
+  getUnifiedConfigManager,
+  prewarmUnifiedConfigManager,
+  getConfigDir,
+  getCurrentConfigDir,
+};

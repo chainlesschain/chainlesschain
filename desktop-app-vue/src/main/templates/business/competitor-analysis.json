@@ -1,0 +1,44 @@
+{
+  "id": "tpl_business_competitor_005",
+  "name": "competitor_analysis",
+  "display_name": "竞品分析报告",
+  "description": "深度竞品对比分析，包含产品功能、定价策略、用户体验和营销策略对比",
+  "icon": "⚔️",
+  "category": "business",
+  "subcategory": "analysis",
+  "tags": ["竞品分析", "产品对比", "市场情报"],
+  "project_type": "document",
+  "prompt_template": "# {{productName}} 竞品分析报告\n\n**分析对象**：{{competitors}}\n**分析时间**：{{analysisDate}}\n**分析维度**：{{analysisDimensions}}\n\n## 一、竞品概览\n\n### 我方产品\n- 产品名称：{{ourProduct}}\n- 目标用户：{{ourTarget}}\n- 核心价值：{{ourValue}}\n\n### 竞品列表\n\n#### 竞品A：{{compA}}\n- 公司背景：{{compABackground}}\n- 上线时间：{{compALaunch}}\n- 用户规模：{{compAUsers}}\n- 估值/融资：{{compAFunding}}\n\n#### 竞品B：{{compB}}\n{{compBInfo}}\n\n#### 竞品C：{{compC}}\n{{compCInfo}}\n\n## 二、产品功能对比\n\n| 功能模块 | 我方 | 竞品A | 竞品B | 竞品C | 对比结论 |\n|----------|------|-------|-------|-------|----------|\n| {{feature1}} | {{ourF1}} | {{compAF1}} | {{compBF1}} | {{compCF1}} | {{conclusion1}} |\n| {{feature2}} | {{ourF2}} | {{compAF2}} | {{compBF2}} | {{compCF2}} | {{conclusion2}} |\n| {{feature3}} | {{ourF3}} | {{compAF3}} | {{compBF3}} | {{compCF3}} | {{conclusion3}} |\n| {{feature4}} | {{ourF4}} | {{compAF4}} | {{compBF4}} | {{compCF4}} | {{conclusion4}} |\n\n### 功能亮点分析\n{{featureHighlights}}\n\n## 三、用户体验对比\n\n### 3.1 UI/UX设计\n{{uxComparison}}\n\n### 3.2 交互流程\n{{flowComparison}}\n\n### 3.3 性能表现\n| 指标 | 我方 | 竞品A | 竞品B |\n|------|------|-------|-------|\n| 加载速度 | {{ourSpeed}} | {{compASpeed}} | {{compBSpeed}} |\n| 响应时间 | {{ourResponse}} | {{compAResponse}} | {{compBResponse}} |\n| 稳定性 | {{ourStability}} | {{compAStability}} | {{compBStability}} |\n\n## 四、定价策略对比\n\n### 4.1 定价模式\n\n**我方**：{{ourPricing}}\n**竞品A**：{{compAPricing}}\n**竞品B**：{{compBPricing}}\n\n### 4.2 价格对比\n| 套餐 | 我方 | 竞品A | 竞品B | 性价比 |\n|------|------|-------|-------|--------|\n| 基础版 | {{ourBasic}} | {{compABasic}} | {{compBBasic}} | {{basicCPR}} |\n| 专业版 | {{ourPro}} | {{compAPro}} | {{compBPro}} | {{proCPR}} |\n| 企业版 | {{ourEnterprise}} | {{compAEnterprise}} | {{compBEnterprise}} | {{entCPR}} |\n\n## 五、营销策略分析\n\n### 5.1 获客渠道\n{{acquisitionChannels}}\n\n### 5.2 内容营销\n{{contentMarketing}}\n\n### 5.3 品牌定位\n{{brandPositioning}}\n\n## 六、优劣势分析\n\n### 6.1 我方优势\n1. {{ourAdvantage1}}\n2. {{ourAdvantage2}}\n3. {{ourAdvantage3}}\n\n### 6.2 我方劣势\n1. {{ourWeakness1}}\n2. {{ourWeakness2}}\n\n### 6.3 竞品优势（需学习）\n{{competitorStrengths}}\n\n## 七、差异化建议\n\n### 7.1 产品层面\n{{productDifferentiation}}\n\n### 7.2 营销层面\n{{marketingDifferentiation}}\n\n### 7.3 定价层面\n{{pricingDifferentiation}}\n\n## 八、行动计划\n\n### 短期（1-3个月）\n1. {{shortAction1}}\n2. {{shortAction2}}\n\n### 中期（3-6个月）\n1. {{midAction1}}\n2. {{midAction2}}\n\n### 长期（6-12个月）\n1. {{longAction1}}\n2. {{longAction2}}",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "competitors",
+      "label": "竞品数量",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "3个主要竞品", "label": "3个竞品" },
+        { "value": "5个主要竞品", "label": "5个竞品" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "竞品分析-{{productName}}",
+    "files": [
+      {"path": "竞品分析报告.docx", "type": "document"},
+      {"path": "功能对比表.xlsx", "type": "spreadsheet"},
+      {"path": "竞品截图/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_data_analysis"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

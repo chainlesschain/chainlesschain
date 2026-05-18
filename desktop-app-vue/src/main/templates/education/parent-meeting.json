@@ -1,0 +1,68 @@
+{
+  "id": "tpl_education_parent_meeting_104",
+  "name": "parent-meeting",
+  "display_name": "家长会发言稿",
+  "description": "家长会主题发言和班级情况汇报",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "家校沟通",
+  "tags": [
+    "家校沟通"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写家长会发言稿：\n\n会议主题：{{meetingTheme}}\n班级：{{className}}\n\n班级情况：\n{{classStatus}}\n\n重点内容：\n{{keyPoints}}",
+  "variables_schema": [
+    {
+      "name": "meetingTheme",
+      "type": "textarea",
+      "label": "meetingTheme",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    },
+    {
+      "name": "className",
+      "type": "textarea",
+      "label": "className",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    },
+    {
+      "name": "classStatus",
+      "type": "textarea",
+      "label": "classStatus",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    },
+    {
+      "name": "keyPoints",
+      "type": "textarea",
+      "label": "keyPoints",
+      "required": true,
+      "default": "详细描述教学相关内容"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "家长会发言稿",
+    "children": [
+      {
+        "type": "file",
+        "name": "家长会发言稿.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

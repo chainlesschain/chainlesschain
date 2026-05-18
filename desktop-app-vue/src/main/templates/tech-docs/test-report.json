@@ -1,0 +1,192 @@
+{
+  "id": "tpl_tech_docs_test_005",
+  "name": "test_report",
+  "display_name": "测试报告",
+  "description": "专业的软件测试报告模板,包含测试概述、测试用例、缺陷统计、测试结论等,适用于功能测试、性能测试、自动化测试等场景",
+  "icon": "✅",
+  "category": "tech-docs",
+  "subcategory": "测试文档",
+  "tags": ["测试报告", "质量保证", "测试用例", "bug报告"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成测试报告，要求:\n\n# {{projectName}} 测试报告\n\n## 1. 报告信息\n\n| 项目 | 内容 |\n|------|------|\n| 项目名称 | {{projectName}} |\n| 测试版本 | {{testVersion}} |\n| 测试类型 | {{testType}} |\n| 测试负责人 | {{#if testLeader}}{{testLeader}}{{else}}测试团队{{/if}} |\n| 测试周期 | {{#if testPeriod}}{{testPeriod}}{{else}}2024-01-01 至 2024-01-15{{/if}} |\n| 报告日期 | {{#if reportDate}}{{reportDate}}{{else}}{{currentDate}}{{/if}} |\n\n---\n\n## 2. 测试概述\n\n### 2.1 测试目标\n\n{{testObjective}}\n\n### 2.2 测试范围\n\n{{testScope}}\n\n### 2.3 测试环境\n\n{{#eq testType \"功能测试\"}}\n**测试环境配置**:\n\n| 环境项 | 配置 |\n|--------|------|\n| **测试环境** | {{#if testEnv}}{{testEnv}}{{else}}测试环境{{/if}} |\n| **操作系统** | {{#if os}}{{os}}{{else}}Windows 10, macOS 13, Ubuntu 20.04{{/if}} |\n| **浏览器** | {{#if browsers}}{{browsers}}{{else}}Chrome 120+, Firefox 121+, Safari 17+{{/if}} |\n| **数据库** | {{#if database}}{{database}}{{else}}PostgreSQL 15{{/if}} |\n| **测试数据** | {{#if testData}}{{testData}}{{else}}模拟数据{{/if}} |\n{{/eq}}\n\n{{#eq testType \"性能测试\"}}\n**性能测试环境**:\n\n| 环境项 | 配置 |\n|--------|------|\n| **服务器配置** | {{#if serverConfig}}{{serverConfig}}{{else}}4核8GB{{/if}} |\n| **并发用户数** | {{#if concurrentUsers}}{{concurrentUsers}}{{else}}1000{{/if}} |\n| **测试工具** | {{#if perfTool}}{{perfTool}}{{else}}JMeter 5.6{{/if}} |\n| **网络带宽** | {{#if bandwidth}}{{bandwidth}}{{else}}100Mbps{{/if}} |\n{{/eq}}\n\n{{#eq testType \"自动化测试\"}}\n**自动化测试环境**:\n\n| 环境项 | 配置 |\n|--------|------|\n| **测试框架** | {{#if testFramework}}{{testFramework}}{{else}}Selenium + pytest{{/if}} |\n| **CI/CD** | {{#if cicd}}{{cicd}}{{else}}Jenkins{{/if}} |\n| **代码覆盖率工具** | {{#if coverageTool}}{{coverageTool}}{{else}}Jacoco / Coverage.py{{/if}} |\n{{/eq}}\n\n---\n\n## 3. 测试执行情况\n\n### 3.1 测试用例统计\n\n| 测试模块 | 用例总数 | 已执行 | 通过 | 失败 | 阻塞 | 通过率 |\n|----------|----------|--------|------|------|------|--------|\n| {{module1}} | {{module1Total}} | {{module1Executed}} | {{module1Passed}} | {{module1Failed}} | {{module1Blocked}} | {{module1PassRate}}% |\n| {{module2}} | {{module2Total}} | {{module2Executed}} | {{module2Passed}} | {{module2Failed}} | {{module2Blocked}} | {{module2PassRate}}% |\n| {{module3}} | {{module3Total}} | {{module3Executed}} | {{module3Passed}} | {{module3Failed}} | {{module3Blocked}} | {{module3PassRate}}% |\n| **合计** | **{{totalCases}}** | **{{executedCases}}** | **{{passedCases}}** | **{{failedCases}}** | **{{blockedCases}}** | **{{overallPassRate}}%** |\n\n**用例执行率**: {{executionRate}}%  \n**用例通过率**: {{overallPassRate}}%\n\n### 3.2 测试进度\n\n```\n测试计划进度:\n[████████████████████░░] 80%\n\n已完成:\n✅ 冒烟测试\n✅ 功能测试(P0)\n✅ 功能测试(P1)\n⏳ 功能测试(P2) (进行中)\n⏸️ 兼容性测试 (待开始)\n```\n\n### 3.3 测试覆盖率\n\n{{#eq testType \"自动化测试\"}}\n**代码覆盖率**:\n\n| 覆盖类型 | 覆盖率 | 目标 | 达标 |\n|----------|--------|------|------|\n| **行覆盖** | {{lineCoverage}}% | 80% | {{#if lineCoveragePass}}✅{{else}}❌{{/if}} |\n| **分支覆盖** | {{branchCoverage}}% | 70% | {{#if branchCoveragePass}}✅{{else}}❌{{/if}} |\n| **函数覆盖** | {{functionCoverage}}% | 90% | {{#if functionCoveragePass}}✅{{else}}❌{{/if}} |\n\n**覆盖率趋势**:\n\n```\n85% │                          ●\n80% │                    ●    /\n75% │              ●    /    /\n70% │        ●    /    /\n65% │  ●    /\n    └────────────────────────────\n     v1.0  v1.1  v1.2  v1.3  v1.4\n```\n{{/eq}}\n\n**需求覆盖率**:\n\n- 需求总数: {{totalRequirements}}\n- 已覆盖需求: {{coveredRequirements}}\n- 需求覆盖率: {{requirementCoverage}}%\n\n---\n\n## 4. 缺陷统计与分析\n\n### 4.1 缺陷总体统计\n\n| 严重程度 | 新增 | 已修复 | 待修复 | 延期 | 关闭 | 拒绝 |\n|----------|------|--------|--------|------|------|------|\n| **致命(P0)** | {{p0New}} | {{p0Fixed}} | {{p0Open}} | {{p0Deferred}} | {{p0Closed}} | {{p0Rejected}} |\n| **严重(P1)** | {{p1New}} | {{p1Fixed}} | {{p1Open}} | {{p1Deferred}} | {{p1Closed}} | {{p1Rejected}} |\n| **一般(P2)** | {{p2New}} | {{p2Fixed}} | {{p2Open}} | {{p2Deferred}} | {{p2Closed}} | {{p2Rejected}} |\n| **轻微(P3)** | {{p3New}} | {{p3Fixed}} | {{p3Open}} | {{p3Deferred}} | {{p3Closed}} | {{p3Rejected}} |\n| **合计** | **{{totalBugs}}** | **{{fixedBugs}}** | **{{openBugs}}** | **{{deferredBugs}}** | **{{closedBugs}}** | **{{rejectedBugs}}** |\n\n**缺陷修复率**: {{bugFixRate}}%  \n**遗留缺陷**: {{openBugs}}个 (P0: {{p0Open}}, P1: {{p1Open}}, P2: {{p2Open}}, P3: {{p3Open}})\n\n### 4.2 缺陷分布\n\n**按模块分布**:\n\n| 模块 | 缺陷数 | 占比 |\n|------|--------|------|\n| {{bugModule1}} | {{bugModule1Count}} | {{bugModule1Percent}}% |\n| {{bugModule2}} | {{bugModule2Count}} | {{bugModule2Percent}}% |\n| {{bugModule3}} | {{bugModule3Count}} | {{bugModule3Percent}}% |\n| 其他 | {{bugModuleOtherCount}} | {{bugModuleOtherPercent}}% |\n\n**按类型分布**:\n\n- 🐛 功能缺陷: {{functionalBugs}}个 ({{functionalBugsPercent}}%)\n- 🎨 界面问题: {{uiBugs}}个 ({{uiBugsPercent}}%)\n- ⚡ 性能问题: {{perfBugs}}个 ({{perfBugsPercent}}%)\n- 🔒 安全问题: {{securityBugs}}个 ({{securityBugsPercent}}%)\n- 📱 兼容性问题: {{compatibilityBugs}}个 ({{compatibilityBugsPercent}}%)\n- 📝 文档问题: {{docBugs}}个 ({{docBugsPercent}}%)\n\n### 4.3 典型缺陷\n\n#### 4.3.1 【P0】{{bug1Title}}\n\n**缺陷描述**: {{bug1Description}}\n\n**重现步骤**:\n1. {{bug1Step1}}\n2. {{bug1Step2}}\n3. {{bug1Step3}}\n\n**预期结果**: {{bug1Expected}}\n\n**实际结果**: {{bug1Actual}}\n\n**影响范围**: {{bug1Impact}}\n\n**状态**: {{bug1Status}}\n\n#### 4.3.2 【P1】{{bug2Title}}\n\n**缺陷描述**: {{bug2Description}}\n\n**重现步骤**:\n1. {{bug2Step1}}\n2. {{bug2Step2}}\n\n**预期结果**: {{bug2Expected}}\n\n**实际结果**: {{bug2Actual}}\n\n**状态**: {{bug2Status}}\n\n### 4.4 缺陷趋势分析\n\n**缺陷发现趋势**:\n\n```\n新增 vs 修复趋势图:\n\n20 │    ●\n15 │   /  ＼         ■ 新增\n10 │  ●    ●       ● 修复\n 5 │ /      ＼  ●\n 0 │■─────────■──■────\n   W1  W2  W3  W4  W5\n```\n\n**分析**:\n- 缺陷发现高峰期: {{bugPeakPeriod}}\n- 修复效率: {{bugFixEfficiency}}\n- 趋势: {{bugTrend}}\n\n---\n\n## 5. 性能测试结果\n\n{{#eq testType \"性能测试\"}}\n### 5.1 性能指标\n\n| 测试场景 | 并发数 | 平均响应时间(ms) | P95响应时间(ms) | P99响应时间(ms) | TPS | 错误率 | 达标 |\n|----------|--------|------------------|-----------------|-----------------|-----|--------|------|\n| {{perfScenario1}} | {{perfConcurrency1}} | {{perfAvgRT1}} | {{perfP95RT1}} | {{perfP99RT1}} | {{perfTPS1}} | {{perfErrorRate1}}% | {{#if perf1Pass}}✅{{else}}❌{{/if}} |\n| {{perfScenario2}} | {{perfConcurrency2}} | {{perfAvgRT2}} | {{perfP95RT2}} | {{perfP99RT2}} | {{perfTPS2}} | {{perfErrorRate2}}% | {{#if perf2Pass}}✅{{else}}❌{{/if}} |\n| {{perfScenario3}} | {{perfConcurrency3}} | {{perfAvgRT3}} | {{perfP95RT3}} | {{perfP99RT3}} | {{perfTPS3}} | {{perfErrorRate3}}% | {{#if perf3Pass}}✅{{else}}❌{{/if}} |\n\n**性能基线**:\n- 平均响应时间 < 500ms\n- P95响应时间 < 1000ms\n- TPS > 1000\n- 错误率 < 0.1%\n\n### 5.2 压力测试\n\n**最大并发能力**: {{maxConcurrency}}用户\n\n**系统瓶颈**:\n- CPU使用率: 峰值{{cpuPeak}}%(阈值80%)\n- 内存使用率: 峰值{{memoryPeak}}%(阈值85%)\n- 数据库连接池: 峰值{{dbPoolPeak}}%(阈值90%)\n- 网络带宽: 峰值{{bandwidthPeak}}Mbps\n\n**瓶颈分析**: {{bottleneckAnalysis}}\n\n### 5.3 稳定性测试\n\n**测试时长**: {{stabilityDuration}}\n\n**结果**:\n- 系统无崩溃\n- 内存无泄漏\n- 响应时间稳定\n- 错误率: {{stabilityErrorRate}}%\n\n**结论**: {{stabilityConclusion}}\n{{/eq}}\n\n---\n\n## 6. 测试风险与建议\n\n### 6.1 遗留问题\n\n**高优先级(P0/P1)遗留缺陷**:\n\n| ID | 标题 | 严重程度 | 状态 | 影响 | 建议 |\n|----|------|----------|------|------|------|\n| BUG-001 | {{leftBug1}} | P0 | 待修复 | {{leftBug1Impact}} | {{leftBug1Suggestion}} |\n| BUG-002 | {{leftBug2}} | P1 | 延期 | {{leftBug2Impact}} | {{leftBug2Suggestion}} |\n\n### 6.2 风险评估\n\n**功能风险**:\n- 🔴 高风险: {{highRisk}}\n- 🟡 中风险: {{mediumRisk}}\n- 🟢 低风险: {{lowRisk}}\n\n**质量风险**:\n- {{qualityRisk1}}\n- {{qualityRisk2}}\n- {{qualityRisk3}}\n\n### 6.3 改进建议\n\n**短期建议**:\n1. {{shortTermSuggestion1}}\n2. {{shortTermSuggestion2}}\n3. {{shortTermSuggestion3}}\n\n**长期建议**:\n1. {{longTermSuggestion1}}\n2. {{longTermSuggestion2}}\n3. {{longTermSuggestion3}}\n\n---\n\n## 7. 测试结论\n\n### 7.1 测试总结\n\n{{testSummary}}\n\n### 7.2 质量评估\n\n| 评估项 | 评分 | 说明 |\n|--------|------|------|\n| **功能完整性** | {{functionalityScore}}/10 | {{functionalityComment}} |\n| **性能表现** | {{performanceScore}}/10 | {{performanceComment}} |\n| **用户体验** | {{uxScore}}/10 | {{uxComment}} |\n| **稳定性** | {{stabilityScore}}/10 | {{stabilityComment}} |\n| **安全性** | {{securityScore}}/10 | {{securityComment}} |\n| **综合评分** | **{{overallScore}}/10** | {{overallComment}} |\n\n### 7.3 发布建议\n\n{{#if releaseRecommended}}\n✅ **建议发布**\n\n**理由**:\n- 核心功能测试通过率达{{overallPassRate}}%\n- 无P0/P1级别遗留缺陷\n- 性能指标满足要求\n- 用户体验良好\n\n**注意事项**:\n- {{releaseNote1}}\n- {{releaseNote2}}\n{{else}}\n❌ **不建议发布**\n\n**理由**:\n- {{noReleaseReason1}}\n- {{noReleaseReason2}}\n- {{noReleaseReason3}}\n\n**修复后再评估**:\n- {{fixRequirement1}}\n- {{fixRequirement2}}\n{{/if}}\n\n---\n\n## 8. 附录\n\n### 8.1 测试用例详情\n\n完整测试用例请参考: [测试用例文档](./test-cases.xlsx)\n\n### 8.2 缺陷列表\n\n完整缺陷列表请参考: [缺陷跟踪系统]({{#if bugTrackingUrl}}{{bugTrackingUrl}}{{else}}https://jira.example.com{{/if}})\n\n### 8.3 测试数据\n\n测试数据文件: [test-data.zip](./test-data.zip)\n\n### 8.4 测试脚本\n\n{{#eq testType \"自动化测试\"}}\n自动化测试脚本仓库: [{{testScriptRepo}}]({{testScriptRepo}})\n{{/eq}}\n\n---\n\n**测试团队**: {{#if testTeam}}{{testTeam}}{{else}}QA团队{{/if}}\n\n**报告审核**: {{#if reviewer}}{{reviewer}}{{else}}测试经理{{/if}}\n\n**报告版本**: {{reportVersion}}\n\n**报告日期**: {{#if reportDate}}{{reportDate}}{{else}}{{currentDate}}{{/if}}\n\n---\n\n**感谢所有参与测试的团队成员！**",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "type": "text",
+      "label": "项目名称",
+      "default": "示例项目",
+      "required": true,
+      "description": "被测项目的名称"
+    },
+    {
+      "name": "testVersion",
+      "type": "text",
+      "label": "测试版本",
+      "default": "v1.0.0",
+      "required": true,
+      "description": "测试的版本号"
+    },
+    {
+      "name": "testType",
+      "type": "select",
+      "label": "测试类型",
+      "default": "功能测试",
+      "required": true,
+      "options": [
+        {"value": "功能测试", "label": "功能测试"},
+        {"value": "性能测试", "label": "性能测试"},
+        {"value": "自动化测试", "label": "自动化测试"},
+        {"value": "集成测试", "label": "集成测试"}
+      ],
+      "description": "测试的类型"
+    },
+    {
+      "name": "testObjective",
+      "type": "textarea",
+      "label": "测试目标",
+      "default": "验证系统功能是否符合需求规格说明书要求，确保系统质量达到发布标准。",
+      "required": true,
+      "description": "测试的目标"
+    },
+    {
+      "name": "testScope",
+      "type": "textarea",
+      "label": "测试范围",
+      "default": "1. 用户管理模块\n2. 订单管理模块\n3. 支付模块\n4. 报表模块",
+      "required": true,
+      "description": "测试覆盖的范围"
+    },
+    {
+      "name": "totalCases",
+      "type": "text",
+      "label": "用例总数",
+      "default": "150",
+      "required": true,
+      "description": "测试用例总数"
+    },
+    {
+      "name": "executedCases",
+      "type": "text",
+      "label": "已执行用例",
+      "default": "145",
+      "required": true,
+      "description": "已执行的测试用例数"
+    },
+    {
+      "name": "passedCases",
+      "type": "text",
+      "label": "通过用例",
+      "default": "138",
+      "required": true,
+      "description": "测试通过的用例数"
+    },
+    {
+      "name": "failedCases",
+      "type": "text",
+      "label": "失败用例",
+      "default": "7",
+      "required": true,
+      "description": "测试失败的用例数"
+    },
+    {
+      "name": "overallPassRate",
+      "type": "text",
+      "label": "总体通过率",
+      "default": "95.2",
+      "required": true,
+      "description": "用例总体通过率（百分比）"
+    },
+    {
+      "name": "totalBugs",
+      "type": "text",
+      "label": "缺陷总数",
+      "default": "25",
+      "required": true,
+      "description": "发现的缺陷总数"
+    },
+    {
+      "name": "fixedBugs",
+      "type": "text",
+      "label": "已修复缺陷",
+      "default": "20",
+      "required": true,
+      "description": "已修复的缺陷数"
+    },
+    {
+      "name": "openBugs",
+      "type": "text",
+      "label": "待修复缺陷",
+      "default": "5",
+      "required": true,
+      "description": "待修复的缺陷数"
+    },
+    {
+      "name": "testSummary",
+      "type": "textarea",
+      "label": "测试总结",
+      "default": "本轮测试共执行145个测试用例，通过率95.2%。发现25个缺陷，其中20个已修复。系统整体质量良好，建议发布。",
+      "required": true,
+      "description": "测试的总结性描述"
+    },
+    {
+      "name": "releaseRecommended",
+      "type": "select",
+      "label": "是否建议发布",
+      "default": "true",
+      "required": true,
+      "options": [
+        {"value": "true", "label": "建议发布"},
+        {"value": "false", "label": "不建议发布"}
+      ],
+      "description": "是否建议发布到生产环境"
+    },
+    {
+      "name": "testLeader",
+      "type": "text",
+      "label": "测试负责人",
+      "default": "",
+      "required": false,
+      "description": "测试负责人姓名（可选）"
+    },
+    {
+      "name": "reportDate",
+      "type": "text",
+      "label": "报告日期",
+      "default": "",
+      "required": false,
+      "description": "报告生成日期（可选）"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{projectName}}_测试报告",
+    "children": [
+      {"type": "file", "name": "测试报告.md", "description": "测试报告主文件"},
+      {"type": "file", "name": "test-cases.xlsx", "description": "测试用例详情"},
+      {
+        "type": "folder",
+        "name": "screenshots",
+        "children": [
+          {"type": "file", "name": "bug1.png", "description": "缺陷截图1"},
+          {"type": "file", "name": "bug2.png", "description": "缺陷截图2"}
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "test-data",
+        "children": [
+          {"type": "file", "name": "test-data.csv", "description": "测试数据"}
+        ]
+      },
+      {"type": "file", "name": "coverage-report.html", "description": "覆盖率报告"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

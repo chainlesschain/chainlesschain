@@ -1,0 +1,53 @@
+{
+  "id": "tpl_web_landingpage_001",
+  "name": "landing_page_wireframe",
+  "display_name": "落地页设计框架",
+  "description": "生成高转化率的落地页结构和文案框架",
+  "icon": "🌐",
+  "category": "web",
+  "subcategory": "landing-page",
+  "tags": ["落地页", "转化率", "网页设计", "营销"],
+  "project_type": "web",
+  "prompt_template": "# {{productName}} 落地页设计方案\n\n## 页面目标\n{{pageGoal}}\n\n## 页面结构\n\n### Section 1：Hero区（首屏）\n**标题（Headline）：**{{headline}}\n**副标题（Subheadline）：**{{subheadline}}\n**CTA按钮：**{{heroCta}}\n**背景图/视频：**{{heroMedia}}\n\n### Section 2：痛点共鸣\n**问题1：**{{painPoint1}}\n**问题2：**{{painPoint2}}\n**问题3：**{{painPoint3}}\n\n### Section 3：解决方案\n{{solutionDescription}}\n\n### Section 4：产品特性（Features）\n\n**特性1：**\n- 图标：{{feature1Icon}}\n- 标题：{{feature1Title}}\n- 描述：{{feature1Desc}}\n\n**特性2：**{{feature2}}\n**特性3：**{{feature3}}\n\n### Section 5：社会证明\n\n**客户评价：**\n{{testimonials}}\n\n**合作客户Logo：**\n{{clientLogos}}\n\n**数据展示：**\n- {{metric1}}\n- {{metric2}}\n- {{metric3}}\n\n### Section 6：定价方案\n{{pricingPlans}}\n\n### Section 7：FAQ\n{{faqSection}}\n\n### Section 8：最终CTA\n{{finalCta}}\n\n## SEO优化\n- Title：{{seoTitle}}\n- Meta Description：{{metaDescription}}\n- Keywords：{{keywords}}",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "pageGoal",
+      "label": "页面目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "获取潜在客户", "label": "获取潜在客户(Lead Generation)" },
+        { "value": "直接销售", "label": "直接销售转化" },
+        { "value": "产品介绍", "label": "产品介绍/品牌宣传" },
+        { "value": "活动注册", "label": "活动注册" }
+      ]
+    },
+    {
+      "name": "headline",
+      "label": "主标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "清晰有力的价值主张"
+    }
+  ],
+  "file_structure": {
+    "root": "落地页-{{productName}}",
+    "files": [
+      {"path": "index.html", "type": "web"},
+      {"path": "styles.css", "type": "web"},
+      {"path": "wireframe.pdf", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_web_development", "skill_ui_design"],
+  "required_tools": ["tool_html_generator", "tool_css_generator"],
+  "execution_engine": "web"
+}

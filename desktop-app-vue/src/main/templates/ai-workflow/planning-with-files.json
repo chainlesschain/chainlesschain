@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_planning_001",
+  "name": "planning_with_files",
+  "display_name": "文件驱动项目规划",
+  "description": "演示 planning-with-files 技能，基于项目文件自动生成开发计划和任务分解",
+  "icon": "📂",
+  "category": "ai-workflow",
+  "subcategory": "planning",
+  "tags": ["planning", "files", "project", "tasks", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我基于项目文件生成开发计划：\n\n**项目目录：** {{projectDir}}\n**规划类型：** {{planType}}\n**输出详细度：** {{detailLevel}}\n\n**规划步骤：**\n\n### 步骤1：分析项目结构\n```\n/planning-with-files analyze {{projectDir}}\n```\n\n### 步骤2：生成开发计划\n```\n/planning-with-files plan {{projectDir}} --type {{planType}} --detail {{detailLevel}}\n```\n\n### 步骤3：识别关键依赖\n自动分析模块依赖关系，标记关键路径。\n\n### 步骤4：保存计划\n```\n/memory-management save \"项目计划: {{projectDir}}\"\n```\n\n**使用的技能：** planning-with-files, memory-management",
+  "variables_schema": [
+    {
+      "name": "projectDir",
+      "label": "项目目录",
+      "type": "string",
+      "required": true,
+      "placeholder": "./src 或 /path/to/project"
+    },
+    {
+      "name": "planType",
+      "label": "规划类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "feature", "label": "新功能开发" },
+        { "value": "refactor", "label": "重构计划" },
+        { "value": "migration", "label": "迁移计划" },
+        { "value": "bugfix", "label": "Bug修复优先级" }
+      ]
+    },
+    {
+      "name": "detailLevel",
+      "label": "详细度",
+      "type": "select",
+      "required": false,
+      "default": "standard",
+      "options": [
+        { "value": "overview", "label": "概览" },
+        { "value": "standard", "label": "标准" },
+        { "value": "detailed", "label": "详细" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["planning-with-files", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

@@ -1,0 +1,115 @@
+{
+  "id": "tpl_medical_case_006",
+  "name": "case-discussion",
+  "display_name": "病例讨论记录",
+  "description": "多学科病例讨论会议记录模板",
+  "icon": "🗣️",
+  "category": "medical",
+  "subcategory": "临床交流",
+  "tags": [
+    "病例讨论",
+    "MDT",
+    "会议记录",
+    "学术交流"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成病例讨论记录：\n\n讨论主题：{{topic}}\n\n讨论时间：{{discussionDate}}\n\n主持人：{{moderator}}\n\n参与科室：{{departments}}\n\n参与人员：{{participants}}\n\n病例摘要：\n{{caseSummary}}\n\n讨论要点：\n{{discussionPoints}}\n\n各科室意见：\n{{departmentOpinions}}\n\n讨论结论：\n{{conclusions}}\n\n后续处理计划：\n{{followUpPlan}}\n\n请生成一份完整的病例讨论记录，包括：\n1. 会议基本信息\n2. 病例简要介绍\n3. 各科室讨论意见\n4. 讨论结论和共识\n5. 后续诊疗计划\n6. 需要关注的问题",
+  "variables_schema": [
+    {
+      "name": "topic",
+      "type": "text",
+      "label": "讨论主题",
+      "default": "疑难病例讨论：不明原因发热",
+      "required": true
+    },
+    {
+      "name": "discussionDate",
+      "type": "text",
+      "label": "讨论时间",
+      "default": "2026-01-08",
+      "required": true
+    },
+    {
+      "name": "moderator",
+      "type": "text",
+      "label": "主持人",
+      "default": "李主任",
+      "required": true
+    },
+    {
+      "name": "departments",
+      "type": "text",
+      "label": "参与科室",
+      "default": "内科、感染科、检验科",
+      "required": true
+    },
+    {
+      "name": "participants",
+      "type": "textarea",
+      "label": "参与人员",
+      "default": "内科主任医师李医生、感染科副主任医师王医生、检验科主管技师张技师",
+      "required": true
+    },
+    {
+      "name": "caseSummary",
+      "type": "textarea",
+      "label": "病例摘要",
+      "default": "患者男性，52岁，因\"反复发热1个月\"入院。体温波动于37.5-39.2℃，伴乏力、盗汗。",
+      "required": true
+    },
+    {
+      "name": "discussionPoints",
+      "type": "textarea",
+      "label": "讨论要点",
+      "default": "1. 发热原因分析\n2. 鉴别诊断\n3. 进一步检查建议",
+      "required": true
+    },
+    {
+      "name": "departmentOpinions",
+      "type": "textarea",
+      "label": "各科室意见",
+      "default": "内科：建议完善自身免疫相关检查\n感染科：需排除隐匿性感染\n检验科：血培养已送检",
+      "required": true
+    },
+    {
+      "name": "conclusions",
+      "type": "textarea",
+      "label": "讨论结论",
+      "default": "初步诊断：不明原因发热，需进一步检查明确病因",
+      "required": true
+    },
+    {
+      "name": "followUpPlan",
+      "type": "textarea",
+      "label": "后续处理计划",
+      "default": "1. 完善风湿免疫相关检查\n2. 行PET-CT检查\n3. 继续观察体温变化",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "病例讨论-{{topic}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "讨论记录.md",
+        "description": "讨论记录正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

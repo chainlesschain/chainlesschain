@@ -1,0 +1,8 @@
+
+// 合并所有工具（内置工具 + 额外工具）
+module.exports = [
+  ...builtinTools,
+  ...additionalOfficeTools,
+  ...additionalDataScienceTools,
+  ...additionalProjectTools
+];

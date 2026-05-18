@@ -1,0 +1,211 @@
+{
+  "id": "tpl_web_admin_dashboard_001",
+  "name": "admin_dashboard",
+  "display_name": "后台管理系统",
+  "description": "企业级后台管理系统，包含权限管理、数据可视化、CRUD操作",
+  "icon": "🎛️",
+  "cover_image": "/templates/covers/admin-dashboard.png",
+  "category": "web",
+  "subcategory": "enterprise",
+  "tags": [
+    "后台管理",
+    "Admin",
+    "企业应用",
+    "权限系统"
+  ],
+  "project_type": "web",
+  "prompt_template": "请帮我生成一个{{systemName}}后台管理系统，要求：\n\n**系统信息：**\n- 系统名称：{{systemName}}\n- 业务类型：{{businessType}}\n- 前端框架：{{framework}}\n- UI组件库：{{uiLibrary}}\n\n**系统架构：**\n\n1. 目录结构\n```\n{{systemName}}/\n├── public/\n├── src/\n│   ├── assets/              # 静态资源\n│   │   ├── images/\n│   │   ├── icons/\n│   │   └── styles/\n│   ├── components/          # 公共组件\n│   │   ├── Layout/          # 布局组件\n│   │   ├── Charts/          # 图表组件\n│   │   ├── Table/           # 表格组件\n│   │   └── Form/            # 表单组件\n│   ├── views/               # 页面\n│   │   ├── dashboard/       # 仪表盘\n│   │   ├── {{businessType}}/  # 业务模块\n│   │   ├── system/          # 系统管理\n│   │   └── login/           # 登录\n│   ├── router/              # 路由配置\n│   │   ├── index.js\n│   │   └── modules/         # 路由模块\n│   ├── store/               # 状态管理\n│   │   ├── modules/\n│   │   │   ├── user.js\n│   │   │   ├── permission.js\n│   │   │   └── app.js\n│   │   └── index.js\n│   ├── api/                 # API接口\n│   │   ├── user.js\n│   │   ├── {{businessType}}.js\n│   │   └── system.js\n│   ├── utils/               # 工具函数\n│   │   ├── request.js       # axios封装\n│   │   ├── auth.js          # 权限工具\n│   │   ├── validate.js      # 表单验证\n│   │   └── permission.js    # 权限判断\n│   ├── directives/          # 自定义指令\n│   │   └── permission.js    # 权限指令\n│   ├── mixins/              # 混入\n│   └── App.vue\n├── .env.development         # 开发环境变量\n├── .env.production          # 生产环境变量\n└── package.json\n```\n\n2. 页面设计\n\n**登录页（views/login/index.vue）**\n- 用户名/密码登录\n- {{#if includeSSOLogin}}单点登录（SSO）{{/if}}\n- 验证码（图形/短信）\n- 记住密码\n- 忘记密码\n- 响应式设计（移动端适配）\n\n**主布局（components/Layout/index.vue）**\n```\n┌─────────────────────────────────┐\n│         Header                  │\n│  Logo | 导航 | 用户信息        │\n├──────┬──────────────────────────┤\n│      │                          │\n│ Side │       Main Content       │\n│ bar  │                          │\n│      │                          │\n│      │                          │\n└──────┴──────────────────────────┘\n```\n\n**Header组件**\n- Logo + 系统名称\n- 面包屑导航\n- 功能按钮：\n  - 全屏切换\n  - 消息通知（带红点提示）\n  - 用户头像下拉菜单（个人中心、退出登录）\n\n**Sidebar组件**\n- 菜单折叠/展开\n- 多级菜单（最多3级）\n- 菜单图标\n- 权限控制（按钮级权限）\n- 菜单搜索\n\n**仪表盘页（views/dashboard/index.vue）**\n- **数据统计卡片（4个）**\n  - 今日{{businessType}}数量\n  - 本月{{businessType}}增长\n  - 活跃用户数\n  - 系统运行状态\n  - 每个卡片显示：数值、趋势、同比/环比\n\n- **数据图表**\n  - 折线图：{{businessType}}趋势（7天/30天）\n  - 柱状图：分类统计\n  - 饼图：占比分析\n  - 使用ECharts/Chart.js\n\n- **快捷操作**\n  - 新增{{businessType}}\n  - 数据导出\n  - 系统设置\n\n- **最新动态**\n  - 最近{{businessType}}记录（5条）\n  - 系统公告\n\n**{{businessType}}管理页（views/{{businessType}}/list.vue）**\n\n**功能模块：**\n\n1. **搜索区域**\n   - 关键词搜索\n   - 高级筛选（日期范围、状态、分类等）\n   - 重置按钮\n\n2. **操作工具栏**\n   - 新增按钮\n   - 批量删除\n   - 批量导出（Excel/CSV）\n   - 刷新按钮\n   - 列显示配置\n\n3. **数据表格**\n   - 列配置：\n     - 复选框（多选）\n     - ID\n     - {{businessType}}名称\n     - 状态（带颜色标签）\n     - 创建时间\n     - 更新时间\n     - 操作（查看、编辑、删除）\n   - 功能：\n     - 排序\n     - 筛选\n     - 行内编辑（可选）\n     - 拖拽排序（可选）\n     - 固定列\n     - 自适应高度\n\n4. **分页**\n   - 每页条数切换（10/20/50/100）\n   - 页码跳转\n   - 总数显示\n\n**{{businessType}}详情页（views/{{businessType}}/detail.vue）**\n- Tab切换：\n  - 基本信息\n  - 详细数据\n  - 操作日志\n- 返回列表按钮\n- 编辑/删除按钮\n\n**{{businessType}}表单页（views/{{businessType}}/form.vue）**\n- 表单分组（多个fieldset）\n- 表单验证（实时/失焦/提交）\n- 必填项标识（*）\n- 富文本编辑器（如需要）\n- 图片上传（拖拽/点击，预览）\n- 日期时间选择器\n- 级联选择器\n- 提交/取消/重置按钮\n\n**系统管理模块（views/system/）**\n\n1. **用户管理（user.vue）**\n   - 用户列表（表格）\n   - 新增/编辑用户\n   - 分配角色\n   - 启用/禁用\n   - 重置密码\n\n2. **角色管理（role.vue）**\n   - 角色列表\n   - 权限分配（树形结构）\n   - 新增/编辑/删除角色\n\n3. **菜单管理（menu.vue）**\n   - 菜单树形表格\n   - 新增/编辑菜单\n   - 菜单图标选择器\n   - 菜单排序\n\n4. **部门管理（dept.vue）**（可选）\n   - 部门树\n   - 添加/编辑/删除部门\n\n5. **操作日志（log.vue）**\n   - 日志列表（谁、何时、做了什么）\n   - 日志详情（请求参数、响应结果）\n   - 日志导出\n\n6. **系统设置（settings.vue）**\n   - 基本信息配置\n   - 邮件配置\n   - 存储配置\n   - 其他参数\n\n3. 核心功能实现\n\n**权限系统**\n\n**角色权限（RBAC）**\n- 用户 → 角色 → 权限（菜单/按钮）\n- 超级管理员（拥有所有权限）\n- 普通用户（受权限限制）\n\n**权限控制方式：**\n\n1. **路由权限（router/permission.js）**\n```javascript\nrouter.beforeEach((to, from, next) => {\n  // 检查登录状态\n  // 检查路由权限\n  // 动态添加路由\n})\n```\n\n2. **按钮权限（自定义指令）**\n```vue\n<a-button v-permission=\"['user:add']\">新增</a-button>\n```\n\n3. **API权限（后端验证）**\n- JWT Token验证\n- 权限码验证\n\n**数据表格封装**\n\n**ProTable组件（components/Table/ProTable.vue）**\n- 配置化表格\n- 自动请求API\n- 内置分页、排序、筛选\n- 列配置缓存\n\n使用示例：\n```vue\n<pro-table\n  :columns=\"columns\"\n  :request=\"api.get{{pascalCase businessType}}List\"\n  :toolBar=\"['refresh', 'columnSetting']\"\n/>\n```\n\n**表单封装**\n\n**SchemaForm组件（components/Form/SchemaForm.vue）**\n- JSON Schema配置\n- 自动验证\n- 自动布局\n\n**主题切换**\n{{#if includeTheme}}\n- 预设主题（蓝色、绿色、紫色）\n- 暗黑模式\n- CSS变量实现\n- localStorage保存用户选择\n{{/if}}\n\n**国际化（i18n）**\n{{#if includeI18n}}\n- 中文/English切换\n- 语言文件（locales/zh-CN.json、en-US.json）\n- 动态切换不刷新页面\n{{/if}}\n\n4. API对接\n\n**请求封装（utils/request.js）**\n```javascript\nimport axios from 'axios'\n\nconst service = axios.create({\n  baseURL: process.env.VUE_APP_BASE_API,\n  timeout: 10000\n})\n\n// 请求拦截器（添加token）\nservice.interceptors.request.use(config => {\n  config.headers['Authorization'] = `Bearer ${getToken()}`\n  return config\n})\n\n// 响应拦截器（错误处理）\nservice.interceptors.response.use(\n  response => response.data,\n  error => {\n    if (error.response.status === 401) {\n      // 跳转登录页\n    }\n    return Promise.reject(error)\n  }\n)\n```\n\n**API模块（api/{{businessType}}.js）**\n```javascript\nimport request from '@/utils/request'\n\nexport function get{{pascalCase businessType}}List(params) {\n  return request({\n    url: '/{{businessType}}/list',\n    method: 'get',\n    params\n  })\n}\n\nexport function create{{pascalCase businessType}}(data) {\n  return request({\n    url: '/{{businessType}}',\n    method: 'post',\n    data\n  })\n}\n\nexport function update{{pascalCase businessType}}(id, data) {\n  return request({\n    url: `/{{businessType}}/${id}`,\n    method: 'put',\n    data\n  })\n}\n\nexport function delete{{pascalCase businessType}}(id) {\n  return request({\n    url: `/{{businessType}}/${id}`,\n    method: 'delete'\n  })\n}\n```\n\n5. 状态管理（Vuex/Pinia）\n\n**user模块（store/modules/user.js）**\n- state: userInfo, token, roles, permissions\n- actions: login, logout, getUserInfo\n- mutations: SET_TOKEN, SET_USERINFO\n\n**permission模块**\n- 动态路由生成\n- 权限码列表\n\n**app模块**\n- 侧边栏折叠状态\n- 设备类型（桌面/移动）\n- 主题配置\n\n6. 技术特性\n\n**必备功能**\n✅ JWT身份验证\n✅ 权限控制（路由、按钮、接口）\n✅ 响应式布局（移动端适配）\n✅ 表格CRUD操作\n✅ 表单验证\n✅ 文件上传下载\n✅ 数据导出（Excel）\n✅ 操作日志记录\n\n**进阶功能**\n{{#if includeAdvanced}}\n✅ WebSocket实时通知\n✅ 数据大屏（可视化）\n✅ 打印功能\n✅ 二维码生成\n✅ 定时任务管理\n✅ 工作流引擎（审批流程）\n{{/if}}\n\n7. 性能优化\n\n- 路由懒加载\n- 组件按需加载\n- 图片懒加载\n- 虚拟滚动（大数据表格）\n- 防抖节流\n- Keep-alive缓存页面\n- Gzip压缩\n\n8. 安全措施\n\n- XSS防护（输入过滤、输出编码）\n- CSRF防护（Token验证）\n- SQL注入防护（参数化查询）\n- 敏感信息加密（密码、token）\n- 接口签名验证\n- 请求频率限制\n\n**技术栈：**\n- 前端框架：{{framework}}\n- UI组件库：{{uiLibrary}}\n- 状态管理：{{#eq framework \"Vue3\"}}Pinia{{/eq}}{{#eq framework \"React\"}}Redux Toolkit{{/eq}}\n- 路由：{{#eq framework \"Vue3\"}}Vue Router{{/eq}}{{#eq framework \"React\"}}React Router{{/eq}}\n- HTTP客户端：Axios\n- 图表库：ECharts 5.x\n- 富文本编辑器：Tiptap / Quill\n- 表格：{{#eq uiLibrary \"Ant Design Vue\"}}Ant Design Table{{/eq}}{{#eq uiLibrary \"Element Plus\"}}Element Plus Table{{/eq}}\n\n**输出要求：**\n1. 完整的项目结构（所有文件和文件夹）\n2. 核心页面代码（登录、仪表盘、列表、表单）\n3. 权限系统实现代码\n4. 公共组件（ProTable、SchemaForm）\n5. 工具函数（request、auth、validate）\n6. 路由配置（含权限守卫）\n7. Mock数据（开发使用）\n8. README.md（安装、运行、部署）",
+  "variables_schema": [
+    {
+      "name": "systemName",
+      "label": "系统名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：企业管理系统、CRM系统"
+    },
+    {
+      "name": "businessType",
+      "label": "核心业务",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：产品、订单、客户",
+      "description": "用于生成业务模块名称"
+    },
+    {
+      "name": "framework",
+      "label": "前端框架",
+      "type": "select",
+      "required": true,
+      "default": "Vue3",
+      "options": [
+        {
+          "value": "Vue3",
+          "label": "Vue 3 + Composition API"
+        },
+        {
+          "value": "React",
+          "label": "React 18 + Hooks"
+        }
+      ]
+    },
+    {
+      "name": "uiLibrary",
+      "label": "UI组件库",
+      "type": "select",
+      "required": true,
+      "default": "Ant Design Vue",
+      "options": [
+        {
+          "value": "Ant Design Vue",
+          "label": "Ant Design Vue（推荐）"
+        },
+        {
+          "value": "Element Plus",
+          "label": "Element Plus"
+        },
+        {
+          "value": "Ant Design",
+          "label": "Ant Design（React）"
+        }
+      ]
+    },
+    {
+      "name": "includeTheme",
+      "label": "主题切换",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "支持主题和暗黑模式"
+        },
+        {
+          "value": "否",
+          "label": "仅默认主题"
+        }
+      ]
+    },
+    {
+      "name": "includeI18n",
+      "label": "国际化",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "支持中英文切换"
+        },
+        {
+          "value": "否",
+          "label": "仅中文"
+        }
+      ]
+    },
+    {
+      "name": "includeSSOLogin",
+      "label": "SSO单点登录",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "集成SSO登录"
+        },
+        {
+          "value": "否",
+          "label": "仅用户名密码登录"
+        }
+      ]
+    },
+    {
+      "name": "includeAdvanced",
+      "label": "高级功能",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含（WebSocket、工作流等）"
+        },
+        {
+          "value": "否",
+          "label": "仅基础功能"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{systemName}}-Admin",
+    "files": [
+      {
+        "path": "package.json",
+        "type": "json"
+      },
+      {
+        "path": "vite.config.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/main.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/App.vue",
+        "type": "vue"
+      },
+      {
+        "path": "src/router/index.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/store/index.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/utils/request.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/utils/auth.js",
+        "type": "javascript"
+      },
+      {
+        "path": "src/views/login/index.vue",
+        "type": "vue"
+      },
+      {
+        "path": "src/views/dashboard/index.vue",
+        "type": "vue"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_web_development",
+    "skill_code_development",
+    "skill_ui_ux_design"
+  ],
+  "required_tools": [
+    "tool_html_generator",
+    "tool_css_generator",
+    "tool_js_generator",
+    "tool_create_project_structure",
+    "tool_npm_project_setup",
+    "tool_chart_generator"
+  ],
+  "execution_engine": "web"
+}

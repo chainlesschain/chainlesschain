@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Per-app locale config (Android 13+ / API 33+).
+  Declares which locales the app provides resources for. System uses this in
+  Settings → Apps → ChainlessChain → Language to show available choices.
+
+  Lower API levels: ignored by OS; AppCompatDelegate.setApplicationLocales
+  handles persistence + Activity restart via the AppLocalesMetadataHolderService
+  declared in AndroidManifest.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh-CN" />
+    <locale android:name="en" />
+</locale-config>

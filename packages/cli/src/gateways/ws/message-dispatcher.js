@@ -1,0 +1,233 @@
+import {
+  SESSION_CORE_HANDLERS,
+  SESSION_CORE_STREAMING_HANDLERS,
+} from "./session-core-protocol.js";
+import { VIDEO_HANDLERS, VIDEO_STREAMING_HANDLERS } from "./video-protocol.js";
+
+export function createWsMessageDispatcher(server) {
+  return {
+    async dispatch(clientId, ws, message) {
+      const { id, type } = message;
+
+      if (!id) {
+        server._send(ws, {
+          type: "error",
+          code: "MISSING_ID",
+          message: 'Message must include an "id" field',
+        });
+        return;
+      }
+
+      const client = server.clients.get(clientId);
+      if (server.token && !client.authenticated && type !== "auth") {
+        server._send(ws, {
+          id,
+          type: "error",
+          code: "AUTH_REQUIRED",
+          message: "Authentication required. Send an auth message first.",
+        });
+        return;
+      }
+
+      const routes = {
+        auth: () => server._handleAuth(clientId, ws, message),
+        ping: () =>
+          server._send(ws, { id, type: "pong", serverTime: Date.now() }),
+        execute: () => server._executeCommand(id, ws, message.command, false),
+        stream: () => server._executeCommand(id, ws, message.command, true),
+        cancel: () => server._cancelRequest(id, ws),
+        "session-create": () => server._handleSessionCreate(id, ws, message),
+        "session-resume": () => server._handleSessionResume(id, ws, message),
+        "session-message": () => server._handleSessionMessage(id, ws, message),
+        "session-policy-update": () =>
+          server._handleSessionPolicyUpdate(id, ws, message),
+        "session-list": () => server._handleSessionList(id, ws),
+        "session-close": () => server._handleSessionClose(id, ws, message),
+        "session-interrupt": () =>
+          server._handleSessionInterrupt(id, ws, message),
+        "slash-command": () => server._handleSlashCommand(id, ws, message),
+        "session-answer": () => server._handleSessionAnswer(id, ws, message),
+        "host-tool-result": () => server._handleHostToolResult(id, ws, message),
+        orchestrate: () => server._handleOrchestrate(id, ws, message),
+        "cowork-task": () => server._handleCoworkTask(id, ws, message),
+        "cowork-cancel": () => server._handleCoworkCancel(id, ws, message),
+        "cowork-templates": () => server._handleCoworkTemplates(id, ws),
+        "cowork-history": () => server._handleCoworkHistory(id, ws, message),
+        "workflow-list": () => server._handleWorkflowList(id, ws),
+        "workflow-get": () => server._handleWorkflowGet(id, ws, message),
+        "workflow-save": () => server._handleWorkflowSave(id, ws, message),
+        "workflow-remove": () => server._handleWorkflowRemove(id, ws, message),
+        "workflow-run": () => server._handleWorkflowRun(id, ws, message),
+        "tasks-list": () => server._handleTasksList(id, ws),
+        "tasks-stop": () => server._handleTasksStop(id, ws, message),
+        "tasks-detail": () => server._handleTaskDetail(id, ws, message),
+        "tasks-history": () => server._handleTaskHistory(id, ws, message),
+        "worktree-diff": () => server._handleWorktreeDiff(id, ws, message),
+        "worktree-merge": () => server._handleWorktreeMerge(id, ws, message),
+        "worktree-merge-preview": () =>
+          server._handleWorktreeMergePreview(id, ws, message),
+        "worktree-automation-apply": () =>
+          server._handleWorktreeAutomationApply(id, ws, message),
+        "worktree-list": () => server._handleWorktreeList(id, ws),
+        "compression-stats": () =>
+          server._handleCompressionStats(id, ws, message),
+        "sub-agent-list": () => server._handleSubAgentList(id, ws, message),
+        "sub-agent-get": () => server._handleSubAgentGet(id, ws, message),
+        "review-enter": () => server._handleReviewEnter(id, ws, message),
+        "review-submit": () => server._handleReviewSubmit(id, ws, message),
+        "review-resolve": () => server._handleReviewResolve(id, ws, message),
+        "review-status": () => server._handleReviewStatus(id, ws, message),
+        "patch-propose": () => server._handlePatchPropose(id, ws, message),
+        "patch-apply": () => server._handlePatchApply(id, ws, message),
+        "patch-reject": () => server._handlePatchReject(id, ws, message),
+        "patch-summary": () => server._handlePatchSummary(id, ws, message),
+        "task-graph-create": () =>
+          server._handleTaskGraphCreate(id, ws, message),
+        "task-graph-add-node": () =>
+          server._handleTaskGraphAddNode(id, ws, message),
+        "task-graph-update-node": () =>
+          server._handleTaskGraphUpdateNode(id, ws, message),
+        "task-graph-advance": () =>
+          server._handleTaskGraphAdvance(id, ws, message),
+        "task-graph-state": () => server._handleTaskGraphState(id, ws, message),
+        "chat.intent.understand": () =>
+          server._handleChatIntentUnderstand(id, ws, message),
+        "chat.intent.understand-stream": () =>
+          server._handleChatIntentUnderstandStream(id, ws, message),
+        "chat.intent.classify-followup": () =>
+          server._handleChatIntentClassifyFollowup(id, ws, message),
+        "llm.chat": () => server._handleLlmChat(id, ws, message),
+      };
+
+      // Phase I — Hosted Session API streaming routes (stream.run).
+      // Each intermediate event goes out as { id, type: "stream.event", event }
+      // and the final response is sent by the normal ok/err wrapper.
+      for (const streamingType of Object.keys(
+        SESSION_CORE_STREAMING_HANDLERS,
+      )) {
+        routes[streamingType] = async () => {
+          const controller = new AbortController();
+          const client = server.clients.get(clientId);
+          if (client) {
+            client._streamAborts = client._streamAborts || new Map();
+            client._streamAborts.set(id, controller);
+          }
+          const sender = (payload) => server._send(ws, { id, ...payload });
+          const context = { server, ws, clientId };
+          try {
+            const result = await SESSION_CORE_STREAMING_HANDLERS[streamingType](
+              message,
+              sender,
+              controller.signal,
+              context,
+            );
+            server._send(ws, {
+              id,
+              type: `${streamingType}.end`,
+              ...result,
+            });
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "STREAM_RUN_ERROR",
+              message: err?.message || String(err),
+            });
+          } finally {
+            if (client?._streamAborts) client._streamAborts.delete(id);
+          }
+        };
+      }
+
+      // Video Editing streaming routes
+      for (const videoStreamType of Object.keys(VIDEO_STREAMING_HANDLERS)) {
+        routes[videoStreamType] = async () => {
+          const controller = new AbortController();
+          const client = server.clients.get(clientId);
+          if (client) {
+            client._streamAborts = client._streamAborts || new Map();
+            client._streamAborts.set(id, controller);
+          }
+          const sender = (payload) => server._send(ws, { id, ...payload });
+          try {
+            const result = await VIDEO_STREAMING_HANDLERS[videoStreamType](
+              message,
+              sender,
+              controller.signal,
+            );
+            server._send(ws, {
+              id,
+              type: `${videoStreamType}.end`,
+              ...result,
+            });
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "VIDEO_STREAM_ERROR",
+              message: err?.message || String(err),
+            });
+          } finally {
+            if (client?._streamAborts) client._streamAborts.delete(id);
+          }
+        };
+      }
+
+      // Video Editing request/response routes
+      for (const videoType of Object.keys(VIDEO_HANDLERS)) {
+        routes[videoType] = async () => {
+          try {
+            const result = await VIDEO_HANDLERS[videoType](message);
+            server._send(ws, {
+              id,
+              type: `${videoType}.response`,
+              ...result,
+            });
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "VIDEO_ERROR",
+              message: err?.message || String(err),
+            });
+          }
+        };
+      }
+
+      // Phase I — Hosted Session API (session-core, memory, beta, usage)
+      for (const sessionCoreType of Object.keys(SESSION_CORE_HANDLERS)) {
+        routes[sessionCoreType] = async () => {
+          try {
+            const result =
+              await SESSION_CORE_HANDLERS[sessionCoreType](message);
+            server._send(ws, {
+              id,
+              type: `${sessionCoreType}.response`,
+              ...result,
+            });
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "SESSION_CORE_ERROR",
+              message: err?.message || String(err),
+            });
+          }
+        };
+      }
+
+      const handler = routes[type];
+      if (!handler) {
+        server._send(ws, {
+          id,
+          type: "error",
+          code: "UNKNOWN_TYPE",
+          message: `Unknown message type: ${type}`,
+        });
+        return;
+      }
+
+      return handler();
+    },
+  };
+}

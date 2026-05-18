@@ -1,0 +1,155 @@
+{
+  "id": "tpl_career_branding_001",
+  "name": "personal_branding_strategy_plan",
+  "display_name": "个人品牌打造策略",
+  "description": "个人品牌建设完整方案，包含定位设计、内容策略、影响力提升和商业变现",
+  "icon": "🌟",
+  "cover_image": "",
+  "category": "career",
+  "subcategory": "branding",
+  "tags": ["个人品牌", "职业发展", "影响力", "IP打造", "自媒体运营"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建个人品牌打造策略：\n\n**基本信息：**\n- 姓名/昵称：{{name}}\n- 所在行业：{{industry}}\n- 目标定位：{{targetPosition}}\n- 当前影响力：{{currentInfluence}}\n\n# 个人品牌打造完整策略\n\n## 品牌基础分析\n\n**个人基本信息：**\n- 姓名/品牌名：{{name}}\n- 英文名/域名：{{englishName}}\n- 所在行业：{{industry}}\n- 专业领域：{{expertise}}\n- 工作年限：{{yearsOfExperience}}年\n- 当前职位：{{currentPosition}}\n- 所在城市：{{location}}\n\n**品牌愿景：**\n3年后，我希望成为：{{brandVision}}\n\n**品牌使命：**\n我要为我的受众提供：{{brandMission}}\n\n### 自我优势分析（SWOT）\n\n**优势（Strengths）：**\n1. {{strength1}}\n2. {{strength2}}\n3. {{strength3}}\n4. {{strength4}}\n\n**劣势（Weaknesses）：**\n1. {{weakness1}}\n2. {{weakness2}}\n\n**机会（Opportunities）：**\n1. {{opportunity1}}\n2. {{opportunity2}}\n3. {{opportunity3}}\n\n**威胁（Threats）：**\n1. {{threat1}}\n2. {{threat2}}\n\n### 核心竞争力识别\n\n**专业技能：**\n- 核心技能1：{{coreSkill1}} - 精通程度：{{skill1Level}}\n- 核心技能2：{{coreSkill2}} - 精通程度：{{skill2Level}}\n- 核心技能3：{{coreSkill3}} - 精通程度：{{skill3Level}}\n\n**独特经历：**\n{{uniqueExperience}}\n\n**成就清单：**\n1. {{achievement1}}\n2. {{achievement2}}\n3. {{achievement3}}\n4. {{achievement4}}\n\n**证书资质：**\n{{certifications}}\n\n**人脉资源：**\n{{networkResources}}\n\n### 竞争对手分析\n\n**同领域KOL 1：**{{competitor1}}\n- 粉丝规模：{{comp1Followers}}\n- 内容特点：{{comp1Content}}\n- 优势：{{comp1Strengths}}\n- 不足：{{comp1Weaknesses}}\n\n**同领域KOL 2：**{{competitor2}}\n- 粉丝规模：{{comp2Followers}}\n- 内容特点：{{comp2Content}}\n- 优势：{{comp2Strengths}}\n- 不足：{{comp2Weaknesses}}\n\n**差异化机会：**\n我的独特之处：\n1. {{differentiation1}}\n2. {{differentiation2}}\n3. {{differentiation3}}\n\n## 品牌定位设计\n\n### 细分领域（Niche）选择\n\n**大领域：**{{broadField}}\n\n**细分定位：**{{nichePositioning}}\n\n**为什么选择这个细分：**\n1. {{nicheReason1}}\n2. {{nicheReason2}}\n3. {{nicheReason3}}\n\n**定位语（Positioning Statement）：**\n我是{{name}}，我帮助{{targetAudience}}解决{{problemSolved}}，通过{{solution}}实现{{outcome}}。\n\n### 目标受众画像\n\n**核心受众群体：**{{primaryAudience}}\n\n**详细画像：**\n- 年龄：{{audienceAge}}\n- 性别：{{audienceGender}}\n- 职业：{{audienceOccupation}}\n- 收入水平：{{audienceIncome}}\n- 地域分布：{{audienceLocation}}\n- 教育背景：{{audienceEducation}}\n\n**痛点需求：**\n1. {{painPoint1}}\n2. {{painPoint2}}\n3. {{painPoint3}}\n\n**我的解决方案：**\n{{solutionOffering}}\n\n**次要受众：**{{secondaryAudience}}\n\n### 品牌人设（Persona）\n\n**人设标签（3-5个关键词）：**\n1. {{persona1}}\n2. {{persona2}}\n3. {{persona3}}\n4. {{persona4}}\n5. {{persona5}}\n\n**性格特质：**{{personalityTraits}}\n\n**沟通风格：**{{communicationStyle}}\n\n**价值观：**\n核心价值观：{{coreValues}}\n\n**个人故事（Origin Story）：**\n{{originStory}}\n\n**口头禅/金句：**\n- {{signature1}}\n- {{signature2}}\n- {{signature3}}\n\n### 品牌视觉系统\n\n**品牌色彩：**\n- 主色：{{primaryColor}}\n- 辅色：{{secondaryColor}}\n- 色彩含义：{{colorMeaning}}\n\n**Logo/头像设计：**\n- 风格：{{logoStyle}}\n- 元素：{{logoElements}}\n- 设计理念：{{logoRationale}}\n\n**视觉风格：**\n- 整体调性：{{visualTone}}\n- 图片风格：{{photoStyle}}\n- 字体选择：{{typography}}\n\n**个人形象：**\n- 着装风格：{{dressingStyle}}\n- 拍照要求：{{photoRequirements}}\n\n## 内容策略规划\n\n### 内容定位\n\n**内容类型矩阵：**\n\n**知识分享（40%）：**\n- 行业洞察：{{industryInsights}}\n- 专业干货：{{professionalContent}}\n- 案例分析：{{caseStudies}}\n- 工具推荐：{{toolRecommendations}}\n\n**经验故事（30%）：**\n- 个人经历：{{personalStories}}\n- 成长历程：{{growthJourney}}\n- 失败教训：{{lessonLearned}}\n- 成功案例：{{successStories}}\n\n**观点态度（20%）：**\n- 行业评论：{{industryCommentary}}\n- 热点看法：{{trendingOpinions}}\n- 价值主张：{{valueProposition}}\n\n**生活展示（10%）：**\n- 日常vlog：{{dailyLife}}\n- 工作状态：{{workBehindScenes}}\n- 兴趣爱好：{{hobbies}}\n\n### 内容日历\n\n**发布频率：**{{postingFrequency}}\n\n**每周内容规划：**\n\n**周一：**{{mondayContent}}\n**周二：**{{tuesdayContent}}\n**周三：**{{wednesdayContent}}\n**周四：**{{thursdayContent}}\n**周五：**{{fridayContent}}\n**周末：**{{weekendContent}}\n\n**月度特辑：**\n- 每月专题：{{monthlyTheme}}\n- 月度总结：{{monthlyReview}}\n- 读者问答：{{monthlyQA}}\n\n**年度规划：**\n- Q1主题：{{q1Theme}}\n- Q2主题：{{q2Theme}}\n- Q3主题：{{q3Theme}}\n- Q4主题：{{q4Theme}}\n\n### 内容创作技巧\n\n**标题公式：**\n{{titleFormulas}}\n\n**开头吸引：**\n{{engagingOpening}}\n\n**结构框架：**\n{{contentStructure}}\n\n**故事化叙述：**\n{{storytellingTechniques}}\n\n**金句提炼：**\n{{quotableContent}}\n\n**行动号召（CTA）：**\n{{callToAction}}\n\n### 内容形式组合\n\n**图文内容：**\n- 深度长文：{{longFormContent}}\n- 图文并茂：{{visualContent}}\n- 轮播图：{{carouselPosts}}\n\n**短视频：**\n- 知识点视频：{{educationalVideos}}\n- Vlog日常：{{vlogContent}}\n- 访谈对话：{{interviewVideos}}\n\n**直播：**\n- 主题分享：{{liveSharing}}\n- 答疑互动：{{liveQA}}\n- 频率：{{liveFrequency}}\n\n**音频（播客）：**\n- 播客主题：{{podcastTheme}}\n- 更新频率：{{podcastFrequency}}\n\n**电子书/PDF：**\n{{leadMagnets}}\n\n## 平台矩阵建设\n\n### 主要平台选择\n\n**主平台（核心阵地）：**{{primaryPlatform}}\n\n**平台1：微信生态**\n- 公众号：{{wechatOfficialAccount}}\n  - 定位：{{wechatPositioning}}\n  - 更新频率：{{wechatFrequency}}\n  - 目标粉丝：{{wechatFollowers}}\n- 视频号：{{wechatChannels}}\n- 社群运营：{{wechatGroups}}\n\n**平台2：知乎**\n- 内容策略：{{zhihuStrategy}}\n- 回答选题：{{zhihuTopics}}\n- 目标：{{zhihuGoal}}\n\n**平台3：小红书**\n- 内容形式：{{xiaohongshuContent}}\n- 发布频率：{{xiaohongshuFrequency}}\n- 目标粉丝：{{xiaohongshuFollowers}}\n\n**平台4：抖音/快手**\n- 短视频策略：{{douyinStrategy}}\n- 内容类型：{{douyinContent}}\n- 直播计划：{{douyinLive}}\n\n**平台5：B站**\n- 视频类型：{{bilibiliContent}}\n- 更新频率：{{bilibiliFrequency}}\n\n**平台6：LinkedIn（职场）**\n- 使用场景：{{linkedinStrategy}}\n- 目标人群：{{linkedinAudience}}\n\n**平台7：个人网站/博客**\n- 域名：{{personalDomain}}\n- 功能：{{websiteFeatures}}\n- 必要性：{{websiteRationale}}\n\n### 平台协同策略\n\n**内容分发矩阵：**\n\n**深度长文：**\n- 首发：{{longFormPrimary}}\n- 同步：{{longFormSecondary}}\n\n**短视频：**\n- 首发：{{shortVideoPrimary}}\n- 同步：{{shortVideoSecondary}}\n\n**图文内容：**\n- 分发策略：{{imageContentDistribution}}\n\n**跨平台导流：**{{crossPlatformStrategy}}\n\n### 私域流量建设\n\n**微信私域体系：**\n- 个人微信：{{personalWechat}}\n- 企业微信：{{workWechat}}\n- 社群矩阵：{{communityMatrix}}\n- 朋友圈运营：{{momentsStrategy}}\n\n**社群运营：**\n- 社群定位：{{communityPositioning}}\n- 入群门槛：{{entryRequirements}}\n- 运营规则：{{communityRules}}\n- 活跃策略：{{engagementStrategy}}\n\n**邮件列表：**\n- 通讯频率：{{newsletterFrequency}}\n- 内容价值：{{newsletterValue}}\n\n## 影响力提升策略\n\n### 粉丝增长计划\n\n**增长目标：**\n- 3个月：{{3monthFollowers}}\n- 6个月：{{6monthFollowers}}\n- 12个月：{{12monthFollowers}}\n\n**增长策略：**\n\n**策略1：优质内容持续输出**\n{{contentGrowthStrategy}}\n\n**策略2：热点借势**\n{{hotTopicStrategy}}\n\n**策略3：KOL互推合作**\n- 目标合作对象：{{collaborationTargets}}\n- 合作形式：{{collaborationFormats}}\n\n**策略4：平台算法优化**\n{{algorithmOptimization}}\n\n**策略5：付费推广**\n- 预算分配：{{paidPromotionBudget}}\n- 投放策略：{{adStrategy}}\n\n**策略6：线下活动**\n{{offlineEvents}}\n\n### 互动与粉丝运营\n\n**互动机制：**\n- 评论回复率：{{replyRate}}%\n- 私信处理：{{dmHandling}}\n- 粉丝福利：{{fanPerks}}\n\n**粉丝分层运营：**\n\n**路人粉（关注但不活跃）：**\n- 策略：{{casualFollowerStrategy}}\n\n**活跃粉（经常互动）：**\n- 策略：{{activeFollowerStrategy}}\n\n**铁杆粉（核心支持者）：**\n- 策略：{{superfanStrategy}}\n- 特殊待遇：{{superfanPerks}}\n\n**粉丝激励机制：**\n{{fanIncentives}}\n\n### 权威性建立\n\n**行业发声：**\n- 媒体投稿：{{mediaContribution}}\n- 行业论坛演讲：{{publicSpeaking}}\n- 专家访谈：{{expertInterviews}}\n\n**内容背书：**\n- 数据支持：{{dataBackedContent}}\n- 案例证明：{{caseProof}}\n- 客户见证：{{testimonials}}\n\n**证书与荣誉：**\n- 行业认证：{{industryCertifications}}\n- 奖项申请：{{awardsToApply}}\n\n**出版与课程：**\n- 出书计划：{{bookPublishing}}\n- 在线课程：{{onlineCourses}}\n- 付费咨询：{{consultingServices}}\n\n### 人脉资源积累\n\n**人脉圈层：**\n\n**圈层1：同行专家**\n- 目标人数：{{peerNetworkSize}}\n- 连接方式：{{peerNetworking}}\n\n**圈层2：媒体记者**\n- 关系维护：{{mediaRelations}}\n\n**圈层3：行业领袖**\n- 接触策略：{{leaderNetworking}}\n\n**圈层4：潜在客户**\n- 转化路径：{{clientConversion}}\n\n**人脉管理工具：**{{crmTools}}\n\n## 商业变现路径\n\n### 变现模式设计\n\n**阶段1（0-6个月）：品牌建设期**\n- 重点：影响力积累\n- 轻变现：{{phase1Monetization}}\n- 预期收入：{{phase1Income}}元/月\n\n**阶段2（6-12个月）：初步变现期**\n- 收入来源：\n  1. {{phase2Revenue1}}\n  2. {{phase2Revenue2}}\n  3. {{phase2Revenue3}}\n- 预期收入：{{phase2Income}}元/月\n\n**阶段3（12个月+）：规模变现期**\n- 收入来源：\n  1. {{phase3Revenue1}}\n  2. {{phase3Revenue2}}\n  3. {{phase3Revenue3}}\n  4. {{phase3Revenue4}}\n- 预期收入：{{phase3Income}}元/月\n\n### 具体变现方式\n\n**1. 广告与品牌合作**\n- 广告报价：{{adPricing}}\n- 合作品牌定位：{{brandPartnerProfile}}\n- 接单原则：{{brandDealPrinciples}}\n\n**2. 知识付费**\n\n**在线课程：**\n- 课程主题：{{courseTopics}}\n- 定价：{{coursePricing}}\n- 平台选择：{{coursePlatforms}}\n\n**付费社群：**\n- 会员权益：{{membershipBenefits}}\n- 定价：{{membershipPricing}}元/年\n- 目标人数：{{membershipTarget}}\n\n**一对一咨询：**\n- 咨询类型：{{consultingTypes}}\n- 时长与定价：{{consultingPricing}}\n\n**3. 电子产品销售**\n- 电子书：{{ebookProducts}}\n- 模板/工具包：{{digitalProducts}}\n- 定价策略：{{digitalPricing}}\n\n**4. 实体产品**\n- 自有品牌商品：{{merchandiseProducts}}\n- 周边设计：{{merchandiseDesign}}\n\n**5. 联盟营销/带货**\n- 推广产品类型：{{affiliateProducts}}\n- 佣金比例：{{affiliateCommission}}%\n\n**6. 线下活动**\n- 工作坊/培训：{{workshopServices}}\n- 演讲出场费：{{speakingFee}}元/场\n\n**7. B端服务**\n- 企业培训：{{corporateTraining}}\n- 顾问服务：{{advisoryServices}}\n- 定价：{{b2bPricing}}\n\n### 价值阶梯设计\n\n**免费层：**{{freeTier}}\n**低价层（{{lowTierPrice}}元）：**{{lowTier}}\n**中价层（{{midTierPrice}}元）：**{{midTier}}\n**高价层（{{highTierPrice}}元+）：**{{highTier}}\n\n## 数据监控与优化\n\n### 关键指标（KPI）\n\n**影响力指标：**\n- 总粉丝数：{{totalFollowers}}\n- 月增粉丝：{{monthlyGrowth}}\n- 内容阅读/播放量：{{contentViews}}\n- 互动率：{{engagementRate}}%\n\n**内容指标：**\n- 发布频率：{{publishingFrequency}}\n- 平均阅读完成率：{{completionRate}}%\n- 转发/分享数：{{sharesPerPost}}\n\n**商业指标：**\n- 月收入：{{monthlyRevenue}}元\n- 客单价：{{averageTransaction}}元\n- 转化率：{{conversionRate}}%\n\n**品牌指标：**\n- 品牌搜索量：{{brandSearchVolume}}\n- 媒体曝光：{{mediaExposure}}\n- 行业排名：{{industryRanking}}\n\n### 数据分析工具\n\n- 平台后台数据\n- 第三方分析：{{analyticsTools}}\n- 舆情监测：{{sentimentAnalysis}}\n\n### 持续优化\n\n**A/B测试：**\n- 标题测试：{{titleTesting}}\n- 封面测试：{{thumbnailTesting}}\n- 发布时间测试：{{timingTesting}}\n\n**内容迭代：**{{contentIteration}}\n\n**反馈机制：**{{feedbackLoop}}\n\n## 风险管理\n\n### 潜在风险\n\n**风险1：人设崩塌**\n- 预防：{{personaRiskPrevention}}\n- 应对：{{personaCrisisResponse}}\n\n**风险2：负面舆情**\n- 监测：{{negativeMonitoring}}\n- 处理：{{crisisManagement}}\n\n**风险3：平台政策变化**\n- 应对：{{platformRiskMitigation}}\n\n**风险4：抄袭/侵权**\n- 保护措施：{{copyrightProtection}}\n\n**风险5：竞争加剧**\n- 应对：{{competitionStrategy}}\n\n## 时间与资源投入\n\n### 每周时间分配\n\n**内容创作：**{{contentCreationHours}}小时/周\n**平台运营：**{{platformManagementHours}}小时/周\n**学习提升：**{{learningHours}}小时/周\n**社交互动：**{{networkingHours}}小时/周\n**商务合作：**{{businessHours}}小时/周\n\n**总计：**{{totalWeeklyHours}}小时/周\n\n### 资源投入\n\n**启动成本：**\n- 设备投资：{{equipmentCost}}元\n- 专业培训：{{trainingCost}}元\n- 平台推广：{{promotionCost}}元\n- 工具软件：{{toolsCost}}元/年\n- **总计：**{{startupCost}}元\n\n**月度运营成本：**\n- 付费推广：{{monthlyAdBudget}}元\n- 外包服务：{{outsourcingCost}}元\n- 平台会员：{{platformSubscriptions}}元\n- 其他：{{otherCosts}}元\n- **总计：**{{monthlyCost}}元\n\n### 外包与协作\n\n**可外包任务：**\n- 视频剪辑：{{videoEditingOutsource}}\n- 图片设计：{{designOutsource}}\n- 文案润色：{{copyEditingOutsource}}\n- 数据分析：{{analyticsOutsource}}\n\n## 成功案例学习\n\n**案例1：**{{successCase1}}\n**关键策略：**{{case1Strategy}}\n**可借鉴点：**{{case1Lessons}}\n\n**案例2：**{{successCase2}}\n**关键策略：**{{case2Strategy}}\n**可借鉴点：**{{case2Lessons}}\n\n**案例3：**{{successCase3}}\n**关键策略：**{{case3Strategy}}\n**可借鉴点：**{{case3Lessons}}\n\n## 执行计划\n\n### 第1个月：基础搭建\n- [ ] {{month1Task1}}\n- [ ] {{month1Task2}}\n- [ ] {{month1Task3}}\n- [ ] {{month1Task4}}\n\n### 第2-3个月：内容积累\n- [ ] {{month23Task1}}\n- [ ] {{month23Task2}}\n- [ ] {{month23Task3}}\n\n### 第4-6个月：影响力提升\n- [ ] {{month46Task1}}\n- [ ] {{month46Task2}}\n- [ ] {{month46Task3}}\n\n### 第7-12个月：商业转化\n- [ ] {{month712Task1}}\n- [ ] {{month712Task2}}\n- [ ] {{month712Task3}}\n\n---\n\n**核心理念：**真实、专业、利他、持续\n**成功公式：**明确定位 + 优质内容 + 持续输出 + 真诚互动 + 商业闭环 = 成功的个人品牌",
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名/品牌名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "label": "所在行业",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "互联网科技",
+          "label": "互联网/科技"
+        },
+        {
+          "value": "金融投资",
+          "label": "金融/投资"
+        },
+        {
+          "value": "教育培训",
+          "label": "教育/培训"
+        },
+        {
+          "value": "营销广告",
+          "label": "营销/广告"
+        },
+        {
+          "value": "设计创意",
+          "label": "设计/创意"
+        },
+        {
+          "value": "咨询管理",
+          "label": "咨询/管理"
+        },
+        {
+          "value": "健康医疗",
+          "label": "健康/医疗"
+        },
+        {
+          "value": "其他",
+          "label": "其他行业"
+        }
+      ]
+    },
+    {
+      "name": "targetPosition",
+      "label": "目标定位",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "currentInfluence",
+      "label": "当前影响力水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "零基础",
+          "label": "零基础起步"
+        },
+        {
+          "value": "小范围",
+          "label": "小范围影响力（<1000粉）"
+        },
+        {
+          "value": "初步积累",
+          "label": "初步积累（1000-1万粉）"
+        },
+        {
+          "value": "小有名气",
+          "label": "小有名气（1-10万粉）"
+        },
+        {
+          "value": "行业KOL",
+          "label": "行业KOL（10万+粉）"
+        }
+      ]
+    },
+    {
+      "name": "yearsOfExperience",
+      "label": "工作年限",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "个人品牌策略-{{name}}",
+    "files": [
+      {
+        "path": "品牌战略方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "内容日历.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "平台运营计划.md",
+        "type": "markdown"
+      },
+      {
+        "path": "品牌视觉规范.md",
+        "type": "markdown"
+      },
+      {
+        "path": "变现路径图.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据追踪表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "执行计划表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "内容创作",
+    "自我营销",
+    "社交媒体运营",
+    "个人定位",
+    "持续学习"
+  ],
+  "required_tools": [
+    "社交媒体账号",
+    "内容创作工具",
+    "数据分析工具",
+    "设计软件"
+  ],
+  "execution_engine": "llm"
+}

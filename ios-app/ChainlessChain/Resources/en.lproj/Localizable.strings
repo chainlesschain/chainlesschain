@@ -1,0 +1,200 @@
+/*
+  Localizable.strings (English)
+  ChainlessChain
+
+  Created for iOS localization support
+*/
+
+// MARK: - Common
+
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.edit" = "Edit";
+"common.done" = "Done";
+"common.loading" = "Loading...";
+"common.error" = "Error";
+"common.success" = "Success";
+"common.retry" = "Retry";
+"common.close" = "Close";
+"common.search" = "Search";
+"common.settings" = "Settings";
+"common.back" = "Back";
+"common.next" = "Next";
+"common.confirm" = "Confirm";
+"common.share" = "Share";
+"common.copy" = "Copy";
+
+// MARK: - Authentication
+
+"auth.title" = "ChainlessChain";
+"auth.subtitle" = "Decentralized Personal AI Management";
+"auth.enter_pin" = "Enter PIN";
+"auth.create_pin" = "Create PIN";
+"auth.confirm_pin" = "Confirm PIN";
+"auth.pin_mismatch" = "PIN does not match";
+"auth.biometric_prompt" = "Unlock with Face ID / Touch ID";
+"auth.biometric_reason" = "Authenticate to access the app";
+"auth.pin_incorrect" = "Incorrect PIN";
+"auth.pin_hint" = "Enter 6-8 digit PIN";
+
+// MARK: - Home
+
+"home.knowledge" = "Knowledge";
+"home.ai_chat" = "AI Chat";
+"home.social" = "Social";
+"home.settings" = "Settings";
+
+// MARK: - Knowledge Base
+
+"knowledge.title" = "Knowledge Base";
+"knowledge.empty" = "No entries yet";
+"knowledge.add" = "Add Knowledge";
+"knowledge.search_placeholder" = "Search knowledge...";
+"knowledge.all" = "All";
+"knowledge.favorites" = "Favorites";
+"knowledge.recent" = "Recent";
+"knowledge.tags" = "Tags";
+"knowledge.categories" = "Categories";
+"knowledge.new_entry" = "New Entry";
+"knowledge.edit_entry" = "Edit Entry";
+"knowledge.delete_confirm" = "Are you sure you want to delete this entry?";
+"knowledge.title_placeholder" = "Title";
+"knowledge.content_placeholder" = "Content";
+"knowledge.add_tag" = "Add Tag";
+"knowledge.select_category" = "Select Category";
+"knowledge.views" = "Views";
+"knowledge.created" = "Created";
+"knowledge.updated" = "Updated";
+"knowledge.load_more" = "Load More";
+"knowledge.no_more" = "No more items";
+
+// MARK: - AI Chat
+
+"ai.title" = "AI Chat";
+"ai.new_chat" = "New Chat";
+"ai.empty" = "No conversations";
+"ai.start_chat" = "Start New Chat";
+"ai.select_model" = "Select Model";
+"ai.input_placeholder" = "Type a message...";
+"ai.send" = "Send";
+"ai.thinking" = "Thinking...";
+"ai.copy_message" = "Copy Message";
+"ai.delete_chat" = "Delete Chat";
+"ai.delete_confirm" = "Are you sure you want to delete this chat?";
+"ai.tokens" = "Tokens";
+"ai.messages" = "Messages";
+"ai.model" = "Model";
+
+// MARK: - P2P Messages
+
+"p2p.title" = "Messages";
+"p2p.contacts" = "Contacts";
+"p2p.groups" = "Groups";
+"p2p.new_chat" = "New Chat";
+"p2p.new_group" = "New Group";
+"p2p.add_contact" = "Add Contact";
+"p2p.scan_qr" = "Scan QR Code";
+"p2p.my_qr" = "My QR Code";
+"p2p.empty" = "No messages";
+"p2p.input_placeholder" = "Type a message...";
+"p2p.send" = "Send";
+"p2p.sending" = "Sending";
+"p2p.sent" = "Sent";
+"p2p.delivered" = "Delivered";
+"p2p.read" = "Read";
+"p2p.failed" = "Failed";
+"p2p.typing" = "Typing...";
+"p2p.online" = "Online";
+"p2p.offline" = "Offline";
+"p2p.connecting" = "Connecting...";
+"p2p.connected" = "Connected";
+"p2p.disconnected" = "Disconnected";
+"p2p.image" = "Image";
+"p2p.file" = "File";
+"p2p.voice" = "Voice";
+
+// MARK: - Groups
+
+"group.title" = "Groups";
+"group.create" = "Create Group";
+"group.name" = "Group Name";
+"group.members" = "Members";
+"group.add_member" = "Add Member";
+"group.remove_member" = "Remove Member";
+"group.leave" = "Leave Group";
+"group.leave_confirm" = "Are you sure you want to leave this group?";
+"group.mute" = "Mute";
+"group.unmute" = "Unmute";
+"group.settings" = "Group Settings";
+"group.created" = "Group created";
+"group.joined" = "Joined group";
+"group.left" = "Left group";
+
+// MARK: - Settings
+
+"settings.title" = "Settings";
+"settings.account" = "Account";
+"settings.security" = "Security";
+"settings.notifications" = "Notifications";
+"settings.appearance" = "Appearance";
+"settings.language" = "Language";
+"settings.about" = "About";
+"settings.version" = "Version";
+"settings.clear_data" = "Clear Data";
+"settings.clear_data_confirm" = "Are you sure you want to clear all data? This cannot be undone.";
+"settings.logout" = "Log Out";
+"settings.change_pin" = "Change PIN";
+"settings.current_pin" = "Current PIN";
+"settings.new_pin" = "New PIN";
+"settings.confirm_new_pin" = "Confirm New PIN";
+"settings.pin_changed" = "PIN changed successfully";
+"settings.biometric" = "Biometrics";
+"settings.enable_biometric" = "Enable Face ID / Touch ID";
+"settings.llm_settings" = "LLM Settings";
+"settings.provider" = "Provider";
+"settings.api_key" = "API Key";
+"settings.model" = "Model";
+"settings.base_url" = "Server URL";
+"settings.sync" = "Sync";
+"settings.manual_sync" = "Manual Sync";
+"settings.syncing" = "Syncing...";
+"settings.sync_complete" = "Sync Complete";
+"settings.backup" = "Backup";
+"settings.export" = "Export Data";
+"settings.import" = "Import Data";
+
+// MARK: - Notification Settings
+
+"notification.title" = "Notification Settings";
+"notification.messages" = "Message Notifications";
+"notification.group_messages" = "Group Message Notifications";
+"notification.sound" = "Sound";
+"notification.badge" = "Badge";
+"notification.preview" = "Message Preview";
+"notification.quiet_hours" = "Quiet Hours";
+"notification.quiet_start" = "Start Time";
+"notification.quiet_end" = "End Time";
+
+// MARK: - Error Messages
+
+"error.network" = "Network error. Please check your connection.";
+"error.server" = "Server error. Please try again later.";
+"error.timeout" = "Request timed out";
+"error.unknown" = "Unknown error";
+"error.auth_failed" = "Authentication failed";
+"error.data_load" = "Failed to load data";
+"error.data_save" = "Failed to save data";
+"error.encryption" = "Encryption failed";
+"error.decryption" = "Decryption failed";
+"error.connection" = "Connection failed";
+
+// MARK: - Empty States
+
+"empty.knowledge" = "No entries yet\nTap + to add one";
+"empty.chat" = "No conversations\nStart a new chat";
+"empty.message" = "No messages\nAdd a contact to start chatting";
+"empty.contact" = "No contacts\nScan a QR code to add";
+"empty.group" = "No groups\nCreate a new group";
+"empty.search" = "No results found";

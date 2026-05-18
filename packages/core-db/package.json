@@ -1,0 +1,48 @@
+{
+  "name": "@chainlesschain/core-db",
+  "version": "0.1.1",
+  "description": "Database layer - SQLite/SQLCipher with migrations, query builder, and optimization",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./query-builder": "./lib/database/query-builder.js",
+    "./sql-security": "./lib/database/sql-security.js",
+    "./index-optimizer": "./lib/database/index-optimizer.js",
+    "./database-manager": "./lib/database-manager.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "database",
+    "sqlite",
+    "sqlcipher"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/core-db"
+  },
+  "dependencies": {
+    "@chainlesschain/core-env": "0.1.1",
+    "@chainlesschain/core-config": "0.1.1"
+  },
+  "optionalDependencies": {
+    "better-sqlite3-multiple-ciphers": "^11.0.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  }
+}

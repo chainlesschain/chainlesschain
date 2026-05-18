@@ -1,0 +1,52 @@
+{
+  "id": "tpl_design_brandidentity_001",
+  "name": "brand_identity_guide",
+  "display_name": "品牌视觉识别系统",
+  "description": "创建品牌VI设计指南，包含Logo使用、色彩规范和字体系统",
+  "icon": "🎨",
+  "category": "design",
+  "subcategory": "branding",
+  "tags": ["品牌", "VI", "设计规范", "Logo"],
+  "project_type": "document",
+  "prompt_template": "# {{brandName}} 品牌视觉识别系统\n\n## 品牌定位\n- 品牌名称：{{brandName}}\n- 品牌口号：{{tagline}}\n- 品牌理念：{{brandPhilosophy}}\n- 目标受众：{{targetAudience}}\n- 品牌个性：{{brandPersonality}}\n\n## Logo设计\n\n### Logo标准样式\n{{logoStandard}}\n\n### Logo变体\n- 彩色版\n- 黑白版\n- 反白版\n\n### Logo禁止使用\n{{logoRestrictions}}\n\n## 色彩系统\n\n### 主色\n- 主色1：{{primaryColor1}} (HEX: {{primaryHex1}})\n- 主色2：{{primaryColor2}} (HEX: {{primaryHex2}})\n\n### 辅助色\n- 辅助色1：{{secondaryColor1}}\n- 辅助色2：{{secondaryColor2}}\n\n### 中性色\n- 黑：{{black}}\n- 白：{{white}}\n- 灰度系列：{{grayScale}}\n\n## 字体系统\n\n### 中文字体\n- 标题：{{chineseTitleFont}}\n- 正文：{{chineseBodyFont}}\n\n### 英文字体\n- 标题：{{englishTitleFont}}\n- 正文：{{englishBodyFont}}\n\n## 应用规范\n\n### 名片设计\n{{businessCardSpecs}}\n\n### 信纸信封\n{{stationerySpecs}}\n\n### 数字媒体\n{{digitalMediaSpecs}}",
+  "variables_schema": [
+    {
+      "name": "brandName",
+      "label": "品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "tagline",
+      "label": "品牌口号",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "brandPersonality",
+      "label": "品牌个性",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "专业可靠", "label": "专业可靠" },
+        { "value": "年轻活力", "label": "年轻活力" },
+        { "value": "高端奢华", "label": "高端奢华" },
+        { "value": "温暖亲切", "label": "温暖亲切" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{brandName}}-VI系统",
+    "files": [
+      {"path": "VI手册.pdf", "type": "document"},
+      {"path": "Logo文件/", "type": "folder"},
+      {"path": "应用模板/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_graphic_design", "skill_brand_design"],
+  "required_tools": ["tool_design_generator", "tool_file_writer"],
+  "execution_engine": "design"
+}

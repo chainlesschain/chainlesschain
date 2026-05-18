@@ -1,0 +1,469 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import cliPkg from '../../../../packages/cli/package.json';
+
+const CLI_VERSION = cliPkg.version;
+
+const categories = [
+  {
+    name: 'System Management',
+    key: 'system',
+    cmds: [
+      ['setup', 'Interactive setup wizard'],
+      ['start', 'Launch desktop app'],
+      ['stop', 'Stop the app'],
+      ['status', 'Show status'],
+      ['services up', 'Start Docker dependencies'],
+      ['config list', 'View current config'],
+      ['update', 'Check for updates'],
+      ['doctor', 'Diagnose runtime environment'],
+    ],
+  },
+  {
+    name: 'Headless Commands (no GUI)',
+    key: 'headless',
+    cmds: [
+      ['db init', 'Initialize database'],
+      ['note add', 'Create note (with tags)'],
+      ['note list', 'List notes'],
+      ['note search', 'Full-text search'],
+      ['chat', 'Interactive AI chat (streaming)'],
+      ['chat --agent', 'Agentic mode (read/write files)'],
+      ['ask', 'One-shot AI query'],
+      ['llm models', 'List installed models'],
+      ['llm test', 'Test LLM connectivity'],
+      ['agent', 'Claude Code-style agent session'],
+      ['skill list', 'List all skills (4 layers)'],
+      ['skill run', 'Run a specific skill'],
+      ['skill sync-cli', 'Generate / update 9 CLI Skill Packs'],
+      ['skill add', 'Create a custom project skill'],
+    ],
+  },
+  {
+    name: 'AI Intelligence Layer',
+    key: 'ai',
+    cmds: [
+      ['search', 'BM25 hybrid search'],
+      ['tokens show', 'Token usage tracking'],
+      ['memory add', 'Persistent memory'],
+      ['session list', 'Session management'],
+    ],
+  },
+  {
+    name: 'Knowledge & Content',
+    key: 'content',
+    cmds: [
+      ['import markdown', 'Import a Markdown directory'],
+      ['import evernote', 'Import Evernote backup'],
+      ['import pdf', 'Import PDF'],
+      ['export site', 'Export as static HTML'],
+      ['git status', 'Git integration status'],
+      ['git auto-commit', 'Auto-commit changes'],
+    ],
+  },
+  {
+    name: 'MCP & External Integration',
+    key: 'mcp',
+    cmds: [
+      ['mcp servers', 'List MCP servers'],
+      ['mcp add', 'Add an MCP server'],
+      ['mcp tools', 'List available tools'],
+      ['browse fetch', 'Fetch a web page'],
+      ['browse scrape', 'Scrape elements'],
+      ['llm providers', 'List 10 LLM providers'],
+      ['llm switch', 'Switch active provider'],
+      ['instinct show', 'View learned preferences'],
+    ],
+  },
+  {
+    name: 'Security & Identity',
+    key: 'security',
+    cmds: [
+      ['did create', 'Create DID identity (Ed25519)'],
+      ['did list', 'List all identities'],
+      ['did sign', 'Sign with default DID'],
+      ['encrypt file', 'AES-256-GCM file encryption'],
+      ['decrypt file', 'Decrypt file'],
+      ['auth roles', 'List RBAC roles'],
+      ['auth check', 'Check permissions'],
+      ['audit log', 'Recent audit events'],
+      ['audit stats', 'Audit statistics'],
+    ],
+  },
+  {
+    name: 'P2P / Blockchain / Enterprise',
+    key: 'p2p',
+    cmds: [
+      ['p2p peers', 'List P2P peers'],
+      ['p2p send', 'Send encrypted message'],
+      ['p2p pair', 'Pair devices'],
+      ['sync status', 'Sync status'],
+      ['sync push / pull', 'Push & pull data'],
+      ['wallet create', 'Create wallet'],
+      ['wallet assets', 'List digital assets'],
+      ['wallet transfer', 'Transfer assets'],
+      ['org create', 'Create organization'],
+      ['org invite', 'Invite members'],
+      ['plugin list / install', 'Plugin management'],
+    ],
+  },
+  {
+    name: 'Init & Persona',
+    key: 'init',
+    cmds: [
+      ['init', 'Interactive project init'],
+      ['init --template code-project', 'Code project template'],
+      ['init --template medical-triage', 'Medical triage template'],
+      ['init --template ai-doc-creator', 'AI doc creator template'],
+      ['persona show / set / reset', 'Persona management'],
+    ],
+  },
+  {
+    name: 'Cowork Multi-Agent',
+    key: 'cowork',
+    cmds: [
+      ['cowork debate', 'Multi-perspective code review'],
+      ['cowork compare', 'A/B option comparison'],
+      ['cowork analyze', 'Code analysis'],
+      ['cowork status', 'Cowork status'],
+    ],
+  },
+  {
+    name: 'AI Core: Hooks / Workflow / Memory / A2A',
+    key: 'core',
+    cmds: [
+      ['hook list / add / run', 'Hook management'],
+      ['workflow create / run / templates', 'Workflows'],
+      ['hmemory store / recall / consolidate', 'Hierarchical memory'],
+      ['a2a register / discover / submit', 'Agent-to-agent protocol'],
+    ],
+  },
+  {
+    name: 'Security & Evolution',
+    key: 'evolution',
+    cmds: [
+      ['sandbox create / exec / audit', 'Sandbox'],
+      ['evolution assess / diagnose / learn', 'System evolution'],
+      ['evomap federation', 'EvoMap federation'],
+      ['evomap gov', 'Governance vote'],
+      ['dao propose / vote / delegate', 'DAO governance'],
+    ],
+  },
+  {
+    name: 'Blockchain & Compliance',
+    key: 'enterprise',
+    cmds: [
+      ['economy pay / market / nft', 'Economy layer'],
+      ['zkp compile / prove / verify', 'Zero-knowledge proofs'],
+      ['bi query / dashboard', 'BI engine'],
+      ['compliance evidence / report', 'Compliance evidence'],
+      ['dlp scan / incidents', 'Data loss prevention'],
+      ['siem targets / export', 'SIEM integration'],
+      ['pqc keys / generate / migrate', 'Post-quantum cryptography'],
+      ['nostr / matrix / scim / terraform', 'Protocol bridges'],
+    ],
+  },
+  {
+    name: 'Server & Web Panel',
+    key: 'server',
+    cmds: [
+      ['serve', 'WebSocket server (18800)'],
+      ['ui', 'Web admin panel (18810)'],
+      ['stream', 'NDJSON streaming output'],
+    ],
+  },
+  {
+    name: 'AI Orchestration',
+    key: 'orch',
+    cmds: [
+      ['orchestrate "task"', 'Auto-detect agent backend'],
+      ['orchestrate detect', 'Detect Claude Code / Codex'],
+      ['orchestrate --webhook', 'Webhook server (WeCom / DingTalk / Lark)'],
+    ],
+  },
+  {
+    name: 'Communication Bridges & Social',
+    key: 'social',
+    cmds: [
+      ['nostr keygen / publish / dm', 'Nostr NIP-01/04/09/25'],
+      ['matrix login / rooms / send', 'Matrix threads & spaces'],
+      ['activitypub actor / publish / follow', 'ActivityPub C2S federation'],
+      ['social graph add-edge / neighbors', 'Social graph (directed weighted)'],
+      ['social analyze / detect-lang', 'Multi-language topic classification'],
+    ],
+  },
+  {
+    name: 'Stress Testing & Ops',
+    key: 'ops',
+    cmds: [
+      ['stress run / analyze / plan', 'Stress test + capacity planning'],
+      ['sla create / check / report', 'SLA management (gold/silver/bronze)'],
+      ['reputation observe / score / anomalies', 'Reputation scoring + anomaly detection'],
+      ['tech analyze / detect / recommend', 'Tech-stack analysis + anti-pattern detection'],
+      ['hardening config-check / deploy-check', 'Config audit + deploy preflight'],
+    ],
+  },
+  {
+    name: 'Autonomous Dev & Governance',
+    key: 'dev',
+    cmds: [
+      ['dev start / phase / review / adr', 'Autonomous developer (L0–L4 autonomy)'],
+      ['collab propose / vote / execute', 'Collaboration governance + task assignment'],
+      ['governance create / vote / tally', 'Community governance (proposals + voting)'],
+      ['learning reflect / synthesize', 'Autonomous learning system'],
+    ],
+  },
+  {
+    name: 'Marketplace & Economy',
+    key: 'market',
+    cmds: [
+      ['marketplace publish / list / stats', 'Skill marketplace (publish + invocation stats)'],
+      ['incentive mint / transfer / leaderboard', 'Token incentive (7 contribution types)'],
+      ['crosschain bridge / swap / send', 'Cross-chain interop'],
+    ],
+  },
+  {
+    name: 'Knowledge Graph & Recommendation',
+    key: 'knowledge',
+    cmds: [
+      ['kg add / query / reason', 'Enterprise knowledge graph (multi-hop reasoning)'],
+      ['recommend profile / recommend / feedback', 'Smart recommendation system'],
+      ['tenant create / subscribe / check-quota', 'Multi-tenant SaaS engine'],
+    ],
+  },
+  {
+    name: 'Video Editing Agent',
+    key: 'video',
+    cmds: [
+      ['video edit', 'End-to-end video editing (CutClaw)'],
+      ['video deconstruct / plan / assemble / render', 'Step-by-step workflow'],
+      ['video assets list / prune', 'Asset cache management'],
+    ],
+  },
+  {
+    name: 'Privacy Computing',
+    key: 'privacy',
+    cmds: [
+      ['privacy create-model / train', 'Federated learning (FL)'],
+      ['privacy create-computation / submit-share', 'Secure multi-party computation (MPC)'],
+      ['privacy dp-publish / he-query', 'Differential privacy / homomorphic encryption'],
+    ],
+  },
+  {
+    name: 'Code Generation & DB Evolution',
+    key: 'codegen',
+    cmds: [
+      ['codegen generate / review / scaffold', 'Code Generation Agent 2.0'],
+      ['codegen stats', 'Generation statistics dashboard'],
+      ['dbevo register / up / down', 'Database migration management'],
+      ['dbevo analyze / apply', 'Slow-query analysis + index suggestions'],
+    ],
+  },
+  {
+    name: 'AIOps',
+    key: 'aiops',
+    cmds: [
+      ['ops baseline-update / detect', 'Metric baselines + anomaly detection'],
+      ['ops incident-create / ack / resolve', 'Incident lifecycle management'],
+      ['ops playbook-create / toggle / record', 'Playbook auto-remediation'],
+      ['ops postmortem', 'Postmortem report'],
+    ],
+  },
+  {
+    name: 'Multimodal Perception & Federation',
+    key: 'perception',
+    cmds: [
+      ['perception record / results / query', 'Perception results & cross-modal search'],
+      ['perception voice-start / voice-status', 'Voice session state machine'],
+      ['perception index-add / context', 'Multimodal indexing & context'],
+      ['federation register / breakers / check', 'Circuit breakers + health checks'],
+      ['federation pool-init / pool-stats', 'Connection pool management'],
+    ],
+  },
+  {
+    name: 'NL Programming & Quantization',
+    key: 'nlprog',
+    cmds: [
+      ['nlprog classify / extract / detect-stack', 'Intent / entity / stack detection'],
+      ['nlprog translate / refine', 'NL → structured spec translation'],
+      ['nlprog convention-add / conventions', 'Project coding conventions'],
+      ['quantize create / start / complete', 'GGUF/GPTQ quantization tasks'],
+      ['quantize levels / gptq-bits', 'Quantization level catalog'],
+    ],
+  },
+  {
+    name: 'Runtime & IPFS & Multimodal',
+    key: 'runtime',
+    cmds: [
+      ['runtime plugin-load / hot-update / rollback', 'Plugin hot update + rollback'],
+      ['runtime state-set / state-get / state-list', 'LWW state sync'],
+      ['runtime profile / health / metrics', 'Runtime monitoring'],
+      ['ipfs add / get / pin / gc', 'IPFS content I/O + GC'],
+      ['mm session-create / fuse / generate', 'Multimodal fusion & generation'],
+    ],
+  },
+  {
+    name: 'Agent Network & Identity',
+    key: 'anet',
+    cmds: [
+      ['anet did-create / register / discover', 'Agent node registration + discovery'],
+      ['anet auth-start / credential-issue', 'Authentication + W3C VC credentials'],
+      ['anet task-route / rep-update', 'Reputation-weighted task routing'],
+      ['didv2 create / cred-issue / present', 'DID 2.0 + VC/VP'],
+      ['didv2 recover-start / roam / rep-aggregate', 'Social recovery + roaming + reputation'],
+      ['sso create / login-url / link', 'SSO SAML/OAuth2/OIDC + DID bridging'],
+    ],
+  },
+  {
+    name: 'Pipeline & Automation & Plugins',
+    key: 'pipeline',
+    cmds: [
+      ['pipe create / start / approve / deploy', '7-stage development pipeline'],
+      ['pipe rollback / monitor-record', 'Deployment rollback + monitoring'],
+      ['auto create / activate / execute', 'Workflow automation (12 SaaS connectors)'],
+      ['auto add-trigger / fire-trigger', 'Webhook/Schedule triggers'],
+      ['eco register / review / publish', 'Plugin ecosystem (AI review + sandbox)'],
+      ['perf collect / evaluate / apply', 'Performance tuning suggestions'],
+    ],
+  },
+];
+
+const packs = [
+  { name: 'cli-knowledge-pack', type: 'direct', desc: 'note / search / session — knowledge commands' },
+  { name: 'cli-identity-pack', type: 'direct', desc: 'did / auth / encrypt — identity & encryption' },
+  { name: 'cli-infra-pack', type: 'direct', desc: 'db / services / doctor — infrastructure' },
+  { name: 'cli-ai-query-pack', type: 'llm-query', desc: 'chat / ask / llm — smart Q&A' },
+  { name: 'cli-agent-mode-pack', type: 'agent', desc: 'agent / cowork — multi-agent' },
+  { name: 'cli-web3-pack', type: 'direct', desc: 'wallet / nft / dao — on-chain ops' },
+  { name: 'cli-security-pack', type: 'direct', desc: 'audit / sandbox / dlp — security & compliance' },
+  { name: 'cli-enterprise-pack', type: 'direct', desc: 'org / scim / terraform — enterprise' },
+  { name: 'cli-integration-pack', type: 'hybrid', desc: 'mcp / browse / nostr — integration bridges' },
+];
+---
+<BaseLayout
+  title="CLI — 112 commands · 139 skills · Your terminal is the AI workbench | ChainlessChain"
+  description="ChainlessChain CLI: 112 commands, 139 built-in skills, 9 Skill Packs, local Ollama + 10 LLM providers, MTC v0.5 federation + libp2p auto-discovery, bilingual Web Panel. Agent mode, Cowork multi-agent, MCP ecosystem — all in the terminal."
+  canonical="https://www.chainlesschain.com/en/cli"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">CLI · v{CLI_VERSION}</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          Your terminal,<br/><span class="italic text-ember">your AI workbench</span>.
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          112 commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
+        </p>
+
+        <!-- Install tabs -->
+        <div class="animate-fade-in-delay-3 mt-10">
+          <div class="flex flex-wrap gap-2 mb-3" id="install-tabs">
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-ink text-cream" data-tab="npm">npm</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="yarn">yarn</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="pnpm">pnpm</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="bun">bun</button>
+          </div>
+          <div class="term-window max-w-2xl">
+            <div class="term-head">
+              <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+              <span class="term-title">install</span>
+            </div>
+            <div class="term-body">
+              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain</div>
+              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain</div>
+              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain</div>
+              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain</div>
+              <div class="term-comment mt-3"># Aliases: chainlesschain / cc / clc / clchain</div>
+              <div class="term-out">$ cc --help</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands by category -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="flex items-baseline justify-between mb-10">
+        <h2 class="text-4xl md:text-5xl">All 112 commands</h2>
+        <span class="font-mono text-sm text-muted">{categories.length} categories</span>
+      </div>
+      <div class="space-y-3">
+        {categories.map((cat, i) => (
+          <details class="group border border-line rounded-xl bg-paper overflow-hidden" open={i < 3}>
+            <summary class="flex items-center justify-between cursor-pointer p-5 list-none">
+              <div class="flex items-center gap-4">
+                <span class="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
+                <span class="font-display text-xl">{cat.name}</span>
+                <span class="chip">{cat.cmds.length} items</span>
+              </div>
+              <span class="text-muted group-open:rotate-180 transition-transform">▾</span>
+            </summary>
+            <div class="px-5 pb-5 grid md:grid-cols-2 gap-2">
+              {cat.cmds.map(([cmd, desc]) => (
+                <div class="flex gap-3 items-start py-2 border-t border-line/60">
+                  <code class="font-mono text-sm text-ember whitespace-nowrap">cc {cmd}</code>
+                  <span class="text-sm text-muted flex-1">{desc}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 Skill Packs -->
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">CLI Skill Packs · 9 domain packs</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          One command,<br/><span class="italic text-ember">all skill bindings generated</span>.
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc skill sync-cli</code> generates 9 domain Skill Packs with 101 built-in tests — ready to use out of the box.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4">
+        {packs.map((p) => (
+          <div class="p-6 rounded-xl bg-paper border border-line">
+            <div class="flex items-center justify-between mb-2">
+              <code class="font-mono text-sm text-ink">{p.name}</code>
+              <span class="text-[10px] font-mono uppercase tracking-wider text-ember">{p.type}</span>
+            </div>
+            <p class="text-sm text-muted">{p.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 text-center">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-6">Full API reference</h2>
+      <p class="text-muted mb-8">Args, examples, configuration — all in the developer docs.</p>
+      <a href="https://docs.chainlesschain.com/chainlesschain/cli.html" rel="noopener" class="btn-ember">Read CLI docs ↗</a>
+    </div>
+  </section>
+
+  <script is:inline>
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      var tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(function (b) {
+        var active = b.dataset.tab === tab;
+        b.classList.toggle('bg-ink', active); b.classList.toggle('text-cream', active);
+        b.classList.toggle('bg-cream', !active); b.classList.toggle('text-ink', !active);
+        b.classList.toggle('border', !active); b.classList.toggle('border-line', !active);
+      });
+      document.querySelectorAll('[data-tab-panel]').forEach(function (p) {
+        p.hidden = p.dataset.tabPanel !== tab;
+      });
+    });
+  </script>
+</BaseLayout>

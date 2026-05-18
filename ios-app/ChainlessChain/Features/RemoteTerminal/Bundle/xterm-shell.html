@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Remote Terminal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<!--
+  iOS Plan A.1 terminal renderer (Phase 2.3, OQ-4 锁同源 v5.5.0)。
+
+  与 android-app/app/src/main/assets/terminal/xterm-shell.html 同源 (~95%)；
+  差异仅 2 处：
+    (1) 静态资源用相对路径（不是 file:///android_asset/...）
+    (2) 桥接层 polyfill 自动适配 iOS WKScriptMessageHandler vs Android JavascriptInterface
+
+  Swift → JS: window.cc.onStdout(data) / cc.onExit({exitCode, signal}) / cc.write(text)
+  JS → Swift: TerminalBridge.onReady(c, r) / onResize(c, r) / onUserInput(data)
+                 ↓ polyfill 转 ↓
+              window.webkit.messageHandlers.terminalBridge.postMessage({type, ...})
+
+  本文件 + xterm.css / xterm.js / addon-fit.js 由 ios-app/ChainlessChain/Features/
+  RemoteTerminal/Bundle/ 统一加载（OQ-1 决策：app target Bundle.main）。
+-->
+<link rel="stylesheet" href="xterm.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; width: 100%;
+    background: #1e1e1e;
+    overflow: hidden;
+    font-family: -apple-system, "Helvetica Neue", monospace;
+  }
+  #term {
+    height: 100%; width: 100%;
+  }
+  .banner {
+    color: #888;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div id="term"></div>
+  <script src="xterm.js"></script>
+  <script src="addon-fit.js"></script>
+  <script>
+// 跨平台 bridge polyfill — iOS 用 WKScriptMessageHandler，Android 用
+// JavascriptInterface (后者由 Kotlin 端 webView.addJavascriptInterface 注入)。
+// 同一份 HTML 文件检测可用环境后选 dispatch 路径，业务代码统一调
+// `TerminalBridge.onReady` / `.onResize` / `.onUserInput`。
+var TerminalBridge = (function () {
+  // Android: TerminalBridge 已被 JavascriptInterface 注入到 window
+  if (typeof window.TerminalBridge !== 'undefined') {
+    return window.TerminalBridge;
+  }
+  // iOS: window.webkit.messageHandlers.terminalBridge 由 WKScriptMessageHandler 提供
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.terminalBridge) {
+    var post = function (msg) {
+      try { window.webkit.messageHandlers.terminalBridge.postMessage(msg); } catch (e) {}
+    };
+    return {
+      onReady: function (cols, rows) { post({ type: 'onReady', cols: cols, rows: rows }); },
+      onResize: function (cols, rows) { post({ type: 'onResize', cols: cols, rows: rows }); },
+      onUserInput: function (data) { post({ type: 'onUserInput', data: data }); },
+    };
+  }
+  // 未知环境 — fallback no-op（开发时 file://直接打开 HTML 用）
+  return {
+    onReady: function () {},
+    onResize: function () {},
+    onUserInput: function () {},
+  };
+})();
+
+(function () {
+  var X = window.Terminal;
+  var FitAddon = window.FitAddon ? window.FitAddon.FitAddon : null;
+  var term = null;
+  var fitAddon = null;
+
+  var readyFired = false;
+  var lastCols = 0;
+  var lastRows = 0;
+
+  function refit() {
+    if (!term || !fitAddon) return;
+    // Plan A.1 v5.0.3.53-fix10 (Android) — guard on DOM size, not xterm cols/rows.
+    // xterm.fit() 在 0×0 容器返垃圾（如 cols=49 rows=1，>0 让前一版 guard 漏掉）。
+    // 用 host clientWidth/Height 判真实 layout pass。iOS WKWebView 默认 fill
+    // superview 不像 Android AndroidView 那么坑，但软键盘弹起时 inset 调整也会
+    // 触发 ResizeObserver，本守卫同样适用。
+    var host = document.getElementById('term');
+    var hw = host ? host.clientWidth : -1;
+    var hh = host ? host.clientHeight : -1;
+    if (!host || hw < 10 || hh < 10) {
+      console.log('[xterm-shell] refit skip — host size ' + hw + 'x' + hh);
+      return;
+    }
+    try {
+      fitAddon.fit();
+      var c = term.cols;
+      var r = term.rows;
+      console.log('[xterm-shell] refit fit ok host=' + hw + 'x' + hh + ' cols=' + c + ' rows=' + r);
+      if (c <= 0 || r <= 0) return;
+      if (!readyFired) {
+        readyFired = true;
+        lastCols = c; lastRows = r;
+        try { TerminalBridge.onReady(c, r); } catch (e) {}
+        return;
+      }
+      if (c !== lastCols || r !== lastRows) {
+        lastCols = c; lastRows = r;
+        try { TerminalBridge.onResize(c, r); } catch (e) {}
+      }
+    } catch (e) { /* benign — container still 0×0 */ }
+  }
+
+  function init() {
+    term = new X({
+      cursorBlink: true,
+      fontFamily: 'Menlo, Consolas, "Courier New", monospace',
+      fontSize: 13,
+      theme: { background: '#1e1e1e', foreground: '#d4d4d4' },
+      convertEol: false,
+    });
+    if (FitAddon) {
+      fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+    }
+    var host = document.getElementById('term');
+    term.open(host);
+
+    // stdin: xterm.onData → Swift / Kotlin
+    term.onData(function (data) {
+      try { TerminalBridge.onUserInput(data); } catch (e) { /* bridge unavailable */ }
+    });
+
+    // Primary size-change hook — ResizeObserver 在 host 布局变化时触发
+    if (typeof ResizeObserver === 'function') {
+      try {
+        var ro = new ResizeObserver(function () { refit(); });
+        ro.observe(host);
+      } catch (e) { /* fall through to interval polling */ }
+    }
+    // window.resize 二级 hook — iOS 屏幕旋转 / 软键盘 show / Android IME show
+    window.addEventListener('resize', refit);
+    // Belt-and-suspenders polling 前 3s — 防 ResizeObserver 不可用 +
+    // 异步 layout pass（iOS WKWebView constraints 解析 / Android AndroidView 0×0→
+    // full-size）的过渡期。
+    var pollCount = 0;
+    var pollId = setInterval(function () {
+      refit();
+      if (++pollCount > 30 || readyFired) clearInterval(pollId);
+    }, 100);
+
+    // Initial fit attempt — host 还 0×0 时 no-op，下次 ResizeObserver/polling 接住。
+    refit();
+  }
+
+  // Public surface for Swift / Kotlin → JS calls
+  window.cc = {
+    write: function (data) {
+      if (term) term.write(data);
+    },
+    writeln: function (line) {
+      if (term) term.writeln(line);
+    },
+    clear: function () {
+      if (term) term.clear();
+    },
+    onStdout: function (data) {
+      if (term) term.write(data);
+    },
+    onExit: function (payload) {
+      if (!term) return;
+      var code = payload && payload.exitCode !== undefined && payload.exitCode !== null ? payload.exitCode : '-';
+      var sig = payload && payload.signal ? payload.signal : '-';
+      term.writeln('\r\n\x1b[33m[session exited, code=' + code + ', signal=' + sig + ']\x1b[0m');
+    },
+    fit: function () {
+      try { fitAddon && fitAddon.fit(); } catch (e) { /* benign */ }
+    },
+    // Programmatic key injection (软键盘工具栏 SwiftUI 按钮发 esc/tab/arrow 等)
+    sendKey: function (sequence) {
+      try { TerminalBridge.onUserInput(sequence); } catch (e) {}
+    },
+  };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();
+  </script>
+</body>
+</html>

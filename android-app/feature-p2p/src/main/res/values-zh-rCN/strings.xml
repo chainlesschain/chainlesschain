@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DeviceListScreen -->
+    <string name="p2p_devices">P2P 设备</string>
+    <string name="stop_scanning">停止扫描</string>
+    <string name="start_scanning">开始扫描</string>
+    <string name="connected_devices">已连接设备</string>
+    <string name="nearby_devices">附近设备</string>
+    <string name="verified">已验证</string>
+    <string name="message_stats">消息: %1$d 发送 / %2$d 接收</string>
+    <string name="verify">验证</string>
+    <string name="disconnect">断开连接</string>
+    <string name="connect">连接</string>
+    <string name="close">关闭</string>
+    <string name="no_devices_found">未发现设备</string>
+    <string name="tap_search_to_scan">点击搜索按钮开始扫描附近的设备</string>
+
+    <!-- DeviceManagementScreen -->
+    <string name="device_management">设备管理</string>
+    <string name="back">返回</string>
+    <string name="scan_devices">扫描设备</string>
+    <string name="connected_count">已连接 (%1$d)</string>
+    <string name="discovered_count">发现的设备 (%1$d)</string>
+    <string name="stat_connected">已连接</string>
+    <string name="stat_verified">已验证</string>
+    <string name="scanning">扫描中</string>
+    <string name="discovered">已发现</string>
+    <string name="no_connected_devices">暂无已连接设备</string>
+    <string name="tap_fab_to_scan">点击右下角按钮扫描新设备</string>
+    <string name="scanning_nearby_devices">正在扫描附近设备...</string>
+    <string name="please_wait_searching">请稍候，正在搜索中</string>
+    <string name="tap_fab_to_start_scan">点击右下角按钮开始扫描</string>
+    <string name="scan_nearby_to_connect">扫描附近设备以建立连接</string>
+    <string name="device_id_label">设备ID: %1$s...</string>
+    <string name="e2ee_session_messages">E2EE会话 \u2022 %1$d/%2$d 消息</string>
+    <string name="more_options">更多选项</string>
+    <string name="view_details">查看详情</string>
+    <string name="verify_device">验证设备</string>
+    <string name="unknown_address">未知地址</string>
+    <string name="disconnect_device_title">断开设备连接</string>
+    <string name="disconnect_device_message">确定要断开与 \"%1$s\" 的连接吗？\n\n这将删除与该设备的加密会话，需要重新配对才能再次连接。</string>
+    <string name="cancel">取消</string>
+    <string name="time_just_now">刚刚</string>
+    <string name="time_minutes_ago">%1$d分钟前</string>
+    <string name="time_hours_ago">%1$d小时前</string>
+    <string name="time_days_ago">%1$d天前</string>
+
+    <!-- DevicePairingScreen -->
+    <string name="device_pairing">设备配对</string>
+    <string name="initializing_pairing">正在初始化配对...</string>
+    <string name="please_wait">请稍候</string>
+    <string name="exchanging_encryption_keys">正在交换加密密钥</string>
+    <string name="establishing_e2ee_connection">建立端到端加密连接</string>
+    <string name="e2ee_security_hint">使用端到端加密保护您的通信安全</string>
+    <string name="verify_device_identity">验证设备身份</string>
+    <string name="connection_established_with">已与 %1$s 建立连接</string>
+    <string name="next_step">下一步</string>
+    <string name="verify_safety_code_hint">为了确保连接安全，建议您验证设备的安全码。\n\n您可以：\n\u2022 与对方面对面比对安全码\n\u2022 通过可信渠道（如电话）确认\n\u2022 扫描对方的二维码</string>
+    <string name="verify_safety_code">验证安全码</string>
+    <string name="verify_later">稍后验证</string>
+    <string name="pairing_success">配对成功！</string>
+    <string name="secure_connection_established_with">已与 %1$s 建立安全连接</string>
+    <string name="now_you_can">现在您可以：</string>
+    <string name="feature_e2ee_messages">发送端到端加密消息</string>
+    <string name="feature_encrypted_calls">进行加密语音/视频通话</string>
+    <string name="feature_secure_files">安全地分享文件</string>
+    <string name="get_started">开始使用</string>
+    <string name="pairing_failed">配对失败</string>
+    <string name="possible_reasons">可能的原因：</string>
+    <string name="pairing_failure_reasons">\u2022 网络连接不稳定\n\u2022 设备不在可连接范围内\n\u2022 对方拒绝了配对请求\n\u2022 加密密钥交换失败</string>
+    <string name="retry">重试</string>
+
+    <!-- DIDManagementScreen -->
+    <string name="did_identity_management">DID 身份管理</string>
+    <string name="share">分享</string>
+    <string name="your_did">您的 DID</string>
+    <string name="copy">复制</string>
+    <string name="did_unique_identifier_hint">这是您在去中心化网络中的唯一身份标识</string>
+    <string name="identity_key_fingerprint">身份密钥指纹</string>
+    <string name="unknown">未知</string>
+    <string name="connected_devices_title">已连接设备</string>
+    <string name="devices_using_did">%1$d 台设备使用此 DID</string>
+    <string name="view">查看</string>
+    <string name="quick_actions">快捷操作</string>
+    <string name="export_did">导出 DID</string>
+    <string name="backup_keys">备份密钥</string>
+    <string name="did_document_details">DID 文档详情</string>
+    <string name="collapse">收起</string>
+    <string name="expand">展开</string>
+    <string name="did_identifier">DID 标识</string>
+    <string name="verification_methods">验证方法</string>
+    <string name="public_keys_count">%1$d 个公钥</string>
+    <string name="authentication_methods">认证方法</string>
+    <string name="count_items">%1$d 个</string>
+    <string name="key_agreement">密钥协商</string>
+    <string name="service_endpoints">服务端点</string>
+    <string name="creation_time">创建时间</string>
+
+    <!-- MessageQueueScreen -->
+    <string name="message_queue">消息队列</string>
+    <string name="clear_completed">清理已完成</string>
+    <string name="send_queue">发送队列</string>
+    <string name="receive_queue">接收队列</string>
+    <string name="send_queue_empty">发送队列为空</string>
+    <string name="receive_queue_empty">接收队列为空</string>
+    <string name="sent_to">发送至 %1$s</string>
+    <string name="from">来自 %1$s</string>
+    <string name="high_priority">高优先级</string>
+    <string name="delete">删除</string>
+    <string name="error_label">错误: %1$s</string>
+    <string name="sent">已发送</string>
+    <string name="received">已接收</string>
+
+    <!-- ModerationQueueScreen -->
+    <string name="content_moderation">内容审核</string>
+    <string name="stat_pending">待审</string>
+    <string name="stat_appeal">申诉</string>
+    <string name="unknown_user">未知用户</string>
+    <string name="content_type_post">帖子</string>
+    <string name="content_type_comment">评论</string>
+    <string name="content_type_message">私信</string>
+    <string name="show_less">收起</string>
+    <string name="show_more">展开</string>
+    <string name="moderation_info">审核信息</string>
+    <string name="violation_type_label">违规类型: %1$s</string>
+    <string name="reason_label">原因: %1$s</string>
+    <string name="suggestion_label">建议: %1$s</string>
+    <string name="waiting_hours_high_priority">等待 %1$d 小时，高优先级</string>
+    <string name="waiting_hours">等待时长: %1$d 小时</string>
+    <string name="user_appeal">用户申诉</string>
+    <string name="approve">批准</string>
+    <string name="reject">拒绝</string>
+    <string name="approve_appeal">批准申诉</string>
+    <string name="reject_appeal">拒绝申诉</string>
+    <string name="no_pending_content">暂无待审核内容</string>
+    <string name="no_appeal_items">暂无申诉项目</string>
+    <string name="no_moderation_records">暂无审核记录</string>
+    <string name="tab_pending">待审核</string>
+    <string name="tab_appealing">申诉中</string>
+    <string name="tab_all">全部</string>
+
+    <!-- P2PChatScreen -->
+    <string name="status_connected">已连接</string>
+    <string name="status_connecting">连接中...</string>
+    <string name="status_disconnected">已断开</string>
+    <string name="reconnect">重新连接</string>
+    <string name="more">更多</string>
+    <string name="retry_failed_messages">重发失败消息</string>
+    <string name="clear_chat_history">清空聊天记录</string>
+    <string name="device_not_verified_warning">设备未验证，请先验证Safety Numbers</string>
+    <string name="start_secure_chat">开始安全聊天</string>
+    <string name="messages_e2ee">消息已端到端加密</string>
+    <string name="status_sending">发送中</string>
+    <string name="status_sent">已发送</string>
+    <string name="status_delivered">已送达</string>
+    <string name="status_send_failed">发送失败</string>
+    <string name="sending">发送中</string>
+    <string name="e2ee_encrypted">端到端加密</string>
+    <string name="attachment">附件</string>
+    <string name="input_message_placeholder">输入消息...</string>
+    <string name="connect_first_placeholder">请先建立连接</string>
+    <string name="encrypted">加密</string>
+    <string name="send">发送</string>
+
+    <!-- QRCodeScannerScreen -->
+    <string name="scan_qr_code">扫描 QR 码</string>
+    <string name="align_qr_code">将 QR 码对准扫描框</string>
+    <string name="scan_peer_qr_code">扫描 %1$s 显示的 QR 码</string>
+    <string name="camera_permission_required">需要相机权限</string>
+    <string name="camera_permission_hint">扫描 QR 码需要访问相机</string>
+    <string name="grant_permission">授予权限</string>
+
+    <!-- SafetyNumbersScreen -->
+    <string name="safety_code_verification">安全码验证</string>
+    <string name="compare_safety_codes_hint">与对方比对以下安全码，确保通信安全</string>
+    <string name="not_verified">未验证</string>
+    <string name="safety_code">安全码</string>
+    <string name="scan_other_party">扫描对方</string>
+    <string name="confirm_verification">确认验证</string>
+    <string name="qr_code">二维码</string>
+    <string name="verification_qr_code">验证二维码</string>
+    <string name="let_other_scan">让对方扫描此二维码</string>
+    <string name="how_to_verify">如何验证？</string>
+    <string name="verification_steps">1. 与对方面对面，或通过可信渠道（如电话）\n2. 比对双方显示的安全码是否一致\n3. 或扫描对方的二维码进行快速验证\n4. 确认一致后点击「确认验证」按钮</string>
+
+    <!-- SessionFingerprintDisplay -->
+    <string name="session_fingerprint">会话指纹</string>
+    <string name="fingerprint_security_hint">此指纹由会话密钥生成，用于验证端到端加密的安全性</string>
+    <string name="verify_this_session">验证此会话</string>
+    <string name="sha256_fingerprint">SHA-256 指纹</string>
+    <string name="fingerprint_comparison">指纹对比</string>
+    <string name="compare_fingerprints_hint">请与对方比对以下指纹是否完全一致</string>
+    <string name="your_fingerprint">您的指纹</string>
+    <string name="peer_fingerprint">%1$s 的指纹</string>
+    <string name="fingerprint_match_confirm">指纹一致，确认验证</string>
+    <string name="fingerprint_mismatch">指纹不一致</string>
+    <string name="security_warning">安全警告</string>
+    <string name="fingerprint_mismatch_warning">指纹不一致可能意味着通信被中间人攻击！\n\n建议立即断开连接并通过其他可信渠道联系对方。</string>
+</resources>

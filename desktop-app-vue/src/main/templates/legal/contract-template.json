@@ -1,0 +1,89 @@
+{
+  "id": "tpl_legal_contract_007",
+  "name": "contract_template",
+  "display_name": "合同模板生成器",
+  "description": "常用商业合同模板，包含条款说明、风险提示和填写指南",
+  "icon": "📄",
+  "category": "legal",
+  "subcategory": "contract",
+  "tags": [
+    "合同",
+    "法律文书",
+    "协议",
+    "商务合同"
+  ],
+  "project_type": "document",
+  "prompt_template": "合同模板\n\n**合同类型：** {{contractType}}\n**甲方：** {{partyA}}\n**乙方：** {{partyB}}\n**签订日期：** {{signDate}}\n\n# {{contractType}}合同\n\n合同编号：{{contractNumber}}\n\n## 甲方（{{partyARole}}）\n\n**名称：** {{partyAName}}\n**法定代表人：** {{partyALegalRep}}\n**地址：** {{partyAAddress}}\n**联系电话：** {{partyAPhone}}\n**统一社会信用代码：** {{partyACode}}\n\n## 乙方（{{partyBRole}}）\n\n**名称：** {{partyBName}}\n**法定代表人：** {{partyBLegalRep}}\n**地址：** {{partyBAddress}}\n**联系电话：** {{partyBPhone}}\n**统一社会信用代码：** {{partyBCode}}\n\n---\n\n甲乙双方本着平等自愿、诚实信用的原则，经友好协商，就{{contractSubject}}事宜达成如下协议：\n\n## 第一条 合同目的与标的\n\n1.1 {{purpose}}\n\n1.2 标的：{{subject}}\n\n## 第二条 合同金额与支付方式\n\n2.1 合同总金额为人民币{{totalAmount}}元（大写：{{amountInWords}}）\n\n2.2 支付方式：\n{{paymentMethod}}\n\n2.3 付款时间：\n{{paymentSchedule}}\n\n## 第三条 双方权利义务\n\n**3.1 甲方权利义务：**\n{{partyAObligations}}\n\n**3.2 乙方权利义务：**\n{{partyBObligations}}\n\n## 第四条 履行期限与交付\n\n4.1 履行期限：{{performancePeriod}}\n\n4.2 交付时间：{{deliveryTime}}\n\n4.3 交付地点：{{deliveryLocation}}\n\n4.4 验收标准：{{acceptanceCriteria}}\n\n## 第五条 知识产权\n\n5.1 {{intellectualPropertyClause}}\n\n## 第六条 保密条款\n\n6.1 双方对在履行本合同过程中知悉的对方商业秘密负有保密义务\n\n6.2 保密期限：{{confidentialityPeriod}}\n\n## 第七条 违约责任\n\n7.1 任何一方违反本合同约定，应承担违约责任\n\n7.2 违约金：{{penaltyClause}}\n\n7.3 损害赔偿：{{damagesClause}}\n\n## 第八条 争议解决\n\n8.1 本合同争议应首先通过友好协商解决\n\n8.2 协商不成的，提交{{disputeResolution}}\n\n## 第九条 合同变更与解除\n\n9.1 合同变更需双方书面同意\n\n9.2 合同解除条件：{{terminationConditions}}\n\n## 第十条 其他约定\n\n{{otherProvisions}}\n\n## 第十一条 合同生效\n\n本合同一式{{copies}}份，甲乙双方各执{{partyCopies}}份，具有同等法律效力，自双方签字盖章之日起生效。\n\n---\n\n**甲方（盖章）：** _________________\n**法定代表人/授权代表（签字）：** _________________\n**日期：** _________________\n\n**乙方（盖章）：** _________________\n**法定代表人/授权代表（签字）：** _________________\n**日期：** _________________\n\n---\n\n## 附件清单\n\n- 附件1：{{attachment1}}\n- 附件2：{{attachment2}}\n",
+  "variables_schema": [
+    {
+      "name": "contractType",
+      "label": "合同类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "服务",
+          "label": "服务合同"
+        },
+        {
+          "value": "采购",
+          "label": "采购合同"
+        },
+        {
+          "value": "销售",
+          "label": "销售合同"
+        },
+        {
+          "value": "劳务",
+          "label": "劳务合同"
+        },
+        {
+          "value": "租赁",
+          "label": "租赁合同"
+        },
+        {
+          "value": "合作",
+          "label": "合作协议"
+        }
+      ],
+      "default": "技术开发合同"
+    },
+    {
+      "name": "partyA",
+      "label": "甲方名称",
+      "type": "string",
+      "required": true,
+      "default": "张三"
+    },
+    {
+      "name": "partyB",
+      "label": "乙方名称",
+      "type": "string",
+      "required": true,
+      "default": "某科技公司"
+    },
+    {
+      "name": "totalAmount",
+      "label": "合同金额",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "{{contractType}}合同-{{signDate}}",
+    "files": [
+      {
+        "path": "合同正文.docx",
+        "type": "document"
+      },
+      {
+        "path": "附件/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

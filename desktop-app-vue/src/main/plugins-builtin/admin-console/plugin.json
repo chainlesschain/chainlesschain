@@ -1,0 +1,32 @@
+{
+  "id": "admin-console",
+  "name": "管理控制台",
+  "version": "1.0.0",
+  "firstParty": true,
+  "description": "企业管理员视图：查看已注册的扩展点、激活的能力贡献、应用当前生效的 .ccprofile",
+  "extensionPoints": [
+    {
+      "point": "ui.slash",
+      "priority": 10,
+      "config": {
+        "id": "admin",
+        "trigger": "/admin",
+        "handler": "builtin:openAdminConsole",
+        "description": "打开管理控制台（企业管理员）",
+        "icon": "SettingOutlined",
+        "requirePermissions": ["admin"]
+      }
+    },
+    {
+      "point": "ui.status-bar",
+      "priority": 10,
+      "config": {
+        "id": "admin-shortcut",
+        "component": "builtin:AdminShortcut",
+        "position": "right",
+        "order": 100,
+        "tooltip": "管理控制台 (Ctrl+Shift+A)"
+      }
+    }
+  ]
+}

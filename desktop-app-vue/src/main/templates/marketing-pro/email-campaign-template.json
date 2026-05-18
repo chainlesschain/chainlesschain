@@ -1,0 +1,41 @@
+{
+  "id": "tpl_marketing_email_001",
+  "name": "email_marketing_campaign",
+  "display_name": "邮件营销活动",
+  "description": "创建高转化率的营销邮件，包含主题行优化和CTA设计",
+  "icon": "📧",
+  "category": "marketing-pro",
+  "subcategory": "email",
+  "tags": ["邮件营销", "EDM", "营销自动化"],
+  "project_type": "document",
+  "prompt_template": "# {{campaignName}} 邮件营销方案\n\n## 活动目标\n{{campaignGoal}}\n\n## 邮件主题行（A/B测试）\n\n**版本A：**{{subjectA}}\n**版本B：**{{subjectB}}\n\n## 邮件正文\n\n{{emailBody}}\n\n## CTA按钮\n{{ctaText}}\n\n## 发送策略\n- 目标人群：{{targetSegment}}\n- 发送时间：{{sendTime}}\n- 预期打开率：{{expectedOpenRate}}%",
+  "variables_schema": [
+    {
+      "name": "campaignName",
+      "label": "活动名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "campaignGoal",
+      "label": "活动目标",
+      "type": "select",
+      "options": [
+        { "value": "促销转化", "label": "促销转化" },
+        { "value": "用户激活", "label": "用户激活" },
+        { "value": "内容推广", "label": "内容推广" }
+      ],
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "邮件营销-{{campaignName}}",
+    "files": [{"path": "邮件文案.html", "type": "web"}]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_email_marketing", "skill_content_creation"],
+  "required_tools": ["tool_html_generator", "tool_file_writer"],
+  "execution_engine": "web"
+}

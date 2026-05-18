@@ -1,0 +1,186 @@
+---
+layout: home
+
+hero:
+  name: ChainlessChain
+  text: 去中心化个人 AI 管理平台
+  tagline: v5.0.3.57 | CLI 0.162.0 · Android 5.0.3.57（versionCode 503057 与 productVersion 对齐）· v5.0.3.57 Android 远程文件 skill — 浏览/上传/下载 PC 文件 + MediaStore.Downloads 公共目录 + Intent.ACTION_VIEW app 内打开（6 互锁雷一晚扫平 / 34 新单测 / Xiaomi 真机 E2E 8 场景） · iOS Phase 1+2+3+4 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 typed skill + Notification skill · ~313 单测 · 待 Mac+iPhone 真机 E2E）· 113 命令 · 139 桌面 Skills · 28 Android Skills · v5.0.3.54 🎯 Android 远程终端真机 E2E 收口 重点功能 一次扫净 8 bugs 从"打不开 / 黑屏 / 无法输入 / cc claude 找不到"到 端到端完整可用：fix1-5 WebRTC echo loop sendOffer 误把 target peerId 写进 self currentPeerId 让 WS 重连 auto-re-register 路由回自己 + 中继 server.js handleMessage 注入 msg.from = ws._peerId 之前 forward 缺 from 让 desktop 回包 to=undefined 死循环 + iceServers 12h 节流自动 refresh 跨 24h TTL 仍可用 · fix7 TerminalListViewModel.createSession.onSuccess closure shadow 真因 it.copy(lastCreatedId = it.lastCreatedId) 把 CreatedSession 参数名 shadow 永远不更新 改 named param created.sessionId + LaunchedEffect(state.lastCreatedId) 自动 navigate · fix11 TerminalWebView LayoutParams MATCH_PARENT × MATCH_PARENT 真因 Compose AndroidView 默认 WRAP_CONTENT + HTML body height:100% 死锁让 WebView 永远 0 高 xterm.fit() 返回 cols=49 rows=1 桌面 PTY 被 resize 成 1 行 用户看到的"全黑"其实是 #1e1e1e 底色 三层定位 fix9 ResizeObserver + fix10 DOM clientWidth/Height guard + fix11 真因 LayoutParams MATCH_PARENT · fix12 PtyManager login shell + git-bash probe pty.spawn(cmd, [], ...) 无 args 让 bash/wsl 不走 login mode ~/.bashrc 不加载 cc/claude/npm 等用户全局 CLI 找不到 + Windows bash.exe PATH 优先匹配 WSL bash 进 root 用户 PATH 无 npm-global 修：resolveShellCmd 返回 {cmd, args} bash 加 -l shell=bash 优先 probe C:\Program Files\Git\bin\bash.exe Android 端选 bash prompt 变 longfa@DESKTOP-MTMV2RE MINGW64 cc -v 直接输出 0.161.12 claude / npm 全部可用 真机验证 Xiaomi 24115RA8EC × Win desktop dev 登陆 → 配对桌面 → "+ 新会话" 选 bash → 直接敲 cc -v 输出版本号 → 敲 ls 看完整目录 listing 绿色文件名渲染 → 输入 + stdout 持续双向流通 logcat seq 持续递增 这一次远程终端从演示走到了能用 commit 8d3c95df6 含 7 bugs + commit f54a6fcd0 含 PtyManager · 分发桌面 binary v5.0.3.53 → v5.0.3.54 重打 CLI chainlesschain npm 0.161.12 不变 Android versionCode 503053 → 503054 / versionName 5.0.3.53 → 5.0.3.54 按 feedback_android_tag_follows_desktop 与桌面同号 · memory 复盘 feedback_currentpeerid_target_vs_self_trap.md + android_webview_xterm_resize_observer.md · v5.0.3.53 Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连（Phase 1-5 一日全落 · Plan A 真机首测暴露 4 跳信令链路 NAT idle 间歇断的架构性问题· 113 命令 · 139 桌面 Skills · 28 Android Skills · V2 规范层（iter16-iter28 · 220+ 治理表面）· 15100+ 测试 · v5.0.3.53 Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连（Phase 1-5 一日全落 · Plan A 真机首测暴露 4 跳信令链路 NAT idle 间歇断的架构性问题 · 把高频高吞吐终端流量切到 WebRTC DataChannel 直连绕开所有中间跳 · signaling 保留兜底 · Phase 1 Trap 1 修：SignalClient.forwardedMessages multi-subscribe SharedFlow 替代单 listener setOnForwardedMessageReceived 治 WebRTCClient ice:config 拦截器被 TerminalRpcClient.start 后写覆盖 → iceServers 24h 过期跨 NAT 完全不通 + WebRTCClient.dataChannelReady StateFlow derived flag READY 才真意味 DC OPEN · Phase 2 SignalingRpcClient.invoke 内置 transport selector connectionState==READY && preferDataChannel → webRTCClient.sendMessage DC 失败 fallback signaling 两路 listener 同时订 signalClient.forwardedMessages + webRTCClient.messages 同 requestId 同 CompletableDeferred 二次 complete no-op dual delivery 安全 · Phase 3 TerminalListViewModel.init DC 未 ready 异步触发 RemoteConnectionManager.connect + UI chip P2P 直连绿 vs 中继路径黄路径状态用户可见 · Phase 4 Android TerminalRpcClient 双订 SharedFlow stdout 按 sessionId|seq 256-LRU 去重 exit 按 sessionId 64-LRU 桌面 mobile-bridge.bridgeToLibp2p 加 128-LRU/30s-TTL 按 payload.id 去重 mobile→desktop command request 防 terminal.stdin 双跑 PtyManager 误处理 · Phase 5 既有 wiring 组合无新代码 — DC 失效 fallback Phase 2 trySendViaDataChannel 抛 IllegalStateException 自动落 signaling / 自动重建 P2PClient.scheduleReconnect 指数退避 1s→60s maxAttempts 10 / 恢复后自动切回 isDcReady 每次 invoke 入口重检 / UI 实时映射 dataChannelReady chip · RTT p50 200-500ms → 30-80ms LAN / 50-200ms TURN · p99 1.5-30s timeout → 200-800ms · 稳定性 20s-2min 间歇断 → 数小时持续 · Android TerminalRpcClientTest +3 dedup + SignalingRpcClientTest +4 transport selection + WebRTCClientTest +1 Trap 1 回归 + 修 mockk relaxed StateFlow 泛型擦除致 12-test regression · desktop mobile-bridge.test.js 新 14 测覆盖 LRU dedup 5 维 + sendToMobile DC 优先 vs signaling-relay 双发兜底 5 维 + guard rails · 真机 e2e §5.3 5 场景矩阵移交用户 LAN/蜂窝/双 NAT/DC 强制失效/DC 恢复 · 设计文档 Android_Remote_Terminal_Plan_A1.md v1.0 · 遥测 [SignalingRpc.metric] path=dc|signaling reqId 上线首周 fast-path 占比目标 ≥80%）· v5.0.3.52 Plan A 远程终端 Android↔桌面 PTY 全链路（Phase 1-4 全部 + 162 新测试全绿 · PtyManager 单例 web-shell WS + cc ui WS + V6 native IPC 三壳共享 · 8 个 terminal.* WS topics create/list/stdin/resize/close/history + server-push stdout/exit · attachTopicHandlers 共享 helper 抽出 ws-cli-loader dispatcher · web-panel useTerminal composable + Terminal.vue route /terminal + xterm.js lazy 多 session 标签 history 补帧 · V6 plugin widget + TerminalPanel modal + slash /terminal · Android TerminalRpcClient + TerminalWebView Kotlin↔JS bridge + xterm-shell.html + Compose list/session + softkey toolbar Ctrl/Tab/Esc/方向/Ctrl+C/D · confirmation-dialog 高危关键字 Electron messageBox + 永久信任 per-cmd cache · mobile-bridge per-peer stdout/exit fanout · 真 PTY spawn cmd.exe integration + cc ui subprocess e2e + 真 shell stdin/stdout round-trip via probe echo） · v5.0.3.51 远程操控 Plan A + B 基础设施落地（WebRTC signaling 透传中继 + coturn STUN/TURN 部署 turn.chainlesschain.com 监听 3478/5349/49152-65535 + iceServers HMAC-SHA1 24h ephemeral creds 桌面端 CC_TURN_SECRET 强制必填零硬编码 + signaling-relay server 新增 forward case offer/answer/ice-candidate/peer-status 注入 from 字段 + 桌面 RelayClient onMessage 简化为 mobileBridge.handleSignalingMessage 统一 dispatch 与 LAN 完全对齐 + pushIceServersToMobile pair-ack 后双发 LAN signaling + 公网中继 chainlesschain:ice:config + Android WebRTCClient 注入 PairedDesktopsStore resolveIceServersFor by pcPeerId 过期 fallback Google STUN + 拦截 ice:config persistIceConfigMessage upsert + SignalingRpcClient 同步备份 race-tolerant + QR payload 移除 iceServers 字段改信令 push 解决 280px QR + error-H 识别率暴跌 + backend/signaling-relay-service/ 入仓 server.js + Dockerfile + docker-compose + nginx-vhost + deploy.sh + README · commit e9f9d6275 signaling-relay-service + commit af11daa6e RelayClient WebRTC dispatch + iceServers push · 设计文档 Android_Remote_Operate_Plan_AB.md · TURN credential refresh / WebRTC P2P 端到端真机跨 NAT 实测 / E2EE Signal Protocol 留 v1.4 GA 前补）· v5.0.3.50 Android Remote Operate Plan C 信令转发 RPC（配对完成后手机点 Ping/系统状态/系统信息 → 桌面执行 → 响应返回 commit f8ec994ef · SignalingRpcClient 30s withTimeout + LAN→relay 自动 fallback reset gate + 切 URL + re-register + 重试 · RemoteOperateScreen 3 chip 按钮 + JSON 响应 + NavGraph remote_operate/{peerId} · PairedDesktopsStore SharedPreferences 持久化已配对桌面 idempotent by pcPeerId · Desktop RelayClient outbound 长连 wss://signaling.chainlesschain.com 指数退避自重连 max 60s · mobile-bridge.handlePairAckFromRelay bug fix ?. 静默吞 relay pair-ack 修复 · MobileBridgeHeaderStatus.vue header 显示已配对 mobile 数量 5s 轮询 + parseJsonOutput 跳过 CLI log 前缀 · 11 i18n 字符串 → values/strings.xml + values-zh-rCN/strings.xml · 3 新单测文件 / 20 测试全绿 PairedDesktopsStoreTest 7 + SignalingRpcClientTest 7 + RemoteOperateViewModelTest 6 · runCurrent 而非 advanceUntilIdle 避免 withTimeout 虚拟时间误超时 · testImpl org.json:json:20240303 覆盖 Android SDK 默认值 stub · 设计文档 docs/design/Android_Remote_Operate_Plan_C.md · Plan A.1 DataChannel 复用 / A.2 真 P2P 直连 / B STUN-TURN 留后续）· v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing 收口（@chainlesschain/core-multisig package：lib 5 文件 policy/store/proposals/signing/governance-log + 75 单测全过 · cc multisig 8 subcommands propose/sign/cancel/finalize/list/show/sweep/policy + 10 CLI integration 测试全过 · Phase 2a commit 2755093d0 cc marketplace purchase 大额≥¥1000 自动走 multisig propose / 小额走 direct + cc marketplace consume 在 threshold 后 finalize 执行业务 + multisig-runtime.js 共享 SQLite cascade 减 130 行 dedup + LARGE_PURCHASE_THRESHOLD_FEN 100000 fen 门槛 + 8 新 E2E 测试全过 marketplace.purchase 是第一个真接通业务侧的 mediator + 总 18 multisig integration test 全 green · Phase 2b commit c758492d9 web-panel Multisig.vue 视图落地 设计文档 §8.1：468 行新 view 6-card stats + 提案列表 tab state/domain 过滤 详情/取消/执行购买 actions + 域策略 tab marketplace.purchase/did.rotate/crosschain.outbound + 640px Detail drawer payload JSON 签名列表 操作按钮 + sidebar security/audit 组 TeamOutlined icon + /multisig 路由 + WS 走 ws.executeJson CLI 子进程冷启 6-10s asar:true 可接受 + 同份 SPA desktop web-shell + cc ui 双 surface 自动可用 + Phase 3 follow-up 私钥签名 UI / in-process WS handlers / 实时推送 / Marketplace.vue purchase modal 集成 · SQLite native better-sqlite3-multiple-ciphers → sql.js WASM 自动降级 fallback · marketplace.purchase / did.rotate / 跨链 bridge 三大典型 domain 解锁 · Ed25519 + SLH-DSA 异构签名 · governance.log 端到端审计追踪 · Phase 1d commit 3c890dcac · v5.0.3.49 Flow B QR pairing 落地 commit c47cbc649：Android v1.1 W3.7 desktop 显 QR / phone 摄像头扫 主流应用通用 UX 模式 · Xiaomi 24115RA8EC 真机 E2E verified · 跨模块 DI PairingSignalingGate 接口落 :core-p2p / WebSocketPairingSignalingGate.sendAck 实现在 :app · ScanDesktopPairingViewModel + desktop-pair-handlers WS topics 三件套 desktop.pair.generate-qr/poll-ack/reset + recordPairAck mobile-bridge 拦截 · 9 项实战坑全排清 · 单测补丁 ScanDesktopPairingViewModelTest 10 项 + desktop-pair-handlers.test.js 19 项 全覆盖 generate/poll/reset/ack 全分支）· v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾 + M7 GA flip（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · 187 新单测全绿 / Android 总单测 196+ → 383+ · versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA by commit ffe722162 · v1.0 GA 仍待用户出场 4 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能）· v5.0.3.47 verification release（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净 keystore.properties.template + KEYSTORE_SETUP.md + orphan workflow）· Phase 3d 桌面 ↔ Android 双向同步全套（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + IPC + Room cursor + JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验 · 桌面 SyncMobile 设置页 + 手动配对表单）· Android 0.37.0 七件套（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做含旋转环 + Claude coral 主题 + i18n 三地区 zh-rCN/rTW/rHK + 生物识别 toggle + KeyManagementScreen DID/key/trusted-devices）· e2e CI 静默回归洞收口（drop `continue-on-error: true` + Playwright 浏览器 cache）· Web Shell（Phase 1.6 默认 · `--no-web-shell` opt-out · MTC 视图 in-process 提速绕过 asar 冷启动 · Phase 3c.7 截图识别 + 通知设置 + 托盘路由收口）· Web Panel i18n M3 全覆盖 · MTC v0.11（跨联邦信任锚 + 离线审计 + 多跳路由 · publisher_signature M-of-N strip-all-sigs 修正）· cc pack OTA · B4 ASAR surgery（Win 安装 20m → ~5m）· P2P 社交全栈 audit-grade 闭环（§2.2.10 → §2.2.24，15 节）· chat-panel-v5 三壳对齐（V5 / V6 / web-shell 聊天能力严格对等）· 意图理解 opt-in 开关 + cc ui llm.chat parity（v5.0.3.45）· 安全硬化级联（HIGH 44→0 · MOD 4→0 · LOW 45→0）· CI 三发 macOS / 规则误报 / Win cold-start 解锁
+  image:
+    src: /logo.png
+    alt: ChainlessChain Logo
+  actions:
+    - theme: brand
+      text: 快速开始
+      link: /guide/getting-started
+    - theme: alt
+      text: 查看文档
+      link: /guide/introduction
+    - theme: alt
+      text: GitHub
+      link: https://github.com/chainlesschain
+
+features:
+  - icon: 🔐
+    title: 安全优先
+    details: 支持本地优先、权限控制、会话持久化与远程访问保护。
+  - icon: 🤖
+    title: AI 原生
+    details: 支持多 Provider、多模型、Agent 工作流、压缩策略与会话恢复。
+  - icon: 🧭
+    title: CLI + Web Panel
+    details: 同时提供 Headless CLI、Web 管理面板、任务监控与会话管理。
+  - icon: 🖥️
+    title: 远程终端 (Plan A · NEW)
+    details: Android 手机远程操控桌面 PTY，跨壳一致（V6 / Web Shell / cc ui / 移动端）；xterm.js 渲染 + 高危关键字桌面端二次确认。
+  - icon: 📱
+    title: iOS 完整移植 (Phase 1+2+3+4 · NEW)
+    details: 镜像 Android 四 Phase 框架级落地 — 桌面配对三流 + 远程桌面终端 (xterm.js WKWebView) + 远程操控 6-tab horizontal scroll shell (Clipboard/File/Screenshot/SystemInfo/Notification with unread badge) + Notification skill (11 method + UN center push + LRU dedup + 乐观更新 + offline gate)。SwiftUI + Swift Concurrency + Google WebRTC SDK，~313 单测，待真机 E2E。
+  - icon: 🧪
+    title: 工程化验证
+    details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
+---
+
+> 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
+>
+> 2026-04-19 更新：CLI V2 规范层 iter17–iter21 累计新增 40 个 lib 治理表面（chat-core / claude-code-bridge / compliance-manager / cowork-learning / cowork-workflow / privacy-computing / token-incentive / hardening-manager / aiops / multimodal / instinct-manager / tenant-saas / quantization / trust-security / nl-programming / perception / code-agent / collaboration-governance / community-governance / did-manager / sso-manager / org-manager / scim-manager / sync-manager / agent-network / browser-automation / dlp-engine / evomap-governance / federation-hardening / ipfs-storage / p2p-manager / wallet-manager / activitypub-bridge / matrix-bridge / nostr-bridge / bi-engine / memory-manager / session-manager / hook-manager / workflow-engine），统一遵循 4 状态 profile maturity + 5 状态 lifecycle 模型；CLI 版本升级到 `0.151.0`。
+>
+> 2026-04-26 更新：**web-panel Phase B 全量收官**。从桌面端移植 5 个高频功能到浏览器面板：`/community`（社交：联系人/好友/帖子）、`/marketplace`（技能市场：发布/调用/统计）、`/crosschain`（跨链桥：5 链桥接 + HTLC + 跨链消息）、`/aiops`（运维：异常检测 + Playbook + 基线）、`/compliance`（合规：STIX 2.1 IoC + UEBA 行为分析）。配套：侧边栏改造（独立滚动 + 8 个二级菜单可折叠 + localStorage 持久化）、SPA fallback 测试覆盖率从 23 路由扩到 34、新增 19 个集成测试（每命令实跑一次 `cc serve` WS）。Commits: `260787c99` / `792b211e1` / `8f7d87ede` / `30cf3b6ab` / `04c57237d` / `7ee1985c5` / `d43e43a93`。
+>
+> 2026-04-27 更新：**web-panel V5→Web 全量化迁移收官 — Phase B/C/D 一日连发**。Phase B 补齐 B6–B10（`/privacy` 隐私计算 + `/inference` 推理网络 + `/nlprog` 自然语言编程 + `/tenant` 多租户 SaaS + `/pipeline` Pipeline 编排）共 10/10 全量上线，CLI 升 `0.157.7`。随后 Phase C 5/5 全量：`/governance` 治理 + `/audit` 审计 + `/reputation` 信誉 + `/recommend` 推荐 + `/sla` SLA，CLI 升 `0.157.8`。同日 Phase D 5/5 收口：`/codegen` 代码生成 + `/search` 多维搜索 + `/tokens` Token 激励 + `/trust` 信任根 + `/federation` 联邦熔断，CLI 升 `0.157.9`。**至此 Phase A (3) + B (10) + C (5) + D (5) = 23 ports 全部落地，router 28 → 50 (+22 routes)，web-panel 单元测试 27 → 1489 全绿**。从此 `cc ui` 浏览器端与桌面 Electron 端功能对等。Phase D commits: `fa8479d49` / `da852045d` / `6e1941beb` / `6b7ac0985` / `a7909b8a6` → bundle `1faa9e11f`。
+>
+> 2026-05-01 更新：**MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery**（commit `d75abe6e8` / sweep `f7e333a41`）。Phase 3.1 多签 landmark + `cc mtc federation {join,leave,status}` 本地 registry；Phase 3.2 `cc mtc batch* / publish-skills --federation <id> --threshold <M>` 多签发布；Phase 3.3 `--transport filesystem` 跨进程 drop-zone 发现（NFS/Syncthing/SMB/USB）；Phase 3.4 `--transport libp2p` 真 P2P gossipsub topic auto-discovery。Backend Q-ENG-2 OperationLogService 桥接 `cc audit mtc emit` 写回 `audit_mtc_event_id`（V013 migration），web-panel `Audit.vue` 加 4 态 MTC 列徽章。**476 MTC 测试全绿**（core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19）跨 6 层覆盖，含异构 Ed25519 + SLH-DSA 联邦。
+>
+> 2026-05-02 更新：**Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker**。i18n M3 一波收 ~25 个视图（Speech/Analytics/Cron/Security/Templates/Search/Audit/McpTools/Backup/Tokens/Mtc/WebAuthn/Community/Wallet/Inference/Organization/Recommend/Federation/Reputation/AIOps/Projects 等），中英双语 vue-i18n 全量贯通；V6 preview topbar 接 `LanguageSwitcher`（`645b19f30`）。web-shell 默认 ON 后加 `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）；projects 加 folder picker 走 `cc init --cwd` 完成"打开已有文件夹"流（`c935a95d4`）。CLI `0.160.0 → 0.160.1`，root `productVersion v5.0.3.1 → v5.0.3.4`。
+>
+> 2026-05-03 更新：**MTC v0.11 — 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA + 监控仪表板**。六条线一次收口跨链桥 §11 + 联邦治理 v0.2 §11 全部可做项：(A1) 跨联邦信任锚 schema + validate（6 类错误码）+ `cc mtc federation cross-trust-create/cross-trust-validate`；(A2) 离线第三方审计器 `auditGovernanceLog()` 顺序回放每个事件、构建滚动 roster、ERROR/WARN 两级 finding；(A3) 多跳传输路由 `--hops <n>`；(A4) Gas 感知 closeBatch；(A5) SLA tracker 有界等待 + p95；(A6) 监控仪表板 web-panel `/mtc` 聚合视图（多联邦健康度 + 同步延迟 + 待批次）。仅 Q-COMP-3（链上锚定法务）+ 真 RPC 链适配两项保留外部阻塞。
+>
+> 2026-05-04 更新：**官网 + 双语整站 + brochure 同步**。docs-website-v2（Astro）整站 8 页 zh + 8 页 en 双语镜像，SiteHeader/SiteFooter 检测 `/en/` 前缀自动切换 nav + dictionary，"EN ↔ 中文" 双向切换；新增三大核心能力屏 / Cowork 5 阶段流程图 / 6 平台 + 6 路测试细分 strip / SLA + 5 类伙伴 + 6 合作方式区块；/security 补 Trinity Trust Root v3.2 三脚（U盾 / SIMKey / TEE）+ 后量子 PQC（ML-KEM/ML-DSA）+ 零知识（Groth16 + zk-STARK）+ FIPS 140-3 硬件标准；/about 补 6 点里程碑时间线 + 资质双块（已获 5 项 + 进行中 4 项）。CLI 版本号统一引用 `packages/cli/package.json`，三处硬编码漂移修掉。CLI `0.161.2`，root `productVersion v5.0.3.29`。Brochure v3 重新生成对齐当前版本。
+>
+> 2026-05-07 更新 III：**v5.0.3.41 — chat-panel-v5 三壳对齐 + B4 social 滚动收口**。本版 productVersion .40 → .41，正式 ship 前 4 个 "5.0.3.40 续" 滚动条目（cred-persist + auto-archive、mofn-sign v2 + webpanel UI、merkle envelope finality、跨机同步 Phase A + Web Shell Phase 3c.7）以及两条新增：(A) V6 默认壳 AIChatPanel 反向对齐 V5 ChatPanel 的 4 个核心特性（流式响应 + 历史会话切换 + 上下文记忆引用 + 工具调用面板，Phase E commit `b33527d31`）；(B) web-shell ChatPanel v5 端口 v1+v1.1（commit `72b13388a`）port V5 全部 router 协议 / autoSendMessage 信号 / virtual list / 5 intent / 6 IPC 走 WS topic。从此 V5 / V6 / web-shell 三壳聊天体验严格对等，Phase 1.6 默认 web-shell 用户不再缺任何 V5 聊天能力。同时修：web-panel `views-mount-smoke.test.js` 在 63 文件并行套件 first-import 撞 30s timeout（Pipeline.vue + Chat.vue 在 4-fork 池下 SFC transform 竞争），fix 走 file-level `vi.setConfig({ testTimeout: 60_000 })`，全局 timeout 不动（验证全局升 60s 反让 worker pool 调度恶化）。回归全绿：desktop 1454/1454 + CLI mtc-federation 集成 41/41 + web-panel 1853/1853 unit + 63/63 e2e。
+
+> 2026-05-15 更新：**Android GA 后续 scope #21 P1 主体 5/5 全闭环**。issue #21 5 项主体一日内全部 land：A.1 桌面 Linux native 配对（`cc pair preflight` 5 项 LAN 诊断 + `cc pair token` CLI 子命令组 + systemd 模板 + 9 段用户指南，57 单测，audit 反驳"Linux 需补 mDNS systemd 单元"误解 — `@libp2p/mdns` 纯 JS 不依赖 avahi）/ A.2 三端 UI consistency 设计文档 v0.1（4 项必须一致 + 4 项必须不同）/ B.1 web-shell 私钥签字 UI（`MultisigSigner` + `multisig.sign` in-process WS topic 绕开 cc subprocess 6-10s 冷启 + `SignProposalModal.vue` Pinia store + `unified-key-manager` DID 路由，113 单测）/ B.5 跨链桥 outbound × m-of-n 多签（Layer 1+2 共 8 PRs：CLI `bridge --require-multisig` + `bridge-consume` + `cc_bridges` provenance 列 + `crosschain-mtc` multisig helpers + `verifyMultiHopBridgeEnvelope` auto-runs provenance check）/ C.1 watch face → VoiceMode shortcut（`VoiceLaunchActions` + `CcPhoneVoiceListener` Data Layer service + wear `VoiceSender`/`VoiceShortcutTileService`/`VoiceComplicationService`，trigger_source 锁 WEAR_FORWARD 防伪，33 单测）。最终 sweep 修 2 个 Robolectric 测试漏标 `@Config(sdk = [33])`（compileSdk=35 vs maxSdkVersion=34）— commit `f1d283833`。P2 候选 4 项 (B.3/B.4/C.2/C.3) 等 GA Play Store + 真用户反馈复评。详见 [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21) + [Android 重新定位 §10](./design/Android_重新定位_设计文档.md)。
+
+> 2026-05-07 更新 II：**v5.0.3.40 — MTC 视图 in-process 提速 + CI 三发解锁**。主修：v5.0.3.39 切到 `asar:true` 后 `cc` 子进程冷启动从 dev 的 ~2.5s 涨到打包后 6-10s，`Mtc.vue` `onMounted` 三发并发（`loadStatus` + `loadBridgeStatus` + `loadBridgeSla`）必撞 8s/6s ws.execute timeout（用户截图 "状态加载失败 / 加载桥 MTC 状态失败"）。修法：新增 3 个 in-process WS topic（`mtc.audit-status` / `mtc.bridge-status` / `mtc.bridge-sla`）直查 `audit-mtc` / `cross-chain-mtc` lib（纯文件读，无 SQLite，无 spawn，零 asar 开销）；`Mtc.vue` 通过 `useShellMode().isEmbedded` 双路径分叉，embedded 走新 topic，浏览器/`cc serve` 仍走旧 `ws.execute`；保底 timeout 8000/6000 → 30000 ms。配 7 + 1 新单测。同时打包三发 CI 修复（commit `25d834958`）：(1) `build-win-with-deref` 7 个 test 在 macOS unit fallback 上 fail，根因 `isSymlink` 用 `realpathSync` 比较，但 macOS `os.tmpdir()` 路径含 `/var → /private/var` 的隐式 symlink，所有 tmp 子目录都误判 → platform split：Win 用 realpath（junction 需要），POSIX 用 `lstat.isSymbolicLink()`；(2) rules-validator 把测试 fixture `TestDbManager.exec(sql)` 当 SQL_INJECTION 报红 → `getAllFiles` 跳过 `__tests__/__mocks__/` + `.test.js`/`.spec.js`/`.d.ts`；(3) CLI subprocess `node bin/chainlesschain.js` cold-start 在繁忙 Windows 主机超 10/15s execSync timeout → 统一 bump 60s（与项目 testTimeout 对齐）。Tests：Desktop unit 10482/10482 + MTC handler 7/7 + web-panel mtc-parser 14/14 + CLI unit 17392/17392 + CLI integration 821/821，共 28716+ 测试。
+
+> 2026-05-07 更新：**B4 post-pack ASAR surgery 落地（v5.0.3.39，issue #8）**。重启 `asar: true`（v5.0.3.4-13 因 electron-builder walker 漏掉 4 个 transitive 包改成 `asar: false`，代价是 NSIS 内 ~110k loose files → Windows 安装 ~20 分钟）。新 `scripts/asar-surgery.js` 在 afterPack 钩子里 extract → inject 4 个 walker-dropped 包（call-bind-apply-helpers / side-channel-{list,map,weakmap}）到 asar header top-level → 重新 createPackageWithOptions，并保留 electron-builder 原始 unpackDir 决策。新 `scripts/build-win-with-deref.js` Win 包装 `electron-builder --win`，临时把 `@chainlesschain/{core-mtc,session-core}` workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），finally 用 'junction' 还原（Win 非 admin 不能创建 'dir' symlink）。预期 Windows 安装 ~5 分钟、安装包 ~300 MB 减重。Tests：`tests/unit/scripts/asar-surgery.test.js`（8 用例）+ `build-win-with-deref.test.js`（15 用例）真 fs + 真 `@electron/asar` 跑 fixture，过程中暴露并修掉一个真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，extractAll 后必须 `asar.uncache(asarPath)` 才能让 listPackage 读到 fresh header（否则 verification gate 永远抛 stale）。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted 路径（不要再走）：asarUnpack glob（issue #6 经验证）、extraResources to app.asar.unpacked/（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
+
+## 当前验证结果
+
+- CLI 单元（`__tests__/unit`，含全部 V2 治理表面）：`14255/14255` (332 文件)
+- CLI 集成（`__tests__/integration`）：`696/696` (40 文件)
+- CLI E2E（`__tests__/e2e`）：`565/565` (38 文件)
+- CLI 定向单元（含 `agent-core` / `ws-agent-handler` / `interaction-adapter` / `abort-utils` 真实 interrupt 主线）：`175/175`
+- CLI `ws-session-workflow` 集成：`20/20`
+- CLI `coding-agent-envelope-roundtrip` E2E：`7/7`
+- Desktop Coding Agent 主链路（bridge / ipc-v3 / session-service / permission-gate / tool-adapter / 集成 / store / AIChatPage）：`9 files, 197/197`
+- Phase 5 最小 harness 定向回归：`5 files, 84/84`
+- AIChatPage harness 面板 + dot-case 事件页面回归：`69/69`
+- Web Panel 单元测试（`__tests__/unit/`，含 Phase A + B + C + D 全部 parser）：`1489/1489`
+- Web Panel 集成测试（`__tests__/integration/phase-b-cli-commands.test.js`）：`19/19`（每命令对实跑 `cc serve`）
+- Web Panel 路由数：`50`（Phase A 3 + B 10 + C 5 + D 5 = 23 V5→Web 端口完成）
+- Web Panel 构建：通过
+- Docs Site 构建：通过
+
+**2026-04-08 文档对齐回归（修改文件全量定向）**：
+
+| 类型 | 范围 | 通过 |
+| --- | --- | --- |
+| CLI 单元 | agent-core / sub-agent-registry / ws-agent-handler | 126/126 |
+| Desktop main 单元 | coding-agent-bridge / coding-agent-ipc-v3 / coding-agent-session-service | 77/77 |
+| Renderer 单元 | coding-agent store / AIChatPage | 81/81 |
+| CLI 集成 | ws-session-workflow | 32/32 |
+| Desktop 集成 | coding-agent-lifecycle | 18/18 |
+| CLI E2E | coding-agent-envelope-roundtrip | 7/7 |
+| **小计** | **6 套** | **341/341** |
+
+## 快速开始
+
+### 方式一：CLI 安装
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+```
+
+### 方式二：源码运行
+
+```bash
+git clone https://github.com/chainlesschain/chainlesschain.git
+cd chainlesschain
+npm install
+npm run dev:desktop-vue
+```
+
+## 文档导航
+
+- [产品概览](/guide/introduction)
+- [快速开始](/guide/getting-started)
+- [CLI 文档](/chainlesschain/cli)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [Web 管理界面](/chainlesschain/cli-ui)
+- [WebSocket 服务](/chainlesschain/cli-serve)
+- [设计文档索引](/design/)
+
+## 当前推荐阅读
+
+如果你是从本轮 Runtime / Web Panel / 协议演进切入，建议优先看下面几页：
+
+- [WebSocket 服务](/chainlesschain/cli-serve)
+- [Web 管理界面](/chainlesschain/cli-ui)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [设计模块 69：WebSocket 服务器接口](/design/modules/69-websocket-server)
+- [设计模块 73：Web 管理界面](/design/modules/73-web-ui)
+- [设计模块 75：Web 管理面板](/design/modules/75-web-panel)
+- [设计模块 78：CLI Agent Runtime 重构计划](/design/modules/78-cli-agent-runtime)
+- [设计模块 79：Coding Agent 系统](/design/modules/79-coding-agent)
+- [Coding Agent 用户文档](/chainlesschain/coding-agent)
+- [Minimal Coding Agent 实施计划](/chainlesschain/minimal-coding-agent-plan)
+
+## 本轮重点能力
+
+### CLI Agent Runtime 重构
+
+- 命令入口正在统一收口到 `Runtime / Gateway / Harness` 分层。
+- WebSocket 协议处理已拆到 `gateways/ws`，由 dispatcher 统一分发。
+- Web Panel 已通过 `onRuntimeEvent()` 开始消费统一 runtime event。
+- `session-created`、`session-resumed`、`session-list-result` 现在都带标准 `record`。
+
+### 后台任务增强
+
+- 支持任务历史分页查询、任务详情输出摘要和多节点恢复策略基础能力。
+- 任务完成后通过 `task:notification` 实时推送到 Web Panel。
+
+### Worktree 合并助手
+
+- 支持 `worktree-diff` 预览、`worktree-merge` 一键合并。
+- 冲突结果包含文件级摘要、自动化候选项和预览入口。
+
+### 压缩策略观测
+
+- 支持 `windowMs`、`provider`、`model` 三个维度筛选。
+- Dashboard 展示命中率、节省 Token、策略分布和变体分布。
+
+### 会话迁移
+
+- 支持旧 JSON 会话迁移到 JSONL。
+- 支持 dry-run 报告、抽样校验和失败重试。
+
+### Coding Agent Phase 5 最小 Harness 与真实 Interrupt
+
+- `coding-agent:interrupt` 已从 `close-session` 别名收口为**真实中断**语义：CLI runtime 通过共享 `abort-utils.js` + `AbortController` 终止当前正在执行的 turn，同时保留 session 可继续使用。
+- `CodingAgentSessionService.getHarnessStatus()` 一次性聚合 `sessions` / `worktrees` / `backgroundTasks` 三类概览。
+- 新增五条 IPC：`harness-status` / `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task`，Desktop main → bridge → IPC v3 → preload → renderer store 全链路打通。
+- Desktop 聊天页 (`AIChatPage.vue`) 新增 **Coding Agent Harness** 面板，展示会话 / worktree / 后台任务概览，支持 Refresh、View Details（详情 + 历史）、Stop Task。
+- AIChatPage 已迁移到点分小写事件协议：`tool.call.*` / `assistant.final` / `approval.*` / `approval.high-risk.*`。
+
+## 当前架构主线
+
+本轮文档已经把下面这条主线补齐到可阅读状态：
+
+- CLI 入口正在统一收口到 `Runtime / Gateway / Harness`
+- WebSocket 层从“大一统消息处理器”演进为 `gateways/ws`
+- Web Panel 主干页面开始通过 `onRuntimeEvent()` 消费统一事件
+- session / task / worktree / telemetry 开始共享标准 `record`
+
+如果你想从设计层继续深入，可以直接进入 [设计文档索引](/design/)，再顺着 69、73、75、78 四个模块继续看。

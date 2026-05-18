@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainlessChain 流式生成 Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+            min-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .output:empty::before {
+            content: "输出将显示在这里...";
+            color: #999;
+            font-style: italic;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.idle {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .progress-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-item .stage {
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .content-preview {
+            font-family: 'Courier New', monospace;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            padding: 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .file-item .filename {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 ChainlessChain 流式生成</h1>
+            <p>实时AI内容生成演示</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('project')">
+                📁 项目生成
+            </div>
+            <div class="tab" onclick="switchTab('chat')">
+                💬 流式对话
+            </div>
+        </div>
+
+        <!-- 项目生成 Tab -->
+        <div id="project-tab" class="tab-content active">
+            <form id="project-form">
+                <div class="form-group">
+                    <label for="project-prompt">项目需求描述:</label>
+                    <textarea id="project-prompt" placeholder="例如: 创建一个响应式的个人博客网站" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-type">项目类型:</label>
+                    <select id="project-type">
+                        <option value="web">Web项目</option>
+                        <option value="document">文档项目</option>
+                        <option value="data">数据分析项目</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="project-btn">
+                    🚀 开始生成
+                </button>
+            </form>
+
+            <div id="project-status" class="status idle">就绪</div>
+            <div id="project-output" class="output"></div>
+        </div>
+
+        <!-- 对话 Tab -->
+        <div id="chat-tab" class="tab-content">
+            <form id="chat-form">
+                <div class="form-group">
+                    <label for="chat-message">消息:</label>
+                    <textarea id="chat-message" placeholder="输入你的问题..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="chat-model">模型:</label>
+                    <select id="chat-model">
+                        <option value="qwen2:7b">Qwen2 7B</option>
+                        <option value="qwen2:14b">Qwen2 14B</option>
+                        <option value="llama2">Llama2</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature: <span id="temp-value">0.7</span></label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7"
+                           oninput="document.getElementById('temp-value').textContent = this.value">
+                </div>
+
+                <button type="submit" class="btn" id="chat-btn">
+                    💬 发送消息
+                </button>
+            </form>
+
+            <div id="chat-status" class="status idle">就绪</div>
+            <div id="chat-output" class="output"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+
+        // Tab切换
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // 项目生成
+        document.getElementById('project-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const prompt = document.getElementById('project-prompt').value;
+            const projectType = document.getElementById('project-type').value;
+            const output = document.getElementById('project-output');
+            const status = document.getElementById('project-status');
+            const btn = document.getElementById('project-btn');
+
+            output.innerHTML = '';
+            status.className = 'status loading';
+            status.innerHTML = '<span class="spinner"></span>生成中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/projects/create/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_prompt: prompt,
+                        project_type: projectType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            handleProjectStream(data, output);
+                        }
+                    }
+                }
+
+                status.className = 'status success';
+                status.textContent = '✓ 完成';
+
+            } catch (error) {
+                output.innerHTML += `<div class="error-message">错误: ${error.message}</div>`;
+                status.className = 'status error';
+                status.textContent = '✗ 错误';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        function handleProjectStream(data, output) {
+            switch (data.type) {
+                case 'progress':
+                    output.innerHTML += `
+                        <div class="progress-item">
+                            <div class="stage">${data.stage}</div>
+                            <div>${data.message}</div>
+                        </div>
+                    `;
+                    break;
+
+                case 'content':
+                    // 只显示内容片段的预览
+                    break;
+
+                case 'complete':
+                    const files = data.files || [];
+                    output.innerHTML += `
+                        <div class="file-list">
+                            <h3>生成的文件 (${files.length}):</h3>
+                            ${files.map(file => `
+                                <div class="file-item">
+                                    <div class="filename">📄 ${file.path}</div>
+                                    <div>语言: ${file.language}</div>
+                                    <div>大小: ${file.content.length} 字符</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+
+                case 'error':
+                    output.innerHTML += `<div class="error-message">${data.error}</div>`;
+                    break;
+            }
+
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // 流式对话
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const message = document.getElementById('chat-message').value;
+            const model = document.getElementById('chat-model').value;
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const output = document.getElementById('chat-output');
+            const status = document.getElementById('chat-status');
+            const btn = document.getElementById('chat-btn');
+
+            output.innerHTML = '';
+            status.className = 'status loading';
+            status.innerHTML = '<span class="spinner"></span>生成中...';
+            btn.disabled = true;
+
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'content-preview';
+            output.appendChild(responseDiv);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/chat/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: '你是一个友好的AI助手。' },
+                            { role: 'user', content: message }
+                        ],
+                        model: model,
+                        temperature: temperature
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+
+                            if (data.type === 'content') {
+                                responseDiv.textContent += data.content;
+                                output.scrollTop = output.scrollHeight;
+
+                                if (data.done) {
+                                    status.className = 'status success';
+                                    status.textContent = '✓ 完成';
+                                }
+                            } else if (data.type === 'error') {
+                                throw new Error(data.error);
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                output.innerHTML += `<div class="error-message">错误: ${error.message}</div>`;
+                status.className = 'status error';
+                status.textContent = '✗ 错误';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

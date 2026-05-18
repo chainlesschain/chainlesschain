@@ -1,0 +1,30 @@
+{
+  "name": "@chainlesschain/locales",
+  "version": "0.1.0",
+  "description": "Shared i18n locale catalog for ChainlessChain web-panel + desktop-app-vue + future consumers",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./seed/index.js",
+    "./zh-CN": "./seed/zh-CN.json",
+    "./en": "./seed/en.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "seed/"
+  ],
+  "scripts": {
+    "extract": "node scripts/extract.js",
+    "scan-untranslated": "node scripts/scan-untranslated.js",
+    "audit": "npm run extract && npm run scan-untranslated"
+  },
+  "keywords": [
+    "chainlesschain",
+    "i18n",
+    "locales"
+  ],
+  "devDependencies": {
+    "glob": "^10.4.5",
+    "vue-i18n-extract": "^2.0.7"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "tpl_demo_worktree_001",
+  "name": "git_worktree_workflow",
+  "display_name": "Git Worktree 并行开发",
+  "description": "演示 Git Worktree 管理技能，实现多分支并行开发工作流",
+  "icon": "🌿",
+  "category": "automation",
+  "subcategory": "git",
+  "tags": ["git", "worktree", "branch", "parallel", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我设置 Git Worktree 并行开发：\n\n**功能分支：** {{branchName}}\n**基础分支：** {{baseBranch}}\n**工作树位置：** {{worktreePath}}\n\n**操作步骤：**\n\n### 步骤1：创建工作树\n```\n/git-worktree-manager create {{branchName}} --base {{baseBranch}}\n```\n\n### 步骤2：查看工作树列表\n```\n/git-worktree-manager list\n```\n\n### 步骤3：在工作树中开发\n切换到新工作树目录进行独立开发。\n\n### 步骤4：清理工作树\n开发完成后删除工作树。\n```\n/git-worktree-manager remove {{branchName}}\n```\n\n**使用的技能：** git-worktree-manager",
+  "variables_schema": [
+    {
+      "name": "branchName",
+      "label": "功能分支名",
+      "type": "string",
+      "required": true,
+      "placeholder": "feature/my-feature"
+    },
+    {
+      "name": "baseBranch",
+      "label": "基础分支",
+      "type": "select",
+      "required": false,
+      "default": "main",
+      "options": [
+        { "value": "main", "label": "main" },
+        { "value": "develop", "label": "develop" },
+        { "value": "staging", "label": "staging" }
+      ]
+    },
+    {
+      "name": "worktreePath",
+      "label": "工作树路径",
+      "type": "string",
+      "required": false,
+      "placeholder": "自动生成"
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["git-worktree-manager"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

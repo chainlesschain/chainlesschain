@@ -1,0 +1,62 @@
+echo "🔍 运行 Pre-commit 代码质量门禁..."
+echo ""
+
+START_TIME=$(date +%s)
+
+# 0. 工作树快照（防 lint-staged --no-stash 数据丢失，参见 memory feedback_lint_staged_no_stash_data_loss）
+# 恢复：tail .git/last-precommit-snapshots.log 取 SHA → git stash apply <sha>
+# Snapshot 是 dangling commit，git gc 默认 30 天内不清。
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || true)
+if [ -n "$GIT_DIR" ]; then
+  SNAPSHOT_SHA=$(git stash create -u 2>/dev/null || true)
+  if [ -n "$SNAPSHOT_SHA" ]; then
+    LOG="$GIT_DIR/last-precommit-snapshots.log"
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    echo "$(date -u +%FT%TZ) $SNAPSHOT_SHA $BRANCH" >> "$LOG"
+    if [ -f "$LOG" ]; then
+      tail -n 20 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+    fi
+    echo "📸 工作树快照: $SNAPSHOT_SHA  (恢复: git stash apply $SNAPSHOT_SHA)"
+  fi
+fi
+
+# 1. 运行 lint-staged（ESLint + Prettier，仅针对暂存文件）
+echo "📝 [1/2] 运行 ESLint 和代码格式化（仅暂存文件）..."
+npx lint-staged --no-stash
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ ESLint 或格式化失败！请修复后重试。"
+  echo "   跳过验证: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ ESLint 和代码格式化通过"
+echo ""
+
+# 2. 运行 TypeScript 类型检查（仅暂存的 .ts/.vue 文件变更时）
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|vue)$' || true)
+if [ -n "$STAGED_TS" ]; then
+  echo "🔷 [2/2] 运行 TypeScript 类型检查..."
+  node scripts/typecheck-staged.js
+
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ TypeScript 类型检查失败！请修复后重试。"
+    echo "   跳过验证: git commit --no-verify"
+    exit 1
+  fi
+
+  echo "✅ TypeScript 类型检查通过"
+else
+  echo "🔷 [2/2] 无 TypeScript 文件变更，跳过类型检查"
+fi
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+echo ""
+echo "✅ Pre-commit 检查通过！(${DURATION}s)"
+echo ""
+echo "💡 完整测试: cd desktop-app-vue && npm test"
+echo "💡 规则验证: cd desktop-app-vue && npm run validate:rules"

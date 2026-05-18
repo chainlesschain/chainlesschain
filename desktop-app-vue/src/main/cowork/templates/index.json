@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "templates": [
+    {
+      "id": "code-review-team",
+      "name": "Code Review Team",
+      "type": "code-review",
+      "description": "Automated code review team with security, performance, quality, and architecture experts",
+      "agentCount": 4,
+      "workflowType": "parallel",
+      "file": "code-review-team.json"
+    },
+    {
+      "id": "test-generation-team",
+      "name": "Test Generation Team",
+      "type": "test-generation",
+      "description": "Automated test generation team with unit, integration, and edge case specialists",
+      "agentCount": 3,
+      "workflowType": "sequential",
+      "file": "test-generation-team.json"
+    },
+    {
+      "id": "documentation-team",
+      "name": "Documentation Team",
+      "type": "documentation",
+      "description": "Automated documentation team with API, user guide, and architecture specialists",
+      "agentCount": 3,
+      "workflowType": "parallel",
+      "file": "documentation-team.json"
+    }
+  ],
+  "totalTemplates": 3,
+  "totalAgents": 10
+}

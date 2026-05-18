@@ -1,0 +1,248 @@
+{
+  "id": "tpl_video_reels_001",
+  "name": "instagram_reels_script",
+  "display_name": "Instagram Reels脚本",
+  "description": "为Instagram Reels创建15-90秒竖屏视频脚本，针对海外受众优化",
+  "icon": "📸",
+  "cover_image": "/templates/covers/instagram-reels.png",
+  "category": "video",
+  "subcategory": "short-form",
+  "tags": [
+    "Instagram",
+    "Reels",
+    "短视频",
+    "竖屏",
+    "海外营销"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我创建一条Instagram Reels视频脚本，要求：\n\n**视频信息：**\n- 主题：{{reelsTheme}}\n- 时长：{{duration}}秒\n- 内容类型：{{contentType}}\n- 目标受众：{{targetAudience}}\n- 视频风格：{{visualStyle}}\n\n**Instagram Reels特性优化**\n\n- 竖屏尺寸：9:16 (1080x1920)\n- 最佳时长：15-30秒（完播率最高）\n- 音乐：使用Instagram音乐库热门BGM\n- 标签：最多30个hashtags\n- 发布时间：根据受众时区优化\n\n---\n\n**开场Hook (前3秒)**\n\n{{#eq hookType \"问题式\"}}\n文案：\"Ever wondered why [问题]?\"\n画面：[特写镜头 + 文字动画]\n音效：[吸引注意的音效]\n{{/eq}}\n\n{{#eq hookType \"展示式\"}}\n文案：\"Watch this transformation!\"\n画面：[前后对比快速闪现]\n音效：[Whoosh转场音效]\n{{/eq}}\n\n{{#eq hookType \"情感式\"}}\n文案：\"This changed my life...\"\n画面：[人物特写 + 情绪表达]\n音效：[温暖/激励的BGM]\n{{/eq}}\n\n---\n\n**主体内容 ({{subtract duration 6}}秒)**\n\n{{#eq contentType \"Tutorial\"}}\n【教程类结构】\n\n第1步 ({{divide (subtract duration 6) 3}}秒)\n- 文案：\"Step 1: [动作描述]\"\n- 画面：[手部特写/操作演示]\n- 文字：大号字幕 + Step 1图标\n\n第2步 ({{divide (subtract duration 6) 3}}秒)\n- 文案：\"Step 2: [动作描述]\"\n- 画面：[继续演示]\n- 文字：Step 2图标 + 关键提示\n\n第3步 ({{divide (subtract duration 6) 3}}秒)\n- 文案：\"Step 3: [完成动作]\"\n- 画面：[成果展示]\n- 文字：Done! ✓\n{{/eq}}\n\n{{#eq contentType \"Before-After\"}}\n【对比类结构】\n\nBefore部分 ({{divide (subtract duration 6) 2}}秒)\n- 文案：\"Before using [产品/方法]\"\n- 画面：[问题状态]\n- 文字：\"Before\" + 问题标注\n\nAfter部分 ({{divide (subtract duration 6) 2}}秒)\n- 文案：\"After [时间]\"\n- 画面：[改善结果]\n- 文字：\"After\" + 效果对比\n{{/eq}}\n\n{{#eq contentType \"Lifestyle\"}}\n【生活方式类结构】\n\n场景1 ({{divide (subtract duration 6) 3}}秒)\n- 画面：[日常场景]\n- 文案：\"Starting my day with...\"\n- 氛围：轻松、真实\n\n场景2 ({{divide (subtract duration 6) 3}}秒)\n- 画面：[核心活动]\n- 文案：\"The best part is...\"\n- 氛围：高潮、精彩\n\n场景3 ({{divide (subtract duration 6) 3}}秒)\n- 画面：[结尾场景]\n- 文案：\"And that's how I...\"\n- 氛围：温馨、完整\n{{/eq}}\n\n{{#eq contentType \"Product-Review\"}}\n【产品测评类结构】\n\n介绍产品 ({{multiply (subtract duration 6) 0.3}}秒)\n- 文案：\"Let me show you [产品名]\"\n- 画面：[产品多角度展示]\n- 文字：产品名 + 价格\n\n功能演示 ({{multiply (subtract duration 6) 0.5}}秒)\n- 文案：\"It does [功能1], [功能2], and [功能3]\"\n- 画面：[实际使用演示]\n- 文字：功能标注\n\n效果展示 ({{multiply (subtract duration 6) 0.2}}秒)\n- 文案：\"The result? Amazing!\"\n- 画面：[效果特写]\n- 文字：评分 ⭐⭐⭐⭐⭐\n{{/eq}}\n\n---\n\n**结尾CTA (3秒)**\n\n{{#eq ctaType \"关注\"}}\n文案：\"Follow for more [内容类型]!\"\n画面：[点赞动画 + 关注按钮]\n文字：\"@{{accountName}}\"\n{{/eq}}\n\n{{#eq ctaType \"互动\"}}\n文案：\"Comment your favorite! 👇\"\n画面：[互动提示动画]\n文字：\"Drop a ❤️ if you agree\"\n{{/eq}}\n\n{{#eq ctaType \"分享\"}}\n文案：\"Share this with someone who needs it!\"\n画面：[分享图标动画]\n文字：\"Tag a friend\"\n{{/eq}}\n\n{{#eq ctaType \"购买\"}}\n文案：\"Link in bio to get yours!\"\n画面：[产品链接提示]\n文字：\"Shop now 🛒\"\n{{/eq}}\n\n---\n\n**视觉设计规范**\n\n{{#if includeVisualGuide}}\n**配色方案：**\n- 主色：{{primaryColor}}\n- 辅色：{{secondaryColor}}\n- 文字：白色/黑色（高对比度）\n\n**字体选择：**\n- 标题：粗体Sans-serif（易读）\n- 正文：中等粗细\n- 大小：至少占屏幕1/4（手机可读）\n\n**转场效果：**\n- 快速切换（每1-2秒一个镜头）\n- 使用Instagram内置转场\n- 配合音乐节拍\n\n**镜头构图：**\n- 竖屏构图（主体居中或1/3处）\n- 避免横屏素材裁剪\n- 脸部特写效果最佳\n{{/if}}\n\n---\n\n**音乐选择建议**\n\n{{#if includeMusicGuide}}\n推荐使用Instagram音乐库中的：\n\n{{#eq visualStyle \"Trendy\"}}\n- 当前流行音乐（查看Trending Audio）\n- 节奏感强的电子乐\n- TikTok跨平台热曲\n{{/eq}}\n\n{{#eq visualStyle \"Aesthetic\"}}\n- Lo-fi背景音乐\n- 轻柔的indie pop\n- 氛围感音乐\n{{/eq}}\n\n{{#eq visualStyle \"Energetic\"}}\n- 高能量EDM\n- Workout音乐\n- 快节奏hip-hop\n{{/eq}}\n\n**音乐使用技巧：**\n- 在音乐高潮部分放置关键内容\n- 剪辑节奏匹配BPM\n- 前3秒用音乐抓住注意力\n{{/if}}\n\n---\n\n**标题文案 (Caption)**\n\n主文案（前125字符会显示在Feed）：\n\"{{generateCaption reelsTheme}}\n\n{{#if includeHashtags}}\n.\n.\n.\n#{{reelsTheme}} #reels #reelsinstagram #instagram #viral #trending #fyp #explore #instagood #photooftheday\n\n【相关话题标签】\n{{generateNicheHashtags contentType}}\n\n【地理标签】（如适用）\n#{{location}}\n{{/if}}\n\n---\n\n**发布优化建议**\n\n{{#if includePostingTips}}\n**最佳发布时间：**\n- 工作日：12PM-1PM, 7PM-9PM（当地时间）\n- 周末：11AM-2PM\n- 根据Instagram Insights调整\n\n**封面选择：**\n- 选择视频中最吸引人的一帧\n- 添加标题文字\n- 高对比度、清晰的人脸或产品\n\n**互动策略：**\n- 发布后立即回复评论\n- 在Stories中分享Reels\n- 使用互动贴纸引导到Reels\n\n**算法优化：**\n- 前30分钟的互动率最关键\n- 鼓励保存和分享（权重高于点赞）\n- 完播率>50%会获得更多推荐\n{{/if}}\n\n---\n\n**分镜头表**\n\n| 时间 | 画面 | 文案/字幕 | 音效/音乐 | 转场 |\n|------|------|----------|----------|------|\n| 0-3s | [Hook画面] | [Hook文案] | [BGM开始] | 淡入 |\n| 3-6s | [主体1] | [说明1] | [BGM继续] | 快切 |\n| 6-9s | [主体2] | [说明2] | [BGM继续] | 快切 |\n| ... | ... | ... | ... | ... |\n| {{subtract duration 3}}-{{duration}}s | [CTA画面] | [CTA文案] | [BGM高潮] | 淡出 |\n\n---\n\n**拍摄清单**\n\n**设备：**\n- [ ] 智能手机（竖屏拍摄）\n- [ ] 稳定器/三脚架\n- [ ] 补光灯（环形灯）\n- [ ] 无线麦克风（如需录音）\n\n**场景：**\n- [ ] 背景整洁（避免杂乱）\n- [ ] 光线充足（自然光最佳）\n- [ ] 符合主题氛围\n\n**道具：**\n- [ ] {{listProps contentType}}\n\n**服装：**\n- [ ] 符合目标受众审美\n- [ ] 避免复杂图案（视频压缩会失真）\n- [ ] 颜色与背景有对比\n\n---\n\n**输出格式：**\n- 完整脚本文档（带分镜）\n- 拍摄清单（可打印）\n- 文案模板（可直接复制）\n- 音乐和标签列表",
+  "variables_schema": [
+    {
+      "name": "reelsTheme",
+      "label": "视频主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：护肤教程、穿搭灵感、旅行日记"
+    },
+    {
+      "name": "duration",
+      "label": "视频时长（秒）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 15,
+      "max": 90
+    },
+    {
+      "name": "contentType",
+      "label": "内容类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "Tutorial",
+          "label": "教程类（How-to）"
+        },
+        {
+          "value": "Before-After",
+          "label": "对比类（前后变化）"
+        },
+        {
+          "value": "Lifestyle",
+          "label": "生活方式类"
+        },
+        {
+          "value": "Product-Review",
+          "label": "产品测评类"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false,
+      "default": "18-35岁年轻人",
+      "placeholder": "例如：时尚女性、健身爱好者"
+    },
+    {
+      "name": "visualStyle",
+      "label": "视频风格",
+      "type": "select",
+      "required": false,
+      "default": "Trendy",
+      "options": [
+        {
+          "value": "Trendy",
+          "label": "潮流时尚"
+        },
+        {
+          "value": "Aesthetic",
+          "label": "美学氛围"
+        },
+        {
+          "value": "Energetic",
+          "label": "活力动感"
+        },
+        {
+          "value": "Minimalist",
+          "label": "简约风格"
+        }
+      ]
+    },
+    {
+      "name": "hookType",
+      "label": "开场Hook类型",
+      "type": "select",
+      "required": false,
+      "default": "问题式",
+      "options": [
+        {
+          "value": "问题式",
+          "label": "问题式（引发好奇）"
+        },
+        {
+          "value": "展示式",
+          "label": "展示式（视觉冲击）"
+        },
+        {
+          "value": "情感式",
+          "label": "情感式（情绪共鸣）"
+        }
+      ]
+    },
+    {
+      "name": "ctaType",
+      "label": "结尾CTA类型",
+      "type": "select",
+      "required": false,
+      "default": "关注",
+      "options": [
+        {
+          "value": "关注",
+          "label": "引导关注"
+        },
+        {
+          "value": "互动",
+          "label": "引导评论"
+        },
+        {
+          "value": "分享",
+          "label": "引导分享"
+        },
+        {
+          "value": "购买",
+          "label": "引导购买"
+        }
+      ]
+    },
+    {
+      "name": "includeVisualGuide",
+      "label": "包含视觉设计指南",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "提供视觉规范"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeMusicGuide",
+      "label": "包含音乐选择指南",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "提供音乐建议"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeHashtags",
+      "label": "生成标签建议",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "提供标签列表"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includePostingTips",
+      "label": "包含发布优化建议",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "提供发布策略"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "Reels-{{reelsTheme}}",
+    "files": [
+      {
+        "path": "脚本-{{reelsTheme}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "分镜表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "拍摄清单.md",
+        "type": "markdown",
+        "content": "# 拍摄清单\n\n## 设备\n- [ ] 手机\n- [ ] 稳定器\n- [ ] 补光灯\n\n## 场景\n- [ ] 背景布置\n\n## 道具\n- [ ] \n\n## 服装\n- [ ] "
+      },
+      {
+        "path": "文案.txt",
+        "type": "text"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
+}

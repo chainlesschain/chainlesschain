@@ -1,0 +1,74 @@
+name: "Setup Node deps + platform rollup binary"
+description: "Install npm deps and the platform-correct @rollup/rollup-* native binary (fixes npm/cli#4828 on CI)"
+inputs:
+  working-directory:
+    description: "Directory to run npm install in"
+    required: false
+    default: "."
+  install-command:
+    description: "Primary install command (e.g. 'npm install --legacy-peer-deps' or 'npm ci')"
+    required: false
+    default: "npm install --legacy-peer-deps"
+  extra-packages:
+    description: "Space-separated extra npm packages to install alongside the rollup binary (e.g. 'electron-installer-debian')"
+    required: false
+    default: ""
+  install-desktop-app-vue:
+    description: "After the root install, also run 'npm install --legacy-peer-deps' inside desktop-app-vue. Required since ad3e7d403 dropped desktop-app-vue from root workspaces — root install no longer hoists its deps."
+    required: false
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - name: Install npm dependencies (3-attempt retry, transient ECONNRESET hardening)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      # v5.0.3.44 release.yml's build-linux failed in 52s on a single
+      # ECONNRESET during `npm ci`. Same class of transient that motivated
+      # test-automation-full.yml's retry (issue #7). Backoff 15s / 30s; on
+      # third failure propagate exit code so downstream steps don't run on
+      # half-installed node_modules. Mirrors the retry pattern already in
+      # test-automation-full.yml run-all-tests + health-check.
+      run: |
+        attempt_install() {
+          ${{ inputs.install-command }}
+        }
+        for i in 1 2 3; do
+          if attempt_install; then
+            exit 0
+          fi
+          if [ "$i" -lt 3 ]; then
+            delay=$((i * 15))
+            echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
+            sleep "$delay"
+          fi
+        done
+        echo "::error::npm install failed after 3 attempts"
+        exit 1
+    - name: Install desktop-app-vue dependencies (post-workspace-refactor)
+      if: inputs.install-desktop-app-vue == 'true'
+      shell: bash
+      working-directory: desktop-app-vue
+      run: npm install --legacy-peer-deps
+    - name: Install platform rollup binary + extras
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        EXTRA_PACKAGES: ${{ inputs.extra-packages }}
+      run: |
+        # Pick the rollup native binary for this runner.
+        # Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes
+        # skips optional platform deps, leaving vite/vitest unable to resolve rollup.
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64)   pkg="@rollup/rollup-linux-x64-gnu" ;;
+          Windows-X64) pkg="@rollup/rollup-win32-x64-msvc" ;;
+          macOS-ARM64) pkg="@rollup/rollup-darwin-arm64" ;;
+          macOS-X64)   pkg="@rollup/rollup-darwin-x64" ;;
+          *)           pkg="" ;;
+        esac
+        packages="$pkg $EXTRA_PACKAGES"
+        packages=$(echo "$packages" | xargs) # trim
+        if [ -n "$packages" ]; then
+          echo "Installing: $packages"
+          npm install $packages --no-save --legacy-peer-deps || true
+        fi

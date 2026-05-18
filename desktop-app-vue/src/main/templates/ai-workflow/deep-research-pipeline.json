@@ -1,0 +1,72 @@
+{
+  "id": "tpl_demo_deepresearch_001",
+  "name": "deep_research_pipeline",
+  "display_name": "深度研究流水线",
+  "description": "演示深度研究和 Tavily 搜索技能，多源检索并生成深度研究报告",
+  "icon": "🔬",
+  "category": "ai-workflow",
+  "subcategory": "research",
+  "tags": ["research", "deep", "tavily", "analysis", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我启动一个深度研究项目：\n\n**研究主题：** {{researchTopic}}\n**研究深度：** {{researchDepth}}\n**信息来源：** {{sources}}\n**输出语言：** {{outputLanguage}}\n\n**研究步骤：**\n\n### 步骤1：在线搜索\n```\n/tavily-search \"{{researchTopic}}\"\n```\n\n### 步骤2：深度分析\n```\n/deep-research \"{{researchTopic}}\" --depth {{researchDepth}}\n```\n\n### 步骤3：知识库检索\n```\n/smart-search \"{{researchTopic}}\"\n```\n\n### 步骤4：深度思考\n```\n/ultrathink analyze \"{{researchTopic}}\"\n```\n\n### 步骤5：整理报告\n综合以上信息生成结构化研究报告。\n\n### 步骤6：保存研究成果\n```\n/memory-management save \"深度研究: {{researchTopic}}\"\n```\n\n**使用的技能：** deep-research, tavily-search, ultrathink, smart-search, memory-management",
+  "variables_schema": [
+    {
+      "name": "researchTopic",
+      "label": "研究主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：大语言模型在代码生成中的应用"
+    },
+    {
+      "name": "researchDepth",
+      "label": "研究深度",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "quick", "label": "快速概览（5分钟）" },
+        { "value": "standard", "label": "标准研究（15分钟）" },
+        { "value": "deep", "label": "深度研究（30+分钟）" }
+      ]
+    },
+    {
+      "name": "sources",
+      "label": "信息来源",
+      "type": "select",
+      "required": false,
+      "default": "all",
+      "options": [
+        { "value": "web", "label": "仅网络搜索" },
+        { "value": "kb", "label": "仅知识库" },
+        { "value": "all", "label": "全部（网络+知识库）" }
+      ]
+    },
+    {
+      "name": "outputLanguage",
+      "label": "输出语言",
+      "type": "select",
+      "required": false,
+      "default": "zh-CN",
+      "options": [
+        { "value": "zh-CN", "label": "中文" },
+        { "value": "en", "label": "English" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": [
+    "deep-research",
+    "tavily-search",
+    "ultrathink",
+    "smart-search",
+    "memory-management"
+  ],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

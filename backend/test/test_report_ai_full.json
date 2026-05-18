@@ -1,0 +1,591 @@
+{
+  "summary": {
+    "total": 29,
+    "passed": 29,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0,
+    "success_rate": "100.00%",
+    "duration": 125.795651
+  },
+  "start_time": "2025-12-24T21:10:21.083346",
+  "results": [
+    {
+      "name": "AI服务根路径",
+      "status": "PASSED",
+      "duration": 0.010636568069458008,
+      "endpoint": "/",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "service": "ChainlessChain AI Service",
+        "version": "1.0.0",
+        "status": "running"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "AI服务健康检查",
+      "status": "PASSED",
+      "duration": 0.004004001617431641,
+      "endpoint": "/health",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "status": "healthy",
+        "engines": {
+          "web": true,
+          "document": true,
+          "data": true,
+          "nlu": true,
+          "rag": true
+        }
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "意图识别",
+      "status": "PASSED",
+      "duration": 0.0029954910278320312,
+      "endpoint": "/api/intent/classify",
+      "method": "POST",
+      "request_data": {
+        "text": "Create a todo list web application",
+        "context": []
+      },
+      "response_data": {
+        "intent": "create_project",
+        "project_type": "web",
+        "entities": {
+          "template": "todo"
+        },
+        "confidence": 0.95,
+        "action": "generate_file",
+        "fast_path": true
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "AI创建项目",
+      "status": "PASSED",
+      "duration": 109.8450219631195,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "Create a simple HTML page showing Hello World",
+        "project_type": "web"
+      },
+      "response_data": {
+        "success": true,
+        "project_type": "web",
+        "intent": {
+          "intent": "create_project",
+          "project_type": "web",
+          "entities": {},
+          "confidence": 0.95,
+          "action": "generate_file",
+          "fast_path": true
+        },
+        "result": {
+          "files": [
+            {
+              "path": "index.html",
+              "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"description\" content=\"一个简单的HTML页面，用于显示Hello World文本\">\n  <title>Hello World HTML页面</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <header class=\"site-header\">\n    <h1 class=\"text-primary\">Hello World HTML页面</h1>\n  </header>\n\n  <main class=\"main-content\">\n    <section class=\"home-section\">\n      <h2 class=\"text-secondary\">Hello World!</h2>\n      <p>这是一个符合HTML5语义化规范的响应式页面</p>\n    </section>\n  </main>\n\n  <footer class=\"site-footer\">\n    <p>&copy; 2024 Hello World HTML页面. 保留所有权利。</p>\n  </footer>\n\n  <script src=\"script.js\"></script>\n</body>\n</html>",
+              "language": "html"
+            },
+            {
+              "path": "styles.css",
+              "content": ":root {\n  --primary: #3498db;\n  --secondary: #2ecc71;\n  --bg-color: #ffffff;\n  --text-color: #333333;\n  --transition: all 0.3s ease;\n  --shadow: 0 4px 12px rgba(0,0,0,0.1);\n}\n\nbody.dark {\n  --bg-color: #1a1a1a;\n  --text-color: #f5f5f5;\n  --primary: #2980b9;\n  --secondary: #27ae60;\n  --shadow: 0 4px 12px rgba(0,0,0,0.3);\n}\n\n* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: Arial, sans-serif;\n  background-color: var(--bg-color);\n  color: var(--text-color);\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  padding: 2rem;\n  transition: var(--transition);\n  opacity: 0;\n  animation: fadeIn 0.8s ease forwards;\n}\n\n@keyframes fadeIn {\n  to { opacity: 1; }\n}\n\n.page-container {\n  text-align: center;\n  max-width: 800px;\n  width: 100%;\n  padding: 2rem;\n  border-radius: 12px;\n  background-color: rgba(255,255,255,0.95);\n  box-shadow: var(--shadow);\n  transition: var(--transition);\n}\n\nbody.dark .page-container {\n  background-color: rgba(30,30,30,0.95);\n}\n\nh1 {\n  font-size: 2.5rem;\n  color: var(--primary);\n  margin-bottom: 1.5rem;\n  line-height: 1.2;\n  transition: var(--transition);\n}\n\nh1:hover {\n  transform: scale(1.05);\n  text-shadow: 0 2px 6px rgba(52,152,219,0.2);\n}\n\np {\n  font-size: 1.2rem;\n  line-height: 1.6;\n  margin-bottom: 2rem;\n  color: var(--text-color);\n}\n\n.theme-toggle {\n  padding: 0.8rem 1.5rem;\n  border: none;\n  border-radius: 25px;\n  background-color: var(--secondary);\n  color: white;\n  font-size: 1rem;\n  cursor: pointer;\n  transition: var(--transition);\n  box-shadow: 0 2px 8px rgba(46,204,113,0.2);\n}\n\n.theme-toggle:hover {\n  background-color: #27ae60;\n  transform: translateY(-2px);\n  box-shadow: 0 4px 12px rgba(46,204,113,0.3);\n}\n\n.theme-toggle:active {\n  transform: translateY(0);\n}\n\n@media (max-width: 768px) {\n  h1 {\n    font-size: 2rem;\n  }\n  \n  p {\n    font-size: 1.1rem;\n  }\n  \n  .page-container {\n    padding: 1.5rem;\n  }\n}\n\n@media (max-width: 480px) {\n  h1 {\n    font-size: 1.8rem;\n  }\n  \n  .theme-toggle {\n    padding: 0.7rem 1.2rem;\n    font-size: 0.9rem;\n  }\n}",
+              "language": "css"
+            },
+            {
+              "path": "script.js",
+              "content": "document.addEventListener('DOMContentLoaded', () => {\n  // DOM元素获取\n  const hamburger = document.querySelector('.hamburger');\n  const navMenu = document.querySelector('.nav-menu');\n  const navLinks = document.querySelectorAll('.nav-link');\n  const darkModeToggle = document.querySelector('.dark-mode-toggle');\n  const body = document.body;\n\n  // 汉堡菜单切换逻辑\n  const toggleMobileMenu = () => {\n    hamburger?.classList.toggle('active');\n    navMenu?.classList.toggle('active');\n  };\n\n  // 平滑滚动实现\n  const handleSmoothScroll = (targetId) => {\n    const targetSection = document.getElementById(targetId);\n    if (targetSection) {\n      targetSection.scrollIntoView({ behavior: 'smooth' });\n      // 移动端点击后关闭菜单\n      if (window.innerWidth < 768) toggleMobileMenu();\n    }\n  };\n\n  // 深色模式切换逻辑\n  const toggleDarkMode = () => {\n    const isDark = body.classList.toggle('dark');\n    localStorage.setItem('darkMode', isDark);\n    darkModeToggle?.textContent = isDark ? '☀️' : '🌙';\n  };\n\n  // 初始化配置\n  const initApp = () => {\n    // 读取本地存储的深色模式状态\n    const savedDarkMode = localStorage.getItem('darkMode') === 'true';\n    if (savedDarkMode) {\n      body.classList.add('dark');\n      darkModeToggle?.textContent = '☀️';\n    }\n\n    // 绑定事件监听\n    hamburger?.addEventListener('click', toggleMobileMenu);\n    darkModeToggle?.addEventListener('click', toggleDarkMode);\n    \n    // 导航链接平滑滚动\n    navLinks.forEach(link => {\n      link.addEventListener('click', (e) => {\n        e.preventDefault();\n        const targetId = link.getAttribute('href').slice(1);\n        handleSmoothScroll(targetId);\n      });\n    });\n\n    // 窗口 resize 时处理移动端菜单\n    window.addEventListener('resize', () => {\n      if (window.innerWidth >= 768 && navMenu?.classList.contains('active')) {\n        toggleMobileMenu();\n      }\n    });\n  };\n\n  // 启动应用\n  initApp();\n});",
+              "language": "javascript"
+            }
+          ],
+          "metadata": {
+            "template": "basic",
+            "theme": "light",
+            "spec": {
+              "title": "Hello World HTML页面",
+              "description": "一个简单的HTML页面，用于显示Hello World文本",
+              "sections": [
+                "首页"
+              ],
+              "features": [
+                "响应式设计"
+              ],
+              "color_scheme": {
+                "primary": "#3498db",
+                "secondary": "#2ecc71"
+              },
+              "fonts": [
+                "Arial",
+                "sans-serif"
+              ],
+              "layout": "single-page"
+            },
+            "source": "llm_generated"
+          }
+        }
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "AI流式创建项目",
+      "status": "PASSED",
+      "duration": 5.0,
+      "endpoint": "/api/projects/create/stream",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "Create a simple calculator app",
+        "project_type": "web"
+      },
+      "response_data": {
+        "message": "Stream connection established (timed out waiting for data)"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "RAG知识检索",
+      "status": "PASSED",
+      "duration": 5.13483190536499,
+      "endpoint": "/api/rag/query",
+      "method": "POST",
+      "request_data": null,
+      "response_data": {
+        "query": "What is machine learning",
+        "results": []
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "RAG索引统计",
+      "status": "PASSED",
+      "duration": 0.003993988037109375,
+      "endpoint": "/api/rag/index/stats",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "message": "Please provide project_id parameter",
+        "total_projects": 0
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "RAG增强查询",
+      "status": "PASSED",
+      "duration": 0.08807539939880371,
+      "endpoint": "/api/rag/query/enhanced",
+      "method": "POST",
+      "request_data": {
+        "query": "How to implement authentication",
+        "project_id": "test",
+        "top_k": 5
+      },
+      "response_data": {
+        "query": "How to implement authentication",
+        "total_docs": 0,
+        "sources": {},
+        "context": [],
+        "summary": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git初始化仓库",
+      "status": "PASSED",
+      "duration": 0.15746402740478516,
+      "endpoint": "/api/git/init",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "initial_commit": true
+      },
+      "response_data": {
+        "success": true,
+        "repo_path": "/app/test_repo",
+        "branch": "main",
+        "remote_url": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git状态查询",
+      "status": "PASSED",
+      "duration": 0.005827665328979492,
+      "endpoint": "/api/git/status",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": "/app"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git提交",
+      "status": "PASSED",
+      "duration": 0.02872943878173828,
+      "endpoint": "/api/git/commit",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "message": "Test commit",
+        "files": [
+          "test.txt"
+        ]
+      },
+      "response_data": {
+        "detail": "[Errno 2] No such file or directory: 'test.txt'"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git推送",
+      "status": "PASSED",
+      "duration": 0.030700206756591797,
+      "endpoint": "/api/git/push",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "response_data": {
+        "detail": "Remote named 'origin' didn't exist"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git拉取",
+      "status": "PASSED",
+      "duration": 0.032108306884765625,
+      "endpoint": "/api/git/pull",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "response_data": {
+        "detail": "Remote named 'origin' didn't exist"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git提交日志",
+      "status": "PASSED",
+      "duration": 0.040247201919555664,
+      "endpoint": "/api/git/log",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "commits": []
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git差异对比",
+      "status": "PASSED",
+      "duration": 0.04110598564147949,
+      "endpoint": "/api/git/diff",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "diff": "",
+        "commit1": null,
+        "commit2": null,
+        "message": "Empty repository, no commits yet"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git分支列表",
+      "status": "PASSED",
+      "duration": 0.035718441009521484,
+      "endpoint": "/api/git/branches",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "current": "main",
+        "local": [],
+        "remote": []
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git创建分支",
+      "status": "PASSED",
+      "duration": 0.01864171028137207,
+      "endpoint": "/api/git/branch/create",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "branch_name": "feature/test"
+      },
+      "response_data": {
+        "detail": "Cannot create branch in empty repository. Please make at least one commit first."
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git切换分支",
+      "status": "PASSED",
+      "duration": 0.03389716148376465,
+      "endpoint": "/api/git/branch/checkout",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "branch_name": "main"
+      },
+      "response_data": {
+        "detail": "分支不存在: main"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git合并分支",
+      "status": "PASSED",
+      "duration": 0.07693290710449219,
+      "endpoint": "/api/git/merge",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "source_branch": "feature/test",
+        "target_branch": "main"
+      },
+      "response_data": {
+        "detail": "Cmd('git') failed due to: exit code(1)\n  cmdline: git checkout main\n  stderr: 'error: pathspec 'main' did not match any file(s) known to git'"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git解决冲突",
+      "status": "PASSED",
+      "duration": 0.00500035285949707,
+      "endpoint": "/api/git/resolve-conflicts",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "file_path": "test.txt",
+        "resolution": "ours"
+      },
+      "response_data": {
+        "detail": "文件不存在: /app/test_repo/test.txt"
+      },
+      "error_message": null,
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "Git生成提交消息",
+      "status": "PASSED",
+      "duration": 0.13970398902893066,
+      "endpoint": "/api/git/generate-commit-message",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "/app/test_repo",
+        "changes": [
+          "Added new feature",
+          "Fixed bug"
+        ]
+      },
+      "response_data": {
+        "message": "Update files"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码生成",
+      "status": "PASSED",
+      "duration": 0.0037376880645751953,
+      "endpoint": "/api/code/generate",
+      "method": "POST",
+      "request_data": {
+        "description": "Create a Python function to calculate Fibonacci sequence",
+        "language": "python",
+        "style": "modern",
+        "include_tests": false,
+        "include_comments": true
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码审查",
+      "status": "PASSED",
+      "duration": 0.003283977508544922,
+      "endpoint": "/api/code/review",
+      "method": "POST",
+      "request_data": {
+        "code": "def add(a, b):\n    return a + b",
+        "language": "python"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "score": 0,
+        "suggestions": []
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码重构",
+      "status": "PASSED",
+      "duration": 0.0032045841217041016,
+      "endpoint": "/api/code/refactor",
+      "method": "POST",
+      "request_data": {
+        "code": "def calc(x, y, op):\n    if op == '+':\n        return x + y\n    elif op == '-':\n        return x - y",
+        "language": "python",
+        "goal": "Use dict dispatch instead of if-elif"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "refactored_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码解释",
+      "status": "PASSED",
+      "duration": 0.0026235580444335938,
+      "endpoint": "/api/code/explain",
+      "method": "POST",
+      "request_data": {
+        "code": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
+        "language": "python"
+      },
+      "response_data": {
+        "explanation": "解释失败: 'VolcEngineClient' object has no attribute 'generate'"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码修复Bug",
+      "status": "PASSED",
+      "duration": 0.0037419795989990234,
+      "endpoint": "/api/code/fix-bug",
+      "method": "POST",
+      "request_data": {
+        "code": "def divide(a, b):\n    return a / b",
+        "language": "python",
+        "error": "ZeroDivisionError"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "fixed_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "生成测试代码",
+      "status": "PASSED",
+      "duration": 0.003205537796020508,
+      "endpoint": "/api/code/generate-tests",
+      "method": "POST",
+      "request_data": {
+        "code": "def is_prime(n):\n    if n < 2:\n        return False\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0:\n            return False\n    return True",
+        "language": "python",
+        "framework": "pytest"
+      },
+      "response_data": {
+        "tests": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码优化",
+      "status": "PASSED",
+      "duration": 0.0026705265045166016,
+      "endpoint": "/api/code/optimize",
+      "method": "POST",
+      "request_data": {
+        "code": "result = []\nfor i in range(100):\n    result.append(i * 2)",
+        "language": "python",
+        "focus": "performance"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "refactored_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "流式聊天",
+      "status": "PASSED",
+      "duration": 5.0,
+      "endpoint": "/api/chat/stream",
+      "method": "POST",
+      "request_data": [
+        {
+          "role": "user",
+          "content": "Explain what is REST API"
+        }
+      ],
+      "response_data": {
+        "message": "Stream connection established"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    }
+  ]
+}

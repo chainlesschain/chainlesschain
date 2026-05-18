@@ -1,0 +1,1480 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., v0.20.0)"
+        required: true
+        type: string
+      draft:
+        description: "Create as draft"
+        required: false
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+      skip_tests:
+        description: "Skip CLI tests before publishing (use when builds already passed)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # Build for Windows
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      # node-gyp on Windows needs distutils, which Python 3.12+ removed from
+      # stdlib. Pin to 3.11 so `better-sqlite3-multiple-ciphers` can build
+      # natively (electron-rebuild fails ModuleNotFoundError otherwise).
+      - name: Setup Python 3.11 (node-gyp distutils)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. Without this step, the next
+        # `build:main` / `build:renderer` fail with `Cannot find module
+        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
+
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
+        shell: cmd
+        run: |
+          @REM npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          @REM desktop-app-vue/node_modules/. Destroying that dir and linking to root
+          @REM loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          @REM Use robocopy with /XC /XN /XO to merge root hoisted deps into nested
+          @REM WITHOUT overwriting existing files (preserves conflict-resolution versions).
+          @REM Remove workspace self-referencing symlink to prevent ELOOP during packaging.
+          if exist "node_modules\chainlesschain-desktop-vue" rmdir "node_modules\chainlesschain-desktop-vue"
+          @REM Also remove root CLI workspace self-link before copy. packages/cli is
+          @REM named "chainlesschain", so npm creates node_modules/chainlesschain.
+          @REM electron-builder walks node_modules/**/* and trips ENOENT when this
+          @REM relative junction lands in nested with a stale target.
+          if exist "node_modules\chainlesschain" rmdir "node_modules\chainlesschain"
+          robocopy node_modules desktop-app-vue\node_modules /E /XC /XN /XO /NFL /NDL /NJH /NJS /NP
+          @REM robocopy exit codes 0-7 = success, >=8 = failure
+          if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+          @REM Belt-and-suspenders: also clear it from nested if it slipped through.
+          if exist "desktop-app-vue\node_modules\chainlesschain" rmdir "desktop-app-vue\node_modules\chainlesschain"
+          @REM Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps.
+          @REM These packages were split out in late 2024 and may be missed by robocopy hoisting
+          @REM (observed: dunder-proto ended up in ASAR but call-bind-apply-helpers did not).
+          for %%P in (call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
+            if exist "node_modules\%%P" (
+              if not exist "desktop-app-vue\node_modules\%%P" (
+                robocopy "node_modules\%%P" "desktop-app-vue\node_modules\%%P" /E /NFL /NDL /NJH /NJS /NP
+                if %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%
+              )
+            )
+          )
+          echo Hoisted modules merged into desktop-app-vue (nested preserved)
+          exit /b 0
+
+      - name: Remove nested duplicates of split deps (Windows)
+        shell: cmd
+        run: |
+          @REM v5.0.3.4-11 ALL shipped broken with the same crash: dunder-proto
+          @REM can't find call-bind-apply-helpers because electron-builder's
+          @REM prod-dep walker dedupes the top-level copy when call-bind has
+          @REM a nested duplicate at call-bind/node_modules/call-bind-apply-helpers/.
+          @REM
+          @REM This step removes ALL nested duplicates of the 7 split-out deps
+          @REM (kept top-level only). With nothing to dedupe to, the walker
+          @REM is forced to keep top-level. Cross-platform Node script.
+          @REM
+          @REM v5.0.3.8-11 tried `npm install --workspaces=false` to bypass
+          @REM hoisting — verified at gate-time but electron-builder still
+          @REM dedup'd. This approach attacks the root by removing the dedupe
+          @REM target itself.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
+
+      - name: Verify express@5 transitive deps + entry files intact in nested (Windows)
+        shell: cmd
+        run: |
+          @REM Strengthened gate: check both package.json AND a real entry file
+          @REM (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          @REM exports-map only with main:false, so we pick a known subpath file).
+          set FAIL=0
+          for %%P in (call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap) do (
+            if not exist "desktop-app-vue\node_modules\%%P\package.json" (
+              echo ERROR: desktop-app-vue\node_modules\%%P\package.json missing
+              set FAIL=1
+            )
+          )
+          @REM Packages with normal "main": "index.js"
+          for %%P in (call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap) do (
+            if not exist "desktop-app-vue\node_modules\%%P\index.js" (
+              echo ERROR: desktop-app-vue\node_modules\%%P\index.js missing
+              set FAIL=1
+            )
+          )
+          @REM dunder-proto: "main": false, exports map → ./get
+          if not exist "desktop-app-vue\node_modules\dunder-proto\get.js" (
+            echo ERROR: desktop-app-vue\node_modules\dunder-proto\get.js missing
+            set FAIL=1
+          )
+          @REM math-intrinsics: "main": false, exports map → ./abs (use any subpath)
+          if not exist "desktop-app-vue\node_modules\math-intrinsics\abs.js" (
+            echo ERROR: desktop-app-vue\node_modules\math-intrinsics\abs.js missing
+            set FAIL=1
+          )
+          if "%FAIL%"=="1" exit /b 1
+          echo OK: 7 express@5/qs/side-channel transitive deps + entry files verified
+
+      - name: Package Windows (electron-builder, with .blockmap)
+        working-directory: desktop-app-vue
+        run: npm run make:win:builder
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Skip identity discovery on unsigned CI builds; signing secrets can be
+          # added later (CSC_LINK / CSC_KEY_PASSWORD) without changing this file.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Verify differential-update artifacts (Windows)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          # electron-builder ships .exe + sidecar .blockmap + latest.yml.
+          # All three MUST upload — electron-updater needs latest.yml to discover
+          # updates and .blockmap to do block-level diffs.
+          path: |
+            desktop-app-vue/out/build/*.exe
+            desktop-app-vue/out/build/*.exe.blockmap
+            desktop-app-vue/out/build/latest.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  # Build for macOS
+  # electron-builder reads `mac.target.arch: [x64, arm64]` from
+  # electron-builder.yml and produces both architectures in a single
+  # invocation, so the per-arch matrix is no longer needed.
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      # electron-builder uses its own DMG builder (not appdmg), so the
+      # macOS-15 fs-xattr clang failure that motivated DISABLE_DMG=1 in the
+      # legacy forge flow does NOT apply here.
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. Without this step, the next
+        # `build:main` / `build:renderer` fail with `Cannot find module
+        # '@vitejs/plugin-vue'` etc. Verified via v5.0.3.21 CI failure.
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
+
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
+        run: |
+          # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
+          # loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          # rsync --ignore-existing = merge root hoisted into nested WITHOUT overwriting
+          # existing files (preserves conflict-resolution versions). Using rsync instead
+          # of cp -Rn because BSD cp -n (macOS) exits 1 when skipping existing files,
+          # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
+          rm -f node_modules/chainlesschain-desktop-vue
+          # Also drop the bare `chainlesschain` symlink (packages/cli is named
+          # "chainlesschain"). Its relative target ../../packages/cli is correct
+          # at root but breaks when copied into desktop-app-vue/node_modules/.
+          # electron-builder strict-walks node_modules/**/* and ENOENT-fails on
+          # the broken link. desktop-app-vue does not actually depend on the
+          # bare CLI package, only on @chainlesschain/session-core, so deleting
+          # is safe (vs the @chainlesschain/* rewrite path below).
+          rm -f node_modules/chainlesschain
+          mkdir -p desktop-app-vue/node_modules
+          # Pre-clean @chainlesschain in nested: rsync trips with
+          # "unlinkat: Directory not empty" (exit 23) on macOS when the
+          # source side is a symlink and the destination side already
+          # contains a populated workspace dir. We rebuild these symlinks
+          # below anyway, so dropping the existing copies is safe.
+          rm -rf desktop-app-vue/node_modules/@chainlesschain
+          rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Belt-and-suspenders: drop bare chainlesschain in nested too
+          # (in case it survived rsync because it pre-existed there).
+          rm -f desktop-app-vue/node_modules/chainlesschain
+          # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
+          # RELATIVE targets (../../packages/*), which break when resolved from
+          # desktop-app-vue/node_modules/. Replace with absolute paths.
+          if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
+            for link in desktop-app-vue/node_modules/@chainlesschain/*; do
+              if [ -L "$link" ]; then
+                name=$(basename "$link")
+                target="$(pwd)/packages/$name"
+                if [ -d "$target" ]; then
+                  rm "$link"
+                  ln -sf "$target" "$link"
+                  echo "Rewrote @chainlesschain/$name -> $target"
+                fi
+              fi
+            done
+          fi
+          # Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ -d "node_modules/$pkg" ] && [ ! -d "desktop-app-vue/node_modules/$pkg" ]; then
+              rsync -a "node_modules/$pkg" "desktop-app-vue/node_modules/"
+              echo "Fallback-copied $pkg to desktop-app-vue/node_modules/"
+            fi
+          done
+          echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
+
+      - name: Remove nested duplicates of split deps (macOS)
+        run: |
+          # See Windows step for context.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
+
+      - name: Verify express@5 transitive deps + entry files intact (macOS)
+        run: |
+          # Strengthened gate: check both package.json AND a real entry file
+          # (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          # exports-map only with main:false, so we pick a known subpath file).
+          fail=0
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg/package.json missing"
+              fail=1
+            fi
+          done
+          # Packages with normal "main": "index.js"
+          for pkg in call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/index.js" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg/index.js missing"
+              fail=1
+            fi
+          done
+          # dunder-proto: "main": false, exports map → ./get
+          if [ ! -f "desktop-app-vue/node_modules/dunder-proto/get.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/dunder-proto/get.js missing"
+            fail=1
+          fi
+          # math-intrinsics: "main": false, exports map → ./abs
+          if [ ! -f "desktop-app-vue/node_modules/math-intrinsics/abs.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/math-intrinsics/abs.js missing"
+            fail=1
+          fi
+          [ "$fail" = "1" ] && exit 1
+          echo "OK: 7 express@5/qs/side-channel transitive deps + entry files verified"
+
+      - name: Install macOS dmg-license (cross-platform lockfile workaround)
+        working-directory: desktop-app-vue
+        # desktop-app-vue/package-lock.json was generated on Windows where
+        # dmg-license (os: ["darwin"]) was skipped. CI's macOS `npm ci`
+        # honors that platform constraint and doesn't install it either,
+        # then electron-builder's dmg-builder requires('dmg-license') and
+        # crashes with `Cannot find module 'dmg-license'`. v5.0.3.26 hit this.
+        # Install it explicitly here without touching the lockfile.
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --no-save --legacy-peer-deps dmg-license
+
+      - name: Package macOS (electron-builder, x64 + arm64)
+        working-directory: desktop-app-vue
+        run: npm run make:mac:builder
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Unsigned CI build by default. Add APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD
+          # / APPLE_TEAM_ID secrets later to enable signing + notarization.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Verify differential-update artifacts (macOS)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          # x64 + arm64 dmgs both land in out/build/. Filenames carry arch
+          # suffix (electron-builder defaults), so no rename needed downstream.
+          path: |
+            desktop-app-vue/out/build/*.dmg
+            desktop-app-vue/out/build/*.dmg.blockmap
+            desktop-app-vue/out/build/latest-mac.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  # Build for Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            rpm \
+            fakeroot \
+            dpkg \
+            libarchive-tools
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+          extra-packages: electron-installer-debian
+
+      - name: Install desktop-app-vue dependencies (standalone post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # `ad3e7d403` removed desktop-app-vue from root workspaces, so root
+        # `npm ci` no longer installs its deps. See Windows variant for details.
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install web-panel dependencies (standalone post-workspace-refactor)
+        working-directory: packages/web-panel
+        # Same pattern as desktop-app-vue: workspace refactor `ad3e7d403`
+        # broke transitive hoisting that web-panel relied on. web-panel was
+        # never a workspace itself (root package.json workspaces array), so
+        # this step is the only way to populate @vitejs/plugin-vue + others.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
+
+      - name: Build web-panel SPA (consumed by extraResources copy)
+        working-directory: packages/web-panel
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Install packages/cli prod deps standalone (consumed by extraResources)
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          # packages/cli's web-shell loaders (ws-cli-loader.js, web-ui-loader.js)
+          # are loaded by the desktop main process via paths like
+          #   __dirname + "../../../../packages/cli/src/lib/web-ui-server.js"
+          # which in production maps to resources/packages/cli/. The CLI files
+          # then `require("ws")`, `require("commander")`, etc. — Node CJS
+          # resolution walks up node_modules from the CLI file's location.
+          # In dev, those packages are hoisted to repo-root node_modules/, which
+          # IS on the resolution path. In production, packages/cli/ is shipped
+          # in isolation under resources/packages/, so ancestors lack node_modules.
+          # Solution: install CLI's prod deps into packages/cli/node_modules/
+          # standalone, then extraResources copies the whole tree into the bundle.
+          # --workspaces=false escapes the workspace context that would otherwise
+          # hoist back to root.
+          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
+      - name: Merge hoisted modules into nested (preserve non-hoistable deps)
+        run: |
+          # npm workspace leaves non-hoistable deps (e.g. handlebars) ONLY under
+          # desktop-app-vue/node_modules/. Destroying that dir and symlinking to root
+          # loses them — packaged app then fails with "Cannot find module 'handlebars'".
+          # rsync --ignore-existing = merge root hoisted into nested WITHOUT overwriting
+          # existing files (preserves conflict-resolution versions). Using rsync instead
+          # of cp -Rn because BSD cp -n (macOS) exits 1 when skipping existing files,
+          # aborting under bash -e. rsync --ignore-existing returns 0 consistently.
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging.
+          rm -f node_modules/chainlesschain-desktop-vue
+          # Drop the bare `chainlesschain` symlink (packages/cli is named
+          # "chainlesschain"). desktop-app-vue does not depend on the bare CLI
+          # package, only @chainlesschain/session-core. The relative-path
+          # symlink trips electron-builder's strict node_modules/**/* walker
+          # when copied into nested.
+          rm -f node_modules/chainlesschain
+          mkdir -p desktop-app-vue/node_modules
+          rsync -a --ignore-existing node_modules/ desktop-app-vue/node_modules/
+          # Belt-and-suspenders: drop bare chainlesschain in nested too
+          # (in case it survived rsync because it pre-existed there).
+          rm -f desktop-app-vue/node_modules/chainlesschain
+          # Rewrite @chainlesschain/* workspace symlinks: rsync preserves their
+          # RELATIVE targets (../../packages/*), which break when resolved from
+          # desktop-app-vue/node_modules/. Replace with absolute paths.
+          if [ -d desktop-app-vue/node_modules/@chainlesschain ]; then
+            for link in desktop-app-vue/node_modules/@chainlesschain/*; do
+              if [ -L "$link" ]; then
+                name=$(basename "$link")
+                target="$(pwd)/packages/$name"
+                if [ -d "$target" ]; then
+                  rm "$link"
+                  ln -sf "$target" "$link"
+                  echo "Rewrote @chainlesschain/$name -> $target"
+                fi
+              fi
+            done
+          fi
+          # Explicit fallback for express@5/qs@6.14+/side-channel@1.1+ new transitive deps
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ -d "node_modules/$pkg" ] && [ ! -d "desktop-app-vue/node_modules/$pkg" ]; then
+              rsync -a "node_modules/$pkg" "desktop-app-vue/node_modules/"
+              echo "Fallback-copied $pkg to desktop-app-vue/node_modules/"
+            fi
+          done
+          echo "Hoisted modules merged into desktop-app-vue (nested preserved)"
+
+      - name: Remove nested duplicates of split deps (Linux)
+        run: |
+          # See Windows step for context.
+          node desktop-app-vue/scripts/remove-nested-asar-dupes.js
+
+      - name: Verify express@5 transitive deps + entry files intact (Linux)
+        run: |
+          # Strengthened gate: check both package.json AND a real entry file
+          # (NOT all packages have index.js — math-intrinsics + dunder-proto use
+          # exports-map only with main:false, so we pick a known subpath file).
+          fail=0
+          for pkg in call-bind-apply-helpers dunder-proto get-proto math-intrinsics side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/package.json" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg/package.json missing"
+              fail=1
+            fi
+          done
+          # Packages with normal "main": "index.js"
+          for pkg in call-bind-apply-helpers get-proto side-channel-list side-channel-map side-channel-weakmap; do
+            if [ ! -f "desktop-app-vue/node_modules/$pkg/index.js" ]; then
+              echo "ERROR: desktop-app-vue/node_modules/$pkg/index.js missing"
+              fail=1
+            fi
+          done
+          # dunder-proto: "main": false, exports map → ./get
+          if [ ! -f "desktop-app-vue/node_modules/dunder-proto/get.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/dunder-proto/get.js missing"
+            fail=1
+          fi
+          # math-intrinsics: "main": false, exports map → ./abs
+          if [ ! -f "desktop-app-vue/node_modules/math-intrinsics/abs.js" ]; then
+            echo "ERROR: desktop-app-vue/node_modules/math-intrinsics/abs.js missing"
+            fail=1
+          fi
+          [ "$fail" = "1" ] && exit 1
+          echo "OK: 7 express@5/qs/side-channel transitive deps + entry files verified"
+
+      - name: Package Linux (electron-builder, AppImage + deb + rpm)
+        working-directory: desktop-app-vue
+        run: npm run make:linux:builder
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # USE_SYSTEM_FPM removed — fpm is not installed on the runner
+          # (it is a Ruby gem, not in apt). Letting electron-builder
+          # download its own fpm via @electron/builder-binaries works
+          # out of the box.
+
+      - name: Verify differential-update artifacts (Linux)
+        working-directory: desktop-app-vue
+        run: npm run release:verify
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          # AppImage has blockmap EMBEDDED in the .AppImage file itself (no sidecar)
+          # — electron-builder appends it via `app-builder appimage` and exposes
+          # `blockMapSize` in latest-linux.yml. electron-updater's
+          # FileWithEmbeddedBlockMapDifferentialDownloader reads it via HTTP Range.
+          # deb/rpm have no differential support but ship for users who want them.
+          path: |
+            desktop-app-vue/out/build/*.AppImage
+            desktop-app-vue/out/build/*.deb
+            desktop-app-vue/out/build/*.rpm
+            desktop-app-vue/out/build/latest-linux.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  # Build for iOS
+  #
+  # commit 159fc2403 接通了 .xcodeproj 的 SPM 本地 package 引用
+  # (XCLocalSwiftPackageReference + 5 个 XCSwiftPackageProductDependency)，
+  # AppState.swift `import CoreCommon` 不再失败，app target 应该能编。
+  #
+  # 关键约束：**不能**跑 `ruby scripts/create_xcode_project.rb` —— 那个
+  # 脚本会从 0 重生 pbxproj，会覆盖 commit 159fc2403 加进去的 SPM wiring。
+  # CI 检出 git 上的 pbxproj 直接用，xcodeproj gem 写出来的 format
+  # xcodebuild CLI 认。
+  #
+  # 双轨：
+  # - Signed 路径：有 IOS_CERTIFICATE_BASE64 secret 时走 archive + IPA export
+  # - Unsigned 路径：无 secret 时走 simulator build + zip
+  # 两路径均**无 mask**：失败就真失败（前 16 iter 收口的教训）。
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Show toolchain version
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # SPM Phase 1-5 模块单独编一遍作为 Phase 1-5 代码健康度回归（与
+      # ios-build.yml 重合，但 release-time 也跑一次保险）。
+      - name: Build SPM modules (Phase 1-5 sanity)
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ARCH=$(uname -m)
+          swift build \
+            --triple ${ARCH}-apple-ios15.0-simulator \
+            --sdk "$SDK_PATH" \
+            -c release \
+            --target CoreP2P
+
+      - name: Resolve Swift Package dependencies for xcodeproj
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -clonedSourcePackagesDirPath .spm-cache
+
+      - name: Decode signing certificate (if secrets configured)
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -n "$IOS_CERTIFICATE_BASE64" ]; then
+            KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security set-keychain-settings -lut 21600 build.keychain
+
+            echo "$IOS_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+            security import certificate.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+            rm certificate.p12
+
+            if [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ]; then
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            fi
+
+            echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
+            echo "✓ Signing configured"
+          else
+            echo "SIGNING_AVAILABLE=false" >> $GITHUB_ENV
+            echo "ℹ️  No IOS_CERTIFICATE_BASE64 secret — falling back to unsigned simulator build"
+          fi
+
+      - name: Build iOS app archive (signed)
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        shell: bash
+        env:
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — surface real errors
+          # to CI log + persist to artifact for post-mortem).
+          # Signing settings (CODE_SIGN_STYLE/IDENTITY, PROVISIONING_PROFILE_SPECIFIER)
+          # live in ChainlessChain.xcodeproj on the app target's Release config
+          # so they don't leak to SPM resource-bundle targets (which reject any
+          # PROVISIONING_PROFILE_SPECIFIER with "does not support provisioning
+          # profiles"). Only DEVELOPMENT_TEAM is injected from CI secret because
+          # it's not committed to source.
+          xcodebuild archive \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -archivePath build/ChainlessChain.xcarchive \
+            -destination 'generic/platform=iOS' \
+            -clonedSourcePackagesDirPath .spm-cache \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            -allowProvisioningUpdates \
+            2>&1 | tee build/xcodebuild-archive.log
+
+      - name: Export IPA (signed)
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>teamID</key>
+            <string>${{ secrets.IOS_TEAM_ID }}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.chainlesschain.ChainlessChain</key>
+              <string>adhoc</string>
+            </dict>
+            <key>compileBitcode</key>
+            <false/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/ChainlessChain.xcarchive \
+            -exportPath build/output \
+            -exportOptionsPlist ExportOptions.plist \
+            2>&1 | tee build/xcodebuild-export.log
+          ls -la build/output/
+
+      - name: Build iOS app for Simulator (unsigned fallback)
+        if: env.SIGNING_AVAILABLE != 'true'
+        working-directory: ios-app
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — xcpretty silent-drops
+          # some error formats per feedback_xcpretty_swallows_xcodebuild_errors).
+          xcodebuild build \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            -clonedSourcePackagesDirPath .spm-cache \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/xcodebuild-build-unsigned.log
+
+          mkdir -p build/output
+          APP_PATH="build/DerivedData/Build/Products/Release-iphonesimulator/ChainlessChain.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Build succeeded but $APP_PATH not produced"
+            exit 1
+          fi
+          # Sanity: app bundle should be > 1MB (real build), not 2.4KB placeholder
+          APP_SIZE=$(du -k "$APP_PATH" | cut -f1)
+          if [ "$APP_SIZE" -lt 1024 ]; then
+            echo "::error::$APP_PATH is only ${APP_SIZE} KB — likely empty/broken bundle"
+            exit 1
+          fi
+          echo "✓ ChainlessChain.app: ${APP_SIZE} KB"
+          cd build/DerivedData/Build/Products/Release-iphonesimulator
+          zip -r ../../../../output/ChainlessChain-ios-simulator.zip ChainlessChain.app
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+
+      - name: Upload xcodebuild logs (diagnostics, always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-xcodebuild-logs
+          path: |
+            ios-app/build/xcodebuild-archive.log
+            ios-app/build/xcodebuild-export.log
+            ios-app/build/xcodebuild-build-unsigned.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-artifacts
+          path: |
+            ios-app/build/output/*.ipa
+            ios-app/build/output/*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  # Build for Android
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Setup signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android-app
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            # Decode release keystore from secrets
+            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+            # Create keystore.properties that build.gradle.kts reads.
+            # storeFile is resolved via `rootProject.file(...)` (since 49f1440ca),
+            # which uses rootProject.projectDir = android-app/ as the base. So a
+            # bare path like `keystore.jks` resolves to `android-app/keystore.jks`
+            # — exactly where keytool wrote it after `cd android-app`. No `../`.
+            cat > keystore.properties << EOF
+          release.storeFile=keystore.jks
+          release.storePassword=${KEYSTORE_PASSWORD}
+          release.keyAlias=${KEY_ALIAS}
+          release.keyPassword=${KEY_PASSWORD}
+          EOF
+            echo "✅ Release signing configured"
+            echo "SIGNING_TYPE=release" >> $GITHUB_ENV
+          else
+            # Generate a debug keystore for CI builds
+            keytool -genkey -v \
+              -keystore debug-ci.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 1 \
+              -storepass android -keypass android \
+              -dname "CN=CI Build, OU=CI, O=ChainlessChain, L=Unknown, ST=Unknown, C=US"
+            cat > keystore.properties << EOF
+          release.storeFile=debug-ci.keystore
+          release.storePassword=android
+          release.keyAlias=androiddebugkey
+          release.keyPassword=android
+          EOF
+            echo "⚠️ No signing secrets found, using generated debug keystore"
+            echo "SIGNING_TYPE=debug" >> $GITHUB_ENV
+          fi
+
+      - name: Tune Gradle for CI
+        working-directory: android-app
+        run: |
+          # Override JVM args: gradle.properties requests 8GB but CI runners only have 7GB
+          sed -i 's/org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dfile.encoding=UTF-8/' gradle.properties
+          # Disable R8 full mode to avoid ConcurrentModificationException in CI
+          sed -i 's/android.enableR8.fullMode=true/android.enableR8.fullMode=false/' gradle.properties
+          echo "✅ Gradle properties tuned for CI"
+
+      - name: Build release APK
+        working-directory: android-app
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build App Bundle
+        working-directory: android-app
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: List build outputs
+        if: always()
+        run: |
+          echo "=== APK outputs ==="
+          find android-app/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+          echo ""
+          echo "=== AAB outputs ==="
+          find android-app/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null || echo "No AAB files found"
+
+      - name: Clean up signing files
+        if: always()
+        run: |
+          rm -f android-app/keystore.jks android-app/debug-ci.keystore android-app/keystore.properties
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-app/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 7
+
+  # Create GitHub Release
+  create-release:
+    needs: [build-windows, build-macos, build-linux, build-android, build-ios]
+    # Require all three desktop builds to succeed: a partial release that's
+    # missing latest-mac.yml or latest-linux.yml leaves users on those
+    # platforms unable to discover updates. iOS/Android jobs are best-effort
+    # (they use separate signing flows that can fail without blocking desktop).
+    if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' && needs.build-macos.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      # `contents: write` for `gh release create` (required).
+      # Adding the broader set explicitly to bypass v5.0.3.27 HTTP 403
+      # "Resource not accessible by integration" — repo-level
+      # default_workflow_permissions is "write" but the narrow job
+      # permissions block was somehow capping release-create scope.
+      contents: write
+      actions: read
+      checks: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts/
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="${VERSION}"
+          else
+            RANGE="${PREV_TAG}..${VERSION}"
+          fi
+
+          CHANGELOG=$(git log ${RANGE} --pretty=format:"- %s (%h)" --no-merges || echo "Initial release")
+
+          cat > release-notes.md << EOF
+          ## ChainlessChain ${VERSION}
+
+          ### What's Changed
+
+          ${CHANGELOG}
+
+          ### Installation
+
+          Download the appropriate file for your platform:
+
+          #### Windows
+          - \`ChainlessChain-win32-x64-${VERSION#v}.zip\` - Portable version (extract and run)
+
+          #### macOS
+          - \`ChainlessChain-darwin-x64-${VERSION#v}.zip\` - Intel Mac (unzip and move to /Applications)
+          - \`ChainlessChain-darwin-arm64-${VERSION#v}.zip\` - Apple Silicon (unzip and move to /Applications)
+
+          #### Linux
+          - \`ChainlessChain-${VERSION#v}.AppImage\` - Universal Linux package
+          - \`chainlesschain_${VERSION#v}_amd64.deb\` - Debian/Ubuntu package
+          - \`chainlesschain-${VERSION#v}.x86_64.rpm\` - Fedora/RHEL package
+
+          #### Android
+          - \`app-release.apk\` - Android APK (direct install)
+          - \`app-release.aab\` - Android App Bundle (Google Play Store)
+
+          #### iOS
+          - \`ChainlessChain.ipa\` - iOS App (Ad-hoc distribution, signed builds only)
+          - \`ChainlessChain-ios-simulator.zip\` - iOS Simulator build (unsigned, for testing)
+
+          ### System Requirements
+
+          - **Windows**: Windows 10/11 (x64)
+          - **macOS**: macOS 10.15+ (Intel & Apple Silicon)
+          - **Linux**: Ubuntu 20.04+ / Fedora 34+ / Arch Linux (x64)
+          - **Android**: Android 8.0 (API 26) or higher
+          - **iOS**: iOS 15.0+ (iPhone/iPad)
+
+          ### Notes
+
+          - U-Key hardware integration is Windows-only
+          - Backend services can run via Docker or bundled binaries
+          - First launch may take longer as services initialize
+
+          ### Verification
+
+          All binaries are built via GitHub Actions and can be verified against the workflow runs.
+
+          **Full Changelog**: https://github.com/\${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
+          EOF
+
+          cat release-notes.md
+
+      - name: Prepare release assets
+        run: |
+          shopt -s globstar nullglob
+          mkdir -p release-assets
+
+          # electron-builder produces uniquely-named files already:
+          #   ChainlessChain-Setup-1.1.0-alpha.exe          (NSIS installer)
+          #   ChainlessChain-Setup-1.1.0-alpha.exe.blockmap (REQUIRED for delta updates)
+          #   ChainlessChain-Portable-1.1.0-alpha.exe       (portable, no blockmap)
+          #   latest.yml                                    (REQUIRED for update discovery)
+          #   ChainlessChain-1.1.0-alpha.dmg                (mac x64)
+          #   ChainlessChain-1.1.0-alpha-arm64.dmg          (mac arm64)
+          #   ChainlessChain-1.1.0-alpha.dmg.blockmap
+          #   ChainlessChain-1.1.0-alpha-arm64.dmg.blockmap
+          #   latest-mac.yml
+          #   ChainlessChain-1.1.0-alpha.AppImage
+          #   ChainlessChain-1.1.0-alpha.AppImage.blockmap
+          #   latest-linux.yml
+          #   chainlesschain_1.1.0-alpha_amd64.deb
+          #   chainlesschain-1.1.0-alpha.x86_64.rpm
+          # No rename needed — names already include version + arch.
+          # CRITICAL: must include sidecar .blockmap (NSIS/DMG) and latest*.yml
+          # or auto-update falls back to full download (or breaks entirely).
+          # AppImage has no sidecar — blockmap is embedded in the AppImage file
+          # itself (latest-linux.yml carries blockMapSize for it).
+          for f in artifacts/**/*.exe artifacts/**/*.exe.blockmap \
+                   artifacts/**/*.dmg artifacts/**/*.dmg.blockmap \
+                   artifacts/**/*.AppImage \
+                   artifacts/**/*.deb artifacts/**/*.rpm \
+                   artifacts/**/latest.yml artifacts/**/latest-mac.yml artifacts/**/latest-linux.yml \
+                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa \
+                   artifacts/**/ChainlessChain-ios-simulator.zip; do
+            [ -f "$f" ] && cp "$f" release-assets/
+          done
+
+          echo "Release assets:"
+          ls -la release-assets/
+
+          # Sanity-check delta-update artifacts ARE in the bundle. Without these
+          # the upload looks "successful" but auto-update is silently broken,
+          # which is exactly the bug this whole PR is fixing.
+          fail=0
+          for required in latest.yml; do
+            if ! ls release-assets/$required >/dev/null 2>&1; then
+              echo "::error ::Missing required artifact: $required"
+              fail=1
+            fi
+          done
+          if ! ls release-assets/*.exe.blockmap >/dev/null 2>&1; then
+            echo "::error ::No .exe.blockmap files in release-assets — Windows differential updates will not work"
+            fail=1
+          fi
+          [ $fail -eq 0 ] || exit 1
+
+      - name: Create Release with artifacts (DRAFT)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          EXTRA_FLAGS=""
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            [ "${{ inputs.prerelease }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --prerelease"
+          fi
+
+          # Plan A — draft-until-complete (issue #2):
+          # Release is always created as --draft. Drafts are MUTABLE — assets
+          # can be added/replaced freely on rerun. The finalize-release job
+          # flips --draft=false at the end after all jobs (publish-cli +
+          # update-changelog) succeed. Avoids the v5.0.2.55 immutable-asset
+          # incident where build-android rerun → create-release rerun → 422
+          # "Cannot delete asset from an immutable release".
+          #
+          # Three rerun states are possible:
+          #   (1) no release exists       → create as draft
+          #   (2) draft exists            → edit notes + clobber-upload (mutable)
+          #   (3) published release exists → advisory no-op (exit 0).
+          #       v5.0.3.38 saga (run 25441397063) proved that GitHub
+          #       immutable-releases blocks UPLOAD as well as DELETE — there
+          #       is NO API path to add or replace assets on a finalized
+          #       release. An earlier "add-only mode" branch attempted to
+          #       upload only new assets and was empirically refuted (422 on
+          #       first upload). To recover from missing assets (e.g.
+          #       v5.0.3.37's missing Android APKs), cut a new version.
+          #       Downstream jobs handle this state gracefully:
+          #       publish-cli-precheck skips if already_published;
+          #       finalize-release no-ops via its isDraft guard.
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft)
+            if [ "$IS_DRAFT" = "true" ]; then
+              echo "Release ${VERSION} exists as draft — updating notes + clobber-uploading assets..."
+              gh release edit "$VERSION" \
+                --title "ChainlessChain ${VERSION}" \
+                --notes-file release-notes.md \
+                --draft=true
+              # Drafts are mutable — clobber works without 422
+              gh release upload "$VERSION" release-assets/* --clobber
+            else
+              echo "::notice::Release ${VERSION} is already published — immutable-releases blocks all asset mutations (UPLOAD + DELETE)."
+              echo "::notice::To add or replace assets, cut a new version. See memory: github_release_pipeline_constraints.md"
+              echo "ℹ️  Skipping create-release work; downstream jobs will run against existing published state."
+            fi
+          else
+            echo "Creating new DRAFT release ${VERSION} with artifacts..."
+            # Don't pass --target: tag already exists on remote (we got
+            # here via tag-push), so target_commitish is ignored per GH API
+            # docs. Worse: passing the resolved SHA actively breaks the
+            # call when the tag's commit isn't main's tip — v5.0.3.31 hit
+            # 403 because the tag pointed 3 commits behind HEAD.
+            gh release create "$VERSION" \
+              --title "ChainlessChain ${VERSION}" \
+              --notes-file release-notes.md \
+              --draft \
+              $EXTRA_FLAGS \
+              release-assets/*
+          fi
+
+          echo "✅ create-release done (state: $(gh release view "$VERSION" --json isDraft -q 'if .isDraft then "draft" else "published" end'))"
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
+
+  # Publish all packages to npm (core packages + CLI)
+  # Precheck: resolve the published version + decide whether tests should run.
+  # Split from publish-cli so tests can live in their own reusable workflow
+  # (./.github/workflows/_cli-test.yml) — see that file for shard rationale.
+  publish-cli-precheck:
+    needs: [create-release]
+    if: ${{ always() && needs.create-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.cli-version.outputs.VERSION }}
+      already_published: ${{ steps.check-published.outputs.ALREADY_PUBLISHED }}
+      should_test: ${{ steps.decide.outputs.SHOULD_TEST }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Resolve version
+        id: cli-version
+        run: |
+          # CLI npm version is ALWAYS sourced from packages/cli/package.json —
+          # tag / workflow_dispatch input is only a trigger, not part of the
+          # version decision. This prevents non-CLI version strings (e.g.
+          # product tag v5.0.3.49 — 4-segment, not valid semver; or Android
+          # GA v1.0.0 — would silently overwrite the npm latest dist-tag) from
+          # being stripped of the leading "v" and re-interpreted as a 3-segment
+          # CLI npm version (see v5.0.3.48 / v1.0.0 incident on 2026-05-12 and
+          # v5.0.3.49 workflow_dispatch override 4-segment incident).
+          #
+          # To ship a CLI release: bump packages/cli/package.json in a
+          # chore(release) commit, then tag. The check-published step below
+          # will skip publish when the version is already on npm, so re-running
+          # the workflow on a stale tag is safe.
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          echo "📦 packages/cli/package.json version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if CLI version already published
+        id: check-published
+        run: |
+          VERSION="${{ steps.cli-version.outputs.VERSION }}"
+          if npm view "chainlesschain@${VERSION}" version 2>/dev/null; then
+            echo "⚠️ chainlesschain@${VERSION} already published, skipping"
+            echo "ALREADY_PUBLISHED=true" >> $GITHUB_OUTPUT
+          else
+            echo "ALREADY_PUBLISHED=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Skip tests when the version is already on npm — the tag SHA may be
+      # behind main (e.g. test fixes landed after the tag was cut), but the
+      # package itself is immutable once published. Running tests here would
+      # only red-block finalize-release for already-shipped releases.
+      - name: Decide whether to run tests
+        id: decide
+        run: |
+          if [ "${{ steps.check-published.outputs.ALREADY_PUBLISHED }}" == "true" ]; then
+            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
+            echo "Skipping tests: version already published"
+          elif [ "${{ inputs.skip_tests }}" == "true" ]; then
+            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
+            echo "Skipping tests: skip_tests input was true"
+          else
+            echo "SHOULD_TEST=true" >> $GITHUB_OUTPUT
+          fi
+
+  # Tests run in the shared reusable workflow (vitest --shard matrix).
+  # Conditional skip is at the JOB level — never a step-level loop, so we never
+  # drift back into the IPC-saturating glob batches that this replaced.
+  cli-tests:
+    needs: [publish-cli-precheck]
+    if: ${{ needs.publish-cli-precheck.outputs.should_test == 'true' }}
+    uses: ./.github/workflows/_cli-test.yml
+    with:
+      runs-on: ubuntu-latest
+
+  publish-cli:
+    # Wait on cli-tests so a red shard blocks publish. Use `always()` plus an
+    # explicit success-or-skipped check so the job still runs when cli-tests
+    # was skipped (already-published or skip_tests=true case).
+    needs: [publish-cli-precheck, cli-tests]
+    if: |
+      always() &&
+      needs.publish-cli-precheck.result == 'success' &&
+      (needs.cli-tests.result == 'success' || needs.cli-tests.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (workspaces)
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+
+      # Publish core packages in dependency order
+      - name: "Publish @chainlesschain/core-env"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-env
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/shared-logger"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/shared-logger
+        run: |
+          CURRENT=$(npm view @chainlesschain/shared-logger version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-config"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-config
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-config version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-db"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-db
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-db version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-infra"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-infra
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-infra version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Confirm CLI version matches resolved version
+        # No-op safety net: VERSION already comes from packages/cli/package.json
+        # in publish-cli-precheck, so this `npm version --allow-same-version`
+        # is a no-op in normal flow. Kept in case workflow_dispatch override
+        # ever specifies a version different from what package.json holds.
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/cli
+        run: |
+          VERSION="${{ needs.publish-cli-precheck.outputs.version }}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          echo "📦 Publishing chainlesschain@${VERSION}"
+
+      - name: Publish CLI to npm
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/cli
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Regenerate CHANGELOG.md after a successful release. documentation.yml's
+  # auto-run on push deliberately skips changelog (it would grow by one line
+  # per push and trigger a churn auto-commit). Releases are the right time to
+  # capture the rolled-up commit log into CHANGELOG.md.
+  update-changelog:
+    needs: [create-release]
+    if: ${{ always() && needs.create-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Install dependencies (workspace-aware)
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm install --legacy-peer-deps
+
+      - name: Install desktop-app-vue deps (post-workspace-refactor)
+        working-directory: desktop-app-vue
+        # cowork-doc-generator.js requires('glob') which lives in
+        # desktop-app-vue/node_modules/glob. After ad3e7d403 workspace
+        # refactor, root npm install no longer installs desktop-app-vue's
+        # deps. v5.0.3.28 hit "Cannot find module 'glob'" here.
+        # Wrapped in 3-attempt retry (v5.0.3.45) — see scripts/ci-npm-retry.sh.
+        shell: bash
+        run: bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh npm ci
+
+      - name: Regenerate CHANGELOG.md
+        working-directory: desktop-app-vue
+        run: node scripts/cowork-doc-generator.js --type changelog
+
+      - name: Commit CHANGELOG.md if changed
+        working-directory: desktop-app-vue
+        run: |
+          if git diff --quiet CHANGELOG.md 2>/dev/null; then
+            echo "ℹ️  CHANGELOG.md already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          VERSION="${GITHUB_REF#refs/tags/}"
+          git commit -m "docs: regenerate CHANGELOG for ${VERSION}
+
+          Generated by cowork-doc-generator.js after release ${VERSION}."
+          git pull --rebase origin main || true
+          git push origin main
+
+  # Plan A — draft-until-complete finalize step (issue #2)
+  # Flips draft → published only after create-release + publish-cli +
+  # update-changelog all succeed. Skip when user explicitly wanted a
+  # draft (workflow_dispatch with inputs.draft=true).
+  finalize-release:
+    needs: [create-release, publish-cli, update-changelog]
+    if: ${{ always() && needs.create-release.result == 'success' && needs.publish-cli.result == 'success' && needs.update-changelog.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip finalize when user requested draft
+        id: skip
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.draft }}" == "true" ]; then
+            echo "User explicitly requested draft — leaving release as draft"
+            echo "SKIP=true" >> $GITHUB_OUTPUT
+          else
+            echo "SKIP=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish draft release
+        if: ${{ steps.skip.outputs.SKIP != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          # Idempotent: only flip on draft. On a post-finalize rerun (state 3
+          # in create-release), the release is already published — any edit
+          # would fail under GitHub's immutable-releases feature.
+          IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft --repo "${{ github.repository }}")
+          if [ "$IS_DRAFT" = "true" ]; then
+            gh release edit "$VERSION" --draft=false --repo "${{ github.repository }}"
+            echo "✅ Release ${VERSION} published"
+          else
+            echo "✅ Release ${VERSION} was already published (rerun) — nothing to flip"
+          fi
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"

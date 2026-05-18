@@ -1,0 +1,54 @@
+{
+  "id": "tpl_demo_youtube_001",
+  "name": "youtube_summary",
+  "display_name": "YouTube 视频摘要",
+  "description": "演示 YouTube 摘要技能，自动提取视频内容要点并生成结构化笔记",
+  "icon": "📺",
+  "category": "content",
+  "subcategory": "video",
+  "tags": ["youtube", "video", "summary", "notes", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我提取 YouTube 视频摘要：\n\n**视频 URL：** {{videoUrl}}\n**摘要格式：** {{summaryFormat}}\n**语言：** {{language}}\n\n**处理步骤：**\n\n### 步骤1：提取视频信息\n```\n/youtube-summarizer {{videoUrl}}\n```\n\n### 步骤2：生成摘要\n{{#eq summaryFormat \"要点列表\"}}\n生成要点列表，每个要点包含时间戳和核心内容。\n{{/eq}}\n{{#eq summaryFormat \"详细笔记\"}}\n按视频时间线生成详细笔记，包含关键引用和章节划分。\n{{/eq}}\n{{#eq summaryFormat \"思维导图\"}}\n以思维导图结构输出，从主题到子主题层层展开。\n{{/eq}}\n\n### 步骤3：保存笔记\n```\n/memory-management save \"YouTube笔记: {{videoUrl}}\"\n```\n\n**使用的技能：** youtube-summarizer, memory-management",
+  "variables_schema": [
+    {
+      "name": "videoUrl",
+      "label": "视频 URL",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://www.youtube.com/watch?v=..."
+    },
+    {
+      "name": "summaryFormat",
+      "label": "摘要格式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "要点列表", "label": "要点列表" },
+        { "value": "详细笔记", "label": "详细笔记" },
+        { "value": "思维导图", "label": "思维导图" }
+      ]
+    },
+    {
+      "name": "language",
+      "label": "输出语言",
+      "type": "select",
+      "required": false,
+      "default": "zh-CN",
+      "options": [
+        { "value": "zh-CN", "label": "中文" },
+        { "value": "en", "label": "English" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["youtube-summarizer", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}
