@@ -422,7 +422,8 @@ public final class RemoteAIExtendedViewModel: ObservableObject {
                     await MainActor.run {
                         self.agentStreamOutput += added
                     }
-                    sinceChunk = resp.nextChunkIdx
+                    // nextChunkIdx 是 Int? — 缺时保持 sinceChunk（防丢 chunk）
+                    sinceChunk = resp.nextChunkIdx ?? sinceChunk
                 }
                 if resp.isComplete {
                     await MainActor.run {
