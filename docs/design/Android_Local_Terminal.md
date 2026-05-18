@@ -179,12 +179,13 @@ iOS 端 `Features/RemoteOperate/RemoteOperateView.swift` 的 `Tab` enum **编译
 - 同样 output 为 `libtoybox.so`，runtime 通过 argv[0] 多用途分派（toybox 设计，`ln libtoybox.so ls` 调 ls）
 - 验收：`adb shell` `./libtoybox.so ls /` 输出系统根目录
 
-#### Sub-phase 0.4 — vendor termux-exec（LD_PRELOAD shebang fix）（0.5-1 天）
+#### Sub-phase 0.4 — vendor termux-exec — **DEFERRED to Phase 5.4**（2026-05-18 决策）
 
-- Termux 的 `termux-exec` 库（Apache 2.0）通过 LD_PRELOAD 重写 execve syscall，把 `#!/usr/bin/env python` 类 shebang 重定向到 `$PREFIX/bin/python`
-- 没这个 Phase 5 下载的 python/git 脚本全 fail（Android 不认 /usr/bin/*）
-- 放 `src/main/cpp/termux-exec/`，编出 `libtermux-exec.so`
-- 验收：单测脚本 `#!/usr/bin/env true && echo loaded` 在 LD_PRELOAD libtermux-exec.so 下 echo `loaded`
+**理由**：Phase 0-4 所有 exec 路径都是 LocalPtyClient 直接调 `libmksh.so` / `libtoybox.so`（绝对路径 + W^X 白名单 lib/<abi>/lib*.so），**不走 shebang**。termux-exec 唯一需要场景是 Phase 5 Full 变体 bundle git/python/vim 后，这些工具的 hashbang `#!/usr/bin/env python3` 需要重写到 `$PREFIX/bin/python3` 才能在 Android 上工作。
+
+→ termux-exec vendoring + 编译挪到 **Sub-phase 5.4**（Full 变体打包同 phase），跟 git/python/vim bundle 一并接通。Phase 0 收口仅 mksh + toybox。
+
+Note: termux-exec v2.4.0 上游已 refactor 成深层 package + 12 个 .c 文件 + Termux 专有 runtime conventions（不再是 v1.x 单文件），所以加进来时要预留 1-2h 集成。
 
 #### Sub-phase 0.5 — Phase 0 收口集成测试（0.5 天）
 
