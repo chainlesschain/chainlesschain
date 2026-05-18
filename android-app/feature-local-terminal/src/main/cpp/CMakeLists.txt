@@ -14,10 +14,16 @@ project("local_terminal")
 # APK extraction places it in /data/app/<pkg>/lib/<abi>/ where exec is whitelisted.
 
 # -----------------------------------------------------------------------------
-# pty_jni placeholder (Phase 0.1)
+# pty_jni — JNI bridge for the local terminal PTY.
+# Phase 0.1: placeholder nativeVersion only (LocalTerminalNative class).
+# Phase 1.1: real PTY surface (openPty / spawn / read / write / killpg /
+#            waitpid / close / setWinsize) on LocalPtyNative class.
+# Both .cpp files coexist; symbols are namespaced by Kotlin class via JNI
+# function naming convention (Java_<pkg>_<class>_<method>).
 # -----------------------------------------------------------------------------
 add_library(pty_jni SHARED
     pty_jni_placeholder.cpp
+    pty_jni.cpp
 )
 
 find_library(LOG_LIB log)

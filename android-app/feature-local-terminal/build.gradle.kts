@@ -14,7 +14,15 @@ android {
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        minSdk = 26
+        // posix_spawn + POSIX_SPAWN_SETSID are __INTRODUCED_IN(28) in Android
+        // NDK spawn.h — minSdk=26 (the rest of the app's baseline) won't even
+        // see the function declarations at compile time. Bump just this module
+        // to 28 (Android 9 Pie, released 2018; >95% device market in 2026).
+        // Phase 5 Lite/Full APK variants will inherit minSdk=28 for local
+        // terminal feature; the rest of ChainlessChain keeps 26.
+        // See docs/design/Android_Local_Terminal.md §5 Trap 7 for the
+        // posix_spawn vs fork+exec design choice.
+        minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Phase 0.1 baseline ABIs. arm64-v8a is primary (modern devices),

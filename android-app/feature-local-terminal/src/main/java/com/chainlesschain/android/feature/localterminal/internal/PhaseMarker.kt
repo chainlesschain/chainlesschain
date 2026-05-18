@@ -6,11 +6,11 @@ package com.chainlesschain.android.feature.localterminal.internal
  * its first sub-phase commit (e.g. Phase 1.1 sets PHASE_1).
  */
 internal object PhaseMarker {
-    const val CURRENT: String = "0.5"
+    const val CURRENT: String = "1.1"
     const val DESCRIPTION: String =
-        "Phase 0 complete: NDK toolchain validated, mksh R59c + toybox 0.8.11 " +
-            "vendored and cross-compiled, integration smoke test in androidTest " +
-            "/. termux-exec (was 0.4) deferred to Sub-phase 5.4 (only needed " +
-            "when Phase 5 Full variant ships shebang scripts). Next: Phase 1.1 " +
-            "real pty_jni.cpp + LocalPtyClient."
+        "Phase 1.1: real pty_jni.cpp (posix_spawn + POSIX_SPAWN_SETSID + " +
+            "openpty/grantpt/unlockpt/ptsname_r + read/write/winsize/killpg/" +
+            "waitpid/close JNI bridge) + LocalPtyNative.kt typed surface. " +
+            "Next: Phase 1.2 LocalPtyClient.kt (coroutine wrapper with " +
+            "stdoutFlow/exitFlow + shutdown SIGTERM-then-SIGKILL escalation)."
 }
