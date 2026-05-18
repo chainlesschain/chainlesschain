@@ -210,9 +210,17 @@ else()
     file(COPY ${TOYBOX_VENDOR_DIR}/ DESTINATION ${TOYBOX_BUILD_DIR})
 
     # toybox android_defconfig + make all
+    #
+    # First step: chmod +x on all .sh files in scripts/ + configure.
+    # CMake's file(COPY) drops the executable bit when the source FS is
+    # NTFS-mounted (git on Windows) or otherwise lacks Unix mode bits. On
+    # Linux CI runners we end up with `make: scripts/genconfig.sh:
+    # Permission denied` and Error 127 from make. Pre-chmod fixes that
+    # without needing to commit per-file file-mode metadata.
     add_custom_command(
         OUTPUT ${TOYBOX_OUTPUT_SO}
         WORKING_DIRECTORY ${TOYBOX_BUILD_DIR}
+        COMMAND chmod -R +x scripts/ configure
         COMMAND ${CMAKE_COMMAND} -E env
                 "CC=${MKSH_CC_PATH}"    # Same NDK clang as mksh
                 "HOSTCC=${TOYBOX_HOSTCC}"
