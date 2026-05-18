@@ -43,8 +43,8 @@ struct RemoteOperateView: View {
         case media          // Phase 6.2 — 音量 / 播放控制 / 音频设备
         case browser        // Phase 6.2 — 内置 chromium 自动化 (vs userBrowser 控用户已装 Chrome)
         case desktop        // Phase 6.6 — 远程桌面 (实时画面 + 触控板 + 虚拟键盘)
-        case knowledge      // Phase 6.3 — 远程知识库 (31 method — notes / folders / tags / versions)
-        case aiExtended     // Phase 6.4 — AI 扩展 (25 method — templates / code / RAG / multimodal)
+        case knowledge      // Phase 6.3 — 远程知识库 (39 method — base CRUD 9 + new 30: folders/tags/versions/star-pin/archive/import-export)
+        case aiExtended     // Phase 6.4 — AI 扩展 (28 method — v0.1 25: templates/code/RAG/multimodal/agents + v0.3 Agent streaming 3)
 
         public var id: String { rawValue }
 

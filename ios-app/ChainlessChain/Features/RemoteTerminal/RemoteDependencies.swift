@@ -89,13 +89,16 @@ public final class RemoteDependencies: ObservableObject {
     // Phase 6 skill 同 DC RPC 路径 — Plan §7 Trap T4 误判，本 actor 不连本地 WS)
     public let chromeExtension: ExtensionCommands
 
-    // Phase 6.3 typed skill: knowledge (31 method — CRUD 9 + getNotes 通用 list + Folders 5
-    //   + Tags CRUD 3 + Versions 4 + Star/Pin 6 + Archive 3 + Export 2 + Import 2 + Tags 高级 3)
+    // Phase 6.3 typed skill: knowledge (39 method — CRUD 9 base + getNotes 通用 list
+    //   + Folders 5 + Tags CRUD 3 + Versions 4 + Star/Pin 6 + Archive 3 + Export 2
+    //   + Import 2 + Tags 高级 3 + getNote alias)
+    //   Phase 6.3 step 1-3 新增 30 method 之上 wrap 9 个既有 desktop CRUD + alias
     public let knowledge: KnowledgeCommands
 
-    // Phase 6.4 typed skill: ai extended (25 method — Conversations 高级 5 + Prompts 3
-    //   + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4)
-    //   与 aiChat (Phase 5, 12 method) 并列共 37 ai method 全覆盖桌面
+    // Phase 6.4 typed skill: ai extended (28 method — Conversations 高级 5 + Prompts 3
+    //   + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4 + Agent streaming 3
+    //   (Phase 6.4 v0.3 增 runAgentStream/getAgentStreamChunk/cancelAgentStream))
+    //   与 aiChat (Phase 5, 12 method) 并列共 40 ai method 全覆盖桌面
     public let aiExtended: AIExtendedCommands
 
     private let pairingDeps: PairingDependencies
@@ -217,7 +220,9 @@ public final class RemoteDependencies: ObservableObject {
 
         // Phase 6.1B1: 第 1 批 5 个 100% wired skill（Coverage doc §1.4：
         // input/display/userBrowser/security/app 均为 A=D=✓ 完全对齐）
-        // - input (10 method): 远程键鼠输入
+        // - input (15 method): 远程键鼠输入 — 10 core (sendKeyPress/sendKeyCombo/
+        //   typeText/mouse* × 5/getCursorPosition/getKeyboardLayout) + 5 convenience
+        //   wrappers (copy/paste/undo/selectAll/save 全 wrap sendKeyCombo)
         // - display (11 method): 显示器信息 / 亮度 / 截屏 / 窗口列表
         // - application (8 method, namespace=`app`): 应用列表 / 启停 / 聚焦
         // - security (8 method): 锁屏 / 防火墙 / AV / 加密 / 更新 状态
@@ -255,9 +260,12 @@ public final class RemoteDependencies: ObservableObject {
         self.system = SystemCommands(client: cmdClient)
         self.history = HistoryCommands(client: cmdClient)
 
-        // Phase 6.6.1: DesktopCommands actor (7 outer + 5 sendInput sub-type via
+        // Phase 6.6.1: DesktopCommands actor (7 outer + 6 sendInput sub-type via
         // typed helper; Trap D5 — typed helper 全部 route to desktop.sendInput
-        // 不暴露顶层伪 method desktop.mouseMove 路径，与 Android 现行模式一致)
+        // 不暴露顶层伪 method desktop.mouseMove 路径，与 Android 现行模式一致。
+        // outer 7 = startSession/stopSession/getFrame/getDisplays/switchDisplay/
+        // getStats/sendInput；sub-type 6 = mouseMove/mouseClick/mouseDoubleClick/
+        // mouseScroll/keyPress/keyType)
         self.desktop = DesktopCommands(client: cmdClient)
 
         // Phase 6.6.2: DesktopVirtualCursor (OQ-4 A — startSession 后调
@@ -284,10 +292,10 @@ public final class RemoteDependencies: ObservableObject {
         // Phase 6.7.1: ExtensionCommands (Chrome 扩展控制 — 30 method 子集)
         self.chromeExtension = ExtensionCommands(client: cmdClient)
 
-        // Phase 6.3: KnowledgeCommands (31 method — 桌面 30/30 完成)
+        // Phase 6.3: KnowledgeCommands (39 method = Phase 6.3 step 1-3 新 30 + 9 base CRUD)
         self.knowledge = KnowledgeCommands(client: cmdClient)
 
-        // Phase 6.4: AIExtendedCommands (25 method — 桌面 ai 后 25)
+        // Phase 6.4: AIExtendedCommands (28 method = Phase 6.4 v0.1 25 + v0.3 Agent streaming 3)
         self.aiExtended = AIExtendedCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
