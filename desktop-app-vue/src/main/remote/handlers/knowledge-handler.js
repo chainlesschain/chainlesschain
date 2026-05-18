@@ -50,13 +50,39 @@ class KnowledgeHandler {
         )
       `);
       // notes 表加 folder_id 列 — SQLite 重复 ADD COLUMN 会 throw "duplicate column"，吞掉
-      try {
-        await this.database.run(
-          `ALTER TABLE notes ADD COLUMN folder_id TEXT REFERENCES knowledge_folders(id) ON DELETE SET NULL`,
-        );
-      } catch (_err) {
-        // 已存在 — 忽略
+      // Phase 6.3 step 1: folder_id
+      // Phase 6.3 step 2: starred / pinned / last_viewed_at (各一个 try/catch)
+      const altersNeeded = [
+        `ALTER TABLE notes ADD COLUMN folder_id TEXT REFERENCES knowledge_folders(id) ON DELETE SET NULL`,
+        `ALTER TABLE notes ADD COLUMN starred INTEGER DEFAULT 0`,
+        `ALTER TABLE notes ADD COLUMN pinned INTEGER DEFAULT 0`,
+        `ALTER TABLE notes ADD COLUMN last_viewed_at INTEGER`,
+      ];
+      for (const sql of altersNeeded) {
+        try {
+          await this.database.run(sql);
+        } catch (_err) {
+          // 已存在 — 忽略 (duplicate column / table already has column)
+        }
       }
+      // Phase 6.3 step 2: 版本快照表
+      await this.database.run(`
+        CREATE TABLE IF NOT EXISTS knowledge_note_versions (
+          id TEXT PRIMARY KEY,
+          note_id TEXT NOT NULL,
+          version_number INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          tags TEXT,
+          created_at INTEGER NOT NULL,
+          created_by_did TEXT,
+          UNIQUE(note_id, version_number)
+        )
+      `);
+      await this.database.run(`
+        CREATE INDEX IF NOT EXISTS idx_kversions_note
+        ON knowledge_note_versions(note_id, version_number DESC)
+      `);
       this._schemaEnsured = true;
     } catch (err) {
       logger.warn(
@@ -112,6 +138,28 @@ class KnowledgeHandler {
         return await this.deleteTag(params, context);
       case "renameTag":
         return await this.renameTag(params, context);
+
+      // Phase 6.3 step 2 — versions 4 + star/pin 6
+      case "getNoteHistory":
+        return await this.getNoteHistory(params, context);
+      case "getNoteVersion":
+        return await this.getNoteVersion(params, context);
+      case "restoreNoteVersion":
+        return await this.restoreNoteVersion(params, context);
+      case "compareVersions":
+        return await this.compareVersions(params, context);
+      case "starNote":
+        return await this.starNote(params, context);
+      case "getStarredNotes":
+        return await this.getStarredNotes(params, context);
+      case "pinNote":
+        return await this.pinNote(params, context);
+      case "getPinnedNotes":
+        return await this.getPinnedNotes(params, context);
+      case "getRecentlyEdited":
+        return await this.getRecentlyEdited(params, context);
+      case "getRecentlyViewed":
+        return await this.getRecentlyViewed(params, context);
 
       default:
         throw new Error("Unknown action: " + action);
@@ -206,6 +254,10 @@ class KnowledgeHandler {
       throw new Error("Note not found");
     }
 
+    // Phase 6.3 step 2: 自动 snapshot 当前版本到 knowledge_note_versions
+    // 然后再 UPDATE。用户 restoreNoteVersion 时可回到历史任意版本。
+    await this._snapshotVersion(existing, context && context.did);
+
     await this.database.run(
       "UPDATE notes SET title = ?, content = ?, tags = ?, updated_at = ? WHERE id = ?",
       [
@@ -218,6 +270,48 @@ class KnowledgeHandler {
     );
 
     return { noteId, message: "Note updated successfully" };
+  }
+
+  /**
+   * Phase 6.3 step 2 — 把当前 note 状态快照写 knowledge_note_versions。
+   * UPDATE 前调，确保历史每次变化都可恢复。
+   */
+  async _snapshotVersion(note, did) {
+    if (!note || !note.id) {
+      return;
+    }
+    // Trap: better-sqlite3 把 JS Number(N) 绑到 TEXT 列存为 "N.0" — 必须 String()
+    // 包一层，否则后续 WHERE note_id = "1" 查不到存为 "1.0" 的行。
+    const noteIdStr = String(note.id);
+    // 当前版本号 = max(version_number) + 1
+    const row = await this.database.get(
+      "SELECT MAX(version_number) AS max_v FROM knowledge_note_versions WHERE note_id = ?",
+      [noteIdStr],
+    );
+    const nextVersion = (row && row.max_v ? row.max_v : 0) + 1;
+    const versionId = `ver_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    try {
+      await this.database.run(
+        `INSERT INTO knowledge_note_versions
+         (id, note_id, version_number, title, content, tags, created_at, created_by_did)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          versionId,
+          noteIdStr,
+          nextVersion,
+          note.title || "",
+          note.content || "",
+          note.tags || "[]",
+          Date.now(),
+          did || null,
+        ],
+      );
+    } catch (err) {
+      logger.warn(
+        "[KnowledgeHandler] snapshot version 失败 (非致命):",
+        err.message,
+      );
+    }
   }
 
   async deleteNote(params, context) {
@@ -457,6 +551,255 @@ class KnowledgeHandler {
       throw new Error("Tag not found");
     }
     return { deleted: true, identifier: tagId || name };
+  }
+
+  // ============================================================================
+  // Phase 6.3 step 2 — versions 4 + star/pin 6
+  // ============================================================================
+
+  // ---- Versions (4) ----
+
+  /** 列出 note 的所有历史版本（按 version_number DESC）。 */
+  async getNoteHistory(params, _context) {
+    const { noteId, limit = 50 } = params;
+    if (!noteId) {
+      throw new Error("Note ID is required");
+    }
+    const rows = await this.database.all(
+      `SELECT id, version_number, title, created_at, created_by_did
+       FROM knowledge_note_versions
+       WHERE note_id = ?
+       ORDER BY version_number DESC
+       LIMIT ?`,
+      [String(noteId), limit | 0], // Trap: TEXT col binding 必须 String 防 "1.0"
+    );
+    return { noteId, versions: rows, total: rows.length };
+  }
+
+  /** 拉单个版本完整内容 (id 优先；缺省 fallback 到 noteId+versionNumber)。 */
+  async getNoteVersion(params, _context) {
+    const { versionId, noteId, versionNumber } = params;
+    let row;
+    if (versionId) {
+      row = await this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE id = ?",
+        [versionId],
+      );
+    } else if (noteId && versionNumber !== undefined) {
+      row = await this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE note_id = ? AND version_number = ?",
+        [String(noteId), versionNumber | 0],
+      );
+    } else {
+      throw new Error("versionId or (noteId + versionNumber) required");
+    }
+    if (!row) {
+      throw new Error("Version not found");
+    }
+    return { version: row };
+  }
+
+  /**
+   * 把 note 还原到指定版本。同时 snapshot 当前状态作为新版本（防丢失），
+   * 然后把指定版本的 title/content/tags 写回 notes。
+   */
+  async restoreNoteVersion(params, context) {
+    const { noteId, versionId, versionNumber } = params;
+    if (!noteId) {
+      throw new Error("Note ID is required");
+    }
+    // 取目标版本
+    let target;
+    if (versionId) {
+      target = await this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE id = ?",
+        [versionId],
+      );
+    } else if (versionNumber !== undefined) {
+      target = await this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE note_id = ? AND version_number = ?",
+        [String(noteId), versionNumber | 0],
+      );
+    } else {
+      throw new Error("versionId or versionNumber required");
+    }
+    if (!target) {
+      throw new Error("Version not found");
+    }
+
+    // 取当前 note + snapshot 当前状态作为新版本
+    const current = await this.database.get(
+      "SELECT * FROM notes WHERE id = ?",
+      [noteId],
+    );
+    if (!current) {
+      throw new Error("Note not found");
+    }
+    await this._snapshotVersion(current, context && context.did);
+
+    // 写回目标版本内容
+    await this.database.run(
+      "UPDATE notes SET title = ?, content = ?, tags = ?, updated_at = ? WHERE id = ?",
+      [target.title, target.content, target.tags || "[]", Date.now(), noteId],
+    );
+    return {
+      noteId,
+      restoredFromVersion: target.version_number,
+      message: "Note restored",
+    };
+  }
+
+  /**
+   * 比较 note 两个版本 (versionA / versionB) — 返字段级 diff 摘要 (title / content
+   * / tags 各是否变化 + content size delta)。
+   *
+   * **v0.1 不做行级 diff** — 那是 client UI 工作 (cli 端用 `diff` 库渲染)。
+   */
+  async compareVersions(params, _context) {
+    const { noteId, versionA, versionB } = params;
+    if (!noteId || versionA === undefined || versionB === undefined) {
+      throw new Error("noteId, versionA and versionB are required");
+    }
+    const noteIdStr = String(noteId);
+    const [a, b] = await Promise.all([
+      this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE note_id = ? AND version_number = ?",
+        [noteIdStr, versionA | 0],
+      ),
+      this.database.get(
+        "SELECT * FROM knowledge_note_versions WHERE note_id = ? AND version_number = ?",
+        [noteIdStr, versionB | 0],
+      ),
+    ]);
+    if (!a || !b) {
+      throw new Error("One or both versions not found");
+    }
+    return {
+      noteId,
+      versionA: {
+        id: a.id,
+        version: a.version_number,
+        title: a.title,
+        content: a.content,
+        tags: a.tags,
+        createdAt: a.created_at,
+      },
+      versionB: {
+        id: b.id,
+        version: b.version_number,
+        title: b.title,
+        content: b.content,
+        tags: b.tags,
+        createdAt: b.created_at,
+      },
+      diff: {
+        titleChanged: a.title !== b.title,
+        contentChanged: a.content !== b.content,
+        tagsChanged: (a.tags || "") !== (b.tags || ""),
+        contentSizeDelta: (b.content || "").length - (a.content || "").length,
+      },
+    };
+  }
+
+  // ---- Star / Pin (6) ----
+
+  /** 标星 (toggle 或 set)。starred=true|false 显式设；缺省则 toggle 当前状态。 */
+  async starNote(params, _context) {
+    const { noteId, starred } = params;
+    if (!noteId) {
+      throw new Error("Note ID is required");
+    }
+    const existing = await this.database.get(
+      "SELECT starred FROM notes WHERE id = ?",
+      [noteId],
+    );
+    if (!existing) {
+      throw new Error("Note not found");
+    }
+    const newVal =
+      starred === undefined ? (existing.starred ? 0 : 1) : starred ? 1 : 0;
+    await this.database.run(
+      "UPDATE notes SET starred = ?, updated_at = ? WHERE id = ?",
+      [newVal, Date.now(), noteId],
+    );
+    return { noteId, starred: !!newVal };
+  }
+
+  async getStarredNotes(params, _context) {
+    const { limit = 50, offset = 0 } = params;
+    const rows = await this.database.all(
+      `SELECT id, title, content, tags, starred, pinned, folder_id, created_at, updated_at
+       FROM notes
+       WHERE starred = 1
+       ORDER BY updated_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit | 0, offset | 0],
+    );
+    return { notes: rows, total: rows.length };
+  }
+
+  async pinNote(params, _context) {
+    const { noteId, pinned } = params;
+    if (!noteId) {
+      throw new Error("Note ID is required");
+    }
+    const existing = await this.database.get(
+      "SELECT pinned FROM notes WHERE id = ?",
+      [noteId],
+    );
+    if (!existing) {
+      throw new Error("Note not found");
+    }
+    const newVal =
+      pinned === undefined ? (existing.pinned ? 0 : 1) : pinned ? 1 : 0;
+    await this.database.run(
+      "UPDATE notes SET pinned = ?, updated_at = ? WHERE id = ?",
+      [newVal, Date.now(), noteId],
+    );
+    return { noteId, pinned: !!newVal };
+  }
+
+  async getPinnedNotes(params, _context) {
+    const { limit = 50, offset = 0 } = params;
+    const rows = await this.database.all(
+      `SELECT id, title, content, tags, starred, pinned, folder_id, created_at, updated_at
+       FROM notes
+       WHERE pinned = 1
+       ORDER BY updated_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit | 0, offset | 0],
+    );
+    return { notes: rows, total: rows.length };
+  }
+
+  /** Recently edited = ORDER BY updated_at DESC (用户编辑时 updated_at 自动更新)。 */
+  async getRecentlyEdited(params, _context) {
+    const { limit = 20, offset = 0 } = params;
+    const rows = await this.database.all(
+      `SELECT id, title, content, tags, starred, pinned, folder_id, created_at, updated_at
+       FROM notes
+       ORDER BY updated_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit | 0, offset | 0],
+    );
+    return { notes: rows, total: rows.length };
+  }
+
+  /**
+   * Recently viewed = ORDER BY COALESCE(last_viewed_at, updated_at) DESC。
+   * 没有 viewed 记录时 fallback 用 updated_at — 让方法初次调用就有结果，
+   * 不至于 last_viewed_at 全 NULL 返空。recordView 显式 method 留 v0.2 实现。
+   */
+  async getRecentlyViewed(params, _context) {
+    const { limit = 20, offset = 0 } = params;
+    const rows = await this.database.all(
+      `SELECT id, title, content, tags, starred, pinned, folder_id, last_viewed_at, created_at, updated_at
+       FROM notes
+       ORDER BY COALESCE(last_viewed_at, updated_at) DESC
+       LIMIT ? OFFSET ?`,
+      [limit | 0, offset | 0],
+    );
+    return { notes: rows, total: rows.length };
   }
 
   async renameTag(params, _context) {
