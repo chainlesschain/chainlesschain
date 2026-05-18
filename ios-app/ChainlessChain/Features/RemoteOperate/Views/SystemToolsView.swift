@@ -25,6 +25,7 @@ struct SystemToolsView: View {
     enum SubTab: String, CaseIterable, Identifiable {
         case app, security, userBrowser, power, process, network, storage, device, sysinfo
         case workflow, system, history     // Phase 6.5 — 红档子集 batch 2
+        case chromeExtension                // Phase 6.7 — Chrome 扩展控制 30 method
 
         var id: String { rawValue }
 
@@ -42,6 +43,7 @@ struct SystemToolsView: View {
             case .workflow:    return "工作流"
             case .system:      return "Shell"
             case .history:     return "历史"
+            case .chromeExtension: return "扩展"
             }
         }
 
@@ -59,6 +61,7 @@ struct SystemToolsView: View {
             case .workflow:    return "flowchart"
             case .system:      return "terminal.fill"
             case .history:     return "clock.arrow.circlepath"
+            case .chromeExtension: return "puzzlepiece.extension"
             }
         }
     }
@@ -123,6 +126,7 @@ struct SystemToolsView: View {
         case .workflow:    WorkflowToolView(pcPeerId: pcPeerId)
         case .system:      SystemShellToolView(pcPeerId: pcPeerId)
         case .history:     HistoryToolView(pcPeerId: pcPeerId)
+        case .chromeExtension: ChromeExtensionToolView(pcPeerId: pcPeerId)
         }
     }
 }
@@ -750,6 +754,100 @@ private struct HistoryToolView: View {
             }
             .padding(12)
         }
+    }
+}
+
+// MARK: - Phase 6.7 子 view (Chrome extension)
+
+private struct ChromeExtensionToolView: View {
+    let pcPeerId: String
+    @EnvironmentObject var remoteDeps: RemoteDependencies
+
+    @State private var extensionAvailable: Bool? = nil   // nil = 未检测；true/false = 检测结果
+    @State private var lastTabsCount: Int = 0
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                if let avail = extensionAvailable, !avail {
+                    notConnectedBanner
+                }
+
+                Text("Chrome 扩展功能 (DC RPC via ExtensionBrowserHandler)")
+                    .font(.caption).foregroundColor(.secondary)
+
+                // 启动检测 + tabs (OQ-5 A)
+                ActionRow(
+                    title: "列标签页", subtitle: "extension.listTabs",
+                    action: {
+                        let r = try await remoteDeps.chromeExtension.listTabs(pcPeerId: pcPeerId)
+                        await MainActor.run {
+                            extensionAvailable = true
+                            lastTabsCount = r.tabs.count
+                        }
+                        return r
+                    },
+                    formatter: { r in
+                        let first = r.tabs.first.map { $0.title ?? "-" } ?? "-"
+                        return "\(r.tabs.count) 标签; 首项: \(first)"
+                    }
+                )
+                ActionRow(
+                    title: "Cookies (a.com)", subtitle: "extension.getCookies",
+                    action: { try await remoteDeps.chromeExtension.getCookies(pcPeerId: pcPeerId, url: "https://a.com") },
+                    formatter: { r in "\(r.cookies.count) cookies" }
+                )
+                ActionRow(
+                    title: "存储 quota", subtitle: "extension.getStorageQuota",
+                    action: { try await remoteDeps.chromeExtension.getStorageQuota(pcPeerId: pcPeerId) },
+                    formatter: { r in
+                        "\(byteFmt(r.usage)) / \(byteFmt(r.quota))"
+                    }
+                )
+                ActionRow(
+                    title: "Bookmarks", subtitle: "extension.getBookmarks",
+                    action: { try await remoteDeps.chromeExtension.getBookmarks(pcPeerId: pcPeerId) },
+                    formatter: { r in "\(r.bookmarks.count) 项" }
+                )
+                ActionRow(
+                    title: "History (top 20)", subtitle: "extension.getHistory",
+                    action: { try await remoteDeps.chromeExtension.getHistory(pcPeerId: pcPeerId, maxResults: 20) },
+                    formatter: { r in "\(r.entries.count) 项" }
+                )
+            }
+            .padding(12)
+        }
+        .task {
+            // OQ-5 A: 启动检测扩展可用性
+            do {
+                _ = try await remoteDeps.chromeExtension.listTabs(pcPeerId: pcPeerId)
+                await MainActor.run { extensionAvailable = true }
+            } catch let RemoteSkillError.remoteError(_, msg) {
+                let notConnected = msg.contains(ExtensionCommands.extensionNotConnectedHint)
+                await MainActor.run { extensionAvailable = !notConnected }
+            } catch {
+                await MainActor.run { extensionAvailable = nil }
+            }
+        }
+    }
+
+    private var notConnectedBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "puzzlepiece.extension.fill")
+                    .foregroundColor(.orange)
+                Text("ChainlessChain 浏览器扩展未连接")
+                    .font(.subheadline).fontWeight(.medium)
+            }
+            Text("请在桌面浏览器 (Chrome / Edge / Brave) 安装并启用 ChainlessChain 扩展。")
+                .font(.caption).foregroundColor(.secondary)
+            if let url = URL(string: "https://docs.chainlesschain.com/browser-extension/install") {
+                Link("查看安装说明 →", destination: url)
+                    .font(.caption)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
     }
 }
 

@@ -85,6 +85,10 @@ public final class RemoteDependencies: ObservableObject {
     // OQ-7 A drop-old cap=1 + Trap D6 退避 + maxConsecutiveErrors=5 fatal)
     public let desktopFrameStreamer: DesktopFrameStreamer
 
+    // Phase 6.7.1 Chrome 扩展控制 (30 method 子集 of Android 95；wire 与其它
+    // Phase 6 skill 同 DC RPC 路径 — Plan §7 Trap T4 误判，本 actor 不连本地 WS)
+    public let chromeExtension: ExtensionCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -267,6 +271,9 @@ public final class RemoteDependencies: ObservableObject {
             backoffMs: 50,
             maxConsecutiveErrors: 5
         )
+
+        // Phase 6.7.1: ExtensionCommands (Chrome 扩展控制 — 30 method 子集)
+        self.chromeExtension = ExtensionCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
