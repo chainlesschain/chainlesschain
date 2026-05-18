@@ -1,14 +1,27 @@
-# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
-# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+# Maven Package — DISABLED 2026-05-18.
+#
+# Originally published backend/project-service to GitHub Packages on every
+# `release: created`. The `mvn deploy` step had `continue-on-error: true`,
+# meaning a failed deploy silently marked the workflow green and the
+# package never reached the registry. Java backend (backend/project-service)
+# has shown no active development in months — CLAUDE.local.md tracks
+# desktop / iOS / CLI work only — so the workflow was publishing nothing
+# of consequence while pretending to succeed.
+#
+# To re-enable: restore the `on: release` trigger, remove
+# `continue-on-error: true` from the publish step (per
+# feedback_ci_false_green_audit_checklist.md Pattern B), and verify the
+# pom.xml `distributionManagement` block + GITHUB_TOKEN permissions still
+# work. Test via `workflow_dispatch` first.
 
 name: Maven Package
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:  # disabled — manual-only, see header comment above
 
 jobs:
   build:
+    if: false  # disabled — see header comment above
 
     runs-on: ubuntu-latest
     permissions:
@@ -34,4 +47,3 @@ jobs:
       run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      continue-on-error: true
