@@ -366,8 +366,14 @@ jobs:
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
           # `--strip-components=1`-style tar parser keeps working unchanged.
+          # Force ustar format (POSIX 1003.1-1988) — GNU tar's default is
+          # PAX which encodes long paths via extended headers ('x' typeFlag),
+          # and our hand-rolled Kotlin tar parser in
+          # LocalFilesystemBootstrapper.extractTarToDir handles only ustar's
+          # prefix-split (100 + 155 = 255 char limit). Chainlesschain CLI's
+          # deepest node_modules paths fit comfortably under 255 chars.
           cd /tmp/cc-cli-hydrate
-          tar -czf /tmp/cc-cli.tgz package/
+          tar --format=ustar -czf /tmp/cc-cli.tgz package/
           cd "$GITHUB_WORKSPACE"
           mv /tmp/cc-cli.tgz "$ASSET_DIR/cc-cli.tgz"
           echo "Hydrated pack: $(du -h "$ASSET_DIR/cc-cli.tgz" | cut -f1)"
