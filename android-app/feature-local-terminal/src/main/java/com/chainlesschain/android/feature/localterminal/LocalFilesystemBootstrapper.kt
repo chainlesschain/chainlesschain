@@ -98,8 +98,14 @@ class LocalFilesystemBootstrapper @Inject constructor(
             if (fullExtract) {
                 Timber.tag(TAG).i("Bootstrapping \$PREFIX (target version $targetVersion)")
                 wipeAndRecreate()
-                writeStaticFiles()
             }
+            // Always rewrite etc/ — Kotlin code changes to profile/mkshrc/motd
+            // shouldn't require bumping USR_VERSION every time, and the files
+            // are < 1KB total so the write cost is negligible. This sidesteps
+            // a class of bug where a bootstrapper change (eg new alias) lands
+            // but on-disk etc/ stays stale because the version field didn't
+            // bump.
+            writeStaticFiles()
 
             // Always: relink lib + bin symlinks. APK upgrade may have moved
             // nativeLibraryDir, and new ABI binaries may have landed since
