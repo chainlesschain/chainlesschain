@@ -6,11 +6,12 @@ package com.chainlesschain.android.feature.localterminal.internal
  * its first sub-phase commit (e.g. Phase 1.1 sets PHASE_1).
  */
 internal object PhaseMarker {
-    const val CURRENT: String = "1.1"
+    const val CURRENT: String = "1.2"
     const val DESCRIPTION: String =
-        "Phase 1.1: real pty_jni.cpp (posix_spawn + POSIX_SPAWN_SETSID + " +
-            "openpty/grantpt/unlockpt/ptsname_r + read/write/winsize/killpg/" +
-            "waitpid/close JNI bridge) + LocalPtyNative.kt typed surface. " +
-            "Next: Phase 1.2 LocalPtyClient.kt (coroutine wrapper with " +
-            "stdoutFlow/exitFlow + shutdown SIGTERM-then-SIGKILL escalation)."
+        "Phase 1.2: LocalPtyClient.kt coroutine wrapper + PtyNative interface. " +
+            "Surface: start/writeStdin/stdoutFlow/exitFlow/resize/shutdown with " +
+            "SIGTERM → 5s grace → SIGKILL escalation, killpg→kill fallback for " +
+            "MIUI signal-domain hardening. ~15 unit tests (FakePtyNative) + 3 " +
+            "instrumented (real mksh on device). Next: Phase 1.3 — Phase 1 " +
+            "smoke integration with PtyManager-style session lifecycle."
 }

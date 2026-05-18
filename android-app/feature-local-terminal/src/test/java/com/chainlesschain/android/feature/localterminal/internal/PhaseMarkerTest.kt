@@ -14,15 +14,15 @@ import org.junit.Test
  */
 class PhaseMarkerTest {
     @Test
-    fun `current phase is 1_1`() {
-        assertEquals("1.1", PhaseMarker.CURRENT)
+    fun `current phase is 1_2`() {
+        assertEquals("1.2", PhaseMarker.CURRENT)
     }
 
     @Test
-    fun `description mentions posix_spawn`() {
+    fun `description mentions coroutine wrapper`() {
         assertTrue(
-            "description should mention posix_spawn — the central design choice of Phase 1.1 (vs raw fork+exec, see design doc §5 Trap 7)",
-            PhaseMarker.DESCRIPTION.contains("posix_spawn", ignoreCase = true)
+            "description should mention coroutine wrapper — the central deliverable of Phase 1.2",
+            PhaseMarker.DESCRIPTION.contains("coroutine wrapper", ignoreCase = true)
         )
     }
 }
