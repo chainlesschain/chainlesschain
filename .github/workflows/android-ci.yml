@@ -106,14 +106,21 @@ jobs:
       - name: Run Library Module Unit Tests
         working-directory: android-app
         run: |
-          # Run tests for library modules (excludes app module which has known compilation issues in remote/ package)
+          # Library modules tested separately from :app for failure-isolation
+          # diagnostic clarity (each step's outcome attributes failures
+          # cleanly to either core libs or the app module).
           ./gradlew :core-common:testDebugUnitTest :core-database:testDebugUnitTest :core-security:testDebugUnitTest \
             :core-did:testDebugUnitTest :core-e2ee:testDebugUnitTest :core-p2p:testDebugUnitTest \
             :core-blockchain:testDebugUnitTest :core-network:testDebugUnitTest --stacktrace
 
+      # continue-on-error dropped 2026-05-18: the prior mask claimed "known
+      # compilation issues in remote/ package", but a local clean build of
+      # :app:testDebugUnitTest passed (3m 56s, no errors) after the minSdk 26→28
+      # fix unblocked manifest merger. The "remote/" claim was stale — likely
+      # resolved months earlier but the mask was never cleaned up. See
+      # feedback_ci_false_green_audit_checklist.md.
       - name: Run App Module Unit Tests
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Generate Coverage Report
@@ -175,9 +182,12 @@ jobs:
         working-directory: android-app
         run: chmod +x ./gradlew
 
+      # continue-on-error dropped 2026-05-18: local :app:assembleDebug passed
+      # (15m 31s, 3 APKs produced) after the minSdk 26→28 fix unblocked
+      # manifest merger. Same audit batch as the testDebugUnitTest mask
+      # above. See feedback_ci_false_green_audit_checklist.md.
       - name: Build Debug APK
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew assembleDebug
 
       - name: Upload Debug APK
