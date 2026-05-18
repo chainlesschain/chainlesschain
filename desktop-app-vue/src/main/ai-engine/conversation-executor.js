@@ -4,9 +4,19 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const fs = require("fs").promises;
 const path = require("path");
-const { validateOperations } = require("./response-parser");
+
+// Module-level let + seams for vi.mock CJS interop (RFC T1/T3).
+let _fs = require("fs").promises;
+let _validateOperations = require("./response-parser").validateOperations;
+
+function _setFsForTesting(impl) {
+  _fs = impl ?? require("fs").promises;
+}
+
+function _setValidatorForTesting(fn) {
+  _validateOperations = fn ?? require("./response-parser").validateOperations;
+}
 
 /**
  * 执行文件操作列表
@@ -18,7 +28,7 @@ const { validateOperations } = require("./response-parser");
  */
 async function executeOperations(operations, projectPath, database = null) {
   // 1. 验证所有操作
-  const validation = validateOperations(operations, projectPath);
+  const validation = _validateOperations(operations, projectPath);
   if (!validation.valid) {
     throw new Error(`操作验证失败:\n${validation.errors.join("\n")}`);
   }
@@ -111,13 +121,13 @@ async function createFile(filePath, content, operation, database) {
 
     // 确保父目录存在
     const dirPath = path.dirname(filePath);
-    await fs.mkdir(dirPath, { recursive: true });
+    await _fs.mkdir(dirPath, { recursive: true });
 
     // 写入文件
-    await fs.writeFile(filePath, content, "utf8");
+    await _fs.writeFile(filePath, content, "utf8");
 
     // 获取文件信息
-    const stats = await fs.stat(filePath);
+    const stats = await _fs.stat(filePath);
 
     const result = {
       operation: operation,
@@ -167,10 +177,10 @@ async function updateFile(filePath, content, operation, database) {
     // await backupFile(filePath);
 
     // 写入新内容
-    await fs.writeFile(filePath, content, "utf8");
+    await _fs.writeFile(filePath, content, "utf8");
 
     // 获取文件信息
-    const stats = await fs.stat(filePath);
+    const stats = await _fs.stat(filePath);
 
     const result = {
       operation: operation,
@@ -222,7 +232,7 @@ async function deleteFile(filePath, operation, database) {
     const backupPath = await backupFile(filePath);
 
     // 删除文件
-    await fs.unlink(filePath);
+    await _fs.unlink(filePath);
 
     const result = {
       operation: operation,
@@ -266,8 +276,8 @@ async function readFile(filePath, operation, database) {
     }
 
     // 读取文件
-    const content = await fs.readFile(filePath, "utf8");
-    const stats = await fs.stat(filePath);
+    const content = await _fs.readFile(filePath, "utf8");
+    const stats = await _fs.stat(filePath);
 
     const result = {
       operation: operation,
@@ -303,7 +313,7 @@ async function readFile(filePath, operation, database) {
  */
 async function fileExists(filePath) {
   try {
-    await fs.access(filePath);
+    await _fs.access(filePath);
     return true;
   } catch {
     return false;
@@ -321,7 +331,7 @@ async function backupFile(filePath) {
   const backupDir = path.join(os.tmpdir(), "chainlesschain-backups");
 
   // 确保备份目录存在
-  await fs.mkdir(backupDir, { recursive: true });
+  await _fs.mkdir(backupDir, { recursive: true });
 
   // 生成备份文件名（带时间戳）
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -329,7 +339,7 @@ async function backupFile(filePath) {
   const backupPath = path.join(backupDir, `${timestamp}_${fileName}`);
 
   // 复制文件
-  await fs.copyFile(filePath, backupPath);
+  await _fs.copyFile(filePath, backupPath);
 
   logger.info(`文件已备份: ${backupPath}`);
   return backupPath;
@@ -407,4 +417,6 @@ module.exports = {
   deleteFile,
   readFile,
   ensureLogTable,
+  _setFsForTesting,
+  _setValidatorForTesting,
 };
