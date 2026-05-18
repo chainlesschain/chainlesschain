@@ -74,6 +74,10 @@ public final class RemoteDependencies: ObservableObject {
     public let system: SystemCommands
     public let history: HistoryCommands
 
+    // Phase 6.6.1 远程桌面 typed wrapper（7 outer + 5 sendInput sub-type；
+    // DesktopFrameStreamer / VirtualCursor / RemoteDesktopView 待 6.6.2-6.6.5）
+    public let desktop: DesktopCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -230,6 +234,11 @@ public final class RemoteDependencies: ObservableObject {
         self.workflow = WorkflowCommands(client: cmdClient)
         self.system = SystemCommands(client: cmdClient)
         self.history = HistoryCommands(client: cmdClient)
+
+        // Phase 6.6.1: DesktopCommands actor (7 outer + 5 sendInput sub-type via
+        // typed helper; Trap D5 — typed helper 全部 route to desktop.sendInput
+        // 不暴露顶层伪 method desktop.mouseMove 路径，与 Android 现行模式一致)
+        self.desktop = DesktopCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。

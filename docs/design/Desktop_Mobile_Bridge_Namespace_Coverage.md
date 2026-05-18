@@ -75,21 +75,15 @@
 
 ## 3. 特殊语义分析
 
-### 3.1 `desktop` namespace — 内层 sub-dispatch
+### 3.1 `desktop` namespace — 内层 sub-dispatch ✅ 已解决（2026-05-18, Phase 6.6 doc）
 
-桌面 `remote-desktop-handler.js` 12 case 包含 `sendInput`，内部按 `params.type` (mouseMove / mouseClick / mouseScroll / keyPress / keyType) 再 dispatch 到 `handleMouseMove` 等 5 private method。这意味着桌面真实支持的"操作"是 12 - 1 + 5 = 16 — 但 Android `desktop.mouseMove` 也走 sendInput 路径还是直接调用？
+**结论**：详见 `iOS_Phase_6_6_Desktop_Skill.md` §1.2-1.3。审计结果：
 
-**需要进一步验证**：
-
-```bash
-# 桌面 sendInput 接收的 type 值
-grep -A 20 'case "sendInput"' desktop-app-vue/src/main/remote/handlers/remote-desktop-handler.js
-
-# Android 51 desktop method 是否用 "desktop.sendInput" + type, 还是 "desktop.mouseMove" 直调
-grep "desktop\.mouseMove\|desktop\.sendInput" android-app/app/src/main/java/com/chainlesschain/android/remote/commands/DesktopCommands.kt
-```
-
-如果 Android 直接调用 `desktop.mouseMove`，则桌面收到后会 `Unknown action`（`mouseMove` 不在 12 case 内，只在 sendInput 内层）— **Phase 6.6 实施前必须验**。
+- 桌面 `remote-desktop-handler.js` 真实结构：**7 outer case** (startSession / stopSession / getFrame / sendInput / getDisplays / switchDisplay / getStats) + sendInput 内层 **5 sub-type** (mouse_move / mouse_click / mouse_scroll / key_press / key_type) = **12 真 wire method**
+- 之前 grep "case branches" 数到的 12 把 5 个 private `async handleX(data)` 实现错算成入口 — 这 5 个不是 case，是 sub-type dispatch 后的 helper
+- Android `DesktopCommands.kt` 51 unique invoke 中：**7 直接对应桌面 outer case** + **5 个高层 wrapper (sendMouseMove/sendMouseClick/sendMouseScroll/sendKeyPress/sendKeyType) 全部 route to `desktop.sendInput`** + **44 Android-only method 桌面返 Unknown action**
+- **44 个 Android-only method 多数已在其它 namespace 覆盖**：窗口→display.getWindowList，剪贴板→clipboard.\*，音量→media.\*，截屏→display.screenshot，通知→notification.send，电源→power.\* 等
+- **iOS Phase 6.6 v0.1 实施时**：DesktopCommands actor 不暴露 `mouseMove()` → desktop.mouseMove 路径（顶层伪 method 桌面会 Unknown action），改为 `mouseMove()` → internal helper 调 `sendInput(type:"mouse_move", ...)`，与 Android 现行模式一致。详见 Phase 6.6 doc Trap D5。
 
 ### 3.2 `file` namespace — 双 handler 合并
 
