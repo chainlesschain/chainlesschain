@@ -25,6 +25,12 @@ android {
         minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Phase 2 bootstrap version — increment when $PREFIX layout / profile
+        // / mkshrc / motd content changes. LocalFilesystemBootstrapper compares
+        // this against the on-disk .bootstrap_version sentinel and re-extracts
+        // when they differ.
+        buildConfigField("String", "USR_VERSION", "\"1\"")
+
         // Phase 0.1 baseline ABIs. arm64-v8a is primary (modern devices),
         // armeabi-v7a kept for compatibility, x86_64 for emulator testing only.
         // Per-ABI splits are configured in :app at App Bundle time.
@@ -67,6 +73,11 @@ android {
         unitTests {
             isReturnDefaultValues = true
         }
+    }
+
+    buildFeatures {
+        // Enable BuildConfig so LocalFilesystemBootstrapper can read USR_VERSION.
+        buildConfig = true
     }
 
     // W^X requires libmksh.so / libtoybox.so to be extracted to
