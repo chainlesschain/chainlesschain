@@ -12,7 +12,7 @@
 
 - **硬件**：Mac (macOS 14+ Xcode 15) + iPhone (iOS 16+，越新越好) + Windows/macOS 桌面机一台（跑 ChainlessChain Electron）
 - **网络**：iPhone + 桌面同 LAN（Wi-Fi），蜂窝可选 fallback
-- **执行时间**：单次 ~3-4 小时（25 场景 + 等待 + 截屏取证）
+- **执行时间**：单次 ~3-4 小时（38 场景 + 等待 + 截屏取证）
 - **产出**：(1) 通过率表 ✅/❌/⚠️ per 场景；(2) bug 清单（截屏 + 复现 + 桌面 / iPhone 日志）；(3) Plan §6 update — 标记 Phase 1.7/2.7/3.7/4.7/5.7/6.0 收口
 
 ---
@@ -74,7 +74,7 @@ iPhone 设置 → Wi-Fi → 选与桌面机同一 SSID。验：iPhone Safari 能
 
 ## 2. 场景矩阵总览
 
-> 25 场景跨 7 段；每段约 30 min。**串行执行**（不要跳，前置 phase 失败下游会假阳）。
+> 38 场景跨 7 段；每段约 30 min。**串行执行**（不要跳，前置 phase 失败下游会假阳）。
 
 | 段 | Phase | 场景数 | 时长 | 前置依赖 |
 |---|---|---:|---:|---|
@@ -155,10 +155,23 @@ iPhone 设置 → Wi-Fi → 选与桌面机同一 SSID。验：iPhone Safari 能
 | D8 | 后台 1 min 回前台 | iPhone 后台 1 min → 回前台 → unread refresh（不弹 banner） |
 
 **桌面侧 reproducer**：
+
+⚠️ **FIXME（2026-05-18 drift audit 抓到）**：`cc cli notification.send` 命令**不存在** — CLI 没有 `cli` subcommand 也没有 `notification` subcommand。`notification.send` 是 remote handler action（`desktop-app-vue/src/main/remote/handlers/notification-handler.js` line 215+），需经 WS / DC 远程通道触发。Mac user 真机 E2E 前先选一条路径：
+
 ```bash
-cc cli notification.send --title "测试 D2" --body "Phase 4 通知 E2E" --target <iPhone DID>
-cc cli notification.send --title "Quiet test" --body "x" --silenced  # D6
+# 路径 A（推荐）：写个 Node 一次性脚本 open WS 直接 invoke handler。
+# 例：
+node -e "const W=require('ws'),w=new W('ws://localhost:<port>');w.on('open',()=>w.send(JSON.stringify({type:'rpc',method:'notification.send',params:{title:'测试 D2',body:'Phase 4 通知 E2E',target:'<iPhone-DID>'}})))"
+# 注：<port> 视 cc serve / cc ui / Electron web-shell 不同（5050 是 mobile-bridge，但 remote-gateway 是另一个）— 先 grep desktop-app-vue/src/main 找 ws-server.js 监听端口确认。
+
+# 路径 B：iPhone 自己触发（自测） — RemoteOperate Notification tab 内若有 "Send Test" 入口可点。检查 NotificationsView SwiftUI 实现是否含 dev-only test button。
+
+# 路径 C：用桌面 desktop-app-vue UI 调试入口 — 若 V6 shell 有通知设置 panel 含 "测试推送" 按钮则点之。
+
+# D6 silenced=true：上述路径任一加 `params.silenced: true` 即可。
 ```
+
+**Mac user 真跑 D2/D3/D6 前先做：** (1) `git log --since=2026-05-18 -- desktop-app-vue/src/main/remote/handlers/notification-handler.js` 看是否有新增 send 入口；(2) 若仍只有 WS handler 路径，用路径 A，记下确切 ws-server.js 端口。
 
 ---
 
