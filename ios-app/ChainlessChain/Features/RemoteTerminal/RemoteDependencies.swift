@@ -74,9 +74,12 @@ public final class RemoteDependencies: ObservableObject {
     public let system: SystemCommands
     public let history: HistoryCommands
 
-    // Phase 6.6.1 远程桌面 typed wrapper（7 outer + 5 sendInput sub-type；
-    // DesktopFrameStreamer / VirtualCursor / RemoteDesktopView 待 6.6.2-6.6.5）
+    // Phase 6.6.1 远程桌面 typed wrapper（7 outer + 5 sendInput sub-type）
     public let desktop: DesktopCommands
+
+    // Phase 6.6.2 虚拟光标 actor (OQ-4 A: iOS 端维护绝对坐标 + 边界 clamp，
+    // touch drag → applyDelta → 发 sendInput mouse_move)
+    public let desktopVirtualCursor: DesktopVirtualCursor
 
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
@@ -239,6 +242,10 @@ public final class RemoteDependencies: ObservableObject {
         // typed helper; Trap D5 — typed helper 全部 route to desktop.sendInput
         // 不暴露顶层伪 method desktop.mouseMove 路径，与 Android 现行模式一致)
         self.desktop = DesktopCommands(client: cmdClient)
+
+        // Phase 6.6.2: DesktopVirtualCursor (OQ-4 A — startSession 后调
+        // display.getDisplays + display.getCursorPosition 初始化 screen + reset)
+        self.desktopVirtualCursor = DesktopVirtualCursor()
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
