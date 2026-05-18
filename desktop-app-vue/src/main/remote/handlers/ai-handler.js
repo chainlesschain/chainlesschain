@@ -23,7 +23,156 @@ class AICommandHandler {
     this.database = database;
     this.options = options;
 
-    logger.info("[AIHandler] AI 命令处理器已初始化");
+    // Phase 6.4 Action 1 — chatStream 状态：streamId → { chunks[], done, cancel }
+    // 内存暂存，桌面进程重启清空（mobile 端 streamer reconnect 会重起）
+    this.activeStreams = new Map();
+
+    // Phase 6.4 Action 1 — 确保 ai_conversations + ai_messages 表存在
+    // 旧 ai-handler.js 用了 `chat_conversations` 但 schema 里没那张表，所以
+    // chat() 保存历史那段一直 silent 失败。本次新建专用 ai_* 表。
+    this._ensureSchema();
+
+    logger.info("[AIHandler] AI 命令处理器已初始化 (Phase 6.4 — 9 method)");
+  }
+
+  /**
+   * 幂等建表 — ai_conversations + ai_messages。
+   * iOS Phase 5 Conversation/ChatMessage 字段对齐：
+   *   Conversation: id / title / model / messageCount / lastMessageAt / createdAt / archived
+   *   ChatMessage:  id / role (user|assistant|system) / content / createdAt / modelUsed / isStreaming
+   */
+  _ensureSchema() {
+    if (!this.database) {
+      return;
+    }
+    try {
+      // sqlite3 (database.js) vs better-sqlite3 双兼容；用 .prepare(...).run()
+      this.database
+        .prepare(
+          `
+        CREATE TABLE IF NOT EXISTS ai_conversations (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL DEFAULT '新对话',
+          model TEXT,
+          system_prompt TEXT,
+          created_at INTEGER NOT NULL,
+          last_message_at INTEGER,
+          message_count INTEGER NOT NULL DEFAULT 0,
+          archived INTEGER NOT NULL DEFAULT 0,
+          metadata TEXT
+        )
+      `,
+        )
+        .run();
+      this.database
+        .prepare(
+          `
+        CREATE TABLE IF NOT EXISTS ai_messages (
+          id TEXT PRIMARY KEY,
+          conversation_id TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+          content TEXT NOT NULL,
+          model_used TEXT,
+          created_at INTEGER NOT NULL,
+          is_streaming INTEGER NOT NULL DEFAULT 0,
+          metadata TEXT,
+          FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+        )
+      `,
+        )
+        .run();
+      this.database
+        .prepare(
+          `
+        CREATE INDEX IF NOT EXISTS idx_ai_messages_conv ON ai_messages(conversation_id, created_at)
+      `,
+        )
+        .run();
+    } catch (error) {
+      logger.warn(
+        "[AIHandler] 建 ai_* 表失败 (可忽略，可能 db 未连接):",
+        error.message,
+      );
+    }
+  }
+
+  /** 内部：upsert conversation + 自增 messageCount。 */
+  _upsertConversation(conversationId, title, model, systemPrompt) {
+    if (!this.database || !conversationId) {
+      return;
+    }
+    const now = Date.now();
+    try {
+      this.database
+        .prepare(
+          `
+        INSERT INTO ai_conversations
+          (id, title, model, system_prompt, created_at, last_message_at, message_count, archived)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+        ON CONFLICT(id) DO UPDATE SET
+          last_message_at = excluded.last_message_at,
+          title = COALESCE(NULLIF(?, ''), title),
+          model = COALESCE(?, model)
+      `,
+        )
+        .run(
+          conversationId,
+          title || "新对话",
+          model || null,
+          systemPrompt || null,
+          now,
+          now,
+          title || "",
+          model || null,
+        );
+    } catch (error) {
+      logger.warn("[AIHandler] upsert ai_conversations 失败:", error.message);
+    }
+  }
+
+  /** 内部：insert message + 自增 conversation.message_count。 */
+  _insertMessage(
+    messageId,
+    conversationId,
+    role,
+    content,
+    modelUsed,
+    isStreaming = false,
+  ) {
+    if (!this.database) {
+      return;
+    }
+    const now = Date.now();
+    try {
+      this.database
+        .prepare(
+          `
+        INSERT INTO ai_messages
+          (id, conversation_id, role, content, model_used, created_at, is_streaming)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+        )
+        .run(
+          messageId,
+          conversationId,
+          role,
+          content,
+          modelUsed || null,
+          now,
+          isStreaming ? 1 : 0,
+        );
+      this.database
+        .prepare(
+          `
+        UPDATE ai_conversations
+        SET message_count = message_count + 1, last_message_at = ?
+        WHERE id = ?
+      `,
+        )
+        .run(now, conversationId);
+    } catch (error) {
+      logger.warn("[AIHandler] insert ai_messages 失败:", error.message);
+    }
   }
 
   /**
@@ -47,6 +196,28 @@ class AICommandHandler {
 
       case "getModels":
         return await this.getModels(params, context);
+
+      // Phase 6.4 Action 1 — 新增 7 method 修 Phase 5 iOS AIChat UI bug
+      case "chatStream":
+        return await this.chatStream(params, context);
+
+      case "getStreamChunk":
+        return await this.getStreamChunk(params, context);
+
+      case "cancelStream":
+        return await this.cancelStream(params, context);
+
+      case "getConversation":
+        return await this.getConversation(params, context);
+
+      case "createConversation":
+        return await this.createConversation(params, context);
+
+      case "deleteConversation":
+        return await this.deleteConversation(params, context);
+
+      case "getMessages":
+        return await this.getMessages(params, context);
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -583,6 +754,326 @@ class AICommandHandler {
       logger.error("[AIHandler] 获取模型列表失败:", error);
       throw new Error(`Get models failed: ${error.message}`);
     }
+  }
+
+  // ============================================================================
+  // Phase 6.4 Action 1 — 7 method 修 Phase 5 iOS AIChat UI bug
+  // ============================================================================
+
+  /**
+   * 启动流式 chat — Phase 5 iOS UI 核心 UX。
+   *
+   * 返 streamId 给 iOS；后续 iOS 通过 `getStreamChunk(streamId)` 轮询。
+   * 内部 Promise 异步驱动 LLMManager.chatStream，chunks 通过 callback 累
+   * 积进 activeStreams Map.[streamId].chunks。完成时设 done=true。
+   */
+  async chatStream(params, context) {
+    const {
+      message,
+      conversationId: convIdParam,
+      model,
+      systemPrompt,
+      temperature,
+    } = params;
+
+    if (!message || typeof message !== "string") {
+      throw new Error('Parameter "message" is required and must be a string');
+    }
+
+    const conversationId =
+      convIdParam ||
+      `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const streamId = `stream_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    logger.info(
+      `[AIHandler] chatStream 启动: streamId=${streamId} conv=${conversationId} from ${context.did}`,
+    );
+
+    // 注册 stream state
+    const streamState = {
+      streamId,
+      conversationId,
+      chunks: [], // 累积 token 段
+      done: false,
+      cancelled: false,
+      error: null,
+      startedAt: Date.now(),
+    };
+    this.activeStreams.set(streamId, streamState);
+
+    // upsert conversation + 写 user message
+    this._upsertConversation(
+      conversationId,
+      message.substring(0, 100),
+      model,
+      systemPrompt,
+    );
+    this._insertMessage(
+      `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      conversationId,
+      "user",
+      message,
+      model,
+    );
+
+    // 异步启动 LLM 流式 — 不 await，立即返
+    const messages = [];
+    if (
+      systemPrompt &&
+      typeof systemPrompt === "string" &&
+      systemPrompt.length
+    ) {
+      messages.push({ role: "system", content: systemPrompt });
+    }
+    messages.push({ role: "user", content: message });
+
+    const onChunk = (chunk) => {
+      if (streamState.cancelled) {
+        return;
+      }
+      // LLM client 通常返 {content:"..."} 或纯字符串
+      const text =
+        typeof chunk === "string"
+          ? chunk
+          : chunk?.content || chunk?.delta || chunk?.text || "";
+      if (text) {
+        streamState.chunks.push(text);
+      }
+    };
+
+    // fire-and-forget — 流完成后更新 done + 写 assistant message
+    (async () => {
+      try {
+        if (this.aiEngine && typeof this.aiEngine.chatStream === "function") {
+          await this.aiEngine.chatStream(messages, onChunk, {
+            conversationId,
+            model: model || this.options.defaultModel,
+            temperature: temperature || 0.7,
+          });
+        } else if (this.aiEngine && typeof this.aiEngine.chat === "function") {
+          // 没流式 API 时 fallback 单次 chat — 整个回复当一个 chunk
+          const aiResult = await this.aiEngine.chat(messages, {
+            conversationId,
+            model: model || this.options.defaultModel,
+            temperature: temperature || 0.7,
+          });
+          const text =
+            aiResult.content || aiResult.reply || aiResult.message || "";
+          if (text) {
+            streamState.chunks.push(text);
+          }
+        } else {
+          throw new Error("AI Engine 不可用");
+        }
+      } catch (err) {
+        streamState.error = err.message || String(err);
+        logger.error(`[AIHandler] chatStream ${streamId} 失败:`, err);
+      } finally {
+        streamState.done = true;
+        // 写 assistant message 到 DB
+        const fullText = streamState.chunks.join("");
+        if (fullText && !streamState.cancelled) {
+          this._insertMessage(
+            `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            conversationId,
+            "assistant",
+            fullText,
+            model,
+          );
+        }
+        // 5 分钟后自动清 stream state 防内存泄漏
+        setTimeout(() => this.activeStreams.delete(streamId), 5 * 60 * 1000);
+      }
+    })();
+
+    return {
+      success: true,
+      streamId,
+      conversationId,
+    };
+  }
+
+  /**
+   * 拉 streamId 的 buffered chunks（自 sinceChunk 起）。
+   *
+   * iOS 端按 sinceChunk 递增轮询，桌面返新累积 chunks + isComplete + nextChunkIdx。
+   */
+  async getStreamChunk(params, _context) {
+    const { streamId, sinceChunk = 0 } = params;
+    if (!streamId || typeof streamId !== "string") {
+      throw new Error('Parameter "streamId" is required and must be a string');
+    }
+
+    const state = this.activeStreams.get(streamId);
+    if (!state) {
+      // stream 已结束 + 自动清理；返 done=true 让 iOS 退出轮询
+      return {
+        success: true,
+        chunks: [],
+        isComplete: true,
+        nextChunkIdx: sinceChunk,
+        error: "stream not found (expired or never started)",
+      };
+    }
+
+    const startIdx = Math.max(0, sinceChunk | 0);
+    const newChunks = state.chunks.slice(startIdx);
+    return {
+      success: true,
+      chunks: newChunks,
+      isComplete: state.done,
+      nextChunkIdx: state.chunks.length,
+      error: state.error || undefined,
+      cancelled: state.cancelled,
+    };
+  }
+
+  /** 取消 in-flight stream — 设 cancelled flag，下次 chunk callback 会被忽略。 */
+  async cancelStream(params, _context) {
+    const { streamId } = params;
+    if (!streamId || typeof streamId !== "string") {
+      throw new Error('Parameter "streamId" is required and must be a string');
+    }
+    const state = this.activeStreams.get(streamId);
+    if (!state) {
+      return { success: true, cancelled: false };
+    }
+    state.cancelled = true;
+    state.done = true;
+    logger.info(`[AIHandler] cancelStream ${streamId} — 用户取消`);
+    return { success: true, cancelled: true };
+  }
+
+  /** 查单个对话 metadata. */
+  async getConversation(params, _context) {
+    const { conversationId } = params;
+    if (!conversationId || typeof conversationId !== "string") {
+      throw new Error('Parameter "conversationId" is required');
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const row = this.database
+      .prepare(
+        `SELECT id, title, model, message_count, last_message_at, created_at, archived FROM ai_conversations WHERE id = ?`,
+      )
+      .get(conversationId);
+    if (!row) {
+      return {
+        success: false,
+        conversation: null,
+        error: "conversation not found",
+      };
+    }
+    return {
+      success: true,
+      conversation: {
+        id: row.id,
+        title: row.title,
+        model: row.model,
+        messageCount: row.message_count,
+        lastMessageAt: row.last_message_at,
+        createdAt: row.created_at,
+        archived: !!row.archived,
+      },
+    };
+  }
+
+  /** 创建空对话 — title/model/systemPrompt 全可选；返 conversationId + Conversation. */
+  async createConversation(params, _context) {
+    const { title, model, systemPrompt } = params;
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const now = Date.now();
+    const finalTitle = title || "新对话";
+    this.database
+      .prepare(
+        `
+      INSERT INTO ai_conversations
+        (id, title, model, system_prompt, created_at, last_message_at, message_count, archived)
+      VALUES (?, ?, ?, ?, ?, NULL, 0, 0)
+    `,
+      )
+      .run(
+        conversationId,
+        finalTitle,
+        model || null,
+        systemPrompt || null,
+        now,
+      );
+    logger.info(`[AIHandler] createConversation: ${conversationId}`);
+    return {
+      success: true,
+      conversationId,
+      conversation: {
+        id: conversationId,
+        title: finalTitle,
+        model: model || null,
+        messageCount: 0,
+        lastMessageAt: null,
+        createdAt: now,
+        archived: false,
+      },
+    };
+  }
+
+  /** 删除对话 + 所有 messages (FK CASCADE). */
+  async deleteConversation(params, _context) {
+    const { conversationId } = params;
+    if (!conversationId || typeof conversationId !== "string") {
+      throw new Error('Parameter "conversationId" is required');
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const info = this.database
+      .prepare("DELETE FROM ai_conversations WHERE id = ?")
+      .run(conversationId);
+    // 兼容 FK 不在 (sqlite3 不强制) — 显式删 messages
+    try {
+      this.database
+        .prepare("DELETE FROM ai_messages WHERE conversation_id = ?")
+        .run(conversationId);
+    } catch (_err) {
+      // 表不存在或其它 — 忽略
+    }
+    logger.info(
+      `[AIHandler] deleteConversation: ${conversationId} (rows: ${info.changes})`,
+    );
+    return { success: true };
+  }
+
+  /** 拉对话 messages 列表 (按 createdAt ASC). */
+  async getMessages(params, _context) {
+    const { conversationId, limit = 100, offset = 0 } = params;
+    if (!conversationId || typeof conversationId !== "string") {
+      throw new Error('Parameter "conversationId" is required');
+    }
+    if (!this.database) {
+      throw new Error("Database not available");
+    }
+    const rows = this.database
+      .prepare(
+        `
+        SELECT id, role, content, model_used, created_at, is_streaming
+        FROM ai_messages
+        WHERE conversation_id = ?
+        ORDER BY created_at ASC
+        LIMIT ? OFFSET ?
+      `,
+      )
+      .all(conversationId, Math.max(1, limit | 0), Math.max(0, offset | 0));
+    const messages = rows.map((r) => ({
+      id: r.id,
+      role: r.role,
+      content: r.content,
+      createdAt: r.created_at,
+      modelUsed: r.model_used,
+      isStreaming: !!r.is_streaming,
+    }));
+    return { success: true, messages, total: messages.length };
   }
 }
 
