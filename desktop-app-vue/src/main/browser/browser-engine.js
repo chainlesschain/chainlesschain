@@ -7,12 +7,14 @@
  * @since v0.27.0
  */
 
-const { chromium } = require('playwright-core');
-const { EventEmitter } = require('events');
-const path = require('path');
-const fs = require('fs').promises;
-const { SnapshotEngine } = require('./snapshot-engine');
-const { ElementLocator } = require('./element-locator');
+// Lazy seam for tests: vi.mock cannot intercept this require() reliably
+// across CJS/ESM in Vitest. Tests inject a fake via _setChromiumForTesting.
+let _chromium = require("playwright-core").chromium;
+const { EventEmitter } = require("events");
+const path = require("path");
+const fs = require("fs").promises;
+const { SnapshotEngine } = require("./snapshot-engine");
+const { ElementLocator } = require("./element-locator");
 
 /**
  * 浏览器引擎类
@@ -27,7 +29,7 @@ class BrowserEngine extends EventEmitter {
       cdpPort: config.cdpPort || 18800,
       profileDir: config.profileDir,
       defaultViewport: config.defaultViewport || { width: 1280, height: 720 },
-      ...config
+      ...config,
     };
 
     this.browser = null;
@@ -50,7 +52,7 @@ class BrowserEngine extends EventEmitter {
    */
   async start(options = {}) {
     if (this.isRunning) {
-      throw new Error('Browser is already running');
+      throw new Error("Browser is already running");
     }
 
     try {
@@ -58,34 +60,36 @@ class BrowserEngine extends EventEmitter {
         headless: options.headless ?? this.config.headless,
         args: [
           `--remote-debugging-port=${this.config.cdpPort}`,
-          '--disable-blink-features=AutomationControlled', // 反检测
-          '--disable-features=IsolateOrigins,site-per-process',
-          '--no-sandbox', // Windows 需要
-          ...(options.args || [])
+          "--disable-blink-features=AutomationControlled", // 反检测
+          "--disable-features=IsolateOrigins,site-per-process",
+          "--no-sandbox", // Windows 需要
+          ...(options.args || []),
         ],
         // 使用系统安装的 Chrome/Edge
-        channel: options.channel || 'chrome'
+        channel: options.channel || "chrome",
       };
 
-      this.browser = await chromium.launch(launchOptions);
+      this.browser = await _chromium.launch(launchOptions);
       this.isRunning = true;
       this.startTime = Date.now();
 
-      this.emit('browser:started', {
+      this.emit("browser:started", {
         cdpPort: this.config.cdpPort,
-        timestamp: this.startTime
+        timestamp: this.startTime,
       });
 
-      console.log(`[BrowserEngine] Browser started on CDP port ${this.config.cdpPort}`);
+      console.log(
+        `[BrowserEngine] Browser started on CDP port ${this.config.cdpPort}`,
+      );
 
       return {
         success: true,
         cdpPort: this.config.cdpPort,
-        pid: this.browser.process()?.pid
+        pid: this.browser.process()?.pid,
       };
     } catch (error) {
       this.isRunning = false;
-      this.emit('browser:error', { error: error.message });
+      this.emit("browser:error", { error: error.message });
       throw new Error(`Failed to start browser: ${error.message}`);
     }
   }
@@ -96,7 +100,7 @@ class BrowserEngine extends EventEmitter {
    */
   async stop() {
     if (!this.isRunning) {
-      throw new Error('Browser is not running');
+      throw new Error("Browser is not running");
     }
 
     try {
@@ -118,13 +122,13 @@ class BrowserEngine extends EventEmitter {
       this.isRunning = false;
 
       const uptime = Date.now() - this.startTime;
-      this.emit('browser:stopped', { uptime });
+      this.emit("browser:stopped", { uptime });
 
       console.log(`[BrowserEngine] Browser stopped after ${uptime}ms`);
 
       return { success: true, uptime };
     } catch (error) {
-      this.emit('browser:error', { error: error.message });
+      this.emit("browser:error", { error: error.message });
       throw new Error(`Failed to stop browser: ${error.message}`);
     }
   }
@@ -137,14 +141,14 @@ class BrowserEngine extends EventEmitter {
    */
   async createContext(profileName, options = {}) {
     if (!this.isRunning) {
-      throw new Error('Browser is not running. Call start() first.');
+      throw new Error("Browser is not running. Call start() first.");
     }
 
     if (this.contexts.has(profileName)) {
       return {
         success: true,
         profileName,
-        exists: true
+        exists: true,
       };
     }
 
@@ -156,7 +160,7 @@ class BrowserEngine extends EventEmitter {
         permissions: options.permissions,
         storageState: options.storageState, // 恢复 Cookie/LocalStorage
         ignoreHTTPSErrors: options.ignoreHTTPSErrors ?? true,
-        ...options
+        ...options,
       };
 
       const context = await this.browser.newContext(contextOptions);
@@ -164,40 +168,39 @@ class BrowserEngine extends EventEmitter {
       // 注入反检测脚本
       await context.addInitScript(() => {
         // 隐藏 webdriver 标识
-        Object.defineProperty(navigator, 'webdriver', {
-          get: () => undefined
+        Object.defineProperty(navigator, "webdriver", {
+          get: () => undefined,
         });
 
         // 伪装 Chrome 对象
         window.chrome = {
           runtime: {},
-          loadTimes: function() {},
-          csi: function() {},
-          app: {}
+          loadTimes: function () {},
+          csi: function () {},
+          app: {},
         };
 
         // 伪装 Permissions
         const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) => (
-          parameters.name === 'notifications' ?
-            Promise.resolve({ state: Notification.permission }) :
-            originalQuery(parameters)
-        );
+        window.navigator.permissions.query = (parameters) =>
+          parameters.name === "notifications"
+            ? Promise.resolve({ state: Notification.permission })
+            : originalQuery(parameters);
       });
 
       this.contexts.set(profileName, context);
 
-      this.emit('context:created', { profileName });
+      this.emit("context:created", { profileName });
 
       console.log(`[BrowserEngine] Context created: ${profileName}`);
 
       return {
         success: true,
         profileName,
-        exists: false
+        exists: false,
       };
     } catch (error) {
-      this.emit('context:error', { profileName, error: error.message });
+      this.emit("context:error", { profileName, error: error.message });
       throw new Error(`Failed to create context: ${error.message}`);
     }
   }
@@ -236,32 +239,32 @@ class BrowserEngine extends EventEmitter {
       this.pages.set(targetId, page);
 
       // 设置页面事件监听
-      page.on('close', () => {
+      page.on("close", () => {
         this.pages.delete(targetId);
-        this.emit('tab:closed', { targetId });
+        this.emit("tab:closed", { targetId });
       });
 
-      page.on('crash', () => {
-        this.emit('tab:crashed', { targetId });
+      page.on("crash", () => {
+        this.emit("tab:crashed", { targetId });
       });
 
-      page.on('console', (msg) => {
-        this.emit('tab:console', {
+      page.on("console", (msg) => {
+        this.emit("tab:console", {
           targetId,
           type: msg.type(),
-          text: msg.text()
+          text: msg.text(),
         });
       });
 
       // 导航到 URL
       if (url) {
         await page.goto(url, {
-          waitUntil: options.waitUntil || 'domcontentloaded',
-          timeout: options.timeout || 30000
+          waitUntil: options.waitUntil || "domcontentloaded",
+          timeout: options.timeout || 30000,
         });
       }
 
-      this.emit('tab:opened', { targetId, url, profileName });
+      this.emit("tab:opened", { targetId, url, profileName });
 
       console.log(`[BrowserEngine] Tab opened: ${targetId} -> ${url}`);
 
@@ -269,10 +272,10 @@ class BrowserEngine extends EventEmitter {
         success: true,
         targetId,
         url: page.url(),
-        title: await page.title()
+        title: await page.title(),
       };
     } catch (error) {
-      this.emit('tab:error', { error: error.message });
+      this.emit("tab:error", { error: error.message });
       throw new Error(`Failed to open tab: ${error.message}`);
     }
   }
@@ -308,7 +311,7 @@ class BrowserEngine extends EventEmitter {
     try {
       await page.bringToFront();
 
-      this.emit('tab:focused', { targetId });
+      this.emit("tab:focused", { targetId });
 
       console.log(`[BrowserEngine] Tab focused: ${targetId}`);
 
@@ -347,7 +350,7 @@ class BrowserEngine extends EventEmitter {
         targetId,
         url: page.url(),
         title: await page.title(),
-        profileName: contextName
+        profileName: contextName,
       });
     }
 
@@ -366,18 +369,18 @@ class BrowserEngine extends EventEmitter {
 
     try {
       await page.goto(url, {
-        waitUntil: options.waitUntil || 'domcontentloaded',
-        timeout: options.timeout || 30000
+        waitUntil: options.waitUntil || "domcontentloaded",
+        timeout: options.timeout || 30000,
       });
 
-      this.emit('tab:navigated', { targetId, url });
+      this.emit("tab:navigated", { targetId, url });
 
       console.log(`[BrowserEngine] Navigated: ${targetId} -> ${url}`);
 
       return {
         success: true,
         url: page.url(),
-        title: await page.title()
+        title: await page.title(),
       };
     } catch (error) {
       throw new Error(`Failed to navigate: ${error.message}`);
@@ -395,20 +398,22 @@ class BrowserEngine extends EventEmitter {
 
     try {
       const screenshotOptions = {
-        type: options.type || 'png',
+        type: options.type || "png",
         fullPage: options.fullPage ?? false,
         quality: options.quality,
-        clip: options.clip
+        clip: options.clip,
       };
 
       const buffer = await page.screenshot(screenshotOptions);
 
-      this.emit('tab:screenshot', {
+      this.emit("tab:screenshot", {
         targetId,
-        size: buffer.length
+        size: buffer.length,
       });
 
-      console.log(`[BrowserEngine] Screenshot taken: ${targetId} (${buffer.length} bytes)`);
+      console.log(
+        `[BrowserEngine] Screenshot taken: ${targetId} (${buffer.length} bytes)`,
+      );
 
       return buffer;
     } catch (error) {
@@ -427,7 +432,7 @@ class BrowserEngine extends EventEmitter {
       cdpPort: this.config.cdpPort,
       contextsCount: this.contexts.size,
       tabsCount: this.pages.size,
-      pid: this.browser?.process()?.pid
+      pid: this.browser?.process()?.pid,
     };
   }
 
@@ -459,10 +464,7 @@ class BrowserEngine extends EventEmitter {
 
       // 如果未指定文件路径，使用默认路径
       if (!stateFile) {
-        stateFile = path.join(
-          this.config.profileDir,
-          `${profileName}.json`
-        );
+        stateFile = path.join(this.config.profileDir, `${profileName}.json`);
       }
 
       // 确保目录存在
@@ -471,13 +473,15 @@ class BrowserEngine extends EventEmitter {
       // 保存状态
       await fs.writeFile(stateFile, JSON.stringify(state, null, 2));
 
-      console.log(`[BrowserEngine] Session saved: ${profileName} -> ${stateFile}`);
+      console.log(
+        `[BrowserEngine] Session saved: ${profileName} -> ${stateFile}`,
+      );
 
       return {
         success: true,
         stateFile,
         cookiesCount: state.cookies.length,
-        originsCount: state.origins.length
+        originsCount: state.origins.length,
       };
     } catch (error) {
       throw new Error(`Failed to save session: ${error.message}`);
@@ -493,27 +497,26 @@ class BrowserEngine extends EventEmitter {
   async restoreSession(profileName, stateFile = null) {
     // 如果未指定文件路径，使用默认路径
     if (!stateFile) {
-      stateFile = path.join(
-        this.config.profileDir,
-        `${profileName}.json`
-      );
+      stateFile = path.join(this.config.profileDir, `${profileName}.json`);
     }
 
     try {
       // 读取状态文件
-      const stateData = await fs.readFile(stateFile, 'utf-8');
+      const stateData = await fs.readFile(stateFile, "utf-8");
       const state = JSON.parse(stateData);
 
       // 创建带有恢复状态的上下文
       await this.createContext(profileName, { storageState: state });
 
-      console.log(`[BrowserEngine] Session restored: ${profileName} <- ${stateFile}`);
+      console.log(
+        `[BrowserEngine] Session restored: ${profileName} <- ${stateFile}`,
+      );
 
       return {
         success: true,
         profileName,
         cookiesCount: state.cookies.length,
-        originsCount: state.origins.length
+        originsCount: state.origins.length,
       };
     } catch (error) {
       throw new Error(`Failed to restore session: ${error.message}`);
@@ -537,16 +540,18 @@ class BrowserEngine extends EventEmitter {
     try {
       const snapshot = await this.snapshotEngine.takeSnapshot(page, options);
 
-      this.emit('snapshot:taken', {
+      this.emit("snapshot:taken", {
         targetId,
-        elementsCount: snapshot.elementsCount
+        elementsCount: snapshot.elementsCount,
       });
 
-      console.log(`[BrowserEngine] Snapshot taken for ${targetId}: ${snapshot.elementsCount} elements`);
+      console.log(
+        `[BrowserEngine] Snapshot taken for ${targetId}: ${snapshot.elementsCount} elements`,
+      );
 
       return snapshot;
     } catch (error) {
-      this.emit('snapshot:error', { targetId, error: error.message });
+      this.emit("snapshot:error", { targetId, error: error.message });
       throw new Error(`Failed to take snapshot: ${error.message}`);
     }
   }
@@ -566,7 +571,9 @@ class BrowserEngine extends EventEmitter {
       // 从快照中查找元素
       const element = this.snapshotEngine.findElement(targetId, ref);
       if (!element) {
-        throw new Error(`Element ${ref} not found in snapshot. Run takeSnapshot() first.`);
+        throw new Error(
+          `Element ${ref} not found in snapshot. Run takeSnapshot() first.`,
+        );
       }
 
       // 使用 ElementLocator 定位元素
@@ -576,46 +583,52 @@ class BrowserEngine extends EventEmitter {
       let result = {};
 
       switch (action.toLowerCase()) {
-        case 'click':
+        case "click":
           await locator.click({
-            button: options.button || 'left',
+            button: options.button || "left",
             clickCount: options.double ? 2 : 1,
-            delay: options.delay
+            delay: options.delay,
           });
           result = { clicked: true };
           break;
 
-        case 'type':
+        case "type":
           if (!options.text) {
-            throw new Error('Text is required for type action');
+            throw new Error("Text is required for type action");
           }
           await locator.fill(options.text);
           result = { typed: options.text };
           break;
 
-        case 'select':
+        case "select":
           if (!options.value) {
-            throw new Error('Value is required for select action');
+            throw new Error("Value is required for select action");
           }
           await locator.selectOption(options.value);
           result = { selected: options.value };
           break;
 
-        case 'drag': {
+        case "drag": {
           if (!options.target) {
-            throw new Error('Target is required for drag action');
+            throw new Error("Target is required for drag action");
           }
-          const targetElement = this.snapshotEngine.findElement(targetId, options.target);
+          const targetElement = this.snapshotEngine.findElement(
+            targetId,
+            options.target,
+          );
           if (!targetElement) {
             throw new Error(`Target element ${options.target} not found`);
           }
-          const targetLocator = await ElementLocator.locate(page, targetElement);
+          const targetLocator = await ElementLocator.locate(
+            page,
+            targetElement,
+          );
           await locator.dragTo(targetLocator);
           result = { dragged: true, target: options.target };
           break;
         }
 
-        case 'hover':
+        case "hover":
           await locator.hover();
           result = { hovered: true };
           break;
@@ -629,11 +642,11 @@ class BrowserEngine extends EventEmitter {
         await page.waitForLoadState(options.waitFor);
       }
 
-      this.emit('element:acted', {
+      this.emit("element:acted", {
         targetId,
         action,
         ref,
-        result
+        result,
       });
 
       console.log(`[BrowserEngine] Action ${action} executed on ${ref}`);
@@ -642,16 +655,18 @@ class BrowserEngine extends EventEmitter {
         success: true,
         action,
         ref,
-        ...result
+        ...result,
       };
     } catch (error) {
-      this.emit('element:error', {
+      this.emit("element:error", {
         targetId,
         action,
         ref,
-        error: error.message
+        error: error.message,
       });
-      throw new Error(`Failed to execute ${action} on ${ref}: ${error.message}`);
+      throw new Error(
+        `Failed to execute ${action} on ${ref}: ${error.message}`,
+      );
     }
   }
 
@@ -704,4 +719,13 @@ class BrowserEngine extends EventEmitter {
   }
 }
 
-module.exports = { BrowserEngine };
+/**
+ * Test seam — swap the playwright-core chromium binding without going through
+ * vi.mock (which cannot intercept require() reliably in CJS sources).
+ * Pass `null` to restore the real chromium.
+ */
+function _setChromiumForTesting(chromium) {
+  _chromium = chromium ?? require("playwright-core").chromium;
+}
+
+module.exports = { BrowserEngine, _setChromiumForTesting };
