@@ -379,3 +379,21 @@ async runAgent(params, _context)
 
 ---
 
+## async runAgentStream(params, _context)
+
+```javascript
+async runAgentStream(params, _context)
+```
+
+* 启动 agent 流式运行。返 `{streamId, agentId}`，iOS 端用既有 `getStreamChunk`
+   * 轮询 `activeStreams.get(streamId)` 看 chunks（与 chat stream 共用一套 Map +
+   * 协议；`getStreamChunk` / `cancelStream` 已是 streamId-agnostic）。
+   *
+   * agent manager 接口契约：必须 `agents.runStream(agentId, input, options, onChunk)`
+   * 或 `agents.run` 配合 onChunk callback。缺则 fallback 到非流式 `runAgent` 一次
+   * 性返回（iOS UI 会一次性显示）。
+   *
+   * **错误降级**：缺 manager → throw（mutating action 不能 silent）。
+
+---
+
