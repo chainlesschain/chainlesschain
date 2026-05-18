@@ -135,19 +135,41 @@ DEPLOYS = [
     # 落到两 doc-site 副本; release-sizes.json 自动 refresh 到 v5.0.3.57 (GitHub Release
     # published 2026-05-16T17:58:49Z, 18 assets: 8 desktop + 4 Android + latest.yml × 3
     # + blockmap × 3)。
+    # 2026-05-19 v5.0.3.64 滚动更新 (3 站全刷):
+    # 在 v5.0.3.57 之后又跨 7 版 (.58-.64)。本批 tagline + 重点卡片 + 重建 + 部署：
+    # (1) iOS Phase 5 AI Chat 收口 — 4 真实 bug 修 (finalizeStreamingPlaceholder
+    #     空字符串穿透 / deleteConversation 半回滚 / sendMessage 缺 stream-in-flight guard /
+    #     selectConversation stale streamId) + 4 集成测试 (events fan-out / cancel 顺序 /
+    #     offline drain / 多对话隔离) + 单测 41→45 iOS 总单测 ~313→~358。
+    # (2) iOS Phase 6 sprint — 一晚 19 commits 落 Phase 6.3 Knowledge 30 method +
+    #     6.4 AI Extended 25 method 全 hybrid (OQ-3.2/3.3 收口) + 15 main tab UI +
+    #     多模态 v0.3 实时录音 AVAudioRecorder + Agent streaming runAgentStream +
+    #     iOS poll loop + Agents UI live。绿基线 1fb947b32。
+    # (3) v5.0.3.63 — iOS 16 PIN 闪退修 (AppState.swift MainActor.assumeIsolated →
+    #     Task @MainActor) + AppIcon 全幅 + Sub-phase 5-6 LOCAL 项目终端体验。
+    # (4) v5.0.3.62 — iOS deployment target iOS 17 → iOS 16 (覆盖 iPhone 8+)。
+    # (5) v5.0.3.61 — iOS CI 真签名 .ipa 出包 (Hua Zhang 团队 ad-hoc, 7.7MB)。
+    # (6) v5.0.3.64 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零
+    #     (0.32.0/32/com.chainlesschain.ios → Bundle.main 动态读 + 5 helper) +
+    #     596 .swift 跑 29 pattern audit 0 iOS 17 API 违规 + 18 unit + 7 integration +
+    #     2 UITest 三层覆盖锁版本号显示 + PIN 解锁不崩两类回归。
+    # 改动: docs-site/docs/index.md + docs-site-design/docs/index.md tagline 升 v5.0.3.64 +
+    # CLI 0.162.0 → 0.162.1 + Android 5.0.3.57 → 5.0.3.64 (versionCode 503057 → 503064);
+    # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张 v5.0.3.64 卡 (中英对照);
+    # 修 docs-site/docs/changelog.md:58 unescaped <path> Vue parse fail.
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.64-20260518-100155.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.64-20260519-064442.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.64-20260518-094205.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.64-20260519-015530.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.64-20260518-100415.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.64-20260519-015604.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
