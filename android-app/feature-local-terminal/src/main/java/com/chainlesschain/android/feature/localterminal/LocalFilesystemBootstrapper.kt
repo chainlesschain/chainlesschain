@@ -248,13 +248,16 @@ class LocalFilesystemBootstrapper @Inject constructor(
         val markerFile = File(prefixDir, "var/lib/cc/.bundled-version")
         val targetVersion = BuildConfig.USR_VERSION
 
-        // Skip if asset isn't shipped (Phase 0-4 baseline)
-        val assetSize = try {
-            context.assets.openFd(tgzAsset).use { it.length }
+        // Skip if asset isn't shipped (Phase 0-4 baseline). openFd() throws
+        // on compressed assets — AGP deflates .tgz inside the APK unless
+        // listed in `aaptOptions.noCompress`. AssetManager.open() handles
+        // both forms, so we probe by opening + reading one byte.
+        val assetPresent = try {
+            context.assets.open(tgzAsset).use { it.read() != -1 }
         } catch (_: Exception) {
-            -1L
+            false
         }
-        if (assetSize <= 0) {
+        if (!assetPresent) {
             Timber.tag(TAG).i("$tgzAsset absent — cc CLI not bundled (Phase 2.5 not landed)")
             return
         }
