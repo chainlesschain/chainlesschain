@@ -86,6 +86,10 @@ export default defineConfig({
           text: "移动端 Android ⭐NEW",
           items: [
             {
+              text: "Android 用户操作手册（安装 / 首次启动 / 配对 / 日常使用） ⭐",
+              link: "/guide/mobile-android-usage",
+            },
+            {
               text: "Android v1.0 GA 用户文档（三层定位 / 扫码配对 / REMOTE / 远程终端 / 同步 / 故障排查）",
               link: "/guide/mobile-android",
             },
@@ -102,6 +106,10 @@ export default defineConfig({
         {
           text: "移动端 iOS ⭐NEW",
           items: [
+            {
+              text: "iOS 用户操作手册（安装 / 首次启动 / 配对 / 日常使用） ⭐",
+              link: "/guide/mobile-ios-usage",
+            },
             {
               text: "iOS Phase 1+2+3 用户文档（桌面配对 + 远程终端 + 远程操控 framework + 4 skill）",
               link: "/guide/mobile-ios",
