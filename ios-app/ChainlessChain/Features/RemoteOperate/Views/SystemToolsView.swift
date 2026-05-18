@@ -24,6 +24,7 @@ struct SystemToolsView: View {
 
     enum SubTab: String, CaseIterable, Identifiable {
         case app, security, userBrowser, power, process, network, storage, device, sysinfo
+        case workflow, system, history     // Phase 6.5 — 红档子集 batch 2
 
         var id: String { rawValue }
 
@@ -38,6 +39,9 @@ struct SystemToolsView: View {
             case .storage:     return "存储"
             case .device:      return "设备"
             case .sysinfo:     return "系统"
+            case .workflow:    return "工作流"
+            case .system:      return "Shell"
+            case .history:     return "历史"
             }
         }
 
@@ -52,6 +56,9 @@ struct SystemToolsView: View {
             case .storage:     return "internaldrive"
             case .device:      return "iphone.and.arrow.forward"
             case .sysinfo:     return "cpu"
+            case .workflow:    return "flowchart"
+            case .system:      return "terminal.fill"
+            case .history:     return "clock.arrow.circlepath"
             }
         }
     }
@@ -113,6 +120,9 @@ struct SystemToolsView: View {
         case .storage:     StorageToolView(pcPeerId: pcPeerId)
         case .device:      DeviceToolView(pcPeerId: pcPeerId)
         case .sysinfo:     SysInfoExtendedToolView(pcPeerId: pcPeerId)
+        case .workflow:    WorkflowToolView(pcPeerId: pcPeerId)
+        case .system:      SystemShellToolView(pcPeerId: pcPeerId)
+        case .history:     HistoryToolView(pcPeerId: pcPeerId)
         }
     }
 }
@@ -528,6 +538,214 @@ private struct SysInfoExtendedToolView: View {
                         let load = r.loadAvg1m.map { String(format: "%.2f", $0) } ?? "-"
                         return "CPU=\(String(format: "%.1f", r.cpuUsage))% | mem=\(String(format: "%.1f", r.memoryUsagePercent))% | load1m=\(load)"
                     }
+                )
+            }
+            .padding(12)
+        }
+    }
+}
+
+// MARK: - Phase 6.5 子 view (workflow / system shell / history)
+
+private struct WorkflowToolView: View {
+    let pcPeerId: String
+    @EnvironmentObject var remoteDeps: RemoteDependencies
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                ActionRow(
+                    title: "列工作流", subtitle: "workflow.list",
+                    action: { try await remoteDeps.workflow.list(pcPeerId: pcPeerId) },
+                    formatter: { r in
+                        let first = r.workflows.first?.name ?? "-"
+                        return "\(r.total) 个工作流；首项: \(first)"
+                    }
+                )
+                ActionRow(
+                    title: "当前运行中", subtitle: "workflow.getRunning",
+                    action: { try await remoteDeps.workflow.getRunning(pcPeerId: pcPeerId) },
+                    formatter: { r in "\(r.count) 个正在执行" }
+                )
+                ActionRow(
+                    title: "执行历史", subtitle: "workflow.getHistory (limit=20)",
+                    action: { try await remoteDeps.workflow.getHistory(pcPeerId: pcPeerId, limit: 20) },
+                    formatter: { r in
+                        let last = r.executions.last
+                        let status = last?.status ?? "-"
+                        return "\(r.total) 条记录；最近: \(status)"
+                    }
+                )
+            }
+            .padding(12)
+        }
+    }
+}
+
+private struct SystemShellToolView: View {
+    let pcPeerId: String
+    @EnvironmentObject var remoteDeps: RemoteDependencies
+    @State private var cmd: String = "uname -a"
+    @State private var running: Bool = false
+    @State private var lastStdout: String = ""
+    @State private var lastStderr: String = ""
+    @State private var lastExitCode: Int? = nil
+    @State private var lastError: String? = nil
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("⚠️ system.execCommand 是高危操作 — 桌面端应配 ApprovalGate + 白名单。"
+                     + "iOS 端不做命令转义；caller 必须传安全 args 数组。")
+                    .font(.caption).foregroundColor(.orange).padding(8)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.1)))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("命令").font(.caption).foregroundColor(.secondary)
+                    TextField("命令 (如 uname -a)", text: $cmd)
+                        .textFieldStyle(.roundedBorder)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    Button {
+                        Task { await execute() }
+                    } label: {
+                        HStack {
+                            Image(systemName: "terminal.fill")
+                            Text(running ? "执行中…" : "执行 (system.execCommand)")
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(running || cmd.isEmpty)
+                }
+
+                if let exit = lastExitCode {
+                    HStack {
+                        Image(systemName: exit == 0 ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                            .foregroundColor(exit == 0 ? .green : .red)
+                        Text("exit \(exit)")
+                            .font(.system(.subheadline, design: .monospaced))
+                    }
+                }
+                if !lastStdout.isEmpty {
+                    VStack(alignment: .leading) {
+                        Text("stdout").font(.caption2).foregroundColor(.secondary)
+                        Text(lastStdout)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemBackground)))
+                    }
+                }
+                if !lastStderr.isEmpty {
+                    VStack(alignment: .leading) {
+                        Text("stderr").font(.caption2).foregroundColor(.orange)
+                        Text(lastStderr)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.1)))
+                    }
+                }
+                if let err = lastError {
+                    Text(err).font(.caption).foregroundColor(.red)
+                }
+
+                Divider()
+
+                ActionRow(
+                    title: "系统简要信息", subtitle: "system.getInfo",
+                    action: { try await remoteDeps.system.getInfo(pcPeerId: pcPeerId) },
+                    formatter: { r in
+                        "\(r.platform) / \(r.arch ?? "?") / \(r.hostname ?? "?")"
+                    }
+                )
+                ActionRow(
+                    title: "实时状态", subtitle: "system.getStatus",
+                    action: { try await remoteDeps.system.getStatus(pcPeerId: pcPeerId) },
+                    formatter: { r in
+                        let disk = r.diskPercent.map { String(format: "%.1f%%", $0) } ?? "-"
+                        return "CPU=\(String(format: "%.1f%%", r.cpuPercent)) | 内存=\(String(format: "%.1f%%", r.memoryPercent)) | 磁盘=\(disk)"
+                    }
+                )
+                ActionRow(
+                    title: "发送桌面通知", subtitle: "system.notify (title=测试)",
+                    action: {
+                        try await remoteDeps.system.notify(
+                            pcPeerId: pcPeerId,
+                            title: "来自 iPhone",
+                            message: "由 ChainlessChain iOS 发出"
+                        )
+                    },
+                    formatter: { r in "已发送，id=\(r.notificationId ?? "-")" }
+                )
+            }
+            .padding(12)
+        }
+    }
+
+    private func execute() async {
+        running = true
+        defer { running = false }
+        lastError = nil
+        lastStdout = ""
+        lastStderr = ""
+        lastExitCode = nil
+
+        let parts = cmd.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        let bin = String(parts.first ?? "")
+        let argsLine = parts.count > 1 ? String(parts[1]) : ""
+        let args = argsLine.isEmpty
+            ? []
+            : argsLine.split(separator: " ", omittingEmptySubsequences: true).map { String($0) }
+
+        do {
+            let r = try await remoteDeps.system.execCommand(
+                pcPeerId: pcPeerId, command: bin, args: args, timeoutMs: 10_000
+            )
+            await MainActor.run {
+                self.lastStdout = r.stdout
+                self.lastStderr = r.stderr
+                self.lastExitCode = r.exitCode
+            }
+        } catch {
+            await MainActor.run {
+                self.lastError = "执行失败: \(error.localizedDescription)"
+            }
+        }
+    }
+}
+
+private struct HistoryToolView: View {
+    let pcPeerId: String
+    @EnvironmentObject var remoteDeps: RemoteDependencies
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                ActionRow(
+                    title: "最近 20 条历史", subtitle: "history.getHistory limit=20",
+                    action: { try await remoteDeps.history.getHistory(pcPeerId: pcPeerId, limit: 20) },
+                    formatter: { r in
+                        let last = r.entries.first?.command ?? "-"
+                        return "\(r.total) 条；最新: \(last)"
+                    }
+                )
+                ActionRow(
+                    title: "搜索 git", subtitle: "history.search query=git",
+                    action: { try await remoteDeps.history.search(pcPeerId: pcPeerId, query: "git") },
+                    formatter: { r in "\(r.total) 条匹配" }
+                )
+                ActionRow(
+                    title: "历史统计", subtitle: "history.getStats",
+                    action: { try await remoteDeps.history.getStats(pcPeerId: pcPeerId) },
+                    formatter: { r in
+                        let top = r.topCommands.prefix(3).joined(separator: ", ")
+                        return "\(r.totalEntries) 条；设备=\(r.deviceCount ?? 0)；Top: \(top)"
+                    }
+                )
+                ActionRow(
+                    title: "导出 JSON", subtitle: "history.export format=json",
+                    action: { try await remoteDeps.history.export(pcPeerId: pcPeerId, format: "json") },
+                    formatter: { r in "导出 \(r.entries) 条；size=\(r.size) bytes" }
                 )
             }
             .padding(12)

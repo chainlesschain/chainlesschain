@@ -69,6 +69,11 @@ public final class RemoteDependencies: ObservableObject {
     public let media: MediaCommands
     public let browser: BrowserCommands
 
+    // Phase 6.5 红档子集 batch 2（workflow + system + history）
+    public let workflow: WorkflowCommands
+    public let system: SystemCommands
+    public let history: HistoryCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -216,6 +221,15 @@ public final class RemoteDependencies: ObservableObject {
         // - browser (12/33 method): 内置 chromium 引擎自动化 (Playwright/Puppeteer)
         self.media = MediaCommands(client: cmdClient)
         self.browser = BrowserCommands(client: cmdClient)
+
+        // Phase 6.5: 红档子集 batch 2 (workflow + system + history)
+        // - workflow (10/13 method): CRUD + 执行 + 取消 + 历史 + 当前 running
+        // - system (5/49 method): execCommand / getInfo / getStatus / notify / screenshot
+        //   (namespace `system` 与 `sysinfo` 是 2 个不同 handler)
+        // - history (8/7 method 名称分化): 跟桌面 case 名为 ground truth
+        self.workflow = WorkflowCommands(client: cmdClient)
+        self.system = SystemCommands(client: cmdClient)
+        self.history = HistoryCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
