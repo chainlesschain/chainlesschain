@@ -78,6 +78,12 @@ android {
     buildFeatures {
         // Enable BuildConfig so LocalFilesystemBootstrapper can read USR_VERSION.
         buildConfig = true
+        // Phase 3 — Compose UI for LocalTerminalScreen.
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
 
     // W^X requires libmksh.so / libtoybox.so to be extracted to
@@ -104,6 +110,19 @@ dependencies {
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Phase 3 — Compose UI for LocalTerminalScreen
+    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.runtime:runtime")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

@@ -14,15 +14,15 @@ import org.junit.Test
  */
 class PhaseMarkerTest {
     @Test
-    fun `current phase is 2`() {
-        assertEquals("2", PhaseMarker.CURRENT)
+    fun `current phase is 3`() {
+        assertEquals("3", PhaseMarker.CURRENT)
     }
 
     @Test
-    fun `description mentions PREFIX skeleton`() {
+    fun `description mentions xterm js WebView`() {
         assertTrue(
-            "description should mention \$PREFIX skeleton — the deliverable of Phase 2",
-            PhaseMarker.DESCRIPTION.contains("\$PREFIX", ignoreCase = true)
+            "description should mention xterm.js WebView — the central Phase 3 design choice",
+            PhaseMarker.DESCRIPTION.contains("xterm.js", ignoreCase = true)
         )
     }
 }

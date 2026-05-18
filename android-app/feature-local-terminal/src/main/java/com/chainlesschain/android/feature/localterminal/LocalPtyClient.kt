@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference
  *    → SIGKILL → final waitpid. All bracketed by [stateLock] so a second
  *    shutdown call no-ops.
  */
-internal class LocalPtyClient(
+class LocalPtyClient(
     private val scope: CoroutineScope,
     private val native: PtyNative = DefaultPtyNative(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,

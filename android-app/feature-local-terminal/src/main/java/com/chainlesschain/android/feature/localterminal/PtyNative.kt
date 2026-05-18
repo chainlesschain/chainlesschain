@@ -8,7 +8,7 @@ package com.chainlesschain.android.feature.localterminal
  * positive/negative-errno return convention and the "slave fd is closed in
  * parent after spawn" rule.
  */
-internal interface PtyNative {
+interface PtyNative {
     fun openPty(): IntArray
     fun spawn(
         slaveFd: Int,
@@ -29,9 +29,16 @@ internal interface PtyNative {
 }
 
 /** Production [PtyNative] — delegates to the real JNI bridge. */
-internal class DefaultPtyNative(
-    private val native: LocalPtyNative = LocalPtyNative()
+class DefaultPtyNative
+internal constructor(
+    private val native: LocalPtyNative,
 ) : PtyNative {
+    /** Public ctor used outside the module: uses the canonical
+     *  [LocalPtyNative] JNI bridge. The internal ctor above lets unit tests
+     *  inject a fake [LocalPtyNative] without exposing the internal class
+     *  through the public ABI. */
+    constructor() : this(LocalPtyNative())
+
     override fun openPty() = native.nativeOpenPty()
     override fun spawn(
         slaveFd: Int,
