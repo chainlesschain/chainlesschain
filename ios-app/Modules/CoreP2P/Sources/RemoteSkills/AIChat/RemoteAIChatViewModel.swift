@@ -131,14 +131,19 @@ public final class RemoteAIChatViewModel: ObservableObject {
     }
 
     /// 切换当前对话 — 设 currentConversation + 拉 messages。
-    /// 若 prev stream in-flight，本方法不主动 cancel（让用户决定）；
-    /// 但切换后 streamingSubscription filter 会令 in-flight stream chunks
-    /// 不再影响 VM messages（dispatcher 仍 buffer，可切回 inspect）。
+    /// 若 prev stream in-flight，本方法**主动清 currentStreamId**（per audit Bug #4），
+    /// 让 dispatcher 后续 chunks 不再 match VM filter — 避免误更新新 conv 的 messages
+    /// 末条（先前依赖的 isStreaming guard 在某些 edge case 下不充分：若新 conv
+    /// 的 last 恰好是 streaming 占位）。dispatcher buffer 不动，stream 在桌面端继续
+    /// 跑完，落 server side 对话，下次 loadMessages 拉到。
     public func selectConversation(id: String) async {
         guard let conv = conversations.first(where: { $0.id == id }) else {
             lastError = "对话不存在"
             return
         }
+        // 切对话即放弃当前 stream 的 UI 关注（保留桌面 LLM 运行 + dispatcher 累积）
+        currentStreamId = nil
+        isStreamingMessage = false
         currentConversation = conv
         await loadMessages()
     }
@@ -177,6 +182,13 @@ public final class RemoteAIChatViewModel: ObservableObject {
         guard !text.isEmpty else { return }
         guard let conv = currentConversation else {
             lastError = "请先选择或创建对话"
+            return
+        }
+
+        // 防御：当前有 in-flight stream 则拒绝（UI button 通常已隐藏 send，但
+        // VM 不能假设上层禁掉了入口）— per audit Bug #3。
+        guard currentStreamId == nil else {
+            lastError = "请先等待当前响应完成或取消"
             return
         }
 
@@ -305,10 +317,14 @@ public final class RemoteAIChatViewModel: ObservableObject {
         guard !id.isEmpty else { return }
         let originalIndex = conversations.firstIndex(where: { $0.id == id })
         let originalItem = originalIndex.map { conversations[$0] }
+        // capture full pre-state for atomic rollback (per audit Bug #2)
+        let wasCurrent = currentConversation?.id == id
+        let originalCurrent = currentConversation
+        let originalMessages = messages
         if let idx = originalIndex {
             conversations.remove(at: idx)
             // 删的是当前对话 → 清 messages + currentConversation
-            if currentConversation?.id == id {
+            if wasCurrent {
                 currentConversation = nil
                 messages = []
             }
@@ -323,10 +339,13 @@ public final class RemoteAIChatViewModel: ObservableObject {
                 )
                 lastError = nil
             } catch {
-                // 回滚
-                if let idx = originalIndex, let item = originalItem {
-                    conversations.insert(item, at: min(idx, conversations.count))
-                }
+                // 全量回滚：conversations + currentConversation + messages
+                rollbackDelete(
+                    insertAt: originalIndex,
+                    item: originalItem,
+                    restoreCurrent: wasCurrent ? originalCurrent : nil,
+                    restoreMessages: wasCurrent ? originalMessages : nil
+                )
                 lastError = "删除对话失败：\((error as NSError).localizedDescription)"
             }
         } else if let q = offlineQueue {
@@ -337,10 +356,30 @@ public final class RemoteAIChatViewModel: ObservableObject {
             )
             lastError = "已加入离线队列"
         } else {
-            if let idx = originalIndex, let item = originalItem {
-                conversations.insert(item, at: min(idx, conversations.count))
-            }
+            rollbackDelete(
+                insertAt: originalIndex,
+                item: originalItem,
+                restoreCurrent: wasCurrent ? originalCurrent : nil,
+                restoreMessages: wasCurrent ? originalMessages : nil
+            )
             lastError = "桌面端未连接"
+        }
+    }
+
+    private func rollbackDelete(
+        insertAt: Int?,
+        item: Conversation?,
+        restoreCurrent: Conversation?,
+        restoreMessages: [ChatMessage]?
+    ) {
+        if let idx = insertAt, let item = item {
+            conversations.insert(item, at: min(idx, conversations.count))
+        }
+        if let c = restoreCurrent {
+            currentConversation = c
+        }
+        if let m = restoreMessages {
+            messages = m
         }
     }
 
@@ -395,6 +434,9 @@ public final class RemoteAIChatViewModel: ObservableObject {
 
     /// 把 messages 末条 assistant streaming 占位标记为已收尾。
     /// `finalText != nil` 时用 finalText 覆盖；nil 时保留 dispatcher 累积的部分内容。
+    /// `messageId` **空串** 等同 nil（per audit Bug #1：server 缺 messageId 时 decoder
+    /// 默认填 `""`，过去的 `messageId ?? oldMsg.id` 会让 `""` 覆盖本地 id，
+    /// 击穿 SwiftUI ForEach 身份）。
     private func finalizeStreamingPlaceholder(finalText: String?, messageId: String? = nil) {
         guard let lastIdx = messages.indices.last,
               messages[lastIdx].role == .assistant,
@@ -403,8 +445,14 @@ public final class RemoteAIChatViewModel: ObservableObject {
         }
         let oldMsg = messages[lastIdx]
         let content = finalText ?? oldMsg.content
+        let resolvedId: String
+        if let mid = messageId, !mid.isEmpty {
+            resolvedId = mid
+        } else {
+            resolvedId = oldMsg.id
+        }
         messages[lastIdx] = ChatMessage(
-            id: messageId ?? oldMsg.id,
+            id: resolvedId,
             role: .assistant,
             content: content,
             createdAt: oldMsg.createdAt,

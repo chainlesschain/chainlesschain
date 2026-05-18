@@ -473,6 +473,121 @@ final class RemoteAIChatViewModelTests: XCTestCase {
         XCTAssertNil(s.vm.lastError)
     }
 
+    // MARK: - Audit Bug Fixes (Phase 5.7 收口)
+
+    /// 14. Bug #1：server end event with empty messageId 不应清掉本地 id。
+    /// `finalizeStreamingPlaceholder` 用 isEmpty guard 而非 nil-coalesce。
+    func testEndEventEmptyMessageIdPreservesLocalId() async throws {
+        let s = await makeSetup()
+        await setupCurrentStream(s, streamId: "s-emptyid")
+
+        let localId = s.vm.messages.last?.id ?? ""
+        XCTAssertTrue(localId.hasPrefix("local-assistant-"))
+
+        s.event.send(deltaEnvelope(streamId: "s-emptyid", content: "partial", chunkIdx: 0))
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        // 模拟桌面端 end event 没带 messageId（decode 时填 ""）
+        let endRaw = #"""
+        {"type":"chainlesschain:event","payload":{"event":"ai.chat.end","streamId":"s-emptyid","finishReason":"stop","finalText":"Final","messageId":""}}
+        """#
+        s.event.send(endRaw)
+        try await Task.sleep(nanoseconds: 150_000_000)
+
+        XCTAssertEqual(s.vm.messages.last?.content, "Final")
+        XCTAssertEqual(s.vm.messages.last?.id, localId, "空 messageId 不应覆盖本地 id（SwiftUI ForEach 身份保护）")
+        XCTAssertFalse(s.vm.messages.last?.isStreaming ?? true)
+    }
+
+    /// 15. Bug #2：deleteConversation 失败时全量回滚 conversations + currentConversation + messages。
+    func testDeleteConversationFailureFullRollback() async throws {
+        let s = await makeSetup()
+        // load 2 conv + 选中第 1 个 + 拉 messages
+        let loadTask = Task { await s.vm.loadConversations() }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let loadId = try reqIdFrom(s.transport.dcSent[0])
+        s.inbound.send(try responseRaw(reqId: loadId, result: sampleConversationsJson(ids: ["a", "b"])))
+        await loadTask.value
+
+        let selTask = Task { await s.vm.selectConversation(id: "a") }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let getMsgsId = try reqIdFrom(s.transport.dcSent[1])
+        s.inbound.send(try responseRaw(reqId: getMsgsId, result: [
+            "success": true,
+            "messages": [
+                ["id": "m-1", "role": "user", "content": "msg1", "createdAt": 1_715_760_000_000],
+                ["id": "m-2", "role": "assistant", "content": "reply", "createdAt": 1_715_760_001_000]
+            ],
+            "total": 2
+        ]))
+        await selTask.value
+
+        XCTAssertEqual(s.vm.currentConversation?.id, "a")
+        XCTAssertEqual(s.vm.messages.count, 2)
+        let originalCount = s.vm.conversations.count
+        let originalMsgs = s.vm.messages
+
+        // delete current conv "a" → 桌面端返 error
+        let delTask = Task { await s.vm.deleteConversation(id: "a") }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let delId = try reqIdFrom(s.transport.dcSent[2])
+        s.inbound.send(try errorResponseRaw(reqId: delId, error: "permission denied"))
+        await delTask.value
+
+        XCTAssertEqual(s.vm.conversations.count, originalCount, "conversations 完全回滚")
+        XCTAssertEqual(s.vm.conversations.first?.id, "a", "顺序保持")
+        XCTAssertEqual(s.vm.currentConversation?.id, "a", "currentConversation 恢复（旧 bug：留 nil）")
+        XCTAssertEqual(s.vm.messages.count, originalMsgs.count, "messages 恢复（旧 bug：留空）")
+        XCTAssertEqual(s.vm.messages.map { $0.id }, originalMsgs.map { $0.id })
+        XCTAssertNotNil(s.vm.lastError)
+    }
+
+    /// 16. Bug #3：currentStreamId 非空时 sendMessage 应被防御性拒绝。
+    func testSendMessageRejectsWhenStreamInFlight() async throws {
+        let s = await makeSetup()
+        await setupCurrentStream(s, streamId: "s-inflight")
+        XCTAssertNotNil(s.vm.currentStreamId)
+        let outboundCount = s.transport.dcSent.count
+
+        s.vm.inputDraft = "second prompt"
+        await s.vm.sendMessage()
+
+        XCTAssertEqual(s.transport.dcSent.count, outboundCount, "无新 outbound（拒绝在 RPC 前）")
+        XCTAssertNotNil(s.vm.lastError)
+        XCTAssertTrue(s.vm.lastError?.contains("当前响应") ?? false, "lastError 提示当前响应未完成: \(s.vm.lastError ?? "nil")")
+        XCTAssertEqual(s.vm.inputDraft, "second prompt", "inputDraft 未被清，用户可继续编辑")
+    }
+
+    /// 17. Bug #4：selectConversation 主动清 currentStreamId。
+    func testSelectConversationClearsCurrentStreamId() async throws {
+        let s = await makeSetup()
+        await setupCurrentStream(s, streamId: "s-prev")
+        XCTAssertEqual(s.vm.currentStreamId, "s-prev")
+        XCTAssertTrue(s.vm.isStreamingMessage)
+
+        // load 第 2 个 conv 以便 select 切
+        let loadTask = Task { await s.vm.loadConversations() }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let loadId = try reqIdFrom(s.transport.dcSent.last!)
+        s.inbound.send(try responseRaw(reqId: loadId, result: sampleConversationsJson(ids: ["c-1", "c-2"])))
+        await loadTask.value
+
+        // 切到 c-2 — 应立即清 currentStreamId（不等 loadMessages 完成）
+        let selTask = Task { await s.vm.selectConversation(id: "c-2") }
+        try await Task.sleep(nanoseconds: 30_000_000)
+        XCTAssertNil(s.vm.currentStreamId, "切对话立即清 streamId")
+        XCTAssertFalse(s.vm.isStreamingMessage, "stream UI 状态同步清")
+
+        let getMsgsId = try reqIdFrom(s.transport.dcSent.last!)
+        s.inbound.send(try responseRaw(reqId: getMsgsId, result: ["success": true, "messages": [], "total": 0]))
+        await selTask.value
+
+        // prev stream 的 late delta 不应再影响新 conv messages
+        s.event.send(deltaEnvelope(streamId: "s-prev", content: "leaked", chunkIdx: 5))
+        try await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(s.vm.messages.isEmpty, "新 conv messages 不被 stale stream 污染")
+    }
+
     // MARK: - Test fixture helpers
 
     /// 把 VM 调到 "已选 conversation + 已发 chatStream 拿到 streamId" 的状态。

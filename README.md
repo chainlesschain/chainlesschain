@@ -25,6 +25,19 @@
 
 详见 [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21) + [Android 重新定位 §10 GA 后续 scope](docs/design/Android_重新定位_设计文档.md)。
 
+## 2026-05-18 收口 — **iOS Phase 5 AI Chat 静态审计 4 真实 bug 修复 + 4 集成测试**
+
+> Phase 5.1-5.6（远程 LLM 对话 + token-by-token 流式 + 8 method + cancel + 对话管理 + 离线 enqueue）已落，但 41 单测全是同模块内 mock，缺端到端集成 + UI/VM 交互 edge case 覆盖。本轮静态审计找到 4 真实 bug，每个 1 个回归单测；同时补 4 个集成测试验真链路。
+
+- **Bug #1 — 空字符串穿透 nil-coalesce**：`RemoteAIChatViewModel.finalizeStreamingPlaceholder` 旧代码 `messageId ?? oldMsg.id`。`ChatStreamEnd.parseFromEnvelope` 在 server 缺 `messageId` 时填 `""`（不是 nil），nil-coalesce 不兜底，`""` 直接覆盖本地 `local-assistant-<UUID>` 占位 id，SwiftUI `ForEach(messages, id: \.id)` 身份被击穿（多条 row 共享空 id）。改为 `if let mid = messageId, !mid.isEmpty` 显式 guard。
+- **Bug #2 — 删除当前对话失败时半回滚**：`deleteConversation` 失败时仅恢复 `conversations` 列表，`currentConversation` / `messages` 留在已清空状态。新增 `rollbackDelete` 私有方法 + 入口处 `wasCurrent`/`originalCurrent`/`originalMessages` 快照，全量原子回滚。
+- **Bug #3 — `sendMessage` 缺 stream-in-flight 防御**：UI 在流式中切到 cancel button 形态，但 VM 不能假设上层禁掉了 send 入口（programmatic 调用 / 双击竞争）。在 DC gate 前加 `guard currentStreamId == nil else { lastError = "请先等待当前响应完成或取消"; return }`。
+- **Bug #4 — `selectConversation` stale streamId 污染**：切对话时不清 `currentStreamId`，依赖 `messages.last.isStreaming` guard 兜底。edge case：新 conv 末条恰为 streaming 占位（前次未 finalize）时，prev stream 的 delta 会越界改新 conv 的 last。改为显式 `currentStreamId = nil; isStreamingMessage = false`。
+- **集成测试 +4** — `Tests/CoreP2PTests/Integration/Phase5AIChatIntegrationTests.swift`：`testFullChatStreamHappyPathThroughFanout` (真 fan-out 端到端) / `testCancelOrderingDiscardBeforeRpc` (cancel 顺序 50ms 窗口验证) / `testOfflineCreateConversationDrainsOnRecover` (DC 恢复 drainer 触发 ai.createConversation) / `testCrossConversationStreamIsolation` (切对话清 streamId + sA 不污染 conv B)。
+- **单测从 41 → 45** — `RemoteAIChatViewModelTests.swift` +4 回归（每个 bug 1 条）；总 iOS 单测 ~313 + 45 = **~358**；集成测试 6 → **10**。
+- **文档**：[`docs/design/iOS_Phase_5_AI_Chat_Skill.md`](docs/design/iOS_Phase_5_AI_Chat_Skill.md) §8.1 / §8.2 / §8.3（静态审计 4 bug 详表）/ §8.4（Phase 5.8 真机 E2E 8 场景 reproducer 详步骤）全刷；docs-site 与 docs-site-design 通过 `sync-*.js` 同步刷新（162 文件）。
+- **真机 E2E（Phase 5.8）** 仍待 Mac+iPhone+真桌面在场，reproducer 详步骤已就绪。Win dev box 上 `swift test` 不可跑，验收依赖 iOS CI `swift build --target CoreP2P` 编译通过 + 静态审计 + 集成测试设计无 mock 绕过真链路。
+
 ## 2026-05-15 发布 — **iOS Phase 1+2+3+4 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 skill + Notification skill）**
 
 > Android 端 v1.0 GA 验证后，iOS 端启动镜像移植。**一日内四 Phase 框架级全 land**：~145 文件 / ~313 单测 / 4 完整设计文档 / 4 实施 trap memory。
