@@ -40,6 +40,8 @@ struct RemoteOperateView: View {
         case input          // Phase 6.1.7 — 远程键鼠输入 (主屏)
         case display        // Phase 6.1.7 — 显示器信息 + 截屏 + 窗口
         case systemTools    // Phase 6.1.7 — 9 后台 skill 集合 (app/security/userBrowser/power/process/network/storage/device/sysinfo)
+        case media          // Phase 6.2 — 音量 / 播放控制 / 音频设备
+        case browser        // Phase 6.2 — 内置 chromium 自动化 (vs userBrowser 控用户已装 Chrome)
 
         public var id: String { rawValue }
 
@@ -55,6 +57,8 @@ struct RemoteOperateView: View {
             case .input:        return "操作"
             case .display:      return "显示器"
             case .systemTools:  return "工具"
+            case .media:        return "媒体"
+            case .browser:      return "浏览器"
             }
         }
 
@@ -70,6 +74,8 @@ struct RemoteOperateView: View {
             case .input:        return "cursorarrow.rays"
             case .display:      return "display"
             case .systemTools:  return "wrench.and.screwdriver"
+            case .media:        return "speaker.wave.2"
+            case .browser:      return "globe"
             }
         }
     }
@@ -106,6 +112,10 @@ struct RemoteOperateView: View {
                     RemoteDisplayView(pcPeerId: pcPeerId)
                 case .systemTools:
                     SystemToolsView(pcPeerId: pcPeerId)
+                case .media:
+                    RemoteMediaView(pcPeerId: pcPeerId)
+                case .browser:
+                    RemoteBrowserView(pcPeerId: pcPeerId)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

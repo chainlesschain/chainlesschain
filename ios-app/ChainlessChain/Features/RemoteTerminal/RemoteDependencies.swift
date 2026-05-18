@@ -65,6 +65,10 @@ public final class RemoteDependencies: ObservableObject {
     public let device: DeviceCommands
     // sysinfo 既有 Phase 3.5 SystemInfoCommands，扩展 10 个 sysinfo.X method 已落 inline
 
+    // Phase 6.2 主屏 batch 1（media + browser — 桌面 case ⊂ Android invoke）
+    public let media: MediaCommands
+    public let browser: BrowserCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -206,6 +210,12 @@ public final class RemoteDependencies: ObservableObject {
         self.network = NetworkCommands(client: cmdClient)
         self.storage = StorageCommands(client: cmdClient)
         self.device = DeviceCommands(client: cmdClient)
+
+        // Phase 6.2: 主屏 batch 1 (media + browser, 桌面 case ⊂ Android invoke)
+        // - media (10/55 method): 音量 / 静音 / 设备 / 播放控制 / 提示音
+        // - browser (12/33 method): 内置 chromium 引擎自动化 (Playwright/Puppeteer)
+        self.media = MediaCommands(client: cmdClient)
+        self.browser = BrowserCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
