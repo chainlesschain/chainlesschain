@@ -1034,6 +1034,10 @@ class LLMManager extends EventEmitter {
       }
     }
 
+    if (typeof client.embeddings !== "function") {
+      throw new Error("当前LLM不支持嵌入向量生成");
+    }
+
     try {
       return await client.embeddings(text);
     } catch (error) {
@@ -1609,6 +1613,15 @@ class LLMManager extends EventEmitter {
       this._stateBusUnbind = null;
     }
 
+    // Delegate to client's close() if available (some adapters hold sockets/streams).
+    if (this.client && typeof this.client.close === "function") {
+      try {
+        await this.client.close();
+      } catch (closeError) {
+        logger.warn("[LLMManager] 客户端 close 失败:", closeError);
+      }
+    }
+
     this.conversationContext.clear();
     this.isInitialized = false;
     this.client = null;
@@ -1926,6 +1939,17 @@ LLMManager.prototype.setToolAvailable = function (toolName, available) {
     return;
   }
   this.manusOptimizations.setToolAvailable(toolName, available);
+};
+
+/**
+ * 批量设置允许的工具列表（覆盖整个掩码）
+ * @param {string[]} toolNames - 允许的工具名列表
+ */
+LLMManager.prototype.setToolMask = function (toolNames) {
+  if (!this.manusOptimizations) {
+    return;
+  }
+  this.manusOptimizations.setToolMask(toolNames);
 };
 
 /**

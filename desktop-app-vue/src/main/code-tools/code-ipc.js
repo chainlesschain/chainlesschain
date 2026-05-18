@@ -188,14 +188,17 @@ function registerCodeIPC(context) {
       try {
         logger.info("[Main] 生成项目脚手架:", projectType);
 
+        // Default-arg only fires for undefined; explicit null bypasses it.
+        const opts = options || {};
+
         const codeEngine = _getCodeEngine(llmManager);
 
         const result = await codeEngine.handleProjectTask({
           taskType: "createScaffold",
-          projectName: options.projectName || projectType,
+          projectName: opts.projectName || projectType,
           template: projectType,
-          outputDir: options.outputDir || process.cwd(),
-          options: options,
+          outputDir: opts.outputDir || process.cwd(),
+          options: opts,
         });
 
         logger.info("[Main] 项目脚手架生成完成");
