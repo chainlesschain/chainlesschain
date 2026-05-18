@@ -142,18 +142,20 @@ const aab = dl('android-aab');
     </div>
   </section>
 
-  <!-- iOS Phase 1+2+3+4 — 框架完整 / 待真机 E2E -->
+  <!-- iOS Phase 6 — 15 main tab + 5 AI sub-tab + Knowledge + 多模态 + Agent streaming -->
   <section class="py-16 md:py-20 border-b border-line bg-cream/30">
     <div class="container-wide">
       <div class="max-w-3xl">
-        <div class="chip mb-4">iOS · Phase 1+2+3+4 · 2026-05-15 · 框架完整 / 待真机 E2E</div>
-        <h2 class="text-3xl md:text-4xl mb-4 font-display">iOS 端镜像 Android 已验证版。</h2>
+        <div class="chip mb-4">iOS · Phase 6 · 2026-05-18 · 编译验证完成 / 待真机 E2E</div>
+        <h2 class="text-3xl md:text-4xl mb-4 font-display">iOS 端 15 个主屏 tab，远程知识库 + 多模态 + Agent 流式输出。</h2>
         <p class="text-muted leading-relaxed">
-          桌面配对三流 + 远程桌面终端 (xterm.js WKWebView) + 远程操控 6-tab horizontal scroll shell（Clipboard / File / Screenshot / SystemInfo / Notification with unread badge）+ Notification skill (11 method + UN center push + LRU dedup + 乐观更新 + offline gate)。
-          SwiftUI + Swift Concurrency + Google WebRTC SDK，~313 单测覆盖。信息架构 / 流程 / 字段顺序照抄已 Xiaomi 真机 E2E 验证的 Android Compose Screen，HIG 偏离限白名单 6 项。
+          RemoteOperate 主屏 <strong>15 tab</strong>（含 Phase 6.3 知识库 + Phase 6.4 AI 扩展），AI 扩展子页 5 个（模板 / 代码 / RAG / 多模态 / Agents）。
+          桌面 +55 method，iOS 56 wrap，桌面 ai-handler 共 37 method 覆盖（chat 12 + extended 25）。
+          多模态 v0.3 支持 PhotosPicker OCR / 文本生图 / AVAudioPlayer TTS 播放 / AVAudioRecorder 实时录音（16kHz mono AAC，Whisper 优化）；Agent 后台 250ms poll 实时累积渲染。
+          iOS 16+ SwiftUI + Swift Concurrency，绿基线 iOS CI commit <code>1fb947b32</code>。
         </p>
         <p class="mt-6 text-sm">
-          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-ios.html" target="_blank" rel="noopener">用户文档：iOS 四 Phase 完整 + 真机 E2E 矩阵 →</a>
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-ios.html" target="_blank" rel="noopener">用户文档：iOS Phase 1-6 完整 + 真机 E2E 38 场景矩阵 →</a>
         </p>
       </div>
     </div>
@@ -251,6 +253,27 @@ const aab = dl('android-aab');
             <p class="mt-3 text-xs text-muted text-center">v5.0.3.54 真机 E2E · 手机 Android · 桌面 Windows git-bash longfa 用户</p>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Android 项目 + 远程终端 2026-05-18 -->
+  <section class="py-16 md:py-20 border-b border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🎯 重点功能 · 项目 + 远程终端 · 2026-05-18</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">手机上选个 PC 项目，一键开远程终端落在项目根目录。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          打开项目详情页点终端图标，<strong class="text-ink">弹出桌面项目列表 → tap 一个 → 终端自动开在那个目录</strong>，
+          零键盘输入。手机不用输 Windows 长路径，也不用记 cd 命令。
+          同时<strong class="text-ink">拉取 PC 项目时把文件内容全量同步到手机</strong>，离线打开项目也能看到文件，
+          有进度条显示当前下载到哪。
+        </p>
+        <p class="mt-6 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/guide/mobile-android.html#_8-项目-远程终端入口" target="_blank" rel="noopener">用户文档：操作流程 + 场景演示 →</a>
+          ·
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Project_Remote_Terminal_Entry.html" target="_blank" rel="noopener">设计文档：v2 picker + 全量拉文件 + 真机 E2E 8 场景 →</a>
+        </p>
       </div>
     </div>
   </section>

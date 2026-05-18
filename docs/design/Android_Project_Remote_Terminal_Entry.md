@@ -1133,4 +1133,121 @@ ProjectDetailScreenV2 检测非 complete 状态显黄色 banner "项目拉取未
 
 ---
 
+## 12. Sub-phase 5-6 v2 + Sub-phase 10 v2 (2026-05-18 commit `09bd0ec0f`)
+
+承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目" + "项目文件同步没做"两条阻塞，两个 sub-phase 各演进一档。
+
+### 12.1 Sub-phase 5-6 v2 — LOCAL 项目终端入口改为 PC 项目 picker
+
+**旧路径**（v1，`3319febc4`）：手输 PC 路径 dialog，自动预填同名项目。同名不命中时用户必须在手机上敲 Windows 长路径 → 阻塞。
+
+**新路径**（v2，`09bd0ec0f`）：
+
+```
+                 LOCAL 项目 tap Terminal icon (无 pcRootPath)
+                              ↓
+                  AlertDialog 打开 → 并发触发两条流：
+                              ↓
+            ┌─────────────────┴──────────────────┐
+            ↓                                    ↓
+  listPcProjects(pcPeerId)             findPcProjectPathByName(pcPeerId, name)
+  调 project.list (limit=200)          ← 同名匹配，仅高亮提示
+  返 PcProjectChoice 列表
+            ↓
+  Picker LazyColumn 显示：
+   - 同名匹配的项目排顶部 + "同名" 标
+   - 每行 显示 name + pcRootPath
+   - tap row → 保存 pcRootPath + 跳终端
+            ↓
+  列表为空（桌面所有项目都没 rootPath）→
+   自动展开 "自定义路径" 折叠区 + error hint
+            ↓
+  "自定义路径" 折叠区作 fallback（保留原手输路径流）
+```
+
+**触点**：
+- `RemoteContextViewModel.kt:34-71` 新 `listPcProjects(pcPeerId): List<PcProjectChoice>` 调 project.list 过滤掉无路径 dead row
+- `ProjectDetailScreenV2.kt:106-348` AlertDialog 全重写（picker + 自定义路径折叠区 + 同名高亮）
+
+**OQ-5-6-v2 决策**：
+| 选项 | 决策 | 理由 |
+|---|---|---|
+| 路径输入方式 | **A=PC 项目 picker (tap 选)** | 移动端键盘输 Windows 路径太难；picker 单 tap 完成 |
+| 同名匹配 | **A=作建议高亮（不强制）** | 用户场景 LOCAL 项目名 ≠ PC 项目名常见；不能 hard match |
+| 兜底 | **A=保留自定义路径输入** | PC 端无对应项目时仍要让用户开终端 |
+| 列表为空时 UX | **A=auto 展开自定义路径 + 错误提示** | 减少额外 tap |
+
+### 12.2 Sub-phase 10 v2 — 全量项目内容拉取（pullSingle + getFile 循环）
+
+**旧路径**（v1，`504bd6dde` Sub-phase 7）：
+- `pullSingle` 拉项目 metadata + 文件清单（不含内容）
+- 文件内容 "由 caller 跳 FileTransferScreen 拉" — 实际从未接通
+- 用户痛点：拉取 "完成" 后离线打开项目 → 文件列表显示 0 文件，看不到任何内容
+
+**新路径**（v2，`09bd0ec0f`）：
+
+```
+RemoteProjectBrowserVM.pullProject(projectId)
+    ↓
+pullSingle(projectId) → ProjectPullSingleResponse (含 files: List<RemoteProjectFile>)
+    ↓
+insertProject(metadata) → ProjectEntity 落 Room
+    ↓
+循环 forEachIndexed { idx, file →
+    _pullProgress.value = PullProgress(idx, files.size, file.path)
+    val full = projectCommands.getFile(file.id)  // RPC: project.getFile
+    val safe = if (full.content > 1MB) null else full.content  // 防 OOM
+    projectDao.insertFile(remoteFileToEntity(file, projectId, full, safe))
+}
+    ↓
+更新 metadata.pullState = "files_downloaded"（v1 是 "metadata_only"）
+    ↓
+_pullProgress.value = null
+```
+
+**关键决策**：
+- **单文件失败 continue**：getFile 抛/返 null 时 log warn 不阻塞后续（用户已有 2/3 内容好过 0/3）
+- **>1MB content skip 写占位 row**：写 size + hash 但 content=null，让 ProjectDetailScreenV2 至少看到文件名 + 能后续单独拉
+- **parentId=null v0.1**：不重建 folder 树，all files 走 path 字符串显示。ProjectViewModel.buildFileTree 用 path 做 prefix tree 渲染，flat 列表也能用
+- **PullProgress StateFlow**：currentIdx + total + 当前文件名 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"
+
+**触点**：
+- `RemoteProjectBrowserViewModel.kt:96-160,170-207` pullProject 加 files 循环 + remoteFileToEntity 转换
+- `RemoteProjectBrowserScreen.kt:91-135,180-200` row 下方加进度条 + 当前文件名行
+- 桌面侧 `project.getFile` (已 `504bd6dde` 落地) 无改动 — 直接复用既有 RPC
+
+### 12.3 真机 E2E 8 场景矩阵（v2 收口）
+
+新增 3 场景验证 v2 + 5 场景验回归：
+
+| # | 场景 | 期望表现 |
+|---|---|---|
+| 1 | **LOCAL 项目 tap 终端，picker 显示 PC 项目列表** | 列表加载 ≤2s；项目按 updated_at desc 排序；同名项目顶部 + "同名" 标 |
+| 2 | **picker tap row → 跳终端** | 跳转 ≤300ms；自动开 pwsh session 落选中项目的 pcRootPath；Terminal 首行 prompt 显示该目录 |
+| 3 | **桌面项目全部 root_path=null → picker 显错误** | "桌面没有可用项目（缺 rootPath）" + 自动展开自定义路径输入 |
+| 4 | **自定义路径输入 fallback 仍可用** | 折叠区展开 → 输 `C:\code\test` → tap "使用此路径" → 同 v1 行为：保存 + push 桌面 + 跳终端 |
+| 5 | **FROM_PC 项目 tap 终端（有 pcRootPath）→ 不弹 dialog 直跳** | 跳过 picker dialog；直接跳 TerminalList(initialCwd=pcRootPath)；自动开 session |
+| 6 | **拉取 PC 项目（10 文件，每个 < 50KB）** | 进度条逐文件刷新；progress text "下载文件 N/10"；完成后 row 显 "已在本地" badge |
+| 7 | **拉取含 >1MB 文件** | 大文件 row 写入 Room 但 content=null；列表仍可见文件名 + size；其他文件正常 |
+| 8 | **拉取过程中单文件 getFile 失败** | log warn；继续后续文件；最终 ok 文件数 = total - 失败数；row 仍 marked 已在本地 |
+
+### 12.4 测试覆盖（单元 + 集成）
+
+| 文件 | 测试数 | 覆盖 |
+|---|---|---|
+| `RemoteContextViewModelTest.kt` | 16 | listPcProjects 解析/过滤/异常；findPcProjectPathByName 命中/落空；pushPcRootPathToDesktop ok=true/false/exception |
+| `RemoteProjectBrowserViewModelTest.kt` | 7 | pullProject happy path（3 文件 inserts）/ 单文件 failure continue / exception continue / >1MB skip / 空 files 不调 getFile / pullingId lifecycle / 并发调用 ignore |
+| `mobile-bridge-sync.test.js` (project handlers) | 15 (+6 新) | handleProjectList 用 userId 忽略 + sourcePeerId/pcRootPath derived + 分页 + deleted excluded + rate-limit；handleProjectPullSingle 4 场景；**handleProjectUpdatePath 6 场景**（MISSING_PROJECT_ID/UPDATE OK/COALESCE root_path/PROJECT_NOT_FOUND/空串归 null/rate-limit） |
+| `project-management-handler.test.js` (file CRUD) | 33 (+9 新) | createFile/createFolder/writeFile/deleteFile 全覆盖；getFile 多一条 "Android Room insert 契约" |
+| `project-handlers.test.js` (web-shell) | 7 | 10 topic dispatch（之前 stale 6）+ pre-bootstrap + userId fallback |
+| **合计** | **78 新通过** | 单元 + 集成全绿 |
+
+### 12.5 还剩什么
+
+- **真机 E2E §12.3 8 场景**：需要 Mac/Win PC + Android 双机配对环境，dev box 无法独验
+- **桌面端 web-shell 创建项目 rootPath 默认 null 是根因之一**：picker v2 让 dead row 不显示但根本应在 PC 端 `project.init` 时让用户填 rootPath；本 commit 不修，留 v0.3 跟进
+- **PC→Android 反向 push（Android 改动自动 sync 回 PC）**：v0.1 单向；v0.2 接 Phase 3d sync push 完整链路
+
+---
+
 **Status legend**：☐ 未开始 ☒ 进行中 ✓ 已完成

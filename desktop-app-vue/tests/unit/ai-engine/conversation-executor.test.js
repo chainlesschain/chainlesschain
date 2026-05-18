@@ -2,29 +2,27 @@
  * ConversationExecutor 单元测试
  * 测试文件操作执行器的所有功能
  *
- * NOTE: Known mock configuration issue (current: 20/34 tests passing)
- * Issue: conversation-executor.js uses require('fs').promises (CommonJS)
- * while test environment uses ES modules, making mock setup complex
- *
- * Attempted solutions:
- * 1. vi.mock("fs/promises") - Failed, source code uses require('fs').promises
- * 2. vi.mock("fs") with promises对象 - 部分工作，但mockRejectedValueOnce不生效
- * 3. vi.mocked(fsPromises.access) - 仍有14个测试失败
- *
- * 需要进一步调查:
- * - 可能需要使用vi.spyOn或jest.mock替代方案
- * - 或将源文件改为ES模块以简化测试
+ * Unskipped via `_setFsForTesting` + `_setValidatorForTesting` seams (RFC T3 混合).
+ * 见 `docs/design/desktop_vi_mock_cjs_migration_rfc.md`.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import path from "path";
+import * as executor from "../../../src/main/ai-engine/conversation-executor.js";
 
-// Mock fs module (the source uses require('fs').promises)
-vi.mock("fs", async () => {
-  const actual = await vi.importActual("fs");
-  return {
-    ...actual,
-    promises: {
+const { _setFsForTesting, _setValidatorForTesting } = executor;
+
+describe("ConversationExecutor", () => {
+  let mockDatabase;
+  let testProjectPath;
+  let fs;
+  let validatorMock;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Fake fs.promises — injected via seam (RFC T1 part of T3 混合)
+    fs = {
       access: vi.fn(),
       mkdir: vi.fn(),
       writeFile: vi.fn(),
@@ -32,69 +30,30 @@ vi.mock("fs", async () => {
       stat: vi.fn(),
       copyFile: vi.fn(),
       unlink: vi.fn(),
-    },
-  };
-});
-
-vi.mock("os", () => ({
-  tmpdir: vi.fn(() => "C:\\tmp"),
-}));
-
-vi.mock("../../../src/main/ai-engine/response-parser", () => ({
-  validateOperations: vi.fn((operations, projectPath) => ({
-    valid: true,
-    errors: [],
-  })),
-  validateOperation: vi.fn(() => ({ valid: true })),
-}));
-
-// Import fs to get references to mocked functions
-import { promises as fsPromises } from "fs";
-
-describe("ConversationExecutor", () => {
-  let executor;
-  let mockDatabase;
-  let testProjectPath;
-  let fs;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    // Get mocked instances
-    fs = {
-      access: vi.mocked(fsPromises.access),
-      mkdir: vi.mocked(fsPromises.mkdir),
-      writeFile: vi.mocked(fsPromises.writeFile),
-      readFile: vi.mocked(fsPromises.readFile),
-      stat: vi.mocked(fsPromises.stat),
-      copyFile: vi.mocked(fsPromises.copyFile),
-      unlink: vi.mocked(fsPromises.unlink),
     };
+    _setFsForTesting(fs);
+
+    // Default validator passes; individual tests override via mockReturnValueOnce
+    validatorMock = vi.fn(() => ({ valid: true, errors: [] }));
+    _setValidatorForTesting(validatorMock);
 
     testProjectPath = "C:\\test\\project";
 
-    // Mock database
     mockDatabase = {
       db: {
-        prepare: vi.fn(() => ({
-          run: vi.fn(),
-        })),
+        prepare: vi.fn(() => ({ run: vi.fn() })),
         exec: vi.fn(),
       },
     };
-
-    // Dynamic import
-    const module =
-      await import("../../../src/main/ai-engine/conversation-executor.js");
-    executor = module;
   });
 
   afterEach(() => {
+    _setFsForTesting(null); // restore real fs.promises
+    _setValidatorForTesting(null); // restore real validator
     vi.restoreAllMocks();
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("executeOperations - 批量操作执行", () => {
+  describe("executeOperations - 批量操作执行", () => {
     it("应该成功执行所有操作", async () => {
       const operations = [
         {
@@ -128,12 +87,8 @@ describe("ConversationExecutor", () => {
     });
 
     it("应该验证操作列表", async () => {
-      // Import the mocked response-parser
-      const { validateOperations } =
-        await import("../../../src/main/ai-engine/response-parser");
-
-      // Override for this test only
-      validateOperations.mockReturnValueOnce({
+      // Override validator for this test via seam
+      validatorMock.mockReturnValueOnce({
         valid: false,
         errors: ["不支持的操作类型: INVALID"],
       });
@@ -189,8 +144,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("executeOperation - 单个操作执行", () => {
+  describe("executeOperation - 单个操作执行", () => {
     it("应该执行CREATE操作", async () => {
       const operation = {
         type: "CREATE",
@@ -287,8 +241,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("createFile - 文件创建", () => {
+  describe("createFile - 文件创建", () => {
     it("应该创建新文件", async () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const content = "Hello World";
@@ -385,8 +338,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("updateFile - 文件更新", () => {
+  describe("updateFile - 文件更新", () => {
     it("应该更新现有文件", async () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const content = "Updated content";
@@ -446,8 +398,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("deleteFile - 文件删除", () => {
+  describe("deleteFile - 文件删除", () => {
     it("应该删除现有文件", async () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "DELETE", path: "test.txt" };
@@ -520,8 +471,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("readFile - 文件读取", () => {
+  describe("readFile - 文件读取", () => {
     it("应该读取现有文件", async () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "READ", path: "test.txt" };
@@ -590,8 +540,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("边界情况", () => {
+  describe("边界情况", () => {
     it("应该处理空内容的文件创建", async () => {
       const filePath = path.join(testProjectPath, "empty.txt");
       const content = "";
@@ -678,8 +627,7 @@ describe("ConversationExecutor", () => {
     });
   });
 
-  // NOTE: Skipped - file system operations not properly mocked in test environment
-  describe.skip("错误处理", () => {
+  describe("错误处理", () => {
     it("应该处理文件系统错误", async () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const content = "Hello";

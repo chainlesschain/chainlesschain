@@ -216,5 +216,179 @@ describe("ProjectManagementHandler", () => {
         /fileId required/,
       );
     });
+
+    // Sub-phase 5-6 v2 (2026-05-18): Android pullProject 拿到文件清单后逐 id
+    // 调 getFile 拿 content；下面验证多文件链路依赖的行为契约。
+    it("returns content suitable for Android Room insert (full row passthrough)", async () => {
+      mockDatabase.get.mockResolvedValue({
+        id: "f1",
+        project_id: "p1",
+        file_path: "src/Main.kt",
+        file_name: "Main.kt",
+        file_type: "kt",
+        file_size: 42,
+        content: "fun main() {}",
+        content_hash: "abc123",
+        version: 3,
+        is_folder: 0,
+        created_at: 100,
+        updated_at: 200,
+      });
+      const r = await handler.getFile({ fileId: "f1" }, context);
+      expect(r.id).toBe("f1");
+      expect(r.project_id).toBe("p1");
+      expect(r.file_path).toBe("src/Main.kt");
+      expect(r.content).toBe("fun main() {}");
+      expect(r.content_hash).toBe("abc123");
+      expect(r.version).toBe(3);
+      expect(r.is_folder).toBe(0);
+    });
+  });
+
+  // Sub-phase 7 文件 CRUD 双端 (commit 504bd6dde, 2026-05-17)
+  describe("createFile", () => {
+    it("inserts file + increments project file_count/total_size", async () => {
+      mockDatabase.get
+        .mockResolvedValueOnce({ id: "p1" }) // project exists
+        .mockResolvedValueOnce(null); // no existing file at same path
+      const r = await handler.createFile(
+        { projectId: "p1", filePath: "src/Main.kt", content: "hi" },
+        context,
+      );
+      expect(r.file_path).toBe("src/Main.kt");
+      expect(r.file_name).toBe("Main.kt");
+      expect(r.is_folder).toBe(0);
+      // INSERT INTO project_files + UPDATE projects file_count
+      expect(mockDatabase.run).toHaveBeenCalledTimes(2);
+      const insertSql = mockDatabase.run.mock.calls[0][0];
+      const updateSql = mockDatabase.run.mock.calls[1][0];
+      expect(insertSql).toContain("INSERT INTO project_files");
+      expect(updateSql).toContain("file_count = file_count + 1");
+    });
+
+    it("rejects when project not found", async () => {
+      mockDatabase.get.mockResolvedValueOnce(null);
+      try {
+        await handler.createFile(
+          { projectId: "nope", filePath: "x.md" },
+          context,
+        );
+        throw new Error("expected throw");
+      } catch (e) {
+        expect(e.code).toBe("PROJECT_NOT_FOUND");
+      }
+    });
+
+    it("rejects when file path already exists (UNIQUE)", async () => {
+      mockDatabase.get
+        .mockResolvedValueOnce({ id: "p1" })
+        .mockResolvedValueOnce({ id: "existing-f" });
+      try {
+        await handler.createFile(
+          { projectId: "p1", filePath: "dup.md" },
+          context,
+        );
+        throw new Error("expected throw");
+      } catch (e) {
+        expect(e.code).toBe("FILE_EXISTS");
+      }
+    });
+
+    it("rejects missing required params", async () => {
+      await expect(handler.createFile({}, context)).rejects.toThrow(
+        /projectId required/,
+      );
+      await expect(
+        handler.createFile({ projectId: "p1" }, context),
+      ).rejects.toThrow(/filePath required/);
+    });
+  });
+
+  describe("createFolder", () => {
+    it("inserts folder row with is_folder=1", async () => {
+      mockDatabase.get
+        .mockResolvedValueOnce({ id: "p1" })
+        .mockResolvedValueOnce(null);
+      const r = await handler.createFolder(
+        { projectId: "p1", folderPath: "src/sub" },
+        context,
+      );
+      expect(r.is_folder).toBe(1);
+      const insertSql = mockDatabase.run.mock.calls[0][0];
+      expect(insertSql).toContain("INSERT INTO project_files");
+    });
+
+    it("rejects missing required params", async () => {
+      await expect(handler.createFolder({}, context)).rejects.toThrow(
+        /projectId required/,
+      );
+    });
+  });
+
+  describe("writeFile", () => {
+    it("updates content + bumps version + adjusts total_size", async () => {
+      mockDatabase.get.mockResolvedValueOnce({
+        id: "f1",
+        project_id: "p1",
+        file_size: 5,
+        is_folder: 0,
+      });
+      const r = await handler.writeFile(
+        { fileId: "f1", content: "new content" },
+        context,
+      );
+      expect(r.id).toBe("f1");
+      expect(r.file_size).toBe(Buffer.byteLength("new content", "utf8"));
+      const updateSql = mockDatabase.run.mock.calls[0][0];
+      expect(updateSql).toContain("UPDATE project_files");
+      expect(updateSql).toContain("version = version + 1");
+    });
+
+    it("refuses to write content into a folder row", async () => {
+      mockDatabase.get.mockResolvedValueOnce({
+        id: "folder-1",
+        is_folder: 1,
+      });
+      await expect(
+        handler.writeFile({ fileId: "folder-1", content: "x" }, context),
+      ).rejects.toThrow(/folder/i);
+    });
+
+    it("throws FILE_NOT_FOUND when fileId unknown", async () => {
+      mockDatabase.get.mockResolvedValueOnce(null);
+      try {
+        await handler.writeFile({ fileId: "nope", content: "x" }, context);
+        throw new Error("expected throw");
+      } catch (e) {
+        expect(e.code).toBe("FILE_NOT_FOUND");
+      }
+    });
+  });
+
+  describe("deleteFile (Sub-phase 7)", () => {
+    it("soft-deletes and decrements project counters", async () => {
+      mockDatabase.get.mockResolvedValueOnce({
+        id: "f1",
+        project_id: "p1",
+        file_size: 100,
+        is_folder: 0,
+      });
+      const r = await handler.deleteFile({ fileId: "f1" }, context);
+      expect(r.deleted).toBe(true);
+      const updateFile = mockDatabase.run.mock.calls[0][0];
+      const updateProject = mockDatabase.run.mock.calls[1][0];
+      expect(updateFile).toContain("UPDATE project_files SET deleted = 1");
+      expect(updateProject).toContain("file_count = file_count - 1");
+    });
+
+    it("throws FILE_NOT_FOUND when fileId unknown", async () => {
+      mockDatabase.get.mockResolvedValueOnce(null);
+      try {
+        await handler.deleteFile({ fileId: "nope" }, context);
+        throw new Error("expected throw");
+      } catch (e) {
+        expect(e.code).toBe("FILE_NOT_FOUND");
+      }
+    });
   });
 });

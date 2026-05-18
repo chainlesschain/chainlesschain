@@ -1,6 +1,6 @@
 # iOS Phase 5 — AI Chat Skill (Remote LLM 对话 + 流式响应 + 对话管理)
 
-> **状态**：Phase 5.1-5.5 落地（2026-05-16）；Phase 5.6 commit 标记本设计 doc 收口。41 新单测（5.1 17 + 5.2 11 + 5.3 13 + 5.4/5.5/5.6 UI/wiring/无单测）。真机 E2E (Phase 5.7) 待 Mac+iPhone+真桌面。本 Phase 不创建新框架，**接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out 模式（fan-out 加第 3 子流 buffer 512）+ 既有 iOS LLM 模型协议**。memory `ios_remote_ai_chat_phase5.md` 6 实施 trap。
+> **状态**：Phase 5.1-5.6 落地（2026-05-16）+ Phase 5.7 收口（2026-05-18：4 真实 bug 静态审计找到并修，单测从 41 → **45**，新增集成测试 4 条覆盖 fan-out / cancel 顺序 / offline drain / 多对话 stream 隔离）。真机 E2E（Phase 5.8）待 Mac+iPhone+真桌面。本 Phase 不创建新框架，**接通 Phase 3 RemoteCommandClient + Phase 4 events fan-out 模式（fan-out 加第 3 子流 buffer 512）+ 既有 iOS LLM 模型协议**。memory `ios_remote_ai_chat_phase5.md` 6 实施 trap。
 >
 > **依赖**：iOS Phase 3.1-3.6 已落 (`759a1e907`) — RemoteCommandClient framework 全套；Phase 4.1-4.6 已落 (`45b485fdd` → `5877b5d84`) — events fan-out task + Notification skill 落地范式可复用；iOS app target 既有 chat UI 组件 (AudioEngine 等) 可参考 SwiftUI bubble 风格
 >
@@ -468,34 +468,64 @@ public struct ChatStreamEnd: Sendable, Equatable {
 
 ## 8. 测试策略
 
-### 8.1 单元测试目标 ≥ 39
+### 8.1 单元测试 — landed 45 (vs ≥39 目标)
 
 | 文件 | tests | 覆盖 |
 |------|-------|------|
 | `AIChatCommandsTests.swift` | 12 | 8 method × 1 happy + 4 error |
-| `AIChatEventDispatcherTests.swift` | 10 | 单 stream 累积 / 多 stream 并发隔离 / LRU dedup / 非 ai.chat event drop / malformed drop / end event / error event / discard / start-stop / @Published emit |
-| `RemoteAIChatViewModelTests.swift` | 12 | loadConversations / selectConversation / sendMessage 流式 / chunks 累积 / end finalize / error / cancel / createConversation / deleteConversation / DC 不通 chat 报错 / DC 不通 createConversation 入队 / isLoading |
+| `AIChatEventDispatcherTests.swift` | 11 | 单 stream 累积 / 多 stream 并发隔离 / LRU dedup / 非 ai.chat event drop / malformed drop / end event / error event / discard / start-stop / @Published emit |
+| `RemoteAIChatViewModelTests.swift` | 13 + **4 Bug-fix 回归** | loadConversations / selectConversation / sendMessage 流式 / chunks 累积 / end finalize / error / cancel / createConversation / deleteConversation / DC 不通 chat 报错 / DC 不通 createConversation 入队 / isLoading / clearError +<br>**Bug #1** 空 messageId 不覆盖本地 id / **Bug #2** delete 失败时全量回滚 / **Bug #3** stream in-flight 时拒绝 sendMessage / **Bug #4** select 切对话清 currentStreamId |
 | `AIChatModelsTests.swift` | 5 | Codable + parseFromEnvelope round-trip × 5 主要 type |
 
-iOS Phase 5 单测累计 ≥ 39 → 总 iOS 单测 ~313 + 39 = **~352**
+iOS Phase 5 单测累计 **45** → 总 iOS 单测 ~313 + 45 = **~358**。
 
-### 8.2 集成测试 ≥ 2 (在 Tests/CoreP2PTests/Integration/ 加新文件 Phase5IntegrationTests.swift)
+### 8.2 集成测试 — landed 4 in `Tests/CoreP2PTests/Integration/Phase5AIChatIntegrationTests.swift`
 
-- **chatStream 端到端 + dispatcher 累积 + VM finalize**：mock chatStream 返 streamId → 喂 5 chunks (ai.chat.delta) → 喂 end event → verify VM messages 末条 content 是 5 chunks 累积 + isStreaming=false
-- **多 stream 并发隔离**：mock 启 2 conversation 同时 chatStream → 各喂 5 chunks 交错 → verify 两个 conversation messages 末条独立累积、不交叉
+| # | 测试 | 覆盖 |
+|---|------|------|
+| 1 | `testFullChatStreamHappyPathThroughFanout` | inbound → RemoteCommandClient.events → 真 fan-out task → dispatcher 累积 → VM 占位 msg 实时更新 → end event 终态 server msg id 落地 |
+| 2 | `testCancelOrderingDiscardBeforeRpc` | 50ms 窗口验证：discardStream 同步 → 本地状态收尾 → cancelStream RPC 出站 → late chunk silent drop（per §7.3）|
+| 3 | `testOfflineCreateConversationDrainsOnRecover` | DC down enqueue → DC 恢复 → drainer false→true edge → ai.createConversation 真出站 → 队列清空 |
+| 4 | `testCrossConversationStreamIsolation` | conv A 启 stream sA → 切 conv B 立即清 currentStreamId → sA 后续 delta+end 不污染 conv B messages（per §7.4）|
 
-### 8.3 真机 E2E (Phase 5.7, Mac+iPhone+真桌面)
+### 8.3 Phase 5.7 收口 — 静态审计找到的 4 真实 bug（已修）
+
+| # | 位置 | 类别 | 修法 |
+|---|------|------|------|
+| 1 | `RemoteAIChatViewModel.finalizeStreamingPlaceholder` | 空字符串穿透 nil-coalesce | `messageId ?? oldMsg.id` 无法处理 server 空 messageId（decode 默认填 `""`，非 nil），导致 SwiftUI ForEach 身份击穿。改用 `if let mid = messageId, !mid.isEmpty` 显式 guard。|
+| 2 | `RemoteAIChatViewModel.deleteConversation` | 回滚不完整 | 删当前对话失败时仅恢复 conversations 列表，currentConversation/messages 留空。新增 `rollbackDelete` 私有方法 + 入口处快照 `originalCurrent`/`originalMessages`，全量原子回滚。|
+| 3 | `RemoteAIChatViewModel.sendMessage` | 缺防御性 guard | UI 按钮虽在 stream 中切到 cancel 形态，但 VM 不能假设上层禁掉了入口。新增 `guard currentStreamId == nil else { lastError = ...; return }` 在 DC gate 之前。|
+| 4 | `RemoteAIChatViewModel.selectConversation` | stale stream id | 切对话不清 `currentStreamId`，靠 messages.last 的 `isStreaming` guard 兜底，edge case 下不充分（新 conv 末条也是 streaming 占位时会被串改）。改为显式清 `currentStreamId = nil; isStreamingMessage = false`。dispatcher buffer 不动，桌面 LLM 仍跑完落 server side，下次 loadMessages 拉到。|
+
+每个 bug 对应 1 个回归单测（合计 4 个），新单测总数 41 → 45。
+
+### 8.4 真机 E2E (Phase 5.8, Mac+iPhone+真桌面) — reproducer
 
 | # | 场景 | 通过标准 |
 |---|------|----------|
 | 1 | iPhone 进 AI tab → 拉对话列表 | ≤ 500ms 显示桌面端最近对话 |
 | 2 | iPhone 新建对话 → 输入 "Hello" → send | DC 发 chatStream → 桌面 LLM 流出 → iPhone 边接边渲 token-by-token |
-| 3 | stream 中点 cancel | 桌面 LLM 中断 ≤ 1s + iPhone bubble 收尾显 "[已取消]" + 输入框 enable |
+| 3 | stream 中点 cancel | 桌面 LLM 中断 ≤ 1s + iPhone bubble 收尾保留部分文本 + 输入框 enable |
 | 4 | 切到别的 tab 再回 AI tab | conversations 列表保留 + 当前对话 messages 保留 + 不重新 stream |
 | 5 | iPhone 离线 sendMessage | 显示 "需在线发起对话" + 不入 OfflineQueue (chat 不能异步 enqueue) |
 | 6 | iPhone 离线 deleteConversation | 入 OfflineQueue + lastError "已加入离线队列" + 网络恢复 drainer 自动 |
 | 7 | 长对话 (200+ messages) → loadMessages | ≤ 1s + scroll 末位平滑 + 默认 limit=100 |
 | 8 | iPhone 后台 1 min 期间桌面端创建新对话 → 回前台 | pull-to-refresh 看到新对话 |
+
+**Reproducer 操作步骤**（每场景跑一次，按表顺序）：
+
+- **前置**：Mac 装 ChainlessChain 桌面 v5.0.3.63+；iPhone 装 ChainlessChain iOS v5.0.3.63+；同局域网；mobile-bridge.js 已 register `pairing-code:*` alias；已完成 **Flow B** QR 配对（W3.7 `c47cbc649` 默认 UX — 手机扫桌面 QR）。
+- **桌面验证路径**：所有"桌面端验证 conversation 状态"通过 **Electron 桌面 GUI 的 AI 对话面板** 完成（侧栏 → AI Chat / 知识库 → 对话历史）—— Phase 5 v0.1 没有 `cc ai *` CLI 命令，不要用 CLI 验。
+- **场景 1**：iPhone 主页 → RemoteOperate → 第 7 tab "AI"（icon `brain.head.profile`）。秒表起：进 tab 到列表首屏。验 conversation row 显示桌面端真实 title + messageCount + relative date。
+- **场景 2**：iPhone 点右上「更多 → 新对话」（或空状态 + button）→ alert 输入 "Quick test" → 创建。回 chat view 输入 "Hello, who are you?" → send。验 **token-by-token 渲染**（不是 lump-sum，肉眼能看到逐 token 出现；BlinkingCursor 闪烁）。Mac 桌面 GUI 打开 chat panel 验同名 conversation 已出现 + 末条 messages 与 iPhone 一致。
+- **场景 3**：再发一条 "请写一首 200 字以上的长诗" → 等至少 5 个 token 渲出 → 点 iPhone 红色 stop button。验：(a) iPhone bubble 立即冻结，文本停在 cancel 时刻（保留 5+ token，非空）；(b) 桌面 LLM 进程 1s 内中断（`Get-Process ollama` PowerShell 看 CPU 掉 / chat-handler 日志看 "cancelled by client" 或类似）；(c) iPhone 输入框马上可点 send（红色 stop → 蓝色 send 切回）。
+- **场景 4**：流式中切到 Terminal tab 1s 后切回 AI tab → 当前对话末条 streaming **继续**（VM filter 内存仍在）；另测：切到 Terminal tab 一直等到 stream 自然结束（`ai.chat.end`）→ 切回 AI tab，messages 末条已 finalized 用 finalText、`isStreaming=false`。
+- **场景 5**：iPhone 开飞行模式 → AI tab 选已有对话 → 输入 → send。验 lastError banner = **"需在线发起对话（请检查桌面连接）"**（红色 banner），messages **不追加占位 user/assistant**（VM 的 DC gate 在乐观追加前）。
+- **场景 6**：iPhone 飞行模式 → swipe delete 任意非当前对话。验 banner = **"已加入离线队列"**（橙色 banner，UI 在 `errorBanner` 内据 "离线" 字符串选色），conversation 从 list 移除（乐观）；关飞行模式 → DC 恢复 → drainer 自动跑（前台等 5-10s）→ 桌面 GUI chat panel 验该对话消失。
+- **场景 7**：桌面 GUI chat panel 先选一个 conversation → 手工持续追问 ~200 条短消息撑长对话（约 5 min）→ iPhone 进对话 → 验 loadMessages 桌面端默认 `limit=100` ≤ 1s（应只显示最近 100 条，不是 200）；scroll 顶 / 底之间无 hitch；末位发新 token 时 scroll 跟随平滑（`scrollToLast` `withAnimation easeOut 0.2s`）。
+- **场景 8**：iPhone 进 AI tab 看现有对话列表 sheet → 锁屏 1 分钟 → 桌面 GUI chat panel 新建一个 conversation 名 "新对话从桌面" → iPhone 解锁回 sheet → **pull-to-refresh**（`refreshable → vm.refresh → loadConversations`）→ 验新对话出现。**Phase 5 v0.1 无桌面 push event 通知新对话**，依赖手动 pull-to-refresh，不动就看不到（设计 §7.7 已注明）。
+
+**重要 trap**（per §7.6）：场景 3 的 cancel 测试必须等到至少 5 个 token 已渲染再点 stop — 此时本地占位 assistant msg 的 `content` 字段已非空（dispatcher 累积 → `updateStreamingAssistantContent`）。Cancel 路径走 `cancelCurrentStream → finalizeStreamingPlaceholder(finalText: nil)`，`finalText ?? oldMsg.content` 落到 else 分支保留累积；若 cancel 太早 token 还没渲，content="" 也合规但**没法验保留行为**，会与早期 cancel 路径无区分。这是验 cancel 设计正确性的关键步骤，跟 §8.3 4 bug 修无直接关系（cancel 的 content 保留是 Phase 5.3 既有不变量）。
 
 ## 9. 工作量 & 时序估算
 

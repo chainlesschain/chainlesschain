@@ -3,6 +3,75 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [iOS Phase 6 sprint] - 2026-05-18 — Knowledge 30 + AI Extended 25 全 hybrid + 15 main tab + 多模态 v0.3 + Agent streaming（19 commits, 绿基线 `1fb947b32`）
+
+> 一晚 19 commits 收口 iOS Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C）。桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab + 多模态实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修；绿基线 `1fb947b32`（Build & Test SPM + Build Release SPM 三 job 全绿）。
+
+**Phase 6.3 — Knowledge 30 method**：桌面 `knowledge-handler.js` 39 method（老 9 + step 1+2+3 = 30）；iOS `KnowledgeCommands` actor 31 wrap method（30 + getNote alias）；新 SQLite 表 knowledge_folders + knowledge_note_versions + ALTER notes 加 starred/pinned/last_viewed_at/archived。**92 cumulative tests**。
+
+**Phase 6.4 — AI Extended 25 method**：桌面 `ai-handler.js` 37 method（老 5 + Phase 5 fix 7 + Phase 6.4 25）；iOS `AIExtendedCommands` actor 25 wrap method + 与 AIChat (Phase 5 12) 并列共 37 method。新表 ai_prompt_templates。RAG/Multimodal/Agents 用 defensive 双路径方法检测 + 优雅降级。**101 cumulative ai tests**。
+
+**iOS UI — 15 main tab + 5 sub-tab**：
+- KnowledgeView（4 filter segmented + 搜索 + 新建 sheet + swipe action）
+- AIExtendedView 5 sub-tab：Templates CRUD / Code（解释/生成/重构 3 mode）/ RAG / Multimodal / Agents
+- 5 sub-tab 触 HIG 软上限 → picker 切 horizontal scroll + capsule highlight（与 Phase 4.5 NotificationsView 同模式）
+- RemoteOperateView 13 → 15 tab
+
+**v0.2 / v0.3 增量功能**：
+- Multimodal v0.2：PhotosUI PhotosPicker OCR / 文本生图 AsyncImage / TTS AVAudioPlayer 播放 / .fileImporter 音频转文字
+- Multimodal v0.3：`MultimodalAudioRecorder.swift` (@MainActor + AVAudioSession + 16kHz mono AAC) + UI 闪烁红点 + 时长 monospaced + 停止/取消
+- Agents v0.2：list/detail/run/stop + 4 色 status chip
+- Agents v0.3：runAgentStream 桌面 (复用 activeStreams Map 与 chat stream 共用) + iOS 3 wrap + VM 后台 250ms poll loop + 实时累积 UI 渲染
+
+**iOS CI 真编验证**（commits `fa0746860` + `1fb947b32`）：
+- 真 bug #1：`RemoteAIExtendedViewModel.swift:425` `nextChunkIdx: Int?` → `Int` 类型不匹配 → `?? sinceChunk`
+- 真 bug #2：`StreamChunkResponse` 模型缺 `error` 字段 → 加 (backward-compat)
+- Win 无 Swift，iOS CI 是 1500+ LOC Swift 唯一编译验证路径
+- 绿基线 `1fb947b32`（3 job 全绿）
+
+**设计文档**（4 个新 doc）：
+- `iOS_对标_Android_Phase_6_Plan.md` §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式
+- `iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md` — debt 审计
+- `iOS_Phase_6_6_Desktop_Skill.md` + `iOS_Phase_6_7_Extension_Skill.md` — Coverage Trap T2/T4 误判修正
+- `iOS_Phase_6_0_RealDevice_E2E_Plan.md` v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级
+
+**剩余真机 E2E**（plan §11.4 唯一未闭环）：Mac + iPhone + 桌面跑 38 场景。Win dev box 不可推进，等用户。
+
+---
+
+## [Sub-phase 5-6 v2 + 10 v2] - 2026-05-18 — Android LOCAL 项目终端 picker + 全量项目内容拉取（commit `09bd0ec0f`）
+
+> 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。
+
+**Issue 1: LOCAL 项目终端入口改为 PC 项目 picker**
+- 旧 v1：手输 Windows 路径 dialog（仅自动预填同名项目）；同名不命中 → 移动端键盘敲长路径，UX 失败
+- 新 v2：dialog 打开调 `project.list` 拉所有桌面项目 → LazyColumn picker → tap row → 直接保存 pcRootPath + 跳终端
+  - 同名匹配项目仍保留高亮 "同名" 标在 picker 顶部
+  - 列表为空（桌面项目都没 rootPath）→ 自动展开 "自定义路径" 折叠区 + error hint
+  - 自定义路径输入作 fallback，保留 v1 流程
+
+**Issue 2: PC→Android 全量项目内容拉取**
+- 旧 v1（`504bd6dde` Sub-phase 7）：pullSingle 只拉 metadata + 文件清单，文件内容 "由 caller 跳 FileTransferScreen 拉" — 实际从未接通
+- 新 v2：pullSingle 之后循环调 `project.getFile(fileId)` 真把每个文件 content 存 Room project_files
+  - 单文件 getFile 失败 → continue + log warn（不阻塞整体）
+  - content > 1MB → skip 写占位 row（size + hash 保留，content=null）防 OOM
+  - PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"
+  - 完成后 metadata.pullState 升 "files_downloaded"
+
+**测试覆盖**：78 新单元 + 集成测试全绿
+- `RemoteContextViewModelTest.kt` × 16（listPcProjects / findPcProjectPathByName / pushPcRootPathToDesktop）
+- `RemoteProjectBrowserViewModelTest.kt` × 7（pullProject happy / 失败 continue / exception continue / >1MB skip / 空 files / lifecycle / 并发 ignore）
+- `mobile-bridge-sync.test.js` × 15（含 6 新 handleProjectUpdatePath）
+- `project-management-handler.test.js` × 33（含 9 新 createFile/createFolder/writeFile/deleteFile + getFile Android Room 契约）
+- `project-handlers.test.js` × 7（10 topic dispatch + pre-bootstrap）
+- 修了 3 个 stale 测试断言（504bd6dde 改 userId 过滤后没同步更新）
+
+**剩余真机 E2E §12.3 8 场景**：picker 命中 / 自定义路径 fallback / FROM_PC 不弹 dialog / 拉取 10 文件 progress 跑完 / >1MB skip / 单文件失败 continue 等。需 Mac/Win PC + Android 双机配对环境。
+
+详见 [设计文档 §12](/design/Android_Project_Remote_Terminal_Entry#12-sub-phase-5-6-v2-sub-phase-10-v2-2026-05-18-commit-09bd0ec0f)。
+
+---
+
 ## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
 
 > v5.0.3.63 release 后用户反馈:(1) iOS Settings 「版本」只显示 3 段制 `5.0.3` 或 stale `0.32.0`（实际几个月没更过硬编码常量）;(2) PIN 闪退问题仍报告(待 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码改为从 `Bundle.main` 动态读;**B** 加 iOS 17 API 二次审计(全仓 596 个 `.swift` × 29 个 pattern 扫描,0 处新增违规);**C** 加单元测试 + 集成测试 + UITest 三层覆盖。
@@ -757,11 +826,11 @@ issue：[#21](https://github.com/chainlesschain/chainlesschain/issues/21) · 设
 - standalone `cc serve` 模式下 `loadBridgeStatus` 仍受 lib-vs-SPA shape mismatch 影响（pre-existing bug），桥状态显示 defaults——只在浏览器直连场景出现，桌面 v5.0.3.40 默认壳不受影响。
 - 四个 fix 互不相关、互不依赖、互不冲突；任一单独应用都比 .39 现状好，捆绑发布只是节省一次 release 仪式。
 
-## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装 20m → ~5m, issue #8)
+## [5.0.3.39 / CLI 0.161.2] - 2026-05-07 (B4 post-pack ASAR surgery — Win 安装显著加速, issue #8)
 
 ### Fixed
 
-- **Windows 安装时间从 ~20 分钟回到 ~5 分钟**（commit `e11b46913`）—— v5.0.3.4-13 因 electron-builder prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms 文件级 LZMA dict reset + NTFS transaction + Defender scan = ~20 分钟安装地板。本版本（B4 plan）走第三条路：`asar: true` + post-pack ASAR surgery。
+- **Windows 安装显著加速**（commit `e11b46913`）—— **dev-box (NVMe SSD + Defender OFF) 实测 190.9s vs 1201s 旧 baseline (issue #6) = 6.3× 提速**；HDD + Defender ON 默认环境严格 parity 数据未测（[issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) 详述 methodology caveats）。v5.0.3.4-13 因 electron-builder prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms 文件级 LZMA dict reset + NTFS transaction + Defender scan = 旧 baseline 上 ~20 分钟安装地板。本版本（B4 plan）走第三条路：`asar: true` + post-pack ASAR surgery。
 
 ### Added
 

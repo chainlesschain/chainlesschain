@@ -57,6 +57,7 @@ include(":feature-mcp")
 include(":feature-hooks")
 include(":feature-collaboration")
 include(":feature-performance")
+include(":feature-local-terminal")
 
 // 数据模块
 include(":data-knowledge")

@@ -18,8 +18,7 @@ jobs:
       - run: npm install --legacy-peer-deps
       - name: Run tests
         working-directory: desktop-app-vue
-        run: npm run test:unit || true
-        continue-on-error: true
+        run: npm run test:unit
 
   publish-gpr:
     needs: build
@@ -37,4 +36,3 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        continue-on-error: true

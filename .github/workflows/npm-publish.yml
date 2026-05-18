@@ -39,26 +39,27 @@ jobs:
 
       - name: Run core package tests
         run: |
+          set -e
           echo "=== core-env tests ==="
-          npm test --workspace=packages/core-env || true
+          npm test --workspace=packages/core-env
 
           echo "=== shared-logger tests ==="
-          npm test --workspace=packages/shared-logger || true
+          npm test --workspace=packages/shared-logger
 
           echo "=== core-config tests ==="
-          npm test --workspace=packages/core-config || true
+          npm test --workspace=packages/core-config
 
           echo "=== core-db tests ==="
-          npm test --workspace=packages/core-db || true
+          npm test --workspace=packages/core-db
 
           echo "=== core-infra tests ==="
-          npm test --workspace=packages/core-infra || true
+          npm test --workspace=packages/core-infra
 
           echo "=== session-core tests ==="
-          npm test --workspace=packages/session-core || true
+          npm test --workspace=packages/session-core
 
           echo "=== core-mtc tests ==="
-          npm test --workspace=packages/core-mtc || true
+          npm test --workspace=packages/core-mtc
 
       - name: Run CLI tests
         working-directory: packages/cli

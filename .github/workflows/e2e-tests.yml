@@ -137,7 +137,9 @@ jobs:
           for os in ubuntu-latest macos-latest windows-latest; do
             echo "### $os" >> $GITHUB_STEP_SUMMARY
             if [ -f "all-test-results/playwright-report-$os/results.json" ]; then
-              echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
+              # artifact存在 ≠ 测试通过；Playwright 失败时也会写 results.json。
+              # 真正的 pass/fail 看 e2e 矩阵 job 的 outcome（上方 Test Results 表格）。
+              echo "📄 Playwright report uploaded" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
             fi

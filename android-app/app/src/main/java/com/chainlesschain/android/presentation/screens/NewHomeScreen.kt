@@ -84,6 +84,7 @@ fun NewHomeScreen(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     // 用户反馈："设置里扫描桌面 QR 按钮隐藏太深放首页来；首页要显示连接桌面的状态"
     onNavigateToScanDesktopPairing: () -> Unit = {},
@@ -208,6 +209,7 @@ fun NewHomeScreen(
                 onNavigateToProjectTab = onNavigateToProjectTab,
                 onNavigateToFileBrowser = onNavigateToFileBrowser,
                 onNavigateToRemoteControl = onNavigateToRemoteControl,
+                onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                 onNavigateToP2P = onNavigateToP2P,
                 socialUnreadCount = socialUnreadCount
             )
@@ -611,6 +613,7 @@ fun FunctionEntryGrid(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     socialUnreadCount: Int = 0
 ) {
@@ -628,11 +631,14 @@ fun FunctionEntryGrid(
         onNavigateToFileBrowser,
         onNavigateToP2P,
         onNavigateToRemoteControl,
+        onNavigateToLocalTerminal,
         socialUnreadCount
     ) {
         listOf(
-            // 第一行：知识库管理（个人第二大脑）
-            FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
+            // 第一行：本地终端（首页主推）+ AI 对话 + LLM 设置
+            // Phase 4 — user feedback 2026-05-18：本地终端 promote 到首格，
+            // 知识库 demote 到 "更多" sheet 的 CORE_WORK 区。
+            FunctionEntryItem("本地终端", Icons.Outlined.Terminal, Color(0xFF455A64), FeatureGroup.CORE_WORK, onClick = onNavigateToLocalTerminal),
             FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
             FunctionEntryItem(context.getString(R.string.feature_llm_settings), Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
@@ -641,14 +647,16 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_my_qrcode), Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
             FunctionEntryItem(context.getString(R.string.feature_scan_qrcode), Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
-            // 第三行：项目管理 & 数字资产 & 设备管理
+            // 第三行：项目管理 & 文件浏览 & 知识库
             FunctionEntryItem(context.getString(R.string.feature_project_management), Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
             FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
-            // P2P设备管理
+            // 知识库 — demoted from row 1 to row 3 cell 3
+            FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
+
+            // P2P设备管理 / 远程控制 — into "更多" sheet
             FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
-            // 远程控制
             FunctionEntryItem(context.getString(R.string.feature_remote_control), Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
-            // 第四行：统计分析
+            // 统计分析
             FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
         )
     }

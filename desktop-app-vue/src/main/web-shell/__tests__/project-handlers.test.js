@@ -22,17 +22,23 @@ describe("createProjectHandlers", () => {
     };
   }
 
-  it("exposes 6 project.* topics when database is provided", () => {
+  it("exposes 10 project.* topics when database is provided", () => {
     const handlers = createProjectHandlers({ database: makeDb() });
     const keys = Object.keys(handlers).sort();
+    // Sub-phase 7.2 (2026-05-17 commit 504bd6dde) 加 createFile/createFolder/
+    // writeFile/deleteFile 4 个文件 CRUD topics，从 6 升到 10。
     expect(keys).toEqual(
       [
+        "project.createFile",
+        "project.createFolder",
         "project.delete",
+        "project.deleteFile",
         "project.getFile",
         "project.init",
         "project.list",
         "project.listFiles",
         "project.show",
+        "project.writeFile",
       ].sort(),
     );
   });

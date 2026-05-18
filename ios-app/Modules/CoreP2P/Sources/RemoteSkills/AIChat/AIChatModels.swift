@@ -175,17 +175,22 @@ public struct StreamStartResponse: Sendable, Equatable {
 }
 
 /// `ai.getStreamChunk` polling fallback 响应（v0.2 实际使用；v0.1 wire 占位）。
+/// v0.3：加 `error` 字段 — 桌面 `getStreamChunk` 在 stream 异常/expired 时返此字段
+/// （e.g. agent crash / stream not found），caller 用于显示错误而非误以为正常完成。
 public struct StreamChunkResponse: Sendable, Equatable {
     public let success: Bool
     public let chunks: [String]
     public let isComplete: Bool
     public let nextChunkIdx: Int?
+    public let error: String?
 
-    public init(success: Bool, chunks: [String] = [], isComplete: Bool = false, nextChunkIdx: Int? = nil) {
+    public init(success: Bool, chunks: [String] = [], isComplete: Bool = false,
+                nextChunkIdx: Int? = nil, error: String? = nil) {
         self.success = success
         self.chunks = chunks
         self.isComplete = isComplete
         self.nextChunkIdx = nextChunkIdx
+        self.error = error
     }
 
     public static func decode(_ json: String) throws -> StreamChunkResponse {
@@ -198,7 +203,8 @@ public struct StreamChunkResponse: Sendable, Equatable {
             success: (dict["success"] as? Bool) ?? false,
             chunks: rawChunks,
             isComplete: (dict["isComplete"] as? Bool) ?? false,
-            nextChunkIdx: dict["nextChunkIdx"] as? Int
+            nextChunkIdx: dict["nextChunkIdx"] as? Int,
+            error: dict["error"] as? String
         )
     }
 }

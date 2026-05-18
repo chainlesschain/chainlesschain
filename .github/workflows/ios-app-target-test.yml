@@ -47,6 +47,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — xcpretty silent-drops
+          # some error formats; see release.yml signed-archive path).
           xcodebuild build \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -56,7 +59,17 @@ jobs:
             -clonedSourcePackagesDirPath .spm-cache \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/xcodebuild-build-unsigned.log
+
+      - name: Upload xcodebuild log (diagnostics, always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-target-test-xcodebuild-log
+          path: ios-app/build/xcodebuild-build-unsigned.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Verify and package .app bundle
         working-directory: ios-app

@@ -45,7 +45,16 @@ android {
 
     defaultConfig {
         applicationId = "com.chainlesschain.android"
-        minSdk = 26  // Android 8.0
+        // Bumped 26 → 28 (Android 9 Pie) on 2026-05-18 to align with
+        // :feature-local-terminal (its native posix_spawn / POSIX_SPAWN_SETSID
+        // are __INTRODUCED_IN(28) — see feature-local-terminal/build.gradle.kts
+        // line 17-25). The previous 26 setting caused manifest merger to fail
+        // since the Phase 2 commit 3da1f78c4 (2026-05-17) wired local-terminal
+        // into :app, but android-ci.yml's continue-on-error masks hid the
+        // failure. Audited 2026-05-18 alongside the false-green CI sweep.
+        // API 26-27 market share <3% in 2026; Phase 5 Lite variant (without
+        // local-terminal) can be revisited if a 26-baseline ship target appears.
+        minSdk = 28  // Android 9 Pie
         targetSdk = 35  // Android 15
         versionCode = 503064
         versionName = "5.0.3.64"
@@ -192,9 +201,16 @@ android {
         }
         jniLibs {
             pickFirsts += "**/libc++_shared.so"
-            // Phase 7.4: Keep only necessary CPU architectures
-            // Use new compression method
-            useLegacyPackaging = false
+            // Phase 4 — feature-local-terminal needs lib*.so extracted to disk
+            // for ProcessBuilder.exec() to work (mksh/toybox are executables
+            // renamed to .so; W^X requires the lib/<abi>/ extracted path).
+            // App-level packaging overrides library-level, so flipping here
+            // is mandatory. Documented as Phase 1+ trap in
+            // ~/.claude/.../memory/android_native_lib_extract_w_x.md.
+            //
+            // Cost: APK download size +~5-10 MB (uncompressed .so) across all
+            // ABIs. Install footprint unchanged.
+            useLegacyPackaging = true
         }
     }
 
@@ -294,6 +310,7 @@ dependencies {
     implementation(project(":feature-p2p"))
     implementation(project(":feature-project"))
     implementation(project(":feature-file-browser"))
+    implementation(project(":feature-local-terminal"))
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")

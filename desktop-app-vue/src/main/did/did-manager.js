@@ -6,14 +6,24 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const nacl = require("tweetnacl");
 const naclUtil = require("tweetnacl-util");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
-const bip39 = require("bip39");
 const { DIDCache } = require("./did-cache");
 const { DIDUpdater } = require("./did-updater");
+
+// Module-level let + seams for vi.mock CJS interop (RFC T1).
+let _nacl = require("tweetnacl");
+let _bip39 = require("bip39");
+
+function _setNaclForTesting(impl) {
+  _nacl = impl ?? require("tweetnacl");
+}
+
+function _setBip39ForTesting(impl) {
+  _bip39 = impl ?? require("bip39");
+}
 
 /**
  * DID 配置
@@ -143,8 +153,8 @@ class DIDManager extends EventEmitter {
         encryptKeyPair = options.keys.encrypt;
       } else {
         // 生成新密钥
-        signKeyPair = nacl.sign.keyPair();
-        encryptKeyPair = nacl.box.keyPair();
+        signKeyPair = _nacl.sign.keyPair();
+        encryptKeyPair = _nacl.box.keyPair();
       }
 
       // 2. 生成 DID 标识符
@@ -218,8 +228,8 @@ class DIDManager extends EventEmitter {
 
     try {
       // 1. 生成组织专用密钥对
-      const signKeyPair = nacl.sign.keyPair();
-      const encryptKeyPair = nacl.box.keyPair();
+      const signKeyPair = _nacl.sign.keyPair();
+      const encryptKeyPair = _nacl.box.keyPair();
 
       // 2. 生成组织DID标识符（使用org前缀）
       const did = this.generateDID(signKeyPair.publicKey, "org");
@@ -370,7 +380,7 @@ class DIDManager extends EventEmitter {
     const messageBytes = naclUtil.decodeUTF8(message);
 
     // 使用 Ed25519 签名
-    const signature = nacl.sign.detached(messageBytes, secretKey);
+    const signature = _nacl.sign.detached(messageBytes, secretKey);
     const signatureBase64 = naclUtil.encodeBase64(signature);
 
     return {
@@ -418,7 +428,7 @@ class DIDManager extends EventEmitter {
       const messageBytes = naclUtil.decodeUTF8(message);
 
       // 验证签名
-      return nacl.sign.detached.verify(messageBytes, signature, publicKey);
+      return _nacl.sign.detached.verify(messageBytes, signature, publicKey);
     } catch (error) {
       logger.error("[DIDManager] 验证 DID 文档失败:", error);
       return false;
@@ -1099,7 +1109,7 @@ class DIDManager extends EventEmitter {
    * @returns {string} 助记词
    */
   generateMnemonic(strength = 256) {
-    return bip39.generateMnemonic(strength);
+    return _bip39.generateMnemonic(strength);
   }
 
   /**
@@ -1108,7 +1118,7 @@ class DIDManager extends EventEmitter {
    * @returns {boolean} 是否有效
    */
   validateMnemonic(mnemonic) {
-    return bip39.validateMnemonic(mnemonic);
+    return _bip39.validateMnemonic(mnemonic);
   }
 
   /**
@@ -1124,7 +1134,7 @@ class DIDManager extends EventEmitter {
     }
 
     // 从助记词生成种子
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    const seed = _bip39.mnemonicToSeedSync(mnemonic);
 
     // 使用种子和索引派生密钥
     // 使用简单的派生：SHA-256(seed + index)
@@ -1132,11 +1142,11 @@ class DIDManager extends EventEmitter {
     const hash = crypto.createHash("sha256").update(derivationPath).digest();
 
     // 生成 Ed25519 签名密钥对
-    const signKeyPair = nacl.sign.keyPair.fromSeed(hash.slice(0, 32));
+    const signKeyPair = _nacl.sign.keyPair.fromSeed(hash.slice(0, 32));
 
     // 生成 X25519 加密密钥对（从签名密钥转换）
     const encryptKeyPair = {
-      publicKey: nacl.box.keyPair.fromSecretKey(hash.slice(0, 32)).publicKey,
+      publicKey: _nacl.box.keyPair.fromSecretKey(hash.slice(0, 32)).publicKey,
       secretKey: hash.slice(0, 32),
     };
 
@@ -1239,4 +1249,13 @@ class DIDManager extends EventEmitter {
   }
 }
 
+// Attach test seams as static props on the default-exported class (preserves
+// `require(...).default` and `new DIDManager()` patterns; seams accessible via
+// `DIDManager._setNaclForTesting` / `_setBip39ForTesting`).
+DIDManager._setNaclForTesting = _setNaclForTesting;
+DIDManager._setBip39ForTesting = _setBip39ForTesting;
+
 module.exports = DIDManager;
+module.exports.default = DIDManager; // preserves `module.default` ESM-import compat
+module.exports._setNaclForTesting = _setNaclForTesting;
+module.exports._setBip39ForTesting = _setBip39ForTesting;

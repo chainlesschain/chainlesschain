@@ -6,19 +6,25 @@ struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
 
     var body: some View {
-        Group {
-            if !appState.isInitialized {
-                // 启动加载界面
-                SplashView()
-            } else if !appState.isAuthenticated {
-                // 认证界面
-                AuthView()
-            } else {
-                // 主界面
-                MainTabView()
+        // Phase 6.10 — 顶层 UpdateBannerOverlay 包裹主体；启动后异步 check App Store
+        // Lookup，若有新版 → 顶部横幅 (tap → 跳 App Store, X → 本 session 忽略)。
+        // 未认证 / splash 阶段不显示横幅（content 通过 overlay 透出，但 banner 数据
+        // 加载需 ContentView 已渲染，overlay 由 .task 自带 3s 延迟避开冷启动繁忙）。
+        UpdateBannerOverlay {
+            Group {
+                if !appState.isInitialized {
+                    // 启动加载界面
+                    SplashView()
+                } else if !appState.isAuthenticated {
+                    // 认证界面
+                    AuthView()
+                } else {
+                    // 主界面
+                    MainTabView()
+                }
             }
+            .animation(.easeInOut, value: appState.isAuthenticated)
         }
-        .animation(.easeInOut, value: appState.isAuthenticated)
     }
 }
 

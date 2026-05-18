@@ -13,16 +13,65 @@
 
 const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
-const OllamaClient = require("./ollama-client");
-const { OpenAIClient, DeepSeekClient } = require("./openai-client");
-const { AnthropicClient } = require("./anthropic-client");
-const { GeminiClient } = require("./gemini-client");
-const { MistralClient } = require("./mistral-client");
-const { getModelSelector, TaskTypes } = require("./volcengine-models");
-const { VolcengineToolsClient } = require("./volcengine-tools");
 
-// 🔥 Manus 优化模块
-const { getManusOptimizations } = require("./manus-optimizations");
+// Module-level let + seam for vi.mock CJS interop (RFC T1, B3 batch).
+// vi.mock 不拦截 source require()，所有 LLM client/factory 走 _setLLMDepsForTesting 注入。
+let _OllamaClient = require("./ollama-client");
+let _OpenAIClient = require("./openai-client").OpenAIClient;
+let _DeepSeekClient = require("./openai-client").DeepSeekClient;
+let _AnthropicClient = require("./anthropic-client").AnthropicClient;
+let _GeminiClient = require("./gemini-client").GeminiClient;
+let _MistralClient = require("./mistral-client").MistralClient;
+let _VolcengineToolsClient =
+  require("./volcengine-tools").VolcengineToolsClient;
+let _getModelSelector = require("./volcengine-models").getModelSelector;
+let _getManusOptimizations =
+  require("./manus-optimizations").getManusOptimizations;
+const { TaskTypes } = require("./volcengine-models");
+
+function _setLLMDepsForTesting(deps) {
+  if (!deps) {
+    _OllamaClient = require("./ollama-client");
+    _OpenAIClient = require("./openai-client").OpenAIClient;
+    _DeepSeekClient = require("./openai-client").DeepSeekClient;
+    _AnthropicClient = require("./anthropic-client").AnthropicClient;
+    _GeminiClient = require("./gemini-client").GeminiClient;
+    _MistralClient = require("./mistral-client").MistralClient;
+    _VolcengineToolsClient =
+      require("./volcengine-tools").VolcengineToolsClient;
+    _getModelSelector = require("./volcengine-models").getModelSelector;
+    _getManusOptimizations =
+      require("./manus-optimizations").getManusOptimizations;
+    return;
+  }
+  if (deps.OllamaClient !== undefined) {
+    _OllamaClient = deps.OllamaClient;
+  }
+  if (deps.OpenAIClient !== undefined) {
+    _OpenAIClient = deps.OpenAIClient;
+  }
+  if (deps.DeepSeekClient !== undefined) {
+    _DeepSeekClient = deps.DeepSeekClient;
+  }
+  if (deps.AnthropicClient !== undefined) {
+    _AnthropicClient = deps.AnthropicClient;
+  }
+  if (deps.GeminiClient !== undefined) {
+    _GeminiClient = deps.GeminiClient;
+  }
+  if (deps.MistralClient !== undefined) {
+    _MistralClient = deps.MistralClient;
+  }
+  if (deps.VolcengineToolsClient !== undefined) {
+    _VolcengineToolsClient = deps.VolcengineToolsClient;
+  }
+  if (deps.getModelSelector !== undefined) {
+    _getModelSelector = deps.getModelSelector;
+  }
+  if (deps.getManusOptimizations !== undefined) {
+    _getManusOptimizations = deps.getManusOptimizations;
+  }
+}
 
 /**
  * LLM 提供商类型
@@ -113,7 +162,7 @@ class LLMManager extends EventEmitter {
     this.manusOptimizations = null;
     if (config.enableManusOptimizations !== false) {
       try {
-        this.manusOptimizations = getManusOptimizations({
+        this.manusOptimizations = _getManusOptimizations({
           enableKVCacheOptimization: config.enableKVCacheOptimization !== false,
           enableToolMasking: config.enableToolMasking !== false,
           enableTaskTracking: config.enableTaskTracking !== false,
@@ -143,7 +192,7 @@ class LLMManager extends EventEmitter {
       // 🔥 初始化火山引擎工具调用客户端
       if (this.provider === LLMProviders.VOLCENGINE) {
         try {
-          this.toolsClient = new VolcengineToolsClient({
+          this.toolsClient = new _VolcengineToolsClient({
             apiKey: this.config.apiKey,
             baseURL:
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
@@ -201,14 +250,14 @@ class LLMManager extends EventEmitter {
 
     switch (normalizedProvider) {
       case LLMProviders.OLLAMA:
-        return new OllamaClient({
+        return new _OllamaClient({
           baseURL: this.config.ollamaURL || "http://localhost:11434",
           model: this.config.model || "llama2",
           timeout: this.config.timeout,
         });
 
       case LLMProviders.ANTHROPIC:
-        return new AnthropicClient({
+        return new _AnthropicClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL || "https://api.anthropic.com",
           model: this.config.model || "claude-3-opus-20240229",
@@ -218,7 +267,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.OPENAI:
-        return new OpenAIClient({
+        return new _OpenAIClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || "gpt-3.5-turbo",
@@ -229,7 +278,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.DEEPSEEK:
-        return new DeepSeekClient({
+        return new _DeepSeekClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || "deepseek-chat",
@@ -239,7 +288,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.VOLCENGINE:
-        return new OpenAIClient({
+        return new _OpenAIClient({
           apiKey: this.config.apiKey,
           baseURL:
             this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
@@ -250,7 +299,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.GEMINI:
-        return new GeminiClient({
+        return new _GeminiClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || "gemini-1.5-pro",
@@ -259,7 +308,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.MISTRAL:
-        return new MistralClient({
+        return new _MistralClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || "mistral-large-latest",
@@ -268,7 +317,7 @@ class LLMManager extends EventEmitter {
         });
 
       case LLMProviders.CUSTOM:
-        return new OpenAIClient({
+        return new _OpenAIClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model,
@@ -985,6 +1034,10 @@ class LLMManager extends EventEmitter {
       }
     }
 
+    if (typeof client.embeddings !== "function") {
+      throw new Error("当前LLM不支持嵌入向量生成");
+    }
+
     try {
       return await client.embeddings(text);
     } catch (error) {
@@ -1050,7 +1103,7 @@ class LLMManager extends EventEmitter {
       return null;
     }
 
-    const selector = getModelSelector();
+    const selector = _getModelSelector();
     const model = selector.selectByScenario(scenario);
 
     logger.info("[LLMManager] 智能选择模型:", model.name);
@@ -1084,7 +1137,7 @@ class LLMManager extends EventEmitter {
       return null;
     }
 
-    const selector = getModelSelector();
+    const selector = _getModelSelector();
     const model = selector.selectModel(taskType, options);
 
     logger.info("[LLMManager] 为任务", taskType, "选择模型:", model.name);
@@ -1115,7 +1168,7 @@ class LLMManager extends EventEmitter {
       return 0;
     }
 
-    const selector = getModelSelector();
+    const selector = _getModelSelector();
     const cost = selector.estimateCost(
       modelId,
       inputTokens,
@@ -1147,7 +1200,7 @@ class LLMManager extends EventEmitter {
       return [];
     }
 
-    const selector = getModelSelector();
+    const selector = _getModelSelector();
     return selector.listModels(filters);
   }
 
@@ -1560,6 +1613,15 @@ class LLMManager extends EventEmitter {
       this._stateBusUnbind = null;
     }
 
+    // Delegate to client's close() if available (some adapters hold sockets/streams).
+    if (this.client && typeof this.client.close === "function") {
+      try {
+        await this.client.close();
+      } catch (closeError) {
+        logger.warn("[LLMManager] 客户端 close 失败:", closeError);
+      }
+    }
+
     this.conversationContext.clear();
     this.isInitialized = false;
     this.client = null;
@@ -1877,6 +1939,17 @@ LLMManager.prototype.setToolAvailable = function (toolName, available) {
     return;
   }
   this.manusOptimizations.setToolAvailable(toolName, available);
+};
+
+/**
+ * 批量设置允许的工具列表（覆盖整个掩码）
+ * @param {string[]} toolNames - 允许的工具名列表
+ */
+LLMManager.prototype.setToolMask = function (toolNames) {
+  if (!this.manusOptimizations) {
+    return;
+  }
+  this.manusOptimizations.setToolMask(toolNames);
 };
 
 /**
@@ -2296,5 +2369,6 @@ module.exports = {
   inferCategoryFromModelHints,
   pickProviderForCategory,
   isProviderConfigured,
-  _deps, // 测试注入点
+  _deps, // 测试注入点 (existing — for getLLMConfig)
+  _setLLMDepsForTesting, // RFC T1 seam — inject LLM client mocks (B3)
 };

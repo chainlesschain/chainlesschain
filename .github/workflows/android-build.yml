@@ -73,9 +73,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android-app/gradlew
 
+      # continue-on-error dropped 2026-05-18: local :app:testDebugUnitTest +
+      # all library testDebugUnitTest verified passing after the minSdk 26→28
+      # fix. The aggregate `test` task here exercises the same targets that
+      # were independently verified. See feedback_ci_false_green_audit_checklist.md.
       - name: Run Unit Tests
         working-directory: android-app
-        continue-on-error: true
         run: |
           # Run unit tests excluding E2EE tests that require Android runtime (android.util.Log)
           # These tests should be run as instrumentation tests instead
@@ -202,9 +205,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android-app/gradlew
 
+      # continue-on-error dropped 2026-05-18: same audit batch as android-ci.yml
+      # — local :app:assembleDebug verified passing (3 APKs produced) after the
+      # minSdk 26→28 fix. See feedback_ci_false_green_audit_checklist.md.
       - name: Build Debug APK
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew assembleDebug
 
       - name: Upload Debug APK

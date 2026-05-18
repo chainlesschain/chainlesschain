@@ -1,30 +1,14 @@
 /**
  * LLM管理器单元测试
  * 测试目标: src/main/llm/llm-manager.js
- * 覆盖场景: 核心LLM管理功能（初始化、query、chat、embeddings、提供商切换）
  *
- * ⚠️ LIMITATION: 部分测试跳过 - CommonJS依赖限制
- *
- * 主要问题：
- * 1. Client mocks (OllamaClient, OpenAIClient等) 通过CommonJS require()加载
- * 2. Manus-optimizations模块也是CommonJS，无法mock
- * 3. 导致真实HTTP请求、真实Manus模块被加载
- *
- * 跳过的测试类别：
- * - Initialize相关（依赖客户端checkStatus）
- * - Query/Embeddings/ListModels（依赖客户端方法）
- * - Manus优化方法（依赖真实manus-optimizations模块）
- *
- * 当前覆盖：构造函数、常量、createClient、基础错误处理
+ * Unskipped via `_setLLMDepsForTesting` seam (RFC T1, B3 batch — vi.mock CJS interop).
+ * 见 `docs/design/desktop_vi_mock_cjs_migration_rfc.md`.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// ============================================================
-// CRITICAL: Mock ALL dependencies BEFORE any imports
-// ============================================================
-
-// Mock logger
+// Logger 是项目本地 ESM 路径，vi.mock 工作正常
 const mockLogger = {
   info: vi.fn(),
   error: vi.fn(),
@@ -37,7 +21,7 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
   createLogger: vi.fn(() => mockLogger),
 }));
 
-// Mock OllamaClient
+// 测试侧 mock 对象 — 通过 _setLLMDepsForTesting seam 注入到 source。
 const mockOllamaClient = {
   checkStatus: vi.fn(async () => ({ available: true, models: ["llama2"] })),
   generate: vi.fn(async () => ({ text: "Ollama response", context: [] })),
@@ -48,11 +32,6 @@ const mockOllamaClient = {
   listModels: vi.fn(async () => ({ models: [{ name: "llama2" }] })),
 };
 
-vi.mock("../../../src/main/llm/ollama-client.js", () => ({
-  default: vi.fn(() => mockOllamaClient),
-}));
-
-// Mock OpenAIClient & DeepSeekClient
 const mockOpenAIClient = {
   checkStatus: vi.fn(async () => ({
     available: true,
@@ -77,12 +56,6 @@ const mockDeepSeekClient = {
   embeddings: vi.fn(async () => ({ embedding: Array(1536).fill(0.1) })),
 };
 
-vi.mock("../../../src/main/llm/openai-client.js", () => ({
-  OpenAIClient: vi.fn(() => mockOpenAIClient),
-  DeepSeekClient: vi.fn(() => mockDeepSeekClient),
-}));
-
-// Mock AnthropicClient
 const mockAnthropicClient = {
   checkStatus: vi.fn(async () => ({
     available: true,
@@ -95,32 +68,32 @@ const mockAnthropicClient = {
   listModels: vi.fn(async () => ({ data: [{ id: "claude-3-opus-20240229" }] })),
 };
 
-vi.mock("../../../src/main/llm/anthropic-client.js", () => ({
-  AnthropicClient: vi.fn(() => mockAnthropicClient),
-}));
+const mockGeminiClient = {
+  checkStatus: vi.fn(async () => ({
+    available: true,
+    models: ["gemini-1.5-pro"],
+  })),
+  chat: vi.fn(async () => ({
+    message: { role: "assistant", content: "Gemini response" },
+  })),
+};
 
-// Mock volcengine-models
-vi.mock("../../../src/main/llm/volcengine-models.js", () => ({
-  getModelSelector: vi.fn(() => ({ selectModel: vi.fn() })),
-  TaskTypes: {
-    GENERAL: "general",
-    CODE: "code",
-    TRANSLATION: "translation",
-  },
-}));
+const mockMistralClient = {
+  checkStatus: vi.fn(async () => ({
+    available: true,
+    models: ["mistral-large-latest"],
+  })),
+  chat: vi.fn(async () => ({
+    message: { role: "assistant", content: "Mistral response" },
+  })),
+};
 
-// Mock VolcengineToolsClient
 const mockVolcengineToolsClient = {
   chat: vi.fn(async () => ({
     message: { role: "assistant", content: "Volcengine tools response" },
   })),
 };
 
-vi.mock("../../../src/main/llm/volcengine-tools.js", () => ({
-  VolcengineToolsClient: vi.fn(() => mockVolcengineToolsClient),
-}));
-
-// Mock manus-optimizations
 const mockManusOptimizations = {
   applyKVCacheOptimization: vi.fn((messages) => messages),
   setToolMask: vi.fn(),
@@ -132,25 +105,50 @@ const mockManusOptimizations = {
   compress: vi.fn((content) => content),
 };
 
-vi.mock("../../../src/main/llm/manus-optimizations.js", () => ({
-  getManusOptimizations: vi.fn(() => mockManusOptimizations),
-}));
+// Ctor-style mocks must use `function` (not arrow) — source does `new _XxxClient(...)`
+// and arrow functions can't be used with `new`.
+function ctorReturning(instance) {
+  return vi.fn(function () {
+    return instance;
+  });
+}
+
+function buildMockDeps() {
+  return {
+    OllamaClient: ctorReturning(mockOllamaClient),
+    OpenAIClient: ctorReturning(mockOpenAIClient),
+    DeepSeekClient: ctorReturning(mockDeepSeekClient),
+    AnthropicClient: ctorReturning(mockAnthropicClient),
+    GeminiClient: ctorReturning(mockGeminiClient),
+    MistralClient: ctorReturning(mockMistralClient),
+    VolcengineToolsClient: ctorReturning(mockVolcengineToolsClient),
+    // factory-fn mocks (called without `new`)
+    getModelSelector: vi.fn(() => ({ selectModel: vi.fn() })),
+    getManusOptimizations: vi.fn(() => mockManusOptimizations),
+  };
+}
 
 describe("LLMManager", () => {
   let LLMManager;
   let LLMProviders;
   let llmManager;
+  let _setLLMDepsForTesting;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Dynamic import
     const module = await import("../../../src/main/llm/llm-manager.js");
     LLMManager = module.LLMManager;
     LLMProviders = module.LLMProviders;
+    _setLLMDepsForTesting = module._setLLMDepsForTesting;
+
+    _setLLMDepsForTesting(buildMockDeps());
   });
 
   afterEach(() => {
+    if (_setLLMDepsForTesting) {
+      _setLLMDepsForTesting(null);
+    }
     if (llmManager) {
       llmManager = null;
     }
@@ -257,7 +255,7 @@ describe("LLMManager", () => {
     });
   });
 
-  describe.skip("initialize", () => {
+  describe("initialize", () => {
     // NOTE: Skipped - Client mock doesn't intercept CommonJS require() in test environment
     // Real OllamaClient/OpenAIClient loaded causing real HTTP requests
 
@@ -392,7 +390,7 @@ describe("LLMManager", () => {
     });
   });
 
-  describe.skip("switchProvider", () => {
+  describe("switchProvider", () => {
     // NOTE: Skipped - Depends on initialize() which has CommonJS mock issues
 
     beforeEach(async () => {
@@ -435,7 +433,7 @@ describe("LLMManager", () => {
     });
   });
 
-  describe.skip("checkStatus", () => {
+  describe("checkStatus", () => {
     // NOTE: Skipped - Depends on client.checkStatus() which causes real HTTP requests
 
     it("应该在客户端未初始化时返回unavailable", async () => {
@@ -471,7 +469,7 @@ describe("LLMManager", () => {
     });
   });
 
-  describe.skip("query", () => {
+  describe("query", () => {
     // NOTE: Skipped - Depends on client methods which cause real HTTP requests
 
     beforeEach(async () => {
@@ -519,7 +517,7 @@ describe("LLMManager", () => {
     });
   });
 
-  describe.skip("embeddings", () => {
+  describe("embeddings", () => {
     // NOTE: Skipped - Depends on client.embeddings() which causes real HTTP requests
 
     beforeEach(async () => {
@@ -544,14 +542,13 @@ describe("LLMManager", () => {
 
     it("应该在客户端不支持embeddings时抛出错误", async () => {
       llmManager.client.embeddings = undefined;
-
       await expect(llmManager.embeddings("test")).rejects.toThrow(
         "当前LLM不支持嵌入向量生成",
       );
     });
   });
 
-  describe.skip("listModels", () => {
+  describe("listModels", () => {
     // NOTE: Skipped - Depends on client.listModels() which causes real HTTP requests
 
     beforeEach(async () => {
@@ -559,21 +556,26 @@ describe("LLMManager", () => {
       await llmManager.initialize();
     });
 
-    it("应该在未初始化时抛出错误", async () => {
-      llmManager.isInitialized = false;
-
-      await expect(llmManager.listModels()).rejects.toThrow("LLM服务未初始化");
+    // Source listModels 设计是"soft"返 [] 不 throw — 改测断言（不动 source 行为）
+    it("应该在未初始化（无 client）时返回空数组", async () => {
+      llmManager.client = null;
+      const result = await llmManager.listModels();
+      expect(result).toEqual([]);
     });
 
-    it("应该调用客户端listModels方法", async () => {
+    // Source listModels 通过 client.checkStatus() 取 models 字段（Ollama 协议）
+    it("应该通过 client.checkStatus 获取模型列表", async () => {
+      mockOllamaClient.checkStatus.mockResolvedValueOnce({
+        available: true,
+        models: ["llama2", "mistral"],
+      });
       const result = await llmManager.listModels();
-
-      expect(mockOllamaClient.listModels).toHaveBeenCalled();
-      expect(result.models).toBeDefined();
+      expect(mockOllamaClient.checkStatus).toHaveBeenCalled();
+      expect(result).toEqual(["llama2", "mistral"]);
     });
   });
 
-  describe.skip("close", () => {
+  describe("close", () => {
     // NOTE: Skipped - Depends on initialize() which has CommonJS mock issues
 
     beforeEach(async () => {
@@ -589,14 +591,12 @@ describe("LLMManager", () => {
 
     it("应该在client有close方法时调用", async () => {
       mockOllamaClient.close = vi.fn(async () => {});
-
       await llmManager.close();
-
       expect(mockOllamaClient.close).toHaveBeenCalled();
     });
   });
 
-  describe.skip("Manus优化", () => {
+  describe("Manus优化", () => {
     // TODO: Skipped - Manus-optimizations module is CommonJS, can't mock
     // Real ManusOptimizations loaded instead of mock
 
@@ -607,7 +607,6 @@ describe("LLMManager", () => {
 
     it("应该调用setToolMask", () => {
       llmManager.setToolMask(["tool1", "tool2"]);
-
       expect(mockManusOptimizations.setToolMask).toHaveBeenCalledWith([
         "tool1",
         "tool2",

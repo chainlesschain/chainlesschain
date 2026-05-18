@@ -37,6 +37,9 @@ class TestDbManager {
   }
   run(sql, params = []) {
     this.db.run(sql, params);
+    // 与生产 dbManager.run 接口对齐 — 返 { changes } 供调用方判 affected row（如
+    // handleProjectUpdatePath 的 res.changes === 0 → PROJECT_NOT_FOUND 分支）。
+    return { changes: this.db.getRowsModified() };
   }
   get(sql, params = []) {
     const stmt = this.db.prepare(sql);
@@ -1847,10 +1850,23 @@ describe("MobileBridgeSync · handleProjectList (v1.3 Sub-phase 10)", () => {
     sync = makeSync();
   });
 
-  it("returns empty + PERMISSION_DENIED when userId missing", async () => {
-    const result = await sync.handleProjectList({});
-    expect(result.projects).toEqual([]);
-    expect(result.reason).toBe("PERMISSION_DENIED");
+  // v1.3 fix2 (2026-05-17, commit 504bd6dde): P2P pairing trust 由 signaling auth.did
+  // 兜底，应用层不再 userId 过滤；本测试反映新约定。
+  it("returns all active projects regardless of userId (trust handled at signaling layer)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at)
+       VALUES ('p-default', 'default', 'PC Side', 'document', 'active', '/x', 100, 100),
+              ('p-other',   'u-other',  'Other Owner', 'document', 'active', '/y', 101, 101)`,
+    );
+    // 不传 userId
+    const r1 = await sync.handleProjectList({});
+    expect(r1.projects).toHaveLength(2);
+    expect(r1.reason).toBeUndefined();
+    // 即使传不匹配 userId 也不过滤（pairing 已校验 trust）
+    const r2 = await sync.handleProjectList({ userId: "anyone-different" });
+    expect(r2.projects).toHaveLength(2);
+    expect(r2.reason).toBeUndefined();
   });
 
   it("returns user projects with sourcePeerId + pcRootPath derived", async () => {
@@ -1964,7 +1980,9 @@ describe("MobileBridgeSync · handleProjectPullSingle (v1.3 Sub-phase 10)", () =
     expect(result.files).toEqual([]);
   });
 
-  it("returns PERMISSION_DENIED when userId mismatches", async () => {
+  // v1.3 fix2 (2026-05-17, commit 504bd6dde): 同 handleProjectList — 应用层不再
+  // userId 过滤，trust 走 signaling auth.did。userId 不匹配仍返项目，不再 PERMISSION_DENIED。
+  it("returns project even when userId mismatches (trust handled at signaling layer)", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
         created_at, updated_at) VALUES ('p1', 'owner-a', 'X', 'document', 'active', 100, 100)`,
@@ -1974,6 +1992,111 @@ describe("MobileBridgeSync · handleProjectPullSingle (v1.3 Sub-phase 10)", () =
       userId: "owner-b",
       includeFileList: false,
     });
-    expect(result.error).toBe("PERMISSION_DENIED");
+    expect(result.error).toBeUndefined();
+    expect(result.project).toBeDefined();
+    expect(result.project.id).toBe("p1");
+  });
+});
+
+// ============================================================
+// Sub-phase 5-6 fix (2026-05-17, commit 3319febc4) handleProjectUpdatePath
+// Android LOCAL 项目首次配 PC 路径后双向同步写回桌面 projects.pc_root_path
+// ============================================================
+describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () => {
+  let sync;
+  beforeEach(() => {
+    sync = makeSync();
+  });
+
+  it("returns MISSING_PROJECT_ID when projectId not given", async () => {
+    const result = await sync.handleProjectUpdatePath({ pcRootPath: "/x" });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("MISSING_PROJECT_ID");
+  });
+
+  it("updates pc_root_path on existing project", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', null, 100, 100, null)`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "C:\\code\\new",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.pcRootPath).toBe("C:\\code\\new");
+    const row = dbManager.get(
+      `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBe("C:\\code\\new");
+    // root_path 之前为 null → COALESCE 也补成同值（兼容只有 root_path 字段的旧客户端）
+    expect(row.root_path).toBe("C:\\code\\new");
+  });
+
+  it("preserves existing root_path via COALESCE", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        root_path, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', '/existing/root', 100, 100, null)`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "C:\\code\\new",
+    });
+    expect(result.ok).toBe(true);
+    const row = dbManager.get(
+      `SELECT pc_root_path, root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBe("C:\\code\\new");
+    // root_path 已有值 → COALESCE 保留原值
+    expect(row.root_path).toBe("/existing/root");
+  });
+
+  it("returns PROJECT_NOT_FOUND for unknown id", async () => {
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "no-such",
+      pcRootPath: "/x",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("PROJECT_NOT_FOUND");
+  });
+
+  it("normalizes empty string to null (clear)", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', 100, 100, '/old')`,
+    );
+    const result = await sync.handleProjectUpdatePath({
+      projectId: "p1",
+      pcRootPath: "  ",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.pcRootPath).toBeNull();
+    const row = dbManager.get(
+      `SELECT pc_root_path FROM projects WHERE id = 'p1'`,
+    );
+    expect(row.pc_root_path).toBeNull();
+  });
+
+  it("rate-limits >10 calls/min from same peer", async () => {
+    dbManager.run(
+      `INSERT INTO projects (id, user_id, name, project_type, status,
+        created_at, updated_at) VALUES ('p1', 'u1', 'T', 'document', 'active', 100, 100)`,
+    );
+    for (let i = 0; i < 10; i++) {
+      const r = await sync.handleProjectUpdatePath(
+        { projectId: "p1", pcRootPath: `/p${i}` },
+        { peerId: "PEER-X" },
+      );
+      expect(r.ok).toBe(true);
+    }
+    const r11 = await sync.handleProjectUpdatePath(
+      { projectId: "p1", pcRootPath: "/p11" },
+      { peerId: "PEER-X" },
+    );
+    expect(r11.ok).toBe(false);
+    expect(r11.error).toBe("RATE_LIMITED");
   });
 });

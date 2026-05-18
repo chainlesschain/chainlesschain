@@ -48,11 +48,11 @@ public enum SeedRegistry {
         SkillMetadata(
             namespace: "knowledge",
             displayName: "知识库",
-            description: "RAG / 笔记 CRUD / 检索",
+            description: "RAG / 笔记 CRUD / 检索 / 版本 / 归档 / 导入导出 — Phase 6.3 30 method 已 wired",
             category: "data",
             risk: .Mutating,
-            nativeSourceFile: "NotImplementedYet.swift",
-            methodCount: 55,
+            nativeSourceFile: "KnowledgeCommands.swift",
+            methodCount: 30,
             methods: [
                 MethodMetadata(name: "createNote", description: "创建笔记（Markdown 内容 + 可选 folder/tags）",
                                paramCount: 4, paramSummary: "title, content, folderId?, tags?",
@@ -101,11 +101,11 @@ public enum SeedRegistry {
         SkillMetadata(
             namespace: "ai",
             displayName: "AI 对话",
-            description: "LLM 对话 / RAG / agent / 多模态 / TTS / ASR",
+            description: "LLM 对话 / RAG / agent / 多模态 / TTS / ASR — Phase 5 + 6.4 共 37 method (chat 12 + extended 25)",
             category: "ai",
             risk: .Privileged,
-            nativeSourceFile: "NotImplementedYet.swift",
-            methodCount: 53,
+            nativeSourceFile: "AIChatCommands.swift + AIExtendedCommands.swift",
+            methodCount: 37,
             methods: [
                 MethodMetadata(name: "chat", description: "LLM 对话（带 conversationId 维持上下文）",
                                paramCount: 5, paramSummary: "message, conversationId?, model?, systemPrompt?, temperature?",

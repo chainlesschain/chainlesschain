@@ -784,6 +784,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          mkdir -p build
+          # Raw xcodebuild output (no xcpretty filter — xcpretty silent-drops
+          # some error formats per feedback_xcpretty_swallows_xcodebuild_errors).
           xcodebuild build \
             -project ChainlessChain.xcodeproj \
             -scheme ChainlessChain \
@@ -793,7 +796,8 @@ jobs:
             -clonedSourcePackagesDirPath .spm-cache \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/xcodebuild-build-unsigned.log
 
           mkdir -p build/output
           APP_PATH="build/DerivedData/Build/Products/Release-iphonesimulator/ChainlessChain.app"
@@ -824,6 +828,7 @@ jobs:
           path: |
             ios-app/build/xcodebuild-archive.log
             ios-app/build/xcodebuild-export.log
+            ios-app/build/xcodebuild-build-unsigned.log
           if-no-files-found: ignore
           retention-days: 7
 

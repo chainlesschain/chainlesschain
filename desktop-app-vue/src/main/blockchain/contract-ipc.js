@@ -4,7 +4,20 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+
+// Module-level let + seams for vi.mock CJS interop (RFC T1).
+let _ipcMain = require("electron").ipcMain;
+let _getContractTemplates = () => require("../trade/contract-templates");
+
+function _setIpcMainForTesting(impl) {
+  _ipcMain = impl ?? require("electron").ipcMain;
+}
+
+function _setContractTemplatesForTesting(impl) {
+  _getContractTemplates = impl
+    ? () => impl
+    : () => require("../trade/contract-templates");
+}
 
 /**
  * 注册智能合约相关的 IPC 处理器
@@ -13,7 +26,7 @@ const { ipcMain } = require("electron");
  */
 function registerContractIPC({ contractEngine }) {
   // 创建合约
-  ipcMain.handle("contract:create", async (_event, options) => {
+  _ipcMain.handle("contract:create", async (_event, options) => {
     try {
       if (!contractEngine) {
         throw new Error("智能合约引擎未初始化");
@@ -27,7 +40,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 激活合约
-  ipcMain.handle("contract:activate", async (_event, contractId) => {
+  _ipcMain.handle("contract:activate", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         throw new Error("智能合约引擎未初始化");
@@ -41,7 +54,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 签名合约
-  ipcMain.handle("contract:sign", async (_event, contractId, signature) => {
+  _ipcMain.handle("contract:sign", async (_event, contractId, signature) => {
     try {
       if (!contractEngine) {
         throw new Error("智能合约引擎未初始化");
@@ -55,7 +68,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 检查合约条件
-  ipcMain.handle("contract:check-conditions", async (_event, contractId) => {
+  _ipcMain.handle("contract:check-conditions", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         return { allMet: false, conditions: [] };
@@ -69,7 +82,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 执行合约
-  ipcMain.handle("contract:execute", async (_event, contractId) => {
+  _ipcMain.handle("contract:execute", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         throw new Error("智能合约引擎未初始化");
@@ -83,7 +96,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 取消合约
-  ipcMain.handle("contract:cancel", async (_event, contractId, reason) => {
+  _ipcMain.handle("contract:cancel", async (_event, contractId, reason) => {
     try {
       if (!contractEngine) {
         throw new Error("智能合约引擎未初始化");
@@ -97,7 +110,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 获取合约详情
-  ipcMain.handle("contract:get", async (_event, contractId) => {
+  _ipcMain.handle("contract:get", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         return null;
@@ -111,7 +124,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 获取合约列表
-  ipcMain.handle("contract:get-list", async (_event, filters) => {
+  _ipcMain.handle("contract:get-list", async (_event, filters) => {
     try {
       if (!contractEngine) {
         return [];
@@ -125,7 +138,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 获取合约条件
-  ipcMain.handle("contract:get-conditions", async (_event, contractId) => {
+  _ipcMain.handle("contract:get-conditions", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         return [];
@@ -139,7 +152,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 获取合约事件
-  ipcMain.handle("contract:get-events", async (_event, contractId) => {
+  _ipcMain.handle("contract:get-events", async (_event, contractId) => {
     try {
       if (!contractEngine) {
         return [];
@@ -153,7 +166,7 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 发起仲裁
-  ipcMain.handle(
+  _ipcMain.handle(
     "contract:initiate-arbitration",
     async (_event, contractId, reason, evidence) => {
       try {
@@ -174,7 +187,7 @@ function registerContractIPC({ contractEngine }) {
   );
 
   // 解决仲裁
-  ipcMain.handle(
+  _ipcMain.handle(
     "contract:resolve-arbitration",
     async (_event, arbitrationId, resolution) => {
       try {
@@ -194,9 +207,9 @@ function registerContractIPC({ contractEngine }) {
   );
 
   // 获取合约模板列表
-  ipcMain.handle("contract:get-templates", async () => {
+  _ipcMain.handle("contract:get-templates", async () => {
     try {
-      const ContractTemplates = require("../trade/contract-templates");
+      const ContractTemplates = _getContractTemplates();
       return ContractTemplates.getAllTemplates();
     } catch (error) {
       logger.error("[Main] 获取合约模板列表失败:", error);
@@ -205,11 +218,11 @@ function registerContractIPC({ contractEngine }) {
   });
 
   // 从模板创建合约
-  ipcMain.handle(
+  _ipcMain.handle(
     "contract:create-from-template",
     async (_event, templateId, params) => {
       try {
-        const ContractTemplates = require("../trade/contract-templates");
+        const ContractTemplates = _getContractTemplates();
 
         // 验证参数
         const validation = ContractTemplates.validateParams(templateId, params);
@@ -237,20 +250,27 @@ function registerContractIPC({ contractEngine }) {
   );
 
   // 获取合约的区块链部署信息
-  ipcMain.handle("contract:get-blockchain-info", async (_event, contractId) => {
-    try {
-      if (!contractEngine) {
+  _ipcMain.handle(
+    "contract:get-blockchain-info",
+    async (_event, contractId) => {
+      try {
+        if (!contractEngine) {
+          return null;
+        }
+
+        return await contractEngine._getDeployedContract(contractId);
+      } catch (error) {
+        logger.error("[Main] 获取合约部署信息失败:", error);
         return null;
       }
-
-      return await contractEngine._getDeployedContract(contractId);
-    } catch (error) {
-      logger.error("[Main] 获取合约部署信息失败:", error);
-      return null;
-    }
-  });
+    },
+  );
 
   logger.info("[ContractIPC] 智能合约 IPC 处理器已注册 (15个处理器)");
 }
 
-module.exports = { registerContractIPC };
+module.exports = {
+  registerContractIPC,
+  _setIpcMainForTesting,
+  _setContractTemplatesForTesting,
+};

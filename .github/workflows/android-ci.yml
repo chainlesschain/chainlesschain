@@ -106,14 +106,21 @@ jobs:
       - name: Run Library Module Unit Tests
         working-directory: android-app
         run: |
-          # Run tests for library modules (excludes app module which has known compilation issues in remote/ package)
+          # Library modules tested separately from :app for failure-isolation
+          # diagnostic clarity (each step's outcome attributes failures
+          # cleanly to either core libs or the app module).
           ./gradlew :core-common:testDebugUnitTest :core-database:testDebugUnitTest :core-security:testDebugUnitTest \
             :core-did:testDebugUnitTest :core-e2ee:testDebugUnitTest :core-p2p:testDebugUnitTest \
             :core-blockchain:testDebugUnitTest :core-network:testDebugUnitTest --stacktrace
 
+      # continue-on-error dropped 2026-05-18: the prior mask claimed "known
+      # compilation issues in remote/ package", but a local clean build of
+      # :app:testDebugUnitTest passed (3m 56s, no errors) after the minSdk 26→28
+      # fix unblocked manifest merger. The "remote/" claim was stale — likely
+      # resolved months earlier but the mask was never cleaned up. See
+      # feedback_ci_false_green_audit_checklist.md.
       - name: Run App Module Unit Tests
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Generate Coverage Report
@@ -175,9 +182,12 @@ jobs:
         working-directory: android-app
         run: chmod +x ./gradlew
 
+      # continue-on-error dropped 2026-05-18: local :app:assembleDebug passed
+      # (15m 31s, 3 APKs produced) after the minSdk 26→28 fix unblocked
+      # manifest merger. Same audit batch as the testDebugUnitTest mask
+      # above. See feedback_ci_false_green_audit_checklist.md.
       - name: Build Debug APK
         working-directory: android-app
-        continue-on-error: true
         run: ./gradlew assembleDebug
 
       - name: Upload Debug APK
@@ -244,8 +254,12 @@ jobs:
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
+      # Step-level continue-on-error dropped 2026-05-18 second sweep: was
+      # redundant with the job-level `continue-on-error: true` above (L204).
+      # Double-masking made the step outcome lie — gradle result is now the
+      # source of truth, with the outer job-level mask still keeping emulator
+      # flakiness from blocking the pipeline.
       - name: Run Instrumented Tests
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -253,7 +267,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd android-app && ./gradlew connectedDebugAndroidTest || true
+          script: cd android-app && ./gradlew connectedDebugAndroidTest
 
       - name: Upload Instrumented Test Results
         if: always()
@@ -294,9 +308,16 @@ jobs:
         working-directory: android-app
         run: chmod +x ./gradlew
 
+      # Inline `|| true` promoted to step-level continue-on-error 2026-05-18
+      # second sweep: undocumented inline mask was hiding real OWASP findings
+      # behind a green step icon. Step outcome now reflects actual scan result
+      # (failure if vulns found); job still doesn't block on this (the notify
+      # job's gate only checks lint/test/build, not security-scan), so the
+      # advisory model is preserved without the false-green.
       - name: Run Dependency Check
         working-directory: android-app
-        run: ./gradlew dependencyCheckAnalyze || true
+        continue-on-error: true
+        run: ./gradlew dependencyCheckAnalyze
 
       - name: Upload Security Report
         if: always()

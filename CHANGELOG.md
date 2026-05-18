@@ -5,6 +5,104 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [iOS Phase 6 sprint] - 2026-05-18 — Knowledge 30 + AI Extended 25 全 hybrid + 15 main tab + 多模态 v0.3 + Agent streaming（19 commits, 绿基线 `1fb947b32`）
+
+> 一晚 19 commits 收口 iOS Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 多模态实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修。
+
+**Phase 6.3 — Knowledge 桌面 30 method 全 hybrid**（commits `d5525c1d1` → `874b3b83c`）
+- step 1: folders 5 + tags CRUD 3 + getNote alias 2 = 10 method
+- step 2: versions 4 + star/pin 6 = 10 method
+- step 3: archive 3 + import-export 4 + tags 高级 3 = 10 method
+- 桌面 `knowledge-handler.js` 老 9 + 30 = **39 method 总**
+- 新 SQLite 表 `knowledge_folders` + `knowledge_note_versions` + ALTER notes 加 starred/pinned/last_viewed_at/archived 列
+- 92 cumulative tests 联跑 7.94s
+
+**Phase 6.3 — iOS KnowledgeCommands actor wrap 31 method**（commit `5b0e82c97`）
+- `Modules/CoreP2P/Sources/RemoteSkills/Knowledge/KnowledgeCommands.swift` actor 31 method（30 + getNote alias）
+- `KnowledgeModels.swift` 25 Sendable Response struct + `pickIdAsString` / `pickInt64` helper
+- 复用 Extension Phase 6.7 `invokeAndDecode` helper 模板（method ≥ 10 时统一）
+- 35 envelope + decode + tag JSON 字符串→数组 + Int→String id 标准化 tests
+
+**Phase 6.4 — AI Handler 桌面 25 method 全 hybrid**（commits `b6da42ef2` + `d23d41cc9` + `d0bb48733`）
+- commit 1: Conversations 高级 5 + Prompt templates 3 + RAG 5 = 13 method
+- commit 2: Multimodal 4 + Code helpers 4 = 8 method
+- commit 3: Agents 4 = 4 method
+- 桌面 `ai-handler.js` 老 5 + Phase 5 fix 7 + Phase 6.4 25 = **37 method total**
+- 新表 `ai_prompt_templates`；RAG/Multimodal/Agents 用 defensive method 检测（双路径 `mgr.list || mgr.listAgents`），查询缺 dep 降级 `available: false`，mutating throw
+- 101 cumulative ai tests 联跑 1.7s
+
+**Phase 6.4 — iOS AIExtendedCommands actor wrap 25 method**（commit `cf75e822f`）
+- `Modules/CoreP2P/Sources/RemoteSkills/AIExtended/` 25 method + 24 Sendable Response struct
+- 与 AIChat (Phase 5 12) 并列共 37 ai method 完全覆盖桌面
+- SeedRegistry ai entry methodCount 53 → 37 对齐真实，nativeSourceFile 列两个 actor
+- 28 envelope/decode tests
+
+**Phase 6.4 UI — KnowledgeView + AIExtendedView**（commit `b92ffe640`）
+- RemoteOperateView SkillTab 13 → **15** main tab（`.knowledge` 📚 / `.aiExtended` ✨）
+- KnowledgeView 4 filter segmented（All/Starred/Pinned/Archived）+ 搜索 + 新建 sheet + swipe action
+- AIExtendedView 3 sub-tab（Templates/Code 3 mode/RAG）
+- RemoteDependencies 公开 `knowledge` + `aiExtended`
+- Outer/Inner + StateObject init 模式（解 `@EnvironmentObject` 在 init() 不可用）
+- 19 VM tests（filter 路由 / optimistic update / archive 列表移除 / code 3 mode 路由 / RAG search+stats）
+
+**Phase 6.4 v0.2 — Multimodal + Agents UI**（commit `d897d3cdf`）
+- AIExtendedView +2 sub-tab → 5 sub-tab（触 HIG 软上限，picker 切 horizontal scroll + capsule highlight）
+- Multimodal 4 mode：PhotosUI PhotosPicker OCR / 文本生图 AsyncImage+base64→UIImage / TTS AVAudioPlayer / .fileImporter UTType.audio → base64 transcribe
+- Agents：statusBanner + 列表 + run form + 4 色 status chip（running/complete/failed/stopped）
+- 13 VM tests（Multimodal 7 + Agents 6）
+
+**Phase 6.4 v0.3 — Agent streaming + 实时录音**（commits `a2d41fc7e` + `073af9ed4`）
+- 桌面 `runAgentStream` 复用既有 `activeStreams` Map（streamId-agnostic 与 chat stream 共用），onChunk 兼容 string + {content} 对象
+- iOS 3 wrap method（runAgentStream/getAgentStreamChunk/cancelAgentStream，后两个调既有桌面 `ai.getStreamChunk`/`ai.cancelStream`）
+- VM 后台 Task while `!Task.isCancelled` 轮询 250ms（≈4Hz UI 更新，测试可调小）+ MainActor.run 累 `agentStreamOutput`
+- Agents UI："流式输出 (v0.3)" toggle + 闪烁蓝点 + "等待第一个 chunk…" 占位 + 实时累积渲染
+- 新文件 `MultimodalAudioRecorder.swift` (@MainActor + AVAudioSession + 16kHz mono AAC Whisper 优化) + transcribeAudioSection 加 [开始录音] 红色 button + 闪烁红点 + 时长 monospaced + 停止/取消
+- 10 desktop tests + 4 iOS VM streaming tests = 14
+
+**iOS CI 真编 verify**（commits `fa0746860` + `1fb947b32`）
+- iOS GitHub Actions `ios-build.yml` 2 轮抓 2 真 bug 修：
+  1. `RemoteAIExtendedViewModel.swift:425` `sinceChunk = resp.nextChunkIdx` —`StreamChunkResponse.nextChunkIdx` 是 `Int?`，类型不匹配 → `?? sinceChunk`
+  2. `RemoteAIExtendedViewModel.swift:431` `if let err = resp.error` — `StreamChunkResponse` 模型缺 `error` 字段 → 加 (backward-compat decode)
+- Win 无 Swift 编译器，1500+ LOC Swift 唯一编译验证路径 = macOS iOS CI
+- **绿基线 `1fb947b32`** (Build & Test SPM + Build Release SPM 三 job 全绿)
+
+**设计文档**
+- `iOS_对标_Android_Phase_6_Plan.md` §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式（invokeAndDecode helper 模板 / 桌面 handler available 优雅降级 / better-sqlite3 Number→TEXT trap / iOS Inner View StateObject 模式 / OQ-3 hybrid 决策框架）
+- `iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md` — Phase 6.3/6.4 desktop debt 审计
+- `iOS_Phase_6_6_Desktop_Skill.md` + `iOS_Phase_6_7_Extension_Skill.md` — Coverage Trap T2/T4 误判修正
+- `iOS_Phase_6_0_RealDevice_E2E_Plan.md` v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级
+
+**memory** 新增 4 entries（type=feedback/project）：
+- `phase_6_knowledge_ai_hybrid_complete` (project) — 全套总结
+- `better_sqlite3_text_number_trap` (feedback) — Number→TEXT "1.0" 5 处 String() 包
+- `ios_inner_view_stateobject_pattern` (feedback) — SwiftUI @EnvironmentObject 不可在 init() 用
+- `ios_ci_only_verify_path_on_win` (feedback) — Win 无 Swift，"Phase X 完成 ✅" 必须等 iOS CI 真绿
+
+**剩余真机 E2E**（plan §11.4 唯一未闭环 follow-up）：Mac + iPhone + 桌面跑 38 场景。Win dev box 不可推进。
+
+---
+
+## [Sub-phase 5-6 v2 + 10 v2] - 2026-05-18 — Android LOCAL 项目终端 picker + 全量项目内容拉取（commit `09bd0ec0f`）
+
+> 承接 `3319febc4` Sub-phase 5-6 fix 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一起收口。
+
+**Issue 1: LOCAL 项目终端入口改为 PC 项目 picker**
+- 旧 v1 手输 Windows 路径太难用；新 v2 dialog 打开调 `project.list` 拉所有桌面项目 → LazyColumn picker → tap row → 保存 pcRootPath + 跳终端
+- 同名匹配项目高亮 "同名" 标顶部；列表为空时自动展开自定义路径折叠区 + error hint
+- 触点：`RemoteContextViewModel.listPcProjects` / `ProjectDetailScreenV2` AlertDialog 全重写
+
+**Issue 2: PC→Android 全量项目内容拉取**
+- 旧 v1 pullSingle 只拉 metadata + 文件清单；新 v2 之后循环 `project.getFile(fileId)` 把每个文件 content 存 Room project_files
+- 单文件失败 continue + log warn；content > 1MB skip 占位 row 防 OOM
+- PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + 当前文件名行
+- 触点：`RemoteProjectBrowserViewModel.pullProject` 加 files 循环 + remoteFileToEntity / `RemoteProjectBrowserScreen` 进度 row
+
+**测试覆盖**：78 新单元 + 集成测试全绿（详见 [设计文档 §12.4](docs/design/Android_Project_Remote_Terminal_Entry.md)）；同步修了 3 个 stale 测试断言。
+
+**剩余真机 E2E §12.3 8 场景**：需 Mac/Win PC + Android 双机配对环境，dev box 无法独验。
+
+---
+
 ## [v5.0.3.64] - 2026-05-18 — iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 全套测试覆盖
 
 > v5.0.3.63 release 后用户反馈：(1) iOS Settings 「版本」显示只有 3 段制 `5.0.3` 或 stale `0.32.0`(实际几个月没更过 hardcode 常量); (2) PIN 闪退问题仍报告(待用户提供 v5.0.3.63 .ipa 上的具体 crash log)。本版做三件事:**A** 修 `AppConstants.App.version` / `buildNumber` / `bundleId` 三个 stale 硬编码 (0.32.0 / 32 / com.chainlesschain.ios) 改为从 `Bundle.main` 动态读, Settings 「关于」展示完整 `v5.0.3.64` 4 段制; **B** 加 iOS 17 API 二次审计(对全仓 596 个 `.swift` 跑 29 个 pattern,确认 0 新增违规, `AppState.swift` `assumeIsolated` → `Task @MainActor` 的 v5.0.3.63 修复已就位); **C** 加单元测试 + 集成测试 + UITest 三层覆盖锁死版本号显示 + PIN 解锁不崩两类回归。
@@ -849,10 +947,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装 20m → ~5m, issue #8）
+## [v5.0.3.39] - 2026-05-07 — B4 post-pack ASAR surgery（Windows 安装显著加速, issue #8）
 
 ### Fixed
-- Windows installer time from ~20 min back to ~5 min by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`).
+- Windows installer time substantially reduced by re-enabling `asar: true` and running post-pack ASAR surgery in `afterPack` to inject the 4 walker-dropped packages (`call-bind-apply-helpers`, `side-channel-{list,map,weakmap}`) at top-level (commit `e11b46913`). **Measured: 190.9s on dev-box (NVMe SSD + Defender OFF) vs 1201s legacy baseline (issue #6) = 6.3× speedup. HDD + Defender ON default-environment strict parity not measured** — see [issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) for methodology caveats.
 
 ### Added
 - `scripts/asar-surgery.js` — extract → inject → repack with original unpackDir preserved + verification gate.

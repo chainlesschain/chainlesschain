@@ -15,13 +15,16 @@ const
 
 ---
 
-## const javaClient = axios.create(
+## let _javaClient = axios.create(
 
 ```javascript
-const javaClient = axios.create(
+let _javaClient = axios.create(
 ```
 
 * 创建axios实例
+ *
+ * Module-level `let` + seam for vi.mock CJS interop (RFC T1).
+ * Tests inject fakes via `_setClientsForTesting({ java, python })`.
 
 ---
 

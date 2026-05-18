@@ -2,6 +2,46 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-18 收口 — **iOS Phase 6 sprint 全套：Knowledge 30 + AI Extended 25 + 15 main tab + 多模态 v0.3 + Agent streaming**
+
+> 一晚 19 commits 收口 iOS 端 Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修，**绿基线 `1fb947b32`**。
+
+- **Phase 6.3 — Knowledge 桌面 30 method 全 hybrid**（commits `d5525c1d1` → `874b3b83c`）—`knowledge-handler.js` 老 9 + step 1 (folders 5 + tags CRUD 3 + getNote alias 2) + step 2 (versions 4 + star/pin 6) + step 3 (archive 3 + import-export 4 + tags 高级 3) = **30/30 完成 ✅**。新增 SQLite 表 `knowledge_folders` + `knowledge_note_versions` + ALTER notes 加 starred/pinned/last_viewed_at/archived 列。**92 cumulative tests** 联跑 7.94s。
+- **Phase 6.3 — iOS KnowledgeCommands actor wrap 31 method**（commit `5b0e82c97`）—`Modules/CoreP2P/Sources/RemoteSkills/Knowledge/`：actor 31 method（30 + getNote alias）+ 25 Sendable Response struct + 35 envelope/decode tests。复用 `invokeAndDecode` helper 模板。
+- **Phase 6.4 — AI Handler 桌面 25 method 全 hybrid**（commits `b6da42ef2` + `d23d41cc9` + `d0bb48733`）—`ai-handler.js` 老 5 + Phase 5 fix 7 + Phase 6.4 25 = **37 method total**：Conversations 高级 5 + Prompt templates 3 + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4。新表 `ai_prompt_templates`。RAG/Multimodal/Agents 用 defensive method 检测（双路径 `mgr.list || mgr.listAgents`），查询缺 dep 降级 `available: false`，mutating throw。**101 cumulative ai tests** 联跑 1.7s。
+- **Phase 6.4 — iOS AIExtendedCommands actor wrap 25 method**（commit `cf75e822f`）—与 AIChat (Phase 5 12) 并列共 37 ai method 完全覆盖桌面。SeedRegistry methodCount 53 → 37 对齐真实。
+- **Phase 6.4 UI — KnowledgeView + AIExtendedView 2 新 tab → RemoteOperateView 15 main tab**（commit `b92ffe640`）—Knowledge 4 filter segmented + 搜索 + 新建 sheet + swipe action；AIExtended 5 sub-tab（Templates/Code 3 mode/RAG）。iOS 16 PhotosUI / TextField axis: .vertical / SwiftUI Outer/Inner + StateObject init 模式（解 `@EnvironmentObject` init() 不可用）。
+- **Phase 6.4 v0.2 — Multimodal + Agents UI**（commit `d897d3cdf`）—AIExtendedView +2 sub-tab → 5 sub-tab（5 触 HIG 软上限，picker 切 horizontal scroll）。Multimodal：PhotosPicker → OCR / 文本生图 AsyncImage / TTS AVAudioPlayer / file picker 转文字。Agents：list/detail/run/stop + 4 色状态 chip。
+- **Phase 6.4 v0.3 — Agent streaming + 实时录音**（commits `a2d41fc7e` + `073af9ed4`）：
+  - 桌面 `runAgentStream` 复用既有 `activeStreams` Map（streamId-agnostic 与 chat stream 共用），10 desktop tests
+  - iOS 3 wrap method (runAgentStream + getAgentStreamChunk + cancelAgentStream) + VM 后台 Task 250ms poll loop + Agents UI 闪烁蓝点 + 实时累积渲染，4 iOS VM tests
+  - 新文件 `MultimodalAudioRecorder.swift` (@MainActor + AVAudioSession + 16kHz mono AAC 录到 NSTemporaryDirectory) + transcribeAudioSection 加 [开始录音] 红色 button + 闪烁红点 + 时长 monospaced
+- **iOS CI 真编 verify**（commits `fa0746860` + `1fb947b32`）—iOS GitHub Actions `ios-build.yml` 2 轮抓 2 真 bug 修：(1) `RemoteAIExtendedViewModel.swift:425` `nextChunkIdx: Int?` 类型不匹配 → `?? sinceChunk` (2) `StreamChunkResponse` 模型缺 `error` 字段 → 加。Win 无 Swift 编译器，iOS CI 是 1500+ LOC Swift 唯一编译验证路径。绿基线 **`1fb947b32`**（Build & Test SPM + Build Release SPM 三 job 全绿）。
+- **设计文档**：(1) [`iOS_对标_Android_Phase_6_Plan.md`](docs/design/iOS_对标_Android_Phase_6_Plan.md) §11 加 19 commits 时序表 + 实际 vs 计划偏差 + 5 个新模式；(2) [`iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md`](docs/design/iOS_Phase_6_3_6_4_Knowledge_AI_Desktop_Debt.md) — Phase 6.3/6.4 debt 审计；(3) [`iOS_Phase_6_6_Desktop_Skill.md`](docs/design/iOS_Phase_6_6_Desktop_Skill.md) + [`iOS_Phase_6_7_Extension_Skill.md`](docs/design/iOS_Phase_6_7_Extension_Skill.md) — Coverage Trap T2/T4 误判修正；(4) [`iOS_Phase_6_0_RealDevice_E2E_Plan.md`](docs/design/iOS_Phase_6_0_RealDevice_E2E_Plan.md) v1.0 — 38 场景跨 7 段 reproducer + bug 模板 + 通过/失败 P0/P1/P2 分级。
+- **memory** 新增 4 entries（type=feedback/project）：`phase_6_knowledge_ai_hybrid_complete` / `better_sqlite3_text_number_trap` (Number→TEXT "1.0" 5 处 String() 包) / `ios_inner_view_stateobject_pattern` / `ios_ci_only_verify_path_on_win`（Win 无 Swift，"Phase X 完成 ✅" 必须等 iOS CI 真绿）。
+- **剩余真机 E2E**（plan §11.4 唯一未闭环 follow-up）：Mac + iPhone + 桌面在场跑 38 场景。Win dev box 不可推进，移交用户。
+
+## 2026-05-18 发布 — **Android Sub-phase 5-6 v2 + 10 v2：LOCAL 项目终端 picker + 全量项目内容拉取**
+
+> 承接 `3319febc4` 真机反馈："弹补填对话框但找不到同名 PC 项目"+"项目文件同步没做"两条阻塞，两件事一次性收口。
+
+- **Issue 1 LOCAL 终端入口改 picker**：旧 v1 让用户在手机上敲 Windows 长路径，UX 失败。新 v2 dialog 打开拉桌面 `project.list` 显示 PC 项目列表 → tap row → 直接保存 pcRootPath + 跳终端，零输入。同名项目高亮 "同名" 标置顶；列表为空时自动展开自定义路径 fallback。
+- **Issue 2 全量内容拉取**：旧 v1（Sub-phase 7）只存 metadata；用户拉了之后离线打开项目还是 0 文件。新 v2 在 pullSingle 之后循环 `project.getFile(fileId)` 真把每个文件 content 存 Room project_files。单文件失败 continue + log；content > 1MB skip 占位 row 防 OOM；PullProgress StateFlow 暴露进度 → UI 显 LinearProgressIndicator + "下载文件 N/M: <path>"。
+- **78 新测试**：`RemoteContextViewModelTest` × 16 / `RemoteProjectBrowserViewModelTest` × 7 / `mobile-bridge-sync.test.js` × 15（含 6 新 `handleProjectUpdatePath`）/ `project-management-handler.test.js` × 33（含 9 新 file CRUD）/ `project-handlers.test.js` × 7。同步修了 3 个 stale 测试断言（504bd6dde 改 userId 过滤后没同步更新）。
+- **设计文档**：[`docs/design/Android_Project_Remote_Terminal_Entry.md §12`](docs/design/Android_Project_Remote_Terminal_Entry.md) 加 v2 picker 设计 + 全量拉文件设计 + 真机 E2E 8 场景矩阵。
+- **commit**：`09bd0ec0f` (`feat(mobile): LOCAL 项目终端 picker + 全量项目内容拉取`)。
+- **剩余真机 E2E**：8 场景需 Mac/Win PC + Android 双机配对环境，dev box 无法独验。
+
+## 2026-05-18 发布 — **iOS v5.0.3.64：版本号 4 段制 + AppConstants stale 硬编码清零 + 测试三层覆盖**
+
+> v5.0.3.63 发版后用户反馈：(1) iOS Settings 「版本」只显示 3 段制 `5.0.3` 或 stale `0.32.0`（实际几个月没更过硬编码常量）；(2) PIN 闪退仍报告（待 crash log 复现）。本版三件事：
+
+- **A 修 stale 硬编码（真 bug，找到根因）**：`AppConstants.App.version` 几个月一直写死 `"0.32.0"`、`buildNumber` 写死 `"32"`、`bundleId` 写死错值 `"com.chainlesschain.ios"`（CodeSign 实际用 `.ChainlessChain`）→ 全改用 `Bundle.main` 动态读。`AIDashboardView.swift:95` 硬编码 `v0.16.0` + `PluginManager.swift:118` fallback `1.7.0` 一并扫净。
+- **B iOS 17 API 二次审计**：全仓 596 个 `.swift` × 29 个 pattern（`assumeIsolated` / `@Observable` / `SwiftData` / `symbolEffect` / `ContentUnavailableView` / `KeyframeAnimator` / `sensoryFeedback` / `Previewable` 等）扫描，**0 处新增违规**。`AppState.swift` v5.0.3.63 修（`assumeIsolated` → `Task @MainActor`）已就位。
+- **C 测试三层覆盖**：11 BundleVersionTests + 7 AppStateNotificationTests + 2 XCUITest（`testSettingsVersionDisplaysFourSegmentTag` / `testPINUnlockDoesNotCrashOnFirstLaunch`），锁死版本号格式 + PIN 解锁不崩两类回归。
+- **新 Bundle extension**：`Bundle.appShortVersion` / `appBuildNumber` / `appFullVersion`（4 段制 `5.0.3.64`）/ `appFullVersionTag`（`v5.0.3.64`）/ `appDisplayName`，所有 UI 统一调。SettingsView 关于栏显示 `v5.0.3.64` 完整 4 段制 + 加「Bundle ID」一栏让用户能直接确认安装的真版本。
+- **待用户反馈**：v5.0.3.63 PIN 闪退根因未在代码层复现。装 v5.0.3.64 仍崩请附 crash log（Xcode → Devices and Simulators → View Device Logs）。SettingsView 新「Bundle ID」字段可帮确认安装的是 v5.0.3.64 真版本。
+
 ## 2026-05-17 发布 — **Android 远程文件 skill 端到端（浏览 / 上传 / 下载 / app 内打开）**
 
 > Android 手机配对桌面后，三大能力一次性落地：浏览 PC 任意目录（无 sandbox）、上传本机文件到 PC `~/Downloads/`、PC 文件下载到手机**公共 Download 目录**（MediaStore.Downloads，原生「文件管理」/「相册」/「阅读器」都能直接看到）。Snackbar 「打开」按钮 `Intent.ACTION_VIEW(content://...)` 拉系统 viewer，**不跳出 app**。
@@ -24,6 +64,19 @@
 - **最终 sweep bug 修**（commit `f1d283833`）— C.1 PR1 `VoiceLaunchActionsTest` + PR2 `CcPhoneVoiceListenerTest` 漏标 `@Config(sdk=[33])`，Robolectric `DefaultSdkPicker` 拒收 compileSdk=35（maxSdkVersion=34）— 统一与 `:app` 其它 Robolectric 测试一致。
 
 详见 [issue #21](https://github.com/chainlesschain/chainlesschain/issues/21) + [Android 重新定位 §10 GA 后续 scope](docs/design/Android_重新定位_设计文档.md)。
+
+## 2026-05-18 收口 — **iOS Phase 5 AI Chat 静态审计 4 真实 bug 修复 + 4 集成测试**
+
+> Phase 5.1-5.6（远程 LLM 对话 + token-by-token 流式 + 8 method + cancel + 对话管理 + 离线 enqueue）已落，但 41 单测全是同模块内 mock，缺端到端集成 + UI/VM 交互 edge case 覆盖。本轮静态审计找到 4 真实 bug，每个 1 个回归单测；同时补 4 个集成测试验真链路。
+
+- **Bug #1 — 空字符串穿透 nil-coalesce**：`RemoteAIChatViewModel.finalizeStreamingPlaceholder` 旧代码 `messageId ?? oldMsg.id`。`ChatStreamEnd.parseFromEnvelope` 在 server 缺 `messageId` 时填 `""`（不是 nil），nil-coalesce 不兜底，`""` 直接覆盖本地 `local-assistant-<UUID>` 占位 id，SwiftUI `ForEach(messages, id: \.id)` 身份被击穿（多条 row 共享空 id）。改为 `if let mid = messageId, !mid.isEmpty` 显式 guard。
+- **Bug #2 — 删除当前对话失败时半回滚**：`deleteConversation` 失败时仅恢复 `conversations` 列表，`currentConversation` / `messages` 留在已清空状态。新增 `rollbackDelete` 私有方法 + 入口处 `wasCurrent`/`originalCurrent`/`originalMessages` 快照，全量原子回滚。
+- **Bug #3 — `sendMessage` 缺 stream-in-flight 防御**：UI 在流式中切到 cancel button 形态，但 VM 不能假设上层禁掉了 send 入口（programmatic 调用 / 双击竞争）。在 DC gate 前加 `guard currentStreamId == nil else { lastError = "请先等待当前响应完成或取消"; return }`。
+- **Bug #4 — `selectConversation` stale streamId 污染**：切对话时不清 `currentStreamId`，依赖 `messages.last.isStreaming` guard 兜底。edge case：新 conv 末条恰为 streaming 占位（前次未 finalize）时，prev stream 的 delta 会越界改新 conv 的 last。改为显式 `currentStreamId = nil; isStreamingMessage = false`。
+- **集成测试 +4** — `Tests/CoreP2PTests/Integration/Phase5AIChatIntegrationTests.swift`：`testFullChatStreamHappyPathThroughFanout` (真 fan-out 端到端) / `testCancelOrderingDiscardBeforeRpc` (cancel 顺序 50ms 窗口验证) / `testOfflineCreateConversationDrainsOnRecover` (DC 恢复 drainer 触发 ai.createConversation) / `testCrossConversationStreamIsolation` (切对话清 streamId + sA 不污染 conv B)。
+- **单测从 41 → 45** — `RemoteAIChatViewModelTests.swift` +4 回归（每个 bug 1 条）；总 iOS 单测 ~313 + 45 = **~358**；集成测试 6 → **10**。
+- **文档**：[`docs/design/iOS_Phase_5_AI_Chat_Skill.md`](docs/design/iOS_Phase_5_AI_Chat_Skill.md) §8.1 / §8.2 / §8.3（静态审计 4 bug 详表）/ §8.4（Phase 5.8 真机 E2E 8 场景 reproducer 详步骤）全刷；docs-site 与 docs-site-design 通过 `sync-*.js` 同步刷新（162 文件）。
+- **真机 E2E（Phase 5.8）** 仍待 Mac+iPhone+真桌面在场，reproducer 详步骤已就绪。Win dev box 上 `swift test` 不可跑，验收依赖 iOS CI `swift build --target CoreP2P` 编译通过 + 静态审计 + 集成测试设计无 mock 绕过真链路。
 
 ## 2026-05-15 发布 — **iOS Phase 1+2+3+4 完整移植（桌面配对 + 远程终端 + 远程操控 framework + 4 skill + Notification skill）**
 
@@ -2216,7 +2269,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 桌面技能 + 28 Android 技能 · 14,987+ 测试 · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾 + M7 GA flip**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** by commit ffe722162 · 187 新单测全绿 / Android 总单测 196+ → 383+ · v1.0 GA 仍待用户出场 4 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能）· **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装 20m → ~5m · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
+## ⭐ 当前版本: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 桌面技能 + 28 Android 技能 · 14,987+ 测试 · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾 + M7 GA flip**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** by commit ffe722162 · 187 新单测全绿 / Android 总单测 196+ → 383+ · v1.0 GA 仍待用户出场 4 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能）· **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装显著加速 (dev-box 190.9s 实测, NVMe + Defender OFF; HDD parity 未测) · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
 
 ### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
 
@@ -2232,13 +2285,13 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ### 最新更新 - B4 post-pack ASAR surgery (v5.0.3.39, 2026-05-07, issue #8)
 
-Windows 安装时间从 ~20 分钟回到 ~5 分钟。v5.0.3.4-13 因 electron-builder 的 prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms = ~20 分钟安装地板。本版本（B4 plan，commit `e11b46913`）走第三条路：
+Windows 安装显著加速。**dev-box (NVMe SSD + Defender OFF) 实测 190.9s vs 1201s 旧 baseline (issue #6) = 6.3× 提速；HDD + Defender ON 默认环境严格 parity 数据未测**（[issue #8 close comment](https://github.com/chainlesschain/chainlesschain/issues/8#issuecomment-4393734608) 详述 methodology caveats）。v5.0.3.4-13 因 electron-builder 的 prod-dep walker 漏掉 `call-bind-apply-helpers` / `side-channel-{list,map,weakmap}` 4 个 transitive deps 改成 `asar: false` 兜底，代价是 NSIS 内 ~110k loose files × ~10ms = 旧 baseline 上 ~20 分钟安装地板。本版本（B4 plan，commit `e11b46913`）走第三条路：
 
 - **`scripts/asar-surgery.js`**：在 electron-builder afterPack 钩子里 extract → inject 4 个 walker-dropped 包到 staging top-level → `@electron/asar.createPackageWithOptions` 重打包，并保留 electron-builder 原始 unpackDir 决策。Build-time verification gate 检查 4 个包确实落在 top-level，缺一抛错。
 - **`scripts/build-win-with-deref.js`**：Win 包装 `electron-builder --win`，临时把 `@chainlesschain/{core-mtc,session-core}` workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），finally 用 `'junction'` 还原（Win 非 admin 不能创建 `'dir'` symlink）。
 - **`tests/unit/scripts/asar-surgery.test.js`** + **`build-win-with-deref.test.js`**：23 个单元 + 集成测试（真 fs + 真 `@electron/asar` 跑 fixture），过程中暴露并修掉一个真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，extractAll 后必须 `asar.uncache(asarPath)` 才能让 listPackage 读到 fresh header。
 
-预期 Windows 安装 ~5 分钟、安装包 ~300 MB 减重。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted（不要再走）：asarUnpack glob（issue #6）、extraResources to `app.asar.unpacked/`（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
+预期 Windows 安装数分钟（dev-box 190.9s 已验，HDD parity 未验）、安装包 ~300 MB 减重。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted（不要再走）：asarUnpack glob（issue #6）、extraResources to `app.asar.unpacked/`（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
 
 ### 最新更新 - 托盘"关于"产品版本 "—" 修复 (v5.0.3.33, 2026-05-06)
 

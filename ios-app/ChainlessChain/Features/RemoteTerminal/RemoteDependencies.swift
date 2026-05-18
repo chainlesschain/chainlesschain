@@ -50,6 +50,54 @@ public final class RemoteDependencies: ObservableObject {
     public let aiChat: AIChatCommands
     public let aiChatDispatcher: AIChatEventDispatcher
 
+    // Phase 6.1B1 第 1 批 100% wired skill（typed RPC，无 push event 子流）
+    public let input: InputCommands
+    public let display: DisplayCommands
+    public let application: ApplicationCommands
+    public let security: SecurityCommands
+    public let userBrowser: UserBrowserCommands
+
+    // Phase 6.1B3 红档桌面已支持子集 batch（D ⊂ A，iOS impl 桌面已支持 method）
+    public let power: PowerCommands
+    public let process: ProcessCommands
+    public let network: NetworkCommands
+    public let storage: StorageCommands
+    public let device: DeviceCommands
+    // sysinfo 既有 Phase 3.5 SystemInfoCommands，扩展 10 个 sysinfo.X method 已落 inline
+
+    // Phase 6.2 主屏 batch 1（media + browser — 桌面 case ⊂ Android invoke）
+    public let media: MediaCommands
+    public let browser: BrowserCommands
+
+    // Phase 6.5 红档子集 batch 2（workflow + system + history）
+    public let workflow: WorkflowCommands
+    public let system: SystemCommands
+    public let history: HistoryCommands
+
+    // Phase 6.6.1 远程桌面 typed wrapper（7 outer + 5 sendInput sub-type）
+    public let desktop: DesktopCommands
+
+    // Phase 6.6.2 虚拟光标 actor (OQ-4 A: iOS 端维护绝对坐标 + 边界 clamp，
+    // touch drag → applyDelta → 发 sendInput mouse_move)
+    public let desktopVirtualCursor: DesktopVirtualCursor
+
+    // Phase 6.6.3 frame 流式拉取 actor (OQ-1 A pull-based + OQ-2 B in-flight=1 +
+    // OQ-7 A drop-old cap=1 + Trap D6 退避 + maxConsecutiveErrors=5 fatal)
+    public let desktopFrameStreamer: DesktopFrameStreamer
+
+    // Phase 6.7.1 Chrome 扩展控制 (30 method 子集 of Android 95；wire 与其它
+    // Phase 6 skill 同 DC RPC 路径 — Plan §7 Trap T4 误判，本 actor 不连本地 WS)
+    public let chromeExtension: ExtensionCommands
+
+    // Phase 6.3 typed skill: knowledge (31 method — CRUD 9 + getNotes 通用 list + Folders 5
+    //   + Tags CRUD 3 + Versions 4 + Star/Pin 6 + Archive 3 + Export 2 + Import 2 + Tags 高级 3)
+    public let knowledge: KnowledgeCommands
+
+    // Phase 6.4 typed skill: ai extended (25 method — Conversations 高级 5 + Prompts 3
+    //   + RAG 5 + Multimodal 4 + Code helpers 4 + Agents 4)
+    //   与 aiChat (Phase 5, 12 method) 并列共 37 ai method 全覆盖桌面
+    public let aiExtended: AIExtendedCommands
+
     private let pairingDeps: PairingDependencies
     private var forwardingTask: Task<Void, Never>?
     private var eventFanOutTask: Task<Void, Never>?
@@ -166,6 +214,81 @@ public final class RemoteDependencies: ObservableObject {
         self.aiChatDispatcher = AIChatEventDispatcher(
             eventStream: aiChatEventsStream
         )
+
+        // Phase 6.1B1: 第 1 批 5 个 100% wired skill（Coverage doc §1.4：
+        // input/display/userBrowser/security/app 均为 A=D=✓ 完全对齐）
+        // - input (10 method): 远程键鼠输入
+        // - display (11 method): 显示器信息 / 亮度 / 截屏 / 窗口列表
+        // - application (8 method, namespace=`app`): 应用列表 / 启停 / 聚焦
+        // - security (8 method): 锁屏 / 防火墙 / AV / 加密 / 更新 状态
+        // - userBrowser (18 method): CDP 直连 Chrome/Edge/Brave 控浏览器
+        self.input = InputCommands(client: cmdClient)
+        self.display = DisplayCommands(client: cmdClient)
+        self.application = ApplicationCommands(client: cmdClient)
+        self.security = SecurityCommands(client: cmdClient)
+        self.userBrowser = UserBrowserCommands(client: cmdClient)
+
+        // Phase 6.1B3: 红档桌面已支持子集 (Coverage doc §1.4)
+        // - power (10/34): 关机/重启/睡眠/休眠/锁屏/注销/定时
+        // - process (6/30): list/get/search/kill/start/getResources
+        // - network (11/53): status/interfaces/DNS/publicIP/wifi/bandwidth/speed/ping/resolve/traceroute/connections
+        // - storage (10/41): disks/partitions/usage/folderSize/largeFiles/recentFiles/stats/driveHealth/cleanup/emptyTrash
+        // - device (4/12 intersection): register/disconnect/setPermission/updateDevice
+        self.power = PowerCommands(client: cmdClient)
+        self.process = ProcessCommands(client: cmdClient)
+        self.network = NetworkCommands(client: cmdClient)
+        self.storage = StorageCommands(client: cmdClient)
+        self.device = DeviceCommands(client: cmdClient)
+
+        // Phase 6.2: 主屏 batch 1 (media + browser, 桌面 case ⊂ Android invoke)
+        // - media (10/55 method): 音量 / 静音 / 设备 / 播放控制 / 提示音
+        // - browser (12/33 method): 内置 chromium 引擎自动化 (Playwright/Puppeteer)
+        self.media = MediaCommands(client: cmdClient)
+        self.browser = BrowserCommands(client: cmdClient)
+
+        // Phase 6.5: 红档子集 batch 2 (workflow + system + history)
+        // - workflow (10/13 method): CRUD + 执行 + 取消 + 历史 + 当前 running
+        // - system (5/49 method): execCommand / getInfo / getStatus / notify / screenshot
+        //   (namespace `system` 与 `sysinfo` 是 2 个不同 handler)
+        // - history (8/7 method 名称分化): 跟桌面 case 名为 ground truth
+        self.workflow = WorkflowCommands(client: cmdClient)
+        self.system = SystemCommands(client: cmdClient)
+        self.history = HistoryCommands(client: cmdClient)
+
+        // Phase 6.6.1: DesktopCommands actor (7 outer + 5 sendInput sub-type via
+        // typed helper; Trap D5 — typed helper 全部 route to desktop.sendInput
+        // 不暴露顶层伪 method desktop.mouseMove 路径，与 Android 现行模式一致)
+        self.desktop = DesktopCommands(client: cmdClient)
+
+        // Phase 6.6.2: DesktopVirtualCursor (OQ-4 A — startSession 后调
+        // display.getDisplays + display.getCursorPosition 初始化 screen + reset)
+        self.desktopVirtualCursor = DesktopVirtualCursor()
+
+        // Phase 6.6.3: DesktopFrameStreamer (OQ-1 A pull loop)
+        // 通过 closure 注入 desktop.getFrame — 解耦 actor 测试时可 mock
+        let desktopCmds = self.desktop
+        self.desktopFrameStreamer = DesktopFrameStreamer(
+            getFrameFn: { [weak desktopCmds, pairingStore] sessionId in
+                guard let pcPeerId = await pairingStore.devices().first?.pcPeerId else {
+                    throw RemoteSkillError.transportFailed("no paired desktop for frame stream")
+                }
+                guard let cmds = desktopCmds else {
+                    throw RemoteSkillError.transportFailed("DesktopCommands deallocated")
+                }
+                return try await cmds.getFrame(pcPeerId: pcPeerId, sessionId: sessionId)
+            },
+            backoffMs: 50,
+            maxConsecutiveErrors: 5
+        )
+
+        // Phase 6.7.1: ExtensionCommands (Chrome 扩展控制 — 30 method 子集)
+        self.chromeExtension = ExtensionCommands(client: cmdClient)
+
+        // Phase 6.3: KnowledgeCommands (31 method — 桌面 30/30 完成)
+        self.knowledge = KnowledgeCommands(client: cmdClient)
+
+        // Phase 6.4: AIExtendedCommands (25 method — 桌面 ai 后 25)
+        self.aiExtended = AIExtendedCommands(client: cmdClient)
 
         // 起 events fan-out task — 单一消费 cmdClient.events，分发到 terminal +
         // notification + aiChat 三子流（避 AsyncStream 单消费者切分 bug）。
