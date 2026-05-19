@@ -1,15 +1,18 @@
 # @chainlesschain/personal-data-hub
 
-Personal Data Hub — UnifiedSchema, validators, batch helpers, and a
-SQLCipher-encrypted LocalVault for the "data back to the individual"
+Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
+LocalVault, and AdapterRegistry for the "data back to the individual"
 middleware.
 
-> **Phase 0 + Phase 1 landed** of the 13-phase plan in
+> **Phase 0 + Phase 1 + Phase 2 landed** of the 13-phase plan in
 > [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md).
 > Phase 0 covers schema + validation + ID generation.
 > Phase 1 adds SQLCipher LocalVault + pluggable key providers + migrations.
-> AdapterRegistry, KG ingestor, AI analysis layer, and the actual adapters
-> (Email, Alipay, AI Chat × 8, WeChat, ...) come in later phases.
+> Phase 2 adds AdapterRegistry with end-to-end sync orchestration + KG/RAG
+> derivation + MockAdapter reference impl. **1000 events ingest in ~600ms
+> on a dev box** (well under the 30s architecture-doc target).
+> AI analysis layer, sync engine UI, and the actual adapters (Email,
+> Alipay, AI Chat × 8, WeChat, ...) come in later phases.
 
 ## What's in here
 
@@ -26,6 +29,16 @@ lib/
 ├── vault.js          LocalVault — SQLCipher AES-256, transactional putBatch,
 │                     typed put/get, queryEvents, watermarks, audit, key
 │                     rotation (WAL-safe), destroy
+├── adapter-spec.js   PersonalDataAdapter contract + assertAdapter check
+├── kg-derive.js      UnifiedSchema → KG triples (rdf:type / by / involves /
+│                     happened-at / etc.) — engine-agnostic
+├── rag-derive.js     UnifiedSchema → RAG (text, metadata) docs for indexing
+│                     into BM25 + vector retrievers
+├── registry.js       AdapterRegistry — register/list, syncAdapter with full
+│                     pipeline (health → sync → archive raw → normalize →
+│                     partition valid/invalid → vault → KG sink → RAG sink
+│                     → watermark → audit), syncAll, pluggable kgSink/ragSink
+├── mock-adapter.js   reference impl + test fixture (deterministic seeded)
 └── index.js          re-exports
 ```
 
@@ -176,11 +189,14 @@ cd packages/personal-data-hub
 npm test
 ```
 
-**101 tests** across 5 files covering ID generation, all 5 entity validators,
+**157 tests** across 10 files covering ID generation, all 5 entity validators,
 batch helpers, key providers, vault open/migrations, entity round-trips,
 transactional putBatch with rollback, raw_events archive, queryEvents
 filters + pagination, sync watermarks, audit log, key rotation (WAL-safe),
-destroy, stats. Wrong-key rejection verifies the encryption is real.
+destroy, stats, adapter-spec assertion, KG triple derivation, RAG doc
+derivation, MockAdapter deterministic behavior, full registry sync E2E
+(including health-gating, mid-sync failure recovery, sink failure
+tolerance), and the 1k events <30s ingest perf gate.
 
 ## Not in this package (yet)
 
