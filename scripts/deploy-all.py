@@ -157,26 +157,47 @@ DEPLOYS = [
     # CLI 0.162.0 → 0.162.1 + Android 5.0.3.57 → 5.0.3.64 (versionCode 503057 → 503064);
     # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张 v5.0.3.64 卡 (中英对照);
     # 修 docs-site/docs/changelog.md:58 unescaped <path> Vue parse fail.
-    # 2026-05-19 13:30 第二刷 (1209 之后):
-    # 新增 docs/design/Android_AI_Chat_CC_Exec_Tool.md (~56KB Phase 0 MVP 设计文档),
-    # 两 sync 脚本带上同步到 docs-site/docs/design/ + docs-site-design/docs/;
-    # docs-site + docs-site-design sidebar 各加 1 个新条目 ("Android AI Chat ×
-    # cc-exec Tool (Phase 0 MVP) ⭐NEW") 让 sidebar 可见 — 解 "新增文件看不到"
-    # 报告; 3 站全部 vitepress/astro fresh build 出 dist 后重新打 tarball。
-    # productVersion 不变（v5.0.3.66 仍贴在 tag-line / changelog）; 仅 doc 增量刷新。
+    # 2026-05-19 22:36 v5.0.3.67 滚动更新 (3 站全刷):
+    # Android Phase 5.6/5.8 cc-exec NL Chat — 用户大白话直接问，AI 自动调本机 cc CLI 跑只读查询:
+    #   - Phase 5.6 LLM tool-use 协议接通: OpenAI (tool_calls + type:function 信封) /
+    #     Doubao (wire-compat 直 delegate) / Claude (tool_use 内容块 + tool_result 走 role=user)
+    #     三家原生 tool-use; 不支持的厂商 (Qwen / Ernie / Spark 等) 自动走"防幻觉 fallback"
+    #     明确告知用户切模型而不是编笔记。
+    #   - Phase 5.7 cc Chat 屏: 个人中心入口 + 5 状态进度条 (思考 / 准备调用 / 执行 cc /
+    #     处理结果 / 整理) + 工具卡片 (命令 + exitCode + 耗时 + stdout 折叠展开 + 取消按钮)。
+    #     8 个只读子命令白名单 (note list/show/view / search / memory list/show / skill list /
+    #     status / session list / mcp list / did show), 写/删/安装类 LLM 编也被拦 (exitCode=126),
+    #     ProcessBuilder 绕过 shell 无注入风险。
+    #   - Phase 5.8 真机 E2E SOP: 9 场景 E1-E9 reproducer + preflight 脚本
+    #     android-app/scripts/e2e/phase_5_8_preflight.ps1; 待 Xiaomi 24115RA8EC 真机跑通。
+    #   - 静态审计 + bug 修复: CcExecService 双 async drain 解 JVM pipe buffer 死锁 /
+    #     CcChatOrchestrator.runFallback 不再 silently 丢 StreamChunk.error / CcAllowlist.check
+    #     拒 "有 allowedSubcommands 但无子命令"。
+    #   - 测试覆盖: 127 新测试全绿 (feature-ai 89 单测 + :app 28 集成测试走真生产图)。
+    # 改动: README.md + README_EN.md 顶部新加 2026-05-19 v5.0.3.67 section (中英对照);
+    # docs-site/docs/changelog.md v5.0.3.67 entry 已落;
+    # docs-site/docs/.vitepress/config.js + docs-site-design/docs/.vitepress/config.js
+    # sidebar 各加 2 entry (Phase 5.8 SOP + Checklist) + 老条目去 ⭐NEW;
+    # docs-website-v2/src/pages/index.astro highlights 顶一张 v5.0.3.67 cc Chat 卡 (中文,
+    # results-only per feedback_official_site_results_only.md);
+    # docs-website-v2/src/pages/mobile.astro 新增 "cc Chat 自然语言查询" section
+    # (含 "默认安全 / 流式状态可视" 双卡 + 3-grid 支持模型/测试覆盖/底层 + 用户文档/SOP 链接)。
+    # 注: release-sizes.json 仍指向 v5.0.3.66 (release v5.0.3.67 仍在 build, 4/5 jobs in_progress);
+    # mobile.astro 下载链接仍走 .66 ANDROID_TAG, 待 release publish 后再刷一次 release-sizes
+    # 重 build + 重 deploy 即可让下载切到 .67 (Per memory feedback_android_tag_follows_desktop.md)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.66-20260519-132933.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.67-20260519-223607.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.66-20260519-132933.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.67-20260519-223607.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.66-20260519-132933.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.67-20260519-223607.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
