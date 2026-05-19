@@ -417,7 +417,12 @@ jobs:
           # prefix-split (100 + 155 = 255 char limit). Chainlesschain CLI's
           # deepest node_modules paths fit comfortably under 255 chars.
           cd /tmp/cc-cli-hydrate
-          tar --format=ustar -czf /tmp/cc-cli.tgz package/
+          # -h / --dereference follows symlinks — critical for file: deps
+          # because npm installs @chainlesschain/<x> as symlinks to the
+          # original source path. Without -h, those land on Android
+          # pointing at /home/runner/... which doesn't exist → cc CLI
+          # ERR_MODULE_NOT_FOUND on @chainlesschain/session-core etc.
+          tar --format=ustar -hczf /tmp/cc-cli.tgz package/
           cd "$GITHUB_WORKSPACE"
           mv /tmp/cc-cli.tgz "$ASSET_DIR/cc-cli.tgz"
           echo "Hydrated pack: $(du -h "$ASSET_DIR/cc-cli.tgz" | cut -f1)"
