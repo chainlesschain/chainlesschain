@@ -1,13 +1,21 @@
 package com.chainlesschain.android.feature.localterminal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +26,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 
 /**
@@ -101,6 +111,72 @@ fun LocalTerminalScreen(
                     webViewHolder.value = this
                 }
             },
+        )
+
+        // Soft-keyboard escape-hatch toolbar. Android's on-screen IME has
+        // no Ctrl key, so pty programs that need SIGINT (long-running `cc ui`,
+        // `cat /dev/zero`, etc) become un-stoppable. This row sends the raw
+        // escape sequences directly into stdin, bypassing the keyboard.
+        KeyToolbar { bytes -> viewModel.writeStdin(bytes) }
+    }
+}
+
+/** Common control / nav keys missing from the soft IME. Each button writes
+ *  the literal escape sequence onto pty stdin. */
+@Composable
+private fun KeyToolbar(send: (ByteArray) -> Unit) {
+    val scroll = rememberScrollState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF2A2A2A))
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .horizontalScroll(scroll),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        // Ctrl-C — by far the most-asked-for. Sends SIGINT to foreground pgrp.
+        ToolKey(label = "^C") { send(byteArrayOf(0x03)) }
+        // Ctrl-D — EOF / exit interactive shell.
+        ToolKey(label = "^D") { send(byteArrayOf(0x04)) }
+        // Ctrl-Z — suspend foreground job.
+        ToolKey(label = "^Z") { send(byteArrayOf(0x1A)) }
+        // Ctrl-L — clear screen (mksh re-prints prompt).
+        ToolKey(label = "^L") { send(byteArrayOf(0x0C)) }
+        ToolKey(label = "Esc") { send(byteArrayOf(0x1B)) }
+        ToolKey(label = "Tab") { send(byteArrayOf(0x09)) }
+        // CSI arrows: ESC [ A/B/C/D
+        ToolKey(label = "↑") { send(byteArrayOf(0x1B, 0x5B, 0x41)) }
+        ToolKey(label = "↓") { send(byteArrayOf(0x1B, 0x5B, 0x42)) }
+        ToolKey(label = "←") { send(byteArrayOf(0x1B, 0x5B, 0x44)) }
+        ToolKey(label = "→") { send(byteArrayOf(0x1B, 0x5B, 0x43)) }
+        // Home / End — useful for long lines.
+        ToolKey(label = "Home") { send(byteArrayOf(0x1B, 0x5B, 0x48)) }
+        ToolKey(label = "End") { send(byteArrayOf(0x1B, 0x5B, 0x46)) }
+        // PageUp / PageDown — scroll mksh history-search etc.
+        ToolKey(label = "PgUp") { send(byteArrayOf(0x1B, 0x5B, 0x35, 0x7E)) }
+        ToolKey(label = "PgDn") { send(byteArrayOf(0x1B, 0x5B, 0x36, 0x7E)) }
+    }
+}
+
+@Composable
+private fun ToolKey(label: String, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.defaultMinSize(minWidth = 40.dp, minHeight = 34.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 8.dp,
+            vertical = 2.dp,
+        ),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = Color(0xFF3A3A3A),
+            contentColor = Color(0xFFE0E0E0),
+        ),
+    ) {
+        Text(
+            text = label,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 13.sp,
         )
     }
 }
