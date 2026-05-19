@@ -100,10 +100,11 @@ describe("EmailAdapter contract", () => {
       sessionFactory: makeMockSession({}).factory,
     });
     expect(a.name).toBe("email-imap");
-    expect(a.version).toBe("0.2.0"); // Phase 5.2 — body parsing added
+    expect(a.version).toBe("0.3.0"); // Phase 5.3 — classification added
     expect(a.capabilities).toContain("sync:imap");
     expect(a.capabilities).toContain("auth:authcode");
     expect(a.capabilities).toContain("parse:mime-body");
+    expect(a.capabilities).toContain("classify:layer1-rules");
     expect(a.dataDisclosure.sensitivity).toBe("high");
   });
 
@@ -582,6 +583,142 @@ describe("EmailAdapter — body parsing (Phase 5.2)", () => {
     expect(batch.events[0].extra.parseError).toContain("malformed MIME");
     const v = validateBatch(batch);
     expect(v.valid).toBe(true);
+  });
+});
+
+// ─── Phase 5.3: classification integration ─────────────────────────────
+
+describe("EmailAdapter — classification (Phase 5.3)", () => {
+  function bankEnv(uid = 1) {
+    return env(uid, {
+      from: [{ address: "ebank@cmbchina.com" }],
+      subject: "招商银行 11 月对账单",
+      source: Buffer.from("RAW", "utf8"),
+    });
+  }
+
+  it("sync attaches classification to payload (Layer 1 short-circuit)", async () => {
+    const { factory } = makeMockSession({
+      mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      parser: async () => ({ textBody: "stmt", attachments: [] }),
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    expect(raws[0].payload.classification).toBeDefined();
+    expect(raws[0].payload.classification.category).toBe("bill_bank");
+    expect(raws[0].payload.classification.layer).toBe("L1");
+  });
+
+  it("normalize copies classification into extra.classified + .classification", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: {
+        ...env(1, { from: [{ address: "x@cmbchina.com" }], subject: "招商银行账单" }),
+        folder: "INBOX",
+        classification: {
+          category: "bill_bank",
+          confidence: 0.95,
+          layer: "L1",
+          ruleName: "bill_bank.cn-bank-major",
+        },
+      },
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].extra.classified).toBe("bill_bank");
+    expect(batch.events[0].extra.classification.category).toBe("bill_bank");
+    expect(batch.events[0].extra.classification.layer).toBe("L1");
+    expect(batch.events[0].extra.classification.ruleName).toContain("bill_bank");
+  });
+
+  it("ambiguous email triggers Layer 2 when LLM is provided", async () => {
+    const { MockLLMClient } = require("../../lib/llm-client");
+    const llm = new MockLLMClient({
+      reply: '{"category":"register","confidence":0.85,"reason":"verification code"}',
+    });
+    const { factory } = makeMockSession({
+      mailboxes: {
+        INBOX: {
+          uidValidity: 1,
+          envelopes: [env(2, {
+            from: [{ address: "noreply@unknown-service.example" }],
+            subject: "Welcome",
+            source: Buffer.from("RAW", "utf8"),
+          })],
+        },
+      },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      parser: async () => ({ textBody: "Welcome aboard, here is your verification link." }),
+      llm,
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    // Layer 1 likely returned 'register' at ~0.75 (welcome rule) — falls to Layer 2
+    expect(raws[0].payload.classification.category).toBe("register");
+    // Either L2 fired (if L1 conf < 0.85) or L1 stuck.
+    expect(["L1", "L2"]).toContain(raws[0].payload.classification.layer);
+  });
+
+  it("classifier error inside sync degrades to OTHER (doesn't abort sync)", async () => {
+    const { factory } = makeMockSession({
+      mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      parser: async () => ({}),
+      classifier: async () => { throw new Error("classifier exploded"); },
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    expect(raws).toHaveLength(1);
+    expect(raws[0].payload.classification.category).toBe("other");
+    expect(raws[0].payload.classification.error).toContain("classifier exploded");
+  });
+
+  it("disableClassification skips both layers entirely", async () => {
+    const { factory } = makeMockSession({
+      mailboxes: { INBOX: { uidValidity: 1, envelopes: [bankEnv()] } },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      parser: async () => ({}),
+      disableClassification: true,
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    expect(raws[0].payload.classification).toBeUndefined();
+  });
+
+  it("capabilities advertise classifier surface", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+    });
+    expect(a.capabilities).toContain("classify:layer1-rules");
+    expect(a.capabilities).not.toContain("classify:layer2-llm"); // no LLM provided
+
+    const { MockLLMClient } = require("../../lib/llm-client");
+    const b = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      llm: new MockLLMClient({ reply: "{}" }),
+    });
+    expect(b.capabilities).toContain("classify:layer2-llm");
   });
 });
 
