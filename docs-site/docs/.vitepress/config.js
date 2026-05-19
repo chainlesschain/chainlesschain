@@ -152,6 +152,10 @@ export default defineConfig({
           text: "核心功能",
           items: [
             { text: "知识库管理", link: "/chainlesschain/knowledge-base" },
+            {
+              text: "个人数据中台 ⭐NEW",
+              link: "/chainlesschain/personal-data-hub",
+            },
             { text: "去中心化社交", link: "/chainlesschain/social" },
             { text: "交易辅助", link: "/chainlesschain/trading" },
             { text: "U盾集成", link: "/chainlesschain/ukey" },
@@ -1428,6 +1432,39 @@ export default defineConfig({
             {
               text: "桌面 Web 壳架构与落地",
               link: "/design/desktop-web-shell-architecture",
+            },
+          ],
+        },
+        {
+          text: "个人数据中台 专题 ⭐NEW",
+          items: [
+            {
+              text: "主架构（13-Phase 路线图）",
+              link: "/design/Personal_Data_Hub_Architecture",
+            },
+            {
+              text: "EntityResolver 跨源消歧",
+              link: "/design/Personal_Data_Hub_EntityResolver",
+            },
+            {
+              text: "E2E Runbook（真账号验收）",
+              link: "/design/Personal_Data_Hub_E2E_Runbook",
+            },
+            {
+              text: "Adapter — Email (IMAP) ✅",
+              link: "/design/Adapter_Email_IMAP",
+            },
+            {
+              text: "Adapter — 支付宝账单 ✅",
+              link: "/design/Adapter_Alipay_Bill",
+            },
+            {
+              text: "Adapter — AI 对话历史 🚧",
+              link: "/design/Adapter_AIChat_History",
+            },
+            {
+              text: "Adapter — 微信 SQLCipher 🚧",
+              link: "/design/Adapter_WeChat_SQLCipher",
             },
           ],
         },

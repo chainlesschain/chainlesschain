@@ -72,6 +72,8 @@ const ROOT_FILE_MAP = {
   "MofN_多签_应用扩展_v1.md": "mofn-multisig-extension-v1.md",
   "Android_Auto_DHU_Setup.md": "Android_Auto_DHU_Setup.md",
   "Personal_Data_Hub_Architecture.md": "Personal_Data_Hub_Architecture.md",
+  "Personal_Data_Hub_E2E_Runbook.md": "Personal_Data_Hub_E2E_Runbook.md",
+  "Personal_Data_Hub_EntityResolver.md": "Personal_Data_Hub_EntityResolver.md",
   "Adapter_Email_IMAP.md": "Adapter_Email_IMAP.md",
   "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
   "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
