@@ -42,10 +42,23 @@ function makeMockSession(spec = {}) {
         };
       },
       async *fetchEnvelopesSince(sinceUid = 0) {
-        recorder.fetchRanges.push({ mailbox: openMb && openMb.name, sinceUid });
+        recorder.fetchRanges.push({ mailbox: openMb && openMb.name, sinceUid, mode: "envelope" });
         if (!openMb) return;
         for (const env of openMb.envelopes || []) {
           if (env.uid > sinceUid) yield env;
+        }
+      },
+      // Phase 5.2 — adapter.sync now calls fetchFullSince. The mock
+      // emits the same envelopes with an empty source Buffer; the
+      // adapter parses it via its injected parser (or skips parsing
+      // when source is empty).
+      async *fetchFullSince(sinceUid = 0) {
+        recorder.fetchRanges.push({ mailbox: openMb && openMb.name, sinceUid, mode: "full" });
+        if (!openMb) return;
+        for (const env of openMb.envelopes || []) {
+          if (env.uid > sinceUid) {
+            yield { ...env, source: env.source || Buffer.alloc(0) };
+          }
         }
       },
       async close() {
@@ -87,9 +100,10 @@ describe("EmailAdapter contract", () => {
       sessionFactory: makeMockSession({}).factory,
     });
     expect(a.name).toBe("email-imap");
-    expect(a.version).toBe("0.1.0");
+    expect(a.version).toBe("0.2.0"); // Phase 5.2 — body parsing added
     expect(a.capabilities).toContain("sync:imap");
     expect(a.capabilities).toContain("auth:authcode");
+    expect(a.capabilities).toContain("parse:mime-body");
     expect(a.dataDisclosure.sensitivity).toBe("high");
   });
 
@@ -274,8 +288,8 @@ describe("EmailAdapter.sync", () => {
       async openMailbox() {
         return { uidValidity: 1, uidNext: 100, exists: 0 };
       },
-      async *fetchEnvelopesSince() {
-        yield env(1);
+      async *fetchFullSince() {
+        yield { ...env(1), source: Buffer.alloc(0) };
         throw new Error("network drop");
       },
       async close() {
@@ -374,6 +388,200 @@ describe("EmailAdapter.normalize", () => {
     });
     expect(() => a.normalize()).toThrow();
     expect(() => a.normalize({})).toThrow(/payload/);
+  });
+});
+
+// ─── Phase 5.2: body parsing integration ───────────────────────────────
+
+describe("EmailAdapter — body parsing (Phase 5.2)", () => {
+  it("sync injects parsedBody into payload when parser succeeds", async () => {
+    const { factory } = makeMockSession({
+      mailboxes: {
+        INBOX: {
+          uidValidity: 1,
+          envelopes: [{
+            ...env(1),
+            source: Buffer.from("RAW BYTES", "utf8"),
+          }],
+        },
+      },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      // Inject a fake parser so test doesn't depend on mailparser
+      parser: async (raw) => ({
+        headers: { subject: "Parsed" },
+        textBody: "this is the parsed text body",
+        htmlBody: "",
+        attachments: [
+          { filename: "a.pdf", contentType: "application/pdf", contentDisposition: "attachment",
+            size: 42, sha256: "abc123", isInline: false, isEncrypted: false },
+        ],
+        contentSha256: "deadbeef",
+        sourceBytes: raw.length,
+        subject: "Parsed",
+        date: new Date("2026-05-19"),
+      }),
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    expect(raws).toHaveLength(1);
+    expect(raws[0].payload.parsedBody).toBeDefined();
+    expect(raws[0].payload.parsedBody.textBody).toBe("this is the parsed text body");
+    expect(raws[0].payload.parsedBody.attachments).toHaveLength(1);
+    // Source bytes themselves get stripped from the payload to avoid bloat
+    expect(raws[0].payload.source).toBeUndefined();
+  });
+
+  it("normalize uses parsedBody.textBody as event.content.text", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: {
+        ...env(1),
+        folder: "INBOX",
+        parsedBody: {
+          textBody: "Dear user, your account statement is attached.",
+          htmlBody: "",
+          attachments: [],
+          contentSha256: "abc",
+          headers: { "list-unsubscribe": "<mailto:unsub@bank.com>" },
+        },
+      },
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].content.text).toBe("Dear user, your account statement is attached.");
+    expect(batch.events[0].extra.rawSha256).toBe("abc");
+    expect(batch.events[0].extra.indicatorHeaders["list-unsubscribe"]).toBe("<mailto:unsub@bank.com>");
+  });
+
+  it("normalize falls back to envelope prose when parsedBody is absent", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: { ...env(1), folder: "INBOX" }, // no parsedBody
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].content.text).toContain("alice1@example.com");
+    expect(batch.events[0].content.text).toContain("subject:");
+  });
+
+  it("normalize HTML-only bodies are stripped to plain text", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: {
+        ...env(1),
+        folder: "INBOX",
+        parsedBody: {
+          textBody: "",
+          htmlBody: "<p>Hi <b>there</b>!</p><script>alert(1)</script>",
+          attachments: [],
+        },
+      },
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].content.text).toContain("Hi");
+    expect(batch.events[0].content.text).toContain("there");
+    expect(batch.events[0].content.text).not.toContain("<p>");
+    expect(batch.events[0].content.text).not.toContain("alert(1)"); // script content stripped
+  });
+
+  it("normalize caps body at maxBodyChars + appends truncation marker", () => {
+    const longText = "X".repeat(20_000);
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+      maxBodyChars: 100,
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: {
+        ...env(1),
+        folder: "INBOX",
+        parsedBody: { textBody: longText, htmlBody: "", attachments: [] },
+      },
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].content.text.length).toBeLessThan(longText.length);
+    expect(batch.events[0].content.text).toMatch(/truncated/);
+  });
+
+  it("normalize captures attachment metadata in extra.attachments", () => {
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x" },
+      sessionFactory: makeMockSession({}).factory,
+      parser: async () => ({}),
+    });
+    const raw = {
+      adapter: "email-imap",
+      originalId: "<m@x>",
+      capturedAt: 0,
+      payload: {
+        ...env(1),
+        folder: "INBOX",
+        parsedBody: {
+          textBody: "see attached",
+          htmlBody: "",
+          attachments: [
+            { filename: "stmt.pdf", contentType: "application/pdf", contentDisposition: "attachment",
+              size: 12345, sha256: "abc", isInline: false, isEncrypted: true },
+          ],
+        },
+      },
+    };
+    const batch = a.normalize(raw);
+    expect(batch.events[0].extra.attachments).toHaveLength(1);
+    const a0 = batch.events[0].extra.attachments[0];
+    expect(a0.filename).toBe("stmt.pdf");
+    expect(a0.isEncrypted).toBe(true);
+    expect(a0.sha256).toBe("abc");
+  });
+
+  it("sync degrades gracefully when parser throws (parseError captured)", async () => {
+    const { factory } = makeMockSession({
+      mailboxes: {
+        INBOX: { uidValidity: 1, envelopes: [{ ...env(1), source: Buffer.from("garbage", "utf8") }] },
+      },
+    });
+    const a = new EmailAdapter({
+      account: { provider: "qq", email: "u@qq.com", authCode: "x", folders: ["INBOX"] },
+      sessionFactory: factory,
+      parser: async () => { throw new Error("malformed MIME"); },
+    });
+    const raws = [];
+    for await (const r of a.sync()) raws.push(r);
+    expect(raws).toHaveLength(1);
+    expect(raws[0].payload.parsedBody).toBeDefined();
+    expect(raws[0].payload.parsedBody.parseError).toContain("malformed MIME");
+    // normalize should still produce a valid event (envelope fallback)
+    const batch = a.normalize(raws[0]);
+    expect(batch.events).toHaveLength(1);
+    expect(batch.events[0].extra.parseError).toContain("malformed MIME");
+    const v = validateBatch(batch);
+    expect(v.valid).toBe(true);
   });
 });
 

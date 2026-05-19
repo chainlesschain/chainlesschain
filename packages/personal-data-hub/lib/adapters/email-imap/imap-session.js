@@ -200,6 +200,49 @@ class ImapSession {
     }
   }
 
+  /**
+   * Like fetchEnvelopesSince but also pulls the full RFC822 source of
+   * each message (`source: true`). Phase 5.2 — the EmailAdapter feeds
+   * these into the mailparser-based email-parser to extract body text,
+   * HTML, attachments metadata, etc.
+   *
+   * Memory note: source bytes pile up in memory until each generator
+   * consumer awaits the next iteration. For huge mailboxes the registry's
+   * batchSize (default 100) acts as the natural back-pressure — every
+   * `batchSize` messages get committed to vault before the next batch
+   * pulls. Phase 5.5 PDF-decryption work will switch to per-attachment
+   * download for emails > N MB.
+   *
+   * Yields `{ ...envelopeRow, source: Buffer }`.
+   *
+   * @param {number} sinceUid
+   * @returns {AsyncGenerator}
+   */
+  async *fetchFullSince(sinceUid = 0) {
+    const c = this._requireConnected();
+    const baseUid = Number.isFinite(sinceUid) && sinceUid > 0 ? sinceUid : 0;
+    const range = `${baseUid + 1}:*`;
+    const fields = {
+      envelope: true,
+      internalDate: true,
+      flags: true,
+      size: true,
+      uid: true,
+      source: true, // raw RFC822 bytes
+    };
+    const iter = c.fetch(range, fields, { uid: true });
+    for await (const msg of iter) {
+      const row = this._toEnvelopeRow(msg);
+      // imapflow returns source as a Buffer; defensively coerce.
+      row.source = Buffer.isBuffer(msg.source)
+        ? msg.source
+        : msg.source
+          ? Buffer.from(msg.source)
+          : Buffer.alloc(0);
+      yield row;
+    }
+  }
+
   async close() {
     if (!this._client) return;
     try {
