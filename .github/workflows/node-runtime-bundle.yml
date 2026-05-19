@@ -360,50 +360,53 @@ jobs:
             echo "::warning::build:web-panel failed; cc ui will fall back to embedded minimal HTML"
           }
 
-          # 1. Resolve cc CLI prod deps at the workspace root — gives us
-          # working symlinks for @chainlesschain/* internal packages that
-          # aren't published to the npm registry (Xiaomi 24115RA8EC
-          # 2026-05-19 CI 404 on `@chainlesschain/personal-data-hub@0.1.0`).
-          # `--ignore-scripts` skips postinstalls; `--include=workspace-root`
-          # is implied at the top level.
-          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
-                      --workspaces=false --no-package-lock
-          echo "Workspace-root install done."
-
-          # 2. Pack the workspace package (captures main HEAD, not registry).
+          # 1. Pack the workspace package (captures main HEAD, not registry).
           PACKED=$(cd packages/cli && npm pack --silent)
           mv "packages/cli/$PACKED" /tmp/cc-cli-source.tgz
           echo "Source pack: $(du -h /tmp/cc-cli-source.tgz | cut -f1)"
 
-          # 3. Extract + copy resolved node_modules from packages/cli/.
-          # Because workspace root install puts cc CLI's deps directly under
-          # node_modules/<pkg> (hoisted) or symlinks @chainlesschain/* to
-          # packages/<pkg>, we recursively dereference symlinks so the
-          # tarball is self-contained on Android (where the symlink targets
-          # won't exist).
+          # 2. Extract pack to a clean dir.
           rm -rf /tmp/cc-cli-hydrate
           mkdir /tmp/cc-cli-hydrate
           tar -xzf /tmp/cc-cli-source.tgz -C /tmp/cc-cli-hydrate
           # The tarball leaves a single `package/` directory.
-          # cp -L follows symlinks; cp -R --dereference does the same.
-          # Use cp -RL to materialise every @chainlesschain/<x> symlink.
-          if [ -d packages/cli/node_modules ]; then
-            mkdir /tmp/cc-cli-hydrate/package/node_modules
-            cp -RL packages/cli/node_modules/. /tmp/cc-cli-hydrate/package/node_modules/
-          else
-            # Fallback: hoisted layout — workspace root node_modules has all
-            # deps. We copy only what cc CLI's package.json lists (top-level).
-            echo "::warning::packages/cli/node_modules missing; using hoisted root"
-            mkdir /tmp/cc-cli-hydrate/package/node_modules
-            for dep in $(node -p "Object.keys(require('./packages/cli/package.json').dependencies).join(' ')"); do
-              if [ -d "node_modules/$dep" ]; then
-                cp -RL "node_modules/$dep" "/tmp/cc-cli-hydrate/package/node_modules/$dep"
-              fi
-            done
-          fi
-          echo "Hydrated deps: $(du -sh /tmp/cc-cli-hydrate/package/node_modules | cut -f1)"
-          echo "Top-level deps: $(ls /tmp/cc-cli-hydrate/package/node_modules | wc -l)"
+
+          # 3. Hydrate prod deps INSIDE the extracted package dir. To avoid
+          # the npm-registry-404 trap on unpublished @chainlesschain/<x>
+          # workspace siblings (Xiaomi 24115RA8EC 2026-05-19 CI failure on
+          # @chainlesschain/personal-data-hub@0.1.0), rewrite those deps to
+          # point at the monorepo's packed source first, then install.
           cd /tmp/cc-cli-hydrate/package
+          node <<'NODE_EOF'
+          const fs = require("fs");
+          const path = require("path");
+          const pkgPath = "./package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+          const repoRoot = "${{ github.workspace }}";
+          let rewrote = 0;
+          for (const [name, _ver] of Object.entries(pkg.dependencies || {})) {
+            if (!name.startsWith("@chainlesschain/")) continue;
+            // Map @chainlesschain/foo → repo/packages/foo
+            const local = name.replace("@chainlesschain/", "");
+            const localDir = path.join(repoRoot, "packages", local);
+            if (fs.existsSync(localDir)) {
+              pkg.dependencies[name] = `file:${localDir}`;
+              rewrote++;
+              console.log(`  rewrite ${name} → file:${localDir}`);
+            } else {
+              console.log(`::warning::${name} has no local packages/${local} — leaving as registry fetch`);
+            }
+          }
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+          console.log(`Rewrote ${rewrote} @chainlesschain/* deps to local file: paths`);
+          NODE_EOF
+          # Now install — file: deps resolve from disk, npm-registry deps
+          # fetch normally. --ignore-scripts skips postinstalls. --silent off
+          # so errors surface.
+          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
+                      --no-package-lock
+          echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
+          echo "Top-level deps: $(ls node_modules | wc -l)"
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
           # `--strip-components=1`-style tar parser keeps working unchanged.
