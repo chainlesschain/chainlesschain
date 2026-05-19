@@ -61,8 +61,16 @@ class CcChatOrchestrator @Inject constructor(
         val augmented = listOf(guard) + messages
         val fullText = StringBuilder()
 
+        // B26 fix: a StreamChunk with `error != null` is an in-stream failure
+        // signal (e.g. HTTP non-2xx in OpenAIAdapter); surface as Failed event
+        // instead of silently completing with whatever fragments accumulated.
+        var streamError: String? = null
         try {
             adapter.streamChat(augmented, model).collect { chunk ->
+                if (chunk.error != null) {
+                    streamError = chunk.error
+                    return@collect
+                }
                 if (chunk.content.isNotEmpty()) {
                     fullText.append(chunk.content)
                     emit(CcChatEvent.AssistantTextDelta(chunk.content))
@@ -72,6 +80,12 @@ class CcChatOrchestrator @Inject constructor(
         } catch (e: Exception) {
             emit(CcChatEvent.StatusChanged(ChatStatus.FAILED))
             emit(CcChatEvent.Failed("LLM stream failed: ${e.message}"))
+            return
+        }
+
+        if (streamError != null) {
+            emit(CcChatEvent.StatusChanged(ChatStatus.FAILED))
+            emit(CcChatEvent.Failed("LLM stream failed: $streamError"))
             return
         }
 
