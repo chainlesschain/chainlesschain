@@ -4,7 +4,7 @@ Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
 LocalVault, and AdapterRegistry for the "data back to the individual"
 middleware.
 
-> **Phase 0 + Phase 1 + Phase 2 + Phase 3 landed** of the 13-phase plan in
+> **Phase 0 + Phase 1 + Phase 2 + Phase 3 + Phase 3.5 landed** of the 13-phase plan in
 > [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md).
 > Phase 0 covers schema + validation + ID generation.
 > Phase 1 adds SQLCipher LocalVault + pluggable key providers + migrations.
@@ -13,9 +13,14 @@ middleware.
 > Phase 3 adds the natural-language AnalysisEngine: query parser → vault
 > facts → prompt builder → LLM → citation validation, with a privacy gate
 > that refuses non-local LLMs unless caller opts in. **MockLLMClient**
-> for tests, **OllamaClient** for standalone use; in production a thin
-> adapter wraps the existing `cc` LLM manager (Ollama / Volcengine /
-> Anthropic / etc.) to satisfy the same `chat()` contract.
+> for tests, **OllamaClient** for standalone use.
+> Phase 3.5 wires production bridges: **CcLLMAdapter** wraps the existing
+> cc llm-manager (Ollama / Volcengine / Anthropic / Gemini / DeepSeek)
+> via dependency injection; **CcKgSink** translates hub triples into the
+> existing knowledge-graph addEntity + addRelation; **CcRagSink** feeds
+> hub RagDocs into BM25 (Qdrant vector store wiring left as future work).
+> Hub package stays decoupled — bridges take cc functions as constructor
+> args rather than importing cc modules directly.
 > Sync engine UI, real KG/RAG wiring, and the actual adapters (Email,
 > Alipay, AI Chat × 8, WeChat, ...) come in later phases.
 
@@ -57,6 +62,11 @@ lib/
 │                     (optional RAG augmentation) → buildPrompt → llm.chat →
 │                     parseCitations → validateCitations → audit. Hard
 │                     privacy gate refuses non-local LLMs without opt-in.
+├── bridges/
+│   ├── cc-llm-adapter.js   wraps cc llm-manager.chat → LLMClient
+│   ├── cc-kg-sink.js       hub triples → cc addEntity + addRelation
+│   ├── cc-rag-sink.js      hub RagDocs → cc BM25 (+ optional vector)
+│   └── index.js            re-exports
 └── index.js          re-exports
 ```
 
@@ -207,7 +217,7 @@ cd packages/personal-data-hub
 npm test
 ```
 
-**220 tests** across 14 files covering ID generation, all 5 entity validators,
+**268 tests** across 17 files covering ID generation, all 5 entity validators,
 batch helpers, key providers, vault open/migrations, entity round-trips,
 transactional putBatch with rollback, raw_events archive, queryEvents
 filters + pagination, sync watermarks, audit log, key rotation (WAL-safe),
