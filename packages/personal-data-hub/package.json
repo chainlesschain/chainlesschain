@@ -26,7 +26,8 @@
     "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",
     "./bridges/cc-kg-sink": "./lib/bridges/cc-kg-sink.js",
     "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js",
-    "./adapters/email-imap": "./lib/adapters/email-imap/index.js"
+    "./adapters/email-imap": "./lib/adapters/email-imap/index.js",
+    "./adapters/alipay-bill": "./lib/adapters/alipay-bill/index.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -55,7 +56,9 @@
     "mailparser": "^3.7.1"
   },
   "optionalDependencies": {
-    "imapflow": "^1.0.183"
+    "imapflow": "^1.0.183",
+    "adm-zip": "^0.5.16",
+    "iconv-lite": "^0.6.3"
   },
   "devDependencies": {
     "vitest": "^4.1.5"
