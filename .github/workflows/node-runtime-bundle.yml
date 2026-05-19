@@ -360,28 +360,50 @@ jobs:
             echo "::warning::build:web-panel failed; cc ui will fall back to embedded minimal HTML"
           }
 
-          # 1. Pack the workspace package (captures main HEAD, not registry).
+          # 1. Resolve cc CLI prod deps at the workspace root — gives us
+          # working symlinks for @chainlesschain/* internal packages that
+          # aren't published to the npm registry (Xiaomi 24115RA8EC
+          # 2026-05-19 CI 404 on `@chainlesschain/personal-data-hub@0.1.0`).
+          # `--ignore-scripts` skips postinstalls; `--include=workspace-root`
+          # is implied at the top level.
+          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
+                      --workspaces=false --no-package-lock
+          echo "Workspace-root install done."
+
+          # 2. Pack the workspace package (captures main HEAD, not registry).
           PACKED=$(cd packages/cli && npm pack --silent)
           mv "packages/cli/$PACKED" /tmp/cc-cli-source.tgz
           echo "Source pack: $(du -h /tmp/cc-cli-source.tgz | cut -f1)"
 
-          # 2. Extract → hydrate prod deps. Use a clean temp dir so any
-          # pre-existing CI workspace junk doesn't leak in.
+          # 3. Extract + copy resolved node_modules from packages/cli/.
+          # Because workspace root install puts cc CLI's deps directly under
+          # node_modules/<pkg> (hoisted) or symlinks @chainlesschain/* to
+          # packages/<pkg>, we recursively dereference symlinks so the
+          # tarball is self-contained on Android (where the symlink targets
+          # won't exist).
           rm -rf /tmp/cc-cli-hydrate
           mkdir /tmp/cc-cli-hydrate
           tar -xzf /tmp/cc-cli-source.tgz -C /tmp/cc-cli-hydrate
-          # tar leaves a single `package/` directory inside.
+          # The tarball leaves a single `package/` directory.
+          # cp -L follows symlinks; cp -R --dereference does the same.
+          # Use cp -RL to materialise every @chainlesschain/<x> symlink.
+          if [ -d packages/cli/node_modules ]; then
+            mkdir /tmp/cc-cli-hydrate/package/node_modules
+            cp -RL packages/cli/node_modules/. /tmp/cc-cli-hydrate/package/node_modules/
+          else
+            # Fallback: hoisted layout — workspace root node_modules has all
+            # deps. We copy only what cc CLI's package.json lists (top-level).
+            echo "::warning::packages/cli/node_modules missing; using hoisted root"
+            mkdir /tmp/cc-cli-hydrate/package/node_modules
+            for dep in $(node -p "Object.keys(require('./packages/cli/package.json').dependencies).join(' ')"); do
+              if [ -d "node_modules/$dep" ]; then
+                cp -RL "node_modules/$dep" "/tmp/cc-cli-hydrate/package/node_modules/$dep"
+              fi
+            done
+          fi
+          echo "Hydrated deps: $(du -sh /tmp/cc-cli-hydrate/package/node_modules | cut -f1)"
+          echo "Top-level deps: $(ls /tmp/cc-cli-hydrate/package/node_modules | wc -l)"
           cd /tmp/cc-cli-hydrate/package
-          # `npm install` with no lockfile — install latest minor
-          # versions per semver in package.json. Skip dev deps, scripts,
-          # and audit (no network calls beyond registry GETs).
-          # NB: do not pass --silent — it suppresses errors too, hiding the
-          # real failure when the install bombs (Xiaomi 24115RA8EC 2026-05-19
-          # CI failure where `Source pack: 3.1M` was the last visible line).
-          npm install --omit=dev --no-audit --no-fund --ignore-scripts \
-                      --prefer-online --no-package-lock
-          echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
-          echo "Top-level deps: $(ls node_modules | wc -l)"
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
           # `--strip-components=1`-style tar parser keeps working unchanged.
