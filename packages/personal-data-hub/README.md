@@ -1,11 +1,13 @@
 # @chainlesschain/personal-data-hub
 
-Personal Data Hub — UnifiedSchema, validators, and batch helpers for the
-"data back to the individual" middleware.
+Personal Data Hub — UnifiedSchema, validators, batch helpers, and a
+SQLCipher-encrypted LocalVault for the "data back to the individual"
+middleware.
 
-> **Phase 0 prototype** of the 13-phase plan in
+> **Phase 0 + Phase 1 landed** of the 13-phase plan in
 > [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md).
-> This package only covers schema + validation + ID generation. LocalVault,
+> Phase 0 covers schema + validation + ID generation.
+> Phase 1 adds SQLCipher LocalVault + pluggable key providers + migrations.
 > AdapterRegistry, KG ingestor, AI analysis layer, and the actual adapters
 > (Email, Alipay, AI Chat × 8, WeChat, ...) come in later phases.
 
@@ -14,9 +16,16 @@ Personal Data Hub — UnifiedSchema, validators, and batch helpers for the
 ```
 lib/
 ├── constants.js      enum values (entity types, subtypes, capturedBy, ...)
-├── ids.js            UUID v7 wrappers (time-ordered IDs, sortable by string)
+├── ids.js            UUID v7 (hand-rolled RFC 9562, ~30 LOC, no dep)
 ├── schemas.js        per-entity validators (Person/Event/Place/Item/Topic)
 ├── batch.js          NormalizedBatch helpers (empty/merge/validate/partition)
+├── migrations.js     LocalVault schema (events/persons/places/items/topics
+│                     /sync_watermarks/audit_log/raw_events) + versioning
+├── key-providers.js  InMemoryKeyProvider + FileKeyProvider + KeyProvider
+│                     contract for platform Keystore impls in later phases
+├── vault.js          LocalVault — SQLCipher AES-256, transactional putBatch,
+│                     typed put/get, queryEvents, watermarks, audit, key
+│                     rotation (WAL-safe), destroy
 └── index.js          re-exports
 ```
 
@@ -87,6 +96,79 @@ const { valid, invalid, invalidReasons } = partitionBatch(rawBatch);
 // commit `valid` to vault, spool `invalid` to review queue
 ```
 
+## LocalVault quick demo
+
+```js
+const fs = require("fs"), os = require("os"), path = require("path");
+const {
+  LocalVault, generateKeyHex, newId, emptyBatch,
+  PERSON_SUBTYPES, EVENT_SUBTYPES,
+} = require("@chainlesschain/personal-data-hub");
+
+const v = new LocalVault({
+  path: path.join(os.homedir(), ".chainlesschain", "hub.db"),
+  key: generateKeyHex(),  // production: pull from a KeyProvider
+});
+v.open();
+
+const now = Date.now();
+const mom = {
+  id: newId(), type: "person", subtype: PERSON_SUBTYPES.CONTACT,
+  names: ["妈妈"], identifiers: { phone: ["13800001111"] },
+  ingestedAt: now,
+  source: { adapter: "demo", adapterVersion: "0.1.0", capturedAt: now, capturedBy: "manual" },
+};
+const order = {
+  id: newId(), type: "event", subtype: EVENT_SUBTYPES.ORDER,
+  occurredAt: now - 86400000,
+  actor: "person-self",
+  participants: [mom.id],
+  content: { title: "妈妈生日蛋白粉", amount: { value: 288.5, currency: "CNY", direction: "out" } },
+  ingestedAt: now,
+  source: { adapter: "demo", adapterVersion: "0.1.0", capturedAt: now, capturedBy: "manual", originalId: "ord-42" },
+};
+
+v.putBatch({ ...emptyBatch(), persons: [mom], events: [order] });
+
+// Query
+const orders = v.queryEvents({ subtype: "order" });
+
+// Adapter dedup before ingest
+const exists = v.findBySource("events", "demo", "ord-42");
+
+// Sync watermark
+v.setWatermark("demo", "INBOX", { watermark: "42", lastSyncedAt: now });
+const wm = v.getWatermark("demo", "INBOX");
+
+// Rotate the master key (WAL-safe — swaps journal mode transparently)
+v.rotateKey(generateKeyHex());
+
+v.close();
+```
+
+## Key providers
+
+Production builds inject a platform-specific KeyProvider that talks to
+DPAPI / Keychain / Android Keystore / iOS Keychain (and optionally wraps
+the result in a U-Key/SIMKey hardware key). Implement this 4-method
+contract:
+
+```js
+{
+  async get(name)         // returns hex or null
+  async set(name, hexKey) // store hex (validate it's 64 hex chars first)
+  async del(name)
+  async has(name)
+}
+```
+
+The package ships `InMemoryKeyProvider` (tests) and `FileKeyProvider`
+(dev fallback, stores 0600-perm files on disk). Recommended key names:
+
+- `vault:<vault-id>`      master key for a vault
+- `vault:<vault-id>:prev` retained pre-rotation key for emergency recovery
+- `adapter:<name>:cookie` per-adapter blobs (used by later-phase adapters)
+
 ## Tests
 
 ```bash
@@ -94,16 +176,18 @@ cd packages/personal-data-hub
 npm test
 ```
 
-**53 tests** covering valid fixtures, invalid fixtures, edge cases (empty names,
-out-of-range coordinates, unknown subtypes, wrong identifier value types,
-missing required fields, malformed amount/price objects, etc).
+**101 tests** across 5 files covering ID generation, all 5 entity validators,
+batch helpers, key providers, vault open/migrations, entity round-trips,
+transactional putBatch with rollback, raw_events archive, queryEvents
+filters + pagination, sync watermarks, audit log, key rotation (WAL-safe),
+destroy, stats. Wrong-key rejection verifies the encryption is real.
 
 ## Not in this package (yet)
 
 | Concern               | Lives in                                          |
 |-----------------------|---------------------------------------------------|
-| LocalVault SQLCipher  | Phase 1 — separate package or desktop-app-vue/main |
-| AdapterRegistry       | Phase 2 — `packages/personal-data-hub-adapters/`   |
+| Platform KeyProviders (DPAPI/Keychain/Keystore) | Phase 1.5 — desktop-app-vue main process bridge |
+| AdapterRegistry       | Phase 2 — same package or sibling                  |
 | KG ingestor / RAG     | Phase 2/4 — wired into existing KG / RAG engines  |
 | Email/Alipay/AI/WeChat adapters | Phase 5-12 — separate sub-packages       |
 | AI analysis skills    | Phase 11 — `skills/personal-analysis-*/`          |

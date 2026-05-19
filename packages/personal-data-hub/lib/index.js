@@ -1,8 +1,13 @@
 /**
- * @chainlesschain/personal-data-hub — Phase 0 prototype
+ * @chainlesschain/personal-data-hub
  *
- * UnifiedSchema definitions, validators, and batch helpers for the Personal
- * Data Hub middleware. See docs/design/Personal_Data_Hub_Architecture.md.
+ * UnifiedSchema, validators, batch helpers, and SQLCipher-backed LocalVault
+ * for the Personal Data Hub middleware.
+ *
+ * Phase 0 (landed): constants / ids / schemas / batch
+ * Phase 1 (this):   vault / migrations / key-providers
+ *
+ * See docs/design/Personal_Data_Hub_Architecture.md.
  */
 
 "use strict";
@@ -11,6 +16,9 @@ const constants = require("./constants");
 const ids = require("./ids");
 const schemas = require("./schemas");
 const batch = require("./batch");
+const migrations = require("./migrations");
+const keyProviders = require("./key-providers");
+const { LocalVault } = require("./vault");
 
 module.exports = {
   // Constants / enums
@@ -34,4 +42,20 @@ module.exports = {
   mergeBatches: batch.mergeBatches,
   validateBatch: batch.validateBatch,
   partitionBatch: batch.partitionBatch,
+
+  // Migrations
+  MIGRATIONS: migrations.MIGRATIONS,
+  TARGET_SCHEMA_VERSION: migrations.TARGET_VERSION,
+  applyMigrations: migrations.applyMigrations,
+  getSchemaVersion: migrations.getSchemaVersion,
+
+  // Key providers
+  KEY_HEX_LEN: keyProviders.KEY_HEX_LEN,
+  isValidKeyHex: keyProviders.isValidKeyHex,
+  generateKeyHex: keyProviders.generateKeyHex,
+  InMemoryKeyProvider: keyProviders.InMemoryKeyProvider,
+  FileKeyProvider: keyProviders.FileKeyProvider,
+
+  // Vault
+  LocalVault,
 };
