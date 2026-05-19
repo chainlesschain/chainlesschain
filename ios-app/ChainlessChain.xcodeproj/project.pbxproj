@@ -136,6 +136,7 @@
 		F0FA18600502CC63D83F91F5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AE728CAE5C6A8663560DBA /* ContentView.swift */; };
 		F1933B823C498574916CA24A /* KnowledgeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8734630F3C99D60145A54E86 /* KnowledgeDetailView.swift */; };
 		F1E2D3C4B5A6978869706152 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PrivacyInfo.xcprivacy */; };
+		CCA1A2A3B4B5C6C7D8D9E0E1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B01CE9088ED1A152BB777AD /* Assets.xcassets */; };
 		F33ABD35A34CA937CBB8890A /* IOSPairingDeviceInfoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8090B88F504DB16603332542 /* IOSPairingDeviceInfoProvider.swift */; };
 		F6CCA74976CF5336A59239C7 /* MessageStatusManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48631B8C1263C905AAB2F71E /* MessageStatusManager.swift */; };
 		F72DDC516B73B33349D8159F /* WebRTCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC62BDC254550A9098A68D56 /* WebRTCManager.swift */; };
@@ -516,14 +517,10 @@
 			sourceTree = "<group>";
 		};
 		6B01CE9088ED1A152BB777AD /* Assets.xcassets */ = {
-			isa = PBXGroup;
-			children = (
-				FFAC9E5104F697131B79BD82 /* LaunchScreenBackground.colorset */,
-				DE51C46F60D9284AA43E69B2 /* LaunchIcon.imageset */,
-				812BB04A9485DAC5893F34A0 /* AppIcon.appiconset */,
-				F650ACDDBD38950499296FC3 /* AccentColor.colorset */,
-			);
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog;
 			name = Assets.xcassets;
+			path = ChainlessChain/Resources/Assets.xcassets;
 			sourceTree = "<group>";
 		};
 		6CA188FDF8667D2AB9726E21 /* Common */ = {
@@ -1004,6 +1001,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F1E2D3C4B5A6978869706152 /* PrivacyInfo.xcprivacy in Resources */,
+				CCA1A2A3B4B5C6C7D8D9E0E1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
