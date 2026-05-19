@@ -689,11 +689,11 @@ describe("EmailAdapter — Phase 5.4 extraction integration", () => {
     expect(raws[0].payload.extraction.warnings[0]).toContain("boom");
   });
 
-  it("version reflects 0.5.0 (Phase 5.5)", () => {
+  it("version reflects 0.6.0 (Phase 5.7)", () => {
     const a = new EmailAdapter({
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeSession([]),
     });
-    expect(a.version).toBe("0.5.0");
+    expect(a.version).toBe("0.6.0");
   });
 });

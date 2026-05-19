@@ -125,9 +125,68 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
 };
 
 /**
+ * Phase 5.7 — streaming handlers. Same call pattern as session-core
+ * streaming: handler receives `sender(payload)` to push intermediate
+ * `{ type: "personal-data-hub.<topic>.event", ... }` messages while
+ * sync is in flight, then the dispatcher wraps the final return with
+ * `.end`. Adapter progress phases (connecting / fetching / done / error)
+ * surface here; UI subscribes via the composable.
+ */
+export const PERSONAL_DATA_HUB_STREAMING_HANDLERS = {
+  "personal-data-hub.sync-adapter-stream": async (msg, sender) => {
+    const hub = await getHub();
+    const original = hub.registry.onSyncEvent;
+    hub.registry.onSyncEvent = (evt) => {
+      try {
+        sender({
+          type: "personal-data-hub.sync-adapter-stream.event",
+          event: evt,
+        });
+      } catch (_e) {}
+      if (typeof original === "function") {
+        try {
+          original(evt);
+        } catch (_e) {}
+      }
+    };
+    try {
+      const report = await hub.registry.syncAdapter(
+        msg.name,
+        msg.options || {},
+      );
+      return { result: report };
+    } finally {
+      hub.registry.onSyncEvent = original;
+    }
+  },
+
+  "personal-data-hub.sync-all-stream": async (msg, sender) => {
+    const hub = await getHub();
+    const original = hub.registry.onSyncEvent;
+    hub.registry.onSyncEvent = (evt) => {
+      try {
+        sender({ type: "personal-data-hub.sync-all-stream.event", event: evt });
+      } catch (_e) {}
+      if (typeof original === "function") {
+        try {
+          original(evt);
+        } catch (_e) {}
+      }
+    };
+    try {
+      const reports = await hub.registry.syncAll(msg.options || {});
+      return { result: reports };
+    } finally {
+      hub.registry.onSyncEvent = original;
+    }
+  },
+};
+
+/**
  * Topic names this protocol owns — exported so the dispatcher can list /
  * advertise them to clients via a capabilities probe.
  */
-export const PERSONAL_DATA_HUB_TOPICS = Object.freeze(
-  Object.keys(PERSONAL_DATA_HUB_HANDLERS),
-);
+export const PERSONAL_DATA_HUB_TOPICS = Object.freeze([
+  ...Object.keys(PERSONAL_DATA_HUB_HANDLERS),
+  ...Object.keys(PERSONAL_DATA_HUB_STREAMING_HANDLERS),
+]);

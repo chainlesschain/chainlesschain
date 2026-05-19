@@ -519,11 +519,11 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
     expect(a._pdfPasswords).toEqual(["custom1", "custom2", "111111"]);
   });
 
-  it("version reflects 0.5.0", () => {
+  it("version reflects 0.6.0", () => {
     const a = new EmailAdapter({
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeSession([]),
     });
-    expect(a.version).toBe("0.5.0");
+    expect(a.version).toBe("0.6.0");
   });
 });

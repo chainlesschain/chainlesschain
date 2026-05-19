@@ -21,6 +21,59 @@ function _unwrap(reply) {
   return reply.result !== undefined ? reply.result : reply;
 }
 
+/**
+ * Phase 5.7 — streaming send. Pushes a request with a custom id, hooks
+ * the ws-store's incoming-message stream, fires onEvent for each
+ * intermediate `<topic>.event` payload, and resolves on `<topic>.end`.
+ *
+ * Returns the final report. If the ws-store doesn't expose `onMessage`,
+ * falls back to a non-streaming `sendRaw` (still works — caller just
+ * doesn't see progress events).
+ */
+function _sendStream(ws, type, payload, onEvent, timeoutMs) {
+  if (typeof ws.onMessage !== "function" || typeof ws._send !== "function") {
+    // Fallback: no streaming hook — call non-streaming version
+    return ws.sendRaw({ type, ...payload }, timeoutMs).then(_unwrap);
+  }
+  return new Promise((resolve, reject) => {
+    const id =
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const eventType = `${type}.event`;
+    const endType = `${type}.end`;
+    let timer = setTimeout(() => {
+      ws.offMessage && ws.offMessage(id);
+      reject(new Error(`stream timeout (${timeoutMs}ms): ${type}`));
+    }, timeoutMs);
+
+    const dispose = ws.onMessage(id, (msg) => {
+      if (!msg || msg.id !== id) return;
+      if (msg.type === eventType && typeof onEvent === "function") {
+        try {
+          onEvent(msg.event || msg);
+        } catch (_e) {}
+        return;
+      }
+      if (msg.type === endType) {
+        clearTimeout(timer);
+        if (typeof dispose === "function") dispose();
+        else if (ws.offMessage) ws.offMessage(id);
+        resolve(_unwrap(msg));
+        return;
+      }
+      if (msg.type === "error") {
+        clearTimeout(timer);
+        if (typeof dispose === "function") dispose();
+        else if (ws.offMessage) ws.offMessage(id);
+        reject(new Error(msg.message || "stream error"));
+      }
+    });
+
+    ws._send({ id, type, ...payload });
+  });
+}
+
 export function usePersonalDataHub() {
   const ws = useWsStore();
   const send = (type, payload = {}, timeoutMs = 30000) =>
@@ -158,6 +211,39 @@ export function usePersonalDataHub() {
         "personal-data-hub.event-detail",
         { eventId },
         5000,
+      );
+    },
+
+    /**
+     * Phase 5.7: streaming variant of syncAdapter. Each intermediate
+     * progress event fires `onEvent({phase, current, total, ...})`;
+     * final report resolves the returned promise.
+     *
+     *   const reports = await hub.syncAdapterStream("email-imap", {}, (evt) => {
+     *     console.log(evt.phase, evt.current, "/", evt.total);
+     *   });
+     *
+     * If the ws-store doesn't support push subscriptions this falls back
+     * to the non-streaming `syncAdapter` (no progress events fire, but
+     * the call still returns the final report).
+     */
+    async syncAdapterStream(name, options = {}, onEvent) {
+      return await _sendStream(
+        ws,
+        "personal-data-hub.sync-adapter-stream",
+        { name, options },
+        onEvent,
+        600_000,
+      );
+    },
+
+    async syncAllStream(options = {}, onEvent) {
+      return await _sendStream(
+        ws,
+        "personal-data-hub.sync-all-stream",
+        { options },
+        onEvent,
+        900_000,
       );
     },
   };
