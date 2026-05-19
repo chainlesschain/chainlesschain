@@ -1,0 +1,189 @@
+/**
+ * Personal Data Hub IPC handlers.
+ *
+ * Surface (all under `personal-data-hub:` channel namespace):
+ *
+ *   ask           { question, options? }    → AskResult | { error }
+ *   stats         ()                         → vault stats + adapter list
+ *   health        ()                         → { llm, vault, kg, rag, sinkStatus }
+ *   list-adapters ()                         → array of { name, version, ... }
+ *   sync-adapter  { name, options? }         → SyncReport | { error }
+ *   sync-all      { options? }               → array of SyncReports
+ *   register-mock { name?, count?, seed? }   → { name } — dev/smoke helper
+ *   unregister    { name }                   → { ok }
+ *   query-events  { subtype?, since?, until?, actor?, adapter?, limit? }
+ *                                            → array of Event entities
+ *   recent-audit  { since?, action?, limit? }→ array of audit rows
+ *
+ * Every handler catches errors and returns { error: string } rather than
+ * throwing across the IPC boundary — Electron's default error
+ * serialization loses .cause/.context.
+ *
+ * Renderer-side: `window.electron.invoke('personal-data-hub:ask', {...})`.
+ */
+
+"use strict";
+
+const { ipcMain } = require("electron");
+const { logger } = require("../utils/logger.js");
+const hubWiring = require("../personal-data-hub/wiring.js");
+
+const NS = "personal-data-hub";
+let _registered = false;
+
+function safe(fn) {
+  return async (_evt, payload) => {
+    try {
+      return await fn(payload || {});
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      logger.warn(`[${NS}] handler failed:`, msg);
+      return { error: msg };
+    }
+  };
+}
+
+function register() {
+  if (_registered) {
+    return;
+  }
+
+  ipcMain.handle(
+    `${NS}:ask`,
+    safe(async ({ question, options }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.engine) {
+        return {
+          error: "Analysis engine unavailable — LLM manager not initialized",
+        };
+      }
+      return await hub.engine.ask(question, options || {});
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:stats`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return {
+        vault: hub.vault.stats(),
+        adapters: hub.registry.list(),
+        hubDir: hub.hubDir,
+        llm: hub.llm ? { name: hub.llm.name, isLocal: hub.llm.isLocal } : null,
+      };
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:health`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return {
+        vault: { ok: !!hub.vault.db, schemaVersion: hub.vault.schemaVersion() },
+        llm: hub.llm
+          ? { ok: true, isLocal: hub.llm.isLocal, name: hub.llm.name }
+          : { ok: false, reason: "LLM manager unavailable" },
+        kgSink: { ok: !!hub.kgSink },
+        ragSink: { ok: !!hub.ragSink },
+      };
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:list-adapters`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return hub.registry.list();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:sync-adapter`,
+    safe(async ({ name, options }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registry.syncAdapter(name, options || {});
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:sync-all`,
+    safe(async ({ options }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registry.syncAll(options || {});
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:register-mock`,
+    safe(async ({ name, count, seed }) => {
+      const hub = await hubWiring.getHub();
+      const adapter = hub.registerMockAdapter({
+        name: name || "mock",
+        count: typeof count === "number" ? count : 20,
+        seed: typeof seed === "number" ? seed : 1,
+      });
+      return { name: adapter.name, version: adapter.version };
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:unregister`,
+    safe(async ({ name }) => {
+      const hub = await hubWiring.getHub();
+      const removed = hub.registry.unregister(name);
+      return { ok: removed };
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:query-events`,
+    safe(async ({ subtype, since, until, actor, adapter, limit }) => {
+      const hub = await hubWiring.getHub();
+      return hub.vault.queryEvents({
+        subtype,
+        since,
+        until,
+        actor,
+        adapter,
+        limit,
+      });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:recent-audit`,
+    safe(async ({ since, action, limit }) => {
+      const hub = await hubWiring.getHub();
+      return hub.vault.queryAudit({ since, action, limit });
+    }),
+  );
+
+  _registered = true;
+  logger.info("[PersonalDataHub IPC] handlers registered (10 channels)");
+}
+
+function unregister() {
+  if (!_registered) {
+    return;
+  }
+  const channels = [
+    "ask",
+    "stats",
+    "health",
+    "list-adapters",
+    "sync-adapter",
+    "sync-all",
+    "register-mock",
+    "unregister",
+    "query-events",
+    "recent-audit",
+  ];
+  for (const c of channels) {
+    try {
+      ipcMain.removeHandler(`${NS}:${c}`);
+    } catch (_e) {}
+  }
+  _registered = false;
+}
+
+module.exports = { register, unregister };

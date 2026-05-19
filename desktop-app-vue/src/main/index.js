@@ -673,6 +673,19 @@ class ChainlessChainApp {
         );
       }
 
+      // Personal Data Hub IPC (Phase 3.5b wiring).
+      // Handlers are stateless registrations — actual hub init happens
+      // lazily on the first ask/sync/etc invocation, so startup cost is zero.
+      try {
+        const personalDataHubIpc = require("./ipc/personal-data-hub-ipc");
+        personalDataHubIpc.register();
+      } catch (hubErr) {
+        logger.warn(
+          "[Main] Personal Data Hub IPC registration skipped:",
+          hubErr && hubErr.message,
+        );
+      }
+
       logger.info("[Main] 延迟 IPC handlers 注册完成");
     } catch (error) {
       logger.error("[Main] 延迟 IPC 注册失败:", error);
@@ -2610,6 +2623,17 @@ class ChainlessChainApp {
       logger.info("[Main] Browser cleanup completed");
     } catch (error) {
       logger.error("[Main] Browser cleanup error:", error);
+    }
+
+    // Close Personal Data Hub vault (SQLCipher journal + WAL flush)
+    try {
+      const hubWiring = require("./personal-data-hub/wiring");
+      hubWiring.close();
+    } catch (error) {
+      logger.warn(
+        "[Main] Personal Data Hub close error:",
+        error && error.message,
+      );
     }
 
     const {
