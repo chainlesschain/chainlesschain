@@ -375,8 +375,11 @@ jobs:
           # `npm install` with no lockfile — install latest minor
           # versions per semver in package.json. Skip dev deps, scripts,
           # and audit (no network calls beyond registry GETs).
+          # NB: do not pass --silent — it suppresses errors too, hiding the
+          # real failure when the install bombs (Xiaomi 24115RA8EC 2026-05-19
+          # CI failure where `Source pack: 3.1M` was the last visible line).
           npm install --omit=dev --no-audit --no-fund --ignore-scripts \
-                      --prefer-online --no-package-lock --silent
+                      --prefer-online --no-package-lock
           echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
           echo "Top-level deps: $(ls node_modules | wc -l)"
 
