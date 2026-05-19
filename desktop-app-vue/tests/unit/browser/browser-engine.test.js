@@ -338,6 +338,12 @@ describe("BrowserEngine", () => {
       await browserEngine.createContext("default");
       await browserEngine.openTab("default", "https://example.com");
 
+      // Windows `Date.now()` granularity is ~15ms; on fast CI the whole
+      // sequence above can run inside one tick → uptime computes as
+      // `Date.now() - startTime = 0` and the `> 0` assertion below would
+      // flake. Sleep one tick so uptime always reflects elapsed time.
+      await new Promise((r) => setTimeout(r, 16));
+
       const status = browserEngine.getStatus();
 
       expect(status.isRunning).toBe(true);
