@@ -198,19 +198,35 @@ DEPLOYS = [
     # security 等内容性页面措辞仍引 v5.0.3.67 — 那是 feature ship 时点, 不需要 chase 下游。
     # 这条 deploy 走的是一次性内联 python (不经 deploy-all.py 的 3-site loop)。
     # 下次跑 deploy-all.py 时这 3 个 local_tar 路径都过期, 需重新生成 artifact 再改路径。
+    #
+    # 2026-05-20 07:04 v5.0.3.70 滚动更新 (3 站全刷):
+    # v5.0.3.70 iOS 三件套 hotfix — PIN-unlock crash 修 (Logger NSLock 保护 metadata 字典并发)
+    # + AuthViewModel.createPrimaryDID SQL 参数走 execute(_:parameters:) 重载
+    # + AppIcon 真编进包 (Assets.xcassets 之前被声明为 PBXGroup 没进 PBXResourcesBuildPhase,
+    #   actool 从未被调用, v0-v0.69 18 张 AppIcon 全套素材搁仓里几个月没生效, 主屏一直 wireframe
+    #   占位; 2441b0d8b 修 pbxproj wiring, .70 真正出 Assets.car 进 ChainlessChain.app)。
+    # .69 因 publish-cli npm 404 stuck draft 8h+, .70 bundle .69 全部 forward + rerun
+    # publish-cli --failed 成功 PATCH 发布 (18 assets 全齐 Latest)。release-sizes.json
+    # tag v5.0.3.68 → v5.0.3.70 自动 (fetch-release-sizes.mjs API GET 最新 release)。
+    # 改动: docs-site/docs/changelog.md 顶部新加 v5.0.3.70 entry +
+    # docs-site/docs/index.md tagline + docs-site-design/docs/index.md tagline +
+    # docs-site/docs/chainlesschain/overview.md 当前版本块全部 .68→.70 +
+    # README.md + README_EN.md 顶部新加 2026-05-20 收口 section (中英对照) +
+    # docs-website-v2/src/pages/index.astro highlights 顶一张 v5.0.3.70 卡。
+    # Tarball stamp 20260520-070449。全 3 站 SFTP swap。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.68-20260520-052353.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.70-20260520-070449.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.68-20260520-052353.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.70-20260520-070449.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.68-20260520-052353.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.70-20260520-070449.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]

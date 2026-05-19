@@ -2,6 +2,15 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-20 Ship — **iOS hotfix triple: PIN-unlock crash + AppIcon wiring + SQL bind (v5.0.3.70)**
+
+> Three real iOS bugs swept in one pass + `.69` changes bundled forward. The `.69` release was stuck in draft for 8h+ because `publish-cli` hit an npm 404; `.70` repacks every `.69` change plus the AppIcon wiring fix, and a `publish-cli` rerun finally flipped the draft → published (18 assets, Latest).
+
+- **iOS 16 PIN-unlock crash**: `CoreCommon/Utilities/Logger.swift` writes to a metadata dictionary across threads; on iOS 16 this races and crashes with `EXC_BAD_ACCESS`. Now guarded with `NSLock` on both read and write paths, with a concurrency fan-out test pinning the regression.
+- **AuthViewModel.createPrimaryDID SQL bind**: the call site was using the parameter-less `DatabaseManager.execute(_:)` overload, so SQL parameters never actually bound to the prepared statement — insert silently failed. Switched to the `execute(_:parameters:)` overload.
+- **AppIcon never actually compiled**: `Assets.xcassets` was declared in `pbxproj` as a `PBXGroup` (logical folder), not a `PBXFileReference type=folder.assetcatalog`, AND it was missing from `PBXResourcesBuildPhase`. The full 18-icon + 3-launch-icon set has sat in the repo from v0 through v0.69 without `actool` ever being invoked — the home-screen icon stayed a wireframe globe placeholder. Commit `2441b0d8b` fixes the pbxproj wiring; `.70` is the first build that actually ships `Assets.car` inside `ChainlessChain.app`.
+- **Release pipeline notes**: `.69` `finalize-release` got skipped because the upstream `publish-cli` step hit `npm error 404 - PUT https://registry.npmjs.org/chainlesschain` (token/permission issue). For `.70` the same step failed on first run; `gh run rerun --failed` re-attempted just `publish-cli` and it cleared, flipping the draft to published with all 18 assets attached (4 Android, macOS dmg, Linux AppImage/rpm/deb, Windows Setup/Portable, iOS .ipa, 3 `latest.yml`, blockmaps).
+
 ## 2026-05-19 Ship — **Android Phase 5.6/5.8 cc Chat — Natural-Language CLI Queries (v5.0.3.67)**
 
 > Open "cc Chat (Natural Language)" from the profile menu, type "list my recent notes / search for RAG-related notes / what skills do I have", and the AI auto-routes through the `cc` CLI on-device, then pastes the command + result back into the chat. No more memorizing `cc` subcommand + flag syntax.
