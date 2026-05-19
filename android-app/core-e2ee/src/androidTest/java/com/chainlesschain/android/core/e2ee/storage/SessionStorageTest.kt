@@ -39,7 +39,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test save and load identity keys`() = runBlocking {
+    fun test_save_and_load_identity_keys() = runBlocking {
         // Given
         val identityKeyPair = X25519KeyPair.generate()
         val signedPreKeyPair = X25519KeyPair.generate()
@@ -58,7 +58,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test save and load one-time pre-keys`() = runBlocking {
+    fun test_save_and_load_one_time_pre_keys() = runBlocking {
         // Given
         val preKeys = mapOf(
             "key1" to X25519KeyPair.generate(),
@@ -81,7 +81,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test save and load session`() = runBlocking {
+    fun test_save_and_load_session() = runBlocking {
         // Given
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
@@ -120,7 +120,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test delete session`() = runBlocking {
+    fun test_delete_session() = runBlocking {
         // Given
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
@@ -156,7 +156,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test get all session IDs`() = runBlocking {
+    fun test_get_all_session_IDs() = runBlocking {
         // Given
         val peerIds = listOf("peer1", "peer2", "peer3")
         val aliceIdentityKeyPair = X25519KeyPair.generate()
@@ -195,7 +195,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test session persistence across encryption operations`() = runBlocking {
+    fun test_session_persistence_across_encryption_operations() = runBlocking {
         // Given
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
@@ -252,7 +252,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test load non-existent session returns null`() = runBlocking {
+    fun test_load_non_existent_session_returns_null() = runBlocking {
         // When
         val loaded = sessionStorage.loadSession("non_existent_peer")
 
@@ -261,7 +261,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test load non-existent identity keys returns null`() = runBlocking {
+    fun test_load_non_existent_identity_keys_returns_null() = runBlocking {
         // When
         val loaded = sessionStorage.loadIdentityKeys()
 
@@ -270,7 +270,7 @@ class SessionStorageTest {
     }
 
     @Test
-    fun `test load non-existent pre-keys returns empty map`() = runBlocking {
+    fun test_load_non_existent_pre_keys_returns_empty_map() = runBlocking {
         // When
         val loaded = sessionStorage.loadOneTimePreKeys()
 

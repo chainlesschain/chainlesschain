@@ -49,7 +49,17 @@ dependencies {
     // Timber Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
 
-    // Testing
+    // Testing — unit
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+
+    // Testing — instrumented (androidTest/SecurePreferencesTest.kt needs these
+    // to even compile; the test file has been red at compile-time for a long
+    // time because the deps were missing, masked by core-e2ee's dex failure
+    // surfacing first in the same workflow).
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
 }
