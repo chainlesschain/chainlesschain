@@ -139,6 +139,39 @@ export default defineConfig({
           ],
         },
         {
+          text: "个人数据中台 ⭐NEW 专题",
+          items: [
+            {
+              text: "主架构（13-Phase 路线图）⭐",
+              link: "/Personal_Data_Hub_Architecture",
+            },
+            {
+              text: "EntityResolver 设计（跨源消歧）",
+              link: "/Personal_Data_Hub_EntityResolver",
+            },
+            {
+              text: "E2E Runbook（真账号验收脚本）",
+              link: "/Personal_Data_Hub_E2E_Runbook",
+            },
+            {
+              text: "Adapter — Email (IMAP) ✅ 已上线",
+              link: "/Adapter_Email_IMAP",
+            },
+            {
+              text: "Adapter — 支付宝账单 ✅ 已上线",
+              link: "/Adapter_Alipay_Bill",
+            },
+            {
+              text: "Adapter — AI 对话历史（8 家国产 + ChatGPT/Claude）🚧",
+              link: "/Adapter_AIChat_History",
+            },
+            {
+              text: "Adapter — 微信 SQLCipher 🚧",
+              link: "/Adapter_WeChat_SQLCipher",
+            },
+          ],
+        },
+        {
           text: "扩展系统设计",
           items: [
             { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
