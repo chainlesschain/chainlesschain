@@ -39,7 +39,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveOpenAIApiKey should store API key`() {
+    fun saveOpenAIApiKey_should_store_API_key() {
         // Given
         val apiKey = "sk-test-12345"
 
@@ -52,7 +52,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `getOpenAIApiKey should return null when not set`() {
+    fun getOpenAIApiKey_should_return_null_when_not_set() {
         // When
         val apiKey = securePreferences.getOpenAIApiKey()
 
@@ -61,7 +61,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveDeepSeekApiKey should store API key`() {
+    fun saveDeepSeekApiKey_should_store_API_key() {
         // Given
         val apiKey = "ds-test-67890"
 
@@ -74,7 +74,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveCustomApiKey should store API key`() {
+    fun saveCustomApiKey_should_store_API_key() {
         // Given
         val apiKey = "custom-api-key"
 
@@ -87,7 +87,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveCustomApiEndpoint should store endpoint`() {
+    fun saveCustomApiEndpoint_should_store_endpoint() {
         // Given
         val endpoint = "https://custom-api.example.com"
 
@@ -100,7 +100,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `getApiKeyForProvider should return correct key for OPENAI`() {
+    fun getApiKeyForProvider_should_return_correct_key_for_OPENAI() {
         // Given
         val apiKey = "sk-openai-test"
         securePreferences.saveOpenAIApiKey(apiKey)
@@ -113,7 +113,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `getApiKeyForProvider should return correct key for DEEPSEEK`() {
+    fun getApiKeyForProvider_should_return_correct_key_for_DEEPSEEK() {
         // Given
         val apiKey = "ds-deepseek-test"
         securePreferences.saveDeepSeekApiKey(apiKey)
@@ -126,7 +126,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `getApiKeyForProvider should return null for unknown provider`() {
+    fun getApiKeyForProvider_should_return_null_for_unknown_provider() {
         // When
         val retrieved = securePreferences.getApiKeyForProvider("UNKNOWN")
 
@@ -135,7 +135,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveApiKeyForProvider should save key for OPENAI`() {
+    fun saveApiKeyForProvider_should_save_key_for_OPENAI() {
         // Given
         val apiKey = "sk-test"
 
@@ -148,7 +148,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `saveApiKeyForProvider should save key for DEEPSEEK`() {
+    fun saveApiKeyForProvider_should_save_key_for_DEEPSEEK() {
         // Given
         val apiKey = "ds-test"
 
@@ -161,7 +161,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `hasApiKeyForProvider should return true when key exists`() {
+    fun hasApiKeyForProvider_should_return_true_when_key_exists() {
         // Given
         securePreferences.saveOpenAIApiKey("test-key")
 
@@ -173,7 +173,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `hasApiKeyForProvider should return false when key does not exist`() {
+    fun hasApiKeyForProvider_should_return_false_when_key_does_not_exist() {
         // When
         val hasKey = securePreferences.hasApiKeyForProvider("OPENAI")
 
@@ -182,7 +182,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `hasApiKeyForProvider should return false for empty key`() {
+    fun hasApiKeyForProvider_should_return_false_for_empty_key() {
         // Given
         securePreferences.saveOpenAIApiKey("")
 
@@ -194,7 +194,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `clearAllApiKeys should remove all stored keys`() {
+    fun clearAllApiKeys_should_remove_all_stored_keys() {
         // Given
         securePreferences.saveOpenAIApiKey("sk-test")
         securePreferences.saveDeepSeekApiKey("ds-test")
@@ -211,7 +211,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `should persist keys across instance recreation`() {
+    fun should_persist_keys_across_instance_recreation() {
         // Given
         val apiKey = "sk-persistent-test"
         securePreferences.saveOpenAIApiKey(apiKey)
@@ -225,7 +225,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `should handle special characters in API keys`() {
+    fun should_handle_special_characters_in_API_keys() {
         // Given
         val apiKey = "sk-test_!@#$%^&*()_+{}|:<>?-=[]\\;',./~`"
 
@@ -238,7 +238,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `should handle long API keys`() {
+    fun should_handle_long_API_keys() {
         // Given
         val apiKey = "a".repeat(500)
 
@@ -251,7 +251,7 @@ class SecurePreferencesTest {
     }
 
     @Test
-    fun `provider names should be case insensitive`() {
+    fun provider_names_should_be_case_insensitive() {
         // Given
         val apiKey = "test-key"
         securePreferences.saveApiKeyForProvider("openai", apiKey)
