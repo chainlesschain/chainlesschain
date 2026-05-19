@@ -165,6 +165,12 @@ module.exports = {
   entityResolverRuleStage: entityResolver.entityResolverRuleStage,
   entityResolverSharedIdentifier: entityResolver.entityResolverSharedIdentifier,
   ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS: entityResolver.ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS,
+  EntityResolverEmbeddingStage: entityResolver.EntityResolverEmbeddingStage,
+  entityResolverCosineSimilarity: entityResolver.entityResolverCosineSimilarity,
+  EntityResolverLLMStage: entityResolver.EntityResolverLLMStage,
+  ENTITY_RESOLVER_LLM_SYSTEM_PROMPT: entityResolver.ENTITY_RESOLVER_LLM_SYSTEM_PROMPT,
+  parseEntityResolverLLMResponse: entityResolver.parseEntityResolverLLMResponse,
+  EntityResolverWorker: entityResolver.EntityResolverWorker,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
