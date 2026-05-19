@@ -28,9 +28,10 @@ const {
   ImapConnectionFailedError,
 } = require("./imap-session");
 const { parseRawEmail } = require("./email-parser");
+const { classifyEmail, CATEGORIES } = require("./classifier");
 
 const NAME = "email-imap";
-const VERSION = "0.2.0"; // bumped for Phase 5.2 body parsing
+const VERSION = "0.3.0"; // Phase 5.3 — Layer 1 + Layer 2 classification
 
 class EmailAdapter {
   constructor(opts) {
@@ -64,9 +65,28 @@ class EmailAdapter {
       ? opts.maxBodyChars
       : 8000;
 
+    // Phase 5.3: classifier configuration.
+    // - opts.llm: optional LLMClient for Layer 2; absent → Layer 1 only.
+    // - opts.classifier: custom orchestrator (override for tests).
+    // - opts.minLayer1Confidence: short-circuit threshold (default 0.85).
+    // - opts.disableClassification: skip both layers entirely.
+    this._llm = opts.llm && typeof opts.llm.chat === "function" ? opts.llm : null;
+    this._classifier = typeof opts.classifier === "function" ? opts.classifier : classifyEmail;
+    this._minLayer1Confidence = Number.isFinite(opts.minLayer1Confidence)
+      ? opts.minLayer1Confidence
+      : 0.85;
+    this._disableClassification = !!opts.disableClassification;
+
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:imap", "auth:authcode", "parse:mime-body", "parse:attachment-metadata"];
+    this.capabilities = [
+      "sync:imap",
+      "auth:authcode",
+      "parse:mime-body",
+      "parse:attachment-metadata",
+      "classify:layer1-rules",
+      ...(this._llm ? ["classify:layer2-llm"] : []),
+    ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
       fields: [
@@ -74,6 +94,7 @@ class EmailAdapter {
         "email:flags + uid + internalDate",
         "email:body (text + html, capped to ~8k chars)",
         "email:attachment-metadata (filename, contentType, size, sha256; no file bytes saved in v0)",
+        "classification:layer-1-rule-or-layer-2-llm-category (bill_bank/order/travel/etc.)",
       ],
       sensitivity: "high",
       legalGate: false,
@@ -136,13 +157,38 @@ class EmailAdapter {
               parsedBody = await this._parser(env.source);
             }
           } catch (parseErr) {
-            // Phase 5.3 classifier rules can still fire on envelope-only
+            // Layer 1 classifier rules can still fire on envelope-only
             // facts; we just lose body text + attachments for this email.
             parsedBody = {
               parseError: parseErr && parseErr.message ? parseErr.message : String(parseErr),
             };
           }
-          yield this._envelopeToRawEvent(env, folder, parsedBody);
+
+          // Phase 5.3: classify. Layer 1 runs synchronously on
+          // (from, subject, headers, attachment hints). If under the
+          // confidence threshold AND we have an LLM, Layer 2 fires.
+          // Classifier errors degrade to OTHER (never abort sync).
+          let classification = null;
+          if (!this._disableClassification) {
+            try {
+              classification = await this._classifier(
+                this._classifierInput(env, parsedBody),
+                {
+                  llm: this._llm,
+                  minLayer1Confidence: this._minLayer1Confidence,
+                }
+              );
+            } catch (err) {
+              classification = {
+                category: CATEGORIES.OTHER,
+                confidence: 0,
+                layer: "error",
+                error: err && err.message ? err.message : String(err),
+              };
+            }
+          }
+
+          yield this._envelopeToRawEvent(env, folder, parsedBody, classification);
           emitted += 1;
           if (emitted >= maxPerFolder) break;
         }
@@ -251,6 +297,20 @@ class EmailAdapter {
               indicatorHeaders: pickIndicatorHeaders(parsedBody.headers),
             }
           : {}),
+        // Phase 5.3: per-email category + which layer / rule decided it.
+        // Phase 5.4 template extractors will dispatch on `.classified`.
+        ...(env.classification
+          ? {
+              classified: env.classification.category,
+              classification: {
+                category: env.classification.category,
+                confidence: env.classification.confidence,
+                layer: env.classification.layer,
+                ...(env.classification.ruleName ? { ruleName: env.classification.ruleName } : {}),
+                ...(env.classification.reason ? { reason: env.classification.reason } : {}),
+              },
+            }
+          : {}),
       },
     };
 
@@ -267,7 +327,7 @@ class EmailAdapter {
     };
   }
 
-  _envelopeToRawEvent(env, folder, parsedBody) {
+  _envelopeToRawEvent(env, folder, parsedBody, classification) {
     const originalId = env.messageId && env.messageId.length > 0
       ? env.messageId
       : `mid-fallback:${this.account.email}:${folder}:${env.uid}`;
@@ -288,7 +348,19 @@ class EmailAdapter {
         ...envNoSource,
         folder,
         ...(parsedBody ? { parsedBody } : {}),
+        ...(classification ? { classification } : {}),
       },
+    };
+  }
+
+  _classifierInput(env, parsedBody) {
+    return {
+      from: env.from,
+      subject: env.subject,
+      attachments: parsedBody && Array.isArray(parsedBody.attachments) ? parsedBody.attachments : [],
+      textBody: (parsedBody && parsedBody.textBody) || "",
+      htmlBody: (parsedBody && parsedBody.htmlBody) || "",
+      headers: parsedBody && parsedBody.headers ? parsedBody.headers : {},
     };
   }
 

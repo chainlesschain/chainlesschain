@@ -138,4 +138,10 @@ module.exports = {
   ImapConnectionFailedError: emailImapAdapter.ImapConnectionFailedError,
   ImapMailboxNotFoundError: emailImapAdapter.ImapMailboxNotFoundError,
   parseRawEmail: emailImapAdapter.parseRawEmail,
+  // Phase 5.3 — email classifier
+  EMAIL_CATEGORIES: emailImapAdapter.EMAIL_CATEGORIES,
+  EMAIL_LAYER1_RULES: emailImapAdapter.EMAIL_LAYER1_RULES,
+  classifyEmail: emailImapAdapter.classifyEmail,
+  classifyEmailLayer1: emailImapAdapter.classifyEmailLayer1,
+  classifyEmailLayer2: emailImapAdapter.classifyEmailLayer2,
 };
