@@ -6,12 +6,20 @@ public class Logger {
     public static let shared = Logger()
 
     private let subsystem = AppConstants.App.bundleId
+    // PIN-unlock fans `getLogger` out across MainActor + DatabaseManager's
+    // background `queue.sync` + Crypto/Keychain helpers in the same instant.
+    // Swift `Dictionary` is not thread-safe; concurrent rehash crashes the
+    // process with EXC_BAD_ACCESS. NSLock keeps it iOS 16-compatible (no
+    // OSAllocatedUnfairLock dependency).
     private var loggers: [String: os.Logger] = [:]
+    private let loggersLock = NSLock()
 
     private init() {}
 
     /// 获取或创建 Logger
     private func getLogger(category: String) -> os.Logger {
+        loggersLock.lock()
+        defer { loggersLock.unlock() }
         if let logger = loggers[category] {
             return logger
         }

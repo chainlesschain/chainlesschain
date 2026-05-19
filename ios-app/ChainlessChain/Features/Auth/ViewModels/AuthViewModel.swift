@@ -213,11 +213,15 @@ class AuthViewModel: ObservableObject {
         """
 
         let timestamp = Date().timestampMs
-        let privateKeyEncrypted = identity.privateKeyEncrypted
-        _ = timestamp
-        _ = privateKeyEncrypted
-
-        _ = try DatabaseManager.shared.execute(sql)
+        let parameters: [Any?] = [
+            identity.id,
+            identity.did,
+            identity.publicKey,
+            identity.privateKeyEncrypted,
+            timestamp,
+            timestamp
+        ]
+        _ = try DatabaseManager.shared.execute(sql, parameters: parameters)
 
         // 保存当前 DID
         UserDefaults.standard.set(identity.did, forKey: AppConstants.UserDefaults.currentDID)

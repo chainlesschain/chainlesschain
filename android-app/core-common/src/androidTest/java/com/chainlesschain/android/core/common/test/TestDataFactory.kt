@@ -173,7 +173,7 @@ object TestDataFactory {
 
     fun createNotificationEntity(
         id: String = "notification_${System.currentTimeMillis()}",
-        type: NotificationType = NotificationType.LIKE,
+        type: NotificationType = NotificationType.POST_LIKED,
         title: String = "Test Notification",
         content: String = "Test notification content",
         actorDid: String? = "did:test:actor",
