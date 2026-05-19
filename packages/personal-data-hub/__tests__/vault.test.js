@@ -104,7 +104,7 @@ afterEach(() => {
 describe("LocalVault open + migrations", () => {
   it("opens a fresh vault and runs initial migrations", () => {
     freshVault();
-    expect(vault.schemaVersion()).toBe(1);
+    expect(vault.schemaVersion()).toBe(2);
     expect(fs.existsSync(vaultPath)).toBe(true);
   });
 
@@ -116,7 +116,7 @@ describe("LocalVault open + migrations", () => {
 
     const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
     reopen.open();
-    expect(reopen.schemaVersion()).toBe(1);
+    expect(reopen.schemaVersion()).toBe(2);
     expect(reopen.stats().persons).toBe(1);
     reopen.close();
   });
@@ -494,7 +494,7 @@ describe("LocalVault.stats", () => {
     vault.audit("hello");
 
     const s = vault.stats();
-    expect(s.schemaVersion).toBe(1);
+    expect(s.schemaVersion).toBe(2);
     expect(s.events).toBe(3);
     expect(s.persons).toBe(1);
     expect(s.places).toBe(2);

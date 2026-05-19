@@ -33,6 +33,7 @@ const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("
 const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
+const entityResolver = require("./entity-resolver");
 
 module.exports = {
   // Constants / enums
@@ -158,6 +159,12 @@ module.exports = {
   extractPdfText: emailImapAdapter.extractPdfText,
   pdfPasswordsFromHints: emailImapAdapter.pdfPasswordsFromHints,
   extractEmailTransactions: emailImapAdapter.extractTransactions,
+
+  // Phase 8 — EntityResolver
+  EntityResolver: entityResolver.EntityResolver,
+  entityResolverRuleStage: entityResolver.entityResolverRuleStage,
+  entityResolverSharedIdentifier: entityResolver.entityResolverSharedIdentifier,
+  ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS: entityResolver.ENTITY_RESOLVER_STRONG_IDENTIFIER_KEYS,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
