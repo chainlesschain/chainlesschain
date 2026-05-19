@@ -107,6 +107,79 @@ const aab = dl('android-aab');
     </div>
   </section>
 
+  <!-- Phase 2.5 · 本地终端 cc 跑通 — 真机 cc -v 验证 (2026-05-19) -->
+  <section class="py-16 md:py-20 border-b border-line bg-paper">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🚀 重大突破 · 安卓本地终端 cc · 2026-05-19 · Xiaomi 真机验证</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">手机本地跑 <span class="italic text-ember">cc</span> —— 不用配对桌面，也能用整套 ChainlessChain CLI。</h2>
+        <p class="text-muted leading-relaxed text-lg">
+          Android 本地终端 Phase 2.5 闭环：APK 内置 Termux <strong class="text-ink">Node.js v25 + chainlesschain CLI</strong>
+          + mksh + toybox + xterm.js WebView，开 app 进 RemoteOperate "本地" tab，直接敲
+          <code class="font-mono bg-cream px-1 rounded">cc -v</code> 返回
+          <code class="font-mono bg-cream px-1 rounded">0.162.2</code> ✅，
+          <code class="font-mono bg-cream px-1 rounded">cc chat / cc skill / cc note / cc ask</code> 全套即开即用。
+          应用启动自动桥接 8 个 LLM 厂商 API 密钥（OPENAI / ANTHROPIC / DEEPSEEK / DASHSCOPE / GEMINI / VOLCENGINE / MOONSHOT / 智谱 / 讯飞）到 cc CLI 环境变量，<strong class="text-ink">无需手动配置</strong>。
+        </p>
+        <p class="mt-6 text-muted leading-relaxed">
+          与"远程终端"是<strong class="text-ink">两条独立链路</strong>：远程终端控桌面 shell（需要配对），
+          <strong class="text-ink">本地终端在手机自己沙箱内跑 cc / mksh / toybox ~250 命令</strong>（完全离线可用）。
+          地铁、飞机、断网环境也能跑 <code class="font-mono bg-cream px-1 rounded">cc note add</code>、<code class="font-mono bg-cream px-1 rounded">cc search</code>、<code class="font-mono bg-cream px-1 rounded">cc memory</code> 等本地子命令。
+        </p>
+
+        <div class="mt-10 grid md:grid-cols-2 gap-6">
+          <div class="p-6 rounded-2xl border border-line bg-cream/30">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">CC UI · LAN 访问</div>
+            <h3 class="font-display text-xl mb-3">手机起 <code class="font-mono">cc ui</code>，电脑浏览器直连</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              终端内敲 <code class="font-mono bg-paper px-1 rounded">cc ui</code> 拉起 Web 管理面板，自动绑定
+              <code class="font-mono bg-paper px-1 rounded">0.0.0.0</code> + 自动生成 token，
+              同 WiFi 的电脑直接浏览器开 <code class="font-mono bg-paper px-1 rounded">http://&lt;手机 IP&gt;:5174</code>，
+              在大屏上看手机的笔记 / 知识图谱 / cowork。
+            </p>
+          </div>
+          <div class="p-6 rounded-2xl border border-line bg-cream/30">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">自动更新</div>
+            <h3 class="font-display text-xl mb-3">总是拿 npm registry 最新版</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              首启用 APK bundled snapshot（离线可用），24 小时周期 WorkManager 后台对比
+              <code class="font-mono bg-paper px-1 rounded">registry.npmjs.org/chainlesschain</code> 自动升级；
+              Settings 可手动触发"立即检查"。
+              中国用户可在终端内 <code class="font-mono bg-paper px-1 rounded">npm config set registry https://registry.npmmirror.com/</code> 切镜像。
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 grid md:grid-cols-4 gap-3">
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">体积</div>
+            <div class="text-sm text-ink/80">arm64-v8a Lite ~50MB（含 Node 25 + cc CLI + mksh + toybox + xterm.js）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">首启 bootstrap</div>
+            <div class="text-sm text-ink/80">≤ 10s 解压 $PREFIX；二次启动 ≤ 500ms（仅 relink lib）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">CI 自动化</div>
+            <div class="text-sm text-ink/80">node-runtime-bundle.yml 周期拉 Termux Node + npm pack + patchelf 重打 → 自动 commit 到 jniLibs/</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">真机验证</div>
+            <div class="text-sm text-ink/80">Xiaomi 24115RA8EC × <code class="font-mono">cc -v → 0.162.2</code> ✅ 2026-05-19</div>
+          </div>
+        </div>
+
+        <p class="mt-8 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/chainlesschain/android-local-terminal.html" target="_blank" rel="noopener">用户文档：完整使用方法 + 故障排查 + 11 章节 →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Local_Terminal.html" target="_blank" rel="noopener">设计文档：6 phase + 12 trap →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://docs.chainlesschain.com/design/Android_Local_Terminal_CI_Bundle.html" target="_blank" rel="noopener">CI Bundle 设计：Termux Node + patchelf →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- #21 P1 主体 5/5 · v5.0.3.55 -->
   <section class="py-16 md:py-20 border-b border-line">
     <div class="container-wide">
