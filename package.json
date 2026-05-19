@@ -20,7 +20,8 @@
     "packages/core-mtc",
     "packages/core-multisig",
     "packages/session-core",
-    "packages/cli"
+    "packages/cli",
+    "packages/personal-data-hub"
   ],
   "scripts": {
     "dev:desktop": "npm run dev --workspace=desktop-app",

@@ -1,0 +1,40 @@
+{
+  "name": "@chainlesschain/personal-data-hub",
+  "version": "0.1.0",
+  "description": "Personal Data Hub — UnifiedSchema + validators + KG ingest helpers for the data-back-to-the-individual middleware",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./constants": "./lib/constants.js",
+    "./ids": "./lib/ids.js",
+    "./schemas": "./lib/schemas.js",
+    "./batch": "./lib/batch.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "keywords": [
+    "chainlesschain",
+    "personal-data",
+    "schema",
+    "validation",
+    "knowledge-graph",
+    "data-sovereignty"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/personal-data-hub"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  }
+}
