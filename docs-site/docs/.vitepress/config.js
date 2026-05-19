@@ -160,6 +160,10 @@ export default defineConfig({
             { text: "SIMKey企业版", link: "/chainlesschain/simkey-enterprise" },
             { text: "移动端同步", link: "/chainlesschain/mobile-sync" },
             { text: "移动端定位与三层架构", link: "/chainlesschain/mobile-positioning" },
+            {
+              text: "Android 本地终端（内置 cc CLI）⭐NEW",
+              link: "/chainlesschain/android-local-terminal",
+            },
           ],
         },
         {
