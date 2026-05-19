@@ -90,7 +90,12 @@ jobs:
           # libc++ is the Termux package providing libc++_shared.so —
           # we *might* be able to use NDK's own copy but include for
           # ABI compatibility safety.
-          PKGS="nodejs libc++ openssl libsqlite libicu c-ares zlib libandroid-support"
+          # Termux's node binary's DT_NEEDED list can drift between releases
+          # (Xiaomi 24115RA8EC 2026-05-19: a node upgrade added libffi). Keep
+          # this list in sync; verify with `readelf -d libnode.so | grep NEEDED`
+          # after each Termux update. libdl/libc/libm/libz/etc are Bionic so
+          # excluded.
+          PKGS="nodejs libc++ openssl libsqlite libicu c-ares zlib libandroid-support libffi"
 
           for pkg in $PKGS; do
             # awk MUST NOT `exit` early — under `set -o pipefail` the
