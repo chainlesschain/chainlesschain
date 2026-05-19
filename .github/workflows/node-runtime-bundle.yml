@@ -344,6 +344,17 @@ jobs:
           # the on-device extraction step pure-Kotlin (no Node-on-device
           # `npm install` which would need network).
 
+          # 0. Build web-panel dist first — `prepublishOnly` runs on `npm
+          # publish` only, NOT on `npm pack`. Without this, the packed CLI
+          # ships an index.html that references missing /assets/index-*.js
+          # bundles → MIME-type fail on first load. (Verified Xiaomi
+          # 24115RA8EC 2026-05-19: `cc ui` HTTP UI loaded blank with
+          # Chrome console errors "expected JavaScript-or-Wasm module
+          # script but server responded with text/html".)
+          (cd packages/cli && npm run build:web-panel) || {
+            echo "::warning::build:web-panel failed; cc ui will fall back to embedded minimal HTML"
+          }
+
           # 1. Pack the workspace package (captures main HEAD, not registry).
           PACKED=$(cd packages/cli && npm pack --silent)
           mv "packages/cli/$PACKED" /tmp/cc-cli-source.tgz
