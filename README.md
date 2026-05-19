@@ -2,6 +2,17 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-19 收口 — **Android Phase 5.6/5.8 cc Chat 自然语言 — 用户大白话直接问 (v5.0.3.67)**
+
+> 个人中心 → 「cc Chat (自然语言)」打开后，直接输入"列下我最近的笔记 / 搜下 RAG 相关的 / 我有哪些 skill"，AI 自动识别意图 → 调本机 cc 命令 → 把命令 + 结果回贴聊天。再也不用记 cc 子命令 + flag 怎么拼。
+
+- **Phase 5.6 LLM tool-use 协议接通**：OpenAI（`tool_calls` + `type:function` 信封）、Doubao 豆包（wire-compat 直 delegate）、Claude / Anthropic（`tool_use` 内容块 + `tool_result` 走 `role=user`）三家原生接 tool-use；不支持的厂商（Qwen / Ernie / Spark 等）自动走"防幻觉 fallback"，明确告知用户切模型而不是编笔记。
+- **Phase 5.7 cc Chat 屏**：5 状态进度条（思考 / 准备调用 / 执行 cc / 处理结果 / 整理）+ 工具卡片（命令 + exitCode + 耗时 + stdout 折叠展开 + 取消按钮）。8 个只读子命令（`note list/show/view` / `search` / `memory list/show` / `skill list` / `status` / `session list` / `mcp list` / `did show`）走白名单，写/删/安装类 LLM 即便编也会被拦截（exitCode=126）。`ProcessBuilder` 绕过 shell，无 shell 注入风险。
+- **Phase 5.8 真机 E2E SOP**：9 个场景 E1-E9 完整 reproducer + 自动化 preflight 脚本 `android-app/scripts/e2e/phase_5_8_preflight.ps1`（设备/bundle/APK 检查 + 残留扫描）；待 Xiaomi 24115RA8EC 真机跑通。
+- **代码审计 + bug 修复**：静态审计 8 个新 Cc* 文件找到 3 个 Blocker/High：(1) `CcExecService.executeArgv` JVM pipe buffer 死锁修（双 async drain，避免 `cc search` 大输出 hang 到 timeout）/ (2) `CcChatOrchestrator.runFallback` 不再 silently 丢 `StreamChunk.error`（HTTP 401 / 网络错显式弹 Failed event）/ (3) `CcAllowlist.check` 明确拒"有 `allowedSubcommands` 但用户没传子命令"的情况。
+- **测试覆盖**：127 新测试全绿 — `feature-ai` 89 单测（CcAllowlistTest 38 + CcExecServiceTest 19 + CcToolCallDispatcherTest 17 + CcChatOrchestratorTest 14）+ `:app` 28 (CcChatViewModelTest 19 + CcChatIntegrationTest 9 端到端走真生产图：VM → 真 Orchestrator → 真 Dispatcher → 真 Allowlist → mock CcExecService，覆盖 E1 happy / E5 deny / E6 fallback / E7 cancel / E9 dedup)。
+- **设计文档**：[Phase 5.8 E2E SOP](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md) + [Phase 5.8 打印版 Checklist](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist.md)；docs-site / docs-site-design 通过 `sync-*.js` 已同步刷新。
+
 ## 2026-05-18 收口 — **iOS Phase 6 sprint 全套：Knowledge 30 + AI Extended 25 + 15 main tab + 多模态 v0.3 + Agent streaming**
 
 > 一晚 19 commits 收口 iOS 端 Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修，**绿基线 `1fb947b32`**。

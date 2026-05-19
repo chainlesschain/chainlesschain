@@ -2,6 +2,17 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-19 Ship — **Android Phase 5.6/5.8 cc Chat — Natural-Language CLI Queries (v5.0.3.67)**
+
+> Open "cc Chat (Natural Language)" from the profile menu, type "list my recent notes / search for RAG-related notes / what skills do I have", and the AI auto-routes through the `cc` CLI on-device, then pastes the command + result back into the chat. No more memorizing `cc` subcommand + flag syntax.
+
+- **Phase 5.6 LLM tool-use protocol wiring**: OpenAI (`tool_calls` + `type:function` envelope), Doubao Volcengine Ark (wire-compat, direct delegate), and Anthropic/Claude (`tool_use` content blocks + `tool_result` carried as `role=user` per Anthropic spec) all wired through natively. Models without tool-use (Qwen / Ernie / Spark / etc.) take a "no-hallucination fallback" path that explicitly tells the user to switch model rather than fabricating notes.
+- **Phase 5.7 cc Chat screen**: 5-state progress strip (thinking / preparing tool / executing cc / processing result / finalizing) + tool card (command + exitCode + duration + collapsible stdout + cancel button). Eight read-only subcommands whitelisted (`note list/show/view` / `search` / `memory list/show` / `skill list` / `status` / `session list` / `mcp list` / `did show`); write/delete/install operations the LLM might invent get blocked at the allowlist (exitCode=126). `ProcessBuilder` bypasses the shell — zero injection surface.
+- **Phase 5.8 device E2E SOP**: 9-scenario E1-E9 reproducer + automated preflight script `android-app/scripts/e2e/phase_5_8_preflight.ps1` (device / bundle / APK / residual-process checks). Awaiting Xiaomi 24115RA8EC real-device pass.
+- **Audit + bug fixes** — static audit of the 8 new Cc* files found 3 Blocker/High issues: (1) `CcExecService.executeArgv` JVM pipe-buffer deadlock fixed (dual async drain — `cc search` large output no longer hangs to timeout); (2) `CcChatOrchestrator.runFallback` no longer silently swallows `StreamChunk.error` (HTTP 401 / network errors now surface as Failed events); (3) `CcAllowlist.check` now explicitly rejects "has `allowedSubcommands` but user didn't supply one" cases instead of letting cc CLI surface a usage error.
+- **Test coverage**: 127 new tests, all green — `feature-ai` 89 unit (CcAllowlistTest 38 + CcExecServiceTest 19 + CcToolCallDispatcherTest 17 + CcChatOrchestratorTest 14) + `:app` 28 (CcChatViewModelTest 19 + CcChatIntegrationTest 9 end-to-end through the real graph: VM → real Orchestrator → real Dispatcher → real Allowlist → mocked CcExecService — covers E1 happy / E5 deny / E6 fallback / E7 cancel / E9 dedup).
+- **Design docs**: [Phase 5.8 E2E SOP](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP.md) + [Phase 5.8 printable Checklist](docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist.md). docs-site / docs-site-design refreshed via `sync-*.js`.
+
 ## 2026-05-18 Ship — **Android Sub-phase 5-6 v2 + 10 v2: LOCAL project terminal picker + full project content pull**
 
 > Follow-up to `3319febc4` real-device feedback: "PC path dialog opens but can't find same-name PC project" + "project file sync not done" — two blocking issues, both closed in one commit.

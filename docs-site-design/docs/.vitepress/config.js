@@ -168,8 +168,16 @@ export default defineConfig({
               link: "/Android_Remote_Terminal_Plan_A",
             },
             {
-              text: "Android AI Chat × cc-exec Tool (Phase 0 MVP) ⭐NEW",
+              text: "Android AI Chat × cc-exec Tool (Phase 0 MVP)",
               link: "/Android_AI_Chat_CC_Exec_Tool",
+            },
+            {
+              text: "Android AI Chat × cc-exec — Phase 5.8 E2E SOP ⭐NEW",
+              link: "/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP",
+            },
+            {
+              text: "Android AI Chat × cc-exec — Phase 5.8 Checklist ⭐NEW",
+              link: "/Android_AI_Chat_CC_Exec_Phase_5_8_Checklist",
             },
           ],
         },
