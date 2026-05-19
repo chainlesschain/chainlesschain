@@ -37,6 +37,13 @@ const DEFAULT_CIPHER_PAGE_SIZE = 4096;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
+function newGroupId() {
+  // Lightweight uuid v4-ish for merge_groups.id. Doesn't need crypto
+  // strength — uniqueness within one user's vault is enough.
+  const r = () => Math.random().toString(16).slice(2, 10);
+  return `mg-${r()}${r()}-${Date.now().toString(36)}`;
+}
+
 function loadDriver() {
   // Lazy require so consumers that only need schemas don't pay for the
   // native binding load. Errors surface here with a precise message.
@@ -716,6 +723,9 @@ class LocalVault {
   stats() {
     const db = this._requireOpen();
     const count = (tbl) => db.prepare(`SELECT COUNT(*) as n FROM ${tbl}`).get().n;
+    const safeCount = (tbl) => {
+      try { return count(tbl); } catch (_e) { return 0; }
+    };
     return {
       schemaVersion: getSchemaVersion(db),
       events: count("events"),
@@ -726,7 +736,263 @@ class LocalVault {
       rawEvents: count("raw_events"),
       auditLog: count("audit_log"),
       watermarks: count("sync_watermarks"),
+      // Phase 8 — EntityResolver tables (safeCount because v1 vaults
+      // don't have these yet until migrate).
+      mergeGroups: safeCount("merge_groups"),
+      mergeMembers: safeCount("merge_members"),
+      resolveQueue: safeCount("resolve_queue"),
+      reviewQueue: safeCount("review_queue"),
+      resolveDecisions: safeCount("resolve_decisions"),
     };
+  }
+
+  // ─── Phase 8 EntityResolver helpers ───────────────────────────────────
+
+  /**
+   * Insert a new pending row into resolve_queue. Idempotent — already-
+   * pending rows for the same person are not duplicated. Returns the
+   * row id (existing or newly inserted).
+   */
+  enqueueResolve(personId) {
+    if (typeof personId !== "string" || personId.length === 0) {
+      throw new Error("enqueueResolve: personId required");
+    }
+    const db = this._requireOpen();
+    const existing = db.prepare(
+      "SELECT id FROM resolve_queue WHERE person_id = ? AND status IN ('pending','in-progress')"
+    ).get(personId);
+    if (existing) return existing.id;
+    const info = db.prepare(
+      "INSERT INTO resolve_queue (person_id, enqueued_at, status) VALUES (?, ?, 'pending')"
+    ).run(personId, Date.now());
+    return info.lastInsertRowid;
+  }
+
+  /**
+   * Pull up to `limit` pending rows + atomically mark them in-progress.
+   * Returns [{id, person_id, attempts}, ...].
+   */
+  claimResolveBatch(limit = 50) {
+    const db = this._requireOpen();
+    const tx = db.transaction(() => {
+      const rows = db.prepare(
+        "SELECT id, person_id, attempts FROM resolve_queue WHERE status = 'pending' ORDER BY enqueued_at LIMIT ?"
+      ).all(limit);
+      if (rows.length === 0) return [];
+      const stmt = db.prepare(
+        "UPDATE resolve_queue SET status = 'in-progress', attempts = attempts + 1 WHERE id = ?"
+      );
+      for (const r of rows) stmt.run(r.id);
+      return rows;
+    });
+    return tx();
+  }
+
+  /**
+   * Mark a resolve_queue row as done (success path).
+   */
+  completeResolve(queueId) {
+    const db = this._requireOpen();
+    db.prepare("UPDATE resolve_queue SET status = 'done' WHERE id = ?").run(queueId);
+  }
+
+  /**
+   * Mark a resolve_queue row as errored (retry-eligible if attempts < 3).
+   */
+  errorResolve(queueId, errMsg) {
+    const db = this._requireOpen();
+    // If attempts < 3, leave status 'pending' for retry; else 'error'
+    db.prepare(
+      `UPDATE resolve_queue
+         SET status = CASE WHEN attempts >= 3 THEN 'error' ELSE 'pending' END,
+             last_error = ?
+       WHERE id = ?`
+    ).run(errMsg || "unknown", queueId);
+  }
+
+  /**
+   * Record a resolve_decisions row. Lex-orders the two ids so each pair
+   * is stored only once. Returns inserted-or-updated row.
+   */
+  recordResolveDecision({ aId, bId, verdict, confidence, decidedBy, reason }) {
+    const db = this._requireOpen();
+    const [lo, hi] = aId < bId ? [aId, bId] : [bId, aId];
+    db.prepare(
+      `INSERT INTO resolve_decisions
+         (a_person_id, b_person_id, verdict, confidence, decided_at, decided_by, reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(a_person_id, b_person_id) DO UPDATE SET
+         verdict = excluded.verdict,
+         confidence = excluded.confidence,
+         decided_at = excluded.decided_at,
+         decided_by = excluded.decided_by,
+         reason = excluded.reason`
+    ).run(lo, hi, verdict, confidence, Date.now(), decidedBy || "rule", reason || null);
+  }
+
+  getResolveDecision(aId, bId) {
+    const db = this._requireOpen();
+    const [lo, hi] = aId < bId ? [aId, bId] : [bId, aId];
+    return db.prepare(
+      "SELECT * FROM resolve_decisions WHERE a_person_id = ? AND b_person_id = ?"
+    ).get(lo, hi);
+  }
+
+  /**
+   * Merge a pair into a merge_group. If either side already belongs to a
+   * group, the other side joins it (and the two groups merge if both
+   * already existed). Returns the resulting group_id.
+   */
+  mergePair({ aId, bId, joinedBy = "rule" }) {
+    const db = this._requireOpen();
+    const tx = db.transaction(() => {
+      const aGroup = db.prepare("SELECT group_id FROM merge_members WHERE person_id = ?").get(aId);
+      const bGroup = db.prepare("SELECT group_id FROM merge_members WHERE person_id = ?").get(bId);
+      const now = Date.now();
+
+      if (aGroup && bGroup && aGroup.group_id === bGroup.group_id) {
+        return aGroup.group_id; // already same group
+      }
+      if (aGroup && bGroup) {
+        // Merge two existing groups → keep aGroup, move bGroup members in
+        db.prepare(
+          "UPDATE merge_members SET group_id = ? WHERE group_id = ?"
+        ).run(aGroup.group_id, bGroup.group_id);
+        db.prepare("DELETE FROM merge_groups WHERE id = ?").run(bGroup.group_id);
+        db.prepare(
+          "UPDATE merge_groups SET member_count = (SELECT COUNT(*) FROM merge_members WHERE group_id = ?), last_updated = ? WHERE id = ?"
+        ).run(aGroup.group_id, now, aGroup.group_id);
+        return aGroup.group_id;
+      }
+      if (aGroup) {
+        // Add b to a's group
+        db.prepare(
+          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+        ).run(aGroup.group_id, bId, now, joinedBy);
+        db.prepare(
+          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?"
+        ).run(now, aGroup.group_id);
+        return aGroup.group_id;
+      }
+      if (bGroup) {
+        db.prepare(
+          "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+        ).run(bGroup.group_id, aId, now, joinedBy);
+        db.prepare(
+          "UPDATE merge_groups SET member_count = member_count + 1, last_updated = ? WHERE id = ?"
+        ).run(now, bGroup.group_id);
+        return bGroup.group_id;
+      }
+      // Neither in any group — create new
+      const groupId = newGroupId();
+      db.prepare(
+        "INSERT INTO merge_groups (id, primary_id, member_count, created_at, last_updated) VALUES (?, ?, 2, ?, ?)"
+      ).run(groupId, aId, now, now);
+      const ins = db.prepare(
+        "INSERT INTO merge_members (group_id, person_id, joined_at, joined_by) VALUES (?, ?, ?, ?)"
+      );
+      ins.run(groupId, aId, now, joinedBy);
+      ins.run(groupId, bId, now, joinedBy);
+      return groupId;
+    });
+    return tx();
+  }
+
+  /**
+   * Remove a person from its merge group (unmerge). If only one member
+   * remains, the group is deleted entirely.
+   */
+  unmergePerson(personId) {
+    const db = this._requireOpen();
+    const tx = db.transaction(() => {
+      const row = db.prepare(
+        "SELECT group_id FROM merge_members WHERE person_id = ?"
+      ).get(personId);
+      if (!row) return { ok: false, reason: "not in any group" };
+      const groupId = row.group_id;
+      db.prepare("DELETE FROM merge_members WHERE person_id = ?").run(personId);
+      const remaining = db.prepare(
+        "SELECT COUNT(*) as n FROM merge_members WHERE group_id = ?"
+      ).get(groupId).n;
+      if (remaining < 2) {
+        // Group of 1 or 0 — delete the group + remaining member row
+        db.prepare("DELETE FROM merge_members WHERE group_id = ?").run(groupId);
+        db.prepare("DELETE FROM merge_groups WHERE id = ?").run(groupId);
+      } else {
+        db.prepare(
+          "UPDATE merge_groups SET member_count = ?, last_updated = ? WHERE id = ?"
+        ).run(remaining, Date.now(), groupId);
+      }
+      return { ok: true, groupId, remaining };
+    });
+    return tx();
+  }
+
+  /**
+   * Get all person ids in the same merge group as the given person.
+   * Returns [personId, ...] including the input (whether or not it's in
+   * a group — a "group of 1" is just `[personId]`).
+   */
+  getMergeGroupMembers(personId) {
+    const db = this._requireOpen();
+    const groupRow = db.prepare(
+      "SELECT group_id FROM merge_members WHERE person_id = ?"
+    ).get(personId);
+    if (!groupRow) return [personId];
+    return db.prepare(
+      "SELECT person_id FROM merge_members WHERE group_id = ? ORDER BY joined_at"
+    ).all(groupRow.group_id).map((r) => r.person_id);
+  }
+
+  /**
+   * Insert a row into review_queue when the LLM stage returns "maybe".
+   * UI lists these for user one-click decisions.
+   */
+  enqueueReview({ aId, bId, embedSim, llmVerdict, llmReason, llmConfidence }) {
+    const db = this._requireOpen();
+    const [lo, hi] = aId < bId ? [aId, bId] : [bId, aId];
+    const info = db.prepare(
+      `INSERT INTO review_queue
+         (a_person_id, b_person_id, embed_sim, llm_verdict, llm_reason, llm_confidence, enqueued_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(lo, hi, embedSim || null, llmVerdict || null, llmReason || null, llmConfidence || null, Date.now());
+    return info.lastInsertRowid;
+  }
+
+  /**
+   * List pending review rows (oldest first).
+   */
+  listReviewQueue({ limit = 50 } = {}) {
+    const db = this._requireOpen();
+    return db.prepare(
+      "SELECT * FROM review_queue WHERE reviewed_at IS NULL ORDER BY enqueued_at ASC LIMIT ?"
+    ).all(Math.min(limit, 1000));
+  }
+
+  /**
+   * Mark a review row as decided by the user.
+   */
+  recordReviewDecision({ reviewId, decision }) {
+    if (!["same", "different", "skip"].includes(decision)) {
+      throw new Error(`invalid review decision: ${decision}`);
+    }
+    const db = this._requireOpen();
+    const row = db.prepare("SELECT * FROM review_queue WHERE id = ?").get(reviewId);
+    if (!row) throw new Error(`review row ${reviewId} not found`);
+    db.prepare(
+      "UPDATE review_queue SET reviewed_at = ?, user_decision = ? WHERE id = ?"
+    ).run(Date.now(), decision, reviewId);
+    return row;
+  }
+
+  resolveQueueStats() {
+    const db = this._requireOpen();
+    const rows = db.prepare(
+      "SELECT status, COUNT(*) as n FROM resolve_queue GROUP BY status"
+    ).all();
+    const out = { pending: 0, "in-progress": 0, done: 0, error: 0 };
+    for (const r of rows) out[r.status] = r.n;
+    return out;
   }
 
   // ─── Key rotation ──────────────────────────────────────────────────────
