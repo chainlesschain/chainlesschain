@@ -202,11 +202,42 @@ Java_com_chainlesschain_android_feature_localterminal_LocalPtyNative_nativeSpawn
         }
     }
 
-    // Redirect child's 0/1/2 to the slave pty, then close both slave and master
-    // in the child (the slave fd's redirected dups stay; the master is parent-only).
-    posix_spawn_file_actions_adddup2(&actions, slaveFd, 0);
-    posix_spawn_file_actions_adddup2(&actions, slaveFd, 1);
-    posix_spawn_file_actions_adddup2(&actions, slaveFd, 2);
+    // Redirect child's 0/1/2 to the slave pty.
+    //
+    // Why we OPEN the slave by path in the child instead of dup2()ing the
+    // inherited slaveFd: with POSIX_SPAWN_SETSID, glibc/bionic make the
+    // child a session leader with no controlling tty BEFORE file actions
+    // run. The kernel then auto-attaches the first pts the session leader
+    // open()s as its ctty — which is exactly what we want, since without
+    // a ctty mksh prints "No controlling tty" at startup and (more
+    // critically) job control doesn't deliver SIGINT to children: the
+    // pty's c_lflag.ISIG kicks in but kernel has no fg pgrp to signal,
+    // so Ctrl+C bytes get echoed but no SIGINT fires. Verified on Xiaomi
+    // 24115RA8EC 2026-05-19 — fix made ^C work for `cc ui` and other
+    // long-running children.
+    //
+    // dup2 of an inherited fd does NOT trigger the ctty auto-attach, so
+    // the previous adddup2(slaveFd, 0/1/2) path always left the child
+    // tty-less.
+    char slavePath[256];
+    bool have_slave_path =
+        (ptsname_r(masterFd, slavePath, sizeof(slavePath)) == 0);
+    if (have_slave_path) {
+        // addopen(0, ...) creates fd 0 by opening the pts slave. This is
+        // what attaches the pty as the child's controlling terminal.
+        posix_spawn_file_actions_addopen(&actions, 0, slavePath, O_RDWR, 0);
+        posix_spawn_file_actions_adddup2(&actions, 0, 1);
+        posix_spawn_file_actions_adddup2(&actions, 0, 2);
+    } else {
+        // Fallback for pathological ptsname_r failure: revert to the
+        // ctty-less behaviour. Better than failing the spawn outright.
+        LOGE("ptsname_r in spawn failed: %s; falling back to dup2 (no ctty)",
+             strerror(errno));
+        posix_spawn_file_actions_adddup2(&actions, slaveFd, 0);
+        posix_spawn_file_actions_adddup2(&actions, slaveFd, 1);
+        posix_spawn_file_actions_adddup2(&actions, slaveFd, 2);
+    }
+    // Close inherited slave + master fds in the child so they don't leak.
     posix_spawn_file_actions_addclose(&actions, slaveFd);
     posix_spawn_file_actions_addclose(&actions, masterFd);
 
