@@ -156,6 +156,7 @@
   "license": "MIT",
   "dependencies": {
     "@chainlesschain/core-mtc": "file:../packages/core-mtc",
+    "@chainlesschain/personal-data-hub": "file:../packages/personal-data-hub",
     "@chainlesschain/session-core": "file:../packages/session-core",
     "@chainsafe/libp2p-yamux": "^8.0.1",
     "@chroma-core/default-embed": "^0.1.9",

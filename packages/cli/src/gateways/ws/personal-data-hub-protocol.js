@@ -1,0 +1,110 @@
+/**
+ * Personal Data Hub — WS protocol handlers.
+ *
+ * Mirrors the 10 IPC channels in
+ * desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js so cc ui / web-shell
+ * users get the same surface. Per memory feedback_cross_shell_feature_pattern,
+ * any hub-facing renderer code can target EITHER:
+ *
+ *   electron: window.electron.invoke("personal-data-hub:ask", {...})
+ *   cc ui:    ws.executeJson({ type: "personal-data-hub.ask", ... })
+ *
+ * Topic names use dot-case here (cc WS convention) vs the colon-style IPC.
+ * The renderer shell-helpers layer reconciles the two so SPA code can be
+ * shell-agnostic.
+ *
+ * Each handler returns { result } or { error }. The dispatcher wraps that
+ * with the standard envelope (id + type) before sending.
+ */
+
+import { getHub } from "../../lib/personal-data-hub-wiring.js";
+
+async function withHub(fn) {
+  try {
+    const hub = await getHub();
+    const result = await fn(hub);
+    return { result };
+  } catch (err) {
+    return { error: err && err.message ? err.message : String(err) };
+  }
+}
+
+export const PERSONAL_DATA_HUB_HANDLERS = {
+  "personal-data-hub.ask": async (msg) =>
+    withHub(async (hub) => {
+      if (!hub.engine) throw new Error("Analysis engine unavailable");
+      return await hub.engine.ask(msg.question, msg.options || {});
+    }),
+
+  "personal-data-hub.stats": async () =>
+    withHub((hub) => ({
+      vault: hub.vault.stats(),
+      adapters: hub.registry.list(),
+      hubDir: hub.hubDir,
+      llm: hub.llm ? { name: hub.llm.name, isLocal: hub.llm.isLocal } : null,
+    })),
+
+  "personal-data-hub.health": async () =>
+    withHub((hub) => ({
+      vault: { ok: !!hub.vault.db, schemaVersion: hub.vault.schemaVersion() },
+      llm: hub.llm
+        ? { ok: true, isLocal: hub.llm.isLocal, name: hub.llm.name }
+        : { ok: false, reason: "LLM unavailable" },
+      kgSink: { ok: !!hub.kgSink },
+      ragSink: { ok: !!hub.ragSink },
+    })),
+
+  "personal-data-hub.list-adapters": async () =>
+    withHub((hub) => hub.registry.list()),
+
+  "personal-data-hub.sync-adapter": async (msg) =>
+    withHub(
+      async (hub) =>
+        await hub.registry.syncAdapter(msg.name, msg.options || {}),
+    ),
+
+  "personal-data-hub.sync-all": async (msg) =>
+    withHub(async (hub) => await hub.registry.syncAll(msg.options || {})),
+
+  "personal-data-hub.register-mock": async (msg) =>
+    withHub((hub) => {
+      const a = hub.registerMockAdapter({
+        name: msg.name || "mock",
+        count: typeof msg.count === "number" ? msg.count : 20,
+        seed: typeof msg.seed === "number" ? msg.seed : 1,
+      });
+      return { name: a.name, version: a.version };
+    }),
+
+  "personal-data-hub.unregister": async (msg) =>
+    withHub((hub) => ({ ok: hub.registry.unregister(msg.name) })),
+
+  "personal-data-hub.query-events": async (msg) =>
+    withHub((hub) =>
+      hub.vault.queryEvents({
+        subtype: msg.subtype,
+        since: msg.since,
+        until: msg.until,
+        actor: msg.actor,
+        adapter: msg.adapter,
+        limit: msg.limit,
+      }),
+    ),
+
+  "personal-data-hub.recent-audit": async (msg) =>
+    withHub((hub) =>
+      hub.vault.queryAudit({
+        since: msg.since,
+        action: msg.action,
+        limit: msg.limit,
+      }),
+    ),
+};
+
+/**
+ * Topic names this protocol owns — exported so the dispatcher can list /
+ * advertise them to clients via a capabilities probe.
+ */
+export const PERSONAL_DATA_HUB_TOPICS = Object.freeze(
+  Object.keys(PERSONAL_DATA_HUB_HANDLERS),
+);

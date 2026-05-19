@@ -3,6 +3,7 @@ import {
   SESSION_CORE_STREAMING_HANDLERS,
 } from "./session-core-protocol.js";
 import { VIDEO_HANDLERS, VIDEO_STREAMING_HANDLERS } from "./video-protocol.js";
+import { PERSONAL_DATA_HUB_HANDLERS } from "./personal-data-hub-protocol.js";
 
 export function createWsMessageDispatcher(server) {
   return {
@@ -188,6 +189,39 @@ export function createWsMessageDispatcher(server) {
               id,
               type: "error",
               code: "VIDEO_ERROR",
+              message: err?.message || String(err),
+            });
+          }
+        };
+      }
+
+      // Personal Data Hub topics — same 10 surfaces as the Electron IPC
+      // (see desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js). Each
+      // handler returns { result } or { error }; we wrap with the standard
+      // response envelope so renderer code is shell-agnostic.
+      for (const hubType of Object.keys(PERSONAL_DATA_HUB_HANDLERS)) {
+        routes[hubType] = async () => {
+          try {
+            const out = await PERSONAL_DATA_HUB_HANDLERS[hubType](message);
+            if (out && out.error) {
+              server._send(ws, {
+                id,
+                type: "error",
+                code: "PERSONAL_DATA_HUB_ERROR",
+                message: out.error,
+              });
+            } else {
+              server._send(ws, {
+                id,
+                type: `${hubType}.response`,
+                result: out && out.result !== undefined ? out.result : out,
+              });
+            }
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "PERSONAL_DATA_HUB_ERROR",
               message: err?.message || String(err),
             });
           }
