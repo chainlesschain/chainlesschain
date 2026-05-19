@@ -1442,6 +1442,10 @@ export default defineConfig({
               text: "Android v1.0 重新定位 (L1+L2+L3)",
               link: "/design/android-repositioning",
             },
+            {
+              text: "Android AI Chat × cc-exec Tool (Phase 0 MVP) ⭐NEW",
+              link: "/design/Android_AI_Chat_CC_Exec_Tool",
+            },
           ],
         },
         {

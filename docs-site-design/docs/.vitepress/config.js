@@ -167,6 +167,10 @@ export default defineConfig({
               text: "Android Remote Terminal Plan A (PTY 远程操控) ⭐NEW",
               link: "/Android_Remote_Terminal_Plan_A",
             },
+            {
+              text: "Android AI Chat × cc-exec Tool (Phase 0 MVP) ⭐NEW",
+              link: "/Android_AI_Chat_CC_Exec_Tool",
+            },
           ],
         },
         {
