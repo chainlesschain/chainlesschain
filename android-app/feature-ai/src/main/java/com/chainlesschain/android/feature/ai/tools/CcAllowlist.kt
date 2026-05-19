@@ -64,9 +64,18 @@ internal object CcAllowlist {
             }
         }
 
-        // Subcommand check
+        // Subcommand check.
+        // B17 fix: when a command has [allowedSubcommands], a subcommand is REQUIRED.
+        // Previously `firstNonFlag == null` silently passed → cc CLI then printed a
+        // usage error, surfacing as a non-zero exit instead of a clean allowlist
+        // deny. We catch it here so the error message is actionable for the LLM.
         val firstNonFlag = subargs.firstOrNull { !it.startsWith("--") }
-        if (spec.allowedSubcommands != null && firstNonFlag != null) {
+        if (spec.allowedSubcommands != null) {
+            if (firstNonFlag == null)
+                return GateResult.deny(
+                    "command '$command' requires a subcommand (one of: " +
+                        "${spec.allowedSubcommands.joinToString(", ")})"
+                )
             if (!isAsciiKebabLower(firstNonFlag) || firstNonFlag !in spec.allowedSubcommands)
                 return GateResult.deny("subcommand '$firstNonFlag' not in allowlist for '$command'")
         }

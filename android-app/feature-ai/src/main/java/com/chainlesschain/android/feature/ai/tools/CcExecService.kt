@@ -4,11 +4,15 @@ import com.chainlesschain.android.feature.localterminal.LocalFilesystemBootstrap
 import com.chainlesschain.android.feature.localterminal.PtyEnvironment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -97,30 +101,69 @@ class CcExecService @Inject constructor(
             return@withContext CcResult.Error("ProcessBuilder.start() failed: ${e.message}")
         }
 
+        // B28 fix: drain stdout/stderr asynchronously while waiting for exit.
+        // JVM pipe buffer (4-64KB platform-dependent) will fill if cc CLI writes
+        // more than that without us reading — child blocks on write(), parent
+        // blocks on waitFor() → deadlock until timeout. Two async drains keep
+        // both pipes flowing. Caps each at PIPE_DRAIN_HARD_LIMIT to avoid OOM
+        // on a runaway subprocess; truncation marker is appended on overflow.
         try {
-            val exited = withTimeoutOrNull(timeoutMs) {
-                runInterruptible { proc.waitFor() }
-                true
-            }
-            val durationMs = System.currentTimeMillis() - startedAt
+            coroutineScope {
+                val stdoutDrain = async(Dispatchers.IO) { drainStream(proc.inputStream) }
+                val stderrDrain = async(Dispatchers.IO) { drainStream(proc.errorStream) }
+                val exited = withTimeoutOrNull(timeoutMs) {
+                    runInterruptible { proc.waitFor() }
+                    true
+                }
+                val durationMs = System.currentTimeMillis() - startedAt
 
-            if (exited == null) {
-                destroyProcess(proc)
-                CcResult.Error("timeout after ${timeoutMs}ms (process killed)")
-            } else {
-                val stdoutBytes = proc.inputStream.use { it.readBytes() }
-                val stderrBytes = proc.errorStream.use { it.readBytes() }
-                CcResult.Ok(
-                    exitCode = proc.exitValue(),
-                    stdout = decodeAndTruncate(stdoutBytes, STDOUT_TRUNCATE_BYTES),
-                    stderr = decodeAndTruncate(stderrBytes, STDERR_TRUNCATE_BYTES),
-                    durationMs = durationMs,
-                )
+                if (exited == null) {
+                    destroyProcess(proc)
+                    // Drains will EOF once process dies; await them so we don't leak the
+                    // coroutines on the scope's failure path.
+                    stdoutDrain.await(); stderrDrain.await()
+                    CcResult.Error("timeout after ${timeoutMs}ms (process killed)")
+                } else {
+                    val stdoutBytes = stdoutDrain.await()
+                    val stderrBytes = stderrDrain.await()
+                    CcResult.Ok(
+                        exitCode = proc.exitValue(),
+                        stdout = decodeAndTruncate(stdoutBytes, STDOUT_TRUNCATE_BYTES),
+                        stderr = decodeAndTruncate(stderrBytes, STDERR_TRUNCATE_BYTES),
+                        durationMs = durationMs,
+                    )
+                }
             }
         } catch (ce: CancellationException) {
             destroyProcess(proc)
             throw ce
         }
+    }
+
+    /**
+     * Drain an InputStream into a ByteArray, capped at [PIPE_DRAIN_HARD_LIMIT] bytes.
+     * After cap, continues to read+discard so the child process can keep writing
+     * (preserves exit on EOF) but stops accumulating to RAM.
+     */
+    private fun drainStream(stream: InputStream): ByteArray {
+        val out = ByteArrayOutputStream()
+        val buf = ByteArray(8192)
+        var totalKept = 0
+        stream.use { input ->
+            while (true) {
+                val read = try {
+                    input.read(buf)
+                } catch (_: Exception) { -1 }
+                if (read < 0) break
+                if (totalKept < PIPE_DRAIN_HARD_LIMIT) {
+                    val take = minOf(read, PIPE_DRAIN_HARD_LIMIT - totalKept)
+                    out.write(buf, 0, take)
+                    totalKept += take
+                }
+                // Else: keep reading to keep pipe flowing, but discard.
+            }
+        }
+        return out.toByteArray()
     }
 
     private fun destroyProcess(proc: Process) {
@@ -138,6 +181,10 @@ class CcExecService @Inject constructor(
         const val DEFAULT_TIMEOUT_MS: Long = 30_000L
         const val STDOUT_TRUNCATE_BYTES: Int = 4096
         const val STDERR_TRUNCATE_BYTES: Int = 4096
+        // B28 fix: cap drained pipe bytes per stream. 256KB headroom over the
+        // 4KB displayed limit covers any reasonable cc CLI output while bounding
+        // worst-case memory under a runaway subprocess.
+        internal const val PIPE_DRAIN_HARD_LIMIT: Int = 256 * 1024
         private const val GRACE_KILL_MS: Long = 200L
 
         val FORBIDDEN_ENV_PREFIXES: List<String> = listOf(
