@@ -144,4 +144,13 @@ module.exports = {
   classifyEmail: emailImapAdapter.classifyEmail,
   classifyEmailLayer1: emailImapAdapter.classifyEmailLayer1,
   classifyEmailLayer2: emailImapAdapter.classifyEmailLayer2,
+  // Phase 5.4 — 6 template extractors + dispatcher
+  extractEmailFields: emailImapAdapter.extractEmailFields,
+  EMAIL_CATEGORY_EXTRACTORS: emailImapAdapter.EMAIL_CATEGORY_EXTRACTORS,
+  extractEmailBill: emailImapAdapter.extractBill,
+  extractEmailOrder: emailImapAdapter.extractOrder,
+  extractEmailTravel: emailImapAdapter.extractTravel,
+  extractEmailGovernment: emailImapAdapter.extractGovernment,
+  extractEmailRegister: emailImapAdapter.extractRegister,
+  extractEmailOther: emailImapAdapter.extractOther,
 };
