@@ -9,7 +9,10 @@
     "./constants": "./lib/constants.js",
     "./ids": "./lib/ids.js",
     "./schemas": "./lib/schemas.js",
-    "./batch": "./lib/batch.js"
+    "./batch": "./lib/batch.js",
+    "./vault": "./lib/vault.js",
+    "./migrations": "./lib/migrations.js",
+    "./key-providers": "./lib/key-providers.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -33,7 +36,9 @@
     "url": "https://github.com/chainlesschain/chainlesschain.git",
     "directory": "packages/personal-data-hub"
   },
-  "dependencies": {},
+  "dependencies": {
+    "better-sqlite3-multiple-ciphers": "^12.5.0"
+  },
   "devDependencies": {
     "vitest": "^4.1.5"
   }
