@@ -3,6 +3,34 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.68 — CLI npm 0.162.3 catch-up（Phase 5.1-5.6 hub + cc ui fixes）] - 2026-05-20
+
+> v5.0.3.67 desktop release 全 11 jobs 绿，但 publish-cli 检查发现 `chainlesschain@0.162.2` 已在 npm registry 上 → 跳过 publish。结果：用户 `npm i -g chainlesschain` 拿到的 CLI 仍是 0.162.2，没包含 Phase 5.1-5.6 hub work 也没包含 3 个 cc ui 修复。**v5.0.3.68 是个补丁 release，专门把 npm CLI bump 到 0.162.3。**
+
+**bump 内容（CLI 0.162.2 → 0.162.3）**
+- Phase 5.1 EmailAdapter (IMAP) — bundles `@chainlesschain/personal-data-hub` workspace 含完整 IMAP 适配器
+- Phase 5.2 email body parsing + attachment metadata
+- Phase 5.3 Email classifier (Layer 1 规则 + Layer 2 LLM)
+- Phase 5.4 6 个 email template field extractors（bill/order/travel/government/register/other）
+- Phase 5.5 PDF decryption + transactions extraction
+- Phase 5.6 email config wizard + sync status + event detail
+- Phase 4 (UI) cross-shell PersonalDataHub view（desktop V6 + cc ui）
+- `cc ui` LAN urls + token in startup banner（bound 0.0.0.0）
+- `cc ui` force-exit timer must not unref（防卡死）
+- `cc ui` SIGINT 2s graceful timeout（Ctrl-C 不再 hang）
+
+**Release pipeline 收口（无中间 bug 这次）**
+- 5 builds（win/mac/linux/ios/android）一次全绿
+- 16 cli-tests shards（4 e2e + 8 integration + 4 unit）全绿
+- create-release / publish-cli-precheck / publish-cli / update-changelog / finalize-release 全绿
+- **26 / 26 jobs green** — 与 v5.0.3.67 同一发版流程，但这次 publish-cli 真 push 到 npm（`chainlesschain@0.162.3`）
+
+**版本号同步**：CLI 0.162.2→0.162.3 · productVersion v5.0.3.67→v5.0.3.68 · desktop-app-vue 5.0.3-alpha.67→.68 · iOS CFBundleVersion 67→68 · Android versionCode 503067→503068, versionName 5.0.3.67→5.0.3.68 · 根 package-lock packages/cli 0.162.2→0.162.3。
+
+**经验**：以后每个 desktop release 都要顺手 bump CLI（如果 hub / cli / shared workspace 有任何改动）。release.yml 的 publish-cli-precheck 默认 skip 已 published 版本，是安全网而不是触发器。
+
+---
+
 ## [v5.0.3.67 — Android Phase 5.6/5.8 cc-exec 自然语言 Chat] - 2026-05-19
 
 > **第一次让 LLM 直接在 Android 端调本机 cc CLI 跑只读查询**。用户用大白话问"列下我最近的笔记 / 搜下 RAG 相关的"，模型识别 → 发 `cc_exec` 工具调用 → app 内白名单 → mksh + node 跑 cc → 卡片把命令 + 输出回贴到聊天。

@@ -5,6 +5,24 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.68] - 2026-05-20 — CLI npm 0.162.3 catch-up (Phase 5.1-5.6 hub + cc ui fixes)
+
+v5.0.3.67 desktop release succeeded (all 11 jobs green) but `publish-cli` saw `chainlesschain@0.162.2` already on npm registry and skipped. Net effect: users running `npm i -g chainlesschain` still got 0.162.2, missing all Phase 5.1-5.6 hub work and 3 cc ui fixes. **v5.0.3.68 is a CLI catch-up release that explicitly bumps the npm package to 0.162.3.**
+
+**CLI bump content (0.162.2 → 0.162.3)**: Phase 5.1 EmailAdapter IMAP / 5.2 body+attachment / 5.3 Layer 1+2 classifier / 5.4 6 template extractors / 5.5 PDF decryption + transactions / 5.6 config wizard + sync status; Phase 4 cross-shell PersonalDataHub view; `cc ui` LAN urls+token banner / force-exit timer must not unref / SIGINT 2s graceful timeout.
+
+**Pipeline**: 26/26 jobs green (5 builds + 16 cli-test shards + create-release + publish-cli + changelog + finalize). Release published with 18 assets at 2026-05-19T15:50:55Z.
+
+**Version surfaces**: CLI 0.162.2→0.162.3 / productVersion v5.0.3.67→v5.0.3.68 / desktop-app-vue 5.0.3-alpha.67→.68 / iOS CFBundleVersion 67→68 / Android versionCode 503067→503068, versionName 5.0.3.67→5.0.3.68.
+
+## [v5.0.3.67] - 2026-05-19 — Android Phase 5.6/5.8 cc-exec 自然语言 Chat
+
+First release letting LLM directly call native `cc` CLI from Android for read-only queries. 8-subcommand allowlist (note/search/memory/skill/status/session/mcp/did) gated through mksh + Node bundled in app. Three LLM tool-use protocols wired: OpenAI tool_calls + type:function, Doubao (wire-compat delegate), Claude/Anthropic tool_use blocks + tool_result role=user. 127 new tests across CcAllowlist (38) / CcExecService (19) / CcToolCallDispatcher (17) / CcChatOrchestrator (14) / CcChatViewModel (19) / CcChatIntegrationTest (9). 3 fixes shipped alongside: B17 allowedSubcommands required / B26 StreamChunk.error surface / B28 async pipe drain to avoid JVM buffer deadlock. Real-device E2E Checklist + SOP shipped under `docs/design/Android_AI_Chat_CC_Exec_Phase_5_8_*.md`.
+
+## [v5.0.3.65–66] - 2026-05-17/18 — Android cc CLI bundle + iOS .ipa 重发
+
+v5.0.3.65 wired Android Phase 2.5 (Node runtime + cc CLI bundle 41MB tarball in `feature-local-terminal/src/main/assets`; mksh shebang wrapper for Android W^X). v5.0.3.66 re-ship to include build-ios .ipa (immutable-releases forbids asset addition to published release).
+
 ## [iOS Phase 6 sprint] - 2026-05-18 — Knowledge 30 + AI Extended 25 全 hybrid + 15 main tab + 多模态 v0.3 + Agent streaming（19 commits, 绿基线 `1fb947b32`）
 
 > 一晚 19 commits 收口 iOS Phase 6.3/6.4 全套 hybrid（OQ-3.2=C / OQ-3.3=C），桌面 +55 method + iOS 56 wrap + 2 新 SwiftUI tab + 5 sub-tab UI + 多模态实时录音 + Agent 流式输出。iOS CI 真编 2 轮抓 2 bug 已修。
