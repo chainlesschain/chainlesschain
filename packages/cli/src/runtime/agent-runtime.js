@@ -648,6 +648,12 @@ export class AgentRuntime {
       }
       shuttingDown = true;
       runtimeLogger.log("\n" + chalk.yellow("Shutting down UI server..."));
+      // NB: do NOT unref() this timer. With unref(), if every other handle
+      // clears before the timer fires, the event loop exits and force-exit
+      // never runs — exactly the bug we hit on Xiaomi 24115RA8EC 2026-05-19:
+      // SIGINT → handler logged "Shutting down" → never exited. We WANT this
+      // timer to keep the loop alive through the SHUTDOWN_TIMEOUT_MS window.
+      // clearTimeout in the success branches handles graceful exits.
       const forceExit = setTimeout(() => {
         runtimeLogger.log(
           chalk.red(
@@ -656,7 +662,6 @@ export class AgentRuntime {
         );
         process.exit(130);
       }, SHUTDOWN_TIMEOUT_MS);
-      forceExit.unref?.();
       try {
         if (mcpClient && typeof mcpClient.disconnectAll === "function") {
           await mcpClient.disconnectAll().catch(() => undefined);
