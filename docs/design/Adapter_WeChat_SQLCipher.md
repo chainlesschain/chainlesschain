@@ -1058,3 +1058,150 @@ By enabling this adapter, you acknowledge and agree:
 - better-sqlite3-multiple-ciphers（SQLCipher 兼容版本广，已为 ChainlessChain 既有依赖）
 - 微信 SQLCipher 解密相关历史研究：社区已有逆向项目（仅作技术学习参考；本 adapter 全部自研验证）
 - 《个人信息保护法》第七十二条家庭事务豁免
+
+---
+
+## 17. Addendum — 模块化与"无设备可建"范围（2026-05-20）
+
+> Phase 6 收口后回看 §12 Phase 拆分。完整 Phase 12 落地需要 **rooted Android 测试设备 + 当前微信版本**，但**约 60% 工作量是 frida-independent 的**，可以**先**写完落库，等设备到位再做后 40% (key extraction + on-device 集成)。本节用于指导这个分割。
+
+### 17.1 模块分层（按 frida 依赖切分）
+
+```
+packages/personal-data-hub/lib/adapters/wechat/   ← v1 落地范围
+├── content-parser.js          ★ frida-independent: XML / ProtoBuf / type=49 子类
+├── db-schema.js               ★ frida-independent: 表/列常量 + version probe 逻辑
+├── db-reader.js               ★ frida-independent: better-sqlite3-multiple-ciphers
+│                                 wraps SQLCipher pragma 设置 + WAL 处理；
+│                                 接收 `keyProvider({getKey()})` 注入
+├── normalize.js               ★ frida-independent: RawMessage → Event/Person/Topic
+│                                 mapping per §7
+├── media-decryptor.js         ★ frida-independent: image .dat XOR / voice .amr XOR
+│                                 (算法已知公开)
+├── moments-parser.js          ★ frida-independent: SnsMicroMsg.db 解析
+├── wechat-adapter.js          ★ frida-independent (with DI): 主 Adapter 类
+│                                 ─ 接收 `keyProvider` (生产环境注入 Frida 桥；
+│                                   测试 / dev 注入 plaintext key)
+│                                 ─ 接收 `dbPath` (生产环境是 adb pull 后的本地
+│                                   副本路径；测试用 fixture 路径)
+└── adb/                       ☆ frida-dependent: 真机集成
+    ├── frida-bridge.js        DOWN: Frida CLI / device server 桥接
+    ├── adb-puller.js          DOWN: adb pull DB + media 到 hubDir/wechat-cache/
+    └── env-detector.js        DOWN: Magisk / SELinux / 微信版本检测
+```
+
+**★ 标记 = 在 dev box (no device) 上 100% 可建 + 单测**：所有 SQLCipher 操作通过 `keyProvider` 注入测试 key；DB fixture 用 **bun create-fixture** 脚本生成（写一个 mini-EnMicroMsg.db 含 50 条消息 + 5 个联系人 + 10 条朋友圈）。
+
+**☆ 标记 = 真机依赖**：留出明确接口边界，待设备就绪 land。
+
+### 17.2 "无设备可建" v0.5 范围（建议先落地）
+
+| Module | LOC 估 | 单测 fixture | 验收 |
+|---|---|---|---|
+| `content-parser.js` | ~400 | XML 50 条 (type 1/3/34/49 sub 2/5/21 etc.) | 解析率 ≥ 95% |
+| `db-schema.js` | ~150 | 微信 8.0.X / 8.1.X / 8.2.X 三版 schema 常量 | version probe 单测 |
+| `db-reader.js` | ~200 | 合成 SQLCipher DB (better-sqlite3-multiple-ciphers 自带工具创建) | open / read / WAL 处理 |
+| `normalize.js` | ~500 | RawMessage 100 条 → Event/Person/Topic 黄金输出 | UnifiedSchema 校验全过 |
+| `media-decryptor.js` | ~200 | 合成 .dat / .amr XOR 文件 | 解密后 magic bytes 匹配 |
+| `moments-parser.js` | ~300 | 朋友圈 30 条 fixture | 字段完整 |
+| `wechat-adapter.js` | ~400 | DI key + DI db path | sync()/normalize() 跑通 |
+
+**总**：~2150 LOC src + ~1500 LOC test，**约 4 天工作量可落**。Phase 12 §12.1 + 12.4-12.8 全部 frida-independent 部分。
+
+### 17.3 真机依赖 v0.5 → v1 增量（设备到位后）
+
+| Module | 工期 |
+|---|---|
+| Frida hook 脚本（§5.2 骨架基础上加强）| 1.5d |
+| `adb-puller.js` | 0.5d |
+| `env-detector.js` + UI 检测向导 | 0.5d |
+| 端到端真机 E2E（5 年 100k 消息 ingest）| 1d |
+| Phase 12 §12.9（性能 + 跨源 link 验）| 0.5d |
+
+**总**：4 天，与 §12 原计划合计 8 天，比原 10 天**还省 2 天**（因为 frida-independent 部分单测先驱动，避免设备上反复调试 schema parser）。
+
+### 17.4 推荐实施顺序
+
+```
+1. WAIT: Phase 7 (Shopping) + Phase 8 (EntityResolver) + Phase 9 (Travel)
+         按 Architecture §12 排
+   ↓
+2. NOW BUILDABLE (no device): Phase 12 §12.1 + 12.4-12.8 frida-independent 部分
+   = 提前 4 天写好 content-parser / db-schema / db-reader / normalize / media / moments / adapter
+   ↓
+3. DEVICE READY: Phase 12 §12.2 + 12.3 + 12.9 (Frida + adb + E2E)
+   ↓
+4. ECN v0.6 release
+```
+
+### 17.5 fixture 生成策略
+
+**为什么 fixture 重要**：无设备时 dev box 没真微信 DB，没法验证 parser。需要"合成 EnMicroMsg.db"——内容是假的但 schema 真实。
+
+**生成脚本**（`packages/personal-data-hub/scripts/gen-wechat-fixture.js`）：
+```javascript
+// 1. 用 better-sqlite3-multiple-ciphers 创建空 SQLCipher DB（已知 key）
+// 2. CREATE TABLE message (...) 用真实 schema（从 Phase 12 §4.2 抄）
+// 3. INSERT 50 条 mock messages:
+//    - 20 条个人聊天 type=1 (各种 talker)
+//    - 10 条群聊 type=1 (含 "<wxid_xxx>:\n" prefix)
+//    - 5 条 type=3 (图片) content=mock XML
+//    - 5 条 type=34 (语音)
+//    - 5 条 type=49 sub=5 (链接)
+//    - 5 条 type=49 sub=21 (红包)
+// 4. CREATE TABLE rcontact + INSERT 20 contacts
+// 5. CREATE TABLE chatroom + INSERT 5 groups
+// 6. CREATE TABLE WechatTransfer + INSERT 5 transfers
+// 7. close + 输出文件路径
+```
+
+fixture 落 `__tests__/fixtures/wechat-en-microsg-v8-2-mock.db`（**进 git** — 假数据，不算 PII 泄露）。
+
+单测：
+```javascript
+const dbPath = path.join(__dirname, "../fixtures/wechat-en-microsg-v8-2-mock.db");
+const adapter = new WechatAdapter({
+  keyProvider: { getKey: async () => "test-key-32-bytes" },
+  dbPathOverride: dbPath,
+});
+for await (const raw of adapter.sync()) raws.push(raw);
+expect(raws).toHaveLength(50);
+```
+
+### 17.6 跨源 link anchor
+
+**复用 Phase 8 EntityResolver**：
+- WeChat `rcontact.alias / nickname / conRemark` → `Person.names[]`
+- WeChat 转账 `WechatTransfer.feedesc` 含 "妈" / 备注 → 给 EntityResolver R4 段 embedding stage
+- WeChat 群成员 wxid 间接对应 → 已经被微信派生但不暴露 phone
+
+**WeChat 与 Alipay 同人候选 anchor**：
+- 名字（nickname / conRemark） → embedding cosine
+- 朋友圈 location 与 Alipay 商家地理位置 → Place anchor (Phase 9 Travel adapter 后)
+
+### 17.7 v0.5 验收（落地 frida-independent 部分时）
+
+| # | 项 | 验收 |
+|---|---|---|
+| V1 | 全部 ★ 模块单测过 | hub suite +200 tests |
+| V2 | mock fixture E2E：50 raw → normalize → vault → query 回来 | smoke 跑通 |
+| V3 | content-parser 解析率 ≥ 95% on type=1/3/34/49 五子类 | golden test |
+| V4 | EntityResolver 能 process WeChat Person rows | Phase 8 + WeChat 联合 smoke |
+| V5 | 真机集成边界清晰：keyProvider / dbPath 是 DI 唯一桥 | 文档 + 代码 review |
+
+### 17.8 已知差距 (gaps in original design)
+
+| Gap | 当前文档状态 | 建议补充位置 |
+|---|---|---|
+| `keyProvider` 抽象（让 adapter 在 dev / prod 走同一接口） | §6.1 类结构只示 hook 调用 | §6.1 加 DI 注释 ✓ (本 addendum) |
+| fixture 生成脚本规格 | §11 测试计划仅说 "100k 消息合成数据" | §17.5 ✓ |
+| frida-independent vs frida-dependent 模块边界 | 全文混着写 | §17.1 ✓ |
+| `media-decryptor.js` 算法明示 | §6.3-6.4 只示个别 hex bytes | 留 v0.5 实施时验证 |
+| 多 uin (多账号) 在 sync 阶段如何区分 vault entries | §2.2 标 v2 | §17.6 留 anchor |
+| ProtoBuf 解析依赖（type=49 嵌套 PB）| §4.5 提到双层解析无 lib 选择 | v0.5 实施时选 `protobufjs` 或 `pbf` |
+| Adapter 与 Phase 8 EntityResolver 跨源 contract | 散见 §1.2 § 8.2 | §17.6 ✓ |
+
+### 17.9 修订建议
+
+完整修订留实施前 review。本 addendum 不改 §1-16 原文，只**追加** §17 作为"无设备可建"的实施前导索引。当 v0.5 frida-independent 部分落地后，回过头来 update §1-16 的 "无 root 模式" 部分。
+
