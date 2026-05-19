@@ -228,18 +228,22 @@ class CcChatOrchestratorTest {
 
     @Test fun `MAX_TOOL_ITERATIONS — forced final after limit`() = runTest {
         val ad = adapter(supportsTools = true)
-        // adapter keeps requesting tool calls beyond MAX_TOOL_ITERATIONS
+        // Adapter keeps requesting tool calls beyond MAX_TOOL_ITERATIONS;
+        // parseArguments returns DIFFERENT args each call so dedup doesn't
+        // collapse the loop to 1 dispatch.
+        val parseCounter = java.util.concurrent.atomic.AtomicInteger(0)
         coEvery { ad.chatWithTools(any(), any(), any(), any(), any()) } answers {
             ChatWithToolsResponse(
                 content = null,
                 toolCalls = listOf(ToolCall("c", "cc_exec",
-                    mapOf("command" to "search", "subargs" to listOf("query-${System.nanoTime()}")))),
+                    mapOf("command" to "search", "subargs" to listOf("query")))),
                 finishReason = "tool_calls",
             )
         }
         coEvery { ad.chat(any(), any(), any(), any()) } returns "已达调用上限，无法继续。"
-        coEvery { dispatcher.parseArguments(any()) } returns
-            ("search" to listOf("query"))
+        coEvery { dispatcher.parseArguments(any()) } answers {
+            "search" to listOf("query-${parseCounter.getAndIncrement()}")
+        }
         coEvery { dispatcher.dispatch(any()) } returns ToolResult("c", "result")
 
         val events = orchestrator.run("loop me", emptyList(), ad, "gpt-4o-mini").toList()
@@ -247,7 +251,7 @@ class CcChatOrchestratorTest {
         // Final fallback Completed event
         val completed = events.filterIsInstance<CcChatEvent.Completed>().last()
         assertEquals("已达调用上限，无法继续。", completed.finalText)
-        // exactly MAX_TOOL_ITERATIONS dispatches (queries are unique → no dedup hits)
+        // Exactly MAX_TOOL_ITERATIONS dispatches (each iteration distinct via counter)
         coVerify(exactly = CcChatOrchestrator.MAX_TOOL_ITERATIONS) { dispatcher.dispatch(any()) }
     }
 

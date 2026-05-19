@@ -46,13 +46,29 @@ class CcAllowlistTest {
 
     // ---------- B17 fix — allowedSubcommands missing rejected ----------
 
-    @Test fun `note without subcommand denied (B17 fix)`() {
+    @Test fun `note without subcommand denied (B17 fix) — all-flag args`() {
+        // B17 fix catches the "all-flag" case (firstOrNull { !it.startsWith("--") } == null).
         // Previously silently passed → cc CLI printed usage error.
-        // Now we deny upfront with actionable message.
-        val r = CcAllowlist.check("note", listOf("--limit", "10"))
+        val r = CcAllowlist.check("note", listOf("--json"))
         assertTrue(r is GateResult.Deny)
         assertTrue((r as GateResult.Deny).reason.contains("requires a subcommand"))
         assertTrue(r.reason.contains("list"))
+    }
+
+    @Test fun `note with no subargs at all denied (B17 fix) — empty list`() {
+        val r = CcAllowlist.check("note", emptyList())
+        assertTrue(r is GateResult.Deny)
+        assertTrue((r as GateResult.Deny).reason.contains("requires a subcommand"))
+    }
+
+    @Test fun `note flag-value-mistaken-as-positional denied with subcommand-not-in-allowlist`() {
+        // Pre-existing limitation (not B17 specifically): `--limit 10` puts "10"
+        // in subargs, which is then mistaken for a positional. Gate still denies,
+        // just via the "not in allowlist" branch instead of "requires subcommand".
+        // Acceptable v1 behavior — user-visible result is "denied".
+        val r = CcAllowlist.check("note", listOf("--limit", "10"))
+        assertTrue(r is GateResult.Deny)
+        assertTrue((r as GateResult.Deny).reason.contains("'10'"))
     }
 
     @Test fun `memory without subcommand denied`() {
