@@ -30,6 +30,7 @@ const queryParser = require("./query-parser");
 const promptBuilder = require("./prompt-builder");
 const { MockLLMClient, OllamaClient } = require("./llm-client");
 const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("./analysis");
+const bridges = require("./bridges");
 
 module.exports = {
   // Constants / enums
@@ -117,4 +118,11 @@ module.exports = {
   AnalysisEngine,
   DEFAULT_MAX_FACTS,
   DEFAULT_MAX_QUERY_LIMIT,
+
+  // Bridges to existing cc infrastructure (LLM / KG / RAG)
+  CcLLMAdapter: bridges.CcLLMAdapter,
+  CcKgSink: bridges.CcKgSink,
+  CcRagSink: bridges.CcRagSink,
+  HUB_TO_CC_TYPE: bridges.HUB_TO_CC_TYPE,
+  LOCAL_PROVIDERS: bridges.LOCAL_PROVIDERS,
 };

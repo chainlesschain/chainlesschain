@@ -21,7 +21,11 @@
     "./query-parser": "./lib/query-parser.js",
     "./prompt-builder": "./lib/prompt-builder.js",
     "./llm-client": "./lib/llm-client.js",
-    "./analysis": "./lib/analysis.js"
+    "./analysis": "./lib/analysis.js",
+    "./bridges": "./lib/bridges/index.js",
+    "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",
+    "./bridges/cc-kg-sink": "./lib/bridges/cc-kg-sink.js",
+    "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js"
   },
   "scripts": {
     "test": "vitest run",
