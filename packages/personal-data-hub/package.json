@@ -12,7 +12,12 @@
     "./batch": "./lib/batch.js",
     "./vault": "./lib/vault.js",
     "./migrations": "./lib/migrations.js",
-    "./key-providers": "./lib/key-providers.js"
+    "./key-providers": "./lib/key-providers.js",
+    "./adapter-spec": "./lib/adapter-spec.js",
+    "./kg-derive": "./lib/kg-derive.js",
+    "./rag-derive": "./lib/rag-derive.js",
+    "./registry": "./lib/registry.js",
+    "./mock-adapter": "./lib/mock-adapter.js"
   },
   "scripts": {
     "test": "vitest run",
