@@ -240,6 +240,61 @@ describe("ImapSession.fetchEnvelopesSince", () => {
   });
 });
 
+describe("ImapSession.fetchFullSince", () => {
+  it("yields source bytes alongside envelope", async () => {
+    const raw = Buffer.from("RAW RFC822 SOURCE BYTES", "utf8");
+    const fakeRow = {
+      uid: 100,
+      internalDate: new Date(),
+      flags: [],
+      size: raw.length,
+      source: raw,
+      envelope: {
+        messageId: "<m@x>",
+        subject: "s",
+        from: [{ name: "A", address: "a@b" }],
+        to: [],
+        cc: [],
+        date: new Date(),
+      },
+    };
+    const s = new ImapSession({
+      host: "x", port: 993, user: "u@t", authCode: "z",
+      imapFlowFactory: makeFakeFactory({ fetchRows: [fakeRow] }),
+    });
+    await s.connect();
+    await s.openMailbox("INBOX");
+    const got = [];
+    for await (const row of s.fetchFullSince(0)) got.push(row);
+    expect(got).toHaveLength(1);
+    expect(Buffer.isBuffer(got[0].source)).toBe(true);
+    expect(got[0].source.toString()).toBe("RAW RFC822 SOURCE BYTES");
+    expect(got[0].uid).toBe(100);
+    expect(got[0].subject).toBe("s");
+  });
+
+  it("emits empty Buffer when server returns no source", async () => {
+    const fakeRow = {
+      uid: 1,
+      internalDate: new Date(),
+      flags: [],
+      size: 0,
+      // no `source` field
+      envelope: { messageId: "<m@x>", subject: "", from: [], to: [], cc: [], date: new Date() },
+    };
+    const s = new ImapSession({
+      host: "x", port: 993, user: "u@t", authCode: "z",
+      imapFlowFactory: makeFakeFactory({ fetchRows: [fakeRow] }),
+    });
+    await s.connect();
+    await s.openMailbox("INBOX");
+    const got = [];
+    for await (const row of s.fetchFullSince(0)) got.push(row);
+    expect(Buffer.isBuffer(got[0].source)).toBe(true);
+    expect(got[0].source.length).toBe(0);
+  });
+});
+
 describe("ImapSession.close", () => {
   it("is idempotent on never-connected session", async () => {
     const s = new ImapSession({

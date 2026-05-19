@@ -8,6 +8,7 @@ const {
   ImapConnectionFailedError,
   ImapMailboxNotFoundError,
 } = require("./imap-session");
+const { parseRawEmail } = require("./email-parser");
 
 module.exports = {
   EmailAdapter,
@@ -21,4 +22,5 @@ module.exports = {
   ImapAuthFailedError,
   ImapConnectionFailedError,
   ImapMailboxNotFoundError,
+  parseRawEmail,
 };

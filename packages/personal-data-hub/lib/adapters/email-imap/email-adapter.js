@@ -27,9 +27,10 @@ const {
   ImapAuthFailedError,
   ImapConnectionFailedError,
 } = require("./imap-session");
+const { parseRawEmail } = require("./email-parser");
 
 const NAME = "email-imap";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0"; // bumped for Phase 5.2 body parsing
 
 class EmailAdapter {
   constructor(opts) {
@@ -53,14 +54,26 @@ class EmailAdapter {
       ? opts.sessionFactory
       : (cfg) => new ImapSession(cfg);
 
+    // Phase 5.2: opt-out hook for tests that don't want to depend on
+    // mailparser. parser must be `async (rawBuffer) => ParsedEmail`.
+    this._parser = typeof opts.parser === "function" ? opts.parser : parseRawEmail;
+    // Soft cap on bodies stored in vault content.text — long newsletter
+    // HTML can be megabytes; trimming keeps `events` row + KG triple
+    // + RAG embed budgets sane.
+    this._maxBodyChars = Number.isFinite(opts.maxBodyChars) && opts.maxBodyChars > 0
+      ? opts.maxBodyChars
+      : 8000;
+
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:imap", "auth:authcode"];
+    this.capabilities = ["sync:imap", "auth:authcode", "parse:mime-body", "parse:attachment-metadata"];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
       fields: [
         "email:headers (from/to/subject/date/messageId)",
         "email:flags + uid + internalDate",
+        "email:body (text + html, capped to ~8k chars)",
+        "email:attachment-metadata (filename, contentType, size, sha256; no file bytes saved in v0)",
       ],
       sensitivity: "high",
       legalGate: false,
@@ -111,8 +124,25 @@ class EmailAdapter {
         const since = uvChanged ? 0 : prevLastUid;
 
         let emitted = 0;
-        for await (const env of session.fetchEnvelopesSince(since)) {
-          yield this._envelopeToRawEvent(env, folder);
+        for await (const env of session.fetchFullSince(since)) {
+          // Parse the body in the adapter (not the session) so the
+          // session stays a thin IMAP wrapper. Parse failures degrade
+          // gracefully — emit the raw event without parsedBody so the
+          // registry's invalidCount tracker isn't tripped by every
+          // weird MIME structure we hit in the wild.
+          let parsedBody = null;
+          try {
+            if (env.source && env.source.length > 0) {
+              parsedBody = await this._parser(env.source);
+            }
+          } catch (parseErr) {
+            // Phase 5.3 classifier rules can still fire on envelope-only
+            // facts; we just lose body text + attachments for this email.
+            parsedBody = {
+              parseError: parseErr && parseErr.message ? parseErr.message : String(parseErr),
+            };
+          }
+          yield this._envelopeToRawEvent(env, folder, parsedBody);
           emitted += 1;
           if (emitted >= maxPerFolder) break;
         }
@@ -156,6 +186,22 @@ class EmailAdapter {
 
     const subject = env.subject || "(no subject)";
 
+    // Phase 5.2: prefer the parsed text body over the envelope-only
+    // placeholder. Falls back to the recipient prose when body parsing
+    // failed or the email was envelope-only fetched.
+    const parsedBody = env.parsedBody || null;
+    let contentText;
+    if (parsedBody && typeof parsedBody.textBody === "string" && parsedBody.textBody.length > 0) {
+      contentText = trim(parsedBody.textBody, this._maxBodyChars);
+    } else if (parsedBody && typeof parsedBody.htmlBody === "string" && parsedBody.htmlBody.length > 0) {
+      // For HTML-only newsletters where the text/plain part is empty,
+      // keep a crude strip — analysis prompts handle HTML fine, but
+      // BM25 tokenization works better on stripped text.
+      contentText = trim(stripHtml(parsedBody.htmlBody), this._maxBodyChars);
+    } else {
+      contentText = `From: ${env.from && env.from[0] ? formatAddr(env.from[0]) : "?"}; To: ${formatRecipients(env.to)}; subject: ${subject}`;
+    }
+
     const event = {
       id: newId(),
       type: "event",
@@ -165,7 +211,7 @@ class EmailAdapter {
       participants,
       content: {
         title: subject,
-        text: `From: ${env.from && env.from[0] ? formatAddr(env.from[0]) : "?"}; To: ${formatRecipients(env.to)}; subject: ${subject}`,
+        text: contentText,
       },
       ingestedAt,
       source: this._source(env.messageId, env.internalDate),
@@ -179,6 +225,32 @@ class EmailAdapter {
         uid: env.uid,
         size: env.size,
         accountEmail: this.account.email,
+        ...(parsedBody && parsedBody.attachments
+          ? {
+              attachments: parsedBody.attachments.map((a) => ({
+                filename: a.filename,
+                contentType: a.contentType,
+                contentDisposition: a.contentDisposition,
+                size: a.size,
+                sha256: a.sha256,
+                isInline: a.isInline,
+                isEncrypted: a.isEncrypted,
+              })),
+            }
+          : {}),
+        ...(parsedBody && parsedBody.contentSha256
+          ? { rawSha256: parsedBody.contentSha256 }
+          : {}),
+        ...(parsedBody && parsedBody.parseError
+          ? { parseError: parsedBody.parseError }
+          : {}),
+        // List-Unsubscribe + other indicator headers will fuel Phase 5.3
+        // classification — stash a small allowlist now.
+        ...(parsedBody && parsedBody.headers
+          ? {
+              indicatorHeaders: pickIndicatorHeaders(parsedBody.headers),
+            }
+          : {}),
       },
     };
 
@@ -195,18 +267,28 @@ class EmailAdapter {
     };
   }
 
-  _envelopeToRawEvent(env, folder) {
+  _envelopeToRawEvent(env, folder, parsedBody) {
     const originalId = env.messageId && env.messageId.length > 0
       ? env.messageId
       : `mid-fallback:${this.account.email}:${folder}:${env.uid}`;
     const capturedAt = env.internalDate instanceof Date && env.internalDate.getTime() > 0
       ? env.internalDate.getTime()
       : Date.now();
+    // Strip the raw `source` Buffer from payload — keeping it would
+    // bloat the vault's raw_events archive 100x (raw is in worst case
+    // hundreds of KB per email; the parsed body alone is enough for
+    // re-derive). The source is recoverable by re-syncing if absolutely
+    // needed.
+    const { source: _src, ...envNoSource } = env;
     return {
       adapter: NAME,
       originalId,
       capturedAt,
-      payload: { ...env, folder },
+      payload: {
+        ...envNoSource,
+        folder,
+        ...(parsedBody ? { parsedBody } : {}),
+      },
     };
   }
 
@@ -252,6 +334,59 @@ function formatRecipients(list) {
   if (!Array.isArray(list) || list.length === 0) return "?";
   const head = list.slice(0, 3).map(formatAddr).join(", ");
   return list.length > 3 ? `${head} (+${list.length - 3} more)` : head;
+}
+
+function trim(s, max) {
+  if (typeof s !== "string") return "";
+  if (s.length <= max) return s;
+  return s.slice(0, max) + `…[truncated ${s.length - max} chars]`;
+}
+
+/**
+ * Quick HTML→plaintext for cases where text/plain part is missing.
+ * Phase 5.4 templating may upgrade to cheerio if structure matters,
+ * but for BM25 tokenization + LLM prompt prose, a basic strip is fine.
+ */
+function stripHtml(html) {
+  return String(html)
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\b[^>]*>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Pick the small set of headers Phase 5.3 classifier rules actually use,
+ * so we don't bloat each Event row with the full header bag.
+ */
+const INDICATOR_HEADERS = [
+  "list-unsubscribe",
+  "list-id",
+  "x-mailer",
+  "x-priority",
+  "auto-submitted",
+  "precedence",
+  "x-amazon-mail-relay-type",
+  "feedback-id",
+  "x-campaign",
+  "x-mc-user",
+];
+function pickIndicatorHeaders(headers) {
+  if (!headers || typeof headers !== "object") return {};
+  const out = {};
+  for (const h of INDICATOR_HEADERS) {
+    if (headers[h] !== undefined) out[h] = headers[h];
+  }
+  return out;
 }
 
 module.exports = {

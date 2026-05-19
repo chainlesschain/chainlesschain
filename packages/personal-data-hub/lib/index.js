@@ -137,4 +137,5 @@ module.exports = {
   ImapAuthFailedError: emailImapAdapter.ImapAuthFailedError,
   ImapConnectionFailedError: emailImapAdapter.ImapConnectionFailedError,
   ImapMailboxNotFoundError: emailImapAdapter.ImapMailboxNotFoundError,
+  parseRawEmail: emailImapAdapter.parseRawEmail,
 };

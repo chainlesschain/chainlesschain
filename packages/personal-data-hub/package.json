@@ -51,7 +51,8 @@
     "directory": "packages/personal-data-hub"
   },
   "dependencies": {
-    "better-sqlite3-multiple-ciphers": "^12.5.0"
+    "better-sqlite3-multiple-ciphers": "^12.5.0",
+    "mailparser": "^3.7.1"
   },
   "optionalDependencies": {
     "imapflow": "^1.0.183"
