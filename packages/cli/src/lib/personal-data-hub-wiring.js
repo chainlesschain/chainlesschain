@@ -40,7 +40,9 @@ const {
   CcRagSink,
   FileKeyProvider,
   generateKeyHex,
+  EmailAdapter,
 } = hub;
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
 
 // ─── Lazy ESM imports of cli KG / BM25 ───────────────────────────────────
@@ -152,6 +154,21 @@ async function initHub() {
       : null,
   });
 
+  // Phase 5.6: auto-register persisted email accounts.
+  const emailAccountsPath = join(hubDir, "email-accounts.json");
+  const emailAccounts = loadEmailAccounts(emailAccountsPath);
+  for (const cfg of emailAccounts) {
+    try {
+      const adapter = new EmailAdapter({
+        account: cfg.account,
+        ...(cfg.opts || {}),
+      });
+      registry.register(adapter);
+    } catch (_err) {
+      // Continue boot even if one config is corrupt
+    }
+  }
+
   return {
     vault,
     registry,
@@ -161,6 +178,7 @@ async function initHub() {
     ragSink,
     hubDir,
     keyProvider,
+    emailAccountsPath,
     bm25: _bm25,
     registerMockAdapter(opts = {}) {
       if (registry.has(opts.name || "mock"))
@@ -169,7 +187,97 @@ async function initHub() {
       registry.register(adapter);
       return adapter;
     },
+
+    /** Phase 5.6 — see desktop wiring for full doc */
+    async testEmailAuth({ account }) {
+      if (!account || typeof account !== "object")
+        throw new Error("account required");
+      const adapter = new EmailAdapter({ account });
+      return await adapter.authenticate();
+    },
+
+    async registerEmailAdapter({ account, opts = {} } = {}) {
+      if (!account || typeof account !== "object")
+        throw new Error("account required");
+      const adapter = new EmailAdapter({ account, ...opts });
+      if (registry.has(adapter.name)) {
+        throw new Error(`adapter name "${adapter.name}" already registered`);
+      }
+      registry.register(adapter);
+      const accounts = loadEmailAccounts(emailAccountsPath);
+      const next = accounts.filter((c) => c.account.email !== account.email);
+      next.push({ account, opts, registeredAt: Date.now() });
+      saveEmailAccounts(emailAccountsPath, next);
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+      };
+    },
+
+    async unregisterEmailAdapter(emailAddress) {
+      const accounts = loadEmailAccounts(emailAccountsPath);
+      const target = accounts.find((c) => c.account.email === emailAddress);
+      const next = accounts.filter((c) => c.account.email !== emailAddress);
+      saveEmailAccounts(emailAccountsPath, next);
+      if (target) registry.unregister("email-imap");
+      return { ok: true, removed: !!target };
+    },
+
+    listEmailAccounts() {
+      return loadEmailAccounts(emailAccountsPath).map((c) => ({
+        email: c.account.email,
+        provider: c.account.provider,
+        folders: c.account.folders || null,
+        registeredAt: c.registeredAt || null,
+        pdfPasswordHints:
+          c.opts && c.opts.pdfPasswordHints
+            ? Object.keys(c.opts.pdfPasswordHints)
+            : [],
+      }));
+    },
+
+    eventDetail(eventId) {
+      const ev = vault.getEvent ? vault.getEvent(eventId) : null;
+      if (!ev) return null;
+      return {
+        event: ev,
+        classification:
+          ev.extra && ev.extra.classification ? ev.extra.classification : null,
+        extraction:
+          ev.extra && ev.extra.fields
+            ? {
+                template: ev.extra.extractionTemplate,
+                confidence: ev.extra.extractionConfidence,
+                fields: ev.extra.fields,
+                warnings: ev.extra.extractionWarnings || [],
+                pdfExtraction: ev.extra.pdfExtraction || null,
+              }
+            : null,
+      };
+    },
   };
+}
+
+// ─── Email account persistence (Phase 5.6) ───────────────────────────────
+
+function loadEmailAccounts(filePath) {
+  try {
+    if (!existsSync(filePath)) return [];
+    const raw = readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+function saveEmailAccounts(filePath, accounts) {
+  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }
 
 export async function getHub() {

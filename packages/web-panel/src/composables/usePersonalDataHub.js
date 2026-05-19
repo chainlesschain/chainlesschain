@@ -107,5 +107,58 @@ export function usePersonalDataHub() {
     async recentAudit(filters = {}) {
       return await send("personal-data-hub.recent-audit", filters, 10000);
     },
+
+    // ─── Phase 5.6 — email config + event detail ───────────────────────
+
+    /**
+     * Probe IMAP credentials WITHOUT registering. Returns the adapter's
+     * authenticate() result. Use this in the email-config wizard before
+     * committing the account.
+     *
+     * @param {{provider, email, authCode, host?, port?, secure?}} account
+     */
+    async testEmailAuth(account) {
+      return await send("personal-data-hub.test-email-auth", { account }, 30_000);
+    },
+
+    /**
+     * Register a new EmailAdapter + persist the config. `opts` is passed
+     * through to the EmailAdapter constructor (pdfPasswordHints, folders,
+     * etc.).
+     */
+    async registerEmail(account, opts = {}) {
+      return await send(
+        "personal-data-hub.register-email",
+        { account, opts },
+        15_000,
+      );
+    },
+
+    /** Remove an email account by address. Vault data stays. */
+    async unregisterEmail(email) {
+      return await send(
+        "personal-data-hub.unregister-email",
+        { email },
+        5000,
+      );
+    },
+
+    /** List persisted email accounts (authCode is NOT returned). */
+    async listEmailAccounts() {
+      return await send("personal-data-hub.list-email-accounts", {}, 5000);
+    },
+
+    /**
+     * Get full detail for a single event: row + classification +
+     * extraction + per-attachment pdfExtraction summary. Used by
+     * "click a citation in ask result" → drill-down panel.
+     */
+    async eventDetail(eventId) {
+      return await send(
+        "personal-data-hub.event-detail",
+        { eventId },
+        5000,
+      );
+    },
   };
 }

@@ -158,8 +158,50 @@ function register() {
     }),
   );
 
+  // ─── Phase 5.6 — email config + event detail ─────────────────────────
+
+  ipcMain.handle(
+    `${NS}:test-email-auth`,
+    safe(async ({ account }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.testEmailAuth({ account });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:register-email`,
+    safe(async ({ account, opts }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registerEmailAdapter({ account, opts: opts || {} });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:unregister-email`,
+    safe(async ({ email }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.unregisterEmailAdapter(email);
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:list-email-accounts`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return hub.listEmailAccounts();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:event-detail`,
+    safe(async ({ eventId }) => {
+      const hub = await hubWiring.getHub();
+      return hub.eventDetail(eventId);
+    }),
+  );
+
   _registered = true;
-  logger.info("[PersonalDataHub IPC] handlers registered (10 channels)");
+  logger.info("[PersonalDataHub IPC] handlers registered (15 channels)");
 }
 
 function unregister() {
@@ -177,6 +219,12 @@ function unregister() {
     "unregister",
     "query-events",
     "recent-audit",
+    // Phase 5.6
+    "test-email-auth",
+    "register-email",
+    "unregister-email",
+    "list-email-accounts",
+    "event-detail",
   ];
   for (const c of channels) {
     try {
