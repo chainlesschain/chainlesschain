@@ -371,38 +371,10 @@ jobs:
           tar -xzf /tmp/cc-cli-source.tgz -C /tmp/cc-cli-hydrate
           # The tarball leaves a single `package/` directory.
 
-          # 3. Hydrate prod deps INSIDE the extracted package dir. To avoid
-          # the npm-registry-404 trap on unpublished @chainlesschain/<x>
-          # workspace siblings (Xiaomi 24115RA8EC 2026-05-19 CI failure on
-          # @chainlesschain/personal-data-hub@0.1.0), rewrite those deps to
-          # point at the monorepo's packed source first, then install.
+          # 3. Hydrate prod deps INSIDE the extracted package dir.
+          # All @chainlesschain/* deps are published to npm registry as of
+          # 2026-05-19; no more file: rewrite gymnastics needed.
           cd /tmp/cc-cli-hydrate/package
-          node <<'NODE_EOF'
-          const fs = require("fs");
-          const path = require("path");
-          const pkgPath = "./package.json";
-          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-          const repoRoot = "${{ github.workspace }}";
-          let rewrote = 0;
-          for (const [name, _ver] of Object.entries(pkg.dependencies || {})) {
-            if (!name.startsWith("@chainlesschain/")) continue;
-            // Map @chainlesschain/foo → repo/packages/foo
-            const local = name.replace("@chainlesschain/", "");
-            const localDir = path.join(repoRoot, "packages", local);
-            if (fs.existsSync(localDir)) {
-              pkg.dependencies[name] = `file:${localDir}`;
-              rewrote++;
-              console.log(`  rewrite ${name} → file:${localDir}`);
-            } else {
-              console.log(`::warning::${name} has no local packages/${local} — leaving as registry fetch`);
-            }
-          }
-          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-          console.log(`Rewrote ${rewrote} @chainlesschain/* deps to local file: paths`);
-          NODE_EOF
-          # Now install — file: deps resolve from disk, npm-registry deps
-          # fetch normally. --ignore-scripts skips postinstalls. --silent off
-          # so errors surface.
           npm install --omit=dev --no-audit --no-fund --ignore-scripts \
                       --no-package-lock
           echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
@@ -417,12 +389,7 @@ jobs:
           # prefix-split (100 + 155 = 255 char limit). Chainlesschain CLI's
           # deepest node_modules paths fit comfortably under 255 chars.
           cd /tmp/cc-cli-hydrate
-          # -h / --dereference follows symlinks — critical for file: deps
-          # because npm installs @chainlesschain/<x> as symlinks to the
-          # original source path. Without -h, those land on Android
-          # pointing at /home/runner/... which doesn't exist → cc CLI
-          # ERR_MODULE_NOT_FOUND on @chainlesschain/session-core etc.
-          tar --format=ustar -hczf /tmp/cc-cli.tgz package/
+          tar --format=ustar -czf /tmp/cc-cli.tgz package/
           cd "$GITHUB_WORKSPACE"
           mv /tmp/cc-cli.tgz "$ASSET_DIR/cc-cli.tgz"
           echo "Hydrated pack: $(du -h "$ASSET_DIR/cc-cli.tgz" | cut -f1)"
