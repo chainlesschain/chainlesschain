@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.67 · 2026-05-19',
+    title: 'Android cc Chat — 用自然语言直接问，AI 自动调本机 cc 命令',
+    sub: '个人中心 → 「cc Chat (自然语言)」打开后，直接输入"列下我最近的笔记 / 搜下 RAG 相关的 / 我有哪些 skill"，AI 自动识别意图、调本机 cc 命令、把命令 + 结果回贴到聊天里。再也不用记 cc 子命令 + flag 怎么拼。OpenAI / Doubao 豆包 / Claude 三家原生 tool-use 接通；其他厂商自动走"防幻觉 fallback"明确告知用户切模型，不会编笔记。',
+    desc: 'v1 默认只放过 8 个只读子命令（note / search / memory / skill / status / session / mcp / did），即便 AI 收到"帮我把所有笔记删了"也会被白名单当场拦截，返回 exitCode=126 denied。卡片显示完整命令 + exitCode + 耗时 + stdout 折叠展开，长查询有"取消"按钮一键终止。复用 Android 本地终端 Phase 2.5 内置 Node + cc CLI bundle，无配对依赖，离线可用。',
+  },
+  {
     tag: 'v5.0.3.66 · 2026-05-19',
     title: 'iOS .ipa 重发收口 + Android cc CLI bundle 真接通（v5.0.3.65/66 一晚两版打补）',
     sub: 'v5.0.3.66 解决 v5.0.3.65 的 build-ios 失败：v5.0.3.65 release 已含 17 assets（Win/macOS/Linux/Android 全套 + npm CLI chainlesschain@0.162.2）但 build-ios 卡在 9 个 "cannot find X in scope" — Phase 6 sprint 加的 13 个 SwiftUI view（RemoteInputView / RemoteDisplayView / SystemToolsView / RemoteMediaView / RemoteBrowserView / RemoteDesktopView / KnowledgeView / AIExtendedView 等）落到磁盘但没接进 ChainlessChain.xcodeproj 的 app target Sources phase。修法是扩 ios-app/scripts/wire_app_sources.rb 的 FILES 列表 + 手动 dispatch ios-wire-app-sources.yml workflow 在 macOS runner 上 17s 跑 ruby 重写 pbxproj 并 commit 回 main。然 GitHub immutable-releases 禁所有 published release 资产改动 → bump v5.0.3.66 reship，build-ios 5min11s 真编译通过出 8.15MB .ipa，最终 release v5.0.3.66 含 18 assets 完整（含 ChainlessChain.ipa）。npm 这边因 publish-cli-precheck 检测 0.162.2 已发自动跳过避免 dist-tag 翻车。v5.0.3.65 同期落 Android cc CLI bundle 真接通：Phase 2.5 Node runtime + cc CLI bundle 41MB tarball entry 入 android-app/feature-local-terminal/src/main/assets/local-terminal/ + wrapper shell scripts 绕 `#!/usr/bin/env node` shebang trap + Termux libc++_shared.so → libtermux_cxx.so AGP 8 命名兼容 + cc CLI wrapper mksh shebang 替 /system/bin/sh — 因 Android W^X untrusted_app pty 域无法 execve shell_exec context 的 /system/bin/sh，prefix/bin/mksh → ../lib/libmksh.so → nativeLibraryDir/libmksh.so 在 lib/<abi>/lib*.so 白名单可 execve。',

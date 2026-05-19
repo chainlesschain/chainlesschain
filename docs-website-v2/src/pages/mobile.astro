@@ -107,6 +107,66 @@ const aab = dl('android-aab');
     </div>
   </section>
 
+  <!-- Phase 5.6/5.8 · cc Chat 自然语言查询 (2026-05-19, v5.0.3.67) -->
+  <section class="py-16 md:py-20 border-b border-line bg-cream/30">
+    <div class="container-wide">
+      <div class="max-w-3xl">
+        <div class="chip mb-4 bg-ember/10 text-ember border-ember/30">🆕 自然语言 cc · 2026-05-19 · v5.0.3.67</div>
+        <h2 class="text-4xl md:text-5xl mb-4 font-display leading-tight">
+          直接用大白话问 ——
+          <span class="italic text-ember">"列下我最近的笔记"</span>
+        </h2>
+        <p class="text-muted leading-relaxed text-lg">
+          个人中心 → 「cc Chat (自然语言)」打开，输入"搜下 RAG 相关的笔记 / 我有哪些 skill / cc 跑得起来吗"，
+          AI 自动识别意图、调本机 cc 命令、把命令 + 结果回贴到聊天里。
+          再也不用记 cc 子命令 + flag 怎么拼。
+        </p>
+
+        <div class="mt-10 grid md:grid-cols-2 gap-6">
+          <div class="p-6 rounded-2xl border border-line bg-paper">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">默认安全</div>
+            <h3 class="font-display text-xl mb-3">只读子命令白名单</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              即便 AI 收到"帮我把所有笔记删了"，请求也走不出白名单 ——
+              v1 只放过 note / search / memory / skill / status / session / mcp / did 八个只读子命令。
+              写操作、安装、shell 元字符全部当场拦截，结果回卡片显示 "exitCode=126 denied"。
+            </p>
+          </div>
+          <div class="p-6 rounded-2xl border border-line bg-paper">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-widest mb-3">流式状态可视</div>
+            <h3 class="font-display text-xl mb-3">5 状态进度条 + 工具卡片</h3>
+            <p class="text-muted text-sm leading-relaxed">
+              思考中 → 准备调用 → 执行 cc → 处理结果 → 整理。
+              每条调用作为独立卡片显示 <code class="font-mono bg-cream px-1 rounded">cc &lt;cmd&gt;</code> + exitCode + 耗时 +
+              stdout 折叠/展开，长查询有"取消"按钮一键终止。
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 grid md:grid-cols-3 gap-3">
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">支持模型</div>
+            <div class="text-sm text-ink/80">OpenAI · Doubao 豆包 · Claude / Anthropic 三家原生 tool-use；其余厂商自动走"防幻觉 fallback"明确告知用户切模型</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">测试覆盖</div>
+            <div class="text-sm text-ink/80">127 新单测 + 集成测试全绿，覆盖 9 个 E2E 场景（含恶意 prompt 拒绝 / 取消 / dedup / fallback）</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cream/50 border border-line">
+            <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">底层</div>
+            <div class="text-sm text-ink/80">复用 Phase 2.5 内置 Node + cc CLI bundle，无配对依赖，离线可用</div>
+          </div>
+        </div>
+
+        <p class="mt-8 text-sm">
+          <a class="text-ember hover:underline font-medium" href="https://docs.chainlesschain.com/changelog#v5-0-3-67-android-phase-5-6-5-8-cc-exec-自然语言-chat" target="_blank" rel="noopener">用户文档：完整更新日志 →</a>
+          <span class="mx-2 text-muted">·</span>
+          <a class="text-ember hover:underline" href="https://design.chainlesschain.com/Android_AI_Chat_CC_Exec_Phase_5_8_E2E_SOP" target="_blank" rel="noopener">设计文档：Phase 5.8 E2E SOP →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Phase 2.5 · 本地终端 cc 跑通 — 真机 cc -v 验证 (2026-05-19) -->
   <section class="py-16 md:py-20 border-b border-line bg-paper">
     <div class="container-wide">
