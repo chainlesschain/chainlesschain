@@ -34,7 +34,7 @@ const { extractPdfText, passwordsFromHints } = require("./pdf-extractor");
 const { extractTransactions } = require("./transactions");
 
 const NAME = "email-imap";
-const VERSION = "0.5.0"; // Phase 5.5 — PDF decryption + transactions extraction
+const VERSION = "0.6.0"; // Phase 5.7 — retry-with-backoff + progress streaming
 
 class EmailAdapter {
   constructor(opts) {
@@ -101,6 +101,31 @@ class EmailAdapter {
     this._pdfPasswords = [...userList, ...hintsList].filter((v, i, arr) => arr.indexOf(v) === i);
     this._disablePdfExtraction = !!opts.disablePdfExtraction;
 
+    // Phase 5.7: connection retry + progress streaming.
+    // - opts.maxConnectRetries (default 3): total attempts including first.
+    //   Set to 1 to disable retry. Retries fire ONLY on transient errors
+    //   (ECONNRESET / ETIMEDOUT / EPIPE / socket disconnects); AUTH_FAILED
+    //   and MAILBOX_NOT_FOUND short-circuit.
+    // - opts.retryBaseDelayMs (default 200): exponential backoff base.
+    //   Actual delays: 200ms → 600ms → 1800ms for 3 attempts.
+    // - opts.onProgress (callback): receives {phase, ...payload} events
+    //   throughout sync(). Registry forwards via onSyncEvent so the WS/IPC
+    //   layer can stream to UI. Phases:
+    //     "connecting"   {attempt}
+    //     "connected"
+    //     "mailbox-opened" {mailbox, exists}
+    //     "fetching"     {mailbox, current, total}
+    //     "decrypting-pdf" {filename}
+    //     "done"         {emitted, durationMs}
+    //     "error"        {phase, message, retriable?}
+    this._maxConnectRetries = Number.isFinite(opts.maxConnectRetries) && opts.maxConnectRetries > 0
+      ? opts.maxConnectRetries
+      : 3;
+    this._retryBaseDelayMs = Number.isFinite(opts.retryBaseDelayMs) && opts.retryBaseDelayMs > 0
+      ? opts.retryBaseDelayMs
+      : 200;
+    this._onProgress = typeof opts.onProgress === "function" ? opts.onProgress : null;
+
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
@@ -112,6 +137,8 @@ class EmailAdapter {
       ...(this._llm ? ["classify:layer2-llm"] : []),
       "extract:6-templates",
       ...(this._disablePdfExtraction ? [] : ["decrypt:pdf-bills"]),
+      "sync:retry-backoff",
+      "sync:progress-stream",
     ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
@@ -166,17 +193,46 @@ class EmailAdapter {
     const watermark = typeof opts.sinceWatermark === "string" ? opts.sinceWatermark : "";
     const { uidValidity: prevUv, lastUid: prevLastUid } = parseWatermark(watermark);
 
+    // Phase 5.7: per-sync progress hook is the union of constructor + opts.
+    // Callers (registry / tests) can pass a fresh callback per sync without
+    // mutating the adapter instance.
+    const syncOnProgress = typeof opts.onProgress === "function"
+      ? opts.onProgress
+      : this._onProgress;
+    const emitProgress = (phase, payload = {}) => {
+      if (!syncOnProgress) return;
+      try {
+        syncOnProgress({ phase, adapter: NAME, ...payload });
+      } catch (_e) {
+        // Listener errors must NOT abort the sync.
+      }
+    };
+
+    const syncStart = Date.now();
     const session = this._sessionFactory(this._sessionConfig());
+    let totalEmitted = 0;
     try {
-      await session.connect();
+      // Phase 5.7: connect with retry on transient errors.
+      await this._connectWithRetry(session, emitProgress);
 
       for (const folder of folders) {
         const mb = await session.openMailbox(folder);
+        emitProgress("mailbox-opened", {
+          mailbox: folder,
+          exists: mb.exists,
+          uidValidity: mb.uidValidity,
+        });
         const uvChanged = prevUv !== null && String(prevUv) !== String(mb.uidValidity);
         const since = uvChanged ? 0 : prevLastUid;
 
         let emitted = 0;
         for await (const env of session.fetchFullSince(since)) {
+          emitProgress("fetching", {
+            mailbox: folder,
+            current: emitted + 1,
+            total: mb.exists,
+            uid: env.uid,
+          });
           // Parse the body in the adapter (not the session) so the
           // session stays a thin IMAP wrapper. Parse failures degrade
           // gracefully — emit the raw event without parsedBody so the
@@ -263,12 +319,52 @@ class EmailAdapter {
 
           yield this._envelopeToRawEvent(env, folder, parsedBody, classification, extraction);
           emitted += 1;
+          totalEmitted += 1;
           if (emitted >= maxPerFolder) break;
         }
       }
+      emitProgress("done", { emitted: totalEmitted, durationMs: Date.now() - syncStart });
     } finally {
       try { await session.close(); } catch (_e) {}
     }
+  }
+
+  /**
+   * Phase 5.7: connect with retry on transient errors. Auth failures
+   * (AUTH_FAILED) and mailbox-not-found (MAILBOX_NOT_FOUND) bypass retry —
+   * those are user errors that won't fix themselves. Network blips
+   * (ECONNRESET / ETIMEDOUT / EPIPE / socket errors / generic
+   * CONNECTION_FAILED) get up to `_maxConnectRetries` attempts with
+   * exponential backoff.
+   */
+  async _connectWithRetry(session, emitProgress) {
+    const maxAttempts = this._maxConnectRetries;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      emitProgress("connecting", { attempt, maxAttempts });
+      try {
+        await session.connect();
+        emitProgress("connected", { attempt });
+        return;
+      } catch (err) {
+        lastErr = err;
+        const transient = isTransientImapError(err);
+        emitProgress("error", {
+          failingPhase: "connecting",
+          attempt,
+          retriable: transient && attempt < maxAttempts,
+          code: err && err.code,
+          message: err && err.message ? err.message : String(err),
+        });
+        if (!transient || attempt >= maxAttempts) {
+          throw err;
+        }
+        // Exponential backoff: base * 3^(attempt-1)
+        const delay = this._retryBaseDelayMs * Math.pow(3, attempt - 1);
+        await sleep(delay);
+      }
+    }
+    throw lastErr;
   }
 
   normalize(raw) {
@@ -634,6 +730,46 @@ function pickIndicatorHeaders(headers) {
     if (headers[h] !== undefined) out[h] = headers[h];
   }
   return out;
+}
+
+/**
+ * Phase 5.7: decide if an IMAP error is worth retrying. Transient
+ * network blips (ECONNRESET / ETIMEDOUT / EPIPE / connect-failed / socket-
+ * disconnect / "connection lost") get a retry; auth failures / mailbox
+ * misconfig do NOT.
+ */
+function isTransientImapError(err) {
+  if (!err) return false;
+  if (err.code === "AUTH_FAILED" || err.code === "MAILBOX_NOT_FOUND") return false;
+  if (err.code === "CONNECTION_FAILED") return true;
+  // Node-level network error codes
+  const networkCodes = new Set([
+    "ECONNRESET",
+    "ETIMEDOUT",
+    "EPIPE",
+    "ECONNREFUSED",
+    "ENETUNREACH",
+    "EAI_AGAIN",
+    "ENOTFOUND", // DNS can be transient on flaky networks
+  ]);
+  if (err.code && networkCodes.has(err.code)) return true;
+  if (err.cause && err.cause.code && networkCodes.has(err.cause.code)) return true;
+  const msg = (err.message || "").toLowerCase();
+  if (
+    msg.includes("timed out")
+    || msg.includes("timeout")
+    || msg.includes("socket disconnect")
+    || msg.includes("connection lost")
+    || msg.includes("connection reset")
+    || msg.includes("write after end")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

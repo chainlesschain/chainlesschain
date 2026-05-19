@@ -100,7 +100,7 @@ describe("EmailAdapter contract", () => {
       sessionFactory: makeMockSession({}).factory,
     });
     expect(a.name).toBe("email-imap");
-    expect(a.version).toBe("0.5.0"); // Phase 5.5 — PDF decryption + transactions
+    expect(a.version).toBe("0.6.0"); // Phase 5.7 — retry + progress streaming
     expect(a.capabilities).toContain("sync:imap");
     expect(a.capabilities).toContain("auth:authcode");
     expect(a.capabilities).toContain("parse:mime-body");

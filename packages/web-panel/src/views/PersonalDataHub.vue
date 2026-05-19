@@ -189,6 +189,31 @@
       </a-table>
       <a-empty v-else description="无已注册 adapter — 点上方按钮注册 MockAdapter 看效果" />
 
+      <!-- Phase 5.7 — live sync progress -->
+      <div v-if="syncProgress.active" style="margin-top: 12px;">
+        <a-card size="small" :bordered="true">
+          <div class="kv" style="margin-bottom: 4px;">
+            <strong>同步进行中</strong> · {{ syncProgress.adapter }} · {{ syncProgress.phase || '...' }}
+            <span v-if="syncProgress.attempt && syncProgress.attempt > 1" style="color: #faad14;">
+              (重试 #{{ syncProgress.attempt }})
+            </span>
+          </div>
+          <a-progress
+            v-if="syncProgress.total > 0"
+            :percent="Math.round((syncProgress.current / syncProgress.total) * 100)"
+            :status="syncProgress.errorMessage ? 'exception' : 'active'"
+            size="small"
+          />
+          <a-progress v-else :percent="0" status="active" size="small" />
+          <div class="kv hint" v-if="syncProgress.mailbox">
+            邮箱 {{ syncProgress.mailbox }} · {{ syncProgress.current }} / {{ syncProgress.total }}
+          </div>
+          <div v-if="syncProgress.errorMessage" class="kv hint" style="color: #ff4d4f;">
+            {{ syncProgress.errorMessage }}
+          </div>
+        </a-card>
+      </div>
+
       <!-- Last sync report -->
       <div v-if="lastSync" style="margin-top: 12px;">
         <a-alert
@@ -451,6 +476,18 @@ const eventDetailOpen = ref(false)
 const eventDetail = ref(null)
 const emailAccounts = ref([])
 
+// Phase 5.7 — live sync progress state
+const syncProgress = reactive({
+  active: false,
+  adapter: '',
+  phase: '',
+  mailbox: '',
+  current: 0,
+  total: 0,
+  attempt: 1,
+  errorMessage: '',
+})
+
 const loading = reactive({
   refresh: false,
   ask: false,
@@ -533,22 +570,56 @@ async function addMock() {
   }
 }
 
+function resetSyncProgress(adapterName = '') {
+  syncProgress.active = true
+  syncProgress.adapter = adapterName
+  syncProgress.phase = 'starting'
+  syncProgress.mailbox = ''
+  syncProgress.current = 0
+  syncProgress.total = 0
+  syncProgress.attempt = 1
+  syncProgress.errorMessage = ''
+}
+
+function handleSyncEvent(evt) {
+  if (!evt) return
+  if (evt.adapter) syncProgress.adapter = evt.adapter
+  if (evt.phase) syncProgress.phase = evt.phase
+  if (typeof evt.current === 'number') syncProgress.current = evt.current
+  if (typeof evt.total === 'number') syncProgress.total = evt.total
+  if (typeof evt.attempt === 'number') syncProgress.attempt = evt.attempt
+  if (evt.mailbox) syncProgress.mailbox = evt.mailbox
+  if (evt.phase === 'error') {
+    syncProgress.errorMessage = evt.message || 'sync error'
+  }
+}
+
 async function syncOne(name) {
   loading.sync[name] = true
+  resetSyncProgress(name)
   try {
-    lastSync.value = await hub.syncAdapter(name)
+    // Phase 5.7: streaming when supported, falls back to plain syncAdapter
+    if (typeof hub.syncAdapterStream === 'function') {
+      lastSync.value = await hub.syncAdapterStream(name, {}, handleSyncEvent)
+    } else {
+      lastSync.value = await hub.syncAdapter(name)
+    }
     await refresh()
   } catch (err) {
     message.error(`同步 ${name} 失败: ${err.message}`)
   } finally {
     loading.sync[name] = false
+    syncProgress.active = false
   }
 }
 
 async function syncAll() {
   loading.syncAll = true
+  resetSyncProgress('(all)')
   try {
-    const reports = await hub.syncAll()
+    const reports = typeof hub.syncAllStream === 'function'
+      ? await hub.syncAllStream({}, handleSyncEvent)
+      : await hub.syncAll()
     lastSync.value = reports?.[reports.length - 1] || null
     await refresh()
     message.success(`已同步 ${reports?.length || 0} 个 adapter`)
@@ -556,6 +627,7 @@ async function syncAll() {
     message.error('同步失败: ' + err.message)
   } finally {
     loading.syncAll = false
+    syncProgress.active = false
   }
 }
 

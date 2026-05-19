@@ -200,8 +200,73 @@ function register() {
     }),
   );
 
+  // Phase 5.7 — streaming sync via webContents.send. The caller passes
+  // `progressChannel` (e.g. a uuid); we push events to that channel
+  // throughout the sync, then return the final report from invoke().
+  // Renderer side: ipcRenderer.on(progressChannel, (_, evt) => ...) +
+  // await ipcRenderer.invoke('personal-data-hub:sync-adapter-stream', {...}).
+  ipcMain.handle(
+    `${NS}:sync-adapter-stream`,
+    async (evt, { name, options, progressChannel }) => {
+      try {
+        const hub = await hubWiring.getHub();
+        const original = hub.registry.onSyncEvent;
+        const wc = evt.sender;
+        hub.registry.onSyncEvent = (msg) => {
+          if (progressChannel && wc && !wc.isDestroyed()) {
+            try {
+              wc.send(progressChannel, msg);
+            } catch (_e) {}
+          }
+          if (typeof original === "function") {
+            try {
+              original(msg);
+            } catch (_e) {}
+          }
+        };
+        try {
+          return await hub.registry.syncAdapter(name, options || {});
+        } finally {
+          hub.registry.onSyncEvent = original;
+        }
+      } catch (err) {
+        return { error: err && err.message ? err.message : String(err) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    `${NS}:sync-all-stream`,
+    async (evt, { options, progressChannel }) => {
+      try {
+        const hub = await hubWiring.getHub();
+        const original = hub.registry.onSyncEvent;
+        const wc = evt.sender;
+        hub.registry.onSyncEvent = (msg) => {
+          if (progressChannel && wc && !wc.isDestroyed()) {
+            try {
+              wc.send(progressChannel, msg);
+            } catch (_e) {}
+          }
+          if (typeof original === "function") {
+            try {
+              original(msg);
+            } catch (_e) {}
+          }
+        };
+        try {
+          return await hub.registry.syncAll(options || {});
+        } finally {
+          hub.registry.onSyncEvent = original;
+        }
+      } catch (err) {
+        return { error: err && err.message ? err.message : String(err) };
+      }
+    },
+  );
+
   _registered = true;
-  logger.info("[PersonalDataHub IPC] handlers registered (15 channels)");
+  logger.info("[PersonalDataHub IPC] handlers registered (17 channels)");
 }
 
 function unregister() {
@@ -225,6 +290,9 @@ function unregister() {
     "unregister-email",
     "list-email-accounts",
     "event-detail",
+    // Phase 5.7
+    "sync-adapter-stream",
+    "sync-all-stream",
   ];
   for (const c of channels) {
     try {
