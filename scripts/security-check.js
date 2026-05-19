@@ -85,6 +85,8 @@ const ALLOWED_FILES = [
   "plugin-ecosystem.test.js",
   // Pack pipeline integration test (contains intentional fake key to test the secret scanner)
   "packer-pipeline.integration.test.js",
+  // Hub Phase 5.5: tests fake PDF passwords (no real credentials)
+  "email-pdf-extractor.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

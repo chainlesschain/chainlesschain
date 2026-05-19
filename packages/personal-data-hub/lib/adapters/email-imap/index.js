@@ -28,6 +28,8 @@ const {
   extractRegister,
   extractOther,
 } = require("./templates");
+const { extractPdfText, passwordsFromHints } = require("./pdf-extractor");
+const { extractTransactions } = require("./transactions");
 
 module.exports = {
   EmailAdapter,
@@ -59,4 +61,8 @@ module.exports = {
   extractGovernment,
   extractRegister,
   extractOther,
+  // Phase 5.5 — PDF decryption + transactions extraction
+  extractPdfText,
+  pdfPasswordsFromHints: passwordsFromHints,
+  extractTransactions,
 };
