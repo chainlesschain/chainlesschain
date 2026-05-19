@@ -2,6 +2,15 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-20 收口 — **iOS 三件套 hotfix：PIN-unlock crash + AppIcon 真编进包 + SQL bind (v5.0.3.70)**
+
+> 三个 iOS 真 bug 一次扫净 + bundle .69 forward。`.69` release 因 `publish-cli` npm 404 卡 draft 8h+；`.70` 重打 `.69` 的所有变更 + AppIcon wiring 修复，重跑 `publish-cli` 成功 PATCH 发布（最终 18 assets 全齐 Latest）。
+
+- **iOS 16 PIN-unlock 闪退**：`CoreCommon/Utilities/Logger.swift` 的 metadata 字典在多线程并发改写下 iOS 16 必崩（EXC_BAD_ACCESS）。`NSLock` 保护 read/write 路径 + 并发 fan-out 单测覆盖。
+- **AuthViewModel.createPrimaryDID SQL 参数没真绑**：之前用 `DatabaseManager.execute(_:)` 不带 parameters 的重载，prepared statement 里参数始终空，插入失败/silent skip。改走 `execute(_:parameters:)` 重载。
+- **AppIcon 从未真正编进包**：`Assets.xcassets` 在 `pbxproj` 里被声明为 `PBXGroup`（逻辑文件夹）而不是 `PBXFileReference type=folder.assetcatalog`，且**没加进 `PBXResourcesBuildPhase`**。结果 18 张 AppIcon + 3 张 LaunchIcon 全套素材在仓里 v0–v0.69 **从未被 `actool` 调用编译**，主屏一直是 wireframe 占位。`2441b0d8b` 修 pbxproj wiring，`.70` 真正出 `Assets.car` 进 `ChainlessChain.app`。
+- **Release pipeline 操作记录**：`.69` `finalize-release` skipped 因 `publish-cli` 上游 npm 404；rerun `--failed` 重试 `.70` 的 `publish-cli` 成功 PATCH draft→published。18 assets 完整：4 Android + macOS dmg + Linux AppImage/rpm/deb + Windows Setup/Portable + iOS .ipa + 3 latest.yml + blockmaps。
+
 ## 2026-05-19 收口 — **Android Phase 5.6/5.8 cc Chat 自然语言 — 用户大白话直接问 (v5.0.3.67)**
 
 > 个人中心 → 「cc Chat (自然语言)」打开后，直接输入"列下我最近的笔记 / 搜下 RAG 相关的 / 我有哪些 skill"，AI 自动识别意图 → 调本机 cc 命令 → 把命令 + 结果回贴聊天。再也不用记 cc 子命令 + flag 怎么拼。

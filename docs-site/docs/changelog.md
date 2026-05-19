@@ -3,6 +3,29 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.70 — iOS hotfix 三件套（PIN-unlock crash + AppIcon 真编进包）] - 2026-05-20
+
+> 三个 iOS 真 bug 一次扫净 + bundle .69 forward。`.69` release 因 `publish-cli` npm 404 卡 draft；`.70` 重打了 `.69` 的所有变更 + `AppIcon` wiring 修复，重跑 `publish-cli` 成功 PATCH 发布（最终 18 assets 全齐，Latest）。
+
+**修复（相对 .67 baseline）**
+- **iOS PIN 解锁闪退（iOS 16 EXC_BAD_ACCESS）** — `CoreCommon/Utilities/Logger.swift` 的 metadata 字典在多线程下并发改写，iOS 16 上必崩。改用 `NSLock` 保护 read/write 路径，单测覆盖并发 fan-out 不再 race
+- **AuthViewModel.createPrimaryDID SQL 参数绑定** — 之前用了 `DatabaseManager.execute(_:)` 不带 parameters 的重载，SQL 参数没真绑进 prepared statement → 插入失败/silent skip；改走 `execute(_:parameters:)` 重载
+- **AppIcon 从未真正编进包** — `Assets.xcassets` 在 `pbxproj` 里被声明为 `PBXGroup`（逻辑文件夹）而不是 `PBXFileReference type=folder.assetcatalog`，且**没加进 `PBXResourcesBuildPhase`**。结果 18 张 AppIcon + 3 张 LaunchIcon 全套素材在仓里却**从未被 `actool` 调用编译**，主屏一直显示 wireframe 地球占位。`2441b0d8b` 修 pbxproj wiring；`.70` 真正出 `Assets.car` 进 `ChainlessChain.app`
+
+**版本面同步**
+- `productVersion` v5.0.3.69 → v5.0.3.70
+- `packages/cli` 0.162.4 → 0.162.5（npm publish 成功后 Latest）
+- `desktop-app-vue` 5.0.3-alpha.69 → .70
+- iOS `CFBundleVersion` 69 → 70
+- Android `versionCode` 503069 → 503070, `versionName` 5.0.3.69 → .70
+
+**Release pipeline 操作记录**
+- `.69` 因 `publish-cli` npm 404（chainlesschain@0.162.4 PUT 拒）→ `finalize-release` job skipped → release stuck draft 8h+，触发把 `.69` 全部变更 bundle 进 `.70` 再发的决策
+- `.70` 首次跑同样在 `publish-cli` 步 404；`gh run rerun --failed` 重试一次成功 PATCH，draft → published
+- 18 assets 完整：4 Android（arm64/v7a/universal/aab）+ macOS dmg + Linux AppImage/rpm/deb + Windows Setup.exe/Portable + iOS .ipa + 3 latest.yml + blockmaps
+
+---
+
 ## [v5.0.3.68 — CLI npm 0.162.3 catch-up（Phase 5.1-5.6 hub + cc ui fixes）] - 2026-05-20
 
 > v5.0.3.67 desktop release 全 11 jobs 绿，但 publish-cli 检查发现 `chainlesschain@0.162.2` 已在 npm registry 上 → 跳过 publish。结果：用户 `npm i -g chainlesschain` 拿到的 CLI 仍是 0.162.2，没包含 Phase 5.1-5.6 hub work 也没包含 3 个 cc ui 修复。**v5.0.3.68 是个补丁 release，专门把 npm CLI bump 到 0.162.3。**

@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.70 · 2026-05-20',
+    title: 'iOS hotfix 三件套 — PIN-unlock crash 修 + AppIcon 真编进包 + SQL bind',
+    sub: '三个 iOS 真 bug 一次扫净。iOS 16 PIN 解锁闪退（Logger metadata 字典并发改写 EXC_BAD_ACCESS → NSLock 保护 read/write 路径）+ AuthViewModel.createPrimaryDID SQL 参数没真绑（之前调 execute(_:) 不带 parameters 重载 → 改 execute(_:parameters:) 重载）+ AppIcon 从 v0 起就从未真正编进包（Assets.xcassets 在 pbxproj 被声明为 PBXGroup 不是 PBXFileReference type=folder.assetcatalog，且没加进 PBXResourcesBuildPhase，actool 从未被调用，18 张 AppIcon + 3 张 LaunchIcon 全套素材搁仓里几个月没生效，主屏一直显示 wireframe 占位）。',
+    desc: 'v5.0.3.70 是个 iOS 工程修补 release，也顺带是个发版流程复盘：(1) v5.0.3.69 出了 Logger NSLock + AuthViewModel SQL bind 两个修复，release workflow 5 平台 build 全绿 + 18 assets 全上传，但 publish-cli 那步在 npm publish chainlesschain@0.162.4 时收到 npm 404 Not Found PUT https://registry.npmjs.org/chainlesschain（CLI 包 token/权限问题），finalize-release 依赖 publish-cli 直接 skipped → v5.0.3.69 release stuck 在 draft 状态 8h+，所有 18 assets 都在但 isDraft=true 即用户拿不到。(2) v5.0.3.70 在 .69 基础上加了 AppIcon wiring 修复（2441b0d8b 改 pbxproj 让 Assets.xcassets 成为 PBXFileReference type=folder.assetcatalog + 进 PBXResourcesBuildPhase，actool 才会真编译 Assets.car 进 ChainlessChain.app），版本号统一推 productVersion / CLI / iOS CFBundleVersion / Android versionCode/versionName 5 处。(3) v5.0.3.70 首次跑同样在 publish-cli 步 404，gh run rerun --failed 重试一次成功，finalize-release 自动 PATCH draft→published，最终 18 assets 全齐成为 Latest（4 Android arm64-v8a/armeabi-v7a/universal/aab + macOS dmg + Linux AppImage/rpm/deb + Windows Setup.exe/Portable + iOS .ipa + 3 latest.yml + blockmaps）。.69 仍 stuck draft 不动 — 删 draft 会 burn tag 24h，所以保留作为版本号占位。从 .69 → .70 用户跳一版没感知。',
+  },
+  {
     tag: 'v5.0.3.67 · 2026-05-19',
     title: 'Android cc Chat — 用自然语言直接问，AI 自动调本机 cc 命令',
     sub: '个人中心 → 「cc Chat (自然语言)」打开后，直接输入"列下我最近的笔记 / 搜下 RAG 相关的 / 我有哪些 skill"，AI 自动识别意图、调本机 cc 命令、把命令 + 结果回贴到聊天里。再也不用记 cc 子命令 + flag 怎么拼。OpenAI / Doubao 豆包 / Claude 三家原生 tool-use 接通；其他厂商自动走"防幻觉 fallback"明确告知用户切模型，不会编笔记。',
