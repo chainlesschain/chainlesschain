@@ -285,5 +285,41 @@ export function usePersonalDataHub() {
         300_000,
       );
     },
+
+    // ─── Phase 8 — EntityResolver UI surface ──────────────────────────
+
+    /** List pending review-queue pairs (user-decision needed). */
+    async reviewQueueList(limit = 50) {
+      return await send("personal-data-hub.review-queue-list", { limit }, 5000);
+    },
+
+    /** User decision: "same" / "different" / "skip" on a review row. */
+    async reviewDecision(reviewId, decision) {
+      return await send(
+        "personal-data-hub.review-decision",
+        { reviewId, decision },
+        5000,
+      );
+    },
+
+    /** Manually mark two Person ids as the same person. */
+    async manualMerge(aId, bId) {
+      return await send("personal-data-hub.manual-merge", { aId, bId }, 5000);
+    },
+
+    /** Manually remove a Person from its merge group. */
+    async manualUnmerge(personId) {
+      return await send("personal-data-hub.manual-unmerge", { personId }, 5000);
+    },
+
+    /** Drain N pending pairs through embedding+LLM stages. */
+    async resolverDrain(limit = 50) {
+      return await send("personal-data-hub.resolver-drain", { limit }, 180_000);
+    },
+
+    /** Counts of resolve_queue + merge_groups + review_queue. */
+    async resolverStats() {
+      return await send("personal-data-hub.resolver-stats", {}, 5000);
+    },
   };
 }

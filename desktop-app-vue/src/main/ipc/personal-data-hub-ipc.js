@@ -234,6 +234,72 @@ function register() {
     }),
   );
 
+  // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
+
+  ipcMain.handle(
+    `${NS}:review-queue-list`,
+    safe(async ({ limit }) => {
+      const hub = await hubWiring.getHub();
+      return hub.vault.listReviewQueue({ limit: limit || 50 });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:review-decision`,
+    safe(async ({ reviewId, decision }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.entityResolver) {
+        return { error: "EntityResolver not wired" };
+      }
+      return hub.entityResolver.applyUserDecision({ reviewId, decision });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:manual-merge`,
+    safe(async ({ aId, bId }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.entityResolver) {
+        return { error: "EntityResolver not wired" };
+      }
+      return hub.entityResolver.manualMerge({ aId, bId });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:manual-unmerge`,
+    safe(async ({ personId }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.entityResolver) {
+        return { error: "EntityResolver not wired" };
+      }
+      return hub.entityResolver.manualUnmerge(personId);
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:resolver-drain`,
+    safe(async ({ limit }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.entityResolver) {
+        return { error: "EntityResolver not wired" };
+      }
+      return await hub.entityResolver.drain({ limit: limit || 50 });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:resolver-stats`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return {
+        queue: hub.vault.resolveQueueStats(),
+        mergeGroups: hub.vault.stats().mergeGroups,
+        reviewQueue: hub.vault.listReviewQueue({ limit: 1000 }).length,
+      };
+    }),
+  );
+
   // Phase 5.7 — streaming sync via webContents.send. The caller passes
   // `progressChannel` (e.g. a uuid); we push events to that channel
   // throughout the sync, then return the final report from invoke().

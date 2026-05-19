@@ -60,10 +60,14 @@ function ruleStage(a, b) {
   // R3. Same adapter, different originalId, sharing a name → same
   // (catches adapter-internal duplicates where an export contains the
   // same person under two surface forms — rare but documented in design.)
+  // GUARD: if BOTH sides have a strong identifier of the SAME key but
+  // with DIFFERENT values, they're definitively different people sharing
+  // a common name (homonym-trap). Don't R3-merge.
   if (a.source && b.source
       && a.source.adapter === b.source.adapter
       && a.source.originalId !== b.source.originalId
       && sharesAnyName(a.names, b.names)
+      && !hasConflictingIdentifier(a.identifiers || {}, b.identifiers || {})
   ) {
     return {
       verdict: "same",
@@ -106,6 +110,25 @@ function toArray(v) {
   if (Array.isArray(v)) return v.filter((x) => typeof x === "string" && x.length > 0);
   if (typeof v === "string" && v.length > 0) return [v];
   return [];
+}
+
+/**
+ * Returns true iff both sides have at least one strong identifier of
+ * the SAME key but with DIFFERENT (normalized) values. This is the
+ * "homonym-trap guard" for R3: if Alice@a.com and Alice@b.com share
+ * the name "Alice" but have different emails, they're DIFFERENT people.
+ */
+function hasConflictingIdentifier(idsA, idsB) {
+  for (const key of STRONG_IDENTIFIER_KEYS) {
+    const av = toArray(idsA[key]).map((v) => normalizeIdValue(key, v));
+    const bv = toArray(idsB[key]).map((v) => normalizeIdValue(key, v));
+    if (av.length === 0 || bv.length === 0) continue;
+    // Both have this identifier — overlap means SAME (handled by R1 above);
+    // no overlap on the same key = conflict
+    const overlap = av.some((v) => bv.includes(v));
+    if (!overlap) return true;
+  }
+  return false;
 }
 
 /**

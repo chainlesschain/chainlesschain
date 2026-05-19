@@ -13,6 +13,12 @@
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
+        <a-badge :count="resolverStats.reviewQueue" :offset="[0,0]">
+          <a-button type="primary" ghost @click="openReviewQueue">
+            <template #icon><LinkOutlined /></template>
+            待消歧
+          </a-button>
+        </a-badge>
         <a-button type="primary" ghost @click="auditOpen = true">
           <template #icon><FileSearchOutlined /></template>
           审计日志
@@ -505,6 +511,69 @@
       </template>
     </a-drawer>
 
+    <!-- Phase 8.7 — Review queue drawer (待消歧) -->
+    <a-drawer
+      v-model:open="reviewQueueOpen"
+      title="待消歧（EntityResolver 模糊判定）"
+      placement="right"
+      width="640"
+      :destroy-on-close="true"
+    >
+      <a-alert
+        v-if="reviewRows.length === 0 && !loading.reviewQueue"
+        type="success"
+        show-icon
+        message="无待消歧 pair — 所有跨源 Person 已确定。"
+        style="margin-bottom: 12px;"
+      />
+      <div style="margin-bottom: 12px;">
+        <a-space>
+          <a-button :loading="loading.reviewQueue" @click="loadReviewQueue">
+            <template #icon><ReloadOutlined /></template>
+            刷新
+          </a-button>
+          <a-button :loading="loading.resolverDrain" @click="drainResolver">
+            手动 drain 队列
+          </a-button>
+          <span class="hint">
+            queue: {{ resolverStats.queue?.pending || 0 }} pending ·
+            {{ resolverStats.mergeGroups || 0 }} groups
+          </span>
+        </a-space>
+      </div>
+      <a-list
+        :data-source="reviewRows"
+        :pagination="{ pageSize: 5, size: 'small' }"
+        size="small"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <a-card size="small" style="width: 100%;">
+              <div class="kv">
+                <strong>Pair #{{ item.id }}</strong>
+                <a-tag v-if="item.embed_sim" color="blue" style="margin-left: 8px;">
+                  sim {{ Number(item.embed_sim).toFixed(2) }}
+                </a-tag>
+                <a-tag v-if="item.llm_verdict" :color="item.llm_verdict === 'yes' ? 'green' : item.llm_verdict === 'no' ? 'red' : 'orange'" style="margin-left: 4px;">
+                  LLM: {{ item.llm_verdict }}
+                </a-tag>
+              </div>
+              <div class="kv" style="margin-top: 4px;">A: {{ item.a_person_id }}</div>
+              <div class="kv">B: {{ item.b_person_id }}</div>
+              <div v-if="item.llm_reason" class="hint" style="margin-top: 4px;">
+                LLM 理由: {{ item.llm_reason }}
+              </div>
+              <a-space style="margin-top: 8px;">
+                <a-button size="small" type="primary" @click="decideReview(item.id, 'same')">同一人</a-button>
+                <a-button size="small" danger @click="decideReview(item.id, 'different')">不同人</a-button>
+                <a-button size="small" @click="decideReview(item.id, 'skip')">跳过</a-button>
+              </a-space>
+            </a-card>
+          </a-list-item>
+        </template>
+      </a-list>
+    </a-drawer>
+
     <!-- Audit drawer -->
     <a-drawer
       v-model:open="auditOpen"
@@ -538,7 +607,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
-  AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined,
+  AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined, LinkOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
 
@@ -575,6 +644,11 @@ const eventDetailOpen = ref(false)
 const eventDetail = ref(null)
 const emailAccounts = ref([])
 
+// Phase 8 — EntityResolver review queue state
+const reviewQueueOpen = ref(false)
+const reviewRows = ref([])
+const resolverStats = reactive({ queue: { pending: 0 }, mergeGroups: 0, reviewQueue: 0 })
+
 // Phase 6 — Alipay import state
 const alipayConfigOpen = ref(false)
 const alipayForm = reactive({
@@ -607,6 +681,8 @@ const loading = reactive({
   saveEmail: false,
   eventDetail: false,
   importAlipay: false,
+  reviewQueue: false,
+  resolverDrain: false,
 })
 
 // Table columns
@@ -911,7 +987,61 @@ async function showEventDetail(eventId) {
 // Expose for template-level event handlers (e.g. citation click)
 defineExpose({ showEventDetail })
 
-onMounted(refresh)
+// Phase 8 — EntityResolver UI handlers
+async function loadReviewQueue() {
+  loading.reviewQueue = true
+  try {
+    reviewRows.value = await hub.reviewQueueList(50)
+    const stats = await hub.resolverStats()
+    Object.assign(resolverStats, stats)
+  } catch (err) {
+    message.error('待消歧加载失败: ' + err.message)
+  } finally {
+    loading.reviewQueue = false
+  }
+}
+
+async function openReviewQueue() {
+  reviewQueueOpen.value = true
+  await loadReviewQueue()
+}
+
+async function decideReview(reviewId, decision) {
+  try {
+    await hub.reviewDecision(reviewId, decision)
+    message.success(`已记录决策: ${decision}`)
+    await loadReviewQueue()
+  } catch (err) {
+    message.error('决策失败: ' + err.message)
+  }
+}
+
+async function drainResolver() {
+  loading.resolverDrain = true
+  try {
+    const r = await hub.resolverDrain(20)
+    message.success(`drain 完成 — same=${r.same} different=${r.different} review=${r.review}`)
+    await loadReviewQueue()
+  } catch (err) {
+    message.error('drain 失败: ' + err.message)
+  } finally {
+    loading.resolverDrain = false
+  }
+}
+
+async function loadResolverStats() {
+  try {
+    const stats = await hub.resolverStats()
+    Object.assign(resolverStats, stats)
+  } catch (_e) {
+    // Silent — endpoint may not be available
+  }
+}
+
+onMounted(() => {
+  refresh()
+  loadResolverStats()
+})
 </script>
 
 <style scoped>

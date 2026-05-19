@@ -43,6 +43,10 @@ const {
   generateKeyHex,
   EmailAdapter,
   AlipayBillAdapter,
+  EntityResolver,
+  EntityResolverEmbeddingStage,
+  EntityResolverLLMStage,
+  EntityResolverWorker,
 } = require("@chainlesschain/personal-data-hub");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
@@ -187,11 +191,41 @@ async function initHub() {
     _hubExtras.bm25 = bm25;
   }
 
+  // Phase 8 — EntityResolver with 3-stage pipeline.
+  // Stages are lazy: embedding/llm only fire when adapter ingest produces
+  // "uncertain" pairs or when the user manually drains the queue.
+  const entityResolver = new EntityResolver({ vault });
+  // Wire embedding + LLM stages with the existing LLM + Ollama URL.
+  try {
+    if (llm) {
+      const llmStage = new EntityResolverLLMStage({
+        llm,
+        acceptNonLocal: false,
+      });
+      entityResolver._llmStage = llmStage.asStageFn();
+    }
+    const embeddingStage = new EntityResolverEmbeddingStage({
+      ollamaUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
+      model: process.env.CC_HUB_OLLAMA_EMBED_MODEL || "nomic-embed-text",
+      vault,
+    });
+    entityResolver._embeddingStage = embeddingStage.asStageFn();
+    logger.info(
+      "[PersonalDataHub] EntityResolver wired: rule + embedding + llm stages",
+    );
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] EntityResolver embedding/llm stages unavailable — rule-only:",
+      err && err.message,
+    );
+  }
+
   // Registry with whatever sinks are available.
   const registry = new AdapterRegistry({
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
     ragSink: ragSink ? ragSink.write.bind(ragSink) : null,
+    entityResolver, // Phase 8.6 — sync-time rule resolution on every ingest
     onSyncEvent: (msg) =>
       logger.debug("[PersonalDataHub sync]", msg.kind, msg.adapter || ""),
   });
@@ -285,6 +319,7 @@ async function initHub() {
     keyProvider,
     emailAccountsPath,
     alipayAccountsPath,
+    entityResolver,
     // Convenience: register the mock adapter for smoke / dev. Won't be
     // pre-registered by default (lazy on first call).
     registerMockAdapter(opts = {}) {
