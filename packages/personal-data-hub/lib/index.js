@@ -153,4 +153,8 @@ module.exports = {
   extractEmailGovernment: emailImapAdapter.extractGovernment,
   extractEmailRegister: emailImapAdapter.extractRegister,
   extractEmailOther: emailImapAdapter.extractOther,
+  // Phase 5.5 — PDF decryption + transactions
+  extractPdfText: emailImapAdapter.extractPdfText,
+  pdfPasswordsFromHints: emailImapAdapter.pdfPasswordsFromHints,
+  extractEmailTransactions: emailImapAdapter.extractTransactions,
 };

@@ -30,9 +30,11 @@ const {
 const { parseRawEmail } = require("./email-parser");
 const { classifyEmail, CATEGORIES } = require("./classifier");
 const { extractFields } = require("./templates");
+const { extractPdfText, passwordsFromHints } = require("./pdf-extractor");
+const { extractTransactions } = require("./transactions");
 
 const NAME = "email-imap";
-const VERSION = "0.4.0"; // Phase 5.4 — 6 template field extractors
+const VERSION = "0.5.0"; // Phase 5.5 — PDF decryption + transactions extraction
 
 class EmailAdapter {
   constructor(opts) {
@@ -86,6 +88,19 @@ class EmailAdapter {
     this._extractor = typeof opts.extractor === "function" ? opts.extractor : extractFields;
     this._disableExtraction = !!opts.disableExtraction;
 
+    // Phase 5.5: PDF attachment decryption + transactions extraction.
+    // See pdf-extractor.js + transactions.js. Test seam: opts.pdfExtractor.
+    this._pdfExtractor = typeof opts.pdfExtractor === "function" ? opts.pdfExtractor : extractPdfText;
+    this._transactionsExtractor = typeof opts.transactionsExtractor === "function"
+      ? opts.transactionsExtractor
+      : extractTransactions;
+    const hintsList = passwordsFromHints(opts.pdfPasswordHints || {});
+    const userList = Array.isArray(opts.pdfPasswords)
+      ? opts.pdfPasswords.filter((p) => typeof p === "string")
+      : [];
+    this._pdfPasswords = [...userList, ...hintsList].filter((v, i, arr) => arr.indexOf(v) === i);
+    this._disablePdfExtraction = !!opts.disablePdfExtraction;
+
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
@@ -96,6 +111,7 @@ class EmailAdapter {
       "classify:layer1-rules",
       ...(this._llm ? ["classify:layer2-llm"] : []),
       "extract:6-templates",
+      ...(this._disablePdfExtraction ? [] : ["decrypt:pdf-bills"]),
     ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
@@ -105,6 +121,11 @@ class EmailAdapter {
         "email:body (text + html, capped to ~8k chars)",
         "email:attachment-metadata (filename, contentType, size, sha256; no file bytes saved in v0)",
         "classification:layer-1-rule-or-layer-2-llm-category (bill_bank/order/travel/etc.)",
+        ...(this._disablePdfExtraction
+          ? []
+          : [
+              "bill-transactions:date+description+amount+balance (extracted from decrypted PDF attachments; PDF bytes themselves never persist)",
+            ]),
       ],
       sensitivity: "high",
       legalGate: false,
@@ -164,7 +185,13 @@ class EmailAdapter {
           let parsedBody = null;
           try {
             if (env.source && env.source.length > 0) {
-              parsedBody = await this._parser(env.source);
+              // Phase 5.5: ask parser to keep attachment buffers when
+              // we may need to decrypt PDFs. Buffers are stripped from
+              // the emitted RawEvent (in _envelopeToRawEvent) so the
+              // vault doesn't archive megabytes of PDF bytes.
+              parsedBody = await this._parser(env.source, {
+                keepAttachmentBuffers: !this._disablePdfExtraction,
+              });
             }
           } catch (parseErr) {
             // Layer 1 classifier rules can still fire on envelope-only
@@ -217,6 +244,21 @@ class EmailAdapter {
                 warnings: [`extractor threw: ${err && err.message ? err.message : err}`],
               };
             }
+          }
+
+          // Phase 5.5: PDF attachment decryption + transactions extraction.
+          // Runs only when the email was classified as a bill / travel AND
+          // has at least one PDF attachment whose buffer is available.
+          // Errors captured per-attachment, never thrown.
+          if (
+            !this._disablePdfExtraction
+            && extraction
+            && (extraction.template === "bill" || extraction.template === "travel")
+            && parsedBody
+            && Array.isArray(parsedBody.attachments)
+            && parsedBody.attachments.some((a) => isPdfAttachment(a))
+          ) {
+            await this._runPdfExtraction(parsedBody, extraction);
           }
 
           yield this._envelopeToRawEvent(env, folder, parsedBody, classification, extraction);
@@ -353,6 +395,12 @@ class EmailAdapter {
               ...(env.extraction.warnings && env.extraction.warnings.length > 0
                 ? { extractionWarnings: env.extraction.warnings }
                 : {}),
+              // Phase 5.5: per-attachment decrypt+extract summary so the
+              // UI can flag "could not unlock this bill" + transactions
+              // count. Actual transactions list lives at fields.transactions.
+              ...(env.extraction.pdfExtraction
+                ? { pdfExtraction: env.extraction.pdfExtraction }
+                : {}),
             }
           : {}),
       },
@@ -396,6 +444,10 @@ class EmailAdapter {
     // re-derive). The source is recoverable by re-syncing if absolutely
     // needed.
     const { source: _src, ...envNoSource } = env;
+    // Phase 5.5: also strip attachment buffers from parsedBody. Buffers
+    // are loaded for PDF decryption then discarded — vault keeps only
+    // metadata (filename / contentType / size / sha256).
+    const safeBody = parsedBody ? stripAttachmentBuffers(parsedBody) : null;
     return {
       adapter: NAME,
       originalId,
@@ -403,11 +455,77 @@ class EmailAdapter {
       payload: {
         ...envNoSource,
         folder,
-        ...(parsedBody ? { parsedBody } : {}),
+        ...(safeBody ? { parsedBody: safeBody } : {}),
         ...(classification ? { classification } : {}),
         ...(extraction ? { extraction } : {}),
       },
     };
+  }
+
+  /**
+   * Phase 5.5 helper: for each PDF attachment with a buffer, try to
+   * decrypt + extract text + parse transactions. Merges results into
+   * `extraction.fields.transactions` and stamps `pdfExtraction` metadata
+   * on the extraction so UI can surface failures.
+   *
+   * Side effects: mutates `extraction.fields` + adds `extraction.pdfExtraction`.
+   * Errors captured, never thrown — preserves the "sync never aborts on
+   * a single bad email" invariant.
+   */
+  async _runPdfExtraction(parsedBody, extraction) {
+    const pdfAtts = parsedBody.attachments.filter((a) => isPdfAttachment(a));
+    const results = [];
+    const allTxns = [];
+
+    for (const a of pdfAtts) {
+      if (!Buffer.isBuffer(a.buffer)) {
+        results.push({
+          filename: a.filename,
+          decrypted: false,
+          attempted: 0,
+          error: "no buffer (parser keepAttachmentBuffers=false?)",
+        });
+        continue;
+      }
+      try {
+        const r = await this._pdfExtractor(a.buffer, { passwords: this._pdfPasswords });
+        const summary = {
+          filename: a.filename,
+          decrypted: r.decrypted,
+          attempted: r.attempted,
+          wasEncrypted: r.wasEncrypted,
+          pageCount: r.pageCount,
+          ...(r.password !== undefined ? { passwordUsed: "***" } : {}), // never persist the real password
+          ...(r.error ? { error: r.error } : {}),
+        };
+        if (r.decrypted && typeof r.text === "string" && r.text.length > 0) {
+          const txns = this._transactionsExtractor(r.text);
+          if (Array.isArray(txns) && txns.length > 0) {
+            for (const t of txns) {
+              t.attachmentSha256 = a.sha256;
+              allTxns.push(t);
+            }
+            summary.transactionsExtracted = txns.length;
+          } else {
+            summary.transactionsExtracted = 0;
+          }
+        }
+        results.push(summary);
+      } catch (err) {
+        results.push({
+          filename: a.filename,
+          decrypted: false,
+          attempted: 0,
+          error: err && err.message ? err.message : String(err),
+        });
+      }
+    }
+
+    if (allTxns.length > 0) {
+      extraction.fields = extraction.fields || {};
+      extraction.fields.transactions = allTxns;
+    }
+    extraction.pdfExtraction = results;
   }
 
   _classifierInput(env, parsedBody) {
@@ -516,6 +634,34 @@ function pickIndicatorHeaders(headers) {
     if (headers[h] !== undefined) out[h] = headers[h];
   }
   return out;
+}
+
+/**
+ * Phase 5.5: detect PDF attachments. Goes by contentType first, falls
+ * back to filename extension for senders that omit the MIME type.
+ */
+function isPdfAttachment(a) {
+  if (!a || typeof a !== "object") return false;
+  if (typeof a.contentType === "string" && a.contentType.toLowerCase().includes("pdf")) return true;
+  if (typeof a.filename === "string" && /\.pdf$/i.test(a.filename)) return true;
+  return false;
+}
+
+/**
+ * Phase 5.5: drop Buffer fields from each attachment before the parsed
+ * body lands in the emitted RawEvent. Vault row size + WS-gateway
+ * serialization cost would be dominated by attachment bytes otherwise.
+ */
+function stripAttachmentBuffers(parsedBody) {
+  if (!parsedBody || !Array.isArray(parsedBody.attachments)) return parsedBody;
+  return {
+    ...parsedBody,
+    attachments: parsedBody.attachments.map((a) => {
+      if (!a || a.buffer == null) return a;
+      const { buffer: _b, ...rest } = a;
+      return rest;
+    }),
+  };
 }
 
 module.exports = {
