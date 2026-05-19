@@ -185,6 +185,19 @@ DEPLOYS = [
     # 注: release-sizes.json 仍指向 v5.0.3.66 (release v5.0.3.67 仍在 build, 4/5 jobs in_progress);
     # mobile.astro 下载链接仍走 .66 ANDROID_TAG, 待 release publish 后再刷一次 release-sizes
     # 重 build + 重 deploy 即可让下载切到 .67 (Per memory feedback_android_tag_follows_desktop.md)。
+    #
+    # 2026-05-20 04:58 后续 www 单站补刷 (release publish 后):
+    # v5.0.3.67 + v5.0.3.68 release 都已 publish (.68 现是 Latest, 18 assets 齐: 4 Android +
+    # macOS dmg + Linux AppImage/rpm/deb + Windows Setup/Portable + iOS .ipa + 3 latest.yml +
+    # blockmaps)。重 build docs-website-v2 让 fetch-release-sizes.mjs 自动拉到 .68
+    # (release-sizes.json.tag v5.0.3.66 → v5.0.3.68), mobile.astro 4 个 Android 下载链接
+    # 切到 .68 (app-{arm64-v8a,armeabi-v7a,universal}.apk + app-release.aab)。
+    # docs / design 站不动 (不依赖 release artifact)。Tarball stamp 20260520-045855。
+    # 走一次 SFTP swap (rollback dir .bak-20260520-045914 留底)。productVersion 仍是
+    # v5.0.3.67 (.68 是并行 session 的版本节奏, 没动 package.json), 但 cc Chat section /
+    # security 等内容性页面措辞仍引 v5.0.3.67 — 那是 feature ship 时点, 不需要 chase 下游。
+    # 这条 deploy 走的是一次性内联 python (不经 deploy-all.py 的 3-site loop)。
+    # 下次跑 deploy-all.py 时这 3 个 local_tar 路径都过期, 需重新生成 artifact 再改路径。
     {
         "name": "docs.chainlesschain.com",
         "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.67-20260519-223607.tar.gz",
@@ -197,7 +210,7 @@ DEPLOYS = [
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.67-20260519-223607.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.68-20260520-045855.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
