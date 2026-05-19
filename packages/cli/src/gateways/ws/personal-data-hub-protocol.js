@@ -149,6 +149,51 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
           zipPassword: msg.zipPassword,
         }),
     ),
+
+  // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
+
+  "personal-data-hub.review-queue-list": async (msg) =>
+    withHub((hub) => hub.vault.listReviewQueue({ limit: msg.limit || 50 })),
+
+  "personal-data-hub.review-decision": async (msg) =>
+    withHub((hub) => {
+      if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      return hub.entityResolver.applyUserDecision({
+        reviewId: msg.reviewId,
+        decision: msg.decision,
+      });
+    }),
+
+  "personal-data-hub.manual-merge": async (msg) =>
+    withHub((hub) => {
+      if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      return hub.entityResolver.manualMerge({ aId: msg.aId, bId: msg.bId });
+    }),
+
+  "personal-data-hub.manual-unmerge": async (msg) =>
+    withHub((hub) => {
+      if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      return hub.entityResolver.manualUnmerge(msg.personId);
+    }),
+
+  "personal-data-hub.resolver-drain": async (msg) =>
+    withHub(async (hub) => {
+      if (!hub.entityResolver) throw new Error("EntityResolver not wired");
+      return await hub.entityResolver.drain({ limit: msg.limit || 50 });
+    }),
+
+  "personal-data-hub.resolver-stats": async () =>
+    withHub((hub) => ({
+      queue: hub.vault.resolveQueueStats(),
+      mergeGroups: hub.vault.stats().mergeGroups,
+      reviewQueue:
+        hub.vault.listReviewQueue({ limit: 1 }).length > 0
+          ? hub.vault.listReviewQueue({ limit: 1000 }).length
+          : 0,
+    })),
+
+  "personal-data-hub.merge-group-members": async (msg) =>
+    withHub((hub) => hub.vault.getMergeGroupMembers(msg.personId)),
 };
 
 /**

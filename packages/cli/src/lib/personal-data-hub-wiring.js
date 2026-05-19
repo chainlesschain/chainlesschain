@@ -42,6 +42,9 @@ const {
   generateKeyHex,
   EmailAdapter,
   AlipayBillAdapter,
+  EntityResolver,
+  EntityResolverEmbeddingStage,
+  EntityResolverLLMStage,
 } = hub;
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
@@ -126,10 +129,31 @@ async function initHub() {
     ragSink = new CcRagSink({ bm25: _bm25 });
   }
 
+  // Phase 8 — EntityResolver pipeline
+  const entityResolver = new EntityResolver({ vault });
+  try {
+    if (llm) {
+      const llmStage = new EntityResolverLLMStage({
+        llm,
+        acceptNonLocal: false,
+      });
+      entityResolver._llmStage = llmStage.asStageFn();
+    }
+    const embeddingStage = new EntityResolverEmbeddingStage({
+      ollamaUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
+      model: process.env.CC_HUB_OLLAMA_EMBED_MODEL || "nomic-embed-text",
+      vault,
+    });
+    entityResolver._embeddingStage = embeddingStage.asStageFn();
+  } catch (_err) {
+    // Fall back to rule-only — registry still works
+  }
+
   const registry = new AdapterRegistry({
     vault,
     kgSink: kgSink ? kgSink.write.bind(kgSink) : null,
     ragSink: ragSink ? ragSink.write.bind(ragSink) : null,
+    entityResolver,
   });
 
   const engine = new AnalysisEngine({
@@ -196,6 +220,7 @@ async function initHub() {
     keyProvider,
     emailAccountsPath,
     alipayAccountsPath,
+    entityResolver,
     bm25: _bm25,
     registerMockAdapter(opts = {}) {
       if (registry.has(opts.name || "mock"))

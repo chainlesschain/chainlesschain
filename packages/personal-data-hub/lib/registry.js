@@ -54,6 +54,13 @@ class AdapterRegistry {
     this.batchSize =
       Number.isInteger(opts.batchSize) && opts.batchSize > 0 ? opts.batchSize : DEFAULT_BATCH_SIZE;
 
+    // Phase 8.6 — EntityResolver ingest hook. If supplied, every successful
+    // putBatch triggers resolver.resolveOnIngest(persons) so cross-source
+    // merges happen at sync time rather than during a separate later run.
+    // Optional — registry works fine without it (Phase 5/6 adapters don't
+    // depend on it).
+    this.entityResolver = opts.entityResolver || null;
+
     this._adapters = new Map();
     this._activeSync = null; // name of currently-running adapter, or null
   }
@@ -346,6 +353,26 @@ class AdapterRegistry {
     const counts = this.vault.putBatch(valid);
     for (const k of Object.keys(counts)) {
       report.entityCounts[k] = (report.entityCounts[k] || 0) + counts[k];
+    }
+
+    // 4.5. Phase 8.6: EntityResolver ingest hook. Sync-rule stage runs
+    // immediately for each new Person; "uncertain" pairs go to the
+    // resolve_queue for async embedding+LLM processing. Failures are
+    // captured in audit_log but don't break sync.
+    if (this.entityResolver && Array.isArray(valid.persons) && valid.persons.length > 0) {
+      try {
+        const resolverSummary = this.entityResolver.resolveOnIngest(valid.persons);
+        report.entityResolver = {
+          ...(report.entityResolver || { newPersons: 0, sameImmediate: 0, differentImmediate: 0, enqueued: 0, errored: 0 }),
+        };
+        for (const k of Object.keys(resolverSummary)) {
+          report.entityResolver[k] = (report.entityResolver[k] || 0) + resolverSummary[k];
+        }
+      } catch (err) {
+        this.vault.audit("adapter.sync.entity_resolver_failed", adapter.name, {
+          error: toError(err, "entityResolver").message,
+        });
+      }
     }
 
     // 5. KG sink (per-batch, not per-entity, so the sink can amortize work).
