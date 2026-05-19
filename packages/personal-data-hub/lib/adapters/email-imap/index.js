@@ -18,6 +18,16 @@ const {
   classifyEmail,
   LAYER2_SYSTEM_PROMPT,
 } = require("./classifier");
+const {
+  extractFields,
+  CATEGORY_TO_EXTRACTOR,
+  extractBill,
+  extractOrder,
+  extractTravel,
+  extractGovernment,
+  extractRegister,
+  extractOther,
+} = require("./templates");
 
 module.exports = {
   EmailAdapter,
@@ -40,4 +50,13 @@ module.exports = {
   classifyEmailLayer2: classifyLayer2,
   classifyEmail,
   EMAIL_LAYER2_SYSTEM_PROMPT: LAYER2_SYSTEM_PROMPT,
+  // Phase 5.4 — 6 template extractors + dispatcher
+  extractEmailFields: extractFields,
+  EMAIL_CATEGORY_EXTRACTORS: CATEGORY_TO_EXTRACTOR,
+  extractBill,
+  extractOrder,
+  extractTravel,
+  extractGovernment,
+  extractRegister,
+  extractOther,
 };

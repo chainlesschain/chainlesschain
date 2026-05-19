@@ -29,9 +29,10 @@ const {
 } = require("./imap-session");
 const { parseRawEmail } = require("./email-parser");
 const { classifyEmail, CATEGORIES } = require("./classifier");
+const { extractFields } = require("./templates");
 
 const NAME = "email-imap";
-const VERSION = "0.3.0"; // Phase 5.3 — Layer 1 + Layer 2 classification
+const VERSION = "0.4.0"; // Phase 5.4 — 6 template field extractors
 
 class EmailAdapter {
   constructor(opts) {
@@ -66,7 +67,8 @@ class EmailAdapter {
       : 8000;
 
     // Phase 5.3: classifier configuration.
-    // - opts.llm: optional LLMClient for Layer 2; absent → Layer 1 only.
+    // - opts.llm: optional LLMClient for Layer 2 + Phase-5.4 `other`-template
+    //   summarization; absent → Layer 1 + regex-only extractors.
     // - opts.classifier: custom orchestrator (override for tests).
     // - opts.minLayer1Confidence: short-circuit threshold (default 0.85).
     // - opts.disableClassification: skip both layers entirely.
@@ -77,6 +79,13 @@ class EmailAdapter {
       : 0.85;
     this._disableClassification = !!opts.disableClassification;
 
+    // Phase 5.4: template field extractor (regex-first, LLM-optional).
+    // - opts.extractor: custom dispatcher (test seam).
+    // - opts.disableExtraction: skip the per-email field-extraction call
+    //   (e.g. when the registry only needs envelope+classification).
+    this._extractor = typeof opts.extractor === "function" ? opts.extractor : extractFields;
+    this._disableExtraction = !!opts.disableExtraction;
+
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
@@ -86,6 +95,7 @@ class EmailAdapter {
       "parse:attachment-metadata",
       "classify:layer1-rules",
       ...(this._llm ? ["classify:layer2-llm"] : []),
+      "extract:6-templates",
     ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
@@ -188,7 +198,28 @@ class EmailAdapter {
             }
           }
 
-          yield this._envelopeToRawEvent(env, folder, parsedBody, classification);
+          // Phase 5.4: per-category template extraction.
+          // Dispatcher routes via classification.category, so a missing
+          // classification (disableClassification=true) maps to "other".
+          let extraction = null;
+          if (!this._disableExtraction) {
+            try {
+              extraction = await this._extractor(
+                this._classifierInput(env, parsedBody),
+                classification || { category: CATEGORIES.OTHER },
+                { llm: this._llm }
+              );
+            } catch (err) {
+              extraction = {
+                template: "other",
+                fields: {},
+                confidence: 0,
+                warnings: [`extractor threw: ${err && err.message ? err.message : err}`],
+              };
+            }
+          }
+
+          yield this._envelopeToRawEvent(env, folder, parsedBody, classification, extraction);
           emitted += 1;
           if (emitted >= maxPerFolder) break;
         }
@@ -298,7 +329,7 @@ class EmailAdapter {
             }
           : {}),
         // Phase 5.3: per-email category + which layer / rule decided it.
-        // Phase 5.4 template extractors will dispatch on `.classified`.
+        // Phase 5.4 template extractors dispatched on `.classified`.
         ...(env.classification
           ? {
               classified: env.classification.category,
@@ -311,8 +342,33 @@ class EmailAdapter {
               },
             }
           : {}),
+        // Phase 5.4: structured fields from the per-category template.
+        // Stored at top of extra so analysis prompts + KG ingestors can
+        // see them without spelunking through `extraction.fields`.
+        ...(env.extraction && env.extraction.fields
+          ? {
+              fields: env.extraction.fields,
+              extractionTemplate: env.extraction.template,
+              extractionConfidence: env.extraction.confidence,
+              ...(env.extraction.warnings && env.extraction.warnings.length > 0
+                ? { extractionWarnings: env.extraction.warnings }
+                : {}),
+            }
+          : {}),
       },
     };
+
+    // Phase 5.4 compliance redaction: emails containing verification
+    // codes (OTP / 2FA) must NEVER persist their body in vault — even
+    // an "expired" OTP is sensitive evidence of session activity.
+    // Adapter_Email_IMAP.md §9.2 mandates "verificationCodePresent =
+    // store metadata only".
+    if (env.extraction
+        && env.extraction.template === "register"
+        && env.extraction.fields
+        && env.extraction.fields.verificationCodePresent) {
+      event.content.text = "(redacted: verification code email)";
+    }
 
     return { events: [event], persons, places: [], items: [], topics: [] };
   }
@@ -327,7 +383,7 @@ class EmailAdapter {
     };
   }
 
-  _envelopeToRawEvent(env, folder, parsedBody, classification) {
+  _envelopeToRawEvent(env, folder, parsedBody, classification, extraction) {
     const originalId = env.messageId && env.messageId.length > 0
       ? env.messageId
       : `mid-fallback:${this.account.email}:${folder}:${env.uid}`;
@@ -349,6 +405,7 @@ class EmailAdapter {
         folder,
         ...(parsedBody ? { parsedBody } : {}),
         ...(classification ? { classification } : {}),
+        ...(extraction ? { extraction } : {}),
       },
     };
   }
