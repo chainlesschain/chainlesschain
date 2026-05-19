@@ -47,8 +47,34 @@ struct ChainlessChainApp: App {
         // 配置日志
         Logger.shared.configure(level: .debug)
 
-        // 检查首次启动
+        // First-launch-after-install detection.
+        //
+        // iOS keychain is device-scoped, not app-scoped: items survive app
+        // uninstall (Apple's design — see SecItem documentation). UserDefaults
+        // however lives in the app sandbox and IS wiped on uninstall. So a
+        // UserDefaults flag that is false after install can only mean
+        // "fresh install of a bundle id that previously stored keychain
+        // items." Clear those stale items so the user goes through
+        // SetupPINView (fresh setup) instead of being stuck on PINEntryView
+        // with a pinKey hash they may no longer remember the password for
+        // and a database that was wiped with the sandbox.
         if UserDefaults.standard.bool(forKey: AppConstants.UserDefaults.isFirstLaunch) == false {
+            do {
+                try KeychainManager.shared.clear()
+                Logger.shared.info(
+                    "First launch after install — cleared stale keychain (pinKey/dbKey/salt/...)",
+                    category: "App"
+                )
+            } catch {
+                // Don't fatal: if Keychain is unavailable (locked, no entitlement)
+                // the user can still hit the Setup PIN flow if pinKey lookup
+                // also fails. Just log.
+                Logger.shared.error(
+                    "First-launch keychain clear failed",
+                    error: error,
+                    category: "App"
+                )
+            }
             UserDefaults.standard.set(true, forKey: AppConstants.UserDefaults.isFirstLaunch)
         }
     }
