@@ -99,6 +99,29 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
         limit: msg.limit,
       }),
     ),
+
+  // ─── Phase 5.6 — email config + event detail ─────────────────────────
+
+  "personal-data-hub.test-email-auth": async (msg) =>
+    withHub(async (hub) => await hub.testEmailAuth({ account: msg.account })),
+
+  "personal-data-hub.register-email": async (msg) =>
+    withHub(
+      async (hub) =>
+        await hub.registerEmailAdapter({
+          account: msg.account,
+          opts: msg.opts || {},
+        }),
+    ),
+
+  "personal-data-hub.unregister-email": async (msg) =>
+    withHub(async (hub) => await hub.unregisterEmailAdapter(msg.email)),
+
+  "personal-data-hub.list-email-accounts": async () =>
+    withHub((hub) => hub.listEmailAccounts()),
+
+  "personal-data-hub.event-detail": async (msg) =>
+    withHub((hub) => hub.eventDetail(msg.eventId)),
 };
 
 /**

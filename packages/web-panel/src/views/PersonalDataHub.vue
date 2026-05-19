@@ -119,6 +119,20 @@
           引用 {{ askResult.citations?.length || 0 }} 条事实 · {{ askResult.facts?.length || 0 }} facts 入 prompt ·
           {{ askResult.durationMs }}ms · {{ askResult.model }}
         </div>
+        <div v-if="askResult.citations?.length" style="margin-top: 8px;">
+          <span style="font-size: 12px; color: var(--text-color-secondary, #888);">事件链接（点击查看明细 / PDF 解密结果）：</span>
+          <a-space style="margin-top: 4px;" wrap>
+            <a-tag
+              v-for="cid in askResult.citations"
+              :key="cid"
+              color="blue"
+              style="cursor: pointer;"
+              @click="showEventDetail(cid)"
+            >
+              {{ cid }}
+            </a-tag>
+          </a-space>
+        </div>
       </div>
     </a-card>
 
@@ -129,6 +143,10 @@
       </template>
       <template #extra>
         <a-space>
+          <a-button @click="emailConfigOpen = true">
+            <template #icon><MailOutlined /></template>
+            添加邮箱账号
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -182,6 +200,187 @@
       </div>
     </a-card>
 
+    <!-- Email config drawer (Phase 5.6) -->
+    <a-drawer
+      v-model:open="emailConfigOpen"
+      title="添加邮箱账号"
+      placement="right"
+      width="560"
+      :destroy-on-close="true"
+      @close="resetEmailForm"
+    >
+      <a-alert
+        message="数据回归个人 — 凭证落本地加密文件（与 vault 主密钥同目录），同步动作 100% 本地。"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px;"
+      />
+
+      <a-form layout="vertical" :model="emailForm">
+        <a-form-item label="邮箱服务商" required>
+          <a-select v-model:value="emailForm.provider" placeholder="选择服务商">
+            <a-select-option value="qq">QQ 邮箱 (imap.qq.com)</a-select-option>
+            <a-select-option value="163">网易邮箱 163/126</a-select-option>
+            <a-select-option value="189">189 邮箱</a-select-option>
+            <a-select-option value="outlook">Outlook / Hotmail</a-select-option>
+            <a-select-option value="gmail">Gmail</a-select-option>
+            <a-select-option value="custom">自定义 IMAP</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="邮箱地址" required>
+          <a-input v-model:value="emailForm.email" placeholder="you@qq.com" autocomplete="off" />
+        </a-form-item>
+
+        <a-form-item required>
+          <template #label>
+            <a-space>
+              <span>授权码（非登录密码）</span>
+              <a-tooltip :title="providerAuthHint(emailForm.provider)">
+                <InfoCircleOutlined style="color: #888;" />
+              </a-tooltip>
+            </a-space>
+          </template>
+          <a-input-password
+            v-model:value="emailForm.authCode"
+            placeholder="例：QQ 邮箱 设置 → 账户 → 开启 IMAP/SMTP → 生成的授权码"
+            autocomplete="off"
+          />
+        </a-form-item>
+
+        <a-form-item v-if="emailForm.provider === 'custom'" label="IMAP host">
+          <a-input v-model:value="emailForm.host" placeholder="mail.example.com" />
+        </a-form-item>
+        <a-form-item v-if="emailForm.provider === 'custom'" label="端口">
+          <a-input-number v-model:value="emailForm.port" :min="1" :max="65535" :default-value="993" />
+        </a-form-item>
+
+        <a-divider orientation="left" plain>PDF 账单解密提示（可选）</a-divider>
+        <p class="hint">银行 PDF 月结大多加密；提供几个常用候选项让 Phase 5.5 自动解锁：</p>
+        <a-form-item label="身份证后 6 位">
+          <a-input v-model:value="emailForm.pdfPasswordHints.idCardLast6" placeholder="123456" autocomplete="off" />
+        </a-form-item>
+        <a-form-item label="手机后 6 位">
+          <a-input v-model:value="emailForm.pdfPasswordHints.phoneLast6" placeholder="123456" autocomplete="off" />
+        </a-form-item>
+        <a-form-item label="信用卡尾 6 位">
+          <a-input v-model:value="emailForm.pdfPasswordHints.cardLast6" placeholder="123456" autocomplete="off" />
+        </a-form-item>
+
+        <div v-if="emailTestResult" style="margin-top: 8px;">
+          <a-alert
+            :type="emailTestResult.ok ? 'success' : 'error'"
+            show-icon
+            :message="emailTestResult.ok ? '凭证有效 — 可以保存' : `认证失败: ${emailTestResult.reason || emailTestResult.error}`"
+          />
+        </div>
+      </a-form>
+
+      <template #footer>
+        <a-space>
+          <a-button @click="emailConfigOpen = false">取消</a-button>
+          <a-button :loading="loading.testEmail" :disabled="!emailFormValid" @click="testEmailAuth">
+            测试连接
+          </a-button>
+          <a-button
+            type="primary"
+            :loading="loading.saveEmail"
+            :disabled="!emailFormValid || !emailTestResult?.ok"
+            @click="saveEmail"
+          >
+            保存并注册
+          </a-button>
+        </a-space>
+      </template>
+    </a-drawer>
+
+    <!-- Event detail drawer (Phase 5.6) -->
+    <a-drawer
+      v-model:open="eventDetailOpen"
+      :title="eventDetail ? `事件 ${eventDetail.event.id}` : '加载中...'"
+      placement="right"
+      width="640"
+      :destroy-on-close="true"
+    >
+      <template v-if="eventDetail">
+        <a-descriptions :column="1" size="small" bordered>
+          <a-descriptions-item label="类型">{{ eventDetail.event.subtype }}</a-descriptions-item>
+          <a-descriptions-item label="发生于">
+            {{ new Date(eventDetail.event.occurredAt).toLocaleString() }}
+          </a-descriptions-item>
+          <a-descriptions-item label="actor">{{ eventDetail.event.actor }}</a-descriptions-item>
+          <a-descriptions-item v-if="eventDetail.event.content?.title" label="标题">
+            {{ eventDetail.event.content.title }}
+          </a-descriptions-item>
+          <a-descriptions-item v-if="eventDetail.event.source?.adapter" label="来源 adapter">
+            {{ eventDetail.event.source.adapter }} @ v{{ eventDetail.event.source.adapterVersion }}
+          </a-descriptions-item>
+        </a-descriptions>
+
+        <a-divider v-if="eventDetail.classification" orientation="left" plain>分类</a-divider>
+        <div v-if="eventDetail.classification">
+          <a-tag color="blue">{{ eventDetail.classification.category }}</a-tag>
+          <a-tag>{{ eventDetail.classification.layer }}</a-tag>
+          <span style="margin-left: 8px;">置信 {{ Math.round((eventDetail.classification.confidence || 0) * 100) }}%</span>
+        </div>
+
+        <a-divider v-if="eventDetail.extraction" orientation="left" plain>结构化字段（{{ eventDetail.extraction.template }}）</a-divider>
+        <pre v-if="eventDetail.extraction" class="json-pre">{{ JSON.stringify(eventDetail.extraction.fields, null, 2) }}</pre>
+
+        <a-divider v-if="eventDetail.extraction?.pdfExtraction" orientation="left" plain>PDF 解密 / 解析</a-divider>
+        <a-list
+          v-if="eventDetail.extraction?.pdfExtraction"
+          :data-source="eventDetail.extraction.pdfExtraction"
+          size="small"
+        >
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta :title="item.filename">
+                <template #description>
+                  <div>
+                    <a-tag :color="item.decrypted ? 'green' : 'red'">
+                      {{ item.decrypted ? '已解密' : '解密失败' }}
+                    </a-tag>
+                    <span style="margin-left: 6px;">尝试 {{ item.attempted }} 次</span>
+                    <span v-if="item.transactionsExtracted != null" style="margin-left: 6px;">
+                      · 提取 {{ item.transactionsExtracted }} 条交易
+                    </span>
+                  </div>
+                  <div v-if="item.error" class="hint" style="margin-top: 4px;">
+                    {{ item.error }}
+                  </div>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+
+        <template v-if="eventDetail.extraction?.fields?.transactions?.length">
+          <a-divider orientation="left" plain>交易明细</a-divider>
+          <a-table
+            :columns="transactionColumns"
+            :data-source="eventDetail.extraction.fields.transactions"
+            :pagination="{ pageSize: 10, size: 'small' }"
+            :row-key="(_, i) => i"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'occurredAt'">
+                {{ new Date(record.occurredAtMs).toLocaleDateString() }}
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <span :class="record.amount.direction === 'in' ? 'amount-in' : 'amount-out'">
+                  {{ record.amount.direction === 'in' ? '+' : '-' }}{{ record.amount.value.toFixed(2) }}
+                  {{ record.amount.currency }}
+                </span>
+              </template>
+            </template>
+          </a-table>
+        </template>
+      </template>
+      <a-empty v-else description="无事件数据" />
+    </a-drawer>
+
     <!-- Audit drawer -->
     <a-drawer
       v-model:open="auditOpen"
@@ -211,11 +410,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
-  AppstoreOutlined,
+  AppstoreOutlined, MailOutlined, InfoCircleOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
 
@@ -233,6 +432,25 @@ const auditOpen = ref(false)
 const auditRows = ref([])
 const lastSync = ref(null)
 
+// Phase 5.6 — email config + event detail
+const emailConfigOpen = ref(false)
+const emailForm = reactive({
+  provider: 'qq',
+  email: '',
+  authCode: '',
+  host: '',
+  port: 993,
+  pdfPasswordHints: {
+    idCardLast6: '',
+    phoneLast6: '',
+    cardLast6: '',
+  },
+})
+const emailTestResult = ref(null)
+const eventDetailOpen = ref(false)
+const eventDetail = ref(null)
+const emailAccounts = ref([])
+
 const loading = reactive({
   refresh: false,
   ask: false,
@@ -240,6 +458,9 @@ const loading = reactive({
   syncAll: false,
   sync: {},      // per-adapter
   audit: false,
+  testEmail: false,
+  saveEmail: false,
+  eventDetail: false,
 })
 
 // Table columns
@@ -254,6 +475,11 @@ const auditColumns = [
   { title: '时间', key: 'at', dataIndex: 'at', width: 170 },
   { title: '动作', dataIndex: 'action', key: 'action', width: 200 },
   { title: '详情', key: 'details' },
+]
+const transactionColumns = [
+  { title: '日期', key: 'occurredAt', width: 100 },
+  { title: '描述', dataIndex: 'description', key: 'description' },
+  { title: '金额', key: 'amount', width: 140, align: 'right' },
 ]
 
 function sensitivityColor(s) {
@@ -354,6 +580,111 @@ async function loadAudit(open) {
   }
 }
 
+// ─── Phase 5.6 — email config handlers ─────────────────────────────────
+
+const emailFormValid = computed(() => {
+  if (!emailForm.email || !emailForm.email.includes('@')) return false
+  if (!emailForm.authCode || emailForm.authCode.length < 4) return false
+  if (emailForm.provider === 'custom' && !emailForm.host) return false
+  return true
+})
+
+function providerAuthHint(provider) {
+  const hints = {
+    qq: 'QQ: 邮箱 → 设置 → 账户 → IMAP/SMTP → 开启 → 生成授权码',
+    163: '163: 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP 服务 → 授权密码',
+    189: '189: 设置 → 第三方客户端授权码',
+    outlook: 'Outlook: account.microsoft.com/security → App password',
+    gmail: 'Gmail: myaccount.google.com/apppasswords (需开启 2FA)',
+    custom: '联系你的邮箱管理员获取 IMAP 端点 + app-password',
+  }
+  return hints[provider] || '请输入服务商授权码（不是登录密码）'
+}
+
+function resetEmailForm() {
+  emailForm.provider = 'qq'
+  emailForm.email = ''
+  emailForm.authCode = ''
+  emailForm.host = ''
+  emailForm.port = 993
+  emailForm.pdfPasswordHints = { idCardLast6: '', phoneLast6: '', cardLast6: '' }
+  emailTestResult.value = null
+}
+
+function buildEmailAccountPayload() {
+  const account = {
+    provider: emailForm.provider,
+    email: emailForm.email.trim(),
+    authCode: emailForm.authCode,
+  }
+  if (emailForm.provider === 'custom') {
+    account.host = emailForm.host.trim()
+    account.port = emailForm.port || 993
+    account.secure = true
+  }
+  return account
+}
+
+function buildPdfHints() {
+  const hints = {}
+  for (const k of Object.keys(emailForm.pdfPasswordHints)) {
+    const v = emailForm.pdfPasswordHints[k]
+    if (typeof v === 'string' && v.trim().length > 0) hints[k] = v.trim()
+  }
+  return Object.keys(hints).length > 0 ? hints : null
+}
+
+async function testEmailAuth() {
+  if (!emailFormValid.value) return
+  loading.testEmail = true
+  emailTestResult.value = null
+  try {
+    emailTestResult.value = await hub.testEmailAuth(buildEmailAccountPayload())
+  } catch (err) {
+    emailTestResult.value = { ok: false, error: err.message }
+  } finally {
+    loading.testEmail = false
+  }
+}
+
+async function saveEmail() {
+  if (!emailFormValid.value || !emailTestResult.value?.ok) return
+  loading.saveEmail = true
+  try {
+    const opts = {}
+    const hints = buildPdfHints()
+    if (hints) opts.pdfPasswordHints = hints
+    await hub.registerEmail(buildEmailAccountPayload(), opts)
+    message.success('邮箱账号已注册')
+    emailConfigOpen.value = false
+    resetEmailForm()
+    await refresh()
+  } catch (err) {
+    message.error('保存失败: ' + err.message)
+  } finally {
+    loading.saveEmail = false
+  }
+}
+
+// ─── Phase 5.6 — event detail ──────────────────────────────────────────
+
+async function showEventDetail(eventId) {
+  if (!eventId) return
+  loading.eventDetail = true
+  eventDetailOpen.value = true
+  try {
+    eventDetail.value = await hub.eventDetail(eventId)
+  } catch (err) {
+    eventDetail.value = null
+    message.error('事件详情加载失败: ' + err.message)
+  } finally {
+    loading.eventDetail = false
+  }
+}
+
+// Expose for template-level event handlers (e.g. citation click)
+defineExpose({ showEventDetail })
+
 onMounted(refresh)
 </script>
 
@@ -399,5 +730,25 @@ onMounted(refresh)
   padding: 12px;
   border-radius: 6px;
   border-left: 3px solid #1677ff;
+}
+.hint {
+  color: var(--text-color-secondary, #888);
+  font-size: 12px;
+}
+.json-pre {
+  font-size: 12px;
+  background: var(--bg-elevated, #fafafa);
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 280px;
+  overflow: auto;
+}
+.amount-in {
+  color: #52c41a;
+  font-weight: 600;
+}
+.amount-out {
+  color: #ff4d4f;
+  font-weight: 600;
 }
 </style>

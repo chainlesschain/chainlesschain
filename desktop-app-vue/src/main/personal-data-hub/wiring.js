@@ -41,6 +41,7 @@ const {
   CcRagSink,
   FileKeyProvider,
   generateKeyHex,
+  EmailAdapter,
 } = require("@chainlesschain/personal-data-hub");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
@@ -224,6 +225,33 @@ async function initHub() {
     logger.info("[PersonalDataHub] AnalysisEngine ready");
   }
 
+  // Phase 5.6: load + auto-register persisted email accounts.
+  // File lives at <hubDir>/email-accounts.json. Threat model: same dir
+  // holds the vault master key, so the configs are no MORE sensitive
+  // than what's already there. Phase 4 will DPAPI/Keychain-wrap both.
+  const emailAccountsPath = path.join(hubDir, "email-accounts.json");
+  const emailAccounts = loadEmailAccounts(emailAccountsPath);
+  for (const cfg of emailAccounts) {
+    try {
+      const adapter = new EmailAdapter({
+        account: cfg.account,
+        ...(cfg.opts || {}),
+      });
+      registry.register(adapter);
+      logger.info(
+        "[PersonalDataHub] auto-registered email account",
+        cfg.account.email,
+        "(name=" + adapter.name + ")",
+      );
+    } catch (err) {
+      logger.warn(
+        "[PersonalDataHub] failed to auto-register email account",
+        cfg.account && cfg.account.email,
+        err && err.message,
+      );
+    }
+  }
+
   return {
     vault,
     registry,
@@ -233,6 +261,7 @@ async function initHub() {
     ragSink,
     hubDir,
     keyProvider,
+    emailAccountsPath,
     // Convenience: register the mock adapter for smoke / dev. Won't be
     // pre-registered by default (lazy on first call).
     registerMockAdapter(opts = {}) {
@@ -243,10 +272,154 @@ async function initHub() {
       registry.register(adapter);
       return adapter;
     },
+
+    /**
+     * Phase 5.6: probe IMAP credentials WITHOUT registering. Returns the
+     * adapter's authenticate() result `{ ok, reason?, error? }` so the
+     * UI can validate before persisting. The adapter is GC'd after.
+     */
+    async testEmailAuth({ account }) {
+      if (!account || typeof account !== "object") {
+        throw new Error("account required");
+      }
+      const adapter = new EmailAdapter({ account });
+      return await adapter.authenticate();
+    },
+
+    /**
+     * Phase 5.6: register an EmailAdapter + persist its config so it auto-
+     * registers on next hub init. `account` shape per EmailAdapter; `opts`
+     * passes through (pdfPasswordHints, folders, etc.). Returns the
+     * registered adapter's summary.
+     */
+    async registerEmailAdapter({ account, opts = {} } = {}) {
+      if (!account || typeof account !== "object") {
+        throw new Error("account required");
+      }
+      const adapter = new EmailAdapter({ account, ...opts });
+      if (registry.has(adapter.name)) {
+        throw new Error(
+          `adapter name "${adapter.name}" already registered — pick a distinct provider/email`,
+        );
+      }
+      registry.register(adapter);
+      const accounts = loadEmailAccounts(emailAccountsPath);
+      // De-dupe by adapter name (which encodes email)
+      const next = accounts.filter((c) => c.account.email !== account.email);
+      next.push({ account, opts, registeredAt: Date.now() });
+      saveEmailAccounts(emailAccountsPath, next);
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+      };
+    },
+
+    /**
+     * Phase 5.6: unregister an email adapter + remove its persisted config.
+     * Vault data is preserved (events stay queryable / askable).
+     */
+    async unregisterEmailAdapter(emailAddress) {
+      const accounts = loadEmailAccounts(emailAccountsPath);
+      const target = accounts.find((c) => c.account.email === emailAddress);
+      const next = accounts.filter((c) => c.account.email !== emailAddress);
+      saveEmailAccounts(emailAccountsPath, next);
+      // The adapter is registered under `email-imap` for all; if multiple
+      // email accounts existed they would collide. v0 supports a single
+      // email at a time (the latest registered wins via duplicate-name
+      // guard). Unregister by name.
+      if (target) {
+        registry.unregister("email-imap");
+      }
+      return { ok: true, removed: !!target };
+    },
+
+    /** Phase 5.6: list persisted email accounts (without authCode). */
+    listEmailAccounts() {
+      return loadEmailAccounts(emailAccountsPath).map((c) => ({
+        email: c.account.email,
+        provider: c.account.provider,
+        folders: c.account.folders || null,
+        registeredAt: c.registeredAt || null,
+        pdfPasswordHints:
+          c.opts && c.opts.pdfPasswordHints
+            ? Object.keys(c.opts.pdfPasswordHints)
+            : [],
+      }));
+    },
+
+    /**
+     * Phase 5.6: full event detail — event row + classification + extraction
+     * + per-attachment pdfExtraction summary if present. Used by the UI
+     * "click a citation" deep-link.
+     */
+    eventDetail(eventId) {
+      const ev = vault.getEvent ? vault.getEvent(eventId) : null;
+      if (!ev) {
+        return null;
+      }
+      return {
+        event: ev,
+        // The classification/extraction/pdfExtraction were stamped onto
+        // extra during normalize(); surface them at top of the detail
+        // panel so the UI doesn't have to spelunk.
+        classification:
+          ev.extra && ev.extra.classification ? ev.extra.classification : null,
+        extraction:
+          ev.extra && ev.extra.fields
+            ? {
+                template: ev.extra.extractionTemplate,
+                confidence: ev.extra.extractionConfidence,
+                fields: ev.extra.fields,
+                warnings: ev.extra.extractionWarnings || [],
+                pdfExtraction: ev.extra.pdfExtraction || null,
+              }
+            : null,
+      };
+    },
   };
 }
 
 const _hubExtras = { bm25: null };
+
+/**
+ * Phase 5.6: load persisted email-account configs from disk.
+ * File-based JSON; missing / malformed → empty list. Auth codes are
+ * stored in plaintext alongside the vault master key — same threat
+ * model. Phase 4 will DPAPI/Keychain-wrap both.
+ */
+function loadEmailAccounts(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to load email-accounts.json — starting empty:",
+      err && err.message,
+    );
+    return [];
+  }
+}
+
+function saveEmailAccounts(filePath, accounts) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600, // owner-only read/write
+    });
+  } catch (err) {
+    logger.error(
+      "[PersonalDataHub] failed to save email-accounts.json:",
+      err && err.message,
+    );
+    throw err;
+  }
+}
 
 /**
  * Idempotent init. Multiple parallel callers will share the same in-flight
