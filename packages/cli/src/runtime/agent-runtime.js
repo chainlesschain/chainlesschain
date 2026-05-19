@@ -634,20 +634,54 @@ export class AgentRuntime {
       this.deps.openBrowser(uiUrl);
     }
 
+    // Force-exit after this deadline if graceful shutdown stalls (typically
+    // httpServer.close hanging on persistent keep-alive / WS connections,
+    // which is exactly what makes Ctrl+C feel dead on Android local terminal
+    // — the pty never sees the prompt return because node never exits).
+    const SHUTDOWN_TIMEOUT_MS = 2000;
+    let shuttingDown = false;
     const shutdown = async () => {
-      runtimeLogger.log("\n" + chalk.yellow("Shutting down UI server..."));
-      if (mcpClient && typeof mcpClient.disconnectAll === "function") {
-        await mcpClient.disconnectAll().catch(() => undefined);
+      if (shuttingDown) {
+        // Second Ctrl+C while still draining — escalate immediately.
+        runtimeLogger.log(chalk.red("\nForce-exiting..."));
+        process.exit(130);
       }
-      // Kill all PTY sessions before WS so the SPA gets clean terminal.exit
-      // frames; without this, node-pty children would outlive cc ui until
-      // their OS parent (the cc ui process) actually exits.
-      this._terminalCleanup?.();
-      await Promise.all([
-        new Promise((resolve) => httpServer.close(resolve)),
-        wsServer.stop(),
-      ]);
-      process.exit(0);
+      shuttingDown = true;
+      runtimeLogger.log("\n" + chalk.yellow("Shutting down UI server..."));
+      const forceExit = setTimeout(() => {
+        runtimeLogger.log(
+          chalk.red(
+            `Graceful shutdown stalled after ${SHUTDOWN_TIMEOUT_MS}ms, force-exiting`,
+          ),
+        );
+        process.exit(130);
+      }, SHUTDOWN_TIMEOUT_MS);
+      forceExit.unref?.();
+      try {
+        if (mcpClient && typeof mcpClient.disconnectAll === "function") {
+          await mcpClient.disconnectAll().catch(() => undefined);
+        }
+        // Kill all PTY sessions before WS so the SPA gets clean terminal.exit
+        // frames; without this, node-pty children would outlive cc ui until
+        // their OS parent (the cc ui process) actually exits.
+        this._terminalCleanup?.();
+        // Force-close any persistent HTTP keep-alive / WS upgrades; without
+        // this, httpServer.close waits for every browser tab to close its
+        // socket before resolving — which never happens until the user
+        // manually closes the tab.
+        if (typeof httpServer.closeAllConnections === "function") {
+          httpServer.closeAllConnections();
+        }
+        await Promise.all([
+          new Promise((resolve) => httpServer.close(resolve)),
+          wsServer.stop(),
+        ]);
+        clearTimeout(forceExit);
+        process.exit(0);
+      } catch (_err) {
+        clearTimeout(forceExit);
+        process.exit(1);
+      }
     };
 
     process.on("SIGINT", shutdown);
