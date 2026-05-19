@@ -24,7 +24,10 @@ data class Message(
     val createdAt: Long,
     val tokenCount: Int? = null,
     val isStreaming: Boolean = false,  // 标记是否正在流式输出
-    val toolCallId: String? = null     // tool role消息关联的tool_call_id
+    val toolCallId: String? = null,    // tool role消息关联的tool_call_id
+    // Phase 5.6.0: ASSISTANT role 消息携带的结构化 tool_calls — adapter 据此序列化为
+    // SDK 形态（OpenAI tool_calls 字段 / Anthropic tool_use 内容块）保持多轮上下文完整
+    val toolCalls: List<com.chainlesschain.android.feature.ai.data.llm.ToolCall>? = null
 )
 
 /**

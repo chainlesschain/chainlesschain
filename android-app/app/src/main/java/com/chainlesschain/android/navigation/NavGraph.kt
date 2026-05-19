@@ -176,6 +176,7 @@ fun NavGraph(
                 onNavigateToLLMSettings = { navController.navigate(Screen.LLMSettings.route) },
                 onNavigateToUsageStatistics = { navController.navigate(Screen.UsageStatistics.route) },
                 onNavigateToLLMTest = { navController.navigate(Screen.LLMTest.route) },
+                onNavigateToCcChat = { navController.navigate(Screen.CcChat.route) },
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
                 onNavigateToRemoteProjectBrowser = { navController.navigate(Screen.RemoteProjectBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
@@ -389,6 +390,12 @@ fun NavGraph(
 
         composable(Screen.LLMTest.route) {
             LLMTestChatScreen(onNavigateBack = { navController.popBackStack() }, provider = LLMProvider.DOUBAO)
+        }
+
+        composable(Screen.CcChat.route) {
+            com.chainlesschain.android.presentation.screens.cc.CcChatScreen(
+                initialProvider = LLMProvider.DOUBAO,
+            )
         }
 
         composable(
@@ -921,6 +928,7 @@ sealed class Screen(val route: String) {
     data object AsrSettings : Screen("asr_settings")
     /** Phase 4 — local terminal (mksh in $PREFIX, no pairing required). */
     data object LocalTerminal : Screen("local_terminal")
+    data object CcChat : Screen("cc_chat")
     data object KnowledgeList : Screen("knowledge_list")
     data object KnowledgeEditor : Screen("knowledge_editor") {
         fun createRoute(itemId: String) = "knowledge_editor/$itemId"

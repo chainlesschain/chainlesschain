@@ -42,6 +42,7 @@ fun MainContainer(
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
+    onNavigateToCcChat: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteProjectBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
@@ -168,6 +169,10 @@ fun MainContainer(
             onNavigateToLLMTest = {
                 showProfileDialog = false
                 onNavigateToLLMTest()
+            },
+            onNavigateToCcChat = {
+                showProfileDialog = false
+                onNavigateToCcChat()
             },
             onNavigateToKnowledgeList = {
                 showProfileDialog = false

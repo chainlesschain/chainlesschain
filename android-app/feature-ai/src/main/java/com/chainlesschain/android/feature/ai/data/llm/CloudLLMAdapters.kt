@@ -3,9 +3,25 @@ package com.chainlesschain.android.feature.ai.data.llm
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.Serializable
@@ -24,6 +40,14 @@ class ClaudeAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://api.anthropic.com"
 ) : LLMAdapter {
+
+    /**
+     * Phase 5.6.3: Anthropic Messages API tool-use 协议接通：
+     *  - canonical "parameters" → "input_schema" 重命名
+     *  - 多轮 ASSISTANT.toolCalls → `content:[{type:"tool_use",...}]` 内容块
+     *  - TOOL 消息 → role=**user** + `[{type:"tool_result",...}]`（与 OpenAI 不同）
+     */
+    override val supportsToolUse: Boolean = true
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -203,6 +227,169 @@ class ClaudeAdapter(
                 ?: throw Exception("无效响应")
         }
     }
+
+    override suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>>,
+        temperature: Float,
+        maxTokens: Int
+    ): ChatWithToolsResponse = withContext(Dispatchers.IO) {
+        val systemMessage = messages.firstOrNull { it.role == MessageRole.SYSTEM }?.content
+        val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
+        val claudeMessages = nonSystemMessages.map { msg -> toClaudeMessage(msg) }
+        val claudeTools = tools.takeIf { it.isNotEmpty() }?.map { toAnthropicTool(it) }
+
+        val requestBody = buildJsonObject {
+            put("model", JsonPrimitive(model))
+            put("max_tokens", JsonPrimitive(maxTokens))
+            put("temperature", JsonPrimitive(temperature))
+            systemMessage?.let { put("system", JsonPrimitive(it)) }
+            put("messages", JsonArray(claudeMessages))
+            claudeTools?.let { put("tools", JsonArray(it)) }
+            put("stream", JsonPrimitive(false))
+        }
+
+        val request = Request.Builder()
+            .url("$baseUrl/v1/messages")
+            .post(json.encodeToString(JsonElement.serializer(), requestBody)
+                .toRequestBody("application/json".toMediaType()))
+            .addHeader("x-api-key", apiKey)
+            .addHeader("anthropic-version", "2023-06-01")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw Exception("Claude API错误: ${response.code}")
+            }
+            val raw = response.body?.string() ?: throw Exception("响应为空")
+            parseAnthropicResponse(raw)
+        }
+    }
+
+    /** canonical `{name, description, parameters}` → Anthropic `{name, description, input_schema}`. */
+    internal fun toAnthropicTool(canonical: Map<String, Any>): JsonElement = buildJsonObject {
+        canonical["name"]?.let { put("name", JsonPrimitive(it.toString())) }
+        canonical["description"]?.let { put("description", JsonPrimitive(it.toString())) }
+        val schema = canonical["parameters"] ?: canonical["input_schema"]
+        if (schema != null) put("input_schema", anyToJsonElement(schema))
+    }
+
+    /** Domain Message → Anthropic message object. TOOL role becomes role=user with tool_result block. */
+    internal fun toClaudeMessage(msg: Message): JsonObject = buildJsonObject {
+        when (msg.role) {
+            MessageRole.USER -> {
+                put("role", JsonPrimitive("user"))
+                put("content", JsonPrimitive(msg.content))
+            }
+            MessageRole.ASSISTANT -> {
+                put("role", JsonPrimitive("assistant"))
+                val calls = msg.toolCalls
+                if (calls.isNullOrEmpty()) {
+                    put("content", JsonPrimitive(msg.content))
+                } else {
+                    put("content", buildJsonArray {
+                        if (msg.content.isNotBlank() && !msg.content.startsWith("[tool_call ")) {
+                            add(buildJsonObject {
+                                put("type", JsonPrimitive("text"))
+                                put("text", JsonPrimitive(msg.content))
+                            })
+                        }
+                        calls.forEach { tc ->
+                            add(buildJsonObject {
+                                put("type", JsonPrimitive("tool_use"))
+                                put("id", JsonPrimitive(tc.id))
+                                put("name", JsonPrimitive(tc.name))
+                                put("input", mapToJsonElement(tc.arguments as Map<String, Any?>))
+                            })
+                        }
+                    })
+                }
+            }
+            MessageRole.TOOL -> {
+                put("role", JsonPrimitive("user"))
+                put("content", buildJsonArray {
+                    add(buildJsonObject {
+                        put("type", JsonPrimitive("tool_result"))
+                        put("tool_use_id", JsonPrimitive(msg.toolCallId ?: ""))
+                        put("content", JsonPrimitive(msg.content))
+                    })
+                })
+            }
+            MessageRole.SYSTEM -> {
+                put("role", JsonPrimitive("user"))
+                put("content", JsonPrimitive(msg.content))
+            }
+        }
+    }
+
+    internal fun parseAnthropicResponse(rawBody: String): ChatWithToolsResponse {
+        val obj = json.parseToJsonElement(rawBody).jsonObject
+        val stopReason = obj["stop_reason"]?.jsonPrimitive?.contentOrNull()
+        val contentArray = obj["content"]?.jsonArray ?: JsonArray(emptyList())
+
+        val textBuilder = StringBuilder()
+        val toolCalls = mutableListOf<ToolCall>()
+        for (block in contentArray) {
+            val blockObj = block.jsonObject
+            when (blockObj["type"]?.jsonPrimitive?.contentOrNull()) {
+                "text" -> blockObj["text"]?.jsonPrimitive?.contentOrNull()?.let { textBuilder.append(it) }
+                "tool_use" -> {
+                    val id = blockObj["id"]?.jsonPrimitive?.contentOrNull() ?: continue
+                    val name = blockObj["name"]?.jsonPrimitive?.contentOrNull() ?: continue
+                    val inputEl = blockObj["input"] ?: JsonObject(emptyMap())
+                    val args = if (inputEl is JsonObject) {
+                        inputEl.entries.associate { (k, v) -> k to (jsonElementToAny(v) ?: "") }
+                    } else mapOf("input" to (jsonElementToAny(inputEl) ?: ""))
+                    toolCalls += ToolCall(id = id, name = name, arguments = args)
+                }
+                else -> { /* unknown */ }
+            }
+        }
+        return ChatWithToolsResponse(
+            content = textBuilder.toString().takeIf { it.isNotEmpty() },
+            toolCalls = toolCalls.takeIf { it.isNotEmpty() },
+            finishReason = stopReason,
+        )
+    }
+
+    // ---------------- JSON helpers (Claude-local copies; OpenAIAdapter has its own) ----------------
+
+    internal fun jsonElementToAny(je: JsonElement): Any? = when (je) {
+        is JsonNull -> null
+        is JsonPrimitive -> when {
+            je.isString -> je.content
+            else -> je.booleanOrNull
+                ?: je.intOrNull
+                ?: je.longOrNull
+                ?: je.doubleOrNull
+                ?: je.content
+        }
+        is JsonArray -> je.map { jsonElementToAny(it) }
+        is JsonObject -> je.entries.associate { (k, v) -> k to jsonElementToAny(v) }
+    }
+
+    internal fun mapToJsonElement(m: Map<String, Any?>): JsonElement = buildJsonObject {
+        m.forEach { (k, v) -> put(k, anyToJsonElement(v)) }
+    }
+
+    private fun anyToJsonElement(v: Any?): JsonElement = when (v) {
+        null -> JsonNull
+        is JsonElement -> v
+        is String -> JsonPrimitive(v)
+        is Number -> JsonPrimitive(v)
+        is Boolean -> JsonPrimitive(v)
+        is Map<*, *> -> {
+            @Suppress("UNCHECKED_CAST")
+            mapToJsonElement(v as Map<String, Any?>)
+        }
+        is List<*> -> JsonArray(v.map { anyToJsonElement(it) })
+        is Array<*> -> JsonArray(v.map { anyToJsonElement(it) })
+        else -> JsonPrimitive(v.toString())
+    }
+
+    private fun JsonPrimitive.contentOrNull(): String? = if (this is JsonNull) null else content
 
     override suspend fun checkAvailability(): Boolean {
         return try {
@@ -490,6 +677,9 @@ class DoubaoAdapter(
         baseUrl = baseUrl
     )
 
+    /** Doubao Volcengine Ark API 在 wire 层与 OpenAI 完全兼容（含 tool_calls 协议）。Phase 5.6.2。 */
+    override val supportsToolUse: Boolean = true
+
     override fun streamChat(
         messages: List<Message>,
         model: String,
@@ -508,7 +698,20 @@ class DoubaoAdapter(
         return openAIAdapter.chat(messages, model, temperature, maxTokens)
     }
 
+    override suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>>,
+        temperature: Float,
+        maxTokens: Int
+    ): ChatWithToolsResponse {
+        return openAIAdapter.chatWithTools(messages, model, tools, temperature, maxTokens)
+    }
+
     override suspend fun checkAvailability(): Boolean {
         return openAIAdapter.checkAvailability()
     }
+
+    /** Visible for testing — verifies delegate wiring. */
+    internal val innerOpenAIAdapter: OpenAIAdapter get() = openAIAdapter
 }
