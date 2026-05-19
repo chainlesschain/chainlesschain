@@ -32,6 +32,7 @@ const { MockLLMClient, OllamaClient } = require("./llm-client");
 const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("./analysis");
 const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
+const alipayBillAdapter = require("./adapters/alipay-bill");
 
 module.exports = {
   // Constants / enums
@@ -157,4 +158,16 @@ module.exports = {
   extractPdfText: emailImapAdapter.extractPdfText,
   pdfPasswordsFromHints: emailImapAdapter.pdfPasswordsFromHints,
   extractEmailTransactions: emailImapAdapter.extractTransactions,
+
+  // Phase 6 — AlipayBillAdapter (CSV import)
+  AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
+  ALIPAY_BILL_NAME: alipayBillAdapter.ALIPAY_BILL_NAME,
+  ALIPAY_BILL_VERSION: alipayBillAdapter.ALIPAY_BILL_VERSION,
+  parseAlipayCsv: alipayBillAdapter.parseAlipayCsv,
+  parseAlipayCsvBuffer: alipayBillAdapter.parseAlipayCsvBuffer,
+  extractAlipayCsvFromZip: alipayBillAdapter.extractAlipayCsvFromZip,
+  classifyAlipayCounterparty: alipayBillAdapter.classifyAlipayCounterparty,
+  alipayCounterpartyToPersonId: alipayBillAdapter.alipayCounterpartyToPersonId,
+  ALIPAY_KNOWN_MERCHANTS: alipayBillAdapter.ALIPAY_KNOWN_MERCHANTS,
+  mapAlipayTypeToSubtype: alipayBillAdapter.mapAlipayTypeToSubtype,
 };

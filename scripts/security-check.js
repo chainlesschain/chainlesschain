@@ -87,6 +87,8 @@ const ALLOWED_FILES = [
   "packer-pipeline.integration.test.js",
   // Hub Phase 5.5: tests fake PDF passwords (no real credentials)
   "email-pdf-extractor.test.js",
+  // Hub Phase 6: tests fake ZIP password (no real credentials)
+  "alipay-bill-adapter.test.js",
 ];
 
 function checkFileForSecrets(filePath) {
