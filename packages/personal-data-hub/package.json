@@ -25,7 +25,8 @@
     "./bridges": "./lib/bridges/index.js",
     "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",
     "./bridges/cc-kg-sink": "./lib/bridges/cc-kg-sink.js",
-    "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js"
+    "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js",
+    "./adapters/email-imap": "./lib/adapters/email-imap/index.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -51,6 +52,9 @@
   },
   "dependencies": {
     "better-sqlite3-multiple-ciphers": "^12.5.0"
+  },
+  "optionalDependencies": {
+    "imapflow": "^1.0.183"
   },
   "devDependencies": {
     "vitest": "^4.1.5"
