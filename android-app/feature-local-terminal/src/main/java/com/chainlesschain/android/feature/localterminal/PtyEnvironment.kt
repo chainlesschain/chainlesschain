@@ -76,6 +76,12 @@ class PtyEnvironment @Inject constructor(
             // under $PREFIX/lib/node_modules/, so `require()` resolution from
             // the shim binary picks it up.
             "NODE_PATH" to "$prefix/lib/node_modules",
+            // `cc ui` defaults — bind 0.0.0.0 so LAN devices on the same WiFi
+            // can hit the management UI without adb forward. Auto-token avoids
+            // the open-WiFi exposure foot-gun (cc ui reads CC_UI_TOKEN as
+            // fallback when --token isn't passed).
+            "CC_UI_HOST" to "0.0.0.0",
+            "CC_UI_TOKEN" to ccUiToken(),
         )
 
         // Layer order: defaults < LLM key envs < caller-provided extras.
@@ -140,6 +146,32 @@ class PtyEnvironment @Inject constructor(
         Timber.tag("PtyEnv").w(e, "Failed reading llm_config_secure; cc CLI will need manual env keys")
         emptyMap()
     }
+
+    /**
+     * Persistent random token for `cc ui` LAN binding. Stored in plain
+     * SharedPreferences (not Encrypted) because:
+     *  - It's a session-level auth bearer, not a long-lived secret
+     *  - We don't ship a UI to re-generate it explicitly yet (Phase 6 work)
+     *  - Same UID isolation as encrypted prefs from a SELinux standpoint
+     *
+     * Generated on first read (32 hex chars). Persists across app upgrades
+     * since SharedPreferences live in /data/data/<pkg>/shared_prefs/.
+     */
+    private fun ccUiToken(): String {
+        val prefs = context.getSharedPreferences("local_terminal_ui", Context.MODE_PRIVATE)
+        prefs.getString("cc_ui_token", null)?.let { if (it.isNotBlank()) return it }
+        val bytes = ByteArray(16)
+        java.security.SecureRandom().nextBytes(bytes)
+        val token = bytes.joinToString("") { "%02x".format(it) }
+        prefs.edit().putString("cc_ui_token", token).apply()
+        return token
+    }
+
+    /**
+     * Read-only accessor — for UI surfaces (eg the terminal's "Open Web UI"
+     * button) that want to construct the full http URL with the token.
+     */
+    fun ccUiTokenSnapshot(): String = ccUiToken()
 
     /**
      * Convenience for the canonical mksh-interactive invocation:

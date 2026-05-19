@@ -24,12 +24,30 @@ export function registerUiCommand(program) {
     )
     .action(async (opts) => {
       try {
+        // Allow env vars to override CLI defaults — host/token/port/uiMode.
+        // Use case: Android local terminal app pre-injects CC_UI_HOST=0.0.0.0
+        // + a per-install CC_UI_TOKEN so `cc ui` is reachable from other
+        // devices on the LAN without the user typing flags every time.
+        // Explicit CLI flags still win (commander stamps defaults if missing,
+        // so we treat the literal default-string as "unset" and pick env up).
+        const hostEnv = process.env.CC_UI_HOST;
+        const tokenEnv = process.env.CC_UI_TOKEN;
+        const portEnv = process.env.CC_UI_PORT;
+        const host =
+          opts.host && opts.host !== "127.0.0.1"
+            ? opts.host
+            : hostEnv || opts.host;
+        const token = opts.token || tokenEnv || null;
+        const port = parseInt(
+          opts.port && opts.port !== "18810" ? opts.port : portEnv || opts.port,
+          10,
+        );
         const runtime = createAgentRuntimeFactory().createUiRuntime({
-          port: parseInt(opts.port, 10),
+          port,
           wsPort: parseInt(opts.wsPort, 10),
-          host: opts.host,
+          host,
           open: opts.open,
-          token: opts.token || null,
+          token,
           webPanelDir: opts.webPanelDir || null,
           uiMode: opts.uiMode || "auto",
         });
