@@ -190,7 +190,12 @@ class AdapterRegistry {
         this._emit({ kind: "adapter-progress", adapter: name, ...msg });
       };
 
+      // Phase 6: forward all options opaquely so adapter-specific opts
+      // (Alipay: zipPath/csvPath/zipPassword; future adapters: ...) reach
+      // sync() without the registry needing to know about them. Explicit
+      // standard keys come last so they always win.
       const iter = adapter.sync({
+        ...options,
         sinceWatermark,
         maxEvents: options.maxEvents,
         scope,

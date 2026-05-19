@@ -147,6 +147,10 @@
             <template #icon><MailOutlined /></template>
             添加邮箱账号
           </a-button>
+          <a-button @click="alipayConfigOpen = true">
+            <template #icon><WalletOutlined /></template>
+            导入支付宝账单
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -406,6 +410,101 @@
       <a-empty v-else description="无事件数据" />
     </a-drawer>
 
+    <!-- Alipay import drawer (Phase 6) -->
+    <a-drawer
+      v-model:open="alipayConfigOpen"
+      title="导入支付宝账单"
+      placement="right"
+      width="560"
+      :destroy-on-close="true"
+      @close="resetAlipayForm"
+    >
+      <a-alert
+        message="支付宝官方导出 CSV — 服务器侧全量、稳定无风控。3 分钟拿到 12 个月流水。"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px;"
+      />
+
+      <a-collapse :bordered="false" style="margin-bottom: 12px;">
+        <a-collapse-panel header="如何导出账单（首次必看）">
+          <ol style="padding-left: 18px; font-size: 13px;">
+            <li>支付宝 app → 我的 → 账单 → 右上角 ⋯</li>
+            <li>点 "开具交易流水证明"</li>
+            <li>选月份范围（最长 12 个月）</li>
+            <li>用途选 "个人对账"</li>
+            <li>发送到你的绑定邮箱</li>
+            <li>从邮箱下载 <code>alipay_record_*.zip</code></li>
+            <li>解压密码 = 你的身份证后 6 位</li>
+          </ol>
+        </a-collapse-panel>
+      </a-collapse>
+
+      <a-form layout="vertical" :model="alipayForm">
+        <a-form-item label="支付宝绑定邮箱（账户标识）" required>
+          <a-input
+            v-model:value="alipayForm.email"
+            placeholder="alipay-bound@example.com"
+            autocomplete="off"
+          />
+        </a-form-item>
+
+        <a-form-item>
+          <template #label>
+            <a-space>
+              <span>ZIP 密码（身份证后 6 位）</span>
+              <a-tooltip title="支付宝 ZIP 默认密码 = 身份证号后 6 位。也支持自定义密码。">
+                <InfoCircleOutlined style="color: #888;" />
+              </a-tooltip>
+            </a-space>
+          </template>
+          <a-input-password
+            v-model:value="alipayForm.zipPassword"
+            placeholder="例：123456"
+            autocomplete="off"
+          />
+          <div class="hint" style="margin-top: 4px;">
+            空白则解析时再问，或导入的 ZIP 未加密。
+          </div>
+        </a-form-item>
+
+        <a-divider orientation="left" plain>选择文件</a-divider>
+        <a-form-item label="ZIP 或 CSV 文件路径">
+          <a-input
+            v-model:value="alipayForm.filePath"
+            placeholder="C:\\Users\\you\\Downloads\\alipay_record_xxx.zip"
+            allow-clear
+          />
+          <div class="hint" style="margin-top: 4px;">
+            桌面版可通过 Electron 文件选择器自动填充；web-shell 复制完整路径。
+          </div>
+        </a-form-item>
+
+        <div v-if="alipayResult" style="margin-top: 8px;">
+          <a-alert
+            :type="alipayResult.status === 'ok' ? 'success' : 'error'"
+            show-icon
+            :message="alipayResult.status === 'ok' ? `导入成功 — ${alipayResult.entityCounts?.events || 0} 笔交易` : `导入失败: ${alipayResult.error || alipayResult.status}`"
+            :description="alipayResult.status === 'ok' ? `${alipayResult.entityCounts?.persons || 0} 个交易对方 · ${alipayResult.kgTripleCount || 0} KG triples · ${alipayResult.durationMs || 0}ms` : null"
+          />
+        </div>
+      </a-form>
+
+      <template #footer>
+        <a-space>
+          <a-button @click="alipayConfigOpen = false">关闭</a-button>
+          <a-button
+            type="primary"
+            :loading="loading.importAlipay"
+            :disabled="!alipayFormValid"
+            @click="importAlipay"
+          >
+            注册账户 + 导入
+          </a-button>
+        </a-space>
+      </template>
+    </a-drawer>
+
     <!-- Audit drawer -->
     <a-drawer
       v-model:open="auditOpen"
@@ -439,7 +538,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
-  AppstoreOutlined, MailOutlined, InfoCircleOutlined,
+  AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
 
@@ -476,6 +575,15 @@ const eventDetailOpen = ref(false)
 const eventDetail = ref(null)
 const emailAccounts = ref([])
 
+// Phase 6 — Alipay import state
+const alipayConfigOpen = ref(false)
+const alipayForm = reactive({
+  email: '',
+  zipPassword: '',
+  filePath: '',
+})
+const alipayResult = ref(null)
+
 // Phase 5.7 — live sync progress state
 const syncProgress = reactive({
   active: false,
@@ -498,6 +606,7 @@ const loading = reactive({
   testEmail: false,
   saveEmail: false,
   eventDetail: false,
+  importAlipay: false,
 })
 
 // Table columns
@@ -735,6 +844,51 @@ async function saveEmail() {
     message.error('保存失败: ' + err.message)
   } finally {
     loading.saveEmail = false
+  }
+}
+
+// ─── Phase 6 — Alipay import ───────────────────────────────────────────
+
+const alipayFormValid = computed(() => {
+  if (!alipayForm.email || !alipayForm.email.includes('@')) return false
+  if (!alipayForm.filePath || alipayForm.filePath.length < 3) return false
+  return true
+})
+
+function resetAlipayForm() {
+  alipayForm.email = ''
+  alipayForm.zipPassword = ''
+  alipayForm.filePath = ''
+  alipayResult.value = null
+}
+
+async function importAlipay() {
+  if (!alipayFormValid.value) return
+  loading.importAlipay = true
+  alipayResult.value = null
+  try {
+    // Register the account (also persists config + auto-registers on next boot)
+    await hub.registerAlipay({
+      email: alipayForm.email.trim(),
+      zipPassword: alipayForm.zipPassword || undefined,
+    })
+    // Detect zip vs csv from extension
+    const isZip = /\.zip$/i.test(alipayForm.filePath)
+    const payload = isZip
+      ? { zipPath: alipayForm.filePath, zipPassword: alipayForm.zipPassword || undefined }
+      : { csvPath: alipayForm.filePath }
+    alipayResult.value = await hub.importAlipayBill(payload)
+    if (alipayResult.value?.status === 'ok') {
+      message.success(`导入成功 — ${alipayResult.value.entityCounts?.events || 0} 笔交易`)
+      await refresh()
+    } else {
+      message.error('导入失败: ' + (alipayResult.value?.error || alipayResult.value?.status))
+    }
+  } catch (err) {
+    alipayResult.value = { status: 'error', error: err.message }
+    message.error('导入失败: ' + err.message)
+  } finally {
+    loading.importAlipay = false
   }
 }
 

@@ -246,5 +246,44 @@ export function usePersonalDataHub() {
         900_000,
       );
     },
+
+    // ─── Phase 6 — Alipay bill import ─────────────────────────────────
+
+    /**
+     * Register an AlipayBillAdapter + persist the config.
+     *   account: { email, zipPassword? }
+     *   opts:    { zipPassword? }  (legacy — prefer account.zipPassword)
+     */
+    async registerAlipay(account, opts = {}) {
+      return await send(
+        "personal-data-hub.register-alipay",
+        { account, opts },
+        15_000,
+      );
+    },
+
+    async unregisterAlipay(email) {
+      return await send(
+        "personal-data-hub.unregister-alipay",
+        { email },
+        5000,
+      );
+    },
+
+    async listAlipayAccounts() {
+      return await send("personal-data-hub.list-alipay-accounts", {}, 5000);
+    },
+
+    /**
+     * Import a single Alipay export file. Returns SyncReport
+     * { events, persons, items, rawCount, invalidCount, durationMs }.
+     */
+    async importAlipayBill({ zipPath, csvPath, zipPassword } = {}) {
+      return await send(
+        "personal-data-hub.import-alipay-bill",
+        { zipPath, csvPath, zipPassword },
+        300_000,
+      );
+    },
   };
 }
