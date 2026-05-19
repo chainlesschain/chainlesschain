@@ -17,7 +17,11 @@
     "./kg-derive": "./lib/kg-derive.js",
     "./rag-derive": "./lib/rag-derive.js",
     "./registry": "./lib/registry.js",
-    "./mock-adapter": "./lib/mock-adapter.js"
+    "./mock-adapter": "./lib/mock-adapter.js",
+    "./query-parser": "./lib/query-parser.js",
+    "./prompt-builder": "./lib/prompt-builder.js",
+    "./llm-client": "./lib/llm-client.js",
+    "./analysis": "./lib/analysis.js"
   },
   "scripts": {
     "test": "vitest run",

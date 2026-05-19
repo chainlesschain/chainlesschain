@@ -4,14 +4,19 @@ Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
 LocalVault, and AdapterRegistry for the "data back to the individual"
 middleware.
 
-> **Phase 0 + Phase 1 + Phase 2 landed** of the 13-phase plan in
+> **Phase 0 + Phase 1 + Phase 2 + Phase 3 landed** of the 13-phase plan in
 > [`docs/design/Personal_Data_Hub_Architecture.md`](../../docs/design/Personal_Data_Hub_Architecture.md).
 > Phase 0 covers schema + validation + ID generation.
 > Phase 1 adds SQLCipher LocalVault + pluggable key providers + migrations.
-> Phase 2 adds AdapterRegistry with end-to-end sync orchestration + KG/RAG
-> derivation + MockAdapter reference impl. **1000 events ingest in ~600ms
-> on a dev box** (well under the 30s architecture-doc target).
-> AI analysis layer, sync engine UI, and the actual adapters (Email,
+> Phase 2 adds AdapterRegistry + KG/RAG derivation + MockAdapter (1000
+> events ingest in ~600ms — 50× under the 30s target).
+> Phase 3 adds the natural-language AnalysisEngine: query parser → vault
+> facts → prompt builder → LLM → citation validation, with a privacy gate
+> that refuses non-local LLMs unless caller opts in. **MockLLMClient**
+> for tests, **OllamaClient** for standalone use; in production a thin
+> adapter wraps the existing `cc` LLM manager (Ollama / Volcengine /
+> Anthropic / etc.) to satisfy the same `chat()` contract.
+> Sync engine UI, real KG/RAG wiring, and the actual adapters (Email,
 > Alipay, AI Chat × 8, WeChat, ...) come in later phases.
 
 ## What's in here
@@ -39,6 +44,19 @@ lib/
 │                     partition valid/invalid → vault → KG sink → RAG sink
 │                     → watermark → audit), syncAll, pluggable kgSink/ragSink
 ├── mock-adapter.js   reference impl + test fixture (deterministic seeded)
+├── query-parser.js   heuristic time-window + filter + intent extraction
+│                     from natural-language questions
+├── prompt-builder.js fact summarization + system/user prompt construction
+│                     (system prompt is fact-free; facts go in user role as
+│                     marked-untrusted JSON) + citation parser + validator
+├── llm-client.js     MockLLMClient (tests) + OllamaClient (default standalone)
+│                     conforming to the chat({messages}) → {text, usage}
+│                     contract. Production plugs in CcLLMAdapter wrapping
+│                     the existing desktop-app-vue llm-manager.
+├── analysis.js       AnalysisEngine — orchestrates parseQuery → vault facts
+│                     (optional RAG augmentation) → buildPrompt → llm.chat →
+│                     parseCitations → validateCitations → audit. Hard
+│                     privacy gate refuses non-local LLMs without opt-in.
 └── index.js          re-exports
 ```
 
@@ -189,7 +207,7 @@ cd packages/personal-data-hub
 npm test
 ```
 
-**157 tests** across 10 files covering ID generation, all 5 entity validators,
+**220 tests** across 14 files covering ID generation, all 5 entity validators,
 batch helpers, key providers, vault open/migrations, entity round-trips,
 transactional putBatch with rollback, raw_events archive, queryEvents
 filters + pagination, sync watermarks, audit log, key rotation (WAL-safe),

@@ -1,12 +1,13 @@
 /**
  * @chainlesschain/personal-data-hub
  *
- * UnifiedSchema, validators, SQLCipher LocalVault, and AdapterRegistry for
- * the Personal Data Hub middleware.
+ * UnifiedSchema, validators, SQLCipher LocalVault, AdapterRegistry, and
+ * the natural-language AnalysisEngine for the Personal Data Hub middleware.
  *
  * Phase 0 (landed): constants / ids / schemas / batch
  * Phase 1 (landed): vault / migrations / key-providers
- * Phase 2 (this):   adapter-spec / kg-derive / rag-derive / registry / mock-adapter
+ * Phase 2 (landed): adapter-spec / kg-derive / rag-derive / registry / mock-adapter
+ * Phase 3 (this):   query-parser / prompt-builder / llm-client / analysis
  *
  * See docs/design/Personal_Data_Hub_Architecture.md.
  */
@@ -25,6 +26,10 @@ const kgDerive = require("./kg-derive");
 const ragDerive = require("./rag-derive");
 const { AdapterRegistry, DEFAULT_BATCH_SIZE } = require("./registry");
 const { MockAdapter } = require("./mock-adapter");
+const queryParser = require("./query-parser");
+const promptBuilder = require("./prompt-builder");
+const { MockLLMClient, OllamaClient } = require("./llm-client");
+const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("./analysis");
 
 module.exports = {
   // Constants / enums
@@ -90,4 +95,26 @@ module.exports = {
   AdapterRegistry,
   DEFAULT_BATCH_SIZE,
   MockAdapter,
+
+  // Query parser
+  parseQuery: queryParser.parseQuery,
+  parseTimeWindow: queryParser.parseTimeWindow,
+  parseFilters: queryParser.parseFilters,
+  parseIntent: queryParser.parseIntent,
+
+  // Prompt builder
+  DEFAULT_SYSTEM_PROMPT: promptBuilder.DEFAULT_SYSTEM_PROMPT,
+  buildPrompt: promptBuilder.buildPrompt,
+  summarizeFact: promptBuilder.summarizeFact,
+  parseCitations: promptBuilder.parseCitations,
+  validateCitations: promptBuilder.validateCitations,
+
+  // LLM clients (pluggable; production wires CcLLMAdapter)
+  MockLLMClient,
+  OllamaClient,
+
+  // Analysis engine
+  AnalysisEngine,
+  DEFAULT_MAX_FACTS,
+  DEFAULT_MAX_QUERY_LIMIT,
 };
