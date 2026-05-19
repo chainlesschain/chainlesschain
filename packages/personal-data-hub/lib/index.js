@@ -31,6 +31,7 @@ const promptBuilder = require("./prompt-builder");
 const { MockLLMClient, OllamaClient } = require("./llm-client");
 const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("./analysis");
 const bridges = require("./bridges");
+const emailImapAdapter = require("./adapters/email-imap");
 
 module.exports = {
   // Constants / enums
@@ -125,4 +126,15 @@ module.exports = {
   CcRagSink: bridges.CcRagSink,
   HUB_TO_CC_TYPE: bridges.HUB_TO_CC_TYPE,
   LOCAL_PROVIDERS: bridges.LOCAL_PROVIDERS,
+
+  // Phase 5.1 — first real production adapter (IMAP email)
+  EmailAdapter: emailImapAdapter.EmailAdapter,
+  EMAIL_PROVIDERS: emailImapAdapter.EMAIL_PROVIDERS,
+  resolveEmailProvider: emailImapAdapter.resolveEmailProvider,
+  parseEmailWatermark: emailImapAdapter.parseWatermark,
+  formatEmailWatermark: emailImapAdapter.formatWatermark,
+  ImapSession: emailImapAdapter.ImapSession,
+  ImapAuthFailedError: emailImapAdapter.ImapAuthFailedError,
+  ImapConnectionFailedError: emailImapAdapter.ImapConnectionFailedError,
+  ImapMailboxNotFoundError: emailImapAdapter.ImapMailboxNotFoundError,
 };
