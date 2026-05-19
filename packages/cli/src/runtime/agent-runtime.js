@@ -626,6 +626,41 @@ export class AgentRuntime {
     runtimeLogger.log(
       `  Auth:     ${this.policy.token ? chalk.green("enabled") : chalk.yellow("disabled")}`,
     );
+    // When bound to 0.0.0.0 the user needs a reachable URL — enumerate the
+    // non-loopback IPv4 addresses (typically wlan0 on Android, eth0 on a
+    // server) so they can copy/paste the full URL onto another device. Also
+    // print the auth token here when present so the user doesn't have to dig
+    // it out of env vars. NB: this is local-network display only; we never
+    // leak the token over the wire beyond ws/http to clients holding it.
+    if (host === "0.0.0.0") {
+      try {
+        const os = await import("os");
+        const ifaces = os.networkInterfaces();
+        const lanUrls = [];
+        for (const [, addrs] of Object.entries(ifaces)) {
+          for (const a of addrs || []) {
+            if (a.family === "IPv4" && !a.internal) {
+              lanUrls.push(`http://${a.address}:${actualHttpPort}`);
+            }
+          }
+        }
+        if (lanUrls.length > 0) {
+          runtimeLogger.log("");
+          runtimeLogger.log(chalk.bold("  LAN access:"));
+          for (const u of lanUrls) {
+            runtimeLogger.log(`    ${chalk.cyan(u)}`);
+          }
+        }
+      } catch (_err) {
+        // Best-effort — keep banner working even if os import fails.
+      }
+    }
+    if (this.policy.token) {
+      runtimeLogger.log("");
+      runtimeLogger.log(
+        `  Token:    ${chalk.yellow(this.policy.token)}  ${chalk.dim("(append as ?token=<TOKEN> or paste into login screen)")}`,
+      );
+    }
     runtimeLogger.log("");
     runtimeLogger.log(chalk.dim("  Press Ctrl+C to stop"));
     runtimeLogger.log("");
