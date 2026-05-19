@@ -1,5 +1,10 @@
 package com.chainlesschain.android.feature.localterminal
 
+import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,16 +27,20 @@ import javax.inject.Singleton
  *  PREFIX    = absolute path to $PREFIX  (for scripts that need it)
  *  ENV       = $PREFIX/etc/profile  (mksh loads on -l)
  *
+ * Phase 2.5 — also injects LLM API keys from the app's encrypted prefs so
+ * `cc ask`, `cc agent` etc work out of the box once the user has set a key
+ * in the AI settings UI. See [loadLlmKeyEnvs] for the mapping. Empty keys
+ * are skipped (no `KEY=` blank entry).
+ *
  * Notable omissions until Phase 5:
  *
  *  - **No `LD_PRELOAD=$PREFIX/lib/libtermux-exec.so`** — termux-exec
  *    vendoring is deferred to Sub-phase 5.4 (only matters when bundled
  *    scripts use shebangs like `#!/usr/bin/env python`).
- *  - **No PATH entry for `node_modules/.bin`** — the chainlesschain CLI
- *    snapshot lands in Phase 5 too.
  */
 @Singleton
 class PtyEnvironment @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val bootstrapper: LocalFilesystemBootstrapper,
 ) {
 
@@ -69,10 +78,67 @@ class PtyEnvironment @Inject constructor(
             "NODE_PATH" to "$prefix/lib/node_modules",
         )
 
-        val merged = defaults + extra
+        // Layer order: defaults < LLM key envs < caller-provided extras.
+        val merged = defaults + loadLlmKeyEnvs() + extra
         return merged.entries
             .map { (k, v) -> "$k=$v" }
             .toTypedArray()
+    }
+
+    /**
+     * Read LLM API keys from the app's `llm_config_secure` EncryptedSharedPreferences
+     * (managed by feature-ai's LLMConfigManager) and project them onto the env-var
+     * names cc CLI expects (see packages/cli/src/lib/llm-providers.js apiKeyEnv).
+     *
+     * Empty values are dropped — better to surface "API key not set" from cc
+     * than to confuse it with an empty string. Returning an empty map on any
+     * read error keeps the terminal bootstrap robust against EncryptedSharedPreferences
+     * corruption / first-launch races.
+     *
+     * Keep this list in sync with:
+     *   feature-ai/.../data/config/LLMConfig.kt#loadSensitiveFields()  ← source-of-truth
+     *   packages/cli/src/lib/llm-providers.js#apiKeyEnv                 ← consumer
+     */
+    private fun loadLlmKeyEnvs(): Map<String, String> = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        val prefs = EncryptedSharedPreferences.create(
+            context,
+            "llm_config_secure",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+        // PrefKey from LLMConfig.kt → env var name from cc CLI's llm-providers.js
+        // (apiKeyEnv field). Ernie/ChatGLM/Spark have no cc CLI standard env name;
+        // we use sensible fallbacks (ERNIE_API_KEY etc) so cc can pick them up via
+        // env-var-by-provider lookup if the provider gets wired in later.
+        val mapping = listOf(
+            "openai.apiKey" to "OPENAI_API_KEY",
+            "anthropic.apiKey" to "ANTHROPIC_API_KEY",
+            "deepseek.apiKey" to "DEEPSEEK_API_KEY",
+            "qwen.apiKey" to "DASHSCOPE_API_KEY",
+            "gemini.apiKey" to "GEMINI_API_KEY",
+            "volcengine.apiKey" to "VOLCENGINE_API_KEY",
+            "moonshot.apiKey" to "MOONSHOT_API_KEY",
+            "ernie.apiKey" to "ERNIE_API_KEY",
+            "chatglm.apiKey" to "ZHIPU_API_KEY",
+            "spark.apiKey" to "SPARK_API_KEY",
+        )
+        mapping.mapNotNull { (prefKey, envName) ->
+            val value = prefs.getString(prefKey, "") ?: ""
+            if (value.isNotBlank()) envName to value else null
+        }.toMap().also { keys ->
+            if (keys.isNotEmpty()) {
+                Timber.tag("PtyEnv").i(
+                    "Injected ${keys.size} LLM key envs from app config: ${keys.keys}"
+                )
+            }
+        }
+    } catch (e: Exception) {
+        Timber.tag("PtyEnv").w(e, "Failed reading llm_config_secure; cc CLI will need manual env keys")
+        emptyMap()
     }
 
     /**
