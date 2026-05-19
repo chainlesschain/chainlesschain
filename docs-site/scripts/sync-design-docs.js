@@ -75,6 +75,7 @@ const ROOT_FILE_MAP = {
   "Personal_Data_Hub_Architecture.md": "Personal_Data_Hub_Architecture.md",
   "Adapter_Email_IMAP.md": "Adapter_Email_IMAP.md",
   "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
+  "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
 };
 
 // modules/ 文件：01-xxx 格式（无 m 前缀，与 config.js sidebar 一致）
