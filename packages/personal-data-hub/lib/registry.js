@@ -181,10 +181,20 @@ class AdapterRegistry {
         buffer = [];
       };
 
+      // Phase 5.7: forward adapter progress events through onSyncEvent so
+      // the WS / IPC layer can stream them to the UI. Adapter-specific
+      // payload is passed through opaque (each adapter defines its own
+      // phases); the registry only stamps `kind: "adapter-progress"` so
+      // listeners can filter.
+      const adapterOnProgress = (msg) => {
+        this._emit({ kind: "adapter-progress", adapter: name, ...msg });
+      };
+
       const iter = adapter.sync({
         sinceWatermark,
         maxEvents: options.maxEvents,
         scope,
+        onProgress: adapterOnProgress,
       });
 
       for await (const raw of iter) {

@@ -3,7 +3,10 @@ import {
   SESSION_CORE_STREAMING_HANDLERS,
 } from "./session-core-protocol.js";
 import { VIDEO_HANDLERS, VIDEO_STREAMING_HANDLERS } from "./video-protocol.js";
-import { PERSONAL_DATA_HUB_HANDLERS } from "./personal-data-hub-protocol.js";
+import {
+  PERSONAL_DATA_HUB_HANDLERS,
+  PERSONAL_DATA_HUB_STREAMING_HANDLERS,
+} from "./personal-data-hub-protocol.js";
 
 export function createWsMessageDispatcher(server) {
   return {
@@ -222,6 +225,37 @@ export function createWsMessageDispatcher(server) {
               id,
               type: "error",
               code: "PERSONAL_DATA_HUB_ERROR",
+              message: err?.message || String(err),
+            });
+          }
+        };
+      }
+
+      // Phase 5.7 — streaming sync routes. Adapter progress events are
+      // pushed as `<topic>.event` messages tagged with the request id;
+      // the final report comes as `<topic>.end`.
+      for (const streamType of Object.keys(
+        PERSONAL_DATA_HUB_STREAMING_HANDLERS,
+      )) {
+        routes[streamType] = async () => {
+          const sender = (payload) => server._send(ws, { id, ...payload });
+          try {
+            const out = await PERSONAL_DATA_HUB_STREAMING_HANDLERS[streamType](
+              message,
+              sender,
+            );
+            server._send(ws, {
+              id,
+              type: `${streamType}.end`,
+              ...(out && out.result !== undefined
+                ? { result: out.result }
+                : out || {}),
+            });
+          } catch (err) {
+            server._send(ws, {
+              id,
+              type: "error",
+              code: "PERSONAL_DATA_HUB_STREAM_ERROR",
               message: err?.message || String(err),
             });
           }
