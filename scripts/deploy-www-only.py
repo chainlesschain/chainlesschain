@@ -27,7 +27,7 @@ if not (HOST and USER and PASS):
 # Edit local_tar before running.
 DEPLOY = {
     "name": "www.chainlesschain.com",
-    "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.55-20260515-214249.tar.gz",
+    "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.66-20260519-141017.tar.gz",
     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
 }
 
