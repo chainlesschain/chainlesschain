@@ -11,6 +11,14 @@ import kotlinx.coroutines.flow.Flow
  */
 interface LLMAdapter {
     /**
+     * 是否真实支持 chatWithTools (tool-use 协议)。Phase 5.6 引入。
+     * 默认 false：实现 chatWithTools 的 adapter 必须 override = true。
+     * Orchestrator 根据此 flag 决定走 tool-loop 路径 OR 防幻觉 fallback 路径。
+     */
+    val supportsToolUse: Boolean
+        get() = false
+
+    /**
      * 流式对话
      *
      * @param messages 历史消息列表

@@ -31,6 +31,7 @@ fun ProfileDialog(
     onLogout: () -> Unit,
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
+    onNavigateToCcChat: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
@@ -199,6 +200,16 @@ fun ProfileDialog(
                             title = stringResource(R.string.profile_ai_test),
                             subtitle = stringResource(R.string.profile_ai_test_desc),
                             onClick = onNavigateToLLMTest
+                        )
+                    }
+
+                    // Phase 5.5: cc-exec NL Chat 入口
+                    item {
+                        ProfileDialogMenuItem(
+                            icon = Icons.Default.Terminal,
+                            title = "cc Chat (自然语言)",
+                            subtitle = "用自然语言调 cc 查询本地数据",
+                            onClick = onNavigateToCcChat
                         )
                     }
 

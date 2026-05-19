@@ -74,6 +74,10 @@ dependencies {
     implementation(project(":core-security"))
     implementation(project(":core-ui"))
     implementation(project(":data-ai"))
+    // Phase 5.2 — CcExecService uses LocalFilesystemBootstrapper + PtyEnvironment
+    // from :feature-local-terminal to resolve $PREFIX/bin/node + chainlesschain.js
+    // and to source the (filtered) env for cc subprocess. Only :core-common is shared.
+    implementation(project(":feature-local-terminal"))
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
