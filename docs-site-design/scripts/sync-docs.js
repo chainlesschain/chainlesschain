@@ -75,6 +75,7 @@ const ROOT_FILE_MAP = {
   "Adapter_Email_IMAP.md": "Adapter_Email_IMAP.md",
   "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
   "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
+  "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名
