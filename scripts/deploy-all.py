@@ -157,19 +157,26 @@ DEPLOYS = [
     # CLI 0.162.0 → 0.162.1 + Android 5.0.3.57 → 5.0.3.64 (versionCode 503057 → 503064);
     # docs-website-v2/src/pages/{index,en/index}.astro highlights 顶一张 v5.0.3.64 卡 (中英对照);
     # 修 docs-site/docs/changelog.md:58 unescaped <path> Vue parse fail.
+    # 2026-05-19 13:30 第二刷 (1209 之后):
+    # 新增 docs/design/Android_AI_Chat_CC_Exec_Tool.md (~56KB Phase 0 MVP 设计文档),
+    # 两 sync 脚本带上同步到 docs-site/docs/design/ + docs-site-design/docs/;
+    # docs-site + docs-site-design sidebar 各加 1 个新条目 ("Android AI Chat ×
+    # cc-exec Tool (Phase 0 MVP) ⭐NEW") 让 sidebar 可见 — 解 "新增文件看不到"
+    # 报告; 3 站全部 vitepress/astro fresh build 出 dist 后重新打 tarball。
+    # productVersion 不变（v5.0.3.66 仍贴在 tag-line / changelog）; 仅 doc 增量刷新。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.66-20260519-1209.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.66-20260519-132933.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.66-20260519-1209.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.66-20260519-132933.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.66-20260519-1209.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.66-20260519-132933.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
