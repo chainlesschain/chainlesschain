@@ -228,6 +228,41 @@ public class DatabaseManager {
         }
     }
 
+    /// 执行带参数绑定的 SQL（INSERT/UPDATE/DELETE 用）。`execute(_:)` 走的是
+    /// `sqlite3_exec`，不支持 `?` 占位 — 未绑定的 `?` 默认为 NULL，碰到
+    /// NOT NULL 列会无声塞 NULL 然后 constraint 失败。这条路径走
+    /// prepare/bind/step，与 `query` 对称。
+    @discardableResult
+    public func execute(_ sql: String, parameters: [Any?]) throws -> Int {
+        return try queue.sync {
+            guard let database = db else {
+                throw DatabaseError.notOpen
+            }
+
+            var statement: OpaquePointer?
+            let prepareResult = sqlite3_prepare_v2(database, sql, -1, &statement, nil)
+
+            guard prepareResult == SQLITE_OK, let stmt = statement else {
+                let errorMessage = String(cString: sqlite3_errmsg(database))
+                logger.database("SQL prepare failed: \(errorMessage)", level: .error)
+                throw DatabaseError.executionFailed(errorMessage)
+            }
+
+            defer { sqlite3_finalize(stmt) }
+
+            try bindParameters(stmt, parameters: parameters)
+
+            let stepResult = sqlite3_step(stmt)
+            guard stepResult == SQLITE_DONE else {
+                let errorMessage = String(cString: sqlite3_errmsg(database))
+                logger.database("SQL step failed: \(errorMessage)", level: .error)
+                throw DatabaseError.executionFailed(errorMessage)
+            }
+
+            return Int(sqlite3_changes(database))
+        }
+    }
+
     /// 执行查询
     public func query<T>(_ sql: String, parameters: [Any?] = [], mapper: (OpaquePointer) -> T?) throws -> [T] {
         return try queue.sync {
