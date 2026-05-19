@@ -182,8 +182,9 @@ class CcToolCallDispatcherTest {
     // ---------- B17 fix — missing subcommand ----------
 
     @Test fun `dispatch denies missing subcommand with 126 (B17 fix)`() = runTest {
+        // Use all-flag args to exercise the B17 fix path (firstNonFlag == null).
         val r = dispatcher.dispatch(
-            ToolCall("x", "cc_exec", mapOf("command" to "note", "subargs" to listOf("--limit", "10")))
+            ToolCall("x", "cc_exec", mapOf("command" to "note", "subargs" to listOf("--json")))
         )
         assertTrue(r.content.contains("exitCode=126"))
         assertTrue(r.content.contains("requires a subcommand"))
