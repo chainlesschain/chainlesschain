@@ -185,6 +185,15 @@ class AlipayBillAdapter {
     // "transaction never happened" rows. Mark as cancelled instead.
     const isCancelled = subtype === "cancelled" || /关闭|失败/.test(row.status || "");
 
+    const ingestedAt = Date.now();
+    const source = {
+      adapter: NAME,
+      adapterVersion: VERSION,
+      originalId: row.txId,
+      capturedAt: raw.capturedAt || occurredAt,
+      capturedBy: CAPTURED_BY ? (CAPTURED_BY.EXPORT || "export") : "export",
+    };
+
     const event = {
       id: eventId,
       type: "event",
@@ -201,13 +210,8 @@ class AlipayBillAdapter {
           direction,
         },
       },
-      source: {
-        adapter: NAME,
-        adapterVersion: VERSION,
-        originalId: row.txId,
-        capturedAt: raw.capturedAt || occurredAt,
-        capturedBy: CAPTURED_BY ? (CAPTURED_BY.EXPORT || "export") : "export",
-      },
+      ingestedAt,
+      source,
       extra: {
         alipayType: row.alipayType,
         sourceChannel: row.sourceChannel || undefined,
@@ -232,6 +236,8 @@ class AlipayBillAdapter {
         : (PERSON_SUBTYPES ? (PERSON_SUBTYPES.MERCHANT || "merchant") : "merchant"),
       names: [row.counterparty || "(unknown)"],
       identifiers: {},
+      ingestedAt,
+      source,
       extra: {
         ...(counterpartyKind === "unknown" ? { needsResolve: true } : {}),
         firstSeenAt: occurredAt,
@@ -248,6 +254,8 @@ class AlipayBillAdapter {
         name: row.itemName,
         price: { value: amount, currency: "CNY" },
         merchant: counterpartyId,
+        ingestedAt,
+        source,
         extra: {
           sourceEventId: eventId,
         },

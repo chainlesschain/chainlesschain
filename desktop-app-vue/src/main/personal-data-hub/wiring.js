@@ -42,6 +42,7 @@ const {
   FileKeyProvider,
   generateKeyHex,
   EmailAdapter,
+  AlipayBillAdapter,
 } = require("@chainlesschain/personal-data-hub");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
@@ -252,6 +253,27 @@ async function initHub() {
     }
   }
 
+  // Phase 6: same file-based persistence for Alipay accounts.
+  const alipayAccountsPath = path.join(hubDir, "alipay-accounts.json");
+  const alipayAccounts = loadAlipayAccounts(alipayAccountsPath);
+  for (const cfg of alipayAccounts) {
+    try {
+      const adapter = new AlipayBillAdapter({
+        account: cfg.account,
+        ...(cfg.opts || {}),
+      });
+      if (!registry.has(adapter.name)) {
+        registry.register(adapter);
+      }
+    } catch (err) {
+      logger.warn(
+        "[PersonalDataHub] failed to auto-register Alipay account",
+        cfg.account && cfg.account.email,
+        err && err.message,
+      );
+    }
+  }
+
   return {
     vault,
     registry,
@@ -262,6 +284,7 @@ async function initHub() {
     hubDir,
     keyProvider,
     emailAccountsPath,
+    alipayAccountsPath,
     // Convenience: register the mock adapter for smoke / dev. Won't be
     // pre-registered by default (lazy on first call).
     registerMockAdapter(opts = {}) {
@@ -378,6 +401,78 @@ async function initHub() {
             : null,
       };
     },
+
+    // ─── Phase 6 — Alipay bill import ──────────────────────────────────
+
+    /**
+     * Register an AlipayBillAdapter and persist the account config.
+     * Per-account name is "alipay-bill" (single instance in v0; if a
+     * user has multiple Alipay accounts we discriminate by email at
+     * import time, not registry name).
+     */
+    async registerAlipayAdapter({ account, opts = {} } = {}) {
+      if (!account || typeof account !== "object") {
+        throw new Error("account required");
+      }
+      const adapter = new AlipayBillAdapter({ account, ...opts });
+      if (registry.has(adapter.name)) {
+        // Idempotent re-register — update the underlying adapter
+        registry.unregister(adapter.name);
+      }
+      registry.register(adapter);
+      const accounts = loadAlipayAccounts(alipayAccountsPath);
+      const next = accounts.filter((c) => c.account.email !== account.email);
+      next.push({ account, opts, registeredAt: Date.now() });
+      saveAlipayAccounts(alipayAccountsPath, next);
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+      };
+    },
+
+    async unregisterAlipayAdapter(email) {
+      const accounts = loadAlipayAccounts(alipayAccountsPath);
+      const target = accounts.find((c) => c.account.email === email);
+      const next = accounts.filter((c) => c.account.email !== email);
+      saveAlipayAccounts(alipayAccountsPath, next);
+      if (target) {
+        registry.unregister("alipay-bill");
+      }
+      return { ok: true, removed: !!target };
+    },
+
+    listAlipayAccounts() {
+      return loadAlipayAccounts(alipayAccountsPath).map((c) => ({
+        email: c.account.email,
+        hasZipPassword: !!(
+          c.account.zipPassword ||
+          (c.opts && c.opts.zipPassword)
+        ),
+        registeredAt: c.registeredAt || null,
+      }));
+    },
+
+    /**
+     * Import a single Alipay ZIP / CSV file. Returns the registry's
+     * SyncReport (events ingested, KG triples, RAG docs, durationMs).
+     * Caller picks the file via OS file picker; the path is what
+     * lands here.
+     */
+    async importAlipayBill({ zipPath, csvPath, zipPassword } = {}) {
+      const adapter = registry.get("alipay-bill");
+      if (!adapter) {
+        throw new Error(
+          "No Alipay adapter registered — call registerAlipayAdapter first",
+        );
+      }
+      return await registry.syncAdapter("alipay-bill", {
+        zipPath,
+        csvPath,
+        zipPassword,
+      });
+    },
   };
 }
 
@@ -415,6 +510,43 @@ function saveEmailAccounts(filePath, accounts) {
   } catch (err) {
     logger.error(
       "[PersonalDataHub] failed to save email-accounts.json:",
+      err && err.message,
+    );
+    throw err;
+  }
+}
+
+/**
+ * Phase 6: Alipay account persistence (mirrors loadEmailAccounts /
+ * saveEmailAccounts). File lives at <hubDir>/alipay-accounts.json with
+ * mode 0o600.
+ */
+function loadAlipayAccounts(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to load alipay-accounts.json — starting empty:",
+      err && err.message,
+    );
+    return [];
+  }
+}
+
+function saveAlipayAccounts(filePath, accounts) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+  } catch (err) {
+    logger.error(
+      "[PersonalDataHub] failed to save alipay-accounts.json:",
       err && err.message,
     );
     throw err;

@@ -41,6 +41,7 @@ const {
   FileKeyProvider,
   generateKeyHex,
   EmailAdapter,
+  AlipayBillAdapter,
 } = hub;
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
@@ -169,6 +170,21 @@ async function initHub() {
     }
   }
 
+  // Phase 6: auto-register persisted Alipay accounts.
+  const alipayAccountsPath = join(hubDir, "alipay-accounts.json");
+  const alipayAccounts = loadAlipayAccounts(alipayAccountsPath);
+  for (const cfg of alipayAccounts) {
+    try {
+      const adapter = new AlipayBillAdapter({
+        account: cfg.account,
+        ...(cfg.opts || {}),
+      });
+      if (!registry.has(adapter.name)) registry.register(adapter);
+    } catch (_err) {
+      // Continue boot even if one config is corrupt
+    }
+  }
+
   return {
     vault,
     registry,
@@ -179,6 +195,7 @@ async function initHub() {
     hubDir,
     keyProvider,
     emailAccountsPath,
+    alipayAccountsPath,
     bm25: _bm25,
     registerMockAdapter(opts = {}) {
       if (registry.has(opts.name || "mock"))
@@ -257,6 +274,59 @@ async function initHub() {
             : null,
       };
     },
+
+    // ─── Phase 6 — Alipay bill import ──────────────────────────────────
+
+    async registerAlipayAdapter({ account, opts = {} } = {}) {
+      if (!account || typeof account !== "object")
+        throw new Error("account required");
+      const adapter = new AlipayBillAdapter({ account, ...opts });
+      if (registry.has(adapter.name)) registry.unregister(adapter.name);
+      registry.register(adapter);
+      const accounts = loadAlipayAccounts(alipayAccountsPath);
+      const next = accounts.filter((c) => c.account.email !== account.email);
+      next.push({ account, opts, registeredAt: Date.now() });
+      saveAlipayAccounts(alipayAccountsPath, next);
+      return {
+        name: adapter.name,
+        version: adapter.version,
+        capabilities: adapter.capabilities,
+        sensitivity: adapter.dataDisclosure.sensitivity,
+      };
+    },
+
+    async unregisterAlipayAdapter(email) {
+      const accounts = loadAlipayAccounts(alipayAccountsPath);
+      const target = accounts.find((c) => c.account.email === email);
+      const next = accounts.filter((c) => c.account.email !== email);
+      saveAlipayAccounts(alipayAccountsPath, next);
+      if (target) registry.unregister("alipay-bill");
+      return { ok: true, removed: !!target };
+    },
+
+    listAlipayAccounts() {
+      return loadAlipayAccounts(alipayAccountsPath).map((c) => ({
+        email: c.account.email,
+        hasZipPassword: !!(
+          c.account.zipPassword ||
+          (c.opts && c.opts.zipPassword)
+        ),
+        registeredAt: c.registeredAt || null,
+      }));
+    },
+
+    async importAlipayBill({ zipPath, csvPath, zipPassword } = {}) {
+      const adapter = registry.get("alipay-bill");
+      if (!adapter)
+        throw new Error(
+          "No Alipay adapter registered — call registerAlipayAdapter first",
+        );
+      return await registry.syncAdapter("alipay-bill", {
+        zipPath,
+        csvPath,
+        zipPassword,
+      });
+    },
   };
 }
 
@@ -274,6 +344,26 @@ function loadEmailAccounts(filePath) {
 }
 
 function saveEmailAccounts(filePath, accounts) {
+  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+}
+
+// ─── Alipay account persistence (Phase 6) ───────────────────────────────
+
+function loadAlipayAccounts(filePath) {
+  try {
+    if (!existsSync(filePath)) return [];
+    const raw = readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+function saveAlipayAccounts(filePath, accounts) {
   writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
     encoding: "utf-8",
     mode: 0o600,

@@ -200,6 +200,40 @@ function register() {
     }),
   );
 
+  // ─── Phase 6 — Alipay bill import ─────────────────────────────────────
+
+  ipcMain.handle(
+    `${NS}:register-alipay`,
+    safe(async ({ account, opts }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registerAlipayAdapter({ account, opts: opts || {} });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:unregister-alipay`,
+    safe(async ({ email }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.unregisterAlipayAdapter(email);
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:list-alipay-accounts`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return hub.listAlipayAccounts();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:import-alipay-bill`,
+    safe(async ({ zipPath, csvPath, zipPassword }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.importAlipayBill({ zipPath, csvPath, zipPassword });
+    }),
+  );
+
   // Phase 5.7 — streaming sync via webContents.send. The caller passes
   // `progressChannel` (e.g. a uuid); we push events to that channel
   // throughout the sync, then return the final report from invoke().
@@ -293,6 +327,11 @@ function unregister() {
     // Phase 5.7
     "sync-adapter-stream",
     "sync-all-stream",
+    // Phase 6 — Alipay bill import
+    "register-alipay",
+    "unregister-alipay",
+    "list-alipay-accounts",
+    "import-alipay-bill",
   ];
   for (const c of channels) {
     try {

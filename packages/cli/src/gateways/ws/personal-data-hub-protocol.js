@@ -122,6 +122,33 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
 
   "personal-data-hub.event-detail": async (msg) =>
     withHub((hub) => hub.eventDetail(msg.eventId)),
+
+  // ─── Phase 6 — Alipay bill import ─────────────────────────────────────
+
+  "personal-data-hub.register-alipay": async (msg) =>
+    withHub(
+      async (hub) =>
+        await hub.registerAlipayAdapter({
+          account: msg.account,
+          opts: msg.opts || {},
+        }),
+    ),
+
+  "personal-data-hub.unregister-alipay": async (msg) =>
+    withHub(async (hub) => await hub.unregisterAlipayAdapter(msg.email)),
+
+  "personal-data-hub.list-alipay-accounts": async () =>
+    withHub((hub) => hub.listAlipayAccounts()),
+
+  "personal-data-hub.import-alipay-bill": async (msg) =>
+    withHub(
+      async (hub) =>
+        await hub.importAlipayBill({
+          zipPath: msg.zipPath,
+          csvPath: msg.csvPath,
+          zipPassword: msg.zipPassword,
+        }),
+    ),
 };
 
 /**
