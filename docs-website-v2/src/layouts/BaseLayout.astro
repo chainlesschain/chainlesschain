@@ -11,10 +11,14 @@ const {
   canonical = 'https://www.chainlesschain.com/',
   ogImage = '/og-image.svg',
   jsonLd = null,
+  locale = 'zh',
 } = Astro.props;
+const isEn = locale === 'en';
+const htmlLang = isEn ? 'en' : 'zh-CN';
+const ogLocale = isEn ? 'en_US' : 'zh_CN';
 ---
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang={htmlLang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -33,7 +37,9 @@ const {
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="ChainlessChain" />
-    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale" content={ogLocale} />
+    {isEn && <meta property="og:locale:alternate" content="zh_CN" />}
+    {!isEn && <meta property="og:locale:alternate" content="en_US" />}
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
