@@ -260,6 +260,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <p class="prose-muted">参与起草中国移动通信联合会团体标准《人工智能 智能体内生安全技术要求》<a href="https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7" target="_blank" rel="noopener" class="font-mono text-ink/80 hover:text-ember">T/ZGCMCA 023—2025</a>，由中国信息通信研究院等约 30 家单位联合起草，2025-02-07 发布并实施。企业版支持完整的审计日志、DLP 策略引擎、SIEM 导出（CEF / LEEF / JSON）、SOC2 证据自动收集。</p>
         </div>
       </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">10</div>
+          <h3 class="font-display text-3xl">cc CLI 白名单 · LLM 安全沙箱</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">让 AI 直接调本机命令，又不让它越权 —— 物理隔离，不靠"承诺"。</p>
+          <p class="prose-muted mb-4">v5.0.3.67 起，Android 端「cc Chat (自然语言)」允许 LLM 自动调本机 <code>cc</code> 命令完成查询。默认仅放行 8 个只读子命令（<code>note list/show/view</code> · <code>search</code> · <code>memory list/show</code> · <code>skill list</code> · <code>status</code> · <code>session list</code> · <code>mcp list</code> · <code>did show</code>）。写入、删除、安装、shell 元字符即便 LLM 编也会被白名单当场拦截（<code>exitCode=126</code>），调用走 <code>ProcessBuilder</code> 绕过 shell，<strong>零注入面</strong>。</p>
+          <p class="prose-muted mb-4">三家原生 tool-use 接通（OpenAI · Doubao 豆包 · Claude / Anthropic）；不支持 tool-use 的厂商自动走"防幻觉 fallback"——明确告知用户切模型，<strong>从不编造结果</strong>。每次调用作为独立卡片显示 <code>命令</code> + <code>exitCode</code> + <code>耗时</code> + <code>stdout</code> 折叠/展开，长查询一键取消。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">只读白名单</span>
+            <span class="chip">ProcessBuilder · 无 shell</span>
+            <span class="chip">denied = exitCode 126</span>
+            <span class="chip">tool-use 原生</span>
+            <span class="chip">防幻觉 fallback</span>
+            <span class="chip">127 单测全绿</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -278,12 +298,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <li>审计日志双轨签名脚手架 <code>cc audit mtc *</code>（实时 Ed25519 + 关批 MTC inclusion proof，幂等关批，支持 60s/3600s 双合规路径）</li>
         <li>FIPS 205 SLH-DSA-128F 实签 — <code>cc mtc * --alg slh-dsa-128f</code> opt-in 后量子签名，<code>cc mtc verify</code> 多算法自动识别</li>
         <li>V6 Preview Shell 顶部 MTC 状态 widget — audit 状态 / 批次队列 / 签名算法可视化</li>
-        <li><strong>Phase 3 全套（v0.5 新）</strong>：Federation MTCA M-of-N 多签 landmark — <code>cc mtc federation join/leave/status/discover</code>，支持异构 Ed25519 + SLH-DSA 成员，filesystem drop-zone（NFS/Syncthing/USB）+ libp2p gossipsub 双 transport 服务发现</li>
-        <li><strong>Q-ENG-2 backend 灰度（v0.5 新）</strong>：<code>backend/project-service</code> 加 <code>audit.mtc.*</code> 双写桥接，按租户灰度，OpLog per-row "待批次关闭" 徽章联动 web-panel</li>
+        <li><strong>Federation MTCA M-of-N 多签 landmark</strong>：<code>cc mtc federation</code> <strong>24 子命令</strong>覆盖完整治理工具链 — join / leave / discover / invite / vote / 阈值变更 / 密钥轮换 / fork-merge / cross-trust / governance-anchor / 审计日志 等；支持异构 Ed25519 + SLH-DSA 成员混签，filesystem drop-zone（NFS / Syncthing / USB）+ libp2p gossipsub 双 transport 服务发现</li>
+        <li><strong>Q-ENG-2 backend 灰度</strong>：<code>backend/project-service</code> 加 <code>audit.mtc.*</code> 双写桥接，按租户灰度，OpLog per-row "待批次关闭" 徽章联动 web-panel</li>
+        <li><strong>Q-COMP-3 链上锚定 partial unblock（2026-05-03）</strong>：<code>FilesystemChainAnchorClient</code> mock 已 ship，<code>cc mtc federation governance-anchor / governance-verify-anchor</code> 走 mock 链跑通端到端；<code>--chain-impl</code> swap 等接入正式联盟链时仅切实现，协议层 0 改动</li>
       </ul>
       <p class="prose-muted">
-        Phase 0–4 全部落地（<strong>476 测试全绿</strong>，含 unit / integration / e2e / desktop-renderer / web-renderer / backend 六层）。<strong>Audit 产线启用阻塞已于 2026-05-01 解除</strong>（Q-COMP-1 + Q-COMP-2 法务出函），脚手架默认 enabled=false，由各租户显式启用。Federation 服务发现支持 filesystem 共享目录（局域网 / NAS）和 libp2p gossipsub（真 P2P）双 transport。
-        审计日志产线启用待等保三级最终性窗口口径出函；脚手架 off-by-default，出函后单 flag 即可启用，无代码改动。
+        Phase 0–4 全部落地（<strong>476 测试全绿</strong>，含 unit / integration / e2e / desktop-renderer / web-renderer / backend 六层）。<strong>Q-COMP-1 + Q-COMP-2 法务出函已于 2026-05-01 落地</strong>，Audit 脚手架默认 <code>enabled=false</code>，由各租户显式启用；Q-COMP-3 等保三级最终性窗口口径出函后单 flag 即可激活，无代码改动。
         详见 <a href="https://docs.chainlesschain.com/guide/mtc-merkle-tree-certs.html" class="underline">用户使用指南</a>
         与 <a href="https://design.chainlesschain.com/mtc-landing-plan.html" class="underline">设计文档</a>。
       </p>
