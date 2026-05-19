@@ -667,6 +667,17 @@ LLMManager.prototype.setToolAvailable = function (toolName, available)
 
 ---
 
+## LLMManager.prototype.setToolMask = function (toolNames)
+
+```javascript
+LLMManager.prototype.setToolMask = function (toolNames)
+```
+
+* 批量设置允许的工具列表（覆盖整个掩码）
+ * @param {string[]} toolNames - 允许的工具名列表
+
+---
+
 ## LLMManager.prototype.setToolsByPrefix = function (prefix, available)
 
 ```javascript
