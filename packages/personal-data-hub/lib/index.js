@@ -39,6 +39,10 @@ const { Train12306Adapter } = require("./adapters/travel-12306");
 const { CtripAdapter } = require("./adapters/travel-ctrip");
 const { AmapAdapter } = require("./adapters/travel-amap");
 const { BaiduMapAdapter } = require("./adapters/travel-baidu-map");
+const shoppingBase = require("./adapters/shopping-base");
+const { TaobaoAdapter } = require("./adapters/shopping-taobao");
+const { JdAdapter } = require("./adapters/shopping-jd");
+const { MeituanAdapter } = require("./adapters/shopping-meituan");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
@@ -214,6 +218,13 @@ module.exports = {
   CtripAdapter,
   AmapAdapter,
   BaiduMapAdapter,
+
+  // Phase 7 — Shopping three-pack
+  normalizeOrderRecord: shoppingBase.normalizeOrderRecord,
+  CookieAuth: shoppingBase.CookieAuth,
+  TaobaoAdapter,
+  JdAdapter,
+  MeituanAdapter,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
