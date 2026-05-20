@@ -56,9 +56,18 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
 
-    // Testing
+    // Testing — unit
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+    // Testing — instrumented (androidTest/NetworkSimulator.kt needs these
+    // to even compile; the test file has been red at compile-time for a long
+    // time because the deps were missing, same masking pattern as
+    // core-security/SecurePreferencesTest.kt — fixed in 9e1994714).
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
 }
