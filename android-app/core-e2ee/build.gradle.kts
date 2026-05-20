@@ -74,8 +74,23 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.mockito:mockito-core:5.5.0")
     testImplementation("org.robolectric:robolectric:4.11")  // Android unit testing framework
+
+    // Instrumented testing — un-quarantines E2EEIntegrationTest.kt (was
+    // .kt.broken in commit 4bfc8f474 because no androidTestImplementation
+    // block existed for the deps it actually needs). The Hilt-test deps
+    // unlock @HiltAndroidTest + HiltAndroidRule compile-time. Runtime DI
+    // (HiltTestApplication via a custom AndroidJUnitRunner) is NOT wired
+    // here — the workflow's connectedAndroidTest will surface that when
+    // the test actually runs on a device; out of Win-side compile scope.
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kspAndroidTest("com.google.dagger:hilt-android-compiler:2.50")
 }
 
 // Apply Jacoco configuration
