@@ -21,7 +21,7 @@ const {
 // ─── vendor-spec assertion ──────────────────────────────────────────────
 
 describe("assertVendorSpec — SUPPORTED_VENDORS", () => {
-  it("8 vendors are declared", () => {
+  it("9 vendors are declared (Phase 10.2 +doubao scaffold)", () => {
     expect(SUPPORTED_VENDORS).toEqual([
       "deepseek",
       "kimi",
@@ -31,6 +31,7 @@ describe("assertVendorSpec — SUPPORTED_VENDORS", () => {
       "qianfan",
       "coze",
       "dreamina",
+      "doubao",
     ]);
   });
 
@@ -184,9 +185,9 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     const out = [];
     for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
     expect(out.length).toBe(1);
-    expect(out[0].kind).toBe("vendor-not-wired");
-    expect(out[0].vendor).toBe("deepseek");
-    expect(out[0].error).toBe("VENDOR_NOT_WIRED");
+    expect(out[0].payload.kind).toBe("vendor-not-wired");
+    expect(out[0].payload.vendor).toBe("deepseek");
+    expect(out[0].payload.error).toBe("VENDOR_NOT_WIRED");
   });
 
   it("can be driven end-to-end with a mock vendor spec", async () => {
@@ -237,9 +238,9 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     const out = [];
     for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
     expect(out.length).toBe(3); // 1 conv + 2 msgs
-    expect(out[0].kind).toBe("conversation");
-    expect(out[1].kind).toBe("message");
-    expect(out[2].kind).toBe("message");
+    expect(out[0].payload.kind).toBe("conversation");
+    expect(out[1].payload.kind).toBe("message");
+    expect(out[2].payload.kind).toBe("message");
 
     // Drive normalize() over each
     const batches = out.map((r) => a.normalize(r));

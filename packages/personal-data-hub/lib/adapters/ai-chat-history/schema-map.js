@@ -40,6 +40,7 @@ function topicIdForConversation(vendor, originalConvId) {
  * passes is idempotent.
  */
 function buildVendorPerson(vendor, displayName) {
+  const now = Date.now();
   return {
     id: personIdForVendor(vendor),
     type: ENTITY_TYPES.PERSON,
@@ -47,6 +48,14 @@ function buildVendorPerson(vendor, displayName) {
     names: [displayName],
     identifiers: { vendor },
     notes: `${displayName} — 用户的 ${displayName} AI 助手账户`,
+    ingestedAt: now,
+    source: {
+      adapter: ADAPTER_NAME,
+      adapterVersion: ADAPTER_VERSION,
+      originalId: `vendor:${vendor}`,
+      capturedAt: now,
+      capturedBy: CAPTURED_BY.API,
+    },
   };
 }
 
@@ -54,10 +63,19 @@ function buildVendorPerson(vendor, displayName) {
  * Build the conversation Topic entity.
  */
 function buildConversationTopic(rawConv) {
+  const now = Date.now();
   return {
     id: topicIdForConversation(rawConv.vendor, rawConv.originalId),
     type: ENTITY_TYPES.TOPIC,
     name: rawConv.title || "(无标题对话)",
+    ingestedAt: now,
+    source: {
+      adapter: ADAPTER_NAME,
+      adapterVersion: ADAPTER_VERSION,
+      originalId: `${rawConv.vendor}:conv:${rawConv.originalId}`,
+      capturedAt: Number(rawConv.updatedAt) || Number(rawConv.createdAt) || now,
+      capturedBy: CAPTURED_BY.API,
+    },
     extra: {
       vendor: rawConv.vendor,
       kind: "ai-conversation",
@@ -85,11 +103,19 @@ function buildMessageEvent(rawMsg, capturedAt) {
     rawMsg.content && Array.isArray(rawMsg.content.generatedImages) && rawMsg.content.generatedImages.length > 0
       ? EVENT_SUBTYPES.AI_IMAGE_GENERATION
       : EVENT_SUBTYPES.AI_MESSAGE;
+  const now = Date.now();
+  // Schema requires positive integer ms timestamps for occurredAt / ingestedAt
+  // / source.capturedAt — see lib/schemas.js validateEvent + validateBaseEntity.
+  const occurredAtMs = Number(rawMsg.createdAt);
+  // Deterministic id keyed on (vendor, originalId) so re-syncs hit
+  // ON CONFLICT(id) DO UPDATE in putEvent and stay idempotent (instead of
+  // throwing on the secondary UNIQUE(source_adapter, source_original_id)
+  // constraint with a fresh newId() each time).
   return {
-    id: newId(),
+    id: `evt-aichat-${rawMsg.vendor}-${rawMsg.originalId}`,
     type: ENTITY_TYPES.EVENT,
     subtype,
-    occurredAt: new Date(rawMsg.createdAt).toISOString(),
+    occurredAt: Number.isFinite(occurredAtMs) && occurredAtMs > 0 ? occurredAtMs : now,
     actor,
     participants: [SELF_PERSON_ID, vendorPersonId],
     content: {
@@ -99,11 +125,12 @@ function buildMessageEvent(rawMsg, capturedAt) {
         : undefined,
     },
     topics: [topicIdForConversation(rawMsg.vendor, rawMsg.conversationId)],
+    ingestedAt: now,
     source: {
       adapter: ADAPTER_NAME,
       adapterVersion: ADAPTER_VERSION,
       originalId: `${rawMsg.vendor}/${rawMsg.originalId}`,
-      capturedAt: new Date(capturedAt || Date.now()).toISOString(),
+      capturedAt: Number(capturedAt) || now,
       capturedBy: CAPTURED_BY.API,
     },
     extra: {
@@ -124,11 +151,21 @@ function buildMessageEvent(rawMsg, capturedAt) {
  */
 function buildGeneratedImageItems(rawMsg) {
   if (!rawMsg.content || !Array.isArray(rawMsg.content.generatedImages)) return [];
-  return rawMsg.content.generatedImages.map((img) => ({
-    id: newId(),
+  const now = Date.now();
+  const capturedAt = Number(rawMsg.createdAt) || now;
+  return rawMsg.content.generatedImages.map((img, idx) => ({
+    id: `item-aichat-${rawMsg.vendor}-${rawMsg.originalId}-${idx}`,
     type: ENTITY_TYPES.ITEM,
     subtype: ITEM_SUBTYPES.MEDIA,
     name: (img.prompt || "AI image").slice(0, 80),
+    ingestedAt: now,
+    source: {
+      adapter: ADAPTER_NAME,
+      adapterVersion: ADAPTER_VERSION,
+      originalId: `${rawMsg.vendor}:img:${rawMsg.originalId}:${idx}`,
+      capturedAt,
+      capturedBy: CAPTURED_BY.API,
+    },
     extra: {
       vendor: rawMsg.vendor,
       kind: "ai-generated-image",

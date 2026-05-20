@@ -296,11 +296,11 @@ describe("AIChatHistoryAdapter.sync — wired DeepSeek path E2E", () => {
     const out = [];
     for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
     expect(out.length).toBe(3); // 1 conv + 2 msgs
-    expect(out[0].kind).toBe("conversation");
-    expect(out[0].conversation.title).toBe("wired test");
-    expect(out[1].kind).toBe("message");
-    expect(out[1].message.role).toBe("user");
-    expect(out[2].message.role).toBe("assistant");
+    expect(out[0].payload.kind).toBe("conversation");
+    expect(out[0].payload.conversation.title).toBe("wired test");
+    expect(out[1].payload.kind).toBe("message");
+    expect(out[1].payload.message.role).toBe("user");
+    expect(out[2].payload.message.role).toBe("assistant");
 
     // normalize → events / topics
     const batches = out.map((r) => a.normalize(r));
@@ -319,8 +319,8 @@ describe("AIChatHistoryAdapter.sync — wired DeepSeek path E2E", () => {
     const out = [];
     for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
     expect(out.length).toBe(1);
-    expect(out[0].kind).toBe("vendor-cookie-expired");
-    expect(out[0].vendor).toBe("deepseek");
+    expect(out[0].payload.kind).toBe("vendor-cookie-expired");
+    expect(out[0].payload.vendor).toBe("deepseek");
   });
 
   it("healthCheck reports per-vendor wired result", async () => {
