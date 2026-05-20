@@ -450,4 +450,18 @@ jobs:
           # Push back to main using GITHUB_TOKEN (default permission is
           # contents:write on push triggers, but workflow_dispatch needs
           # the same scope — the repo workflow defaults already grant it).
+          #
+          # Defensive rebase-pull before push: if a concurrent commit landed
+          # on main between this workflow's checkout (step 2) and now, plain
+          # push fails with "! [rejected] HEAD -> main (fetch first)".
+          # Pulling with rebase replays our auto-commit on top of any remote
+          # progress. Conflict only possible if the concurrent commit also
+          # changed jniLibs/arm64-v8a/ or assets/local-terminal/ — unlikely
+          # because those paths are auto-managed. If a conflict surfaces, the
+          # rebase aborts and the workflow fails loudly (preferred over
+          # silent stomp). 2026-05-20 — added after run 26147061489 race.
+          git pull --rebase origin main || {
+            echo "::error::git pull --rebase failed — likely conflict on auto-managed paths. Manual intervention required."
+            exit 1
+          }
           git push origin HEAD:main
