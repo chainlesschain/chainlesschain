@@ -21,6 +21,7 @@ const {
   createNotificationMarkReadHandler,
   createNotificationMarkAllReadHandler,
   createNotificationSendDesktopHandler,
+  createNotificationSendMobileHandler,
 } = require("../handlers/notification-handlers");
 
 // ── helpers ─────────────────────────────────────────────────────
@@ -89,20 +90,21 @@ function makeFakeDb(rows = [], { throwOn } = {}) {
 // ── factory ─────────────────────────────────────────────────────
 
 describe("notification-handlers · factory", () => {
-  it("returns exactly 5 topics", () => {
+  it("returns exactly 6 topics", () => {
     const handlers = createNotificationHandlers({ database: makeFakeDb() });
     expect(Object.keys(handlers).sort()).toEqual([
       "notification.list",
       "notification.mark-all-read",
       "notification.mark-read",
       "notification.send-desktop",
+      "notification.send-mobile",
       "notification.unread-count",
     ]);
   });
 
-  it("works with no args (database defaults to null)", () => {
+  it("works with no args (database + remoteGateway default to null)", () => {
     const handlers = createNotificationHandlers();
-    expect(Object.keys(handlers)).toHaveLength(5);
+    expect(Object.keys(handlers)).toHaveLength(6);
     for (const fn of Object.values(handlers)) {
       expect(typeof fn).toBe("function");
     }
@@ -283,5 +285,175 @@ describe("notification.send-desktop", () => {
     const result = await handler({ title: "x" });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/show failed/);
+  });
+});
+
+// ── notification.send-mobile ────────────────────────────────────
+
+describe("notification.send-mobile (#21 v1.3+)", () => {
+  function makeRemoteGateway(sendToMobileImpl) {
+    return {
+      handlers: {
+        notification: {
+          sendToMobile: sendToMobileImpl,
+        },
+      },
+    };
+  }
+
+  it("forwards title/body/target + wraps target in targetDevices array", async () => {
+    const captured = [];
+    const remoteGateway = makeRemoteGateway(async (params, context) => {
+      captured.push({ params, context });
+      return { id: "fake-id", timestamp: 12345 };
+    });
+    const handler = createNotificationSendMobileHandler({ remoteGateway });
+    const result = await handler({
+      type: "notification.send-mobile",
+      id: "req-1",
+      title: "Hello",
+      body: "World",
+      target: "did:cc:iphone-7890",
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ id: "fake-id", timestamp: 12345 });
+    expect(captured).toHaveLength(1);
+    expect(captured[0].params).toMatchObject({
+      title: "Hello",
+      body: "World",
+      targetDevices: ["did:cc:iphone-7890"],
+      silent: false,
+      urgency: "normal",
+      type: "app",
+    });
+    expect(captured[0].context).toEqual({ source: "ws-bridge:cli" });
+  });
+
+  it("uses notificationType (not frame.type) for the semantic type", async () => {
+    let captured;
+    const remoteGateway = makeRemoteGateway(async (params) => {
+      captured = params;
+      return {};
+    });
+    const handler = createNotificationSendMobileHandler({ remoteGateway });
+    await handler({
+      type: "notification.send-mobile", // topic name, must NOT leak into type
+      title: "x",
+      target: "did:cc:foo",
+      notificationType: "alert",
+    });
+    expect(captured.type).toBe("alert");
+  });
+
+  it("rejects when title is missing", async () => {
+    const handler = createNotificationSendMobileHandler({
+      remoteGateway: makeRemoteGateway(async () => ({})),
+    });
+    const result = await handler({ target: "did:cc:foo" });
+    expect(result).toEqual({ success: false, error: "缺少 title" });
+  });
+
+  it("rejects when target is missing", async () => {
+    const handler = createNotificationSendMobileHandler({
+      remoteGateway: makeRemoteGateway(async () => ({})),
+    });
+    const result = await handler({ title: "Hi" });
+    expect(result).toEqual({ success: false, error: "缺少 target (设备 DID)" });
+  });
+
+  it("treats blank-string title/target as missing", async () => {
+    const handler = createNotificationSendMobileHandler({
+      remoteGateway: makeRemoteGateway(async () => ({})),
+    });
+    expect(await handler({ title: "   ", target: "did:cc:x" })).toEqual({
+      success: false,
+      error: "缺少 title",
+    });
+    expect(await handler({ title: "ok", target: "   " })).toEqual({
+      success: false,
+      error: "缺少 target (设备 DID)",
+    });
+  });
+
+  it("returns remote-gateway 不可用 when no remoteGateway", async () => {
+    const handler = createNotificationSendMobileHandler({
+      remoteGateway: null,
+    });
+    const result = await handler({ title: "x", target: "did:cc:foo" });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/remote-gateway 不可用/);
+  });
+
+  it("returns remote-gateway 不可用 when sendToMobile is not a function", async () => {
+    const handler = createNotificationSendMobileHandler({
+      remoteGateway: { handlers: { notification: {} } },
+    });
+    const result = await handler({ title: "x", target: "did:cc:foo" });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/remote-gateway 不可用/);
+  });
+
+  it("captures sendToMobile errors into envelope", async () => {
+    const remoteGateway = makeRemoteGateway(async () => {
+      throw new Error("mobile-bridge offline");
+    });
+    const handler = createNotificationSendMobileHandler({ remoteGateway });
+    const result = await handler({ title: "x", target: "did:cc:foo" });
+    expect(result).toEqual({
+      success: false,
+      error: "mobile-bridge offline",
+    });
+  });
+
+  it("silent=true sets urgency=low (quiet hours D6 path)", async () => {
+    let captured;
+    const remoteGateway = makeRemoteGateway(async (params) => {
+      captured = params;
+      return {};
+    });
+    const handler = createNotificationSendMobileHandler({ remoteGateway });
+    await handler({
+      title: "x",
+      target: "did:cc:foo",
+      silent: true,
+    });
+    expect(captured.silent).toBe(true);
+    expect(captured.urgency).toBe("low");
+  });
+
+  it("accepts silenced alias for silent (CLI option name)", async () => {
+    let captured;
+    const remoteGateway = makeRemoteGateway(async (params) => {
+      captured = params;
+      return {};
+    });
+    const handler = createNotificationSendMobileHandler({ remoteGateway });
+    await handler({
+      title: "x",
+      target: "did:cc:foo",
+      silenced: true,
+    });
+    expect(captured.silent).toBe(true);
+  });
+});
+
+// ── createNotificationHandlers (registry) ────────────────────────
+
+describe("createNotificationHandlers registry", () => {
+  it("registers notification.send-mobile topic alongside existing 5", () => {
+    const handlers = createNotificationHandlers({
+      database: null,
+      remoteGateway: {
+        handlers: { notification: { sendToMobile: async () => ({}) } },
+      },
+    });
+    expect(Object.keys(handlers).sort()).toEqual([
+      "notification.list",
+      "notification.mark-all-read",
+      "notification.mark-read",
+      "notification.send-desktop",
+      "notification.send-mobile",
+      "notification.unread-count",
+    ]);
   });
 });
