@@ -2018,14 +2018,14 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.48-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.73-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.8-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.9-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -2038,7 +2038,13 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 Desktop Skills + 28 Android Skills · 14,987+ Tests · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 closing + M7 GA flip** (VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier all five landed · RemoteSkillRegistry method-level metadata · ApprovalUI 4-category · ProgressViewer long-task panel · §8.3 alias compat window · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** via commit ffe722162 · 187 new tests / Android total 196+ → 383+ · v1.0 GA still owes 4 user-side items: M3 device E2E / M4 D2 device / FCM creds / M6 perf) · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install dramatically faster (dev-box 190.9s measured, NVMe + Defender OFF; HDD parity not measured) · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
+## ⭐ Historical Snapshot — v5.0.3.48 Evolution Edition (2026-05-12, snapshot 25 versions ago)
+
+> **Current state: see the [2026-05-20 closing] section at the top of this file** — Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + follow-up v5.0.3.73 Phase 10.2 integration + E2E tests + 1 AIChat registry-contract bug fix. Hub test baseline 47/927 → 50/952 all green. CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
+>
+> The banner and "Latest Update" entries below are reverse-chronological release notes (each describes the specific content of that version), not current state.
+
+Historical archive — v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 Desktop Skills + 28 Android Skills · 14,987+ Tests · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 closing + M7 GA flip** (VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier all five landed · RemoteSkillRegistry method-level metadata · ApprovalUI 4-category · ProgressViewer long-task panel · §8.3 alias compat window · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** via commit ffe722162 · 187 new tests / Android total 196+ → 383+ · v1.0 GA still owes 4 user-side items: M3 device E2E / M4 D2 device / FCM creds / M6 perf) · **v5.0.3.47 verification release** (build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 first user-visible drop · 4 Android assets in Release · outstanding `../` fully swept) · **Phase 3d desktop ↔ Android two-way sync, fully landed** (M2 → v1.2, 12 commits · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gates 1-4 all Ed25519 strict-verify) · **Android 0.37.0 seven-pack** (Volcengine SeedASR voice + APK auto-update issue #21 + Splash redesign + Claude coral theme + i18n three regions + biometric + DID Key screen) · **e2e CI silent-regression gap closed** (dropped e2e-tests workflow JOB-level `continue-on-error: true`) · V6 Chat-First Shell + chat-panel-v5 Phase E reverse-aligned · MTC v0.11 Federation + publisher_signature M-of-N strip-all-sigs fix · V2 Canonical Layer 220+ Surfaces · B4 ASAR surgery Win install dramatically faster (dev-box 190.9s measured, NVMe + Defender OFF; HDD parity not measured) · B4 P2P Social Audit-Grade Closure §2.2.10–§2.2.24, 15 sections · Security hardening cascade HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · intent opt-in toggle · chatStream true streaming · intent card Vue Proxy reactivity fix)
 
 ### Latest Update - cc ui llm.chat parity + intent opt-in toggle + true streaming + Vue Proxy fix (v5.0.3.45, 2026-05-09)
 

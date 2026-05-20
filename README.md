@@ -2283,14 +2283,14 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.48-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.73-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-14800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-139-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.161.8-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.9-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -2303,7 +2303,13 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ---
 
-## ⭐ 当前版本: v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 桌面技能 + 28 Android 技能 · 14,987+ 测试 · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾 + M7 GA flip**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** by commit ffe722162 · 187 新单测全绿 / Android 总单测 196+ → 383+ · v1.0 GA 仍待用户出场 4 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能）· **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装显著加速 (dev-box 190.9s 实测, NVMe + Defender OFF; HDD parity 未测) · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
+## ⭐ 历史快照 — v5.0.3.48 Evolution Edition (2026-05-12, snapshot 25 versions ago)
+
+> **当前最新见文件顶部 [2026-05-20 收口] 章节** — Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + 后续 v5.0.3.73 Phase 10.2 集成/E2E 测试 + 1 AIChat registry-contract bug fix。Hub 测试 47/927 → 50/952 全绿。CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
+>
+> 下方 banner 与"最新更新"系列均为历史归档（按时间倒序，每条对应当时版本的具体内容），不代表当前状态。
+
+历史归档 — v5.0.3.48 Evolution Edition (2026-05-12 · CLI 0.161.8 · Android **1.0.0 GA** · 141 桌面技能 + 28 Android 技能 · 14,987+ 测试 · **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾 + M7 GA flip**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · **Android versionCode 37 → 100 / versionName 0.37.0 → 1.0.0 GA** by commit ffe722162 · 187 新单测全绿 / Android 总单测 196+ → 383+ · v1.0 GA 仍待用户出场 4 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能）· **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets 入 Release · outstanding `../` 全扫净）· **Phase 3d 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker + tombstones + Room cursor + sync.* JSON-RPC handlers + DeviceManager + SyncCoordinator auto-trigger · gate 1-4 全部 Ed25519 真签真验）· **Android 0.37.0 七件套**（Volcengine SeedASR 语音 + APK 自更新 issue #21 + Splash 重做 + Claude coral 主题 + i18n 三地区 + 生物识别 + DID Key 屏）· **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级 `continue-on-error: true`）· V6 Chat-First 壳全量 + chat-panel-v5 Phase E 反向对齐 · MTC v0.11 联邦 + publisher_signature M-of-N strip-all-sigs 修正 · V2 规范层 220+ 治理表面 · B4 ASAR surgery Win 安装显著加速 (dev-box 190.9s 实测, NVMe + Defender OFF; HDD parity 未测) · B4 P2P 社交 audit-grade 闭环 §2.2.10–§2.2.24 15 节 · 安全硬化级联 HIGH 44→0 / MOD 4→0 / LOW 45→0 · cc ui llm.chat parity · 意图理解 opt-in 开关 · chatStream 真流式 · 意图卡片 Vue Proxy reactivity 修复)
 
 ### 最新更新 - cc ui llm.chat parity + 意图理解 opt-in 开关 + 真流式 + Vue Proxy 修复 (v5.0.3.45, 2026-05-09)
 
