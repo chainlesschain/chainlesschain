@@ -649,6 +649,88 @@ public struct HubSkillResult: Sendable, Equatable {
     }
 }
 
+// MARK: - 16. HubSyncEvent (Phase 14.3.2 streaming events)
+
+/// Sync progress event from desktop's `hub.registry.onSyncEvent` forwarder.
+/// 5 kinds (`connecting` / `fetching` / `normalizing` / `done` / `error`) per
+/// Android `HubSyncEvent`. desktop `route-mobile.runSyncStream` (commit
+/// `badc1e108`) emits this as JSON-RPC notification wrapped in
+/// `chainlesschain:event:notification` envelope.
+public struct HubSyncEvent: Sendable, Equatable {
+    public let kind: String
+    public let adapter: String
+    public let partition: String?
+    public let detail: [String: Int64]?
+    public let report: HubSyncReport?
+    public let message: String?
+
+    public init(
+        kind: String,
+        adapter: String,
+        partition: String? = nil,
+        detail: [String: Int64]? = nil,
+        report: HubSyncReport? = nil,
+        message: String? = nil
+    ) {
+        self.kind = kind; self.adapter = adapter
+        self.partition = partition; self.detail = detail
+        self.report = report; self.message = message
+    }
+
+    /// Parse from the raw envelope wire format. Desktop sends:
+    /// ```
+    /// {
+    ///   "type": "chainlesschain:event:notification",
+    ///   "payload": {
+    ///     "jsonrpc": "2.0",
+    ///     "method": "personal-data-hub.sync.progress",
+    ///     "params": { kind, adapter, partition?, detail?, report?, message? }
+    ///   }
+    /// }
+    /// ```
+    /// Returns nil for non-PDH-sync events / malformed payloads — dispatcher
+    /// silent drops nil. Empty `kind` or `adapter` also returns nil.
+    public static func parseFromEnvelope(_ raw: String) -> HubSyncEvent? {
+        guard let data = raw.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        guard (dict["type"] as? String) == "chainlesschain:event:notification" else {
+            return nil
+        }
+        guard let payload = dict["payload"] as? [String: Any] else { return nil }
+        guard (payload["method"] as? String) == "personal-data-hub.sync.progress" else {
+            return nil
+        }
+        guard let params = payload["params"] as? [String: Any] else { return nil }
+        guard let kind = params["kind"] as? String, !kind.isEmpty,
+              let adapter = params["adapter"] as? String, !adapter.isEmpty else {
+            return nil
+        }
+        let partition = params["partition"] as? String
+        let detailRaw = params["detail"] as? [String: Any]
+        let detail = detailRaw?.compactMapValues(pickHubInt64)
+        let report: HubSyncReport? = {
+            guard let r = params["report"] as? [String: Any] else { return nil }
+            return HubSyncReport(
+                ingested: (r["ingested"] as? Int) ?? 0,
+                kgTriples: (r["kgTriples"] as? Int) ?? 0,
+                ragDocs: (r["ragDocs"] as? Int) ?? 0,
+                durationMs: (r["durationMs"] as? Int) ?? 0
+            )
+        }()
+        let message = params["message"] as? String
+        return HubSyncEvent(
+            kind: kind,
+            adapter: adapter,
+            partition: partition,
+            detail: detail?.isEmpty == false ? detail : nil,
+            report: report,
+            message: message
+        )
+    }
+}
+
 // MARK: - 共用 helpers (PDH 专用 — 与其它 module 同名 helper 隔离)
 
 internal func parseHubDict(_ json: String) throws -> [String: Any] {
