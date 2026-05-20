@@ -33,6 +33,7 @@
     "./analysis-skills": "./lib/analysis-skills/index.js",
     "./mobile-extractor": "./lib/mobile-extractor/index.js",
     "./adapters/wechat": "./lib/adapters/wechat/index.js",
+    "./adapters/ai-chat-history": "./lib/adapters/ai-chat-history/index.js",
     "./sidecar": "./lib/sidecar/index.js"
   },
   "scripts": {

@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.70 (Phase 0–6.5 已落地, 2026-05-20) | 状态: 🚧 渐进可用 — Email (IMAP) + Alipay (CSV 账单) 两个 adapter 已端到端打通 | 21 IPC 通道 + 21 WS 主题 | 26 测试文件 / ~400+ 单元测试（Phase 5.3 基线 390 + 后续累积） | 设计文档: 13-Phase 路线图**
+> **版本: v5.0.3.71 (Phase 0–11 + Phase 12 v0.5 + Phase 10 skeleton 已落地, 2026-05-20) | 状态: 🚧 渐进可用 — Email + Alipay + SystemData 三个 adapter 已端到端打通, WeChat (v0.5 frida-indep) 与 AIChatHistory (skeleton) 待 wiring | 21 IPC 通道 + 21 WS 主题 | 38 测试文件 / 792 单元测试 | 设计文档: 13-Phase 路线图**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -94,17 +94,22 @@
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Adapter 层 (每个 App 一个 Skill)                              │
+│  ┌─────────────┐ ┌─────────────┐ ┌──────────────┐           │
+│  │ EmailIMAP ✅│ │ AlipayBill ✅│ │ SystemData ✅│           │
+│  │  (P5.1-5.7) │ │  (P6.1-6.5) │ │   (P4.5)     │           │
+│  └─────────────┘ └─────────────┘ └──────────────┘           │
+│  ┌──────────────┐ ┌──────────────┐ ┌───────────────┐        │
+│  │ WeChat 🚧0.5 │ │ AIChat 🚧 skl│ │ Mobile Extr ✅│        │
+│  │  (P12 frida- │ │  (P10.1 skel)│ │   (P7.5 ADB)  │        │
+│  │  indep slice)│ │              │ │               │        │
+│  └──────────────┘ └──────────────┘ └───────────────┘        │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │ EmailIMAP ✅│ │ AlipayBill ✅│ │ AIChatHistory🚧│         │
-│  │  (P5.1-5.7) │ │  (P6.1-6.5) │ │   (P10 design) │         │
-│  └─────────────┘ └─────────────┘ └─────────────┘            │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │ WeChat 🚧   │ │ Taobao 📐   │ │ Amap 📐     │            │
-│  │ (P12 design)│ │  (P11)      │ │  (P11)      │            │
+│  │ Taobao 📐   │ │ Amap 📐     │ │ 12306 📐    │            │
+│  │ (P7 design) │ │ (P9 design) │ │ (P9 design) │            │
 │  └─────────────┘ └─────────────┘ └─────────────┘            │
 └─────────────────────────────────────────────────────────────┘
 
-  ✅ 已上线  🚧 设计已完成 / 实现中  📐 路线图，尚未实现
+  ✅ 已上线  🚧 设计已完成 / 实现中  📐 路线图（已有设计文档，待实施）
 ```
 
 ### 5 类核心实体
@@ -127,11 +132,14 @@
 |---|---|---|---|---|
 | **EmailAdapter** | ✅ 已上线 (Phase 5.1-5.7) | IMAP 邮箱（QQ / Gmail / 163 / …） | IMAP 授权码 + UID 水位 | 单测 ≥390 / E2E 真账号 OK |
 | **AlipayBillAdapter** | ✅ 已上线 (Phase 6.1-6.5) | 支付宝官方账单 ZIP | 用户在 App 内导出 → 拖入桌面 / Web → ZIP 解密 + CSV 解析 | smoke test green |
-| **AIChatHistoryAdapter** | 🚧 设计已完 (Phase 10 旗舰) | 8 家国产 AI (DeepSeek / 文心 / 通义 / 智谱 / Kimi / 豆包 / 讯飞 / Minimax) + ChatGPT / Claude | 各家 export 端点 + Cookie | 设计稿 `Adapter_AIChat_History.md` |
-| **WeChatAdapter** | 🚧 设计已完 (Phase 12 压轴) | 微信本地 SQLCipher DB | Android Root + 直读 / iOS 越狱 + PC 端 dump | 设计稿 `Adapter_WeChat_SQLCipher.md` |
-| TaobaoAdapter | 📐 路线图 | 淘宝订单 + 收藏 | Cookie + web API | — |
-| AmapAdapter | 📐 路线图 | 高德足迹 | API + 历史导出 | — |
-| 其它 (12306 / 携程 / 美团 / 银行 / …) | 📐 路线图 | 各类 export / API / Accessibility | 按数据源 ROI 排序 | — |
+| **SystemDataAdapter** | ✅ 已上线 (Phase 4.5) | Android 通讯录 / 通话 / 短信 / WiFi | Python sidecar (forensics-bridge) + adb pull | 单测 50+ |
+| **Mobile Extraction Layer** | ✅ 已上线 (Phase 7.5) | Android ADB + iOS iTunes backup 提取层 | adb / pymobiledevice3 | 单测 + 真机 E2E |
+| **EntityResolver** | ✅ 已上线 (Phase 8) | 跨源 Person / Place 消歧 | 三段 pipeline（规则 + embedding + LLM）+ ingest hook + UI 队列 | 单测全绿 |
+| **5 Analysis Skills** | ✅ 已上线 (Phase 11) | spending / relations / footprint / interests / timeline | 内置 skill + Workflow | 单测全绿 |
+| **WechatAdapter** | 🚧 v0.5 已落地 (Phase 12 frida-indep slice) | 微信本地 SQLCipher DB | content-parser + MD5(IMEI+UIN)[:7] 解密 + SQLCipher 三 pragma profile | 41 单测；剩 Phase 12.6+ frida-dep 路径 + 真机验证 |
+| **AIChatHistoryAdapter** | 🚧 v0.1 skeleton 已落地 (Phase 10.1) | 8 家国产 AI（DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina） | Cookie + WebView 鉴权 + h5 API | 27 单测（contract + schema-map 全覆盖；vendor wiring 待 Phase 10.2+） |
+| TaobaoAdapter / JD / Meituan | 📐 设计完 (Phase 7) | 三家电商订单 / 收藏 / 评价 / 收货地址 | Cookie + web API | 设计稿 `Adapter_Shopping_Cookie.md` |
+| AmapAdapter / Baidu / Ctrip / 12306 | 📐 设计完 (Phase 9) | 高德/百度足迹 + 携程订单 + 12306 行程 | Cookie + 被动 webRequest（12306）| 设计稿 `Adapter_Travel_LBS.md` |
 
 ### Phase 历史
 
@@ -152,8 +160,15 @@
 | 5.7 | 流式同步 | 进度推送 + 指数退避重试 + E2E Runbook | 累计中 |
 | 6.1+6.2 | AlipayBillAdapter | CSV 解析 + ZIP 解密 + 对手方归一化 | 累计中 |
 | 6.3-6.5 | Alipay wiring | WS / IPC + Web-Panel UI + smoke | 累计中 |
+| 4.5 | SystemDataAdapter | Python sidecar + 通讯录 / 通话 / 短信 / WiFi | 累计中 |
+| 7.5 | Mobile Extraction Layer | Android ADB + iOS iTunes backup | 累计中 |
+| 8 | EntityResolver | 规则 + embedding + LLM 三段 pipeline + ingest hook + UI 队列 + eval gate | 累计中 |
+| 11 | Analysis Skills | spending / relations / footprint / interests / timeline | 累计中 |
+| 12 v0.5 | WechatAdapter (frida-indep) | content-parser + key-extractor (MD5(IMEI+UIN)[:7]) + db-reader + normalize | +41 |
+| 10.1 | AIChatHistoryAdapter skeleton | 8 vendor stub + cookie-auth + schema-map + contract | +27 |
+| 当前合计 | — | — | **38 文件 / 792 测试** |
 
-> Phase 4 (平台 Keystore 桥)、Phase 7+ (Taobao / Amap / 12306 等)、Phase 10 (AIChatHistory) 与 Phase 12 (WeChat) 见设计文档。
+> Phase 4 (平台 Keystore 桥)、Phase 7 (Shopping)、Phase 9 (Travel) 已有设计文档；Phase 10.2+ (AIChat vendor wiring) 与 Phase 12.6+ (WeChat frida-dep + 真机) 是下一步实施工作。
 
 ## IPC / WS 接口完整列表
 
