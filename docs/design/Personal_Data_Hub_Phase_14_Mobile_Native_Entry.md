@@ -597,12 +597,61 @@ enum class SkillTab(
 
 ---
 
-## 11. 当前状态（v5.0.3.72，2026-05-20）
+## 11. 当前状态（v5.0.3.74，2026-05-20）
 
 - ✅ **Phase 14.0** — Android `SeedRegistry` 21 method 元数据，含 5 Privileged 标 `requiresApprovalOverride = true`
-- 🚧 **Phase 14.1** — Android 接线 + UI（本设计稿启动）
-- 🚧 **Phase 14.2** — iOS（本设计稿启动）
-- 🚧 **Phase 14.3** — 流式同步（本设计稿启动）
-- ⏳ **Phase 14.4** — 真机 E2E（待 Mac + iPhone + Xiaomi 24115RA8EC + 真桌面在场）
+- ✅ **Phase 14.1** — Android 接线 + UI 全完工
+  - 14.1.1 桌面 whitelist defaults + approval gate kebab-case (`7dc47ee49`)
+  - 14.1.1 follow-up: social-initializer wire mobileBridge config → RemoteGateway (`fa1be3a6f`)
+  - 14.1.2 PersonalDataHubCommands actor 21 method + Codable models (`841651ea8`，kebab-case 修在 `839622250`)
+  - 14.1.3 HubAskScreen + ViewModel + AcceptNonLocalDialog (in `841651ea8`)
+  - 14.1.4 HubAdaptersScreen + HubHealthCard + ViewModel (in `841651ea8`)
+  - 14.1.5 HubAuditScreen + NavGraph route + RemoteOperateScreen button (in `841651ea8`)
+  - 14.1.6 PersonalDataHubIntegrationTest 3 集成测试 + route-mobile dispatcher (`dc3322452` + `fcfc555f3`)
+- 🚧 **Phase 14.2** — iOS 接线 + UI（iOS scaffold 22/22 + 28 tests 已 land per `20722ee60`；UI + 14.3 dispatcher 待并行 session 推进）
+- ✅ **Phase 14.3** — 流式同步 Android + 桌面端真接通
+  - 14.3.1 Android `HubSyncEventDispatcher` + 7 单测 (`08c16cb42`)
+  - 14.3 ViewModel 接入: `syncStream()` + `applyProgress()` + 6 streaming 单测 (`dd0b74a0b`)
+  - 14.3 桌面 `route-mobile.js` `runSyncStream` helper + `index.js` `sendEventToPeer` 闭包 + 5 wiring 单测 (`badc1e108`)
+  - 14.3.3 `HubAdaptersScreen` 流式按钮 + `progressTextFor` 文本 + 9 helper 单测 (`67af0bcaa`)
+  - 🚧 14.3.2 iOS dispatcher + ViewModel + UI — 并行 session
+- ⏳ **Phase 14.4** — 真机 E2E（待 Mac + iPhone + Xiaomi 24115RA8EC + 真桌面 + 真 Adapter 注册）
+
+### 测试 totals（Android）
+
+| Test file | Count |
+|---|---|
+| `PersonalDataHubCommandsTest.kt` | 26 |
+| `HubAskViewModelTest.kt` | 8 |
+| `HubAdaptersViewModelTest.kt` | 12 |
+| `HubAuditViewModelTest.kt` | 5 |
+| `PersonalDataHubIntegrationTest.kt` | 3 |
+| `HubSyncEventDispatcherTest.kt` | 7 |
+| `HubAdaptersProgressTextTest.kt` | 9 |
+| **Total Android** | **70** ✅ |
+
+桌面：`route-mobile.test.js` 20 + `mobile-skill-whitelist.test.js` 25 + `unified-config-manager.test.js` mobileBridge 1 = **46** desktop tests for Phase 14。
+
+### Phase 14.3 end-to-end 数据流（已闭环 except 真机 verify）
+
+```
+Android UI 同步 button
+  → HubAdaptersViewModel.syncStream(name)
+  → PersonalDataHubCommands.syncAdapterStream(name)  ⇨ DC RPC
+桌面 routeMobileCommand 'personal-data-hub' case
+  → 构造 sendEventToPeer(method, params) 闭包绑 mobileBridge.sendToMobile(mobilePeerId, ...)
+  → route-mobile.runSyncStream
+    → 装 hub.registry.onSyncEvent = msg => sendEventToPeer('personal-data-hub.sync.progress', msg)
+    → 返回 {streamId, name}  ⇨ Android 收到立即返回
+    → 异步 hub.registry.syncAdapter(name, options) 跑
+      → 每事件 fire onSyncEvent → mobileBridge.sendToMobile(...)
+        ⇨ chainlesschain:event:notification 包装 → DC
+Android P2PClient._events.emit(EventNotification)
+  → HubSyncEventDispatcher filter method=='personal-data-hub.sync.progress'
+  → HubAdaptersViewModel.applyProgress(HubSyncEvent)
+  → UiState.syncProgressKind / Partition / Detail
+  → progressTextFor(...) → AdapterRow 显示
+"连接中…" → "拉取中 (INBOX) · 250 条" → "归一化中 · 30 事件" → "上次 +30 事件"
+```
 
 > **本文档为 Phase 14 首个完整设计稿**。后续 implementation 将依本稿落地；任何偏差通过 PR 回填本稿 `## Open Questions` 或 `## Traps` 章节。
