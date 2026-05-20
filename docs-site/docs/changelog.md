@@ -3,6 +3,18 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [in-progress — iOS PIN 闪退两轮 hotfix + Android quarantine 全部 0 收尾 + Plan A 真机闭环 verified] - 2026-05-21
+
+> 5 commits in flight after v5.0.3.74 GitHub Release，**未打 tag、未出 .ipa**。本条目记录方向，待装机 .ips 定锤后并入下一个 tag。productVersion 已 bump 到 v5.0.3.75（等 release.yml CI 出 GitHub Release），release-sizes 不动。
+
+- **iOS PIN-unlock 闪退第二轮诊断**（commits `5807c1fbc` + `9deb6078d`，CFBundleVersion 73 → 75 → 76）：
+  - 第一嫌疑收口：`DatabaseManager.open(password:)` 持 `queue.sync` 后调 `runMigrations → execute(...)`，`execute` 自身又 `queue.sync` 同一串行队列 = libdispatch 重入。iOS 17+ 某些路径 inline-recurse 蒙混，iOS 16 上稳定走 `_dispatch_assert_queue_fail` 死锁 — PIN 输完自动提交后 `AppState.authenticate` 卡死被 watchdog 干掉。修法：拆 `_executeUnlocked / _queryUnlocked / _queryOneUnlocked` 私有不锁版，`runMigrations / getCurrentVersion / runMigration / migration_v1` 14 处 execute 全改走 unlocked（它们已在 open() 的 queue.sync 闭包内）。公共 API 行为零变化。
+  - .75 装机后仍闪退，第二轮两嫌疑合 ipa：(a) `unsafeBitCast(-1, to: sqlite3_destructor_type.self)` 内联两处 → 提到文件级 `private let SQLITE_TRANSIENT_FN` 单点定义 + String bind 改 `withCString { ... }` 让生命周期对优化器可见。(b) ContentView `AuthView → MainTabView` 跨 view-tree 大变 + PINEntryView SecureField `@FocusState` 拆解 + TabView 内 NavigationView/NavigationStack 上场被打进同一 transaction，去 `.animation(.easeInOut, value: appState.isAuthenticated)` 暂避 iOS 16 host swap 焦点回收 race。
+  - 下一步：装机重测；同时催 .ips 定锤帧顶。
+- **Android androidTest quarantine 7 → 0 全部收尾**（commits `62a179cad` + `73bc6b706` + `84f01437e` + `60d887690` + `6afedbbf8` + `84fca147c` + `03026b79b`）：4 文件真接通 API（AuthRepositoryTest / KnowledgeUITest / AI_RAG_IntegrationTest / AIConversationUITest），3 文件 `@Ignore + TODO()` 占位（E2EEIntegrationTest 7 ciphertests / AIConversationE2ETest 10 / KnowledgeE2ETest 8 = 25 测试方法待跨模块 TestActivity + 共享 helper module + Hilt 运行时 setup 4 prereq 后重启）。
+- **HiltTestRunner 3 模块接通**（commit `6ee00b763` / cherry-pick `1a71849dd`）：`core-e2ee / feature-ai / feature-knowledge` 三 androidTest source set 加 `class HiltTestRunner : AndroidJUnitRunner` 把 test 进程 Application 换成 `HiltTestApplication`，让 `@HiltAndroidTest` runtime DI 真 bootstrap（之前 compile 绿但 runtime 静默不生效）。Compile-clean verified，真运行需 emulator/device，CI `connectedAndroidTest` 是 canonical 验。`feature-project / feature-p2p / feature-file-browser` 同样有 `@HiltAndroidTest` 但 androidTest source set 还含 LLM-fiction（`MainActivity` reverse-dep + 缺包 `com.chainlesschain.android.test.*` + entity 字段幻觉 + 跨模块 DatabaseFixture/NetworkSimulator），跟同样 quarantine sweep 后再接 Hilt。
+- **Plan A 真机闭环 verified — traps 16/17 收口**（commit `bf259899f`）：Xiaomi 24115RA8EC 2026-05-20 真机三步 T1/T2/T3 PASS — `@chainlesschain/personal-data-hub` require / bs3mc native dlopen / SQLCipher LocalVault open schema=2 + queryEvents + destroy。Trap 16：Node 24 libnode 在 Termux `libtermux_cxx.so` 套装下 dlopen 静默死（与 Phase 2.5 trap 5 同套路 — libc++ 符号子集不全），mitigation `PKGS=nodejs` 不 `nodejs-lts`。Trap 17：bs3mc V8 直 API 跨 Node 24→26 `HandleScope` ctor ABI break，mitigation bs3mc against Node 26.1.0 headers cross-compile。§12 决策结论：工程基础 100% verified，剩 feature 层 ~10-12d (A3 LlamaRn / A6 JNI / A7 `cc android` + `cc hub` subcommand)。
+
 ## [v5.0.3.74 — AIChat registry-contract bug fix + Phase 10.2 集成/E2E + README 历史快照重构] - 2026-05-20
 
 > Hub 内部质量收口，无新功能。**修了 Phase 10.2 落地以来一直存在的 1 个隐性 bug**：AIChatHistoryAdapter `sync()` 的 yielded raws 不符合 AdapterRegistry 的信封契约 (`{originalId, capturedAt, payload}`)，registry 调 `vault.putRawEvent({originalId: undefined, ...})` 直接抛错，所有 AIChat raws 100% 进 `invalidCount` → 没一条 event 真落库。
