@@ -151,7 +151,12 @@ jobs:
           export CFLAGS="-fPIC -DANDROID"
           export CXXFLAGS="-fPIC -DANDROID -std=c++20"
           export LDFLAGS="-static-libstdc++"
-          export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux"
+          # android_ndk_path required — Node 24's common.gypi has
+          # `-I<(android_ndk_path)/sources/android/cpufeatures` in OS==android
+          # cflags. Without this, gyp errors with "Undefined variable
+          # android_ndk_path in binding.gyp while trying to load binding.gyp"
+          # (verified run 26147834392).
+          export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"
 
           # Run node-gyp
           npx -p node-gyp@latest node-gyp configure \
