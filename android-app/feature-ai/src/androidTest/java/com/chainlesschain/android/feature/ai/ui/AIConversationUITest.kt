@@ -1,7 +1,33 @@
 package com.chainlesschain.android.feature.ai.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+// Material3 ExposedDropdownMenuBox + menuAnchor are experimental APIs.
+// ModelSelectorMock uses them, so per-function @OptIn. Material3 1.2.0
+// (compose-bom 2024.02.00) does not export a top-level `ExposedDropdownMenu`
+// composable — the dropdown body is just a regular `DropdownMenu` called
+// from inside the ExposedDropdownMenuBox lambda (its anchor + position are
+// managed by the parent).
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+// Icons used by the test (Send/ContentCopy/Refresh) are EXTENSION PROPERTIES
+// on Icons.Filled — they must be imported individually for FQN like
+// `androidx.compose.material.icons.Icons.Default.Send` to resolve. See
+// memory `android_quarantined_tests_llm_hallucinated.md` Cat 3 trap.
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Send
+// MutableState delegate getValue/setValue are extension functions, required
+// for the `var x by remember { mutableStateOf(...) }` pattern. Without these
+// imports, Kotlin reports "Type 'TypeVariable(T)' has no method 'getValue'".
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
@@ -308,6 +334,9 @@ class AIConversationUITest {
         }
     }
 
+    // ExposedDropdownMenuBox + menuAnchor() are still experimental in
+    // material3 as of compose-bom 2024.02.00 — opt-in at the call site.
+    @OptIn(ExperimentalMaterial3Api::class)
     @androidx.compose.runtime.Composable
     private fun ModelSelectorMock(
         models: List<String>,
@@ -328,11 +357,15 @@ class AIConversationUITest {
                 modifier = androidx.compose.ui.Modifier.menuAnchor()
             )
 
-            androidx.compose.material3.ExposedDropdownMenu(
+            // Use plain DropdownMenu — material3 1.2.0 doesn't export a
+            // top-level `ExposedDropdownMenu` composable. Iterate with `for`
+            // rather than `models.forEach { }` because forEach's lambda is
+            // not @Composable and can't host the @Composable DropdownMenuItem.
+            DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                models.forEach { model ->
+                for (model in models) {
                     androidx.compose.material3.DropdownMenuItem(
                         text = { androidx.compose.material3.Text(model) },
                         onClick = {
@@ -428,6 +461,12 @@ class AIConversationUITest {
         }
     }
 
+    // MessageEntity only has id/conversationId/role/content/createdAt/
+    // tokenCount — the original `.kt.broken` helper invented tokens/model/
+    // finishReason/isStreaming/error fields that never existed on the entity
+    // (Category 1 in memory `android_quarantined_tests_llm_hallucinated.md`).
+    // Drop the invented fields; the UI tests only need id/role/content for
+    // their rendering assertions.
     private fun createMessage(
         id: String,
         role: String,
@@ -437,11 +476,7 @@ class AIConversationUITest {
         conversationId = "conv-test",
         role = role,
         content = content,
-        tokens = content.length / 4,
         createdAt = System.currentTimeMillis(),
-        model = "gpt-4",
-        finishReason = "stop",
-        isStreaming = false,
-        error = null
+        tokenCount = content.length / 4
     )
 }

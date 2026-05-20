@@ -109,21 +109,29 @@ dependencies {
 
     // Instrumented testing — un-quarantines AI_RAG_IntegrationTest.kt (was
     // .kt.broken in commit 4bfc8f474 because no androidTestImplementation block
-    // existed). Pure Room DAO test, no Compose UI needed — minimal dep set.
+    // existed) + AIConversationUITest.kt (same quarantine).
+    //
+    // AI_RAG is a pure Room DAO test (no Compose UI). AIConversationUITest
+    // uses Compose UI testing (createComposeRule + onNodeWithText), Material3
+    // experimental APIs (ExposedDropdownMenuBox), and extended material icons
+    // (Send/ContentCopy/Refresh) — hence the compose-bom + ui-test-junit4 +
+    // ui-test-manifest + material-icons-extended additions below.
     //
     // Still quarantined in this module:
-    //   - AIConversationUITest.kt.broken — same author's hallucinated
-    //     MessageEntity schema + Compose structural bugs (ExposedDropdownMenu
-    //     experimental API / invalid `var by` delegate / @Composable invocation
-    //     context). Needs deeper Compose-knowledgeable rewrite; can't be done
-    //     by AuthRepositoryTest-style dep patch alone.
     //   - AIConversationE2ETest.kt.broken — uses :app's MainActivity reverse-
     //     dep + never-existed `com.chainlesschain.android.test.*` helpers;
-    //     needs module-local TestActivity + test-helper module.
+    //     needs module-local TestActivity + test-helper module rewrite.
     androidTestImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:core:1.5.0")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // material-icons-extended needed even though :core-ui declares it as
+    // api() — the transitive dep does NOT reach androidTest compile classpath.
+    // Empirically verified via KnowledgeUITest unquarantine (commit 6afedbbf8).
+    androidTestImplementation("androidx.compose.material:material-icons-extended")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
