@@ -49,6 +49,7 @@ const { DouyinAdapter } = require("./adapters/social-douyin");
 const { XiaohongshuAdapter } = require("./adapters/social-xiaohongshu");
 const { QQAdapter } = require("./adapters/messaging-qq");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
+const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
@@ -239,6 +240,7 @@ module.exports = {
   XiaohongshuAdapter,
   QQAdapter,
   TelegramAdapter,
+  WhatsAppAdapter,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
