@@ -275,19 +275,25 @@ DEPLOYS = [
     # release-sizes.json from v5.0.3.70 → v5.0.3.73 (latest GitHub Release;
     # .74 has no release pipeline yet — productVersion bumped locally only
     # for dev marker).
-    # {
-    #     "name": "docs.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260520-165018.tar.gz",
-    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    # },
+    # 2026-05-21 07:19 3-site refresh — aside changelog 条目 + Plan A 真机闭环
+    # verified (traps 16/17 收口) + iOS PIN 闪退两轮 hotfix 笔记 + Android
+    # quarantine 7→0 收尾 + HiltTestRunner wire。productVersion 此时已并行
+    # session bump 到 v5.0.3.75（release.yml CI 出 GitHub Release 中），但
+    # changelog 入口仍走 "in-progress aside"（5 commit 仍在路上，等 .ips
+    # 定锤后并入下一 tag）。release-sizes 不动。
+    {
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260521-0719.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.74-20260520-212101.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.74-20260521-0719.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.74-20260520-211547.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.74-20260521-0719.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
