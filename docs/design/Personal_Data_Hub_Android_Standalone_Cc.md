@@ -450,6 +450,10 @@ cc nl "我妈生日那周买了啥送哪儿"
 
 12. **APK 体积 244MB → 250MB++ 后 Play Store 限制** — Google Play APK 上限 200MB（AAB Dynamic Delivery 没限，但用户走 GitHub release apk）。Mitigation: Plan A 启动 LLM 模型走 on-demand download（首次 `cc llm pull qwen2.5:1.5b`），APK 不内置 → 体积可控；APK 内只 +20MB llama.rn 库。
 
+13. **`build:web-panel` 重生成 `packages/web-panel/dist/index.html` 让 git pull --rebase 拒绝** — `node-runtime-bundle.yml` step 14 跑 `npm run build:web-panel` 重生成 dist 下 git-tracked 文件。这是 expected behavior（用于让 `cc ui` SPA 跟 cc CLI 版本同步），但其残留为 unstaged change，下一步 pull --rebase 拒 `cannot pull with rebase: You have unstaged changes`。**Mitigation 已落 acf5c1d21**: `git pull --rebase --autostash origin main`。`--autostash` stash unstaged → rebase → restore，对 auto-managed 路径完全等价 since rebuild deterministic。Run 26147569387 verified.
+
+14. **Node 24+ `common.gypi` 要求 `android_ndk_path` GYP_DEFINES 变量** — Node 24/25/26 的 `common.gypi` 在 `OS == "android"` 条件块用 `'-I<(android_ndk_path)/sources/android/cpufeatures'` cflag。如果没设此变量，gyp 报 `Undefined variable android_ndk_path in binding.gyp while trying to load binding.gyp`。Run 26147834392 verified；**Mitigation 已落 acf5c1d21**: `bs3mc-android-prebuild.yml` 设 `GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"`。注：NDK r27 已无 `sources/android/cpufeatures` 目录，但 gyp 只展开变量不验证路径存在性，所以不影响 build（除非 bs3mc 真的 #include cpufeatures.h，bs3mc 不用 cpufeatures）。
+
 ---
 
 ## 10. 与 Phase 14 Plan B 的协同
