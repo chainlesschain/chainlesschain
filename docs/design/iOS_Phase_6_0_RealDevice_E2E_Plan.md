@@ -1,6 +1,6 @@
 # iOS Phase 6.0 真机 E2E Plan — Mac + iPhone + 真桌面
 
-> **状态**：草案 v1.0（2026-05-18）。整个 Phase 6 sprint 收口最后一项：硬件在场跑通 15 main tab × ~75 method 真链路。
+> **状态**：草案 v1.1（2026-05-20，Win-side reproducer audit — D2/D3/D6 `cc notification send` 已 land 标记 stale gap 关闭 / B3 PowerShell 错指令修为 force-quit 桌面 / §7 `cc cli ai.getModels` 修为 `cc llm models`；v1.0 2026-05-18 初版）。整个 Phase 6 sprint 收口最后一项：硬件在场跑通 15 main tab × ~75 method 真链路。
 >
 > **背景**：Win dev box 不能装 Swift，~1500 LOC iOS 改动只在 macOS iOS CI 编译验过（绿基线 `1fb947b32`），但 runtime 行为（DC 握手 / 流式 chunk / 跨网络往返 / iOS API 权限）从未跑过真机。本 plan 是 reproducer 清单，让 Mac + iPhone 持有者按表执行。
 >
@@ -121,8 +121,8 @@ iPhone 设置 → Wi-Fi → 选与桌面机同一 SSID。验：iPhone Safari 能
 **Reproducer**：
 - **B1**：iPhone WiFi 模式 → Terminal tab → 单击桌面行 → xterm.js webview 弹出。打字 `ls`<Enter> → 看输出。秒表起：tap 到首个 prompt 字符出现。
 - **B2**：iPhone 切蜂窝 → 重新进 Terminal → 一样跑 `ls`。开 `top` 命令让 stdout 持续滚 30 min → 验中途无中断、无重连提示。
-- **B3**：先 B1 连接好。桌面 PowerShell：`Get-Process node | Where-Object {$_.MainWindowTitle -match "mobile"} | Stop-Process`（或在 task manager 杀对应 node 进程）。iPhone 验：Terminal 顶部 chip 颜色切换 + 仍能 type。
-- **B4**：`cd desktop-app-vue && npm run dev` 重启 → iPhone chip 颜色切回。
+- **B3**：先 B1 连接好。`mobile-bridge.js` 是 Electron 主进程内嵌模块，无法独立 kill —— 改用整体 force-quit 桌面 app（Mac: `Cmd+Q` 或 dock 图标右键 Quit；Win: 关闭主窗口或任务栏 → 右键 → 关闭窗口）。iPhone 验：Terminal 顶部 chip 颜色由绿（直连）→ 橙（relay）；30s 后桌面未起 → chip 红（offline）。**注**：Plan v1.0 写的 `Get-Process node \| Where MainWindowTitle -match "mobile"` 不工作（Node 进程没 MainWindowTitle，filter 匹配 0 项）；v1.1 修正为 force-quit 整体桌面（更贴近真用户场景：桌面崩溃 / Update 重启）。
+- **B4**：`cd desktop-app-vue && npm run dev` 重启 → iPhone chip 颜色切回绿。
 
 ---
 
@@ -192,7 +192,7 @@ cc notification send --target did:cc:iphone-7890 --title x --body y --json
 
 直接抄 design `iOS_Phase_5_AI_Chat_Skill.md` §8.4 reproducer 全文 — 已写得很细，重复一遍冗余。
 
-**预检**：桌面 Ollama 已起 + 至少一个 model（如 `qwen2:7b`）pulled。在桌面 `cc cli ai.getModels` 验返非空。
+**预检**：桌面 Ollama 已起 + 至少一个 model（如 `qwen2:7b`）pulled。在桌面跑 `cc llm models` 验返非空（Plan v1.0 写的 `cc cli ai.getModels` 命令不存在；v1.1 修正）。或直接 `curl http://localhost:11434/api/tags` 看 Ollama 原始返回。
 
 8 场景：列表拉取 / token-by-token 流式 / cancel ≤ 1s / tab 切换保留 / 离线发问 banner / 离线创建入队 / 长对话 100 limit / pull-to-refresh。**第 6.0 这版加 1 个增量**：
 
