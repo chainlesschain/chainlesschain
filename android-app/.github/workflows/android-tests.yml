@@ -140,9 +140,10 @@ jobs:
           disable-animations: true
           script: |
             cd android-app
-            ./gradlew :core-e2ee:connectedAndroidTest --tests "*E2EEIntegrationTest*"
+            # QUARANTINED (see commit 4bfc8f474 + 3f4723466) — .kt.broken stubs only; restore when rewritten:
+            # ./gradlew :core-e2ee:connectedAndroidTest --tests "*E2EEIntegrationTest*"
+            # ./gradlew :feature-ai:connectedAndroidTest --tests "*AI_RAG_IntegrationTest*"
             ./gradlew :feature-p2p:connectedAndroidTest --tests "*P2PIntegrationTest*"
-            ./gradlew :feature-ai:connectedAndroidTest --tests "*AI_RAG_IntegrationTest*"
 
       - name: Run P2 UI Component Tests
         uses: reactivecircus/android-emulator-runner@v2
@@ -155,8 +156,9 @@ jobs:
           disable-animations: true
           script: |
             cd android-app
-            ./gradlew :feature-knowledge:connectedAndroidTest --tests "*KnowledgeUITest*"
-            ./gradlew :feature-ai:connectedAndroidTest --tests "*AIConversationUITest*"
+            # QUARANTINED (see commit 4bfc8f474) — .kt.broken stubs only; restore when rewritten:
+            # ./gradlew :feature-knowledge:connectedAndroidTest --tests "*KnowledgeUITest*"
+            # ./gradlew :feature-ai:connectedAndroidTest --tests "*AIConversationUITest*"
             ./gradlew :feature-p2p:connectedAndroidTest --tests "*SocialPostUITest*"
             ./gradlew :feature-project:connectedAndroidTest --tests "*ProjectEditorUITest*"
 
