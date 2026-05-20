@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-20 Ship — **Personal Data Hub 13-phase burst + iOS keychain hotfix repackage (v5.0.3.71/.72)**
+
+> Personal Data Hub rolled from Phase 4 (real third-party wiring) all the way to Phase 13.7 (seven social adapters all live) in one evening across 15 commits `763047a22 → b2baf4eda`. `.72` also fixes the release-pipeline bug that made every `.71` desktop build die with EUSAGE.
+
+- **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**: JS↔Python subprocess JSON-RPC wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 real sjqz parsers without rewriting.
+- **Phase 7 / 7.5 / 9 — Three consumer-scene adapter packs**: Shopping three-pack (Taobao + JD + Meituan) / Mobile Extraction Layer (Android ADB + iOS iTunes encrypted backup, dual-path) / Travel four-pack.
+- **Phase 10.1 + 10.2 — AIChat 8/8 vendors all live**: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan; HttpClient infra wired retry-with-backoff + progress streaming.
+- **Phase 11 — 5 built-in analysis skills** callable by LLM across hub data sources.
+- **Phase 12 v0.5 — WechatAdapter frida-independent slice**, T3 risk dropped High → Medium. Full SQLCipher dump still on the v1.0 frida path.
+- **Phase 13.3-13.7 — 5 social adapters**: Douyin + Xiaohongshu + QQ + Telegram + WhatsApp. WhatsApp completes the sjqz parser port. + 13+ Bilibili + Weibo via sjqz parsers.
+- **Quality**: 47 test files / 927 tests all green (with 6 new cross-adapter integration scenarios + 3 full E2E user-journey scenarios). The 2026-05-20 closing test sweep also surfaced and fixed 2 real bugs: SpendingSkill missing `subtype: "order"` coverage (Phase 7 Shopping events did not roll into the spending report) + AlipayBillAdapter missing `extra.counterparty` (analysis skills could not group by merchant).
+- **.72 release-pipeline fix**: `.71` had every desktop build die with EUSAGE — root `package-lock.json` out of sync with `personal-data-hub/package.json` (Phase 12/13 added `adm-zip` + `iconv-lite` optional deps but root lock missed them). `5d8ba08b5` synced the lock + `d03c87d0a` bumped `packages/cli` in root lock to `0.162.7`, then `.72` repackaged the same iOS keychain `Logger` NSLock fix and shipped 18 assets complete. **`.71` does not exist in GitHub Release** (code on main + npm 0.162.7 published, only desktop installers missing); the actual artifact is `.72`.
+
 ## 2026-05-20 Ship — **iOS hotfix triple: PIN-unlock crash + AppIcon wiring + SQL bind (v5.0.3.70)**
 
 > Three real iOS bugs swept in one pass + `.69` changes bundled forward. The `.69` release was stuck in draft for 8h+ because `publish-cli` hit an npm 404; `.70` repacks every `.69` change plus the AppIcon wiring fix, and a `publish-cli` rerun finally flipped the draft → published (18 assets, Latest).

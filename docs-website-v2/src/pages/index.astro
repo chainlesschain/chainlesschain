@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.72 · 2026-05-20',
+    title: 'Personal Data Hub 一晚 13-phase burst — 8/8 AIChat 真厂商接通 + 7 social adapter + .72 iOS keychain hotfix repackage',
+    sub: 'Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地，一晚 15 commits 763047a22 → b2baf4eda。Phase 4.5 Python sidecar bridge + SystemDataAdapter 接 4 个 Android system source（通讯录 / 通话记录 / 短信 / 位置）借 sjqz 项目 17 个真已写 parser 避免重写。Phase 7 Shopping three-pack（Taobao + JD + Meituan）+ Phase 7.5 Mobile Extraction Layer（Android ADB + iOS iTunes encrypted backup）+ Phase 9 Travel four-pack。Phase 10.1+10.2 AIChat 8/8 vendors 全部 live：DeepSeek 官方 API + Kimi 逆 h5 私有 API + 通义千问 + 智谱清言 GLM + Doubao 豆包 + 文心一言 + 讯飞星火 + 腾讯混元，HttpClient infra 接 retry-with-backoff + progress streaming。Phase 11 5 个内置 analysis skill 跨数据源调用。Phase 12 v0.5 WechatAdapter 切 frida-independent slice，T3 风险高→中。Phase 13.3-13.7 五 social adapter 落地（Douyin + Xiaohongshu + QQ + Telegram + WhatsApp）+ 13+ Bilibili + Weibo 借 sjqz parser 一并接通。38 test files / 792 tests 全绿。',
+    desc: 'v5.0.3.72 同时是 release pipeline 工程复盘。v5.0.3.71 desktop build 全 EUSAGE — root package-lock.json 与 packages/personal-data-hub/package.json 不同步：hub 在 Phase 12/13 滚动期间加了 adm-zip@^0.5.16（解 iTunes encrypted backup zip）+ iconv-lite@^0.6.3（解 GBK 编码 social 历史）两 optional dep，workspace 各自 package.json 已声明但 root package-lock 未 sync 进去，所有 5 个平台 desktop installer 跑到 electron-builder 步全 EUSAGE 退出。5d8ba08b5 fix(deps) sync root lock 后跳过 .71 直接 ship .72 repackage 同样 iOS keychain Logger.swift NSLock 防并发崩溃修（与 .70 同一 commit 625e86819 forward），.72 真出包 18 assets 完整。d03c87d0a 后续把 packages/cli 在 root lock 里也 bump 到 0.162.7 收口避免相同问题再出现。版本面：CLI 0.162.5 → 0.162.8 / productVersion v5.0.3.70 → v5.0.3.72（跳 .71）/ desktop-app-vue 5.0.3-alpha.70 → .72 / iOS CFBundleVersion 70 → 72 / Android versionCode 503070 → 503072. 实际真发布的是 .72，.71 在 GitHub Release 列表里不存在，但 lib/adapters 代码在 main 上 + npm chainlesschain@0.162.7 已发，仅 desktop installer 走 .72 那条 release。',
+  },
+  {
     tag: 'v5.0.3.70 · 2026-05-20',
     title: 'iOS hotfix 三件套 — PIN-unlock crash 修 + AppIcon 真编进包 + SQL bind',
     sub: '三个 iOS 真 bug 一次扫净。iOS 16 PIN 解锁闪退（Logger metadata 字典并发改写 EXC_BAD_ACCESS → NSLock 保护 read/write 路径）+ AuthViewModel.createPrimaryDID SQL 参数没真绑（之前调 execute(_:) 不带 parameters 重载 → 改 execute(_:parameters:) 重载）+ AppIcon 从 v0 起就从未真正编进包（Assets.xcassets 在 pbxproj 被声明为 PBXGroup 不是 PBXFileReference type=folder.assetcatalog，且没加进 PBXResourcesBuildPhase，actool 从未被调用，18 张 AppIcon + 3 张 LaunchIcon 全套素材搁仓里几个月没生效，主屏一直显示 wireframe 占位）。',
@@ -370,6 +376,120 @@ const badges = [
           <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">AI 原生</div>
           <div class="text-sm text-ink/80">本地大模型（Ollama / LLaMA / Qwen）· 默认不上传 prompt · AI 增强搜索 + Agent 编排。</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 个人数据中台（Personal Data Hub）═══════════════════════════════ -->
+  <section class="py-24 md:py-32 bg-ink text-cream relative overflow-hidden">
+    <!-- 装饰底纹 -->
+    <div class="absolute inset-0 opacity-[0.04] pointer-events-none" aria-hidden="true">
+      <div class="absolute top-10 left-10 w-72 h-72 rounded-full bg-ember blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-ember blur-3xl"></div>
+    </div>
+
+    <div class="container-wide relative">
+      <div class="max-w-4xl mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.72 新</span>
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight font-display">
+          把散落各处的数字足迹，<br/>
+          <span class="italic text-ember">汇成一份只属于你的金库。</span>
+        </h2>
+        <p class="mt-6 text-xl md:text-2xl text-cream/80 leading-relaxed">
+          邮件 · 微信 · 支付宝 · 8 家 AI Chat · 7 大社交平台 · 电商 · 旅行 · Android 系统数据 ——<br class="hidden md:block"/>
+          <span class="text-cream">22+ 数据源端到端拉回本地</span>，谁也拿不走。
+        </p>
+        <p class="mt-5 text-base text-cream/60 italic max-w-2xl">
+          "让数据主权回归个人" 不是口号 —— 是 22 个真接通的适配器、5 个内置分析技能、1 份本地加密金库。
+        </p>
+      </div>
+
+      <!-- 5-grid 数据源分类 -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📧</div>
+          <div class="font-display text-lg mb-2">邮件 / 账单</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· IMAP 全协议 邮箱</li>
+            <li>· 支付宝账单 CSV / PDF</li>
+            <li>· 6 模板抽取（账单/订单/出行）</li>
+            <li>· PDF 解密 + 交易明细</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🤖</div>
+          <div class="font-display text-lg mb-2">AI Chat 历史</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· DeepSeek · Kimi · 通义</li>
+            <li>· 智谱 · 豆包 · 文心</li>
+            <li>· 讯飞星火 · 腾讯混元</li>
+            <li class="text-ember/80 font-mono text-[10px] pt-1">8 / 8 全接通</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">💬</div>
+          <div class="font-display text-lg mb-2">社交平台</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· 微信（SQLCipher）</li>
+            <li>· QQ · 微博 · B 站</li>
+            <li>· 抖音 · 小红书</li>
+            <li>· Telegram · WhatsApp</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🛍️</div>
+          <div class="font-display text-lg mb-2">消费 / 出行</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· 淘宝 · 京东 · 美团</li>
+            <li>· 携程 · 飞猪</li>
+            <li>· Booking · Airbnb</li>
+            <li>· 订单/物流/评价聚合</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📱</div>
+          <div class="font-display text-lg mb-2">系统数据</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· 通讯录 · 通话记录</li>
+            <li>· 短信 · 位置历史</li>
+            <li>· Android ADB 备份</li>
+            <li>· iOS iTunes encrypted</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 3-feature 下沉条 -->
+      <div class="grid md:grid-cols-3 gap-4 mb-10">
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">本地金库</div>
+          <div class="text-sm text-cream/85 leading-relaxed">SQLCipher AES-256 加密落盘，数据从不上传云端 —— 邮件密码、聊天密钥、账单金额，全在你的设备里。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">5 个内置分析技能</div>
+          <div class="text-sm text-cream/85 leading-relaxed">消费趋势 · 出行画像 · 沟通频率 · 内容偏好 · 时间分布 —— LLM 直接调，问"我去年在哪三家店花得最多"立刻有答案。</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">实体归一化（EntityResolver）</div>
+          <div class="text-sm text-cream/85 leading-relaxed">"张三" / "Zhang San" / "+86 138-xxxx" 自动认成同一人 —— 跨邮件/微信/通讯录的关系图谱真接得起来。</div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex flex-wrap gap-3 items-center">
+        <a href="https://docs.chainlesschain.com/chainlesschain/personal-data-hub.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-ember text-ink font-medium hover:bg-ember/90 transition-colors">
+          完整功能介绍 →
+        </a>
+        <a href="https://design.chainlesschain.com/design/Personal_Data_Hub_Architecture.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-cream/20 text-cream/80 hover:border-ember hover:text-cream transition-all">
+          架构设计文档 ↗
+        </a>
+        <span class="text-xs font-mono text-cream/40 ml-2">47 test files / 927 tests · 6 集成 + 3 E2E 场景 · 8 / 8 AIChat vendor 真接通</span>
       </div>
     </div>
   </section>

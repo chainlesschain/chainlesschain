@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-20 收口 — **Personal Data Hub 一晚 13-phase burst + iOS keychain hotfix repackage (v5.0.3.71/.72)**
+
+> Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地，一晚 15 commits `763047a22 → b2baf4eda`。同时 `.72` 修了 `.71` desktop build 全 EUSAGE 的 release 工程 bug。
+
+- **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**：JS↔Python 进程间 JSON-RPC 桥接接 4 个 Android system source（通讯录 / 通话记录 / 短信 / 位置）借 sjqz 项目 17 个真已写 parser 避免重写。
+- **Phase 7 / 7.5 / 9 — 三大消费场景 adapter 齐落**：Shopping three-pack（Taobao + JD + Meituan）/ Mobile Extraction Layer（Android ADB + iOS iTunes encrypted backup 双路）/ Travel four-pack。
+- **Phase 10.1 + 10.2 — AIChat 8/8 vendors 全部 live**：DeepSeek 官方 API + Kimi 逆 h5 私有 API + 通义千问 + 智谱清言 GLM + Doubao + 文心一言 + 讯飞星火 + 腾讯混元，HttpClient infra 接 retry-with-backoff + progress streaming。
+- **Phase 11 — 5 个内置 analysis skill** 跨 hub 数据源调用，LLM 直接调。
+- **Phase 12 v0.5 — WechatAdapter 切 frida-independent slice**，T3 风险高→中。完整 SQLCipher dump 仍走 v1.0 frida 路径。
+- **Phase 13.3-13.7 — 5 social adapter 落地**：Douyin + Xiaohongshu + QQ + Telegram + WhatsApp。WhatsApp 完成 sjqz parser port。+ 13+ Bilibili + Weibo 借 sjqz parser。
+- **质量面**：47 test files / 927 tests 全绿（含新增 6 个跨 Adapter 集成 + 3 个 E2E 用户旅程场景）。2026-05-20 收尾 test sweep 顺手扫出并修了 2 个真 bug：SpendingSkill 漏覆盖 `subtype: "order"` (Phase 7 Shopping 事件不进消费报表) + AlipayBillAdapter 漏导出 `extra.counterparty` (分析技能按商户分组失败)。
+- **`.72` release 工程修复**：`.71` 全 5 平台 desktop build EUSAGE — root `package-lock.json` 与 `personal-data-hub/package.json` 不同步（Phase 12/13 加的 `adm-zip` + `iconv-lite` optional dep 未注册到 root lock）。`5d8ba08b5` sync lock + `d03c87d0a` packages/cli root lock bump 到 `0.162.7` 收口，`.72` repackage 同样 iOS keychain Logger NSLock 修真出包 18 assets 完整。**`.71` GitHub Release 不存在**（代码在 main + npm 0.162.7 已发，仅 desktop installer 缺），实际只发了 `.72`。
+
 ## 2026-05-20 收口 — **iOS 三件套 hotfix：PIN-unlock crash + AppIcon 真编进包 + SQL bind (v5.0.3.70)**
 
 > 三个 iOS 真 bug 一次扫净 + bundle .69 forward。`.69` release 因 `publish-cli` npm 404 卡 draft 8h+；`.70` 重打 `.69` 的所有变更 + AppIcon wiring 修复，重跑 `publish-cli` 成功 PATCH 发布（最终 18 assets 全齐 Latest）。

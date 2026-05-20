@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.71 (Phase 0–11 + Phase 12 v0.5 + Phase 10 skeleton 已落地, 2026-05-20) | 状态: 🚧 渐进可用 — Email + Alipay + SystemData 三个 adapter 已端到端打通, WeChat (v0.5 frida-indep) 与 AIChatHistory (skeleton) 待 wiring | 21 IPC 通道 + 21 WS 主题 | 38 测试文件 / 792 单元测试 | 设计文档: 13-Phase 路线图**
+> **版本: v5.0.3.72 (Phase 0–13 全部落地 + 集成/E2E 测试收口, 2026-05-20) | 状态: ✅ 可用 — 19 个 Adapter 已实现 (Email + Alipay + SystemData + WeChat v0.5 + 4 Travel + 3 Shopping + 4 Social + 3 Messaging + 1 AIChat × 8 厂商) + Mobile Extraction Layer (Android ADB / iOS iTunes backup) + EntityResolver 跨源人物归并 + 5 内置 Analysis Skill (Spending / Relations / Footprint / Interests / Timeline) | 21 IPC 通道 + 21 WS 主题 | **47 测试文件 / 927 测试（含 6 集成 + 3 E2E 场景）** | 设计文档: 13-Phase 路线图 + 7 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -54,7 +54,9 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 用户查询层（自然语言）                                          │
-│  ChatPanel / iOS AIChat / Android Chat / 桌面 PersonalDataHub │
+│  桌面 PersonalDataHub.vue (Electron / V6)                     │
+│  Web-Shell PersonalDataHub.vue (cc ui via WS)                 │
+│  移动端 Phase 14 路线图（远程操控 RPC，hub.ask 走 P2P DC）     │
 │  Q: "上个月我妈生日那周买了啥送哪儿？"                          │
 └─────────────────┬───────────────────────────────────────────┘
                   ↓
@@ -93,23 +95,47 @@
 └─────────────────────────┬───────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Adapter 层 (每个 App 一个 Skill)                              │
+│ Adapter 层 (16 个，每个 App 一个 Skill)                       │
+│                                                              │
+│  Web API / Cookie 类：                                       │
 │  ┌─────────────┐ ┌─────────────┐ ┌──────────────┐           │
-│  │ EmailIMAP ✅│ │ AlipayBill ✅│ │ SystemData ✅│           │
-│  │  (P5.1-5.7) │ │  (P6.1-6.5) │ │   (P4.5)     │           │
+│  │ EmailIMAP ✅│ │ AlipayBill ✅│ │ AIChat × 8 ✅│           │
+│  │  (P5.1-5.7) │ │  (P6.1-6.5) │ │ (P10.2 8/8)  │           │
 │  └─────────────┘ └─────────────┘ └──────────────┘           │
-│  ┌──────────────┐ ┌──────────────┐ ┌───────────────┐        │
-│  │ WeChat 🚧0.5 │ │ AIChat 🚧 skl│ │ Mobile Extr ✅│        │
-│  │  (P12 frida- │ │  (P10.1 skel)│ │   (P7.5 ADB)  │        │
-│  │  indep slice)│ │              │ │               │        │
-│  └──────────────┘ └──────────────┘ └───────────────┘        │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │ Taobao 📐   │ │ Amap 📐     │ │ 12306 📐    │            │
-│  │ (P7 design) │ │ (P9 design) │ │ (P9 design) │            │
-│  └─────────────┘ └─────────────┘ └─────────────┘            │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
+│  │ Taobao ✅    │ │ JD ✅        │ │ Meituan ✅   │         │
+│  │  (P7 Cookie) │ │  (P7 Cookie) │ │  (P7 Cookie) │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
+│  │ Amap ✅      │ │ Baidu Map ✅ │ │ Ctrip ✅     │         │
+│  │  (P9 Cookie) │ │  (P9 Cookie) │ │  (P9 Cookie) │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌──────────────┐                                            │
+│  │ 12306 ✅     │                                            │
+│  │  (P9 web)    │                                            │
+│  └──────────────┘                                            │
+│                                                              │
+│  本机 / 移动端 SQLite 类（借 sjqz parser 复用）：           │
+│  ┌──────────────┐ ┌─────────────┐ ┌──────────────┐          │
+│  │ SystemData ✅│ │ Mobile Ext ✅│ │ WeChat 🚧0.5 │          │
+│  │  (P4.5 sidecar)│(P7.5 ADB/iOS)│ │ (P12 frida-  │          │
+│  │              │ │              │ │  indep slice)│          │
+│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
+│  │ Bilibili ✅  │ │ Weibo ✅     │ │ Douyin ✅    │         │
+│  │  (P13.1)     │ │  (P13.2)     │ │  (P13.3)     │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
+│  │ Xiaohongshu ✅│ │ QQ ✅        │ │ Telegram ✅  │        │
+│  │  (P13.4)     │ │  (P13.5)     │ │  (P13.6)     │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌──────────────┐                                            │
+│  │ WhatsApp ✅  │                                            │
+│  │  (P13.7)     │                                            │
+│  └──────────────┘                                            │
 └─────────────────────────────────────────────────────────────┘
 
-  ✅ 已上线  🚧 设计已完成 / 实现中  📐 路线图（已有设计文档，待实施）
+  ✅ 已上线  🚧 部分实现（v0.5 frida-indep 路径已通，frida-dep 路径与真机 E2E 待）
 ```
 
 ### 5 类核心实体
@@ -126,20 +152,31 @@
 
 > 设计原则：核心 5 类强 schema (跨源对齐用)，子类型只是约束 `extra` 字段语义；新数据源不在 5 类里的字段全挂 `extra: Record<string, any>` 兜底，schema 演化不破坏既有数据。
 
-### 已落地 vs 设计中
+### 已落地 vs 路线图
+
+> 截至 2026-05-20，所有路线图 adapter (Phase 5/6/4.5/7.5/7/9/10/12/13) 已全部完成首版实现并合入主干；WeChat (12) 与 AIChatHistory UI (10.3) 还有 follow-up。
 
 | Adapter | 状态 | 数据源 | 采集机制 | 验证 |
 |---|---|---|---|---|
-| **EmailAdapter** | ✅ 已上线 (Phase 5.1-5.7) | IMAP 邮箱（QQ / Gmail / 163 / …） | IMAP 授权码 + UID 水位 | 单测 ≥390 / E2E 真账号 OK |
-| **AlipayBillAdapter** | ✅ 已上线 (Phase 6.1-6.5) | 支付宝官方账单 ZIP | 用户在 App 内导出 → 拖入桌面 / Web → ZIP 解密 + CSV 解析 | smoke test green |
+| **EmailAdapter** | ✅ 已上线 (Phase 5.1-5.7) | IMAP 邮箱（QQ / Gmail / 163 / …） | IMAP 授权码 + UID 水位 + PDF 解密 + 6 模板 | 单测 ≥390 / E2E 真账号 OK |
+| **AlipayBillAdapter** | ✅ 已上线 (Phase 6.1-6.5) | 支付宝官方账单 ZIP | 用户在 App 内导出 → 拖入桌面 / Web → ZIP 解密 + CSV 解析 + 对手方归一化 | smoke test green |
 | **SystemDataAdapter** | ✅ 已上线 (Phase 4.5) | Android 通讯录 / 通话 / 短信 / WiFi | Python sidecar (forensics-bridge) + adb pull | 单测 50+ |
 | **Mobile Extraction Layer** | ✅ 已上线 (Phase 7.5) | Android ADB + iOS iTunes backup 提取层 | adb / pymobiledevice3 | 单测 + 真机 E2E |
 | **EntityResolver** | ✅ 已上线 (Phase 8) | 跨源 Person / Place 消歧 | 三段 pipeline（规则 + embedding + LLM）+ ingest hook + UI 队列 | 单测全绿 |
 | **5 Analysis Skills** | ✅ 已上线 (Phase 11) | spending / relations / footprint / interests / timeline | 内置 skill + Workflow | 单测全绿 |
-| **WechatAdapter** | 🚧 v0.5 已落地 (Phase 12 frida-indep slice) | 微信本地 SQLCipher DB | content-parser + MD5(IMEI+UIN)[:7] 解密 + SQLCipher 三 pragma profile | 41 单测；剩 Phase 12.6+ frida-dep 路径 + 真机验证 |
-| **AIChatHistoryAdapter** | 🚧 v0.1 skeleton 已落地 (Phase 10.1) | 8 家国产 AI（DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina） | Cookie + WebView 鉴权 + h5 API | 27 单测（contract + schema-map 全覆盖；vendor wiring 待 Phase 10.2+） |
-| TaobaoAdapter / JD / Meituan | 📐 设计完 (Phase 7) | 三家电商订单 / 收藏 / 评价 / 收货地址 | Cookie + web API | 设计稿 `Adapter_Shopping_Cookie.md` |
-| AmapAdapter / Baidu / Ctrip / 12306 | 📐 设计完 (Phase 9) | 高德/百度足迹 + 携程订单 + 12306 行程 | Cookie + 被动 webRequest（12306）| 设计稿 `Adapter_Travel_LBS.md` |
+| **TaobaoAdapter** | ✅ 已上线 (Phase 7) | 淘宝订单 / 收藏 / 评价 / 收货地址 | Cookie + web API（共享 `shopping-base`）| 单测全绿 |
+| **JDAdapter** | ✅ 已上线 (Phase 7) | 京东订单 / 收藏 / 评价 | Cookie + web API | 单测全绿 |
+| **MeituanAdapter** | ✅ 已上线 (Phase 7) | 美团订单 / 外卖 / 收藏 | Cookie + web API | 单测全绿 |
+| **AmapAdapter** | ✅ 已上线 (Phase 9) | 高德足迹 / 收藏地点 | Cookie + my.amap.com API（共享 `travel-base`）| 单测全绿 |
+| **BaiduMapAdapter** | ✅ 已上线 (Phase 9) | 百度地图足迹 / 收藏 | Cookie + map.baidu.com API | 单测全绿 |
+| **CtripAdapter** | ✅ 已上线 (Phase 9) | 携程酒店 / 机票 / 火车票订单 | Cookie + my.ctrip.com API | 单测全绿 |
+| **12306Adapter** | ✅ 已上线 (Phase 9) | 12306 行程 / 订单 | 被动 webRequest 拦 + JSON 解析 | 单测全绿 |
+| **AIChatHistoryAdapter × 8** | ✅ 已上线 (Phase 10.2 完整) | 8 家国产 AI（DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 百度千帆 / 字节扣子 / 即梦 Dreamina） | 共享 HttpClient (cookie + rate-limit + 指数退避) + 各家 h5 API | 79 单测；剩 Phase 10.3 WebView 真账号 smoke |
+| **Social × 4** (Bilibili / Weibo / Douyin / Xiaohongshu) | ✅ 已上线 (Phase 13.1-13.4) | Android 本机 SQLite (B 站 history / 微博 timeline / 抖音 watch / 小红书 收藏) | Mobile Extraction Layer pull + 借 sjqz parser 移植 | 单测全绿 |
+| **Messaging × 3** (QQ / Telegram / WhatsApp) | ✅ 已上线 (Phase 13.5-13.7) | Android 本机加密 SQLite（QQ msg.db / TG / WhatsApp msgstore.db crypt14）| MEL pull + key-provider 解密 + sjqz parser 移植 | 单测全绿 |
+| **WechatAdapter** | 🚧 v0.5 已落地 (Phase 12 frida-indep slice) | 微信本地 SQLCipher DB（Android 7.x 路径 + PC WeChat Files）| content-parser + MD5(IMEI+UIN)[:7] 解密 + SQLCipher 三 pragma profile | 41 单测；剩 Phase 12.6+ frida-dep (Android 8.0+ libwcdb hook) + Phase 12.9 真机 E2E |
+
+> Phase 13 七个 adapter 借 sjqz 已有 Python parser 移植到 Node.js — 详见 [`Adapter_Social_Messaging.md`](https://design.chainlesschain.com/Adapter_Social_Messaging.html)（本批最新加入）。
 
 ### Phase 历史
 
@@ -151,6 +188,7 @@
 | 3 | AnalysisEngine | NL Q&A + 隐私 gate + citation 校验 | 220 |
 | 3.5 | 桥接生产 | CcLLMAdapter + CcKgSink + CcRagSink (DI) | 268 |
 | 3.5b | 跨壳接线 | 21 IPC 通道 + 21 WS 主题 | — |
+| 4.5 | SystemDataAdapter | Python sidecar + 通讯录 / 通话 / 短信 / WiFi | 累计中 |
 | 5.1 | EmailAdapter | IMAP + 授权码 + UID 水位 | 317 |
 | 5.2 | Email parse | 正文解析 + 附件元数据 | 345 |
 | 5.3 | Email classifier | 规则 (Layer 1) + LLM (Layer 2) 兜底 | 390 |
@@ -160,15 +198,19 @@
 | 5.7 | 流式同步 | 进度推送 + 指数退避重试 + E2E Runbook | 累计中 |
 | 6.1+6.2 | AlipayBillAdapter | CSV 解析 + ZIP 解密 + 对手方归一化 | 累计中 |
 | 6.3-6.5 | Alipay wiring | WS / IPC + Web-Panel UI + smoke | 累计中 |
-| 4.5 | SystemDataAdapter | Python sidecar + 通讯录 / 通话 / 短信 / WiFi | 累计中 |
+| 7 | Shopping three-pack | Taobao / JD / Meituan + 共享 `shopping-base` Cookie 客户端 | 累计中 |
 | 7.5 | Mobile Extraction Layer | Android ADB + iOS iTunes backup | 累计中 |
 | 8 | EntityResolver | 规则 + embedding + LLM 三段 pipeline + ingest hook + UI 队列 + eval gate | 累计中 |
+| 9 | Travel four-pack | Amap / Baidu Map / Ctrip / 12306 + 共享 `travel-base` | 累计中 |
+| 10.1 | AIChatHistoryAdapter skeleton | 8 vendor stub + cookie-auth + schema-map + contract | +27 |
+| 10.2 | AIChatHistoryAdapter wiring | DeepSeek / Kimi / 通义 / 智谱 / 混元 / 千帆 / 扣子 / Dreamina 全 8 厂商接 h5 API + 共享 HttpClient | 累计 +52 |
 | 11 | Analysis Skills | spending / relations / footprint / interests / timeline | 累计中 |
 | 12 v0.5 | WechatAdapter (frida-indep) | content-parser + key-extractor (MD5(IMEI+UIN)[:7]) + db-reader + normalize | +41 |
-| 10.1 | AIChatHistoryAdapter skeleton | 8 vendor stub + cookie-auth + schema-map + contract | +27 |
-| 当前合计 | — | — | **38 文件 / 792 测试** |
+| 13.1-13.4 | Social four-pack | Bilibili / Weibo / Douyin / Xiaohongshu (借 sjqz Python parser 移植) | 累计中 |
+| 13.5-13.7 | Messaging three-pack | QQ / Telegram / WhatsApp (借 sjqz parser + 加密 DB 解密) | 累计中 |
+| 当前合计 | — | — | **47 文件 / 927 测试** |
 
-> Phase 4 (平台 Keystore 桥)、Phase 7 (Shopping)、Phase 9 (Travel) 已有设计文档；Phase 10.2+ (AIChat vendor wiring) 与 Phase 12.6+ (WeChat frida-dep + 真机) 是下一步实施工作。
+> 全部路线图 phase 已实施完成。剩余 follow-up：Phase 10.3+ (8 厂商 AIChat WebView UI cookie 拦截 + 真账号 smoke) ≈ 4 天；Phase 12.6+ (WeChat 8.0+ Android frida-dep libwcdb hook 路径) ≈ 3 天；Phase 12.9 (WeChat rooted device 真机 E2E) ≈ 1 天。
 
 ## IPC / WS 接口完整列表
 
@@ -276,6 +318,75 @@ await ws.executeJson({ type: "personal-data-hub.sync-adapter-stream", name: "ali
 
 桌面端 (Electron) 通过 `useShellMode().isEmbedded === true` 自动走 IPC，cc ui 走 WS — 同一份 SPA 代码。
 
+## 跨端入口
+
+中台核心是**桌面进程**（Electron 主进程）：vault.db / 主密钥 / LLM Manager / KG / RAG 都落桌面。其它 shell 通过 IPC / WS 把请求转给桌面进程。
+
+### 桌面 Electron（默认）
+
+打开桌面应用 → 顶部菜单 `个人数据中台` → 进入 `PersonalDataHub.vue`（V6 shell 一级页面）。所有 IPC 通道 (`personal-data-hub:*`) 直连主进程 wiring，**零网络跳转**。
+
+### Web-Shell (`cc ui`)
+
+在任意机器装好 CLI（`npm i -g chainlesschain`）后：
+
+```bash
+cc ui                # 起本地 web-shell（默认 http://localhost:7331）
+# 浏览器自动打开 → 左侧导航点「个人数据中台」
+```
+
+幕后：
+
+1. `cc ui` 启动 `packages/cli/src/lib/personal-data-hub-wiring.js` — 镜像桌面 wiring（同 `.chainlesschain/hub/` 目录、`OllamaClient` 作为默认 LLM）
+2. WS gateway 注册 21 个 `personal-data-hub.*` 主题 (`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`)
+3. 浏览器加载 `packages/web-panel/dist/`（与桌面 V6 同一 SPA）→ `useShellMode().wsClient` 路由所有调用到 WS 网关
+
+**和桌面 Electron 等价性**：UI / IPC 形状 / 数据目录全相同；唯一差别是 LLM provider — `cc ui` 不复用桌面 LLMManager（无 IPC 通道），默认用本地 Ollama；如需切其它 provider 走 `cc llm provider <name>` 后重启。
+
+> 同一台机器同时跑桌面 + `cc ui` 会**共享 vault.db**（同 `.chainlesschain/hub/`），WAL 锁会自然串行化；推荐**二选一**避免并行 ingest 数据竞争。Phase 14+ 计划加 file-lock 协调。
+
+### 移动端访问
+
+#### 当前状态（v5.0.3.72）
+
+| 端 | 入口 | 状态 |
+|---|---|---|
+| Android | `SeedRegistry` 元数据 (`namespace=personal-data-hub`, 21 method) | 🚧 v0.1 — 元数据已注册（24 个远程 skill 之一），UI 模块 `feature-personal-data-hub` 与桌面 `mobile-skill-whitelist` 接线待 Phase 14.1 |
+| iOS | — | 🚧 暂无原生入口（iOS Phase 6+ 远程操控 framework 可桥接，但 Hub skill 未注册）— Phase 14.2 |
+
+#### 推荐路径（已有基础设施，落地工作小）
+
+移动端走**远程操控**链路（无需 Hub 在手机本地复刻 vault）：
+
+```
+iPhone / Android → P2P DC RPC (`hub.ask` 走 RemoteCommandClient)
+                   → 桌面 mobile-bridge 主进程
+                   → 桌面 personal-data-hub:ask IPC
+                   → AskResult 回流到手机
+```
+
+这套链路 framework 全 reuse 既有：
+
+- **Android**：iOS Phase 6 已有 `RemoteCommandClient.invoke()` 池 + `SeedRegistry` 23 skill。新加 `hub.ask` / `hub.stats` / `hub.health` / `hub.syncAdapter` 4 个 method 即可，工作量 ≈ 0.5 天 + UI（chat bubble 复用 Phase 5 AI Chat skill）≈ 1 天。
+- **iOS**：同理，复用 Phase 5 `RemoteAIChatViewModel` 模式，约 1.5 天。
+
+#### 数据流隐私约束
+
+无论手机端走哪条路径，**所有 LLM 推理仍在桌面进程执行**，敏感数据不离开桌面：
+
+1. 手机发送 NL question（带时间窗口 hint 即可，不附事实）
+2. 桌面 `AnalysisEngine.ask()` 跑全套（query-parse → vault facts → RAG → prompt-build → 隐私 gate → LLM）
+3. 仅 `AskResult { answer, citations, llmName, isLocal }` 回流手机
+4. 引用 chip 在手机端点击 → 走 `hub.eventDetail` RPC 拉单条事件
+
+> 隐私 Gate 在桌面侧执行：若桌面当前 LLM 非本地，手机端调用 `ask` 同样会被拒，UX 需把 `acceptNonLocal` 选项以"开关"暴露到手机端设置页。
+
+#### 路线图
+
+- Phase 14.1（Android）：新建 `android-app/feature-personal-data-hub/`，仅 `HubChatScreen` + `HubChatViewModel` 走 RemoteCommandClient
+- Phase 14.2（iOS）：`Features/PersonalDataHub/` 镜像 Phase 5 AI Chat 模板
+- Phase 14.3（双端）：审计回查 + 同步进度推送（reuse `notification.received` 事件流）
+
 ## 配置参考
 
 ### 数据目录
@@ -378,7 +489,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ## 测试覆盖率
 
-- **总单测**：26 个测试文件 / ~400+ 单元测试（Phase 5.3 基线 390，Phase 5.4-6.5 持续累积）
+- **总单测**：47 个测试文件 / **927 单元测试**（最新基线 v5.0.3.72，`npx vitest run` 全绿，29s）
 - **覆盖矩阵**：
   - `__tests__/ids.test.js` — UUID v7 唯一性 / 时间序性
   - `__tests__/schemas.test.js` — 5 类实体所有 subtype + 边界字段
@@ -390,16 +501,26 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
   - `__tests__/query-parser.test.js` — 时间窗口 + 意图提取
   - `__tests__/prompt-builder.test.js` — system 不漏事实 + 用户角色挂事实 + citation 解析
   - `__tests__/analysis.test.js` — 全 E2E ask 路径 + 隐私 gate 拒绝 + citation 校验
-  - `__tests__/bridges/*.test.js` — CcLLMAdapter / CcKgSink / CcRagSink DI 单测
+  - `__tests__/bridges-cc-*.test.js` — CcLLMAdapter / CcKgSink / CcRagSink DI 单测
+  - `__tests__/entity-resolver*.test.js` — Phase 8 三段 pipeline + ingest hook + vault schema
+  - `__tests__/analysis-skills.test.js` — Phase 11 5 个内置分析 skill (spending / relations / footprint / interests / timeline)
+  - `__tests__/shopping-adapters.test.js` — Phase 7 Taobao + JD + Meituan
+  - `__tests__/travel-adapters.test.js` — Phase 9 Amap + Baidu Map + Ctrip + 12306
   - `__tests__/adapters/email-imap/*` — IMAP session + parser + classifier + transactions + pdf-extractor + 6 templates
   - `__tests__/adapters/alipay-bill/*` — csv-parser + zip-decryptor + counterparty + adapter
-- **未覆盖**：真账号 IMAP / 真 Alipay ZIP 端到端 — 走 `Personal_Data_Hub_E2E_Runbook.md` 手工跑
+  - `__tests__/adapters/ai-chat-history*.test.js` — Phase 10.1 contract / schema-map / 8 vendor-spec + Phase 10.2 HttpClient + 各厂商响应解析
+  - `__tests__/social-adapters.test.js` + `longtail-adapters.test.js` — Phase 13 social/messaging adapter (Bilibili / Weibo / Douyin / Xiaohongshu / QQ / Telegram)
+  - `__tests__/whatsapp-adapter.test.js` — Phase 13.7 WhatsApp crypt14 stub + sqlite parse
+  - `__tests__/wechat-adapter.test.js` — Phase 12 v0.5 frida-indep slice
+  - `__tests__/mobile-extractor.test.js` — Phase 7.5 ADB + iTunes backup
+  - `__tests__/sidecar-supervisor.test.js` + `sidecar-contacts-cross-validate.test.js` — Phase 4.5 Python sidecar 生命周期
+- **未覆盖**：真账号 IMAP / 真 Alipay ZIP / 真 8 厂商 cookie / 真 Android rooted 微信 DB 端到端 — 走 `Personal_Data_Hub_E2E_Runbook.md` 手工跑
 
 跑测：
 
 ```bash
 cd packages/personal-data-hub
-npm test                                  # 全部
+npm test                                  # 全部 (47 file / 927 test)
 npx vitest run __tests__/vault.test.js    # 单文件
 ```
 
@@ -502,6 +623,16 @@ npx vitest run __tests__/vault.test.js    # 单文件
 | `bridges/cc-rag-sink.js` | cc BM25 写入桥 |
 | `adapters/email-imap/*.js` | EmailAdapter（IMAP / parser / classifier / templates / pdf / transactions） |
 | `adapters/alipay-bill/*.js` | AlipayBillAdapter（csv-parser / zip-decryptor / counterparty） |
+| `adapters/system-data/*.js` | SystemDataAdapter（Python sidecar 桥 / 通讯录 / 通话 / 短信 / WiFi） |
+| `adapters/_python-sidecar-base.js` | Python forensics-bridge 子进程生命周期管理（spawn / heartbeat / restart） |
+| `adapters/shopping-base/*` | Phase 7 共享 Cookie 客户端 + rate-limit |
+| `adapters/shopping-taobao/` + `shopping-jd/` + `shopping-meituan/` | Phase 7 三家电商 adapter |
+| `adapters/travel-base/*` | Phase 9 共享 LBS Cookie 客户端 |
+| `adapters/travel-amap/` + `travel-baidu-map/` + `travel-ctrip/` + `travel-12306/` | Phase 9 四家旅行 / 地图 adapter |
+| `adapters/ai-chat-history/{http-client,cookie-auth,schema-map,vendors/*}.js` | Phase 10 共享 HttpClient（cookie + rate-limit + 退避）+ 8 厂商 vendor-spec |
+| `adapters/social-{bilibili,weibo,douyin,xiaohongshu}/index.js` | Phase 13 四 social adapter（借 sjqz parser 移植） |
+| `adapters/messaging-{qq,telegram,whatsapp}/index.js` | Phase 13 三 messaging adapter（含 WhatsApp crypt14） |
+| `adapters/wechat/{content-parser,key-extractor,db-reader,normalize,wechat-adapter}.js` | Phase 12 v0.5 WeChat frida-indep slice |
 
 ### 桌面端接线（`desktop-app-vue/src/main/`）
 
@@ -680,7 +811,13 @@ close();               // 释放内存单例
 - [Adapter — 支付宝账单](https://design.chainlesschain.com/Adapter_Alipay_Bill.html)
 - [Adapter — AI 对话历史 (8 家国产 + ChatGPT/Claude)](https://design.chainlesschain.com/Adapter_AIChat_History.html)
 - [Adapter — 微信 SQLCipher](https://design.chainlesschain.com/Adapter_WeChat_SQLCipher.html)
+- [Adapter — 系统数据 (Android 通讯录 / 通话 / 短信 / WiFi)](https://design.chainlesschain.com/Adapter_System_Data.html)
+- [Adapter — 电商 Cookie (Taobao / JD / Meituan)](https://design.chainlesschain.com/Adapter_Shopping_Cookie.html)
+- [Adapter — 出行 / LBS (Amap / Baidu / Ctrip / 12306)](https://design.chainlesschain.com/Adapter_Travel_LBS.html)
+- [Adapter — Social + Messaging (Bilibili / Weibo / Douyin / 小红书 / QQ / Telegram / WhatsApp)](https://design.chainlesschain.com/Adapter_Social_Messaging.html)
+- [Python Sidecar 架构 (forensics-bridge fork from sjqz)](https://design.chainlesschain.com/Personal_Data_Hub_Python_Sidecar.html)
+- [PDH vs sjqz 借鉴方案对比](https://design.chainlesschain.com/Personal_Data_Hub_sjqz_Comparison.html)
 
 ---
 
-> **反馈与跟进**：中台是 ChainlessChain 兑现"数据回归个人"承诺的支柱。欢迎在 GitHub issues 中标注 `area:personal-data-hub` 提需求 / bug / 新 Adapter 提议（目前 path AlipayBill 已上线，下一个候选：AIChatHistory Phase 10 / Taobao Phase 11 / WeChat Phase 12）。
+> **反馈与跟进**：中台是 ChainlessChain 兑现"数据回归个人"承诺的支柱。所有 13-Phase 路线图 adapter 已落地（v5.0.3.72），下一步主攻方向：Phase 10.3 AIChat 8 厂商 WebView 真账号 smoke + Phase 12.6+ WeChat 8.0+ frida-dep 路径 + Phase 14 移动端原生入口。欢迎在 GitHub issues 中标注 `area:personal-data-hub` 提需求 / bug / 新 Adapter 提议。

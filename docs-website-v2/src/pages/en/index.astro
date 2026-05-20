@@ -74,6 +74,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.72 · 2026-05-20',
+    title: 'Personal Data Hub 13-phase burst — 8/8 AIChat real-vendor wired + 7 social adapters + .72 iOS keychain hotfix repackage',
+    sub: 'Personal Data Hub rolled from Phase 4 (real third-party wiring) all the way to Phase 13.7 (seven social adapters all live) in one evening across 15 commits 763047a22 → b2baf4eda. Phase 4.5 Python sidecar bridge + SystemDataAdapter wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 real sjqz parsers via subprocess JSON-RPC, avoiding parser rewrite. Phase 7 Shopping three-pack (Taobao + JD + Meituan) + Phase 7.5 Mobile Extraction Layer (Android ADB + iOS iTunes encrypted backup) + Phase 9 Travel four-pack. Phase 10.1+10.2 AIChat 8/8 vendors all live: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan, with HttpClient infra wiring retry-with-backoff + progress streaming. Phase 11 — 5 built-in analysis skills cross data sources. Phase 12 v0.5 — WechatAdapter frida-independent slice, T3 risk dropped from High to Medium. Phase 13.3-13.7 — 5 social adapters (Douyin + Xiaohongshu + QQ + Telegram + WhatsApp) + 13+ Bilibili + Weibo via sjqz parsers. 38 test files / 792 tests all green.',
+    desc: 'v5.0.3.72 is also a release-pipeline retrospective. v5.0.3.71 had all 5 desktop builds fail with EUSAGE — root package-lock.json out of sync with packages/personal-data-hub/package.json: during the Phase 12/13 burst the hub added adm-zip@^0.5.16 (iTunes encrypted backup zip) + iconv-lite@^0.6.3 (GBK-encoded social history) optional deps; workspace package.json declared them but root package-lock never synced, so all desktop installers hit EUSAGE at the electron-builder step. 5d8ba08b5 fix(deps) synced root lock, then .72 was repackaged with the same iOS keychain Logger.swift NSLock concurrency fix (commit 625e86819, forward from .70) and shipped 18 assets complete. d03c87d0a follow-up bumped packages/cli in root lock to 0.162.7 closing the loop. Version surfaces: CLI 0.162.5→0.162.8 / productVersion v5.0.3.70→v5.0.3.72 (skipping .71) / desktop-app-vue 5.0.3-alpha.70→.72 / iOS CFBundleVersion 70→72 / Android versionCode 503070→503072. The actual released artifact is .72; .71 does not exist in GitHub Release list, but lib/adapters code is on main and npm chainlesschain@0.162.7 is published — only desktop installers ride .72.',
+  },
+  {
     tag: 'v5.0.3.66 · 2026-05-19',
     title: 'iOS .ipa reship + Android cc CLI bundle wired (v5.0.3.65/66 one-evening double-patch)',
     sub: 'v5.0.3.66 fixes v5.0.3.65 build-ios failure: v5.0.3.65 release shipped 17 assets (full Win/macOS/Linux/Android + npm CLI chainlesschain@0.162.2) but build-ios got stuck on 9 "cannot find X in scope" errors — 13 SwiftUI views added in the Phase 6 sprint (RemoteInputView / RemoteDisplayView / SystemToolsView / RemoteMediaView / RemoteBrowserView / RemoteDesktopView / KnowledgeView / AIExtendedView etc.) lived on disk but were never added to ChainlessChain.xcodeproj\'s app target Sources phase. Fix: extend ios-app/scripts/wire_app_sources.rb FILES list + manually dispatch ios-wire-app-sources.yml workflow on a macOS runner to run ruby for 17s rewriting pbxproj and commit back to main. GitHub immutable-releases then blocks all asset mutations on the published v5.0.3.65, so bump v5.0.3.66 reship — build-ios passes in 5min11s producing an 8.15MB .ipa, final release v5.0.3.66 ships with 18 assets including ChainlessChain.ipa. npm skip-publish via publish-cli-precheck detecting 0.162.2 already published — avoids dist-tag mishap. v5.0.3.65 same period landed Android cc CLI bundle real wiring: Phase 2.5 Node runtime + cc CLI bundle 41MB tarball entry into android-app/feature-local-terminal/src/main/assets/local-terminal/ + wrapper shell scripts working around the unusable `#!/usr/bin/env node` shebang trap on Android + Termux libc++_shared.so → libtermux_cxx.so AGP 8 naming compat + cc CLI wrapper mksh shebang replacing /system/bin/sh — because Android W^X untrusted_app pty domain cannot execve the /system/bin/sh in shell_exec SELinux context, prefix/bin/mksh → ../lib/libmksh.so → nativeLibraryDir/libmksh.so is execve-allowed under the lib/<abi>/lib*.so whitelist.',
@@ -347,6 +353,119 @@ const badges = [
           <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">AI Native</div>
           <div class="text-sm text-ink/80">Local LLMs (Ollama / LLaMA / Qwen) · prompts never uploaded by default · AI search + agent orchestration.</div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Personal Data Hub -->
+  <section class="py-24 md:py-32 bg-ink text-cream relative overflow-hidden">
+    <div class="absolute inset-0 opacity-[0.04] pointer-events-none" aria-hidden="true">
+      <div class="absolute top-10 left-10 w-72 h-72 rounded-full bg-ember blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-ember blur-3xl"></div>
+    </div>
+
+    <div class="container-wide relative">
+      <div class="max-w-4xl mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">Personal Data Hub · NEW in v5.0.3.72</span>
+        </div>
+        <h2 class="text-display-md md:text-5xl leading-tight font-display">
+          Pull every digital footprint home —<br/>
+          <span class="italic text-ember">into a vault that's yours alone.</span>
+        </h2>
+        <p class="mt-6 text-xl md:text-2xl text-cream/80 leading-relaxed">
+          Email · WeChat · Alipay · 8 AI chatbots · 7 social platforms · shopping · travel · Android system data —<br class="hidden md:block"/>
+          <span class="text-cream">22+ sources end-to-end pulled to local</span>, untouchable by anyone else.
+        </p>
+        <p class="mt-5 text-base text-cream/60 italic max-w-2xl">
+          "Data sovereignty returned to individuals" is not a slogan — it's 22 real adapters, 5 built-in analysis skills, 1 local encrypted vault.
+        </p>
+      </div>
+
+      <!-- 5-grid data source categories -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📧</div>
+          <div class="font-display text-lg mb-2">Email / Bills</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· IMAP across all mail providers</li>
+            <li>· Alipay statement CSV / PDF</li>
+            <li>· 6 template extractors (bill/order/travel)</li>
+            <li>· PDF decryption + transactions</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🤖</div>
+          <div class="font-display text-lg mb-2">AI Chat History</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· DeepSeek · Kimi · Tongyi</li>
+            <li>· Zhipu · Doubao · Wenxin</li>
+            <li>· iFlytek Spark · Tencent Hunyuan</li>
+            <li class="text-ember/80 font-mono text-[10px] pt-1">8 / 8 vendors wired</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">💬</div>
+          <div class="font-display text-lg mb-2">Social Platforms</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· WeChat (SQLCipher)</li>
+            <li>· QQ · Weibo · Bilibili</li>
+            <li>· Douyin · Xiaohongshu</li>
+            <li>· Telegram · WhatsApp</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">🛍️</div>
+          <div class="font-display text-lg mb-2">Shopping / Travel</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· Taobao · JD · Meituan</li>
+            <li>· Ctrip · Fliggy</li>
+            <li>· Booking · Airbnb</li>
+            <li>· Orders / logistics / reviews unified</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-xl bg-cream/[0.03] border border-cream/10 hover:border-ember/40 transition-all">
+          <div class="text-2xl mb-3">📱</div>
+          <div class="font-display text-lg mb-2">System Data</div>
+          <ul class="space-y-1 text-xs text-cream/65 leading-relaxed">
+            <li>· Contacts · call log</li>
+            <li>· SMS · location history</li>
+            <li>· Android ADB backup</li>
+            <li>· iOS iTunes encrypted</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 3-feature pillars -->
+      <div class="grid md:grid-cols-3 gap-4 mb-10">
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Local Vault</div>
+          <div class="text-sm text-cream/85 leading-relaxed">SQLCipher AES-256 on disk — data never leaves your device. Email passwords, chat keys, bill amounts all stay on your hardware.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">5 Built-in Analysis Skills</div>
+          <div class="text-sm text-cream/85 leading-relaxed">Consumption trends · travel profile · communication frequency · content preference · time distribution — LLM-callable. Ask "which three shops did I spend the most at last year?" — instant answer.</div>
+        </div>
+        <div class="p-5 rounded-xl bg-ember/[0.08] border border-ember/25">
+          <div class="font-mono text-[10px] text-ember uppercase tracking-wider mb-2">Entity Resolver</div>
+          <div class="text-sm text-cream/85 leading-relaxed">"Zhang San" / "张三" / "+86 138-xxxx" auto-resolved as the same person — relationship graphs across email/WeChat/contacts finally connect.</div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex flex-wrap gap-3 items-center">
+        <a href="https://docs.chainlesschain.com/chainlesschain/personal-data-hub.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-ember text-ink font-medium hover:bg-ember/90 transition-colors">
+          Full feature guide →
+        </a>
+        <a href="https://design.chainlesschain.com/design/Personal_Data_Hub_Architecture.html" rel="noopener" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-cream/20 text-cream/80 hover:border-ember hover:text-cream transition-all">
+          Architecture design ↗
+        </a>
+        <span class="text-xs font-mono text-cream/40 ml-2">47 test files / 927 tests · 6 integration + 3 E2E scenarios · 8 / 8 AIChat vendors wired</span>
       </div>
     </div>
   </section>
