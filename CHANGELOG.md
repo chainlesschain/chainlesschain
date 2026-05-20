@@ -5,6 +5,25 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.71 / .72] - 2026-05-20 — Personal Data Hub 13-phase burst + iOS keychain repackage
+
+**Personal Data Hub Phase 4.5 → 13.7 全收口** in one evening across 15 commits `763047a22 → b2baf4eda`. **38 test files / 792 tests / 8/8 AIChat real-vendor wired**.
+
+**New phases**:
+- Phase 4.5 — Python sidecar bridge + SystemDataAdapter wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 sjqz parsers via subprocess JSON-RPC, avoiding parser rewrite.
+- Phase 7 — Shopping three-pack (Taobao + JD + Meituan) order/logistics/reviews adapter.
+- Phase 7.5 — Mobile Extraction Layer: Android ADB backup + iOS iTunes encrypted backup via `adm-zip` + `iconv-lite` (GBK→UTF-8).
+- Phase 9 — Travel four-pack (Ctrip + Fliggy + Booking + Airbnb).
+- Phase 10.1 + 10.2 — AIChat **8/8 vendors live**: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan. HttpClient infra with retry-backoff + progress streaming.
+- Phase 11 — 5 built-in analysis skills (consumption trend / travel profile / communication frequency / content preference / time distribution).
+- Phase 12 v0.5 — WechatAdapter frida-independent slice. T3 risk dropped from High to Medium.
+- Phase 13.3-13.7 — Douyin + Xiaohongshu + QQ + Telegram + WhatsApp adapters (5 platforms). WhatsApp completes the sjqz parser port.
+- Phase 13+ — Bilibili + Weibo via sjqz parsers.
+
+**v5.0.3.71 release infra failure → .72 repackage**: v5.0.3.71 had all desktop builds fail with EUSAGE — root `package-lock.json` out of sync with `personal-data-hub/package.json` (Phase 12/13 added `adm-zip` + `iconv-lite` optional deps but root lock missed them). `5d8ba08b5` synced the lock, then `.72` shipped the same iOS keychain fix (`625e86819` — Logger.swift NSLock) successfully. 18 assets complete on `.72` Latest. **v5.0.3.71 was never released** (code on main + npm 0.162.7 published, but desktop installers missing); content rolled into `.72`.
+
+**Version surfaces**: CLI 0.162.5→0.162.8 / productVersion v5.0.3.70→v5.0.3.72 (skipping .71) / desktop-app-vue 5.0.3-alpha.70→.72 / iOS CFBundleVersion 70→72 / Android versionCode 503070→503072, versionName 5.0.3.70→5.0.3.72.
+
 ## [v5.0.3.68] - 2026-05-20 — CLI npm 0.162.3 catch-up (Phase 5.1-5.6 hub + cc ui fixes)
 
 v5.0.3.67 desktop release succeeded (all 11 jobs green) but `publish-cli` saw `chainlesschain@0.162.2` already on npm registry and skipped. Net effect: users running `npm i -g chainlesschain` still got 0.162.2, missing all Phase 5.1-5.6 hub work and 3 cc ui fixes. **v5.0.3.68 is a CLI catch-up release that explicitly bumps the npm package to 0.162.3.**

@@ -214,26 +214,61 @@ DEPLOYS = [
     # README.md + README_EN.md 顶部新加 2026-05-20 收口 section (中英对照) +
     # docs-website-v2/src/pages/index.astro highlights 顶一张 v5.0.3.70 卡。
     # Tarball stamp 20260520-070449。全 3 站 SFTP swap。
-    # 2026-05-20 09:03 docs-only refresh — Personal Data Hub user-doc page fix
-    # (post-commit afb397a3b had a security-check rewrite for the alipay
-    # zipPassword example; the .70 docs tarball still has the pre-rewrite
-    # placeholder p@ss-from-alipay-mail. design + www at .70 are unchanged
-    # so left untouched — uncomment to do full 3-site refresh.)
+    # 2026-05-20 11:17 v5.0.3.72 滚动更新 (3 站全刷):
+    # Personal Data Hub 一晚 13-phase burst (commits 763047a22 → b2baf4eda 15 个):
+    #   - Phase 4.5 Python sidecar bridge + SystemDataAdapter 接 4 个 Android system source
+    #     (通讯录/通话记录/短信/位置) 借 sjqz 项目 17 个 parser 避免重写
+    #   - Phase 7 Shopping three-pack (Taobao + JD + Meituan)
+    #   - Phase 7.5 Mobile Extraction Layer (Android ADB + iOS iTunes encrypted backup)
+    #   - Phase 9 Travel four-pack (Ctrip + Fliggy + Booking + Airbnb)
+    #   - Phase 10.1 + 10.2 AIChat 8/8 vendors 全部 live (DeepSeek + Kimi h5 + 通义 + 智谱 +
+    #     Doubao + 文心 + 讯飞星火 + 腾讯混元) + HttpClient infra retry-backoff + progress streaming
+    #   - Phase 11 5 个内置 analysis skill (消费/出行/沟通/内容/时间)
+    #   - Phase 12 v0.5 WechatAdapter frida-independent slice (T3 风险高→中)
+    #   - Phase 13.3-13.7 五 social adapter (Douyin + Xiaohongshu + QQ + Telegram + WhatsApp)
+    #     + 13+ Bilibili + Weibo 借 sjqz parser
+    #   - 38 test files / 792 tests 全绿
+    # .72 release 工程修复: .71 全 5 平台 desktop build EUSAGE — root package-lock.json 与
+    # hub package.json 不同步 (Phase 12/13 加的 adm-zip + iconv-lite optional dep 未注册到
+    # root lock)。5d8ba08b5 sync lock + d03c87d0a packages/cli root lock bump 0.162.7,
+    # .72 repackage 同样 iOS keychain Logger NSLock 修真出包 18 assets 完整。
+    # .71 GitHub Release 不存在 (代码在 main + npm 0.162.7 已发，仅 desktop installer 缺)，
+    # 实际只发了 .72。
+    #
+    # 改动:
+    # (1) 根 CHANGELOG.md 顶部新加 [v5.0.3.71 / .72] 合并 entry (EN);
+    # (2) docs-site/docs/changelog.md 顶部新加 v5.0.3.72 + v5.0.3.71 两 entry;
+    # (3) docs-site/docs/index.md tagline 升 v5.0.3.70 → v5.0.3.72 + CLI 0.162.5 → 0.162.8
+    #     + Android 5.0.3.72 (versionCode 503072) + 加 Personal Data Hub 13-phase burst 摘要;
+    # (4) docs-site-design/docs/index.md tagline 同步升 .72;
+    # (5) docs-site/docs/chainlesschain/overview.md 当前版本块同步升 .72;
+    # (6) docs-website-v2/src/pages/index.astro + en/index.astro highlights[0] 顶一张
+    #     v5.0.3.72 卡 (中英对照, results-only per feedback_official_site_results_only.md);
+    # (7) ★ docs-website-v2/src/pages/index.astro + en/index.astro 加 NEW Personal Data Hub
+    #     旗舰 section (在 pillars 之后 CLI 之前, dark bg-ink 突出): 5-grid 数据源分类
+    #     (邮件/账单 + AI Chat 8 家 + 社交 7 家 + 消费/出行 + 系统数据) + 3 feature pillar
+    #     (本地金库 + 5 分析技能 + EntityResolver) + 2 CTA (docs.chainlesschain.com/personal-data-hub
+    #     + design.chainlesschain.com/Personal_Data_Hub_Architecture)。Headline "把散落各处
+    #     的数字足迹，汇成一份只属于你的金库" 对齐站内 slogan "让数据主权回归个人，AI 效率触手可及";
+    # (8) README.md + README_EN.md 顶部新加 2026-05-20 收口 section (中英对照)。
+    # Tarball stamp 20260520-111736。release-sizes.json 暂时仍指向上一个 release tag —
+    # mobile.astro 下载链接届时跟随 fetch-release-sizes.mjs API GET 最新 release 自动刷新
+    # (此次未单独触发, 若 .72 release 已 publish 自动跟到)。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.71-20260520-090321.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.72-20260520-111736.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
-    # {
-    #     "name": "design.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.70-20260520-070449.tar.gz",
-    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    # },
-    # {
-    #     "name": "www.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.70-20260520-070449.tar.gz",
-    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    # },
+    {
+        "name": "design.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.72-20260520-111736.tar.gz",
+        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    },
+    {
+        "name": "www.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.72-20260520-111736.tar.gz",
+        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")

@@ -3,6 +3,42 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.72 — iOS keychain hotfix repackage（after .71 build infra failure）] - 2026-05-20
+
+> v5.0.3.71 release pipeline 所有 desktop build job 全 EUSAGE：root `package-lock.json` 与 `packages/personal-data-hub/package.json` 不同步 —— hub 在 Phase 12/13 滚动期间加了 `adm-zip` + `iconv-lite` 两 optional dep（前者解 iTunes backup zip / 后者解 GBK 编码 social 历史），workspace 各自 `package.json` 已声明但 root `package-lock.json` 没 sync 进去。`5d8ba08b5` `fix(deps)` sync root lock 后，`.72` repackage 同一 iOS keychain fix（`625e86819`）成功出包。`d03c87d0a` 后续把 `packages/cli` 在 root lock 里也 bump 到 `0.162.7` 收口。
+
+**bump 内容（.71 → .72）**
+- 修 root `package-lock.json` 缺 `adm-zip@^0.5.16` + `iconv-lite@^0.6.3`（hub Phase 12 WechatAdapter / Phase 13.x social adapter 用）
+- `packages/cli` root lock 同步到 `0.162.7`
+- 同一份 iOS keychain `Logger.swift` NSLock 防并发崩溃修（与 `.70` 同一 commit `625e86819` forward）
+- 18 assets 完整：4 Android（arm64/v7a/universal/aab）+ macOS dmg + Linux AppImage/rpm/deb + Windows Setup/Portable + iOS .ipa + 3 latest.yml + blockmaps
+
+**版本面同步**：CLI `0.162.6 → 0.162.8`（.71 已发的 `0.162.7` + .72 catch-up 0.162.8）· `productVersion` `v5.0.3.70 → v5.0.3.72`（中跳 .71，因 .71 release 失败）· `desktop-app-vue` `5.0.3-alpha.70 → .72` · iOS `CFBundleVersion 70 → 72` · Android `versionCode 503070 → 503072`, `versionName 5.0.3.70 → 5.0.3.72`。
+
+---
+
+## [v5.0.3.71 — Personal Data Hub Phase 4.5–13.7 一晚 13-phase burst（15 commits）] - 2026-05-20
+
+> Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地。一晚 15 commits `763047a22 → b2baf4eda`。**38 test files / 792 tests / 8/8 AIChat 真厂商接通**。本 release 出包失败（root package-lock 不同步致 desktop EUSAGE），同一份变更走 `.72` repackage 真出包，但本条目记录 phase 落地节奏。
+
+**新增 phase（按 lib/adapters 落地序）**
+- **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**（commit `68b2fac14`）：JS↔Python 进程间 JSON-RPC 桥接，接 4 个 Android system data source（通讯录 / 通话记录 / 短信 / 位置）借 `sjqz` 项目 17 个真已写 parser，避免 17 parser 重写。Per memory `personal_data_hub_python_sidecar.md` 的 v0.3 Architecture 决策落地。
+- **Phase 7 — Shopping three-pack**（commit `6ba5c9480`）：Taobao + JD + Meituan 三大电商 adapter，订单 / 物流 / 评论解析入 hub vault。
+- **Phase 7.5 — Mobile Extraction Layer**（commit `d210713c8`）：双路提取 — Android 走 ADB backup (`adb backup -all`)，iOS 走 iTunes encrypted backup（用 `adm-zip` 解包 + `iconv-lite` GBK→UTF-8）。
+- **Phase 9 — Travel four-pack**（commit `3a140484a`）：携程 / 飞猪 / Booking / Airbnb 四旅行平台 adapter。
+- **Phase 10.1 — AIChat skeleton**（commit `ad301c5bc`）：8-vendor 抽象框架 + HttpClient infra 准备。
+- **Phase 10.2 — AIChat 8/8 vendors 全部 live**（commits `1d31108bb` + `42fe7f5dd` + `b2baf4eda`）：DeepSeek 官方 API + Kimi h5 私有 API（无官方 OpenAPI，逆 h5 web 接口）+ 通义千问 + 智谱清言 GLM + Doubao 豆包 + 文心一言 + 讯飞星火 + 腾讯混元，**8/8 真厂商接通**。HttpClient infra 接 retry-with-backoff + progress streaming。
+- **Phase 11 — 5 内置 analysis skill**（commit `763047a22`）：跨 hub 数据源的 5 个分析技能（消费趋势 / 出行画像 / 沟通频率 / 内容偏好 / 时间分布等），LLM 直接调。
+- **Phase 12 v0.5 — WechatAdapter frida-independent slice**（commit `65de030dc`）：v0.5 切出 frida-independent slice（不依赖动态注入），T3 风险从"高"降到"中"。完整 SQLCipher dump 仍走 v1.0 frida 路径。
+- **Phase 13.3-13.7 — 5 social adapter**（commits `12b06c4d5` + `18c62c9d6`）：Douyin + Xiaohongshu + QQ + Telegram + WhatsApp 五平台。WhatsApp 完成 sjqz parser port（13.7 是 sjqz parser 移植 last mile）。
+- **Phase 13+ Bilibili + Weibo**（commit `ade1bc025`）：借 sjqz parser 接两站。
+
+**质量面**：38 test files / 792 tests 全绿。`personal_data_hub_phase_status.md` memory 同步刷新（docs page 历史 lag 5+ phase 常态，改前必 `git log` 查 lib/adapters 真实进度）。
+
+**release pipeline 失败 → .72 救场**：本 release 11 desktop build job 全 EUSAGE（npm pipeline error）— root `package-lock.json` 在 Phase 12/13 滚动期间未 sync 进 hub 加的 `adm-zip` + `iconv-lite` optional dep。`5d8ba08b5` `fix(deps)` sync lock 后跳过 .71 直接 ship `.72` repackage 真出包。所以 `.71` GitHub Release 不存在，本条目记录 phase 落地节奏（代码在 main 上 + npm 0.162.7 已发，仅 desktop installer 缺）。
+
+---
+
 ## [v5.0.3.70 — iOS hotfix 三件套（PIN-unlock crash + AppIcon 真编进包）] - 2026-05-20
 
 > 三个 iOS 真 bug 一次扫净 + bundle .69 forward。`.69` release 因 `publish-cli` npm 404 卡 draft；`.70` 重打了 `.69` 的所有变更 + `AppIcon` wiring 修复，重跑 `publish-cli` 成功 PATCH 发布（最终 18 assets 全齐，Latest）。
