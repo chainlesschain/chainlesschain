@@ -34,6 +34,11 @@
     "./mobile-extractor": "./lib/mobile-extractor/index.js",
     "./adapters/wechat": "./lib/adapters/wechat/index.js",
     "./adapters/ai-chat-history": "./lib/adapters/ai-chat-history/index.js",
+    "./adapters/travel-base": "./lib/adapters/travel-base/index.js",
+    "./adapters/travel-12306": "./lib/adapters/travel-12306/index.js",
+    "./adapters/travel-ctrip": "./lib/adapters/travel-ctrip/index.js",
+    "./adapters/travel-amap": "./lib/adapters/travel-amap/index.js",
+    "./adapters/travel-baidu-map": "./lib/adapters/travel-baidu-map/index.js",
     "./sidecar": "./lib/sidecar/index.js"
   },
   "scripts": {
