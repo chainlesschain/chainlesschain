@@ -33,6 +33,7 @@ const { AnalysisEngine, DEFAULT_MAX_FACTS, DEFAULT_MAX_QUERY_LIMIT } = require("
 const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
+const wechatAdapter = require("./adapters/wechat");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
@@ -187,6 +188,19 @@ module.exports = {
   // Phase 7.5 — Mobile extraction layer (借 sjqz architecture)
   AndroidExtractor: mobileExtractor.AndroidExtractor,
   iOSBackupReader: mobileExtractor.iOSBackupReader,
+
+  // Phase 12 v0.5 — WeChat (frida-independent slice)
+  WechatAdapter: wechatAdapter.WechatAdapter,
+  WECHAT_NAME: wechatAdapter.WECHAT_NAME,
+  WECHAT_VERSION: wechatAdapter.WECHAT_VERSION,
+  parseWeChatContent: wechatAdapter.parseWeChatContent,
+  extractWeChatKey: wechatAdapter.extractWeChatKey,
+  deriveWeChatLegacyKey: wechatAdapter.deriveWeChatLegacyKey,
+  WeChatDBReader: wechatAdapter.WeChatDBReader,
+  normalizeWeChatMessage: wechatAdapter.normalizeWeChatMessage,
+  normalizeWeChatContact: wechatAdapter.normalizeWeChatContact,
+  wxidToWeChatPersonId: wechatAdapter.wxidToWeChatPersonId,
+  WECHAT_PRAGMA_PROFILES: wechatAdapter.WECHAT_PRAGMA_PROFILES,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
