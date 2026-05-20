@@ -45,6 +45,7 @@ const { SPEC: hunyuanSpec } = require("./vendors/hunyuan");
 const { SPEC: qianfanSpec } = require("./vendors/qianfan");
 const { SPEC: cozeSpec } = require("./vendors/coze");
 const { SPEC: dreaminaSpec } = require("./vendors/dreamina");
+const { SPEC: doubaoSpec } = require("./vendors/doubao");
 
 const DEFAULT_VENDOR_SPECS = Object.freeze({
   deepseek: deepseekSpec,
@@ -55,6 +56,7 @@ const DEFAULT_VENDOR_SPECS = Object.freeze({
   qianfan: qianfanSpec,
   coze: cozeSpec,
   dreamina: dreaminaSpec,
+  doubao: doubaoSpec,
 });
 
 class AIChatHistoryAdapter {
@@ -186,13 +188,19 @@ class AIChatHistoryAdapter {
   /**
    * Stream conversation + message envelopes across all configured vendors.
    *
-   * Yields raw events of two shapes:
-   *   { kind: "conversation", vendor, conversation: RawConversation }
-   *   { kind: "message",      vendor, message: RawMessage }
+   * Yields AdapterRegistry-compliant envelopes:
+   *   { originalId, capturedAt, payload: { kind, vendor, conversation|message } }
    *
-   * The registry calls `normalize(raw)` per yielded event. We deliberately
-   * keep one Raw per yield (rather than batching) so a slow vendor doesn't
-   * block faster ones at the registry boundary.
+   * The inner `payload.kind` distinguishes:
+   *   - "conversation"           → emit Topic + vendor Person (no Event yet)
+   *   - "message"                → emit Event + items + vendor Person
+   *   - "vendor-not-wired"       → no-op normalize (Phase 10.1 stub trace)
+   *   - "vendor-cookie-expired"  → no-op normalize (401/403 trace)
+   *   - "vendor-rate-limited"    → no-op normalize (429 trace after retries)
+   *
+   * The registry calls `normalize(raw)` per yielded envelope. One yield per
+   * conversation/message keeps registry batches small so a slow vendor
+   * doesn't block faster ones at the registry boundary.
    *
    * @param {object} [opts]
    * @param {string[]} [opts.vendors]   restrict to a subset
@@ -216,28 +224,54 @@ class AIChatHistoryAdapter {
 
       try {
         for await (const conv of spec.listConversations(ctx, { since: vendorWatermark })) {
-          yield { kind: "conversation", vendor, conversation: conv };
+          yield {
+            originalId: `${vendor}:conv:${conv.originalId}`,
+            capturedAt: Number(conv.updatedAt) || Number(conv.createdAt) || Date.now(),
+            payload: { kind: "conversation", vendor, conversation: conv },
+          };
 
           for await (const msg of spec.listMessages(ctx, conv.originalId, {})) {
-            yield { kind: "message", vendor, message: msg };
+            yield {
+              originalId: `${vendor}:msg:${msg.originalId}`,
+              capturedAt: Number(msg.createdAt) || Date.now(),
+              payload: { kind: "message", vendor, message: msg },
+            };
           }
         }
       } catch (err) {
+        const traceCapturedAt = Date.now();
         if (err instanceof NotImplementedYetError) {
           this._logger.warn(
             `[ai-chat] vendor=${vendor} not wired (Phase 10.2+ work): ${err.message}`,
           );
-          yield { kind: "vendor-not-wired", vendor, error: err.code };
+          yield {
+            originalId: `${vendor}:trace:not-wired:${traceCapturedAt}`,
+            capturedAt: traceCapturedAt,
+            payload: { kind: "vendor-not-wired", vendor, error: err.code },
+          };
           continue;
         }
         if (err instanceof CookieExpiredError) {
           this._logger.warn(`[ai-chat] vendor=${vendor} cookie expired: ${err.message}`);
-          yield { kind: "vendor-cookie-expired", vendor, error: err.code };
+          yield {
+            originalId: `${vendor}:trace:cookie-expired:${traceCapturedAt}`,
+            capturedAt: traceCapturedAt,
+            payload: { kind: "vendor-cookie-expired", vendor, error: err.code },
+          };
           continue;
         }
         if (err instanceof RateLimitedError) {
           this._logger.warn(`[ai-chat] vendor=${vendor} rate limited: ${err.message}`);
-          yield { kind: "vendor-rate-limited", vendor, error: err.code, retryAfterMs: err.retryAfterMs };
+          yield {
+            originalId: `${vendor}:trace:rate-limited:${traceCapturedAt}`,
+            capturedAt: traceCapturedAt,
+            payload: {
+              kind: "vendor-rate-limited",
+              vendor,
+              error: err.code,
+              retryAfterMs: err.retryAfterMs,
+            },
+          };
           continue;
         }
         throw err;
@@ -256,14 +290,19 @@ class AIChatHistoryAdapter {
     if (!raw || typeof raw !== "object") {
       return { events: [], persons: [], places: [], items: [], topics: [] };
     }
+    // Registry-compliant envelopes wrap kind inside payload. Adapter-internal
+    // tests (Phase 10.1) sometimes pass the inner shape directly — accept
+    // both for forward compat.
+    const inner = raw.payload && typeof raw.payload === "object" ? raw.payload : raw;
+    const kind = inner.kind;
 
-    if (raw.kind === "vendor-not-wired") {
+    if (kind === "vendor-not-wired" || kind === "vendor-cookie-expired" || kind === "vendor-rate-limited") {
       // Nothing to write; the warning was already logged by sync().
       return { events: [], persons: [], places: [], items: [], topics: [] };
     }
 
-    if (raw.kind === "conversation") {
-      const conv = raw.conversation;
+    if (kind === "conversation") {
+      const conv = inner.conversation;
       const spec = this._vendorSpecs[conv.vendor];
       const displayName = spec ? spec.displayName : conv.vendor;
       return {
@@ -275,8 +314,8 @@ class AIChatHistoryAdapter {
       };
     }
 
-    if (raw.kind === "message") {
-      const msg = raw.message;
+    if (kind === "message") {
+      const msg = inner.message;
       const spec = this._vendorSpecs[msg.vendor];
       const displayName = spec ? spec.displayName : msg.vendor;
       return {
