@@ -63,6 +63,10 @@ class Ed25519ManifestVerifier(
     private val pubkeyResolver: PublisherPubkeyResolver,
 ) : ManifestSignatureVerifier {
 
+    // Each return statement maps to a distinct, documented rejection reason
+    // (see class KDoc "Failure modes"). Collapsing them into a single return
+    // would hide which precondition failed; the 6-branch shape is intentional.
+    @Suppress("ReturnCount")
     override fun verify(skill: SkillMetadata): VerificationResult {
         val signatureB64 = skill.signature
             ?: return VerificationResult.Rejected("NO_SIGNATURE")
