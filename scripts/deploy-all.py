@@ -214,21 +214,26 @@ DEPLOYS = [
     # README.md + README_EN.md 顶部新加 2026-05-20 收口 section (中英对照) +
     # docs-website-v2/src/pages/index.astro highlights 顶一张 v5.0.3.70 卡。
     # Tarball stamp 20260520-070449。全 3 站 SFTP swap。
+    # 2026-05-20 09:03 docs-only refresh — Personal Data Hub user-doc page fix
+    # (post-commit afb397a3b had a security-check rewrite for the alipay
+    # zipPassword example; the .70 docs tarball still has the pre-rewrite
+    # placeholder p@ss-from-alipay-mail. design + www at .70 are unchanged
+    # so left untouched — uncomment to do full 3-site refresh.)
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.70-20260520-070449.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.71-20260520-090321.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
-    {
-        "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.70-20260520-070449.tar.gz",
-        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    },
-    {
-        "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.70-20260520-070449.tar.gz",
-        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    },
+    # {
+    #     "name": "design.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.70-20260520-070449.tar.gz",
+    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    # },
+    # {
+    #     "name": "www.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.70-20260520-070449.tar.gz",
+    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    # },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
