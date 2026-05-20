@@ -254,22 +254,22 @@ DEPLOYS = [
     # Tarball stamp 20260520-111736。release-sizes.json 暂时仍指向上一个 release tag —
     # mobile.astro 下载链接届时跟随 fetch-release-sizes.mjs API GET 最新 release 自动刷新
     # (此次未单独触发, 若 .72 release 已 publish 自动跟到)。
-    # 2026-05-20 11:56 v5.0.3.73 design-only refresh — sidebar wire-up.
-    # 设计站 "个人数据中台 ⭐NEW 专题" sidebar section 补 7 个缺失 link：
-    # Python_Sidecar / Phase_14_Mobile_Native_Entry / sjqz_Comparison + 4 adapter
-    # (System_Data / Shopping_Cookie / Travel_LBS / Social_Messaging) + 状态标签
-    # 更新 (AIChat 9 家 wired / WeChat v0.5 frida-indep / 各 adapter 标 Phase 号).
-    # docs + www 不动 (内容无变更) — 单站 swap 减少回退面。
-    # {
-    #     "name": "docs.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.72-20260520-111736.tar.gz",
-    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    # },
+    # 2026-05-20 12:24 v5.0.3.73 docs-only refresh — sidebar wire-up parity.
+    # docs-site "个人数据中台 专题 ⭐NEW" sidebar section 补 7 个缺失 link 同
+    # design-site (commit 6addcce96 11:56 covered design-site only). User-doc
+    # site now also surfaces the 14 design docs of the topic.
     {
-        "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.73-20260520-115633.tar.gz",
-        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-122440.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
+    # design 已在 6addcce96 deploy 同步, 不动避免覆盖。
+    # {
+    #     "name": "design.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.73-20260520-115633.tar.gz",
+    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    # },
+    # www 内容无变更 — 不动。
     # {
     #     "name": "www.chainlesschain.com",
     #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.72-20260520-111736.tar.gz",
