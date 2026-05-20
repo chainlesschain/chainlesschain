@@ -12,6 +12,10 @@ const deepseekModule = require("../../lib/adapters/ai-chat-history/vendors/deeps
 const kimiModule = require("../../lib/adapters/ai-chat-history/vendors/kimi");
 const tongyiModule = require("../../lib/adapters/ai-chat-history/vendors/tongyi");
 const zhipuModule = require("../../lib/adapters/ai-chat-history/vendors/zhipu");
+const hunyuanModule = require("../../lib/adapters/ai-chat-history/vendors/hunyuan");
+const qianfanModule = require("../../lib/adapters/ai-chat-history/vendors/qianfan");
+const cozeModule = require("../../lib/adapters/ai-chat-history/vendors/coze");
+const dreaminaModule = require("../../lib/adapters/ai-chat-history/vendors/dreamina");
 
 // ─── helpers ─────────────────────────────────────────────────────────────
 
@@ -472,10 +476,255 @@ describe("Zhipu vendor — Phase 10.2 wiring", () => {
   });
 });
 
+// ─── Hunyuan ─────────────────────────────────────────────────────────────
+
+function hunyuanFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/api/user/info", makeResponse({ body: { ret: 0, data: { userId: "hy-u1" } } })],
+    ["/api/user/conv/list", makeResponse({ body: { data: { list: [
+      { convId: "hyc1", title: "腾讯元宝对话", createTime: 1700000000000, updateTime: 1700001000000 },
+    ] } } })],
+    [/api\/user\/conv\/hyc1\/message\/list/, makeResponse({ body: { data: { messages: [
+      { msgId: "hym1", speaker: "user", content: "搜下今日新闻", createTime: 1700000010000 },
+      { msgId: "hym2", speaker: "bot", content: "今日要闻三则...", createTime: 1700000020000,
+        linkedArticles: [{ title: "央视新闻", url: "https://example.com/a1" }] },
+    ] } } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "hunyuan",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Hunyuan vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = hunyuanFixtureClient();
+    const session = new CookieAuthSession({ vendor: "hunyuan", cookies: [{ name: "hy_token", value: "t" }] });
+    const r = await hunyuanModule.SPEC.validateCookie({ httpClient, session, vendor: "hunyuan" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("hy-u1");
+  });
+
+  it("listConversations yields normalized RawConversation", async () => {
+    const { httpClient } = hunyuanFixtureClient();
+    const session = new CookieAuthSession({ vendor: "hunyuan", cookies: [] });
+    const out = [];
+    for await (const c of hunyuanModule.SPEC.listConversations({ httpClient, session, vendor: "hunyuan" })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].originalId).toBe("hyc1");
+    expect(out[0].title).toBe("腾讯元宝对话");
+  });
+
+  it("listMessages preserves linkedArticles as attachments + extra", async () => {
+    const { httpClient } = hunyuanFixtureClient();
+    const session = new CookieAuthSession({ vendor: "hunyuan", cookies: [] });
+    const out = [];
+    for await (const m of hunyuanModule.SPEC.listMessages({ httpClient, session, vendor: "hunyuan" }, "hyc1")) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    expect(out[1].role).toBe("assistant");
+    expect(out[1].extra.linkedArticles).toHaveLength(1);
+    expect(out[1].content.attachments[0].filename).toBe("央视新闻");
+  });
+});
+
+// ─── Qianfan ─────────────────────────────────────────────────────────────
+
+function qianfanFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/aichat/user/info", makeResponse({ body: { code: 0, data: { uk: "qf-u1" } } })],
+    ["/aichat/conversation/list", makeResponse({ body: { data: { list: [
+      { sessionId: "qfc1", sessionName: "文心一言对话", createTime: 1700000000, updateTime: 1700001000 },
+    ] } } })],
+    ["/aichat/conversation/getMessages", makeResponse({ body: { data: { messages: [
+      { messageId: "qm1", role: "user", content: "Python 列表去重", createTime: 1700000010 },
+      { messageId: "qm2", role: "assistant", content: "可以用 set() 或字典推导...", createTime: 1700000020,
+        references: [{ title: "Python doc", url: "https://docs.python.org/" }] },
+    ] } } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "qianfan",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Qianfan vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = qianfanFixtureClient();
+    const session = new CookieAuthSession({ vendor: "qianfan", cookies: [{ name: "BAIDUID", value: "b" }] });
+    const r = await qianfanModule.SPEC.validateCookie({ httpClient, session, vendor: "qianfan" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("qf-u1");
+  });
+
+  it("listConversations + listMessages cross-walk", async () => {
+    const { httpClient } = qianfanFixtureClient();
+    const session = new CookieAuthSession({ vendor: "qianfan", cookies: [] });
+    const convs = [];
+    for await (const c of qianfanModule.SPEC.listConversations({ httpClient, session, vendor: "qianfan" })) {
+      convs.push(c);
+    }
+    expect(convs.length).toBe(1);
+    const msgs = [];
+    for await (const m of qianfanModule.SPEC.listMessages({ httpClient, session, vendor: "qianfan" }, convs[0].originalId)) {
+      msgs.push(m);
+    }
+    expect(msgs.length).toBe(2);
+    expect(msgs[1].extra.references).toHaveLength(1);
+  });
+});
+
+// ─── Coze ────────────────────────────────────────────────────────────────
+
+function cozeFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/api/user/info", makeResponse({ body: { code: 0, data: { user_id: "cz-u1" } } })],
+    [/conversation\/list.*cursor=last/, makeResponse({ body: { data: { list: [], next_cursor: "" } } })],
+    ["/api/conversation/list", makeResponse({ body: { data: { list: [
+      { conversation_id: "cz-c1", title: "agent task", created_at: 1700000000, last_updated_time: 1700001000,
+        bot_id: "bot-1" },
+    ], next_cursor: "last" } } })],
+    [/conversation\/cz-c1\/message/, makeResponse({ body: { data: { message_list: [
+      { message_id: "czm1", role: "user", content: "搜下 SF 餐厅", created_at: 1700000010 },
+      { message_id: "czm2", role: "assistant", content: "找到 3 家...", created_at: 1700000020,
+        tool_calls: [{ name: "places_search", arguments: { city: "SF" } }],
+        workflow_run_id: "wf-1" },
+    ] } } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "coze",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Coze vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = cozeFixtureClient();
+    const session = new CookieAuthSession({ vendor: "coze", cookies: [{ name: "s_v_web_id", value: "v" }] });
+    const r = await cozeModule.SPEC.validateCookie({ httpClient, session, vendor: "coze" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("cz-u1");
+  });
+
+  it("listConversations carries bot_id in extra", async () => {
+    const { httpClient } = cozeFixtureClient();
+    const session = new CookieAuthSession({ vendor: "coze", cookies: [] });
+    const out = [];
+    for await (const c of cozeModule.SPEC.listConversations({ httpClient, session, vendor: "coze" })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].extra.botId).toBe("bot-1");
+  });
+
+  it("listMessages preserves toolCalls + workflow_run_id", async () => {
+    const { httpClient } = cozeFixtureClient();
+    const session = new CookieAuthSession({ vendor: "coze", cookies: [] });
+    const out = [];
+    for await (const m of cozeModule.SPEC.listMessages({ httpClient, session, vendor: "coze" }, "cz-c1")) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    expect(out[1].extra.toolCalls).toHaveLength(1);
+    expect(out[1].extra.workflowRunId).toBe("wf-1");
+  });
+});
+
+// ─── Dreamina ────────────────────────────────────────────────────────────
+
+function dreaminaFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/api/user/info", makeResponse({ body: { code: 0, data: { user_id: "dm-u1" } } })],
+    ["/api/workspace/list", makeResponse({ body: { data: { workspaces: [
+      { workspace_id: "ws-1", name: "海报设计", create_time: 1700000000, update_time: 1700001000 },
+    ] } } })],
+    [/workspace\/ws-1\/items/, makeResponse({ body: { data: { items: [
+      {
+        id: "item-1",
+        prompt: "一只赛博朋克猫头鹰",
+        model: "jimeng-2.0",
+        create_time: 1700000100,
+        complete_time: 1700000130,
+        outputs: [
+          { url: "https://cdn.example.com/cat1.png" },
+          { url: "https://cdn.example.com/cat2.png" },
+        ],
+        status: "succeeded",
+      },
+    ] } } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "dreamina",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Dreamina vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = dreaminaFixtureClient();
+    const session = new CookieAuthSession({ vendor: "dreamina", cookies: [] });
+    const r = await dreaminaModule.SPEC.validateCookie({ httpClient, session, vendor: "dreamina" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("dm-u1");
+  });
+
+  it("workspaces map to RawConversation with kind=creative-workspace", async () => {
+    const { httpClient } = dreaminaFixtureClient();
+    const session = new CookieAuthSession({ vendor: "dreamina", cookies: [] });
+    const out = [];
+    for await (const c of dreaminaModule.SPEC.listConversations({ httpClient, session, vendor: "dreamina" })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].title).toBe("海报设计");
+    expect(out[0].extra.kind).toBe("creative-workspace");
+  });
+
+  it("items split into user-prompt + assistant-output messages with generatedImages", async () => {
+    const { httpClient } = dreaminaFixtureClient();
+    const session = new CookieAuthSession({ vendor: "dreamina", cookies: [] });
+    const out = [];
+    for await (const m of dreaminaModule.SPEC.listMessages({ httpClient, session, vendor: "dreamina" }, "ws-1")) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    expect(out[0].role).toBe("user");
+    expect(out[0].content.text).toBe("一只赛博朋克猫头鹰");
+    expect(out[1].role).toBe("assistant");
+    expect(out[1].content.generatedImages).toHaveLength(2);
+    expect(out[1].content.generatedImages[0].url).toMatch(/cat1\.png/);
+    expect(out[1].parentMessageId).toBe("item-1:prompt");
+  });
+});
+
 // ─── Spec contract still valid after wiring ──────────────────────────────
 
-describe("vendor spec post-wire smoke", () => {
-  it.each(["deepseek", "kimi", "tongyi", "zhipu"])("%s spec still has correct shape", (v) => {
+describe("vendor spec post-wire smoke (8/8 vendors live)", () => {
+  it.each([
+    "deepseek",
+    "kimi",
+    "tongyi",
+    "zhipu",
+    "hunyuan",
+    "qianfan",
+    "coze",
+    "dreamina",
+  ])("%s spec still has correct shape", (v) => {
     expect(DEFAULT_VENDOR_SPECS[v].name).toBe(v);
     expect(typeof DEFAULT_VENDOR_SPECS[v].listConversations).toBe("function");
     expect(typeof DEFAULT_VENDOR_SPECS[v].listMessages).toBe("function");

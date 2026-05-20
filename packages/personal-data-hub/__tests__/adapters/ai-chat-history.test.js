@@ -164,19 +164,28 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
     expect(out).toEqual([]);
   });
 
-  it("emits vendor-not-wired sentinel when stub vendor invoked", async () => {
-    // hunyuan/qianfan/coze/dreamina remain skeleton after Phase 10.2.
-    // deepseek + kimi + tongyi + zhipu are wired — use a still-stub vendor here.
-    const a = new AIChatHistoryAdapter();
+  it("vendor-not-wired sentinel path: surfaced via NotImplementedYetError direct throw", async () => {
+    // Phase 10.2 complete — all 8 vendors are wired with real h5 API.
+    // The sentinel kind:"vendor-not-wired" path remains in the sync()
+    // catch-block for forward-compat (e.g. when adding new vendors in
+    // Phase 10.3+ before their wiring lands). Verify the dispatch by
+    // injecting a synthetic always-throwing vendor spec.
+    const { NotImplementedYetError } = require("../../lib/adapters/ai-chat-history/vendor-spec");
+    const fakeSpec = {
+      ...require("../../lib/adapters/ai-chat-history").DEFAULT_VENDOR_SPECS.deepseek,
+      // eslint-disable-next-line require-yield
+      async *listConversations() { throw new NotImplementedYetError("deepseek", "listConversations"); },
+    };
+    const a = new AIChatHistoryAdapter({ vendorSpecs: { deepseek: fakeSpec } });
     a.setSession(
-      "hunyuan",
-      new CookieAuthSession({ vendor: "hunyuan", cookies: [{ name: "sess", value: "x" }] }),
+      "deepseek",
+      new CookieAuthSession({ vendor: "deepseek", cookies: [{ name: "userToken", value: "x" }] }),
     );
     const out = [];
-    for await (const ev of a.sync({ vendors: ["hunyuan"] })) out.push(ev);
+    for await (const ev of a.sync({ vendors: ["deepseek"] })) out.push(ev);
     expect(out.length).toBe(1);
     expect(out[0].kind).toBe("vendor-not-wired");
-    expect(out[0].vendor).toBe("hunyuan");
+    expect(out[0].vendor).toBe("deepseek");
     expect(out[0].error).toBe("VENDOR_NOT_WIRED");
   });
 
