@@ -106,4 +106,24 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
     testImplementation("androidx.paging:paging-common:3.2.1")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+
+    // Instrumented testing — un-quarantines AI_RAG_IntegrationTest.kt (was
+    // .kt.broken in commit 4bfc8f474 because no androidTestImplementation block
+    // existed). Pure Room DAO test, no Compose UI needed — minimal dep set.
+    //
+    // Still quarantined in this module:
+    //   - AIConversationUITest.kt.broken — same author's hallucinated
+    //     MessageEntity schema + Compose structural bugs (ExposedDropdownMenu
+    //     experimental API / invalid `var by` delegate / @Composable invocation
+    //     context). Needs deeper Compose-knowledgeable rewrite; can't be done
+    //     by AuthRepositoryTest-style dep patch alone.
+    //   - AIConversationE2ETest.kt.broken — uses :app's MainActivity reverse-
+    //     dep + never-existed `com.chainlesschain.android.test.*` helpers;
+    //     needs module-local TestActivity + test-helper module.
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
 }

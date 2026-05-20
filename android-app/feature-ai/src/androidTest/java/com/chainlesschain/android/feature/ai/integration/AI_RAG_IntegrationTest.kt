@@ -8,6 +8,7 @@ import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.entity.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -123,7 +124,7 @@ class AI_RAG_IntegrationTest {
         conversationDao.insertMessage(assistantMessage)
 
         // Verify complete workflow
-        val messages = conversationDao.getAllMessagesSync("conv1")
+        val messages = conversationDao.getMessagesByConversation("conv1").first()
         assertEquals(2, messages.size)
         assertTrue(messages[1].content.contains("lightweight threads"))
         assertTrue(messages[1].content.contains(knowledgeItems[0].content))
@@ -153,8 +154,8 @@ class AI_RAG_IntegrationTest {
         conversationDao.insertMessage(createMessage(id = "m2", conversationId = "conv2", role = "user", content = "Question 2"))
 
         // Verify conversations are independent
-        val conv1Messages = conversationDao.getAllMessagesSync("conv1")
-        val conv2Messages = conversationDao.getAllMessagesSync("conv2")
+        val conv1Messages = conversationDao.getMessagesByConversation("conv1").first()
+        val conv2Messages = conversationDao.getMessagesByConversation("conv2").first()
 
         assertEquals(1, conv1Messages.size)
         assertEquals(1, conv2Messages.size)
@@ -208,7 +209,7 @@ class AI_RAG_IntegrationTest {
         messages.forEach { conversationDao.insertMessage(it) }
 
         // Retrieve and verify order
-        val retrieved = conversationDao.getAllMessagesSync("conv1")
+        val retrieved = conversationDao.getMessagesByConversation("conv1").first()
         assertEquals(3, retrieved.size)
         assertEquals("Message 1", retrieved[0].content)
         assertEquals("Message 2", retrieved[1].content)
@@ -250,11 +251,14 @@ class AI_RAG_IntegrationTest {
         conversationDao.insertMessage(createMessage(id = "m1", conversationId = "conv1", role = "user", content = "Hello"))
         conversationDao.insertMessage(createMessage(id = "m2", conversationId = "conv1", role = "assistant", content = "Hi there"))
 
-        // Update conversation metadata
+        // Update conversation metadata. Original `.kt.broken` asserted on
+        // totalTokens / lastMessageAt — neither exists on ConversationEntity
+        // (LLM-hallucinated). The real schema only has messageCount + updatedAt
+        // for mutable counters, so verify those.
+        val newUpdatedAt = System.currentTimeMillis() + 1000 // ensure delta vs createdAt
         val updatedConv = conversation.copy(
             messageCount = 2,
-            totalTokens = 50,
-            lastMessageAt = System.currentTimeMillis()
+            updatedAt = newUpdatedAt
         )
         conversationDao.updateConversation(updatedConv)
 
@@ -262,7 +266,7 @@ class AI_RAG_IntegrationTest {
         val retrieved = conversationDao.getConversationByIdSync("conv1")
         assertNotNull(retrieved)
         assertEquals(2, retrieved.messageCount)
-        assertEquals(50, retrieved.totalTokens)
+        assertEquals(newUpdatedAt, retrieved.updatedAt)
     }
 
     /**
@@ -288,7 +292,7 @@ class AI_RAG_IntegrationTest {
         )
 
         // Verify conversation works without knowledge base
-        val messages = conversationDao.getAllMessagesSync("conv1")
+        val messages = conversationDao.getMessagesByConversation("conv1").first()
         assertEquals(1, messages.size)
         assertTrue(messages[0].content.contains("general information"))
     }
@@ -297,6 +301,14 @@ class AI_RAG_IntegrationTest {
     // Helper Functions
     // ========================================
 
+    // Helpers below construct only the fields that actually exist on each
+    // Room entity. The original `.kt.broken` version invented an OpenAI-shaped
+    // schema (MessageEntity.tokens/model/finishReason/isStreaming/error,
+    // ConversationEntity.systemPrompt/temperature/maxTokens/lastMessageAt/
+    // totalTokens/isArchived/sessionContext/ragEnabled/knowledgeBaseIds,
+    // KnowledgeItemEntity.attachments) that does not match the production
+    // entities in core-database. See memory `android_quarantined_tests_llm_
+    // hallucinated.md` Category 1 for the full pattern.
     private fun createKnowledgeItem(
         id: String,
         title: String,
@@ -317,32 +329,21 @@ class AI_RAG_IntegrationTest {
         isDeleted = isDeleted,
         isFavorite = false,
         isPinned = false,
-        syncStatus = "synced",
-        attachments = null
+        syncStatus = "synced"
     )
 
     private fun createConversation(
         id: String,
         title: String,
-        model: String = "gpt-4",
-        systemPrompt: String = "You are a helpful assistant."
+        model: String = "gpt-4"
     ) = ConversationEntity(
         id = id,
         title = title,
         model = model,
-        systemPrompt = systemPrompt,
-        temperature = 0.7f,
-        maxTokens = 2000,
         createdAt = System.currentTimeMillis(),
         updatedAt = System.currentTimeMillis(),
-        lastMessageAt = System.currentTimeMillis(),
         messageCount = 0,
-        totalTokens = 0,
-        isPinned = false,
-        isArchived = false,
-        sessionContext = null,
-        ragEnabled = true,
-        knowledgeBaseIds = null
+        isPinned = false
     )
 
     private fun createMessage(
@@ -356,11 +357,7 @@ class AI_RAG_IntegrationTest {
         conversationId = conversationId,
         role = role,
         content = content,
-        tokens = content.length / 4, // Rough estimate
         createdAt = timestamp,
-        model = "gpt-4",
-        finishReason = "stop",
-        isStreaming = false,
-        error = null
+        tokenCount = content.length / 4 // Rough estimate (real field is tokenCount, not tokens)
     )
 }
