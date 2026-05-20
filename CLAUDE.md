@@ -116,6 +116,7 @@ REDIS_HOST=localhost:6379
 
 ## Documentation References
 
+- **Hidden-Risk Traps Handbook (改前必看)**: `docs/internal/hidden-risk-traps.md` (64k — 13 silent-failure patterns: docs sync / npm publish / CI mask / git race / lint-staged / E2E / Node 23 / hoisting / Android update / SQLite TEXT / commit-msg / Android remote / GH immutable. Read BEFORE touching `release.yml` / `.github/workflows/` / `.husky/` / `packages/*/package.json` / SQLite handlers / `electron-builder.yml`, OR doing release publish / cross-session rebase / V5 baseline E2E / Android `UpdateChecker.kt` / `gh release` cleanup)
 - **Architecture Patterns**: `docs/claude/CLAUDE-patterns.md` (44k — read on demand when working with patterns)
 - **Architecture Decisions**: `docs/claude/CLAUDE-decisions.md`
 - **Troubleshooting**: `docs/claude/CLAUDE-troubleshooting.md` (22k — read on demand when debugging issues)
