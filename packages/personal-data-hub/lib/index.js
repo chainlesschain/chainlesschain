@@ -34,6 +34,7 @@ const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
 const entityResolver = require("./entity-resolver");
+const analysisSkills = require("./analysis-skills");
 
 module.exports = {
   // Constants / enums
@@ -171,6 +172,16 @@ module.exports = {
   ENTITY_RESOLVER_LLM_SYSTEM_PROMPT: entityResolver.ENTITY_RESOLVER_LLM_SYSTEM_PROMPT,
   parseEntityResolverLLMResponse: entityResolver.parseEntityResolverLLMResponse,
   EntityResolverWorker: entityResolver.EntityResolverWorker,
+
+  // Phase 11 — 5 内置 analysis skills
+  AnalysisSkill: analysisSkills.AnalysisSkill,
+  SpendingSkill: analysisSkills.SpendingSkill,
+  RelationsSkill: analysisSkills.RelationsSkill,
+  FootprintSkill: analysisSkills.FootprintSkill,
+  InterestsSkill: analysisSkills.InterestsSkill,
+  TimelineSkill: analysisSkills.TimelineSkill,
+  ANALYSIS_SKILL_NAMES: analysisSkills.ANALYSIS_SKILL_NAMES,
+  runAnalysisSkill: analysisSkills.runAnalysisSkill,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

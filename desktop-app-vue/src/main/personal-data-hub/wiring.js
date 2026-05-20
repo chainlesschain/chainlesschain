@@ -47,6 +47,8 @@ const {
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
   EntityResolverWorker,
+  runAnalysisSkill,
+  ANALYSIS_SKILL_NAMES,
 } = require("@chainlesschain/personal-data-hub");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
@@ -320,6 +322,12 @@ async function initHub() {
     emailAccountsPath,
     alipayAccountsPath,
     entityResolver,
+    analysisSkillNames: ANALYSIS_SKILL_NAMES,
+
+    /** Phase 11 — run a named internal analysis skill */
+    async runSkill(name, options = {}) {
+      return await runAnalysisSkill({ vault, llm }, name, options);
+    },
     // Convenience: register the mock adapter for smoke / dev. Won't be
     // pre-registered by default (lazy on first call).
     registerMockAdapter(opts = {}) {

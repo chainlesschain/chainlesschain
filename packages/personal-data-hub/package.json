@@ -28,7 +28,10 @@
     "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js",
     "./adapters/email-imap": "./lib/adapters/email-imap/index.js",
     "./adapters/alipay-bill": "./lib/adapters/alipay-bill/index.js",
-    "./entity-resolver": "./lib/entity-resolver/index.js"
+    "./adapters/system-data": "./lib/adapters/system-data/index.js",
+    "./entity-resolver": "./lib/entity-resolver/index.js",
+    "./analysis-skills": "./lib/analysis-skills/index.js",
+    "./sidecar": "./lib/sidecar/index.js"
   },
   "scripts": {
     "test": "vitest run",

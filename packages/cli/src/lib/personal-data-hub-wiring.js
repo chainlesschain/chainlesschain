@@ -45,6 +45,8 @@ const {
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
+  runAnalysisSkill,
+  ANALYSIS_SKILL_NAMES,
 } = hub;
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
@@ -221,6 +223,10 @@ async function initHub() {
     emailAccountsPath,
     alipayAccountsPath,
     entityResolver,
+    analysisSkillNames: ANALYSIS_SKILL_NAMES,
+    async runSkill(name, options = {}) {
+      return await runAnalysisSkill({ vault, llm }, name, options);
+    },
     bm25: _bm25,
     registerMockAdapter(opts = {}) {
       if (registry.has(opts.name || "mock"))

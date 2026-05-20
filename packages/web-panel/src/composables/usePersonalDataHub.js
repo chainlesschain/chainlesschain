@@ -321,5 +321,25 @@ export function usePersonalDataHub() {
     async resolverStats() {
       return await send("personal-data-hub.resolver-stats", {}, 5000);
     },
+
+    // ─── Phase 11 — internal analysis skills ──────────────────────────
+
+    /** List the 5 internal analysis skill names. */
+    async skillsList() {
+      return await send("personal-data-hub.skills-list", {}, 5000);
+    },
+
+    /**
+     * Run a named analysis skill (analysis.spending / .relations /
+     * .footprint / .interests / .timeline). Returns
+     * `{ skill, summary, breakdown?, citations, llm_commentary? }`.
+     */
+    async runSkill(name, options = {}) {
+      return await send(
+        "personal-data-hub.run-skill",
+        { name, options },
+        120_000,
+      );
+    },
   };
 }
