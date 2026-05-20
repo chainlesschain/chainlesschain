@@ -262,9 +262,16 @@ DEPLOYS = [
     #     "腾讯混元 + 百度千帆 + 字节扣子 + Dreamina + 豆包" (9 家齐全)
     # 同 commit 修了 root CHANGELOG.md / README.md / README_EN.md 同片段；这条
     # deploy 只发 docs-site (CHANGELOG/README 是仓库 reference, 不直接面向访客)。
+    # 2026-05-20 16:50 v5.0.3.74 docs-only — ship the new CHANGELOG entry
+    # (AIChat registry-contract fix + Phase 10.2 integration/E2E + README
+    # banner reframe). 4 stash-pop conflict markers in package.json /
+    # desktop-app-vue/package.json / packages/cli/package.json /
+    # android-app/app/build.gradle.kts / ios-app/.../Info.plist resolved
+    # along the way (kept the v5.0.3.74 side, dropped the v5.0.3.68 stash
+    # side). Build wall-clock 590s.
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-140328.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260520-165018.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     # {
