@@ -26,6 +26,7 @@ const { EVENT_SUBTYPES } = require("../../constants");
 const { SUPPORTED_VENDORS, assertVendorSpec, NotImplementedYetError } =
   require("./vendor-spec");
 const { CookieAuthSession } = require("./cookie-auth");
+const { HttpClient, CookieExpiredError, RateLimitedError } = require("./http-client");
 const {
   ADAPTER_NAME,
   ADAPTER_VERSION,
@@ -65,6 +66,13 @@ class AIChatHistoryAdapter {
    *        as "needs login").
    * @param {Record<string, object>} [opts.vendorSpecs]
    *        Override one or more vendor specs (used by tests to inject fixtures).
+   * @param {function} [opts.fetch]
+   *        Fetch override forwarded to per-vendor HttpClient. Defaults to
+   *        global fetch (Node 22+). Tests inject a stub.
+   * @param {function} [opts.sleep]
+   *        Sleep override (test seam) for HttpClient rate-limit + backoff.
+   * @param {function} [opts.now]
+   *        Clock override (test seam) for HttpClient rate-limit.
    * @param {object} [opts.logger]
    */
   constructor(opts = {}) {
@@ -105,6 +113,27 @@ class AIChatHistoryAdapter {
     }
     this._vendorSpecs = specs;
     this._sessions = { ...(opts.sessions || {}) };
+    this._fetch = opts.fetch;
+    this._sleep = opts.sleep;
+    this._now = opts.now;
+    this._httpClients = new Map(); // vendor → HttpClient, lazy
+  }
+
+  _getHttpClient(vendor) {
+    let client = this._httpClients.get(vendor);
+    if (!client) {
+      const spec = this._vendorSpecs[vendor];
+      client = new HttpClient({
+        vendor,
+        rateLimits: spec.rateLimits,
+        fetch: this._fetch,
+        sleep: this._sleep,
+        now: this._now,
+        logger: this._logger,
+      });
+      this._httpClients.set(vendor, client);
+    }
+    return client;
   }
 
   // -------------------------------------------------------------------------
@@ -145,7 +174,8 @@ class AIChatHistoryAdapter {
         continue;
       }
       try {
-        perVendor[vendor] = await spec.validateCookie({ session: sess });
+        const httpClient = this._getHttpClient(vendor);
+        perVendor[vendor] = await spec.validateCookie({ session: sess, vendor, httpClient });
       } catch (err) {
         perVendor[vendor] = { ok: false, reason: err.code || err.message };
       }
@@ -180,7 +210,8 @@ class AIChatHistoryAdapter {
         continue;
       }
       const spec = this._vendorSpecs[vendor];
-      const ctx = { session: sess, vendor };
+      const httpClient = this._getHttpClient(vendor);
+      const ctx = { session: sess, vendor, httpClient };
       const vendorWatermark = (opts.watermarks && opts.watermarks[vendor]) || null;
 
       try {
@@ -193,13 +224,20 @@ class AIChatHistoryAdapter {
         }
       } catch (err) {
         if (err instanceof NotImplementedYetError) {
-          // Phase 10.1 path: vendor stub is intentionally unwired. Emit a
-          // sentinel so the registry / UI can flag it without aborting the
-          // whole sync.
           this._logger.warn(
             `[ai-chat] vendor=${vendor} not wired (Phase 10.2+ work): ${err.message}`,
           );
           yield { kind: "vendor-not-wired", vendor, error: err.code };
+          continue;
+        }
+        if (err instanceof CookieExpiredError) {
+          this._logger.warn(`[ai-chat] vendor=${vendor} cookie expired: ${err.message}`);
+          yield { kind: "vendor-cookie-expired", vendor, error: err.code };
+          continue;
+        }
+        if (err instanceof RateLimitedError) {
+          this._logger.warn(`[ai-chat] vendor=${vendor} rate limited: ${err.message}`);
+          yield { kind: "vendor-rate-limited", vendor, error: err.code, retryAfterMs: err.retryAfterMs };
           continue;
         }
         throw err;
