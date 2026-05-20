@@ -175,4 +175,27 @@ class HubAskViewModelTest {
         assertTrue(h.vault.ok)
         assertTrue(h.llm.isLocal)
     }
+
+    @Test
+    fun `openCitation fetches detail and closeCitation clears it`() = runTest(testDispatcher) {
+        coEvery { hub.eventDetail("evt-42") } returns Result.success(
+            com.chainlesschain.android.remote.commands.EventDetailResponse(
+                event = com.chainlesschain.android.remote.commands.HubEvent(
+                    id = "evt-42", subtype = "order", source = "taobao", ingestedAt = 1000L
+                )
+            )
+        )
+        val vm = HubAskViewModel(hub)
+        advanceUntilIdle()
+        vm.openCitation("evt-42")
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.activeCitationDetail)
+        assertEquals("evt-42", s.activeCitationDetail?.event?.id)
+        assertFalse(s.activeCitationLoading)
+
+        vm.closeCitation()
+        assertNull(vm.uiState.value.activeCitationDetail)
+    }
 }
