@@ -160,6 +160,112 @@ describe("Integration: Persona System", () => {
       expect(prompt).toContain("Preferred tools:");
       expect(prompt).toContain("read_file, run_code, search_files");
     });
+
+    // ── Phase 3d: CC_PACK_AUTO_PERSONA + config.personas registry ─────────
+    describe("Phase 3d: named-persona registry resolution", () => {
+      afterEach(() => {
+        delete process.env.CC_PACK_AUTO_PERSONA;
+      });
+
+      it("CC_PACK_AUTO_PERSONA env wins over inline config.persona", () => {
+        writeFileSync(
+          join(ccDir, "config.json"),
+          JSON.stringify({
+            name: "clinic",
+            persona: {
+              name: "Inline Default",
+              role: "should NOT be active",
+            },
+            personas: {
+              "medical-triage-persona": {
+                name: "Triage From Env",
+                role: "active via CC_PACK_AUTO_PERSONA",
+              },
+            },
+          }),
+          "utf-8",
+        );
+
+        process.env.CC_PACK_AUTO_PERSONA = "medical-triage-persona";
+        const prompt = buildSystemPrompt(tempDir);
+        expect(prompt).toContain("Triage From Env");
+        expect(prompt).toContain("active via CC_PACK_AUTO_PERSONA");
+        expect(prompt).not.toContain("Inline Default");
+        expect(prompt).not.toContain("should NOT be active");
+      });
+
+      it("config.activePersonaName resolves through registry when env absent", () => {
+        writeFileSync(
+          join(ccDir, "config.json"),
+          JSON.stringify({
+            name: "clinic",
+            persona: { name: "Stale Inline", role: "stale" },
+            activePersonaName: "agriculture-expert-persona",
+            personas: {
+              "agriculture-expert-persona": {
+                name: "Crop Advisor",
+                role: "advise on crops",
+              },
+            },
+          }),
+          "utf-8",
+        );
+
+        const prompt = buildSystemPrompt(tempDir);
+        expect(prompt).toContain("Crop Advisor");
+        expect(prompt).toContain("advise on crops");
+      });
+
+      it("falls back to inline config.persona when env name not in registry", () => {
+        writeFileSync(
+          join(ccDir, "config.json"),
+          JSON.stringify({
+            name: "clinic",
+            persona: { name: "Inline Default", role: "fallback" },
+            personas: { "real-persona": { name: "Other", role: "x" } },
+          }),
+          "utf-8",
+        );
+
+        process.env.CC_PACK_AUTO_PERSONA = "does-not-exist";
+        const prompt = buildSystemPrompt(tempDir);
+        // env name doesn't match — fall through past env + activeName checks,
+        // then hit inline config.persona
+        expect(prompt).toContain("Inline Default");
+      });
+
+      it("falls back to default coding assistant when no persona anywhere", () => {
+        writeFileSync(
+          join(ccDir, "config.json"),
+          JSON.stringify({ name: "bare" }),
+          "utf-8",
+        );
+
+        process.env.CC_PACK_AUTO_PERSONA = "does-not-exist";
+        const prompt = buildSystemPrompt(tempDir);
+        expect(prompt).toContain("agentic coding assistant");
+      });
+
+      it("env wins over activePersonaName when both set", () => {
+        writeFileSync(
+          join(ccDir, "config.json"),
+          JSON.stringify({
+            name: "clinic",
+            activePersonaName: "persona-a",
+            personas: {
+              "persona-a": { name: "A", role: "active-name pick" },
+              "persona-b": { name: "B", role: "env pick" },
+            },
+          }),
+          "utf-8",
+        );
+
+        process.env.CC_PACK_AUTO_PERSONA = "persona-b";
+        const prompt = buildSystemPrompt(tempDir);
+        expect(prompt).toContain("env pick");
+        expect(prompt).not.toContain("active-name pick");
+      });
+    });
   });
 
   // ─── Auto-activated persona skill integration ──────

@@ -1,11 +1,13 @@
 # `cc pack --project` — 项目打包模式 设计文档
 
-> 版本：v0.7 (Phase 0/1/2a/2b/3a/3b/3c/3f/3g + Phase 4a Linux + Phase 5a/5b/5c OTA 全部落地)
+> 版本：v0.8 (Phase 0/1/2a/2b/3a/3b/3c/3d/3f/3g + Phase 4a Linux + Phase 5a/5b/5c OTA 全部落地)
 > 日期：2026-05-20
 > 作者：longfa
-> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b / 3c / 3f / 3g 全部完成**；**Phase 4a Linux x64 pack** 已 CI guarded；**Phase 5a/5b/5c OTA 链** 全部交付；**Phase 3g `cc pack auto-update`** 一键串联 + **Phase 3f `.env` sidecar + `--version --json`** 已上线；`--project` 模式端到端可用
+> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b / 3c / 3d / 3f / 3g 全部完成**；**Phase 4a Linux x64 pack** 已 CI guarded；**Phase 5a/5b/5c OTA 链** 全部交付；**Phase 3g auto-update** 一键串联 + **Phase 3f .env sidecar/`--version --json`** + **Phase 3d persona resolver 真接线** 已上线；`--project` 模式端到端可用
 > 关联：`docs/design/CC_PACK_打包指令设计文档.md`（基础流水线 v0.1）
 > 关联版本：ChainlessChain v5.0.3.69 / CLI 0.162.3
+>
+> **v0.8 变更摘要（2026-05-20）**：**Phase 3d — Persona resolver 真接线**。修平 Phase 3b 留下的"`CC_PACK_AUTO_PERSONA` env 无任何下游消费者"的 dangling wire（grep 验证：Phase 3b 之前 env 只 set 不读）。改动 3 处：(1) `agent-core.js:_loadProjectPersona` 加 named-persona 解析链：`CC_PACK_AUTO_PERSONA` env → `config.personas[<env>]` → `config.activePersonaName` → `config.personas[<name>]` → 兜底 inline `config.persona`，每层都有 `personas[key]` 存在性 guard；(2) `init.js` TEMPLATES 有 persona 的（medical-triage/agriculture-expert/general-assistant 等）同时写入 `config.personas[<template>-persona] = persona` + `config.activePersonaName = <template>-persona`，与 `.chainlesschain/skills/<template>-persona/SKILL.md` skill 文件名对称；(3) `cc persona` 加 `list` (含 `--json` 输出 + env mismatch warning) + `activate <name>` (查 personas[name] → 写 activePersonaName + denormalized persona) 两个 subcommand；`reset` 顺带清理 activePersonaName。15 个新单测 + 6 个集成测试 + 1 e2e + 既有全过。重点测试：env 优先级 / activePersonaName 中层 / 不存在的 env 回退 inline / 完全无 persona 默认 prompt / env 胜 activePersonaName / activate switch 覆盖 prior denormalized / e2e init medical-triage 写出 personas + activePersonaName。
 >
 > **v0.7 变更摘要（2026-05-20）**：**Phase 3f — `.env` sidecar + `--version --json` 落地**，§13 #3+#4 两个待决项收口。`pkg-config-generator.js` inline runtime block 新增：(1) `_loadDotenv(filePath)` 解析器（BOM strip + 跳 `#` 注释 + KEY=VALUE + 匹配引号 strip，length≥2 guard 防 `'` 单字符 slice 成空串）；(2) `.env` 加载块用 `_origEnvKeys` snapshot 保证**显式 shell-set process.env 永远赢**（探出后立即应用 exePath/.env，再应用 userDataDir/.env，后者覆盖前者）；(3) `_hasFlag('-v','--version') && _hasFlag('--json')` 组合在 commander.parse 前 short-circuit 输出 `{cli, project:{name,sha}}` 并 `exit(0)`，project 块仅 `BAKED.projectMode` 时附加。9 新单测 in `packer-pkg-config-generator.test.js`（33→42）：parser helper / 引号 strip / 优先级顺序 / 不覆盖 shell env / userDataDir 后于 exePath 应用 / `--version --json` combo 拦截 / project 块条件 / .env 在 version-json 之前 / 普通 `--version` 不变。17 packer test 文件 228/228 回归绿。
 >
@@ -366,16 +368,16 @@ if (BAKED.projectMode) {
 | **5c** | self-replace — POSIX rename + Windows sidecar | `packer-pack-update-applier.test.js` | ✅ 已交付（commit `16ef0612f`） |
 | **3g** | `cc pack auto-update` 一键 OTA orchestration (check→confirm→download→apply) | `packer-auto-update.test.js` 18 case；17 packer test 文件 219/219 回归绿 | ✅ 已交付（2026-05-20）。新增 `runAutoUpdate()` 导出函数 + `cc pack auto-update` subcommand；4 impl 依赖注入便于测试 |
 | **3f** | `.env` sidecar 优先级 + `--version --json` (§13 #3+#4) | `packer-pkg-config-generator.test.js` +9 case；17 packer test 文件 228/228 回归绿 | ✅ 已交付（2026-05-20）。runtime block 加 `_loadDotenv` 解析器 + 双 .env 应用（exePath 后被 userDataDir 覆盖）+ snapshot `_origEnvKeys` 保证 shell-set env 永远赢 + `--version --json` combo 在 commander.parse 前短路输出 `{cli, project:{name,sha}}` |
+| **3d** | Persona resolver 真接线 (`CC_PACK_AUTO_PERSONA` env 消费者 + `cc persona list/activate`) | `persona-command.test.js` +9 / `persona-system.test.js` +5 / `init-command.test.js` +1；既有 + 38 + 1 = 39/39 + 既有 packer 228 绿 | ✅ 已交付（2026-05-20）。`agent-core._loadProjectPersona` 4 层解析链 (env > activePersonaName > personas[active] > inline persona)；`init.js` TEMPLATES 写 personas registry + activePersonaName；`cc persona list/activate` 2 个新 subcommand；`reset` 顺清 activePersonaName |
 
-**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b` → `3c` → `4a` → `5a` → `5b` → `5c` → `3g` → `3f`。
+**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b` → `3c` → `4a` → `5a` → `5b` → `5c` → `3g` → `3f` → `3d`。
 
 每个 Phase 独立可上线（`--no-project` 路径在 2a 加回归后全程保持等价今天行为）。
 
-### 12.1 候选 Phase 3d/3e（未实施 — 待 OQ）
+### 12.1 候选 Phase 3e（未实施 — 待 OQ）
 
 | Phase | 范围 | Scope | 说明 |
 |---|---|---|---|
-| **3d** | Persona resolver 真接线 | 3-4h | 实现 `cc skill enable <name>` 命令 + bootstrap 启动时读 `CC_PACK_AUTO_PERSONA` 真激活 persona。Phase 3b 备注的"`skill enable` 命令当前不存在，downstream persona resolver 直接读 env 完成等价逻辑"是临时绕过，medical-triage 类产品启动时 persona 行为目前未真生效 |
 | **3e (Phase 4b)** | macOS pack pipeline | 4-6h | release.yml 加 macOS pack job + darwin x64/arm64 native-prebuild + smoke-test。代码侧 `native-prebuild-collector.js` 已支持 darwin（L129），但**无 CI guard、无 E2E**。需 macOS runner 配额 |
 
 ---
@@ -417,4 +419,4 @@ if (BAKED.projectMode) {
 
 **文档结束。**
 
-下一步（v0.7 后）：候选 Phase 3d/3e 按需触发（见 §12.1）。Phase 3c drift + 3g auto-update + 3f .env sidecar/--version --json 已收口，doc 与代码完全对齐。
+下一步（v0.8 后）：只剩候选 Phase 3e（macOS pack pipeline，需 CI runner 配额决策）。Phase 3c drift / 3g auto-update / 3f .env sidecar+--version --json / 3d persona resolver 全部收口，doc 与代码完全对齐。
