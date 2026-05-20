@@ -341,6 +341,14 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup Android NDK (for bs3mc cross-compile)
+        if: matrix.abi == 'aarch64'
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          local-cache: true
+
       - name: Pack chainlesschain CLI snapshot (with prod deps)
         if: matrix.abi == 'aarch64'
         run: |
@@ -389,25 +397,116 @@ jobs:
           echo "Hydrated deps: $(du -sh node_modules | cut -f1)"
           echo "Top-level deps: $(ls node_modules | wc -l)"
 
-          # 3b. NOTE: Plan A Sub-Phase A2.2 (NDK self-compile of
-          # better-sqlite3-multiple-ciphers Android arm64 binding) will be
-          # inserted here in a subsequent commit. Without that .node binary,
-          # cc on Android can require('@chainlesschain/personal-data-hub')
-          # (vault.js loadDriver is lazy, A1 verified 2026-05-20) but the
-          # first `cc hub <vault-op>` call will fail with "Cannot find module
-          # better_sqlite3.node". Non-vault Hub APIs (schemas / batch / kg-
-          # derive / query-parser / prompt-builder) work unimpaired.
+          # 3b. Plan A Sub-Phase A2.2 — NDK cross-compile of
+          # better-sqlite3-multiple-ciphers Android arm64 binding so the in-APK
+          # cc CLI can open SQLCipher vaults for the Personal Data Hub.
           #
-          # Earlier attempt (dry-run 2026-05-20): inject upstream prebuilt
-          # node-v137-{linux,linuxmusl}-arm64 → REJECTED. DT_NEEDED scan
-          # showed musl prebuild needs libc.musl-aarch64.so.1 + libstdc++
-          # .so.6, glibc needs libc.so.6 + libpthread.so.0 + libstdc++.so.6;
-          # neither resolvable on Android Bionic nor Termux $PREFIX/lib
-          # (Termux ships libc++ LLVM, not libstdc++ GNU). patchelf rename
-          # can't fix the C++ exception ABI mismatch.
+          # Method (verified standalone in bs3mc-android-prebuild.yml run
+          # 26148746496, 2026-05-20): NDK r27c + Node 24.15.0 headers +
+          # -static-libstdc++ → .node with DT_NEEDED = libc.so only (fully
+          # Bionic-compatible, no Termux libc++ ABI drift risk).
+          #
+          # Earlier attempts (dry-run 2026-05-20): upstream prebuilt
+          # node-v137-{linux,linuxmusl}-arm64 → REJECTED. musl prebuild needs
+          # libc.musl-aarch64.so.1 + libstdc++.so.6, glibc needs libc.so.6 +
+          # libpthread.so.0 + libstdc++.so.6; neither resolvable on Android
+          # Bionic (Termux ships libc++ LLVM, not libstdc++ GNU). patchelf
+          # rename can't fix the C++ exception ABI mismatch.
           #
           # See docs/design/Personal_Data_Hub_Android_Standalone_Cc.md §7
-          # Sub-Phase A2 + Trap 2 for full analysis.
+          # Sub-Phase A2 + Traps 2 / 14 for full analysis.
+
+          BS3MC_DIR="$(find /tmp/cc-cli-hydrate/package/node_modules \
+                       -maxdepth 4 -name better-sqlite3-multiple-ciphers \
+                       -type d | head -n1)"
+          if [ -z "$BS3MC_DIR" ]; then
+            echo "::notice::better-sqlite3-multiple-ciphers not hoisted to node_modules — skipping NDK build (PDH vault.open will fail on-device until next deps refresh)"
+          else
+            echo "Found bs3mc at: $BS3MC_DIR"
+            BS3MC_VERSION="$(node -p "require('$BS3MC_DIR/package.json').version")"
+            echo "Version: $BS3MC_VERSION"
+
+            # Fetch Node 24 headers matching nodejs-lts apt package
+            # (currently 24.15.0). If Termux nodejs-lts version drifts, this
+            # value also needs to follow — see Trap 2.5.
+            NODE_TARGET_VERSION="24.15.0"
+            HEADERS_URL="https://nodejs.org/download/release/v${NODE_TARGET_VERSION}/node-v${NODE_TARGET_VERSION}-headers.tar.gz"
+            echo "Fetching Node headers: $HEADERS_URL"
+            curl -fsSL --retry 3 --retry-delay 2 \
+              -o /tmp/node-headers.tar.gz "$HEADERS_URL"
+            mkdir -p /tmp/node-headers
+            tar -xzf /tmp/node-headers.tar.gz -C /tmp/node-headers \
+              --strip-components=1
+
+            # Cross-compile env
+            ANDROID_NDK_HOME="${{ steps.setup-ndk.outputs.ndk-path }}"
+            TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+            API_LEVEL=30
+            export CC="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang"
+            export CXX="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang++"
+            export AR="$TOOLCHAIN/bin/llvm-ar"
+            export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+            export STRIP="$TOOLCHAIN/bin/llvm-strip"
+            export LD="$TOOLCHAIN/bin/ld.lld"
+            export CFLAGS="-fPIC -DANDROID"
+            export CXXFLAGS="-fPIC -DANDROID -std=c++20"
+            # -static-libstdc++ statically embeds libc++ symbols into the
+            # .node — verified produces DT_NEEDED=libc.so only (zero libc++
+            # runtime dep), sidestepping Termux libc++ vs NDK libc++ ABI
+            # drift (Phase 2.5 trap 5).
+            export LDFLAGS="-static-libstdc++"
+            # android_ndk_path required — Node 24 common.gypi has
+            # -I<(android_ndk_path)/sources/android/cpufeatures in
+            # OS==android cflags; gyp errors without it (Trap 14).
+            export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"
+
+            cd "$BS3MC_DIR"
+            npx -p node-gyp@latest node-gyp configure \
+              --target_arch=arm64 \
+              --target_platform=android \
+              --nodedir=/tmp/node-headers
+
+            npx -p node-gyp@latest node-gyp build
+
+            NODE_BIN="$BS3MC_DIR/build/Release/better_sqlite3.node"
+            if [ ! -f "$NODE_BIN" ]; then
+              echo "::error::NDK cross-compile did not produce $NODE_BIN"
+              find "$BS3MC_DIR/build" -maxdepth 4 -type f 2>/dev/null | head -20
+              exit 1
+            fi
+
+            echo "Pre-strip DT_NEEDED:"
+            patchelf --print-needed "$NODE_BIN" || true
+            echo "Pre-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+
+            # Strip debug info — saves ~10% of size for C++ .node
+            "$STRIP" "$NODE_BIN" || echo "::warning::strip failed; shipping unstripped"
+            echo "Post-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+
+            # Defensive patchelf — if libc++_shared.so leaked into
+            # DT_NEEDED (would mean -static-libstdc++ didn't work this
+            # build), rename to libtermux_cxx.so to match Phase 2.5
+            # convention. Standalone run 26148746496 confirmed
+            # -static-libstdc++ works (DT_NEEDED=libc.so only).
+            if patchelf --print-needed "$NODE_BIN" 2>/dev/null \
+               | grep -q '^libc++_shared\.so'; then
+              echo "::warning::libc++_shared.so in DT_NEEDED — falling back to patchelf rename"
+              patchelf --replace-needed libc++_shared.so libtermux_cxx.so "$NODE_BIN"
+              echo "Post-patch DT_NEEDED:"
+              patchelf --print-needed "$NODE_BIN"
+            fi
+
+            # Cleanup intermediate artifacts (gyp build dir + sqlite3.a +
+            # object files) — only the .node needs to survive in the tree.
+            # Saves ~30MB in cc-cli.tgz.
+            find "$BS3MC_DIR/build" -mindepth 1 -maxdepth 1 \
+              ! -name Release -exec rm -rf {} +
+            find "$BS3MC_DIR/build/Release" -mindepth 1 -maxdepth 1 \
+              ! -name better_sqlite3.node -exec rm -rf {} +
+
+            echo "Final .node + tree:"
+            ls -la "$BS3MC_DIR/build/Release/"
+          fi
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
           # `--strip-components=1`-style tar parser keeps working unchanged.
@@ -445,7 +544,7 @@ jobs:
             -m "chore(android): refresh Phase 2.5 Node + cc CLI bundle [skip ci]" \
             -m "Auto-generated by node-runtime-bundle.yml run ${{ github.run_id }}." \
             -m "- Termux nodejs-lts (Node 24.x LTS) + 8 transitive deps (libssl/libcrypto/libicu*/libz/libsqlite/libc-ares/libc++_shared/libandroid-support/libffi)" \
-            -m "- chainlesschain CLI snapshot @ HEAD (packages/cli/ npm pack)" \
+            -m "- chainlesschain CLI snapshot @ HEAD (packages/cli/ npm pack) + bs3mc Android arm64 .node (NDK r27c cross-compile, Plan A A2.2)" \
             -m "Manual rebuild: re-run the workflow via workflow_dispatch."
           # Push back to main using GITHUB_TOKEN (default permission is
           # contents:write on push triggers, but workflow_dispatch needs
