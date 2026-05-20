@@ -69,6 +69,8 @@ function isAsyncIterableProducer(fn) {
  * malformed adapter is rejected at registration time rather than failing
  * mysteriously mid-sync.
  */
+const EXTRACT_MODES = ["web-api", "device-pull", "file-import"];
+
 function assertAdapter(a) {
   const errors = [];
 
@@ -83,6 +85,15 @@ function assertAdapter(a) {
   // Capabilities (array of strings, may be empty)
   if (!Array.isArray(a.capabilities) || !a.capabilities.every(isString)) {
     errors.push("capabilities must be a (possibly empty) array of strings");
+  }
+
+  // Phase 7.5: extractMode — optional, defaults "web-api". Adapters that
+  // pull from a mobile device declare "device-pull" so the registry can
+  // gate sync on device-connection state.
+  if (a.extractMode !== undefined) {
+    if (!EXTRACT_MODES.includes(a.extractMode)) {
+      errors.push(`extractMode must be one of ${EXTRACT_MODES.join("|")} when present`);
+    }
   }
 
   // Rate limits (optional, but if present must be an object with numeric fields)
@@ -151,5 +162,6 @@ function toError(thrown, context) {
 module.exports = {
   SENSITIVITY_LEVELS,
   assertAdapter,
+  EXTRACT_MODES,
   toError,
 };
