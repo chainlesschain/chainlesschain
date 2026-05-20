@@ -380,14 +380,188 @@ internal object SeedRegistry {
             androidSourceFile = "HistoryCommands.kt",
             methodCount = 7,
         ),
+        // Phase 14 — Personal Data Hub remote entry (metadata-only seed; wiring
+        // requires desktop mobile-skill-whitelist to expose `personal-data-hub.*`
+        // and Android feature-personal-data-hub UI module — both pending).
+        SkillMetadata(
+            namespace = "personal-data-hub",
+            displayName = "个人数据中台",
+            description = "本地 vault + 自然语言问答 + Adapter 同步 + 审计",
+            category = "data",
+            risk = SkillRiskTag.Mutating,
+            androidSourceFile = "PersonalDataHubCommands.kt",
+            methodCount = 21,
+            methods = listOf(
+                MethodMetadata(
+                    name = "ask",
+                    description = "自然语言问数据中台（隐私 gate 默认拒非本地 LLM）",
+                    paramCount = 2,
+                    paramSummary = "question, options?",
+                    returnTypeHint = "AskResult",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "stats",
+                    description = "vault 事件 / Adapter / LLM provider 统计（只读）",
+                    paramCount = 0,
+                    returnTypeHint = "HubStats",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "health",
+                    description = "vault / LLM / KG / RAG 四件套健康检查（只读）",
+                    paramCount = 0,
+                    returnTypeHint = "HubHealth",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "listAdapters",
+                    description = "枚举已注册 Adapter + 敏感度标签",
+                    paramCount = 0,
+                    returnTypeHint = "AdaptersResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "syncAdapter",
+                    description = "触发单 Adapter 同步（流水线 health→sync→vault→KG→RAG→audit）",
+                    paramCount = 2,
+                    paramSummary = "name, options?",
+                    returnTypeHint = "SyncReport",
+                ),
+                MethodMetadata(
+                    name = "syncAll",
+                    description = "全部已注册 Adapter 并发同步",
+                    paramCount = 1,
+                    paramSummary = "options?",
+                    returnTypeHint = "SyncReportList",
+                ),
+                MethodMetadata(
+                    name = "syncAdapterStream",
+                    description = "带进度推送的单 Adapter 同步（connecting / fetching / normalizing / done / error）",
+                    paramCount = 2,
+                    paramSummary = "name, options?",
+                    returnTypeHint = "StreamStartResponse",
+                ),
+                MethodMetadata(
+                    name = "queryEvents",
+                    description = "按 subtype / 时间窗口 / actor / adapter 查 events（只读）",
+                    paramCount = 1,
+                    paramSummary = "filter",
+                    returnTypeHint = "EventsResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "recentAudit",
+                    description = "审计日志反查（最近 N 条，按 action / since 过滤）",
+                    paramCount = 1,
+                    paramSummary = "filter",
+                    returnTypeHint = "AuditRowsResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "eventDetail",
+                    description = "按 eventId 取单事件详情（含 classification / extraction）",
+                    paramCount = 1,
+                    paramSummary = "eventId",
+                    returnTypeHint = "EventDetailResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "registerEmail",
+                    description = "注册 IMAP 邮箱（持久化授权码）",
+                    paramCount = 2,
+                    paramSummary = "account, opts?",
+                    returnTypeHint = "AdapterRegisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                    requiresApprovalOverride = true,
+                ),
+                MethodMetadata(
+                    name = "unregisterEmail",
+                    description = "注销邮箱配置（vault 数据保留）",
+                    paramCount = 1,
+                    paramSummary = "email",
+                    returnTypeHint = "UnregisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                    requiresApprovalOverride = true,
+                ),
+                MethodMetadata(
+                    name = "testEmailAuth",
+                    description = "测试 IMAP 授权码（不持久化）",
+                    paramCount = 1,
+                    paramSummary = "account",
+                    returnTypeHint = "TestAuthResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "listEmailAccounts",
+                    description = "枚举已注册邮箱",
+                    paramCount = 0,
+                    returnTypeHint = "EmailAccountsResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "registerAlipay",
+                    description = "注册支付宝账单导入账号（含 ZIP 密码）",
+                    paramCount = 2,
+                    paramSummary = "account, opts?",
+                    returnTypeHint = "AdapterRegisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                    requiresApprovalOverride = true,
+                ),
+                MethodMetadata(
+                    name = "unregisterAlipay",
+                    description = "注销支付宝配置",
+                    paramCount = 1,
+                    paramSummary = "email",
+                    returnTypeHint = "UnregisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                ),
+                MethodMetadata(
+                    name = "importAlipayBill",
+                    description = "导入支付宝 ZIP 或 CSV 账单",
+                    paramCount = 1,
+                    paramSummary = "{ zipPath?, csvPath?, zipPassword? }",
+                    returnTypeHint = "SyncReport",
+                ),
+                MethodMetadata(
+                    name = "listAlipayAccounts",
+                    description = "枚举已注册支付宝账号",
+                    paramCount = 0,
+                    returnTypeHint = "AlipayAccountsResponse",
+                    riskOverride = SkillRiskTag.Safe,
+                ),
+                MethodMetadata(
+                    name = "syncAllStream",
+                    description = "全 Adapter 同步带进度推送",
+                    paramCount = 1,
+                    paramSummary = "options?",
+                    returnTypeHint = "StreamStartResponse",
+                ),
+                MethodMetadata(
+                    name = "registerMock",
+                    description = "注册 MockAdapter 用于开发/smoke",
+                    paramCount = 1,
+                    paramSummary = "{ name?, count?, seed? }",
+                    returnTypeHint = "AdapterRegisterResponse",
+                ),
+                MethodMetadata(
+                    name = "unregister",
+                    description = "通用 Adapter 注销",
+                    paramCount = 1,
+                    paramSummary = "name",
+                    returnTypeHint = "UnregisterResponse",
+                    riskOverride = SkillRiskTag.Privileged,
+                ),
+            ),
+        ),
     )
 
-    /** sanity check: 23 entries with total methodCount 795（与 M1 inventory 表合计一致）。 */
+    /** sanity check: 24 entries with total methodCount 816（与 M1 inventory 表合计一致 + Phase 14 hub）。 */
     fun verifyCounts(): Boolean {
         return SKILLS.size == EXPECTED_FILE_COUNT &&
             SKILLS.sumOf { it.methodCount } == EXPECTED_METHOD_COUNT
     }
 
-    const val EXPECTED_FILE_COUNT = 23
-    const val EXPECTED_METHOD_COUNT = 795
+    const val EXPECTED_FILE_COUNT = 24
+    const val EXPECTED_METHOD_COUNT = 816
 }

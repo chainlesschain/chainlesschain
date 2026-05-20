@@ -14,6 +14,11 @@
  *   query-events  { subtype?, since?, until?, actor?, adapter?, limit? }
  *                                            → array of Event entities
  *   recent-audit  { since?, action?, limit? }→ array of audit rows
+ *   destroy       { confirm: true, alsoWipeAccounts?, alsoWipeMasterKey? }
+ *                                            → { ok, removed: string[] }
+ *                                              wipes vault.db + WAL/SHM; opts also
+ *                                              clear email-accounts.json /
+ *                                              alipay-accounts.json / master key
  *
  * Every handler catches errors and returns { error: string } rather than
  * throwing across the IPC boundary — Electron's default error
@@ -155,6 +160,79 @@ function register() {
     safe(async ({ since, action, limit }) => {
       const hub = await hubWiring.getHub();
       return hub.vault.queryAudit({ since, action, limit });
+    }),
+  );
+
+  // ─── Destructive: wipe vault (兑现"数据可走"承诺) ────────────────────
+  // Requires `confirm: true` to guard against accidental no-arg invocation.
+  // Optional flags broaden the wipe to account configs and the master key.
+  ipcMain.handle(
+    `${NS}:destroy`,
+    safe(async ({ confirm, alsoWipeAccounts, alsoWipeMasterKey } = {}) => {
+      if (confirm !== true) {
+        return {
+          error:
+            "Destructive: pass { confirm: true } to wipe vault. UI should require explicit user confirmation first.",
+        };
+      }
+
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const removed = [];
+
+      const hub = await hubWiring.getHub();
+      const hubDir = hub.hubDir;
+
+      try {
+        hub.vault.destroy();
+        removed.push(
+          path.join(hubDir, "vault.db"),
+          path.join(hubDir, "vault.db-wal"),
+          path.join(hubDir, "vault.db-shm"),
+        );
+      } catch (err) {
+        logger.warn(
+          "[PersonalDataHub] vault.destroy failed:",
+          err && err.message,
+        );
+      }
+
+      if (alsoWipeAccounts) {
+        for (const f of ["email-accounts.json", "alipay-accounts.json"]) {
+          const p = path.join(hubDir, f);
+          try {
+            if (fs.existsSync(p)) {
+              fs.unlinkSync(p);
+              removed.push(p);
+            }
+          } catch (_e) {
+            // best-effort
+          }
+        }
+      }
+
+      if (alsoWipeMasterKey) {
+        const keyDir = path.join(hubDir, "keys");
+        try {
+          if (fs.existsSync(keyDir)) {
+            for (const f of fs.readdirSync(keyDir)) {
+              try {
+                fs.unlinkSync(path.join(keyDir, f));
+                removed.push(path.join(keyDir, f));
+              } catch (_e) {}
+            }
+          }
+        } catch (_e) {}
+      }
+
+      // Release the singleton so the next getHub() rebuilds from scratch.
+      try {
+        hubWiring.close();
+      } catch (err) {
+        logger.warn("[PersonalDataHub] close failed:", err && err.message);
+      }
+
+      return { ok: true, removed };
     }),
   );
 
@@ -384,7 +462,7 @@ function register() {
   );
 
   _registered = true;
-  logger.info("[PersonalDataHub IPC] handlers registered (17 channels)");
+  logger.info("[PersonalDataHub IPC] handlers registered");
 }
 
 function unregister() {
@@ -402,6 +480,7 @@ function unregister() {
     "unregister",
     "query-events",
     "recent-audit",
+    "destroy",
     // Phase 5.6
     "test-email-auth",
     "register-email",

@@ -216,7 +216,7 @@
 
 中台所有功能通过 21 个对称接口暴露，**Electron IPC** 与 **cc ui / web-shell WS** 同时可用。命名约定：IPC 用 `personal-data-hub:<action>` (colon)，WS 用 `personal-data-hub.<action>` (dot)。
 
-### 核心查询 / 健康（10 通道）
+### 核心查询 / 健康 / 销毁（11 通道）
 
 | 通道 | 入参 | 出参 |
 |---|---|---|
@@ -230,6 +230,7 @@
 | `unregister` | `{ name }` | `{ ok }` |
 | `query-events` | `{ subtype?, since?, until?, actor?, adapter?, limit? }` | `Array<Event>` |
 | `recent-audit` | `{ since?, action?, limit? }` | `Array<AuditRow>` |
+| `destroy` (v5.0.3.72) | `{ confirm: true, alsoWipeAccounts?, alsoWipeMasterKey? }` | `{ ok, removed: string[] }` — UI 必须二次确认 |
 
 ### Phase 5.6 — Email 配置向导（5 通道）
 
@@ -383,8 +384,12 @@ iPhone / Android → P2P DC RPC (`hub.ask` 走 RemoteCommandClient)
 
 #### 路线图
 
-- Phase 14.1（Android）：新建 `android-app/feature-personal-data-hub/`，仅 `HubChatScreen` + `HubChatViewModel` 走 RemoteCommandClient
-- Phase 14.2（iOS）：`Features/PersonalDataHub/` 镜像 Phase 5 AI Chat 模板
+- ✅ Phase 14.0（Android 元数据）：`SeedRegistry` 已加 `personal-data-hub` namespace + 21 method metadata（commit 在 v5.0.3.72 一同 land），含 risk 分级（ask/stats/query/audit = Safe；syncAdapter/register* = Mutating；unregister* = Privileged 强 ApprovalUI）。
+- Phase 14.1（Android 接线 + UI）：
+  1. 桌面 `desktop-app-vue/src/main/remote/mobile-skill-whitelist.js` 加 `personal-data-hub.*` 21 个 topic 白名单
+  2. 新建 `android-app/feature-personal-data-hub/` 模块：`HubChatScreen` + `HubChatViewModel` 通过 `RemoteCommandClient.invoke("personal-data-hub.ask")` 发问
+  3. 复用 Phase 5 AI Chat ChatBubble / streaming dispatcher 模式
+- Phase 14.2（iOS）：`Features/PersonalDataHub/` 镜像 Phase 5 AI Chat 模板，加 `PersonalDataHubCommands` actor 调 `RemoteCommandClient`
 - Phase 14.3（双端）：审计回查 + 同步进度推送（reuse `notification.received` 事件流）
 
 ## 配置参考
@@ -637,12 +642,12 @@ npx vitest run __tests__/vault.test.js    # 单文件
 ### 桌面端接线（`desktop-app-vue/src/main/`）
 
 - `personal-data-hub/wiring.js` — 懒单例 + LLMManager 注入 + 邮箱/支付宝账号持久化
-- `ipc/personal-data-hub-ipc.js` — 21 IPC 通道注册
+- `ipc/personal-data-hub-ipc.js` — 全部 hub IPC 通道注册（v5.0.3.72 含 destroy / EntityResolver / 分析 skill / 流式同步）
 
 ### CLI / Web-Shell 接线（`packages/cli/`）
 
 - `src/lib/personal-data-hub-wiring.js` — 镜像桌面 wiring（OllamaClient + 同 vault 目录）
-- `src/gateways/ws/personal-data-hub-protocol.js` — 21 WS 主题 + 流式
+- `src/gateways/ws/personal-data-hub-protocol.js` — 全部 WS 主题镜像 IPC + `.event` 流式 + destroy
 
 ### Web-Panel UI（`packages/web-panel/src/`）
 
@@ -771,15 +776,26 @@ for (const row of audit) {
 
 ### 6. 数据销毁（一键 wipe）
 
-> 当前没有暴露专门 IPC — 直接在主进程调（用户主动通过设置抽屉触发）。Phase 4 计划加 `personal-data-hub:destroy` 通道 + UI 二次确认。
+> ✅ v5.0.3.72 起暴露专门 IPC + WS 主题 `destroy`（双端对称登记）。要求显式 `confirm: true` 防意外调用；可选 `alsoWipeAccounts` / `alsoWipeMasterKey` 进一步扩大清理范围。UI 调用前必须二次确认。
 
 ```js
-const { close } = require("./personal-data-hub/wiring.js");
-const hub = await require("./personal-data-hub/wiring.js").getHub();
-hub.vault.destroy();   // 删 vault.db + WAL + SHM
-close();               // 释放内存单例
-// 配置文件按需 fs.rmSync(hubDir, { recursive: true })
+// 桌面 Electron
+const r = await window.electron.invoke("personal-data-hub:destroy", {
+  confirm: true,              // 必须；缺省直接返回 error
+  alsoWipeAccounts: true,     // 可选：清 email-accounts.json + alipay-accounts.json
+  alsoWipeMasterKey: false,   // 可选：清 keys/vault.key（**会让残留 -wal/-shm 永远打不开，谨慎用**）
+});
+// → { ok: true, removed: ["C:/.../vault.db", "C:/.../vault.db-wal", ...] } 或 { error }
+
+// cc ui / web-shell
+await ws.executeJson({
+  type: "personal-data-hub.destroy",
+  confirm: true,
+  alsoWipeAccounts: true,
+});
 ```
+
+幕后：调 `hub.vault.destroy()` 删 vault.db + WAL + SHM，按 flag 清账号配置 / 主密钥，最后 `close()` 释放单例 — 下一次 `getHub()` 会从空白重建。
 
 ## 相关文档
 

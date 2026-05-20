@@ -17,7 +17,12 @@
  * with the standard envelope (id + type) before sending.
  */
 
-import { getHub } from "../../lib/personal-data-hub-wiring.js";
+import {
+  getHub,
+  close as closeHub,
+} from "../../lib/personal-data-hub-wiring.js";
+import { existsSync, unlinkSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 async function withHub(fn) {
   try {
@@ -99,6 +104,63 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
         limit: msg.limit,
       }),
     ),
+
+  // ─── Destructive: wipe vault. Requires confirm:true. ────────────────
+  "personal-data-hub.destroy": async (msg) => {
+    if (!msg || msg.confirm !== true) {
+      return {
+        error:
+          "Destructive: pass { confirm: true } to wipe vault. UI should require explicit user confirmation first.",
+      };
+    }
+    const alsoWipeAccounts = !!msg.alsoWipeAccounts;
+    const alsoWipeMasterKey = !!msg.alsoWipeMasterKey;
+    const removed = [];
+    try {
+      const hub = await getHub();
+      const hubDir = hub.hubDir;
+      try {
+        hub.vault.destroy();
+        removed.push(
+          join(hubDir, "vault.db"),
+          join(hubDir, "vault.db-wal"),
+          join(hubDir, "vault.db-shm"),
+        );
+      } catch (_e) {
+        // best-effort
+      }
+      if (alsoWipeAccounts) {
+        for (const f of ["email-accounts.json", "alipay-accounts.json"]) {
+          const p = join(hubDir, f);
+          try {
+            if (existsSync(p)) {
+              unlinkSync(p);
+              removed.push(p);
+            }
+          } catch (_e) {}
+        }
+      }
+      if (alsoWipeMasterKey) {
+        const keyDir = join(hubDir, "keys");
+        try {
+          if (existsSync(keyDir)) {
+            for (const f of readdirSync(keyDir)) {
+              try {
+                unlinkSync(join(keyDir, f));
+                removed.push(join(keyDir, f));
+              } catch (_e) {}
+            }
+          }
+        } catch (_e) {}
+      }
+      try {
+        closeHub();
+      } catch (_e) {}
+      return { result: { ok: true, removed } };
+    } catch (err) {
+      return { error: err && err.message ? err.message : String(err) };
+    }
+  },
 
   // ─── Phase 5.6 — email config + event detail ─────────────────────────
 
