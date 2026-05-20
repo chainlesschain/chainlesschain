@@ -100,6 +100,7 @@ fun RemoteOperateScreen(
     onBack: () -> Unit,
     onOpenTerminal: (peerId: String) -> Unit = {},
     onOpenFileTransfer: (peerId: String) -> Unit = {},
+    onOpenPersonalDataHub: () -> Unit = {},
     viewModel: RemoteOperateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -188,6 +189,15 @@ fun RemoteOperateScreen(
                 enabled = state.pcPeerId.isNotEmpty() && !state.busy,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("文件传输 / 浏览远程目录") }
+
+            // Phase 14.1 step 4 — 个人数据中台入口。屏内 3 tab：自然语言提问 /
+            // Adapter 状态与同步 / 审计日志。所有调用走 PersonalDataHubCommands
+            // typed wrapper 经 DC RPC 到对端桌面 hub。
+            Button(
+                onClick = { onOpenPersonalDataHub() },
+                enabled = state.pcPeerId.isNotEmpty() && !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("个人数据中台") }
 
             if (state.busy) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

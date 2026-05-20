@@ -74,6 +74,7 @@ import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
 import com.chainlesschain.android.remote.ui.clipboard.ClipboardSyncScreen
 import com.chainlesschain.android.remote.ui.notification.RemoteNotificationScreen
+import com.chainlesschain.android.remote.ui.personalDataHub.PersonalDataHubScreen
 import com.chainlesschain.android.remote.ui.workflow.WorkflowScreen
 import com.chainlesschain.android.remote.ui.connection.ConnectionStatusScreen
 import com.chainlesschain.android.remote.ui.power.PowerControlScreen
@@ -700,7 +701,18 @@ fun NavGraph(
                     // Plan C 入口下用户没有真 DID，沿用 RemoteControl 的兜替规则。
                     navController.navigate(Screen.RemoteFileTransfer.createRoute("did:key:$peerId"))
                 },
+                // Phase 14.1 step 4 — 个人数据中台入口；走 typed PersonalDataHubCommands
+                // (DC RPC) 调对端桌面 hub.*。屏内三 tab：提问 / Adapter / 审计。
+                onOpenPersonalDataHub = {
+                    navController.navigate(Screen.PersonalDataHub.route)
+                },
             )
+        }
+
+        // Phase 14.1 step 4 — 个人数据中台容器屏。Tab 切提问/Adapter/审计；
+        // 所有数据通过 PersonalDataHubCommands typed wrapper 经 P2P DC RPC 走桌面 hub。
+        composable(Screen.PersonalDataHub.route) {
+            PersonalDataHubScreen()
         }
         composable(
             route = Screen.TerminalList.routePattern,
@@ -1027,6 +1039,8 @@ sealed class Screen(val route: String) {
         const val routePattern = "remote_operate/{peerId}"
         fun createRoute(peerId: String) = "remote_operate/$peerId"
     }
+    // Phase 14.1 step 4 — 个人数据中台主屏（提问 / Adapter / 审计 3 tab）
+    data object PersonalDataHub : Screen("personal_data_hub")
     // Plan A 远程终端 — list + single session
     // Sub-phase 5-6 (2026-05-17): 加 cwd 可选 query 让项目详情页 Terminal icon
     // 入口能预填 PC 端项目根目录。
