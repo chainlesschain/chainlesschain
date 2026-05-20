@@ -38,15 +38,15 @@
 
 ## [v5.0.3.71 — Personal Data Hub Phase 4.5–13.7 一晚 13-phase burst（15 commits）] - 2026-05-20
 
-> Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地。一晚 15 commits `763047a22 → b2baf4eda`。**38 test files / 792 tests / 8/8 AIChat 真厂商接通**。本 release 出包失败（root package-lock 不同步致 desktop EUSAGE），同一份变更走 `.72` repackage 真出包，但本条目记录 phase 落地节奏。
+> Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地。一晚 15 commits `763047a22 → b2baf4eda`。**38 test files / 792 tests / 9/9 AIChat 真厂商接通**。本 release 出包失败（root package-lock 不同步致 desktop EUSAGE），同一份变更走 `.72` repackage 真出包，但本条目记录 phase 落地节奏。
 
 **新增 phase（按 lib/adapters 落地序）**
 - **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**（commit `68b2fac14`）：JS↔Python 进程间 JSON-RPC 桥接，接 4 个 Android system data source（通讯录 / 通话记录 / 短信 / 位置）借 `sjqz` 项目 17 个真已写 parser，避免 17 parser 重写。Per memory `personal_data_hub_python_sidecar.md` 的 v0.3 Architecture 决策落地。
 - **Phase 7 — Shopping three-pack**（commit `6ba5c9480`）：Taobao + JD + Meituan 三大电商 adapter，订单 / 物流 / 评论解析入 hub vault。
 - **Phase 7.5 — Mobile Extraction Layer**（commit `d210713c8`）：双路提取 — Android 走 ADB backup (`adb backup -all`)，iOS 走 iTunes encrypted backup（用 `adm-zip` 解包 + `iconv-lite` GBK→UTF-8）。
-- **Phase 9 — Travel four-pack**（commit `3a140484a`）：携程 / 飞猪 / Booking / Airbnb 四旅行平台 adapter。
-- **Phase 10.1 — AIChat skeleton**（commit `ad301c5bc`）：8-vendor 抽象框架 + HttpClient infra 准备。
-- **Phase 10.2 — AIChat 8/8 vendors 全部 live**（commits `1d31108bb` + `42fe7f5dd` + `b2baf4eda`）：DeepSeek 官方 API + Kimi h5 私有 API（无官方 OpenAPI，逆 h5 web 接口）+ 通义千问 + 智谱清言 GLM + Doubao 豆包 + 文心一言 + 讯飞星火 + 腾讯混元，**8/8 真厂商接通**。HttpClient infra 接 retry-with-backoff + progress streaming。
+- **Phase 9 — Travel four-pack**（commit `3a140484a`）：高德 / 百度地图 / 携程 / 12306 四旅行平台 adapter（LBS 足迹 + 行程订单合一）。
+- **Phase 10.1 — AIChat skeleton**（commit `ad301c5bc`）：9-vendor 抽象框架 + HttpClient infra 准备。
+- **Phase 10.2 — AIChat 9/9 vendors 全部 live**（commits `1d31108bb` + `42fe7f5dd` + `b2baf4eda`）：DeepSeek + Kimi h5 私有 API（无官方 OpenAPI，逆 h5 web 接口）+ 通义千问 + 智谱清言 GLM + 腾讯混元 + 百度千帆 + 字节扣子 + Dreamina + 豆包，**9/9 真厂商接通**。HttpClient infra 接 retry-with-backoff + progress streaming。
 - **Phase 11 — 5 内置 analysis skill**（commit `763047a22`）：跨 hub 数据源的 5 个分析技能（消费趋势 / 出行画像 / 沟通频率 / 内容偏好 / 时间分布等），LLM 直接调。
 - **Phase 12 v0.5 — WechatAdapter frida-independent slice**（commit `65de030dc`）：v0.5 切出 frida-independent slice（不依赖动态注入），T3 风险从"高"降到"中"。完整 SQLCipher dump 仍走 v1.0 frida 路径。
 - **Phase 13.3-13.7 — 5 social adapter**（commits `12b06c4d5` + `18c62c9d6`）：Douyin + Xiaohongshu + QQ + Telegram + WhatsApp 五平台。WhatsApp 完成 sjqz parser port（13.7 是 sjqz parser 移植 last mile）。

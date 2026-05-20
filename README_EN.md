@@ -8,7 +8,7 @@
 
 - **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**: JS↔Python subprocess JSON-RPC wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 real sjqz parsers without rewriting.
 - **Phase 7 / 7.5 / 9 — Three consumer-scene adapter packs**: Shopping three-pack (Taobao + JD + Meituan) / Mobile Extraction Layer (Android ADB + iOS iTunes encrypted backup, dual-path) / Travel four-pack.
-- **Phase 10.1 + 10.2 — AIChat 8/8 vendors all live**: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan; HttpClient infra wired retry-with-backoff + progress streaming.
+- **Phase 10.1 + 10.2 — AIChat 9/9 vendors all live**: DeepSeek + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Tencent Hunyuan + Baidu Qianfan + ByteDance Coze + Dreamina + Doubao; HttpClient infra wired retry-with-backoff + progress streaming.
 - **Phase 11 — 5 built-in analysis skills** callable by LLM across hub data sources.
 - **Phase 12 v0.5 — WechatAdapter frida-independent slice**, T3 risk dropped High → Medium. Full SQLCipher dump still on the v1.0 frida path.
 - **Phase 13.3-13.7 — 5 social adapters**: Douyin + Xiaohongshu + QQ + Telegram + WhatsApp. WhatsApp completes the sjqz parser port. + 13+ Bilibili + Weibo via sjqz parsers.
