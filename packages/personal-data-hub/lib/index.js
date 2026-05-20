@@ -34,6 +34,11 @@ const bridges = require("./bridges");
 const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
 const wechatAdapter = require("./adapters/wechat");
+const travelBase = require("./adapters/travel-base");
+const { Train12306Adapter } = require("./adapters/travel-12306");
+const { CtripAdapter } = require("./adapters/travel-ctrip");
+const { AmapAdapter } = require("./adapters/travel-amap");
+const { BaiduMapAdapter } = require("./adapters/travel-baidu-map");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
@@ -201,6 +206,14 @@ module.exports = {
   normalizeWeChatContact: wechatAdapter.normalizeWeChatContact,
   wxidToWeChatPersonId: wechatAdapter.wxidToWeChatPersonId,
   WECHAT_PRAGMA_PROFILES: wechatAdapter.WECHAT_PRAGMA_PROFILES,
+
+  // Phase 9 — Travel four-pack
+  normalizeTravelRecord: travelBase.normalizeTravelRecord,
+  parseChineseDateTime: travelBase.parseChineseDateTime,
+  Train12306Adapter,
+  CtripAdapter,
+  AmapAdapter,
+  BaiduMapAdapter,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
