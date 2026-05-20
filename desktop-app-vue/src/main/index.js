@@ -2038,6 +2038,20 @@ class ChainlessChainApp {
       case "project":
         return this.handleProjectCommand(action, params, ctx);
 
+      // Phase 14.1.1 follow-up — Personal Data Hub mobile entry. Whitelist +
+      // approval gate already ran upstream in CommandRouter; here we just
+      // dispatch to the hub via the dedicated route-mobile module that
+      // mirrors src/main/ipc/personal-data-hub-ipc.js with Android-shaped
+      // response envelopes. Namespace literal must stay the full kebab
+      // string ("personal-data-hub") to match what Android invokes via
+      // RemoteCommandClient.invoke("personal-data-hub.X", ...).
+      case "personal-data-hub": {
+        const {
+          dispatchPersonalDataHubMethod,
+        } = require("./personal-data-hub/route-mobile.js");
+        return await dispatchPersonalDataHubMethod(action, params, ctx);
+      }
+
       default:
         throw new Error(`Unknown command namespace: ${namespace}`);
     }
