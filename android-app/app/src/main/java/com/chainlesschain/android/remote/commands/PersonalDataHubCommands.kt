@@ -69,7 +69,7 @@ class PersonalDataHubCommands @Inject constructor(
 
     /** 枚举已注册 Adapter + 敏感度标签。 */
     suspend fun listAdapters(): Result<AdaptersResponse> =
-        client.invoke("personal-data-hub.listAdapters", emptyMap())
+        client.invoke("personal-data-hub.list-adapters", emptyMap())
 
     /**
      * 触发单 Adapter 同步（流水线 health→sync→vault→KG→RAG→audit）。
@@ -83,14 +83,14 @@ class PersonalDataHubCommands @Inject constructor(
     ): Result<SyncReport> {
         val params = mutableMapOf<String, Any>("name" to name)
         options?.let { params["options"] = it }
-        return client.invoke("personal-data-hub.syncAdapter", params)
+        return client.invoke("personal-data-hub.sync-adapter", params)
     }
 
     /** 全部已注册 Adapter 并发同步。 */
     suspend fun syncAll(options: Map<String, Any>? = null): Result<SyncReportList> {
         val params = mutableMapOf<String, Any>()
         options?.let { params["options"] = it }
-        return client.invoke("personal-data-hub.syncAll", params)
+        return client.invoke("personal-data-hub.sync-all", params)
     }
 
     /**
@@ -103,14 +103,14 @@ class PersonalDataHubCommands @Inject constructor(
     ): Result<HubStreamStartResponse> {
         val params = mutableMapOf<String, Any>("name" to name)
         options?.let { params["options"] = it }
-        return client.invoke("personal-data-hub.syncAdapterStream", params)
+        return client.invoke("personal-data-hub.sync-adapter-stream", params)
     }
 
     /** 全 Adapter 同步带进度推送。 */
     suspend fun syncAllStream(options: Map<String, Any>? = null): Result<HubStreamStartResponse> {
         val params = mutableMapOf<String, Any>()
         options?.let { params["options"] = it }
-        return client.invoke("personal-data-hub.syncAllStream", params)
+        return client.invoke("personal-data-hub.sync-all-stream", params)
     }
 
     // ==================== 查询 / 审计（只读） ====================
@@ -131,7 +131,7 @@ class PersonalDataHubCommands @Inject constructor(
         actor?.let { filter["actor"] = it }
         adapter?.let { filter["adapter"] = it }
         limit?.let { filter["limit"] = it }
-        return client.invoke("personal-data-hub.queryEvents", filter)
+        return client.invoke("personal-data-hub.query-events", filter)
     }
 
     /** 审计日志反查（最近 N 条，按 action / since 过滤）。 */
@@ -144,12 +144,12 @@ class PersonalDataHubCommands @Inject constructor(
         since?.let { filter["since"] = it }
         action?.let { filter["action"] = it }
         limit?.let { filter["limit"] = it }
-        return client.invoke("personal-data-hub.recentAudit", filter)
+        return client.invoke("personal-data-hub.recent-audit", filter)
     }
 
     /** 按 eventId 取单事件详情（含 classification / extraction）。 */
     suspend fun eventDetail(eventId: String): Result<EventDetailResponse> =
-        client.invoke("personal-data-hub.eventDetail", mapOf("eventId" to eventId))
+        client.invoke("personal-data-hub.event-detail", mapOf("eventId" to eventId))
 
     // ==================== Email Adapter 管理（5 method） ====================
 
@@ -169,12 +169,12 @@ class PersonalDataHubCommands @Inject constructor(
 
         val params = mutableMapOf<String, Any>("account" to accountMap)
         opts?.let { params["opts"] = it }
-        return client.invoke("personal-data-hub.registerEmail", params)
+        return client.invoke("personal-data-hub.register-email", params)
     }
 
     /** 注销邮箱配置（vault 数据保留）。**Privileged**。 */
     suspend fun unregisterEmail(email: String): Result<UnregisterResponse> =
-        client.invoke("personal-data-hub.unregisterEmail", mapOf("email" to email))
+        client.invoke("personal-data-hub.unregister-email", mapOf("email" to email))
 
     /** 测试 IMAP 授权码（不持久化）。 */
     suspend fun testEmailAuth(account: EmailAccount): Result<TestAuthResponse> {
@@ -186,12 +186,12 @@ class PersonalDataHubCommands @Inject constructor(
         account.folders?.let { accountMap["folders"] = it }
         account.imapHost?.let { accountMap["imapHost"] = it }
         account.imapPort?.let { accountMap["imapPort"] = it }
-        return client.invoke("personal-data-hub.testEmailAuth", mapOf("account" to accountMap))
+        return client.invoke("personal-data-hub.test-email-auth", mapOf("account" to accountMap))
     }
 
     /** 枚举已注册邮箱。 */
     suspend fun listEmailAccounts(): Result<EmailAccountsResponse> =
-        client.invoke("personal-data-hub.listEmailAccounts", emptyMap())
+        client.invoke("personal-data-hub.list-email-accounts", emptyMap())
 
     // ==================== Alipay Adapter 管理（4 method） ====================
 
@@ -206,12 +206,12 @@ class PersonalDataHubCommands @Inject constructor(
 
         val params = mutableMapOf<String, Any>("account" to accountMap)
         opts?.let { params["opts"] = it }
-        return client.invoke("personal-data-hub.registerAlipay", params)
+        return client.invoke("personal-data-hub.register-alipay", params)
     }
 
     /** 注销支付宝配置。**Privileged**。 */
     suspend fun unregisterAlipay(email: String): Result<UnregisterResponse> =
-        client.invoke("personal-data-hub.unregisterAlipay", mapOf("email" to email))
+        client.invoke("personal-data-hub.unregister-alipay", mapOf("email" to email))
 
     /** 导入支付宝 ZIP 或 CSV 账单。 */
     suspend fun importAlipayBill(
@@ -224,12 +224,12 @@ class PersonalDataHubCommands @Inject constructor(
         csvPath?.let { params["csvPath"] = it }
         zipPassword?.let { params["zipPassword"] = it }
         require(params.isNotEmpty()) { "importAlipayBill requires at least one of zipPath / csvPath" }
-        return client.invoke("personal-data-hub.importAlipayBill", params)
+        return client.invoke("personal-data-hub.import-alipay-bill", params)
     }
 
     /** 枚举已注册支付宝账号。 */
     suspend fun listAlipayAccounts(): Result<AlipayAccountsResponse> =
-        client.invoke("personal-data-hub.listAlipayAccounts", emptyMap())
+        client.invoke("personal-data-hub.list-alipay-accounts", emptyMap())
 
     // ==================== Dev / 通用 ====================
 
@@ -243,12 +243,28 @@ class PersonalDataHubCommands @Inject constructor(
         name?.let { params["name"] = it }
         count?.let { params["count"] = it }
         seed?.let { params["seed"] = it }
-        return client.invoke("personal-data-hub.registerMock", params)
+        return client.invoke("personal-data-hub.register-mock", params)
     }
 
     /** 通用 Adapter 注销。**Privileged**。 */
     suspend fun unregister(name: String): Result<UnregisterResponse> =
         client.invoke("personal-data-hub.unregister", mapOf("name" to name))
+
+    // ==================== Analysis Skill (Phase 11) ====================
+
+    /**
+     * 跑内置分析 skill — `analysis.spending / relations / footprint / interests / timeline`。
+     * Phase 14.2 v0.1 透传 raw JSON；UI 按 skillName 分支自行解析（iOS 同模式）。
+     * 设计：docs/design/Personal_Data_Hub_Analysis_Skills.md。
+     */
+    suspend fun runSkill(
+        name: String,
+        options: Map<String, Any> = emptyMap()
+    ): Result<HubSkillResult> {
+        require(name.isNotEmpty()) { "runSkill: name empty" }
+        val params = mapOf<String, Any>("name" to name, "options" to options)
+        return client.invoke("personal-data-hub.run-skill", params)
+    }
 }
 
 // ==================== 模型 ====================
@@ -460,6 +476,18 @@ data class AlipayAccountInfo(
 
 @Serializable
 data class AlipayAccountsResponse(val accounts: List<AlipayAccountInfo> = emptyList())
+
+/**
+ * `personal-data-hub.run-skill` 是动态结构 — 不同 skill 输出不同。
+ * Phase 14.2 v0.1 透传 raw 输出；UI 按 skillName 分支自行解析。
+ * v0.2 再加 typed sub-models (SpendingResult / RelationsResult 等)。
+ */
+@Serializable
+data class HubSkillResult(
+    val skill: String,
+    // raw 字段集合 — UI 按 skill name 取需要的子结构
+    val data: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap()
+)
 
 /**
  * 桌面侧 IPC handler 拒绝时常以 `{ error: "..." }` 返回。本异常承载该错误文本，
