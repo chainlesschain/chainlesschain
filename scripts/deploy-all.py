@@ -254,27 +254,32 @@ DEPLOYS = [
     # Tarball stamp 20260520-111736。release-sizes.json 暂时仍指向上一个 release tag —
     # mobile.astro 下载链接届时跟随 fetch-release-sizes.mjs API GET 最新 release 自动刷新
     # (此次未单独触发, 若 .72 release 已 publish 自动跟到)。
-    # 2026-05-20 12:24 v5.0.3.73 docs-only refresh — sidebar wire-up parity.
-    # docs-site "个人数据中台 专题 ⭐NEW" sidebar section 补 7 个缺失 link 同
-    # design-site (commit 6addcce96 11:56 covered design-site only). User-doc
-    # site now also surfaces the 14 design docs of the topic.
-    {
-        "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-122440.tar.gz",
-        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    },
-    # design 已在 6addcce96 deploy 同步, 不动避免覆盖。
+    # 2026-05-20 13:31 v5.0.3.73 www-only fix — PDH section vendor accuracy.
+    # Homepage 「个人数据中台」section 列了 2 类不准确的 adapter (post-content
+    # audit):
+    #   AI Chat card: "智谱·豆包·文心 / 讯飞星火·腾讯混元" — 文心 + 讯飞星火 不存在
+    #     实际 9 家: DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina/豆包
+    #     原 "8 / 8 全接通" → "9 / 9 全接通 · Phase 10.2"
+    #   Travel card: "携程·飞猪 / Booking·Airbnb" — 飞猪+Booking+Airbnb 不存在
+    #     实际 Phase 9 Travel four-pack: 高德/百度地图/携程/12306
+    #     "订单/物流/评价聚合" → "订单/物流/足迹聚合" (含 LBS 足迹语义)
+    #   Footer counter "8 / 8 AIChat vendor 真接通" → "9 / 9"
+    # 双语 (ZH index.astro + EN en/index.astro) 同步修。docs + design 不动。
+    # {
+    #     "name": "docs.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-122440.tar.gz",
+    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    # },
     # {
     #     "name": "design.chainlesschain.com",
     #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.73-20260520-115633.tar.gz",
     #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     # },
-    # www 内容无变更 — 不动。
-    # {
-    #     "name": "www.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.72-20260520-111736.tar.gz",
-    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    # },
+    {
+        "name": "www.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.73-20260520-133105.tar.gz",
+        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
