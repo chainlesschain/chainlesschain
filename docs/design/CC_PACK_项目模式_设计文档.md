@@ -1,11 +1,13 @@
 # `cc pack --project` — 项目打包模式 设计文档
 
-> 版本：v0.6 (Phase 0/1/2a/2b/3a/3b/3c/3g + Phase 4a Linux + Phase 5a/5b/5c OTA 全部落地)
+> 版本：v0.7 (Phase 0/1/2a/2b/3a/3b/3c/3f/3g + Phase 4a Linux + Phase 5a/5b/5c OTA 全部落地)
 > 日期：2026-05-20
 > 作者：longfa
-> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b / 3c / 3g 全部完成**；**Phase 4a Linux x64 pack** 已 CI guarded；**Phase 5a/5b/5c OTA 链** (check-update → download+verify → self-replace) 全部交付，**Phase 3g `cc pack auto-update`** 一键串联已上线；`--project` 模式端到端可用
+> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b / 3c / 3f / 3g 全部完成**；**Phase 4a Linux x64 pack** 已 CI guarded；**Phase 5a/5b/5c OTA 链** 全部交付；**Phase 3g `cc pack auto-update`** 一键串联 + **Phase 3f `.env` sidecar + `--version --json`** 已上线；`--project` 模式端到端可用
 > 关联：`docs/design/CC_PACK_打包指令设计文档.md`（基础流水线 v0.1）
 > 关联版本：ChainlessChain v5.0.3.69 / CLI 0.162.3
+>
+> **v0.7 变更摘要（2026-05-20）**：**Phase 3f — `.env` sidecar + `--version --json` 落地**，§13 #3+#4 两个待决项收口。`pkg-config-generator.js` inline runtime block 新增：(1) `_loadDotenv(filePath)` 解析器（BOM strip + 跳 `#` 注释 + KEY=VALUE + 匹配引号 strip，length≥2 guard 防 `'` 单字符 slice 成空串）；(2) `.env` 加载块用 `_origEnvKeys` snapshot 保证**显式 shell-set process.env 永远赢**（探出后立即应用 exePath/.env，再应用 userDataDir/.env，后者覆盖前者）；(3) `_hasFlag('-v','--version') && _hasFlag('--json')` 组合在 commander.parse 前 short-circuit 输出 `{cli, project:{name,sha}}` 并 `exit(0)`，project 块仅 `BAKED.projectMode` 时附加。9 新单测 in `packer-pkg-config-generator.test.js`（33→42）：parser helper / 引号 strip / 优先级顺序 / 不覆盖 shell env / userDataDir 后于 exePath 应用 / `--version --json` combo 拦截 / project 块条件 / .env 在 version-json 之前 / 普通 `--version` 不变。17 packer test 文件 228/228 回归绿。
 >
 > **v0.6 变更摘要（2026-05-20）**：**Phase 3g — `cc pack auto-update` 一键 OTA 落地**。新增 `cc pack auto-update` subcommand 串联 Phase 5a/5b/5c，UX 与 `check-update --download --apply --restart` 等价但加 **interactive confirm**（默认开，`-y/--yes` 跳过；`--json` 隐含 skip-confirm）+ 默认 `restart=true`（一键 UX）+ `--dry-run` 只 check 不 mutate。实现走 `runAutoUpdate()` 导出函数（4 个 impl 依赖注入：check/download/apply/confirm），便于测试。18 个新单测覆盖：no-manifest → exit 2 / up-to-date 短路 / check 失败 → exit 3 / 无 target artifact → exit 3 / dry-run 不下载不 apply / 默认 confirm + decline 中止 / `-y` 跳确认 / `--json` 隐含 skip-confirm / download 失败 → exit 4 / `--dest` 覆盖 / `--no-restart` / `--target-exe` 覆盖 / apply 失败 → exit 5 / Windows sidecar-cmd 延迟 500ms exit(0) / `--json` 输出纯 JSON 无 chalk。**剩**：`check-update` 旧命令保留不动以维持向后兼容；未来 v0.7 可考虑把 `check-update --download --apply` 标 `@deprecated` 引导用户切到 `auto-update`。
 >
@@ -363,18 +365,18 @@ if (BAKED.projectMode) {
 | **5b** | OTA artifact 流式下载 + SHA-256 校验 | `packer-pack-update-downloader.test.js` | ✅ 已交付（commit `c1f3adafc`） |
 | **5c** | self-replace — POSIX rename + Windows sidecar | `packer-pack-update-applier.test.js` | ✅ 已交付（commit `16ef0612f`） |
 | **3g** | `cc pack auto-update` 一键 OTA orchestration (check→confirm→download→apply) | `packer-auto-update.test.js` 18 case；17 packer test 文件 219/219 回归绿 | ✅ 已交付（2026-05-20）。新增 `runAutoUpdate()` 导出函数 + `cc pack auto-update` subcommand；4 impl 依赖注入便于测试 |
+| **3f** | `.env` sidecar 优先级 + `--version --json` (§13 #3+#4) | `packer-pkg-config-generator.test.js` +9 case；17 packer test 文件 228/228 回归绿 | ✅ 已交付（2026-05-20）。runtime block 加 `_loadDotenv` 解析器 + 双 .env 应用（exePath 后被 userDataDir 覆盖）+ snapshot `_origEnvKeys` 保证 shell-set env 永远赢 + `--version --json` combo 在 commander.parse 前短路输出 `{cli, project:{name,sha}}` |
 
-**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b` → `3c` → `4a` → `5a` → `5b` → `5c` → `3g`。
+**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b` → `3c` → `4a` → `5a` → `5b` → `5c` → `3g` → `3f`。
 
 每个 Phase 独立可上线（`--no-project` 路径在 2a 加回归后全程保持等价今天行为）。
 
-### 12.1 候选 Phase 3d/3e/3f（未实施 — 待 OQ）
+### 12.1 候选 Phase 3d/3e（未实施 — 待 OQ）
 
 | Phase | 范围 | Scope | 说明 |
 |---|---|---|---|
 | **3d** | Persona resolver 真接线 | 3-4h | 实现 `cc skill enable <name>` 命令 + bootstrap 启动时读 `CC_PACK_AUTO_PERSONA` 真激活 persona。Phase 3b 备注的"`skill enable` 命令当前不存在，downstream persona resolver 直接读 env 完成等价逻辑"是临时绕过，medical-triage 类产品启动时 persona 行为目前未真生效 |
 | **3e (Phase 4b)** | macOS pack pipeline | 4-6h | release.yml 加 macOS pack job + darwin x64/arm64 native-prebuild + smoke-test。代码侧 `native-prebuild-collector.js` 已支持 darwin（L129），但**无 CI guard、无 E2E**。需 macOS runner 配额 |
-| **3f** | `.env` sidecar 优先级 + `--version --json` | 2h | 实现 §13 #3+#4 待决项：`<userDataDir>/.env` > `<exePath 同目录>/.env` > bundled config 同名字段；`--version --json` 输出 `{cli, project:{name,sha}}` |
 
 ---
 
@@ -384,8 +386,8 @@ if (BAKED.projectMode) {
 |---|---|---|
 | 1 | `.chainlesschain/skills/` 第三方 pack 是否打进去？ | **是**，但写入 manifest 的 `bundledSkills.source` 字段 |
 | 2 | 多项目共用 user-data 目录命名碰撞？ | `<name>-<sha16>` 后缀解决（64 位熵，碰撞概率可忽略） |
-| 3 | exe `--version` 是否暴露 bundled project 信息？ | **是**，新增 `--version --json` 输出 `{cli:"0.156.6", project:{name,sha}}` |
-| 4 | LLM API keys 怎么解？ | `.env` sidecar 优先级最高，覆盖 bundled config 中的同名字段 |
+| 3 | exe `--version` 是否暴露 bundled project 信息？ | ✅ **已实施** (Phase 3f, 2026-05-20)：`--version --json` 输出 `{cli:"0.156.6", project:{name,sha}}`；project 块仅 `BAKED.projectMode` 时附加 |
+| 4 | LLM API keys 怎么解？ | ✅ **已实施** (Phase 3f, 2026-05-20)：`.env` sidecar 双源加载，优先级 explicit shell-set env > `<CC_PROJECT_ROOT>/.env` > `<exePath 同目录>/.env`；显式 shell env 永远赢（不覆盖），userDataDir 覆盖 exePath |
 | 5 | CLI-only 与项目模式的 user-data 是否共享？ | **不共享**。CLI-only 用 `%APPDATA%/chainlesschain-portable/`，项目模式用 `%APPDATA%/.chainlesschain-projects/<id>/`，避免互污染 |
 | 6 | 是否允许产物再调用 `cc pack`？ | **不允许**。白名单默认 `["ui","chat","agent","skill"]` 已经过滤掉 |
 
@@ -415,4 +417,4 @@ if (BAKED.projectMode) {
 
 **文档结束。**
 
-下一步（v0.6 后）：候选 Phase 3d/3e/3f 按需触发（见 §12.1）。Phase 3c drift + Phase 3g 一键 OTA 已收口，doc 与代码完全对齐。
+下一步（v0.7 后）：候选 Phase 3d/3e 按需触发（见 §12.1）。Phase 3c drift + 3g auto-update + 3f .env sidecar/--version --json 已收口，doc 与代码完全对齐。
