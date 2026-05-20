@@ -67,4 +67,31 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+
+    // Instrumented testing — un-quarantines KnowledgeUITest.kt (was .kt.broken
+    // in commit 4bfc8f474 because no androidTestImplementation block existed).
+    // Pattern follows AuthRepositoryTest fix (commit 03026b79b) + Compose UI
+    // test deps (compose-bom + ui-test-junit4 + ui-test-manifest). material-
+    // icons-extended is already on the classpath transitively via :core-ui's
+    // `api("androidx.compose.material:material-icons-extended")` line, so no
+    // explicit dep needed here.
+    //
+    // Still quarantined in this module: KnowledgeE2ETest (uses :app's
+    // MainActivity reverse-dep + never-existed `com.chainlesschain.android.
+    // test.*` helpers); needs a module-local TestActivity rewrite.
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // Even though :core-ui already declares `api("androidx.compose.material:
+    // material-icons-extended")`, that transitive dep doesn't reach the
+    // androidTest compile classpath — empirically verified 2026-05-20 (icons
+    // PushPin/Favorite/FavoriteBorder/FormatBold/FormatItalic/Title still
+    // unresolved after `--stop && clean` with only the transitive path).
+    // Declare explicitly here to make the androidTest classpath self-sufficient.
+    androidTestImplementation("androidx.compose.material:material-icons-extended")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
