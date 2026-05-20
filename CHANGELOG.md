@@ -5,6 +5,24 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.74] - 2026-05-20 — AIChat registry-contract bug fix + Phase 10.2 integration/E2E + README banner reframe
+
+**Hub-only release — no new features**, only quality + docs:
+
+- **Bug fix**: `AIChatHistoryAdapter.sync()` had been yielding `{kind, vendor, conversation|message}` shapes which lacked the AdapterRegistry-required `{originalId, capturedAt, payload}` envelope fields. Registry called `vault.putRawEvent({originalId: undefined, ...})` which threw, so 100% of AIChat raws went to `invalidCount` and zero events ever reached the vault. Two cascading bugs surfaced once envelopes parsed: (a) `schema-map.buildMessageEvent` set `occurredAt` to an ISO string and omitted `ingestedAt` — both required as positive int ms by `validateEvent`; (b) entity ids used `newId()` so re-sync of same conversation hit the secondary `UNIQUE(source_adapter, source_original_id)` constraint and errored the whole second sync. Now: registry-compliant envelopes, ms-int timestamps, deterministic `evt-aichat-${vendor}-${originalId}` event ids for idempotent re-sync.
+- **Test coverage**: +2 files / +9 tests
+  - `__tests__/integration/ai-chat-history-registry.test.js` (6 tests): full chain register → syncAdapter → fixture HTTP → raw_events archive → normalize → partition → vault put → watermark advance → audit log. Covers idempotent re-sync, partial vendor failure, no-session no-op.
+  - `__tests__/e2e/ai-chat-cross-source-journey.test.js` (3 tests): TimelineSkill interleaves DeepSeek + Kimi events chronologically; RelationsSkill aggregates AI-agent interactions; cookie-expired sentinel doesn't abort the journey.
+- **Hub test baseline**: 47/927 → **50/952 all green**, 38s on dev box.
+- **README banner reframe**: `README.md` line 2305 / `README_EN.md` line 2040 had a giant "⭐ Current Version: v5.0.3.48" banner stuck 25 versions behind. Surface relabeled to "⭐ Historical Snapshot" with a 3-line pointer to the real current state at file top; 8 badge SVGs refreshed to v5.0.3.73 / CLI 0.162.9. Banner body preserved as archive — `Latest Update` entries below remain reverse-chronological release notes.
+- **docs-site PDH page**: test-baseline line refreshed 47/927 → 50/952, with explicit "Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix" mention; deployed live (`docs.chainlesschain.com`).
+- **Surfaces bumped**:
+  - productVersion v5.0.3.73 → v5.0.3.74
+  - desktop-app-vue 5.0.3-alpha.73 → 5.0.3-alpha.74
+  - android versionCode 503073 → 503074, versionName 5.0.3.73 → 5.0.3.74
+  - iOS CFBundleVersion 73 → 74
+  - CLI 0.162.10 → 0.162.11 (publish-cli would otherwise reject same version)
+
 ## [v5.0.3.73] - 2026-05-20 — PDH test sweep 收口（集成 + E2E + 2 真 bug + docs 4 站刷新）
 
 **Personal Data Hub closing test sweep** — `cbfab26e1` + `69de3ffc4` 2 commits, no new feature work; only quality + docs.
