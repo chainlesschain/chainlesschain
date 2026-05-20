@@ -224,6 +224,10 @@ class AlipayBillAdapter {
         fileSha256: raw.payload.fileSha256,
         billPeriod: raw.payload.billPeriod || undefined,
         counterpartyKind,
+        // Phase 11 SpendingSkill + Phase 8 EntityResolver both index on
+        // extra.counterparty — surface the human-readable name here so
+        // analysis skill breakdowns group by 商家 / 转账对方 correctly.
+        counterparty: row.counterparty || undefined,
         ...(counterpartyKind === "unknown" ? { needsResolve: true } : {}),
       },
     };

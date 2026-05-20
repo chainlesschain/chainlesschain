@@ -69,7 +69,10 @@ class SpendingSkill extends AnalysisSkill {
 
   _fetchPaymentEvents({ since, until }) {
     const events = [];
-    const subtypes = ["payment", "transfer", "refund", "utility", "redenvelope", "investment", "income"];
+    // Phase 7 shopping adapters emit subtype="order" — must include so
+    // spending aggregates cover Taobao/JD/Meituan along with Alipay
+    // (payment/transfer) + Email (refund) etc.
+    const subtypes = ["payment", "transfer", "refund", "utility", "redenvelope", "investment", "income", "order"];
     for (const subtype of subtypes) {
       const q = { subtype, limit: 5000 };
       if (since != null) q.since = since;

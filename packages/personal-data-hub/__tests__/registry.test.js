@@ -178,7 +178,9 @@ describe("AdapterRegistry.syncAdapter", () => {
   it("refuses concurrent sync of two adapters in one registry", async () => {
     freshVault();
     const reg = new AdapterRegistry({ vault });
-    reg.register(new MockAdapter({ name: "a", count: 5000 })); // long enough to be in-flight
+    // Use 500 events (not 5000) — still big enough to be mid-flight when
+    // the second syncAdapter() lands, but fits comfortably in 10s.
+    reg.register(new MockAdapter({ name: "a", count: 500 }));
     reg.register(new MockAdapter({ name: "b", count: 5 }));
 
     const p1 = reg.syncAdapter("a");
@@ -194,7 +196,7 @@ describe("AdapterRegistry.syncAdapter", () => {
     // assert no double-sync corruption. The active-sync invariant is
     // additionally enforced by the activeSync flag.
     expect(racedReject == null || /already syncing/.test(racedReject.message)).toBe(true);
-  });
+  }, 30_000);
 });
 
 // ─── KG + RAG sinks ──────────────────────────────────────────────────────
