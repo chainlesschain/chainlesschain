@@ -2,6 +2,8 @@
 
 > **状态**：Phase 4.1-4.5 全部 落地（4.6 commit 标记，2026-05-15）— Models + NotificationCommands + EventDispatcher + ViewModel + NotificationsView UI + RemoteOperateView 第 6 tab + horizontal scroll picker + 未读 badge 全套；events fan-out task 修 Phase 4 实施暴露的新 trap (设计 §7 未覆盖的多 events 订阅冲突)；DI wiring 在 4.4 一并前移完成。**41 新 unit tests across 4 test suites**（NotificationModels via NotificationCommands 18 + EventDispatcher 10 + ViewModel 13）。**iOS 单测累计 ~313**。**未跑**：Phase 4.7 真机 E2E (Mac+iPhone+真桌面 在场再做，8 场景：拉历史 / 桌面 push 弹 banner / LRU dedup / markAsRead 双轨 / 离线 enqueue / quiet hours silenced / authorization denied / 后台 1min)。
 >
+> **§8.3 reproducer audit (2026-05-20)**：场景 #2 原 `cc cli "echo via notification.send"` 不存在 → 改用真 CLI 命令 `cc notification send --target <DID> --title ... --body ...`（commit `1e4987d0f` 已 land）；场景 #4 `cc 查 verify markedCount` 模糊 → 明确改 GUI 通知面板验（v0.1 无 `cc notification list/query` 命令）。
+>
 > **依赖**：iOS Phase 3.1-3.6 已落 (`759a1e907`) — RemoteCommandClient + RemoteSkillRegistry + OfflineCommandQueue 全套；PushNotificationManager.swift 已就位（authorization/scheduleNotification/quiet hours/badge/categories 全有）；Phase 3.7 真机 E2E 不阻 Phase 4 设计（独立）
 >
 > **对齐版本**：Android `NotificationCommands.kt` (343 LOC, 11 method) + `NotificationReceivedEvent` push 事件协议；iOS `PushNotificationManager.swift` (531 LOC, 全套 UN center 调用) 已就位
@@ -496,9 +498,9 @@ iOS Phase 4 单测累计 ≥ 36 → 总 iOS 单测 ~272 + 36 = ~308
 | # | 场景 | 通过标准 |
 |---|------|----------|
 | 1 | iPhone 进通知 tab → 拉历史 | ≤ 500ms 显示历史；空时显空状态 |
-| 2 | 桌面发本地通知（cc cli "echo via notification.send"） | iPhone 锁屏弹 banner ≤ 2s + tab badge "+1" + app icon badge |
+| 2 | 桌面发本地通知（`cc notification send --target <iPhone-DID> --title "E2E #2" --body "Phase 4 banner test"`） | iPhone 锁屏弹 banner ≤ 2s + tab badge "+1" + app icon badge |
 | 3 | iPhone 在前台时桌面 push 3 条 | 都收到 + 顺序对 + LRU dedup（桌面端 DC 双发模拟时不重复 banner） |
-| 4 | iPhone swipe markAsRead → 桌面 history 真已读 | 桌面端 cc 查 verify markedCount = 1 |
+| 4 | iPhone swipe markAsRead → 桌面 history 真已读 | 桌面端 ChainlessChain GUI 通知面板验对应条目 read 状态切换；v0.1 无 `cc notification list/query` CLI，必须靠 GUI 看 |
 | 5 | iPhone 离线 swipe markAsRead → 网络恢复 → 桌面真已读 | OfflineQueue.totalCount=1 → 恢复 → drain → 桌面 verify |
 | 6 | quiet hours 内桌面 push（`silenced: true`） | iPhone 收 envelope 但**不**弹 banner（仅入历史） |
 | 7 | iPhone authorization denied → 桌面 push | 不崩；in-app banner 显示 "通知权限被拒"；历史 tab 仍正常显示 |
