@@ -8,7 +8,7 @@
 
 - **Phase 4.5 — Python sidecar bridge + SystemDataAdapter**：JS↔Python 进程间 JSON-RPC 桥接接 4 个 Android system source（通讯录 / 通话记录 / 短信 / 位置）借 sjqz 项目 17 个真已写 parser 避免重写。
 - **Phase 7 / 7.5 / 9 — 三大消费场景 adapter 齐落**：Shopping three-pack（Taobao + JD + Meituan）/ Mobile Extraction Layer（Android ADB + iOS iTunes encrypted backup 双路）/ Travel four-pack。
-- **Phase 10.1 + 10.2 — AIChat 8/8 vendors 全部 live**：DeepSeek 官方 API + Kimi 逆 h5 私有 API + 通义千问 + 智谱清言 GLM + Doubao + 文心一言 + 讯飞星火 + 腾讯混元，HttpClient infra 接 retry-with-backoff + progress streaming。
+- **Phase 10.1 + 10.2 — AIChat 9/9 vendors 全部 live**：DeepSeek + Kimi 逆 h5 私有 API + 通义千问 + 智谱清言 GLM + 腾讯混元 + 百度千帆 + 字节扣子 + Dreamina + 豆包，HttpClient infra 接 retry-with-backoff + progress streaming。
 - **Phase 11 — 5 个内置 analysis skill** 跨 hub 数据源调用，LLM 直接调。
 - **Phase 12 v0.5 — WechatAdapter 切 frida-independent slice**，T3 风险高→中。完整 SQLCipher dump 仍走 v1.0 frida 路径。
 - **Phase 13.3-13.7 — 5 social adapter 落地**：Douyin + Xiaohongshu + QQ + Telegram + WhatsApp。WhatsApp 完成 sjqz parser port。+ 13+ Bilibili + Weibo 借 sjqz parser。

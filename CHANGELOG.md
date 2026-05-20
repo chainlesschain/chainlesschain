@@ -23,14 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v5.0.3.71 / .72] - 2026-05-20 — Personal Data Hub 13-phase burst + iOS keychain repackage
 
-**Personal Data Hub Phase 4.5 → 13.7 全收口** in one evening across 15 commits `763047a22 → b2baf4eda`. **38 test files / 792 tests / 8/8 AIChat real-vendor wired**.
+**Personal Data Hub Phase 4.5 → 13.7 全收口** in one evening across 15 commits `763047a22 → b2baf4eda`. **38 test files / 792 tests / 9/9 AIChat real-vendor wired**.
 
 **New phases**:
 - Phase 4.5 — Python sidecar bridge + SystemDataAdapter wiring 4 Android system sources (contacts / call log / SMS / location) reusing 17 sjqz parsers via subprocess JSON-RPC, avoiding parser rewrite.
 - Phase 7 — Shopping three-pack (Taobao + JD + Meituan) order/logistics/reviews adapter.
 - Phase 7.5 — Mobile Extraction Layer: Android ADB backup + iOS iTunes encrypted backup via `adm-zip` + `iconv-lite` (GBK→UTF-8).
-- Phase 9 — Travel four-pack (Ctrip + Fliggy + Booking + Airbnb).
-- Phase 10.1 + 10.2 — AIChat **8/8 vendors live**: DeepSeek (official API) + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Doubao + Wenxin Yiyan + iFlytek Spark + Tencent Hunyuan. HttpClient infra with retry-backoff + progress streaming.
+- Phase 9 — Travel four-pack (Amap + Baidu Map + Ctrip + 12306).
+- Phase 10.1 + 10.2 — AIChat **9/9 vendors live**: DeepSeek + Kimi (reverse h5 web API) + Tongyi Qianwen + Zhipu GLM + Tencent Hunyuan + Baidu Qianfan + ByteDance Coze + Dreamina + Doubao. HttpClient infra with retry-backoff + progress streaming.
 - Phase 11 — 5 built-in analysis skills (consumption trend / travel profile / communication frequency / content preference / time distribution).
 - Phase 12 v0.5 — WechatAdapter frida-independent slice. T3 risk dropped from High to Medium.
 - Phase 13.3-13.7 — Douyin + Xiaohongshu + QQ + Telegram + WhatsApp adapters (5 platforms). WhatsApp completes the sjqz parser port.

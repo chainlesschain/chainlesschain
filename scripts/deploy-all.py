@@ -254,32 +254,29 @@ DEPLOYS = [
     # Tarball stamp 20260520-111736。release-sizes.json 暂时仍指向上一个 release tag —
     # mobile.astro 下载链接届时跟随 fetch-release-sizes.mjs API GET 最新 release 自动刷新
     # (此次未单独触发, 若 .72 release 已 publish 自动跟到)。
-    # 2026-05-20 13:31 v5.0.3.73 www-only fix — PDH section vendor accuracy.
-    # Homepage 「个人数据中台」section 列了 2 类不准确的 adapter (post-content
-    # audit):
-    #   AI Chat card: "智谱·豆包·文心 / 讯飞星火·腾讯混元" — 文心 + 讯飞星火 不存在
-    #     实际 9 家: DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina/豆包
-    #     原 "8 / 8 全接通" → "9 / 9 全接通 · Phase 10.2"
-    #   Travel card: "携程·飞猪 / Booking·Airbnb" — 飞猪+Booking+Airbnb 不存在
-    #     实际 Phase 9 Travel four-pack: 高德/百度地图/携程/12306
-    #     "订单/物流/评价聚合" → "订单/物流/足迹聚合" (含 LBS 足迹语义)
-    #   Footer counter "8 / 8 AIChat vendor 真接通" → "9 / 9"
-    # 双语 (ZH index.astro + EN en/index.astro) 同步修。docs + design 不动。
-    # {
-    #     "name": "docs.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-122440.tar.gz",
-    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
-    # },
+    # 2026-05-20 14:03 v5.0.3.73 docs-only fix — changelog accuracy parity.
+    # docs-site/docs/changelog.md v5.0.3.71 entry 同 homepage 一样的两类错：
+    #   "8/8 AIChat 真厂商接通" → "9/9 AIChat 真厂商接通"
+    #   Phase 9 "携程 / 飞猪 / Booking / Airbnb" → "高德 / 百度地图 / 携程 / 12306"
+    #   Phase 10.2 vendor list "Doubao + 文心一言 + 讯飞星火 + 腾讯混元" →
+    #     "腾讯混元 + 百度千帆 + 字节扣子 + Dreamina + 豆包" (9 家齐全)
+    # 同 commit 修了 root CHANGELOG.md / README.md / README_EN.md 同片段；这条
+    # deploy 只发 docs-site (CHANGELOG/README 是仓库 reference, 不直接面向访客)。
+    {
+        "name": "docs.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.73-20260520-140328.tar.gz",
+        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    },
     # {
     #     "name": "design.chainlesschain.com",
     #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.73-20260520-115633.tar.gz",
     #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     # },
-    {
-        "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.73-20260520-133105.tar.gz",
-        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    },
+    # {
+    #     "name": "www.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.73-20260520-133105.tar.gz",
+    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    # },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
