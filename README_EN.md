@@ -3813,11 +3813,13 @@ ChainlessChain implements a complete LLM usage cost tracking and budget manageme
 - ⚠️ **Overspending Alerts**: Automatic alerts at 80%, 90%, 100% of budget
 - 📈 **Statistical Analysis**: Analyze usage by time, model, and feature
 
-**Supported LLM Providers**:
+**Supported LLM Providers** (10 first-class + custom OpenAI-compatible passthrough):
 
-- Alibaba Qwen, Zhipu GLM, Baidu Qianfan, Moonshot
-- DeepSeek, Tencent Hunyuan, iFlytek Spark
-- And more cloud LLM services (14+ providers)
+- **Local**: Ollama (free)
+- **International**: OpenAI, Anthropic, Google Gemini, Mistral AI
+- **China**: DeepSeek, Volcengine (Doubao), DashScope (Alibaba Qwen), Kimi (Moonshot), MiniMax
+- **Custom**: any OpenAI-compatible endpoint (configurable for Zhipu GLM / Baidu Qianfan / Tencent Hunyuan / iFlytek Spark / 其他 — see `docs.chainlesschain.com/chainlesschain/ai-models.html` for config examples)
+- **Token-budget pricing data** wired for: OpenAI, Anthropic, DeepSeek, Volcengine, Gemini, Mistral, Ollama; custom providers default to GPT-3.5-turbo pricing
 
 **Usage Monitoring**:
 
