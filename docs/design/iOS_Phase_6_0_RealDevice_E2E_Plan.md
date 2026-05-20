@@ -146,32 +146,45 @@ iPhone 设置 → Wi-Fi → 选与桌面机同一 SSID。验：iPhone Safari 能
 | # | 场景 | 通过标准 |
 |---|---|---|
 | D1 | 拉历史 ≤ 500ms | iPhone Notification tab → 列表初次拉 ≤ 500ms |
-| D2 | 桌面 push → iPhone banner | `cc cli notification.send` → ≤ 2s iPhone 锁屏 banner + tab badge "+1" + app icon badge |
-| D3 | 3 条 push + LRU dedup | 快速 push 3 条 → iPhone 都收到 + DC/signaling 双发不重复 |
+| D2 | 桌面 push → iPhone banner | `cc notification send --target <DID> --title 测试D2 --body "Phase 4 通知 E2E"` → ≤ 2s iPhone 锁屏 banner + tab badge "+1" + app icon badge |
+| D3 | 3 条 push + LRU dedup | 同 D2 命令快跑 3 次（不同 title 区分）→ iPhone 都收到 + DC/signaling 双发不重复 |
 | D4 | iPhone markAsRead → 桌面同步 | iPhone swipe markAsRead → 桌面 history 真已读 |
 | D5 | 离线 markAsRead → 队列 → 自动 drain | iPhone 飞行模式 → swipe markAsRead → 关飞行 → drainer 自动跑 |
-| D6 | Quiet hours silenced | 桌面 push silenced=true → iPhone 收 envelope **不弹** banner |
+| D6 | Quiet hours silenced | `cc notification send --target <DID> --title D6 --body silenced --silenced` → iPhone 收 envelope **不弹** banner |
 | D7 | 权限拒绝降级 | iPhone 系统设置临时关通知 → 桌面 push → app 内 banner 替代 |
 | D8 | 后台 1 min 回前台 | iPhone 后台 1 min → 回前台 → unread refresh（不弹 banner） |
 
-**桌面侧 reproducer**：
-
-⚠️ **FIXME（2026-05-18 drift audit 抓到）**：`cc cli notification.send` 命令**不存在** — CLI 没有 `cli` subcommand 也没有 `notification` subcommand。`notification.send` 是 remote handler action（`desktop-app-vue/src/main/remote/handlers/notification-handler.js` line 215+），需经 WS / DC 远程通道触发。Mac user 真机 E2E 前先选一条路径：
+**桌面侧 reproducer**（#21 v1.3+ 落地 2026-05-20，commit `<this commit>` 替换历史 3-路径 FIXME）：
 
 ```bash
-# 路径 A（推荐）：写个 Node 一次性脚本 open WS 直接 invoke handler。
-# 例：
-node -e "const W=require('ws'),w=new W('ws://localhost:<port>');w.on('open',()=>w.send(JSON.stringify({type:'rpc',method:'notification.send',params:{title:'测试 D2',body:'Phase 4 通知 E2E',target:'<iPhone-DID>'}})))"
-# 注：<port> 视 cc serve / cc ui / Electron web-shell 不同（5050 是 mobile-bridge，但 remote-gateway 是另一个）— 先 grep desktop-app-vue/src/main 找 ws-server.js 监听端口确认。
+# Pre-req: 桌面 ChainlessChain app 在跑，启动时自动写 ~/.chainlesschain/desktop.port
+# (含 wsUrl/pid)。cc CLI 读它建 WS → invoke notification.send-mobile topic →
+# remoteGateway.handlers.notification.sendToMobile → mobile-bridge → P2P DC →
+# iPhone。
 
-# 路径 B：iPhone 自己触发（自测） — RemoteOperate Notification tab 内若有 "Send Test" 入口可点。检查 NotificationsView SwiftUI 实现是否含 dev-only test button。
+# D2 — 单条 push
+cc notification send --target did:cc:iphone-7890 --title "测试 D2" --body "Phase 4 通知 E2E"
 
-# 路径 C：用桌面 desktop-app-vue UI 调试入口 — 若 V6 shell 有通知设置 panel 含 "测试推送" 按钮则点之。
+# D3 — 3 条快速 push（验 LRU dedup）
+for i in 1 2 3; do
+  cc notification send --target did:cc:iphone-7890 --title "D3-$i" --body "burst $i"
+done
 
-# D6 silenced=true：上述路径任一加 `params.silenced: true` 即可。
+# D6 — quiet hours silenced
+cc notification send --target did:cc:iphone-7890 --title "D6 silenced" --body "应不弹 banner" --silenced
+
+# JSON 输出（用于脚本化验证）
+cc notification send --target did:cc:iphone-7890 --title x --body y --json
 ```
 
-**Mac user 真跑 D2/D3/D6 前先做：** (1) `git log --since=2026-05-18 -- desktop-app-vue/src/main/remote/handlers/notification-handler.js` 看是否有新增 send 入口；(2) 若仍只有 WS handler 路径，用路径 A，记下确切 ws-server.js 端口。
+**Exit code**：0=成功 / 2=桌面未运行（找不到或 stale port file，提示 `desktop-app-vue && npm run dev`）/ 3=RPC 失败（remote-gateway 未就绪 / mobile-bridge 离线 / 超时）。
+
+**查 iPhone DID**：iPhone app → 设置 → 桌面配对 → 已配对桌面列表里**对方** desktopDeviceId 是给桌面看的；iPhone 自己的 DID 见 iPhone 设置 → 我的身份。或在桌面 `cc did list` 看已配对 mobile 设备的 DID。
+
+**failure mode 速诊**：
+- `desktop_not_running`: 桌面 app 没跑或没有以 --web-shell 启动。`npm run dev` 默认含 `--web-shell`，但 release build 视 `ui.useWebShellExperimental` 配置。
+- `remote-gateway 不可用`: 桌面 P2P/mobile-bridge 还没 wire 完（app 启动后 ~5s 内常见，等等再发）。
+- `rpc_timeout`: P2P DC 没建好，iPhone 不在线，或 mobile-bridge 卡死。先 `cc pair preflight` 验 LAN。
 
 ---
 

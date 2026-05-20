@@ -1,12 +1,13 @@
 /**
  * `notification.*` WS handlers — Phase 3c.6 web-shell parity (2026-05-06).
  *
- * 暴露 5 个 topic 给 web-panel，对齐 V5/V6 桌面壳 `notification:*` IPC：
+ * 暴露 6 个 topic 给 web-panel + cc CLI，对齐 V5/V6 桌面壳 `notification:*` IPC：
  *   notification.list              → SELECT * FROM notifications LIMIT/OFFSET
  *   notification.unread-count      → SELECT COUNT(*) WHERE is_read = 0
  *   notification.mark-read         → UPDATE … WHERE id = ?
  *   notification.mark-all-read     → UPDATE … (no WHERE)
  *   notification.send-desktop      → new Notification({title, body}).show()
+ *   notification.send-mobile       → remoteGateway.handlers.notification.sendToMobile (#21 v1.3+)
  *
  * 为什么不复用 IPC handler：
  *   ipcMain.handle 绑死 Electron IPC 通道，web-shell 走 WS dispatcher。直接
@@ -162,7 +163,66 @@ function createNotificationSendDesktopHandler(options = {}) {
   };
 }
 
-function createNotificationHandlers({ database, ...rest } = {}) {
+function createNotificationSendMobileHandler({ remoteGateway } = {}) {
+  return async function notificationSendMobileHandler(frame = {}) {
+    const title =
+      typeof frame?.title === "string" && frame.title.trim()
+        ? frame.title.trim()
+        : null;
+    if (!title) {
+      return { success: false, error: "缺少 title" };
+    }
+    const body = typeof frame?.body === "string" ? frame.body : "";
+    const target =
+      typeof frame?.target === "string" && frame.target.trim()
+        ? frame.target.trim()
+        : null;
+    if (!target) {
+      return { success: false, error: "缺少 target (设备 DID)" };
+    }
+    const silent = frame?.silent === true || frame?.silenced === true;
+
+    const notificationHandler = remoteGateway?.handlers?.notification;
+    if (
+      !notificationHandler ||
+      typeof notificationHandler.sendToMobile !== "function"
+    ) {
+      return {
+        success: false,
+        error:
+          "remote-gateway 不可用 (桌面尚未完成 P2P 初始化或 mobile-bridge 未绑)",
+      };
+    }
+
+    // ws-bridge protocol uses frame.type as the topic name (e.g.
+    // "notification.send-mobile"), so the notification-type semantic
+    // (app/system/message/...) rides on frame.notificationType.
+    const notificationType =
+      typeof frame?.notificationType === "string" &&
+      frame.notificationType.trim()
+        ? frame.notificationType.trim()
+        : "app";
+
+    try {
+      const result = await notificationHandler.sendToMobile(
+        {
+          title,
+          body,
+          targetDevices: [target],
+          silent,
+          urgency: silent ? "low" : "normal",
+          type: notificationType,
+        },
+        { source: "ws-bridge:cli" },
+      );
+      return { success: true, result };
+    } catch (err) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  };
+}
+
+function createNotificationHandlers({ database, remoteGateway, ...rest } = {}) {
   return {
     "notification.list": createNotificationListHandler({ database }),
     "notification.unread-count": createNotificationUnreadCountHandler({
@@ -173,6 +233,9 @@ function createNotificationHandlers({ database, ...rest } = {}) {
       database,
     }),
     "notification.send-desktop": createNotificationSendDesktopHandler(rest),
+    "notification.send-mobile": createNotificationSendMobileHandler({
+      remoteGateway,
+    }),
   };
 }
 
@@ -183,4 +246,5 @@ module.exports = {
   createNotificationMarkReadHandler,
   createNotificationMarkAllReadHandler,
   createNotificationSendDesktopHandler,
+  createNotificationSendMobileHandler,
 };

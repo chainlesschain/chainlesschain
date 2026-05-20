@@ -982,6 +982,11 @@ class ChainlessChainApp {
         // surface only ever yields a boolean.
         syncCredentials: require("./sync/sync-credentials"),
         p2pManager: this.p2pManager ?? null,
+        // #21 v1.3+ — notification.send-mobile WS topic 需要 remoteGateway
+        // 调 handlers.notification.sendToMobile 推 push 到 iPhone/Android。
+        // remoteGateway 已在 line 493 (`instances.remoteGateway`) 完成构造，
+        // 这里安全传。Null-safe（handler 自己检查）。
+        remoteGateway: this.remoteGateway ?? null,
         // v1.1 W3.6 (issue #19): lazy getters for mobile.pair.send-confirmation
         // WS handler. mobileBridge 在 initializeMobileBridge() async tail 才赋
         // 值（startWebShell 之后），所以注册时传函数避免捕 null。
@@ -1013,6 +1018,53 @@ class ChainlessChainApp {
       this._webShellHandle = handle;
       logger.info(`[WebShell] HTTP: ${handle.httpUrl}`);
       logger.info(`[WebShell] WS:   ${handle.wsUrl}`);
+
+      // #21 v1.3+ — write port discovery file so external tools (cc CLI)
+      // can find our WS endpoint. ws-bridge default port=0 (OS-assigned),
+      // so there's no other way to publish the bound port. Mode 0o600 keeps
+      // it user-private. Cleaned up in teardown (see _webShellHandle close).
+      try {
+        const fs = require("fs");
+        const path = require("path");
+        const os = require("os");
+        const portFilePath = path.join(
+          os.homedir(),
+          ".chainlesschain",
+          "desktop.port",
+        );
+        fs.mkdirSync(path.dirname(portFilePath), { recursive: true });
+        const productVersion = (() => {
+          try {
+            return require("../../package.json").productVersion || null;
+          } catch {
+            return null;
+          }
+        })();
+        fs.writeFileSync(
+          portFilePath,
+          JSON.stringify(
+            {
+              pid: process.pid,
+              host: handle.host || "127.0.0.1",
+              port: handle.port || null,
+              httpUrl: handle.httpUrl,
+              wsUrl: handle.wsUrl,
+              startedAt: Date.now(),
+              productVersion,
+            },
+            null,
+            2,
+          ),
+          { encoding: "utf-8", mode: 0o600 },
+        );
+        this._desktopPortFile = portFilePath;
+        logger.info(`[WebShell] port file: ${portFilePath}`);
+      } catch (err) {
+        logger.warn(
+          "[WebShell] failed to write port file (cc CLI won't auto-discover):",
+          err.message,
+        );
+      }
 
       // Phase 1.5: register the main window in the multi-window registry
       // so window.open can refuse "main" (role_reserved) and so future
@@ -2587,6 +2639,19 @@ class ChainlessChainApp {
       } catch (error) {
         logger.error("[Main] WebShell stop error:", error);
       }
+    }
+    // #21 v1.3+ — remove port discovery file so cc CLI no longer thinks
+    // the desktop is running. Safe if file already gone (crashed shutdown).
+    if (this._desktopPortFile) {
+      try {
+        require("fs").unlinkSync(this._desktopPortFile);
+        logger.info("[Main] removed desktop.port file");
+      } catch (err) {
+        if (err && err.code !== "ENOENT") {
+          logger.warn("[Main] desktop.port cleanup error:", err.message);
+        }
+      }
+      this._desktopPortFile = null;
     }
 
     if (this.menuManager) {

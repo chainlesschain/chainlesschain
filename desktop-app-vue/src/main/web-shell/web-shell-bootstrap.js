@@ -271,7 +271,13 @@ async function startWebShell(options = {}) {
     // ipcMain.handle('notification:*' / 'db:add-knowledge-item') 落主进程
     // SQLite，web-panel 之前没有对等入口（默认壳用户看不见 / 用不上）。
     // database 可能为 null（pre-bootstrap）— handlers 内部各自做 null 检查。
-    ...createNotificationHandlers({ database: options.database ?? null }),
+    ...createNotificationHandlers({
+      database: options.database ?? null,
+      // #21 v1.3+ — notification.send-mobile 调 remoteGateway.handlers.notification.sendToMobile
+      // 让 cc CLI / web-panel 触发 push 到已配对 iPhone/Android。Null 时
+      // handler 返回 success=false / error=remote-gateway 不可用。
+      remoteGateway: options.remoteGateway ?? null,
+    }),
     ...createKnowledgeHandlers({
       database: options.database ?? null,
       ragManager: options.ragManager ?? null,
