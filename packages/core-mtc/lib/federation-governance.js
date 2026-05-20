@@ -952,18 +952,87 @@ function computeGovernanceSnapshotHash(events, federationId) {
 }
 
 /**
+ * @typedef {object} AnchorRecord
+ * @property {string} schema             - SCHEMA_GOVERNANCE_ANCHOR
+ * @property {string} fed_id             - federation id
+ * @property {string} snapshot_hash      - hex-encoded sha256 of canonical header
+ * @property {number} events_count       - count at snapshot time
+ * @property {string} last_event_id      - chronological last event id
+ * @property {string} last_event_at      - ISO-8601 timestamp
+ * @property {string} event_id_chain_root - hex-encoded merkle root of event ids
+ * @property {string} issued_at          - ISO-8601 timestamp
+ * @property {string} anchor_actor_member_id - member id that issued anchor
+ */
+
+/**
+ * @typedef {object} AnchorReceipt
+ * @property {string} tx_hash        - chain-specific tx hash (impl-defined prefix)
+ * @property {number} block_height   - monotonic per (chain, fed_id)
+ * @property {string} anchored_at    - ISO-8601 timestamp
+ */
+
+/**
+ * @typedef {object} StoredAnchorRecord
+ * Extends AnchorRecord with receipt fields and chain_name. Returned by fetch/fetchLatest.
+ * @property {string} schema
+ * @property {string} fed_id
+ * @property {string} snapshot_hash
+ * @property {number} events_count
+ * @property {string} last_event_id
+ * @property {string} last_event_at
+ * @property {string} event_id_chain_root
+ * @property {string} issued_at
+ * @property {string} anchor_actor_member_id
+ * @property {string} tx_hash
+ * @property {number} block_height
+ * @property {string} anchored_at
+ * @property {string} chain_name
+ */
+
+/**
+ * @typedef {object} ChainHealth
+ * @property {boolean} ok
+ * @property {string} chain_name
+ *   Additional impl-specific fields (e.g., root_dir, rpc_endpoint) are allowed.
+ */
+
+/**
  * IChainAnchorClient — production swaps in a real chain client.
  *
+ * Conformance contract for new chain clients (e.g. ConsortiumChainClient when
+ * Q-COMP-3 unblocks per memory `external_blocked_items_triggers.md`):
+ *
  *   class MyChainClient {
- *     async publish(anchorRecord) -> { tx_hash, block_height, anchored_at }
- *     async fetch(fedId, opts?: {limit?: number}) -> Array<anchorRecord>
- *     async fetchLatest(fedId) -> anchorRecord | null
- *     async health() -> { ok: boolean, chain_name: string }
+ *     // Append a new anchor record to chain. Must be atomic per (fed_id, block_height)
+ *     // — block_height is implementation-allocated and MUST be strictly increasing per fed_id.
+ *     // tx_hash format is impl-defined; recommend prefix indicating chain (e.g. "evm:0x..").
+ *     async publish(record: AnchorRecord): Promise<AnchorReceipt>;
+ *
+ *     // Return all StoredAnchorRecord for the federation, oldest-first.
+ *     // If opts.limit is a positive integer, return the LAST `limit` records.
+ *     // Empty array (not null) if no records yet.
+ *     async fetch(fedId: string, opts?: { limit?: number }): Promise<StoredAnchorRecord[]>;
+ *
+ *     // Convenience: latest by chronological order, or null if empty.
+ *     async fetchLatest(fedId: string): Promise<StoredAnchorRecord | null>;
+ *
+ *     // Health probe. ok=true if chain reachable and read/write ready.
+ *     async health(): Promise<ChainHealth>;
  *   }
  *
+ * Production-implementor checklist (ConsortiumChainClient / EVM / Cosmos / BSN):
+ *   - publish MUST be idempotent under retry (same record → same receipt OR new
+ *     receipt with higher block_height that supersedes — caller uses fetchLatest).
+ *   - fetch MUST return chronological order (ascending block_height).
+ *   - All 4 methods MUST be async (return Promise) and reject (not throw sync) on error.
+ *   - Errors SHOULD carry .code for caller branching (e.g. "CHAIN_UNREACHABLE",
+ *     "TX_REJECTED", "INSUFFICIENT_GAS"). No required code list yet — caller treats
+ *     any rejection as transient unless code indicates otherwise.
+ *   - chain_name on StoredAnchorRecord and ChainHealth MUST match (constant per instance).
+ *
  * Lib provides:
- *   - InMemoryChainAnchorClient (testing, deterministic)
- *   - FilesystemChainAnchorClient (smoke / cron mock against shared dir)
+ *   - InMemoryChainAnchorClient (testing, deterministic, no persistence)
+ *   - FilesystemChainAnchorClient (smoke / cron mock against shared dir, atomic writes)
  */
 class InMemoryChainAnchorClient {
   constructor(opts = {}) {

@@ -1180,6 +1180,153 @@ describe("federation-governance", () => {
       });
     });
 
+    // IChainAnchorClient interface conformance — both shipping clients must
+    // satisfy the same contract documented at federation-governance.js JSDoc
+    // `@typedef ChainAnchorClient`. A future ConsortiumChainClient
+    // (Q-COMP-3 unblock — see memory `external_blocked_items_triggers.md`)
+    // SHOULD be added to the cases array below and pass all of these checks.
+    describe("IChainAnchorClient conformance contract", () => {
+      const fs = require("node:fs");
+      const os = require("node:os");
+      const path = require("node:path");
+      let tmpDir;
+      beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "anchor-contract-"));
+      });
+      afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      });
+
+      const cases = [
+        {
+          name: "InMemoryChainAnchorClient",
+          make: () => new InMemoryChainAnchorClient({ chainName: "imem-x" }),
+        },
+        {
+          name: "FilesystemChainAnchorClient",
+          make: () =>
+            new FilesystemChainAnchorClient({
+              rootDir: tmpDir,
+              chainName: "fs-x",
+            }),
+        },
+      ];
+
+      for (const c of cases) {
+        describe(c.name, () => {
+          it("exposes the 4 async methods", () => {
+            const client = c.make();
+            expect(typeof client.publish).toBe("function");
+            expect(typeof client.fetch).toBe("function");
+            expect(typeof client.fetchLatest).toBe("function");
+            expect(typeof client.health).toBe("function");
+          });
+
+          it("publish returns receipt with tx_hash + block_height + anchored_at", async () => {
+            const client = c.make();
+            const record = buildGovernanceAnchorRecord([], "fed-z", "alice");
+            const receipt = await client.publish(record);
+            expect(typeof receipt.tx_hash).toBe("string");
+            expect(receipt.tx_hash.length).toBeGreaterThan(0);
+            expect(Number.isInteger(receipt.block_height)).toBe(true);
+            expect(receipt.block_height).toBeGreaterThan(0);
+            expect(typeof receipt.anchored_at).toBe("string");
+            expect(() => new Date(receipt.anchored_at).toISOString()).not.toThrow();
+          });
+
+          it("block_height is strictly increasing per fed_id", async () => {
+            const client = c.make();
+            const r1 = await client.publish(
+              buildGovernanceAnchorRecord([], "fed-z", "alice"),
+            );
+            const r2 = await client.publish(
+              buildGovernanceAnchorRecord([], "fed-z", "alice"),
+            );
+            const r3 = await client.publish(
+              buildGovernanceAnchorRecord([], "fed-z", "alice"),
+            );
+            expect(r2.block_height).toBeGreaterThan(r1.block_height);
+            expect(r3.block_height).toBeGreaterThan(r2.block_height);
+          });
+
+          it("fetch returns array oldest-first with chain_name + receipt fields merged", async () => {
+            const client = c.make();
+            await client.publish(buildGovernanceAnchorRecord([], "fed-z", "alice"));
+            await client.publish(buildGovernanceAnchorRecord([], "fed-z", "alice"));
+            const all = await client.fetch("fed-z");
+            expect(Array.isArray(all)).toBe(true);
+            expect(all.length).toBe(2);
+            expect(all[0].block_height).toBeLessThan(all[1].block_height);
+            for (const stored of all) {
+              expect(stored.schema).toBe(SCHEMA_GOVERNANCE_ANCHOR);
+              expect(stored.fed_id).toBe("fed-z");
+              expect(typeof stored.tx_hash).toBe("string");
+              expect(typeof stored.chain_name).toBe("string");
+              expect(typeof stored.anchored_at).toBe("string");
+            }
+          });
+
+          it("fetch returns empty array (not null) for unknown fed_id", async () => {
+            const client = c.make();
+            const out = await client.fetch("nonexistent-fed");
+            expect(Array.isArray(out)).toBe(true);
+            expect(out.length).toBe(0);
+          });
+
+          it("fetch honors opts.limit (last N)", async () => {
+            const client = c.make();
+            for (let i = 0; i < 5; i++) {
+              await client.publish(
+                buildGovernanceAnchorRecord([], "fed-z", "alice"),
+              );
+            }
+            const last2 = await client.fetch("fed-z", { limit: 2 });
+            expect(last2.length).toBe(2);
+            const all = await client.fetch("fed-z");
+            expect(last2[0].block_height).toBe(all[3].block_height);
+            expect(last2[1].block_height).toBe(all[4].block_height);
+          });
+
+          it("fetchLatest returns null when empty, latest record otherwise", async () => {
+            const client = c.make();
+            expect(await client.fetchLatest("fed-z")).toBeNull();
+            await client.publish(buildGovernanceAnchorRecord([], "fed-z", "alice"));
+            const r2 = await client.publish(
+              buildGovernanceAnchorRecord([], "fed-z", "alice"),
+            );
+            const latest = await client.fetchLatest("fed-z");
+            expect(latest.block_height).toBe(r2.block_height);
+          });
+
+          it("health returns { ok: true, chain_name } reachable + matches publish chain_name", async () => {
+            const client = c.make();
+            const h = await client.health();
+            expect(h.ok).toBe(true);
+            expect(typeof h.chain_name).toBe("string");
+            const receipt = await client.publish(
+              buildGovernanceAnchorRecord([], "fed-z", "alice"),
+            );
+            const [stored] = await client.fetch("fed-z");
+            expect(stored.chain_name).toBe(h.chain_name);
+            // receipt itself doesn't carry chain_name, but stored record does
+            expect(receipt.tx_hash).toBeTruthy();
+          });
+
+          it("isolates state by fed_id (no cross-leak)", async () => {
+            const client = c.make();
+            await client.publish(buildGovernanceAnchorRecord([], "fed-a", "alice"));
+            await client.publish(buildGovernanceAnchorRecord([], "fed-b", "bob"));
+            const a = await client.fetch("fed-a");
+            const b = await client.fetch("fed-b");
+            expect(a.length).toBe(1);
+            expect(b.length).toBe(1);
+            expect(a[0].fed_id).toBe("fed-a");
+            expect(b[0].fed_id).toBe("fed-b");
+          });
+        });
+      }
+    });
+
     describe("verifyGovernanceAnchor", () => {
       it("ok when local hash matches anchored hash", () => {
         const events = [makeEv("fed-x", "ev-1", "2026-05-01T00:00:00Z")];
