@@ -1,7 +1,23 @@
 package com.chainlesschain.android.feature.knowledge.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+// Icons used by the test (FormatBold/FormatItalic/Title/PushPin/Favorite/
+// FavoriteBorder) are EXTENSION PROPERTIES on the Icons.Filled / Icons.Outlined
+// objects — they must be imported individually OR via wildcard for the FQN
+// `androidx.compose.material.icons.Icons.Default.X` to resolve. The classpath
+// dep (`material-icons-extended` declared in this module's androidTest block +
+// transitively via :core-ui) is necessary but not sufficient. Production code
+// in this module imports them the same way (see KnowledgeListScreen.kt L8).
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
