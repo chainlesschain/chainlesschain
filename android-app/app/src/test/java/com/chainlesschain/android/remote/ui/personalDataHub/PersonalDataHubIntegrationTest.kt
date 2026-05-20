@@ -9,10 +9,14 @@ import com.chainlesschain.android.remote.commands.HealthVault
 import com.chainlesschain.android.remote.commands.HubHealth
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.remote.commands.SyncReport
+import com.chainlesschain.android.remote.events.HubSyncEvent
+import com.chainlesschain.android.remote.events.HubSyncEventDispatcher
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -139,15 +143,21 @@ class PersonalDataHubIntegrationTest {
     @Test
     fun `syncAdapter end-to-end — RemoteCommandClient mock through to HubAdaptersViewModel state`() = runTest(testDispatcher) {
         coEvery {
-            mockClient.invoke<AdaptersResponse>("personal-data-hub.listAdapters", any(), any())
+            mockClient.invoke<AdaptersResponse>("personal-data-hub.list-adapters", any(), any())
         } returns Result.success(AdaptersResponse(adapters = emptyList()))
 
         val paramsSlot = slot<Map<String, Any>>()
         coEvery {
-            mockClient.invoke<SyncReport>("personal-data-hub.syncAdapter", capture(paramsSlot), any())
+            mockClient.invoke<SyncReport>("personal-data-hub.sync-adapter", capture(paramsSlot), any())
         } returns Result.success(SyncReport(adapter = "email-imap", ingested = 17, durationMs = 800))
 
-        val vm = HubAdaptersViewModel(hub)
+        // Phase 14.3 — VM 现在依赖 HubSyncEventDispatcher；本测试走非流式 sync 路径，
+        // dispatcher.events 提供空 SharedFlow 即可（无 sync.progress 事件被 emit）。
+        val syncDispatcher = mockk<HubSyncEventDispatcher>(relaxed = false)
+        every { syncDispatcher.events } returns
+            MutableSharedFlow<HubSyncEvent>(replay = 0, extraBufferCapacity = 32)
+
+        val vm = HubAdaptersViewModel(hub, syncDispatcher)
         advanceUntilIdle()
         vm.sync("email-imap")
         advanceUntilIdle()

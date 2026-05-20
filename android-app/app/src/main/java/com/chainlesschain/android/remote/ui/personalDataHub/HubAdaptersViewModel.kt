@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.commands.AdapterMeta
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.remote.commands.SyncReport
+import com.chainlesschain.android.remote.events.HubSyncEvent
+import com.chainlesschain.android.remote.events.HubSyncEventDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +26,11 @@ data class HubAdaptersUiState(
     val isLoading: Boolean = false,
     val syncingAdapter: String? = null,
     val errorMessage: String? = null,
-    val lastReport: SyncReport? = null
+    val lastReport: SyncReport? = null,
+    // Phase 14.3 — streaming progress state.
+    val syncProgressKind: String? = null,
+    val syncProgressPartition: String? = null,
+    val syncProgressDetail: Map<String, Long>? = null,
 )
 
 sealed class HubAdaptersEvent {
@@ -33,7 +39,8 @@ sealed class HubAdaptersEvent {
 
 @HiltViewModel
 class HubAdaptersViewModel @Inject constructor(
-    private val hub: PersonalDataHubCommands
+    private val hub: PersonalDataHubCommands,
+    private val syncDispatcher: HubSyncEventDispatcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubAdaptersUiState())
@@ -42,7 +49,10 @@ class HubAdaptersViewModel @Inject constructor(
     private val _events = MutableSharedFlow<HubAdaptersEvent>()
     val events: SharedFlow<HubAdaptersEvent> = _events.asSharedFlow()
 
-    init { reload() }
+    init {
+        reload()
+        listenSyncProgress()
+    }
 
     fun reload() {
         viewModelScope.launch {
@@ -58,6 +68,7 @@ class HubAdaptersViewModel @Inject constructor(
         }
     }
 
+    /** v0.1 非流式同步 — 一次性 await SyncReport，syncing 期间无中间进度。 */
     fun sync(name: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(syncingAdapter = name, errorMessage = null) }
@@ -73,6 +84,91 @@ class HubAdaptersViewModel @Inject constructor(
                     _uiState.update { it.copy(syncingAdapter = null, errorMessage = err.message) }
                     _events.emit(HubAdaptersEvent.ShowToast("同步失败: ${err.message ?: "?"}"))
                 }
+        }
+    }
+
+    /**
+     * Phase 14.3 — 流式同步路径。触发 syncAdapterStream + 订阅
+     * [HubSyncEventDispatcher] 进度事件，过滤当前 adapter 后更新 UI 文字
+     * （connecting → fetching → normalizing → done/error）。
+     *
+     * 注意：desktop 侧 `route-mobile.js` 中 `sync-adapter-stream` 当前仍 throw
+     * "Phase 14.3 will add HubSyncEventDispatcher"。本 ViewModel 是 Android
+     * 侧准备好的接收端 — 待 desktop push-to-mobile event 真接通后即可联调。
+     */
+    fun syncStream(name: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    syncingAdapter = name,
+                    errorMessage = null,
+                    syncProgressKind = "connecting",
+                    syncProgressPartition = null,
+                    syncProgressDetail = null,
+                )
+            }
+            hub.syncAdapterStream(name = name)
+                .onFailure { err ->
+                    Timber.w(err, "HubAdaptersViewModel: syncAdapterStream($name) failed")
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            errorMessage = err.message,
+                            syncProgressKind = null,
+                        )
+                    }
+                    _events.emit(HubAdaptersEvent.ShowToast("启动同步失败: ${err.message ?: "?"}"))
+                }
+        }
+    }
+
+    private fun listenSyncProgress() {
+        viewModelScope.launch {
+            syncDispatcher.events.collect { applyProgress(it) }
+        }
+    }
+
+    private suspend fun applyProgress(ev: HubSyncEvent) {
+        // 只处理当前正在 sync 的 adapter（design §5.4 多 adapter 并发场景的隔离）。
+        val syncing = _uiState.value.syncingAdapter
+        if (syncing != null && syncing != ev.adapter) {
+            return
+        }
+        when (ev.kind) {
+            "connecting", "fetching", "normalizing" -> {
+                _uiState.update {
+                    it.copy(
+                        syncProgressKind = ev.kind,
+                        syncProgressPartition = ev.partition ?: it.syncProgressPartition,
+                        syncProgressDetail = ev.detail ?: it.syncProgressDetail,
+                    )
+                }
+            }
+            "done" -> {
+                _uiState.update {
+                    it.copy(
+                        syncingAdapter = null,
+                        syncProgressKind = null,
+                        syncProgressPartition = null,
+                        syncProgressDetail = null,
+                        lastReport = ev.report ?: it.lastReport,
+                    )
+                }
+                val ingested = ev.report?.ingested ?: 0L
+                _events.emit(HubAdaptersEvent.ShowToast("${ev.adapter} 同步完成 (+$ingested 事件)"))
+            }
+            "error" -> {
+                _uiState.update {
+                    it.copy(
+                        syncingAdapter = null,
+                        syncProgressKind = null,
+                        syncProgressPartition = null,
+                        syncProgressDetail = null,
+                        errorMessage = ev.message ?: "未知错误",
+                    )
+                }
+                _events.emit(HubAdaptersEvent.ShowToast("同步失败: ${ev.message ?: "?"}"))
+            }
         }
     }
 }
