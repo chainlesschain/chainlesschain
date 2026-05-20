@@ -1,6 +1,8 @@
 # Personal Data Hub Architecture — 个人数据中台（让数据回归个人）
 
-> **状态**：v0.2 设计稿（2026-05-19）。Phase 0 / 1 待启。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
+> **状态**：v0.3 设计稿（2026-05-20）。Phase 0 / 1 待启。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
+>
+> **v0.3 (2026-05-20)**：引入 **Python sidecar (forensics-bridge)** 作为采集前端，fork 自 [`sjqz`](file://C:/code/sjqz) (17 parser + Android/iOS extraction + WeChat 解密)，避免重写 1.7w 行成熟代码。新增 §4.1 sidecar 子层、§9.4 PythonSidecarAdapter 接口、§12 Phase 4.5 系统数据 adapter（通讯录/通话/短信/WiFi 作 EntityResolver 种子）、Phase 12 WeChat 引用 sjqz 解密方案（T3 风险 高→中）、T13 新增（sidecar 跨平台部署）。配套新文档：[`Personal_Data_Hub_Python_Sidecar.md`](./Personal_Data_Hub_Python_Sidecar.md)、[`Adapter_System_Data.md`](./Adapter_System_Data.md)。
 >
 > **v0.2 (2026-05-19)**：§12 Phase 拆分基于 Redmi 24115RA8EC 真机 inventory（175 个第三方 app）重排，replace 原 hypothetical 顺序。新增 §12.1 真机 inventory × Phase 映射。EmailAdapter 提前为首个 adapter（IMAP 一拍多得），AIChatHistoryAdapter 提升为 Phase 10 旗舰差异化（用户装了 8 家国产 AI），WeChat 压轴 Phase 12。
 >
@@ -196,11 +198,46 @@ ChainlessChain 作为**个人数据中台**：
 │  采集机制（按 ROI 排序）：                                     │
 │    1. 官方 export 解析（最稳）                                 │
 │    2. Cookie + web API                                       │
-│    3. Root + SQLite 直读（Android）                          │
+│    3. Root + SQLite 直读（Android, 走 sidecar）              │
 │    4. Accessibility + 自动滑动（Android）                    │
 │    5. Screenshot + LLM OCR（兜底，复用既有能力）              │
+└──────────────┬──────────────────────────────────────────────┘
+               ↓ JSON-lines / IPC
+┌─────────────────────────────────────────────────────────────┐
+│ Forensics Bridge (Python sidecar, fork sjqz)                │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
+│  │ Android Ext. │ │  iOS Ext.    │ │ WeChat Decr. │        │
+│  │ ADB / Root   │ │ Backup / AFC │ │ IMEI+UIN MD5 │        │
+│  │ APK 降级     │ │ 加密备份解密  │ │ SQLCipher    │        │
+│  └──────────────┘ └──────────────┘ └──────────────┘        │
+│  17 parsers: WeChat/QQ/淘宝/支付宝/京东/拼多多/美团/小红书/    │
+│   高德/百度/12306/携程/滴滴/抖音/微博/B站 + 系统(通讯录/通话/  │
+│   短信/WiFi)                                                │
+│  打包：PyInstaller 单文件 / Win Mac Linux 三平台              │
+│  详见：Personal_Data_Hub_Python_Sidecar.md                  │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### 4.1 Python Sidecar 子层定位
+
+> 为什么引入 Python sidecar 而不是纯 JS 实现：
+
+| 维度 | 纯 JS 重写 | Python sidecar（采纳） |
+|---|---|---|
+| 工期 | 每 adapter +2-3 天 reverse-engineering | sjqz 已有 17 parser 现成可用 |
+| WeChat 解密 | 自研 SQLCipher 密钥派生（高风险） | sjqz `wechat_decrypt.py` 437 行成熟代码 |
+| Android 提取 | 自研 ADB / Root / APK 降级 4 种方法 | sjqz `android/extractor.py` 已覆盖 |
+| iOS 提取 | 自研 iTunes backup + AFC + 加密解密 | sjqz `ios/extractor.py` 已覆盖 |
+| 部署 | 单一 Node 进程 | 多一个 Python runtime（已有 `backend/ai-service` 先例） |
+| 进程隔离 | 同 hub 进程 | 独立 sandbox，崩溃不拖垮 hub |
+| 工具链生态 | 部分（如 SQLCipher Node binding）缺乏 prebuilt wheel | Python `pysqlcipher3` / `pymobiledevice3` 等更成熟 |
+
+**进程隔离原则**：
+- `forensics-bridge`（数据采集）与 `ai-service`（AI 推理）**独立 Python 进程**，各自资源/崩溃域隔离
+- hub 主进程（Node）作 supervisor，按需 spawn / health-check / 重启 sidecar
+- IPC 走 stdio JSON-lines（不开网络端口，零外网暴露面）
+
+详见：[`Personal_Data_Hub_Python_Sidecar.md`](./Personal_Data_Hub_Python_Sidecar.md)
 
 ---
 
@@ -553,6 +590,36 @@ sync（增量循环）
 - 不允许 adapter 直接读 unified_events / kg_triples（防 adapter 越权关联）
 - adapter 写入走 hub 主进程 IPC，hub 做 schema 校验后才落库
 
+### 9.4 PythonSidecarAdapter 变种
+
+> 高难度提取 / 已被 sjqz 解决的源走此变种。JS 一侧只做薄壳，重活全在 sidecar。
+
+```typescript
+interface PythonSidecarAdapter extends PersonalDataAdapter {
+  readonly transport: "python-sidecar";
+  readonly sidecarMethod: string;  // sidecar 内 method 名，如 "wechat.parse" / "android.extract"
+
+  // JS 一侧 sync() 实现 = 通过 IPC 调 sidecar，把返回流式 yield
+  // 不需要重写 sjqz 解析逻辑，只做 NormalizedBatch 字段映射
+}
+```
+
+**IPC 协议（JSON-lines envelope）**：
+
+```json
+// hub → sidecar (stdin, 一行一 JSON)
+{"id":"req-001","method":"wechat.parse","params":{"db_path":"...","key":"abc1234"}}
+
+// sidecar → hub (stdout, 一行一 JSON)
+{"id":"req-001","type":"progress","data":{"processed":120,"total":5000}}
+{"id":"req-001","type":"chunk","data":{"events":[...],"persons":[...]}}
+{"id":"req-001","type":"result","data":{"status":"ok","totalEvents":5000}}
+// 或失败
+{"id":"req-001","type":"error","error":{"code":"WECHAT_KEY_INVALID","msg":"..."}}
+```
+
+完整协议、错误码、17 parser 调用清单见 [`Personal_Data_Hub_Python_Sidecar.md`](./Personal_Data_Hub_Python_Sidecar.md)。
+
 ---
 
 ## 10. Sync 引擎
@@ -628,6 +695,7 @@ last_error TEXT
 | **Phase 2** | AdapterRegistry + Adapter 接口规范 + KG ingestor + RAG 适配（mock adapter 验证管道） | 5d | mock adapter ingest 1k 事件 < 30s + RAG E2E |
 | **Phase 3** | **AI 分析层骨架** — `analysis.ask` 自然语言 Q&A + LLM prompt 工程（Ollama Qwen2.5-7B 默认） | 5d | mock 数据集 5 类典型问题答案准 |
 | **Phase 4** | 隐私 SOP UI（toggle / 范围 / 期限 / 审计 / 导出 / 擦除）+ Sync 引擎（手动 + Workflow 定时） | 5d | UI 全 + Workflow 定时跑 7 天稳定 |
+| **Phase 4.5** | **Python sidecar 基础设施 + 系统数据 adapter**（通讯录 / 通话记录 / 短信 / WiFi，作 EntityResolver 种子） | 4d | PyInstaller 单文件 sidecar 启动 ≤ 1s；Android 通讯录 200+ 条灌入 LocalVault；通讯录电话号成为后续 Phase 5-12 Person 实体的权威 `identifiers.phone` 主键；详见 [`Adapter_System_Data.md`](./Adapter_System_Data.md) |
 | **Phase 5** | **EmailAdapter (IMAP)** — 首个真实 adapter，一拍多得 | 7d | QQ 邮箱 (`com.tencent.androidqqmail`) + 189 邮箱 (`com.corp21cn.mail189`) 3 年邮件 → LocalVault → 自然语言查 "上个月有哪些银行账单到" |
 | **Phase 6** | **AlipayAdapter** (官方 CSV 导出 + 字段映射，详见 `Adapter_Alipay_Bill.md`) | 3d | 12 个月账单 CSV → 完整消费 timeline，可问 "上月在外卖花了多少" |
 | **Phase 7** | **Shopping 三件套**：TaobaoAdapter + JdAdapter + MeituanAdapter（Cookie + web API 框架可复用） | 7d | `com.taobao.taobao` + `com.jingdong.app.mall` + `com.sankuai.meituan` 订单 + 评价 + 收货地址 全接入 |
@@ -635,13 +703,14 @@ last_error TEXT
 | **Phase 9** | **Travel 四件套**：AmapAdapter + BaiduMapAdapter + CtripAdapter + Train12306Adapter | 7d | `com.autonavi.minimap` + `com.baidu.BaiduMap` + `ctrip.android.view` + `com.MobileTicket` 足迹 + 行程合并 E2E |
 | **Phase 10** | **AIChatHistoryAdapter（旗舰差异化）** — 跨 8 家 AI 厂商对话史合一 | 7d | DeepSeek (`com.deepseek.chat`) + Kimi (`com.moonshot.kimichat`) + 通义 (`com.aliyun.tongyi`) + 智谱清言 (`com.zhipuai.qingyan`) + 混元 (`com.tencent.hunyuan.app.chat`) + 千帆 (`com.baidu.qianfan.llmkitchat`) + 扣子 (`com.coze.space`) + Dreamina (`com.bytedance.dreamina`) — 本地 LLM 能引用所有跨厂商历史问答 |
 | **Phase 11** | **内置分析 skill 5 个** — spending / relations / footprint / interests / timeline + 月度报告 Workflow | 7d | 每个 skill UI 卡片 + 单测 + 真机典型问题验收 |
-| **Phase 12** | **WeChatAdapter（压轴）** — 微信聊天 + 朋友圈 + 公众号收藏（root + SQLCipher EnMicroMsg.db/SnsMicroMsg.db + Frida hook libwechatmm.so 拿 8.0+ 运行时密钥） | 10d | `com.tencent.mm` Redmi 24115RA8EC 真机 5 年消息全量；密钥提取脚本 + 文档可复用其它机器 |
+| **Phase 12** | **WeChatAdapter（压轴）** — 微信聊天 + 朋友圈 + 公众号收藏（root + SQLCipher EnMicroMsg.db/SnsMicroMsg.db；密钥优先走 sjqz `wechat_decrypt.py` 的 IMEI+UIN MD5[:7] 方案，8.0+ 走 Frida hook libwechatmm.so 兜底） | 7d（原 10d，sjqz 降险后 −3d） | `com.tencent.mm` Redmi 24115RA8EC 真机 5 年消息全量；sidecar `wechat.decrypt` + `wechat.parse` 两 method 复用；密钥提取脚本 + 文档可复用其它机器 |
 | **Phase 13+** | **Long-tail 渐进**（按用户实际需求触发，非 v1 必选）：知乎 / 小红书 / 抖音 / 微博 / BOSS / 银行 PDF 邮件解析 / 个税 APP / i 厦门 / WPS + 腾讯文档 / 百度网盘 / 飞书 + 钉钉 + 企微 / 携程同程互补 / 滴滴 / 美柚 / 12123 / 网易云音乐 / 酷狗 / 爱奇艺 / 腾讯视频 / 头条 / 西瓜 / CSDN | ongoing | 每加一个不破现有；adapter 模板成熟后单 adapter 平均 2-3 天 |
 
-**总工期估**：Phase 0-12 ≈ 76 天 ≈ **11 周（单人）**。
-**可并行压缩**：Phase 0-1（基础设施）+ Phase 2-4（管道）+ Phase 5（首 adapter）三段可三人并行 → 8-9 周完成 v1。
+**总工期估**：Phase 0-12 ≈ 77 天 ≈ **11 周（单人）**。
+- v0.3 调整：+Phase 4.5 (4d) − Phase 12 (3d, sjqz 降险) = 净 +1d；不显著拖长 v1 工期
+**可并行压缩**：Phase 0-1（基础设施）+ Phase 2-4（管道）+ Phase 4.5（sidecar + 系统数据）+ Phase 5（首 adapter）三段可三人并行 → 8-9 周完成 v1。
 **已落地里程碑**（建议）：
-- **M1 = Phase 4 结束**（基础设施 ready，1 mock adapter E2E 跑通）— 4 周
+- **M1 = Phase 4.5 结束**（基础设施 + sidecar + 系统数据 ready，EntityResolver 种子集到位）— 4-5 周
 - **M2 = Phase 7 结束**（购物 + 邮箱 + 支付宝合一，覆盖 70% 消费场景）— 6 周
 - **M3 = Phase 10 结束**（出行 + AI 对话合一，旗舰功能展示）— 9 周
 - **M4 = Phase 12 结束**（微信打通，完整 v1）— 11 周
@@ -737,7 +806,7 @@ last_error TEXT
 |---|---|---|---|
 | T1 | EntityResolver 误合并 | "我爸"和"老板"都被 LLM 判为"老男人"误合 | 三段 pipeline + review 队列 + 用户可拆分 |
 | T2 | adapter 触发 app 风控 | 频繁调淘宝 web API → 账号被风控 | 限流 + adapter 实现尊重 robots/正常用户节奏 |
-| T3 | 微信 SQLCipher 密钥提取失败 | 微信 8.0+ 密钥从 IMEI 派生失效 | Phase 10 用 Frida hook libwechatmm.so；接受"用户自己提供密钥"兜底路径 |
+| T3 | 微信 SQLCipher 密钥提取失败（风险 高→**中**, v0.3 sjqz 引入后降级） | 微信 8.0+ 密钥从 IMEI 派生**部分**失效（仍适用 7.x + 8.0 早期版本） | (1) sjqz `wechat_decrypt.py` IMEI+UIN MD5[:7] 方案作主路径，覆盖大量历史版本；(2) Frida hook libwechatmm.so 拿运行时密钥作 fallback；(3) "用户自己提供密钥"作最终兜底；(4) 验证脚本 `verify_sqlcipher_key()` 已现成 |
 | T4 | KG ingest 过载 | 历史 5 年数据初次 ingest → 几百万事件卡死 | 分批 ingest + 进度条 + 后台慢跑 |
 | T5 | LLM 幻觉 | 数据稀疏时 LLM 编造金额/地点 | prompt 强制引 Event.id + UI 渲染回链 + RAG 空时显式 fallback |
 | T6 | Keystore 不可用 | 部分设备 Keystore broken / TEE 故障 | fallback 到 DPAPI/file-based with PIN（明确告知用户安全降级） |
@@ -747,6 +816,7 @@ last_error TEXT
 | T10 | OCR 失真致 Event 错误 | 截图 OCR 把 "¥38.00" 读成 "¥3800" | source.confidence < 1.0；UI 标记"低置信"badge；分析层加权 |
 | T11 | RAG 召回不准 | 用户问"上次跟妈妈聊去医院"召回与"医院"无关 | 多路召回（关键词 + embedding + KG 实体）+ rerank |
 | T12 | 跨设备同步冲突 | 两台设备同时改同一 Person 的别名 | LWW + 审计 + UI 冲突视图 |
+| T13 | Python sidecar 跨平台部署（v0.3 新增） | Win/Mac/Linux 三平台需各自打包；Android/iOS 端无法跑 Python sidecar | (1) PyInstaller 单文件三平台分别 build + 加入 release asset；(2) 移动端（Android/iOS）走 native adapter 直接读手机本地数据，不调 sidecar；(3) sidecar 仅 desktop 侧用，作"远程提取手机数据"通道（手机配对后 USB ADB / AFC 走 sidecar） |
 
 ---
 
@@ -789,7 +859,10 @@ last_error TEXT
 ## 17. 参考
 
 - [`Adapter_Alipay_Bill.md`](./Adapter_Alipay_Bill.md) — 首个 adapter 切片（验证端到端）
+- [`Personal_Data_Hub_Python_Sidecar.md`](./Personal_Data_Hub_Python_Sidecar.md) — Python sidecar (forensics-bridge) 设计 + IPC 协议 + 17 parser 映射 (v0.3)
+- [`Adapter_System_Data.md`](./Adapter_System_Data.md) — Phase 4.5 系统数据 adapter 设计（通讯录/通话/短信/WiFi）(v0.3)
 - 既有 `01_知识库管理模块.md` — KG / RAG 引擎
 - 既有 `安全机制设计.md` — U-Key/SIMKey + SQLCipher
 - 既有 `数据同步方案.md` — P2P + DID 同步
 - 既有 `13_多代理系统.md` — Cowork agent 框架（PersonalAnalysisAgent 基础）
+- 上游 fork 源：[`sjqz`](file://C:/code/sjqz) — Python mobile-forensics toolkit，17 parser + Android/iOS extraction + WeChat 解密（MIT License）
