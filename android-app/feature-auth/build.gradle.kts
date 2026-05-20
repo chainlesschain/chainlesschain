@@ -61,4 +61,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+
+    // Instrumented testing (androidTest) — un-quarantines AuthRepositoryTest.kt
+    // (was .kt.broken in commits 4bfc8f474 + fc35e776f because these deps were missing).
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("io.mockk:mockk-android:1.13.9")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
 }
