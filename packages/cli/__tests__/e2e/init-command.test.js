@@ -171,6 +171,25 @@ describe("E2E: init command", () => {
       expect(config.persona.role.length).toBeGreaterThan(0);
     });
 
+    it("Phase 3d: persona template also writes named registry + activePersonaName", () => {
+      run("init --template medical-triage --yes", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      // Registry keyed by `${template}-persona` to match SKILL.md filename
+      expect(config.personas).toBeDefined();
+      expect(config.personas["medical-triage-persona"]).toBeDefined();
+      expect(config.personas["medical-triage-persona"].name).toBe(
+        config.persona.name,
+      );
+      expect(config.personas["medical-triage-persona"].role).toBe(
+        config.persona.role,
+      );
+      // activePersonaName points to the bundled persona by default
+      expect(config.activePersonaName).toBe("medical-triage-persona");
+    });
+
     it("persona template creates auto-activated persona skill", () => {
       run("init --template medical-triage --yes", { cwd: tempDir });
 

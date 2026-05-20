@@ -255,7 +255,18 @@ Current working directory: ${cwd || process.cwd()}`;
 // ─── Persona support ─────────────────────────────────────────────────────
 
 /**
- * Load persona configuration from project config.json
+ * Load persona configuration from project config.json.
+ *
+ * Resolution order (highest priority first):
+ *   1. CC_PACK_AUTO_PERSONA env var → config.personas[<env>] if present
+ *      (set by `cc pack --project` packed exe at boot, per Phase 3f; the
+ *      Phase 3d resolver lives here so packaged products actually activate
+ *      their bundled persona at runtime)
+ *   2. config.activePersonaName → config.personas[<name>] if present
+ *      (set by `cc persona activate <name>`)
+ *   3. config.persona (the legacy inline single-persona shape; still the
+ *      common case for projects created via `cc init`)
+ *
  * @param {string} cwd - working directory
  * @returns {object|null} persona object or null
  */
@@ -264,7 +275,20 @@ function _loadProjectPersona(cwd) {
     const projectRoot = findProjectRoot(cwd || process.cwd());
     if (!projectRoot) return null;
     const config = loadProjectConfig(projectRoot);
-    return config?.persona || null;
+    if (!config) return null;
+    const personas =
+      config.personas && typeof config.personas === "object"
+        ? config.personas
+        : null;
+    const envName = process.env.CC_PACK_AUTO_PERSONA;
+    if (envName && personas && personas[envName]) {
+      return personas[envName];
+    }
+    const activeName = config.activePersonaName;
+    if (activeName && personas && personas[activeName]) {
+      return personas[activeName];
+    }
+    return config.persona || null;
   } catch {
     return null;
   }

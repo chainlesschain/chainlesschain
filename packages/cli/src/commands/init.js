@@ -2479,7 +2479,17 @@ export function registerInitCommand(program) {
           },
         };
         if (tmpl.persona) {
+          // Backward-compat: legacy single-persona field. `_loadProjectPersona`
+          // still falls back to this when no named persona resolves.
           config.persona = tmpl.persona;
+          // Phase 3d: named-persona registry so `CC_PACK_AUTO_PERSONA` and
+          // `cc persona activate <name>` can resolve by name. Keyed the same
+          // as the auto-activated persona skill (`.chainlesschain/skills/
+          // <template>-persona/SKILL.md`) for cross-reference symmetry.
+          config.personas = {
+            [`${template}-persona`]: tmpl.persona,
+          };
+          config.activePersonaName = `${template}-persona`;
         }
         fs.writeFileSync(
           path.join(ccDir, "config.json"),
