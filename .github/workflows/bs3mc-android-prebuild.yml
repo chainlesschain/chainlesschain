@@ -34,8 +34,8 @@ on:
         default: "12.9.0"
         required: false
       node_target_version:
-        description: "Node.js major version to target for headers/ABI"
-        default: "24.15.0"
+        description: "Node.js version for headers/ABI (Termux nodejs ships 26.1.0; pty_jni integration only works on Node 25/26)"
+        default: "26.1.0"
         required: false
       api_level:
         description: "Android API level (matches app minSdkVersion)"
