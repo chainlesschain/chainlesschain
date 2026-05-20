@@ -144,7 +144,7 @@ class PersonalDataHubCommandsTest {
             )
         )
         coEvery {
-            mockClient.invoke<AdaptersResponse>("personal-data-hub.listAdapters", any(), any())
+            mockClient.invoke<AdaptersResponse>("personal-data-hub.list-adapters", any(), any())
         } returns Result.success(expected)
 
         val result = hub.listAdapters().getOrNull()!!
@@ -157,14 +157,14 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `syncAdapter passes name and options`() = runTest {
         coEvery {
-            mockClient.invoke<SyncReport>("personal-data-hub.syncAdapter", any(), any())
+            mockClient.invoke<SyncReport>("personal-data-hub.sync-adapter", any(), any())
         } returns Result.success(SyncReport(adapter = "email-imap", ingested = 30))
 
         hub.syncAdapter("email-imap", mapOf("since" to 1000L))
 
         coVerify {
             mockClient.invoke<SyncReport>(
-                "personal-data-hub.syncAdapter",
+                "personal-data-hub.sync-adapter",
                 match { params ->
                     @Suppress("UNCHECKED_CAST")
                     val opts = params["options"] as Map<String, Any>
@@ -183,7 +183,7 @@ class PersonalDataHubCommandsTest {
         hub.syncAdapter("email-imap")
         coVerify {
             mockClient.invoke<SyncReport>(
-                "personal-data-hub.syncAdapter",
+                "personal-data-hub.sync-adapter",
                 match { params -> params["name"] == "email-imap" && !params.containsKey("options") },
                 any()
             )
@@ -193,7 +193,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `syncAll dispatches to syncAll method`() = runTest {
         coEvery {
-            mockClient.invoke<SyncReportList>("personal-data-hub.syncAll", any(), any())
+            mockClient.invoke<SyncReportList>("personal-data-hub.sync-all", any(), any())
         } returns Result.success(SyncReportList(reports = listOf(SyncReport(adapter = "email-imap"))))
 
         val result = hub.syncAll()
@@ -203,7 +203,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `syncAdapterStream returns streamId`() = runTest {
         coEvery {
-            mockClient.invoke<HubStreamStartResponse>("personal-data-hub.syncAdapterStream", any(), any())
+            mockClient.invoke<HubStreamStartResponse>("personal-data-hub.sync-adapter-stream", any(), any())
         } returns Result.success(HubStreamStartResponse(streamId = "s-1", name = "email-imap"))
 
         val result = hub.syncAdapterStream("email-imap").getOrNull()!!
@@ -213,7 +213,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `syncAllStream returns streamId`() = runTest {
         coEvery {
-            mockClient.invoke<HubStreamStartResponse>("personal-data-hub.syncAllStream", any(), any())
+            mockClient.invoke<HubStreamStartResponse>("personal-data-hub.sync-all-stream", any(), any())
         } returns Result.success(HubStreamStartResponse(streamId = "s-all"))
 
         val result = hub.syncAllStream()
@@ -225,7 +225,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `queryEvents passes all filters when provided`() = runTest {
         coEvery {
-            mockClient.invoke<EventsResponse>("personal-data-hub.queryEvents", any(), any())
+            mockClient.invoke<EventsResponse>("personal-data-hub.query-events", any(), any())
         } returns Result.success(EventsResponse())
 
         hub.queryEvents(
@@ -239,7 +239,7 @@ class PersonalDataHubCommandsTest {
 
         coVerify {
             mockClient.invoke<EventsResponse>(
-                "personal-data-hub.queryEvents",
+                "personal-data-hub.query-events",
                 match { f ->
                     f["subtype"] == "order" && f["since"] == 1000L && f["until"] == 2000L &&
                         f["actor"] == "merchant-123" && f["adapter"] == "taobao" && f["limit"] == 50
@@ -257,7 +257,7 @@ class PersonalDataHubCommandsTest {
         hub.queryEvents()
         coVerify {
             mockClient.invoke<EventsResponse>(
-                "personal-data-hub.queryEvents",
+                "personal-data-hub.query-events",
                 match { it.isEmpty() },
                 any()
             )
@@ -267,14 +267,14 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `recentAudit accepts filter triplet`() = runTest {
         coEvery {
-            mockClient.invoke<AuditRowsResponse>("personal-data-hub.recentAudit", any(), any())
+            mockClient.invoke<AuditRowsResponse>("personal-data-hub.recent-audit", any(), any())
         } returns Result.success(AuditRowsResponse())
 
         hub.recentAudit(since = 100L, action = "ingest", limit = 20)
 
         coVerify {
             mockClient.invoke<AuditRowsResponse>(
-                "personal-data-hub.recentAudit",
+                "personal-data-hub.recent-audit",
                 match { f -> f["since"] == 100L && f["action"] == "ingest" && f["limit"] == 20 },
                 any()
             )
@@ -284,7 +284,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `eventDetail passes eventId`() = runTest {
         coEvery {
-            mockClient.invoke<EventDetailResponse>("personal-data-hub.eventDetail", any(), any())
+            mockClient.invoke<EventDetailResponse>("personal-data-hub.event-detail", any(), any())
         } returns Result.success(EventDetailResponse(event = HubEvent("e1", "order", "taobao", 1000L)))
 
         val result = hub.eventDetail("e1").getOrNull()!!
@@ -292,7 +292,7 @@ class PersonalDataHubCommandsTest {
 
         coVerify {
             mockClient.invoke<EventDetailResponse>(
-                "personal-data-hub.eventDetail",
+                "personal-data-hub.event-detail",
                 match { it["eventId"] == "e1" },
                 any()
             )
@@ -304,7 +304,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `registerEmail flattens account fields into params`() = runTest {
         coEvery {
-            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.registerEmail", any(), any())
+            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.register-email", any(), any())
         } returns Result.success(AdapterRegisterResponse(name = "email-imap@me", version = "1.0.0"))
 
         val account = EmailAccount(
@@ -317,7 +317,7 @@ class PersonalDataHubCommandsTest {
 
         coVerify {
             mockClient.invoke<AdapterRegisterResponse>(
-                "personal-data-hub.registerEmail",
+                "personal-data-hub.register-email",
                 match { params ->
                     @Suppress("UNCHECKED_CAST")
                     val acc = params["account"] as Map<String, Any>
@@ -334,7 +334,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `unregisterEmail passes email`() = runTest {
         coEvery {
-            mockClient.invoke<UnregisterResponse>("personal-data-hub.unregisterEmail", any(), any())
+            mockClient.invoke<UnregisterResponse>("personal-data-hub.unregister-email", any(), any())
         } returns Result.success(UnregisterResponse(ok = true, removed = "me@qq.com"))
 
         val result = hub.unregisterEmail("me@qq.com").getOrNull()!!
@@ -344,7 +344,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `testEmailAuth invokes test method without persistence`() = runTest {
         coEvery {
-            mockClient.invoke<TestAuthResponse>("personal-data-hub.testEmailAuth", any(), any())
+            mockClient.invoke<TestAuthResponse>("personal-data-hub.test-email-auth", any(), any())
         } returns Result.success(TestAuthResponse(ok = true))
 
         val account = EmailAccount(provider = "gmail", email = "x@gmail.com", authCode = "code")
@@ -355,7 +355,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `listEmailAccounts returns accounts list`() = runTest {
         coEvery {
-            mockClient.invoke<EmailAccountsResponse>("personal-data-hub.listEmailAccounts", any(), any())
+            mockClient.invoke<EmailAccountsResponse>("personal-data-hub.list-email-accounts", any(), any())
         } returns Result.success(EmailAccountsResponse(accounts = listOf(
             EmailAccountInfo("me@qq.com", "qq", listOf("INBOX"), 1000L)
         )))
@@ -370,14 +370,14 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `registerAlipay flattens account with optional zipPassword`() = runTest {
         coEvery {
-            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.registerAlipay", any(), any())
+            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.register-alipay", any(), any())
         } returns Result.success(AdapterRegisterResponse(name = "alipay@me"))
 
         hub.registerAlipay("me@anywhere.com", zipPassword = "pw123")
 
         coVerify {
             mockClient.invoke<AdapterRegisterResponse>(
-                "personal-data-hub.registerAlipay",
+                "personal-data-hub.register-alipay",
                 match { params ->
                     @Suppress("UNCHECKED_CAST")
                     val acc = params["account"] as Map<String, Any>
@@ -391,7 +391,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `unregisterAlipay passes email`() = runTest {
         coEvery {
-            mockClient.invoke<UnregisterResponse>("personal-data-hub.unregisterAlipay", any(), any())
+            mockClient.invoke<UnregisterResponse>("personal-data-hub.unregister-alipay", any(), any())
         } returns Result.success(UnregisterResponse(ok = true))
 
         val result = hub.unregisterAlipay("me@anywhere.com")
@@ -411,7 +411,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `importAlipayBill with zipPath only invokes`() = runTest {
         coEvery {
-            mockClient.invoke<SyncReport>("personal-data-hub.importAlipayBill", any(), any())
+            mockClient.invoke<SyncReport>("personal-data-hub.import-alipay-bill", any(), any())
         } returns Result.success(SyncReport(adapter = "alipay-bill", ingested = 500))
 
         val result = hub.importAlipayBill(zipPath = "C:/tmp/bill.zip", zipPassword = "pw")
@@ -419,7 +419,7 @@ class PersonalDataHubCommandsTest {
 
         coVerify {
             mockClient.invoke<SyncReport>(
-                "personal-data-hub.importAlipayBill",
+                "personal-data-hub.import-alipay-bill",
                 match { it["zipPath"] == "C:/tmp/bill.zip" && it["zipPassword"] == "pw" && !it.containsKey("csvPath") },
                 any()
             )
@@ -429,7 +429,7 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `listAlipayAccounts returns accounts list`() = runTest {
         coEvery {
-            mockClient.invoke<AlipayAccountsResponse>("personal-data-hub.listAlipayAccounts", any(), any())
+            mockClient.invoke<AlipayAccountsResponse>("personal-data-hub.list-alipay-accounts", any(), any())
         } returns Result.success(AlipayAccountsResponse(accounts = listOf(
             AlipayAccountInfo("a@b.com", hasZipPassword = true, registeredAt = 2000L)
         )))
@@ -443,14 +443,14 @@ class PersonalDataHubCommandsTest {
     @Test
     fun `registerMock with all params invokes`() = runTest {
         coEvery {
-            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.registerMock", any(), any())
+            mockClient.invoke<AdapterRegisterResponse>("personal-data-hub.register-mock", any(), any())
         } returns Result.success(AdapterRegisterResponse(name = "mock"))
 
         hub.registerMock(name = "mock", count = 100, seed = 42)
 
         coVerify {
             mockClient.invoke<AdapterRegisterResponse>(
-                "personal-data-hub.registerMock",
+                "personal-data-hub.register-mock",
                 match { it["name"] == "mock" && it["count"] == 100 && it["seed"] == 42 },
                 any()
             )
