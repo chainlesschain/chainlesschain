@@ -269,21 +269,27 @@ DEPLOYS = [
     # android-app/app/build.gradle.kts / ios-app/.../Info.plist resolved
     # along the way (kept the v5.0.3.74 side, dropped the v5.0.3.68 stash
     # side). Build wall-clock 590s.
+    # 2026-05-20 21:21 v5.0.3.74 design + www refresh — companion to 16:50
+    # docs-only deploy. Design tagline v5.0.3.72 → v5.0.3.74 + brief mention
+    # of AIChat fix and 47/927 → 50/952 test count. www rebuilt to refresh
+    # release-sizes.json from v5.0.3.70 → v5.0.3.73 (latest GitHub Release;
+    # .74 has no release pipeline yet — productVersion bumped locally only
+    # for dev marker).
+    # {
+    #     "name": "docs.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260520-165018.tar.gz",
+    #     "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+    # },
     {
-        "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260520-165018.tar.gz",
-        "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
+        "name": "design.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.74-20260520-212101.tar.gz",
+        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
-    # {
-    #     "name": "design.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.73-20260520-115633.tar.gz",
-    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    # },
-    # {
-    #     "name": "www.chainlesschain.com",
-    #     "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.73-20260520-133105.tar.gz",
-    #     "remote_dir": "/www/wwwroot/www.chainlesschain.com",
-    # },
+    {
+        "name": "www.chainlesschain.com",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.74-20260520-211547.tar.gz",
+        "remote_dir": "/www/wwwroot/www.chainlesschain.com",
+    },
 ]
 
 stamp = time.strftime("%Y%m%d-%H%M%S")
