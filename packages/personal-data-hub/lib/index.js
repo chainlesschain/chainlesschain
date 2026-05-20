@@ -35,6 +35,7 @@ const emailImapAdapter = require("./adapters/email-imap");
 const alipayBillAdapter = require("./adapters/alipay-bill");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
+const mobileExtractor = require("./mobile-extractor");
 
 module.exports = {
   // Constants / enums
@@ -182,6 +183,10 @@ module.exports = {
   TimelineSkill: analysisSkills.TimelineSkill,
   ANALYSIS_SKILL_NAMES: analysisSkills.ANALYSIS_SKILL_NAMES,
   runAnalysisSkill: analysisSkills.runAnalysisSkill,
+
+  // Phase 7.5 — Mobile extraction layer (借 sjqz architecture)
+  AndroidExtractor: mobileExtractor.AndroidExtractor,
+  iOSBackupReader: mobileExtractor.iOSBackupReader,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

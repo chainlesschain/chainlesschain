@@ -31,6 +31,7 @@
     "./adapters/system-data": "./lib/adapters/system-data/index.js",
     "./entity-resolver": "./lib/entity-resolver/index.js",
     "./analysis-skills": "./lib/analysis-skills/index.js",
+    "./mobile-extractor": "./lib/mobile-extractor/index.js",
     "./sidecar": "./lib/sidecar/index.js"
   },
   "scripts": {
