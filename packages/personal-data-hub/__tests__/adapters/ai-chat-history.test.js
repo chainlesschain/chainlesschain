@@ -165,18 +165,18 @@ describe("AIChatHistoryAdapter.sync — skeleton path", () => {
   });
 
   it("emits vendor-not-wired sentinel when stub vendor invoked", async () => {
-    // tongyi/zhipu/hunyuan/qianfan/coze/dreamina remain skeleton in Phase 10.2.
-    // deepseek + kimi are now wired with real h5 API — use a stub vendor here.
+    // hunyuan/qianfan/coze/dreamina remain skeleton after Phase 10.2.
+    // deepseek + kimi + tongyi + zhipu are wired — use a still-stub vendor here.
     const a = new AIChatHistoryAdapter();
     a.setSession(
-      "tongyi",
-      new CookieAuthSession({ vendor: "tongyi", cookies: [{ name: "sess", value: "x" }] }),
+      "hunyuan",
+      new CookieAuthSession({ vendor: "hunyuan", cookies: [{ name: "sess", value: "x" }] }),
     );
     const out = [];
-    for await (const ev of a.sync({ vendors: ["tongyi"] })) out.push(ev);
+    for await (const ev of a.sync({ vendors: ["hunyuan"] })) out.push(ev);
     expect(out.length).toBe(1);
     expect(out[0].kind).toBe("vendor-not-wired");
-    expect(out[0].vendor).toBe("tongyi");
+    expect(out[0].vendor).toBe("hunyuan");
     expect(out[0].error).toBe("VENDOR_NOT_WIRED");
   });
 

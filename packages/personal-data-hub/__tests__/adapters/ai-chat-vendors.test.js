@@ -10,6 +10,8 @@ const {
 } = require("../../lib/adapters/ai-chat-history");
 const deepseekModule = require("../../lib/adapters/ai-chat-history/vendors/deepseek");
 const kimiModule = require("../../lib/adapters/ai-chat-history/vendors/kimi");
+const tongyiModule = require("../../lib/adapters/ai-chat-history/vendors/tongyi");
+const zhipuModule = require("../../lib/adapters/ai-chat-history/vendors/zhipu");
 
 // ─── helpers ─────────────────────────────────────────────────────────────
 
@@ -334,19 +336,149 @@ describe("AIChatHistoryAdapter.sync — wired DeepSeek path E2E", () => {
   });
 });
 
+// ─── Tongyi ──────────────────────────────────────────────────────────────
+
+function tongyiFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/api/user/info", makeResponse({ body: { success: true, data: { userId: "ali-u1", uid: "ali-u1" } } })],
+    [/conversation\/list.*pageNum=2/, makeResponse({ body: { data: { list: [] } } })],
+    ["/dialog/conversation/list", makeResponse({ body: { data: { list: [
+      { sessionId: "tc1", summary: "通义对话", gmtCreate: 1700000000000, gmtModified: 1700001000000, modelName: "qwen-max", messageCount: 4 },
+    ] } } })],
+    ["/dialog/conversation/messages", makeResponse({ body: { data: [
+      { msgId: "tm1", senderType: "user", content: "你好", createTime: 1700000010000 },
+      { msgId: "tm2", senderType: "assistant", contents: [{ content: "您好,有什么可以帮您?" }],
+        createTime: 1700000020000, modelName: "qwen-max" },
+    ] } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "tongyi",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Tongyi vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = tongyiFixtureClient();
+    const session = new CookieAuthSession({
+      vendor: "tongyi",
+      cookies: [{ name: "XSRF-TOKEN", value: "csrf-x" }],
+    });
+    const r = await tongyiModule.SPEC.validateCookie({ httpClient, session, vendor: "tongyi" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("ali-u1");
+  });
+
+  it("listConversations sends X-Csrf-Token header from cookie", async () => {
+    const { httpClient, fixture } = tongyiFixtureClient();
+    const session = new CookieAuthSession({
+      vendor: "tongyi",
+      cookies: [{ name: "XSRF-TOKEN", value: "csrf-x" }],
+    });
+    const out = [];
+    for await (const c of tongyiModule.SPEC.listConversations({ httpClient, session, vendor: "tongyi" })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].originalId).toBe("tc1");
+    // Verify CSRF header injected:
+    const convCall = fixture.calls.find((c) => c.url.includes("/conversation/list"));
+    expect(convCall.init.headers["X-Csrf-Token"]).toBe("csrf-x");
+  });
+
+  it("listMessages joins contents[].content for multi-segment replies", async () => {
+    const { httpClient } = tongyiFixtureClient();
+    const session = new CookieAuthSession({ vendor: "tongyi", cookies: [] });
+    const out = [];
+    for await (const m of tongyiModule.SPEC.listMessages({ httpClient, session, vendor: "tongyi" }, "tc1")) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    expect(out[0].role).toBe("user");
+    expect(out[1].role).toBe("assistant");
+    expect(out[1].content.text).toBe("您好,有什么可以帮您?");
+    expect(out[1].modelName).toBe("qwen-max");
+  });
+});
+
+// ─── Zhipu ───────────────────────────────────────────────────────────────
+
+function zhipuFixtureClient() {
+  const fixture = makeRoutedFetch([
+    ["/user/info", makeResponse({ body: { status: 0, result: { user_id: "glm-u1" } } })],
+    [/conversation\/list.*page=2/, makeResponse({ body: { result: { list: [] } } })],
+    ["/conversation/list", makeResponse({ body: { result: { list: [
+      { conversation_id: "zc1", title: "GLM-4 测试", create_time: 1700000000, update_time: 1700001000, model: "glm-4" },
+    ] } } })],
+    [/conversation\/zc1/, makeResponse({ body: { result: { messages: [
+      { id: "zm1", role: "user", content: "查一下天气", create_time: 1700000010 },
+      { id: "zm2", role: "assistant", content: "今天厦门多云", create_time: 1700000020,
+        tool_calls: [{ name: "web_search", arguments: { query: "厦门天气" } }] },
+    ] } } })],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "zhipu",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch, sleep: clk.sleep, now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Zhipu vendor — Phase 10.2 wiring", () => {
+  it("validateCookie returns userId", async () => {
+    const { httpClient } = zhipuFixtureClient();
+    const session = new CookieAuthSession({
+      vendor: "zhipu",
+      cookies: [{ name: "chatglm_token", value: "tok-x" }],
+    });
+    const r = await zhipuModule.SPEC.validateCookie({ httpClient, session, vendor: "zhipu" });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("glm-u1");
+  });
+
+  it("listConversations sends Bearer token from chatglm_token cookie", async () => {
+    const { httpClient, fixture } = zhipuFixtureClient();
+    const session = new CookieAuthSession({
+      vendor: "zhipu",
+      cookies: [{ name: "chatglm_token", value: "tok-x" }],
+    });
+    const out = [];
+    for await (const c of zhipuModule.SPEC.listConversations({ httpClient, session, vendor: "zhipu" })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].originalId).toBe("zc1");
+    expect(out[0].modelName).toBe("glm-4");
+    const convCall = fixture.calls.find((c) => c.url.includes("/conversation/list"));
+    expect(convCall.init.headers.Authorization).toBe("Bearer tok-x");
+  });
+
+  it("listMessages preserves tool_calls in extra", async () => {
+    const { httpClient } = zhipuFixtureClient();
+    const session = new CookieAuthSession({ vendor: "zhipu", cookies: [] });
+    const out = [];
+    for await (const m of zhipuModule.SPEC.listMessages({ httpClient, session, vendor: "zhipu" }, "zc1")) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    expect(out[0].role).toBe("user");
+    expect(out[1].role).toBe("assistant");
+    expect(out[1].content.text).toBe("今天厦门多云");
+    expect(out[1].extra.toolCalls).toEqual([{ name: "web_search", arguments: { query: "厦门天气" } }]);
+  });
+});
+
 // ─── Spec contract still valid after wiring ──────────────────────────────
 
 describe("vendor spec post-wire smoke", () => {
-  it("deepseek spec still has correct shape", () => {
-    expect(DEFAULT_VENDOR_SPECS.deepseek.name).toBe("deepseek");
-    expect(typeof DEFAULT_VENDOR_SPECS.deepseek.listConversations).toBe("function");
-    expect(typeof DEFAULT_VENDOR_SPECS.deepseek.listMessages).toBe("function");
-    expect(typeof DEFAULT_VENDOR_SPECS.deepseek.validateCookie).toBe("function");
-  });
-
-  it("kimi spec still has correct shape", () => {
-    expect(DEFAULT_VENDOR_SPECS.kimi.name).toBe("kimi");
-    expect(typeof DEFAULT_VENDOR_SPECS.kimi.listConversations).toBe("function");
-    expect(typeof DEFAULT_VENDOR_SPECS.kimi.listMessages).toBe("function");
+  it.each(["deepseek", "kimi", "tongyi", "zhipu"])("%s spec still has correct shape", (v) => {
+    expect(DEFAULT_VENDOR_SPECS[v].name).toBe(v);
+    expect(typeof DEFAULT_VENDOR_SPECS[v].listConversations).toBe("function");
+    expect(typeof DEFAULT_VENDOR_SPECS[v].listMessages).toBe("function");
+    expect(typeof DEFAULT_VENDOR_SPECS[v].validateCookie).toBe("function");
   });
 });
