@@ -3,6 +3,22 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.74 — AIChat registry-contract bug fix + Phase 10.2 集成/E2E + README 历史快照重构] - 2026-05-20
+
+> Hub 内部质量收口，无新功能。**修了 Phase 10.2 落地以来一直存在的 1 个隐性 bug**：AIChatHistoryAdapter `sync()` 的 yielded raws 不符合 AdapterRegistry 的信封契约 (`{originalId, capturedAt, payload}`)，registry 调 `vault.putRawEvent({originalId: undefined, ...})` 直接抛错，所有 AIChat raws 100% 进 `invalidCount` → 没一条 event 真落库。
+
+- **AIChat registry-contract 修法（3 cascading 根因）**：
+  - sync() 现 yield `{originalId, capturedAt, payload:{kind,vendor,...}}` 信封；normalize() 接受信封 + adapter-internal 双形态保后向兼容。
+  - `schema-map.buildMessageEvent`：`occurredAt` ISO 字符串 → ms 整数；新增 `ingestedAt` + `source.capturedAt` (schema `validateEvent` / `validateBaseEntity` 要求正整数 ms)。Person + Topic + Item 同步加 `ingestedAt` + `source`。
+  - 实体 id：`newId()` → 确定性 `evt-aichat-${vendor}-${originalId}` / `item-aichat-${vendor}-${originalId}-${idx}`，re-sync 走 `ON CONFLICT(id) DO UPDATE` 而不撞 `UNIQUE(source_adapter, source_original_id)` 二级约束抛错。
+- **新增测试 +2 文件 +9 单测**：
+  - `__tests__/integration/ai-chat-history-registry.test.js` 6 个场景 — 完整链路 register → syncAdapter → fixture HTTP → raw_events 归档 → normalize → partition → vault put → watermark 推进 → 审计日志 + 幂等 re-sync + 部分 vendor 失败 + 零会话 no-op + audit.sync.ok 落库。
+  - `__tests__/e2e/ai-chat-cross-source-journey.test.js` 3 个场景 — TimelineSkill 编织 DeepSeek + Kimi 事件按时序 / RelationsSkill 聚合 AI-agent 互动 / cookie-expired sentinel 不中断 journey。
+- **Hub 测试基线**：47/927 → **50/952 全绿**，~38s on dev box。
+- **README 横幅重构**：`README.md:2305` / `README_EN.md:2040` 卡在 v5.0.3.48 的 25 版本旧"⭐ 当前版本"横幅改成"⭐ 历史快照"+ 3 行指针指向文件顶部真的当前状态；8 个 badge SVGs 刷到 v5.0.3.73 / CLI 0.162.9。横幅正文保留作历史归档（下方 `Latest Update` 系列本就是按时间倒序的 release notes）。
+- **docs-site PDH 页**：测试基线行 47/927 → 50/952 + "Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix" 明记，已部署到 `docs.chainlesschain.com`。
+- **版本面**：productVersion v5.0.3.73→v5.0.3.74 / desktop-app-vue 5.0.3-alpha.73→.74 / android versionCode 503073→503074 / iOS CFBundleVersion 73→74 / CLI 0.162.10→0.162.11（避免 `publish-cli` 因同版本退出）。
+
 ## [v5.0.3.73 — PDH 收口 test sweep（集成 + E2E + 2 真 bug + 4 站 docs 刷新）] - 2026-05-20
 
 > Personal Data Hub 13-phase burst 落地后的质量与文档收口，2 commits（`cbfab26e1` 测试+bug / `69de3ffc4` docs），无新功能。47 test files / 927 tests 全绿。
