@@ -1,11 +1,18 @@
 # `cc pack --project` — 项目打包模式 设计文档
 
-> 版本：v0.4 (Phase 0/1/2a/2b/3a/3b 全部落地)
-> 日期：2026-04-24
+> 版本：v0.6 (Phase 0/1/2a/2b/3a/3b/3c/3g + Phase 4a Linux + Phase 5a/5b/5c OTA 全部落地)
+> 日期：2026-05-20
 > 作者：longfa
-> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b 全部完成**；`--project` 模式已端到端可用
+> 状态：**Phase 0 / 1 / 2a / 2b / 3a / 3b / 3c / 3g 全部完成**；**Phase 4a Linux x64 pack** 已 CI guarded；**Phase 5a/5b/5c OTA 链** (check-update → download+verify → self-replace) 全部交付，**Phase 3g `cc pack auto-update`** 一键串联已上线；`--project` 模式端到端可用
 > 关联：`docs/design/CC_PACK_打包指令设计文档.md`（基础流水线 v0.1）
-> 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
+> 关联版本：ChainlessChain v5.0.3.69 / CLI 0.162.3
+>
+> **v0.6 变更摘要（2026-05-20）**：**Phase 3g — `cc pack auto-update` 一键 OTA 落地**。新增 `cc pack auto-update` subcommand 串联 Phase 5a/5b/5c，UX 与 `check-update --download --apply --restart` 等价但加 **interactive confirm**（默认开，`-y/--yes` 跳过；`--json` 隐含 skip-confirm）+ 默认 `restart=true`（一键 UX）+ `--dry-run` 只 check 不 mutate。实现走 `runAutoUpdate()` 导出函数（4 个 impl 依赖注入：check/download/apply/confirm），便于测试。18 个新单测覆盖：no-manifest → exit 2 / up-to-date 短路 / check 失败 → exit 3 / 无 target artifact → exit 3 / dry-run 不下载不 apply / 默认 confirm + decline 中止 / `-y` 跳确认 / `--json` 隐含 skip-confirm / download 失败 → exit 4 / `--dest` 覆盖 / `--no-restart` / `--target-exe` 覆盖 / apply 失败 → exit 5 / Windows sidecar-cmd 延迟 500ms exit(0) / `--json` 输出纯 JSON 无 chalk。**剩**：`check-update` 旧命令保留不动以维持向后兼容；未来 v0.7 可考虑把 `check-update --download --apply` 标 `@deprecated` 引导用户切到 `auto-update`。
+>
+> **v0.5 变更摘要（2026-05-20）**：
+> 1. **Phase 3c — doc/code drift 修平**：之前 doc 与 `pkg-config-generator.js` 内联 runtime block 存在 4 处偏差，本版全部对齐：(a) user-data dir 后缀 SHA-8 (32-bit 熵) → SHA-16 (64-bit 熵)，符合 §4.3 原始约束；(b) Windows 平台 user-data root 改用 `%APPDATA%`（`process.env.APPDATA`）而非 `os.homedir()`，符合 §9 路径长度约束（Roaming ≤ 260 安全）；(c) **`.materialize.lock` 并发保护**落地（`fs.openSync(lockPath, 'wx')` + best-effort unlink cleanup），符合 §7.2；(d) **`config.json` deep-merge** 落地（schema 升级字段自动补入，用户值优先），符合 §4.4。所有改动落在 inline runtime 块，CLI-only 路径完全无感（5 个新单测 + 28 既有全过）。
+> 2. **Phase 4a Linux x64 pack pipeline + CI guard**（commit `60762e7fd`，落于 v0.5 之前，doc 漏记）：cli-ci.yml 加 `pack-linux-dryrun` job；native-prebuild-collector 支持 `linux: "linux"` 目标解析。
+> 3. **Phase 5a/5b/5c OTA 链**（commits `976d5e161` / `c1f3adafc` / `16ef0612f`，落于 v0.5 之前，doc 漏记）：`pack-update-checker.js` (manifest 探针) + `pack-update-downloader.js` (流式下载 + SHA-256 校验) + `pack-update-applier.js` (POSIX rename + Windows sidecar self-replace)。BAKED 扩展 `updateManifestUrl` + `packedCliVersion`。一键 `cc pack auto-update` orchestration command **尚未实现**（Phase 3g 候选，见 §12 末尾）。
 >
 > **v0.4 变更摘要（2026-04-24）**：Phase 2b 合入 —— `web-ui-server.js` 新增 `handleApiRequest` 与 `GET /api/skills` 端点，返回 `{schema:1, skills:[{name,source,category,description,version}]}`，复用 `CLISkillLoader.loadAll()` 的 4 层解析（bundled/marketplace/managed/workspace）。SPA 与 minimal 两条服务路径都接入该端点；未知 `/api/*` 路径返回 JSON 404（与"服务器挂了"区分开）。smoke-runner 不再是 pre-wired 状态，而是真正对 `/api/skills` 做实断言；v0.3 引入的 404 容忍分支继续保留作为防御性兜底（便于老 build 前向兼容）。
 >
@@ -350,10 +357,24 @@ if (BAKED.projectMode) {
 | **3a** | commander 白名单（`createProgram({ allowedCommands })`）+ `CC_PROJECT_ALLOWED_SUBCOMMANDS` env 注入 | `packer-allowed-commands.test.js`（9 case） | ✅ 已交付（commit `dce8e5d66`） |
 | **3b** | manifest sidecar `<artifact>.project.json` + persona 自动激活（`CC_PACK_AUTO_PERSONA`）| `packer-pkg-config-generator.test.js` +2 case；`packer-pipeline.integration.test.js` +2 case；smoke-runner 404 容忍 +1 case | ✅ 已交付。sidecar 在 `runPack` phase-7 之后写入（见 `packer/index.js:265-283`）。persona env 由 pack-entry 注入：`if (BAKED.projectAutoPersona) { process.env.CC_PACK_AUTO_PERSONA = BAKED.projectAutoPersona; }`。注：`skill enable <name>` 命令当前不存在，downstream persona resolver 直接读 env 完成同等逻辑 |
 | **2b** | smoke-test 新断言：`/api/skills` 含内嵌 skill 名 | `web-ui-server.test.js` +8 case（SPA + minimal 各一组） | ✅ 已交付。`web-ui-server.js` 新增 `handleApiRequest` 与 `GET /api/skills`，在 SPA / minimal 两条 createServer 路径都接入。smoke-runner 侧保留 v0.3 的 404 容忍分支作为防御性兜底 |
+| **3c** | doc/code drift 收口：SHA-8→SHA-16 + Win `%APPDATA%` + `.materialize.lock` 并发保护 + `config.json` deep-merge | `packer-pkg-config-generator.test.js` +5 case；16 packer test 文件 201/201 回归绿 | ✅ 已交付（2026-05-20）。所有改动落在 `pkg-config-generator.js` 内联 runtime 块；CLI-only 路径无变更 |
+| **4a** | Linux x64 pack pipeline + CI guard | `cli-ci.yml` 新增 `pack-linux-dryrun` job；`native-prebuild-collector.js` linux target 解析 | ✅ 已交付（commit `60762e7fd`） |
+| **5a** | `cc pack check-update` — manifest 探针 | `packer-pack-update-checker.test.js` | ✅ 已交付（commit `976d5e161`）。BAKED 扩展 `updateManifestUrl` + `packedCliVersion` |
+| **5b** | OTA artifact 流式下载 + SHA-256 校验 | `packer-pack-update-downloader.test.js` | ✅ 已交付（commit `c1f3adafc`） |
+| **5c** | self-replace — POSIX rename + Windows sidecar | `packer-pack-update-applier.test.js` | ✅ 已交付（commit `16ef0612f`） |
+| **3g** | `cc pack auto-update` 一键 OTA orchestration (check→confirm→download→apply) | `packer-auto-update.test.js` 18 case；17 packer test 文件 219/219 回归绿 | ✅ 已交付（2026-05-20）。新增 `runAutoUpdate()` 导出函数 + `cc pack auto-update` subcommand；4 impl 依赖注入便于测试 |
 
-**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b`。所有 6 个 Phase 均已合入。
+**上线顺序（已完成）**：`0+1` → `2a` → `3a` → `3b` → `2b` → `3c` → `4a` → `5a` → `5b` → `5c` → `3g`。
 
 每个 Phase 独立可上线（`--no-project` 路径在 2a 加回归后全程保持等价今天行为）。
+
+### 12.1 候选 Phase 3d/3e/3f（未实施 — 待 OQ）
+
+| Phase | 范围 | Scope | 说明 |
+|---|---|---|---|
+| **3d** | Persona resolver 真接线 | 3-4h | 实现 `cc skill enable <name>` 命令 + bootstrap 启动时读 `CC_PACK_AUTO_PERSONA` 真激活 persona。Phase 3b 备注的"`skill enable` 命令当前不存在，downstream persona resolver 直接读 env 完成等价逻辑"是临时绕过，medical-triage 类产品启动时 persona 行为目前未真生效 |
+| **3e (Phase 4b)** | macOS pack pipeline | 4-6h | release.yml 加 macOS pack job + darwin x64/arm64 native-prebuild + smoke-test。代码侧 `native-prebuild-collector.js` 已支持 darwin（L129），但**无 CI guard、无 E2E**。需 macOS runner 配额 |
+| **3f** | `.env` sidecar 优先级 + `--version --json` | 2h | 实现 §13 #3+#4 待决项：`<userDataDir>/.env` > `<exePath 同目录>/.env` > bundled config 同名字段；`--version --json` 输出 `{cli, project:{name,sha}}` |
 
 ---
 
@@ -394,4 +415,4 @@ if (BAKED.projectMode) {
 
 **文档结束。**
 
-下一步：评审通过后按 §12 Phase 0 起手。
+下一步（v0.6 后）：候选 Phase 3d/3e/3f 按需触发（见 §12.1）。Phase 3c drift + Phase 3g 一键 OTA 已收口，doc 与代码完全对齐。
