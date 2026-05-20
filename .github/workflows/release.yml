@@ -1353,6 +1353,62 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: "Publish @chainlesschain/core-mtc"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-mtc
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-mtc version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-multisig"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/core-multisig
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-multisig version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/session-core"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/session-core
+        run: |
+          CURRENT=$(npm view @chainlesschain/session-core version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/personal-data-hub"
+        if: needs.publish-cli-precheck.outputs.already_published != 'true'
+        working-directory: packages/personal-data-hub
+        run: |
+          CURRENT=$(npm view @chainlesschain/personal-data-hub version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" = "$PKG_VER" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Confirm CLI version matches resolved version
         # No-op safety net: VERSION already comes from packages/cli/package.json
         # in publish-cli-precheck, so this `npm version --allow-same-version`
