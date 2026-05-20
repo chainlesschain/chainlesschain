@@ -8,14 +8,28 @@ import org.junit.Test
 class SeedRegistryTest {
 
     @Test
-    fun `seed has 23 entries matching M1 inventory`() {
+    fun `seed has 24 entries matching M1 inventory + Phase 14 hub`() {
         assertEquals(SeedRegistry.EXPECTED_FILE_COUNT, SeedRegistry.SKILLS.size)
     }
 
     @Test
-    fun `seed total methodCount equals 795`() {
+    fun `seed total methodCount equals 816`() {
         val total = SeedRegistry.SKILLS.sumOf { it.methodCount }
         assertEquals(SeedRegistry.EXPECTED_METHOD_COUNT, total)
+    }
+
+    @Test
+    fun `personal-data-hub entry is present with 21 methods`() {
+        val hub = SeedRegistry.SKILLS.firstOrNull { it.namespace == "personal-data-hub" }
+        assertNotNull("Phase 14 personal-data-hub seed entry must exist", hub)
+        assertEquals("Hub method count must match desktop 21 IPC topics",
+            21, hub!!.methodCount)
+        assertEquals("Hub methods list must enumerate all 21 method names",
+            21, hub.methods.size)
+        assertTrue("ask method must be present",
+            hub.methods.any { it.name == "ask" })
+        assertTrue("syncAdapterStream method must be present",
+            hub.methods.any { it.name == "syncAdapterStream" })
     }
 
     @Test

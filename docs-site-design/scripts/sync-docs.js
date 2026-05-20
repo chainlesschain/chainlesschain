@@ -78,6 +78,12 @@ const ROOT_FILE_MAP = {
   "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
   "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
   "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
+  "Adapter_System_Data.md": "Adapter_System_Data.md",
+  "Adapter_Shopping_Cookie.md": "Adapter_Shopping_Cookie.md",
+  "Adapter_Travel_LBS.md": "Adapter_Travel_LBS.md",
+  "Adapter_Social_Messaging.md": "Adapter_Social_Messaging.md",
+  "Personal_Data_Hub_Python_Sidecar.md": "Personal_Data_Hub_Python_Sidecar.md",
+  "Personal_Data_Hub_sjqz_Comparison.md": "Personal_Data_Hub_sjqz_Comparison.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名
