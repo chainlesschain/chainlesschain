@@ -50,6 +50,10 @@ public final class RemoteDependencies: ObservableObject {
     public let aiChat: AIChatCommands
     public let aiChatDispatcher: AIChatEventDispatcher
 
+    // Phase 14.2.5 / 14.3.2 — Personal Data Hub (mobile-native entry)
+    public let hub: PersonalDataHubCommands
+    public let hubSyncDispatcher: HubSyncEventDispatcher
+
     // Phase 6.1B1 第 1 批 100% wired skill（typed RPC，无 push event 子流）
     public let input: InputCommands
     public let display: DisplayCommands
@@ -171,6 +175,11 @@ public final class RemoteDependencies: ObservableObject {
         var aiLocal: AsyncStream<String>.Continuation!
         let aiChatEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(512)) { c in aiLocal = c }
         let aiChatEventsContinuation = aiLocal!
+        // Phase 14.3.2 — 第 4 子流 hubSync (personal-data-hub.sync.progress 路由)。
+        // buffer 256 — sync events 频率远低于 chat token，无需 512。
+        var hubLocal: AsyncStream<String>.Continuation!
+        let hubSyncEventsStream = AsyncStream<String>(bufferingPolicy: .bufferingNewest(256)) { c in hubLocal = c }
+        let hubSyncEventsContinuation = hubLocal!
 
         // Phase 3.3 refactor: terminalRpc 改用 commandClient.events 流（Phase 4.4
         // 起改用 fan-out 后的 terminalEventsStream，语义不变）
@@ -216,6 +225,12 @@ public final class RemoteDependencies: ObservableObject {
         self.aiChat = AIChatCommands(client: cmdClient)
         self.aiChatDispatcher = AIChatEventDispatcher(
             eventStream: aiChatEventsStream
+        )
+
+        // Phase 14.2.5 / 14.3.2 — PersonalDataHubCommands + HubSyncEventDispatcher
+        self.hub = PersonalDataHubCommands(client: cmdClient)
+        self.hubSyncDispatcher = HubSyncEventDispatcher(
+            eventStream: hubSyncEventsStream
         )
 
         // Phase 6.1B1: 第 1 批 5 个 100% wired skill（Coverage doc §1.4：
@@ -306,10 +321,12 @@ public final class RemoteDependencies: ObservableObject {
                 terminalEventsContinuation.yield(raw)
                 notificationEventsContinuation.yield(raw)
                 aiChatEventsContinuation.yield(raw)
+                hubSyncEventsContinuation.yield(raw)
             }
             terminalEventsContinuation.finish()
             notificationEventsContinuation.finish()
             aiChatEventsContinuation.finish()
+            hubSyncEventsContinuation.finish()
         }
 
         // 起 forwarding task — SignalClient.forwardedMessages → 路由到 webRTC
@@ -325,18 +342,20 @@ public final class RemoteDependencies: ObservableObject {
         // 启动 commandClient + terminalRpc + offlineDrainer + notification/aiChat dispatchers
         let dispatcher = self.notificationDispatcher
         let aiDispatcher = self.aiChatDispatcher
+        let hubDispatcher = self.hubSyncDispatcher
         Task {
             await cmdClient.start()
             await self.terminalRpc.start()
             self.offlineDrainer.start()
             _ = await self.skillRegistry.initialize()
-            // Phase 4.4/5.6 — dispatchers 启动需 @MainActor (它们是 @MainActor class);
+            // Phase 4.4/5.6/14.3.2 — dispatchers 启动需 @MainActor;
             // notification: attach PushNotificationManager.shared 后 start
-            // aiChat: 无外部 push target，直接 start
+            // aiChat / hubSync: 无外部 push target，直接 start
             await MainActor.run {
                 dispatcher.attach(pushTarget: PushNotificationManager.shared)
                 dispatcher.start()
                 aiDispatcher.start()
+                hubDispatcher.start()
             }
         }
     }

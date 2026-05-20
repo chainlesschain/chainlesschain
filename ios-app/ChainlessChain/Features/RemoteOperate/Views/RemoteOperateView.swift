@@ -45,6 +45,7 @@ struct RemoteOperateView: View {
         case desktop        // Phase 6.6 — 远程桌面 (实时画面 + 触控板 + 虚拟键盘)
         case knowledge      // Phase 6.3 — 远程知识库 (39 method — base CRUD 9 + new 30: folders/tags/versions/star-pin/archive/import-export)
         case aiExtended     // Phase 6.4 — AI 扩展 (28 method — v0.1 25: templates/code/RAG/multimodal/agents + v0.3 Agent streaming 3)
+        case personalDataHub // Phase 14.2 — 个人数据中台 (22 method: ask 自然语言提问 / 健康卡 / Adapter 同步 + 流式进度 / 审计回查)
 
         public var id: String { rawValue }
 
@@ -65,6 +66,7 @@ struct RemoteOperateView: View {
             case .desktop:      return "桌面"
             case .knowledge:    return "知识"
             case .aiExtended:   return "AI+"
+            case .personalDataHub: return "中台"
             }
         }
 
@@ -85,6 +87,7 @@ struct RemoteOperateView: View {
             case .desktop:      return "display.2"
             case .knowledge:    return "books.vertical"
             case .aiExtended:   return "sparkles"
+            case .personalDataHub: return "internaldrive"
             }
         }
     }
@@ -131,6 +134,8 @@ struct RemoteOperateView: View {
                     KnowledgeView(pcPeerId: pcPeerId)
                 case .aiExtended:
                     AIExtendedView(pcPeerId: pcPeerId)
+                case .personalDataHub:
+                    PersonalDataHubView(pcPeerId: pcPeerId)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
