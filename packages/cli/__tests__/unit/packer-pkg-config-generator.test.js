@@ -399,4 +399,109 @@ describe("generatePkgConfig", () => {
       expect(entry).toContain("copyRecursiveMerge(sp, dp, rootSrc)");
     });
   });
+
+  // ── Phase 3f: .env sidecar + --version --json (2026-05-20) ────────────────
+  describe("Phase 3f — .env sidecar", () => {
+    it("entry includes _loadDotenv helper", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain("function _loadDotenv(filePath)");
+      // BOM strip + comment skip + KEY=VALUE parsing
+      expect(entry).toContain("replace(/^\\uFEFF/");
+      expect(entry).toContain("line.startsWith('#')");
+      expect(entry).toContain("line.indexOf('=')");
+    });
+
+    it("entry strips matching single/double quotes from .env values", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Both quote styles, length >= 2 guard so `'` alone doesn't slice to ''
+      expect(entry).toContain("val.length >= 2");
+      expect(entry).toContain("val.startsWith('\"')");
+      expect(entry).toContain('val.startsWith("\'")');
+      expect(entry).toContain("val.slice(1, -1)");
+    });
+
+    it("entry applies .env in priority order (exePath then userDataDir)", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // exePath/.env reads from path.dirname(process.execPath)
+      expect(entry).toContain(
+        "_loadDotenv(path.join(path.dirname(process.execPath), '.env'))",
+      );
+      // userDataDir/.env keyed off CC_PROJECT_ROOT (set in project mode block)
+      expect(entry).toContain("process.env.CC_PROJECT_ROOT");
+      expect(entry).toContain(
+        "_loadDotenv(path.join(process.env.CC_PROJECT_ROOT, '.env'))",
+      );
+    });
+
+    it("entry does not overwrite explicit shell-set env vars", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Snapshot original keys; gate every assignment on !_origEnvKeys.has(k)
+      expect(entry).toContain(
+        "const _origEnvKeys = new Set(Object.keys(process.env))",
+      );
+      expect(entry).toContain("if (!_origEnvKeys.has(_k)) process.env[_k]");
+    });
+
+    it("entry applies userDataDir .env after exePath so userDataDir wins", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // The two for-loops must be ordered: _exeEnv first, _userEnv second
+      const exeIdx = entry.indexOf("Object.keys(_exeEnv)");
+      const userIdx = entry.indexOf("Object.keys(_userEnv)");
+      expect(exeIdx).toBeGreaterThan(0);
+      expect(userIdx).toBeGreaterThan(exeIdx);
+    });
+  });
+
+  describe("Phase 3f — --version --json short-circuit", () => {
+    it("entry intercepts --version --json before commander.parse", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Combo guard: BOTH --version and --json must be set
+      expect(entry).toContain(
+        "_hasFlag('-v', '--version') && _hasFlag('--json')",
+      );
+      // Emit cli version field at minimum
+      expect(entry).toContain("cli: BAKED.packedCliVersion");
+      // Exit cleanly so commander doesn't run
+      expect(entry).toContain("process.exit(0)");
+    });
+
+    it("entry --version --json includes project block only in project mode", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Guarded by BAKED.projectMode — CLI-only artifacts omit the project key
+      expect(entry).toContain("if (BAKED.projectMode) {");
+      expect(entry).toContain(
+        "_vOut.project = { name: BAKED.projectName, sha: BAKED.projectConfigSha }",
+      );
+    });
+
+    it("entry --version --json short-circuit runs after .env load", () => {
+      // So that BAKED.packedCliVersion can be overridden via env if needed.
+      // (Currently not — but the ordering is deliberate to keep the option
+      // open without another runtime-block migration.)
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      const envIdx = entry.indexOf("Object.keys(_userEnv)");
+      const versionIdx = entry.indexOf(
+        "_hasFlag('-v', '--version') && _hasFlag('--json')",
+      );
+      expect(envIdx).toBeGreaterThan(0);
+      expect(versionIdx).toBeGreaterThan(envIdx);
+    });
+
+    it("entry plain --version (without --json) is unchanged — still hits commander", () => {
+      const r = callGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // The _shortCircuits flag still detects -v/-V/--version + -h/--help,
+      // and the if(!_hasSub && !_shortCircuits) gate is preserved.
+      expect(entry).toContain("_hasFlag('-v', '--version', '-h', '--help')");
+      expect(entry).toContain("if (!_hasSub && !_shortCircuits)");
+    });
+  });
 });
