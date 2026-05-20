@@ -347,7 +347,14 @@ jobs:
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
-          local-cache: true
+          # local-cache: false — restoring NDK from cache.tzst via `tar -xf`
+          # breaks symlinks (clang -> clang-19), causing the API-versioned
+          # wrapper script (aarch64-linux-android30-clang) to fail at line 4
+          # with "clang: No such file or directory" (exit 127). Verified
+          # run 26150064142 (cache hit fail) vs 26148746496 (fresh download
+          # success). Fresh NDK download is ~30s; acceptable cost. Bug:
+          # https://github.com/nttld/setup-ndk/issues (symlink preservation).
+          local-cache: false
 
       - name: Pack chainlesschain CLI snapshot (with prod deps)
         if: matrix.abi == 'aarch64'
