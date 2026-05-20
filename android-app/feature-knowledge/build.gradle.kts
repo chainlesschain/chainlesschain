@@ -93,5 +93,11 @@ dependencies {
     // unresolved after `--stop && clean` with only the transitive path).
     // Declare explicitly here to make the androidTest classpath self-sufficient.
     androidTestImplementation("androidx.compose.material:material-icons-extended")
+    // Hilt deps for KnowledgeE2ETest @HiltAndroidTest / HiltAndroidRule
+    // compile-time. Runtime Hilt setup (HiltTestApplication via custom
+    // AndroidJUnitRunner) is NOT wired — same caveat as feature-ai's
+    // AIConversationE2ETest and core-e2ee's E2EEIntegrationTest.
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kspAndroidTest("com.google.dagger:hilt-android-compiler:2.50")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
