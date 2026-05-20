@@ -10,24 +10,25 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  _DISPATCH,
-  dispatchPersonalDataHubMethod,
-} from "../route-mobile.js";
+import { _DISPATCH, dispatchPersonalDataHubMethod } from "../route-mobile.js";
 
 // Build a minimal fake hub matching the surface route-mobile expects. Each
 // stub records its last call so tests can assert params were forwarded.
 function makeFakeHub(overrides = {}) {
   const calls = {};
   const fake = {
-    engine: { ask: async (q, opts) => ({ answer: `A:${q}`, opts, isLocal: true }) },
+    engine: {
+      ask: async (q, opts) => ({ answer: `A:${q}`, opts, isLocal: true }),
+    },
     vault: {
       db: {},
       schemaVersion: () => 7,
       stats: () => ({ events: 100, persons: 10 }),
       queryEvents: (filter) => {
         calls.queryEvents = filter;
-        return [{ id: "e1", subtype: "order", source: "taobao", ingestedAt: 1000 }];
+        return [
+          { id: "e1", subtype: "order", source: "taobao", ingestedAt: 1000 },
+        ];
       },
       queryAudit: (filter) => {
         calls.queryAudit = filter;
@@ -42,7 +43,10 @@ function makeFakeHub(overrides = {}) {
       },
       syncAll: async (options) => {
         calls.syncAll = { options };
-        return [{ adapter: "a", ingested: 1 }, { adapter: "b", ingested: 2 }];
+        return [
+          { adapter: "a", ingested: 1 },
+          { adapter: "b", ingested: 2 },
+        ];
       },
       unregister: (name) => {
         calls.unregister = name;
@@ -57,7 +61,9 @@ function makeFakeHub(overrides = {}) {
       calls.registerMock = { name, count, seed };
       return { name, version: "1.0", capabilities: [] };
     },
-    eventDetail: (id) => ({ event: { id, subtype: "order", source: "x", ingestedAt: 1 } }),
+    eventDetail: (id) => ({
+      event: { id, subtype: "order", source: "x", ingestedAt: 1 },
+    }),
     testEmailAuth: async ({ account }) => {
       calls.testEmailAuth = account;
       return { ok: true };
@@ -70,7 +76,9 @@ function makeFakeHub(overrides = {}) {
       calls.unregisterEmail = email;
       return { ok: true, removed: email };
     },
-    listEmailAccounts: () => [{ email: "me@qq.com", provider: "qq", registeredAt: 1 }],
+    listEmailAccounts: () => [
+      { email: "me@qq.com", provider: "qq", registeredAt: 1 },
+    ],
     registerAlipayAdapter: async ({ account, opts }) => {
       calls.registerAlipay = { account, opts };
       return { name: "alipay@" + account.email, version: "1.0" };
@@ -95,7 +103,10 @@ function makeFakeHub(overrides = {}) {
 describe("route-mobile DISPATCH table", () => {
   it("ask propagates question + options and surfaces engine missing", async () => {
     const hub = makeFakeHub();
-    const r = await _DISPATCH.ask(hub, { question: "天气", options: { topK: 3 } });
+    const r = await _DISPATCH.ask(hub, {
+      question: "天气",
+      options: { topK: 3 },
+    });
     expect(r.answer).toBe("A:天气");
     expect(r.opts.topK).toBe(3);
 
@@ -139,7 +150,10 @@ describe("route-mobile DISPATCH table", () => {
 
   it("sync-adapter forwards name + options", async () => {
     const hub = makeFakeHub();
-    await _DISPATCH["sync-adapter"](hub, { name: "email-imap", options: { since: 100 } });
+    await _DISPATCH["sync-adapter"](hub, {
+      name: "email-imap",
+      options: { since: 100 },
+    });
     expect(hub._calls.syncAdapter).toEqual({
       name: "email-imap",
       options: { since: 100 },
@@ -177,7 +191,10 @@ describe("route-mobile DISPATCH table", () => {
 
   it("recent-audit wraps in AuditRowsResponse envelope", async () => {
     const hub = makeFakeHub();
-    const r = await _DISPATCH["recent-audit"](hub, { action: "ingest", limit: 20 });
+    const r = await _DISPATCH["recent-audit"](hub, {
+      action: "ingest",
+      limit: 20,
+    });
     expect(r).toHaveProperty("rows");
     expect(r.rows).toHaveLength(1);
     expect(hub._calls.queryAudit.action).toBe("ingest");
