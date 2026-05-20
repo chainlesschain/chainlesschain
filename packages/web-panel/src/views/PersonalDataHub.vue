@@ -142,6 +142,36 @@
       </div>
     </a-card>
 
+    <!-- Phase 11 — Analysis Skills cards -->
+    <a-card style="margin-bottom: 16px;">
+      <template #title>
+        <a-space><BulbOutlined /><span>分析 skill (Phase 11)</span></a-space>
+      </template>
+      <template #extra>
+        <a-tag color="purple">5 内置</a-tag>
+      </template>
+      <a-row :gutter="[12, 12]">
+        <a-col :xs="24" :sm="12" :md="8" v-for="s in analysisSkills" :key="s.name">
+          <a-card size="small" hoverable @click="runSkill(s.name)">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <component :is="s.icon" style="font-size: 18px; color: #722ed1;" />
+              <strong>{{ s.label }}</strong>
+            </div>
+            <div class="hint" style="margin-top: 4px;">{{ s.description }}</div>
+          </a-card>
+        </a-col>
+      </a-row>
+      <div v-if="skillResult" style="margin-top: 16px;">
+        <a-divider plain orientation="left">{{ skillResult.skill }} 结果</a-divider>
+        <a-spin :spinning="loading.skill">
+          <pre class="json-pre" style="max-height: 300px; overflow: auto;">{{ JSON.stringify(skillResult, null, 2) }}</pre>
+          <div v-if="skillResult.llm_commentary || skillResult.llm_narrative" style="margin-top: 8px;">
+            <a-alert type="info" :message="skillResult.llm_commentary || skillResult.llm_narrative" />
+          </div>
+        </a-spin>
+      </div>
+    </a-card>
+
     <!-- Adapters -->
     <a-card style="margin-bottom: 16px;">
       <template #title>
@@ -608,6 +638,7 @@ import { message } from 'ant-design-vue'
 import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
   AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined, LinkOutlined,
+  BulbOutlined, DollarOutlined, TeamOutlined, EnvironmentOutlined, HeartOutlined, ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
 
@@ -643,6 +674,16 @@ const emailTestResult = ref(null)
 const eventDetailOpen = ref(false)
 const eventDetail = ref(null)
 const emailAccounts = ref([])
+
+// Phase 11 — analysis skills state
+const skillResult = ref(null)
+const analysisSkills = [
+  { name: 'analysis.spending', label: '消费分析', icon: DollarOutlined, description: '总支出 / 商家排行 / 月度趋势' },
+  { name: 'analysis.relations', label: '人际关系', icon: TeamOutlined, description: '与每个人的互动频率 / 主动比例' },
+  { name: 'analysis.footprint', label: '足迹', icon: EnvironmentOutlined, description: '常去地点 / 出行模式' },
+  { name: 'analysis.interests', label: '兴趣画像', icon: HeartOutlined, description: '从购买 / 浏览 / 收藏抽兴趣' },
+  { name: 'analysis.timeline', label: '时间线', icon: ClockCircleOutlined, description: '跨源事件串成故事' },
+]
 
 // Phase 8 — EntityResolver review queue state
 const reviewQueueOpen = ref(false)
@@ -683,6 +724,7 @@ const loading = reactive({
   importAlipay: false,
   reviewQueue: false,
   resolverDrain: false,
+  skill: false,
 })
 
 // Table columns
@@ -986,6 +1028,19 @@ async function showEventDetail(eventId) {
 
 // Expose for template-level event handlers (e.g. citation click)
 defineExpose({ showEventDetail })
+
+// Phase 11 — analysis skills handler
+async function runSkill(name) {
+  loading.skill = true
+  skillResult.value = null
+  try {
+    skillResult.value = await hub.runSkill(name, {})
+  } catch (err) {
+    message.error(`${name} 失败: ${err.message}`)
+  } finally {
+    loading.skill = false
+  }
+}
 
 // Phase 8 — EntityResolver UI handlers
 async function loadReviewQueue() {

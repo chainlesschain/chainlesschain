@@ -194,6 +194,14 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
 
   "personal-data-hub.merge-group-members": async (msg) =>
     withHub((hub) => hub.vault.getMergeGroupMembers(msg.personId)),
+
+  // ─── Phase 11 — internal analysis skills ─────────────────────────────
+
+  "personal-data-hub.skills-list": async () =>
+    withHub((hub) => hub.analysisSkillNames || []),
+
+  "personal-data-hub.run-skill": async (msg) =>
+    withHub(async (hub) => await hub.runSkill(msg.name, msg.options || {})),
 };
 
 /**

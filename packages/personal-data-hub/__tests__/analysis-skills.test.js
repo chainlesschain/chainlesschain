@@ -1,0 +1,409 @@
+"use strict";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+const path = require("node:path");
+const fs = require("node:fs");
+const os = require("node:os");
+const { LocalVault } = require("../lib/vault");
+const { generateKeyHex } = require("../lib/key-providers");
+const {
+  AnalysisSkill,
+  SpendingSkill,
+  RelationsSkill,
+  FootprintSkill,
+  InterestsSkill,
+  TimelineSkill,
+  runAnalysisSkill,
+  ANALYSIS_SKILL_NAMES,
+} = require("../lib/analysis-skills");
+
+// ─── Test fixtures ──────────────────────────────────────────────────────
+
+function makeVault() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hub-skill-"));
+  const vault = new LocalVault({ path: path.join(dir, "v.db"), key: generateKeyHex() });
+  vault.open();
+  return { vault, dir };
+}
+
+function cleanup({ vault, dir }) {
+  try { vault.close(); } catch (_e) {}
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) {}
+}
+
+function defaultSource(adapter = "test") {
+  return {
+    adapter, adapterVersion: "0.1",
+    originalId: "tx-" + Math.random().toString(36).slice(2, 10),
+    capturedAt: Date.now(), capturedBy: "api",
+  };
+}
+
+function makePerson(vault, id, names, identifiers = {}, opts = {}) {
+  vault.putPerson({
+    id, type: "person", subtype: opts.subtype || "contact",
+    names, identifiers, ingestedAt: Date.now(),
+    source: defaultSource(opts.adapter || "test"),
+  });
+}
+
+function makePayment(vault, opts) {
+  const participants = [];
+  if (opts.counterpartyId) participants.push(opts.counterpartyId);
+  participants.push("person-self");
+  vault.putEvent({
+    id: opts.id,
+    type: "event",
+    subtype: opts.subtype || "payment",
+    occurredAt: opts.occurredAt,
+    actor: opts.actor || "person-self",
+    participants,
+    content: {
+      title: opts.title || "(no title)",
+      amount: { value: opts.amount, currency: "CNY", direction: opts.direction || "out" },
+    },
+    ingestedAt: Date.now(),
+    source: defaultSource(opts.adapter || "test"),
+    extra: {
+      counterparty: opts.counterpartyName,
+      ...(opts.category ? { category: opts.category } : {}),
+      ...(opts.extra || {}),
+    },
+  });
+}
+
+function ts(year, month, day) {
+  return new Date(year, month - 1, day).getTime();
+}
+
+// ─── AnalysisSkill base ─────────────────────────────────────────────────
+
+describe("AnalysisSkill base", () => {
+  it("requires vault", () => {
+    expect(() => new AnalysisSkill()).toThrow();
+    expect(() => new AnalysisSkill({})).toThrow(/vault/);
+  });
+
+  it("resolveTimeWindow handles since/until pair", () => {
+    const skill = new AnalysisSkill({ vault: { dummy: true } });
+    const r = skill.resolveTimeWindow({ since: 1000, until: 2000 });
+    expect(r.since).toBe(1000);
+    expect(r.until).toBe(2000);
+  });
+
+  it("resolveTimeWindow handles sinceDays", () => {
+    const skill = new AnalysisSkill({ vault: { dummy: true } });
+    const r = skill.resolveTimeWindow({ sinceDays: 7 });
+    const days7Ms = 7 * 24 * 3600_000;
+    expect(Date.now() - r.since).toBeGreaterThanOrEqual(days7Ms - 1000);
+    expect(Date.now() - r.since).toBeLessThanOrEqual(days7Ms + 1000);
+  });
+
+  it("resolveTimeWindow returns null window for all-time", () => {
+    const skill = new AnalysisSkill({ vault: { dummy: true } });
+    expect(skill.resolveTimeWindow({}).since).toBeNull();
+  });
+
+  it("ANALYSIS_SKILL_NAMES lists exactly 5", () => {
+    expect(ANALYSIS_SKILL_NAMES).toHaveLength(5);
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.spending");
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.relations");
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.footprint");
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.interests");
+    expect(ANALYSIS_SKILL_NAMES).toContain("analysis.timeline");
+  });
+
+  it("base.run() throws (subclasses must override)", async () => {
+    const skill = new AnalysisSkill({ vault: { dummy: true } });
+    await expect(skill.run()).rejects.toThrow();
+  });
+});
+
+// ─── SpendingSkill ───────────────────────────────────────────────────────
+
+describe("SpendingSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  function setupAlipayPayments() {
+    makePerson(rig.vault, "p-meituan", ["美团"], {}, { subtype: "merchant" });
+    makePerson(rig.vault, "p-tb", ["淘宝"], {}, { subtype: "merchant" });
+    makePerson(rig.vault, "p-jd", ["京东"], {}, { subtype: "merchant" });
+    makePayment(rig.vault, { id: "evt-1", occurredAt: ts(2026, 4, 1), counterpartyName: "美团", counterpartyId: "p-meituan", amount: 38.50, adapter: "alipay", title: "美团外卖" });
+    makePayment(rig.vault, { id: "evt-2", occurredAt: ts(2026, 4, 15), counterpartyName: "美团", counterpartyId: "p-meituan", amount: 25.00, adapter: "alipay", title: "美团外卖" });
+    makePayment(rig.vault, { id: "evt-3", occurredAt: ts(2026, 4, 20), counterpartyName: "淘宝", counterpartyId: "p-tb", amount: 299.00, adapter: "alipay", title: "运动鞋" });
+    makePayment(rig.vault, { id: "evt-4", occurredAt: ts(2026, 5, 5), counterpartyName: "京东", counterpartyId: "p-jd", amount: 999.00, adapter: "alipay", title: "iPhone case", subtype: "payment" });
+    // Refund
+    makePayment(rig.vault, { id: "evt-5", occurredAt: ts(2026, 4, 22), counterpartyName: "淘宝", counterpartyId: "p-tb", amount: 50.00, direction: "in", subtype: "refund", title: "淘宝退款", adapter: "alipay" });
+  }
+
+  it("aggregates total spend across all events", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.summary.totalSpend).toBeCloseTo(38.5 + 25 + 299 + 999, 2);
+    expect(r.summary.totalIncome).toBe(50);
+    expect(r.summary.eventCount).toBe(5);
+    expect(r.summary.currency).toBe("CNY");
+  });
+
+  it("breakdown by merchant ranks top spenders", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({ dimension: "merchant" });
+    expect(r.breakdown[0].key).toBe("京东");
+    expect(r.breakdown[0].totalSpend).toBe(999);
+    expect(r.breakdown[1].key).toBe("淘宝");
+    expect(r.breakdown[1].totalSpend).toBe(299);
+  });
+
+  it("merchantFilter scopes to subset", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({ merchantFilter: "美团" });
+    expect(r.summary.eventCount).toBe(2);
+    expect(r.summary.totalSpend).toBeCloseTo(63.5, 2);
+  });
+
+  it("time window filters events", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({ since: ts(2026, 4, 1), until: ts(2026, 5, 1) });
+    // Excludes evt-4 (May)
+    expect(r.summary.eventCount).toBe(4);
+  });
+
+  it("trend returns monthly buckets", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.trend.length).toBeGreaterThanOrEqual(2);
+    expect(r.trend[0].monthKey).toBe("2026-04");
+    expect(r.trend[1].monthKey).toBe("2026-05");
+  });
+
+  it("LLM commentary fires when LLM provided", async () => {
+    setupAlipayPayments();
+    const llm = { isLocal: true, chat: async () => ({ text: "测试 commentary" }) };
+    const skill = new SpendingSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.llm_commentary).toBe("测试 commentary");
+  });
+
+  it("no LLM → commentary is null", async () => {
+    setupAlipayPayments();
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.llm_commentary).toBeNull();
+  });
+
+  it("empty vault → zero summary, no breakdown", async () => {
+    const skill = new SpendingSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.summary.totalSpend).toBe(0);
+    expect(r.breakdown).toEqual([]);
+  });
+
+  it("non-local LLM without acceptNonLocal → commentary suppressed", async () => {
+    setupAlipayPayments();
+    const llm = { isLocal: false, chat: async () => { throw new Error("should not call"); } };
+    const skill = new SpendingSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.llm_commentary).toBeNull();
+  });
+});
+
+// ─── RelationsSkill ──────────────────────────────────────────────────────
+
+describe("RelationsSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  it("single person mode: aggregates interactions with one person", async () => {
+    makePerson(rig.vault, "p-mom", ["妈"]);
+    makePayment(rig.vault, { id: "e1", occurredAt: ts(2026, 4, 1), counterpartyId: "p-mom", counterpartyName: "妈", amount: 500 });
+    makePayment(rig.vault, { id: "e2", occurredAt: ts(2026, 5, 1), counterpartyId: "p-mom", counterpartyName: "妈", amount: 300 });
+    makePayment(rig.vault, { id: "e3", occurredAt: ts(2026, 5, 5), counterpartyId: "p-other", counterpartyName: "其他", amount: 100 });
+
+    const skill = new RelationsSkill({ vault: rig.vault });
+    const r = await skill.run({ personId: "p-mom" });
+    expect(r.mode).toBe("single");
+    expect(r.profile.totalInteractions).toBe(2);
+    expect(r.profile.totalSpend).toBe(800);
+    expect(r.profile.names).toContain("妈");
+  });
+
+  it("ranked mode: returns top counterparties", async () => {
+    makePerson(rig.vault, "p-mom", ["妈"]);
+    makePerson(rig.vault, "p-dad", ["爸"]);
+    makePayment(rig.vault, { id: "e1", occurredAt: ts(2026, 4, 1), counterpartyId: "p-mom", counterpartyName: "妈", amount: 500 });
+    makePayment(rig.vault, { id: "e2", occurredAt: ts(2026, 4, 2), counterpartyId: "p-mom", counterpartyName: "妈", amount: 200 });
+    makePayment(rig.vault, { id: "e3", occurredAt: ts(2026, 4, 3), counterpartyId: "p-dad", counterpartyName: "爸", amount: 100 });
+
+    const skill = new RelationsSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.mode).toBe("ranked");
+    expect(r.ranked.length).toBeGreaterThanOrEqual(2);
+    expect(r.ranked[0].personId).toBe("p-mom");
+    expect(r.ranked[0].totalInteractions).toBe(2);
+  });
+});
+
+// ─── FootprintSkill ──────────────────────────────────────────────────────
+
+describe("FootprintSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  it("returns top places + monthly distribution", async () => {
+    rig.vault.putEvent({
+      id: "trip-1", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 4, 1),
+      actor: "person-self",
+      content: { title: "Beijing trip" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { from: "Shanghai", to: "Beijing" },
+    });
+    rig.vault.putEvent({
+      id: "trip-2", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 4, 15),
+      actor: "person-self",
+      content: { title: "Beijing trip 2" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { from: "Shanghai", to: "Beijing" },
+    });
+    rig.vault.putEvent({
+      id: "trip-3", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 5, 1),
+      actor: "person-self",
+      content: { title: "Hangzhou trip" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { to: "Hangzhou" },
+    });
+
+    const skill = new FootprintSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.summary.totalTrips).toBeGreaterThan(0);
+    expect(r.topPlaces[0].name).toBeDefined();
+    expect(r.monthlyDistribution.length).toBeGreaterThan(0);
+  });
+
+  it("empty vault → zero trips", async () => {
+    const skill = new FootprintSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.summary.totalTrips).toBe(0);
+    expect(r.topPlaces).toEqual([]);
+  });
+});
+
+// ─── InterestsSkill ──────────────────────────────────────────────────────
+
+describe("InterestsSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  it("returns topTopics + topItems (no LLM)", async () => {
+    rig.vault.putTopic({
+      id: "topic-coffee", type: "topic", name: "Coffee",
+      derivedFromEvents: ["evt-1", "evt-2", "evt-3", "evt-4", "evt-5"],
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    rig.vault.putItem({
+      id: "item-iphone", type: "item", subtype: "product",
+      name: "iPhone 17",
+      price: { value: 9999, currency: "CNY" },
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    const skill = new InterestsSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.topTopics.length).toBeGreaterThanOrEqual(1);
+    expect(r.topTopics[0].name).toBe("Coffee");
+    expect(r.topTopics[0].eventCount).toBe(5);
+    expect(r.topItems.length).toBeGreaterThanOrEqual(1);
+    expect(r.topItems[0].name).toBe("iPhone 17");
+    expect(r.llmInterests).toBeNull();
+  });
+
+  it("LLM clustering parses JSON array response", async () => {
+    rig.vault.putTopic({
+      id: "topic-a", type: "topic", name: "Photography",
+      derivedFromEvents: ["evt-1", "evt-2", "evt-3"],
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    const llm = {
+      isLocal: true,
+      chat: async () => ({
+        text: '[{"category":"摄影","evidenceCount":3,"examples":["Photography topic"]}]',
+      }),
+    };
+    const skill = new InterestsSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.llmInterests).toHaveLength(1);
+    expect(r.llmInterests[0].category).toBe("摄影");
+  });
+});
+
+// ─── TimelineSkill ──────────────────────────────────────────────────────
+
+describe("TimelineSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  it("returns chronological entries with snippet + adapter tag", async () => {
+    makePayment(rig.vault, { id: "tl-1", occurredAt: ts(2026, 5, 1), counterpartyName: "美团", amount: 38, adapter: "alipay-bill", title: "外卖" });
+    makePayment(rig.vault, { id: "tl-2", occurredAt: ts(2026, 5, 2), counterpartyName: "淘宝", amount: 199, adapter: "alipay-bill", title: "购物" });
+    const skill = new TimelineSkill({ vault: rig.vault });
+    const r = await skill.run({ since: ts(2026, 4, 1) });
+    expect(r.entries.length).toBe(2);
+    expect(r.entries[0].occurredAt).toBeLessThanOrEqual(r.entries[1].occurredAt); // chronological
+    expect(r.entries[0].adapter).toBe("alipay-bill");
+    expect(r.summary.totalEvents).toBe(2);
+  });
+
+  it("topicFilter narrows events", async () => {
+    makePayment(rig.vault, { id: "tl-1", occurredAt: ts(2026, 5, 1), counterpartyName: "美团", amount: 38, title: "美团外卖订单" });
+    makePayment(rig.vault, { id: "tl-2", occurredAt: ts(2026, 5, 2), counterpartyName: "淘宝", amount: 199, title: "运动鞋" });
+    const skill = new TimelineSkill({ vault: rig.vault });
+    const r = await skill.run({ since: ts(2026, 4, 1), topicFilter: "美团" });
+    expect(r.entries.length).toBe(1);
+    expect(r.entries[0].title).toBe("美团外卖订单");
+  });
+
+  it("LLM narrative fires when entries exist + LLM provided", async () => {
+    makePayment(rig.vault, { id: "tl-1", occurredAt: ts(2026, 5, 1), counterpartyName: "美团", amount: 38, title: "外卖" });
+    const llm = { isLocal: true, chat: async () => ({ text: "你这周点了一次外卖。" }) };
+    const skill = new TimelineSkill({ vault: rig.vault, llm });
+    const r = await skill.run({ since: ts(2026, 4, 1) });
+    expect(r.llm_narrative).toBe("你这周点了一次外卖。");
+  });
+});
+
+// ─── runAnalysisSkill dispatcher ─────────────────────────────────────────
+
+describe("runAnalysisSkill", () => {
+  let rig;
+  beforeEach(() => { rig = makeVault(); });
+  afterEach(() => cleanup(rig));
+
+  it("routes by name", async () => {
+    const r = await runAnalysisSkill({ vault: rig.vault }, "analysis.spending", {});
+    expect(r.skill).toBe("analysis.spending");
+  });
+
+  it("throws on unknown skill", async () => {
+    await expect(runAnalysisSkill({ vault: rig.vault }, "analysis.unknown", {})).rejects.toThrow();
+  });
+
+  it("requires vault in deps", async () => {
+    await expect(runAnalysisSkill({}, "analysis.spending", {})).rejects.toThrow(/vault/);
+  });
+});

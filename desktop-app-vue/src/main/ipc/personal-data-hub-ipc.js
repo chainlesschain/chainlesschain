@@ -300,6 +300,24 @@ function register() {
     }),
   );
 
+  // ─── Phase 11 — internal analysis skills ─────────────────────────────
+
+  ipcMain.handle(
+    `${NS}:skills-list`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return hub.analysisSkillNames || [];
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:run-skill`,
+    safe(async ({ name, options }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.runSkill(name, options || {});
+    }),
+  );
+
   // Phase 5.7 — streaming sync via webContents.send. The caller passes
   // `progressChannel` (e.g. a uuid); we push events to that channel
   // throughout the sync, then return the final report from invoke().
