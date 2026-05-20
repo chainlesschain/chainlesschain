@@ -567,11 +567,11 @@ enum class SkillTab(
     "approvalChannelsForMobile": [
       "marketplace.purchase",
       "did.delegate",
-      "personal-data-hub.registerEmail",       // NEW
-      "personal-data-hub.unregisterEmail",     // NEW
-      "personal-data-hub.registerAlipay",      // NEW
-      "personal-data-hub.unregisterAlipay",    // NEW
-      "personal-data-hub.unregister"           // NEW
+      "personal-data-hub.register-email",      // NEW — kebab-case to match
+      "personal-data-hub.unregister-email",    //       the actual WS dispatch
+      "personal-data-hub.register-alipay",     //       keys in personal-data-
+      "personal-data-hub.unregister-alipay",   //       hub-protocol.js. camel-
+      "personal-data-hub.unregister"           //       Case silently bypasses.
     ]
   }
 }

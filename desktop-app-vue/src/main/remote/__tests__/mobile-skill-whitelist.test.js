@@ -139,3 +139,166 @@ describe("MobileSkillWhitelist", () => {
     expect(wl.isAllowed("ai.chat")).toBe(false);
   });
 });
+
+// Phase 14.1 — Personal Data Hub mobile entry routing
+// See docs/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md §9
+describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
+  const PDH_RECOMMENDED_CONFIG = {
+    enabled: true,
+    exposeRemoteSkills: [
+      "ai.*",
+      "knowledge.*",
+      "personal-data-hub.*",
+      "system.info.*",
+    ],
+    approvalChannelsForMobile: [
+      "personal-data-hub.register-email",
+      "personal-data-hub.unregister-email",
+      "personal-data-hub.register-alipay",
+      "personal-data-hub.unregister-alipay",
+      "personal-data-hub.unregister",
+    ],
+  };
+
+  it("namespace wildcard allows all 21 PDH methods", () => {
+    const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
+    const PDH_METHODS = [
+      "personal-data-hub.ask",
+      "personal-data-hub.stats",
+      "personal-data-hub.health",
+      "personal-data-hub.list-adapters",
+      "personal-data-hub.sync-adapter",
+      "personal-data-hub.sync-all",
+      "personal-data-hub.sync-adapter-stream",
+      "personal-data-hub.query-events",
+      "personal-data-hub.recent-audit",
+      "personal-data-hub.event-detail",
+      "personal-data-hub.register-email",
+      "personal-data-hub.unregister-email",
+      "personal-data-hub.test-email-auth",
+      "personal-data-hub.list-email-accounts",
+      "personal-data-hub.register-alipay",
+      "personal-data-hub.unregister-alipay",
+      "personal-data-hub.import-alipay-bill",
+      "personal-data-hub.list-alipay-accounts",
+      "personal-data-hub.sync-all-stream",
+      "personal-data-hub.register-mock",
+      "personal-data-hub.unregister",
+    ];
+    for (const method of PDH_METHODS) {
+      expect(wl.isAllowed(method)).toBe(true);
+    }
+    expect(PDH_METHODS).toHaveLength(21);
+  });
+
+  it("5 Privileged PDH methods require approval", () => {
+    const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
+    const PRIVILEGED = [
+      "personal-data-hub.register-email",
+      "personal-data-hub.unregister-email",
+      "personal-data-hub.register-alipay",
+      "personal-data-hub.unregister-alipay",
+      "personal-data-hub.unregister",
+    ];
+    for (const method of PRIVILEGED) {
+      expect(wl.requiresApproval(method)).toBe(true);
+    }
+  });
+
+  it("Safe PDH methods do NOT require approval", () => {
+    const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
+    const SAFE = [
+      "personal-data-hub.ask",
+      "personal-data-hub.stats",
+      "personal-data-hub.health",
+      "personal-data-hub.query-events",
+      "personal-data-hub.recent-audit",
+      "personal-data-hub.event-detail",
+    ];
+    for (const method of SAFE) {
+      expect(wl.requiresApproval(method)).toBe(false);
+    }
+  });
+
+  it("dropping personal-data-hub.* from whitelist disables Hub access entirely", () => {
+    const wl = new MobileSkillWhitelist({
+      ...PDH_RECOMMENDED_CONFIG,
+      exposeRemoteSkills: PDH_RECOMMENDED_CONFIG.exposeRemoteSkills.filter(
+        (p) => p !== "personal-data-hub.*",
+      ),
+    });
+    expect(wl.isAllowed("personal-data-hub.ask")).toBe(false);
+    expect(wl.describeRejection("personal-data-hub.ask")).toMatch(
+      /not matched by any whitelist pattern/,
+    );
+  });
+
+  it("unknown PDH method (typo) is allowed by wildcard but caught later by handler", () => {
+    // Whitelist is namespace-level; runtime handler validates method name.
+    const wl = new MobileSkillWhitelist(PDH_RECOMMENDED_CONFIG);
+    expect(wl.isAllowed("personal-data-hub.askkk")).toBe(true);
+    // Handler-level rejection is the responsibility of personal-data-hub-ipc.js.
+  });
+
+  // Phase 14.1.2 — Guard against kebab/camelCase drift between
+  // unified-config-manager's `approvalChannelsForMobile` defaults and the
+  // actual WS dispatch keys in personal-data-hub-protocol.js. A camelCase
+  // entry would silently bypass the approval gate for that method.
+  it("DEFAULT unified-config approval list uses kebab-case (matches WS dispatch)", async () => {
+    const { UnifiedConfigManager } =
+      await import("../../config/unified-config-manager.js");
+    const mgr = new UnifiedConfigManager();
+    const defaults = mgr.getDefaultConfig();
+    const list = defaults.mobileBridge?.approvalChannelsForMobile || [];
+    // Every PDH approval entry must be kebab-case (no uppercase letters
+    // between the `personal-data-hub.` namespace and the next dot/end).
+    const pdhEntries = list.filter((s) => s.startsWith("personal-data-hub."));
+    expect(pdhEntries.length).toBeGreaterThan(0);
+    for (const entry of pdhEntries) {
+      const method = entry.slice("personal-data-hub.".length);
+      expect(
+        method,
+        `approval channel "${entry}" must be kebab-case to match the WS dispatch key in personal-data-hub-protocol.js`,
+      ).toMatch(/^[a-z][a-z0-9-]*$/);
+    }
+    // The 5 known Privileged methods must each be present in kebab form
+    const required = [
+      "personal-data-hub.register-email",
+      "personal-data-hub.unregister-email",
+      "personal-data-hub.register-alipay",
+      "personal-data-hub.unregister-alipay",
+      "personal-data-hub.unregister",
+    ];
+    for (const method of required) {
+      expect(list).toContain(method);
+    }
+  });
+
+  it("DEFAULT unified-config personal-data-hub.* is in exposeRemoteSkills", async () => {
+    const { UnifiedConfigManager } =
+      await import("../../config/unified-config-manager.js");
+    const mgr = new UnifiedConfigManager();
+    const defaults = mgr.getDefaultConfig();
+    const expose = defaults.mobileBridge?.exposeRemoteSkills || [];
+    expect(expose).toContain("personal-data-hub.*");
+    // Construct a whitelist from the actual defaults and verify the 5
+    // Privileged methods route to ApprovalUI as designed.
+    const wl = new MobileSkillWhitelist(defaults.mobileBridge);
+    for (const method of [
+      "personal-data-hub.register-email",
+      "personal-data-hub.unregister-email",
+      "personal-data-hub.register-alipay",
+      "personal-data-hub.unregister-alipay",
+      "personal-data-hub.unregister",
+    ]) {
+      expect(wl.isAllowed(method)).toBe(true);
+      expect(
+        wl.requiresApproval(method),
+        `${method} must require approval per default config`,
+      ).toBe(true);
+    }
+    // Safe (non-Privileged) PDH methods must NOT require approval
+    expect(wl.requiresApproval("personal-data-hub.ask")).toBe(false);
+    expect(wl.requiresApproval("personal-data-hub.stats")).toBe(false);
+  });
+});
