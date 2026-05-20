@@ -133,5 +133,10 @@ dependencies {
     // api() — the transitive dep does NOT reach androidTest compile classpath.
     // Empirically verified via KnowledgeUITest unquarantine (commit 6afedbbf8).
     androidTestImplementation("androidx.compose.material:material-icons-extended")
+    // Hilt deps for AIConversationE2ETest @HiltAndroidTest / HiltAndroidRule
+    // compile-time. Runtime Hilt setup (HiltTestApplication via custom
+    // AndroidJUnitRunner) is NOT wired — same caveat as core-e2ee's E2EE test.
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kspAndroidTest("com.google.dagger:hilt-android-compiler:2.50")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
