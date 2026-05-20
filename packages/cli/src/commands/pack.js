@@ -23,6 +23,7 @@ import {
   scheduleReplace,
   ApplyError,
 } from "../lib/packer/pack-update-applier.js";
+import { askConfirm } from "../lib/prompts.js";
 import { VERSION } from "../constants.js";
 
 /**
@@ -221,6 +222,9 @@ export function registerPackCommand(program) {
       false,
     )
     .action(async (opts) => {
+      // The shared resolver lives in runAutoUpdate too; kept duplicated here
+      // because check-update's behavior tree (no download, --download alone,
+      // --download --apply) is distinct enough from auto-update's one-shot.
       const manifestUrl =
         opts.manifestUrl ||
         process.env.CC_PACK_UPDATE_MANIFEST ||
@@ -456,8 +460,323 @@ export function registerPackCommand(program) {
         process.exit(4);
       }
     });
+
+  // Phase 3g (2026-05-20): one-shot OTA orchestration. Same chain as
+  // `check-update --download --apply --restart` but with a confirm prompt
+  // before the destructive apply and a friendlier default flag set.
+  packCmd
+    .command("auto-update")
+    .description(
+      "One-shot OTA: check → confirm → download → apply (Phase 5a+5b+5c)",
+    )
+    .option(
+      "--manifest-url <url>",
+      "Manifest URL (falls back to BAKED.updateManifestUrl or CC_PACK_UPDATE_MANIFEST env)",
+    )
+    .option(
+      "--target <slug>",
+      "pkg target to match against manifest.latest.artifacts (defaults to current host)",
+    )
+    .option(
+      "--current <version>",
+      "Override the current version (defaults to BAKED.packedCliVersion or CLI VERSION)",
+    )
+    .option(
+      "--target-exe <path>",
+      "Path of the exe to replace (defaults to process.execPath)",
+    )
+    .option(
+      "--dest <path>",
+      "Download destination (defaults to `<currentExePath>.new` inside a packed exe)",
+    )
+    .option("-y, --yes", "Skip interactive confirm before applying", false)
+    .option(
+      "--no-restart",
+      "Don't restart the new exe after applying (default: restart)",
+    )
+    .option("--dry-run", "Check only; don't download or apply", false)
+    .option("--json", "Emit JSON instead of human-readable output", false)
+    .action(async (opts) => {
+      await runAutoUpdate({ opts });
+    });
 }
 
 function formatMB(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+}
+
+/**
+ * `cc pack auto-update` — one-shot OTA orchestration. Chains Phase 5a (check)
+ * → Phase 5b (download+verify) → Phase 5c (apply) with an interactive confirm
+ * between the check and the destructive apply step.
+ *
+ * Compared to `cc pack check-update --download --apply --restart`:
+ *   - Default --restart=true (one-shot UX expects the new exe to come up)
+ *   - Interactive confirm before apply (skip with -y / --yes)
+ *   - --json implies --yes (can't prompt in JSON mode)
+ *   - --dry-run stops after the check stage, just like `check-update` alone
+ *
+ * Exported separately so tests can call it without standing up a full
+ * commander program. The real registration in registerPackCommand below just
+ * wires options + delegates here.
+ *
+ * @param {object} ctx
+ * @param {object} ctx.opts                      parsed commander flags
+ * @param {typeof checkPackUpdate} [ctx.checkImpl]
+ * @param {typeof downloadAndVerify} [ctx.downloadImpl]
+ * @param {typeof scheduleReplace} [ctx.applyImpl]
+ * @param {typeof askConfirm} [ctx.confirmImpl]
+ * @param {object} [ctx.logger]                  defaults to module logger
+ * @param {(code:number)=>void} [ctx.exit]       defaults to process.exit
+ * @returns {Promise<{action:"check"|"up-to-date"|"declined"|"applied", result?:object}>}
+ */
+export async function runAutoUpdate({
+  opts,
+  checkImpl = checkPackUpdate,
+  downloadImpl = downloadAndVerify,
+  applyImpl = scheduleReplace,
+  confirmImpl = askConfirm,
+  logger: log = logger,
+  exit = (code) => process.exit(code),
+}) {
+  const manifestUrl =
+    opts.manifestUrl ||
+    process.env.CC_PACK_UPDATE_MANIFEST ||
+    (typeof globalThis.BAKED === "object" &&
+      globalThis.BAKED?.updateManifestUrl) ||
+    null;
+
+  if (!manifestUrl) {
+    const msg =
+      "No manifest URL. Provide --manifest-url, set CC_PACK_UPDATE_MANIFEST, or bake one via `cc pack --update-manifest-url`.";
+    if (opts.json) {
+      log.log(JSON.stringify({ error: msg, code: "NO_MANIFEST_URL" }));
+    } else {
+      log.error(msg);
+    }
+    exit(2);
+    return { action: "check" };
+  }
+
+  const currentVersion =
+    opts.current ||
+    (typeof globalThis.BAKED === "object" &&
+      globalThis.BAKED?.packedCliVersion) ||
+    VERSION;
+  const target = opts.target || defaultPkgTarget();
+
+  // ── Stage 1: check ──────────────────────────────────────────────────────
+  let result;
+  try {
+    result = await checkImpl({ manifestUrl, currentVersion, target });
+  } catch (err) {
+    const code = err instanceof PackUpdateError ? err.code : "UNKNOWN";
+    if (opts.json) {
+      log.log(JSON.stringify({ error: err.message, code }));
+    } else {
+      log.error(`check failed [${code}]: ${err.message}`);
+    }
+    exit(3);
+    return { action: "check" };
+  }
+
+  if (!result.updateAvailable) {
+    if (opts.json) {
+      log.log(JSON.stringify({ action: "up-to-date", ...result }));
+    } else {
+      log.log(
+        chalk.green(
+          `  ✓ You are on the latest version (${result.currentVersion}).`,
+        ),
+      );
+    }
+    return { action: "up-to-date", result };
+  }
+  if (!result.artifact) {
+    const msg = `No artifact for target "${target}" in this manifest.`;
+    if (opts.json) {
+      log.log(JSON.stringify({ error: msg, code: "NO_ARTIFACT" }));
+    } else {
+      log.error(msg);
+    }
+    exit(3);
+    return { action: "check" };
+  }
+
+  // Surface the check result before prompting for the destructive step.
+  if (!opts.json) {
+    log.log(
+      chalk.bold(
+        `\n  Update available: ${result.currentVersion} → ${chalk.green(result.latestVersion)}`,
+      ),
+    );
+    log.log(`  Artifact (${target}):`);
+    log.log(`    ${result.artifact.url}`);
+    log.log(chalk.dim(`    sha256: ${result.artifact.sha256}`));
+    if (result.releaseNotes) {
+      log.log(chalk.dim(`    Release notes: ${result.releaseNotes}`));
+    }
+  }
+
+  if (opts.dryRun) {
+    if (opts.json) {
+      log.log(JSON.stringify({ action: "check", ...result }, null, 2));
+    } else {
+      log.log(chalk.dim(`\n  --dry-run: skipping download and apply.`));
+    }
+    return { action: "check", result };
+  }
+
+  // ── Stage 2: confirm ────────────────────────────────────────────────────
+  // JSON mode skips the interactive prompt — callers in non-TTY contexts
+  // must opt in explicitly via --yes (which also works in human mode).
+  const needsConfirm = !opts.yes && !opts.json;
+  if (needsConfirm) {
+    const ok = await confirmImpl(
+      `Download + apply update ${result.currentVersion} → ${result.latestVersion}?`,
+      true,
+    );
+    if (!ok) {
+      log.log(chalk.dim(`  Cancelled by user.`));
+      return { action: "declined", result };
+    }
+  }
+
+  // ── Stage 3: download ───────────────────────────────────────────────────
+  // Same default as check-update --download: inside packed exe drop next to
+  // current; outside, drop into cwd so dev-mode invocations are visible.
+  const outputPath = opts.dest
+    ? path.resolve(opts.dest)
+    : process.pkg
+      ? process.execPath + ".new"
+      : path.resolve(
+          process.cwd(),
+          path.basename(new URL(result.artifact.url).pathname) ||
+            "pack-update-artifact",
+        );
+
+  if (!opts.json) {
+    log.log(
+      chalk.bold(
+        `\n  Downloading ${result.currentVersion} → ${chalk.green(result.latestVersion)}`,
+      ),
+    );
+    log.log(chalk.dim(`  → ${outputPath}`));
+  }
+
+  let dl;
+  let lastPercent = -1;
+  try {
+    dl = await downloadImpl({
+      url: result.artifact.url,
+      sha256: result.artifact.sha256,
+      outputPath,
+      onProgress: opts.json
+        ? undefined
+        : ({ bytes, total }) => {
+            if (!total) return;
+            const pct = Math.floor((bytes / total) * 100);
+            if (pct !== lastPercent && pct % 10 === 0) {
+              lastPercent = pct;
+              log.log(
+                chalk.dim(
+                  `    ${pct}% (${formatMB(bytes)}/${formatMB(total)})`,
+                ),
+              );
+            }
+          },
+    });
+  } catch (err) {
+    const code = err instanceof DownloadError ? err.code : "UNKNOWN";
+    if (opts.json) {
+      log.log(JSON.stringify({ error: err.message, code }));
+    } else {
+      log.error(`download failed [${code}]: ${err.message}`);
+    }
+    exit(4);
+    return { action: "check", result };
+  }
+
+  if (!opts.json) {
+    log.log(
+      chalk.green(
+        `\n  ✓ Downloaded + verified ${formatMB(dl.bytes)} to ${dl.outputPath}`,
+      ),
+    );
+  }
+
+  // ── Stage 4: apply ──────────────────────────────────────────────────────
+  // auto-update defaults restart=true (one-shot UX); --no-restart flips it.
+  const restart = opts.restart !== false;
+  const targetExe = opts.targetExe || process.execPath;
+
+  if (!opts.json) {
+    log.log(chalk.bold(`\n  Applying update → ${targetExe}`));
+    if (process.platform === "win32") {
+      log.log(
+        chalk.yellow(
+          `  [Windows] This process will exit after scheduling a sidecar cmd; the replacement runs detached. ${restart ? "The new exe will start automatically." : "Re-launch the exe yourself after exit."}`,
+        ),
+      );
+    } else {
+      log.log(
+        chalk.dim(
+          `  [POSIX] Atomic rename; the running inode survives until exit. ${restart ? "A detached copy will be started now." : "Next launch picks up the new bytes."}`,
+        ),
+      );
+    }
+  }
+
+  let plan;
+  try {
+    plan = await applyImpl({
+      newExePath: dl.outputPath,
+      targetExePath: targetExe,
+      restart,
+    });
+  } catch (err) {
+    const code = err instanceof ApplyError ? err.code : "UNKNOWN";
+    if (opts.json) {
+      log.log(JSON.stringify({ error: err.message, code }));
+    } else {
+      log.error(`apply failed [${code}]: ${err.message}`);
+    }
+    exit(5);
+    return { action: "check", result };
+  }
+
+  if (opts.json) {
+    log.log(
+      JSON.stringify(
+        {
+          action: "applied",
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion,
+          download: {
+            outputPath: dl.outputPath,
+            bytes: dl.bytes,
+            sha256: dl.sha256,
+          },
+          apply: plan,
+        },
+        null,
+        2,
+      ),
+    );
+  } else {
+    log.log(
+      chalk.green(
+        `  ✓ Apply scheduled: action=${plan.action}${plan.sidecarPath ? `, sidecar=${plan.sidecarPath}` : ""}`,
+      ),
+    );
+  }
+
+  // Windows sidecar needs us to exit so its tasklist wait can complete. Give
+  // it a beat to start polling before we vanish (same dance as check-update
+  // --apply at L432-438; harmless on POSIX where action is replace-in-place).
+  if (plan.action === "sidecar-cmd") {
+    setTimeout(() => exit(0), 500).unref?.();
+  }
+
+  return { action: "applied", result, download: dl, apply: plan };
 }
