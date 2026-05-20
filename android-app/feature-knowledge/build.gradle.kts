@@ -12,7 +12,8 @@ android {
 
     defaultConfig {
         minSdk = 26
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Hilt-aware test runner — see src/androidTest/.../HiltTestRunner.kt.
+        testInstrumentationRunner = "com.chainlesschain.android.feature.knowledge.HiltTestRunner"
     }
 
     compileOptions {
