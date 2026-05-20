@@ -15,7 +15,8 @@ android {
 
     defaultConfig {
         minSdk = 26
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Hilt-aware test runner — see src/androidTest/.../HiltTestRunner.kt.
+        testInstrumentationRunner = "com.chainlesschain.android.feature.ai.HiltTestRunner"
 
         // W4a: only arm64-v8a + armeabi-v7a ship.
         //   - x86_64 emulator skipped (whisper.cpp x86 SIMD off; rebuild cost ↑↑)

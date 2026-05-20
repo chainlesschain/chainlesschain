@@ -13,7 +13,10 @@ android {
     defaultConfig {
         minSdk = 26
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Hilt-aware test runner — swaps Application class to HiltTestApplication
+        // so @HiltAndroidTest tests get DI injection at runtime. See
+        // src/androidTest/.../HiltTestRunner.kt for the override.
+        testInstrumentationRunner = "com.chainlesschain.android.core.e2ee.HiltTestRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
 
