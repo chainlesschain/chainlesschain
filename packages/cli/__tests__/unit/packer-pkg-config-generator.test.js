@@ -347,5 +347,56 @@ describe("generatePkgConfig", () => {
       // Project mode path: pushes parts of BAKED.projectEntry
       expect(entry).toContain("BAKED.projectMode ? BAKED.projectEntry : 'ui'");
     });
+
+    // ── Phase 3c: doc/code drift fixes (2026-05-20) ─────────────────────
+    it("user-data dir suffix uses SHA-16 not SHA-8 (per design §4.3)", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // SHA-16 = 64-bit entropy; prior SHA-8 was 32-bit which is too narrow
+      expect(entry).toContain("BAKED.projectConfigSha.slice(0, 16)");
+      expect(entry).not.toContain("projectConfigSha.slice(0, 8)");
+    });
+
+    it("user-data dir prefers %APPDATA% on Windows (per design §9)", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // process.platform=='win32' && APPDATA → use APPDATA; else fall back to ~
+      expect(entry).toContain("process.platform === 'win32'");
+      expect(entry).toContain("process.env.APPDATA");
+      expect(entry).toContain("os.homedir()");
+    });
+
+    it("materializes under a .materialize.lock guard (per design §7.2)", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // Lock-file path + 'wx' acquire + best-effort unlink cleanup
+      expect(entry).toContain(".materialize.lock");
+      expect(entry).toContain("fs.openSync(_lockFile, 'wx')");
+      expect(entry).toContain("fs.unlinkSync(_lockFile)");
+      // Materialize body must be gated by both _needsMaterialize AND lock-acquired
+      expect(entry).toContain("if (_needsMaterialize && _lockFd !== null)");
+    });
+
+    it("config.json is deep-merged on existing user-data (per design §4.4)", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      // _deepMerge helper present + special-cased for top-level config.json
+      expect(entry).toContain("function _deepMerge(");
+      expect(entry).toContain("_rel === 'config.json'");
+      // Merge order: bundled is base, user values win
+      expect(entry).toContain("_deepMerge(_newCfg, _userCfg)");
+      // Non-config files still get the "skip + warn" behavior
+      expect(entry).toContain("Keeping existing file (user-modified)");
+    });
+
+    it("copyRecursiveMerge passes rootSrc for config.json relpath detection", () => {
+      const r = callProjectGenerator();
+      const entry = fs.readFileSync(r.entryScript, "utf-8");
+      expect(entry).toContain(
+        "function copyRecursiveMerge(src, dest, rootSrc)",
+      );
+      expect(entry).toContain("if (rootSrc === undefined) rootSrc = src");
+      expect(entry).toContain("copyRecursiveMerge(sp, dp, rootSrc)");
+    });
   });
 });
