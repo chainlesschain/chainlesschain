@@ -137,20 +137,94 @@ const DISPATCH = {
       zipPassword: p.zipPassword,
     }),
 
-  // Phase 14.3 stream wiring not yet landed — explicit fail so callers
-  // know the difference between "method missing" and "stream not ready".
-  "sync-adapter-stream": async () => {
-    throw new Error(
-      "sync-adapter-stream not yet wired for mobile — Phase 14.3 will add HubSyncEventDispatcher",
-    );
-  },
+  // Phase 14.3 — stream methods set hub.registry.onSyncEvent to forward
+  // progress events to the paired mobile peer via ctx.sendEventToPeer,
+  // then run sync in background (returns streamId immediately so caller
+  // doesn't block on the multi-second sync). Final `done` or `error`
+  // event terminates the stream and triggers VM lastReport update on
+  // Android via HubSyncEventDispatcher.
+  //
+  // Concurrent-call limitation: hub.registry.onSyncEvent is a single
+  // slot, so overlapping streams chain via local `original` capture.
+  // If two adapters sync simultaneously the restore order may leak —
+  // matches the existing IPC handler pattern in personal-data-hub-ipc.js.
+  "sync-adapter-stream": async (hub, p, ctx) =>
+    runSyncStream(hub, ctx, () => hub.registry.syncAdapter(p.name, p.options || {}), {
+      adapter: p.name,
+      streamIdPrefix: "pdh-sa",
+    }),
 
-  "sync-all-stream": async () => {
-    throw new Error(
-      "sync-all-stream not yet wired for mobile — Phase 14.3 will add HubSyncEventDispatcher",
-    );
-  },
+  "sync-all-stream": async (hub, p, ctx) =>
+    runSyncStream(hub, ctx, () => hub.registry.syncAll(p.options || {}), {
+      adapter: "*",
+      streamIdPrefix: "pdh-saa",
+    }),
 };
+
+/**
+ * Shared streaming helper for sync-adapter-stream / sync-all-stream.
+ * Installs an onSyncEvent forwarder, returns streamId immediately, runs
+ * the sync in background, emits final done/error event then restores.
+ *
+ * @param {Object} hub      desktop hub singleton
+ * @param {Object} ctx      mobile entry-point ctx with sendEventToPeer
+ * @param {Function} runFn  () => Promise<SyncReport | SyncReport[]>
+ * @param {Object} meta     { adapter, streamIdPrefix }
+ * @returns {{streamId: string, name?: string}}
+ */
+function runSyncStream(hub, ctx, runFn, meta) {
+  if (!ctx || typeof ctx.sendEventToPeer !== "function") {
+    throw new Error(
+      "sync-stream methods require ctx.sendEventToPeer (mobile entry point only)",
+    );
+  }
+  const streamId = `${meta.streamIdPrefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+
+  const original = hub.registry.onSyncEvent;
+  hub.registry.onSyncEvent = (msg) => {
+    try {
+      ctx.sendEventToPeer("personal-data-hub.sync.progress", msg);
+    } catch (_e) {
+      // fire-and-forget — peer may have disconnected mid-stream
+    }
+    if (typeof original === "function") {
+      try {
+        original(msg);
+      } catch (_e) {
+        // best-effort chain
+      }
+    }
+  };
+
+  // Run sync in background — caller gets streamId before sync finishes.
+  // Use queueMicrotask so the return runs before the async body proceeds.
+  Promise.resolve().then(async () => {
+    try {
+      const report = await runFn();
+      try {
+        ctx.sendEventToPeer("personal-data-hub.sync.progress", {
+          kind: "done",
+          adapter: meta.adapter,
+          report,
+        });
+      } catch (_e) {}
+    } catch (err) {
+      try {
+        ctx.sendEventToPeer("personal-data-hub.sync.progress", {
+          kind: "error",
+          adapter: meta.adapter,
+          message: err && err.message ? err.message : String(err),
+        });
+      } catch (_e) {}
+    } finally {
+      hub.registry.onSyncEvent = original;
+    }
+  });
+
+  return { streamId, name: meta.adapter === "*" ? undefined : meta.adapter };
+}
 
 /**
  * Dispatch a kebab-case PDH action invoked from a paired mobile peer.
@@ -164,13 +238,13 @@ const DISPATCH = {
  * @param {Object} [_ctx]  call context (peerId / did) — reserved for future per-peer auth
  * @returns {Promise<any>} value matching the Android Codable model
  */
-async function dispatchPersonalDataHubMethod(action, params = {}, _ctx = {}) {
+async function dispatchPersonalDataHubMethod(action, params = {}, ctx = {}) {
   const fn = DISPATCH[action];
   if (typeof fn !== "function") {
     throw new Error(`Unknown personal-data-hub action: ${action}`);
   }
   const hub = await hubWiring.getHub();
-  return await fn(hub, params || {});
+  return await fn(hub, params || {}, ctx || {});
 }
 
 module.exports = {

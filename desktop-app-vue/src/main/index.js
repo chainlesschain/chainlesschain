@@ -2045,11 +2045,33 @@ class ChainlessChainApp {
       // response envelopes. Namespace literal must stay the full kebab
       // string ("personal-data-hub") to match what Android invokes via
       // RemoteCommandClient.invoke("personal-data-hub.X", ...).
+      //
+      // Phase 14.3 streaming — augment ctx with sendEventToPeer() so stream
+      // methods (sync-adapter-stream / sync-all-stream) can push
+      // personal-data-hub.sync.progress events back to the mobile peer
+      // mid-sync. Format mirrors p2p-command-adapter.broadcastEvent: a
+      // chainlesschain:event:notification envelope wrapping a JSON-RPC 2.0
+      // notification — Android P2PClient parses this into EventNotification
+      // and HubSyncEventDispatcher fans it out by method name.
       case "personal-data-hub": {
         const {
           dispatchPersonalDataHubMethod,
         } = require("./personal-data-hub/route-mobile.js");
-        return await dispatchPersonalDataHubMethod(action, params, ctx);
+        const mobileBridge = this.mobileBridge;
+        const mobilePeerId = ctx?.mobilePeerId;
+        const sendEventToPeer = (method, params) => {
+          if (!mobileBridge || !mobilePeerId) {
+            return;
+          }
+          mobileBridge.sendToMobile(mobilePeerId, {
+            type: "chainlesschain:event:notification",
+            payload: { jsonrpc: "2.0", method, params: params || {} },
+          });
+        };
+        return await dispatchPersonalDataHubMethod(action, params, {
+          ...ctx,
+          sendEventToPeer,
+        });
       }
 
       default:
