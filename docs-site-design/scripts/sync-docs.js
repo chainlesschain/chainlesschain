@@ -84,6 +84,10 @@ const ROOT_FILE_MAP = {
   "Adapter_Social_Messaging.md": "Adapter_Social_Messaging.md",
   "Personal_Data_Hub_Python_Sidecar.md": "Personal_Data_Hub_Python_Sidecar.md",
   "Personal_Data_Hub_sjqz_Comparison.md": "Personal_Data_Hub_sjqz_Comparison.md",
+  "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md": "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md",
+  "Personal_Data_Hub_Analysis_Skills.md": "Personal_Data_Hub_Analysis_Skills.md",
+  "Personal_Data_Hub_Android_Standalone_Cc.md": "Personal_Data_Hub_Android_Standalone_Cc.md",
+  "Cc_NL_Phone_App_Manager.md": "Cc_NL_Phone_App_Manager.md",
 };
 
 // modules/ 文件：提取编号前缀作为 ASCII 名
