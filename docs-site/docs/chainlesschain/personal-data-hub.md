@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.72 (Phase 0–13 全部落地 + 集成/E2E 测试收口, 2026-05-20) | 状态: ✅ 可用 — 19 个 Adapter 已实现 (Email + Alipay + SystemData + WeChat v0.5 + 4 Travel + 3 Shopping + 4 Social + 3 Messaging + 1 AIChat × 8 厂商) + Mobile Extraction Layer (Android ADB / iOS iTunes backup) + EntityResolver 跨源人物归并 + 5 内置 Analysis Skill (Spending / Relations / Footprint / Interests / Timeline) | 21 IPC 通道 + 21 WS 主题 | **47 测试文件 / 927 测试（含 6 集成 + 3 E2E 场景）** | 设计文档: 13-Phase 路线图 + 7 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对**
+> **版本: v5.0.3.72 (Phase 0–13 全部落地 + 集成/E2E 测试收口 + Phase 14 设计稿 + Phase 14.1 Android 数据层落地 + 3 新 adapter scaffold, 2026-05-20) | 状态: ✅ 可用 — 19 个 Adapter ✅ + 3 个 v0.1 scaffold (豆包 Doubao + 今日头条 Toutiao + 快手 Kuaishou) — 总计 22 (Email + Alipay + SystemData + WeChat v0.5 + 4 Travel + 3 Shopping + 6 Social + 3 Messaging + 9 AIChat 厂商) + Mobile Extraction Layer (Android ADB / iOS iTunes backup) + EntityResolver 跨源人物归并 + 5 内置 Analysis Skill (Spending / Relations / Footprint / Interests / Timeline) | 21 IPC 通道 + 21 WS 主题 + Phase 14.1 Android `PersonalDataHubCommands.kt` 21 method typed wrapper | **50 测试文件 / 952 测试（含 6 集成 + 3 E2E 场景 + 16 新 scaffold + 22 Android PDH 单测）** | 设计文档: 13-Phase 路线图 + 7 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -171,12 +171,12 @@
 | **BaiduMapAdapter** | ✅ 已上线 (Phase 9) | 百度地图足迹 / 收藏 | Cookie + map.baidu.com API | 单测全绿 |
 | **CtripAdapter** | ✅ 已上线 (Phase 9) | 携程酒店 / 机票 / 火车票订单 | Cookie + my.ctrip.com API | 单测全绿 |
 | **12306Adapter** | ✅ 已上线 (Phase 9) | 12306 行程 / 订单 | 被动 webRequest 拦 + JSON 解析 | 单测全绿 |
-| **AIChatHistoryAdapter × 8** | ✅ 已上线 (Phase 10.2 完整) | 8 家国产 AI（DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 百度千帆 / 字节扣子 / 即梦 Dreamina） | 共享 HttpClient (cookie + rate-limit + 指数退避) + 各家 h5 API | 79 单测；剩 Phase 10.3 WebView 真账号 smoke |
-| **Social × 4** (Bilibili / Weibo / Douyin / Xiaohongshu) | ✅ 已上线 (Phase 13.1-13.4) | Android 本机 SQLite (B 站 history / 微博 timeline / 抖音 watch / 小红书 收藏) | Mobile Extraction Layer pull + 借 sjqz parser 移植 | 单测全绿 |
+| **AIChatHistoryAdapter × 9** | ✅ 已上线 × 8 + 🚧 Doubao v0.1 scaffold | 9 家国产 AI（DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 百度千帆 / 字节扣子 / 即梦 Dreamina + **豆包 Doubao**(text AI, Phase 10.2 9th, scaffold)） | 共享 HttpClient (cookie + rate-limit + 指数退避) + 各家 h5 API | 79 单测 + Doubao 5 单测；剩 Phase 10.3 WebView 真账号 smoke + Phase 10.4 Doubao fixture pin |
+| **Social × 6** (Bilibili / Weibo / Douyin / Xiaohongshu + **Toutiao + Kuaishou**) | ✅ × 4 + 🚧 v0.1 scaffold × 2 | Android 本机 SQLite (B 站 history / 微博 timeline / 抖音 watch / 小红书 收藏 / 今日头条 read_history / 快手 photo_history) | Mobile Extraction Layer pull + 借 sjqz parser 移植 | 单测全绿（含 Toutiao 6 + Kuaishou 5 scaffold 单测）；Toutiao/Kuaishou 真账号 fixture pin pending |
 | **Messaging × 3** (QQ / Telegram / WhatsApp) | ✅ 已上线 (Phase 13.5-13.7) | Android 本机加密 SQLite（QQ msg.db / TG / WhatsApp msgstore.db crypt14）| MEL pull + key-provider 解密 + sjqz parser 移植 | 单测全绿 |
 | **WechatAdapter** | 🚧 v0.5 已落地 (Phase 12 frida-indep slice) | 微信本地 SQLCipher DB（Android 7.x 路径 + PC WeChat Files）| content-parser + MD5(IMEI+UIN)[:7] 解密 + SQLCipher 三 pragma profile | 41 单测；剩 Phase 12.6+ frida-dep (Android 8.0+ libwcdb hook) + Phase 12.9 真机 E2E |
 
-> Phase 13 七个 adapter 借 sjqz 已有 Python parser 移植到 Node.js — 详见 [`Adapter_Social_Messaging.md`](https://design.chainlesschain.com/Adapter_Social_Messaging.html)（本批最新加入）。
+> Phase 13 七个 adapter 借 sjqz 已有 Python parser 移植到 Node.js — 详见 [`Adapter_Social_Messaging.md`](https://design.chainlesschain.com/Adapter_Social_Messaging.html)（本批最新加入）。Toutiao §11 + Kuaishou §12 v0.1 scaffold 设计章节已补 (2026-05-20)；Doubao AIChat 9th vendor §6.9 详设亦补完。
 
 ### Phase 历史
 
@@ -204,11 +204,14 @@
 | 9 | Travel four-pack | Amap / Baidu Map / Ctrip / 12306 + 共享 `travel-base` | 累计中 |
 | 10.1 | AIChatHistoryAdapter skeleton | 8 vendor stub + cookie-auth + schema-map + contract | +27 |
 | 10.2 | AIChatHistoryAdapter wiring | DeepSeek / Kimi / 通义 / 智谱 / 混元 / 千帆 / 扣子 / Dreamina 全 8 厂商接 h5 API + 共享 HttpClient | 累计 +52 |
+| 10.2 (+) | **AIChatHistoryAdapter 9th: 豆包 Doubao** (v0.1 scaffold) | ByteDance 旗舰文本 AI（与 Dreamina 图生独立）；cursor 分页 + has_more；endpoint 蓝图待 Phase 10.4 fixture pin | +5 scaffold |
 | 11 | Analysis Skills | spending / relations / footprint / interests / timeline | 累计中 |
 | 12 v0.5 | WechatAdapter (frida-indep) | content-parser + key-extractor (MD5(IMEI+UIN)[:7]) + db-reader + normalize | +41 |
 | 13.1-13.4 | Social four-pack | Bilibili / Weibo / Douyin / Xiaohongshu (借 sjqz Python parser 移植) | 累计中 |
 | 13.5-13.7 | Messaging three-pack | QQ / Telegram / WhatsApp (借 sjqz parser + 加密 DB 解密) | 累计中 |
-| 当前合计 | — | — | **47 文件 / 927 测试** |
+| 13.8 (+) | **Social Toutiao (今日头条)** (v0.1 scaffold) | 新闻/feed reader Android SQLite — read_history / collection_article / search_history；schema 待 fixture pin | +6 scaffold |
+| 13.9 (+) | **Social Kuaishou (快手)** (v0.1 scaffold) | 短视频 Android SQLite — photo_history / user_collect / search_record；schema 待 fixture pin | +5 scaffold |
+| 当前合计 | — | — | **50 文件 / 952 测试**（含 Phase 10.2 集成 + E2E 6 + 3 场景）|
 
 > 全部路线图 phase 已实施完成。剩余 follow-up：Phase 10.3+ (8 厂商 AIChat WebView UI cookie 拦截 + 真账号 smoke) ≈ 4 天；Phase 12.6+ (WeChat 8.0+ Android frida-dep libwcdb hook 路径) ≈ 3 天；Phase 12.9 (WeChat rooted device 真机 E2E) ≈ 1 天。
 
@@ -352,8 +355,8 @@ cc ui                # 起本地 web-shell（默认 http://localhost:7331）
 
 | 端 | 入口 | 状态 |
 |---|---|---|
-| Android | `SeedRegistry` 元数据 (`namespace=personal-data-hub`, 21 method) | 🚧 v0.1 — 元数据已注册（24 个远程 skill 之一），UI 模块 `feature-personal-data-hub` 与桌面 `mobile-skill-whitelist` 接线待 Phase 14.1 |
-| iOS | — | 🚧 暂无原生入口（iOS Phase 6+ 远程操控 framework 可桥接，但 Hub skill 未注册）— Phase 14.2 |
+| Android | `SeedRegistry` 元数据 (`namespace=personal-data-hub`, 21 method) + UI scaffold | 🚧 v0.1 — 元数据已注册（24 个远程 skill 之一），数据层 `PersonalDataHubCommands.kt` ✅、UI 9 文件 scaffold 落地于 `:app/remote/ui/personalDataHub/` ✅、`RemoteOperateScreen` 第 14 tab 接通待 Phase 14.1 收口 |
+| iOS | `RemoteOperateView` 第 16 tab "数据中台" + `Features/PersonalDataHub/` + `Modules/CoreP2P/Sources/RemoteSkills/PersonalDataHub/` (3 文件) | 🚧 v0.1 scaffold — 8 method typed wrapper（ask / health / stats / listAdapters / syncAdapter / queryEvents / recentAudit / runSkill）+ SwiftUI 3-tab 容器 + 隐私 gate alert + Inner View StateObject 注入；剩 13 method (Email/Alipay 配置 + 流式同步 + destroy 等) 待 UI 接入再加 wrapper |
 
 #### 推荐路径（已有基础设施，落地工作小）
 
@@ -385,12 +388,23 @@ iPhone / Android → P2P DC RPC (`hub.ask` 走 RemoteCommandClient)
 #### 路线图
 
 - ✅ Phase 14.0（Android 元数据）：`SeedRegistry` 已加 `personal-data-hub` namespace + 21 method metadata（commit 在 v5.0.3.72 一同 land），含 risk 分级（ask/stats/query/audit = Safe；syncAdapter/register* = Mutating；unregister* = Privileged 强 ApprovalUI）。
-- Phase 14.1（Android 接线 + UI）：
-  1. 桌面 `desktop-app-vue/src/main/remote/mobile-skill-whitelist.js` 加 `personal-data-hub.*` 21 个 topic 白名单
-  2. 新建 `android-app/feature-personal-data-hub/` 模块：`HubChatScreen` + `HubChatViewModel` 通过 `RemoteCommandClient.invoke("personal-data-hub.ask")` 发问
-  3. 复用 Phase 5 AI Chat ChatBubble / streaming dispatcher 模式
-- Phase 14.2（iOS）：`Features/PersonalDataHub/` 镜像 Phase 5 AI Chat 模板，加 `PersonalDataHubCommands` actor 调 `RemoteCommandClient`
-- Phase 14.3（双端）：审计回查 + 同步进度推送（reuse `notification.received` 事件流）
+- 🚧 **Phase 14 完整设计稿已落**：[`docs/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`](https://design.chainlesschain.com/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.html) — 6 sub-phase 拆分 / 21 method UI 暴露矩阵 / 5 OQ 含推荐 / 12 forward-looking traps / 8 真机 E2E 场景。Phase 14.1 已启动（数据层 + 桌面白名单测试已落）。
+- 🚧 Phase 14.1（Android 接线 + UI）：
+  1. ✅ 桌面 `mobile-skill-whitelist` 测试增强 — `personal-data-hub.*` namespace 通配验证 + 5 Privileged ApprovalUI 路由测试（23 单测，[`desktop-app-vue/src/main/remote/__tests__/mobile-skill-whitelist.test.js`](https://github.com/chainlesschain/chainlesschain)）
+  2. ✅ 数据层 — `PersonalDataHubCommands.kt` 22 method typed wrapper（21 数据 + `runSkill` 分析）+ 27 模型 + 22 单测（[`android-app/app/src/main/java/com/chainlesschain/android/remote/commands/PersonalDataHubCommands.kt`](https://github.com/chainlesschain/chainlesschain)）。预发版静态审计发现所有多词 method 用了 camelCase（`listAdapters` / `syncAdapter` …），但桌面 `personal-data-hub-protocol.js` 注册的是 kebab-case（`list-adapters` / `sync-adapter` …）—— 17/22 method 跨端不匹配将在真机首调时 404。一次性 sed 修齐（生产 + 单测 + 桌面 whitelist 测试三处）；iOS Phase 14.2 自始即用 kebab-case，无需调整。
+  3. ✅ **UI scaffold 已落** — 落地于 `:app/remote/ui/personalDataHub/`（与其它 remote skill UI 同 module，**未走原计划独立 feature module**，因 Hilt graph + RemoteCommandClient 注入路径都根植 `:app`）：
+     - `HubAskScreen` + `HubAskViewModel`（核心 NL Q&A，含隐私 gate 弹窗 + citation chip + bottom sheet 详情拉取）✅
+     - `HubAdaptersScreen` + `HubAdaptersViewModel`（adapter 列表 + 同步触发）✅
+     - `HubAuditScreen` + `HubAuditViewModel`（审计日志 + action filter chip）✅
+     - `HubHealthCard`（vault / llm / kgSink / ragSink 四件套）✅
+     - `AcceptNonLocalDialog`（非本地 LLM 二次确认）✅
+     - `PersonalDataHubScreen`（3 tab container — 提问 / Adapter / 审计）✅
+     - 6 个 `HubAskViewModel` 单测覆盖隐私 gate 三态路径（本地直通 / 非本地 dialog / 确认重发 / dismiss 不污染 / 普通错误 toast / health init）✅
+  4. ✅ **NavGraph 接通** — `RemoteOperateScreen` 加「个人数据中台」按钮 → 跳新路由 `Screen.PersonalDataHub`（`personal_data_hub`）→ 渲染 `PersonalDataHubScreen` 3-tab 容器。同时修了 9 个 UI scaffold + 1 个测试文件遗留的 `</content></invoke>` XML wrapper bug 与缺失的 class 闭合 brace（早前 Write tool 序列化吃掉了文件尾部）。
+  5. ⏳ 复用 Phase 5 AI Chat ChatBubble / streaming dispatcher 模式做长答案渲染（目前 v0.1 用 Surface + plain text，待大答案场景再升级）
+- 🚧 **Phase 14.2 v0.1 scaffold 已落 (iOS — 仅 8/22 method wrapper)**：(1) `Modules/CoreP2P/Sources/RemoteSkills/PersonalDataHub/PersonalDataHubCommands.swift` actor + 8 method wrapper（ask / health / stats / list-adapters / sync-adapter / query-events / recent-audit / run-skill — UI 路径用到的子集；剩 14 个 register/unregister/import/list-* method 等 UI 接到再加 wrapper，pattern 已固，每个 ~15 LOC）（复用 `invokeAndDecode` helper 模板 per memory `ios_remote_extension_phase6_7`）；(2) `PersonalDataHubModels.swift` 14 Codable struct + 双 path JSON shape fallback（array 直返 vs `{key:[]}` 包装）；(3) `RemotePersonalDataHubViewModel.swift` @MainActor + 隐私 gate 三态路径 (本地直通 / dialog / 重发) 镜像 Android Phase 14.1 HubAskViewModel；(4) `ChainlessChain/Features/PersonalDataHub/Views/PersonalDataHubView.swift` SwiftUI 3-tab 容器 + AcceptNonLocal alert + Inner View StateObject 注入 (per memory `ios_inner_view_stateobject_pattern`)；(5) `RemoteDependencies.swift` 注册 `personalDataHubCommands` + `RemoteOperateView.SkillTab` 新增 `.personalDataHub` 第 16 tab "数据中台"。剩：Phase 14.2 v0.2 typed Phase 11 skill 结果 sub-decoders + 单测套件 (Android Phase 14.1 22 单测对标)。**等 `ios-build.yml` CI 编绿 确认（Win 无 Swift 编译器无法本地验）**
+- ⏳ Phase 14.3（双端）：审计回查 + 同步进度推送（reuse `personal-data-hub.sync.progress` 事件流 + 既有 fan-out task 加第 4 子流 buffer 256）
+- ⏳ Phase 14.4（真机 E2E）：Mac + iPhone + Xiaomi 24115RA8EC + 真桌面，8 场景矩阵（详见设计文档 §8.3）
 
 ## 配置参考
 
@@ -494,7 +508,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ## 测试覆盖率
 
-- **总单测**：47 个测试文件 / **927 单元测试**（最新基线 v5.0.3.72，`npx vitest run` 全绿，29s）
+- **总单测**：50 个测试文件 / **952 单元测试**（最新基线 v5.0.3.73 含 Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix，`npx vitest run` 全绿，~38s）
 - **覆盖矩阵**：
   - `__tests__/ids.test.js` — UUID v7 唯一性 / 时间序性
   - `__tests__/schemas.test.js` — 5 类实体所有 subtype + 边界字段
@@ -821,6 +835,7 @@ await ws.executeJson({
 ### 设计文档（design.chainlesschain.com）
 
 - [个人数据中台 主架构](https://design.chainlesschain.com/Personal_Data_Hub_Architecture.html) — 13-Phase 路线图、OQ 决策、整体架构图
+- [Phase 11 Analysis Skills](https://design.chainlesschain.com/Personal_Data_Hub_Analysis_Skills.html) — 5 内置 skill (spending/relations/footprint/interests/timeline) 输入输出契约 + Trap + 新 skill checklist
 - [EntityResolver 设计](https://design.chainlesschain.com/Personal_Data_Hub_EntityResolver.html) — 跨源 Person / Place 消歧（A+B+C+D 四段式）
 - [E2E Runbook](https://design.chainlesschain.com/Personal_Data_Hub_E2E_Runbook.html) — 真账号端到端手工验收脚本
 - [Adapter — Email (IMAP)](https://design.chainlesschain.com/Adapter_Email_IMAP.html)
@@ -833,6 +848,9 @@ await ws.executeJson({
 - [Adapter — Social + Messaging (Bilibili / Weibo / Douyin / 小红书 / QQ / Telegram / WhatsApp)](https://design.chainlesschain.com/Adapter_Social_Messaging.html)
 - [Python Sidecar 架构 (forensics-bridge fork from sjqz)](https://design.chainlesschain.com/Personal_Data_Hub_Python_Sidecar.html)
 - [PDH vs sjqz 借鉴方案对比](https://design.chainlesschain.com/Personal_Data_Hub_sjqz_Comparison.html)
+- [Phase 14 移动端原生入口（Android + iOS）](https://design.chainlesschain.com/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.html) — Plan B 远程操控模式：Mobile-bridge → typed RPC → SwiftUI/Compose UI；21 method 全 wire；6 sub-phase + 8 真机 E2E 场景
+- [Plan A — Android 本机独立 PDH via in-APK cc CLI](https://design.chainlesschain.com/Personal_Data_Hub_Android_Standalone_Cc.html) — 不依赖桌面：vault / Ollama 兜替（llama.rn 端侧）/ adapter pipeline 全部在手机本地跑；APK 已 bundled cc 验证 (Phase 2.5)；跨 app sandbox 5 路径分级；~10-16d 工时
+- [Cc CLI 自然语言驱动 — 管理手机其他 App + 数据](https://design.chainlesschain.com/Cc_NL_Phone_App_Manager.html) — `cc nl "<NL>"` 顶层命令；4 类 intent (query/ingest/control/action) + 端侧 1.5-3B LLM + 规则 fast-path + 隐私 gate + 高敏 confirm；~5d 工时
 
 ---
 
