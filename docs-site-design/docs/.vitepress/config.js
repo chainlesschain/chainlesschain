@@ -146,12 +146,24 @@ export default defineConfig({
               link: "/Personal_Data_Hub_Architecture",
             },
             {
+              text: "Python Sidecar 设计（fork sjqz）",
+              link: "/Personal_Data_Hub_Python_Sidecar",
+            },
+            {
               text: "EntityResolver 设计（跨源消歧）",
               link: "/Personal_Data_Hub_EntityResolver",
             },
             {
+              text: "Phase 14 移动端原生入口 ⭐NEW",
+              link: "/Personal_Data_Hub_Phase_14_Mobile_Native_Entry",
+            },
+            {
               text: "E2E Runbook（真账号验收脚本）",
               link: "/Personal_Data_Hub_E2E_Runbook",
+            },
+            {
+              text: "sjqz 对比分析（取舍依据）",
+              link: "/Personal_Data_Hub_sjqz_Comparison",
             },
             {
               text: "Adapter — Email (IMAP) ✅ 已上线",
@@ -162,11 +174,27 @@ export default defineConfig({
               link: "/Adapter_Alipay_Bill",
             },
             {
-              text: "Adapter — AI 对话历史（8 家国产 + ChatGPT/Claude）🚧",
+              text: "Adapter — 系统数据（通讯录/通话/短信/WiFi）✅ Phase 4.5",
+              link: "/Adapter_System_Data",
+            },
+            {
+              text: "Adapter — Shopping 三件套（淘宝/京东/美团）✅ Phase 7",
+              link: "/Adapter_Shopping_Cookie",
+            },
+            {
+              text: "Adapter — Travel 四件套（高德/百度/携程/12306）✅ Phase 9",
+              link: "/Adapter_Travel_LBS",
+            },
+            {
+              text: "Adapter — AI 对话历史（9 家国产）✅ Phase 10.2 全 wired",
               link: "/Adapter_AIChat_History",
             },
             {
-              text: "Adapter — 微信 SQLCipher 🚧",
+              text: "Adapter — 社交/即时通讯（7 家）✅ Phase 13",
+              link: "/Adapter_Social_Messaging",
+            },
+            {
+              text: "Adapter — 微信 SQLCipher 🚧 v0.5 frida-indep",
               link: "/Adapter_WeChat_SQLCipher",
             },
           ],
