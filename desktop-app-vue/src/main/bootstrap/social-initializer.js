@@ -1426,6 +1426,23 @@ function registerSocialInitializers(factory) {
       try {
         const { createRemoteGateway } = require("../remote");
 
+        // Phase 14.1.1 — read mobileBridge config (whitelist + approval channels)
+        // from unified config so MobileSkillWhitelist gets non-empty defaults.
+        // Empty/missing config = fail-safe deny-all per remote-gateway.js:181.
+        let mobileBridgeConfig = null;
+        try {
+          const {
+            getUnifiedConfigManager,
+          } = require("../config/unified-config-manager");
+          mobileBridgeConfig =
+            getUnifiedConfigManager().getConfig("mobileBridge") || null;
+        } catch (cfgErr) {
+          logger.warn(
+            "[social-initializer] mobileBridge config read failed, falling back to fail-safe deny-all:",
+            cfgErr?.message,
+          );
+        }
+
         const gateway = await createRemoteGateway(
           {
             p2pManager: context.p2pManager,
@@ -1443,6 +1460,7 @@ function registerSocialInitializers(factory) {
               port: 18790,
               host: "127.0.0.1",
             },
+            mobileBridge: mobileBridgeConfig || undefined,
           },
         );
 

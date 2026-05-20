@@ -249,6 +249,34 @@ describe("UnifiedConfigManager", () => {
       expect(defaultConfig.mcp.allowUntrustedServers).toBe(false);
       expect(defaultConfig.mcp.defaultPermissions.requireConsent).toBe(true);
     });
+
+    // Phase 14.1.1 — mobileBridge shape locks the MobileSkillWhitelist contract.
+    // If this drifts, remote-gateway constructs a deny-all whitelist silently.
+    // Method names MUST be kebab-case to match the WS dispatch keys in
+    // packages/cli/src/gateways/ws/personal-data-hub-protocol.js (camelCase
+    // would silently bypass the approval gate).
+    it("should include mobileBridge defaults with PDH whitelist + privileged approval channels", () => {
+      const manager = new UnifiedConfigManager();
+      const defaultConfig = manager.getDefaultConfig();
+
+      expect(defaultConfig.mobileBridge).toBeDefined();
+      expect(defaultConfig.mobileBridge.enabled).toBe(true);
+      expect(defaultConfig.mobileBridge.exposeRemoteSkills).toBeInstanceOf(
+        Array,
+      );
+      expect(defaultConfig.mobileBridge.exposeRemoteSkills).toContain(
+        "personal-data-hub.*",
+      );
+      // 5 PDH Privileged methods must be in approvalChannelsForMobile (kebab-case)
+      const approvalChannels =
+        defaultConfig.mobileBridge.approvalChannelsForMobile;
+      expect(approvalChannels).toContain("personal-data-hub.register-email");
+      expect(approvalChannels).toContain("personal-data-hub.unregister-email");
+      expect(approvalChannels).toContain("personal-data-hub.register-alipay");
+      expect(approvalChannels).toContain("personal-data-hub.unregister-alipay");
+      expect(approvalChannels).toContain("personal-data-hub.unregister");
+      expect(defaultConfig.mobileBridge.approvalTimeoutMs).toBe(60_000);
+    });
   });
 
   describe("getEnvConfig", () => {
