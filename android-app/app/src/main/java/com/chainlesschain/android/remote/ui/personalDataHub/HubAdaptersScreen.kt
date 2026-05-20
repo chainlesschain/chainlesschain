@@ -28,11 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
- * Phase 14.1 — Hub Adapter 管理屏
+ * Phase 14.1 + 14.3.3 — Hub Adapter 管理屏
  *
  * - 列出所有注册 Adapter (listAdapters)
  * - 每行显示 name / version / sensitivity / capabilities
- * - 「同步」按钮触发 syncAdapter (Mutating — 默认无 ApprovalUI)
+ * - 「同步」按钮触发 syncAdapterStream (Phase 14.3 流式版) — Mutating，
+ *   桌面端推 connecting → fetching → normalizing → done 进度事件，
+ *   UI 在版本号下方显示实时进度文字
  * - 「刷新」按钮重新拉列表
  */
 @Composable
@@ -76,17 +78,57 @@ fun HubAdaptersScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(state.adapters, key = { it.name }) { adapter ->
+                    val isSyncingThis = state.syncingAdapter == adapter.name
                     AdapterRow(
                         name = adapter.name,
                         version = adapter.version,
                         sensitivity = adapter.sensitivity,
                         capabilities = adapter.capabilities,
-                        isSyncing = state.syncingAdapter == adapter.name,
-                        onSync = { viewModel.sync(adapter.name) }
+                        isSyncing = isSyncingThis,
+                        progressText = if (isSyncingThis) {
+                            progressTextFor(
+                                kind = state.syncProgressKind,
+                                partition = state.syncProgressPartition,
+                                detail = state.syncProgressDetail,
+                            )
+                        } else null,
+                        lastIngested = state.lastReport
+                            ?.takeIf { it.adapter == adapter.name }
+                            ?.ingested,
+                        onSync = { viewModel.syncStream(adapter.name) }
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Localize a sync progress event into a 1-line UI string.
+ * `null` kind = no event yet (sync just started, pre-connecting).
+ * Phase 14.3.3 — matches the 4 emit kinds from desktop's runSyncStream.
+ */
+internal fun progressTextFor(
+    kind: String?,
+    partition: String?,
+    detail: Map<String, Long>?,
+): String {
+    return when (kind) {
+        null -> "同步中…"
+        "connecting" -> "连接中…"
+        "fetching" -> {
+            val count = detail?.get("uidsScanned")
+                ?: detail?.get("rowsRead")
+                ?: detail?.values?.firstOrNull()
+            val partText = partition?.let { " ($it)" }.orEmpty()
+            "拉取中$partText" + (count?.let { " · $it 条" }.orEmpty())
+        }
+        "normalizing" -> {
+            val built = detail?.get("eventsBuilt")
+                ?: detail?.values?.firstOrNull()
+            "归一化中" + (built?.let { " · $it 事件" }.orEmpty())
+        }
+        else -> "同步中…($kind)"
     }
 }
 
@@ -97,6 +139,8 @@ private fun AdapterRow(
     sensitivity: String?,
     capabilities: List<String>,
     isSyncing: Boolean,
+    progressText: String?,
+    lastIngested: Long?,
     onSync: () -> Unit
 ) {
     Card(colors = CardDefaults.cardColors()) {
@@ -124,6 +168,24 @@ private fun AdapterRow(
                 if (capabilities.isNotEmpty()) {
                     Text(capabilities.joinToString(" · "),
                         style = MaterialTheme.typography.labelSmall)
+                }
+                // Phase 14.3.3 — show streaming progress while this adapter is
+                // syncing; show last-sync ingested count when idle (until next
+                // syncStream call clears it).
+                if (isSyncing && progressText != null) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        progressText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else if (!isSyncing && lastIngested != null) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        "上次 +$lastIngested 事件",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             Button(onClick = onSync, enabled = !isSyncing) {
