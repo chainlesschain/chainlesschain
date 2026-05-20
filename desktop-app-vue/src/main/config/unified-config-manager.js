@@ -770,6 +770,48 @@ class UnifiedConfigManager {
         quorumPercentage: 10,
         disputeArbitrationEnabled: true,
       },
+      // Phase 14.1.1 — Mobile bridge whitelist + approval gate defaults.
+      // See docs/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md §9.
+      // Enforced by MobileSkillWhitelist (desktop-app-vue/src/main/remote/handlers/
+      // mobile-skill-whitelist.js) when CommandRouter sees context.source === "mobile".
+      // Users can remove `personal-data-hub.*` to fully disable mobile Hub access,
+      // or flip `enabled: false` to cut all mobile remote skills.
+      mobileBridge: {
+        enabled: true,
+        exposeRemoteSkills: [
+          "ai.*",
+          "knowledge.*",
+          "personal-data-hub.*",
+          "system.info.*",
+          "clipboard.*",
+          "file.*",
+          "notification.*",
+          "screenshot",
+          "display.*",
+          "input.*",
+          "app.*",
+          "userBrowser.*",
+          "extension.*",
+          "security.*",
+          "history.*",
+          "terminal.*",
+        ],
+        // Phase 14.1.1 method names MUST match the actual WS dispatch keys
+        // in packages/cli/src/gateways/ws/personal-data-hub-protocol.js (kebab
+        // case e.g. "register-email"). The matching Android client also calls
+        // these kebab-case names (PersonalDataHubCommands.kt:172/177/etc.).
+        // If this list drifts to camelCase, the approval gate is silently
+        // bypassed — every mobile-originated call would skip ApprovalUI and
+        // run the privileged method directly.
+        approvalChannelsForMobile: [
+          "personal-data-hub.register-email",
+          "personal-data-hub.unregister-email",
+          "personal-data-hub.register-alipay",
+          "personal-data-hub.unregister-alipay",
+          "personal-data-hub.unregister",
+        ],
+        approvalTimeoutMs: 60_000,
+      },
     };
   }
 
