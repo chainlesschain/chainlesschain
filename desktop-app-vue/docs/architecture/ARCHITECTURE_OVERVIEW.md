@@ -4,11 +4,11 @@
 
 ## Module Summary
 
-| Module | Files | Total Size |
-|--------|-------|------------|
-| main | 1807 | 25.36 MB |
-| renderer | 22 | 0.09 MB |
-| shared | 0 | 0.00 MB |
+| Module   | Files | Total Size |
+| -------- | ----- | ---------- |
+| main     | 1807  | 25.35 MB   |
+| renderer | 22    | 0.09 MB    |
+| shared   | 0     | 0.00 MB    |
 
 ## main Module
 
@@ -21,7 +21,7 @@
 3. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 4. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
 5. `src/main/skill-tool-system/tools/data-tools.js` - 104.3 KB
-6. `src/main/index.js` - 101.0 KB
+6. `src/main/index.js` - 100.1 KB
 7. `src/main/browser/browser-ipc.js` - 97.0 KB
 8. `src/main/remote/browser-extension-server.js` - 87.7 KB
 9. `src/main/monitoring/error-monitor.js` - 84.6 KB
@@ -49,5 +49,3 @@
 **Files**: 0
 
 **Top 10 Largest Files**:
-
-
