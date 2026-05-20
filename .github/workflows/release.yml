@@ -1294,8 +1294,6 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/shared-logger"
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
@@ -1308,8 +1306,6 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-config"
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
@@ -1322,8 +1318,6 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-db"
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
@@ -1336,8 +1330,6 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish @chainlesschain/core-infra"
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
@@ -1350,8 +1342,6 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Confirm CLI version matches resolved version
         # No-op safety net: VERSION already comes from packages/cli/package.json
@@ -1369,8 +1359,6 @@ jobs:
         if: needs.publish-cli-precheck.outputs.already_published != 'true'
         working-directory: packages/cli
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # Regenerate CHANGELOG.md after a successful release. documentation.yml's
   # auto-run on push deliberately skips changelog (it would grow by one line
