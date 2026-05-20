@@ -15,6 +15,7 @@ import { registerNoteCommand } from "./commands/note.js";
 import { registerChatCommand } from "./commands/chat.js";
 import { registerAskCommand } from "./commands/ask.js";
 import { registerLlmCommand } from "./commands/llm.js";
+import { registerHubCommand } from "./commands/hub.js";
 import {
   registerAgentCommand,
   registerSubAgentV2Command,
@@ -404,6 +405,7 @@ export function createProgram(opts = {}) {
   registerChatCommand(program);
   registerAskCommand(program);
   registerLlmCommand(program);
+  registerHubCommand(program);
   registerAgentCommand(program);
   registerSubAgentV2Command(program);
   registerExecBackendV2Command(program);
