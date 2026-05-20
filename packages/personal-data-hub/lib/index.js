@@ -43,6 +43,8 @@ const shoppingBase = require("./adapters/shopping-base");
 const { TaobaoAdapter } = require("./adapters/shopping-taobao");
 const { JdAdapter } = require("./adapters/shopping-jd");
 const { MeituanAdapter } = require("./adapters/shopping-meituan");
+const { BilibiliAdapter } = require("./adapters/social-bilibili");
+const { WeiboAdapter } = require("./adapters/social-weibo");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
@@ -225,6 +227,10 @@ module.exports = {
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
+
+  // Phase 13+ — long-tail social (借 sjqz parsers)
+  BilibiliAdapter,
+  WeiboAdapter,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,
