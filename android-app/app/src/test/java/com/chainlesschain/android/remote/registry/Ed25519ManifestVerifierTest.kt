@@ -57,6 +57,10 @@ class Ed25519ManifestVerifierTest {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw)
     }
 
+    // Test helper exposing 6 SkillMetadata knobs as keyword args with defaults.
+    // Each test only overrides 1-2 — passing positional args or wrapping in a
+    // builder would hurt readability more than the 6-param list does.
+    @Suppress("LongParameterList")
     private fun sample(
         namespace: String = "system.clipboard",
         displayName: String = "剪贴板",
