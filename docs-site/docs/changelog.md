@@ -3,6 +3,25 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.73 — PDH 收口 test sweep（集成 + E2E + 2 真 bug + 4 站 docs 刷新）] - 2026-05-20
+
+> Personal Data Hub 13-phase burst 落地后的质量与文档收口，2 commits（`cbfab26e1` 测试+bug / `69de3ffc4` docs），无新功能。47 test files / 927 tests 全绿。
+
+- **集成测试新增**：`__tests__/integration/cross-adapter-pipelines.test.js` 6 个场景 — Email + Alipay 同邮箱归一 → RelationsSkill 联合视图 / SpendingSkill 跨 Alipay+Shopping+Travel 聚合 / TimelineSkill 编织 WeChat + Alipay 时序 / 手工 merge 解锁联合视图 / 跨 Adapter 共享 entityResolver 实例 / FixtureAdapter helper 隔离真 IMAP 与 ZIP 依赖。
+- **E2E 测试新增**：`__tests__/e2e/full-user-journey.test.js` 3 个场景 — 完整用户旅程从空 vault 到 "我花了多少？" 自然语言回答 / 幂等 re-sync 同 CSV 0 重复事件 / vault stats 反映 post-sync entity counts。
+- **顺手扫出并修 2 个真 bug**：
+  - `lib/analysis-skills/spending.js` `subtypes` 白名单漏 `"order"`，Phase 7 Shopping 全部订单事件不进消费报表 —— 由集成测试发现。
+  - `lib/adapters/alipay-bill/alipay-bill-adapter.js` normalize 时漏导出 `event.extra.counterparty` —— 由 E2E 测试 `breakdown[0].key` 期望"张三"但实际拿到商品名 "生日礼物" 发现。补 `counterparty: row.counterparty || undefined`。
+- **修 flaky 单测**：`__tests__/registry.test.js` 并发 sync 测试 MockAdapter `count: 5000 → 500` + 30s 超时，本机 / CI 都稳。
+- **文档 4 站全刷**：
+  - README.md / README_EN.md：质量面 38/792 → 47/927。
+  - `docs-site/docs/chainlesschain/personal-data-hub.md`：版本头从 "16 个 Adapter" 升 "19 个 Adapter（含 8 AIChat 厂商）"，加 Mobile Extraction Layer + EntityResolver + 5 Analysis Skill 名字。
+  - `docs-website-v2/src/pages/index.astro` + `en/index.astro`：底部脚注从 "38 test files / 792 tests" 升 "47 test files / 927 tests · 6 集成 + 3 E2E 场景"。
+  - 设计站 `docs-site/scripts/sync-design-docs.js` + `docs-site-design/scripts/sync-docs.js`：已含 `Personal_Data_Hub_Python_Sidecar.md` + `Personal_Data_Hub_sjqz_Comparison.md` 映射，跑 sync 同步 190 文件。
+- **Release infra**：CLI `0.162.8 → 0.162.9` 跟随 desktop bump，避免 `publish-cli` 步因 npm dist-tag 已发同版本退出。
+
+**bump 内容（.72 → .73）**：`productVersion` v5.0.3.72 → v5.0.3.73 / `desktop-app-vue` `5.0.3-alpha.72` → `5.0.3-alpha.73` / Android `versionCode` 503072 → 503073 + `versionName` `5.0.3.72` → `5.0.3.73` / iOS `CFBundleVersion` 72 → 73 / CLI npm `0.162.8` → `0.162.9`。
+
 ## [v5.0.3.72 — iOS keychain hotfix repackage（after .71 build infra failure）] - 2026-05-20
 
 > v5.0.3.71 release pipeline 所有 desktop build job 全 EUSAGE：root `package-lock.json` 与 `packages/personal-data-hub/package.json` 不同步 —— hub 在 Phase 12/13 滚动期间加了 `adm-zip` + `iconv-lite` 两 optional dep（前者解 iTunes backup zip / 后者解 GBK 编码 social 历史），workspace 各自 `package.json` 已声明但 root `package-lock.json` 没 sync 进去。`5d8ba08b5` `fix(deps)` sync root lock 后，`.72` repackage 同一 iOS keychain fix（`625e86819`）成功出包。`d03c87d0a` 后续把 `packages/cli` 在 root lock 里也 bump 到 `0.162.7` 收口。

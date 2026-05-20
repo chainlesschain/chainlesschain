@@ -5,6 +5,22 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.73] - 2026-05-20 — PDH test sweep 收口（集成 + E2E + 2 真 bug + docs 4 站刷新）
+
+**Personal Data Hub closing test sweep** — `cbfab26e1` + `69de3ffc4` 2 commits, no new feature work; only quality + docs.
+
+- **Unit / Integration / E2E 三层补齐**：47 test files / 927 tests 全绿。新增 `__tests__/integration/cross-adapter-pipelines.test.js`（6 个跨 Adapter 集成场景，含 Email + Alipay → EntityResolver merge → RelationsSkill 联合视图 / SpendingSkill 跨 Alipay+Shopping+Travel 聚合 / TimelineSkill 编织 WeChat + Alipay 时序 / 手工 merge 解锁联合视图）+ `__tests__/e2e/full-user-journey.test.js`（3 个完整用户旅程：zero→email+alipay→entity merge→spending answer / 幂等 re-sync / vault stats）。
+- **顺手扫出 2 个真 bug 并修**：
+  - `lib/analysis-skills/spending.js` — subtypes 白名单漏 `"order"`，Phase 7 Shopping 订单事件全部不进消费报表。补 `subtypes = [..., "income", "order"]`。
+  - `lib/adapters/alipay-bill/alipay-bill-adapter.js` — normalize 时未导出 `event.extra.counterparty`，导致 SpendingSkill 按商户分组与 EntityResolver 按对手方匹配双双失败。补 `counterparty: row.counterparty || undefined`。
+- **修 flaky 单测**：`__tests__/registry.test.js` 并发 sync 测试把 MockAdapter `count: 5000` 改为 `count: 500` + 测试超时显式设 30s，本机 / CI 都稳定。
+- **文档 4 站全刷**：
+  - README.md / README_EN.md：质量面 38/792 → 47/927，加 "test sweep 顺手修 2 bug" 一句。
+  - `docs-site/docs/chainlesschain/personal-data-hub.md`：版本头从"16 个 Adapter"→"19 个 Adapter (含 8 AIChat 厂商)"，显式列出 Mobile Extraction Layer + EntityResolver + 5 个 Analysis Skill。
+  - `docs-website-v2/src/pages/index.astro` + `en/index.astro`：底部脚注 38/792 → 47/927 + 6 集成 + 3 E2E。
+  - `docs-site/scripts/sync-design-docs.js` + `docs-site-design/scripts/sync-docs.js`：已含 `Personal_Data_Hub_Python_Sidecar.md` + `Personal_Data_Hub_sjqz_Comparison.md` 映射，跑 sync 同步 190 文件。
+- **Release infra**：CLI `0.162.8 → 0.162.9` 跟随 desktop bump，避免 `publish-cli` 步因 npm dist-tag 已发同版本退出。
+
 ## [v5.0.3.71 / .72] - 2026-05-20 — Personal Data Hub 13-phase burst + iOS keychain repackage
 
 **Personal Data Hub Phase 4.5 → 13.7 全收口** in one evening across 15 commits `763047a22 → b2baf4eda`. **38 test files / 792 tests / 8/8 AIChat real-vendor wired**.
