@@ -35,6 +35,9 @@ const hubWiring = require("../personal-data-hub/wiring.js");
 const {
   getAIChatWizard,
 } = require("../personal-data-hub/aichat-wizard-factory.js");
+const {
+  ingestSystemDataAndroidSnapshot,
+} = require("@chainlesschain/personal-data-hub");
 
 const NS = "personal-data-hub";
 let _registered = false;
@@ -83,6 +86,17 @@ function register() {
         };
       }
       return await hub.engine.retrieveContext(question, options || {});
+    }),
+  );
+
+  // Path C wiring — phone-side採集器把 ContentResolver + PackageManager 数据
+  // 拼成 snapshot 推上来；这里写 staging 文件 + 调既有 syncAdapter。snapshot
+  // schemaVersion 必须 === 1，否则下面 adapter 会拒。
+  ipcMain.handle(
+    `${NS}:ingest-system-data-android`,
+    safe(async ({ snapshot }) => {
+      const hub = await hubWiring.getHub();
+      return await ingestSystemDataAndroidSnapshot(hub, snapshot);
     }),
   );
 

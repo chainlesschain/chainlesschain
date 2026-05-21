@@ -1,5 +1,9 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,8 +27,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
@@ -42,6 +48,17 @@ fun HubAdaptersScreen(
     viewModel: HubAdaptersViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Path C — READ_CONTACTS runtime permission gate. The collector itself
+    // gracefully degrades to empty-contacts when permission is denied (apps
+    // list still works without permission), so we run the action regardless
+    // of the result — the dialog is informational, not gating.
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _granted ->
+        viewModel.collectAndIngestSystemDataAndroid()
+    }
 
     Scaffold { padding ->
         Column(
@@ -95,7 +112,25 @@ fun HubAdaptersScreen(
                         lastIngested = state.lastReport
                             ?.takeIf { it.adapter == adapter.name }
                             ?.ingested,
-                        onSync = { viewModel.syncStream(adapter.name) }
+                        onSync = {
+                            if (adapter.name == "system-data-android") {
+                                // Path C — phone-native collect → desktop ingest. Ask for
+                                // READ_CONTACTS if not yet granted, then collector runs.
+                                val granted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_CONTACTS,
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (granted) {
+                                    viewModel.collectAndIngestSystemDataAndroid()
+                                } else {
+                                    contactsPermissionLauncher.launch(
+                                        Manifest.permission.READ_CONTACTS,
+                                    )
+                                }
+                            } else {
+                                viewModel.syncStream(adapter.name)
+                            }
+                        }
                     )
                 }
             }

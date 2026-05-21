@@ -509,6 +509,43 @@ class PersonalDataHubCommandsTest {
         }
     }
 
+    // ==================== ingestSystemDataAndroid() — Path C ====================
+
+    @Test
+    fun `ingestSystemDataAndroid sends snapshot payload + parses SyncReport`() = runTest {
+        val snapshot = mapOf<String, Any>(
+            "schemaVersion" to 1,
+            "snapshottedAt" to 1_700_000_000_000L,
+            "contacts" to listOf(mapOf("lookupKey" to "ck-1", "displayName" to "妈妈")),
+            "apps" to listOf(mapOf("packageName" to "com.foo")),
+        )
+        coEvery {
+            mockClient.invoke<SyncReport>(
+                "personal-data-hub.ingest-system-data-android",
+                any(),
+                any()
+            )
+        } returns Result.success(
+            SyncReport(
+                adapter = "system-data-android",
+                ingested = 2L,
+                durationMs = 42L
+            )
+        )
+
+        val result = hub.ingestSystemDataAndroid(snapshot)
+        assertTrue(result.isSuccess)
+        assertEquals(2L, result.getOrNull()?.ingested)
+
+        coVerify {
+            mockClient.invoke<SyncReport>(
+                "personal-data-hub.ingest-system-data-android",
+                match { params -> params["snapshot"] === snapshot },
+                any()
+            )
+        }
+    }
+
     @Test
     fun `retrieveContext forwards useRag and topK in options`() = runTest {
         coEvery {

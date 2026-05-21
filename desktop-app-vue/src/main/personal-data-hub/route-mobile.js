@@ -24,6 +24,9 @@
 "use strict";
 
 const hubWiring = require("./wiring.js");
+const {
+  ingestSystemDataAndroidSnapshot,
+} = require("@chainlesschain/personal-data-hub");
 
 /**
  * action (kebab-case, no `personal-data-hub.` prefix) → async (hub, params) => result.
@@ -47,6 +50,11 @@ const DISPATCH = {
     }
     return await hub.engine.retrieveContext(p.question, p.options || {});
   },
+
+  // Path C: phone-collected ContentResolver + PackageManager snapshot →
+  // staging file → syncAdapter(system-data-android). Returns SyncReport.
+  "ingest-system-data-android": async (hub, p) =>
+    await ingestSystemDataAndroidSnapshot(hub, p.snapshot),
 
   stats: async (hub) => ({
     vault: hub.vault.stats(),
