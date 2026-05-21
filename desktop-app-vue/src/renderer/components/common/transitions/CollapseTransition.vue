@@ -17,112 +17,112 @@ const props = defineProps({
   // Transition duration (ms)
   duration: {
     type: Number,
-    default: 300
+    default: 300,
   },
 
   // Easing function
   easing: {
     type: String,
-    default: 'cubic-bezier(0.4, 0, 0.2, 1)'
+    default: "cubic-bezier(0.4, 0, 0.2, 1)",
   },
 
   // Horizontal collapse instead of vertical
   horizontal: {
     type: Boolean,
-    default: false
-  }
-})
+    default: false,
+  },
+});
 
-const emit = defineEmits(['opened', 'closed'])
+const emit = defineEmits(["opened", "closed"]);
 
 // Enter transition hooks
 const beforeEnter = (el) => {
-  el.style.transition = 'none'
-  el.style.overflow = 'hidden'
+  el.style.transition = "none";
+  el.style.overflow = "hidden";
 
   if (props.horizontal) {
-    el.style.width = '0'
+    el.style.width = "0";
   } else {
-    el.style.height = '0'
+    el.style.height = "0";
   }
-}
+};
 
 const enter = (el, done) => {
   // Force reflow
-  el.offsetHeight
+  void el.offsetHeight;
 
-  el.style.transition = `all ${props.duration}ms ${props.easing}`
+  el.style.transition = `all ${props.duration}ms ${props.easing}`;
 
   if (props.horizontal) {
-    el.style.width = el.scrollWidth + 'px'
+    el.style.width = el.scrollWidth + "px";
   } else {
-    el.style.height = el.scrollHeight + 'px'
+    el.style.height = el.scrollHeight + "px";
   }
 
   const transitionEnd = () => {
-    el.removeEventListener('transitionend', transitionEnd)
-    done()
-  }
+    el.removeEventListener("transitionend", transitionEnd);
+    done();
+  };
 
-  el.addEventListener('transitionend', transitionEnd)
-}
+  el.addEventListener("transitionend", transitionEnd);
+};
 
 const afterEnter = (el) => {
-  el.style.transition = ''
-  el.style.overflow = ''
+  el.style.transition = "";
+  el.style.overflow = "";
 
   if (props.horizontal) {
-    el.style.width = ''
+    el.style.width = "";
   } else {
-    el.style.height = ''
+    el.style.height = "";
   }
 
-  emit('opened')
-}
+  emit("opened");
+};
 
 // Leave transition hooks
 const beforeLeave = (el) => {
-  el.style.overflow = 'hidden'
+  el.style.overflow = "hidden";
 
   if (props.horizontal) {
-    el.style.width = el.scrollWidth + 'px'
+    el.style.width = el.scrollWidth + "px";
   } else {
-    el.style.height = el.scrollHeight + 'px'
+    el.style.height = el.scrollHeight + "px";
   }
 
   // Force reflow
-  el.offsetHeight
-}
+  void el.offsetHeight;
+};
 
 const leave = (el, done) => {
-  el.style.transition = `all ${props.duration}ms ${props.easing}`
+  el.style.transition = `all ${props.duration}ms ${props.easing}`;
 
   if (props.horizontal) {
-    el.style.width = '0'
+    el.style.width = "0";
   } else {
-    el.style.height = '0'
+    el.style.height = "0";
   }
 
   const transitionEnd = () => {
-    el.removeEventListener('transitionend', transitionEnd)
-    done()
-  }
+    el.removeEventListener("transitionend", transitionEnd);
+    done();
+  };
 
-  el.addEventListener('transitionend', transitionEnd)
-}
+  el.addEventListener("transitionend", transitionEnd);
+};
 
 const afterLeave = (el) => {
-  el.style.transition = ''
-  el.style.overflow = ''
+  el.style.transition = "";
+  el.style.overflow = "";
 
   if (props.horizontal) {
-    el.style.width = ''
+    el.style.width = "";
   } else {
-    el.style.height = ''
+    el.style.height = "";
   }
 
-  emit('closed')
-}
+  emit("closed");
+};
 </script>
 
 <style scoped>
