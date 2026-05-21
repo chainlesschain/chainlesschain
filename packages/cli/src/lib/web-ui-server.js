@@ -1211,7 +1211,8 @@ function findWebPanelDist(staticDir) {
     return fs.existsSync(path.join(staticDir, "index.html")) ? staticDir : null;
   }
   // 1. Source tree: packages/web-panel/dist/
-  const sourceDist = path.resolve(__dirname, "../../web-panel/dist");
+  // __dirname = packages/cli/src/lib/ so we need three "../" to reach packages/.
+  const sourceDist = path.resolve(__dirname, "../../../web-panel/dist");
   if (fs.existsSync(path.join(sourceDist, "index.html"))) {
     return sourceDist;
   }
