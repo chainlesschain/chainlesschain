@@ -177,11 +177,26 @@ class NotificationHandler {
       case "sendToMobile":
         return await this.sendToMobile(params, context);
 
+      case "broadcast":
+        return await this.broadcast(params, context);
+
       case "getHistory":
         return await this.getHistory(params, context);
 
       case "markAsRead":
         return await this.markAsRead(params, context);
+
+      case "markAllAsRead":
+        return await this.markAllAsRead(params, context);
+
+      case "delete":
+        return await this.delete(params, context);
+
+      case "clearAll":
+        return await this.clearAll(params, context);
+
+      case "getUnreadCount":
+        return await this.getUnreadCount(params, context);
 
       case "clearHistory":
         return await this.clearHistory(params, context);
@@ -341,6 +356,85 @@ class NotificationHandler {
   }
 
   /**
+   * 广播通知到所有已连接设备 (Android / iOS Phase 4 `notification.broadcast`).
+   *
+   * 与 `sendToMobile` 不同：sendToMobile 可以指定 `targetDevices` 子集，
+   * broadcast 永远是全设备扇出。actual fanout 由 eventEmitter 上游做
+   * (mobile-bridge / WebRTC layer)，本方法负责持久化 + 发事件。
+   *
+   * iOS `NotificationBroadcastResponse` 解码 `{success, deliveredCount,
+   * failedCount, error?}`. 当下没有真 ack-pipeline，deliveredCount
+   * 默认 0 (treated as "best-effort fired"); 未来若 mobile-bridge 加 ack
+   * 回传可在此累加。
+   */
+  async broadcast(params, _context) {
+    const {
+      title,
+      body,
+      icon,
+      type = "app",
+      urgency = "normal",
+      data,
+    } = params || {};
+
+    if (!title || typeof title !== "string") {
+      return {
+        success: false,
+        deliveredCount: 0,
+        failedCount: 0,
+        error: "title required",
+      };
+    }
+
+    try {
+      const id = this.generateNotificationId();
+      const now = Date.now();
+      const notification = {
+        id,
+        type,
+        title,
+        body,
+        icon,
+        urgency,
+        data,
+        source: "pc",
+        timestamp: now,
+      };
+
+      await this.saveNotification({
+        ...notification,
+        createdAt: now,
+        sentToMobile: true,
+      });
+
+      if (this.eventEmitter) {
+        // No targetDevices → broadcast to all paired peers.
+        this.eventEmitter.emit("notification:send", {
+          notification,
+          targetDevices: null,
+          broadcast: true,
+        });
+      }
+
+      return {
+        success: true,
+        deliveredCount: 0, // placeholder until mobile-bridge ack pipeline lands
+        failedCount: 0,
+        id,
+        timestamp: now,
+      };
+    } catch (error) {
+      logger.error("[NotificationHandler] broadcast 失败:", error);
+      return {
+        success: false,
+        deliveredCount: 0,
+        failedCount: 0,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * 获取通知历史
    */
   async getHistory(params, context) {
@@ -460,6 +554,126 @@ class NotificationHandler {
     } catch (error) {
       logger.error("[NotificationHandler] 标记已读失败:", error);
       throw new Error(`Mark as read failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * 标记**所有**通知为已读 (Android / iOS Phase 4 `notification.markAllAsRead`).
+   *
+   * `markAsRead` 支持 "无 id 则全部已读" 这条隐式分支，但 Android/iOS
+   * typed wrapper 有独立 `markAllAsRead()` method — 此处显式 wire 一份，
+   * 避免 mobile peer 调到 "Unknown action: markAllAsRead" silent fail
+   * (Phase 4.7 真机 E2E 暴露过的 trap)。
+   *
+   * iOS `NotificationMarkResponse` 期望 `{ success, markedCount: Int, error? }`.
+   */
+  async markAllAsRead(_params, _context) {
+    try {
+      if (!this.database) {
+        return {
+          success: false,
+          markedCount: 0,
+          error: "Database not available",
+        };
+      }
+      const result = this.database
+        .prepare("UPDATE notification_history SET read = 1 WHERE read = 0")
+        .run();
+      return {
+        success: true,
+        markedCount: result.changes || 0,
+      };
+    } catch (error) {
+      logger.error("[NotificationHandler] markAllAsRead 失败:", error);
+      return { success: false, markedCount: 0, error: error.message };
+    }
+  }
+
+  /**
+   * 删除单条通知 (Android / iOS Phase 4 `notification.delete`).
+   *
+   * `clearHistory` 支持按时间 / 类型批量删除但 mobile 入口需要按 `notificationId`
+   * 删除单条 — 单独 wire 避免参数误用。
+   *
+   * iOS `NotificationDeleteResponse` 期望 `{ success, error? }`.
+   */
+  async delete(params, _context) {
+    const notificationId = params && params.notificationId;
+    if (!notificationId || typeof notificationId !== "string") {
+      return { success: false, error: "notificationId required" };
+    }
+    try {
+      if (!this.database) {
+        return { success: false, error: "Database not available" };
+      }
+      const result = this.database
+        .prepare("DELETE FROM notification_history WHERE id = ?")
+        .run(notificationId);
+      if (result.changes === 0) {
+        return { success: false, error: "NOT_FOUND" };
+      }
+      return { success: true };
+    } catch (error) {
+      logger.error("[NotificationHandler] delete 失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 清空所有通知 (Android / iOS Phase 4 `notification.clearAll`).
+   *
+   * 与 `clearHistory` 区别：clearHistory 支持 `before` / `type` 过滤参数，
+   * clearAll 是无条件清空 — 让 mobile 端走显式 method 名比传 "no filters
+   * → clear all" 隐式约定更稳。
+   *
+   * iOS `NotificationClearResponse` 期望 `{ success, clearedCount, error? }`.
+   */
+  async clearAll(_params, _context) {
+    try {
+      if (!this.database) {
+        return {
+          success: false,
+          clearedCount: 0,
+          error: "Database not available",
+        };
+      }
+      const result = this.database
+        .prepare("DELETE FROM notification_history")
+        .run();
+      return {
+        success: true,
+        clearedCount: result.changes || 0,
+      };
+    } catch (error) {
+      logger.error("[NotificationHandler] clearAll 失败:", error);
+      return { success: false, clearedCount: 0, error: error.message };
+    }
+  }
+
+  /**
+   * 获取未读通知数 (Android / iOS Phase 4 `notification.getUnreadCount`).
+   *
+   * 同 getHistory 的 `unreadOnly` 分支但只回 count 不回 rows —
+   * 手机 tab badge 用，避免拉历史 list 的开销。
+   *
+   * iOS `NotificationUnreadCountResponse` 期望 `{ success, count }`.
+   * 过期通知排除（与 getHistory 同一条件）。
+   */
+  async getUnreadCount(_params, _context) {
+    try {
+      if (!this.database) {
+        return { success: false, count: 0 };
+      }
+      const row = this.database
+        .prepare(
+          `SELECT COUNT(*) as count FROM notification_history
+           WHERE read = 0 AND (expires_at IS NULL OR expires_at > ?)`,
+        )
+        .get(Date.now());
+      return { success: true, count: (row && row.count) || 0 };
+    } catch (error) {
+      logger.error("[NotificationHandler] getUnreadCount 失败:", error);
+      return { success: false, count: 0 };
     }
   }
 
