@@ -42,7 +42,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 
 ## 概述
 
-启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 138 个内置技能。
+启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 141 个内置技能。
 支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
@@ -614,7 +614,7 @@ Resumed session session-17... (8 messages)
 ## 关键文件
 
 - `packages/cli/src/commands/agent.js` — 命令入口（含 `--session` 选项）
-- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（9 工具 + 138 技能 + Plan Mode + Context Engineering）
+- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（9 工具 + 141 技能 + Plan Mode + Context Engineering）
 - `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（6 维注入 + 智能压缩）
 - `packages/cli/src/lib/plan-mode.js` — Plan Mode 实现
 - `packages/cli/src/lib/instinct-manager.js` — Instinct 学习引擎
@@ -819,7 +819,7 @@ Resumed session session-17... (8 messages)
 ## 相关文档
 
 - [LLM 中转站与自定义接入](./cli-llm-proxy) — 中转站、代理、自建网关完整指南
-- [技能系统](./cli-skill) — 138 个内置技能
+- [技能系统](./cli-skill) — 141 个内置技能
 - [Plan Mode](./plan-mode) — 桌面端 Plan Mode 详情
 - [AI 对话](./cli-chat) — 基础对话功能
 - [会话管理](./cli-session) — 代理会话持久化

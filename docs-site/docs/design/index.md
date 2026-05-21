@@ -39,7 +39,7 @@
 | 13 | [多代理系统](./modules/13-multi-agent) | 8 种专业代理 |
 | 14 | [SSO 企业认证](./modules/14-sso) | SAML/OAuth/OIDC |
 | 15 | [MCP SDK](./modules/15-mcp-sdk) | Server Builder |
-| 16 | [AI 技能系统](./modules/16-ai-skills) | 138 技能/100% Handler |
+| 16 | [AI 技能系统](./modules/16-ai-skills) | 141 技能/100% Handler |
 
 ### 企业增强 (Phase 17-28)
 

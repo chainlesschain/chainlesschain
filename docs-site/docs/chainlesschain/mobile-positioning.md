@@ -8,7 +8,7 @@
 
 ## 概述
 
-ChainlessChain 桌面端是"重资产个人 AI 主机"——139 内置 skills、Cowork 多智能体、RAG 检索、MCP、Marketplace、联邦治理、Workflow、ZKP，是一个完整的 AI 工作站。Android 端在 v0.37.0 已经在 `android-app/.../remote/` 下堆出 23 个 *Commands.kt 与 18 个 UI 子模块，但这些散落能力**没有统一注册表与桌面侧白名单 / 审批通道**，REMOTE 是隐性事实而非显性架构。
+ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、Cowork 多智能体、RAG 检索、MCP、Marketplace、联邦治理、Workflow、ZKP，是一个完整的 AI 工作站。Android 端在 v0.37.0 已经在 `android-app/.../remote/` 下堆出 23 个 *Commands.kt 与 18 个 UI 子模块，但这些散落能力**没有统一注册表与桌面侧白名单 / 审批通道**，REMOTE 是隐性事实而非显性架构。
 
 v1.0 重新对标 Claude Desktop / Mobile 的角色分工：**桌面是 AI 工作站，手机是随身钥匙 + 捕获器 + 遥控器**。手机端不重复桌面，只补桌面在手机场景下做不到的事；二端通过 Phase 3d 双向同步和 REMOTE RPC 连成连续工作流。
 

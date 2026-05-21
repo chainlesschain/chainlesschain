@@ -460,4 +460,4 @@ cd desktop-app-vue && npx vitest run tests/unit/marketplace/ tests/unit/stores/p
 - [统一应用运行时](/chainlesschain/universal-runtime) - 插件运行时环境
 - [Skill Marketplace 技能市场](/chainlesschain/skill-marketplace) - 技能交易市场
 - [自进化 AI 系统](/chainlesschain/self-evolving-ai) - AI 驱动的生态进化
-- [Skills 技能系统](/chainlesschain/skills) - 138 个内置技能
+- [Skills 技能系统](/chainlesschain/skills) - 141 个内置技能
