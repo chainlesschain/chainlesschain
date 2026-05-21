@@ -6,7 +6,7 @@
 ## 1. 问题与目标
 
 ### 现状（2026-04-29 基线）
-- `desktop-app-vue/`：Electron + Vue3 + 51 Pinia store + 3238-LOC preload + 7600+ 测试。V5 / V6 shell 双轨并存。
+- `desktop-app-vue/`：Electron + Vue3 + 113 Pinia store + 3238-LOC preload + 30,000+ 测试。V5 / V6 shell 双轨并存。
 - `packages/web-panel/`：Vue3 + 9 store + 39 测试，纯 web SPA，借 WS 与 CLI（`packages/cli/src/lib/web-ui-server.js`）通信，对外功能成熟。
 - 痛点：桌面端 V5/V6 page port 速度慢（每页 3-5 天）、bug 多；web 版功能更全更稳但缺桌面专属能力（U-Key、本地 FS、MCP、Ollama 等）。
 
