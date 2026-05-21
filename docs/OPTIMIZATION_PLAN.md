@@ -191,7 +191,7 @@
 - Cowork / Coding Agent / Skills 子系统独立加载/卸载
 
 ### E2. 统一可观测性
-- 138 技能 + 4500 IPC 加 OpenTelemetry collector
+- 141 技能 + 4500 IPC 加 OpenTelemetry collector
 - 复用 BI Engine 做内部 dashboard
 
 ### E3. 技能市场闭环
