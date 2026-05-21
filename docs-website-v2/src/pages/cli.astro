@@ -326,6 +326,44 @@ const categories = [
       ['perf collect / evaluate / apply', '性能调优建议'],
     ],
   },
+  {
+    name: '个人数据中心 & 移动伴侣',
+    key: 'hub',
+    cmds: [
+      ['hub adapter list', 'Personal Data Hub 本地适配器列表'],
+      ['hub sync', '同步本地知识库 / AnalysisEngine'],
+      ['hub ask', '基于本地数据的提问'],
+      ['pair preflight', '局域网配对预检诊断'],
+      ['pair token', '签发配对 token'],
+      ['notification send', '推送通知到已配对的移动端'],
+      ['project list / create', '桌面项目（共享 SQLite，移动端 Phase 3d 同步）'],
+    ],
+  },
+  {
+    name: 'MTC 联邦 & 多签 & 打包',
+    key: 'mtc',
+    cmds: [
+      ['mtc federation create', 'Merkle Tree Certs M-of-N 联邦'],
+      ['mtc federation sync', 'libp2p / 文件系统 gossipsub 自动发现'],
+      ['multisig propose / sign / finalize', 'M-of-N 多签提案（独立于 MTC publisher_signature）'],
+      ['multisig sweep', '过期提案清理'],
+      ['pack', '打包当前目录为独立可执行文件'],
+      ['pack --project', '把项目 skills / persona / 白名单烧进 binary'],
+      ['pack check-update', 'OTA manifest 探测'],
+      ['cli-anything scan / register', 'Agent 原生 CLI 工具发现 + 注册为 Skill'],
+    ],
+  },
+  {
+    name: '去中心化网络 & 低代码',
+    key: 'decentralized',
+    cmds: [
+      ['lowcode create / publish', '低代码应用平台（15+ 组件）'],
+      ['inference register / route', '去中心化推理网络（Phase 67）'],
+      ['trust verify / score', '信任 & 安全（Phase 68-71）'],
+      ['fusion ...', '协议融合 & AI 社交（Phase 72-73）'],
+      ['infra ...', '去中心化基础设施（Phase 74-75）'],
+    ],
+  },
 ];
 
 const packs = [
@@ -341,8 +379,8 @@ const packs = [
 ];
 ---
 <BaseLayout
-  title="CLI 工具 — 112 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
-  description="ChainlessChain CLI：112 条命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers、MTC v0.5 联邦 + libp2p auto-discovery、Web Panel i18n 中英双语。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
+  title="CLI 工具 — 144 命令 · 139 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+  description="ChainlessChain CLI：144 条顶层命令、139 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers、MTC v0.5 联邦 + libp2p auto-discovery、Web Panel i18n 中英双语。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
   canonical="https://www.chainlesschain.com/cli"
 >
   <section class="relative overflow-hidden">
@@ -354,7 +392,7 @@ const packs = [
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
-          112 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+          144 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
 
         <!-- Install tabs -->
@@ -388,7 +426,7 @@ const packs = [
   <section class="py-16 md:py-24">
     <div class="container-wide">
       <div class="flex items-baseline justify-between mb-10">
-        <h2 class="text-4xl md:text-5xl">全部 112 条命令</h2>
+        <h2 class="text-4xl md:text-5xl">全部 144 条顶层命令</h2>
         <span class="font-mono text-sm text-muted">{categories.length} 大类</span>
       </div>
       <div class="space-y-3">
