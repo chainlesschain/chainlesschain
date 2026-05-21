@@ -212,7 +212,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, h, nextTick, onMounted, onUpdated } from "vue";
 import { message, Modal, Input } from "ant-design-vue";

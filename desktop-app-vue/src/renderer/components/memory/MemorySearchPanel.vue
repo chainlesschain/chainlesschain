@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { message } from "ant-design-vue";
 import { FileTextOutlined } from "@ant-design/icons-vue";
@@ -333,7 +333,7 @@ const copyResult = async (item) => {
   try {
     await navigator.clipboard.writeText(item.document?.content || "");
     message.success("已复制到剪贴板");
-  } catch (err) {
+  } catch (_err) {
     message.error("复制失败");
   }
 };

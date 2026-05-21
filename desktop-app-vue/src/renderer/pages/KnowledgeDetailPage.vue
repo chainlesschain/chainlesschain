@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, onMounted, watch, defineAsyncComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";

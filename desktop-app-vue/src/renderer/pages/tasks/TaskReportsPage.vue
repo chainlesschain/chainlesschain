@@ -1,14 +1,8 @@
 <template>
   <div class="task-reports-page">
-    <a-page-header
-      title="团队报告"
-      sub-title="日报、周报与 AI 摘要"
-    >
+    <a-page-header title="团队报告" sub-title="日报、周报与 AI 摘要">
       <template #extra>
-        <a-button
-          type="primary"
-          @click="showCreateReport = true"
-        >
+        <a-button type="primary" @click="showCreateReport = true">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -27,15 +21,9 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value="all">
-                全部
-              </a-radio-button>
-              <a-radio-button value="daily_standup">
-                日报
-              </a-radio-button>
-              <a-radio-button value="weekly">
-                周报
-              </a-radio-button>
+              <a-radio-button value="all"> 全部 </a-radio-button>
+              <a-radio-button value="daily_standup"> 日报 </a-radio-button>
+              <a-radio-button value="weekly"> 周报 </a-radio-button>
             </a-radio-group>
           </template>
 
@@ -55,42 +43,25 @@
                     </template>
                   </a-list-item-meta>
                   <div class="report-content">
-                    <div
-                      v-if="item.yesterdayWork"
-                      class="report-section"
-                    >
+                    <div v-if="item.yesterdayWork" class="report-section">
                       <strong>完成工作：</strong>
                       <p>{{ truncate(item.yesterdayWork, 100) }}</p>
                     </div>
-                    <div
-                      v-if="item.todayPlan"
-                      class="report-section"
-                    >
+                    <div v-if="item.todayPlan" class="report-section">
                       <strong>今日计划：</strong>
                       <p>{{ truncate(item.todayPlan, 100) }}</p>
                     </div>
-                    <div
-                      v-if="item.blockers"
-                      class="report-section blockers"
-                    >
+                    <div v-if="item.blockers" class="report-section blockers">
                       <strong>阻塞项：</strong>
                       <p>{{ truncate(item.blockers, 50) }}</p>
                     </div>
-                    <div
-                      v-if="item.aiSummary"
-                      class="ai-summary"
-                    >
-                      <a-tag color="blue">
-                        AI 摘要
-                      </a-tag>
+                    <div v-if="item.aiSummary" class="ai-summary">
+                      <a-tag color="blue"> AI 摘要 </a-tag>
                       <span>{{ item.aiSummary }}</span>
                     </div>
                   </div>
                   <template #actions>
-                    <a-button
-                      type="link"
-                      @click="viewReport(item)"
-                    >
+                    <a-button type="link" @click="viewReport(item)">
                       查看详情
                     </a-button>
                     <a-button
@@ -112,18 +83,11 @@
       <!-- 快速写报告 -->
       <a-col :span="8">
         <a-card title="快速写报告">
-          <a-form
-            :model="quickReport"
-            layout="vertical"
-          >
+          <a-form :model="quickReport" layout="vertical">
             <a-form-item label="报告类型">
               <a-select v-model:value="quickReport.reportType">
-                <a-select-option value="daily_standup">
-                  日报
-                </a-select-option>
-                <a-select-option value="weekly">
-                  周报
-                </a-select-option>
+                <a-select-option value="daily_standup"> 日报 </a-select-option>
+                <a-select-option value="weekly"> 周报 </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="完成工作">
@@ -161,21 +125,13 @@
         </a-card>
 
         <!-- 统计卡片 -->
-        <a-card
-          title="本周统计"
-          style="margin-top: 16px"
-        >
-          <a-statistic
-            title="提交报告数"
-            :value="weeklyStats.reportCount"
-          />
+        <a-card title="本周统计" style="margin-top: 16px">
+          <a-statistic title="提交报告数" :value="weeklyStats.reportCount" />
           <a-progress
             :percent="weeklyStats.completionRate"
             :status="weeklyStats.completionRate >= 80 ? 'success' : 'normal'"
           />
-          <p class="stats-hint">
-            {{ weeklyStats.completionRate }}% 完成率
-          </p>
+          <p class="stats-hint">{{ weeklyStats.completionRate }}% 完成率</p>
         </a-card>
       </a-col>
     </a-row>
@@ -188,10 +144,7 @@
       width="700px"
     >
       <template v-if="selectedReport">
-        <a-descriptions
-          :column="1"
-          bordered
-        >
+        <a-descriptions :column="1" bordered>
           <a-descriptions-item label="报告日期">
             {{ formatDate(selectedReport.reportDate) }}
           </a-descriptions-item>
@@ -216,25 +169,16 @@
           <p>{{ selectedReport.todayPlan || "无" }}</p>
         </div>
 
-        <div
-          v-if="selectedReport.blockers"
-          class="report-detail-section"
-        >
+        <div v-if="selectedReport.blockers" class="report-detail-section">
           <h4>阻塞项</h4>
           <p style="color: #ff4d4f">
             {{ selectedReport.blockers }}
           </p>
         </div>
 
-        <div
-          v-if="selectedReport.aiSummary"
-          class="report-detail-section"
-        >
+        <div v-if="selectedReport.aiSummary" class="report-detail-section">
           <h4><RobotOutlined /> AI 摘要</h4>
-          <a-alert
-            type="info"
-            :message="selectedReport.aiSummary"
-          />
+          <a-alert type="info" :message="selectedReport.aiSummary" />
         </div>
       </template>
     </a-modal>
@@ -305,7 +249,7 @@ const generateSummary = async (reportId) => {
       message.success("AI 摘要生成成功");
       await loadReports();
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("生成摘要失败");
   } finally {
     generatingSummary.value = null;
@@ -338,7 +282,7 @@ const submitQuickReport = async () => {
       };
       await loadReports();
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("提交失败");
   } finally {
     submitting.value = false;
@@ -349,7 +293,7 @@ const loadReports = async () => {
   loading.value = true;
   try {
     await taskBoardStore.loadReports(authStore.currentOrg?.id, { limit: 50 });
-  } catch (error) {
+  } catch (_error) {
     message.error("加载报告失败");
   } finally {
     loading.value = false;

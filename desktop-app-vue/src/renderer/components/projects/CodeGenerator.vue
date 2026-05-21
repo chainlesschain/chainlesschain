@@ -506,7 +506,7 @@ const copyCode = async (code) => {
   try {
     await navigator.clipboard.writeText(code);
     message.success("代码已复制到剪贴板");
-  } catch (error) {
+  } catch (_error) {
     message.error("复制失败");
   }
 };

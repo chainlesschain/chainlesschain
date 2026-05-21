@@ -3,10 +3,7 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateGroupModal"
-          >
+          <a-button type="primary" @click="showCreateGroupModal">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -32,11 +29,7 @@
       >
         <template #expandedRowRender="{ record }">
           <div class="group-detail">
-            <a-descriptions
-              title="权限组详情"
-              bordered
-              size="small"
-            >
+            <a-descriptions title="权限组详情" bordered size="small">
               <a-descriptions-item label="组ID">
                 {{ record.groupId }}
               </a-descriptions-item>
@@ -46,10 +39,7 @@
               <a-descriptions-item label="创建时间">
                 {{ record.createdAt }}
               </a-descriptions-item>
-              <a-descriptions-item
-                label="描述"
-                :span="3"
-              >
+              <a-descriptions-item label="描述" :span="3">
                 {{ record.description || "无" }}
               </a-descriptions-item>
             </a-descriptions>
@@ -82,11 +72,7 @@
                       handleUnassignGroup(assignment.roleName, record.groupId)
                     "
                   >
-                    <a-button
-                      type="link"
-                      danger
-                      size="small"
-                    >
+                    <a-button type="link" danger size="small">
                       取消分配
                     </a-button>
                   </a-popconfirm>
@@ -151,13 +137,7 @@
                 title="确定要删除此权限组吗?"
                 @confirm="handleDeleteGroup(record.groupId)"
               >
-                <a-button
-                  type="link"
-                  danger
-                  size="small"
-                >
-                  删除
-                </a-button>
+                <a-button type="link" danger size="small"> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -177,10 +157,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="权限组名称"
-          required
-        >
+        <a-form-item label="权限组名称" required>
           <a-input
             v-model:value="groupForm.groupName"
             placeholder="输入权限组名称"
@@ -195,10 +172,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="权限列表"
-          required
-        >
+        <a-form-item label="权限列表" required>
           <a-select
             v-model:value="groupForm.permissions"
             mode="multiple"
@@ -206,33 +180,19 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view">
-                查看组织
-              </a-select-option>
-              <a-select-option value="org.edit">
-                编辑组织
-              </a-select-option>
-              <a-select-option value="org.settings">
-                组织设置
-              </a-select-option>
-              <a-select-option value="org.manage">
-                管理组织
-              </a-select-option>
+              <a-select-option value="org.view"> 查看组织 </a-select-option>
+              <a-select-option value="org.edit"> 编辑组织 </a-select-option>
+              <a-select-option value="org.settings"> 组织设置 </a-select-option>
+              <a-select-option value="org.manage"> 管理组织 </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view">
-                查看成员
-              </a-select-option>
-              <a-select-option value="member.add">
-                添加成员
-              </a-select-option>
+              <a-select-option value="member.view"> 查看成员 </a-select-option>
+              <a-select-option value="member.add"> 添加成员 </a-select-option>
               <a-select-option value="member.remove">
                 移除成员
               </a-select-option>
-              <a-select-option value="member.edit">
-                编辑成员
-              </a-select-option>
+              <a-select-option value="member.edit"> 编辑成员 </a-select-option>
               <a-select-option value="member.manage">
                 管理成员
               </a-select-option>
@@ -263,15 +223,11 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view">
-                查看项目
-              </a-select-option>
+              <a-select-option value="project.view"> 查看项目 </a-select-option>
               <a-select-option value="project.create">
                 创建项目
               </a-select-option>
-              <a-select-option value="project.edit">
-                编辑项目
-              </a-select-option>
+              <a-select-option value="project.edit"> 编辑项目 </a-select-option>
               <a-select-option value="project.delete">
                 删除项目
               </a-select-option>
@@ -281,9 +237,7 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*">
-                所有权限
-              </a-select-option>
+              <a-select-option value="*"> 所有权限 </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
@@ -302,10 +256,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="角色名称"
-          required
-        >
+        <a-form-item label="角色名称" required>
           <a-input
             v-model:value="assignForm.roleName"
             placeholder="输入角色名称"
@@ -319,7 +270,7 @@
 <script>
 import { logger } from "@/utils/logger";
 
-import { defineComponent, ref, reactive, computed, watch } from "vue";
+import { defineComponent, ref, reactive, computed } from "vue";
 import { message } from "ant-design-vue";
 import { PlusOutlined } from "@ant-design/icons-vue";
 

@@ -6,10 +6,7 @@
     />
 
     <!-- 备份状态概览 -->
-    <a-row
-      :gutter="16"
-      class="status-cards"
-    >
+    <a-row :gutter="16" class="status-cards">
       <a-col :span="8">
         <a-card>
           <a-statistic
@@ -43,16 +40,9 @@
     </a-row>
 
     <!-- 备份操作 -->
-    <a-card
-      class="mt-4"
-      :title="$t('ukey.backup.actions')"
-    >
+    <a-card class="mt-4" :title="$t('ukey.backup.actions')">
       <a-space>
-        <a-button
-          type="primary"
-          :loading="isBackingUp"
-          @click="startBackup"
-        >
+        <a-button type="primary" :loading="isBackingUp" @click="startBackup">
           {{
             isBackingUp
               ? $t("ukey.backup.backingUp")
@@ -68,14 +58,8 @@
       </a-space>
 
       <!-- 进度条 -->
-      <div
-        v-if="isBackingUp"
-        class="backup-progress"
-      >
-        <a-progress
-          :percent="backupProgress"
-          :status="backupProgressStatus"
-        />
+      <div v-if="isBackingUp" class="backup-progress">
+        <a-progress :percent="backupProgress" :status="backupProgressStatus" />
         <p class="progress-text">
           {{ backupStatusMsg }}
         </p>
@@ -83,10 +67,7 @@
     </a-card>
 
     <!-- 备份版本列表 -->
-    <a-card
-      class="mt-4"
-      :title="$t('ukey.backup.versions')"
-    >
+    <a-card class="mt-4" :title="$t('ukey.backup.versions')">
       <a-table
         :data-source="backupVersions"
         :columns="versionColumns"
@@ -112,20 +93,14 @@
           </template>
           <template v-if="column.key === 'actions'">
             <a-space>
-              <a-button
-                size="small"
-                @click="verifyBackup(record.id)"
-              >
+              <a-button size="small" @click="verifyBackup(record.id)">
                 {{ $t("ukey.backup.verify") }}
               </a-button>
               <a-popconfirm
                 :title="$t('ukey.backup.deleteConfirm')"
                 @confirm="deleteBackup(record.id)"
               >
-                <a-button
-                  size="small"
-                  danger
-                >
+                <a-button size="small" danger>
                   {{ $t("common.delete") }}
                 </a-button>
               </a-popconfirm>
@@ -136,14 +111,8 @@
     </a-card>
 
     <!-- 分片存储状态 -->
-    <a-card
-      class="mt-4"
-      :title="$t('ukey.backup.shardStorage')"
-    >
-      <a-list
-        :data-source="storageLocations"
-        size="small"
-      >
+    <a-card class="mt-4" :title="$t('ukey.backup.shardStorage')">
+      <a-list :data-source="storageLocations" size="small">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta
@@ -188,10 +157,7 @@
       :title="$t('ukey.backup.backupSettings')"
       @ok="saveSettings"
     >
-      <a-form
-        :model="settings"
-        layout="vertical"
-      >
+      <a-form :model="settings" layout="vertical">
         <a-form-item :label="$t('ukey.backup.strategy')">
           <a-select v-model:value="settings.strategy">
             <a-select-option value="basic">
@@ -210,10 +176,7 @@
         </a-form-item>
         <a-form-item :label="$t('ukey.backup.autoBackup')">
           <a-switch v-model:checked="settings.autoBackup" />
-          <span
-            v-if="settings.autoBackup"
-            class="ml-2"
-          >
+          <span v-if="settings.autoBackup" class="ml-2">
             {{ $t("ukey.backup.interval") }}:
             <a-input-number
               v-model:value="settings.intervalDays"
@@ -321,7 +284,7 @@ async function loadBackupStatus() {
         lastBackupTime.value = result.versions[0].createdAt;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // 离线或未实现时使用演示数据
   }
 }

@@ -4,28 +4,19 @@
       <!-- Header Bar -->
       <div class="editor-header">
         <div class="header-left">
-          <a-button
-            type="text"
-            @click="handleBack"
-          >
+          <a-button type="text" @click="handleBack">
             <template #icon>
               <ArrowLeftOutlined />
             </template>
           </a-button>
           <div class="doc-title-area">
             <h2 class="doc-title">
-              {{ currentDoc?.title || 'Untitled Document' }}
+              {{ currentDoc?.title || "Untitled Document" }}
             </h2>
-            <a-tag
-              v-if="currentDoc?.contentType"
-              color="blue"
-            >
+            <a-tag v-if="currentDoc?.contentType" color="blue">
               {{ currentDoc.contentType }}
             </a-tag>
-            <a-tag
-              v-if="currentDoc?.visibility"
-              :color="visibilityColor"
-            >
+            <a-tag v-if="currentDoc?.visibility" :color="visibilityColor">
               {{ currentDoc.visibility }}
             </a-tag>
           </div>
@@ -43,7 +34,7 @@
                 :size="28"
                 :style="{ backgroundColor: cursor.color, marginLeft: '-4px' }"
               >
-                {{ cursor.name?.charAt(0)?.toUpperCase() || '?' }}
+                {{ cursor.name?.charAt(0)?.toUpperCase() || "?" }}
               </a-avatar>
             </a-tooltip>
             <a-badge
@@ -56,28 +47,19 @@
         </div>
 
         <div class="header-right">
-          <a-button
-            size="small"
-            @click="handleSaveVersion"
-          >
+          <a-button size="small" @click="handleSaveVersion">
             <template #icon>
               <SaveOutlined />
             </template>
             Save Version
           </a-button>
-          <a-button
-            size="small"
-            @click="handleInvite"
-          >
+          <a-button size="small" @click="handleInvite">
             <template #icon>
               <UserAddOutlined />
             </template>
             Invite
           </a-button>
-          <a-button
-            size="small"
-            @click="toggleSidebar"
-          >
+          <a-button size="small" @click="toggleSidebar">
             <template #icon>
               <MenuOutlined />
             </template>
@@ -88,14 +70,8 @@
       <!-- Main Content Area -->
       <div class="editor-body">
         <!-- Editor Area -->
-        <div
-          class="editor-area"
-          :class="{ 'with-sidebar': sidebarVisible }"
-        >
-          <div
-            ref="editorWrapperRef"
-            class="editor-wrapper"
-          >
+        <div class="editor-area" :class="{ 'with-sidebar': sidebarVisible }">
+          <div ref="editorWrapperRef" class="editor-wrapper">
             <!-- Cursor Overlay for remote cursors -->
             <CursorOverlay
               :cursors="store.remoteCursors"
@@ -139,52 +115,41 @@
         </div>
 
         <!-- Sidebar -->
-        <div
-          v-if="sidebarVisible"
-          class="editor-sidebar"
-        >
-          <a-tabs
-            v-model:active-key="sidebarTab"
-            size="small"
-          >
+        <div v-if="sidebarVisible" class="editor-sidebar">
+          <a-tabs v-model:active-key="sidebarTab" size="small">
             <!-- Collaborators Tab -->
-            <a-tab-pane
-              key="collaborators"
-              tab="Collaborators"
-            >
+            <a-tab-pane key="collaborators" tab="Collaborators">
               <div class="sidebar-section">
                 <div
-                  v-if="store.collaborators.length === 0 && store.remoteCursors.length === 0"
+                  v-if="
+                    store.collaborators.length === 0 &&
+                    store.remoteCursors.length === 0
+                  "
                   class="empty-state"
                 >
                   <TeamOutlined style="font-size: 32px; color: #bfbfbf" />
                   <p>No collaborators online</p>
                 </div>
 
-                <a-list
-                  v-else
-                  :data-source="allCollaborators"
-                  size="small"
-                >
+                <a-list v-else :data-source="allCollaborators" size="small">
                   <template #renderItem="{ item }">
                     <a-list-item>
                       <a-list-item-meta>
                         <template #avatar>
                           <a-avatar
                             :size="32"
-                            :style="{ backgroundColor: item.color || '#1890ff' }"
+                            :style="{
+                              backgroundColor: item.color || '#1890ff',
+                            }"
                           >
-                            {{ item.name?.charAt(0)?.toUpperCase() || '?' }}
+                            {{ item.name?.charAt(0)?.toUpperCase() || "?" }}
                           </a-avatar>
                         </template>
                         <template #title>
-                          {{ item.name || item.did?.substring(0, 16) + '...' }}
+                          {{ item.name || item.did?.substring(0, 16) + "..." }}
                         </template>
                         <template #description>
-                          <a-badge
-                            status="success"
-                            text="Online"
-                          />
+                          <a-badge status="success" text="Online" />
                         </template>
                       </a-list-item-meta>
                     </a-list-item>
@@ -194,10 +159,7 @@
             </a-tab-pane>
 
             <!-- Version History Tab -->
-            <a-tab-pane
-              key="versions"
-              tab="Versions"
-            >
+            <a-tab-pane key="versions" tab="Versions">
               <div class="sidebar-section">
                 <a-button
                   type="dashed"
@@ -212,10 +174,7 @@
                   Create Snapshot
                 </a-button>
 
-                <div
-                  v-if="store.versions.length === 0"
-                  class="empty-state"
-                >
+                <div v-if="store.versions.length === 0" class="empty-state">
                   <HistoryOutlined style="font-size: 32px; color: #bfbfbf" />
                   <p>No versions yet</p>
                 </div>
@@ -224,7 +183,11 @@
                   <a-timeline-item
                     v-for="version in store.versions"
                     :key="version.id"
-                    :color="version.versionNumber === store.latestVersionNumber ? 'green' : 'gray'"
+                    :color="
+                      version.versionNumber === store.latestVersionNumber
+                        ? 'green'
+                        : 'gray'
+                    "
                   >
                     <div class="version-item">
                       <div class="version-header">
@@ -269,15 +232,9 @@
         </a-form-item>
         <a-form-item label="Permission">
           <a-select v-model:value="inviteForm.permission">
-            <a-select-option value="editor">
-              Editor
-            </a-select-option>
-            <a-select-option value="commenter">
-              Commenter
-            </a-select-option>
-            <a-select-option value="viewer">
-              Viewer
-            </a-select-option>
+            <a-select-option value="editor"> Editor </a-select-option>
+            <a-select-option value="commenter"> Commenter </a-select-option>
+            <a-select-option value="viewer"> Viewer </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -303,9 +260,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   ArrowLeftOutlined,
   SaveOutlined,
@@ -314,9 +271,9 @@ import {
   TeamOutlined,
   HistoryOutlined,
   PlusOutlined,
-} from '@ant-design/icons-vue';
-import { useSocialCollabStore } from '@/stores/socialCollab';
-import CursorOverlay from '@/components/social/CursorOverlay.vue';
+} from "@ant-design/icons-vue";
+import { useSocialCollabStore } from "@/stores/socialCollab";
+import CursorOverlay from "@/components/social/CursorOverlay.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -327,19 +284,19 @@ const store = useSocialCollabStore();
 const editorWrapperRef = ref(null);
 const editorContentRef = ref(null);
 const sidebarVisible = ref(true);
-const sidebarTab = ref('collaborators');
+const sidebarTab = ref("collaborators");
 const cursorLine = ref(0);
 const cursorColumn = ref(0);
 const inviteModalVisible = ref(false);
 const inviteLoading = ref(false);
 const saveVersionModalVisible = ref(false);
 const saveVersionLoading = ref(false);
-const versionDescription = ref('');
+const versionDescription = ref("");
 const cursorPollTimer = ref(null);
 
 const inviteForm = ref({
-  inviteeDid: '',
-  permission: 'editor',
+  inviteeDid: "",
+  permission: "editor",
 });
 
 // ==================== Computed ====================
@@ -347,35 +304,35 @@ const inviteForm = ref({
 const currentDoc = computed(() => store.currentDoc);
 
 const docId = computed(() => {
-  return (route.params?.docId) || '';
+  return route.params?.docId || "";
 });
 
 const placeholderText = computed(() => {
-  const type = currentDoc.value?.contentType || 'markdown';
+  const type = currentDoc.value?.contentType || "markdown";
   switch (type) {
-    case 'markdown':
-      return 'Start writing in Markdown...';
-    case 'richtext':
-      return 'Start writing...';
-    case 'table':
-      return 'Enter table data...';
-    case 'whiteboard':
-      return 'Start drawing...';
+    case "markdown":
+      return "Start writing in Markdown...";
+    case "richtext":
+      return "Start writing...";
+    case "table":
+      return "Enter table data...";
+    case "whiteboard":
+      return "Start drawing...";
     default:
-      return 'Start typing...';
+      return "Start typing...";
   }
 });
 
 const visibilityColor = computed(() => {
   switch (currentDoc.value?.visibility) {
-    case 'private':
-      return 'red';
-    case 'friends':
-      return 'green';
-    case 'invited':
-      return 'orange';
+    case "private":
+      return "red";
+    case "friends":
+      return "green";
+    case "invited":
+      return "orange";
     default:
-      return 'default';
+      return "default";
   }
 });
 
@@ -393,8 +350,8 @@ onMounted(async () => {
   if (docId.value) {
     try {
       await store.openDocument(docId.value);
-    } catch (err) {
-      message.error('Failed to open document');
+    } catch (_err) {
+      message.error("Failed to open document");
       router.back();
       return;
     }
@@ -446,19 +403,23 @@ function handleInput() {
 
 function handleCursorChange() {
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) {return;}
+  if (!sel || sel.rangeCount === 0) {
+    return;
+  }
 
   const range = sel.getRangeAt(0);
   const editor = editorContentRef.value;
-  if (!editor) {return;}
+  if (!editor) {
+    return;
+  }
 
   // Calculate line and column from the editor content
-  const text = editor.innerText || '';
+  const text = editor.innerText || "";
   const preRange = document.createRange();
   preRange.selectNodeContents(editor);
   preRange.setEnd(range.startContainer, range.startOffset);
   const preText = preRange.toString();
-  const lines = preText.split('\n');
+  const lines = preText.split("\n");
 
   cursorLine.value = lines.length - 1;
   cursorColumn.value = lines[lines.length - 1]?.length || 0;
@@ -472,7 +433,7 @@ function handleCursorChange() {
     endPreRange.selectNodeContents(editor);
     endPreRange.setEnd(range.endContainer, range.endOffset);
     const endPreText = endPreRange.toString();
-    const endLines = endPreText.split('\n');
+    const endLines = endPreText.split("\n");
 
     selection = {
       start: {
@@ -501,18 +462,18 @@ function handleEditorBlur() {
 }
 
 function handleInvite() {
-  inviteForm.value = { inviteeDid: '', permission: 'editor' };
+  inviteForm.value = { inviteeDid: "", permission: "editor" };
   inviteModalVisible.value = true;
 }
 
 async function handleInviteSubmit() {
   if (!inviteForm.value.inviteeDid.trim()) {
-    message.warning('Please enter a DID');
+    message.warning("Please enter a DID");
     return;
   }
 
   if (!store.currentDoc) {
-    message.error('No document open');
+    message.error("No document open");
     return;
   }
 
@@ -523,23 +484,23 @@ async function handleInviteSubmit() {
       inviteeDid: inviteForm.value.inviteeDid.trim(),
       permission: inviteForm.value.permission,
     });
-    message.success('Invitation sent');
+    message.success("Invitation sent");
     inviteModalVisible.value = false;
   } catch (err) {
-    message.error(err?.message || 'Failed to send invitation');
+    message.error(err?.message || "Failed to send invitation");
   } finally {
     inviteLoading.value = false;
   }
 }
 
 function handleSaveVersion() {
-  versionDescription.value = '';
+  versionDescription.value = "";
   saveVersionModalVisible.value = true;
 }
 
 async function handleSaveVersionSubmit() {
   if (!store.currentDoc) {
-    message.error('No document open');
+    message.error("No document open");
     return;
   }
 
@@ -554,28 +515,32 @@ async function handleSaveVersionSubmit() {
       message.success(`Version ${version.versionNumber} saved`);
       saveVersionModalVisible.value = false;
     } else {
-      message.error('Failed to save version');
+      message.error("Failed to save version");
     }
   } catch (err) {
-    message.error(err?.message || 'Failed to save version');
+    message.error(err?.message || "Failed to save version");
   } finally {
     saveVersionLoading.value = false;
   }
 }
 
 async function handleRollback(version) {
-  if (!store.currentDoc) {return;}
+  if (!store.currentDoc) {
+    return;
+  }
 
   try {
     await store.rollback(store.currentDoc.id, version.versionNumber);
     message.success(`Rolled back to version ${version.versionNumber}`);
   } catch (err) {
-    message.error(err?.message || 'Rollback failed');
+    message.error(err?.message || "Rollback failed");
   }
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
   return date.toLocaleString();
 }
@@ -667,7 +632,9 @@ function formatTime(timestamp) {
 .editor-content {
   min-height: 100%;
   outline: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   font-size: 15px;
   line-height: 1.8;
   color: #333;

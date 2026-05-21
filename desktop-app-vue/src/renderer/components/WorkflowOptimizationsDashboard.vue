@@ -1,14 +1,8 @@
 <template>
   <div class="workflow-optimizations-dashboard">
-    <a-card
-      title="工作流程优化 - 监控面板"
-      class="dashboard-card"
-    >
+    <a-card title="工作流程优化 - 监控面板" class="dashboard-card">
       <!-- 总览统计 -->
-      <a-row
-        :gutter="16"
-        class="summary-row"
-      >
+      <a-row :gutter="16" class="summary-row">
         <a-col :span="6">
           <a-statistic
             title="已启用优化"
@@ -69,10 +63,7 @@
       <!-- 优化列表 -->
       <a-tabs v-model:active-key="activeTab">
         <!-- Phase 1 -->
-        <a-tab-pane
-          key="phase1"
-          tab="Phase 1: 基础优化"
-        >
+        <a-tab-pane key="phase1" tab="Phase 1: 基础优化">
           <div class="optimization-list">
             <OptimizationItem
               v-for="opt in phase1Optimizations"
@@ -85,10 +76,7 @@
         </a-tab-pane>
 
         <!-- Phase 2 -->
-        <a-tab-pane
-          key="phase2"
-          tab="Phase 2: 智能化"
-        >
+        <a-tab-pane key="phase2" tab="Phase 2: 智能化">
           <div class="optimization-list">
             <OptimizationItem
               v-for="opt in phase2Optimizations"
@@ -101,10 +89,7 @@
         </a-tab-pane>
 
         <!-- Phase 3 -->
-        <a-tab-pane
-          key="phase3"
-          tab="Phase 3: 高级优化"
-        >
+        <a-tab-pane key="phase3" tab="Phase 3: 高级优化">
           <div class="optimization-list">
             <OptimizationItem
               v-for="opt in phase3Optimizations"
@@ -117,20 +102,11 @@
         </a-tab-pane>
 
         <!-- 统计信息 -->
-        <a-tab-pane
-          key="stats"
-          tab="实时统计"
-        >
+        <a-tab-pane key="stats" tab="实时统计">
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-card
-                title="智能计划缓存"
-                size="small"
-              >
-                <a-descriptions
-                  :column="1"
-                  size="small"
-                >
+              <a-card title="智能计划缓存" size="small">
+                <a-descriptions :column="1" size="small">
                   <a-descriptions-item label="缓存命中率">
                     <a-tag :color="getHitRateColor(stats.planCache?.hitRate)">
                       {{ stats.planCache?.hitRate || "0%" }}
@@ -147,14 +123,8 @@
             </a-col>
 
             <a-col :span="12">
-              <a-card
-                title="LLM决策引擎"
-                size="small"
-              >
-                <a-descriptions
-                  :column="1"
-                  size="small"
-                >
+              <a-card title="LLM决策引擎" size="small">
+                <a-descriptions :column="1" size="small">
                   <a-descriptions-item label="多代理利用率">
                     <a-tag color="blue">
                       {{ stats.decisionEngine?.multiAgentRate || "0%" }}
@@ -170,18 +140,9 @@
               </a-card>
             </a-col>
 
-            <a-col
-              :span="12"
-              style="margin-top: 16px"
-            >
-              <a-card
-                title="代理池"
-                size="small"
-              >
-                <a-descriptions
-                  :column="1"
-                  size="small"
-                >
+            <a-col :span="12" style="margin-top: 16px">
+              <a-card title="代理池" size="small">
+                <a-descriptions :column="1" size="small">
                   <a-descriptions-item label="复用率">
                     <a-tag
                       :color="getReuseRateColor(stats.agentPool?.reuseRate)"
@@ -199,18 +160,9 @@
               </a-card>
             </a-col>
 
-            <a-col
-              :span="12"
-              style="margin-top: 16px"
-            >
-              <a-card
-                title="关键路径优化"
-                size="small"
-              >
-                <a-descriptions
-                  :column="1"
-                  size="small"
-                >
+            <a-col :span="12" style="margin-top: 16px">
+              <a-card title="关键路径优化" size="small">
+                <a-descriptions :column="1" size="small">
                   <a-descriptions-item label="总分析次数">
                     {{ stats.criticalPath?.totalAnalyses || 0 }}
                   </a-descriptions-item>
@@ -228,10 +180,7 @@
           <a-divider />
 
           <a-space>
-            <a-button
-              type="primary"
-              @click="refreshStats"
-            >
+            <a-button type="primary" @click="refreshStats">
               <template #icon>
                 <ReloadOutlined />
               </template>
@@ -255,18 +204,9 @@
         </a-tab-pane>
 
         <!-- 性能报告 -->
-        <a-tab-pane
-          key="report"
-          tab="性能报告"
-        >
-          <a-space
-            direction="vertical"
-            style="width: 100%"
-          >
-            <a-card
-              title="预期性能提升"
-              size="small"
-            >
+        <a-tab-pane key="report" tab="性能报告">
+          <a-space direction="vertical" style="width: 100%">
+            <a-card title="预期性能提升" size="small">
               <a-table
                 :data-source="performanceGains"
                 :columns="performanceColumns"
@@ -284,10 +224,7 @@
             </a-card>
 
             <a-space>
-              <a-button
-                type="primary"
-                @click="runBenchmark"
-              >
+              <a-button type="primary" @click="runBenchmark">
                 <template #icon>
                   <ThunderboltOutlined />
                 </template>
@@ -313,11 +250,7 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions
-        :column="2"
-        bordered
-        size="small"
-      >
+      <a-descriptions :column="2" bordered size="small">
         <a-descriptions-item
           v-for="(value, key) in currentStats"
           :key="key"
@@ -745,7 +678,7 @@ async function resetStats() {
       };
       message.success("本地统计信息已重置");
     }
-  } catch (error) {
+  } catch (_error) {
     // 即使IPC失败也重置本地状态
     stats.value = {
       planCache: null,
@@ -817,7 +750,7 @@ async function runBenchmark() {
     } else {
       message.warning("基准测试完成，但可能没有返回详细结果");
     }
-  } catch (error) {
+  } catch (_error) {
     message.destroy();
     // 如果IPC不可用，模拟基准测试
     setTimeout(() => {

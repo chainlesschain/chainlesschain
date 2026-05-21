@@ -366,7 +366,7 @@ const handleSearch = () => {
         "marketplace-search-history",
         JSON.stringify(searchHistory.value),
       );
-    } catch (e) {
+    } catch (_e) {
       /* ignore */
     }
   }
@@ -561,7 +561,7 @@ const loadSearchHistory = () => {
     if (history) {
       searchHistory.value = JSON.parse(history);
     }
-  } catch (e) {
+  } catch (_e) {
     /* ignore */
   }
 };

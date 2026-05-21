@@ -7,18 +7,12 @@
 
     <div class="interview-content">
       <!-- 进度指示 -->
-      <div
-        v-if="questions.length > 0"
-        class="interview-progress"
-      >
+      <div v-if="questions.length > 0" class="interview-progress">
         <span>问题 {{ currentIndex + 1 }} / {{ questions.length }}</span>
       </div>
 
       <!-- 已回答的问题 -->
-      <div
-        v-if="answeredQuestions.length > 0"
-        class="answered-questions"
-      >
+      <div v-if="answeredQuestions.length > 0" class="answered-questions">
         <a-collapse>
           <a-collapse-panel
             v-for="(item, index) in answeredQuestions"
@@ -27,7 +21,13 @@
           >
             <div class="answer-text">
               <!-- 结构化答案显示 - 多选 -->
-              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOptions !== undefined">
+              <template
+                v-if="
+                  typeof item.answer === 'object' &&
+                  item.answer !== null &&
+                  item.answer.selectedOptions !== undefined
+                "
+              >
                 <div class="multi-select-answer">
                   <a-tag
                     v-for="option in item.answer.selectedOptions"
@@ -45,7 +45,13 @@
                 </span>
               </template>
               <!-- 结构化答案显示 - 单选 -->
-              <template v-else-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
+              <template
+                v-else-if="
+                  typeof item.answer === 'object' &&
+                  item.answer !== null &&
+                  item.answer.selectedOption !== undefined
+                "
+              >
                 <a-tag color="blue">
                   {{ item.answer.selectedOption }}
                 </a-tag>
@@ -58,7 +64,7 @@
               </template>
               <!-- 传统答案显示 -->
               <template v-else>
-                {{ item.answer || '已跳过' }}
+                {{ item.answer || "已跳过" }}
               </template>
             </div>
           </a-collapse-panel>
@@ -73,10 +79,7 @@
       >
         <div class="question-text">
           <span class="question-number">Q{{ currentIndex + 1 }}</span>
-          <span
-            v-if="currentQuestion.required"
-            class="required-mark"
-          >*</span>
+          <span v-if="currentQuestion.required" class="required-mark">*</span>
           {{ currentQuestion.question }}
         </div>
 
@@ -85,16 +88,15 @@
           v-if="currentQuestion.options && currentQuestion.options.length > 0"
           class="option-buttons"
         >
-          <a-space
-            direction="vertical"
-            :size="8"
-            style="width: 100%"
-          >
+          <a-space direction="vertical" :size="8" style="width: 100%">
             <a-button
               v-for="option in currentQuestion.options"
               :key="option.value"
               :type="isOptionSelected(option.value) ? 'primary' : 'default'"
-              :class="['option-button', { 'selected': isOptionSelected(option.value) }]"
+              :class="[
+                'option-button',
+                { selected: isOptionSelected(option.value) },
+              ]"
               block
               size="large"
               @click="handleSelectOption(option.value)"
@@ -105,14 +107,11 @@
                     v-if="currentQuestion.multiSelect"
                     class="checkbox-indicator"
                   >
-                    {{ isOptionSelected(option.value) ? '☑' : '☐' }}
+                    {{ isOptionSelected(option.value) ? "☑" : "☐" }}
                   </span>
                   {{ option.label }}
                 </span>
-                <span
-                  v-if="option.description"
-                  class="option-description"
-                >
+                <span v-if="option.description" class="option-description">
                   {{ option.description }}
                 </span>
               </div>
@@ -125,9 +124,7 @@
           v-if="selectedOption !== null || selectedOptions.length > 0"
           class="additional-input-section"
         >
-          <div class="input-label">
-            补充说明（可选）
-          </div>
+          <div class="input-label">补充说明（可选）</div>
           <a-textarea
             v-model:value="additionalInput"
             placeholder="您可以进一步说明..."
@@ -139,9 +136,15 @@
 
         <!-- 传统文本框（无选项时的降级方案） -->
         <a-textarea
-          v-if="!currentQuestion.options || currentQuestion.options.length === 0"
+          v-if="
+            !currentQuestion.options || currentQuestion.options.length === 0
+          "
           v-model:value="currentAnswer"
-          :placeholder="currentQuestion.required ? '请输入答案（必填）' : '请输入答案（选填）'"
+          :placeholder="
+            currentQuestion.required
+              ? '请输入答案（必填）'
+              : '请输入答案（选填）'
+          "
           :auto-size="{ minRows: 2, maxRows: 4 }"
           class="answer-input"
           @keydown.ctrl.enter="handleSubmitAnswer"
@@ -161,16 +164,13 @@
             size="small"
             @click="handleSubmitAnswer"
           >
-            {{ currentIndex < questions.length - 1 ? '下一个' : '完成' }}
+            {{ currentIndex < questions.length - 1 ? "下一个" : "完成" }}
           </a-button>
         </div>
       </div>
 
       <!-- 完成提示 -->
-      <div
-        v-if="isCompleted"
-        class="interview-completed"
-      >
+      <div v-if="isCompleted" class="interview-completed">
         <CheckCircleOutlined class="completed-icon" />
         <span>所有问题已完成，正在生成任务计划...</span>
       </div>
@@ -179,11 +179,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick } from "vue";
 import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   message: {
@@ -192,42 +192,46 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['answer', 'skip', 'complete']);
+const emit = defineEmits(["answer", "skip", "complete"]);
 
 // 响应式状态
-const currentAnswer = ref('');              // 传统文本框答案
-const selectedOption = ref(null);           // 当前选中的选项值（单选）
-const selectedOptions = ref([]);            // 当前选中的选项值数组（多选）
-const additionalInput = ref('');            // 补充说明文本
+const currentAnswer = ref(""); // 传统文本框答案
+const selectedOption = ref(null); // 当前选中的选项值（单选）
+const selectedOptions = ref([]); // 当前选中的选项值数组（多选）
+const additionalInput = ref(""); // 补充说明文本
 
 const questions = computed(() => props.message.metadata?.questions || []);
 const currentIndex = computed(() => props.message.metadata?.currentIndex || 0);
 const answers = computed(() => props.message.metadata?.answers || {});
 
 // 🔥 监听 currentIndex 变化，重置输入状态
-watch(currentIndex, (newIndex, oldIndex) => {
-  // 当问题切换时，重置所有输入状态
-  if (newIndex !== oldIndex) {
-    currentAnswer.value = '';
-    selectedOption.value = null;
-    selectedOptions.value = [];
-    additionalInput.value = '';
-  }
-}, { immediate: false });
+watch(
+  currentIndex,
+  (newIndex, oldIndex) => {
+    // 当问题切换时，重置所有输入状态
+    if (newIndex !== oldIndex) {
+      currentAnswer.value = "";
+      selectedOption.value = null;
+      selectedOptions.value = [];
+      additionalInput.value = "";
+    }
+  },
+  { immediate: false },
+);
 
 const currentQuestion = computed(() => {
   return questions.value[currentIndex.value] || null;
 });
 
 const answeredQuestions = computed(() => {
-  if (!questions.value.length) {return [];}
+  if (!questions.value.length) {
+    return [];
+  }
 
-  return questions.value
-    .slice(0, currentIndex.value)
-    .map((q, index) => ({
-      question: q,
-      answer: answers.value[q.key],
-    }));
+  return questions.value.slice(0, currentIndex.value).map((q, index) => ({
+    question: q,
+    answer: answers.value[q.key],
+  }));
 });
 
 const isCompleted = computed(() => {
@@ -245,11 +249,18 @@ const isOptionSelected = (optionValue) => {
 
 // 提交按钮禁用逻辑
 const isSubmitDisabled = computed(() => {
-  if (!currentQuestion.value) {return true;}
-  if (!currentQuestion.value.required) {return false;}
+  if (!currentQuestion.value) {
+    return true;
+  }
+  if (!currentQuestion.value.required) {
+    return false;
+  }
 
   // 如果有选项：必须选择至少一个选项
-  if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
+  if (
+    currentQuestion.value.options &&
+    currentQuestion.value.options.length > 0
+  ) {
     // 多选题：检查是否至少选择了一个选项
     if (currentQuestion.value.multiSelect) {
       return selectedOptions.value.length === 0;
@@ -279,30 +290,37 @@ const handleSelectOption = (optionValue) => {
     selectedOption.value = optionValue;
     // 自动聚焦到补充输入框
     nextTick(() => {
-      const inputEl = document.querySelector('.additional-input textarea');
-      if (inputEl) {inputEl.focus();}
+      const inputEl = document.querySelector(".additional-input textarea");
+      if (inputEl) {
+        inputEl.focus();
+      }
     });
   }
 };
 
 const handleSubmitAnswer = () => {
-  if (!currentQuestion.value) {return;}
+  if (!currentQuestion.value) {
+    return;
+  }
 
   let answerData;
 
-  if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
+  if (
+    currentQuestion.value.options &&
+    currentQuestion.value.options.length > 0
+  ) {
     // 新格式：结构化答案
     if (currentQuestion.value.multiSelect) {
       // 多选答案格式
       answerData = {
         selectedOptions: [...selectedOptions.value],
-        additionalInput: additionalInput.value.trim()
+        additionalInput: additionalInput.value.trim(),
       };
     } else {
       // 单选答案格式
       answerData = {
         selectedOption: selectedOption.value,
-        additionalInput: additionalInput.value.trim()
+        additionalInput: additionalInput.value.trim(),
       };
     }
   } else {
@@ -310,7 +328,7 @@ const handleSubmitAnswer = () => {
     answerData = currentAnswer.value.trim();
   }
 
-  emit('answer', {
+  emit("answer", {
     questionKey: currentQuestion.value.key,
     answer: answerData,
     index: currentIndex.value,
@@ -320,9 +338,11 @@ const handleSubmitAnswer = () => {
 };
 
 const handleSkip = () => {
-  if (!currentQuestion.value) {return;}
+  if (!currentQuestion.value) {
+    return;
+  }
 
-  emit('skip', {
+  emit("skip", {
     questionKey: currentQuestion.value.key,
     index: currentIndex.value,
   });

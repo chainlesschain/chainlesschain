@@ -4,14 +4,13 @@
  * 展示多媒体处理控制台的各种功能
  */
 
-import { logger, createLogger } from '@/utils/logger';
-import type { Meta, StoryObj } from '@storybook/vue3';
-import MediaProcessor from './MediaProcessor.vue';
+import type { Meta, StoryObj } from "@storybook/vue3";
+import MediaProcessor from "./MediaProcessor.vue";
 
 const meta = {
-  title: 'Multimedia/MediaProcessor',
+  title: "Multimedia/MediaProcessor",
   component: MediaProcessor,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   parameters: {
     docs: {
       description: {
@@ -66,7 +65,7 @@ await multimediaAPI.batchOCR(imagePaths, {
         `,
       },
     },
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
 } satisfies Meta<typeof MediaProcessor>;
 
@@ -142,7 +141,7 @@ export const BatchOCR: Story = {
 export const MobileView: Story = {
   parameters: {
     viewport: {
-      defaultViewport: 'mobile1',
+      defaultViewport: "mobile1",
     },
   },
 };
@@ -153,7 +152,7 @@ export const MobileView: Story = {
 export const TabletView: Story = {
   parameters: {
     viewport: {
-      defaultViewport: 'tablet',
+      defaultViewport: "tablet",
     },
   },
 };

@@ -19,12 +19,7 @@
     />
 
     <!-- 路径信息 -->
-    <a-descriptions
-      :column="1"
-      bordered
-      size="small"
-      class="path-info"
-    >
+    <a-descriptions :column="1" bordered size="small" class="path-info">
       <a-descriptions-item label="团队 ID">
         <a-typography-text copyable>
           {{ requestData.teamId }}
@@ -92,10 +87,7 @@
     </div>
 
     <!-- 历史访问记录 -->
-    <div
-      v-if="auditLogs.length > 0"
-      class="audit-section"
-    >
+    <div v-if="auditLogs.length > 0" class="audit-section">
       <a-divider>历史访问记录</a-divider>
 
       <a-timeline size="small">
@@ -124,10 +116,7 @@
         </a-timeline-item>
       </a-timeline>
 
-      <div
-        v-if="auditLogs.length > 5"
-        class="more-logs"
-      >
+      <div v-if="auditLogs.length > 5" class="more-logs">
         还有 {{ auditLogs.length - 5 }} 条记录...
       </div>
     </div>
@@ -135,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
 import { message } from "ant-design-vue";
 import {
   EyeOutlined,
@@ -144,7 +133,7 @@ import {
 } from "@ant-design/icons-vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { logger, createLogger } from "@/utils/logger";
+import { createLogger } from "@/utils/logger";
 
 const permissionLogger = createLogger("file-permission");
 
@@ -338,7 +327,7 @@ function formatDate(timestamp) {
       locale: zhCN,
       addSuffix: true,
     });
-  } catch (error) {
+  } catch (_error) {
     return "-";
   }
 }

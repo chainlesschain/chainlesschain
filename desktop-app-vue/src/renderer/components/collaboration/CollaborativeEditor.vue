@@ -19,10 +19,7 @@
       </div>
 
       <div class="editor-actions">
-        <a-button
-          :loading="saving"
-          @click="saveSnapshot"
-        >
+        <a-button :loading="saving" @click="saveSnapshot">
           <SaveOutlined /> Save Version
         </a-button>
         <a-button @click="showVersionHistory">
@@ -35,10 +32,7 @@
     </div>
 
     <!-- Editor container -->
-    <div
-      ref="editorContainer"
-      class="editor-container"
-    >
+    <div ref="editorContainer" class="editor-container">
       <!-- Remote cursors -->
       <div
         v-for="user in activeUsers.filter((u) => u.clientId !== 'local')"
@@ -46,19 +40,13 @@
         class="remote-cursor"
         :style="getCursorStyle(user)"
       >
-        <div
-          class="cursor-flag"
-          :style="{ backgroundColor: user.color }"
-        >
+        <div class="cursor-flag" :style="{ backgroundColor: user.color }">
           {{ user.name }}
         </div>
       </div>
 
       <!-- Monaco Editor -->
-      <div
-        ref="monacoEditor"
-        class="monaco-editor-wrapper"
-      />
+      <div ref="monacoEditor" class="monaco-editor-wrapper" />
     </div>
 
     <!-- Version History Modal -->
@@ -80,16 +68,15 @@
           <div class="version-item">
             <div class="version-header">
               <strong>{{ formatDate(version.createdAt) }}</strong>
-              <span class="version-author">by {{ version.metadata.author }}</span>
+              <span class="version-author"
+                >by {{ version.metadata.author }}</span
+              >
             </div>
             <div class="version-description">
               {{ version.metadata.description || "No description" }}
             </div>
             <div class="version-actions">
-              <a-button
-                size="small"
-                @click="previewVersion(version.id)"
-              >
+              <a-button size="small" @click="previewVersion(version.id)">
                 Preview
               </a-button>
               <a-button
@@ -114,11 +101,7 @@
       width="400"
     >
       <div class="comments-list">
-        <div
-          v-for="comment in comments"
-          :key="comment.id"
-          class="comment-item"
-        >
+        <div v-for="comment in comments" :key="comment.id" class="comment-item">
           <div class="comment-header">
             <a-avatar :size="24">
               {{ comment.author_name.charAt(0) }}
@@ -194,7 +177,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { message } from "ant-design-vue";
 import {
   SaveOutlined,

@@ -6,11 +6,7 @@
         <CodeOutlined />
         智能代码片段
       </h4>
-      <a-button
-        type="text"
-        size="small"
-        @click="$emit('close')"
-      >
+      <a-button type="text" size="small" @click="$emit('close')">
         <CloseOutlined />
       </a-button>
     </div>
@@ -46,10 +42,7 @@
 
     <!-- 代码片段列表 -->
     <div class="snippets-list">
-      <div
-        v-if="filteredSnippets.length === 0"
-        class="snippets-empty"
-      >
+      <div v-if="filteredSnippets.length === 0" class="snippets-empty">
         <InboxOutlined style="font-size: 48px; color: #d9d9d9" />
         <p>未找到匹配的代码片段</p>
       </div>
@@ -66,10 +59,7 @@
             <span>{{ snippet.title }}</span>
           </div>
           <a-space>
-            <a-tag
-              :color="getCategoryColor(snippet.category)"
-              size="small"
-            >
+            <a-tag :color="getCategoryColor(snippet.category)" size="small">
               {{ getCategoryLabel(snippet.category) }}
             </a-tag>
             <a-tooltip title="复制代码">
@@ -119,11 +109,7 @@
 
     <!-- 添加自定义片段按钮 -->
     <div class="snippets-actions">
-      <a-button
-        type="dashed"
-        block
-        @click="handleAddSnippet"
-      >
+      <a-button type="dashed" block @click="handleAddSnippet">
         <PlusOutlined />
         添加自定义片段
       </a-button>
@@ -137,14 +123,8 @@
       @ok="handleSaveSnippet"
       @cancel="handleCancelSnippet"
     >
-      <a-form
-        :model="snippetForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="标题"
-          required
-        >
+      <a-form :model="snippetForm" layout="vertical">
+        <a-form-item label="标题" required>
           <a-input
             v-model:value="snippetForm.title"
             placeholder="输入片段标题"
@@ -159,14 +139,8 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="分类"
-          required
-        >
-          <a-select
-            v-model:value="snippetForm.category"
-            placeholder="选择分类"
-          >
+        <a-form-item label="分类" required>
+          <a-select v-model:value="snippetForm.category" placeholder="选择分类">
             <a-select-option
               v-for="category in categories"
               :key="category.key"
@@ -177,42 +151,19 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="语言"
-          required
-        >
-          <a-select
-            v-model:value="snippetForm.language"
-            placeholder="选择语言"
-          >
-            <a-select-option value="javascript">
-              JavaScript
-            </a-select-option>
-            <a-select-option value="typescript">
-              TypeScript
-            </a-select-option>
-            <a-select-option value="vue">
-              Vue
-            </a-select-option>
-            <a-select-option value="python">
-              Python
-            </a-select-option>
-            <a-select-option value="java">
-              Java
-            </a-select-option>
-            <a-select-option value="css">
-              CSS
-            </a-select-option>
-            <a-select-option value="html">
-              HTML
-            </a-select-option>
+        <a-form-item label="语言" required>
+          <a-select v-model:value="snippetForm.language" placeholder="选择语言">
+            <a-select-option value="javascript"> JavaScript </a-select-option>
+            <a-select-option value="typescript"> TypeScript </a-select-option>
+            <a-select-option value="vue"> Vue </a-select-option>
+            <a-select-option value="python"> Python </a-select-option>
+            <a-select-option value="java"> Java </a-select-option>
+            <a-select-option value="css"> CSS </a-select-option>
+            <a-select-option value="html"> HTML </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="代码"
-          required
-        >
+        <a-form-item label="代码" required>
           <a-textarea
             v-model:value="snippetForm.code"
             placeholder="输入代码"
@@ -228,7 +179,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import {
   CodeOutlined,
   CloseOutlined,
@@ -486,7 +437,7 @@ const handleCopySnippet = async (snippet) => {
     await navigator.clipboard.writeText(snippet.code);
     message.success("代码已复制到剪贴板");
     snippet.usageCount++;
-  } catch (error) {
+  } catch (_error) {
     message.error("复制失败");
   }
 };

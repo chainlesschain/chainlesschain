@@ -5,24 +5,22 @@
       <div class="header-left">
         <h1>
           <RobotOutlined />
-          {{ isEditing ? '编辑代理模板' : '创建代理模板' }}
+          {{ isEditing ? "编辑代理模板" : "创建代理模板" }}
         </h1>
         <p class="page-description">
-          {{ isEditing ? '修改现有代理模板的配置和行为' : '定义新的代理模板，配置能力和工具' }}
+          {{
+            isEditing
+              ? "修改现有代理模板的配置和行为"
+              : "定义新的代理模板，配置能力和工具"
+          }}
         </p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button @click="handleCancel">
-            取消
-          </a-button>
-          <a-button
-            type="primary"
-            :loading="saving"
-            @click="handleSave"
-          >
+          <a-button @click="handleCancel"> 取消 </a-button>
+          <a-button type="primary" :loading="saving" @click="handleSave">
             <SaveOutlined />
-            {{ isEditing ? '保存修改' : '创建模板' }}
+            {{ isEditing ? "保存修改" : "创建模板" }}
           </a-button>
         </a-space>
       </div>
@@ -41,10 +39,7 @@
           <a-row :gutter="24">
             <!-- 左栏 -->
             <a-col :span="12">
-              <a-form-item
-                label="模板名称"
-                name="name"
-              >
+              <a-form-item label="模板名称" name="name">
                 <a-input
                   v-model:value="formState.name"
                   placeholder="请输入代理模板名称"
@@ -53,10 +48,7 @@
                 />
               </a-form-item>
 
-              <a-form-item
-                label="代理类型"
-                name="type"
-              >
+              <a-form-item label="代理类型" name="type">
                 <a-select
                   v-model:value="formState.type"
                   placeholder="请选择代理类型"
@@ -71,33 +63,24 @@
                 </a-select>
               </a-form-item>
 
-              <a-form-item
-                label="版本号"
-                name="version"
-              >
+              <a-form-item label="版本号" name="version">
                 <a-input
                   v-model:value="formState.version"
                   placeholder="例如 1.0.0"
                 />
               </a-form-item>
 
-              <a-form-item
-                label="启用状态"
-                name="enabled"
-              >
+              <a-form-item label="启用状态" name="enabled">
                 <a-switch v-model:checked="formState.enabled" />
                 <span class="switch-label">
-                  {{ formState.enabled ? '已启用' : '已禁用' }}
+                  {{ formState.enabled ? "已启用" : "已禁用" }}
                 </span>
               </a-form-item>
             </a-col>
 
             <!-- 右栏 -->
             <a-col :span="12">
-              <a-form-item
-                label="描述"
-                name="description"
-              >
+              <a-form-item label="描述" name="description">
                 <a-textarea
                   v-model:value="formState.description"
                   placeholder="简要描述该代理模板的功能和用途"
@@ -107,10 +90,7 @@
                 />
               </a-form-item>
 
-              <a-form-item
-                label="能力标签"
-                name="capabilities"
-              >
+              <a-form-item label="能力标签" name="capabilities">
                 <a-select
                   v-model:value="capabilitiesList"
                   mode="tags"
@@ -127,10 +107,7 @@
                 </a-select>
               </a-form-item>
 
-              <a-form-item
-                label="工具列表"
-                name="tools"
-              >
+              <a-form-item label="工具列表" name="tools">
                 <a-select
                   v-model:value="toolsList"
                   mode="tags"
@@ -150,10 +127,7 @@
           </a-row>
 
           <!-- 系统提示词 - 全宽 -->
-          <a-form-item
-            label="系统提示词"
-            name="system_prompt"
-          >
+          <a-form-item label="系统提示词" name="system_prompt">
             <a-textarea
               v-model:value="formState.system_prompt"
               placeholder="定义代理的系统提示词，指导其行为和回复方式..."
@@ -170,18 +144,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import type { FormInstance, Rule } from 'ant-design-vue/es/form';
-import {
-  RobotOutlined,
-  SaveOutlined,
-} from '@ant-design/icons-vue';
-import { useAgentsStore, type AgentTemplate } from '@/stores/agents';
-import { logger, createLogger } from '@/utils/logger';
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import type { FormInstance, Rule } from "ant-design-vue/es/form";
+import { RobotOutlined, SaveOutlined } from "@ant-design/icons-vue";
+import { useAgentsStore, type AgentTemplate } from "@/stores/agents";
+import { createLogger } from "@/utils/logger";
 
-const pageLogger = createLogger('agent-template-editor');
+const pageLogger = createLogger("agent-template-editor");
 
 const route = useRoute();
 const router = useRouter();
@@ -197,11 +168,11 @@ const templateId = computed(() => route.params.id as string | undefined);
 const isEditing = computed(() => !!templateId.value);
 
 const formState = reactive({
-  name: '',
-  type: '',
-  description: '',
-  version: '1.0.0',
-  system_prompt: '',
+  name: "",
+  type: "",
+  description: "",
+  version: "1.0.0",
+  system_prompt: "",
   enabled: true,
 });
 
@@ -211,65 +182,74 @@ const toolsList = ref<string[]>([]);
 // ==================== 配置 ====================
 
 const agentTypes = [
-  { value: 'code-review', label: '代码审查' },
-  { value: 'code-generation', label: '代码生成' },
-  { value: 'data-analysis', label: '数据分析' },
-  { value: 'document-writer', label: '文档撰写' },
-  { value: 'research', label: '调研分析' },
-  { value: 'testing', label: '测试工程' },
-  { value: 'devops', label: '运维部署' },
-  { value: 'general', label: '通用代理' },
-  { value: 'custom', label: '自定义' },
+  { value: "code-review", label: "代码审查" },
+  { value: "code-generation", label: "代码生成" },
+  { value: "data-analysis", label: "数据分析" },
+  { value: "document-writer", label: "文档撰写" },
+  { value: "research", label: "调研分析" },
+  { value: "testing", label: "测试工程" },
+  { value: "devops", label: "运维部署" },
+  { value: "general", label: "通用代理" },
+  { value: "custom", label: "自定义" },
 ];
 
 const suggestedCapabilities = [
-  'code-analysis',
-  'code-generation',
-  'code-review',
-  'testing',
-  'documentation',
-  'data-analysis',
-  'web-search',
-  'file-operations',
-  'git-operations',
-  'database-query',
-  'api-integration',
-  'natural-language',
+  "code-analysis",
+  "code-generation",
+  "code-review",
+  "testing",
+  "documentation",
+  "data-analysis",
+  "web-search",
+  "file-operations",
+  "git-operations",
+  "database-query",
+  "api-integration",
+  "natural-language",
 ];
 
 const suggestedTools = [
-  'read-file',
-  'write-file',
-  'search-code',
-  'run-command',
-  'git-commit',
-  'git-diff',
-  'database-query',
-  'web-fetch',
-  'analyze-code',
-  'generate-test',
-  'lint-code',
-  'format-code',
+  "read-file",
+  "write-file",
+  "search-code",
+  "run-command",
+  "git-commit",
+  "git-diff",
+  "database-query",
+  "web-fetch",
+  "analyze-code",
+  "generate-test",
+  "lint-code",
+  "format-code",
 ];
 
 const formRules: Record<string, Rule[]> = {
   name: [
-    { required: true, message: '请输入模板名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '名称长度应在 2-100 个字符之间', trigger: 'blur' },
+    { required: true, message: "请输入模板名称", trigger: "blur" },
+    {
+      min: 2,
+      max: 100,
+      message: "名称长度应在 2-100 个字符之间",
+      trigger: "blur",
+    },
   ],
-  type: [
-    { required: true, message: '请选择代理类型', trigger: 'change' },
-  ],
+  type: [{ required: true, message: "请选择代理类型", trigger: "change" }],
   version: [
-    { required: true, message: '请输入版本号', trigger: 'blur' },
-    { pattern: /^\d+\.\d+\.\d+$/, message: '版本号格式应为 x.y.z', trigger: 'blur' },
+    { required: true, message: "请输入版本号", trigger: "blur" },
+    {
+      pattern: /^\d+\.\d+\.\d+$/,
+      message: "版本号格式应为 x.y.z",
+      trigger: "blur",
+    },
   ],
 };
 
 // ==================== 方法 ====================
 
 async function loadTemplate() {
-  if (!templateId.value) {return;}
+  if (!templateId.value) {
+    return;
+  }
 
   loadingTemplate.value = true;
   try {
@@ -277,9 +257,9 @@ async function loadTemplate() {
     if (template) {
       formState.name = template.name;
       formState.type = template.type;
-      formState.description = template.description || '';
+      formState.description = template.description || "";
       formState.version = template.version;
-      formState.system_prompt = template.system_prompt || '';
+      formState.system_prompt = template.system_prompt || "";
       formState.enabled = template.enabled;
 
       // 解析 capabilities 和 tools (以 JSON 字符串或逗号分隔存储)
@@ -289,28 +269,32 @@ async function loadTemplate() {
           : [];
       } catch {
         capabilitiesList.value = template.capabilities
-          ? template.capabilities.split(',').map((s: string) => s.trim()).filter(Boolean)
+          ? template.capabilities
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
       }
 
       try {
-        toolsList.value = template.tools
-          ? JSON.parse(template.tools)
-          : [];
+        toolsList.value = template.tools ? JSON.parse(template.tools) : [];
       } catch {
         toolsList.value = template.tools
-          ? template.tools.split(',').map((s: string) => s.trim()).filter(Boolean)
+          ? template.tools
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
           : [];
       }
 
       pageLogger.info(`加载模板成功: ${template.name}`);
     } else {
-      message.error('未找到指定的模板');
+      message.error("未找到指定的模板");
       router.back();
     }
   } catch (error) {
-    pageLogger.error('加载模板失败:', error);
-    message.error('加载模板失败: ' + (error as Error).message);
+    pageLogger.error("加载模板失败:", error);
+    message.error("加载模板失败: " + (error as Error).message);
   } finally {
     loadingTemplate.value = false;
   }
@@ -320,7 +304,7 @@ async function handleSave() {
   try {
     await formRef.value?.validate();
   } catch {
-    message.warning('请检查表单中的必填项');
+    message.warning("请检查表单中的必填项");
     return;
   }
 
@@ -338,25 +322,28 @@ async function handleSave() {
     };
 
     if (isEditing.value && templateId.value) {
-      const success = await agentsStore.updateTemplate(templateId.value, templateData);
+      const success = await agentsStore.updateTemplate(
+        templateId.value,
+        templateData,
+      );
       if (success) {
-        message.success('模板更新成功');
+        message.success("模板更新成功");
         router.back();
       } else {
-        message.error(agentsStore.error || '更新失败');
+        message.error(agentsStore.error || "更新失败");
       }
     } else {
       const created = await agentsStore.createTemplate(templateData);
       if (created) {
-        message.success('模板创建成功');
+        message.success("模板创建成功");
         router.back();
       } else {
-        message.error(agentsStore.error || '创建失败');
+        message.error(agentsStore.error || "创建失败");
       }
     }
   } catch (error) {
-    pageLogger.error('保存模板失败:', error);
-    message.error('保存失败: ' + (error as Error).message);
+    pageLogger.error("保存模板失败:", error);
+    message.error("保存失败: " + (error as Error).message);
   } finally {
     saving.value = false;
   }
@@ -369,7 +356,9 @@ function handleCancel() {
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
-  pageLogger.info('AgentTemplateEditorPage 挂载', { templateId: templateId.value });
+  pageLogger.info("AgentTemplateEditorPage 挂载", {
+    templateId: templateId.value,
+  });
   if (isEditing.value) {
     await loadTemplate();
   }
@@ -426,7 +415,8 @@ onMounted(async () => {
       }
 
       .system-prompt-input {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
         font-size: 13px;
         line-height: 1.6;
       }

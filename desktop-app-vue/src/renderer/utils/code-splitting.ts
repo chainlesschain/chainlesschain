@@ -10,9 +10,12 @@
  * - Bundle size tracking
  */
 
-import { logger } from '@/utils/logger';
-import { defineAsyncComponent, type Component, type AsyncComponentLoader } from 'vue';
-import { prefetch } from './resource-hints';
+import { logger } from "@/utils/logger";
+import {
+  defineAsyncComponent,
+  type Component,
+  type AsyncComponentLoader,
+} from "vue";
 
 // ==================== 类型定义 ====================
 
@@ -57,7 +60,15 @@ export interface LazyLoadOptions {
 /**
  * 懒加载路由选项
  */
-export interface LazyRouteOptions extends Omit<LazyLoadOptions, 'loadingComponent' | 'errorComponent' | 'delay' | 'timeout' | 'prefetchOnHover' | 'prefetchOnViewport'> {
+export interface LazyRouteOptions extends Omit<
+  LazyLoadOptions,
+  | "loadingComponent"
+  | "errorComponent"
+  | "delay"
+  | "timeout"
+  | "prefetchOnHover"
+  | "prefetchOnViewport"
+> {
   [key: string]: unknown;
 }
 
@@ -131,7 +142,7 @@ export interface ProgressiveLoaderItem {
 /**
  * 优先级级别
  */
-export type PriorityLevel = 'high' | 'normal' | 'low';
+export type PriorityLevel = "high" | "normal" | "low";
 
 // ==================== 全局类型扩展 ====================
 
@@ -153,7 +164,7 @@ declare global {
  */
 export function lazyLoad(
   loader: AsyncComponentLoader,
-  options: LazyLoadOptions = {}
+  options: LazyLoadOptions = {},
 ): AsyncComponentWithMetadata {
   const {
     loadingComponent = null,
@@ -162,7 +173,7 @@ export function lazyLoad(
     timeout = 30000,
     retryAttempts = 3,
     retryDelay = 1000,
-    chunkName = 'async-component',
+    chunkName = "async-component",
     prefetchOnHover = false,
     prefetchOnViewport = false,
     onLoaded = null,
@@ -183,14 +194,19 @@ export function lazyLoad(
       logger.info(`[CodeSplitting] Component loaded: ${chunkName}`);
       return component;
     } catch (error) {
-      logger.error(`[CodeSplitting] Load failed (attempt ${retryCount + 1}/${retryAttempts}):`, {
-        chunkName,
-        error,
-      });
+      logger.error(
+        `[CodeSplitting] Load failed (attempt ${retryCount + 1}/${retryAttempts}):`,
+        {
+          chunkName,
+          error,
+        },
+      );
 
       if (retryCount < retryAttempts - 1) {
         retryCount++;
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * retryCount));
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * retryCount),
+        );
         return loaderWithRetry();
       }
 
@@ -212,13 +228,20 @@ export function lazyLoad(
 
     // Handle loading errors
     onError(error, retry, fail, attempts) {
-      logger.error(`[CodeSplitting] Error loading ${chunkName} (attempt ${attempts}):`, { error });
+      logger.error(
+        `[CodeSplitting] Error loading ${chunkName} (attempt ${attempts}):`,
+        { error },
+      );
 
       if (attempts <= retryAttempts) {
-        logger.info(`[CodeSplitting] Retrying... (${attempts}/${retryAttempts})`);
+        logger.info(
+          `[CodeSplitting] Retrying... (${attempts}/${retryAttempts})`,
+        );
         setTimeout(() => retry(), retryDelay * attempts);
       } else {
-        logger.error(`[CodeSplitting] Failed to load ${chunkName} after ${retryAttempts} attempts`);
+        logger.error(
+          `[CodeSplitting] Failed to load ${chunkName} after ${retryAttempts} attempts`,
+        );
         fail();
       }
     },
@@ -242,7 +265,7 @@ export function lazyLoad(
  */
 export function lazyRoute(
   loader: () => Promise<Component>,
-  options: LazyRouteOptions = {}
+  options: LazyRouteOptions = {},
 ): LazyRouteComponent {
   const {
     chunkName,
@@ -252,7 +275,7 @@ export function lazyRoute(
     onError = null,
   } = options;
 
-  const resolvedChunkName = chunkName || 'route';
+  const resolvedChunkName = chunkName || "route";
   let retryCount = 0;
 
   const loaderWithRetry = async (): Promise<Component> => {
@@ -268,12 +291,14 @@ export function lazyRoute(
     } catch (error) {
       logger.error(
         `[CodeSplitting] Route load failed (attempt ${retryCount + 1}/${retryAttempts}):`,
-        { chunkName: resolvedChunkName, error }
+        { chunkName: resolvedChunkName, error },
       );
 
       if (retryCount < retryAttempts - 1) {
         retryCount++;
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * retryCount));
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * retryCount),
+        );
         return loaderWithRetry();
       }
 
@@ -301,7 +326,7 @@ export function lazyRoute(
  */
 export function prefetchComponent(
   loader: () => Promise<Component>,
-  chunkName: string = 'component'
+  chunkName: string = "component",
 ): void {
   logger.info(`[CodeSplitting] Prefetching: ${chunkName}`);
 
@@ -321,14 +346,14 @@ export function prefetchComponent(
  */
 export function createRouteGroup(
   groupName: string,
-  routes: RouteGroupRoutes
+  routes: RouteGroupRoutes,
 ): Record<string, LazyRouteComponent> {
   const groupedRoutes: Record<string, LazyRouteComponent> = {};
 
   Object.keys(routes).forEach((key) => {
     const route = routes[key];
-    const loader = typeof route === 'function' ? route : route.loader;
-    const routeOptions = typeof route === 'function' ? {} : route.options || {};
+    const loader = typeof route === "function" ? route : route.loader;
+    const routeOptions = typeof route === "function" ? {} : route.options || {};
 
     if (loader) {
       groupedRoutes[key] = lazyRoute(loader, {
@@ -351,7 +376,8 @@ export function createRouteGroup(
 export function trackBundleSize(chunkName: string, size: number): void {
   if (import.meta.env.DEV) {
     const sizeKB = (size / 1024).toFixed(2);
-    const sizeColor = size > 100 * 1024 ? 'red' : size > 50 * 1024 ? 'orange' : 'green';
+    const sizeColor =
+      size > 100 * 1024 ? "red" : size > 50 * 1024 ? "orange" : "green";
 
     logger.info(`[BundleSize] ${chunkName}: ${sizeKB} KB (${sizeColor})`);
 
@@ -372,7 +398,7 @@ export function trackBundleSize(chunkName: string, size: number): void {
  */
 export function getBundleSizeReport(): BundleSizeReport {
   if (!window.__BUNDLE_SIZE_TRACKER__) {
-    return { chunks: {}, total: 0, totalKB: '0', totalMB: '0' };
+    return { chunks: {}, total: 0, totalKB: "0", totalMB: "0" };
   }
 
   const chunks = window.__BUNDLE_SIZE_TRACKER__;
@@ -396,9 +422,9 @@ export function getBundleSizeReport(): BundleSizeReport {
  */
 export function smartLoad(
   loader: () => Promise<Component>,
-  options: SmartLoadOptions = {}
+  options: SmartLoadOptions = {},
 ): SmartComponent {
-  const { prefetchDelay = 100, chunkName = 'smart-component' } = options;
+  const { prefetchDelay = 100, chunkName = "smart-component" } = options;
 
   let prefetched = false;
   let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -414,7 +440,7 @@ export function smartLoad(
       return;
     }
 
-    element.addEventListener('mouseenter', () => {
+    element.addEventListener("mouseenter", () => {
       if (prefetched) {
         return;
       }
@@ -425,7 +451,7 @@ export function smartLoad(
       }, prefetchDelay);
     });
 
-    element.addEventListener('mouseleave', () => {
+    element.addEventListener("mouseleave", () => {
       if (hoverTimeout) {
         clearTimeout(hoverTimeout);
         hoverTimeout = null;
@@ -450,7 +476,7 @@ export function smartLoad(
       },
       {
         threshold: 0.1,
-      }
+      },
     );
 
     observer.observe(element);
@@ -481,10 +507,14 @@ export class ProgressiveLoader {
    */
   add(
     loader: () => Promise<Component>,
-    priority: PriorityLevel = 'normal',
-    chunkName: string = 'component'
+    priority: PriorityLevel = "normal",
+    chunkName: string = "component",
   ): void {
-    const priorityMap: Record<PriorityLevel, number> = { high: 3, normal: 2, low: 1 };
+    const priorityMap: Record<PriorityLevel, number> = {
+      high: 3,
+      normal: 2,
+      low: 1,
+    };
 
     this.queue.push({
       loader,
@@ -518,7 +548,9 @@ export class ProgressiveLoader {
     }
 
     try {
-      logger.info(`[ProgressiveLoader] Loading: ${item.chunkName} (priority: ${item.priority})`);
+      logger.info(
+        `[ProgressiveLoader] Loading: ${item.chunkName} (priority: ${item.priority})`,
+      );
       await item.loader();
       this.loaded.add(item.chunkName);
       logger.info(`[ProgressiveLoader] Loaded: ${item.chunkName}`);

@@ -21,10 +21,7 @@
               :key="index"
               class="image-preview"
             >
-              <img
-                :src="image"
-                alt="预览图"
-              >
+              <img :src="image" alt="预览图" />
               <a-button
                 type="text"
                 danger
@@ -49,19 +46,10 @@
         </a-form-item>
 
         <!-- 链接分享 -->
-        <a-collapse
-          v-model:active-key="linkCollapse"
-          ghost
-        >
-          <a-collapse-panel
-            key="link"
-            header="添加链接"
-          >
+        <a-collapse v-model:active-key="linkCollapse" ghost>
+          <a-collapse-panel key="link" header="添加链接">
             <a-form-item label="链接 URL">
-              <a-input
-                v-model:value="linkUrl"
-                placeholder="https://..."
-              />
+              <a-input v-model:value="linkUrl" placeholder="https://..." />
             </a-form-item>
             <a-form-item label="链接标题">
               <a-input
@@ -81,10 +69,7 @@
 
         <!-- 可见性设置 -->
         <a-form-item label="可见性">
-          <a-radio-group
-            v-model:value="visibility"
-            button-style="solid"
-          >
+          <a-radio-group v-model:value="visibility" button-style="solid">
             <a-radio-button value="public">
               <global-outlined /> 公开
             </a-radio-button>
@@ -110,16 +95,8 @@
               </template>
               {{ editing ? "保存" : "发布" }}
             </a-button>
-            <a-button @click="handleCancel">
-              取消
-            </a-button>
-            <a-button
-              type="text"
-              danger
-              @click="handleClear"
-            >
-              清空
-            </a-button>
+            <a-button @click="handleCancel"> 取消 </a-button>
+            <a-button type="text" danger @click="handleClear"> 清空 </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -130,7 +107,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed } from "vue";
+import { ref } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import {
   PlusOutlined,

@@ -6,10 +6,7 @@
         <h3 class="task-title">
           {{ taskPlan.task_title }}
         </h3>
-        <a-tag
-          :color="getStatusColor(taskPlan.status)"
-          class="status-tag"
-        >
+        <a-tag :color="getStatusColor(taskPlan.status)" class="status-tag">
           {{ getStatusText(taskPlan.status) }}
         </a-tag>
       </div>
@@ -21,11 +18,10 @@
           :show-info="true"
         />
         <div class="progress-info">
-          <span class="step-counter">步骤 {{ taskPlan.current_step }}/{{ taskPlan.total_steps }}</span>
-          <span
-            v-if="duration"
-            class="duration"
-          >{{ duration }}</span>
+          <span class="step-counter"
+            >步骤 {{ taskPlan.current_step }}/{{ taskPlan.total_steps }}</span
+          >
+          <span v-if="duration" class="duration">{{ duration }}</span>
         </div>
       </div>
     </div>
@@ -35,25 +31,28 @@
       <!-- AI回复消息 -->
       <div class="ai-message">
         <div class="message-content">
-          {{ taskPlan.ai_response || '这个要求非常清晰！我这就帮你将PPT的第1页内容整体和机构附件保持一致。' }}
+          {{
+            taskPlan.ai_response ||
+            "这个要求非常清晰！我这就帮你将PPT的第1页内容整体和机构附件保持一致。"
+          }}
         </div>
 
         <!-- 步骤折叠面板 -->
         <div class="steps-collapse-panel">
-          <div
-            class="steps-header"
-            @click="toggleAllSteps"
-          >
-            <CaretRightOutlined :class="['collapse-icon', { expanded: allStepsExpanded }]" />
-            <span class="steps-count">{{ taskPlan.total_steps || taskPlan.subtasks?.length || 0 }}个步骤</span>
+          <div class="steps-header" @click="toggleAllSteps">
+            <CaretRightOutlined
+              :class="['collapse-icon', { expanded: allStepsExpanded }]"
+            />
+            <span class="steps-count"
+              >{{
+                taskPlan.total_steps || taskPlan.subtasks?.length || 0
+              }}个步骤</span
+            >
           </div>
 
           <!-- 展开后的步骤列表 -->
           <transition name="slide">
-            <div
-              v-show="allStepsExpanded"
-              class="steps-list"
-            >
+            <div v-show="allStepsExpanded" class="steps-list">
               <div
                 v-for="subtask in taskPlan.subtasks"
                 :key="subtask.id"
@@ -62,26 +61,20 @@
                 <div class="step-icon">
                   <CheckCircleOutlined
                     v-if="subtask.status === 'completed'"
-                    style="color: #52c41a;"
+                    style="color: #52c41a"
                   />
                   <LoadingOutlined
                     v-else-if="subtask.status === 'in_progress'"
                     spin
-                    style="color: #1677FF;"
+                    style="color: #1677ff"
                   />
-                  <ClockCircleOutlined
-                    v-else
-                    style="color: #d9d9d9;"
-                  />
+                  <ClockCircleOutlined v-else style="color: #d9d9d9" />
                 </div>
                 <div class="step-content">
                   <div class="step-title">
                     {{ subtask.title }}
                   </div>
-                  <div
-                    v-if="subtask.description"
-                    class="step-description"
-                  >
+                  <div v-if="subtask.description" class="step-description">
                     {{ subtask.description }}
                   </div>
                 </div>
@@ -91,10 +84,7 @@
         </div>
 
         <!-- 附件文件展示 -->
-        <div
-          v-if="completedFiles.length > 0"
-          class="attachments-section"
-        >
+        <div v-if="completedFiles.length > 0" class="attachments-section">
           <div
             v-for="file in completedFiles"
             :key="file.path"
@@ -102,19 +92,13 @@
             @click="handleFileClick(file.path, file.subtask)"
           >
             <div class="file-icon-wrapper">
-              <FileIcon
-                :filename="file.name"
-                size="large"
-              />
+              <FileIcon :filename="file.name" size="large" />
             </div>
             <div class="file-info">
               <div class="file-name">
                 {{ file.name }}
               </div>
-              <div
-                v-if="file.hint"
-                class="file-hint"
-              >
+              <div v-if="file.hint" class="file-hint">
                 {{ file.hint }}
               </div>
             </div>
@@ -132,13 +116,8 @@
       </div>
 
       <!-- AI建议的后续问题 -->
-      <div
-        v-if="suggestedQuestions.length > 0"
-        class="ai-suggestions"
-      >
-        <div class="suggestions-label">
-          对第1页进行变更：
-        </div>
+      <div v-if="suggestedQuestions.length > 0" class="ai-suggestions">
+        <div class="suggestions-label">对第1页进行变更：</div>
         <div class="suggestions-list">
           <div
             v-for="(question, index) in suggestedQuestions"
@@ -153,20 +132,14 @@
     </div>
 
     <!-- 原有的子任务列表（可选，用于详细调试） -->
-    <div
-      v-if="showDetailedView"
-      class="subtasks-container"
-    >
+    <div v-if="showDetailedView" class="subtasks-container">
       <div
         v-for="subtask in taskPlan.subtasks"
         :key="subtask.id"
         :class="['subtask-item', `status-${subtask.status}`]"
       >
         <!-- 子任务头部 -->
-        <div
-          class="subtask-header"
-          @click="toggleSubtask(subtask.id)"
-        >
+        <div class="subtask-header" @click="toggleSubtask(subtask.id)">
           <div class="subtask-left">
             <a-badge
               :status="getBadgeStatus(subtask.status)"
@@ -176,14 +149,14 @@
           </div>
 
           <div class="subtask-right">
-            <span
-              v-if="subtask.tool"
-              class="subtask-tool"
-            >
+            <span v-if="subtask.tool" class="subtask-tool">
               <ToolOutlined /> {{ getToolLabel(subtask.tool) }}
             </span>
             <CaretDownOutlined
-              :class="['expand-icon', { expanded: expandedSubtasks.has(subtask.id) }]"
+              :class="[
+                'expand-icon',
+                { expanded: expandedSubtasks.has(subtask.id) },
+              ]"
             />
           </div>
         </div>
@@ -195,10 +168,7 @@
             class="subtask-details"
           >
             <!-- 描述 -->
-            <div
-              v-if="subtask.description"
-              class="subtask-description"
-            >
+            <div v-if="subtask.description" class="subtask-description">
               {{ subtask.description }}
             </div>
 
@@ -207,9 +177,7 @@
               v-if="subtask.status === 'in_progress' && subtask.command"
               class="executing-command"
             >
-              <div class="command-label">
-                <LoadingOutlined spin /> 正在执行
-              </div>
+              <div class="command-label"><LoadingOutlined spin /> 正在执行</div>
               <div class="command-box">
                 <pre class="command-text">{{ subtask.command }}</pre>
                 <a-button
@@ -225,11 +193,13 @@
 
             <!-- 完成后的结果文件 -->
             <div
-              v-if="subtask.status === 'completed' && subtask.output_files?.length"
+              v-if="
+                subtask.status === 'completed' && subtask.output_files?.length
+              "
               class="output-files"
             >
               <div class="output-label">
-                <CheckCircleOutlined style="color: #52c41a;" /> 输出文件
+                <CheckCircleOutlined style="color: #52c41a" /> 输出文件
               </div>
               <div class="files-list">
                 <div
@@ -250,9 +220,7 @@
               v-if="subtask.result && subtask.status === 'completed'"
               class="subtask-result"
             >
-              <div class="result-label">
-                执行结果
-              </div>
+              <div class="result-label">执行结果</div>
               <div class="result-content">
                 <template v-if="typeof subtask.result === 'string'">
                   {{ subtask.result }}
@@ -261,7 +229,9 @@
                   <pre class="result-text">{{ subtask.result.content }}</pre>
                 </template>
                 <template v-else>
-                  <pre class="result-json">{{ JSON.stringify(subtask.result, null, 2) }}</pre>
+                  <pre class="result-json">{{
+                    JSON.stringify(subtask.result, null, 2)
+                  }}</pre>
                 </template>
               </div>
             </div>
@@ -271,22 +241,18 @@
               v-if="subtask.status === 'failed' && subtask.error"
               class="subtask-error"
             >
-              <CloseCircleOutlined style="color: #ff4d4f;" />
+              <CloseCircleOutlined style="color: #ff4d4f" />
               <span class="error-message">{{ subtask.error }}</span>
             </div>
 
             <!-- 时间信息 -->
-            <div
-              v-if="subtask.started_at"
-              class="subtask-time"
-            >
+            <div v-if="subtask.started_at" class="subtask-time">
               <ClockCircleOutlined />
               <span v-if="subtask.completed_at">
-                耗时: {{ formatDuration(subtask.completed_at - subtask.started_at) }}
+                耗时:
+                {{ formatDuration(subtask.completed_at - subtask.started_at) }}
               </span>
-              <span v-else>
-                开始于: {{ formatTime(subtask.started_at) }}
-              </span>
+              <span v-else> 开始于: {{ formatTime(subtask.started_at) }} </span>
             </div>
           </div>
         </transition>
@@ -294,10 +260,7 @@
     </div>
 
     <!-- 底部操作栏 -->
-    <div
-      v-if="showActions"
-      class="task-footer"
-    >
+    <div v-if="showActions" class="task-footer">
       <a-space>
         <a-button
           v-if="taskPlan.status === 'in_progress'"
@@ -315,24 +278,19 @@
           <FolderOpenOutlined /> 查看结果
         </a-button>
 
-        <a-button
-          v-if="taskPlan.status === 'failed'"
-          @click="handleRetry"
-        >
+        <a-button v-if="taskPlan.status === 'failed'" @click="handleRetry">
           <ReloadOutlined /> 重试
         </a-button>
 
-        <a-button @click="handleClose">
-          关闭
-        </a-button>
+        <a-button @click="handleClose"> 关闭 </a-button>
       </a-space>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   ToolOutlined,
   CaretDownOutlined,
@@ -346,25 +304,33 @@ import {
   StopOutlined,
   FolderOpenOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue';
-import FileIcon from './FileIcon.vue';
+} from "@ant-design/icons-vue";
+import FileIcon from "./FileIcon.vue";
 
 const props = defineProps({
   taskPlan: {
     type: Object,
-    required: true
+    required: true,
   },
   showActions: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showDetailedView: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['cancel', 'close', 'viewResults', 'retry', 'fileClick', 'continueEdit', 'suggestionClick']);
+const emit = defineEmits([
+  "cancel",
+  "close",
+  "viewResults",
+  "retry",
+  "fileClick",
+  "continueEdit",
+  "suggestionClick",
+]);
 
 // 展开的子任务
 const expandedSubtasks = ref(new Set());
@@ -375,15 +341,15 @@ const allStepsExpanded = ref(false);
 // 已完成的文件列表
 const completedFiles = computed(() => {
   const files = [];
-  props.taskPlan.subtasks?.forEach(subtask => {
-    if (subtask.status === 'completed' && subtask.output_files?.length) {
-      subtask.output_files.forEach(filePath => {
-        const fileName = filePath.split('/').pop();
+  props.taskPlan.subtasks?.forEach((subtask) => {
+    if (subtask.status === "completed" && subtask.output_files?.length) {
+      subtask.output_files.forEach((filePath) => {
+        const fileName = filePath.split("/").pop();
         files.push({
           path: filePath,
           name: fileName,
           subtask: subtask,
-          hint: getFileHint(fileName)
+          hint: getFileHint(fileName),
         });
       });
     }
@@ -394,22 +360,24 @@ const completedFiles = computed(() => {
 // AI建议的后续问题
 const suggestedQuestions = computed(() => {
   // 可以从taskPlan中获取，或者根据任务类型生成
-  return props.taskPlan.suggested_questions || [
-    '<附件有几页也要有几页 不是第一页 全部要可编辑>'
-  ];
+  return (
+    props.taskPlan.suggested_questions || [
+      "<附件有几页也要有几页 不是第一页 全部要可编辑>",
+    ]
+  );
 });
 
 // 获取文件提示文本
 const getFileHint = (fileName) => {
-  const ext = fileName.split('.').pop().toLowerCase();
+  const ext = fileName.split(".").pop().toLowerCase();
   const hints = {
-    'pptx': '可编辑PPT制作指南(修改版1)',
-    'docx': '可编辑文档',
-    'xlsx': '可编辑表格',
-    'pdf': 'PDF文档',
-    'html': '网页文件'
+    pptx: "可编辑PPT制作指南(修改版1)",
+    docx: "可编辑文档",
+    xlsx: "可编辑表格",
+    pdf: "PDF文档",
+    html: "网页文件",
   };
-  return hints[ext] || '';
+  return hints[ext] || "";
 };
 
 // 切换所有步骤展开状态
@@ -419,19 +387,21 @@ const toggleAllSteps = () => {
 
 // 处理继续编辑
 const handleContinueEdit = (file) => {
-  emit('continueEdit', { file, taskPlan: props.taskPlan });
+  emit("continueEdit", { file, taskPlan: props.taskPlan });
   message.info(`继续编辑：${file.name}`);
 };
 
 // 处理建议点击
 const handleSuggestionClick = (question) => {
-  emit('suggestionClick', { question, taskPlan: props.taskPlan });
+  emit("suggestionClick", { question, taskPlan: props.taskPlan });
   message.info(`已选择建议：${question}`);
 };
 
 // 计算持续时间
 const duration = computed(() => {
-  if (!props.taskPlan.started_at) {return null;}
+  if (!props.taskPlan.started_at) {
+    return null;
+  }
 
   const endTime = props.taskPlan.completed_at || Date.now();
   const ms = endTime - props.taskPlan.started_at;
@@ -456,65 +426,71 @@ const formatDuration = (ms) => {
 // 格式化时间
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
 // 获取状态颜色
 const getStatusColor = (status) => {
   const colors = {
-    pending: 'default',
-    in_progress: 'processing',
-    completed: 'success',
-    failed: 'error',
-    cancelled: 'warning'
+    pending: "default",
+    in_progress: "processing",
+    completed: "success",
+    failed: "error",
+    cancelled: "warning",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 };
 
 // 获取状态文本
 const getStatusText = (status) => {
   const texts = {
-    pending: '等待中',
-    in_progress: '执行中',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消'
+    pending: "等待中",
+    in_progress: "执行中",
+    completed: "已完成",
+    failed: "失败",
+    cancelled: "已取消",
   };
   return texts[status] || status;
 };
 
 // 获取进度条状态
 const getProgressStatus = (status) => {
-  if (status === 'completed') {return 'success';}
-  if (status === 'failed') {return 'exception';}
-  if (status === 'in_progress') {return 'active';}
-  return 'normal';
+  if (status === "completed") {
+    return "success";
+  }
+  if (status === "failed") {
+    return "exception";
+  }
+  if (status === "in_progress") {
+    return "active";
+  }
+  return "normal";
 };
 
 // 获取Badge状态
 const getBadgeStatus = (status) => {
   const statusMap = {
-    pending: 'default',
-    in_progress: 'processing',
-    completed: 'success',
-    failed: 'error'
+    pending: "default",
+    in_progress: "processing",
+    completed: "success",
+    failed: "error",
   };
-  return statusMap[status] || 'default';
+  return statusMap[status] || "default";
 };
 
 // 获取工具标签
 const getToolLabel = (tool) => {
   const labels = {
-    'web-engine': '网页',
-    'document-engine': '文档',
-    'data-engine': '数据',
-    'ppt-engine': 'PPT',
-    'code-engine': '代码',
-    'image-engine': '图像'
+    "web-engine": "网页",
+    "document-engine": "文档",
+    "data-engine": "数据",
+    "ppt-engine": "PPT",
+    "code-engine": "代码",
+    "image-engine": "图像",
   };
   return labels[tool] || tool;
 };
@@ -530,46 +506,56 @@ const toggleSubtask = (subtaskId) => {
 
 // 复制命令
 const copyCommand = (command) => {
-  navigator.clipboard.writeText(command).then(() => {
-    message.success('命令已复制到剪贴板');
-  }).catch(() => {
-    message.error('复制失败');
-  });
+  navigator.clipboard
+    .writeText(command)
+    .then(() => {
+      message.success("命令已复制到剪贴板");
+    })
+    .catch(() => {
+      message.error("复制失败");
+    });
 };
 
 // 处理文件点击
 const handleFileClick = (file, subtask) => {
-  emit('fileClick', { file, subtask, taskPlan: props.taskPlan });
+  emit("fileClick", { file, subtask, taskPlan: props.taskPlan });
 };
 
 // 处理取消
 const handleCancel = () => {
-  emit('cancel', props.taskPlan.id);
+  emit("cancel", props.taskPlan.id);
 };
 
 // 处理关闭
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 
 // 处理查看结果
 const handleViewResults = () => {
-  emit('viewResults', props.taskPlan);
+  emit("viewResults", props.taskPlan);
 };
 
 // 处理重试
 const handleRetry = () => {
-  emit('retry', props.taskPlan);
+  emit("retry", props.taskPlan);
 };
 
 // 监听任务状态变化，自动展开进行中的子任务
-watch(() => props.taskPlan.subtasks, (newSubtasks) => {
-  newSubtasks.forEach(subtask => {
-    if (subtask.status === 'in_progress' && !expandedSubtasks.value.has(subtask.id)) {
-      expandedSubtasks.value.add(subtask.id);
-    }
-  });
-}, { deep: true });
+watch(
+  () => props.taskPlan.subtasks,
+  (newSubtasks) => {
+    newSubtasks.forEach((subtask) => {
+      if (
+        subtask.status === "in_progress" &&
+        !expandedSubtasks.value.has(subtask.id)
+      ) {
+        expandedSubtasks.value.add(subtask.id);
+      }
+    });
+  },
+  { deep: true },
+);
 
 // 初始化时展开第一个子任务
 onMounted(() => {
@@ -593,7 +579,7 @@ onMounted(() => {
 }
 
 .ai-message {
-  background: #F5F7FA;
+  background: #f5f7fa;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -608,8 +594,8 @@ onMounted(() => {
 
 /* 步骤折叠面板 */
 .steps-collapse-panel {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -624,7 +610,7 @@ onMounted(() => {
     transition: all 0.3s;
 
     &:hover {
-      background: #F9FAFB;
+      background: #f9fafb;
     }
 
     .collapse-icon {
@@ -645,7 +631,7 @@ onMounted(() => {
   }
 
   .steps-list {
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid #e5e7eb;
     padding: 12px 0;
 
     .step-item {
@@ -656,7 +642,7 @@ onMounted(() => {
       transition: background 0.2s;
 
       &:hover {
-        background: #F9FAFB;
+        background: #f9fafb;
       }
 
       .step-icon {
@@ -692,7 +678,7 @@ onMounted(() => {
       }
 
       &.status-in_progress {
-        background: #F0F9FF;
+        background: #f0f9ff;
       }
     }
   }
@@ -709,14 +695,14 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s;
 
     &:hover {
-      border-color: #1677FF;
+      border-color: #1677ff;
       box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
       transform: translateY(-2px);
     }
@@ -751,12 +737,12 @@ onMounted(() => {
       flex-shrink: 0;
 
       .ant-btn {
-        color: #1677FF;
+        color: #1677ff;
         font-size: 13px;
 
         &:hover {
-          color: #4096FF;
-          background: #F0F9FF;
+          color: #4096ff;
+          background: #f0f9ff;
         }
       }
     }
@@ -765,8 +751,8 @@ onMounted(() => {
 
 /* AI建议的后续问题 */
 .ai-suggestions {
-  background: #FFFBF0;
-  border: 1px solid #FFE7BA;
+  background: #fffbf0;
+  border: 1px solid #ffe7ba;
   border-radius: 8px;
   padding: 16px;
 
@@ -783,15 +769,15 @@ onMounted(() => {
 
     .suggestion-item {
       padding: 12px;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.3s;
 
       &:hover {
-        border-color: #FAAD14;
-        background: #FFF7E6;
+        border-color: #faad14;
+        background: #fff7e6;
         transform: translateX(4px);
       }
 
@@ -988,7 +974,7 @@ onMounted(() => {
 
 .command-text {
   margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   color: #52c41a;
   white-space: pre-wrap;
@@ -1072,7 +1058,7 @@ onMounted(() => {
 .result-text,
 .result-json {
   margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   color: #262626;
   white-space: pre-wrap;

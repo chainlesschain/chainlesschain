@@ -22,7 +22,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
-import type { Session, SessionTemplate } from "../session";
+import type { Session } from "../session";
 
 // ---------------------------------------------------------------------------
 // Helpers

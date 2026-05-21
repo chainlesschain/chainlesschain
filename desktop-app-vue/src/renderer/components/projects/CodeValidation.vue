@@ -6,40 +6,25 @@
         <CheckCircleOutlined />
         代码验证与测试
       </h4>
-      <a-button
-        type="text"
-        size="small"
-        @click="$emit('close')"
-      >
+      <a-button type="text" size="small" @click="$emit('close')">
         <CloseOutlined />
       </a-button>
     </div>
 
     <!-- 验证选项 -->
     <div class="validation-options">
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
-        <a-card
-          size="small"
-          title="语法检查"
-          :bordered="false"
-        >
+      <a-space direction="vertical" style="width: 100%">
+        <a-card size="small" title="语法检查" :bordered="false">
           <a-checkbox-group
             v-model:value="selectedValidations"
             style="width: 100%"
           >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="syntax">
-                  语法验证
-                </a-checkbox>
+                <a-checkbox value="syntax"> 语法验证 </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="eslint">
-                  ESLint 检查
-                </a-checkbox>
+                <a-checkbox value="eslint"> ESLint 检查 </a-checkbox>
               </a-col>
               <a-col :span="24">
                 <a-checkbox value="typescript">
@@ -50,59 +35,39 @@
           </a-checkbox-group>
         </a-card>
 
-        <a-card
-          size="small"
-          title="代码质量"
-          :bordered="false"
-        >
+        <a-card size="small" title="代码质量" :bordered="false">
           <a-checkbox-group
             v-model:value="selectedValidations"
             style="width: 100%"
           >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="complexity">
-                  复杂度分析
-                </a-checkbox>
+                <a-checkbox value="complexity"> 复杂度分析 </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="security">
-                  安全漏洞扫描
-                </a-checkbox>
+                <a-checkbox value="security"> 安全漏洞扫描 </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="performance">
-                  性能检查
-                </a-checkbox>
+                <a-checkbox value="performance"> 性能检查 </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>
         </a-card>
 
-        <a-card
-          size="small"
-          title="测试"
-          :bordered="false"
-        >
+        <a-card size="small" title="测试" :bordered="false">
           <a-checkbox-group
             v-model:value="selectedValidations"
             style="width: 100%"
           >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="unit">
-                  单元测试
-                </a-checkbox>
+                <a-checkbox value="unit"> 单元测试 </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="integration">
-                  集成测试
-                </a-checkbox>
+                <a-checkbox value="integration"> 集成测试 </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="e2e">
-                  E2E 测试
-                </a-checkbox>
+                <a-checkbox value="e2e"> E2E 测试 </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>
@@ -120,15 +85,12 @@
         @click="handleValidate"
       >
         <PlayCircleOutlined v-if="!isValidating" />
-        {{ isValidating ? '验证中...' : '开始验证' }}
+        {{ isValidating ? "验证中..." : "开始验证" }}
       </a-button>
     </div>
 
     <!-- 验证结果 -->
-    <div
-      v-if="validationResults.length > 0"
-      class="validation-results"
-    >
+    <div v-if="validationResults.length > 0" class="validation-results">
       <a-divider>验证结果</a-divider>
 
       <div
@@ -146,10 +108,7 @@
               v-else-if="result.status === 'error'"
               style="color: #ff4d4f"
             />
-            <ExclamationCircleOutlined
-              v-else
-              style="color: #faad14"
-            />
+            <ExclamationCircleOutlined v-else style="color: #faad14" />
             <span>{{ result.title }}</span>
           </div>
           <a-tag :color="getStatusColor(result.status)">
@@ -157,10 +116,7 @@
           </a-tag>
         </div>
 
-        <div
-          v-if="result.message"
-          class="result-message"
-        >
+        <div v-if="result.message" class="result-message">
           {{ result.message }}
         </div>
 
@@ -181,15 +137,14 @@
               >
                 <div class="error-location">
                   <FileTextOutlined />
-                  <span>{{ error.file }}:{{ error.line }}:{{ error.column }}</span>
+                  <span
+                    >{{ error.file }}:{{ error.line }}:{{ error.column }}</span
+                  >
                 </div>
                 <div class="error-message">
                   {{ error.message }}
                 </div>
-                <div
-                  v-if="error.suggestion"
-                  class="error-suggestion"
-                >
+                <div v-if="error.suggestion" class="error-suggestion">
                   <BulbOutlined />
                   建议: {{ error.suggestion }}
                 </div>
@@ -199,16 +154,9 @@
         </div>
 
         <!-- 统计信息 -->
-        <div
-          v-if="result.stats"
-          class="result-stats"
-        >
+        <div v-if="result.stats" class="result-stats">
           <a-row :gutter="8">
-            <a-col
-              v-for="(value, key) in result.stats"
-              :key="key"
-              :span="8"
-            >
+            <a-col v-for="(value, key) in result.stats" :key="key" :span="8">
               <a-statistic
                 :title="key"
                 :value="value"
@@ -221,23 +169,13 @@
     </div>
 
     <!-- 快速修复建议 -->
-    <div
-      v-if="quickFixes.length > 0"
-      class="quick-fixes"
-    >
+    <div v-if="quickFixes.length > 0" class="quick-fixes">
       <a-divider>快速修复</a-divider>
-      <a-list
-        size="small"
-        :data-source="quickFixes"
-      >
+      <a-list size="small" :data-source="quickFixes">
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleApplyFix(item)"
-              >
+              <a-button type="link" size="small" @click="handleApplyFix(item)">
                 应用
               </a-button>
             </template>
@@ -258,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from "vue";
 import {
   CheckCircleOutlined,
   CloseOutlined,
@@ -268,8 +206,8 @@ import {
   FileTextOutlined,
   BulbOutlined,
   ToolOutlined,
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   projectId: {
@@ -282,10 +220,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'apply-fix', 'run-test']);
+const emit = defineEmits(["close", "apply-fix", "run-test"]);
 
 // 验证状态
-const selectedValidations = ref(['syntax', 'eslint']);
+const selectedValidations = ref(["syntax", "eslint"]);
 const isValidating = ref(false);
 const validationResults = ref([]);
 const quickFixes = ref([]);
@@ -299,7 +237,7 @@ const handleValidate = async () => {
   try {
     // 模拟验证过程
     for (const validationType of selectedValidations.value) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const result = await performValidation(validationType);
       validationResults.value.push(result);
@@ -310,9 +248,9 @@ const handleValidate = async () => {
       }
     }
 
-    message.success('验证完成');
+    message.success("验证完成");
   } catch (error) {
-    message.error('验证失败: ' + error.message);
+    message.error("验证失败: " + error.message);
   } finally {
     isValidating.value = false;
   }
@@ -339,9 +277,9 @@ const performValidation = async (type) => {
 
   return {
     type,
-    title: '未知验证',
-    status: 'error',
-    message: '不支持的验证类型',
+    title: "未知验证",
+    status: "error",
+    message: "不支持的验证类型",
   };
 };
 
@@ -352,35 +290,35 @@ const performSyntaxValidation = async () => {
 
   if (hasErrors) {
     return {
-      type: 'syntax',
-      title: '语法检查',
-      status: 'error',
-      message: '发现语法错误',
+      type: "syntax",
+      title: "语法检查",
+      status: "error",
+      message: "发现语法错误",
       errors: [
         {
-          file: 'src/components/Example.vue',
+          file: "src/components/Example.vue",
           line: 42,
           column: 15,
-          message: 'Unexpected token',
-          suggestion: '检查括号是否匹配',
+          message: "Unexpected token",
+          suggestion: "检查括号是否匹配",
         },
       ],
       fixes: [
         {
-          title: '自动修复括号匹配',
-          description: '自动添加缺失的右括号',
-          type: 'syntax',
-          action: 'fix-brackets',
+          title: "自动修复括号匹配",
+          description: "自动添加缺失的右括号",
+          type: "syntax",
+          action: "fix-brackets",
         },
       ],
     };
   }
 
   return {
-    type: 'syntax',
-    title: '语法检查',
-    status: 'success',
-    message: '未发现语法错误',
+    type: "syntax",
+    title: "语法检查",
+    status: "success",
+    message: "未发现语法错误",
   };
 };
 
@@ -390,51 +328,51 @@ const performESLintValidation = async () => {
 
   if (hasWarnings) {
     return {
-      type: 'eslint',
-      title: 'ESLint 检查',
-      status: 'warning',
-      message: '发现代码风格问题',
+      type: "eslint",
+      title: "ESLint 检查",
+      status: "warning",
+      message: "发现代码风格问题",
       errors: [
         {
-          file: 'src/utils/helper.js',
+          file: "src/utils/helper.js",
           line: 15,
           column: 3,
-          message: 'Unexpected console statement',
-          suggestion: '移除 console.log 或使用 logger',
+          message: "Unexpected console statement",
+          suggestion: "移除 console.log 或使用 logger",
         },
         {
-          file: 'src/utils/helper.js',
+          file: "src/utils/helper.js",
           line: 28,
           column: 10,
-          message: 'Missing semicolon',
-          suggestion: '添加分号',
+          message: "Missing semicolon",
+          suggestion: "添加分号",
         },
       ],
       stats: {
-        '错误': 0,
-        '警告': 2,
-        '信息': 0,
+        错误: 0,
+        警告: 2,
+        信息: 0,
       },
       fixes: [
         {
-          title: '自动修复 ESLint 问题',
-          description: '运行 eslint --fix 自动修复可修复的问题',
-          type: 'eslint',
-          action: 'eslint-fix',
+          title: "自动修复 ESLint 问题",
+          description: "运行 eslint --fix 自动修复可修复的问题",
+          type: "eslint",
+          action: "eslint-fix",
         },
       ],
     };
   }
 
   return {
-    type: 'eslint',
-    title: 'ESLint 检查',
-    status: 'success',
-    message: '代码风格良好',
+    type: "eslint",
+    title: "ESLint 检查",
+    status: "success",
+    message: "代码风格良好",
     stats: {
-      '错误': 0,
-      '警告': 0,
-      '信息': 0,
+      错误: 0,
+      警告: 0,
+      信息: 0,
     },
   };
 };
@@ -442,33 +380,33 @@ const performESLintValidation = async () => {
 // TypeScript 类型检查
 const performTypeScriptValidation = async () => {
   return {
-    type: 'typescript',
-    title: 'TypeScript 类型检查',
-    status: 'success',
-    message: '类型检查通过',
+    type: "typescript",
+    title: "TypeScript 类型检查",
+    status: "success",
+    message: "类型检查通过",
   };
 };
 
 // 复杂度分析
 const performComplexityAnalysis = async () => {
   return {
-    type: 'complexity',
-    title: '复杂度分析',
-    status: 'warning',
-    message: '部分函数复杂度较高',
+    type: "complexity",
+    title: "复杂度分析",
+    status: "warning",
+    message: "部分函数复杂度较高",
     errors: [
       {
-        file: 'src/services/dataProcessor.js',
+        file: "src/services/dataProcessor.js",
         line: 50,
         column: 1,
-        message: '函数 processData 的圈复杂度为 15，建议重构',
-        suggestion: '将复杂逻辑拆分为多个小函数',
+        message: "函数 processData 的圈复杂度为 15，建议重构",
+        suggestion: "将复杂逻辑拆分为多个小函数",
       },
     ],
     stats: {
-      '平均复杂度': 5.2,
-      '最高复杂度': 15,
-      '函数数量': 28,
+      平均复杂度: 5.2,
+      最高复杂度: 15,
+      函数数量: 28,
     },
   };
 };
@@ -476,14 +414,14 @@ const performComplexityAnalysis = async () => {
 // 安全漏洞扫描
 const performSecurityScan = async () => {
   return {
-    type: 'security',
-    title: '安全漏洞扫描',
-    status: 'success',
-    message: '未发现安全漏洞',
+    type: "security",
+    title: "安全漏洞扫描",
+    status: "success",
+    message: "未发现安全漏洞",
     stats: {
-      '高危': 0,
-      '中危': 0,
-      '低危': 0,
+      高危: 0,
+      中危: 0,
+      低危: 0,
     },
   };
 };
@@ -491,14 +429,14 @@ const performSecurityScan = async () => {
 // 性能检查
 const performPerformanceCheck = async () => {
   return {
-    type: 'performance',
-    title: '性能检查',
-    status: 'success',
-    message: '性能良好',
+    type: "performance",
+    title: "性能检查",
+    status: "success",
+    message: "性能良好",
     stats: {
-      '内存泄漏': 0,
-      '大文件': 0,
-      '未优化图片': 0,
+      内存泄漏: 0,
+      大文件: 0,
+      未优化图片: 0,
     },
   };
 };
@@ -506,14 +444,14 @@ const performPerformanceCheck = async () => {
 // 单元测试
 const performUnitTests = async () => {
   return {
-    type: 'unit',
-    title: '单元测试',
-    status: 'success',
-    message: '所有测试通过',
+    type: "unit",
+    title: "单元测试",
+    status: "success",
+    message: "所有测试通过",
     stats: {
-      '通过': 45,
-      '失败': 0,
-      '跳过': 2,
+      通过: 45,
+      失败: 0,
+      跳过: 2,
     },
   };
 };
@@ -521,14 +459,14 @@ const performUnitTests = async () => {
 // 集成测试
 const performIntegrationTests = async () => {
   return {
-    type: 'integration',
-    title: '集成测试',
-    status: 'success',
-    message: '集成测试通过',
+    type: "integration",
+    title: "集成测试",
+    status: "success",
+    message: "集成测试通过",
     stats: {
-      '通过': 12,
-      '失败': 0,
-      '跳过': 1,
+      通过: 12,
+      失败: 0,
+      跳过: 1,
     },
   };
 };
@@ -536,42 +474,42 @@ const performIntegrationTests = async () => {
 // E2E 测试
 const performE2ETests = async () => {
   return {
-    type: 'e2e',
-    title: 'E2E 测试',
-    status: 'success',
-    message: 'E2E 测试通过',
+    type: "e2e",
+    title: "E2E 测试",
+    status: "success",
+    message: "E2E 测试通过",
     stats: {
-      '通过': 8,
-      '失败': 0,
-      '跳过': 0,
+      通过: 8,
+      失败: 0,
+      跳过: 0,
     },
   };
 };
 
 // 应用快速修复
 const handleApplyFix = (fix) => {
-  emit('apply-fix', fix);
-  message.success('已应用修复: ' + fix.title);
+  emit("apply-fix", fix);
+  message.success("已应用修复: " + fix.title);
 };
 
 // 获取状态颜色
 const getStatusColor = (status) => {
   const colorMap = {
-    success: 'success',
-    warning: 'warning',
-    error: 'error',
+    success: "success",
+    warning: "warning",
+    error: "error",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 // 获取状态文本
 const getStatusText = (status) => {
   const textMap = {
-    success: '通过',
-    warning: '警告',
-    error: '失败',
+    success: "通过",
+    warning: "警告",
+    error: "失败",
   };
-  return textMap[status] || '未知';
+  return textMap[status] || "未知";
 };
 </script>
 

@@ -1,14 +1,8 @@
 <template>
   <div class="team-detail-panel">
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载团队详情..."
-      />
+    <div v-if="loading" class="loading-container">
+      <a-spin size="large" tip="加载团队详情..." />
     </div>
 
     <!-- 团队详情 -->
@@ -39,21 +33,13 @@
         <a-descriptions-item label="创建时间">
           {{ formatDateTime(team.createdAt) }}
         </a-descriptions-item>
-        <a-descriptions-item
-          v-if="team.completedAt"
-          label="完成时间"
-        >
+        <a-descriptions-item v-if="team.completedAt" label="完成时间">
           {{ formatDateTime(team.completedAt) }}
         </a-descriptions-item>
       </a-descriptions>
 
       <!-- 配置信息 -->
-      <a-descriptions
-        title="配置"
-        :column="2"
-        bordered
-        class="info-section"
-      >
+      <a-descriptions title="配置" :column="2" bordered class="info-section">
         <a-descriptions-item label="最大成员数">
           {{ team.config?.maxAgents || team.maxAgents || 5 }}
         </a-descriptions-item>
@@ -176,10 +162,7 @@
           团队任务
         </h3>
 
-        <a-list
-          :data-source="team.tasks || []"
-          :loading="loading"
-        >
+        <a-list :data-source="team.tasks || []" :loading="loading">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -216,17 +199,11 @@
             <ReloadOutlined />
             刷新
           </a-button>
-          <a-button
-            type="primary"
-            @click="showCreateCheckpointModal"
-          >
+          <a-button type="primary" @click="showCreateCheckpointModal">
             <SaveOutlined />
             创建检查点
           </a-button>
-          <a-button
-            danger
-            @click="handleDestroyTeam"
-          >
+          <a-button danger @click="handleDestroyTeam">
             <DeleteOutlined />
             销毁团队
           </a-button>
@@ -241,14 +218,8 @@
       :confirm-loading="addingMember"
       @ok="confirmAddMember"
     >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
-        <a-form-item
-          label="代理 ID"
-          required
-        >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form-item label="代理 ID" required>
           <a-input
             v-model:value="memberForm.agentId"
             placeholder="输入代理 ID"
@@ -261,21 +232,11 @@
             placeholder="选择或输入技能"
             style="width: 100%"
           >
-            <a-select-option value="coding">
-              编程
-            </a-select-option>
-            <a-select-option value="testing">
-              测试
-            </a-select-option>
-            <a-select-option value="design">
-              设计
-            </a-select-option>
-            <a-select-option value="documentation">
-              文档
-            </a-select-option>
-            <a-select-option value="data-analysis">
-              数据分析
-            </a-select-option>
+            <a-select-option value="coding"> 编程 </a-select-option>
+            <a-select-option value="testing"> 测试 </a-select-option>
+            <a-select-option value="design"> 设计 </a-select-option>
+            <a-select-option value="documentation"> 文档 </a-select-option>
+            <a-select-option value="data-analysis"> 数据分析 </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="最大任务数">
@@ -292,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { message, Modal } from "ant-design-vue";
 import {
   UserOutlined,
@@ -306,7 +267,7 @@ import {
 import { format } from "date-fns";
 import { useCoworkStore } from "../../stores/cowork";
 import { h } from "vue";
-import { logger, createLogger } from "@/utils/logger";
+import { createLogger } from "@/utils/logger";
 
 const teamLogger = createLogger("team-detail");
 const store = useCoworkStore();
@@ -585,7 +546,7 @@ function formatDateTime(timestamp) {
 
   try {
     return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");
-  } catch (error) {
+  } catch (_error) {
     return "-";
   }
 }

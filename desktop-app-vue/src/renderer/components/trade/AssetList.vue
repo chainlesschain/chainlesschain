@@ -3,10 +3,7 @@
     <a-card title="我的资产">
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -22,15 +19,9 @@
       </template>
 
       <!-- 资产统计 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="6">
-          <a-statistic
-            title="资产总数"
-            :value="statistics.total"
-          >
+          <a-statistic title="资产总数" :value="statistics.total">
             <template #prefix>
               <wallet-outlined />
             </template>
@@ -59,10 +50,7 @@
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="其他"
-            :value="statistics.other"
-          >
+          <a-statistic title="其他" :value="statistics.other">
             <template #prefix>
               <appstore-outlined />
             </template>
@@ -71,10 +59,7 @@
       </a-row>
 
       <!-- 搜索和筛选器 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -94,21 +79,11 @@
               button-style="solid"
               @change="handleFilterChange"
             >
-              <a-radio-button value="">
-                全部
-              </a-radio-button>
-              <a-radio-button value="token">
-                Token
-              </a-radio-button>
-              <a-radio-button value="nft">
-                NFT
-              </a-radio-button>
-              <a-radio-button value="knowledge">
-                知识产品
-              </a-radio-button>
-              <a-radio-button value="service">
-                服务凭证
-              </a-radio-button>
+              <a-radio-button value=""> 全部 </a-radio-button>
+              <a-radio-button value="token"> Token </a-radio-button>
+              <a-radio-button value="nft"> NFT </a-radio-button>
+              <a-radio-button value="knowledge"> 知识产品 </a-radio-button>
+              <a-radio-button value="service"> 服务凭证 </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -198,17 +173,14 @@
     />
 
     <!-- 资产二维码对话框 -->
-    <asset-qr-modal
-      v-model:open="showQRModal"
-      :asset="selectedAsset"
-    />
+    <asset-qr-modal v-model:open="showQRModal" :asset="selectedAsset" />
   </div>
 </template>
 
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { message as antMessage, Modal } from "ant-design-vue";
 import {
   PlusOutlined,
@@ -225,7 +197,6 @@ import AssetCreate from "./AssetCreate.vue";
 import AssetTransfer from "./AssetTransfer.vue";
 import AssetDetail from "./AssetDetail.vue";
 import AssetHistory from "./AssetHistory.vue";
-import AssetQRModal from "./AssetQRModal.vue";
 
 // Props
 const props = defineProps({

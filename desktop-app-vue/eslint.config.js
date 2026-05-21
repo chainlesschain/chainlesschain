@@ -133,6 +133,9 @@ module.exports = [
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
+          // 与 main/preload 配置一致：`catch (_e)` 命名约定免警告
+          // 否则 renderer 的 try-catch 即使 rename 也仍触发 (~119 处)
+          caughtErrorsIgnorePattern: "^_",
         },
       ],
       "@typescript-eslint/no-require-imports": "off",

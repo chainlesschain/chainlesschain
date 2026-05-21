@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {

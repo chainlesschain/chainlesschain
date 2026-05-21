@@ -13,10 +13,7 @@
       <h4>输入参数</h4>
 
       <div v-if="paramFields.length > 0">
-        <a-form
-          :model="localParams"
-          layout="vertical"
-        >
+        <a-form :model="localParams" layout="vertical">
           <a-form-item
             v-for="field in paramFields"
             :key="field.name"
@@ -101,10 +98,7 @@
     </div>
 
     <!-- 测试结果 -->
-    <div
-      v-if="localResult !== null"
-      class="result-section"
-    >
+    <div v-if="localResult !== null" class="result-section">
       <a-divider>测试结果</a-divider>
 
       <a-alert
@@ -122,8 +116,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { Empty } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { Empty } from "ant-design-vue";
 
 const props = defineProps({
   tool: {
@@ -140,18 +134,18 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:params', 'update:result']);
+const emit = defineEmits(["update:params", "update:result"]);
 
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 
 const localParams = ref({ ...props.params });
 const localResult = ref(props.result);
-const jsonParams = ref('');
-const jsonError = ref('');
+const jsonParams = ref("");
+const jsonError = ref("");
 
 // 解析参数Schema
 const parsedSchema = computed(() => {
-  if (typeof props.tool.parameters_schema === 'string') {
+  if (typeof props.tool.parameters_schema === "string") {
     try {
       return JSON.parse(props.tool.parameters_schema);
     } catch {
@@ -166,9 +160,9 @@ const paramFields = computed(() => {
   const schema = parsedSchema.value;
   return Object.entries(schema).map(([name, param]) => ({
     name,
-    type: param.type || 'string',
+    type: param.type || "string",
     required: param.required || false,
-    description: param.description || '',
+    description: param.description || "",
   }));
 });
 
@@ -176,9 +170,9 @@ const paramFields = computed(() => {
 const initJson = () => {
   try {
     jsonParams.value = JSON.stringify(localParams.value, null, 2);
-    jsonError.value = '';
+    jsonError.value = "";
   } catch {
-    jsonParams.value = '{}';
+    jsonParams.value = "{}";
   }
 };
 
@@ -187,10 +181,10 @@ const syncFromJson = () => {
   try {
     const parsed = JSON.parse(jsonParams.value);
     localParams.value = parsed;
-    jsonError.value = '';
-    emit('update:params', parsed);
-  } catch (error) {
-    jsonError.value = '无效的 JSON 格式';
+    jsonError.value = "";
+    emit("update:params", parsed);
+  } catch (_error) {
+    jsonError.value = "无效的 JSON 格式";
   }
 };
 
@@ -198,10 +192,10 @@ const syncFromJson = () => {
 watch(
   () => localParams.value,
   (newVal) => {
-    emit('update:params', newVal);
+    emit("update:params", newVal);
     initJson();
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 监听结果变化
@@ -209,7 +203,7 @@ watch(
   () => props.result,
   (newVal) => {
     localResult.value = newVal;
-  }
+  },
 );
 
 // 初始化
@@ -238,7 +232,7 @@ initJson();
 
       pre {
         margin: 0;
-        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
         font-size: 13px;
         line-height: 1.5;
         color: #262626;

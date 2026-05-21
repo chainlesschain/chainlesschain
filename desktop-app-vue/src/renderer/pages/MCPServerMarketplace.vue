@@ -12,10 +12,7 @@
         </p>
       </div>
       <div class="header-right">
-        <a-button
-          :loading="refreshing"
-          @click="handleRefresh"
-        >
+        <a-button :loading="refreshing" @click="handleRefresh">
           <ReloadOutlined />
           刷新目录
         </a-button>
@@ -41,13 +38,8 @@
     <!-- 加载状态 -->
     <a-spin :spinning="loading">
       <!-- 社区服务器网格 -->
-      <div
-        v-if="filteredServers.length > 0"
-        class="server-grid"
-      >
-        <h2 class="section-title">
-          社区服务器
-        </h2>
+      <div v-if="filteredServers.length > 0" class="server-grid">
+        <h2 class="section-title">社区服务器</h2>
         <a-row :gutter="[20, 20]">
           <a-col
             v-for="server in filteredServers"
@@ -57,10 +49,7 @@
             :md="8"
             :lg="6"
           >
-            <a-card
-              class="server-card"
-              hoverable
-            >
+            <a-card class="server-card" hoverable>
               <div class="server-header">
                 <div class="server-name">
                   <h3>{{ server.name }}</h3>
@@ -73,7 +62,7 @@
               </div>
 
               <p class="server-description">
-                {{ server.description || '暂无描述' }}
+                {{ server.description || "暂无描述" }}
               </p>
 
               <div
@@ -123,24 +112,14 @@
         description="未找到匹配的 MCP 服务器"
         style="margin-top: 80px"
       >
-        <a-button
-          type="primary"
-          @click="searchQuery = ''"
-        >
-          清除搜索
-        </a-button>
+        <a-button type="primary" @click="searchQuery = ''"> 清除搜索 </a-button>
       </a-empty>
     </a-spin>
 
     <!-- 已安装的社区服务器 -->
-    <div
-      v-if="installedCommunityServers.length > 0"
-      class="installed-section"
-    >
+    <div v-if="installedCommunityServers.length > 0" class="installed-section">
       <a-divider />
-      <h2 class="section-title">
-        已安装的社区服务器
-      </h2>
+      <h2 class="section-title">已安装的社区服务器</h2>
       <a-list
         :data-source="installedCommunityServers"
         :bordered="true"
@@ -156,7 +135,7 @@
                 </span>
               </template>
               <template #description>
-                <span>{{ item.command || item.url || '-' }}</span>
+                <span>{{ item.command || item.url || "-" }}</span>
               </template>
             </a-list-item-meta>
             <template #actions>
@@ -164,7 +143,9 @@
                 :checked="item.enabled !== false"
                 checked-children="启用"
                 un-checked-children="禁用"
-                @change="(checked: boolean) => handleToggleServer(item, checked)"
+                @change="
+                  (checked: boolean) => handleToggleServer(item, checked)
+                "
               />
             </template>
           </a-list-item>
@@ -175,18 +156,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   CloudServerOutlined,
   ReloadOutlined,
   SearchOutlined,
   DownloadOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { logger, createLogger } from '@/utils/logger';
+} from "@ant-design/icons-vue";
+import { createLogger } from "@/utils/logger";
 
-const pageLogger = createLogger('mcp-server-marketplace');
+const pageLogger = createLogger("mcp-server-marketplace");
 
 // ==================== 类型定义 ====================
 
@@ -206,7 +187,7 @@ interface MCPServer {
 
 const loading = ref(false);
 const refreshing = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const installingName = ref<string | null>(null);
 const uninstallingName = ref<string | null>(null);
 
@@ -224,7 +205,7 @@ const filteredServers = computed(() => {
     (s) =>
       s.name.toLowerCase().includes(query) ||
       (s.description && s.description.toLowerCase().includes(query)) ||
-      (s.tags && s.tags.some((tag) => tag.toLowerCase().includes(query)))
+      (s.tags && s.tags.some((tag) => tag.toLowerCase().includes(query))),
   );
 });
 
@@ -233,7 +214,7 @@ const installedServerNames = computed(() => {
 });
 
 const installedCommunityServers = computed(() => {
-  return installedServers.value.filter((s) => s.source === 'community');
+  return installedServers.value.filter((s) => s.source === "community");
 });
 
 // ==================== 方法 ====================
@@ -246,25 +227,27 @@ async function fetchServers() {
   loading.value = true;
   try {
     const [communityResult, installedResult] = await Promise.all([
-      (window as any).electronAPI.invoke('mcp:list-community-servers'),
-      (window as any).electronAPI.invoke('mcp:list-servers'),
+      (window as any).electronAPI.invoke("mcp:list-community-servers"),
+      (window as any).electronAPI.invoke("mcp:list-servers"),
     ]);
 
     if (communityResult.success) {
-      communityServers.value = communityResult.servers || communityResult.data || [];
+      communityServers.value =
+        communityResult.servers || communityResult.data || [];
     } else {
       communityServers.value = getDefaultCommunityServers();
     }
 
     if (installedResult.success) {
-      installedServers.value = installedResult.servers || installedResult.data || [];
+      installedServers.value =
+        installedResult.servers || installedResult.data || [];
     }
 
     pageLogger.info(
-      `加载完成: ${communityServers.value.length} 个社区服务器, ${installedServers.value.length} 个已安装`
+      `加载完成: ${communityServers.value.length} 个社区服务器, ${installedServers.value.length} 个已安装`,
     );
   } catch (error) {
-    pageLogger.warn('加载 MCP 服务器列表失败，使用默认数据:', error);
+    pageLogger.warn("加载 MCP 服务器列表失败，使用默认数据:", error);
     communityServers.value = getDefaultCommunityServers();
   } finally {
     loading.value = false;
@@ -275,9 +258,9 @@ async function handleRefresh() {
   refreshing.value = true;
   try {
     await fetchServers();
-    message.success('服务器目录已刷新');
-  } catch (error) {
-    message.error('刷新失败');
+    message.success("服务器目录已刷新");
+  } catch (_error) {
+    message.error("刷新失败");
   } finally {
     refreshing.value = false;
   }
@@ -290,24 +273,27 @@ function handleSearch() {
 async function handleInstallServer(server: MCPServer) {
   installingName.value = server.name;
   try {
-    const result = await (window as any).electronAPI.invoke('mcp:install-server', {
-      name: server.name,
-      command: server.command,
-      args: server.args,
-      env: server.env,
-      url: server.url,
-      source: 'community',
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "mcp:install-server",
+      {
+        name: server.name,
+        command: server.command,
+        args: server.args,
+        env: server.env,
+        url: server.url,
+        source: "community",
+      },
+    );
 
     if (result.success) {
       message.success(`MCP 服务器 "${server.name}" 安装成功`);
       await fetchServers();
     } else {
-      message.error(result.error || '安装失败');
+      message.error(result.error || "安装失败");
     }
   } catch (error) {
-    pageLogger.error('安装 MCP 服务器失败:', error);
-    message.error('安装失败: ' + (error as Error).message);
+    pageLogger.error("安装 MCP 服务器失败:", error);
+    message.error("安装失败: " + (error as Error).message);
   } finally {
     installingName.value = null;
   }
@@ -316,19 +302,22 @@ async function handleInstallServer(server: MCPServer) {
 async function handleUninstallServer(server: MCPServer) {
   uninstallingName.value = server.name;
   try {
-    const result = await (window as any).electronAPI.invoke('mcp:remove-server', {
-      name: server.name,
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "mcp:remove-server",
+      {
+        name: server.name,
+      },
+    );
 
     if (result.success) {
       message.success(`MCP 服务器 "${server.name}" 已卸载`);
       await fetchServers();
     } else {
-      message.error(result.error || '卸载失败');
+      message.error(result.error || "卸载失败");
     }
   } catch (error) {
-    pageLogger.error('卸载 MCP 服务器失败:', error);
-    message.error('卸载失败: ' + (error as Error).message);
+    pageLogger.error("卸载 MCP 服务器失败:", error);
+    message.error("卸载失败: " + (error as Error).message);
   } finally {
     uninstallingName.value = null;
   }
@@ -336,66 +325,71 @@ async function handleUninstallServer(server: MCPServer) {
 
 async function handleToggleServer(server: MCPServer, enabled: boolean) {
   try {
-    const result = await (window as any).electronAPI.invoke('mcp:toggle-server', {
-      name: server.name,
-      enabled,
-    });
+    const result = await (window as any).electronAPI.invoke(
+      "mcp:toggle-server",
+      {
+        name: server.name,
+        enabled,
+      },
+    );
 
     if (result.success) {
       server.enabled = enabled;
-      message.success(enabled ? `"${server.name}" 已启用` : `"${server.name}" 已禁用`);
+      message.success(
+        enabled ? `"${server.name}" 已启用` : `"${server.name}" 已禁用`,
+      );
     } else {
-      message.error(result.error || '操作失败');
+      message.error(result.error || "操作失败");
     }
   } catch (error) {
-    pageLogger.error('切换 MCP 服务器状态失败:', error);
-    message.error('操作失败');
+    pageLogger.error("切换 MCP 服务器状态失败:", error);
+    message.error("操作失败");
   }
 }
 
 function getDefaultCommunityServers(): MCPServer[] {
   return [
     {
-      name: 'filesystem',
-      description: '文件系统读写操作，支持目录遍历和文件管理',
-      tags: ['文件', '系统', '读写'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-filesystem'],
+      name: "filesystem",
+      description: "文件系统读写操作，支持目录遍历和文件管理",
+      tags: ["文件", "系统", "读写"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem"],
     },
     {
-      name: 'postgres',
-      description: 'PostgreSQL 数据库查询和管理',
-      tags: ['数据库', 'SQL', 'PostgreSQL'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-postgres'],
+      name: "postgres",
+      description: "PostgreSQL 数据库查询和管理",
+      tags: ["数据库", "SQL", "PostgreSQL"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-postgres"],
     },
     {
-      name: 'sqlite',
-      description: 'SQLite 数据库操作，轻量级本地数据存储',
-      tags: ['数据库', 'SQL', 'SQLite'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-sqlite'],
+      name: "sqlite",
+      description: "SQLite 数据库操作，轻量级本地数据存储",
+      tags: ["数据库", "SQL", "SQLite"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-sqlite"],
     },
     {
-      name: 'git',
-      description: 'Git 仓库操作，支持提交、分支和历史查看',
-      tags: ['Git', '版本控制', '代码'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-git'],
+      name: "git",
+      description: "Git 仓库操作，支持提交、分支和历史查看",
+      tags: ["Git", "版本控制", "代码"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-git"],
     },
     {
-      name: 'brave-search',
-      description: 'Brave 搜索引擎集成，支持网络搜索',
-      tags: ['搜索', '网络', 'API'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-brave-search'],
+      name: "brave-search",
+      description: "Brave 搜索引擎集成，支持网络搜索",
+      tags: ["搜索", "网络", "API"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-brave-search"],
     },
     {
-      name: 'puppeteer',
-      description: '浏览器自动化，支持网页截图和交互',
-      tags: ['浏览器', '自动化', '截图'],
-      command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-puppeteer'],
+      name: "puppeteer",
+      description: "浏览器自动化，支持网页截图和交互",
+      tags: ["浏览器", "自动化", "截图"],
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-puppeteer"],
     },
   ];
 }
@@ -403,7 +397,7 @@ function getDefaultCommunityServers(): MCPServer[] {
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
-  pageLogger.info('MCPServerMarketplace 挂载');
+  pageLogger.info("MCPServerMarketplace 挂载");
   await fetchServers();
 });
 </script>

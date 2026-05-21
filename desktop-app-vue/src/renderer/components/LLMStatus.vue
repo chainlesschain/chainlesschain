@@ -1,16 +1,9 @@
 <template>
   <div class="llm-status">
-    <a-card
-      title="LLM 服务状态"
-      size="small"
-    >
+    <a-card title="LLM 服务状态" size="small">
       <!-- 状态概览 -->
       <div class="status-overview">
-        <a-descriptions
-          :column="2"
-          size="small"
-          bordered
-        >
+        <a-descriptions :column="2" size="small" bordered>
           <a-descriptions-item label="服务状态">
             <a-space>
               <a-badge :status="status.available ? 'success' : 'error'" />
@@ -40,18 +33,11 @@
             {{ status.models.length }} 个
           </a-descriptions-item>
 
-          <a-descriptions-item
-            label="最后检查时间"
-            :span="2"
-          >
+          <a-descriptions-item label="最后检查时间" :span="2">
             {{ formatDate(lastCheckTime) }}
           </a-descriptions-item>
 
-          <a-descriptions-item
-            v-if="status.error"
-            label="错误信息"
-            :span="2"
-          >
+          <a-descriptions-item v-if="status.error" label="错误信息" :span="2">
             <a-typography-text type="danger">
               {{ status.error }}
             </a-typography-text>
@@ -60,10 +46,7 @@
       </div>
 
       <!-- 可用模型列表 -->
-      <div
-        v-if="showModelCount"
-        class="models-section"
-      >
+      <div v-if="showModelCount" class="models-section">
         <a-divider>可用模型</a-divider>
         <a-list
           :data-source="
@@ -88,15 +71,9 @@
                     </a-tag>
                   </a-space>
                 </template>
-                <template
-                  v-if="item.size"
-                  #description
-                >
+                <template v-if="item.size" #description>
                   大小: {{ formatSize(item.size) }}
-                  <span
-                    v-if="item.modified_at"
-                    style="margin-left: 16px"
-                  >
+                  <span v-if="item.modified_at" style="margin-left: 16px">
                     修改时间: {{ formatModelDate(item.modified_at) }}
                   </span>
                 </template>
@@ -109,11 +86,7 @@
           v-if="status.models.length > 5 && !showAllModels"
           class="show-more"
         >
-          <a-button
-            type="link"
-            size="small"
-            @click="showAllModels = true"
-          >
+          <a-button type="link" size="small" @click="showAllModels = true">
             显示全部 {{ status.models.length }} 个模型
           </a-button>
         </div>
@@ -134,10 +107,7 @@
             刷新状态
           </a-button>
 
-          <a-button
-            size="small"
-            @click="$emit('open-settings')"
-          >
+          <a-button size="small" @click="$emit('open-settings')">
             <template #icon>
               <setting-outlined />
             </template>
@@ -159,10 +129,7 @@
       </div>
 
       <!-- 测试结果 -->
-      <div
-        v-if="testResult"
-        class="test-result"
-      >
+      <div v-if="testResult" class="test-result">
         <a-divider>测试结果</a-divider>
         <a-alert
           :type="testResult.success ? 'success' : 'error'"
@@ -171,17 +138,11 @@
           closable
           @close="testResult = null"
         >
-          <template
-            v-if="testResult.response"
-            #description
-          >
+          <template v-if="testResult.response" #description>
             <div class="test-response">
               {{ testResult.response }}
             </div>
-            <div
-              v-if="testResult.tokens"
-              class="test-meta"
-            >
+            <div v-if="testResult.tokens" class="test-meta">
               Token数: {{ testResult.tokens }} | 耗时:
               {{ testResult.duration }}ms
             </div>
@@ -388,7 +349,7 @@ const formatModelDate = (dateStr) => {
       month: "2-digit",
       day: "2-digit",
     });
-  } catch (error) {
+  } catch (_error) {
     return dateStr;
   }
 };

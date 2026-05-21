@@ -466,7 +466,7 @@ async function handleStartNode() {
     } else {
       message.error(result.error || "Failed to start IPFS node");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to start IPFS node");
   } finally {
     startingNode.value = false;
@@ -482,7 +482,7 @@ async function handleStopNode() {
     } else {
       message.error(result.error || "Failed to stop IPFS node");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to stop IPFS node");
   } finally {
     stoppingNode.value = false;
@@ -497,7 +497,7 @@ async function handleModeChange(mode: "embedded" | "external") {
     } else {
       message.error(result.error || "Failed to change mode");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to change mode");
   }
 }
@@ -523,7 +523,7 @@ function handleBeforeUpload(file: File) {
       } else {
         message.error(result.error || "Upload failed");
       }
-    } catch (error) {
+    } catch (_error) {
       message.error(`Failed to upload ${file.name}`);
     }
   };
@@ -548,7 +548,7 @@ async function handleUploadText() {
     } else {
       message.error(result.error || "Upload failed");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to upload text content");
   } finally {
     textUploading.value = false;
@@ -570,7 +570,7 @@ async function handleDownload(record: any) {
     } else {
       message.error(result.error || "Download failed");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to download content");
   }
 }
@@ -594,7 +594,7 @@ async function handleUnpin(cid: string) {
     } else {
       message.error(result.error || "Unpin failed");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to unpin content");
   }
 }
@@ -623,7 +623,7 @@ async function handleGarbageCollect() {
     } else {
       message.error(result.error || "Garbage collection failed");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Garbage collection failed");
   } finally {
     gcLoading.value = false;
@@ -639,7 +639,7 @@ async function handleQuotaChange(value: number) {
     } else {
       message.error(result.error || "Failed to set quota");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("Failed to set storage quota");
   }
 }

@@ -126,7 +126,7 @@
 <script setup>
 defineOptions({ name: "BridgePage" });
 
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import {
   SwapOutlined,
   HistoryOutlined,

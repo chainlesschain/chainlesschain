@@ -20,13 +20,8 @@
       <a-col :span="16">
         <a-card title="待审批请求">
           <template #extra>
-            <a-badge
-              :count="pendingCount"
-              :offset="[10, 0]"
-            >
-              <a-tag color="orange">
-                待处理
-              </a-tag>
+            <a-badge :count="pendingCount" :offset="[10, 0]">
+              <a-tag color="orange"> 待处理 </a-tag>
             </a-badge>
           </template>
 
@@ -51,7 +46,8 @@
                       {{ item.resourceId }}
                     </p>
                     <p>
-                      <strong>提交时间：</strong>{{ formatTime(item.createdAt) }}
+                      <strong>提交时间：</strong
+                      >{{ formatTime(item.createdAt) }}
                     </p>
                   </div>
                   <template #actions>
@@ -80,10 +76,7 @@
         </a-card>
 
         <!-- 审批历史 -->
-        <a-card
-          title="审批历史"
-          style="margin-top: 16px"
-        >
+        <a-card title="审批历史" style="margin-top: 16px">
           <a-table
             :columns="historyColumns"
             :data-source="approvalHistory"
@@ -104,10 +97,7 @@
       <!-- 工作流管理 -->
       <a-col :span="8">
         <a-card title="审批工作流">
-          <a-list
-            :data-source="workflows"
-            :loading="loadingWorkflows"
-          >
+          <a-list :data-source="workflows" :loading="loadingWorkflows">
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-list-item-meta
@@ -161,14 +151,8 @@
       width="600px"
       @ok="handleCreateWorkflow"
     >
-      <a-form
-        :model="newWorkflow"
-        layout="vertical"
-      >
-        <a-form-item
-          label="工作流名称"
-          required
-        >
+      <a-form :model="newWorkflow" layout="vertical">
+        <a-form-item label="工作流名称" required>
           <a-input
             v-model:value="newWorkflow.name"
             placeholder="输入工作流名称"
@@ -184,45 +168,27 @@
           <a-col :span="12">
             <a-form-item label="触发资源类型">
               <a-select v-model:value="newWorkflow.triggerResourceType">
-                <a-select-option value="permission">
-                  权限
-                </a-select-option>
-                <a-select-option value="knowledge">
-                  知识库
-                </a-select-option>
-                <a-select-option value="project">
-                  项目
-                </a-select-option>
+                <a-select-option value="permission"> 权限 </a-select-option>
+                <a-select-option value="knowledge"> 知识库 </a-select-option>
+                <a-select-option value="project"> 项目 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="触发操作">
               <a-select v-model:value="newWorkflow.triggerAction">
-                <a-select-option value="grant">
-                  授权
-                </a-select-option>
-                <a-select-option value="delete">
-                  删除
-                </a-select-option>
-                <a-select-option value="publish">
-                  发布
-                </a-select-option>
+                <a-select-option value="grant"> 授权 </a-select-option>
+                <a-select-option value="delete"> 删除 </a-select-option>
+                <a-select-option value="publish"> 发布 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
         </a-row>
         <a-form-item label="审批类型">
           <a-radio-group v-model:value="newWorkflow.approvalType">
-            <a-radio value="sequential">
-              顺序审批
-            </a-radio>
-            <a-radio value="parallel">
-              并行审批
-            </a-radio>
-            <a-radio value="any_one">
-              任一审批
-            </a-radio>
+            <a-radio value="sequential"> 顺序审批 </a-radio>
+            <a-radio value="parallel"> 并行审批 </a-radio>
+            <a-radio value="any_one"> 任一审批 </a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item label="审批人（按步骤）">
@@ -324,7 +290,7 @@ const approveRequest = async (requestId) => {
   try {
     await permissionStore.approveRequest(requestId, authStore.currentUser?.did);
     message.success("已批准");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };
@@ -350,7 +316,7 @@ const handleReject = async () => {
     );
     message.success("已拒绝");
     showReject.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   } finally {
     rejecting.value = false;
@@ -361,7 +327,7 @@ const toggleWorkflow = async (workflowId, enabled) => {
   try {
     await permissionStore.updateWorkflow(workflowId, { enabled });
     message.success(enabled ? "已启用" : "已禁用");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };
@@ -395,7 +361,7 @@ const handleCreateWorkflow = async () => {
     });
     message.success("工作流创建成功");
     showCreateWorkflow.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("创建失败");
   } finally {
     creatingWorkflow.value = false;
@@ -416,7 +382,7 @@ onMounted(async () => {
       permissionStore.loadApprovalHistory(orgId.value, { limit: 20 }),
       permissionStore.loadWorkflows(orgId.value),
     ]);
-  } catch (error) {
+  } catch (_error) {
     message.error("加载失败");
   } finally {
     loadingApprovals.value = false;

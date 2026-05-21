@@ -258,7 +258,7 @@
 <script setup>
 import { logger } from '@/utils/logger';
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import DOMPurify from 'dompurify';
 import {

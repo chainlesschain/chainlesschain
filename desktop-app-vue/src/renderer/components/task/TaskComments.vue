@@ -171,7 +171,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, h, nextTick, watch } from "vue";
 import { Modal, Empty } from "ant-design-vue";

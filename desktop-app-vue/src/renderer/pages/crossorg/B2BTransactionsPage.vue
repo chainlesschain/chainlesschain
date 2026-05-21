@@ -1,14 +1,8 @@
 <template>
   <div class="b2b-transactions-page">
-    <a-page-header
-      title="B2B 数据交换"
-      sub-title="管理跨组织数据交易"
-    >
+    <a-page-header title="B2B 数据交换" sub-title="管理跨组织数据交易">
       <template #extra>
-        <a-button
-          type="primary"
-          @click="showInitiate = true"
-        >
+        <a-button type="primary" @click="showInitiate = true">
           <template #icon>
             <SwapOutlined />
           </template>
@@ -17,24 +11,15 @@
       </template>
     </a-page-header>
 
-    <a-row
-      :gutter="16"
-      class="stats-row"
-    >
+    <a-row :gutter="16" class="stats-row">
       <a-col :span="6">
         <a-card>
-          <a-statistic
-            title="发出交易"
-            :value="stats.outgoingCount"
-          />
+          <a-statistic title="发出交易" :value="stats.outgoingCount" />
         </a-card>
       </a-col>
       <a-col :span="6">
         <a-card>
-          <a-statistic
-            title="收到交易"
-            :value="stats.incomingCount"
-          />
+          <a-statistic title="收到交易" :value="stats.incomingCount" />
         </a-card>
       </a-col>
       <a-col :span="6">
@@ -64,18 +49,10 @@
           button-style="solid"
           size="small"
         >
-          <a-radio-button value="all">
-            全部
-          </a-radio-button>
-          <a-radio-button value="incoming">
-            收到
-          </a-radio-button>
-          <a-radio-button value="outgoing">
-            发出
-          </a-radio-button>
-          <a-radio-button value="pending">
-            待处理
-          </a-radio-button>
+          <a-radio-button value="all"> 全部 </a-radio-button>
+          <a-radio-button value="incoming"> 收到 </a-radio-button>
+          <a-radio-button value="outgoing"> 发出 </a-radio-button>
+          <a-radio-button value="pending"> 待处理 </a-radio-button>
         </a-radio-group>
       </template>
 
@@ -103,7 +80,7 @@
               <template
                 v-if="
                   record.status === 'pending' &&
-                    record.receiverOrgId === currentOrgId
+                  record.receiverOrgId === currentOrgId
                 "
               >
                 <a-button
@@ -121,11 +98,7 @@
                   拒绝
                 </a-button>
               </template>
-              <a-button
-                type="link"
-                size="small"
-                @click="viewDetails(record)"
-              >
+              <a-button type="link" size="small" @click="viewDetails(record)">
                 详情
               </a-button>
             </a-space>
@@ -141,14 +114,8 @@
       :confirm-loading="initiating"
       @ok="handleInitiate"
     >
-      <a-form
-        :model="initiateForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="接收组织"
-          required
-        >
+      <a-form :model="initiateForm" layout="vertical">
+        <a-form-item label="接收组织" required>
           <a-select
             v-model:value="initiateForm.receiverOrgId"
             placeholder="选择合作伙伴"
@@ -164,15 +131,9 @@
         </a-form-item>
         <a-form-item label="交易类型">
           <a-select v-model:value="initiateForm.transactionType">
-            <a-select-option value="data_transfer">
-              数据传输
-            </a-select-option>
-            <a-select-option value="data_sync">
-              数据同步
-            </a-select-option>
-            <a-select-option value="api_access">
-              API访问
-            </a-select-option>
+            <a-select-option value="data_transfer"> 数据传输 </a-select-option>
+            <a-select-option value="data_sync"> 数据同步 </a-select-option>
+            <a-select-option value="api_access"> API访问 </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="数据类型">
@@ -205,10 +166,7 @@
       width="600px"
     >
       <template v-if="selectedTransaction">
-        <a-descriptions
-          :column="2"
-          bordered
-        >
+        <a-descriptions :column="2" bordered>
           <a-descriptions-item label="发送方">
             {{ selectedTransaction.senderOrgId }}
           </a-descriptions-item>
@@ -229,10 +187,7 @@
               {{ getStatusLabel(selectedTransaction.status) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item
-            label="数据哈希"
-            :span="2"
-          >
+          <a-descriptions-item label="数据哈希" :span="2">
             <a-typography-paragraph
               copyable
               :content="selectedTransaction.dataHash"
@@ -373,7 +328,7 @@ const acceptTransaction = async (transactionId) => {
       authStore.currentUser?.did,
     );
     message.success("已接受");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };
@@ -385,7 +340,7 @@ const rejectTransaction = async (transactionId) => {
       authStore.currentUser?.did,
     );
     message.success("已拒绝");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };
@@ -410,7 +365,7 @@ const handleInitiate = async () => {
     });
     message.success("交易已发起");
     showInitiate.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("发起失败");
   } finally {
     initiating.value = false;

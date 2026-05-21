@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { message } from "ant-design-vue";

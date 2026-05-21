@@ -330,8 +330,8 @@ import {
   SafetyCertificateOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons-vue";
-import { useMarketplaceStore, type PluginInfo } from "@/stores/marketplace";
-import { logger, createLogger } from "@/utils/logger";
+import { useMarketplaceStore } from "@/stores/marketplace";
+import { createLogger } from "@/utils/logger";
 import { safeHtml } from "@/utils/sanitizeHtml";
 
 const pageLogger = createLogger("plugin-detail-page");

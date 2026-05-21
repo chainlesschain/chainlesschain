@@ -1,10 +1,7 @@
 <template>
   <div class="template-list">
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
+    <div v-if="loading" class="loading-container">
       <a-spin size="large">
         <template #tip>
           <span style="margin-top: 8px">加载模板中...</span>
@@ -18,19 +15,13 @@
       description="暂无模板"
       :image="Empty.PRESENTED_IMAGE_SIMPLE"
     >
-      <a-button
-        type="primary"
-        @click="$emit('create')"
-      >
+      <a-button type="primary" @click="$emit('create')">
         <plus-outlined /> 创建第一个模板
       </a-button>
     </a-empty>
 
     <!-- 模板网格 -->
-    <a-row
-      v-else
-      :gutter="[16, 16]"
-    >
+    <a-row v-else :gutter="[16, 16]">
       <a-col
         v-for="template in templates"
         :key="template.id"
@@ -63,18 +54,12 @@
           <!-- 卡片操作按钮 -->
           <template #extra>
             <a-dropdown :trigger="['click']">
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <ellipsis-outlined />
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item
-                    key="use"
-                    @click="$emit('use', template)"
-                  >
+                  <a-menu-item key="use" @click="$emit('use', template)">
                     <play-circle-outlined /> 使用模板
                   </a-menu-item>
                   <a-menu-item
@@ -84,10 +69,7 @@
                   >
                     <edit-outlined /> 编辑模板
                   </a-menu-item>
-                  <a-menu-item
-                    key="export"
-                    @click="$emit('export', template)"
-                  >
+                  <a-menu-item key="export" @click="$emit('export', template)">
                     <export-outlined /> 导出模板
                   </a-menu-item>
                   <a-menu-divider v-if="!template.is_system" />
@@ -108,7 +90,7 @@
           <div class="template-content">
             <!-- 描述 -->
             <p class="template-description">
-              {{ template.description || '暂无描述' }}
+              {{ template.description || "暂无描述" }}
             </p>
 
             <!-- 分类和变量 -->
@@ -146,11 +128,7 @@
 
             <!-- 操作按钮 -->
             <div class="template-actions">
-              <a-button
-                type="primary"
-                block
-                @click="$emit('use', template)"
-              >
+              <a-button type="primary" block @click="$emit('use', template)">
                 <play-circle-outlined /> 使用模板
               </a-button>
             </div>
@@ -162,7 +140,7 @@
 </template>
 
 <script setup>
-import { Empty } from 'ant-design-vue';
+import { Empty } from "ant-design-vue";
 import {
   PlusOutlined,
   EllipsisOutlined,
@@ -174,8 +152,8 @@ import {
   ApiOutlined,
   FireOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
-import { Modal, message } from 'ant-design-vue';
+} from "@ant-design/icons-vue";
+import { Modal } from "ant-design-vue";
 
 // Props
 defineProps({
@@ -190,39 +168,43 @@ defineProps({
 });
 
 // Emits
-const emit = defineEmits(['use', 'edit', 'delete', 'export', 'create']);
+const emit = defineEmits(["use", "edit", "delete", "export", "create"]);
 
 // 分类标签映射
 const getCategoryLabel = (category) => {
   const labels = {
-    general: '通用',
-    writing: '写作',
-    translation: '翻译',
-    analysis: '分析',
-    programming: '编程',
-    creative: '创意',
-    qa: '问答',
-    rag: 'RAG',
+    general: "通用",
+    writing: "写作",
+    translation: "翻译",
+    analysis: "分析",
+    programming: "编程",
+    creative: "创意",
+    qa: "问答",
+    rag: "RAG",
   };
   return labels[category] || category;
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // 格式化相对时间
 const formatRelativeTime = (timestamp) => {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
 
   const now = Date.now();
   const diff = now - timestamp;
@@ -234,24 +216,34 @@ const formatRelativeTime = (timestamp) => {
   const months = Math.floor(days / 30);
   const years = Math.floor(days / 365);
 
-  if (years > 0) {return `${years} 年前`;}
-  if (months > 0) {return `${months} 个月前`;}
-  if (days > 0) {return `${days} 天前`;}
-  if (hours > 0) {return `${hours} 小时前`;}
-  if (minutes > 0) {return `${minutes} 分钟前`;}
-  return '刚刚';
+  if (years > 0) {
+    return `${years} 年前`;
+  }
+  if (months > 0) {
+    return `${months} 个月前`;
+  }
+  if (days > 0) {
+    return `${days} 天前`;
+  }
+  if (hours > 0) {
+    return `${hours} 小时前`;
+  }
+  if (minutes > 0) {
+    return `${minutes} 分钟前`;
+  }
+  return "刚刚";
 };
 
 // 删除确认
 const handleDelete = (template) => {
   Modal.confirm({
-    title: '确认删除',
+    title: "确认删除",
     content: `确定要删除模板 "${template.name}" 吗？此操作无法撤销。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: () => {
-      emit('delete', template);
+      emit("delete", template);
     },
   });
 };

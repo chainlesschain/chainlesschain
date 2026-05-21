@@ -1,31 +1,19 @@
 <template>
   <div
     class="loading-state"
-    :class="[`loading-state--${type}`, { 'loading-state--fullscreen': fullscreen }]"
+    :class="[
+      `loading-state--${type}`,
+      { 'loading-state--fullscreen': fullscreen },
+    ]"
   >
     <!-- Spinner 加载 -->
-    <div
-      v-if="type === 'spinner'"
-      class="loading-spinner"
-    >
-      <a-spin
-        :size="size"
-        :tip="message"
-      >
-        <template
-          v-if="customIcon"
-          #indicator
-        >
-          <component
-            :is="customIcon"
-            :spin="true"
-          />
+    <div v-if="type === 'spinner'" class="loading-spinner">
+      <a-spin :size="size" :tip="message">
+        <template v-if="customIcon" #indicator>
+          <component :is="customIcon" :spin="true" />
         </template>
       </a-spin>
-      <div
-        v-if="progress !== null"
-        class="loading-progress"
-      >
+      <div v-if="progress !== null" class="loading-progress">
         <a-progress
           :percent="progress"
           :status="progressStatus"
@@ -36,25 +24,13 @@
     </div>
 
     <!-- Skeleton 骨架屏 -->
-    <div
-      v-else-if="type === 'skeleton'"
-      class="loading-skeleton"
-    >
-      <component
-        :is="getSkeletonComponent()"
-        v-bind="skeletonProps"
-      />
+    <div v-else-if="type === 'skeleton'" class="loading-skeleton">
+      <component :is="getSkeletonComponent()" v-bind="skeletonProps" />
     </div>
 
     <!-- Progress 进度条 -->
-    <div
-      v-else-if="type === 'progress'"
-      class="loading-progress-bar"
-    >
-      <div
-        v-if="message"
-        class="progress-message"
-      >
+    <div v-else-if="type === 'progress'" class="loading-progress-bar">
+      <div v-if="message" class="progress-message">
         {{ message }}
       </div>
       <a-progress
@@ -63,117 +39,89 @@
         :show-info="showProgressInfo"
         :stroke-color="progressColor"
       />
-      <div
-        v-if="subMessage"
-        class="progress-sub-message"
-      >
+      <div v-if="subMessage" class="progress-sub-message">
         {{ subMessage }}
       </div>
     </div>
 
     <!-- Dots 点状加载 -->
-    <div
-      v-else-if="type === 'dots'"
-      class="loading-dots"
-    >
+    <div v-else-if="type === 'dots'" class="loading-dots">
       <div class="dots-container">
         <span class="dot" />
         <span class="dot" />
         <span class="dot" />
       </div>
-      <div
-        v-if="message"
-        class="dots-message"
-      >
+      <div v-if="message" class="dots-message">
         {{ message }}
       </div>
     </div>
 
     <!-- Pulse 脉冲加载 -->
-    <div
-      v-else-if="type === 'pulse'"
-      class="loading-pulse"
-    >
+    <div v-else-if="type === 'pulse'" class="loading-pulse">
       <div class="pulse-circle" />
-      <div
-        v-if="message"
-        class="pulse-message"
-      >
+      <div v-if="message" class="pulse-message">
         {{ message }}
       </div>
     </div>
 
     <!-- Bar 条形加载 -->
-    <div
-      v-else-if="type === 'bar'"
-      class="loading-bar"
-    >
+    <div v-else-if="type === 'bar'" class="loading-bar">
       <div class="bar-container">
-        <div
-          class="bar-fill"
-          :style="{ width: `${progress || 0}%` }"
-        />
+        <div class="bar-fill" :style="{ width: `${progress || 0}%` }" />
       </div>
-      <div
-        v-if="message"
-        class="bar-message"
-      >
+      <div v-if="message" class="bar-message">
         {{ message }}
       </div>
     </div>
 
     <!-- Custom 自定义 -->
-    <div
-      v-else-if="type === 'custom'"
-      class="loading-custom"
-    >
+    <div v-else-if="type === 'custom'" class="loading-custom">
       <slot name="custom">
-        <a-spin
-          :size="size"
-          :tip="message"
-        />
+        <a-spin :size="size" :tip="message" />
       </slot>
     </div>
 
     <!-- 默认 -->
-    <div
-      v-else
-      class="loading-default"
-    >
-      <a-spin
-        :size="size"
-        :tip="message"
-      />
+    <div v-else class="loading-default">
+      <a-spin :size="size" :tip="message" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent } from 'vue';
-import { LoadingOutlined } from '@ant-design/icons-vue';
+import { computed, defineAsyncComponent } from "vue";
 
 const props = defineProps({
   // 加载类型: spinner, skeleton, progress, dots, pulse, bar, custom
   type: {
     type: String,
-    default: 'spinner',
-    validator: (value) => ['spinner', 'skeleton', 'progress', 'dots', 'pulse', 'bar', 'custom'].includes(value),
+    default: "spinner",
+    validator: (value) =>
+      [
+        "spinner",
+        "skeleton",
+        "progress",
+        "dots",
+        "pulse",
+        "bar",
+        "custom",
+      ].includes(value),
   },
   // 加载提示消息
   message: {
     type: String,
-    default: '',
+    default: "",
   },
   // 子消息（仅progress类型）
   subMessage: {
     type: String,
-    default: '',
+    default: "",
   },
   // 大小: small, default, large
   size: {
     type: String,
-    default: 'default',
-    validator: (value) => ['small', 'default', 'large'].includes(value),
+    default: "default",
+    validator: (value) => ["small", "default", "large"].includes(value),
   },
   // 进度值 (0-100)
   progress: {
@@ -184,7 +132,7 @@ const props = defineProps({
   // 进度状态: success, exception, normal, active
   progressStatus: {
     type: String,
-    default: 'active',
+    default: "active",
   },
   // 是否显示进度信息
   showProgressInfo: {
@@ -209,7 +157,7 @@ const props = defineProps({
   // Skeleton类型: file-tree, chat, editor, card, list, table
   skeletonType: {
     type: String,
-    default: 'card',
+    default: "card",
   },
   // Skeleton行数
   skeletonRows: {
@@ -226,15 +174,17 @@ const props = defineProps({
 // 动态加载Skeleton组件
 const getSkeletonComponent = () => {
   const skeletonMap = {
-    'file-tree': defineAsyncComponent(() => import('./skeleton/FileTreeSkeleton.vue')),
-    'chat': defineAsyncComponent(() => import('./skeleton/ChatSkeleton.vue')),
-    'editor': defineAsyncComponent(() => import('./skeleton/EditorSkeleton.vue')),
-    'card': defineAsyncComponent(() => import('./skeleton/CardSkeleton.vue')),
-    'list': defineAsyncComponent(() => import('./skeleton/ListSkeleton.vue')),
-    'table': 'a-skeleton',
+    "file-tree": defineAsyncComponent(
+      () => import("./skeleton/FileTreeSkeleton.vue"),
+    ),
+    chat: defineAsyncComponent(() => import("./skeleton/ChatSkeleton.vue")),
+    editor: defineAsyncComponent(() => import("./skeleton/EditorSkeleton.vue")),
+    card: defineAsyncComponent(() => import("./skeleton/CardSkeleton.vue")),
+    list: defineAsyncComponent(() => import("./skeleton/ListSkeleton.vue")),
+    table: "a-skeleton",
   };
 
-  return skeletonMap[props.skeletonType] || 'a-skeleton';
+  return skeletonMap[props.skeletonType] || "a-skeleton";
 };
 
 // 合并skeleton属性
@@ -341,7 +291,9 @@ const skeletonProps = computed(() => ({
 }
 
 @keyframes dot-pulse {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0.6);
     opacity: 0.5;
   }

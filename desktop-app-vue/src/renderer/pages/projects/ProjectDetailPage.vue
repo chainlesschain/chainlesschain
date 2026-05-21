@@ -566,8 +566,6 @@ import FileManageModal from "@/components/projects/FileManageModal.vue";
 import ProjectShareDialog from "@/components/projects/ProjectShareDialog.vue";
 import FileExportMenu from "@/components/projects/FileExportMenu.vue";
 import GitHistoryDialog from "@/components/projects/GitHistoryDialog.vue";
-import ProjectStatsPanel from "@/components/projects/ProjectStatsPanel.vue";
-import ProjectFileList from "@/components/projects/ProjectFileList.vue";
 import ProjectSidebar from "@/components/ProjectSidebar.vue";
 import EditorPanelHeader from "@/components/projects/EditorPanelHeader.vue";
 import ResizeHandle from "@/components/projects/ResizeHandle.vue";
@@ -591,7 +589,7 @@ import {
 } from "@/utils/worker-manager";
 
 // 导入性能优化工具
-import { getRequestBatcher, batchedRequest } from "@/utils/request-batcher";
+import { getRequestBatcher } from "@/utils/request-batcher";
 import { getOptimisticUpdateManager } from "@/utils/optimistic-update-manager";
 import {
   getIncrementalSyncManager,

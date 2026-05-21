@@ -7,23 +7,15 @@
           <UnorderedListOutlined />
           任务监控
         </h1>
-        <p class="page-description">
-          实时监控任务执行状态、进度和性能
-        </p>
+        <p class="page-description">实时监控任务执行状态、进度和性能</p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button
-            :loading="isLoading"
-            @click="handleRefresh"
-          >
+          <a-button :loading="isLoading" @click="handleRefresh">
             <ReloadOutlined />
             刷新
           </a-button>
-          <a-button
-            type="primary"
-            @click="$router.push('/cowork')"
-          >
+          <a-button type="primary" @click="$router.push('/cowork')">
             <TeamOutlined />
             返回团队
           </a-button>
@@ -34,11 +26,7 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <a-row :gutter="16">
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="总任务数"
@@ -48,11 +36,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="运行中"
@@ -62,11 +46,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="已完成"
@@ -76,11 +56,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="成功率"
@@ -98,11 +74,7 @@
     </div>
 
     <!-- 主内容区 -->
-    <a-card
-      title="任务列表"
-      :bordered="false"
-      class="tasks-section"
-    >
+    <a-card title="任务列表" :bordered="false" class="tasks-section">
       <!-- 筛选工具栏 -->
       <div class="filters-bar">
         <a-space wrap>
@@ -120,24 +92,12 @@
             allow-clear
             @change="handleFilterChange"
           >
-            <a-select-option value="pending">
-              待处理
-            </a-select-option>
-            <a-select-option value="running">
-              运行中
-            </a-select-option>
-            <a-select-option value="paused">
-              已暂停
-            </a-select-option>
-            <a-select-option value="completed">
-              已完成
-            </a-select-option>
-            <a-select-option value="failed">
-              失败
-            </a-select-option>
-            <a-select-option value="cancelled">
-              已取消
-            </a-select-option>
+            <a-select-option value="pending"> 待处理 </a-select-option>
+            <a-select-option value="running"> 运行中 </a-select-option>
+            <a-select-option value="paused"> 已暂停 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="failed"> 失败 </a-select-option>
+            <a-select-option value="cancelled"> 已取消 </a-select-option>
           </a-select>
           <a-select
             v-model:value="teamFilter"
@@ -200,16 +160,10 @@
           </template>
 
           <template v-else-if="column.key === 'assignedTo'">
-            <a-tag
-              v-if="record.assignedTo"
-              color="geekblue"
-            >
+            <a-tag v-if="record.assignedTo" color="geekblue">
               {{ record.assignedTo }}
             </a-tag>
-            <span
-              v-else
-              style="color: #8c8c8c"
-            >未分配</span>
+            <span v-else style="color: #8c8c8c">未分配</span>
           </template>
 
           <template v-else-if="column.key === 'duration'">
@@ -280,37 +234,19 @@
       style="margin-top: 24px"
     >
       <a-row :gutter="[16, 16]">
-        <a-col
-          :xs="24"
-          :md="12"
-        >
-          <div
-            ref="successRateChartRef"
-            style="width: 100%; height: 300px"
-          />
+        <a-col :xs="24" :md="12">
+          <div ref="successRateChartRef" style="width: 100%; height: 300px" />
         </a-col>
-        <a-col
-          :xs="24"
-          :md="12"
-        >
-          <div
-            ref="durationChartRef"
-            style="width: 100%; height: 300px"
-          />
+        <a-col :xs="24" :md="12">
+          <div ref="durationChartRef" style="width: 100%; height: 300px" />
         </a-col>
-        <a-col
-          :xs="24"
-          :md="12"
-        >
+        <a-col :xs="24" :md="12">
           <div
             ref="completionTrendChartRef"
             style="width: 100%; height: 300px"
           />
         </a-col>
-        <a-col
-          :xs="24"
-          :md="12"
-        >
+        <a-col :xs="24" :md="12">
           <div
             ref="teamPerformanceChartRef"
             style="width: 100%; height: 300px"
@@ -362,7 +298,7 @@ import { useCoworkStore } from "../stores/cowork";
 import TaskDetailPanel from "../components/cowork/TaskDetailPanel.vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { logger, createLogger } from "@/utils/logger";
+import { createLogger } from "@/utils/logger";
 
 const taskLogger = createLogger("task-monitor");
 const router = useRouter();
@@ -761,7 +697,7 @@ function formatDate(timestamp) {
       locale: zhCN,
       addSuffix: true,
     });
-  } catch (error) {
+  } catch (_error) {
     return "-";
   }
 }

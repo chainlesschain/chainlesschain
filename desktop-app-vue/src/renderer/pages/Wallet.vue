@@ -284,7 +284,7 @@
 <script setup>
 defineOptions({ name: "WalletPage" });
 
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { message, Modal, Empty } from "ant-design-vue";
