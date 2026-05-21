@@ -900,7 +900,6 @@ import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { message } from "ant-design-vue";
 import {
   FileTextOutlined,
   TeamOutlined,

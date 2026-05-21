@@ -2,16 +2,9 @@
   <div class="wireless-setup">
     <a-tabs v-model:active-key="activeTab">
       <!-- BLE 蓝牙配对 -->
-      <a-tab-pane
-        key="ble"
-        :tab="$t('ukey.wireless.ble')"
-      >
+      <a-tab-pane key="ble" :tab="$t('ukey.wireless.ble')">
         <a-card :bordered="false">
-          <a-steps
-            :current="bleStep"
-            direction="vertical"
-            size="small"
-          >
+          <a-steps :current="bleStep" direction="vertical" size="small">
             <a-step
               :title="$t('ukey.wireless.enableBLE')"
               :description="$t('ukey.wireless.enableBLEDesc')"
@@ -39,10 +32,7 @@
                 $t("ukey.wireless.foundDevices", { count: bleDevices.length })
               }}
             </h4>
-            <a-list
-              :data-source="bleDevices"
-              size="small"
-            >
+            <a-list :data-source="bleDevices" size="small">
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta
@@ -122,18 +112,10 @@
       </a-tab-pane>
 
       <!-- NFC 注册 -->
-      <a-tab-pane
-        key="nfc"
-        :tab="$t('ukey.wireless.nfc')"
-      >
+      <a-tab-pane key="nfc" :tab="$t('ukey.wireless.nfc')">
         <a-card :bordered="false">
           <div class="nfc-prompt">
-            <div
-              class="nfc-icon"
-              :class="{ active: isNFCWaiting }"
-            >
-              📡
-            </div>
+            <div class="nfc-icon" :class="{ active: isNFCWaiting }">📡</div>
             <p class="nfc-hint">
               {{
                 isNFCWaiting
@@ -190,10 +172,7 @@
       </a-tab-pane>
 
       <!-- 连接状态 -->
-      <a-tab-pane
-        key="status"
-        :tab="$t('ukey.wireless.connectionStatus')"
-      >
+      <a-tab-pane key="status" :tab="$t('ukey.wireless.connectionStatus')">
         <a-card :bordered="false">
           <a-descriptions
             :title="$t('ukey.wireless.currentStatus')"
@@ -227,10 +206,7 @@
             </a-descriptions-item>
           </a-descriptions>
 
-          <a-button
-            class="mt-4"
-            @click="refreshStatus"
-          >
+          <a-button class="mt-4" @click="refreshStatus">
             {{ $t("ukey.wireless.refreshStatus") }}
           </a-button>
         </a-card>
@@ -240,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 

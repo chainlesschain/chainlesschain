@@ -5,13 +5,8 @@
       <div class="info-left">
         <FileTextOutlined class="file-icon" />
         <span class="file-size">{{ formatSize(fileInfo.size) }}</span>
-        <a-tag color="orange">
-          大文件
-        </a-tag>
-        <span
-          v-if="fileInfo.estimatedLines"
-          class="line-count"
-        >
+        <a-tag color="orange"> 大文件 </a-tag>
+        <span v-if="fileInfo.estimatedLines" class="line-count">
           约 {{ fileInfo.estimatedLines.toLocaleString() }} 行
         </span>
       </div>
@@ -31,18 +26,10 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div
-      v-if="searchResults.length > 0"
-      class="search-results"
-    >
+    <div v-if="searchResults.length > 0" class="search-results">
       <div class="results-header">
         <span>找到 {{ searchResults.length }} 个匹配项</span>
-        <a-button
-          size="small"
-          @click="clearSearch"
-        >
-          清除
-        </a-button>
+        <a-button size="small" @click="clearSearch"> 清除 </a-button>
       </div>
       <div class="results-list">
         <div
@@ -58,11 +45,7 @@
     </div>
 
     <!-- 虚拟滚动容器 -->
-    <div
-      ref="scrollContainer"
-      class="scroll-container"
-      @scroll="handleScroll"
-    >
+    <div ref="scrollContainer" class="scroll-container" @scroll="handleScroll">
       <div :style="{ height: `${totalHeight}px`, position: 'relative' }">
         <div
           v-for="virtualRow in virtualRows"
@@ -82,10 +65,7 @@
       </div>
 
       <!-- 加载指示器 -->
-      <div
-        v-if="loading"
-        class="loading-indicator"
-      >
+      <div v-if="loading" class="loading-indicator">
         <a-spin size="small" />
         <span>加载中...</span>
       </div>
@@ -95,17 +75,11 @@
     <div class="status-bar">
       <span>当前显示: {{ loadedLines.length }} 行</span>
       <span>滚动位置: 第 {{ currentTopLine }} 行</span>
-      <a-button
-        size="small"
-        @click="jumpToTop"
-      >
+      <a-button size="small" @click="jumpToTop">
         <VerticalAlignTopOutlined />
         顶部
       </a-button>
-      <a-button
-        size="small"
-        @click="jumpToBottom"
-      >
+      <a-button size="small" @click="jumpToBottom">
         <VerticalAlignBottomOutlined />
         底部
       </a-button>
@@ -116,7 +90,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   FileTextOutlined,

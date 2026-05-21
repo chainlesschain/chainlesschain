@@ -10,7 +10,7 @@ import {
   setupCommonHints,
   preloadRouteResources,
 } from "../utils/resource-hints";
-import { lazyRoute, createRouteGroup } from "../utils/code-splitting";
+import { createRouteGroup } from "../utils/code-splitting";
 
 // 扩展路由元信息类型
 declare module "vue-router" {

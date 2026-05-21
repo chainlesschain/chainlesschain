@@ -7,23 +7,15 @@
           <TeamOutlined />
           Cowork 多代理协作
         </h1>
-        <p class="page-description">
-          管理多代理团队、分配任务、监控进度
-        </p>
+        <p class="page-description">管理多代理团队、分配任务、监控进度</p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button
-            :loading="isLoading"
-            @click="handleRefresh"
-          >
+          <a-button :loading="isLoading" @click="handleRefresh">
             <ReloadOutlined />
             刷新
           </a-button>
-          <a-button
-            type="primary"
-            @click="showCreateTeamModal"
-          >
+          <a-button type="primary" @click="showCreateTeamModal">
             <PlusOutlined />
             创建团队
           </a-button>
@@ -34,11 +26,7 @@
     <!-- 全局统计卡片 -->
     <div class="stats-section">
       <a-row :gutter="16">
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="总团队数"
@@ -48,11 +36,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="活跃团队"
@@ -62,11 +46,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="运行中任务"
@@ -76,11 +56,7 @@
             />
           </a-card>
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="12"
-          :md="6"
-        >
+        <a-col :xs="24" :sm="12" :md="6">
           <a-card :loading="loading.stats">
             <a-statistic
               title="任务成功率"
@@ -98,14 +74,8 @@
     </div>
 
     <!-- 快速操作区 -->
-    <a-card
-      title="快速操作"
-      class="quick-actions-card"
-    >
-      <a-space
-        :size="12"
-        wrap
-      >
+    <a-card title="快速操作" class="quick-actions-card">
+      <a-space :size="12" wrap>
         <a-button @click="$router.push('/cowork/tasks')">
           <UnorderedListOutlined />
           查看所有任务
@@ -123,10 +93,7 @@
 
     <!-- 团队列表 -->
     <div class="teams-section">
-      <a-card
-        title="我的团队"
-        :bordered="false"
-      >
+      <a-card title="我的团队" :bordered="false">
         <!-- 筛选和搜索 -->
         <div class="filters-bar">
           <a-space>
@@ -144,27 +111,16 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="active">
-                活跃
-              </a-select-option>
-              <a-select-option value="paused">
-                暂停
-              </a-select-option>
-              <a-select-option value="completed">
-                已完成
-              </a-select-option>
-              <a-select-option value="failed">
-                失败
-              </a-select-option>
+              <a-select-option value="active"> 活跃 </a-select-option>
+              <a-select-option value="paused"> 暂停 </a-select-option>
+              <a-select-option value="completed"> 已完成 </a-select-option>
+              <a-select-option value="failed"> 失败 </a-select-option>
             </a-select>
           </a-space>
         </div>
 
         <!-- 团队卡片网格 -->
-        <div
-          v-if="filteredTeams.length > 0"
-          class="teams-grid"
-        >
+        <div v-if="filteredTeams.length > 0" class="teams-grid">
           <a-row :gutter="[16, 16]">
             <a-col
               v-for="team in filteredTeams"
@@ -191,23 +147,14 @@
           description="暂无团队"
           style="margin-top: 40px"
         >
-          <a-button
-            type="primary"
-            @click="showCreateTeamModal"
-          >
+          <a-button type="primary" @click="showCreateTeamModal">
             立即创建
           </a-button>
         </a-empty>
 
         <!-- 加载状态 -->
-        <div
-          v-if="loading.teams"
-          class="loading-container"
-        >
-          <a-spin
-            size="large"
-            tip="加载团队列表..."
-          />
+        <div v-if="loading.teams" class="loading-container">
+          <a-spin size="large" tip="加载团队列表..." />
         </div>
       </a-card>
     </div>
@@ -225,10 +172,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="团队名称"
-          required
-        >
+        <a-form-item label="团队名称" required>
           <a-input
             v-model:value="teamForm.name"
             placeholder="输入团队名称"
@@ -256,16 +200,12 @@
 
         <a-form-item label="允许动态加入">
           <a-switch v-model:checked="teamForm.allowDynamicJoin" />
-          <div class="form-item-hint">
-            允许代理在团队运行时动态加入
-          </div>
+          <div class="form-item-hint">允许代理在团队运行时动态加入</div>
         </a-form-item>
 
         <a-form-item label="自动分配任务">
           <a-switch v-model:checked="teamForm.autoAssignTasks" />
-          <div class="form-item-hint">
-            根据代理能力自动分配任务
-          </div>
+          <div class="form-item-hint">根据代理能力自动分配任务</div>
         </a-form-item>
 
         <a-form-item label="共识阈值">
@@ -276,9 +216,7 @@
             :step="0.1"
             :marks="{ 0.5: '50%', 0.75: '75%', 1.0: '100%' }"
           />
-          <div class="form-item-hint">
-            投票决策时需要的最低同意比例
-          </div>
+          <div class="form-item-hint">投票决策时需要的最低同意比例</div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -319,7 +257,7 @@ import {
 import { useCoworkStore } from "../stores/cowork";
 import TeamCard from "../components/cowork/TeamCard.vue";
 import TeamDetailPanel from "../components/cowork/TeamDetailPanel.vue";
-import { logger, createLogger } from "@/utils/logger";
+import { createLogger } from "@/utils/logger";
 
 const coworkLogger = createLogger("cowork-dashboard");
 const router = useRouter();

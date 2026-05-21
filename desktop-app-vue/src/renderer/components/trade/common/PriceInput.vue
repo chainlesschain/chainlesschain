@@ -10,13 +10,14 @@
         :precision="precision"
         :disabled="disabled"
         :placeholder="placeholder"
-        :style="{ width: assetSelectorWidth ? `calc(100% - ${assetSelectorWidth}px)` : '70%' }"
+        :style="{
+          width: assetSelectorWidth
+            ? `calc(100% - ${assetSelectorWidth}px)`
+            : '70%',
+        }"
         @change="handleChange"
       >
-        <template
-          v-if="prefix"
-          #prefix
-        >
+        <template v-if="prefix" #prefix>
           <component :is="prefix" />
         </template>
       </a-input-number>
@@ -26,7 +27,9 @@
         v-if="showAssetSelector"
         v-model:value="selectedAsset"
         :disabled="disabled"
-        :style="{ width: assetSelectorWidth ? `${assetSelectorWidth}px` : '30%' }"
+        :style="{
+          width: assetSelectorWidth ? `${assetSelectorWidth}px` : '30%',
+        }"
         @change="handleAssetChange"
       >
         <a-select-option
@@ -49,7 +52,9 @@
         v-else
         :value="assetLabel"
         disabled
-        :style="{ width: assetSelectorWidth ? `${assetSelectorWidth}px` : '30%' }"
+        :style="{
+          width: assetSelectorWidth ? `${assetSelectorWidth}px` : '30%',
+        }"
       >
         <template #prefix>
           <component
@@ -62,24 +67,15 @@
     </a-input-group>
 
     <!-- 辅助信息 -->
-    <div
-      v-if="showHelper"
-      class="price-helper"
-    >
+    <div v-if="showHelper" class="price-helper">
       <a-space :size="4">
         <!-- 估值信息 -->
-        <span
-          v-if="estimatedValue"
-          class="estimated-value"
-        >
+        <span v-if="estimatedValue" class="estimated-value">
           ≈ {{ formatAmount(estimatedValue) }} {{ estimatedCurrency }}
         </span>
 
         <!-- 余额信息 -->
-        <span
-          v-if="showBalance && balance !== null"
-          class="balance-info"
-        >
+        <span v-if="showBalance && balance !== null" class="balance-info">
           余额: {{ formatAmount(balance) }}
         </span>
 
@@ -112,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { computed } from "vue";
 import {
   DollarOutlined,
   WalletOutlined,
@@ -121,7 +117,7 @@ import {
   FileProtectOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
@@ -133,7 +129,7 @@ const props = defineProps({
   // 选中的资产 ID
   assetId: {
     type: String,
-    default: '',
+    default: "",
   },
   // 最小值
   min: {
@@ -158,7 +154,7 @@ const props = defineProps({
   // 占位符
   placeholder: {
     type: String,
-    default: '请输入金额',
+    default: "请输入金额",
   },
   // 是否禁用
   disabled: {
@@ -183,12 +179,12 @@ const props = defineProps({
   // 固定资产标签（当 showAssetSelector=false 时）
   assetLabel: {
     type: String,
-    default: 'CC',
+    default: "CC",
   },
   // 固定资产类型
   fixedAssetType: {
     type: String,
-    default: 'token',
+    default: "token",
   },
   // 资产选择器宽度
   assetSelectorWidth: {
@@ -218,7 +214,7 @@ const props = defineProps({
   // 估值货币
   estimatedCurrency: {
     type: String,
-    default: 'USD',
+    default: "USD",
   },
   // 是否显示快捷金额
   showQuickAmounts: {
@@ -229,36 +225,41 @@ const props = defineProps({
   quickAmounts: {
     type: Array,
     default: () => [
-      { label: '25%', value: 0.25 },
-      { label: '50%', value: 0.5 },
-      { label: '75%', value: 0.75 },
-      { label: '全部', value: 1 },
+      { label: "25%", value: 0.25 },
+      { label: "50%", value: 0.5 },
+      { label: "75%", value: 0.75 },
+      { label: "全部", value: 1 },
     ],
   },
   // 验证消息
   validationMessage: {
     type: String,
-    default: '',
+    default: "",
   },
   // 验证类型
   validationType: {
     type: String,
-    default: 'info', // 'info' | 'error' | 'warning'
+    default: "info", // 'info' | 'error' | 'warning'
   },
 });
 
 // Emits
-const emit = defineEmits(['update:modelValue', 'update:assetId', 'change', 'asset-change']);
+const emit = defineEmits([
+  "update:modelValue",
+  "update:assetId",
+  "change",
+  "asset-change",
+]);
 
 // 状态
 const amount = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit("update:modelValue", value),
 });
 
 const selectedAsset = computed({
   get: () => props.assetId,
-  set: (value) => emit('update:assetId', value),
+  set: (value) => emit("update:assetId", value),
 });
 
 // 资产类型图标
@@ -275,38 +276,46 @@ const getAssetIcon = (type) => {
 // 资产类型颜色
 const getAssetColor = (type) => {
   const colorMap = {
-    token: '#1890ff',
-    nft: '#52c41a',
-    knowledge: '#faad14',
-    service: '#722ed1',
+    token: "#1890ff",
+    nft: "#52c41a",
+    knowledge: "#faad14",
+    service: "#722ed1",
   };
-  return colorMap[type] || '#999';
+  return colorMap[type] || "#999";
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
+  if (!amount && amount !== 0) {
+    return "0";
+  }
   const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
+  if (isNaN(num)) {
+    return "0";
+  }
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
-    return (num / 1e9).toFixed(2) + 'B';
+    return (num / 1e9).toFixed(2) + "B";
   } else if (num >= 1e6) {
-    return (num / 1e6).toFixed(2) + 'M';
+    return (num / 1e6).toFixed(2) + "M";
   } else if (num >= 1e3) {
-    return (num / 1e3).toFixed(2) + 'K';
+    return (num / 1e3).toFixed(2) + "K";
   }
 
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 // 设置快捷金额
 const setQuickAmount = (quickAmount) => {
-  if (props.balance === null) {return;}
+  if (props.balance === null) {
+    return;
+  }
 
   const balance = parseFloat(props.balance);
-  if (isNaN(balance)) {return;}
+  if (isNaN(balance)) {
+    return;
+  }
 
   const newAmount = balance * quickAmount.value;
   amount.value = parseFloat(newAmount.toFixed(props.precision));
@@ -314,15 +323,15 @@ const setQuickAmount = (quickAmount) => {
 
 // 事件处理
 const handleChange = (value) => {
-  emit('change', {
+  emit("change", {
     amount: value,
     assetId: selectedAsset.value,
   });
 };
 
 const handleAssetChange = (value) => {
-  const asset = props.availableAssets.find(a => a.id === value);
-  emit('asset-change', asset);
+  const asset = props.availableAssets.find((a) => a.id === value);
+  emit("asset-change", asset);
 };
 </script>
 

@@ -4,19 +4,19 @@
  * @description 定义 Pinia stores 的状态、getters 和 actions 类型
  */
 
-import type { Ref, ComputedRef } from 'vue';
+import type {} from "vue";
 
 // ==================== App Store ====================
 
 /**
  * 主题类型
  */
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = "light" | "dark" | "system";
 
 /**
  * 语言类型
  */
-export type Locale = 'zh-CN' | 'en-US';
+export type Locale = "zh-CN" | "en-US";
 
 /**
  * App Store 状态
@@ -112,7 +112,7 @@ export interface AuthActions {
  */
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
   tokens?: number;
@@ -196,7 +196,7 @@ export interface ProjectInfo {
   description?: string;
   path?: string;
   type?: string;
-  status?: 'active' | 'archived' | 'deleted';
+  status?: "active" | "archived" | "deleted";
   tags?: string[];
   createdAt: string;
   updatedAt: string;
@@ -283,7 +283,7 @@ export interface LLMActions {
  */
 export interface MemoryEntry {
   id: string;
-  type: 'daily' | 'insight' | 'note';
+  type: "daily" | "insight" | "note";
   content: string;
   date: string;
   tags?: string[];
@@ -361,7 +361,7 @@ export interface TeamMember {
   id: string;
   userId: string;
   username: string;
-  role: 'owner' | 'admin' | 'member';
+  role: "owner" | "admin" | "member";
   joinedAt: string;
 }
 
@@ -431,7 +431,7 @@ export interface WorkflowInfo {
   description?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  status: "draft" | "active" | "paused" | "completed";
   createdAt: string;
   updatedAt: string;
 }

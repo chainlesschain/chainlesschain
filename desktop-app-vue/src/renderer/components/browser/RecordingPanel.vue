@@ -1,23 +1,9 @@
 <template>
-  <a-card
-    title="📹 录制与回放"
-    :bordered="false"
-    class="recording-panel"
-  >
-    <a-tabs
-      v-model:active-key="activeTab"
-      type="card"
-    >
+  <a-card title="📹 录制与回放" :bordered="false" class="recording-panel">
+    <a-tabs v-model:active-key="activeTab" type="card">
       <!-- 录制控制 -->
-      <a-tab-pane
-        key="record"
-        tab="录制操作"
-      >
-        <a-space
-          direction="vertical"
-          style="width: 100%"
-          size="large"
-        >
+      <a-tab-pane key="record" tab="录制操作">
+        <a-space direction="vertical" style="width: 100%" size="large">
           <!-- 录制状态 -->
           <a-alert
             :type="recordingStatus.type"
@@ -30,10 +16,7 @@
                 class="recording-dot-pulse"
               />
             </template>
-            <template
-              v-if="isRecording"
-              #description
-            >
+            <template v-if="isRecording" #description>
               <a-space>
                 <a-statistic
                   title="录制时长"
@@ -60,11 +43,7 @@
           </a-alert>
 
           <!-- 录制配置（未录制时显示） -->
-          <a-card
-            v-if="!isRecording"
-            title="录制配置"
-            size="small"
-          >
+          <a-card v-if="!isRecording" title="录制配置" size="small">
             <a-form layout="vertical">
               <a-form-item label="录制名称">
                 <a-input
@@ -76,21 +55,11 @@
                 <a-checkbox-group
                   v-model:value="recordingConfig.captureOptions"
                 >
-                  <a-checkbox value="clicks">
-                    点击事件
-                  </a-checkbox>
-                  <a-checkbox value="typing">
-                    键盘输入
-                  </a-checkbox>
-                  <a-checkbox value="scrolls">
-                    滚动事件
-                  </a-checkbox>
-                  <a-checkbox value="navigation">
-                    页面导航
-                  </a-checkbox>
-                  <a-checkbox value="screenshots">
-                    自动截图
-                  </a-checkbox>
+                  <a-checkbox value="clicks"> 点击事件 </a-checkbox>
+                  <a-checkbox value="typing"> 键盘输入 </a-checkbox>
+                  <a-checkbox value="scrolls"> 滚动事件 </a-checkbox>
+                  <a-checkbox value="navigation"> 页面导航 </a-checkbox>
+                  <a-checkbox value="screenshots"> 自动截图 </a-checkbox>
                 </a-checkbox-group>
               </a-form-item>
               <a-form-item label="事件合并延迟">
@@ -186,20 +155,10 @@
       </a-tab-pane>
 
       <!-- 录制历史 -->
-      <a-tab-pane
-        key="history"
-        tab="录制历史"
-      >
-        <a-space
-          direction="vertical"
-          style="width: 100%"
-          size="middle"
-        >
+      <a-tab-pane key="history" tab="录制历史">
+        <a-space direction="vertical" style="width: 100%" size="middle">
           <a-space>
-            <a-button
-              type="primary"
-              @click="handleRefreshRecordings"
-            >
+            <a-button type="primary" @click="handleRefreshRecordings">
               <template #icon>
                 <ReloadOutlined />
               </template>
@@ -230,10 +189,7 @@
                 {{ formatDuration(record.duration) }}
               </template>
               <template v-if="column.key === 'eventCount'">
-                <a-badge
-                  :count="record.eventCount"
-                  :overflow-count="999"
-                />
+                <a-badge :count="record.eventCount" :overflow-count="999" />
               </template>
               <template v-if="column.key === 'createdAt'">
                 {{ formatTimestamp(record.createdAt) }}
@@ -271,13 +227,7 @@
                     title="确定删除这个录制吗？"
                     @confirm="handleDeleteRecording(record.id)"
                   >
-                    <a-button
-                      type="link"
-                      size="small"
-                      danger
-                    >
-                      删除
-                    </a-button>
+                    <a-button type="link" size="small" danger> 删除 </a-button>
                   </a-popconfirm>
                 </a-space>
               </template>
@@ -287,15 +237,8 @@
       </a-tab-pane>
 
       <!-- 回放控制 -->
-      <a-tab-pane
-        key="playback"
-        tab="回放控制"
-      >
-        <a-space
-          direction="vertical"
-          style="width: 100%"
-          size="large"
-        >
+      <a-tab-pane key="playback" tab="回放控制">
+        <a-space direction="vertical" style="width: 100%" size="large">
           <a-alert
             v-if="!playbackState.playbackId"
             type="info"
@@ -306,14 +249,8 @@
 
           <template v-else>
             <!-- 回放状态 -->
-            <a-card
-              title="回放状态"
-              size="small"
-            >
-              <a-descriptions
-                :column="2"
-                size="small"
-              >
+            <a-card title="回放状态" size="small">
+              <a-descriptions :column="2" size="small">
                 <a-descriptions-item label="录制名称">
                   {{ playbackState.recordingName }}
                 </a-descriptions-item>
@@ -350,21 +287,14 @@
                 </template>
                 暂停
               </a-button>
-              <a-button
-                v-else
-                type="primary"
-                @click="handleResumePlayback"
-              >
+              <a-button v-else type="primary" @click="handleResumePlayback">
                 <template #icon>
                   <CaretRightOutlined />
                 </template>
                 继续
               </a-button>
 
-              <a-button
-                danger
-                @click="handleStopPlayback"
-              >
+              <a-button danger @click="handleStopPlayback">
                 <template #icon>
                   <StopOutlined />
                 </template>
@@ -378,26 +308,15 @@
                 v-model:value="playbackState.speed"
                 @change="handleSpeedChange"
               >
-                <a-radio-button :value="0.5">
-                  0.5x
-                </a-radio-button>
-                <a-radio-button :value="1">
-                  1x
-                </a-radio-button>
-                <a-radio-button :value="1.5">
-                  1.5x
-                </a-radio-button>
-                <a-radio-button :value="2">
-                  2x
-                </a-radio-button>
+                <a-radio-button :value="0.5"> 0.5x </a-radio-button>
+                <a-radio-button :value="1"> 1x </a-radio-button>
+                <a-radio-button :value="1.5"> 1.5x </a-radio-button>
+                <a-radio-button :value="2"> 2x </a-radio-button>
               </a-radio-group>
             </a-space>
 
             <!-- 步骤列表 -->
-            <a-card
-              title="回放步骤"
-              size="small"
-            >
+            <a-card title="回放步骤" size="small">
               <a-timeline>
                 <a-timeline-item
                   v-for="(step, index) in playbackState.steps"
@@ -747,7 +666,7 @@ const handlePlayRecording = async (recording) => {
             message.success("回放完成");
           }
         }
-      } catch (error) {
+      } catch (_error) {
         clearInterval(pollPlayback);
       }
     }, 500);

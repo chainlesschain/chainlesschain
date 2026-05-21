@@ -597,7 +597,7 @@ export const useAppStore = defineStore("app", {
           );
           return;
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
@@ -623,7 +623,7 @@ export const useAppStore = defineStore("app", {
           );
           return;
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
@@ -646,7 +646,7 @@ export const useAppStore = defineStore("app", {
           );
           return;
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
@@ -672,7 +672,7 @@ export const useAppStore = defineStore("app", {
             return;
           }
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
@@ -701,7 +701,7 @@ export const useAppStore = defineStore("app", {
             return;
           }
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
@@ -730,7 +730,7 @@ export const useAppStore = defineStore("app", {
             return;
           }
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );

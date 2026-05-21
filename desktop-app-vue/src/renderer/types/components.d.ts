@@ -4,7 +4,7 @@
  * @description 定义通用组件的 Props 类型
  */
 
-import type { VNode, Component, DefineComponent } from 'vue';
+import type { VNode } from "vue";
 
 // ==================== 通用组件 Props ====================
 
@@ -12,15 +12,15 @@ import type { VNode, Component, DefineComponent } from 'vue';
  * 基础按钮 Props
  */
 export interface ButtonProps {
-  type?: 'primary' | 'default' | 'dashed' | 'text' | 'link';
-  size?: 'large' | 'middle' | 'small';
+  type?: "primary" | "default" | "dashed" | "text" | "link";
+  size?: "large" | "middle" | "small";
   disabled?: boolean;
   loading?: boolean;
   danger?: boolean;
   ghost?: boolean;
   block?: boolean;
   icon?: string | VNode;
-  htmlType?: 'button' | 'submit' | 'reset';
+  htmlType?: "button" | "submit" | "reset";
 }
 
 /**
@@ -36,8 +36,8 @@ export interface InputProps {
   allowClear?: boolean;
   prefix?: string | VNode;
   suffix?: string | VNode;
-  size?: 'large' | 'middle' | 'small';
-  status?: 'error' | 'warning';
+  size?: "large" | "middle" | "small";
+  status?: "error" | "warning";
 }
 
 /**
@@ -69,12 +69,16 @@ export interface TableColumn<T = any> {
   dataIndex?: string;
   key?: string;
   width?: string | number;
-  fixed?: 'left' | 'right';
-  align?: 'left' | 'center' | 'right';
+  fixed?: "left" | "right";
+  align?: "left" | "center" | "right";
   ellipsis?: boolean;
   sorter?: boolean | ((a: T, b: T) => number);
   filters?: { text: string; value: any }[];
-  customRender?: (options: { text: any; record: T; index: number }) => VNode | string;
+  customRender?: (options: {
+    text: any;
+    record: T;
+    index: number;
+  }) => VNode | string;
   slots?: { customRender?: string };
 }
 
@@ -88,7 +92,7 @@ export interface TableProps<T = any> {
   loading?: boolean;
   pagination?: boolean | PaginationProps;
   bordered?: boolean;
-  size?: 'large' | 'middle' | 'small';
+  size?: "large" | "middle" | "small";
   scroll?: { x?: number | string; y?: number | string };
   rowSelection?: RowSelectionProps<T>;
   expandable?: ExpandableProps<T>;
@@ -106,14 +110,14 @@ export interface PaginationProps {
   showTotal?: (total: number, range: [number, number]) => string;
   pageSizeOptions?: string[];
   simple?: boolean;
-  size?: 'default' | 'small';
+  size?: "default" | "small";
 }
 
 /**
  * 行选择 Props
  */
 export interface RowSelectionProps<T = any> {
-  type?: 'checkbox' | 'radio';
+  type?: "checkbox" | "radio";
   selectedRowKeys?: string[];
   onChange?: (selectedRowKeys: string[], selectedRows: T[]) => void;
   getCheckboxProps?: (record: T) => any;
@@ -144,7 +148,7 @@ export interface FormItemProps {
   wrapperCol?: { span?: number; offset?: number };
   help?: string | VNode;
   extra?: string | VNode;
-  validateStatus?: 'success' | 'warning' | 'error' | 'validating';
+  validateStatus?: "success" | "warning" | "error" | "validating";
   hasFeedback?: boolean;
   colon?: boolean;
 }
@@ -155,13 +159,13 @@ export interface FormItemProps {
 export interface FormRule {
   required?: boolean;
   message?: string;
-  type?: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'email' | 'url';
+  type?: "string" | "number" | "boolean" | "array" | "object" | "email" | "url";
   min?: number;
   max?: number;
   len?: number;
   pattern?: RegExp;
   validator?: (rule: FormRule, value: any) => Promise<void>;
-  trigger?: 'blur' | 'change' | string[];
+  trigger?: "blur" | "change" | string[];
 }
 
 /**
@@ -170,10 +174,10 @@ export interface FormRule {
 export interface FormProps {
   model?: Record<string, any>;
   rules?: Record<string, FormRule | FormRule[]>;
-  layout?: 'horizontal' | 'vertical' | 'inline';
+  layout?: "horizontal" | "vertical" | "inline";
   labelCol?: { span?: number; offset?: number };
   wrapperCol?: { span?: number; offset?: number };
-  labelAlign?: 'left' | 'right';
+  labelAlign?: "left" | "right";
   colon?: boolean;
   disabled?: boolean;
   scrollToFirstError?: boolean;
@@ -196,7 +200,7 @@ export interface SelectOption {
 export interface SelectProps {
   value?: any;
   options?: SelectOption[];
-  mode?: 'multiple' | 'tags';
+  mode?: "multiple" | "tags";
   placeholder?: string;
   disabled?: boolean;
   loading?: boolean;
@@ -204,8 +208,8 @@ export interface SelectProps {
   showSearch?: boolean;
   filterOption?: boolean | ((input: string, option: SelectOption) => boolean);
   notFoundContent?: string | VNode;
-  size?: 'large' | 'middle' | 'small';
-  maxTagCount?: number | 'responsive';
+  size?: "large" | "middle" | "small";
+  maxTagCount?: number | "responsive";
   dropdownMatchSelectWidth?: boolean | number;
 }
 
@@ -249,9 +253,9 @@ export interface TreeProps {
  */
 export interface TabsProps {
   activeKey?: string;
-  type?: 'line' | 'card' | 'editable-card';
-  size?: 'large' | 'middle' | 'small';
-  tabPosition?: 'top' | 'right' | 'bottom' | 'left';
+  type?: "line" | "card" | "editable-card";
+  size?: "large" | "middle" | "small";
+  tabPosition?: "top" | "right" | "bottom" | "left";
   centered?: boolean;
   animated?: boolean | { inkBar?: boolean; tabPane?: boolean };
   hideAdd?: boolean;
@@ -278,7 +282,7 @@ export interface DrawerProps {
   title?: string | VNode;
   width?: string | number;
   height?: string | number;
-  placement?: 'top' | 'right' | 'bottom' | 'left';
+  placement?: "top" | "right" | "bottom" | "left";
   closable?: boolean;
   maskClosable?: boolean;
   keyboard?: boolean;
@@ -311,7 +315,7 @@ export interface NotificationProps {
   duration?: number | null;
   icon?: VNode;
   key?: string;
-  placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+  placement?: "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
   style?: Record<string, string>;
   onClick?: () => void;
   onClose?: () => void;
@@ -326,7 +330,7 @@ export interface NotificationProps {
 export interface ChatMessageProps {
   message: {
     id: string;
-    role: 'user' | 'assistant' | 'system';
+    role: "user" | "assistant" | "system";
     content: string;
     timestamp: number;
   };
@@ -341,11 +345,11 @@ export interface ChatMessageProps {
 export interface CodeEditorProps {
   value?: string;
   language?: string;
-  theme?: 'vs' | 'vs-dark' | 'hc-black';
+  theme?: "vs" | "vs-dark" | "hc-black";
   readOnly?: boolean;
   minimap?: boolean;
-  lineNumbers?: 'on' | 'off' | 'relative';
-  wordWrap?: 'on' | 'off' | 'wordWrapColumn';
+  lineNumbers?: "on" | "off" | "relative";
+  wordWrap?: "on" | "off" | "wordWrapColumn";
   fontSize?: number;
   tabSize?: number;
 }
@@ -375,7 +379,7 @@ export interface FileUploadProps {
   drag?: boolean;
   disabled?: boolean;
   showUploadList?: boolean;
-  listType?: 'text' | 'picture' | 'picture-card';
+  listType?: "text" | "picture" | "picture-card";
   beforeUpload?: (file: File) => boolean | Promise<boolean>;
   customRequest?: (options: any) => void;
 }
@@ -386,7 +390,7 @@ export interface FileUploadProps {
 export interface ProgressMonitorProps {
   maxCompletedTasks?: number;
   showDetails?: boolean;
-  position?: 'top-right' | 'bottom-right' | 'bottom-left';
+  position?: "top-right" | "bottom-right" | "bottom-left";
 }
 
 /**
@@ -399,7 +403,7 @@ export interface KnowledgeGraphProps {
   };
   width?: number;
   height?: number;
-  layout?: 'force' | 'circular' | 'radial' | 'dagre';
+  layout?: "force" | "circular" | "radial" | "dagre";
   nodeSize?: number;
   edgeWidth?: number;
   interactive?: boolean;
@@ -417,7 +421,7 @@ export interface VideoPlayerProps {
   muted?: boolean;
   width?: string | number;
   height?: string | number;
-  preload?: 'auto' | 'metadata' | 'none';
+  preload?: "auto" | "metadata" | "none";
 }
 
 /**
@@ -429,7 +433,7 @@ export interface AudioPlayerProps {
   controls?: boolean;
   loop?: boolean;
   muted?: boolean;
-  preload?: 'auto' | 'metadata' | 'none';
+  preload?: "auto" | "metadata" | "none";
   showWaveform?: boolean;
 }
 
@@ -459,7 +463,7 @@ export interface TableChangeEvent {
   filters: Record<string, any[]>;
   sorter: {
     field?: string;
-    order?: 'ascend' | 'descend';
+    order?: "ascend" | "descend";
   };
 }
 

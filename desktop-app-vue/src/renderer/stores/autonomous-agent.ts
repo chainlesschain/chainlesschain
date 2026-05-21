@@ -10,10 +10,10 @@
  * @since 2026-02-23
  */
 
-import { logger, createLogger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { createLogger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
-const autonomousLogger = createLogger('autonomous-agent-store');
+const autonomousLogger = createLogger("autonomous-agent-store");
 
 // ==================== Type Definitions ====================
 
@@ -21,18 +21,18 @@ const autonomousLogger = createLogger('autonomous-agent-store');
  * Goal status
  */
 export type GoalStatus =
-  | 'queued'
-  | 'running'
-  | 'paused'
-  | 'waiting_input'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+  | "queued"
+  | "running"
+  | "paused"
+  | "waiting_input"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 /**
  * Tool permission category
  */
-export type ToolPermission = 'skills' | 'file-ops' | 'browser' | 'network';
+export type ToolPermission = "skills" | "file-ops" | "browser" | "network";
 
 /**
  * Goal specification for submission
@@ -50,7 +50,7 @@ export interface GoalSpec {
  */
 export interface PlanStep {
   description: string;
-  estimatedComplexity: 'low' | 'medium' | 'high' | 'unknown';
+  estimatedComplexity: "low" | "medium" | "high" | "unknown";
 }
 
 /**
@@ -235,7 +235,7 @@ export interface AutonomousAgentState {
 
 // ==================== Store ====================
 
-export const useAutonomousAgentStore = defineStore('autonomous-agent', {
+export const useAutonomousAgentStore = defineStore("autonomous-agent", {
   state: (): AutonomousAgentState => ({
     activeGoals: [],
     goalHistory: [],
@@ -256,21 +256,21 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
      * Goals currently running
      */
     runningGoals(): AutonomousGoal[] {
-      return this.activeGoals.filter((g) => g.status === 'running');
+      return this.activeGoals.filter((g) => g.status === "running");
     },
 
     /**
      * Goals currently paused
      */
     pausedGoals(): AutonomousGoal[] {
-      return this.activeGoals.filter((g) => g.status === 'paused');
+      return this.activeGoals.filter((g) => g.status === "paused");
     },
 
     /**
      * Goals waiting for user input
      */
     waitingGoals(): AutonomousGoal[] {
-      return this.activeGoals.filter((g) => g.status === 'waiting_input');
+      return this.activeGoals.filter((g) => g.status === "waiting_input");
     },
 
     /**
@@ -321,8 +321,8 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:submit-goal',
-          goalSpec
+          "agent:submit-goal",
+          goalSpec,
         );
 
         if (result.success && result.data) {
@@ -330,10 +330,10 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
             id: result.data.goalId,
             description: goalSpec.description,
             priority: goalSpec.priority,
-            status: 'running',
+            status: "running",
             toolPermissions: goalSpec.toolPermissions,
             context: goalSpec.context ? { text: goalSpec.context } : {},
-            plan: result.data.plan || { steps: [], strategy: '' },
+            plan: result.data.plan || { steps: [], strategy: "" },
             result: null,
             stepCount: 0,
             tokensUsed: 0,
@@ -344,12 +344,18 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
           autonomousLogger.info(`Goal submitted: ${goal.id}`);
           return goal;
         } else {
-          this.error = result.error || 'Failed to submit goal';
-          autonomousLogger.error('[AutonomousStore] Submit goal failed:', result.error);
+          this.error = result.error || "Failed to submit goal";
+          autonomousLogger.error(
+            "[AutonomousStore] Submit goal failed:",
+            result.error,
+          );
           return null;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Submit goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Submit goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return null;
       } finally {
@@ -365,24 +371,27 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:pause-goal',
-          goalId
+          "agent:pause-goal",
+          goalId,
         );
 
         if (result.success) {
           const goal = this.activeGoals.find((g) => g.id === goalId);
           if (goal) {
-            goal.status = 'paused';
+            goal.status = "paused";
             goal.paused = true;
           }
           autonomousLogger.info(`Goal paused: ${goalId}`);
           return true;
         } else {
-          this.error = result.error || 'Failed to pause goal';
+          this.error = result.error || "Failed to pause goal";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Pause goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Pause goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -396,24 +405,27 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:resume-goal',
-          goalId
+          "agent:resume-goal",
+          goalId,
         );
 
         if (result.success) {
           const goal = this.activeGoals.find((g) => g.id === goalId);
           if (goal) {
-            goal.status = 'running';
+            goal.status = "running";
             goal.paused = false;
           }
           autonomousLogger.info(`Goal resumed: ${goalId}`);
           return true;
         } else {
-          this.error = result.error || 'Failed to resume goal';
+          this.error = result.error || "Failed to resume goal";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Resume goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Resume goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -427,8 +439,8 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:cancel-goal',
-          goalId
+          "agent:cancel-goal",
+          goalId,
         );
 
         if (result.success) {
@@ -440,11 +452,14 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
           autonomousLogger.info(`Goal cancelled: ${goalId}`);
           return true;
         } else {
-          this.error = result.error || 'Failed to cancel goal';
+          this.error = result.error || "Failed to cancel goal";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Cancel goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Cancel goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -458,14 +473,14 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:provide-input',
-          { goalId, input }
+          "agent:provide-input",
+          { goalId, input },
         );
 
         if (result.success) {
           const goal = this.activeGoals.find((g) => g.id === goalId);
           if (goal) {
-            goal.status = 'running';
+            goal.status = "running";
             goal.waitingForInput = false;
             goal.inputRequest = null;
           }
@@ -473,11 +488,14 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
           autonomousLogger.info(`Input provided for goal: ${goalId}`);
           return true;
         } else {
-          this.error = result.error || 'Failed to provide input';
+          this.error = result.error || "Failed to provide input";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Provide input error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Provide input error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -491,8 +509,8 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:batch-cancel',
-          goalIds
+          "agent:batch-cancel",
+          goalIds,
         );
 
         if (result.success && result.data) {
@@ -505,15 +523,18 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
             this.inputRequests.delete(goalId);
           }
           autonomousLogger.info(
-            `Batch cancel: ${result.data.totalCancelled}/${goalIds.length}`
+            `Batch cancel: ${result.data.totalCancelled}/${goalIds.length}`,
           );
           return result.data.totalCancelled;
         } else {
-          this.error = result.error || 'Batch cancel failed';
+          this.error = result.error || "Batch cancel failed";
           return 0;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Batch cancel error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Batch cancel error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return 0;
       }
@@ -528,19 +549,19 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:retry-goal',
-          goalId
+          "agent:retry-goal",
+          goalId,
         );
 
         if (result.success && result.data) {
           const newGoal: AutonomousGoal = {
             id: result.data.goalId,
-            description: result.data.description || '',
+            description: result.data.description || "",
             priority: result.data.priority || 5,
-            status: 'running',
+            status: "running",
             toolPermissions: [],
             context: {},
-            plan: result.data.plan || { steps: [], strategy: '' },
+            plan: result.data.plan || { steps: [], strategy: "" },
             result: null,
             stepCount: 0,
             tokensUsed: 0,
@@ -550,11 +571,14 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
           autonomousLogger.info(`Goal retried: ${goalId} -> ${newGoal.id}`);
           return newGoal;
         } else {
-          this.error = result.error || 'Failed to retry goal';
+          this.error = result.error || "Failed to retry goal";
           return null;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Retry goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Retry goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return null;
       } finally {
@@ -574,18 +598,23 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<AutonomousGoal[]> = await (window as any).electronAPI.invoke(
-          'agent:get-active-goals'
-        );
+        const result: IPCResult<AutonomousGoal[]> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-active-goals");
 
         if (result.success) {
           this.activeGoals = result.data || [];
-          autonomousLogger.info(`Loaded ${this.activeGoals.length} active goals`);
+          autonomousLogger.info(
+            `Loaded ${this.activeGoals.length} active goals`,
+          );
         } else {
-          this.error = result.error || 'Failed to fetch active goals';
+          this.error = result.error || "Failed to fetch active goals";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch active goals error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch active goals error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       } finally {
         this.loading = false;
@@ -600,20 +629,24 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<GoalHistoryResult> = await (window as any).electronAPI.invoke(
-          'agent:get-goal-history',
-          { limit, offset }
-        );
+        const result: IPCResult<GoalHistoryResult> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-goal-history", { limit, offset });
 
         if (result.success && result.data) {
           this.goalHistory = result.data.goals || [];
           this.goalHistoryTotal = result.data.total || 0;
-          autonomousLogger.info(`Loaded ${this.goalHistory.length} history goals`);
+          autonomousLogger.info(
+            `Loaded ${this.goalHistory.length} history goals`,
+          );
         } else {
-          this.error = result.error || 'Failed to fetch goal history';
+          this.error = result.error || "Failed to fetch goal history";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch history error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch history error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       } finally {
         this.loading = false;
@@ -627,18 +660,20 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<GoalStep[]> = await (window as any).electronAPI.invoke(
-          'agent:get-goal-steps',
-          goalId
-        );
+        const result: IPCResult<GoalStep[]> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-goal-steps", goalId);
 
         if (result.success) {
           this.currentGoalSteps = result.data || [];
         } else {
-          this.error = result.error || 'Failed to fetch goal steps';
+          this.error = result.error || "Failed to fetch goal steps";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch steps error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch steps error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       }
     },
@@ -650,18 +685,20 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<GoalLog[]> = await (window as any).electronAPI.invoke(
-          'agent:get-goal-logs',
-          { goalId, limit }
-        );
+        const result: IPCResult<GoalLog[]> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-goal-logs", { goalId, limit });
 
         if (result.success) {
           this.currentGoalLogs = result.data || [];
         } else {
-          this.error = result.error || 'Failed to fetch goal logs';
+          this.error = result.error || "Failed to fetch goal logs";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch logs error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch logs error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       }
     },
@@ -673,17 +710,20 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<QueueStatus> = await (window as any).electronAPI.invoke(
-          'agent:get-queue-status'
-        );
+        const result: IPCResult<QueueStatus> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-queue-status");
 
         if (result.success) {
           this.queueStatus = result.data || null;
         } else {
-          this.error = result.error || 'Failed to fetch queue status';
+          this.error = result.error || "Failed to fetch queue status";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch queue error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch queue error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       }
     },
@@ -695,17 +735,20 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<AgentStats> = await (window as any).electronAPI.invoke(
-          'agent:get-stats'
-        );
+        const result: IPCResult<AgentStats> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-stats");
 
         if (result.success) {
           this.stats = result.data || null;
         } else {
-          this.error = result.error || 'Failed to fetch stats';
+          this.error = result.error || "Failed to fetch stats";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch stats error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch stats error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       }
     },
@@ -721,17 +764,20 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<RunnerConfig> = await (window as any).electronAPI.invoke(
-          'agent:get-config'
-        );
+        const result: IPCResult<RunnerConfig> = await (
+          window as any
+        ).electronAPI.invoke("agent:get-config");
 
         if (result.success) {
           this.config = result.data || null;
         } else {
-          this.error = result.error || 'Failed to fetch config';
+          this.error = result.error || "Failed to fetch config";
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Fetch config error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Fetch config error:",
+          error as any,
+        );
         this.error = (error as Error).message;
       }
     },
@@ -743,21 +789,23 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       this.error = null;
 
       try {
-        const result: IPCResult<RunnerConfig> = await (window as any).electronAPI.invoke(
-          'agent:update-config',
-          config
-        );
+        const result: IPCResult<RunnerConfig> = await (
+          window as any
+        ).electronAPI.invoke("agent:update-config", config);
 
         if (result.success) {
           this.config = result.data || this.config;
-          autonomousLogger.info('Config updated');
+          autonomousLogger.info("Config updated");
           return true;
         } else {
-          this.error = result.error || 'Failed to update config';
+          this.error = result.error || "Failed to update config";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Update config error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Update config error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -775,18 +823,21 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:export-goal',
-          goalId
+          "agent:export-goal",
+          goalId,
         );
 
         if (result.success) {
           return result.data;
         } else {
-          this.error = result.error || 'Failed to export goal';
+          this.error = result.error || "Failed to export goal";
           return null;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Export goal error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Export goal error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return null;
       }
@@ -800,20 +851,23 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
 
       try {
         const result: IPCResult = await (window as any).electronAPI.invoke(
-          'agent:clear-history',
-          { before }
+          "agent:clear-history",
+          { before },
         );
 
         if (result.success) {
           await this.fetchGoalHistory();
-          autonomousLogger.info('History cleared');
+          autonomousLogger.info("History cleared");
           return true;
         } else {
-          this.error = result.error || 'Failed to clear history';
+          this.error = result.error || "Failed to clear history";
           return false;
         }
       } catch (error) {
-        autonomousLogger.error('[AutonomousStore] Clear history error:', error as any);
+        autonomousLogger.error(
+          "[AutonomousStore] Clear history error:",
+          error as any,
+        );
         this.error = (error as Error).message;
         return false;
       }
@@ -855,7 +909,7 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
      */
     reset(): void {
       this.$reset();
-      autonomousLogger.info('Store reset');
+      autonomousLogger.info("Store reset");
     },
 
     // ==========================================
@@ -867,77 +921,92 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
      */
     initEventListeners(): void {
       if (!(window as any).electronAPI || !(window as any).electronAPI.on) {
-        autonomousLogger.warn('electronAPI.on not available, skipping event listeners');
+        autonomousLogger.warn(
+          "electronAPI.on not available, skipping event listeners",
+        );
         return;
       }
 
       const api = (window as any).electronAPI;
 
       // Goal progress updates
-      api.on('agent:goal-progress', (data: GoalProgressEvent) => {
+      api.on("agent:goal-progress", (data: GoalProgressEvent) => {
         const goal = this.activeGoals.find((g) => g.id === data.goalId);
         if (goal) {
           goal.stepCount = data.step;
         }
-        autonomousLogger.info(`Goal progress: ${data.goalId} step ${data.step}`);
+        autonomousLogger.info(
+          `Goal progress: ${data.goalId} step ${data.step}`,
+        );
       });
 
       // Goal completed
-      api.on('agent:goal-completed', (data: { goalId: string; result: any; stepCount: number; tokensUsed: number }) => {
-        const index = this.activeGoals.findIndex((g) => g.id === data.goalId);
-        if (index !== -1) {
-          const goal = this.activeGoals[index];
-          goal.status = 'completed';
-          goal.result = data.result;
-          goal.stepCount = data.stepCount;
-          goal.tokensUsed = data.tokensUsed;
-          goal.completedAt = new Date().toISOString();
+      api.on(
+        "agent:goal-completed",
+        (data: {
+          goalId: string;
+          result: any;
+          stepCount: number;
+          tokensUsed: number;
+        }) => {
+          const index = this.activeGoals.findIndex((g) => g.id === data.goalId);
+          if (index !== -1) {
+            const goal = this.activeGoals[index];
+            goal.status = "completed";
+            goal.result = data.result;
+            goal.stepCount = data.stepCount;
+            goal.tokensUsed = data.tokensUsed;
+            goal.completedAt = new Date().toISOString();
 
-          // Move to history
-          this.goalHistory.unshift({ ...goal });
-          this.activeGoals.splice(index, 1);
-        }
-        this.inputRequests.delete(data.goalId);
-        autonomousLogger.info(`Goal completed: ${data.goalId}`);
-      });
+            // Move to history
+            this.goalHistory.unshift({ ...goal });
+            this.activeGoals.splice(index, 1);
+          }
+          this.inputRequests.delete(data.goalId);
+          autonomousLogger.info(`Goal completed: ${data.goalId}`);
+        },
+      );
 
       // Goal failed
-      api.on('agent:goal-failed', (data: { goalId: string; error: string; stepCount: number }) => {
-        const index = this.activeGoals.findIndex((g) => g.id === data.goalId);
-        if (index !== -1) {
-          const goal = this.activeGoals[index];
-          goal.status = 'failed';
-          goal.errorMessage = data.error;
-          goal.stepCount = data.stepCount;
-          goal.completedAt = new Date().toISOString();
+      api.on(
+        "agent:goal-failed",
+        (data: { goalId: string; error: string; stepCount: number }) => {
+          const index = this.activeGoals.findIndex((g) => g.id === data.goalId);
+          if (index !== -1) {
+            const goal = this.activeGoals[index];
+            goal.status = "failed";
+            goal.errorMessage = data.error;
+            goal.stepCount = data.stepCount;
+            goal.completedAt = new Date().toISOString();
 
-          this.goalHistory.unshift({ ...goal });
-          this.activeGoals.splice(index, 1);
-        }
-        this.inputRequests.delete(data.goalId);
-        autonomousLogger.error(`Goal failed: ${data.goalId} - ${data.error}`);
-      });
+            this.goalHistory.unshift({ ...goal });
+            this.activeGoals.splice(index, 1);
+          }
+          this.inputRequests.delete(data.goalId);
+          autonomousLogger.error(`Goal failed: ${data.goalId} - ${data.error}`);
+        },
+      );
 
       // Goal paused
-      api.on('agent:goal-paused', (data: { goalId: string }) => {
+      api.on("agent:goal-paused", (data: { goalId: string }) => {
         const goal = this.activeGoals.find((g) => g.id === data.goalId);
         if (goal) {
-          goal.status = 'paused';
+          goal.status = "paused";
           goal.paused = true;
         }
       });
 
       // Goal resumed
-      api.on('agent:goal-resumed', (data: { goalId: string }) => {
+      api.on("agent:goal-resumed", (data: { goalId: string }) => {
         const goal = this.activeGoals.find((g) => g.id === data.goalId);
         if (goal) {
-          goal.status = 'running';
+          goal.status = "running";
           goal.paused = false;
         }
       });
 
       // Goal cancelled
-      api.on('agent:goal-cancelled', (data: { goalId: string }) => {
+      api.on("agent:goal-cancelled", (data: { goalId: string }) => {
         const index = this.activeGoals.findIndex((g) => g.id === data.goalId);
         if (index !== -1) {
           this.activeGoals.splice(index, 1);
@@ -946,29 +1015,32 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       });
 
       // Input requested
-      api.on('agent:input-requested', (data: { goalId: string; question: string; options: string[] }) => {
-        const goal = this.activeGoals.find((g) => g.id === data.goalId);
-        if (goal) {
-          goal.status = 'waiting_input';
-          goal.waitingForInput = true;
-          goal.inputRequest = {
+      api.on(
+        "agent:input-requested",
+        (data: { goalId: string; question: string; options: string[] }) => {
+          const goal = this.activeGoals.find((g) => g.id === data.goalId);
+          if (goal) {
+            goal.status = "waiting_input";
+            goal.waitingForInput = true;
+            goal.inputRequest = {
+              question: data.question,
+              options: data.options || [],
+              requestedAt: Date.now(),
+            };
+          }
+          this.inputRequests.set(data.goalId, {
             question: data.question,
             options: data.options || [],
             requestedAt: Date.now(),
-          };
-        }
-        this.inputRequests.set(data.goalId, {
-          question: data.question,
-          options: data.options || [],
-          requestedAt: Date.now(),
-        });
-      });
+          });
+        },
+      );
 
       // Input provided
-      api.on('agent:input-provided', (data: { goalId: string }) => {
+      api.on("agent:input-provided", (data: { goalId: string }) => {
         const goal = this.activeGoals.find((g) => g.id === data.goalId);
         if (goal) {
-          goal.status = 'running';
+          goal.status = "running";
           goal.waitingForInput = false;
           goal.inputRequest = null;
         }
@@ -976,11 +1048,14 @@ export const useAutonomousAgentStore = defineStore('autonomous-agent', {
       });
 
       // Goal submitted
-      api.on('agent:goal-submitted', (data: { goalId: string; description: string; priority: number }) => {
-        autonomousLogger.info(`New goal submitted event: ${data.goalId}`);
-      });
+      api.on(
+        "agent:goal-submitted",
+        (data: { goalId: string; description: string; priority: number }) => {
+          autonomousLogger.info(`New goal submitted event: ${data.goalId}`);
+        },
+      );
 
-      autonomousLogger.info('Event listeners initialized');
+      autonomousLogger.info("Event listeners initialized");
     },
   },
 });

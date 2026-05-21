@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onBeforeUnmount } from "vue";
+import { ref, nextTick, watch, onBeforeUnmount } from "vue";
 import { message } from "ant-design-vue";
 import {
   PlusOutlined,

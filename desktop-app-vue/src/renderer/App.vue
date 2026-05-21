@@ -79,7 +79,7 @@ import { useAppStore } from "./stores/app";
 import { useSocialStore } from "./stores/social";
 import { useNetworkStore } from "./stores/network";
 import { ukeyAPI, llmAPI } from "./utils/ipc";
-import { handleError, ErrorType, ErrorLevel } from "./utils/errorHandler";
+import { handleError } from "./utils/errorHandler";
 import { useTheme } from "./utils/themeManager";
 import { useShortcuts, CommonShortcuts } from "./utils/shortcutManager";
 import { useNotifications } from "./utils/notificationManager";

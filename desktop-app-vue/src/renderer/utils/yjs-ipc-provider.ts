@@ -282,7 +282,7 @@ export class YjsIPCProvider extends Observable<string> {
       await window.electronAPI?.invoke("collab:yjs-disconnect", {
         documentId: this.documentId,
       });
-    } catch (e) {
+    } catch (_e) {
       // Ignore disconnect errors - the main process may already be gone
     }
 
@@ -346,7 +346,7 @@ export class YjsIPCProvider extends Observable<string> {
       this._destroying = false; // Reset flag for reconnect attempt
       try {
         await this.connect();
-      } catch (e) {
+      } catch (_e) {
         // connect() will schedule another reconnect if needed
       }
     }, this.options.reconnectDelay);

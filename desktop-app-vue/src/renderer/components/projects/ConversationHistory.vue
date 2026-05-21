@@ -193,9 +193,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import {
   UserOutlined,

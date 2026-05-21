@@ -11,8 +11,8 @@
  * - Prefetch on hover/visibility
  */
 
-import { defineAsyncComponent, type Component, type AsyncComponentLoader } from 'vue';
-import { logger } from '@/utils/logger';
+import { defineAsyncComponent, type Component } from "vue";
+import { logger } from "@/utils/logger";
 
 // ==================== 类型定义 ====================
 
@@ -148,7 +148,7 @@ class ComponentLazyLoader {
     };
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Initialized');
+      logger.info("[ComponentLazyLoader] Initialized");
     }
   }
 
@@ -160,7 +160,7 @@ class ComponentLazyLoader {
    */
   createLazyComponent(
     importFn: () => Promise<{ default: Component } | Component>,
-    options: CreateLazyComponentOptions = {}
+    options: CreateLazyComponentOptions = {},
   ): Component {
     this.stats.totalComponents++;
 
@@ -184,7 +184,9 @@ class ComponentLazyLoader {
           this.updateAverageLoadTime(loadTime);
 
           if (this.options.debug) {
-            logger.info(`[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`);
+            logger.info(
+              `[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`,
+            );
           }
 
           return component;
@@ -211,17 +213,17 @@ class ComponentLazyLoader {
    */
   private async loadWithRetry(
     importFn: () => Promise<{ default: Component } | Component>,
-    retryCount: number = 0
+    retryCount: number = 0,
   ): Promise<Component> {
     try {
       const module = await importFn();
       // Handle both default exports and direct component exports
-      return 'default' in module ? module.default : module;
+      return "default" in module ? module.default : module;
     } catch (error) {
       if (retryCount < this.options.maxRetries) {
         if (this.options.debug) {
           logger.info(
-            `[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`
+            `[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`,
           );
         }
 
@@ -239,7 +241,9 @@ class ComponentLazyLoader {
    * Prefetch component (load in background)
    * @param importFn - Dynamic import function
    */
-  async prefetch(importFn: () => Promise<{ default: Component } | Component>): Promise<void> {
+  async prefetch(
+    importFn: () => Promise<{ default: Component } | Component>,
+  ): Promise<void> {
     if (!this.options.enablePrefetch) {
       return;
     }
@@ -256,7 +260,7 @@ class ComponentLazyLoader {
 
     try {
       const loadingPromise = importFn().then((module) => {
-        return 'default' in module ? module.default : module;
+        return "default" in module ? module.default : module;
       });
       this.loadingComponents.set(key, loadingPromise);
 
@@ -266,10 +270,10 @@ class ComponentLazyLoader {
       this.stats.prefetchedComponents++;
 
       if (this.options.debug) {
-        logger.info('[ComponentLazyLoader] Prefetched component');
+        logger.info("[ComponentLazyLoader] Prefetched component");
       }
     } catch (error) {
-      logger.error('[ComponentLazyLoader] Prefetch failed:', { error });
+      logger.error("[ComponentLazyLoader] Prefetch failed:", { error });
     } finally {
       this.loadingComponents.delete(key);
       this.prefetchQueue.delete(key);
@@ -282,7 +286,7 @@ class ComponentLazyLoader {
    * @returns Event handlers
    */
   prefetchOnHover(
-    importFn: () => Promise<{ default: Component } | Component>
+    importFn: () => Promise<{ default: Component } | Component>,
   ): PrefetchOnHoverHandlers {
     let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -310,9 +314,9 @@ class ComponentLazyLoader {
    */
   prefetchOnVisible(
     element: HTMLElement,
-    importFn: () => Promise<{ default: Component } | Component>
+    importFn: () => Promise<{ default: Component } | Component>,
   ): (() => void) | undefined {
-    if (!('IntersectionObserver' in window)) {
+    if (!("IntersectionObserver" in window)) {
       return;
     }
 
@@ -326,8 +330,8 @@ class ComponentLazyLoader {
         });
       },
       {
-        rootMargin: '50px',
-      }
+        rootMargin: "50px",
+      },
     );
 
     observer.observe(element);
@@ -342,7 +346,7 @@ class ComponentLazyLoader {
    */
   createLazyRoutes(routes: RouteConfig[]): RouteConfig[] {
     return routes.map((route) => {
-      if (route.component && typeof route.component === 'function') {
+      if (route.component && typeof route.component === "function") {
         return {
           ...route,
           component: this.createLazyComponent(
@@ -350,7 +354,7 @@ class ComponentLazyLoader {
             {
               loadingComponent: route.loadingComponent,
               errorComponent: route.errorComponent,
-            }
+            },
           ),
         };
       }
@@ -373,7 +377,9 @@ class ComponentLazyLoader {
    */
   preloadRoutes(routePaths: string[]): void {
     if (this.options.debug) {
-      logger.info(`[ComponentLazyLoader] Preloading ${routePaths.length} routes`);
+      logger.info(
+        `[ComponentLazyLoader] Preloading ${routePaths.length} routes`,
+      );
     }
 
     routePaths.forEach((path) => {
@@ -428,7 +434,8 @@ class ComponentLazyLoader {
    */
   private updateAverageLoadTime(newTime: number): void {
     const count = this.stats.loadedComponents;
-    this.stats.averageLoadTime = (this.stats.averageLoadTime * (count - 1) + newTime) / count;
+    this.stats.averageLoadTime =
+      (this.stats.averageLoadTime * (count - 1) + newTime) / count;
   }
 
   /**
@@ -442,7 +449,8 @@ class ComponentLazyLoader {
    * Get statistics
    */
   getStats(): LoaderStats {
-    const totalLoaded = this.stats.loadedComponents + this.stats.prefetchedComponents;
+    const totalLoaded =
+      this.stats.loadedComponents + this.stats.prefetchedComponents;
     const cacheHitRate =
       this.stats.totalComponents > 0
         ? Math.round((totalLoaded / this.stats.totalComponents) * 100)
@@ -465,7 +473,7 @@ class ComponentLazyLoader {
     this.failedComponents.clear();
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Cache cleared');
+      logger.info("[ComponentLazyLoader] Cache cleared");
     }
   }
 
@@ -477,7 +485,7 @@ class ComponentLazyLoader {
     this.prefetchQueue.clear();
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Destroyed');
+      logger.info("[ComponentLazyLoader] Destroyed");
     }
   }
 }
@@ -489,7 +497,7 @@ let loaderInstance: ComponentLazyLoader | null = null;
  * Get or create component lazy loader instance
  */
 export function getComponentLazyLoader(
-  options?: ComponentLazyLoaderOptions
+  options?: ComponentLazyLoaderOptions,
 ): ComponentLazyLoader {
   if (!loaderInstance) {
     loaderInstance = new ComponentLazyLoader(options);
@@ -502,7 +510,7 @@ export function getComponentLazyLoader(
  */
 export function lazyComponent(
   importFn: () => Promise<{ default: Component } | Component>,
-  options?: CreateLazyComponentOptions
+  options?: CreateLazyComponentOptions,
 ): Component {
   const loader = getComponentLazyLoader();
   return loader.createLazyComponent(importFn, options);

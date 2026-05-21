@@ -12,12 +12,8 @@
             button-style="solid"
             size="small"
           >
-            <a-radio-button value="kanban">
-              看板
-            </a-radio-button>
-            <a-radio-button value="list">
-              列表
-            </a-radio-button>
+            <a-radio-button value="kanban"> 看板 </a-radio-button>
+            <a-radio-button value="list"> 列表 </a-radio-button>
           </a-radio-group>
           <a-button @click="showFilters = !showFilters">
             <template #icon>
@@ -25,10 +21,7 @@
             </template>
             筛选
           </a-button>
-          <a-button
-            type="primary"
-            @click="showCreateTask = true"
-          >
+          <a-button type="primary" @click="showCreateTask = true">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -39,11 +32,7 @@
     </a-page-header>
 
     <!-- 筛选栏 -->
-    <a-card
-      v-if="showFilters"
-      class="filter-card"
-      size="small"
-    >
+    <a-card v-if="showFilters" class="filter-card" size="small">
       <a-row :gutter="16">
         <a-col :span="6">
           <a-input
@@ -63,15 +52,9 @@
             allow-clear
             style="width: 100%"
           >
-            <a-select-option value="high">
-              高
-            </a-select-option>
-            <a-select-option value="medium">
-              中
-            </a-select-option>
-            <a-select-option value="low">
-              低
-            </a-select-option>
+            <a-select-option value="high"> 高 </a-select-option>
+            <a-select-option value="medium"> 中 </a-select-option>
+            <a-select-option value="low"> 低 </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="4">
@@ -85,25 +68,16 @@
           </a-select>
         </a-col>
         <a-col :span="2">
-          <a-button @click="clearFilters">
-            清空
-          </a-button>
+          <a-button @click="clearFilters"> 清空 </a-button>
         </a-col>
       </a-row>
     </a-card>
 
     <!-- 看板视图 -->
-    <div
-      v-if="viewMode === 'kanban'"
-      class="kanban-container"
-    >
+    <div v-if="viewMode === 'kanban'" class="kanban-container">
       <a-spin :spinning="loading">
         <div class="kanban-board">
-          <div
-            v-for="column in columns"
-            :key="column.id"
-            class="kanban-column"
-          >
+          <div v-for="column in columns" :key="column.id" class="kanban-column">
             <div class="column-header">
               <span class="column-title">{{ column.name }}</span>
               <a-badge
@@ -122,35 +96,18 @@
                   {{ task.title }}
                 </div>
                 <div class="task-meta">
-                  <a-tag
-                    v-if="task.priority === 'high'"
-                    color="red"
-                  >
+                  <a-tag v-if="task.priority === 'high'" color="red">
                     高
                   </a-tag>
-                  <a-tag
-                    v-else-if="task.priority === 'medium'"
-                    color="orange"
-                  >
+                  <a-tag v-else-if="task.priority === 'medium'" color="orange">
                     中
                   </a-tag>
-                  <a-tag
-                    v-else
-                    color="blue"
-                  >
-                    低
-                  </a-tag>
-                  <span
-                    v-if="task.dueDate"
-                    class="due-date"
-                  >
+                  <a-tag v-else color="blue"> 低 </a-tag>
+                  <span v-if="task.dueDate" class="due-date">
                     {{ formatDate(task.dueDate) }}
                   </span>
                 </div>
-                <div
-                  v-if="task.assigneeName"
-                  class="task-assignee"
-                >
+                <div v-if="task.assigneeName" class="task-assignee">
                   <a-avatar size="small">
                     {{ task.assigneeName?.charAt(0) }}
                   </a-avatar>
@@ -172,10 +129,7 @@
     </div>
 
     <!-- 列表视图 -->
-    <div
-      v-else
-      class="list-container"
-    >
+    <div v-else class="list-container">
       <a-table
         :columns="tableColumns"
         :data-source="filteredTasks"
@@ -206,18 +160,9 @@
       width="600px"
       @ok="handleCreateTask"
     >
-      <a-form
-        :model="newTask"
-        layout="vertical"
-      >
-        <a-form-item
-          label="标题"
-          required
-        >
-          <a-input
-            v-model:value="newTask.title"
-            placeholder="任务标题"
-          />
+      <a-form :model="newTask" layout="vertical">
+        <a-form-item label="标题" required>
+          <a-input v-model:value="newTask.title" placeholder="任务标题" />
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea
@@ -229,19 +174,10 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="优先级">
-              <a-select
-                v-model:value="newTask.priority"
-                style="width: 100%"
-              >
-                <a-select-option value="high">
-                  高
-                </a-select-option>
-                <a-select-option value="medium">
-                  中
-                </a-select-option>
-                <a-select-option value="low">
-                  低
-                </a-select-option>
+              <a-select v-model:value="newTask.priority" style="width: 100%">
+                <a-select-option value="high"> 高 </a-select-option>
+                <a-select-option value="medium"> 中 </a-select-option>
+                <a-select-option value="low"> 低 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -255,10 +191,7 @@
           </a-col>
         </a-row>
         <a-form-item label="所属列">
-          <a-select
-            v-model:value="newTask.columnId"
-            style="width: 100%"
-          >
+          <a-select v-model:value="newTask.columnId" style="width: 100%">
             <a-select-option
               v-for="col in columns"
               :key="col.id"
@@ -279,10 +212,7 @@
       :width="600"
     >
       <template v-if="currentTask">
-        <a-descriptions
-          :column="1"
-          bordered
-        >
+        <a-descriptions :column="1" bordered>
           <a-descriptions-item label="状态">
             <a-tag :color="getStatusColor(currentTask.status)">
               {{ getStatusLabel(currentTask.status) }}
@@ -425,7 +355,7 @@ const handleCreateTask = async () => {
         columnId: null,
       };
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("创建失败");
   } finally {
     creating.value = false;
@@ -439,7 +369,7 @@ onMounted(async () => {
     if (columns.value.length > 0) {
       newTask.value.columnId = columns.value[0].id;
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("加载看板失败");
   } finally {
     loading.value = false;

@@ -1,9 +1,6 @@
 <template>
   <div class="performance-dashboard">
-    <a-card
-      title="性能监控"
-      :bordered="false"
-    >
+    <a-card title="性能监控" :bordered="false">
       <template #extra>
         <a-space>
           <a-switch
@@ -12,17 +9,11 @@
             un-checked-children="已停止"
             @change="handleToggleMonitoring"
           />
-          <a-button
-            size="small"
-            @click="handleExport"
-          >
+          <a-button size="small" @click="handleExport">
             <ExportOutlined />
             导出数据
           </a-button>
-          <a-button
-            size="small"
-            @click="handleClear"
-          >
+          <a-button size="small" @click="handleClear">
             <ClearOutlined />
             清空数据
           </a-button>
@@ -30,16 +21,10 @@
       </template>
 
       <!-- 实时指标卡片 -->
-      <a-row
-        :gutter="[16, 16]"
-        class="metrics-cards"
-      >
+      <a-row :gutter="[16, 16]" class="metrics-cards">
         <!-- 内存使用 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="内存使用"
               :value="currentMetrics.memory.percentage"
@@ -60,10 +45,7 @@
 
         <!-- FPS -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="帧率 (FPS)"
               :value="currentMetrics.fps.current"
@@ -83,10 +65,7 @@
 
         <!-- 存储使用 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="存储使用"
               :value="currentMetrics.storage.percentage"
@@ -109,10 +88,7 @@
 
         <!-- 网络状态 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="网络速度"
               :value="currentMetrics.network.downlink || 0"
@@ -135,10 +111,7 @@
       <!-- 性能图表 -->
       <a-tabs v-model:active-key="activeTab">
         <!-- 内存趋势 -->
-        <a-tab-pane
-          key="memory"
-          tab="内存趋势"
-        >
+        <a-tab-pane key="memory" tab="内存趋势">
           <div class="chart-container">
             <div class="chart-placeholder">
               <LineChartOutlined class="chart-icon" />
@@ -157,10 +130,7 @@
         </a-tab-pane>
 
         <!-- FPS 趋势 -->
-        <a-tab-pane
-          key="fps"
-          tab="FPS 趋势"
-        >
+        <a-tab-pane key="fps" tab="FPS 趋势">
           <div class="chart-container">
             <div class="chart-placeholder">
               <AreaChartOutlined class="chart-icon" />
@@ -179,16 +149,9 @@
         </a-tab-pane>
 
         <!-- 性能报告 -->
-        <a-tab-pane
-          key="report"
-          tab="性能报告"
-        >
+        <a-tab-pane key="report" tab="性能报告">
           <div class="performance-report">
-            <a-descriptions
-              :column="2"
-              bordered
-              size="small"
-            >
+            <a-descriptions :column="2" bordered size="small">
               <a-descriptions-item label="监控状态">
                 <a-tag :color="isMonitoring ? 'green' : 'red'">
                   {{ isMonitoring ? "运行中" : "已停止" }}
@@ -218,10 +181,7 @@
             </a-descriptions>
 
             <div class="report-actions">
-              <a-button
-                type="primary"
-                @click="handleGenerateReport"
-              >
+              <a-button type="primary" @click="handleGenerateReport">
                 <FileTextOutlined />
                 生成详细报告
               </a-button>
@@ -238,16 +198,11 @@
         class="performance-warnings"
       >
         <template #message>
-          <div class="warnings-title">
-            性能警告
-          </div>
+          <div class="warnings-title">性能警告</div>
         </template>
         <template #description>
           <ul class="warnings-list">
-            <li
-              v-for="(warning, index) in performanceWarnings"
-              :key="index"
-            >
+            <li v-for="(warning, index) in performanceWarnings" :key="index">
               {{ warning }}
             </li>
           </ul>
@@ -260,7 +215,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   DatabaseOutlined,

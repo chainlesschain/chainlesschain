@@ -12,13 +12,8 @@
     </div>
 
     <!-- 已选标签 -->
-    <div
-      v-if="selectedTags.length > 0"
-      class="selected-section"
-    >
-      <div class="section-label">
-        已选择:
-      </div>
+    <div v-if="selectedTags.length > 0" class="selected-section">
+      <div class="section-label">已选择:</div>
       <div class="tags-wrap">
         <a-tag
           v-for="tag in selectedTags"
@@ -34,9 +29,7 @@
 
     <!-- 可选标签 -->
     <div class="available-section">
-      <div class="section-label">
-        可选标签:
-      </div>
+      <div class="section-label">可选标签:</div>
       <div class="tags-wrap">
         <a-tag
           v-for="tag in filteredTags"
@@ -76,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { CheckOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
@@ -147,7 +140,9 @@ const removeTag = (tag) => {
 // 创建新标签
 const handleCreateTag = (text) => {
   const tag = (text || searchText.value).trim();
-  if (!tag) {return;}
+  if (!tag) {
+    return;
+  }
 
   // 检查是否已存在
   const exists = props.allTags.some(

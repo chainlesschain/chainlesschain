@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch } from "vue";
 import { escapeHtml } from "@/utils/sanitizeHtml";

@@ -1,10 +1,6 @@
 <template>
   <div class="browser-control-page">
-    <a-card
-      title="浏览器自动化控制"
-      :bordered="false"
-      class="main-card"
-    >
+    <a-card title="浏览器自动化控制" :bordered="false" class="main-card">
       <!-- 浏览器控制栏 -->
       <div class="control-bar">
         <a-space size="middle">
@@ -68,10 +64,7 @@
       <a-divider />
 
       <!-- URL 输入栏 -->
-      <div
-        v-if="browserStatus.isRunning"
-        class="url-bar"
-      >
+      <div v-if="browserStatus.isRunning" class="url-bar">
         <a-input-search
           v-model:value="urlInput"
           placeholder="输入网址，例如: https://www.google.com"
@@ -186,10 +179,7 @@
         </a-button>
       </a-empty>
 
-      <a-empty
-        v-else
-        description="浏览器未启动，请点击上方按钮启动"
-      />
+      <a-empty v-else description="浏览器未启动，请点击上方按钮启动" />
     </a-card>
 
     <!-- Phase 2: 快照面板 -->
@@ -242,7 +232,7 @@
         :src="`data:image/png;base64,${screenshotModal.data}`"
         style="width: 100%"
         alt="Screenshot"
-      >
+      />
     </a-modal>
   </div>
 </template>
@@ -259,7 +249,6 @@ import {
   EyeOutlined,
 } from "@ant-design/icons-vue";
 import SnapshotPanel from "../components/browser/SnapshotPanel.vue";
-import AIControlPanel from "../components/browser/AIControlPanel.vue";
 import DiagnosticsPanel from "../components/browser/DiagnosticsPanel.vue";
 import RecordingPanel from "../components/browser/RecordingPanel.vue";
 import ComputerUsePanel from "../components/browser/ComputerUsePanel.vue";

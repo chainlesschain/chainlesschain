@@ -1,24 +1,24 @@
 <template>
-  <div
-    v-if="callStore.isInCall"
-    class="call-panel"
-  >
+  <div v-if="callStore.isInCall" class="call-panel">
     <div class="call-panel-container">
       <!-- Call Header -->
       <div class="call-panel-header">
         <div class="call-info">
           <a-badge
-            :status="callStore.activeCall?.type === 'video' ? 'processing' : 'success'"
-            :text="callStore.activeCall?.type === 'video' ? 'Video Call' : 'Voice Call'"
+            :status="
+              callStore.activeCall?.type === 'video' ? 'processing' : 'success'
+            "
+            :text="
+              callStore.activeCall?.type === 'video'
+                ? 'Video Call'
+                : 'Voice Call'
+            "
           />
           <span class="call-duration">{{ callStore.formattedDuration }}</span>
         </div>
 
         <div class="call-quality">
-          <a-tooltip
-            v-if="callStore.callQuality"
-            :title="qualityTooltip"
-          >
+          <a-tooltip v-if="callStore.callQuality" :title="qualityTooltip">
             <span :class="['quality-dot', qualityClass]" />
             <span class="quality-text">{{ callStore.qualityLevelText }}</span>
           </a-tooltip>
@@ -26,11 +26,7 @@
       </div>
 
       <!-- Video Grid -->
-      <div
-        v-if="callStore.isVideoCall"
-        class="video-grid"
-        :class="gridClass"
-      >
+      <div v-if="callStore.isVideoCall" class="video-grid" :class="gridClass">
         <!-- Remote Participant Videos -->
         <div
           v-for="participant in remoteParticipants"
@@ -75,10 +71,7 @@
               class="muted-icon"
             />
           </div>
-          <div
-            v-if="!callStore.videoEnabled"
-            class="video-off-overlay"
-          >
+          <div v-if="!callStore.videoEnabled" class="video-off-overlay">
             <VideoCameraAddOutlined class="video-off-icon" />
             <span>Camera Off</span>
           </div>
@@ -86,10 +79,7 @@
       </div>
 
       <!-- Audio Call View (no video) -->
-      <div
-        v-else
-        class="audio-call-view"
-      >
+      <div v-else class="audio-call-view">
         <div class="audio-participants-grid">
           <div
             v-for="participant in callStore.connectedParticipants"
@@ -105,17 +95,16 @@
               {{ shortenDid(participant.participantDid) }}
             </span>
             <a-badge
-              :status="participant.status === 'connected' ? 'success' : 'default'"
+              :status="
+                participant.status === 'connected' ? 'success' : 'default'
+              "
             />
           </div>
         </div>
       </div>
 
       <!-- Screen Sharing Indicator -->
-      <div
-        v-if="callStore.screenSharing"
-        class="screen-share-indicator"
-      >
+      <div v-if="callStore.screenSharing" class="screen-share-indicator">
         <DesktopOutlined />
         <span>Screen sharing active</span>
       </div>
@@ -142,7 +131,9 @@
           <!-- Camera Toggle (video calls only) -->
           <a-tooltip
             v-if="callStore.isVideoCall"
-            :title="callStore.videoEnabled ? 'Turn Off Camera' : 'Turn On Camera'"
+            :title="
+              callStore.videoEnabled ? 'Turn Off Camera' : 'Turn On Camera'
+            "
           >
             <a-button
               :type="!callStore.videoEnabled ? 'primary' : 'default'"
@@ -159,7 +150,9 @@
           </a-tooltip>
 
           <!-- Screen Share Toggle -->
-          <a-tooltip :title="callStore.screenSharing ? 'Stop Sharing' : 'Share Screen'">
+          <a-tooltip
+            :title="callStore.screenSharing ? 'Stop Sharing' : 'Share Screen'"
+          >
             <a-button
               :type="callStore.screenSharing ? 'primary' : 'default'"
               shape="circle"
@@ -194,17 +187,20 @@
       <!-- Participant Count -->
       <div class="participant-count">
         <TeamOutlined />
-        <span>{{ callStore.participantCount }} participant{{ callStore.participantCount !== 1 ? 's' : '' }}</span>
+        <span
+          >{{ callStore.participantCount }} participant{{
+            callStore.participantCount !== 1 ? "s" : ""
+          }}</span
+        >
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger } from '@/utils/logger';
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useCallStore } from '../../stores/call';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useCallStore } from "../../stores/call";
+import { message } from "ant-design-vue";
 import {
   UserOutlined,
   PhoneOutlined,
@@ -214,7 +210,7 @@ import {
   VideoCameraAddOutlined,
   DesktopOutlined,
   TeamOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const callStore = useCallStore();
 
@@ -228,25 +224,35 @@ let durationTimer = null;
 // Computed
 const remoteParticipants = computed(() => {
   return callStore.connectedParticipants.filter(
-    (p) => p.role !== 'host' || callStore.connectedParticipants.length > 1,
+    (p) => p.role !== "host" || callStore.connectedParticipants.length > 1,
   );
 });
 
 const gridClass = computed(() => {
   const count = callStore.participantCount;
-  if (count <= 2) {return 'grid-2';}
-  if (count <= 4) {return 'grid-4';}
-  if (count <= 6) {return 'grid-6';}
-  return 'grid-8';
+  if (count <= 2) {
+    return "grid-2";
+  }
+  if (count <= 4) {
+    return "grid-4";
+  }
+  if (count <= 6) {
+    return "grid-6";
+  }
+  return "grid-8";
 });
 
 const qualityClass = computed(() => {
-  if (!callStore.callQuality) {return '';}
+  if (!callStore.callQuality) {
+    return "";
+  }
   return `quality-${callStore.callQuality.level}`;
 });
 
 const qualityTooltip = computed(() => {
-  if (!callStore.callQuality) {return '';}
+  if (!callStore.callQuality) {
+    return "";
+  }
   const q = callStore.callQuality;
   return `RTT: ${Math.round(q.roundTripTime)}ms | Loss: ${(q.packetLossRate * 100).toFixed(1)}% | Jitter: ${Math.round(q.jitter)}ms`;
 });
@@ -261,36 +267,40 @@ const setVideoRef = (did, el) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) {return 'Unknown';}
-  if (did.length <= 16) {return did;}
+  if (!did) {
+    return "Unknown";
+  }
+  if (did.length <= 16) {
+    return did;
+  }
   return `${did.substring(0, 8)}...${did.substring(did.length - 6)}`;
 };
 
 const handleToggleAudio = async () => {
   const success = await callStore.toggleAudio();
   if (!success) {
-    message.error('Failed to toggle audio');
+    message.error("Failed to toggle audio");
   }
 };
 
 const handleToggleVideo = async () => {
   const success = await callStore.toggleVideo();
   if (!success) {
-    message.error('Failed to toggle video');
+    message.error("Failed to toggle video");
   }
 };
 
 const handleShareScreen = async () => {
   const success = await callStore.shareScreen();
   if (!success) {
-    message.error('Failed to toggle screen sharing');
+    message.error("Failed to toggle screen sharing");
   }
 };
 
 const handleEndCall = async () => {
   const success = await callStore.endCall();
   if (!success) {
-    message.error('Failed to end call');
+    message.error("Failed to end call");
   }
 };
 
@@ -370,7 +380,7 @@ onUnmounted(() => {
   .call-duration {
     font-size: 16px;
     font-weight: 500;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     color: rgba(255, 255, 255, 0.85);
   }
 

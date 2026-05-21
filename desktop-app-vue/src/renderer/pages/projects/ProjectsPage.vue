@@ -194,7 +194,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, nextTick, h } from "vue";
 import { useRouter } from "vue-router";
@@ -204,7 +204,6 @@ import { useAuthStore } from "@/stores/auth";
 import { useAppStore } from "@/stores/app";
 import { useTemplateStore } from "@/stores/template";
 import { safeHtml } from "@/utils/sanitizeHtml";
-import { SearchOutlined, FileTextOutlined } from "@ant-design/icons-vue";
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import TaskExecutionMonitor from "@/components/projects/TaskExecutionMonitor.vue";
 import ProjectSidebar from "@/components/ProjectSidebar.vue";

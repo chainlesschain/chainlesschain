@@ -4,7 +4,7 @@
  * @description 定义 window.electronAPI 的类型
  */
 
-import type { IPCChannels, IPCResponse } from "./ipc.d";
+import type {} from "./ipc.d";
 
 // ==================== Electron API 接口 ====================
 

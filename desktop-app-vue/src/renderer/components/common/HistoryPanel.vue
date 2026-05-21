@@ -8,19 +8,12 @@
     >
       <template #extra>
         <a-space>
-          <a-button
-            size="small"
-            @click="handleRefresh"
-          >
+          <a-button size="small" @click="handleRefresh">
             <template #icon>
               <ReloadOutlined />
             </template>
           </a-button>
-          <a-button
-            size="small"
-            danger
-            @click="handleClearAll"
-          >
+          <a-button size="small" danger @click="handleClearAll">
             <template #icon>
               <DeleteOutlined />
             </template>
@@ -67,15 +60,9 @@
             size="small"
             @change="handleFilterChange"
           >
-            <a-select-option value="all">
-              全部
-            </a-select-option>
-            <a-select-option value="skill">
-              技能
-            </a-select-option>
-            <a-select-option value="tool">
-              工具
-            </a-select-option>
+            <a-select-option value="all"> 全部 </a-select-option>
+            <a-select-option value="skill"> 技能 </a-select-option>
+            <a-select-option value="tool"> 工具 </a-select-option>
           </a-select>
 
           <a-select
@@ -84,18 +71,10 @@
             size="small"
             @change="handleFilterChange"
           >
-            <a-select-option value="all">
-              所有操作
-            </a-select-option>
-            <a-select-option value="create">
-              创建
-            </a-select-option>
-            <a-select-option value="update">
-              更新
-            </a-select-option>
-            <a-select-option value="delete">
-              删除
-            </a-select-option>
+            <a-select-option value="all"> 所有操作 </a-select-option>
+            <a-select-option value="create"> 创建 </a-select-option>
+            <a-select-option value="update"> 更新 </a-select-option>
+            <a-select-option value="delete"> 删除 </a-select-option>
           </a-select>
         </a-space>
       </div>
@@ -122,28 +101,22 @@
               <div class="record-time">
                 {{ formatTime(record.timestamp) }}
               </div>
-              <div
-                v-if="record.details"
-                class="record-details"
-              >
+              <div v-if="record.details" class="record-details">
                 {{ record.details }}
               </div>
             </div>
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty
-          v-else
-          description="暂无操作记录"
-        />
+        <a-empty v-else description="暂无操作记录" />
       </div>
     </a-drawer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -154,14 +127,14 @@ import {
   CheckSquareOutlined,
   CloseSquareOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useHistoryStore, ACTION_TYPES, ENTITY_TYPES } from '../../stores/history';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+} from "@ant-design/icons-vue";
+import { useHistoryStore, ACTION_TYPES } from "../../stores/history";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const props = defineProps({
   modelValue: {
@@ -170,28 +143,28 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 
 const historyStore = useHistoryStore();
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit("update:modelValue", value),
 });
 
-const filterEntity = ref('all');
-const filterAction = ref('all');
+const filterEntity = ref("all");
+const filterAction = ref("all");
 
 // 筛选后的记录
 const filteredRecords = computed(() => {
   let records = historyStore.records;
 
-  if (filterEntity.value !== 'all') {
-    records = records.filter(r => r.entityType === filterEntity.value);
+  if (filterEntity.value !== "all") {
+    records = records.filter((r) => r.entityType === filterEntity.value);
   }
 
-  if (filterAction.value !== 'all') {
-    records = records.filter(r => r.actionType === filterAction.value);
+  if (filterAction.value !== "all") {
+    records = records.filter((r) => r.actionType === filterAction.value);
   }
 
   return records;
@@ -220,20 +193,20 @@ const formatTime = (timestamp) => {
 
 // 刷新
 const handleRefresh = () => {
-  message.success('已刷新');
+  message.success("已刷新");
 };
 
 // 清空所有记录
 const handleClearAll = () => {
   Modal.confirm({
-    title: '确认清空所有历史记录？',
-    content: '此操作不可恢复',
-    okText: '确认',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认清空所有历史记录？",
+    content: "此操作不可恢复",
+    okText: "确认",
+    okType: "danger",
+    cancelText: "取消",
     onOk() {
       historyStore.clearHistory();
-      message.success('已清空历史记录');
+      message.success("已清空历史记录");
     },
   });
 };

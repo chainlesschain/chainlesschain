@@ -16,10 +16,7 @@
     <!-- 编辑器容器 -->
     <div class="editors-container">
       <!-- HTML 编辑器 -->
-      <div
-        v-show="activeTab === 'html'"
-        class="editor-wrapper"
-      >
+      <div v-show="activeTab === 'html'" class="editor-wrapper">
         <SimpleEditor
           ref="htmlEditorRef"
           :file="{ file_name: 'index.html' }"
@@ -30,10 +27,7 @@
       </div>
 
       <!-- CSS 编辑器 -->
-      <div
-        v-show="activeTab === 'css'"
-        class="editor-wrapper"
-      >
+      <div v-show="activeTab === 'css'" class="editor-wrapper">
         <SimpleEditor
           ref="cssEditorRef"
           :file="{ file_name: 'style.css' }"
@@ -44,10 +38,7 @@
       </div>
 
       <!-- JavaScript 编辑器 -->
-      <div
-        v-show="activeTab === 'js'"
-        class="editor-wrapper"
-      >
+      <div v-show="activeTab === 'js'" class="editor-wrapper">
         <SimpleEditor
           ref="jsEditorRef"
           :file="{ file_name: 'script.js' }"
@@ -61,36 +52,45 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Html5Outlined, FileTextOutlined, CodeOutlined } from '@ant-design/icons-vue';
-import SimpleEditor from '../projects/SimpleEditor.vue';
+import { ref } from "vue";
+import {
+  Html5Outlined,
+  FileTextOutlined,
+  CodeOutlined,
+} from "@ant-design/icons-vue";
+import SimpleEditor from "../projects/SimpleEditor.vue";
 
 const props = defineProps({
   htmlCode: {
     type: String,
-    default: '',
+    default: "",
   },
   cssCode: {
     type: String,
-    default: '',
+    default: "",
   },
   jsCode: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
-const emit = defineEmits(['update:htmlCode', 'update:cssCode', 'update:jsCode', 'change']);
+const emit = defineEmits([
+  "update:htmlCode",
+  "update:cssCode",
+  "update:jsCode",
+  "change",
+]);
 
 // 标签页配置
 const tabs = [
-  { key: 'html', label: 'HTML', icon: Html5Outlined },
-  { key: 'css', label: 'CSS', icon: FileTextOutlined },
-  { key: 'js', label: 'JavaScript', icon: CodeOutlined },
+  { key: "html", label: "HTML", icon: Html5Outlined },
+  { key: "css", label: "CSS", icon: FileTextOutlined },
+  { key: "js", label: "JavaScript", icon: CodeOutlined },
 ];
 
 // 当前激活的标签页
-const activeTab = ref('html');
+const activeTab = ref("html");
 
 // 编辑器引用
 const htmlEditorRef = ref(null);
@@ -104,27 +104,27 @@ const switchTab = (key) => {
 
 // HTML 代码变化
 const handleHtmlChange = (newCode) => {
-  emit('update:htmlCode', newCode);
-  emit('change', { type: 'html', code: newCode });
+  emit("update:htmlCode", newCode);
+  emit("change", { type: "html", code: newCode });
 };
 
 // CSS 代码变化
 const handleCssChange = (newCode) => {
-  emit('update:cssCode', newCode);
-  emit('change', { type: 'css', code: newCode });
+  emit("update:cssCode", newCode);
+  emit("change", { type: "css", code: newCode });
 };
 
 // JavaScript 代码变化
 const handleJsChange = (newCode) => {
-  emit('update:jsCode', newCode);
-  emit('change', { type: 'js', code: newCode });
+  emit("update:jsCode", newCode);
+  emit("change", { type: "js", code: newCode });
 };
 
 // 暴露方法
 defineExpose({
-  getHtmlCode: () => htmlEditorRef.value?.getContent() || '',
-  getCssCode: () => cssEditorRef.value?.getContent() || '',
-  getJsCode: () => jsEditorRef.value?.getContent() || '',
+  getHtmlCode: () => htmlEditorRef.value?.getContent() || "",
+  getCssCode: () => cssEditorRef.value?.getContent() || "",
+  getJsCode: () => jsEditorRef.value?.getContent() || "",
 });
 </script>
 

@@ -183,9 +183,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { message, Empty } from "ant-design-vue";
 import {
   SearchOutlined,
@@ -486,7 +486,7 @@ const handleRebuildIndex = async () => {
     ]);
     message.destroy();
     message.success("索引重建完成");
-  } catch (error) {
+  } catch (_error) {
     message.destroy();
     message.error("索引重建失败");
   }

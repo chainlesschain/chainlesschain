@@ -25,7 +25,7 @@
         class="version-item"
         :class="{
           'is-active': version.id === currentVersionId,
-          'is-selected': selectedVersionId === version.id
+          'is-selected': selectedVersionId === version.id,
         }"
         @click="handleVersionClick(version)"
       >
@@ -53,10 +53,7 @@
         </div>
 
         <!-- 版本描述 -->
-        <div
-          v-if="version.description"
-          class="version-description"
-        >
+        <div v-if="version.description" class="version-description">
           {{ version.description }}
         </div>
 
@@ -104,13 +101,10 @@
       </div>
 
       <!-- 空状态 -->
-      <div
-        v-if="filteredVersions.length === 0"
-        class="empty-state"
-      >
+      <div v-if="filteredVersions.length === 0" class="empty-state">
         <InboxOutlined class="empty-icon" />
         <div class="empty-text">
-          {{ searchKeyword ? '未找到相关版本' : '暂无版本历史' }}
+          {{ searchKeyword ? "未找到相关版本" : "暂无版本历史" }}
         </div>
       </div>
     </div>
@@ -118,9 +112,7 @@
     <!-- 底部操作栏 -->
     <template #footer>
       <div class="drawer-footer">
-        <a-button @click="handleClose">
-          关闭
-        </a-button>
+        <a-button @click="handleClose"> 关闭 </a-button>
         <a-button
           v-if="selectedVersionId && selectedVersionId !== currentVersionId"
           type="primary"
@@ -134,43 +126,42 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import {
   HistoryOutlined,
   PlusOutlined,
   MinusOutlined,
   EditOutlined,
-  InboxOutlined
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+  InboxOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   versions: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   currentVersionId: {
     type: String,
-    default: ''
-  }
+    default: "",
+  },
 });
 
 // Emits
-const emit = defineEmits(['update:open', 'restore', 'compare', 'view-details']);
+const emit = defineEmits(["update:open", "restore", "compare", "view-details"]);
 
 // State
 const visible = computed({
   get: () => props.open,
-  set: (val) => emit('update:open', val)
+  set: (val) => emit("update:open", val),
 });
 
-const searchKeyword = ref('');
-const selectedVersionId = ref('');
+const searchKeyword = ref("");
+const selectedVersionId = ref("");
 
 // Computed
 const filteredVersions = computed(() => {
@@ -178,7 +169,7 @@ const filteredVersions = computed(() => {
     return props.versions;
   }
   const keyword = searchKeyword.value.toLowerCase();
-  return props.versions.filter(version => {
+  return props.versions.filter((version) => {
     return (
       version.title.toLowerCase().includes(keyword) ||
       version.description?.toLowerCase().includes(keyword) ||
@@ -189,14 +180,16 @@ const filteredVersions = computed(() => {
 
 // Methods
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
   // 小于1分钟
   if (diff < 60000) {
-    return '刚刚';
+    return "刚刚";
   }
   // 小于1小时
   if (diff < 3600000) {
@@ -214,12 +207,12 @@ const formatTime = (timestamp) => {
     return `${days} 天前`;
   }
   // 格式化为日期时间
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -228,22 +221,22 @@ const handleVersionClick = (version) => {
 };
 
 const handleRestore = (version) => {
-  emit('restore', version);
+  emit("restore", version);
 };
 
 const handleRestoreSelected = () => {
-  const version = props.versions.find(v => v.id === selectedVersionId.value);
+  const version = props.versions.find((v) => v.id === selectedVersionId.value);
   if (version) {
-    emit('restore', version);
+    emit("restore", version);
   }
 };
 
 const handleCompare = (version) => {
-  emit('compare', version);
+  emit("compare", version);
 };
 
 const handleViewDetails = (version) => {
-  emit('view-details', version);
+  emit("view-details", version);
 };
 
 const handleSearch = () => {
@@ -252,7 +245,7 @@ const handleSearch = () => {
 
 const handleClose = () => {
   visible.value = false;
-  selectedVersionId.value = '';
+  selectedVersionId.value = "";
 };
 </script>
 
@@ -278,7 +271,7 @@ const handleClose = () => {
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: #1677FF;
+        border-color: #1677ff;
         background: #f5f9ff;
       }
 
@@ -289,7 +282,7 @@ const handleClose = () => {
 
       &.is-selected {
         background: #e6f4ff;
-        border-color: #1677FF;
+        border-color: #1677ff;
       }
 
       .version-header {
@@ -306,7 +299,7 @@ const handleClose = () => {
           color: #333;
 
           .version-icon {
-            color: #1677FF;
+            color: #1677ff;
           }
 
           .version-text {
@@ -356,7 +349,7 @@ const handleClose = () => {
           }
 
           &.stat-modify {
-            color: #1677FF;
+            color: #1677ff;
           }
         }
       }

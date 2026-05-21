@@ -7,19 +7,13 @@
     >
       <template #extra>
         <a-space>
-          <a-button
-            v-if="isAdmin"
-            @click="showInviteOrg = true"
-          >
+          <a-button v-if="isAdmin" @click="showInviteOrg = true">
             <template #icon>
               <TeamOutlined />
             </template>
             邀请组织
           </a-button>
-          <a-button
-            type="primary"
-            @click="showShareResource = true"
-          >
+          <a-button type="primary" @click="showShareResource = true">
             <template #icon>
               <ShareAltOutlined />
             </template>
@@ -31,17 +25,11 @@
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 成员 -->
-      <a-tab-pane
-        key="members"
-        tab="成员管理"
-      >
+      <a-tab-pane key="members" tab="成员管理">
         <a-row :gutter="24">
           <a-col :span="8">
             <a-card title="参与组织">
-              <a-list
-                :data-source="workspaceOrgs"
-                :loading="loading"
-              >
+              <a-list :data-source="workspaceOrgs" :loading="loading">
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <a-list-item-meta
@@ -75,10 +63,7 @@
               >
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'permissions'">
-                    <a-tag
-                      v-for="perm in record.permissions"
-                      :key="perm"
-                    >
+                    <a-tag v-for="perm in record.permissions" :key="perm">
                       {{ perm }}
                     </a-tag>
                   </template>
@@ -100,10 +85,7 @@
       </a-tab-pane>
 
       <!-- 共享资源 -->
-      <a-tab-pane
-        key="resources"
-        tab="共享资源"
-      >
+      <a-tab-pane key="resources" tab="共享资源">
         <a-table
           :columns="resourceColumns"
           :data-source="sharedResources"
@@ -112,19 +94,13 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'permissions'">
-              <a-tag
-                v-for="perm in record.permissions"
-                :key="perm"
-              >
+              <a-tag v-for="perm in record.permissions" :key="perm">
                 {{ perm }}
               </a-tag>
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space>
-                <a-button
-                  type="link"
-                  @click="accessResource(record)"
-                >
+                <a-button type="link" @click="accessResource(record)">
                   访问
                 </a-button>
                 <a-button
@@ -141,15 +117,9 @@
       </a-tab-pane>
 
       <!-- 活动 -->
-      <a-tab-pane
-        key="activity"
-        tab="活动日志"
-      >
+      <a-tab-pane key="activity" tab="活动日志">
         <a-timeline>
-          <a-timeline-item
-            v-for="log in activityLogs"
-            :key="log.id"
-          >
+          <a-timeline-item v-for="log in activityLogs" :key="log.id">
             <p>
               <strong>{{ log.actorDid }}</strong> {{ log.action }}
             </p>
@@ -166,23 +136,14 @@
       :confirm-loading="inviting"
       @ok="handleInviteOrg"
     >
-      <a-form
-        :model="inviteOrgForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="组织ID"
-          required
-        >
+      <a-form :model="inviteOrgForm" layout="vertical">
+        <a-form-item label="组织ID" required>
           <a-input
             v-model:value="inviteOrgForm.orgId"
             placeholder="输入组织ID"
           />
         </a-form-item>
-        <a-form-item
-          label="组织名称"
-          required
-        >
+        <a-form-item label="组织名称" required>
           <a-input
             v-model:value="inviteOrgForm.orgName"
             placeholder="输入组织名称"
@@ -190,12 +151,8 @@
         </a-form-item>
         <a-form-item label="角色">
           <a-select v-model:value="inviteOrgForm.role">
-            <a-select-option value="member">
-              成员
-            </a-select-option>
-            <a-select-option value="admin">
-              管理员
-            </a-select-option>
+            <a-select-option value="member"> 成员 </a-select-option>
+            <a-select-option value="admin"> 管理员 </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -208,39 +165,21 @@
       :confirm-loading="sharing"
       @ok="handleShareResource"
     >
-      <a-form
-        :model="shareForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="资源类型"
-          required
-        >
+      <a-form :model="shareForm" layout="vertical">
+        <a-form-item label="资源类型" required>
           <a-select v-model:value="shareForm.resourceType">
-            <a-select-option value="knowledge">
-              知识库
-            </a-select-option>
-            <a-select-option value="project">
-              项目
-            </a-select-option>
-            <a-select-option value="document">
-              文档
-            </a-select-option>
+            <a-select-option value="knowledge"> 知识库 </a-select-option>
+            <a-select-option value="project"> 项目 </a-select-option>
+            <a-select-option value="document"> 文档 </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item
-          label="资源ID"
-          required
-        >
+        <a-form-item label="资源ID" required>
           <a-input
             v-model:value="shareForm.resourceId"
             placeholder="输入资源ID"
           />
         </a-form-item>
-        <a-form-item
-          label="资源名称"
-          required
-        >
+        <a-form-item label="资源名称" required>
           <a-input
             v-model:value="shareForm.resourceName"
             placeholder="输入资源名称"
@@ -248,15 +187,9 @@
         </a-form-item>
         <a-form-item label="权限">
           <a-checkbox-group v-model:value="shareForm.permissions">
-            <a-checkbox value="read">
-              读取
-            </a-checkbox>
-            <a-checkbox value="write">
-              写入
-            </a-checkbox>
-            <a-checkbox value="delete">
-              删除
-            </a-checkbox>
+            <a-checkbox value="read"> 读取 </a-checkbox>
+            <a-checkbox value="write"> 写入 </a-checkbox>
+            <a-checkbox value="delete"> 删除 </a-checkbox>
           </a-checkbox-group>
         </a-form-item>
       </a-form>
@@ -337,7 +270,7 @@ const handleInviteOrg = async () => {
     );
     message.success("邀请已发送");
     showInviteOrg.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("邀请失败");
   } finally {
     inviting.value = false;
@@ -359,7 +292,7 @@ const handleShareResource = async () => {
     });
     message.success("资源已共享");
     showShareResource.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("共享失败");
   } finally {
     sharing.value = false;
@@ -378,7 +311,7 @@ const unshareResource = async (shareId) => {
   try {
     await crossOrgStore.unshareResource(shareId, authStore.currentUser?.did);
     message.success("已取消共享");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };

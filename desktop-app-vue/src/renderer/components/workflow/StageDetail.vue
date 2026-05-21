@@ -117,7 +117,6 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
 import {
   CheckCircleFilled,
   CloseCircleFilled,

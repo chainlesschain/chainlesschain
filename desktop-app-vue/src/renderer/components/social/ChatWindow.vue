@@ -27,17 +27,11 @@
 
     <!-- 右侧：聊天区域 -->
     <div class="chat-main">
-      <div
-        v-if="!currentSession"
-        class="chat-empty"
-      >
+      <div v-if="!currentSession" class="chat-empty">
         <a-empty description="选择一个会话开始聊天" />
       </div>
 
-      <div
-        v-else
-        class="chat-container"
-      >
+      <div v-else class="chat-container">
         <!-- 聊天头部 -->
         <div class="chat-header">
           <div class="chat-header-info">
@@ -48,13 +42,23 @@
             </a-avatar>
             <div class="chat-header-text">
               <div class="chat-header-name">
-                {{ currentSession.friend_nickname || shortenDid(currentSession.participant_did) }}
+                {{
+                  currentSession.friend_nickname ||
+                  shortenDid(currentSession.participant_did)
+                }}
               </div>
               <div class="chat-header-status">
                 <OnlineStatusIndicator
-                  :status="getOnlineStatusData(currentSession.participant_did).status"
-                  :last-seen="getOnlineStatusData(currentSession.participant_did).lastSeen"
-                  :device-count="getOnlineStatusData(currentSession.participant_did).deviceCount"
+                  :status="
+                    getOnlineStatusData(currentSession.participant_did).status
+                  "
+                  :last-seen="
+                    getOnlineStatusData(currentSession.participant_did).lastSeen
+                  "
+                  :device-count="
+                    getOnlineStatusData(currentSession.participant_did)
+                      .deviceCount
+                  "
                   :show-text="true"
                   :show-device-count="true"
                   size="small"
@@ -65,26 +69,17 @@
 
           <div class="chat-header-actions">
             <a-tooltip title="语音通话">
-              <a-button
-                type="text"
-                @click="handleVoiceCall"
-              >
+              <a-button type="text" @click="handleVoiceCall">
                 <PhoneOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="视频通话">
-              <a-button
-                type="text"
-                @click="handleVideoCall"
-              >
+              <a-button type="text" @click="handleVideoCall">
                 <VideoCameraOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="屏幕共享">
-              <a-button
-                type="text"
-                @click="handleScreenShare"
-              >
+              <a-button type="text" @click="handleScreenShare">
                 <DesktopOutlined />
               </a-button>
             </a-tooltip>
@@ -103,10 +98,7 @@
           @scroll="handleScroll"
         >
           <!-- 加载更多 -->
-          <div
-            v-if="hasMore"
-            class="load-more"
-          >
+          <div v-if="hasMore" class="load-more">
             <a-button
               type="link"
               :loading="loadingMore"
@@ -126,10 +118,7 @@
           />
 
           <!-- 正在输入提示 -->
-          <div
-            v-if="isTyping"
-            class="typing-indicator"
-          >
+          <div v-if="isTyping" class="typing-indicator">
             <span /><span /><span />
           </div>
         </div>
@@ -139,29 +128,18 @@
           <div class="chat-input-toolbar">
             <a-space>
               <a-tooltip title="表情">
-                <a-button
-                  type="text"
-                  size="small"
-                >
+                <a-button type="text" size="small">
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
               <VoiceMessageRecorder @voice-recorded="handleVoiceRecorded" />
               <a-tooltip title="图片">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleSendImage"
-                >
+                <a-button type="text" size="small" @click="handleSendImage">
                   <PictureOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="文件">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleSendFile"
-                >
+                <a-button type="text" size="small" @click="handleSendFile">
                   <FileOutlined />
                 </a-button>
               </a-tooltip>
@@ -192,19 +170,19 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
-import { message, Modal } from 'ant-design-vue'
-import { useSocialStore } from '../../stores/social'
-import { useP2PCall } from '../../composables/useP2PCall'
-import ConversationList from './ConversationList.vue'
-import MessageBubble from './MessageBubble.vue'
-import CallNotification from '../call/CallNotification.vue'
-import CallWindow from '../call/CallWindow.vue'
-import ScreenSharePicker from '../call/ScreenSharePicker.vue'
-import VoiceMessageRecorder from './VoiceMessageRecorder.vue'
-import OnlineStatusIndicator from '../OnlineStatusIndicator.vue'
+import { ref, computed, nextTick, watch, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { useSocialStore } from "../../stores/social";
+import { useP2PCall } from "../../composables/useP2PCall";
+import ConversationList from "./ConversationList.vue";
+import MessageBubble from "./MessageBubble.vue";
+import CallNotification from "../call/CallNotification.vue";
+import CallWindow from "../call/CallWindow.vue";
+import ScreenSharePicker from "../call/ScreenSharePicker.vue";
+import VoiceMessageRecorder from "./VoiceMessageRecorder.vue";
+import OnlineStatusIndicator from "../OnlineStatusIndicator.vue";
 import {
   UserOutlined,
   PhoneOutlined,
@@ -213,215 +191,220 @@ import {
   MoreOutlined,
   SmileOutlined,
   PictureOutlined,
-  FileOutlined
-} from '@ant-design/icons-vue'
+  FileOutlined,
+} from "@ant-design/icons-vue";
 
-const socialStore = useSocialStore()
-const { startAudioCall, startVideoCall, startScreenShare, activeCall } = useP2PCall()
-
-// 状态
-const showScreenSharePicker = ref(false)
+const socialStore = useSocialStore();
+const { startAudioCall, startVideoCall, startScreenShare, activeCall } =
+  useP2PCall();
 
 // 状态
-const currentSession = computed(() => socialStore.currentChatSession)
-const messages = computed(() => socialStore.currentMessages)
-const currentUserDid = ref('')
-const inputMessage = ref('')
-const sending = ref(false)
-const isTyping = ref(false)
-const loadingMore = ref(false)
-const hasMore = ref(true)
-const messagesContainer = ref(null)
+const showScreenSharePicker = ref(false);
+
+// 状态
+const currentSession = computed(() => socialStore.currentChatSession);
+const messages = computed(() => socialStore.currentMessages);
+const currentUserDid = ref("");
+const inputMessage = ref("");
+const sending = ref(false);
+const isTyping = ref(false);
+const loadingMore = ref(false);
+const hasMore = ref(true);
+const messagesContainer = ref(null);
 
 // 方法
 const handleSessionClick = async (session) => {
   try {
     // 查找对应的好友
-    const friend = socialStore.friends.find(f => f.friend_did === session.participant_did)
+    const friend = socialStore.friends.find(
+      (f) => f.friend_did === session.participant_did,
+    );
     if (friend) {
-      await socialStore.openChatWithFriend(friend)
-      scrollToBottom()
+      await socialStore.openChatWithFriend(friend);
+      scrollToBottom();
     }
   } catch (error) {
-    logger.error('打开会话失败:', error)
-    message.error('打开会话失败')
+    logger.error("打开会话失败:", error);
+    message.error("打开会话失败");
   }
-}
+};
 
 const handleSend = async () => {
-  if (!inputMessage.value.trim() || sending.value) {return}
+  if (!inputMessage.value.trim() || sending.value) {
+    return;
+  }
 
   try {
-    sending.value = true
+    sending.value = true;
     await socialStore.sendMessage({
       content: inputMessage.value.trim(),
-      type: 'text'
-    })
+      type: "text",
+    });
 
-    inputMessage.value = ''
-    await nextTick()
-    scrollToBottom()
+    inputMessage.value = "";
+    await nextTick();
+    scrollToBottom();
   } catch (error) {
-    logger.error('发送消息失败:', error)
-    message.error('发送失败')
+    logger.error("发送消息失败:", error);
+    message.error("发送失败");
   } finally {
-    sending.value = false
+    sending.value = false;
   }
-}
+};
 
 const handleNewLine = () => {
-  inputMessage.value += '\n'
-}
+  inputMessage.value += "\n";
+};
 
 const handleSendImage = async () => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+    const result = await window.electron.ipcRenderer.invoke("chat:send-file", {
       sessionId: currentSession.value.id,
-      messageType: 'image'
-    })
+      messageType: "image",
+    });
 
     if (result.success) {
-      message.success('图片发送成功')
+      message.success("图片发送成功");
       // 刷新消息列表
-      await socialStore.loadMessages(currentSession.value.id)
-      await nextTick()
-      scrollToBottom()
+      await socialStore.loadMessages(currentSession.value.id);
+      await nextTick();
+      scrollToBottom();
     } else {
-      message.error(result.error || '图片发送失败')
+      message.error(result.error || "图片发送失败");
     }
   } catch (error) {
-    logger.error('发送图片失败:', error)
-    message.error('发送图片失败')
+    logger.error("发送图片失败:", error);
+    message.error("发送图片失败");
   }
-}
+};
 
 const handleSendFile = async () => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+    const result = await window.electron.ipcRenderer.invoke("chat:send-file", {
       sessionId: currentSession.value.id,
-      messageType: 'file'
-    })
+      messageType: "file",
+    });
 
     if (result.success) {
-      message.success('文件发送成功')
+      message.success("文件发送成功");
       // 刷新消息列表
-      await socialStore.loadMessages(currentSession.value.id)
-      await nextTick()
-      scrollToBottom()
+      await socialStore.loadMessages(currentSession.value.id);
+      await nextTick();
+      scrollToBottom();
     } else {
-      message.error(result.error || '文件发送失败')
+      message.error(result.error || "文件发送失败");
     }
   } catch (error) {
-    logger.error('发送文件失败:', error)
-    message.error('发送文件失败')
+    logger.error("发送文件失败:", error);
+    message.error("发送文件失败");
   }
-}
+};
 
 const handleVoiceRecorded = async (voiceData) => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
     // 发送语音消息
-    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+    const result = await window.electron.ipcRenderer.invoke("chat:send-file", {
       sessionId: currentSession.value.id,
-      messageType: 'voice',
+      messageType: "voice",
       filePath: voiceData.filePath,
-      duration: voiceData.duration
-    })
+      duration: voiceData.duration,
+    });
 
     if (result.success) {
-      message.success('语音消息发送成功')
+      message.success("语音消息发送成功");
       // 刷新消息列表
-      await socialStore.loadMessages(currentSession.value.id)
-      await nextTick()
-      scrollToBottom()
+      await socialStore.loadMessages(currentSession.value.id);
+      await nextTick();
+      scrollToBottom();
     } else {
-      message.error(result.error || '语音消息发送失败')
+      message.error(result.error || "语音消息发送失败");
     }
   } catch (error) {
-    logger.error('发送语音消息失败:', error)
-    message.error('发送语音消息失败')
+    logger.error("发送语音消息失败:", error);
+    message.error("发送语音消息失败");
   }
-}
+};
 
 const handleVoiceCall = async () => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
-    const peerId = currentSession.value.participant_did
-    await startAudioCall(peerId)
-    message.success('正在发起语音通话...')
+    const peerId = currentSession.value.participant_did;
+    await startAudioCall(peerId);
+    message.success("正在发起语音通话...");
   } catch (error) {
-    logger.error('发起语音通话失败:', error)
-    message.error('发起语音通话失败')
+    logger.error("发起语音通话失败:", error);
+    message.error("发起语音通话失败");
   }
-}
+};
 
 const handleVideoCall = async () => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
-    const peerId = currentSession.value.participant_did
-    await startVideoCall(peerId)
-    message.success('正在发起视频通话...')
+    const peerId = currentSession.value.participant_did;
+    await startVideoCall(peerId);
+    message.success("正在发起视频通话...");
   } catch (error) {
-    logger.error('发起视频通话失败:', error)
-    message.error('发起视频通话失败')
+    logger.error("发起视频通话失败:", error);
+    message.error("发起视频通话失败");
   }
-}
+};
 
 const handleScreenShare = () => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   // 显示屏幕共享选择器
-  showScreenSharePicker.value = true
-}
+  showScreenSharePicker.value = true;
+};
 
 const handleScreenSourceSelect = async (source) => {
   if (!currentSession.value) {
-    message.warning('请先选择一个会话')
-    return
+    message.warning("请先选择一个会话");
+    return;
   }
 
   try {
-    const peerId = currentSession.value.participant_did
-    await startScreenShare(peerId, source.id)
-    message.success('正在发起屏幕共享...')
+    const peerId = currentSession.value.participant_did;
+    await startScreenShare(peerId, source.id);
+    message.success("正在发起屏幕共享...");
   } catch (error) {
-    logger.error('发起屏幕共享失败:', error)
-    message.error('发起屏幕共享失败')
+    logger.error("发起屏幕共享失败:", error);
+    message.error("发起屏幕共享失败");
   }
-}
+};
 
 const handlePinSession = async (session) => {
   try {
     const newPinnedState = session.is_pinned ? 0 : 1;
     // 调用IPC更新置顶状态
-    await window.electron.ipcRenderer.invoke('chat:update-session', {
+    await window.electron.ipcRenderer.invoke("chat:update-session", {
       sessionId: session.id,
-      updates: { is_pinned: newPinnedState }
+      updates: { is_pinned: newPinnedState },
     });
 
     // 更新本地状态
@@ -430,33 +413,36 @@ const handlePinSession = async (session) => {
     // 刷新会话列表
     await socialStore.loadChatSessions();
 
-    message.success(newPinnedState ? '已置顶' : '已取消置顶');
+    message.success(newPinnedState ? "已置顶" : "已取消置顶");
   } catch (error) {
-    logger.error('置顶操作失败:', error);
-    message.error('操作失败');
+    logger.error("置顶操作失败:", error);
+    message.error("操作失败");
   }
-}
+};
 
 const handleMarkRead = async (session) => {
   try {
-    await socialStore.markAsRead(session.id)
-    message.success('已标记为已读')
-  } catch (error) {
-    message.error('操作失败')
+    await socialStore.markAsRead(session.id);
+    message.success("已标记为已读");
+  } catch (_error) {
+    message.error("操作失败");
   }
-}
+};
 
 const handleDeleteSession = (session) => {
   Modal.confirm({
-    title: '确认删除',
-    content: `确定要删除与 ${session.participant_name || session.participant_did?.substring(0, 12) + '...'} 的聊天记录吗？此操作不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: `确定要删除与 ${session.participant_name || session.participant_did?.substring(0, 12) + "..."} 的聊天记录吗？此操作不可恢复。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         // 调用IPC删除会话
-        await window.electron.ipcRenderer.invoke('chat:delete-session', session.id);
+        await window.electron.ipcRenderer.invoke(
+          "chat:delete-session",
+          session.id,
+        );
 
         // 如果删除的是当前会话，清空当前会话
         if (currentSession.value?.id === session.id) {
@@ -468,93 +454,106 @@ const handleDeleteSession = (session) => {
         // 刷新会话列表
         await socialStore.loadChatSessions();
 
-        message.success('会话已删除');
+        message.success("会话已删除");
       } catch (error) {
-        logger.error('删除会话失败:', error);
-        message.error('删除失败');
+        logger.error("删除会话失败:", error);
+        message.error("删除失败");
       }
-    }
+    },
   });
-}
+};
 
 const loadMoreMessages = async () => {
-  if (!currentSession.value || loadingMore.value) {return}
+  if (!currentSession.value || loadingMore.value) {
+    return;
+  }
 
   try {
-    loadingMore.value = true
-    const offset = messages.value.length
-    await socialStore.loadMessages(currentSession.value.id, 50, offset)
+    loadingMore.value = true;
+    const offset = messages.value.length;
+    await socialStore.loadMessages(currentSession.value.id, 50, offset);
 
     if (messages.value.length === offset) {
-      hasMore.value = false
+      hasMore.value = false;
     }
   } catch (error) {
-    logger.error('加载更多消息失败:', error)
-    message.error('加载失败')
+    logger.error("加载更多消息失败:", error);
+    message.error("加载失败");
   } finally {
-    loadingMore.value = false
+    loadingMore.value = false;
   }
-}
+};
 
 const handleScroll = () => {
-  if (!messagesContainer.value) {return}
-
-  const { scrollTop } = messagesContainer.value
-  if (scrollTop < 100 && hasMore.value && !loadingMore.value) {
-    loadMoreMessages()
+  if (!messagesContainer.value) {
+    return;
   }
-}
+
+  const { scrollTop } = messagesContainer.value;
+  if (scrollTop < 100 && hasMore.value && !loadingMore.value) {
+    loadMoreMessages();
+  }
+};
 
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
     }
-  })
-}
+  });
+};
 
 const shortenDid = (did) => {
-  if (!did) {return '未知用户'}
-  if (did.length <= 20) {return did}
-  return `${did.substring(0, 10)}...${did.substring(did.length - 6)}`
-}
+  if (!did) {
+    return "未知用户";
+  }
+  if (did.length <= 20) {
+    return did;
+  }
+  return `${did.substring(0, 10)}...${did.substring(did.length - 6)}`;
+};
 
 const getOnlineStatus = (did) => {
-  const status = socialStore.onlineStatus.get(did)
-  return status === 'online' ? '在线' : '离线'
-}
+  const status = socialStore.onlineStatus.get(did);
+  return status === "online" ? "在线" : "离线";
+};
 
 const getOnlineStatusData = (did) => {
-  const friend = socialStore.friends.find(f => f.friend_did === did)
+  const friend = socialStore.friends.find((f) => f.friend_did === did);
   if (friend && friend.onlineStatus) {
     return {
-      status: friend.onlineStatus.status || 'offline',
+      status: friend.onlineStatus.status || "offline",
       lastSeen: friend.onlineStatus.lastSeen || 0,
-      deviceCount: friend.onlineStatus.deviceCount || 0
-    }
+      deviceCount: friend.onlineStatus.deviceCount || 0,
+    };
   }
   return {
-    status: 'offline',
+    status: "offline",
     lastSeen: 0,
-    deviceCount: 0
-  }
-}
+    deviceCount: 0,
+  };
+};
 
 const getSenderName = (did) => {
-  if (did === currentUserDid.value) {return '我'}
-  const friend = socialStore.friends.find(f => f.friend_did === did)
-  return friend?.nickname || shortenDid(did)
-}
+  if (did === currentUserDid.value) {
+    return "我";
+  }
+  const friend = socialStore.friends.find((f) => f.friend_did === did);
+  return friend?.nickname || shortenDid(did);
+};
 
 // 生命周期
 onMounted(async () => {
-  currentUserDid.value = await socialStore.getCurrentUserDid()
-})
+  currentUserDid.value = await socialStore.getCurrentUserDid();
+});
 
 // 监听消息变化，自动滚动到底部
-watch(() => messages.value.length, () => {
-  scrollToBottom()
-})
+watch(
+  () => messages.value.length,
+  () => {
+    scrollToBottom();
+  },
+);
 </script>
 
 <style scoped>
@@ -665,7 +664,9 @@ watch(() => messages.value.length, () => {
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: scale(1);
   }

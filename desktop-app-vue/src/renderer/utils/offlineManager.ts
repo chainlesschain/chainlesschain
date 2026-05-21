@@ -20,7 +20,10 @@ export interface OfflineQueueItem {
 /**
  * 网络状态监听器
  */
-export type NetworkListener = (event: 'online' | 'offline', isOnline: boolean) => void;
+export type NetworkListener = (
+  event: "online" | "offline",
+  isOnline: boolean,
+) => void;
 
 /**
  * useOffline 返回类型
@@ -50,7 +53,9 @@ class OfflineManager {
   private _checkConnectionTimer: ReturnType<typeof setInterval> | null;
 
   constructor() {
-    this.isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    this.isOnline = ref(
+      typeof navigator !== "undefined" ? navigator.onLine : true,
+    );
     this.offlineQueue = ref([]);
     this.listeners = [];
 
@@ -115,7 +120,7 @@ class OfflineManager {
           this.processQueue();
         }
       }
-    } catch (error) {
+    } catch (_error) {
       if (this.isOnline.value) {
         this.isOnline.value = false;
         this.notifyListeners("offline");
@@ -209,7 +214,7 @@ class OfflineManager {
   /**
    * 通知监听器
    */
-  private notifyListeners(event: 'online' | 'offline'): void {
+  private notifyListeners(event: "online" | "offline"): void {
     this.listeners.forEach((listener) => {
       try {
         listener(event, this.isOnline.value);
@@ -244,11 +249,14 @@ export function useOffline(): UseOfflineReturn {
     isOnline: computed(() => offlineManager.isOnline.value),
     isOffline: computed(() => !offlineManager.isOnline.value),
     offlineQueue: computed(() => offlineManager.offlineQueue.value),
-    addToQueue: (action: () => Promise<void>) => offlineManager.addToQueue(action),
+    addToQueue: (action: () => Promise<void>) =>
+      offlineManager.addToQueue(action),
     processQueue: () => offlineManager.processQueue(),
     clearQueue: () => offlineManager.clearQueue(),
-    addListener: (listener: NetworkListener) => offlineManager.addListener(listener),
-    removeListener: (listener: NetworkListener) => offlineManager.removeListener(listener),
+    addListener: (listener: NetworkListener) =>
+      offlineManager.addListener(listener),
+    removeListener: (listener: NetworkListener) =>
+      offlineManager.removeListener(listener),
   };
 }
 

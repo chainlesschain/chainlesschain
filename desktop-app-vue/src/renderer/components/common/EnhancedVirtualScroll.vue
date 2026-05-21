@@ -23,10 +23,7 @@
           :style="getItemStyle(item)"
           class="virtual-scroll-item"
         >
-          <slot
-            :item="item.data"
-            :index="item.index"
-          >
+          <slot :item="item.data" :index="item.index">
             {{ item.data }}
           </slot>
         </div>
@@ -34,19 +31,13 @@
     </div>
 
     <!-- 加载更多 -->
-    <div
-      v-if="loading"
-      class="virtual-scroll-loading"
-    >
+    <div v-if="loading" class="virtual-scroll-loading">
       <a-spin size="small" />
       <span class="loading-text">{{ loadingText }}</span>
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-if="!loading && items.length === 0"
-      class="virtual-scroll-empty"
-    >
+    <div v-if="!loading && items.length === 0" class="virtual-scroll-empty">
       <slot name="empty">
         <a-empty :description="emptyText" />
       </slot>
@@ -66,8 +57,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { UpOutlined } from '@ant-design/icons-vue';
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { UpOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   // 数据列表
@@ -93,12 +84,12 @@ const props = defineProps({
   // 容器高度
   height: {
     type: [String, Number],
-    default: '100%',
+    default: "100%",
   },
   // 项唯一键字段
   itemKey: {
     type: [String, Function],
-    default: 'id',
+    default: "id",
   },
   // 是否加载中
   loading: {
@@ -108,12 +99,12 @@ const props = defineProps({
   // 加载文本
   loadingText: {
     type: String,
-    default: '加载中...',
+    default: "加载中...",
   },
   // 空状态文本
   emptyText: {
     type: String,
-    default: '暂无数据',
+    default: "暂无数据",
   },
   // 是否显示滚动到顶部按钮
   showScrollTop: {
@@ -142,7 +133,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['scroll', 'reach-bottom', 'reach-top', 'visible-change']);
+const emit = defineEmits([
+  "scroll",
+  "reach-bottom",
+  "reach-top",
+  "visible-change",
+]);
 
 const containerRef = ref(null);
 const scrollTop = ref(0);
@@ -152,14 +148,14 @@ const itemOffsets = ref(new Map());
 
 // 容器样式
 const containerStyle = computed(() => ({
-  height: typeof props.height === 'number' ? `${props.height}px` : props.height,
-  overflow: 'auto',
-  position: 'relative',
+  height: typeof props.height === "number" ? `${props.height}px` : props.height,
+  overflow: "auto",
+  position: "relative",
 }));
 
 // 获取项的唯一键
 const getItemKey = (item) => {
-  if (typeof props.itemKey === 'function') {
+  if (typeof props.itemKey === "function") {
     return props.itemKey(item.data);
   }
   return item.data[props.itemKey] || item.index;
@@ -197,7 +193,9 @@ const calculateOffsets = () => {
 
 // 查找起始索引（二分查找优化）
 const findStartIndex = () => {
-  if (!props.enabled) {return 0;}
+  if (!props.enabled) {
+    return 0;
+  }
 
   let left = 0;
   let right = props.items.length - 1;
@@ -220,14 +218,18 @@ const findStartIndex = () => {
 
 // 查找结束索引
 const findEndIndex = () => {
-  if (!props.enabled) {return props.items.length - 1;}
+  if (!props.enabled) {
+    return props.items.length - 1;
+  }
 
   const viewportBottom = scrollTop.value + containerHeight.value;
   let index = findStartIndex();
 
   while (index < props.items.length) {
     const offset = itemOffsets.value.get(index) || 0;
-    if (offset > viewportBottom) {break;}
+    if (offset > viewportBottom) {
+      break;
+    }
     index++;
   }
 
@@ -260,7 +262,9 @@ const visibleItems = computed(() => {
 
 // 偏移量
 const offsetY = computed(() => {
-  if (!props.enabled || visibleItems.value.length === 0) {return 0;}
+  if (!props.enabled || visibleItems.value.length === 0) {
+    return 0;
+  }
   const firstIndex = visibleItems.value[0].index;
   return itemOffsets.value.get(firstIndex) || 0;
 });
@@ -278,7 +282,7 @@ const handleScroll = (e) => {
   scrollTop.value = target.scrollTop;
   containerHeight.value = target.clientHeight;
 
-  emit('scroll', {
+  emit("scroll", {
     scrollTop: scrollTop.value,
     scrollHeight: target.scrollHeight,
     clientHeight: target.clientHeight,
@@ -286,19 +290,20 @@ const handleScroll = (e) => {
 
   // 检查是否到达底部
   if (props.infiniteScroll) {
-    const distanceToBottom = target.scrollHeight - scrollTop.value - containerHeight.value;
+    const distanceToBottom =
+      target.scrollHeight - scrollTop.value - containerHeight.value;
     if (distanceToBottom < props.infiniteScrollDistance) {
-      emit('reach-bottom');
+      emit("reach-bottom");
     }
   }
 
   // 检查是否到达顶部
   if (scrollTop.value < 10) {
-    emit('reach-top');
+    emit("reach-top");
   }
 
   // 触发可见项变化事件
-  emit('visible-change', {
+  emit("visible-change", {
     startIndex: visibleItems.value[0]?.index || 0,
     endIndex: visibleItems.value[visibleItems.value.length - 1]?.index || 0,
     visibleItems: visibleItems.value,
@@ -310,14 +315,16 @@ const scrollToTop = () => {
   if (containerRef.value) {
     containerRef.value.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   }
 };
 
 // 滚动到指定索引
-const scrollToIndex = (index, behavior = 'smooth') => {
-  if (!containerRef.value || index < 0 || index >= props.items.length) {return;}
+const scrollToIndex = (index, behavior = "smooth") => {
+  if (!containerRef.value || index < 0 || index >= props.items.length) {
+    return;
+  }
 
   calculateOffsets();
   const offset = itemOffsets.value.get(index) || 0;
@@ -329,7 +336,7 @@ const scrollToIndex = (index, behavior = 'smooth') => {
 };
 
 // 滚动到指定位置
-const scrollTo = (top, behavior = 'smooth') => {
+const scrollTo = (top, behavior = "smooth") => {
   if (containerRef.value) {
     containerRef.value.scrollTo({
       top,
@@ -340,7 +347,9 @@ const scrollTo = (top, behavior = 'smooth') => {
 
 // 更新项高度（动态高度模式）
 const updateItemHeight = (index, height) => {
-  if (props.itemHeight) {return;} // 固定高度模式不需要更新
+  if (props.itemHeight) {
+    return;
+  } // 固定高度模式不需要更新
 
   const oldHeight = itemHeights.value.get(index);
   if (oldHeight !== height) {
@@ -351,11 +360,13 @@ const updateItemHeight = (index, height) => {
 
 // 测量所有项的高度（用于动态高度）
 const measureItemHeights = async () => {
-  if (props.itemHeight || !containerRef.value) {return;}
+  if (props.itemHeight || !containerRef.value) {
+    return;
+  }
 
   await nextTick();
 
-  const items = containerRef.value.querySelectorAll('.virtual-scroll-item');
+  const items = containerRef.value.querySelectorAll(".virtual-scroll-item");
   items.forEach((el, i) => {
     const index = visibleItems.value[i]?.index;
     if (index !== undefined) {
@@ -387,7 +398,7 @@ watch(
       nextTick(() => measureItemHeights());
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 监听可见项变化，测量高度
@@ -398,7 +409,7 @@ watch(
       nextTick(() => measureItemHeights());
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 暴露方法

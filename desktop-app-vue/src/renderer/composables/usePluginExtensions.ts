@@ -5,14 +5,8 @@
  */
 
 import { logger } from "@/utils/logger";
-import {
-  ref,
-  computed,
-  onMounted,
-  onUnmounted,
-  reactive,
-} from "vue";
-import type { Ref, ComputedRef } from "vue";
+import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
+import type { ComputedRef } from "vue";
 import type { Router, RouteRecordRaw } from "vue-router";
 
 // ==================== 类型定义 ====================
@@ -283,7 +277,10 @@ export function usePluginExtensions() {
         throw new Error(result.error || "获取UI扩展失败");
       }
     } catch (err) {
-      logger.error("[usePluginExtensions] Failed to load extensions:", err as any);
+      logger.error(
+        "[usePluginExtensions] Failed to load extensions:",
+        err as any,
+      );
       error.value = (err as Error).message;
     } finally {
       isLoading.value = false;
@@ -327,33 +324,34 @@ export function usePluginExtensions() {
   /**
    * 获取组件扩展（按插槽分组）
    */
-  const componentsBySlot: ComputedRef<Record<string, SlotComponent[]>> = computed(() => {
-    const grouped: Record<string, SlotComponent[]> = {};
+  const componentsBySlot: ComputedRef<Record<string, SlotComponent[]>> =
+    computed(() => {
+      const grouped: Record<string, SlotComponent[]> = {};
 
-    for (const component of cachedExtensions.value.components) {
-      const slot = component.config?.slot || "default";
+      for (const component of cachedExtensions.value.components) {
+        const slot = component.config?.slot || "default";
 
-      if (!grouped[slot]) {
-        grouped[slot] = [];
+        if (!grouped[slot]) {
+          grouped[slot] = [];
+        }
+
+        grouped[slot].push({
+          id: component.id,
+          pluginId: component.plugin_id,
+          pluginName: component.plugin_name,
+          slot,
+          componentConfig: component.config,
+          priority: component.priority || 100,
+        });
       }
 
-      grouped[slot].push({
-        id: component.id,
-        pluginId: component.plugin_id,
-        pluginName: component.plugin_name,
-        slot,
-        componentConfig: component.config,
-        priority: component.priority || 100,
-      });
-    }
+      // 按优先级排序
+      for (const slot of Object.keys(grouped)) {
+        grouped[slot].sort((a, b) => a.priority - b.priority);
+      }
 
-    // 按优先级排序
-    for (const slot of Object.keys(grouped)) {
-      grouped[slot].sort((a, b) => a.priority - b.priority);
-    }
-
-    return grouped;
-  });
+      return grouped;
+    });
 
   /**
    * 获取指定插槽的组件
@@ -375,10 +373,22 @@ export function usePluginExtensions() {
     const handlePluginEnabled = () => loadExtensions();
     const handlePluginDisabled = () => loadExtensions();
 
-    (window as any).electronAPI.plugin.on("plugin:installed", handlePluginInstalled);
-    (window as any).electronAPI.plugin.on("plugin:uninstalled", handlePluginUninstalled);
-    (window as any).electronAPI.plugin.on("plugin:enabled", handlePluginEnabled);
-    (window as any).electronAPI.plugin.on("plugin:disabled", handlePluginDisabled);
+    (window as any).electronAPI.plugin.on(
+      "plugin:installed",
+      handlePluginInstalled,
+    );
+    (window as any).electronAPI.plugin.on(
+      "plugin:uninstalled",
+      handlePluginUninstalled,
+    );
+    (window as any).electronAPI.plugin.on(
+      "plugin:enabled",
+      handlePluginEnabled,
+    );
+    (window as any).electronAPI.plugin.on(
+      "plugin:disabled",
+      handlePluginDisabled,
+    );
 
     eventHandlers = [
       { event: "plugin:installed", handler: handlePluginInstalled },
@@ -433,14 +443,18 @@ export function usePluginExtensions() {
 /**
  * 获取指定插槽的组件扩展（不需要setup上下文）
  */
-export async function getSlotExtensions(slotName: string): Promise<PluginComponentExtension[]> {
+export async function getSlotExtensions(
+  slotName: string,
+): Promise<PluginComponentExtension[]> {
   if (!(window as any).electronAPI?.plugin?.getSlotExtensions) {
     logger.warn("[getSlotExtensions] Plugin API not available");
     return [];
   }
 
   try {
-    const result = await (window as any).electronAPI.plugin.getSlotExtensions(slotName);
+    const result = await (window as any).electronAPI.plugin.getSlotExtensions(
+      slotName,
+    );
 
     if (result.success) {
       return result.extensions || [];
@@ -448,7 +462,10 @@ export async function getSlotExtensions(slotName: string): Promise<PluginCompone
       throw new Error(result.error || "获取插槽扩展失败");
     }
   } catch (err) {
-    logger.error(`[getSlotExtensions] Failed to get slot ${slotName}:`, err as any);
+    logger.error(
+      `[getSlotExtensions] Failed to get slot ${slotName}:`,
+      err as any,
+    );
     return [];
   }
 }
@@ -515,7 +532,10 @@ export async function registerPluginRoutes(router: Router): Promise<void> {
       logger.info(`[registerPluginRoutes] Route registered: ${routePath}`);
     }
   } catch (err) {
-    logger.error("[registerPluginRoutes] Failed to register routes:", err as any);
+    logger.error(
+      "[registerPluginRoutes] Failed to register routes:",
+      err as any,
+    );
   }
 }
 
@@ -545,7 +565,10 @@ export async function callPluginMethod<T = any>(
       throw new Error(result.error || "调用插件方法失败");
     }
   } catch (err) {
-    logger.error(`[callPluginMethod] ${pluginId}.${methodName} 失败:`, err as any);
+    logger.error(
+      `[callPluginMethod] ${pluginId}.${methodName} 失败:`,
+      err as any,
+    );
     throw err;
   }
 }
@@ -555,7 +578,7 @@ export async function callPluginMethod<T = any>(
  */
 export async function getPluginPageContent(
   pluginId: string,
-  pageId: string = "main"
+  pageId: string = "main",
 ): Promise<{ success: boolean; error?: string; content?: any }> {
   if (!(window as any).electronAPI?.plugin?.getPluginPageContent) {
     return { success: false, error: "API not available" };
@@ -567,7 +590,10 @@ export async function getPluginPageContent(
       pageId,
     );
   } catch (err) {
-    logger.error(`[getPluginPageContent] ${pluginId}/${pageId} 失败:`, err as any);
+    logger.error(
+      `[getPluginPageContent] ${pluginId}/${pageId} 失败:`,
+      err as any,
+    );
     return { success: false, error: (err as Error).message };
   }
 }
@@ -696,7 +722,9 @@ export function usePluginSlot(slotName: string) {
     }
 
     try {
-      const result = await (window as any).electronAPI.plugin.getSlotExtensions(slotName);
+      const result = await (window as any).electronAPI.plugin.getSlotExtensions(
+        slotName,
+      );
 
       if (result?.success) {
         extensions.value = (result.extensions || [])
@@ -708,11 +736,16 @@ export function usePluginSlot(slotName: string) {
             componentConfig: ext.config,
             priority: ext.priority || 100,
           }))
-          .sort((a: SlotComponent, b: SlotComponent) => a.priority - b.priority);
+          .sort(
+            (a: SlotComponent, b: SlotComponent) => a.priority - b.priority,
+          );
       } else {
         extensions.value = [];
         if (result?.error && !result.error.includes("No handler registered")) {
-          logger.warn(`[usePluginSlot:${slotName}] 获取扩展失败:`, result.error);
+          logger.warn(
+            `[usePluginSlot:${slotName}] 获取扩展失败:`,
+            result.error,
+          );
         }
       }
     } catch (err) {

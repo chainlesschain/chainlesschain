@@ -3,11 +3,19 @@
  * 提供常用的功能封装，简化组件开发
  */
 
-import { logger } from '@/utils/logger';
-import { ref, computed, onMounted, onUnmounted, watch, type Ref, type ComputedRef } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { handleError } from './errorHandler';
-import { useLoading, withLoading } from './loadingManager';
+import { logger } from "@/utils/logger";
+import {
+  ref,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from "vue";
+import { message, Modal } from "ant-design-vue";
+import { handleError } from "./errorHandler";
+import { useLoading } from "./loadingManager";
 
 // ==================== 类型定义 ====================
 
@@ -168,7 +176,7 @@ export interface UseFormValidationReturn {
 export function useAsyncData<T, R = T>(
   key: string,
   fetchFn: (...args: any[]) => Promise<T>,
-  options: UseAsyncDataOptions<T, R> = {}
+  options: UseAsyncDataOptions<T, R> = {},
 ): UseAsyncDataReturn<R> {
   const {
     immediate = true,
@@ -178,7 +186,9 @@ export function useAsyncData<T, R = T>(
     transform = null,
   } = options;
 
-  const data = ref<R | null>(initialData as unknown as R | null) as Ref<R | null>;
+  const data = ref<R | null>(
+    initialData as unknown as R | null,
+  ) as Ref<R | null>;
   const error = ref<Error | null>(null);
   const { isLoading, start, finish, fail } = useLoading(key);
 
@@ -209,7 +219,7 @@ export function useAsyncData<T, R = T>(
         handleError(errorObj, {
           showMessage: true,
           logToFile: true,
-          context: { function: 'useAsyncData', key },
+          context: { function: "useAsyncData", key },
         });
       }
 
@@ -236,7 +246,7 @@ export function useAsyncData<T, R = T>(
  */
 export function useDebounce<T extends (...args: any[]) => any>(
   fn: T,
-  delay: number = 300
+  delay: number = 300,
 ): UseDebounceReturn<T> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -273,7 +283,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
  */
 export function useThrottle<T extends (...args: any[]) => any>(
   fn: T,
-  interval: number = 1000
+  interval: number = 1000,
 ): UseThrottleReturn<T> {
   let lastCallTime = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -290,10 +300,13 @@ export function useThrottle<T extends (...args: any[]) => any>(
         clearTimeout(timeoutId);
       }
 
-      timeoutId = setTimeout(() => {
-        lastCallTime = Date.now();
-        fn(...args);
-      }, interval - (now - lastCallTime));
+      timeoutId = setTimeout(
+        () => {
+          lastCallTime = Date.now();
+          fn(...args);
+        },
+        interval - (now - lastCallTime),
+      );
     }
   };
 
@@ -322,12 +335,12 @@ export function useClipboard(): UseClipboardReturn {
   const copy = async (text: string): Promise<boolean> => {
     try {
       await navigator.clipboard.writeText(text);
-      message.success('已复制到剪贴板');
+      message.success("已复制到剪贴板");
       return true;
     } catch (error) {
       handleError(error as Error, {
         showMessage: true,
-        context: { function: 'useClipboard.copy' },
+        context: { function: "useClipboard.copy" },
       });
       return false;
     }
@@ -340,7 +353,7 @@ export function useClipboard(): UseClipboardReturn {
     } catch (error) {
       handleError(error as Error, {
         showMessage: true,
-        context: { function: 'useClipboard.paste' },
+        context: { function: "useClipboard.paste" },
       });
       return null;
     }
@@ -356,7 +369,10 @@ export function useClipboard(): UseClipboardReturn {
  * 使用本地存储
  * 简化 localStorage 操作，支持 JSON
  */
-export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorageReturn<T> {
+export function useLocalStorage<T>(
+  key: string,
+  defaultValue: T,
+): UseLocalStorageReturn<T> {
   const data = ref<T>(defaultValue) as Ref<T>;
 
   // 从 localStorage 加载
@@ -367,7 +383,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorag
         data.value = JSON.parse(stored);
       }
     } catch (error) {
-      logger.error('[useLocalStorage] Load error:', error as any);
+      logger.error("[useLocalStorage] Load error:", error as any);
       data.value = defaultValue;
     }
   };
@@ -378,11 +394,11 @@ export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorag
       data.value = value;
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      logger.error('[useLocalStorage] Save error:', error as any);
+      logger.error("[useLocalStorage] Save error:", error as any);
       handleError(error as Error, {
         showMessage: false,
         logToFile: true,
-        context: { function: 'useLocalStorage.save', key },
+        context: { function: "useLocalStorage.save", key },
       });
     }
   };
@@ -393,7 +409,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorag
       data.value = defaultValue;
       localStorage.removeItem(key);
     } catch (error) {
-      logger.error('[useLocalStorage] Remove error:', error as any);
+      logger.error("[useLocalStorage] Remove error:", error as any);
     }
   };
 
@@ -401,13 +417,17 @@ export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorag
   load();
 
   // 监听变化自动保存
-  watch(data, (newValue) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(newValue));
-    } catch (error) {
-      logger.error('[useLocalStorage] Auto-save error:', error as any);
-    }
-  }, { deep: true });
+  watch(
+    data,
+    (newValue) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(newValue));
+      } catch (error) {
+        logger.error("[useLocalStorage] Auto-save error:", error as any);
+      }
+    },
+    { deep: true },
+  );
 
   return {
     data,
@@ -424,10 +444,10 @@ export function useLocalStorage<T>(key: string, defaultValue: T): UseLocalStorag
 export function useConfirm(): UseConfirmReturn {
   const confirm = (options: ConfirmOptions = {}): Promise<boolean> => {
     const {
-      title = '确认操作',
-      content = '确定要执行此操作吗？',
-      okText = '确定',
-      cancelText = '取消',
+      title = "确认操作",
+      content = "确定要执行此操作吗？",
+      okText = "确定",
+      cancelText = "取消",
       onOk = null,
       onCancel = null,
     } = options;
@@ -471,18 +491,17 @@ export function useConfirm(): UseConfirmReturn {
 export function usePolling(
   fn: () => Promise<void> | void,
   interval: number = 5000,
-  options: UsePollingOptions = {}
+  options: UsePollingOptions = {},
 ): UsePollingReturn {
-  const {
-    immediate = true,
-    onError = null,
-  } = options;
+  const { immediate = true, onError = null } = options;
 
   const isPolling = ref(false);
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
   const start = (): void => {
-    if (isPolling.value) { return; }
+    if (isPolling.value) {
+      return;
+    }
 
     isPolling.value = true;
 
@@ -493,7 +512,7 @@ export function usePolling(
         if (onError) {
           onError(error as Error);
         } else {
-          logger.error('[usePolling] Error:', error as any);
+          logger.error("[usePolling] Error:", error as any);
         }
       }
     };
@@ -536,13 +555,13 @@ export function useOnline(): UseOnlineReturn {
   };
 
   onMounted(() => {
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
   });
 
   onUnmounted(() => {
-    window.removeEventListener('online', updateOnlineStatus);
-    window.removeEventListener('offline', updateOnlineStatus);
+    window.removeEventListener("online", updateOnlineStatus);
+    window.removeEventListener("offline", updateOnlineStatus);
   });
 
   return {
@@ -564,11 +583,11 @@ export function useWindowSize(): UseWindowSizeReturn {
   };
 
   onMounted(() => {
-    window.addEventListener('resize', updateSize);
+    window.addEventListener("resize", updateSize);
   });
 
   onUnmounted(() => {
-    window.removeEventListener('resize', updateSize);
+    window.removeEventListener("resize", updateSize);
   });
 
   return {
@@ -585,11 +604,15 @@ export function useWindowSize(): UseWindowSizeReturn {
  * 简化文件下载操作
  */
 export function useDownload(): UseDownloadReturn {
-  const download = (data: BlobPart, filename: string, mimeType: string = 'text/plain'): boolean => {
+  const download = (
+    data: BlobPart,
+    filename: string,
+    mimeType: string = "text/plain",
+  ): boolean => {
     try {
       const blob = new Blob([data], { type: mimeType });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
 
       link.href = url;
       link.download = filename;
@@ -599,12 +622,12 @@ export function useDownload(): UseDownloadReturn {
 
       URL.revokeObjectURL(url);
 
-      message.success('下载成功');
+      message.success("下载成功");
       return true;
     } catch (error) {
       handleError(error as Error, {
         showMessage: true,
-        context: { function: 'useDownload', filename },
+        context: { function: "useDownload", filename },
       });
       return false;
     }
@@ -612,19 +635,19 @@ export function useDownload(): UseDownloadReturn {
 
   const downloadUrl = (url: string, filename?: string): boolean => {
     try {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = filename || '';
+      link.download = filename || "";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      message.success('下载已开始');
+      message.success("下载已开始");
       return true;
     } catch (error) {
       handleError(error as Error, {
         showMessage: true,
-        context: { function: 'useDownload.downloadUrl', url },
+        context: { function: "useDownload.downloadUrl", url },
       });
       return false;
     }
@@ -640,7 +663,9 @@ export function useDownload(): UseDownloadReturn {
  * 使用表单验证
  * 简化表单验证逻辑
  */
-export function useFormValidation(rules: ValidationRules): UseFormValidationReturn {
+export function useFormValidation(
+  rules: ValidationRules,
+): UseFormValidationReturn {
   const errors = ref<Record<string, string>>({});
   const isValid = computed(() => Object.keys(errors.value).length === 0);
 
@@ -657,12 +682,14 @@ export function useFormValidation(rules: ValidationRules): UseFormValidationRetu
         }
 
         if (rule.min && value && value.length < rule.min) {
-          errors.value[field] = rule.message || `${field} 最少 ${rule.min} 个字符`;
+          errors.value[field] =
+            rule.message || `${field} 最少 ${rule.min} 个字符`;
           break;
         }
 
         if (rule.max && value && value.length > rule.max) {
-          errors.value[field] = rule.message || `${field} 最多 ${rule.max} 个字符`;
+          errors.value[field] =
+            rule.message || `${field} 最多 ${rule.max} 个字符`;
           break;
         }
 
@@ -674,7 +701,10 @@ export function useFormValidation(rules: ValidationRules): UseFormValidationRetu
         if (rule.validator && value) {
           const result = rule.validator(value, data);
           if (result !== true) {
-            errors.value[field] = (typeof result === 'string' ? result : null) || rule.message || `${field} 验证失败`;
+            errors.value[field] =
+              (typeof result === "string" ? result : null) ||
+              rule.message ||
+              `${field} 验证失败`;
             break;
           }
         }

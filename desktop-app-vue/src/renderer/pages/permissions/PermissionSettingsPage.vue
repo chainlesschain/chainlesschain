@@ -6,10 +6,7 @@
       @back="goBack"
     >
       <template #extra>
-        <a-button
-          type="primary"
-          @click="showGrantPermission = true"
-        >
+        <a-button type="primary" @click="showGrantPermission = true">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -20,10 +17,7 @@
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 权限矩阵 -->
-      <a-tab-pane
-        key="matrix"
-        tab="权限矩阵"
-      >
+      <a-tab-pane key="matrix" tab="权限矩阵">
         <a-card>
           <a-table
             :columns="matrixColumns"
@@ -52,10 +46,7 @@
       </a-tab-pane>
 
       <!-- 权限列表 -->
-      <a-tab-pane
-        key="list"
-        tab="权限列表"
-      >
+      <a-tab-pane key="list" tab="权限列表">
         <a-card>
           <a-table
             :columns="listColumns"
@@ -69,12 +60,7 @@
                   title="确定撤销此权限？"
                   @confirm="revokePermission(record.grantId)"
                 >
-                  <a-button
-                    type="link"
-                    danger
-                  >
-                    撤销
-                  </a-button>
+                  <a-button type="link" danger> 撤销 </a-button>
                 </a-popconfirm>
               </template>
             </template>
@@ -83,29 +69,17 @@
       </a-tab-pane>
 
       <!-- 资源权限 -->
-      <a-tab-pane
-        key="resources"
-        tab="资源权限"
-      >
+      <a-tab-pane key="resources" tab="资源权限">
         <a-card>
-          <a-form
-            layout="inline"
-            style="margin-bottom: 16px"
-          >
+          <a-form layout="inline" style="margin-bottom: 16px">
             <a-form-item label="资源类型">
               <a-select
                 v-model:value="selectedResourceType"
                 style="width: 150px"
               >
-                <a-select-option value="knowledge">
-                  知识库
-                </a-select-option>
-                <a-select-option value="project">
-                  项目
-                </a-select-option>
-                <a-select-option value="board">
-                  看板
-                </a-select-option>
+                <a-select-option value="knowledge"> 知识库 </a-select-option>
+                <a-select-option value="project"> 项目 </a-select-option>
+                <a-select-option value="board"> 看板 </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="资源ID">
@@ -115,10 +89,7 @@
               />
             </a-form-item>
             <a-form-item>
-              <a-button
-                type="primary"
-                @click="loadResourcePermissions"
-              >
+              <a-button type="primary" @click="loadResourcePermissions">
                 查询
               </a-button>
             </a-form-item>
@@ -138,12 +109,7 @@
                     title="撤销此权限？"
                     @confirm="revokePermission(item.grantId)"
                   >
-                    <a-button
-                      type="link"
-                      danger
-                    >
-                      撤销
-                    </a-button>
+                    <a-button type="link" danger> 撤销 </a-button>
                   </a-popconfirm>
                 </template>
               </a-list-item>
@@ -160,21 +126,12 @@
       :confirm-loading="granting"
       @ok="handleGrantPermission"
     >
-      <a-form
-        :model="newPermission"
-        layout="vertical"
-      >
+      <a-form :model="newPermission" layout="vertical">
         <a-form-item label="授权类型">
           <a-radio-group v-model:value="newPermission.granteeType">
-            <a-radio value="user">
-              用户
-            </a-radio>
-            <a-radio value="role">
-              角色
-            </a-radio>
-            <a-radio value="team">
-              团队
-            </a-radio>
+            <a-radio value="user"> 用户 </a-radio>
+            <a-radio value="role"> 角色 </a-radio>
+            <a-radio value="team"> 团队 </a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item label="被授权者">
@@ -185,18 +142,10 @@
         </a-form-item>
         <a-form-item label="资源类型">
           <a-select v-model:value="newPermission.resourceType">
-            <a-select-option value="*">
-              全部资源
-            </a-select-option>
-            <a-select-option value="knowledge">
-              知识库
-            </a-select-option>
-            <a-select-option value="project">
-              项目
-            </a-select-option>
-            <a-select-option value="board">
-              看板
-            </a-select-option>
+            <a-select-option value="*"> 全部资源 </a-select-option>
+            <a-select-option value="knowledge"> 知识库 </a-select-option>
+            <a-select-option value="project"> 项目 </a-select-option>
+            <a-select-option value="board"> 看板 </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="资源ID（可选）">
@@ -206,29 +155,15 @@
           />
         </a-form-item>
         <a-form-item label="权限">
-          <a-select
-            v-model:value="newPermission.permission"
-            mode="multiple"
-          >
-            <a-select-option value="read">
-              读取
-            </a-select-option>
-            <a-select-option value="write">
-              写入
-            </a-select-option>
-            <a-select-option value="delete">
-              删除
-            </a-select-option>
-            <a-select-option value="admin">
-              管理
-            </a-select-option>
+          <a-select v-model:value="newPermission.permission" mode="multiple">
+            <a-select-option value="read"> 读取 </a-select-option>
+            <a-select-option value="write"> 写入 </a-select-option>
+            <a-select-option value="delete"> 删除 </a-select-option>
+            <a-select-option value="admin"> 管理 </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="过期时间（可选）">
-          <a-date-picker
-            v-model:value="newPermission.expiresAt"
-            show-time
-          />
+          <a-date-picker v-model:value="newPermission.expiresAt" show-time />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -315,7 +250,7 @@ const loadResourcePermissions = async () => {
       selectedResourceType.value,
       selectedResourceId.value,
     );
-  } catch (error) {
+  } catch (_error) {
     message.error("加载失败");
   } finally {
     loadingResources.value = false;
@@ -326,7 +261,7 @@ const revokePermission = async (grantId) => {
   try {
     await permissionStore.revokePermission(grantId, authStore.currentUser?.did);
     message.success("权限已撤销");
-  } catch (error) {
+  } catch (_error) {
     message.error("撤销失败");
   }
 };
@@ -356,7 +291,7 @@ const handleGrantPermission = async () => {
     }
     message.success("权限授予成功");
     showGrantPermission.value = false;
-  } catch (error) {
+  } catch (_error) {
     message.error("授权失败");
   } finally {
     granting.value = false;

@@ -125,7 +125,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, onMounted, watch, computed, onBeforeUnmount } from "vue";
 import { Editor, rootCtx, defaultValueCtx } from "@milkdown/core";

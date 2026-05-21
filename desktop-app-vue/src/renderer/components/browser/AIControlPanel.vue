@@ -1,9 +1,6 @@
 <template>
   <div class="ai-control-panel">
-    <a-card
-      title="🤖 AI 浏览器控制"
-      :bordered="false"
-    >
+    <a-card title="🤖 AI 浏览器控制" :bordered="false">
       <!-- AI 指令输入区 -->
       <div class="ai-input-section">
         <a-textarea
@@ -46,10 +43,7 @@
               预览步骤
             </a-button>
 
-            <a-button
-              :disabled="executing"
-              @click="handleClear"
-            >
+            <a-button :disabled="executing" @click="handleClear">
               <template #icon>
                 <ClearOutlined />
               </template>
@@ -65,18 +59,10 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleSelectExample">
-                  <a-menu-item key="google-search">
-                    Google 搜索
-                  </a-menu-item>
-                  <a-menu-item key="form-fill">
-                    填写表单
-                  </a-menu-item>
-                  <a-menu-item key="click-first">
-                    点击第一个链接
-                  </a-menu-item>
-                  <a-menu-item key="screenshot">
-                    截图保存
-                  </a-menu-item>
+                  <a-menu-item key="google-search"> Google 搜索 </a-menu-item>
+                  <a-menu-item key="form-fill"> 填写表单 </a-menu-item>
+                  <a-menu-item key="click-first"> 点击第一个链接 </a-menu-item>
+                  <a-menu-item key="screenshot"> 截图保存 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -87,22 +73,13 @@
       <a-divider />
 
       <!-- 执行进度和结果 -->
-      <div
-        v-if="executionResult || parsedSteps"
-        class="execution-section"
-      >
+      <div v-if="executionResult || parsedSteps" class="execution-section">
         <!-- 操作步骤预览/时间线 -->
-        <div
-          v-if="parsedSteps || executionResult"
-          class="steps-section"
-        >
+        <div v-if="parsedSteps || executionResult" class="steps-section">
           <h4>
             <HistoryOutlined />
             操作步骤
-            <a-tag
-              v-if="parsedSteps"
-              color="blue"
-            >
+            <a-tag v-if="parsedSteps" color="blue">
               {{ parsedSteps.length }} 步
             </a-tag>
           </h4>
@@ -114,10 +91,7 @@
               :color="getStepColor(step, index)"
             >
               <template #dot>
-                <LoadingOutlined
-                  v-if="isStepExecuting(index)"
-                  spin
-                />
+                <LoadingOutlined v-if="isStepExecuting(index)" spin />
                 <CheckCircleOutlined v-else-if="isStepCompleted(index)" />
                 <ClockCircleOutlined v-else />
               </template>
@@ -128,35 +102,23 @@
                   <a-tag :color="getActionColor(step.action)">
                     {{ step.action }}
                   </a-tag>
-                  <span
-                    v-if="step.ref"
-                    class="step-ref"
-                  >{{ step.ref }}</span>
+                  <span v-if="step.ref" class="step-ref">{{ step.ref }}</span>
                 </div>
 
                 <div class="step-description">
                   {{ step.description }}
                 </div>
 
-                <div
-                  v-if="step.url"
-                  class="step-detail"
-                >
+                <div v-if="step.url" class="step-detail">
                   <GlobalOutlined /> {{ step.url }}
                 </div>
 
-                <div
-                  v-if="step.text"
-                  class="step-detail"
-                >
+                <div v-if="step.text" class="step-detail">
                   <EditOutlined /> "{{ step.text }}"
                 </div>
 
                 <!-- 执行结果 -->
-                <div
-                  v-if="getStepResult(index)"
-                  class="step-result"
-                >
+                <div v-if="getStepResult(index)" class="step-result">
                   <a-alert
                     :type="getStepResult(index).success ? 'success' : 'error'"
                     :message="
@@ -173,10 +135,7 @@
         </div>
 
         <!-- 执行统计 -->
-        <div
-          v-if="executionResult"
-          class="execution-stats"
-        >
+        <div v-if="executionResult" class="execution-stats">
           <a-space>
             <a-statistic
               title="总步骤"
@@ -198,38 +157,25 @@
       </div>
 
       <!-- 空状态 -->
-      <a-empty
-        v-else
-        description="输入 AI 指令开始自动化操作"
-      >
+      <a-empty v-else description="输入 AI 指令开始自动化操作">
         <BulbOutlined
           style="font-size: 48px; color: #faad14; margin-bottom: 16px"
         />
       </a-empty>
 
       <!-- 执行历史 -->
-      <div
-        v-if="history.length > 0"
-        class="history-section"
-      >
+      <div v-if="history.length > 0" class="history-section">
         <a-divider />
 
         <h4>
           <HistoryOutlined />
           执行历史
-          <a-button
-            type="text"
-            size="small"
-            @click="handleClearHistory"
-          >
+          <a-button type="text" size="small" @click="handleClearHistory">
             清除
           </a-button>
         </h4>
 
-        <a-list
-          :data-source="history"
-          size="small"
-        >
+        <a-list :data-source="history" size="small">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -239,18 +185,8 @@
                 <template #description>
                   <a-space>
                     <span>{{ new Date(item.timestamp).toLocaleString() }}</span>
-                    <a-tag
-                      v-if="item.success"
-                      color="success"
-                    >
-                      成功
-                    </a-tag>
-                    <a-tag
-                      v-else
-                      color="error"
-                    >
-                      失败
-                    </a-tag>
+                    <a-tag v-if="item.success" color="success"> 成功 </a-tag>
+                    <a-tag v-else color="error"> 失败 </a-tag>
                     <span v-if="item.steps">{{ item.steps.length }} 步</span>
                   </a-space>
                 </template>
@@ -274,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   ThunderboltOutlined,

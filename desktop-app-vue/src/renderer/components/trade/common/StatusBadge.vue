@@ -5,20 +5,13 @@
     :color="getColor(status)"
     :class="['status-badge', `status-${status}`]"
   >
-    <template
-      v-if="showIcon"
-      #icon
-    >
-      <component
-        :is="getIcon(status)"
-        :spin="isProcessing(status)"
-      />
+    <template v-if="showIcon" #icon>
+      <component :is="getIcon(status)" :spin="isProcessing(status)" />
     </template>
   </a-badge>
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -29,7 +22,7 @@ import {
   UnlockOutlined,
   FireOutlined,
   StopOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   // 状态值
@@ -40,12 +33,12 @@ const props = defineProps({
   // 状态类型（用于区分不同模块的状态）
   type: {
     type: String,
-    default: 'default', // 'order', 'contract', 'escrow', 'transaction'
+    default: "default", // 'order', 'contract', 'escrow', 'transaction'
   },
   // 自定义文本
   text: {
     type: String,
-    default: '',
+    default: "",
   },
   // 是否显示图标
   showIcon: {
@@ -58,63 +51,65 @@ const props = defineProps({
  * 获取状态文本
  */
 const getText = () => {
-  if (props.text) {return props.text;}
+  if (props.text) {
+    return props.text;
+  }
 
   // 根据type和status返回默认文本
   const textMap = {
     // 订单状态
     order: {
-      open: '开放中',
-      matched: '已匹配',
-      closed: '已关闭',
-      cancelled: '已取消',
-      completed: '已完成',
+      open: "开放中",
+      matched: "已匹配",
+      closed: "已关闭",
+      cancelled: "已取消",
+      completed: "已完成",
     },
     // 合约状态
     contract: {
-      draft: '草稿',
-      active: '生效中',
-      completed: '已完成',
-      cancelled: '已取消',
-      disputed: '争议中',
-      arbitrating: '仲裁中',
+      draft: "草稿",
+      active: "生效中",
+      completed: "已完成",
+      cancelled: "已取消",
+      disputed: "争议中",
+      arbitrating: "仲裁中",
     },
     // 托管状态
     escrow: {
-      created: '已创建',
-      locked: '已锁定',
-      released: '已释放',
-      refunded: '已退款',
-      disputed: '有争议',
-      cancelled: '已取消',
+      created: "已创建",
+      locked: "已锁定",
+      released: "已释放",
+      refunded: "已退款",
+      disputed: "有争议",
+      cancelled: "已取消",
     },
     // 交易状态
     transaction: {
-      pending: '待处理',
-      escrowed: '托管中',
-      completed: '已完成',
-      cancelled: '已取消',
-      refunded: '已退款',
-      disputed: '有争议',
+      pending: "待处理",
+      escrowed: "托管中",
+      completed: "已完成",
+      cancelled: "已取消",
+      refunded: "已退款",
+      disputed: "有争议",
     },
     // 资产转账状态
     transfer: {
-      pending: '待确认',
-      confirmed: '已确认',
-      failed: '失败',
+      pending: "待确认",
+      confirmed: "已确认",
+      failed: "失败",
     },
     // 默认通用状态
     default: {
-      success: '成功',
-      error: '错误',
-      warning: '警告',
-      processing: '处理中',
-      pending: '待处理',
-      active: '活跃',
-      inactive: '未激活',
-      completed: '已完成',
-      cancelled: '已取消',
-      failed: '失败',
+      success: "成功",
+      error: "错误",
+      warning: "警告",
+      processing: "处理中",
+      pending: "待处理",
+      active: "活跃",
+      inactive: "未激活",
+      completed: "已完成",
+      cancelled: "已取消",
+      failed: "失败",
     },
   };
 
@@ -126,27 +121,29 @@ const getText = () => {
  */
 const getBadgeStatus = (status) => {
   // 成功类
-  if (['completed', 'success', 'released', 'confirmed'].includes(status)) {
-    return 'success';
+  if (["completed", "success", "released", "confirmed"].includes(status)) {
+    return "success";
   }
   // 错误类
-  if (['error', 'failed', 'cancelled', 'closed'].includes(status)) {
-    return 'error';
+  if (["error", "failed", "cancelled", "closed"].includes(status)) {
+    return "error";
   }
   // 警告类
-  if (['warning', 'disputed', 'arbitrating', 'refunded'].includes(status)) {
-    return 'warning';
+  if (["warning", "disputed", "arbitrating", "refunded"].includes(status)) {
+    return "warning";
   }
   // 处理中类
-  if (['processing', 'pending', 'matched', 'escrowed', 'locked'].includes(status)) {
-    return 'processing';
+  if (
+    ["processing", "pending", "matched", "escrowed", "locked"].includes(status)
+  ) {
+    return "processing";
   }
   // 默认类
-  if (['default', 'draft', 'created', 'open', 'active'].includes(status)) {
-    return 'default';
+  if (["default", "draft", "created", "open", "active"].includes(status)) {
+    return "default";
   }
 
-  return 'default';
+  return "default";
 };
 
 /**
@@ -155,38 +152,38 @@ const getBadgeStatus = (status) => {
 const getColor = (status) => {
   const colorMap = {
     // 成功 - 绿色
-    completed: '#52c41a',
-    success: '#52c41a',
-    released: '#52c41a',
-    confirmed: '#52c41a',
+    completed: "#52c41a",
+    success: "#52c41a",
+    released: "#52c41a",
+    confirmed: "#52c41a",
 
     // 进行中 - 蓝色
-    open: '#1890ff',
-    active: '#1890ff',
-    processing: '#1890ff',
-    matched: '#1890ff',
+    open: "#1890ff",
+    active: "#1890ff",
+    processing: "#1890ff",
+    matched: "#1890ff",
 
     // 等待 - 橙色
-    pending: '#faad14',
-    draft: '#faad14',
-    created: '#faad14',
-    escrowed: '#faad14',
-    locked: '#faad14',
+    pending: "#faad14",
+    draft: "#faad14",
+    created: "#faad14",
+    escrowed: "#faad14",
+    locked: "#faad14",
 
     // 警告 - 金色/红色
-    disputed: '#ff7a45',
-    arbitrating: '#ff7a45',
-    warning: '#faad14',
+    disputed: "#ff7a45",
+    arbitrating: "#ff7a45",
+    warning: "#faad14",
 
     // 错误/取消 - 红色/灰色
-    error: '#ff4d4f',
-    failed: '#ff4d4f',
-    cancelled: '#8c8c8c',
-    closed: '#8c8c8c',
-    refunded: '#8c8c8c',
+    error: "#ff4d4f",
+    failed: "#ff4d4f",
+    cancelled: "#8c8c8c",
+    closed: "#8c8c8c",
+    refunded: "#8c8c8c",
 
     // 默认 - 默认色
-    default: '#d9d9d9',
+    default: "#d9d9d9",
   };
 
   return colorMap[status] || colorMap.default;
@@ -233,7 +230,7 @@ const getIcon = (status) => {
  * 是否处于处理中状态（图标旋转）
  */
 const isProcessing = (status) => {
-  return ['processing', 'pending', 'matched'].includes(status);
+  return ["processing", "pending", "matched"].includes(status);
 };
 </script>
 

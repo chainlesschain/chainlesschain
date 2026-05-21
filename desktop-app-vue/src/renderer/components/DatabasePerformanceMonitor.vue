@@ -1,8 +1,5 @@
 <template>
-  <a-card
-    title="数据库性能监控"
-    class="performance-monitor"
-  >
+  <a-card title="数据库性能监控" class="performance-monitor">
     <template #extra>
       <a-space>
         <a-button
@@ -14,11 +11,7 @@
           <ReloadOutlined />
           刷新
         </a-button>
-        <a-button
-          type="text"
-          size="small"
-          @click="clearStats"
-        >
+        <a-button type="text" size="small" @click="clearStats">
           <DeleteOutlined />
           清除
         </a-button>
@@ -81,10 +74,7 @@
       <a-divider />
 
       <!-- 性能对比 -->
-      <div
-        v-if="stats.isEncrypted"
-        class="performance-comparison"
-      >
+      <div v-if="stats.isEncrypted" class="performance-comparison">
         <h4>加密性能对比</h4>
         <a-alert
           type="info"
@@ -94,10 +84,7 @@
         />
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-card
-              size="small"
-              title="加密模式 (SQLCipher)"
-            >
+            <a-card size="small" title="加密模式 (SQLCipher)">
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.encryptedTime"
@@ -111,10 +98,7 @@
             </a-card>
           </a-col>
           <a-col :span="12">
-            <a-card
-              size="small"
-              title="非加密模式 (sql.js)"
-            >
+            <a-card size="small" title="非加密模式 (sql.js)">
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.unencryptedTime"
@@ -135,20 +119,13 @@
       <!-- 操作类型分布 -->
       <div class="operation-distribution">
         <h4>操作类型分布</h4>
-        <a-list
-          size="small"
-          :data-source="operationTypes"
-          :split="false"
-        >
+        <a-list size="small" :data-source="operationTypes" :split="false">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
                 <template #title>
                   <span>{{ item.type }}</span>
-                  <a-tag
-                    color="blue"
-                    style="margin-left: 8px"
-                  >
+                  <a-tag color="blue" style="margin-left: 8px">
                     {{ item.count }} 次
                   </a-tag>
                 </template>
@@ -207,7 +184,7 @@
 <script setup>
 import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import {
   DatabaseOutlined,
@@ -301,7 +278,7 @@ const refreshStats = async () => {
           operationTypes.value = performanceData.operationTypes;
           recentLogs.value = performanceData.recentLogs;
         }
-      } catch (error) {
+      } catch (_error) {
         // 如果后端还没有实现性能统计API，使用模拟数据
         logger.info("使用模拟性能数据");
         generateMockData();

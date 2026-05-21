@@ -6,10 +6,7 @@
       @back="goBack"
     >
       <template #extra>
-        <a-button
-          type="primary"
-          @click="showCreateTeam = true"
-        >
+        <a-button type="primary" @click="showCreateTeam = true">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -23,25 +20,15 @@
       <a-col :span="8">
         <a-card title="团队列表">
           <template #extra>
-            <a-radio-group
-              v-model:value="viewMode"
-              size="small"
-            >
-              <a-radio-button value="list">
-                列表
-              </a-radio-button>
-              <a-radio-button value="tree">
-                树形
-              </a-radio-button>
+            <a-radio-group v-model:value="viewMode" size="small">
+              <a-radio-button value="list"> 列表 </a-radio-button>
+              <a-radio-button value="tree"> 树形 </a-radio-button>
             </a-radio-group>
           </template>
 
           <a-spin :spinning="loading">
             <!-- 列表视图 -->
-            <a-list
-              v-if="viewMode === 'list'"
-              :data-source="teams"
-            >
+            <a-list v-if="viewMode === 'list'" :data-source="teams">
               <template #renderItem="{ item }">
                 <a-list-item
                   :class="{ 'selected-team': currentTeam?.id === item.id }"
@@ -74,34 +61,18 @@
 
       <!-- 团队详情 -->
       <a-col :span="16">
-        <a-card
-          v-if="currentTeam"
-          :title="currentTeam.name"
-        >
+        <a-card v-if="currentTeam" :title="currentTeam.name">
           <template #extra>
             <a-space>
-              <a-button @click="showEditTeam = true">
-                编辑
-              </a-button>
-              <a-popconfirm
-                title="确定删除此团队？"
-                @confirm="deleteTeam"
-              >
-                <a-button danger>
-                  删除
-                </a-button>
+              <a-button @click="showEditTeam = true"> 编辑 </a-button>
+              <a-popconfirm title="确定删除此团队？" @confirm="deleteTeam">
+                <a-button danger> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
 
-          <a-descriptions
-            :column="2"
-            bordered
-          >
-            <a-descriptions-item
-              label="描述"
-              :span="2"
-            >
+          <a-descriptions :column="2" bordered>
+            <a-descriptions-item label="描述" :span="2">
               {{ currentTeam.description || "无描述" }}
             </a-descriptions-item>
             <a-descriptions-item label="负责人">
@@ -161,11 +132,7 @@
                       title="移除此成员？"
                       @confirm="removeMember(record.memberDid)"
                     >
-                      <a-button
-                        type="link"
-                        danger
-                        size="small"
-                      >
+                      <a-button type="link" danger size="small">
                         移除
                       </a-button>
                     </a-popconfirm>
@@ -188,18 +155,9 @@
       :confirm-loading="creating"
       @ok="handleCreateTeam"
     >
-      <a-form
-        :model="newTeam"
-        layout="vertical"
-      >
-        <a-form-item
-          label="团队名称"
-          required
-        >
-          <a-input
-            v-model:value="newTeam.name"
-            placeholder="输入团队名称"
-          />
+      <a-form :model="newTeam" layout="vertical">
+        <a-form-item label="团队名称" required>
+          <a-input v-model:value="newTeam.name" placeholder="输入团队名称" />
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea
@@ -232,23 +190,14 @@
       :confirm-loading="addingMember"
       @ok="handleAddMember"
     >
-      <a-form
-        :model="newMember"
-        layout="vertical"
-      >
-        <a-form-item
-          label="成员DID"
-          required
-        >
+      <a-form :model="newMember" layout="vertical">
+        <a-form-item label="成员DID" required>
           <a-input
             v-model:value="newMember.memberDid"
             placeholder="输入成员DID"
           />
         </a-form-item>
-        <a-form-item
-          label="成员名称"
-          required
-        >
+        <a-form-item label="成员名称" required>
           <a-input
             v-model:value="newMember.memberName"
             placeholder="输入成员名称"
@@ -256,12 +205,8 @@
         </a-form-item>
         <a-form-item label="角色">
           <a-select v-model:value="newMember.role">
-            <a-select-option value="member">
-              成员
-            </a-select-option>
-            <a-select-option value="lead">
-              负责人
-            </a-select-option>
+            <a-select-option value="member"> 成员 </a-select-option>
+            <a-select-option value="lead"> 负责人 </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -354,7 +299,7 @@ const deleteTeam = async () => {
     } else {
       message.error(result.message || "删除失败");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("删除失败");
   }
 };
@@ -378,7 +323,7 @@ const handleCreateTeam = async () => {
       showCreateTeam.value = false;
       newTeam.value = { name: "", description: "", parentTeamId: null };
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("创建失败");
   } finally {
     creating.value = false;
@@ -408,7 +353,7 @@ const handleAddMember = async () => {
     } else {
       message.error(result.error || "添加失败");
     }
-  } catch (error) {
+  } catch (_error) {
     message.error("添加失败");
   } finally {
     addingMember.value = false;
@@ -423,7 +368,7 @@ const setAsLead = async (member) => {
       member.memberName,
     );
     message.success("已设为负责人");
-  } catch (error) {
+  } catch (_error) {
     message.error("操作失败");
   }
 };
@@ -432,7 +377,7 @@ const removeMember = async (memberDid) => {
   try {
     await teamStore.removeMember(currentTeam.value.id, memberDid);
     message.success("成员已移除");
-  } catch (error) {
+  } catch (_error) {
     message.error("移除失败");
   }
 };

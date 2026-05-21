@@ -12,21 +12,13 @@
   >
     <div class="interactive-planning-dialog">
       <!-- 规划生成中 -->
-      <div
-        v-if="planningStore.isPlanning"
-        class="planning-loading"
-      >
+      <div v-if="planningStore.isPlanning" class="planning-loading">
         <a-spin size="large" />
-        <p class="loading-text">
-          AI正在分析您的需求，制定执行计划...
-        </p>
+        <p class="loading-text">AI正在分析您的需求，制定执行计划...</p>
       </div>
 
       <!-- 等待用户确认 -->
-      <div
-        v-else-if="planningStore.isAwaitingConfirmation"
-        class="plan-review"
-      >
+      <div v-else-if="planningStore.isAwaitingConfirmation" class="plan-review">
         <!-- Plan预览 -->
         <PlanPreview
           :plan="planningStore.taskPlan"
@@ -40,12 +32,8 @@
         <!-- 操作按钮 -->
         <div class="action-buttons">
           <a-space :size="12">
-            <a-button @click="handleCancel">
-              取消
-            </a-button>
-            <a-button @click="handleRegenerate">
-              重新生成
-            </a-button>
+            <a-button @click="handleCancel"> 取消 </a-button>
+            <a-button @click="handleRegenerate"> 重新生成 </a-button>
             <a-button
               type="primary"
               :loading="planningStore.loading"
@@ -58,10 +46,7 @@
       </div>
 
       <!-- 执行中 -->
-      <div
-        v-else-if="planningStore.isExecuting"
-        class="plan-execution"
-      >
+      <div v-else-if="planningStore.isExecuting" class="plan-execution">
         <ExecutionProgress
           :progress="planningStore.executionProgress"
           :percentage="planningStore.progressPercentage"
@@ -69,10 +54,7 @@
       </div>
 
       <!-- 执行完成 -->
-      <div
-        v-else-if="planningStore.isCompleted"
-        class="plan-completed"
-      >
+      <div v-else-if="planningStore.isCompleted" class="plan-completed">
         <ExecutionResult
           :result="planningStore.executionResult"
           :quality-score="planningStore.qualityScore"
@@ -83,10 +65,7 @@
       </div>
 
       <!-- 执行失败 -->
-      <div
-        v-else-if="planningStore.isFailed"
-        class="plan-failed"
-      >
+      <div v-else-if="planningStore.isFailed" class="plan-failed">
         <a-result
           status="error"
           title="执行失败"
@@ -94,15 +73,8 @@
         >
           <template #extra>
             <a-space>
-              <a-button @click="handleClose">
-                关闭
-              </a-button>
-              <a-button
-                type="primary"
-                @click="handleRetry"
-              >
-                重试
-              </a-button>
+              <a-button @click="handleClose"> 关闭 </a-button>
+              <a-button type="primary" @click="handleRetry"> 重试 </a-button>
             </a-space>
           </template>
         </a-result>
@@ -112,11 +84,11 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
-import { usePlanningStore } from '../../stores/planning';
-import PlanPreview from './PlanPreview.vue';
-import ExecutionProgress from './ExecutionProgress.vue';
-import ExecutionResult from './ExecutionResult.vue';
+import { computed } from "vue";
+import { usePlanningStore } from "../../stores/planning";
+import PlanPreview from "./PlanPreview.vue";
+import ExecutionProgress from "./ExecutionProgress.vue";
+import ExecutionResult from "./ExecutionResult.vue";
 
 const planningStore = usePlanningStore();
 
@@ -127,43 +99,43 @@ const visible = computed({
     if (!val) {
       planningStore.closePlanDialog();
     }
-  }
+  },
 });
 
 // 对话框标题
 const dialogTitle = computed(() => {
   if (planningStore.isPlanning) {
-    return 'AI正在制定计划...';
+    return "AI正在制定计划...";
   } else if (planningStore.isAwaitingConfirmation) {
-    return '任务执行计划 - 请确认';
+    return "任务执行计划 - 请确认";
   } else if (planningStore.isExecuting) {
-    return '正在执行任务...';
+    return "正在执行任务...";
   } else if (planningStore.isCompleted) {
-    return '任务执行完成';
+    return "任务执行完成";
   } else if (planningStore.isFailed) {
-    return '任务执行失败';
+    return "任务执行失败";
   }
-  return '交互式任务规划';
+  return "交互式任务规划";
 });
 
 // 处理调整计划
 const handleAdjust = (adjustments) => {
-  planningStore.respondToPlan('adjust', { adjustments });
+  planningStore.respondToPlan("adjust", { adjustments });
 };
 
 // 处理应用模板
 const handleUseTemplate = (templateId) => {
-  planningStore.respondToPlan('use_template', { templateId });
+  planningStore.respondToPlan("use_template", { templateId });
 };
 
 // 处理重新生成
 const handleRegenerate = () => {
-  planningStore.respondToPlan('regenerate');
+  planningStore.respondToPlan("regenerate");
 };
 
 // 处理确认执行
 const handleConfirm = () => {
-  planningStore.respondToPlan('confirm');
+  planningStore.respondToPlan("confirm");
 };
 
 // 处理取消
@@ -172,7 +144,7 @@ const handleCancel = () => {
     // 执行中不允许取消
     return;
   }
-  planningStore.respondToPlan('cancel');
+  planningStore.respondToPlan("cancel");
 };
 
 // 处理关闭

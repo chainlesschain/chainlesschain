@@ -189,7 +189,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import {
   ref,
@@ -212,7 +212,6 @@ import {
   UserOutlined,
   RobotOutlined,
 } from "@ant-design/icons-vue";
-import ConversationHistoryView from "./ConversationHistoryView.vue";
 import SystemMessage from "../messages/SystemMessage.vue";
 import IntentConfirmationMessage from "../messages/IntentConfirmationMessage.vue";
 import TaskPlanMessage from "../messages/TaskPlanMessage.vue";

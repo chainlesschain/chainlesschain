@@ -442,7 +442,7 @@ watch(
     if (!conversationStore.currentConversation) {
       try {
         await conversationStore.loadConversations();
-      } catch (e) {
+      } catch (_e) {
         // ignore — empty conversation list is also valid
       }
       if (!conversationStore.currentConversation) {
@@ -522,7 +522,7 @@ function renderMarkdown(text: string): string {
   }
   try {
     return md.render(text);
-  } catch (e) {
+  } catch (_e) {
     return String(text);
   }
 }

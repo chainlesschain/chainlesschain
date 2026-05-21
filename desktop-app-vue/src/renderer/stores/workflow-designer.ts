@@ -3,8 +3,8 @@
  * Manages workflow visual editor state including nodes, edges, execution.
  * @version 1.2.0
  */
-import { defineStore } from 'pinia';
-import { ref, computed, onUnmounted } from 'vue';
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
 
 interface WorkflowNode {
   id: string;
@@ -50,7 +50,7 @@ interface ExecutionState {
   duration: number;
 }
 
-export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
+export const useWorkflowDesignerStore = defineStore("workflow-designer", () => {
   // State
   const workflows = ref<Workflow[]>([]);
   const currentWorkflow = ref<Workflow | null>(null);
@@ -68,7 +68,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   // Getters
   const availableSkillNodes = computed(() =>
-    nodes.value.filter(n => n.type === 'skill')
+    nodes.value.filter((n) => n.type === "skill"),
   );
 
   const executingNodes = computed(() => {
@@ -79,7 +79,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   const completedNodes = computed(() => {
     if (!executionState.value) return [];
-    return executionState.value.stepResults.map(r => r.stepName);
+    return executionState.value.stepResults.map((r) => r.stepName);
   });
 
   // Step event listeners for real-time execution visualization
@@ -89,8 +89,8 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
     // Reset node statuses
     nodeStatuses.value = {};
     for (const node of nodes.value) {
-      if (node.type !== 'start' && node.type !== 'end') {
-        nodeStatuses.value[node.id] = 'pending';
+      if (node.type !== "start" && node.type !== "end") {
+        nodeStatuses.value[node.id] = "pending";
       }
     }
 
@@ -99,28 +99,28 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
     const onStarted = (_e: any, data: any) => {
       if (data?.nodeId) {
-        nodeStatuses.value[data.nodeId] = 'running';
+        nodeStatuses.value[data.nodeId] = "running";
       }
     };
     const onCompleted = (_e: any, data: any) => {
       if (data?.nodeId) {
-        nodeStatuses.value[data.nodeId] = 'completed';
+        nodeStatuses.value[data.nodeId] = "completed";
       }
     };
     const onFailed = (_e: any, data: any) => {
       if (data?.nodeId) {
-        nodeStatuses.value[data.nodeId] = 'failed';
+        nodeStatuses.value[data.nodeId] = "failed";
       }
     };
 
-    ipc.on('workflow:step:started', onStarted);
-    ipc.on('workflow:step:completed', onCompleted);
-    ipc.on('workflow:step:failed', onFailed);
+    ipc.on("workflow:step:started", onStarted);
+    ipc.on("workflow:step:completed", onCompleted);
+    ipc.on("workflow:step:failed", onFailed);
 
     _cleanupListeners.push(() => {
-      ipc.removeListener?.('workflow:step:started', onStarted);
-      ipc.removeListener?.('workflow:step:completed', onCompleted);
-      ipc.removeListener?.('workflow:step:failed', onFailed);
+      ipc.removeListener?.("workflow:step:started", onStarted);
+      ipc.removeListener?.("workflow:step:completed", onCompleted);
+      ipc.removeListener?.("workflow:step:failed", onFailed);
     });
   }
 
@@ -136,7 +136,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:list');
+      const result = await (window as any).electronAPI?.invoke("workflow:list");
       if (result?.success) {
         workflows.value = result.data;
       }
@@ -149,12 +149,15 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   async function createWorkflow(definition: Partial<Workflow> = {}) {
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:create', definition);
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:create",
+        definition,
+      );
       if (result?.success) {
         await loadWorkflows();
         return result.data.id;
       }
-      throw new Error(result?.error || 'Failed to create workflow');
+      throw new Error(result?.error || "Failed to create workflow");
     } catch (e: any) {
       error.value = e.message;
       throw e;
@@ -164,7 +167,10 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   async function loadWorkflow(workflowId: string) {
     loading.value = true;
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:get', workflowId);
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:get",
+        workflowId,
+      );
       if (result?.success) {
         currentWorkflow.value = result.data;
         nodes.value = result.data.nodes || [];
@@ -178,14 +184,17 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   }
 
   function updateNode(nodeId: string, data: Record<string, any>) {
-    const node = nodes.value.find(n => n.id === nodeId);
+    const node = nodes.value.find((n) => n.id === nodeId);
     if (node) {
       node.data = { ...node.data, ...data };
     }
   }
 
-  function updateNodePosition(nodeId: string, position: { x: number; y: number }) {
-    const node = nodes.value.find(n => n.id === nodeId);
+  function updateNodePosition(
+    nodeId: string,
+    position: { x: number; y: number },
+  ) {
+    const node = nodes.value.find((n) => n.id === nodeId);
     if (node) {
       node.position = { ...position };
     }
@@ -194,7 +203,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   function addNode(node: Partial<WorkflowNode>) {
     const newNode: WorkflowNode = {
       id: node.id || `node-${Date.now()}`,
-      type: node.type || 'skill',
+      type: node.type || "skill",
       position: node.position || { x: 250, y: 200 },
       data: node.data || {},
     };
@@ -205,26 +214,28 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   function addConnection(edge: Partial<WorkflowEdge>) {
     const newEdge: WorkflowEdge = {
       id: edge.id || `edge-${Date.now()}`,
-      source: edge.source || '',
-      target: edge.target || '',
+      source: edge.source || "",
+      target: edge.target || "",
       sourceHandle: edge.sourceHandle,
       targetHandle: edge.targetHandle,
       label: edge.label,
-      type: edge.type || 'default',
+      type: edge.type || "default",
     };
     edges.value.push(newEdge);
     return newEdge.id;
   }
 
   function removeNode(nodeId: string) {
-    nodes.value = nodes.value.filter(n => n.id !== nodeId);
-    edges.value = edges.value.filter(e => e.source !== nodeId && e.target !== nodeId);
+    nodes.value = nodes.value.filter((n) => n.id !== nodeId);
+    edges.value = edges.value.filter(
+      (e) => e.source !== nodeId && e.target !== nodeId,
+    );
   }
 
   async function saveWorkflow() {
     if (!currentWorkflow.value) return;
     try {
-      await (window as any).electronAPI?.invoke('workflow:save', {
+      await (window as any).electronAPI?.invoke("workflow:save", {
         workflowId: currentWorkflow.value.id,
         updates: {
           nodes: nodes.value,
@@ -248,15 +259,18 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
     listenToExecution();
 
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:execute', {
-        workflowId: currentWorkflow.value.id,
-        context,
-      });
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:execute",
+        {
+          workflowId: currentWorkflow.value.id,
+          context,
+        },
+      );
       if (result?.success) {
         executionState.value = result.data;
         return result.data;
       }
-      throw new Error(result?.error || 'Execution failed');
+      throw new Error(result?.error || "Execution failed");
     } catch (e: any) {
       error.value = e.message;
       throw e;
@@ -267,7 +281,9 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   async function loadTemplates() {
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:get-templates');
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:get-templates",
+      );
       if (result?.success) {
         templates.value = result.data;
       }
@@ -278,7 +294,10 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   async function importPipeline(pipelineId: string) {
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:import-pipeline', pipelineId);
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:import-pipeline",
+        pipelineId,
+      );
       if (result?.success) {
         await loadWorkflows();
         return result.data.workflowId;
@@ -292,7 +311,10 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   async function exportPipeline() {
     if (!currentWorkflow.value) return null;
     try {
-      const result = await (window as any).electronAPI?.invoke('workflow:export-pipeline', currentWorkflow.value.id);
+      const result = await (window as any).electronAPI?.invoke(
+        "workflow:export-pipeline",
+        currentWorkflow.value.id,
+      );
       if (result?.success) {
         return result.data;
       }
@@ -304,7 +326,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
 
   async function deleteWorkflow(workflowId: string) {
     try {
-      await (window as any).electronAPI?.invoke('workflow:delete', workflowId);
+      await (window as any).electronAPI?.invoke("workflow:delete", workflowId);
       await loadWorkflows();
       if (currentWorkflow.value?.id === workflowId) {
         currentWorkflow.value = null;
@@ -319,7 +341,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
   async function importOrchestrateTemplate(templateName: string) {
     try {
       const result = await (window as any).electronAPI?.invoke(
-        'workflow:import-orchestrate',
+        "workflow:import-orchestrate",
         { templateName },
       );
       if (result?.success) {
@@ -338,7 +360,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
         }
         return workflowId;
       }
-      throw new Error(result?.error || 'Failed to import orchestrate template');
+      throw new Error(result?.error || "Failed to import orchestrate template");
     } catch (e: any) {
       error.value = e.message;
       return null;

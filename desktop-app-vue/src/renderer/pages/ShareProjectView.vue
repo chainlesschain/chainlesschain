@@ -193,7 +193,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -252,7 +252,7 @@ const renderedMarkdown = computed(() => {
   }
   try {
     return safeHtml(marked(previewContent.value));
-  } catch (e) {
+  } catch (_e) {
     return escapeHtml(previewContent.value);
   }
 });

@@ -352,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { message, Empty } from "ant-design-vue";
 import {
   ShopOutlined,
@@ -370,7 +370,7 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
-import { logger, createLogger } from "@/utils/logger";
+import { createLogger } from "@/utils/logger";
 import { safeHtml } from "@/utils/sanitizeHtml";
 
 const marketplaceLogger = createLogger("plugin-marketplace-page");

@@ -339,7 +339,7 @@
 <script setup>
 defineOptions({ name: "FriendsPanel" });
 
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
