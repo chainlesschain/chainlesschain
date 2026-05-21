@@ -1,10 +1,13 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,14 +15,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -37,7 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -140,52 +144,72 @@ fun HubAskScreen(
                 }
             }
 
-            state.answer?.let { answer ->
+            // Phase 14.1 step 5 — ChatBubble rendering for ask flow (mirrors iOS Phase 5 AI Chat
+            // ChatBubble pattern). User question bubble (right, primaryContainer) + assistant
+            // answer bubble (left, secondaryContainer). While isLoading, a BlinkingCursor bubble
+            // sits in the assistant slot to signal in-flight inference (single-shot today; ready
+            // for token-by-token streaming wire-up in a follow-up Phase 14.5).
+            val hasConversation = state.submittedQuestion != null || state.answer != null
+            if (hasConversation) {
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    "回答",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(6.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        answer,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                state.llmName?.let { name ->
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "推理模型：$name ${if (state.isLocal) "(本地)" else "(非本地)"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (state.isLocal) Color.Unspecified else MaterialTheme.colorScheme.tertiary
-                    )
+
+                state.submittedQuestion?.let { q ->
+                    HubChatBubble(role = HubChatRole.USER) {
+                        Text(q, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(Modifier.height(8.dp))
                 }
 
-                if (state.citations.isNotEmpty()) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "引用 (${state.citations.size})",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    state.citations.forEach { c ->
-                        AssistChip(
-                            onClick = { viewModel.openCitation(c.eventId) },
-                            label = { Text(c.eventId.take(10) + "…") },
-                            colors = AssistChipDefaults.assistChipColors()
+                if (state.isLoading) {
+                    HubChatBubble(role = HubChatRole.ASSISTANT) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "推理中",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(Modifier.size(4.dp))
+                            HubBlinkingCursor()
+                        }
+                    }
+                } else state.answer?.let { answer ->
+                    HubChatBubble(role = HubChatRole.ASSISTANT) {
+                        Text(
+                            answer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                        Spacer(Modifier.height(4.dp))
+                        state.llmName?.let { name ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "推理模型：$name ${if (state.isLocal) "(本地)" else "(非本地)"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (state.isLocal)
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                else
+                                    MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        if (state.citations.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "引用 (${state.citations.size})",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            state.citations.forEach { c ->
+                                AssistChip(
+                                    onClick = { viewModel.openCitation(c.eventId) },
+                                    label = { Text(c.eventId.take(10) + "…") },
+                                    colors = AssistChipDefaults.assistChipColors()
+                                )
+                                Spacer(Modifier.height(4.dp))
+                            }
+                        }
                     }
                 }
             }
@@ -209,4 +233,64 @@ fun HubAskScreen(
             HubEventDetailContent(detail)
         }
     }
+}
+
+// Phase 14.1 step 5 — ChatBubble helpers (mirror iOS Phase 5 ChatBubble pattern).
+// Kept internal/private to this file: HubAskScreen is the only consumer until a follow-up
+// surfaces another single-turn Q&A screen. If/when reused, lift to ui/personalDataHub/components.
+
+internal enum class HubChatRole { USER, ASSISTANT }
+
+@Composable
+internal fun HubChatBubble(
+    role: HubChatRole,
+    content: @Composable () -> Unit
+) {
+    val isAssistant = role == HubChatRole.ASSISTANT
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isAssistant) Arrangement.Start else Arrangement.End
+    ) {
+        Card(
+            modifier = Modifier.widthIn(max = 320.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isAssistant)
+                    MaterialTheme.colorScheme.secondaryContainer
+                else
+                    MaterialTheme.colorScheme.primaryContainer
+            ),
+            // 不对称圆角 = 经典 chat bubble "尾巴"指向说话者：助手左下小尾、用户右下小尾。
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isAssistant) 4.dp else 16.dp,
+                bottomEnd = if (isAssistant) 16.dp else 4.dp
+            )
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+internal fun HubBlinkingCursor() {
+    // 500ms 周期 reverse 闪烁 — 与 iOS Phase 5 同节奏，避免视觉过载。
+    val infiniteTransition = rememberInfiniteTransition(label = "hub-cursor-blink")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "hub-cursor-alpha"
+    )
+    Text(
+        "▎",
+        modifier = Modifier.alpha(alpha),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.primary
+    )
 }

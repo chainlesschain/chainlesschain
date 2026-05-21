@@ -34,7 +34,10 @@ data class HubAskUiState(
     val showAcceptNonLocalDialog: Boolean = false,
     val pendingNonLocalQuestion: String? = null,
     val activeCitationDetail: EventDetailResponse? = null,
-    val activeCitationLoading: Boolean = false
+    val activeCitationLoading: Boolean = false,
+    // Phase 14.1 step 5 (ChatBubble UI) — 提交时刻的问题快照，与 `question` (input field 实时内容)
+    // 分离，让答案 bubble 可以独立显示历史问题；input field 清空 / 续打字时 bubble 仍在屏。
+    val submittedQuestion: String? = null
 )
 
 sealed class HubAskEvent {
@@ -93,7 +96,8 @@ class HubAskViewModel @Inject constructor(
                     isLoading = true,
                     errorMessage = null,
                     answer = null,
-                    citations = emptyList()
+                    citations = emptyList(),
+                    submittedQuestion = q
                 )
             }
 
@@ -187,7 +191,8 @@ class HubAskViewModel @Inject constructor(
                 question = "",
                 answer = null,
                 citations = emptyList(),
-                errorMessage = null
+                errorMessage = null,
+                submittedQuestion = null
             )
         }
     }

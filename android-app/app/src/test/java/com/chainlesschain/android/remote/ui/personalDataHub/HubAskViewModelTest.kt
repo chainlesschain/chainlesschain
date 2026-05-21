@@ -177,6 +177,50 @@ class HubAskViewModelTest {
     }
 
     @Test
+    fun `submit captures submittedQuestion for ChatBubble independent of input field`() = runTest(testDispatcher) {
+        coEvery { hub.ask("生日礼物", null, null, null) } returns Result.success(
+            AskResult(answer = "买了花", citations = emptyList(),
+                llmName = "ollama:qwen2.5", isLocal = true)
+        )
+        val vm = HubAskViewModel(hub)
+        advanceUntilIdle()
+        vm.onQuestionChange("生日礼物")
+        vm.submit()
+        advanceUntilIdle()
+
+        // submittedQuestion 应保留 "生日礼物" 即使用户继续编辑 question 输入框
+        val s = vm.uiState.value
+        assertEquals("生日礼物", s.submittedQuestion)
+        assertEquals("买了花", s.answer)
+
+        // 模拟用户开始打下一题 — input 字段更新但 submittedQuestion 不应受影响
+        vm.onQuestionChange("下一个问题")
+        val s2 = vm.uiState.value
+        assertEquals("下一个问题", s2.question)
+        assertEquals("生日礼物", s2.submittedQuestion) // bubble 仍显示历史问
+    }
+
+    @Test
+    fun `clear resets submittedQuestion to null`() = runTest(testDispatcher) {
+        coEvery { hub.ask("Q", null, null, null) } returns Result.success(
+            AskResult(answer = "A", citations = emptyList(),
+                llmName = "ollama:qwen2.5", isLocal = true)
+        )
+        val vm = HubAskViewModel(hub)
+        advanceUntilIdle()
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+        assertEquals("Q", vm.uiState.value.submittedQuestion)
+
+        vm.clear()
+        val s = vm.uiState.value
+        assertNull(s.submittedQuestion)
+        assertNull(s.answer)
+        assertEquals("", s.question)
+    }
+
+    @Test
     fun `openCitation fetches detail and closeCitation clears it`() = runTest(testDispatcher) {
         coEvery { hub.eventDetail("evt-42") } returns Result.success(
             com.chainlesschain.android.remote.commands.EventDetailResponse(
