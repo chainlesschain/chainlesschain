@@ -116,6 +116,16 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
     });
     const adapter = new SystemDataAndroidAdapter();
 
+    // Every yielded raw must carry originalId so registry.putRawEvent's NOT
+    // NULL constraint doesn't surface as invalidCount=rawCount (real-device
+    // bug 2026-05-21). Capture all raws to assert structure first.
+    const rawsSeen = [];
+    for await (const r of adapter.sync({ inputPath: snapshotPath })) {
+      rawsSeen.push(r);
+    }
+    expect(rawsSeen[0].originalId).toBe("android-contact:0r1-3A2B");
+    expect(rawsSeen[1].originalId).toBe("android-app:com.tencent.mm");
+
     const persons = [];
     const items = [];
     for await (const raw of adapter.sync({ inputPath: snapshotPath })) {

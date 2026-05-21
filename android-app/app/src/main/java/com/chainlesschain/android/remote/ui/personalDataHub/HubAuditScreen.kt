@@ -147,6 +147,45 @@ fun HubAuditScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
+
+                // Plan A v0.1 — 加载更多 footer. Heuristic: when the row count
+                // saturates the requested limit, the source likely has more.
+                // The button stops appearing once we hit MAX_AUDIT_LIMIT or
+                // the source returns fewer rows than asked for.
+                val canLoadMore = state.rows.size >= state.limit && state.limit < MAX_AUDIT_LIMIT
+                if (canLoadMore || state.isLoading) {
+                    item(key = "load-more-footer") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (state.isLoading) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.size(8.dp))
+                                    Text(
+                                        "加载中…  (当前 ${state.rows.size} 条 / 上限 ${state.limit})",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            } else {
+                                OutlinedButton(onClick = { viewModel.loadMore() }) {
+                                    Text("加载更多 (+$AUDIT_LIMIT_PAGE_SIZE)")
+                                }
+                            }
+                        }
+                    }
+                } else if (state.rows.isNotEmpty()) {
+                    item(key = "end-of-list-footer") {
+                        Text(
+                            "—— 已显示全部 ${state.rows.size} 条 ——",
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
 

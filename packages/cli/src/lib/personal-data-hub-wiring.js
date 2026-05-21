@@ -174,20 +174,33 @@ async function initHub() {
 
   // Phase 8 — EntityResolver pipeline
   const entityResolver = new EntityResolver({ vault });
+  // Plan A v0.1 — in-APK Android cc has no Ollama on localhost:11434.
+  // Every embedding call would TCP-timeout (measured: ~60s extra per sync
+  // on Xiaomi 24115RA8EC 2026-05-21). Detect Termux $PREFIX for our APK
+  // and skip embedding+LLM stages entirely. Rule-stage still runs; the
+  // resolve_queue picks up enqueued pairs later if a host with Ollama is
+  // ever attached (e.g. desktop-side replay).
+  const isInAppAndroidCc =
+    typeof process.env.PREFIX === "string" &&
+    process.env.PREFIX.startsWith("/data/data/com.chainlesschain.android");
+  const skipEmbeddings =
+    isInAppAndroidCc || process.env.CC_HUB_DISABLE_EMBEDDINGS === "1";
   try {
-    if (llm) {
+    if (llm && !skipEmbeddings) {
       const llmStage = new EntityResolverLLMStage({
         llm,
         acceptNonLocal: false,
       });
       entityResolver._llmStage = llmStage.asStageFn();
     }
-    const embeddingStage = new EntityResolverEmbeddingStage({
-      ollamaUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
-      model: process.env.CC_HUB_OLLAMA_EMBED_MODEL || "nomic-embed-text",
-      vault,
-    });
-    entityResolver._embeddingStage = embeddingStage.asStageFn();
+    if (!skipEmbeddings) {
+      const embeddingStage = new EntityResolverEmbeddingStage({
+        ollamaUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
+        model: process.env.CC_HUB_OLLAMA_EMBED_MODEL || "nomic-embed-text",
+        vault,
+      });
+      entityResolver._embeddingStage = embeddingStage.asStageFn();
+    }
   } catch (_err) {
     // Fall back to rule-only — registry still works
   }

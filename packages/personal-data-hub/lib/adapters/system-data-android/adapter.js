@@ -30,6 +30,25 @@ const NAME = "system-data-android";
 const VERSION = "0.1.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
+// Stable per-source originalId — registry.putRawEvent rejects null originalId
+// with a NOT NULL constraint, surfacing as invalidCount += rawCount on the
+// SyncReport (real-device repro 2026-05-21: 1305 of 1305 raws "invalid"
+// despite all entities being written). Re-deriving the same key on each
+// sync also lets the raw_events store dedup naturally.
+function contactOriginalId(c) {
+  const k =
+    (c && typeof c.lookupKey === "string" && c.lookupKey.length > 0 && c.lookupKey) ||
+    (c && typeof c.displayName === "string" && c.displayName) ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `android-contact:${k}`;
+}
+function appOriginalId(a) {
+  const k =
+    (a && typeof a.packageName === "string" && a.packageName) ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `android-app:${k}`;
+}
+
 class SystemDataAndroidAdapter {
   constructor(opts = {}) {
     this.name = NAME;
@@ -146,7 +165,14 @@ class SystemDataAndroidAdapter {
       const arr = Array.isArray(res) ? res : Array.isArray(res?.contacts) ? res.contacts : [];
       for (const c of arr) {
         if (emitted >= limit) return;
-        yield { kind: "contact", capturedAt, payload: c };
+        // originalId required by registry.putRawEvent (NOT NULL column); use
+        // the stable Android lookupKey when present, else displayName.
+        yield {
+          kind: "contact",
+          originalId: contactOriginalId(c),
+          capturedAt,
+          payload: c,
+        };
         emitted += 1;
       }
     }
@@ -156,7 +182,12 @@ class SystemDataAndroidAdapter {
       const arr = Array.isArray(res) ? res : Array.isArray(res?.apps) ? res.apps : [];
       for (const a of arr) {
         if (emitted >= limit) return;
-        yield { kind: "app", capturedAt, payload: a };
+        yield {
+          kind: "app",
+          originalId: appOriginalId(a),
+          capturedAt,
+          payload: a,
+        };
         emitted += 1;
       }
     }
@@ -189,6 +220,7 @@ class SystemDataAndroidAdapter {
         if (emitted >= limit) return;
         yield {
           kind: "contact",
+          originalId: contactOriginalId(c),
           capturedAt,
           payload: c,
         };
@@ -201,6 +233,7 @@ class SystemDataAndroidAdapter {
         if (emitted >= limit) return;
         yield {
           kind: "app",
+          originalId: appOriginalId(a),
           capturedAt,
           payload: a,
         };
