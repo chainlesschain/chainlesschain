@@ -209,6 +209,10 @@ export default defineConfig({
               text: "Adapter — 微信 SQLCipher 🚧 v0.5 frida-indep",
               link: "/Adapter_WeChat_SQLCipher",
             },
+            {
+              text: "微信 Frida Setup Runbook（rooted 用户）",
+              link: "/Adapter_WeChat_SQLCipher_Frida_Setup",
+            },
           ],
         },
         {

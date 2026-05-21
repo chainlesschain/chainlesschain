@@ -78,6 +78,7 @@ const ROOT_FILE_MAP = {
   "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
   "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
   "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
+  "Adapter_WeChat_SQLCipher_Frida_Setup.md": "Adapter_WeChat_SQLCipher_Frida_Setup.md",
   "Adapter_System_Data.md": "Adapter_System_Data.md",
   "Adapter_Shopping_Cookie.md": "Adapter_Shopping_Cookie.md",
   "Adapter_Travel_LBS.md": "Adapter_Travel_LBS.md",
