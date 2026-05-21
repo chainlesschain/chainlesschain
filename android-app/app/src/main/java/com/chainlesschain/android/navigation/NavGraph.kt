@@ -183,6 +183,9 @@ fun NavGraph(
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
                 onNavigateToLocalTerminal = { navController.navigate(Screen.LocalTerminal.route) },
                 onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) },
+                // Plan A v0.1 — 首页 "本机数据" 直跳 PersonalDataHub 容器屏 +
+                // initialTab=3 (本机数据 tab 默认聚焦)；不依赖配对桌面。
+                onNavigateToLocalDataHub = { navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 3)) },
                 // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
                 onNavigateToScanDesktopPairing = { navController.navigate(Screen.ScanDesktopPairing.route) },
                 // v1.3+ issue #21 plan C — 首页已连接桌面卡点击 → 走 signaling forward
@@ -704,15 +707,26 @@ fun NavGraph(
                 // Phase 14.1 step 4 — 个人数据中台入口；走 typed PersonalDataHubCommands
                 // (DC RPC) 调对端桌面 hub.*。屏内三 tab：提问 / Adapter / 审计。
                 onOpenPersonalDataHub = {
-                    navController.navigate(Screen.PersonalDataHub.route)
+                    // RemoteOperate 入口默认进 tab 0 (提问) — 远控场景延续原行为。
+                    navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 0))
                 },
             )
         }
 
-        // Phase 14.1 step 4 — 个人数据中台容器屏。Tab 切提问/Adapter/审计；
-        // 所有数据通过 PersonalDataHubCommands typed wrapper 经 P2P DC RPC 走桌面 hub。
-        composable(Screen.PersonalDataHub.route) {
-            PersonalDataHubScreen()
+        // Phase 14.1 step 4 — 个人数据中台容器屏。Tab 切提问/Adapter/审计/本机数据；
+        // 前三 tab 通过 PersonalDataHubCommands typed wrapper 经 P2P DC RPC 走桌面 hub；
+        // 本机数据 tab 走 in-APK cc + ContentResolver/PackageManager (Plan A v0.1)。
+        composable(
+            route = Screen.PersonalDataHub.routePattern,
+            arguments = listOf(
+                navArgument("tab") {
+                    type = NavType.IntType
+                    defaultValue = 0
+                }
+            ),
+        ) { backStackEntry ->
+            val initialTab = backStackEntry.arguments?.getInt("tab") ?: 0
+            PersonalDataHubScreen(initialTab = initialTab)
         }
         composable(
             route = Screen.TerminalList.routePattern,
@@ -1039,8 +1053,13 @@ sealed class Screen(val route: String) {
         const val routePattern = "remote_operate/{peerId}"
         fun createRoute(peerId: String) = "remote_operate/$peerId"
     }
-    // Phase 14.1 step 4 — 个人数据中台主屏（提问 / Adapter / 审计 3 tab）
-    data object PersonalDataHub : Screen("personal_data_hub")
+    // Phase 14.1 step 4 — 个人数据中台主屏（提问 / Adapter / 审计 / 本机数据 4 tab）
+    // Plan A v0.1 — initialTab path arg lets the home shortcut "本机数据" land
+    // straight on the local-data tab without scrolling through remote ones.
+    data object PersonalDataHub : Screen("personal_data_hub") {
+        const val routePattern = "personal_data_hub?tab={tab}"
+        fun createRoute(initialTab: Int = 0) = "personal_data_hub?tab=$initialTab"
+    }
     // Plan A 远程终端 — list + single session
     // Sub-phase 5-6 (2026-05-17): 加 cwd 可选 query 让项目详情页 Terminal icon
     // 入口能预填 PC 端项目根目录。

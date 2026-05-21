@@ -49,12 +49,18 @@ class PersonalDataHubIntegrationTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var mockClient: RemoteCommandClient
     private lateinit var hub: PersonalDataHubCommands
+    // Path Y (parallel session 1be6135f6) — VM grew a 2nd ctor arg. Tests only
+    // verify the remote-RPC pipeline, so a relaxed mockk stub keeps detectProvider
+    // / chat from being invoked unless the asked-test explicitly opts in.
+    private lateinit var llmExecutorStub: AndroidLocalLlmExecutor
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         mockClient = mockk(relaxed = false)
         hub = PersonalDataHubCommands(mockClient)
+        llmExecutorStub = mockk(relaxed = true)
+        coEvery { llmExecutorStub.detectProvider() } returns null
 
         // health 在 HubAskViewModel.init 调；默认本地 LLM 路径
         coEvery {
@@ -82,7 +88,7 @@ class PersonalDataHubIntegrationTest {
                 llmName = "ollama:qwen2.5", isLocal = true)
         )
 
-        val vm = HubAskViewModel(hub)
+        val vm = HubAskViewModel(hub, llmExecutorStub)
         advanceUntilIdle()
         vm.onQuestionChange("天气")
         vm.submit()
@@ -110,7 +116,7 @@ class PersonalDataHubIntegrationTest {
                 llmName = "claude", isLocal = false))
         )
 
-        val vm = HubAskViewModel(hub)
+        val vm = HubAskViewModel(hub, llmExecutorStub)
         advanceUntilIdle()
         vm.onQuestionChange("解释一下相对论")
         vm.submit()
