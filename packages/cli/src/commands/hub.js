@@ -19,6 +19,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { getHub } from "../lib/personal-data-hub-wiring.js";
+import { getAIChatWizard } from "../lib/personal-data-hub-aichat-wizard.js";
 
 function printJson(obj) {
   console.log(JSON.stringify(obj, null, 2));
@@ -356,6 +357,214 @@ async function cmdRunSkill(name, options) {
   }
 }
 
+// ─── Phase 10.3 — cc hub aichat <verb> wizard subcommand surface ─────
+//
+// Mirrors the WS topics (personal-data-hub.aichat-*) so scripts and the
+// Android in-app terminal can drive the AIChat WebView wizard without a
+// UI. cc ui defaults to fallbackMode:"paste" — these subcommands inherit
+// that, so the user-facing path is always: login (print loginUrl) →
+// fetch cookies in external browser → register --cookies <string>.
+
+async function cmdAIChatList(options) {
+  try {
+    const wiz =
+      options._wizard ||
+      getAIChatWizard({ hubDir: (await (options._getHub || getHub)()).hubDir });
+    // Probe each known vendor for current health
+    const items = [];
+    for (const vendor of options._knownVendors || _defaultKnownVendors()) {
+      const opened = await wiz.openVendorLogin({ vendor });
+      items.push({
+        vendor,
+        displayName: opened.notes ? opened.notes.split("；")[0] : vendor,
+        loginUrl: opened.loginUrl,
+        fallbackMode: opened.fallbackMode,
+        requiredCookies: opened.requiredCookies || [],
+      });
+    }
+    if (options.json) {
+      printJson({ vendors: items });
+    } else {
+      logger.log(chalk.bold("可注册 vendor 列表："));
+      for (const v of items) {
+        logger.log(`  • ${chalk.cyan(v.vendor)}  ${chalk.gray(v.loginUrl)}`);
+      }
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdAIChatLogin(vendor, options) {
+  try {
+    const wiz =
+      options._wizard ||
+      getAIChatWizard({ hubDir: (await (options._getHub || getHub)()).hubDir });
+    const r = await wiz.openVendorLogin({ vendor });
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(chalk.red(`✗ ${r.reason || "open failed"}`));
+      process.exit(1);
+    }
+    logger.log(chalk.bold(`vendor: ${vendor}`));
+    logger.log(`  loginUrl:  ${chalk.cyan(r.loginUrl)}`);
+    if (r.helpText) logger.log(`  ${chalk.gray(r.helpText)}`);
+    if (r.requiredCookies && r.requiredCookies.length) {
+      logger.log(
+        chalk.gray(
+          `  required:  ${r.requiredCookies.join(", ")}  (至少识别 1 个)`,
+        ),
+      );
+    }
+    logger.log(
+      chalk.gray(
+        "\n登录完成后从浏览器 DevTools 复制 cookie，再跑：\n  cc hub aichat register " +
+          vendor +
+          ' --cookies "<paste>"',
+      ),
+    );
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdAIChatProbe(vendor, options) {
+  try {
+    const wiz =
+      options._wizard ||
+      getAIChatWizard({ hubDir: (await (options._getHub || getHub)()).hubDir });
+    if (!options.cookies) {
+      throw new Error('--cookies <string> required (e.g. "a=1; b=2")');
+    }
+    const r = await wiz.probeCookies({ vendor, cookieHeader: options.cookies });
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(
+        chalk.red(
+          `✗ ${r.reason || "incomplete"} — missing: ${(r.missingRequired || []).join(", ") || "(none)"}`,
+        ),
+      );
+      process.exit(1);
+    }
+    logger.log(chalk.green(`✓ ${vendor} cookies look valid`));
+    logger.log(`  found:   ${(r.foundRequired || []).join(", ")}`);
+    if (r.foundOptional && r.foundOptional.length) {
+      logger.log(`  +opt:    ${r.foundOptional.join(", ")}`);
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdAIChatRegister(vendor, options) {
+  try {
+    if (!options.cookies) {
+      throw new Error("--cookies <string> required");
+    }
+    const wiz =
+      options._wizard ||
+      getAIChatWizard({ hubDir: (await (options._getHub || getHub)()).hubDir });
+    const r = await wiz.registerVendor({ vendor, cookies: options.cookies });
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(chalk.red(`✗ ${r.reason || "register failed"}`));
+      if (r.missingRequired && r.missingRequired.length) {
+        logger.error(chalk.gray(`  missing: ${r.missingRequired.join(", ")}`));
+      }
+      process.exit(1);
+    }
+    logger.log(chalk.green(`✓ registered ${vendor} (${r.accountId})`));
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdAIChatHealth(options) {
+  // One-shot health-checker pass (does NOT start the periodic loop —
+  // that's owned by long-running processes like the cc ui server). This
+  // is the manual/scripted equivalent.
+  try {
+    const factoryDeps = options._factoryDeps || {};
+    const hubDir =
+      factoryDeps.hubDir || (await (options._getHub || getHub)()).hubDir;
+    const { createAIChatHealthChecker } =
+      await import("@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker");
+    const { createAccountsStore, createVendorAdapterBridge } =
+      await import("../lib/personal-data-hub-aichat-wizard.js");
+    const accountsStore =
+      factoryDeps.accountsStore || createAccountsStore({ hubDir });
+    const vendorAdapter =
+      factoryDeps.vendorAdapter || createVendorAdapterBridge();
+    const hc = createAIChatHealthChecker({
+      accountsStore,
+      vendorAdapter,
+      _deps: factoryDeps.timerDeps,
+    });
+    const r = await hc.runOnce();
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    logger.log(
+      `checked=${r.checked} ${chalk.green("ok=" + r.ok)} ${chalk.red("failed=" + r.failed)} ${chalk.yellow("mismatch=" + r.mismatch)}`,
+    );
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdAIChatUnregister(vendor, options) {
+  try {
+    const factoryDeps = options._factoryDeps || {};
+    const hubDir =
+      factoryDeps.hubDir || (await (options._getHub || getHub)()).hubDir;
+    const { createAccountsStore } =
+      await import("../lib/personal-data-hub-aichat-wizard.js");
+    const accountsStore =
+      factoryDeps.accountsStore || createAccountsStore({ hubDir });
+    const existing = await accountsStore.get(vendor);
+    if (!existing) {
+      const result = { ok: false, reason: "NOT_REGISTERED", vendor };
+      if (options.json) printJson(result);
+      else logger.error(chalk.red(`✗ ${vendor} is not registered`));
+      process.exit(1);
+    }
+    await accountsStore.delete(vendor);
+    if (options.json) {
+      printJson({ ok: true, vendor, removed: true });
+    } else {
+      logger.log(chalk.green(`✓ removed ${vendor} from aichat-accounts.json`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+function _defaultKnownVendors() {
+  // Match KNOWN_VENDORS in the hub package — kept inline so this file
+  // doesn't have to dynamic-import that module on the hot path.
+  return [
+    "deepseek",
+    "kimi",
+    "tongyi",
+    "zhipu",
+    "hunyuan",
+    "qianfan",
+    "coze",
+    "dreamina",
+    "doubao",
+  ];
+}
+
 // ─── Commander wire-up ───────────────────────────────────────────────
 
 export function registerHubCommand(program) {
@@ -461,4 +670,68 @@ export function registerHubCommand(program) {
     .option("--confirm", "Required to proceed")
     .option("--json", "Output JSON")
     .action(cmdDestroy);
+
+  // Phase 10.3 — AIChat WebView wizard CLI surface (paste-mode on cc ui).
+  const aichat = hub
+    .command("aichat")
+    .description(
+      "AIChat WebView 鉴权向导 — list / login / probe / register / health / unregister 9 家国产 AI",
+    );
+
+  aichat
+    .command("list")
+    .description("List the 9 known AIChat vendors with their login URLs")
+    .option("--json", "Output JSON")
+    .action(cmdAIChatList);
+
+  aichat
+    .command("login <vendor>")
+    .description("Print the vendor's login URL + paste-fallback help text")
+    .option("--json", "Output JSON")
+    .action(cmdAIChatLogin);
+
+  aichat
+    .command("probe <vendor>")
+    .description(
+      "Classify a pasted cookie string against the vendor spec (dry-run)",
+    )
+    .option("--cookies <string>", 'Raw cookie header (e.g. "a=1; b=2")')
+    .option("--json", "Output JSON")
+    .action(cmdAIChatProbe);
+
+  aichat
+    .command("register <vendor>")
+    .description(
+      "Register the vendor — runs validateCookie + persists aichat-accounts.json",
+    )
+    .option("--cookies <string>", "Raw cookie header from the browser")
+    .option("--json", "Output JSON")
+    .action(cmdAIChatRegister);
+
+  aichat
+    .command("health")
+    .description("Run one HealthChecker pass over registered AIChat vendors")
+    .option("--json", "Output JSON")
+    .action(cmdAIChatHealth);
+
+  aichat
+    .command("unregister <vendor>")
+    .description(
+      "Remove a registered AIChat vendor entry (does not touch vault data)",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdAIChatUnregister);
 }
+
+// exported for tests — handler functions can be invoked directly with
+// `_wizard` / `_factoryDeps` / `_knownVendors` injected, bypassing the
+// real `getHub()` call. The commander wiring above is the runtime path.
+export const _internal = {
+  cmdAIChatList,
+  cmdAIChatLogin,
+  cmdAIChatProbe,
+  cmdAIChatRegister,
+  cmdAIChatHealth,
+  cmdAIChatUnregister,
+  _defaultKnownVendors,
+};

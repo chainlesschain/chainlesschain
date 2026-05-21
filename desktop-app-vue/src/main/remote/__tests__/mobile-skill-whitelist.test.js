@@ -261,13 +261,20 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
         `approval channel "${entry}" must be kebab-case to match the WS dispatch key in personal-data-hub-protocol.js`,
       ).toMatch(/^[a-z][a-z0-9-]*$/);
     }
-    // The 5 known Privileged methods must each be present in kebab form
+    // The known Privileged methods must each be present in kebab form.
+    // When a new privileged PDH method is added (e.g. aichat-register-vendor
+    // in d41a48bf3, destroy earlier), append it here so a silent removal
+    // during refactors is caught at unit-test time rather than only via
+    // post-release security review.
     const required = [
       "personal-data-hub.register-email",
       "personal-data-hub.unregister-email",
       "personal-data-hub.register-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
+      "personal-data-hub.destroy",
+      "personal-data-hub.aichat-register-vendor",
+      "personal-data-hub.unregister-aichat",
     ];
     for (const method of required) {
       expect(list).toContain(method);
@@ -281,7 +288,7 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
     const defaults = mgr.getDefaultConfig();
     const expose = defaults.mobileBridge?.exposeRemoteSkills || [];
     expect(expose).toContain("personal-data-hub.*");
-    // Construct a whitelist from the actual defaults and verify the 5
+    // Construct a whitelist from the actual defaults and verify the
     // Privileged methods route to ApprovalUI as designed.
     const wl = new MobileSkillWhitelist(defaults.mobileBridge);
     for (const method of [
@@ -290,6 +297,9 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
       "personal-data-hub.register-alipay",
       "personal-data-hub.unregister-alipay",
       "personal-data-hub.unregister",
+      "personal-data-hub.destroy",
+      "personal-data-hub.aichat-register-vendor",
+      "personal-data-hub.unregister-aichat",
     ]) {
       expect(wl.isAllowed(method)).toBe(true);
       expect(
