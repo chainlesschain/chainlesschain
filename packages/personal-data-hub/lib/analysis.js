@@ -317,7 +317,48 @@ class AnalysisEngine {
       if (Number.isFinite(parsed.timeWindow.since)) q.since = parsed.timeWindow.since;
       if (Number.isFinite(parsed.timeWindow.until)) q.until = parsed.timeWindow.until;
     }
-    return this.vault.queryEvents(q);
+    const events = this.vault.queryEvents(q);
+
+    // Path C follow-up — events alone miss whole categories of facts:
+    //  - contacts (system-data-android) land in `persons`, not `events`
+    //  - installed apps land in `items`, not `events`
+    //  - places (visited locations) live in `places`
+    // Without these the LLM gets 0 facts for "我有几个联系人" style questions
+    // and hallucinates a count. We pull a bounded slice of each entity type
+    // and append; prompt-builder.summarizeFact already handles `person` /
+    // `place` / fallback `item` shapes, so this is additive with no schema
+    // change to the LLM-facing prompt.
+    //
+    // Sizing: keep events as the majority (existing behavior is unchanged for
+    // event-heavy queries like 消费 / 通话); split the remaining 1/2 budget
+    // between persons + items. Time window + adapter filters don't apply to
+    // these tables (persons aren't time-stamped events) — they're current-
+    // state snapshots that should always be visible. Adapter filter is also
+    // skipped because users asking "我有几个联系人" don't say "from
+    // system-data-android".
+    const remaining = Math.max(0, this.maxFacts - events.length);
+    const sideBudget = Math.floor(remaining / 2);
+    const personBudget = sideBudget > 0 ? sideBudget : 0;
+    const itemBudget = remaining - personBudget;
+
+    let persons = [];
+    if (personBudget > 0) {
+      try {
+        persons = this.vault.queryPersons({ limit: personBudget });
+      } catch (_e) {
+        // Older vaults / forks without queryPersons — fall back gracefully.
+      }
+    }
+    let items = [];
+    if (itemBudget > 0) {
+      try {
+        items = this.vault.queryItems({ limit: itemBudget });
+      } catch (_e) {
+        /* same fallback */
+      }
+    }
+
+    return [...events, ...persons, ...items];
   }
 }
 

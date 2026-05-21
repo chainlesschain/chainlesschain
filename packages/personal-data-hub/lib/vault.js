@@ -605,6 +605,83 @@ class LocalVault {
       .map((row) => this._rowToEvent(row));
   }
 
+  /**
+   * queryPersons — list person entities (contacts, family, colleagues...).
+   * Phase 14.x Path C — needed so AnalysisEngine can answer questions about
+   * "how many contacts" / "did I call mom last week" without missing the
+   * persons-table half of the world.
+   *
+   * @param {object} q
+   * @param {string} [q.subtype]   e.g. "contact" / "family" / "colleague"
+   * @param {string} [q.adapter]   source_adapter filter
+   * @param {number} [q.limit=100]
+   * @param {number} [q.offset=0]
+   */
+  queryPersons(q = {}) {
+    const where = [];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
+    params.limit = limit;
+    params.offset = offset;
+    const sql =
+      "SELECT * FROM persons" +
+      (where.length ? " WHERE " + where.join(" AND ") : "") +
+      " ORDER BY ingested_at DESC LIMIT @limit OFFSET @offset";
+    return this._requireOpen()
+      .prepare(sql)
+      .all(params)
+      .map((row) => this._rowToPerson(row));
+  }
+
+  /**
+   * queryItems — list item entities (installed apps, purchases, media...).
+   * Pairs with queryPersons for AnalysisEngine fact gathering.
+   *
+   * @param {object} q
+   * @param {string} [q.subtype]
+   * @param {string} [q.adapter]
+   * @param {string} [q.category]
+   * @param {number} [q.limit=100]
+   * @param {number} [q.offset=0]
+   */
+  queryItems(q = {}) {
+    const where = [];
+    const params = {};
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    if (q.category) {
+      where.push("category = @category");
+      params.category = q.category;
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
+    params.limit = limit;
+    params.offset = offset;
+    const sql =
+      "SELECT * FROM items" +
+      (where.length ? " WHERE " + where.join(" AND ") : "") +
+      " ORDER BY ingested_at DESC LIMIT @limit OFFSET @offset";
+    return this._requireOpen()
+      .prepare(sql)
+      .all(params)
+      .map((row) => this._rowToItem(row));
+  }
+
   countEvents(q = {}) {
     const where = [];
     const params = {};

@@ -1,6 +1,6 @@
 "use strict";
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -284,6 +284,132 @@ describe("AnalysisEngine RAG retriever", () => {
     expect(r.answer).toBe("ok");
     const audits = vault.queryAudit({ action: "analysis.rag_failed" });
     expect(audits.length).toBe(1);
+  });
+});
+
+// ─── Path C follow-up — persons / items show up as facts ───────────────
+//
+// Bug 2026-05-21: "我有几个联系人" hallucinated "2" because contacts ingest
+// into persons table but _gatherFacts only queried events. Fix: pull persons
+// + items into facts within the maxFacts budget.
+
+describe("AnalysisEngine._gatherFacts includes persons and items", () => {
+  it("returns persons + items even when events are empty (contacts-only vault)", async () => {
+    freshVault();
+    // Use a fake vault that exposes queryPersons / queryItems but no event
+    // history — mimics the post-Path-C-ingest state where contacts +
+    // installed apps are the only data.
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: ({ limit }) => {
+        const n = Math.min(limit ?? 100, 5);
+        return Array.from({ length: n }, (_, i) => ({
+          id: "person-android-" + i,
+          type: "person",
+          subtype: "contact",
+          names: ["联系人" + i],
+          ingestedAt: Date.now(),
+          source: {
+            adapter: "system-data-android",
+            adapterVersion: "0.1.0",
+            capturedAt: Date.now(),
+            capturedBy: "api",
+          },
+        }));
+      },
+      queryItems: ({ limit }) => {
+        const n = Math.min(limit ?? 100, 3);
+        return Array.from({ length: n }, (_, i) => ({
+          id: "item-android-app-com.foo" + i,
+          type: "item",
+          subtype: "other",
+          name: "App" + i,
+          ingestedAt: Date.now(),
+          source: {
+            adapter: "system-data-android",
+            adapterVersion: "0.1.0",
+            capturedAt: Date.now(),
+            capturedBy: "api",
+          },
+        }));
+      },
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "你共有 5 个联系人" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我有几个联系人");
+    expect(r.facts.length).toBe(8); // 0 events + 5 persons + 3 items
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(5);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(3);
+  });
+
+  it("respects maxFacts budget — events get majority, persons + items split remainder", async () => {
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 60 }, (_, i) => ({
+        id: "event-" + i, type: "event", subtype: "order",
+        occurredAt: Date.now(), actor: "person-self",
+        ingestedAt: Date.now(), source: {
+          adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api",
+        },
+      })),
+      queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 100) }, (_, i) => ({
+        id: "p-" + i, type: "person", subtype: "contact",
+        names: ["P" + i], ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryItems: ({ limit }) => Array.from({ length: Math.min(limit, 100) }, (_, i) => ({
+        id: "i-" + i, type: "item", subtype: "other", name: "Item" + i,
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 80 });
+    const r = await engine.retrieveContext("hello");
+    // 60 events + budget for the rest. remaining = 80-60 = 20 → 10 persons + 10 items
+    expect(r.facts.filter((f) => f.type === "event").length).toBe(60);
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(10);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(10);
+  });
+
+  it("gracefully degrades when vault lacks queryPersons / queryItems (legacy fork)", async () => {
+    const legacyVault = {
+      queryEvents: () => [],
+      // no queryPersons / queryItems methods
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: legacyVault, llm });
+    const r = await engine.ask("hello");
+    expect(r.facts.length).toBe(0);
+    expect(r.warning).toBe("no-facts");
+  });
+
+  it("events take majority when budget < events.length (no person/item budget left)", async () => {
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 80 }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "order",
+        occurredAt: Date.now(), actor: "self",
+        ingestedAt: Date.now(),
+        source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryPersons: vi.fn(() => []),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 80 });
+    const r = await engine.ask("hi");
+    expect(r.facts.length).toBe(80);
+    // budget exhausted → queryPersons / queryItems still called but with limit 0
+    // (current impl skips with personBudget <= 0). Verify they're NOT called.
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryItems).not.toHaveBeenCalled();
   });
 });
 
