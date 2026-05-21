@@ -276,6 +276,9 @@ describe("UnifiedConfigManager", () => {
       expect(approvalChannels).toContain("personal-data-hub.unregister-alipay");
       expect(approvalChannels).toContain("personal-data-hub.unregister");
       expect(approvalChannels).toContain("personal-data-hub.destroy");
+      expect(approvalChannels).toContain(
+        "personal-data-hub.aichat-register-vendor",
+      );
       expect(defaultConfig.mobileBridge.approvalTimeoutMs).toBe(60_000);
 
       // Regex invariant: any approval channel matching `personal-data-hub.<method>`

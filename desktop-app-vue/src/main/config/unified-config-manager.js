@@ -814,6 +814,11 @@ class UnifiedConfigManager {
           // mobile peer can trivially set that flag — ApprovalUI gives the
           // desktop owner a visible confirmation moment before the wipe.
           "personal-data-hub.destroy",
+          // aichat-register-vendor persists cookie credentials for AIChat
+          // vendors (Doubao etc.) — same trust class as register-email /
+          // register-alipay above. Whoever can call this can persist their
+          // own session credentials on the desktop owner's PDH vault.
+          "personal-data-hub.aichat-register-vendor",
         ],
         approvalTimeoutMs: 60_000,
       },
