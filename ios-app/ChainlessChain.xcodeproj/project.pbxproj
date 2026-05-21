@@ -122,6 +122,7 @@
 		E1259769734005E62A206D7F /* PairingHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F684EAA6D0FD3685354FC073 /* PairingHomeView.swift */; };
 		E13ECE2D196F63B82D8660DC /* TemplateActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793FAAEBDB5A2F025F7B1970 /* TemplateActions.swift */; };
 		E14F2D5D59B2F8CDF7356795 /* RemoteOperateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54A55654F05014B5595D33D /* RemoteOperateView.swift */; };
+		D7C6B5A498877665554433A1 /* PersonalDataHubViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304151 /* PersonalDataHubViews.swift */; };
 		E278C418572EFB35C9B7BE9F /* EnhancedUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A787B71E5F4F62536D4B1002 /* EnhancedUIComponents.swift */; };
 		E7A77D427D1FF8AEE6F2A22E /* FileEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB391751412456271E6E40F /* FileEditorViewModel.swift */; };
 		E886BE3201933826F7A70B80 /* TerminalSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DD58B03718ABFC25F587893 /* TerminalSessionView.swift */; };
@@ -244,6 +245,7 @@
 		BF29C93A541D0E20AC59F14C /* SystemInfoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SystemInfoView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/SystemInfoView.swift; sourceTree = "<group>"; };
 		C2608689829ED73A12B5F641 /* ImageStorageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageStorageManager.swift; path = ./ChainlessChain/Features/Knowledge/Services/ImageStorageManager.swift; sourceTree = "<group>"; };
 		C54A55654F05014B5595D33D /* RemoteOperateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RemoteOperateView.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/RemoteOperateView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6071829304151 /* PersonalDataHubViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersonalDataHubViews.swift; path = ./ChainlessChain/Features/RemoteOperate/Views/PersonalDataHubViews.swift; sourceTree = "<group>"; };
 		C8C6947D0A060543F26F5179 /* OllamaClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OllamaClient.swift; path = ./ChainlessChain/Features/AI/Services/OllamaClient.swift; sourceTree = "<group>"; };
 		C97129D5222B9B3BA139BE7B /* GenericQRScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GenericQRScannerView.swift; path = ./ChainlessChain/Features/Common/Views/GenericQRScannerView.swift; sourceTree = "<group>"; };
 		CB4E5405259278E2E79C0AD5 /* PairedDevicesListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PairedDevicesListView.swift; path = ./ChainlessChain/Features/Pairing/Views/PairedDevicesListView.swift; sourceTree = "<group>"; };
@@ -672,6 +674,7 @@
 				AF36425B9311AF5DCA5AAFBD /* FileBrowserView.swift */,
 				D2EDB604AE52709C8D655B70 /* NotificationsView.swift */,
 				C54A55654F05014B5595D33D /* RemoteOperateView.swift */,
+				A1B2C3D4E5F6071829304151 /* PersonalDataHubViews.swift */,
 				26867BA14DB4AFF62461348C /* ScreenshotView.swift */,
 				302A64B83CC87FFF4F916DCF /* SkillTabPickerView.swift */,
 				BF29C93A541D0E20AC59F14C /* SystemInfoView.swift */,
@@ -1121,6 +1124,7 @@
 				EA981F0B53B2239CCF7AA1D5 /* FileBrowserView.swift in Sources */,
 				892EFF507DA0737C3D5FD278 /* NotificationsView.swift in Sources */,
 				E14F2D5D59B2F8CDF7356795 /* RemoteOperateView.swift in Sources */,
+				D7C6B5A498877665554433A1 /* PersonalDataHubViews.swift in Sources */,
 				A5A2B9D1D089D285B5676F7B /* ScreenshotView.swift in Sources */,
 				C7F544EDEB11BA752853A6B0 /* SkillTabPickerView.swift in Sources */,
 				A3ACA8960B497A34E172AD06 /* SystemInfoView.swift in Sources */,
