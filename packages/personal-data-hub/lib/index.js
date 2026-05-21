@@ -55,6 +55,7 @@ const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
 const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
+const systemDataAndroid = require("./adapters/system-data-android");
 
 module.exports = {
   // Constants / enums
@@ -245,6 +246,14 @@ module.exports = {
   QQAdapter,
   TelegramAdapter,
   WhatsAppAdapter,
+
+  // Plan A v0.1 — Android on-device system-data adapter (no Python sidecar,
+  // UI-pushed snapshot via ContentResolver + PackageManager).
+  SystemDataAndroidAdapter: systemDataAndroid.SystemDataAndroidAdapter,
+  SYSTEM_DATA_ANDROID_NAME: systemDataAndroid.SYSTEM_DATA_ANDROID_NAME,
+  SYSTEM_DATA_ANDROID_VERSION: systemDataAndroid.SYSTEM_DATA_ANDROID_VERSION,
+  SYSTEM_DATA_ANDROID_SNAPSHOT_SCHEMA_VERSION:
+    systemDataAndroid.SNAPSHOT_SCHEMA_VERSION,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

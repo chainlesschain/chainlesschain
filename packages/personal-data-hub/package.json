@@ -29,6 +29,7 @@
     "./adapters/email-imap": "./lib/adapters/email-imap/index.js",
     "./adapters/alipay-bill": "./lib/adapters/alipay-bill/index.js",
     "./adapters/system-data": "./lib/adapters/system-data/index.js",
+    "./adapters/system-data-android": "./lib/adapters/system-data-android/index.js",
     "./entity-resolver": "./lib/entity-resolver/index.js",
     "./analysis-skills": "./lib/analysis-skills/index.js",
     "./mobile-extractor": "./lib/mobile-extractor/index.js",

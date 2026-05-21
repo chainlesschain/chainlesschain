@@ -86,6 +86,8 @@ fun NewHomeScreen(
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    // Plan A v0.1 — 本机数据中台入口；走 in-APK cc + ContentResolver/PackageManager。
+    onNavigateToLocalDataHub: () -> Unit = {},
     // 用户反馈："设置里扫描桌面 QR 按钮隐藏太深放首页来；首页要显示连接桌面的状态"
     onNavigateToScanDesktopPairing: () -> Unit = {},
     // v1.3+ 点已连接桌面卡片 → 进 RemoteControl 操作页（带 pcPeerId）
@@ -211,6 +213,7 @@ fun NewHomeScreen(
                 onNavigateToRemoteControl = onNavigateToRemoteControl,
                 onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                 onNavigateToP2P = onNavigateToP2P,
+                onNavigateToLocalDataHub = onNavigateToLocalDataHub,
                 socialUnreadCount = socialUnreadCount
             )
 
@@ -615,9 +618,10 @@ fun FunctionEntryGrid(
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    onNavigateToLocalDataHub: () -> Unit = {},
     socialUnreadCount: Int = 0
 ) {
-    // 10 个核心功能入口，采用"8宫格 + 更多"布局
+    // 11 个核心功能入口，采用"8宫格 + 更多"布局
     val context = LocalContext.current
     val functionItems = remember(
         onNavigateToUsageStatistics,
@@ -632,14 +636,17 @@ fun FunctionEntryGrid(
         onNavigateToP2P,
         onNavigateToRemoteControl,
         onNavigateToLocalTerminal,
+        onNavigateToLocalDataHub,
         socialUnreadCount
     ) {
         listOf(
-            // 第一行：本地终端（首页主推）+ AI 对话 + LLM 设置
+            // 第一行：本地终端（首页主推）+ 本机数据 + LLM 设置
             // Phase 4 — user feedback 2026-05-18：本地终端 promote 到首格，
             // 知识库 demote 到 "更多" sheet 的 CORE_WORK 区。
+            // Plan A v0.1 2026-05-21：本机数据 与 AI 对话 swap — 本机数据 占
+            // 首页 row1[1] 以突出离线/本机能力；AI 对话 仍需配对桌面，移到 "更多"。
             FunctionEntryItem("本地终端", Icons.Outlined.Terminal, Color(0xFF455A64), FeatureGroup.CORE_WORK, onClick = onNavigateToLocalTerminal),
-            FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            FunctionEntryItem("本机数据", Icons.Outlined.Storage, Color(0xFF26A69A), FeatureGroup.CORE_WORK, onClick = onNavigateToLocalDataHub),
             FunctionEntryItem(context.getString(R.string.feature_llm_settings), Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
             // 第二行：去中心化社交（DID + P2P）
@@ -652,6 +659,10 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // 知识库 — demoted from row 1 to row 3 cell 3
             FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
+
+            // AI 对话 — swap target for 本机数据 (Plan A v0.1 2026-05-21).
+            // 依赖远控桌面 LLM，离线不可用；放进 "更多" sheet 的 CORE_WORK 区。
+            FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
 
             // P2P设备管理 / 远程控制 — into "更多" sheet
             FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),

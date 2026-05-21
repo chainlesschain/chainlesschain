@@ -48,6 +48,7 @@ fun MainContainer(
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    onNavigateToLocalDataHub: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
     onNavigateToRemoteOperate: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -113,6 +114,7 @@ fun MainContainer(
                         onNavigateToRemoteControl = onNavigateToRemoteControl,
                         onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                         onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
+                        onNavigateToLocalDataHub = onNavigateToLocalDataHub,
                         onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
                         onNavigateToRemoteOperate = onNavigateToRemoteOperate,
                         socialUnreadCount = notificationState.unreadCount

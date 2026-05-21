@@ -52,6 +52,15 @@
     <!-- 通知权限（Android 13+） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 通讯录读取（Plan A v0.1 — PersonalDataHub 本机数据 tab；runtime granted） -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- 列出已安装应用（Android 11+ R 之后查询包列表需 QUERY_ALL_PACKAGES，
+         为本机数据中台采集已装应用清单使用；Play Console 政策审批见 Plan A
+         设计稿 §5。当前 GitHub release 渠道不受 Play 政策限制。 -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <!-- 前台服务权限（WorkManager foreground workers） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />

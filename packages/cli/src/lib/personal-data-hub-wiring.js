@@ -44,6 +44,7 @@ const {
   generateKeyHex,
   EmailAdapter,
   AlipayBillAdapter,
+  SystemDataAndroidAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -208,6 +209,19 @@ async function initHub() {
     } catch (_err) {
       // Continue boot even if one config is corrupt
     }
+  }
+
+  // Plan A v0.1 — Android on-device system-data adapter. Stateless: the UI
+  // produces a snapshot JSON via ContentResolver/PackageManager and passes
+  // its path through opts.inputPath at sync-time, so registration is a
+  // one-shot wire here. Safe to register on every host (no-op until a sync
+  // call provides inputPath); future hosts may filter by platform if useful.
+  try {
+    const sda = new SystemDataAndroidAdapter();
+    if (!registry.has(sda.name)) registry.register(sda);
+  } catch (_err) {
+    // Boot must continue even if the adapter fails to register; cc hub will
+    // surface the absence via list-adapters.
   }
 
   // Phase 6: auto-register persisted Alipay accounts.
@@ -442,7 +456,11 @@ async function initHub() {
 
     async registerWechatAdapter(opts = {}) {
       if (!opts || !opts.account || !opts.account.uin) {
-        return { ok: false, reason: "UIN_REQUIRED", message: "opts.account.uin required" };
+        return {
+          ok: false,
+          reason: "UIN_REQUIRED",
+          message: "opts.account.uin required",
+        };
       }
       let r;
       try {
@@ -476,7 +494,8 @@ async function initHub() {
         account: { uin: opts.account.uin },
         dbPath: opts.dbPath || null,
         wechatDataPath: opts.wechatDataPath || null,
-        chosenKeyProvider: r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
+        chosenKeyProvider:
+          r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
         registeredAt: Date.now(),
         lastSyncAt: null,
       });
@@ -500,9 +519,7 @@ async function initHub() {
       }
       const wechatAccountsPath = join(hubDir, "wechat-accounts.json");
       const accounts = loadWechatAccounts(wechatAccountsPath);
-      const target = accounts.find(
-        (c) => c.account && c.account.uin === uin,
-      );
+      const target = accounts.find((c) => c.account && c.account.uin === uin);
       const next = accounts.filter(
         (c) => !(c.account && c.account.uin === uin),
       );

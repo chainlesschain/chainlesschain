@@ -191,6 +191,9 @@ async function cmdSyncAdapter(name, options) {
     if (options.since) opts.since = Number(options.since);
     if (options.until) opts.until = Number(options.until);
     if (options.limit) opts.limit = Number(options.limit);
+    // Plan A v0.1 — system-data-android needs a snapshot file path. Generic
+    // pass-through so other input-driven adapters reuse the same flag.
+    if (options.input) opts.inputPath = String(options.input);
     const report = await hub.registry.syncAdapter(name, opts);
     if (spinner) spinner.succeed(`synced ${name}`);
     if (options.json) {
@@ -566,13 +569,25 @@ async function cmdWechatEnvProbe(options) {
       return;
     }
     logger.log(chalk.bold("WeChat env-probe:"));
-    logger.log(`  ${probe.ok ? chalk.green("✓") : chalk.red("✗")} suggested: ${chalk.cyan(probe.suggestedKeyProvider)}`);
-    logger.log(`  device: ${probe.device.reachable ? chalk.green("reachable") : chalk.red("unreachable")}${probe.device.serial ? " (" + probe.device.serial + ")" : ""} abi=${probe.device.abi || "?"}`);
-    logger.log(`  root: ${probe.root.detected ? chalk.green("yes") : chalk.gray("no")} magisk=${probe.root.magiskInstalled ? "yes" : "no"}`);
-    logger.log(`  frida-server: ${probe.frida.serverRunning ? chalk.green("running") : chalk.gray("not running")}${probe.frida.port ? " :" + probe.frida.port : ""}`);
-    logger.log(`  wechat: ${probe.wechat.installed ? chalk.green(probe.wechat.versionName) : chalk.gray("not installed")}`);
-    for (const reason of probe.reasons || []) logger.log(`  · ${chalk.gray(reason)}`);
-    for (const w of probe.warnings || []) logger.log(`  ${chalk.yellow("!")} ${chalk.yellow(w)}`);
+    logger.log(
+      `  ${probe.ok ? chalk.green("✓") : chalk.red("✗")} suggested: ${chalk.cyan(probe.suggestedKeyProvider)}`,
+    );
+    logger.log(
+      `  device: ${probe.device.reachable ? chalk.green("reachable") : chalk.red("unreachable")}${probe.device.serial ? " (" + probe.device.serial + ")" : ""} abi=${probe.device.abi || "?"}`,
+    );
+    logger.log(
+      `  root: ${probe.root.detected ? chalk.green("yes") : chalk.gray("no")} magisk=${probe.root.magiskInstalled ? "yes" : "no"}`,
+    );
+    logger.log(
+      `  frida-server: ${probe.frida.serverRunning ? chalk.green("running") : chalk.gray("not running")}${probe.frida.port ? " :" + probe.frida.port : ""}`,
+    );
+    logger.log(
+      `  wechat: ${probe.wechat.installed ? chalk.green(probe.wechat.versionName) : chalk.gray("not installed")}`,
+    );
+    for (const reason of probe.reasons || [])
+      logger.log(`  · ${chalk.gray(reason)}`);
+    for (const w of probe.warnings || [])
+      logger.log(`  ${chalk.yellow("!")} ${chalk.yellow(w)}`);
   } catch (err) {
     fail(null, err, options.json);
   }
@@ -589,16 +604,21 @@ async function cmdWechatRegister(options) {
       dbPath: options.db || null,
       wechatDataPath: options.wechatDataPath || null,
       keyProviderOverride: options.forceProvider || null,
-      fridaOpts: options.fridaDeviceId ? { deviceId: options.fridaDeviceId } : null,
+      fridaOpts: options.fridaDeviceId
+        ? { deviceId: options.fridaDeviceId }
+        : null,
     });
     if (options.json) {
       printJson(r);
       return;
     }
     if (!r.ok) {
-      logger.error(chalk.red(`✗ ${r.reason || "register failed"}: ${r.message || ""}`));
+      logger.error(
+        chalk.red(`✗ ${r.reason || "register failed"}: ${r.message || ""}`),
+      );
       if (r.probe) {
-        for (const reason of r.probe.reasons || []) logger.error(chalk.gray("  · " + reason));
+        for (const reason of r.probe.reasons || [])
+          logger.error(chalk.gray("  · " + reason));
       }
       process.exit(1);
     }
@@ -624,7 +644,9 @@ async function cmdWechatList(options) {
     }
     logger.log(chalk.bold("Registered WeChat accounts:"));
     for (const row of rows) {
-      logger.log(`  • uin=${chalk.cyan(row.uin)} provider=${row.chosenKeyProvider || "?"} db=${row.dbPath || "(none)"} regAt=${row.registeredAt ? new Date(row.registeredAt).toISOString() : "?"}`);
+      logger.log(
+        `  • uin=${chalk.cyan(row.uin)} provider=${row.chosenKeyProvider || "?"} db=${row.dbPath || "(none)"} regAt=${row.registeredAt ? new Date(row.registeredAt).toISOString() : "?"}`,
+      );
     }
   } catch (err) {
     fail(null, err, options.json);
@@ -644,8 +666,12 @@ async function cmdWechatUnregister(uin, options) {
       logger.error(chalk.red(`✗ ${r.reason || "unregister failed"}`));
       process.exit(1);
     }
-    if (r.removed) logger.log(chalk.green(`✓ removed wechat account (uin=${uin})`));
-    else logger.log(chalk.gray(`(uin=${uin} was not registered — nothing removed)`));
+    if (r.removed)
+      logger.log(chalk.green(`✓ removed wechat account (uin=${uin})`));
+    else
+      logger.log(
+        chalk.gray(`(uin=${uin} was not registered — nothing removed)`),
+      );
   } catch (err) {
     fail(null, err, options.json);
   }
@@ -712,6 +738,10 @@ export function registerHubCommand(program) {
     .option("--since <ms>", "Override watermark — sync from this unix-ms")
     .option("--until <ms>", "Stop at this unix-ms")
     .option("--limit <n>", "Cap ingested events")
+    .option(
+      "--input <path>",
+      "Path to a snapshot file produced by a UI layer (system-data-android, etc.)",
+    )
     .option("--json", "Output JSON")
     .action(cmdSyncAdapter);
 
@@ -833,7 +863,9 @@ export function registerHubCommand(program) {
 
   wechat
     .command("env-probe")
-    .description("Probe attached Android device for adb / root / frida-server / WeChat version")
+    .description(
+      "Probe attached Android device for adb / root / frida-server / WeChat version",
+    )
     .option("--json", "Output JSON")
     .action(cmdWechatEnvProbe);
 
@@ -844,9 +876,15 @@ export function registerHubCommand(program) {
     )
     .requiredOption("--uin <id>", "WeChat numeric UIN (≤ 8.0) or wxid (8.0+)")
     .option("--db <path>", "Local path to the already-pulled EnMicroMsg.db")
-    .option("--wechat-data-path <dir>", "Local pulled /data/data/com.tencent.mm/ tree (required for md5 path)")
+    .option(
+      "--wechat-data-path <dir>",
+      "Local pulled /data/data/com.tencent.mm/ tree (required for md5 path)",
+    )
     .option("--force-provider <md5|frida>", "Override env-probe suggestion")
-    .option("--frida-device-id <id>", "Frida device id (defaults to first USB device)")
+    .option(
+      "--frida-device-id <id>",
+      "Frida device id (defaults to first USB device)",
+    )
     .option("--json", "Output JSON")
     .action(cmdWechatRegister);
 
@@ -858,7 +896,9 @@ export function registerHubCommand(program) {
 
   wechat
     .command("unregister <uin>")
-    .description("Remove a registered WeChat account (does not touch vault data)")
+    .description(
+      "Remove a registered WeChat account (does not touch vault data)",
+    )
     .option("--json", "Output JSON")
     .action(cmdWechatUnregister);
 }
