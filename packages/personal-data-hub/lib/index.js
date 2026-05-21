@@ -47,6 +47,8 @@ const { BilibiliAdapter } = require("./adapters/social-bilibili");
 const { WeiboAdapter } = require("./adapters/social-weibo");
 const { DouyinAdapter } = require("./adapters/social-douyin");
 const { XiaohongshuAdapter } = require("./adapters/social-xiaohongshu");
+const { ToutiaoAdapter } = require("./adapters/social-toutiao");
+const { KuaishouAdapter } = require("./adapters/social-kuaishou");
 const { QQAdapter } = require("./adapters/messaging-qq");
 const { TelegramAdapter } = require("./adapters/messaging-telegram");
 const { WhatsAppAdapter } = require("./adapters/messaging-whatsapp");
@@ -238,6 +240,8 @@ module.exports = {
   WeiboAdapter,
   DouyinAdapter,
   XiaohongshuAdapter,
+  ToutiaoAdapter,
+  KuaishouAdapter,
   QQAdapter,
   TelegramAdapter,
   WhatsAppAdapter,

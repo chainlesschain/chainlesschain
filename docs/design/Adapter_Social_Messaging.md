@@ -195,6 +195,51 @@ class XxxAdapter {
 
 ---
 
+## 11. Toutiao 今日头条 (`com.ss.android.article.news`) — v0.1 scaffold
+
+> **状态**：v0.1 scaffold（2026-05-20，与 Kuaishou 同批补完）。代码 `lib/adapters/social-toutiao/`；schema 字段名待 Phase 13.10 Xiaomi 24115RA8EC 真机 fixture pin。
+
+**事实源**：Android `/data/data/com.ss.android.article.news/databases/` 下 SQLite 库。新版（2024+）逐步加密，老 7.x 版本明文。
+
+**conjectured 表**（待 fixture 校准）：
+
+| 表 | event subtype | 说明 |
+|---|---|---|
+| `read_history` | `browse` | 已读文章（item_id / title / read_time / category） |
+| `collection_article` | `like` | 收藏的文章（save_time） |
+| `search_history` | `post` | 搜索词 reframed 为自发"search"事件 — 揭示用户主动兴趣方向 |
+
+**sensitivity = high**：新闻阅读模式可能暴露政治倾向 / 医疗咨询 / 个人调查方向，敏感度高于 Bilibili 视频史。
+
+**已知局限**：
+- 新版（8.x+）逐渐加密 SQLite，需 Phase 13.10 评估 frida-indep MD5(IMEI/UIN) 类密钥派生路径（同 WeChat Phase 12 v0.5）
+- App 间数据流（如"今日头条 → 抖音"跳转打开同一文章）目前无法关联 — 同 ByteDance 内多 app 共享日志在系统层无暴露；Phase 13.10 评估能否从 Toutiao 自身 log 表追到 click-out
+
+## 12. Kuaishou 快手 (`com.smile.gifmaker`) — v0.1 scaffold
+
+> **状态**：v0.1 scaffold（2026-05-20）。代码 `lib/adapters/social-kuaishou/`；schema 字段名待 Phase 13.10 fixture pin。
+
+**事实源**：Android `/data/data/com.smile.gifmaker/databases/`。Kuaishou 内部把短视频叫做 "photo"（产品历史遗留），SQLite 字段沿用此命名。
+
+**conjectured 表**：
+
+| 表 | event subtype | 说明 |
+|---|---|---|
+| `photo_history` | `browse` | 已观看的短视频（photo_id / caption / view_time / duration / author_id） |
+| `user_collect` | `like` | 收藏的视频（collect_time） |
+| `search_record` | `post` | 搜索词 reframed |
+
+**sensitivity = medium**：短视频观看主要揭示娱乐偏好；不及 Toutiao 的政治/医疗倾向敏感。
+
+**已知局限**：
+- "完整观看率"字段（duration vs play_duration）字段名待 pin — 区分"刷过"和"看完"对 interests skill 信号差大
+- 与 Douyin 数据无关联（虽然算法上类似）；两 adapter 完全独立运行
+- 直播 / 商品挂载等高阶交互目前不采集，仅 v0 视频观看 / 收藏 / 搜索三表
+
+> §11+§12 schema 真正确定后，本文档版本 bump 至 v0.6（含 fixture link）+ 撤销 `(v0.1 scaffold)` 标记。
+
+---
+
 ## 10. 与 sjqz Comparison 文档的关系
 
 本设计稿 **不重复** `Personal_Data_Hub_sjqz_Comparison.md` §2-3 的"为什么借 sjqz"论述，那里讲战略；本文档讲战术 — **如何借**。两文档配对阅读。
