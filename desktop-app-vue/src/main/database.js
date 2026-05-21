@@ -850,7 +850,7 @@ class DatabaseManager {
     const {
       getKnowledgeItems: _getKnowledgeItems,
     } = require("./database/database-knowledge");
-    return _getKnowledgeItems(this, logger, (limit = 100), (offset = 0));
+    return _getKnowledgeItems(this, logger, limit, offset);
   }
 
   /**
@@ -1653,7 +1653,7 @@ class DatabaseManager {
     const {
       cleanupSoftDeleted: _cleanupSoftDeleted,
     } = require("./database/database-soft-delete");
-    return _cleanupSoftDeleted(this, logger, tableName, (olderThanDays = 30));
+    return _cleanupSoftDeleted(this, logger, tableName, olderThanDays);
   }
 
   /**
@@ -1665,7 +1665,7 @@ class DatabaseManager {
     const {
       cleanupAllSoftDeleted: _cleanupAllSoftDeleted,
     } = require("./database/database-soft-delete");
-    return _cleanupAllSoftDeleted(this, logger, (olderThanDays = 30));
+    return _cleanupAllSoftDeleted(this, logger, olderThanDays);
   }
 
   /**
@@ -1689,12 +1689,7 @@ class DatabaseManager {
     const {
       startPeriodicCleanup: _startPeriodicCleanup,
     } = require("./database/database-soft-delete");
-    return _startPeriodicCleanup(
-      this,
-      logger,
-      (intervalHours = 24),
-      (retentionDays = 30),
-    );
+    return _startPeriodicCleanup(this, logger, intervalHours, retentionDays);
   }
 
   // ==================== 知识图谱操作 ====================
@@ -1716,8 +1711,8 @@ class DatabaseManager {
       sourceId,
       targetId,
       type,
-      (weight = 1.0),
-      (metadata = null),
+      weight,
+      metadata,
     );
   }
 
@@ -1781,7 +1776,7 @@ class DatabaseManager {
     const {
       findRelationPath: _findRelationPath,
     } = require("./database/database-graph");
-    return _findRelationPath(this, logger, sourceId, targetId, (maxDepth = 3));
+    return _findRelationPath(this, logger, sourceId, targetId, maxDepth);
   }
 
   /**
@@ -1794,7 +1789,7 @@ class DatabaseManager {
     const {
       getKnowledgeNeighbors: _getKnowledgeNeighbors,
     } = require("./database/database-graph");
-    return _getKnowledgeNeighbors(this, logger, knowledgeId, (depth = 1));
+    return _getKnowledgeNeighbors(this, logger, knowledgeId, depth);
   }
 
   /**
@@ -1818,7 +1813,7 @@ class DatabaseManager {
     const {
       buildTemporalRelations: _buildTemporalRelations,
     } = require("./database/database-graph");
-    return _buildTemporalRelations(this, logger, (windowDays = 7));
+    return _buildTemporalRelations(this, logger, windowDays);
   }
 
   // ==================== 项目管理操作 ====================
