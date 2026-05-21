@@ -187,6 +187,10 @@
             <template #icon><WalletOutlined /></template>
             导入支付宝账单
           </a-button>
+          <a-button @click="aichatWizardOpen = true">
+            <template #icon><RobotOutlined /></template>
+            添加 AI 对话账号
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -629,6 +633,13 @@
         </template>
       </a-table>
     </a-drawer>
+
+    <!-- Phase 10.3 — AIChat WebView 鉴权向导 -->
+    <AIChatWizard
+      v-model:open="aichatWizardOpen"
+      :existing-accounts="aichatAccounts"
+      @registered="onAichatRegistered"
+    />
   </div>
 </template>
 
@@ -639,8 +650,10 @@ import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
   AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined, LinkOutlined,
   BulbOutlined, DollarOutlined, TeamOutlined, EnvironmentOutlined, HeartOutlined, ClockCircleOutlined,
+  RobotOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
+import AIChatWizard from '../components/AIChatWizard.vue'
 
 const hub = usePersonalDataHub()
 
@@ -689,6 +702,16 @@ const analysisSkills = [
 const reviewQueueOpen = ref(false)
 const reviewRows = ref([])
 const resolverStats = reactive({ queue: { pending: 0 }, mergeGroups: 0, reviewQueue: 0 })
+
+// Phase 10.3 — AIChat WebView wizard state
+const aichatWizardOpen = ref(false)
+const aichatAccounts = ref([])
+function onAichatRegistered(payload) {
+  message.success(`已接入 ${payload.vendor}`)
+  // The drawer auto-closes via emit('update:open', false) in resetWizard;
+  // refresh adapters list so the new aichat-history adapter shows up.
+  refresh()
+}
 
 // Phase 6 — Alipay import state
 const alipayConfigOpen = ref(false)
