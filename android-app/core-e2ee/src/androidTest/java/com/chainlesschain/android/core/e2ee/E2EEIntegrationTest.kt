@@ -18,7 +18,6 @@ import com.chainlesschain.android.core.e2ee.queue.PersistentMessageQueueManager
 import com.chainlesschain.android.core.e2ee.rotation.PreKeyRotationManager
 import com.chainlesschain.android.core.e2ee.session.E2EESession
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
-import com.chainlesschain.android.core.e2ee.storage.SessionStorage
 import com.chainlesschain.android.core.e2ee.util.X3DHParty
 import com.chainlesschain.android.core.e2ee.util.simulateX3DHHandshake
 import com.chainlesschain.android.core.e2ee.verification.SafetyNumbers
@@ -60,17 +59,12 @@ class E2EEIntegrationTest {
     @Inject
     lateinit var sessionManager: PersistentSessionManager
 
-    @Inject
-    lateinit var sessionStorage: SessionStorage
-
-    @Inject
-    lateinit var preKeyRotationManager: PreKeyRotationManager
-
-    @Inject
-    lateinit var keyBackupManager: KeyBackupManager
-
-    @Inject
-    lateinit var messageQueueManager: PersistentMessageQueueManager
+    // The classes below are NOT Hilt-managed in production — PersistentSessionManager
+    // constructs them internally (PreKeyRotationManager needs 3 callback lambdas, etc.).
+    // Wire them up manually in setup() rather than adding a test-only Hilt module.
+    private lateinit var preKeyRotationManager: PreKeyRotationManager
+    private val keyBackupManager = KeyBackupManager()
+    private lateinit var messageQueueManager: PersistentMessageQueueManager
 
     private lateinit var context: Context
 
@@ -78,6 +72,13 @@ class E2EEIntegrationTest {
     fun setup() {
         hiltRule.inject()
         context = ApplicationProvider.getApplicationContext()
+
+        preKeyRotationManager = PreKeyRotationManager(
+            onSignedPreKeyRotation = { /* no-op for tests */ },
+            onOneTimePreKeysGeneration = { /* no-op for tests */ },
+            onOneTimePreKeysCleanup = { /* no-op for tests */ }
+        )
+        messageQueueManager = PersistentMessageQueueManager(context)
 
         runBlocking {
             // Initialize session manager
