@@ -31,6 +31,8 @@ const walker = require("../../sync/incremental-walker");
 const renderer = require("../../sync/markdown-renderer");
 const { runWebDAVSync } = require("../../sync/webdav-engine");
 const { WebDAVClient } = require("../../sync/webdav-client");
+const { detectOrphans, deleteOrphans } = require("../../sync/orphan-detector");
+const { notifyIfNewConflict } = require("../../sync/sync-conflict-notifier");
 
 const PROVIDER_ID = "webdav";
 
@@ -103,6 +105,10 @@ function createSyncWebDAVRunHandler({ database }) {
       return { success: false, error: "WebDAV 凭证未配置" };
     }
     const client = new WebDAVClient(creds);
+    // Capture prevStatus for D10 conflict notifier transition logic
+    const prevCursor = store.getCursor(database, PROVIDER_ID) || {};
+    const prevStatus = prevCursor.lastRunStatus ?? null;
+
     const res = await runWebDAVSync({
       dbManager: database,
       client,
@@ -113,6 +119,14 @@ function createSyncWebDAVRunHandler({ database }) {
       accountKey: "",
       // web-shell 暂不推 progress chunk
     });
+
+    // D10: notify on clean→conflict transition
+    try {
+      notifyIfNewConflict({ provider: "WebDAV", result: res, prevStatus });
+    } catch (_e) {
+      /* non-fatal */
+    }
+
     return {
       success: res.success,
       status: res.status,
@@ -122,6 +136,60 @@ function createSyncWebDAVRunHandler({ database }) {
       durationMs: res.durationMs,
       error: res.error,
     };
+  };
+}
+
+/** sync.webdav.list-orphans — Phase 3c.D7 */
+function createSyncWebDAVListOrphansHandler({ database }) {
+  return async function syncWebDAVListOrphansHandler() {
+    if (!database) {
+      return { success: false, error: "数据库未初始化" };
+    }
+    const creds = _loadCredentialsForClient();
+    if (!creds) {
+      return { success: false, error: "WebDAV 凭证未配置" };
+    }
+    const client = new WebDAVClient(creds);
+    let listResult;
+    try {
+      listResult = await client.listRemote();
+    } catch (err) {
+      return {
+        success: false,
+        error: `远端列举失败：${err?.message || String(err)}`,
+      };
+    }
+    const cursor = store.getCursor(database, PROVIDER_ID) || {};
+    const diff = detectOrphans({ cursor, listResult });
+    return {
+      success: true,
+      data: {
+        orphans: diff.orphans,
+        knownCount: diff.knownCount,
+        totalRemote: diff.totalRemote,
+      },
+    };
+  };
+}
+
+/** sync.webdav.delete-orphans — Phase 3c.D7 */
+function createSyncWebDAVDeleteOrphansHandler() {
+  return async function syncWebDAVDeleteOrphansHandler(frame) {
+    const payload = frame?.payload || {};
+    const orphans = Array.isArray(payload.orphans) ? payload.orphans : null;
+    if (!orphans) {
+      return {
+        success: false,
+        error: "payload.orphans 必须是 [{filename, etag?}] 数组",
+      };
+    }
+    const creds = _loadCredentialsForClient();
+    if (!creds) {
+      return { success: false, error: "WebDAV 凭证未配置" };
+    }
+    const client = new WebDAVClient(creds);
+    const result = await deleteOrphans({ client, orphans });
+    return { success: true, data: result };
   };
 }
 
@@ -173,7 +241,7 @@ function createSyncWebDAVConfigClearHandler() {
 }
 
 /**
- * 一把梭：返回 5 个 topic → handler 的 map，给 web-shell-bootstrap 直接展开。
+ * 一把梭：返回 7 个 topic → handler 的 map，给 web-shell-bootstrap 直接展开。
  */
 function createSyncWebDAVHandlers({ database } = {}) {
   return {
@@ -182,6 +250,10 @@ function createSyncWebDAVHandlers({ database } = {}) {
     "sync.webdav.config-get": createSyncWebDAVConfigGetHandler({ database }),
     "sync.webdav.config-set": createSyncWebDAVConfigSetHandler(),
     "sync.webdav.config-clear": createSyncWebDAVConfigClearHandler(),
+    "sync.webdav.list-orphans": createSyncWebDAVListOrphansHandler({
+      database,
+    }),
+    "sync.webdav.delete-orphans": createSyncWebDAVDeleteOrphansHandler(),
   };
 }
 
@@ -192,5 +264,7 @@ module.exports = {
   createSyncWebDAVConfigGetHandler,
   createSyncWebDAVConfigSetHandler,
   createSyncWebDAVConfigClearHandler,
+  createSyncWebDAVListOrphansHandler,
+  createSyncWebDAVDeleteOrphansHandler,
   PROVIDER_ID,
 };

@@ -46,6 +46,7 @@ const { createLlmChatHandler } = require("./handlers/llm-handlers");
 const { createUkeySignHandler } = require("./handlers/ukey-sign-handler");
 const { createShellSwitchHandler } = require("./handlers/shell-switch-handler");
 const { createSyncWebDAVHandlers } = require("./handlers/sync-webdav-handlers");
+const { createSyncOSSHandlers } = require("./handlers/sync-oss-handlers");
 const { createSyncStatusHandlers } = require("./handlers/sync-status-handlers");
 const { createMtcStatusHandlers } = require("./handlers/mtc-status-handlers");
 const { createGitConfigHandlers } = require("./handlers/git-config-handlers");
@@ -229,6 +230,9 @@ async function startWebShell(options = {}) {
     // null pre-bootstrap; the handlers throw / return error envelope instead
     // of crashing the dispatcher.
     ...createSyncWebDAVHandlers({ database: options.database ?? null }),
+    // Phase 3c.3 — OSS / S3 sync topics for web-panel parity. Same shape +
+    // includes D7 orphan cleanup + D10 conflict notify hooks.
+    ...createSyncOSSHandlers({ database: options.database ?? null }),
     // Phase 3b — sync.status / push / pull / conflicts / resolve. 复用 main 已开
     // 的 db handle，避免 ws.execute('sync ...') spawn 子进程抢同一 SQLite 文件。
     ...createSyncStatusHandlers({ database: options.database ?? null }),
