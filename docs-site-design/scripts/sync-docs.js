@@ -79,6 +79,7 @@ const ROOT_FILE_MAP = {
   "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
   "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
   "Adapter_WeChat_SQLCipher_Frida_Setup.md": "Adapter_WeChat_SQLCipher_Frida_Setup.md",
+  "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md": "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md",
   "Adapter_System_Data.md": "Adapter_System_Data.md",
   "Adapter_Shopping_Cookie.md": "Adapter_Shopping_Cookie.md",
   "Adapter_Travel_LBS.md": "Adapter_Travel_LBS.md",

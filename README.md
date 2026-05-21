@@ -2,6 +2,19 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-21 收口 — **PDH Phase 14.1 step 5 ChatBubble UI + Phase 12.9 WeChat 真机 E2E Runbook + office-skill word lib hotfix (v5.0.3.76 → v5.0.3.77 iOS .ipa re-ship)**
+
+> v5.0.3.76 维护批：office-skill 真功能修 + 3 站全量文档刷新（v5.0.3.76 sizes/版本号）；并把 PDH Phase 14 Android 端 ChatBubble UI 收尾 + 新增 WeChat Phase 12.9 真机验收 runbook 一并推到 docs.chainlesschain.com / design.chainlesschain.com。**v5.0.3.77 是 .76 的 iOS .ipa re-cut**（.76 release run #1 build-ios 失败 + finalize 自动 flip 已发布 → run #2 .ipa 上传被 GitHub immutable-releases blocked；tag burn 走 [github_immutable_release_tag_burn 流程](docs/internal/hidden-risk-traps.md)，重新 cut .77 全 18-asset 干净 ship 一次）。
+
+- **Phase 14.1 step 5（Android）— ChatBubble UI**：`HubAskScreen` 把 flat `Surface + plain text` 升级成 `HubChatBubble`（左下 4dp / 右下 4dp 不对称圆角 = 经典 bubble tail；assistant `secondaryContainer` 左对齐 + user `primaryContainer` 右对齐；max width 320dp 防长答案撑屏）+ `HubBlinkingCursor`（500ms reverse-fade `▎`）填充 in-flight 推理态。`HubAskUiState` 加 `submittedQuestion` field 把「输入框实时内容」与「已提交问题快照」解耦，bubble 显示历史问的同时用户可继续编辑下一题。+2 单测覆盖 submit 快照与 clear 重置；`HubAskViewModelTest` 累计 10/10 + PDH 5-file 总 44/44 全绿（pure UI/state，无 IPC 改动；framework 全 reuse Phase 5 iOS pattern）。Streaming token-by-token wire-up 仍 defer 待 Phase 14.5。
+- **Phase 12.9 WeChat 真机 E2E Runbook (新设计文档)**：`docs/design/Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md` ~21 KB。11 场景验收（首次 ingest / 解密 spot-check / ask Q&A / citation 反查 / 5 万条性能 / 增量 / hook resilience / 反检测 / 失败恢复 / 隐私 gate / 24h 长稳）+ 6-8h 执行预估 + dataset 量级门槛（≥ 5w 条 message 才能上 §12.9.5 大库基准）。与既有 `Adapter_WeChat_SQLCipher_Frida_Setup.md`（setup-only）+ `Personal_Data_Hub_E2E_Runbook.md §11`（注册流程）三件套构成 Phase 12.6 完整验收链。
+- **office-skill bug fix（`aabe7d0f7`）**：(1) `readWord` stub 替换为真实 `mammoth` 实现（之前 stub 让 Word 解析路径 silently 返空）；(2) wordLib cache 与 paragraph cache 拆分 + 修 paragraphs silent drop。
+- **3 站文档全量刷新**：docs-site `chainlesschain-docs-v5.0.3.76` 487 HTML / docs-site-design `design-docs-v5.0.3.76` 200 + Phase 12.9 HTML / docs-website-v2 v5.0.3.76 sizes 真值（11 平台 size 全 sync gh release）+ 「144 条 CLI 命令 / 141 内置 Skills」反 stale（之前 dist baked 112/139）。两 sync 脚本 ROOT_FILE_MAP 加 Phase 12.9 显式映射 防 unmapped 文件 silent 落 `unknown-unmapped.md` 互相覆盖（per memory `docs_site_sync_unmapped_fallthrough`）。
+
+测试摘要：本轮验过 5 个 PDH Android 测试类 44/44 + 桌面 PDH 4 文件 93/93 + WeChat 适配器 8 文件 107/107 + mobile-skill-whitelist + unified-config-manager 17/17 = **19 文件 / 261 测试 / 0 失败**。E2E（Phase 14.4 + Phase 12.9）需 Mac+iPhone+Xiaomi+真桌面 + Xiaomi+Frida-server，Win 单 dev box 不能跑，已 follow-up。
+
+详见 [`docs/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md`](docs/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md) 与 [`docs/design/Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`](docs/design/Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md)。
+
 ## 2026-05-21 收口 — **WeChat Phase 12.6.7-10：bootstrap 编排层 + IPC/WS + cc hub wechat CLI + Vue UI 向导 (v5.0.3.75)**
 
 > WeChat 8.0+ frida-dep 路径一晚从零件凑齐到端到端可用全收口（§18.7 的 6 sub-phase 之上加 4 个新 sub-phase）。
