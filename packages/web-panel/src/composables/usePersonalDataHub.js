@@ -450,5 +450,38 @@ export function usePersonalDataHub() {
         30_000,
       );
     },
+
+    // ─── Phase 12.6.10 — WeChat env-probe + register / list / unregister ──
+
+    /**
+     * Probe the attached Android device (adb / root / frida / WeChat
+     * version). Returns the raw probe shape so the wizard checklist UI
+     * can render each capability independently.
+     */
+    async probeWechatEnv() {
+      return await send("personal-data-hub.wechat-env-probe", {}, 15_000);
+    },
+
+    /**
+     * Register a WeChat adapter via bootstrap (12.6.7 → 12.6.8). Caller
+     * passes account.uin + dbPath/wechatDataPath produced by an upstream
+     * `adb pull`. Server selects md5 / frida provider automatically per
+     * env-probe; `keyProviderOverride` forces the choice if needed.
+     */
+    async registerWechat({ account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride } = {}) {
+      return await send(
+        "personal-data-hub.register-wechat",
+        { account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride },
+        45_000,
+      );
+    },
+
+    async listWechatAccounts() {
+      return await send("personal-data-hub.list-wechat-accounts", {}, 5_000);
+    },
+
+    async unregisterWechat(uin) {
+      return await send("personal-data-hub.unregister-wechat", { uin }, 5_000);
+    },
   };
 }

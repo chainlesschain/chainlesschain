@@ -191,6 +191,10 @@
             <template #icon><RobotOutlined /></template>
             添加 AI 对话账号
           </a-button>
+          <a-button @click="wechatWizardOpen = true">
+            <template #icon><WechatOutlined /></template>
+            添加 WeChat
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -640,6 +644,12 @@
       :existing-accounts="aichatAccounts"
       @registered="onAichatRegistered"
     />
+
+    <!-- Phase 12.6.10 — WeChat env-probe + register 向导 -->
+    <WechatWizard
+      v-model:open="wechatWizardOpen"
+      @registered="onWechatRegistered"
+    />
   </div>
 </template>
 
@@ -650,10 +660,11 @@ import {
   ReloadOutlined, FileSearchOutlined, MessageOutlined, SendOutlined,
   AppstoreOutlined, MailOutlined, InfoCircleOutlined, WalletOutlined, LinkOutlined,
   BulbOutlined, DollarOutlined, TeamOutlined, EnvironmentOutlined, HeartOutlined, ClockCircleOutlined,
-  RobotOutlined,
+  RobotOutlined, WechatOutlined,
 } from '@ant-design/icons-vue'
 import { usePersonalDataHub } from '../composables/usePersonalDataHub.js'
 import AIChatWizard from '../components/AIChatWizard.vue'
+import WechatWizard from '../components/WechatWizard.vue'
 
 const hub = usePersonalDataHub()
 
@@ -714,6 +725,13 @@ function onAichatRegistered(payload) {
   }
   // The drawer auto-closes via emit('update:open', false) in resetWizard;
   // refresh adapters list so the new aichat-history adapter shows up.
+  refresh()
+}
+
+// Phase 12.6.10 — WeChat env-probe + register wizard state
+const wechatWizardOpen = ref(false)
+function onWechatRegistered(payload) {
+  message.success(`WeChat 已接入 (uin=${payload.uin}, provider=${payload.chosenKeyProvider})`)
   refresh()
 }
 
