@@ -33,6 +33,7 @@ const { runWebDAVSync } = require("../../sync/webdav-engine");
 const { WebDAVClient } = require("../../sync/webdav-client");
 const { detectOrphans, deleteOrphans } = require("../../sync/orphan-detector");
 const { notifyIfNewConflict } = require("../../sync/sync-conflict-notifier");
+const { syncStreamFromEngine } = require("./sync-streaming-helper");
 
 const PROVIDER_ID = "webdav";
 
@@ -139,6 +140,61 @@ function createSyncWebDAVRunHandler({ database }) {
   };
 }
 
+/**
+ * sync.webdav.run-stream — Phase 3c.D9 streaming envelope.
+ *
+ * Async-generator handler: yields each progress event as a chunk
+ * (`<topic>.chunk` envelope), returns final result (`<topic>.result`).
+ * Cancellation via WS close / `<topic>.cancel` triggers generator.return()
+ * — engine doesn't currently abort mid-call so the in-flight sync
+ * completes, but cleanup happens orderly.
+ */
+function createSyncWebDAVRunStreamHandler({ database }) {
+  return async function* syncWebDAVRunStreamHandler() {
+    if (!database) {
+      throw new Error("数据库未初始化");
+    }
+    const creds = _loadCredentialsForClient();
+    if (!creds) {
+      throw new Error("WebDAV 凭证未配置");
+    }
+    const client = new WebDAVClient(creds);
+    const prevCursor = store.getCursor(database, PROVIDER_ID) || {};
+    const prevStatus = prevCursor.lastRunStatus ?? null;
+
+    const result = yield* syncStreamFromEngine({
+      runEngine: ({ onProgress }) =>
+        runWebDAVSync({
+          dbManager: database,
+          client,
+          store,
+          walker,
+          renderer,
+          providerId: PROVIDER_ID,
+          accountKey: "",
+          onProgress,
+        }),
+    });
+
+    // D10 conflict notify on stream completion
+    try {
+      notifyIfNewConflict({ provider: "WebDAV", result, prevStatus });
+    } catch (_e) {
+      /* non-fatal */
+    }
+
+    return {
+      success: result.success,
+      status: result.status,
+      pushed: result.pushed,
+      skipped: result.skipped,
+      deleted: result.deleted,
+      durationMs: result.durationMs,
+      error: result.error,
+    };
+  };
+}
+
 /** sync.webdav.list-orphans — Phase 3c.D7 */
 function createSyncWebDAVListOrphansHandler({ database }) {
   return async function syncWebDAVListOrphansHandler() {
@@ -241,12 +297,14 @@ function createSyncWebDAVConfigClearHandler() {
 }
 
 /**
- * 一把梭：返回 7 个 topic → handler 的 map，给 web-shell-bootstrap 直接展开。
+ * 一把梭：返回 8 个 topic → handler 的 map，给 web-shell-bootstrap 直接展开。
+ * 7 sync + 1 streaming (Phase 3c.D9)
  */
 function createSyncWebDAVHandlers({ database } = {}) {
   return {
     "sync.webdav.test": createSyncWebDAVTestHandler(),
     "sync.webdav.run": createSyncWebDAVRunHandler({ database }),
+    "sync.webdav.run-stream": createSyncWebDAVRunStreamHandler({ database }),
     "sync.webdav.config-get": createSyncWebDAVConfigGetHandler({ database }),
     "sync.webdav.config-set": createSyncWebDAVConfigSetHandler(),
     "sync.webdav.config-clear": createSyncWebDAVConfigClearHandler(),
@@ -261,6 +319,7 @@ module.exports = {
   createSyncWebDAVHandlers,
   createSyncWebDAVTestHandler,
   createSyncWebDAVRunHandler,
+  createSyncWebDAVRunStreamHandler,
   createSyncWebDAVConfigGetHandler,
   createSyncWebDAVConfigSetHandler,
   createSyncWebDAVConfigClearHandler,

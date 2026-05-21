@@ -25,6 +25,7 @@ const { runOSSSync } = require("../../sync/oss-engine");
 const { OSSClient } = require("../../sync/oss-client");
 const { detectOrphans, deleteOrphans } = require("../../sync/orphan-detector");
 const { notifyIfNewConflict } = require("../../sync/sync-conflict-notifier");
+const { syncStreamFromEngine } = require("./sync-streaming-helper");
 
 const PROVIDER_ID = "oss";
 
@@ -130,6 +131,55 @@ function createSyncOSSRunHandler({ database }) {
       deleted: res.deleted,
       durationMs: res.durationMs,
       error: res.error,
+    };
+  };
+}
+
+/**
+ * sync.oss.run-stream — Phase 3c.D9 streaming envelope.
+ * Async-generator: yields progress chunks, returns final result.
+ */
+function createSyncOSSRunStreamHandler({ database }) {
+  return async function* syncOSSRunStreamHandler() {
+    if (!database) {
+      throw new Error("数据库未初始化");
+    }
+    const creds = _loadCredentialsForClient();
+    if (!creds) {
+      throw new Error("OSS 凭证未配置");
+    }
+    const client = new OSSClient(creds);
+    const prevCursor = store.getCursor(database, PROVIDER_ID) || {};
+    const prevStatus = prevCursor.lastRunStatus ?? null;
+
+    const result = yield* syncStreamFromEngine({
+      runEngine: ({ onProgress }) =>
+        runOSSSync({
+          dbManager: database,
+          client,
+          store,
+          walker,
+          renderer,
+          providerId: PROVIDER_ID,
+          accountKey: "",
+          onProgress,
+        }),
+    });
+
+    try {
+      notifyIfNewConflict({ provider: "OSS / S3", result, prevStatus });
+    } catch (_e) {
+      /* non-fatal */
+    }
+
+    return {
+      success: result.success,
+      status: result.status,
+      pushed: result.pushed,
+      skipped: result.skipped,
+      deleted: result.deleted,
+      durationMs: result.durationMs,
+      error: result.error,
     };
   };
 }
@@ -262,6 +312,7 @@ function createSyncOSSHandlers({ database } = {}) {
   return {
     "sync.oss.test": createSyncOSSTestHandler(),
     "sync.oss.run": createSyncOSSRunHandler({ database }),
+    "sync.oss.run-stream": createSyncOSSRunStreamHandler({ database }),
     "sync.oss.config-get": createSyncOSSConfigGetHandler({ database }),
     "sync.oss.config-set": createSyncOSSConfigSetHandler(),
     "sync.oss.config-clear": createSyncOSSConfigClearHandler(),
@@ -274,6 +325,7 @@ module.exports = {
   createSyncOSSHandlers,
   createSyncOSSTestHandler,
   createSyncOSSRunHandler,
+  createSyncOSSRunStreamHandler,
   createSyncOSSConfigGetHandler,
   createSyncOSSConfigSetHandler,
   createSyncOSSConfigClearHandler,
