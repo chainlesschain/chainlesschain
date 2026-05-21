@@ -2,7 +2,7 @@
 
 > **目标读者**：第一次拿到 ChainlessChain iOS .ipa 的用户 + 想搞清楚架构 / 配置 / 性能 / 安全细节的开发者。
 >
-> Phase 1-5 设计 / 源码导览请看 [iOS Phase 1+2+3+4 用户文档](/guide/mobile-ios)。本页是用户视角的完整操作手册。
+> Phase 1-5 设计 / 源码导览请看 [iOS Phase 1-6 用户文档](/guide/mobile-ios)。本页是用户视角的完整操作手册。
 
 ::: tip 适用版本
 - App：iOS 5.0.3 (build **64**) — Settings 「关于」显示完整 `v5.0.3.64`
@@ -500,7 +500,7 @@ iPhone → 远程操控 tab → AI 子 tab → 「新对话」
 
 ## 相关文档
 
-- [iOS Phase 1+2+3+4 用户文档（架构 / Phase 设计全集）](/guide/mobile-ios)
+- [iOS Phase 1-6 用户文档（架构 / Phase 设计全集）](/guide/mobile-ios)
 - [Android 用户操作手册](/guide/mobile-android-usage)
 - [系统概述](/chainlesschain/overview)
 - [DID 身份管理](/chainlesschain/did-management)
@@ -514,5 +514,5 @@ iPhone → 远程操控 tab → AI 子 tab → 「新对话」
 
 > 本文档为 iOS 用户操作完整手册。架构细节请参阅：
 >
-> - [iOS Phase 1+2+3+4 实施文档](/guide/mobile-ios)
+> - [iOS Phase 1-6 实施文档](/guide/mobile-ios)
 > - [移动端定位与三层架构](/chainlesschain/mobile-positioning)

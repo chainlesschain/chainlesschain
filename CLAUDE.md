@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: see `package.json.productVersion` (Evolution Edition — 139 Desktop Skills + 28 Android Skills + 144 CLI Commands + 8000+ Tests; MTC v0.5 — Phases 0–4 fully landed including federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA federations + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
+**Current Version**: see `package.json.productVersion` (Evolution Edition — 141 Desktop Skills + 25 Android REMOTE Skills (SeedRegistry) + 144 CLI Commands + 30,000+ Tests; MTC v0.11 — Phases 0–4 fully landed + 跨联邦信任锚 + 离线审计 + 多跳路由 + Gas 感知 + SLA tracker + 监控仪表板; federation MTCA M-of-N multi-sig + filesystem/libp2p gossipsub auto-discovery + heterogeneous Ed25519+SLH-DSA + Q-ENG-2 backend bridge + OpLog per-row badge; 476 MTC tests across 6 layers)
 
 **Version hierarchy** (values live in their respective files, do not duplicate here):
 - Product line: `package.json.productVersion` (marketing / release notes / docs — single source of truth, format `vX.Y.Z.N`)
@@ -70,7 +70,7 @@ Key CLI entry points:
 
 ## Feature Index
 
-**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (141 desktop features, 28 Android skills).
+**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (141 desktop skills, 25 Android REMOTE skills).
 
 Key highlights:
 - **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (141 built-in)
@@ -86,11 +86,11 @@ Key highlights:
 | Layer | Path | Description |
 |-------|------|-------------|
 | Desktop Main | `desktop-app-vue/src/main/` | Electron main process (AI, IPC, Security, Enterprise) |
-| Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (51 Pinia stores) |
+| Desktop Renderer | `desktop-app-vue/src/renderer/` | Vue3 + TypeScript (113 Pinia stores) |
 | CLI | `packages/cli/` | npm CLI (~2MB, 144 commands, Commander) |
 | Java Backend | `backend/project-service/` | Spring Boot 3.1.11 + Java 17 + PostgreSQL |
 | Python AI | `backend/ai-service/` | FastAPI + Ollama + Qdrant |
-| Android | `mobile-app/` | 28 skills (12 Kotlin + 8 doc-only + 8 REMOTE) |
+| Android | `android-app/` | 25 REMOTE skills (SeedRegistry, post-v1.0 GA reposition) |
 
 ### Technology Stack
 

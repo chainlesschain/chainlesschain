@@ -461,7 +461,7 @@ CC_UI_WEB_PANEL_DIR=<dir>   # 等同于 --web-panel-dir
 | 面板首屏加载 (本地) | < 1.5s | ~0.8s (Vite 构建产物) | ✅ |
 | WebSocket 连接建立 | < 100ms | ~40ms (loopback) | ✅ |
 | 页面切换渲染 | < 100ms | ~35ms (Vue Router) | ✅ |
-| 技能列表加载 (138 技能) | < 300ms | ~160ms | ✅ |
+| 技能列表加载 (141 技能) | < 300ms | ~160ms | ✅ |
 | 流式 Chat 渲染 (每 token) | < 20ms | ~8ms | ✅ |
 | 主题切换过渡 | < 500ms | ~400ms (CSS 变量) | ✅ |
 

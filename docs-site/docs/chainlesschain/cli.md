@@ -375,7 +375,7 @@ chainlesschain --quiet      # 静默模式
 | `note`             | 笔记增删改查、版本控制、全文搜索            | [笔记/知识库管理](./cli-note) |
 | `chat` / `ask`     | 交互式 AI 对话 / 单次问答                   | [AI 对话](./cli-chat)         |
 | `llm`              | 模型列表、7 Provider 管理、连通性测试       | [LLM 管理](./cli-llm)         |
-| `agent` (别名 `a`) | Claude Code 风格代理会话，8 工具 + 138 技能 + Plan Mode | [代理模式](./cli-agent)       |
+| `agent` (别名 `a`) | Claude Code 风格代理会话，8 工具 + 141 技能 + Plan Mode | [代理模式](./cli-agent)       |
 | `skill`            | 技能列表、搜索、运行                        | [技能系统](./cli-skill)       |
 | `search`           | BM25 混合搜索                               | [混合搜索](./cli-search)      |
 | `tokens`           | Token 用量追踪、成本分析                    | [Token追踪](./cli-tokens)     |

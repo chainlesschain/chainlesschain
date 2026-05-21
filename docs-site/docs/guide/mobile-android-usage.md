@@ -385,7 +385,7 @@ cc status sync   # 应看到 "mobile-bridge: running"
 # 手机端 → 远程终端 tab → 选已配对桌面 → 新建会话
 # 终端拉起后输入：
 $ cc --version              # 看桌面 CLI 版本
-$ cc skill list             # 列 139 个 desktop skills
+$ cc skill list             # 列 141 个 desktop skills
 $ cc ask "explain merkle tree"  # 调桌面 LLM 跑 ask
 $ cc note search merkle     # 搜桌面知识库
 ```

@@ -203,7 +203,7 @@ const betaFlags = await window.electron.ipcRenderer.invoke('config:beta-list')
 | 平台                          | 版本   | 技术栈                | 技能数                           | 状态     |
 | ----------------------------- | ------ | --------------------- | -------------------------------- | -------- |
 | Desktop (Windows/macOS/Linux) | v1.1.0 | Electron + Vue3       | 95                               | 生产就绪 |
-| Android                       | v1.1.0 | Jetpack Compose       | 28 (5 LOCAL + 8 REMOTE + 15 doc) | 生产就绪 |
+| Android                       | v1.1.0 | Jetpack Compose       | 25 REMOTE Skills (SeedRegistry)  | 生产就绪 |
 | iOS                           | v1.1.0 | SwiftUI               | —                                | 生产就绪 |
 | Web 文档站                    | v1.1.0 | VitePress             | —                                | 已上线   |
 | 后端服务                      | v1.1.0 | Spring Boot + FastAPI | —                                | 生产就绪 |

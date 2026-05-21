@@ -162,7 +162,7 @@ ChainlessChain 采用开源协议，欢迎社区贡献：
 
 ### 1. 概述
 
-ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（Electron + Vue3）、CLI（`chainlesschain` / `cc`）、移动端（Android Jetpack Compose）三端构成。以硬件级安全（U-Key / SIMKey）、P2P 加密协议、DID 身份为基础，内置 139 个 Desktop Skills + 28 Android Skills + 144 CLI 命令，累计 14,800+ 测试。
+ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（Electron + Vue3）、CLI（`chainlesschain` / `cc`）、移动端（Android Jetpack Compose）三端构成。以硬件级安全（U-Key / SIMKey）、P2P 加密协议、DID 身份为基础，内置 141 个 Desktop Skills + 25 个 Android REMOTE Skills + 144 CLI 命令，累计 30,000+ 测试。
 
 ### 2. 核心特性
 
@@ -201,7 +201,7 @@ ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（E
 - 本地优先：默认所有数据存于本地加密磁盘
 - 可插拔 LLM：Ollama / OpenAI-兼容网关 / 企业内网推理全部可热切
 - V2 规范层：220+ 治理表面（`*gov-*-v2` 系列）覆盖绝大多数 CLI 子系统
-- 测试驱动：14,800+ 测试（单元 + 集成 + E2E）
+- 测试驱动：30,000+ 测试（单元 + 集成 + E2E）
 
 ### 8. 应用场景
 
@@ -264,7 +264,7 @@ ChainlessChain 是面向个人的去中心化 AI 管理系统，由桌面版（E
 
 ```
 desktop-app-vue/src/main/        # Electron 主进程
-desktop-app-vue/src/renderer/    # Vue3 渲染器（51 Pinia stores）
+desktop-app-vue/src/renderer/    # Vue3 渲染器（113 Pinia stores）
 packages/cli/                    # CLI（144 命令）
 backend/project-service/         # Java 后端
 backend/ai-service/              # Python AI 后端

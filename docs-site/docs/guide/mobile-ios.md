@@ -1,6 +1,6 @@
-# 移动端 iOS（Phase 1+2+3+4 框架完整移植，待真机 E2E）
+# 移动端 iOS（Phase 1-6 框架完整移植 + Phase 5/6 真接通，待真机 E2E）
 
-> **版本: Phase 1+2+3+4 (productVersion `v5.0.3.54+`, 2026-05-15) | 状态: 框架完整 / 待真机 E2E | ~313 单测 across 24+ suites | 4 typed skill + 1 Notification skill**
+> **版本: Phase 1-6 (productVersion `v5.0.3.74`, 2026-05-20) | 状态: 框架完整 / 待真机 E2E | ~358 单测 across 30+ suites | 4 typed skill + Notification + AI Chat + Knowledge 30 method + AI Extended 25 method**
 >
 > ChainlessChain iOS 客户端 — SwiftUI + Swift Concurrency + Google WebRTC SDK 原生应用。镜像 Android v1.0 GA 已 Xiaomi 真机 E2E 验证版的 三层定位 + 桌面配对 + 远程终端 + 远程操控。**信息架构 / 流程 / 字段顺序 1:1 对齐 Android Compose Screen**，HIG 偏离仅限 6 项白名单。
 
