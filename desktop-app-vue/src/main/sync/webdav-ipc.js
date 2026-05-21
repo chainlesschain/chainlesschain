@@ -29,6 +29,7 @@ const renderer = require("./markdown-renderer");
 const { runWebDAVSync } = require("./webdav-engine");
 const { WebDAVClient } = require("./webdav-client");
 const { detectOrphans, deleteOrphans } = require("./orphan-detector");
+const { notifyIfNewConflict } = require("./sync-conflict-notifier");
 
 const PROVIDER_ID = "webdav";
 
@@ -131,6 +132,11 @@ function registerWebDAVIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
         }
       };
 
+      // Capture prevStatus BEFORE engine so D10 conflict notifier can
+      // decide notify vs suppress (transition clean → conflict only)
+      const prevCursor = store.getCursor(database, PROVIDER_ID) || {};
+      const prevStatus = prevCursor.lastRunStatus ?? null;
+
       const res = await runWebDAVSync({
         dbManager: database,
         client,
@@ -141,6 +147,21 @@ function registerWebDAVIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
         accountKey: "",
         onProgress,
       });
+
+      // D10: notify on transition into conflict; suppress repeats
+      try {
+        notifyIfNewConflict({
+          provider: "WebDAV",
+          result: res,
+          prevStatus,
+        });
+      } catch (notifyErr) {
+        logger.warn(
+          "[WebDAV IPC] conflict notify 失败（不致命）:",
+          notifyErr?.message,
+        );
+      }
+
       return {
         success: res.success,
         status: res.status,
