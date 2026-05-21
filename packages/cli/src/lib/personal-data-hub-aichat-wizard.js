@@ -17,15 +17,15 @@
 
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { createRequire } from "node:module";
 
-import wizardControllerModule from "@chainlesschain/personal-data-hub/adapters/ai-chat-history/wizard-controller";
 import {
   DEFAULT_VENDOR_SPECS,
   HttpClient,
   CookieAuthSession,
 } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history";
 
-const { createAIChatWizardController } = wizardControllerModule;
+const _require = createRequire(import.meta.url);
 
 export const ACCOUNTS_FILE = "aichat-accounts.json";
 
@@ -213,14 +213,21 @@ export function getAIChatWizard({
   // must fill those slots too. Re-import the spec module to avoid coupling
   // tests to those exact defaults.
   if (!deps.classifier || !deps.specLookup) {
-    // Lazy import to keep top-of-file clean.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const spec = require("@chainlesschain/personal-data-hub/adapters/ai-chat-history/cookie-capture-spec");
+    // Lazy require to keep top-of-file clean.
+    const spec = _require(
+      "@chainlesschain/personal-data-hub/adapters/ai-chat-history/cookie-capture-spec",
+    );
     deps.classifier = deps.classifier || spec.classifyProbedCookies;
     deps.specLookup = deps.specLookup || spec.getSpec;
     deps.knownVendors = deps.knownVendors || spec.listVendors();
     deps.cookieSpecVersion = deps.cookieSpecVersion || spec.COOKIE_SPEC_VERSION;
   }
+  // Lazy require (same pattern as cookie-capture-spec above) — keeps
+  // module-load tolerant of older @chainlesschain/personal-data-hub
+  // versions that don't yet export this subpath.
+  const { createAIChatWizardController } = _require(
+    "@chainlesschain/personal-data-hub/adapters/ai-chat-history/wizard-controller",
+  );
   const wiz = createAIChatWizardController({
     accountsStore,
     vendorAdapter,
