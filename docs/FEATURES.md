@@ -27,7 +27,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (138 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skills System (141 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Skill Lazy Loading            | `main/ai-engine/cowork/skills/skill-loader.js` (`parseMetadataOnly`)     | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
@@ -101,7 +101,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **138 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
+- **141 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
@@ -272,8 +272,8 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `chat`     | —                                              | Interactive AI chat with streaming (headless)                      |
 | `ask`      | —                                              | Single-shot AI query (headless)                                    |
 | `llm`      | models, test, providers, add-provider, switch  | LLM provider management (headless)                                 |
-| `agent`    | —                                              | Agentic AI session with 10 tools + 138 skills + Plan Mode + Sub-Agent Isolation (headless)|
-| `skill`    | list, categories, info, search, run            | 138 built-in skill management (headless)                           |
+| `agent`    | —                                              | Agentic AI session with 10 tools + 141 skills + Plan Mode + Sub-Agent Isolation (headless)|
+| `skill`    | list, categories, info, search, run            | 141 built-in skill management (headless)                           |
 | `search`   | —                                              | BM25 hybrid search (Phase 1)                                      |
 | `tokens`   | show, breakdown, recent, cache                 | Token usage tracking + cost analysis (Phase 1)                     |
 | `memory`   | show, add, search, delete, daily, file         | Persistent memory + daily notes (Phase 1)                          |

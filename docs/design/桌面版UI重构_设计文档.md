@@ -182,7 +182,7 @@ Shell
 | Knowledge Graph | "梳理这些笔记" | 可视化 / 回填 Space RAG |
 
 **Slash / Mention**：统一交互入口，取消深菜单查找。
-- `/` = 动作（138 skills + 109 CLI 命令子集）
+- `/` = 动作（141 skills + 144 CLI 命令子集）
 - `@` = 对象引用（联系人、笔记、交易、合约）
 
 ---

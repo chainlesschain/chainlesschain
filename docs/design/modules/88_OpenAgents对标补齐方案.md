@@ -39,7 +39,7 @@ Open-Agents 是 Vercel Labs 开源的 Coding Agent 参考实现，核心采用 *
 - **edit_file_hashed**: 内容哈希锚定行编辑，open-agents 的 edit 仍是纯字符串匹配，我们更强
 - **git 工具**: open-agents 只有 bash，我们有独立 git 工具 + 策略元数据
 - **search_sessions + FTS5**: 跨会话搜索能力
-- **138 内置 Skills + 4 层加载**: 远超 open-agents 的 skills/discovery 简易实现
+- **141 内置 Skills + 4 层加载**: 远超 open-agents 的 skills/discovery 简易实现
 - **sub-runtime-pool**: 子进程池 + sessionId 分片，比 open-agents 单沙盒更灵活
 - **4 层记忆 + Hooks 三件套**: Hermes 对标已补齐，open-agents 都不具备
 
