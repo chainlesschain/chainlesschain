@@ -211,7 +211,8 @@
 | 13.5-13.7 | Messaging three-pack | QQ / Telegram / WhatsApp (借 sjqz parser + 加密 DB 解密) | 累计中 |
 | 13.8 (+) | **Social Toutiao (今日头条)** (v0.1 scaffold) | 新闻/feed reader Android SQLite — read_history / collection_article / search_history；schema 待 fixture pin | +6 scaffold |
 | 13.9 (+) | **Social Kuaishou (快手)** (v0.1 scaffold) | 短视频 Android SQLite — photo_history / user_collect / search_record；schema 待 fixture pin | +5 scaffold |
-| 当前合计 | — | — | **50 文件 / 954 测试**（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold 已 land 2026-05-21）|
+| 12.6 §18.1-6 | KeyProvider DI + Frida agent + env-probe + Setup runbook | wechat/key-providers/{base,md5,frida} + frida-agent/{loader,wechat-key-hook} + env-probe；FridaKeyProvider lazy-load 容忍 frida binding 缺 | +43 scaffold |
+| 当前合计 | — | — | **55 文件 / 1007 测试**（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-6 KeyProvider + Frida agent + env-probe + Setup 全 land 2026-05-21）|
 
 > 全部路线图 phase 已实施完成。剩余 follow-up：Phase 10.3+ (8 厂商 AIChat WebView UI cookie 拦截 + 真账号 smoke) ≈ 4 天；Phase 12.6+ (WeChat 8.0+ Android frida-dep libwcdb hook 路径) ≈ 3 天；Phase 12.9 (WeChat rooted device 真机 E2E) ≈ 1 天。
 
@@ -548,7 +549,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ## 测试覆盖率
 
-- **总单测**：50 个测试文件 / **954 单元测试**（最新基线 v5.0.3.73 含 Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix + 2026-05-21 doubao/toutiao/kuaishou scaffold land，`npx vitest run` 全绿，~21s）
+- **总单测**：55 个测试文件 / **1007 单元测试**（最新基线 v5.0.3.73 含 Phase 10.2 集成 + E2E 9 新测 + AIChat registry-contract bug fix + 2026-05-21 doubao/toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-6 全套，`npx vitest run` 全绿，~38s）
 - **覆盖矩阵**：
   - `__tests__/ids.test.js` — UUID v7 唯一性 / 时间序性
   - `__tests__/schemas.test.js` — 5 类实体所有 subtype + 边界字段
