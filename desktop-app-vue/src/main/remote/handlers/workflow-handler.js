@@ -180,6 +180,15 @@ class WorkflowHandler {
       case "getRunning":
         return await this.getRunningWorkflows(params, context);
 
+      case "clone":
+        return await this.cloneWorkflow(params, context);
+
+      case "export":
+        return await this.exportWorkflow(params, context);
+
+      case "import":
+        return await this.importWorkflow(params, context);
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -626,6 +635,207 @@ class WorkflowHandler {
       count: workflows.length,
       items: workflows,
     };
+  }
+
+  /**
+   * 克隆工作流 (Android / iOS `workflow.clone`).
+   *
+   * Loads the source workflow, copies its definition, persists a new row
+   * with a fresh id under `newName`. The new workflow shares `steps`,
+   * `variables`, `rollback`, `tags` but starts with fresh timestamps and
+   * its own execution history (empty).
+   *
+   * Android `WorkflowCreateResponse` shape: `{success, workflowId?, error?}`.
+   */
+  async cloneWorkflow(params, context) {
+    const { workflowId, newName } = params || {};
+
+    if (!workflowId || typeof workflowId !== "string") {
+      return { success: false, error: "workflowId required" };
+    }
+    if (!newName || typeof newName !== "string") {
+      return { success: false, error: "newName required" };
+    }
+
+    logger.info(`[WorkflowHandler] 克隆工作流: ${workflowId} → ${newName}`);
+
+    try {
+      const source = await this.loadWorkflow(workflowId);
+      if (!source) {
+        return { success: false, error: `Workflow not found: ${workflowId}` };
+      }
+
+      const newId = this.generateWorkflowId();
+      const now = Date.now();
+      const cloned = {
+        id: newId,
+        name: newName,
+        description: source.description || "",
+        steps: source.steps || [],
+        variables: source.variables || {},
+        rollback: source.rollback || null,
+        tags: Array.isArray(source.tags) ? source.tags.slice() : [],
+      };
+
+      if (this.database) {
+        this.database
+          .prepare(
+            `INSERT INTO workflows (id, name, description, definition, tags, created_at, updated_at, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            newId,
+            newName,
+            cloned.description,
+            JSON.stringify(cloned),
+            JSON.stringify(cloned.tags),
+            now,
+            now,
+            (context && context.did) || "system",
+          );
+      } else {
+        this.workflows.set(newId, {
+          ...cloned,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return { success: true, workflowId: newId };
+    } catch (error) {
+      logger.error("[WorkflowHandler] 克隆工作流失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 导出工作流为 JSON 字符串 (Android / iOS `workflow.export`).
+   *
+   * Returns the workflow definition serialized as a JSON string so the
+   * mobile client can ship it elsewhere (share / backup / import on
+   * another device). Includes `id`, `name`, `description`, `steps`,
+   * `variables`, `rollback`, `tags` — no execution history.
+   *
+   * Android `WorkflowExportResponse` shape: `{success, definition?: String, error?}`.
+   */
+  async exportWorkflow(params, _context) {
+    const { workflowId } = params || {};
+
+    if (!workflowId || typeof workflowId !== "string") {
+      return { success: false, error: "workflowId required" };
+    }
+
+    logger.info(`[WorkflowHandler] 导出工作流: ${workflowId}`);
+
+    try {
+      const workflow = await this.loadWorkflow(workflowId);
+      if (!workflow) {
+        return { success: false, error: `Workflow not found: ${workflowId}` };
+      }
+      // Strip mutable runtime fields if any leaked into definition.
+      const portable = {
+        id: workflow.id,
+        name: workflow.name,
+        description: workflow.description || "",
+        steps: workflow.steps || [],
+        variables: workflow.variables || {},
+        rollback: workflow.rollback || null,
+        tags: Array.isArray(workflow.tags) ? workflow.tags : [],
+      };
+      return { success: true, definition: JSON.stringify(portable) };
+    } catch (error) {
+      logger.error("[WorkflowHandler] 导出工作流失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 从 JSON 字符串导入工作流 (Android / iOS `workflow.import`).
+   *
+   * Parses the provided `definition` string, validates the step schema,
+   * and persists a new row with a fresh id. Optional `name` override
+   * replaces the definition's embedded name (useful when re-importing
+   * the same export under a different name).
+   *
+   * Android `WorkflowCreateResponse` shape: `{success, workflowId?, error?}`.
+   *
+   * Failure modes:
+   *   - definition not parseable → `INVALID_JSON`
+   *   - parsed but missing `steps` array → `INVALID_DEFINITION`
+   *   - step schema validation fails → engine's `validateWorkflow` errors
+   */
+  async importWorkflow(params, context) {
+    const { definition, name } = params || {};
+
+    if (!definition || typeof definition !== "string") {
+      return { success: false, error: "definition required" };
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(definition);
+    } catch (_err) {
+      return { success: false, error: "INVALID_JSON" };
+    }
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.steps)) {
+      return { success: false, error: "INVALID_DEFINITION" };
+    }
+
+    const validation = this.engine.validateWorkflow({ steps: parsed.steps });
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: `Invalid workflow: ${validation.errors.join(", ")}`,
+      };
+    }
+
+    const newId = this.generateWorkflowId();
+    const now = Date.now();
+    const effectiveName =
+      name && typeof name === "string"
+        ? name
+        : parsed.name || "Imported workflow";
+    const imported = {
+      id: newId,
+      name: effectiveName,
+      description: parsed.description || "",
+      steps: parsed.steps,
+      variables: parsed.variables || {},
+      rollback: parsed.rollback || null,
+      tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+    };
+
+    logger.info(`[WorkflowHandler] 导入工作流: ${effectiveName}`);
+
+    try {
+      if (this.database) {
+        this.database
+          .prepare(
+            `INSERT INTO workflows (id, name, description, definition, tags, created_at, updated_at, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            newId,
+            effectiveName,
+            imported.description,
+            JSON.stringify(imported),
+            JSON.stringify(imported.tags),
+            now,
+            now,
+            (context && context.did) || "system",
+          );
+      } else {
+        this.workflows.set(newId, {
+          ...imported,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      return { success: true, workflowId: newId };
+    } catch (error) {
+      logger.error("[WorkflowHandler] 导入工作流失败:", error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**
