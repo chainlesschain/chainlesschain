@@ -1205,3 +1205,158 @@ expect(raws).toHaveLength(50);
 
 完整修订留实施前 review。本 addendum 不改 §1-16 原文，只**追加** §17 作为"无设备可建"的实施前导索引。当 v0.5 frida-independent 部分落地后，回过头来 update §1-16 的 "无 root 模式" 部分。
 
+---
+
+## 18. Phase 12.6+ — v0.5 → v1 frida-dep 桥接设计（2026-05-21 补稿）
+
+> **背景**：Phase 12 v0.5（frida-indep slice）已落地于 2026-05 mid（41 单测，MD5(IMEI+UIN)[:7] 密钥派生 + content-parser + db-reader + normalize）。本节专门讲**"v0.5 怎么平滑长出 v1"** —— 把 Android 8.0+（默认开启 Frida 反检测的版本）也吃掉。
+>
+> **为什么独立成 §18**：§5 + §12 + §17 散落讲了 Frida 各方面，但没有从 "v0.5 已落地 codebase 出发" 角度讲 ：(a) 哪些代码完全复用、(b) 哪些 KeyProvider 实现需新加、(c) frida agent 与 Node 主进程的 IPC 边界。Phase 12.6+ 实施者读 §18 即可定位。
+
+### 18.1 复用矩阵（v0.5 → v1）
+
+| 既有 v0.5 模块 | v1 复用 | 注释 |
+|---|---|---|
+| `content-parser.js` | ✅ 100% | 内容解析与密钥无关 |
+| `key-extractor.js` (MD5(IMEI+UIN)[:7]) | ✅ 7.x 路径保留 | 8.0+ 走新 `frida-key-provider`，但 7.x 用户仍用此 |
+| `db-reader.js` (better-sqlite3-multiple-ciphers + 3 pragma profile) | ✅ 100% | 解密由 KeyProvider 决定来源，reader 只消费 hex |
+| `normalize.js` | ✅ 100% | UnifiedSchema 转换与密钥无关 |
+| `wechat-adapter.js` adapter contract | ✅ 95% | 新增 `keyProvider` opts；其余 unchanged |
+| **新增**：`frida-key-provider.js` | — | 实现 KeyProvider 接口，spawn frida + parse hook output |
+| **新增**：`frida-agent/wechat-key-hook.js` | — | TS 编译为 frida agent js，hook `sqlite3_key` |
+| **新增**：`env-probe.js` | — | 探测 Magisk / root / Frida server / WeChat 版本 |
+
+### 18.2 KeyProvider 抽象
+
+v0.5 已埋的 DI 桥（§17.1 + §17.8）：
+
+```ts
+interface KeyProvider {
+  /** Returns 32-hex SQLCipher key, or throws. */
+  getKey(opts: { wxid: string; dbPath: string }): Promise<string>;
+}
+```
+
+v0.5 唯一实现 `MD5KeyProvider`（IMEI + UIN 派生）。Phase 12.6+ 加 `FridaKeyProvider`：
+
+```js
+class FridaKeyProvider {
+  constructor({ frida, deviceId, packageName = "com.tencent.mm", hookScript, timeoutMs = 30_000 }) { ... }
+  async getKey({ wxid, dbPath }) {
+    // 1) Frida.attach 到目标进程
+    // 2) inject hook script (resources/wechat-key-hook.js)
+    // 3) 等待 sqlite3_key 被调用 → 拿到 hex
+    // 4) detach
+  }
+}
+```
+
+`wechat-adapter.js` constructor 拿 `opts.keyProvider`（v0.5 默认 `new MD5KeyProvider()`，v1 由 UI 决定切 `new FridaKeyProvider()`）。**adapter 主流程零改动**。
+
+### 18.3 Frida agent 脚本结构
+
+`frida-agent/wechat-key-hook.ts`（编译为 `.js` 单文件，~80 LOC）：
+
+```ts
+// libwcdb.so 是 WeChat 自家 SQLCipher fork
+const libwcdb = Module.findExportByName("libwcdb.so", "sqlite3_key");
+if (libwcdb) {
+  Interceptor.attach(libwcdb, {
+    onEnter(args) {
+      // arg0 = sqlite3*, arg1 = key bytes, arg2 = nKey
+      const len = args[2].toInt32();
+      const hex = args[1].readByteArray(len);
+      send({ kind: "key", hex: bytesToHex(hex) });
+    }
+  });
+}
+// fallback hook list（社区 patch 维护）
+for (const sym of ["WCDBKeyDerive", "wcdb_setkey", "WCDB::Database::setCipherKey"]) {
+  const addr = Module.findExportByName("libwcdb.so", sym);
+  if (addr) Interceptor.attach(addr, { onEnter: hookKeyish });
+}
+```
+
+**关键设计**：
+- `send({kind:"key", hex})` —— frida → 主进程是单向消息，主进程 `script.message.connect` 等
+- 失败 fallback list 由社区共享 patch 库维护（§13 T1 trap 缓解）
+- 主进程超时 30s 兜底；超时则报 `WCDB_KEY_TIMEOUT` 让 UI 切建议（关 WeChat → 重开 → 重试 / 切回 v0.5 7.x 路径）
+
+### 18.4 用户启动流程（v1）
+
+```
+[UI] 个人数据中台 → 添加微信 adapter
+  ↓
+[env-probe] 检测设备：
+  - Magisk 装了？ DenyList for com.tencent.mm 配了？
+  - Frida server 跑了？(:27042 监听)
+  - WeChat 版本？ ≥ 8.0 → 走 v1；< 8.0 → 走 v0.5
+  ↓
+[v1 path]
+  ↓
+[UI 引导] "请打开 WeChat 进入任意聊天界面后点击下一步" — 让 WeChat 触发 sqlite3_key 调用
+  ↓
+[FridaKeyProvider] attach + hook → 30s 等首次 onEnter
+  ↓
+[main process] 拿到 hex → 立即 detach（最小化反检测窗口）
+  ↓
+[KeyProvider.getKey 返回] → adapter 主流程（v0.5 路径不变）
+```
+
+### 18.5 frida-server 自带 vs 用户提供
+
+| 方案 | 优点 | 缺点 | 选择 |
+|---|---|---|---|
+| A. PDH 内嵌 frida-server 二进制 + push 到设备 | 一键上手 | (1) frida-server 200MB+ 装机包过大；(2) 微信反检测可识别官方 build hash | **不选** |
+| B. 用户自行 `adb push frida-server` | 包小 + 用户可换 patched build | UX 差；用户必须懂命令行 | **v1 默认（带详细 docs）** |
+| C. UI 引导 + 一键下载用户当前 abi 的 frida-server | 平衡 | 实施复杂；下载源信任问题 | **v2 候选** |
+
+Phase 12.6+ 锁 **B**。docs 链 `docs/design/Adapter_WeChat_SQLCipher_Frida_Setup.md`（独立 setup runbook，留给实施时写）。
+
+### 18.6 反检测演进
+
+WeChat 反 Frida 策略**已知**会变。设计 6 道防御：
+
+1. **hook 时机最优化**：在 libwcdb 加载后立即 hook（用 `Process.enumerateModules()` poll loop 监听 load），先于微信反检测线程
+2. **隐藏 frida-server**：用户用 patched build（社区维护），改默认端口（27042 → user-pick）
+3. **Magisk Zygisk + LinkerHook**：让 frida-gum 注入痕迹隐藏（Zygisk Lsposed 类似套路）
+4. **hook 后立即 detach**：不留 long-lived 注入
+5. **fallback symbol list**：版本升级时新签名加入候选
+6. **降级到 v0.5**：若 v1 失败超 3 次，UI 提示用户用 v0.5（7.x 老版本）或 PC WeChat Files 路径
+
+### 18.7 Phase 拆分
+
+| Sub-phase | 内容 | 工期 | 设备依赖 |
+|---|---|---|---|
+| 12.6.1 | `KeyProvider` 接口正式化 + v0.5 既有改造为实现该接口 | 0.5d | 无 |
+| 12.6.2 | `frida-agent/wechat-key-hook.ts` + build script (esbuild → single js) | 0.5d | 无 |
+| 12.6.3 | `FridaKeyProvider` 主进程实现 + frida nodejs binding 集成 | 0.5d | 无 |
+| 12.6.4 | `env-probe.js` + UI 引导卡片（Magisk / frida-server / WeChat 版本探测） | 0.5d | 无 |
+| 12.6.5 | wechat-adapter constructor 接 KeyProvider DI + 单测覆盖 mock KeyProvider 路径 | 0.5d | 无 |
+| 12.6.6 | Setup runbook (`Adapter_WeChat_SQLCipher_Frida_Setup.md`)：frida-server 安装 + Magisk DenyList 配置 | 0.5d | 无 |
+| 12.9 | 真机 E2E（rooted Xiaomi 24115RA8EC） | 1d | **rooted Android** |
+
+**1-12.6.6 全部可在 Win dev box 实施**（~3d）。**12.9 必须真机**。
+
+### 18.8 v1 验收
+
+| # | 项 | 验收 |
+|---|---|---|
+| V1 | KeyProvider 接口稳定（v0.5 MD5KeyProvider 实现该接口 + 单测过） | unit |
+| V2 | mock FridaKeyProvider（不真 attach，注入 canned hex）跑通 adapter 主流程 | unit + integration |
+| V3 | env-probe 各分支（root yes/no / frida yes/no / WeChat 7.x vs 8.x）输出正确 | unit |
+| V4 | Setup runbook 真人可读 + frida-server adb-push 命令复制即用 | doc |
+| V5 | 真机：Xiaomi rooted + WeChat 8.0.50 → adapter 注册后 sync 100 条消息进 vault | manual E2E |
+
+### 18.9 风险登记（v0.5 → v1 新增 trap）
+
+| # | Trap | 缓解 |
+|---|---|---|
+| T21 | frida nodejs binding ABI vs Node 22/24 | 用 `frida` npm 包 prebuilds (覆盖 22 + 24)；CI matrix 验 |
+| T22 | hook script 编译产物路径在 asar 里找不到 | electron-builder `extraResources` 或 asar 内 readFile（设计时绑死） |
+| T23 | frida.attach() 拒绝（process not found / Frida server 没起） | UI 显式错误 + 跳 env-probe 重新校验 |
+| T24 | 32-bit / 64-bit ABI 选错 frida-server | env-probe 读 `getprop ro.product.cpu.abi` 主动检测 |
+| T25 | 用户的 frida-server 端口被微信占用 | runbook 教改端口 + FridaKeyProvider `port` opt |
+
+> 18.x 不替代 §5 + §12 + §17，而是 **以 v0.5 codebase 为起点** 的实施前导。Phase 12.6+ 真启动前 reread §5（Frida 原理）+ §13 T1-T20（既有 trap）+ §17.1（模块分层）。
+
