@@ -103,16 +103,16 @@ async createWord(input, _context =
 
 ---
 
-## async readWord(_input, _context =
+## async readWord(input, _context =
 
 ```javascript
-async readWord(_input, _context =
+async readWord(input, _context =
 ```
 
 * 读取 Word 文档
-   * @param {Object} input - 输入数据
+   * @param {Object} input - 输入数据 { filePath, format? }
    * @param {Object} context - 上下文
-   * @returns {Promise<Object>} 结果
+   * @returns {Promise<Object>} 结果 { success, filePath, text, html?, warnings }
 
 ---
 
