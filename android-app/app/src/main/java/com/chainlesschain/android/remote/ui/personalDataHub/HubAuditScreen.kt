@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -109,7 +109,16 @@ fun HubAuditScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(state.rows, key = { it.at.toString() + (it.eventId ?: it.action) }) { row ->
+                // Index-suffixed key: `at+action` is not unique when an
+                // adapter sync emits 1000+ audit rows within the same
+                // millisecond (e.g. system-data-android ingest 2026-05-21
+                // emitted 1305 `adapter.sync.invalid_raw` rows with eventId
+                // = null, collapsing to a single key and crashing
+                // measureLazyList). Real-device repro on Xiaomi 24115RA8EC.
+                itemsIndexed(
+                    state.rows,
+                    key = { idx, it -> "${it.at}|${it.eventId ?: "_"}|${it.action}|$idx" },
+                ) { _, row ->
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(row.action, fontWeight = FontWeight.SemiBold,
