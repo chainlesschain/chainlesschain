@@ -56,15 +56,34 @@ class LocalCcRunner @Inject constructor(
             )
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
-        if (!ccPath.exists() || !ccPath.canExecute()) {
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists()) {
             return@withContext CcResult.Failed(
                 reason = "cc shim missing at ${ccPath.absolutePath}",
                 exitCode = null,
                 stderr = null,
             )
         }
+        if (!mkshPath.exists()) {
+            return@withContext CcResult.Failed(
+                reason = "mksh shim missing at ${mkshPath.absolutePath}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
 
+        // Android W^X / SELinux: untrusted_app:s0 cannot execve a plain-text
+        // script in filesDir even with +x bit (LocalPtyClient sidesteps this
+        // via posix_spawn JNI in libpty_jni.so). For a plain Java
+        // ProcessBuilder we instead execve mksh — its $PREFIX/bin/mksh path
+        // is a symlink chain ending at nativeLibraryDir/libmksh.so, which IS
+        // on the W^X whitelist — and pass cc as a *script argument*. mksh
+        // reads cc as a regular file (no execve on it) and exec's $PREFIX/
+        // bin/node (also a .so symlink), so the only execve syscall we make
+        // is on a whitelisted library. Trap discovered via real-device 4d
+        // slice 2026-05-21 (see memory android-native-lib-extract-w-x).
         val command = listOf(
+            mkshPath.absolutePath,
             ccPath.absolutePath,
             "hub", "sync-adapter", adapterName,
             "--input", inputPath,
