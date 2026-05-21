@@ -50,6 +50,14 @@ const {
   runAnalysisSkill,
   ANALYSIS_SKILL_NAMES,
 } = require("@chainlesschain/personal-data-hub");
+const {
+  createAIChatHealthChecker,
+} = require("@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker");
+const {
+  getAIChatWizard,
+  createAccountsStore: createAIChatAccountsStore,
+  createVendorAdapterBridge: createAIChatVendorAdapterBridge,
+} = require("./aichat-wizard-factory.js");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
 function resolveHubDir() {
@@ -310,6 +318,31 @@ async function initHub() {
     }
   }
 
+  // Phase 10.3.5 — AIChat HealthChecker. Periodically re-validates persisted
+  // AIChat cookies against the vendor SPEC so the wizard UI can render the
+  // red-dot / "Cookie 过期，请重新登录" affordance without each open requiring
+  // a synchronous validate trip. Lazy: the underlying accountsStore reads
+  // aichat-accounts.json on each pass — no file work if the user never
+  // registered any vendor.
+  const aichatAccountsStore = createAIChatAccountsStore({ hubDir });
+  const aichatVendorAdapter = createAIChatVendorAdapterBridge();
+  const aichatHealthChecker = createAIChatHealthChecker({
+    accountsStore: aichatAccountsStore,
+    vendorAdapter: aichatVendorAdapter,
+  });
+  try {
+    aichatHealthChecker.start();
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] AIChat HealthChecker start failed:",
+      err && err.message,
+    );
+  }
+
+  // Expose the wizard controller (singleton-cached per hubDir by the
+  // factory) so the IPC layer can delegate without re-wiring deps per call.
+  const aichatWizard = getAIChatWizard({ hubDir });
+
   return {
     vault,
     registry,
@@ -322,7 +355,67 @@ async function initHub() {
     emailAccountsPath,
     alipayAccountsPath,
     entityResolver,
+    aichatAccountsStore,
+    aichatWizard,
+    aichatHealthChecker,
     analysisSkillNames: ANALYSIS_SKILL_NAMES,
+
+    /**
+     * Phase 10.3.5 — list registered AIChat vendors (scrubbed, no cookie
+     * values) for the wizard UI Step 1 to show "已接入" / red-dot. Cookie
+     * names are kept (so the UI can hint "cookie 字段已变 / 请刷新"); raw
+     * values stay locked in aichat-accounts.json.
+     */
+    async listAIChatAccounts() {
+      const entries = await aichatAccountsStore.list();
+      return (entries || []).map((e) => ({
+        vendor: e.vendor,
+        displayName: e.displayName || e.vendor,
+        registeredAt: e.registeredAt || null,
+        userId: e.userId || null,
+        lastSyncAt: e.lastSyncAt || null,
+        lastHealth: e.lastHealth || null,
+        cookieSpecVersion: e.cookieSpecVersion || null,
+        cookieNames: Object.keys(e.cookies || {}),
+      }));
+    },
+
+    /**
+     * Phase 10.3.5 — drop an AIChat vendor: removes the row from
+     * aichat-accounts.json AND (best-effort) clears the partition cookies
+     * so the next wizard run starts fresh. Vault events stay queryable.
+     */
+    async unregisterAIChatVendor(vendor) {
+      if (!vendor || typeof vendor !== "string") {
+        return { ok: false, reason: "VENDOR_REQUIRED" };
+      }
+      const before = await aichatAccountsStore.get(vendor);
+      if (!before) {
+        return { ok: false, reason: "NOT_REGISTERED", vendor };
+      }
+      await aichatAccountsStore.delete(vendor);
+      // Best-effort cookie clear via the wizard's rotate path. We swallow
+      // any error — the JSON row removal is the authoritative state.
+      try {
+        await aichatWizard.rotateLoginPartition({ vendor });
+      } catch (err) {
+        logger.warn(
+          "[PersonalDataHub] AIChat partition clear failed for",
+          vendor,
+          err && err.message,
+        );
+      }
+      return { ok: true, vendor };
+    },
+
+    /**
+     * Phase 10.3.5 — manually trigger one health-check pass (used by the
+     * wizard's "立即检查" affordance / debugging). Returns the same
+     * `{ checked, ok, failed, mismatch }` shape as the timer-driven path.
+     */
+    async runAIChatHealthCheckOnce() {
+      return await aichatHealthChecker.runOnce();
+    },
 
     /** Phase 11 — run a named internal analysis skill */
     async runSkill(name, options = {}) {
@@ -624,6 +717,16 @@ async function getHub() {
  * initialized hub (no-op).
  */
 function close() {
+  if (_hub && _hub.aichatHealthChecker) {
+    try {
+      _hub.aichatHealthChecker.stop();
+    } catch (err) {
+      logger.warn(
+        "[PersonalDataHub] AIChat HealthChecker stop failed:",
+        err && err.message,
+      );
+    }
+  }
   if (_hub && _hub.vault) {
     try {
       _hub.vault.close();

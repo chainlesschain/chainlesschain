@@ -145,4 +145,76 @@ describe("usePersonalDataHub — Phase 10.3 AIChat wizard topics", () => {
 
     await expect(hub.openAichatLogin("deepseek")).rejects.toThrow(/controller blew up/);
   });
+
+  // ─── Phase 10.3.5 — list-aichat-accounts / unregister-aichat / health ────
+
+  it("listAichatAccounts sends list-aichat-accounts with no payload + 5s timeout", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: [
+        {
+          vendor: "deepseek",
+          displayName: "DeepSeek",
+          registeredAt: 1700000000000,
+          userId: "u_42",
+          lastSyncAt: null,
+          lastHealth: { ok: true, at: 1700000000000 },
+          cookieSpecVersion: 1,
+          cookieNames: ["userToken"],
+        },
+      ],
+    });
+    const hub = usePersonalDataHub();
+
+    const rows = await hub.listAichatAccounts();
+
+    const [payload, timeoutMs] = sendRaw.mock.calls[0];
+    expect(payload).toEqual({ type: "personal-data-hub.list-aichat-accounts" });
+    expect(timeoutMs).toBe(5_000);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].vendor).toBe("deepseek");
+    expect(rows[0].lastHealth.ok).toBe(true);
+    // Cookie *names* leak (so UI can hint) but values do not.
+    expect(rows[0].cookieNames).toEqual(["userToken"]);
+    expect(rows[0]).not.toHaveProperty("cookies");
+  });
+
+  it("unregisterAichat sends unregister-aichat with vendor", async () => {
+    sendRaw.mockResolvedValueOnce({ result: { ok: true, vendor: "kimi" } });
+    const hub = usePersonalDataHub();
+
+    const r = await hub.unregisterAichat("kimi");
+
+    const [payload, timeoutMs] = sendRaw.mock.calls[0];
+    expect(payload).toEqual({
+      type: "personal-data-hub.unregister-aichat",
+      vendor: "kimi",
+    });
+    expect(timeoutMs).toBe(5_000);
+    expect(r).toEqual({ ok: true, vendor: "kimi" });
+  });
+
+  it("unregisterAichat surfaces NOT_REGISTERED reason", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: { ok: false, reason: "NOT_REGISTERED", vendor: "ghost" },
+    });
+    const hub = usePersonalDataHub();
+
+    const r = await hub.unregisterAichat("ghost");
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("NOT_REGISTERED");
+  });
+
+  it("aichatHealthCheckOnce sends aichat-health-check-once with 30s timeout", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: { checked: 2, ok: 1, failed: 1, mismatch: 0 },
+    });
+    const hub = usePersonalDataHub();
+
+    const r = await hub.aichatHealthCheckOnce();
+
+    const [payload, timeoutMs] = sendRaw.mock.calls[0];
+    expect(payload).toEqual({ type: "personal-data-hub.aichat-health-check-once" });
+    expect(timeoutMs).toBe(30_000);
+    expect(r).toMatchObject({ checked: 2, ok: 1, failed: 1 });
+  });
 });

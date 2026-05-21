@@ -707,7 +707,11 @@ const resolverStats = reactive({ queue: { pending: 0 }, mergeGroups: 0, reviewQu
 const aichatWizardOpen = ref(false)
 const aichatAccounts = ref([])
 function onAichatRegistered(payload) {
-  message.success(`已接入 ${payload.vendor}`)
+  if (payload?.unregistered) {
+    message.success(`已注销 ${payload.vendor}`)
+  } else {
+    message.success(`已接入 ${payload.vendor}`)
+  }
   // The drawer auto-closes via emit('update:open', false) in resetWizard;
   // refresh adapters list so the new aichat-history adapter shows up.
   refresh()
@@ -786,6 +790,13 @@ async function refresh() {
     health.value = await hub.health()
     stats.value = await hub.stats()
     adapters.value = await hub.listAdapters()
+    // Phase 10.3.5 — also refresh AIChat account list so the wizard's
+    // existing-accounts prop is up to date when the drawer is reopened.
+    try {
+      aichatAccounts.value = await hub.listAichatAccounts()
+    } catch (_e) {
+      // Non-fatal — older hubs without the topic just keep the previous list.
+    }
   } catch (err) {
     message.error('刷新失败: ' + err.message)
   } finally {

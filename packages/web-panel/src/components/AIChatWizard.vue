@@ -31,12 +31,32 @@
           >
             <div class="vendor-head">
               <strong>{{ v.displayName }}</strong>
-              <a-tag v-if="isRegistered(v.vendor)" color="green">已接入</a-tag>
+              <a-tag v-if="healthOf(v.vendor) === 'fail'" color="red">🔴 重新登录</a-tag>
+              <a-tag v-else-if="healthOf(v.vendor) === 'mismatch'" color="orange">⚠ 规格升级</a-tag>
+              <a-tag v-else-if="healthOf(v.vendor) === 'unknown'" color="blue">已接入·待巡检</a-tag>
+              <a-tag v-else-if="healthOf(v.vendor) === 'ok'" color="green">✓ 已接入</a-tag>
             </div>
             <div class="hint">{{ v.notes }}</div>
             <div class="hint" style="margin-top: 4px;">
               <a-tag color="default">{{ v.requiredCookies.length }} 必需 cookie</a-tag>
               <a-tag color="default">过期约 {{ v.cookieMaxAgeHintDays }} 天</a-tag>
+            </div>
+            <div
+              v-if="isRegistered(v.vendor) && healthReasonOf(v.vendor)"
+              class="hint"
+              style="margin-top: 4px; color: #ff4d4f;"
+            >
+              {{ healthReasonOf(v.vendor) }}
+            </div>
+            <div v-if="isRegistered(v.vendor)" class="vendor-actions" @click.stop>
+              <a-popconfirm
+                title="注销该 AI 对话来源？历史事件仍可在 vault 中查询。"
+                ok-text="注销"
+                cancel-text="取消"
+                @confirm="onUnregister(v.vendor)"
+              >
+                <a-button size="small" type="text" danger>注销</a-button>
+              </a-popconfirm>
             </div>
           </a-card>
         </a-col>
@@ -257,6 +277,50 @@ function isRegistered(vendor) {
   return props.existingAccounts.some((a) => a && a.vendor === vendor);
 }
 
+function _entry(vendor) {
+  return props.existingAccounts.find((a) => a && a.vendor === vendor) || null;
+}
+
+/**
+ * Coarse health tag used by the Step 1 vendor card. Possible states:
+ *   - `null`     vendor not registered
+ *   - `unknown`  registered but no health pass has run yet (lastHealth absent)
+ *   - `ok`       latest health pass succeeded
+ *   - `mismatch` SPEC_VERSION_MISMATCH (cookies older than current spec)
+ *   - `fail`     latest health pass failed (cookie expired / risk control etc.)
+ */
+function healthOf(vendor) {
+  const e = _entry(vendor);
+  if (!e) return null;
+  if (!e.lastHealth) return "unknown";
+  if (e.lastHealth.ok) return "ok";
+  if (e.lastHealth.reason === "SPEC_VERSION_MISMATCH") return "mismatch";
+  return "fail";
+}
+
+function healthReasonOf(vendor) {
+  const e = _entry(vendor);
+  if (!e || !e.lastHealth || e.lastHealth.ok) return "";
+  const r = e.lastHealth.reason;
+  if (!r) return "Cookie 校验失败，建议重新登录";
+  if (r === "SPEC_VERSION_MISMATCH") return "cookie 规格已升级，请重新登录";
+  if (r === "ADAPTER_THREW") return "上次校验抛错，建议稍后重试";
+  if (r === "COOKIE_EXPIRED") return "Cookie 已过期，请重新登录";
+  return r;
+}
+
+async function onUnregister(vendor) {
+  try {
+    const r = await hub.unregisterAichat(vendor);
+    if (r?.ok) {
+      emit("registered", { vendor, accountId: null, unregistered: true });
+    }
+  } catch (err) {
+    // Surface via the standard registerResult error sub-pane on next interaction
+    registerResult.value = { ok: false, reason: err?.message || "UNREGISTER_FAILED" };
+  }
+}
+
 function pickVendor(vendor) {
   selectedVendor.value = vendor;
 }
@@ -357,6 +421,11 @@ watch(
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+}
+.vendor-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
 }
 .kv {
   font-size: 12px;
