@@ -21,3 +21,16 @@ buildscript {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// Apply the same dep-conflict exclusions to every subproject. Previously these
+// lived only in :app, which left :core-ui (and any other library module's
+// androidTest configurations) hitting `Duplicate class org.intellij.lang.
+// annotations.*` from `annotations:23.0.0` + `annotations-java5:17.0.0`
+// being pulled in transitively.
+subprojects {
+    configurations.all {
+        exclude(group = "org.jetbrains", module = "annotations-java5")
+        exclude(group = "org.webrtc", module = "google-webrtc")
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+    }
+}
