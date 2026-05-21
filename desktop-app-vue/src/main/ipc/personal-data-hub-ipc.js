@@ -69,6 +69,23 @@ function register() {
     }),
   );
 
+  // Path Y wiring — return prompt context only (no LLM call). Caller hosts
+  // the LLM (e.g. Android-side Volcengine Doubao via API key). Decouples
+  // vault retrieval from inference so a mobile front-end can do AI analysis
+  // even when the desktop has no working LLM provider configured.
+  ipcMain.handle(
+    `${NS}:retrieve-context`,
+    safe(async ({ question, options }) => {
+      const hub = await hubWiring.getHub();
+      if (!hub.engine) {
+        return {
+          error: "Analysis engine unavailable — vault not initialized",
+        };
+      }
+      return await hub.engine.retrieveContext(question, options || {});
+    }),
+  );
+
   ipcMain.handle(
     `${NS}:stats`,
     safe(async () => {
@@ -327,16 +344,24 @@ function register() {
 
   ipcMain.handle(
     `${NS}:register-wechat`,
-    safe(async ({ account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride }) => {
-      const hub = await hubWiring.getHub();
-      return await hub.registerWechatAdapter({
+    safe(
+      async ({
         account,
         dbPath,
         wechatDataPath,
         fridaOpts,
         keyProviderOverride,
-      });
-    }),
+      }) => {
+        const hub = await hubWiring.getHub();
+        return await hub.registerWechatAdapter({
+          account,
+          dbPath,
+          wechatDataPath,
+          fridaOpts,
+          keyProviderOverride,
+        });
+      },
+    ),
   );
 
   ipcMain.handle(

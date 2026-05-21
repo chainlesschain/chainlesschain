@@ -42,6 +42,15 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       return await hub.engine.ask(msg.question, msg.options || {});
     }),
 
+  // Path Y: prompt context only, no LLM call. Lets web-shell / mobile host
+  // its own inference (Volcengine Doubao, OpenRouter, etc.) while keeping
+  // vault retrieval centralized.
+  "personal-data-hub.retrieve-context": async (msg) =>
+    withHub(async (hub) => {
+      if (!hub.engine) throw new Error("Analysis engine unavailable");
+      return await hub.engine.retrieveContext(msg.question, msg.options || {});
+    }),
+
   "personal-data-hub.stats": async () =>
     withHub((hub) => ({
       vault: hub.vault.stats(),
@@ -219,14 +228,15 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     withHub(async (hub) => await hub.probeWechatEnv()),
 
   "personal-data-hub.register-wechat": async (msg) =>
-    withHub(async (hub) =>
-      await hub.registerWechatAdapter({
-        account: msg.account,
-        dbPath: msg.dbPath,
-        wechatDataPath: msg.wechatDataPath,
-        fridaOpts: msg.fridaOpts,
-        keyProviderOverride: msg.keyProviderOverride,
-      }),
+    withHub(
+      async (hub) =>
+        await hub.registerWechatAdapter({
+          account: msg.account,
+          dbPath: msg.dbPath,
+          wechatDataPath: msg.wechatDataPath,
+          fridaOpts: msg.fridaOpts,
+          keyProviderOverride: msg.keyProviderOverride,
+        }),
     ),
 
   "personal-data-hub.unregister-wechat": async (msg) =>

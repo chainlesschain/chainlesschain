@@ -300,3 +300,96 @@ describe("AnalysisEngine input validation", () => {
     await expect(engine.ask(null)).rejects.toThrow();
   });
 });
+
+// ─── retrieveContext: prompt assembly without LLM call ───────────────────
+//
+// Path Y wiring lets a mobile front-end host the LLM call locally (e.g. the
+// Android-side Volcengine Doubao adapter) while keeping vault + retrieval on
+// the desktop. retrieveContext mirrors the front half of ask() and returns
+// the assembled messages so the caller can hand them straight to its own LLM.
+
+describe("AnalysisEngine.retrieveContext", () => {
+  it("returns parsed + facts + messages without invoking the LLM", async () => {
+    freshVault();
+    const [e1, e2, e3] = seedOrders(vault);
+
+    // LLM that would throw if called — proves retrieveContext is LLM-free.
+    const llm = {
+      isLocal: true,
+      chat: () => { throw new Error("LLM must not be called by retrieveContext"); },
+    };
+    const engine = new AnalysisEngine({ vault, llm });
+    const r = await engine.retrieveContext("上个月在淘宝总共花了多少？", { now: NOW });
+
+    expect(r.question).toBe("上个月在淘宝总共花了多少？");
+    expect(r.parsed.filters.adapter).toBe("taobao");
+    expect(r.facts.length).toBe(3);
+    expect(r.factIds).toEqual(expect.arrayContaining([e1.id, e2.id, e3.id]));
+    expect(r.factCount).toBe(3);
+    expect(r.truncated).toBe(false);
+    expect(Array.isArray(r.messages)).toBe(true);
+    expect(r.messages.length).toBeGreaterThan(0);
+    expect(r.messages[0]).toHaveProperty("role");
+    expect(r.messages[0]).toHaveProperty("content");
+    expect(r.systemPrompt).toBeTypeOf("string");
+    expect(r.retrievedAt).toBeTypeOf("number");
+    expect(r.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("ignores acceptNonLocal — privacy gate does not apply (no LLM contacted)", async () => {
+    freshVault();
+    seedOrders(vault);
+    // Non-local LLM declared on the engine, but retrieveContext doesn't call it.
+    const llm = {
+      isLocal: false,
+      chat: () => { throw new Error("must not be called"); },
+    };
+    const engine = new AnalysisEngine({ vault, llm });
+    // No acceptNonLocal option needed.
+    const r = await engine.retrieveContext("test", { now: NOW });
+    expect(r.factCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it("incorporates RAG retriever results into facts", async () => {
+    freshVault();
+    const orders = seedOrders(vault);
+    const ragRetriever = async () => [{ id: orders[3].id, text: "fake", metadata: {} }];
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault, llm, ragRetriever });
+    const r = await engine.retrieveContext("上个月在淘宝总共花了多少？", { now: NOW });
+    expect(r.facts.length).toBe(4);
+    expect(r.ragContextIds).toEqual([orders[3].id]);
+  });
+
+  it("RAG failure is captured but doesn't abort retrieval", async () => {
+    freshVault();
+    seedOrders(vault);
+    const ragRetriever = async () => { throw new Error("qdrant unreachable"); };
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault, llm, ragRetriever });
+    const r = await engine.retrieveContext("test", { now: NOW });
+    expect(r.factCount).toBeGreaterThanOrEqual(0);
+    const audits = vault.queryAudit({ action: "analysis.rag_failed" });
+    expect(audits.length).toBe(1);
+  });
+
+  it("writes analysis.retrieve_context audit row by default", async () => {
+    freshVault();
+    seedOrders(vault);
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault, llm });
+    await engine.retrieveContext("test", { now: NOW });
+    const audits = vault.queryAudit({ action: "analysis.retrieve_context" });
+    expect(audits.length).toBe(1);
+  });
+
+  it("rejects empty / non-string question", async () => {
+    freshVault();
+    const engine = new AnalysisEngine({
+      vault,
+      llm: new MockLLMClient({ reply: "" }),
+    });
+    await expect(engine.retrieveContext("")).rejects.toThrow(/non-empty/);
+    await expect(engine.retrieveContext(null)).rejects.toThrow();
+  });
+});
