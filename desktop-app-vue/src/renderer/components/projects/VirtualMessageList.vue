@@ -24,26 +24,14 @@
           transform: `translateY(${virtualRow.start}px)`,
         }"
       >
-        <slot
-          :message="messages[virtualRow.index]"
-          :index="virtualRow.index"
-        />
+        <slot :message="messages[virtualRow.index]" :index="virtualRow.index" />
       </div>
     </div>
 
     <!-- 🔥 降级渲染：virtualizer未初始化或没有虚拟项时显示所有消息 -->
-    <div
-      v-else
-      class="fallback-list"
-    >
-      <div
-        v-for="(message, index) in messages"
-        :key="message.id || index"
-      >
-        <slot
-          :message="message"
-          :index="index"
-        />
+    <div v-else class="fallback-list">
+      <div v-for="(message, index) in messages" :key="message.id || index">
+        <slot :message="message" :index="index" />
       </div>
     </div>
   </div>
@@ -79,7 +67,7 @@ const virtualItems = computed(() => {
     return [];
   }
   // 访问updateKey以确保当它变化时重新计算
-  updateKey.value;
+  void updateKey.value;
   return virtualizer.value.getVirtualItems();
 });
 

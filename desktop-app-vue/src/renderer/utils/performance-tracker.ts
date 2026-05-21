@@ -3,7 +3,7 @@
  * Tracks file operations, AI responses, and system metrics
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // ==================== 类型定义 ====================
 
@@ -109,19 +109,24 @@ export interface AllMetrics {
  * 性能事件类型
  */
 export type PerformanceEventType =
-  | 'fileOperation'
-  | 'aiResponse'
-  | 'networkRequest'
-  | 'cacheHit'
-  | 'cacheMiss'
-  | 'clear';
+  | "fileOperation"
+  | "aiResponse"
+  | "networkRequest"
+  | "cacheHit"
+  | "cacheMiss"
+  | "clear";
 
 /**
  * 性能事件监听器
  */
 export type PerformanceEventListener = (
   event: PerformanceEventType,
-  data: FileOperationData | AiResponseData | NetworkRequestData | CacheStats | Record<string, never>
+  data:
+    | FileOperationData
+    | AiResponseData
+    | NetworkRequestData
+    | CacheStats
+    | Record<string, never>,
 ) => void;
 
 /**
@@ -172,13 +177,18 @@ class PerformanceTracker {
    */
   private emit(
     event: PerformanceEventType,
-    data: FileOperationData | AiResponseData | NetworkRequestData | CacheStats | Record<string, never>
+    data:
+      | FileOperationData
+      | AiResponseData
+      | NetworkRequestData
+      | CacheStats
+      | Record<string, never>,
   ): void {
     this.listeners.forEach((listener) => {
       try {
         listener(event, data);
       } catch (error) {
-        logger.error('Performance tracker listener error:', error);
+        logger.error("Performance tracker listener error:", error);
       }
     });
   }
@@ -186,7 +196,11 @@ class PerformanceTracker {
   /**
    * Track file operation
    */
-  trackFileOperation(operation: string, file: string, startTime: number): number {
+  trackFileOperation(
+    operation: string,
+    file: string,
+    startTime: number,
+  ): number {
     const duration = performance.now() - startTime;
     const data: FileOperationData = {
       operation,
@@ -202,7 +216,7 @@ class PerformanceTracker {
       this.metrics.fileOperations.shift();
     }
 
-    this.emit('fileOperation', data);
+    this.emit("fileOperation", data);
     return duration;
   }
 
@@ -225,7 +239,7 @@ class PerformanceTracker {
       this.metrics.aiResponses.shift();
     }
 
-    this.emit('aiResponse', data);
+    this.emit("aiResponse", data);
     return duration;
   }
 
@@ -236,7 +250,7 @@ class PerformanceTracker {
     url: string,
     method: string,
     startTime: number,
-    success: boolean = true
+    success: boolean = true,
   ): number {
     const duration = performance.now() - startTime;
     const data: NetworkRequestData = {
@@ -254,7 +268,7 @@ class PerformanceTracker {
       this.metrics.networkRequests.shift();
     }
 
-    this.emit('networkRequest', data);
+    this.emit("networkRequest", data);
     return duration;
   }
 
@@ -263,7 +277,7 @@ class PerformanceTracker {
    */
   trackCacheHit(): void {
     this.metrics.cacheHits++;
-    this.emit('cacheHit', {
+    this.emit("cacheHit", {
       hits: this.metrics.cacheHits,
       misses: this.metrics.cacheMisses,
       hitRate: this.getCacheHitRate(),
@@ -275,7 +289,7 @@ class PerformanceTracker {
    */
   trackCacheMiss(): void {
     this.metrics.cacheMisses++;
-    this.emit('cacheMiss', {
+    this.emit("cacheMiss", {
       hits: this.metrics.cacheHits,
       misses: this.metrics.cacheMisses,
       hitRate: this.getCacheHitRate(),
@@ -348,7 +362,7 @@ class PerformanceTracker {
     const sum = times.reduce((a, b) => a + b, 0);
     const totalTokens = this.metrics.aiResponses.reduce(
       (acc, res) => acc + res.tokens,
-      0
+      0,
     );
 
     return {
@@ -377,7 +391,7 @@ class PerformanceTracker {
     }
 
     const successful = this.metrics.networkRequests.filter(
-      (req) => req.success
+      (req) => req.success,
     ).length;
     const times = this.metrics.networkRequests.map((req) => req.duration);
     const sum = times.reduce((a, b) => a + b, 0);
@@ -394,27 +408,29 @@ class PerformanceTracker {
    * Intercept fetch for network tracking
    */
   private interceptFetch(): void {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
     this.originalFetch = window.fetch;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- inner function below uses .call(this) to preserve fetch caller context
     const tracker = this;
 
     window.fetch = function (
       input: RequestInfo | URL,
-      init?: RequestInit
+      init?: RequestInit,
     ): Promise<Response> {
       const startTime = performance.now();
       const url =
-        typeof input === 'string'
+        typeof input === "string"
           ? input
           : input instanceof URL
             ? input.toString()
             : input.url;
-      const method = init?.method || 'GET';
+      const method = init?.method || "GET";
 
-      return tracker.originalFetch!.call(this, input, init)
+      return tracker
+        .originalFetch!.call(this, input, init)
         .then((response) => {
           tracker.trackNetworkRequest(url, method, startTime, response.ok);
           return response;
@@ -440,7 +456,7 @@ class PerformanceTracker {
       const duration = performance.now() - startTime;
       logger.error(
         `[Performance] ${name} failed after ${Math.round(duration)}ms:`,
-        error
+        error,
       );
       throw error;
     }
@@ -462,7 +478,7 @@ class PerformanceTracker {
       const measure = performance.getEntriesByName(name)[0];
       return measure.duration;
     } catch (error) {
-      logger.error('Performance measure error:', error);
+      logger.error("Performance measure error:", error);
       return 0;
     }
   }
@@ -476,7 +492,7 @@ class PerformanceTracker {
     this.metrics.networkRequests = [];
     this.metrics.cacheHits = 0;
     this.metrics.cacheMisses = 0;
-    this.emit('clear', {});
+    this.emit("clear", {});
   }
 
   /**
