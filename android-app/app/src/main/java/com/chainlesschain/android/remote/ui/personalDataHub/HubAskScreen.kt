@@ -205,53 +205,8 @@ fun HubAskScreen(
             onDismissRequest = viewModel::closeCitation,
             sheetState = sheetState
         ) {
-            CitationDetailContent(detail)
+            // Phase 14.3.3.b — shared with HubAuditScreen via HubEventDetailSheet.kt.
+            HubEventDetailContent(detail)
         }
-    }
-}
-
-@Composable
-private fun CitationDetailContent(detail: com.chainlesschain.android.remote.commands.EventDetailResponse) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            "事件详情",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text("ID: ${detail.event.id}", style = MaterialTheme.typography.bodySmall)
-        Text("subtype: ${detail.event.subtype}", style = MaterialTheme.typography.bodySmall)
-        Text("source: ${detail.event.source}", style = MaterialTheme.typography.bodySmall)
-        detail.event.title?.let { t ->
-            Spacer(Modifier.height(8.dp))
-            Text(t, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        }
-        detail.event.actor?.let { Text("actor: $it", style = MaterialTheme.typography.bodySmall) }
-        detail.event.amount?.let { amt ->
-            val cur = detail.event.currency ?: ""
-            Text("amount: $amt $cur", style = MaterialTheme.typography.bodySmall)
-        }
-        detail.classification?.let { c ->
-            Spacer(Modifier.height(8.dp))
-            Text("classification: ${c.template ?: "?"}", style = MaterialTheme.typography.bodySmall)
-            if (c.labels.isNotEmpty()) {
-                Text("labels: ${c.labels.joinToString()}", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        detail.extraction?.let { e ->
-            Spacer(Modifier.height(8.dp))
-            Text("extraction template: ${e.template ?: "?"}", style = MaterialTheme.typography.bodySmall)
-            if (e.fields.isNotEmpty()) {
-                Text(
-                    e.fields.entries.joinToString("\n") { "${it.key} = ${it.value}" },
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-        Spacer(Modifier.height(16.dp))
     }
 }
