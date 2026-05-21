@@ -28,7 +28,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 30, 33]  # Android 8.0, 11, 13
+        # API 26 dropped 2026-05-22 — :feature-local-terminal bumped minSdk to 28
+        # for NDK spawn.h support (see its build.gradle.kts), making the whole
+        # app graph effectively minSdk 28. API 26 manifest merger fails on every
+        # androidTest module that transitively depends on feature-local-terminal.
+        api-level: [30, 33]  # Android 11, 13
         arch: [x86_64]
         target: [google_apis]
 
