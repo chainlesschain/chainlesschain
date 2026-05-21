@@ -51,13 +51,17 @@ const {
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
 
-import healthCheckerModule from "@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker";
 import {
   getAIChatWizard,
   createAccountsStore as createAIChatAccountsStore,
   createVendorAdapterBridge as createAIChatVendorAdapterBridge,
 } from "./personal-data-hub-aichat-wizard.js";
-const { createAIChatHealthChecker } = healthCheckerModule;
+
+async function loadAIChatHealthChecker() {
+  const mod =
+    await import("@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker");
+  return (mod.default || mod).createAIChatHealthChecker;
+}
 
 // ─── Lazy ESM imports of cli KG / BM25 ───────────────────────────────────
 
@@ -225,6 +229,7 @@ async function initHub() {
   // can surface lastHealth reliably.
   const aichatAccountsStore = createAIChatAccountsStore({ hubDir });
   const aichatVendorAdapter = createAIChatVendorAdapterBridge();
+  const createAIChatHealthChecker = await loadAIChatHealthChecker();
   const aichatHealthChecker = createAIChatHealthChecker({
     accountsStore: aichatAccountsStore,
     vendorAdapter: aichatVendorAdapter,
