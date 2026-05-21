@@ -30,6 +30,8 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
+> **144 top-level commands** are registered (as of CLI v0.162.x). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+
 ### `chainlesschain setup`
 
 Interactive setup wizard. Checks prerequisites, configures LLM provider, downloads the desktop binary, and optionally starts Docker services.
@@ -190,7 +192,7 @@ chainlesschain llm switch <name>        # Switch active provider
 
 ### `chainlesschain agent` (alias: `a`)
 
-Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 141 built-in skills.
+Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 139 built-in skills.
 
 ```bash
 chainlesschain agent                    # Default: Ollama qwen2.5:7b
@@ -206,7 +208,7 @@ Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-dr
 
 ### `chainlesschain skill <action>`
 
-Manage and run 141 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
+Manage and run 139 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
 
 ```bash
 chainlesschain skill list               # List all skills grouped by category
@@ -1317,7 +1319,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (7600+ tests across 280+ files, incl. ~2,800 V2 governance tests from iter16–iter23)
+npm test                # Run all tests (~9,000 tests across 280+ files, incl. ~5,984 V2 governance tests from iter16–iter28)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -1325,28 +1327,31 @@ npm run test:e2e        # End-to-end tests
 
 ### Test Coverage
 
-| Category                  | Files   | Tests    | Status          |
-| ------------------------- | ------- | -------- | --------------- |
-| Unit — lib modules        | 71      | 1750+    | All passing     |
-| Unit — commands           | 17      | 400+     | All passing     |
-| Unit — runtime            | 1       | 6        | All passing     |
-| Unit — WS sessions        | 9       | 156      | All passing     |
-| Unit — Skill Packs        | 2       | 57+      | All passing     |
-| Unit — AI Templates       | 2       | 130+     | All passing     |
-| Unit — Web UI             | 1       | 46       | All passing     |
-| Unit — Learning           | 7       | 177      | All passing     |
-| Integration               | 13      | 230+     | All passing     |
-| Integration — WS session  | 1       | 12       | All passing     |
-| Integration — AI Handlers | 2       | 100+     | All passing     |
-| Integration — Web UI      | 1       | 29       | All passing     |
-| Integration — Learning    | 1       | 12       | All passing     |
-| E2E                       | 15      | 260+     | All passing     |
-| E2E — Skill Packs         | 1       | 23+      | All passing     |
-| E2E — AI Templates        | 4       | 65+      | All passing     |
-| E2E — Web UI              | 1       | 24       | All passing     |
-| E2E — Learning            | 1       | 16       | All passing     |
-| Core packages (external)  | —       | 118      | All passing     |
-| **CLI Total**             | **201** | **3360** | **All passing** |
+The numbers below are an approximate, pre-iter16 snapshot of the unit/integration/e2e breakdown. Since iter16–iter28 added **136 V2 governance surfaces × ~44 tests ≈ ~5,984 additional CLI V2 tests**, the actual total is currently around **~9,000 tests across 280+ files** — verify with `npm test` for the authoritative count.
+
+| Category                  | Files    | Tests      | Status          |
+| ------------------------- | -------- | ---------- | --------------- |
+| Unit — lib modules        | 71       | 1750+      | All passing     |
+| Unit — commands           | 17       | 400+       | All passing     |
+| Unit — runtime            | 1        | 6          | All passing     |
+| Unit — WS sessions        | 9        | 156        | All passing     |
+| Unit — Skill Packs        | 2        | 57+        | All passing     |
+| Unit — AI Templates       | 2        | 130+       | All passing     |
+| Unit — Web UI             | 1        | 46         | All passing     |
+| Unit — Learning           | 7        | 177        | All passing     |
+| Integration               | 13       | 230+       | All passing     |
+| Integration — WS session  | 1        | 12         | All passing     |
+| Integration — AI Handlers | 2        | 100+       | All passing     |
+| Integration — Web UI      | 1        | 29         | All passing     |
+| Integration — Learning    | 1        | 12         | All passing     |
+| E2E                       | 15       | 260+       | All passing     |
+| E2E — Skill Packs         | 1        | 23+        | All passing     |
+| E2E — AI Templates        | 4        | 65+        | All passing     |
+| E2E — Web UI              | 1        | 24         | All passing     |
+| E2E — Learning            | 1        | 16         | All passing     |
+| Core packages (external)  | —        | 118        | All passing     |
+| V2 Governance (iter16–28) | 136      | ~5,984     | All passing     |
+| **CLI Total (approx.)**   | **280+** | **~9,000** | **All passing** |
 
 ## License
 
