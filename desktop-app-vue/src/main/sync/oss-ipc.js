@@ -30,6 +30,7 @@ const walker = require("./incremental-walker");
 const renderer = require("./markdown-renderer");
 const { runOSSSync } = require("./oss-engine");
 const { OSSClient } = require("./oss-client");
+const { detectOrphans, deleteOrphans } = require("./orphan-detector");
 
 const PROVIDER_ID = "oss";
 
@@ -239,8 +240,72 @@ function registerOSSIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
     }
   });
 
+  // ── sync:oss:list-orphans ─────────────────────────────────────
+  // Phase 3c follow-up D7: 列远端在本地 cursor 没记录的孤儿对象
+  ipcMain.handle("sync:oss:list-orphans", async () => {
+    try {
+      if (!database) {
+        return { success: false, error: "数据库未初始化" };
+      }
+      const creds = _loadCredentialsForClient();
+      if (!creds) {
+        return { success: false, error: "OSS 凭证未配置" };
+      }
+      const client = new OSSClient(creds);
+      let listResult;
+      try {
+        listResult = await client.listRemote();
+      } catch (err) {
+        return {
+          success: false,
+          error: `远端列举失败：${err?.message || String(err)}`,
+        };
+      }
+      const cursor = store.getCursor(database, PROVIDER_ID) || {};
+      const diff = detectOrphans({ cursor, listResult });
+      return {
+        success: true,
+        data: {
+          orphans: diff.orphans,
+          knownCount: diff.knownCount,
+          totalRemote: diff.totalRemote,
+        },
+      };
+    } catch (err) {
+      logger.error("[OSS IPC] list-orphans 异常:", err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // ── sync:oss:delete-orphans ───────────────────────────────────
+  ipcMain.handle("sync:oss:delete-orphans", async (_event, payload) => {
+    try {
+      const orphans = Array.isArray(payload?.orphans) ? payload.orphans : null;
+      if (!orphans) {
+        return {
+          success: false,
+          error: "payload.orphans 必须是 [{filename, etag?}] 数组",
+        };
+      }
+      const creds = _loadCredentialsForClient();
+      if (!creds) {
+        return { success: false, error: "OSS 凭证未配置" };
+      }
+      const client = new OSSClient(creds);
+      const result = await deleteOrphans({
+        client,
+        orphans,
+        logger: (e) => logger[e.level || "info"]?.("[OSS IPC orphan]", e.msg),
+      });
+      return { success: true, data: result };
+    } catch (err) {
+      logger.error("[OSS IPC] delete-orphans 异常:", err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   ipcGuard.markModuleRegistered("oss-ipc");
-  logger.info("[OSS IPC] 已注册 5 个 handlers");
+  logger.info("[OSS IPC] 已注册 7 个 handlers");
 }
 
 module.exports = {
