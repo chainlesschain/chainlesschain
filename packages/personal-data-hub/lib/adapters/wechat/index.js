@@ -7,6 +7,7 @@ const { WeChatDBReader, KNOWN_PRAGMA_PROFILES } = require("./db-reader");
 const { normalizeMessage, normalizeContact, wxidToPersonId } = require("./normalize");
 const { KeyProvider, MD5KeyProvider, FridaKeyProvider } = require("./key-providers");
 const envProbe = require("./env-probe");
+const { bootstrapWechatAdapter } = require("./bootstrap");
 
 module.exports = {
   WechatAdapter,
@@ -32,4 +33,5 @@ module.exports = {
   WeChatFridaKeyProvider: FridaKeyProvider,
   probeWeChatEnv: envProbe.probe,
   decideWeChatKeyProvider: envProbe.decide,
+  bootstrapWechatAdapter,
 };
