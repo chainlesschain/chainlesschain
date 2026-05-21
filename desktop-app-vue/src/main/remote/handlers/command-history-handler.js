@@ -103,6 +103,24 @@ class CommandHistoryHandler {
       case "getByTimeRange":
         return await this.getByTimeRange(params, context);
 
+      // ─── Phase 6.5 Android-aligned method names ──────────────────────
+      // Mirror `HistoryCommands.kt`. The earlier desktop-only names
+      // (getById / clear / etc.) stay wired for existing SPA callers;
+      // these new methods are Android-shape wrappers that satisfy the
+      // typed `Result<...Response>` decoders without breaking the SPA.
+
+      case "getCommand":
+        return await this.getCommand(params, context);
+
+      case "clearHistory":
+        return await this.clearHistoryMobile(params, context);
+
+      case "replay":
+        return await this.replayCommand(params, context);
+
+      case "getFrequent":
+        return await this.getFrequent(params, context);
+
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -472,6 +490,196 @@ class CommandHistoryHandler {
   }
 
   /**
+   * Phase 6.5 — `history.getCommand` (Android / iOS HistoryCommands.kt:66).
+   *
+   * Android-shape wrapper around getById:
+   *   `{ success, command: CommandRecordDetail }` vs the desktop-internal
+   *   raw row. Android decoder needs the `command` wrapper + bool success.
+   *
+   * Param: `commandId` (Android-side) maps to `id` (desktop column). We
+   * accept both for forward compat.
+   */
+  async getCommand(params, _context) {
+    const commandId = params && (params.commandId || params.id);
+    if (!commandId) {
+      return { success: false, error: "commandId required" };
+    }
+
+    try {
+      const row = await this.database.get(
+        "SELECT * FROM command_history WHERE id = ? OR request_id = ?",
+        [commandId, commandId],
+      );
+      if (!row) {
+        return { success: false, error: "NOT_FOUND" };
+      }
+      // CommandRecordDetail maps the SQLite snake_case to camelCase keys
+      // matching the Kotlin data class. params/result decoded; error
+      // surfaced as a string if present (vs JSON envelope).
+      const detail = {
+        id: String(row.id),
+        method: row.method,
+        params: row.params ? JSON.parse(row.params) : {},
+        result: row.result ? JSON.parse(row.result) : null,
+        success: row.status === "success",
+        duration: row.duration || 0,
+        timestamp: row.created_at,
+        deviceDid: row.device_did || null,
+        deviceName: null, // Not stored in command_history; left null for parity
+        error: row.error ? _safeJsonMessage(row.error) : null,
+      };
+      return { success: true, command: detail };
+    } catch (err) {
+      logger.error("[CommandHistoryHandler] getCommand failed:", err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Phase 6.5 — `history.clearHistory` (Android / iOS HistoryCommands.kt:87).
+   *
+   * Android-shape wrapper around the desktop `clear` action. Returns the
+   * `ClearHistoryResponse{success, deletedCount, message}` shape (vs the
+   * desktop-internal `{deleted, message}`) — key rename + bool success.
+   *
+   * Param mapping: Android `before` → desktop `beforeTime`; Android
+   * `method` filter is honored even though desktop's existing `clear`
+   * accepts `status` not `method` (we add method support here).
+   */
+  async clearHistoryMobile(params, _context) {
+    const { before, method } = params || {};
+
+    let query = "DELETE FROM command_history WHERE 1=1";
+    const args = [];
+    if (typeof before === "number") {
+      query += " AND created_at < ?";
+      args.push(before);
+    }
+    if (typeof method === "string" && method) {
+      query += " AND method = ?";
+      args.push(method);
+    }
+
+    try {
+      const result = await this.database.run(query, args);
+      const deletedCount = (result && result.changes) || 0;
+      logger.info(
+        `[CommandHistoryHandler] (mobile) cleared ${deletedCount} history rows`,
+      );
+      return {
+        success: true,
+        deletedCount,
+        message: `Deleted ${deletedCount} command history records`,
+      };
+    } catch (err) {
+      logger.error(
+        "[CommandHistoryHandler] clearHistory (mobile) failed:",
+        err,
+      );
+      return {
+        success: false,
+        deletedCount: 0,
+        message: err.message,
+      };
+    }
+  }
+
+  /**
+   * Phase 6.5 — `history.replay` (Android HistoryCommands.kt:103).
+   *
+   * Returns the recorded result of the original command execution. We do
+   * NOT actually re-issue the command — that would require a
+   * `commandExecutor` injection (the way WorkflowHandler does) and
+   * would have surprising side effects (writing files / sending
+   * notifications during a passive replay). Instead we hand the original
+   * result back to the caller, who can decide to re-invoke via the
+   * regular RPC path if they want fresh execution.
+   *
+   * Android `ReplayResponse{success, commandId, result?, error?}` —
+   * `result` is the previous run's output (or null if the command failed
+   * originally). Future enhancement: inject commandExecutor for true
+   * re-execution.
+   */
+  async replayCommand(params, _context) {
+    const commandId = params && (params.commandId || params.id);
+    if (!commandId) {
+      return { success: false, commandId: "", error: "commandId required" };
+    }
+
+    try {
+      const row = await this.database.get(
+        "SELECT id, status, result, error FROM command_history WHERE id = ? OR request_id = ?",
+        [commandId, commandId],
+      );
+      if (!row) {
+        return {
+          success: false,
+          commandId: String(commandId),
+          error: "NOT_FOUND",
+        };
+      }
+      if (row.status !== "success") {
+        return {
+          success: false,
+          commandId: String(row.id),
+          error: row.error ? _safeJsonMessage(row.error) : "ORIGINAL_FAILED",
+        };
+      }
+      return {
+        success: true,
+        commandId: String(row.id),
+        result: row.result ? JSON.parse(row.result) : null,
+      };
+    } catch (err) {
+      logger.error("[CommandHistoryHandler] replay failed:", err);
+      return {
+        success: false,
+        commandId: String(commandId),
+        error: err.message,
+      };
+    }
+  }
+
+  /**
+   * Phase 6.5 — `history.getFrequent` (Android HistoryCommands.kt:113).
+   *
+   * Aggregates command_history by method to surface the user's most-used
+   * commands. Returns `FrequentCommandsResponse{success, commands: [...]}`
+   * where each row matches Kotlin `FrequentCommand{method, count,
+   * lastUsed, avgDuration}`.
+   *
+   * Ordered by count desc; ties broken by recency.
+   */
+  async getFrequent(params, _context) {
+    const { limit = 10 } = params || {};
+    const safeLimit = Math.max(1, Math.min(Number(limit) || 10, 100));
+
+    try {
+      const rows = await this.database.all(
+        `SELECT method,
+                COUNT(*) as count,
+                MAX(created_at) as last_used,
+                AVG(duration) as avg_duration
+         FROM command_history
+         GROUP BY method
+         ORDER BY count DESC, last_used DESC
+         LIMIT ?`,
+        [safeLimit],
+      );
+      const commands = (rows || []).map((r) => ({
+        method: r.method,
+        count: r.count || 0,
+        lastUsed: r.last_used || 0,
+        avgDuration: r.avg_duration ? Number(r.avg_duration) : 0,
+      }));
+      return { success: true, commands };
+    } catch (err) {
+      logger.error("[CommandHistoryHandler] getFrequent failed:", err);
+      return { success: false, commands: [], error: err.message };
+    }
+  }
+
+  /**
    * 启动自动清理
    */
   startAutoCleanup() {
@@ -514,6 +722,31 @@ class CommandHistoryHandler {
       this.cleanupTimer = null;
       logger.info("[CommandHistoryHandler] 自动清理已停止");
     }
+  }
+}
+
+/**
+ * Phase 6.5 helper — extract a human-readable string from the error column.
+ * Errors are stored as JSON (`{ code, message, ... }`) but may also be a
+ * bare string from older rows. Returns the embedded `.message` field if
+ * the JSON parses, else the raw text.
+ */
+function _safeJsonMessage(raw) {
+  if (!raw || typeof raw !== "string") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof parsed.message === "string"
+    ) {
+      return parsed.message;
+    }
+    return JSON.stringify(parsed);
+  } catch (_e) {
+    return raw;
   }
 }
 
