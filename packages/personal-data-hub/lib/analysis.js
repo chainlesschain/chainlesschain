@@ -195,6 +195,108 @@ class AnalysisEngine {
     };
   }
 
+  /**
+   * Retrieve the prompt context for a question WITHOUT calling the LLM.
+   *
+   * Mirrors the front half of `ask()` (parseQuery → gatherFacts → ragRetriever
+   * → buildPrompt) and returns the assembled messages + facts. The caller is
+   * responsible for invoking its own LLM with the returned messages and then
+   * (optionally) running citation validation on the answer.
+   *
+   * Why: lets a mobile / browser front-end host the LLM call locally (e.g.
+   * Android-side Volcengine Doubao adapter via API key) while keeping the
+   * vault + retrieval on the desktop. The privacy gate does NOT apply here
+   * because no LLM is contacted — the caller's gate is the gate.
+   *
+   * @param {string} question
+   * @param {object} [options]
+   * @param {number} [options.now]
+   * @param {boolean} [options.skipAudit=false]
+   * @returns {Promise<RetrieveContextResult>}
+   *
+   * @typedef {object} RetrieveContextResult
+   * @property {string} question
+   * @property {object} parsed
+   * @property {Array<object>} facts
+   * @property {string[]} factIds
+   * @property {number} factCount
+   * @property {boolean} truncated
+   * @property {string[]} ragContextIds
+   * @property {Array<{role: string, content: string}>} messages   prompt-builder output, LLM-ready
+   * @property {string} systemPrompt
+   * @property {number} retrievedAt                                Date.now() at start
+   * @property {number} durationMs
+   */
+  async retrieveContext(question, options = {}) {
+    if (typeof question !== "string" || question.length === 0) {
+      throw new Error("AnalysisEngine.retrieveContext: question must be a non-empty string");
+    }
+
+    const startedAt = Date.now();
+    const parsed = parseQuery(question, { now: options.now });
+    const facts = this._gatherFacts(parsed);
+
+    const ragContextIds = [];
+    if (this.ragRetriever) {
+      try {
+        const docs = await this.ragRetriever(question, parsed);
+        if (Array.isArray(docs)) {
+          for (const doc of docs) {
+            if (!doc || !doc.id) continue;
+            const e = this.vault.getEvent(doc.id);
+            if (e && !facts.find((f) => f.id === e.id)) {
+              facts.push(e);
+              ragContextIds.push(doc.id);
+            }
+          }
+        }
+      } catch (err) {
+        const e = toError(err, "ragRetriever");
+        try {
+          this.vault.audit("analysis.rag_failed", question, { error: e.message });
+        } catch (_e) { /* audit failures are non-fatal */ }
+      }
+    }
+
+    const { messages, factIds, factCount, truncated } = buildPrompt({
+      question,
+      facts,
+      systemPrompt: this.systemPrompt,
+      intent: parsed.intent,
+      timeWindow: parsed.timeWindow,
+      maxFacts: this.maxFacts,
+    });
+
+    const durationMs = Date.now() - startedAt;
+
+    if (!options.skipAudit) {
+      try {
+        this.vault.audit("analysis.retrieve_context", question, {
+          factCount,
+          truncated,
+          ragContextIds: ragContextIds.length,
+          durationMs,
+        });
+      } catch (_e) { /* audit failures are non-fatal */ }
+    }
+
+    return {
+      question,
+      parsed,
+      facts,
+      // buildPrompt returns factIds as a Set; flatten to Array so the result
+      // round-trips through IPC / WS JSON serialization without becoming `{}`.
+      factIds: Array.from(factIds),
+      factCount,
+      truncated,
+      ragContextIds,
+      messages,
+      systemPrompt: this.systemPrompt,
+      retrievedAt: startedAt,
+      durationMs,
+    };
+  }
+
   // ─── Internals ─────────────────────────────────────────────────────
 
   _gatherFacts(parsed) {

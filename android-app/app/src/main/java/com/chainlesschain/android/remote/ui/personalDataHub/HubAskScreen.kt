@@ -33,6 +33,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -86,7 +87,42 @@ fun HubAskScreen(
             Spacer(Modifier.height(12.dp))
 
             HubHealthCard(health = state.health)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // Path Y toggle — 本机已配云 LLM 时显示，让用户在桌面 ask vs 本机推理之间切换。
+            // 没配过 cloud key (state.androidLlm == null) 时整行隐藏，避免误导。
+            state.androidLlm?.let { configured ->
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "本机推理",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "使用 ${configured.displayLabel} (${configured.model})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = state.useAndroidLlm,
+                            onCheckedChange = viewModel::setUseAndroidLlm,
+                            enabled = !state.isLoading
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
 
             OutlinedTextField(
                 value = state.question,

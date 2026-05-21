@@ -1,13 +1,17 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.remote.commands.AskResult
 import com.chainlesschain.android.remote.commands.HealthLlm
 import com.chainlesschain.android.remote.commands.HealthOk
 import com.chainlesschain.android.remote.commands.HealthVault
 import com.chainlesschain.android.remote.commands.HubHealth
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
+import com.chainlesschain.android.remote.commands.PromptMessage
+import com.chainlesschain.android.remote.commands.RetrieveContextResult
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,11 +42,15 @@ class HubAskViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var hub: PersonalDataHubCommands
+    private lateinit var androidLlm: AndroidLocalLlmExecutor
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         hub = mockk(relaxed = false)
+        androidLlm = mockk(relaxed = false)
+        // Default: no Android-side cloud LLM configured. Path-Y tests override.
+        every { androidLlm.detectProvider() } returns null
         // health() always succeeds with vault.ok = true; tests can override
         coEvery { hub.health() } returns Result.success(
             HubHealth(
@@ -54,12 +62,14 @@ class HubAskViewModelTest {
         )
     }
 
+    private fun newVm() = HubAskViewModel(hub, androidLlm)
+
     @After
     fun tearDown() { Dispatchers.resetMain() }
 
     @Test
     fun `submit empty question is no-op`() = runTest(testDispatcher) {
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.submit()
         advanceUntilIdle()
@@ -73,7 +83,7 @@ class HubAskViewModelTest {
             AskResult(answer = "上海多云", citations = emptyList(),
                 llmName = "ollama:qwen2.5", isLocal = true)
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("天气")
         vm.submit()
@@ -91,7 +101,7 @@ class HubAskViewModelTest {
         coEvery { hub.ask("私密", null, null, null) } returns Result.failure(
             RuntimeException("Non-local LLM blocked — pass options.acceptNonLocal=true to override")
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("私密")
         vm.submit()
@@ -114,7 +124,7 @@ class HubAskViewModelTest {
             AskResult(answer = "私密回答", citations = emptyList(),
                 llmName = "anthropic:opus", isLocal = false)
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("私密")
         vm.submit()
@@ -135,7 +145,7 @@ class HubAskViewModelTest {
         coEvery { hub.ask("Q", null, null, null) } returns Result.failure(
             RuntimeException("Analysis engine unavailable — LLM manager not initialized")
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("Q")
         vm.submit()
@@ -152,7 +162,7 @@ class HubAskViewModelTest {
         coEvery { hub.ask("私密", null, null, null) } returns Result.failure(
             RuntimeException("Non-local LLM blocked — pass options.acceptNonLocal=true to override")
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("私密")
         vm.submit()
@@ -168,7 +178,7 @@ class HubAskViewModelTest {
 
     @Test
     fun `health loads on init`() = runTest(testDispatcher) {
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         val h = vm.uiState.value.health
         assertNotNull(h)
@@ -182,7 +192,7 @@ class HubAskViewModelTest {
             AskResult(answer = "买了花", citations = emptyList(),
                 llmName = "ollama:qwen2.5", isLocal = true)
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("生日礼物")
         vm.submit()
@@ -206,7 +216,7 @@ class HubAskViewModelTest {
             AskResult(answer = "A", citations = emptyList(),
                 llmName = "ollama:qwen2.5", isLocal = true)
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.onQuestionChange("Q")
         vm.submit()
@@ -229,7 +239,7 @@ class HubAskViewModelTest {
                 )
             )
         )
-        val vm = HubAskViewModel(hub)
+        val vm = newVm()
         advanceUntilIdle()
         vm.openCitation("evt-42")
         advanceUntilIdle()
@@ -241,5 +251,151 @@ class HubAskViewModelTest {
 
         vm.closeCitation()
         assertNull(vm.uiState.value.activeCitationDetail)
+    }
+
+    // ==================== Path Y — 安卓本机 LLM 推理 ====================
+
+    private val doubaoProvider = AndroidLocalLlmExecutor.ConfiguredProvider(
+        provider = LLMProvider.DOUBAO,
+        model = "doubao-seed-1-8-251228",
+        displayLabel = "豆包 (火山引擎)"
+    )
+
+    @Test
+    fun `androidLlm null on init when no provider configured`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.androidLlm)
+        assertFalse(vm.uiState.value.useAndroidLlm)
+    }
+
+    @Test
+    fun `refreshAndroidLlm picks up newly configured provider`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.androidLlm)
+
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        vm.refreshAndroidLlm()
+        advanceUntilIdle()
+
+        assertNotNull(vm.uiState.value.androidLlm)
+        assertEquals(LLMProvider.DOUBAO, vm.uiState.value.androidLlm?.provider)
+    }
+
+    @Test
+    fun `setUseAndroidLlm ignored when no provider configured`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setUseAndroidLlm(true)
+        // androidLlm == null → toggle should NOT flip on
+        assertFalse(vm.uiState.value.useAndroidLlm)
+    }
+
+    @Test
+    fun `submit Path Y routes via retrieveContext + executor and emits answer`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext("生日礼物", null, null) } returns Result.success(
+            RetrieveContextResult(
+                question = "生日礼物",
+                messages = listOf(
+                    PromptMessage("system", "你是助手"),
+                    PromptMessage("user", "生日礼物\n[evt-1] 鲜花"),
+                ),
+                factIds = listOf("evt-1", "evt-2"),
+                factCount = 2
+            )
+        )
+        coEvery { androidLlm.chat(any(), doubaoProvider) } returns "买了鲜花 [evt-1] 和按摩仪 [evt-2]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setUseAndroidLlm(true)
+        vm.onQuestionChange("生日礼物")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertEquals("买了鲜花 [evt-1] 和按摩仪 [evt-2]。", s.answer)
+        // 两个 citation 都在 factIds → 都保留
+        assertEquals(2, s.citations.size)
+        assertTrue(s.citations.any { it.eventId == "evt-1" })
+        assertTrue(s.citations.any { it.eventId == "evt-2" })
+        // 云 LLM → isLocal=false 给 UI 显示"非本地"提示
+        assertFalse(s.isLocal)
+        assertTrue(s.llmName!!.contains("豆包"))
+        // 桌面 ask 不应被调（已走 Path Y）
+        coVerify(exactly = 0) { hub.ask(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `submit Path Y hallucinated citations are dropped silently`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factIds = listOf("evt-real"),
+                factCount = 1
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } returns "答案 [evt-real] 还引了 [evt-fake]。"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setUseAndroidLlm(true)
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        // 只保留 factIds 中存在的，evt-fake 静默丢
+        assertEquals(1, s.citations.size)
+        assertEquals("evt-real", s.citations.first().eventId)
+    }
+
+    @Test
+    fun `submit Path Y adapter chat failure surfaces errorMessage`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
+            RetrieveContextResult(
+                question = "Q",
+                messages = listOf(PromptMessage("user", "Q")),
+                factCount = 0
+            )
+        )
+        coEvery { androidLlm.chat(any(), any()) } throws RuntimeException("HTTP 401 — API key invalid")
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setUseAndroidLlm(true)
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.errorMessage)
+        assertTrue(s.errorMessage!!.contains("401"))
+        assertNull(s.answer)
+        assertFalse(s.showAcceptNonLocalDialog) // 不是 acceptNonLocal 阻塞，不应弹 dialog
+    }
+
+    @Test
+    fun `submit falls back to desktop ask when useAndroidLlm=false even if provider configured`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        coEvery { hub.ask("Q", null, null, null) } returns Result.success(
+            AskResult(answer = "桌面答", citations = emptyList(),
+                llmName = "ollama:qwen2.5", isLocal = true)
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        // toggle 默认 false → 走桌面 ask
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        assertEquals("桌面答", vm.uiState.value.answer)
+        coVerify(exactly = 1) { hub.ask("Q", null, null, null) }
+        coVerify(exactly = 0) { hub.retrieveContext(any(), any(), any()) }
     }
 }

@@ -57,6 +57,29 @@ class PersonalDataHubCommands @Inject constructor(
         return client.invoke("personal-data-hub.ask", params)
     }
 
+    /**
+     * 拉取问题的 prompt 上下文，**不**调桌面 LLM。
+     *
+     * Path Y 调用模式：桌面只跑 vault 召回 + RAG，把组装好的 messages 推回手机；
+     * 手机端用本地 LLM 适配器（DoubaoAdapter / Claude / Qwen 等）直接推理。这条
+     * 路径绕开桌面隐私 gate（因没桌面 LLM 调用），但调用方仍要在本地把
+     * `isLocal` 报告给 UI 做"非本地"提示。
+     */
+    suspend fun retrieveContext(
+        question: String,
+        useRag: Boolean? = null,
+        topK: Int? = null
+    ): Result<RetrieveContextResult> {
+        val options = mutableMapOf<String, Any>()
+        useRag?.let { options["useRag"] = it }
+        topK?.let { options["topK"] = it }
+
+        val params = mutableMapOf<String, Any>("question" to question)
+        if (options.isNotEmpty()) params["options"] = options
+
+        return client.invoke("personal-data-hub.retrieve-context", params)
+    }
+
     /** Vault / Adapter / LLM provider 统计（只读）。 */
     suspend fun stats(): Result<HubStats> =
         client.invoke("personal-data-hub.stats", emptyMap())
@@ -292,6 +315,28 @@ data class Citation(
     val eventId: String,
     val excerpt: String? = null,
     val confidence: Double? = null
+)
+
+// Path Y — desktop returns assembled prompt context without invoking its LLM.
+// Caller passes `messages` to its own (Android-local) LLM adapter and then
+// runs citation validation against `factIds` (string list, JSON-safe).
+@Serializable
+data class RetrieveContextResult(
+    val question: String,
+    val messages: List<PromptMessage> = emptyList(),
+    val systemPrompt: String? = null,
+    val factIds: List<String> = emptyList(),
+    val factCount: Int = 0,
+    val truncated: Boolean = false,
+    val ragContextIds: List<String> = emptyList(),
+    val retrievedAt: Long? = null,
+    val durationMs: Long? = null
+)
+
+@Serializable
+data class PromptMessage(
+    val role: String,
+    val content: String
 )
 
 @Serializable

@@ -40,6 +40,14 @@ const DISPATCH = {
     return await hub.engine.ask(p.question, p.options || {});
   },
 
+  // Path Y: vault retrieval only, no LLM call. Mobile caller hosts inference.
+  "retrieve-context": async (hub, p) => {
+    if (!hub.engine) {
+      throw new Error("Analysis engine unavailable — vault not initialized");
+    }
+    return await hub.engine.retrieveContext(p.question, p.options || {});
+  },
+
   stats: async (hub) => ({
     vault: hub.vault.stats(),
     adapters: hub.registry.list(),
@@ -149,10 +157,15 @@ const DISPATCH = {
   // If two adapters sync simultaneously the restore order may leak —
   // matches the existing IPC handler pattern in personal-data-hub-ipc.js.
   "sync-adapter-stream": async (hub, p, ctx) =>
-    runSyncStream(hub, ctx, () => hub.registry.syncAdapter(p.name, p.options || {}), {
-      adapter: p.name,
-      streamIdPrefix: "pdh-sa",
-    }),
+    runSyncStream(
+      hub,
+      ctx,
+      () => hub.registry.syncAdapter(p.name, p.options || {}),
+      {
+        adapter: p.name,
+        streamIdPrefix: "pdh-sa",
+      },
+    ),
 
   "sync-all-stream": async (hub, p, ctx) =>
     runSyncStream(hub, ctx, () => hub.registry.syncAll(p.options || {}), {

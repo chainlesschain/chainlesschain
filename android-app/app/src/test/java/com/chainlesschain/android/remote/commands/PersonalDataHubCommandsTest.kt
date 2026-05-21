@@ -466,4 +466,71 @@ class PersonalDataHubCommandsTest {
         val result = hub.unregister("mock")
         assertEquals("mock", result.getOrNull()?.removed)
     }
+
+    // ==================== retrieveContext() — Path Y ====================
+
+    @Test
+    fun `retrieveContext returns prompt messages and factIds without LLM call`() = runTest {
+        val expected = RetrieveContextResult(
+            question = "上月在淘宝花了多少？",
+            messages = listOf(
+                PromptMessage("system", "你是个人数据助手"),
+                PromptMessage("user", "上月在淘宝花了多少？\n\n[事实1] 订单..."),
+            ),
+            systemPrompt = "你是个人数据助手",
+            factIds = listOf("evt-1", "evt-2", "evt-3"),
+            factCount = 3,
+            truncated = false,
+            ragContextIds = emptyList(),
+            retrievedAt = 1_700_000_000_000L,
+            durationMs = 42L
+        )
+        coEvery {
+            mockClient.invoke<RetrieveContextResult>("personal-data-hub.retrieve-context", any(), any())
+        } returns Result.success(expected)
+
+        val result = hub.retrieveContext("上月在淘宝花了多少？")
+
+        assertTrue(result.isSuccess)
+        val payload = result.getOrNull()!!
+        assertEquals(2, payload.messages.size)
+        assertEquals("system", payload.messages[0].role)
+        assertEquals(3, payload.factCount)
+        assertEquals(listOf("evt-1", "evt-2", "evt-3"), payload.factIds)
+
+        coVerify {
+            mockClient.invoke<RetrieveContextResult>(
+                "personal-data-hub.retrieve-context",
+                match { params ->
+                    params["question"] == "上月在淘宝花了多少？" && !params.containsKey("options")
+                },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `retrieveContext forwards useRag and topK in options`() = runTest {
+        coEvery {
+            mockClient.invoke<RetrieveContextResult>(any(), any(), any())
+        } returns Result.success(
+            RetrieveContextResult(question = "Q", messages = emptyList(), factCount = 0)
+        )
+
+        hub.retrieveContext("Q", useRag = true, topK = 20)
+
+        coVerify {
+            mockClient.invoke<RetrieveContextResult>(
+                "personal-data-hub.retrieve-context",
+                match { params ->
+                    @Suppress("UNCHECKED_CAST")
+                    val opts = params["options"] as Map<String, Any>
+                    opts["useRag"] == true && opts["topK"] == 20 &&
+                        // acceptNonLocal NOT forwarded — Path Y has no LLM call to gate
+                        !opts.containsKey("acceptNonLocal")
+                },
+                any()
+            )
+        }
+    }
 }
