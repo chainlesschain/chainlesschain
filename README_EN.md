@@ -2,6 +2,22 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-21 Ship — **WeChat Phase 12.6.7-10: bootstrap orchestration + IPC/WS + cc hub wechat CLI + Vue UI wizard (v5.0.3.75)**
+
+> Closed the WeChat 8.0+ frida-dep path end-to-end in one evening — four new sub-phases added on top of §18.7's existing six.
+
+- **12.6.7 bootstrap.js**: stitches env-probe → KeyProvider choice → WechatAdapter ctor into a single hermetic entry point so IPC/WS/CLI no longer have to reinvent the wiring. md5/frida/unsupported decision matrix + `opts.keyProviderOverride` bypass + full injectable test seams (`_probe` / `_md5Provider` / `_fridaProvider` / `_WechatAdapter`). 14 unit tests fully hermetic — no adb, no Frida, no real device.
+- **12.6.8 IPC + WS**: 4 new IPC channels + 4 cc-ui WS topics (`wechat-env-probe` / `register-wechat` / `unregister-wechat` / `list-wechat-accounts`). `register-wechat` and `unregister-wechat` join the `approvalChannelsForMobile` privileged whitelist so mobile peers cannot silently wire an adapter against an attacker-controlled dbPath or trigger a Frida session. 15 wiring tests + 2 whitelist regression tests.
+- **12.6.9 `cc hub wechat` CLI**: `env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister <uin>` 4 verbs mirroring the 4 WS topics, `--json` on every verb for scripting and the Plan A in-app terminal. 14 CLI tests.
+- **12.6.10 Vue UI wizard**: `WechatWizard.vue` 295-LOC three-step drawer (env-probe checklist with dynamic per-row tag colors → uin + dbPath + wechatDataPath + forceProvider form → result with probe.reasons surface) plus a "Add WeChat" button on `PersonalDataHub.vue` and 4 new composable methods. 6 composable tests.
+- **Integration tests**: 9 end-to-end tests covering md5 happy / frida happy / unsupported / md5 missing wechatDataPath / idempotent re-register / two-uin coexistence / override semantics — none touch a real adb, Frida, or device.
+- **Real-device E2E preparation**: `Personal_Data_Hub_E2E_Runbook.md` §11 now has three WeChat scenarios (pre-8.0 md5 / 8.0+ frida rooted / 8.0+ unrooted graceful rejection) + performance baselines. Phase 12.9 awaits a rooted Android device.
+- **Stale-comment fix**: docs-site previously claimed the iOS Phase 14.2 UI scaffold was "lost-to-race / needs redo"; it was in fact fully landed at `3db7b5a73 + 1d0c473a3` (650 LOC `PersonalDataHubViews.swift` + 3 ViewModels + RemoteDependencies wire + 1491 LOC of iOS Hub tests).
+
+Session total: **1223 tests / 67 files** (1068 hub package + 183 desktop + 46 CLI + 18 web-panel + iOS 1491 LOC Hub tests). Remaining gated on physical hardware: Phase 12.9 rooted-Android real-device E2E, Phase 14.4 mobile real-device E2E.
+
+See [`docs/design/Adapter_WeChat_SQLCipher.md`](docs/design/Adapter_WeChat_SQLCipher.md) §18.10 and [`docs-site/docs/chainlesschain/personal-data-hub.md`](docs-site/docs/chainlesschain/personal-data-hub.md).
+
 ## 2026-05-20 Ship — **Personal Data Hub 13-phase burst + iOS keychain hotfix repackage (v5.0.3.71/.72)**
 
 > Personal Data Hub rolled from Phase 4 (real third-party wiring) all the way to Phase 13.7 (seven social adapters all live) in one evening across 15 commits `763047a22 → b2baf4eda`. `.72` also fixes the release-pipeline bug that made every `.71` desktop build die with EUSAGE.

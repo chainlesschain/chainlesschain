@@ -302,3 +302,69 @@ Body:
 | Vault 占用磁盘（1000 邮件） | MB | ≤ 150 | |
 
 跑性能时关掉杀毒软件 / 限速软件 / 同步盘（OneDrive / 坚果云）以减少噪声。
+
+---
+
+## 11. 场景 11 — WeChat env-probe + register（Phase 12.6.7-10）
+
+### 前置准备
+
+- 真 Android 设备（USB 调试已开）通过 `adb` 连到测试机
+- 真 WeChat 已安装在设备上（任意账号已登录）
+- **md5 路径**（WeChat < 8.0）：用旧版 WeChat 7.x；不需要 root
+- **frida 路径**（WeChat 8.0+）：rooted Android（Magisk 推荐）+ `adb push frida-server` 到 `/data/local/tmp/` + `chmod 755` + 后台运行（参 `Adapter_WeChat_SQLCipher_Frida_Setup.md`）
+
+### 11.1 步骤 — md5 路径（pre-8.0）
+
+1. CLI 跑 `cc hub wechat env-probe` —— 看 `suggestedKeyProvider: md5` + `wechat.versionName` ≤ 7.x
+2. `adb pull /data/data/com.tencent.mm /tmp/wechat-pull/` —— 复制整个 WeChat 数据目录
+3. `cc hub wechat register --uin <你的 numeric UIN> --wechat-data-path /tmp/wechat-pull --db /tmp/wechat-pull/MicroMsg/<32-hex>/EnMicroMsg.db`
+4. 确认输出 `✓ wechat registered (uin=...)` + `provider: md5`
+5. `cc hub wechat list` —— 看到刚加的 row，`chosenKeyProvider=md5`
+
+### 11.2 步骤 — frida 路径（8.0+, rooted）
+
+1. CLI 跑 `cc hub wechat env-probe` —— 看 `suggestedKeyProvider: frida` + `root.detected: yes` + `frida-server: running :27042`
+2. 打开 WeChat 进入任意聊天界面（**关键**：让 WeChat lazy-load libwcdb.so）
+3. `cc hub wechat register --uin <wxid_xxx>` —— 不需要 wechatDataPath（Frida 直接 hook live key）
+4. 30 秒内确认 `✓ wechat registered`，`provider: frida`
+5. 如超时：检查 frida-server 是否真在跑（`adb shell pgrep -f frida-server`），用 `frida-ps -U` 看是否能列出 `com.tencent.mm`
+
+### 11.3 步骤 — 不支持路径（8.0+ unrooted, 优雅拒绝）
+
+1. CLI 跑 `cc hub wechat env-probe` —— `suggestedKeyProvider: unsupported`
+2. 尝试 `cc hub wechat register --uin xxx`
+3. 期望：**ok:false**，reason=`ENV_UNSUPPORTED`，错误信息含 `WeChat 8.0.x requires root for SQLCipher key extraction`
+4. UI 等价：Vue UI 第 1 步 env-probe 完成后 Next 按钮 disabled
+
+### 11.4 通过判据
+
+- md5 路径：从 env-probe → register → list 全链路 ≤ 60 秒（不含 adb pull）
+- frida 路径：从 env-probe → register（含 attach 等首次 sqlite3_key onEnter）≤ 90 秒
+- 不支持路径：register 立刻返回 ok:false，错误信息**人类可读**（不是 stack trace）
+- 三条路径都不会让桌面进程崩溃 / 卡死
+
+### 11.5 失败时记录
+
+issue 模板：
+
+```
+Title: [PDH E2E WeChat] <11.x> <一句话症状>
+Body:
+- 跑的版本: vX.Y.Z.N (productVersion) + cc 0.X.Y
+- 设备型号: 小米 / 三星 / ... 型号
+- WeChat 版本: 7.0.22 / 8.0.50 / ...
+- root 状态: Magisk yes/no
+- 重现步骤: <11.x 第几步开始偏差>
+- env-probe 完整 JSON: `cc hub wechat env-probe --json | jq .`
+- 桌面 hub.log 最后 50 行
+```
+
+### 11.6 性能基准
+
+| 指标 | 单位 | 期望 | 实测 |
+|---|---|---|---|
+| env-probe 全 4 项探测 | sec | ≤ 5 | |
+| md5 path register（不含 adb pull） | sec | ≤ 10 | |
+| frida path register（含 attach + 等 sqlite3_key） | sec | ≤ 60 | |
+| unregister + remove row | ms | ≤ 500 | |
