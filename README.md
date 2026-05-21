@@ -2,6 +2,22 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-21 收口 — **WeChat Phase 12.6.7-10：bootstrap 编排层 + IPC/WS + cc hub wechat CLI + Vue UI 向导 (v5.0.3.75)**
+
+> WeChat 8.0+ frida-dep 路径一晚从零件凑齐到端到端可用全收口（§18.7 的 6 sub-phase 之上加 4 个新 sub-phase）。
+
+- **12.6.7 bootstrap.js**：把 env-probe → KeyProvider 选择 → WechatAdapter ctor 拼成单入口，IPC/WS/CLI 三 caller 不再各自重发明 wiring。md5/frida/unsupported 决策矩阵 + `opts.keyProviderOverride` 旁路 + 全注入 test seam（`_probe` / `_md5Provider` / `_fridaProvider` / `_WechatAdapter`）。14 单测全 hermetic（无 adb、无 Frida、无真设备）。
+- **12.6.8 IPC + WS**：4 个 IPC 通道 + 4 个 cc ui WS 主题（`wechat-env-probe` / `register-wechat` / `unregister-wechat` / `list-wechat-accounts`）。`register-wechat` / `unregister-wechat` 加入 `approvalChannelsForMobile` privileged whitelist —— 防 mobile peer 偷偷往攻击者控制的 dbPath 注册 adapter 或触发 Frida session。15 wiring 单测 + 2 whitelist regression 单测。
+- **12.6.9 `cc hub wechat` CLI**：`env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister <uin>` 4 个 verb 镜像 4 WS 主题，`--json` 全 verb 可机读，脚本与 Plan A 手机内嵌终端可用。14 CLI 单测。
+- **12.6.10 Vue UI 向导**：`WechatWizard.vue` 295 行 3-step drawer（env-probe checklist 动态 Tag 着色 → uin + dbPath + wechatDataPath + forceProvider 表单 → result 结构化错误 + probe.reasons 反馈）+ `PersonalDataHub.vue`「添加 WeChat」按钮 + composable 4 method。6 composable 单测。
+- **集成测试**：9 个端到端测试 covering md5 happy / frida happy / unsupported / md5 缺 wechatDataPath / 幂等重注册 / 两 uin 共存 / override 双向 —— 全部不触真 adb / Frida / 真设备。
+- **真机 E2E 准备**：`Personal_Data_Hub_E2E_Runbook.md` §11 新增 3 个 WeChat 真机场景（pre-8.0 md5 / 8.0+ frida rooted / 8.0+ unrooted 优雅拒绝）+ 性能基准表。Phase 12.9 待 rooted Android 设备真跑。
+- **顺带修 stale 注释**：docs-site 之前称 iOS Phase 14.2 UI scaffold "lost-to-race / 待重做"，实际已在 `3db7b5a73 + 1d0c473a3` 全部 land（650 LOC `PersonalDataHubViews.swift` + 3 ViewModel + RemoteDependencies wire + 1491 LOC iOS Hub tests）。
+
+本轮累计：**1223 测试 / 67 文件**（1068 hub 包 + 183 desktop + 46 CLI + 18 web-panel + iOS 1491 LOC Hub tests）。下一站需物理设备：Phase 12.9 rooted Android 真机 E2E、Phase 14.4 移动端真机 E2E。
+
+详见 [`docs/design/Adapter_WeChat_SQLCipher.md`](docs/design/Adapter_WeChat_SQLCipher.md) §18.10 与 [`docs-site/docs/chainlesschain/personal-data-hub.md`](docs-site/docs/chainlesschain/personal-data-hub.md)。
+
 ## 2026-05-20 收口 — **Personal Data Hub 一晚 13-phase burst + iOS keychain hotfix repackage (v5.0.3.71/.72)**
 
 > Personal Data Hub 从 Phase 4 真接通真三方一直推到 Phase 13.7 七 social adapter 全部落地，一晚 15 commits `763047a22 → b2baf4eda`。同时 `.72` 修了 `.71` desktop build 全 EUSAGE 的 release 工程 bug。
