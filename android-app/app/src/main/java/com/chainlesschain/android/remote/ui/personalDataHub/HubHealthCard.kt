@@ -56,34 +56,33 @@ fun HubHealthCard(health: HubHealth?) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                return@Column
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatusPill(
-                    label = "Vault",
-                    ok = health.vault.ok,
-                    sub = health.vault.schemaVersion?.let { "schema v$it" }
-                )
-                StatusPill(
-                    label = "LLM",
-                    ok = health.llm.ok,
-                    sub = buildString {
-                        append(health.llm.name ?: "?")
-                        append(if (health.llm.isLocal) " (本地)" else " (非本地)")
-                    }
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatusPill(label = "KG sink", ok = health.kgSink.ok, sub = null)
-                StatusPill(label = "RAG sink", ok = health.ragSink.ok, sub = null)
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    StatusPill(
+                        label = "Vault",
+                        ok = health.vault.ok,
+                        sub = health.vault.schemaVersion?.let { "schema v$it" }
+                    )
+                    StatusPill(
+                        label = "LLM",
+                        ok = health.llm.ok,
+                        sub = buildString {
+                            append(health.llm.name ?: "?")
+                            append(if (health.llm.isLocal) " (本地)" else " (非本地)")
+                        }
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    StatusPill(label = "KG sink", ok = health.kgSink.ok, sub = null)
+                    StatusPill(label = "RAG sink", ok = health.ragSink.ok, sub = null)
+                }
             }
         }
     }

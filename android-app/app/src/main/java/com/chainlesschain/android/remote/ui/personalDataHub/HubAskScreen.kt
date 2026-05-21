@@ -149,15 +149,18 @@ fun HubAskScreen(
             // answer bubble (left, secondaryContainer). While isLoading, a BlinkingCursor bubble
             // sits in the assistant slot to signal in-flight inference (single-shot today; ready
             // for token-by-token streaming wire-up in a follow-up Phase 14.5).
-            val hasConversation = state.submittedQuestion != null || state.answer != null
+            val submittedQuestion = state.submittedQuestion
+            val answer = state.answer
+            val llmName = state.llmName
+            val hasConversation = submittedQuestion != null || answer != null
             if (hasConversation) {
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(12.dp))
 
-                state.submittedQuestion?.let { q ->
+                if (submittedQuestion != null) {
                     HubChatBubble(role = HubChatRole.USER) {
-                        Text(q, style = MaterialTheme.typography.bodyMedium)
+                        Text(submittedQuestion, style = MaterialTheme.typography.bodyMedium)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -174,17 +177,17 @@ fun HubAskScreen(
                             HubBlinkingCursor()
                         }
                     }
-                } else state.answer?.let { answer ->
+                } else if (answer != null) {
                     HubChatBubble(role = HubChatRole.ASSISTANT) {
                         Text(
                             answer,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                        state.llmName?.let { name ->
+                        if (llmName != null) {
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "推理模型：$name ${if (state.isLocal) "(本地)" else "(非本地)"}",
+                                "推理模型：$llmName ${if (state.isLocal) "(本地)" else "(非本地)"}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (state.isLocal)
                                     MaterialTheme.colorScheme.onSecondaryContainer
