@@ -45,10 +45,10 @@ describe("sync-webdav-handlers · factory", () => {
     expect(PROVIDER_ID).toBe("webdav");
   });
 
-  it("returns exactly 5 topics", () => {
+  it("returns exactly 7 topics (incl. Phase 3c.D7 orphan cleanup)", () => {
     const handlers = createSyncWebDAVHandlers({ database: null });
     const topics = Object.keys(handlers);
-    expect(topics).toHaveLength(5);
+    expect(topics).toHaveLength(7);
     expect(topics).toEqual(
       expect.arrayContaining([
         "sync.webdav.test",
@@ -56,6 +56,8 @@ describe("sync-webdav-handlers · factory", () => {
         "sync.webdav.config-get",
         "sync.webdav.config-set",
         "sync.webdav.config-clear",
+        "sync.webdav.list-orphans",
+        "sync.webdav.delete-orphans",
       ]),
     );
   });
@@ -168,6 +170,39 @@ describe("sync-webdav-handlers · guards", () => {
     const fakeDb = { db: {}, all: () => [], get: () => null, run: () => {} };
     const handlers = createSyncWebDAVHandlers({ database: fakeDb });
     const res = await handlers["sync.webdav.run"]({});
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/未配置/);
+  });
+});
+
+describe("sync-webdav-handlers · orphan cleanup (Phase 3c.D7)", () => {
+  it("list-orphans returns error when database missing", async () => {
+    const handlers = createSyncWebDAVHandlers({ database: null });
+    const res = await handlers["sync.webdav.list-orphans"]({});
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/数据库/);
+  });
+
+  it("list-orphans returns error when creds missing", async () => {
+    const fakeDb = { db: {}, all: () => [], get: () => null, run: () => {} };
+    const handlers = createSyncWebDAVHandlers({ database: fakeDb });
+    const res = await handlers["sync.webdav.list-orphans"]({});
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/未配置/);
+  });
+
+  it("delete-orphans rejects missing payload.orphans", async () => {
+    const handlers = createSyncWebDAVHandlers({ database: null });
+    const res = await handlers["sync.webdav.delete-orphans"]({ payload: {} });
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/orphans/);
+  });
+
+  it("delete-orphans rejects when creds missing", async () => {
+    const handlers = createSyncWebDAVHandlers({ database: null });
+    const res = await handlers["sync.webdav.delete-orphans"]({
+      payload: { orphans: [{ filename: "x.md" }] },
+    });
     expect(res.success).toBe(false);
     expect(res.error).toMatch(/未配置/);
   });
