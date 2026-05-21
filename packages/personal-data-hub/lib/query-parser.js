@@ -208,7 +208,13 @@ function parseIntent(text) {
     if (/(花|花了|花费|消费|开销|spent|金额|多少钱|amount)/.test(text)) return "sum-amount";
     return "count";
   }
-  if (/(多少次|几次|几条|几单|how\s+many)/i.test(text)) return "count";
+  // Count intents: 几次/条/单/个 / 多少个/家/人/张/部 / how many / count of
+  // 2026-05-21: extended "几个 X" / "多少个 X" — needed for "几个联系人"
+  // and "几个 app" which prior pattern missed (returned "list" → LLM had no
+  // hint to read authoritative TOTALS instead of the FACTS sample length).
+  if (/(多少次|几次|几条|几单|几个|多少个|多少家|多少人|多少张|多少部|how\s+many|count\s+of)/i.test(text)) {
+    return "count";
+  }
   if (/(最近|最新|latest|recent)/i.test(text)) return "latest";
   return "list";
 }

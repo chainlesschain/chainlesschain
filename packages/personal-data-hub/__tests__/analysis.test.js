@@ -287,6 +287,73 @@ describe("AnalysisEngine RAG retriever", () => {
   });
 });
 
+// ─── TOTALS block — authoritative counts beat FACTS sample length ─────
+//
+// Bug 2026-05-21: even after _gatherFacts pulled persons + items into the
+// prompt, the LLM still said "32 contacts" because FACTS is capped at 80
+// items and the LLM was counting the array. Real vault had ~500 contacts.
+// Fix: stick vault.stats() totals at the head of the user message so the
+// model has an authoritative ground-truth number to quote.
+
+describe("AnalysisEngine emits TOTALS preamble", () => {
+  it("includes vault.stats() totals in the prompt", async () => {
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: () => [],
+      queryItems: () => [],
+      stats: () => ({ events: 12, persons: 512, places: 3, items: 89, topics: 0 }),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const chatCalls = [];
+    const llm = {
+      isLocal: true,
+      chat: async (msgs) => {
+        chatCalls.push(msgs);
+        return { text: "ok", usage: {} };
+      },
+    };
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("几个联系人");
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("TOTALS");
+    expect(userMsg).toContain('"persons": 512');
+    expect(userMsg).toContain('"items": 89');
+    // System prompt tells LLM to trust TOTALS for counts.
+    expect(chatCalls[0][0].content).toMatch(/TOTALS.*authoritative/);
+  });
+
+  it("intent=count for '几个联系人' and '几个 app' and '多少个 X'", () => {
+    const { parseQuery } = require("../lib/query-parser");
+    expect(parseQuery("几个联系人").intent).toBe("count");
+    expect(parseQuery("几个 app").intent).toBe("count");
+    expect(parseQuery("我有多少个联系人？").intent).toBe("count");
+    expect(parseQuery("how many contacts do I have").intent).toBe("count");
+    expect(parseQuery("列出我的联系人").intent).toBe("list");
+  });
+
+  it("legacy vault without stats() falls back gracefully — no TOTALS block", async () => {
+    const legacyVault = {
+      queryEvents: () => [],
+      // no stats()
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const chatCalls = [];
+    const llm = {
+      isLocal: true,
+      chat: async (msgs) => {
+        chatCalls.push(msgs);
+        return { text: "ok", usage: {} };
+      },
+    };
+    const engine = new AnalysisEngine({ vault: legacyVault, llm });
+    await engine.ask("test");
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).not.toContain("TOTALS");
+  });
+});
+
 // ─── Cache bypass — PDH ask must always go to LLM, never cached ───────
 //
 // Bug 2026-05-21: desktop ResponseCache (7-day TTL) served a stale

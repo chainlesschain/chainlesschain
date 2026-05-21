@@ -136,6 +136,7 @@ class AnalysisEngine {
       intent: parsed.intent,
       timeWindow: parsed.timeWindow,
       maxFacts: this.maxFacts,
+      vaultTotals: this._gatherVaultTotals(),
     });
 
     // Call LLM. **skipCache: true** is critical: PDH answers depend on
@@ -276,6 +277,7 @@ class AnalysisEngine {
       intent: parsed.intent,
       timeWindow: parsed.timeWindow,
       maxFacts: this.maxFacts,
+      vaultTotals: this._gatherVaultTotals(),
     });
 
     const durationMs = Date.now() - startedAt;
@@ -370,6 +372,39 @@ class AnalysisEngine {
     }
 
     return [...events, ...persons, ...items];
+  }
+
+  /**
+   * Pull authoritative entity counts from the vault. These go into the
+   * prompt's TOTALS block so the LLM can answer "how many X" questions
+   * correctly even when the FACTS sample is truncated (maxFacts cap).
+   *
+   * 2026-05-21 bug: LLM said "32 contacts" when vault actually had ~500.
+   * Root cause was a mix of (a) FACTS not including persons (fixed in
+   * _gatherFacts), and (b) LLM still counting FACTS array length even after
+   * persons were included — capped at the 80-fact ceiling. TOTALS bypasses
+   * both: it gives the LLM the real number to quote directly.
+   *
+   * Wrapped in try because legacy vault forks / mock vaults in tests may
+   * not expose `stats()`; falling back to undefined makes prompt-builder
+   * skip the block entirely.
+   */
+  _gatherVaultTotals() {
+    if (typeof this.vault.stats !== "function") return undefined;
+    try {
+      const s = this.vault.stats();
+      // Trim to the fields useful for question answering — schemaVersion /
+      // mergeGroups / audit log size are noise here.
+      return {
+        events: s.events,
+        persons: s.persons,
+        places: s.places,
+        items: s.items,
+        topics: s.topics,
+      };
+    } catch (_e) {
+      return undefined;
+    }
   }
 }
 
