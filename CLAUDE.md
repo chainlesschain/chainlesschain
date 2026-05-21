@@ -70,10 +70,10 @@ Key CLI entry points:
 
 ## Feature Index
 
-**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (138 desktop features, 28 Android skills).
+**See [`docs/FEATURES.md`](docs/FEATURES.md)** for the complete list (141 desktop features, 28 Android skills).
 
 Key highlights:
-- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (138 built-in)
+- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (141 built-in)
 - **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management
 - **Integration**: MCP, Browser Automation, Computer Use, IPFS
 - **v3.0-v4.0**: Pipeline Orchestrator, NL Programming, Multimodal, Agent Federation

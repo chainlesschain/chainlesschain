@@ -35,7 +35,7 @@ Hermes Agent 是 Nous Research 于 2026 年 2 月发布的自改进型个人 AI 
 
 - **学习闭环**: 轨迹记录 → 结果反馈 → 技能合成 → 技能改进 → 周期反思（完整 P0-P3，224 tests）
 - **4 层记忆**: working → short-term → long-term → core，Ebbinghaus 遗忘曲线
-- **技能体系**: 138 内置技能，4 层优先级加载，SKILL.md + Agent Skills 标准
+- **技能体系**: 141 内置技能，4 层优先级加载，SKILL.md + Agent Skills 标准
 - **多代理**: sub-agent 隔离、worktree 隔离、自主 agent 目标分解
 - **30+ 生命周期钩子**: PreToolUse/PostToolUse/SessionStart 等完整事件体系
 

@@ -131,7 +131,7 @@ app/src/main/java/com/chainlesschain/android/
 
 | 类别              | 桌面位置                                          | Android 关系       |
 | ----------------- | ------------------------------------------------- | ------------------ |
-| Skills System     | `desktop-app-vue/.../ai-engine/cowork/skills/`    | REMOTE 调用对象（139 skills） |
+| Skills System     | `desktop-app-vue/.../ai-engine/cowork/skills/`    | REMOTE 调用对象（141 skills） |
 | RAG / 向量检索    | `desktop-app-vue/.../rag/`                        | REMOTE             |
 | Cowork 多智能体   | `desktop-app-vue/.../ai-engine/cowork/`           | REMOTE + 审批 UI   |
 | Marketplace       | `desktop-app-vue/.../marketplace/`                | REMOTE + 审批 UI   |

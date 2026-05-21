@@ -899,7 +899,7 @@ chainlesschain init [--template <name>] [--yes] [--bare]
 
 | 层 | 优先级 | 路径 | 用途 |
 |---|--------|------|------|
-| bundled | 0 (最低) | `desktop-app-vue/.../skills/builtin/` | 138 内置技能 |
+| bundled | 0 (最低) | `desktop-app-vue/.../skills/builtin/` | 141 内置技能 |
 | marketplace | 1 | `<userData>/marketplace/skills/` | 插件安装的技能 |
 | managed | 2 | `<userData>/skills/` | 用户全局自定义技能 |
 | workspace | 3 (最高) | `<projectRoot>/.chainlesschain/skills/` | 项目级自定义技能 |

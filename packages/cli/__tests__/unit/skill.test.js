@@ -17,7 +17,7 @@ const cliRoot = join(__dirname, "..", "..");
  */
 describe("skill command", () => {
   describe("skill list", () => {
-    it("lists all 138 skills", () => {
+    it("lists all 141 skills", () => {
       const result = execSync(
         `node ${join(cliRoot, "bin", "chainlesschain.js")} skill list --json`,
         { encoding: "utf-8", timeout: 60000 },
@@ -25,7 +25,7 @@ describe("skill command", () => {
       // Strip ora spinner output before JSON
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
-      expect(skills.length).toBeGreaterThanOrEqual(138);
+      expect(skills.length).toBeGreaterThanOrEqual(141);
     });
 
     it("each skill has required fields", () => {
