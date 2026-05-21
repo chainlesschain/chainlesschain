@@ -217,6 +217,24 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # Personal Data Hub — must publish before CLI: CLI's package.json pins
+      # a fixed version of this package, so a same-day CLI bump expects the
+      # new PDH version to already be on the registry. Added 2026-05-21
+      # alongside Plan A v0.1 system-data-android adapter.
+      - name: "Publish @chainlesschain/personal-data-hub"
+        working-directory: packages/personal-data-hub
+        run: |
+          CURRENT=$(npm view @chainlesschain/personal-data-hub version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: "Publish chainlesschain (CLI)"
         working-directory: packages/cli
         run: |
