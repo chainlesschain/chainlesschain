@@ -469,4 +469,172 @@ final class HubViewModelsTests: XCTestCase {
         XCTAssertEqual(params["action"] as? String, "ingest")
         XCTAssertEqual(vm.rows.count, 1)
     }
+
+    // MARK: - HubAuditViewModel — Phase 14.3.3.b eventId deep-link
+
+    /// Stub event-detail response shape matching `HubEventDetailResponse`.
+    private func auditDetailResult(id: String = "evt-1") -> [String: Any] {
+        return [
+            "event": [
+                "id": id,
+                "subtype": "payment",
+                "at": 1700_000_000_000,
+                "ingestedAt": 1700_000_000_000,
+                "actor": "person-self",
+                "title": "美团外卖",
+                "adapter": "alipay-bill"
+            ]
+        ]
+    }
+
+    func test_audit_openEventDetail_fetches_and_publishes_detail() async throws {
+        let s = await makeSetup()
+        let vm = HubAuditViewModel(pcPeerId: "pc", commands: s.cmds)
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.recent-audit",
+            result: ["rows": []]
+        )
+        try await tick()
+
+        Task { await vm.openEventDetail(eventId: "evt-1") }
+        try await tick()
+        // sheet is open immediately (loading state)
+        XCTAssertEqual(vm.activeEventId, "evt-1")
+        XCTAssertTrue(vm.isEventDetailLoading)
+
+        let params = try await respondToLast(
+            s, method: "personal-data-hub.event-detail",
+            result: auditDetailResult(id: "evt-1")
+        )
+        try await tick()
+
+        XCTAssertEqual(vm.activeEventId, "evt-1")
+        XCTAssertEqual(vm.activeEventDetail?.event.id, "evt-1")
+        XCTAssertFalse(vm.isEventDetailLoading)
+        XCTAssertNil(vm.eventDetailError)
+        XCTAssertEqual(params["eventId"] as? String, "evt-1")
+    }
+
+    func test_audit_openEventDetail_with_blank_id_is_noop() async throws {
+        let s = await makeSetup()
+        let vm = HubAuditViewModel(pcPeerId: "pc", commands: s.cmds)
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.recent-audit",
+            result: ["rows": []]
+        )
+        try await tick()
+
+        let beforeCount = s.transport.snapshot().count
+        await vm.openEventDetail(eventId: "")
+        try await tick()
+
+        XCTAssertNil(vm.activeEventId)
+        XCTAssertEqual(s.transport.snapshot().count, beforeCount,
+                       "no DC traffic for blank eventId")
+    }
+
+    func test_audit_openEventDetail_failure_surfaces_error_keeps_sheet_open() async throws {
+        let s = await makeSetup()
+        let vm = HubAuditViewModel(pcPeerId: "pc", commands: s.cmds)
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.recent-audit",
+            result: ["rows": []]
+        )
+        try await tick()
+
+        Task { await vm.openEventDetail(eventId: "evt-gone") }
+        try await tick()
+        try await respondErrorToLast(
+            s, method: "personal-data-hub.event-detail",
+            message: "vault destroyed"
+        )
+        try await tick()
+
+        XCTAssertEqual(vm.activeEventId, "evt-gone")
+        XCTAssertNil(vm.activeEventDetail)
+        XCTAssertFalse(vm.isEventDetailLoading)
+        XCTAssertNotNil(vm.eventDetailError)
+        XCTAssertTrue(vm.eventDetailError!.contains("vault destroyed"))
+    }
+
+    func test_audit_closeEventDetail_clears_all_detail_state() async throws {
+        let s = await makeSetup()
+        let vm = HubAuditViewModel(pcPeerId: "pc", commands: s.cmds)
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.recent-audit",
+            result: ["rows": []]
+        )
+        try await tick()
+
+        Task { await vm.openEventDetail(eventId: "evt-1") }
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.event-detail",
+            result: auditDetailResult(id: "evt-1")
+        )
+        try await tick()
+
+        vm.closeEventDetail()
+
+        XCTAssertNil(vm.activeEventId)
+        XCTAssertNil(vm.activeEventDetail)
+        XCTAssertFalse(vm.isEventDetailLoading)
+        XCTAssertNil(vm.eventDetailError)
+    }
+
+    /// design §7 T12 — stale RPC response from earlier tap must NOT
+    /// overwrite state once user has opened a different eventId. Verify by
+    /// landing two openEventDetail calls + responding to the older one last.
+    func test_audit_stale_response_is_discarded() async throws {
+        let s = await makeSetup()
+        let vm = HubAuditViewModel(pcPeerId: "pc", commands: s.cmds)
+        try await tick()
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.recent-audit",
+            result: ["rows": []]
+        )
+        try await tick()
+
+        // First tap — RPC pending.
+        Task { await vm.openEventDetail(eventId: "evt-old") }
+        try await tick()
+        // Second tap before first responds — bumps requestId.
+        Task { await vm.openEventDetail(eventId: "evt-new") }
+        try await tick()
+
+        // Respond to the LATER request first (succeeds, becomes active).
+        _ = try await respondToLast(
+            s, method: "personal-data-hub.event-detail",
+            result: auditDetailResult(id: "evt-new")
+        )
+        try await tick()
+
+        XCTAssertEqual(vm.activeEventId, "evt-new")
+        XCTAssertEqual(vm.activeEventDetail?.event.id, "evt-new")
+
+        // Respond to the older request late — should be silently discarded.
+        // Find the earlier outbound (the one that was NOT yet responded to)
+        // and feed it a result for "evt-old".
+        for raw in s.transport.snapshot() {
+            if (try? methodFrom(raw)) == "personal-data-hub.event-detail" {
+                let pid = try paramsFrom(raw)["eventId"] as? String
+                if pid == "evt-old" {
+                    let id = try reqIdFrom(raw)
+                    s.inbound.send(try successResponse(
+                        reqId: id, result: auditDetailResult(id: "evt-old")
+                    ))
+                    break
+                }
+            }
+        }
+        try await tick()
+
+        // Late response must NOT overwrite the active detail.
+        XCTAssertEqual(vm.activeEventId, "evt-new")
+        XCTAssertEqual(vm.activeEventDetail?.event.id, "evt-new")
+    }
 }

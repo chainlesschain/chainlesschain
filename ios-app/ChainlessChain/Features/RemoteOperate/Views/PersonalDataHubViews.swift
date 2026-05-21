@@ -395,16 +395,38 @@ private struct HubAuditView: View {
                     }
                 }
                 ForEach(vm.rows) { row in
-                    AuditRowView(row: row)
+                    AuditRowView(row: row) { eventId in
+                        Task { await vm.openEventDetail(eventId: eventId) }
+                    }
                 }
             }
         }
         .refreshable { await vm.reload() }
+        // Phase 14.3.3.b — eventId deep-link sheet (mirror Android HubAuditScreen).
+        // 3-state sheet body：loading spinner / error banner / detail view。
+        .sheet(isPresented: Binding(
+            get: { vm.activeEventId != nil },
+            set: { if !$0 { vm.closeEventDetail() } }
+        )) {
+            HubAuditEventDetailSheet(
+                isLoading: vm.isEventDetailLoading,
+                detail: vm.activeEventDetail,
+                error: vm.eventDetailError
+            )
+            .presentationDetents([.medium, .large])
+        }
     }
 }
 
+/// Audit-row 上的 eventId 点击模式（Phase 14.3.3.b）：tinted text + chevron 提示
+/// 可点；点击触发上层传入的 `onTapEventId(eventId)` 异步拉详情。
+///
+/// 老 v0.1 row 不显 eventId（仅 action / at / adapter / actor）；本 row 新增
+/// "event:" 显短前缀 16 字符 + 蓝色 + chevron — UX 与 Android HubAuditScreen.kt
+/// 一致（`event: <id-take-16>… ↗`）。
 private struct AuditRowView: View {
     let row: HubAuditRow
+    let onTapEventId: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -421,6 +443,20 @@ private struct AuditRowView: View {
             if let actor = row.actor, !actor.isEmpty {
                 Text("actor: \(actor)").font(.caption).foregroundColor(.secondary)
             }
+            if let eid = row.eventId, !eid.isEmpty {
+                Button {
+                    onTapEventId(eid)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("event: \(eid.prefix(16))…")
+                            .font(.caption)
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, 2)
     }
@@ -430,6 +466,48 @@ private struct AuditRowView: View {
         let f = DateFormatter()
         f.dateFormat = "MM-dd HH:mm"
         return f.string(from: d)
+    }
+}
+
+/// 3-state event-detail bottom sheet for audit deep-link.
+///   - isLoading=true → spinner + "加载事件详情…"
+///   - error != nil → 红色 banner + 错误文字 + Phase 14 trap T4 提示文案
+///   - detail != nil → 复用既有 `CitationDetailSheet` 渲染（同一份事件元数据）
+///
+/// 命名上独立于 `CitationDetailSheet` 以承载多状态；detail-only 分支直接 reuse。
+private struct HubAuditEventDetailSheet: View {
+    let isLoading: Bool
+    let detail: HubEventDetailResponse?
+    let error: String?
+
+    var body: some View {
+        Group {
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("加载事件详情…")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(32)
+            } else if let err = error {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("无法加载事件详情")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    Text(err).font(.footnote)
+                    Text("可能原因：事件已被 destroy / vault 重建后该 eventId 不存在 (per design §7 T4)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let detail = detail {
+                CitationDetailSheet(detail: detail)
+            }
+        }
     }
 }
 
