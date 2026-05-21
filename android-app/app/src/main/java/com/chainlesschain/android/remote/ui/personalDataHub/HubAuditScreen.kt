@@ -1,6 +1,8 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,11 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,13 +48,21 @@ private val FILTERS = listOf(
  *
  * `recentAudit` 反查最近 N 条审计 row，按 action filter chip 切换。每行显示
  * timestamp / action / adapter / eventId（短）/ actor / context。
+ *
+ * Phase 14.3.3.b — eventId 一行变可点击，点击 → `viewModel.openEventDetail()`
+ * → `personal-data-hub.event-detail` RPC → ModalBottomSheet 渲染
+ * [HubEventDetailContent]（与 HubAskScreen citation sheet 同款）。Sheet loading
+ * 时显示 spinner；fetch 失败显示错误文字；用户 dismiss → `closeEventDetail()`
+ * 清状态。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HubAuditScreen(
     viewModel: HubAuditViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val df = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold { padding ->
         Column(
@@ -107,11 +121,70 @@ fun HubAuditScreen(
                         }
                         row.adapter?.let { Text("adapter: $it",
                             style = MaterialTheme.typography.labelSmall) }
-                        row.eventId?.let { Text("event: ${it.take(16)}…",
-                            style = MaterialTheme.typography.labelSmall) }
+                        row.eventId?.let { eid ->
+                            // Phase 14.3.3.b — clickable surface for deep-link
+                            // to event detail sheet. tinted to signal interactivity.
+                            Text(
+                                "event: ${eid.take(16)}…  ↗",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .clickable { viewModel.openEventDetail(eid) }
+                            )
+                        }
                         row.context?.let { Text(it,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+            }
+        }
+
+        // Phase 14.3.3.b — bottom sheet for event detail (3-state machine)
+        if (state.activeEventId != null) {
+            ModalBottomSheet(
+                onDismissRequest = viewModel::closeEventDetail,
+                sheetState = sheetState,
+            ) {
+                when {
+                    state.isEventDetailLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.size(12.dp))
+                                Text("加载事件详情…", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    state.eventDetailError != null -> {
+                        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+                            Text(
+                                "无法加载事件详情",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                state.eventDetailError ?: "(未知错误)",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                "可能原因：事件已被 destroy / vault 重建后该 eventId 不存在 (per design §7 T4)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    state.activeEventDetail != null -> {
+                        HubEventDetailContent(state.activeEventDetail!!)
                     }
                 }
             }
