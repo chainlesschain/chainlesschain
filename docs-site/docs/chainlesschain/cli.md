@@ -1,20 +1,20 @@
 # CLI 命令行工具
 
-> **版本: v5.0.2.2 | 状态: ✅ 生产就绪 | 2063 测试通过 | 63 命令 | 纯 JS 无原生依赖**
+> **版本: v5.0.3.75 | 状态: ✅ 生产就绪 | 30,000+ 测试 | 144 命令 | 纯 JS 无原生依赖**
 
 ## 概述
 
-ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，提供 63 个命令覆盖 AI 对话、笔记管理、DID 身份、加密解密、多智能体协作等全部核心功能。通过 `npm install -g` 即可全平台安装，支持 Agent 模式、四层技能系统和完整的系统生命周期管理。
+ChainlessChain CLI 是一个纯 JavaScript 实现的轻量级命令行工具，提供 144 个命令覆盖 AI 对话、笔记管理、DID 身份、加密解密、多智能体协作等全部核心功能。通过 `npm install -g` 即可全平台安装，支持 Agent 模式、四层技能系统和完整的系统生命周期管理。
 
 ## 核心特性
 
 - 📦 **纯 JS 轻量包**: 约 2MB，无原生依赖，全平台 `npm install -g` 即装即用
-- 🤖 **63 个命令**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server、Web管理界面等
-- 🧠 **Agent 模式**: Claude Code 风格代理会话，8 工具 + 138 技能 + Plan Mode + /cowork
+- 🤖 **144 个命令**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server、Web管理界面等
+- 🧠 **Agent 模式**: Claude Code 风格代理会话，10 工具 + 141 技能 + Plan Mode + /cowork
 - 🎯 **多层技能系统**: 4 层优先级（bundled < marketplace < managed < workspace），自定义技能管理
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
-- 🧪 **2063 测试通过**: 118 核心包测试 + 1945 CLI 测试，92 个测试文件
+- 🧪 **30,000+ 测试通过**: 跨桌面 / CLI / web-panel / core packages 共 6 层测试矩阵
 
 ## 系统架构
 
@@ -589,8 +589,8 @@ chainlesschain services logs
 
 - `packages/cli/bin/chainlesschain.js` — npm bin 入口（`chainlesschain`、`cc`、`clc`、`clchain` 四个命令共享此入口）
 - `packages/cli/src/index.js` — Commander 命令注册（主入口）
-- `packages/cli/src/commands/` — 所有命令实现（63 个命令文件）
-- `packages/cli/src/lib/` — 共享库（68 个模块）
+- `packages/cli/src/commands/` — 所有命令实现（137 个命令文件，144 个 user-facing 命令）
+- `packages/cli/src/lib/` — 共享库（70+ 个模块）
 - `packages/cli/src/lib/cowork/` — 多智能体协作模块（5 个）
 - `packages/cli/src/repl/` — 交互式 REPL（chat/agent + /cowork）
 - `packages/cli/src/runtime/bootstrap.js` — 7 阶段 Headless 初始化
