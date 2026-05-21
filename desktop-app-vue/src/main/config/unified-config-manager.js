@@ -809,6 +809,11 @@ class UnifiedConfigManager {
           "personal-data-hub.register-alipay",
           "personal-data-hub.unregister-alipay",
           "personal-data-hub.unregister",
+          // destroy wipes the entire PDH vault (potentially years of personal
+          // data). Has inline `msg.confirm === true` guard but a malicious
+          // mobile peer can trivially set that flag — ApprovalUI gives the
+          // desktop owner a visible confirmation moment before the wipe.
+          "personal-data-hub.destroy",
         ],
         approvalTimeoutMs: 60_000,
       },

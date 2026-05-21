@@ -275,7 +275,18 @@ describe("UnifiedConfigManager", () => {
       expect(approvalChannels).toContain("personal-data-hub.register-alipay");
       expect(approvalChannels).toContain("personal-data-hub.unregister-alipay");
       expect(approvalChannels).toContain("personal-data-hub.unregister");
+      expect(approvalChannels).toContain("personal-data-hub.destroy");
       expect(defaultConfig.mobileBridge.approvalTimeoutMs).toBe(60_000);
+
+      // Regex invariant: any approval channel matching `personal-data-hub.<method>`
+      // MUST have a kebab-case method. camelCase would silently bypass the
+      // ApprovalUI gate (Phase 14.1.1 bug pattern — would have shipped exploitable).
+      for (const entry of approvalChannels) {
+        const m = /^personal-data-hub\.(.+)$/.exec(entry);
+        if (m) {
+          expect(m[1]).toMatch(/^[a-z][a-z0-9-]*$/);
+        }
+      }
     });
   });
 
