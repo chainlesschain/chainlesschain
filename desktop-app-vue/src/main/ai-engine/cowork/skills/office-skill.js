@@ -432,16 +432,42 @@ class OfficeSkill extends BaseSkill {
 
   /**
    * 读取 Word 文档
-   * @param {Object} input - 输入数据
+   * @param {Object} input - 输入数据 { filePath, format? }
    * @param {Object} context - 上下文
-   * @returns {Promise<Object>} 结果
+   * @returns {Promise<Object>} 结果 { success, filePath, text, html?, warnings }
    */
-  async readWord(_input, _context = {}) {
-    // 简化实现：读取文本内容
-    // 实际应用中需要使用 mammoth 或 docx 库来解析
-    throw new Error(
-      "Word document reading not yet implemented. Use a library like mammoth.js",
-    );
+  async readWord(input, _context = {}) {
+    const { filePath, format = "text" } = input || {};
+
+    if (!filePath) {
+      throw new Error("readWord requires input.filePath");
+    }
+
+    // 延迟加载 mammoth（项目已直接 dep，被 word-engine / document-parser / file-importer 共用）
+    if (!this.wordLib) {
+      try {
+        this.wordLib = require("mammoth");
+      } catch (_error) {
+        throw new Error("mammoth library not available");
+      }
+    }
+
+    const textResult = await this.wordLib.extractRawText({ path: filePath });
+    const result = {
+      success: true,
+      filePath,
+      text: textResult.value || "",
+      warnings: (textResult.messages || []).map((m) => m.message),
+    };
+
+    if (format === "html" || format === "both") {
+      const htmlResult = await this.wordLib.convertToHtml({ path: filePath });
+      result.html = htmlResult.value || "";
+    }
+
+    this._log(`Word 文档已读取: ${filePath} (${result.text.length} chars)`);
+
+    return result;
   }
 
   // ==========================================
