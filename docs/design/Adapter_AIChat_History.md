@@ -470,6 +470,29 @@ Topic(ai-conversation) --about--> [LLM-extracted topic from title + first 3 mess
 | schema | message.subtype = "ai-image-generation"，content.generatedImages 含 prompt + URLs |
 | 特别 | 图像 CDN URL 有签名过期；v1 抓 URL，缩略图本地化 |
 
+### 6.9 豆包 Doubao (`com.larus.nova`)
+
+ByteDance 的旗舰文本 AI 助手，与 Dreamina（图像/视频）同源但 web 域名独立。作为第 9 家 vendor 接入。
+
+| 项 | 值 |
+|---|---|
+| 登录 URL | `https://www.doubao.com/chat/` |
+| 主要 cookie | `.doubao.com` + `www.doubao.com` |
+| 用户校验 API | `POST /samantha/user/info`（响应 `data.user_id` / `data.uid`） |
+| 会话列表 API | `POST /samantha/conversation/list`，body `{ cursor, count }`，响应 `data.conversation_list[]` + `cursor` + `has_more` |
+| 消息列表 API | `POST /samantha/conversation/<id>/message/list`，body `{ conversation_id, cursor, count }`，响应 `data.message_list[]` + `cursor` + `has_more` |
+| 分页机制 | opaque cursor + has_more（**不是** offset/page number）；hard cap 200 页 |
+| 时间字段 | `create_time` / `last_message_time` / `update_time`（秒级 epoch，`_toMs` 检测 >1e12 不再 ×1000） |
+| 角色字段 | `sender_type` 兼容数字（1=user / 2=assistant / 3=system）+ 字符串（`USER` / `ASSISTANT` / `SYSTEM` + 小写）|
+| modelName 取舍 | 取 `bot_name`（豆包账号支持多 bot 角色），`extra.botId` 保留原 id 供 KG 分组 |
+| 附件 | text + optional `attachments[]`（image / file），v1 scaffold 仅保 url + filename + size + mimeType |
+| 节奏 | `rateLimits: { perMinute: 20, minIntervalMs: 2000 }` — 比标准 8 家略激进，因豆包 web 端响应快 |
+| 已落地 | Phase 10.2(+) v0.1 scaffold（5 单测 + 一并接入 `DEFAULT_VENDOR_SPECS`），Phase 10.4 真账号 har 抓包 pin 字段名 |
+
+**与 §6.8 Dreamina 的关系**：同字节出品但完全独立 — Dreamina 是图像/视频 workspace，豆包是文本对话。两者 cookie 不互通（不同子域），可同时接入；UnifiedSchema 通过 `vendor` 字段区分。
+
+**SPEC 防御策略**：`_extractConvList` / `_extractMsgList` 同时识别 `conversation_list` / `conversations` / `list` 三种字段名（消息侧 `message_list` / `messages` / `list`），吸收 Phase 10.4 字段名 drift 不破 sync。
+
 ---
 
 ## 7. AI 分析价值
@@ -668,11 +691,12 @@ ChatPanel 加入跨家历史搜索框：
 |---|---|---|
 | 10.1 | 框架：VendorAdapter 接口 + 父 adapter 主循环 + UnifiedSchema 映射 + WebView 鉴权流程 | 1.5d |
 | 10.2 | DeepSeek + Kimi 两家（最简单 API，先验证框架） | 1.5d |
+| 10.2(+) | 豆包 Doubao scaffold（第 9 家，字节文本 AI；validateCookie + listConversations + listMessages + _extractList 防御 + 5 单测，字段名待 10.4 har pin） | 0.5d |
 | 10.3 | 通义 + 智谱 + 混元 + 千帆 四家（中文厂商批量） | 2d |
-| 10.4 | 扣子 (agent 结构) + Dreamina (图像生成) | 1d |
+| 10.4 | 扣子 (agent 结构) + Dreamina (图像生成) + 豆包 har 字段 pin | 1d |
 | 10.5 | 跨家分析 skill + 月度报告 Workflow + UI 概览页 | 1d |
 
-**总**：~7 天，与父文档 §12 Phase 10 工期一致。
+**总**：~7.5 天，与父文档 §12 Phase 10 工期一致（豆包 scaffold 半天插入 10.2 与 10.3 之间）。
 
 ---
 

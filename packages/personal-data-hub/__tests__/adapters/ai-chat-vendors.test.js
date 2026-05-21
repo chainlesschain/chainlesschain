@@ -16,6 +16,7 @@ const hunyuanModule = require("../../lib/adapters/ai-chat-history/vendors/hunyua
 const qianfanModule = require("../../lib/adapters/ai-chat-history/vendors/qianfan");
 const cozeModule = require("../../lib/adapters/ai-chat-history/vendors/coze");
 const dreaminaModule = require("../../lib/adapters/ai-chat-history/vendors/dreamina");
+const doubaoModule = require("../../lib/adapters/ai-chat-history/vendors/doubao");
 
 // ─── helpers ─────────────────────────────────────────────────────────────
 
@@ -712,9 +713,148 @@ describe("Dreamina vendor — Phase 10.2 wiring", () => {
   });
 });
 
+// ─── Doubao 豆包 ────────────────────────────────────────────────────────
+
+function doubaoFixtureClient() {
+  const fixture = makeRoutedFetch([
+    [
+      "/samantha/user/info",
+      makeResponse({ body: { code: 0, data: { user_id: "db-u1" } } }),
+    ],
+    [
+      "/samantha/conversation/list",
+      makeResponse({
+        body: {
+          data: {
+            conversation_list: [
+              {
+                conversation_id: "conv-1",
+                name: "聊聊 Rust",
+                bot_id: "bot-default",
+                bot_name: "豆包",
+                create_time: 1700000000,
+                last_message_time: 1700001000,
+                message_count: 4,
+              },
+            ],
+            has_more: false,
+            cursor: "",
+          },
+        },
+      }),
+    ],
+    [
+      /samantha\/conversation\/conv-1\/message\/list/,
+      makeResponse({
+        body: {
+          data: {
+            message_list: [
+              {
+                id: "m-2",
+                sender_type: 2,
+                content: "Rust 的核心是所有权…",
+                create_time: 1700000060,
+                bot_id: "bot-default",
+              },
+              {
+                id: "m-1",
+                sender_type: 1,
+                content: "讲讲 Rust 的特点",
+                create_time: 1700000050,
+              },
+            ],
+            has_more: false,
+            cursor: "",
+          },
+        },
+      }),
+    ],
+  ]);
+  const clk = makeClock();
+  const httpClient = new HttpClient({
+    vendor: "doubao",
+    rateLimits: { perMinute: 0, minIntervalMs: 0 },
+    fetch: fixture.fetch,
+    sleep: clk.sleep,
+    now: clk.now,
+  });
+  return { httpClient, fixture };
+}
+
+describe("Doubao vendor — Phase 10.2(+) v0.1 scaffold", () => {
+  it("validateCookie returns userId from /samantha/user/info", async () => {
+    const { httpClient } = doubaoFixtureClient();
+    const session = new CookieAuthSession({ vendor: "doubao", cookies: [] });
+    const r = await doubaoModule.SPEC.validateCookie({
+      httpClient,
+      session,
+      vendor: "doubao",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.userId).toBe("db-u1");
+  });
+
+  it("listConversations yields RawConversation with bot_name as modelName", async () => {
+    const { httpClient } = doubaoFixtureClient();
+    const session = new CookieAuthSession({ vendor: "doubao", cookies: [] });
+    const out = [];
+    for await (const c of doubaoModule.SPEC.listConversations({
+      httpClient,
+      session,
+      vendor: "doubao",
+    })) {
+      out.push(c);
+    }
+    expect(out.length).toBe(1);
+    expect(out[0].originalId).toBe("conv-1");
+    expect(out[0].title).toBe("聊聊 Rust");
+    expect(out[0].modelName).toBe("豆包");
+    expect(out[0].extra.botId).toBe("bot-default");
+  });
+
+  it("listMessages sorts messages chronologically + maps numeric sender_type", async () => {
+    const { httpClient } = doubaoFixtureClient();
+    const session = new CookieAuthSession({ vendor: "doubao", cookies: [] });
+    const out = [];
+    for await (const m of doubaoModule.SPEC.listMessages(
+      { httpClient, session, vendor: "doubao" },
+      "conv-1",
+    )) {
+      out.push(m);
+    }
+    expect(out.length).toBe(2);
+    // Re-sorted to chronological even though API returned reverse.
+    expect(out[0].originalId).toBe("m-1");
+    expect(out[0].role).toBe("user");
+    expect(out[0].content.text).toBe("讲讲 Rust 的特点");
+    expect(out[1].originalId).toBe("m-2");
+    expect(out[1].role).toBe("assistant");
+  });
+
+  it("_normalizeRole handles numeric + string + uppercase sender_type", () => {
+    const { _normalizeRole } = doubaoModule._internal;
+    expect(_normalizeRole(1)).toBe("user");
+    expect(_normalizeRole("2")).toBe("assistant");
+    expect(_normalizeRole("SYSTEM")).toBe("system");
+    expect(_normalizeRole("assistant")).toBe("assistant");
+  });
+
+  it("_extractConvList absorbs alternate response field names", () => {
+    const { _extractConvList, _extractMsgList } = doubaoModule._internal;
+    expect(_extractConvList({ data: { conversations: [{ id: 1 }] } })).toEqual([
+      { id: 1 },
+    ]);
+    expect(_extractConvList({ data: { list: [{ id: 2 }] } })).toEqual([{ id: 2 }]);
+    expect(_extractMsgList({ data: { messages: [{ id: "x" }] } })).toEqual([
+      { id: "x" },
+    ]);
+    expect(_extractMsgList({})).toEqual([]);
+  });
+});
+
 // ─── Spec contract still valid after wiring ──────────────────────────────
 
-describe("vendor spec post-wire smoke (8/8 vendors live)", () => {
+describe("vendor spec post-wire smoke (9 vendors total — 8 live + doubao scaffold)", () => {
   it.each([
     "deepseek",
     "kimi",
@@ -724,6 +864,7 @@ describe("vendor spec post-wire smoke (8/8 vendors live)", () => {
     "qianfan",
     "coze",
     "dreamina",
+    "doubao",
   ])("%s spec still has correct shape", (v) => {
     expect(DEFAULT_VENDOR_SPECS[v].name).toBe(v);
     expect(typeof DEFAULT_VENDOR_SPECS[v].listConversations).toBe("function");
