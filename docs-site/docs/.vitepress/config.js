@@ -1467,6 +1467,10 @@ export default defineConfig({
               link: "/design/Personal_Data_Hub_Analysis_Skills",
             },
             {
+              text: "v0.1 → v1 Fixture Pin 协议（方法论）",
+              link: "/design/Personal_Data_Hub_Fixture_Pin_Protocol",
+            },
+            {
               text: "Adapter — Email (IMAP) ✅",
               link: "/design/Adapter_Email_IMAP",
             },
