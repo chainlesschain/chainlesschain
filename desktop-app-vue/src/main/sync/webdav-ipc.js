@@ -28,6 +28,7 @@ const walker = require("./incremental-walker");
 const renderer = require("./markdown-renderer");
 const { runWebDAVSync } = require("./webdav-engine");
 const { WebDAVClient } = require("./webdav-client");
+const { detectOrphans, deleteOrphans } = require("./orphan-detector");
 
 const PROVIDER_ID = "webdav";
 
@@ -211,8 +212,77 @@ function registerWebDAVIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
     }
   });
 
+  // ── sync:webdav:list-orphans ──────────────────────────────────
+  // Phase 3c follow-up D7: 列远端在本地 cursor 没记录的孤儿文件
+  ipcMain.handle("sync:webdav:list-orphans", async () => {
+    try {
+      if (!database) {
+        return { success: false, error: "数据库未初始化" };
+      }
+      const creds = _loadCredentialsForClient();
+      if (!creds) {
+        return { success: false, error: "WebDAV 凭证未配置" };
+      }
+      const client = new WebDAVClient(creds);
+      let listResult;
+      try {
+        listResult = await client.listRemote();
+      } catch (err) {
+        return {
+          success: false,
+          error: `远端列举失败：${err?.message || String(err)}`,
+        };
+      }
+      const cursor = store.getCursor(database, PROVIDER_ID) || {};
+      const diff = detectOrphans({ cursor, listResult });
+      return {
+        success: true,
+        data: {
+          orphans: diff.orphans,
+          knownCount: diff.knownCount,
+          totalRemote: diff.totalRemote,
+        },
+      };
+    } catch (err) {
+      logger.error("[WebDAV IPC] list-orphans 异常:", err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // ── sync:webdav:delete-orphans ────────────────────────────────
+  // 接 [{filename, etag?}] 列表 → 逐个 client.deleteFile (with If-Match)
+  ipcMain.handle("sync:webdav:delete-orphans", async (_event, payload) => {
+    try {
+      const orphans = Array.isArray(payload?.orphans) ? payload.orphans : null;
+      if (!orphans) {
+        return {
+          success: false,
+          error: "payload.orphans 必须是 [{filename, etag?}] 数组",
+        };
+      }
+      const creds = _loadCredentialsForClient();
+      if (!creds) {
+        return { success: false, error: "WebDAV 凭证未配置" };
+      }
+      const client = new WebDAVClient(creds);
+      const result = await deleteOrphans({
+        client,
+        orphans,
+        logger: (e) =>
+          logger[e.level || "info"]?.("[WebDAV IPC orphan]", e.msg),
+      });
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (err) {
+      logger.error("[WebDAV IPC] delete-orphans 异常:", err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   ipcGuard.markModuleRegistered("webdav-ipc");
-  logger.info("[WebDAV IPC] 已注册 5 个 handlers");
+  logger.info("[WebDAV IPC] 已注册 7 个 handlers");
 }
 
 module.exports = {

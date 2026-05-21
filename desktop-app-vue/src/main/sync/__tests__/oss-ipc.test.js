@@ -74,10 +74,10 @@ beforeEach(() => {
 });
 
 describe("oss-ipc · registration", () => {
-  it("registers 5 handlers", () => {
+  it("registers 7 handlers (incl. Phase 3c.D7 orphan cleanup)", () => {
     const ipcMain = makeFakeIpcMain();
     registerOSSIPC({ database: null, mainWindow: null, ipcMain });
-    expect(ipcMain.handle).toHaveBeenCalledTimes(5);
+    expect(ipcMain.handle).toHaveBeenCalledTimes(7);
     const channels = [...ipcMain.handlers.keys()];
     expect(channels).toEqual(
       expect.arrayContaining([
@@ -86,6 +86,8 @@ describe("oss-ipc · registration", () => {
         "sync:oss:config-get",
         "sync:oss:config-set",
         "sync:oss:config-clear",
+        "sync:oss:list-orphans",
+        "sync:oss:delete-orphans",
       ]),
     );
   });
@@ -254,5 +256,54 @@ describe("oss-ipc · graceful when mainWindow destroyed", () => {
     expect(res.success).toBe(true);
     // status is null because no database
     expect(res.data.status).toBe(null);
+  });
+});
+
+// ── Phase 3c.D7 orphan handlers ────────────────────────────────────
+
+describe("oss-ipc · list-orphans / delete-orphans handler error paths", () => {
+  it("list-orphans returns error when no database", async () => {
+    const ipcMain = makeFakeIpcMain();
+    registerOSSIPC({ database: null, mainWindow: null, ipcMain });
+    const res = await ipcMain.invoke("sync:oss:list-orphans");
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/数据库/);
+  });
+
+  it("list-orphans returns error when no credentials", async () => {
+    const ipcMain = makeFakeIpcMain();
+    const fakeDb = { all: () => [], get: () => null, run: () => {} };
+    registerOSSIPC({ database: fakeDb, mainWindow: null, ipcMain });
+    const res = await ipcMain.invoke("sync:oss:list-orphans");
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/凭证未配置/);
+  });
+
+  it("delete-orphans rejects missing payload.orphans", async () => {
+    const ipcMain = makeFakeIpcMain();
+    registerOSSIPC({ database: null, mainWindow: null, ipcMain });
+    const res = await ipcMain.invoke("sync:oss:delete-orphans", {});
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/orphans/);
+  });
+
+  it("delete-orphans rejects when payload.orphans not array", async () => {
+    const ipcMain = makeFakeIpcMain();
+    registerOSSIPC({ database: null, mainWindow: null, ipcMain });
+    const res = await ipcMain.invoke("sync:oss:delete-orphans", {
+      orphans: "not-an-array",
+    });
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/orphans/);
+  });
+
+  it("delete-orphans returns error when no credentials", async () => {
+    const ipcMain = makeFakeIpcMain();
+    registerOSSIPC({ database: null, mainWindow: null, ipcMain });
+    const res = await ipcMain.invoke("sync:oss:delete-orphans", {
+      orphans: [{ filename: "x.md" }],
+    });
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/凭证未配置/);
   });
 });

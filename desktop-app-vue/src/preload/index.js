@@ -1829,6 +1829,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
       configSet: (payload) =>
         ipcRenderer.invoke("sync:webdav:config-set", payload),
       configClear: () => ipcRenderer.invoke("sync:webdav:config-clear"),
+      // Phase 3c follow-up D7: 远端孤儿文件清理
+      listOrphans: () => ipcRenderer.invoke("sync:webdav:list-orphans"),
+      deleteOrphans: (orphans) =>
+        ipcRenderer.invoke("sync:webdav:delete-orphans", { orphans }),
       // 进度订阅：返回 unsubscribe 函数
       onProgress: (callback) => {
         const handler = (_event, payload) => callback(payload);
@@ -1846,6 +1850,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
       configSet: (payload) =>
         ipcRenderer.invoke("sync:oss:config-set", payload),
       configClear: () => ipcRenderer.invoke("sync:oss:config-clear"),
+      // Phase 3c follow-up D7: 远端孤儿对象清理
+      listOrphans: () => ipcRenderer.invoke("sync:oss:list-orphans"),
+      deleteOrphans: (orphans) =>
+        ipcRenderer.invoke("sync:oss:delete-orphans", { orphans }),
       onProgress: (callback) => {
         const handler = (_event, payload) => callback(payload);
         ipcRenderer.on("sync:oss:progress", handler);
