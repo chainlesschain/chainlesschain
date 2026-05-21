@@ -45,7 +45,13 @@ class LocalCcRunner @Inject constructor(
     suspend fun syncAdapter(
         adapterName: String,
         inputPath: String,
-        timeoutMs: Long = 30_000L,
+        // First-run sync on device: bs3mc cold-load + LocalVault open + KG/RAG
+        // derivation for ~1300 entities + EntityResolver embedding-stage
+        // retries (no Ollama on device → silent-fail with network timeout
+        // budget) measured 60-90s on Xiaomi 24115RA8EC 2026-05-21. 120s
+        // budget gives headroom; later syncs should be much faster (vault
+        // already open, embeddings cached, fewer new entities).
+        timeoutMs: Long = 120_000L,
     ): CcResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
         if (ensure.isFailure) {
@@ -116,18 +122,32 @@ class LocalCcRunner @Inject constructor(
 
         val stdoutBuilder = StringBuilder()
         val stderrBuilder = StringBuilder()
+        // Reader threads MUST catch every Throwable: when Process.waitFor()
+        // reaps the child, the kernel closes its stdout/stderr FDs which
+        // unblocks a thread parked in read(2) with InterruptedIOException —
+        // an uncaught exception in a non-fatal Thread crashes the whole app
+        // ("crashed quickly" → ActivityManager kill). Real-device repro
+        // 2026-05-21 Xiaomi 24115RA8EC.
         val stdoutThread = Thread {
-            process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
-                for (line in lines) {
-                    stdoutBuilder.append(line).append('\n')
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) {
+                        stdoutBuilder.append(line).append('\n')
+                    }
                 }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner: stdout reader exited via exception (likely EOF race)")
             }
         }.also { it.start() }
         val stderrThread = Thread {
-            process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
-                for (line in lines) {
-                    stderrBuilder.append(line).append('\n')
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) {
+                        stderrBuilder.append(line).append('\n')
+                    }
                 }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner: stderr reader exited via exception (likely EOF race)")
             }
         }.also { it.start() }
 
