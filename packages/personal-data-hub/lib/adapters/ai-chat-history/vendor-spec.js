@@ -28,6 +28,7 @@ const SUPPORTED_VENDORS = Object.freeze([
   "qianfan",
   "coze",
   "dreamina",
+  "doubao",
 ]);
 
 class NotImplementedYetError extends Error {
