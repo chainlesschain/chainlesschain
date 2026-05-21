@@ -62,15 +62,23 @@ class PersonalDataHubCommands @Inject constructor(
      * 写 staging 文件后调既有 syncAdapter 入 vault。无需安卓本机 vault；snapshot
      * 体积通常 100KB-2MB，WS payload 一次传完。
      *
+     * **Timeout 默认 120s 而不是 RemoteCommandClient 默认 30s** —— 真机 verify
+     * 见 v5.0.3.77 桌面日志（2026-05-21）：1k 联系人 ingest 走 12 个 sync.batch
+     * 总耗时 37s，30s default 客户端会先放弃但桌面侧仍 commit；用户看到"超时"
+     * 时 vault 其实**已经入了数据**，重试会重复写。Bump 到 120s 给出 3× 余量。
+     *
      * @param snapshot 形状必须匹配 [SystemDataLocalCollector.Snapshot.toMap]：
      *   `{schemaVersion: 1, snapshottedAt: Long, contacts: [...], apps: [...]}`
+     * @param timeoutMs RPC 超时；默认 120s
      */
     suspend fun ingestSystemDataAndroid(
-        snapshot: Map<String, Any>
+        snapshot: Map<String, Any>,
+        timeoutMs: Long = 120_000L
     ): Result<SyncReport> =
         client.invoke(
             "personal-data-hub.ingest-system-data-android",
-            mapOf("snapshot" to snapshot)
+            mapOf("snapshot" to snapshot),
+            timeoutMs
         )
 
     /**
