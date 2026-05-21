@@ -32,15 +32,9 @@
           >
             <div class="stage-icon">
               <CheckCircleOutlined v-if="stage.status === 'completed'" />
-              <LoadingOutlined
-                v-else-if="stage.status === 'running'"
-                spin
-              />
+              <LoadingOutlined v-else-if="stage.status === 'running'" spin />
               <CloseCircleOutlined v-else-if="stage.status === 'error'" />
-              <span
-                v-else
-                class="stage-number"
-              >{{ stage.number }}</span>
+              <span v-else class="stage-number">{{ stage.number }}</span>
             </div>
             <div class="stage-content">
               <div class="stage-name">
@@ -55,15 +49,10 @@
       </div>
 
       <!-- 3. 创建的文件列表 -->
-      <div
-        v-if="hasFiles"
-        class="files-section"
-      >
+      <div v-if="hasFiles" class="files-section">
         <div class="section-header-with-action">
           <h3>创建的文件</h3>
-          <a-tag color="blue">
-            {{ createdFiles.length }} 个文件
-          </a-tag>
+          <a-tag color="blue"> {{ createdFiles.length }} 个文件 </a-tag>
         </div>
         <div class="file-list">
           <div
@@ -85,10 +74,7 @@
               </div>
               <div class="file-meta">
                 <span v-if="file.size">{{ formatFileSize(file.size) }}</span>
-                <span
-                  v-if="file.path"
-                  class="file-path"
-                >{{ file.path }}</span>
+                <span v-if="file.path" class="file-path">{{ file.path }}</span>
               </div>
             </div>
             <div class="file-status">
@@ -96,10 +82,7 @@
                 v-if="file.status === 'created'"
                 style="color: #52c41a"
               />
-              <LoadingOutlined
-                v-else-if="file.status === 'creating'"
-                spin
-              />
+              <LoadingOutlined v-else-if="file.status === 'creating'" spin />
               <ExclamationCircleOutlined
                 v-else-if="file.status === 'error'"
                 style="color: #ff4d4f"
@@ -110,15 +93,9 @@
       </div>
 
       <!-- 4. 代码预览（Tab切换） -->
-      <div
-        v-if="hasContent"
-        class="code-preview-section"
-      >
+      <div v-if="hasContent" class="code-preview-section">
         <h3>生成内容</h3>
-        <a-tabs
-          v-model:active-key="activeTab"
-          type="card"
-        >
+        <a-tabs v-model:active-key="activeTab" type="card">
           <a-tab-pane
             v-for="file in fileStages"
             :key="file.key"
@@ -126,36 +103,27 @@
           >
             <div class="code-content">
               <pre><code>{{ progressData.contentByStage[file.key] || '生成中...' }}</code></pre>
-              <span
-                v-if="isGenerating(file.key)"
-                class="typing-cursor"
-              >▊</span>
+              <span v-if="isGenerating(file.key)" class="typing-cursor">▊</span>
             </div>
           </a-tab-pane>
         </a-tabs>
       </div>
 
       <!-- 4. 元数据展示 -->
-      <div
-        v-if="hasMetadata"
-        class="metadata-section"
-      >
+      <div v-if="hasMetadata" class="metadata-section">
         <h3>生成信息</h3>
-        <a-descriptions
-          :column="2"
-          size="small"
-        >
+        <a-descriptions :column="2" size="small">
           <a-descriptions-item label="模型">
-            {{ progressData.metadata.model || '-' }}
+            {{ progressData.metadata.model || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="Tokens">
-            {{ progressData.metadata.tokens || '-' }}
+            {{ progressData.metadata.tokens || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="模板">
-            {{ progressData.metadata.template || '-' }}
+            {{ progressData.metadata.template || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="主题">
-            {{ progressData.metadata.theme || '-' }}
+            {{ progressData.metadata.theme || "-" }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
@@ -164,18 +132,11 @@
       <div class="logs-section">
         <div class="logs-header">
           <h3>详细日志</h3>
-          <a-button
-            type="link"
-            size="small"
-            @click="showLogs = !showLogs"
-          >
-            {{ showLogs ? '收起' : '展开' }}
+          <a-button type="link" size="small" @click="showLogs = !showLogs">
+            {{ showLogs ? "收起" : "展开" }}
           </a-button>
         </div>
-        <div
-          v-if="showLogs"
-          class="logs-content"
-        >
+        <div v-if="showLogs" class="logs-content">
           <div
             v-for="(log, idx) in progressData.logs"
             :key="idx"
@@ -189,10 +150,7 @@
       </div>
 
       <!-- 6. 错误信息 -->
-      <div
-        v-if="error"
-        class="error-section"
-      >
+      <div v-if="error" class="error-section">
         <ExclamationCircleOutlined />
         {{ error }}
       </div>
@@ -201,38 +159,21 @@
       <div class="actions">
         <!-- 进行中 -->
         <template v-if="isStreaming">
-          <a-button
-            danger
-            @click="handleCancel"
-          >
-            取消
-          </a-button>
+          <a-button danger @click="handleCancel"> 取消 </a-button>
         </template>
 
         <!-- 完成 -->
         <template v-else-if="isCompleted">
-          <a-button
-            type="primary"
-            @click="handleViewProject"
-          >
+          <a-button type="primary" @click="handleViewProject">
             查看项目
           </a-button>
-          <a-button @click="handleContinue">
-            继续创建
-          </a-button>
+          <a-button @click="handleContinue"> 继续创建 </a-button>
         </template>
 
         <!-- 错误 -->
         <template v-else-if="error">
-          <a-button
-            type="primary"
-            @click="handleRetry"
-          >
-            重试
-          </a-button>
-          <a-button @click="handleClose">
-            取消
-          </a-button>
+          <a-button type="primary" @click="handleRetry"> 重试 </a-button>
+          <a-button @click="handleClose"> 取消 </a-button>
         </template>
       </div>
     </div>
@@ -240,8 +181,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, h } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, watch, h } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   CheckCircleOutlined,
   LoadingOutlined,
@@ -251,14 +192,14 @@ import {
   CodeOutlined,
   FileImageOutlined,
   FileOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: Boolean,
   progressData: {
     type: Object,
     default: () => ({
-      currentStage: '',
+      currentStage: "",
       stages: [],
       contentByStage: {},
       logs: [],
@@ -266,13 +207,19 @@ const props = defineProps({
       files: [], // 新增：创建的文件列表
     }),
   },
-  error: String,
+  error: { type: String, default: undefined },
 });
 
-const emit = defineEmits(['cancel', 'retry', 'close', 'viewProject', 'continue']);
+const emit = defineEmits([
+  "cancel",
+  "retry",
+  "close",
+  "viewProject",
+  "continue",
+]);
 
 // 状态
-const activeTab = ref('html');
+const activeTab = ref("html");
 const showLogs = ref(false);
 
 // 阶段定义
@@ -280,32 +227,32 @@ const showLogs = ref(false);
 const getStageDefinitions = () => {
   // 从progressData中推断项目类型
   const stages = props.progressData.stages || [];
-  const hasOutlineStage = stages.some(s => s.stage === 'outline');
-  const hasHtmlStage = stages.some(s => s.stage === 'html');
+  const hasOutlineStage = stages.some((s) => s.stage === "outline");
+  const hasHtmlStage = stages.some((s) => s.stage === "html");
 
   // Document项目步骤
   if (hasOutlineStage) {
     return [
-      { key: 'intent', name: '意图识别', number: 1 },
-      { key: 'engine', name: '引擎选择', number: 2 },
-      { key: 'outline', name: '生成大纲', number: 3 },
-      { key: 'content', name: '生成内容', number: 4 },
+      { key: "intent", name: "意图识别", number: 1 },
+      { key: "engine", name: "引擎选择", number: 2 },
+      { key: "outline", name: "生成大纲", number: 3 },
+      { key: "content", name: "生成内容", number: 4 },
     ];
   }
 
   // Web项目步骤（默认）
   return [
-    { key: 'intent', name: '意图识别', number: 1 },
-    { key: 'spec', name: '生成规格', number: 2 },
-    { key: 'html', name: '生成HTML', number: 3 },
-    { key: 'css', name: '生成CSS', number: 4 },
-    { key: 'js', name: '生成JavaScript', number: 5 },
+    { key: "intent", name: "意图识别", number: 1 },
+    { key: "spec", name: "生成规格", number: 2 },
+    { key: "html", name: "生成HTML", number: 3 },
+    { key: "css", name: "生成CSS", number: 4 },
+    { key: "js", name: "生成JavaScript", number: 5 },
   ];
 };
 
 const getFileStages = () => {
   const stages = props.progressData.stages || [];
-  const hasOutlineStage = stages.some(s => s.stage === 'outline');
+  const hasOutlineStage = stages.some((s) => s.stage === "outline");
 
   // Document项目没有文件预览
   if (hasOutlineStage) {
@@ -314,9 +261,9 @@ const getFileStages = () => {
 
   // Web项目文件预览
   return [
-    { key: 'html', label: 'HTML' },
-    { key: 'css', label: 'CSS' },
-    { key: 'js', label: 'JavaScript' },
+    { key: "html", label: "HTML" },
+    { key: "css", label: "CSS" },
+    { key: "js", label: "JavaScript" },
   ];
 };
 
@@ -325,39 +272,47 @@ const fileStages = computed(() => getFileStages());
 
 // 计算属性
 const stageSteps = computed(() => {
-  return stageDefinitions.value.map(def => {
-    const stageInfo = props.progressData.stages.find(s => s.stage === def.key);
+  return stageDefinitions.value.map((def) => {
+    const stageInfo = props.progressData.stages.find(
+      (s) => s.stage === def.key,
+    );
     return {
       ...def,
-      status: stageInfo?.status || 'pending',
-      message: stageInfo?.message || '等待中...',
+      status: stageInfo?.status || "pending",
+      message: stageInfo?.message || "等待中...",
     };
   });
 });
 
 const overallProgress = computed(() => {
   const total = stageDefinitions.value.length;
-  const completed = stageSteps.value.filter(s => s.status === 'completed').length;
+  const completed = stageSteps.value.filter(
+    (s) => s.status === "completed",
+  ).length;
   return Math.round((completed / total) * 100);
 });
 
 const progressStatus = computed(() => {
-  if (props.error) {return 'exception';}
-  if (isCompleted.value) {return 'success';}
-  return 'active';
+  if (props.error) {
+    return "exception";
+  }
+  if (isCompleted.value) {
+    return "success";
+  }
+  return "active";
 });
 
 const currentMessage = computed(() => {
-  const runningStage = stageSteps.value.find(s => s.status === 'running');
-  return runningStage?.message || '准备中...';
+  const runningStage = stageSteps.value.find((s) => s.status === "running");
+  return runningStage?.message || "准备中...";
 });
 
 const isStreaming = computed(() => {
-  return stageSteps.value.some(s => s.status === 'running');
+  return stageSteps.value.some((s) => s.status === "running");
 });
 
 const isCompleted = computed(() => {
-  return stageSteps.value.every(s => s.status === 'completed');
+  return stageSteps.value.every((s) => s.status === "completed");
 });
 
 const hasContent = computed(() => {
@@ -382,21 +337,29 @@ const isGenerating = (stage) => {
 };
 
 const formatFileSize = (bytes) => {
-  if (!bytes) {return '-';}
-  if (bytes < 1024) {return bytes + ' B';}
-  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + ' KB';}
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  if (!bytes) {
+    return "-";
+  }
+  if (bytes < 1024) {
+    return bytes + " B";
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + " KB";
+  }
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
 };
 
 const handleFileClick = (file) => {
   if (file.content) {
     // 打开模态框显示文件内容
     Modal.info({
-      title: file.name || '文件内容',
+      title: file.name || "文件内容",
       width: 800,
-      content: h('div', { style: 'max-height: 500px; overflow: auto;' }, [
-        h('pre', {
-          style: `
+      content: h("div", { style: "max-height: 500px; overflow: auto;" }, [
+        h(
+          "pre",
+          {
+            style: `
             background: #f6f8fa;
             padding: 16px;
             border-radius: 6px;
@@ -406,10 +369,12 @@ const handleFileClick = (file) => {
             white-space: pre-wrap;
             word-wrap: break-word;
             margin: 0;
-          `
-        }, file.content)
+          `,
+          },
+          file.content,
+        ),
       ]),
-      okText: '关闭',
+      okText: "关闭",
     });
   } else if (file.path) {
     // 显示文件路径信息
@@ -419,26 +384,26 @@ const handleFileClick = (file) => {
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
   return `${hours}:${minutes}:${seconds}`;
 };
 
-const handleCancel = () => emit('cancel');
-const handleRetry = () => emit('retry');
-const handleClose = () => emit('close');
-const handleViewProject = () => emit('viewProject');
-const handleContinue = () => emit('continue');
+const handleCancel = () => emit("cancel");
+const handleRetry = () => emit("retry");
+const handleClose = () => emit("close");
+const handleViewProject = () => emit("viewProject");
+const handleContinue = () => emit("continue");
 
 // 监听当前阶段，自动切换Tab
 watch(
   () => props.progressData.currentStage,
   (newStage) => {
-    if (fileStages.value.some(f => f.key === newStage)) {
+    if (fileStages.value.some((f) => f.key === newStage)) {
       activeTab.value = newStage;
     }
-  }
+  },
 );
 </script>
 
@@ -674,7 +639,7 @@ watch(
 .code-content pre {
   margin: 0;
   color: #f8f8f2;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 13px;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -690,8 +655,14 @@ watch(
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /* 元数据 */
@@ -734,7 +705,7 @@ watch(
   background: #1f2937;
   border-radius: 6px;
   padding: 12px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 13px;
 }
 

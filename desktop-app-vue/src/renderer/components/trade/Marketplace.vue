@@ -9,10 +9,7 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -27,15 +24,9 @@
         </a-space>
       </template>
 
-      <a-tabs
-        v-model:active-key="activeTab"
-        @change="handleTabChange"
-      >
+      <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
         <!-- 市场订单 -->
-        <a-tab-pane
-          key="market"
-          tab="市场订单"
-        >
+        <a-tab-pane key="market" tab="市场订单">
           <!-- 使用筛选器组件 -->
           <marketplace-filters
             v-model="filterState"
@@ -109,10 +100,7 @@
         </a-tab-pane>
 
         <!-- 我的订单 - 使用子组件 -->
-        <a-tab-pane
-          key="myOrders"
-          tab="我的订单"
-        >
+        <a-tab-pane key="myOrders" tab="我的订单">
           <my-orders-tab
             :loading="loadingMyOrders"
             :created-orders="myCreatedOrders"
@@ -162,6 +150,8 @@
 </template>
 
 <script setup>
+defineOptions({ name: "MarketplacePanel" });
+
 import { logger } from "@/utils/logger";
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { message as antMessage, Modal } from "ant-design-vue";

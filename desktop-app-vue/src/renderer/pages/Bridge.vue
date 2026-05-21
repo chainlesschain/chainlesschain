@@ -7,14 +7,10 @@
           <swap-outlined />
           跨链桥
         </h1>
-        <p class="page-subtitle">
-          在不同区块链网络间安全转移资产
-        </p>
+        <p class="page-subtitle">在不同区块链网络间安全转移资产</p>
       </div>
       <div class="header-right">
-        <a-tag color="warning">
-          <experiment-outlined /> 测试版本
-        </a-tag>
+        <a-tag color="warning"> <experiment-outlined /> 测试版本 </a-tag>
       </div>
     </div>
 
@@ -22,10 +18,7 @@
     <div class="page-content">
       <a-tabs v-model:active-key="activeTab">
         <!-- 跨链转移标签页 -->
-        <a-tab-pane
-          key="transfer"
-          tab="跨链转移"
-        >
+        <a-tab-pane key="transfer" tab="跨链转移">
           <template #tab>
             <span>
               <swap-outlined />
@@ -36,10 +29,7 @@
         </a-tab-pane>
 
         <!-- 转移历史标签页 -->
-        <a-tab-pane
-          key="history"
-          tab="转移历史"
-        >
+        <a-tab-pane key="history" tab="转移历史">
           <template #tab>
             <span>
               <history-outlined />
@@ -58,15 +48,8 @@
       width="700px"
       :footer="null"
     >
-      <a-descriptions
-        v-if="selectedRecord"
-        :column="2"
-        bordered
-      >
-        <a-descriptions-item
-          label="状态"
-          :span="2"
-        >
+      <a-descriptions v-if="selectedRecord" :column="2" bordered>
+        <a-descriptions-item label="状态" :span="2">
           <a-tag :color="getStatusTagColor(selectedRecord.status)">
             {{ getStatusText(selectedRecord.status) }}
           </a-tag>
@@ -80,38 +63,23 @@
           {{ getNetworkName(selectedRecord.to_chain_id) }}
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="资产 ID"
-          :span="2"
-        >
+        <a-descriptions-item label="资产 ID" :span="2">
           {{ selectedRecord.asset_id }}
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="合约地址"
-          :span="2"
-        >
+        <a-descriptions-item label="合约地址" :span="2">
           <span class="mono-text">{{ selectedRecord.asset_address }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="转移数量"
-          :span="2"
-        >
+        <a-descriptions-item label="转移数量" :span="2">
           <span class="amount-text">{{ selectedRecord.amount }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="发送地址"
-          :span="2"
-        >
+        <a-descriptions-item label="发送地址" :span="2">
           <span class="mono-text">{{ selectedRecord.sender_address }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="接收地址"
-          :span="2"
-        >
+        <a-descriptions-item label="接收地址" :span="2">
           <span class="mono-text">{{ selectedRecord.recipient_address }}</span>
         </a-descriptions-item>
 
@@ -131,10 +99,7 @@
           <span class="mono-text">{{ selectedRecord.to_tx_hash }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item
-          label="创建时间"
-          :span="2"
-        >
+        <a-descriptions-item label="创建时间" :span="2">
           {{ formatDateTime(selectedRecord.created_at) }}
         </a-descriptions-item>
 
@@ -151,10 +116,7 @@
           label="错误信息"
           :span="2"
         >
-          <a-alert
-            :message="selectedRecord.error_message"
-            type="error"
-          />
+          <a-alert :message="selectedRecord.error_message" type="error" />
         </a-descriptions-item>
       </a-descriptions>
     </a-modal>
@@ -162,20 +124,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+defineOptions({ name: "BridgePage" });
+
+import { ref, computed } from "vue";
 import {
   SwapOutlined,
   HistoryOutlined,
   ExperimentOutlined,
-} from '@ant-design/icons-vue';
-import { useBlockchainStore } from '@/stores/blockchain';
-import BridgeTransfer from '@/components/blockchain/BridgeTransfer.vue';
-import BridgeHistory from '@/components/blockchain/BridgeHistory.vue';
+} from "@ant-design/icons-vue";
+import { useBlockchainStore } from "@/stores/blockchain";
+import BridgeTransfer from "@/components/blockchain/BridgeTransfer.vue";
+import BridgeHistory from "@/components/blockchain/BridgeHistory.vue";
 
 const blockchainStore = useBlockchainStore();
 
 // 状态
-const activeTab = ref('transfer');
+const activeTab = ref("transfer");
 const showDetailsModal = ref(false);
 const selectedRecord = ref(null);
 
@@ -184,10 +148,10 @@ const selectedRecord = ref(null);
  */
 const getStatusText = (status) => {
   const statusMap = {
-    pending: '待处理',
-    locked: '已锁定',
-    completed: '已完成',
-    failed: '失败',
+    pending: "待处理",
+    locked: "已锁定",
+    completed: "已完成",
+    failed: "失败",
   };
   return statusMap[status] || status;
 };
@@ -197,19 +161,19 @@ const getStatusText = (status) => {
  */
 const getStatusTagColor = (status) => {
   const colorMap = {
-    pending: 'processing',
-    locked: 'warning',
-    completed: 'success',
-    failed: 'error',
+    pending: "processing",
+    locked: "warning",
+    completed: "success",
+    failed: "error",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 /**
  * 获取网络名称
  */
 const getNetworkName = (chainId) => {
-  const network = blockchainStore.networks.find(n => n.chainId === chainId);
+  const network = blockchainStore.networks.find((n) => n.chainId === chainId);
   return network?.name || `Chain ${chainId}`;
 };
 
@@ -217,8 +181,10 @@ const getNetworkName = (chainId) => {
  * 格式化日期时间
  */
 const formatDateTime = (timestamp) => {
-  if (!timestamp) {return '';}
-  return new Date(timestamp).toLocaleString('zh-CN');
+  if (!timestamp) {
+    return "";
+  }
+  return new Date(timestamp).toLocaleString("zh-CN");
 };
 
 /**
@@ -282,7 +248,7 @@ const handleViewDetails = (record) => {
 }
 
 .mono-text {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   color: #595959;
   word-break: break-all;

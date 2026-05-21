@@ -43,7 +43,10 @@ module.exports = [
     rules: {
       // Vue.js 规则
       "vue/multi-word-component-names": "warn",
-      "vue/no-unused-vars": "warn",
+      // 与 @typescript-eslint/no-unused-vars 一致地接受 ^_ 前缀
+      // (slot props / v-for index 等 destructured 变量 rename 为 _name
+      // 标记 intentional unused，避免每处加 eslint-disable)
+      "vue/no-unused-vars": ["warn", { ignorePattern: "^_" }],
       // Every existing v-html site is sanitized (safeHtml / renderMarkdown
       // / DOMPurify / escapeHtml); new usage must either route through one
       // of those or carry an explicit `eslint-disable-next-line` with a

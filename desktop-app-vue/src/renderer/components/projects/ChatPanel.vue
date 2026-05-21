@@ -61,7 +61,7 @@
         @load-more="handleLoadMoreMessages"
         @scroll-to-bottom="handleScrollToBottom"
       >
-        <template #default="{ message, index }">
+        <template #default="{ message, index: _index }">
           <!-- 系统消息 -->
           <SystemMessage
             v-if="

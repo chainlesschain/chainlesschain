@@ -1,20 +1,11 @@
 <template>
-  <div
-    class="parallel-node"
-    :class="[{ selected }, statusClass]"
-  >
-    <Handle
-      type="target"
-      :position="Position.Top"
-    />
+  <div class="parallel-node" :class="[{ selected }, statusClass]">
+    <Handle type="target" :position="Position.Top" />
     <div class="node-body">
       <span class="parallel-icon">||</span>
       <span class="label">{{ data.label }}</span>
     </div>
-    <Handle
-      type="source"
-      :position="Position.Bottom"
-    />
+    <Handle type="source" :position="Position.Bottom" />
   </div>
 </template>
 
@@ -24,7 +15,7 @@ import { Handle, Position } from "@vue-flow/core";
 import { useWorkflowDesignerStore } from "../../stores/workflow-designer";
 
 const props = defineProps({
-  id: String,
+  id: { type: String, default: undefined },
   data: { type: Object, required: true },
   selected: { type: Boolean, default: false },
 });
@@ -36,9 +27,15 @@ const executionStatus = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") {return "parallel-node--running";}
-  if (executionStatus.value === "completed") {return "parallel-node--completed";}
-  if (executionStatus.value === "failed") {return "parallel-node--failed";}
+  if (executionStatus.value === "running") {
+    return "parallel-node--running";
+  }
+  if (executionStatus.value === "completed") {
+    return "parallel-node--completed";
+  }
+  if (executionStatus.value === "failed") {
+    return "parallel-node--failed";
+  }
   return "";
 });
 </script>
@@ -83,11 +80,16 @@ const statusClass = computed(() => {
 }
 
 @keyframes pulse-parallel {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3), 0 2px 6px rgba(114, 46, 209, 0.12);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(24, 144, 255, 0.3),
+      0 2px 6px rgba(114, 46, 209, 0.12);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.15), 0 2px 8px rgba(24, 144, 255, 0.2);
+    box-shadow:
+      0 0 0 4px rgba(24, 144, 255, 0.15),
+      0 2px 8px rgba(24, 144, 255, 0.2);
   }
 }
 

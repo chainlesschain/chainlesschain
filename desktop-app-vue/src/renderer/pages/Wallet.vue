@@ -7,16 +7,11 @@
           <wallet-outlined />
           钱包管理
         </h1>
-        <p class="page-subtitle">
-          管理您的区块链钱包和查看交易记录
-        </p>
+        <p class="page-subtitle">管理您的区块链钱包和查看交易记录</p>
       </div>
       <div class="header-right">
         <!-- 网络选择器 -->
-        <chain-selector
-          :width="'220px'"
-          @switched="handleChainSwitched"
-        />
+        <chain-selector :width="'220px'" @switched="handleChainSwitched" />
       </div>
     </div>
 
@@ -25,10 +20,7 @@
       <a-row :gutter="[16, 16]">
         <!-- 左侧: 钱包列表 -->
         <a-col :span="10">
-          <a-card
-            title="我的钱包"
-            :bordered="false"
-          >
+          <a-card title="我的钱包" :bordered="false">
             <template #extra>
               <a-space :size="8">
                 <a-button
@@ -41,10 +33,7 @@
                   </template>
                   创建
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="showImportWalletModal"
-                >
+                <a-button size="small" @click="showImportWalletModal">
                   <template #icon>
                     <import-outlined />
                   </template>
@@ -55,10 +44,7 @@
 
             <!-- 内置钱包列表 -->
             <a-tabs v-model:active-key="activeTab">
-              <a-tab-pane
-                key="internal"
-                tab="内置钱包"
-              >
+              <a-tab-pane key="internal" tab="内置钱包">
                 <a-list
                   :data-source="internalWallets"
                   :loading="walletsLoading"
@@ -67,14 +53,18 @@
                   <template #renderItem="{ item }">
                     <a-list-item
                       class="wallet-list-item"
-                      :class="{ 'wallet-active': item.id === currentWallet?.id }"
+                      :class="{
+                        'wallet-active': item.id === currentWallet?.id,
+                      }"
                       @click="handleSelectWallet(item)"
                     >
                       <a-list-item-meta>
                         <template #avatar>
                           <a-avatar
                             :size="48"
-                            :style="{ backgroundColor: getAvatarColor(item.address) }"
+                            :style="{
+                              backgroundColor: getAvatarColor(item.address),
+                            }"
                           >
                             <wallet-outlined />
                           </a-avatar>
@@ -104,7 +94,9 @@
                           <div class="wallet-description">
                             <div class="wallet-balance">
                               <span class="balance-label">余额:</span>
-                              <span class="balance-value">{{ getWalletBalance(item) }}</span>
+                              <span class="balance-value">{{
+                                getWalletBalance(item)
+                              }}</span>
                             </div>
                             <div class="wallet-created">
                               创建于 {{ formatDate(item.created_at) }}
@@ -115,14 +107,15 @@
 
                       <template #actions>
                         <a-dropdown>
-                          <a-button
-                            type="text"
-                            size="small"
-                          >
+                          <a-button type="text" size="small">
                             <more-outlined />
                           </a-button>
                           <template #overlay>
-                            <a-menu @click="({ key }) => handleWalletAction(key, item)">
+                            <a-menu
+                              @click="
+                                ({ key }) => handleWalletAction(key, item)
+                              "
+                            >
                               <a-menu-item
                                 v-if="!item.is_default"
                                 key="setDefault"
@@ -132,10 +125,7 @@
                               <a-menu-item key="copyAddress">
                                 <copy-outlined /> 复制地址
                               </a-menu-item>
-                              <a-menu-item
-                                key="delete"
-                                danger
-                              >
+                              <a-menu-item key="delete" danger>
                                 <delete-outlined /> 删除钱包
                               </a-menu-item>
                             </a-menu>
@@ -147,46 +137,30 @@
                 </a-list>
               </a-tab-pane>
 
-              <a-tab-pane
-                key="external"
-                tab="外部钱包"
-              >
+              <a-tab-pane key="external" tab="外部钱包">
                 <div class="external-wallet-section">
                   <a-empty
                     v-if="!externalWalletConnected"
                     description="未连接外部钱包"
                     :image="Empty.PRESENTED_IMAGE_SIMPLE"
                   >
-                    <a-space
-                      direction="vertical"
-                      :size="12"
-                    >
+                    <a-space direction="vertical" :size="12">
                       <a-button
                         type="primary"
                         block
                         @click="handleConnectMetaMask"
                       >
-                        <template #icon>
-                          🦊
-                        </template>
+                        <template #icon> 🦊 </template>
                         连接 MetaMask
                       </a-button>
-                      <a-button
-                        block
-                        @click="handleConnectWalletConnect"
-                      >
-                        <template #icon>
-                          🔗
-                        </template>
+                      <a-button block @click="handleConnectWalletConnect">
+                        <template #icon> 🔗 </template>
                         连接 WalletConnect
                       </a-button>
                     </a-space>
                   </a-empty>
 
-                  <div
-                    v-else
-                    class="external-wallet-info"
-                  >
+                  <div v-else class="external-wallet-info">
                     <a-result
                       status="success"
                       :title="`已连接 ${externalWalletProvider === 'metamask' ? 'MetaMask' : 'WalletConnect'}`"
@@ -219,11 +193,7 @@
 
         <!-- 右侧: 钱包详情和交易历史 -->
         <a-col :span="14">
-          <a-card
-            v-if="currentAddress"
-            title="钱包详情"
-            :bordered="false"
-          >
+          <a-card v-if="currentAddress" title="钱包详情" :bordered="false">
             <!-- 钱包概览 -->
             <div class="wallet-overview">
               <a-statistic
@@ -255,7 +225,10 @@
                   <a-statistic
                     title="待确认交易"
                     :value="pendingTransactionCount"
-                    :value-style="{ color: pendingTransactionCount > 0 ? '#faad14' : '#8c8c8c' }"
+                    :value-style="{
+                      color:
+                        pendingTransactionCount > 0 ? '#faad14' : '#8c8c8c',
+                    }"
                   />
                 </a-col>
               </a-row>
@@ -309,10 +282,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+defineOptions({ name: "WalletPage" });
 
-import { ref, computed, onMounted } from 'vue';
-import { message, Modal, Empty } from 'ant-design-vue';
+import { logger, createLogger } from "@/utils/logger";
+
+import { ref, computed, onMounted } from "vue";
+import { message, Modal, Empty } from "ant-design-vue";
 import {
   WalletOutlined,
   PlusOutlined,
@@ -322,18 +297,18 @@ import {
   CopyOutlined,
   DeleteOutlined,
   HistoryOutlined,
-} from '@ant-design/icons-vue';
-import { useBlockchainStore } from '@/stores/blockchain';
-import ChainSelector from '@/components/blockchain/ChainSelector.vue';
-import CreateWalletModal from '@/components/blockchain/CreateWalletModal.vue';
-import ImportWalletModal from '@/components/blockchain/ImportWalletModal.vue';
-import TransactionList from '@/components/blockchain/TransactionList.vue';
-import TransactionDetailModal from '@/components/blockchain/TransactionDetailModal.vue';
+} from "@ant-design/icons-vue";
+import { useBlockchainStore } from "@/stores/blockchain";
+import ChainSelector from "@/components/blockchain/ChainSelector.vue";
+import CreateWalletModal from "@/components/blockchain/CreateWalletModal.vue";
+import ImportWalletModal from "@/components/blockchain/ImportWalletModal.vue";
+import TransactionList from "@/components/blockchain/TransactionList.vue";
+import TransactionDetailModal from "@/components/blockchain/TransactionDetailModal.vue";
 
 const blockchainStore = useBlockchainStore();
 
 // 状态
-const activeTab = ref('internal');
+const activeTab = ref("internal");
 const createWalletModalVisible = ref(false);
 const importWalletModalVisible = ref(false);
 const transactionDetailVisible = ref(false);
@@ -346,21 +321,33 @@ const currentWallet = computed(() => blockchainStore.currentWallet);
 const currentAddress = computed(() => blockchainStore.currentAddress);
 const currentChainId = computed(() => blockchainStore.currentChainId);
 const currentNetwork = computed(() => blockchainStore.currentNetwork);
-const externalWalletConnected = computed(() => blockchainStore.externalWalletConnected);
-const externalWalletAddress = computed(() => blockchainStore.externalWalletAddress);
-const externalWalletProvider = computed(() => blockchainStore.externalWalletProvider);
-const pendingTransactionCount = computed(() => blockchainStore.pendingTransactionCount);
+const externalWalletConnected = computed(
+  () => blockchainStore.externalWalletConnected,
+);
+const externalWalletAddress = computed(
+  () => blockchainStore.externalWalletAddress,
+);
+const externalWalletProvider = computed(
+  () => blockchainStore.externalWalletProvider,
+);
+const pendingTransactionCount = computed(
+  () => blockchainStore.pendingTransactionCount,
+);
 
 // 当前钱包余额
 const currentBalance = computed(() => {
-  if (!currentAddress.value) {return '0.00';}
+  if (!currentAddress.value) {
+    return "0.00";
+  }
 
   const balance = blockchainStore.getBalance(
     currentAddress.value,
-    currentChainId.value
+    currentChainId.value,
   );
 
-  if (!balance || balance === '0') {return '0.00';}
+  if (!balance || balance === "0") {
+    return "0.00";
+  }
 
   // 将 wei 转换为 ether
   return (parseFloat(balance) / 1e18).toFixed(4);
@@ -370,7 +357,9 @@ const currentBalance = computed(() => {
  * 获取头像颜色
  */
 const getAvatarColor = (address) => {
-  if (!address) {return '#1890ff';}
+  if (!address) {
+    return "#1890ff";
+  }
 
   let hash = 0;
   for (let i = 0; i < address.length; i++) {
@@ -378,14 +367,14 @@ const getAvatarColor = (address) => {
   }
 
   const colors = [
-    '#f56a00',
-    '#7265e6',
-    '#ffbf00',
-    '#00a2ae',
-    '#1890ff',
-    '#52c41a',
-    '#fa8c16',
-    '#eb2f96',
+    "#f56a00",
+    "#7265e6",
+    "#ffbf00",
+    "#00a2ae",
+    "#1890ff",
+    "#52c41a",
+    "#fa8c16",
+    "#eb2f96",
   ];
 
   return colors[Math.abs(hash) % colors.length];
@@ -395,8 +384,12 @@ const getAvatarColor = (address) => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) {return '';}
-  if (address.length <= 20) {return address;}
+  if (!address) {
+    return "";
+  }
+  if (address.length <= 20) {
+    return address;
+  }
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 
@@ -404,25 +397,32 @@ const formatAddress = (address) => {
  * 格式化日期
  */
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 /**
  * 获取钱包余额
  */
 const getWalletBalance = (wallet) => {
-  if (!wallet.address) {return '0.00 ETH';}
+  if (!wallet.address) {
+    return "0.00 ETH";
+  }
 
-  const balance = blockchainStore.getBalance(wallet.address, currentChainId.value);
+  const balance = blockchainStore.getBalance(
+    wallet.address,
+    currentChainId.value,
+  );
 
-  if (!balance || balance === '0') {
-    return `0.00 ${currentNetwork.value?.symbol || 'ETH'}`;
+  if (!balance || balance === "0") {
+    return `0.00 ${currentNetwork.value?.symbol || "ETH"}`;
   }
 
   const etherBalance = (parseFloat(balance) / 1e18).toFixed(4);
-  return `${etherBalance} ${currentNetwork.value?.symbol || 'ETH'}`;
+  return `${etherBalance} ${currentNetwork.value?.symbol || "ETH"}`;
 };
 
 /**
@@ -430,7 +430,7 @@ const getWalletBalance = (wallet) => {
  */
 const handleSelectWallet = (wallet) => {
   blockchainStore.selectWallet(wallet);
-  message.success('已切换钱包');
+  message.success("已切换钱包");
 };
 
 /**
@@ -438,25 +438,25 @@ const handleSelectWallet = (wallet) => {
  */
 const handleWalletAction = async (action, wallet) => {
   switch (action) {
-    case 'setDefault':
+    case "setDefault":
       await blockchainStore.setDefaultWallet(wallet.id);
-      message.success('已设置为默认钱包');
+      message.success("已设置为默认钱包");
       break;
 
-    case 'copyAddress':
+    case "copyAddress":
       await handleCopyAddress(wallet.address);
       break;
 
-    case 'delete':
+    case "delete":
       Modal.confirm({
-        title: '确认删除',
-        content: '删除钱包后将无法恢复，请确保已备份助记词或私钥！',
-        okText: '确认删除',
-        okType: 'danger',
-        cancelText: '取消',
+        title: "确认删除",
+        content: "删除钱包后将无法恢复，请确保已备份助记词或私钥！",
+        okText: "确认删除",
+        okType: "danger",
+        cancelText: "取消",
         onOk: async () => {
           await blockchainStore.deleteWallet(wallet.id);
-          message.success('钱包已删除');
+          message.success("钱包已删除");
         },
       });
       break;
@@ -469,10 +469,10 @@ const handleWalletAction = async (action, wallet) => {
 const handleCopyAddress = async (address) => {
   try {
     await navigator.clipboard.writeText(address);
-    message.success('地址已复制到剪贴板');
+    message.success("地址已复制到剪贴板");
   } catch (error) {
-    logger.error('[Wallet] 复制失败:', error);
-    message.error('复制失败');
+    logger.error("[Wallet] 复制失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -494,7 +494,7 @@ const showImportWalletModal = () => {
  * 钱包创建成功
  */
 const handleWalletCreated = (wallet) => {
-  logger.info('[Wallet] 钱包创建成功:', wallet);
+  logger.info("[Wallet] 钱包创建成功:", wallet);
   // 刷新余额
   if (wallet.address) {
     blockchainStore.fetchBalance(wallet.address, currentChainId.value);
@@ -505,7 +505,7 @@ const handleWalletCreated = (wallet) => {
  * 钱包导入成功
  */
 const handleWalletImported = (wallet) => {
-  logger.info('[Wallet] 钱包导入成功:', wallet);
+  logger.info("[Wallet] 钱包导入成功:", wallet);
   // 刷新余额
   if (wallet.address) {
     blockchainStore.fetchBalance(wallet.address, currentChainId.value);
@@ -518,9 +518,9 @@ const handleWalletImported = (wallet) => {
 const handleConnectMetaMask = async () => {
   try {
     await blockchainStore.connectMetaMask();
-    activeTab.value = 'external';
+    activeTab.value = "external";
   } catch (error) {
-    logger.error('[Wallet] 连接 MetaMask 失败:', error);
+    logger.error("[Wallet] 连接 MetaMask 失败:", error);
   }
 };
 
@@ -530,9 +530,9 @@ const handleConnectMetaMask = async () => {
 const handleConnectWalletConnect = async () => {
   try {
     await blockchainStore.connectWalletConnect();
-    activeTab.value = 'external';
+    activeTab.value = "external";
   } catch (error) {
-    logger.error('[Wallet] 连接 WalletConnect 失败:', error);
+    logger.error("[Wallet] 连接 WalletConnect 失败:", error);
   }
 };
 
@@ -541,13 +541,13 @@ const handleConnectWalletConnect = async () => {
  */
 const handleDisconnectExternal = () => {
   Modal.confirm({
-    title: '确认断开',
-    content: '确定要断开外部钱包连接吗？',
-    okText: '确认',
-    cancelText: '取消',
+    title: "确认断开",
+    content: "确定要断开外部钱包连接吗？",
+    okText: "确认",
+    cancelText: "取消",
     onOk: () => {
       blockchainStore.disconnectExternalWallet();
-      message.success('已断开连接');
+      message.success("已断开连接");
     },
   });
 };
@@ -556,7 +556,7 @@ const handleDisconnectExternal = () => {
  * 网络切换
  */
 const handleChainSwitched = ({ chainId, network }) => {
-  logger.info('[Wallet] 网络已切换:', chainId, network);
+  logger.info("[Wallet] 网络已切换:", chainId, network);
   // 刷新余额
   if (currentAddress.value) {
     blockchainStore.refreshCurrentBalance();
@@ -567,7 +567,7 @@ const handleChainSwitched = ({ chainId, network }) => {
  * 查看交易详情
  */
 const handleViewTransactionDetails = (transaction) => {
-  logger.info('[Wallet] 查看交易详情:', transaction);
+  logger.info("[Wallet] 查看交易详情:", transaction);
   selectedTransaction.value = transaction;
   transactionDetailVisible.value = true;
 };
@@ -578,9 +578,12 @@ const handleViewTransactionDetails = (transaction) => {
 const handleRefreshTransaction = async (transaction) => {
   try {
     // 刷新交易列表
-    await blockchainStore.refreshTransactions(currentAddress.value, currentChainId.value);
+    await blockchainStore.refreshTransactions(
+      currentAddress.value,
+      currentChainId.value,
+    );
   } catch (error) {
-    logger.error('[Wallet] 刷新交易失败:', error);
+    logger.error("[Wallet] 刷新交易失败:", error);
   }
 };
 
@@ -661,7 +664,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 14px;
 }
 
@@ -685,7 +688,7 @@ onMounted(async () => {
 .balance-value {
   color: #52c41a;
   font-weight: 500;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .wallet-created {
@@ -702,7 +705,7 @@ onMounted(async () => {
 }
 
 .external-address {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 14px;
   display: flex;
   align-items: center;
