@@ -96,6 +96,28 @@ let _hub = null;
 let _initPromise = null;
 let _bm25 = null;
 
+// LLM override — see file header. Default cli-side hub uses a direct
+// OllamaClient; when the desktop main process embeds this wiring via
+// ws-cli-loader it can inject a CcLLMAdapter (wrapping LLMManager) so the
+// SAME wiring honors the user's active provider (volcengine / anthropic /
+// etc.) instead of hard-binding Ollama. Must be set BEFORE the first
+// getHub() call — initHub() reads it synchronously at the LLM-wiring step.
+let _llmOverride = null;
+
+/**
+ * Override the default cli-side OllamaClient with a caller-supplied LLM
+ * client conforming to the hub's LLMClient contract ({ chat, name, isLocal }).
+ *
+ * Used by desktop-app-vue web-shell's ws-cli-loader bootstrap: see
+ * desktop-app-vue/src/main/web-shell/ws-cli-loader.js. Calling this on
+ * an already-initialized hub does NOT swap the live LLM — the override only
+ * applies on the next fresh initHub(). Restart the process if you need to
+ * change provider mid-session.
+ */
+export function setHubLLMOverride(llm) {
+  _llmOverride = llm || null;
+}
+
 export function resolveHubDir() {
   return join(getElectronUserDataDir(), ".chainlesschain", "hub");
 }
@@ -116,12 +138,16 @@ async function initHub() {
   const vault = new LocalVault({ path: join(hubDir, "vault.db"), key });
   vault.open();
 
-  // LLM: standalone OllamaClient — connects to localhost:11434.
-  // Override via env CC_HUB_OLLAMA_URL / CC_HUB_OLLAMA_MODEL.
-  const llm = new OllamaClient({
-    baseUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
-    model: process.env.CC_HUB_OLLAMA_MODEL || "qwen2.5:7b-instruct",
-  });
+  // LLM: prefer caller-injected override (desktop web-shell wires CcLLMAdapter
+  // wrapping LLMManager so PDH honors the user's saved active provider).
+  // Fallback to standalone OllamaClient — connects to localhost:11434.
+  // Override the fallback via env CC_HUB_OLLAMA_URL / CC_HUB_OLLAMA_MODEL.
+  const llm =
+    _llmOverride ||
+    new OllamaClient({
+      baseUrl: process.env.CC_HUB_OLLAMA_URL || "http://localhost:11434",
+      model: process.env.CC_HUB_OLLAMA_MODEL || "qwen2.5:7b-instruct",
+    });
 
   // KG sink — direct ESM import works here.
   let kgSink = null;

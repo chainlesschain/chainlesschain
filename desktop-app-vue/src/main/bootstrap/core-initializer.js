@@ -280,6 +280,13 @@ function registerCoreInitializers(factory) {
       const llmManager = new LLMManager(managerConfig);
       await llmManager.initialize();
 
+      // 把这个 instance 注册为 getLLMManager() singleton — 否则任何后续调用
+      // getLLMManager() 的模块（PDH wiring、AI engine 各处 lazy hook）会创建
+      // 第二个 LLMManager(空 config) 默认 fallback 到 ollama，user 在 LLM 配置
+      // 页保存的 active provider (volcengine 等) 就被静默忽略了。
+      const { _setLLMManagerInstance } = require("../llm/llm-manager");
+      _setLLMManagerInstance(llmManager);
+
       // 设置 Prompt 压缩器的 LLM Manager 引用
       if (context.promptCompressor) {
         context.promptCompressor.llmManager = llmManager;

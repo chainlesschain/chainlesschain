@@ -1644,6 +1644,16 @@ function getLLMManager(config = {}) {
   return llmManagerInstance;
 }
 
+// Allows bootstrap/core-initializer (which uses `new LLMManager(...)` so it can
+// `await initialize()` synchronously inside the factory) to register the
+// resulting instance as THE singleton. Without this, any later getLLMManager()
+// call (e.g. PDH wiring) would create a second instance with default config
+// (provider=ollama), so the user's saved provider in llm-config.json gets
+// silently ignored everywhere except inside InitializerFactory's own context.
+function _setLLMManagerInstance(instance) {
+  llmManagerInstance = instance;
+}
+
 /**
  * 为LLMManager添加AI标签生成和摘要生成功能
  */
@@ -2361,6 +2371,7 @@ module.exports = {
   LLMManager,
   LLMProviders,
   getLLMManager,
+  _setLLMManagerInstance,
   TaskTypes, // 导出任务类型枚举，方便外部使用
   // Category routing exports (v5.0.2.9)
   LLM_CATEGORIES,
