@@ -889,6 +889,8 @@ await ws.executeJson({
 - [Python Sidecar 架构 (forensics-bridge fork from sjqz)](https://design.chainlesschain.com/Personal_Data_Hub_Python_Sidecar.html)
 - [PDH vs sjqz 借鉴方案对比](https://design.chainlesschain.com/Personal_Data_Hub_sjqz_Comparison.html)
 - [Phase 14 移动端原生入口（Android + iOS）](https://design.chainlesschain.com/Personal_Data_Hub_Phase_14_Mobile_Native_Entry.html) — Plan B 远程操控模式：Mobile-bridge → typed RPC → SwiftUI/Compose UI；21 method 全 wire；6 sub-phase + 8 真机 E2E 场景
+- [Phase 14.3 双端流式同步进度 + 审计回查](https://design.chainlesschain.com/Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.html) — 14.3 详细设计：wire schema (`personal-data-hub.sync.progress` 4+1 状态机) + Android/iOS HubSyncEventDispatcher 模板 + fan-out 第 4 子流 + 双端 UI 模式 + 24+ 新单测目标
+- [v0.1 Scaffold → v1 Fixture Pin Protocol](https://design.chainlesschain.com/Personal_Data_Hub_Fixture_Pin_Protocol.html) — 通用方法论：HAR/DB capture → field-rename-map → fixture-driven test → 真账号 smoke → v1 sign-off gate；覆盖 Doubao (Phase 10.4) + Toutiao/Kuaishou (Phase 13.10) + 任意未来 scaffold
 - [Plan A — Android 本机独立 PDH via in-APK cc CLI](https://design.chainlesschain.com/Personal_Data_Hub_Android_Standalone_Cc.html) — 不依赖桌面：vault / Ollama 兜替（llama.rn 端侧）/ adapter pipeline 全部在手机本地跑；APK 已 bundled cc 验证 (Phase 2.5)；跨 app sandbox 5 路径分级；~10-16d 工时
 - [Cc CLI 自然语言驱动 — 管理手机其他 App + 数据](https://design.chainlesschain.com/Cc_NL_Phone_App_Manager.html) — `cc nl "<NL>"` 顶层命令；4 类 intent (query/ingest/control/action) + 端侧 1.5-3B LLM + 规则 fast-path + 隐私 gate + 高敏 confirm；~5d 工时
 

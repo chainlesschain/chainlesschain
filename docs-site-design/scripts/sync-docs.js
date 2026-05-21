@@ -85,6 +85,7 @@ const ROOT_FILE_MAP = {
   "Personal_Data_Hub_Python_Sidecar.md": "Personal_Data_Hub_Python_Sidecar.md",
   "Personal_Data_Hub_sjqz_Comparison.md": "Personal_Data_Hub_sjqz_Comparison.md",
   "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md": "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md",
+  "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md": "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md",
   "Personal_Data_Hub_Analysis_Skills.md": "Personal_Data_Hub_Analysis_Skills.md",
   "Personal_Data_Hub_Fixture_Pin_Protocol.md": "Personal_Data_Hub_Fixture_Pin_Protocol.md",
   "Personal_Data_Hub_Android_Standalone_Cc.md": "Personal_Data_Hub_Android_Standalone_Cc.md",

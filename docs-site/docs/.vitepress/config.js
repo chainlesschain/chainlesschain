@@ -1455,6 +1455,10 @@ export default defineConfig({
               link: "/design/Personal_Data_Hub_Phase_14_Mobile_Native_Entry",
             },
             {
+              text: "Phase 14.3 双端流式同步进度 + 审计回查",
+              link: "/design/Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming",
+            },
+            {
               text: "E2E Runbook（真账号验收）",
               link: "/design/Personal_Data_Hub_E2E_Runbook",
             },
