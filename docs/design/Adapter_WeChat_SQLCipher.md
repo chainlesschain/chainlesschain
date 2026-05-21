@@ -1360,3 +1360,61 @@ WeChat 反 Frida 策略**已知**会变。设计 6 道防御：
 
 > 18.x 不替代 §5 + §12 + §17，而是 **以 v0.5 codebase 为起点** 的实施前导。Phase 12.6+ 真启动前 reread §5（Frida 原理）+ §13 T1-T20（既有 trap）+ §17.1（模块分层）。
 
+### 18.10 bootstrap 编排层（2026-05-21 补 Phase 12.6.7）
+
+§18.7 的 6 个 sub-phase 把零件做齐了（KeyProvider 接口 / Frida agent / Provider / env-probe / adapter DI / Setup runbook），但**没有人负责把这些零件按 env-probe 的判定拼成可注册的 adapter**。Phase 12.6.7 加 `bootstrap.js` 这一层补这个空白：
+
+```js
+const { bootstrapWechatAdapter } = require("@chainlesschain/personal-data-hub/adapters/wechat");
+
+const r = await bootstrapWechatAdapter({
+  account: { uin: "1234567890" },
+  dbPath: "/tmp/pulled/EnMicroMsg.db",
+  wechatDataPath: "/tmp/pulled/com.tencent.mm",  // 仅 md5 path 需要
+  // fridaOpts: { deviceId, packageName, timeoutMs },  // 仅 frida path
+  // keyProviderOverride: "md5" | "frida",              // 旁路 env-probe 建议
+  // exec: customExec,                                  // 测试种子
+});
+
+if (!r.ok) {
+  // r.reason ∈ ENV_UNSUPPORTED | MD5_NEEDS_WECHAT_DATA_PATH | ADAPTER_CTOR_FAILED | …
+  // r.probe 总是有 — UI 可用来渲染 §9.2 环境检查向导
+  // r.message 是面向用户的 reason 拼接
+}
+
+// r.adapter 是已 wire 的 WechatAdapter 实例（含选定的 keyProvider）
+// 直接传给 AdapterRegistry.register({ adapter: r.adapter })
+```
+
+**决策矩阵**：
+
+| env-probe 输出 | wechatDataPath 提供？ | 行为 |
+|---|---|---|
+| `md5` | ✅ | 构造 MD5KeyProvider + WechatAdapter，`ok:true` |
+| `md5` | ❌ | `ok:false, reason:"MD5_NEEDS_WECHAT_DATA_PATH"`，要求 UI 先 `adb pull` |
+| `frida` | (irrelevant) | 构造 FridaKeyProvider（deviceId 从 probe.device.serial 兜底）+ WechatAdapter，`ok:true` |
+| `unsupported` | (irrelevant) | `ok:false, reason:"ENV_UNSUPPORTED"`, `probe.reasons[]` 给用户看 |
+
+**Override**：`opts.keyProviderOverride` 允许显式覆盖（罕见但有用）。比如 8.0+ 用户报告"我手机 MD5 路径居然能跑"，UI 给个"强制 MD5"开关；或开发者本地 mock。Override 不影响 probe 透出 — 用户始终能看到原始建议（透明性）。
+
+**Test seam**：所有外部副作用都可注入 — `_probe`（pre-computed）/ `_md5Provider`/`_fridaProvider`（pre-built）/ `_WechatAdapter`（swap ctor）。`__tests__/adapters/wechat-bootstrap.test.js` 14 tests 覆盖所有分支。
+
+**Phase 12.6.7 边界**：bootstrap 只负责"拼装+判断"。**不**做：
+- adb pull（由 Phase 7.5 MobileExtractionLayer 上游）
+- frida-server 安装（由 §18.5 + Setup runbook 用户手做）
+- 注册到 AdapterRegistry（由桌面 `personal-data-hub-ipc.js` 或 cli `cc hub wechat register` 调用方做）
+
+**未来 sub-phase**：
+- Phase 12.6.8 `register-wechat` IPC + WS topic → 桌面把 bootstrap 暴露给 PDH UI 注册流程（按需）
+- Phase 12.6.9 `cc hub wechat probe/register` CLI verb → 镜像 IPC 路径，Plan A 手机内嵌终端可用
+- Phase 12.6.10 PDH Vue UI 卡片：env-probe checklist + "我已开 WeChat 进入聊天 → 现在拿 key"按钮
+
+**Trap**（除 §18.9 T21-T25 外，bootstrap 自身风险）：
+
+| # | Trap | 缓解 |
+|---|---|---|
+| T26 | `keyProviderOverride: "frida"` 但 probe 显示 `root.detected=false` → frida 在运行时 attach fail | bootstrap 不在编排层 hard-fail；让 FridaKeyProvider.getKey() 自己抛 `WECHAT_NOT_RUNNING`，UI 据 probe.root 显式 warn |
+| T27 | probe.device.serial 在 Frida fan-out 时拿到 null（probe 跑过但 device unplugged） | FridaKeyProvider 的 `_getDevice` fallback 到 `getUsbDevice()`；bootstrap 不再校验 serial 非 null |
+| T28 | 用户在 PDH UI 切换 vendor 时残留旧 adapter 实例 | bootstrap 是无状态工厂；caller（IPC 层）负责 dedupe / cleanup，bootstrap 不持单例 |
+
+
