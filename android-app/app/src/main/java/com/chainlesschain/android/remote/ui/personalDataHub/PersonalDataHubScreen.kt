@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.ui.personalDataHub
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -29,7 +30,11 @@ fun PersonalDataHubScreen(
     var tab by remember { mutableStateOf(initialTab.coerceIn(0, 3)) }
     val titles = listOf("提问", "Adapter", "审计", "本机数据")
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // statusBarsPadding inset: PersonalDataHubScreen lives under the system
+    // status bar (it has no Scaffold topBar above). Without this the tab row
+    // is hidden behind the status bar text — surfaced on Xiaomi 24115RA8EC
+    // real device 2026-05-21.
+    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
         TabRow(selectedTabIndex = tab) {
             titles.forEachIndexed { idx, title ->
                 Tab(

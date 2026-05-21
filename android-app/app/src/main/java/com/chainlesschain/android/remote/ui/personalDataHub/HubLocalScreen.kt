@@ -159,6 +159,26 @@ fun HubLocalScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // MIUI / 华为 EMUI / 部分 OEM ROM 在 manifest 已含 QUERY_ALL_PACKAGES
+            // 时仍拦截 getInstalledPackages(); 表现为只返回 App 自己 (count == 1)。
+            // 当出现此症状给一句话指引；用户授权后下次 刷新 应见正常数量 (~100+)。
+            if (state.lastSnapshotAt != null && state.appsCount <= 1) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(
+                        "已装应用只看到 ${state.appsCount} 个 — 部分 ROM (MIUI / EMUI) " +
+                            "拦截了应用列表读取。请到「设置 → 应用管理 → ChainlessChain " +
+                            "→ 权限管理」开启「查看已安装应用列表」，然后再点刷新。",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
 
             // CTA row
