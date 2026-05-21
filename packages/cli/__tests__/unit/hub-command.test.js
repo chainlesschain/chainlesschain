@@ -33,6 +33,7 @@ describe("cc hub command surface", () => {
     const subnames = hub.commands.map((c) => c.name()).sort();
     expect(subnames).toEqual(
       [
+        "aichat",
         "ask",
         "destroy",
         "health",
@@ -44,6 +45,7 @@ describe("cc hub command surface", () => {
         "stats",
         "sync-adapter",
         "sync-all",
+        "wechat",
       ].sort(),
     );
   });
