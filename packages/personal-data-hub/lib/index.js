@@ -254,6 +254,9 @@ module.exports = {
   SYSTEM_DATA_ANDROID_VERSION: systemDataAndroid.SYSTEM_DATA_ANDROID_VERSION,
   SYSTEM_DATA_ANDROID_SNAPSHOT_SCHEMA_VERSION:
     systemDataAndroid.SNAPSHOT_SCHEMA_VERSION,
+  // Path C — staging + ingest helper shared by IPC / WS / mobile-route layers
+  ingestSystemDataAndroidSnapshot:
+    systemDataAndroid.ingestSystemDataAndroidSnapshot,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

@@ -58,6 +58,22 @@ class PersonalDataHubCommands @Inject constructor(
     }
 
     /**
+     * Path C — 把 phone-side 采集到的 system-data-android snapshot 推给桌面 hub
+     * 写 staging 文件后调既有 syncAdapter 入 vault。无需安卓本机 vault；snapshot
+     * 体积通常 100KB-2MB，WS payload 一次传完。
+     *
+     * @param snapshot 形状必须匹配 [SystemDataLocalCollector.Snapshot.toMap]：
+     *   `{schemaVersion: 1, snapshottedAt: Long, contacts: [...], apps: [...]}`
+     */
+    suspend fun ingestSystemDataAndroid(
+        snapshot: Map<String, Any>
+    ): Result<SyncReport> =
+        client.invoke(
+            "personal-data-hub.ingest-system-data-android",
+            mapOf("snapshot" to snapshot)
+        )
+
+    /**
      * 拉取问题的 prompt 上下文，**不**调桌面 LLM。
      *
      * Path Y 调用模式：桌面只跑 vault 召回 + RAG，把组装好的 messages 推回手机；

@@ -41,6 +41,7 @@ sealed class HubAdaptersEvent {
 class HubAdaptersViewModel @Inject constructor(
     private val hub: PersonalDataHubCommands,
     private val syncDispatcher: HubSyncEventDispatcher,
+    private val systemDataCollector: SystemDataLocalCollector,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubAdaptersUiState())
@@ -118,6 +119,86 @@ class HubAdaptersViewModel @Inject constructor(
                         )
                     }
                     _events.emit(HubAdaptersEvent.ShowToast("启动同步失败: ${err.message ?: "?"}"))
+                }
+        }
+    }
+
+    /**
+     * Path C — 本机采集 system-data-android 数据并推给桌面入 vault。
+     * 与流式 sync 互斥（设 syncingAdapter = "system-data-android"），UI 显示
+     * 与既有 streaming 一致的 progress 文案，但走的是单 RPC 一次性 await 模式
+     * (snapshot 一般 100KB-2MB，桌面 syncAdapter 同步走完才回，几秒内完成)。
+     *
+     * 前置：调用方应在屏上完成 READ_CONTACTS runtime permission gate；
+     * 这里不再二次 check —— collector 自身在权限缺失时返回空通讯录列表。
+     */
+    fun collectAndIngestSystemDataAndroid() {
+        val name = "system-data-android"
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    syncingAdapter = name,
+                    errorMessage = null,
+                    syncProgressKind = "fetching",
+                    syncProgressPartition = "采集本机数据",
+                    syncProgressDetail = null,
+                )
+            }
+            val snapshot = try {
+                systemDataCollector.snapshot()
+            } catch (e: Throwable) {
+                Timber.w(e, "HubAdaptersViewModel: collector.snapshot() failed")
+                _uiState.update {
+                    it.copy(
+                        syncingAdapter = null,
+                        syncProgressKind = null,
+                        syncProgressPartition = null,
+                        errorMessage = "采集失败: ${e.message ?: "?"}",
+                    )
+                }
+                _events.emit(HubAdaptersEvent.ShowToast("采集失败: ${e.message ?: "?"}"))
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    syncProgressKind = "normalizing",
+                    syncProgressPartition = "上传桌面",
+                    syncProgressDetail = mapOf(
+                        "contacts" to snapshot.contacts.size.toLong(),
+                        "apps" to snapshot.apps.size.toLong(),
+                    ),
+                )
+            }
+
+            hub.ingestSystemDataAndroid(snapshot.toMap())
+                .onSuccess { report ->
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            syncProgressKind = null,
+                            syncProgressPartition = null,
+                            syncProgressDetail = null,
+                            lastReport = report,
+                        )
+                    }
+                    _events.emit(
+                        HubAdaptersEvent.ShowToast(
+                            "$name 同步完成 (+${report.ingested} 事件)"
+                        )
+                    )
+                }
+                .onFailure { err ->
+                    Timber.w(err, "HubAdaptersViewModel: ingestSystemDataAndroid failed")
+                    _uiState.update {
+                        it.copy(
+                            syncingAdapter = null,
+                            syncProgressKind = null,
+                            syncProgressPartition = null,
+                            errorMessage = err.message,
+                        )
+                    }
+                    _events.emit(HubAdaptersEvent.ShowToast("同步失败: ${err.message ?: "?"}"))
                 }
         }
     }

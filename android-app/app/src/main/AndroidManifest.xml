@@ -36,6 +36,11 @@
     <!-- 录音权限（语音输入、语音通话） -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- PDH 本机采集 — Path C snapshot-writer (system-data-android adapter)。
+         READ_CONTACTS 触发 runtime permission dialog；用户拒后采集只剩 PackageManager 路径
+         (无权限要求)。 -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- WebRTC通话权限 -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -52,12 +57,10 @@
     <!-- 通知权限（Android 13+） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 通讯录读取（Plan A v0.1 — PersonalDataHub 本机数据 tab；runtime granted） -->
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-
     <!-- 列出已安装应用（Android 11+ R 之后查询包列表需 QUERY_ALL_PACKAGES，
          为本机数据中台采集已装应用清单使用；Play Console 政策审批见 Plan A
-         设计稿 §5。当前 GitHub release 渠道不受 Play 政策限制。 -->
+         设计稿 §5。当前 GitHub release 渠道不受 Play 政策限制。
+         READ_CONTACTS 已在 line 42 声明 (PDH Path C snapshot writer)。 -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 

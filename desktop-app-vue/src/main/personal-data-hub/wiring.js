@@ -43,6 +43,8 @@ const {
   generateKeyHex,
   EmailAdapter,
   AlipayBillAdapter,
+  SystemDataAndroidAdapter,
+  ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -304,6 +306,23 @@ async function initHub() {
         err && err.message,
       );
     }
+  }
+
+  // Plan A — register SystemDataAndroidAdapter on every desktop boot. Adapter
+  // is dual-mode (snapshot inputPath OR bridge.invoke); desktop always uses
+  // snapshot mode driven by Path C ingest from the paired phone. Safe to
+  // register even on a desktop-only deployment — adapter is a no-op until
+  // syncAdapter() is called with inputPath.
+  try {
+    const sda = new SystemDataAndroidAdapter();
+    if (!registry.has(sda.name)) {
+      registry.register(sda);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register system-data-android adapter",
+      err && err.message,
+    );
   }
 
   // Phase 6: same file-based persistence for Alipay accounts.
@@ -655,7 +674,11 @@ async function initHub() {
      */
     async registerWechatAdapter(opts = {}) {
       if (!opts || !opts.account || !opts.account.uin) {
-        return { ok: false, reason: "UIN_REQUIRED", message: "opts.account.uin required" };
+        return {
+          ok: false,
+          reason: "UIN_REQUIRED",
+          message: "opts.account.uin required",
+        };
       }
       let r;
       try {
@@ -675,7 +698,9 @@ async function initHub() {
           message: err && err.message ? err.message : String(err),
         };
       }
-      if (!r.ok) return r;
+      if (!r.ok) {
+        return r;
+      }
 
       // Register adapter into registry — idempotent unregister-then-register
       if (registry.has(r.adapter.name)) {
@@ -692,7 +717,8 @@ async function initHub() {
         account: { uin: opts.account.uin },
         dbPath: opts.dbPath || null,
         wechatDataPath: opts.wechatDataPath || null,
-        chosenKeyProvider: r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
+        chosenKeyProvider:
+          r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
         registeredAt: Date.now(),
         lastSyncAt: null,
       });
@@ -715,9 +741,7 @@ async function initHub() {
         return { ok: false, reason: "UIN_REQUIRED" };
       }
       const accounts = loadWechatAccounts(wechatAccountsPath);
-      const target = accounts.find(
-        (c) => c.account && c.account.uin === uin,
-      );
+      const target = accounts.find((c) => c.account && c.account.uin === uin);
       const next = accounts.filter(
         (c) => !(c.account && c.account.uin === uin),
       );

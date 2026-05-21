@@ -24,6 +24,9 @@ import {
 import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
 import { existsSync, unlinkSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import pdhPkg from "@chainlesschain/personal-data-hub";
+
+const { ingestSystemDataAndroidSnapshot } = pdhPkg;
 
 async function withHub(fn) {
   try {
@@ -50,6 +53,13 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       if (!hub.engine) throw new Error("Analysis engine unavailable");
       return await hub.engine.retrieveContext(msg.question, msg.options || {});
     }),
+
+  // Path C: phone-collected ContentResolver + PackageManager snapshot →
+  // staging file → syncAdapter(system-data-android). Returns SyncReport.
+  "personal-data-hub.ingest-system-data-android": async (msg) =>
+    withHub(
+      async (hub) => await ingestSystemDataAndroidSnapshot(hub, msg.snapshot),
+    ),
 
   "personal-data-hub.stats": async () =>
     withHub((hub) => ({
