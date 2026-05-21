@@ -287,6 +287,48 @@ describe("AnalysisEngine RAG retriever", () => {
   });
 });
 
+// ─── Cache bypass — PDH ask must always go to LLM, never cached ───────
+//
+// Bug 2026-05-21: desktop ResponseCache (7-day TTL) served a stale
+// hallucinated answer ("32 contacts") even after _gatherFacts fix put real
+// persons in the prompt — same sha256(messages) hit from an earlier session.
+// AnalysisEngine.ask must pass skipCache:true so LLMManager bypasses cache.
+
+describe("AnalysisEngine.ask cache bypass", () => {
+  it("passes skipCache:true to llm.chat options", async () => {
+    freshVault();
+    seedOrders(vault);
+    const chatCalls = [];
+    const llm = {
+      isLocal: true,
+      chat: async (messages, opts) => {
+        chatCalls.push({ messages, opts });
+        return { text: "ok", usage: {} };
+      },
+    };
+    const engine = new AnalysisEngine({ vault, llm });
+    await engine.ask("test", { now: NOW });
+    expect(chatCalls).toHaveLength(1);
+    expect(chatCalls[0].opts.skipCache).toBe(true);
+  });
+
+  it("retrieveContext does NOT need skipCache (no LLM call)", async () => {
+    freshVault();
+    seedOrders(vault);
+    const llm = {
+      isLocal: true,
+      chat: () => {
+        throw new Error("must not be called");
+      },
+    };
+    const engine = new AnalysisEngine({ vault, llm });
+    // retrieveContext is Path Y — caller hosts the LLM, so cache concerns
+    // belong to the caller, not us. Don't pass skipCache here.
+    const r = await engine.retrieveContext("test");
+    expect(r.factCount).toBeGreaterThanOrEqual(0);
+  });
+});
+
 // ─── Path C follow-up — persons / items show up as facts ───────────────
 //
 // Bug 2026-05-21: "我有几个联系人" hallucinated "2" because contacts ingest

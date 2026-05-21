@@ -138,12 +138,23 @@ class AnalysisEngine {
       maxFacts: this.maxFacts,
     });
 
-    // Call LLM.
+    // Call LLM. **skipCache: true** is critical: PDH answers depend on
+    // current vault state (new contacts / events / items ingested between
+    // asks). The desktop LLMManager has a 7-day ResponseCache keyed on
+    // sha256(messages); if a stale entry from before the latest sync hits,
+    // the user sees yesterday's hallucinated count after fixing _gatherFacts
+    // and never finds out (real-device verify 2026-05-21 Xiaomi 24115RA8EC:
+    // "几个联系人" served from cache, returned the pre-Path-C-fix wrong
+    // answer of "32" even though vault now had real contact data). PDH's
+    // freshness-over-latency tradeoff makes the cache strictly counter-
+    // productive at this layer. The cache for OTHER LLM uses (chat /
+    // skill orchestration / autonomous-agent) is unaffected.
     let llmResp;
     try {
       llmResp = await this.llm.chat(messages, {
         temperature: 0.2,
         purpose: "personal-data-hub.analysis.ask",
+        skipCache: true,
       });
     } catch (err) {
       const e = toError(err, "llm.chat");
