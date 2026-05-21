@@ -53,6 +53,20 @@ module.exports = [
       "vue/require-prop-types": "warn",
       "vue/valid-v-slot": "warn",
 
+      // ── Vue 格式化规则全部 off（与 prettier 冲突，prettier 才是
+      //    formatting 权威）。等价于 eslint-config-prettier 对 Vue plugin
+      //    的覆盖。否则 lint-staged 跑 eslint --fix 后再跑 prettier --write
+      //    会把 eslint 改的格式再 revert，产生 0 net change + 3000+ 警告
+      //    的"假可修"状态。── 2026-05-21 audit
+      "vue/max-attributes-per-line": "off",
+      "vue/singleline-html-element-content-newline": "off",
+      "vue/html-indent": "off",
+      "vue/html-closing-bracket-newline": "off",
+      "vue/html-self-closing": "off",
+      "vue/html-quotes": "off",
+      "vue/no-template-shadow": "off",
+      "vue/require-explicit-emits": "off",
+
       // JavaScript 规则
       "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
       "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
