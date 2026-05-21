@@ -30,6 +30,8 @@ import { mkdirSync } from "node:fs";
 // won't let us name-import a CJS module unless it ships a separate ESM
 // shim, which we don't).
 import hub from "@chainlesschain/personal-data-hub";
+import wechatAdapterModule from "@chainlesschain/personal-data-hub/adapters/wechat";
+const { bootstrapWechatAdapter, probeWeChatEnv } = wechatAdapterModule;
 const {
   LocalVault,
   AdapterRegistry,
@@ -427,7 +429,120 @@ async function initHub() {
         zipPassword,
       });
     },
+
+    // ─── Phase 12.6.8 — WeChat env-probe + register / unregister / list ──
+    //
+    // cc ui mirror of the desktop wiring. Same JSON file layout
+    // (wechat-accounts.json under hubDir, mode 0o600) so the two shells
+    // share registrations when run side-by-side on the same machine.
+
+    async probeWechatEnv(opts = {}) {
+      return await probeWeChatEnv({ exec: opts.exec });
+    },
+
+    async registerWechatAdapter(opts = {}) {
+      if (!opts || !opts.account || !opts.account.uin) {
+        return { ok: false, reason: "UIN_REQUIRED", message: "opts.account.uin required" };
+      }
+      let r;
+      try {
+        r = await bootstrapWechatAdapter({
+          account: opts.account,
+          dbPath: opts.dbPath || null,
+          wechatDataPath: opts.wechatDataPath || null,
+          fridaOpts: opts.fridaOpts || null,
+          keyProviderOverride: opts.keyProviderOverride || null,
+          exec: opts.exec,
+          _probe: opts._probe,
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "BOOTSTRAP_THREW",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      if (!r.ok) return r;
+
+      if (registry.has(r.adapter.name)) registry.unregister(r.adapter.name);
+      registry.register(r.adapter);
+
+      const wechatAccountsPath = join(hubDir, "wechat-accounts.json");
+      const accounts = loadWechatAccounts(wechatAccountsPath);
+      const next = accounts.filter(
+        (c) => !(c.account && c.account.uin === opts.account.uin),
+      );
+      next.push({
+        account: { uin: opts.account.uin },
+        dbPath: opts.dbPath || null,
+        wechatDataPath: opts.wechatDataPath || null,
+        chosenKeyProvider: r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
+        registeredAt: Date.now(),
+        lastSyncAt: null,
+      });
+      saveWechatAccounts(wechatAccountsPath, next);
+
+      return {
+        ok: true,
+        name: r.adapter.name,
+        version: r.adapter.version,
+        capabilities: r.adapter.capabilities,
+        sensitivity: r.adapter.dataDisclosure.sensitivity,
+        chosenKeyProvider: r.keyProvider && r.keyProvider.name,
+        probe: r.probe,
+        registeredAt: next[next.length - 1].registeredAt,
+      };
+    },
+
+    async unregisterWechatAdapter(uin) {
+      if (!uin || typeof uin !== "string") {
+        return { ok: false, reason: "UIN_REQUIRED" };
+      }
+      const wechatAccountsPath = join(hubDir, "wechat-accounts.json");
+      const accounts = loadWechatAccounts(wechatAccountsPath);
+      const target = accounts.find(
+        (c) => c.account && c.account.uin === uin,
+      );
+      const next = accounts.filter(
+        (c) => !(c.account && c.account.uin === uin),
+      );
+      saveWechatAccounts(wechatAccountsPath, next);
+      if (target && registry.has("wechat")) registry.unregister("wechat");
+      return { ok: true, removed: !!target, uin };
+    },
+
+    listWechatAccounts() {
+      const wechatAccountsPath = join(hubDir, "wechat-accounts.json");
+      return loadWechatAccounts(wechatAccountsPath).map((row) => ({
+        uin: row.account ? row.account.uin : null,
+        dbPath: row.dbPath || null,
+        hasWechatDataPath: !!row.wechatDataPath,
+        chosenKeyProvider: row.chosenKeyProvider || null,
+        registeredAt: row.registeredAt || null,
+        lastSyncAt: row.lastSyncAt || null,
+      }));
+    },
   };
+}
+
+// ─── Phase 12.6.8 — WeChat account persistence helpers (cli mirror) ──────
+
+function loadWechatAccounts(filePath) {
+  try {
+    if (!existsSync(filePath)) return [];
+    const raw = readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+function saveWechatAccounts(filePath, accounts) {
+  writeFileSync(filePath, JSON.stringify(accounts, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }
 
 // ─── Email account persistence (Phase 5.6) ───────────────────────────────

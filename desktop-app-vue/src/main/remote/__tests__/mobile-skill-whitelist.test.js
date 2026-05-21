@@ -275,6 +275,8 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
       "personal-data-hub.destroy",
       "personal-data-hub.aichat-register-vendor",
       "personal-data-hub.unregister-aichat",
+      "personal-data-hub.register-wechat",
+      "personal-data-hub.unregister-wechat",
     ];
     for (const method of required) {
       expect(list).toContain(method);
@@ -300,6 +302,8 @@ describe("MobileSkillWhitelist — Personal Data Hub (Phase 14.1)", () => {
       "personal-data-hub.destroy",
       "personal-data-hub.aichat-register-vendor",
       "personal-data-hub.unregister-aichat",
+      "personal-data-hub.register-wechat",
+      "personal-data-hub.unregister-wechat",
     ]) {
       expect(wl.isAllowed(method)).toBe(true);
       expect(
