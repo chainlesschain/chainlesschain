@@ -279,6 +279,7 @@ describe("UnifiedConfigManager", () => {
       expect(approvalChannels).toContain(
         "personal-data-hub.aichat-register-vendor",
       );
+      expect(approvalChannels).toContain("personal-data-hub.unregister-aichat");
       expect(defaultConfig.mobileBridge.approvalTimeoutMs).toBe(60_000);
 
       // Regex invariant: any approval channel matching `personal-data-hub.<method>`

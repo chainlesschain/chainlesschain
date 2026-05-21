@@ -51,6 +51,14 @@ const {
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { getElectronUserDataDir } from "./paths.js";
 
+import healthCheckerModule from "@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker";
+import {
+  getAIChatWizard,
+  createAccountsStore as createAIChatAccountsStore,
+  createVendorAdapterBridge as createAIChatVendorAdapterBridge,
+} from "./personal-data-hub-aichat-wizard.js";
+const { createAIChatHealthChecker } = healthCheckerModule;
+
 // ─── Lazy ESM imports of cli KG / BM25 ───────────────────────────────────
 
 let _kgMod = null;
@@ -211,6 +219,23 @@ async function initHub() {
     }
   }
 
+  // Phase 10.3.5 — AIChat HealthChecker (mirror of desktop wiring). cc ui
+  // typically only runs while the user has the web-shell open, but the
+  // periodic loop still validates persisted cookies so list-aichat-accounts
+  // can surface lastHealth reliably.
+  const aichatAccountsStore = createAIChatAccountsStore({ hubDir });
+  const aichatVendorAdapter = createAIChatVendorAdapterBridge();
+  const aichatHealthChecker = createAIChatHealthChecker({
+    accountsStore: aichatAccountsStore,
+    vendorAdapter: aichatVendorAdapter,
+  });
+  try {
+    aichatHealthChecker.start();
+  } catch (_err) {
+    // Continue boot even if checker fails to schedule
+  }
+  const aichatWizard = getAIChatWizard({ hubDir });
+
   return {
     vault,
     registry,
@@ -223,11 +248,50 @@ async function initHub() {
     emailAccountsPath,
     alipayAccountsPath,
     entityResolver,
+    aichatAccountsStore,
+    aichatWizard,
+    aichatHealthChecker,
     analysisSkillNames: ANALYSIS_SKILL_NAMES,
     async runSkill(name, options = {}) {
       return await runAnalysisSkill({ vault, llm }, name, options);
     },
     bm25: _bm25,
+
+    /** Phase 10.3.5 — see desktop wiring for full doc. */
+    async listAIChatAccounts() {
+      const entries = await aichatAccountsStore.list();
+      return (entries || []).map((e) => ({
+        vendor: e.vendor,
+        displayName: e.displayName || e.vendor,
+        registeredAt: e.registeredAt || null,
+        userId: e.userId || null,
+        lastSyncAt: e.lastSyncAt || null,
+        lastHealth: e.lastHealth || null,
+        cookieSpecVersion: e.cookieSpecVersion || null,
+        cookieNames: Object.keys(e.cookies || {}),
+      }));
+    },
+
+    async unregisterAIChatVendor(vendor) {
+      if (!vendor || typeof vendor !== "string") {
+        return { ok: false, reason: "VENDOR_REQUIRED" };
+      }
+      const before = await aichatAccountsStore.get(vendor);
+      if (!before) {
+        return { ok: false, reason: "NOT_REGISTERED", vendor };
+      }
+      await aichatAccountsStore.delete(vendor);
+      try {
+        await aichatWizard.rotateLoginPartition({ vendor });
+      } catch (_err) {
+        // best-effort
+      }
+      return { ok: true, vendor };
+    },
+
+    async runAIChatHealthCheckOnce() {
+      return await aichatHealthChecker.runOnce();
+    },
     registerMockAdapter(opts = {}) {
       if (registry.has(opts.name || "mock"))
         return registry.get(opts.name || "mock");
@@ -418,6 +482,11 @@ export async function getHub() {
 }
 
 export function close() {
+  if (_hub && _hub.aichatHealthChecker) {
+    try {
+      _hub.aichatHealthChecker.stop();
+    } catch (_e) {}
+  }
   if (_hub && _hub.vault) {
     try {
       _hub.vault.close();

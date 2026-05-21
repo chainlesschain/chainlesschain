@@ -408,5 +408,47 @@ export function usePersonalDataHub() {
         10_000,
       );
     },
+
+    /**
+     * List registered AIChat vendors with scrubbed cookies + lastHealth.
+     * Used by the wizard Step 1 vendor picker to show "已接入" tag and
+     * the red-dot affordance when `entry.lastHealth.ok === false`.
+     *
+     * Returns: [{ vendor, displayName, registeredAt, userId, lastSyncAt,
+     *   lastHealth: { ok, reason?, at? }, cookieSpecVersion, cookieNames }]
+     */
+    async listAichatAccounts() {
+      return await send(
+        "personal-data-hub.list-aichat-accounts",
+        {},
+        5_000,
+      );
+    },
+
+    /**
+     * Drop a registered AIChat vendor: deletes the row from
+     * aichat-accounts.json and (desktop only) clears the partition cookies.
+     * Vault events stay queryable.
+     */
+    async unregisterAichat(vendor) {
+      return await send(
+        "personal-data-hub.unregister-aichat",
+        { vendor },
+        5_000,
+      );
+    },
+
+    /**
+     * Manually trigger one HealthChecker pass — used by the wizard "立即检查"
+     * affordance and by debugging. Returns
+     * `{ checked, ok, failed, mismatch, skipped? }`.
+     */
+    async aichatHealthCheckOnce() {
+      return await send(
+        "personal-data-hub.aichat-health-check-once",
+        {},
+        30_000,
+      );
+    },
   };
 }

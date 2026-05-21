@@ -819,6 +819,11 @@ class UnifiedConfigManager {
           // register-alipay above. Whoever can call this can persist their
           // own session credentials on the desktop owner's PDH vault.
           "personal-data-hub.aichat-register-vendor",
+          // unregister-aichat drops the row + clears the partition cookies —
+          // a malicious mobile peer should not be able to silently log the
+          // owner out of every AIChat vendor (visible disruption + history
+          // sync break). Mirror of unregister-email / unregister-alipay.
+          "personal-data-hub.unregister-aichat",
         ],
         approvalTimeoutMs: 60_000,
       },

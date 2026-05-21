@@ -32,6 +32,9 @@
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
 const hubWiring = require("../personal-data-hub/wiring.js");
+const {
+  getAIChatWizard,
+} = require("../personal-data-hub/aichat-wizard-factory.js");
 
 const NS = "personal-data-hub";
 let _registered = false;
@@ -396,6 +399,68 @@ function register() {
     }),
   );
 
+  // ─── Phase 10.3 — AIChat WebView 鉴权向导 ──────────────────────────────
+
+  ipcMain.handle(
+    `${NS}:aichat-open-login`,
+    safe(async ({ vendor, opts }) => {
+      const hub = await hubWiring.getHub();
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.openVendorLogin({ vendor, opts: opts || {} });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:aichat-probe-cookies`,
+    safe(async ({ vendor, cookieHeader }) => {
+      const hub = await hubWiring.getHub();
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.probeCookies({ vendor, cookieHeader });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:aichat-register-vendor`,
+    safe(async ({ vendor, cookies, opts }) => {
+      const hub = await hubWiring.getHub();
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.registerVendor({ vendor, cookies, opts: opts || {} });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:aichat-rotate-login`,
+    safe(async ({ vendor }) => {
+      const hub = await hubWiring.getHub();
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.rotateLoginPartition({ vendor });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:list-aichat-accounts`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return await hub.listAIChatAccounts();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:unregister-aichat`,
+    safe(async ({ vendor }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.unregisterAIChatVendor(vendor);
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:aichat-health-check-once`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return await hub.runAIChatHealthCheckOnce();
+    }),
+  );
+
   // Phase 5.7 — streaming sync via webContents.send. The caller passes
   // `progressChannel` (e.g. a uuid); we push events to that channel
   // throughout the sync, then return the final report from invoke().
@@ -495,6 +560,14 @@ function unregister() {
     "unregister-alipay",
     "list-alipay-accounts",
     "import-alipay-bill",
+    // Phase 10.3 — AIChat WebView wizard
+    "aichat-open-login",
+    "aichat-probe-cookies",
+    "aichat-register-vendor",
+    "aichat-rotate-login",
+    "list-aichat-accounts",
+    "unregister-aichat",
+    "aichat-health-check-once",
   ];
   for (const c of channels) {
     try {

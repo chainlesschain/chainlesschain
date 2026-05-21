@@ -21,6 +21,7 @@ import {
   getHub,
   close as closeHub,
 } from "../../lib/personal-data-hub-wiring.js";
+import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
 import { existsSync, unlinkSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -264,6 +265,51 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
 
   "personal-data-hub.run-skill": async (msg) =>
     withHub(async (hub) => await hub.runSkill(msg.name, msg.options || {})),
+
+  // ─── Phase 10.3 — AIChat WebView 鉴权向导 (paste-mode on cc ui) ────────
+
+  "personal-data-hub.aichat-open-login": async (msg) =>
+    withHub(async (hub) => {
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.openVendorLogin({
+        vendor: msg.vendor,
+        opts: msg.opts || {},
+      });
+    }),
+
+  "personal-data-hub.aichat-probe-cookies": async (msg) =>
+    withHub(async (hub) => {
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.probeCookies({
+        vendor: msg.vendor,
+        cookieHeader: msg.cookieHeader,
+      });
+    }),
+
+  "personal-data-hub.aichat-register-vendor": async (msg) =>
+    withHub(async (hub) => {
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.registerVendor({
+        vendor: msg.vendor,
+        cookies: msg.cookies,
+        opts: msg.opts || {},
+      });
+    }),
+
+  "personal-data-hub.aichat-rotate-login": async (msg) =>
+    withHub(async (hub) => {
+      const wiz = getAIChatWizard({ hubDir: hub.hubDir });
+      return await wiz.rotateLoginPartition({ vendor: msg.vendor });
+    }),
+
+  "personal-data-hub.list-aichat-accounts": async () =>
+    withHub(async (hub) => await hub.listAIChatAccounts()),
+
+  "personal-data-hub.unregister-aichat": async (msg) =>
+    withHub(async (hub) => await hub.unregisterAIChatVendor(msg.vendor)),
+
+  "personal-data-hub.aichat-health-check-once": async () =>
+    withHub(async (hub) => await hub.runAIChatHealthCheckOnce()),
 };
 
 /**
