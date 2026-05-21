@@ -1463,6 +1463,10 @@ export default defineConfig({
               link: "/design/Personal_Data_Hub_sjqz_Comparison",
             },
             {
+              text: "Phase 11 Analysis Skills（5 内置分析） ✅",
+              link: "/design/Personal_Data_Hub_Analysis_Skills",
+            },
+            {
               text: "Adapter — Email (IMAP) ✅",
               link: "/design/Adapter_Email_IMAP",
             },
