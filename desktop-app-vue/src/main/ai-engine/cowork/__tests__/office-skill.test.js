@@ -267,6 +267,56 @@ describe("OfficeSkill", () => {
   });
 
   // ==========================================
+  // readWord 测试 + 跨方法状态污染回归
+  // ==========================================
+
+  describe("readWord", () => {
+    test("createWord 后 readWord 同一实例上不应崩溃（wordLib vs mammothLib 隔离）", async () => {
+      const outputPath = path.join(testDir, "roundtrip.docx");
+      const createResult = await officeSkill.createWord(
+        {
+          outputPath,
+          title: "回归用例",
+          paragraphs: [{ text: "Hello mammoth" }, { text: "Second paragraph" }],
+        },
+        {},
+      );
+      expect(createResult.success).toBe(true);
+
+      const readResult = await officeSkill.readWord({ filePath: outputPath });
+      expect(readResult.success).toBe(true);
+      expect(readResult.filePath).toBe(outputPath);
+      expect(readResult.text).toContain("Hello mammoth");
+    });
+
+    test("readWord 后 createWord 同一实例上不应崩溃（反向跨方法调用）", async () => {
+      const firstPath = path.join(testDir, "seed.docx");
+      const seedResult = await officeSkill.createWord(
+        { outputPath: firstPath, paragraphs: [{ text: "seed" }] },
+        {},
+      );
+      expect(seedResult.success).toBe(true);
+
+      const fresh = new OfficeSkill();
+      const readResult = await fresh.readWord({ filePath: firstPath });
+      expect(readResult.success).toBe(true);
+
+      const secondPath = path.join(testDir, "after-read.docx");
+      const createResult = await fresh.createWord(
+        {
+          outputPath: secondPath,
+          title: "After read",
+          paragraphs: [{ text: "created after readWord populated lib cache" }],
+        },
+        {},
+      );
+      expect(createResult.success).toBe(true);
+      const stats = await fs.stat(secondPath);
+      expect(stats.size).toBeGreaterThan(0);
+    });
+  });
+
+  // ==========================================
   // createPowerPoint 测试
   // ==========================================
 

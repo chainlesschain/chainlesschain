@@ -36,7 +36,8 @@ class OfficeSkill extends BaseSkill {
 
     // Office 库加载（延迟加载）
     this.excelLib = null; // ExcelJS
-    this.wordLib = null; // docx
+    this.wordLib = null; // docx (createWord)
+    this.mammothLib = null; // mammoth (readWord) — separate cache to avoid cross-method pollution
     this.pptLib = null; // pptxgenjs
   }
 
@@ -380,7 +381,13 @@ class OfficeSkill extends BaseSkill {
     }
 
     // 兼容性：处理 paragraphs 或 sections
-    if (content.sections && Array.isArray(content.sections)) {
+    // 注意：必须用 length > 0 判断，空数组 [] 也会让 if 通过，导致 paragraphs 分支被静默跳过
+    // （test format 始终把 sections 初始化为 input.sections || []，遗漏 length 检查则丢弃所有 paragraphs）
+    if (
+      content.sections &&
+      Array.isArray(content.sections) &&
+      content.sections.length > 0
+    ) {
       // 处理 sections 格式: [{ heading, content }]
       for (const section of content.sections) {
         if (section.heading) {
@@ -444,15 +451,16 @@ class OfficeSkill extends BaseSkill {
     }
 
     // 延迟加载 mammoth（项目已直接 dep，被 word-engine / document-parser / file-importer 共用）
-    if (!this.wordLib) {
+    // 注意：mammothLib 独立于 wordLib（docx），二者 API 完全不同，共用 cache 会跨方法污染。
+    if (!this.mammothLib) {
       try {
-        this.wordLib = require("mammoth");
+        this.mammothLib = require("mammoth");
       } catch (_error) {
         throw new Error("mammoth library not available");
       }
     }
 
-    const textResult = await this.wordLib.extractRawText({ path: filePath });
+    const textResult = await this.mammothLib.extractRawText({ path: filePath });
     const result = {
       success: true,
       filePath,
@@ -461,7 +469,9 @@ class OfficeSkill extends BaseSkill {
     };
 
     if (format === "html" || format === "both") {
-      const htmlResult = await this.wordLib.convertToHtml({ path: filePath });
+      const htmlResult = await this.mammothLib.convertToHtml({
+        path: filePath,
+      });
       result.html = htmlResult.value || "";
     }
 
