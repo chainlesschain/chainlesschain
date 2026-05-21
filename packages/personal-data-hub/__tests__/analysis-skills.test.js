@@ -250,6 +250,64 @@ describe("RelationsSkill", () => {
     expect(r.ranked[0].personId).toBe("p-mom");
     expect(r.ranked[0].totalInteractions).toBe(2);
   });
+
+  it("empty vault → ranked mode returns empty list, no crash", async () => {
+    const skill = new RelationsSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.mode).toBe("ranked");
+    expect(r.ranked).toEqual([]);
+    expect(r.citations).toEqual([]);
+    expect(r.llm_commentary).toBeNull();
+  });
+
+  it("non-local LLM gate: isLocal=false without acceptNonLocal → commentary stays null", async () => {
+    makePerson(rig.vault, "p-mom", ["妈"]);
+    makePayment(rig.vault, { id: "e1", occurredAt: ts(2026, 5, 1), counterpartyId: "p-mom", counterpartyName: "妈", amount: 100 });
+    const nonLocalLlm = {
+      isLocal: false,
+      chat: async () => ({ text: "this should never reach the caller" }),
+    };
+    const skill = new RelationsSkill({ vault: rig.vault, llm: nonLocalLlm });
+    const r = await skill.run({ personId: "p-mom" });
+    expect(r.mode).toBe("single");
+    expect(r.profile.totalInteractions).toBe(1);
+    // gate enforced by base.callLlmCommentary
+    expect(r.llm_commentary).toBeNull();
+  });
+
+  it("LLM exception swallowed → commentary null but profile data intact", async () => {
+    makePerson(rig.vault, "p-mom", ["妈"]);
+    makePayment(rig.vault, { id: "e1", occurredAt: ts(2026, 5, 1), counterpartyId: "p-mom", counterpartyName: "妈", amount: 100 });
+    const throwingLlm = {
+      isLocal: true,
+      chat: async () => { throw new Error("model timeout"); },
+    };
+    const skill = new RelationsSkill({ vault: rig.vault, llm: throwingLlm });
+    const r = await skill.run({ personId: "p-mom" });
+    expect(r.profile.totalInteractions).toBe(1); // data path unaffected
+    expect(r.llm_commentary).toBeNull();
+  });
+
+  it("merge-group expansion: vault.getMergeGroupMembers fans the personId out", async () => {
+    // Two PersonIds representing the same real-world person across sources;
+    // EntityResolver (Phase 8) would normally merge them into a group.
+    makePerson(rig.vault, "p-mom-email", ["妈"], { email: ["mom@163.com"] });
+    makePerson(rig.vault, "p-mom-alipay", ["陈XX"], { alipay: ["mom@163.com"] });
+    makePayment(rig.vault, { id: "e1", occurredAt: ts(2026, 4, 1), counterpartyId: "p-mom-email", counterpartyName: "妈", amount: 200, adapter: "email-imap" });
+    makePayment(rig.vault, { id: "e2", occurredAt: ts(2026, 5, 1), counterpartyId: "p-mom-alipay", counterpartyName: "陈XX", amount: 300, adapter: "alipay-bill" });
+
+    // Stub the resolver hook
+    rig.vault.getMergeGroupMembers = (pid) =>
+      (pid === "p-mom-email" || pid === "p-mom-alipay")
+        ? ["p-mom-email", "p-mom-alipay"]
+        : [pid];
+
+    const skill = new RelationsSkill({ vault: rig.vault });
+    const r = await skill.run({ personId: "p-mom-email" });
+    expect(r.profile.totalInteractions).toBe(2); // both events counted
+    expect(r.profile.totalSpend).toBe(500);
+    expect(Object.keys(r.profile.byAdapter).sort()).toEqual(["alipay-bill", "email-imap"]);
+  });
 });
 
 // ─── FootprintSkill ──────────────────────────────────────────────────────
@@ -301,6 +359,55 @@ describe("FootprintSkill", () => {
     expect(r.summary.totalTrips).toBe(0);
     expect(r.topPlaces).toEqual([]);
   });
+
+  it("local LLM commentary fires when trips present", async () => {
+    rig.vault.putEvent({
+      id: "trip-1", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 4, 1),
+      actor: "person-self",
+      content: { title: "Hangzhou trip" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { to: "Hangzhou" },
+    });
+    const llm = { isLocal: true, chat: async () => ({ text: "你这个月去过 1 个地方。" }) };
+    const skill = new FootprintSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.llm_commentary).toBe("你这个月去过 1 个地方。");
+  });
+
+  it("non-local LLM gate → llm_commentary null", async () => {
+    rig.vault.putEvent({
+      id: "trip-1", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 4, 1),
+      actor: "person-self",
+      content: { title: "Beijing" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { to: "Beijing" },
+    });
+    const llm = { isLocal: false, chat: async () => ({ text: "should not appear" }) };
+    const skill = new FootprintSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.llm_commentary).toBeNull();
+  });
+
+  it("LLM exception swallowed → commentary null but data intact", async () => {
+    rig.vault.putEvent({
+      id: "trip-1", type: "event", subtype: "trip",
+      occurredAt: ts(2026, 4, 1),
+      actor: "person-self",
+      content: { title: "Tokyo" },
+      ingestedAt: Date.now(),
+      source: defaultSource("travel"),
+      extra: { to: "Tokyo" },
+    });
+    const llm = { isLocal: true, chat: async () => { throw new Error("net down"); } };
+    const skill = new FootprintSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.summary.totalTrips).toBe(1);
+    expect(r.llm_commentary).toBeNull();
+  });
 });
 
 // ─── InterestsSkill ──────────────────────────────────────────────────────
@@ -348,6 +455,46 @@ describe("InterestsSkill", () => {
     const r = await skill.run({});
     expect(r.llmInterests).toHaveLength(1);
     expect(r.llmInterests[0].category).toBe("摄影");
+  });
+
+  it("empty vault → topTopics + topItems empty, no crash", async () => {
+    const skill = new InterestsSkill({ vault: rig.vault });
+    const r = await skill.run({});
+    expect(r.topTopics).toEqual([]);
+    expect(r.topItems).toEqual([]);
+    expect(r.llmInterests).toBeNull();
+  });
+
+  it("non-local LLM gate → llmInterests null even with topics present", async () => {
+    rig.vault.putTopic({
+      id: "topic-b", type: "topic", name: "Cooking",
+      derivedFromEvents: ["e-1"],
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    const llm = {
+      isLocal: false,
+      chat: async () => ({ text: '[{"category":"烹饪","evidenceCount":1,"examples":["Cooking"]}]' }),
+    };
+    const skill = new InterestsSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.topTopics[0].name).toBe("Cooking");
+    expect(r.llmInterests).toBeNull();
+  });
+
+  it("LLM clustering exception swallowed → llmInterests null but data intact", async () => {
+    rig.vault.putTopic({
+      id: "topic-c", type: "topic", name: "Travel",
+      derivedFromEvents: ["e-1", "e-2"],
+      ingestedAt: Date.now(), source: defaultSource("test"),
+    });
+    const llm = {
+      isLocal: true,
+      chat: async () => { throw new Error("vllm 500"); },
+    };
+    const skill = new InterestsSkill({ vault: rig.vault, llm });
+    const r = await skill.run({});
+    expect(r.topTopics[0].name).toBe("Travel");
+    expect(r.llmInterests).toBeNull();
   });
 });
 
