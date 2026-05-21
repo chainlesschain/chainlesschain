@@ -1,21 +1,12 @@
 <template>
-  <div
-    class="condition-node"
-    :class="[{ selected }, statusClass]"
-  >
-    <Handle
-      type="target"
-      :position="Position.Top"
-    />
+  <div class="condition-node" :class="[{ selected }, statusClass]">
+    <Handle type="target" :position="Position.Top" />
     <div class="diamond">
       <div class="diamond-content">
         <div class="label">
           {{ data.label }}
         </div>
-        <div
-          v-if="data.expression"
-          class="expression"
-        >
+        <div v-if="data.expression" class="expression">
           {{ data.expression }}
         </div>
       </div>
@@ -41,7 +32,7 @@ import { Handle, Position } from "@vue-flow/core";
 import { useWorkflowDesignerStore } from "../../stores/workflow-designer";
 
 const props = defineProps({
-  id: String,
+  id: { type: String, default: undefined },
   data: { type: Object, required: true },
   selected: { type: Boolean, default: false },
 });
@@ -53,9 +44,15 @@ const executionStatus = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") {return "condition-node--running";}
-  if (executionStatus.value === "completed") {return "condition-node--completed";}
-  if (executionStatus.value === "failed") {return "condition-node--failed";}
+  if (executionStatus.value === "running") {
+    return "condition-node--running";
+  }
+  if (executionStatus.value === "completed") {
+    return "condition-node--completed";
+  }
+  if (executionStatus.value === "failed") {
+    return "condition-node--failed";
+  }
   return "";
 });
 </script>
@@ -103,11 +100,16 @@ const statusClass = computed(() => {
 }
 
 @keyframes pulse-diamond {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3), 0 2px 6px rgba(250, 173, 20, 0.15);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(24, 144, 255, 0.3),
+      0 2px 6px rgba(250, 173, 20, 0.15);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.15), 0 2px 8px rgba(24, 144, 255, 0.2);
+    box-shadow:
+      0 0 0 4px rgba(24, 144, 255, 0.15),
+      0 2px 8px rgba(24, 144, 255, 0.2);
   }
 }
 

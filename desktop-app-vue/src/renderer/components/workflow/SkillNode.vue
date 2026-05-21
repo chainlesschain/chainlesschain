@@ -3,41 +3,26 @@
     :class="['skill-node', { 'skill-node--selected': selected }, statusClass]"
     :style="borderStyle"
   >
-    <Handle
-      type="target"
-      :position="Position.Top"
-    />
+    <Handle type="target" :position="Position.Top" />
     <div class="skill-node__body">
       <a-avatar
         :size="28"
         :style="{ backgroundColor: statusColor, flexShrink: 0 }"
       >
-        <template v-if="executionStatus === 'completed'">
-          &#10003;
-        </template>
-        <template v-else-if="executionStatus === 'failed'">
-          &#10007;
-        </template>
-        <template v-else>
-          S
-        </template>
+        <template v-if="executionStatus === 'completed'"> &#10003; </template>
+        <template v-else-if="executionStatus === 'failed'"> &#10007; </template>
+        <template v-else> S </template>
       </a-avatar>
       <div class="skill-node__info">
         <div class="skill-node__label">
           {{ data.label || "Skill" }}
         </div>
-        <div
-          v-if="data.skillId"
-          class="skill-node__id"
-        >
+        <div v-if="data.skillId" class="skill-node__id">
           {{ data.skillId }}
         </div>
       </div>
     </div>
-    <Handle
-      type="source"
-      :position="Position.Bottom"
-    />
+    <Handle type="source" :position="Position.Bottom" />
   </div>
 </template>
 
@@ -47,8 +32,8 @@ import { Handle, Position } from "@vue-flow/core";
 import { useWorkflowDesignerStore } from "../../stores/workflow-designer";
 
 const props = defineProps({
-  id: String,
-  data: Object,
+  id: { type: String, default: undefined },
+  data: { type: Object, default: undefined },
   selected: Boolean,
 });
 
@@ -74,9 +59,15 @@ const borderStyle = computed(() => ({
 }));
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") {return "skill-node--running";}
-  if (executionStatus.value === "completed") {return "skill-node--completed";}
-  if (executionStatus.value === "failed") {return "skill-node--failed";}
+  if (executionStatus.value === "running") {
+    return "skill-node--running";
+  }
+  if (executionStatus.value === "completed") {
+    return "skill-node--completed";
+  }
+  if (executionStatus.value === "failed") {
+    return "skill-node--failed";
+  }
   return "";
 });
 </script>
@@ -89,7 +80,9 @@ const statusClass = computed(() => {
   border-radius: 8px;
   border-left: 4px solid #d9d9d9;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s, border-color 0.3s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.3s;
 }
 
 .skill-node--selected {
@@ -104,20 +97,29 @@ const statusClass = computed(() => {
 
 .skill-node--completed {
   border-left-color: #52c41a;
-  box-shadow: 0 0 0 1px rgba(82, 196, 26, 0.3), 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(82, 196, 26, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .skill-node--failed {
   border-left-color: #ff4d4f;
-  box-shadow: 0 0 0 1px rgba(255, 77, 79, 0.3), 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(255, 77, 79, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes pulse-border {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3), 0 1px 4px rgba(0, 0, 0, 0.1);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(24, 144, 255, 0.3),
+      0 1px 4px rgba(0, 0, 0, 0.1);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.15), 0 1px 8px rgba(24, 144, 255, 0.2);
+    box-shadow:
+      0 0 0 4px rgba(24, 144, 255, 0.15),
+      0 1px 8px rgba(24, 144, 255, 0.2);
   }
 }
 

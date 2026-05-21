@@ -7,10 +7,7 @@
     @cancel="handleCancel"
   >
     <a-spin :spinning="loading">
-      <div
-        v-if="conflicts.length === 0"
-        class="no-conflicts"
-      >
+      <div v-if="conflicts.length === 0" class="no-conflicts">
         <a-result
           status="success"
           title="没有冲突"
@@ -18,27 +15,19 @@
         >
           <template #extra>
             <a-space>
-              <a-button
-                type="primary"
-                @click="handleCompleteMerge"
-              >
+              <a-button type="primary" @click="handleCompleteMerge">
                 <template #icon>
                   <check-circle-outlined />
                 </template>
                 完成合并
               </a-button>
-              <a-button @click="handleCancel">
-                取消
-              </a-button>
+              <a-button @click="handleCancel"> 取消 </a-button>
             </a-space>
           </template>
         </a-result>
       </div>
 
-      <div
-        v-else
-        class="conflict-list"
-      >
+      <div v-else class="conflict-list">
         <a-alert
           type="warning"
           message="检测到合并冲突"
@@ -47,12 +36,9 @@
           style="margin-bottom: 16px"
         />
 
-        <a-collapse
-          v-model:active-key="activeKeys"
-          accordion
-        >
+        <a-collapse v-model:active-key="activeKeys" accordion>
           <a-collapse-panel
-            v-for="(conflict, index) in conflicts"
+            v-for="(conflict, _index) in conflicts"
             :key="conflict.filepath"
             :header="conflict.filepath"
           >
@@ -63,12 +49,7 @@
               >
                 已解决
               </a-tag>
-              <a-tag
-                v-else
-                color="error"
-              >
-                未解决
-              </a-tag>
+              <a-tag v-else color="error"> 未解决 </a-tag>
             </template>
 
             <div class="conflict-content">
@@ -81,10 +62,7 @@
                   <!-- 本地版本 (ours) -->
                   <a-col :span="12">
                     <div class="version-header">
-                      <a-badge
-                        status="processing"
-                        text="本地版本 (Ours)"
-                      />
+                      <a-badge status="processing" text="本地版本 (Ours)" />
                     </div>
                     <div class="version-content">
                       <pre>{{ conflictDetails[conflict.filepath].ours }}</pre>
@@ -104,10 +82,7 @@
                   <!-- 远程版本 (theirs) -->
                   <a-col :span="12">
                     <div class="version-header">
-                      <a-badge
-                        status="warning"
-                        text="远程版本 (Theirs)"
-                      />
+                      <a-badge status="warning" text="远程版本 (Theirs)" />
                     </div>
                     <div class="version-content">
                       <pre>{{ conflictDetails[conflict.filepath].theirs }}</pre>
@@ -130,10 +105,7 @@
                 <!-- 手动编辑 -->
                 <div class="manual-edit">
                   <div class="version-header">
-                    <a-badge
-                      status="default"
-                      text="手动编辑"
-                    />
+                    <a-badge status="default" text="手动编辑" />
                   </div>
                   <a-textarea
                     v-model:value="manualContent[conflict.filepath]"
@@ -145,7 +117,13 @@
                     size="small"
                     style="margin-top: 8px"
                     :disabled="!manualContent[conflict.filepath]"
-                    @click="resolveConflict(conflict.filepath, 'manual', manualContent[conflict.filepath])"
+                    @click="
+                      resolveConflict(
+                        conflict.filepath,
+                        'manual',
+                        manualContent[conflict.filepath],
+                      )
+                    "
                   >
                     <template #icon>
                       <edit-outlined />
@@ -156,10 +134,7 @@
               </div>
 
               <!-- 加载中 -->
-              <div
-                v-else
-                class="loading-details"
-              >
+              <div v-else class="loading-details">
                 <a-spin tip="加载冲突详情..." />
               </div>
             </div>
@@ -179,18 +154,13 @@
               </template>
               完成合并
             </a-button>
-            <a-button
-              danger
-              @click="handleAbortMerge"
-            >
+            <a-button danger @click="handleAbortMerge">
               <template #icon>
                 <close-circle-outlined />
               </template>
               中止合并
             </a-button>
-            <a-button @click="handleCancel">
-              取消
-            </a-button>
+            <a-button @click="handleCancel"> 取消 </a-button>
           </a-space>
         </div>
       </div>
@@ -199,17 +169,17 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ArrowLeftOutlined,
   ArrowRightOutlined,
   EditOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
@@ -222,7 +192,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open', 'resolved', 'aborted']);
+const emit = defineEmits(["update:open", "resolved", "aborted"]);
 
 const loading = ref(false);
 const activeKeys = ref([]);
@@ -232,8 +202,10 @@ const manualContent = ref({});
 
 // 所有冲突是否已解决
 const allResolved = computed(() => {
-  return props.conflicts.length > 0 &&
-    resolvedFiles.value.length === props.conflicts.length;
+  return (
+    props.conflicts.length > 0 &&
+    resolvedFiles.value.length === props.conflicts.length
+  );
 });
 
 // 监听冲突列表变化
@@ -245,7 +217,7 @@ watch(
       activeKeys.value = [newConflicts[0].filepath];
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听面板展开，加载冲突详情
@@ -266,8 +238,8 @@ const loadConflictContent = async (filepath) => {
       // 取第一个冲突块（通常一个文件只有一个冲突块）
       const conflict = result.conflicts[0];
       conflictDetails.value[filepath] = {
-        ours: conflict.ours || '(无内容)',
-        theirs: conflict.theirs || '(无内容)',
+        ours: conflict.ours || "(无内容)",
+        theirs: conflict.theirs || "(无内容)",
         fullContent: result.fullContent,
       };
 
@@ -275,7 +247,7 @@ const loadConflictContent = async (filepath) => {
       manualContent.value[filepath] = result.fullContent;
     }
   } catch (error) {
-    logger.error('加载冲突内容失败:', error);
+    logger.error("加载冲突内容失败:", error);
     message.error(`加载冲突内容失败: ${filepath}`);
   }
 };
@@ -296,10 +268,10 @@ const resolveConflict = async (filepath, resolution, content = null) => {
 
     // 如果所有冲突都解决了，提示用户
     if (allResolved.value) {
-      message.success('所有冲突已解决，可以完成合并');
+      message.success("所有冲突已解决，可以完成合并");
     }
   } catch (error) {
-    logger.error('解决冲突失败:', error);
+    logger.error("解决冲突失败:", error);
     message.error(`解决冲突失败: ${error.message}`);
   } finally {
     loading.value = false;
@@ -311,13 +283,15 @@ const handleCompleteMerge = async () => {
   try {
     loading.value = true;
 
-    await window.electronAPI.git.completeMerge('Merge completed (resolved conflicts)');
+    await window.electronAPI.git.completeMerge(
+      "Merge completed (resolved conflicts)",
+    );
 
-    message.success('合并已完成');
-    emit('resolved');
-    emit('update:open', false);
+    message.success("合并已完成");
+    emit("resolved");
+    emit("update:open", false);
   } catch (error) {
-    logger.error('完成合并失败:', error);
+    logger.error("完成合并失败:", error);
     message.error(`完成合并失败: ${error.message}`);
   } finally {
     loading.value = false;
@@ -331,11 +305,11 @@ const handleAbortMerge = async () => {
 
     await window.electronAPI.git.abortMerge();
 
-    message.info('合并已中止');
-    emit('aborted');
-    emit('update:open', false);
+    message.info("合并已中止");
+    emit("aborted");
+    emit("update:open", false);
   } catch (error) {
-    logger.error('中止合并失败:', error);
+    logger.error("中止合并失败:", error);
     message.error(`中止合并失败: ${error.message}`);
   } finally {
     loading.value = false;
@@ -344,7 +318,7 @@ const handleAbortMerge = async () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 </script>
 
@@ -383,7 +357,7 @@ const handleCancel = () => {
 
 .version-content pre {
   margin: 0;
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;

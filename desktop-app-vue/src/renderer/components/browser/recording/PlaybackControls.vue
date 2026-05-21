@@ -1,26 +1,17 @@
 <template>
   <div class="playback-controls">
     <!-- Playback Status -->
-    <div
-      class="playback-status"
-      :class="playbackState"
-    >
+    <div class="playback-status" :class="playbackState">
       <div class="status-info">
         <span class="status-icon">
           <PlayCircleOutlined v-if="playbackState === 'playing'" />
           <PauseCircleOutlined v-if="playbackState === 'paused'" />
           <CheckCircleOutlined v-if="playbackState === 'completed'" />
-          <LoadingOutlined
-            v-if="playbackState === 'loading'"
-            spin
-          />
+          <LoadingOutlined v-if="playbackState === 'loading'" spin />
         </span>
         <span class="status-text">{{ statusText }}</span>
       </div>
-      <div
-        v-if="totalEvents > 0"
-        class="playback-progress"
-      >
+      <div v-if="totalEvents > 0" class="playback-progress">
         {{ currentEventIndex }} / {{ totalEvents }}
       </div>
     </div>
@@ -41,11 +32,7 @@
 
     <!-- Main Controls -->
     <div class="main-controls">
-      <a-button
-        shape="circle"
-        :disabled="!canSkipBack"
-        @click="skipBack"
-      >
+      <a-button shape="circle" :disabled="!canSkipBack" @click="skipBack">
         <StepBackwardOutlined />
       </a-button>
 
@@ -70,11 +57,7 @@
         <PauseOutlined />
       </a-button>
 
-      <a-button
-        shape="circle"
-        :disabled="!canSkipForward"
-        @click="skipForward"
-      >
+      <a-button shape="circle" :disabled="!canSkipForward" @click="skipForward">
         <StepForwardOutlined />
       </a-button>
 
@@ -96,18 +79,10 @@
         size="small"
         @change="updateSpeed"
       >
-        <a-radio-button value="0.5">
-          0.5x
-        </a-radio-button>
-        <a-radio-button value="1">
-          1x
-        </a-radio-button>
-        <a-radio-button value="2">
-          2x
-        </a-radio-button>
-        <a-radio-button value="4">
-          4x
-        </a-radio-button>
+        <a-radio-button value="0.5"> 0.5x </a-radio-button>
+        <a-radio-button value="1"> 1x </a-radio-button>
+        <a-radio-button value="2"> 2x </a-radio-button>
+        <a-radio-button value="4"> 4x </a-radio-button>
       </a-radio-group>
     </div>
 
@@ -116,22 +91,13 @@
       <a-checkbox v-model:checked="visualFeedback">
         Visual Feedback
       </a-checkbox>
-      <a-checkbox v-model:checked="stepMode">
-        Step Mode
-      </a-checkbox>
-      <a-checkbox v-model:checked="loopPlayback">
-        Loop
-      </a-checkbox>
+      <a-checkbox v-model:checked="stepMode"> Step Mode </a-checkbox>
+      <a-checkbox v-model:checked="loopPlayback"> Loop </a-checkbox>
     </div>
 
     <!-- Current Event Info -->
-    <div
-      v-if="currentEvent"
-      class="current-event"
-    >
-      <div class="event-header">
-        Current Event
-      </div>
+    <div v-if="currentEvent" class="current-event">
+      <div class="event-header">Current Event</div>
       <div class="event-details">
         <a-tag :color="getEventColor(currentEvent.type)">
           {{ currentEvent.type }}
@@ -140,10 +106,7 @@
           currentEvent.selector || currentEvent.url || ""
         }}</span>
       </div>
-      <div
-        v-if="currentEvent.text || currentEvent.value"
-        class="event-value"
-      >
+      <div v-if="currentEvent.text || currentEvent.value" class="event-value">
         {{ currentEvent.text || currentEvent.value }}
       </div>
     </div>
@@ -169,7 +132,7 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  targetId: String,
+  targetId: { type: String, default: undefined },
 });
 
 const emit = defineEmits(["playback-complete", "event-played"]);

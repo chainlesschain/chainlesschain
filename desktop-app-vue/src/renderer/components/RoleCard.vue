@@ -1,42 +1,24 @@
 <template>
-  <a-card
-    class="role-card"
-    :class="{ 'builtin-role': isBuiltin }"
-  >
+  <a-card class="role-card" :class="{ 'builtin-role': isBuiltin }">
     <template #title>
       <div class="role-card-title">
         <span>{{ role.name }}</span>
-        <a-tag
-          v-if="isBuiltin"
-          color="blue"
-        >
-          内置
-        </a-tag>
+        <a-tag v-if="isBuiltin" color="blue"> 内置 </a-tag>
       </div>
     </template>
 
     <template #extra>
       <a-dropdown v-if="!isBuiltin">
-        <a-button
-          type="text"
-          size="small"
-        >
+        <a-button type="text" size="small">
           <MoreOutlined />
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item
-              key="edit"
-              @click="$emit('edit')"
-            >
+            <a-menu-item key="edit" @click="$emit('edit')">
               <EditOutlined /> 编辑
             </a-menu-item>
             <a-menu-divider />
-            <a-menu-item
-              key="delete"
-              danger
-              @click="$emit('delete')"
-            >
+            <a-menu-item key="delete" danger @click="$emit('delete')">
               <DeleteOutlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -46,7 +28,7 @@
 
     <div class="role-card-content">
       <p class="role-description">
-        {{ role.description || '暂无描述' }}
+        {{ role.description || "暂无描述" }}
       </p>
 
       <div class="role-permissions">
@@ -56,7 +38,7 @@
         </div>
         <div class="permissions-list">
           <a-tag
-            v-for="(perm, index) in displayPermissions"
+            v-for="(perm, _index) in displayPermissions"
             :key="perm"
             color="green"
             class="permission-tag"
@@ -74,11 +56,7 @@
       </div>
 
       <div class="role-footer">
-        <a-button
-          type="link"
-          size="small"
-          @click="$emit('view')"
-        >
+        <a-button type="link" size="small" @click="$emit('view')">
           查看详情 <RightOutlined />
         </a-button>
       </div>
@@ -87,31 +65,31 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
   SafetyCertificateOutlined,
-  RightOutlined
-} from '@ant-design/icons-vue';
+  RightOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   role: {
     type: Object,
-    required: true
+    required: true,
   },
   isBuiltin: {
     type: Boolean,
-    default: false
+    default: false,
   },
   maxDisplayPermissions: {
     type: Number,
-    default: 5
-  }
+    default: 5,
+  },
 });
 
-defineEmits(['edit', 'delete', 'view']);
+defineEmits(["edit", "delete", "view"]);
 
 // 显示的权限（限制数量）
 const displayPermissions = computed(() => {
@@ -123,31 +101,31 @@ const displayPermissions = computed(() => {
  */
 function formatPermission(perm) {
   // 如果是通配符，显示"所有权限"
-  if (perm === '*') {
-    return '所有权限';
+  if (perm === "*") {
+    return "所有权限";
   }
 
   // 简化显示，例如 "knowledge.create" -> "创建知识"
   const permMap = {
-    'org.manage': '管理组织',
-    'org.delete': '删除组织',
-    'member.invite': '邀请成员',
-    'member.manage': '管理成员',
-    'member.remove': '移除成员',
-    'role.create': '创建角色',
-    'role.manage': '管理角色',
-    'role.assign': '分配角色',
-    'role.delete': '删除角色',
-    'knowledge.create': '创建知识',
-    'knowledge.read': '查看知识',
-    'knowledge.write': '编辑知识',
-    'knowledge.delete': '删除知识',
-    'project.create': '创建项目',
-    'project.read': '查看项目',
-    'project.write': '编辑项目',
-    'project.delete': '删除项目',
-    'message.send': '发送消息',
-    'message.read': '阅读消息'
+    "org.manage": "管理组织",
+    "org.delete": "删除组织",
+    "member.invite": "邀请成员",
+    "member.manage": "管理成员",
+    "member.remove": "移除成员",
+    "role.create": "创建角色",
+    "role.manage": "管理角色",
+    "role.assign": "分配角色",
+    "role.delete": "删除角色",
+    "knowledge.create": "创建知识",
+    "knowledge.read": "查看知识",
+    "knowledge.write": "编辑知识",
+    "knowledge.delete": "删除知识",
+    "project.create": "创建项目",
+    "project.read": "查看项目",
+    "project.write": "编辑项目",
+    "project.delete": "删除项目",
+    "message.send": "发送消息",
+    "message.read": "阅读消息",
   };
 
   return permMap[perm] || perm;
@@ -157,7 +135,9 @@ function formatPermission(perm) {
 <style scoped>
 .role-card {
   height: 100%;
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition:
+    box-shadow 0.3s,
+    transform 0.3s;
 }
 
 .role-card:hover {

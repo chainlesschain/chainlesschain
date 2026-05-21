@@ -35,7 +35,7 @@
       @select="handleSelect"
       @expand="handleExpand"
     >
-      <template #title="{ title, isLeaf, icon, filePath }">
+      <template #title="{ title, isLeaf: _isLeaf, icon, filePath }">
         <div class="tree-node-title">
           <component :is="icon" class="node-icon" />
           <!-- eslint-disable vue/no-v-html -- sanitized via safeHtml / renderMarkdown / DOMPurify; see docs/audits/AUDIT_2026-04-22.md §3 -->
