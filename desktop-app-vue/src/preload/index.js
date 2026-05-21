@@ -1838,6 +1838,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
       },
     },
 
+    // Phase 3c.3 — S3 / OSS 外部同步（命名空间隔离）
+    oss: {
+      test: () => ipcRenderer.invoke("sync:oss:test"),
+      run: () => ipcRenderer.invoke("sync:oss:run"),
+      configGet: () => ipcRenderer.invoke("sync:oss:config-get"),
+      configSet: (payload) =>
+        ipcRenderer.invoke("sync:oss:config-set", payload),
+      configClear: () => ipcRenderer.invoke("sync:oss:config-clear"),
+      onProgress: (callback) => {
+        const handler = (_event, payload) => callback(payload);
+        ipcRenderer.on("sync:oss:progress", handler);
+        return () => ipcRenderer.removeListener("sync:oss:progress", handler);
+      },
+    },
+
     // Phase 3d — Mobile (Android) 外部同步
     mobile: {
       run: (deviceId) => ipcRenderer.invoke("sync:mobile:run", deviceId),

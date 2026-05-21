@@ -198,6 +198,15 @@ function registerPhases8to9Extras({
     handlers: 5,
   });
 
+  // Phase 3c.3 — S3 / OSS 外部同步
+  safeRegister("OSS IPC", {
+    register: () => {
+      const { registerOSSIPC } = require("../../sync/oss-ipc");
+      registerOSSIPC({ database, mainWindow });
+    },
+    handlers: 5,
+  });
+
   // Phase 3d — Mobile (Android) 外部同步。app.mobileBridgeSync 在
   // initializeMobileBridge() 异步 ready；IPC handler 惰性查找，未就绪
   // 时返回明确错误（不阻塞 IPC 注册）。
