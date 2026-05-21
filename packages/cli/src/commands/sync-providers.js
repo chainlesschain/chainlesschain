@@ -26,11 +26,16 @@
 import chalk from "chalk";
 import {
   ALLOWED_PROVIDER_IDS,
+  getCredentials,
   getCredentialsSanitized,
   hasCredentials,
   setCredentials,
   clearCredentials,
 } from "../lib/sync-credentials.js";
+import { WebDAVClient } from "../lib/sync-webdav-client.js";
+import { OSSClient } from "../lib/sync-oss-client.js";
+import { runSync } from "../lib/sync-engine-cli.js";
+import { openCliVault } from "../lib/sync-cli-db.js";
 
 function _ensureValidProvider(name) {
   if (!ALLOWED_PROVIDER_IDS.includes(name)) {
@@ -121,6 +126,131 @@ function _clearProvider(providerId) {
   console.log(chalk.green(`✓ ${providerId} credentials cleared`));
 }
 
+function _loadWebDAVCreds() {
+  const c = getCredentials("webdav");
+  if (!c.url || !c.password) return null;
+  return {
+    url: c.url,
+    username: c.username || "",
+    password: c.password,
+    remotePath: c.remotePath || "/",
+  };
+}
+
+function _loadOSSCreds() {
+  const c = getCredentials("oss");
+  if (!c.endpoint || !c.bucket || !c.accessKeyId || !c.secretAccessKey)
+    return null;
+  return {
+    endpoint: c.endpoint,
+    region: c.region || "auto",
+    bucket: c.bucket,
+    accessKeyId: c.accessKeyId,
+    secretAccessKey: c.secretAccessKey,
+    remotePath: c.remotePath || "",
+    forcePathStyle: c.forcePathStyle === true,
+  };
+}
+
+async function _testProvider(providerId) {
+  _ensureValidProvider(providerId);
+  const creds = providerId === "webdav" ? _loadWebDAVCreds() : _loadOSSCreds();
+  if (!creds) {
+    throw new Error(
+      `${providerId} 凭据未配置，先跑 \`cc sync ${providerId} configure --...\``,
+    );
+  }
+  const client =
+    providerId === "webdav" ? new WebDAVClient(creds) : new OSSClient(creds);
+  const res = await client.testConnection();
+  if (res.ok) {
+    console.log(chalk.green(`✓ ${providerId} 连接 OK`));
+    return;
+  }
+  console.error(
+    chalk.red(
+      `✗ ${providerId} 连接失败 (${res.status || "n/a"}): ${res.error}`,
+    ),
+  );
+  process.exitCode = 2;
+}
+
+async function _runProvider(providerId, opts = {}) {
+  _ensureValidProvider(providerId);
+  const creds = providerId === "webdav" ? _loadWebDAVCreds() : _loadOSSCreds();
+  if (!creds) {
+    throw new Error(
+      `${providerId} 凭据未配置，先跑 \`cc sync ${providerId} configure --...\``,
+    );
+  }
+
+  let vault;
+  try {
+    vault = await openCliVault();
+  } catch (err) {
+    if (err.code === "BETTER_SQLITE3_MISSING") {
+      console.error(chalk.red(`✗ ${err.message}`));
+      process.exitCode = 2;
+      return;
+    }
+    throw err;
+  }
+  const { dbManager, vaultPath } = vault;
+  if (opts.verbose) console.log(chalk.dim(`vault: ${vaultPath}`));
+
+  const client =
+    providerId === "webdav" ? new WebDAVClient(creds) : new OSSClient(creds);
+  let lastPrint = 0;
+  const onProgress = (e) => {
+    // Throttle stdout to avoid TTY thrash (engine already 5/500ms)
+    const now = Date.now();
+    if (
+      e.phase === "start" ||
+      ["success", "conflict", "failed"].includes(e.phase) ||
+      now - lastPrint >= 1000
+    ) {
+      lastPrint = now;
+      const parts = [`[${e.phase}]`];
+      if (e.totalPending != null) parts.push(`total=${e.totalPending}`);
+      parts.push(
+        `pushed=${e.pushed}`,
+        `skipped=${e.skipped}`,
+        `deleted=${e.deleted}`,
+      );
+      console.log(chalk.dim(parts.join(" ")));
+    }
+  };
+
+  try {
+    const result = await runSync({
+      dbManager,
+      client,
+      providerId,
+      accountKey: "",
+      onProgress,
+    });
+    if (result.success) {
+      console.log(
+        chalk.green(`✓ ${providerId} sync done (${result.status})`) +
+          ` — pushed=${result.pushed} skipped=${result.skipped} deleted=${result.deleted} duration=${result.durationMs}ms`,
+      );
+    } else {
+      console.error(
+        chalk.red(`✗ ${providerId} sync failed`) +
+          ` — pushed=${result.pushed} skipped=${result.skipped} deleted=${result.deleted}`,
+      );
+      if (result.error) console.error(chalk.red(`  error: ${result.error}`));
+      process.exitCode = 2;
+    }
+  } finally {
+    try {
+      dbManager.close();
+    } catch (_e) {
+      /* cleanup */
+    }
+  }
+}
+
 /**
  * Attach `cc sync webdav *` and `cc sync oss *` subcommands to the existing
  * `cc sync` parent command. Caller passes the program; we find the sync
@@ -180,6 +310,33 @@ export function registerSyncProviderCommands(program) {
     .action(() => {
       try {
         _clearProvider("webdav");
+      } catch (err) {
+        console.error(chalk.red(`✗ ${err?.message || err}`));
+        process.exitCode = 2;
+      }
+    });
+
+  webdav
+    .command("test")
+    .description("Probe WebDAV connectivity (PROPFIND on remotePath)")
+    .action(async () => {
+      try {
+        await _testProvider("webdav");
+      } catch (err) {
+        console.error(chalk.red(`✗ ${err?.message || err}`));
+        process.exitCode = 2;
+      }
+    });
+
+  webdav
+    .command("run")
+    .description(
+      "Run one full WebDAV sync against ~/.chainlesschain/cli-vault.db",
+    )
+    .option("-v, --verbose", "show vault path + verbose progress", false)
+    .action(async (opts) => {
+      try {
+        await _runProvider("webdav", opts);
       } catch (err) {
         console.error(chalk.red(`✗ ${err?.message || err}`));
         process.exitCode = 2;
@@ -246,6 +403,31 @@ export function registerSyncProviderCommands(program) {
     .action(() => {
       try {
         _clearProvider("oss");
+      } catch (err) {
+        console.error(chalk.red(`✗ ${err?.message || err}`));
+        process.exitCode = 2;
+      }
+    });
+
+  oss
+    .command("test")
+    .description("Probe S3 / OSS connectivity (HeadBucket)")
+    .action(async () => {
+      try {
+        await _testProvider("oss");
+      } catch (err) {
+        console.error(chalk.red(`✗ ${err?.message || err}`));
+        process.exitCode = 2;
+      }
+    });
+
+  oss
+    .command("run")
+    .description("Run one full OSS sync against ~/.chainlesschain/cli-vault.db")
+    .option("-v, --verbose", "show vault path + verbose progress", false)
+    .action(async (opts) => {
+      try {
+        await _runProvider("oss", opts);
       } catch (err) {
         console.error(chalk.red(`✗ ${err?.message || err}`));
         process.exitCode = 2;
