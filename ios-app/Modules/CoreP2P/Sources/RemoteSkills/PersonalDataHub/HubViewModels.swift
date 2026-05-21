@@ -313,6 +313,11 @@ public final class HubAdaptersViewModel: ObservableObject {
 /// Hub 审计回查页 VM — Phase 14.2.4 mirror Android `HubAuditViewModel`.
 ///
 /// 简单 list with filter — 只读，无 mutating。
+///
+/// Phase 14.3.3.b — 加入 eventId 深链：每行的 eventId 可点 → invoke
+/// `commands.eventDetail` → bottom sheet 显事件元数据。复用 HubAskViewModel
+/// 同款 (activeCitationDetail) 模式，沿用 Android 设计 §7 T12 race 保护：
+/// 用户连点 2 个 eventId 时第 1 个的 RPC 回响不能覆盖第 2 个的状态。
 @MainActor
 public final class HubAuditViewModel: ObservableObject {
 
@@ -323,6 +328,18 @@ public final class HubAuditViewModel: ObservableObject {
     @Published public private(set) var errorMessage: String?
     @Published public var actionFilter: String?  // nil = 全部
     @Published public var limit: Int = 50
+
+    // Phase 14.3.3.b — eventId deep-link state (mirror Android HubAuditViewModel).
+    @Published public private(set) var activeEventId: String?
+    @Published public private(set) var activeEventDetail: HubEventDetailResponse?
+    @Published public private(set) var isEventDetailLoading: Bool = false
+    @Published public private(set) var eventDetailError: String?
+
+    /// Stale-response guard (per design §7 T12). Monotonically increasing
+    /// per `openEventDetail` call; only the last-issued requestId may
+    /// commit results back into Published state. Otherwise a slow first
+    /// RPC reply could overwrite the user's second tap.
+    private var currentDetailRequestId: Int64 = 0
 
     // MARK: - Deps
 
@@ -362,5 +379,47 @@ public final class HubAuditViewModel: ObservableObject {
         } catch {
             errorMessage = "无法加载审计：\((error as NSError).localizedDescription)"
         }
+    }
+
+    // MARK: - Phase 14.3.3.b — eventId deep-link
+
+    /// 点击 audit row 的 eventId 触发详情拉取。
+    ///
+    /// - 立即把 sheet 打开（spinner 状态）；
+    /// - 异步 invoke `commands.eventDetail`；
+    /// - 通过 requestId 校验防止旧 RPC 回响覆盖新点击 (race per design §7 T12)。
+    public func openEventDetail(eventId: String) async {
+        guard !eventId.isEmpty else { return }
+        currentDetailRequestId &+= 1
+        let myRequestId = currentDetailRequestId
+
+        activeEventId = eventId
+        activeEventDetail = nil
+        isEventDetailLoading = true
+        eventDetailError = nil
+
+        do {
+            let detail = try await commands.eventDetail(
+                pcPeerId: pcPeerId,
+                eventId: eventId,
+                mobileDid: currentDIDProvider()
+            )
+            // race guard: 若用户已点了下一行 eventId 此 RPC 回响要丢弃
+            guard myRequestId == currentDetailRequestId else { return }
+            activeEventDetail = detail
+            isEventDetailLoading = false
+        } catch {
+            guard myRequestId == currentDetailRequestId else { return }
+            eventDetailError = (error as NSError).localizedDescription
+            isEventDetailLoading = false
+        }
+    }
+
+    /// 用户 dismiss sheet → 清状态。新一次 openEventDetail 会再写 requestId。
+    public func closeEventDetail() {
+        activeEventId = nil
+        activeEventDetail = nil
+        isEventDetailLoading = false
+        eventDetailError = nil
     }
 }
