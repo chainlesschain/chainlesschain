@@ -105,7 +105,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
-#### Built-in Skills Overview (138 total)
+#### Built-in Skills Overview (141 total)
 
 | 组别                     | 版本    | 数量 | 技能（技能名）                                                                                                                                                                                                                                       |
 | ------------------------ | ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

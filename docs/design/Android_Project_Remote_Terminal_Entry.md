@@ -20,7 +20,7 @@
 `feature-project/` 78 个 Kotlin 文件 ~30,680 行主代码，但其中 `FileEditorScreen` (671) / `GitStatusDialog` (570) / `GitHistoryScreen` (459) / `EnhancedCodeEditor` + `SyntaxHighlightedEditor` + `CodeCompletionEngine` 共 ~3,000 行 "手机 IDE 子集"，在 V2 对话式 UX (`ProjectDetailScreenV2.kt` 836) 下进不到。App 实际 wire 的是 `app/.../presentation/screens/` 下另起一套（详见现状分析）。
 
 **观察 2：Android 端缺 CLI 是结构性的**
-桌面有 `cc` CLI（109 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
+桌面有 `cc` CLI（144 commands），Android 端没有，也不该有 —— `cc` 依赖 Node.js / Electron / Ollama / Qdrant / Postgres，移动端跑不动。但用户在外面想做 `git rebase` / `npm install` / `cc skill` / `cc workflow run` 类工作时，没有出口。
 
 **观察 3：基础设施全齐**
 - `ProjectEntity.rootPath` 字段已存在（sync 协议字段 `root_path` 镜像）

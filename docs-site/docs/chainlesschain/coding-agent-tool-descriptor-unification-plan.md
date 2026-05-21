@@ -261,7 +261,7 @@ function canonicalizeComputerUseTool(tool) {
 | CLI contract → canonical | 16 个 core tools | < 0.1 ms | < 1 ms |
 | Desktop FunctionCaller 注册 | 62 个工具 | < 0.2 ms/个 | ~12 ms |
 | MCP 工具 canonical 化 | 每服务器 5–20 个 | < 0.3 ms/个 | ~8 ms（3 个服务器）|
-| Skill-linked 归一化 | 138 个技能工具 | < 0.15 ms/个 | ~20 ms |
+| Skill-linked 归一化 | 141 个技能工具 | < 0.15 ms/个 | ~20 ms |
 | **全量 unified-tool-registry 初始化** | **216 个工具** | — | **~40 ms** |
 
 ### Clone 开销
