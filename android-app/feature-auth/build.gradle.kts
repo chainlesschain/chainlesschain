@@ -36,6 +36,18 @@ android {
             isReturnDefaultValues = true
         }
     }
+
+    // mockk-android pulls in JUnit Jupiter (5.x) transitively. Six jupiter
+    // jars each ship META-INF/LICENSE.md, which trips mergeDebugAndroidTest
+    // JavaResource. Exclude the duplicated license metadata at packaging time.
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md"
+            )
+        }
+    }
 }
 
 dependencies {
