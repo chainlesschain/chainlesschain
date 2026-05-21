@@ -31,6 +31,7 @@ const renderer = require("./markdown-renderer");
 const { runOSSSync } = require("./oss-engine");
 const { OSSClient } = require("./oss-client");
 const { detectOrphans, deleteOrphans } = require("./orphan-detector");
+const { notifyIfNewConflict } = require("./sync-conflict-notifier");
 
 const PROVIDER_ID = "oss";
 
@@ -139,6 +140,9 @@ function registerOSSIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
         }
       };
 
+      const prevCursor = store.getCursor(database, PROVIDER_ID) || {};
+      const prevStatus = prevCursor.lastRunStatus ?? null;
+
       const res = await runOSSSync({
         dbManager: database,
         client,
@@ -149,6 +153,21 @@ function registerOSSIPC({ database, mainWindow, ipcMain: injectedIpcMain }) {
         accountKey: "",
         onProgress,
       });
+
+      // D10 conflict notify (transition clean → conflict only)
+      try {
+        notifyIfNewConflict({
+          provider: "OSS / S3",
+          result: res,
+          prevStatus,
+        });
+      } catch (notifyErr) {
+        logger.warn(
+          "[OSS IPC] conflict notify 失败（不致命）:",
+          notifyErr?.message,
+        );
+      }
+
       return {
         success: res.success,
         status: res.status,
