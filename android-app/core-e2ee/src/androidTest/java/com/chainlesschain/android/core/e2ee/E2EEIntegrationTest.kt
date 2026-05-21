@@ -16,8 +16,11 @@ import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 // X25519KeyPair.generate() where they actually need values.
 import com.chainlesschain.android.core.e2ee.queue.PersistentMessageQueueManager
 import com.chainlesschain.android.core.e2ee.rotation.PreKeyRotationManager
+import com.chainlesschain.android.core.e2ee.session.E2EESession
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.storage.SessionStorage
+import com.chainlesschain.android.core.e2ee.util.X3DHParty
+import com.chainlesschain.android.core.e2ee.util.simulateX3DHHandshake
 import com.chainlesschain.android.core.e2ee.verification.SafetyNumbers
 import com.chainlesschain.android.core.e2ee.verification.SessionFingerprint
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -27,12 +30,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import javax.inject.Inject
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -103,31 +106,58 @@ class E2EEIntegrationTest {
     /**
      * 测试完整的 X3DH + Double Ratchet 工作流程
      *
-     * IGNORED 2026-05-20: PersistentSessionManager.createSession signature
-     * changed from `(peerId, sharedSecret, isInitiator)` to
-     * `(peerId, peerPreKeyBundle): Pair<E2EESession, InitialMessage>` — the
-     * proper X3DH initiator/responder dance. Faking this with a single
-     * sessionManager instance (which the test used to do with isInitiator)
-     * isn't possible anymore — need two separate PSM instances or an
-     * Alice/Bob simulator. Out of scope for the Win-side compile-clean pass.
+     * Reactivated via [simulateX3DHHandshake] — Alice (initiator) and Bob
+     * (responder) wire up via the X3DHParty simulator, then exchange
+     * encrypted messages bidirectionally. Replaces the deprecated
+     * `(peerId, sharedSecret, isInitiator)` overload with the proper
+     * PreKeyBundle X3DH dance.
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup. Tracked in CLAUDE.local.md.")
     @Test
-    fun testCompleteE2EEWorkflow() {
-        // Body stubbed because @Ignore only skips runtime — Kotlin still type-
-        // checks. Once createSession is rewritten with PreKeyBundle X3DH, the
-        // original Alice↔Bob workflow (encrypt → decrypt → reply → verify)
-        // can be restored. Old body lives in commit 4bfc8f474 history.
-        TODO("createSession signature change — see @Ignore reason")
+    fun testCompleteE2EEWorkflow() = runBlocking {
+        val sim = simulateX3DHHandshake()
+
+        // Alice → Bob
+        val aliceMessage = "Hello Bob from Alice!"
+        val fromAlice = sim.aliceSession.encrypt(aliceMessage)
+        val decryptedByBob = sim.bobSession.decryptToString(fromAlice)
+        assertEquals(aliceMessage, decryptedByBob)
+
+        // Bob → Alice
+        val bobMessage = "Hi Alice, this is Bob!"
+        val fromBob = sim.bobSession.encrypt(bobMessage)
+        val decryptedByAlice = sim.aliceSession.decryptToString(fromBob)
+        assertEquals(bobMessage, decryptedByAlice)
     }
 
     /**
      * 测试会话持久化和恢复
+     *
+     * Alice (Hilt-injected [sessionManager]) creates a session with Bob, then
+     * a SECOND PSM instance loads from the same on-disk storage and confirms
+     * the session was restored. Bypasses Hilt for the second instance because
+     * @Singleton can't be re-injected mid-test; PSM has a normal constructor
+     * accepting [Context].
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testSessionPersistenceAndRecovery() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testSessionPersistenceAndRecovery() = runBlocking {
+        val bob = X3DHParty("test_peer")
+
+        // Alice creates session with Bob via PSM
+        sessionManager.createSession("test_peer", bob.preKeyBundle)
+        // Encrypt one message to ensure ratchet state is persisted post-init
+        sessionManager.encrypt("test_peer", "before restart".toByteArray())
+        assertTrue(sessionManager.hasSession("test_peer"))
+
+        // Simulate restart — fresh PSM instance loads from same context.filesDir
+        val freshPsm = PersistentSessionManager(context)
+        freshPsm.initialize(autoRestore = true, enableRotation = false)
+        delay(500)
+
+        assertTrue(freshPsm.hasSession("test_peer"))
+
+        // Cleanup so @After's sessionManager.deleteSession doesn't conflict
+        freshPsm.deleteSession("test_peer")
+        freshPsm.shutdown()
     }
 
     /**
@@ -206,11 +236,31 @@ class E2EEIntegrationTest {
 
     /**
      * 测试消息队列功能
+     *
+     * Alice encrypts 3 messages and enqueues them via [messageQueueManager];
+     * `getAllOutgoingMessages()` returns them filtered by peerId. Note PMQM
+     * needs explicit `initialize()` (not auto-injected lifecycle).
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testMessageQueueOperations() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testMessageQueueOperations() = runBlocking {
+        val bob = X3DHParty("queue_test_peer")
+
+        sessionManager.createSession("queue_test_peer", bob.preKeyBundle)
+        messageQueueManager.initialize(autoRestore = false, enableAutoSave = false)
+
+        val messages = listOf("Message 1", "Message 2", "Message 3")
+        messages.forEach { msg ->
+            val encrypted = sessionManager.encrypt("queue_test_peer", msg.toByteArray())
+            messageQueueManager.enqueueOutgoing(
+                peerId = "queue_test_peer",
+                message = encrypted,
+                priority = 50
+            )
+        }
+
+        val all = messageQueueManager.getAllOutgoingMessages()
+        val forPeer = all.filter { it.peerId == "queue_test_peer" }
+        assertEquals(3, forPeer.size)
     }
 
     /**
@@ -286,37 +336,74 @@ class E2EEIntegrationTest {
 
     /**
      * 测试乱序消息处理
+     *
+     * Alice encrypts msg1/2/3 sequentially; Bob decrypts in order 3,1,2. Double
+     * Ratchet's skipped-message-keys cache should handle this transparently.
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testOutOfOrderMessageHandling() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testOutOfOrderMessageHandling() = runBlocking {
+        val sim = simulateX3DHHandshake()
+
+        val msg1 = sim.aliceSession.encrypt("Message 1")
+        val msg2 = sim.aliceSession.encrypt("Message 2")
+        val msg3 = sim.aliceSession.encrypt("Message 3")
+
+        assertEquals("Message 3", sim.bobSession.decryptToString(msg3))
+        assertEquals("Message 1", sim.bobSession.decryptToString(msg1))
+        assertEquals("Message 2", sim.bobSession.decryptToString(msg2))
     }
 
     /**
      * 测试大消息加密
+     *
+     * 1 MiB payload through Alice → Bob — verifies the AEAD path handles
+     * large plaintexts (no chunking required at this layer).
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testLargeMessageEncryption() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testLargeMessageEncryption() = runBlocking {
+        val sim = simulateX3DHHandshake()
+
+        val largeMessage = ByteArray(1024 * 1024) { (it % 256).toByte() }
+        val encrypted = sim.aliceSession.encrypt(largeMessage)
+        val decrypted = sim.bobSession.decrypt(encrypted)
+
+        assertTrue(largeMessage.contentEquals(decrypted))
     }
 
     /**
      * 测试会话删除
+     *
+     * Alice creates session, verifies [hasSession]=true, deletes, verifies
+     * false. Bob's bundle is used to satisfy the X3DH initiator path but the
+     * test only checks Alice's PSM state.
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testSessionDeletion() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testSessionDeletion() = runBlocking {
+        val bob = X3DHParty("delete_test_peer")
+
+        sessionManager.createSession("delete_test_peer", bob.preKeyBundle)
+        assertTrue(sessionManager.hasSession("delete_test_peer"))
+
+        sessionManager.deleteSession("delete_test_peer")
+
+        assertFalse(sessionManager.hasSession("delete_test_peer"))
     }
 
     /**
      * 测试并发加密操作
+     *
+     * Original name was aspirational — the body is sequential 1..10 encrypt
+     * then decrypt. Real concurrency would need async coroutines + a shared
+     * ratchet lock; kept sequential to match the original surface.
      */
-    @Ignore("createSession signature change — needs PreKeyBundle X3DH setup.")
     @Test
-    fun testConcurrentEncryption() {
-        TODO("createSession signature change — see @Ignore reason")
+    fun testConcurrentEncryption() = runBlocking {
+        val sim = simulateX3DHHandshake()
+
+        val messages = (1..10).map { "Message $it" }
+        val encrypted = messages.map { sim.aliceSession.encrypt(it) }
+        val decrypted = encrypted.map { sim.bobSession.decryptToString(it) }
+
+        assertEquals(messages, decrypted)
     }
 }
