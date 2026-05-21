@@ -608,14 +608,22 @@ enum class SkillTab(
   - 14.1.4 HubAdaptersScreen + HubHealthCard + ViewModel (in `841651ea8`)
   - 14.1.5 HubAuditScreen + NavGraph route + RemoteOperateScreen button (in `841651ea8`)
   - 14.1.6 PersonalDataHubIntegrationTest 3 集成测试 + route-mobile dispatcher (`dc3322452` + `fcfc555f3`)
-- 🚧 **Phase 14.2** — iOS 接线 + UI（iOS scaffold 22/22 + 28 tests 已 land per `20722ee60`；UI + 14.3 dispatcher 待并行 session 推进）
-- ✅ **Phase 14.3** — 流式同步 Android + 桌面端真接通
+- ✅ **Phase 14.2** — iOS 接线 + UI 完整落地（v5.0.3.75, 2026-05-21 audit verified — `docs-site/docs/chainlesschain/personal-data-hub.md` line 459）
+  - 14.2.1 `PersonalDataHubCommands.swift` actor 22 method typed wrapper（Android Phase 14.1 22 method 对齐，每个 method 单测都断言 wire `method` 名是 kebab-case 防 mismatch 回归）+ `PersonalDataHubModels.swift` 16 Codable struct（per `20722ee60` scaffold 起步，后续 commit 完整化）
+  - 14.2.2 `HubViewModels.swift` — `HubAskViewModel` 隐私 gate sheet + `acceptNonLocal` 重发 + citation chip eventDetail + race-guarded requestId
+  - 14.2.3 `HubAdaptersViewModel` list + sync + syncStream + dispatcher 三 sink (mirror progress / completedReports / errors)
+  - 14.2.4 `HubAuditViewModel` filter chip + Phase 14.3.3.b eventId deep-link
+  - 14.2.5 `Features/RemoteOperate/Views/PersonalDataHubViews.swift` 650 LOC — 3-tab segmented (提问 / Adapter / 审计) Inner View + StateObject 模式（per `ios_inner_view_stateobject_pattern` memory）
+  - 14.2.6 `RemoteDependencies` wired (`self.hub = PersonalDataHubCommands(client:)` + `self.hubSyncDispatcher` + fan-out 第 4 子流 `hubSyncEventsStream` buffer 256) + `RemoteOperateView` 第 16 tab `.personalDataHub` 接入 `PersonalDataHubView(pcPeerId:)`
+  - tests: **1491 LOC** (PersonalDataHubCommandsTests 628 + HubViewModelsTests 640 + HubSyncEventDispatcherTests 223), CI 编绿（UI commit `3db7b5a73` + Phase 14.3.3.b eventId deep-link commit `1d0c473a3`）
+- ✅ **Phase 14.3** — 流式同步 双端 + 桌面端真接通
   - 14.3.1 Android `HubSyncEventDispatcher` + 7 单测 (`08c16cb42`)
-  - 14.3 ViewModel 接入: `syncStream()` + `applyProgress()` + 6 streaming 单测 (`dd0b74a0b`)
+  - 14.3 Android ViewModel 接入: `syncStream()` + `applyProgress()` + 6 streaming 单测 (`dd0b74a0b`)
   - 14.3 桌面 `route-mobile.js` `runSyncStream` helper + `index.js` `sendEventToPeer` 闭包 + 5 wiring 单测 (`badc1e108`)
-  - 14.3.3 `HubAdaptersScreen` 流式按钮 + `progressTextFor` 文本 + 9 helper 单测 (`67af0bcaa`)
-  - 🚧 14.3.2 iOS dispatcher + ViewModel + UI — 并行 session
-- ⏳ **Phase 14.4** — 真机 E2E（待 Mac + iPhone + Xiaomi 24115RA8EC + 真桌面 + 真 Adapter 注册）
+  - 14.3.3 Android `HubAdaptersScreen` 流式按钮 + `progressTextFor` 文本 + 9 helper 单测 (`67af0bcaa`)
+  - ✅ 14.3.2 iOS `HubSyncEventDispatcher.swift` + ViewModel 接 + UI 流式按钮（含 fan-out 第 4 子流 buffer 256；tests included in 1491 LOC above）
+  - ✅ 14.3.3.b iOS audit eventId deep-link UI（`HubAuditEventDetailSheet` 3-state sheet — loading / loaded / error；commit `1d0c473a3`）
+- ⏳ **Phase 14.4** — 真机 E2E（待 Mac + iPhone + Xiaomi 24115RA8EC + 真桌面 + 真 Adapter 注册；8 场景见 §8.3）
 
 ### 测试 totals（Android）
 
@@ -629,6 +637,15 @@ enum class SkillTab(
 | `HubSyncEventDispatcherTest.kt` | 7 |
 | `HubAdaptersProgressTextTest.kt` | 9 |
 | **Total Android** | **70** ✅ |
+
+### 测试 totals（iOS — Phase 14.2 + 14.3）
+
+| Test file | LOC |
+|---|---|
+| `PersonalDataHubCommandsTests.swift` | 628 |
+| `HubViewModelsTests.swift` | 640 |
+| `HubSyncEventDispatcherTests.swift` | 223 |
+| **Total iOS** | **1491 LOC** ✅ |
 
 桌面：`route-mobile.test.js` 20 + `mobile-skill-whitelist.test.js` 25 + `unified-config-manager.test.js` mobileBridge 1 = **46** desktop tests for Phase 14。
 
