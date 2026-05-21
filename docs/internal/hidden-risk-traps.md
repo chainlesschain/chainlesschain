@@ -87,6 +87,8 @@ Docs             : 6
 3. 改源 + 跑 `node <sync-script>` 让两份副本刷新
 4. 加新 doc 还要同步加 ROOT_FILE_MAP 两处条目
 
+**自动护栏**（2026-05-21 起）：`.husky/pre-commit` 加了 step 0.5 — 检测 staged 文件落在 `docs-site/docs/design/**` 或 `docs-site-design/docs/**`（除 `index.md`/`.vitepress/`）就**直接 reject** + 打印 SOP 提示。强制走源→sync→commit 路径。绕过用 `git commit --no-verify`（仅在确认源已对齐、副本只是 sync 输出的极特殊情况）。
+
 **类似陷阱位置**：`desktop-app-vue/docs/api/generated/`、`packages/web-panel/dist/`（编辑前先确认是否生成产物）。
 
 ---

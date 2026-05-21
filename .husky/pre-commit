@@ -20,6 +20,32 @@ if [ -n "$GIT_DIR" ]; then
   fi
 fi
 
+# 0.5 防止直接编辑 docs-site 生成副本（CLAUDE.md "Doc-site source-of-truth"）
+# docs-site/docs/design/**/*.md 和 docs-site-design/docs/**/*.md 由 sync 脚本
+# 从 docs/design/**/*.md 自动生成。直接改副本会被下一次 sync 静默覆盖且
+# git status 看不到，定位极隐蔽。例外：index.md / .vitepress/（每个 site 自管）。
+GENERATED_DOC_HITS=$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '^(docs-site/docs/design/|docs-site-design/docs/)' \
+  | grep -v -E '(^|/)index\.md$' \
+  | grep -v -E '(^|/)\.vitepress/' \
+  || true)
+if [ -n "$GENERATED_DOC_HITS" ]; then
+  echo ""
+  echo "❌ 拒绝提交：以下文件是 docs-site 自动生成副本（不是源），直接编辑会被下一次 sync 覆盖："
+  echo "$GENERATED_DOC_HITS" | sed 's/^/    /'
+  echo ""
+  echo "   源在 docs/design/<对应名>.md（git tracked）。同步脚本："
+  echo "     • node docs-site/scripts/sync-design-docs.js"
+  echo "     • node docs-site-design/scripts/sync-docs.js"
+  echo ""
+  echo "   修法：(1) 改源 docs/design/<对应名>.md；(2) 跑上面两个 sync 脚本刷新副本；"
+  echo "        (3) 一并 git add 源 + 副本，再 commit。"
+  echo ""
+  echo "   例外白名单（已放行）：index.md / .vitepress/"
+  echo "   绕过（自担风险）: git commit --no-verify"
+  exit 1
+fi
+
 # 1. 运行 lint-staged（ESLint + Prettier，仅针对暂存文件）
 echo "📝 [1/2] 运行 ESLint 和代码格式化（仅暂存文件）..."
 npx lint-staged --no-stash
