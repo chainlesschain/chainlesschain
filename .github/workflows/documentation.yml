@@ -141,8 +141,21 @@ jobs:
           - Changelog updated
 
           Co-Authored-By: Cowork Documentation Team <noreply@chainlesschain.com>"
-          git pull --rebase origin main || true
-          git push
+          # --autostash: `npm install --legacy-peer-deps` (workspace install
+          # step above) can leave the root package-lock.json dirty even when
+          # we only `git add docs/`. Without --autostash the rebase aborts
+          # with "cannot pull with rebase: You have unstaged changes" and
+          # the subsequent `git push` then fails (fetch first / non-FF) when
+          # a parallel session pushed in between. Autostash handles both
+          # cases. `|| true` retained for the rare case where rebase has a
+          # real conflict; push retry handles the parallel-push race.
+          git pull --rebase --autostash origin main || true
+          # Retry push once after re-fetching — if a parallel session pushed
+          # during this run, the first push will be rejected. One retry is
+          # almost always enough; permanent failures still surface as job
+          # failure (intentional — we want to know if docs auto-commit is
+          # stuck).
+          git push || { git pull --rebase --autostash origin main && git push; }
 
       - name: Upload documentation artifacts
         if: steps.check-changes.outputs.has_changes == 'true'
