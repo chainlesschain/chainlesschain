@@ -5,6 +5,8 @@ const { parseContent, parseXmlAttrs, extractTag, isGroupTalker, TYPE_NAMES, APPM
 const { extractWeChatKey, deriveLegacyKey, extractUinFromPrefs, extractImeiFromCompatibleInfo } = require("./key-extractor");
 const { WeChatDBReader, KNOWN_PRAGMA_PROFILES } = require("./db-reader");
 const { normalizeMessage, normalizeContact, wxidToPersonId } = require("./normalize");
+const { KeyProvider, MD5KeyProvider, FridaKeyProvider } = require("./key-providers");
+const envProbe = require("./env-probe");
 
 module.exports = {
   WechatAdapter,
@@ -25,4 +27,9 @@ module.exports = {
   normalizeWeChatMessage: normalizeMessage,
   normalizeWeChatContact: normalizeContact,
   wxidToWeChatPersonId: wxidToPersonId,
+  WeChatKeyProvider: KeyProvider,
+  WeChatMD5KeyProvider: MD5KeyProvider,
+  WeChatFridaKeyProvider: FridaKeyProvider,
+  probeWeChatEnv: envProbe.probe,
+  decideWeChatKeyProvider: envProbe.decide,
 };
