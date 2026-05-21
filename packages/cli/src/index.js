@@ -68,6 +68,7 @@ import { registerAuthCommand } from "./commands/auth.js";
 import { registerAuditCommand } from "./commands/audit.js";
 import { registerP2pCommand } from "./commands/p2p.js";
 import { registerSyncCommand } from "./commands/sync.js";
+import { registerSyncProviderCommands } from "./commands/sync-providers.js";
 import { registerWalletCommand } from "./commands/wallet.js";
 import { registerOrgCommand } from "./commands/org.js";
 import { registerPluginCommand } from "./commands/plugin.js";
@@ -466,6 +467,9 @@ export function createProgram(opts = {}) {
   // Phase 5: P2P, blockchain & enterprise
   registerP2pCommand(program);
   registerSyncCommand(program);
+  // Phase 3c follow-up — cc sync webdav / cc sync oss subgroups (credential mgmt).
+  // Must come AFTER registerSyncCommand so the `sync` parent exists.
+  registerSyncProviderCommands(program);
   registerWalletCommand(program);
   registerOrgCommand(program);
   registerPluginCommand(program);
