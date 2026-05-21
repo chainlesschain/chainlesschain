@@ -341,5 +341,72 @@ export function usePersonalDataHub() {
         120_000,
       );
     },
+
+    // ─── Phase 10.3 — AIChat WebView 鉴权向导 ─────────────────────────
+    //
+    // 4 wizard topics mirror the 4 IPC channels in desktop. cc ui shells
+    // run the wizard in `fallbackMode: "paste"` — the user logs in via an
+    // external browser, copies cookies, and pastes the `name=value;…`
+    // string into Step 2. Desktop Electron uses BrowserView (handled by
+    // the Electron main process, not exposed via this composable).
+    //
+    // Return shapes match `wizard-controller.js` exactly:
+    //   openAichatLogin → { ok, fallbackMode, loginUrl, helpText?, ... }
+    //   probeAichatCookies → { ok, cookies, foundRequired, missingRequired, ... }
+    //   registerAichatVendor → { ok, accountId?, validation?, reason? }
+    //   rotateAichatLogin → same shape as openAichatLogin (paste mode)
+
+    /**
+     * Step 1 — open the login flow for one of the 9 国产 AI vendors.
+     * `opts.reuseSession=false` clears the partition's cookie jar first
+     * (desktop Electron only; cc ui ignores this).
+     */
+    async openAichatLogin(vendor, opts = {}) {
+      return await send(
+        "personal-data-hub.aichat-open-login",
+        { vendor, opts },
+        10_000,
+      );
+    },
+
+    /**
+     * Step 2 — probe captured cookies.
+     *   - cc ui paste flow: pass `cookieHeader` ("k=v; k=v" string)
+     *   - desktop BrowserView flow: omit `cookieHeader`, main process
+     *     reads from the partition itself
+     */
+    async probeAichatCookies(vendor, cookieHeader) {
+      return await send(
+        "personal-data-hub.aichat-probe-cookies",
+        { vendor, cookieHeader },
+        10_000,
+      );
+    },
+
+    /**
+     * Step 3 — register the vendor with the supplied cookies. Calls
+     * vendor SPEC `validateCookie` upstream then persists to
+     * aichat-accounts.json. Returns the typed reason on failure
+     * (REQUIRED_COOKIES_MISSING / VALIDATE_COOKIE_FAILED / ADAPTER_THREW).
+     */
+    async registerAichatVendor(vendor, cookies, opts = {}) {
+      return await send(
+        "personal-data-hub.aichat-register-vendor",
+        { vendor, cookies, opts },
+        30_000,
+      );
+    },
+
+    /**
+     * Re-login flow — clears the desktop partition and returns fresh
+     * Step 1 metadata. On cc ui this just re-emits the paste help text.
+     */
+    async rotateAichatLogin(vendor) {
+      return await send(
+        "personal-data-hub.aichat-rotate-login",
+        { vendor },
+        10_000,
+      );
+    },
   };
 }
