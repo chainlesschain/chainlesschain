@@ -281,19 +281,25 @@ DEPLOYS = [
     # session bump 到 v5.0.3.75（release.yml CI 出 GitHub Release 中），但
     # changelog 入口仍走 "in-progress aside"（5 commit 仍在路上，等 .ips
     # 定锤后并入下一 tag）。release-sizes 不动。
+    # 2026-05-21 15:13 CLI doc sync deploy (commit 5197fbcb7):
+    # Bump "112 命令" → "144 顶层命令" + 3 个新 category (hub/pair/notification/
+    # project + mtc/multisig/pack/cli-anything + lowcode/inference/trust/fusion/
+    # infra) on cli.astro/en. README.md 测试数 + iter range 同步。
+    # 仅 docs + www 改 — design.chainlesschain.com 源 (docs/design/**) 0 改动，
+    # 跳过 build/tar/deploy 节省 ~5min 远端 .bak 噪音。
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.74-20260521-0719.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.75-20260521-151308.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
-    {
-        "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.74-20260521-0719.tar.gz",
-        "remote_dir": "/www/wwwroot/design.chainlesschain.com",
-    },
+    # {
+    #     "name": "design.chainlesschain.com",
+    #     "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.74-20260521-0719.tar.gz",
+    #     "remote_dir": "/www/wwwroot/design.chainlesschain.com",
+    # },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.74-20260521-0719.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.75-20260521-151308.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
