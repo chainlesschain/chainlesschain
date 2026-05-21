@@ -315,6 +315,46 @@ function register() {
     }),
   );
 
+  // ─── Phase 12.6.8 — WeChat env-probe + register / unregister / list ──
+
+  ipcMain.handle(
+    `${NS}:wechat-env-probe`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return await hub.probeWechatEnv();
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:register-wechat`,
+    safe(async ({ account, dbPath, wechatDataPath, fridaOpts, keyProviderOverride }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.registerWechatAdapter({
+        account,
+        dbPath,
+        wechatDataPath,
+        fridaOpts,
+        keyProviderOverride,
+      });
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:unregister-wechat`,
+    safe(async ({ uin }) => {
+      const hub = await hubWiring.getHub();
+      return await hub.unregisterWechatAdapter(uin);
+    }),
+  );
+
+  ipcMain.handle(
+    `${NS}:list-wechat-accounts`,
+    safe(async () => {
+      const hub = await hubWiring.getHub();
+      return hub.listWechatAccounts();
+    }),
+  );
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   ipcMain.handle(

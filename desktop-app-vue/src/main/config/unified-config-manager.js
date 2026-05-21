@@ -824,6 +824,16 @@ class UnifiedConfigManager {
           // owner out of every AIChat vendor (visible disruption + history
           // sync break). Mirror of unregister-email / unregister-alipay.
           "personal-data-hub.unregister-aichat",
+          // Phase 12.6.8 — register-wechat instantiates a WeChat adapter
+          // bound to a `dbPath` chosen by the caller (could be a temp dir
+          // controlled by a mobile peer) and triggers env-probe + frida
+          // attach on the desktop. Privileged: gating prevents a peer
+          // from silently wiring a WeChat adapter against an attacker-
+          // controlled DB path or forcing a Frida session.
+          "personal-data-hub.register-wechat",
+          // unregister-wechat drops the row + unregisters the adapter
+          // from the in-memory registry; mirror gating policy.
+          "personal-data-hub.unregister-wechat",
         ],
         approvalTimeoutMs: 60_000,
       },

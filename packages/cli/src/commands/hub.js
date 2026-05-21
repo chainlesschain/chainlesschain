@@ -549,6 +549,108 @@ async function cmdAIChatUnregister(vendor, options) {
   }
 }
 
+// ─── Phase 12.6.9 — cc hub wechat <verb> subcommand surface ─────────
+//
+// Mirrors the WS topics (personal-data-hub.wechat-env-probe /
+// register-wechat / unregister-wechat / list-wechat-accounts). Useful
+// for headless / scripted setup on a rooted Android attached to a Mac
+// where the user doesn't want to bring up the Vue page just to wire
+// the adapter (cf. cc hub aichat).
+
+async function cmdWechatEnvProbe(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const probe = await hub.probeWechatEnv();
+    if (options.json) {
+      printJson(probe);
+      return;
+    }
+    logger.log(chalk.bold("WeChat env-probe:"));
+    logger.log(`  ${probe.ok ? chalk.green("✓") : chalk.red("✗")} suggested: ${chalk.cyan(probe.suggestedKeyProvider)}`);
+    logger.log(`  device: ${probe.device.reachable ? chalk.green("reachable") : chalk.red("unreachable")}${probe.device.serial ? " (" + probe.device.serial + ")" : ""} abi=${probe.device.abi || "?"}`);
+    logger.log(`  root: ${probe.root.detected ? chalk.green("yes") : chalk.gray("no")} magisk=${probe.root.magiskInstalled ? "yes" : "no"}`);
+    logger.log(`  frida-server: ${probe.frida.serverRunning ? chalk.green("running") : chalk.gray("not running")}${probe.frida.port ? " :" + probe.frida.port : ""}`);
+    logger.log(`  wechat: ${probe.wechat.installed ? chalk.green(probe.wechat.versionName) : chalk.gray("not installed")}`);
+    for (const reason of probe.reasons || []) logger.log(`  · ${chalk.gray(reason)}`);
+    for (const w of probe.warnings || []) logger.log(`  ${chalk.yellow("!")} ${chalk.yellow(w)}`);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdWechatRegister(options) {
+  try {
+    if (!options.uin) {
+      throw new Error("--uin <wxid-or-uin> required");
+    }
+    const hub = await (options._getHub || getHub)();
+    const r = await hub.registerWechatAdapter({
+      account: { uin: options.uin },
+      dbPath: options.db || null,
+      wechatDataPath: options.wechatDataPath || null,
+      keyProviderOverride: options.forceProvider || null,
+      fridaOpts: options.fridaDeviceId ? { deviceId: options.fridaDeviceId } : null,
+    });
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(chalk.red(`✗ ${r.reason || "register failed"}: ${r.message || ""}`));
+      if (r.probe) {
+        for (const reason of r.probe.reasons || []) logger.error(chalk.gray("  · " + reason));
+      }
+      process.exit(1);
+    }
+    logger.log(chalk.green(`✓ wechat registered (uin=${options.uin})`));
+    logger.log(`  provider: ${chalk.cyan(r.chosenKeyProvider)}`);
+    logger.log(`  sensitivity: ${r.sensitivity}`);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdWechatList(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const rows = hub.listWechatAccounts();
+    if (options.json) {
+      printJson({ accounts: rows });
+      return;
+    }
+    if (rows.length === 0) {
+      logger.log(chalk.gray("(no registered WeChat accounts)"));
+      return;
+    }
+    logger.log(chalk.bold("Registered WeChat accounts:"));
+    for (const row of rows) {
+      logger.log(`  • uin=${chalk.cyan(row.uin)} provider=${row.chosenKeyProvider || "?"} db=${row.dbPath || "(none)"} regAt=${row.registeredAt ? new Date(row.registeredAt).toISOString() : "?"}`);
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdWechatUnregister(uin, options) {
+  try {
+    if (!uin) throw new Error("uin argument required");
+    const hub = await (options._getHub || getHub)();
+    const r = await hub.unregisterWechatAdapter(uin);
+    if (options.json) {
+      printJson(r);
+      return;
+    }
+    if (!r.ok) {
+      logger.error(chalk.red(`✗ ${r.reason || "unregister failed"}`));
+      process.exit(1);
+    }
+    if (r.removed) logger.log(chalk.green(`✓ removed wechat account (uin=${uin})`));
+    else logger.log(chalk.gray(`(uin=${uin} was not registered — nothing removed)`));
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 function _defaultKnownVendors() {
   // Match KNOWN_VENDORS in the hub package — kept inline so this file
   // doesn't have to dynamic-import that module on the hot path.
@@ -721,6 +823,44 @@ export function registerHubCommand(program) {
     )
     .option("--json", "Output JSON")
     .action(cmdAIChatUnregister);
+
+  // Phase 12.6.9 — cc hub wechat <verb> mirror of WS topics.
+  const wechat = hub
+    .command("wechat")
+    .description(
+      "WeChat adapter — env-probe / register / list / unregister (rooted Android required for 8.0+)",
+    );
+
+  wechat
+    .command("env-probe")
+    .description("Probe attached Android device for adb / root / frida-server / WeChat version")
+    .option("--json", "Output JSON")
+    .action(cmdWechatEnvProbe);
+
+  wechat
+    .command("register")
+    .description(
+      "Bootstrap a WeChat adapter (chooses md5 or frida path per env-probe) and persist wechat-accounts.json",
+    )
+    .requiredOption("--uin <id>", "WeChat numeric UIN (≤ 8.0) or wxid (8.0+)")
+    .option("--db <path>", "Local path to the already-pulled EnMicroMsg.db")
+    .option("--wechat-data-path <dir>", "Local pulled /data/data/com.tencent.mm/ tree (required for md5 path)")
+    .option("--force-provider <md5|frida>", "Override env-probe suggestion")
+    .option("--frida-device-id <id>", "Frida device id (defaults to first USB device)")
+    .option("--json", "Output JSON")
+    .action(cmdWechatRegister);
+
+  wechat
+    .command("list")
+    .description("List registered WeChat accounts (scrubbed)")
+    .option("--json", "Output JSON")
+    .action(cmdWechatList);
+
+  wechat
+    .command("unregister <uin>")
+    .description("Remove a registered WeChat account (does not touch vault data)")
+    .option("--json", "Output JSON")
+    .action(cmdWechatUnregister);
 }
 
 // exported for tests — handler functions can be invoked directly with
@@ -733,5 +873,9 @@ export const _internal = {
   cmdAIChatRegister,
   cmdAIChatHealth,
   cmdAIChatUnregister,
+  cmdWechatEnvProbe,
+  cmdWechatRegister,
+  cmdWechatList,
+  cmdWechatUnregister,
   _defaultKnownVendors,
 };

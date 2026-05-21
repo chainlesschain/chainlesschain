@@ -213,6 +213,28 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
         }),
     ),
 
+  // ─── Phase 12.6.8 — WeChat env-probe + register / unregister / list ──
+
+  "personal-data-hub.wechat-env-probe": async () =>
+    withHub(async (hub) => await hub.probeWechatEnv()),
+
+  "personal-data-hub.register-wechat": async (msg) =>
+    withHub(async (hub) =>
+      await hub.registerWechatAdapter({
+        account: msg.account,
+        dbPath: msg.dbPath,
+        wechatDataPath: msg.wechatDataPath,
+        fridaOpts: msg.fridaOpts,
+        keyProviderOverride: msg.keyProviderOverride,
+      }),
+    ),
+
+  "personal-data-hub.unregister-wechat": async (msg) =>
+    withHub(async (hub) => await hub.unregisterWechatAdapter(msg.uin)),
+
+  "personal-data-hub.list-wechat-accounts": async () =>
+    withHub((hub) => hub.listWechatAccounts()),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>

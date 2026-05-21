@@ -58,6 +58,15 @@ const {
   createAccountsStore: createAIChatAccountsStore,
   createVendorAdapterBridge: createAIChatVendorAdapterBridge,
 } = require("./aichat-wizard-factory.js");
+const {
+  bootstrapWechatAdapter,
+  probeWeChatEnv,
+} = require("@chainlesschain/personal-data-hub/adapters/wechat");
+const {
+  loadWechatAccounts,
+  saveWechatAccounts,
+  scrubForList: scrubWechatRow,
+} = require("./wechat-accounts-store.js");
 
 // Resolve user data dir lazily — `app` may not be ready at module-load time.
 function resolveHubDir() {
@@ -343,6 +352,13 @@ async function initHub() {
   // factory) so the IPC layer can delegate without re-wiring deps per call.
   const aichatWizard = getAIChatWizard({ hubDir });
 
+  // Phase 12.6.8 — WeChat accounts persistence (mirror Alipay shape).
+  // No auto-register on boot: WeChat adapters bind to a `dbPath` that
+  // may be a stale temp dir from a previous adb pull; re-instantiate
+  // lazily inside registerWechatAdapter so the user sees env-probe
+  // results fresh each register call.
+  const wechatAccountsPath = path.join(hubDir, "wechat-accounts.json");
+
   return {
     vault,
     registry,
@@ -354,6 +370,7 @@ async function initHub() {
     keyProvider,
     emailAccountsPath,
     alipayAccountsPath,
+    wechatAccountsPath,
     entityResolver,
     aichatAccountsStore,
     aichatWizard,
@@ -608,6 +625,116 @@ async function initHub() {
         csvPath,
         zipPassword,
       });
+    },
+
+    // ─── Phase 12.6.8 — WeChat env-probe + register ──────────────────────
+    //
+    // env-probe is read-only and exposed unrestricted so the UI can show
+    // "your device is missing root" before the user even tries to
+    // register. register-wechat / unregister-wechat are wired through
+    // ApprovalUI by the mobile-bridge whitelist (privileged channels);
+    // local IPC callers (the PDH Vue page) reach them directly here.
+
+    /**
+     * Phase 12.6.8 — env-probe wrapper. Returns the raw probe shape so
+     * the UI checklist can render every capability (device / root /
+     * frida / wechat) independently. `opts.exec` is an injection seam
+     * for tests; production omits it (env-probe spawns adb itself).
+     */
+    async probeWechatEnv(opts = {}) {
+      return await probeWeChatEnv({ exec: opts.exec });
+    },
+
+    /**
+     * Phase 12.6.8 — register a WeChat adapter via bootstrap + persist
+     * `wechat-accounts.json`. Idempotent: re-registering the same uin
+     * replaces the prior row + unregisters the old adapter instance.
+     *
+     * Returns the bootstrap shape (`{ ok, reason?, message?, probe, ... }`)
+     * augmented with `{ chosenKeyProvider, registeredAt }` on success.
+     */
+    async registerWechatAdapter(opts = {}) {
+      if (!opts || !opts.account || !opts.account.uin) {
+        return { ok: false, reason: "UIN_REQUIRED", message: "opts.account.uin required" };
+      }
+      let r;
+      try {
+        r = await bootstrapWechatAdapter({
+          account: opts.account,
+          dbPath: opts.dbPath || null,
+          wechatDataPath: opts.wechatDataPath || null,
+          fridaOpts: opts.fridaOpts || null,
+          keyProviderOverride: opts.keyProviderOverride || null,
+          exec: opts.exec,
+          _probe: opts._probe,
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "BOOTSTRAP_THREW",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      if (!r.ok) return r;
+
+      // Register adapter into registry — idempotent unregister-then-register
+      if (registry.has(r.adapter.name)) {
+        registry.unregister(r.adapter.name);
+      }
+      registry.register(r.adapter);
+
+      // Persist (scrubbed) account row
+      const accounts = loadWechatAccounts(wechatAccountsPath);
+      const next = accounts.filter(
+        (c) => !(c.account && c.account.uin === opts.account.uin),
+      );
+      next.push({
+        account: { uin: opts.account.uin },
+        dbPath: opts.dbPath || null,
+        wechatDataPath: opts.wechatDataPath || null,
+        chosenKeyProvider: r.keyProvider && r.keyProvider.name ? r.keyProvider.name : null,
+        registeredAt: Date.now(),
+        lastSyncAt: null,
+      });
+      saveWechatAccounts(wechatAccountsPath, next);
+
+      return {
+        ok: true,
+        name: r.adapter.name,
+        version: r.adapter.version,
+        capabilities: r.adapter.capabilities,
+        sensitivity: r.adapter.dataDisclosure.sensitivity,
+        chosenKeyProvider: r.keyProvider && r.keyProvider.name,
+        probe: r.probe,
+        registeredAt: next[next.length - 1].registeredAt,
+      };
+    },
+
+    async unregisterWechatAdapter(uin) {
+      if (!uin || typeof uin !== "string") {
+        return { ok: false, reason: "UIN_REQUIRED" };
+      }
+      const accounts = loadWechatAccounts(wechatAccountsPath);
+      const target = accounts.find(
+        (c) => c.account && c.account.uin === uin,
+      );
+      const next = accounts.filter(
+        (c) => !(c.account && c.account.uin === uin),
+      );
+      saveWechatAccounts(wechatAccountsPath, next);
+      if (target && registry.has("wechat")) {
+        registry.unregister("wechat");
+      }
+      return { ok: true, removed: !!target, uin };
+    },
+
+    /**
+     * Phase 12.6.8 — list registered WeChat accounts (scrubbed). Never
+     * includes raw key bytes or dbPath contents — just the configured
+     * paths and the chosenKeyProvider so the UI can show a row per uin.
+     */
+    listWechatAccounts() {
+      return loadWechatAccounts(wechatAccountsPath).map(scrubWechatRow);
     },
   };
 }
