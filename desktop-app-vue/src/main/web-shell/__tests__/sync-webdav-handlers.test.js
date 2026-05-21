@@ -45,14 +45,15 @@ describe("sync-webdav-handlers · factory", () => {
     expect(PROVIDER_ID).toBe("webdav");
   });
 
-  it("returns exactly 7 topics (incl. Phase 3c.D7 orphan cleanup)", () => {
+  it("returns exactly 8 topics (incl. Phase 3c.D7 orphan + D9 streaming)", () => {
     const handlers = createSyncWebDAVHandlers({ database: null });
     const topics = Object.keys(handlers);
-    expect(topics).toHaveLength(7);
+    expect(topics).toHaveLength(8);
     expect(topics).toEqual(
       expect.arrayContaining([
         "sync.webdav.test",
         "sync.webdav.run",
+        "sync.webdav.run-stream",
         "sync.webdav.config-get",
         "sync.webdav.config-set",
         "sync.webdav.config-clear",
@@ -172,6 +173,21 @@ describe("sync-webdav-handlers · guards", () => {
     const res = await handlers["sync.webdav.run"]({});
     expect(res.success).toBe(false);
     expect(res.error).toMatch(/未配置/);
+  });
+});
+
+describe("sync-webdav-handlers · run-stream (Phase 3c.D9)", () => {
+  it("throws synchronously when database missing", async () => {
+    const handlers = createSyncWebDAVHandlers({ database: null });
+    const gen = handlers["sync.webdav.run-stream"]({});
+    await expect(gen.next()).rejects.toThrow(/数据库/);
+  });
+
+  it("throws when creds missing", async () => {
+    const fakeDb = { db: {}, all: () => [], get: () => null, run: () => {} };
+    const handlers = createSyncWebDAVHandlers({ database: fakeDb });
+    const gen = handlers["sync.webdav.run-stream"]({});
+    await expect(gen.next()).rejects.toThrow(/未配置/);
   });
 });
 

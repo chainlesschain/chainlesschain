@@ -48,14 +48,15 @@ describe("sync-oss-handlers · factory", () => {
     expect(PROVIDER_ID).toBe("oss");
   });
 
-  it("returns exactly 7 topics (incl. Phase 3c.D7 orphan)", () => {
+  it("returns exactly 8 topics (incl. Phase 3c.D7 orphan + D9 streaming)", () => {
     const handlers = createSyncOSSHandlers({ database: null });
     const topics = Object.keys(handlers);
-    expect(topics).toHaveLength(7);
+    expect(topics).toHaveLength(8);
     expect(topics).toEqual(
       expect.arrayContaining([
         "sync.oss.test",
         "sync.oss.run",
+        "sync.oss.run-stream",
         "sync.oss.config-get",
         "sync.oss.config-set",
         "sync.oss.config-clear",
@@ -218,6 +219,21 @@ describe("sync-oss-handlers · guards", () => {
     const res = await handlers["sync.oss.run"]({});
     expect(res.success).toBe(false);
     expect(res.error).toMatch(/未配置/);
+  });
+});
+
+describe("sync-oss-handlers · run-stream (Phase 3c.D9)", () => {
+  it("throws synchronously when database missing", async () => {
+    const handlers = createSyncOSSHandlers({ database: null });
+    const gen = handlers["sync.oss.run-stream"]({});
+    await expect(gen.next()).rejects.toThrow(/数据库/);
+  });
+
+  it("throws when creds missing", async () => {
+    const fakeDb = { db: {}, all: () => [], get: () => null, run: () => {} };
+    const handlers = createSyncOSSHandlers({ database: fakeDb });
+    const gen = handlers["sync.oss.run-stream"]({});
+    await expect(gen.next()).rejects.toThrow(/未配置/);
   });
 });
 
