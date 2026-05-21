@@ -155,6 +155,7 @@
   "homepage": "https://www.chainlesschain.com",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
     "@chainlesschain/core-mtc": "file:../packages/core-mtc",
     "@chainlesschain/personal-data-hub": "file:../packages/personal-data-hub",
     "@chainlesschain/session-core": "file:../packages/session-core",
