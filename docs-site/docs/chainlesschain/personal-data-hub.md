@@ -349,6 +349,46 @@ cc ui                # 起本地 web-shell（默认 http://localhost:7331）
 
 > 同一台机器同时跑桌面 + `cc ui` 会**共享 vault.db**（同 `.chainlesschain/hub/`），WAL 锁会自然串行化；推荐**二选一**避免并行 ingest 数据竞争。Phase 14+ 计划加 file-lock 协调。
 
+### CLI 直连 (`cc hub`)
+
+无 UI 场景（脚本 / SSH / Plan A 手机内嵌终端）下，**`cc hub <verb>`** 把同一组 IPC/WS 主题直接暴露为 11 个 verb，全部 `--json` 可机读：
+
+| Verb | 用途 | 关键 flag |
+|---|---|---|
+| `ask <question>` | 自然语言问答 | `--no-use-rag` / `--accept-non-local` / `--json` |
+| `stats` | vault 行数 + adapter list + 路径 | `--json` |
+| `health` | vault / llm / kgSink / ragSink 4 件套（彩色 [local]/[remote] 标签） | `--json` |
+| `list-adapters` | 已注册 adapter 列表 | `--json` |
+| `sync-adapter <name>` | 触发单 adapter ingest | `--since` / `--until` / `--limit` |
+| `sync-all` | 顺序跑全部 adapter | 同上 |
+| `query-events` | 事件查询 | `--subtype` / `--since` / `--until` / `--actor` / `--adapter` / `--limit` |
+| `recent-audit` | 审计日志 | `--since` / `--action` / `--limit` |
+| `register-mock` | 注册 MockAdapter（dev/smoke 用） | `--name` / `--count` / `--seed` |
+| `run-skill <name>` | 5 内置分析 skill（spending/relations/footprint/interests/timeline） | `--since` / `--until` / `--json` |
+| `destroy --confirm` | 销毁 vault.db + WAL（不动 adapter 配置） | `--confirm`（必填，缺即拒） |
+
+示例：
+
+```bash
+# 健康检查（人类可读，含色标）
+cc hub health
+# ✓ vault    schema=2
+# ✓ llm      ollama:qwen2.5:7b-instruct [local]
+# ✓ kgSink
+# ✓ ragSink
+
+# 跑分析 skill 拿 JSON 给后续脚本用
+cc hub run-skill analysis.spending --since 1746028800000 --json | jq '.summary.totalSpend'
+
+# Plan A — Android 在 app 内嵌终端里直接跑（cc 已 bundle 进 APK）
+$ cc hub ask "上个月跟妈妈消息多少？"
+
+# 销毁（脚本场景必须显式 --confirm）
+cc hub destroy --confirm
+```
+
+**实现**：`packages/cli/src/commands/hub.js`（496 LOC）→ `getHub()` 复用 `personal-data-hub-wiring.js` 与 `cc ui` 同一份 LocalVault / OllamaClient / AdapterRegistry。Plan A 手机内嵌终端验证 (Xiaomi 24115RA8EC, 2026-05-20 T1/T2/T3 PASS)。
+
 ### 移动端访问
 
 #### 当前状态（v5.0.3.72）
