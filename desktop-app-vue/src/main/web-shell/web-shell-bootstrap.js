@@ -387,6 +387,42 @@ async function startWebShell(options = {}) {
   wsBroadcastRef.current = ws.broadcast;
   terminal.attachServerEvents();
 
+  // PDH LLM override — by default cli's personal-data-hub-wiring.js uses a
+  // hardcoded OllamaClient (localhost:11434). The desktop main process has
+  // a fully-configured LLMManager singleton honoring the user's active
+  // provider (Volcengine / Anthropic / etc.), so inject a CcLLMAdapter
+  // wrapping it BEFORE the first WS `personal-data-hub.*` request arrives.
+  // The override only applies on the first initHub() call, so this must
+  // run before any consumer.
+  try {
+    const { pathToFileURL } = require("url");
+    const path = require("path");
+    const cliHubWiringUrl = pathToFileURL(
+      path.resolve(
+        __dirname,
+        "../../../../packages/cli/src/lib/personal-data-hub-wiring.js",
+      ),
+    ).href;
+    const cliHubWiring = await import(cliHubWiringUrl);
+    const { getLLMManager } = require("../llm/llm-manager");
+    const { CcLLMAdapter } = require("@chainlesschain/personal-data-hub");
+    const mgr = getLLMManager();
+    const adapter = new CcLLMAdapter({
+      chat: (messages, opts) => mgr.chat(messages, opts),
+      getActiveProvider: () => mgr.provider,
+      getActiveModel: () => (mgr.client && mgr.client.model) || mgr.provider,
+    });
+    cliHubWiring.setHubLLMOverride(adapter);
+    console.log(
+      "[WebShell] PDH LLM override wired to LLMManager(" + mgr.provider + ")",
+    );
+  } catch (err) {
+    console.warn(
+      "[WebShell] PDH LLM override wiring failed — PDH will fall back to hardcoded OllamaClient:",
+      err && err.message,
+    );
+  }
+
   let http;
   try {
     http = await startWebUIServer({
