@@ -1510,6 +1510,14 @@ export default defineConfig({
               text: "微信 Frida Setup Runbook（rooted 用户）",
               link: "/design/Adapter_WeChat_SQLCipher_Frida_Setup",
             },
+            {
+              text: "Adapter — Social Cookie 模式（A8）⭐NEW",
+              link: "/design/Adapter_Social_Cookie",
+            },
+            {
+              text: "A8 Bilibili 真机 E2E 计划 ⭐NEW",
+              link: "/design/A8_Bilibili_E2E_Plan",
+            },
           ],
         },
         {

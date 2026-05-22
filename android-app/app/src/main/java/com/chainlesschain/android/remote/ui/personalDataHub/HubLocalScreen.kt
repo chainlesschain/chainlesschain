@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,22 +35,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.pdh.social.SocialCookieWebViewScreen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Plan A v0.1 — 4th tab "本机数据" inside PersonalDataHubScreen.
+ * Plan A v0.1 + A8 — 4th tab "本机数据" inside PersonalDataHubScreen.
  *
  * Distinguishing this tab from the other three:
  *  - 提问 / Adapter / 审计 → remote (RPC into the paired desktop's hub)
  *  - 本机数据             → local (in-APK cc subprocess writes to a local
  *                          vault.db at filesDir/.chainlesschain/hub/)
  *
- * Single CTA = "刷新" — produces a snapshot via ContentResolver + Package-
- * Manager and pipes it through cc hub sync-adapter. Permission gate uses
- * [ActivityResultContracts.RequestPermission] for READ_CONTACTS; apps need
- * no runtime permission.
+ * Cards rendered (v0.1):
+ *  1. 本机数据 (system-data-android)  — contacts + apps via ContentResolver
+ *  2. Bilibili (social-bilibili)      — login WebView + OkHttp + 4 API fetches
+ *  3. 微博 / 抖音 / 小红书             — scaffold cards, stub behavior in v0.1
+ *
+ * Login WebView overlay: when [HubLocalViewModel.UiState.pendingLogin] is
+ * non-null, we replace the card list with SocialCookieWebViewScreen so the
+ * user can authenticate. Back gesture cancels.
  */
 @Composable
 fun HubLocalScreen(
@@ -57,18 +63,35 @@ fun HubLocalScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    val pending = state.pendingLogin
+    if (pending != null) {
+        SocialCookieWebViewScreen(
+            loginUrl = pending.loginUrl,
+            cookieDomain = pending.cookieDomain,
+            displayName = pending.displayName,
+            isLoginSuccess = pending.isLoginSuccess,
+            onLoginComplete = { cookie ->
+                if (pending.adapterName == "social-bilibili") {
+                    viewModel.onBilibiliLoginCookie(cookie)
+                } else {
+                    viewModel.cancelLogin()
+                }
+            },
+            onCancel = { viewModel.cancelLogin() },
+        )
+        return
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { _ ->
-        // System dialog returned; re-read grant state then kick off refresh
-        // regardless — if the user declined, snapshot still runs but
-        // contactsCount = 0 and the permission card stays red.
         viewModel.refreshPermissionState()
-        viewModel.refresh()
+        viewModel.refreshSystemData()
     }
 
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
+        viewModel.refreshBilibiliFromStore()
     }
 
     Scaffold { padding ->
@@ -86,58 +109,97 @@ fun HubLocalScreen(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "从本机通讯录与已装应用读取数据并写入本地中台数据库（不离开手机）。",
+                "所有同步均写入本机加密数据库，不依赖桌面在线。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(12.dp))
-
-            // Permission card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (state.contactsPermissionGranted)
-                        MaterialTheme.colorScheme.surfaceVariant
-                    else
-                        MaterialTheme.colorScheme.errorContainer,
-                ),
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        if (state.contactsPermissionGranted) "通讯录权限：已授权" else "通讯录权限：未授权",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (state.contactsPermissionGranted)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        if (state.contactsPermissionGranted)
-                            "通讯录读取可用。已装应用不需要额外权限。"
-                        else
-                            "授权后可读取联系人，否则本次只采集已装应用。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (state.contactsPermissionGranted)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                    if (!state.contactsPermissionGranted) {
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
-                            enabled = !state.isLoading,
-                        ) { Text("申请通讯录权限") }
-                    }
-                }
-            }
-
             Spacer(Modifier.height(16.dp))
 
-            // Counts row
+            SystemDataCard(
+                state = state.systemData,
+                globalBusy = state.globalSyncingAdapter != null,
+                onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                onRefresh = { viewModel.refreshSystemData() },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            SocialAdapterCard(
+                state = state.bilibili,
+                globalBusy = state.globalSyncingAdapter != null,
+                onLogin = { viewModel.requestBilibiliLogin() },
+                onSync = { viewModel.syncBilibili() },
+                onLogout = { viewModel.logoutBilibili() },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            SocialAdapterCard(
+                state = state.weibo,
+                globalBusy = state.globalSyncingAdapter != null,
+                onLogin = { viewModel.requestSocialLoginStub("weibo") },
+                onSync = { viewModel.requestSocialLoginStub("weibo") },
+                onLogout = { /* no-op for stub */ },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            SocialAdapterCard(
+                state = state.douyin,
+                globalBusy = state.globalSyncingAdapter != null,
+                onLogin = { viewModel.requestSocialLoginStub("douyin") },
+                onSync = { viewModel.requestSocialLoginStub("douyin") },
+                onLogout = { /* no-op for stub */ },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            SocialAdapterCard(
+                state = state.xiaohongshu,
+                globalBusy = state.globalSyncingAdapter != null,
+                onLogin = { viewModel.requestSocialLoginStub("xiaohongshu") },
+                onSync = { viewModel.requestSocialLoginStub("xiaohongshu") },
+                onLogout = { /* no-op for stub */ },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SystemDataCard(
+    state: HubLocalViewModel.SystemDataCardState,
+    globalBusy: Boolean,
+    onRequestPermission: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "本机数据（通讯录 + 已装应用）",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (state.contactsPermissionGranted)
+                    "权限：已授权 — 可读取联系人 + 应用列表"
+                else
+                    "权限：未授权 — 仅采集已装应用，联系人为 0",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state.contactsPermissionGranted)
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                else
+                    MaterialTheme.colorScheme.error,
+            )
+
+            Spacer(Modifier.height(12.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -149,19 +211,15 @@ fun HubLocalScreen(
                 CountCard(label = "本次入库", value = state.ingested, modifier = Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Last sync line
-            val lastTxt = state.lastSnapshotAt?.let { formatLastSync(it) }
+            val lastTxt = state.lastSnapshotAt?.let(::formatLastSync)
             Text(
                 if (lastTxt != null) "上次同步：$lastTxt" else "未同步过",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            // MIUI / 华为 EMUI / 部分 OEM ROM 在 manifest 已含 QUERY_ALL_PACKAGES
-            // 时仍拦截 getInstalledPackages(); 表现为只返回 App 自己 (count == 1)。
-            // 当出现此症状给一句话指引；用户授权后下次 刷新 应见正常数量 (~100+)。
             if (state.lastSnapshotAt != null && state.appsCount <= 1) {
                 Spacer(Modifier.height(8.dp))
                 Surface(
@@ -179,9 +237,8 @@ fun HubLocalScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // CTA row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -197,14 +254,14 @@ fun HubLocalScreen(
                 Button(
                     onClick = {
                         if (state.contactsPermissionGranted) {
-                            viewModel.refresh()
+                            onRefresh()
                         } else {
-                            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                            onRequestPermission()
                         }
                     },
-                    enabled = !state.isLoading,
+                    enabled = !state.isLoading && !globalBusy,
                 ) {
-                    Text(if (state.isLoading) "同步中…" else "刷新")
+                    Text(if (state.isLoading) "同步中…" else "同步")
                 }
             }
 
@@ -222,7 +279,114 @@ fun HubLocalScreen(
             }
 
             state.errorMessage?.let { err ->
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(
+                        err,
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SocialAdapterCard(
+    state: HubLocalViewModel.SocialCardState,
+    globalBusy: Boolean,
+    onLogin: () -> Unit,
+    onSync: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (state.implemented)
+                MaterialTheme.colorScheme.surfaceVariant
+            else
+                MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        state.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    val statusLine = when {
+                        !state.implemented -> "v0.2 开放（框架已就绪，API 未接通）"
+                        state.isLoggedIn && state.uid != null -> "已登录 UID:${state.uid}"
+                        state.isLoggedIn -> "已登录"
+                        else -> "未登录"
+                    }
+                    Text(
+                        statusLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (state.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+
+            if (state.lastSyncAt != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "上次同步：${formatLastSync(state.lastSyncAt)} (+${state.lastSyncCount} 事件)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.isLoggedIn && state.implemented) {
+                    TextButton(
+                        onClick = onLogout,
+                        enabled = !state.isSyncing && !globalBusy,
+                    ) { Text("退出登录") }
+                    Spacer(Modifier.size(8.dp))
+                }
+                if (!state.isLoggedIn || !state.implemented) {
+                    OutlinedButton(
+                        onClick = onLogin,
+                        enabled = !state.isSyncing && !globalBusy,
+                    ) { Text(if (state.implemented) "登录" else "了解") }
+                    Spacer(Modifier.size(8.dp))
+                }
+                Button(
+                    onClick = onSync,
+                    enabled = !state.isSyncing && !globalBusy && state.implemented,
+                ) {
+                    Text(if (state.isSyncing) "同步中…" else "同步")
+                }
+            }
+
+            state.errorMessage?.let { err ->
+                Spacer(Modifier.height(8.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     shape = RoundedCornerShape(8.dp),
@@ -244,7 +408,7 @@ private fun CountCard(label: String, value: Int, modifier: Modifier = Modifier) 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(value.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)

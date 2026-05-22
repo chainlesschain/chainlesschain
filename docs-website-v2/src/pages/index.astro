@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'A8 v0.1 · 2026-05-22',
+    title: 'Personal Data Hub A8 v0.1 — Android 完全独立社交数据采集（Bilibili 端到端 + 3 平台占位）',
+    sub: 'Plan A v0.1 "本机数据" tab 从 1 张卡扩展到 5 张。Bilibili 端到端 ship — WebView 登录 + OkHttp 4 端点（观看历史 / 收藏 / 动态 / 关注）+ EncryptedSharedPreferences AES-256-GCM 凭据存储 + 本机 SQLCipher vault。微博 / 抖音 / 小红书占位卡片（v0.2 实施）。全程不依赖桌面在线 — Android 内完成 cookie 抓取 + HTTP 拉取 + JSON 解析 + 加密本地存储 + KG/RAG 派生。',
+    desc: '8 文件落地：JS adapter 重构 stateless constructor + _syncViaSnapshot 新模式 + 保留 legacy sqlite-mode / Kotlin 4 文件 SocialCookieWebViewScreen（4 平台共用 generic）+ BilibiliApiClient（OkHttp 4 endpoint）+ BilibiliCredentialsStore（EncryptedSharedPreferences）+ BilibiliLocalCollector（编排器）/ HubLocalScreen 多卡片重构含 WebView overlay + globalSyncingAdapter 互斥 / CLI + Desktop wiring 双 land BilibiliAdapter stateless 自动注册。测试 65+：JS 12 snapshot-mode 单测 + 4 legacy 重写 + 6 integration（真 vault 4-kind end-to-end + idempotency）+ Kotlin 37 单测（BilibiliApiClient 14 / Collector 8 / VM 15）+ Android E2E 8 场景 plan + stub。设计文档 ~600 行（Adapter_Social_Cookie + A8_Bilibili_E2E_Plan）+ 7 forward-looking traps。v0.2 路线 ~5d（微博 1.5d / 抖音 2d msToken-X-Bogus / 小红书 2d X-s）。',
+  },
+  {
     tag: 'v5.0.3.78 · 2026-05-22',
     title: 'Personal Data Hub Plan A v0.1 真机闭环 — Android 本地数据 hub snapshot 模式',
     sub: 'Xiaomi 24115RA8EC 真机端到端 1305 entities（通讯录 / 通话 / 短信 / 位置 / 系统）入 vault。npm @chainlesschain/personal-data-hub@0.2.1 + chainlesschain@0.162.14 PDH-first publish ordering（release.yml 先发 PDH 再 CLI 避免 dep chain 404）。新 `cc android` 15 子命令 scaffold + `system-data-android` bridge-direct 模式。Path C — phone-native snapshot writer + 桌面 ingest pipeline（Kotlin ContentResolver + PackageManager 直采 → WS 推桌面 staging → 既有 adapter snapshot 模式入 vault，完全绕开 A6 JNI）。Path Y — desktop 返 RAG context + Android-local LLM 推理（DeepSeek + Doubao 等 9 云 LLM 接通）。Phase 14.1 step 5 ChatBubble 落地 + Phase 14.5 streaming-ask 设计。',

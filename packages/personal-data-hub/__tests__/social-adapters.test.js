@@ -37,9 +37,47 @@ describe("BilibiliAdapter", () => {
     expect(a.extractMode).toBe("device-pull");
   });
 
-  it("rejects missing account.uid", () => {
-    expect(() => new BilibiliAdapter({})).toThrow();
-    expect(() => new BilibiliAdapter({ account: {} })).toThrow(/uid/);
+  it("accepts stateless construction (snapshot mode added in A8)", () => {
+    // Before A8: constructor required opts.account.uid. After A8 the adapter
+    // is stateless when running snapshot mode (in-APK Android cc reads a JSON
+    // produced by the phone). Sqlite mode still needs account.uid but the
+    // check moved into _syncViaSqlite where it actually matters.
+    expect(() => new BilibiliAdapter({})).not.toThrow();
+    expect(() => new BilibiliAdapter({ account: {} })).not.toThrow();
+    expect(() => new BilibiliAdapter()).not.toThrow();
+  });
+
+  it("sqlite mode rejects missing account.uid at sync time", async () => {
+    const a = new BilibiliAdapter({ dbPath: "/tmp/bili.db" });
+    // Path-existence check happens before account.uid validation, so we
+    // exercise the guard via dbPath=null + account=null which falls to
+    // "sync needs inputPath OR dbPath" first. Use a real-looking dbPath
+    // with no account to surface the account.uid throw deterministically.
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const os = require("node:os");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bili-no-acct-"));
+    const dbPath = path.join(dir, "bili.db");
+    fs.writeFileSync(dbPath, "fake");
+    try {
+      const b = new BilibiliAdapter({
+        dbPath,
+        dbDriverFactory: () => () => ({
+          prepare: () => ({ all: () => [] }),
+          close() {},
+        }),
+      });
+      let threw = null;
+      try {
+        for await (const _r of b.sync()) { /* drain */ }
+      } catch (err) {
+        threw = err;
+      }
+      expect(threw).toBeTruthy();
+      expect(String(threw.message)).toMatch(/account\.uid/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("sync yields history + favourite records via mocked driver", async () => {
@@ -83,26 +121,34 @@ describe("BilibiliAdapter", () => {
     }
   });
 
-  it("idle when DB path missing", async () => {
+  it("throws when neither inputPath nor dbPath provided (A8: surface config errors)", async () => {
+    // Before A8: sync silently yielded 0 if dbPath missing — masked typos and
+    // misconfigured callers. After A8 we throw so callers see the problem.
     const a = new BilibiliAdapter({ account: { uid: "1234" } });
-    const raws = [];
-    for await (const r of a.sync()) raws.push(r);
-    expect(raws).toHaveLength(0);
+    let threw = null;
+    try {
+      for await (const _r of a.sync()) { /* drain */ }
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeTruthy();
+    expect(String(threw.message)).toMatch(/inputPath|dbPath/);
   });
 
-  it("normalize captures bvid/avid/uploader into extra", async () => {
+  it("normalize captures bvid/avid/uploader into extra (flat payload, A8 shape)", async () => {
     const a = new BilibiliAdapter({ account: { uid: "1234" } });
     const raw = {
       adapter: "social-bilibili",
-      originalId: "history-1",
+      kind: "history",
+      originalId: "bilibili:history:BV1abc",
       capturedAt: 1700000000000,
       payload: {
         kind: "history",
-        row: {
-          id: 1, bvid: "BV1abc", avid: "1234",
-          title: "Test", view_at: 1700000000,
-          uploader: "UpA", duration: 300,
-        },
+        title: "Test",
+        bvid: "BV1abc",
+        avid: "1234",
+        uploader: "UpA",
+        duration: 300,
       },
     };
     const batch = a.normalize(raw);
@@ -110,6 +156,9 @@ describe("BilibiliAdapter", () => {
     expect(batch.events[0].extra.avid).toBe("1234");
     expect(batch.events[0].extra.uploader).toBe("UpA");
     expect(batch.events[0].extra.duration).toBe(300);
+    // A8: history also yields an item entity (video) for KG linkage
+    expect(batch.items).toHaveLength(1);
+    expect(batch.items[0].extra.bvid).toBe("BV1abc");
   });
 });
 

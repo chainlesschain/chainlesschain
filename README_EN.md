@@ -2,6 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
+## 2026-05-22 Ship — **PDH A8 v0.1: Android-only social collection (Bilibili end-to-end + 3 platform placeholders)**
+
+> Plan A v0.1's "本机数据" (Local Data) tab expands from 1 card (`system-data-android`) to 5. Bilibili end-to-end ships (WebView login + OkHttp 4 endpoints + local SQLCipher vault); Weibo/Douyin/Xiaohongshu render as placeholder cards (v0.2 implementation). **Fully desktop-independent** — Android handles cookie capture + HTTP + JSON parsing + encrypted local storage without any desktop connection.
+
+- **Bilibili end-to-end**: `packages/personal-data-hub/lib/adapters/social-bilibili/{adapter,index}.js` JS adapter refactor (stateless constructor + new `_syncViaSnapshot(opts.inputPath)` mode alongside legacy sqlite-mode) + 4 Kotlin files (`SocialCookieWebViewScreen` generic 4-platform reusable / `BilibiliApiClient` OkHttp 4 endpoints / `BilibiliCredentialsStore` EncryptedSharedPreferences AES-256-GCM / `BilibiliLocalCollector` orchestrator). 4 event kinds (history/favourite/dynamic/follow) yield + normalize into the vault.
+- **HubLocalScreen multi-card refactor**: 5 adapter cards + login WebView overlay + `globalSyncingAdapter` mutex. Weibo/Douyin/Xiaohongshu show "v0.2 开放" state; tapping login/sync surfaces a toast.
+- **CLI + Desktop wiring**: both `packages/cli/src/lib/personal-data-hub-wiring.js` and `desktop-app-vue/src/main/personal-data-hub/wiring.js` register `BilibiliAdapter` stateless on boot. **The Adapter tab now also lists 2 cards** (system-data-android + social-bilibili).
+- **Test coverage**:
+  - **JS unit**: 12 new snapshot-mode tests (`social-bilibili-snapshot.test.js`) + 4 legacy sqlite-mode tests rewired to flat payload shape (`social-adapters.test.js`) — 547/547 green
+  - **JS integration**: 6 new tests (`integration/social-bilibili-pipeline.test.js`) real vault end-to-end + idempotency + partial + schemaVersion mismatch
+  - **Kotlin unit**: 14 `BilibiliApiClientTest` (MockWebServer) + 8 `BilibiliLocalCollectorTest` (mockk) + 15 `HubLocalViewModelTest` = 37 new tests
+  - **Android E2E**: 8 scenarios `@Ignore + TODO()` stub + full plan `docs/design/A8_Bilibili_E2E_Plan.md` (Mac/Linux + real device + real account ~1.5h serial)
+- **Bug fixes**: (1) BilibiliApiClient `extractUid` adds a `> 0L` guard — Bilibili never issues uid=0, the old implementation would accept a mid-logout cookie as logged-in. (2) JS adapter sqlite-mode old `payload.row.X` wrapping replaced by flat `payload.X` — 4 existing tests migrated.
+- **Design docs**: [`docs/design/Adapter_Social_Cookie.md`](docs/design/Adapter_Social_Cookie.md) ~400 lines (4 platform comparison + snapshot schema + JS/Kotlin layer templates + 7 forward-looking traps) + [`docs/design/A8_Bilibili_E2E_Plan.md`](docs/design/A8_Bilibili_E2E_Plan.md) ~200 lines
+- **Architectural clarification**: Android PDH has **two paths** that were long conflated: (a) Adapter tab → desktop-dependent (RemoteCommandClient → desktop hub registry) (b) **本机数据 (Local Data) tab → in-APK cc + local SQLCipher vault (fully desktop-independent)**. A8 lands on the latter — that's the "no desktop dependency" path the user repeatedly asked about.
+
+New memory `pdh_a8_social_adapters_landing.md` captures 7 forward-looking traps (WBI signing / EncryptedSharedPref keystore corruption / flat payload vs legacy row / in-APK bundle audit / DedeUserID extraction location / OkHttp baseUrl override timing / CookieManager flush sync semantics). **v0.2 roadmap**: Weibo ~1.5d / Douyin ~2d (msToken + X-Bogus signing) / Xiaohongshu ~2d (X-s signing) ≈ ~5d total.
+
+See [`docs/design/Adapter_Social_Cookie.md`](docs/design/Adapter_Social_Cookie.md).
+
 ## 2026-05-21 Ship — **PDH Phase 14.1 step 5 ChatBubble UI + Phase 12.9 WeChat real-device E2E runbook + office-skill word-lib hotfix (v5.0.3.76 → v5.0.3.77 iOS .ipa re-ship)**
 
 > v5.0.3.76 is a maintenance batch: office-skill real-functionality fix + full doc refresh across the three sites (v5.0.3.76 sizes/version). Bundled with the deploy: PDH Phase 14 Android ChatBubble UI closeout and a new WeChat Phase 12.9 real-device acceptance runbook, pushed to docs.chainlesschain.com / design.chainlesschain.com. **v5.0.3.77 is the .76 iOS .ipa re-cut**: .76 release run #1 had build-ios fail + finalize auto-flipped to published → run #2 .ipa upload was blocked by GitHub immutable-releases policy; tag burn handled per [github_immutable_release_tag_burn](docs/internal/hidden-risk-traps.md), .77 re-cuts the full 18-asset matrix in a single clean run.

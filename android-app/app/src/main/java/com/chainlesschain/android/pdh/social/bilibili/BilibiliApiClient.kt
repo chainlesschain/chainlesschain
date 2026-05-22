@@ -1,0 +1,311 @@
+package com.chainlesschain.android.pdh.social.bilibili
+
+import com.chainlesschain.android.pdh.social.SocialCookieWebViewHelpers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import timber.log.Timber
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * A8 v0.1 — Bilibili public-API client driven by a captured browser cookie.
+ *
+ * Endpoints fetched (covers the four "kinds" the A8 snapshot adapter expects):
+ *   - history    /x/v2/history/cursor
+ *   - favourites /x/v3/fav/folder/created/list-all + /x/v3/fav/resource/list
+ *   - dynamics   /x/polymer/web-dynamic/v1/feed/all
+ *   - follows    /x/relation/followings
+ *
+ * All endpoints take a Cookie header containing at minimum `SESSDATA` and
+ * `DedeUserID` (the latter is the user's numeric UID and lets us derive
+ * `account.uid` for the snapshot without needing a separate "me" call).
+ *
+ * v0.1 caveats:
+ *   - WBI signing is NOT implemented. Endpoints above currently accept un-signed
+ *     requests when SESSDATA is valid. The newer "wbi" endpoints require it
+ *     (avoid writing the literal slash-star sequence here — Kotlin block
+ *     comments nest, so any slash-star inside a KDoc opens a nested comment
+ *     that swallows subsequent code; see memory kotlin_nested_block_comments);
+ *     if Bilibili tightens enforcement, we'll need to port the WBI key handshake
+ *     from `/x/web-interface/nav` (TODO follow-up trap).
+ *   - Anti-bot risk is medium. If we see 412 (Bilibili rate-limit code) or 401,
+ *     the collector falls back to whatever data was successfully fetched so far
+ *     rather than throwing. Recovery = wait + relog.
+ *   - No retry on transient 5xx. Caller (BilibiliLocalCollector) shows the user
+ *     a retry button; automatic retry would risk doubling rate-limit pressure.
+ */
+@Singleton
+class BilibiliApiClient @Inject constructor() {
+
+    /**
+     * Local OkHttp instance — deliberately NOT reusing the app's shared
+     * core-network OkHttpClient because that one has AuthInterceptor which
+     * adds the app's backend Authorization header. Bilibili would either
+     * ignore that or treat it as anti-bot signal. Each social adapter owns
+     * a minimal client tuned for its host. Public for tests so they can swap
+     * in MockWebServer-routed clients.
+     */
+    var httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    /** Override the base URL for MockWebServer in tests. */
+    var baseUrl: HttpUrl = "https://api.bilibili.com/".toHttpUrl()
+
+    /** Public API for snapshot collector — see BilibiliLocalCollector. */
+    data class HistoryItem(
+        val bvid: String?,
+        val avid: Long?,
+        val title: String,
+        val viewAt: Long,
+        val duration: Long?,
+        val uploader: String?,
+        val uploaderMid: Long?,
+        val part: String?,
+    )
+
+    data class FavouriteItem(
+        val bvid: String?,
+        val title: String,
+        val savedAt: Long,
+        val folderName: String?,
+        val uploader: String?,
+    )
+
+    data class DynamicItem(
+        val rid: String?,
+        val summary: String,
+        val dynamicType: String,
+        val publishedAt: Long,
+        val authorMid: Long?,
+        val authorName: String?,
+    )
+
+    data class FollowItem(
+        val mid: Long,
+        val uname: String,
+        val face: String?,
+        val sign: String?,
+        val followedAt: Long,
+    )
+
+    /**
+     * "DedeUserID=12345; …" → 12345 (or null if cookie missing the field).
+     * Bilibili never issues uid=0, so 0L coerces to null — protects against
+     * cookies in mid-logout state where DedeUserID is present but cleared.
+     */
+    fun extractUid(cookie: String): Long? {
+        val raw = SocialCookieWebViewHelpers.parseCookieValue(cookie, "DedeUserID") ?: return null
+        return raw.toLongOrNull()?.takeIf { it > 0L }
+    }
+
+    suspend fun fetchHistory(cookie: String, limit: Int = 200): List<HistoryItem> =
+        withContext(Dispatchers.IO) {
+            val url = baseUrl.newBuilder()
+                .addPathSegments("x/v2/history/cursor")
+                .addQueryParameter("ps", "30")
+                .build()
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
+            val list = data.optJSONArray("list") ?: return@withContext emptyList()
+            val out = ArrayList<HistoryItem>(minOf(limit, list.length()))
+            for (i in 0 until minOf(limit, list.length())) {
+                val item = list.optJSONObject(i) ?: continue
+                val hist = item.optJSONObject("history")
+                val owner = item.optJSONObject("owner")
+                out.add(
+                    HistoryItem(
+                        bvid = hist?.optStringOrNull("bvid"),
+                        avid = hist?.optLongOrNull("oid") ?: item.optLongOrNull("oid"),
+                        title = item.optString("title").takeIf { it.isNotBlank() } ?: "(no title)",
+                        viewAt = item.optLong("view_at"),
+                        duration = item.optLongOrNull("duration"),
+                        uploader = owner?.optStringOrNull("name"),
+                        uploaderMid = owner?.optLongOrNull("mid"),
+                        part = item.optStringOrNull("part"),
+                    )
+                )
+            }
+            out
+        }
+
+    /**
+     * Returns favourites across **all** of the user's created folders.
+     * Two API calls per folder: list folders, then list items per folder.
+     */
+    suspend fun fetchFavourites(cookie: String, uid: Long, perFolderLimit: Int = 50): List<FavouriteItem> =
+        withContext(Dispatchers.IO) {
+            val foldersUrl = baseUrl.newBuilder()
+                .addPathSegments("x/v3/fav/folder/created/list-all")
+                .addQueryParameter("up_mid", uid.toString())
+                .build()
+            val foldersJson = doGetJson(foldersUrl, cookie) ?: return@withContext emptyList()
+            val foldersData = foldersJson.optJSONObject("data") ?: return@withContext emptyList()
+            val folders = foldersData.optJSONArray("list") ?: return@withContext emptyList()
+            val out = ArrayList<FavouriteItem>()
+            for (i in 0 until folders.length()) {
+                val folder = folders.optJSONObject(i) ?: continue
+                val folderId = folder.optLong("id")
+                val folderName = folder.optStringOrNull("title")
+                if (folderId == 0L) continue
+                val itemsUrl = baseUrl.newBuilder()
+                    .addPathSegments("x/v3/fav/resource/list")
+                    .addQueryParameter("media_id", folderId.toString())
+                    .addQueryParameter("ps", perFolderLimit.toString())
+                    .addQueryParameter("pn", "1")
+                    .build()
+                val itemsJson = doGetJson(itemsUrl, cookie) ?: continue
+                val itemsData = itemsJson.optJSONObject("data") ?: continue
+                val medias = itemsData.optJSONArray("medias") ?: continue
+                for (j in 0 until medias.length()) {
+                    val m = medias.optJSONObject(j) ?: continue
+                    val upper = m.optJSONObject("upper")
+                    val favTime = m.optLong("fav_time").let { if (it > 0) it * 1000 else m.optLong("ctime") * 1000 }
+                    out.add(
+                        FavouriteItem(
+                            bvid = m.optStringOrNull("bvid"),
+                            title = m.optString("title").takeIf { it.isNotBlank() } ?: "(no title)",
+                            savedAt = favTime,
+                            folderName = folderName,
+                            uploader = upper?.optStringOrNull("name"),
+                        )
+                    )
+                }
+            }
+            out
+        }
+
+    suspend fun fetchDynamics(cookie: String, limit: Int = 50): List<DynamicItem> =
+        withContext(Dispatchers.IO) {
+            val url = baseUrl.newBuilder()
+                .addPathSegments("x/polymer/web-dynamic/v1/feed/all")
+                .build()
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
+            val items = data.optJSONArray("items") ?: return@withContext emptyList()
+            val out = ArrayList<DynamicItem>(minOf(limit, items.length()))
+            for (i in 0 until minOf(limit, items.length())) {
+                val it = items.optJSONObject(i) ?: continue
+                val modules = it.optJSONObject("modules") ?: continue
+                val author = modules.optJSONObject("module_author")
+                val dyn = modules.optJSONObject("module_dynamic")
+                val desc = dyn?.optJSONObject("desc")
+                val summary = desc?.optString("text")?.takeIf { s -> s.isNotBlank() }
+                    ?: dyn?.optJSONObject("major")?.optJSONObject("archive")?.optStringOrNull("title")
+                    ?: "(no summary)"
+                out.add(
+                    DynamicItem(
+                        rid = it.optStringOrNull("id_str"),
+                        summary = summary,
+                        dynamicType = it.optString("type").removePrefix("DYNAMIC_TYPE_").lowercase()
+                            .takeIf { s -> s.isNotBlank() } ?: "unknown",
+                        publishedAt = (author?.optLong("pub_ts") ?: 0L) * 1000,
+                        authorMid = author?.optLongOrNull("mid"),
+                        authorName = author?.optStringOrNull("name"),
+                    )
+                )
+            }
+            out
+        }
+
+    suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
+        withContext(Dispatchers.IO) {
+            val url = baseUrl.newBuilder()
+                .addPathSegments("x/relation/followings")
+                .addQueryParameter("vmid", uid.toString())
+                .addQueryParameter("ps", "50")
+                .addQueryParameter("pn", "1")
+                .addQueryParameter("order", "desc")
+                .addQueryParameter("order_type", "attention")
+                .build()
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
+            val list = data.optJSONArray("list") ?: return@withContext emptyList()
+            val out = ArrayList<FollowItem>(minOf(limit, list.length()))
+            for (i in 0 until minOf(limit, list.length())) {
+                val it = list.optJSONObject(i) ?: continue
+                val mid = it.optLong("mid")
+                if (mid == 0L) continue
+                out.add(
+                    FollowItem(
+                        mid = mid,
+                        uname = it.optString("uname").takeIf { s -> s.isNotBlank() } ?: "(unnamed)",
+                        face = it.optStringOrNull("face"),
+                        sign = it.optStringOrNull("sign"),
+                        // mtime is "modified time" of the follow row — same as
+                        // followed-at in Bilibili's schema, returned as unix seconds
+                        followedAt = it.optLong("mtime") * 1000,
+                    )
+                )
+            }
+            out
+        }
+
+    /**
+     * GET <url> with Cookie + Referer headers. Returns parsed JSONObject or
+     * null on transport / parse error. 401 / 412 (anti-bot) treated the same
+     * as transport error — caller surfaces "需要重新登录".
+     */
+    private fun doGetJson(url: HttpUrl, cookie: String): JSONObject? {
+        val req = Request.Builder()
+            .url(url)
+            .header("Cookie", cookie)
+            // Bilibili enforces Referer for some endpoints
+            .header("Referer", "https://www.bilibili.com/")
+            .header("Accept", "application/json, text/plain, */*")
+            .build()
+        return try {
+            httpClient.newCall(req).execute().use { resp ->
+                val body = resp.body?.string() ?: return null
+                if (!resp.isSuccessful) {
+                    Timber.w("BilibiliApiClient: %s → %d", url.encodedPath, resp.code)
+                    return null
+                }
+                val obj = JSONObject(body)
+                val code = obj.optInt("code", 0)
+                if (code != 0) {
+                    Timber.w(
+                        "BilibiliApiClient: %s → code=%d msg=%s",
+                        url.encodedPath, code, obj.optString("message")
+                    )
+                    // code -101 (account not logged in), -509 (rate-limited),
+                    // 412 (anti-spider) all → null; caller surfaces.
+                    if (code == -101 || code == -412 || code == -509) return null
+                    return null
+                }
+                obj
+            }
+        } catch (e: IOException) {
+            Timber.w(e, "BilibiliApiClient: IO error on %s", url.encodedPath)
+            null
+        } catch (e: Exception) {
+            Timber.w(e, "BilibiliApiClient: parse error on %s", url.encodedPath)
+            null
+        }
+    }
+}
+
+// org.json helpers — JSONObject's opt* return primitive defaults rather than
+// null on miss, which makes "field exists vs field absent" indistinguishable.
+private fun JSONObject.optStringOrNull(key: String): String? {
+    if (!has(key) || isNull(key)) return null
+    val v = optString(key)
+    return v.takeIf { it.isNotEmpty() }
+}
+
+private fun JSONObject.optLongOrNull(key: String): Long? {
+    if (!has(key) || isNull(key)) return null
+    return when (val v = opt(key)) {
+        is Number -> v.toLong()
+        is String -> v.toLongOrNull()
+        else -> null
+    }
+}

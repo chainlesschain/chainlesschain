@@ -452,6 +452,11 @@ dependencies {
     // (isReturnDefaultValues=true) which makes JSONObject silently lose data,
     // breaking SignalingRpcClientTest / RemoteOperateViewModelTest.
     testImplementation("org.json:json:20240303")
+    // A8 v0.1 — MockWebServer in JVM tests for BilibiliApiClient (HTTP parsing
+    // logic). Already in androidTestImplementation for instrumented tests, but
+    // running the same logic in JVM unit tests is ~10x faster and doesn't need
+    // a device. Same artifact, just registered in two configurations.
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

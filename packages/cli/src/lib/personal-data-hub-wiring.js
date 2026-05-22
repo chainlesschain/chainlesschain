@@ -45,6 +45,7 @@ const {
   EmailAdapter,
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
+  BilibiliAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -261,6 +262,22 @@ async function initHub() {
   } catch (_err) {
     // Boot must continue even if the adapter fails to register; cc hub will
     // surface the absence via list-adapters.
+  }
+
+  // A8 v0.1 (2026-05-22) — social adapters in snapshot mode. Stateless: the
+  // Android UI captures a cookie via in-app WebView, runs OkHttp against the
+  // platform's HTTP API, parses the JSON response, writes a snapshot JSON to
+  // filesDir/.chainlesschain/staging/, then calls `cc hub sync-adapter <name>
+  // --input <path> --json` via LocalCcRunner. The adapter reads the file and
+  // yields events; the same registry handles KG + RAG + vault writes — no
+  // desktop connection required (this is the desktop-independent path the
+  // user repeatedly asked about). Each adapter no-ops at boot when no
+  // snapshot has been produced yet.
+  try {
+    const bilibili = new BilibiliAdapter();
+    if (!registry.has(bilibili.name)) registry.register(bilibili);
+  } catch (_err) {
+    // Continue boot
   }
 
   // Phase 6: auto-register persisted Alipay accounts.

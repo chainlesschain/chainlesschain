@@ -460,6 +460,76 @@ iPhone / Android → P2P DC RPC (`hub.ask` 走 RemoteCommandClient)
 - ✅ Phase 14.3（双端）：审计回查 + 同步进度推送 — 桌面 `personal-data-hub/route-mobile.js` 已注 `sendEventToPeer` 把 `sync-adapter-stream`/`sync-all-stream` 的 `personal-data-hub.sync.progress` 事件转发回手机；Android `HubSyncEventDispatcher.kt` + iOS `HubSyncEventDispatcher.swift` 第 4 子流（buffer 256）已 wire 进 RemoteDependencies；Phase 14.3.3.b eventId 审计 deep-link 双端 UI 全通（Android `HubAuditScreen.kt` clickable + ModalBottomSheet / iOS `HubAuditEventDetailSheet` 3-state sheet）
 - ⏳ Phase 14.4（真机 E2E）：Mac + iPhone + Xiaomi 24115RA8EC + 真桌面，8 场景矩阵（详见设计文档 §8.3）
 
+## A8 — Android 完全独立路径（不依赖桌面）
+
+> **状态**：v0.1 (2026-05-22) — Bilibili 端到端 ✅ + 微博 / 抖音 / 小红书 占位卡片 ✅；端到端用例待真机执行（见 [`docs/design/A8_Bilibili_E2E_Plan.md`](https://design.chainlesschain.com/A8_Bilibili_E2E_Plan.html)）。
+
+A8 与 Phase 14 远程操控是**两条独立路径**，回答不同的用户问题：
+
+| 路径 | UI 入口 | 数据落地 | 桌面在线要求 |
+|---|---|---|---|
+| Phase 14（远程操控）| 个人数据中台 → 提问 / Adapter / 审计 | 桌面 vault | ✅ 需要在线 |
+| **A8（Android 独立）** | 个人数据中台 → **本机数据** | **APK 内** SQLCipher LocalVault | ❌ 完全离线 |
+
+### 工作原理
+
+A8 路径**不**经过桌面 hub — Android 端独立完成全部步骤：
+
+```
+WebView 内用户登录 → CookieManager.getCookie() 提取
+                   ↓
+              本机加密存储 (EncryptedSharedPreferences AES-256-GCM)
+                   ↓
+              OkHttp × 4 端点 (history / favourite / dynamic / follow)
+                   ↓
+              拼装 snapshot.json 写 filesDir/.chainlesschain/staging/
+                   ↓
+              LocalCcRunner spawn in-APK cc 子进程 (mksh + Termux Node)
+                   ↓
+              cc hub sync-adapter --input <path> --json
+                   ↓
+              adapter._syncViaSnapshot → registry → 本机 SQLCipher LocalVault
+                   ↓
+              UI 显示 "已同步 N 条" + 上次同步时间
+```
+
+### 5 张卡片（v0.1）
+
+进 **本机数据** tab 看到：
+
+1. **本机数据** (system-data-android) ✅ — ContentResolver 通讯录 + PackageManager 已装应用，Plan A v0.1 已 ship
+2. **Bilibili** (social-bilibili) ✅ — A8 v0.1 端到端 — 4 类事件（观看历史 / 收藏 / 动态 / 关注）
+3. **微博** (social-weibo) 🚧 占位 — v0.2 开放（框架已就绪，API 未接通）
+4. **抖音** (social-douyin) 🚧 占位 — v0.2 需 msToken/X-Bogus 签名
+5. **小红书** (social-xiaohongshu) 🚧 占位 — v0.2 需 X-s 签名
+
+### Bilibili 同步细节
+
+| 数据 | API endpoint | 入 vault 类型 |
+|---|---|---|
+| 观看历史 | `/x/v2/history/cursor` | event (subtype=browse) + item (video) |
+| 收藏 | `/x/v3/fav/folder/created/list-all` + 每文件夹 `/x/v3/fav/resource/list` | event (subtype=like) + item (video) |
+| 动态 | `/x/polymer/web-dynamic/v1/feed/all` | event (subtype=browse) |
+| 关注 | `/x/relation/followings` | person (subtype=contact) |
+
+凭据存储：`pdh_social_bilibili` EncryptedSharedPreferences (AES-256-GCM + AndroidKeyStore master)，键名 `cookie / uid / displayName / lastSyncAtMs / lastSyncCount`。退出登录走 `prefs.edit().clear().apply()`。
+
+### Plan A v0.1 引擎（A8 复用）
+
+- in-APK cc 子进程：`LocalCcRunner` → mksh symlink execve (W^X + SELinux 兼容)
+- 本机 vault：`@chainlesschain/personal-data-hub` LocalVault SQLCipher + bs3mc native binding
+- snapshot mode：JS adapter `_syncViaSnapshot(opts.inputPath)`（A8 v0.1 新增）+ 保留 `_syncViaSqlite` 旧模式
+- cli wiring 注册：`packages/cli/src/lib/personal-data-hub-wiring.js` 自动注册 `BilibiliAdapter` 在 boot 阶段
+
+### v0.2 路线图
+
+- 微博：WebView 抓 `SUB` JWT 解码 UID + `/api/container/getIndex` ~1.5d
+- 抖音：需 hook `window.byted_acrawler.sign` 计算 msToken/X-Bogus ~2d
+- 小红书：需 X-s 签名（同样 WebView JS evaluate）~2d
+- Bilibili WBI 签名：如官方收紧 wbi-*  endpoint 强制启用，~0.5d 补
+
+详见设计文档：[`Adapter_Social_Cookie.md`](https://design.chainlesschain.com/Adapter_Social_Cookie.html)。
+
 ## 配置参考
 
 ### 数据目录
