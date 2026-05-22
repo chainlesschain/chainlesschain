@@ -65,25 +65,42 @@ fun PaymentShoppingGroup(
 }
 
 /**
- * D8.1 — 出行 sub-cards (推文 §"出行: 高德 / 携程")
+ * D8.1 + §2.5b 地图三联 — 出行 sub-cards (推文 §"出行: 高德 / 携程" +
+ * 推文 §"地图: 高德 / 百度 / 腾讯地图")
  *
- * 高德 = 历史轨迹 + 收藏地点 (需 OAuth 或 API key 授权)
- * 携程 = 订单/酒店历史 (账号同步)
+ * 4 卡分两类，UI 顺序 = 高德 → 百度 → 腾讯 (3 地图聚集) → 携程 (出行收尾)：
+ * - 地图 3 家 (amap / baidu / tencent) = 历史轨迹 + 收藏地点 + 账户态。
+ *   cookie scrape 拿账户 + 收藏；完整轨迹 v0.2 各家走 OAuth / 开发者平台 /
+ *   .db SAF 导入 (各家 API 各异)
+ * - 携程 1 家 = 订单/酒店/机票历史 (cookie scrape 完整链路 — web API 充足)
  */
 @Composable
 fun TravelGroup(
     onProviderLogin: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // §2.5 D8.2 — 2 路全 enable 走 WebView cookie scrape → cc hub sync
-    // travel-{vendor}. 高德 v0.2 升级 OAuth 拿历史轨迹 API (lbs.amap.com)，
-    // v0.1 cookie scrape 拿账户态 + 收藏；携程 cookie scrape 拿订单 + 酒店 +
-    // 机票历史。p.key 必须与 TravelVendor.key 对齐 (travel-amap / travel-ctrip).
+    // §2.5 D8.2 + §2.5b 地图扩展 — 4 路全 enable 走 WebView cookie scrape →
+    // cc hub sync travel-{vendor}. p.key 必须与 TravelVendor.key 对齐
+    // (travel-amap / travel-baidu-map / travel-tencent-map / travel-ctrip).
+    // 桌面 adapter snapshot mode 接 Android cookie scrape JSON，与既有 sqlite
+    // mode (device-pull) 并存。
     val providers = listOf(
         ProviderCard(
             key = "travel-amap",
             displayName = "高德地图",
             hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 OAuth 加历史轨迹)",
+            sourceFormat = "WebView",
+        ),
+        ProviderCard(
+            key = "travel-baidu-map",
+            displayName = "百度地图",
+            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 lbs.baidu.com 加轨迹)",
+            sourceFormat = "WebView",
+        ),
+        ProviderCard(
+            key = "travel-tencent-map",
+            displayName = "腾讯地图",
+            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 lbs.qq.com 加轨迹)",
             sourceFormat = "WebView",
         ),
         ProviderCard(

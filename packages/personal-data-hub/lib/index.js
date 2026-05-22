@@ -39,6 +39,7 @@ const { Train12306Adapter } = require("./adapters/travel-12306");
 const { CtripAdapter } = require("./adapters/travel-ctrip");
 const { AmapAdapter } = require("./adapters/travel-amap");
 const { BaiduMapAdapter } = require("./adapters/travel-baidu-map");
+const { TencentMapAdapter } = require("./adapters/travel-tencent-map");
 const shoppingBase = require("./adapters/shopping-base");
 const { TaobaoAdapter } = require("./adapters/shopping-taobao");
 const { JdAdapter } = require("./adapters/shopping-jd");
@@ -221,13 +222,14 @@ module.exports = {
   wxidToWeChatPersonId: wechatAdapter.wxidToWeChatPersonId,
   WECHAT_PRAGMA_PROFILES: wechatAdapter.WECHAT_PRAGMA_PROFILES,
 
-  // Phase 9 — Travel four-pack
+  // Phase 9 + §2.5b 地图三联 — Travel five-pack
   normalizeTravelRecord: travelBase.normalizeTravelRecord,
   parseChineseDateTime: travelBase.parseChineseDateTime,
   Train12306Adapter,
   CtripAdapter,
   AmapAdapter,
   BaiduMapAdapter,
+  TencentMapAdapter,
 
   // Phase 7 — Shopping three-pack
   normalizeOrderRecord: shoppingBase.normalizeOrderRecord,

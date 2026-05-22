@@ -1,25 +1,26 @@
 /**
- * §2.5b 地图三联 v0.2 — Baidu Map (百度地图) adapter, dual-mode.
+ * §2.5b 地图三联 v0.2 — Tencent Map (腾讯地图) adapter, dual-mode (snapshot + sqlite).
  *
- * Mirror of social-weibo / social-bilibili two-mode pattern:
+ * 新增本 adapter 把地图三联补齐 (amap / baidu-map / tencent-map)。两条路径
+ * 与 travel-baidu-map / travel-amap 同 pattern：
  *
  *   1. snapshot mode (opts.inputPath): in-APK Android cc reads a snapshot
- *      JSON produced by BaiduMapLocalCollector (WebView cookie scrape).
- *      Desktop-independent path. Adapter is stateless in this mode —
- *      account.deviceId is OPTIONAL at construction; account meta carried
- *      in payload.
+ *      JSON produced by TencentMapLocalCollector (WebView cookie scrape on
+ *      map.qq.com). Desktop-independent. Adapter stateless — account.
+ *      deviceId OPTIONAL at construction.
  *
- *   2. sqlite mode (opts.dbPath, legacy Phase 9.4b): device-pull path —
- *      reads Baidu Map Android app's SQLite (search_history / route_history /
- *      my_favourite). Preserved for backward compat. account.deviceId
- *      REQUIRED in this mode (checked at sync, not construction).
+ *   2. sqlite mode (opts.dbPath, future device-pull): scaffold for completeness
+ *      — table names are educated guess (sjqz/parsers does not yet have a
+ *      tencent-map parser). Mode runs but trySelect tolerates missing tables.
+ *      account.deviceId REQUIRED in this mode (checked at sync, not
+ *      construction).
  *
- * Snapshot schema (mirrors BaiduMapLocalCollector.SNAPSHOT_SCHEMA_VERSION):
+ * Snapshot schema (mirrors TencentMapLocalCollector.SNAPSHOT_SCHEMA_VERSION):
  *
  *   {
  *     "schemaVersion": 1,
  *     "snapshottedAt": <epoch-ms>,
- *     "vendor": "baidu-map",
+ *     "vendor": "tencent-map",
  *     "account": { "uid": "...", "displayName": "..." },
  *     "events": [
  *       { "kind": "favourite", "id": "fav-<rid>",  "capturedAt": <ms>,
@@ -30,11 +31,6 @@
  *         "from": {...}, "to": {...}, "mode": "drive|walk|bus|bike|trip" }
  *     ]
  *   }
- *
- * Per sjqz/parsers/baidumap.py the key SQLite tables (sqlite mode) are:
- *   - search_history (queries)
- *   - route_history  (planned routes)
- *   - my_favourite   (saved places)
  */
 
 "use strict";
@@ -42,8 +38,8 @@
 const fs = require("node:fs");
 const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
 
-const NAME = "travel-baidu-map";
-const VERSION = "0.6.0";
+const NAME = "travel-tencent-map";
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 const KIND_FAVOURITE = "favourite";
@@ -51,11 +47,10 @@ const KIND_SEARCH = "search";
 const KIND_ROUTE = "route";
 const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_FAVOURITE, KIND_SEARCH, KIND_ROUTE]);
 
-class BaiduMapAdapter {
+class TencentMapAdapter {
   constructor(opts = {}) {
-    // §2.5b v0.2: account.deviceId now OPTIONAL — snapshot mode is stateless
-    // and pulls account from the JSON file. Sqlite mode still requires it;
-    // checked at sync time, not construction.
+    // §2.5b v0.2: account.deviceId OPTIONAL — snapshot mode is stateless.
+    // Sqlite mode requires it; checked at sync time.
     this.account = opts.account || null;
     this._dbPath = opts.dbPath || null;
 
@@ -64,19 +59,17 @@ class BaiduMapAdapter {
     this.capabilities = [
       "sync:snapshot",
       "sync:sqlite",
-      "parse:baidu-map-favourite",
-      "parse:baidu-map-history",
+      "parse:tencent-map-favourite",
+      "parse:tencent-map-history",
     ];
-    // Existing desktop wiring may key off this — sqlite mode is the desktop-
-    // side, snapshot mode is in-APK Android. Reported value stays compatible.
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
-        "baidu:account (uid / displayName, cookie scrape)",
-        "baidu:my_favourite (saved places — home / company / other)",
-        "baidu:search_history (queries, legacy sqlite mode)",
-        "baidu:route_history (planned routes, legacy sqlite mode)",
+        "tencent:account (uid / displayName, cookie scrape)",
+        "tencent:favourite (saved places — home / company / other)",
+        "tencent:search_history (queries, scaffold sqlite mode)",
+        "tencent:route_history (planned routes, scaffold sqlite mode)",
       ],
       sensitivity: "medium",
       legalGate: false,
@@ -87,8 +80,6 @@ class BaiduMapAdapter {
       },
     };
 
-    // _deps injection seam — vi.mock fs doesn't intercept inlined CJS require
-    // (see .claude/rules/testing.md).
     this._deps = {
       fs,
       dbDriverFactory: opts.dbDriverFactory || null,
@@ -113,7 +104,7 @@ class BaiduMapAdapter {
         return {
           ok: false,
           reason: "NO_ACCOUNT_DEVICE_ID",
-          message: "travel-baidu-map.authenticate: sqlite mode requires account.deviceId",
+          message: "travel-tencent-map.authenticate: sqlite mode requires account.deviceId",
         };
       }
       return { ok: true, account: this.account.deviceId, mode: "sqlite" };
@@ -122,7 +113,7 @@ class BaiduMapAdapter {
       ok: false,
       reason: "NO_INPUT",
       message:
-        "travel-baidu-map.authenticate: needs opts.inputPath (snapshot mode) OR opts.dbPath (sqlite mode)",
+        "travel-tencent-map.authenticate: needs opts.inputPath (snapshot mode) OR opts.dbPath (sqlite mode)",
     };
   }
 
@@ -141,7 +132,7 @@ class BaiduMapAdapter {
       return;
     }
     throw new Error(
-      "travel-baidu-map.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode, legacy device-pull)",
+      "travel-tencent-map.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.dbPath (sqlite mode)",
     );
   }
 
@@ -154,7 +145,7 @@ class BaiduMapAdapter {
       snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
     ) {
       throw new Error(
-        `travel-baidu-map.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+        `travel-tencent-map.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
       );
     }
     const fallbackCapturedAt =
@@ -199,10 +190,9 @@ class BaiduMapAdapter {
   }
 
   async *_syncViaSqlite(opts) {
-    // Legacy Phase 9.4b path — requires account.deviceId in constructor.
     if (!this.account || !this.account.deviceId) {
       throw new Error(
-        "travel-baidu-map._syncViaSqlite: account.deviceId required (set via new BaiduMapAdapter({ account: { deviceId } }))",
+        "travel-tencent-map._syncViaSqlite: account.deviceId required (set via new TencentMapAdapter({ account: { deviceId } }))",
       );
     }
     const dbPath = opts.dbPath;
@@ -213,8 +203,12 @@ class BaiduMapAdapter {
     const db = new Driver(dbPath, { readonly: true });
 
     try {
-      const routes = trySelect(db, "SELECT * FROM route_history LIMIT 5000")
-        || trySelect(db, "SELECT * FROM bd_route_history LIMIT 5000") || [];
+      // Tencent Map Android app table names (educated guess — sjqz has no
+      // parser yet; trySelect tolerates missing tables for forward-compat).
+      const routes =
+        trySelect(db, "SELECT * FROM route_history LIMIT 5000")
+        || trySelect(db, "SELECT * FROM tencent_route_history LIMIT 5000")
+        || [];
       for (const r of routes) {
         const rec = routeRowToRecord(r);
         if (rec) {
@@ -226,7 +220,10 @@ class BaiduMapAdapter {
           };
         }
       }
-      const searches = trySelect(db, "SELECT * FROM search_history LIMIT 5000") || [];
+      const searches =
+        trySelect(db, "SELECT * FROM search_history LIMIT 5000")
+        || trySelect(db, "SELECT * FROM tencent_search_history LIMIT 5000")
+        || [];
       for (const r of searches) {
         const rec = searchRowToRecord(r);
         if (rec) {
@@ -245,21 +242,17 @@ class BaiduMapAdapter {
 
   normalize(raw) {
     if (!raw || !raw.payload) {
-      throw new Error("BaiduMapAdapter.normalize: payload missing");
+      throw new Error("TencentMapAdapter.normalize: payload missing");
     }
     const kind = raw.kind || raw.payload.kind;
     const p = raw.payload;
 
-    // Sqlite-mode payload carries `record`; snapshot-mode payload carries fields
-    // directly (favourite / search / route).
     if (p.record) {
       return normalizeTravelRecord(p.record, {
         adapterName: NAME,
         adapterVersion: VERSION,
       });
     }
-    // Snapshot-mode normalize: build a TravelRecord on-the-fly so we share
-    // the travel-base normalizer (1 event + place(s) + carrier merchant).
     const rec = snapshotEventToRecord(kind, p, raw.originalId);
     return normalizeTravelRecord(rec, {
       adapterName: NAME,
@@ -276,13 +269,13 @@ function stableOriginalId(kind, id) {
   const safe =
     stringified ||
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  return `baidu-map:${kind}:${safe}`;
+  return `tencent-map:${kind}:${safe}`;
 }
 
 function snapshotEventToRecord(kind, p, originalId) {
   if (kind === KIND_FAVOURITE) {
     return {
-      vendorId: "baidumap",
+      vendorId: "tencentmap",
       recordId: originalId,
       vehicleType: "visit",
       to: {
@@ -292,13 +285,13 @@ function snapshotEventToRecord(kind, p, originalId) {
         city: p.city || null,
       },
       departureMs: parseTime(p.capturedAt),
-      carrier: "百度地图",
+      carrier: "腾讯地图",
       extras: { category: p.category || null, kind: KIND_FAVOURITE },
     };
   }
   if (kind === KIND_SEARCH) {
     return {
-      vendorId: "baidumap",
+      vendorId: "tencentmap",
       recordId: originalId,
       vehicleType: "visit",
       to: {
@@ -308,13 +301,13 @@ function snapshotEventToRecord(kind, p, originalId) {
         city: p.city || null,
       },
       departureMs: parseTime(p.capturedAt),
-      carrier: "百度地图",
+      carrier: "腾讯地图",
       extras: { query: p.query || null, kind: KIND_SEARCH },
     };
   }
   if (kind === KIND_ROUTE) {
     return {
-      vendorId: "baidumap",
+      vendorId: "tencentmap",
       recordId: originalId,
       vehicleType: detectVehicle(p.mode),
       from: p.from
@@ -324,16 +317,15 @@ function snapshotEventToRecord(kind, p, originalId) {
         ? { name: p.to.name || null, lat: numberOrNull(p.to.lat), lng: numberOrNull(p.to.lng) }
         : undefined,
       departureMs: parseTime(p.capturedAt),
-      carrier: "百度地图",
+      carrier: "腾讯地图",
       extras: { mode: p.mode || null, kind: KIND_ROUTE },
     };
   }
-  // Fallback (shouldn't reach — VALID_SNAPSHOT_KINDS filters earlier)
   return {
-    vendorId: "baidumap",
+    vendorId: "tencentmap",
     recordId: originalId,
     vehicleType: "visit",
-    carrier: "百度地图",
+    carrier: "腾讯地图",
     extras: { kind, raw: p },
   };
 }
@@ -351,13 +343,13 @@ function routeRowToRecord(row) {
   const id = row._id || row.id || row.uid;
   if (!id) return null;
   return {
-    vendorId: "baidumap",
+    vendorId: "tencentmap",
     recordId: `route-${id}`,
     vehicleType: detectVehicle(row.type || row.mode),
     from: { name: row.start_name || row.from_name, lat: row.start_lat || null, lng: row.start_lng || null },
     to: { name: row.end_name || row.to_name, lat: row.end_lat || null, lng: row.end_lng || null },
     departureMs: numberOrParse(row.time || row.create_time),
-    carrier: "百度地图",
+    carrier: "腾讯地图",
     extras: { mode: row.type || row.mode },
   };
 }
@@ -367,13 +359,13 @@ function searchRowToRecord(row) {
   const id = row._id || row.id;
   if (!id) return null;
   return {
-    vendorId: "baidumap",
+    vendorId: "tencentmap",
     recordId: `search-${id}`,
     vehicleType: "visit",
-    to: { name: row.key || row.query, lat: row.lat || null, lng: row.lng || null, city: row.city },
+    to: { name: row.key || row.query || row.keyword, lat: row.lat || null, lng: row.lng || null, city: row.city },
     departureMs: numberOrParse(row.time || row.create_time),
-    carrier: "百度地图",
-    extras: { query: row.key || row.query },
+    carrier: "腾讯地图",
+    extras: { query: row.key || row.query || row.keyword },
   };
 }
 
@@ -419,4 +411,4 @@ function numberOrParse(v) {
   return null;
 }
 
-module.exports = { BaiduMapAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
+module.exports = { TencentMapAdapter, NAME, VERSION, SNAPSHOT_SCHEMA_VERSION };
