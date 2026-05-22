@@ -229,6 +229,9 @@ class HubLocalViewModel @Inject constructor(
     data class PaymentShoppingState(
         val alipayBill: PaymentImportCardState = PaymentImportCardState(),
         val taobaoOrder: PaymentImportCardState = PaymentImportCardState(),
+        // §2.4b 购物双联 v0.2 — JD + Meituan SAF import (HTML/JSON)
+        val jdOrder: PaymentImportCardState = PaymentImportCardState(),
+        val meituanOrder: PaymentImportCardState = PaymentImportCardState(),
     )
 
     /**
@@ -808,7 +811,11 @@ class HubLocalViewModel @Inject constructor(
      * 现增量采集（不替代 SAF — 二者历史 / 增量分工）。
      */
     fun importPaymentShoppingFile(providerKey: String, sourceUri: android.net.Uri) {
-        if (providerKey != "alipay-bill" && providerKey != "shopping-taobao") {
+        if (providerKey != "alipay-bill" &&
+            providerKey != "shopping-taobao" &&
+            providerKey != "shopping-jd" &&
+            providerKey != "shopping-meituan"
+        ) {
             Timber.w("importPaymentShoppingFile: unknown providerKey=%s", providerKey)
             return
         }
@@ -828,6 +835,10 @@ class HubLocalViewModel @Inject constructor(
             val ext = when (providerKey) {
                 "alipay-bill" -> "csv"
                 "shopping-taobao" -> "html"
+                // §2.4b 购物双联 v0.2 — JD + Meituan 默认 JSON snapshot (Android
+                // collector 写)；HTML 路径预留 v0.3 (adapter HTML parser 未实现)
+                "shopping-jd" -> "json"
+                "shopping-meituan" -> "json"
                 else -> "dat"  // unreachable per gate above
             }
             val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
@@ -929,6 +940,8 @@ class HubLocalViewModel @Inject constructor(
         when (providerKey) {
             "alipay-bill" -> _state.value.paymentShopping.alipayBill
             "shopping-taobao" -> _state.value.paymentShopping.taobaoOrder
+            "shopping-jd" -> _state.value.paymentShopping.jdOrder
+            "shopping-meituan" -> _state.value.paymentShopping.meituanOrder
             else -> PaymentImportCardState()
         }
 
@@ -939,6 +952,8 @@ class HubLocalViewModel @Inject constructor(
     ): PaymentShoppingState = when (providerKey) {
         "alipay-bill" -> ps.copy(alipayBill = transform(ps.alipayBill))
         "shopping-taobao" -> ps.copy(taobaoOrder = transform(ps.taobaoOrder))
+        "shopping-jd" -> ps.copy(jdOrder = transform(ps.jdOrder))
+        "shopping-meituan" -> ps.copy(meituanOrder = transform(ps.meituanOrder))
         else -> ps
     }
 

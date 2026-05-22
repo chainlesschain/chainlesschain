@@ -140,6 +140,18 @@ fun HubLocalScreen(
     ) { uri ->
         if (uri != null) viewModel.importPaymentShoppingFile("shopping-taobao", uri)
     }
+    // §2.4b 购物双联 v0.2 — 京东 / 美团 订单 SAF 选 JSON snapshot (Android
+    // collector 写) 或 *.json/*.html 用户手动导出。v0.3 加 HTML parser。
+    val jdOrderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.importPaymentShoppingFile("shopping-jd", uri)
+    }
+    val meituanOrderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.importPaymentShoppingFile("shopping-meituan", uri)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
@@ -300,6 +312,13 @@ fun HubLocalScreen(
                                 alipayBillLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/csv", "text/plain", "*/*"))
                             "shopping-taobao" ->
                                 taobaoOrderLauncher.launch(arrayOf("text/html", "application/x-mimearchive", "multipart/related", "*/*"))
+                            // §2.4b 购物双联 v0.2 — JD / Meituan 默认 JSON snapshot；
+                            // 同时允许 text/html (v0.3 HTML parse 路径预留) + */*
+                            // 兜底 (用户从 Android collector staging 选 .json 文件)
+                            "shopping-jd" ->
+                                jdOrderLauncher.launch(arrayOf("application/json", "text/json", "text/html", "*/*"))
+                            "shopping-meituan" ->
+                                meituanOrderLauncher.launch(arrayOf("application/json", "text/json", "text/html", "*/*"))
                             else -> Timber.w("HubLocalScreen: unknown payment provider key=%s", key)
                         }
                     },

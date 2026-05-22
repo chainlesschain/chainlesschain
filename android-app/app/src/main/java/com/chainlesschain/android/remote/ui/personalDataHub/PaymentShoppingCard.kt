@@ -37,6 +37,9 @@ fun PaymentShoppingGroup(
     onProviderImport: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // §2.4b 购物双联 v0.2 — 4 卡 (支付宝账单 / 淘宝 / 京东 / 美团)
+    // 顺序: 支付 1 + 电商 3。京东/美团 v0.2 接 SAF JSON snapshot (Android
+    // collector WebView cookie scrape 写)；HTML parser 预留 v0.3。
     val providers = listOf(
         ProviderCard(
             key = "alipay-bill",
@@ -49,6 +52,18 @@ fun PaymentShoppingGroup(
             displayName = "淘宝订单",
             hint = "导出订单 HTML: PC 端 trade.taobao.com → 我的订单 → 保存网页",
             sourceFormat = "HTML",
+        ),
+        ProviderCard(
+            key = "shopping-jd",
+            displayName = "京东订单",
+            hint = "导出订单 JSON: PC 端 order.jd.com → 我的订单 → 导出 (v0.3 加 HTML)",
+            sourceFormat = "JSON",
+        ),
+        ProviderCard(
+            key = "shopping-meituan",
+            displayName = "美团订单",
+            hint = "导出订单 JSON: PC 端 i.meituan.com → 我的订单 → 导出 (v0.3 加 HTML)",
+            sourceFormat = "JSON",
         ),
     )
     Column(modifier = modifier.fillMaxWidth()) {
