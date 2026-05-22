@@ -40,6 +40,9 @@ class HubAdaptersViewModelTest {
     private lateinit var hub: PersonalDataHubCommands
     private lateinit var syncDispatcher: HubSyncEventDispatcher
     private lateinit var dispatcherEvents: MutableSharedFlow<HubSyncEvent>
+    // Path C — VM ctor grew systemDataCollector. These tests cover non-Path-C
+    // flows, so a relaxed mock is enough: snapshot()/Singleton wiring isn't touched.
+    private lateinit var systemDataCollector: SystemDataLocalCollector
 
     @Before
     fun setUp() {
@@ -48,6 +51,7 @@ class HubAdaptersViewModelTest {
         syncDispatcher = mockk(relaxed = false)
         dispatcherEvents = MutableSharedFlow(replay = 0, extraBufferCapacity = 32)
         every { syncDispatcher.events } returns dispatcherEvents
+        systemDataCollector = mockk(relaxed = true)
     }
 
     @After
@@ -61,7 +65,7 @@ class HubAdaptersViewModelTest {
         )
         coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse(adapters = adapters))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
 
         assertEquals(2, vm.uiState.value.adapters.size)
@@ -74,7 +78,7 @@ class HubAdaptersViewModelTest {
     fun `reload failure surfaces errorMessage and clears loading`() = runTest(testDispatcher) {
         coEvery { hub.listAdapters() } returns Result.failure(RuntimeException("no peer"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
 
         assertTrue(vm.uiState.value.adapters.isEmpty())
@@ -89,7 +93,7 @@ class HubAdaptersViewModelTest {
             SyncReport(adapter = "email-imap", ingested = 42)
         )
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.sync("email-imap")
         advanceUntilIdle()
@@ -107,7 +111,7 @@ class HubAdaptersViewModelTest {
             RuntimeException("IMAP timeout")
         )
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.sync("email-imap")
         advanceUntilIdle()
@@ -120,7 +124,7 @@ class HubAdaptersViewModelTest {
     fun `empty adapter list leaves state empty without error`() = runTest(testDispatcher) {
         coEvery { hub.listAdapters() } returns Result.success(AdaptersResponse(adapters = emptyList()))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
 
         assertTrue(vm.uiState.value.adapters.isEmpty())
@@ -140,7 +144,7 @@ class HubAdaptersViewModelTest {
             Result.success(AdaptersResponse(adapters = refreshed))
         )
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         assertEquals(1, vm.uiState.value.adapters.size)
 
@@ -158,7 +162,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "email-imap") } returns
             Result.success(HubStreamStartResponse(streamId = "s-1", name = "email-imap"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("email-imap")
         advanceUntilIdle()
@@ -174,7 +178,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "email-imap") } returns
             Result.success(HubStreamStartResponse(streamId = "s-1"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("email-imap")
         advanceUntilIdle()
@@ -202,7 +206,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "email-imap") } returns
             Result.success(HubStreamStartResponse(streamId = "s-1"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("email-imap")
         advanceUntilIdle()
@@ -226,7 +230,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "alipay-bill") } returns
             Result.success(HubStreamStartResponse(streamId = "s-2"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("alipay-bill")
         advanceUntilIdle()
@@ -248,7 +252,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "email-imap") } returns
             Result.success(HubStreamStartResponse(streamId = "s-1"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("email-imap")
         advanceUntilIdle()
@@ -272,7 +276,7 @@ class HubAdaptersViewModelTest {
         coEvery { hub.syncAdapterStream(name = "email-imap") } returns
             Result.failure(RuntimeException("DC closed"))
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.syncStream("email-imap")
         advanceUntilIdle()
