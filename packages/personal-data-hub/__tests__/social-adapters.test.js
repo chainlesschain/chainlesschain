@@ -169,11 +169,36 @@ describe("WeiboAdapter", () => {
     const a = new WeiboAdapter({ account: { uid: "1234" } });
     expect(assertAdapter(a).ok).toBe(true);
     expect(a.extractMode).toBe("device-pull");
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
   });
 
-  it("rejects missing account.uid", () => {
-    expect(() => new WeiboAdapter({})).toThrow();
-    expect(() => new WeiboAdapter({ account: {} })).toThrow(/uid/);
+  it("snapshot mode constructs without account.uid (stateless)", () => {
+    // §A8 v0.2: constructor loosened — snapshot mode pulls account from the
+    // snapshot file. Sqlite mode still requires account.uid, checked at sync
+    // time not construction.
+    const a = new WeiboAdapter({});
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.account).toBeNull();
+  });
+
+  it("sqlite mode throws at sync time when account.uid missing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "weibo-"));
+    const dbPath = path.join(dir, "weibo.db");
+    fs.writeFileSync(dbPath, "fake");
+    try {
+      const a = new WeiboAdapter({});
+      let threw = null;
+      try {
+        for await (const _r of a.sync({ dbPath })) { /* drain */ }
+      } catch (e) {
+        threw = e;
+      }
+      expect(threw).not.toBeNull();
+      expect(threw.message).toMatch(/account\.uid/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("sync yields posts + search records via mocked driver", async () => {

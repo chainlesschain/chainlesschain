@@ -85,6 +85,8 @@ fun HubLocalScreen(
                 when {
                     pending.adapterName == "social-bilibili" ->
                         viewModel.onBilibiliLoginCookie(cookie)
+                    pending.adapterName == "social-weibo" ->
+                        viewModel.onWeiboLoginCookie(cookie)
                     pending.adapterName.startsWith("ai-chat:") -> {
                         // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
                         // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
@@ -138,6 +140,7 @@ fun HubLocalScreen(
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
+        viewModel.refreshWeiboFromStore()
         viewModel.refreshWechatFromStore()
     }
 
@@ -210,6 +213,7 @@ fun HubLocalScreen(
                     onLogin = {
                         when (card.adapterName) {
                             "social-bilibili" -> viewModel.requestBilibiliLogin()
+                            "social-weibo" -> viewModel.requestWeiboLogin()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -218,13 +222,17 @@ fun HubLocalScreen(
                     onSync = {
                         when (card.adapterName) {
                             "social-bilibili" -> viewModel.syncBilibili()
+                            "social-weibo" -> viewModel.syncWeibo()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
                         }
                     },
                     onLogout = {
-                        if (card.adapterName == "social-bilibili") viewModel.logoutBilibili()
+                        when (card.adapterName) {
+                            "social-bilibili" -> viewModel.logoutBilibili()
+                            "social-weibo" -> viewModel.logoutWeibo()
+                        }
                     },
                 )
                 Spacer(Modifier.height(8.dp))
