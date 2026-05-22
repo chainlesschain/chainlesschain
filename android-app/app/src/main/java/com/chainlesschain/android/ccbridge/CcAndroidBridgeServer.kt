@@ -63,30 +63,34 @@ object CcAndroidBridgeServer {
 
     /**
      * Start the server. Idempotent — second call returns immediately.
-     * Writes port + token to filesDir/.chainlesschain/bridge/ as side
-     * effect so cc subprocess can pick them up.
+     * Bind + token generation + persistConfig run on the IO acceptor thread
+     * (not the caller's main thread) since ServerSocket.bind + File.writeText
+     * trigger StrictMode disk-IO warnings when called from Application.onCreate.
      */
     @JvmStatic
     fun start(context: Context) {
         if (!running.compareAndSet(false, true)) return
-        try {
-            val socket = ServerSocket()
-            socket.reuseAddress = true
-            // 0.0.0.0:0 — let kernel pick free port; reachable from both
-            // localhost (cc subprocess) and LAN (desktop cc ui).
-            socket.bind(InetSocketAddress("0.0.0.0", 0))
-            serverSocket = socket
-            port = socket.localPort
-            token = generateToken()
-            persistConfig(context)
-            Timber.tag(TAG).i("CcAndroidBridgeServer listening on 0.0.0.0:%d", port)
-            acceptor.submit { acceptLoop(socket) }
-            Runtime.getRuntime().addShutdownHook(Thread {
-                stop()
-            })
-        } catch (e: IOException) {
-            running.set(false)
-            Timber.tag(TAG).w(e, "CcAndroidBridgeServer: bind failed — bridge unavailable")
+        acceptor.submit {
+            try {
+                val socket = ServerSocket()
+                socket.reuseAddress = true
+                // 0.0.0.0:0 — let kernel pick free port; reachable from both
+                // localhost (cc subprocess) and LAN (desktop cc ui).
+                socket.bind(InetSocketAddress("0.0.0.0", 0))
+                serverSocket = socket
+                port = socket.localPort
+                token = generateToken()
+                persistConfig(context)
+                Timber.tag(TAG).i("CcAndroidBridgeServer listening on 0.0.0.0:%d", port)
+                Runtime.getRuntime().addShutdownHook(Thread { stop() })
+                acceptLoop(socket)
+            } catch (e: IOException) {
+                running.set(false)
+                Timber.tag(TAG).w(e, "CcAndroidBridgeServer: bind failed — bridge unavailable")
+            } catch (e: Exception) {
+                running.set(false)
+                Timber.tag(TAG).w(e, "CcAndroidBridgeServer: unexpected start failure")
+            }
         }
     }
 
