@@ -499,8 +499,13 @@ async function cmdAIChatHealth(options) {
     const factoryDeps = options._factoryDeps || {};
     const hubDir =
       factoryDeps.hubDir || (await (options._getHub || getHub)()).hubDir;
-    const { createAIChatHealthChecker } =
-      await import("@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker");
+    // Bypass vite import-analysis (which can't resolve subpath exports
+    // for dynamic imports in vitest SSR mode) by composing the specifier
+    // at runtime — the static analyzer skips non-literal arguments.
+    const hcSpecifier =
+      "@chainlesschain/personal-data-hub" +
+      "/adapters/ai-chat-history/health-checker";
+    const { createAIChatHealthChecker } = await import(hcSpecifier);
     const { createAccountsStore, createVendorAdapterBridge } =
       await import("../lib/personal-data-hub-aichat-wizard.js");
     const accountsStore =
@@ -651,6 +656,193 @@ async function cmdWechatList(options) {
   } catch (err) {
     fail(null, err, options.json);
   }
+}
+
+/**
+ * `cc hub wechat doctor` — env-probe + actionable interpretation +
+ * inline reference to the Phase 12.9 §5.1 Frida hook trap table.
+ *
+ * Designed to be the single command user runs on a rooted Android during
+ * Phase 12.9 real-device E2E to figure out "what should I do next?" —
+ * combines env-probe output + readiness checklist (per md5 vs frida
+ * path) + post-register telemetry fields to capture if hook fails.
+ *
+ * Returns the same JSON as env-probe + a `doctor` block under --json so
+ * scripts can branch on `doctor.readiness === 'ready' | 'blocked' | 'partial'`.
+ */
+async function cmdWechatDoctor(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const probe = await hub.probeWechatEnv();
+
+    // Determine readiness + concrete next-action based on probe shape.
+    const advice = interpretWechatProbe(probe);
+
+    if (options.json) {
+      printJson({ probe, doctor: advice });
+      return;
+    }
+
+    // Human-readable: re-use env-probe formatting then append advice.
+    logger.log(chalk.bold("WeChat env-probe:"));
+    logger.log(
+      `  ${probe.ok ? chalk.green("✓") : chalk.red("✗")} suggested: ${chalk.cyan(probe.suggestedKeyProvider)}`,
+    );
+    logger.log(
+      `  device: ${probe.device.reachable ? chalk.green("reachable") : chalk.red("unreachable")}${probe.device.serial ? " (" + probe.device.serial + ")" : ""} abi=${probe.device.abi || "?"}`,
+    );
+    logger.log(
+      `  root: ${probe.root.detected ? chalk.green("yes") : chalk.gray("no")} magisk=${probe.root.magiskInstalled ? "yes" : "no"}`,
+    );
+    logger.log(
+      `  frida-server: ${probe.frida.serverRunning ? chalk.green("running") : chalk.gray("not running")}${probe.frida.port ? " :" + probe.frida.port : ""}`,
+    );
+    logger.log(
+      `  wechat: ${probe.wechat.installed ? chalk.green(probe.wechat.versionName) : chalk.gray("not installed")}`,
+    );
+
+    logger.log("");
+    const statusColor =
+      advice.readiness === "ready"
+        ? chalk.green
+        : advice.readiness === "partial"
+          ? chalk.yellow
+          : chalk.red;
+    logger.log(
+      chalk.bold(`Doctor: ${statusColor(advice.readiness.toUpperCase())}`),
+    );
+    for (const blocker of advice.blockers) {
+      logger.log(`  ${chalk.red("✗")} ${blocker}`);
+    }
+    for (const w of advice.warnings) {
+      logger.log(`  ${chalk.yellow("!")} ${w}`);
+    }
+    for (const step of advice.nextSteps) {
+      logger.log(`  ${chalk.cyan("→")} ${step}`);
+    }
+
+    if (advice.readiness !== "blocked") {
+      logger.log("");
+      logger.log(
+        chalk.bold("After `cc hub wechat register`, capture telemetry:"),
+      );
+      logger.log(
+        chalk.gray(
+          "  cc hub wechat register --uin <UIN> --db ... --json | jq '.fridaTelemetry'",
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          "  Expected fields: hooked / keySource / keySig / keyFormat / keyLength / keyAlt / errors / durationMs",
+        ),
+      );
+      logger.log("");
+      logger.log(
+        chalk.bold("If hook fails, match telemetry against trap table:"),
+      );
+      logger.log(
+        chalk.gray(
+          "  A — hooked:[] empty           → libWCDB.so module name (try OEM custom names)",
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          "  B — keySig:v2 but DB won't open → sqlite3_key_v2 args index wrong",
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          "  C — keyFormat:raw-bytes but len=64 → ascii-hex path missed",
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          "  Full table: docs/design/Personal_Data_Hub_Phase_12_9_*Runbook.md §5.1",
+        ),
+      );
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
+ * Interpret env-probe result into { readiness, blockers, warnings, nextSteps }.
+ * Pure function — testable without device.
+ *
+ * @param {object} probe  output of hub.probeWechatEnv()
+ * @returns {{readiness: 'ready'|'partial'|'blocked', blockers: string[],
+ *   warnings: string[], nextSteps: string[]}}
+ */
+function interpretWechatProbe(probe) {
+  const blockers = [];
+  const warnings = [];
+  const nextSteps = [];
+
+  if (!probe || !probe.device || !probe.device.reachable) {
+    blockers.push("adb 设备未连接 (USB 调试 / drivers / authorize?)");
+    nextSteps.push("`adb devices` 应列出至少一台 device 状态");
+    return { readiness: "blocked", blockers, warnings, nextSteps };
+  }
+
+  if (!probe.wechat || !probe.wechat.installed) {
+    blockers.push("WeChat (com.tencent.mm) 未安装");
+    nextSteps.push("先把 WeChat 装上 + 登一次产生 EnMicroMsg.db");
+    return { readiness: "blocked", blockers, warnings, nextSteps };
+  }
+
+  const ver = probe.wechat.majorVersion || 0;
+  const suggested = probe.suggestedKeyProvider;
+
+  if (ver < 8 && suggested === "md5") {
+    nextSteps.push(
+      "MD5 path: `adb pull /data/data/com.tencent.mm/ /tmp/wechat-data/`",
+    );
+    nextSteps.push(
+      "拉到本地后跑: `cc hub wechat register --uin <UIN> --db /tmp/wechat-data/MicroMsg/<md5-uin>/EnMicroMsg.db --wechat-data-path /tmp/wechat-data/`",
+    );
+    if (!probe.root.detected) {
+      warnings.push(
+        "非 root 设备只能 adb pull WeChat backup 子集 — 可能拿不到全部 db / 文件",
+      );
+    }
+    return { readiness: "ready", blockers, warnings, nextSteps };
+  }
+
+  if (ver >= 8 && suggested === "frida") {
+    if (!probe.root.detected) {
+      blockers.push("WeChat ≥ 8.0 必须 root + Frida hook，当前设备未 root");
+      nextSteps.push("Magisk 刷入 → 重启 → 重跑 doctor");
+      return { readiness: "blocked", blockers, warnings, nextSteps };
+    }
+    if (!probe.frida.serverRunning) {
+      blockers.push("Frida server 未运行");
+      nextSteps.push(
+        "见 docs/design/Adapter_WeChat_SQLCipher_Frida_Setup.md §2 启 frida-server",
+      );
+      return { readiness: "partial", blockers, warnings, nextSteps };
+    }
+    nextSteps.push(
+      "Frida path 就绪。register: `cc hub wechat register --uin <wxid>`（无需 --db / --wechat-data-path）",
+    );
+    nextSteps.push("WeChat 必须前台运行（已登录），register 期间不要切走");
+    return { readiness: "ready", blockers, warnings, nextSteps };
+  }
+
+  if (suggested === "unsupported") {
+    blockers.push("env-probe 判定为 unsupported");
+    for (const reason of probe.reasons || []) blockers.push(reason);
+    nextSteps.push(
+      "见 docs/design/Adapter_WeChat_SQLCipher.md §13 — 检查 WeChat 版本兼容矩阵",
+    );
+    return { readiness: "blocked", blockers, warnings, nextSteps };
+  }
+
+  // Fallback — probe shape we don't recognize
+  warnings.push(
+    `未识别的 suggested='${suggested}' (version=${probe.wechat.versionName || "?"})`,
+  );
+  return { readiness: "partial", blockers, warnings, nextSteps };
 }
 
 async function cmdWechatUnregister(uin, options) {
@@ -901,6 +1093,16 @@ export function registerHubCommand(program) {
     )
     .option("--json", "Output JSON")
     .action(cmdWechatUnregister);
+
+  // Phase 12.9 — diagnostic helper for real-device E2E. Combines env-probe
+  // with actionable readiness checklist + inline §5.1 Frida trap reference.
+  wechat
+    .command("doctor")
+    .description(
+      "Diagnose WeChat setup — env-probe + readiness checklist + Phase 12.9 trap reference",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdWechatDoctor);
 }
 
 // exported for tests — handler functions can be invoked directly with
@@ -917,5 +1119,7 @@ export const _internal = {
   cmdWechatRegister,
   cmdWechatList,
   cmdWechatUnregister,
+  cmdWechatDoctor,
+  interpretWechatProbe,
   _defaultKnownVendors,
 };
