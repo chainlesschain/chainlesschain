@@ -5,7 +5,7 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - PDH A8 v0.1 — social-adapter Bilibili 端到端 + 3 平台 UI 占位
+## [v5.0.3.79] - 2026-05-22 — PDH A8 v0.1 — social-adapter Bilibili 端到端 + 3 平台 UI 占位
 
 > Extends Plan A v0.1 (HubLocal tab) from 1 adapter card (`system-data-android`) to 5. Bilibili end-to-end (login WebView + OkHttp 4 endpoints + local SQLCipher vault); 微博/抖音/小红书 UI cards visible with "v0.2 开放" status. **Fully desktop-independent** — Android does cookie capture + HTTP + parsing + vault write all on-device via in-APK cc.
 
