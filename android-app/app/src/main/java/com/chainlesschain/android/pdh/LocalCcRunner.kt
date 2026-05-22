@@ -31,6 +31,33 @@ class LocalCcRunner @Inject constructor(
         data class Failed(val reason: String, val exitCode: Int?, val stderr: String?) : CcResult()
     }
 
+    /** Result for ask flow — see [askQuestion]. */
+    sealed class AskResult {
+        data class Ok(val report: AskReport, val rawJson: String) : AskResult()
+        data class Failed(val reason: String, val exitCode: Int?, val stderr: String?) : AskResult()
+    }
+
+    /**
+     * Parsed shape of `cc hub ask --json` stdout. Mirrors
+     * AnalysisEngine.ask() return contract in
+     * packages/personal-data-hub/lib/analysis.js — answer text, citations
+     * pointing back at vault event ids, and llm provenance for the audit
+     * trail (so users see which model answered + whether it stayed local).
+     */
+    data class AskReport(
+        val answer: String,
+        val citations: List<Citation>,
+        val llmName: String?,
+        val isLocal: Boolean,
+        val durationMs: Long,
+    ) {
+        data class Citation(
+            val eventId: String,
+            val excerpt: String?,
+            val source: String?,
+        )
+    }
+
     /**
      * `cc hub sync-adapter <name> --input <path> --json` → parsed SyncReport.
      *
@@ -195,6 +222,173 @@ class LocalCcRunner @Inject constructor(
             )
         }
         CcResult.Ok(report = report, rawJson = stdout.trim())
+    }
+
+    /**
+     * `cc hub ask "<question>" --json` → parsed AskReport.
+     *
+     * Conceptually mirrors [syncAdapter] but drives the analysis engine
+     * instead of an adapter. Same untrusted_app SELinux context inheritance
+     * via mksh-as-interpreter ensures the cc subprocess can reach a
+     * Kotlin-hosted Ollama-compat LLM server on loopback (see A3 design
+     * `docs/design/PDH_A3_OnDevice_LLM.md`).
+     *
+     * v0.1: LLM server not yet wired — if env points at no listener, cc
+     * fails with "OllamaClient.chat: request failed" and we surface that
+     * to the UI as "端侧 LLM 未启动". Wire-up arrives in A3.1-A3.3.
+     *
+     * @param question 用户原话，直接传 cc。CLI quoting handled by ProcessBuilder.
+     * @param ollamaUrl LLM HTTP endpoint Kotlin hosts. v0.1 pass null →
+     *                  cc uses default localhost:11434 which will fail.
+     * @param timeoutMs ~60s budget for first-token + decode of a ~200-token
+     *                  answer at 8-15 tok/s (Qwen2.5-1.5B on Dimensity 7025).
+     */
+    suspend fun askQuestion(
+        question: String,
+        ollamaUrl: String? = null,
+        timeoutMs: Long = 60_000L,
+    ): AskResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext AskResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext AskResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "hub", "ask", question,
+            "--json",
+        )
+
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            // A3 HTTP-Hybrid: cc OllamaClient hits this URL. Kotlin's
+            // LocalLlmServer (A3.2) MUST be listening here, otherwise the
+            // analysis engine fails fast with a network error.
+            if (!ollamaUrl.isNullOrBlank()) {
+                envMap["CC_HUB_OLLAMA_URL"] = ollamaUrl
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext AskResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.ask: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.ask: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext AskResult.Failed(
+                reason = "timeout after ${timeoutMs}ms",
+                exitCode = null,
+                stderr = stderrBuilder.toString().take(2000),
+            )
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        val stderr = stderrBuilder.toString()
+
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) {
+                null
+            }
+            return@withContext AskResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+
+        val report = try {
+            parseAskReport(stdout)
+        } catch (e: Exception) {
+            Timber.w(e, "LocalCcRunner.ask: failed to parse cc stdout: %s", stdout.take(500))
+            return@withContext AskResult.Failed(
+                reason = "parse-failed: ${e.message}",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+        AskResult.Ok(report = report, rawJson = stdout.trim())
+    }
+
+    private fun parseAskReport(stdout: String): AskReport {
+        val obj = JSONObject(stdout.trim())
+        val citationsArr = obj.optJSONArray("citations")
+        val citations = buildList {
+            if (citationsArr != null) {
+                for (i in 0 until citationsArr.length()) {
+                    val c = citationsArr.optJSONObject(i) ?: continue
+                    add(
+                        AskReport.Citation(
+                            eventId = c.optString("eventId", ""),
+                            excerpt = c.optString("excerpt", "").takeIf { it.isNotEmpty() },
+                            source = c.optString("source", "").takeIf { it.isNotEmpty() },
+                        )
+                    )
+                }
+            }
+        }
+        return AskReport(
+            answer = obj.optString("answer", ""),
+            citations = citations,
+            llmName = obj.optString("llmName", "").takeIf { it.isNotEmpty() },
+            isLocal = obj.optBoolean("isLocal", true),
+            durationMs = obj.optLong("durationMs", 0L),
+        )
     }
 
     data class SyncReport(
