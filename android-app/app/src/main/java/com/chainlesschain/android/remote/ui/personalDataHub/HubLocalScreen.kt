@@ -196,11 +196,14 @@ fun HubLocalScreen(
             }
 
             // ─── 邮箱（推文 §"邮箱": QQ/Gmail/163/Outlook）──────────────
+            // D6.1: 4 provider sub-cards 替换原单 placeholder，让用户看到推文
+            // 列的 4 厂商全显。D6.2 真接通 IMAP 凭据表单 + EmailLocalCollector。
             item("section-mail") { SectionHeader("邮箱") }
-            item("mail") {
-                PlaceholderCategoryCard(
-                    title = "QQ / Gmail / 163 / Outlook",
-                    statusText = "D6 待开放（adapter 已 ready：email-imap snapshot mode）",
+            item("mail-providers") {
+                EmailProvidersGroup(
+                    onProviderLogin = { providerKey ->
+                        Timber.i("HubLocalScreen: email provider login TODO key=$providerKey")
+                    },
                 )
             }
 
