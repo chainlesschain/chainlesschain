@@ -230,6 +230,146 @@ class LocalCcRunner @Inject constructor(
         data class Failed(val reason: String, val exitCode: Int?) : DestroyResult()
     }
 
+    /** Result for event-detail lookup flow. */
+    sealed class EventDetailResult {
+        data class Ok(val event: VaultEvent) : EventDetailResult()
+        data class NotFound(val eventId: String) : EventDetailResult()
+        data class Failed(val reason: String, val exitCode: Int?) : EventDetailResult()
+    }
+
+    /**
+     * Parsed shape of `cc hub event-detail <id> --json` returns.
+     * Mirrors LocalVault._rowToEvent() in packages/personal-data-hub/lib/vault.js
+     * (id / subtype / source / title / actor / amount / currency / startedAt).
+     */
+    data class VaultEvent(
+        val id: String,
+        val subtype: String,
+        val source: String,
+        val title: String?,
+        val actor: String?,
+        val amount: Double?,
+        val currency: String?,
+        val startedAt: Long?,
+    )
+
+    /**
+     * `cc hub event-detail <eventId> --json` → vault event row.
+     *
+     * 推文 §"AI 给出处" 的真接通：HubAskCard citation chip click → 本方法 →
+     * vault.getEvent(id) → 详情 sheet 显原文。Idempotent + cheap (single
+     * SQLite SELECT by primary key); safe to call many times during a
+     * single session.
+     */
+    suspend fun queryEvent(
+        eventId: String,
+        timeoutMs: Long = 20_000L,
+    ): EventDetailResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext EventDetailResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext EventDetailResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "hub", "event-detail", eventId, "--json",
+        )
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext EventDetailResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+            )
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.queryEvent: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.queryEvent: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext EventDetailResult.Failed("timeout after ${timeoutMs}ms", null)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext EventDetailResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+            )
+        }
+        try {
+            val obj = JSONObject(stdout.trim())
+            if (!obj.optBoolean("found", false)) {
+                return@withContext EventDetailResult.NotFound(eventId = obj.optString("eventId", eventId))
+            }
+            val ev = obj.getJSONObject("event")
+            EventDetailResult.Ok(
+                event = VaultEvent(
+                    id = ev.optString("id", ""),
+                    subtype = ev.optString("subtype", ""),
+                    source = ev.optString("source", ""),
+                    title = ev.optString("title", "").takeIf { it.isNotEmpty() },
+                    actor = ev.optString("actor", "").takeIf { it.isNotEmpty() },
+                    amount = if (ev.has("amount") && !ev.isNull("amount")) ev.optDouble("amount") else null,
+                    currency = ev.optString("currency", "").takeIf { it.isNotEmpty() },
+                    startedAt = if (ev.has("startedAt") && !ev.isNull("startedAt")) ev.optLong("startedAt") else null,
+                ),
+            )
+        } catch (e: Exception) {
+            EventDetailResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
     /** Result for export-vault flow. */
     sealed class ExportResult {
         data class Ok(val outputPath: String, val bytes: Long, val encrypted: Boolean) : ExportResult()
@@ -450,12 +590,17 @@ class LocalCcRunner @Inject constructor(
      * @param question 用户原话，直接传 cc。CLI quoting handled by ProcessBuilder.
      * @param ollamaUrl LLM HTTP endpoint Kotlin hosts. v0.1 pass null →
      *                  cc uses default localhost:11434 which will fail.
+     * @param acceptNonLocal A3.10 拒云开关。true → 给 cc 加 `--accept-non-local`，
+     *                       让 AnalysisEngine 允许非本地 LLM。false（默认）下
+     *                       cc 在 LLM 非 local 时拒答（"AnalysisEngine.ask: LLM
+     *                       declared non-local"），推文 §三道锁·第二把的硬约束。
      * @param timeoutMs ~60s budget for first-token + decode of a ~200-token
      *                  answer at 8-15 tok/s (Qwen2.5-1.5B on Dimensity 7025).
      */
     suspend fun askQuestion(
         question: String,
         ollamaUrl: String? = null,
+        acceptNonLocal: Boolean = false,
         timeoutMs: Long = 60_000L,
     ): AskResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
@@ -476,12 +621,13 @@ class LocalCcRunner @Inject constructor(
             )
         }
 
-        val command = listOf(
-            mkshPath.absolutePath,
-            ccPath.absolutePath,
-            "hub", "ask", question,
-            "--json",
-        )
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("ask"); add(question)
+            add("--json")
+            if (acceptNonLocal) add("--accept-non-local")
+        }
 
         val envList = ptyEnvironment.envp().toList()
         val pb = ProcessBuilder(command).apply {

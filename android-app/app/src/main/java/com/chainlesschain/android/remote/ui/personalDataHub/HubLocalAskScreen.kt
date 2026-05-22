@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import timber.log.Timber
 
 /**
  * A3.8 — 第 5 个 tab "本机提问" inside PersonalDataHubScreen.
@@ -73,9 +72,8 @@ fun HubLocalAskScreen(
                     onQuestionChanged = { viewModel.onAskQuestionChanged(it) },
                     onSubmit = { viewModel.askQuestion() },
                     onCitationClick = { eventId ->
-                        // v0.1: cc hub event-detail subcommand 待加，先 log。
-                        // 复用 HubEventDetailContent sheet 留给后续 sub-phase。
-                        Timber.i("HubLocalAskScreen: citation deeplink TODO eventId=$eventId")
+                        // 推文 §"点一下看原文" 真接通 — 走 cc hub event-detail
+                        viewModel.requestCitationDetail(eventId)
                     },
                     onDismissAnswer = { viewModel.clearAskAnswer() },
                 )
@@ -98,6 +96,11 @@ fun HubLocalAskScreen(
             }
         }
     }
+
+    CitationDetailSheet(
+        state = state.citationDetail,
+        onDismiss = { viewModel.dismissCitationDetail() },
+    )
 }
 
 @Composable

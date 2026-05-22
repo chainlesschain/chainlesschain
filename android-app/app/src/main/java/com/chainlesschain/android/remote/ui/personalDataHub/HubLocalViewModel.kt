@@ -9,6 +9,8 @@ import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
+import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -49,6 +51,8 @@ class HubLocalViewModel @Inject constructor(
     private val ccRunner: LocalCcRunner,
     private val bilibiliCollector: BilibiliLocalCollector,
     private val bilibiliCredentials: BilibiliCredentialsStore,
+    private val wechatCollector: WeChatLocalCollector,
+    private val wechatCredentials: WeChatCredentialsStore,
     private val llmServer: LocalLlmServer,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
@@ -77,6 +81,25 @@ class HubLocalViewModel @Inject constructor(
         val lastSyncAt: Long? = null,
         val lastSyncCount: Int = 0,
         val errorMessage: String? = null,
+    )
+
+    /**
+     * Phase 12.10.1 — wechat uses string-uin not Long-uid (UIN is sometimes
+     * 12+ digits and the leading-zero variant matters for md5 derivation),
+     * so [SocialCardState.uid] can't carry it. We track wechat-specific
+     * fields separately.
+     */
+    @Immutable
+    data class WechatCardState(
+        val isLoggedIn: Boolean = false,
+        val uin: String? = null,
+        val keyProvider: String? = null,  // "md5" / "frida"
+        val isSyncing: Boolean = false,
+        val lastSyncAt: Long? = null,
+        val lastSyncCount: Int = 0,
+        val errorMessage: String? = null,
+        /** When non-null, show the uin-entry dialog (Phase 12.10.1 onboarding). */
+        val pendingUinEntry: Boolean = false,
     )
 
     @Immutable
@@ -131,6 +154,21 @@ class HubLocalViewModel @Inject constructor(
         val errorMessage: String? = null,
     )
 
+    /**
+     * 推文 §"AI 给出处 · 点一下看原文" 的 bottom sheet state。
+     * Citation chip click → requestCitationDetail(eventId) → cc hub event-detail
+     * → 填充本 state → UI 显 sheet。
+     */
+    @Immutable
+    data class CitationDetailState(
+        val visible: Boolean = false,
+        val eventId: String? = null,
+        val loading: Boolean = false,
+        val event: LocalCcRunner.VaultEvent? = null,
+        val notFound: Boolean = false,
+        val errorMessage: String? = null,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -154,10 +192,12 @@ class HubLocalViewModel @Inject constructor(
             displayName = "小红书",
             implemented = false,
         ),
+        val wechat: WechatCardState = WechatCardState(),
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
         val ask: AskCardState = AskCardState(),
         val threeLocks: ThreeLocksState = ThreeLocksState(),
+        val citationDetail: CitationDetailState = CitationDetailState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -166,6 +206,7 @@ class HubLocalViewModel @Inject constructor(
     init {
         refreshPermissionState()
         refreshBilibiliFromStore()
+        refreshWechatFromStore()
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────
@@ -274,6 +315,9 @@ class HubLocalViewModel @Inject constructor(
     fun askQuestion() {
         val q = _state.value.ask.question.trim()
         if (q.isEmpty() || _state.value.ask.isAsking) return
+        // A3.10 — snapshot the cloud-fallback toggle at submit time. User can
+        // flip while in flight; we honor whatever was set on tap (race-immune).
+        val acceptNonLocal = _state.value.threeLocks.allowCloudFallback
         _state.update {
             it.copy(
                 ask = it.ask.copy(
@@ -289,7 +333,11 @@ class HubLocalViewModel @Inject constructor(
             // ChainlessChainApplication.delayedInit started it. If start failed
             // (rare port-exhaustion) baseUrl=null and we pass null → cc falls
             // back to localhost:11434 default, which then fails fast.
-            val result = ccRunner.askQuestion(q, ollamaUrl = llmServer.baseUrl)
+            val result = ccRunner.askQuestion(
+                q,
+                ollamaUrl = llmServer.baseUrl,
+                acceptNonLocal = acceptNonLocal,
+            )
             _state.update { st ->
                 when (result) {
                     is LocalCcRunner.AskResult.Ok -> st.copy(
@@ -328,6 +376,58 @@ class HubLocalViewModel @Inject constructor(
         _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), errorMessage = null)) }
     }
 
+    fun requestCitationDetail(eventId: String) {
+        if (eventId.isBlank()) return
+        _state.update {
+            it.copy(
+                citationDetail = CitationDetailState(
+                    visible = true,
+                    eventId = eventId,
+                    loading = true,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            val r = ccRunner.queryEvent(eventId)
+            _state.update { st ->
+                if (st.citationDetail.eventId != eventId) {
+                    // User dismissed or clicked another citation while in flight
+                    return@update st
+                }
+                when (r) {
+                    is LocalCcRunner.EventDetailResult.Ok -> st.copy(
+                        citationDetail = st.citationDetail.copy(
+                            loading = false,
+                            event = r.event,
+                            notFound = false,
+                            errorMessage = null,
+                        ),
+                    )
+                    is LocalCcRunner.EventDetailResult.NotFound -> st.copy(
+                        citationDetail = st.citationDetail.copy(
+                            loading = false,
+                            notFound = true,
+                            event = null,
+                        ),
+                    )
+                    is LocalCcRunner.EventDetailResult.Failed -> {
+                        Timber.w("HubLocalViewModel.queryEvent failed: %s", r.reason)
+                        st.copy(
+                            citationDetail = st.citationDetail.copy(
+                                loading = false,
+                                errorMessage = r.reason,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun dismissCitationDetail() {
+        _state.update { it.copy(citationDetail = CitationDetailState()) }
+    }
+
     // ─── 三道锁 (推文 §三道锁，缺一不可) ──────────────────────────────────
     //
     // 第一把：加密金库 — SQLCipher 永远开，无 toggle
@@ -335,10 +435,11 @@ class HubLocalViewModel @Inject constructor(
     // 第三把：一键销毁 — cc hub destroy --confirm
 
     fun setAllowCloudFallback(allow: Boolean) {
-        // v0.1: 状态只存内存，重启重置为 OFF（推文 §"默认不许问云端"安全侧
-        // 默认）。v0.2 持久化到 DataStore 并在 OllamaClient 选择路径时遵守
-        // 此 flag — 当前 cc 端尚无 CC_HUB_ALLOW_NON_LOCAL env 路径，A3.10
-        // 真接通时一并加。
+        // A3.10 现已透传到 cc：toggle ON → askQuestion 携 acceptNonLocal=true →
+        // LocalCcRunner 给 cc 加 `--accept-non-local`，让 AnalysisEngine 在
+        // LLM 非 local 时也接受。状态本身仍只存内存，重启重置为 OFF（推文
+        // §"默认不许问云端"安全侧默认）。v0.2 持久化到 DataStore + 切到 ON
+        // 时弹"每次都问还是记住"二选一对话框。
         _state.update { it.copy(threeLocks = it.threeLocks.copy(allowCloudFallback = allow)) }
     }
 
@@ -631,6 +732,235 @@ class HubLocalViewModel @Inject constructor(
                     lastSyncCount = 0,
                     errorMessage = null,
                 ),
+            )
+        }
+    }
+
+    // ─── WeChat (Phase 12.10) ────────────────────────────────────────────────
+    //
+    // Onboarding model differs from Bilibili (which is WebView-cookie-based).
+    // WeChat needs:
+    //   1. User taps "登录" → we show a dialog explaining the root + WeChat-
+    //      logged-in prereqs and asks for uin
+    //   2. User submits uin → save to store, keyProvider defaults to "frida"
+    //      (Phase 12.10.2 will add an env-probe step that picks md5 for 7.x)
+    //   3. User taps "同步" → collector orchestrates frida key extract (8.0+)
+    //      + db extract + cc syncAdapter
+    //
+    // For v0.1 the frida + extract steps are stubs; the orchestrator returns
+    // FridaInjectFailed("binary-missing") which surfaces as a "改用桌面端"
+    // banner. See docs/design/Android_WeChat_InApp_Frida_Collector.md §5.
+
+    fun refreshWechatFromStore() {
+        val loggedIn = wechatCredentials.hasCredentials()
+        val uin = wechatCredentials.getUin()
+        val provider = wechatCredentials.getKeyProvider()
+        val lastSync = wechatCredentials.getLastSyncAt()
+        val lastCount = wechatCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                wechat = it.wechat.copy(
+                    isLoggedIn = loggedIn,
+                    uin = uin,
+                    keyProvider = provider,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    /**
+     * User tapped "登录/授权" on the WeChat card → show the uin-entry dialog.
+     * The dialog UI (HubLocalScreen) reads [WechatCardState.pendingUinEntry]
+     * to know whether to render itself.
+     */
+    fun requestWechatLogin() {
+        if (_state.value.globalSyncingAdapter != null) return
+        _state.update {
+            it.copy(
+                wechat = it.wechat.copy(
+                    pendingUinEntry = true,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    fun cancelWechatLogin() {
+        _state.update {
+            it.copy(
+                wechat = it.wechat.copy(pendingUinEntry = false),
+            )
+        }
+    }
+
+    /**
+     * User submitted uin in the dialog. Persist + close dialog + refresh
+     * card state.
+     *
+     * @param uin User-entered WeChat numeric UIN. Required.
+     * @param keyProvider "md5" for 7.x / "frida" for 8.0+. Defaults to
+     *                    "frida" since 7.x users are rare in 2026.
+     */
+    fun confirmWechatUin(uin: String, keyProvider: String = "frida") {
+        val trimmed = uin.trim()
+        if (trimmed.isBlank()) {
+            _state.update {
+                it.copy(
+                    wechat = it.wechat.copy(
+                        errorMessage = "UIN 不能为空",
+                    ),
+                )
+            }
+            return
+        }
+        try {
+            wechatCredentials.saveAccount(trimmed, keyProvider)
+        } catch (t: Throwable) {
+            Timber.e(t, "HubLocalViewModel: saveWechatAccount failed")
+            _state.update {
+                it.copy(
+                    wechat = it.wechat.copy(
+                        errorMessage = "保存账号信息失败: ${t.message}",
+                    ),
+                )
+            }
+            return
+        }
+        _state.update {
+            it.copy(
+                wechat = it.wechat.copy(pendingUinEntry = false),
+            )
+        }
+        refreshWechatFromStore()
+    }
+
+    fun syncWechat() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.wechat.isLoggedIn) {
+            requestWechatLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "wechat",
+                    wechat = it.wechat.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = wechatCollector.snapshot()
+            when (result) {
+                is WeChatLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            wechat = it.wechat.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is WeChatLocalCollector.SnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            wechat = it.wechat.copy(
+                                isSyncing = false,
+                                errorMessage = "设备未 root — 改用桌面端 (cc ui + 个人数据中台 + 添加 WeChat)",
+                            ),
+                        )
+                    }
+                }
+                is WeChatLocalCollector.SnapshotResult.FridaInjectFailed -> {
+                    val hint = when (result.reason) {
+                        "binary-missing" -> "Frida 二进制未打包（Phase 12.10.4 待落地）— 改用桌面端"
+                        "wechat-not-running" -> "WeChat 进程未运行 — 请先打开微信再同步"
+                        "hook-timeout" -> "Frida hook 30s 未触发 — 请打开任意聊天后再同步"
+                        else -> "Frida 注入失败 (${result.reason}) — 改用桌面端"
+                    }
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            wechat = it.wechat.copy(
+                                isSyncing = false,
+                                errorMessage = hint,
+                            ),
+                        )
+                    }
+                }
+                is WeChatLocalCollector.SnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            wechat = it.wechat.copy(
+                                isSyncing = false,
+                                errorMessage = "数据库提取失败 (${result.reason})" +
+                                    (result.message?.let { ": $it" } ?: ""),
+                            ),
+                        )
+                    }
+                }
+                is WeChatLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            wechat = it.wechat.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}" +
+                                    (result.message?.let { " ($it)" } ?: ""),
+                            ),
+                        )
+                    }
+                }
+                is WeChatLocalCollector.SnapshotResult.Ok -> {
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "wechat",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    wechat = it.wechat.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: wechat cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    wechat = it.wechat.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutWechat() {
+        wechatCredentials.clear()
+        _state.update {
+            it.copy(
+                wechat = WechatCardState(),
             )
         }
     }
