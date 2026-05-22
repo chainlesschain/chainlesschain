@@ -3,9 +3,30 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [in-progress — iOS PIN 闪退两轮 hotfix + Android quarantine 全部 0 收尾 + Plan A 真机闭环 verified] - 2026-05-21
+## [v5.0.3.77 / .78 — Personal Data Hub Plan A v0.1 真机闭环 + iOS .ipa ship] - 2026-05-22
 
-> 5 commits in flight after v5.0.3.74 GitHub Release，**未打 tag、未出 .ipa**。本条目记录方向，待装机 .ips 定锤后并入下一个 tag。productVersion 已 bump 到 v5.0.3.75（等 release.yml CI 出 GitHub Release），release-sizes 不动。
+> 两个 tag 合并发布：`.77` 顺手出 iOS .ipa 真机包 + Phase 14.1 step 5 ChatBubble；`.78` 是 Personal Data Hub Plan A v0.1 Xiaomi 24115RA8EC 真机端到端闭环 + 3 真机硬化修。CLI bump 到 0.162.14，npm `@chainlesschain/personal-data-hub@0.2.1`，Android versionCode 503078，iOS CFBundleVersion 78。
+
+- **Personal Data Hub Plan A v0.1 真机闭环**（commits `dc1241744` Plan A + `02cb0cf3f` Path C + `1be6135f6` Path Y + `8a6afb72c` cc android scaffold + `0bcde34dd` 3 真机硬化 + `65aa01954` 3 followups + `339d0e64c` cc subprocess W^X / reader / timeout / audit key + `478a7e159` ingest timeout 30→120s）：
+  - Xiaomi 24115RA8EC 真机端到端：1305 entities（通讯录 / 通话 / 短信 / 位置 / 系统）入本地 SQLCipher vault。
+  - **Path C** — phone-native snapshot writer（Kotlin ContentResolver + PackageManager 直采）+ 桌面 ingest pipeline（WS 推桌面 staging → 既有 adapter snapshot 模式入 vault）。完全绕开 A6 JNI；~0.5d 在 Win 上 ship + 真机闭环。
+  - **Path Y** — desktop 返 RAG context + Android-local LLM 推理。DeepSeek + Doubao + 其它 7 个云 LLM 通过 `cc-android-bridge` stub + bridge-direct 模式接通。
+  - 新 `cc android` 15 子命令 scaffold + `system-data-android` bridge-direct 模式。
+  - **3 真机硬化修**：`originalId` required（adapter yield 必含字段否则 `invalidCount=rawCount` 假象 + 1305 行 audit burst）+ `skip-embeddings` flag（Plan A 模式无需 vector）+ audit pagination 拆 1305 → 50/page。
+  - Android cc subprocess：W^X execve via mksh symlink（filesDir 文本脚本被 SELinux 拒）+ reader-thread `try/catch(Throwable)` 治 EOF race（Process.waitFor 关 FD 时 InterruptedIOException 未捕获）+ `ingestSystemDataAndroid` 30s → 120s 超时。
+  - **Bonus 运行时修**：bootstrap LLMManager 注册为 `getLLMManager()` singleton（commit `ea293043f`）+ web-shell PDH wiring inject CcLLMAdapter 让 web-shell 也尊重 active LLM provider（commit `bb008de6f`）。
+  - **PDH 分析正确性修**（commits `751ca2a47` + `34532fc5d` + `19c11920e`）：AnalysisEngine 读 persons + items 不只 events（止住幻觉 contact counts）+ LLM ResponseCache bypass for analysis ask（防 stale cache 答案）+ TOTALS preamble + 扩展 count intent（止 FACTS-length count 漂移）。
+  - Memory 沉淀：`pdh_plan_a_android_standalone_design.md`（6 真机 trap）+ `pdh_path_c_snapshot_writer.md` + `pdh_path_y_transition.md` + `android_cc_subprocess_execve_via_mksh.md` + `android_process_reader_thread_eof_race.md` + `miui_query_all_packages_silently_blocked.md` + `pdh_adapter_originalid_required.md` + `compose_lazycolumn_key_burst_collision.md` + `npm_publish_audit_and_dep_chain.md` + `android_native_lib_extract_w_x.md`。
+- **PDH-first publish ordering**（commits `4e0ff2544` + `38861059a`）：release.yml `publish-cli` job 现先发 `@chainlesschain/personal-data-hub` 再发 `chainlesschain` 避免 dep-chain 404（CLI 0.162.14 require PDH 0.2.1；若 CLI 先发则下游 `npm install -g` 在 PDH 处 404）。
+- **E2EE 7 androidTest 重新激活**（commit `a09fc53ee`）：7 个 `@Ignore + TODO()` cipher 测试经新 X3DHSimulator state-less E2EESession factories 重新跑起来 — Alice/Bob initiator/responder 不再需要两 PSM 实例。core-e2ee androidTest quarantine 全清。
+- **Phase 14.1 step 5 ChatBubble + Phase 14.5 streaming-ask 设计**（commits `6f861dcd9` + `3979d553a`）：iOS Personal Data Hub chat UI 落地 chat-bubble 模型；Phase 14.5 streaming-ask 设计文档归档。
+- **iOS .ipa 真机 ship**（commit `71436b9ac` v5.0.3.77 tag + `b98ce22fc` PersonalDataHubViews.swift target membership）：iOS .ipa 7.9MB 进 v5.0.3.77 GitHub Release assets，target-membership 接通后真出包。
+- **Android 收尾**：`c47da1bb6` bump `feature-file-browser` + `feature-project` minSdk 到 28（解 NDK linker 不兼容）+ `dd7d45155` re-quarantine 2 个 drifted `:app` androidTest 文件 + 从 E2E matrix 撤下 API 26 + `4c44bfc95` re-quarantine 18 个 `TODO()`-body stub 测试 + `b11354ac5` HubHealthCard.kt 删 `return@Column` 治 PDH SlotTable 崩 + `a4a3727a3` hoist annotations-java5 / webrtc / bouncycastle exclusions 到 root。
+- **版本面**：productVersion v5.0.3.75 → v5.0.3.78 / CLI 0.162.13 → 0.162.14 / desktop-app-vue 5.0.3-alpha.75 → .78 / android versionCode 503075 → 503078 / iOS CFBundleVersion 75 → 78 / npm `@chainlesschain/personal-data-hub` 0.2.0 → 0.2.1。
+
+## [v5.0.3.75 / .76 — iOS PIN 闪退两轮 hotfix + Android quarantine 全部 0 收尾 + Plan A 真机闭环 verified] - 2026-05-21
+
+> 多 fix 合并发布为 v5.0.3.75 与 .76 两 tag（iOS PIN-unlock 闪退诊断推进 CFBundleVersion 73 → 75 → 76）。WeChat Phase 12.6.7-10 bootstrap 编排层也作为 `.75` doc-prep sweep 一并发（commit `7ac414535`）。
 
 - **iOS PIN-unlock 闪退第二轮诊断**（commits `5807c1fbc` + `9deb6078d`，CFBundleVersion 73 → 75 → 76）：
   - 第一嫌疑收口：`DatabaseManager.open(password:)` 持 `queue.sync` 后调 `runMigrations → execute(...)`，`execute` 自身又 `queue.sync` 同一串行队列 = libdispatch 重入。iOS 17+ 某些路径 inline-recurse 蒙混，iOS 16 上稳定走 `_dispatch_assert_queue_fail` 死锁 — PIN 输完自动提交后 `AppState.authenticate` 卡死被 watchdog 干掉。修法：拆 `_executeUnlocked / _queryUnlocked / _queryOneUnlocked` 私有不锁版，`runMigrations / getCurrentVersion / runMigration / migration_v1` 14 处 execute 全改走 unlocked（它们已在 open() 的 queue.sync 闭包内）。公共 API 行为零变化。

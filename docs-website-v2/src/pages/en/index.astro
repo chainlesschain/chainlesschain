@@ -74,6 +74,12 @@ const everyday = [
 
 const highlights = [
   {
+    tag: 'v5.0.3.78 · 2026-05-22',
+    title: 'Personal Data Hub Plan A v0.1 — Android local data hub snapshot mode, real-device closure',
+    sub: 'End-to-end on Xiaomi 24115RA8EC: 1305 entities (contacts / calls / SMS / location / system) ingested into the local vault. npm @chainlesschain/personal-data-hub@0.2.1 + chainlesschain@0.162.14 with PDH-first publish ordering (release.yml publishes PDH before CLI to avoid the dep-chain 404 from before). New `cc android` 15-subcommand scaffold + `system-data-android` bridge-direct mode. Path C — phone-native snapshot writer + desktop ingest pipeline (Kotlin ContentResolver + PackageManager direct collection → WS push to desktop staging → existing adapter snapshot-mode into vault, bypassing A6 JNI entirely). Path Y — desktop returns RAG context + Android-local LLM inference (DeepSeek + Doubao + 7 more cloud LLM endpoints wired). Phase 14.1 step 5 ChatBubble landed + Phase 14.5 streaming-ask design.',
+    desc: 'Three real-device hardening fixes: originalId required (adapter yield must carry the field or invalidCount=rawCount false-success + a 1305-row audit burst) + skip-embeddings flag (Plan A mode does not need vectors) + audit pagination splits 1305 → 50/page. Android cc subprocess W^X execve via mksh symlink + reader-thread try/catch(Throwable) for EOF race + ingestSystemDataAndroid timeout 30s→120s. The 7 E2EE androidTest cases were reactivated via X3DHSimulator state-less E2EESession factories. bootstrap LLMManager is now registered as a singleton + web-shell PDH wiring injects CcLLMAdapter so web-shell honors the active LLM provider. AnalysisEngine reads persons + items, not just events, to stop hallucinated contact counts + LLM ResponseCache bypass for analysis ask (no more stale-cache answers). 6 real-device traps closed; engineering foundation 100% verified; feature layer ~7-9d remaining. v5.0.3.77 shipped the iOS .ipa real-device build alongside.',
+  },
+  {
     tag: 'v5.0.3.75 · 2026-05-21',
     title: 'WeChat Phase 12.6.7-10 — bootstrap orchestration + IPC/WS + cc hub wechat CLI + Vue UI wizard',
     sub: 'Closed the WeChat 8.0+ frida-dep path end-to-end across four sub-phases in a single evening. 12.6.7 bootstrap.js stitches env-probe → KeyProvider choice → WechatAdapter ctor into a single hermetic entry point so IPC/WS/CLI no longer have to reinvent the wiring (decision matrix md5/frida/unsupported + opts.keyProviderOverride + full _probe / _md5Provider / _fridaProvider / _WechatAdapter test seams). 12.6.8 — 4 new IPC channels and 4 cc-ui WS topics (wechat-env-probe / register-wechat / unregister-wechat / list-wechat-accounts), register-wechat and unregister-wechat join the privileged ApprovalUI gate so mobile peers cannot silently wire an adapter against an attacker-controlled dbPath or trigger a Frida session. 12.6.9 — cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister CLI verbs with --json on every verb for scripting and the Plan A in-app terminal. 12.6.10 — WechatWizard.vue 295 LOC three-step drawer (env-probe checklist with dynamic per-row tag colors → uin + dbPath + wechatDataPath + forceProvider form → result with probe.reasons surface) plus PersonalDataHub.vue button. 9 hermetic integration tests cover md5 happy / frida happy / unsupported / idempotent re-register / two-uin coexistence / override semantics — no adb, no Frida, no real device. Phase 12.9 rooted-Android real-device E2E now has a dedicated §11 of the runbook with three flow scenarios (pre-8.0 md5 / 8.0+ frida / 8.0+ unrooted graceful rejection) and performance baselines.',
@@ -374,7 +380,7 @@ const badges = [
       <div class="max-w-4xl mb-16">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
           <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
-          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">Personal Data Hub · NEW in v5.0.3.72</span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">Personal Data Hub · Plan A real-device closure in v5.0.3.78</span>
         </div>
         <h2 class="text-display-md md:text-5xl leading-tight font-display">
           Pull every digital footprint home —<br/>

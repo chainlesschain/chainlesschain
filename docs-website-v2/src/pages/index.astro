@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.78 · 2026-05-22',
+    title: 'Personal Data Hub Plan A v0.1 真机闭环 — Android 本地数据 hub snapshot 模式',
+    sub: 'Xiaomi 24115RA8EC 真机端到端 1305 entities（通讯录 / 通话 / 短信 / 位置 / 系统）入 vault。npm @chainlesschain/personal-data-hub@0.2.1 + chainlesschain@0.162.14 PDH-first publish ordering（release.yml 先发 PDH 再 CLI 避免 dep chain 404）。新 `cc android` 15 子命令 scaffold + `system-data-android` bridge-direct 模式。Path C — phone-native snapshot writer + 桌面 ingest pipeline（Kotlin ContentResolver + PackageManager 直采 → WS 推桌面 staging → 既有 adapter snapshot 模式入 vault，完全绕开 A6 JNI）。Path Y — desktop 返 RAG context + Android-local LLM 推理（DeepSeek + Doubao 等 9 云 LLM 接通）。Phase 14.1 step 5 ChatBubble 落地 + Phase 14.5 streaming-ask 设计。',
+    desc: '3 真机硬化修：originalId required（adapter yield 必含字段否则 invalidCount=rawCount 假象 + 1305 行 audit burst）+ skip-embeddings flag（Plan A 模式无需 vector）+ audit pagination 拆 1305 → 50/page。Android cc subprocess W^X execve via mksh symlink + reader-thread try/catch(Throwable) EOF race + ingestSystemDataAndroid 30→120s timeout。E2EE 7 androidTest 经 X3DHSimulator state-less E2EESession factories 重新启用。bootstrap LLMManager 注册为 singleton + web-shell PDH wiring inject CcLLMAdapter 让 web-shell 也尊重 active LLM provider。AnalysisEngine 读 persons + items 不只 events 阻止幻觉 contact counts + LLM ResponseCache bypass for analysis ask（防供 stale 缓存）。6 真机 trap 全收口 · 工程基础 100% verified · 剩 feature 层 ~7-9d。同期 v5.0.3.77 顺手 iOS .ipa 真机 ship + Phase 14.1 step 5 ChatBubble 全 land。',
+  },
+  {
     tag: 'v5.0.3.75 · 2026-05-21',
     title: 'WeChat Phase 12.6.7-10 — bootstrap 编排层 + IPC/WS + cc hub wechat CLI + Vue UI 向导',
     sub: '一晚把 WeChat 8.0+ frida-dep 路径从零件凑齐到端到端可用全收口。12.6.7 bootstrap.js 把 env-probe → KeyProvider 选择 → WechatAdapter ctor 拼成单入口，IPC/WS/CLI 三 caller 不再各自重发明 wiring（md5/frida/unsupported 决策矩阵 + opts.keyProviderOverride + _probe / _md5Provider / _fridaProvider / _WechatAdapter 全注入 test seam）。12.6.8 — 4 个 IPC 通道 + 4 个 cc ui WS 主题（wechat-env-probe / register-wechat / unregister-wechat / list-wechat-accounts），register/unregister-wechat 加入 ApprovalUI privileged whitelist 防 mobile peer 偷偷往攻击者控制的 dbPath 注册 adapter 或触发 Frida session。12.6.9 — cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister 4 个 verb，--json 全 verb 可机读，脚本与 Plan A 手机内嵌终端可用。12.6.10 — WechatWizard.vue 295 行 3-step drawer（env-probe checklist 动态 Tag 着色 → uin + dbPath + wechatDataPath + forceProvider 表单 → result 结构化错误 + probe.reasons 反馈）+ PersonalDataHub.vue「添加 WeChat」按钮。9 个 hermetic 集成测试覆盖 md5 happy / frida happy / unsupported / 幂等重注册 / 两 uin 共存 / override 语义 — 无 adb 无 Frida 无真设备。Phase 12.9 rooted Android 真机 E2E 已在 runbook §11 落地三套真流（pre-8.0 md5 / 8.0+ frida / 8.0+ unrooted 优雅拒绝）+ 性能基准。',
@@ -398,7 +404,7 @@ const badges = [
       <div class="max-w-4xl mb-16">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/15 border border-ember/30 mb-6">
           <span class="w-1.5 h-1.5 bg-ember rounded-full animate-pulse"></span>
-          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.75 新</span>
+          <span class="font-mono text-[11px] text-ember uppercase tracking-widest">个人数据中台 · v5.0.3.78 真机闭环</span>
         </div>
         <h2 class="text-display-md md:text-5xl leading-tight font-display">
           把散落各处的数字足迹，<br/>
