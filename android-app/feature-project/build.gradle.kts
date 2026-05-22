@@ -10,7 +10,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 26
+        // Bumped to 28 (2026-05-22) — same reason as :feature-file-browser
+        // (see its build.gradle.kts): transitive dep on :feature-local-terminal
+        // (via :feature-ai) requires minSdk 28, otherwise processDebug
+        // AndroidTestManifest fails the merge.
+        minSdk = 28
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
