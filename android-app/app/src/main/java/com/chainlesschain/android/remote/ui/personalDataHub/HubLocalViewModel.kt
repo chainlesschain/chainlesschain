@@ -77,6 +77,7 @@ class HubLocalViewModel @Inject constructor(
     private val douyinCredentials: DouyinCredentialsStore,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
+    private val systemDataState: SystemDataSyncStateStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -341,6 +342,7 @@ class HubLocalViewModel @Inject constructor(
 
     init {
         refreshPermissionState()
+        refreshSystemDataFromStore()
         refreshBilibiliFromStore()
         refreshWeiboFromStore()
         refreshDouyinFromStore()
@@ -358,6 +360,25 @@ class HubLocalViewModel @Inject constructor(
             it.copy(
                 systemData = it.systemData.copy(
                     contactsPermissionGranted = snapshotter.hasContactsPermission(),
+                ),
+            )
+        }
+    }
+
+    /**
+     * Hydrate [SystemDataCardState] from [systemDataState] so the UI recalls
+     * "上次同步 X 联系人 / Y 应用" across process death — the same disk-backed
+     * recall the social cards do via their *CredentialsStore.
+     */
+    private fun refreshSystemDataFromStore() {
+        val lastAt = systemDataState.getLastSnapshotAt() ?: return
+        _state.update {
+            it.copy(
+                systemData = it.systemData.copy(
+                    lastSnapshotAt = lastAt,
+                    contactsCount = systemDataState.getContactsCount(),
+                    appsCount = systemDataState.getAppsCount(),
+                    ingested = systemDataState.getIngested(),
                 ),
             )
         }
@@ -421,6 +442,15 @@ class HubLocalViewModel @Inject constructor(
                             ),
                         )
                     }
+                    // Persist so reopening the app recalls last-synced metadata
+                    // instead of resurfacing "未同步". Only on Ok — Failed leaves
+                    // both UI and disk untouched.
+                    systemDataState.recordSync(
+                        at = snapshot.snapshottedAt,
+                        contactsCount = snapshot.contactsCount,
+                        appsCount = snapshot.appsCount,
+                        ingested = r.report.ingested,
+                    )
                 }
                 is LocalCcRunner.CcResult.Failed -> {
                     Timber.w(

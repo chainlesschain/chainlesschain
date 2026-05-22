@@ -74,6 +74,7 @@ class HubLocalViewModelTest {
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsCredentials: XhsCredentialsStore
+    private lateinit var systemDataState: SystemDataSyncStateStore
     private lateinit var appContext: Context
 
     @Before
@@ -107,6 +108,12 @@ class HubLocalViewModelTest {
         every { douyinCredentials.getLastSyncCount() } returns 0
         xhsCollector = mockk(relaxed = true)
         xhsCredentials = mockk(relaxed = true)
+        systemDataState = mockk(relaxed = true)
+        // Default: no past system-data sync. Specific tests override these.
+        every { systemDataState.getLastSnapshotAt() } returns null
+        every { systemDataState.getContactsCount() } returns 0
+        every { systemDataState.getAppsCount() } returns 0
+        every { systemDataState.getIngested() } returns 0
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -145,6 +152,7 @@ class HubLocalViewModelTest {
             douyinCredentials,
             xhsCollector,
             xhsCredentials,
+            systemDataState,
             appContext,
         )
 
@@ -172,6 +180,35 @@ class HubLocalViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
         assertTrue(vm.state.value.systemData.contactsPermissionGranted)
+    }
+
+    @Test
+    fun `init recalls system-data lastSync from store across process death`() = runTest(testDispatcher) {
+        // Simulate a previous successful sync persisted to disk
+        every { systemDataState.getLastSnapshotAt() } returns 1716000000000L
+        every { systemDataState.getContactsCount() } returns 142
+        every { systemDataState.getAppsCount() } returns 87
+        every { systemDataState.getIngested() } returns 229
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(1716000000000L, vm.state.value.systemData.lastSnapshotAt)
+        assertEquals(142, vm.state.value.systemData.contactsCount)
+        assertEquals(87, vm.state.value.systemData.appsCount)
+        assertEquals(229, vm.state.value.systemData.ingested)
+    }
+
+    @Test
+    fun `init leaves systemData defaults when store has no past sync`() = runTest(testDispatcher) {
+        // Defaults from setUp: getLastSnapshotAt returns null → no recall
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.systemData.lastSnapshotAt)
+        assertEquals(0, vm.state.value.systemData.contactsCount)
+        assertEquals(0, vm.state.value.systemData.appsCount)
+        assertEquals(0, vm.state.value.systemData.ingested)
     }
 
     @Test
