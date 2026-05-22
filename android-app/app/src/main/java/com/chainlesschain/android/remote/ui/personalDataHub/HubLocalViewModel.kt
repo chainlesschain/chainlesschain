@@ -232,6 +232,9 @@ class HubLocalViewModel @Inject constructor(
         // §2.4b 购物双联 v0.2 — JD + Meituan SAF import (HTML/JSON)
         val jdOrder: PaymentImportCardState = PaymentImportCardState(),
         val meituanOrder: PaymentImportCardState = PaymentImportCardState(),
+        // §2.4c 购物三联 v0.2 — Pinduoduo SAF import (JSON only; no cookie
+        // mode because pinduoduo web requires anti_token JS-VM signing).
+        val pinduoduoOrder: PaymentImportCardState = PaymentImportCardState(),
     )
 
     /**
@@ -814,7 +817,8 @@ class HubLocalViewModel @Inject constructor(
         if (providerKey != "alipay-bill" &&
             providerKey != "shopping-taobao" &&
             providerKey != "shopping-jd" &&
-            providerKey != "shopping-meituan"
+            providerKey != "shopping-meituan" &&
+            providerKey != "shopping-pinduoduo"
         ) {
             Timber.w("importPaymentShoppingFile: unknown providerKey=%s", providerKey)
             return
@@ -839,6 +843,9 @@ class HubLocalViewModel @Inject constructor(
                 // collector 写)；HTML 路径预留 v0.3 (adapter HTML parser 未实现)
                 "shopping-jd" -> "json"
                 "shopping-meituan" -> "json"
+                // §2.4c — Pinduoduo v0.2: JSON only (anti_token gated; user
+                // hand-rolls or v0.3 browser extension exports JSON).
+                "shopping-pinduoduo" -> "json"
                 else -> "dat"  // unreachable per gate above
             }
             val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
@@ -942,6 +949,7 @@ class HubLocalViewModel @Inject constructor(
             "shopping-taobao" -> _state.value.paymentShopping.taobaoOrder
             "shopping-jd" -> _state.value.paymentShopping.jdOrder
             "shopping-meituan" -> _state.value.paymentShopping.meituanOrder
+            "shopping-pinduoduo" -> _state.value.paymentShopping.pinduoduoOrder
             else -> PaymentImportCardState()
         }
 
@@ -954,6 +962,7 @@ class HubLocalViewModel @Inject constructor(
         "shopping-taobao" -> ps.copy(taobaoOrder = transform(ps.taobaoOrder))
         "shopping-jd" -> ps.copy(jdOrder = transform(ps.jdOrder))
         "shopping-meituan" -> ps.copy(meituanOrder = transform(ps.meituanOrder))
+        "shopping-pinduoduo" -> ps.copy(pinduoduoOrder = transform(ps.pinduoduoOrder))
         else -> ps
     }
 
