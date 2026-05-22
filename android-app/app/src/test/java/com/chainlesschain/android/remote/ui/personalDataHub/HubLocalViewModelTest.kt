@@ -341,4 +341,139 @@ class HubLocalViewModelTest {
     private fun coVerifyNoSnapshot() {
         io.mockk.coVerify(exactly = 0) { bilibiliCollector.snapshot() }
     }
+
+    // ─── A3 — askQuestion ────────────────────────────────────────────────────
+
+    @Test
+    fun `askQuestion no-op when question blank`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.askQuestion()
+        advanceUntilIdle()
+        assertFalse(vm.state.value.ask.isAsking)
+        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any()) }
+    }
+
+    @Test
+    fun `askQuestion success populates answer + citations + llmName`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            report = LocalCcRunner.AskReport(
+                answer = "上周妈妈给你打了 2 个电话。",
+                citations = listOf(
+                    LocalCcRunner.AskReport.Citation(
+                        eventId = "evt_abc",
+                        excerpt = "通话 · 2026-05-15",
+                        source = "system-data-android",
+                    ),
+                    LocalCcRunner.AskReport.Citation(
+                        eventId = "evt_def",
+                        excerpt = null,
+                        source = "system-data-android",
+                    ),
+                ),
+                llmName = "ollama:qwen2.5-1.5b-instruct",
+                isLocal = true,
+                durationMs = 4200L,
+            ),
+            rawJson = "{...}",
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.onAskQuestionChanged("上周谁给我打过电话")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertFalse(s.isAsking)
+        assertEquals("上周妈妈给你打了 2 个电话。", s.answer)
+        assertEquals(2, s.citations.size)
+        assertEquals("evt_abc", s.citations[0].eventId)
+        assertTrue(s.isLocal)
+        assertEquals("ollama:qwen2.5-1.5b-instruct", s.llmName)
+        assertEquals(4200L, s.durationMs)
+        assertNull(s.errorMessage)
+    }
+
+    @Test
+    fun `askQuestion failure rewrites Ollama errors to friendly hint`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
+            reason = "OllamaClient.chat: request failed — fetch failed",
+            exitCode = 1,
+            stderr = null,
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onAskQuestionChanged("test")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertFalse(s.isAsking)
+        assertNotNull(s.errorMessage)
+        assertTrue(s.errorMessage!!.contains("端侧 LLM 未启动"))
+    }
+
+    @Test
+    fun `askQuestion failure surfaces other errors verbatim`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
+            reason = "vault locked: key missing",
+            exitCode = 2,
+            stderr = null,
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onAskQuestionChanged("test")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertEquals("vault locked: key missing", s.errorMessage)
+        assertFalse(s.errorMessage!!.contains("LLM 未启动"))
+    }
+
+    @Test
+    fun `clearAskAnswer wipes answer + citations + error`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            report = LocalCcRunner.AskReport(
+                answer = "hi",
+                citations = listOf(
+                    LocalCcRunner.AskReport.Citation("evt_1", null, null),
+                ),
+                llmName = null, isLocal = true, durationMs = 100L,
+            ),
+            rawJson = "{}",
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onAskQuestionChanged("q")
+        vm.askQuestion()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.ask.answer)
+
+        vm.clearAskAnswer()
+        assertNull(vm.state.value.ask.answer)
+        assertTrue(vm.state.value.ask.citations.isEmpty())
+        assertNull(vm.state.value.ask.errorMessage)
+    }
+
+    @Test
+    fun `askQuestion ignored while already in flight`() = runTest(testDispatcher) {
+        // First call hangs (never completes): use a slot to capture the call,
+        // then assert second call is silently rejected.
+        coEvery { ccRunner.askQuestion(any(), any(), any()) } coAnswers {
+            kotlinx.coroutines.delay(1_000_000)
+            LocalCcRunner.AskResult.Failed("unreachable", null, null)
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onAskQuestionChanged("q")
+        vm.askQuestion()
+        // Don't advance — first call stays in flight
+        assertTrue(vm.state.value.ask.isAsking)
+
+        // Second call should be a no-op (still isAsking)
+        vm.askQuestion()
+        io.mockk.coVerify(exactly = 1) { ccRunner.askQuestion(any(), any(), any()) }
+    }
 }

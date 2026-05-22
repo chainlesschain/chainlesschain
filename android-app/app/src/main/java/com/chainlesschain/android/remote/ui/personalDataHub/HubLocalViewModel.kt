@@ -80,6 +80,23 @@ class HubLocalViewModel @Inject constructor(
         val isLoginSuccess: (String) -> Boolean,
     )
 
+    /**
+     * A3 — "提问" card state. Drives the local LLM ask flow via
+     * [LocalCcRunner.askQuestion] which spawns `cc hub ask --json` against
+     * the Kotlin-hosted Ollama-compat LLM server (A3.2 — pending wire).
+     */
+    @Immutable
+    data class AskCardState(
+        val question: String = "",
+        val isAsking: Boolean = false,
+        val answer: String? = null,
+        val citations: List<LocalCcRunner.AskReport.Citation> = emptyList(),
+        val llmName: String? = null,
+        val isLocal: Boolean = true,
+        val durationMs: Long = 0L,
+        val errorMessage: String? = null,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -105,6 +122,7 @@ class HubLocalViewModel @Inject constructor(
         ),
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
+        val ask: AskCardState = AskCardState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -206,6 +224,74 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    // ─── Ask (A3 — on-device LLM) ───────────────────────────────────────────
+    //
+    // Wraps LocalCcRunner.askQuestion (cc hub ask --json) which drives the
+    // existing AnalysisEngine.ask() — same RAG + citations contract as the
+    // desktop. In v0.1 the Kotlin-hosted LLM server (A3.2) is not yet wired,
+    // so cc will fail with "OllamaClient.chat: request failed" — surfaced
+    // to the UI as "端侧 LLM 未启动 (A3.2)". Wire happens in a follow-up.
+
+    fun onAskQuestionChanged(text: String) {
+        _state.update { it.copy(ask = it.ask.copy(question = text, errorMessage = null)) }
+    }
+
+    fun askQuestion() {
+        val q = _state.value.ask.question.trim()
+        if (q.isEmpty() || _state.value.ask.isAsking) return
+        _state.update {
+            it.copy(
+                ask = it.ask.copy(
+                    isAsking = true,
+                    answer = null,
+                    citations = emptyList(),
+                    errorMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            // v0.1: ollamaUrl=null → cc uses default localhost:11434 which
+            // will fail until A3.2 lands the Ktor server. Once A3.2 ships
+            // we pass LlmServerHolder.currentUrl() here.
+            val result = ccRunner.askQuestion(q, ollamaUrl = null)
+            _state.update { st ->
+                when (result) {
+                    is LocalCcRunner.AskResult.Ok -> st.copy(
+                        ask = st.ask.copy(
+                            isAsking = false,
+                            answer = result.report.answer,
+                            citations = result.report.citations,
+                            llmName = result.report.llmName,
+                            isLocal = result.report.isLocal,
+                            durationMs = result.report.durationMs,
+                        ),
+                    )
+                    is LocalCcRunner.AskResult.Failed -> {
+                        Timber.w(
+                            "HubLocalViewModel.askQuestion: cc failed reason=%s exit=%s",
+                            result.reason, result.exitCode,
+                        )
+                        // Friendlier message for the common A3.2-not-wired case
+                        val hint = if (
+                            result.reason.contains("OllamaClient", ignoreCase = true) ||
+                            result.reason.contains("ECONNREFUSED", ignoreCase = true) ||
+                            result.reason.contains("fetch failed", ignoreCase = true)
+                        ) {
+                            "端侧 LLM 未启动 (A3.2 待落地) — 原始错误: ${result.reason}"
+                        } else {
+                            result.reason
+                        }
+                        st.copy(ask = st.ask.copy(isAsking = false, errorMessage = hint))
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearAskAnswer() {
+        _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), errorMessage = null)) }
+    }
+
     // ─── Bilibili ───────────────────────────────────────────────────────────
 
     fun refreshBilibiliFromStore() {
@@ -305,12 +391,25 @@ class HubLocalViewModel @Inject constructor(
                 }
                 is BilibiliLocalCollector.SnapshotResult.Ok -> {
                     if (result.everythingEmpty) {
+                        // Surface the actual Bilibili response code if any was
+                        // captured during the 4 API calls (anti-spider -412 /
+                        // not-logged-in -101 / IO error are very different
+                        // fixes). Real-device 2026-05-22 hit -412 because
+                        // BilibiliApiClient was missing User-Agent header.
+                        val detail = when (result.lastErrorCode) {
+                            0 -> "API 返回空 + 无错误码 — 可能 cookie 缺关键字段（bili_jct / buvid3）"
+                            -101 -> "Bilibili 返回 -101（账号未登录）— 请重新登录"
+                            -412, 412 -> "Bilibili 返回 -412（反爬触发）— 升级 User-Agent 或稍后重试"
+                            -509 -> "Bilibili 返回 -509（限流）— 稍后再试"
+                            else -> "Bilibili 返回 code=${result.lastErrorCode}" +
+                                (result.lastErrorMessage?.let { " ($it)" } ?: "")
+                        }
                         _state.update {
                             it.copy(
                                 globalSyncingAdapter = null,
                                 bilibili = it.bilibili.copy(
                                     isSyncing = false,
-                                    errorMessage = "4 个 API 都返回空 — cookie 可能过期，请重新登录",
+                                    errorMessage = "4 个 API 都返回空 — $detail",
                                 ),
                             )
                         }
