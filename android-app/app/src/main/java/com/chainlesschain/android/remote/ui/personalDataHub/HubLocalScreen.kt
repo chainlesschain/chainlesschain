@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,38 +77,48 @@ fun HubLocalScreen(
 
     val pending = state.pendingLogin
     if (pending != null) {
-        SocialCookieWebViewScreen(
-            loginUrl = pending.loginUrl,
-            cookieDomain = pending.cookieDomain,
-            displayName = pending.displayName,
-            isLoginSuccess = pending.isLoginSuccess,
-            onLoginComplete = { cookie ->
-                when {
-                    pending.adapterName == "social-bilibili" ->
-                        viewModel.onBilibiliLoginCookie(cookie)
-                    pending.adapterName == "social-weibo" ->
-                        viewModel.onWeiboLoginCookie(cookie)
-                    pending.adapterName == "social-douyin" ->
-                        viewModel.onDouyinLoginCookie(cookie)
-                    pending.adapterName == "social-xiaohongshu" ->
-                        viewModel.onXhsLoginCookie(cookie)
-                    pending.adapterName.startsWith("ai-chat:") -> {
-                        // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
-                        // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
-                        val vendorKey = pending.adapterName.removePrefix("ai-chat:")
-                        viewModel.onAiChatLoginCookie(vendorKey, cookie)
+        // key(adapterName) forces SocialCookieWebViewScreen + its inner
+        // AndroidView{WebView} to remount when the user switches from one
+        // pending vendor to another without cancelling first. Without this
+        // the AndroidView.factory only fires on first composition and the
+        // WebView stays stuck on the prior vendor's loginUrl while the
+        // dialog title updates to the new vendor — observed on real device:
+        // tap Wenxin → tap Kimi → dialog says "Kimi" but WebView loads
+        // yiyan.baidu.com + triggers Wenxin's isLoginSuccess immediately.
+        key(pending.adapterName) {
+            SocialCookieWebViewScreen(
+                loginUrl = pending.loginUrl,
+                cookieDomain = pending.cookieDomain,
+                displayName = pending.displayName,
+                isLoginSuccess = pending.isLoginSuccess,
+                onLoginComplete = { cookie ->
+                    when {
+                        pending.adapterName == "social-bilibili" ->
+                            viewModel.onBilibiliLoginCookie(cookie)
+                        pending.adapterName == "social-weibo" ->
+                            viewModel.onWeiboLoginCookie(cookie)
+                        pending.adapterName == "social-douyin" ->
+                            viewModel.onDouyinLoginCookie(cookie)
+                        pending.adapterName == "social-xiaohongshu" ->
+                            viewModel.onXhsLoginCookie(cookie)
+                        pending.adapterName.startsWith("ai-chat:") -> {
+                            // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
+                            // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
+                            val vendorKey = pending.adapterName.removePrefix("ai-chat:")
+                            viewModel.onAiChatLoginCookie(vendorKey, cookie)
+                        }
+                        pending.adapterName.startsWith("travel:") -> {
+                            // §2.5 D8.2 — 出行 vendor 共用 WebView cookie scrape；
+                            // adapterName 携 "travel:<vendorKey>" 形态。
+                            val vendorKey = pending.adapterName.removePrefix("travel:")
+                            viewModel.onTravelLoginCookie(vendorKey, cookie)
+                        }
+                        else -> viewModel.cancelLogin()
                     }
-                    pending.adapterName.startsWith("travel:") -> {
-                        // §2.5 D8.2 — 出行 vendor 共用 WebView cookie scrape；
-                        // adapterName 携 "travel:<vendorKey>" 形态。
-                        val vendorKey = pending.adapterName.removePrefix("travel:")
-                        viewModel.onTravelLoginCookie(vendorKey, cookie)
-                    }
-                    else -> viewModel.cancelLogin()
-                }
-            },
-            onCancel = { viewModel.cancelLogin() },
-        )
+                },
+                onCancel = { viewModel.cancelLogin() },
+            )
+        }
         return
     }
 
