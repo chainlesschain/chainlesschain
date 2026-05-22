@@ -331,6 +331,29 @@ describe("normalizeWeChatContact", () => {
     const b = normalizeWeChatContact({});
     expect(b.persons).toHaveLength(0);
   });
+
+  // sjqz parity audit follow-up (post-Phase 12.6.10) — classify
+  // 公众号 / Official Accounts (gh_*) as merchant subtype so the Ask
+  // flow / EntityResolver can filter them out of human contacts.
+  it("gh_* username → subtype merchant (公众号 / Official Account)", () => {
+    const b = normalizeWeChatContact({
+      username: "gh_abc123def",
+      nickname: "某品牌官方",
+      type: 3,
+    });
+    expect(b.persons).toHaveLength(1);
+    expect(b.persons[0].subtype).toBe("merchant");
+    expect(b.persons[0].identifiers.wechatId).toBe("gh_abc123def");
+  });
+
+  it("regular wxid_* → subtype contact (default)", () => {
+    const b = normalizeWeChatContact({
+      username: "wxid_realfriend",
+      nickname: "好友",
+      type: 1,
+    });
+    expect(b.persons[0].subtype).toBe("contact");
+  });
 });
 
 // ─── WechatAdapter contract + sync flow ──────────────────────────────────
@@ -436,6 +459,101 @@ describe("WechatAdapter.sync with mocked DB reader", () => {
         const v = validateBatch(batch);
         expect(v.valid).toBe(true);
       }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // sjqz parity audit follow-up — fetchContacts must exclude
+   // @stranger and fake_* by default (vault pollution prevention).
+  it("fetchContacts excludes @stranger and fake_* by default", async () => {
+    // Pure DI smoke — capture the SQL passed to .prepare() to verify the
+    // junk filter is in the query. We mock just enough of better-sqlite3's
+    // shape: db.prepare(sql) → { all(limit) → rows }, exec, pragma.
+    const seenSql = [];
+    const fakeDriver = function Database(_path, _opts) {
+      return {
+        pragma: () => undefined,
+        exec: () => undefined,
+        prepare(sql) {
+          seenSql.push(sql);
+          return {
+            all: () => {
+              if (sql.startsWith("PRAGMA table_info")) {
+                return [
+                  { name: "username" },
+                  { name: "alias" },
+                  { name: "nickname" },
+                  { name: "conRemark" },
+                  { name: "type" },
+                ];
+              }
+              if (sql.startsWith("SELECT count")) return [{ n: 5 }];
+              if (sql.includes("FROM rcontact")) return [];
+              return [];
+            },
+            get: () => ({ n: 5 }),
+          };
+        },
+        close: () => undefined,
+      };
+    };
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wechat-junkfilt-"));
+    const dbPath = path.join(dir, "EnMicroMsg.db");
+    fs.writeFileSync(dbPath, "fake");
+    try {
+      const reader = new WeChatDBReader({
+        dbPath,
+        keyProvider: { getKey: async () => "0".repeat(64) },
+        driver: fakeDriver,
+      });
+      await reader.open();
+      reader.fetchContacts({ limit: 100 });
+      const contactsSql = seenSql.find((s) => s.includes("FROM rcontact"));
+      expect(contactsSql).toBeDefined();
+      expect(contactsSql).toMatch(/NOT LIKE '%@stranger'/);
+      expect(contactsSql).toMatch(/NOT LIKE 'fake_%'/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fetchContacts with includeJunk:true drops the filter (forensic mode)", async () => {
+    const seenSql = [];
+    const fakeDriver = function Database() {
+      return {
+        pragma: () => undefined,
+        exec: () => undefined,
+        prepare(sql) {
+          seenSql.push(sql);
+          return {
+            all: () => {
+              if (sql.startsWith("PRAGMA table_info")) {
+                return ["username", "alias", "nickname", "conRemark", "type"].map((name) => ({ name }));
+              }
+              if (sql.startsWith("SELECT count")) return [{ n: 5 }];
+              return [];
+            },
+            get: () => ({ n: 5 }),
+          };
+        },
+        close: () => undefined,
+      };
+    };
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wechat-incljunk-"));
+    const dbPath = path.join(dir, "EnMicroMsg.db");
+    fs.writeFileSync(dbPath, "fake");
+    try {
+      const reader = new WeChatDBReader({
+        dbPath,
+        keyProvider: { getKey: async () => "0".repeat(64) },
+        driver: fakeDriver,
+      });
+      await reader.open();
+      reader.fetchContacts({ limit: 100, includeJunk: true });
+      const contactsSql = seenSql.find((s) => s.includes("FROM rcontact"));
+      expect(contactsSql).toBeDefined();
+      expect(contactsSql).not.toMatch(/NOT LIKE/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
