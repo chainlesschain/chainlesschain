@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,22 +37,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.pdh.social.SocialCookieWebViewScreen
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Plan A v0.1 + A8 — 4th tab "本机数据" inside PersonalDataHubScreen.
+ * Plan A v0.1 + A8 + A3 + D5 — 4th tab "本机数据" inside PersonalDataHubScreen.
  *
  * Distinguishing this tab from the other three:
  *  - 提问 / Adapter / 审计 → remote (RPC into the paired desktop's hub)
  *  - 本机数据             → local (in-APK cc subprocess writes to a local
  *                          vault.db at filesDir/.chainlesschain/hub/)
  *
- * Cards rendered (v0.1):
- *  1. 本机数据 (system-data-android)  — contacts + apps via ContentResolver
- *  2. Bilibili (social-bilibili)      — login WebView + OkHttp + 4 API fetches
- *  3. 微博 / 抖音 / 小红书             — scaffold cards, stub behavior in v0.1
+ * D5 layout — LazyColumn 6-category grouping mirroring推文 §"已支持 19+ App / 6 大类":
+ *   1. 提问 — [HubAskCard] (A3 端侧 LLM ask flow，A3.2 wire 后真出答案)
+ *   2. 基础数据 — [SystemDataCard] (system-data-android: contacts + apps)
+ *   3. 内容平台 — Bilibili (real) + 微博/抖音/小红书 stubs (A8 v0.2 待接通)
+ *   4. 社交聊天 — 微信 placeholder (Phase 12 实施中)
+ *   5. 邮箱 — QQ/Gmail/163/Outlook placeholder (D6 待开放)
+ *   6. 支付与购物 — 支付宝/淘宝 placeholder (D7 待开放)
+ *   7. 出行 — 高德/携程 placeholder (D8 待开放)
+ *   8. AI 助手 — 9 家 placeholder (D10 待开放)
  *
  * Login WebView overlay: when [HubLocalViewModel.UiState.pendingLogin] is
  * non-null, we replace the card list with SocialCookieWebViewScreen so the
@@ -95,71 +102,182 @@ fun HubLocalScreen(
     }
 
     Scaffold { padding ->
-        Column(
+        // D5 — LazyColumn 6 类分组（基础数据 / 社交聊天 / 邮箱 / 支付与购物 /
+        // 出行 / 内容平台 / AI 助手）镜像推文 §"已支持 19+ App / 6 大类"。未实施
+        // 大类先用 PlaceholderCategoryCard 占位，每个 PR 把对应 D6-D10 真接通。
+        // A3.8 — HubAskCard 浮在最顶（提问 over 本机数据），与 SystemDataCard 配对。
+        val globalBusy = state.globalSyncingAdapter != null
+        LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         ) {
+            item("header") { ScreenHeader() }
+            item("ask") {
+                Spacer(Modifier.height(16.dp))
+                HubAskCard(
+                    state = state.ask,
+                    onQuestionChanged = { viewModel.onAskQuestionChanged(it) },
+                    onSubmit = { viewModel.askQuestion() },
+                    onCitationClick = { eventId ->
+                        // v0.1: 没有 cc hub event-detail subcommand，先 log
+                        // 留 hook 给后续 (新 LocalCcRunner.queryEvent + 复用
+                        // HubEventDetailContent sheet)。chip 上的 excerpt 已
+                        // 给用户原文预览，不阻塞当前体验。
+                        Timber.i("HubLocalScreen: citation deeplink TODO eventId=$eventId")
+                    },
+                    onDismissAnswer = { viewModel.clearAskAnswer() },
+                )
+            }
+
+            // ─── 基础数据 ───────────────────────────────────────────────
+            item("section-base") { SectionHeader("基础数据 · Plan A v0.1") }
+            item("system-data") {
+                SystemDataCard(
+                    state = state.systemData,
+                    globalBusy = globalBusy,
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                    onRefresh = { viewModel.refreshSystemData() },
+                )
+            }
+
+            // ─── 内容平台（推文 §"内容平台": 抖音/B站/微博/小红书）─────
+            item("section-content") { SectionHeader("内容平台") }
+            val contentCards = listOf(state.bilibili, state.weibo, state.douyin, state.xiaohongshu)
+            items(contentCards, key = { "content-${it.adapterName}" }) { card ->
+                SocialAdapterCard(
+                    state = card,
+                    globalBusy = globalBusy,
+                    onLogin = {
+                        when (card.adapterName) {
+                            "social-bilibili" -> viewModel.requestBilibiliLogin()
+                            else -> viewModel.requestSocialLoginStub(
+                                card.adapterName.removePrefix("social-")
+                            )
+                        }
+                    },
+                    onSync = {
+                        when (card.adapterName) {
+                            "social-bilibili" -> viewModel.syncBilibili()
+                            else -> viewModel.requestSocialLoginStub(
+                                card.adapterName.removePrefix("social-")
+                            )
+                        }
+                    },
+                    onLogout = {
+                        if (card.adapterName == "social-bilibili") viewModel.logoutBilibili()
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // ─── 社交聊天（推文 §"社交聊天": 微信）─────────────────────
+            item("section-im") { SectionHeader("社交聊天") }
+            item("im-wechat") {
+                PlaceholderCategoryCard(
+                    title = "微信",
+                    statusText = "Phase 12 实施中（rooted 完整版 + frida-indep slice）— 推文 §root 完整版",
+                )
+            }
+
+            // ─── 邮箱（推文 §"邮箱": QQ/Gmail/163/Outlook）──────────────
+            item("section-mail") { SectionHeader("邮箱") }
+            item("mail") {
+                PlaceholderCategoryCard(
+                    title = "QQ / Gmail / 163 / Outlook",
+                    statusText = "D6 待开放（adapter 已 ready：email-imap snapshot mode）",
+                )
+            }
+
+            // ─── 支付与购物（推文 §"支付与购物": 支付宝 / 淘宝）────────
+            item("section-pay") { SectionHeader("支付与购物") }
+            item("pay") {
+                PlaceholderCategoryCard(
+                    title = "支付宝 / 淘宝",
+                    statusText = "D7 待开放（adapter 已 ready：alipay-bill / shopping-taobao）",
+                )
+            }
+
+            // ─── 出行（推文 §"出行": 高德 / 携程）───────────────────────
+            item("section-travel") { SectionHeader("出行") }
+            item("travel") {
+                PlaceholderCategoryCard(
+                    title = "高德 / 携程",
+                    statusText = "D8 待开放（adapter 已 ready：travel-amap / travel-ctrip）",
+                )
+            }
+
+            // ─── AI 助手（推文 §"AI 助手": 9 家）──────────────────────
+            item("section-aichat") { SectionHeader("AI 助手") }
+            item("aichat") {
+                PlaceholderCategoryCard(
+                    title = "豆包 / 文心 / Kimi / 通义 / DeepSeek + 4 家",
+                    statusText = "D10 待开放（adapter 已 ready：ai-chat-history 8 vendor wired）",
+                )
+            }
+
+            item("bottom-spacer") { Spacer(Modifier.height(24.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun ScreenHeader() {
+    Column {
+        Text(
+            "本机数据",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "所有同步均写入本机加密数据库，不依赖桌面在线。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Column {
+        Spacer(Modifier.height(20.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/**
+ * D5 — 大类占位卡。每个大类在真接通前先用一张卡占位，让用户看到推文 §"6 大类"
+ * 全部呈现，不会因为只有 system-data + bilibili 实装而误以为产品只有 2 张卡。
+ * D6-D10 替换为真 adapter 卡阵列时把对应 item 解锁即可。
+ */
+@Composable
+private fun PlaceholderCategoryCard(title: String, statusText: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "本机数据",
-                style = MaterialTheme.typography.headlineSmall,
+                title,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "所有同步均写入本机加密数据库，不依赖桌面在线。",
+                statusText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(16.dp))
-
-            SystemDataCard(
-                state = state.systemData,
-                globalBusy = state.globalSyncingAdapter != null,
-                onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
-                onRefresh = { viewModel.refreshSystemData() },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            SocialAdapterCard(
-                state = state.bilibili,
-                globalBusy = state.globalSyncingAdapter != null,
-                onLogin = { viewModel.requestBilibiliLogin() },
-                onSync = { viewModel.syncBilibili() },
-                onLogout = { viewModel.logoutBilibili() },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            SocialAdapterCard(
-                state = state.weibo,
-                globalBusy = state.globalSyncingAdapter != null,
-                onLogin = { viewModel.requestSocialLoginStub("weibo") },
-                onSync = { viewModel.requestSocialLoginStub("weibo") },
-                onLogout = { /* no-op for stub */ },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            SocialAdapterCard(
-                state = state.douyin,
-                globalBusy = state.globalSyncingAdapter != null,
-                onLogin = { viewModel.requestSocialLoginStub("douyin") },
-                onSync = { viewModel.requestSocialLoginStub("douyin") },
-                onLogout = { /* no-op for stub */ },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            SocialAdapterCard(
-                state = state.xiaohongshu,
-                globalBusy = state.globalSyncingAdapter != null,
-                onLogin = { viewModel.requestSocialLoginStub("xiaohongshu") },
-                onSync = { viewModel.requestSocialLoginStub("xiaohongshu") },
-                onLogout = { /* no-op for stub */ },
             )
         }
     }
