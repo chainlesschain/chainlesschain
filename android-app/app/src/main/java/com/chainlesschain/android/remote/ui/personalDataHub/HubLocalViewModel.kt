@@ -7,6 +7,8 @@ import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
+import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
+import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
@@ -54,6 +56,7 @@ class HubLocalViewModel @Inject constructor(
     private val wechatCollector: WeChatLocalCollector,
     private val wechatCredentials: WeChatCredentialsStore,
     private val llmServer: LocalLlmServer,
+    private val aiChatCredentials: AiChatCredentialsStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -208,6 +211,28 @@ class HubLocalViewModel @Inject constructor(
         val taobaoOrder: PaymentImportCardState = PaymentImportCardState(),
     )
 
+    /**
+     * §2.6 D10.2 — per-vendor AI chat card state (推文 §"AI 助手 9 家"). UI 9
+     * 卡 (AiChatVendor.ORDERED) 全显，每卡独立 isLoggedIn / isSyncing /
+     * lastSyncAt / lastSyncCount / errorMessage。
+     *
+     * 同步路径：cookie scrape via SocialCookieWebViewScreen → saveCookie →
+     * cc hub sync ai-chat-history --vendor <key>. v0.1 桌面 adapter 已对接
+     * 8/9 (DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina)，豆包/文心 桌面
+     * adapter 仍 v0.2 — cookie 已能存 (用户 onboarding 不丢)，sync 报"待
+     * 桌面 adapter wire"，不阻塞 UX。
+     */
+    @Immutable
+    data class AiChatCardState(
+        val vendorKey: String,
+        val displayName: String,
+        val isLoggedIn: Boolean = false,
+        val isSyncing: Boolean = false,
+        val lastSyncAt: Long? = null,
+        val lastSyncCount: Int = 0,
+        val errorMessage: String? = null,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -239,6 +264,9 @@ class HubLocalViewModel @Inject constructor(
         val citationDetail: CitationDetailState = CitationDetailState(),
         val localAudit: LocalAuditState = LocalAuditState(),
         val paymentShopping: PaymentShoppingState = PaymentShoppingState(),
+        // §2.6 — vendorKey → card state. Default init at construction reads
+        // persisted hasCredentials/lastSyncAt from EncryptedSharedPreferences.
+        val aiChat: Map<String, AiChatCardState> = emptyMap(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -248,6 +276,7 @@ class HubLocalViewModel @Inject constructor(
         refreshPermissionState()
         refreshBilibiliFromStore()
         refreshWechatFromStore()
+        refreshAiChatFromStore()
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────
@@ -845,6 +874,192 @@ class HubLocalViewModel @Inject constructor(
         "alipay-bill" -> ps.copy(alipayBill = transform(ps.alipayBill))
         "shopping-taobao" -> ps.copy(taobaoOrder = transform(ps.taobaoOrder))
         else -> ps
+    }
+
+    // ─── §2.6 D10.2 — AI 助手 9 路 WebView ──────────────────────────────
+
+    /**
+     * Init: 把 EncryptedSharedPreferences 里 9 vendor 的 hasCredentials /
+     * lastSyncAt / lastSyncCount 读出，填到 aiChat map (vendorKey →
+     * AiChatCardState)。每次 destroy vault / clear vendor 后再调一次。
+     */
+    fun refreshAiChatFromStore() {
+        val map = AiChatVendor.ORDERED.associate { v ->
+            v.key to AiChatCardState(
+                vendorKey = v.key,
+                displayName = v.displayName,
+                isLoggedIn = aiChatCredentials.hasCredentials(v.key),
+                lastSyncAt = aiChatCredentials.getLastSyncAt(v.key),
+                lastSyncCount = aiChatCredentials.getLastSyncCount(v.key),
+            )
+        }
+        _state.update { it.copy(aiChat = map) }
+    }
+
+    fun requestAiChatLogin(vendorKey: String) {
+        val v = AiChatVendor.fromKey(vendorKey) ?: run {
+            Timber.w("requestAiChatLogin: unknown vendor=%s", vendorKey)
+            return
+        }
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "ai-chat:${v.key}",
+                    displayName = v.displayName,
+                    loginUrl = v.loginUrl,
+                    cookieDomain = v.cookieDomain,
+                    isLoginSuccess = v.isLoginSuccess,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Caller: HubLocalScreen.onLoginComplete dispatch on adapterName prefix
+     * "ai-chat:". Cookie 写 EncryptedSharedPreferences + refreshAiChatFromStore
+     * 更 UI。失败 (cookie 空 / 读 keystore 抛) → 卡 errorMessage。
+     */
+    fun onAiChatLoginCookie(vendorKey: String, cookie: String) {
+        if (AiChatVendor.fromKey(vendorKey) == null) {
+            Timber.w("onAiChatLoginCookie: unknown vendor=%s", vendorKey)
+            _state.update { it.copy(pendingLogin = null) }
+            return
+        }
+        if (cookie.isBlank()) {
+            _state.update { st ->
+                val card = st.aiChat[vendorKey]?.copy(
+                    errorMessage = "未拿到 cookie — 请重新登录后等页面跳转完成",
+                ) ?: return@update st
+                st.copy(
+                    pendingLogin = null,
+                    aiChat = st.aiChat + (vendorKey to card),
+                )
+            }
+            return
+        }
+        aiChatCredentials.saveCookie(vendorKey, cookie)
+        _state.update { it.copy(pendingLogin = null) }
+        refreshAiChatFromStore()
+    }
+
+    /**
+     * v0.1 sync 入口 — 让 cc 走 ai-chat-history adapter (Phase 10.2 8/9
+     * 桌面 vendor 已 wire)。v0.2 加增量 since/last_id；豆包/文心 桌面 adapter
+     * 待补，本路径报 cc error "no adapter wired"，UI 显引导 "桌面 v0.2"。
+     */
+    fun syncAiChat(vendorKey: String) {
+        val v = AiChatVendor.fromKey(vendorKey) ?: return
+        if (_state.value.globalSyncingAdapter != null) return
+        val card = _state.value.aiChat[vendorKey] ?: return
+        if (!card.isLoggedIn) {
+            requestAiChatLogin(vendorKey)
+            return
+        }
+        val cookie = aiChatCredentials.getCookie(vendorKey)
+        if (cookie.isNullOrBlank()) {
+            _state.update { st ->
+                st.copy(
+                    aiChat = st.aiChat + (vendorKey to card.copy(
+                        errorMessage = "cookie 失效 — 请重新登录",
+                    )),
+                )
+            }
+            return
+        }
+
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = "ai-chat:${v.key}",
+                aiChat = it.aiChat + (vendorKey to card.copy(
+                    isSyncing = true, errorMessage = null,
+                )),
+            )
+        }
+        viewModelScope.launch {
+            // Stage cookie + vendor metadata as snapshot JSON so cc adapter can
+            // pick it up. Phase 10.2 桌面 adapter 模式 — snapshot.json shape
+            // {vendor, cookie, fetchedAt}.
+            val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+            val snapshotFile = File(staging, "ai-chat-${v.key}-$stamp.json")
+            try {
+                val json = org.json.JSONObject().apply {
+                    put("vendor", v.key)
+                    put("cookie", cookie)
+                    put("fetchedAt", System.currentTimeMillis())
+                }
+                snapshotFile.writeText(json.toString())
+            } catch (t: Throwable) {
+                Timber.w(t, "syncAiChat: snapshot write failed vendor=%s", v.key)
+                _state.update { st ->
+                    st.copy(
+                        globalSyncingAdapter = null,
+                        aiChat = st.aiChat + (vendorKey to card.copy(
+                            isSyncing = false,
+                            errorMessage = "本地暂存写入失败: ${t.message ?: t.javaClass.simpleName}",
+                        )),
+                    )
+                }
+                return@launch
+            }
+
+            // adapterName = "ai-chat-history" (固定，cc 内部按 vendor field 分发)
+            val ccResult = ccRunner.syncAdapter("ai-chat-history", snapshotFile.absolutePath)
+            _state.update { st ->
+                val current = st.aiChat[vendorKey] ?: card
+                when (ccResult) {
+                    is LocalCcRunner.CcResult.Ok -> {
+                        aiChatCredentials.recordSync(
+                            v.key,
+                            System.currentTimeMillis(),
+                            ccResult.report.ingested,
+                        )
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            aiChat = st.aiChat + (vendorKey to current.copy(
+                                isSyncing = false,
+                                lastSyncAt = System.currentTimeMillis(),
+                                lastSyncCount = ccResult.report.ingested,
+                                errorMessage = null,
+                            )),
+                        )
+                    }
+                    is LocalCcRunner.CcResult.Failed -> {
+                        // Friendlier message for the common "no adapter wired"
+                        // case (豆包/文心 桌面 v0.2 待补): cc 会报 adapter not
+                        // found / unknown vendor。
+                        val hint = if (
+                            ccResult.reason.contains("not found", ignoreCase = true) ||
+                            ccResult.reason.contains("unknown", ignoreCase = true)
+                        ) "桌面端 ai-chat-history adapter 暂未对接 ${v.displayName}，v0.2 补齐"
+                        else ccResult.reason
+                        Timber.w(
+                            "syncAiChat: cc failed vendor=%s reason=%s",
+                            v.key, ccResult.reason,
+                        )
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            aiChat = st.aiChat + (vendorKey to current.copy(
+                                isSyncing = false,
+                                errorMessage = hint,
+                            )),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutAiChat(vendorKey: String) {
+        aiChatCredentials.clear(vendorKey)
+        refreshAiChatFromStore()
+    }
+
+    fun clearAiChatError(vendorKey: String) {
+        _state.update { st ->
+            val card = st.aiChat[vendorKey] ?: return@update st
+            st.copy(aiChat = st.aiChat + (vendorKey to card.copy(errorMessage = null)))
+        }
     }
 
     // ─── §2.9 本机 audit (推文 §"每次操作都有账本") ────────────────────────

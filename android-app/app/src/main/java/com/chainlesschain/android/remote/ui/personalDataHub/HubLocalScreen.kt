@@ -82,10 +82,16 @@ fun HubLocalScreen(
             displayName = pending.displayName,
             isLoginSuccess = pending.isLoginSuccess,
             onLoginComplete = { cookie ->
-                if (pending.adapterName == "social-bilibili") {
-                    viewModel.onBilibiliLoginCookie(cookie)
-                } else {
-                    viewModel.cancelLogin()
+                when {
+                    pending.adapterName == "social-bilibili" ->
+                        viewModel.onBilibiliLoginCookie(cookie)
+                    pending.adapterName.startsWith("ai-chat:") -> {
+                        // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
+                        // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
+                        val vendorKey = pending.adapterName.removePrefix("ai-chat:")
+                        viewModel.onAiChatLoginCookie(vendorKey, cookie)
+                    }
+                    else -> viewModel.cancelLogin()
                 }
             },
             onCancel = { viewModel.cancelLogin() },
@@ -282,15 +288,14 @@ fun HubLocalScreen(
             }
 
             // ─── AI 助手（推文 §"AI 助手": 9 家）──────────────────────
-            // D10.1: 9 provider sub-cards 全显 (推文 §豆包/文心/Kimi/通义/
-            // DeepSeek 等 9 家)。PDH Phase 10.2 已接通 8 厂商 (DeepSeek/Kimi/
-            // 通义/智谱/混元/千帆/扣子/Dreamina)，UI wire D10.2。
+            // D10.1: 9 provider sub-cards 全显
+            // §2.6 D10.2: button 接通 → requestAiChatLogin(vendorKey) → 推
+            // pendingLogin → SocialCookieWebViewScreen 接管 WebView → cookie
+            // 写 EncryptedSharedPreferences。Sync 走 cc hub sync ai-chat-history.
             item("section-aichat") { SectionHeader("AI 助手") }
             item("aichat-providers") {
                 AiAssistantsGroup(
-                    onProviderLogin = { key ->
-                        Timber.i("HubLocalScreen: AI vendor login TODO key=$key")
-                    },
+                    onProviderLogin = { key -> viewModel.requestAiChatLogin(key) },
                 )
             }
 
