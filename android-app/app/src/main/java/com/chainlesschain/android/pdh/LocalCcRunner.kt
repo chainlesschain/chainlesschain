@@ -224,6 +224,103 @@ class LocalCcRunner @Inject constructor(
         CcResult.Ok(report = report, rawJson = stdout.trim())
     }
 
+    /** Result for destroy-vault flow. */
+    sealed class DestroyResult {
+        object Ok : DestroyResult()
+        data class Failed(val reason: String, val exitCode: Int?) : DestroyResult()
+    }
+
+    /**
+     * `cc hub destroy --confirm --json` → vault.db + WAL wiped.
+     *
+     * 推文 §"三道锁 · 第三把：随时能销毁"。Caller responsible for showing a
+     * confirmation dialog before invoking — there is NO undo. Reuses the
+     * existing cmdDestroy path in packages/cli/src/commands/hub.js (which
+     * calls LocalVault.destroy() → unlinks .db + -wal + -shm + key file).
+     */
+    suspend fun destroyVault(timeoutMs: Long = 30_000L): DestroyResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext DestroyResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext DestroyResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "hub", "destroy", "--confirm", "--json",
+        )
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext DestroyResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+            )
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.destroy: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.destroy: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext DestroyResult.Failed("timeout after ${timeoutMs}ms", null)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdoutBuilder.toString().trim()).optString("error", "")
+                    .takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext DestroyResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+            )
+        }
+        DestroyResult.Ok
+    }
+
     /**
      * `cc hub ask "<question>" --json` → parsed AskReport.
      *

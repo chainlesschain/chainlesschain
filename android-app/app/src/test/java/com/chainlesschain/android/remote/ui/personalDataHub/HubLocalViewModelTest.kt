@@ -464,6 +464,89 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.ask.errorMessage)
     }
 
+    // ─── 三道锁 ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun `setAllowCloudFallback toggles state`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.state.value.threeLocks.allowCloudFallback)
+        vm.setAllowCloudFallback(true)
+        assertTrue(vm.state.value.threeLocks.allowCloudFallback)
+        vm.setAllowCloudFallback(false)
+        assertFalse(vm.state.value.threeLocks.allowCloudFallback)
+    }
+
+    @Test
+    fun `requestDestroyVault success wipes systemData + sets lastDestroyedAt`() = runTest(testDispatcher) {
+        coEvery { ccRunner.destroyVault(any()) } returns LocalCcRunner.DestroyResult.Ok
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.requestDestroyVault()
+        // First tick: destroying=true + globalSyncingAdapter set
+        assertTrue(vm.state.value.threeLocks.destroying)
+        assertEquals("vault-destroy", vm.state.value.globalSyncingAdapter)
+
+        advanceUntilIdle()
+        val s = vm.state.value
+        assertFalse(s.threeLocks.destroying)
+        assertNull(s.threeLocks.destroyError)
+        assertNotNull(s.threeLocks.lastDestroyedAt)
+        assertNull(s.globalSyncingAdapter)
+        // systemData reset
+        assertEquals(0, s.systemData.contactsCount)
+        assertEquals(0, s.systemData.appsCount)
+        assertEquals(0, s.systemData.ingested)
+    }
+
+    @Test
+    fun `requestDestroyVault failure surfaces error`() = runTest(testDispatcher) {
+        coEvery { ccRunner.destroyVault(any()) } returns
+            LocalCcRunner.DestroyResult.Failed("file system locked", 2)
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.requestDestroyVault()
+        advanceUntilIdle()
+
+        val s = vm.state.value
+        assertFalse(s.threeLocks.destroying)
+        assertEquals("file system locked", s.threeLocks.destroyError)
+        assertNull(s.threeLocks.lastDestroyedAt)
+        assertNull(s.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `requestDestroyVault no-op while already destroying or syncing`() = runTest(testDispatcher) {
+        coEvery { ccRunner.destroyVault(any()) } coAnswers {
+            kotlinx.coroutines.delay(1_000_000L)
+            LocalCcRunner.DestroyResult.Ok
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.requestDestroyVault()
+        assertTrue(vm.state.value.threeLocks.destroying)
+
+        // Second call should be ignored
+        vm.requestDestroyVault()
+        io.mockk.coVerify(exactly = 1) { ccRunner.destroyVault(any()) }
+    }
+
+    @Test
+    fun `clearDestroyError wipes error`() = runTest(testDispatcher) {
+        coEvery { ccRunner.destroyVault(any()) } returns
+            LocalCcRunner.DestroyResult.Failed("io error", 1)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDestroyVault()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.threeLocks.destroyError)
+        vm.clearDestroyError()
+        assertNull(vm.state.value.threeLocks.destroyError)
+    }
+
     @Test
     fun `askQuestion ignored while already in flight`() = runTest(testDispatcher) {
         // First call hangs (never completes): use a slot to capture the call,

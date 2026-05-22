@@ -83,6 +83,23 @@ class HubLocalViewModel @Inject constructor(
     )
 
     /**
+     * 三道锁 state — 推文 §"三道锁，缺一不可" 的三把硬约束在 UI 上的呈现。
+     *  - vaultEncrypted: 加密金库（永远 true — SQLCipher AES-256，不可关）
+     *  - allowCloudFallback: 拒云开关（默认 false = 默认拒云端 AI 兜底）
+     *  - destroying: 一键销毁 in-flight
+     *  - destroyError: 销毁报错（极少出现，文件系统错）
+     *  - lastDestroyedAt: 上次销毁成功时间（用户重新采集后重置）
+     */
+    @Immutable
+    data class ThreeLocksState(
+        val vaultEncrypted: Boolean = true,
+        val allowCloudFallback: Boolean = false,
+        val destroying: Boolean = false,
+        val destroyError: String? = null,
+        val lastDestroyedAt: Long? = null,
+    )
+
+    /**
      * A3 — "提问" card state. Drives the local LLM ask flow via
      * [LocalCcRunner.askQuestion] which spawns `cc hub ask --json` against
      * the Kotlin-hosted Ollama-compat LLM server (A3.2 — pending wire).
@@ -125,6 +142,7 @@ class HubLocalViewModel @Inject constructor(
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
         val ask: AskCardState = AskCardState(),
+        val threeLocks: ThreeLocksState = ThreeLocksState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -293,6 +311,64 @@ class HubLocalViewModel @Inject constructor(
 
     fun clearAskAnswer() {
         _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), errorMessage = null)) }
+    }
+
+    // ─── 三道锁 (推文 §三道锁，缺一不可) ──────────────────────────────────
+    //
+    // 第一把：加密金库 — SQLCipher 永远开，无 toggle
+    // 第二把：默认拒云 — toggle，OFF = 完全离线 / ON = 允许云端兜底
+    // 第三把：一键销毁 — cc hub destroy --confirm
+
+    fun setAllowCloudFallback(allow: Boolean) {
+        // v0.1: 状态只存内存，重启重置为 OFF（推文 §"默认不许问云端"安全侧
+        // 默认）。v0.2 持久化到 DataStore 并在 OllamaClient 选择路径时遵守
+        // 此 flag — 当前 cc 端尚无 CC_HUB_ALLOW_NON_LOCAL env 路径，A3.10
+        // 真接通时一并加。
+        _state.update { it.copy(threeLocks = it.threeLocks.copy(allowCloudFallback = allow)) }
+    }
+
+    fun requestDestroyVault() {
+        if (_state.value.threeLocks.destroying) return
+        if (_state.value.globalSyncingAdapter != null) return
+        _state.update {
+            it.copy(
+                threeLocks = it.threeLocks.copy(destroying = true, destroyError = null),
+                globalSyncingAdapter = "vault-destroy",
+            )
+        }
+        viewModelScope.launch {
+            val r = ccRunner.destroyVault()
+            _state.update { st ->
+                when (r) {
+                    is LocalCcRunner.DestroyResult.Ok -> st.copy(
+                        threeLocks = st.threeLocks.copy(
+                            destroying = false,
+                            destroyError = null,
+                            lastDestroyedAt = System.currentTimeMillis(),
+                        ),
+                        // 重置 system-data 卡到 fresh 状态，提示用户重新同步
+                        systemData = SystemDataCardState(
+                            contactsPermissionGranted = snapshotter.hasContactsPermission(),
+                        ),
+                        globalSyncingAdapter = null,
+                    )
+                    is LocalCcRunner.DestroyResult.Failed -> {
+                        Timber.w("HubLocalViewModel.destroy failed: %s", r.reason)
+                        st.copy(
+                            threeLocks = st.threeLocks.copy(
+                                destroying = false,
+                                destroyError = r.reason,
+                            ),
+                            globalSyncingAdapter = null,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearDestroyError() {
+        _state.update { it.copy(threeLocks = it.threeLocks.copy(destroyError = null)) }
     }
 
     // ─── Bilibili ───────────────────────────────────────────────────────────

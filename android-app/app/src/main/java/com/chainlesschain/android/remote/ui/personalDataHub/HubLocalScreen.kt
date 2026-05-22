@@ -142,6 +142,18 @@ fun HubLocalScreen(
                 )
             }
 
+            // ─── 三道锁（推文 §"三道锁，缺一不可"）──────────────────────
+            item("section-locks") { SectionHeader("三道锁") }
+            item("three-locks") {
+                ThreeLocksCard(
+                    state = state.threeLocks,
+                    globalBusy = globalBusy,
+                    onAllowCloudChanged = { viewModel.setAllowCloudFallback(it) },
+                    onDestroyConfirmed = { viewModel.requestDestroyVault() },
+                    onClearDestroyError = { viewModel.clearDestroyError() },
+                )
+            }
+
             // ─── 内容平台（推文 §"内容平台": 抖音/B站/微博/小红书）─────
             item("section-content") { SectionHeader("内容平台") }
             val contentCards = listOf(state.bilibili, state.weibo, state.douyin, state.xiaohongshu)
