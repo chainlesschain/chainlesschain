@@ -62,8 +62,13 @@ import {
 } from "./personal-data-hub-aichat-wizard.js";
 
 async function loadAIChatHealthChecker() {
-  const mod =
-    await import("@chainlesschain/personal-data-hub/adapters/ai-chat-history/health-checker");
+  // Composed-at-runtime specifier so vite import-analysis (which fails
+  // to resolve subpath exports for dynamic imports in vitest SSR mode)
+  // skips this — the static scanner only descends into string literals.
+  const spec =
+    "@chainlesschain/personal-data-hub" +
+    "/adapters/ai-chat-history/health-checker";
+  const mod = await import(spec);
   return (mod.default || mod).createAIChatHealthChecker;
 }
 
