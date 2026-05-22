@@ -49,6 +49,13 @@ class BilibiliLocalCollector @Inject constructor(
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
+            // Real-device 2026-05-22: 4 of 4 returned empty after a successful
+            // login. The catch-all "cookie 可能过期" UI hides what Bilibili
+            // actually said (-412 anti-spider vs -101 not logged in vs missing
+            // UA → empty body). Propagate the last error so the VM can show
+            // an actionable message.
+            val lastErrorCode: Int = 0,
+            val lastErrorMessage: String? = null,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -168,6 +175,8 @@ class BilibiliLocalCollector @Inject constructor(
             totalEvents = total,
             everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
+            lastErrorCode = apiClient.lastErrorCode,
+            lastErrorMessage = apiClient.lastErrorMessage,
         )
     }
 
