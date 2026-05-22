@@ -100,6 +100,7 @@ fun HubLocalScreen(
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
+        viewModel.refreshWechatFromStore()
     }
 
     Scaffold { padding ->
@@ -122,11 +123,9 @@ fun HubLocalScreen(
                     onQuestionChanged = { viewModel.onAskQuestionChanged(it) },
                     onSubmit = { viewModel.askQuestion() },
                     onCitationClick = { eventId ->
-                        // v0.1: 没有 cc hub event-detail subcommand，先 log
-                        // 留 hook 给后续 (新 LocalCcRunner.queryEvent + 复用
-                        // HubEventDetailContent sheet)。chip 上的 excerpt 已
-                        // 给用户原文预览，不阻塞当前体验。
-                        Timber.i("HubLocalScreen: citation deeplink TODO eventId=$eventId")
+                        // 推文 §"点一下看原文" 真接通: 走 cc hub event-detail
+                        // → vault.getEvent(id) → bottom sheet 显原文
+                        viewModel.requestCitationDetail(eventId)
                     },
                     onDismissAnswer = { viewModel.clearAskAnswer() },
                 )
@@ -255,6 +254,12 @@ fun HubLocalScreen(
             item("bottom-spacer") { Spacer(Modifier.height(24.dp)) }
         }
     }
+
+    // 推文 §"AI 给出处 · 点一下看原文" — citation chip 击发后 bottom sheet
+    CitationDetailSheet(
+        state = state.citationDetail,
+        onDismiss = { viewModel.dismissCitationDetail() },
+    )
 }
 
 @Composable

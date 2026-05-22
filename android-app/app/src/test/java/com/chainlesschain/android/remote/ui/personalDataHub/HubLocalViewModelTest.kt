@@ -6,6 +6,8 @@ import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
+import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
@@ -47,6 +49,8 @@ class HubLocalViewModelTest {
     private lateinit var ccRunner: LocalCcRunner
     private lateinit var bilibiliCollector: BilibiliLocalCollector
     private lateinit var bilibiliCredentials: BilibiliCredentialsStore
+    private lateinit var wechatCollector: WeChatLocalCollector
+    private lateinit var wechatCredentials: WeChatCredentialsStore
     private lateinit var llmServer: LocalLlmServer
     private lateinit var appContext: Context
 
@@ -57,6 +61,8 @@ class HubLocalViewModelTest {
         ccRunner = mockk(relaxed = false)
         bilibiliCollector = mockk(relaxed = false)
         bilibiliCredentials = mockk(relaxed = true)
+        wechatCollector = mockk(relaxed = true)
+        wechatCredentials = mockk(relaxed = true)
         llmServer = mockk(relaxed = true)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
@@ -78,7 +84,16 @@ class HubLocalViewModelTest {
     fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm(): HubLocalViewModel =
-        HubLocalViewModel(snapshotter, ccRunner, bilibiliCollector, bilibiliCredentials, llmServer, appContext)
+        HubLocalViewModel(
+            snapshotter,
+            ccRunner,
+            bilibiliCollector,
+            bilibiliCredentials,
+            wechatCollector,
+            wechatCredentials,
+            llmServer,
+            appContext,
+        )
 
     // ─── Initialization ─────────────────────────────────────────────────────
 
@@ -364,12 +379,12 @@ class HubLocalViewModelTest {
         vm.askQuestion()
         advanceUntilIdle()
         assertFalse(vm.state.value.ask.isAsking)
-        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any()) }
+        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any(), any()) }
     }
 
     @Test
     fun `askQuestion success populates answer + citations + llmName`() = runTest(testDispatcher) {
-        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
             report = LocalCcRunner.AskReport(
                 answer = "上周妈妈给你打了 2 个电话。",
                 citations = listOf(
@@ -410,7 +425,7 @@ class HubLocalViewModelTest {
 
     @Test
     fun `askQuestion failure rewrites Ollama errors to friendly hint`() = runTest(testDispatcher) {
-        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
             reason = "OllamaClient.chat: request failed — fetch failed",
             exitCode = 1,
             stderr = null,
@@ -429,7 +444,7 @@ class HubLocalViewModelTest {
 
     @Test
     fun `askQuestion failure surfaces other errors verbatim`() = runTest(testDispatcher) {
-        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Failed(
             reason = "vault locked: key missing",
             exitCode = 2,
             stderr = null,
@@ -446,8 +461,61 @@ class HubLocalViewModelTest {
     }
 
     @Test
+    fun `askQuestion forwards acceptNonLocal=false by default`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            report = LocalCcRunner.AskReport(
+                answer = "ok",
+                citations = emptyList(),
+                llmName = null, isLocal = true, durationMs = 0L,
+            ),
+            rawJson = "{}",
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.onAskQuestionChanged("q")
+        vm.askQuestion()
+        advanceUntilIdle()
+        // Default toggle is OFF → cc gets acceptNonLocal=false → no --accept-non-local flag.
+        io.mockk.coVerify(exactly = 1) {
+            ccRunner.askQuestion(
+                question = "q",
+                ollamaUrl = "http://127.0.0.1:18484",
+                acceptNonLocal = false,
+                timeoutMs = any(),
+            )
+        }
+    }
+
+    @Test
+    fun `askQuestion forwards acceptNonLocal=true when toggle ON`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            report = LocalCcRunner.AskReport(
+                answer = "ok",
+                citations = emptyList(),
+                llmName = null, isLocal = false, durationMs = 0L,
+            ),
+            rawJson = "{}",
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setAllowCloudFallback(true)
+        vm.onAskQuestionChanged("q")
+        vm.askQuestion()
+        advanceUntilIdle()
+        // Toggle ON → cc gets acceptNonLocal=true → ccRunner appends --accept-non-local.
+        io.mockk.coVerify(exactly = 1) {
+            ccRunner.askQuestion(
+                question = "q",
+                ollamaUrl = "http://127.0.0.1:18484",
+                acceptNonLocal = true,
+                timeoutMs = any(),
+            )
+        }
+    }
+
+    @Test
     fun `clearAskAnswer wipes answer + citations + error`() = runTest(testDispatcher) {
-        coEvery { ccRunner.askQuestion(any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
             report = LocalCcRunner.AskReport(
                 answer = "hi",
                 citations = listOf(
@@ -635,6 +703,87 @@ class HubLocalViewModelTest {
         tmpDir.deleteRecursively()
     }
 
+    // ─── Citation detail (推文 §AI 给出处 · 点一下看原文) ───────────────────
+
+    @Test
+    fun `requestCitationDetail success populates event`() = runTest(testDispatcher) {
+        val ev = LocalCcRunner.VaultEvent(
+            id = "evt_abc",
+            subtype = "wechat.message",
+            source = "wechat-adapter",
+            title = "上周通话",
+            actor = "mother",
+            amount = null,
+            currency = null,
+            startedAt = 1716000000000L,
+        )
+        coEvery { ccRunner.queryEvent(any(), any()) } returns
+            LocalCcRunner.EventDetailResult.Ok(event = ev)
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.requestCitationDetail("evt_abc")
+        assertTrue(vm.state.value.citationDetail.visible)
+        assertTrue(vm.state.value.citationDetail.loading)
+
+        advanceUntilIdle()
+        val cd = vm.state.value.citationDetail
+        assertTrue(cd.visible)
+        assertFalse(cd.loading)
+        assertEquals(ev, cd.event)
+        assertFalse(cd.notFound)
+        assertNull(cd.errorMessage)
+    }
+
+    @Test
+    fun `requestCitationDetail not found surfaces notFound flag`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvent(any(), any()) } returns
+            LocalCcRunner.EventDetailResult.NotFound(eventId = "evt_xyz")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestCitationDetail("evt_xyz")
+        advanceUntilIdle()
+        val cd = vm.state.value.citationDetail
+        assertTrue(cd.notFound)
+        assertNull(cd.event)
+    }
+
+    @Test
+    fun `requestCitationDetail failure surfaces errorMessage`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvent(any(), any()) } returns
+            LocalCcRunner.EventDetailResult.Failed("io error", 1)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestCitationDetail("evt_y")
+        advanceUntilIdle()
+        val cd = vm.state.value.citationDetail
+        assertEquals("io error", cd.errorMessage)
+        assertNull(cd.event)
+    }
+
+    @Test
+    fun `dismissCitationDetail clears state`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvent(any(), any()) } returns
+            LocalCcRunner.EventDetailResult.NotFound(eventId = "evt_a")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestCitationDetail("evt_a")
+        advanceUntilIdle()
+        assertTrue(vm.state.value.citationDetail.visible)
+        vm.dismissCitationDetail()
+        assertFalse(vm.state.value.citationDetail.visible)
+        assertNull(vm.state.value.citationDetail.eventId)
+    }
+
+    @Test
+    fun `requestCitationDetail blank eventId is no-op`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestCitationDetail("")
+        assertFalse(vm.state.value.citationDetail.visible)
+        io.mockk.coVerify(exactly = 0) { ccRunner.queryEvent(any(), any()) }
+    }
+
     @Test
     fun `clearDestroyError wipes error`() = runTest(testDispatcher) {
         coEvery { ccRunner.destroyVault(any()) } returns
@@ -652,7 +801,7 @@ class HubLocalViewModelTest {
     fun `askQuestion ignored while already in flight`() = runTest(testDispatcher) {
         // First call hangs (never completes): use a slot to capture the call,
         // then assert second call is silently rejected.
-        coEvery { ccRunner.askQuestion(any(), any(), any()) } coAnswers {
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } coAnswers {
             kotlinx.coroutines.delay(1_000_000)
             LocalCcRunner.AskResult.Failed("unreachable", null, null)
         }
@@ -665,6 +814,6 @@ class HubLocalViewModelTest {
 
         // Second call should be a no-op (still isAsking)
         vm.askQuestion()
-        io.mockk.coVerify(exactly = 1) { ccRunner.askQuestion(any(), any(), any()) }
+        io.mockk.coVerify(exactly = 1) { ccRunner.askQuestion(any(), any(), any(), any()) }
     }
 }

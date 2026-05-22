@@ -306,6 +306,55 @@ async function cmdRegisterMock(options) {
   }
 }
 
+// ─── event-detail ────────────────────────────────────────────────────
+
+/**
+ * `cc hub event-detail <eventId> [--json]`
+ *
+ * 推文 §"AI 回答必须给出处" 的兑现路径——点 citation chip → 调本命令 → 显
+ * 原文。Returns the full event row from the vault, including subtype /
+ * source / actor / title / timestamps / payload-derived fields.
+ *
+ * Caller is typically the Android UI (HubAskCard citation chip click) or
+ * desktop renderer. Returns `null` shape `{ found: false, eventId }` when
+ * the id doesn't match (e.g. event was deleted by destroy after the ask).
+ */
+async function cmdEventDetail(eventId, options) {
+  if (!eventId) {
+    const msg = "eventId argument required";
+    if (options.json) printJson({ error: msg });
+    else logger.error(chalk.red(`✗ ${msg}`));
+    process.exit(1);
+  }
+  try {
+    const hub = await getHub();
+    const event = hub.vault.getEvent(eventId);
+    if (!event) {
+      const result = { found: false, eventId };
+      if (options.json) printJson(result);
+      else logger.log(chalk.yellow(`(no event with id ${eventId})`));
+      return;
+    }
+    if (options.json) {
+      printJson({ found: true, event });
+    } else {
+      logger.log(chalk.bold(`event ${event.id}`));
+      logger.log(`  subtype:  ${event.subtype}`);
+      logger.log(`  source:   ${event.source}`);
+      if (event.title) logger.log(`  title:    ${event.title}`);
+      if (event.actor) logger.log(`  actor:    ${event.actor}`);
+      if (event.amount != null) {
+        logger.log(`  amount:   ${event.amount} ${event.currency || ""}`);
+      }
+      if (event.startedAt) {
+        logger.log(`  started:  ${new Date(event.startedAt).toISOString()}`);
+      }
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 // ─── export ──────────────────────────────────────────────────────────
 
 /**
@@ -1070,6 +1119,14 @@ export function registerHubCommand(program) {
     .option("--until <ms>", "End of time window")
     .option("--json", "Output JSON")
     .action(cmdRunSkill);
+
+  hub
+    .command("event-detail <eventId>")
+    .description(
+      "推文 §AI 给出处: fetch full event row from local vault by id (used by citation chip deeplink).",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdEventDetail);
 
   hub
     .command("export")
