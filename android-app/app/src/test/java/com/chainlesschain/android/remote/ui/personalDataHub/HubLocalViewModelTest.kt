@@ -906,4 +906,81 @@ class HubLocalViewModelTest {
         vm.clearAuditError()
         assertNull(vm.state.value.localAudit.errorMessage)
     }
+
+    // ─── §2.7 D11 SAF picker polish — requestExportVaultToUri ────────────────
+
+    @Test
+    fun `requestExportVaultToUri Ok copies temp to SAF Uri + records lastExportPath`() = runTest(testDispatcher) {
+        // Pre-populate temp file so the cc mock can "succeed" referencing it.
+        val tempDir = java.io.File.createTempFile("cache-stub", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.cacheDir } returns tempDir
+
+        // cc writes 4 bytes to the temp path
+        coEvery { ccRunner.exportVault(any()) } coAnswers {
+            val path = firstArg<String>()
+            java.io.File(path).apply {
+                parentFile?.mkdirs()
+                writeBytes(byteArrayOf(0x01, 0x02, 0x03, 0x04))
+            }
+            LocalCcRunner.ExportResult.Ok(path, bytes = 4L, encrypted = true)
+        }
+        // ContentResolver.openOutputStream → in-memory ByteArrayOutputStream
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        val captured = java.io.ByteArrayOutputStream()
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { fakeUri.toString() } returns "content://stub/vault.db"
+        every { resolver.openOutputStream(fakeUri, "wt") } returns captured
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVaultToUri(fakeUri)
+        advanceUntilIdle()
+
+        val st = vm.state.value.threeLocks
+        assertFalse(st.exporting)
+        assertNull(st.exportError)
+        assertEquals("content://stub/vault.db", st.lastExportPath)
+        assertEquals(4L, st.lastExportBytes)
+        // bytes round-tripped — 4 written by cc, 4 copied to SAF
+        assertEquals(4, captured.toByteArray().size)
+    }
+
+    @Test
+    fun `requestExportVaultToUri surfaces cc error and leaves lastExportPath null`() = runTest(testDispatcher) {
+        every { appContext.cacheDir } returns java.io.File(System.getProperty("java.io.tmpdir"), "hub-test-${System.nanoTime()}").apply { mkdirs() }
+        coEvery { ccRunner.exportVault(any()) } returns
+            LocalCcRunner.ExportResult.Failed("vault locked", 1)
+
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVaultToUri(fakeUri)
+        advanceUntilIdle()
+
+        val st = vm.state.value.threeLocks
+        assertFalse(st.exporting)
+        assertEquals("vault locked", st.exportError)
+        assertNull(st.lastExportPath)
+    }
+
+    @Test
+    fun `requestExportVaultToUri reentrancy guard — second call no-ops while exporting`() = runTest(testDispatcher) {
+        every { appContext.cacheDir } returns java.io.File(System.getProperty("java.io.tmpdir"), "hub-test-${System.nanoTime()}").apply { mkdirs() }
+        // First export hangs forever
+        coEvery { ccRunner.exportVault(any()) } coAnswers {
+            kotlinx.coroutines.delay(1_000_000)
+            LocalCcRunner.ExportResult.Ok("", 0L, encrypted = true)
+        }
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVaultToUri(fakeUri)
+        assertTrue(vm.state.value.threeLocks.exporting)
+        // Second call must early-return — state unchanged
+        vm.requestExportVaultToUri(fakeUri)
+        assertTrue(vm.state.value.threeLocks.exporting)
+        assertNull(vm.state.value.threeLocks.exportError)
+    }
 }
