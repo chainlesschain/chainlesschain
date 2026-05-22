@@ -186,6 +186,28 @@ class HubLocalViewModel @Inject constructor(
         val lastRefreshAt: Long? = null,
     )
 
+    /**
+     * §2.4 D7.2 — 支付与购物 SAF 导入状态。每次 import 一个 CSV (alipay-bill)
+     * 或 HTML (shopping-taobao)：用户点 button → Screen launch
+     * ACTION_OPEN_DOCUMENT picker → VM 读 Uri → 拷到 filesDir/staging/
+     * <providerKey>-<ts>.<ext> → LocalCcRunner.syncAdapter。
+     *
+     * 推文 §"诚实说" 已坦白此路径 = "只能采集对方主动开放的导出渠道"。
+     */
+    @Immutable
+    data class PaymentImportCardState(
+        val isImporting: Boolean = false,
+        val lastImportAt: Long? = null,
+        val lastImportBytes: Long = 0L,
+        val errorMessage: String? = null,
+    )
+
+    @Immutable
+    data class PaymentShoppingState(
+        val alipayBill: PaymentImportCardState = PaymentImportCardState(),
+        val taobaoOrder: PaymentImportCardState = PaymentImportCardState(),
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -216,6 +238,7 @@ class HubLocalViewModel @Inject constructor(
         val threeLocks: ThreeLocksState = ThreeLocksState(),
         val citationDetail: CitationDetailState = CitationDetailState(),
         val localAudit: LocalAuditState = LocalAuditState(),
+        val paymentShopping: PaymentShoppingState = PaymentShoppingState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -672,6 +695,156 @@ class HubLocalViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // ─── §2.4 D7.2 — 支付与购物 SAF 导入 ─────────────────────────────────
+
+    /**
+     * §2.4 推文 §"支付与购物": 支付宝账单 CSV / 淘宝订单 HTML 走 SAF 导入。
+     *
+     * 流程：HubLocalScreen 端 ActionResultContracts.OpenDocument 选文件 →
+     * 本方法读 Uri 字节 → 写 filesDir/staging/<providerKey>-<ts>.<ext> →
+     * LocalCcRunner.syncAdapter(providerKey, stagedPath) → 本机 vault.db。
+     *
+     * providerKey 必须 ∈ {"alipay-bill", "shopping-taobao"}；其它 key 走
+     * 兜底 errorMessage（保护后续 cc adapter 路由）。
+     *
+     * v0.2 候选补充：NotificationListenerService 监听支付宝/淘宝 push 实
+     * 现增量采集（不替代 SAF — 二者历史 / 增量分工）。
+     */
+    fun importPaymentShoppingFile(providerKey: String, sourceUri: android.net.Uri) {
+        if (providerKey != "alipay-bill" && providerKey != "shopping-taobao") {
+            Timber.w("importPaymentShoppingFile: unknown providerKey=%s", providerKey)
+            return
+        }
+        if (_state.value.globalSyncingAdapter != null) return
+        val cardState = currentPaymentCardState(providerKey)
+        if (cardState.isImporting) return
+
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = providerKey,
+                paymentShopping = updatePaymentCard(it.paymentShopping, providerKey) {
+                    it.copy(isImporting = true, errorMessage = null)
+                },
+            )
+        }
+        viewModelScope.launch {
+            val ext = when (providerKey) {
+                "alipay-bill" -> "csv"
+                "shopping-taobao" -> "html"
+                else -> "dat"  // unreachable per gate above
+            }
+            val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+            val stagedFile = File(staging, "$providerKey-$stamp.$ext")
+            val copiedBytes = try {
+                appContext.contentResolver.openInputStream(sourceUri).use { input ->
+                    if (input == null) throw java.io.IOException("ContentResolver 无法打开 $sourceUri")
+                    stagedFile.outputStream().use { input.copyTo(it) }
+                }
+                stagedFile.length()
+            } catch (t: Throwable) {
+                Timber.w(t, "importPaymentShoppingFile: copy failed key=%s", providerKey)
+                _state.update { st ->
+                    st.copy(
+                        globalSyncingAdapter = null,
+                        paymentShopping = updatePaymentCard(st.paymentShopping, providerKey) {
+                            it.copy(
+                                isImporting = false,
+                                errorMessage = "读取所选文件失败: ${t.message ?: t.javaClass.simpleName}",
+                            )
+                        },
+                    )
+                }
+                return@launch
+            }
+            if (copiedBytes == 0L) {
+                Timber.w("importPaymentShoppingFile: empty file key=%s", providerKey)
+                stagedFile.delete()
+                _state.update { st ->
+                    st.copy(
+                        globalSyncingAdapter = null,
+                        paymentShopping = updatePaymentCard(st.paymentShopping, providerKey) {
+                            it.copy(
+                                isImporting = false,
+                                errorMessage = "所选文件为空 — 请确认导出步骤是否成功",
+                            )
+                        },
+                    )
+                }
+                return@launch
+            }
+
+            when (val r = ccRunner.syncAdapter(providerKey, stagedFile.absolutePath)) {
+                is LocalCcRunner.CcResult.Ok -> {
+                    Timber.i(
+                        "importPaymentShoppingFile OK: key=%s bytes=%d ingested=%d",
+                        providerKey, copiedBytes, r.report.ingested,
+                    )
+                    // Keep the staging file for one cc cycle — sjqz/cc may read
+                    // it again on incremental retry. Cleanup on next import.
+                    _state.update { st ->
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            paymentShopping = updatePaymentCard(st.paymentShopping, providerKey) {
+                                it.copy(
+                                    isImporting = false,
+                                    errorMessage = null,
+                                    lastImportAt = System.currentTimeMillis(),
+                                    lastImportBytes = copiedBytes,
+                                )
+                            },
+                        )
+                    }
+                }
+                is LocalCcRunner.CcResult.Failed -> {
+                    Timber.w(
+                        "importPaymentShoppingFile cc failed: %s (exit=%s)",
+                        r.reason, r.exitCode,
+                    )
+                    _state.update { st ->
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            paymentShopping = updatePaymentCard(st.paymentShopping, providerKey) {
+                                it.copy(
+                                    isImporting = false,
+                                    errorMessage = r.reason,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearPaymentImportError(providerKey: String) {
+        if (providerKey != "alipay-bill" && providerKey != "shopping-taobao") return
+        _state.update { st ->
+            st.copy(
+                paymentShopping = updatePaymentCard(st.paymentShopping, providerKey) {
+                    it.copy(errorMessage = null)
+                },
+            )
+        }
+    }
+
+    private fun currentPaymentCardState(providerKey: String): PaymentImportCardState =
+        when (providerKey) {
+            "alipay-bill" -> _state.value.paymentShopping.alipayBill
+            "shopping-taobao" -> _state.value.paymentShopping.taobaoOrder
+            else -> PaymentImportCardState()
+        }
+
+    private inline fun updatePaymentCard(
+        ps: PaymentShoppingState,
+        providerKey: String,
+        crossinline transform: (PaymentImportCardState) -> PaymentImportCardState,
+    ): PaymentShoppingState = when (providerKey) {
+        "alipay-bill" -> ps.copy(alipayBill = transform(ps.alipayBill))
+        "shopping-taobao" -> ps.copy(taobaoOrder = transform(ps.taobaoOrder))
+        else -> ps
     }
 
     // ─── §2.9 本机 audit (推文 §"每次操作都有账本") ────────────────────────
