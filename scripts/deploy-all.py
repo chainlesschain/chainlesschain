@@ -287,19 +287,35 @@ DEPLOYS = [
     # infra) on cli.astro/en. README.md 测试数 + iter range 同步。
     # 仅 docs + www 改 — design.chainlesschain.com 源 (docs/design/**) 0 改动，
     # 跳过 build/tar/deploy 节省 ~5min 远端 .bak 噪音。
+    # 2026-05-22 v5.0.3.78 滚动更新 (3 站全刷):
+    # Personal Data Hub Plan A v0.1 Android 本地数据 hub snapshot 模式真机闭环
+    # (Xiaomi 24115RA8EC · 1305 entities 入 vault · npm @chainlesschain/
+    # personal-data-hub@0.2.1 + CLI 0.162.14 PDH-first publish ordering).
+    # Path C — phone-native snapshot writer + 桌面 ingest pipeline (bypass A6 JNI).
+    # Path Y — desktop returns RAG context + Android-local LLM inference.
+    # 新 cc android 15 子命令 scaffold + system-data-android bridge-direct.
+    # 3 真机硬化: originalId required / skip-embeddings / audit pagination.
+    # Android cc subprocess W^X via mksh + reader-thread EOF race + 30→120s timeout.
+    # E2EE 7 androidTest 经 X3DHSimulator 重新激活.
+    # iOS .ipa 7.9MB ship in v5.0.3.77 + Phase 14.1 step 5 ChatBubble.
+    # 改动: docs-site/docs/index.md tagline + chainlesschain/overview.md ⭐ 块 +
+    # docs-site-design/docs/index.md tagline + docs-website-v2/src/pages/{index,
+    # en/index}.astro 顶一张 v5.0.3.78 卡 (中英对照) + release-sizes.json 自动
+    # refresh 到 v5.0.3.78 (GitHub Release published 2026-05-21T23:47:47Z, 18 assets).
+    # CHANGELOG.md + docs-site/docs/changelog.md v5.0.3.77/.78 合并 entry.
     {
         "name": "docs.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.76-20260521-2008.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site\artifacts\chainlesschain-docs-v5.0.3.78-20260522-0850.tar.gz",
         "remote_dir": "/www/wwwroot/docs.chainlesschain.com",
     },
     {
         "name": "design.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.76-20260521-2008.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-site-design\artifacts\design-docs-v5.0.3.78-20260522-0850.tar.gz",
         "remote_dir": "/www/wwwroot/design.chainlesschain.com",
     },
     {
         "name": "www.chainlesschain.com",
-        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.76-20260521-2008.tar.gz",
+        "local_tar": r"C:\code\chainlesschain\docs-website-v2\artifacts\chainlesschain-website-v2-v5.0.3.78-20260522-0850.tar.gz",
         "remote_dir": "/www/wwwroot/www.chainlesschain.com",
     },
 ]
