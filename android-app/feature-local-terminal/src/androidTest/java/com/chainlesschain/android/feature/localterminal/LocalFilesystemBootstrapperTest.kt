@@ -31,7 +31,7 @@ class LocalFilesystemBootstrapperTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val bootstrapper = LocalFilesystemBootstrapper(context)
-    private val env = PtyEnvironment(bootstrapper)
+    private val env = PtyEnvironment(context, bootstrapper)
     private val scope = CoroutineScope(SupervisorJob())
 
     @Before
