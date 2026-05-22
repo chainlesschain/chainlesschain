@@ -218,14 +218,31 @@ class WeChatDBReader {
   /**
    * Fetch contacts. WeChat rcontact has many columns; we pull the ones
    * relevant for normalization.
+   *
+   * sjqz parity (wechat.py:262-263): excludes `@stranger` (unconfirmed
+   * friend requests) and `fake_*` (WeChat internal placeholder accounts).
+   * Without this filter the vault gets polluted with junk Person entities
+   * that never represent real contacts.
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.limit=5000]
+   * @param {boolean} [opts.includeJunk=false]  true to skip the
+   *   stranger/fake filter (debug / forensic use only)
    */
-  fetchContacts({ limit = 5000 } = {}) {
+  fetchContacts({ limit = 5000, includeJunk = false } = {}) {
     if (!this._db) throw new Error("WeChatDBReader: call open() first");
-    return this._db
-      .prepare(
-        "SELECT username, alias, nickname, conRemark, type FROM rcontact LIMIT ?",
-      )
-      .all(limit);
+    const cols = this._resolveColumns("rcontact", [
+      "username",
+      "alias",
+      "nickname",
+      "conRemark",
+      "type",
+    ]);
+    const usernameCol = cols[0];
+    const sql = includeJunk
+      ? `SELECT ${cols.join(", ")} FROM rcontact LIMIT ?`
+      : `SELECT ${cols.join(", ")} FROM rcontact WHERE ${usernameCol} NOT LIKE '%@stranger' AND ${usernameCol} NOT LIKE 'fake_%' LIMIT ?`;
+    return this._db.prepare(sql).all(limit);
   }
 
   /**

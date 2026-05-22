@@ -203,10 +203,19 @@ function contactDisplayName(byUsername, wxid) {
 function guessContactSubtype(row) {
   // rcontact.type bits: official accounts / group / regular contact /
   // black list. Detailed mapping in WeChat reverse-eng community —
-  // for v0.5 we keep it simple: anything that's not the user's self is
-  // "contact". Phase 12.6 will refine with full bit mapping.
-  if (typeof row.username === "string" && row.username.endsWith("@chatroom")) {
+  // for v0.5 we keep it simple: chatroom → unknown (not a Person),
+  // `gh_*` username → merchant (公众号 / Official Account — brand /
+  // business pushing content; closest enum match), rest → contact.
+  // Phase 12.6 will refine with full bit mapping + rcontact.type bits.
+  // (sjqz parity wechat.py:282 — get_friends() excludes gh_* from
+  // friends view but keeps them in contacts; we keep as Person with
+  // distinct subtype so Ask flow / EntityResolver can filter cleanly.)
+  if (typeof row.username !== "string") return "contact";
+  if (row.username.endsWith("@chatroom")) {
     return "unknown"; // chat group, not a Person
+  }
+  if (row.username.startsWith("gh_")) {
+    return "merchant"; // 公众号 / Official Account
   }
   return "contact";
 }
