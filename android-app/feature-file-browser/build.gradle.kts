@@ -10,7 +10,12 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 26
+        // Bumped to 28 (2026-05-22) to align with :feature-local-terminal
+        // (NDK spawn.h requirement). feature-file-browser transitively
+        // depends on local-terminal via feature-ai, so its effective
+        // minSdk was already 28; declaring 26 only broke androidTest
+        // manifest merger (processDebugAndroidTestManifest).
+        minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
