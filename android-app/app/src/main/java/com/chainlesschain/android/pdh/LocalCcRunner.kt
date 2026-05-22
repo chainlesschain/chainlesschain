@@ -230,6 +230,119 @@ class LocalCcRunner @Inject constructor(
         data class Failed(val reason: String, val exitCode: Int?) : DestroyResult()
     }
 
+    /** Result for export-vault flow. */
+    sealed class ExportResult {
+        data class Ok(val outputPath: String, val bytes: Long, val encrypted: Boolean) : ExportResult()
+        data class Failed(val reason: String, val exitCode: Int?) : ExportResult()
+    }
+
+    /**
+     * `cc hub export --output <path> --json` → vault.db + sidecars copied
+     * to outputPath. 推文 §"一键带走"。
+     *
+     * Caller (Android UI) typically writes to a SAF-picker-acquired path
+     * inside the App's accessible storage area. The exported file IS the
+     * SQLCipher-encrypted vault — desktop can `cc hub import-vault <path>`
+     * to reimport. No re-encryption.
+     */
+    suspend fun exportVault(
+        outputPath: String,
+        timeoutMs: Long = 60_000L,
+    ): ExportResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext ExportResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext ExportResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "hub", "export", "--output", outputPath, "--json",
+        )
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext ExportResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+            )
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.export: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.export: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext ExportResult.Failed("timeout after ${timeoutMs}ms", null)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext ExportResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+            )
+        }
+        try {
+            val obj = JSONObject(stdout.trim())
+            ExportResult.Ok(
+                outputPath = obj.optString("output", outputPath),
+                bytes = obj.optLong("bytes", 0L),
+                encrypted = obj.optBoolean("encrypted", true),
+            )
+        } catch (e: Exception) {
+            ExportResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
     /**
      * `cc hub destroy --confirm --json` → vault.db + WAL wiped.
      *

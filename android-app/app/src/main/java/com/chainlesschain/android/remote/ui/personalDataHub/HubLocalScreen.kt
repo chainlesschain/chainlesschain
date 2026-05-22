@@ -151,6 +151,8 @@ fun HubLocalScreen(
                     onAllowCloudChanged = { viewModel.setAllowCloudFallback(it) },
                     onDestroyConfirmed = { viewModel.requestDestroyVault() },
                     onClearDestroyError = { viewModel.clearDestroyError() },
+                    onExportRequested = { viewModel.requestExportVault() },
+                    onClearExportError = { viewModel.clearExportError() },
                 )
             }
 

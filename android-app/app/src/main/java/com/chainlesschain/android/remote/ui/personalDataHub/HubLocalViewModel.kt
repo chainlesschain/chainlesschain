@@ -3,12 +3,18 @@ package com.chainlesschain.android.remote.ui.personalDataHub
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +50,7 @@ class HubLocalViewModel @Inject constructor(
     private val bilibiliCollector: BilibiliLocalCollector,
     private val bilibiliCredentials: BilibiliCredentialsStore,
     private val llmServer: LocalLlmServer,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     @Immutable
@@ -89,6 +96,10 @@ class HubLocalViewModel @Inject constructor(
      *  - destroying: 一键销毁 in-flight
      *  - destroyError: 销毁报错（极少出现，文件系统错）
      *  - lastDestroyedAt: 上次销毁成功时间（用户重新采集后重置）
+     *  - exporting: 一键导出 in-flight
+     *  - exportError: 导出报错
+     *  - lastExportPath: 上次成功导出的文件绝对路径（user-accessible external-files-dir）
+     *  - lastExportBytes: 上次导出文件大小（含 WAL/SHM sidecars）
      */
     @Immutable
     data class ThreeLocksState(
@@ -97,6 +108,10 @@ class HubLocalViewModel @Inject constructor(
         val destroying: Boolean = false,
         val destroyError: String? = null,
         val lastDestroyedAt: Long? = null,
+        val exporting: Boolean = false,
+        val exportError: String? = null,
+        val lastExportPath: String? = null,
+        val lastExportBytes: Long = 0L,
     )
 
     /**
@@ -369,6 +384,77 @@ class HubLocalViewModel @Inject constructor(
 
     fun clearDestroyError() {
         _state.update { it.copy(threeLocks = it.threeLocks.copy(destroyError = null)) }
+    }
+
+    fun requestExportVault() {
+        if (_state.value.threeLocks.exporting) return
+        if (_state.value.globalSyncingAdapter != null) return
+        _state.update {
+            it.copy(
+                threeLocks = it.threeLocks.copy(
+                    exporting = true,
+                    exportError = null,
+                ),
+                globalSyncingAdapter = "vault-export",
+            )
+        }
+        viewModelScope.launch {
+            // Write under app external-files-dir — user-accessible via File
+            // Manager at /Android/data/<pkg>/files/exports/ without requiring
+            // any runtime storage permission. SAF picker is v0.2 polish.
+            val externalRoot = appContext.getExternalFilesDir(null)
+            if (externalRoot == null) {
+                _state.update { st ->
+                    st.copy(
+                        threeLocks = st.threeLocks.copy(
+                            exporting = false,
+                            exportError = "External storage unavailable. Mount SD/emulated storage and retry.",
+                        ),
+                        globalSyncingAdapter = null,
+                    )
+                }
+                return@launch
+            }
+            val exportsDir = File(externalRoot, "exports").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+            val outFile = File(exportsDir, "chainlesschain-vault-$stamp.db")
+
+            when (val r = ccRunner.exportVault(outFile.absolutePath)) {
+                is LocalCcRunner.ExportResult.Ok -> {
+                    Timber.i(
+                        "HubLocalViewModel.export OK: path=%s bytes=%d",
+                        r.outputPath, r.bytes,
+                    )
+                    _state.update { st ->
+                        st.copy(
+                            threeLocks = st.threeLocks.copy(
+                                exporting = false,
+                                exportError = null,
+                                lastExportPath = r.outputPath,
+                                lastExportBytes = r.bytes,
+                            ),
+                            globalSyncingAdapter = null,
+                        )
+                    }
+                }
+                is LocalCcRunner.ExportResult.Failed -> {
+                    Timber.w("HubLocalViewModel.export failed: %s", r.reason)
+                    _state.update { st ->
+                        st.copy(
+                            threeLocks = st.threeLocks.copy(
+                                exporting = false,
+                                exportError = r.reason,
+                            ),
+                            globalSyncingAdapter = null,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearExportError() {
+        _state.update { it.copy(threeLocks = it.threeLocks.copy(exportError = null)) }
     }
 
     // ─── Bilibili ───────────────────────────────────────────────────────────

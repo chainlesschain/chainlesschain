@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
@@ -47,6 +48,7 @@ class HubLocalViewModelTest {
     private lateinit var bilibiliCollector: BilibiliLocalCollector
     private lateinit var bilibiliCredentials: BilibiliCredentialsStore
     private lateinit var llmServer: LocalLlmServer
+    private lateinit var appContext: Context
 
     @Before
     fun setUp() {
@@ -56,10 +58,14 @@ class HubLocalViewModelTest {
         bilibiliCollector = mockk(relaxed = false)
         bilibiliCredentials = mockk(relaxed = true)
         llmServer = mockk(relaxed = true)
+        appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
         every { llmServer.baseUrl } returns "http://127.0.0.1:18484"
         every { llmServer.boundPort } returns 18484
+        // External-files-dir for export tests — relaxed mock returns null by
+        // default; tests that exercise export override this with a tmp dir.
+        every { appContext.getExternalFilesDir(any()) } returns null
         // Default: not logged in, no past sync
         every { bilibiliCredentials.hasCredentials() } returns false
         every { bilibiliCredentials.getUid() } returns null
@@ -72,7 +78,7 @@ class HubLocalViewModelTest {
     fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm(): HubLocalViewModel =
-        HubLocalViewModel(snapshotter, ccRunner, bilibiliCollector, bilibiliCredentials, llmServer)
+        HubLocalViewModel(snapshotter, ccRunner, bilibiliCollector, bilibiliCredentials, llmServer, appContext)
 
     // ─── Initialization ─────────────────────────────────────────────────────
 
@@ -532,6 +538,101 @@ class HubLocalViewModelTest {
         // Second call should be ignored
         vm.requestDestroyVault()
         io.mockk.coVerify(exactly = 1) { ccRunner.destroyVault(any()) }
+    }
+
+    @Test
+    fun `requestExportVault success populates lastExportPath`() = runTest(testDispatcher) {
+        val tmpDir = java.io.File.createTempFile("hubexport-", "").apply {
+            delete(); mkdirs()
+        }
+        every { appContext.getExternalFilesDir(any()) } returns tmpDir
+        coEvery { ccRunner.exportVault(any(), any()) } answers {
+            LocalCcRunner.ExportResult.Ok(
+                outputPath = firstArg<String>(),
+                bytes = 1024L * 1024L,
+                encrypted = true,
+            )
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVault()
+        advanceUntilIdle()
+        val s = vm.state.value
+        assertFalse(s.threeLocks.exporting)
+        assertNull(s.threeLocks.exportError)
+        assertNotNull(s.threeLocks.lastExportPath)
+        assertTrue(s.threeLocks.lastExportPath!!.contains("chainlesschain-vault-"))
+        assertEquals(1024L * 1024L, s.threeLocks.lastExportBytes)
+        tmpDir.deleteRecursively()
+    }
+
+    @Test
+    fun `requestExportVault failure when external storage unavailable`() = runTest(testDispatcher) {
+        every { appContext.getExternalFilesDir(any()) } returns null
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVault()
+        advanceUntilIdle()
+        val s = vm.state.value
+        assertFalse(s.threeLocks.exporting)
+        assertNotNull(s.threeLocks.exportError)
+        assertTrue(s.threeLocks.exportError!!.contains("External storage"))
+    }
+
+    @Test
+    fun `requestExportVault failure surfaces cc error`() = runTest(testDispatcher) {
+        val tmpDir = java.io.File.createTempFile("hubexport-", "").apply {
+            delete(); mkdirs()
+        }
+        every { appContext.getExternalFilesDir(any()) } returns tmpDir
+        coEvery { ccRunner.exportVault(any(), any()) } returns
+            LocalCcRunner.ExportResult.Failed("disk full", 2)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVault()
+        advanceUntilIdle()
+        val s = vm.state.value
+        assertFalse(s.threeLocks.exporting)
+        assertEquals("disk full", s.threeLocks.exportError)
+        assertNull(s.threeLocks.lastExportPath)
+        tmpDir.deleteRecursively()
+    }
+
+    @Test
+    fun `requestExportVault ignored while already exporting`() = runTest(testDispatcher) {
+        val tmpDir = java.io.File.createTempFile("hubexport-", "").apply {
+            delete(); mkdirs()
+        }
+        every { appContext.getExternalFilesDir(any()) } returns tmpDir
+        coEvery { ccRunner.exportVault(any(), any()) } coAnswers {
+            kotlinx.coroutines.delay(1_000_000L)
+            LocalCcRunner.ExportResult.Ok("x", 0L, true)
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVault()
+        assertTrue(vm.state.value.threeLocks.exporting)
+        vm.requestExportVault()
+        io.mockk.coVerify(exactly = 1) { ccRunner.exportVault(any(), any()) }
+        tmpDir.deleteRecursively()
+    }
+
+    @Test
+    fun `clearExportError wipes error`() = runTest(testDispatcher) {
+        val tmpDir = java.io.File.createTempFile("hubexport-", "").apply {
+            delete(); mkdirs()
+        }
+        every { appContext.getExternalFilesDir(any()) } returns tmpDir
+        coEvery { ccRunner.exportVault(any(), any()) } returns
+            LocalCcRunner.ExportResult.Failed("io error", 1)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestExportVault()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.threeLocks.exportError)
+        vm.clearExportError()
+        assertNull(vm.state.value.threeLocks.exportError)
+        tmpDir.deleteRecursively()
     }
 
     @Test
