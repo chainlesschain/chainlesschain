@@ -3,6 +3,30 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.80 — PDH v0.2 大爆发 — 11 个 placeholder 卡接通 + WeChat/QQ 真采集 + A3 端侧 LLM 骨架] - 2026-05-22
+
+> 47 commits since v5.0.3.79。Personal Data Hub 从 Plan A v0.1（1 个 adapter）扩到 v0.2（**11 个真接通** + WeChat 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 全链路 skeleton）。三道锁（拒云 / 销毁 / 导出）UI + 后端真接通；AI 给出处 citation chip 跳事件详情；release.yml 拆 publish-deps 前置 job 解 desktop build 链。
+
+- **PDH v0.2 — 社交内容 + 购物 + 出行 + AI 助手 + 邮箱 11 平台接通**：
+  - **社交内容 (A8 v0.2)**：微博 (`c087c36eb`) + 抖音/小红书 (`20f9b2188`，内容 4/4) + 头条/快手 (`e1155b1d7`，dual-mode snapshot+sqlite)
+  - **购物 (§2.4)**：京东/美团 (`f3cbd0693`，dual-mode) + 拼多多 SAF JSON (`78695c25e`) + 支付宝 CSV + 淘宝 HTML (`799e364f0`)
+  - **出行 (§2.5)**：高德/携程 (`0fe532e72`，cookie scrape WebView) + 百度/腾讯地图 (`3d1cf9481`)
+  - **AI 助手 (§2.6 D10.2)**：9 路 WebView cookie scrape + cc sync wire (`1e7725552`)；8 卡 enable (`20e0318b4`)
+  - **邮箱 (§2.3 D6.2)**：QQ/Gmail/163/Outlook 4 家 IMAP via Jakarta Mail 真接通 (`7777f5bec`)
+- **WeChat in-app collector Phase 12.10**（4 sub-phase 全 land）：
+  - 12.10.1+12.10.2 scaffold (`8c52d5963` + `6eb1b4918` + `d962b94fe`)
+  - 12.10.3 `WeChatDbExtractor` SQLCipher decrypt (`8081f8a0d`)：sjqz MD5(IMEI+UIN)[:7] 7.x + frida 64-hex 8.x 双 PRAGMA + 3 profile fallback + WAL+SHM cohort
+  - 12.10.4 `WeChatFridaInjector` (`37a4e465d`)：bundle frida-inject + spawn /data/local/tmp/cc-* + 5-symbol hook
+  - 12.10.6 prereq vendor frida 16.5.9 (`cdfe1048e`)：arm64-v8a + armeabi-v7a → APK ship + `scripts/wechat-e2e.py` 8-scenario adb harness (`c25e48e74`)
+- **QQ in-app collector Phase 13.5 v0.2** (`a07731b46`)：XOR-IMEI 算法 byte-identical sjqz `qq.py` 移植（**no SQLCipher / no frida**）— 4 Kotlin + 27 unit tests + 13 JS snapshot tests + 6 longtail
+- **A3 Android 端侧 LLM 全链路 skeleton**：A3.1-A3.4 Ktor LLM server + ModelManager (`ed768ffdf`) / A3.8 PDH tab 4 "本机提问" (`e14fc5106` + `f2705a73e`) / askQuestion 全链路 (`f41f06441`) / KotlinLlamaCppEngine 骨架 (`8f023052a`)
+- **三道锁 UI + 真接通** (`0fd45af15` + `1353103d5` + `6bb5eb826`)：拒云 / 销毁 / 导出 — `cc hub export` 真接通；D11 SAF picker 升级到用户选位置 (`7e4fa844f`)
+- **AI 给出处真接通** (`3a76ee5e4`)：`cc hub event-detail` + citation chip
+- **release.yml 链路修复** (`12d1391d1`)：split workspace deps publish 前置 job — 解 v5.0.3.79 desktop build chicken-and-egg
+- **Bonus 修复**：WeChat normalize 排除 `@stranger`/`fake_*` (`3c8917a3c`) + A6a server IO thread bind (`6ad123399`) + RealtimeEventManagerProfileQueryTest flake (`9619e506d`) + HubAuditViewModelTest stub (`7478d4c30`) + Bilibili API headers (`f7e11d6a5`) + wechat-e2e.py UTF-8 cp936 (`e65ec6d83`) + debug/release APK auto-detect (`08941a5f1`) + `cc hub wechat doctor` (`11629ef2a`)
+- **Memory 沉淀**：`android_wechat_collector_phase_12_10.md` (8 trap + 5 真机 blocker) + `android_qq_collector_phase_13_5.md` (10 trap) + `pdh_a8_weibo_v0_2_landed.md` + `wechat_frida_hook_audit_traps.md` + `pdh_a3_skeleton_landed.md`
+- **v0.2 → v1.0 残留**：WeChat 12.10.6 真机 E2E 需 root 机子 + Magisk-su；QQ HubLocal UI wire 第二批；A3 端侧 LLM Maven deps + JNI + 真机（~5d）
+
 ## [v5.0.3.77 / .78 — Personal Data Hub Plan A v0.1 真机闭环 + iOS .ipa ship] - 2026-05-22
 
 > 两个 tag 合并发布：`.77` 顺手出 iOS .ipa 真机包 + Phase 14.1 step 5 ChatBubble；`.78` 是 Personal Data Hub Plan A v0.1 Xiaomi 24115RA8EC 真机端到端闭环 + 3 真机硬化修。CLI bump 到 0.162.14，npm `@chainlesschain/personal-data-hub@0.2.1`，Android versionCode 503078，iOS CFBundleVersion 78。

@@ -5,6 +5,41 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.80] - 2026-05-22 — PDH v0.2 大爆发 — 11 个 placeholder 卡接通 + WeChat/QQ 真采集 + A3 端侧 LLM 骨架
+
+> 47 commits since v5.0.3.79. Personal Data Hub 从 Plan A v0.1（1 个 adapter）扩到 v0.2（**11 个真接通** + WeChat 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 全链路 skeleton）。三道锁（拒云 / 销毁 / 导出）UI + 后端真接通；AI 给出处 citation chip 跳事件详情；release.yml 拆 publish-deps 前置 job 解 desktop build 链。
+
+- **PDH v0.2 — 社交内容 + 购物 + 出行 + AI 助手 + 邮箱 11 平台接通**：
+  - **社交内容 (A8 v0.2)**：微博 (`c087c36eb`，mirror Bilibili 模式 + UID/X-Requested-With/containerid 3 trap diff) + 抖音 + 小红书 (`20f9b2188`，内容 4/4) + 头条 + 快手 (`e1155b1d7`，dual-mode snapshot+sqlite)
+  - **购物 (§2.4)**：京东 + 美团 (`f3cbd0693`，dual-mode) + 拼多多 (`78695c25e`，SAF JSON import) + 支付宝 CSV + 淘宝 HTML (`799e364f0`)
+  - **出行 (§2.5)**：高德 + 携程 (`0fe532e72`，cookie scrape WebView) + 百度 + 腾讯地图 (`3d1cf9481`)
+  - **AI 助手 (§2.6 D10.2)**：9 路 WebView cookie scrape + cc sync wire (`1e7725552`)；8 卡 enable + wenxin/qianfan 合并 (`20e0318b4`)
+  - **邮箱 (§2.3 D6.2)**：QQ/Gmail/163/Outlook 4 家 IMAP via Jakarta Mail 真接通 (`7777f5bec`)
+- **WeChat in-app collector Phase 12.10**（4 sub-phase 全 land）：
+  - 12.10.1+12.10.2 scaffold (`8c52d5963` + `6eb1b4918` + `d962b94fe`)：4 Kotlin + 19 unit tests + frida agent assets bundle README
+  - 12.10.3 `WeChatDbExtractor` SQLCipher decrypt (`8081f8a0d`)：sjqz MD5(IMEI+UIN)[:7] 7.x path + frida 64-hex 8.x path 双 PRAGMA + 3 profile fallback (wcdb-legacy / sqlcipher-v3 / v4) + WAL+SHM cohort copy
+  - 12.10.4 `WeChatFridaInjector` (`37a4e465d`)：bundle frida-inject + spawn `/data/local/tmp/cc-*` + stdout JSON parse + 5-symbol hook (sqlite3_key/v2 + wcdb_setkey + WCDBKeyDerive + mangled setCipherKey)
+  - 12.10.6 prereq vendor frida 16.5.9 (`cdfe1048e`)：arm64-v8a (54MB) + armeabi-v7a (26MB) → APK ship 验证 (`scripts/wechat-e2e.py` 8-scenario adb harness `c25e48e74`)
+- **QQ in-app collector Phase 13.5 v0.2** (`a07731b46`)：XOR-IMEI 算法 byte-identical sjqz `qq.py` 移植 (no SQLCipher, no frida) — `QQXorDecryptor` (110 LOC) + `QQCredentialsStore` (saveAccount 抛 IllegalArgumentException) + `QQDbExtractor` (380 LOC, su cp cohort + 3-table probe + PRAGMA table_info 列名解析) + 27 Kotlin unit tests + 13 JS snapshot tests + 6 longtail tests
+- **A3 Android 端侧 LLM 全链路 skeleton**：
+  - A3.1-A3.4 (`ed768ffdf`)：Ktor LLM server + ModelManager + 端侧 LLM 推理引擎抽象
+  - A3.8 (`e14fc5106` + `f2705a73e`)：PersonalDataHubScreen tab 4 "本机提问" + HubLocalScreen 重构为 6 类 LazyColumn + HubAskCard wire
+  - A3 Android askQuestion 全链路 (`f41f06441`)：UI + VM + cc spawn (724 LOC Kotlin)
+  - A3.3 `KotlinLlamaCppEngine` 骨架 (`8f023052a`)：llama.cpp JNI wire
+- **三道锁 UI + 真接通** (`0fd45af15` + `1353103d5` + `6bb5eb826`)：拒云 toggle + CC_HUB_ALLOW_NON_LOCAL env fallback / 销毁 button / 导出 — `cc hub export` + `LocalCcRunner.exportVault` 真接通；D11 SAF picker 一键带走升级到用户选位置 (`7e4fa844f`)
+- **AI 给出处真接通** (`3a76ee5e4`)：`cc hub event-detail` + citation chip 点击跳详情 sheet
+- **release.yml 链路修复** (`12d1391d1`)：split workspace deps publish into pre-build job — 解 v5.0.3.79 desktop build chicken-and-egg (PDH 0.2.x 必须先 publish 才能让 desktop extraResources install 找到)
+- **Bonus 修复**：
+  - WeChat normalize 排除 `@stranger`/`fake_*` contacts + 标 `gh_*` 为 merchant (`3c8917a3c`)
+  - A6a server bind on IO thread (`6ad123399`)
+  - `RealtimeEventManagerProfileQueryTest` SharedFlow subscriber wait (`9619e506d`)
+  - `HubAuditViewModelTest` stub `DEFAULT_AUDIT_LIMIT` (`7478d4c30`)
+  - Bilibili API headers + propagate error code to UI (`f7e11d6a5`)
+  - `wechat-e2e.py` UTF-8 on Win cp936 (`e65ec6d83`) + debug/release APK auto-detect (`08941a5f1`)
+  - `cc hub wechat doctor` env-probe + readiness checklist (`11629ef2a`)
+- **Memory captured**：`android_wechat_collector_phase_12_10.md` (8 trap + 5 真机 blocker) + `android_qq_collector_phase_13_5.md` (10 trap) + `pdh_a8_weibo_v0_2_landed.md` + `wechat_frida_hook_audit_traps.md` + `pdh_a3_skeleton_landed.md` + `pdh_article_alignment_session.md`
+- **v0.2 → v1.0 残留**：(1) WeChat 12.10.6 真机 E2E 需 root 机子 + Magisk-su (Xiaomi 24115RA8EC 当下未 root)；(2) WeChat 12.10.7 anti-detection (binary 改名 / hide process)；(3) QQ HubLocal UI wire 第二批 commit (QQCardState + dialog + 5 VM actions)；(4) QQ Phase 13.5.6 真机 E2E 6 场景 (NoRoot / wrong uin / wrong IMEI / happy / 重复 idempotency / WAL 活跃)；(5) A3 端侧 LLM Maven deps + JNI + 真机 (~5d)
+
 ## [v5.0.3.79] - 2026-05-22 — PDH A8 v0.1 — social-adapter Bilibili 端到端 + 3 平台 UI 占位
 
 > Extends Plan A v0.1 (HubLocal tab) from 1 adapter card (`system-data-android`) to 5. Bilibili end-to-end (login WebView + OkHttp 4 endpoints + local SQLCipher vault); 微博/抖音/小红书 UI cards visible with "v0.2 开放" status. **Fully desktop-independent** — Android does cookie capture + HTTP + parsing + vault write all on-device via in-APK cc.
