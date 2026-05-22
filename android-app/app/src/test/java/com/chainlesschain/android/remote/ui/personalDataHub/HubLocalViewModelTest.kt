@@ -4,6 +4,7 @@ import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
+import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
@@ -52,6 +53,7 @@ class HubLocalViewModelTest {
     private lateinit var wechatCollector: WeChatLocalCollector
     private lateinit var wechatCredentials: WeChatCredentialsStore
     private lateinit var llmServer: LocalLlmServer
+    private lateinit var aiChatCredentials: AiChatCredentialsStore
     private lateinit var appContext: Context
 
     @Before
@@ -64,6 +66,7 @@ class HubLocalViewModelTest {
         wechatCollector = mockk(relaxed = true)
         wechatCredentials = mockk(relaxed = true)
         llmServer = mockk(relaxed = true)
+        aiChatCredentials = mockk(relaxed = true)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -92,6 +95,7 @@ class HubLocalViewModelTest {
             wechatCollector,
             wechatCredentials,
             llmServer,
+            aiChatCredentials,
             appContext,
         )
 
@@ -892,6 +896,183 @@ class HubLocalViewModelTest {
         assertTrue(vm.state.value.localAudit.isLoading)
         assertTrue(vm.state.value.localAudit.rows.isEmpty())
         assertNull(vm.state.value.localAudit.errorMessage)
+    }
+
+    // ─── §2.6 D10.2 — AI 助手 9 路 WebView ────────────────────────────────
+
+    @Test
+    fun `init renders 9 AI vendor cards in推文 order`() = runTest(testDispatcher) {
+        every { aiChatCredentials.hasCredentials(any()) } returns false
+        every { aiChatCredentials.getLastSyncAt(any()) } returns null
+        every { aiChatCredentials.getLastSyncCount(any()) } returns 0
+        val vm = newVm()
+        advanceUntilIdle()
+        val keys = vm.state.value.aiChat.keys
+        assertEquals(9, keys.size)
+        // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek / 智谱 / 混元 / 千帆 / 扣子"
+        assertTrue("doubao" in keys)
+        assertTrue("wenxin" in keys)
+        assertTrue("kimi" in keys)
+        assertTrue("tongyi" in keys)
+        assertTrue("deepseek" in keys)
+        assertTrue("zhipu" in keys)
+        assertTrue("hunyuan" in keys)
+        assertTrue("qianfan" in keys)
+        assertTrue("coze" in keys)
+    }
+
+    @Test
+    fun `requestAiChatLogin sets pendingLogin with vendor prefix`() = runTest(testDispatcher) {
+        every { aiChatCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestAiChatLogin("kimi")
+        val p = vm.state.value.pendingLogin
+        assertNotNull(p)
+        assertEquals("ai-chat:kimi", p.adapterName)
+        assertEquals("Kimi (月之暗面)", p.displayName)
+        assertTrue(p.loginUrl.contains("kimi.moonshot.cn"))
+        assertTrue(p.cookieDomain.contains("kimi.moonshot.cn"))
+        // isLoginSuccess: post-login URL hits the success domain without /auth/
+        assertTrue(p.isLoginSuccess("https://kimi.moonshot.cn/chat/abc"))
+        assertFalse(p.isLoginSuccess("https://kimi.moonshot.cn/auth/sign-in"))
+    }
+
+    @Test
+    fun `requestAiChatLogin unknown vendor is no-op`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestAiChatLogin("not-a-vendor")
+        assertNull(vm.state.value.pendingLogin)
+    }
+
+    @Test
+    fun `onAiChatLoginCookie saves cookie + refreshes hasCredentials`() = runTest(testDispatcher) {
+        // First call: not logged in. After saveCookie + refresh: logged in.
+        every { aiChatCredentials.hasCredentials("doubao") } returnsMany listOf(false, true)
+        every { aiChatCredentials.getLastSyncAt(any()) } returns null
+        every { aiChatCredentials.getLastSyncCount(any()) } returns 0
+        every { aiChatCredentials.saveCookie(any(), any()) } just runs
+
+        val vm = newVm()
+        advanceUntilIdle()
+        // Pre-condition: doubao card not logged in
+        assertFalse(vm.state.value.aiChat["doubao"]?.isLoggedIn ?: true)
+
+        vm.requestAiChatLogin("doubao")
+        vm.onAiChatLoginCookie("doubao", "SESSION_KEY=abc; PASSPORT_KEY=def")
+        advanceUntilIdle()
+
+        io.mockk.verify { aiChatCredentials.saveCookie("doubao", "SESSION_KEY=abc; PASSPORT_KEY=def") }
+        assertNull(vm.state.value.pendingLogin)
+        assertTrue(vm.state.value.aiChat["doubao"]?.isLoggedIn == true)
+    }
+
+    @Test
+    fun `onAiChatLoginCookie blank cookie surfaces error not saveCookie`() = runTest(testDispatcher) {
+        every { aiChatCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestAiChatLogin("kimi")
+        vm.onAiChatLoginCookie("kimi", "")
+        advanceUntilIdle()
+        assertNull(vm.state.value.pendingLogin)
+        io.mockk.verify(exactly = 0) { aiChatCredentials.saveCookie(any(), any()) }
+        assertTrue(vm.state.value.aiChat["kimi"]?.errorMessage?.contains("cookie") == true)
+    }
+
+    @Test
+    fun `syncAiChat when not logged in triggers requestAiChatLogin instead`() = runTest(testDispatcher) {
+        every { aiChatCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncAiChat("deepseek")
+        advanceUntilIdle()
+        // Not logged in → routed to login flow, no cc call
+        assertNotNull(vm.state.value.pendingLogin)
+        assertEquals("ai-chat:deepseek", vm.state.value.pendingLogin?.adapterName)
+        io.mockk.coVerify(exactly = 0) { ccRunner.syncAdapter(any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncAiChat Ok records lastSync + clears error`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        every { aiChatCredentials.hasCredentials("tongyi") } returns true
+        every { aiChatCredentials.getCookie("tongyi") } returns "session_token=stub"
+        every { aiChatCredentials.getLastSyncAt(any()) } returns null
+        every { aiChatCredentials.getLastSyncCount(any()) } returns 0
+        every { aiChatCredentials.recordSync(any(), any(), any()) } just runs
+        coEvery { ccRunner.syncAdapter("ai-chat-history", any(), any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "ai-chat-history",
+                    status = "ok",
+                    ingested = 42,
+                    invalidCount = 0,
+                    kgTriples = 0,
+                    ragDocs = 0,
+                    durationMs = 100L,
+                    error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncAiChat("tongyi")
+        advanceUntilIdle()
+
+        val card = vm.state.value.aiChat["tongyi"]!!
+        assertFalse(card.isSyncing)
+        assertNotNull(card.lastSyncAt)
+        assertEquals(42, card.lastSyncCount)
+        assertNull(card.errorMessage)
+        io.mockk.verify { aiChatCredentials.recordSync("tongyi", any(), 42) }
+    }
+
+    @Test
+    fun `syncAiChat cc failure with not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        every { aiChatCredentials.hasCredentials("doubao") } returns true
+        every { aiChatCredentials.getCookie("doubao") } returns "cookie-stub"
+        every { aiChatCredentials.getLastSyncAt(any()) } returns null
+        every { aiChatCredentials.getLastSyncCount(any()) } returns 0
+        coEvery { ccRunner.syncAdapter(any(), any(), any()) } returns
+            LocalCcRunner.CcResult.Failed("adapter doubao not found in registry", 1, null)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncAiChat("doubao")
+        advanceUntilIdle()
+
+        val card = vm.state.value.aiChat["doubao"]!!
+        assertFalse(card.isSyncing)
+        assertTrue(card.errorMessage?.contains("v0.2") == true)
+    }
+
+    @Test
+    fun `logoutAiChat clears one vendor without disturbing others`() = runTest(testDispatcher) {
+        // Initial: kimi + deepseek both logged in
+        every { aiChatCredentials.hasCredentials("kimi") } returnsMany listOf(true, false)
+        every { aiChatCredentials.hasCredentials("deepseek") } returns true
+        every { aiChatCredentials.getLastSyncAt(any()) } returns null
+        every { aiChatCredentials.getLastSyncCount(any()) } returns 0
+        every { aiChatCredentials.clear("kimi") } just runs
+
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.aiChat["kimi"]?.isLoggedIn == true)
+        assertTrue(vm.state.value.aiChat["deepseek"]?.isLoggedIn == true)
+
+        vm.logoutAiChat("kimi")
+        advanceUntilIdle()
+
+        io.mockk.verify { aiChatCredentials.clear("kimi") }
+        // kimi cleared (second hasCredentials returns false), deepseek untouched
+        assertFalse(vm.state.value.aiChat["kimi"]?.isLoggedIn ?: true)
+        assertTrue(vm.state.value.aiChat["deepseek"]?.isLoggedIn == true)
     }
 
     @Test
