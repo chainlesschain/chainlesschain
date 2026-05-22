@@ -46,6 +46,7 @@
     "./adapters/travel-ctrip": "./lib/adapters/travel-ctrip/index.js",
     "./adapters/travel-amap": "./lib/adapters/travel-amap/index.js",
     "./adapters/travel-baidu-map": "./lib/adapters/travel-baidu-map/index.js",
+    "./adapters/travel-tencent-map": "./lib/adapters/travel-tencent-map/index.js",
     "./adapters/shopping-base": "./lib/adapters/shopping-base/index.js",
     "./adapters/shopping-taobao": "./lib/adapters/shopping-taobao/index.js",
     "./adapters/shopping-jd": "./lib/adapters/shopping-jd/index.js",

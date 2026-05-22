@@ -1480,18 +1480,58 @@ class HubLocalViewModelTest {
         assertTrue(vm.state.value.email["gmail"]?.hasCredentials == true)
     }
 
-    // ─── §2.5 D8.2 — Travel (高德 / 携程) cookie scrape ────────────────────
+    // ─── §2.5 D8.2 + §2.5b 地图扩展 — Travel (高德 / 百度 / 腾讯 / 携程) ──────
 
     @Test
-    fun `init renders 2 travel vendor cards`() = runTest(testDispatcher) {
+    fun `init renders 4 travel vendor cards including 3 maps`() = runTest(testDispatcher) {
         every { travelCredentials.hasCredentials(any()) } returns false
         val vm = newVm()
         advanceUntilIdle()
         val keys = vm.state.value.travel.keys
-        assertEquals(2, keys.size)
+        // 3 地图 + 1 出行 = 4 卡
+        assertEquals(4, keys.size)
         assertTrue("travel-amap" in keys)
+        assertTrue("travel-baidu-map" in keys)
+        assertTrue("travel-tencent-map" in keys)
         assertTrue("travel-ctrip" in keys)
     }
+
+    @Test
+    fun `requestTravelLogin for baidu-map uses map_baidu_com URL + isLoginSuccess excludes passport`() =
+        runTest(testDispatcher) {
+            every { travelCredentials.hasCredentials(any()) } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestTravelLogin("travel-baidu-map")
+            val p = vm.state.value.pendingLogin
+            assertNotNull(p)
+            assertEquals("travel:travel-baidu-map", p.adapterName)
+            assertEquals("百度地图", p.displayName)
+            assertTrue(p.loginUrl.contains("map.baidu.com"))
+            // isLoginSuccess: 已到 map.baidu.com 视为成功；passport / sso / login
+            // 中间页判 false
+            assertTrue(p.isLoginSuccess("https://map.baidu.com/"))
+            assertFalse(p.isLoginSuccess("https://passport.baidu.com/v2/?login"))
+            assertFalse(p.isLoginSuccess("https://sso.baidu.com/login"))
+        }
+
+    @Test
+    fun `requestTravelLogin for tencent-map uses map_qq_com URL + isLoginSuccess excludes ptlogin`() =
+        runTest(testDispatcher) {
+            every { travelCredentials.hasCredentials(any()) } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestTravelLogin("travel-tencent-map")
+            val p = vm.state.value.pendingLogin
+            assertNotNull(p)
+            assertEquals("travel:travel-tencent-map", p.adapterName)
+            assertEquals("腾讯地图", p.displayName)
+            assertTrue(p.loginUrl.contains("map.qq.com"))
+            // isLoginSuccess: 回到 map.qq.com 视为成功；ptlogin / login 中间页 false
+            assertTrue(p.isLoginSuccess("https://map.qq.com/"))
+            assertFalse(p.isLoginSuccess("https://xui.ptlogin2.qq.com/cgi-bin/login"))
+            assertFalse(p.isLoginSuccess("https://map.qq.com/login"))
+        }
 
     @Test
     fun `requestTravelLogin sets pendingLogin with travel prefix`() = runTest(testDispatcher) {
@@ -1605,6 +1645,8 @@ class HubLocalViewModelTest {
 
     @Test
     fun `logoutTravel clears one vendor without disturbing the other`() = runTest(testDispatcher) {
+        // 4 vendor 中只 stub amap + ctrip 已登录；其余 2 个地图 default false
+        every { travelCredentials.hasCredentials(any()) } returns false
         every { travelCredentials.hasCredentials("travel-amap") } returnsMany listOf(true, false)
         every { travelCredentials.hasCredentials("travel-ctrip") } returns true
         every { travelCredentials.clear("travel-amap") } just runs
