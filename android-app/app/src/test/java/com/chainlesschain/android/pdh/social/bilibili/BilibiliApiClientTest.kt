@@ -112,7 +112,10 @@ class BilibiliApiClientTest {
         assertEquals("01 介绍", items[0].part)
 
         val request = server.takeRequest()
-        assertEquals("/x/v2/history/cursor?ps=30", request.path)
+        // 2026-05-22 real-device fix: /x/v2/history/cursor returns 404,
+        // switched to /x/web-interface/history/cursor with type=archive
+        // (see BilibiliApiClient.kt:113-117).
+        assertEquals("/x/web-interface/history/cursor?ps=30&type=archive", request.path)
         assertTrue(request.getHeader("Cookie")!!.contains("SESSDATA=fake"))
         assertEquals("https://www.bilibili.com/", request.getHeader("Referer"))
     }

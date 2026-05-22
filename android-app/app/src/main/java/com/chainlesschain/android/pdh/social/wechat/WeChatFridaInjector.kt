@@ -393,7 +393,11 @@ class WeChatFridaInjector @Inject constructor(
      * shipping Android 9+. armv5/x86/x86_64 fall back to BinaryMissing.
      */
     internal fun primaryArch(): String {
-        val abis = Build.SUPPORTED_ABIS
+        // Build.SUPPORTED_ABIS is null in JVM unit-test stubs (only the
+        // Robolectric-shadowed instrumented path populates it). Elvis-fallback
+        // to empty array so the chain falls through to "unknown" → BinaryMissing
+        // without NPE during local/CI unit runs.
+        val abis = Build.SUPPORTED_ABIS ?: emptyArray()
         return when {
             abis.contains("arm64-v8a") -> "arm64"
             abis.contains("armeabi-v7a") -> "arm"
