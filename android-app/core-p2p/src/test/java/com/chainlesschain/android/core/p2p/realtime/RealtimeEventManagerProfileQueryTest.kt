@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -122,49 +123,61 @@ class RealtimeEventManagerProfileQueryTest {
     }
 
     @Test
-    fun `handleProfileQuery sends PROFILE_RESPONSE via injected provider`() = runTest {
-        val ownProfile = SelfProfileSnapshot(
-            did = "did:key:me",
-            nickname = "Bob",
-            avatarUrl = null,
-            bio = "bio"
-        )
-        manager.setSelfProfileProvider(object : SelfProfileProvider {
-            override suspend fun loadSelfProfile(): SelfProfileSnapshot = ownProfile
-        })
-        manager.startListening()
-
-        val sent = slot<P2PMessage>()
-        every { messageQueue.enqueue(capture(sent), any()) } returns true
-
-        // 模拟收到 PROFILE_QUERY
-        val queryPayload = ProfileQueryPayload(
-            requestId = "req-abc",
-            targetDid = "did:key:me",
-            timestamp = 0L
-        )
-        incomingFlow.emit(
-            P2PMessage(
-                id = "q-1",
-                fromDeviceId = "did:key:asker",
-                toDeviceId = "did:key:me",
-                type = MessageType.PROFILE_QUERY,
-                payload = json.encodeToString(ProfileQueryPayload.serializer(), queryPayload),
-                requiresAck = false
+    fun `handleProfileQuery sends PROFILE_RESPONSE via injected provider`() = runBlocking {
+        // runBlocking + withTimeout 不用 runTest——同 line 73 的 `queryProfile resolves`
+        // 测试：RealtimeEventManager 内部走 Dispatchers.IO，runTest 的 virtual time
+        // 让 delay(5) 瞬间跳过 100 次，IO 协程还没来得及把回包入队 sent 就被 check
+        // 抛 IllegalStateException。
+        withTimeout(10_000L) {
+            val ownProfile = SelfProfileSnapshot(
+                did = "did:key:me",
+                nickname = "Bob",
+                avatarUrl = null,
+                bio = "bio"
             )
-        )
+            manager.setSelfProfileProvider(object : SelfProfileProvider {
+                override suspend fun loadSelfProfile(): SelfProfileSnapshot = ownProfile
+            })
+            manager.startListening()
 
-        // 等回包入队
-        var spins = 0
-        while (!sent.isCaptured && spins++ < 100) {
-            delay(5)
+            // SharedFlow(replay=0) + IO scope async launch 的经典竞态：startListening
+            // 在 Dispatchers.IO 上 launch 一个 collector，但 launch 是异步的。如果在
+            // collector 真正 subscribe 之前就 emit，事件被丢弃。等到 subscriber
+            // 出现再 emit，避免 flake。
+            incomingFlow.subscriptionCount.first { it > 0 }
+
+            val sent = slot<P2PMessage>()
+            every { messageQueue.enqueue(capture(sent), any()) } returns true
+
+            // 模拟收到 PROFILE_QUERY
+            val queryPayload = ProfileQueryPayload(
+                requestId = "req-abc",
+                targetDid = "did:key:me",
+                timestamp = 0L
+            )
+            incomingFlow.emit(
+                P2PMessage(
+                    id = "q-1",
+                    fromDeviceId = "did:key:asker",
+                    toDeviceId = "did:key:me",
+                    type = MessageType.PROFILE_QUERY,
+                    payload = json.encodeToString(ProfileQueryPayload.serializer(), queryPayload),
+                    requiresAck = false
+                )
+            )
+
+            // 等回包入队
+            var spins = 0
+            while (!sent.isCaptured && spins++ < 200) {
+                delay(10)
+            }
+            check(sent.isCaptured) { "PROFILE_RESPONSE was never enqueued" }
+            assertEquals(MessageType.PROFILE_RESPONSE, sent.captured.type)
+            assertEquals("did:key:asker", sent.captured.toDeviceId)
+            val resp = json.decodeFromString(ProfileResponsePayload.serializer(), sent.captured.payload)
+            assertEquals("requestId echoed back so requester can match", "req-abc", resp.requestId)
+            assertEquals(ownProfile, resp.profile)
         }
-        check(sent.isCaptured) { "PROFILE_RESPONSE was never enqueued" }
-        assertEquals(MessageType.PROFILE_RESPONSE, sent.captured.type)
-        assertEquals("did:key:asker", sent.captured.toDeviceId)
-        val resp = json.decodeFromString(ProfileResponsePayload.serializer(), sent.captured.payload)
-        assertEquals("requestId echoed back so requester can match", "req-abc", resp.requestId)
-        assertEquals(ownProfile, resp.profile)
     }
 
     @Test
