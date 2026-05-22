@@ -54,6 +54,10 @@ const APPMSG_SUBTYPES = {
   33: "miniprogram",
   36: "miniprogram",
   51: "channel-video",
+  // sjqz docs reference these higher subtype codes on newer WeChat builds —
+  // accept both for forward compatibility (post-Phase 12.6 audit).
+  2000: "transfer",
+  2001: "redpacket",
 };
 
 /**
@@ -225,9 +229,14 @@ function parseAppMsg(body) {
     url: url || null,
   };
 
-  // Redpacket-specific
-  if (appType === 21) {
+  // Redpacket-specific (accept both 21 and 2001 — see APPMSG_SUBTYPES)
+  if (appType === 21 || appType === 2001) {
     structured.redPacketTitle = title;
+  }
+  // Transfer-specific
+  if (appType === 2000) {
+    structured.transferAmount =
+      extractTag(body, "feedesc") || extractTag(body, "pay_memo");
   }
   // File-specific
   if (appType === 6) {

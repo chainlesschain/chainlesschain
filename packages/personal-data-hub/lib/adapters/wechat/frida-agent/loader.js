@@ -53,6 +53,13 @@ function runAgentUnderMock(mocks = {}) {
     Interceptor: mocks.Interceptor,
     send: mocks.send,
     setTimeout: mocks.setTimeout || setTimeout,
+    // Frida injects Memory at runtime; tests that exercise the ascii-hex
+    // key-read path inject a mock with readCString(ptr, maxLen). Tests
+    // that don't touch it get a no-op stub so the agent module loads
+    // cleanly even when the hook itself never calls readCString.
+    Memory: mocks.Memory || {
+      readCString: () => null,
+    },
   };
   const ctx = vm.createContext(sandbox);
   const src = loadAgentScript();

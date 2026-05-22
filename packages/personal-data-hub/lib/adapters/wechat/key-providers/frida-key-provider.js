@@ -191,6 +191,14 @@ class FridaKeyProvider extends KeyProvider {
         if (evt.kind === "key") {
           settled = true;
           telemetry.keySource = evt.source;
+          // Phase 12.6 (post-sjqz audit) — capture sig/format/length so a
+          // failed DB open can be diagnosed: ascii-hex vs raw-bytes
+          // determines whether sqlite3_key got the expected key bytes,
+          // and sig=v1/v2 confirms args index resolution.
+          telemetry.keyFormat = evt.format || null;
+          telemetry.keySig = evt.sig || null;
+          telemetry.keyLength = evt.length || null;
+          telemetry.keyAlt = evt.alt || null;
           telemetry.durationMs = Date.now() - telemetry.startedAt;
           cleanup().then(() => resolve(String(evt.hex || "").toLowerCase()));
           return;
