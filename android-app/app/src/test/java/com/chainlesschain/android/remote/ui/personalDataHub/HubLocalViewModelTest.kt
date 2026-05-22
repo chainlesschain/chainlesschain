@@ -9,8 +9,13 @@ import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
+import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
+import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
@@ -64,6 +69,10 @@ class HubLocalViewModelTest {
     private lateinit var travelCredentials: TravelCredentialsStore
     private lateinit var weiboCollector: WeiboLocalCollector
     private lateinit var weiboCredentials: WeiboCredentialsStore
+    private lateinit var douyinCollector: DouyinLocalCollector
+    private lateinit var douyinCredentials: DouyinCredentialsStore
+    private lateinit var xhsCollector: XhsLocalCollector
+    private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var appContext: Context
 
     @Before
@@ -86,6 +95,17 @@ class HubLocalViewModelTest {
         every { weiboCredentials.getUid() } returns null
         every { weiboCredentials.getLastSyncAt() } returns null
         every { weiboCredentials.getLastSyncCount() } returns 0
+        douyinCollector = mockk(relaxed = false)
+        douyinCredentials = mockk(relaxed = true)
+        every { douyinCredentials.hasCredentials() } returns false
+        every { douyinCredentials.getSecUid() } returns null
+        every { douyinCredentials.getShortId() } returns null
+        every { douyinCredentials.getDisplayName() } returns null
+        every { douyinCredentials.getCookie() } returns null
+        every { douyinCredentials.getLastSyncAt() } returns null
+        every { douyinCredentials.getLastSyncCount() } returns 0
+        xhsCollector = mockk(relaxed = true)
+        xhsCredentials = mockk(relaxed = true)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -120,6 +140,10 @@ class HubLocalViewModelTest {
             travelCredentials,
             weiboCollector,
             weiboCredentials,
+            douyinCollector,
+            douyinCredentials,
+            xhsCollector,
+            xhsCredentials,
             appContext,
         )
 
@@ -150,15 +174,17 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `init renders all 4 social cards (2 implemented + 2 stub)`() = runTest(testDispatcher) {
+    fun `init renders all 4 social cards (4 implemented)`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
+        // §A8 v0.2: full 4-card lineup is real after Bilibili / 微博 / 抖音 /
+        // 小红书 land. 抖音 has smaller surface (profile only, no X-Bogus
+        // path) but card.implemented is true because login + cookie + 1
+        // endpoint actually do work end-to-end.
         assertTrue(vm.state.value.bilibili.implemented)
-        // §A8 v0.2: weibo flipped from stub to real (mirror of Bilibili —
-        // WebView+OkHttp+local snapshot). douyin / xiaohongshu still v0.3+.
         assertTrue(vm.state.value.weibo.implemented)
-        assertFalse(vm.state.value.douyin.implemented)
-        assertFalse(vm.state.value.xiaohongshu.implemented)
+        assertTrue(vm.state.value.douyin.implemented)
+        assertTrue(vm.state.value.xiaohongshu.implemented)
     }
 
     // ─── Login lifecycle ────────────────────────────────────────────────────
@@ -589,10 +615,233 @@ class HubLocalViewModelTest {
         assertEquals(0, vm.state.value.weibo.lastSyncCount)
     }
 
-    // ─── Other 2 social stubs (douyin / xiaohongshu) ───────────────────────
-    // §A8 v0.2: weibo migrated out of stub path — see Weibo lifecycle tests
-    // below. requestSocialLoginStub still maps "weibo" → social-weibo for
-    // forward-compat but HubLocalScreen no longer routes weibo through it.
+    // ─── Douyin lifecycle (§A8 v0.2 — mirror of Weibo, smaller surface) ─────
+    // Key behavioral diffs from Weibo:
+    //   - onDouyinLoginCookie is async (suspend) — sec_user_id needs a
+    //     passport/info/v2 HTTP roundtrip (抖音 cookie has no
+    //     DedeUserID-equivalent direct-read field).
+    //   - SocialCardState.uid is Long? and 抖音 secUid is String; VM keeps
+    //     uid=null and shows "已登录" rather than "已登录 UID:xxx".
+    //   - sync emits 1 profile event (no history/like/favourite — those
+    //     gate behind X-Bogus signature, v0.3+).
+
+    @Test
+    fun `init reads douyin credentials state from store`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA_alice"
+        every { douyinCredentials.getShortId() } returns "12345678"
+        every { douyinCredentials.getDisplayName() } returns "alice"
+        every { douyinCredentials.getLastSyncAt() } returns 1716000000000L
+        every { douyinCredentials.getLastSyncCount() } returns 1
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.douyin.isLoggedIn)
+        // VM keeps uid=null because抖音 secUid is String not Long
+        assertNull(vm.state.value.douyin.uid)
+        assertEquals(1716000000000L, vm.state.value.douyin.lastSyncAt)
+        assertEquals(1, vm.state.value.douyin.lastSyncCount)
+    }
+
+    @Test
+    fun `requestDouyinLogin sets pendingLogin with www_douyin_com URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDouyinLogin()
+        val pending = vm.state.value.pendingLogin
+        assertNotNull(pending)
+        assertEquals("social-douyin", pending.adapterName)
+        assertEquals("抖音", pending.displayName)
+        assertTrue(pending.loginUrl.startsWith("https://www.douyin.com"))
+        assertTrue(pending.cookieDomain.contains("www.douyin.com"))
+    }
+
+    @Test
+    fun `douyin isLoginSuccess accepts home but rejects showLogin URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDouyinLogin()
+        val pending = vm.state.value.pendingLogin!!
+        assertTrue(pending.isLoginSuccess("https://www.douyin.com/"))
+        assertTrue(pending.isLoginSuccess("https://www.douyin.com/user/MS4wLjABA"))
+        assertFalse(pending.isLoginSuccess("https://www.douyin.com/?showLogin=1"))
+        assertFalse(pending.isLoginSuccess("https://passport.douyin.com/auth"))
+    }
+
+    @Test
+    fun `onDouyinLoginCookie accepts cookie + refreshes state when fetchProfile returns uid`() = runTest(testDispatcher) {
+        coEvery { douyinCollector.acceptLoginCookie(any(), any()) } returns true
+        // After acceptance, store now reflects logged-in
+        every { douyinCredentials.hasCredentials() } returnsMany listOf(false, true)
+        every { douyinCredentials.getSecUid() } returnsMany listOf(null, "MS4wLjABAAAA_alice")
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDouyinLogin()
+        vm.onDouyinLoginCookie("sessionid=x; sid_guard=y; uid_tt=z")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertTrue(vm.state.value.douyin.isLoggedIn)
+        assertNull(vm.state.value.douyin.errorMessage)
+        io.mockk.coVerify { douyinCollector.acceptLoginCookie("sessionid=x; sid_guard=y; uid_tt=z", null) }
+    }
+
+    @Test
+    fun `onDouyinLoginCookie surfaces error when fetchProfile returns null`() = runTest(testDispatcher) {
+        coEvery { douyinCollector.acceptLoginCookie(any(), any()) } returns false
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDouyinLogin()
+        vm.onDouyinLoginCookie("sessionid=incomplete")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertFalse(vm.state.value.douyin.isLoggedIn)
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("sec_user_id"))
+    }
+
+    @Test
+    fun `syncDouyin when not logged in triggers requestDouyinLogin instead`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns false
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncDouyin()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.pendingLogin)
+        assertEquals("social-douyin", vm.state.value.pendingLogin!!.adapterName)
+        io.mockk.coVerify(exactly = 0) { douyinCollector.snapshot() }
+    }
+
+    @Test
+    fun `syncDouyin NoCredentials path surfaces 未登录 error`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
+        coEvery { douyinCollector.snapshot() } returns
+            DouyinLocalCollector.SnapshotResult.NoCredentials
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncDouyin()
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.douyin.isLoggedIn)
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("未登录"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncDouyin everythingEmpty path surfaces token expired hint`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
+        coEvery { douyinCollector.snapshot() } returns
+            DouyinLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/douyin-empty.json",
+                profileCount = 0, totalEvents = 0, everythingEmpty = true,
+                snapshottedAt = 1L,
+                lastErrorCode = 2154,
+                lastErrorMessage = "token expired",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncDouyin()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("token expired"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncDouyin Ok path runs ccRunner and surfaces honest v0_2 banner`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
+        val syncAt = 1716000000000L
+        coEvery { douyinCollector.snapshot() } returns
+            DouyinLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/douyin-snap.json",
+                profileCount = 1, totalEvents = 1, everythingEmpty = false,
+                snapshottedAt = syncAt,
+            )
+        coEvery { ccRunner.syncAdapter("social-douyin", "/tmp/douyin-snap.json") } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "social-douyin", status = "ok",
+                    ingested = 1, invalidCount = 0,
+                    kgTriples = 2, ragDocs = 0,
+                    durationMs = 800L, error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncDouyin()
+        advanceUntilIdle()
+
+        assertEquals(syncAt, vm.state.value.douyin.lastSyncAt)
+        assertEquals(1, vm.state.value.douyin.lastSyncCount)
+        // v0.2 honest banner — surfaces the X-Bogus limit so the small
+        // ingest count (=1) isn't mistaken for a bug.
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("v0.3"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncDouyin ccRunner Failed surfaces error`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
+        coEvery { douyinCollector.snapshot() } returns
+            DouyinLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/douyin-snap.json",
+                profileCount = 1, totalEvents = 1, everythingEmpty = false,
+                snapshottedAt = 1L,
+            )
+        coEvery { ccRunner.syncAdapter(any(), any()) } returns
+            LocalCcRunner.CcResult.Failed(
+                reason = "bs3mc cold-load timeout",
+                exitCode = 124, stderr = "...",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncDouyin()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("bs3mc cold-load timeout"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `logoutDouyin calls collector and clears state`() = runTest(testDispatcher) {
+        every { douyinCredentials.hasCredentials() } returns true
+        every { douyinCredentials.getSecUid() } returns "MS4wLjABAAAA"
+        every { douyinCollector.logout() } just runs
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.logoutDouyin()
+        advanceUntilIdle()
+
+        verify { douyinCollector.logout() }
+        assertFalse(vm.state.value.douyin.isLoggedIn)
+        assertNull(vm.state.value.douyin.uid)
+        assertEquals(0, vm.state.value.douyin.lastSyncCount)
+    }
+
+    // ─── Other social stubs (xiaohongshu only — kept for forward-compat) ────
+    // §A8 v0.2: weibo + douyin migrated out of stub path — see their lifecycle
+    // tests above. requestSocialLoginStub still maps all 3 → forward-compat
+    // but HubLocalScreen no longer routes weibo/douyin through it.
 
     @Test
     fun `requestSocialLoginStub for douyin surfaces error on douyin card only`() = runTest(testDispatcher) {

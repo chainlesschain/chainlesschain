@@ -16,8 +16,12 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
+import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
+import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
+import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
 import com.chainlesschain.android.pdh.travel.TravelVendor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -69,6 +73,10 @@ class HubLocalViewModel @Inject constructor(
     private val travelCredentials: TravelCredentialsStore,
     private val weiboCollector: WeiboLocalCollector,
     private val weiboCredentials: WeiboCredentialsStore,
+    private val douyinCollector: DouyinLocalCollector,
+    private val douyinCredentials: DouyinCredentialsStore,
+    private val xhsCollector: XhsLocalCollector,
+    private val xhsCredentials: XhsCredentialsStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -295,12 +303,15 @@ class HubLocalViewModel @Inject constructor(
         val douyin: SocialCardState = SocialCardState(
             adapterName = "social-douyin",
             displayName = "抖音",
-            implemented = false,
+            // §A8 v0.2: profile-only surface (account info via passport
+            // endpoint that works without X-Bogus). History/like/favourite
+            // 待 v0.3 X-Bogus 签名接通。UI 用 statusLine 透出限制。
+            implemented = true,
         ),
         val xiaohongshu: SocialCardState = SocialCardState(
             adapterName = "social-xiaohongshu",
             displayName = "小红书",
-            implemented = false,
+            implemented = true,
         ),
         val wechat: WechatCardState = WechatCardState(),
         val pendingLogin: LoginRequest? = null,
@@ -326,6 +337,8 @@ class HubLocalViewModel @Inject constructor(
         refreshPermissionState()
         refreshBilibiliFromStore()
         refreshWeiboFromStore()
+        refreshDouyinFromStore()
+        refreshXhsFromStore()
         refreshWechatFromStore()
         refreshAiChatFromStore()
         refreshEmailFromStore()
@@ -1849,6 +1862,383 @@ class HubLocalViewModel @Inject constructor(
         _state.update {
             it.copy(
                 weibo = it.weibo.copy(
+                    isLoggedIn = false,
+                    uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── Douyin (§A8 v0.2 — mirror of Weibo, smaller v0.2 surface) ──────────
+    //
+    // 与 Weibo 唯一架构差异：onDouyinLoginCookie 也是 suspend (内部调
+    // /aweme/v1/passport/account/info/v2/ 拿 sec_user_id — 抖音 cookie
+    // 不带 DedeUserID 这种字段直读)。
+    //
+    // **v0.2 surface 比 Weibo/Bilibili 小**：只同步 profile (1 个 event)，
+    // 历史/赞/收藏需 v0.3 X-Bogus 签名接通。SocialCardState.uid 字段抖音
+    // 是 String secUid 不是 Long — UI 显时若 uid==null 就不显，下面 sync
+    // 完毕只更 lastSyncAt + lastSyncCount，不写 uid 到 Long? 字段。
+    //
+    // (备选：另起 DouyinCardState String-uid 专用 — 暂从简，UI 显
+    // "已登录"代替 "已登录 UID:xxx"。)
+
+    fun refreshDouyinFromStore() {
+        val loggedIn = douyinCredentials.hasCredentials()
+        val lastSync = douyinCredentials.getLastSyncAt()
+        val lastCount = douyinCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                douyin = it.douyin.copy(
+                    isLoggedIn = loggedIn,
+                    uid = null, // 抖音 secUid 是 String 不是 Long，留 null
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    fun requestDouyinLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-douyin",
+                    displayName = "抖音",
+                    // www.douyin.com passport 登录页 — 扫码 + 密码两种登录方式都进
+                    // 这个 URL（抖音桌面端没单独 mobile passport.douyin.com 入口）
+                    loginUrl = "https://www.douyin.com/?showLogin=1",
+                    cookieDomain = "https://www.douyin.com",
+                    // 登录成功后跳转 www.douyin.com 主页或 www.douyin.com/user/<sec_uid>
+                    // 但 URL 也包含 showLogin=1 的可能，所以匹配 host 但排除 ?showLogin
+                    isLoginSuccess = { url ->
+                        (url.startsWith("https://www.douyin.com/") ||
+                            url == "https://www.douyin.com") &&
+                            !url.contains("showLogin=1") &&
+                            !url.contains("passport.")
+                    },
+                ),
+            )
+        }
+    }
+
+    fun onDouyinLoginCookie(cookie: String) {
+        // acceptLoginCookie 是 suspend (内部调 passport/account/info/v2/)，必须 launch
+        viewModelScope.launch {
+            // 显式传 displayName=null 避免 kotlinc 生成 $default GETFIELD
+            // 桥（见 memory feedback_mockk_cross_file_jvm_pollution.md）。
+            val accepted = douyinCollector.acceptLoginCookie(cookie, null)
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    douyin = it.douyin.copy(
+                        errorMessage = if (!accepted) {
+                            "登录未完成 — passport/info/v2 未返 sec_user_id，cookie 可能不全请重试"
+                        } else null,
+                    ),
+                )
+            }
+            if (accepted) refreshDouyinFromStore()
+        }
+    }
+
+    fun syncDouyin() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.douyin.isLoggedIn) {
+            requestDouyinLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-douyin",
+                    douyin = it.douyin.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = douyinCollector.snapshot()
+            when (result) {
+                is DouyinLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is DouyinLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            ),
+                        )
+                    }
+                }
+                is DouyinLocalCollector.SnapshotResult.Ok -> {
+                    if (result.everythingEmpty) {
+                        // 抖音 status_code 定义：0=ok / 2154=token expired /
+                        // -1=server error / -2=参数错。lastError* 传透让用户看见
+                        // 原始信号。
+                        val detail = when (result.lastErrorCode) {
+                            0 -> "passport/info/v2 返空 — 可能 cookie 缺关键字段（sessionid / sid_guard / passport_csrf_token）"
+                            -4 -> "非 JSON 响应（重定向到登录页 / 反爬触发）— 请重新登录"
+                            2154 -> "抖音 status_code=2154（token expired）— 请重新登录"
+                            -2 -> "IO error — 网络问题，稍后重试"
+                            else -> "抖音 status_code=${result.lastErrorCode}" +
+                                (result.lastErrorMessage?.let { " ($it)" } ?: "")
+                        }
+                        _state.update {
+                            it.copy(
+                                globalSyncingAdapter = null,
+                                douyin = it.douyin.copy(
+                                    isSyncing = false,
+                                    errorMessage = "未能拉到账号信息 — $detail",
+                                ),
+                            )
+                        }
+                        return@launch
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-douyin",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        // v0.2 honest banner — 透出限制让用户
+                                        // 知道历史/赞/收藏需 v0.3。lastSyncCount
+                                        // 只有 1（profile），不是 bug 是 scope。
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else if (result.totalEvents <= 1) {
+                                            "已同步账号信息（v0.2）。历史/赞/收藏需 v0.3 X-Bogus 签名接通。"
+                                        } else null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: douyin cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutDouyin() {
+        douyinCollector.logout()
+        _state.update {
+            it.copy(
+                douyin = it.douyin.copy(
+                    isLoggedIn = false,
+                    uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── Xiaohongshu (§A8 v0.2 — mirror of Weibo) ───────────────────────────
+    //
+    // 与 Weibo 唯一差异: acceptLoginCookie 不仅调 /api/sns/web/v1/user/me 拿
+    // user_id+nickname (类似 Weibo /api/config 拿 uid)，还要从同一 cookie 解
+    // a1 字段独立存 (X-S 签名要用 — Weibo 不需要签名)。
+
+    fun refreshXhsFromStore() {
+        val loggedIn = xhsCredentials.hasCredentials()
+        val uid = xhsCredentials.getUid()
+        val lastSync = xhsCredentials.getLastSyncAt()
+        val lastCount = xhsCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                xiaohongshu = it.xiaohongshu.copy(
+                    isLoggedIn = loggedIn,
+                    uid = uid,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    fun requestXhsLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-xiaohongshu",
+                    displayName = "小红书",
+                    // xiaohongshu.com 网页版登录页（移动端会有更严反检测）
+                    loginUrl = "https://www.xiaohongshu.com/explore",
+                    cookieDomain = "https://www.xiaohongshu.com",
+                    // 登录成功后跳 www.xiaohongshu.com 子路径，但不在 login/passport
+                    isLoginSuccess = { url ->
+                        url.startsWith("https://www.xiaohongshu.com") &&
+                            !url.contains("/login") &&
+                            !url.contains("/sign-in") &&
+                            !url.contains("passport")
+                    },
+                ),
+            )
+        }
+    }
+
+    fun onXhsLoginCookie(cookie: String) {
+        // acceptLoginCookie 是 suspend (调 /api/sns/web/v1/user/me 拿 user_id)
+        viewModelScope.launch {
+            val accepted = xhsCollector.acceptLoginCookie(cookie)
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    xiaohongshu = it.xiaohongshu.copy(
+                        errorMessage = if (!accepted) {
+                            "登录未完成 — cookie 缺 a1 字段或 /user/me 调用失败，请重试"
+                        } else null,
+                    ),
+                )
+            }
+            if (accepted) refreshXhsFromStore()
+        }
+    }
+
+    fun syncXhs() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.xiaohongshu.isLoggedIn) {
+            requestXhsLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-xiaohongshu",
+                    xiaohongshu = it.xiaohongshu.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = xhsCollector.snapshot()
+            when (result) {
+                is XhsLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is XhsLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            ),
+                        )
+                    }
+                }
+                is XhsLocalCollector.SnapshotResult.Ok -> {
+                    if (result.everythingEmpty) {
+                        // 小红书 code 含义:
+                        //   -461 = X-S 签名校验失败 (v0.2 算法 best-effort, v0.3 完整 b1)
+                        //   -100 = silent ban
+                        //   -10000 = 接口失败 / 限流
+                        //   -4 = 非 JSON (cookie 过期重定向到 login)
+                        val detail = when (result.lastErrorCode) {
+                            0 -> "API 返回空 + 无错误码 — cookie 可能不完整（缺 web_session / a1）"
+                            -4 -> "非 JSON 响应（重定向到登录页）— 请重新登录"
+                            -461 -> "小红书 -461（X-S 签名校验失败）— v0.2 签名算法近似实现，v0.3 follow-up 接 b1 cookie 完整签名"
+                            -100 -> "小红书 -100（silent ban）— 单 IP 频繁请求触发风控，稍后再试"
+                            -10000 -> "小红书 -10000（接口限流 / 失败）— 稍后再试或换网络"
+                            else -> "小红书 code=${result.lastErrorCode}" +
+                                (result.lastErrorMessage?.let { " ($it)" } ?: "")
+                        }
+                        _state.update {
+                            it.copy(
+                                globalSyncingAdapter = null,
+                                xiaohongshu = it.xiaohongshu.copy(
+                                    isSyncing = false,
+                                    errorMessage = "3 个 API 都返回空 — $detail",
+                                ),
+                            )
+                        }
+                        return@launch
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-xiaohongshu",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: xhs cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutXhs() {
+        xhsCollector.logout()
+        _state.update {
+            it.copy(
+                xiaohongshu = it.xiaohongshu.copy(
                     isLoggedIn = false,
                     uid = null,
                     lastSyncAt = null,
