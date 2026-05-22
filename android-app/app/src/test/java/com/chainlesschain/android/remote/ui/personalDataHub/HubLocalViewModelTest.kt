@@ -4,6 +4,8 @@ import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
+import com.chainlesschain.android.pdh.email.EmailCredentialsStore
+import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
@@ -54,6 +56,8 @@ class HubLocalViewModelTest {
     private lateinit var wechatCredentials: WeChatCredentialsStore
     private lateinit var llmServer: LocalLlmServer
     private lateinit var aiChatCredentials: AiChatCredentialsStore
+    private lateinit var emailCredentials: EmailCredentialsStore
+    private lateinit var emailCollector: EmailLocalCollector
     private lateinit var appContext: Context
 
     @Before
@@ -67,6 +71,8 @@ class HubLocalViewModelTest {
         wechatCredentials = mockk(relaxed = true)
         llmServer = mockk(relaxed = true)
         aiChatCredentials = mockk(relaxed = true)
+        emailCredentials = mockk(relaxed = true)
+        emailCollector = mockk(relaxed = true)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -96,6 +102,8 @@ class HubLocalViewModelTest {
             wechatCredentials,
             llmServer,
             aiChatCredentials,
+            emailCredentials,
+            emailCollector,
             appContext,
         )
 
@@ -898,27 +906,29 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.localAudit.errorMessage)
     }
 
-    // ─── §2.6 D10.2 — AI 助手 9 路 WebView ────────────────────────────────
+    // ─── §2.6 D10.2 — AI 助手 8 路 WebView (合并 wenxin+qianfan 后) ────────
 
     @Test
-    fun `init renders 9 AI vendor cards in推文 order`() = runTest(testDispatcher) {
+    fun `init renders 8 AI vendor cards in推文 order (wenxin+qianfan merged)`() = runTest(testDispatcher) {
         every { aiChatCredentials.hasCredentials(any()) } returns false
         every { aiChatCredentials.getLastSyncAt(any()) } returns null
         every { aiChatCredentials.getLastSyncCount(any()) } returns 0
         val vm = newVm()
         advanceUntilIdle()
         val keys = vm.state.value.aiChat.keys
-        assertEquals(9, keys.size)
-        // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek / 智谱 / 混元 / 千帆 / 扣子"
+        // 2026-05-22 推文原 9 家中独立"千帆" entry 合并到"文心一言" (key=qianfan
+        // 对齐桌面 qianfan adapter BASE=yiyan.baidu.com)，UI 显 8 张。
+        assertEquals(8, keys.size)
         assertTrue("doubao" in keys)
-        assertTrue("wenxin" in keys)
+        assertTrue("qianfan" in keys)   // 文心一言 (WENXIN entry, key=qianfan)
         assertTrue("kimi" in keys)
         assertTrue("tongyi" in keys)
         assertTrue("deepseek" in keys)
         assertTrue("zhipu" in keys)
         assertTrue("hunyuan" in keys)
-        assertTrue("qianfan" in keys)
         assertTrue("coze" in keys)
+        // 旧 "wenxin" key 已删 (合到 qianfan)
+        assertTrue("wenxin" !in keys)
     }
 
     @Test
@@ -1073,6 +1083,162 @@ class HubLocalViewModelTest {
         // kimi cleared (second hasCredentials returns false), deepseek untouched
         assertFalse(vm.state.value.aiChat["kimi"]?.isLoggedIn ?: true)
         assertTrue(vm.state.value.aiChat["deepseek"]?.isLoggedIn == true)
+    }
+
+    // ─── §2.3 D6.2 — Email IMAP 4 vendor ─────────────────────────────────
+
+    @Test
+    fun `init renders 4 email vendor cards`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        val keys = vm.state.value.email.keys
+        assertEquals(4, keys.size)
+        assertTrue("qq" in keys)
+        assertTrue("gmail" in keys)
+        assertTrue("netease163" in keys)
+        assertTrue("outlook" in keys)
+    }
+
+    @Test
+    fun `requestEmailLogin flips pendingDialog for vendor`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestEmailLogin("qq")
+        assertTrue(vm.state.value.email["qq"]?.pendingDialog == true)
+        assertFalse(vm.state.value.email["gmail"]?.pendingDialog ?: false)
+    }
+
+    @Test
+    fun `submitEmailCredentials saves + triggers sync + records ingested`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials("qq") } returnsMany listOf(false, true)
+        every { emailCredentials.hasCredentials(match<String> { it != "qq" }) } returns false
+        io.mockk.coEvery {
+            emailCollector.snapshot("qq", any())
+        } returns EmailLocalCollector.SnapshotResult.Ok(
+            snapshotPath = "/tmp/snap.json", fetchedCount = 12,
+        )
+        coEvery { ccRunner.syncAdapter("email-imap", "/tmp/snap.json", any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "email-imap",
+                    status = "ok",
+                    ingested = 12,
+                    invalidCount = 0,
+                    kgTriples = 0,
+                    ragDocs = 0,
+                    durationMs = 200L,
+                    error = null,
+                ),
+                rawJson = "{}",
+            )
+        every { emailCredentials.saveCredentials(any(), any(), any(), any(), any()) } just runs
+        every { emailCredentials.recordSync(any(), any(), any()) } just runs
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestEmailLogin("qq")
+        vm.submitEmailCredentials(
+            vendorKey = "qq",
+            user = "me@qq.com",
+            password = "AUTHCODE123456",
+            imapHost = "imap.qq.com",
+            imapPort = 993,
+        )
+        advanceUntilIdle()
+
+        io.mockk.verify {
+            emailCredentials.saveCredentials(
+                "qq", "me@qq.com", "AUTHCODE123456", "imap.qq.com", 993,
+            )
+        }
+        val card = vm.state.value.email["qq"]!!
+        assertFalse(card.pendingDialog)
+        assertFalse(card.isSyncing)
+        assertNotNull(card.lastSyncAt)
+        assertEquals(12, card.lastSyncCount)
+        assertNull(card.errorMessage)
+        io.mockk.verify { emailCredentials.recordSync("qq", any(), 12) }
+    }
+
+    @Test
+    fun `submitEmailCredentials rejects empty user`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.submitEmailCredentials(
+            vendorKey = "qq", user = "", password = "x", imapHost = "imap.qq.com", imapPort = 993,
+        )
+        advanceUntilIdle()
+        assertTrue(vm.state.value.email["qq"]?.errorMessage?.contains("不完整") == true)
+        io.mockk.verify(exactly = 0) {
+            emailCredentials.saveCredentials(any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `syncEmail surface AuthFailed friendly message`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials("gmail") } returns true
+        every { emailCredentials.hasCredentials(match<String> { it != "gmail" }) } returns false
+        io.mockk.coEvery {
+            emailCollector.snapshot("gmail", any())
+        } returns EmailLocalCollector.SnapshotResult.AuthFailed("invalid credentials")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncEmail("gmail")
+        advanceUntilIdle()
+        val card = vm.state.value.email["gmail"]!!
+        assertFalse(card.isSyncing)
+        assertTrue(card.errorMessage?.contains("认证失败") == true)
+    }
+
+    @Test
+    fun `syncEmail Empty path surfaces inbox-empty hint`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials("outlook") } returns true
+        every { emailCredentials.hasCredentials(match<String> { it != "outlook" }) } returns false
+        io.mockk.coEvery {
+            emailCollector.snapshot("outlook", any())
+        } returns EmailLocalCollector.SnapshotResult.Empty
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncEmail("outlook")
+        advanceUntilIdle()
+        assertTrue(vm.state.value.email["outlook"]?.errorMessage?.contains("空") == true)
+    }
+
+    @Test
+    fun `syncEmail Ok but cc adapter not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials("netease163") } returns true
+        every { emailCredentials.hasCredentials(match<String> { it != "netease163" }) } returns false
+        io.mockk.coEvery {
+            emailCollector.snapshot("netease163", any())
+        } returns EmailLocalCollector.SnapshotResult.Ok("/tmp/snap.json", 5)
+        coEvery { ccRunner.syncAdapter("email-imap", any(), any()) } returns
+            LocalCcRunner.CcResult.Failed("unknown adapter: email-imap", 1, null)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncEmail("netease163")
+        advanceUntilIdle()
+        val card = vm.state.value.email["netease163"]!!
+        assertFalse(card.isSyncing)
+        assertTrue(card.errorMessage?.contains("v0.2") == true)
+    }
+
+    @Test
+    fun `logoutEmail clears one vendor without disturbing others`() = runTest(testDispatcher) {
+        every { emailCredentials.hasCredentials("qq") } returnsMany listOf(true, false)
+        every { emailCredentials.hasCredentials("gmail") } returns true
+        every { emailCredentials.hasCredentials(match<String> { it !in setOf("qq", "gmail") }) } returns false
+        every { emailCredentials.clear("qq") } just runs
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.email["qq"]?.hasCredentials == true)
+        vm.logoutEmail("qq")
+        advanceUntilIdle()
+        io.mockk.verify { emailCredentials.clear("qq") }
+        assertFalse(vm.state.value.email["qq"]?.hasCredentials ?: true)
+        assertTrue(vm.state.value.email["gmail"]?.hasCredentials == true)
     }
 
     @Test

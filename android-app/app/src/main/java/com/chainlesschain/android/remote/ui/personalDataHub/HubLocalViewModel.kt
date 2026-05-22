@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
+import com.chainlesschain.android.pdh.email.EmailCredentialsStore
+import com.chainlesschain.android.pdh.email.EmailLocalCollector
+import com.chainlesschain.android.pdh.email.EmailVendor
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
@@ -57,6 +60,8 @@ class HubLocalViewModel @Inject constructor(
     private val wechatCredentials: WeChatCredentialsStore,
     private val llmServer: LocalLlmServer,
     private val aiChatCredentials: AiChatCredentialsStore,
+    private val emailCredentials: EmailCredentialsStore,
+    private val emailCollector: EmailLocalCollector,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -233,6 +238,24 @@ class HubLocalViewModel @Inject constructor(
         val errorMessage: String? = null,
     )
 
+    /**
+     * §2.3 D6.2 — per-vendor 邮箱 IMAP card state (推文 §"邮箱 4 家")。UI 4
+     * 卡 (EmailVendor.ORDERED) 全显，每卡独立 hasCredentials / isSyncing /
+     * lastSyncAt / lastSyncCount / errorMessage / pendingDialog (boolean —
+     * 控制 EmailCredentialsDialog 是否对本卡 vendor 显示)。
+     */
+    @Immutable
+    data class EmailCardState(
+        val vendorKey: String,
+        val displayName: String,
+        val hasCredentials: Boolean = false,
+        val isSyncing: Boolean = false,
+        val lastSyncAt: Long? = null,
+        val lastSyncCount: Int = 0,
+        val errorMessage: String? = null,
+        val pendingDialog: Boolean = false,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -267,6 +290,8 @@ class HubLocalViewModel @Inject constructor(
         // §2.6 — vendorKey → card state. Default init at construction reads
         // persisted hasCredentials/lastSyncAt from EncryptedSharedPreferences.
         val aiChat: Map<String, AiChatCardState> = emptyMap(),
+        // §2.3 — vendorKey → email card state (QQ/Gmail/163/Outlook).
+        val email: Map<String, EmailCardState> = emptyMap(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -277,6 +302,7 @@ class HubLocalViewModel @Inject constructor(
         refreshBilibiliFromStore()
         refreshWechatFromStore()
         refreshAiChatFromStore()
+        refreshEmailFromStore()
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────
@@ -1059,6 +1085,170 @@ class HubLocalViewModel @Inject constructor(
         _state.update { st ->
             val card = st.aiChat[vendorKey] ?: return@update st
             st.copy(aiChat = st.aiChat + (vendorKey to card.copy(errorMessage = null)))
+        }
+    }
+
+    // ─── §2.3 D6.2 — 邮箱 4 家 IMAP ──────────────────────────────────────
+
+    fun refreshEmailFromStore() {
+        val map = EmailVendor.ORDERED.associate { v ->
+            v.key to EmailCardState(
+                vendorKey = v.key,
+                displayName = v.displayName,
+                hasCredentials = emailCredentials.hasCredentials(v.key),
+                lastSyncAt = emailCredentials.getLastSyncAt(v.key),
+                lastSyncCount = emailCredentials.getLastSyncCount(v.key),
+            )
+        }
+        _state.update { it.copy(email = map) }
+    }
+
+    /** 用户点 "登录"→ 弹 dialog (per-vendor pending flag). */
+    fun requestEmailLogin(vendorKey: String) {
+        if (EmailVendor.fromKey(vendorKey) == null) {
+            Timber.w("requestEmailLogin: unknown vendor=%s", vendorKey)
+            return
+        }
+        _state.update { st ->
+            val card = st.email[vendorKey] ?: return@update st
+            st.copy(email = st.email + (vendorKey to card.copy(pendingDialog = true)))
+        }
+    }
+
+    fun cancelEmailLogin(vendorKey: String) {
+        _state.update { st ->
+            val card = st.email[vendorKey] ?: return@update st
+            st.copy(email = st.email + (vendorKey to card.copy(pendingDialog = false)))
+        }
+    }
+
+    /**
+     * Dialog Confirm 调本方法 — 写凭据 + 自动触发首次 sync。
+     */
+    fun submitEmailCredentials(
+        vendorKey: String,
+        user: String,
+        password: String,
+        imapHost: String,
+        imapPort: Int,
+    ) {
+        if (EmailVendor.fromKey(vendorKey) == null) return
+        if (user.isBlank() || password.isBlank() || imapHost.isBlank() || imapPort !in 1..65_535) {
+            _state.update { st ->
+                val card = st.email[vendorKey] ?: return@update st
+                st.copy(
+                    email = st.email + (vendorKey to card.copy(
+                        pendingDialog = false,
+                        errorMessage = "凭据字段不完整 — 请重新输入",
+                    )),
+                )
+            }
+            return
+        }
+        emailCredentials.saveCredentials(vendorKey, user, password, imapHost, imapPort)
+        _state.update { st ->
+            val card = st.email[vendorKey] ?: return@update st
+            st.copy(
+                email = st.email + (vendorKey to card.copy(
+                    pendingDialog = false,
+                    hasCredentials = true,
+                    errorMessage = null,
+                )),
+            )
+        }
+        // 自动同步 — 让用户填完凭据即看效果，避免再点一次"同步"。
+        syncEmail(vendorKey)
+    }
+
+    fun syncEmail(vendorKey: String) {
+        val v = EmailVendor.fromKey(vendorKey) ?: return
+        if (_state.value.globalSyncingAdapter != null) return
+        val card = _state.value.email[vendorKey] ?: return
+        if (!card.hasCredentials) {
+            requestEmailLogin(vendorKey)
+            return
+        }
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = "email-imap:${v.key}",
+                email = it.email + (vendorKey to card.copy(isSyncing = true, errorMessage = null)),
+            )
+        }
+        viewModelScope.launch {
+            val snapshot = emailCollector.snapshot(vendor = v.key, limit = 200)
+            // Each branch maps to a user-actionable error message.
+            when (snapshot) {
+                is EmailLocalCollector.SnapshotResult.Ok -> {
+                    val ccResult = ccRunner.syncAdapter("email-imap", snapshot.snapshotPath)
+                    _state.update { st ->
+                        val cur = st.email[vendorKey] ?: card
+                        when (ccResult) {
+                            is LocalCcRunner.CcResult.Ok -> {
+                                emailCredentials.recordSync(
+                                    v.key,
+                                    System.currentTimeMillis(),
+                                    ccResult.report.ingested,
+                                )
+                                st.copy(
+                                    globalSyncingAdapter = null,
+                                    email = st.email + (vendorKey to cur.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = System.currentTimeMillis(),
+                                        lastSyncCount = ccResult.report.ingested,
+                                        errorMessage = null,
+                                    )),
+                                )
+                            }
+                            is LocalCcRunner.CcResult.Failed -> {
+                                val hint = if (
+                                    ccResult.reason.contains("not found", ignoreCase = true) ||
+                                    ccResult.reason.contains("unknown adapter", ignoreCase = true)
+                                ) "桌面端 email-imap adapter 暂未对接，v0.2 补齐 (邮件已成功抓 ${snapshot.fetchedCount} 封到本机临时区)"
+                                else ccResult.reason
+                                st.copy(
+                                    globalSyncingAdapter = null,
+                                    email = st.email + (vendorKey to cur.copy(
+                                        isSyncing = false,
+                                        errorMessage = hint,
+                                    )),
+                                )
+                            }
+                        }
+                    }
+                }
+                is EmailLocalCollector.SnapshotResult.NoCredentials -> updateEmailError(vendorKey, "凭据丢失 — 请重新输入")
+                is EmailLocalCollector.SnapshotResult.OAuthRequired -> updateEmailError(vendorKey, "Gmail OAuth v0.2.1 — 临时用 App Password (myaccount.google.com → 安全 → 应用专用密码)")
+                is EmailLocalCollector.SnapshotResult.AuthFailed -> updateEmailError(vendorKey, "认证失败：${snapshot.message}")
+                is EmailLocalCollector.SnapshotResult.ConnectFailed -> updateEmailError(vendorKey, "连接 IMAP 失败：${snapshot.message}")
+                is EmailLocalCollector.SnapshotResult.ProtocolFailed -> updateEmailError(vendorKey, "IMAP 协议错：${snapshot.message}")
+                is EmailLocalCollector.SnapshotResult.Empty -> updateEmailError(vendorKey, "收件箱为空 — 无邮件可同步")
+                is EmailLocalCollector.SnapshotResult.Failed -> updateEmailError(vendorKey, snapshot.message)
+            }
+        }
+    }
+
+    private fun updateEmailError(vendorKey: String, message: String) {
+        _state.update { st ->
+            val cur = st.email[vendorKey] ?: return@update st
+            st.copy(
+                globalSyncingAdapter = null,
+                email = st.email + (vendorKey to cur.copy(
+                    isSyncing = false,
+                    errorMessage = message,
+                )),
+            )
+        }
+    }
+
+    fun logoutEmail(vendorKey: String) {
+        emailCredentials.clear(vendorKey)
+        refreshEmailFromStore()
+    }
+
+    fun clearEmailError(vendorKey: String) {
+        _state.update { st ->
+            val cur = st.email[vendorKey] ?: return@update st
+            st.copy(email = st.email + (vendorKey to cur.copy(errorMessage = null)))
         }
     }
 

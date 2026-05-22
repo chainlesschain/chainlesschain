@@ -436,6 +436,13 @@ dependencies {
     // BouncyCastle for DID crypto
     implementation("org.bouncycastle:bcprov-jdk18on:1.77")
 
+    // §2.3 D6.2 — IMAP for 4 email vendor (QQ/Gmail/163/Outlook).
+    // Jakarta Mail (Eclipse) — Android-friendly fork with no java.beans dep.
+    // 1.6.7 is the last 1.x version (Android-compatible); 2.x switched to
+    // jakarta.mail.* package which Android's older AGP refuses.
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
+
     // Paging Compose
     implementation("androidx.paging:paging-compose:3.2.1")
 

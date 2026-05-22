@@ -245,14 +245,19 @@ fun HubLocalScreen(
             }
 
             // ─── 邮箱（推文 §"邮箱": QQ/Gmail/163/Outlook）──────────────
-            // D6.1: 4 provider sub-cards 替换原单 placeholder，让用户看到推文
-            // 列的 4 厂商全显。D6.2 真接通 IMAP 凭据表单 + EmailLocalCollector。
+            // D6.1: 4 provider sub-cards
+            // §2.3 D6.2: button 接通 → 弹 EmailCredentialsDialog → 写凭据 +
+            // 自动 sync → EmailLocalCollector 拉 IMAP INBOX → snapshot.json →
+            // cc hub sync email-imap。已配置卡显"同步/退出"。
             item("section-mail") { SectionHeader("邮箱") }
             item("mail-providers") {
                 EmailProvidersGroup(
-                    onProviderLogin = { providerKey ->
-                        Timber.i("HubLocalScreen: email provider login TODO key=$providerKey")
-                    },
+                    states = state.email,
+                    globalBusy = globalBusy,
+                    onProviderLogin = { viewModel.requestEmailLogin(it) },
+                    onProviderSync = { viewModel.syncEmail(it) },
+                    onProviderLogout = { viewModel.logoutEmail(it) },
+                    onClearError = { viewModel.clearEmailError(it) },
                 )
             }
 
@@ -321,6 +326,28 @@ fun HubLocalScreen(
         state = state.citationDetail,
         onDismiss = { viewModel.dismissCitationDetail() },
     )
+
+    // §2.3 D6.2 — Email IMAP credentials dialog. 至多 1 个 vendor 同时 pending
+    // (UI 只让用户点一张卡的 "登录" 按钮)。找到 pendingDialog=true 的那个就渲。
+    val pendingEmail = state.email.values.firstOrNull { it.pendingDialog }
+    if (pendingEmail != null) {
+        val vendor = com.chainlesschain.android.pdh.email.EmailVendor.fromKey(pendingEmail.vendorKey)
+        if (vendor != null) {
+            EmailCredentialsDialog(
+                vendor = vendor,
+                onConfirm = { user, password, host, port ->
+                    viewModel.submitEmailCredentials(
+                        vendorKey = vendor.key,
+                        user = user,
+                        password = password,
+                        imapHost = host,
+                        imapPort = port,
+                    )
+                },
+                onCancel = { viewModel.cancelEmailLogin(vendor.key) },
+            )
+        }
+    }
 }
 
 @Composable
