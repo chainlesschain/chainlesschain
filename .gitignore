@@ -229,6 +229,9 @@ packages/web-panel/dist/
 # 销售/采购对外手册（本地保留，不入版本库）
 docs/manual/
 
+# 公众号/媒体投稿素材（本地保留，不入版本库）
+docs/marketing/
+
 # Personal Android E2E validation scripts (device-pinned, local only).
 # These scripts hardcode specific device IDs (e.g. adb -s 21e9bbfb for one
 # developer's Xiaomi 24115RA8EC) and are not portable across machines.
