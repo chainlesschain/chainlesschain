@@ -816,4 +816,83 @@ class HubLocalViewModelTest {
         vm.askQuestion()
         io.mockk.coVerify(exactly = 1) { ccRunner.askQuestion(any(), any(), any(), any()) }
     }
+
+    // ─── §2.9 本机 audit (推文 §"每次操作都有账本") ──────────────────────────
+
+    @Test
+    fun `refreshAudit Ok populates rows + lastRefreshAt`() = runTest(testDispatcher) {
+        val rows = listOf(
+            LocalCcRunner.AuditRow(
+                at = 1_716_000_000_000L,
+                action = "ingest",
+                adapter = "system-data-android",
+                eventId = null,
+            ),
+            LocalCcRunner.AuditRow(
+                at = 1_716_000_001_000L,
+                action = "ask",
+                adapter = null,
+                eventId = "evt-abc123def456",
+            ),
+        )
+        coEvery { ccRunner.queryRecentAudit(any(), any()) } returns
+            LocalCcRunner.RecentAuditResult.Ok(rows = rows)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.refreshAudit()
+        advanceUntilIdle()
+
+        val audit = vm.state.value.localAudit
+        assertFalse(audit.isLoading)
+        assertEquals(2, audit.rows.size)
+        assertEquals("ingest", audit.rows[0].action)
+        assertEquals("evt-abc123def456", audit.rows[1].eventId)
+        assertNull(audit.errorMessage)
+        assertNotNull(audit.lastRefreshAt)
+    }
+
+    @Test
+    fun `refreshAudit Failed surfaces errorMessage and keeps rows`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryRecentAudit(any(), any()) } returns
+            LocalCcRunner.RecentAuditResult.Failed("bootstrap-failed: cc shim missing", null)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.refreshAudit()
+        advanceUntilIdle()
+
+        val audit = vm.state.value.localAudit
+        assertFalse(audit.isLoading)
+        assertTrue(audit.rows.isEmpty())
+        assertEquals("bootstrap-failed: cc shim missing", audit.errorMessage)
+    }
+
+    @Test
+    fun `refreshAudit reentrancy guard — no second cc spawn while loading`() = runTest(testDispatcher) {
+        // First call hangs forever; second call should be silently rejected.
+        coEvery { ccRunner.queryRecentAudit(any(), any()) } coAnswers {
+            kotlinx.coroutines.delay(1_000_000)
+            LocalCcRunner.RecentAuditResult.Ok(rows = emptyList())
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.refreshAudit()
+        assertTrue(vm.state.value.localAudit.isLoading)
+        vm.refreshAudit()
+        io.mockk.coVerify(exactly = 1) { ccRunner.queryRecentAudit(any(), any()) }
+    }
+
+    @Test
+    fun `clearAuditError nulls errorMessage`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryRecentAudit(any(), any()) } returns
+            LocalCcRunner.RecentAuditResult.Failed("io error", 1)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.refreshAudit()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.localAudit.errorMessage)
+        vm.clearAuditError()
+        assertNull(vm.state.value.localAudit.errorMessage)
+    }
 }
