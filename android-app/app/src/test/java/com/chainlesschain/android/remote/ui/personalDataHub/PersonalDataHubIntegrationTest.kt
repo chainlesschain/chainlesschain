@@ -162,8 +162,11 @@ class PersonalDataHubIntegrationTest {
         val syncDispatcher = mockk<HubSyncEventDispatcher>(relaxed = false)
         every { syncDispatcher.events } returns
             MutableSharedFlow<HubSyncEvent>(replay = 0, extraBufferCapacity = 32)
+        // Path C — VM ctor grew systemDataCollector; this integration test
+        // doesn't exercise Path C, so a relaxed mock keeps wiring intact.
+        val systemDataCollector = mockk<SystemDataLocalCollector>(relaxed = true)
 
-        val vm = HubAdaptersViewModel(hub, syncDispatcher)
+        val vm = HubAdaptersViewModel(hub, syncDispatcher, systemDataCollector)
         advanceUntilIdle()
         vm.sync("email-imap")
         advanceUntilIdle()
