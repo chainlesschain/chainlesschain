@@ -162,11 +162,29 @@ describe("openPdhWebWindow", () => {
     expect(result.error).toBe("web-shell-not-running");
   });
 
-  it("treats incomplete port file (missing port) as missing", async () => {
+  it("treats incomplete port file (missing port AND httpUrl) as missing", async () => {
     writePortFile({ host: "127.0.0.1" });
     const { deps } = mkDeps();
     const result = await openPdhWebWindow({ _deps: deps });
     expect(result.error).toBe("web-shell-not-running");
+  });
+
+  it("prefers pre-formed httpUrl over host+port (covers port:null real shape)", async () => {
+    // This is the actual shape index.js:1043 writes when handle.port is
+    // null (OS-assigned port only visible via handle.httpUrl/wsUrl).
+    writePortFile({
+      pid: 1132,
+      host: "127.0.0.1",
+      port: null,
+      httpUrl: "http://127.0.0.1:49781/",
+      wsUrl: "ws://127.0.0.1:49780/",
+    });
+    const { deps, calls } = mkDeps();
+    const result = await openPdhWebWindow({ _deps: deps });
+    expect(result.ok).toBe(true);
+    // Trailing slash from httpUrl must be stripped to avoid http://...:port//personal-data-hub
+    expect(result.url).toBe("http://127.0.0.1:49781/personal-data-hub");
+    expect(calls.loadedUrl).toBe("http://127.0.0.1:49781/personal-data-hub");
   });
 
   it("propagates port file unreadable error to logger.warn (deps.logWarn)", async () => {
