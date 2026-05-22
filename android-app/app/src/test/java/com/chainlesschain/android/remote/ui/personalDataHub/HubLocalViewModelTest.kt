@@ -30,6 +30,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -315,7 +316,13 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
 
         assertNotNull(vm.state.value.bilibili.errorMessage)
-        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("cookie 可能过期"))
+        // f7e11d6a5 — error message reformatted to include actual Bilibili
+        // response code. With lastErrorCode=0 (default, no code observed),
+        // production emits "4 个 API 都返回空 — API 返回空 + 无错误码 — 可能
+        // cookie 缺关键字段（bili_jct / buvid3）". Assert both the structural
+        // prefix and the cookie hint substring.
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("4 个 API 都返回空"))
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("cookie"))
         assertNull(vm.state.value.globalSyncingAdapter)
     }
 
@@ -1101,6 +1108,12 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
 
         vm.requestDestroyVault()
+        // StandardTestDispatcher queues viewModelScope.launch — runCurrent
+        // dispatches it so ccRunner.destroyVault is actually invoked. Without
+        // this, the mocked call hasn't happened yet when coVerify runs.
+        // delay(1_000_000) inside coAnswers keeps the coroutine suspended,
+        // so destroying stays true (no advanceUntilIdle past the delay).
+        runCurrent()
         assertTrue(vm.state.value.threeLocks.destroying)
 
         // Second call should be ignored
@@ -1179,6 +1192,9 @@ class HubLocalViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
         vm.requestExportVault()
+        // runCurrent dispatches viewModelScope.launch so ccRunner.exportVault
+        // is invoked; delay(1_000_000) inside coAnswers keeps it suspended.
+        runCurrent()
         assertTrue(vm.state.value.threeLocks.exporting)
         vm.requestExportVault()
         io.mockk.coVerify(exactly = 1) { ccRunner.exportVault(any(), any()) }
@@ -1309,7 +1325,10 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
         vm.onAskQuestionChanged("q")
         vm.askQuestion()
-        // Don't advance — first call stays in flight
+        // runCurrent dispatches viewModelScope.launch so ccRunner.askQuestion
+        // is invoked; delay(1_000_000) inside coAnswers keeps it suspended,
+        // so isAsking stays true without advancing virtual time past the delay.
+        runCurrent()
         assertTrue(vm.state.value.ask.isAsking)
 
         // Second call should be a no-op (still isAsking)

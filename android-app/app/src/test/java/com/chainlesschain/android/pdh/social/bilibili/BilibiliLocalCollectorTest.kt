@@ -46,6 +46,11 @@ class BilibiliLocalCollectorTest {
         context = mockk()
         every { context.filesDir } returns tempDir
         apiClient = mockk()
+        // f7e11d6a5 added lastErrorCode/lastErrorMessage reads in
+        // SnapshotResult.Ok construction. Stub the strict mock so unrelated
+        // tests don't trip on getLastErrorCode() during snapshot finalize.
+        every { apiClient.lastErrorCode } returns 0
+        every { apiClient.lastErrorMessage } returns null
         credentialsStore = mockk(relaxed = true)
         collector = BilibiliLocalCollector(
             context = context,
