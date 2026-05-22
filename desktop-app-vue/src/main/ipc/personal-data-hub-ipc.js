@@ -718,7 +718,14 @@ async function openPdhWebWindow({ route, _deps } = {}) {
     if (fsMod.existsSync(portFilePath)) {
       const raw = fsMod.readFileSync(portFilePath, "utf-8");
       const info = JSON.parse(raw);
-      if (info && info.host && info.port) {
+      // index.js writes `port: handle.port || null` (often null since the
+      // web-shell binds OS-assigned and the handle exposes the bound port
+      // only via httpUrl / wsUrl). Prefer the pre-formed httpUrl; fall
+      // back to host+port for older port-file shapes.
+      if (info && typeof info.httpUrl === "string" && info.httpUrl.length > 0) {
+        // Strip trailing slash so `${httpUrl}${cleanRoute}` doesn't double //.
+        httpUrl = info.httpUrl.replace(/\/+$/, "");
+      } else if (info && info.host && info.port) {
         httpUrl = `http://${info.host}:${info.port}`;
       }
     }
