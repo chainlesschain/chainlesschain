@@ -9,6 +9,8 @@ import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
+import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
+import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
@@ -60,6 +62,8 @@ class HubLocalViewModelTest {
     private lateinit var emailCredentials: EmailCredentialsStore
     private lateinit var emailCollector: EmailLocalCollector
     private lateinit var travelCredentials: TravelCredentialsStore
+    private lateinit var weiboCollector: WeiboLocalCollector
+    private lateinit var weiboCredentials: WeiboCredentialsStore
     private lateinit var appContext: Context
 
     @Before
@@ -76,6 +80,12 @@ class HubLocalViewModelTest {
         emailCredentials = mockk(relaxed = true)
         emailCollector = mockk(relaxed = true)
         travelCredentials = mockk(relaxed = true)
+        weiboCollector = mockk(relaxed = false)
+        weiboCredentials = mockk(relaxed = true)
+        every { weiboCredentials.hasCredentials() } returns false
+        every { weiboCredentials.getUid() } returns null
+        every { weiboCredentials.getLastSyncAt() } returns null
+        every { weiboCredentials.getLastSyncCount() } returns 0
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -108,6 +118,8 @@ class HubLocalViewModelTest {
             emailCredentials,
             emailCollector,
             travelCredentials,
+            weiboCollector,
+            weiboCredentials,
             appContext,
         )
 
@@ -138,11 +150,13 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `init renders all 4 social cards (1 implemented + 3 stub)`() = runTest(testDispatcher) {
+    fun `init renders all 4 social cards (2 implemented + 2 stub)`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
         assertTrue(vm.state.value.bilibili.implemented)
-        assertFalse(vm.state.value.weibo.implemented)
+        // §A8 v0.2: weibo flipped from stub to real (mirror of Bilibili —
+        // WebView+OkHttp+local snapshot). douyin / xiaohongshu still v0.3+.
+        assertTrue(vm.state.value.weibo.implemented)
         assertFalse(vm.state.value.douyin.implemented)
         assertFalse(vm.state.value.xiaohongshu.implemented)
     }
@@ -357,17 +371,238 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.bilibili.uid)
     }
 
-    // ─── Other 3 social stubs ───────────────────────────────────────────────
+    // ─── Weibo lifecycle (§A8 v0.2 — mirror of Bilibili) ────────────────────
+    // Key behavioral diff: onWeiboLoginCookie is async (suspend) — UID needs
+    // a /api/config HTTP roundtrip because Weibo cookie has no
+    // DedeUserID-equivalent direct-read field. So the VM launches into
+    // viewModelScope; tests must advanceUntilIdle() after invoking.
 
     @Test
-    fun `requestSocialLoginStub for weibo surfaces error on weibo card only`() = runTest(testDispatcher) {
+    fun `init reads weibo credentials state from store`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        every { weiboCredentials.getLastSyncAt() } returns 1716000000000L
+        every { weiboCredentials.getLastSyncCount() } returns 42
+
         val vm = newVm()
         advanceUntilIdle()
-        vm.requestSocialLoginStub("weibo")
+
+        assertTrue(vm.state.value.weibo.isLoggedIn)
+        assertEquals(9876L, vm.state.value.weibo.uid)
+        assertEquals(1716000000000L, vm.state.value.weibo.lastSyncAt)
+        assertEquals(42, vm.state.value.weibo.lastSyncCount)
+    }
+
+    @Test
+    fun `requestWeiboLogin sets pendingLogin with m_weibo_cn URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestWeiboLogin()
+        val pending = vm.state.value.pendingLogin
+        assertNotNull(pending)
+        assertEquals("social-weibo", pending.adapterName)
+        assertEquals("微博", pending.displayName)
+        assertTrue(pending.loginUrl.startsWith("https://passport.weibo.cn/"))
+        assertTrue(pending.cookieDomain.contains("m.weibo.cn"))
+    }
+
+    @Test
+    fun `weibo isLoginSuccess accepts m_weibo_cn home but rejects passport URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestWeiboLogin()
+        val pending = vm.state.value.pendingLogin!!
+        assertTrue(pending.isLoginSuccess("https://m.weibo.cn/"))
+        assertTrue(pending.isLoginSuccess("https://m.weibo.cn/u/123"))
+        assertFalse(pending.isLoginSuccess("https://passport.weibo.cn/signin/login"))
+        // login subpath inside m.weibo.cn should also reject (transient flow)
+        assertFalse(pending.isLoginSuccess("https://m.weibo.cn/login"))
+    }
+
+    @Test
+    fun `onWeiboLoginCookie accepts cookie + refreshes state when fetchUid returns uid`() = runTest(testDispatcher) {
+        coEvery { weiboCollector.acceptLoginCookie(any(), any()) } returns true
+        // After acceptance, store now reflects logged-in
+        every { weiboCredentials.hasCredentials() } returnsMany listOf(false, true)
+        every { weiboCredentials.getUid() } returnsMany listOf(null, 9876L)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestWeiboLogin()
+        vm.onWeiboLoginCookie("SUB=x; SUBP=y; _T_WM=z")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertTrue(vm.state.value.weibo.isLoggedIn)
+        assertEquals(9876L, vm.state.value.weibo.uid)
+        assertNull(vm.state.value.weibo.errorMessage)
+        io.mockk.coVerify { weiboCollector.acceptLoginCookie("SUB=x; SUBP=y; _T_WM=z", null) }
+    }
+
+    @Test
+    fun `onWeiboLoginCookie surfaces error when fetchUid returns null`() = runTest(testDispatcher) {
+        coEvery { weiboCollector.acceptLoginCookie(any(), any()) } returns false
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestWeiboLogin()
+        vm.onWeiboLoginCookie("SUB=incomplete")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertFalse(vm.state.value.weibo.isLoggedIn)
         assertNotNull(vm.state.value.weibo.errorMessage)
-        assertTrue(vm.state.value.weibo.errorMessage!!.contains("v0.2"))
+        assertTrue(vm.state.value.weibo.errorMessage!!.contains("UID"))
+    }
+
+    @Test
+    fun `syncWeibo when not logged in triggers requestWeiboLogin instead`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns false
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.pendingLogin)
+        assertEquals("social-weibo", vm.state.value.pendingLogin!!.adapterName)
+        io.mockk.coVerify(exactly = 0) { weiboCollector.snapshot() }
+    }
+
+    @Test
+    fun `syncWeibo NoCredentials path surfaces 未登录 error`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        coEvery { weiboCollector.snapshot() } returns
+            WeiboLocalCollector.SnapshotResult.NoCredentials
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.weibo.isLoggedIn)
+        assertNotNull(vm.state.value.weibo.errorMessage)
+        assertTrue(vm.state.value.weibo.errorMessage!!.contains("未登录"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncWeibo everythingEmpty path surfaces cookie expired hint`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        coEvery { weiboCollector.snapshot() } returns
+            WeiboLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/weibo-empty.json",
+                postCount = 0, favouriteCount = 0, followCount = 0,
+                totalEvents = 0, everythingEmpty = true,
+                snapshottedAt = 1L,
+                lastErrorCode = -50101,
+                lastErrorMessage = "passport expired",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.weibo.errorMessage)
+        assertTrue(vm.state.value.weibo.errorMessage!!.contains("cookie 过期"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncWeibo Ok path runs ccRunner and updates lastSync`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        val syncAt = 1716000000000L
+        coEvery { weiboCollector.snapshot() } returns
+            WeiboLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/weibo-snap.json",
+                postCount = 10, favouriteCount = 5, followCount = 3,
+                totalEvents = 18, everythingEmpty = false,
+                snapshottedAt = syncAt,
+            )
+        coEvery { ccRunner.syncAdapter("social-weibo", "/tmp/weibo-snap.json") } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "social-weibo", status = "ok",
+                    ingested = 18, invalidCount = 0,
+                    kgTriples = 30, ragDocs = 8,
+                    durationMs = 1200L, error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        assertEquals(syncAt, vm.state.value.weibo.lastSyncAt)
+        assertEquals(18, vm.state.value.weibo.lastSyncCount)
+        assertNull(vm.state.value.weibo.errorMessage)
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncWeibo ccRunner Failed surfaces error`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        coEvery { weiboCollector.snapshot() } returns
+            WeiboLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/weibo-snap.json",
+                postCount = 1, favouriteCount = 0, followCount = 0,
+                totalEvents = 1, everythingEmpty = false,
+                snapshottedAt = 1L,
+            )
+        coEvery { ccRunner.syncAdapter(any(), any()) } returns
+            LocalCcRunner.CcResult.Failed(
+                reason = "bs3mc cold-load timeout",
+                exitCode = 124, stderr = "...",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.weibo.errorMessage)
+        assertTrue(vm.state.value.weibo.errorMessage!!.contains("bs3mc cold-load timeout"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `logoutWeibo calls collector and clears state`() = runTest(testDispatcher) {
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        every { weiboCollector.logout() } just runs
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.logoutWeibo()
+        advanceUntilIdle()
+
+        verify { weiboCollector.logout() }
+        assertFalse(vm.state.value.weibo.isLoggedIn)
+        assertNull(vm.state.value.weibo.uid)
+        assertEquals(0, vm.state.value.weibo.lastSyncCount)
+    }
+
+    // ─── Other 2 social stubs (douyin / xiaohongshu) ───────────────────────
+    // §A8 v0.2: weibo migrated out of stub path — see Weibo lifecycle tests
+    // below. requestSocialLoginStub still maps "weibo" → social-weibo for
+    // forward-compat but HubLocalScreen no longer routes weibo through it.
+
+    @Test
+    fun `requestSocialLoginStub for douyin surfaces error on douyin card only`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestSocialLoginStub("douyin")
+        assertNotNull(vm.state.value.douyin.errorMessage)
+        assertTrue(vm.state.value.douyin.errorMessage!!.contains("v0.2"))
         // Other cards untouched
-        assertNull(vm.state.value.douyin.errorMessage)
+        assertNull(vm.state.value.weibo.errorMessage)
         assertNull(vm.state.value.xiaohongshu.errorMessage)
         assertNull(vm.state.value.bilibili.errorMessage)
     }

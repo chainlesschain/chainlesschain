@@ -16,6 +16,8 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
+import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
+import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
 import com.chainlesschain.android.pdh.travel.TravelVendor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,6 +67,8 @@ class HubLocalViewModel @Inject constructor(
     private val emailCredentials: EmailCredentialsStore,
     private val emailCollector: EmailLocalCollector,
     private val travelCredentials: TravelCredentialsStore,
+    private val weiboCollector: WeiboLocalCollector,
+    private val weiboCredentials: WeiboCredentialsStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -286,7 +290,7 @@ class HubLocalViewModel @Inject constructor(
         val weibo: SocialCardState = SocialCardState(
             adapterName = "social-weibo",
             displayName = "微博",
-            implemented = false,
+            implemented = true,
         ),
         val douyin: SocialCardState = SocialCardState(
             adapterName = "social-douyin",
@@ -321,6 +325,7 @@ class HubLocalViewModel @Inject constructor(
     init {
         refreshPermissionState()
         refreshBilibiliFromStore()
+        refreshWeiboFromStore()
         refreshWechatFromStore()
         refreshAiChatFromStore()
         refreshEmailFromStore()
@@ -1661,6 +1666,189 @@ class HubLocalViewModel @Inject constructor(
         _state.update {
             it.copy(
                 bilibili = it.bilibili.copy(
+                    isLoggedIn = false,
+                    uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── Weibo (§A8 v0.2 — mirror of Bilibili) ──────────────────────────────
+    //
+    // 与 Bilibili 唯一架构差异：onWeiboLoginCookie 必须 viewModelScope.launch
+    // 因为 acceptLoginCookie 是 suspend (内部调 /api/config 拿 UID — 微博
+    // cookie 不带 DedeUserID 这种字段直读)。
+
+    fun refreshWeiboFromStore() {
+        val loggedIn = weiboCredentials.hasCredentials()
+        val uid = weiboCredentials.getUid()
+        val lastSync = weiboCredentials.getLastSyncAt()
+        val lastCount = weiboCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                weibo = it.weibo.copy(
+                    isLoggedIn = loggedIn,
+                    uid = uid,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    fun requestWeiboLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-weibo",
+                    displayName = "微博",
+                    // m.weibo.cn 移动端登录页 — 比 weibo.com 桌面端少 captcha
+                    loginUrl = "https://passport.weibo.cn/signin/login",
+                    cookieDomain = "https://m.weibo.cn",
+                    // 登录成功后跳转 m.weibo.cn/* 但不在 passport / login 路径
+                    isLoginSuccess = { url ->
+                        (url.startsWith("https://m.weibo.cn/") ||
+                            url == "https://m.weibo.cn") &&
+                            !url.contains("passport") &&
+                            !url.contains("login")
+                    },
+                ),
+            )
+        }
+    }
+
+    fun onWeiboLoginCookie(cookie: String) {
+        // acceptLoginCookie 是 suspend (内部调 /api/config 拿 UID)，必须 launch.
+        // 显式传 displayName=null 避免 kotlinc 生成 acceptLoginCookie$default
+        // 静态桥 — 那条路径上 $default 会读 inline 默认 + 走 GETFIELD 直访问
+        // mock 实例 private val 字段，mockk 拦不到。详见 memory
+        // `feedback_mockk_cross_file_jvm_pollution.md`。
+        viewModelScope.launch {
+            val accepted = weiboCollector.acceptLoginCookie(cookie, null)
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    weibo = it.weibo.copy(
+                        errorMessage = if (!accepted) {
+                            "登录未完成 — /api/config 未返 UID，cookie 可能不全请重试"
+                        } else null,
+                    ),
+                )
+            }
+            if (accepted) refreshWeiboFromStore()
+        }
+    }
+
+    fun syncWeibo() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.weibo.isLoggedIn) {
+            requestWeiboLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-weibo",
+                    weibo = it.weibo.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = weiboCollector.snapshot()
+            when (result) {
+                is WeiboLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is WeiboLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            ),
+                        )
+                    }
+                }
+                is WeiboLocalCollector.SnapshotResult.Ok -> {
+                    if (result.everythingEmpty) {
+                        // 微博 ok=N 返回码定义不同：-100 silent ban / -50101 cookie
+                        // expired / -4 anti-bot 重定向到登录页。lastError* 传透
+                        // 让用户看见原始信号。
+                        val detail = when (result.lastErrorCode) {
+                            0 -> "API 返回空 + 无错误码 — 可能 cookie 缺关键字段（SUB / SUBP / _T_WM）"
+                            -4 -> "非 JSON 响应（重定向到登录页）— 请重新登录"
+                            -100 -> "微博 ok=-100（silent ban）— 稍后再试或换网络"
+                            -50101 -> "微博 ok=-50101（cookie 过期）— 请重新登录"
+                            else -> "微博 ok=${result.lastErrorCode}" +
+                                (result.lastErrorMessage?.let { " ($it)" } ?: "")
+                        }
+                        _state.update {
+                            it.copy(
+                                globalSyncingAdapter = null,
+                                weibo = it.weibo.copy(
+                                    isSyncing = false,
+                                    errorMessage = "3 个 API 都返回空 — $detail",
+                                ),
+                            )
+                        }
+                        return@launch
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-weibo",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    weibo = it.weibo.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: weibo cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    weibo = it.weibo.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutWeibo() {
+        weiboCollector.logout()
+        _state.update {
+            it.copy(
+                weibo = it.weibo.copy(
                     isLoggedIn = false,
                     uid = null,
                     lastSyncAt = null,
