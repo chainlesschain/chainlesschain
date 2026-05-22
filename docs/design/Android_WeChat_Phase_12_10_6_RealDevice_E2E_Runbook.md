@@ -275,17 +275,17 @@ adb shell run-as com.chainlesschain.android cat files/.chainlesschain/staging/we
 **Date**: 2026-MM-DD
 **Device**: Xiaomi 24115RA8EC (Android 14 HyperOS, arm64-v8a)
 **WeChat**: 8.0.55 / Magisk 27.0 + Zygisk on + DenyList com.tencent.mm
-**APK**: v5.0.3.<N>  + frida-inject 16.5.9 arm64 (~8MB) + arm32 (~7MB)
-**Account**: <uin> with ~<N> contacts + ~<M> messages (dataset:full|small)
+**APK**: `v5.0.3.<N>`  + frida-inject 16.5.9 arm64 (~8MB) + arm32 (~7MB)
+**Account**: `<uin>` with ~`<N>` contacts + ~`<M>` messages (dataset:full|small)
 
 | # | Scenario | Result | Notes |
 |---|---|---|---|
-| 12.10.6.1 | 登录绑定 | ✅ / ❌ | <notes> |
-| 12.10.6.2 | 首次同步 | ✅ / ❌ | ingested=N, wall=<min> |
+| 12.10.6.1 | 登录绑定 | ✅ / ❌ | `<notes>` |
+| 12.10.6.2 | 首次同步 | ✅ / ❌ | ingested=N, wall=`<min>` |
 | 12.10.6.3 | 解密 spot-check | ✅ / ❌ | 10/10 match |
 | 12.10.6.4 | Ask + LLM | ✅ / ❌ | 3/3 OK, citation N |
 | 12.10.6.5 | 增量同步 | ✅ / ❌ | +5 events, <30s |
-| 12.10.6.6 | 大库性能 | ✅ / ❌ / skip | wall=<min>, rss=<MB> |
+| 12.10.6.6 | 大库性能 | ✅ / ❌ / skip | wall=`<min>`, rss=`<MB>` |
 | 12.10.6.7 | 失败恢复 | ✅ / ❌ | 3/3 子场景 |
 | 12.10.6.8 | 长稳 + 反检测 | ✅ / ❌ | 2h no crash, 4/4 sync |
 

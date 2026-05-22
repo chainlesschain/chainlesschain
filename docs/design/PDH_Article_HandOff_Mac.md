@@ -92,7 +92,7 @@ onProviderLogin callback 等接通。
    .OpenDocument())` × 2 (一 CSV、一 HTML)
 2. PaymentShoppingGroup onProviderImport callback 触发 launcher
 3. 拿到 Uri → ContentResolver.openInputStream → 写到 filesDir/staging/
-   alipay-bill-<ts>.csv → 调 LocalCcRunner.syncAdapter("alipay-bill",
+   `alipay-bill-<ts>.csv` → 调 LocalCcRunner.syncAdapter("alipay-bill",
    inputPath) / 同样 shopping-taobao
 
 **支付宝 CSV 格式**：账单 → 右上 → 开具交易流水证明 → CSV 下载。
@@ -138,8 +138,7 @@ exportToTemp → ContentResolver.openOutputStream(uri) 复制 → 删 temp。
 
 ### 2.8 真机 reimport 闭环验 (~0.3d)
 
-把 Android 导出文件 `chainlesschain-vault-<ts>.db` 拷到桌面 → 桌面跑 `cc hub
-import-vault <path>` → 验证 events 数 + audit 历史 + 能 ask 出原 vault 中事件。
+把 Android 导出文件 `chainlesschain-vault-<ts>.db` 拷到桌面 → 桌面跑 `cc hub import-vault <path>`（`<path>` 是 .db 文件路径）→ 验证 events 数 + audit 历史 + 能 ask 出原 vault 中事件。
 
 ### 2.9 本机 audit screen (~0.5d, Win-startable)
 
