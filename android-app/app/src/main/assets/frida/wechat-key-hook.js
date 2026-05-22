@@ -40,11 +40,27 @@
  */
 
 /* eslint-disable */
-/* global Module, Interceptor, Process, send, setTimeout */
+/* global Module, Interceptor, Process, send, setTimeout, console */
 
 "use strict";
 
 (function () {
+  // Dual-emit: send() reaches SDK hosts (Python `script.on('message')` and
+  // Node SDK) reliably, but frida-inject CLI's behavior around send()
+  // messages varies across versions (some forward as `[send] {json}` to
+  // stdout, some silently swallow). console.log() ALWAYS lands on stdout,
+  // so the Android in-app collector parses stdout line-by-line for any JSON
+  // line containing `"kind":"key"`. Hosts that prefer send() ignore the
+  // console.log duplicate.
+  //
+  // Format on stdout (one JSON object per line):
+  //   {"kind":"key","hex":"<lowercase hex>","source":"sqlite3_key_v2", ...}
+  //   {"kind":"hooked","symbol":"sqlite3_key_v2","module":"libWCDB.so"}
+  //   {"kind":"error","message":"..."}
+  function emit(obj) {
+    try { send(obj); } catch (_e) { /* SDK host may not exist */ }
+    try { console.log(JSON.stringify(obj)); } catch (_e) { /* never */ }
+  }
   // sjqz-verified module name is `libWCDB.so` (uppercase); some WeChat
   // builds ship lowercase. Try both — first match wins, no extra cost
   // because Process.findModuleByName is a cheap lookup.
@@ -110,7 +126,7 @@
       onEnter: function (args) {
         if (fired) return;
         if (idx.key < 0) {
-          send({
+          emit({
             kind: "error",
             message:
               "unsupported symbol signature: " +
@@ -122,7 +138,7 @@
         try {
           var len = args[idx.len].toInt32();
           if (len <= 0 || len > 256) {
-            send({
+            emit({
               kind: "error",
               message:
                 "implausible key length " + len + " at " + symbolName,
@@ -135,7 +151,7 @@
             // ASCII hex string (sjqz-verified path on WeChat 7.x/8.0 libWCDB)
             var s = Memory.readCString(args[idx.key], len);
             if (!s || s.length === 0) {
-              send({
+              emit({
                 kind: "error",
                 message: "readCString returned empty at " + symbolName,
               });
@@ -161,7 +177,7 @@
               // readCString may fault on non-NUL-terminated bytes; ignore.
             }
             fired = true;
-            send({
+            emit({
               kind: "key",
               hex: hexFromBytes,
               alt: hexFromString,
@@ -173,14 +189,14 @@
             return;
           }
           if (!hex) {
-            send({
+            emit({
               kind: "error",
               message: "empty key buffer at " + symbolName,
             });
             return;
           }
           fired = true;
-          send({
+          emit({
             kind: "key",
             hex: hex,
             source: symbolName,
@@ -189,7 +205,7 @@
             length: len,
           });
         } catch (e) {
-          send({
+          emit({
             kind: "error",
             message:
               "hook exception at " +
@@ -211,10 +227,10 @@
       if (!addr) continue;
       try {
         Interceptor.attach(addr, makeHook(SYMBOLS[i]));
-        send({ kind: "hooked", symbol: SYMBOLS[i], module: moduleName });
+        emit({ kind: "hooked", symbol: SYMBOLS[i], module: moduleName });
         attached++;
       } catch (e) {
-        send({
+        emit({
           kind: "error",
           message:
             "Interceptor.attach failed for " +
@@ -240,14 +256,14 @@
   // anti-detection thread runs". WeChat lazy-loads libWCDB when the
   // first DB opens, so we can't always find it at script start.
   if (!tryAttach()) {
-    send({ kind: "module-waiting", module: TARGET_MODULES.join("|") });
+    emit({ kind: "module-waiting", module: TARGET_MODULES.join("|") });
     var attempts = 0;
     var poll = function () {
       attempts++;
       if (tryAttach()) return;
       if (attempts >= 60) {
         // 60 attempts × 500ms = 30s ceiling, matches host timeoutMs
-        send({
+        emit({
           kind: "error",
           message:
             TARGET_MODULES.join("|") + " did not load within 30s",

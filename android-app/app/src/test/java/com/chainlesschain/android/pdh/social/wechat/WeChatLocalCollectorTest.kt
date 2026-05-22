@@ -158,7 +158,7 @@ class WeChatLocalCollectorTest {
         coEvery { fridaInjector.isSuAvailable() } returns true
         val fakeKey = "a".repeat(64)
         coEvery { fridaInjector.extractKey("1234567890") } returns
-            WeChatFridaInjector.KeyResult.Ok(dbKeyHex = fakeKey, durationMs = 1234L)
+            WeChatFridaInjector.KeyResult.Ok(dbKeyHex = fakeKey, durationMs = 1234L, source = "sqlite3_key_v2")
 
         val now = System.currentTimeMillis()
         coEvery { dbExtractor.extract() } returns WeChatDbExtractor.ExtractResult.Ok(
