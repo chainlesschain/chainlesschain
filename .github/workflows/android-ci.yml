@@ -197,8 +197,16 @@ jobs:
           path: android-app/app/build/outputs/apk/debug/*.apk
 
   instrumented-test:
+    # 2026-05-22: switched macos-latest → ubuntu-latest because GitHub's
+    # macos-latest is now Apple Silicon (aarch64) and refuses to launch
+    # x86_64 AVDs ("Avd's CPU Architecture 'x86_64' is not supported by
+    # the QEMU2 emulator on aarch64 host"). ubuntu-latest has KVM and
+    # runs x86_64 emulators natively — same pattern as the working
+    # android-tests.yml::instrumented-tests job. The legacy comment said
+    # "macOS provides faster emulators" — true on Intel Mac runners, no
+    # longer applicable since GitHub's macOS migration.
     name: Instrumented Tests
-    runs-on: macos-latest # macOS provides faster emulators
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [lint]
     continue-on-error: true
@@ -233,6 +241,14 @@ jobs:
       - name: Make gradlew executable
         working-directory: android-app
         run: chmod +x ./gradlew
+
+      - name: Enable KVM group permissions
+        # x86_64 emulator on ubuntu-latest needs /dev/kvm world-writable.
+        # Mirrors android-tests.yml::instrumented-tests step.
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
       - name: AVD cache
         uses: actions/cache@v4
