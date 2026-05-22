@@ -187,3 +187,13 @@
 -dontwarn java.beans.**
 -dontwarn org.yaml.snakeyaml.**
 -keep class org.yaml.snakeyaml.** { *; }
+
+# ============== Ktor (A3 端侧 LLM server) ==============
+# Ktor's IntellijIdeaDebugDetector references java.lang.management.* (JVM-only API)
+# slf4j-api references org.slf4j.impl.StaticLoggerBinder (provider not bundled on Android)
+-dontwarn java.lang.management.**
+-dontwarn org.slf4j.impl.**
+-dontwarn org.slf4j.**
+-dontwarn io.ktor.util.debug.**
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
