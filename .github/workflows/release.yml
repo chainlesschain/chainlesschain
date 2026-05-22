@@ -27,8 +27,81 @@ on:
         default: false
 
 jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # publish-deps — publishes 9 workspace packages (core-env … personal-data-hub)
+  # to npm BEFORE the desktop build jobs run.
+  #
+  # Why this job exists at the top of the graph: the desktop build jobs
+  # (build-windows / build-macos / build-linux) run
+  #   npm install --omit=dev --workspaces=false
+  # inside packages/cli to materialise the prod dep tree that Electron bundles
+  # via extraResources. That install resolves @chainlesschain/* from the npm
+  # REGISTRY, not the workspace — so any version bump to a workspace dep that
+  # hasn't yet been published produces:
+  #   npm error notarget No matching version found for @chainlesschain/X@Y.Z.W
+  #
+  # Before this job existed, the chain was:
+  #   build-* (incl desktop) ─→ create-release ─→ publish-cli (which also
+  #                                                publishes the 9 deps)
+  # That's a chicken-and-egg: desktop builds need PDH on npm, but PDH only
+  # gets published after they succeed. v5.0.3.79 hit this — see commit
+  # message of the fix.
+  #
+  # publish-cli now only publishes the CLI itself; the 9 workspace deps are
+  # handled here. Per-package guards (CURRENT vs PKG_VER) keep this idempotent
+  # so re-running release.yml on the same tag is safe.
+  #
+  # Risk vs. previous design: workspace deps now get published even if the
+  # desktop builds fail. That's an acceptable trade-off — npm publishes are
+  # irreversible regardless of timing (per memory `github-immutable-release-
+  # tag-burn` cousin: npm publish == permanent). Better to publish-then-fail
+  # than to never publish and block all future re-runs.
+  publish-deps:
+    name: Publish workspace deps (precondition for desktop builds)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (workspaces)
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-command: npm ci
+
+      - name: "Publish workspace packages (idempotent, in dep order)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -e
+          # Dep order matters: each package may require earlier ones at
+          # install time; npm publish itself doesn't enforce this, but
+          # downstream `npm install` does. Order mirrors the original
+          # sequence inside publish-cli before the v5.0.3.79 refactor.
+          for pkg in core-env shared-logger core-config core-db core-infra core-mtc core-multisig session-core personal-data-hub; do
+            dir="packages/$pkg"
+            name="@chainlesschain/$pkg"
+            CURRENT=$(npm view "$name" version 2>/dev/null || echo "0.0.0")
+            PKG_VER=$(node -p "require('./$dir/package.json').version")
+            if [ "$CURRENT" = "$PKG_VER" ]; then
+              echo "  $name@$PKG_VER already published, skip"
+            else
+              echo "📦 Publishing $name@$PKG_VER (was $CURRENT)"
+              (cd "$dir" && npm publish --provenance --access public)
+            fi
+          done
+
   # Build for Windows
   build-windows:
+    needs: [publish-deps]
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -226,6 +299,7 @@ jobs:
   # electron-builder.yml and produces both architectures in a single
   # invocation, so the per-arch matrix is no longer needed.
   build-macos:
+    needs: [publish-deps]
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -433,6 +507,7 @@ jobs:
 
   # Build for Linux
   build-linux:
+    needs: [publish-deps]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -1282,132 +1357,10 @@ jobs:
         with:
           install-command: npm ci
 
-      # Publish core packages in dependency order
-      - name: "Publish @chainlesschain/core-env"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-env
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/shared-logger"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/shared-logger
-        run: |
-          CURRENT=$(npm view @chainlesschain/shared-logger version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-config"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-config
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-config version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-db"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-db
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-db version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-infra"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-infra
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-infra version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-mtc"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-mtc
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-mtc version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-multisig"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/core-multisig
-        run: |
-          CURRENT=$(npm view @chainlesschain/core-multisig version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/session-core"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/session-core
-        run: |
-          CURRENT=$(npm view @chainlesschain/session-core version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/personal-data-hub"
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/personal-data-hub
-        run: |
-          CURRENT=$(npm view @chainlesschain/personal-data-hub version 2>/dev/null || echo "0.0.0")
-          PKG_VER=$(node -p "require('./package.json').version")
-          if [ "$CURRENT" = "$PKG_VER" ]; then
-            echo "Already published, skipping"
-          else
-            npm publish --provenance --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # The 9 workspace deps (core-env … personal-data-hub) used to be
+      # published from here. After v5.0.3.79, they moved to the publish-deps
+      # job at the top of the graph so desktop builds can resolve them at
+      # `npm install --omit=dev` time. This job now only publishes the CLI.
 
       - name: Confirm CLI version matches resolved version
         # No-op safety net: VERSION already comes from packages/cli/package.json
