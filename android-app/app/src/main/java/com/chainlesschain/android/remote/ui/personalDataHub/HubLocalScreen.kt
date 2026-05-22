@@ -87,6 +87,10 @@ fun HubLocalScreen(
                         viewModel.onBilibiliLoginCookie(cookie)
                     pending.adapterName == "social-weibo" ->
                         viewModel.onWeiboLoginCookie(cookie)
+                    pending.adapterName == "social-douyin" ->
+                        viewModel.onDouyinLoginCookie(cookie)
+                    pending.adapterName == "social-xiaohongshu" ->
+                        viewModel.onXhsLoginCookie(cookie)
                     pending.adapterName.startsWith("ai-chat:") -> {
                         // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
                         // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
@@ -141,6 +145,7 @@ fun HubLocalScreen(
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
         viewModel.refreshWeiboFromStore()
+        viewModel.refreshDouyinFromStore()
         viewModel.refreshWechatFromStore()
     }
 
@@ -214,6 +219,8 @@ fun HubLocalScreen(
                         when (card.adapterName) {
                             "social-bilibili" -> viewModel.requestBilibiliLogin()
                             "social-weibo" -> viewModel.requestWeiboLogin()
+                            "social-douyin" -> viewModel.requestDouyinLogin()
+                            "social-xiaohongshu" -> viewModel.requestXhsLogin()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -223,6 +230,8 @@ fun HubLocalScreen(
                         when (card.adapterName) {
                             "social-bilibili" -> viewModel.syncBilibili()
                             "social-weibo" -> viewModel.syncWeibo()
+                            "social-douyin" -> viewModel.syncDouyin()
+                            "social-xiaohongshu" -> viewModel.syncXhs()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -232,6 +241,8 @@ fun HubLocalScreen(
                         when (card.adapterName) {
                             "social-bilibili" -> viewModel.logoutBilibili()
                             "social-weibo" -> viewModel.logoutWeibo()
+                            "social-douyin" -> viewModel.logoutDouyin()
+                            "social-xiaohongshu" -> viewModel.logoutXhs()
                         }
                     },
                 )
