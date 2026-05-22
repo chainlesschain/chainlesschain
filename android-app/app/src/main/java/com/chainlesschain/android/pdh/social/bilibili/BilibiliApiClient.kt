@@ -250,46 +250,90 @@ class BilibiliApiClient @Inject constructor() {
         }
 
     /**
-     * GET <url> with Cookie + Referer headers. Returns parsed JSONObject or
-     * null on transport / parse error. 401 / 412 (anti-bot) treated the same
-     * as transport error — caller surfaces "需要重新登录".
+     * GET <url> with Cookie + browser-like headers. Returns parsed JSONObject
+     * on success, null on transport / API error.
+     *
+     * Real-device repro 2026-05-22 (Xiaomi 24115RA8EC): after a successful
+     * WebView login (UID parsed), all 4 endpoints returned empty data. Root
+     * cause: missing User-Agent + Origin headers. Bilibili's anti-spider
+     * sees OkHttp's default "okhttp/4.x.x" UA + no Origin and treats every
+     * request as bot → either returns `code: -412` (rate-limit/anti-spider)
+     * or pretends the cookie is invalid (`code: -101`). Browser-like UA +
+     * Origin matches what the web client sends and bypasses the heuristic.
+     *
+     * lastErrorCode + lastErrorMessage are exposed so the collector can
+     * surface "code=-412, anti-spider" vs "code=-101, not logged in" rather
+     * than the catch-all "cookie 可能过期".
      */
+    @Volatile var lastErrorCode: Int = 0
+        private set
+    @Volatile var lastErrorMessage: String? = null
+        private set
+
     private fun doGetJson(url: HttpUrl, cookie: String): JSONObject? {
         val req = Request.Builder()
             .url(url)
             .header("Cookie", cookie)
-            // Bilibili enforces Referer for some endpoints
+            // Browser-like UA: required to bypass Bilibili anti-spider; the
+            // app's own UA is rejected. Pinning to Chrome 120 mobile UA — if
+            // Bilibili adds UA-version fingerprinting later, may need bump.
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+            )
+            // Bilibili enforces Referer + Origin for the four endpoints we hit
             .header("Referer", "https://www.bilibili.com/")
+            .header("Origin", "https://www.bilibili.com")
             .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
             .build()
         return try {
             httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string() ?: return null
+                val body = resp.body?.string()
+                if (body == null) {
+                    setLastError(-1, "empty body")
+                    return null
+                }
                 if (!resp.isSuccessful) {
-                    Timber.w("BilibiliApiClient: %s → %d", url.encodedPath, resp.code)
+                    Timber.w("BilibiliApiClient: %s → HTTP %d body=%s",
+                        url.encodedPath, resp.code, body.take(200))
+                    setLastError(resp.code, "HTTP ${resp.code}")
                     return null
                 }
                 val obj = JSONObject(body)
                 val code = obj.optInt("code", 0)
                 if (code != 0) {
+                    val msg = obj.optString("message")
                     Timber.w(
                         "BilibiliApiClient: %s → code=%d msg=%s",
-                        url.encodedPath, code, obj.optString("message")
+                        url.encodedPath, code, msg
                     )
-                    // code -101 (account not logged in), -509 (rate-limited),
-                    // 412 (anti-spider) all → null; caller surfaces.
-                    if (code == -101 || code == -412 || code == -509) return null
+                    setLastError(code, msg)
                     return null
                 }
+                clearLastError()
                 obj
             }
         } catch (e: IOException) {
             Timber.w(e, "BilibiliApiClient: IO error on %s", url.encodedPath)
+            setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
             null
         } catch (e: Exception) {
             Timber.w(e, "BilibiliApiClient: parse error on %s", url.encodedPath)
+            setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
             null
         }
+    }
+
+    private fun setLastError(code: Int, message: String?) {
+        lastErrorCode = code
+        lastErrorMessage = message
+    }
+
+    private fun clearLastError() {
+        lastErrorCode = 0
+        lastErrorMessage = null
     }
 }
 
