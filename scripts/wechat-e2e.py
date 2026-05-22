@@ -102,7 +102,29 @@ def adb_su(serial: str, cmd: str, timeout: int = 60) -> str:
 
 
 CC_BIN_REL = "files/.chainlesschain/bin/cc"
-APK_PACKAGE = "com.chainlesschain.android"
+APK_PACKAGE_CANDIDATES = (
+    "com.chainlesschain.android",        # release
+    "com.chainlesschain.android.debug",  # debug build (applicationIdSuffix)
+)
+# Resolved at runtime in discover() — first installed candidate wins.
+APK_PACKAGE = APK_PACKAGE_CANDIDATES[0]
+
+
+def resolve_apk_package(serial: str) -> Optional[str]:
+    """Find which APK variant (release vs debug) is installed.
+
+    Note: `pm list packages <name>` does substring match — searching for
+    'com.chainlesschain.android' ALSO matches 'com.chainlesschain.android.debug'.
+    Probe in reverse order (most specific first) + line-exact match to avoid
+    false positive on the release name when only debug is installed.
+    """
+    # Try most-specific first; "package:<name>" is the line format.
+    for pkg in reversed(APK_PACKAGE_CANDIDATES):
+        out = adb_shell(serial, f"pm list packages {pkg}", check=False)
+        for line in out.splitlines():
+            if line.strip() == f"package:{pkg}":
+                return pkg
+    return None
 
 
 def cc_on_device(serial: str, *args: str, timeout: int = 120) -> dict:
@@ -157,13 +179,17 @@ def discover(serial: str) -> DeviceInfo:
         wechat_version = out.split("versionName=")[1].split()[0].strip()
 
     apk_version = None
-    out = adb_shell(
-        serial,
-        f"dumpsys package {APK_PACKAGE} | grep -E 'versionName=' | head -1",
-        check=False,
-    )
-    if out and "versionName=" in out:
-        apk_version = out.split("versionName=")[1].split()[0].strip()
+    global APK_PACKAGE
+    resolved = resolve_apk_package(serial)
+    if resolved:
+        APK_PACKAGE = resolved
+        out = adb_shell(
+            serial,
+            f"dumpsys package {APK_PACKAGE} | grep -E 'versionName=' | head -1",
+            check=False,
+        )
+        if out and "versionName=" in out:
+            apk_version = out.split("versionName=")[1].split()[0].strip()
 
     is_rooted = False
     try:
