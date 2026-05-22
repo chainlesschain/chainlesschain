@@ -40,13 +40,26 @@ Prereqs (script checks these in --discover mode):
 from __future__ import annotations
 
 import argparse
+import io
 import json
+import os
 import subprocess
 import sys
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
+
+# Force UTF-8 on stdout/stderr to avoid Win cp936 (GBK) UnicodeEncodeError on
+# emoji + 中文 in print(). Per .claude/rules/encoding.md, Win defaults to
+# CP936/GBK and panics on ✅/❌/中文 unless explicitly set.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+else:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 
 # ─── adb wrappers ────────────────────────────────────────────────────────────
