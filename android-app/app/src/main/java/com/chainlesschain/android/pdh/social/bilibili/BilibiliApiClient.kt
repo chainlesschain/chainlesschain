@@ -110,8 +110,12 @@ class BilibiliApiClient @Inject constructor() {
     suspend fun fetchHistory(cookie: String, limit: Int = 200): List<HistoryItem> =
         withContext(Dispatchers.IO) {
             val url = baseUrl.newBuilder()
-                .addPathSegments("x/v2/history/cursor")
+                // Real-device 2026-05-22: /x/v2/history/cursor returns 404
+                // (HTML page, not JSON) — Bilibili deprecated the v2 path in
+                // favor of /x/web-interface/history/cursor (same response shape).
+                .addPathSegments("x/web-interface/history/cursor")
                 .addQueryParameter("ps", "30")
+                .addQueryParameter("type", "archive")
                 .build()
             val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
@@ -161,6 +165,10 @@ class BilibiliApiClient @Inject constructor() {
                     .addQueryParameter("media_id", folderId.toString())
                     .addQueryParameter("ps", perFolderLimit.toString())
                     .addQueryParameter("pn", "1")
+                    // Real-device 2026-05-22: missing `platform=web` returns
+                    // code=-400 "请求错误". Bilibili tightened this endpoint to
+                    // require an explicit platform tag.
+                    .addQueryParameter("platform", "web")
                     .build()
                 val itemsJson = doGetJson(itemsUrl, cookie) ?: continue
                 val itemsData = itemsJson.optJSONObject("data") ?: continue
@@ -185,8 +193,15 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchDynamics(cookie: String, limit: Int = 50): List<DynamicItem> =
         withContext(Dispatchers.IO) {
+            // Real-device 2026-05-22: Bilibili dynamics returned 0 items
+            // silently (code=0 + empty list, no WARN). Adding `type=all` +
+            // `platform=web` + `timezone_offset` to match what the web client
+            // sends — without these the anti-bot returns an OK + empty page.
             val url = baseUrl.newBuilder()
                 .addPathSegments("x/polymer/web-dynamic/v1/feed/all")
+                .addQueryParameter("type", "all")
+                .addQueryParameter("platform", "web")
+                .addQueryParameter("timezone_offset", "-480")
                 .build()
             val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()

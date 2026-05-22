@@ -230,6 +230,131 @@ class LocalCcRunner @Inject constructor(
         data class Failed(val reason: String, val exitCode: Int?) : DestroyResult()
     }
 
+    /** Audit row shape — mirrors LocalVault.queryAudit() return. */
+    data class AuditRow(
+        val at: Long,
+        val action: String,
+        val adapter: String?,
+        val eventId: String?,
+    )
+
+    sealed class RecentAuditResult {
+        data class Ok(val rows: List<AuditRow>) : RecentAuditResult()
+        data class Failed(val reason: String, val exitCode: Int?) : RecentAuditResult()
+    }
+
+    /**
+     * `cc hub recent-audit --limit <n> --json` → 推文 §"每次操作都有账本"。
+     * Returns chronologically-descending list (latest first per
+     * LocalVault.queryAudit default order DESC).
+     */
+    suspend fun queryRecentAudit(
+        limit: Int = 50,
+        timeoutMs: Long = 20_000L,
+    ): RecentAuditResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext RecentAuditResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext RecentAuditResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "hub", "recent-audit", "--limit", limit.toString(), "--json",
+        )
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext RecentAuditResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+            )
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.audit: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.audit: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext RecentAuditResult.Failed("timeout after ${timeoutMs}ms", null)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        if (exit != 0) {
+            val errMsg = try {
+                org.json.JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext RecentAuditResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+            )
+        }
+        try {
+            val arr = org.json.JSONArray(stdout.trim())
+            val rows = buildList {
+                for (i in 0 until arr.length()) {
+                    val r = arr.optJSONObject(i) ?: continue
+                    add(
+                        AuditRow(
+                            at = r.optLong("at", 0L),
+                            action = r.optString("action", ""),
+                            adapter = r.optString("adapter", "").takeIf { it.isNotEmpty() },
+                            eventId = r.optString("eventId", "").takeIf { it.isNotEmpty() },
+                        )
+                    )
+                }
+            }
+            RecentAuditResult.Ok(rows = rows)
+        } catch (e: Exception) {
+            RecentAuditResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
     /** Result for event-detail lookup flow. */
     sealed class EventDetailResult {
         data class Ok(val event: VaultEvent) : EventDetailResult()
