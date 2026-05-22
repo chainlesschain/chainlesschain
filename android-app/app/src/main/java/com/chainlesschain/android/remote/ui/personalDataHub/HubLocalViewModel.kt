@@ -16,6 +16,8 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
+import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
+import com.chainlesschain.android.pdh.travel.TravelVendor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -62,6 +64,7 @@ class HubLocalViewModel @Inject constructor(
     private val aiChatCredentials: AiChatCredentialsStore,
     private val emailCredentials: EmailCredentialsStore,
     private val emailCollector: EmailLocalCollector,
+    private val travelCredentials: TravelCredentialsStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -256,6 +259,22 @@ class HubLocalViewModel @Inject constructor(
         val pendingDialog: Boolean = false,
     )
 
+    /**
+     * §2.5 D8.2 — per-vendor 出行 cookie scrape card state (推文 §"出行: 高德
+     * / 携程"). UI 2 卡，每卡独立 hasCredentials / isSyncing / lastSync* /
+     * errorMessage。
+     */
+    @Immutable
+    data class TravelCardState(
+        val vendorKey: String,
+        val displayName: String,
+        val isLoggedIn: Boolean = false,
+        val isSyncing: Boolean = false,
+        val lastSyncAt: Long? = null,
+        val lastSyncCount: Int = 0,
+        val errorMessage: String? = null,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -292,6 +311,8 @@ class HubLocalViewModel @Inject constructor(
         val aiChat: Map<String, AiChatCardState> = emptyMap(),
         // §2.3 — vendorKey → email card state (QQ/Gmail/163/Outlook).
         val email: Map<String, EmailCardState> = emptyMap(),
+        // §2.5 — vendorKey → travel card state (travel-amap / travel-ctrip).
+        val travel: Map<String, TravelCardState> = emptyMap(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -303,6 +324,7 @@ class HubLocalViewModel @Inject constructor(
         refreshWechatFromStore()
         refreshAiChatFromStore()
         refreshEmailFromStore()
+        refreshTravelFromStore()
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────
@@ -1249,6 +1271,167 @@ class HubLocalViewModel @Inject constructor(
         _state.update { st ->
             val cur = st.email[vendorKey] ?: return@update st
             st.copy(email = st.email + (vendorKey to cur.copy(errorMessage = null)))
+        }
+    }
+
+    // ─── §2.5 D8.2 — 出行 (高德 / 携程) cookie scrape ────────────────────
+
+    fun refreshTravelFromStore() {
+        val map = TravelVendor.ORDERED.associate { v ->
+            v.key to TravelCardState(
+                vendorKey = v.key,
+                displayName = v.displayName,
+                isLoggedIn = travelCredentials.hasCredentials(v.key),
+                lastSyncAt = travelCredentials.getLastSyncAt(v.key),
+                lastSyncCount = travelCredentials.getLastSyncCount(v.key),
+            )
+        }
+        _state.update { it.copy(travel = map) }
+    }
+
+    fun requestTravelLogin(vendorKey: String) {
+        val v = TravelVendor.fromKey(vendorKey) ?: run {
+            Timber.w("requestTravelLogin: unknown vendor=%s", vendorKey)
+            return
+        }
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "travel:${v.key}",
+                    displayName = v.displayName,
+                    loginUrl = v.loginUrl,
+                    cookieDomain = v.cookieDomain,
+                    isLoginSuccess = v.isLoginSuccess,
+                ),
+            )
+        }
+    }
+
+    fun onTravelLoginCookie(vendorKey: String, cookie: String) {
+        if (TravelVendor.fromKey(vendorKey) == null) {
+            Timber.w("onTravelLoginCookie: unknown vendor=%s", vendorKey)
+            _state.update { it.copy(pendingLogin = null) }
+            return
+        }
+        if (cookie.isBlank()) {
+            _state.update { st ->
+                val card = st.travel[vendorKey]?.copy(
+                    errorMessage = "未拿到 cookie — 请重新登录后等页面跳转完成",
+                ) ?: return@update st
+                st.copy(
+                    pendingLogin = null,
+                    travel = st.travel + (vendorKey to card),
+                )
+            }
+            return
+        }
+        travelCredentials.saveCookie(vendorKey, cookie)
+        _state.update { it.copy(pendingLogin = null) }
+        refreshTravelFromStore()
+    }
+
+    fun syncTravel(vendorKey: String) {
+        val v = TravelVendor.fromKey(vendorKey) ?: return
+        if (_state.value.globalSyncingAdapter != null) return
+        val card = _state.value.travel[vendorKey] ?: return
+        if (!card.isLoggedIn) {
+            requestTravelLogin(vendorKey)
+            return
+        }
+        val cookie = travelCredentials.getCookie(vendorKey)
+        if (cookie.isNullOrBlank()) {
+            _state.update { st ->
+                st.copy(
+                    travel = st.travel + (vendorKey to card.copy(
+                        errorMessage = "cookie 失效 — 请重新登录",
+                    )),
+                )
+            }
+            return
+        }
+
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = "travel:${v.key}",
+                travel = it.travel + (vendorKey to card.copy(
+                    isSyncing = true, errorMessage = null,
+                )),
+            )
+        }
+        viewModelScope.launch {
+            val staging = File(appContext.filesDir, "staging").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+            val snapshotFile = File(staging, "travel-${v.key}-$stamp.json")
+            try {
+                val json = org.json.JSONObject().apply {
+                    put("vendor", v.key)
+                    put("cookie", cookie)
+                    put("fetchedAt", System.currentTimeMillis())
+                }
+                snapshotFile.writeText(json.toString())
+            } catch (t: Throwable) {
+                Timber.w(t, "syncTravel: snapshot write failed vendor=%s", v.key)
+                _state.update { st ->
+                    st.copy(
+                        globalSyncingAdapter = null,
+                        travel = st.travel + (vendorKey to card.copy(
+                            isSyncing = false,
+                            errorMessage = "本地暂存写入失败: ${t.message ?: t.javaClass.simpleName}",
+                        )),
+                    )
+                }
+                return@launch
+            }
+
+            val ccResult = ccRunner.syncAdapter(v.key, snapshotFile.absolutePath)
+            _state.update { st ->
+                val cur = st.travel[vendorKey] ?: card
+                when (ccResult) {
+                    is LocalCcRunner.CcResult.Ok -> {
+                        travelCredentials.recordSync(
+                            v.key,
+                            System.currentTimeMillis(),
+                            ccResult.report.ingested,
+                        )
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            travel = st.travel + (vendorKey to cur.copy(
+                                isSyncing = false,
+                                lastSyncAt = System.currentTimeMillis(),
+                                lastSyncCount = ccResult.report.ingested,
+                                errorMessage = null,
+                            )),
+                        )
+                    }
+                    is LocalCcRunner.CcResult.Failed -> {
+                        val hint = if (
+                            ccResult.reason.contains("not found", ignoreCase = true) ||
+                            ccResult.reason.contains("unknown adapter", ignoreCase = true)
+                        ) "桌面端 ${v.key} adapter 暂未对接，v0.2 补齐 (cookie 已保存到本机)"
+                        else ccResult.reason
+                        Timber.w("syncTravel: cc failed vendor=%s reason=%s", v.key, ccResult.reason)
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            travel = st.travel + (vendorKey to cur.copy(
+                                isSyncing = false,
+                                errorMessage = hint,
+                            )),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutTravel(vendorKey: String) {
+        travelCredentials.clear(vendorKey)
+        refreshTravelFromStore()
+    }
+
+    fun clearTravelError(vendorKey: String) {
+        _state.update { st ->
+            val card = st.travel[vendorKey] ?: return@update st
+            st.copy(travel = st.travel + (vendorKey to card.copy(errorMessage = null)))
         }
     }
 
