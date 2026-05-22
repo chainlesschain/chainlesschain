@@ -44,19 +44,71 @@ function newGroupId() {
   return `mg-${r()}${r()}-${Date.now().toString(36)}`;
 }
 
+/**
+ * Translate a bs3mc load-failure error into an actionable, user-readable
+ * message. Detects NODE_MODULE_VERSION mismatch (the single most common
+ * failure: Node 23/24/25 has no prebuild — bs3mc upstream only ships for
+ * Node LTS ABIs 108/115/127). See memory `node_23_native_dep_trap.md`.
+ *
+ * Pure function so it can be unit-tested without poisoning require cache.
+ *
+ * @param {Error|unknown} err Original throw from `require("better-sqlite3-multiple-ciphers")`.
+ * @param {string} [nodeVer] process.versions.node (override for tests).
+ * @returns {Error} Wrapped Error with `cause` and (when ABI-related) `code: "BS3MC_ABI_MISMATCH"`.
+ */
+function formatDriverLoadError(err, nodeVer) {
+  const originalMsg = err && err.message ? err.message : String(err);
+  const runtimeNodeVer = nodeVer || process.versions.node;
+
+  const abiMatch = originalMsg.match(
+    /NODE_MODULE_VERSION\s+(\d+)[\s\S]+?requires\s+NODE_MODULE_VERSION\s+(\d+)/,
+  );
+  if (abiMatch) {
+    const compiledAbi = abiMatch[1];
+    const runtimeAbi = abiMatch[2];
+    const lines = [
+      "better-sqlite3-multiple-ciphers ABI mismatch — Node " +
+        runtimeNodeVer +
+        " has ABI " +
+        runtimeAbi +
+        " but bs3mc prebuild is ABI " +
+        compiledAbi +
+        ".",
+      "",
+      "修法（任选其一）：",
+      "  1. 切 Node 22 LTS (推荐) — nvm-windows: `nvm install 22.12.0 && nvm use 22.12.0`",
+      "  2. 源码重编 — `npm rebuild better-sqlite3-multiple-ciphers --build-from-source`",
+      "     （需要本机有 Visual Studio Build Tools / node-gyp toolchain，慢且不推荐）",
+      "",
+      "为什么 bs3mc 没 ABI " + runtimeAbi + " prebuild：",
+      "  bs3mc 上游只 ship 主流 Node LTS 的 prebuild (ABI 108/115/127)。",
+      "  Node 23/24/25 是 Current 系列，上游不给 prebuild。",
+      "",
+      "项目 engines.node 允许 >=22.12 是为了兼容未来 LTS，但实际推荐 22.x。",
+    ];
+    const wrapped = new Error(lines.join("\n"));
+    wrapped.cause = err;
+    wrapped.code = "BS3MC_ABI_MISMATCH";
+    return wrapped;
+  }
+
+  const wrapped = new Error(
+    "Failed to load better-sqlite3-multiple-ciphers. " +
+      "Install it as a workspace dep or pin the version in your package. " +
+      "Original error: " +
+      originalMsg,
+  );
+  wrapped.cause = err;
+  return wrapped;
+}
+
 function loadDriver() {
   // Lazy require so consumers that only need schemas don't pay for the
   // native binding load. Errors surface here with a precise message.
   try {
     return require("better-sqlite3-multiple-ciphers");
   } catch (err) {
-    const msg =
-      "Failed to load better-sqlite3-multiple-ciphers. " +
-      "Install it as a workspace dep or pin the version in your package. " +
-      "Original error: " + (err && err.message ? err.message : String(err));
-    const wrapped = new Error(msg);
-    wrapped.cause = err;
-    throw wrapped;
+    throw formatDriverLoadError(err);
   }
 }
 
@@ -1223,4 +1275,4 @@ class LocalVault {
   }
 }
 
-module.exports = { LocalVault };
+module.exports = { LocalVault, _internal: { loadDriver, formatDriverLoadError } };
