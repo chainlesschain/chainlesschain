@@ -965,6 +965,144 @@ class HubLocalViewModelTest {
         assertNull(st.lastExportPath)
     }
 
+    // ─── §2.4 D7.2 — importPaymentShoppingFile ───────────────────────────
+
+    @Test
+    fun `importPaymentShoppingFile alipay-bill Ok updates lastImportAt + lastImportBytes`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        // Mock resolver returns an InputStream with 8 bytes
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { resolver.openInputStream(fakeUri) } answers {
+            java.io.ByteArrayInputStream("date,amt\n2026-01,99".toByteArray())
+        }
+        // cc.syncAdapter returns Ok with 5 ingested
+        coEvery { ccRunner.syncAdapter("alipay-bill", any(), any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "alipay-bill",
+                    status = "ok",
+                    ingested = 5,
+                    invalidCount = 0,
+                    kgTriples = 0,
+                    ragDocs = 0,
+                    durationMs = 50L,
+                    error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importPaymentShoppingFile("alipay-bill", fakeUri)
+        advanceUntilIdle()
+
+        val card = vm.state.value.paymentShopping.alipayBill
+        assertFalse(card.isImporting)
+        assertNull(card.errorMessage)
+        assertNotNull(card.lastImportAt)
+        assertTrue(card.lastImportBytes > 0)
+        assertNull(vm.state.value.globalSyncingAdapter)
+        // Staged file actually written
+        val staging = java.io.File(filesDir, "staging")
+        val staged = staging.listFiles()?.firstOrNull { it.name.startsWith("alipay-bill-") && it.name.endsWith(".csv") }
+        assertNotNull(staged)
+    }
+
+    @Test
+    fun `importPaymentShoppingFile shopping-taobao writes HTML extension`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { resolver.openInputStream(fakeUri) } answers {
+            java.io.ByteArrayInputStream("<html>orders</html>".toByteArray())
+        }
+        coEvery { ccRunner.syncAdapter("shopping-taobao", any(), any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "shopping-taobao",
+                    status = "ok",
+                    ingested = 3,
+                    invalidCount = 0,
+                    kgTriples = 0,
+                    ragDocs = 0,
+                    durationMs = 50L,
+                    error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importPaymentShoppingFile("shopping-taobao", fakeUri)
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.paymentShopping.taobaoOrder.lastImportAt)
+        val staging = java.io.File(filesDir, "staging")
+        val staged = staging.listFiles()?.firstOrNull { it.name.startsWith("shopping-taobao-") && it.name.endsWith(".html") }
+        assertNotNull(staged)
+    }
+
+    @Test
+    fun `importPaymentShoppingFile empty file surfaces error + deletes staging`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { resolver.openInputStream(fakeUri) } answers {
+            java.io.ByteArrayInputStream(byteArrayOf())  // empty
+        }
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importPaymentShoppingFile("alipay-bill", fakeUri)
+        advanceUntilIdle()
+
+        val card = vm.state.value.paymentShopping.alipayBill
+        assertFalse(card.isImporting)
+        assertTrue(card.errorMessage?.contains("空") == true)
+        // Staged file must not linger (we delete on empty)
+        val staging = java.io.File(filesDir, "staging")
+        val stagedAfter = staging.listFiles()?.toList().orEmpty()
+        assertTrue(stagedAfter.isEmpty(), "Expected staging dir empty, got: $stagedAfter")
+    }
+
+    @Test
+    fun `importPaymentShoppingFile unknown providerKey is no-op`() = runTest(testDispatcher) {
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importPaymentShoppingFile("alipay-foo-typo", fakeUri)
+        advanceUntilIdle()
+        // No state mutation, no cc call
+        assertFalse(vm.state.value.paymentShopping.alipayBill.isImporting)
+        assertFalse(vm.state.value.paymentShopping.taobaoOrder.isImporting)
+    }
+
+    @Test
+    fun `clearPaymentImportError nulls per-card errorMessage`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        val resolver = io.mockk.mockk<android.content.ContentResolver>(relaxed = true)
+        every { appContext.contentResolver } returns resolver
+        val fakeUri = io.mockk.mockk<android.net.Uri>(relaxed = true)
+        every { resolver.openInputStream(fakeUri) } answers {
+            java.io.ByteArrayInputStream(byteArrayOf())  // empty → error
+        }
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.importPaymentShoppingFile("alipay-bill", fakeUri)
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.paymentShopping.alipayBill.errorMessage)
+        vm.clearPaymentImportError("alipay-bill")
+        assertNull(vm.state.value.paymentShopping.alipayBill.errorMessage)
+    }
+
     @Test
     fun `requestExportVaultToUri reentrancy guard — second call no-ops while exporting`() = runTest(testDispatcher) {
         every { appContext.cacheDir } returns java.io.File(System.getProperty("java.io.tmpdir"), "hub-test-${System.nanoTime()}").apply { mkdirs() }

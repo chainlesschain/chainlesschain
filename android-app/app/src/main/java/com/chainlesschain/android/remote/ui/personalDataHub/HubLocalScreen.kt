@@ -109,6 +109,20 @@ fun HubLocalScreen(
         if (uri != null) viewModel.requestExportVaultToUri(uri)
     }
 
+    // §2.4 D7.2 — SAF picker for 支付/购物 CSV+HTML 导入。OpenDocument 支持
+    // MIME 过滤 — alipay 账单 = text/csv*；淘宝订单 = text/html / mhtml /
+    // application/x-mimearchive (保存网页含 MIME 多部分)。null Uri = 用户取消。
+    val alipayBillLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.importPaymentShoppingFile("alipay-bill", uri)
+    }
+    val taobaoOrderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.importPaymentShoppingFile("shopping-taobao", uri)
+    }
+
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
@@ -238,11 +252,20 @@ fun HubLocalScreen(
 
             // ─── 支付与购物（推文 §"支付与购物": 支付宝 / 淘宝）────────
             // D7.1: 2 provider sub-cards (alipay-bill CSV / shopping-taobao HTML)
+            // §2.4 D7.2: button 接通 SAF picker — alipay-bill → CSV / shopping-
+            // taobao → HTML（MHTML 也认）。CSV+HTML 走 OpenDocument，无 MIME
+            // 严过滤（系统 picker 默认允许任意 MIME，避免用户找不到导出文件）。
             item("section-pay") { SectionHeader("支付与购物") }
             item("pay-providers") {
                 PaymentShoppingGroup(
                     onProviderImport = { key ->
-                        Timber.i("HubLocalScreen: payment/shopping import TODO key=$key")
+                        when (key) {
+                            "alipay-bill" ->
+                                alipayBillLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "application/csv", "text/plain", "*/*"))
+                            "shopping-taobao" ->
+                                taobaoOrderLauncher.launch(arrayOf("text/html", "application/x-mimearchive", "multipart/related", "*/*"))
+                            else -> Timber.w("HubLocalScreen: unknown payment provider key=%s", key)
+                        }
                     },
                 )
             }

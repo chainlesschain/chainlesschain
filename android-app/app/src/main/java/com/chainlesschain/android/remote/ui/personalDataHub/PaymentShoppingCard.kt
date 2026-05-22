@@ -20,12 +20,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * D7.1 — 支付与购物 sub-cards (推文 §"支付与购物: 支付宝 / 淘宝")
+ * D7.1 + D7.2 — 支付与购物 sub-cards (推文 §"支付与购物: 支付宝 / 淘宝")
  *
- * 替换原 PlaceholderCategoryCard "支付宝 / 淘宝" 单卡为 2 张 provider 子卡。
- * v0.1: SAF 文件上传 button disabled "v0.2 开放" — D7.2 接通 ACTION_OPEN_
- * DOCUMENT picker → alipay-bill 账单 CSV / shopping-taobao 订单 HTML →
- * adapter snapshot mode → in-APK cc。
+ * v0.1: 替换原 PlaceholderCategoryCard 单卡为 2 张 provider 子卡。
+ * §2.4 D7.2 (本 commit)：button 由 disabled placeholder 升 enabled —
+ * onProviderImport 在 Screen 端 launch ACTION_OPEN_DOCUMENT picker，
+ * 拿到 Uri 后 VM 走 ContentResolver.openInputStream → filesDir/staging/
+ * <adapter>-<ts>.<ext> → LocalCcRunner.syncAdapter(adapter, path)。
+ *
+ * 推文 §"诚实说" 已坦白此路径 = "采集对方主动开放的导出渠道"。v0.2 候选
+ * 补充 NotificationListenerService 监听支付宝/淘宝 push 实现增量采集
+ * (不替代 SAF — 二者历史/增量分工)。
  */
 @Composable
 fun PaymentShoppingGroup(
@@ -52,6 +57,7 @@ fun PaymentShoppingGroup(
                 provider = p,
                 actionLabel = "导入 ${p.sourceFormat}",
                 onAction = { onProviderImport(p.key) },
+                enabled = true,
             )
             if (idx < providers.lastIndex) Spacer(Modifier.height(8.dp))
         }
@@ -139,6 +145,7 @@ private fun ProviderCardRow(
     provider: ProviderCard,
     actionLabel: String,
     onAction: () -> Unit,
+    enabled: Boolean = false,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -172,8 +179,8 @@ private fun ProviderCardRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                OutlinedButton(onClick = onAction, enabled = false) {
-                    Text("v0.2 $actionLabel")
+                OutlinedButton(onClick = onAction, enabled = enabled) {
+                    Text(if (enabled) actionLabel else "v0.2 $actionLabel")
                 }
             }
         }
