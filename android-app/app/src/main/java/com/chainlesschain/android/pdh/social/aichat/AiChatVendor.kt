@@ -1,8 +1,10 @@
 package com.chainlesschain.android.pdh.social.aichat
 
 /**
- * §2.6 D10.2 — 9 AI vendor (推文 §"AI 助手": 豆包 / 文心 / Kimi / 通义 /
- * DeepSeek / 智谱 / 混元 / 千帆 / 扣子) 各自 cookie scrape WebView 配置。
+ * §2.6 D10.2 — AI vendor (推文 §"AI 助手": 豆包 / 文心 / Kimi / 通义 /
+ * DeepSeek / 智谱 / 混元 / 扣子) 各自 cookie scrape WebView 配置。
+ * 原推文列 9 家含独立"千帆"，2026-05-22 与"文心一言"合并到 WENXIN entry
+ * (key=qianfan)，桌面 vendor adapter 只一份。
  *
  * 每 vendor 4 字段：
  *  - key            : 唯一标识 (用于 EncryptedSharedPreferences key prefix +
@@ -40,8 +42,15 @@ enum class AiChatVendor(
         cookieDomain = "https://www.doubao.com",
         isLoginSuccess = { url -> url.contains("doubao.com/chat") && !url.contains("login") },
     ),
+    /**
+     * 文心一言。enum entry 名 `WENXIN`，但 `key="qianfan"` 对齐桌面
+     * `packages/.../vendors/qianfan.js` (BASE=yiyan.baidu.com)。原先 Android
+     * WENXIN 与 QIANFAN 双 vendor → 桌面 single qianfan adapter 名错配，
+     * 2026-05-22 合并：删 QIANFAN entry，WENXIN.key 改 "qianfan" 让 cc sync
+     * ai-chat-history --vendor qianfan 真接通。
+     */
     WENXIN(
-        key = "wenxin",
+        key = "qianfan",
         displayName = "文心一言 (百度)",
         loginUrl = "https://yiyan.baidu.com/",
         cookieDomain = "https://yiyan.baidu.com",
@@ -82,13 +91,11 @@ enum class AiChatVendor(
         cookieDomain = "https://yuanbao.tencent.com",
         isLoginSuccess = { url -> url.contains("yuanbao.tencent.com") && !url.contains("login") },
     ),
-    QIANFAN(
-        key = "qianfan",
-        displayName = "千帆 (百度)",
-        loginUrl = "https://qianfan.cloud.baidu.com/",
-        cookieDomain = "https://qianfan.cloud.baidu.com",
-        isLoginSuccess = { url -> url.contains("qianfan.cloud.baidu.com") && !url.contains("passport") },
-    ),
+    // 注：原 QIANFAN entry (key="qianfan", qianfan.cloud.baidu.com) 与
+    // 桌面 vendor 命名冲突 — 桌面 qianfan adapter 实际 BASE=yiyan.baidu.com
+    // (=文心一言)。2026-05-22 删除独立 QIANFAN entry，文心一言走 WENXIN
+    // entry 直接复用 key="qianfan"。千帆企业版 (qianfan.cloud.baidu.com)
+    // 需 API key 流程，未来 v0.3+ 单独立 entry。
     COZE(
         key = "coze",
         displayName = "扣子 (Coze)",
@@ -101,13 +108,15 @@ enum class AiChatVendor(
         fun fromKey(key: String): AiChatVendor? = entries.firstOrNull { it.key == key }
 
         /**
-         * 推文 §"AI 助手 9 家" 的全集（顺序跟 推文 / PaymentShoppingCard
-         * AiAssistantsGroup 一致：豆包/文心/Kimi/通义/DeepSeek/智谱/混元/
-         * 千帆/扣子）。UI 直接 iterate.
+         * 推文 §"AI 助手 9 家" 原列豆包/文心/Kimi/通义/DeepSeek/智谱/混元/
+         * 千帆/扣子。2026-05-22 WENXIN+QIANFAN 合并后 8 家：文心 entry
+         * (key=qianfan) 复用桌面 qianfan adapter (BASE=yiyan.baidu.com)。
+         * UI 直接 iterate；顺序与 PaymentShoppingCard.AiAssistantsGroup
+         * providers 列表对齐。
          */
         val ORDERED: List<AiChatVendor> = listOf(
             DOUBAO, WENXIN, KIMI, TONGYI, DEEPSEEK,
-            ZHIPU, HUNYUAN, QIANFAN, COZE,
+            ZHIPU, HUNYUAN, COZE,
         )
     }
 }

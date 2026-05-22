@@ -75,26 +75,31 @@ fun TravelGroup(
     onProviderLogin: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // §2.5 D8.2 — 2 路全 enable 走 WebView cookie scrape → cc hub sync
+    // travel-{vendor}. 高德 v0.2 升级 OAuth 拿历史轨迹 API (lbs.amap.com)，
+    // v0.1 cookie scrape 拿账户态 + 收藏；携程 cookie scrape 拿订单 + 酒店 +
+    // 机票历史。p.key 必须与 TravelVendor.key 对齐 (travel-amap / travel-ctrip).
     val providers = listOf(
         ProviderCard(
             key = "travel-amap",
             displayName = "高德地图",
-            hint = "历史轨迹 + 收藏地点 — 需 OAuth 授权访问",
-            sourceFormat = "OAuth",
+            hint = "网页登录 cookie → 账户 + 收藏地点 (v0.2 OAuth 加历史轨迹)",
+            sourceFormat = "WebView",
         ),
         ProviderCard(
             key = "travel-ctrip",
             displayName = "携程",
-            hint = "订单 / 酒店 / 机票历史 — 账号同步",
-            sourceFormat = "登录",
+            hint = "网页登录 cookie → 订单 / 酒店 / 机票历史",
+            sourceFormat = "WebView",
         ),
     )
     Column(modifier = modifier.fillMaxWidth()) {
         providers.forEachIndexed { idx, p ->
             ProviderCardRow(
                 provider = p,
-                actionLabel = p.sourceFormat,
+                actionLabel = "登录",
                 onAction = { onProviderLogin(p.key) },
+                enabled = true,
             )
             if (idx < providers.lastIndex) Spacer(Modifier.height(8.dp))
         }
@@ -102,30 +107,31 @@ fun TravelGroup(
 }
 
 /**
- * D10.1 — AI 助手 9 家 sub-cards (推文 §"AI 助手: 豆包 / 文心 / Kimi / 通义 /
- * DeepSeek 等 9 家")
+ * D10.1 / D10.2 — AI 助手 sub-cards (推文 §"AI 助手: 豆包 / 文心 / Kimi /
+ * 通义 / DeepSeek 等")
  *
- * 与推文一致的 9 家：豆包 / 文心一言 / Kimi / 通义千问 / DeepSeek / 智谱 GLM /
- * 混元 / 千帆 / 扣子。注：packages/personal-data-hub Phase 10.2 实际 8 厂商
- * (DeepSeek/Kimi/通义/智谱/混元/千帆/扣子/Dreamina)，推文 §豆包/文心 是商业市
- * 占率高的 brand mention 但 PDH 端尚未真接通。AI 助手卡在 v0.1 全显 9 张 stub
- * placeholder 让推文承诺得到 UI 呈现。
+ * 推文原列 9 家含独立"千帆"，2026-05-22 与"文心一言"合并 (桌面 qianfan
+ * adapter BASE=yiyan.baidu.com 实际就是文心一言域名) → 8 家。8 路全 enable
+ * 走 WebView cookie scrape → cc hub sync ai-chat-history --vendor <k>
+ * → 本机 SQLCipher vault。豆包/coze 桌面 adapter 已 wired，与其他 6 家
+ * 对等。
  */
 @Composable
 fun AiAssistantsGroup(
     onProviderLogin: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek 等 9 家"
+    // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek 等" 8 家（合并千帆+文心后）。
+    // p.key 必须与 AiChatVendor.key 对齐（文心 entry key=qianfan，复用桌面
+    // qianfan adapter）。
     val providers = listOf(
         ProviderCard("doubao", "豆包 (字节)", "网页 cookie → 对话历史", "WebView"),
-        ProviderCard("wenxin", "文心一言 (百度)", "网页 cookie → 对话历史", "WebView"),
+        ProviderCard("qianfan", "文心一言 (百度)", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("kimi", "Kimi (月之暗面)", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("tongyi", "通义千问 (阿里)", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("deepseek", "DeepSeek", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("zhipu", "智谱 GLM", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("hunyuan", "混元 (腾讯)", "网页 cookie → 对话历史", "WebView"),
-        ProviderCard("qianfan", "千帆 (百度)", "API key → 对话历史", "API key"),
         ProviderCard("coze", "扣子 (Coze)", "网页 cookie → 对话历史", "WebView"),
     )
     Column(modifier = modifier.fillMaxWidth()) {
@@ -134,6 +140,7 @@ fun AiAssistantsGroup(
                 provider = p,
                 actionLabel = "登录",
                 onAction = { onProviderLogin(p.key) },
+                enabled = true,
             )
             if (idx < providers.lastIndex) Spacer(Modifier.height(8.dp))
         }
