@@ -148,6 +148,23 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
                     Timber.w(e, "[App] signaling auto-discovery failed")
                 }
 
+                // A3.2 — start the Kotlin-hosted Ollama-compat LLM server on
+                // 127.0.0.1. In-APK cc OllamaClient reads its base URL via
+                // CC_HUB_OLLAMA_URL env (set by LocalCcRunner.askQuestion).
+                // Engine is NoOpLlmInferenceEngine by default until A3.3
+                // wires a real kotlinllamacpp backend; the server returns
+                // structured "engine not wired" errors which the UI surfaces
+                // as "端侧 LLM 未启动 (A3.2 待落地)" — non-fatal at startup.
+                try {
+                    val port = entryPoint.localLlmServer().start().getOrElse {
+                        Timber.w(it, "[App] LocalLlmServer.start failed")
+                        -1
+                    }
+                    if (port > 0) Timber.i("[App] LocalLlmServer started on 127.0.0.1:%d", port)
+                } catch (e: Exception) {
+                    Timber.w(e, "[App] LocalLlmServer start threw")
+                }
+
                 Timber.d("Delayed initialization completed")
             } catch (e: Exception) {
                 Timber.e(e, "Delayed initialization failed")

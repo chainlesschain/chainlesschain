@@ -32,5 +32,11 @@ interface AppEntryPoint {
      * 默认自身资料提供者（DID 占位昵称版；待 SelfProfileStore 上线后替换）
      */
     fun defaultSelfProfileProvider(): com.chainlesschain.android.feature.p2p.repository.social.DefaultSelfProfileProvider
+
+    /**
+     * A3.2 — Kotlin-hosted Ollama-compat HTTP server on 127.0.0.1:<port>.
+     * Started in [ChainlessChainApplication.delayedInit].
+     */
+    fun localLlmServer(): com.chainlesschain.android.pdh.llm.LocalLlmServer
 }
 

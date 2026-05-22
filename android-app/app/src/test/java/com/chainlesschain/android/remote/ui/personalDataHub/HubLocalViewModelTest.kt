@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.ui.personalDataHub
 
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
+import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import io.mockk.coEvery
@@ -45,6 +46,7 @@ class HubLocalViewModelTest {
     private lateinit var ccRunner: LocalCcRunner
     private lateinit var bilibiliCollector: BilibiliLocalCollector
     private lateinit var bilibiliCredentials: BilibiliCredentialsStore
+    private lateinit var llmServer: LocalLlmServer
 
     @Before
     fun setUp() {
@@ -53,6 +55,11 @@ class HubLocalViewModelTest {
         ccRunner = mockk(relaxed = false)
         bilibiliCollector = mockk(relaxed = false)
         bilibiliCredentials = mockk(relaxed = true)
+        llmServer = mockk(relaxed = true)
+        // A3 default: server "started" with deterministic baseUrl so ask
+        // tests can assert ccRunner.askQuestion was called with this URL.
+        every { llmServer.baseUrl } returns "http://127.0.0.1:18484"
+        every { llmServer.boundPort } returns 18484
         // Default: not logged in, no past sync
         every { bilibiliCredentials.hasCredentials() } returns false
         every { bilibiliCredentials.getUid() } returns null
@@ -65,7 +72,7 @@ class HubLocalViewModelTest {
     fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm(): HubLocalViewModel =
-        HubLocalViewModel(snapshotter, ccRunner, bilibiliCollector, bilibiliCredentials)
+        HubLocalViewModel(snapshotter, ccRunner, bilibiliCollector, bilibiliCredentials, llmServer)
 
     // ─── Initialization ─────────────────────────────────────────────────────
 

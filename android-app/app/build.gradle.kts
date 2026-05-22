@@ -379,6 +379,22 @@ dependencies {
     // Jsoup for HTML parsing (link preview)
     implementation("org.jsoup:jsoup:1.17.2")
 
+    // A3 — Ktor embedded HTTP server for local Ollama-compatible LLM endpoint.
+    // The Kotlin-hosted LLM (kotlinllamacpp JNI) hosts /api/chat + /api/tags on
+    // 127.0.0.1:<port>. in-APK cc OllamaClient reads CC_HUB_OLLAMA_URL env →
+    // hits this loopback. ktor 2.3.x line stays on Kotlin 1.9.x compat.
+    implementation("io.ktor:ktor-server-core:2.3.13")
+    implementation("io.ktor:ktor-server-cio:2.3.13")
+    implementation("io.ktor:ktor-server-content-negotiation:2.3.13")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.13")
+    // A3 — kotlinllamacpp (JNI llama.cpp) is hidden behind the
+    // LlmInferenceEngine interface (pdh/llm/LlmInferenceEngine.kt). The NoOp
+    // impl is the default; a real engine impl resolves to either Maven Central
+    // or JitPack once package source-of-truth is confirmed on a Mac/Linux dev
+    // box. Until then, the LLM tab surfaces "engine not wired" via the NoOp
+    // chat response, but the rest of A3 (server + cc wiring) is testable.
+    // TODO(A3.1 follow-up): add llamacpp-kotlin dep after coords verified.
+
     // ===== v0.31.0 new dependencies =====
 
     // QR code generation

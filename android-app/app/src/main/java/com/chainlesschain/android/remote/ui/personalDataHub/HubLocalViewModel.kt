@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
+import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,6 +43,7 @@ class HubLocalViewModel @Inject constructor(
     private val ccRunner: LocalCcRunner,
     private val bilibiliCollector: BilibiliLocalCollector,
     private val bilibiliCredentials: BilibiliCredentialsStore,
+    private val llmServer: LocalLlmServer,
 ) : ViewModel() {
 
     @Immutable
@@ -250,10 +252,11 @@ class HubLocalViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            // v0.1: ollamaUrl=null → cc uses default localhost:11434 which
-            // will fail until A3.2 lands the Ktor server. Once A3.2 ships
-            // we pass LlmServerHolder.currentUrl() here.
-            val result = ccRunner.askQuestion(q, ollamaUrl = null)
+            // A3.2 — LocalLlmServer baseUrl is "http://127.0.0.1:<port>" once
+            // ChainlessChainApplication.delayedInit started it. If start failed
+            // (rare port-exhaustion) baseUrl=null and we pass null → cc falls
+            // back to localhost:11434 default, which then fails fast.
+            val result = ccRunner.askQuestion(q, ollamaUrl = llmServer.baseUrl)
             _state.update { st ->
                 when (result) {
                     is LocalCcRunner.AskResult.Ok -> st.copy(
