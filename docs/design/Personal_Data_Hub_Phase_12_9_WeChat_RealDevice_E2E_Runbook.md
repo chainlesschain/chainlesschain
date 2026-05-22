@@ -437,9 +437,63 @@ cc hub ask "上周我和 妈妈 聊过几次？最后一次说啥？" --json | t
 
 ## 5. 已知 traps（与 Adapter_WeChat_SQLCipher.md §13 / §18.9 重叠不重述）
 
-仅记录 Phase 12.9 真机验证**独有**的现象（场景外发现的，要补回设计稿）：
+### 5.1 Frida hook 三 trap 速诊表（v0.2，2026-05-22 sjqz parity audit）
 
-> 此处 v0.1 留空。每发现一个新 trap，按 [`docs/internal/hidden-risk-traps.md`](../internal/hidden-risk-traps.md) 模式追加到 §18.9 + 索引到 MEMORY.md。
+如果 `cc hub wechat register` 卡在 hook 阶段（30s timeout / silent fail / DB 死活 open 不了），按下表读 `FridaKeyProvider.getLastTelemetry()` 字段定位。详见 memory [[wechat-frida-hook-audit-traps]] + 单测 `packages/personal-data-hub/__tests__/adapters/wechat-frida-agent.test.js`。
+
+#### Trap A — 模块大小写（sjqz canonical = libWCDB.so 大写）
+
+| 症状 | telemetry 特征 | 修法 |
+|---|---|---|
+| 30s timeout，从来没看到 `hooked` event；frida-message.log 只有 `module-waiting` | `hooked: []`（空数组）+ `errors:` 含 `"libWCDB.so\|libwcdb.so did not load within 30s"` | 检查 `adb shell ls /data/data/com.tencent.mm/lib*/libWCDB.so` 看实际命名。我们已 fallback 两个 case，但 OEM 定制 ROM 可能用其它名（如 `libwcdb_3_3_5.so`）— 加进 `TARGET_MODULES` 数组 |
+
+#### Trap B — sqlite3_key vs sqlite3_key_v2 参数 index 错配
+
+| 症状 | telemetry 特征 | 修法 |
+|---|---|---|
+| 拿到 hex 但 DB open 全 PRAGMA profile 都失败（`WeChatDBReader: failed to open with any pragma profile`）| `keySource: "sqlite3_key_v2"` + `keySig: "v2"` + `keyFormat: "raw-bytes"` 但 `keyLength` 不是 32/64（极端如 4 / 8 — 那是 db name 长度）| 已经修了；如果仍命中说明 v2 签名又变了，agent 的 `argIndicesFor()` 表需新增 case |
+| 拿到 hex 看着像 ASCII 字符（"main\x00..." / "/data/data/..."）| `keySig: "v1"` 但 `keyLength` 极小或 hex 头几字节是 `6d61696e`（"main"）| WeChat 版本用了不同 v1 调用约定（少见，需 hexdump 验证）|
+
+#### Trap C — Key 格式：ASCII-hex (len=64) vs raw-bytes (len=32) vs ambiguous
+
+| 症状 | telemetry 特征 | 修法 |
+|---|---|---|
+| 拿到 hex 长度 128 字符（双倍编码）| `keyFormat: "raw-bytes"` + `keyLength: 64` | bug — len=64 应走 ascii-hex path。检查 `wechat-key-hook.js` 的 len 判断分支；如果命中说明 `Memory.readCString` 沙箱注入失败回退到 readByteArray 双编码 |
+| `keyFormat: "ambiguous"` 但 DB open 失败 | `keyLength` 既非 32 也非 64（如 16 / 40 / 48）+ telemetry 有 `keyAlt` 字段 | agent 已 emit 两种解释（`hex` + `alt`），但目前 FridaKeyProvider 只 resolve `hex`。如真命中 ambiguous，需 host 改造按 `hex` 失败再试 `alt`（参考 Adapter §18.10 OQ）|
+
+### 5.2 telemetry dump 命令
+
+```bash
+# 桌面 hub.log 抓 FridaKeyProvider event
+grep -A 1 'frida-message' ~/.chainlesschain/desktop-app-vue/logs/hub.log | tail -40
+
+# 或者注册时加 --json 看完整 telemetry
+node packages/cli/bin/chainlesschain.js hub wechat register \
+  --uin <UIN> --db-path /tmp/EnMicroMsg.db \
+  --wechat-data-path /tmp/com.tencent.mm \
+  --json | jq '.fridaTelemetry'
+```
+
+期望 telemetry 字段（happy path WeChat 8.x rooted + Frida ≥ 16）：
+
+```json
+{
+  "hooked": [{"symbol": "sqlite3_key", "module": "libWCDB.so"}],
+  "keySource": "sqlite3_key",
+  "keySig": "v1",
+  "keyFormat": "ascii-hex" | "raw-bytes",
+  "keyLength": 64 | 32,
+  "keyAlt": null,
+  "errors": [],
+  "durationMs": 800
+}
+```
+
+任何字段缺失 / null / 异常都按 §5.1 表查。
+
+### 5.3 新发现的 trap（场景外，要补回设计稿）
+
+> 每发现一个新 trap，按 [`docs/internal/hidden-risk-traps.md`](../internal/hidden-risk-traps.md) 模式追加到 §18.9 + 索引到 MEMORY.md + 扩 §5.1 表。
 
 ---
 
@@ -459,6 +513,9 @@ Body:
 - 桌面: OS / Node version / Ollama model
 - 重现步骤: <详细到能 deterministic 复现的程度>
 - env-probe 完整 JSON: `cc hub wechat env-probe --json | jq .`
+- **FridaKeyProvider telemetry**（决定性诊断 — 见 §5.1）:
+  `cc hub wechat register ... --json | jq '.fridaTelemetry'`
+  （必含 `hooked / keySource / keySig / keyFormat / keyLength / keyAlt / errors / durationMs`）
 - 桌面 hub.log 最后 200 行
 - frida-message.log（如适用）
 - vault.db 状态: `cc hub stats --json`
