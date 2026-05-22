@@ -5,6 +5,15 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.81] - 2026-05-23 — hotfix: Android R8 Ktor proguard + WebView vendor-switch remount
+
+> v5.0.3.80 build-android 在 R8 minify 阶段 fail (Ktor `IntellijIdeaDebugDetector` 引用 `java.lang.management.*` JVM-only API + slf4j-api 缺 `StaticLoggerBinder`)，导致 v5.0.3.80 GitHub Release **缺 4 个 Android asset**（arm64-v8a / armeabi-v7a / universal / .aab）。本 hotfix 加 proguard `-dontwarn` 规则 + bundle 一个真机 bug 修。
+
+- **`proguard-rules.pro` 加 Ktor 规则** (commit `c42aa603c5`)：`-dontwarn java.lang.management.**` + `-dontwarn org.slf4j.impl.**` + `-dontwarn org.slf4j.**` + `-dontwarn io.ktor.util.debug.**` + `-keep class io.ktor.** { *; }` + `-dontwarn io.ktor.**`。Ktor 是 A3 端侧 LLM HTTP server 在 v5.0.3.80 新引入的依赖（commit `ed768ffdf`），首次 release-mode build 才触发 R8 minify 检查。
+- **`HubLocalScreen.kt` WebView remount 真机修** (commit `13545bd232`)：用 `key(pending.adapterName)` 包 `SocialCookieWebViewScreen`。原因：`AndroidView.factory` 只在第一次 composition 触发，AI vendor 切换（Wenxin → Kimi）时 WebView 卡在 yiyan.baidu.com，dialog title 变了 WebView URL 没变 → Wenxin 的 `isLoginSuccess` 正则在 stale URL 上误命中触发错误 cookie 抓取。Xiaomi 24115RA8EC 真机复现。
+- **`feature-local-terminal/build.gradle.kts` USR_VERSION 3→4** + **cc-cli.tgz -4.7MB** (commit `13545bd232`)：cc-cli.tgz 内容变了强制 `LocalFilesystemBootstrapper` 重新 extract，否则老安装走 `.bootstrap_version`-gated 缓存。
+- **`package-lock.json`** 清 stale `packages/cli/node_modules/iconv-lite` 条目（已从依赖图删但 lockfile 留尾）。
+
 ## [v5.0.3.80] - 2026-05-22 — PDH v0.2 大爆发 — 11 个 placeholder 卡接通 + WeChat/QQ 真采集 + A3 端侧 LLM 骨架
 
 > 47 commits since v5.0.3.79. Personal Data Hub 从 Plan A v0.1（1 个 adapter）扩到 v0.2（**11 个真接通** + WeChat 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 全链路 skeleton）。三道锁（拒云 / 销毁 / 导出）UI + 后端真接通；AI 给出处 citation chip 跳事件详情；release.yml 拆 publish-deps 前置 job 解 desktop build 链。
