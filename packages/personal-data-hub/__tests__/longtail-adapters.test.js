@@ -53,8 +53,13 @@ describe("DouyinAdapter", () => {
     expect(assertAdapter(a).ok).toBe(true);
   });
 
-  it("rejects missing account.uid", () => {
-    expect(() => new DouyinAdapter({ account: {} })).toThrow(/uid/);
+  it("snapshot mode constructs without account.uid (stateless)", () => {
+    // §A8 v0.2: constructor loosened — snapshot mode pulls account from the
+    // snapshot file. Sqlite mode still requires account.uid, checked at sync
+    // time not construction (see _syncViaSqlite throw at runtime).
+    const a = new DouyinAdapter({});
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.account).toBeNull();
   });
 
   it("sync yields history + favourite + search", async () => {
