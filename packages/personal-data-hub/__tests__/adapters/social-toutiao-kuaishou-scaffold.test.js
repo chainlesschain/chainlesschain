@@ -1,14 +1,18 @@
 /**
- * Phase 13.8+13.9 — Toutiao 今日头条 + Kuaishou 快手 v0.1 scaffold tests.
+ * §A8 v0.2 — Toutiao 今日头条 + Kuaishou 快手 sqlite-mode tests.
  *
- * Tests are intentionally focused on scaffold-quality guarantees:
+ * Originally Phase 13.8+13.9 v0.1 scaffold tests; promoted in §A8 v0.2 to
+ * cover the dual-mode (snapshot + sqlite) adapter. Snapshot-mode coverage
+ * lives in `../social-{toutiao,kuaishou}-snapshot.test.js`; this file
+ * focuses on the legacy sqlite/device-pull path that desktop wiring still
+ * uses for PCs running AndroidExtractor.
+ *
  *   - Adapter contract conformance (assertAdapter ok)
- *   - Account validation (rejects missing uid)
  *   - sync() yields raw rows per `kind` from mocked SQLite driver
  *   - normalize() produces valid UnifiedSchema events with correct subtype
- *
- * Field-level assertions intentionally avoided — schema is待 fixture pin
- * in Phase 13.10 (real-device E2E).
+ *   - Account validation lazy-checked at sync() time (v0.2 changed:
+ *     account.uid is now OPTIONAL at construction so snapshot-mode-only
+ *     callers can omit it).
  */
 
 "use strict";
@@ -50,18 +54,37 @@ function withFakeDb(fn) {
 
 // ─── ToutiaoAdapter ─────────────────────────────────────────────────────
 
-describe("ToutiaoAdapter — Phase 13.8(+) v0.1 scaffold", () => {
+describe("ToutiaoAdapter — §A8 v0.2 sqlite mode", () => {
   it("contract conformance + sensitivity high (news reading reveals political/medical interest)", () => {
     const a = new ToutiaoAdapter({ account: { uid: "u-1" } });
     expect(assertAdapter(a).ok).toBe(true);
     expect(a.name).toBe("social-toutiao");
     expect(a.extractMode).toBe("device-pull");
     expect(a.dataDisclosure.sensitivity).toBe("high");
+    // v0.2 dual-mode capabilities — adapter accepts both snapshot and sqlite.
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
   });
 
-  it("rejects missing account.uid", () => {
-    expect(() => new ToutiaoAdapter({})).toThrow();
-    expect(() => new ToutiaoAdapter({ account: {} })).toThrow(/uid/);
+  it("v0.2: account OPTIONAL at construction (snapshot mode is stateless)", () => {
+    // Used to throw in v0.1 — now legal. Sqlite-mode sync() will lazy-throw.
+    expect(() => new ToutiaoAdapter()).not.toThrow();
+    expect(() => new ToutiaoAdapter({})).not.toThrow();
+    expect(() => new ToutiaoAdapter({ account: {} })).not.toThrow();
+  });
+
+  it("sqlite mode lazy-throws when account.uid missing at sync time", async () => {
+    const a = new ToutiaoAdapter({ dbPath: "/no/such/path.db" });
+    let threw = null;
+    try {
+      for await (const _r of a.sync()) {
+        /* drain */
+      }
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeTruthy();
+    expect(String(threw.message)).toMatch(/account\.uid required/);
   });
 
   it("sync yields read + collection + search raws via mocked driver", async () => {
@@ -130,9 +153,11 @@ describe("ToutiaoAdapter — Phase 13.8(+) v0.1 scaffold", () => {
     }
   });
 
-  it("normalize throws on missing payload.row (validator-friendly)", () => {
+  it("normalize throws on missing payload row + no snapshot fields (validator-friendly)", () => {
     const a = new ToutiaoAdapter({ account: { uid: "u-1" } });
-    expect(() => a.normalize({ payload: {} })).toThrow(/row missing/);
+    // v0.2: row-missing check moved into per-kind normalizers (snapshot
+    // payloads have no `row` but carry fields directly).
+    expect(() => a.normalize({ payload: { kind: "read" } })).toThrow(/row missing/);
   });
 
   it("search keyword preserved verbatim in content.title + extra.keyword", () => {
@@ -158,18 +183,35 @@ describe("ToutiaoAdapter — Phase 13.8(+) v0.1 scaffold", () => {
 
 // ─── KuaishouAdapter ────────────────────────────────────────────────────
 
-describe("KuaishouAdapter — Phase 13.9(+) v0.1 scaffold", () => {
+describe("KuaishouAdapter — §A8 v0.2 sqlite mode", () => {
   it("contract conformance + sensitivity medium (entertainment preference)", () => {
     const a = new KuaishouAdapter({ account: { uid: "u-2" } });
     expect(assertAdapter(a).ok).toBe(true);
     expect(a.name).toBe("social-kuaishou");
     expect(a.extractMode).toBe("device-pull");
     expect(a.dataDisclosure.sensitivity).toBe("medium");
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
   });
 
-  it("rejects missing account.uid", () => {
-    expect(() => new KuaishouAdapter({})).toThrow();
-    expect(() => new KuaishouAdapter({ account: {} })).toThrow(/uid/);
+  it("v0.2: account OPTIONAL at construction (snapshot mode is stateless)", () => {
+    expect(() => new KuaishouAdapter()).not.toThrow();
+    expect(() => new KuaishouAdapter({})).not.toThrow();
+    expect(() => new KuaishouAdapter({ account: {} })).not.toThrow();
+  });
+
+  it("sqlite mode lazy-throws when account.uid missing at sync time", async () => {
+    const a = new KuaishouAdapter({ dbPath: "/no/such/path.db" });
+    let threw = null;
+    try {
+      for await (const _r of a.sync()) {
+        /* drain */
+      }
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeTruthy();
+    expect(String(threw.message)).toMatch(/account\.uid required/);
   });
 
   it("sync yields watch + collect + search raws via mocked driver", async () => {
