@@ -306,6 +306,91 @@ async function cmdRegisterMock(options) {
   }
 }
 
+// ─── export ──────────────────────────────────────────────────────────
+
+/**
+ * `cc hub export --output <path> [--json]`
+ *
+ * 推文 §"一键带走"。Closes the vault, copies vault.db (+ WAL/SHM if present)
+ * to the destination path, then reopens. Resulting file is SQLCipher-encrypted
+ * exactly as on disk — caller (Android UI) hands the bytes off via SAF
+ * picker. Desktop side can `cc hub import-vault <path>` to reimport.
+ *
+ * No re-encryption / re-keying. The file IS the export. Key handling is
+ * out of scope here — the file is useless without the user's keystore-backed
+ * key material (which is bound to device by KeyProvider).
+ */
+async function cmdExport(options) {
+  if (!options.output) {
+    const msg = "--output <path> required";
+    if (options.json) printJson({ error: msg });
+    else logger.error(chalk.red(`✗ ${msg}`));
+    process.exit(1);
+  }
+  try {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const hub = await getHub();
+    const src = hub.vault.path;
+    if (!src) throw new Error("vault path unavailable (hub not initialized?)");
+
+    // Resolve output → absolute path. Make parent directory if missing.
+    const outAbs = path.resolve(options.output);
+    fs.mkdirSync(path.dirname(outAbs), { recursive: true });
+
+    // Close the vault so we copy a consistent snapshot. better-sqlite3 keeps
+    // WAL pages buffered; closing flushes everything to disk. We reopen at
+    // end so the running hub session continues to work.
+    try {
+      hub.vault.close?.();
+    } catch (_e) {
+      // ignore — closing failure is rare and we still try to copy
+    }
+
+    // Copy main db file. WAL / SHM are sidecars — only copy if present (they
+    // may or may not exist depending on WAL mode + last checkpoint).
+    let bytes = 0;
+    fs.copyFileSync(src, outAbs);
+    bytes += fs.statSync(outAbs).size;
+    for (const suffix of ["-wal", "-shm"]) {
+      const sidecar = src + suffix;
+      if (fs.existsSync(sidecar)) {
+        const outSidecar = outAbs + suffix;
+        fs.copyFileSync(sidecar, outSidecar);
+        bytes += fs.statSync(outSidecar).size;
+      }
+    }
+
+    // Reopen so the same hub instance can keep serving.
+    try {
+      hub.vault.open?.();
+    } catch (e) {
+      // If reopen fails the next operation will surface it; don't block export.
+      logger.warn?.(
+        chalk.yellow(
+          `! vault.open after export failed: ${e?.message || e} — restart cc`,
+        ),
+      );
+    }
+
+    const result = {
+      ok: true,
+      source: src,
+      output: outAbs,
+      bytes,
+      // Hint to caller (e.g. Android UI) that this is encrypted at rest.
+      encrypted: true,
+    };
+    if (options.json) {
+      printJson(result);
+    } else {
+      logger.log(chalk.green(`✓ exported ${bytes} bytes to ${outAbs}`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
 // ─── destroy ─────────────────────────────────────────────────────────
 
 async function cmdDestroy(options) {
@@ -985,6 +1070,18 @@ export function registerHubCommand(program) {
     .option("--until <ms>", "End of time window")
     .option("--json", "Output JSON")
     .action(cmdRunSkill);
+
+  hub
+    .command("export")
+    .description(
+      "推文 §一键带走: copy SQLCipher vault.db (+ WAL/SHM) to <path>. Encrypted at rest; reimport via cc hub import-vault on desktop.",
+    )
+    .requiredOption(
+      "--output <path>",
+      "Destination file path for the vault copy",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdExport);
 
   hub
     .command("destroy")

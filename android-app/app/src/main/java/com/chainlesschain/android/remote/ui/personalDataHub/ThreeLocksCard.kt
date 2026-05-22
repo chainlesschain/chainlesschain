@@ -49,6 +49,8 @@ fun ThreeLocksCard(
     onAllowCloudChanged: (Boolean) -> Unit,
     onDestroyConfirmed: () -> Unit,
     onClearDestroyError: () -> Unit,
+    onExportRequested: () -> Unit,
+    onClearExportError: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showDestroyDialog by remember { mutableStateOf(false) }
@@ -134,15 +136,30 @@ fun ThreeLocksCard(
                 },
             )
 
-            // 占位：一键带走 (D11 follow-up — 需 SAF file picker wire)
+            // 一键带走 (推文 §一键带走) — D11 v0.1: 导到 app external-files-dir，
+            // 用户用 File Manager 拿走。SAF picker 留 v0.2 polish。
             Spacer(Modifier.height(12.dp))
             LockRow(
                 emoji = "📤",
-                title = "一键带走 (D11 待开放)",
-                detail = "导出加密金库到本地文件，桌面端可 reimport — SAF 接通中",
+                title = "一键带走",
+                detail = state.lastExportPath?.let { p ->
+                    "上次导出：${p.substringAfterLast('/')} (${(state.lastExportBytes / 1024)} KB) — 用 File Manager 拿走"
+                } ?: "导出加密金库到 /Android/data/<pkg>/files/exports/，桌面端可 reimport",
                 trailing = {
-                    OutlinedButton(onClick = { }, enabled = false) {
-                        Text("即将开放")
+                    OutlinedButton(
+                        onClick = onExportRequested,
+                        enabled = !state.exporting && !globalBusy,
+                    ) {
+                        if (state.exporting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text("导出中…")
+                        } else {
+                            Text("导出")
+                        }
                     }
                 },
             )
@@ -162,6 +179,25 @@ fun ThreeLocksCard(
                             style = MaterialTheme.typography.bodySmall,
                         )
                         TextButton(onClick = onClearDestroyError) { Text("知道了") }
+                    }
+                }
+            }
+
+            // 导出报错
+            state.exportError?.let { err ->
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            err,
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        TextButton(onClick = onClearExportError) { Text("知道了") }
                     }
                 }
             }
