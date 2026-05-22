@@ -54,7 +54,8 @@ import java.util.Locale
  *   1. 提问 — [HubAskCard] (A3 端侧 LLM ask flow，A3.2 wire 后真出答案)
  *   2. 基础数据 — [SystemDataCard] (system-data-android: contacts + apps)
  *   3. 内容平台 — Bilibili (real) + 微博/抖音/小红书 stubs (A8 v0.2 待接通)
- *   4. 社交聊天 — 微信 placeholder (Phase 12 实施中)
+ *   4. 社交聊天 — 微信 ([WechatCard], Phase 12.10 scaffold — frida injector
+ *      stub'd, surfaces "改用桌面端" until Phase 12.10.4 lands real injection)
  *   5. 邮箱 — QQ/Gmail/163/Outlook placeholder (D6 待开放)
  *   6. 支付与购物 — 支付宝/淘宝 placeholder (D7 待开放)
  *   7. 出行 — 高德/携程 placeholder (D8 待开放)
@@ -189,10 +190,19 @@ fun HubLocalScreen(
             // ─── 社交聊天（推文 §"社交聊天": 微信）─────────────────────
             item("section-im") { SectionHeader("社交聊天") }
             item("im-wechat") {
-                PlaceholderCategoryCard(
-                    title = "微信",
-                    statusText = "Phase 12 实施中（rooted 完整版 + frida-indep slice）— 推文 §root 完整版",
+                WechatCard(
+                    state = state.wechat,
+                    globalBusy = globalBusy,
+                    onLogin = { viewModel.requestWechatLogin() },
+                    onSync = { viewModel.syncWechat() },
+                    onLogout = { viewModel.logoutWechat() },
                 )
+                if (state.wechat.pendingUinEntry) {
+                    WechatUinEntryDialog(
+                        onConfirm = { uin, provider -> viewModel.confirmWechatUin(uin, provider) },
+                        onCancel = { viewModel.cancelWechatLogin() },
+                    )
+                }
             }
 
             // ─── 邮箱（推文 §"邮箱": QQ/Gmail/163/Outlook）──────────────
@@ -208,29 +218,37 @@ fun HubLocalScreen(
             }
 
             // ─── 支付与购物（推文 §"支付与购物": 支付宝 / 淘宝）────────
+            // D7.1: 2 provider sub-cards (alipay-bill CSV / shopping-taobao HTML)
             item("section-pay") { SectionHeader("支付与购物") }
-            item("pay") {
-                PlaceholderCategoryCard(
-                    title = "支付宝 / 淘宝",
-                    statusText = "D7 待开放（adapter 已 ready：alipay-bill / shopping-taobao）",
+            item("pay-providers") {
+                PaymentShoppingGroup(
+                    onProviderImport = { key ->
+                        Timber.i("HubLocalScreen: payment/shopping import TODO key=$key")
+                    },
                 )
             }
 
             // ─── 出行（推文 §"出行": 高德 / 携程）───────────────────────
+            // D8.1: 2 provider sub-cards (travel-amap OAuth / travel-ctrip 登录)
             item("section-travel") { SectionHeader("出行") }
-            item("travel") {
-                PlaceholderCategoryCard(
-                    title = "高德 / 携程",
-                    statusText = "D8 待开放（adapter 已 ready：travel-amap / travel-ctrip）",
+            item("travel-providers") {
+                TravelGroup(
+                    onProviderLogin = { key ->
+                        Timber.i("HubLocalScreen: travel login TODO key=$key")
+                    },
                 )
             }
 
             // ─── AI 助手（推文 §"AI 助手": 9 家）──────────────────────
+            // D10.1: 9 provider sub-cards 全显 (推文 §豆包/文心/Kimi/通义/
+            // DeepSeek 等 9 家)。PDH Phase 10.2 已接通 8 厂商 (DeepSeek/Kimi/
+            // 通义/智谱/混元/千帆/扣子/Dreamina)，UI wire D10.2。
             item("section-aichat") { SectionHeader("AI 助手") }
-            item("aichat") {
-                PlaceholderCategoryCard(
-                    title = "豆包 / 文心 / Kimi / 通义 / DeepSeek + 4 家",
-                    statusText = "D10 待开放（adapter 已 ready：ai-chat-history 8 vendor wired）",
+            item("aichat-providers") {
+                AiAssistantsGroup(
+                    onProviderLogin = { key ->
+                        Timber.i("HubLocalScreen: AI vendor login TODO key=$key")
+                    },
                 )
             }
 
@@ -551,6 +569,182 @@ private fun CountCard(label: String, value: Int, modifier: Modifier = Modifier) 
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+/**
+ * Phase 12.10.1 — WeChat adapter card (replaces the prior PlaceholderCategoryCard).
+ * Visually mirrors [SocialAdapterCard] but takes [HubLocalViewModel.WechatCardState]
+ * directly because wechat tracks string-uin not Long-uid + has no WebView login.
+ *
+ * v0.1 sync path is stubbed at the collector layer — until Phase 12.10.4 ships
+ * a real frida-inject binary, the "立即同步" button always surfaces a
+ * "改用桌面端" banner. The login + uin entry + state persistence + UI scaffolding
+ * are real and exercised by unit tests.
+ */
+@Composable
+private fun WechatCard(
+    state: HubLocalViewModel.WechatCardState,
+    globalBusy: Boolean,
+    onLogin: () -> Unit,
+    onSync: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "微信",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.size(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(4.dp),
+                ) {
+                    Text(
+                        "scaffold v0.1",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (state.isLoggedIn) {
+                    "UIN: ${state.uin} · keyProvider=${state.keyProvider ?: "?"}"
+                } else {
+                    "需要 root + WeChat 已登录主账号。Phase 12.10 实施中。"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (state.lastSyncAt != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "上次同步: ${syncFormatter.format(Date(state.lastSyncAt))} · +${state.lastSyncCount} 事件",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            state.errorMessage?.let { err ->
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(6.dp),
+                ) {
+                    Text(
+                        err,
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!state.isLoggedIn) {
+                    Button(
+                        onClick = onLogin,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) { Text("登录 / 授权") }
+                } else {
+                    Button(
+                        onClick = onSync,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) {
+                        if (state.isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text("同步中…")
+                        } else {
+                            Text("立即同步")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = onLogout,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) { Text("退出") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Phase 12.10.1 — uin entry dialog shown when the user taps "登录 / 授权"
+ * on the WeChat card. WeChat doesn't use WebView-cookie auth like Bilibili,
+ * so we just ask the user to type their numeric UIN.
+ */
+@Composable
+private fun WechatUinEntryDialog(
+    onConfirm: (uin: String, keyProvider: String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var uin by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var keyProvider by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("frida") }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("微信账号绑定") },
+        text = {
+            Column {
+                Text(
+                    "前置：(1) 设备已 root (Magisk Zygisk on + DenyList com.tencent.mm) " +
+                        "(2) WeChat 已登录主账号。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    value = uin,
+                    onValueChange = { uin = it.filter { c -> c.isDigit() } },
+                    label = { Text("WeChat UIN（纯数字）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "keyProvider:",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.RadioButton(
+                        selected = keyProvider == "frida",
+                        onClick = { keyProvider = "frida" },
+                    )
+                    Text("frida (WeChat 8.0+)")
+                    Spacer(Modifier.size(16.dp))
+                    androidx.compose.material3.RadioButton(
+                        selected = keyProvider == "md5",
+                        onClick = { keyProvider = "md5" },
+                    )
+                    Text("md5 (7.x)")
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(uin, keyProvider) },
+                enabled = uin.isNotBlank(),
+            ) { Text("绑定") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("取消") }
+        },
+    )
 }
 
 private val syncFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
