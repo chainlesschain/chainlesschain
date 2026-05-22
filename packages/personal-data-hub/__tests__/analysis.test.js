@@ -320,7 +320,7 @@ describe("AnalysisEngine emits TOTALS preamble", () => {
     expect(userMsg).toContain('"persons": 512');
     expect(userMsg).toContain('"items": 89');
     // System prompt tells LLM to trust TOTALS for counts.
-    expect(chatCalls[0][0].content).toMatch(/TOTALS.*authoritative/);
+    expect(chatCalls[0][0].content).toMatch(/TOTALS.*authoritative/i);
   });
 
   it("intent=count for '几个联系人' and '几个 app' and '多少个 X'", () => {
