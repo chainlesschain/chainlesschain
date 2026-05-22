@@ -44,6 +44,7 @@ const {
   EmailAdapter,
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
+  BilibiliAdapter,
   ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -321,6 +322,24 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register system-data-android adapter",
+      err && err.message,
+    );
+  }
+
+  // A8 v0.1 (2026-05-22) — register BilibiliAdapter stateless. Snapshot mode
+  // means the desktop registry can ingest a JSON the phone produced (when
+  // wired) without needing per-account config files. The Android UI's
+  // "Adapter" tab queries this list, so adding here is what makes Bilibili
+  // visible alongside system-data-android. Sqlite-mode (legacy Phase 7.5
+  // device-pull) still works for desktop users who provide opts.dbPath.
+  try {
+    const bilibili = new BilibiliAdapter();
+    if (!registry.has(bilibili.name)) {
+      registry.register(bilibili);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register social-bilibili adapter",
       err && err.message,
     );
   }

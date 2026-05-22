@@ -2,6 +2,26 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-22 收口 — **PDH A8 v0.1：Android 完全独立社交数据采集（Bilibili 端到端 + 3 平台占位）**
+
+> Plan A v0.1 的 "本机数据" tab 从 1 张卡（system-data-android）扩展到 5 张。Bilibili 端到端 ship（WebView 登录 + OkHttp 4 端点 + 本机 SQLCipher vault），微博/抖音/小红书占位卡片（v0.2 实施）。**全程不依赖桌面在线** — Android 内完成 cookie 抓取 + HTTP 拉取 + JSON 解析 + 本机加密存储。
+
+- **Bilibili 端到端**：`packages/personal-data-hub/lib/adapters/social-bilibili/{adapter,index}.js` JS adapter 重构（stateless constructor + 新 `_syncViaSnapshot(opts.inputPath)` 模式 + 保留 legacy sqlite-mode）+ 4 个 Kotlin 文件（`SocialCookieWebViewScreen` 通用 4 平台共用 / `BilibiliApiClient` OkHttp 4 endpoint / `BilibiliCredentialsStore` EncryptedSharedPreferences AES-256-GCM / `BilibiliLocalCollector` 编排器）。4 类事件（观看历史/收藏/动态/关注）yield + normalize 进 vault。
+- **HubLocalScreen 多卡片重构**：5 张 adapter 卡片 + login WebView overlay + `globalSyncingAdapter` 互斥锁。微博/抖音/小红书显示 "v0.2 开放" 状态，点登录/同步触发 toast。
+- **CLI + Desktop wiring 双 land**：`packages/cli/src/lib/personal-data-hub-wiring.js` + `desktop-app-vue/src/main/personal-data-hub/wiring.js` 同步加 `BilibiliAdapter` stateless 自动注册。**Adapter tab 现在也显示 2 张卡**（system-data-android + social-bilibili）。
+- **测试覆盖**：
+  - **JS unit**: 12 新 snapshot-mode 测试 (`social-bilibili-snapshot.test.js`) + 4 legacy sqlite-mode 测试重写 (`social-adapters.test.js` flat payload 形状) = 547/547 全绿
+  - **JS integration**: 6 新测试 (`integration/social-bilibili-pipeline.test.js`) 真 vault end-to-end + idempotency + partial + schemaVersion mismatch
+  - **Kotlin unit**: 14 `BilibiliApiClientTest` (MockWebServer) + 8 `BilibiliLocalCollectorTest` (mockk) + 15 `HubLocalViewModelTest` = 37 新测试
+  - **Android E2E**: 8 场景 `@Ignore + TODO()` stub + 完整 plan `docs/design/A8_Bilibili_E2E_Plan.md`（Mac/Linux + 真机 + 真账号 ~1.5h 串行）
+- **bug 修复**：(1) BilibiliApiClient `extractUid` 加 `> 0L` 哨兵 — Bilibili 不发 uid=0，旧实现会把 mid-logout cookie 当合法登录 (2) JS adapter sqlite-mode 旧 `payload.row.X` 套层改 flat `payload.X` — 既有 4 test 同步迁移
+- **设计文档**：[`docs/design/Adapter_Social_Cookie.md`](docs/design/Adapter_Social_Cookie.md) ~400 行（4 平台对比 + snapshot schema + JS/Kotlin layer 模板 + 7 forward-looking traps）+ [`docs/design/A8_Bilibili_E2E_Plan.md`](docs/design/A8_Bilibili_E2E_Plan.md) ~200 行
+- **架构关键差异澄清**：Android 上 PDH 有**两条**路径长期被混淆：(a) Adapter tab → 桌面依赖（RemoteCommandClient → 桌面 hub registry）(b) **本机数据 tab → APK 内 cc + 本机 SQLCipher vault（完全离桌面）**。A8 全落到后者，对应"不依赖桌面"诉求。
+
+memory 新增 `pdh_a8_social_adapters_landing.md`：7 forward-looking traps (WBI 签名 / EncryptedSharedPref keystore corruption / flat payload vs legacy row / in-APK bundle audit / DedeUserID 提取位置 / OkHttp baseUrl override 时序 / CookieManager flush 同步语义)。**v0.2 路线**：微博 ~1.5d / 抖音 ~2d（msToken+X-Bogus 签名）/ 小红书 ~2d（X-s 签名）≈ ~5d 总工期。
+
+详见 [`docs/design/Adapter_Social_Cookie.md`](docs/design/Adapter_Social_Cookie.md)。
+
 ## 2026-05-21 收口 — **PDH Phase 14.1 step 5 ChatBubble UI + Phase 12.9 WeChat 真机 E2E Runbook + office-skill word lib hotfix (v5.0.3.76 → v5.0.3.77 iOS .ipa re-ship)**
 
 > v5.0.3.76 维护批：office-skill 真功能修 + 3 站全量文档刷新（v5.0.3.76 sizes/版本号）；并把 PDH Phase 14 Android 端 ChatBubble UI 收尾 + 新增 WeChat Phase 12.9 真机验收 runbook 一并推到 docs.chainlesschain.com / design.chainlesschain.com。**v5.0.3.77 是 .76 的 iOS .ipa re-cut**（.76 release run #1 build-ios 失败 + finalize 自动 flip 已发布 → run #2 .ipa 上传被 GitHub immutable-releases blocked；tag burn 走 [github_immutable_release_tag_burn 流程](docs/internal/hidden-risk-traps.md)，重新 cut .77 全 18-asset 干净 ship 一次）。

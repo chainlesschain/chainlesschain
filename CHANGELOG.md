@@ -5,6 +5,25 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - PDH A8 v0.1 — social-adapter Bilibili 端到端 + 3 平台 UI 占位
+
+> Extends Plan A v0.1 (HubLocal tab) from 1 adapter card (`system-data-android`) to 5. Bilibili end-to-end (login WebView + OkHttp 4 endpoints + local SQLCipher vault); 微博/抖音/小红书 UI cards visible with "v0.2 开放" status. **Fully desktop-independent** — Android does cookie capture + HTTP + parsing + vault write all on-device via in-APK cc.
+
+- **Bilibili end-to-end** (`packages/personal-data-hub/lib/adapters/social-bilibili/{adapter,index}.js` + 4 Kotlin files):
+  - JS adapter refactor: stateless constructor + new `_syncViaSnapshot(opts.inputPath)` mode alongside legacy `_syncViaSqlite`; 4 event kinds (history / favourite / dynamic / follow) yield with stable `bilibili:<kind>:<id>` originalId
+  - Kotlin `SocialCookieWebViewScreen` (generic, all 4 platforms reuse) — WebView + CookieManager.getCookie + flush on success URL pattern match + BackHandler cancel
+  - Kotlin `BilibiliApiClient` — OkHttp wrapper for 4 endpoints (`/x/v2/history/cursor`, `/x/v3/fav/folder/created/list-all` + per-folder `/resource/list`, `/x/polymer/web-dynamic/v1/feed/all`, `/x/relation/followings`); own OkHttp instance (no AuthInterceptor → no anti-bot signal)
+  - Kotlin `BilibiliCredentialsStore` — EncryptedSharedPreferences (AES-256-GCM + AndroidKeyStore master) persists cookie + DedeUserID + lastSync; try/catch tolerates keystore corruption (treat as unauth)
+  - Kotlin `BilibiliLocalCollector` — orchestrator: cookie → 4 API serial calls → snapshot.json (matches JS SNAPSHOT_SCHEMA_VERSION=1) → returns path for `LocalCcRunner.syncAdapter("social-bilibili", path)` → local vault
+- **HubLocalScreen multi-card refactor** (`HubLocalScreen.kt` + `HubLocalViewModel.kt`):
+  - Per-card state (`SystemDataCardState` + 4 × `SocialCardState`) with global `syncingAdapter` mutex (LocalCcRunner serializes vault access)
+  - Login WebView overlay when `pendingLogin != null` — replaces card list full-screen
+  - 4 social cards rendered: Bilibili (`implemented = true`) + Weibo/Douyin/Xiaohongshu (`implemented = false`, click → toast "v0.2 开放")
+- **CLI wiring** (`packages/cli/src/lib/personal-data-hub-wiring.js`): import `BilibiliAdapter` + register stateless on boot (mirror of `SystemDataAndroidAdapter` pattern). Effective after PDH 0.2.2 publish.
+- **Tests**: 12 JS snapshot-mode tests (`__tests__/social-bilibili-snapshot.test.js`) + 4 legacy sqlite-mode tests rewired to flat-payload shape (`__tests__/social-adapters.test.js`); 13 Kotlin `BilibiliApiClientTest` (MockWebServer) + 8 `BilibiliLocalCollectorTest` (mockk). JS: 23/23 ✅; Kotlin: CI-verified (no SDK on Win).
+- **v0.1 limits / v0.2 roadmap**: Weibo/Douyin/Xiaohongshu Kotlin collectors deferred (~1.8d each, ~5d total). Bilibili WBI signing skipped (currently optional for chosen endpoints). 抖音/小红书 will need msToken/X-s signature via WebView JS evaluate.
+- **Architecture clarity** captured in memory `pdh_a8_social_adapters_landing.md`: **HubLocal != HubAdapters**. Path C (system-data-android) routes through desktop vault; A8 Bilibili routes through in-APK cc → local vault. User's "no desktop" requirement maps to the latter.
+
 ## [v5.0.3.77 / .78] - 2026-05-22 — Personal Data Hub Plan A v0.1 real-device closure + iOS .ipa ship
 
 > Combined release sweep across two tags. `.77` shipped the iOS .ipa real-device build + Phase 14.1 step 5 ChatBubble; `.78` is the Personal Data Hub Plan A v0.1 closure with 3 real-device hardening fixes after the Xiaomi 24115RA8EC end-to-end run. CLI bumps to 0.162.14, npm `@chainlesschain/personal-data-hub@0.2.1`, Android versionCode 503078, iOS CFBundleVersion 78.
