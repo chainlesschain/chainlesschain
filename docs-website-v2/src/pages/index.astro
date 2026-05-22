@@ -77,6 +77,12 @@ const everyday = [
 // 近期重点（精选 6 张，完整 changelog 见 design.chainlesschain.com）
 const highlights = [
   {
+    tag: 'v5.0.3.80 · 2026-05-22',
+    title: 'Personal Data Hub v0.2 大爆发 — 11 个 placeholder 卡接通 + WeChat / QQ 真采集 + Android 端侧 LLM 骨架',
+    sub: '从 Plan A v0.1 (Bilibili 一家) 扩到 v0.2 真接通 11 个平台：社交内容 (微博 / 抖音 / 小红书 / 头条 / 快手) + 购物 (京东 / 美团 / 拼多多 / 淘宝 / 支付宝) + 出行地图 (高德 / 携程 / 百度地图 / 腾讯地图) + AI 助手 9 路 WebView (DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 文心一言 / 字节扣子 / 即梦 / 豆包) + 邮箱 4 家 IMAP 真接通 (QQ / Gmail / 163 / Outlook via Jakarta Mail)。WeChat Phase 12.10 四子阶 (SQLCipher 真解密 + frida-inject 真注入 + 16.5.9 binary vendored + APK ship 真机) + QQ Phase 13.5 v0.2 (XOR-IMEI 算法 byte-identical sjqz 移植，无 SQLCipher 无 frida 仅 root + IMEI)。Android 端侧 LLM 全链路 skeleton (Ktor server + ModelManager + cc spawn + PDH 本机提问 tab)。',
+    desc: '三道锁 UI + 真接通：拒云 / 销毁 / 导出 (cc hub export 真接通)。AI 给出处 citation chip → cc hub event-detail 真链回原始事件。release.yml 拆 publish-deps 前置 job 解 v5.0.3.79 desktop build chicken-and-egg。测试基线：93 新 snapshot tests (weibo 8 + douyin 8 + xhs 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13) + WeChat Phase 12.10 51 新单测 (CredentialsStore 14 + DbExtractor 17 + FridaInjector 15 + LocalCollector 10) + QQ Phase 13.5 27 Kotlin 单测。3 stale-assertion 同日修：longtail Douyin uid (constructor 改 dual-mode 优雅) + analysis TOTALS regex case (/i flag) + hub-command snapshot (event-detail / export 漏注册)。版本面：productVersion v5.0.3.78 → v5.0.3.80 / CLI 0.162.14 → 0.162.16 / npm @chainlesschain/personal-data-hub 0.2.1 → 0.2.3 / Android versionCode 503080 / iOS CFBundleVersion 80。',
+  },
+  {
     tag: 'A8 v0.1 · 2026-05-22',
     title: 'Personal Data Hub A8 v0.1 — Android 完全独立社交数据采集（Bilibili 端到端 + 3 平台占位）',
     sub: 'Plan A v0.1 "本机数据" tab 从 1 张卡扩展到 5 张。Bilibili 端到端 ship — WebView 登录 + OkHttp 4 端点（观看历史 / 收藏 / 动态 / 关注）+ EncryptedSharedPreferences AES-256-GCM 凭据存储 + 本机 SQLCipher vault。微博 / 抖音 / 小红书占位卡片（v0.2 实施）。全程不依赖桌面在线 — Android 内完成 cookie 抓取 + HTTP 拉取 + JSON 解析 + 加密本地存储 + KG/RAG 派生。',
