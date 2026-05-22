@@ -130,26 +130,87 @@ class WeChatDBReader {
   }
 
   /**
+   * Discover actual column names via `PRAGMA table_info(<table>)` so
+   * uppercase/lowercase divergence across WeChat builds doesn't blow up
+   * the SELECT. Returns a Map<lowercased_name, actual_name>.
+   *
+   * Post-sjqz audit defence — sjqz schema docs show some column-case
+   * variation across versions; failing late at SELECT yields a confusing
+   * "no such column" error rather than a clean fallback path.
+   */
+  _columnMap(table) {
+    if (!this._db) return new Map();
+    try {
+      const rows = this._db.prepare(`PRAGMA table_info(${table})`).all();
+      return new Map(rows.map((r) => [String(r.name).toLowerCase(), r.name]));
+    } catch (_e) {
+      return new Map();
+    }
+  }
+
+  /**
+   * Resolve a list of desired column names against the actual table
+   * schema. Returns the actual column names quoted for SQL use; throws
+   * if any required column is missing (caller catches and surfaces a
+   * "schema-mismatch" error to the host).
+   */
+  _resolveColumns(table, desiredNames, { required = true } = {}) {
+    const map = this._columnMap(table);
+    const resolved = [];
+    const missing = [];
+    for (const name of desiredNames) {
+      const actual = map.get(name.toLowerCase());
+      if (actual) resolved.push(actual);
+      else if (required) missing.push(name);
+    }
+    if (missing.length > 0 && required) {
+      const err = new Error(
+        `WeChatDBReader: table '${table}' missing required columns: ${missing.join(", ")} ` +
+          `(available: ${Array.from(map.values()).join(", ")})`,
+      );
+      err.code = "WECHAT_SCHEMA_MISMATCH";
+      throw err;
+    }
+    return resolved;
+  }
+
+  /**
    * Fetch up to `limit` messages since `sinceMsgSvrId` (per design doc
    * §6 OQ-6 watermark = per-talker last msgSvrId). For initial v0 we
    * accept a global watermark and let the adapter post-filter per
    * talker.
+   *
+   * Column names resolved via PRAGMA table_info to survive case-drift
+   * across WeChat versions (sjqz audit defence).
    */
   fetchMessages({ sinceMsgSvrId = 0, limit = 1000, talker = null } = {}) {
     if (!this._db) throw new Error("WeChatDBReader: call open() first");
-    let sql = "SELECT msgId, msgSvrId, talker, content, type, createTime, isSend, status FROM message";
+    const cols = this._resolveColumns("message", [
+      "msgId",
+      "msgSvrId",
+      "talker",
+      "content",
+      "type",
+      "createTime",
+      "isSend",
+      "status",
+    ]);
+    let sql = `SELECT ${cols.join(", ")} FROM message`;
     const params = [];
     const where = [];
     if (sinceMsgSvrId) {
-      where.push("msgSvrId > ?");
+      // Use the resolved column name in WHERE / ORDER BY to match case.
+      const msgSvrIdCol = cols[1];
+      where.push(`${msgSvrIdCol} > ?`);
       params.push(sinceMsgSvrId);
     }
     if (talker) {
-      where.push("talker = ?");
+      const talkerCol = cols[2];
+      where.push(`${talkerCol} = ?`);
       params.push(talker);
     }
     if (where.length > 0) sql += " WHERE " + where.join(" AND ");
-    sql += " ORDER BY msgSvrId ASC LIMIT ?";
+    sql += ` ORDER BY ${cols[1]} ASC LIMIT ?`;
     params.push(limit);
     return this._db.prepare(sql).all(...params);
   }

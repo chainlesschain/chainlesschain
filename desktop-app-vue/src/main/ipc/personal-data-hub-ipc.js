@@ -605,6 +605,22 @@ function register() {
     },
   );
 
+  // ─── V6 desktop UI bridge — open web-panel PDH in BrowserWindow ────
+  //
+  // V6 shell (default since hard-flip `caaddf530`) does not embed the
+  // web-panel SPA, so the renderer cannot show PersonalDataHub.vue /
+  // WechatWizard.vue / AIChatWizard.vue directly. This handler bridges
+  // the gap by opening the existing web-panel page in a side window.
+  // The discovery + open logic lives in openPdhWebWindow() below so
+  // it's testable without electron mocking (vi.mock can't intercept
+  // require('electron') in CJS — see memory vi_mock_cjs_interop_systemic).
+  ipcMain.handle(
+    `${NS}:open-web-window`,
+    safe(async ({ route } = {}) => {
+      return openPdhWebWindow({ route });
+    }),
+  );
+
   _registered = true;
   logger.info("[PersonalDataHub IPC] handlers registered");
 }
@@ -647,6 +663,8 @@ function unregister() {
     "list-aichat-accounts",
     "unregister-aichat",
     "aichat-health-check-once",
+    // V6 UI bridge
+    "open-web-window",
   ];
   for (const c of channels) {
     try {
@@ -656,4 +674,95 @@ function unregister() {
   _registered = false;
 }
 
-module.exports = { register, unregister };
+/**
+ * V6 PDH bridge — opens packages/web-panel/src/views/PersonalDataHub.vue
+ * (incl WechatWizard / AIChatWizard) in a side BrowserWindow.
+ *
+ * @param {object} opts
+ * @param {string} [opts.route='/personal-data-hub'] Must start with '/' or
+ *   defaults; defends against open-redirect via crafted absolute URLs.
+ * @param {object} [opts._deps] Injection seam for unit tests. Keys:
+ *   - fs            (node:fs surface — existsSync, readFileSync)
+ *   - homedir       () => string (defaults to os.homedir)
+ *   - BrowserWindow class (defaults to require('electron').BrowserWindow)
+ *   - openExternal  (url) => Promise (defaults to electron.shell.openExternal)
+ *   - logWarn       (msg, ...) => void (defaults to logger.warn)
+ *
+ * @returns {Promise<{ok: true, url: string, fallback?: 'external'}
+ *   | {error: 'web-shell-not-running'|'open-failed', message: string}>}
+ */
+async function openPdhWebWindow({ route, _deps } = {}) {
+  const deps = _deps || {};
+  const fsMod = deps.fs || require("node:fs");
+  const pathMod = require("node:path");
+  const homedir = deps.homedir || (() => require("node:os").homedir());
+  const BrowserWindowCtor =
+    deps.BrowserWindow || require("electron").BrowserWindow;
+  const openExternal =
+    deps.openExternal || ((url) => require("electron").shell.openExternal(url));
+  const logWarn = deps.logWarn || ((msg, err) => logger.warn(msg, err));
+
+  const cleanRoute =
+    typeof route === "string" && route.startsWith("/")
+      ? route
+      : "/personal-data-hub";
+
+  const portFilePath = pathMod.join(
+    homedir(),
+    ".chainlesschain",
+    "desktop.port",
+  );
+
+  let httpUrl = null;
+  try {
+    if (fsMod.existsSync(portFilePath)) {
+      const raw = fsMod.readFileSync(portFilePath, "utf-8");
+      const info = JSON.parse(raw);
+      if (info && info.host && info.port) {
+        httpUrl = `http://${info.host}:${info.port}`;
+      }
+    }
+  } catch (err) {
+    logWarn(
+      "[PersonalDataHub IPC] desktop.port unreadable:",
+      err && err.message,
+    );
+  }
+
+  if (!httpUrl) {
+    return {
+      error: "web-shell-not-running",
+      message:
+        "未发现运行中的 web-shell。请在终端运行 `cc ui` 启动 web-panel（含 WechatWizard / AIChatWizard 等），然后重试。",
+    };
+  }
+
+  const targetUrl = `${httpUrl}${cleanRoute}`;
+
+  try {
+    const win = new BrowserWindowCtor({
+      width: 1280,
+      height: 860,
+      title: "个人数据中台",
+      autoHideMenuBar: true,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    win.loadURL(targetUrl);
+    return { ok: true, url: targetUrl };
+  } catch (err) {
+    try {
+      await openExternal(targetUrl);
+      return { ok: true, url: targetUrl, fallback: "external" };
+    } catch (_e) {
+      return {
+        error: "open-failed",
+        message: err && err.message ? err.message : String(err),
+      };
+    }
+  }
+}
+
+module.exports = { register, unregister, openPdhWebWindow };

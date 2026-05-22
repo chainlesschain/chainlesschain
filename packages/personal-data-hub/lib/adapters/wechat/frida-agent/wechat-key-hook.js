@@ -32,7 +32,10 @@
 "use strict";
 
 (function () {
-  var TARGET_MODULE = "libwcdb.so";
+  // sjqz-verified module name is `libWCDB.so` (uppercase); some WeChat
+  // builds ship lowercase. Try both — first match wins, no extra cost
+  // because Process.findModuleByName is a cheap lookup.
+  var TARGET_MODULES = ["libWCDB.so", "libwcdb.so"];
   // Primary symbol per §18.3. Add fallbacks below — version drift will
   // shift the export name; host treats first hit as authoritative.
   var SYMBOLS = [
@@ -60,63 +63,182 @@
   // the host detaches quickly (anti-detection §18.6 #4).
   var fired = false;
 
+  // Sig-aware arg index map. The host treats the first 'key' event as
+  // authoritative, so picking the wrong index for v2 = host gets the
+  // database NAME pointer (e.g. "main") and DB opens fail silently.
+  //   sqlite3_key(sqlite3 *db, const void *pKey, int nKey)
+  //     args[0]=db,            args[1]=key, args[2]=len
+  //   sqlite3_key_v2(sqlite3 *db, const char *zDbName, const void *pKey, int nKey)
+  //     args[0]=db, args[1]=name, args[2]=key, args[3]=len
+  //   wcdb_setkey / WCDBKeyDerive: unknown sig — assume sqlite3_key shape
+  //   Mangled C++: WCDB::Database::setCipherKey(*this, const std::string&)
+  //     args[0]=this, args[1]=&string (length needs .size()) — not handled
+  //     here; emit error so the host falls back to MD5 path.
+  function argIndicesFor(symbolName) {
+    if (symbolName === "sqlite3_key_v2") {
+      return { key: 2, len: 3, sig: "v2" };
+    }
+    if (symbolName.indexOf("_ZN4WCDB") === 0) {
+      return { key: -1, len: -1, sig: "mangled-cpp" };
+    }
+    return { key: 1, len: 2, sig: "v1" };
+  }
+
+  // sjqz extract_wechat_key.py uses Memory.readCString(args[1]) for the
+  // key — meaning some WeChat builds pass the key as a NUL-terminated
+  // 64-char ASCII hex string. Other builds (and the original SQLCipher
+  // contract) pass 32 raw bytes. We can disambiguate by `len`:
+  //   - len === 32 → raw 32-byte key → readByteArray + bytesToHex
+  //   - len === 64 → ASCII hex string → readCString
+  //   - anything else → emit error, host falls back to MD5 path
   function makeHook(symbolName) {
+    var idx = argIndicesFor(symbolName);
     return {
       onEnter: function (args) {
         if (fired) return;
+        if (idx.key < 0) {
+          send({
+            kind: "error",
+            message:
+              "unsupported symbol signature: " +
+              symbolName +
+              " — host should fall back to MD5(IMEI+UIN) key path",
+          });
+          return;
+        }
         try {
-          // sqlite3_key signature: int sqlite3_key(sqlite3 *db, const void *pKey, int nKey)
-          // args[1] = key bytes, args[2] = key length
-          var len = args[2].toInt32();
+          var len = args[idx.len].toInt32();
           if (len <= 0 || len > 256) {
-            send({ kind: "error", message: "implausible key length " + len + " at " + symbolName });
+            send({
+              kind: "error",
+              message:
+                "implausible key length " + len + " at " + symbolName,
+            });
             return;
           }
-          var buf = args[1].readByteArray(len);
-          var hex = bytesToHex(buf);
+          var hex;
+          var format;
+          if (len === 64) {
+            // ASCII hex string (sjqz-verified path on WeChat 7.x/8.0 libWCDB)
+            var s = Memory.readCString(args[idx.key], len);
+            if (!s || s.length === 0) {
+              send({
+                kind: "error",
+                message: "readCString returned empty at " + symbolName,
+              });
+              return;
+            }
+            hex = s.toLowerCase();
+            format = "ascii-hex";
+          } else if (len === 32) {
+            // Raw 32-byte key — convert to 64-char hex
+            var buf = args[idx.key].readByteArray(len);
+            hex = bytesToHex(buf);
+            format = "raw-bytes";
+          } else {
+            // Ambiguous length — could be either. Emit both interpretations
+            // and let the host try each against the DB until one succeeds.
+            var bufAmb = args[idx.key].readByteArray(len);
+            var hexFromBytes = bytesToHex(bufAmb);
+            var hexFromString = null;
+            try {
+              var sAmb = Memory.readCString(args[idx.key], len);
+              if (sAmb) hexFromString = sAmb.toLowerCase();
+            } catch (_e) {
+              // readCString may fault on non-NUL-terminated bytes; ignore.
+            }
+            fired = true;
+            send({
+              kind: "key",
+              hex: hexFromBytes,
+              alt: hexFromString,
+              source: symbolName,
+              sig: idx.sig,
+              format: "ambiguous",
+              length: len,
+            });
+            return;
+          }
           if (!hex) {
-            send({ kind: "error", message: "empty key buffer at " + symbolName });
+            send({
+              kind: "error",
+              message: "empty key buffer at " + symbolName,
+            });
             return;
           }
           fired = true;
-          send({ kind: "key", hex: hex, source: symbolName });
+          send({
+            kind: "key",
+            hex: hex,
+            source: symbolName,
+            sig: idx.sig,
+            format: format,
+            length: len,
+          });
         } catch (e) {
-          send({ kind: "error", message: "hook exception at " + symbolName + ": " + (e && e.message ? e.message : String(e)) });
+          send({
+            kind: "error",
+            message:
+              "hook exception at " +
+              symbolName +
+              ": " +
+              (e && e.message ? e.message : String(e)),
+          });
         }
       },
     };
   }
 
-  function tryAttach() {
-    var mod = Process.findModuleByName(TARGET_MODULE);
+  function tryAttachOnModule(moduleName) {
+    var mod = Process.findModuleByName(moduleName);
     if (!mod) return false;
     var attached = 0;
     for (var i = 0; i < SYMBOLS.length; i++) {
-      var addr = Module.findExportByName(TARGET_MODULE, SYMBOLS[i]);
+      var addr = Module.findExportByName(moduleName, SYMBOLS[i]);
       if (!addr) continue;
       try {
         Interceptor.attach(addr, makeHook(SYMBOLS[i]));
-        send({ kind: "hooked", symbol: SYMBOLS[i], module: TARGET_MODULE });
+        send({ kind: "hooked", symbol: SYMBOLS[i], module: moduleName });
         attached++;
       } catch (e) {
-        send({ kind: "error", message: "Interceptor.attach failed for " + SYMBOLS[i] + ": " + (e && e.message ? e.message : String(e)) });
+        send({
+          kind: "error",
+          message:
+            "Interceptor.attach failed for " +
+            SYMBOLS[i] +
+            ": " +
+            (e && e.message ? e.message : String(e)),
+        });
       }
     }
     return attached > 0;
   }
 
+  function tryAttach() {
+    for (var i = 0; i < TARGET_MODULES.length; i++) {
+      if (tryAttachOnModule(TARGET_MODULES[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Module-load polling — §18.6 #1 "hook at module-load time before
-  // anti-detection thread runs". WeChat lazy-loads libwcdb when the
+  // anti-detection thread runs". WeChat lazy-loads libWCDB when the
   // first DB opens, so we can't always find it at script start.
   if (!tryAttach()) {
-    send({ kind: "module-waiting", module: TARGET_MODULE });
+    send({ kind: "module-waiting", module: TARGET_MODULES.join("|") });
     var attempts = 0;
     var poll = function () {
       attempts++;
       if (tryAttach()) return;
       if (attempts >= 60) {
         // 60 attempts × 500ms = 30s ceiling, matches host timeoutMs
-        send({ kind: "error", message: TARGET_MODULE + " did not load within 30s" });
+        send({
+          kind: "error",
+          message:
+            TARGET_MODULES.join("|") + " did not load within 30s",
+        });
         return;
       }
       setTimeout(poll, 500);

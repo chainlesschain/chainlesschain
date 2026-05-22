@@ -58,6 +58,13 @@
         联系人
       </a-menu-item>
 
+      <a-menu-item key="pdh" @click="onOpenPDH">
+        <template #icon>
+          <DatabaseOutlined />
+        </template>
+        个人数据中台
+      </a-menu-item>
+
       <a-menu-item key="conversations" disabled>
         <template #icon>
           <MessageOutlined />
@@ -78,7 +85,9 @@ import {
   AppstoreOutlined,
   TeamOutlined,
   MessageOutlined,
+  DatabaseOutlined,
 } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 import { useExtensionRegistryStore } from "../stores/extensionRegistry";
 import { dispatchSlash } from "./slash-dispatch";
 
@@ -117,6 +126,48 @@ function onSelectSpace(id: string) {
     trigger: "sidebar:select-space",
     args: id,
   });
+}
+
+// V6 PDH bridge — opens packages/web-panel's PersonalDataHub.vue (incl
+// WechatWizard + AIChatWizard) in a side BrowserWindow. The main process
+// resolves the web-shell URL via ~/.chainlesschain/desktop.port (written
+// by `cc ui` / `cc serve --ui` or by desktop's own --web-shell mode). If
+// no web-shell is running we surface a hint asking the user to run cc ui.
+async function onOpenPDH() {
+  try {
+    const electronGlobal = (
+      window as unknown as {
+        electron?: {
+          ipcRenderer?: {
+            invoke: (
+              c: string,
+              p?: unknown,
+            ) => Promise<{
+              ok?: boolean;
+              error?: string;
+              message?: string;
+              url?: string;
+            }>;
+          };
+        };
+      }
+    ).electron;
+    if (!electronGlobal?.ipcRenderer) {
+      message.warning("当前环境无 Electron IPC — 仅 desktop 客户端支持此入口");
+      return;
+    }
+    const result = await electronGlobal.ipcRenderer.invoke(
+      "personal-data-hub:open-web-window",
+      { route: "/personal-data-hub" },
+    );
+    if (result?.error) {
+      message.warning(result.message || "无法打开个人数据中台");
+    }
+  } catch (err) {
+    message.error(
+      "打开失败: " + (err instanceof Error ? err.message : String(err)),
+    );
+  }
 }
 </script>
 
