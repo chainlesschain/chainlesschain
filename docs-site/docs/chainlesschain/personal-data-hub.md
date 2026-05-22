@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **版本: v5.0.3.75 (Phase 0–13 + 14.1/14.2/14.3 全部落地 + Phase 10.3.6 CLI + Phase 12.6.7-9 WeChat bootstrap + IPC/WS + CLI, 2026-05-21) | 状态: ✅ 可用 — 19 个 Adapter ✅ + 3 个 v0.1 scaffold (豆包 Doubao + 今日头条 Toutiao + 快手 Kuaishou) — 总计 22 (Email + Alipay + SystemData + WeChat v0.5 + 4 Travel + 3 Shopping + 6 Social + 3 Messaging + 9 AIChat 厂商) + Mobile Extraction Layer (Android ADB / iOS iTunes backup) + EntityResolver 跨源人物归并 + 5 内置 Analysis Skill (Spending / Relations / Footprint / Interests / Timeline) | **29 IPC 通道 + 29 WS 主题** (Phase 10.3 wizard 4 + Phase 12.6.8 wechat 4 双端 wire 完成) + Phase 14.1 Android + Phase 14.2 iOS 全 `PersonalDataHubCommands` 22 method typed wrapper | **65 测试文件 / 1217 测试** (含 6 集成 + 3 E2E 场景 + 16 新 scaffold + 22 Android PDH 单测 + 102 Phase 10.3 wizard 单测 + 14 Phase 12.6.7 bootstrap + 15 Phase 12.6.8 wechat-wiring + 14 Phase 12.6.9 CLI + iOS 1491 LOC Hub tests) | 设计文档: 13-Phase 路线图 + 8 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口 + Phase 10.3 AIChat WebView 鉴权向导 + **Phase 12.6.7-9 WeChat bootstrap + IPC/WS + CLI**
+> **版本: v5.0.3.80 (Phase 0–13 全部落地 + 14.1/14.2/14.3 + 10.3.6 CLI + 12.6.7-9 WeChat bootstrap + **v0.2 大爆发：11 个 placeholder 卡接通 + WeChat 12.10 4 sub-phase + QQ XOR-IMEI + A3 Android 端侧 LLM 骨架**, 2026-05-22) | 状态: ✅ 可用 — **22 个 Adapter ✅ v0.2 真接通** (Email IMAP × 4 + Alipay + Taobao + SystemData + WeChat v0.5 SQLCipher 真解密 + QQ v0.2 XOR-IMEI + 4 Travel × 2 (高德/携程 v0.2 + 百度地图/腾讯地图 v0.2) + 5 Shopping (京东/美团/拼多多/淘宝/支付宝 v0.2) + 6 Social (Bilibili/微博 v0.2/抖音 v0.2/小红书 v0.2/头条 v0.2/快手 v0.2) + 3 Messaging (QQ/Telegram/WhatsApp) + 9 AIChat 厂商 v0.2) + Mobile Extraction Layer + EntityResolver + 5 Analysis Skill | **29 IPC + 29 WS** + Phase 14.1 Android + Phase 14.2 iOS 全 `PersonalDataHubCommands` 22 method typed wrapper | **70+ 测试文件 / 1370+ 测试**（含 v0.2 一轮新 snapshot tests: weibo 8 + douyin 8 + xiaohongshu 8 + toutiao 8 + kuaishou 8 + jd 8 + meituan 8 + pinduoduo 8 + baidu-map 8 + tencent-map 8 + qq 13 = 93 新 snapshot tests + 27 QQ Android Kotlin unit tests）| 设计文档: 13-Phase 路线图 + 8 个 Adapter 专题 + EntityResolver + sjqz 借鉴比对 + Phase 14 移动端原生入口 + Phase 10.3 AIChat WebView 鉴权向导 + Phase 12.6.7-9 WeChat bootstrap + **Phase 12.10 WeChat in-app collector 4 sub-phase + Phase 13.5 QQ in-app collector**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -154,7 +154,7 @@
 
 ### 已落地 vs 路线图
 
-> 截至 2026-05-20，所有路线图 adapter (Phase 5/6/4.5/7.5/7/9/10/12/13) 已全部完成首版实现并合入主干；WeChat (12) 与 AIChatHistory UI (10.3) 还有 follow-up。
+> 截至 2026-05-22 v5.0.3.80：所有路线图 adapter (Phase 5/6/4.5/7.5/7/9/10/12/13) **全部从 placeholder/v0.1 scaffold 升级到 v0.2 真接通**。微信 (12.10) 4 sub-phase 全 land — SQLCipher 真解密 + frida-inject 真注入 + 16.5.9 binary vendored + APK 真 ship；QQ (13.5) v0.2 XOR-IMEI 算法 byte-identical sjqz 移植 — 无 SQLCipher + 无 frida + 仅 root + IMEI 输入；A3 Android 端侧 LLM 全链路 skeleton — Ktor LLM server + ModelManager + cc spawn。剩余 v0.2 → v1.0 部分 (WeChat 12.10.6 真机 E2E + QQ HubLocal UI wire 第二批 + A3 Maven deps + JNI + 真机) 需 root 设备 + Mac/Linux + Android NDK，约 ~5-7d。
 
 | Adapter | 状态 | 数据源 | 采集机制 | 验证 |
 |---|---|---|---|---|
@@ -165,18 +165,22 @@
 | **EntityResolver** | ✅ 已上线 (Phase 8) | 跨源 Person / Place 消歧 | 三段 pipeline（规则 + embedding + LLM）+ ingest hook + UI 队列 | 单测全绿 |
 | **5 Analysis Skills** | ✅ 已上线 (Phase 11) | spending / relations / footprint / interests / timeline | 内置 skill + Workflow | 单测全绿 |
 | **TaobaoAdapter** | ✅ 已上线 (Phase 7) | 淘宝订单 / 收藏 / 评价 / 收货地址 | Cookie + web API（共享 `shopping-base`）| 单测全绿 |
-| **JDAdapter** | ✅ 已上线 (Phase 7) | 京东订单 / 收藏 / 评价 | Cookie + web API | 单测全绿 |
-| **MeituanAdapter** | ✅ 已上线 (Phase 7) | 美团订单 / 外卖 / 收藏 | Cookie + web API | 单测全绿 |
-| **AmapAdapter** | ✅ 已上线 (Phase 9) | 高德足迹 / 收藏地点 | Cookie + my.amap.com API（共享 `travel-base`）| 单测全绿 |
-| **BaiduMapAdapter** | ✅ 已上线 (Phase 9) | 百度地图足迹 / 收藏 | Cookie + map.baidu.com API | 单测全绿 |
-| **CtripAdapter** | ✅ 已上线 (Phase 9) | 携程酒店 / 机票 / 火车票订单 | Cookie + my.ctrip.com API | 单测全绿 |
+| **JDAdapter** | ✅ v0.2 dual-mode (snapshot + cookie) (`f3bd0693`) | 京东订单 / 收藏 / 评价 | Android in-app snapshot 或桌面 Cookie + web API | 单测全绿（snapshot 8 + 既有）|
+| **MeituanAdapter** | ✅ v0.2 dual-mode (`f3bd0693`) | 美团订单 / 外卖 / 收藏 | Android in-app snapshot 或桌面 Cookie + web API | 单测全绿 |
+| **PinduoduoAdapter** | ✅ v0.2 (`78695c25e`) | 拼多多订单 / 收藏 | Android in-app SAF JSON import | snapshot 8 单测 |
+| **AmapAdapter** | ✅ v0.2 cookie-scrape WebView (`0fe572f2`) | 高德足迹 / 收藏地点 | Android in-app WebView cookie scrape 或桌面 Cookie | 单测全绿 |
+| **BaiduMapAdapter** | ✅ v0.2 (`3d1cf9481`) | 百度地图足迹 / 收藏 | Android in-app WebView 或桌面 Cookie + map.baidu.com API | snapshot 8 单测 |
+| **TencentMapAdapter** | ✅ v0.2 (`3d1cf9481`) | 腾讯地图足迹 / 收藏 | Android in-app WebView cookie scrape | snapshot 8 单测 |
+| **CtripAdapter** | ✅ v0.2 cookie-scrape (`0fe572f2`) | 携程酒店 / 机票 / 火车票订单 | Android in-app WebView 或桌面 Cookie | 单测全绿 |
 | **12306Adapter** | ✅ 已上线 (Phase 9) | 12306 行程 / 订单 | 被动 webRequest 拦 + JSON 解析 | 单测全绿 |
-| **AIChatHistoryAdapter × 9** | ✅ 已上线 × 8 + 🚧 Doubao v0.1 scaffold | 9 家国产 AI（DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 百度千帆 / 字节扣子 / 即梦 Dreamina + **豆包 Doubao**(text AI, Phase 10.2 9th, scaffold)） | 共享 HttpClient (cookie + rate-limit + 指数退避) + 各家 h5 API | 79 单测 + Doubao 5 单测；剩 Phase 10.3 WebView 真账号 smoke + Phase 10.4 Doubao fixture pin |
-| **Social × 6** (Bilibili / Weibo / Douyin / Xiaohongshu + **Toutiao + Kuaishou**) | ✅ × 4 + 🚧 v0.1 scaffold × 2 | Android 本机 SQLite (B 站 history / 微博 timeline / 抖音 watch / 小红书 收藏 / 今日头条 read_history / 快手 photo_history) | Mobile Extraction Layer pull + 借 sjqz parser 移植 | 单测全绿（含 Toutiao 6 + Kuaishou 5 scaffold 单测）；Toutiao/Kuaishou 真账号 fixture pin pending |
-| **Messaging × 3** (QQ / Telegram / WhatsApp) | ✅ 已上线 (Phase 13.5-13.7) | Android 本机加密 SQLite（QQ msg.db / TG / WhatsApp msgstore.db crypt14）| MEL pull + key-provider 解密 + sjqz parser 移植 | 单测全绿 |
-| **WechatAdapter** | 🚧 v0.5 已落地 (Phase 12 frida-indep slice) | 微信本地 SQLCipher DB（Android 7.x 路径 + PC WeChat Files）| content-parser + MD5(IMEI+UIN)[:7] 解密 + SQLCipher 三 pragma profile | 41 单测；剩 Phase 12.6+ frida-dep (Android 8.0+ libwcdb hook) + Phase 12.9 真机 E2E |
+| **AIChatHistoryAdapter × 9** | ✅ v0.2 全 9 路（豆包 Doubao 已 v0.2 接通）| DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 百度千帆 (合并 wenxin/qianfan) / 字节扣子 / 即梦 Dreamina / **豆包 Doubao** | Android in-app WebView cookie scrape + cc sync wire (`1e7725552`) 或桌面 HttpClient (cookie + rate-limit + 指数退避) | 全绿 |
+| **Social × 6** (Bilibili / Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou) | ✅ × 6 **全 v0.2 真接通** | Android 本机 SQLite (dual-mode snapshot + sqlite) 或桌面 cookie web API：B 站 history / 微博 timeline (`c087c36eb`) / 抖音 watch (`20f9b2188`) / 小红书 收藏 (`20f9b2188`) / 头条 read_history (`e1155b1d7`) / 快手 photo_history (`e1155b1d7`) | Mobile Extraction Layer pull / Android in-app collector / sjqz parser 移植 | weibo 8 + douyin 8 + xiaohongshu 8 + toutiao 8 + kuaishou 8 = 40 新 snapshot 单测 + Android Kotlin DouyinApiClientHelpersTest / XhsApiClientHelpersTest / WeiboApiClientHelpersTest |
+| **Messaging × 3** (QQ / Telegram / WhatsApp) | ✅ v0.2 三家 Android in-app real | QQ Android **普通 SQLite + msgData XOR(IMEI) 加密** (`a07731b46`) — 无 SQLCipher / 无 frida / 仅 root + IMEI 输入；Telegram + WhatsApp 既有 | sjqz `qq.py:90-112` 算法 byte-identical 移植；4 Kotlin (QQXorDecryptor / QQCredentialsStore / QQDbExtractor / QQLocalCollector) + JS messaging-qq adapter dual-mode | QQ Kotlin 27 unit + JS snapshot 13 + longtail 6 |
+| **WechatAdapter** | ✅ **v0.2 Phase 12.10 4 sub-phase 全 land** (8081f8a0d / 37a4e465d / cdfe1048e) | Android in-app SQLCipher 真解密：7.x MD5(IMEI+UIN)[:7] 路径 + 8.x frida hook libwcdb 拿真 64-hex 路径双通路；WAL+SHM cohort copy；vendored frida-inject 16.5.9 arm64+armeabi-v7a APK ship | content-parser + KNOWN_PRAGMA_PROFILES 3 fallback + sjqz wechat_decrypt.py 算法 byte-identical 移植 + 5-symbol frida hook (sqlite3_key/v2/wcdb_setkey/WCDBKeyDerive/mangled C++) | 89 既有 + Phase 12.10 51 新（CredentialsStore 14 + DbExtractor 17 + FridaInjector 15 + LocalCollector 10）+ APK ship 真机已上 Xiaomi 24115RA8EC；剩 Phase 12.10.6 真机 E2E (需 root 机子) + Phase 12.10.7 anti-detection |
 
-> Phase 13 七个 adapter 借 sjqz 已有 Python parser 移植到 Node.js — 详见 [`Adapter_Social_Messaging.md`](https://design.chainlesschain.com/Adapter_Social_Messaging.html)（本批最新加入）。Toutiao §11 + Kuaishou §12 v0.1 scaffold 设计章节已补 (2026-05-20)；Doubao AIChat 9th vendor §6.9 详设亦补完。
+> Phase 13 七个 adapter 借 sjqz 已有 Python parser 移植到 Node.js — 详见 [`Adapter_Social_Messaging.md`](https://design.chainlesschain.com/Adapter_Social_Messaging.html)（本批最新加入）。Toutiao §11 + Kuaishou §12 已从 v0.1 scaffold 升 v0.2 dual-mode (`e1155b1d7`, 2026-05-22)；Doubao AIChat 9th vendor §6.9 也接通；微博 §13 v0.2 镜像 Bilibili pattern (`c087c36eb`, 27 新单测)。
+
+> **v0.2 升级路径**：所有 v0.2 adapter 都是 dual-mode — 既支持桌面侧既有 cookie + web API 通路（解决用户不在 Android 端的场景），也支持 Android in-app collector 直接采本机 SQLite (绕开网络 / 反爬 / 频控)。Android 路径见 §A8（社交内容）/§2.4-§2.6（购物/出行/AI 助手）的 in-app 卡 UI，桌面路径见各 adapter 的 cookie-scrape WebView。
 
 ### Phase 历史
 
