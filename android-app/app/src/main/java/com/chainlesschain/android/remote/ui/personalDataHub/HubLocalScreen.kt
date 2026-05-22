@@ -100,6 +100,15 @@ fun HubLocalScreen(
         viewModel.refreshSystemData()
     }
 
+    // §2.7 D11 polish — SAF picker for "一键带走" (推文 §"想换手机想备份")。
+    // CreateDocument suggests a default filename; user can rename or route to
+    // Drive / email / etc. Null Uri = user cancelled, no-op.
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/x-sqlite3"),
+    ) { uri ->
+        if (uri != null) viewModel.requestExportVaultToUri(uri)
+    }
+
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
         viewModel.refreshBilibiliFromStore()
@@ -154,7 +163,13 @@ fun HubLocalScreen(
                     onAllowCloudChanged = { viewModel.setAllowCloudFallback(it) },
                     onDestroyConfirmed = { viewModel.requestDestroyVault() },
                     onClearDestroyError = { viewModel.clearDestroyError() },
-                    onExportRequested = { viewModel.requestExportVault() },
+                    onExportRequested = {
+                        // §2.7 D11 — launch SAF picker; user picks where to
+                        // save. CreateDocument suggested filename includes a
+                        // timestamp for uniqueness across multiple backups.
+                        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+                        exportLauncher.launch("chainlesschain-vault-$stamp.db")
+                    },
                     onClearExportError = { viewModel.clearExportError() },
                 )
             }

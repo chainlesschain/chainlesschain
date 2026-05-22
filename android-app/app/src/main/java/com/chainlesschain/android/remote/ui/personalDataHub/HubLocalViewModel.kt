@@ -576,6 +576,104 @@ class HubLocalViewModel @Inject constructor(
         _state.update { it.copy(threeLocks = it.threeLocks.copy(exportError = null)) }
     }
 
+    /**
+     * §2.7 D11 polish — SAF-based export: user picks a destination Uri via
+     * `ActivityResultContracts.CreateDocument("application/x-sqlite3")`, we
+     * write the vault to a temp file via cc, then copy bytes to the Uri,
+     * then delete temp. Beats the v0.1 external-files-dir path because
+     * scoped storage on Android 10+ doesn't surface external-files-dir to
+     * the file manager picker cleanly, and the user can route to Drive /
+     * email / etc. through SAF providers.
+     *
+     * Caller responsibility:
+     *  - Launch `CreateDocument` from HubLocalScreen with a suggested name
+     *    `chainlesschain-vault-<stamp>.db`
+     *  - On non-null Uri result, call this method
+     *  - If user cancels (null Uri), do nothing — state stays idle
+     *
+     * 推文承诺：§"一键带走 — 想换手机想备份，一个文件导出全部带走"。
+     */
+    fun requestExportVaultToUri(targetUri: android.net.Uri) {
+        if (_state.value.threeLocks.exporting) return
+        if (_state.value.globalSyncingAdapter != null) return
+        _state.update {
+            it.copy(
+                threeLocks = it.threeLocks.copy(exporting = true, exportError = null),
+                globalSyncingAdapter = "vault-export",
+            )
+        }
+        viewModelScope.launch {
+            // 1. Export to app-private temp first — cc needs a real File path
+            //    (writing directly into a content:// Uri requires Java API gymnastics
+            //    cc subprocess can't navigate from a shim).
+            val tempDir = File(appContext.cacheDir, "vault-export").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+            val tempFile = File(tempDir, "chainlesschain-vault-$stamp.db")
+
+            val cc = ccRunner.exportVault(tempFile.absolutePath)
+            if (cc is LocalCcRunner.ExportResult.Failed) {
+                Timber.w("HubLocalViewModel.exportToUri: cc failed: %s", cc.reason)
+                _state.update { st ->
+                    st.copy(
+                        threeLocks = st.threeLocks.copy(
+                            exporting = false,
+                            exportError = cc.reason,
+                        ),
+                        globalSyncingAdapter = null,
+                    )
+                }
+                tempFile.delete()
+                return@launch
+            }
+            cc as LocalCcRunner.ExportResult.Ok
+
+            // 2. Copy temp → SAF Uri via ContentResolver.
+            val copiedBytes = try {
+                appContext.contentResolver.openOutputStream(targetUri, "wt").use { out ->
+                    if (out == null) {
+                        throw java.io.IOException("ContentResolver returned null OutputStream for $targetUri")
+                    }
+                    tempFile.inputStream().use { it.copyTo(out) }
+                }
+                tempFile.length()
+            } catch (t: Throwable) {
+                Timber.w(t, "HubLocalViewModel.exportToUri: copy to SAF Uri failed")
+                tempFile.delete()
+                _state.update { st ->
+                    st.copy(
+                        threeLocks = st.threeLocks.copy(
+                            exporting = false,
+                            exportError = "复制到选定位置失败: ${t.message ?: t.javaClass.simpleName}",
+                        ),
+                        globalSyncingAdapter = null,
+                    )
+                }
+                return@launch
+            }
+
+            // 3. Delete temp (vault export contains everything; no point keeping
+            //    a private copy that the user can't access anyway).
+            if (!tempFile.delete()) {
+                Timber.w(
+                    "HubLocalViewModel.exportToUri: temp delete failed — leaving stale %s",
+                    tempFile.absolutePath,
+                )
+            }
+
+            _state.update { st ->
+                st.copy(
+                    threeLocks = st.threeLocks.copy(
+                        exporting = false,
+                        exportError = null,
+                        lastExportPath = targetUri.toString(),
+                        lastExportBytes = copiedBytes,
+                    ),
+                    globalSyncingAdapter = null,
+                )
+            }
+        }
+    }
+
     // ─── §2.9 本机 audit (推文 §"每次操作都有账本") ────────────────────────
 
     /**
