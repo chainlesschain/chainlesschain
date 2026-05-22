@@ -37,9 +37,11 @@ fun PaymentShoppingGroup(
     onProviderImport: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // §2.4b 购物双联 v0.2 — 4 卡 (支付宝账单 / 淘宝 / 京东 / 美团)
-    // 顺序: 支付 1 + 电商 3。京东/美团 v0.2 接 SAF JSON snapshot (Android
-    // collector WebView cookie scrape 写)；HTML parser 预留 v0.3。
+    // §2.4c 购物三联 v0.2 — 5 卡 (支付宝账单 / 淘宝 / 京东 / 美团 / 拼多多)
+    // 顺序: 支付 1 + 电商 4。京东/美团/拼多多 v0.2 接 SAF JSON snapshot
+    // (Android collector WebView cookie scrape 写)；HTML parser 预留 v0.3。
+    // 拼多多 v0.2 无 collector — 用户需手抄 JSON 或等 v0.3 浏览器扩展
+    // (mobile.yangkeduo.com 走 anti_token JS-VM 签名，没纯 Kotlin/Node 实现)。
     val providers = listOf(
         ProviderCard(
             key = "alipay-bill",
@@ -63,6 +65,12 @@ fun PaymentShoppingGroup(
             key = "shopping-meituan",
             displayName = "美团订单",
             hint = "导出订单 JSON: PC 端 i.meituan.com → 我的订单 → 导出 (v0.3 加 HTML)",
+            sourceFormat = "JSON",
+        ),
+        ProviderCard(
+            key = "shopping-pinduoduo",
+            displayName = "拼多多订单",
+            hint = "JSON 导入: v0.2 需手抄或浏览器扩展导出 (anti_token 反爬)；v0.3 走自带扩展",
             sourceFormat = "JSON",
         ),
     )

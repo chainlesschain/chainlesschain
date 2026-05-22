@@ -44,6 +44,7 @@ const shoppingBase = require("./adapters/shopping-base");
 const { TaobaoAdapter } = require("./adapters/shopping-taobao");
 const { JdAdapter } = require("./adapters/shopping-jd");
 const { MeituanAdapter } = require("./adapters/shopping-meituan");
+const { PinduoduoAdapter } = require("./adapters/shopping-pinduoduo");
 const { BilibiliAdapter } = require("./adapters/social-bilibili");
 const { WeiboAdapter } = require("./adapters/social-weibo");
 const { DouyinAdapter } = require("./adapters/social-douyin");
@@ -237,6 +238,7 @@ module.exports = {
   TaobaoAdapter,
   JdAdapter,
   MeituanAdapter,
+  PinduoduoAdapter,
 
   // Phase 13+ — long-tail social + messaging (借 sjqz parsers)
   BilibiliAdapter,

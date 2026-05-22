@@ -152,6 +152,14 @@ fun HubLocalScreen(
     ) { uri ->
         if (uri != null) viewModel.importPaymentShoppingFile("shopping-meituan", uri)
     }
+    // §2.4c 购物三联 v0.2 — 拼多多 订单 SAF 选 JSON snapshot。Pinduoduo 没
+    // 自带订单导出，v0.2 用户需手抄 JSON 或等 v0.3 浏览器扩展。MIME 弹默认
+    // any 让用户能选自己 export 的任何文件名。
+    val pinduoduoOrderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) viewModel.importPaymentShoppingFile("shopping-pinduoduo", uri)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionState()
@@ -319,6 +327,10 @@ fun HubLocalScreen(
                                 jdOrderLauncher.launch(arrayOf("application/json", "text/json", "text/html", "*/*"))
                             "shopping-meituan" ->
                                 meituanOrderLauncher.launch(arrayOf("application/json", "text/json", "text/html", "*/*"))
+                            // §2.4c 购物三联 v0.2 — 拼多多 JSON only (v0.3 HTML 路径
+                            // 预留)。Pinduoduo 无自带订单导出，用户需手抄或等浏览器扩展
+                            "shopping-pinduoduo" ->
+                                pinduoduoOrderLauncher.launch(arrayOf("application/json", "text/json", "*/*"))
                             else -> Timber.w("HubLocalScreen: unknown payment provider key=%s", key)
                         }
                     },
