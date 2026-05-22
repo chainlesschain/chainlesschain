@@ -201,7 +201,9 @@ fun HubLocalScreen(
                 )
                 if (state.wechat.pendingUinEntry) {
                     WechatUinEntryDialog(
-                        onConfirm = { uin, provider -> viewModel.confirmWechatUin(uin, provider) },
+                        onConfirm = { uin, provider, imei ->
+                            viewModel.confirmWechatUin(uin, provider, imei)
+                        },
                         onCancel = { viewModel.cancelWechatLogin() },
                     )
                 }
@@ -251,6 +253,19 @@ fun HubLocalScreen(
                     onProviderLogin = { key ->
                         Timber.i("HubLocalScreen: AI vendor login TODO key=$key")
                     },
+                )
+            }
+
+            // ─── 操作账本（推文 §"每次操作都有账本"）── §2.9 ──────────────
+            // 本机 vault 的 audit log（不同于 HubAuditScreen 的远程 RPC 版）。
+            // cc hub recent-audit --limit 50 --json → LazyColumn 渲染。
+            item("section-audit") { SectionHeader("操作账本") }
+            item("local-audit") {
+                HubAuditCard(
+                    state = state.localAudit,
+                    globalBusy = globalBusy,
+                    onRefresh = { viewModel.refreshAudit() },
+                    onClearError = { viewModel.clearAuditError() },
                 )
             }
 
@@ -698,11 +713,15 @@ private fun WechatCard(
  */
 @Composable
 private fun WechatUinEntryDialog(
-    onConfirm: (uin: String, keyProvider: String) -> Unit,
+    onConfirm: (uin: String, keyProvider: String, imei: String?) -> Unit,
     onCancel: () -> Unit,
 ) {
     var uin by remember { mutableStateOf("") }
+    var imei by remember { mutableStateOf("") }
     var keyProvider by remember { mutableStateOf("frida") }
+
+    val isMd5 = keyProvider == "md5"
+    val canConfirm = uin.isNotBlank() && (!isMd5 || imei.length == 15)
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onCancel,
@@ -733,7 +752,7 @@ private fun WechatUinEntryDialog(
                         selected = keyProvider == "frida",
                         onClick = { keyProvider = "frida" },
                     )
-                    Text("frida (WeChat 8.0+)")
+                    Text("frida (WeChat 8.0+，推荐)")
                     Spacer(Modifier.size(16.dp))
                     androidx.compose.material3.RadioButton(
                         selected = keyProvider == "md5",
@@ -741,12 +760,29 @@ private fun WechatUinEntryDialog(
                     )
                     Text("md5 (7.x)")
                 }
+                if (isMd5) {
+                    Spacer(Modifier.height(12.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = imei,
+                        onValueChange = { imei = it.filter { c -> c.isDigit() }.take(15) },
+                        label = { Text("设备 IMEI（15 位纯数字）") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                "拨号 *#06# 可查；Android 10+ 自动读取受限，手动填。" +
+                                    "MD5(IMEI+UIN)[:7] 即 SQLCipher 密钥（sjqz wechat_decrypt 算法）。",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(uin, keyProvider) },
-                enabled = uin.isNotBlank(),
+                onClick = { onConfirm(uin, keyProvider, imei.takeIf { isMd5 && it.isNotBlank() }) },
+                enabled = canConfirm,
             ) { Text("绑定") }
         },
         dismissButton = {

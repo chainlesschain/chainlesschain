@@ -169,6 +169,23 @@ class HubLocalViewModel @Inject constructor(
         val errorMessage: String? = null,
     )
 
+    /**
+     * §2.9 — 本机 audit card 状态。推文 §"每次操作都有账本"：每次同步 /
+     * 提问 / 注册 / 销毁都写一条 row 到本机 vault 的 audit 表，本地 LLM
+     * 不联网，UI 直接 spawn 本机 cc hub recent-audit --json 读回。
+     *
+     * 跟 [HubAuditViewModel] 的远程版本区别：本卡走 LocalCcRunner（本机
+     * vault.db），远程版走 PersonalDataHubCommands（桌面 RPC）。两者
+     * action 名相同（ingest / ask / register / ...），但数据源完全不同。
+     */
+    @Immutable
+    data class LocalAuditState(
+        val isLoading: Boolean = false,
+        val rows: List<LocalCcRunner.AuditRow> = emptyList(),
+        val errorMessage: String? = null,
+        val lastRefreshAt: Long? = null,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -198,6 +215,7 @@ class HubLocalViewModel @Inject constructor(
         val ask: AskCardState = AskCardState(),
         val threeLocks: ThreeLocksState = ThreeLocksState(),
         val citationDetail: CitationDetailState = CitationDetailState(),
+        val localAudit: LocalAuditState = LocalAuditState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -558,6 +576,64 @@ class HubLocalViewModel @Inject constructor(
         _state.update { it.copy(threeLocks = it.threeLocks.copy(exportError = null)) }
     }
 
+    // ─── §2.9 本机 audit (推文 §"每次操作都有账本") ────────────────────────
+
+    /**
+     * 加载本机 vault 的 audit 日志 — `cc hub recent-audit --limit 50 --json`
+     * 通过 [LocalCcRunner.queryRecentAudit] 调起 in-APK cc subprocess。
+     *
+     * 跟 [HubAuditViewModel.reload] 区别：HubAuditViewModel 走远程 RPC
+     * (PersonalDataHubCommands) 读桌面 vault，本方法走本机 cc 读本机
+     * vault.db。本机 audit row 在以下场景产生：
+     *  - SystemDataCard 同步通讯录/已装应用 → ingest action
+     *  - BilibiliCard / WechatCard / 其它 social sync → ingest
+     *  - HubAskCard 提问 → ask action（含 query / answer / citations）
+     *  - 三道锁销毁 → destroy（销毁后 vault 重建，旧 audit 全没）
+     *  - 三道锁导出 → export
+     *
+     * 推文兑现段："谁、什么时候、对哪条数据做了什么动作（采集/查询/提问/
+     * 删除），全部有记录可查。你随时知道自己的数据被怎么用过。"
+     */
+    fun refreshAudit() {
+        if (_state.value.localAudit.isLoading) return
+        _state.update {
+            it.copy(localAudit = it.localAudit.copy(isLoading = true, errorMessage = null))
+        }
+        viewModelScope.launch {
+            // Pass both params explicitly so kotlinc doesn't generate a $default
+            // bridge — mockk coVerify on the original method then matches the
+            // call. See memory `feedback_mockk_cross_file_jvm_pollution.md` /
+            // `android_test_source_set_compile_gate.md` for the same trap.
+            when (val r = ccRunner.queryRecentAudit(limit = 50, timeoutMs = 20_000L)) {
+                is LocalCcRunner.RecentAuditResult.Ok -> _state.update { st ->
+                    st.copy(
+                        localAudit = st.localAudit.copy(
+                            isLoading = false,
+                            rows = r.rows,
+                            errorMessage = null,
+                            lastRefreshAt = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+                is LocalCcRunner.RecentAuditResult.Failed -> {
+                    Timber.w("HubLocalViewModel.refreshAudit: %s", r.reason)
+                    _state.update { st ->
+                        st.copy(
+                            localAudit = st.localAudit.copy(
+                                isLoading = false,
+                                errorMessage = r.reason,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearAuditError() {
+        _state.update { it.copy(localAudit = it.localAudit.copy(errorMessage = null)) }
+    }
+
     // ─── Bilibili ───────────────────────────────────────────────────────────
 
     fun refreshBilibiliFromStore() {
@@ -802,8 +878,12 @@ class HubLocalViewModel @Inject constructor(
      * @param uin User-entered WeChat numeric UIN. Required.
      * @param keyProvider "md5" for 7.x / "frida" for 8.0+. Defaults to
      *                    "frida" since 7.x users are rare in 2026.
+     * @param imei Required only when keyProvider="md5" — used by
+     *             [com.chainlesschain.android.pdh.social.wechat.WeChatDbExtractor.calculateMd5Key]
+     *             (sjqz `wechat_decrypt.py:calculate_wechat_key` parity).
+     *             null for "frida" path (key comes from sqlite3_key_v2 hook).
      */
-    fun confirmWechatUin(uin: String, keyProvider: String = "frida") {
+    fun confirmWechatUin(uin: String, keyProvider: String = "frida", imei: String? = null) {
         val trimmed = uin.trim()
         if (trimmed.isBlank()) {
             _state.update {
@@ -815,8 +895,18 @@ class HubLocalViewModel @Inject constructor(
             }
             return
         }
+        if (keyProvider == "md5" && (imei.isNullOrBlank() || imei.length != 15)) {
+            _state.update {
+                it.copy(
+                    wechat = it.wechat.copy(
+                        errorMessage = "IMEI 必须 15 位（md5 path 需要 MD5(IMEI+UIN)[:7] 派生密钥）",
+                    ),
+                )
+            }
+            return
+        }
         try {
-            wechatCredentials.saveAccount(trimmed, keyProvider)
+            wechatCredentials.saveAccount(trimmed, keyProvider, imei?.trim())
         } catch (t: Throwable) {
             Timber.e(t, "HubLocalViewModel: saveWechatAccount failed")
             _state.update {

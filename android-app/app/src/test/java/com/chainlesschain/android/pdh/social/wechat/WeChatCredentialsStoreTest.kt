@@ -103,6 +103,36 @@ class WeChatCredentialsStoreTest {
     }
 
     @Test
+    fun `saveAccount with keyProvider=md5 rejects null imei`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs()
+        // saveAccount swallows IllegalArgumentException internally; verify no
+        // edit() call means the require() threw before the persist step.
+        store.saveAccount("1234567890", "md5", imei = null)
+        verify(exactly = 0) { prefs.edit() }
+    }
+
+    @Test
+    fun `saveAccount with keyProvider=md5 rejects blank imei`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs()
+        store.saveAccount("1234567890", "md5", imei = "   ")
+        verify(exactly = 0) { prefs.edit() }
+    }
+
+    @Test
+    fun `saveAccount with keyProvider=md5 persists imei`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs()
+        store.saveAccount("1234567890", "md5", imei = "353918050000000")
+        verify { prefs.edit() }
+    }
+
+    @Test
+    fun `saveAccount with keyProvider=frida does not require imei`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs()
+        store.saveAccount("1234567890", "frida")  // imei defaults to null — should work
+        verify { prefs.edit() }
+    }
+
+    @Test
     fun `clear wipes all keys`() {
         val (store, prefs) = makeStoreWithCapturingPrefs()
         store.clear()

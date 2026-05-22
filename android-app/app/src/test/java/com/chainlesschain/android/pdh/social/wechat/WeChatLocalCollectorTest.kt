@@ -168,6 +168,7 @@ class WeChatLocalCollectorTest {
             chatroomCount = 10,
             totalRows = 5110,
             extractedAtMs = now,
+            pragmaProfile = "wcdb-legacy",
         )
 
         val r = collector.snapshot() as WeChatLocalCollector.SnapshotResult.Ok
