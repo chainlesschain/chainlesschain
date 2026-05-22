@@ -21,11 +21,23 @@ import javax.inject.Singleton
  *
  * Schema (intentionally flat — no nested JSON, no migrations needed):
  *   - "uin"               : String — WeChat numeric UIN (e.g. "1234567890")
- *   - "dbKeyHex"          : String? — 64-char hex (32 bytes) SQLCipher key
- *                                     null until first frida hook succeeds
- *                                     (8.0+ path) or md5 derivation done
- *                                     (7.x path)
- *   - "keyProvider"       : String — "md5" / "frida" (diagnostic only)
+ *   - "imei"              : String? — 15-char device IMEI; required ONLY for
+ *                                     md5 keyProvider (7.x). 8.x frida path
+ *                                     leaves this null. Android 10+ READ_PHONE_STATE
+ *                                     restrictions make IMEI auto-detect
+ *                                     unreliable — user types it manually
+ *                                     in the UIN dialog when keyProvider=md5.
+ *   - "dbKeyHex"          : String? — for keyProvider=frida: 64-char hex
+ *                                     (32 raw bytes) captured from frida
+ *                                     sqlite3_key_v2 hook. for keyProvider=md5:
+ *                                     7-char lowercase hex derived from
+ *                                     MD5(imei+uin)[:7] at extract time —
+ *                                     NOT persisted (re-derived each call
+ *                                     so changing IMEI doesn't strand a
+ *                                     stale key).
+ *   - "keyProvider"       : String — "md5" / "frida" (functional gate, not
+ *                                     just diagnostic — picks key derivation
+ *                                     path in WeChatDbExtractor)
  *   - "lastSyncAtMs"      : Long — epoch ms of last successful snapshot
  *   - "lastSyncCount"     : Int — events ingested by last sync (UI display)
  *   - "lastErrorCode"     : Int — non-zero when last attempt failed
@@ -68,6 +80,8 @@ class WeChatCredentialsStore @Inject constructor(
 
     fun getUin(): String? = safeGet { prefs.getString(KEY_UIN, null)?.takeIf { it.isNotBlank() } }
 
+    fun getImei(): String? = safeGet { prefs.getString(KEY_IMEI, null)?.takeIf { it.isNotBlank() } }
+
     fun getDbKeyHex(): String? = safeGet { prefs.getString(KEY_DB_KEY_HEX, null)?.takeIf { it.isNotBlank() } }
 
     fun getKeyProvider(): String? = safeGet { prefs.getString(KEY_KEY_PROVIDER, null) }
@@ -83,19 +97,31 @@ class WeChatCredentialsStore @Inject constructor(
     /**
      * Save the user-provided uin + the keyProvider hint chosen by env-probe.
      * Called from [HubLocalViewModel.confirmWechatUin] after user enters
-     * uin in the login dialog. dbKeyHex is null at this point; populated
-     * later by FridaInjector (8.0+) or md5 derivation (7.x).
+     * uin in the login dialog. For md5 keyProvider, [imei] is also required
+     * (user types it in the dialog). For frida keyProvider, [imei] is null.
+     *
+     * dbKeyHex is null at this point and populated later by FridaInjector
+     * (8.0+ frida path). md5 path does NOT persist dbKeyHex — the key is
+     * derived on every extract from imei + uin so a user changing devices
+     * doesn't strand a stale key in the store.
      */
-    fun saveAccount(uin: String, keyProvider: String) {
+    fun saveAccount(uin: String, keyProvider: String, imei: String? = null) {
         try {
             require(uin.isNotBlank()) { "uin must not be blank" }
             require(keyProvider in setOf("md5", "frida")) {
                 "keyProvider must be 'md5' or 'frida'; was: $keyProvider"
             }
-            prefs.edit()
-                .putString(KEY_UIN, uin)
-                .putString(KEY_KEY_PROVIDER, keyProvider)
-                .apply()
+            if (keyProvider == "md5") {
+                require(!imei.isNullOrBlank()) {
+                    "imei is required when keyProvider='md5' (used for MD5(imei+uin)[:7] key derivation)"
+                }
+            }
+            prefs.edit().apply {
+                putString(KEY_UIN, uin)
+                putString(KEY_KEY_PROVIDER, keyProvider)
+                if (!imei.isNullOrBlank()) putString(KEY_IMEI, imei) else remove(KEY_IMEI)
+                apply()
+            }
         } catch (t: Throwable) {
             Timber.e(t, "WeChatCredentialsStore.saveAccount failed")
         }
@@ -160,6 +186,7 @@ class WeChatCredentialsStore @Inject constructor(
     companion object {
         private const val PREFS_NAME = "pdh_social_wechat"
         private const val KEY_UIN = "uin"
+        private const val KEY_IMEI = "imei"
         private const val KEY_DB_KEY_HEX = "dbKeyHex"
         private const val KEY_KEY_PROVIDER = "keyProvider"
         private const val KEY_LAST_SYNC_AT = "lastSyncAtMs"
