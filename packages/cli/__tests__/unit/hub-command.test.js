@@ -36,6 +36,8 @@ describe("cc hub command surface", () => {
         "aichat",
         "ask",
         "destroy",
+        "event-detail", // §A6 citation chip — opens raw event for "出处" link
+        "export", // §A8 v0.2 export staged snapshot rows
         "health",
         "list-adapters",
         "query-events",
