@@ -66,6 +66,17 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory, Configurati
         // 立即初始化：只初始化关键组件
         initTimber()
 
+        // Plan A A6 — CcAndroidBridge needs the App Context to hit
+        // ContentResolver / PackageManager. attach() is idempotent; the
+        // bridge is a static object so this survives process lifetime.
+        com.chainlesschain.android.ccbridge.CcAndroidBridge.attach(this)
+        // Plan A A6a — bring up the localhost HTTP bridge server so the
+        // in-APK cc subprocess (and LAN cc ui from desktop) can reach the
+        // bridge's @JvmStatic methods. Port + token persisted to
+        // filesDir/.chainlesschain/bridge/{port,token}; cc-android-bridge.js
+        // reads them at first invoke().
+        com.chainlesschain.android.ccbridge.CcAndroidBridgeServer.start(this)
+
         Timber.d("ChainlessChain Application initialized (critical components only)")
 
         // 监听 DownloadManager 完成事件，触发 UpdateInstaller 安装新 APK

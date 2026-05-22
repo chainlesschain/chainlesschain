@@ -1,38 +1,39 @@
 /**
  * cc-android-bridge — Node-side facade for the Android JNI bridge.
  *
- * Plan A Sub-Phase A6/A7 scaffold (see `docs/design/Personal_Data_Hub_Android_Standalone_Cc.md`
- * §4.2 + §6.1). The eventual native binding (`cc-android-bridge.node`,
- * loaded from `android-app/app/src/main/cpp/`) exposes Java/Kotlin APIs to
- * the in-APK Node runtime: ContentResolver query, PackageManager listings,
- * Runtime.exec / Shizuku / Magisk su, Accessibility node tree, SAF DocumentFile
- * read.
+ * Plan A Sub-Phase A6 (see `docs/design/Personal_Data_Hub_Android_Standalone_Cc.md`).
  *
- * **v0.1 status**: the native .node binding is NOT yet shipped. This file is
- * a pure stub — every `invoke()` call rejects with ANDROID_BRIDGE_NOT_AVAILABLE.
- * It exists so the `cc android …` commands and `system-data-android` adapter
- * (A7 / A8) can land + be unit-tested ahead of the JNI work. When A6 ships
- * the .node binding, this file's `loadNativeBinding()` will resolve the real
- * module; method dispatch is already wired.
+ * **A6a transport (current)**: HTTP localhost. The Android app starts a
+ * tiny HTTP server (CcAndroidBridgeServer.kt) at App.onCreate; this file
+ * reads the port + token written to filesDir/.chainlesschain/bridge/ and
+ * forwards `invoke(method, params)` as `POST /invoke?method=<kebab>` with
+ * the JSON params as body and `Authorization: Bearer <token>`.
+ *
+ * Why HTTP not JNI: the cc subprocess is a separate Linux process (per
+ * memory android_cc_subprocess_execve_via_mksh) — JNI cannot bridge
+ * process boundaries. HTTP localhost gives the same UX with zero NDK
+ * toolchain dependency. The .so + Unix-socket path stays on the roadmap
+ * (A6b) for the in-process feel but is not blocking the feature.
  *
  * Detection precedence (highest first):
- *   1. process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1" — test override; bridge
- *      reports "available" and routes through `_deps.testInvoke` (which tests
- *      replace with a mock). Lets us exercise the command code paths without
- *      a real device.
+ *   1. process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1" — test override
  *   2. process.platform === "android"
  *   3. process.env.PREFIX startsWith "/data/data/com.chainlesschain.android/"
  *      (Termux $PREFIX pattern in the bundled cc).
  *
- * Method names are kebab-case to match the `cc android <verb>` CLI surface,
- * not the underlying JNI signatures (those use Java camelCase). Mapping
- * happens in the future native binding.
+ * Bridge config discovery (Android only):
+ *   - filesDir/.chainlesschain/bridge/port  — "8237" etc.
+ *   - filesDir/.chainlesschain/bridge/token — 48-hex-char auth token
+ * filesDir resolves to `$PREFIX/..` (Termux convention: filesDir is the
+ * parent of usr/).
+ *
+ * Method names are kebab-case to match the `cc android <verb>` CLI surface.
  */
 
-import { createRequire } from "node:module";
+import { readFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
 
 const ANDROID_PREFIX = "/data/data/com.chainlesschain.android/";
-const nodeRequire = createRequire(import.meta.url);
 
 export function detectAndroid() {
   if (process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1") return true;
@@ -47,19 +48,40 @@ export function detectAndroid() {
 }
 
 /**
- * Lazy-load the native .node binding when we're actually on Android. Stays
- * null elsewhere. The binding is expected at:
- *   $APK/lib/<abi>/cc-android-bridge.node
- * resolved via require.resolve("cc-android-bridge").
- *
- * Wrapped in try so a missing binding (current state pre-A6) doesn't crash
- * the CLI on import — `invoke()` reports it as a runtime error instead.
+ * Locate the Android app's filesDir from inside the in-APK cc subprocess.
+ * Termux convention: $PREFIX = filesDir/usr → filesDir = dirname($PREFIX).
+ * Falls back to env var CC_ANDROID_BRIDGE_CONFIG_DIR (LAN / desktop case
+ * where caller has discovered the Android filesDir some other way).
  */
-export function loadNativeBinding() {
-  if (!detectAndroid()) return null;
-  if (process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1") return null;
+function resolveBridgeConfigDir() {
+  if (process.env.CC_ANDROID_BRIDGE_CONFIG_DIR) {
+    return process.env.CC_ANDROID_BRIDGE_CONFIG_DIR;
+  }
+  if (
+    typeof process.env.PREFIX === "string" &&
+    process.env.PREFIX.startsWith(ANDROID_PREFIX)
+  ) {
+    return join(dirname(process.env.PREFIX), ".chainlesschain", "bridge");
+  }
+  return null;
+}
+
+/**
+ * Read the port + token written by CcAndroidBridgeServer.start() in
+ * filesDir/.chainlesschain/bridge/. Returns null if either file is missing
+ * (server not started yet, or running off-device without override).
+ */
+export function loadBridgeConfig() {
+  const dir = resolveBridgeConfigDir();
+  if (!dir) return null;
   try {
-    return nodeRequire("cc-android-bridge");
+    const portPath = join(dir, "port");
+    const tokenPath = join(dir, "token");
+    if (!existsSync(portPath) || !existsSync(tokenPath)) return null;
+    const port = parseInt(readFileSync(portPath, "utf-8").trim(), 10);
+    const token = readFileSync(tokenPath, "utf-8").trim();
+    if (!Number.isFinite(port) || port <= 0 || !token) return null;
+    return { port, token, baseUrl: `http://127.0.0.1:${port}` };
   } catch (_e) {
     return null;
   }
@@ -74,17 +96,17 @@ export class AndroidBridgeUnavailableError extends Error {
 }
 
 /**
- * Invoke a bridge method.
+ * Invoke a bridge method via the HTTP transport.
  *
- * @param {string} method — kebab-case method name (e.g. "contacts.query",
- *   "fs.read", "a11y.query", "app.list").
+ * @param {string} method — kebab-case method name (e.g. "contacts.query")
  * @param {object} [params]
- * @returns {Promise<any>}
+ * @returns {Promise<any>}  Parsed JSON response from the bridge.
  *
  * Rejects with AndroidBridgeUnavailableError when:
- *  - Not running on Android (and CC_ANDROID_BRIDGE_OVERRIDE != 1)
- *  - Running on Android but native binding failed to load
- *  - Method is not registered in the native binding
+ *  - Not running on Android and CC_ANDROID_BRIDGE_OVERRIDE != 1
+ *  - Running on Android but bridge config (port/token) missing
+ *  - HTTP request fails or server returns non-200
+ *  - Method name unknown (server returns {"error": "UNKNOWN_METHOD"})
  */
 export async function invoke(method, params = {}) {
   if (typeof method !== "string" || method.length === 0) {
@@ -93,7 +115,7 @@ export async function invoke(method, params = {}) {
     );
   }
 
-  // Test path — _deps.testInvoke replaced by harness.
+  // Test path — harness replaces _deps.testInvoke.
   if (
     process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1" &&
     typeof _deps.testInvoke === "function"
@@ -107,23 +129,45 @@ export async function invoke(method, params = {}) {
     );
   }
 
-  const native = _deps.loadNativeBinding();
-  if (!native) {
+  const config = _deps.loadBridgeConfig();
+  if (!config) {
     throw new AndroidBridgeUnavailableError(
-      "native binding cc-android-bridge.node missing — A6 JNI module not yet bundled",
+      "bridge config missing — CcAndroidBridgeServer not started? (filesDir/.chainlesschain/bridge/{port,token})",
     );
   }
-  if (typeof native.invoke !== "function") {
+
+  const url = `${config.baseUrl}/invoke?method=${encodeURIComponent(method)}`;
+  let resp;
+  try {
+    resp = await _deps.fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.token}`,
+      },
+      body: JSON.stringify(params || {}),
+    });
+  } catch (e) {
     throw new AndroidBridgeUnavailableError(
-      "native binding loaded but does not export invoke()",
+      `HTTP transport error: ${e && e.message ? e.message : String(e)}`,
     );
   }
-  return await native.invoke(method, params);
+  if (!resp.ok) {
+    throw new AndroidBridgeUnavailableError(`bridge HTTP ${resp.status}`);
+  }
+  const text = await resp.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new AndroidBridgeUnavailableError(
+      `bridge returned non-JSON: ${text.slice(0, 200)}`,
+    );
+  }
 }
 
 /**
- * Check whether the bridge is usable right now without throwing.
- * Returns `{ available: boolean, reason?: string }`.
+ * Check whether the bridge is reachable right now without throwing.
+ * Returns `{ available: boolean, reason?: string, port?: number }`.
  */
 export function caps() {
   if (process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1") {
@@ -135,22 +179,22 @@ export function caps() {
       reason: `not-on-android (platform=${process.platform})`,
     };
   }
-  const native = _deps.loadNativeBinding();
-  if (!native) {
+  const config = _deps.loadBridgeConfig();
+  if (!config) {
     return {
       available: false,
-      reason: "native-binding-missing (A6 pending)",
+      reason: "bridge-server-not-started (port/token files missing)",
     };
   }
-  return { available: true };
+  return { available: true, port: config.port };
 }
 
 // _deps injection seam (per [[feedback-vi-mock-cjs-interop]]). Tests reach in
-// and replace these to exercise both success + error paths without needing
-// a real Android device or the unloaded native binding.
+// and replace these to exercise success / error paths without a real device.
 export const _deps = {
   detectAndroid,
-  loadNativeBinding,
+  loadBridgeConfig,
+  fetch: globalThis.fetch.bind(globalThis),
   testInvoke: null,
 };
 
