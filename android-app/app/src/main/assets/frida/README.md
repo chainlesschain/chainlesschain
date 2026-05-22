@@ -1,21 +1,32 @@
 # Android `assets/frida/` — WeChat Phase 12.10 bundle dir
 
-Files this directory should contain for the WeChat in-app collector to function on a real device:
+Files this directory contains for the WeChat in-app collector to function on a real device:
 
 | File | Status | Source | Size |
 |------|--------|--------|------|
-| `wechat-key-hook.js` | ✅ shipped (v0.1) | byte-mirror of `packages/personal-data-hub/lib/adapters/wechat/frida-agent/wechat-key-hook.js` | ~9 KB |
-| `frida-inject-arm64` | ❌ pending v0.2 | frida-core 16.x release `frida-inject-android-arm64` | ~7-10 MB |
-| `frida-inject-arm` | ❌ pending v0.2 | frida-core 16.x release `frida-inject-android-arm` | ~7-10 MB |
+| `wechat-key-hook.js` | ✅ shipped v0.1 | byte-mirror of `packages/personal-data-hub/lib/adapters/wechat/frida-agent/wechat-key-hook.js` | ~11 KB |
+| `frida-inject-arm64` | ✅ shipped v0.2 | [frida 16.5.9 release](https://github.com/frida/frida/releases/tag/16.5.9) — `frida-inject-16.5.9-android-arm64.xz` (xz -d) | 54 MB |
+| `frida-inject-arm` | ✅ shipped v0.2 | [frida 16.5.9 release](https://github.com/frida/frida/releases/tag/16.5.9) — `frida-inject-16.5.9-android-arm.xz` (xz -d) | 26 MB |
 
-## Why the binaries are missing
+**APK impact**: +80MB raw, ~30MB compressed in APK (xz→none re-compression by aapt2 helps but not much). v0.2 ships this to sideload / OEM stores only — Play Store rejection assumed.
 
-The two `frida-inject` binaries are intentionally excluded from v0.1 because:
-1. They cannot be verified to actually work on a Win dev box (no rooted Android device, no Magisk-su)
-2. They bloat the APK +14-20 MB
-3. They get this app flagged on Play Store as "embeds executable code that modifies other apps' behavior"
+## Verification (after build)
 
-v0.2 ships them gated behind a build variant (or sideload-only flavor) once a real-device E2E pass on Xiaomi/Magisk + WeChat 8.0.50+ proves the injection actually attaches.
+```bash
+# Confirm binaries are valid ELF for Android ARM
+file android-app/app/src/main/assets/frida/frida-inject-arm64
+# expected: ELF 64-bit LSB shared object, ARM aarch64, ... for Android 21 ...
+
+file android-app/app/src/main/assets/frida/frida-inject-arm
+# expected: ELF 32-bit LSB shared object, ARM, EABI5 ... for Android 19 ...
+
+# Sanity check size — frida 16.5.9 native binaries are ~54MB/26MB
+ls -lh android-app/app/src/main/assets/frida/
+```
+
+## Upgrade path (when frida releases 16.6.x or 17.x)
+
+The agent JS is version-agnostic, but the binaries are tied to frida release. To bump:
 
 ## When you add the binaries
 
