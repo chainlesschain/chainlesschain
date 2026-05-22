@@ -44,12 +44,12 @@ class HubAuditViewModelTest {
     fun tearDown() { Dispatchers.resetMain() }
 
     @Test
-    fun `init reload fetches first page with null action and limit 50`() = runTest(testDispatcher) {
+    fun `init reload fetches first page with null action and default limit`() = runTest(testDispatcher) {
         val rows = listOf(
             AuditRow(at = 1000L, action = "ask", adapter = null, actor = "user"),
             AuditRow(at = 1100L, action = "ingest", adapter = "email-imap")
         )
-        coEvery { hub.recentAudit(action = null, limit = 50) } returns
+        coEvery { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = rows))
 
         val vm = HubAuditViewModel(hub)
@@ -58,14 +58,14 @@ class HubAuditViewModelTest {
         assertEquals(2, vm.uiState.value.rows.size)
         assertEquals("ask", vm.uiState.value.rows[0].action)
         assertTrue(!vm.uiState.value.isLoading)
-        coVerify(exactly = 1) { hub.recentAudit(action = null, limit = 50) }
+        coVerify(exactly = 1) { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) }
     }
 
     @Test
     fun `setActionFilter reapplies reload with new filter`() = runTest(testDispatcher) {
-        coEvery { hub.recentAudit(action = null, limit = 50) } returns
+        coEvery { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = emptyList()))
-        coEvery { hub.recentAudit(action = "ingest", limit = 50) } returns
+        coEvery { hub.recentAudit(action = "ingest", limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = listOf(AuditRow(at = 1L, action = "ingest"))))
 
         val vm = HubAuditViewModel(hub)
@@ -75,7 +75,7 @@ class HubAuditViewModelTest {
 
         assertEquals("ingest", vm.uiState.value.actionFilter)
         assertEquals(1, vm.uiState.value.rows.size)
-        coVerify(exactly = 1) { hub.recentAudit(action = "ingest", limit = 50) }
+        coVerify(exactly = 1) { hub.recentAudit(action = "ingest", limit = DEFAULT_AUDIT_LIMIT) }
     }
 
     @Test
@@ -92,12 +92,12 @@ class HubAuditViewModelTest {
 
         assertNull(vm.uiState.value.actionFilter)
         // init reload + setActionFilter(null) → 2 calls with action=null
-        coVerify(exactly = 2) { hub.recentAudit(action = null, limit = 50) }
+        coVerify(exactly = 2) { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) }
     }
 
     @Test
     fun `reload failure clears loading and surfaces errorMessage`() = runTest(testDispatcher) {
-        coEvery { hub.recentAudit(action = null, limit = 50) } returns
+        coEvery { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.failure(RuntimeException("DC closed"))
 
         val vm = HubAuditViewModel(hub)
@@ -110,9 +110,9 @@ class HubAuditViewModelTest {
 
     @Test
     fun `manual reload after filter change refetches with current filter and limit`() = runTest(testDispatcher) {
-        coEvery { hub.recentAudit(action = null, limit = 50) } returns
+        coEvery { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = emptyList()))
-        coEvery { hub.recentAudit(action = "sync", limit = 50) } returns
+        coEvery { hub.recentAudit(action = "sync", limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = listOf(AuditRow(at = 9L, action = "sync"))))
 
         val vm = HubAuditViewModel(hub)
@@ -123,13 +123,13 @@ class HubAuditViewModelTest {
         advanceUntilIdle()
 
         // setActionFilter triggers 1 reload + manual reload() = 2 calls with "sync"
-        coVerify(exactly = 2) { hub.recentAudit(action = "sync", limit = 50) }
+        coVerify(exactly = 2) { hub.recentAudit(action = "sync", limit = DEFAULT_AUDIT_LIMIT) }
     }
 
     // ─── Phase 14.3.3.b deep-link tests ─────────────────────────────────
 
     private fun stubReloadEmpty() {
-        coEvery { hub.recentAudit(action = null, limit = 50) } returns
+        coEvery { hub.recentAudit(action = null, limit = DEFAULT_AUDIT_LIMIT) } returns
             Result.success(AuditRowsResponse(rows = emptyList()))
     }
 
