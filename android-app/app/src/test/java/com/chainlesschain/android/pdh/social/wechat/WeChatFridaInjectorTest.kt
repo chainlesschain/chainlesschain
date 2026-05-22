@@ -73,7 +73,7 @@ class WeChatFridaInjectorTest {
     }
 
     @Test
-    fun `parseKeyLine accepts frida-inject [send] prefixed line`() {
+    fun `parseKeyLine accepts frida-inject send prefixed line`() {
         val hex = "a".repeat(64)
         val fixture = """[send] {"kind":"key","hex":"$hex","source":"sqlite3_key"}"""
         val parsed = injector.parseKeyLine(fixture)
