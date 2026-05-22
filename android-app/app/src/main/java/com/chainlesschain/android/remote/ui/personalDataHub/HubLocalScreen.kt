@@ -91,6 +91,12 @@ fun HubLocalScreen(
                         val vendorKey = pending.adapterName.removePrefix("ai-chat:")
                         viewModel.onAiChatLoginCookie(vendorKey, cookie)
                     }
+                    pending.adapterName.startsWith("travel:") -> {
+                        // §2.5 D8.2 — 出行 vendor 共用 WebView cookie scrape；
+                        // adapterName 携 "travel:<vendorKey>" 形态。
+                        val vendorKey = pending.adapterName.removePrefix("travel:")
+                        viewModel.onTravelLoginCookie(vendorKey, cookie)
+                    }
                     else -> viewModel.cancelLogin()
                 }
             },
@@ -282,13 +288,14 @@ fun HubLocalScreen(
             }
 
             // ─── 出行（推文 §"出行": 高德 / 携程）───────────────────────
-            // D8.1: 2 provider sub-cards (travel-amap OAuth / travel-ctrip 登录)
+            // D8.1: 2 provider sub-cards (travel-amap / travel-ctrip)
+            // §2.5 D8.2: button 接通 → requestTravelLogin(vendorKey) → 推
+            // pendingLogin → SocialCookieWebViewScreen WebView → cookie 写
+            // EncryptedSharedPreferences。Sync 走 cc hub sync travel-{vendor}.
             item("section-travel") { SectionHeader("出行") }
             item("travel-providers") {
                 TravelGroup(
-                    onProviderLogin = { key ->
-                        Timber.i("HubLocalScreen: travel login TODO key=$key")
-                    },
+                    onProviderLogin = { key -> viewModel.requestTravelLogin(key) },
                 )
             }
 

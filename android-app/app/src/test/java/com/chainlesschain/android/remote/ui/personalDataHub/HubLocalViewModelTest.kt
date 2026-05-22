@@ -11,6 +11,7 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
+import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
@@ -58,6 +59,7 @@ class HubLocalViewModelTest {
     private lateinit var aiChatCredentials: AiChatCredentialsStore
     private lateinit var emailCredentials: EmailCredentialsStore
     private lateinit var emailCollector: EmailLocalCollector
+    private lateinit var travelCredentials: TravelCredentialsStore
     private lateinit var appContext: Context
 
     @Before
@@ -73,6 +75,7 @@ class HubLocalViewModelTest {
         aiChatCredentials = mockk(relaxed = true)
         emailCredentials = mockk(relaxed = true)
         emailCollector = mockk(relaxed = true)
+        travelCredentials = mockk(relaxed = true)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -104,6 +107,7 @@ class HubLocalViewModelTest {
             aiChatCredentials,
             emailCredentials,
             emailCollector,
+            travelCredentials,
             appContext,
         )
 
@@ -1239,6 +1243,145 @@ class HubLocalViewModelTest {
         io.mockk.verify { emailCredentials.clear("qq") }
         assertFalse(vm.state.value.email["qq"]?.hasCredentials ?: true)
         assertTrue(vm.state.value.email["gmail"]?.hasCredentials == true)
+    }
+
+    // ─── §2.5 D8.2 — Travel (高德 / 携程) cookie scrape ────────────────────
+
+    @Test
+    fun `init renders 2 travel vendor cards`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        val keys = vm.state.value.travel.keys
+        assertEquals(2, keys.size)
+        assertTrue("travel-amap" in keys)
+        assertTrue("travel-ctrip" in keys)
+    }
+
+    @Test
+    fun `requestTravelLogin sets pendingLogin with travel prefix`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestTravelLogin("travel-ctrip")
+        val p = vm.state.value.pendingLogin
+        assertNotNull(p)
+        assertEquals("travel:travel-ctrip", p.adapterName)
+        assertEquals("携程", p.displayName)
+        assertTrue(p.loginUrl.contains("accounts.ctrip.com"))
+        // isLoginSuccess: 已到 www.ctrip.com / my.ctrip.com 为登录成功
+        assertTrue(p.isLoginSuccess("https://www.ctrip.com/"))
+        assertTrue(p.isLoginSuccess("https://my.ctrip.com/orders"))
+        assertFalse(p.isLoginSuccess("https://accounts.ctrip.com/sso/login"))
+    }
+
+    @Test
+    fun `onTravelLoginCookie saves cookie + refreshes isLoggedIn`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials("travel-amap") } returnsMany listOf(false, true)
+        every { travelCredentials.saveCookie(any(), any()) } just runs
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.state.value.travel["travel-amap"]?.isLoggedIn ?: true)
+        vm.requestTravelLogin("travel-amap")
+        vm.onTravelLoginCookie("travel-amap", "_uab_collina=stub; passport=abc")
+        advanceUntilIdle()
+        io.mockk.verify { travelCredentials.saveCookie("travel-amap", "_uab_collina=stub; passport=abc") }
+        assertNull(vm.state.value.pendingLogin)
+        assertTrue(vm.state.value.travel["travel-amap"]?.isLoggedIn == true)
+    }
+
+    @Test
+    fun `onTravelLoginCookie blank cookie surfaces error not saveCookie`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestTravelLogin("travel-ctrip")
+        vm.onTravelLoginCookie("travel-ctrip", "")
+        advanceUntilIdle()
+        assertNull(vm.state.value.pendingLogin)
+        io.mockk.verify(exactly = 0) { travelCredentials.saveCookie(any(), any()) }
+        assertTrue(vm.state.value.travel["travel-ctrip"]?.errorMessage?.contains("cookie") == true)
+    }
+
+    @Test
+    fun `syncTravel when not logged in triggers requestTravelLogin instead`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials(any()) } returns false
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncTravel("travel-amap")
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.pendingLogin)
+        assertEquals("travel:travel-amap", vm.state.value.pendingLogin?.adapterName)
+        io.mockk.coVerify(exactly = 0) { ccRunner.syncAdapter(any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncTravel Ok records lastSync + clears error`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        every { travelCredentials.hasCredentials("travel-ctrip") } returns true
+        every { travelCredentials.hasCredentials(match<String> { it != "travel-ctrip" }) } returns false
+        every { travelCredentials.getCookie("travel-ctrip") } returns "cookie-stub"
+        every { travelCredentials.recordSync(any(), any(), any()) } just runs
+        coEvery { ccRunner.syncAdapter("travel-ctrip", any(), any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "travel-ctrip",
+                    status = "ok",
+                    ingested = 18,
+                    invalidCount = 0,
+                    kgTriples = 0,
+                    ragDocs = 0,
+                    durationMs = 90L,
+                    error = null,
+                ),
+                rawJson = "{}",
+            )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncTravel("travel-ctrip")
+        advanceUntilIdle()
+
+        val card = vm.state.value.travel["travel-ctrip"]!!
+        assertFalse(card.isSyncing)
+        assertNotNull(card.lastSyncAt)
+        assertEquals(18, card.lastSyncCount)
+        assertNull(card.errorMessage)
+        io.mockk.verify { travelCredentials.recordSync("travel-ctrip", any(), 18) }
+    }
+
+    @Test
+    fun `syncTravel cc not-found surfaces v0_2 hint`() = runTest(testDispatcher) {
+        val filesDir = java.io.File.createTempFile("files", "").let { it.delete(); it.mkdirs(); it }
+        every { appContext.filesDir } returns filesDir
+        every { travelCredentials.hasCredentials("travel-amap") } returns true
+        every { travelCredentials.hasCredentials(match<String> { it != "travel-amap" }) } returns false
+        every { travelCredentials.getCookie("travel-amap") } returns "cookie-stub"
+        coEvery { ccRunner.syncAdapter(any(), any(), any()) } returns
+            LocalCcRunner.CcResult.Failed("unknown adapter: travel-amap", 1, null)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncTravel("travel-amap")
+        advanceUntilIdle()
+        val card = vm.state.value.travel["travel-amap"]!!
+        assertFalse(card.isSyncing)
+        assertTrue(card.errorMessage?.contains("v0.2") == true)
+    }
+
+    @Test
+    fun `logoutTravel clears one vendor without disturbing the other`() = runTest(testDispatcher) {
+        every { travelCredentials.hasCredentials("travel-amap") } returnsMany listOf(true, false)
+        every { travelCredentials.hasCredentials("travel-ctrip") } returns true
+        every { travelCredentials.clear("travel-amap") } just runs
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.travel["travel-amap"]?.isLoggedIn == true)
+        assertTrue(vm.state.value.travel["travel-ctrip"]?.isLoggedIn == true)
+        vm.logoutTravel("travel-amap")
+        advanceUntilIdle()
+        io.mockk.verify { travelCredentials.clear("travel-amap") }
+        assertFalse(vm.state.value.travel["travel-amap"]?.isLoggedIn ?: true)
+        assertTrue(vm.state.value.travel["travel-ctrip"]?.isLoggedIn == true)
     }
 
     @Test
