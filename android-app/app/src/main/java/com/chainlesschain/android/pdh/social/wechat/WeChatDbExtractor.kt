@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.zetetic.database.sqlcipher.SQLiteConnection
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import net.zetetic.database.sqlcipher.SQLiteDatabaseHook
 import org.json.JSONArray
@@ -137,7 +138,9 @@ class WeChatDbExtractor @Inject constructor(
         val srcDir = "/data/data/com.tencent.mm/MicroMsg/$srcDirMd5"
         val srcDb = "$srcDir/EnMicroMsg.db"
 
-        if (!suExec("test -f $srcDb", timeoutMs = 5_000)) {
+        // Kotlin disallows named arguments for function types (var suExec
+        // is a (String, Long) -> Boolean lambda) — pass positionally.
+        if (!suExec("test -f $srcDb", 5_000)) {
             return@withContext ExtractResult.SourceDbMissing
         }
 
@@ -245,14 +248,17 @@ class WeChatDbExtractor @Inject constructor(
         for (profile in knownProfiles) {
             val attempted = AtomicBoolean(false)
             try {
+                // SQLCipher 4.12 (net.zetetic) — hook callbacks now receive
+                // SQLiteConnection (not SQLiteDatabase). execSQL → execute with
+                // null bindArgs + null CancellationSignal.
                 val hook = object : SQLiteDatabaseHook {
-                    override fun preKey(db: SQLiteDatabase) {
+                    override fun preKey(db: SQLiteConnection) {
                         attempted.set(true)
                         for (p in profile.preKeyPragmas) {
-                            db.execSQL(p)
+                            db.execute(p, null, null)
                         }
                     }
-                    override fun postKey(db: SQLiteDatabase) { /* no-op */ }
+                    override fun postKey(db: SQLiteConnection) { /* no-op */ }
                 }
                 val pwdBytes = when (keyMaterial) {
                     // SQLCipher PBKDF2-derives 7-char hex into the AES key
@@ -332,7 +338,7 @@ class WeChatDbExtractor @Inject constructor(
             append(" ; if [ -f $walSrc ] ; then cp $walSrc ${dstPath}-wal && chmod 644 ${dstPath}-wal ; fi")
             append(" ; if [ -f $shmSrc ] ; then cp $shmSrc ${dstPath}-shm && chmod 644 ${dstPath}-shm ; fi")
         }
-        return if (suExec(script, timeoutMs = 30_000)) {
+        return if (suExec(script, 30_000)) {
             Result.success(Unit)
         } else {
             Result.failure(RuntimeException("su cp pipeline returned non-zero"))

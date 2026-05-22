@@ -136,7 +136,7 @@ class WeChatFridaInjector @Inject constructor(
                 append(" && cp ${stagedAgent.absolutePath} $tmpAgent")
                 append(" && chmod 0644 $tmpAgent")
             }
-            if (!suExec(stageScript, timeoutMs = 15_000)) {
+            if (!suExec(stageScript, 15_000)) {
                 Timber.w("WeChatFridaInjector.extractKey: su stage to /data/local/tmp failed")
                 return@withContext KeyResult.InjectFailed(
                     exitCode = -1,
@@ -381,7 +381,8 @@ class WeChatFridaInjector @Inject constructor(
         // Best-effort cleanup. /data/local/tmp persists across reboots so
         // leaving stale files there is a forensics liability.
         val script = paths.joinToString(" ; ") { "rm -f $it" }
-        try { suExec(script, timeoutMs = 5_000) } catch (_: Throwable) { /* ignore */ }
+        // Function-type call (var suExec is (String, Long) -> Boolean) — no named args.
+        try { suExec(script, 5_000) } catch (_: Throwable) { /* ignore */ }
     }
 
     // ─── ABI detection ──────────────────────────────────────────────────────
@@ -408,16 +409,19 @@ class WeChatFridaInjector @Inject constructor(
     }
 
     private class ContextAssetReader(private val context: Context) : AssetReader {
-        override fun exists(path: String): Boolean = try {
+        override fun exists(path: String): Boolean {
+            // Expression body cannot contain `return` (Kotlin spec) — use block.
             // listAssets parent dir + filter to avoid open() on missing file,
             // which throws FileNotFoundException (caller has to catch).
-            val parent = path.substringBeforeLast('/', "")
-            val name = path.substringAfterLast('/')
-            val siblings = context.assets.list(parent) ?: return false
-            siblings.contains(name)
-        } catch (t: Throwable) {
-            Timber.d(t, "WeChatFridaInjector.AssetReader.exists($path) threw")
-            false
+            return try {
+                val parent = path.substringBeforeLast('/', "")
+                val name = path.substringAfterLast('/')
+                val siblings = context.assets.list(parent) ?: return false
+                siblings.contains(name)
+            } catch (t: Throwable) {
+                Timber.d(t, "WeChatFridaInjector.AssetReader.exists($path) threw")
+                false
+            }
         }
 
         override fun copyTo(path: String, dst: File) {
