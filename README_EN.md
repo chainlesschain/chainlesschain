@@ -2,9 +2,32 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-## 2026-05-22 Ship — **PDH A8 v0.1: Android-only social collection (Bilibili end-to-end + 3 platform placeholders)**
+## 2026-05-22 Ship — **PDH v0.2 burst: 11 platforms wired + WeChat / QQ real-capture + Android on-device LLM scaffold (v5.0.3.80)**
 
-> Plan A v0.1's "本机数据" (Local Data) tab expands from 1 card (`system-data-android`) to 5. Bilibili end-to-end ships (WebView login + OkHttp 4 endpoints + local SQLCipher vault); Weibo/Douyin/Xiaohongshu render as placeholder cards (v0.2 implementation). **Fully desktop-independent** — Android handles cookie capture + HTTP + JSON parsing + encrypted local storage without any desktop connection.
+> Expanded PDH from v0.1 (Bilibili only) to **v0.2 real-connect across 11 platforms** in a single day: social content (Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou) + shopping (JD / Meituan / Pinduoduo / Taobao / Alipay) + travel & maps (Amap / Ctrip / Baidu Maps / Tencent Maps) + AI assistants 9-route WebView (DeepSeek / Kimi / Tongyi / Zhipu / Tencent Hunyuan / Wenxin / Coze / Dreamina / Doubao) + email 4 IMAP providers (QQ / Gmail / 163 / Outlook via Jakarta Mail). WeChat Phase 12.10 four sub-phases complete — SQLCipher real decrypt + frida-inject real injection + 16.5.9 binary vendored + APK shipped to Xiaomi real device; QQ Phase 13.5 v0.2 — XOR-IMEI algorithm byte-identical to sjqz port, no SQLCipher, no frida, just root + IMEI. Android on-device LLM full-chain skeleton landed (Ktor server + ModelManager + cc spawn + PDH "ask locally" tab).
+
+- **Platform v0.2 upgrades (11 placeholder cards → real-connect)**:
+  - Social content: Weibo (`c087c36eb`) / Douyin (`20f9b2188`) / Xiaohongshu (`20f9b2188`) / Toutiao (`e1155b1d7`) / Kuaishou (`e1155b1d7`) — all dual-mode (Android in-app snapshot + desktop cookie)
+  - Shopping: JD/Meituan dual-mode (`f3cbd0693`) / Pinduoduo SAF JSON (`78695c25e`) / Taobao HTML + Alipay CSV (`799e364f0`)
+  - Travel & maps: Amap/Ctrip cookie-scrape WebView (`0fe572f2`) / Baidu Maps/Tencent Maps (`3d1cf9481`)
+  - AI assistants: 9-route WebView cookie scrape + cc sync wire (`1e7725552`); 8 cards enable (`20e0318b4`)
+  - Email: QQ/Gmail/163/Outlook 4 providers IMAP real-connect via Jakarta Mail (`7777f5bec`)
+- **WeChat in-app collector Phase 12.10 (all 4 sub-phases landed)**: 12.10.1+12.10.2 scaffold (`8c52d5963`) → 12.10.3 SQLCipher real decrypt (`8081f8a0d`) sjqz MD5(IMEI+UIN)[:7] 7.x + frida 64-hex 8.x dual paths + 3 PRAGMA profile fallback + WAL+SHM cohort → 12.10.4 frida-inject (`37a4e465d`) spawn /data/local/tmp/cc-* + 5-symbol hook → 12.10.6 prereq vendor frida 16.5.9 arm64+armeabi-v7a APK ship (`cdfe1048e`). Phase 12.10.5 cc syncAdapter wechat --input wire was already in. Remaining 12.10.6 real-device E2E requires a root device + Magisk.
+- **QQ Phase 13.5 v0.2 (`a07731b46`)**: XOR-IMEI algorithm byte-identical to sjqz `qq.py`. **The QQ path is fundamentally different from WeChat** — QQ Android uses plain SQLite + per-row IMEI XOR-cycle encryption on msgData, so no sqlcipher-android, no frida, just root + IMEI input. 4 Kotlin files (QQXorDecryptor / QQCredentialsStore / QQDbExtractor / QQLocalCollector) + 27 Kotlin unit tests + JS 13 snapshot + 6 longtail all green.
+- **A3 Android on-device LLM full-chain skeleton (724 LOC)**: Ktor LLM server :11434 + ModelManager + cc spawn embedded OllamaClient (`f41f06441`) + KotlinLlamaCppEngine skeleton (`8f023052a`). Architecture HTTP-Hybrid (Kotlin Ktor ↔ in-APK cc OllamaClient). Remaining Maven deps + JNI + real device ~5-7d (needs Mac/Linux + Android NDK).
+- **Three locks UI + real wiring**: reject cloud / destroy / export — `cc hub export` wired through; D11 SAF picker upgraded to user-chosen location (`7e4fa844f`).
+- **AI citation real wiring** (`3a76ee5e4`): `cc hub event-detail` + citation chip taps → event detail sheet.
+- **release.yml chain fix** (`12d1391d1`): split workspace deps publish into a prereq job — breaks the v5.0.3.79 desktop build chicken-and-egg.
+- **Test baseline refresh**: 93 new snapshot tests (weibo 8 / douyin 8 / xhs 8 / toutiao 8 / kuaishou 8 / jd 8 / meituan 8 / pinduoduo 8 / baidu-map 8 / tencent-map 8 / qq 13) + WeChat Phase 12.10 51 new unit tests + QQ Phase 13.5 27 Kotlin unit tests. Same-day 3 stale-assertion fixes (longtail Douyin uid / analysis TOTALS regex / hub-command subcommand snapshot) — 156/156 PDH snapshot + 101/101 desktop PDH + 87/87 CLI hub all green.
+- **Version surfaces**: productVersion v5.0.3.78 → v5.0.3.80 / CLI 0.162.14 → 0.162.16 / npm `@chainlesschain/personal-data-hub` 0.2.1 → 0.2.3 / Android versionCode 503080 / iOS CFBundleVersion 80.
+
+Memory captured: `android_wechat_collector_phase_12_10.md` (8 traps + 5 real-device blockers) + `android_qq_collector_phase_13_5.md` (10 traps) + `pdh_a8_weibo_v0_2_landed.md` + `pdh_a3_skeleton_landed.md` + `wechat_frida_hook_audit_traps.md`. Full PDH v0.2 roadmap in [`docs/chainlesschain/personal-data-hub.md`](docs-site/docs/chainlesschain/personal-data-hub.md) and [`docs/design/PDH_Article_Implementation_Plan.md`](docs/design/PDH_Article_Implementation_Plan.md).
+
+---
+
+## 2026-05-22 Ship (earlier) — **PDH A8 v0.1: Android-only social collection (Bilibili end-to-end + 3 platform placeholders)**
+
+> Plan A v0.1's "本机数据" (Local Data) tab expands from 1 card (`system-data-android`) to 5. Bilibili end-to-end ships (WebView login + OkHttp 4 endpoints + local SQLCipher vault); Weibo/Douyin/Xiaohongshu render as placeholder cards (**v0.2 complete — see above**). **Fully desktop-independent** — Android handles cookie capture + HTTP + JSON parsing + encrypted local storage without any desktop connection.
 
 - **Bilibili end-to-end**: `packages/personal-data-hub/lib/adapters/social-bilibili/{adapter,index}.js` JS adapter refactor (stateless constructor + new `_syncViaSnapshot(opts.inputPath)` mode alongside legacy sqlite-mode) + 4 Kotlin files (`SocialCookieWebViewScreen` generic 4-platform reusable / `BilibiliApiClient` OkHttp 4 endpoints / `BilibiliCredentialsStore` EncryptedSharedPreferences AES-256-GCM / `BilibiliLocalCollector` orchestrator). 4 event kinds (history/favourite/dynamic/follow) yield + normalize into the vault.
 - **HubLocalScreen multi-card refactor**: 5 adapter cards + login WebView overlay + `globalSyncingAdapter` mutex. Weibo/Douyin/Xiaohongshu show "v0.2 开放" state; tapping login/sync surfaces a toast.

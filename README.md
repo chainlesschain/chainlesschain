@@ -2,9 +2,32 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-## 2026-05-22 收口 — **PDH A8 v0.1：Android 完全独立社交数据采集（Bilibili 端到端 + 3 平台占位）**
+## 2026-05-22 收口 — **PDH v0.2 大爆发：11 平台真接通 + WeChat / QQ 真采集 + Android 端侧 LLM 骨架 (v5.0.3.80)**
 
-> Plan A v0.1 的 "本机数据" tab 从 1 张卡（system-data-android）扩展到 5 张。Bilibili 端到端 ship（WebView 登录 + OkHttp 4 端点 + 本机 SQLCipher vault），微博/抖音/小红书占位卡片（v0.2 实施）。**全程不依赖桌面在线** — Android 内完成 cookie 抓取 + HTTP 拉取 + JSON 解析 + 本机加密存储。
+> 一日内把 PDH 从 v0.1（Bilibili 一家） 推到 **v0.2 真接通 11 平台**：社交内容 (微博/抖音/小红书/头条/快手) + 购物 (京东/美团/拼多多/淘宝/支付宝) + 出行地图 (高德/携程/百度地图/腾讯地图) + AI 助手 9 路 WebView (DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 文心一言 / 字节扣子 / 即梦 / 豆包) + 邮箱 4 家 IMAP (QQ / Gmail / 163 / Outlook via Jakarta Mail) 真接通。WeChat Phase 12.10 4 子阶完成 — SQLCipher 真解密 + frida-inject 真注入 + 16.5.9 binary vendored + APK ship 到 Xiaomi 真机；QQ Phase 13.5 v0.2 — XOR-IMEI 算法 byte-identical sjqz 移植，无需 SQLCipher 无需 frida，仅 root + IMEI。Android 端侧 LLM 全链路 skeleton 落地 (Ktor server + ModelManager + cc spawn + PDH 本机提问 tab)。
+
+- **平台 v0.2 升级一览（11 placeholder 卡 → 真接通）**：
+  - 社交内容：微博 (`c087c36eb`) / 抖音 (`20f9b2188`) / 小红书 (`20f9b2188`) / 头条 (`e1155b1d7`) / 快手 (`e1155b1d7`) — 全 dual-mode (Android in-app snapshot + 桌面 cookie)
+  - 购物：京东/美团 dual-mode (`f3cbd0693`) / 拼多多 SAF JSON (`78695c25e`) / 淘宝 HTML + 支付宝 CSV (`799e364f0`)
+  - 出行地图：高德/携程 cookie-scrape WebView (`0fe572f2`) / 百度地图/腾讯地图 (`3d1cf9481`)
+  - AI 助手：9 路 WebView cookie scrape + cc sync wire (`1e7725552`)；8 卡 enable (`20e0318b4`)
+  - 邮箱：QQ/Gmail/163/Outlook 4 家 IMAP 真 Jakarta Mail 接通 (`7777f5bec`)
+- **WeChat in-app collector Phase 12.10 (4 sub-phase 全 land)**：12.10.1+12.10.2 scaffold (`8c52d5963`) → 12.10.3 SQLCipher 真解密 (`8081f8a0d`) sjqz MD5(IMEI+UIN)[:7] 7.x + frida 64-hex 8.x 双路径 + 3 PRAGMA profile fallback + WAL+SHM cohort → 12.10.4 frida-inject (`37a4e465d`) spawn /data/local/tmp/cc-* + 5-symbol hook → 12.10.6 prereq vendor frida 16.5.9 arm64+armeabi-v7a APK ship (`cdfe1048e`)。Phase 12.10.5 cc syncAdapter wechat --input wire 早 land。剩 12.10.6 真机 E2E 需 root 机子 + Magisk。
+- **QQ Phase 13.5 v0.2 (`a07731b46`)**：XOR-IMEI 算法 byte-identical sjqz `qq.py` 移植。**与 WeChat 路径根本不同** — QQ Android 用普通 SQLite + msgData 每行 IMEI XOR-cycle 加密，不需要 sqlcipher-android 不需要 frida — 仅 root + IMEI 输入。4 Kotlin (QQXorDecryptor / QQCredentialsStore / QQDbExtractor / QQLocalCollector) + 27 Kotlin unit tests + JS 13 snapshot + 6 longtail 全绿。
+- **A3 Android 端侧 LLM 全链路 skeleton (724 LOC)**：Ktor LLM server :11434 + ModelManager + cc spawn 内嵌 OllamaClient (`f41f06441`) + KotlinLlamaCppEngine 骨架 (`8f023052a`)。架构 HTTP-Hybrid (Kotlin Ktor ↔ in-APK cc OllamaClient)。剩 Maven deps + JNI + 真机 ~5-7d (需 Mac/Linux + Android NDK)。
+- **三道锁 UI + 真接通**：拒云 / 销毁 / 导出 — `cc hub export` 真接通；D11 SAF picker 升级到用户选位置 (`7e4fa844f`)。
+- **AI 给出处真接通** (`3a76ee5e4`)：`cc hub event-detail` + citation chip 点击跳事件详情 sheet。
+- **release.yml 链路修复** (`12d1391d1`)：split workspace deps publish 前置 job — 解 v5.0.3.79 desktop build chicken-and-egg。
+- **测试基线刷新**：93 新 snapshot tests (weibo 8 / douyin 8 / xhs 8 / toutiao 8 / kuaishou 8 / jd 8 / meituan 8 / pinduoduo 8 / baidu-map 8 / tencent-map 8 / qq 13) + WeChat Phase 12.10 51 新单测 + QQ Phase 13.5 27 Kotlin 单测。同日 3 stale-assertion fix（longtail Douyin uid / analysis TOTALS regex / hub-command 子命令快照）— 156/156 PDH snapshot + 101/101 desktop PDH + 87/87 CLI hub 全绿。
+- **版本面**：productVersion v5.0.3.78 → v5.0.3.80 / CLI 0.162.14 → 0.162.16 / npm `@chainlesschain/personal-data-hub` 0.2.1 → 0.2.3 / Android versionCode 503080 / iOS CFBundleVersion 80。
+
+memory 沉淀：`android_wechat_collector_phase_12_10.md`（8 trap + 5 真机 blocker）+ `android_qq_collector_phase_13_5.md`（10 trap）+ `pdh_a8_weibo_v0_2_landed.md` + `pdh_a3_skeleton_landed.md` + `wechat_frida_hook_audit_traps.md`。完整 PDH v0.2 路线见 [`docs/chainlesschain/personal-data-hub.md`](docs-site/docs/chainlesschain/personal-data-hub.md) 与 [`docs/design/PDH_Article_Implementation_Plan.md`](docs/design/PDH_Article_Implementation_Plan.md)。
+
+---
+
+## 2026-05-22 收口（earlier） — **PDH A8 v0.1：Android 完全独立社交数据采集（Bilibili 端到端 + 3 平台占位）**
+
+> Plan A v0.1 的 "本机数据" tab 从 1 张卡（system-data-android）扩展到 5 张。Bilibili 端到端 ship（WebView 登录 + OkHttp 4 端点 + 本机 SQLCipher vault），微博/抖音/小红书占位卡片（**v0.2 已完成 — 见上**）。**全程不依赖桌面在线** — Android 内完成 cookie 抓取 + HTTP 拉取 + JSON 解析 + 本机加密存储。
 
 - **Bilibili 端到端**：`packages/personal-data-hub/lib/adapters/social-bilibili/{adapter,index}.js` JS adapter 重构（stateless constructor + 新 `_syncViaSnapshot(opts.inputPath)` 模式 + 保留 legacy sqlite-mode）+ 4 个 Kotlin 文件（`SocialCookieWebViewScreen` 通用 4 平台共用 / `BilibiliApiClient` OkHttp 4 endpoint / `BilibiliCredentialsStore` EncryptedSharedPreferences AES-256-GCM / `BilibiliLocalCollector` 编排器）。4 类事件（观看历史/收藏/动态/关注）yield + normalize 进 vault。
 - **HubLocalScreen 多卡片重构**：5 张 adapter 卡片 + login WebView overlay + `globalSyncingAdapter` 互斥锁。微博/抖音/小红书显示 "v0.2 开放" 状态，点登录/同步触发 toast。
