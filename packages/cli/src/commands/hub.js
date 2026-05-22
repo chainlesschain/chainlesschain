@@ -43,9 +43,16 @@ async function cmdAsk(question, options) {
   try {
     const hub = await getHub();
     if (!hub.engine) throw new Error("Analysis engine unavailable");
+    // 推文 §三道锁第二把 "默认不许问云端" — acceptNonLocal 默认 false (拒云)。
+    // 优先 --accept-non-local CLI 旗，其次 env CC_HUB_ALLOW_NON_LOCAL (Android UI
+    // 拒云 toggle 通过 LocalCcRunner.askQuestion 透传)，否则维持 false。
+    const envAllow =
+      process.env.CC_HUB_ALLOW_NON_LOCAL === "1" ||
+      process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
+    const acceptNonLocal = !!options.acceptNonLocal || envAllow;
     const result = await hub.engine.ask(question, {
       useRag: options.useRag !== false,
-      acceptNonLocal: !!options.acceptNonLocal,
+      acceptNonLocal,
     });
     if (spinner) spinner.stop();
     if (options.json) {
