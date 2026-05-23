@@ -136,14 +136,22 @@ jobs:
           ./gradlew jacocoE2ETestReport --stacktrace --no-daemon
 
       - name: Upload Test Results
+        # Glob ALL modules, not just :app — connectedAndroidTest runs across
+        # every module that has an androidTest source set. The previous narrow
+        # path captured 0 reports when tests failed in core-common, core-
+        # blockchain, core-database, etc. (run 26321740702 reproducer:
+        # gradle reported "There were failing tests" for 4 modules; junit-
+        # action's "Found and parsed 0 test report files" + the "Upload Test
+        # Results" artifact came back empty).
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-api-${{ matrix.api-level }}
           path: |
-            android-app/app/build/reports/androidTests/
-            android-app/app/build/outputs/androidTest-results/
+            android-app/**/build/reports/androidTests/
+            android-app/**/build/outputs/androidTest-results/
           retention-days: 14
+          if-no-files-found: warn
 
       - name: Upload Test Screenshots
         if: failure()
@@ -173,10 +181,11 @@ jobs:
           fail_ci_if_error: false
 
       - name: Publish Test Report
+        # Same fix as Upload Test Results — glob ALL modules.
         if: always()
         uses: mikepenz/action-junit-report@v4
         with:
-          report_paths: 'android-app/app/build/outputs/androidTest-results/connected/*.xml'
+          report_paths: 'android-app/**/build/outputs/androidTest-results/connected/*.xml'
           check_name: E2E Test Results (API ${{ matrix.api-level }})
           detailed_summary: true
           include_passed: true
