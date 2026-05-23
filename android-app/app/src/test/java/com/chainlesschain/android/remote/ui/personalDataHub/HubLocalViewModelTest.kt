@@ -102,6 +102,11 @@ class HubLocalViewModelTest {
         every { weiboCredentials.getLastSyncAt() } returns null
         every { weiboCredentials.getLastSyncCount() } returns 0
         douyinCollector = mockk(relaxed = false)
+        // Default-stub the lastLoginError* getters so the strict mock doesn't
+        // throw on the success path (where VM never reads them). Failure-path
+        // tests override these to assert correct surfacing.
+        every { douyinCollector.lastLoginErrorCode } returns 0
+        every { douyinCollector.lastLoginErrorMessage } returns null
         douyinCredentials = mockk(relaxed = true)
         every { douyinCredentials.hasCredentials() } returns false
         every { douyinCredentials.getSecUid() } returns null
@@ -949,8 +954,13 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `onDouyinLoginCookie surfaces error when fetchProfile returns null`() = runTest(testDispatcher) {
+    fun `onDouyinLoginCookie surfaces apiClient error code+message when fetchProfile fails`() = runTest(testDispatcher) {
+        // Simulate the "ok but no sec_user_id" branch (anonymous shape) —
+        // apiClient sets code=-7 + dataKeys hint; VM should surface both.
         coEvery { douyinCollector.acceptLoginCookie(any(), any()) } returns false
+        every { douyinCollector.lastLoginErrorCode } returns -7
+        every { douyinCollector.lastLoginErrorMessage } returns
+            "ok but data lacks sec_user_id (cookie likely missing sessionid); dataKeys=[device_id,install_id]"
 
         val vm = newVm()
         advanceUntilIdle()
@@ -960,8 +970,29 @@ class HubLocalViewModelTest {
 
         assertNull(vm.state.value.pendingLogin)
         assertFalse(vm.state.value.douyin.isLoggedIn)
-        assertNotNull(vm.state.value.douyin.errorMessage)
-        assertTrue(vm.state.value.douyin.errorMessage!!.contains("sec_user_id"))
+        val err = vm.state.value.douyin.errorMessage
+        assertNotNull(err)
+        assertTrue(err!!.contains("code=-7"), "expected error to expose code; got: $err")
+        assertTrue(err.contains("sec_user_id"), "expected error to mention sec_user_id; got: $err")
+        assertTrue(err.contains("dataKeys=[device_id,install_id]"), "expected error to expose dataKeys hint; got: $err")
+    }
+
+    @Test
+    fun `onDouyinLoginCookie surfaces token-expired status_code 2154`() = runTest(testDispatcher) {
+        coEvery { douyinCollector.acceptLoginCookie(any(), any()) } returns false
+        every { douyinCollector.lastLoginErrorCode } returns 2154
+        every { douyinCollector.lastLoginErrorMessage } returns "token expired"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestDouyinLogin()
+        vm.onDouyinLoginCookie("sessionid=expired")
+        advanceUntilIdle()
+
+        val err = vm.state.value.douyin.errorMessage
+        assertNotNull(err)
+        assertTrue(err!!.contains("code=2154"), "expected token-expired code surface; got: $err")
+        assertTrue(err.contains("token expired"), "expected upstream msg surface; got: $err")
     }
 
     @Test

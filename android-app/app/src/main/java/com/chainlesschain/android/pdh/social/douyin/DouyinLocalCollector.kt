@@ -157,6 +157,9 @@ class DouyinLocalCollector @Inject constructor(
         credentialsStore.clear()
     }
 
+    val lastLoginErrorCode: Int get() = apiClient.lastErrorCode
+    val lastLoginErrorMessage: String? get() = apiClient.lastErrorMessage
+
     companion object {
         /**
          * Must equal SNAPSHOT_SCHEMA_VERSION in social-douyin/index.js

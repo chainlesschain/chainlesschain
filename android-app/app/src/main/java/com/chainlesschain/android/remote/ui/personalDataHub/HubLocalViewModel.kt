@@ -2115,7 +2115,14 @@ class HubLocalViewModel @Inject constructor(
                     pendingLogin = null,
                     douyin = it.douyin.copy(
                         errorMessage = if (!accepted) {
-                            "登录未完成 — passport/info/v2 未返 sec_user_id，cookie 可能不全请重试"
+                            // Surface the real apiClient error so users can tell
+                            // "cookie expired" (status_code=2154) apart from
+                            // "endpoint shape changed" (code=-5) apart from
+                            // "anonymous response" (code=-7).
+                            val code = douyinCollector.lastLoginErrorCode
+                            val detail = douyinCollector.lastLoginErrorMessage
+                                ?: "passport/info/v2 未返 sec_user_id"
+                            "登录未完成 — code=$code $detail（cookie 可能不全请重试）"
                         } else null,
                     ),
                 )
