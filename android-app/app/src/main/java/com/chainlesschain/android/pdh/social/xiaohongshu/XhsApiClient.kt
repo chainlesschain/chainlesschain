@@ -105,10 +105,43 @@ class XhsApiClient @Inject constructor() {
     suspend fun fetchMe(cookie: String): MeResult? = withContext(Dispatchers.IO) {
         val url = baseUrl.newBuilder().addPathSegments("api/sns/web/v1/user/me").build()
         val obj = doGetJson(url, cookie, requireSign = false) ?: return@withContext null
-        val success = obj.optBoolean("success", false)
-        if (!success) return@withContext null
-        val data = obj.optJSONObject("data") ?: return@withContext null
-        val uidStr = data.optString("user_id").takeIf { it.isNotBlank() } ?: return@withContext null
+        // doGetJson already gated on success!=false / code!=0 (sets lastError).
+        // The 3 branches below are reached only when xhs returns 200 + success=true
+        // + code=0 but a deeper shape problem — surface each with a distinct code
+        // so onXhsLoginCookie can tell them apart.
+        val success = obj.optBoolean("success", true)
+        if (!success) {
+            // Defensive — doGetJson should have caught this. If hit, xhs returned
+            // success=false but no code field (shape drift).
+            Timber.w(
+                "XhsApiClient: /user/me success=false but no code; body=%s",
+                obj.toString().take(500),
+            )
+            setLastError(-5, "/user/me success=false (no code field)")
+            return@withContext null
+        }
+        val data = obj.optJSONObject("data")
+        if (data == null) {
+            Timber.w(
+                "XhsApiClient: /user/me ok but no `data` object; body=%s",
+                obj.toString().take(500),
+            )
+            setLastError(-6, "/user/me ok but no `data` object")
+            return@withContext null
+        }
+        val uidStr = data.optString("user_id").takeIf { it.isNotBlank() }
+        if (uidStr == null) {
+            val dataKeys = data.keys().asSequence().toList().joinToString(",")
+            Timber.w(
+                "XhsApiClient: /user/me ok but user_id blank; dataKeys=[%s] body=%s",
+                dataKeys, obj.toString().take(500),
+            )
+            setLastError(
+                -7,
+                "/user/me ok but user_id blank (cookie likely missing web_session); dataKeys=[$dataKeys]",
+            )
+            return@withContext null
+        }
         val nickname = data.optStringOrNull("nickname")
         // user_id 是 base64-ish 字符串 (e.g. "5e8c..."), 不是数字。哈希成
         // Long 作 store 哨兵；真 user_id 走 displayName/extra 字段。

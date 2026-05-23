@@ -17,6 +17,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -211,22 +212,54 @@ class XhsLocalCollectorTest {
     }
 
     @Test
-    fun `acceptLoginCookie returns false when a1 cookie field absent`() = runTest {
-        // cookie missing a1 entirely
+    fun `acceptLoginCookie returns false and surfaces code -10 when a1 cookie field absent`() = runTest {
+        // cookie missing a1 entirely — pre-flight failure, apiClient not called
         val cookie = "web_session=x; webBuild=v1"
         val ok = collector.acceptLoginCookie(cookie)
         assertFalse(ok)
         // fetchMe never called when a1 is missing — saves an HTTP roundtrip
         verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any(), any(), any()) }
+        // New: collector surfaces pre-flight error so UI can distinguish from
+        // apiClient-side fetchMe failures.
+        assertEquals(-10, collector.lastLoginErrorCode)
+        val msg = collector.lastLoginErrorMessage
+        assertNotNull(msg)
+        assertTrue(msg!!.contains("a1"), "expected a1 mention; got: $msg")
     }
 
     @Test
-    fun `acceptLoginCookie returns false when fetchMe returns null`() = runTest {
+    fun `acceptLoginCookie returns false and passes through apiClient error when fetchMe returns null`() = runTest {
         val cookie = "web_session=expired; a1=abc-fp"
         coEvery { apiClient.fetchMe(cookie) } returns null
+        // Simulate apiClient's own setLastError on a fetchMe failure (HTTP 401)
+        every { apiClient.lastErrorCode } returns 401
+        every { apiClient.lastErrorMessage } returns "HTTP 401"
+
         val ok = collector.acceptLoginCookie(cookie)
         assertFalse(ok)
         verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any(), any(), any()) }
+        // Collector pre-flight error is 0 (a1 present), so apiClient state wins.
+        assertEquals(401, collector.lastLoginErrorCode)
+        assertEquals("HTTP 401", collector.lastLoginErrorMessage)
+    }
+
+    @Test
+    fun `acceptLoginCookie resets stale pre-flight error between attempts`() = runTest {
+        // First attempt fails with missing a1 → collector sets -10
+        assertFalse(collector.acceptLoginCookie("web_session=x"))
+        assertEquals(-10, collector.lastLoginErrorCode)
+
+        // Second attempt: a1 present, fetchMe succeeds → -10 must clear so the
+        // VM doesn't display a stale "missing a1" error after a successful retry.
+        val cookie2 = "web_session=y; a1=fresh-fp"
+        coEvery { apiClient.fetchMe(cookie2) } returns XhsApiClient.MeResult(
+            userId = "uid-z", numericUid = 7L, nickname = "z",
+        )
+        every { credentialsStore.saveCredentials(any(), any(), any(), any(), any()) } just runs
+
+        assertTrue(collector.acceptLoginCookie(cookie2))
+        assertEquals(0, collector.lastLoginErrorCode)
+        assertNull(collector.lastLoginErrorMessage)
     }
 
     @Test
