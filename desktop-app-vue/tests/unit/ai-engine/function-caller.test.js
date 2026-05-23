@@ -13,159 +13,166 @@
  * - 错误处理
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // NOTE: FunctionCaller uses module.exports (CommonJS default export)
-import FunctionCaller from '../../../src/main/ai-engine/function-caller.js';
+import FunctionCaller from "../../../src/main/ai-engine/function-caller.js";
 
 // Mock dependencies
-vi.mock('../../../src/main/utils/logger.js', () => ({
+vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
+    debug: vi.fn(),
   },
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
-  }))
+    debug: vi.fn(),
+  })),
 }));
 
 // Mock fs.promises
 const mockFs = {
   readFile: vi.fn(),
   writeFile: vi.fn(),
-  mkdir: vi.fn()
+  mkdir: vi.fn(),
 };
 
-vi.mock('fs', () => ({
+vi.mock("fs", () => ({
   promises: mockFs,
   default: {
-    promises: mockFs
-  }
+    promises: mockFs,
+  },
 }));
 
 // Mock path
-vi.mock('path', async () => {
-  const actual = await vi.importActual('path');
+vi.mock("path", async () => {
+  const actual = await vi.importActual("path");
   return {
     ...actual,
-    join: vi.fn((...args) => args.join('/')),
-    dirname: vi.fn(p => p.split('/').slice(0, -1).join('/')),
-    isAbsolute: vi.fn(p => p.startsWith('/'))
+    join: vi.fn((...args) => args.join("/")),
+    dirname: vi.fn((p) => p.split("/").slice(0, -1).join("/")),
+    isAbsolute: vi.fn((p) => p.startsWith("/")),
   };
 });
 
 // Mock extended tools
-vi.mock('../../../src/main/ai-engine/extended-tools.js', () => ({
+vi.mock("../../../src/main/ai-engine/extended-tools.js", () => ({
   default: {
-    registerAll: vi.fn()
-  }
+    registerAll: vi.fn(),
+  },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-2.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-2.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-3.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-3.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-4.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-4.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-5.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-5.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-6.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-6.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-7.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-7.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-8.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-8.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-9.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-9.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-10.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-10.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-11.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-11.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-12.js', () => ({
-  default: { registerAll: vi.fn() }
+vi.mock("../../../src/main/ai-engine/extended-tools-12.js", () => ({
+  default: { registerAll: vi.fn() },
 }));
 
 // Mock specialized tool modules
-vi.mock('../../../src/main/ai-engine/extended-tools-office.js', () => ({
+vi.mock("../../../src/main/ai-engine/extended-tools-office.js", () => ({
   default: class {
     register = vi.fn();
-  }
+  },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-datascience.js', () => ({
+vi.mock("../../../src/main/ai-engine/extended-tools-datascience.js", () => ({
   default: class {
     register = vi.fn();
-  }
+  },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-project.js', () => ({
+vi.mock("../../../src/main/ai-engine/extended-tools-project.js", () => ({
   default: class {
     register = vi.fn();
-  }
+  },
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-vision.js', () => ({
-  getVisionTools: vi.fn(() => ({
-    register: vi.fn(),
-    setVisionManager: vi.fn()
-  }))
+// Mock tool instances — captured at module scope so test bodies and the
+// _deps injection (beforeEach) share the same ref. Kept across tests, mock
+// methods reset via vi.clearAllMocks().
+const mockVisionTools = { register: vi.fn(), setVisionManager: vi.fn() };
+const mockSandboxTools = { register: vi.fn(), setPythonSandbox: vi.fn() };
+const mockMemGPTTools = { register: vi.fn(), setMemGPTCore: vi.fn() };
+const mockImageGenTools = { register: vi.fn(), setImageGenManager: vi.fn() };
+const mockTTSTools = { register: vi.fn(), setTTSManager: vi.fn() };
+
+vi.mock("../../../src/main/ai-engine/extended-tools-vision.js", () => ({
+  getVisionTools: vi.fn(() => mockVisionTools),
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-sandbox.js', () => ({
-  getSandboxTools: vi.fn(() => ({
-    register: vi.fn(),
-    setPythonSandbox: vi.fn()
-  }))
+vi.mock("../../../src/main/ai-engine/extended-tools-sandbox.js", () => ({
+  getSandboxTools: vi.fn(() => mockSandboxTools),
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-memgpt.js', () => ({
-  getMemGPTTools: vi.fn(() => ({
-    register: vi.fn(),
-    setMemGPTCore: vi.fn()
-  }))
+vi.mock("../../../src/main/ai-engine/extended-tools-memgpt.js", () => ({
+  getMemGPTTools: vi.fn(() => mockMemGPTTools),
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-imagegen.js', () => ({
-  getImageGenTools: vi.fn(() => ({
-    register: vi.fn(),
-    setImageGenManager: vi.fn()
-  }))
+vi.mock("../../../src/main/ai-engine/extended-tools-imagegen.js", () => ({
+  getImageGenTools: vi.fn(() => mockImageGenTools),
 }));
 
-vi.mock('../../../src/main/ai-engine/extended-tools-tts.js', () => ({
-  getTTSTools: vi.fn(() => ({
-    register: vi.fn(),
-    setTTSManager: vi.fn()
-  }))
+vi.mock("../../../src/main/ai-engine/extended-tools-tts.js", () => ({
+  getTTSTools: vi.fn(() => mockTTSTools),
 }));
 
-// Mock tool masking
+// Mock tool masking — backed by a registry so getAllToolDefinitions /
+// getAvailableToolDefinitions return the tools registerTool was called with.
+// (The real ToolMaskingSystem stores tools; the prior dumb stub broke any
+// test that registered a tool then read it back.)
+const mockToolStore = [];
 const mockToolMasking = {
-  registerTool: vi.fn(),
+  registerTool: vi.fn((payload) => {
+    const existing = mockToolStore.findIndex((t) => t.name === payload.name);
+    const stored = { ...payload };
+    delete stored.handler;
+    if (existing >= 0) {
+      mockToolStore[existing] = stored;
+    } else {
+      mockToolStore.push(stored);
+    }
+  }),
   validateCall: vi.fn(() => ({ allowed: true })),
   setToolAvailability: vi.fn(),
   setToolsByPrefix: vi.fn(),
@@ -173,29 +180,65 @@ const mockToolMasking = {
   disableAll: vi.fn(),
   setOnlyAvailable: vi.fn(),
   isToolAvailable: vi.fn(() => true),
-  getAllToolDefinitions: vi.fn(() => []),
-  getAvailableToolDefinitions: vi.fn(() => [])
+  getAllToolDefinitions: vi.fn(() => mockToolStore.slice()),
+  getAvailableToolDefinitions: vi.fn(() => mockToolStore.slice()),
 };
 
-vi.mock('../../../src/main/ai-engine/tool-masking.js', () => ({
+vi.mock("../../../src/main/ai-engine/tool-masking.js", () => ({
   getToolMaskingSystem: vi.fn(() => mockToolMasking),
-  TASK_PHASE_STATE_MACHINE: {}
+  TASK_PHASE_STATE_MACHINE: {},
 }));
 
-describe('FunctionCaller', () => {
+describe("FunctionCaller", () => {
   let functionCaller;
   let mockToolManager;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockToolStore.length = 0;
+
+    // Re-install registerTool impl after vi.clearAllMocks (which clears
+    // calls but the impl arrow remains; this is a defensive guard so the
+    // mock store stays connected even if vitest changes clearAllMocks
+    // semantics in a future minor).
+    mockToolMasking.registerTool.mockImplementation((payload) => {
+      const stored = { ...payload };
+      delete stored.handler;
+      const existing = mockToolStore.findIndex((t) => t.name === payload.name);
+      if (existing >= 0) {
+        mockToolStore[existing] = stored;
+      } else {
+        mockToolStore.push(stored);
+      }
+    });
+    mockToolMasking.getAllToolDefinitions.mockImplementation(() =>
+      mockToolStore.slice(),
+    );
+    mockToolMasking.getAvailableToolDefinitions.mockImplementation(() =>
+      mockToolStore.slice(),
+    );
+    mockToolMasking.validateCall.mockReturnValue({ allowed: true });
+    mockToolMasking.isToolAvailable.mockReturnValue(true);
 
     mockToolManager = {
-      recordToolUsage: vi.fn().mockResolvedValue(undefined)
+      recordToolUsage: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockFs.readFile.mockResolvedValue('file content');
+    mockFs.readFile.mockResolvedValue("file content");
     mockFs.writeFile.mockResolvedValue(undefined);
     mockFs.mkdir.mockResolvedValue(undefined);
+
+    // _deps injection — vi.mock cannot intercept CJS require(), so override
+    // the dep seam directly. Production reads original module imports;
+    // tests substitute mocks here. Pattern documented in
+    // memory/vi_mock_cjs_interop_systemic.md.
+    FunctionCaller._deps.fs = mockFs;
+    FunctionCaller._deps.getToolMaskingSystem = () => mockToolMasking;
+    FunctionCaller._deps.getVisionTools = () => mockVisionTools;
+    FunctionCaller._deps.getSandboxTools = () => mockSandboxTools;
+    FunctionCaller._deps.getMemGPTTools = () => mockMemGPTTools;
+    FunctionCaller._deps.getImageGenTools = () => mockImageGenTools;
+    FunctionCaller._deps.getTTSTools = () => mockTTSTools;
   });
 
   afterEach(() => {
@@ -204,8 +247,8 @@ describe('FunctionCaller', () => {
     }
   });
 
-  describe('Constructor', () => {
-    it('should initialize with default options', () => {
+  describe("Constructor", () => {
+    it("should initialize with default options", () => {
       functionCaller = new FunctionCaller();
 
       expect(functionCaller.tools).toBeInstanceOf(Map);
@@ -213,92 +256,88 @@ describe('FunctionCaller', () => {
       expect(functionCaller.enableToolMasking).toBe(true);
     });
 
-    it('should enable tool masking by default', () => {
+    it("should enable tool masking by default", () => {
       functionCaller = new FunctionCaller();
 
       expect(functionCaller.toolMasking).toBeDefined();
       expect(functionCaller.enableToolMasking).toBe(true);
     });
 
-    it('should allow disabling tool masking', () => {
+    it("should allow disabling tool masking", () => {
       functionCaller = new FunctionCaller({ enableToolMasking: false });
 
       expect(functionCaller.enableToolMasking).toBe(false);
     });
 
-    it('should register built-in tools on construction', () => {
+    it("should register built-in tools on construction", () => {
       functionCaller = new FunctionCaller();
 
-      expect(functionCaller.hasTool('file_reader')).toBe(true);
-      expect(functionCaller.hasTool('file_writer')).toBe(true);
-      expect(functionCaller.hasTool('html_generator')).toBe(true);
-      expect(functionCaller.hasTool('js_generator')).toBe(true);
-      expect(functionCaller.hasTool('file_editor')).toBe(true);
+      expect(functionCaller.hasTool("file_reader")).toBe(true);
+      expect(functionCaller.hasTool("file_writer")).toBe(true);
+      expect(functionCaller.hasTool("html_generator")).toBe(true);
+      expect(functionCaller.hasTool("js_generator")).toBe(true);
+      expect(functionCaller.hasTool("file_editor")).toBe(true);
     });
 
-    // Skip: ESM mock doesn't properly intercept CommonJS require for tool-masking
-    it.skip('should sync tools to masking system', () => {
+    it("should sync tools to masking system", () => {
       functionCaller = new FunctionCaller();
 
       expect(mockToolMasking.registerTool).toHaveBeenCalled();
     });
   });
 
-  // NOTE: Skipped - tests expect mock injection but implementation creates internal instances
-  describe.skip('Dependency Injection', () => {
+  describe("Dependency Injection", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    it('should set ToolManager', () => {
+    it("should set ToolManager", () => {
       functionCaller.setToolManager(mockToolManager);
 
       expect(functionCaller.toolManager).toBe(mockToolManager);
     });
 
-    it('should set VisionManager', () => {
-      const { getVisionTools } = require('../../../src/main/ai-engine/extended-tools-vision.js');
-      const mockVisionTools = getVisionTools();
+    it("should set VisionManager", () => {
       const mockVisionManager = { analyze: vi.fn() };
 
       functionCaller.setVisionManager(mockVisionManager);
 
-      expect(mockVisionTools.setVisionManager).toHaveBeenCalledWith(mockVisionManager);
+      expect(mockVisionTools.setVisionManager).toHaveBeenCalledWith(
+        mockVisionManager,
+      );
     });
 
-    it('should set PythonSandbox', () => {
-      const { getSandboxTools } = require('../../../src/main/ai-engine/extended-tools-sandbox.js');
-      const mockSandboxTools = getSandboxTools();
+    it("should set PythonSandbox", () => {
       const mockPythonSandbox = { execute: vi.fn() };
 
       functionCaller.setPythonSandbox(mockPythonSandbox);
 
-      expect(mockSandboxTools.setPythonSandbox).toHaveBeenCalledWith(mockPythonSandbox);
+      expect(mockSandboxTools.setPythonSandbox).toHaveBeenCalledWith(
+        mockPythonSandbox,
+      );
     });
 
-    it('should set MemGPTCore', () => {
-      const { getMemGPTTools } = require('../../../src/main/ai-engine/extended-tools-memgpt.js');
-      const mockMemGPTTools = getMemGPTTools();
+    it("should set MemGPTCore", () => {
       const mockMemGPTCore = { archiveMemory: vi.fn() };
 
       functionCaller.setMemGPTCore(mockMemGPTCore);
 
-      expect(mockMemGPTTools.setMemGPTCore).toHaveBeenCalledWith(mockMemGPTCore);
+      expect(mockMemGPTTools.setMemGPTCore).toHaveBeenCalledWith(
+        mockMemGPTCore,
+      );
     });
 
-    it('should set ImageGenManager', () => {
-      const { getImageGenTools } = require('../../../src/main/ai-engine/extended-tools-imagegen.js');
-      const mockImageGenTools = getImageGenTools();
+    it("should set ImageGenManager", () => {
       const mockImageGenManager = { generate: vi.fn() };
 
       functionCaller.setImageGenManager(mockImageGenManager);
 
-      expect(mockImageGenTools.setImageGenManager).toHaveBeenCalledWith(mockImageGenManager);
+      expect(mockImageGenTools.setImageGenManager).toHaveBeenCalledWith(
+        mockImageGenManager,
+      );
     });
 
-    it('should set TTSManager', () => {
-      const { getTTSTools } = require('../../../src/main/ai-engine/extended-tools-tts.js');
-      const mockTTSTools = getTTSTools();
+    it("should set TTSManager", () => {
       const mockTTSManager = { synthesize: vi.fn() };
 
       functionCaller.setTTSManager(mockTTSManager);
@@ -306,632 +345,676 @@ describe('FunctionCaller', () => {
       expect(mockTTSTools.setTTSManager).toHaveBeenCalledWith(mockTTSManager);
     });
 
-    it('should handle VisionManager setup error gracefully', () => {
-      const { getVisionTools } = require('../../../src/main/ai-engine/extended-tools-vision.js');
-      getVisionTools.mockImplementation(() => {
-        throw new Error('Vision setup failed');
-      });
+    it("should handle VisionManager setup error gracefully", () => {
+      FunctionCaller._deps.getVisionTools = () => {
+        throw new Error("Vision setup failed");
+      };
 
       expect(() => functionCaller.setVisionManager({})).not.toThrow();
     });
   });
 
-  // NOTE: Skipped - tests expect mock injection but implementation creates internal instances
-  describe.skip('Tool Registration', () => {
+  describe("Tool Registration", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    it('should register custom tool', () => {
+    it("should register custom tool", () => {
       const handler = vi.fn().mockResolvedValue({ success: true });
       const schema = {
-        name: 'custom_tool',
-        description: 'Custom tool',
-        parameters: { input: { type: 'string' } }
+        name: "custom_tool",
+        description: "Custom tool",
+        parameters: { input: { type: "string" } },
       };
 
-      functionCaller.registerTool('custom_tool', handler, schema);
+      functionCaller.registerTool("custom_tool", handler, schema);
 
-      expect(functionCaller.hasTool('custom_tool')).toBe(true);
+      expect(functionCaller.hasTool("custom_tool")).toBe(true);
     });
 
-    it('should sync registered tool to masking system', () => {
+    it("should sync registered tool to masking system", () => {
       const handler = vi.fn();
-      const schema = { description: 'Test tool', parameters: {} };
+      const schema = { description: "Test tool", parameters: {} };
 
-      vi.clearAllMocks();
-      functionCaller.registerTool('test_tool', handler, schema);
+      mockToolMasking.registerTool.mockClear();
+      functionCaller.registerTool("test_tool", handler, schema);
 
-      expect(mockToolMasking.registerTool).toHaveBeenCalledWith({
-        name: 'test_tool',
-        description: 'Test tool',
-        parameters: {},
-        handler
-      });
-    });
-
-    it('should normalize inputSchema when syncing a registered tool', () => {
-      const handler = vi.fn();
-      const schema = {
-        description: 'Schema-first tool',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            path: { type: 'string' }
-          },
-          required: ['path']
-        }
-      };
-
-      vi.clearAllMocks();
-      functionCaller.registerTool('schema_tool', handler, schema);
-
-      expect(mockToolMasking.registerTool).toHaveBeenCalledWith({
-        name: 'schema_tool',
-        description: 'Schema-first tool',
-        parameters: schema.inputSchema,
-        handler
-      });
-    });
-
-    it('should warn when overwriting existing tool', () => {
-      const { logger } = require('../../../src/main/utils/logger.js');
-
-      const handler1 = vi.fn();
-      const handler2 = vi.fn();
-
-      functionCaller.registerTool('duplicate_tool', handler1, {});
-      functionCaller.registerTool('duplicate_tool', handler2, {});
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('duplicate_tool'),
-        expect.anything()
+      expect(mockToolMasking.registerTool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "test_tool",
+          parameters: {},
+          inputSchema: {},
+          handler,
+        }),
       );
     });
 
-    it('should unregister tool', () => {
+    it("should normalize inputSchema when syncing a registered tool", () => {
       const handler = vi.fn();
-      functionCaller.registerTool('temp_tool', handler, {});
+      const schema = {
+        description: "Schema-first tool",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+          },
+          required: ["path"],
+        },
+      };
 
-      expect(functionCaller.hasTool('temp_tool')).toBe(true);
+      mockToolMasking.registerTool.mockClear();
+      functionCaller.registerTool("schema_tool", handler, schema);
 
-      functionCaller.unregisterTool('temp_tool');
-
-      expect(functionCaller.hasTool('temp_tool')).toBe(false);
+      expect(mockToolMasking.registerTool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "schema_tool",
+          parameters: schema.inputSchema,
+          inputSchema: schema.inputSchema,
+          handler,
+        }),
+      );
     });
 
-    it('should handle unregistering non-existent tool', () => {
-      expect(() => functionCaller.unregisterTool('non_existent')).not.toThrow();
+    it("should overwrite handler when registering existing tool name", () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+
+      functionCaller.registerTool("duplicate_tool", handler1, {});
+      functionCaller.registerTool("duplicate_tool", handler2, {});
+
+      const stored = functionCaller.tools.get("duplicate_tool");
+      expect(stored).toBeDefined();
+      expect(stored.handler).toBe(handler2);
+    });
+
+    it("should unregister tool", () => {
+      const handler = vi.fn();
+      functionCaller.registerTool("temp_tool", handler, {});
+
+      expect(functionCaller.hasTool("temp_tool")).toBe(true);
+
+      functionCaller.unregisterTool("temp_tool");
+
+      expect(functionCaller.hasTool("temp_tool")).toBe(false);
+    });
+
+    it("should handle unregistering non-existent tool", () => {
+      expect(() => functionCaller.unregisterTool("non_existent")).not.toThrow();
     });
   });
 
-  // NOTE: Skipped - tests expect mock injection but implementation creates internal instances
-  describe.skip('Tool Calling', () => {
+  describe("Tool Calling", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
       functionCaller.setToolManager(mockToolManager);
     });
 
-    it('should call registered tool successfully', async () => {
-      const handler = vi.fn().mockResolvedValue({ result: 'success' });
-      functionCaller.registerTool('test_tool', handler, {});
+    it("should call registered tool successfully", async () => {
+      const handler = vi.fn().mockResolvedValue({ result: "success" });
+      functionCaller.registerTool("test_tool", handler, {});
 
-      const result = await functionCaller.call('test_tool', { input: 'test' });
+      const result = await functionCaller.call("test_tool", { input: "test" });
 
-      expect(handler).toHaveBeenCalledWith({ input: 'test' }, {});
-      expect(result).toEqual({ result: 'success' });
+      expect(handler).toHaveBeenCalledWith({ input: "test" }, {});
+      expect(result).toEqual({ result: "success" });
     });
 
-    it('should pass context to tool handler', async () => {
+    it("should pass context to tool handler", async () => {
       const handler = vi.fn().mockResolvedValue({ success: true });
-      functionCaller.registerTool('context_tool', handler, {});
+      functionCaller.registerTool("context_tool", handler, {});
 
-      const context = { projectPath: '/project', userId: 'user123' };
-      await functionCaller.call('context_tool', {}, context);
+      const context = { projectPath: "/project", userId: "user123" };
+      await functionCaller.call("context_tool", {}, context);
 
       expect(handler).toHaveBeenCalledWith({}, context);
     });
 
-    it('should throw error if tool does not exist', async () => {
-      await expect(functionCaller.call('non_existent_tool')).rejects.toThrow(
-        '工具 "non_existent_tool" 不存在'
+    it("should throw error if tool does not exist", async () => {
+      await expect(functionCaller.call("non_existent_tool")).rejects.toThrow(
+        '工具 "non_existent_tool" 不存在',
       );
     });
 
-    it('should validate tool call with masking system', async () => {
+    it("should validate tool call with masking system", async () => {
       const handler = vi.fn().mockResolvedValue({ success: true });
-      functionCaller.registerTool('masked_tool', handler, {});
+      functionCaller.registerTool("masked_tool", handler, {});
 
-      await functionCaller.call('masked_tool');
+      await functionCaller.call("masked_tool");
 
-      expect(mockToolMasking.validateCall).toHaveBeenCalledWith('masked_tool');
+      expect(mockToolMasking.validateCall).toHaveBeenCalledWith("masked_tool");
     });
 
-    it('should block tool call if masking system denies', async () => {
+    it("should block tool call if masking system denies", async () => {
       mockToolMasking.validateCall.mockReturnValue({
         allowed: false,
-        message: 'Tool not available in current phase'
+        message: "Tool not available in current phase",
       });
 
       const handler = vi.fn();
-      functionCaller.registerTool('blocked_tool', handler, {});
+      functionCaller.registerTool("blocked_tool", handler, {});
 
-      await expect(functionCaller.call('blocked_tool')).rejects.toThrow(
-        'Tool not available in current phase'
+      await expect(functionCaller.call("blocked_tool")).rejects.toThrow(
+        "Tool not available in current phase",
       );
 
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('should record successful tool usage', async () => {
+    it("should record successful tool usage", async () => {
       const handler = vi.fn().mockResolvedValue({ success: true });
-      functionCaller.registerTool('tracked_tool', handler, {});
+      functionCaller.registerTool("tracked_tool", handler, {});
 
-      await functionCaller.call('tracked_tool');
+      await functionCaller.call("tracked_tool");
 
       expect(mockToolManager.recordToolUsage).toHaveBeenCalledWith(
-        'tracked_tool',
+        "tracked_tool",
         true,
-        expect.any(Number)
+        expect.any(Number),
       );
     });
 
-    it('should record failed tool usage', async () => {
-      const handler = vi.fn().mockRejectedValue(new Error('Tool failed'));
-      functionCaller.registerTool('failing_tool', handler, {});
+    it("should record failed tool usage", async () => {
+      const handler = vi.fn().mockRejectedValue(new Error("Tool failed"));
+      functionCaller.registerTool("failing_tool", handler, {});
 
-      await expect(functionCaller.call('failing_tool')).rejects.toThrow('Tool failed');
+      await expect(functionCaller.call("failing_tool")).rejects.toThrow(
+        "Tool failed",
+      );
 
       expect(mockToolManager.recordToolUsage).toHaveBeenCalledWith(
-        'failing_tool',
+        "failing_tool",
         false,
         expect.any(Number),
-        'Error'
+        "Error",
       );
     });
 
-    it('should handle null params and context', async () => {
+    it("should handle null params and context", async () => {
       const handler = vi.fn().mockResolvedValue({ success: true });
-      functionCaller.registerTool('null_safe_tool', handler, {});
+      functionCaller.registerTool("null_safe_tool", handler, {});
 
-      await functionCaller.call('null_safe_tool', null, null);
+      await functionCaller.call("null_safe_tool", null, null);
 
       expect(handler).toHaveBeenCalledWith({}, {});
     });
 
-    it('should propagate tool handler errors', async () => {
-      const handler = vi.fn().mockRejectedValue(new TypeError('Invalid input'));
-      functionCaller.registerTool('error_tool', handler, {});
+    it("should propagate tool handler errors", async () => {
+      const handler = vi.fn().mockRejectedValue(new TypeError("Invalid input"));
+      functionCaller.registerTool("error_tool", handler, {});
 
-      await expect(functionCaller.call('error_tool')).rejects.toThrow('Invalid input');
+      await expect(functionCaller.call("error_tool")).rejects.toThrow(
+        "Invalid input",
+      );
     });
   });
 
-  // NOTE: Skipped - tests have file system expectations that don't match mocks
-  describe.skip('Built-in Tools', () => {
+  describe("Built-in Tools", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    describe('file_reader', () => {
-      it('should read file with absolute path', async () => {
-        mockFs.readFile.mockResolvedValue('file content');
+    describe("file_reader", () => {
+      it("should read file with absolute path", async () => {
+        mockFs.readFile.mockResolvedValue("file content");
 
-        const result = await functionCaller.call('file_reader', { filePath: '/absolute/path/file.txt' });
+        const result = await functionCaller.call("file_reader", {
+          filePath: "/absolute/path/file.txt",
+        });
 
-        expect(mockFs.readFile).toHaveBeenCalledWith('/absolute/path/file.txt', 'utf-8');
+        expect(mockFs.readFile).toHaveBeenCalledWith(
+          "/absolute/path/file.txt",
+          "utf-8",
+        );
         expect(result.success).toBe(true);
-        expect(result.content).toBe('file content');
+        expect(result.content).toBe("file content");
       });
 
-      it('should resolve relative path with projectPath context', async () => {
-        mockFs.readFile.mockResolvedValue('project file');
-        const { join } = require('path');
+      it("should resolve relative path with projectPath context", async () => {
+        mockFs.readFile.mockResolvedValue("project file");
 
         const result = await functionCaller.call(
-          'file_reader',
-          { filePath: 'src/file.js' },
-          { projectPath: '/project' }
+          "file_reader",
+          { filePath: "src/file.js" },
+          { projectPath: "/project" },
         );
 
-        expect(join).toHaveBeenCalledWith('/project', 'src/file.js');
+        // Verify behavior via the fs spy — path.join is the real node:path
+        // (vi.mock('path') cannot intercept CJS require), so assert the
+        // resolved path that eventually hits the filesystem.
+        expect(mockFs.readFile).toHaveBeenCalledWith(
+          expect.stringMatching(/^[\\/]project[\\/]src[\\/]file\.js$/),
+          "utf-8",
+        );
         expect(result.success).toBe(true);
       });
 
-      it('should throw error if file path not specified', async () => {
-        await expect(functionCaller.call('file_reader', {})).rejects.toThrow('未指定文件路径');
+      it("should throw error if file path not specified", async () => {
+        await expect(functionCaller.call("file_reader", {})).rejects.toThrow(
+          "未指定文件路径",
+        );
       });
 
-      it('should handle file read errors', async () => {
-        mockFs.readFile.mockRejectedValue(new Error('ENOENT: file not found'));
+      it("should handle file read errors", async () => {
+        mockFs.readFile.mockRejectedValue(new Error("ENOENT: file not found"));
 
-        await expect(functionCaller.call('file_reader', { filePath: '/missing.txt' })).rejects.toThrow(
-          '读取文件失败'
-        );
+        await expect(
+          functionCaller.call("file_reader", { filePath: "/missing.txt" }),
+        ).rejects.toThrow("读取文件失败");
       });
     });
 
-    describe('file_writer', () => {
-      it('should write file with absolute path', async () => {
-        const result = await functionCaller.call('file_writer', {
-          filePath: '/absolute/output.txt',
-          content: 'test content'
+    describe("file_writer", () => {
+      it("should write file with absolute path", async () => {
+        const result = await functionCaller.call("file_writer", {
+          filePath: "/absolute/output.txt",
+          content: "test content",
         });
 
-        expect(mockFs.mkdir).toHaveBeenCalledWith('/absolute', { recursive: true });
-        expect(mockFs.writeFile).toHaveBeenCalledWith('/absolute/output.txt', 'test content', 'utf-8');
+        expect(mockFs.mkdir).toHaveBeenCalledWith("/absolute", {
+          recursive: true,
+        });
+        expect(mockFs.writeFile).toHaveBeenCalledWith(
+          "/absolute/output.txt",
+          "test content",
+          "utf-8",
+        );
         expect(result.success).toBe(true);
         expect(result.size).toBe(12);
       });
 
-      it('should resolve relative path with projectPath', async () => {
-        const { join } = require('path');
-
+      it("should resolve relative path with projectPath", async () => {
         await functionCaller.call(
-          'file_writer',
-          { filePath: 'dist/output.js', content: 'code' },
-          { projectPath: '/project' }
+          "file_writer",
+          { filePath: "dist/output.js", content: "code" },
+          { projectPath: "/project" },
         );
 
-        expect(join).toHaveBeenCalledWith('/project', 'dist/output.js');
+        // path.join is real (vi.mock can't intercept CJS); verify via fs spy.
+        expect(mockFs.writeFile).toHaveBeenCalledWith(
+          expect.stringMatching(/^[\\/]project[\\/]dist[\\/]output\.js$/),
+          "code",
+          "utf-8",
+        );
       });
 
-      it('should convert non-string content to string', async () => {
-        await functionCaller.call('file_writer', {
-          filePath: '/number.txt',
-          content: 12345
+      it("should convert non-string content to string", async () => {
+        await functionCaller.call("file_writer", {
+          filePath: "/number.txt",
+          content: 12345,
         });
 
-        expect(mockFs.writeFile).toHaveBeenCalledWith('/number.txt', '12345', 'utf-8');
-      });
-
-      it('should throw error if file path not specified', async () => {
-        await expect(functionCaller.call('file_writer', { content: 'test' })).rejects.toThrow(
-          '未指定文件路径'
+        expect(mockFs.writeFile).toHaveBeenCalledWith(
+          "/number.txt",
+          "12345",
+          "utf-8",
         );
       });
 
-      it('should throw error if content not specified', async () => {
-        await expect(functionCaller.call('file_writer', { filePath: '/test.txt' })).rejects.toThrow(
-          '未指定文件内容'
-        );
+      it("should throw error if file path not specified", async () => {
+        await expect(
+          functionCaller.call("file_writer", { content: "test" }),
+        ).rejects.toThrow("未指定文件路径");
       });
 
-      it('should create directory if not exists', async () => {
-        await functionCaller.call('file_writer', {
-          filePath: '/nested/path/file.txt',
-          content: 'content'
+      it("should throw error if content not specified", async () => {
+        await expect(
+          functionCaller.call("file_writer", { filePath: "/test.txt" }),
+        ).rejects.toThrow("未指定文件内容");
+      });
+
+      it("should create directory if not exists", async () => {
+        await functionCaller.call("file_writer", {
+          filePath: "/nested/path/file.txt",
+          content: "content",
         });
 
-        expect(mockFs.mkdir).toHaveBeenCalledWith('/nested/path', { recursive: true });
+        expect(mockFs.mkdir).toHaveBeenCalledWith("/nested/path", {
+          recursive: true,
+        });
       });
     });
 
-    describe('html_generator', () => {
-      it('should generate HTML with default values', async () => {
-        const result = await functionCaller.call('html_generator', {});
+    describe("html_generator", () => {
+      it("should generate HTML with default values", async () => {
+        const result = await functionCaller.call("html_generator", {});
 
         expect(result.success).toBe(true);
-        expect(result.html).toContain('<!DOCTYPE html>');
-        expect(result.html).toContain('我的网页');
+        expect(result.html).toContain("<!DOCTYPE html>");
+        expect(result.html).toContain("我的网页");
       });
 
-      it('should use custom title and content', async () => {
-        const result = await functionCaller.call('html_generator', {
-          title: 'Custom Page',
-          content: '<p>Custom content</p>'
+      it("should use custom title and content", async () => {
+        const result = await functionCaller.call("html_generator", {
+          title: "Custom Page",
+          content: "<p>Custom content</p>",
         });
 
-        expect(result.html).toContain('<title>Custom Page</title>');
-        expect(result.html).toContain('<h1>Custom Page</h1>');
+        expect(result.html).toContain("<title>Custom Page</title>");
+        expect(result.html).toContain("<h1>Custom Page</h1>");
       });
 
-      it('should use custom primary color', async () => {
-        const result = await functionCaller.call('html_generator', {
-          primaryColor: '#ff0000'
+      it("should use custom primary color", async () => {
+        const result = await functionCaller.call("html_generator", {
+          primaryColor: "#ff0000",
         });
 
         expect(result.html).toBeDefined();
       });
     });
 
-    describe('js_generator', () => {
-      it('should generate JavaScript code', async () => {
-        const result = await functionCaller.call('js_generator', {
-          features: ['slideshow', 'animations']
+    describe("js_generator", () => {
+      it("should generate JavaScript code", async () => {
+        const result = await functionCaller.call("js_generator", {
+          features: ["slideshow", "animations"],
         });
 
         expect(result.success).toBe(true);
-        expect(result.js).toContain('DOMContentLoaded');
-        expect(result.fileName).toBe('js/script.js');
+        expect(result.js).toContain("DOMContentLoaded");
+        expect(result.fileName).toBe("js/script.js");
       });
 
-      it('should generate JS with empty features', async () => {
-        const result = await functionCaller.call('js_generator', {});
+      it("should generate JS with empty features", async () => {
+        const result = await functionCaller.call("js_generator", {});
 
         expect(result.success).toBe(true);
-        expect(result.js).toContain('function initializeInteractions');
+        expect(result.js).toContain("function initializeInteractions");
       });
     });
 
-    describe('file_editor', () => {
-      it('should edit file with modifications', async () => {
-        mockFs.readFile.mockResolvedValue('<h1>Original Title</h1>');
+    describe("file_editor", () => {
+      it("should edit file with modifications", async () => {
+        mockFs.readFile.mockResolvedValue("<h1>Original Title</h1>");
 
-        const result = await functionCaller.call('file_editor', {
-          filePath: '/page.html',
-          modifications: [
-            { target: '标题', action: '改', value: 'blue' }
-          ]
+        const result = await functionCaller.call("file_editor", {
+          filePath: "/page.html",
+          modifications: [{ target: "标题", action: "改", value: "blue" }],
         });
 
-        expect(mockFs.readFile).toHaveBeenCalledWith('/page.html', 'utf-8');
+        expect(mockFs.readFile).toHaveBeenCalledWith("/page.html", "utf-8");
         expect(mockFs.writeFile).toHaveBeenCalled();
         expect(result.success).toBe(true);
         expect(result.modificationsApplied).toBe(1);
       });
 
-      it('should throw error if file path not specified', async () => {
-        await expect(functionCaller.call('file_editor', { modifications: [] })).rejects.toThrow(
-          '未指定文件路径'
-        );
+      it("should throw error if file path not specified", async () => {
+        await expect(
+          functionCaller.call("file_editor", { modifications: [] }),
+        ).rejects.toThrow("未指定文件路径");
       });
 
-      it('should handle file read errors', async () => {
-        mockFs.readFile.mockRejectedValue(new Error('File not found'));
+      it("should handle file read errors", async () => {
+        mockFs.readFile.mockRejectedValue(new Error("File not found"));
 
-        await expect(functionCaller.call('file_editor', {
-          filePath: '/missing.html',
-          modifications: []
-        })).rejects.toThrow('编辑文件失败');
+        await expect(
+          functionCaller.call("file_editor", {
+            filePath: "/missing.html",
+            modifications: [],
+          }),
+        ).rejects.toThrow("编辑文件失败");
       });
     });
   });
 
-  describe('Tool Management API', () => {
+  describe("Tool Management API", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    it('should get available tools', () => {
+    it("should get available tools", () => {
       const tools = functionCaller.getAvailableTools();
 
       expect(tools).toBeInstanceOf(Array);
       expect(tools.length).toBeGreaterThan(0);
-      expect(tools[0]).toHaveProperty('name');
-      expect(tools[0]).toHaveProperty('description');
-      expect(tools[0]).toHaveProperty('parameters');
+      expect(tools[0]).toHaveProperty("name");
+      expect(tools[0]).toHaveProperty("description");
+      expect(tools[0]).toHaveProperty("parameters");
     });
 
-    it('should expose canonical inputSchema alongside parameters', () => {
+    it("should expose canonical inputSchema alongside parameters", () => {
       const handler = vi.fn();
       const inputSchema = {
-        type: 'object',
+        type: "object",
         properties: {
-          query: { type: 'string' }
-        }
+          query: { type: "string" },
+        },
       };
 
-      functionCaller.registerTool('schema_tool', handler, {
-        description: 'Schema tool',
-        inputSchema
+      functionCaller.registerTool("schema_tool", handler, {
+        description: "Schema tool",
+        inputSchema,
       });
 
       const tool = functionCaller
         .getAvailableTools()
-        .find((entry) => entry.name === 'schema_tool');
+        .find((entry) => entry.name === "schema_tool");
 
       expect(tool.inputSchema).toEqual(inputSchema);
       expect(tool.parameters).toEqual(inputSchema);
     });
 
-    it('should forward canonical risk/plan-mode fields to getAvailableTools', () => {
-      functionCaller.registerTool('canonical_tool', vi.fn(), {
-        description: 'A canonical tool',
-        inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
-        category: 'filesystem',
+    it("should forward canonical risk/plan-mode fields to getAvailableTools", () => {
+      functionCaller.registerTool("canonical_tool", vi.fn(), {
+        description: "A canonical tool",
+        inputSchema: {
+          type: "object",
+          properties: { path: { type: "string" } },
+        },
+        category: "filesystem",
         isReadOnly: true,
-        riskLevel: 'low',
+        riskLevel: "low",
         availableInPlanMode: true,
-        requiresPlanApproval: false
+        requiresPlanApproval: false,
       });
 
       const tool = functionCaller
         .getAvailableTools()
-        .find((entry) => entry.name === 'canonical_tool');
+        .find((entry) => entry.name === "canonical_tool");
 
-      expect(tool.category).toBe('filesystem');
+      expect(tool.category).toBe("filesystem");
       expect(tool.isReadOnly).toBe(true);
-      expect(tool.riskLevel).toBe('low');
+      expect(tool.riskLevel).toBe("low");
       expect(tool.availableInPlanMode).toBe(true);
       expect(tool.requiresPlanApproval).toBe(false);
     });
 
-    it('should propagate canonical fields into the masking system', () => {
-      functionCaller.registerTool('shell_exec', vi.fn(), {
-        description: 'run shell',
-        inputSchema: { type: 'object', properties: { cmd: { type: 'string' } } },
-        category: 'shell',
+    it("should propagate canonical fields into the masking system", () => {
+      functionCaller.registerTool("shell_exec", vi.fn(), {
+        description: "run shell",
+        inputSchema: {
+          type: "object",
+          properties: { cmd: { type: "string" } },
+        },
+        category: "shell",
         isReadOnly: false,
-        riskLevel: 'high',
+        riskLevel: "high",
         availableInPlanMode: false,
-        requiresPlanApproval: true
+        requiresPlanApproval: true,
       });
 
       const maskDefs = functionCaller.getAllToolDefinitions();
-      const masked = maskDefs.find((entry) => entry.name === 'shell_exec');
+      const masked = maskDefs.find((entry) => entry.name === "shell_exec");
 
       expect(masked).toBeDefined();
       expect(masked.inputSchema).toBeDefined();
       expect(masked.parameters).toEqual(masked.inputSchema);
-      expect(masked.riskLevel).toBe('high');
+      expect(masked.riskLevel).toBe("high");
       expect(masked.isReadOnly).toBe(false);
-      expect(masked.category).toBe('shell');
+      expect(masked.category).toBe("shell");
       expect(masked.availableInPlanMode).toBe(false);
       expect(masked.requiresPlanApproval).toBe(true);
       // never leak internal state
-      expect(masked).not.toHaveProperty('handler');
-      expect(masked).not.toHaveProperty('registeredAt');
+      expect(masked).not.toHaveProperty("handler");
+      expect(masked).not.toHaveProperty("registeredAt");
     });
 
-    it('should check if tool exists', () => {
-      expect(functionCaller.hasTool('file_reader')).toBe(true);
-      expect(functionCaller.hasTool('non_existent')).toBe(false);
+    it("should check if tool exists", () => {
+      expect(functionCaller.hasTool("file_reader")).toBe(true);
+      expect(functionCaller.hasTool("non_existent")).toBe(false);
     });
 
-    it('should propagate ALL canonical fields through buildMaskingPayload', () => {
+    it("should propagate ALL canonical fields through buildMaskingPayload", () => {
       const fullSchema = {
-        description: 'Full canonical tool',
-        title: 'Full Canonical',
-        inputSchema: { type: 'object', properties: { q: { type: 'string' } } },
-        kind: 'builtin',
-        source: 'fc-test',
-        category: 'search',
+        description: "Full canonical tool",
+        title: "Full Canonical",
+        inputSchema: { type: "object", properties: { q: { type: "string" } } },
+        kind: "builtin",
+        source: "fc-test",
+        category: "search",
         isReadOnly: true,
-        riskLevel: 'low',
-        permissions: { fs: 'read' },
-        telemetry: { metric: 'fc.search' },
+        riskLevel: "low",
+        permissions: { fs: "read" },
+        telemetry: { metric: "fc.search" },
         availableInPlanMode: true,
         requiresPlanApproval: false,
         requiresConfirmation: false,
-        approvalFlow: 'auto',
-        planModeBehavior: 'allow',
-        skillName: 'search-kit',
-        skillCategory: 'knowledge',
-        instructions: 'Use this to search corpus.',
-        examples: [{ input: { q: 'hi' }, output: 'hi' }],
-        tags: ['search', 'kit'],
+        approvalFlow: "auto",
+        planModeBehavior: "allow",
+        skillName: "search-kit",
+        skillCategory: "knowledge",
+        instructions: "Use this to search corpus.",
+        examples: [{ input: { q: "hi" }, output: "hi" }],
+        tags: ["search", "kit"],
       };
 
-      functionCaller.registerTool('full_canonical', vi.fn(), fullSchema);
+      functionCaller.registerTool("full_canonical", vi.fn(), fullSchema);
 
       const masked = functionCaller
         .getAllToolDefinitions()
-        .find((entry) => entry.name === 'full_canonical');
+        .find((entry) => entry.name === "full_canonical");
 
       expect(masked).toBeDefined();
       // Schema mirror
       expect(masked.inputSchema).toEqual(fullSchema.inputSchema);
       expect(masked.parameters).toEqual(fullSchema.inputSchema);
       // Every canonical field survives
-      expect(masked.title).toBe('Full Canonical');
-      expect(masked.kind).toBe('builtin');
-      expect(masked.source).toBe('fc-test');
-      expect(masked.category).toBe('search');
+      expect(masked.title).toBe("Full Canonical");
+      expect(masked.kind).toBe("builtin");
+      expect(masked.source).toBe("fc-test");
+      expect(masked.category).toBe("search");
       expect(masked.isReadOnly).toBe(true);
-      expect(masked.riskLevel).toBe('low');
-      expect(masked.permissions).toEqual({ fs: 'read' });
-      expect(masked.telemetry).toEqual({ metric: 'fc.search' });
+      expect(masked.riskLevel).toBe("low");
+      expect(masked.permissions).toEqual({ fs: "read" });
+      expect(masked.telemetry).toEqual({ metric: "fc.search" });
       expect(masked.availableInPlanMode).toBe(true);
       expect(masked.requiresPlanApproval).toBe(false);
       expect(masked.requiresConfirmation).toBe(false);
-      expect(masked.approvalFlow).toBe('auto');
-      expect(masked.planModeBehavior).toBe('allow');
-      expect(masked.skillName).toBe('search-kit');
-      expect(masked.skillCategory).toBe('knowledge');
-      expect(masked.instructions).toBe('Use this to search corpus.');
-      expect(masked.examples).toEqual([{ input: { q: 'hi' }, output: 'hi' }]);
-      expect(masked.tags).toEqual(['search', 'kit']);
+      expect(masked.approvalFlow).toBe("auto");
+      expect(masked.planModeBehavior).toBe("allow");
+      expect(masked.skillName).toBe("search-kit");
+      expect(masked.skillCategory).toBe("knowledge");
+      expect(masked.instructions).toBe("Use this to search corpus.");
+      expect(masked.examples).toEqual([{ input: { q: "hi" }, output: "hi" }]);
+      expect(masked.tags).toEqual(["search", "kit"]);
       // Never leak internal state
-      expect(masked).not.toHaveProperty('handler');
-      expect(masked).not.toHaveProperty('registeredAt');
+      expect(masked).not.toHaveProperty("handler");
+      expect(masked).not.toHaveProperty("registeredAt");
     });
 
-    it('should not leak undefined canonical fields when registration omits them', () => {
-      functionCaller.registerTool('minimal_tool', vi.fn(), {
-        description: 'Minimal',
-        inputSchema: { type: 'object', properties: {} },
+    it("should not leak undefined canonical fields when registration omits them", () => {
+      functionCaller.registerTool("minimal_tool", vi.fn(), {
+        description: "Minimal",
+        inputSchema: { type: "object", properties: {} },
       });
 
       const masked = functionCaller
         .getAllToolDefinitions()
-        .find((entry) => entry.name === 'minimal_tool');
+        .find((entry) => entry.name === "minimal_tool");
 
       expect(masked).toBeDefined();
       // Fields that were never set must NOT appear as `undefined` keys
-      expect('riskLevel' in masked).toBe(false);
-      expect('isReadOnly' in masked).toBe(false);
-      expect('availableInPlanMode' in masked).toBe(false);
-      expect('skillName' in masked).toBe(false);
+      expect("riskLevel" in masked).toBe(false);
+      expect("isReadOnly" in masked).toBe(false);
+      expect("availableInPlanMode" in masked).toBe(false);
+      expect("skillName" in masked).toBe(false);
     });
   });
 
-  describe('Agent Chat Tools', () => {
+  describe("Agent Chat Tools", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    it('should use normalized inputSchema for agent chat definitions', () => {
+    it("should use normalized inputSchema for agent chat definitions", () => {
       const inputSchema = {
-        type: 'object',
+        type: "object",
         properties: {
-          filePath: { type: 'string' }
+          filePath: { type: "string" },
         },
-        required: ['filePath']
+        required: ["filePath"],
       };
 
-      functionCaller.registerTool('file_reader', vi.fn(), {
-        description: 'Read a file',
-        inputSchema
+      functionCaller.registerTool("file_reader", vi.fn(), {
+        description: "Read a file",
+        inputSchema,
       });
 
       const tool = functionCaller
         .getAgentChatTools()
-        .find((entry) => entry.function.name === 'file_reader');
+        .find((entry) => entry.function.name === "file_reader");
 
       expect(tool.function.parameters).toEqual(inputSchema);
     });
   });
 
-  // NOTE: Skipped - tests expect mock injection but implementation creates internal instances
-  describe.skip('Tool Masking Control', () => {
+  describe("Tool Masking Control", () => {
     beforeEach(() => {
       functionCaller = new FunctionCaller();
     });
 
-    it('should set tool availability', () => {
-      functionCaller.setToolAvailable('file_reader', false);
+    it("should set tool availability", () => {
+      functionCaller.setToolAvailable("file_reader", false);
 
-      expect(mockToolMasking.setToolAvailability).toHaveBeenCalledWith('file_reader', false);
+      expect(mockToolMasking.setToolAvailability).toHaveBeenCalledWith(
+        "file_reader",
+        false,
+      );
     });
 
-    it('should set tools by prefix', () => {
-      functionCaller.setToolsByPrefix('file', false);
+    it("should set tools by prefix", () => {
+      functionCaller.setToolsByPrefix("file", false);
 
-      expect(mockToolMasking.setToolsByPrefix).toHaveBeenCalledWith('file', false);
+      expect(mockToolMasking.setToolsByPrefix).toHaveBeenCalledWith(
+        "file",
+        false,
+      );
     });
 
-    it('should enable all tools', () => {
+    it("should enable all tools", () => {
       functionCaller.enableAllTools();
 
       expect(mockToolMasking.enableAll).toHaveBeenCalled();
     });
 
-    it('should disable all tools', () => {
+    it("should disable all tools", () => {
       functionCaller.disableAllTools();
 
       expect(mockToolMasking.disableAll).toHaveBeenCalled();
     });
 
-    it('should set only available tools', () => {
-      functionCaller.setOnlyAvailable(['file_reader', 'file_writer']);
+    it("should set only available tools", () => {
+      functionCaller.setOnlyAvailable(["file_reader", "file_writer"]);
 
-      expect(mockToolMasking.setOnlyAvailable).toHaveBeenCalledWith(['file_reader', 'file_writer']);
+      expect(mockToolMasking.setOnlyAvailable).toHaveBeenCalledWith([
+        "file_reader",
+        "file_writer",
+      ]);
     });
 
-    it('should check if tool is available', () => {
+    it("should check if tool is available", () => {
       mockToolMasking.isToolAvailable.mockReturnValue(false);
 
-      const available = functionCaller.isToolAvailable('file_reader');
+      const available = functionCaller.isToolAvailable("file_reader");
 
-      expect(mockToolMasking.isToolAvailable).toHaveBeenCalledWith('file_reader');
+      expect(mockToolMasking.isToolAvailable).toHaveBeenCalledWith(
+        "file_reader",
+      );
       expect(available).toBe(false);
     });
 
-    it('should get all tool definitions', () => {
+    it("should get all tool definitions", () => {
       mockToolMasking.getAllToolDefinitions.mockReturnValue([
-        { name: 'tool1' },
-        { name: 'tool2' }
+        { name: "tool1" },
+        { name: "tool2" },
       ]);
 
       const definitions = functionCaller.getAllToolDefinitions();
@@ -939,18 +1022,20 @@ describe('FunctionCaller', () => {
       expect(definitions).toHaveLength(2);
     });
 
-    it('should get available tool definitions', () => {
-      mockToolMasking.getAvailableToolDefinitions.mockReturnValue([{ name: 'tool1' }]);
+    it("should get available tool definitions", () => {
+      mockToolMasking.getAvailableToolDefinitions.mockReturnValue([
+        { name: "tool1" },
+      ]);
 
       const definitions = functionCaller.getAvailableToolDefinitions();
 
       expect(definitions).toHaveLength(1);
     });
 
-    it('should handle masking methods when masking disabled', () => {
+    it("should handle masking methods when masking disabled", () => {
       const fc = new FunctionCaller({ enableToolMasking: false });
 
-      expect(() => fc.setToolAvailable('test', false)).not.toThrow();
+      expect(() => fc.setToolAvailable("test", false)).not.toThrow();
       expect(() => fc.enableAllTools()).not.toThrow();
       expect(() => fc.disableAllTools()).not.toThrow();
     });

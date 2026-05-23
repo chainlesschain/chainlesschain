@@ -58,6 +58,18 @@ const {
   registerComputerUseTools,
 } = require("./extended-tools-computeruse");
 
+// _deps injection seam — tests override these to bypass vi.mock-vs-CJS
+// require interop limitation. Production reads original imports above.
+const _deps = {
+  fs,
+  getToolMaskingSystem,
+  getVisionTools,
+  getSandboxTools,
+  getMemGPTTools,
+  getImageGenTools,
+  getTTSTools,
+};
+
 /**
  * Normalize a tool schema to the canonical descriptor shape.
  *
@@ -117,7 +129,7 @@ class FunctionCaller {
 
     if (this.enableToolMasking) {
       try {
-        this.toolMasking = getToolMaskingSystem({
+        this.toolMasking = _deps.getToolMaskingSystem({
           logMaskChanges: options.logMaskChanges !== false,
           defaultAvailable: true,
         });
@@ -203,7 +215,7 @@ class FunctionCaller {
    */
   setVisionManager(visionManager) {
     try {
-      const visionTools = getVisionTools();
+      const visionTools = _deps.getVisionTools();
       visionTools.setVisionManager(visionManager);
       logger.info("[Function Caller] VisionManager已设置");
     } catch (error) {
@@ -217,7 +229,7 @@ class FunctionCaller {
    */
   setPythonSandbox(pythonSandbox) {
     try {
-      const sandboxTools = getSandboxTools();
+      const sandboxTools = _deps.getSandboxTools();
       sandboxTools.setPythonSandbox(pythonSandbox);
       logger.info("[Function Caller] PythonSandbox已设置");
     } catch (error) {
@@ -231,7 +243,7 @@ class FunctionCaller {
    */
   setMemGPTCore(memgptCore) {
     try {
-      const memgptTools = getMemGPTTools();
+      const memgptTools = _deps.getMemGPTTools();
       memgptTools.setMemGPTCore(memgptCore);
       logger.info("[Function Caller] MemGPTCore已设置");
     } catch (error) {
@@ -245,7 +257,7 @@ class FunctionCaller {
    */
   setImageGenManager(imageGenManager) {
     try {
-      const imageGenTools = getImageGenTools();
+      const imageGenTools = _deps.getImageGenTools();
       imageGenTools.setImageGenManager(imageGenManager);
       logger.info("[Function Caller] ImageGenManager已设置");
     } catch (error) {
@@ -259,7 +271,7 @@ class FunctionCaller {
    */
   setTTSManager(ttsManager) {
     try {
-      const ttsTools = getTTSTools();
+      const ttsTools = _deps.getTTSTools();
       ttsTools.setTTSManager(ttsManager);
       logger.info("[Function Caller] TTSManager已设置");
     } catch (error) {
@@ -340,7 +352,7 @@ class FunctionCaller {
         }
 
         try {
-          const content = await fs.readFile(resolvedPath, "utf-8");
+          const content = await _deps.fs.readFile(resolvedPath, "utf-8");
           return {
             success: true,
             filePath: resolvedPath,
@@ -386,13 +398,13 @@ class FunctionCaller {
         try {
           // 确保目录存在
           const dir = path.dirname(resolvedPath);
-          await fs.mkdir(dir, { recursive: true });
+          await _deps.fs.mkdir(dir, { recursive: true });
 
           // 将content转换为字符串以支持number、boolean等类型
           const contentStr = String(content);
 
           // 写入文件
-          await fs.writeFile(resolvedPath, contentStr, "utf-8");
+          await _deps.fs.writeFile(resolvedPath, contentStr, "utf-8");
 
           logger.info(
             `[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`,
@@ -593,7 +605,7 @@ function initializeInteractions() {
 
         try {
           // 读取文件内容
-          let content = await fs.readFile(resolvedPath, "utf-8");
+          let content = await _deps.fs.readFile(resolvedPath, "utf-8");
 
           // 应用修改（简单的字符串替换）
           for (const mod of modifications) {
@@ -619,7 +631,7 @@ function initializeInteractions() {
           }
 
           // 写回文件
-          await fs.writeFile(resolvedPath, content, "utf-8");
+          await _deps.fs.writeFile(resolvedPath, content, "utf-8");
 
           return {
             success: true,
@@ -658,12 +670,12 @@ function initializeInteractions() {
 
           for (const dir of structure.directories) {
             const dirPath = path.join(projectPath, dir);
-            await fs.mkdir(dirPath, { recursive: true });
+            await _deps.fs.mkdir(dirPath, { recursive: true });
           }
 
           // 创建README.md
           const readmeContent = `# ${projectName}\n\n项目描述：自动生成的项目\n`;
-          await fs.writeFile(
+          await _deps.fs.writeFile(
             path.join(projectPath, "README.md"),
             readmeContent,
             "utf-8",
@@ -869,7 +881,7 @@ function initializeInteractions() {
 
     // 注册视觉工具（v0.27.0）
     try {
-      const visionTools = getVisionTools();
+      const visionTools = _deps.getVisionTools();
       visionTools.register(this);
       logger.info("[FunctionCaller] ✓ 视觉工具已注册（6个工具）");
     } catch (error) {
@@ -878,7 +890,7 @@ function initializeInteractions() {
 
     // 注册沙箱工具（v0.27.0）
     try {
-      const sandboxTools = getSandboxTools();
+      const sandboxTools = _deps.getSandboxTools();
       sandboxTools.register(this);
       logger.info("[FunctionCaller] ✓ 沙箱工具已注册（4个工具）");
     } catch (error) {
@@ -887,7 +899,7 @@ function initializeInteractions() {
 
     // 注册 MemGPT 记忆工具（v0.27.0）
     try {
-      const memgptTools = getMemGPTTools();
+      const memgptTools = _deps.getMemGPTTools();
       memgptTools.register(this);
       logger.info("[FunctionCaller] ✓ MemGPT记忆工具已注册（8个工具）");
     } catch (error) {
@@ -896,7 +908,7 @@ function initializeInteractions() {
 
     // 注册图像生成工具（v0.27.0）
     try {
-      const imageGenTools = getImageGenTools();
+      const imageGenTools = _deps.getImageGenTools();
       imageGenTools.register(this);
       logger.info("[FunctionCaller] ✓ 图像生成工具已注册（4个工具）");
     } catch (error) {
@@ -905,7 +917,7 @@ function initializeInteractions() {
 
     // 注册语音合成工具（v0.27.0）
     try {
-      const ttsTools = getTTSTools();
+      const ttsTools = _deps.getTTSTools();
       ttsTools.register(this);
       logger.info("[FunctionCaller] ✓ 语音合成工具已注册（3个工具）");
     } catch (error) {
@@ -1467,3 +1479,4 @@ function initializeInteractions() {
 }
 
 module.exports = FunctionCaller;
+module.exports._deps = _deps;
