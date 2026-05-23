@@ -16,9 +16,9 @@ cd desktop-app-vue
 npm run test:db            # Database tests
 npm run test:ukey          # U-Key hardware tests
 npm run test:unit          # All unit tests (Vitest)
-npm run test:security      # Security tests (OWASP)
+npm run test:secure-storage # Secure-storage hardware tests
 npm run test:integration   # Frontend-backend integration
-npm run test:e2e           # End-to-end tests
+npm run test:e2e           # End-to-end tests (Playwright)
 
 # CLI
 cd packages/cli
