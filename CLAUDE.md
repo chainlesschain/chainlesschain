@@ -101,7 +101,7 @@ Key highlights:
 
 ## Environment Variables
 
-Key variables (see `.env.example`):
+Key variables (see `desktop-app-vue/.env.example` or `config/.env.example`):
 ```bash
 OLLAMA_HOST=http://localhost:11434
 QDRANT_HOST=http://localhost:6333
