@@ -40,11 +40,18 @@ import timber.log.Timber
 /**
  * Real-device 2026-05-23 (Xiaomi 24115RA8EC): Bilibili buvid3 + bili_jct are
  * written by post-onload JS — onPageFinished beats them. Defer cookie grab
- * 2000ms so JS has its execution window. Shared by all 4 social adapters
+ * so JS has its execution window. Shared by all 4 social adapters
  * (Weibo / Douyin / Xiaohongshu also set cookies from JS — no platform is
  * worse off for the delay).
+ *
+ * Started at 2000ms; real-device 2026-05-23 22:30 same device still hit
+ * MissingField(buvid3) → bumped to 5000ms. The buvid3 setter chains an
+ * XHR (/x/frontend/finger/spi or similar) after window.onload, so 2s
+ * regularly loses the race on 5G + slow render path. 5s costs ~3s extra
+ * idle on the login screen but is dominated by the user's actual login
+ * keystrokes anyway.
  */
-private const val COOKIE_CAPTURE_DELAY_MS = 2000L
+private const val COOKIE_CAPTURE_DELAY_MS = 5000L
 
 /**
  * A8 v0.1 — generic in-app WebView used by all 4 social adapters
