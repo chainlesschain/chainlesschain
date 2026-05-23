@@ -5,14 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
-import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendEvent
-import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendUiState
-import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendViewModel
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 
@@ -21,51 +13,47 @@ import org.junit.Test
  *
  * 锁定 v0 demo 残余（`blockedUsers = mutableStateOf(emptyList())` 写死 TODO）真接通：
  * - 空态显示 "没有屏蔽任何用户"
- * - 有数据时显示行 + DID 摘要
- * - 点 "解除屏蔽" 触发 viewModel.unblockFriend
+ * - loading 时不显示空态
+ * - 有数据时显示行 + 解除按钮
+ * - 点 "解除屏蔽" 触发 onUnblock(blockedDid)
  *
- * VM 用 mockk 直接 stub，避免拉起 Hilt graph（同等覆盖，setup 1/10）。
+ * 直接驱动 `BlockedUsersContent`（stateless 拆分），绕开 mockk on final FriendViewModel
+ * 在 emulator 上的 ExceptionInInitializerError——VM ↔ Content wiring 的单元测试已由
+ * `FriendViewModelBlockedUsersTest` (JVM) 覆盖。
  */
 class BlockedUsersScreenE2ETest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun makeMockVm(blockedUsers: List<BlockedUserEntity>, loading: Boolean): FriendViewModel {
-        // relaxed=true 自动返回非 Unit/Job 类型的占位 mock，省去 unblockFriend (返回 Job) 显式 stub
-        val vm = mockk<FriendViewModel>(relaxed = true)
-        val state = MutableStateFlow(
-            FriendUiState(
-                blockedUsers = blockedUsers,
-                isLoadingBlockedUsers = loading
-            )
-        )
-        every { vm.uiState } returns state
-        every { vm.eventFlow } returns MutableSharedFlow<FriendEvent>()
-        return vm
-    }
-
     @Test
     fun emptyState_showsNoBlockedUsersHint() {
-        val vm = makeMockVm(blockedUsers = emptyList(), loading = false)
-
         composeTestRule.setContent {
-            BlockedUsersScreen(onNavigateBack = {}, viewModel = vm)
+            BlockedUsersContent(
+                blockedUsers = emptyList(),
+                isLoading = false,
+                onNavigateBack = {},
+                onLoad = {},
+                onUnblock = {}
+            )
         }
 
         composeTestRule.onNodeWithText("没有屏蔽任何用户").assertIsDisplayed()
     }
 
     @Test
-    fun loadingState_showsProgress() {
-        val vm = makeMockVm(blockedUsers = emptyList(), loading = true)
-
+    fun loadingState_hidesEmptyHint() {
         composeTestRule.setContent {
-            BlockedUsersScreen(onNavigateBack = {}, viewModel = vm)
+            BlockedUsersContent(
+                blockedUsers = emptyList(),
+                isLoading = true,
+                onNavigateBack = {},
+                onLoad = {},
+                onUnblock = {}
+            )
         }
 
-        // LoadingState 组件渲染（具体文本看 core-ui 实现，常见为 "加载中..."）
-        // 这里至少应该不显示"没有屏蔽"（empty state 互斥）
+        // empty 与 loading 互斥
         composeTestRule.onNodeWithText("没有屏蔽任何用户").assertDoesNotExist()
     }
 
@@ -78,20 +66,23 @@ class BlockedUsersScreenE2ETest {
             reason = "广告 spam",
             createdAt = 1_700_000_000_000L
         )
-        val vm = makeMockVm(blockedUsers = listOf(blocked), loading = false)
 
         composeTestRule.setContent {
-            BlockedUsersScreen(onNavigateBack = {}, viewModel = vm)
+            BlockedUsersContent(
+                blockedUsers = listOf(blocked),
+                isLoading = false,
+                onNavigateBack = {},
+                onLoad = {},
+                onUnblock = {}
+            )
         }
 
-        // 行用 DID 末 8 位作为占位昵称（BlockedUsersScreen.kt L120 "用户 ${take(8)}"）
-        // 取前 8 字符 "did:key:" 太通用——用 reason 字串更精准
         composeTestRule.onNodeWithText("原因: 广告 spam", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("解除屏蔽").assertIsDisplayed()
     }
 
     @Test
-    fun clickUnblock_invokesViewModelUnblockFriend() {
+    fun clickUnblock_invokesCallbackWithBlockedDid() {
         val blocked = BlockedUserEntity(
             id = "b2",
             blockerDid = "did:key:me",
@@ -99,26 +90,43 @@ class BlockedUsersScreenE2ETest {
             reason = null,
             createdAt = 1L
         )
-        val vm = makeMockVm(blockedUsers = listOf(blocked), loading = false)
+        val unblockedDids = mutableListOf<String>()
 
         composeTestRule.setContent {
-            BlockedUsersScreen(onNavigateBack = {}, viewModel = vm)
+            BlockedUsersContent(
+                blockedUsers = listOf(blocked),
+                isLoading = false,
+                onNavigateBack = {},
+                onLoad = {},
+                onUnblock = { did -> unblockedDids.add(did) }
+            )
         }
 
         composeTestRule.onNodeWithText("解除屏蔽").performClick()
-        verify(exactly = 1) { vm.unblockFriend("did:key:zTARGET") }
+        composeTestRule.waitForIdle()
+
+        assert(unblockedDids == listOf("did:key:zTARGET")) {
+            "expected unblock called once with did:key:zTARGET, got=$unblockedDids"
+        }
     }
 
     @Test
-    fun loadBlockedUsers_calledOnLaunch() {
-        val vm = makeMockVm(blockedUsers = emptyList(), loading = false)
+    fun onLoad_calledOnceOnComposition() {
+        var loadCallCount = 0
 
         composeTestRule.setContent {
-            BlockedUsersScreen(onNavigateBack = {}, viewModel = vm)
+            BlockedUsersContent(
+                blockedUsers = emptyList(),
+                isLoading = false,
+                onNavigateBack = {},
+                onLoad = { loadCallCount++ },
+                onUnblock = {}
+            )
         }
 
-        // LaunchedEffect(Unit) { viewModel.loadBlockedUsers() } 应在首次 composition 后被调用
         composeTestRule.waitForIdle()
-        verify(atLeast = 1) { vm.loadBlockedUsers() }
+        assert(loadCallCount == 1) {
+            "expected onLoad called exactly once on first composition, got=$loadCallCount"
+        }
     }
 }
