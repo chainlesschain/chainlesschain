@@ -1,8 +1,8 @@
 # 移动端 Android（v1.0 GA 用户文档）
 
-> **版本: v1.0.0 (Android `v5.0.3.54`, 2026-05-14) | 状态: 🎉 GA | 383+ 单测 | 28 内置技能 | ADR 8/8 accepted | M1/M2/M3/M4/M5/M7 ✅ | M6 性能预算文档就位**
+> **版本: v1.0.0 (Android `v5.0.3.84`, 2026-05-23) | 状态: 🎉 GA | 383+ 单测 | 25 内置技能 | ADR 8/8 accepted | M1/M2/M3/M4/M5/M7 ✅ | M6 性能预算文档就位**
 >
-> ChainlessChain Android 客户端 — Jetpack Compose + Kotlin 原生应用。三层定位：**L1 StrongBox 硬件 DID 钱包 / L2 移动现场捕获 / L3 REMOTE 远程遥控桌面 139 skill**。桌面与移动同版本同步发布（`v5.0.3.X`），每个 release tag 同时挂桌面 8 包 + Android 4 包。
+> ChainlessChain Android 客户端 — Jetpack Compose + Kotlin 原生应用。三层定位：**L1 StrongBox 硬件 DID 钱包 / L2 移动现场捕获 / L3 REMOTE 远程遥控桌面 141 skill**。桌面与移动同版本同步发布（`v5.0.3.X`），每个 release tag 同时挂桌面 8 包 + Android 4 包。
 
 ::: tip 适用读者
 - 第一次安装手机端、想搞清楚怎么用的用户
@@ -20,7 +20,7 @@ ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、
 |---|---|---|---|
 | **L1** | StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥 | Android Keystore + StrongBox HSM 是芯片级隔离，桌面 U-Key 需插着才能用 |
 | **L2** | 移动现场捕获 | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没有麦克风触手可及、没有摄像头、没有 GPS、不能接 Android 系统分享意图 |
-| **L3** | REMOTE 遥控器 | 调桌面 139 skill / 23 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
+| **L3** | REMOTE 遥控器 | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
 
 ## 核心特性
 
@@ -32,7 +32,7 @@ ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、
 - 📍 **LocationTagger GPS**: 前台轨迹服务，3-50m 精度，笔记自动打位置标 + 时间线
 - 📤 **ShareReceiver 系统分享**: 接 Android 5 种 SharePayload（文本 / URL / 图片 / 文件 / 多文件）入知识库
 - 🔔 **PushNotifier 推送**: 4 类本地通知 + FCM 远程通道（GA 后接 google-services.json）
-- 🎮 **REMOTE 遥控**: 23 个跨 namespace 命令（AI / Knowledge / Application / Browser / File / Workflow 等）调桌面 139 skill
+- 🎮 **REMOTE 遥控**: 25 个跨 namespace 命令（AI / Knowledge / Application / Browser / File / Workflow 等）调桌面 141 skill
 - ✅ **ApprovalUI 4 类审批**: Sign / Cowork / Marketplace / SystemCritical，桌面端 trust anchor 二次确认
 - ⏳ **ProgressViewer 长时任务面板**: reverse-RPC `task.*` 推进度，支持手机端取消
 - 🖥️ **远程终端 (Plan A.1)**: WebRTC DataChannel 直连，xterm.js 渲染，cc / claude / git / npm 任意 CLI
@@ -86,7 +86,7 @@ method-level 双粒度白名单（file × method）。每个 method 有：`names
 | `Browser.*` | newTab / closeTab / navigate | 浏览器控制 |
 | `Clipboard.*` | get / set / history | 跨设备剪贴板 |
 | `Desktop.*` | screenshot / lockScreen | 桌面查询 |
-| `Extension.*` | invokeSkill / listSkills | 调任意 139 skill |
+| `Extension.*` | invokeSkill / listSkills | 调任意 141 skill |
 | `File.*` | read / write / search | 文件操作（审批）|
 | `Input.*` | type / click / press | 输入注入 |
 | `Knowledge.*` | search / createNote / annotate | 知识库 |
