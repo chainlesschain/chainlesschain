@@ -24,10 +24,16 @@ package com.chainlesschain.android.pdh.travel
  *  - travel-baidu-map (百度地图)
  *  - travel-tencent-map (腾讯地图，本 v0.2 新增)
  *  - travel-ctrip (携程)
+ *  - travel-12306 (中国铁路 12306，2026-05-23 v0.3 加 — 推文 §"出行" 隐含)
  *
  * 真接通 sync 路径：cookie → in-APK cc hub sync travel-{vendor} --cookie '<c>' →
  * 桌面 adapter 走 snapshot mode (Android 写 staging JSON) 或 sqlite mode (传统
- * device-pull .db)。本机 UI v0.2 4 卡全显。
+ * device-pull .db)。本机 UI v0.3 5 卡全显。
+ *
+ * 12306 注意：kyfw.12306.cn 登录页有滑块验证码 + 短信，WebView 可渲但用户体验
+ * 不如原生。v0.1 仅显登录卡，sync 走 cookie scrape 拿账号态 (`username` /
+ * `tk` token)；订单历史 v0.2 走 /otn/queryOrder/queryMyOrderNoComplete +
+ * /otn/queryOrder/queryMyOrder (cookie-only, 无签名)。
  */
 enum class TravelVendor(
     val key: String,
@@ -86,11 +92,29 @@ enum class TravelVendor(
                 url.contains("my.ctrip.com")
         },
         authHint = "携程账号登录 → cookie scrape → 拿订单 / 酒店 / 机票历史",
+    ),
+    KYFW_12306(
+        key = "travel-12306",
+        displayName = "12306",
+        // 直接进登录页而非首页 — kyfw.12306.cn 首页登录按钮藏在 nav，
+        // 移动 WebView 上点不到。
+        loginUrl = "https://kyfw.12306.cn/otn/resources/login.html",
+        cookieDomain = "https://kyfw.12306.cn",
+        // 12306 登录后跳 /otn/view/index.html 或 /otn/leftTicket/init；
+        // 排除 login / passport / sms / captcha 等中间页
+        isLoginSuccess = { url ->
+            url.contains("kyfw.12306.cn") &&
+                !url.contains("login") &&
+                !url.contains("passport") &&
+                !url.contains("captcha")
+        },
+        authHint = "12306 账号登录后 cookie scrape — v0.1 仅拿账号态；订单历史 v0.2 走 /otn/queryOrder/queryMyOrder (cookie-only)",
     );
 
     companion object {
         fun fromKey(key: String): TravelVendor? = entries.firstOrNull { it.key == key }
-        // 地图三联在前 (高德 / 百度 / 腾讯)，携程出行收尾。UI 显示顺序与本列表一致
-        val ORDERED: List<TravelVendor> = listOf(AMAP, BAIDU_MAP, TENCENT_MAP, CTRIP)
+        // 地图三联在前 (高德 / 百度 / 腾讯)，出行类收尾 (携程 → 12306)。
+        // UI 显示顺序与本列表一致
+        val ORDERED: List<TravelVendor> = listOf(AMAP, BAIDU_MAP, TENCENT_MAP, CTRIP, KYFW_12306)
     }
 }

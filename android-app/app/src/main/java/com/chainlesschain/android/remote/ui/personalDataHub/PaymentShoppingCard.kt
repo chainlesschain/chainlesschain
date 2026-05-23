@@ -132,6 +132,14 @@ fun TravelGroup(
             hint = "网页登录 cookie → 订单 / 酒店 / 机票历史",
             sourceFormat = "WebView",
         ),
+        // 2026-05-23 v0.3 新增 — 中国铁路 12306。v0.1 仅显登录卡，sync 走 cookie
+        // scrape 拿账号态；订单历史 v0.2 走 /otn/queryOrder/queryMyOrder。
+        ProviderCard(
+            key = "travel-12306",
+            displayName = "12306",
+            hint = "网页登录 cookie → 账号态 (v0.2 加订单历史)",
+            sourceFormat = "WebView",
+        ),
     )
     Column(modifier = modifier.fillMaxWidth()) {
         providers.forEachIndexed { idx, p ->
