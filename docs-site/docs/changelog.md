@@ -3,6 +3,13 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.82 — hotfix2: Android R8 fullMode ConcurrentModificationException] - 2026-05-23
+
+> v5.0.3.81 build-android 仍 fail：proguard 修过了第一道关（`Missing class` 走过），但 R8 minify 内部抛 `java.util.ConcurrentModificationException` — AGP 8.x R8 full-mode 优化大 dex 图（Hilt + Ktor + SLF4J 合并后）时的 upstream bug。本 hotfix2 关 `android.enableR8.fullMode`。
+
+- **`gradle.properties` `android.enableR8.fullMode=true` → `false`** (`14d574c046`)。release.yml 注释早就要求 disable，但 sed 只改了 `org.gradle.jvmargs` — 从未翻这个 property，所以 v5.0.3.81 重跑还是崩。
+- upstream R8 bug 跟踪：issuetracker.google.com/issues/238045415（concurrent collection iteration in R8 optimizer）。DEX 大 ~3-5% 但稳。
+
 ## [v5.0.3.81 — hotfix: Android R8 Ktor proguard + WebView vendor-switch remount] - 2026-05-23
 
 > v5.0.3.80 build-android 在 R8 minify 阶段 fail（Ktor `IntellijIdeaDebugDetector` 引用 `java.lang.management.*` JVM-only API + slf4j-api 缺 `StaticLoggerBinder`），导致 v5.0.3.80 GitHub Release **缺 4 个 Android asset**。本 hotfix 加 proguard `-dontwarn` 规则 + bundle 一个真机 bug 修。
