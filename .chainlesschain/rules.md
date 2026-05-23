@@ -395,7 +395,7 @@ if (error.code === "UKEY_NOT_FOUND") {
 
 - **系统设计**: `docs/design/系统设计_个人移动AI管理系统.md`
 - **实施状态**: `IMPLEMENTATION_COMPLETE.md`
-- **快速开始**: `QUICK_START.md`, `HOW_TO_RUN.md`
+- **快速开始**: `docs/quick-start/QUICK_START.md`, `docs/quick-start/HOW_TO_RUN.md`
 - **贡献指南**: `docs/development/CONTRIBUTING.md`
 - **优化计划**: `docs/development/OPTIMIZATION_PLAN_FROM_OPENCLAUDE.md`
 

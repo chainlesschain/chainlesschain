@@ -5722,7 +5722,7 @@ Core encryption libraries use **Apache 2.0** license
 
 - [📖 Documentation Center](./docs/README.md) - Complete documentation navigation
 - [✨ Features Guide](./docs/FEATURES.md) - Detailed feature list
-- [📥 Installation Guide](./docs/INSTALLATION.md) - Platform-specific installation
+- [📥 Installation Guide](./docs/quick-start/INSTALLATION.md) - Platform-specific installation
 - [🏗️ Architecture](./docs/ARCHITECTURE.md) - Technical architecture
 - [💻 Development Guide](./docs/DEVELOPMENT.md) - Development setup
 - [📝 Changelog](./docs/CHANGELOG.md) - Full version history

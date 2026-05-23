@@ -121,7 +121,7 @@ REDIS_HOST=localhost:6379
 - **Architecture Decisions**: `docs/claude/CLAUDE-decisions.md`
 - **Troubleshooting**: `docs/claude/CLAUDE-troubleshooting.md` (22k — read on demand when debugging issues)
 - **System Design**: `docs/design/系统设计_主文档.md`
-- **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
+- **Quick Start**: `docs/quick-start/QUICK_START.md`, `docs/quick-start/HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
 
 ### Doc-site source-of-truth (改文档前**必看**)

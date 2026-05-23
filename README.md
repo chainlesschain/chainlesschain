@@ -4279,7 +4279,7 @@ docker exec chainlesschain-ollama ollama pull qwen2:7b
 - **macOS**: Intel芯片 (x64) - 拖拽安装到应用程序文件夹
 - **Linux**: Ubuntu/Debian/Fedora/Arch - ZIP便携版 + DEB安装包
 
-详细安装说明见 [安装指南](./docs/INSTALLATION.md)
+详细安装说明见 [安装指南](./docs/quick-start/INSTALLATION.md)
 
 ## 📁 项目结构
 
@@ -4544,7 +4544,7 @@ chainlesschain/
 
 - [📖 文档中心](./docs/README.md) - 完整文档导航和索引
 - [✨ 功能详解](./docs/FEATURES.md) - 详细功能列表和说明
-- [📥 安装指南](./docs/INSTALLATION.md) - 各平台详细安装步骤
+- [📥 安装指南](./docs/quick-start/INSTALLATION.md) - 各平台详细安装步骤
 - [🏗️ 架构文档](./docs/ARCHITECTURE.md) - 技术架构和项目结构
 - [💻 开发指南](./docs/DEVELOPMENT.md) - 开发环境搭建和贡献规范
 - [📝 版本历史](./docs/CHANGELOG.md) - 完整版本更新记录
