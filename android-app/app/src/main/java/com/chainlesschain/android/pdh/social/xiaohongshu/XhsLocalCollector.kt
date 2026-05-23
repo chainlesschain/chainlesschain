@@ -164,11 +164,25 @@ class XhsLocalCollector @Inject constructor(
     /**
      * 与 Weibo 同：suspend (因为 fetchMe 是 HTTP 调用)。但又比 Weibo 多解 a1
      * cookie 字段单独存。返 false = cookie 不全 (缺 a1) / fetchMe 失败 / login
-     * 未完成 — caller surface 引导。成功 → 写 store (cookie/uid/userIdStr/a1)。
+     * 未完成 — caller 通过 [lastLoginErrorCode] / [lastLoginErrorMessage] 拿到
+     * 具体失败原因 surface。成功 → 写 store (cookie/uid/userIdStr/a1)。
      */
     suspend fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
-        val a1 = XhsApiClient.extractA1(cookie) ?: return false
-        val me = apiClient.fetchMe(cookie) ?: return false
+        // Reset pre-flight error before each attempt — stale from prior failure
+        // would otherwise mask a fresh apiClient-side failure.
+        collectorLoginErrorCode = 0
+        collectorLoginErrorMessage = null
+        val a1 = XhsApiClient.extractA1(cookie)
+        if (a1 == null) {
+            // Pre-flight failure — apiClient never called, so we record here.
+            // Code -10 distinguishes from apiClient-side failures (positive
+            // upstream codes / -5/-6/-7 from fetchMe shape drift).
+            collectorLoginErrorCode = -10
+            collectorLoginErrorMessage =
+                "cookie 缺 a1 字段 (anti-bot fingerprint cookie 未捕到 — WebView 抓 cookie 时机问题或域不匹配)"
+            return false
+        }
+        val me = apiClient.fetchMe(cookie) ?: return false  // apiClient sets its own lastError
         credentialsStore.saveCredentials(
             cookie = cookie,
             uid = me.numericUid,
@@ -182,6 +196,18 @@ class XhsLocalCollector @Inject constructor(
     fun logout() {
         credentialsStore.clear()
     }
+
+    // ─── Login error surfacing (debug instrumentation) ──────────────────────
+    // Two error sources to merge: collector-owned pre-flight (e.g. missing a1)
+    // and apiClient HTTP/shape errors. Collector takes precedence when set.
+
+    @Volatile private var collectorLoginErrorCode: Int = 0
+    @Volatile private var collectorLoginErrorMessage: String? = null
+
+    val lastLoginErrorCode: Int
+        get() = if (collectorLoginErrorCode != 0) collectorLoginErrorCode else apiClient.lastErrorCode
+    val lastLoginErrorMessage: String?
+        get() = collectorLoginErrorMessage ?: apiClient.lastErrorMessage
 
     companion object {
         /**
