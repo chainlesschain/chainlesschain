@@ -76,6 +76,11 @@ fun HubLocalAskScreen(
                         viewModel.requestCitationDetail(eventId)
                     },
                     onDismissAnswer = { viewModel.clearAskAnswer() },
+                    // §2.1 A3.4 — share model status with tab 4 so user gets
+                    // the same download/Ready banner in both ask surfaces.
+                    modelStatus = state.modelStatus,
+                    onDownloadModel = { viewModel.downloadModel() },
+                    onDeleteModel = { viewModel.deleteModel() },
                 )
             }
 

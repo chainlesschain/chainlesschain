@@ -10,6 +10,7 @@ import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.email.EmailVendor
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
+import com.chainlesschain.android.pdh.llm.ModelManager
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
@@ -78,6 +79,7 @@ class HubLocalViewModel @Inject constructor(
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
+    private val modelManager: ModelManager,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -177,6 +179,34 @@ class HubLocalViewModel @Inject constructor(
         val durationMs: Long = 0L,
         val errorMessage: String? = null,
     )
+
+    /**
+     * §2.1 A3.4 — UI mirror of [ModelManager.State]. The Compose layer renders
+     * a status banner inside [HubAskCard] derived from this single field, so it
+     * survives ModelManager refactors (e.g., when v0.2 lock SHA256). Mapping:
+     *
+     * - [ModelManager.State.NotDownloaded] → kind=NOT_DOWNLOADED (button: 下载模型)
+     * - [ModelManager.State.Downloading]  → kind=DOWNLOADING (progress bar, fraction)
+     * - [ModelManager.State.Verifying]    → kind=VERIFYING (spinner)
+     * - [ModelManager.State.Ready]        → kind=READY (badge: 已就绪 modelName)
+     * - [ModelManager.State.Failed]       → kind=FAILED (error + retry button)
+     *
+     * 推文 §"无网也能用" 的可见性入口：用户不下载模型就无法离线提问，UI 必须把
+     * 状态摆出来，否则推文承诺与首问 fail-fast 之间出现认知鸿沟。
+     */
+    @Immutable
+    data class ModelStatusState(
+        val kind: Kind = Kind.UNKNOWN,
+        val modelName: String? = null,
+        val receivedBytes: Long = 0L,
+        val totalBytes: Long = 0L,
+        val errorMessage: String? = null,
+    ) {
+        enum class Kind { UNKNOWN, NOT_DOWNLOADED, DOWNLOADING, VERIFYING, READY, FAILED }
+
+        val progressFraction: Float
+            get() = if (totalBytes > 0L) receivedBytes.toFloat() / totalBytes.toFloat() else 0f
+    }
 
     /**
      * 推文 §"AI 给出处 · 点一下看原文" 的 bottom sheet state。
@@ -324,6 +354,7 @@ class HubLocalViewModel @Inject constructor(
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
         val ask: AskCardState = AskCardState(),
+        val modelStatus: ModelStatusState = ModelStatusState(),
         val threeLocks: ThreeLocksState = ThreeLocksState(),
         val citationDetail: CitationDetailState = CitationDetailState(),
         val localAudit: LocalAuditState = LocalAuditState(),
@@ -351,6 +382,66 @@ class HubLocalViewModel @Inject constructor(
         refreshAiChatFromStore()
         refreshEmailFromStore()
         refreshTravelFromStore()
+        observeModelManager()
+    }
+
+    /**
+     * §2.1 A3.4 — collect [ModelManager.state] into [UiState.modelStatus]. One
+     * one-shot refresh() kicks off so a previously-downloaded GGUF surfaces as
+     * READY on app start without forcing the user to tap "下载". Subsequent
+     * state changes flow through the StateFlow collector.
+     */
+    private fun observeModelManager() {
+        viewModelScope.launch {
+            // Kick a refresh so an already-on-disk model promotes from
+            // NotDownloaded → Ready on first compose. Idempotent.
+            modelManager.refresh()
+        }
+        viewModelScope.launch {
+            modelManager.state.collect { s -> _state.update { it.copy(modelStatus = s.toUi()) } }
+        }
+    }
+
+    /**
+     * §2.1 A3.4 — user-triggered model download from HubAskCard banner. Hard
+     * one-shot: while a download is in flight the UI button is disabled, so
+     * concurrent download attempts can't be launched. ModelManager.download()
+     * itself is also single-flight via the .part file lock.
+     */
+    fun downloadModel() {
+        if (_state.value.modelStatus.kind == ModelStatusState.Kind.DOWNLOADING) return
+        viewModelScope.launch { modelManager.download() }
+    }
+
+    /**
+     * §2.1 A3.4 — delete the GGUF file (e.g., after FAILED state user wants
+     * to retry from scratch instead of resume; or to reclaim ~1GB disk). State
+     * flips to NOT_DOWNLOADED via the [observeModelManager] collector.
+     */
+    fun deleteModel() {
+        viewModelScope.launch { modelManager.delete() }
+    }
+
+    private fun ModelManager.State.toUi(): ModelStatusState = when (this) {
+        is ModelManager.State.NotDownloaded -> ModelStatusState(
+            kind = ModelStatusState.Kind.NOT_DOWNLOADED,
+        )
+        is ModelManager.State.Downloading -> ModelStatusState(
+            kind = ModelStatusState.Kind.DOWNLOADING,
+            receivedBytes = receivedBytes,
+            totalBytes = totalBytes,
+        )
+        is ModelManager.State.Verifying -> ModelStatusState(
+            kind = ModelStatusState.Kind.VERIFYING,
+        )
+        is ModelManager.State.Ready -> ModelStatusState(
+            kind = ModelStatusState.Kind.READY,
+            modelName = file.name,
+        )
+        is ModelManager.State.Failed -> ModelStatusState(
+            kind = ModelStatusState.Kind.FAILED,
+            errorMessage = reason,
+        )
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────

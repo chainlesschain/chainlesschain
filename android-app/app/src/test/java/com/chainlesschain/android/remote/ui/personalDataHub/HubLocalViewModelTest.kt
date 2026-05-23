@@ -4,6 +4,7 @@ import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
+import com.chainlesschain.android.pdh.llm.ModelManager
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
@@ -75,6 +76,7 @@ class HubLocalViewModelTest {
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
+    private lateinit var modelManager: ModelManager
     private lateinit var appContext: Context
 
     @Before
@@ -114,6 +116,20 @@ class HubLocalViewModelTest {
         every { systemDataState.getContactsCount() } returns 0
         every { systemDataState.getAppsCount() } returns 0
         every { systemDataState.getIngested() } returns 0
+        // §2.1 A3.4 — default: model not downloaded. Tests overriding flow
+        // (downloadModel triggers / state collector) can supply a real
+        // MutableStateFlow if they need to drive state transitions.
+        modelManager = mockk(relaxed = true)
+        coEvery { modelManager.refresh(any()) } returns
+            com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded
+        // Explicit MutableStateFlow<State> type so the collect site in the VM
+        // (which is StateFlow<ModelManager.State>) gets the widened generic;
+        // without this the inferred type is the NotDownloaded singleton and
+        // mockk's return-value type check rejects subsequent State subclasses.
+        every { modelManager.state } returns
+            kotlinx.coroutines.flow.MutableStateFlow<
+                com.chainlesschain.android.pdh.llm.ModelManager.State
+            >(com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded)
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -153,6 +169,7 @@ class HubLocalViewModelTest {
             xhsCollector,
             xhsCredentials,
             systemDataState,
+            modelManager,
             appContext,
         )
 
@@ -209,6 +226,134 @@ class HubLocalViewModelTest {
         assertEquals(0, vm.state.value.systemData.contactsCount)
         assertEquals(0, vm.state.value.systemData.appsCount)
         assertEquals(0, vm.state.value.systemData.ingested)
+    }
+
+    // ─── §2.1 A3.4 — model status wiring ────────────────────────────────────
+
+    @Test
+    fun `init observes ModelManager state — NotDownloaded surfaces as NOT_DOWNLOADED`() = runTest(testDispatcher) {
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded)
+        every { modelManager.state } returns flow
+        coEvery { modelManager.refresh(any()) } returns
+            com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(
+            HubLocalViewModel.ModelStatusState.Kind.NOT_DOWNLOADED,
+            vm.state.value.modelStatus.kind,
+        )
+    }
+
+    @Test
+    fun `model status maps Ready → READY with model name`() = runTest(testDispatcher) {
+        val ready = com.chainlesschain.android.pdh.llm.ModelManager.State.Ready(
+            file = java.io.File("qwen2.5-1.5b-instruct-q4_k_m.gguf"),
+            sha256 = "deadbeef",
+        )
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(ready)
+        every { modelManager.state } returns flow
+        coEvery { modelManager.refresh(any()) } returns ready
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(HubLocalViewModel.ModelStatusState.Kind.READY, vm.state.value.modelStatus.kind)
+        assertEquals("qwen2.5-1.5b-instruct-q4_k_m.gguf", vm.state.value.modelStatus.modelName)
+    }
+
+    @Test
+    fun `model status maps Downloading → DOWNLOADING with fraction`() = runTest(testDispatcher) {
+        val downloading = com.chainlesschain.android.pdh.llm.ModelManager.State.Downloading(
+            receivedBytes = 500_000_000L,
+            totalBytes = 1_000_000_000L,
+        )
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(downloading)
+        every { modelManager.state } returns flow
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(
+            HubLocalViewModel.ModelStatusState.Kind.DOWNLOADING,
+            vm.state.value.modelStatus.kind,
+        )
+        // Fraction is computed on the UI-side data class → assert it
+        assertEquals(0.5f, vm.state.value.modelStatus.progressFraction)
+    }
+
+    @Test
+    fun `model status maps Failed → FAILED with reason`() = runTest(testDispatcher) {
+        val failed = com.chainlesschain.android.pdh.llm.ModelManager.State.Failed(
+            reason = "空间不足：需要 1210MB，可用 200MB",
+        )
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(failed)
+        every { modelManager.state } returns flow
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(HubLocalViewModel.ModelStatusState.Kind.FAILED, vm.state.value.modelStatus.kind)
+        assertEquals("空间不足：需要 1210MB，可用 200MB", vm.state.value.modelStatus.errorMessage)
+    }
+
+    @Test
+    fun `downloadModel triggers ModelManager download`() = runTest(testDispatcher) {
+        coEvery { modelManager.download(any()) } returns
+            com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.downloadModel()
+        advanceUntilIdle()
+
+        io.mockk.coVerify { modelManager.download(any()) }
+    }
+
+    @Test
+    fun `downloadModel is a no-op while a download is already in flight`() = runTest(testDispatcher) {
+        // Surface DOWNLOADING state — VM should skip launching another download.
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(com.chainlesschain.android.pdh.llm.ModelManager.State.Downloading(
+            receivedBytes = 100L, totalBytes = 1000L,
+        ))
+        every { modelManager.state } returns flow
+
+        val vm = newVm()
+        advanceUntilIdle()
+        // Verify state is DOWNLOADING then trigger
+        assertEquals(
+            HubLocalViewModel.ModelStatusState.Kind.DOWNLOADING,
+            vm.state.value.modelStatus.kind,
+        )
+
+        vm.downloadModel()
+        advanceUntilIdle()
+
+        // download() must NOT be invoked while DOWNLOADING (guard at action site)
+        io.mockk.coVerify(exactly = 0) { modelManager.download(any()) }
+    }
+
+    @Test
+    fun `deleteModel triggers ModelManager delete`() = runTest(testDispatcher) {
+        coEvery { modelManager.delete(any()) } returns Unit
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.deleteModel()
+        advanceUntilIdle()
+
+        io.mockk.coVerify { modelManager.delete(any()) }
     }
 
     @Test
