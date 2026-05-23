@@ -5,6 +5,13 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.84] - 2026-05-23 — hotfix4: CLI 接通 PDH 8 个 social/messaging adapter
+
+> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 `AdapterRegistry.syncAdapter: no adapter <X>`，因为 `personal-data-hub-wiring.js` 历史只 `new BilibiliAdapter()` 一个，而 PDH 0.2.3+ 早 ship 了 9 个（Bilibili + Weibo + Douyin + Xiaohongshu + Toutiao + Kuaishou + QQ + Telegram + WhatsApp）。Android 端 collector 早已能写 staging JSON，CLI 却装不下接收。本 hotfix 补 8 个 adapter 在 boot 时 register。
+
+- **`packages/cli/src/lib/personal-data-hub-wiring.js`** (`94b0ecf25c`)：destructure 8 个 adapter class + boot 时 for-loop `new Cls()` + `registry.register()`，每个 in 自己 try/catch（单个 ctor 抛不级联）。镜像既有 Bilibili 的 wire 模式（line 282）。
+- **`chainlesschain` (CLI) 0.162.16 → 0.162.17**：bundle 本修。PDH 不动（仍 0.2.4）。
+
 ## [v5.0.3.83] - 2026-05-23 — hotfix3: PDH AIChat 向导静态 import 改 lazy require
 
 > v5.0.3.82 web-panel **PDH 页面"刷新失败"** — `packages/cli/src/lib/personal-data-hub-aichat-wizard.js` 顶层 `import { DEFAULT_VENDOR_SPECS, HttpClient, CookieAuthSession } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history"` 在 nested PDH 是旧版（如 0.2.0 缺 `ai-chat-history` subpath export）时整个 wiring 链 module-load 阶段就炸 → web-shell PDH 路径不可用。本 hotfix 把顶层 ESM import 换成 memoized lazy `_require`，错误延后到 wizard 真正被调用时才报，Node 解析也有机会走到 root symlink 拿到带 export 的源码副本。

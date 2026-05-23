@@ -3,6 +3,13 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.84 — hotfix4: CLI 接通 PDH 8 个 social/messaging adapter] - 2026-05-23
+
+> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 "no adapter X"，因为 `personal-data-hub-wiring.js` 历史只 wire 了 BilibiliAdapter，而 PDH 0.2.3+ 早 ship 了 9 个 (Bilibili + Weibo + Douyin + Xiaohongshu + Toutiao + Kuaishou + QQ + Telegram + WhatsApp)。Android 端 collector 早能写 staging JSON，CLI 却装不下接收。本 hotfix 补全 8 个。
+
+- **`personal-data-hub-wiring.js`** (`94b0ecf25c`)：boot 时 for-loop `new Cls()` + `registry.register()` 8 adapter，每个 try/catch 独立。镜像既有 Bilibili wire 模式。
+- **CLI 0.162.16 → 0.162.17**：bundle 本修。PDH 不动 (仍 0.2.4)。
+
 ## [v5.0.3.83 — hotfix3: PDH AIChat 向导静态 import 改 lazy require] - 2026-05-23
 
 > v5.0.3.82 web-panel **PDH 页面"刷新失败"**：`packages/cli/src/lib/personal-data-hub-aichat-wizard.js` 顶层 `import { ... } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history"` 在 nested PDH 是旧版（如 0.2.0 缺该 subpath export）时整个 wiring 链 module-load 阶段就炸。本 hotfix 改 memoized lazy `_require`，错误延后到 wizard 真正调用时才报，Node 解析也有机会走 root symlink 拿到带 export 的源码副本。
