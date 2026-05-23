@@ -27,16 +27,17 @@
 | 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope | `feedback_commit_msg_hook_scope_regex.md` |
 | 17 | Android remote file skill 接通 6 雷 | 加新 `RemoteCommandClient.invoke` 类 Android skill；接 Plan C signaling 路径 | `android_remote_file_skill_traps.md` |
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
+| 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前 | `android_release_r8_minify_hotfix_chain.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
 ```
-Release / 打包   : 7, 13, 14, 18
+Release / 打包   : 7, 13, 14, 18, 19
 Git / 并发       : 9, 10
-CI / 测试        : 8, 11
+CI / 测试        : 8, 11, 19
 Toolchain        : 12, 16
 Runtime / 数据   : 15
-Mobile 平台      : 14, 17
+Mobile 平台      : 14, 17, 19
 Docs             : 6
 ```
 
@@ -1101,6 +1102,90 @@ sandbox-<feature>       # 用完就 burn
    - 缺 asset → 切下一版本（无补救）
    - workflow file bug 触发 → 用 dispatch 跑 main HEAD
 ```
+
+---
+
+## 19. Android release-mode R8 minify 只在 CI 暴露（隐性风险）
+
+**陷阱本质** — Android debug build 走 `isMinifyEnabled = false`，**完全跳过 R8**；release build (`./gradlew :app:assembleRelease`) 才跑 `:app:minifyReleaseWithR8`。任何新引入的"重 lib dep"（Ktor / gRPC / SLF4J / 大反射 / 引用 `java.lang.management.*` 的 JVM-only lib）只在 release 模式才暴露 R8 失败。
+
+新 lib commit 之后跑 `./gradlew assembleDebug` 全绿 + unit tests 全绿 + 真机 debug APK 跑得动 → **以为没事** → 直接打 tag 推 release → CI 跑 `:app:minifyReleaseWithR8` → 失败 → 整条 release pipeline 已经 `gh release create --draft` 成功了一半（desktop 全绿，Android 缺 4 个 asset），但 GitHub immutable releases 让这个 tag 永久 burn，要发 Android 必须再打个新 tag。
+
+**为什么排查难**：
+
+1. 失败延迟到 release CI 才出现（dev / CI debug 全绿）
+2. R8 错误信息形态多样且 misleading：
+   - `Missing class java.lang.management.ManagementFactory` — 看着像缺依赖，实际只需 `-dontwarn`
+   - `R8: java.util.ConcurrentModificationException`（没行号没类名）— 像 R8 内部 bug，实际是 fullMode 触发，需要切 compat mode
+3. `release.yml` 里 `create-release` 条件只 require **3 个 desktop build** 成功，Android 失败不阻塞 release 创建（best-effort 设计）→ "workflow conclusion=failure 但 release 已 published 缺 Android assets" 隐性现象
+4. memory `feedback_android_tag_follows_desktop.md` 记录 Android 自更新走 desktop tag → release 缺 Android assets = Android 用户彻底无法收到这个版本的自更新（silent）
+
+**SOP — 任何引入新重 lib 的 PR 必跑**：
+
+```bash
+cd android-app
+
+# 1. 本地 release-mode 试 R8（5-8 min）
+./gradlew :app:assembleRelease
+
+# 2. 验产物存在
+ls app/build/outputs/apk/release/*.apk
+
+# 3. 通过后再 bump 版本 / tag
+```
+
+**两种 R8 失败的修法（按错误形态分流）**：
+
+```
+# 形态 A — Missing class X
+ERROR: Missing classes detected while running R8.
+ERROR: R8: Missing class java.lang.management.ManagementFactory
+       (referenced from: io.ktor.util.debug.IntellijIdeaDebugDetector)
+Missing class org.slf4j.impl.StaticLoggerBinder
+
+→ 在 android-app/app/proguard-rules.pro 加：
+  -dontwarn java.lang.management.**
+  -dontwarn org.slf4j.impl.**
+  -dontwarn org.slf4j.**
+  -dontwarn <lib>.util.debug.**
+  -keep class <lib>.** { *; }
+  -dontwarn <lib>.**
+
+→ R8 也会自动生成 app/build/outputs/mapping/release/missing_rules.txt
+  可以直接 cat 那个文件抄进 proguard-rules.pro 一次性解决多个
+
+# 形态 B — ConcurrentModificationException（无类名/无行号）
+ERROR: R8: java.util.ConcurrentModificationException
+> Task :app:minifyReleaseWithR8 FAILED
+
+→ 是 AGP 8.x R8 full-mode 在大 Hilt+Ktor+SLF4J 合并 dex 时的 upstream bug
+  (issuetracker.google.com/issues/238045415)
+→ 改 android-app/gradle.properties:
+  android.enableR8.fullMode=false
+→ Trade-off: DEX ~3-5% 大，无 runtime perf 回归
+```
+
+**反模式**：
+
+- ❌ "release.yml 里加 `sed` 改 gradle.properties 兜底" — 历史教训：v5.0.3.80 之前的 release.yml 注释写着 "Disable R8 full mode" 但 sed 只改了 `org.gradle.jvmargs` 完全没改 `enableR8.fullMode`，所以 release CI 永远跑 fullMode=true 直到 v5.0.3.81 才发现。**修法：改 source 文件 (gradle.properties)，让 CI + 本地一致。**
+- ❌ "等下次 release 顺便修" — 缺 Android asset 这个 tag 就废了，Android 用户卡在老版本直到下次有完整 Android assets 的 release
+- ❌ "只跑 unit test 就以为没事" — JVM unit test 走 mockable Android jar 不触 R8
+
+**实战记录** — v5.0.3.80 → v5.0.3.82 hotfix 链（2026-05-22 → 23, ~4h）：
+
+| Tag | 失败形态 | 修法 commit | 经验 |
+|---|---|---|---|
+| v5.0.3.80 | `Missing class java.lang.management.*` + slf4j `StaticLoggerBinder` | `c42aa603c5` 加 5 行 `-dontwarn` | A3 端侧 LLM 引入 Ktor 后**首次** release-mode build；本地 `assembleDebug` 没暴露 |
+| v5.0.3.81 | `ConcurrentModificationException` | `14d574c046` `enableR8.fullMode=false` | release.yml 早有注释承诺 disable 但 sed 漏改 property |
+| v5.0.3.82 | (全绿，首次完整 success) | — | 验证两个修法稳定 |
+
+烧 3 个 immutable tag namespace + ~4h CI 时间，全部因为没在加 Ktor 时本地跑 `assembleRelease`。
+
+**关联陷阱**：
+
+- #14 Android in-app update — 缺 Android assets 时 UpdateChecker.kt 拉不到下载
+- #18 GitHub immutable releases — burnt tag 不可复用
+- memory `feedback_android_tag_follows_desktop.md` — Android 下载链跟 desktop tag
 
 ---
 
