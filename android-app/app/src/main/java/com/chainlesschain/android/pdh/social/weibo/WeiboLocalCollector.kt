@@ -56,21 +56,35 @@ class WeiboLocalCollector @Inject constructor(
         data class Failed(val reason: String) : SnapshotResult()
     }
 
-    suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
+    /**
+     * @param onProgress optional callback invoked synchronously before each
+     *   stage so the caller (HubLocalViewModel) can surface "采集帖子... /
+     *   采集收藏..." to the user. Real-device 2026-05-23 (Xiaomi 24115RA8EC)
+     *   exposed that the 3 fetcher + write-snapshot steps can take many
+     *   seconds per stage; without per-stage callback the user stares at a
+     *   single "同步中…" spinner for minutes and can't tell whether work is
+     *   happening. Pass null to skip (test paths).
+     */
+    suspend fun snapshot(
+        onProgress: ((String) -> Unit)? = null,
+    ): SnapshotResult = withContext(Dispatchers.IO) {
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials
         }
         val cookie = credentialsStore.getCookie() ?: return@withContext SnapshotResult.NoCredentials
         val uid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
 
+        onProgress?.invoke("采集帖子…")
         val posts = try { apiClient.fetchPosts(cookie, uid) } catch (t: Throwable) {
             Timber.w(t, "WeiboLocalCollector: fetchPosts threw")
             emptyList()
         }
+        onProgress?.invoke("采集收藏…")
         val favourites = try { apiClient.fetchFavourites(cookie) } catch (t: Throwable) {
             Timber.w(t, "WeiboLocalCollector: fetchFavourites threw")
             emptyList()
         }
+        onProgress?.invoke("采集关注…")
         val follows = try { apiClient.fetchFollows(cookie, uid) } catch (t: Throwable) {
             Timber.w(t, "WeiboLocalCollector: fetchFollows threw")
             emptyList()
@@ -130,6 +144,7 @@ class WeiboLocalCollector @Inject constructor(
             )
             .put("events", events)
 
+        onProgress?.invoke("写入快照…")
         val stagingDir = File(context.filesDir, ".chainlesschain/staging")
         if (!stagingDir.exists() && !stagingDir.mkdirs()) {
             return@withContext SnapshotResult.Failed(

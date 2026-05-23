@@ -72,19 +72,32 @@ class LocalCcRunner @Inject constructor(
     suspend fun syncAdapter(
         adapterName: String,
         inputPath: String,
-        // First-run sync on device: bs3mc cold-load + LocalVault open + KG/RAG
-        // derivation for ~1300 entities + EntityResolver embedding-stage
-        // retries (no Ollama on device → silent-fail with network timeout
-        // budget) measured 60-90s on Xiaomi 24115RA8EC 2026-05-21.
+        // First-run sync on device: bs3mc cold-load + LocalVault open + adapter
+        // wiring (50+ adapters) + KG/RAG derivation. EntityResolver embedding
+        // stage is now auto-skipped in-APK — wiring.js detects PREFIX starting
+        // with /data/data/com.chainlesschain.android and disables the embedding
+        // + LLM stages so no Ollama ECONNREFUSED retry burn (prior comment
+        // here described pre-skip-logic behaviour; superseded 2026-05-2x).
         //
-        // 2026-05-23 real-device retest: social-weibo with only 3 events also
-        // tripped the 120s ceiling — adapter wiring (50+ adapters) + vault
-        // open + EntityResolver embedding ECONNREFUSED retries chew the same
-        // cold-start budget regardless of payload size. 240s gives all
-        // social/messaging adapters headroom; system-data-android first-run
-        // ~1300 entities still fits well within. Later syncs are still fast
-        // (vault open, embeddings cached, fewer new entities).
+        // 240s is the per-adapter ceiling for social/messaging cold-start;
+        // system-data-android first-run ~1300 entities fits. For high-volume
+        // social snapshots (Weibo / Bilibili posts in the thousands) prefer
+        // passing [limit] so the JS side caps event ingest — without it the
+        // cc subprocess can still exceed 240s on per-entity SQLCipher writes
+        // + BM25 index updates regardless of embedding skip.
         timeoutMs: Long = 240_000L,
+        // Caps adapter event ingest via `--limit N` flag. The snapshot file
+        // is unaffected — full data stays staged on disk; only the JS-side
+        // sync loop terminates after N events. Use to keep first-time syncs
+        // inside the timeout while throughput per-entity is being profiled.
+        // Null = no cap (cc behaviour: ingest everything in the snapshot).
+        limit: Int? = null,
+        // 2026-05-23 real-device UX feedback: 4-minute spinner with zero
+        // progress hint is unfriendly. When non-null, gets invoked at spawn
+        // (once) and then every 10s while the subprocess is still alive so
+        // the UI can render "金库写入中（N s）" — at least the user knows
+        // work is happening + how long it's been at it.
+        onProgress: ((String) -> Unit)? = null,
     ): CcResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
         if (ensure.isFailure) {
@@ -121,13 +134,19 @@ class LocalCcRunner @Inject constructor(
         // bin/node (also a .so symlink), so the only execve syscall we make
         // is on a whitelisted library. Trap discovered via real-device 4d
         // slice 2026-05-21 (see memory android-native-lib-extract-w-x).
-        val command = listOf(
-            mkshPath.absolutePath,
-            ccPath.absolutePath,
-            "hub", "sync-adapter", adapterName,
-            "--input", inputPath,
-            "--json",
-        )
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("sync-adapter"); add(adapterName)
+            add("--input"); add(inputPath)
+            // Caller-supplied cap (see [limit] param doc above). Validated
+            // positive to avoid `--limit 0` masquerading as "ingest none" —
+            // cc reads <=0 as Infinity per cmdSyncAdapter in hub.js.
+            if (limit != null && limit > 0) {
+                add("--limit"); add(limit.toString())
+            }
+            add("--json")
+        }
 
         val envList = ptyEnvironment.envp().toList()
 
@@ -152,6 +171,9 @@ class LocalCcRunner @Inject constructor(
                 stderr = null,
             )
         }
+
+        onProgress?.invoke("金库写入中…")
+        val ccStartMs = System.currentTimeMillis()
 
         val stdoutBuilder = StringBuilder()
         val stderrBuilder = StringBuilder()
@@ -184,11 +206,35 @@ class LocalCcRunner @Inject constructor(
             }
         }.also { it.start() }
 
+        // Heartbeat thread: emit elapsed-seconds progress every 10s so the UI
+        // can show "金库写入中（30s）". Sole purpose is UX during the silent
+        // cc subprocess phase — does not affect timeout or shutdown.
+        val tickerStop = java.util.concurrent.atomic.AtomicBoolean(false)
+        val tickerThread = if (onProgress != null) {
+            Thread {
+                try {
+                    while (!tickerStop.get()) {
+                        java.lang.Thread.sleep(10_000L)
+                        if (tickerStop.get()) break
+                        val elapsedS = (System.currentTimeMillis() - ccStartMs) / 1000L
+                        onProgress.invoke("金库写入中（${elapsedS}s）…")
+                    }
+                } catch (_: InterruptedException) {
+                    // expected when process finishes before timeout
+                } catch (t: Throwable) {
+                    Timber.w(t, "LocalCcRunner: ticker thread exited unexpectedly")
+                }
+            }.also { it.start() }
+        } else null
+
         val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        tickerStop.set(true)
+        tickerThread?.interrupt()
         if (!finished) {
             process.destroyForcibly()
             stdoutThread.join(500)
             stderrThread.join(500)
+            tickerThread?.join(500)
             return@withContext CcResult.Failed(
                 reason = "timeout after ${timeoutMs}ms",
                 exitCode = null,
@@ -197,6 +243,7 @@ class LocalCcRunner @Inject constructor(
         }
         stdoutThread.join(2_000)
         stderrThread.join(2_000)
+        tickerThread?.join(500)
         val exit = process.exitValue()
         val stdout = stdoutBuilder.toString()
         val stderr = stderrBuilder.toString()
