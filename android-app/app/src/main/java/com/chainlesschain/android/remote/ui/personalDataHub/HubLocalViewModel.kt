@@ -22,6 +22,8 @@ import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
@@ -81,6 +83,8 @@ class HubLocalViewModel @Inject constructor(
     private val douyinCredentials: DouyinCredentialsStore,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
+    private val toutiaoCollector: ToutiaoLocalCollector,
+    private val toutiaoCredentials: ToutiaoCredentialsStore,
     private val qqCollector: QQLocalCollector,
     private val qqCredentials: QQCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
@@ -388,6 +392,13 @@ class HubLocalViewModel @Inject constructor(
             displayName = "小红书",
             implemented = true,
         ),
+        // 2026-05-23 v0.1 — 头条 placeholder card. cookie scrape 拿 uid，
+        // events 写空数组 (read/collection/search 需 _signature 签名 v0.2 接通)
+        val toutiao: SocialCardState = SocialCardState(
+            adapterName = "social-toutiao",
+            displayName = "今日头条",
+            implemented = true,
+        ),
         val wechat: WechatCardState = WechatCardState(),
         val qq: QQCardState = QQCardState(),
         val pendingLogin: LoginRequest? = null,
@@ -417,6 +428,7 @@ class HubLocalViewModel @Inject constructor(
         refreshWeiboFromStore()
         refreshDouyinFromStore()
         refreshXhsFromStore()
+        refreshToutiaoFromStore()
         refreshWechatFromStore()
         refreshQQFromStore()
         refreshAiChatFromStore()
@@ -2355,13 +2367,23 @@ class HubLocalViewModel @Inject constructor(
     fun onXhsLoginCookie(cookie: String) {
         // acceptLoginCookie 是 suspend (调 /api/sns/web/v1/user/me 拿 user_id)
         viewModelScope.launch {
-            val accepted = xhsCollector.acceptLoginCookie(cookie)
+            // 显式传 displayName=null 避免 kotlinc 生成 $default GETFIELD
+            // 桥（见 memory feedback_mockk_cross_file_jvm_pollution.md，与
+            // onDouyinLoginCookie 同模式）。
+            val accepted = xhsCollector.acceptLoginCookie(cookie, null)
             _state.update {
                 it.copy(
                     pendingLogin = null,
                     xiaohongshu = it.xiaohongshu.copy(
                         errorMessage = if (!accepted) {
-                            "登录未完成 — cookie 缺 a1 字段或 /user/me 调用失败，请重试"
+                            // Surface the real collector/apiClient error so users
+                            // can tell "missing a1 cookie" (-10) apart from
+                            // "/user/me HTTP fail" (4xx/5xx) apart from "endpoint
+                            // shape drift" (-5/-6/-7).
+                            val code = xhsCollector.lastLoginErrorCode
+                            val detail = xhsCollector.lastLoginErrorMessage
+                                ?: "cookie 缺 a1 字段或 /user/me 调用失败"
+                            "登录未完成 — code=$code $detail（请重试）"
                         } else null,
                     ),
                 )
@@ -2480,6 +2502,184 @@ class HubLocalViewModel @Inject constructor(
         _state.update {
             it.copy(
                 xiaohongshu = it.xiaohongshu.copy(
+                    isLoggedIn = false,
+                    uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── Toutiao 今日头条 (v0.1 placeholder — cookie + uid, events 空) ─────────
+    //
+    // 与 Douyin 同 family（ByteDance _signature 反爬 SDK），但 v0.1 比 Douyin
+    // 更小 surface：**完全不发网络请求**。cookie 抓回来后从 cookie 直接抽
+    // `passport_uid` / `multi_sids` / __ac_uid 之一，写 store；snapshot 写
+    // empty events 数组，cc syncAdapter 返 ingested=0，UI 透出
+    // "v0.2 待 _signature 签名接通历史/收藏/搜索"。
+    //
+    // SocialCardState.uid 字段是 Long? — 头条 uid 是数字字符串，能转 Long 就
+    // 转一下，转不了（极端长度）就留 null（仍能 isLoggedIn=true）。
+
+    fun refreshToutiaoFromStore() {
+        val loggedIn = toutiaoCredentials.hasCredentials()
+        val uidStr = toutiaoCredentials.getUid()
+        val uidLong = uidStr?.toLongOrNull()
+        val lastSync = toutiaoCredentials.getLastSyncAt()
+        val lastCount = toutiaoCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                toutiao = it.toutiao.copy(
+                    isLoggedIn = loggedIn,
+                    uid = uidLong,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    fun requestToutiaoLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-toutiao",
+                    displayName = "今日头条",
+                    // 头条 web 首页右上角登录按钮触发 sso.toutiao.com 弹窗；直接
+                    // 入主页让用户点登录按钮（与抖音 ?showLogin=1 不同，头条
+                    // 主页没有 query param 直唤登录的等价物）
+                    loginUrl = "https://www.toutiao.com/",
+                    cookieDomain = "https://www.toutiao.com",
+                    // 登录后仍在 www.toutiao.com，但 cookie 已含 passport_uid。
+                    // 排除 sso / passport / login 中间页避免 cookie 抢跑（与
+                    // memory bilibili_post_onload_cookie_race.md 同 family 的
+                    // 风险点，2 秒延迟由 SocialCookieWebViewScreen 通用处理）
+                    isLoginSuccess = { url ->
+                        url.contains("toutiao.com") &&
+                            !url.contains("sso.") &&
+                            !url.contains("passport.") &&
+                            !url.contains("/login")
+                    },
+                ),
+            )
+        }
+    }
+
+    fun onToutiaoLoginCookie(cookie: String) {
+        // acceptLoginCookie 不是 suspend (没有网络调用)，但保持与 Douyin 同
+        // launch + state-update 风格，便于将来 v0.2 加 network 时 1:1 升级
+        viewModelScope.launch {
+            val accepted = toutiaoCollector.acceptLoginCookie(cookie, null)
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    toutiao = it.toutiao.copy(
+                        errorMessage = if (!accepted) {
+                            val code = toutiaoCollector.lastLoginErrorCode
+                            val detail = toutiaoCollector.lastLoginErrorMessage
+                                ?: "cookie 缺 passport_uid / multi_sids"
+                            "登录未完成 — code=$code $detail（请确认已登录后重试）"
+                        } else null,
+                    ),
+                )
+            }
+            if (accepted) refreshToutiaoFromStore()
+        }
+    }
+
+    fun syncToutiao() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.toutiao.isLoggedIn) {
+            requestToutiaoLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-toutiao",
+                    toutiao = it.toutiao.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = toutiaoCollector.snapshot()
+            when (result) {
+                is ToutiaoLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is ToutiaoLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            ),
+                        )
+                    }
+                }
+                is ToutiaoLocalCollector.SnapshotResult.Ok -> {
+                    // v0.1 始终 everythingEmpty=true（无 _signature 签不到读接口）。
+                    // 但仍跑 cc syncAdapter 走 vault.applyEvents([])，把 account
+                    // 信息持久化进 vault（与 Douyin v0.2 模式同——账号入库即可让
+                    // UI 显"已同步账号"，"事件"留 v0.2 _signature 上线后回填）
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-toutiao",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        // v0.1 honest banner — 透出 scope 限制
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else {
+                                            "已同步账号信息（v0.1）。历史/收藏/搜索需 v0.2 _signature 签名接通。"
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: toutiao cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutToutiao() {
+        toutiaoCollector.logout()
+        _state.update {
+            it.copy(
+                toutiao = it.toutiao.copy(
                     isLoggedIn = false,
                     uid = null,
                     lastSyncAt = null,
