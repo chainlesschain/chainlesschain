@@ -199,22 +199,75 @@ class BilibiliLocalCollectorTest {
     }
 
     // ─── acceptLoginCookie ──────────────────────────────────────────────────
+    //
+    // 2026-05-23: real-device Xiaomi 24115RA8EC exposed that DedeUserID alone
+    // is not enough — Bilibili's anti-spider mode returns `{code:0, data:
+    // {list:[]}}` (silent empty, no error code) when buvid3 / bili_jct are
+    // missing. acceptLoginCookie now validates all 4 required fields up-front
+    // and returns AcceptResult.MissingField with the missing key names so the
+    // UI can prompt the user instead of silently storing a half-baked cookie.
+
+    /** All 4 required Bilibili fields present in a single cookie string. */
+    private val fullCookie =
+        "SESSDATA=fakesess; DedeUserID=12345; bili_jct=jct123; buvid3=buvid-abc"
 
     @Test
-    fun `acceptLoginCookie returns true and persists when DedeUserID present`() {
-        every { apiClient.extractUid("SESSDATA=x; DedeUserID=12345") } returns 12345L
+    fun `acceptLoginCookie returns Ok and persists when all 4 required fields present`() {
+        every { apiClient.extractUid(fullCookie) } returns 12345L
         every { credentialsStore.saveCredentials(any(), any(), any()) } just runs
 
-        val ok = collector.acceptLoginCookie("SESSDATA=x; DedeUserID=12345")
-        assertTrue(ok)
-        verify { credentialsStore.saveCredentials("SESSDATA=x; DedeUserID=12345", 12345L, null) }
+        val r = collector.acceptLoginCookie(fullCookie)
+        assertTrue(r is BilibiliLocalCollector.AcceptResult.Ok)
+        verify { credentialsStore.saveCredentials(fullCookie, 12345L, null) }
     }
 
     @Test
-    fun `acceptLoginCookie returns false when DedeUserID absent`() {
+    fun `acceptLoginCookie returns MissingField DedeUserID when DedeUserID absent`() {
         every { apiClient.extractUid("SESSDATA=expired") } returns null
-        val ok = collector.acceptLoginCookie("SESSDATA=expired")
-        assertFalse(ok)
+        val r = collector.acceptLoginCookie("SESSDATA=expired")
+        assertTrue(r is BilibiliLocalCollector.AcceptResult.MissingField)
+        assertEquals("DedeUserID", (r as BilibiliLocalCollector.AcceptResult.MissingField).name)
+        verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun `acceptLoginCookie returns MissingField buvid3 when only buvid3 missing`() {
+        // DedeUserID parses fine; SESSDATA + bili_jct present; only buvid3 absent.
+        // This is the exact 2026-05-23 real-device pattern: WebView captured
+        // cookie right at onPageFinished before post-onload JS wrote buvid3.
+        val cookie = "SESSDATA=fakesess; DedeUserID=12345; bili_jct=jct123"
+        every { apiClient.extractUid(cookie) } returns 12345L
+
+        val r = collector.acceptLoginCookie(cookie)
+        assertTrue(r is BilibiliLocalCollector.AcceptResult.MissingField)
+        assertEquals("buvid3", (r as BilibiliLocalCollector.AcceptResult.MissingField).name)
+        verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun `acceptLoginCookie returns MissingField with comma-joined names when bili_jct and buvid3 both missing`() {
+        val cookie = "SESSDATA=fakesess; DedeUserID=12345"
+        every { apiClient.extractUid(cookie) } returns 12345L
+
+        val r = collector.acceptLoginCookie(cookie)
+        assertTrue(r is BilibiliLocalCollector.AcceptResult.MissingField)
+        // Order follows REQUIRED_FIELDS declaration order: bili_jct then buvid3.
+        assertEquals("bili_jct, buvid3", (r as BilibiliLocalCollector.AcceptResult.MissingField).name)
+        verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun `acceptLoginCookie returns MissingField SESSDATA when SESSDATA blank`() {
+        // Edge case: extractUid is lenient enough to pull "12345" out of the
+        // DedeUserID even when SESSDATA is present-but-blank ("SESSDATA=;…").
+        // Required-field check must catch this — a blank SESSDATA breaks API
+        // auth same as a missing one.
+        val cookie = "SESSDATA=; DedeUserID=12345; bili_jct=jct123; buvid3=buvid-abc"
+        every { apiClient.extractUid(cookie) } returns 12345L
+
+        val r = collector.acceptLoginCookie(cookie)
+        assertTrue(r is BilibiliLocalCollector.AcceptResult.MissingField)
+        assertEquals("SESSDATA", (r as BilibiliLocalCollector.AcceptResult.MissingField).name)
         verify(exactly = 0) { credentialsStore.saveCredentials(any(), any(), any()) }
     }
 

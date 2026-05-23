@@ -1,6 +1,7 @@
 package com.chainlesschain.android.pdh.social.bilibili
 
 import android.content.Context
+import com.chainlesschain.android.pdh.social.SocialCookieWebViewHelpers
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -180,15 +181,43 @@ class BilibiliLocalCollector @Inject constructor(
         )
     }
 
+    /** Result of feeding a WebView-captured cookie into the collector. */
+    sealed class AcceptResult {
+        /** Cookie has all required fields and was persisted. */
+        object Ok : AcceptResult()
+
+        /**
+         * Cookie was accepted by the WebView but is missing fields the
+         * Bilibili web API needs to return real data. [name] is the
+         * comma-separated list of missing keys for UI display.
+         *
+         * Real-device 2026-05-23: buvid3 + bili_jct are set by post-onload
+         * JS — onPageFinished could race the grab and produce a cookie that
+         * looks fine (passes DedeUserID parse) but has none of the
+         * anti-spider keys, leading to silent empty API responses later.
+         */
+        data class MissingField(val name: String) : AcceptResult()
+    }
+
     /**
-     * Called by the UI when the WebView completes login. Parses UID from
-     * cookie's DedeUserID field and persists. Returns false if the cookie
-     * lacks DedeUserID (login likely incomplete — captcha bounced, etc.).
+     * Called by the UI when the WebView completes login. Validates the
+     * cookie has all 4 required fields, parses UID from DedeUserID, and
+     * persists. Returns [AcceptResult.MissingField] (with the missing key
+     * names) when validation fails so the VM can prompt the user
+     * actionably instead of silently storing a bad cookie that later trips
+     * "4 API empty" on sync.
      */
-    fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
-        val uid = apiClient.extractUid(cookie) ?: return false
+    fun acceptLoginCookie(cookie: String, displayName: String? = null): AcceptResult {
+        val uid = apiClient.extractUid(cookie)
+            ?: return AcceptResult.MissingField("DedeUserID")
+        val missing = REQUIRED_FIELDS.filter {
+            SocialCookieWebViewHelpers.parseCookieValue(cookie, it).isNullOrBlank()
+        }
+        if (missing.isNotEmpty()) {
+            return AcceptResult.MissingField(missing.joinToString(", "))
+        }
         credentialsStore.saveCredentials(cookie, uid, displayName)
-        return true
+        return AcceptResult.Ok
     }
 
     fun logout() {
@@ -199,5 +228,12 @@ class BilibiliLocalCollector @Inject constructor(
         // Must equal SNAPSHOT_SCHEMA_VERSION in social-bilibili/adapter.js.
         // If we bump JS we MUST bump this in lockstep — verify with grep.
         const val SNAPSHOT_SCHEMA_VERSION = 1
+
+        // 4 fields the Bilibili web API needs to return real (non-empty)
+        // data. SESSDATA = session token; DedeUserID = UID; bili_jct = CSRF
+        // token; buvid3 = device fingerprint (set by post-onload JS — see
+        // SocialCookieWebViewScreen's COOKIE_CAPTURE_DELAY_MS). Missing any
+        // of these causes silent empty responses, not error codes.
+        private val REQUIRED_FIELDS = listOf("SESSDATA", "DedeUserID", "bili_jct", "buvid3")
     }
 }

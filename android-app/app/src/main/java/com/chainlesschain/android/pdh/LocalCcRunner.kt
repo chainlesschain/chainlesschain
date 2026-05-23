@@ -75,10 +75,16 @@ class LocalCcRunner @Inject constructor(
         // First-run sync on device: bs3mc cold-load + LocalVault open + KG/RAG
         // derivation for ~1300 entities + EntityResolver embedding-stage
         // retries (no Ollama on device → silent-fail with network timeout
-        // budget) measured 60-90s on Xiaomi 24115RA8EC 2026-05-21. 120s
-        // budget gives headroom; later syncs should be much faster (vault
-        // already open, embeddings cached, fewer new entities).
-        timeoutMs: Long = 120_000L,
+        // budget) measured 60-90s on Xiaomi 24115RA8EC 2026-05-21.
+        //
+        // 2026-05-23 real-device retest: social-weibo with only 3 events also
+        // tripped the 120s ceiling — adapter wiring (50+ adapters) + vault
+        // open + EntityResolver embedding ECONNREFUSED retries chew the same
+        // cold-start budget regardless of payload size. 240s gives all
+        // social/messaging adapters headroom; system-data-android first-run
+        // ~1300 entities still fits well within. Later syncs are still fast
+        // (vault open, embeddings cached, fewer new entities).
+        timeoutMs: Long = 240_000L,
     ): CcResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
         if (ensure.isFailure) {

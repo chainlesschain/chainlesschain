@@ -38,6 +38,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import timber.log.Timber
 
 /**
+ * Real-device 2026-05-23 (Xiaomi 24115RA8EC): Bilibili buvid3 + bili_jct are
+ * written by post-onload JS — onPageFinished beats them. Defer cookie grab
+ * 2000ms so JS has its execution window. Shared by all 4 social adapters
+ * (Weibo / Douyin / Xiaohongshu also set cookies from JS — no platform is
+ * worse off for the delay).
+ */
+private const val COOKIE_CAPTURE_DELAY_MS = 2000L
+
+/**
  * A8 v0.1 — generic in-app WebView used by all 4 social adapters
  * (Bilibili / Weibo / Douyin / Xiaohongshu) for cookie capture.
  *
@@ -210,24 +219,38 @@ private fun CookieWebViewHost(
                         // just the initial one — platforms may redirect through
                         // multiple intermediate pages (e.g. captcha → 2FA → home).
                         if (isLoginSuccess(url)) {
-                            // CookieManager.flush forces in-memory cookies to
-                            // backing store so getCookie returns the canonical
-                            // set, including HttpOnly cookies that were set in
-                            // Set-Cookie headers but not yet persisted.
-                            CookieManager.getInstance().flush()
-                            val cookie = CookieManager.getInstance().getCookie(cookieDomain) ?: ""
-                            if (cookie.isNotEmpty()) {
-                                Timber.i(
-                                    "SocialCookieWebView: login success url=%s cookieLen=%d",
-                                    url, cookie.length
-                                )
-                                onLoginCookie(cookie)
-                            } else {
-                                Timber.w(
-                                    "SocialCookieWebView: success URL hit but cookie empty (domain=%s)",
-                                    cookieDomain
-                                )
-                            }
+                            // Real-device 2026-05-23 Xiaomi 24115RA8EC:
+                            // Bilibili sets two anti-spider keys (buvid3 +
+                            // bili_jct) from JS that runs *after* window.onload.
+                            // Reading the cookie jar in onPageFinished beats
+                            // that write → cookie missing these fields → API
+                            // returns silent `{code:0, data:{list:[]}}` instead
+                            // of -412/-101, so the user sees "登录成功" then "4
+                            // API empty" on next sync. Defer the grab COOKIE_
+                            // CAPTURE_DELAY_MS to give JS its execution window.
+                            //
+                            // Lifecycle: view.postDelayed survives a quick
+                            // Cancel because the lambda holds `this` (WebView).
+                            // After onDispose's destroy(), getCookie() reads
+                            // from CookieManager's in-process cache so still
+                            // benign; hasSubmittedSuccess guard upstream
+                            // de-dups if it does fire post-cancel.
+                            view.postDelayed({
+                                CookieManager.getInstance().flush()
+                                val cookie = CookieManager.getInstance().getCookie(cookieDomain) ?: ""
+                                if (cookie.isNotEmpty()) {
+                                    Timber.i(
+                                        "SocialCookieWebView: login success url=%s cookieLen=%d",
+                                        url, cookie.length
+                                    )
+                                    onLoginCookie(cookie)
+                                } else {
+                                    Timber.w(
+                                        "SocialCookieWebView: success URL hit but cookie empty (domain=%s)",
+                                        cookieDomain
+                                    )
+                                }
+                            }, COOKIE_CAPTURE_DELAY_MS)
                         }
                     }
 
