@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#18）
+# 隐性风险陷阱手册（#6-#20）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -28,6 +28,7 @@
 | 17 | Android remote file skill 接通 6 雷 | 加新 `RemoteCommandClient.invoke` 类 Android skill；接 Plan C signaling 路径 | `android_remote_file_skill_traps.md` |
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
 | 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前 | `android_release_r8_minify_hotfix_chain.md` |
+| 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集 | `bilibili_post_onload_cookie_race.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
@@ -36,8 +37,8 @@ Release / 打包   : 7, 13, 14, 18, 19
 Git / 并发       : 9, 10
 CI / 测试        : 8, 11, 19
 Toolchain        : 12, 16
-Runtime / 数据   : 15
-Mobile 平台      : 14, 17, 19
+Runtime / 数据   : 15, 20
+Mobile 平台      : 14, 17, 19, 20
 Docs             : 6
 ```
 
@@ -1186,6 +1187,80 @@ ERROR: R8: java.util.ConcurrentModificationException
 - #14 Android in-app update — 缺 Android assets 时 UpdateChecker.kt 拉不到下载
 - #18 GitHub immutable releases — burnt tag 不可复用
 - memory `feedback_android_tag_follows_desktop.md` — Android 下载链跟 desktop tag
+
+---
+
+## 20. Post-onload JS-set cookie race in WebView capture（隐性风险）
+
+**陷阱本质** — `WebViewClient.onPageFinished(url)` 在 `DOMContentLoaded` 后立即触发，但反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）的**关键鉴权 cookie 由 `window.onload` 之后的 JS 写入**：发首页指纹请求 → 服务端返回 token → `document.cookie =` 写入。在 onPageFinished 当帧抓 `CookieManager.getCookie()` 会**抢跑这段 JS**，拿到一个看似登录成功（含 SESSDATA + DedeUserID）但缺反爬关键字段（buvid3 / bili_jct）的"半截 cookie"。
+
+后果不是抛错，是**反爬服务端静默降级**：`api.bilibili.com` 不返回 `-412`（反爬拦截）或 `-101`（未登录），而是返回 `{"code": 0, "message": "0", "data": {"list": []}}` —— **success path with empty payload**。客户端 `apiClient.lastErrorCode == 0`、走 success 分支、把"4 个 API 都返回空"展示给用户，没有可操作的恢复提示。
+
+**为什么排查难**：
+
+1. **失败 silent**：HTTP 200 + JSON `code:0` + 空 list = 走 success 分支
+2. **抓 cookie 时机依赖设备**：低端机 JS 慢、首页加载完到 buvid3 写入间隔可能 1.5-3s；高端机 < 500ms — 测试机可能抓到，用户机抓不到
+3. **CookieManager 缓存让一次成功永远成功**：第一次抢跑失败后再次登录会读到缓存的旧 cookie；只有走 `removeAllCookies` + 重新走完整登录流程才能复现
+4. **"登录成功"假象误导**：UI 显示 `已登录 UID:N` + `上次同步 X:Y`（cookie 含 DedeUserID 解析成功 + collector recordSync 写过文件），用户和开发都以为登录链路通了
+5. **JVM unit test 完全测不到**：`view.postDelayed` 需要 Looper；Robolectric 跑 WebView 极重且不稳；这个 race 只能真机重现
+
+**真机记录** — Xiaomi 24115RA8EC v5.0.3.84 2026-05-23：
+
+> UI 提示「4 个 API 都返回空 — API 返回空 + 无错误码 — 可能 cookie 缺关键字段（bili_jct / buvid3）」。BilibiliApiClient `lastErrorCode = 0`，HubLocalViewModel fall 到「无错误码」分支。
+
+**SOP — 任何 WebView cookie 采集前必跑的两步联动**：
+
+```kotlin
+// 1) 抓 cookie 前给 JS 一个执行窗口 — 至少 2000ms
+override fun onPageFinished(view: WebView, url: String) {
+    super.onPageFinished(view, url)
+    if (!isLoginSuccess(url)) return
+    view.postDelayed({
+        CookieManager.getInstance().flush()
+        val cookie = CookieManager.getInstance().getCookie(cookieDomain) ?: ""
+        if (cookie.isNotEmpty()) onLoginCookie(cookie)
+    }, 2000L)  // COOKIE_CAPTURE_DELAY_MS
+}
+
+// 2) 持久化前校验全部"反爬关键字段"，缺哪个用 sealed 返哪个
+sealed class AcceptResult {
+    object Ok : AcceptResult()
+    data class MissingField(val name: String) : AcceptResult()
+}
+
+private val REQUIRED_FIELDS = listOf("SESSDATA", "DedeUserID", "bili_jct", "buvid3")
+
+fun acceptLoginCookie(cookie: String): AcceptResult {
+    val uid = extractUid(cookie)
+        ?: return AcceptResult.MissingField("DedeUserID")
+    val missing = REQUIRED_FIELDS.filter { parseCookieValue(cookie, it).isNullOrBlank() }
+    if (missing.isNotEmpty()) return AcceptResult.MissingField(missing.joinToString(", "))
+    credentialsStore.saveCredentials(cookie, uid, displayName)
+    return AcceptResult.Ok
+}
+```
+
+**反模式**：
+
+- ❌ "抓到 cookie 立刻持久化" — 一旦写入 store，下次 sync 拿这个半截 cookie 用，silent fail；用户看到的全是「4 API 都空」/「同步 0 事件」毫无可操作信息
+- ❌ "只校验 DedeUserID / SESSDATA 一两个字段" — `extractUid` 能从只有 SESSDATA + DedeUserID 的"半截 cookie"成功解出 UID，假象登录有效
+- ❌ "为节省登录用户体验跳过 2s 延迟" — 2s 延迟可以配 banner "正在抓取登录态…"，比 silent empty 强 100 倍。低端机实测需要 1.5-3s
+- ❌ "依赖 `CookieManager.flush()` 就够了" — flush 只把内存 cookie 写到磁盘，不会让 JS 跑得更快；JS 没执行的字段 flush 也读不到
+- ❌ "针对 Bilibili 单独加延迟" — Weibo / Douyin / Xiaohongshu / 抖音都用 post-onload JS 写 cookie，统一 2s 延迟对它们无害且预防同类问题
+
+**单测覆盖建议**（虽然测不到 `postDelayed`，但要锁住第二步）：
+
+- `acceptLoginCookie returns MissingField buvid3 when only buvid3 missing`
+- `acceptLoginCookie returns MissingField with comma-joined names when 多 field missing`
+- `acceptLoginCookie returns MissingField SESSDATA when SESSDATA blank`（防 `extractUid` 仁慈通过的边界）
+- VM 侧：`onLoginCookie buvid3-missing 给用户可操作 errorMessage`（含「重新登录」+「等首页加载完」）
+
+**关联**：
+
+- 设计文档：`docs/design/Bilibili_Cookie_Capture_And_Weibo_Sync_Timeout_Fixes.md`（含两步联动 + EntityResolver embedding timeout 替代方案否决理由）
+- commit `2c8f41f97 fix(pdh-android): Bilibili cookie capture race + Weibo 120s timeout`
+- memory `bilibili_post_onload_cookie_race.md`
+- 相关：#15（silent SQLite 数据格式陷阱）— 同为 success-path silent fail 模式
 
 ---
 
