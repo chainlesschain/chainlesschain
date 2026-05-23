@@ -278,7 +278,9 @@ class LocalVault {
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+        ON CONFLICT(source_adapter, source_original_id)
+          WHERE source_original_id IS NOT NULL
+          DO UPDATE SET
           subtype = excluded.subtype,
           occurred_at = excluded.occurred_at,
           duration_ms = excluded.duration_ms,
@@ -340,7 +342,9 @@ class LocalVault {
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+        ON CONFLICT(source_adapter, source_original_id)
+          WHERE source_original_id IS NOT NULL
+          DO UPDATE SET
           subtype = excluded.subtype,
           names = excluded.names,
           identifiers = excluded.identifiers,
@@ -395,7 +399,9 @@ class LocalVault {
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+        ON CONFLICT(source_adapter, source_original_id)
+          WHERE source_original_id IS NOT NULL
+          DO UPDATE SET
           name = excluded.name,
           coordinates_lat = excluded.coordinates_lat,
           coordinates_lng = excluded.coordinates_lng,
@@ -456,7 +462,9 @@ class LocalVault {
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
           confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+        ON CONFLICT(source_adapter, source_original_id)
+          WHERE source_original_id IS NOT NULL
+          DO UPDATE SET
           subtype = excluded.subtype,
           name = excluded.name,
           category = excluded.category,
@@ -510,14 +518,6 @@ class LocalVault {
           derived_from_events = excluded.derived_from_events,
           source_adapter = excluded.source_adapter,
           source_original_id = excluded.source_original_id,
-          source = excluded.source,
-          extra = excluded.extra,
-          ingested_at = excluded.ingested_at,
-          confidence = excluded.confidence
-        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
-          name = excluded.name,
-          parent_topic = excluded.parent_topic,
-          derived_from_events = excluded.derived_from_events,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
