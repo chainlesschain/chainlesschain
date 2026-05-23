@@ -76,15 +76,55 @@ class DouyinApiClient @Inject constructor() {
             .build()
         val obj = doGetJson(url, cookie) ?: return@withContext null
         // Endpoint shape: { status_code: 0, data: { user_id, screen_name, ... } }
-        val statusCode = obj.optInt("status_code", -1)
-        if (statusCode != 0) {
-            setLastError(statusCode, obj.optString("status_msg"))
+        val statusCode = obj.optInt("status_code", Int.MIN_VALUE)
+        if (statusCode == Int.MIN_VALUE) {
+            // No status_code field at all — likely endpoint shape changed.
+            val topKeys = obj.keys().asSequence().toList().joinToString(",")
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 missing status_code; topKeys=[%s] body=%s",
+                topKeys, obj.toString().take(500),
+            )
+            setLastError(-5, "passport/info/v2 missing status_code (keys=[$topKeys])")
             return@withContext null
         }
-        val data = obj.optJSONObject("data") ?: return@withContext null
+        if (statusCode != 0) {
+            val msg = obj.optStringOrNull("status_msg")
+                ?: obj.optStringOrNull("message")
+                ?: obj.optStringOrNull("error_description")
+                ?: "status_code=$statusCode"
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 status_code=%d msg=%s body=%s",
+                statusCode, msg, obj.toString().take(500),
+            )
+            setLastError(statusCode, msg)
+            return@withContext null
+        }
+        val data = obj.optJSONObject("data")
+        if (data == null) {
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 status_code=0 but no `data` object; body=%s",
+                obj.toString().take(500),
+            )
+            setLastError(-6, "status_code=0 but no `data` object")
+            return@withContext null
+        }
         val secUid = data.optStringOrNull("sec_user_id")
             ?: data.optStringOrNull("sec_uid")
-            ?: return@withContext null  // 没 sec_user_id → 视作未登录
+        if (secUid == null) {
+            // 没 sec_user_id → 视作未登录。最常见原因：cookie 缺 sessionid /
+            // passport_csrf_token，passport endpoint 返 ok 但 data 是匿名 shape
+            // (只剩 device 字段等)。Surface data 字段名让用户能定位。
+            val dataKeys = data.keys().asSequence().toList().joinToString(",")
+            Timber.w(
+                "DouyinApiClient: passport/info/v2 ok but no sec_user_id; dataKeys=[%s] body=%s",
+                dataKeys, obj.toString().take(500),
+            )
+            setLastError(
+                -7,
+                "ok but data lacks sec_user_id (cookie likely missing sessionid); dataKeys=[$dataKeys]",
+            )
+            return@withContext null
+        }
         ProfileInfo(
             secUid = secUid,
             shortId = data.optStringOrNull("short_id")
