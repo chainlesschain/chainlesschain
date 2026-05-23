@@ -105,22 +105,24 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            set -e
-            cd android-app
-            # NOTE: drop adb start-server / wait-for-device / adb shell
-            # settings — the action already (a) starts adb, (b) waits for
-            # boot_completed before invoking script, and (c) honors
-            # disable-animations: true above. Restarting adb-server here
-            # severs the action's established emulator session, so when
-            # gradle's connectedDebugAndroidTest finally runs adb has lost
-            # the device → "No connected devices!" cascade (run 26319268765
-            # API 33 reproducer). Match the working android-tests.yml
-            # ::Instrumented Tests script shape: gradle only.
+            cd android-app && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true -Pandroid.testInstrumentationRunnerArguments.package=com.chainlesschain.android.e2e --stacktrace --no-daemon
+            # NOTE: ALL invocation must be on ONE physical line.
+            # reactivecircus/android-emulator-runner@v2 runs each script: line
+            # through its own `/usr/bin/sh -c <line>` — meaning `cd` on one
+            # line and the next gradle line do NOT share state. Earlier fix
+            # left `cd android-app` on its own line and the gradle line then
+            # ran from repo root → "./gradlew: not found" (run 26321098765
+            # API 30 job 77490106665 / 02:43:19Z reproducer). Chain them with
+            # `&&` so they're a single command in a single sh -c.
             #
-            # Multi-line shell constructs (for-loops / multi-line if) also
-            # don't work — the action runs script: lines one at a time via
-            # `sh -c <line>`. Keep gradle invocation on a single line.
-            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true -Pandroid.testInstrumentationRunnerArguments.package=com.chainlesschain.android.e2e --stacktrace --no-daemon
+            # For the same reason: no for-loop retry, no multi-line if, no
+            # heredocs — each line is its own subshell. `cd android-app &&
+            # gradle` is the entire executable payload of this script: block.
+            #
+            # The other workflow android-tests.yml uses the same `cd \n cmd`
+            # pattern but masks failures with `continue-on-error: true`, so
+            # it looks "working" while actually never running gradle at all
+            # in the per-line sh -c regime. Don't copy that.
 
       # Inner `|| true` removed 2026-05-18 — was redundant masking on top of
       # `continue-on-error: true`. Step outcome now honestly reflects whether
