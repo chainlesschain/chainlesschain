@@ -320,13 +320,30 @@ async function initHub() {
     }
   }
 
-  // Plan A — register SystemDataAndroidAdapter on every desktop boot. Adapter
-  // is dual-mode (snapshot inputPath OR bridge.invoke); desktop always uses
-  // snapshot mode driven by Path C ingest from the paired phone. Safe to
-  // register even on a desktop-only deployment — adapter is a no-op until
-  // syncAdapter() is called with inputPath.
+  // Plan A — register SystemDataAndroidAdapter on every desktop boot.
+  //
+  // 2026-05-24 update: the adapter is now wired with `bridgeProvider` =
+  // `desktop-adb-bridge`, which invokes ADB shell commands against the
+  // attached developer-mode phone (no root, no in-APK cc needed). When
+  // the user clicks 同步 on the desktop UI with no `inputPath`, the
+  // adapter auto-engages bridge mode and pulls contacts + app.list via
+  // ADB. Snapshot mode (Path C phone-push) still works in parallel —
+  // ingestSystemDataAndroidSnapshot writes the JSON then calls
+  // syncAdapter() with inputPath, which takes precedence over bridge.
+  //
+  // If `adb` isn't installed or no device is connected, the bridge
+  // throws DESKTOP_ADB_BRIDGE_NOT_AVAILABLE — the registry catches and
+  // surfaces it as the sync report's `.error` field (now rendered in
+  // the UI alert description after the syncSummary patch).
   try {
+    const { createDesktopAdbBridge } = require("./desktop-adb-bridge");
+    const desktopAdbBridge = createDesktopAdbBridge();
     const sda = new SystemDataAndroidAdapter();
+    // SystemDataAndroidAdapter's constructor ignores opts.bridgeProvider
+    // and hardcodes `_deps.bridgeProvider = () => null`. Mutate after
+    // construction. (Better: teach the adapter to accept the override
+    // via constructor opts. Tracked as follow-up.)
+    sda._deps.bridgeProvider = () => desktopAdbBridge;
     if (!registry.has(sda.name)) {
       registry.register(sda);
     }

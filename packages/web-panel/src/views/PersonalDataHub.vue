@@ -798,7 +798,15 @@ function sensitivityColor(s) {
 function syncSummary(r) {
   if (!r) return ''
   const ec = r.entityCounts || {}
-  return `events=${ec.events ?? 0} persons=${ec.persons ?? 0} | raw=${r.rawCount ?? 0} invalid=${r.invalidCount ?? 0} | KG triples=${r.kgTripleCount ?? 0} RAG docs=${r.ragDocCount ?? 0} | ${r.durationMs ?? 0}ms`
+  const stats = `events=${ec.events ?? 0} persons=${ec.persons ?? 0} | raw=${r.rawCount ?? 0} invalid=${r.invalidCount ?? 0} | KG triples=${r.kgTripleCount ?? 0} RAG docs=${r.ragDocCount ?? 0} | ${r.durationMs ?? 0}ms`
+  // Surface the adapter-reported error (registry.syncAdapter sets this
+  // on the catch path). Without it the user only sees the all-zero
+  // stats line and has no way to know WHY a sync failed.
+  // Ant Design Alert.description is plain text — `\n` would render as
+  // a space. Use a leading separator + 错误 prefix instead so the
+  // adapter-reported message reads cleanly inline.
+  if (r.error) return `${stats}  ·  错误: ${r.error}`
+  return stats
 }
 
 // Actions
