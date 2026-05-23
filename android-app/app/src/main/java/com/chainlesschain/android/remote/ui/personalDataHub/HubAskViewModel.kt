@@ -39,13 +39,39 @@ data class HubAskUiState(
     // Phase 14.1 step 5 (ChatBubble UI) — 提交时刻的问题快照，与 `question` (input field 实时内容)
     // 分离，让答案 bubble 可以独立显示历史问题；input field 清空 / 续打字时 bubble 仍在屏。
     val submittedQuestion: String? = null,
-    // Path Y — 本机 LLM 推理（过渡期方案）。
-    //  - androidLlm: null = 用户没在 LLMSettings 配过 cloud key，toggle 应灰掉
-    //  - useAndroidLlm = true → submit 走 retrieveContext + 本机 adapter.chat()，
-    //    跳过桌面隐私 gate（因桌面侧没调用 LLM），返回的 isLocal=false 用作 UI 提示
+    // 3 档 LLM 路由 (2026-05-24)：
+    //  - androidLlm: null = 用户没在 LLMSettings 配过 cloud key
+    //  - selectedRoute = 当前路由；默认 CLOUD_ANDROID（手机端云 LLM 走 Path Y）
+    //  - PC_LOCAL 仅当 health.llm.ok && health.llm.isLocal == true 时可选
+    //  - 真机验 MediaPipe 端侧效果不佳，端侧路径不连主路由（保留作未来 Settings 离线 fallback）
     val androidLlm: AndroidLocalLlmExecutor.ConfiguredProvider? = null,
-    val useAndroidLlm: Boolean = false
-)
+    val selectedRoute: LlmRoute = LlmRoute.CLOUD_ANDROID
+) {
+    /** Android 侧云 LLM 可用：用户在 LLMSettings 配过任一云厂商 API key。 */
+    val cloudAvailable: Boolean get() = androidLlm != null
+
+    /** 配对的桌面端在跑本机 LLM (Ollama 等)。`health` 为 null（PC 未配对/health 调用挂掉）时 false。 */
+    val pcLocalAvailable: Boolean
+        get() = health?.llm?.ok == true && health.llm.isLocal
+
+    /** 用户的当前选择投影到真正可执行的路由；都不可用时返回 selectedRoute（submit 会兜底报错）。 */
+    val effectiveRoute: LlmRoute
+        get() = when {
+            selectedRoute == LlmRoute.PC_LOCAL && pcLocalAvailable -> LlmRoute.PC_LOCAL
+            selectedRoute == LlmRoute.CLOUD_ANDROID && cloudAvailable -> LlmRoute.CLOUD_ANDROID
+            cloudAvailable -> LlmRoute.CLOUD_ANDROID  // 选了不可用的 PC_LOCAL → 自动回退
+            pcLocalAvailable -> LlmRoute.PC_LOCAL    // 选了不可用的 CLOUD_ANDROID → 自动回退
+            else -> selectedRoute  // 两条都不可用：UI 应该已显 banner，submit 兜底 errorMessage
+        }
+}
+
+/** 用户可选的 LLM 推理路由。MediaPipe 端侧（A3）暂不在此 enum，因当前不连主路由。 */
+enum class LlmRoute {
+    /** 手机端调云 LLM（豆包/DeepSeek/...）走 Path Y：桌面 retrieveContext + Android adapter.chat */
+    CLOUD_ANDROID,
+    /** 桌面端跑本机 LLM (Ollama)：手机调 hub.ask() 全交桌面处理 */
+    PC_LOCAL,
+}
 
 sealed class HubAskEvent {
     data class ShowToast(val message: String) : HubAskEvent()
@@ -90,19 +116,15 @@ class HubAskViewModel @Inject constructor(
             Timber.w(e, "HubAskViewModel: detectProvider() failed")
             null
         }
-        _uiState.update {
-            it.copy(
-                androidLlm = configured,
-                // 用户上次 toggle 过但又把所有 key 删了 → 自动回退到 false
-                useAndroidLlm = it.useAndroidLlm && configured != null
-            )
-        }
+        _uiState.update { it.copy(androidLlm = configured) }
     }
 
-    fun setUseAndroidLlm(enabled: Boolean) {
-        _uiState.update {
-            it.copy(useAndroidLlm = enabled && it.androidLlm != null)
-        }
+    /**
+     * 用户在 UI 上点切换 LLM 路由。若所选路由当前不可用（如选 PC_LOCAL 但桌面没本机模型），
+     * 不会立即报错——`effectiveRoute` 会自动 fallback，submit 时按 effective 路由执行。
+     */
+    fun setRoute(route: LlmRoute) {
+        _uiState.update { it.copy(selectedRoute = route) }
     }
 
     fun onQuestionChange(value: String) {
@@ -127,7 +149,7 @@ class HubAskViewModel @Inject constructor(
         if (_uiState.value.isLoading) return
 
         val snapshot = _uiState.value
-        val useY = snapshot.useAndroidLlm && snapshot.androidLlm != null
+        val route = snapshot.effectiveRoute
 
         viewModelScope.launch {
             _uiState.update {
@@ -140,10 +162,19 @@ class HubAskViewModel @Inject constructor(
                 )
             }
 
-            if (useY) {
-                submitViaAndroidLlm(q, snapshot.androidLlm!!)
-            } else {
-                submitViaDesktopAsk(q)
+            when (route) {
+                LlmRoute.CLOUD_ANDROID -> {
+                    val provider = snapshot.androidLlm
+                    if (provider != null) {
+                        submitViaAndroidLlm(q, provider)
+                    } else {
+                        // 两路都不可用兜底 — UI banner 应该已经提示，但万一用户绕过：
+                        val msg = "请先在「设置」中配置云 LLM API Key，或确保桌面端已配对并启用本机模型"
+                        _uiState.update { it.copy(errorMessage = msg) }
+                        _events.emit(HubAskEvent.ShowToast(msg))
+                    }
+                }
+                LlmRoute.PC_LOCAL -> submitViaDesktopAsk(q)
             }
 
             _uiState.update { it.copy(isLoading = false) }

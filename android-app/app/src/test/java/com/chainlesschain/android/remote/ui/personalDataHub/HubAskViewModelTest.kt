@@ -266,7 +266,11 @@ class HubAskViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
         assertNull(vm.uiState.value.androidLlm)
-        assertFalse(vm.uiState.value.useAndroidLlm)
+        assertFalse(vm.uiState.value.cloudAvailable)
+        // 默认路由始终 CLOUD_ANDROID (user-visible) — 但 effectiveRoute 会 fallback 到 PC_LOCAL
+        // 因为云未配 + setUp() 让 PC 有本机 LLM (HealthLlm isLocal=true)。
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.selectedRoute)
+        assertEquals(LlmRoute.PC_LOCAL, vm.uiState.value.effectiveRoute)
     }
 
     @Test
@@ -284,16 +288,60 @@ class HubAskViewModelTest {
     }
 
     @Test
-    fun `setUseAndroidLlm ignored when no provider configured`() = runTest(testDispatcher) {
+    fun `setRoute switches selectedRoute but effectiveRoute respects availability`() = runTest(testDispatcher) {
+        every { androidLlm.detectProvider() } returns doubaoProvider
         val vm = newVm()
         advanceUntilIdle()
-        vm.setUseAndroidLlm(true)
-        // androidLlm == null → toggle should NOT flip on
-        assertFalse(vm.uiState.value.useAndroidLlm)
+        // 默认 CLOUD_ANDROID + cloud 配齐 → effective = CLOUD_ANDROID
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.effectiveRoute)
+
+        vm.setRoute(LlmRoute.PC_LOCAL)
+        // setUp() PC 本机 LLM 也可用 → effective 切到 PC_LOCAL
+        assertEquals(LlmRoute.PC_LOCAL, vm.uiState.value.selectedRoute)
+        assertEquals(LlmRoute.PC_LOCAL, vm.uiState.value.effectiveRoute)
+
+        vm.setRoute(LlmRoute.CLOUD_ANDROID)
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.effectiveRoute)
     }
 
     @Test
-    fun `submit Path Y routes via retrieveContext + executor and emits answer`() = runTest(testDispatcher) {
+    fun `effectiveRoute falls back to PC_LOCAL when selected CLOUD_ANDROID but no cloud key`() = runTest(testDispatcher) {
+        // androidLlm.detectProvider returns null (setUp default) — 云不可用，PC 本机可用
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.setRoute(LlmRoute.CLOUD_ANDROID)
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.selectedRoute)
+        // 兜底到 PC_LOCAL
+        assertEquals(LlmRoute.PC_LOCAL, vm.uiState.value.effectiveRoute)
+    }
+
+    @Test
+    fun `pcLocalAvailable false when health llm isLocal=false`() = runTest(testDispatcher) {
+        // 桌面 LLM 是云路由（非本地）— PC_LOCAL 不该被暴露
+        coEvery { hub.health() } returns Result.success(
+            HubHealth(
+                vault = HealthVault(ok = true, schemaVersion = 1),
+                llm = HealthLlm(ok = true, isLocal = false, name = "anthropic:opus"),
+                kgSink = HealthOk(ok = true),
+                ragSink = HealthOk(ok = true),
+            )
+        )
+        every { androidLlm.detectProvider() } returns doubaoProvider
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.pcLocalAvailable)
+        assertTrue(vm.uiState.value.cloudAvailable)
+        // selectedRoute 默认 CLOUD_ANDROID + cloud OK → effective CLOUD_ANDROID
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.effectiveRoute)
+
+        // 用户强切 PC_LOCAL（UI 不该让选；但 ViewModel 兜底）
+        vm.setRoute(LlmRoute.PC_LOCAL)
+        // PC_LOCAL 不可用 → 自动 fallback 到 CLOUD_ANDROID
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.uiState.value.effectiveRoute)
+    }
+
+    @Test
+    fun `submit CLOUD_ANDROID default routes via retrieveContext + executor`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
         coEvery { hub.retrieveContext("生日礼物", null, null) } returns Result.success(
             RetrieveContextResult(
@@ -310,26 +358,23 @@ class HubAskViewModelTest {
 
         val vm = newVm()
         advanceUntilIdle()
-        vm.setUseAndroidLlm(true)
+        // 不显式 setRoute — 默认就是 CLOUD_ANDROID + cloud key 已配
         vm.onQuestionChange("生日礼物")
         vm.submit()
         advanceUntilIdle()
 
         val s = vm.uiState.value
         assertEquals("买了鲜花 [evt-1] 和按摩仪 [evt-2]。", s.answer)
-        // 两个 citation 都在 factIds → 都保留
         assertEquals(2, s.citations.size)
         assertTrue(s.citations.any { it.eventId == "evt-1" })
         assertTrue(s.citations.any { it.eventId == "evt-2" })
-        // 云 LLM → isLocal=false 给 UI 显示"非本地"提示
         assertFalse(s.isLocal)
         assertTrue(s.llmName!!.contains("豆包"))
-        // 桌面 ask 不应被调（已走 Path Y）
         coVerify(exactly = 0) { hub.ask(any(), any(), any(), any()) }
     }
 
     @Test
-    fun `submit Path Y hallucinated citations are dropped silently`() = runTest(testDispatcher) {
+    fun `submit CLOUD_ANDROID hallucinated citations are dropped silently`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
         coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
             RetrieveContextResult(
@@ -343,19 +388,17 @@ class HubAskViewModelTest {
 
         val vm = newVm()
         advanceUntilIdle()
-        vm.setUseAndroidLlm(true)
         vm.onQuestionChange("Q")
         vm.submit()
         advanceUntilIdle()
 
         val s = vm.uiState.value
-        // 只保留 factIds 中存在的，evt-fake 静默丢
         assertEquals(1, s.citations.size)
         assertEquals("evt-real", s.citations.first().eventId)
     }
 
     @Test
-    fun `submit Path Y adapter chat failure surfaces errorMessage`() = runTest(testDispatcher) {
+    fun `submit CLOUD_ANDROID adapter chat failure surfaces errorMessage`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
         coEvery { hub.retrieveContext(any(), any(), any()) } returns Result.success(
             RetrieveContextResult(
@@ -368,7 +411,6 @@ class HubAskViewModelTest {
 
         val vm = newVm()
         advanceUntilIdle()
-        vm.setUseAndroidLlm(true)
         vm.onQuestionChange("Q")
         vm.submit()
         advanceUntilIdle()
@@ -377,11 +419,11 @@ class HubAskViewModelTest {
         assertNotNull(s.errorMessage)
         assertTrue(s.errorMessage!!.contains("401"))
         assertNull(s.answer)
-        assertFalse(s.showAcceptNonLocalDialog) // 不是 acceptNonLocal 阻塞，不应弹 dialog
+        assertFalse(s.showAcceptNonLocalDialog)
     }
 
     @Test
-    fun `submit falls back to desktop ask when useAndroidLlm=false even if provider configured`() = runTest(testDispatcher) {
+    fun `submit PC_LOCAL routes via desktop hub_ask`() = runTest(testDispatcher) {
         every { androidLlm.detectProvider() } returns doubaoProvider
         coEvery { hub.ask("Q", null, null, null) } returns Result.success(
             AskResult(answer = "桌面答", citations = emptyList(),
@@ -389,13 +431,40 @@ class HubAskViewModelTest {
         )
         val vm = newVm()
         advanceUntilIdle()
-        // toggle 默认 false → 走桌面 ask
+        vm.setRoute(LlmRoute.PC_LOCAL)
         vm.onQuestionChange("Q")
         vm.submit()
         advanceUntilIdle()
 
         assertEquals("桌面答", vm.uiState.value.answer)
         coVerify(exactly = 1) { hub.ask("Q", null, null, null) }
+        coVerify(exactly = 0) { hub.retrieveContext(any(), any(), any()) }
+    }
+
+    @Test
+    fun `submit fails fast with banner message when neither route available`() = runTest(testDispatcher) {
+        // 云未配 + 桌面 LLM 也未启动（health.llm.ok=false → pcLocalAvailable=false）
+        coEvery { hub.health() } returns Result.success(
+            HubHealth(
+                vault = HealthVault(ok = true, schemaVersion = 1),
+                llm = HealthLlm(ok = false, isLocal = false, name = null),
+                kgSink = HealthOk(ok = true),
+                ragSink = HealthOk(ok = true),
+            )
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.cloudAvailable)
+        assertFalse(vm.uiState.value.pcLocalAvailable)
+
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.errorMessage)
+        assertTrue(s.errorMessage!!.contains("配置"))
+        coVerify(exactly = 0) { hub.ask(any(), any(), any(), any()) }
         coVerify(exactly = 0) { hub.retrieveContext(any(), any(), any()) }
     }
 }
