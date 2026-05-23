@@ -2032,21 +2032,43 @@ class HubLocalViewModelTest {
         assertTrue(vm.state.value.email["gmail"]?.hasCredentials == true)
     }
 
-    // ─── §2.5 D8.2 + §2.5b 地图扩展 — Travel (高德 / 百度 / 腾讯 / 携程) ──────
+    // ─── §2.5 D8.2 + §2.5b 地图扩展 — Travel (高德 / 百度 / 腾讯 / 携程 / 12306) ──
 
     @Test
-    fun `init renders 4 travel vendor cards including 3 maps`() = runTest(testDispatcher) {
+    fun `init renders 5 travel vendor cards including 3 maps and 12306`() = runTest(testDispatcher) {
         every { travelCredentials.hasCredentials(any()) } returns false
         val vm = newVm()
         advanceUntilIdle()
         val keys = vm.state.value.travel.keys
-        // 3 地图 + 1 出行 = 4 卡
-        assertEquals(4, keys.size)
+        // 3 地图 + 2 出行 (携程 + 12306) = 5 卡
+        assertEquals(5, keys.size)
         assertTrue("travel-amap" in keys)
         assertTrue("travel-baidu-map" in keys)
         assertTrue("travel-tencent-map" in keys)
         assertTrue("travel-ctrip" in keys)
+        assertTrue("travel-12306" in keys)
     }
+
+    @Test
+    fun `requestTravelLogin for 12306 uses kyfw URL + isLoginSuccess excludes login captcha`() =
+        runTest(testDispatcher) {
+            every { travelCredentials.hasCredentials(any()) } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestTravelLogin("travel-12306")
+            val p = vm.state.value.pendingLogin
+            assertNotNull(p)
+            assertEquals("travel:travel-12306", p.adapterName)
+            assertEquals("12306", p.displayName)
+            assertTrue(p.loginUrl.contains("kyfw.12306.cn"))
+            // isLoginSuccess: 已到 kyfw.12306.cn 主路径视为成功；login / passport /
+            // captcha 中间页判 false (12306 滑块验证码走 /captcha-conf 子路径)
+            assertTrue(p.isLoginSuccess("https://kyfw.12306.cn/otn/view/index.html"))
+            assertTrue(p.isLoginSuccess("https://kyfw.12306.cn/otn/leftTicket/init"))
+            assertFalse(p.isLoginSuccess("https://kyfw.12306.cn/otn/resources/login.html"))
+            assertFalse(p.isLoginSuccess("https://kyfw.12306.cn/passport/web/login"))
+            assertFalse(p.isLoginSuccess("https://kyfw.12306.cn/captcha-conf/captcha-image"))
+        }
 
     @Test
     fun `requestTravelLogin for baidu-map uses map_baidu_com URL + isLoginSuccess excludes passport`() =
