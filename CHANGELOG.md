@@ -5,6 +5,15 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.83] - 2026-05-23 — hotfix3: PDH AIChat 向导静态 import 改 lazy require
+
+> v5.0.3.82 web-panel **PDH 页面"刷新失败"** — `packages/cli/src/lib/personal-data-hub-aichat-wizard.js` 顶层 `import { DEFAULT_VENDOR_SPECS, HttpClient, CookieAuthSession } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history"` 在 nested PDH 是旧版（如 0.2.0 缺 `ai-chat-history` subpath export）时整个 wiring 链 module-load 阶段就炸 → web-shell PDH 路径不可用。本 hotfix 把顶层 ESM import 换成 memoized lazy `_require`，错误延后到 wizard 真正被调用时才报，Node 解析也有机会走到 root symlink 拿到带 export 的源码副本。
+
+- **`packages/cli/src/lib/personal-data-hub-aichat-wizard.js`** (`dcee0c775e`)：top-level static `import { DEFAULT_VENDOR_SPECS, HttpClient, CookieAuthSession } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history"` → memoized `_loadAichatModule()` lazy `_require`。3 处使用点（`specs` 默认值 / `HttpClient` 构造 / `CookieAuthSession` 构造）改成调用时按需取。与既有 217 / 228 行 lazy `_require` for `cookie-capture-spec` / `wizard-controller` 同款防御。
+- **`@chainlesschain/personal-data-hub` 0.2.3 → 0.2.4**：纯 bump（source 不变），让 CLI consumer dep lock 到新版，下次 `npm install` 会拉新 tarball 覆盖 nested 旧版。
+- **`chainlesschain` (CLI) 0.162.15 → 0.162.16**：bundle 本次 lazy-require 修 + PDH dep 同步 bump。
+- 17/17 既有 `personal-data-hub-aichat-wizard.test.js` 单测全过。
+
 ## [v5.0.3.82] - 2026-05-23 — hotfix2: Android R8 fullMode ConcurrentModificationException
 
 > v5.0.3.81 build-android 仍 fail：proguard 修过了第一道关（`Missing class` 走过），但 R8 minify 内部抛 `java.util.ConcurrentModificationException` — AGP 8.x R8 full-mode 优化大 dex 图（Hilt + Ktor + SLF4J 合并后）时的 upstream bug。本 hotfix2 在 gradle.properties 关 `android.enableR8.fullMode`（compat mode），DEX 大 ~3-5% 但不崩。

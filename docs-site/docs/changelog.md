@@ -3,6 +3,15 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.83 — hotfix3: PDH AIChat 向导静态 import 改 lazy require] - 2026-05-23
+
+> v5.0.3.82 web-panel **PDH 页面"刷新失败"**：`packages/cli/src/lib/personal-data-hub-aichat-wizard.js` 顶层 `import { ... } from "@chainlesschain/personal-data-hub/adapters/ai-chat-history"` 在 nested PDH 是旧版（如 0.2.0 缺该 subpath export）时整个 wiring 链 module-load 阶段就炸。本 hotfix 改 memoized lazy `_require`，错误延后到 wizard 真正调用时才报，Node 解析也有机会走 root symlink 拿到带 export 的源码副本。
+
+- **`personal-data-hub-aichat-wizard.js`** (`dcee0c775e`)：top-level static ESM import → memoized `_loadAichatModule()` lazy `_require`。3 处使用点改成调用时按需取。与既有 lazy `_require` for `cookie-capture-spec` / `wizard-controller` 同款防御。
+- **PDH 0.2.3 → 0.2.4**：纯 bump，让 CLI dep lock 到新版强制 nested install 拉新 tarball。
+- **CLI 0.162.15 → 0.162.16**：bundle 本修 + PDH dep 同步 bump。
+- 17/17 既有 wizard 单测全过。
+
 ## [v5.0.3.82 — hotfix2: Android R8 fullMode ConcurrentModificationException] - 2026-05-23
 
 > v5.0.3.81 build-android 仍 fail：proguard 修过了第一道关（`Missing class` 走过），但 R8 minify 内部抛 `java.util.ConcurrentModificationException` — AGP 8.x R8 full-mode 优化大 dex 图（Hilt + Ktor + SLF4J 合并后）时的 upstream bug。本 hotfix2 关 `android.enableR8.fullMode`。
