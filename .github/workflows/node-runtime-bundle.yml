@@ -430,15 +430,23 @@ jobs:
           # See docs/design/Personal_Data_Hub_Android_Standalone_Cc.md §7
           # Sub-Phase A2 + Traps 2 / 14 for full analysis.
 
-          BS3MC_DIR="$(find /tmp/cc-cli-hydrate/package/node_modules \
-                       -maxdepth 4 -name better-sqlite3-multiple-ciphers \
-                       -type d | head -n1)"
-          if [ -z "$BS3MC_DIR" ]; then
+          # 2026-05-23 — npm's nested resolution leaves TWO bs3mc dirs when
+          # workspace deps disagree on version:
+          #   - core-db@0.1.1 pulls bs3mc 11.0.0 → hoists to top-level node_modules/
+          #   - personal-data-hub@0.2.3 pulls bs3mc 12.5.0 → nested under .../pdh/node_modules/
+          # cc/runtime/bootstrap.js imports @chainlesschain/core-db, which
+          # at runtime resolves to the TOP-LEVEL bs3mc. Compiling only one
+          # (whichever find returned first) shipped a tgz where the runtime-
+          # resolved bs3mc had no .node → "Could not locate the bindings
+          # file" on real device. Loop over ALL bs3mc dirs found.
+          BS3MC_DIRS="$(find /tmp/cc-cli-hydrate/package/node_modules \
+                        -maxdepth 6 -name better-sqlite3-multiple-ciphers \
+                        -type d)"
+          if [ -z "$BS3MC_DIRS" ]; then
             echo "::notice::better-sqlite3-multiple-ciphers not hoisted to node_modules — skipping NDK build (PDH vault.open will fail on-device until next deps refresh)"
           else
-            echo "Found bs3mc at: $BS3MC_DIR"
-            BS3MC_VERSION="$(node -p "require('$BS3MC_DIR/package.json').version")"
-            echo "Version: $BS3MC_VERSION"
+            echo "Found bs3mc dirs:"
+            echo "$BS3MC_DIRS"
 
             # Fetch Node 26 headers matching Termux nodejs apt package
             # (currently 26.1.0 — DON'T use nodejs-lts/Node 24, see Trap 15
@@ -456,7 +464,7 @@ jobs:
             tar -xzf /tmp/node-headers.tar.gz -C /tmp/node-headers \
               --strip-components=1
 
-            # Cross-compile env
+            # Cross-compile env — set once, reused per bs3mc dir.
             ANDROID_NDK_HOME="${{ steps.setup-ndk.outputs.ndk-path }}"
             TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
             API_LEVEL=30
@@ -469,61 +477,69 @@ jobs:
             export CFLAGS="-fPIC -DANDROID"
             export CXXFLAGS="-fPIC -DANDROID -std=c++20"
             # -static-libstdc++ statically embeds libc++ symbols into the
-            # .node — verified produces DT_NEEDED=libc.so only (zero libc++
-            # runtime dep), sidestepping Termux libc++ vs NDK libc++ ABI
-            # drift (Phase 2.5 trap 5).
+            # .node — verified produces DT_NEEDED=libc.so only (fully
+            # Bionic-compatible, no Termux libc++ ABI drift risk).
             export LDFLAGS="-static-libstdc++"
             # android_ndk_path required — Node 24 common.gypi has
             # -I<(android_ndk_path)/sources/android/cpufeatures in
             # OS==android cflags; gyp errors without it (Trap 14).
             export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"
 
-            cd "$BS3MC_DIR"
-            npx -p node-gyp@latest node-gyp configure \
-              --target_arch=arm64 \
-              --target_platform=android \
-              --nodedir=/tmp/node-headers
+            echo "$BS3MC_DIRS" | while IFS= read -r BS3MC_DIR; do
+              [ -z "$BS3MC_DIR" ] && continue
+              echo ""
+              echo "=== Compiling bs3mc at: $BS3MC_DIR ==="
+              BS3MC_VERSION="$(node -p "require('$BS3MC_DIR/package.json').version")"
+              echo "Version: $BS3MC_VERSION"
 
-            npx -p node-gyp@latest node-gyp build
+              (
+                cd "$BS3MC_DIR"
+                npx -p node-gyp@latest node-gyp configure \
+                  --target_arch=arm64 \
+                  --target_platform=android \
+                  --nodedir=/tmp/node-headers
 
-            NODE_BIN="$BS3MC_DIR/build/Release/better_sqlite3.node"
-            if [ ! -f "$NODE_BIN" ]; then
-              echo "::error::NDK cross-compile did not produce $NODE_BIN"
-              find "$BS3MC_DIR/build" -maxdepth 4 -type f 2>/dev/null | head -20
-              exit 1
-            fi
+                npx -p node-gyp@latest node-gyp build
+              )
 
-            echo "Pre-strip DT_NEEDED:"
-            patchelf --print-needed "$NODE_BIN" || true
-            echo "Pre-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+              NODE_BIN="$BS3MC_DIR/build/Release/better_sqlite3.node"
+              if [ ! -f "$NODE_BIN" ]; then
+                echo "::error::NDK cross-compile did not produce $NODE_BIN"
+                find "$BS3MC_DIR/build" -maxdepth 4 -type f 2>/dev/null | head -20
+                exit 1
+              fi
 
-            # Strip debug info — saves ~10% of size for C++ .node
-            "$STRIP" "$NODE_BIN" || echo "::warning::strip failed; shipping unstripped"
-            echo "Post-strip size: $(du -h "$NODE_BIN" | cut -f1)"
+              echo "Pre-strip DT_NEEDED:"
+              patchelf --print-needed "$NODE_BIN" || true
+              echo "Pre-strip size: $(du -h "$NODE_BIN" | cut -f1)"
 
-            # Defensive patchelf — if libc++_shared.so leaked into
-            # DT_NEEDED (would mean -static-libstdc++ didn't work this
-            # build), rename to libtermux_cxx.so to match Phase 2.5
-            # convention. Standalone run 26148746496 confirmed
-            # -static-libstdc++ works (DT_NEEDED=libc.so only).
-            if patchelf --print-needed "$NODE_BIN" 2>/dev/null \
-               | grep -q '^libc++_shared\.so'; then
-              echo "::warning::libc++_shared.so in DT_NEEDED — falling back to patchelf rename"
-              patchelf --replace-needed libc++_shared.so libtermux_cxx.so "$NODE_BIN"
-              echo "Post-patch DT_NEEDED:"
-              patchelf --print-needed "$NODE_BIN"
-            fi
+              # Strip debug info — saves ~10% of size for C++ .node
+              "$STRIP" "$NODE_BIN" || echo "::warning::strip failed; shipping unstripped"
+              echo "Post-strip size: $(du -h "$NODE_BIN" | cut -f1)"
 
-            # Cleanup intermediate artifacts (gyp build dir + sqlite3.a +
-            # object files) — only the .node needs to survive in the tree.
-            # Saves ~30MB in cc-cli.tgz.
-            find "$BS3MC_DIR/build" -mindepth 1 -maxdepth 1 \
-              ! -name Release -exec rm -rf {} +
-            find "$BS3MC_DIR/build/Release" -mindepth 1 -maxdepth 1 \
-              ! -name better_sqlite3.node -exec rm -rf {} +
+              # Defensive patchelf — if libc++_shared.so leaked into
+              # DT_NEEDED (would mean -static-libstdc++ didn't work this
+              # build), rename to libtermux_cxx.so to match Phase 2.5
+              # convention.
+              if patchelf --print-needed "$NODE_BIN" 2>/dev/null \
+                 | grep -q '^libc++_shared\.so'; then
+                echo "::warning::libc++_shared.so in DT_NEEDED — falling back to patchelf rename"
+                patchelf --replace-needed libc++_shared.so libtermux_cxx.so "$NODE_BIN"
+                echo "Post-patch DT_NEEDED:"
+                patchelf --print-needed "$NODE_BIN"
+              fi
 
-            echo "Final .node + tree:"
-            ls -la "$BS3MC_DIR/build/Release/"
+              # Cleanup intermediate artifacts (gyp build dir + sqlite3.a +
+              # object files) — only the .node needs to survive in the tree.
+              # Saves ~30MB per bs3mc dir in cc-cli.tgz.
+              find "$BS3MC_DIR/build" -mindepth 1 -maxdepth 1 \
+                ! -name Release -exec rm -rf {} +
+              find "$BS3MC_DIR/build/Release" -mindepth 1 -maxdepth 1 \
+                ! -name better_sqlite3.node -exec rm -rf {} +
+
+              echo "Final .node + tree:"
+              ls -la "$BS3MC_DIR/build/Release/"
+            done
           fi
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
