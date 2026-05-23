@@ -205,12 +205,22 @@ private fun ModelStatusBanner(
         HubLocalViewModel.ModelStatusState.Kind.READY -> {
             // Ready: compact one-line caption so the question input stays
             // visually dominant on the most common path (model already
-            // downloaded, user just wants to ask).
-            Text(
-                text = "🟢 端侧模型已就绪${status.modelName?.let { " · $it" } ?: ""}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            // downloaded, user just wants to ask). If native lib isn't loaded
+            // yet (v0.2 dep not landed), the inference path still fails — say so
+            // honestly so the user understands why "提问" returns an error.
+            if (status.nativeEngineReady) {
+                Text(
+                    text = "🟢 端侧模型已就绪${status.modelName?.let { " · $it" } ?: ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Text(
+                    text = "⏳ 模型已下载${status.modelName?.let { " · $it" } ?: ""} · 等 v0.2 推理引擎接通",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
         }
         HubLocalViewModel.ModelStatusState.Kind.NOT_DOWNLOADED -> {
             Surface(
@@ -231,8 +241,14 @@ private fun ModelStatusBanner(
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
+                        // 推文 §"诚实说" 真接通：如果 native .so 还没 land (Win
+                        // build 期 v0.2 之前)，承认"下载就绪 + 推理 v0.2"是当前
+                        // 真实状态，不让用户白下 1GB 后被错误信息卡住。
                         Text(
-                            text = "Qwen2.5-1.5B Q4 · ~1GB · 一次下载，永久离线可用",
+                            text = if (status.nativeEngineReady)
+                                "Qwen2.5-1.5B Q4 · ~1GB · 一次下载，永久离线可用"
+                            else
+                                "Qwen2.5-1.5B Q4 · ~1GB · 推理引擎将在 v0.2 启用 (可先下载备用)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
