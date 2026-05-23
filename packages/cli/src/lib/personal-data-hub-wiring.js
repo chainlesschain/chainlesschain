@@ -46,6 +46,14 @@ const {
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
   BilibiliAdapter,
+  WeiboAdapter,
+  DouyinAdapter,
+  XiaohongshuAdapter,
+  ToutiaoAdapter,
+  KuaishouAdapter,
+  QQAdapter,
+  TelegramAdapter,
+  WhatsAppAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -283,6 +291,32 @@ async function initHub() {
     if (!registry.has(bilibili.name)) registry.register(bilibili);
   } catch (_err) {
     // Continue boot
+  }
+
+  // A8 v0.2 (2026-05-22/23) — 4 more social + 3 messaging adapters in
+  // snapshot mode. Same desktop-independent contract as Bilibili: Android
+  // collector writes filesDir/.chainlesschain/staging/<name>.json, CLI
+  // `cc hub sync-adapter <name> --input <path>` reads it. Wire-up here
+  // mirrors line 282 above. Each is wrapped in its own try so a single
+  // broken constructor doesn't cascade. Earlier oversight: only Bilibili
+  // was wired even though PDH 0.2.3 ships all 9 — every other vendor
+  // surfaced "AdapterRegistry.syncAdapter: no adapter X" on real device.
+  for (const Cls of [
+    WeiboAdapter,
+    DouyinAdapter,
+    XiaohongshuAdapter,
+    ToutiaoAdapter,
+    KuaishouAdapter,
+    QQAdapter,
+    TelegramAdapter,
+    WhatsAppAdapter,
+  ]) {
+    try {
+      const adapter = new Cls();
+      if (!registry.has(adapter.name)) registry.register(adapter);
+    } catch (_err) {
+      // Continue boot even if one adapter ctor throws
+    }
   }
 
   // Phase 6: auto-register persisted Alipay accounts.
