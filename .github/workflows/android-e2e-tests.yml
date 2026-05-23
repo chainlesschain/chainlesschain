@@ -105,29 +105,21 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
+            set -e
             cd android-app
-            # 启动 ADB 服务器
-            adb start-server
-            adb wait-for-device
-            adb devices
-
-            # 禁用动画加速测试
-            adb shell settings put global window_animation_scale 0.0
-            adb shell settings put global transition_animation_scale 0.0
-            adb shell settings put global animator_duration_scale 0.0
-
-            # 运行测试 — single attempt.
-            # NOTE: reactivecircus/android-emulator-runner@v2 invokes each
-            # line of the script: block as a separate `/usr/bin/sh -c <line>`,
-            # so multi-line shell constructs (for-loops, multi-line `if`,
-            # heredocs) DO NOT WORK — sh -c receives just "for i in 1 2 3; do"
-            # and dies with "Syntax error: end of file unexpected (expecting
-            # 'done')". The previous {1..3}→1 2 3 commit (227dd0651e)
-            # mis-attributed the cause; it was the line-splitting all along.
-            # If retries are truly needed, encode them inline with ||/&& on
-            # one logical line, or invoke a separate ./scripts/retry-e2e.sh
-            # checked into the repo. For now a single attempt matches what
-            # android-tests.yml::Instrumented Tests does and CI agrees.
+            # NOTE: drop adb start-server / wait-for-device / adb shell
+            # settings — the action already (a) starts adb, (b) waits for
+            # boot_completed before invoking script, and (c) honors
+            # disable-animations: true above. Restarting adb-server here
+            # severs the action's established emulator session, so when
+            # gradle's connectedDebugAndroidTest finally runs adb has lost
+            # the device → "No connected devices!" cascade (run 26319268765
+            # API 33 reproducer). Match the working android-tests.yml
+            # ::Instrumented Tests script shape: gradle only.
+            #
+            # Multi-line shell constructs (for-loops / multi-line if) also
+            # don't work — the action runs script: lines one at a time via
+            # `sh -c <line>`. Keep gradle invocation on a single line.
             ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true -Pandroid.testInstrumentationRunnerArguments.package=com.chainlesschain.android.e2e --stacktrace --no-daemon
 
       # Inner `|| true` removed 2026-05-18 — was redundant masking on top of
