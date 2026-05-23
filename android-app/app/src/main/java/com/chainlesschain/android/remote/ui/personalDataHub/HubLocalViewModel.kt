@@ -1718,16 +1718,31 @@ class HubLocalViewModel @Inject constructor(
     }
 
     fun onBilibiliLoginCookie(cookie: String) {
-        val accepted = bilibiliCollector.acceptLoginCookie(cookie)
-        _state.update {
-            it.copy(
-                pendingLogin = null,
-                bilibili = it.bilibili.copy(
-                    errorMessage = if (!accepted) "登录未完成 — 未找到 DedeUserID，请重试" else null,
-                ),
-            )
+        when (val r = bilibiliCollector.acceptLoginCookie(cookie)) {
+            is BilibiliLocalCollector.AcceptResult.Ok -> {
+                _state.update {
+                    it.copy(
+                        pendingLogin = null,
+                        bilibili = it.bilibili.copy(errorMessage = null),
+                    )
+                }
+                refreshBilibiliFromStore()
+            }
+            is BilibiliLocalCollector.AcceptResult.MissingField -> {
+                // Don't silently accept a partial cookie — without buvid3 /
+                // bili_jct the 4 Bilibili APIs return `{code:0,data:{list:[]}}`
+                // (no error code), and the user sees "4 API empty" on next
+                // sync with no recovery hint. Actionable message instead.
+                _state.update {
+                    it.copy(
+                        pendingLogin = null,
+                        bilibili = it.bilibili.copy(
+                            errorMessage = "登录未完成：cookie 缺 ${r.name}。请重新登录并等待首页完全加载（约 3-5s）后再返回。",
+                        ),
+                    )
+                }
+            }
         }
-        if (accepted) refreshBilibiliFromStore()
     }
 
     fun cancelLogin() {

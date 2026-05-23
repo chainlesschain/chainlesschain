@@ -447,7 +447,7 @@ class HubLocalViewModelTest {
 
     @Test
     fun `onBilibiliLoginCookie accepts cookie + clears pendingLogin + refreshes state`() = runTest(testDispatcher) {
-        every { bilibiliCollector.acceptLoginCookie(any()) } returns true
+        every { bilibiliCollector.acceptLoginCookie(any()) } returns BilibiliLocalCollector.AcceptResult.Ok
         // After acceptance, store now reflects logged-in
         every { bilibiliCredentials.hasCredentials() } returnsMany listOf(false, true)
         every { bilibiliCredentials.getUid() } returnsMany listOf(null, 12345L)
@@ -466,7 +466,9 @@ class HubLocalViewModelTest {
 
     @Test
     fun `onBilibiliLoginCookie surface error when DedeUserID missing`() = runTest(testDispatcher) {
-        every { bilibiliCollector.acceptLoginCookie(any()) } returns false
+        every {
+            bilibiliCollector.acceptLoginCookie(any())
+        } returns BilibiliLocalCollector.AcceptResult.MissingField("DedeUserID")
 
         val vm = newVm()
         advanceUntilIdle()
@@ -478,6 +480,28 @@ class HubLocalViewModelTest {
         assertFalse(vm.state.value.bilibili.isLoggedIn)
         assertNotNull(vm.state.value.bilibili.errorMessage)
         assertTrue(vm.state.value.bilibili.errorMessage!!.contains("DedeUserID"))
+    }
+
+    @Test
+    fun `onBilibiliLoginCookie surface error when buvid3 missing (real-device 2026-05-23)`() = runTest(testDispatcher) {
+        // Real-device repro: WebView grabbed cookie before post-onload JS wrote
+        // buvid3, so DedeUserID parses fine but the API will silent-empty.
+        every {
+            bilibiliCollector.acceptLoginCookie(any())
+        } returns BilibiliLocalCollector.AcceptResult.MissingField("buvid3")
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestBilibiliLogin()
+        vm.onBilibiliLoginCookie("SESSDATA=x; DedeUserID=12345; bili_jct=jct")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertFalse(vm.state.value.bilibili.isLoggedIn)
+        // Message must name buvid3 + give user an actionable retry hint.
+        val msg = vm.state.value.bilibili.errorMessage!!
+        assertTrue(msg.contains("buvid3"))
+        assertTrue(msg.contains("重新登录"))
     }
 
     @Test

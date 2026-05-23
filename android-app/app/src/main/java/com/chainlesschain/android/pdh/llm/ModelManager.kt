@@ -94,9 +94,17 @@ class ModelManager @Inject constructor(
 
     val defaultSpec = ModelSpec(
         filename = "gemma3-1b-it-int4.task",
-        // hf-mirror.com is China-reachable; original is huggingface.co/litert-community
-        // /Gemma3-1B-IT. Users behind a different CDN can override the URL via a
-        // future setting; v0.2 hard-codes hf-mirror for the default.
+        // hf-mirror.com is China-reachable mirror of huggingface.co/litert-community
+        // /Gemma3-1B-IT. NOTE: the Gemma model itself is gated on HF — users must
+        // accept the Gemma license at https://huggingface.co/google/gemma-3-1b-it
+        // (one-time per HF account). The hf-mirror mirror serves the file without
+        // a per-download auth header, but if upstream tightens that, fallback is
+        // to swap defaultSpec.url to a non-gated alternative (e.g., a self-hosted
+        // CDN of the converted .task) or to switch ModelManager to fetch via
+        // the user's HF token (settings page TODO).
+        //
+        // v0.3 follow-up: turn this into a list of mirrors with health-probe
+        // failover (hf-mirror → modelscope → HF direct).
         url = "https://hf-mirror.com/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
         expectedSha256 = null,
         sizeBytesApprox = 555_000_000L, // ~555 MB
