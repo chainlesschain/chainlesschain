@@ -3,6 +3,7 @@ package com.chainlesschain.android.remote.ui.personalDataHub
 import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
@@ -77,6 +78,7 @@ class HubLocalViewModelTest {
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
     private lateinit var modelManager: ModelManager
+    private lateinit var llmEngine: LlmInferenceEngine
     private lateinit var appContext: Context
 
     @Before
@@ -130,6 +132,11 @@ class HubLocalViewModelTest {
             kotlinx.coroutines.flow.MutableStateFlow<
                 com.chainlesschain.android.pdh.llm.ModelManager.State
             >(com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded)
+        // §2.1 A3.4 — default: native engine NOT ready (mirrors Win build
+        // where .so isn't bundled). Tests overriding the "Ready engine"
+        // scenario flip this in-place via `every { llmEngine.nativeReady } returns true`.
+        llmEngine = mockk(relaxed = true)
+        every { llmEngine.nativeReady } returns false
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -170,6 +177,7 @@ class HubLocalViewModelTest {
             xhsCredentials,
             systemDataState,
             modelManager,
+            llmEngine,
             appContext,
         )
 
@@ -354,6 +362,45 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
 
         io.mockk.coVerify { modelManager.delete(any()) }
+    }
+
+    @Test
+    fun `nativeEngineReady=false propagates to UI state — Ready model still warns v0_2`() = runTest(testDispatcher) {
+        // Default setUp sets every { llmEngine.nativeReady } returns false →
+        // Ready model state should still surface nativeEngineReady=false so
+        // ModelStatusBanner shows the "⏳ 等 v0.2 推理引擎接通" disclaimer.
+        val ready = com.chainlesschain.android.pdh.llm.ModelManager.State.Ready(
+            file = java.io.File("qwen2.5-1.5b-instruct-q4_k_m.gguf"),
+            sha256 = "deadbeef",
+        )
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(ready)
+        every { modelManager.state } returns flow
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertEquals(HubLocalViewModel.ModelStatusState.Kind.READY, vm.state.value.modelStatus.kind)
+        assertFalse(vm.state.value.modelStatus.nativeEngineReady)
+    }
+
+    @Test
+    fun `nativeEngineReady=true propagates so Ready model shows 已就绪 not v0_2 disclaimer`() = runTest(testDispatcher) {
+        every { llmEngine.nativeReady } returns true
+        val ready = com.chainlesschain.android.pdh.llm.ModelManager.State.Ready(
+            file = java.io.File("qwen2.5-1.5b-instruct-q4_k_m.gguf"),
+            sha256 = "deadbeef",
+        )
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(ready)
+        every { modelManager.state } returns flow
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.modelStatus.nativeEngineReady)
     }
 
     @Test

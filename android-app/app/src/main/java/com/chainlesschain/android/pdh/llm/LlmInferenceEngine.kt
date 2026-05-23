@@ -29,6 +29,17 @@ interface LlmInferenceEngine {
     /** Always true — implementations run on-device by construction. */
     val isLocal: Boolean get() = true
 
+    /**
+     * Whether the underlying native/binding layer is loaded and could in
+     * principle run inference (given a model). Surfaces independently of
+     * [health] because the latter does file I/O and is suspend; this is a
+     * cheap synchronous probe the UI can read from a ViewModel init block.
+     *
+     * Default `true` for pure-JVM engines. Native-backed impls
+     * (KotlinLlamaCppEngine etc.) override to reflect actual .so load state.
+     */
+    val nativeReady: Boolean get() = true
+
     /** Whether the engine has loaded its model and can answer questions. */
     suspend fun health(): HealthStatus
 
@@ -76,6 +87,8 @@ class LlmInferenceException(message: String, cause: Throwable? = null) : Excepti
  */
 object NoOpLlmInferenceEngine : LlmInferenceEngine {
     override val name = "noop-llm"
+
+    override val nativeReady: Boolean = false
 
     override suspend fun health(): LlmInferenceEngine.HealthStatus =
         LlmInferenceEngine.HealthStatus(

@@ -56,6 +56,15 @@ class KotlinLlamaCppEngine @Inject constructor(
 
     override val name: String = "kotlinllamacpp"
 
+    /**
+     * §2.1 A3.4 — cheap synchronous read of native lib load state. Reads the
+     * same `NATIVE_LOADED` flag the suspend `health()` does, but without the
+     * ModelManager file I/O. The UI's ModelStatusBanner uses this at init to
+     * decide between "🟢 端侧 AI 已就绪" and "⏳ 等待 v0.2 推理引擎" copy when
+     * the model itself is downloaded but the JitPack/Maven .so isn't bundled.
+     */
+    override val nativeReady: Boolean get() = isNativeLoaded
+
     /** Guard the native context — llama.cpp single-threaded per ctx. */
     private val nativeMutex = Mutex()
 

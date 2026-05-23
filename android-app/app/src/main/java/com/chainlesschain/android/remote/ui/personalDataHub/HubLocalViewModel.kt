@@ -9,6 +9,7 @@ import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.email.EmailVendor
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
@@ -80,6 +81,7 @@ class HubLocalViewModel @Inject constructor(
     private val xhsCredentials: XhsCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
     private val modelManager: ModelManager,
+    private val llmEngine: LlmInferenceEngine,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -201,6 +203,13 @@ class HubLocalViewModel @Inject constructor(
         val receivedBytes: Long = 0L,
         val totalBytes: Long = 0L,
         val errorMessage: String? = null,
+        /**
+         * §2.1 A3.4 — whether the underlying native engine (.so) is loaded.
+         * Snapshot from [LlmInferenceEngine.nativeReady] at VM init. Drives
+         * the disclaimer copy in ModelStatusBanner: even if model is READY,
+         * inference can't actually run until v0.2 native lib lands.
+         */
+        val nativeEngineReady: Boolean = true,
     ) {
         enum class Kind { UNKNOWN, NOT_DOWNLOADED, DOWNLOADING, VERIFYING, READY, FAILED }
 
@@ -422,26 +431,36 @@ class HubLocalViewModel @Inject constructor(
         viewModelScope.launch { modelManager.delete() }
     }
 
-    private fun ModelManager.State.toUi(): ModelStatusState = when (this) {
-        is ModelManager.State.NotDownloaded -> ModelStatusState(
-            kind = ModelStatusState.Kind.NOT_DOWNLOADED,
-        )
-        is ModelManager.State.Downloading -> ModelStatusState(
-            kind = ModelStatusState.Kind.DOWNLOADING,
-            receivedBytes = receivedBytes,
-            totalBytes = totalBytes,
-        )
-        is ModelManager.State.Verifying -> ModelStatusState(
-            kind = ModelStatusState.Kind.VERIFYING,
-        )
-        is ModelManager.State.Ready -> ModelStatusState(
-            kind = ModelStatusState.Kind.READY,
-            modelName = file.name,
-        )
-        is ModelManager.State.Failed -> ModelStatusState(
-            kind = ModelStatusState.Kind.FAILED,
-            errorMessage = reason,
-        )
+    private fun ModelManager.State.toUi(): ModelStatusState {
+        // nativeReady is snapshotted at VM init (engine.nativeReady is val);
+        // future runs after v0.2 .so lands flip it transparently via app restart.
+        val nativeReady = llmEngine.nativeReady
+        return when (this) {
+            is ModelManager.State.NotDownloaded -> ModelStatusState(
+                kind = ModelStatusState.Kind.NOT_DOWNLOADED,
+                nativeEngineReady = nativeReady,
+            )
+            is ModelManager.State.Downloading -> ModelStatusState(
+                kind = ModelStatusState.Kind.DOWNLOADING,
+                receivedBytes = receivedBytes,
+                totalBytes = totalBytes,
+                nativeEngineReady = nativeReady,
+            )
+            is ModelManager.State.Verifying -> ModelStatusState(
+                kind = ModelStatusState.Kind.VERIFYING,
+                nativeEngineReady = nativeReady,
+            )
+            is ModelManager.State.Ready -> ModelStatusState(
+                kind = ModelStatusState.Kind.READY,
+                modelName = file.name,
+                nativeEngineReady = nativeReady,
+            )
+            is ModelManager.State.Failed -> ModelStatusState(
+                kind = ModelStatusState.Kind.FAILED,
+                errorMessage = reason,
+                nativeEngineReady = nativeReady,
+            )
+        }
     }
 
     // ─── System data (contacts + apps) ──────────────────────────────────────
