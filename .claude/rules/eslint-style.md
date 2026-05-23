@@ -58,5 +58,5 @@ Only import what you use. No dead imports.
 ## ESLint Config
 
 - Parser: `@typescript-eslint/parser` + `eslint-plugin-vue`
-- Rules: `desktop-app-vue/.eslintrc.js`
+- Rules: `desktop-app-vue/eslint.config.js` (ESLint 9 flat config)
 - Auto-fix: `npm run lint -- --fix`
