@@ -205,6 +205,10 @@ fun HubLocalScreen(
                         viewModel.requestCitationDetail(eventId)
                     },
                     onDismissAnswer = { viewModel.clearAskAnswer() },
+                    // §2.1 A3.4 — 端侧 LLM 模型状态条 (推文 §"无网也能用" 入口)
+                    modelStatus = state.modelStatus,
+                    onDownloadModel = { viewModel.downloadModel() },
+                    onDeleteModel = { viewModel.deleteModel() },
                 )
             }
 
