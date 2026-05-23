@@ -52,8 +52,11 @@ const {
   ToutiaoAdapter,
   KuaishouAdapter,
   QQAdapter,
-  TelegramAdapter,
-  WhatsAppAdapter,
+  BaiduMapAdapter,
+  TencentMapAdapter,
+  JdAdapter,
+  MeituanAdapter,
+  PinduoduoAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -293,14 +296,24 @@ async function initHub() {
     // Continue boot
   }
 
-  // A8 v0.2 (2026-05-22/23) — 4 more social + 3 messaging adapters in
-  // snapshot mode. Same desktop-independent contract as Bilibili: Android
-  // collector writes filesDir/.chainlesschain/staging/<name>.json, CLI
-  // `cc hub sync-adapter <name> --input <path>` reads it. Wire-up here
-  // mirrors line 282 above. Each is wrapped in its own try so a single
-  // broken constructor doesn't cascade. Earlier oversight: only Bilibili
-  // was wired even though PDH 0.2.3 ships all 9 — every other vendor
-  // surfaced "AdapterRegistry.syncAdapter: no adapter X" on real device.
+  // A8 v0.2 (2026-05-22/23) — 11 no-arg snapshot-mode adapters that work
+  // identically to Bilibili: Android collector writes filesDir/.chainlesschain/
+  // staging/<name>.json, CLI `cc hub sync-adapter <name> --input <path>`
+  // reads it; no per-account credential needed at boot. Each wrapped in
+  // its own try so one broken ctor doesn't cascade.
+  //
+  // **Deferred** (need per-account credential — `<vendor>-accounts.json`
+  // loader infra similar to email/alipay/wechat, not yet built):
+  //   Train12306Adapter (opts.account.username)
+  //   CtripAdapter      (opts.account.email)
+  //   AmapAdapter       (opts.account.deviceId)
+  //   TaobaoAdapter     (opts.account.userId)
+  //   TelegramAdapter   (opts.account.userId)
+  //   WhatsAppAdapter   (opts.account.phone)
+  // Earlier oversight: v5.0.3.84 wired Telegram + WhatsApp here, but their
+  // ctors throw without account args, so they were silently swallowed by
+  // try/catch and never actually registered. Removed to make the list
+  // accurate.
   for (const Cls of [
     WeiboAdapter,
     DouyinAdapter,
@@ -308,8 +321,11 @@ async function initHub() {
     ToutiaoAdapter,
     KuaishouAdapter,
     QQAdapter,
-    TelegramAdapter,
-    WhatsAppAdapter,
+    BaiduMapAdapter,
+    TencentMapAdapter,
+    JdAdapter,
+    MeituanAdapter,
+    PinduoduoAdapter,
   ]) {
     try {
       const adapter = new Cls();

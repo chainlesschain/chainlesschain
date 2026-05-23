@@ -45,6 +45,17 @@ const {
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
   BilibiliAdapter,
+  WeiboAdapter,
+  DouyinAdapter,
+  XiaohongshuAdapter,
+  ToutiaoAdapter,
+  KuaishouAdapter,
+  QQAdapter,
+  BaiduMapAdapter,
+  TencentMapAdapter,
+  JdAdapter,
+  MeituanAdapter,
+  PinduoduoAdapter,
   ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -342,6 +353,45 @@ async function initHub() {
       "[PersonalDataHub] failed to register social-bilibili adapter",
       err && err.message,
     );
+  }
+
+  // A8 v0.2 (2026-05-22/23) — 11 no-arg snapshot-mode adapters mirroring
+  // CLI `personal-data-hub-wiring.js` so desktop IPC and `cc hub sync-adapter`
+  // see the same registry. Per `feedback_cross_shell_feature_pattern`: every
+  // PDH feature must be reachable via both gateways or the SPA's behaviour
+  // diverges across shells. Earlier desktop only wired Bilibili — the other
+  // 10 surfaced "AdapterRegistry.syncAdapter: no adapter X" on real device
+  // when the Android collector produced staging JSON for them.
+  //
+  // **Deferred** (need per-account credential infra — `<vendor>-accounts.json`
+  // loader similar to email/alipay/wechat):
+  //   Train12306Adapter / CtripAdapter / AmapAdapter / TaobaoAdapter /
+  //   TelegramAdapter / WhatsAppAdapter
+  for (const Cls of [
+    WeiboAdapter,
+    DouyinAdapter,
+    XiaohongshuAdapter,
+    ToutiaoAdapter,
+    KuaishouAdapter,
+    QQAdapter,
+    BaiduMapAdapter,
+    TencentMapAdapter,
+    JdAdapter,
+    MeituanAdapter,
+    PinduoduoAdapter,
+  ]) {
+    try {
+      const adapter = new Cls();
+      if (!registry.has(adapter.name)) {
+        registry.register(adapter);
+      }
+    } catch (err) {
+      logger.warn(
+        "[PersonalDataHub] failed to register adapter",
+        Cls.name,
+        err && err.message,
+      );
+    }
   }
 
   // Phase 6: same file-based persistence for Alipay accounts.

@@ -3,11 +3,13 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
-## [v5.0.3.84 — hotfix4: CLI 接通 PDH 8 个 social/messaging adapter] - 2026-05-23
+## [v5.0.3.84 — hotfix4: CLI + desktop 接通 PDH 11 个 no-arg adapter (+ 修 2 个静默吞错)] - 2026-05-23
 
-> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 "no adapter X"，因为 `personal-data-hub-wiring.js` 历史只 wire 了 BilibiliAdapter，而 PDH 0.2.3+ 早 ship 了 9 个 (Bilibili + Weibo + Douyin + Xiaohongshu + Toutiao + Kuaishou + QQ + Telegram + WhatsApp)。Android 端 collector 早能写 staging JSON，CLI 却装不下接收。本 hotfix 补全 8 个。
+> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 "no adapter X"：CLI + desktop wiring 历史都只 wire 了 BilibiliAdapter，PDH 0.2.3+ ship 了 9 social/messaging + 5 map/shopping。第一轮补 8 (`94b0ecf25c`) 时把 Telegram/WhatsApp 也塞 for-loop，但它们 ctor 需 account 参数 → 被 try/catch silent 吞，实际从未 register。本 hotfix 修正后 land 11 个真正 no-arg + 注明 6 个 credential adapter defer。
 
-- **`personal-data-hub-wiring.js`** (`94b0ecf25c`)：boot 时 for-loop `new Cls()` + `registry.register()` 8 adapter，每个 try/catch 独立。镜像既有 Bilibili wire 模式。
+- **CLI `personal-data-hub-wiring.js`**：boot 时 for-loop 11 个 (Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou / QQ / BaiduMap / TencentMap / Jd / Meituan / Pinduoduo)。
+- **Desktop `wiring.js`**：同款 11 adapter wire (cross-shell parity)。
+- **Defer**：6 个 credential adapter 需 `<vendor>-accounts.json` loader infra (mirror email/alipay/wechat): Train12306 / Ctrip / Amap / Taobao / Telegram / WhatsApp。
 - **CLI 0.162.16 → 0.162.17**：bundle 本修。PDH 不动 (仍 0.2.4)。
 
 ## [v5.0.3.83 — hotfix3: PDH AIChat 向导静态 import 改 lazy require] - 2026-05-23
