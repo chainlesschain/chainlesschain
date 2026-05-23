@@ -387,35 +387,16 @@ dependencies {
     implementation("io.ktor:ktor-server-cio:2.3.13")
     implementation("io.ktor:ktor-server-content-negotiation:2.3.13")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.13")
-    // A3 — kotlinllamacpp (JNI llama.cpp) is hidden behind the
-    // LlmInferenceEngine interface (pdh/llm/LlmInferenceEngine.kt). The NoOp
-    // impl is the default; a real engine impl needs a published Android AAR
-    // including a libllama.so / libkotlinllamacpp.so binary.
-    //
-    // TODO(A3.1 follow-up — needs Mac/Linux + NDK to land):
-    //
-    //   2026-05-23 audit (Win session) — no plug-and-play coord exists:
-    //     - `com.github.ljcamargo:kotlinllamacpp:0.4.0` (JitPack) → 404. The
-    //       repo (ljcamargo/kotlinllamacpp) exists but has zero tags / zero
-    //       releases / no jitpack.yml. master-SNAPSHOT might build but would
-    //       lack NDK config.
-    //     - `io.github.ljcamargo:llamacpp-kotlin:0.4.0` (Maven Central) →
-    //       0 artifacts under that groupId. Web-search snippet was misleading.
-    //     - `com.llamatik:library:0.16.0` (Maven Central) → 0 artifacts.
-    //       Llamatik repo (ferranpons/Llamatik) exists but unreleased.
-    //
-    //   Options for next Mac/Linux session:
-    //     (a) Fork ljcamargo/kotlinllamacpp + tag a release + push to our own
-    //         JitPack. Lowest friction; ~1d incl. NDK toolchain verify.
-    //     (b) Vendor llama.cpp source into android-app/llama-cpp-jni/ as a
-    //         submodule + CMake from app/src/main/cpp/. Most control; ~2d.
-    //     (c) Use Llamatik (more active, KMP) — same publish gap, fork+tag
-    //         needed.
-    //
-    //   Engine selector lives in di/LlmModule.kt — swap one @Binds line once
-    //   dep resolves. KotlinLlamaCppEngine.kt already declares the 3 external
-    //   JNI methods (loadModel / chat / freeContext) gated by NATIVE_LOADED
-    //   try-catch, so dep landing is the only remaining wire-up step.
+    // A3 — kotlinllamacpp (JNI llama.cpp) was the original v0.1 plan but per
+    // 2026-05-23 dep audit (memory `pdh_llm_native_dep_audit.md`) no published
+    // coord exists for that lib. Pivot: use Google's MediaPipe LLM Inference
+    // task (com.google.mediapipe:tasks-genai). It's Google-maven-published
+    // with prebuilt arm64-v8a .so, supports Gemma-3 1B int4 (~555 MB .task
+    // file). MediaPipeLlmEngine implements LlmInferenceEngine; LlmModule binds
+    // it as default. KotlinLlamaCppEngine kept as code path for future GGUF
+    // route once we have a published llama.cpp Android dep, but no longer the
+    // active engine.
+    implementation("com.google.mediapipe:tasks-genai:0.10.35")
 
     // ===== v0.31.0 new dependencies =====
 

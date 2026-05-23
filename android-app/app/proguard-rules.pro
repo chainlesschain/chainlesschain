@@ -197,3 +197,14 @@
 -dontwarn io.ktor.util.debug.**
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**
+
+# ============== MediaPipe tasks-genai (A3.3 v0.2 端侧 LLM 推理) ==============
+# MediaPipeLlmEngine.kt 用 Class.forName 反射加载 LlmInference + Options 类，
+# R8 默认会扫码看不到引用就 strip。-keep MediaPipe 全包让反射路径可达。
+# (per `pdh_llm_native_dep_audit.md` v0.2 决定 — 替换原 kotlinllamacpp 计划)
+-keep class com.google.mediapipe.tasks.genai.** { *; }
+-keep class com.google.mediapipe.tasks.core.** { *; }
+-keepclassmembers class com.google.mediapipe.tasks.genai.llminference.LlmInference { *; }
+-keepclassmembers class com.google.mediapipe.tasks.genai.llminference.LlmInference$LlmInferenceOptions { *; }
+-keepclassmembers class com.google.mediapipe.tasks.genai.llminference.LlmInference$LlmInferenceOptions$Builder { *; }
+-dontwarn com.google.mediapipe.**
