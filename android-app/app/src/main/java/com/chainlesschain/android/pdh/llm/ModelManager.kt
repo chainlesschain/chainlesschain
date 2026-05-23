@@ -76,9 +76,14 @@ class ModelManager @Inject constructor(
     }
 
     /**
-     * Default model spec — Qwen2.5-1.5B-Instruct Q4_K_M (~1GB).
-     * SHA256 left blank → first download trusts the source (TOFU). v0.2 lock
-     * to a verified hash once we publish our own checksums file.
+     * Default model spec — Gemma-3 1B Instruct int4 quantized .task
+     * (~555 MB). Adopted 2026-05-23 after `pdh_llm_native_dep_audit.md` ruled
+     * out llama.cpp Kotlin bindings (0 published artifacts for kotlinllamacpp
+     * / Llamatik / llama-cpp-kt). MediaPipe tasks-genai is the active engine;
+     * its `.task` format embeds model+tokenizer, no separate ggml fork needed.
+     *
+     * SHA256 left blank → TOFU. v0.3 lock to a verified hash from Google's
+     * litert-community HF repo.
      */
     data class ModelSpec(
         val filename: String,
@@ -88,10 +93,13 @@ class ModelManager @Inject constructor(
     )
 
     val defaultSpec = ModelSpec(
-        filename = "qwen2.5-1.5b-instruct-q4_k_m.gguf",
-        url = "https://hf-mirror.com/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        filename = "gemma3-1b-it-int4.task",
+        // hf-mirror.com is China-reachable; original is huggingface.co/litert-community
+        // /Gemma3-1B-IT. Users behind a different CDN can override the URL via a
+        // future setting; v0.2 hard-codes hf-mirror for the default.
+        url = "https://hf-mirror.com/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
         expectedSha256 = null,
-        sizeBytesApprox = 1_100_000_000L, // ~1GB
+        sizeBytesApprox = 555_000_000L, // ~555 MB
     )
 
     /** Check if model already on disk + verified. Updates [state]. */

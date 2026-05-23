@@ -1,7 +1,7 @@
 package com.chainlesschain.android.di
 
-import com.chainlesschain.android.pdh.llm.KotlinLlamaCppEngine
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.MediaPipeLlmEngine
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -9,24 +9,28 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * §2.1 A3.3 — provides [LlmInferenceEngine] for the local LLM server.
+ * §2.1 A3.3 v0.2 — provides [LlmInferenceEngine] for the local LLM server.
  *
- * Wires [KotlinLlamaCppEngine] as the default. The engine itself is
- * structured to fail-fast gracefully when the native libllama.so isn't
- * present (CI / Win compile), so swapping NoOp → real engine is safe
- * cross-platform:
+ * Wires [MediaPipeLlmEngine] as the default (active 2026-05-23).
  *
- *  - Win / CI (no .so) → engine.health() reports "native lib unavailable"
- *    + engine.chat() throws LlmInferenceException with clear text → cc
- *    surfaces in UI as actionable error
- *  - Real device (kotlinllamacpp v0.2 dep + .so packaged) → native ctx
- *    loaded lazily on first chat() → 推文 §"端侧 LLM" 真接通
+ * History: v0.1 wired KotlinLlamaCppEngine but per `pdh_llm_native_dep_audit.md`
+ * none of the candidate llama.cpp Android Kotlin/JNA bindings have published
+ * Maven/JitPack artifacts. MediaPipe tasks-genai is Google-maven-published with
+ * prebuilt arm64-v8a .so — pivot completes the 推文 §"无网也能用" promise
+ * without requiring Mac/Linux NDK builds.
  *
- * Tests can override via [KotlinLlamaCppEngine.nativeLoadedOverride] or
- * by replacing this binding with a test module that returns NoOp / mock.
+ * Cross-platform fail-fast behavior:
+ *  - JVM unit test (no MediaPipe .so on test classpath) → engine.health()
+ *    reports "MediaPipe tasks-genai 未加载" + engine.chat() throws
+ *    LlmInferenceException → cc surfaces actionable error in UI
+ *  - Real device (Android APK includes the AAR) → LlmInference loaded lazily
+ *    on first chat() → 推文 §"端侧 LLM" 真接通
  *
- * NoOpLlmInferenceEngine is retained (in [com.chainlesschain.android.pdh.llm])
- * for unit-test convenience but no longer wired by default.
+ * Tests override via [MediaPipeLlmEngine.nativeLoadedOverride] or by replacing
+ * this binding with a test module that returns NoOp / mock.
+ *
+ * KotlinLlamaCppEngine + NoOpLlmInferenceEngine remain in package as alternate
+ * impl options; switch via this binding when wiring a different backend.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -34,5 +38,5 @@ abstract class LlmModule {
 
     @Binds
     @Singleton
-    abstract fun bindLlmInferenceEngine(impl: KotlinLlamaCppEngine): LlmInferenceEngine
+    abstract fun bindLlmInferenceEngine(impl: MediaPipeLlmEngine): LlmInferenceEngine
 }
