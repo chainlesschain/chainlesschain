@@ -5,6 +5,13 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.82] - 2026-05-23 — hotfix2: Android R8 fullMode ConcurrentModificationException
+
+> v5.0.3.81 build-android 仍 fail：proguard 修过了第一道关（`Missing class` 走过），但 R8 minify 内部抛 `java.util.ConcurrentModificationException` — AGP 8.x R8 full-mode 优化大 dex 图（Hilt + Ktor + SLF4J 合并后）时的 upstream bug。本 hotfix2 在 gradle.properties 关 `android.enableR8.fullMode`（compat mode），DEX 大 ~3-5% 但不崩。
+
+- **`gradle.properties` `android.enableR8.fullMode=true` → `false`** (commit `14d574c046`)。release.yml 早有注释 "Disable R8 full mode" 但其 sed 只改 `org.gradle.jvmargs` — 从未实际翻 `enableR8.fullMode`，所以 v5.0.3.81 重跑还是崩。从源头改 gradle.properties 后 CI + 本地一致。
+- upstream R8 bug 跟踪：issuetracker.google.com/issues/238045415（concurrent collection iteration in R8 optimizer）。compat mode 是已知稳妥解。
+
 ## [v5.0.3.81] - 2026-05-23 — hotfix: Android R8 Ktor proguard + WebView vendor-switch remount
 
 > v5.0.3.80 build-android 在 R8 minify 阶段 fail (Ktor `IntellijIdeaDebugDetector` 引用 `java.lang.management.*` JVM-only API + slf4j-api 缺 `StaticLoggerBinder`)，导致 v5.0.3.80 GitHub Release **缺 4 个 Android asset**（arm64-v8a / armeabi-v7a / universal / .aab）。本 hotfix 加 proguard `-dontwarn` 规则 + bundle 一个真机 bug 修。
