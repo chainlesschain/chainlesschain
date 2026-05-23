@@ -62,9 +62,33 @@ class BilibiliLocalCollector @Inject constructor(
         object NoCredentials : SnapshotResult()
 
         data class Failed(val reason: String) : SnapshotResult()
+
+        /**
+         * Real-device 2026-05-24: a cookie saved before 2c8f41f9 (no
+         * AcceptResult validation) silently passes hasCredentials() but
+         * misses buvid3 / bili_jct, causing every sync to return "4 API
+         * empty + 无错误码 + 可能 cookie 缺关键字段" forever — the message is
+         * literally correct but the store doesn't self-heal so the user
+         * stays stuck. Re-validating the stored cookie at snapshot entry
+         * (and at VM refresh) demotes the persistent state to a one-shot
+         * error: store is cleared, isLoggedIn flips false, UI prompts
+         * re-login. [missingFields] is the comma-joined list for display.
+         */
+        data class StaleCookie(val missingFields: String) : SnapshotResult()
     }
 
     suspend fun snapshot(): SnapshotResult = withContext(Dispatchers.IO) {
+        // Re-validate stored cookie against REQUIRED_FIELDS before reading
+        // from store. acceptLoginCookie gates the WRITE path since 2c8f41f9
+        // but pre-fix installs can have cookies missing buvid3 / bili_jct
+        // sitting in EncryptedSharedPreferences, silently passing
+        // hasCredentials() (which only checks string non-blank + uid > 0)
+        // and tripping "4 API empty" on every sync — see SnapshotResult.
+        // StaleCookie. clearIfStoredCookieStale wipes the store as a side
+        // effect so the next call routes to NoCredentials cleanly.
+        clearIfStoredCookieStale()?.let { missing ->
+            return@withContext SnapshotResult.StaleCookie(missing)
+        }
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials
         }
@@ -222,6 +246,34 @@ class BilibiliLocalCollector @Inject constructor(
 
     fun logout() {
         credentialsStore.clear()
+    }
+
+    /**
+     * If a stored cookie is present but missing any [REQUIRED_FIELDS],
+     * clears the store and returns the comma-joined missing field names.
+     * Returns null when there are no credentials, the cookie is missing
+     * entirely, or all 4 fields are present.
+     *
+     * Shared by [snapshot] entry AND HubLocalViewModel.refreshBilibiliFromStore
+     * so both paths self-heal in lockstep — without this, a pre-2c8f41f9
+     * cookie ages indefinitely in EncryptedSharedPreferences, passing the
+     * naive `hasCredentials()` check and tripping "4 API empty" on every
+     * sync until the user manually taps logout (which the UI didn't
+     * surface as the right action). See SnapshotResult.StaleCookie KDoc.
+     */
+    fun clearIfStoredCookieStale(): String? {
+        if (!credentialsStore.hasCredentials()) return null
+        val cookie = credentialsStore.getCookie() ?: return null
+        val missing = REQUIRED_FIELDS.filter {
+            SocialCookieWebViewHelpers.parseCookieValue(cookie, it).isNullOrBlank()
+        }
+        if (missing.isEmpty()) return null
+        Timber.w(
+            "BilibiliLocalCollector: stored cookie stale — missing=%s; clearing store",
+            missing,
+        )
+        credentialsStore.clear()
+        return missing.joinToString(", ")
     }
 
     companion object {

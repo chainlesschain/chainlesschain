@@ -100,6 +100,11 @@ class HubLocalViewModelTest {
         snapshotter = mockk(relaxed = true)
         ccRunner = mockk(relaxed = false)
         bilibiliCollector = mockk(relaxed = false)
+        // 2026-05-24: refreshBilibiliFromStore + snapshot now both call
+        // clearIfStoredCookieStale to self-heal pre-2c8f41f9 cookies. Default
+        // to "no stale cookie" so existing tests run unchanged — the dedicated
+        // stale-cookie tests below override this.
+        every { bilibiliCollector.clearIfStoredCookieStale() } returns null
         bilibiliCredentials = mockk(relaxed = true)
         wechatCollector = mockk(relaxed = true)
         wechatCredentials = mockk(relaxed = true)
@@ -712,6 +717,63 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.bilibili.uid)
     }
 
+    // ─── Stale-cookie self-heal (2026-05-24 regression) ─────────────────────
+    //
+    // Pre-2c8f41f9 cookies sitting in EncryptedSharedPreferences sail through
+    // hasCredentials() (cookie non-blank + uid > 0) but lack buvid3 /
+    // bili_jct, so every sync returns 4 API empty + cryptic "可能 cookie 缺
+    // 关键字段" forever. clearIfStoredCookieStale (called by both refresh AND
+    // snapshot) wipes the store and routes the next sync to NoCredentials.
+
+    @Test
+    fun `init clears stale bilibili cookie state and surfaces re-login hint`() = runTest(testDispatcher) {
+        // Real-device pattern: pre-fix cookie was in the encrypted store
+        // missing buvid3. clearIfStoredCookieStale (mocked here — its real
+        // body would call credentialsStore.clear()) is invoked first by the
+        // VM; we model the post-clear store state with hasCredentials=false.
+        // (The mock collector helper doesn't actually mutate the credentials
+        // mock, so we stub the end state directly.)
+        every { bilibiliCollector.clearIfStoredCookieStale() } returns "buvid3"
+        every { bilibiliCredentials.hasCredentials() } returns false
+        every { bilibiliCredentials.getUid() } returns null
+        every { bilibiliCredentials.getLastSyncAt() } returns null
+        every { bilibiliCredentials.getLastSyncCount() } returns 0
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.bilibili.isLoggedIn)
+        assertNull(vm.state.value.bilibili.uid)
+        assertNotNull(vm.state.value.bilibili.errorMessage)
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("buvid3"))
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("重新登录"))
+        verify { bilibiliCollector.clearIfStoredCookieStale() }
+    }
+
+    @Test
+    fun `syncBilibili StaleCookie path drops logged-in state and prompts re-login`() = runTest(testDispatcher) {
+        // Init reads valid state (cookie not yet known stale — collector helper
+        // only catches it during snapshot retry). At sync time, snapshot itself
+        // re-validates and returns StaleCookie.
+        every { bilibiliCredentials.hasCredentials() } returns true
+        every { bilibiliCredentials.getUid() } returns 12345L
+        coEvery { bilibiliCollector.snapshot() } returns
+            BilibiliLocalCollector.SnapshotResult.StaleCookie("bili_jct, buvid3")
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncBilibili()
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.bilibili.isLoggedIn)
+        assertNull(vm.state.value.bilibili.uid)
+        assertNotNull(vm.state.value.bilibili.errorMessage)
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("bili_jct"))
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("buvid3"))
+        assertTrue(vm.state.value.bilibili.errorMessage!!.contains("重新登录"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
     // ─── Weibo lifecycle (§A8 v0.2 — mirror of Bilibili) ────────────────────
     // Key behavioral diff: onWeiboLoginCookie is async (suspend) — UID needs
     // a /api/config HTTP roundtrip because Weibo cookie has no
@@ -807,14 +869,17 @@ class HubLocalViewModelTest {
 
         assertNotNull(vm.state.value.pendingLogin)
         assertEquals("social-weibo", vm.state.value.pendingLogin!!.adapterName)
-        io.mockk.coVerify(exactly = 0) { weiboCollector.snapshot() }
+        io.mockk.coVerify(exactly = 0) { weiboCollector.snapshot(any()) }
     }
 
     @Test
     fun `syncWeibo NoCredentials path surfaces 未登录 error`() = runTest(testDispatcher) {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot() } returns
+        // snapshot signature added optional onProgress callback (commit ca6dbff09).
+        // Match any() so the named-arg call site `snapshot(onProgress = onProgress)`
+        // routes to this stub.
+        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
             WeiboLocalCollector.SnapshotResult.NoCredentials
 
         val vm = newVm()
@@ -832,7 +897,7 @@ class HubLocalViewModelTest {
     fun `syncWeibo everythingEmpty path surfaces cookie expired hint`() = runTest(testDispatcher) {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot() } returns
+        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-empty.json",
                 postCount = 0, favouriteCount = 0, followCount = 0,
@@ -857,7 +922,7 @@ class HubLocalViewModelTest {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
         val syncAt = 1716000000000L
-        coEvery { weiboCollector.snapshot() } returns
+        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 10, favouriteCount = 5, followCount = 3,
@@ -873,7 +938,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any(),
+                onProgress = any<((String) -> Unit)?>(),
             )
         } returns
             LocalCcRunner.CcResult.Ok(
@@ -901,14 +966,14 @@ class HubLocalViewModelTest {
     fun `syncWeibo ccRunner Failed surfaces error`() = runTest(testDispatcher) {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot() } returns
+        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 1, favouriteCount = 0, followCount = 0,
                 totalEvents = 1, everythingEmpty = false,
                 snapshottedAt = 1L,
             )
-        coEvery { ccRunner.syncAdapter(any(), any(), any(), any(), any()) } returns
+        coEvery { ccRunner.syncAdapter(any(), any(), any(), any<Int?>(), any<((String) -> Unit)?>()) } returns
             LocalCcRunner.CcResult.Failed(
                 reason = "bs3mc cold-load timeout",
                 exitCode = 124, stderr = "...",
@@ -950,7 +1015,7 @@ class HubLocalViewModelTest {
         // first, not on a real device after a 4-minute spinner.
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot() } returns
+        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 100, favouriteCount = 100, followCount = 100,
@@ -962,7 +1027,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any(),
+                onProgress = any<((String) -> Unit)?>(),
             )
         } returns
             LocalCcRunner.CcResult.Ok(
@@ -985,7 +1050,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any(),
+                onProgress = any<((String) -> Unit)?>(),
             )
         }
         assertEquals(
