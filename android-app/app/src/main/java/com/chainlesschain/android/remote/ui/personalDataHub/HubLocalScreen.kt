@@ -101,6 +101,8 @@ fun HubLocalScreen(
                             viewModel.onDouyinLoginCookie(cookie)
                         pending.adapterName == "social-xiaohongshu" ->
                             viewModel.onXhsLoginCookie(cookie)
+                        pending.adapterName == "social-toutiao" ->
+                            viewModel.onToutiaoLoginCookie(cookie)
                         pending.adapterName.startsWith("ai-chat:") -> {
                             // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
                             // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
@@ -177,6 +179,7 @@ fun HubLocalScreen(
         viewModel.refreshBilibiliFromStore()
         viewModel.refreshWeiboFromStore()
         viewModel.refreshDouyinFromStore()
+        viewModel.refreshToutiaoFromStore()
         viewModel.refreshWechatFromStore()
         viewModel.refreshQQFromStore()
     }
@@ -246,7 +249,13 @@ fun HubLocalScreen(
 
             // ─── 内容平台（推文 §"内容平台": 抖音/B站/微博/小红书）─────
             item("section-content") { SectionHeader("内容平台") }
-            val contentCards = listOf(state.bilibili, state.weibo, state.douyin, state.xiaohongshu)
+            val contentCards = listOf(
+                state.bilibili,
+                state.weibo,
+                state.douyin,
+                state.xiaohongshu,
+                state.toutiao,
+            )
             items(contentCards, key = { "content-${it.adapterName}" }) { card ->
                 SocialAdapterCard(
                     state = card,
@@ -257,6 +266,7 @@ fun HubLocalScreen(
                             "social-weibo" -> viewModel.requestWeiboLogin()
                             "social-douyin" -> viewModel.requestDouyinLogin()
                             "social-xiaohongshu" -> viewModel.requestXhsLogin()
+                            "social-toutiao" -> viewModel.requestToutiaoLogin()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -268,6 +278,7 @@ fun HubLocalScreen(
                             "social-weibo" -> viewModel.syncWeibo()
                             "social-douyin" -> viewModel.syncDouyin()
                             "social-xiaohongshu" -> viewModel.syncXhs()
+                            "social-toutiao" -> viewModel.syncToutiao()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -279,6 +290,7 @@ fun HubLocalScreen(
                             "social-weibo" -> viewModel.logoutWeibo()
                             "social-douyin" -> viewModel.logoutDouyin()
                             "social-xiaohongshu" -> viewModel.logoutXhs()
+                            "social-toutiao" -> viewModel.logoutToutiao()
                         }
                     },
                 )

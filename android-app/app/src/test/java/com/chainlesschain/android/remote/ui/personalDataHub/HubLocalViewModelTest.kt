@@ -16,6 +16,8 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
 import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
@@ -79,6 +81,8 @@ class HubLocalViewModelTest {
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsCredentials: XhsCredentialsStore
+    private lateinit var toutiaoCollector: ToutiaoLocalCollector
+    private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
     private lateinit var qqCollector: QQLocalCollector
     private lateinit var qqCredentials: QQCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
@@ -122,6 +126,16 @@ class HubLocalViewModelTest {
         every { douyinCredentials.getLastSyncCount() } returns 0
         xhsCollector = mockk(relaxed = true)
         xhsCredentials = mockk(relaxed = true)
+        toutiaoCollector = mockk(relaxed = true)
+        toutiaoCredentials = mockk(relaxed = true)
+        every { toutiaoCredentials.hasCredentials() } returns false
+        every { toutiaoCredentials.getUid() } returns null
+        every { toutiaoCredentials.getCookie() } returns null
+        every { toutiaoCredentials.getDisplayName() } returns null
+        every { toutiaoCredentials.getLastSyncAt() } returns null
+        every { toutiaoCredentials.getLastSyncCount() } returns 0
+        every { toutiaoCollector.lastLoginErrorCode } returns 0
+        every { toutiaoCollector.lastLoginErrorMessage } returns null
         qqCollector = mockk(relaxed = true)
         qqCredentials = mockk(relaxed = true)
         every { qqCredentials.hasCredentials() } returns false
@@ -193,6 +207,8 @@ class HubLocalViewModelTest {
             douyinCredentials,
             xhsCollector,
             xhsCredentials,
+            toutiaoCollector,
+            toutiaoCredentials,
             qqCollector,
             qqCredentials,
             systemDataState,
@@ -424,17 +440,19 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `init renders all 4 social cards (4 implemented)`() = runTest(testDispatcher) {
+    fun `init renders all 5 social cards (5 implemented)`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
-        // §A8 v0.2: full 4-card lineup is real after Bilibili / 微博 / 抖音 /
-        // 小红书 land. 抖音 has smaller surface (profile only, no X-Bogus
-        // path) but card.implemented is true because login + cookie + 1
-        // endpoint actually do work end-to-end.
+        // §A8 v0.2 + 头条 v0.1: full 5-card lineup is real after Bilibili /
+        // 微博 / 抖音 / 小红书 / 今日头条 land. 抖音/头条 have smaller surface
+        // (profile or cookie-only — no X-Bogus / _signature path) but
+        // card.implemented is true because login + cookie + persist actually
+        // do work end-to-end.
         assertTrue(vm.state.value.bilibili.implemented)
         assertTrue(vm.state.value.weibo.implemented)
         assertTrue(vm.state.value.douyin.implemented)
         assertTrue(vm.state.value.xiaohongshu.implemented)
+        assertTrue(vm.state.value.toutiao.implemented)
     }
 
     // ─── Login lifecycle ────────────────────────────────────────────────────
@@ -1206,6 +1224,70 @@ class HubLocalViewModelTest {
         assertFalse(vm.state.value.douyin.isLoggedIn)
         assertNull(vm.state.value.douyin.uid)
         assertEquals(0, vm.state.value.douyin.lastSyncCount)
+    }
+
+    // ─── Xiaohongshu login-cookie error surfacing ───────────────────────────
+    // Previously zero coverage. The hardcoded "cookie 缺 a1 或 /user/me 调用
+    // 失败" string swallowed 4+ distinct failure modes; tests below pin the
+    // new surface: collector pre-flight (-10 missing a1) + apiClient-side
+    // codes propagate verbatim into the card error message.
+
+    @Test
+    fun `onXhsLoginCookie surfaces code -10 when a1 cookie field missing`() = runTest(testDispatcher) {
+        coEvery { xhsCollector.acceptLoginCookie(any(), any()) } returns false
+        every { xhsCollector.lastLoginErrorCode } returns -10
+        every { xhsCollector.lastLoginErrorMessage } returns
+            "cookie 缺 a1 字段 (anti-bot fingerprint cookie 未捕到 — WebView 抓 cookie 时机问题或域不匹配)"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestXhsLogin()
+        vm.onXhsLoginCookie("web_session=x; webBuild=v1")  // no a1
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertFalse(vm.state.value.xiaohongshu.isLoggedIn)
+        val err = vm.state.value.xiaohongshu.errorMessage
+        assertNotNull(err)
+        assertTrue(err!!.contains("code=-10"), "expected code surface; got: $err")
+        assertTrue(err.contains("a1"), "expected a1 mention; got: $err")
+    }
+
+    @Test
+    fun `onXhsLoginCookie surfaces apiClient HTTP 461 when fetchMe is rejected`() = runTest(testDispatcher) {
+        // 461 = X-S signature failure / anti-bot ban — the most common
+        // upstream-side failure. Verify code+message propagate verbatim.
+        coEvery { xhsCollector.acceptLoginCookie(any(), any()) } returns false
+        every { xhsCollector.lastLoginErrorCode } returns 461
+        every { xhsCollector.lastLoginErrorMessage } returns "HTTP 461"
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestXhsLogin()
+        vm.onXhsLoginCookie("web_session=ok; a1=fp")
+        advanceUntilIdle()
+
+        val err = vm.state.value.xiaohongshu.errorMessage
+        assertNotNull(err)
+        assertTrue(err!!.contains("code=461"), "expected upstream code surface; got: $err")
+        assertTrue(err.contains("HTTP 461"), "expected upstream msg surface; got: $err")
+    }
+
+    @Test
+    fun `onXhsLoginCookie clears error and refreshes state when accepted`() = runTest(testDispatcher) {
+        coEvery { xhsCollector.acceptLoginCookie(any(), any()) } returns true
+        every { xhsCredentials.hasCredentials() } returnsMany listOf(false, true)
+        every { xhsCredentials.getUid() } returnsMany listOf(null, 99L)
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestXhsLogin()
+        vm.onXhsLoginCookie("web_session=ok; a1=fp")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.pendingLogin)
+        assertTrue(vm.state.value.xiaohongshu.isLoggedIn)
+        assertNull(vm.state.value.xiaohongshu.errorMessage)
     }
 
     // ─── Other social stubs (xiaohongshu only — kept for forward-compat) ────
@@ -2711,5 +2793,160 @@ class HubLocalViewModelTest {
         vm.cancelQQLogin()
         assertFalse(vm.state.value.qq.pendingUinEntry)
         io.mockk.verify(exactly = 0) { qqCredentials.saveAccount(any(), any(), any()) }
+    }
+
+    // ─── Toutiao v0.1 placeholder card ─────────────────────────────────────
+
+    @Test
+    fun `toutiao init renders 今日头条 card not logged in`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.toutiao
+        assertEquals("social-toutiao", s.adapterName)
+        assertEquals("今日头条", s.displayName)
+        assertTrue(s.implemented)
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uid)
+    }
+
+    @Test
+    fun `toutiao init reads stored uid + lastSync from store`() = runTest(testDispatcher) {
+        every { toutiaoCredentials.hasCredentials() } returns true
+        every { toutiaoCredentials.getUid() } returns "12345678"
+        every { toutiaoCredentials.getLastSyncAt() } returns 1_700_000_000_000L
+        every { toutiaoCredentials.getLastSyncCount() } returns 0
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.toutiao
+        assertTrue(s.isLoggedIn)
+        assertEquals(12_345_678L, s.uid)
+        assertEquals(1_700_000_000_000L, s.lastSyncAt)
+    }
+
+    @Test
+    fun `requestToutiaoLogin pushes pendingLogin with toutiao_com URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestToutiaoLogin()
+        val p = vm.state.value.pendingLogin
+        assertNotNull(p)
+        assertEquals("social-toutiao", p.adapterName)
+        assertEquals("今日头条", p.displayName)
+        assertTrue(p.loginUrl.contains("toutiao.com"))
+        // isLoginSuccess: 已到 www.toutiao.com 视为成功；sso/passport/login 中间页 false
+        assertTrue(p.isLoginSuccess("https://www.toutiao.com/"))
+        assertFalse(p.isLoginSuccess("https://sso.toutiao.com/login"))
+        assertFalse(p.isLoginSuccess("https://passport.toutiao.com/auth"))
+    }
+
+    @Test
+    fun `onToutiaoLoginCookie success persists + refreshes`() = runTest(testDispatcher) {
+        every { toutiaoCollector.acceptLoginCookie(any(), any()) } returns true
+        every { toutiaoCredentials.hasCredentials() } returnsMany listOf(false, true)
+        every { toutiaoCredentials.getUid() } returnsMany listOf(null, "99999")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestToutiaoLogin()
+        vm.onToutiaoLoginCookie("passport_uid=99999; tt_webid=abc")
+        advanceUntilIdle()
+        val s = vm.state.value.toutiao
+        assertTrue(s.isLoggedIn)
+        assertEquals(99_999L, s.uid)
+        assertNull(s.errorMessage)
+        assertNull(vm.state.value.pendingLogin)
+    }
+
+    @Test
+    fun `onToutiaoLoginCookie acceptance failure surfaces login incomplete error`() =
+        runTest(testDispatcher) {
+            every { toutiaoCollector.acceptLoginCookie(any(), any()) } returns false
+            every { toutiaoCollector.lastLoginErrorCode } returns -7
+            every { toutiaoCollector.lastLoginErrorMessage } returns "cookie 缺 passport_uid"
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestToutiaoLogin()
+            vm.onToutiaoLoginCookie("tt_webid=anon-only")
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isLoggedIn)
+            assertTrue(s.errorMessage!!.contains("登录未完成"))
+            assertTrue(s.errorMessage!!.contains("passport_uid"))
+        }
+
+    @Test
+    fun `syncToutiao when not logged in opens login instead of running`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncToutiao()
+        advanceUntilIdle()
+        // Not logged in → requestToutiaoLogin runs → pendingLogin set
+        assertNotNull(vm.state.value.pendingLogin)
+        coVerify(exactly = 0) { toutiaoCollector.snapshot() }
+    }
+
+    @Test
+    fun `syncToutiao v0_1 Ok path records lastSync + honest v0_2 hint`() =
+        runTest(testDispatcher) {
+            every { toutiaoCredentials.hasCredentials() } returns true
+            every { toutiaoCredentials.getUid() } returns "12345"
+            coEvery { toutiaoCollector.snapshot() } returns
+                ToutiaoLocalCollector.SnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-toutiao.json",
+                    totalEvents = 0,
+                    everythingEmpty = true,
+                    snapshottedAt = 1_700_000_000_000L,
+                )
+            coEvery { ccRunner.syncAdapter(adapterName = "social-toutiao", inputPath = any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-toutiao", status = "ok",
+                        ingested = 0, invalidCount = 0,
+                        kgTriples = 0, ragDocs = 0,
+                        durationMs = 100L, error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiao()
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isSyncing)
+            assertEquals(1_700_000_000_000L, s.lastSyncAt)
+            assertEquals(0, s.lastSyncCount)
+            // v0.1 honest banner ON — 透出 _signature 限制
+            assertTrue(s.errorMessage!!.contains("v0.1"))
+            assertTrue(s.errorMessage!!.contains("_signature"))
+            assertNull(vm.state.value.globalSyncingAdapter)
+        }
+
+    @Test
+    fun `syncToutiao Failed surfaces reason`() = runTest(testDispatcher) {
+        every { toutiaoCredentials.hasCredentials() } returns true
+        every { toutiaoCredentials.getUid() } returns "12345"
+        coEvery { toutiaoCollector.snapshot() } returns
+            ToutiaoLocalCollector.SnapshotResult.Failed("write failed: disk full")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncToutiao()
+        advanceUntilIdle()
+        val s = vm.state.value.toutiao
+        assertFalse(s.isSyncing)
+        assertTrue(s.errorMessage!!.contains("disk full"))
+    }
+
+    @Test
+    fun `logoutToutiao clears collector + resets card`() = runTest(testDispatcher) {
+        every { toutiaoCredentials.hasCredentials() } returns true
+        every { toutiaoCredentials.getUid() } returns "12345"
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.toutiao.isLoggedIn)
+        vm.logoutToutiao()
+        val s = vm.state.value.toutiao
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uid)
+        assertNull(s.lastSyncAt)
+        io.mockk.verify { toutiaoCollector.logout() }
     }
 }
