@@ -25,6 +25,20 @@ function printJson(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
+/**
+ * Drain-then-exit. console.log → process.stdout.write is async for pipes;
+ * exiting immediately can truncate output to the parent. Use this in
+ * commands that must terminate even when getHub() left libuv handles
+ * registered (aichat-health setInterval, sidecar supervisor, etc.) — sync
+ * + read commands are all-done after the report, no reason to keep idling.
+ * Real-device repro on Xiaomi 24115RA8EC 2026-05-23.
+ */
+function jsonAndExit(obj) {
+  process.stdout.write(JSON.stringify(obj, null, 2) + "\n", () =>
+    process.exit(0),
+  );
+}
+
 function fail(spinner, err, asJson) {
   if (spinner) spinner.stop();
   const msg = err && err.message ? err.message : String(err);
@@ -203,13 +217,34 @@ async function cmdSyncAdapter(name, options) {
     if (options.input) opts.inputPath = String(options.input);
     const report = await hub.registry.syncAdapter(name, opts);
     if (spinner) spinner.succeed(`synced ${name}`);
+    // 2026-05-24 in-APK Android exit + flush-race fix. Real-device repro on
+    // Xiaomi 24115RA8EC:
+    //
+    //   (1) cc subprocess sits idle in epoll_wait for the full 240s budget
+    //       after the report is fully written, then gets destroyForcibly'd
+    //       by Kotlin LocalCcRunner → false "timeout after 240000ms" UI
+    //       error even though vault writes committed. Root cause: a
+    //       lingering libuv handle in getHub() wiring (suspect: aichat-
+    //       health setInterval or sidecar supervisor health ping) keeps
+    //       the event loop alive forever. Long-run fix is to close those
+    //       cleanly; until then we force-exit here.
+    //
+    //   (2) First-pass force-exit landed `process.exit(0)` after a normal
+    //       `printJson(report) = console.log(...)`. But console.log →
+    //       process.stdout.write is ASYNC for pipes (only sync for TTY),
+    //       so process.exit fires before the JSON buffer drains → Kotlin
+    //       parent reads truncated/empty stdout → "parse-failed" reason
+    //       in CcResult.Failed → UI "写入本地数据库失败".
+    //
+    // Fix: explicit drain-then-exit (jsonAndExit helper at top of file).
     if (options.json) {
-      printJson(report);
-    } else {
-      logger.log(
-        `ingested=${report.ingested} kgTriples=${report.kgTriples} ragDocs=${report.ragDocs} durationMs=${report.durationMs}`,
-      );
+      jsonAndExit(report);
+      return;
     }
+    logger.log(
+      `ingested=${report.ingested} kgTriples=${report.kgTriples} ragDocs=${report.ragDocs} durationMs=${report.durationMs}`,
+    );
+    process.exit(0);
   } catch (err) {
     fail(spinner, err, options.json);
   }
@@ -253,16 +288,17 @@ async function cmdQueryEvents(options) {
     if (options.limit) q.limit = Number(options.limit);
     const events = hub.vault.queryEvents(q);
     if (options.json) {
-      printJson(events);
-    } else {
-      logger.log(`${events.length} events:`);
-      for (const ev of events) {
-        const at = new Date(ev.at).toISOString();
-        logger.log(
-          `  ${chalk.gray(at)} ${chalk.cyan(ev.subtype)} ${ev.summary || ev.id}`,
-        );
-      }
+      jsonAndExit(events);
+      return;
     }
+    logger.log(`${events.length} events:`);
+    for (const ev of events) {
+      const at = new Date(ev.at).toISOString();
+      logger.log(
+        `  ${chalk.gray(at)} ${chalk.cyan(ev.subtype)} ${ev.summary || ev.id}`,
+      );
+    }
+    process.exit(0);
   } catch (err) {
     fail(null, err, options.json);
   }
@@ -277,16 +313,17 @@ async function cmdRecentAudit(options) {
     if (options.limit) q.limit = Number(options.limit);
     const rows = hub.vault.queryAudit(q);
     if (options.json) {
-      printJson(rows);
-    } else {
-      logger.log(`${rows.length} audit rows:`);
-      for (const r of rows) {
-        const at = new Date(r.at).toISOString();
-        logger.log(
-          `  ${chalk.gray(at)} ${chalk.cyan(r.action)} ${r.adapter || ""} ${r.eventId || ""}`,
-        );
-      }
+      jsonAndExit(rows);
+      return;
     }
+    logger.log(`${rows.length} audit rows:`);
+    for (const r of rows) {
+      const at = new Date(r.at).toISOString();
+      logger.log(
+        `  ${chalk.gray(at)} ${chalk.cyan(r.action)} ${r.adapter || ""} ${r.eventId || ""}`,
+      );
+    }
+    process.exit(0);
   } catch (err) {
     fail(null, err, options.json);
   }
