@@ -23,54 +23,92 @@ function _unwrap(reply) {
 
 /**
  * Phase 5.7 — streaming send. Pushes a request with a custom id, hooks
- * the ws-store's incoming-message stream, fires onEvent for each
+ * the ws-store's global onMessage bus, fires onEvent for each
  * intermediate `<topic>.event` payload, and resolves on `<topic>.end`.
  *
- * Returns the final report. If the ws-store doesn't expose `onMessage`,
- * falls back to a non-streaming `sendRaw` (still works — caller just
- * doesn't see progress events).
+ * Returns the final report (the unwrapped SyncReport).
+ *
+ * Wire-up notes (read before changing):
+ *
+ *   - ws-store exposes ONLY `sendRaw` and `onMessage(handler)` — there is
+ *     no low-level `_send`. An earlier revision checked for `ws._send`
+ *     and fell back to `sendRaw` alone when absent; that was ALWAYS the
+ *     case, so the fallback ran every time and resolved the call with
+ *     the FIRST id-matching server reply — typically a `<topic>.event`
+ *     progress envelope, not the final `.end`. UI then rendered
+ *     "同步 undefined: undefined" + all-zero stats because the event
+ *     envelope has no .adapter / .status / .entityCounts fields.
+ *     See PersonalDataHub.vue:268-272 / syncSummary() for the consumer.
+ *
+ *   - `onMessage(handler)` takes ONE argument; the previous code passed
+ *     two (id + fn), which silently registered the id string as the
+ *     handler and dropped the actual listener.
+ *
+ *   - `sendRaw({ id, ... })` honors a caller-supplied id (ws.js:347) and
+ *     registers a one-shot pending entry on it. The first id-matching
+ *     reply resolves the one-shot — for streaming topics that's the
+ *     first `.event`. We DISCARD sendRaw's returned promise and rely on
+ *     the global onMessage bus, which continues to receive every
+ *     subsequent message tagged with the same id.
  */
 function _sendStream(ws, type, payload, onEvent, timeoutMs) {
-  if (typeof ws.onMessage !== "function" || typeof ws._send !== "function") {
-    // Fallback: no streaming hook — call non-streaming version
+  // Degraded ws-store (e.g. test harness without onMessage): plain
+  // sendRaw + unwrap. Caller loses progress events but still gets the
+  // final result, since `.end` carries the same `{ result }` shape that
+  // `.response` does.
+  if (typeof ws.onMessage !== "function" || typeof ws.sendRaw !== "function") {
     return ws.sendRaw({ type, ...payload }, timeoutMs).then(_unwrap);
   }
   return new Promise((resolve, reject) => {
     const id =
-      (typeof crypto !== "undefined" && crypto.randomUUID
+      typeof crypto !== "undefined" && crypto.randomUUID
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const eventType = `${type}.event`;
     const endType = `${type}.end`;
-    let timer = setTimeout(() => {
-      ws.offMessage && ws.offMessage(id);
-      reject(new Error(`stream timeout (${timeoutMs}ms): ${type}`));
+
+    let settled = false;
+    let dispose = () => {};
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { dispose(); } catch (_e) {}
+      fn(value);
+    };
+
+    const timer = setTimeout(() => {
+      finish(reject, new Error(`stream timeout (${timeoutMs}ms): ${type}`));
     }, timeoutMs);
 
-    const dispose = ws.onMessage(id, (msg) => {
-      if (!msg || msg.id !== id) return;
-      if (msg.type === eventType && typeof onEvent === "function") {
-        try {
-          onEvent(msg.event || msg);
-        } catch (_e) {}
+    const unsubscribe = ws.onMessage((msg) => {
+      if (settled || !msg) return;
+      // ws-store v1.0 envelope uses requestId; legacy uses id. Match both
+      // so the same composable works against both shells (cc serve and
+      // desktop web-shell embed the same CLI ws-server, but future
+      // protocol revisions may flip envelope shape).
+      if (msg.id !== id && msg.requestId !== id) return;
+      if (msg.type === eventType) {
+        if (typeof onEvent === "function") {
+          try { onEvent(msg.event || msg); } catch (_e) {}
+        }
         return;
       }
       if (msg.type === endType) {
-        clearTimeout(timer);
-        if (typeof dispose === "function") dispose();
-        else if (ws.offMessage) ws.offMessage(id);
-        resolve(_unwrap(msg));
+        finish(resolve, _unwrap(msg));
         return;
       }
       if (msg.type === "error") {
-        clearTimeout(timer);
-        if (typeof dispose === "function") dispose();
-        else if (ws.offMessage) ws.offMessage(id);
-        reject(new Error(msg.message || "stream error"));
+        finish(reject, new Error(msg.message || "stream error"));
       }
     });
+    dispose = typeof unsubscribe === "function" ? unsubscribe : () => {};
 
-    ws._send({ id, type, ...payload });
+    // Fire the request. sendRaw also resolves on the first id-matching
+    // reply (the first `.event`); we ignore its promise to avoid an
+    // unhandled-rejection if the server returns an error frame — that
+    // path is already covered by the onMessage handler above.
+    Promise.resolve(ws.sendRaw({ id, type, ...payload }, timeoutMs)).catch(() => {});
   });
 }
 
