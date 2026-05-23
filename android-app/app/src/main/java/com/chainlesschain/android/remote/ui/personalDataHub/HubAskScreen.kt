@@ -31,9 +31,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -89,40 +89,16 @@ fun HubAskScreen(
             HubHealthCard(health = state.health)
             Spacer(Modifier.height(12.dp))
 
-            // Path Y toggle — 本机已配云 LLM 时显示，让用户在桌面 ask vs 本机推理之间切换。
-            // 没配过 cloud key (state.androidLlm == null) 时整行隐藏，避免误导。
-            state.androidLlm?.let { configured ->
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "本机推理",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                "使用 ${configured.displayLabel} (${configured.model})",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = state.useAndroidLlm,
-                            onCheckedChange = viewModel::setUseAndroidLlm,
-                            enabled = !state.isLoading
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-            }
+            // LLM 路由选择 (2026-05-24)：
+            //  - 两路都可用 → 显示 2-option radio（默认 CLOUD_ANDROID）
+            //  - 只一路可用 → 不显选择器，简短标签提示当前推理源
+            //  - 两路都不可用 → 显示 banner 引导去 LLMSettings / 配对桌面
+            HubAskRouteSelector(
+                state = state,
+                isLoading = state.isLoading,
+                onRouteSelected = viewModel::setRoute,
+            )
+            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = state.question,
@@ -309,6 +285,138 @@ internal fun HubChatBubble(
             Column(modifier = Modifier.padding(12.dp)) {
                 content()
             }
+        }
+    }
+}
+
+/**
+ * LLM 路由选择器 (2026-05-24)。
+ *
+ * 显示规则：
+ *  - 两路都可用 → 2-option radio Row（默认 CLOUD_ANDROID）
+ *  - 只一路可用 → 单行标签提示当前推理源（无选择器）
+ *  - 两路都不可用 → errorContainer banner 引导用户去配置
+ *
+ * 见 [LlmRoute] / [HubAskUiState.effectiveRoute] 注释了解 fallback 语义。
+ */
+@Composable
+internal fun HubAskRouteSelector(
+    state: HubAskUiState,
+    isLoading: Boolean,
+    onRouteSelected: (LlmRoute) -> Unit,
+) {
+    val cloudOk = state.cloudAvailable
+    val pcOk = state.pcLocalAvailable
+
+    when {
+        !cloudOk && !pcOk -> {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    "请在「设置 → 大模型」中配置云 LLM API Key，或确保桌面端已配对并启用本机模型。",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
+        cloudOk && pcOk -> {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Text(
+                        "推理路由",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    HubAskRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.CLOUD_ANDROID,
+                        enabled = !isLoading,
+                        title = "云 LLM（手机端）",
+                        subtitle = state.androidLlm?.let { "${it.displayLabel} · ${it.model}" }
+                            ?: "未配置",
+                        onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
+                    )
+                    HubAskRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.PC_LOCAL,
+                        enabled = !isLoading,
+                        title = "PC 本机模型",
+                        subtitle = state.health?.llm?.name ?: "桌面 Ollama",
+                        onClick = { onRouteSelected(LlmRoute.PC_LOCAL) },
+                    )
+                }
+            }
+        }
+        cloudOk -> {
+            HubAskRouteSingleLabel(
+                title = "推理走云 LLM（手机端）",
+                subtitle = state.androidLlm?.let { "${it.displayLabel} · ${it.model}" } ?: "—",
+            )
+        }
+        else -> {  // pcOk == true
+            HubAskRouteSingleLabel(
+                title = "推理走 PC 本机模型",
+                subtitle = state.health?.llm?.name ?: "桌面 Ollama",
+            )
+        }
+    }
+}
+
+@Composable
+private fun HubAskRouteOption(
+    selected: Boolean,
+    enabled: Boolean,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = if (enabled) onClick else null,
+            enabled = enabled,
+        )
+        Spacer(Modifier.size(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HubAskRouteSingleLabel(title: String, subtitle: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
