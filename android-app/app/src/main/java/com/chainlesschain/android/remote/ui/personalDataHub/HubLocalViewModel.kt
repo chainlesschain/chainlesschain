@@ -12,6 +12,8 @@ import com.chainlesschain.android.pdh.email.EmailVendor
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
+import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
+import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
@@ -79,6 +81,8 @@ class HubLocalViewModel @Inject constructor(
     private val douyinCredentials: DouyinCredentialsStore,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
+    private val qqCollector: QQLocalCollector,
+    private val qqCredentials: QQCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
     private val modelManager: ModelManager,
     private val llmEngine: LlmInferenceEngine,
@@ -109,6 +113,14 @@ class HubLocalViewModel @Inject constructor(
         val lastSyncAt: Long? = null,
         val lastSyncCount: Int = 0,
         val errorMessage: String? = null,
+        /**
+         * Stage-grained progress shown while [isSyncing]. Real-device
+         * 2026-05-23 (Xiaomi 24115RA8EC, social-weibo): cc subprocess timed
+         * out after 240s with the user staring at a spinner the whole time,
+         * no clue whether work was happening. Surface "采集帖子... / 采集
+         * 收藏... / 写入金库（N s）..." so a stuck sync at least *says where*.
+         */
+        val syncStatusText: String? = null,
     )
 
     /**
@@ -127,6 +139,23 @@ class HubLocalViewModel @Inject constructor(
         val lastSyncCount: Int = 0,
         val errorMessage: String? = null,
         /** When non-null, show the uin-entry dialog (Phase 12.10.1 onboarding). */
+        val pendingUinEntry: Boolean = false,
+    )
+
+    /**
+     * Phase 13.5 v0.2 — QQ uses string-uin like WeChat but has NO keyProvider
+     * gate (IMEI is the only decrypt key — see [QQCredentialsStore] kdoc).
+     * Mirrors [WechatCardState] minus the `keyProvider` field.
+     */
+    @Immutable
+    data class QQCardState(
+        val isLoggedIn: Boolean = false,
+        val uin: String? = null,
+        val isSyncing: Boolean = false,
+        val lastSyncAt: Long? = null,
+        val lastSyncCount: Int = 0,
+        val errorMessage: String? = null,
+        /** When true, show the uin+imei entry dialog (Phase 13.5 onboarding). */
         val pendingUinEntry: Boolean = false,
     )
 
@@ -360,6 +389,7 @@ class HubLocalViewModel @Inject constructor(
             implemented = true,
         ),
         val wechat: WechatCardState = WechatCardState(),
+        val qq: QQCardState = QQCardState(),
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
         val ask: AskCardState = AskCardState(),
@@ -388,6 +418,7 @@ class HubLocalViewModel @Inject constructor(
         refreshDouyinFromStore()
         refreshXhsFromStore()
         refreshWechatFromStore()
+        refreshQQFromStore()
         refreshAiChatFromStore()
         refreshEmailFromStore()
         refreshTravelFromStore()
@@ -1940,14 +1971,24 @@ class HubLocalViewModel @Inject constructor(
             requestWeiboLogin()
             return
         }
+        // Per-stage progress sink. Updates from non-UI threads are safe —
+        // MutableStateFlow is thread-safe and Compose recomposes on state
+        // delivery regardless of source thread.
+        val onProgress: (String) -> Unit = { stage ->
+            _state.update { it.copy(weibo = it.weibo.copy(syncStatusText = stage)) }
+        }
         viewModelScope.launch {
             _state.update {
                 it.copy(
                     globalSyncingAdapter = "social-weibo",
-                    weibo = it.weibo.copy(isSyncing = true, errorMessage = null),
+                    weibo = it.weibo.copy(
+                        isSyncing = true,
+                        syncStatusText = "准备中…",
+                        errorMessage = null,
+                    ),
                 )
             }
-            val result = weiboCollector.snapshot()
+            val result = weiboCollector.snapshot(onProgress = onProgress)
             when (result) {
                 is WeiboLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -1956,6 +1997,7 @@ class HubLocalViewModel @Inject constructor(
                             weibo = it.weibo.copy(
                                 isSyncing = false,
                                 isLoggedIn = false,
+                                syncStatusText = null,
                                 errorMessage = "未登录 — 请先登录",
                             ),
                         )
@@ -1967,6 +2009,7 @@ class HubLocalViewModel @Inject constructor(
                             globalSyncingAdapter = null,
                             weibo = it.weibo.copy(
                                 isSyncing = false,
+                                syncStatusText = null,
                                 errorMessage = "采集失败: ${result.reason}",
                             ),
                         )
@@ -1990,15 +2033,25 @@ class HubLocalViewModel @Inject constructor(
                                 globalSyncingAdapter = null,
                                 weibo = it.weibo.copy(
                                     isSyncing = false,
+                                    syncStatusText = null,
                                     errorMessage = "3 个 API 都返回空 — $detail",
                                 ),
                             )
                         }
                         return@launch
                     }
+                    // First-pass cap: Weibo timelines easily reach 4-figure
+                    // event counts; per-entity SQLCipher + BM25 throughput on
+                    // Xiaomi 24115RA8EC profiles ~3-5/s → 1000 events would
+                    // dwarf the 240s budget. Limit to 50 so the user gets a
+                    // verified end-to-end success surface (UI shows ingested
+                    // count instead of "timeout after 240000ms"). Raise once
+                    // we have throughput numbers from real device.
                     when (val r = ccRunner.syncAdapter(
                         adapterName = "social-weibo",
                         inputPath = result.snapshotPath,
+                        limit = WEIBO_FIRST_PASS_LIMIT,
+                        onProgress = onProgress,
                     )) {
                         is LocalCcRunner.CcResult.Ok -> {
                             _state.update {
@@ -2006,6 +2059,7 @@ class HubLocalViewModel @Inject constructor(
                                     globalSyncingAdapter = null,
                                     weibo = it.weibo.copy(
                                         isSyncing = false,
+                                        syncStatusText = null,
                                         lastSyncAt = result.snapshottedAt,
                                         lastSyncCount = r.report.ingested,
                                         errorMessage = if (r.report.status != "ok" && r.report.error != null) {
@@ -2025,6 +2079,7 @@ class HubLocalViewModel @Inject constructor(
                                     globalSyncingAdapter = null,
                                     weibo = it.weibo.copy(
                                         isSyncing = false,
+                                        syncStatusText = null,
                                         errorMessage = "写入本地数据库失败: ${r.reason}",
                                     ),
                                 )
@@ -2678,6 +2733,223 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    // ─── QQ — Phase 13.5 v0.2 (HubLocal UI wire) ────────────────────────────
+    //
+    // Mirrors the WeChat actions above (refresh → request → confirm → sync →
+    // logout → clearError) but the dialog asks for uin + IMEI (no keyProvider
+    // gate — see [QQCredentialsStore] kdoc). [QQLocalCollector.snapshot]
+    // returns a sealed result identical in shape to WeChat's minus the
+    // FridaInjectFailed branch, so the sync-time `when` is shorter.
+
+    fun refreshQQFromStore() {
+        val loggedIn = qqCredentials.hasCredentials()
+        val uin = qqCredentials.getUin()
+        val lastSync = qqCredentials.getLastSyncAt()
+        val lastCount = qqCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                qq = it.qq.copy(
+                    isLoggedIn = loggedIn,
+                    uin = uin,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    /** User tapped "登录/授权" on the QQ card → show the uin+imei entry dialog. */
+    fun requestQQLogin() {
+        if (_state.value.globalSyncingAdapter != null) return
+        _state.update {
+            it.copy(
+                qq = it.qq.copy(
+                    pendingUinEntry = true,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    fun cancelQQLogin() {
+        _state.update {
+            it.copy(
+                qq = it.qq.copy(pendingUinEntry = false),
+            )
+        }
+    }
+
+    fun clearQQError() {
+        _state.update {
+            it.copy(
+                qq = it.qq.copy(errorMessage = null),
+            )
+        }
+    }
+
+    /**
+     * User submitted uin + imei in the QQ login dialog. Persist + close
+     * dialog + refresh card state. Validates both fields up-front so a
+     * blank IMEI doesn't fall through to a confusing "DB not found" error
+     * at sync time.
+     *
+     * @param uin Numeric QQ uin (digits only).
+     * @param imei 15-digit IMEI used as the XOR cycle key for QQ's per-uin
+     *             SQLite DB. Required (cannot be omitted like WeChat's md5
+     *             path can — IMEI is the *only* key for QQ).
+     */
+    fun confirmQQUinImei(uin: String, imei: String) {
+        val trimmedUin = uin.trim()
+        val trimmedImei = imei.trim()
+        if (trimmedUin.isBlank() || !trimmedUin.all { it.isDigit() }) {
+            _state.update {
+                it.copy(
+                    qq = it.qq.copy(errorMessage = "UIN 必须是纯数字"),
+                )
+            }
+            return
+        }
+        if (trimmedImei.length != 15 || !trimmedImei.all { it.isDigit() }) {
+            _state.update {
+                it.copy(
+                    qq = it.qq.copy(
+                        errorMessage = "IMEI 必须 15 位数字 (XOR 解密密钥)",
+                    ),
+                )
+            }
+            return
+        }
+        try {
+            qqCredentials.saveAccount(trimmedUin, trimmedImei)
+        } catch (t: Throwable) {
+            Timber.e(t, "HubLocalViewModel: saveQQAccount failed")
+            _state.update {
+                it.copy(
+                    qq = it.qq.copy(errorMessage = "保存账号信息失败: ${t.message}"),
+                )
+            }
+            return
+        }
+        _state.update {
+            it.copy(
+                qq = it.qq.copy(pendingUinEntry = false),
+            )
+        }
+        refreshQQFromStore()
+    }
+
+    fun syncQQ() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.qq.isLoggedIn) {
+            requestQQLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "messaging-qq",
+                    qq = it.qq.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = qqCollector.snapshot()
+            when (result) {
+                is QQLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qq = it.qq.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is QQLocalCollector.SnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qq = it.qq.copy(
+                                isSyncing = false,
+                                errorMessage = "设备未 root — 改用桌面端 (cc ui + 个人数据中台 + 添加 QQ)",
+                            ),
+                        )
+                    }
+                }
+                is QQLocalCollector.SnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qq = it.qq.copy(
+                                isSyncing = false,
+                                errorMessage = "数据库提取失败 (${result.reason})" +
+                                    (result.message?.let { ": $it" } ?: ""),
+                            ),
+                        )
+                    }
+                }
+                is QQLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            qq = it.qq.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}" +
+                                    (result.message?.let { " ($it)" } ?: ""),
+                            ),
+                        )
+                    }
+                }
+                is QQLocalCollector.SnapshotResult.Ok -> {
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "messaging-qq",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    qq = it.qq.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: qq cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    qq = it.qq.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutQQ() {
+        qqCredentials.clear()
+        _state.update {
+            it.copy(
+                qq = QQCardState(),
+            )
+        }
+    }
+
     // ─── Weibo / Douyin / Xiaohongshu — stubs (Task #10) ────────────────────
 
     fun requestSocialLoginStub(platform: String) {
@@ -2699,5 +2971,14 @@ class HubLocalViewModel @Inject constructor(
             }
         }
         Timber.i("HubLocalViewModel: %s login stub triggered (adapter=%s)", platform, adapter)
+    }
+
+    companion object {
+        // First end-to-end win target: cap Weibo cc sync at this many events.
+        // Goal is "verify ANY social adapter ingests successfully" — once
+        // the user sees ingested=N in the UI we know the entire pipeline
+        // (cookie → API → snapshot → cc → vault) works. Profile real-device
+        // throughput before raising. See LocalCcRunner.syncAdapter [limit].
+        const val WEIBO_FIRST_PASS_LIMIT: Int = 50
     }
 }

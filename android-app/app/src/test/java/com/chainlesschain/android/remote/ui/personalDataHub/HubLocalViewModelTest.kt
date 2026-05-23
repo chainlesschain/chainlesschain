@@ -6,6 +6,8 @@ import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
+import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
+import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
@@ -22,6 +24,7 @@ import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -76,6 +79,8 @@ class HubLocalViewModelTest {
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsCredentials: XhsCredentialsStore
+    private lateinit var qqCollector: QQLocalCollector
+    private lateinit var qqCredentials: QQCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
     private lateinit var modelManager: ModelManager
     private lateinit var llmEngine: LlmInferenceEngine
@@ -117,6 +122,14 @@ class HubLocalViewModelTest {
         every { douyinCredentials.getLastSyncCount() } returns 0
         xhsCollector = mockk(relaxed = true)
         xhsCredentials = mockk(relaxed = true)
+        qqCollector = mockk(relaxed = true)
+        qqCredentials = mockk(relaxed = true)
+        every { qqCredentials.hasCredentials() } returns false
+        every { qqCredentials.getUin() } returns null
+        every { qqCredentials.getImei() } returns null
+        every { qqCredentials.getDisplayName() } returns null
+        every { qqCredentials.getLastSyncAt() } returns null
+        every { qqCredentials.getLastSyncCount() } returns 0
         systemDataState = mockk(relaxed = true)
         // Default: no past system-data sync. Specific tests override these.
         every { systemDataState.getLastSnapshotAt() } returns null
@@ -180,6 +193,8 @@ class HubLocalViewModelTest {
             douyinCredentials,
             xhsCollector,
             xhsCredentials,
+            qqCollector,
+            qqCredentials,
             systemDataState,
             modelManager,
             llmEngine,
@@ -814,7 +829,18 @@ class HubLocalViewModelTest {
                 totalEvents = 18, everythingEmpty = false,
                 snapshottedAt = syncAt,
             )
-        coEvery { ccRunner.syncAdapter("social-weibo", "/tmp/weibo-snap.json") } returns
+        // Asserts limit is set to WEIBO_FIRST_PASS_LIMIT — the first-pass cap
+        // that keeps Weibo cc sync inside 240s on Xiaomi 24115RA8EC. Other
+        // named args use any() since timeoutMs / onProgress are runtime wiring
+        // detail, not subject of this test.
+        coEvery {
+            ccRunner.syncAdapter(
+                adapterName = "social-weibo",
+                inputPath = "/tmp/weibo-snap.json",
+                limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
+                onProgress = any(),
+            )
+        } returns
             LocalCcRunner.CcResult.Ok(
                 report = LocalCcRunner.SyncReport(
                     adapter = "social-weibo", status = "ok",
@@ -847,7 +873,7 @@ class HubLocalViewModelTest {
                 totalEvents = 1, everythingEmpty = false,
                 snapshottedAt = 1L,
             )
-        coEvery { ccRunner.syncAdapter(any(), any()) } returns
+        coEvery { ccRunner.syncAdapter(any(), any(), any(), any(), any()) } returns
             LocalCcRunner.CcResult.Failed(
                 reason = "bs3mc cold-load timeout",
                 exitCode = 124, stderr = "...",
@@ -878,6 +904,59 @@ class HubLocalViewModelTest {
         assertFalse(vm.state.value.weibo.isLoggedIn)
         assertNull(vm.state.value.weibo.uid)
         assertEquals(0, vm.state.value.weibo.lastSyncCount)
+    }
+
+    @Test
+    fun `syncWeibo passes WEIBO_FIRST_PASS_LIMIT to ccRunner`() = runTest(testDispatcher) {
+        // Goal-of-session guardrail: regression on the first end-to-end win
+        // would re-introduce 240s timeouts. Verify the limit param is
+        // actually forwarded — mockk verify with a positive match (instead
+        // of any()) means a future refactor that drops the arg fails here
+        // first, not on a real device after a 4-minute spinner.
+        every { weiboCredentials.hasCredentials() } returns true
+        every { weiboCredentials.getUid() } returns 9876L
+        coEvery { weiboCollector.snapshot() } returns
+            WeiboLocalCollector.SnapshotResult.Ok(
+                snapshotPath = "/tmp/weibo-snap.json",
+                postCount = 100, favouriteCount = 100, followCount = 100,
+                totalEvents = 300, everythingEmpty = false,
+                snapshottedAt = 1L,
+            )
+        coEvery {
+            ccRunner.syncAdapter(
+                adapterName = "social-weibo",
+                inputPath = "/tmp/weibo-snap.json",
+                limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
+                onProgress = any(),
+            )
+        } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "social-weibo", status = "ok",
+                    ingested = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
+                    invalidCount = 0, kgTriples = 0, ragDocs = 0,
+                    durationMs = 8000L, error = null,
+                ),
+                rawJson = "{}",
+            )
+
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncWeibo()
+        advanceUntilIdle()
+
+        coVerify {
+            ccRunner.syncAdapter(
+                adapterName = "social-weibo",
+                inputPath = "/tmp/weibo-snap.json",
+                limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
+                onProgress = any(),
+            )
+        }
+        assertEquals(
+            HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
+            vm.state.value.weibo.lastSyncCount,
+        )
     }
 
     // ─── Douyin lifecycle (§A8 v0.2 — mirror of Weibo, smaller surface) ─────
@@ -2461,5 +2540,176 @@ class HubLocalViewModelTest {
         vm.requestExportVaultToUri(fakeUri)
         assertTrue(vm.state.value.threeLocks.exporting)
         assertNull(vm.state.value.threeLocks.exportError)
+    }
+
+    // ─── Phase 13.5 v0.2 — QQ HubLocal UI wire ─────────────────────────────
+
+    @Test
+    fun `qq init renders not-logged-in card when store empty`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.qq
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uin)
+        assertNull(s.lastSyncAt)
+        assertFalse(s.pendingUinEntry)
+    }
+
+    @Test
+    fun `qq init reads stored uin + lastSync on app start`() = runTest(testDispatcher) {
+        every { qqCredentials.hasCredentials() } returns true
+        every { qqCredentials.getUin() } returns "10086"
+        every { qqCredentials.getLastSyncAt() } returns 1_700_000_000_000L
+        every { qqCredentials.getLastSyncCount() } returns 42
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.qq
+        assertTrue(s.isLoggedIn)
+        assertEquals("10086", s.uin)
+        assertEquals(1_700_000_000_000L, s.lastSyncAt)
+        assertEquals(42, s.lastSyncCount)
+    }
+
+    @Test
+    fun `requestQQLogin opens the uin+imei dialog`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.state.value.qq.pendingUinEntry)
+        vm.requestQQLogin()
+        assertTrue(vm.state.value.qq.pendingUinEntry)
+        assertNull(vm.state.value.qq.errorMessage)
+    }
+
+    @Test
+    fun `confirmQQUinImei rejects non-digit uin`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestQQLogin()
+        vm.confirmQQUinImei("abc123", "123456789012345")
+        val s = vm.state.value.qq
+        assertTrue(s.pendingUinEntry, "dialog must stay open on validation fail")
+        assertEquals("UIN 必须是纯数字", s.errorMessage)
+        io.mockk.verify(exactly = 0) { qqCredentials.saveAccount(any(), any(), any()) }
+    }
+
+    @Test
+    fun `confirmQQUinImei rejects imei that is not 15 digits`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestQQLogin()
+        vm.confirmQQUinImei("10086", "12345")
+        val s = vm.state.value.qq
+        assertTrue(s.pendingUinEntry)
+        assertTrue(s.errorMessage!!.contains("15 位"))
+        io.mockk.verify(exactly = 0) { qqCredentials.saveAccount(any(), any(), any()) }
+    }
+
+    @Test
+    fun `confirmQQUinImei persists + closes dialog + refreshes state on success`() =
+        runTest(testDispatcher) {
+            every { qqCredentials.hasCredentials() } returnsMany listOf(false, true)
+            every { qqCredentials.getUin() } returnsMany listOf(null, "10086")
+            every { qqCredentials.saveAccount(any(), any(), any()) } just runs
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestQQLogin()
+            vm.confirmQQUinImei("10086", "123456789012345")
+            advanceUntilIdle()
+            val s = vm.state.value.qq
+            assertFalse(s.pendingUinEntry)
+            assertTrue(s.isLoggedIn)
+            assertEquals("10086", s.uin)
+            assertNull(s.errorMessage)
+            io.mockk.verify { qqCredentials.saveAccount("10086", "123456789012345", null) }
+        }
+
+    @Test
+    fun `syncQQ when not logged in opens login dialog instead of running`() =
+        runTest(testDispatcher) {
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncQQ()
+            advanceUntilIdle()
+            assertTrue(vm.state.value.qq.pendingUinEntry)
+            coEvery { qqCollector.snapshot() } returns QQLocalCollector.SnapshotResult.NoCredentials
+            // collector.snapshot must NOT be invoked when not logged in
+            io.mockk.coVerify(exactly = 0) { qqCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncQQ NoRoot surfaces 改用桌面端 hint`() = runTest(testDispatcher) {
+        every { qqCredentials.hasCredentials() } returns true
+        every { qqCredentials.getUin() } returns "10086"
+        coEvery { qqCollector.snapshot() } returns QQLocalCollector.SnapshotResult.NoRoot
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncQQ()
+        advanceUntilIdle()
+        val s = vm.state.value.qq
+        assertFalse(s.isSyncing)
+        assertTrue(s.errorMessage!!.contains("未 root"))
+        assertTrue(s.errorMessage!!.contains("桌面端"))
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `syncQQ Ok then cc Ok records lastSyncAt + count`() = runTest(testDispatcher) {
+        every { qqCredentials.hasCredentials() } returns true
+        every { qqCredentials.getUin() } returns "10086"
+        coEvery { qqCollector.snapshot() } returns QQLocalCollector.SnapshotResult.Ok(
+            snapshotPath = "/tmp/staging.json",
+            contactCount = 10,
+            groupCount = 2,
+            messageCount = 88,
+            totalEvents = 100,
+            snapshottedAt = 1_700_000_000_000L,
+        )
+        coEvery { ccRunner.syncAdapter(adapterName = "messaging-qq", inputPath = any()) } returns
+            LocalCcRunner.CcResult.Ok(
+                report = LocalCcRunner.SyncReport(
+                    adapter = "messaging-qq", status = "ok",
+                    ingested = 100, invalidCount = 0,
+                    kgTriples = 0, ragDocs = 0,
+                    durationMs = 1500L, error = null,
+                ),
+                rawJson = "{}",
+            )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncQQ()
+        advanceUntilIdle()
+        val s = vm.state.value.qq
+        assertFalse(s.isSyncing)
+        assertEquals(1_700_000_000_000L, s.lastSyncAt)
+        assertEquals(100, s.lastSyncCount)
+        assertNull(s.errorMessage)
+        assertNull(vm.state.value.globalSyncingAdapter)
+    }
+
+    @Test
+    fun `logoutQQ clears store + resets card state`() = runTest(testDispatcher) {
+        every { qqCredentials.hasCredentials() } returns true
+        every { qqCredentials.getUin() } returns "10086"
+        every { qqCredentials.clear() } just runs
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.qq.isLoggedIn)
+        vm.logoutQQ()
+        val s = vm.state.value.qq
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uin)
+        assertNull(s.lastSyncAt)
+        io.mockk.verify { qqCredentials.clear() }
+    }
+
+    @Test
+    fun `cancelQQLogin closes dialog without persisting`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestQQLogin()
+        assertTrue(vm.state.value.qq.pendingUinEntry)
+        vm.cancelQQLogin()
+        assertFalse(vm.state.value.qq.pendingUinEntry)
+        io.mockk.verify(exactly = 0) { qqCredentials.saveAccount(any(), any(), any()) }
     }
 }
