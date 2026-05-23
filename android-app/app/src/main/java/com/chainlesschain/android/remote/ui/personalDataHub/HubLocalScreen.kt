@@ -178,6 +178,7 @@ fun HubLocalScreen(
         viewModel.refreshWeiboFromStore()
         viewModel.refreshDouyinFromStore()
         viewModel.refreshWechatFromStore()
+        viewModel.refreshQQFromStore()
     }
 
     Scaffold { padding ->
@@ -284,7 +285,7 @@ fun HubLocalScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // ─── 社交聊天（推文 §"社交聊天": 微信）─────────────────────
+            // ─── 社交聊天（推文 §"社交聊天": 微信 + Phase 13.5 QQ）────────
             item("section-im") { SectionHeader("社交聊天") }
             item("im-wechat") {
                 WechatCard(
@@ -300,6 +301,24 @@ fun HubLocalScreen(
                             viewModel.confirmWechatUin(uin, provider, imei)
                         },
                         onCancel = { viewModel.cancelWechatLogin() },
+                    )
+                }
+            }
+            item("im-qq") {
+                Spacer(Modifier.height(8.dp))
+                QQCard(
+                    state = state.qq,
+                    globalBusy = globalBusy,
+                    onLogin = { viewModel.requestQQLogin() },
+                    onSync = { viewModel.syncQQ() },
+                    onLogout = { viewModel.logoutQQ() },
+                )
+                if (state.qq.pendingUinEntry) {
+                    QQUinImeiEntryDialog(
+                        onConfirm = { uin, imei ->
+                            viewModel.confirmQQUinImei(uin, imei)
+                        },
+                        onCancel = { viewModel.cancelQQLogin() },
                     )
                 }
             }
@@ -665,6 +684,21 @@ private fun SocialAdapterCard(
                 }
             }
 
+            // Real-device 2026-05-23 (Xiaomi 24115RA8EC): a 4-minute spinner
+            // with no progress hint is unfriendly. When the VM emits stage
+            // text via [SocialCardState.syncStatusText], surface it under
+            // the title so the user knows which phase is in flight + how
+            // long the cc subprocess has been writing the vault.
+            val stage = state.syncStatusText
+            if (state.isSyncing && !stage.isNullOrBlank()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    stage,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
             if (state.lastSyncAt != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -924,6 +958,179 @@ private fun WechatUinEntryDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(uin, keyProvider, imei.takeIf { isMd5 && it.isNotBlank() }) },
+                enabled = canConfirm,
+            ) { Text("绑定") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("取消") }
+        },
+    )
+}
+
+/**
+ * Phase 13.5 v0.2 — QQ adapter card. Visually mirrors [WechatCard] but takes
+ * [HubLocalViewModel.QQCardState] directly because QQ has no `keyProvider`
+ * gate (IMEI is the sole decrypt key — see [com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore]).
+ *
+ * Real-impl: [com.chainlesschain.android.pdh.messaging.qq.QQDbExtractor] does
+ * `su` copy + plaintext SQLite read + XOR-cycle decrypt of msgData. v0.1 ship
+ * gate: needs root QQ device (Phase 13.5.6 real-device E2E).
+ */
+@Composable
+private fun QQCard(
+    state: HubLocalViewModel.QQCardState,
+    globalBusy: Boolean,
+    onLogin: () -> Unit,
+    onSync: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "QQ",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.size(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(4.dp),
+                ) {
+                    Text(
+                        "Phase 13.5 v0.2",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (state.isLoggedIn) {
+                    "UIN: ${state.uin} · XOR-IMEI 解密"
+                } else {
+                    "需要 root + QQ 已登录主账号。Phase 13.5 实施中。"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (state.lastSyncAt != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "上次同步: ${syncFormatter.format(Date(state.lastSyncAt))} · +${state.lastSyncCount} 事件",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            state.errorMessage?.let { err ->
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(6.dp),
+                ) {
+                    Text(
+                        err,
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!state.isLoggedIn) {
+                    Button(
+                        onClick = onLogin,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) { Text("登录 / 授权") }
+                } else {
+                    Button(
+                        onClick = onSync,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) {
+                        if (state.isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text("同步中…")
+                        } else {
+                            Text("立即同步")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = onLogout,
+                        enabled = !globalBusy && !state.isSyncing,
+                    ) { Text("退出") }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Phase 13.5 v0.2 — QQ uin + imei entry dialog. Both fields required —
+ * IMEI is the XOR cycle key (no fallback keyProvider like WeChat's frida path).
+ */
+@Composable
+private fun QQUinImeiEntryDialog(
+    onConfirm: (uin: String, imei: String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var uin by remember { mutableStateOf("") }
+    var imei by remember { mutableStateOf("") }
+
+    val canConfirm = uin.isNotBlank() && imei.length == 15
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("QQ 账号绑定") },
+        text = {
+            Column {
+                Text(
+                    "前置：(1) 设备已 root (Magisk Zygisk on + DenyList com.tencent.mobileqq) " +
+                        "(2) QQ 已登录主账号。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    value = uin,
+                    onValueChange = { uin = it.filter { c -> c.isDigit() } },
+                    label = { Text("QQ UIN（纯数字）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    value = imei,
+                    onValueChange = { imei = it.filter { c -> c.isDigit() }.take(15) },
+                    label = { Text("设备 IMEI（15 位纯数字）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        Text(
+                            "拨号 *#06# 可查；Android 10+ 自动读取受限，手动填。" +
+                                "IMEI 即 QQ msgData XOR 循环密钥（sjqz qq.py 算法）。",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(uin, imei) },
                 enabled = canConfirm,
             ) { Text("绑定") }
         },
