@@ -277,6 +277,20 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
+          confidence = excluded.confidence
+        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+          subtype = excluded.subtype,
+          occurred_at = excluded.occurred_at,
+          duration_ms = excluded.duration_ms,
+          actor = excluded.actor,
+          participants = excluded.participants,
+          place = excluded.place,
+          items = excluded.items,
+          topics = excluded.topics,
+          content = excluded.content,
+          source = excluded.source,
+          extra = excluded.extra,
+          ingested_at = excluded.ingested_at,
           confidence = excluded.confidence`
       )
       .run({
@@ -325,6 +339,16 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
+          confidence = excluded.confidence
+        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+          subtype = excluded.subtype,
+          names = excluded.names,
+          identifiers = excluded.identifiers,
+          relation = excluded.relation,
+          notes = excluded.notes,
+          source = excluded.source,
+          extra = excluded.extra,
+          ingested_at = excluded.ingested_at,
           confidence = excluded.confidence`
       )
       .run({
@@ -367,6 +391,17 @@ class LocalVault {
           aliases = excluded.aliases,
           source_adapter = excluded.source_adapter,
           source_original_id = excluded.source_original_id,
+          source = excluded.source,
+          extra = excluded.extra,
+          ingested_at = excluded.ingested_at,
+          confidence = excluded.confidence
+        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+          name = excluded.name,
+          coordinates_lat = excluded.coordinates_lat,
+          coordinates_lng = excluded.coordinates_lng,
+          address = excluded.address,
+          category = excluded.category,
+          aliases = excluded.aliases,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
@@ -420,6 +455,19 @@ class LocalVault {
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
+          confidence = excluded.confidence
+        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+          subtype = excluded.subtype,
+          name = excluded.name,
+          category = excluded.category,
+          price_value = excluded.price_value,
+          price_currency = excluded.price_currency,
+          merchant = excluded.merchant,
+          external_url = excluded.external_url,
+          thumbnail_local_path = excluded.thumbnail_local_path,
+          source = excluded.source,
+          extra = excluded.extra,
+          ingested_at = excluded.ingested_at,
           confidence = excluded.confidence`
       )
       .run({
@@ -462,6 +510,14 @@ class LocalVault {
           derived_from_events = excluded.derived_from_events,
           source_adapter = excluded.source_adapter,
           source_original_id = excluded.source_original_id,
+          source = excluded.source,
+          extra = excluded.extra,
+          ingested_at = excluded.ingested_at,
+          confidence = excluded.confidence
+        ON CONFLICT(source_adapter, source_original_id) DO UPDATE SET
+          name = excluded.name,
+          parent_topic = excluded.parent_topic,
+          derived_from_events = excluded.derived_from_events,
           source = excluded.source,
           extra = excluded.extra,
           ingested_at = excluded.ingested_at,
