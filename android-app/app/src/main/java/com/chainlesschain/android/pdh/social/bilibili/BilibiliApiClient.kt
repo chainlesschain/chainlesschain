@@ -107,8 +107,93 @@ class BilibiliApiClient @Inject constructor() {
         return raw.toLongOrNull()?.takeIf { it > 0L }
     }
 
+    /**
+     * Real-device 2026-05-24 (Xiaomi 24115RA8EC v5.0.3.84-DEBUG): even with
+     * 5000ms WebView cookie capture defer, the captured buvid3 string is
+     * either too short or a stale placeholder and the data endpoints still
+     * return code=-400 "请求错误" with empty payloads. The actual JS that
+     * sets the "real" buvid3 chains an anonymous XHR to
+     * /x/frontend/finger/spi after window.onload, on a delay that varies
+     * with 5G latency. Rather than chase the JS timer, mint buvid3 ourselves
+     * from the same anonymous endpoint at first API use and inject it into
+     * the Cookie header on every subsequent data call. Cached in
+     * [mintedBuvid3] for the process lifetime — buvid3 is a per-device
+     * fingerprint, not session-scoped, so one mint suffices across re-logins.
+     */
+    @Volatile
+    private var mintedBuvid3: String? = null
+
+    /** For tests: pre-seed buvid3 to skip the network mint. */
+    internal fun setMintedBuvid3ForTest(value: String?) {
+        mintedBuvid3 = value
+    }
+
+    private suspend fun mintBuvid3(): String? {
+        mintedBuvid3?.let { return it }
+        return withContext(Dispatchers.IO) {
+            val url = baseUrl.newBuilder().addPathSegments("x/frontend/finger/spi").build()
+            val req = Request.Builder()
+                .url(url)
+                .header(
+                    "User-Agent",
+                    "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+                )
+                .header("Referer", "https://www.bilibili.com/")
+                .header("Origin", "https://www.bilibili.com")
+                .header("Accept", "application/json, text/plain, */*")
+                .build()
+            try {
+                httpClient.newCall(req).execute().use { resp ->
+                    val body = resp.body?.string()
+                    if (!resp.isSuccessful || body == null) {
+                        Timber.w("BilibiliApiClient: /spi → HTTP %d", resp.code)
+                        return@withContext null
+                    }
+                    val obj = JSONObject(body)
+                    if (obj.optInt("code", -1) != 0) {
+                        Timber.w("BilibiliApiClient: /spi → code=%d", obj.optInt("code"))
+                        return@withContext null
+                    }
+                    val b3 = obj.optJSONObject("data")?.optString("b_3")
+                        ?.takeIf { it.isNotBlank() } ?: return@withContext null
+                    Timber.i("BilibiliApiClient: minted buvid3 (len=%d)", b3.length)
+                    mintedBuvid3 = b3
+                    b3
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "BilibiliApiClient: mintBuvid3 failed")
+                null
+            }
+        }
+    }
+
+    /**
+     * Strip any existing `buvid3=...` from [cookie] and append [newBuvid3].
+     * Last-write-wins is not portable across Cookie parsers; explicit
+     * substitution is.
+     */
+    internal fun substituteBuvid3(cookie: String, newBuvid3: String): String {
+        val parts = cookie.split(";").map { it.trim() }.filter {
+            it.isNotEmpty() && !it.startsWith("buvid3=")
+        }
+        return if (parts.isEmpty()) "buvid3=$newBuvid3"
+        else parts.joinToString("; ") + "; buvid3=$newBuvid3"
+    }
+
+    /**
+     * Mint buvid3 + substitute into cookie. Falls back to the raw cookie
+     * if minting fails (still preserves SESSDATA + DedeUserID + bili_jct
+     * paths that may already be enough on lucky devices).
+     */
+    private suspend fun prepareCookie(cookie: String): String {
+        val b3 = mintBuvid3() ?: return cookie
+        return substituteBuvid3(cookie, b3)
+    }
+
     suspend fun fetchHistory(cookie: String, limit: Int = 200): List<HistoryItem> =
         withContext(Dispatchers.IO) {
+            val effectiveCookie = prepareCookie(cookie)
             val url = baseUrl.newBuilder()
                 // Real-device 2026-05-22: /x/v2/history/cursor returns 404
                 // (HTML page, not JSON) — Bilibili deprecated the v2 path in
@@ -117,7 +202,7 @@ class BilibiliApiClient @Inject constructor() {
                 .addQueryParameter("ps", "30")
                 .addQueryParameter("type", "archive")
                 .build()
-            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val list = data.optJSONArray("list") ?: return@withContext emptyList()
             val out = ArrayList<HistoryItem>(minOf(limit, list.length()))
@@ -147,11 +232,12 @@ class BilibiliApiClient @Inject constructor() {
      */
     suspend fun fetchFavourites(cookie: String, uid: Long, perFolderLimit: Int = 50): List<FavouriteItem> =
         withContext(Dispatchers.IO) {
+            val effectiveCookie = prepareCookie(cookie)
             val foldersUrl = baseUrl.newBuilder()
                 .addPathSegments("x/v3/fav/folder/created/list-all")
                 .addQueryParameter("up_mid", uid.toString())
                 .build()
-            val foldersJson = doGetJson(foldersUrl, cookie) ?: return@withContext emptyList()
+            val foldersJson = doGetJson(foldersUrl, effectiveCookie) ?: return@withContext emptyList()
             val foldersData = foldersJson.optJSONObject("data") ?: return@withContext emptyList()
             val folders = foldersData.optJSONArray("list") ?: return@withContext emptyList()
             val out = ArrayList<FavouriteItem>()
@@ -170,7 +256,7 @@ class BilibiliApiClient @Inject constructor() {
                     // require an explicit platform tag.
                     .addQueryParameter("platform", "web")
                     .build()
-                val itemsJson = doGetJson(itemsUrl, cookie) ?: continue
+                val itemsJson = doGetJson(itemsUrl, effectiveCookie) ?: continue
                 val itemsData = itemsJson.optJSONObject("data") ?: continue
                 val medias = itemsData.optJSONArray("medias") ?: continue
                 for (j in 0 until medias.length()) {
@@ -193,6 +279,7 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchDynamics(cookie: String, limit: Int = 50): List<DynamicItem> =
         withContext(Dispatchers.IO) {
+            val effectiveCookie = prepareCookie(cookie)
             // Real-device 2026-05-22: Bilibili dynamics returned 0 items
             // silently (code=0 + empty list, no WARN). Adding `type=all` +
             // `platform=web` + `timezone_offset` to match what the web client
@@ -203,7 +290,7 @@ class BilibiliApiClient @Inject constructor() {
                 .addQueryParameter("platform", "web")
                 .addQueryParameter("timezone_offset", "-480")
                 .build()
-            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val items = data.optJSONArray("items") ?: return@withContext emptyList()
             val out = ArrayList<DynamicItem>(minOf(limit, items.length()))
@@ -233,6 +320,7 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
         withContext(Dispatchers.IO) {
+            val effectiveCookie = prepareCookie(cookie)
             val url = baseUrl.newBuilder()
                 .addPathSegments("x/relation/followings")
                 .addQueryParameter("vmid", uid.toString())
@@ -241,7 +329,7 @@ class BilibiliApiClient @Inject constructor() {
                 .addQueryParameter("order", "desc")
                 .addQueryParameter("order_type", "attention")
                 .build()
-            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val list = data.optJSONArray("list") ?: return@withContext emptyList()
             val out = ArrayList<FollowItem>(minOf(limit, list.length()))

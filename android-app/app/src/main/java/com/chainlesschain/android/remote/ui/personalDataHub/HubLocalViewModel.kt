@@ -1733,6 +1733,12 @@ class HubLocalViewModel @Inject constructor(
     // ─── Bilibili ───────────────────────────────────────────────────────────
 
     fun refreshBilibiliFromStore() {
+        // Self-heal pre-2c8f41f9 cookies sitting in the encrypted store: they
+        // pass hasCredentials() (cookie non-blank + uid > 0) but lack
+        // buvid3 / bili_jct so every sync silently returns 4 empty APIs.
+        // clearIfStoredCookieStale wipes the store as a side effect so the
+        // subsequent hasCredentials() correctly reads false.
+        val staleMissing = bilibiliCollector.clearIfStoredCookieStale()
         val loggedIn = bilibiliCredentials.hasCredentials()
         val uid = bilibiliCredentials.getUid()
         val lastSync = bilibiliCredentials.getLastSyncAt()
@@ -1744,6 +1750,9 @@ class HubLocalViewModel @Inject constructor(
                     uid = uid,
                     lastSyncAt = lastSync,
                     lastSyncCount = lastCount,
+                    errorMessage = staleMissing?.let { m ->
+                        "登录信息已过期（缺 $m）— 请重新登录"
+                    } ?: it.bilibili.errorMessage,
                 ),
             )
         }
@@ -1827,6 +1836,24 @@ class HubLocalViewModel @Inject constructor(
                                 isSyncing = false,
                                 isLoggedIn = false,
                                 errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is BilibiliLocalCollector.SnapshotResult.StaleCookie -> {
+                    // Cookie was saved before AcceptResult validation existed
+                    // (or partially captured) — store has been wiped by
+                    // collector.clearIfStoredCookieStale; surface the real
+                    // remediation (re-login) instead of the "4 API empty"
+                    // ambiguity.
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                uid = null,
+                                errorMessage = "登录信息已过期（缺 ${result.missingFields}）— 请重新登录",
                             ),
                         )
                     }

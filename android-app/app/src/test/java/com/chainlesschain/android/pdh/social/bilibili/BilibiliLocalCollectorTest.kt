@@ -66,7 +66,13 @@ class BilibiliLocalCollectorTest {
 
     private fun stubCredentialsLoggedIn(uid: Long = 12345L) {
         every { credentialsStore.hasCredentials() } returns true
-        every { credentialsStore.getCookie() } returns "SESSDATA=fake; DedeUserID=$uid"
+        // snapshot() now re-validates the stored cookie against REQUIRED_FIELDS
+        // before doing any work (2026-05-24 fix for pre-2c8f41f9 cookies that
+        // sailed through hasCredentials but lacked buvid3 / bili_jct). The
+        // stubbed cookie must include all 4 fields or every snapshot test
+        // routes to SnapshotResult.StaleCookie instead of the path under test.
+        every { credentialsStore.getCookie() } returns
+            "SESSDATA=fake; DedeUserID=$uid; bili_jct=jct$uid; buvid3=buvid-$uid"
         every { credentialsStore.getUid() } returns uid
         every { credentialsStore.getDisplayName() } returns "tester"
         every { credentialsStore.recordSync(any(), any()) } just runs
@@ -276,5 +282,76 @@ class BilibiliLocalCollectorTest {
         every { credentialsStore.clear() } just runs
         collector.logout()
         verify { credentialsStore.clear() }
+    }
+
+    // ─── clearIfStoredCookieStale + snapshot StaleCookie path ───────────────
+    //
+    // 2026-05-24 real-device follow-up: cookies saved on pre-2c8f41f9 APKs
+    // (no AcceptResult validation) silently pass hasCredentials() and trip
+    // "4 API empty" on every sync until manual logout. Re-validating at
+    // snapshot entry self-heals: store is cleared, SnapshotResult.StaleCookie
+    // surfaces a re-login prompt.
+
+    @Test
+    fun `clearIfStoredCookieStale returns null when not logged in`() {
+        every { credentialsStore.hasCredentials() } returns false
+        val r = collector.clearIfStoredCookieStale()
+        kotlin.test.assertNull(r)
+        verify(exactly = 0) { credentialsStore.clear() }
+    }
+
+    @Test
+    fun `clearIfStoredCookieStale returns null when stored cookie has all 4 fields`() {
+        every { credentialsStore.hasCredentials() } returns true
+        every { credentialsStore.getCookie() } returns fullCookie
+        val r = collector.clearIfStoredCookieStale()
+        kotlin.test.assertNull(r)
+        verify(exactly = 0) { credentialsStore.clear() }
+    }
+
+    @Test
+    fun `clearIfStoredCookieStale clears store and reports missing buvid3 when only buvid3 absent`() {
+        // The exact pre-2c8f41f9 cookie shape — SESSDATA + DedeUserID + bili_jct
+        // captured but buvid3 not yet set by post-onload XHR.
+        every { credentialsStore.hasCredentials() } returns true
+        every { credentialsStore.getCookie() } returns
+            "SESSDATA=fake; DedeUserID=12345; bili_jct=jct123"
+        every { credentialsStore.clear() } just runs
+
+        val r = collector.clearIfStoredCookieStale()
+        assertEquals("buvid3", r)
+        verify(exactly = 1) { credentialsStore.clear() }
+    }
+
+    @Test
+    fun `clearIfStoredCookieStale reports comma-joined names when bili_jct and buvid3 both absent`() {
+        every { credentialsStore.hasCredentials() } returns true
+        every { credentialsStore.getCookie() } returns
+            "SESSDATA=fake; DedeUserID=12345"
+        every { credentialsStore.clear() } just runs
+
+        val r = collector.clearIfStoredCookieStale()
+        // Order follows REQUIRED_FIELDS declaration: SESSDATA / DedeUserID /
+        // bili_jct / buvid3 — first two are present, last two missing.
+        assertEquals("bili_jct, buvid3", r)
+        verify(exactly = 1) { credentialsStore.clear() }
+    }
+
+    @Test
+    fun `snapshot returns StaleCookie when stored cookie missing buvid3 AND clears store`() = runTest {
+        every { credentialsStore.hasCredentials() } returns true
+        every { credentialsStore.getCookie() } returns
+            "SESSDATA=fake; DedeUserID=12345; bili_jct=jct123"
+        every { credentialsStore.clear() } just runs
+
+        val result = collector.snapshot()
+        assertTrue(result is BilibiliLocalCollector.SnapshotResult.StaleCookie)
+        assertEquals(
+            "buvid3",
+            (result as BilibiliLocalCollector.SnapshotResult.StaleCookie).missingFields,
+        )
+        verify(exactly = 1) { credentialsStore.clear() }
+        // Snapshot file NOT written; recordSync NOT called.
+        verify(exactly = 0) { credentialsStore.recordSync(any(), any()) }
     }
 }
