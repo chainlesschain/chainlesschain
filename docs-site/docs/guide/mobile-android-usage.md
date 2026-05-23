@@ -18,7 +18,7 @@ ChainlessChain Android 是桌面 ChainlessChain 在移动场景下的**三层延
 |---|---|---|
 | **L1** StrongBox DID 钱包 | 硬件级保管 W3C DID v2 私钥 | Android Keystore + StrongBox HSM 芯片级隔离，桌面 U-Key 需插着才能用 |
 | **L2** 移动现场捕获 | 语音 / 拍照 OCR / GPS / 系统分享 / 推送 | 桌面没麦克风触手可及、没摄像头、没 GPS、不能接 Android 系统分享 |
-| **L3** REMOTE 遥控器 | 调桌面 139 skill / 23 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
+| **L3** REMOTE 遥控器 | 调桌面 141 skill / 25 个 REMOTE command | 手机不重复跑大模型，但能在地铁里指挥桌面跑 |
 
 设计原则：**手机不重复实现桌面**，只补桌面在移动场景做不到的事。对齐 Claude Desktop / Mobile 的二端分工。
 
