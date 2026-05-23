@@ -105,7 +105,19 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            cd android-app && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true -Pandroid.testInstrumentationRunnerArguments.package=com.chainlesschain.android.e2e --stacktrace --no-daemon
+            cd android-app && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon
+            # 2026-05-23 investigation (run 26321740702):
+            #   1. Dropped `package=com.chainlesschain.android.e2e` filter —
+            #      it matched no live tests (only AppE2ETestSuite.kt.broken
+            #      lives in that package, and .broken files don't compile).
+            #      Live tests are in feature.p2p.ui.social and
+            #      pdh.social.bilibili packages.
+            #   2. Scoped to `:app:` instead of bare `connectedDebugAndroidTest`
+            #      — the unqualified form runs across every module; empty
+            #      androidTest source sets in core-common / core-blockchain /
+            #      core-database installed the test APK, crashed at instr-
+            #      runner startup ("Starting 0 tests" → Process crashed), and
+            #      reported "There were failing tests" 4× as a phantom signal.
             # NOTE: ALL invocation must be on ONE physical line.
             # reactivecircus/android-emulator-runner@v2 runs each script: line
             # through its own `/usr/bin/sh -c <line>` — meaning `cd` on one
