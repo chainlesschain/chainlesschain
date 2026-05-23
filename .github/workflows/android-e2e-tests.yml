@@ -32,7 +32,18 @@ jobs:
         # for NDK spawn.h support (see its build.gradle.kts), making the whole
         # app graph effectively minSdk 28. API 26 manifest merger fails on every
         # androidTest module that transitively depends on feature-local-terminal.
-        api-level: [30, 33]  # Android 11, 13
+        #
+        # API 33 dropped 2026-05-23 — APK ships arm64-only native libs (sqlcipher,
+        # libwcdb, libpty_jni, mksh, frida-inject) via abiFilters armeabi-v7a +
+        # arm64-v8a in app/build.gradle.kts. API 30 google_apis system image
+        # bundles ndk_translation → arm64 .so loads on x86_64 emulator. API 33
+        # google_apis dropped ndk_translation → AGP test runner reports
+        # "No compatible devices connected" 100% of runs (see memory
+        # android-e2e-api33-abi-mismatch). Re-add only after one of:
+        #   (a) x86_64 builds of all 5 native libs land in repo,
+        #   (b) frida-inject prebuilt for x86_64 becomes available, OR
+        #   (c) GHA hosted API 33+ images regain ndk_translation.
+        api-level: [30]  # Android 11
         arch: [x86_64]
         target: [google_apis]
 
