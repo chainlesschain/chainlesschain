@@ -22,6 +22,8 @@ import com.chainlesschain.android.pdh.social.wechat.WeChatCredentialsStore
 import com.chainlesschain.android.pdh.social.wechat.WeChatLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
@@ -85,6 +87,8 @@ class HubLocalViewModel @Inject constructor(
     private val xhsCredentials: XhsCredentialsStore,
     private val toutiaoCollector: ToutiaoLocalCollector,
     private val toutiaoCredentials: ToutiaoCredentialsStore,
+    private val kuaishouCollector: KuaishouLocalCollector,
+    private val kuaishouCredentials: KuaishouCredentialsStore,
     private val qqCollector: QQLocalCollector,
     private val qqCredentials: QQCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
@@ -399,6 +403,13 @@ class HubLocalViewModel @Inject constructor(
             displayName = "今日头条",
             implemented = true,
         ),
+        // 2026-05-23 v0.1 — 快手 placeholder card. cookie scrape 拿 userId，
+        // events 写空数组 (watch/collect/search 需 NS_sig3 签名 v0.2 接通)
+        val kuaishou: SocialCardState = SocialCardState(
+            adapterName = "social-kuaishou",
+            displayName = "快手",
+            implemented = true,
+        ),
         val wechat: WechatCardState = WechatCardState(),
         val qq: QQCardState = QQCardState(),
         val pendingLogin: LoginRequest? = null,
@@ -429,6 +440,7 @@ class HubLocalViewModel @Inject constructor(
         refreshDouyinFromStore()
         refreshXhsFromStore()
         refreshToutiaoFromStore()
+        refreshKuaishouFromStore()
         refreshWechatFromStore()
         refreshQQFromStore()
         refreshAiChatFromStore()
@@ -2680,6 +2692,167 @@ class HubLocalViewModel @Inject constructor(
         _state.update {
             it.copy(
                 toutiao = it.toutiao.copy(
+                    isLoggedIn = false,
+                    uid = null,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    // ─── Kuaishou 快手 (v0.1 placeholder — 完全对称 Toutiao) ──────────────────
+    //
+    // 与 Toutiao 唯一差异：cookie uid 字段不同（userId vs passport_uid）。
+    // 其他全部 1:1 — 同 placeholder events=[] 策略 + 同 v0.1 honest banner
+    // ("watch/collect/search 需 v0.2 NS_sig3 签名接通")。
+
+    fun refreshKuaishouFromStore() {
+        val loggedIn = kuaishouCredentials.hasCredentials()
+        val uidStr = kuaishouCredentials.getUid()
+        val uidLong = uidStr?.toLongOrNull()
+        val lastSync = kuaishouCredentials.getLastSyncAt()
+        val lastCount = kuaishouCredentials.getLastSyncCount()
+        _state.update {
+            it.copy(
+                kuaishou = it.kuaishou.copy(
+                    isLoggedIn = loggedIn,
+                    uid = uidLong,
+                    lastSyncAt = lastSync,
+                    lastSyncCount = lastCount,
+                ),
+            )
+        }
+    }
+
+    fun requestKuaishouLogin() {
+        _state.update {
+            it.copy(
+                pendingLogin = LoginRequest(
+                    adapterName = "social-kuaishou",
+                    displayName = "快手",
+                    // 快手 web 主页登录按钮触发 passport.kuaishou.com 弹窗
+                    loginUrl = "https://www.kuaishou.com/",
+                    cookieDomain = "https://www.kuaishou.com",
+                    // 登录后仍在 www.kuaishou.com，cookie 已含 userId。排除
+                    // passport / login 中间页避免 cookie 抢跑
+                    isLoginSuccess = { url ->
+                        url.contains("kuaishou.com") &&
+                            !url.contains("passport.") &&
+                            !url.contains("/login")
+                    },
+                ),
+            )
+        }
+    }
+
+    fun onKuaishouLoginCookie(cookie: String) {
+        viewModelScope.launch {
+            val accepted = kuaishouCollector.acceptLoginCookie(cookie, null)
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    kuaishou = it.kuaishou.copy(
+                        errorMessage = if (!accepted) {
+                            val code = kuaishouCollector.lastLoginErrorCode
+                            val detail = kuaishouCollector.lastLoginErrorMessage
+                                ?: "cookie 缺 userId"
+                            "登录未完成 — code=$code $detail（请确认已登录后重试）"
+                        } else null,
+                    ),
+                )
+            }
+            if (accepted) refreshKuaishouFromStore()
+        }
+    }
+
+    fun syncKuaishou() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!_state.value.kuaishou.isLoggedIn) {
+            requestKuaishouLogin()
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-kuaishou",
+                    kuaishou = it.kuaishou.copy(isSyncing = true, errorMessage = null),
+                )
+            }
+            val result = kuaishouCollector.snapshot()
+            when (result) {
+                is KuaishouLocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "未登录 — 请先登录",
+                            ),
+                        )
+                    }
+                }
+                is KuaishouLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            ),
+                        )
+                    }
+                }
+                is KuaishouLocalCollector.SnapshotResult.Ok -> {
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-kuaishou",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    kuaishou = it.kuaishou.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
+                                            "入库状态: ${r.report.status} (${r.report.error})"
+                                        } else {
+                                            "已同步账号信息（v0.1）。历史/收藏/搜索需 v0.2 NS_sig3 签名接通。"
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: kuaishou cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    kuaishou = it.kuaishou.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun logoutKuaishou() {
+        kuaishouCollector.logout()
+        _state.update {
+            it.copy(
+                kuaishou = it.kuaishou.copy(
                     isLoggedIn = false,
                     uid = null,
                     lastSyncAt = null,

@@ -16,6 +16,8 @@ import com.chainlesschain.android.pdh.social.bilibili.BilibiliLocalCollector
 import com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
 import com.chainlesschain.android.pdh.social.douyin.DouyinCredentialsStore
 import com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
+import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
@@ -83,6 +85,8 @@ class HubLocalViewModelTest {
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
     private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
+    private lateinit var kuaishouCollector: KuaishouLocalCollector
+    private lateinit var kuaishouCredentials: KuaishouCredentialsStore
     private lateinit var qqCollector: QQLocalCollector
     private lateinit var qqCredentials: QQCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
@@ -136,6 +140,16 @@ class HubLocalViewModelTest {
         every { toutiaoCredentials.getLastSyncCount() } returns 0
         every { toutiaoCollector.lastLoginErrorCode } returns 0
         every { toutiaoCollector.lastLoginErrorMessage } returns null
+        kuaishouCollector = mockk(relaxed = true)
+        kuaishouCredentials = mockk(relaxed = true)
+        every { kuaishouCredentials.hasCredentials() } returns false
+        every { kuaishouCredentials.getUid() } returns null
+        every { kuaishouCredentials.getCookie() } returns null
+        every { kuaishouCredentials.getDisplayName() } returns null
+        every { kuaishouCredentials.getLastSyncAt() } returns null
+        every { kuaishouCredentials.getLastSyncCount() } returns 0
+        every { kuaishouCollector.lastLoginErrorCode } returns 0
+        every { kuaishouCollector.lastLoginErrorMessage } returns null
         qqCollector = mockk(relaxed = true)
         qqCredentials = mockk(relaxed = true)
         every { qqCredentials.hasCredentials() } returns false
@@ -209,6 +223,8 @@ class HubLocalViewModelTest {
             xhsCredentials,
             toutiaoCollector,
             toutiaoCredentials,
+            kuaishouCollector,
+            kuaishouCredentials,
             qqCollector,
             qqCredentials,
             systemDataState,
@@ -440,19 +456,20 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `init renders all 5 social cards (5 implemented)`() = runTest(testDispatcher) {
+    fun `init renders all 6 social cards (6 implemented)`() = runTest(testDispatcher) {
         val vm = newVm()
         advanceUntilIdle()
-        // §A8 v0.2 + 头条 v0.1: full 5-card lineup is real after Bilibili /
-        // 微博 / 抖音 / 小红书 / 今日头条 land. 抖音/头条 have smaller surface
-        // (profile or cookie-only — no X-Bogus / _signature path) but
-        // card.implemented is true because login + cookie + persist actually
-        // do work end-to-end.
+        // §A8 v0.2 + 头条+快手 v0.1: full 6-card lineup is real after Bilibili /
+        // 微博 / 抖音 / 小红书 / 今日头条 / 快手 land. 抖音/头条/快手 have smaller
+        // surface (profile or cookie-only — no X-Bogus / _signature / NS_sig3
+        // path) but card.implemented is true because login + cookie + persist
+        // actually do work end-to-end.
         assertTrue(vm.state.value.bilibili.implemented)
         assertTrue(vm.state.value.weibo.implemented)
         assertTrue(vm.state.value.douyin.implemented)
         assertTrue(vm.state.value.xiaohongshu.implemented)
         assertTrue(vm.state.value.toutiao.implemented)
+        assertTrue(vm.state.value.kuaishou.implemented)
     }
 
     // ─── Login lifecycle ────────────────────────────────────────────────────
@@ -2948,5 +2965,160 @@ class HubLocalViewModelTest {
         assertNull(s.uid)
         assertNull(s.lastSyncAt)
         io.mockk.verify { toutiaoCollector.logout() }
+    }
+
+    // ─── Kuaishou v0.1 placeholder card ────────────────────────────────────
+
+    @Test
+    fun `kuaishou init renders 快手 card not logged in`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.kuaishou
+        assertEquals("social-kuaishou", s.adapterName)
+        assertEquals("快手", s.displayName)
+        assertTrue(s.implemented)
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uid)
+    }
+
+    @Test
+    fun `kuaishou init reads stored uid + lastSync from store`() = runTest(testDispatcher) {
+        every { kuaishouCredentials.hasCredentials() } returns true
+        every { kuaishouCredentials.getUid() } returns "98765432"
+        every { kuaishouCredentials.getLastSyncAt() } returns 1_700_000_000_000L
+        every { kuaishouCredentials.getLastSyncCount() } returns 0
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.kuaishou
+        assertTrue(s.isLoggedIn)
+        assertEquals(98_765_432L, s.uid)
+        assertEquals(1_700_000_000_000L, s.lastSyncAt)
+    }
+
+    @Test
+    fun `requestKuaishouLogin pushes pendingLogin with kuaishou_com URL`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestKuaishouLogin()
+        val p = vm.state.value.pendingLogin
+        assertNotNull(p)
+        assertEquals("social-kuaishou", p.adapterName)
+        assertEquals("快手", p.displayName)
+        assertTrue(p.loginUrl.contains("kuaishou.com"))
+        // isLoginSuccess: 已到 www.kuaishou.com 视为成功；passport/login 中间页 false
+        assertTrue(p.isLoginSuccess("https://www.kuaishou.com/"))
+        assertFalse(p.isLoginSuccess("https://passport.kuaishou.com/auth"))
+        assertFalse(p.isLoginSuccess("https://www.kuaishou.com/login"))
+    }
+
+    @Test
+    fun `onKuaishouLoginCookie success persists + refreshes`() = runTest(testDispatcher) {
+        every { kuaishouCollector.acceptLoginCookie(any(), any()) } returns true
+        every { kuaishouCredentials.hasCredentials() } returnsMany listOf(false, true)
+        every { kuaishouCredentials.getUid() } returnsMany listOf(null, "77777")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestKuaishouLogin()
+        vm.onKuaishouLoginCookie("userId=77777; did=abc")
+        advanceUntilIdle()
+        val s = vm.state.value.kuaishou
+        assertTrue(s.isLoggedIn)
+        assertEquals(77_777L, s.uid)
+        assertNull(s.errorMessage)
+        assertNull(vm.state.value.pendingLogin)
+    }
+
+    @Test
+    fun `onKuaishouLoginCookie acceptance failure surfaces login incomplete error`() =
+        runTest(testDispatcher) {
+            every { kuaishouCollector.acceptLoginCookie(any(), any()) } returns false
+            every { kuaishouCollector.lastLoginErrorCode } returns -7
+            every { kuaishouCollector.lastLoginErrorMessage } returns "cookie 缺 userId"
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.requestKuaishouLogin()
+            vm.onKuaishouLoginCookie("did=anon-only; kpf=PC_WEB")
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isLoggedIn)
+            assertTrue(s.errorMessage!!.contains("登录未完成"))
+            assertTrue(s.errorMessage!!.contains("userId"))
+        }
+
+    @Test
+    fun `syncKuaishou when not logged in opens login instead of running`() =
+        runTest(testDispatcher) {
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishou()
+            advanceUntilIdle()
+            assertNotNull(vm.state.value.pendingLogin)
+            coVerify(exactly = 0) { kuaishouCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncKuaishou v0_1 Ok path records lastSync + honest v0_2 hint`() =
+        runTest(testDispatcher) {
+            every { kuaishouCredentials.hasCredentials() } returns true
+            every { kuaishouCredentials.getUid() } returns "98765"
+            coEvery { kuaishouCollector.snapshot() } returns
+                KuaishouLocalCollector.SnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-kuaishou.json",
+                    totalEvents = 0,
+                    everythingEmpty = true,
+                    snapshottedAt = 1_700_000_000_000L,
+                )
+            coEvery { ccRunner.syncAdapter(adapterName = "social-kuaishou", inputPath = any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-kuaishou", status = "ok",
+                        ingested = 0, invalidCount = 0,
+                        kgTriples = 0, ragDocs = 0,
+                        durationMs = 100L, error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishou()
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isSyncing)
+            assertEquals(1_700_000_000_000L, s.lastSyncAt)
+            assertEquals(0, s.lastSyncCount)
+            // v0.1 honest banner — 透出 NS_sig3 限制
+            assertTrue(s.errorMessage!!.contains("v0.1"))
+            assertTrue(s.errorMessage!!.contains("NS_sig3"))
+            assertNull(vm.state.value.globalSyncingAdapter)
+        }
+
+    @Test
+    fun `syncKuaishou Failed surfaces reason`() = runTest(testDispatcher) {
+        every { kuaishouCredentials.hasCredentials() } returns true
+        every { kuaishouCredentials.getUid() } returns "98765"
+        coEvery { kuaishouCollector.snapshot() } returns
+            KuaishouLocalCollector.SnapshotResult.Failed("write failed: disk full")
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.syncKuaishou()
+        advanceUntilIdle()
+        val s = vm.state.value.kuaishou
+        assertFalse(s.isSyncing)
+        assertTrue(s.errorMessage!!.contains("disk full"))
+    }
+
+    @Test
+    fun `logoutKuaishou clears collector + resets card`() = runTest(testDispatcher) {
+        every { kuaishouCredentials.hasCredentials() } returns true
+        every { kuaishouCredentials.getUid() } returns "98765"
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.kuaishou.isLoggedIn)
+        vm.logoutKuaishou()
+        val s = vm.state.value.kuaishou
+        assertFalse(s.isLoggedIn)
+        assertNull(s.uid)
+        assertNull(s.lastSyncAt)
+        io.mockk.verify { kuaishouCollector.logout() }
     }
 }
