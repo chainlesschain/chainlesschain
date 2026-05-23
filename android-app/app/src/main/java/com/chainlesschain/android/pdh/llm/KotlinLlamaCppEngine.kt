@@ -59,9 +59,10 @@ class KotlinLlamaCppEngine @Inject constructor(
     /**
      * §2.1 A3.4 — cheap synchronous read of native lib load state. Reads the
      * same `NATIVE_LOADED` flag the suspend `health()` does, but without the
-     * ModelManager file I/O. The UI's ModelStatusBanner uses this at init to
-     * decide between "🟢 端侧 AI 已就绪" and "⏳ 等待 v0.2 推理引擎" copy when
-     * the model itself is downloaded but the JitPack/Maven .so isn't bundled.
+     * ModelManager file I/O. UI ModelStatusBanner reads this from the bound
+     * engine to decide between "🟢 端侧 AI 已就绪" and "⏳ 模型未就绪" copy.
+     * 默认 @Binds 自 v0.2 起为 MediaPipeLlmEngine；本类是 GGUF/llama.cpp 备路，
+     * 留作未来 fallback (详见 `pdh_llm_native_dep_audit.md`)。
      */
     override val nativeReady: Boolean get() = isNativeLoaded
 

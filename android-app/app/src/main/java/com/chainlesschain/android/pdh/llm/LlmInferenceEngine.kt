@@ -95,7 +95,7 @@ object NoOpLlmInferenceEngine : LlmInferenceEngine {
             ready = false,
             modelLoaded = false,
             modelName = null,
-            reason = "engine not wired (A3.3 待 kotlinllamacpp dep 解析后真接通)",
+            reason = "engine not wired — NoOp fallback (默认 @Binds 已切到 MediaPipeLlmEngine)",
         )
 
     override suspend fun chat(
@@ -103,7 +103,7 @@ object NoOpLlmInferenceEngine : LlmInferenceEngine {
         opts: LlmInferenceEngine.ChatOptions,
     ): LlmInferenceEngine.ChatResponse {
         throw LlmInferenceException(
-            "本机 LLM 推理引擎未就绪 — A3.3 待 kotlinllamacpp JNI 接通"
+            "本机 LLM 推理引擎未就绪 — NoOp fallback (默认 @Binds 已切到 MediaPipeLlmEngine)"
         )
     }
 }
