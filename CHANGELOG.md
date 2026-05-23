@@ -5,11 +5,13 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v5.0.3.84] - 2026-05-23 — hotfix4: CLI 接通 PDH 8 个 social/messaging adapter
+## [v5.0.3.84] - 2026-05-23 — hotfix4: CLI + desktop 接通 PDH 11 个 no-arg adapter (+ 修 2 个静默吞错)
 
-> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 `AdapterRegistry.syncAdapter: no adapter <X>`，因为 `personal-data-hub-wiring.js` 历史只 `new BilibiliAdapter()` 一个，而 PDH 0.2.3+ 早 ship 了 9 个（Bilibili + Weibo + Douyin + Xiaohongshu + Toutiao + Kuaishou + QQ + Telegram + WhatsApp）。Android 端 collector 早已能写 staging JSON，CLI 却装不下接收。本 hotfix 补 8 个 adapter 在 boot 时 register。
+> v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 `AdapterRegistry.syncAdapter: no adapter <X>`：CLI 的 `personal-data-hub-wiring.js` 只 `new BilibiliAdapter()` 一个，desktop 的 `wiring.js` 也只有 Bilibili。PDH 0.2.3+ ship 了 9 个 social/messaging + 5 个 map/shopping snapshot-mode adapter。第一轮补 8 个 (94b0ecf25c) 时把 Telegram/WhatsApp 也塞 for-loop 但它们 ctor 需要 account 参数 → 被 try/catch silent 吞，实际从未 register。第二轮 audit 修正后 land 11 个真正 no-arg + 注明 6 个需 per-account credential 的 defer。
 
-- **`packages/cli/src/lib/personal-data-hub-wiring.js`** (`94b0ecf25c`)：destructure 8 个 adapter class + boot 时 for-loop `new Cls()` + `registry.register()`，每个 in 自己 try/catch（单个 ctor 抛不级联）。镜像既有 Bilibili 的 wire 模式（line 282）。
+- **`packages/cli/src/lib/personal-data-hub-wiring.js`** (`94b0ecf25c` + 跟随)：boot 时 for-loop 11 个 adapter (`Weibo / Douyin / Xiaohongshu / Toutiao / Kuaishou / QQ / BaiduMap / TencentMap / Jd / Meituan / Pinduoduo`)，每个 try/catch 独立。镜像既有 Bilibili wire 模式。
+- **`desktop-app-vue/src/main/personal-data-hub/wiring.js`**：同款 11 个 adapter wire，per `feedback_cross_shell_feature_pattern` 保证 desktop IPC 与 CLI/web-shell 看到同一份 registry。
+- **Defer**：6 个需 per-account credential 的 adapter 需 `<vendor>-accounts.json` loader infra（镜像 email/alipay/wechat 模式）后续 phase 接：`Train12306` (username) / `Ctrip` (email) / `Amap` (deviceId) / `Taobao` (userId) / `Telegram` (userId) / `WhatsApp` (phone)。
 - **`chainlesschain` (CLI) 0.162.16 → 0.162.17**：bundle 本修。PDH 不动（仍 0.2.4）。
 
 ## [v5.0.3.83] - 2026-05-23 — hotfix3: PDH AIChat 向导静态 import 改 lazy require
