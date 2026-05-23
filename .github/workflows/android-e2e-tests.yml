@@ -105,7 +105,8 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            cd android-app && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon
+            adb logcat -c
+            cd android-app && (./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
             # 2026-05-23 investigation (run 26321740702):
             #   1. Dropped `package=com.chainlesschain.android.e2e` filter —
             #      it matched no live tests (only AppE2ETestSuite.kt.broken
@@ -173,6 +174,15 @@ jobs:
           path: |
             android-app/app/build/outputs/connected_android_test_additional_output/
           retention-days: 7
+
+      - name: Upload Emulator Logcat (failure diagnosis)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat-api-${{ matrix.api-level }}
+          path: /tmp/logcat-e2e.txt
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Upload Coverage Reports
         if: always()
