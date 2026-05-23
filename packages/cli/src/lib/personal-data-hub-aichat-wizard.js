@@ -19,13 +19,25 @@ import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 
-import {
-  DEFAULT_VENDOR_SPECS,
-  HttpClient,
-  CookieAuthSession,
-} from "@chainlesschain/personal-data-hub/adapters/ai-chat-history";
-
 const _require = createRequire(import.meta.url);
+
+// Lazy-load `@chainlesschain/personal-data-hub/adapters/ai-chat-history` —
+// older nested copies of the hub package (e.g. PDH 0.2.0 left in
+// `packages/cli/node_modules/@chainlesschain/personal-data-hub/` by a stale
+// install) lack this subpath export. A static ESM import would crash the
+// whole wiring chain at module load time; lazy `_require` lets the error
+// surface only when actually called, and tolerates an older nested copy as
+// long as Node's resolution eventually walks up to a version that exports
+// the subpath. See sibling lazy-load at line 217 / 228 for cookie-capture-
+// spec + wizard-controller (same defence).
+let _aichatModule = null;
+function _loadAichatModule() {
+  if (_aichatModule) return _aichatModule;
+  _aichatModule = _require(
+    "@chainlesschain/personal-data-hub/adapters/ai-chat-history",
+  );
+  return _aichatModule;
+}
 
 export const ACCOUNTS_FILE = "aichat-accounts.json";
 
@@ -99,16 +111,14 @@ export function createAccountsStore({ hubDir }) {
  * spec.validateCookie(). Kept duplicated so the cli build stays ESM-pure
  * without reaching into desktop-app-vue.
  */
-export function createVendorAdapterBridge({
-  specs = DEFAULT_VENDOR_SPECS,
-  _httpClientFactory,
-} = {}) {
+export function createVendorAdapterBridge({ specs, _httpClientFactory } = {}) {
   // DEFAULT_VENDOR_SPECS is shipped as a vendor-keyed object; tests pass an
   // array. Normalize to an array first so byVendor lookup works either way.
-  const arr = Array.isArray(specs)
-    ? specs
-    : specs && typeof specs === "object"
-      ? Object.values(specs)
+  const effectiveSpecs = specs ?? _loadAichatModule().DEFAULT_VENDOR_SPECS;
+  const arr = Array.isArray(effectiveSpecs)
+    ? effectiveSpecs
+    : effectiveSpecs && typeof effectiveSpecs === "object"
+      ? Object.values(effectiveSpecs)
       : null;
   if (!arr || arr.length === 0) {
     throw new Error("aichat-wizard-cli: specs required");
@@ -119,7 +129,10 @@ export function createVendorAdapterBridge({
   }
   const buildClient =
     _httpClientFactory ||
-    ((vendor, spec) => new HttpClient({ vendor, rateLimits: spec.rateLimits }));
+    ((vendor, spec) => {
+      const { HttpClient } = _loadAichatModule();
+      return new HttpClient({ vendor, rateLimits: spec.rateLimits });
+    });
 
   async function registerVendor(vendor, cookies, _opts = {}) {
     const spec = byVendor.get(vendor);
@@ -137,6 +150,7 @@ export function createVendorAdapterBridge({
         error: err.message,
       };
     }
+    const { CookieAuthSession } = _loadAichatModule();
     const session = new CookieAuthSession({
       vendor,
       cookies: _jarToArray(cookies),
