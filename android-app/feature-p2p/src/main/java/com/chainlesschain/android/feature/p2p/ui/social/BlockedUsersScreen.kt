@@ -23,7 +23,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * 屏蔽用户列表页面
+ * 屏蔽用户列表页面（stateful wrapper — wires Hilt VM 进 BlockedUsersContent）
+ *
+ * 拆分动机：instrumented 端 `mockk<FriendViewModel>(relaxed=true)` 触发
+ * ExceptionInInitializerError（final Kotlin class + Hilt-generated 静态初始化在
+ * emulator 上不稳）。stateless Content 让 E2E 测试直接喂 state，绕开 VM mock。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,12 +36,32 @@ fun BlockedUsersScreen(
     viewModel: FriendViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val blockedUsers = uiState.blockedUsers
-    val isLoading = uiState.isLoadingBlockedUsers
+
+    BlockedUsersContent(
+        blockedUsers = uiState.blockedUsers,
+        isLoading = uiState.isLoadingBlockedUsers,
+        onNavigateBack = onNavigateBack,
+        onLoad = { viewModel.loadBlockedUsers() },
+        onUnblock = { did -> viewModel.unblockFriend(did) }
+    )
+}
+
+/**
+ * 无状态 Content — 直接接 state + callback，便于 Compose UI 测试驱动。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BlockedUsersContent(
+    blockedUsers: List<BlockedUserEntity>,
+    isLoading: Boolean,
+    onNavigateBack: () -> Unit,
+    onLoad: () -> Unit,
+    onUnblock: (String) -> Unit
+) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        viewModel.loadBlockedUsers()
+        onLoad()
     }
 
     Scaffold(
@@ -78,9 +102,7 @@ fun BlockedUsersScreen(
                     ) { blockedUser ->
                         BlockedUserCard(
                             blockedUser = blockedUser,
-                            onUnblock = {
-                                viewModel.unblockFriend(blockedUser.blockedDid)
-                            }
+                            onUnblock = { onUnblock(blockedUser.blockedDid) }
                         )
                     }
                 }
