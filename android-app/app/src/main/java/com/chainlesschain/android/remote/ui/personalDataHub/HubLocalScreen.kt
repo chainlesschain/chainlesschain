@@ -103,6 +103,8 @@ fun HubLocalScreen(
                             viewModel.onXhsLoginCookie(cookie)
                         pending.adapterName == "social-toutiao" ->
                             viewModel.onToutiaoLoginCookie(cookie)
+                        pending.adapterName == "social-kuaishou" ->
+                            viewModel.onKuaishouLoginCookie(cookie)
                         pending.adapterName.startsWith("ai-chat:") -> {
                             // §2.6 D10.2 — 9 AI vendor 共用 WebView cookie scrape
                             // 入口；adapterName 携 "ai-chat:<vendorKey>" 形态。
@@ -180,6 +182,7 @@ fun HubLocalScreen(
         viewModel.refreshWeiboFromStore()
         viewModel.refreshDouyinFromStore()
         viewModel.refreshToutiaoFromStore()
+        viewModel.refreshKuaishouFromStore()
         viewModel.refreshWechatFromStore()
         viewModel.refreshQQFromStore()
     }
@@ -255,6 +258,7 @@ fun HubLocalScreen(
                 state.douyin,
                 state.xiaohongshu,
                 state.toutiao,
+                state.kuaishou,
             )
             items(contentCards, key = { "content-${it.adapterName}" }) { card ->
                 SocialAdapterCard(
@@ -267,6 +271,7 @@ fun HubLocalScreen(
                             "social-douyin" -> viewModel.requestDouyinLogin()
                             "social-xiaohongshu" -> viewModel.requestXhsLogin()
                             "social-toutiao" -> viewModel.requestToutiaoLogin()
+                            "social-kuaishou" -> viewModel.requestKuaishouLogin()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -279,6 +284,7 @@ fun HubLocalScreen(
                             "social-douyin" -> viewModel.syncDouyin()
                             "social-xiaohongshu" -> viewModel.syncXhs()
                             "social-toutiao" -> viewModel.syncToutiao()
+                            "social-kuaishou" -> viewModel.syncKuaishou()
                             else -> viewModel.requestSocialLoginStub(
                                 card.adapterName.removePrefix("social-")
                             )
@@ -291,6 +297,7 @@ fun HubLocalScreen(
                             "social-douyin" -> viewModel.logoutDouyin()
                             "social-xiaohongshu" -> viewModel.logoutXhs()
                             "social-toutiao" -> viewModel.logoutToutiao()
+                            "social-kuaishou" -> viewModel.logoutKuaishou()
                         }
                     },
                 )
