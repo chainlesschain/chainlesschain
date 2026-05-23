@@ -485,6 +485,16 @@ jobs:
             # OS==android cflags; gyp errors without it (Trap 14).
             export GYP_DEFINES="OS=android target_arch=arm64 host_os=linux android_ndk_path=$ANDROID_NDK_HOME"
 
+            # Per-dir compile is best-effort: bs3mc 11.x (resolved from
+            # core-db@0.1.1) doesn't compile against Node 26 V8 13.x headers
+            # (`Value()` deprecated → -Werror). bs3mc 12.5.x (from PDH)
+            # compiles fine. cc/runtime/bootstrap.js wraps core-db import in
+            # try/catch → falls back to ctx.db=null → harmless for `cc hub`
+            # which uses PDH's nested 12.5.x. So tolerate per-dir compile
+            # failure; only fail the workflow if ZERO bs3mc dirs produced
+            # a usable .node.
+            COMPILED=0
+            FAILED=0
             echo "$BS3MC_DIRS" | while IFS= read -r BS3MC_DIR; do
               [ -z "$BS3MC_DIR" ] && continue
               echo ""
@@ -492,21 +502,23 @@ jobs:
               BS3MC_VERSION="$(node -p "require('$BS3MC_DIR/package.json').version")"
               echo "Version: $BS3MC_VERSION"
 
-              (
+              if ! (
                 cd "$BS3MC_DIR"
                 npx -p node-gyp@latest node-gyp configure \
                   --target_arch=arm64 \
                   --target_platform=android \
-                  --nodedir=/tmp/node-headers
-
-                npx -p node-gyp@latest node-gyp build
-              )
+                  --nodedir=/tmp/node-headers \
+                  && npx -p node-gyp@latest node-gyp build
+              ); then
+                echo "::warning::bs3mc $BS3MC_VERSION compile failed at $BS3MC_DIR — runtime will use try/catch fallback (only fatal if ALL dirs fail)"
+                continue
+              fi
 
               NODE_BIN="$BS3MC_DIR/build/Release/better_sqlite3.node"
               if [ ! -f "$NODE_BIN" ]; then
-                echo "::error::NDK cross-compile did not produce $NODE_BIN"
+                echo "::warning::bs3mc $BS3MC_VERSION compile silently dropped .node at $BS3MC_DIR"
                 find "$BS3MC_DIR/build" -maxdepth 4 -type f 2>/dev/null | head -20
-                exit 1
+                continue
               fi
 
               echo "Pre-strip DT_NEEDED:"
@@ -540,6 +552,17 @@ jobs:
               echo "Final .node + tree:"
               ls -la "$BS3MC_DIR/build/Release/"
             done
+
+            # Post-loop: at least one bs3mc dir must have produced a .node.
+            # while-loop var scope dies with subshell, so count via find.
+            PRODUCED=$(find /tmp/cc-cli-hydrate/package/node_modules \
+                       -maxdepth 7 -name better_sqlite3.node -type f \
+                       | wc -l)
+            echo "bs3mc .node files produced: $PRODUCED"
+            if [ "$PRODUCED" = "0" ]; then
+              echo "::error::ALL bs3mc dirs failed to compile — cc hub will not work on-device"
+              exit 1
+            fi
           fi
 
           # 3. Re-tar — preserve `package/` prefix so the bootstrapper's
