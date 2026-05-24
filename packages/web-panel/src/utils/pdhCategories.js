@@ -62,6 +62,7 @@ const PREFIX_RULES = Object.freeze([
   ["system-data",     "system"],
   ["browser-",        "system"],
   ["vscode",          "system"],
+  ["win-recent",      "system"],
   ["ai-chat-",        "ai-chat"],
 ]);
 
