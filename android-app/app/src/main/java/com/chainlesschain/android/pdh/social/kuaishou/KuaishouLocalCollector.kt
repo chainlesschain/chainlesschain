@@ -50,15 +50,22 @@ class KuaishouLocalCollector @Inject constructor(
     private val credentialsStore: KuaishouCredentialsStore,
 ) {
 
+    /** v0.3 — optional signer for the v0.3 GraphQL endpoints. */
+    var signProvider: com.chainlesschain.android.pdh.social.SignProvider? = null
+
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
             val profileCount: Int,
+            val watchCount: Int,
+            val collectCount: Int,
+            val searchCount: Int,
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
             val lastErrorCode: Int = 0,
             val lastErrorMessage: String? = null,
+            val v03Attempted: Boolean = false,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -79,6 +86,33 @@ class KuaishouLocalCollector @Inject constructor(
             Timber.w(t, "KuaishouLocalCollector: fetchProfile threw")
             null
         }
+        val resolvedUid = profile?.uid ?: storedUid
+
+        // v0.3 — wire signer + fan out to 3 GraphQL endpoints, same template
+        // as Douyin / Toutiao. signer null = v0.2 fallback.
+        val signer = signProvider
+        apiClient.signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider
+        val v03Attempted = signer != null
+        var watches: List<KuaishouApiClient.WatchItem> = emptyList()
+        var profilePhotos: List<KuaishouApiClient.ProfilePhotoItem> = emptyList()
+        var searches: List<KuaishouApiClient.SearchItem> = emptyList()
+        if (signer != null) {
+            val warm = try {
+                signer.warmUp(cookie)
+            } catch (t: Throwable) {
+                Timber.w(t, "KuaishouLocalCollector: signProvider.warmUp threw")
+                false
+            }
+            if (warm) {
+                watches = safelyFetch("fetchWatchHistory") { apiClient.fetchWatchHistory(cookie) }
+                profilePhotos = safelyFetch("fetchProfilePhotos") {
+                    apiClient.fetchProfilePhotos(cookie, resolvedUid)
+                }
+                searches = safelyFetch("fetchSearchHistory") { apiClient.fetchSearchHistory(cookie) }
+            } else {
+                Timber.w("KuaishouLocalCollector: signProvider.warmUp returned false — skipping v0.3 endpoints")
+            }
+        }
 
         val snapshottedAt = System.currentTimeMillis()
         val events = JSONArray()
@@ -96,6 +130,39 @@ class KuaishouLocalCollector @Inject constructor(
                     .putOpt("city", profile.city)
                     .putOpt("constellation", profile.constellation)
                     .putOpt("description", profile.description)
+            )
+        }
+        for (item in watches) {
+            events.put(
+                JSONObject()
+                    .put("kind", "watch")
+                    .put("id", "watch-" + item.photoId)
+                    .put("capturedAt", item.viewedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("photoId", item.photoId)
+                    .put("caption", item.caption)
+                    .putOpt("authorName", item.authorName)
+                    .putOpt("authorId", item.authorId)
+                    .put("duration", item.duration),
+            )
+        }
+        for (item in profilePhotos) {
+            events.put(
+                JSONObject()
+                    .put("kind", "collect")
+                    .put("id", "collect-" + item.photoId)
+                    .put("capturedAt", item.postedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("photoId", item.photoId)
+                    .put("caption", item.caption),
+            )
+        }
+        for (item in searches) {
+            events.put(
+                JSONObject()
+                    .put("kind", "search")
+                    .put("id", "search-" + item.keyword + ":" + item.searchedAt)
+                    .put("capturedAt", item.searchedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("keyword", item.keyword)
+                    .put("searchAt", item.searchedAt),
             )
         }
         val total = events.length()
@@ -130,12 +197,25 @@ class KuaishouLocalCollector @Inject constructor(
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
             profileCount = if (profile != null) 1 else 0,
+            watchCount = watches.size,
+            collectCount = profilePhotos.size,
+            searchCount = searches.size,
             totalEvents = total,
             everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
             lastErrorCode = apiClient.lastErrorCode,
             lastErrorMessage = apiClient.lastErrorMessage,
+            v03Attempted = v03Attempted,
         )
+    }
+
+    private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
+        return try {
+            block()
+        } catch (t: Throwable) {
+            Timber.w(t, "KuaishouLocalCollector: %s threw", label)
+            emptyList()
+        }
     }
 
     /**

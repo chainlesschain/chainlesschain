@@ -1,11 +1,16 @@
 package com.chainlesschain.android.pdh.social.kuaishou
 
+import com.chainlesschain.android.pdh.social.NullSignProvider
+import com.chainlesschain.android.pdh.social.SignProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
@@ -49,6 +54,32 @@ class KuaishouApiClient @Inject constructor() {
 
     /** Override the base URL for MockWebServer in tests (v0.3+ when network lands). */
     var baseUrl: HttpUrl = "https://www.kuaishou.com/".toHttpUrl()
+
+    /**
+     * v0.3 — pluggable [SignProvider] for `__NS_sig3` GraphQL signing.
+     * Defaults to [NullSignProvider]; production wires [KuaishouSignBridge].
+     */
+    var signProvider: SignProvider = NullSignProvider
+
+    data class WatchItem(
+        val photoId: String,
+        val caption: String,
+        val authorName: String?,
+        val authorId: String?,
+        val viewedAt: Long,
+        val duration: Long,
+    )
+
+    data class ProfilePhotoItem(
+        val photoId: String,
+        val caption: String,
+        val postedAt: Long,
+    )
+
+    data class SearchItem(
+        val keyword: String,
+        val searchedAt: Long,
+    )
 
     data class ProfileInfo(
         val uid: String,
@@ -182,16 +213,223 @@ class KuaishouApiClient @Inject constructor() {
     }
 
     /**
-     * v0.3 placeholder — 跑 NS_sig3 签名后调 GraphQL endpoint。预留接口让
-     * v0.3 PR 1-line wire 即可启用。当前 throw 让调用者明确感知未实现。
+     * v0.3 — Watch history via GraphQL `visionFeedRecommend` (kuaishou's
+     * recommended feed; same query the web client uses to populate the
+     * home page). Each photo the user dwelled on is a KIND_WATCH event.
      */
-    @Suppress("UnusedParameter")
-    suspend fun fetchWatchHistory(
-        @Suppress("UNUSED_PARAMETER") cookie: String,
-        @Suppress("UNUSED_PARAMETER") limit: Int = 50,
-    ): List<Nothing> {
-        setLastError(-99, "v0.3 — NS_sig3 签名未接通")
-        return emptyList()
+    suspend fun fetchWatchHistory(cookie: String, limit: Int = 50): List<WatchItem> =
+        withContext(Dispatchers.IO) {
+            val variables = JSONObject().apply {
+                put("pcursor", "")
+                put("count", limit)
+            }.toString()
+            val body = buildGraphQLBody(KuaishouSignBridge.OP_FEED_RECOMMEND, variables)
+            val data = postGraphQL(cookie, KuaishouSignBridge.OP_FEED_RECOMMEND, body)
+                ?: return@withContext emptyList()
+            val feeds = data.optJSONObject("visionFeedRecommend")?.optJSONArray("feeds")
+                ?: return@withContext emptyList()
+            extractPhotoList(feeds, limit) { item, photoId, caption, ts ->
+                WatchItem(
+                    photoId = photoId,
+                    caption = caption,
+                    authorName = item.optJSONObject("author")?.optStringOrNull("name"),
+                    authorId = item.optJSONObject("author")?.optStringOrNull("id"),
+                    viewedAt = ts,
+                    duration = item.optLong("duration"),
+                )
+            }
+        }
+
+    /**
+     * v0.3 — User's own posted photos via `visionProfilePhotoList`. Acts as
+     * a "what I've published" KIND_POST-equivalent (adapter normalizes as
+     * KIND_COLLECT since Kuaishou doesn't track explicit "saved" client-side).
+     */
+    suspend fun fetchProfilePhotos(cookie: String, userId: String, limit: Int = 100): List<ProfilePhotoItem> =
+        withContext(Dispatchers.IO) {
+            val variables = JSONObject().apply {
+                put("userId", userId)
+                put("pcursor", "")
+                put("count", limit)
+                put("page", "profile")
+            }.toString()
+            val body = buildGraphQLBody(KuaishouSignBridge.OP_PROFILE_PHOTOS, variables)
+            val data = postGraphQL(cookie, KuaishouSignBridge.OP_PROFILE_PHOTOS, body)
+                ?: return@withContext emptyList()
+            val feeds = data.optJSONObject("visionProfilePhotoList")?.optJSONArray("feeds")
+                ?: return@withContext emptyList()
+            extractPhotoList(feeds, limit) { _, photoId, caption, ts ->
+                ProfilePhotoItem(
+                    photoId = photoId,
+                    caption = caption,
+                    postedAt = ts,
+                )
+            }
+        }
+
+    /**
+     * v0.3 — Recent search keywords via `visionSearchPhoto` (passing an
+     * empty `keyword` argument the server returns the user's recent
+     * search history if logged in). Best-effort: some accounts get an
+     * empty `recentSearchList` and we degrade to empty.
+     */
+    suspend fun fetchSearchHistory(cookie: String, limit: Int = 50): List<SearchItem> =
+        withContext(Dispatchers.IO) {
+            val variables = JSONObject().apply {
+                put("keyword", "")
+                put("pcursor", "")
+                put("page", "search")
+            }.toString()
+            val body = buildGraphQLBody(KuaishouSignBridge.OP_SEARCH_PHOTO, variables)
+            val data = postGraphQL(cookie, KuaishouSignBridge.OP_SEARCH_PHOTO, body)
+                ?: return@withContext emptyList()
+            // Two possible shapes — `recentSearchList` on logged-in
+            // accounts; `suggestKeywords` on cold sessions. Try both.
+            val recent = data.optJSONObject("visionSearchPhoto")?.optJSONArray("recentSearchList")
+                ?: data.optJSONObject("visionSearchPhoto")?.optJSONArray("history")
+                ?: return@withContext emptyList()
+            val out = ArrayList<SearchItem>(minOf(limit, recent.length()))
+            for (i in 0 until minOf(limit, recent.length())) {
+                val raw = recent.opt(i) ?: continue
+                val keyword: String
+                val ts: Long
+                when (raw) {
+                    is JSONObject -> {
+                        keyword = raw.optStringOrNull("keyword")
+                            ?: raw.optStringOrNull("query")
+                            ?: continue
+                        ts = (raw.optLong("time").takeIf { it > 0 }
+                            ?: raw.optLong("searchTime")) * 1000L
+                    }
+                    is String -> {
+                        keyword = raw
+                        ts = System.currentTimeMillis() - i * 1000L
+                    }
+                    else -> continue
+                }
+                if (keyword.isBlank()) continue
+                out.add(SearchItem(keyword = keyword, searchedAt = ts))
+            }
+            out
+        }
+
+    private fun buildGraphQLBody(operationName: String, variablesJson: String): String {
+        // We send a minimal POST body — Kuaishou's GraphQL endpoint is
+        // permissive about the `query` field being elided when the server
+        // already has the operation by name (registered queries). Empty
+        // query keeps the request small + avoids re-shipping the schema.
+        return JSONObject().apply {
+            put("operationName", operationName)
+            put("variables", JSONObject(variablesJson))
+            put("query", "")
+        }.toString()
+    }
+
+    private suspend fun postGraphQL(cookie: String, operationName: String, body: String): JSONObject? =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder().addPathSegments("graphql").build()
+            val purpose = "$operationName|$body"
+            val signed = signProvider.signUrl(rawUrl, purpose)
+            if (signed == null) {
+                setLastError(-99, "__NS_sig3 unavailable (bridge not warm or rotated)")
+                return@withContext null
+            }
+            val headers = signProvider.signedHeaders(rawUrl, purpose)
+            doPostJson(signed, cookie, body, headers)?.optJSONObject("data")
+        }
+
+    private fun <T : Any> extractPhotoList(
+        feeds: JSONArray,
+        limit: Int,
+        build: (JSONObject, String, String, Long) -> T?,
+    ): List<T> {
+        val out = ArrayList<T>(minOf(limit, feeds.length()))
+        for (i in 0 until minOf(limit, feeds.length())) {
+            val item = feeds.optJSONObject(i) ?: continue
+            // Kuaishou GraphQL nests the photo under `photo` on feed-recommend
+            // and on profile-photo. Try nested first then flat fallback.
+            val photo = item.optJSONObject("photo") ?: item
+            val photoId = photo.optStringOrNull("id") ?: continue
+            val caption = photo.optStringOrNull("caption") ?: "(no caption)"
+            val ts = (photo.optLong("timestamp").takeIf { it > 0 }
+                ?: photo.optLong("createTime")) * 1000L
+            val built = build(item, photoId, caption, ts) ?: continue
+            out.add(built)
+        }
+        return out
+    }
+
+    private fun doPostJson(
+        url: HttpUrl,
+        cookie: String,
+        body: String,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ): JSONObject? {
+        val mediaType = "application/json".toMediaTypeOrNull()
+        val builder = Request.Builder()
+            .url(url)
+            .post(body.toRequestBody(mediaType))
+            .header("Cookie", cookie)
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            )
+            .header("Referer", "https://www.kuaishou.com/")
+            .header("Origin", "https://www.kuaishou.com")
+            .header("Accept", "application/json, text/plain, */*")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            .header("Content-Type", "application/json")
+        for ((k, v) in extraHeaders) {
+            builder.header(k, v)
+        }
+        val req = builder.build()
+        return try {
+            httpClient.newCall(req).execute().use { resp ->
+                val rawBody = resp.body?.string()
+                if (rawBody == null) {
+                    setLastError(-1, "empty body")
+                    return null
+                }
+                if (!resp.isSuccessful) {
+                    Timber.w(
+                        "KuaishouApiClient: %s -> HTTP %d body=%s",
+                        url.encodedPath, resp.code, rawBody.take(200),
+                    )
+                    setLastError(resp.code, "HTTP ${resp.code}")
+                    return null
+                }
+                val trimmed = rawBody.trimStart()
+                if (!trimmed.startsWith("{")) {
+                    Timber.w(
+                        "KuaishouApiClient: %s -> non-JSON body (likely anti-bot)",
+                        url.encodedPath,
+                    )
+                    setLastError(-4, "non-json (cookie expired or anti-bot triggered)")
+                    return null
+                }
+                val obj = JSONObject(rawBody)
+                // GraphQL errors come back as `{errors: [...]}` with HTTP 200.
+                val errors = obj.optJSONArray("errors")
+                if (errors != null && errors.length() > 0) {
+                    val first = errors.optJSONObject(0)
+                    val msg = first?.optString("message") ?: "graphql error"
+                    Timber.w("KuaishouApiClient: GraphQL error %s", msg)
+                    setLastError(-5, "graphql: $msg")
+                    return null
+                }
+                clearLastError()
+                obj
+            }
+        } catch (e: IOException) {
+            Timber.w(e, "KuaishouApiClient: IO error on %s", url.encodedPath)
+            setLastError(-2, "IO: ${e.message ?: e.javaClass.simpleName}")
+            null
+        } catch (e: Exception) {
+            Timber.w(e, "KuaishouApiClient: parse error on %s", url.encodedPath)
+            setLastError(-3, "parse: ${e.message ?: e.javaClass.simpleName}")
+            null
+        }
     }
 
     /** Extract numeric uid from URL-encoded api_ph cookie payload (best-effort). */

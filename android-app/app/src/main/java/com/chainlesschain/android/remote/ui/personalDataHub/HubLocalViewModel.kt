@@ -98,6 +98,7 @@ class HubLocalViewModel @Inject constructor(
     private val toutiaoSignBridge: com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge,
     private val kuaishouCollector: KuaishouLocalCollector,
     private val kuaishouCredentials: KuaishouCredentialsStore,
+    private val kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge,
     private val qqCollector: QQLocalCollector,
     private val qqCredentials: QQCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
@@ -3349,7 +3350,18 @@ class HubLocalViewModel @Inject constructor(
                     kuaishou = it.kuaishou.copy(isSyncing = true, errorMessage = null),
                 )
             }
-            val result = kuaishouCollector.snapshot()
+            // v0.3 — wire KuaishouSignBridge for NS_sig3 + kpf/kpn. Same
+            // finally-shutdown pattern as Toutiao/Douyin to free the WebView.
+            kuaishouCollector.signProvider = kuaishouSignBridge
+            val result = try {
+                kuaishouCollector.snapshot()
+            } finally {
+                try {
+                    kuaishouSignBridge.shutdown()
+                } catch (t: Throwable) {
+                    Timber.w(t, "HubLocalViewModel: kuaishouSignBridge.shutdown threw")
+                }
+            }
             when (result) {
                 is KuaishouLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -3381,17 +3393,24 @@ class HubLocalViewModel @Inject constructor(
                     )) {
                         is LocalCcRunner.CcResult.Ok -> {
                             _state.update {
+                                val banner = if (r.report.status != "ok" && r.report.error != null) {
+                                    "入库状态: ${r.report.status} (${r.report.error})"
+                                } else if (result.v03Attempted &&
+                                    (result.watchCount + result.collectCount + result.searchCount) > 0
+                                ) {
+                                    "已同步 profile + ${result.watchCount} 推荐 / ${result.collectCount} 收藏 / ${result.searchCount} 搜索"
+                                } else if (result.v03Attempted) {
+                                    "已同步账号 profile。v0.3 签名 bridge 未就绪 — 推荐/收藏/搜索本次未抓到（代码 ${result.lastErrorCode}），稍后再同步。"
+                                } else {
+                                    "已同步账号 profile（v0.2 含昵称/头像 cookie 解析）。推荐/收藏/搜索需 v0.3 NS_sig3 签名接通。"
+                                }
                                 it.copy(
                                     globalSyncingAdapter = null,
                                     kuaishou = it.kuaishou.copy(
                                         isSyncing = false,
                                         lastSyncAt = result.snapshottedAt,
                                         lastSyncCount = r.report.ingested,
-                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
-                                            "入库状态: ${r.report.status} (${r.report.error})"
-                                        } else {
-                                            "已同步账号 profile（v0.2 含昵称/头像 cookie 解析）。推荐/收藏/搜索需 v0.3 NS_sig3 签名接通。"
-                                        },
+                                        errorMessage = banner,
                                     ),
                                 )
                             }
