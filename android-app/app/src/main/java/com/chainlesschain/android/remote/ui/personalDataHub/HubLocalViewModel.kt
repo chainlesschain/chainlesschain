@@ -370,6 +370,42 @@ class HubLocalViewModel @Inject constructor(
         val errorMessage: String? = null,
     )
 
+    /**
+     * "看本机数据" bottom-sheet state. 让用户能直接看 vault 里到底有没有真东西，
+     * 不用进终端跑 `cc hub query-events`。
+     *
+     * Why this exists: 2026-05-24 user feedback — "微博虽然提示同步成功但是问 ai
+     * 说是没内容 同步的数据在哪 可以可视化看见么"。SocialCard 只显计数，
+     * 没法看具体内容；AskCard RAG 召回不一定命中。预览 sheet 直接 dump 最近 N
+     * 条 raw 事件 + summary，让用户自己判定。
+     */
+    @Immutable
+    data class VaultPreviewState(
+        val open: Boolean = false,
+        val isLoading: Boolean = false,
+        /** null = 不过滤 (取所有 adapter) */
+        val adapterFilter: String? = null,
+        /** 用户友好的来源标签 — e.g. "微博 (social-weibo)"。null 时取 [adapterFilter] */
+        val displayName: String? = null,
+        val rows: List<VaultPreviewRow> = emptyList(),
+        val errorMessage: String? = null,
+    )
+
+    /**
+     * UI-facing row distinct from [LocalCcRunner.EventRow] — UI doesn't need
+     * raw JSON, only the fields actually rendered. Decoupling lets the VM
+     * shape preview rows (e.g. truncate summary, format time) without leaking
+     * cc-runner types into Composables.
+     */
+    @Immutable
+    data class VaultPreviewRow(
+        val id: String,
+        val subtype: String,
+        val occurredAt: Long,
+        val sourceAdapter: String?,
+        val summary: String?,
+    )
+
     @Immutable
     data class UiState(
         val systemData: SystemDataCardState = SystemDataCardState(),
@@ -427,6 +463,7 @@ class HubLocalViewModel @Inject constructor(
         val email: Map<String, EmailCardState> = emptyMap(),
         // §2.5 — vendorKey → travel card state (travel-amap / travel-ctrip).
         val travel: Map<String, TravelCardState> = emptyMap(),
+        val vaultPreview: VaultPreviewState = VaultPreviewState(),
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -652,6 +689,15 @@ class HubLocalViewModel @Inject constructor(
     fun askQuestion() {
         val q = _state.value.ask.question.trim()
         if (q.isEmpty() || _state.value.ask.isAsking) return
+        // Fast path — "你是谁 / 你好 / 你能干嘛" 这类身份/问候/能力 meta 提问，
+        // 与个人数据无关。直接调 llmEngine.chat 跳过 cc 子进程 + AnalysisEngine
+        // + RAG + HTTP loopback。这条链在端侧硬件冷启就要几秒，meta 问题再走
+        // 完整管道纯属浪费。失败时(llmEngine 未就绪)透出原错，让用户知道是
+        // 引擎层而非数据中台问题——比 "spawn-failed: ..." 直观。
+        if (isMetaQuestion(q)) {
+            askDirectLocal(q)
+            return
+        }
         // A3.10 — snapshot the cloud-fallback toggle at submit time. User can
         // flip while in flight; we honor whatever was set on tap (race-immune).
         val acceptNonLocal = _state.value.threeLocks.allowCloudFallback
@@ -665,6 +711,12 @@ class HubLocalViewModel @Inject constructor(
                 ),
             )
         }
+        // RAG 上下文预算按目标 LLM 体量分档。本机 Qwen2.5-1.5B / Gemma-2B
+        // 指令跟随窗口 ~2-4K token，80 facts (cc 默认) 会撑爆 prompt 留不下答
+        // 案空间；云端 GPT/DeepSeek/Doubao 32K+ 上下文，能塞更多召回更全。
+        // 用户 2026-05-24 反馈："本机模型太小，云模型可以加更多上下文"。
+        val maxFacts = if (acceptNonLocal) FACTS_BUDGET_CLOUD else FACTS_BUDGET_LOCAL
+        val maxQueryLimit = if (acceptNonLocal) QUERY_LIMIT_BUDGET_CLOUD else QUERY_LIMIT_BUDGET_LOCAL
         viewModelScope.launch {
             // A3.2 — LocalLlmServer baseUrl is "http://127.0.0.1:<port>" once
             // ChainlessChainApplication.delayedInit started it. If start failed
@@ -674,6 +726,8 @@ class HubLocalViewModel @Inject constructor(
                 q,
                 ollamaUrl = llmServer.baseUrl,
                 acceptNonLocal = acceptNonLocal,
+                maxFacts = maxFacts,
+                maxQueryLimit = maxQueryLimit,
             )
             _state.update { st ->
                 when (result) {
@@ -711,6 +765,55 @@ class HubLocalViewModel @Inject constructor(
 
     fun clearAskAnswer() {
         _state.update { it.copy(ask = it.ask.copy(answer = null, citations = emptyList(), errorMessage = null)) }
+    }
+
+    /**
+     * Meta-question 短路分支 — 跳过 cc 子进程 + AnalysisEngine RAG，直接进程内
+     * 调 [llmEngine].chat。citations 必空（没查 vault），llmName 加 "·直答" 后
+     * 缀让用户看得见走了快路径，方便对照"本机模型测试对话"的耗时。
+     */
+    private fun askDirectLocal(q: String) {
+        _state.update {
+            it.copy(
+                ask = it.ask.copy(
+                    isAsking = true,
+                    answer = null,
+                    citations = emptyList(),
+                    errorMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            val t0 = System.currentTimeMillis()
+            try {
+                val response = llmEngine.chat(
+                    messages = listOf(LlmInferenceEngine.ChatMessage(role = "user", content = q)),
+                )
+                val elapsed = System.currentTimeMillis() - t0
+                _state.update { st ->
+                    st.copy(
+                        ask = st.ask.copy(
+                            isAsking = false,
+                            answer = response.text,
+                            citations = emptyList(),
+                            llmName = "${llmEngine.name} (本机·直答)",
+                            isLocal = true,
+                            durationMs = elapsed,
+                        ),
+                    )
+                }
+            } catch (e: Throwable) {
+                Timber.w(e, "HubLocalViewModel.askDirectLocal: llmEngine.chat failed")
+                _state.update { st ->
+                    st.copy(
+                        ask = st.ask.copy(
+                            isAsking = false,
+                            errorMessage = "本机推理失败: ${e.message ?: e.javaClass.simpleName}",
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     fun requestCitationDetail(eventId: String) {
@@ -763,6 +866,72 @@ class HubLocalViewModel @Inject constructor(
 
     fun dismissCitationDetail() {
         _state.update { it.copy(citationDetail = CitationDetailState()) }
+    }
+
+    /**
+     * 打开"看本机数据"预览 sheet — 走 `cc hub query-events --adapter <name>`
+     * 取最近 [limit] 条。adapter null = 全部 (混合 source)。
+     *
+     * 用户场景：sync 卡显"已采集 N 条" 但 AI 说没数据 — 用户想直接看 vault 里
+     * 到底有没有真东西。这个方法让 UI 能 dump raw events 让用户自己判定。
+     */
+    fun requestVaultPreview(adapter: String?, displayName: String? = null, limit: Int = 10) {
+        _state.update {
+            it.copy(
+                vaultPreview = VaultPreviewState(
+                    open = true,
+                    isLoading = true,
+                    adapterFilter = adapter,
+                    displayName = displayName,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            val r = ccRunner.queryEvents(adapter = adapter, limit = limit)
+            _state.update { st ->
+                // Stale guard: user re-opened sheet with different filter while
+                // in flight — drop this result.
+                if (!st.vaultPreview.open ||
+                    st.vaultPreview.adapterFilter != adapter
+                ) {
+                    return@update st
+                }
+                when (r) {
+                    is LocalCcRunner.QueryEventsResult.Ok -> {
+                        val rows = r.rows.map { row ->
+                            VaultPreviewRow(
+                                id = row.id,
+                                subtype = row.subtype,
+                                occurredAt = row.occurredAt,
+                                sourceAdapter = row.sourceAdapter,
+                                summary = row.summary?.take(160),
+                            )
+                        }
+                        st.copy(
+                            vaultPreview = st.vaultPreview.copy(
+                                isLoading = false,
+                                rows = rows,
+                                errorMessage = null,
+                            ),
+                        )
+                    }
+                    is LocalCcRunner.QueryEventsResult.Failed -> {
+                        Timber.w("HubLocalViewModel.queryEvents failed: %s", r.reason)
+                        st.copy(
+                            vaultPreview = st.vaultPreview.copy(
+                                isLoading = false,
+                                rows = emptyList(),
+                                errorMessage = r.reason,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun dismissVaultPreview() {
+        _state.update { it.copy(vaultPreview = VaultPreviewState()) }
     }
 
     // ─── 三道锁 (推文 §三道锁，缺一不可) ──────────────────────────────────
@@ -3380,5 +3549,44 @@ class HubLocalViewModel @Inject constructor(
         // (cookie → API → snapshot → cc → vault) works. Profile real-device
         // throughput before raising. See LocalCcRunner.syncAdapter [limit].
         const val WEIBO_FIRST_PASS_LIMIT: Int = 50
+
+        // RAG 上下文预算 — 按 LLM 体量分档。本机小模型 2-4K token 指令跟随窗口
+        // 经不起 80 facts 撑 prompt；云大模型 32K+ context，能塞更多召回得更全
+        // 答案。LOCAL 与 cc 默认 (80/200) 拉开 4x 差距让小模型留出答案空间。
+        const val FACTS_BUDGET_LOCAL: Int = 20
+        const val QUERY_LIMIT_BUDGET_LOCAL: Int = 50
+        const val FACTS_BUDGET_CLOUD: Int = 80
+        const val QUERY_LIMIT_BUDGET_CLOUD: Int = 200
+
+        // Meta-question 短路白名单。归一化形式 = trim + lowercase + 末尾标点剥离
+        // (？?。.！!~～)。匹配走 [askDirectLocal]，跳过 cc 子进程 + RAG。新增条目
+        // 保持严格匹配整句（不是子串），避免把含数据的问题误判（"你能告诉我上周
+        // 妈妈打了几个电话么" 不该命中"你能"）。需要扩展只往这表里加。
+        internal val META_QUESTION_WHITELIST: Set<String> = setOf(
+            // 身份
+            "你是谁", "你是什么", "你叫什么", "你叫啥", "你是啥",
+            "你是ai吗", "你是ai", "你是人工智能吗", "你是人工智能",
+            "你是机器人吗", "你是机器人", "你是人吗",
+            // 问候
+            "你好", "你好啊", "您好", "嗨", "嗨你好",
+            "在吗", "在不在",
+            // 能力
+            "你能做什么", "你能干什么", "你能干嘛", "你会什么", "你会干什么",
+            "你有什么功能", "你能帮我做什么",
+            // 介绍
+            "介绍一下你自己", "介绍下你自己", "自我介绍", "介绍你自己",
+            // 英文
+            "hi", "hello", "hey", "hi there", "hey there", "yo",
+            "who are you", "what are you", "what can you do",
+            "introduce yourself", "tell me about yourself",
+        )
+
+        internal fun isMetaQuestion(raw: String): Boolean {
+            val normalized = raw.trim()
+                .lowercase(Locale.ROOT)
+                .trimEnd('？', '?', '。', '.', '！', '!', '~', '～', ' ')
+                .trim()
+            return normalized in META_QUESTION_WHITELIST
+        }
     }
 }
