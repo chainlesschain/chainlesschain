@@ -28,11 +28,13 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
-// v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode
-//   (host-adb-bridge sms.query / call.query). Snapshot mode still v1
-//   schema — sms/calls only land via bridge path until Android snapshot
-//   writer is updated to include them.
-const VERSION = "0.2.0";
+// v0.3.0 (2026-05-24): added kind="media-file" via bridge mode
+//   (host-adb-bridge media.list across 5 /sdcard categories). Metadata
+//   only — path/size/mtime/ext, no file content.
+// v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
+//   Snapshot mode still v1 schema — sms/calls/media only land via
+//   bridge path until Android snapshot writer is updated to include them.
+const VERSION = "0.3.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -65,6 +67,13 @@ function callOriginalId(c) {
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-call:${k}`;
 }
+function mediaOriginalId(m) {
+  // Full filesystem path is stable as long as the file isn't moved/renamed.
+  // Path is unique within the device.
+  const k = (m && typeof m.path === "string" && m.path) ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `android-media:${k}`;
+}
 
 class SystemDataAndroidAdapter {
   constructor(opts = {}) {
@@ -75,6 +84,7 @@ class SystemDataAndroidAdapter {
       "sync:android-package-manager",
       "sync:android-sms",
       "sync:android-call-log",
+      "sync:android-media-files",
     ];
     this.extractMode = "device-pull";
     this.rateLimits = { perDay: 24 };
@@ -84,14 +94,18 @@ class SystemDataAndroidAdapter {
         "installed_apps:packageName,label,versionName,versionCode,firstInstallTime,lastUpdateTime,isSystem",
         "sms:id,address,body,date,dateSent,type,threadId,read,subject",
         "callLog:id,number,name,duration,date,type,geocoded",
+        // Media is metadata-only — file content never leaves the device.
+        "media:path,size,mtimeMs,ext,category(photos|pictures|videos|downloads|documents)",
       ],
-      // SMS bodies + call numbers are high-sensitivity. Defaults below are
-      // permissive (matches contacts/apps behavior — UI doesn't yet have
-      // per-kind toggles; user opts in by triggering sync at all). Tighten
-      // when the UI grows a per-kind include picker.
       sensitivity: "high",
       legalGate: false,
-      defaultInclude: { contacts: true, apps: true, sms: true, calls: true },
+      defaultInclude: {
+        contacts: true,
+        apps: true,
+        sms: true,
+        calls: true,
+        media: { photos: true, pictures: true, videos: true, downloads: true, documents: true },
+      },
     };
 
     // _deps for test injection — mirrors the pattern in cli-dev.md so test
@@ -248,6 +262,32 @@ class SystemDataAndroidAdapter {
           originalId: callOriginalId(c),
           capturedAt,
           payload: c,
+        };
+        emitted += 1;
+      }
+    }
+
+    // Media files — metadata only (path, size, mtime, ext). Never reads
+    // file content off the device. UI uses per-category include keys so
+    // a privacy-conscious user can keep photos but skip downloads, etc.
+    const MEDIA_CATEGORIES = ["photos", "pictures", "videos", "downloads", "documents"];
+    for (const cat of MEDIA_CATEGORIES) {
+      // Per-category include key: include.media.photos, include.media.videos, ...
+      // Top-level `include.media === false` disables ALL media in one switch.
+      if (opts.include?.media === false) break;
+      if (opts.include?.media?.[cat] === false) continue;
+      const res = await bridge.invoke("media.list", {
+        category: cat,
+        since: Number.isInteger(opts.since) ? opts.since : undefined,
+      });
+      const arr = Array.isArray(res) ? res : Array.isArray(res?.files) ? res.files : [];
+      for (const f of arr) {
+        if (emitted >= limit) return;
+        yield {
+          kind: "media-file",
+          originalId: mediaOriginalId(f),
+          capturedAt,
+          payload: f,
         };
         emitted += 1;
       }
@@ -475,6 +515,42 @@ class SystemDataAndroidAdapter {
       event.extra = extra;
 
       return { events: [event], persons: [], places: [], items: [], topics: [] };
+    }
+
+    if (raw.kind === "media-file") {
+      const p = raw.payload || {};
+      const path = typeof p.path === "string" ? p.path : "";
+      const fileName = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
+      // Category → item subtype + category string
+      let subtype = ITEM_SUBTYPES.OTHER;
+      let category = "media";
+      if (p.category === "photos" || p.category === "pictures" || p.category === "videos") {
+        subtype = ITEM_SUBTYPES.MEDIA;
+        category = p.category;
+      } else if (p.category === "documents") {
+        subtype = ITEM_SUBTYPES.DOCUMENT;
+        category = "documents";
+      } else if (p.category === "downloads") {
+        subtype = ITEM_SUBTYPES.OTHER;
+        category = "downloads";
+      }
+      const item = {
+        id: `item-android-media-${path}`,
+        type: ENTITY_TYPES.ITEM,
+        subtype,
+        name: fileName || "(无名)",
+        category,
+        ingestedAt,
+        source: source(`android-media:${path}`),
+        extra: {
+          path,
+          size: Number.isInteger(p.size) ? p.size : null,
+          mtimeMs: Number.isInteger(p.mtimeMs) ? p.mtimeMs : null,
+          ext: typeof p.ext === "string" ? p.ext : null,
+          androidCategory: p.category,
+        },
+      };
+      return { events: [], persons: [], places: [], items: [item], topics: [] };
     }
 
     throw new Error(`system-data-android.normalize: unknown raw.kind=${raw.kind}`);

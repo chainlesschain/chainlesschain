@@ -221,6 +221,78 @@ async function queryCallLog(params, opts) {
 }
 
 /**
+ * Lists media files in well-known /sdcard subdirectories. Returns metadata
+ * only — file CONTENT is never read off the device through this method.
+ * Pure ADB shell, no root, no permissions declared (adb shell user already
+ * has READ_EXTERNAL_STORAGE-equivalent access).
+ *
+ * Category → directory mapping:
+ *   photos       /sdcard/DCIM/Camera
+ *   pictures     /sdcard/Pictures      (screenshots, downloaded images, etc.)
+ *   videos       /sdcard/Movies
+ *   downloads    /sdcard/Download
+ *   documents    /sdcard/Documents
+ *
+ * Uses `find -printf "%s\t%T@\t%p\n"` which is supported by Android toybox.
+ * One subprocess per category — concurrent isn't worth it; even ~5000-file
+ * Pictures listings finish in <2s.
+ *
+ * @param {{category: string, since?: number}} params
+ *   - category: one of the keys above (required)
+ *   - since: epoch-ms; files with mtime < since are skipped
+ * @returns {Promise<Array<{path, size, mtimeMs, ext, category}>>}
+ */
+const MEDIA_DIRS = {
+  photos: "/sdcard/DCIM/Camera",
+  pictures: "/sdcard/Pictures",
+  videos: "/sdcard/Movies",
+  downloads: "/sdcard/Download",
+  documents: "/sdcard/Documents",
+};
+async function listMedia(params, opts) {
+  const cat = params && params.category;
+  const dir = MEDIA_DIRS[cat];
+  if (!dir) {
+    throw new HostAdbBridgeUnavailableError(
+      `media.list: unknown category "${cat}". Valid: ${Object.keys(MEDIA_DIRS).join(", ")}`,
+    );
+  }
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    [
+      "shell",
+      // Suppress "Permission denied" stderr noise on a few system-protected
+      // subdirs (e.g. .trashed). 2>/dev/null hides those rows from output.
+      `find ${dir} -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null`,
+    ],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 180_000 },
+  );
+  const sinceMs = Number.isInteger(params?.since) ? params.since : 0;
+  const out = [];
+  for (const rawLine of stdout.split("\n")) {
+    const line = rawLine.replace(/\r+$/, "");
+    if (!line) continue;
+    // tab-separated: <size>\t<mtime_epoch_fractional>\t<path>
+    const tab1 = line.indexOf("\t");
+    const tab2 = line.indexOf("\t", tab1 + 1);
+    if (tab1 < 0 || tab2 < 0) continue;
+    const size = parseInt(line.substring(0, tab1), 10);
+    const mtimeSec = parseFloat(line.substring(tab1 + 1, tab2));
+    const path = line.substring(tab2 + 1);
+    if (!Number.isFinite(size) || !Number.isFinite(mtimeSec) || !path) continue;
+    // Filter out hidden / system files — any path segment starts with "."
+    // catches .thumbnails/, .trashed-*/, .nomedia, etc.
+    if (path.split("/").some((seg) => seg.startsWith("."))) continue;
+    const mtimeMs = Math.floor(mtimeSec * 1000);
+    if (sinceMs > 0 && mtimeMs < sinceMs) continue;
+    const lastDot = path.lastIndexOf(".");
+    const ext = lastDot >= 0 ? path.substring(lastDot + 1).toLowerCase() : "";
+    out.push({ path, size, mtimeMs, ext, category: cat });
+  }
+  return out;
+}
+
+/**
  * List snapshot JSON files in the Android app's staging directory.
  * Uses `adb shell run-as` so only works on debuggable builds (which is
  * always true for `<pkg>.debug` variants). Production builds will
@@ -331,6 +403,8 @@ export function createHostAdbBridge(opts = {}) {
           return await querySms(params, opts);
         case "call.query":
           return await queryCallLog(params, opts);
+        case "media.list":
+          return await listMedia(params, opts);
         case "snapshot.list":
           return await listSnapshots(params, opts);
         case "snapshot.read":
