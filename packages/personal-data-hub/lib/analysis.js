@@ -21,7 +21,7 @@
 
 "use strict";
 
-const { parseQuery } = require("./query-parser");
+const { parseQuery, extractEntityTerm } = require("./query-parser");
 const {
   buildPrompt,
   parseCitations,
@@ -40,6 +40,13 @@ const DEFAULT_MAX_QUERY_LIMIT = 200;
 // window ("最近 30 天的消费") we treat it as list-with-window and fall
 // through to the default broader path — see _gatherFacts.
 const LATEST_INTENT_FACT_LIMIT = 3;
+
+// intent=list FTS5 augmentation cap. When the question carries a probable
+// entity-name ("提到王老板的消息", "苹果的订单") we run an extra
+// vault.searchEvents(q=term) and append non-duplicate hits to FACTS. Cap
+// at 10 so a popular term ("订单") can't drown out the adapter+time slice
+// the user explicitly asked for. Stays additive (never replaces events).
+const LIST_INTENT_FTS_LIMIT = 10;
 
 class AnalysisEngine {
   /**
@@ -425,6 +432,58 @@ class AnalysisEngine {
     }
     const events = this.vault.queryEvents(q);
 
+    // intent=list + entity-name FTS5 augmentation — when the question
+    // carries a probable entity-name candidate ("提到王老板的消息",
+    // "苹果的订单"), run an extra vault.searchEvents(q=term) and append
+    // hits not already in `events`. Adapter + time window are passed
+    // through so the FTS slice stays consistent with the main query.
+    //
+    // Strictly additive: the FTS hits are appended to `events` (no
+    // replacement). Wrong term extraction at worst returns 0 rows; FTS
+    // errors are swallowed — main path (events + persons + items) stays
+    // intact. See pdh_analysis_engine_intent_routing.md.
+    //
+    // Skipped for intent ∈ {count, sum-amount, latest}:
+    //   - count uses TOTALS preamble; FACTS sample doesn't need padding
+    //   - sum-amount is value-aggregation; entity-name hits don't help
+    //   - latest already returned earlier via narrow path
+    if (
+      parsed.intent === "list" &&
+      typeof this.vault.searchEvents === "function"
+    ) {
+      const entityTerm = extractEntityTerm(parsed.raw);
+      if (entityTerm) {
+        const headroom = effMaxFacts - events.length;
+        if (headroom > 0) {
+          try {
+            const ftsQ = {
+              q: entityTerm,
+              limit: Math.min(headroom, LIST_INTENT_FTS_LIMIT),
+            };
+            if (parsed.filters && parsed.filters.adapter) {
+              ftsQ.adapter = parsed.filters.adapter;
+            }
+            if (parsed.timeWindow) {
+              if (Number.isFinite(parsed.timeWindow.since)) ftsQ.since = parsed.timeWindow.since;
+              if (Number.isFinite(parsed.timeWindow.until)) ftsQ.until = parsed.timeWindow.until;
+            }
+            const ftsResult = this.vault.searchEvents(ftsQ);
+            if (ftsResult && Array.isArray(ftsResult.rows)) {
+              const existingIds = new Set(events.map((e) => e.id));
+              for (const row of ftsResult.rows) {
+                if (row && row.id && !existingIds.has(row.id)) {
+                  events.push(row);
+                  existingIds.add(row.id);
+                }
+              }
+            }
+          } catch (_e) {
+            // FTS failure is non-fatal — main events array already populated.
+          }
+        }
+      }
+    }
+
     // Path C follow-up — events alone miss whole categories of facts:
     //  - contacts (system-data-android) land in `persons`, not `events`
     //  - installed apps land in `items`, not `events`
@@ -506,4 +565,5 @@ module.exports = {
   DEFAULT_MAX_FACTS,
   DEFAULT_MAX_QUERY_LIMIT,
   LATEST_INTENT_FACT_LIMIT,
+  LIST_INTENT_FTS_LIMIT,
 };

@@ -219,6 +219,78 @@ function parseIntent(text) {
   return "list";
 }
 
+// ─── Entity-name extraction (FTS5 fulltext routing) ────────────────────
+//
+// Pull a probable entity-name candidate out of the raw question so
+// `_gatherFacts` can augment intent=list results with `vault.searchEvents`
+// (FTS5 + trigram CJK substring; LIKE fallback). Heuristic: strip every
+// known stop-pattern (time / intent / subtype / adapter / list-trigger /
+// pronoun / punct / digit) and pick the longest 2-10 char chunk that
+// remains.
+//
+// Wrong extractions are SAFE: the engine treats this as an OPTIONAL
+// augmentation — extracted-but-irrelevant terms just return 0 FTS rows
+// (wasted budget, not lost facts). Single-character Chinese names like
+// "妈" / "爸" are deliberately NOT picked up because single-char tokens
+// false-positive heavily on residual verbs (说/看/买). That's a known
+// limitation; first-pass acceptable.
+//
+// Stop-pattern order matters: multi-char compounds must run BEFORE
+// shorter alternatives so "多少钱" doesn't decay to "多少" + leftover "钱".
+
+const ENTITY_STOP_PATTERNS = [
+  // Compounds — multi-char specific tokens first
+  /(多少钱|多少次|多少个|多少家|多少人|多少张|多少部|加起来|共多少|总共)/g,
+  /(几个|几次|几条|几单)/g,
+  /(how\s+many|count\s+of)/gi,
+  // Time
+  /(今天|昨天|前天|明天|本周|这周|上周|这个礼拜|上个礼拜|这一周|上一周|本月|这月|上月|这个月|上个月|上一月|今年|去年|最近|最新)/g,
+  /\d+\s*[天周月年个]/g,
+  /\d{4}\s*年\s*\d{1,2}\s*月/g,
+  /(today|yesterday|past|recent|latest)/gi,
+  // Intent (remaining shorter forms after compounds)
+  /(多少|合计)/g,
+  /(sum|total|count|amount)/gi,
+  // Subtype keywords — compound forms first
+  /(下了几单|下了多少单|去旅游)/g,
+  /(订单|下单|买了|购买|支付|付款|花了|花费|消费|开销|金额|转账|转给|转钱|收入|工资|进账|收到|聊天|消息|聊了|对话|朋友圈|动态|去过|到过|去了|来到|出差|旅行|浏览|看了|阅读|发了)/g,
+  /(order|payment|transfer|income|message|chat|moment|post|visited|trip|browse|read|spent|spend)/gi,
+  // Adapter keywords — compound forms first
+  /(大众点评|百度地图|火车票)/g,
+  /(支付宝|微信|邮箱|邮件|淘宝|天猫|京东|拼多多|美团|高德|高铁|携程)/g,
+  /(alipay|wechat|email|imap|taobao|tmall|jingdong|jd|pdd|meituan|dianping|baidu\s*map|12306|ctrip)/gi,
+  /(deepseek|kimi|通义|智谱|混元|千帆|扣子|chatgpt|claude)/gi,
+  // List / search trigger
+  /(查一下|找一找|帮我|给我|看下|看看|看一下)/g,
+  /(列出|列表|查询|查找|查看|提到|发现)/g,
+  /(list|show|find|search)/gi,
+  // Pronouns / particles / prepositions (multi-char first, then single-char)
+  /(我们|你们|他们|什么|哪个|哪些|怎么|为什么|是否)/g,
+  /[的了吗啊呢在给到与和跟对从向是有我你他她它这那哪谁啥嘛]/g,
+  // Punctuation + whitespace
+  /[\s!?.,;:'"()，。！？；：、《》「」『』【】]+/g,
+  // Numbers
+  /\d+/g,
+];
+
+/**
+ * Extract a probable entity-name candidate from raw question text.
+ *
+ * @param {string} text
+ * @returns {string|null}  longest remaining 2-10 char chunk, or null
+ */
+function extractEntityTerm(text) {
+  if (typeof text !== "string" || text.length === 0) return null;
+  let s = text;
+  for (const re of ENTITY_STOP_PATTERNS) {
+    s = s.replace(re, " ");
+  }
+  const candidates = s.split(/\s+/).filter((t) => t.length >= 2 && t.length <= 10);
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.length - a.length);
+  return candidates[0];
+}
+
 // ─── Full parser ─────────────────────────────────────────────────────────
 
 /**
@@ -250,7 +322,9 @@ module.exports = {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  extractEntityTerm,
   // exposed for tests
   SUBTYPE_KEYWORDS,
   ADAPTER_KEYWORDS,
+  ENTITY_STOP_PATTERNS,
 };

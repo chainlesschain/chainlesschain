@@ -7,6 +7,7 @@ const {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  extractEntityTerm,
 } = require("../lib/query-parser");
 
 // Pin "now" to 2026-05-19 12:00:00 UTC for deterministic windows
@@ -146,5 +147,70 @@ describe("parseQuery (integration)", () => {
     expect(r.raw).toBe("");
     expect(r.timeWindow).toBeNull();
     expect(r.filters).toEqual({});
+  });
+});
+
+// ─── extractEntityTerm — FTS5 fulltext routing helper ───────────────────
+//
+// 2026-05-24 — Powers AnalysisEngine._gatherFacts intent=list augmentation:
+// when the parser pulls a probable entity-name out of the question, the
+// engine appends vault.searchEvents(q=term) hits to the FACTS pool. Wrong
+// extractions are intentionally non-fatal — they waste a few rows of
+// budget at worst, never lose existing events. Memory:
+// pdh_analysis_engine_intent_routing.md.
+
+describe("extractEntityTerm", () => {
+  it("extracts named entity from '提到 X 的消息' phrasing", () => {
+    expect(extractEntityTerm("提到王老板的消息")).toBe("王老板");
+  });
+
+  it("returns null when only stop-words remain (no entity hint)", () => {
+    expect(extractEntityTerm("上个月在淘宝总共花了多少？")).toBeNull();
+    expect(extractEntityTerm("在淘宝买了什么")).toBeNull();
+  });
+
+  it("picks the longest remaining chunk when several survive cleaning", () => {
+    // 苹果(2) vs 订单(stop) — only 苹果 left.
+    expect(extractEntityTerm("苹果的订单")).toBe("苹果");
+  });
+
+  it("strips list/search trigger words ('提到', '查找', '看一下')", () => {
+    expect(extractEntityTerm("查找王医生的订单")).toBe("王医生");
+    expect(extractEntityTerm("看一下王医生的最新消息")).toBe("王医生");
+  });
+
+  it("strips compound subtype keywords before shorter intent forms", () => {
+    // "多少钱" must clear before "多少" leaves stranded "钱". With clean
+    // stripping there is no leftover ≥2 char chunk → null.
+    expect(extractEntityTerm("我总共花了多少钱")).toBeNull();
+  });
+
+  it("ignores single-character residues (verbs leak through; 1-char names skipped first-pass)", () => {
+    // "我妈" → "我" stripped (pronoun), "妈" left as single char → filtered.
+    // Documented limitation; first-pass tradeoff for higher precision.
+    expect(extractEntityTerm("我妈最近发的微信")).toBeNull();
+  });
+
+  it("handles ASCII entity tokens (≥2 chars)", () => {
+    expect(extractEntityTerm("提到 GitHub 的消息")).toBe("GitHub");
+  });
+
+  it("returns null for non-string / empty input", () => {
+    expect(extractEntityTerm("")).toBeNull();
+    expect(extractEntityTerm(null)).toBeNull();
+    expect(extractEntityTerm(undefined)).toBeNull();
+    expect(extractEntityTerm(123)).toBeNull();
+  });
+
+  it("does not pick adapter keywords as the entity (handled by filters)", () => {
+    // "淘宝" 是 adapter，会被 parseFilters 抽走当 q.adapter；不该再被
+    // 当实体名重复 FTS 搜。
+    expect(extractEntityTerm("看下淘宝的订单")).toBeNull();
+  });
+
+  it("> 10 char tokens are dropped (probable concatenated noise)", () => {
+    // 拼出一个 12 char ASCII token，期望被 length 上限过滤掉
+    const r = extractEntityTerm("提到 abcdefghijkl 的消息");
+    expect(r).toBeNull();
   });
 });
