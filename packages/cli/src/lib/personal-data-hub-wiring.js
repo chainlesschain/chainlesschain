@@ -47,6 +47,7 @@ const {
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  VSCodeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -311,6 +312,16 @@ async function initHub() {
   try {
     const edge = new BrowserHistoryEdgeAdapter();
     if (!registry.has(edge.name)) registry.register(edge);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // VS Code workspace history + global terminal history. Reads
+  // %APPDATA%\Code\User\workspaceStorage and \globalStorage\state.vscdb
+  // on Win; equivalents on macOS/Linux.
+  try {
+    const vscode = new VSCodeAdapter();
+    if (!registry.has(vscode.name)) registry.register(vscode);
   } catch (_err) {
     // Continue boot
   }

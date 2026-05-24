@@ -70,12 +70,14 @@ async function _tryAdbAutoPullInputPath(hub, name, options) {
   // an Android-collected snapshot only contains contacts + apps).
   // Keep this list in sync with adapters whose _syncViaBridge is
   // strictly richer than their snapshot output.
-  // browser-history-* read desktop-local files (the browser's own History
-  // SQLite + Bookmarks JSON); ADB snapshot is meaningless for them.
+  // browser-history-* and vscode read desktop-local files (browser History
+  // SQLite + Bookmarks JSON, or VS Code workspaceStorage + state.vscdb);
+  // ADB snapshot is meaningless for them.
   const BRIDGE_PREFERRED = new Set([
     "system-data-android",
     "browser-history-chrome",
     "browser-history-edge",
+    "vscode",
   ]);
   if (BRIDGE_PREFERRED.has(name)) {
     return options || {};
