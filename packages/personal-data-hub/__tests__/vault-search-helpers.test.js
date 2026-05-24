@@ -70,13 +70,22 @@ describe("_categoryToWhere", () => {
     expect(r.sql).toMatch(/OR/);
   });
 
-  it("translates 'system' to system-data + browser-history prefixes", () => {
+  it("translates 'system' to system-data + browser-history + local-source adapters", () => {
     const r = _categoryToWhere("system");
-    // 2 rules currently map to "system": system-data* and browser-*
-    // (browser-history-chrome adapter landed 2026-05-24). If a future
-    // adapter joins this bucket, just bump the expected length.
+    // 7 rules currently map to "system" (see lib/categories.js PREFIX_RULES):
+    //   prefix wildcards: system-data*, browser-*
+    //   exact names:      vscode, win-recent, git-activity, shell-history, local-files
+    // If a future adapter joins this bucket, append it here.
     const vals = Object.values(r.params).sort();
-    expect(vals).toEqual(["browser-%", "system-data%"]);
+    expect(vals).toEqual([
+      "browser-%",
+      "git-activity",
+      "local-files",
+      "shell-history",
+      "system-data%",
+      "vscode",
+      "win-recent",
+    ]);
     expect(r.sql).toContain("OR");
   });
 
