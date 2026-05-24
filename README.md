@@ -2,6 +2,29 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
+## 2026-05-24 收口 — **PDH Phase 17：桌面本机数据五件套 land**
+
+> 一轮把 PDH 从"主要采社交/订单/出行"扩展到 **覆盖桌面本机日常数据流**：浏览器（Chrome + Edge）/ 开发工具（VSCode）/ 系统活动（Win Recent）/ Android 媒体清单。**全部 desktop-local file-import 模式 — 零扩展、零网络、零账号** — 复用既有 PDH adapter 契约 + LocalVault 加密存储 + AdapterRegistry 调度链。
+
+- **5 新 adapter（commits `126ec9683` / `8b053843a` / `c923f627b` / `3c1e55559` / `21e125e1ee`）**：
+  - **`browser-history-chrome` v0.1.0** — `%LOCALAPPDATA%\Google\Chrome\User Data\Default\{History,Bookmarks}` SQLite 复制读 + JSON 解。真机：14689 visits + 27 bookmarks。
+  - **`browser-history-edge` v0.1.0** — Chromium 子类继承（仅覆盖 `_browserConfig()` 指向 Edge profile）。真机：2022 visits。
+  - **`vscode` v0.1.0** — workspaceStorage/*/workspace.json + globalStorage/state.vscdb terminal.history. 真机：22 工作区 + 32 命令 + 13 路径。
+  - **`win-recent` v0.1.0** — `%APPDATA%\Microsoft\Windows\Recent\*.lnk` 跨应用打开时间线。真机：52 .lnk。
+  - **`system-data-android` v0.2.0 → v0.3.0** — ADB 直采加 `media.list` (5 类 /sdcard 目录) + per-category include 门控。真机：3751 文件清单。
+- **测试三层完整覆盖**：
+  - 单测 76 新（chrome 17 / edge 7 / vscode 19 / win-recent 13 / SDA v0.2/v0.3 专项 5 + 助手 15）— 全绿
+  - 整合测：`__tests__/integration/local-data-adapters-pipeline.test.js` 6 测验 4 adapter 真走 LocalVault + AdapterRegistry round-trip + 跨 adapter source-tagged 分布断言
+  - E2E：`__tests__/e2e/local-data-adapters-cli.e2e.test.js` 2 测 spawn `cc hub list-adapters --json` + `cc hub sync-adapter win-recent --json`，sandbox APPDATA 防污染用户 vault
+  - 本地 Win 测试 skip 干净（bs3mc 已知 ABI v140 vs Node 22/24 不匹配），CI Linux 真跑
+- **3 wiring 全 land**：CLI `personal-data-hub-wiring.js` + desktop `wiring.js` + WS `BRIDGE_PREFERRED` skip-list 都同步加 5 adapter（避免误走 ADB auto-pull）。`categories.js` + `pdhCategories.js` 加 `browser-*` / `vscode` / `win-recent` → `system` 分类规则。
+- **bug 修**：4 个 stale `system-data-android.test.js` 测试 — sensitivity medium→high / mock bridge 加 sms/call/media 3 method stub。22 旧 + 5 新 v0.2/v0.3 = 27 全绿。
+- **文档**：`Personal_Data_Hub_Architecture.md` 加 v0.4 entry + Phase 17 行；本 README 加本章。
+
+memory 沉淀（无新增）：本轮所有 adapter 走既有 file-import 模式，无新 trap。Win bs3mc ABI 困境已在 `pdh_plan_a_android_standalone_design.md` §"bs3mc NODE_MODULE_VERSION mismatch" 记录。
+
+---
+
 ## 2026-05-22 收口 — **PDH v0.2 大爆发：11 平台真接通 + WeChat / QQ 真采集 + Android 端侧 LLM 骨架 (v5.0.3.80)**
 
 > 一日内把 PDH 从 v0.1（Bilibili 一家） 推到 **v0.2 真接通 11 平台**：社交内容 (微博/抖音/小红书/头条/快手) + 购物 (京东/美团/拼多多/淘宝/支付宝) + 出行地图 (高德/携程/百度地图/腾讯地图) + AI 助手 9 路 WebView (DeepSeek / Kimi / 通义千问 / 智谱清言 / 腾讯混元 / 文心一言 / 字节扣子 / 即梦 / 豆包) + 邮箱 4 家 IMAP (QQ / Gmail / 163 / Outlook via Jakarta Mail) 真接通。WeChat Phase 12.10 4 子阶完成 — SQLCipher 真解密 + frida-inject 真注入 + 16.5.9 binary vendored + APK ship 到 Xiaomi 真机；QQ Phase 13.5 v0.2 — XOR-IMEI 算法 byte-identical sjqz 移植，无需 SQLCipher 无需 frida，仅 root + IMEI。Android 端侧 LLM 全链路 skeleton 落地 (Ktor server + ModelManager + cc spawn + PDH 本机提问 tab)。
