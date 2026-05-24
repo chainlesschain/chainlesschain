@@ -42,15 +42,26 @@ class DouyinLocalCollector @Inject constructor(
     private val credentialsStore: DouyinCredentialsStore,
 ) {
 
+    /**
+     * v0.3 — optional signer for the v0.3 history/favourite/like endpoints.
+     * Null = v0.2 fallback (profile only). Wired in HubLocalViewModel from
+     * the DI graph (DouyinSignBridge).
+     */
+    var signProvider: com.chainlesschain.android.pdh.social.SignProvider? = null
+
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
             val profileCount: Int,
+            val historyCount: Int,
+            val favouriteCount: Int,
+            val likeCount: Int,
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
             val lastErrorCode: Int = 0,
             val lastErrorMessage: String? = null,
+            val v03Attempted: Boolean = false,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -72,6 +83,31 @@ class DouyinLocalCollector @Inject constructor(
             null
         }
 
+        // v0.3 — same template as Toutiao: optionally warm sign bridge,
+        // best-effort call each endpoint. ApiClient short-circuits when
+        // bridge returns null (lastErrorCode=-99, no HTTP issued).
+        val signer = signProvider
+        apiClient.signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider
+        val v03Attempted = signer != null
+        var history: List<DouyinApiClient.HistoryItem> = emptyList()
+        var favourites: List<DouyinApiClient.FavouriteItem> = emptyList()
+        var likes: List<DouyinApiClient.LikeItem> = emptyList()
+        if (signer != null) {
+            val warm = try {
+                signer.warmUp(cookie)
+            } catch (t: Throwable) {
+                Timber.w(t, "DouyinLocalCollector: signProvider.warmUp threw")
+                false
+            }
+            if (warm) {
+                history = safelyFetch("fetchHistory") { apiClient.fetchHistory(cookie) }
+                favourites = safelyFetch("fetchFavourites") { apiClient.fetchFavourites(cookie) }
+                likes = safelyFetch("fetchLikes") { apiClient.fetchLikes(cookie) }
+            } else {
+                Timber.w("DouyinLocalCollector: signProvider.warmUp returned false — skipping v0.3 endpoints")
+            }
+        }
+
         val snapshottedAt = System.currentTimeMillis()
         val events = JSONArray()
         if (profile != null) {
@@ -89,6 +125,41 @@ class DouyinLocalCollector @Inject constructor(
                     .put("awemeCount", profile.awemeCount)
                     .put("favoritingCount", profile.favoritingCount)
                     .put("totalFavorited", profile.totalFavorited)
+            )
+        }
+        for (item in history) {
+            events.put(
+                JSONObject()
+                    .put("kind", "history")
+                    .put("id", "watch-" + item.awemeId)
+                    .put("capturedAt", item.watchedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("awemeId", item.awemeId)
+                    .put("description", item.description)
+                    .putOpt("authorSecUid", item.authorSecUid)
+                    .putOpt("authorNickname", item.authorNickname)
+                    .put("duration", item.duration),
+            )
+        }
+        for (item in favourites) {
+            events.put(
+                JSONObject()
+                    .put("kind", "favourite")
+                    .put("id", "fav-" + item.awemeId)
+                    .put("capturedAt", item.savedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("awemeId", item.awemeId)
+                    .put("description", item.description)
+                    .putOpt("authorNickname", item.authorNickname),
+            )
+        }
+        for (item in likes) {
+            events.put(
+                JSONObject()
+                    .put("kind", "like")
+                    .put("id", "like-" + item.awemeId)
+                    .put("capturedAt", item.likedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("awemeId", item.awemeId)
+                    .put("description", item.description)
+                    .putOpt("authorNickname", item.authorNickname),
             )
         }
 
@@ -125,12 +196,25 @@ class DouyinLocalCollector @Inject constructor(
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
             profileCount = if (profile != null) 1 else 0,
+            historyCount = history.size,
+            favouriteCount = favourites.size,
+            likeCount = likes.size,
             totalEvents = total,
             everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
             lastErrorCode = apiClient.lastErrorCode,
             lastErrorMessage = apiClient.lastErrorMessage,
+            v03Attempted = v03Attempted,
         )
+    }
+
+    private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
+        return try {
+            block()
+        } catch (t: Throwable) {
+            Timber.w(t, "DouyinLocalCollector: %s threw", label)
+            emptyList()
+        }
     }
 
     /**

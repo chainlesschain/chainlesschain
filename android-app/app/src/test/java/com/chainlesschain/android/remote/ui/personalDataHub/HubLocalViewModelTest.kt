@@ -89,6 +89,7 @@ class HubLocalViewModelTest {
     private lateinit var weiboCredentials: WeiboCredentialsStore
     private lateinit var douyinCollector: DouyinLocalCollector
     private lateinit var douyinCredentials: DouyinCredentialsStore
+    private lateinit var douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
@@ -133,6 +134,7 @@ class HubLocalViewModelTest {
         every { weiboCredentials.getUid() } returns null
         every { weiboCredentials.getLastSyncAt() } returns null
         every { weiboCredentials.getLastSyncCount() } returns 0
+        douyinSignBridge = mockk(relaxed = true)
         douyinCollector = mockk(relaxed = false)
         // Default-stub the lastLoginError* getters so the strict mock doesn't
         // throw on the success path (where VM never reads them). Failure-path
@@ -250,6 +252,7 @@ class HubLocalViewModelTest {
             weiboCredentials,
             douyinCollector,
             douyinCredentials,
+            douyinSignBridge,
             xhsCollector,
             xhsCredentials,
             toutiaoCollector,
@@ -1243,7 +1246,9 @@ class HubLocalViewModelTest {
         coEvery { douyinCollector.snapshot() } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-empty.json",
-                profileCount = 0, totalEvents = 0, everythingEmpty = true,
+                profileCount = 0,
+                historyCount = 0, favouriteCount = 0, likeCount = 0,
+                totalEvents = 0, everythingEmpty = true,
                 snapshottedAt = 1L,
                 lastErrorCode = 2154,
                 lastErrorMessage = "token expired",
@@ -1267,7 +1272,9 @@ class HubLocalViewModelTest {
         coEvery { douyinCollector.snapshot() } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-snap.json",
-                profileCount = 1, totalEvents = 1, everythingEmpty = false,
+                profileCount = 1,
+                historyCount = 0, favouriteCount = 0, likeCount = 0,
+                totalEvents = 1, everythingEmpty = false,
                 snapshottedAt = syncAt,
             )
         coEvery { ccRunner.syncAdapter("social-douyin", "/tmp/douyin-snap.json") } returns
@@ -1302,7 +1309,9 @@ class HubLocalViewModelTest {
         coEvery { douyinCollector.snapshot() } returns
             DouyinLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/douyin-snap.json",
-                profileCount = 1, totalEvents = 1, everythingEmpty = false,
+                profileCount = 1,
+                historyCount = 0, favouriteCount = 0, likeCount = 0,
+                totalEvents = 1, everythingEmpty = false,
                 snapshottedAt = 1L,
             )
         coEvery { ccRunner.syncAdapter(any(), any()) } returns

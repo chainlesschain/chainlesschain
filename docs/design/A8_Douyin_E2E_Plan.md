@@ -1,10 +1,25 @@
 # A8 抖音 (Douyin) — 真机 E2E 测试计划
 
-**Status**: v0.2 计划 (2026-05-24) — stub `A8DouyinE2ETest.kt` 已落，真机执行需 Mac/Linux + Android 真机 + 真账号；Win dev box 无法运行。
+**Status**: v0.3 计划 (2026-05-25 update) — v0.2 stub `A8DouyinE2ETest.kt` 已落；v0.3 新增 `DouyinSignBridge` (hidden WebView 跑 acrawler.js 取 `X-Bogus + _signature`) + ApiClient 3 endpoint (history/favourite/like) + collector fan-out。Win dev box 跑 JVM 单测 (`DouyinApiClientV03Test` + `DouyinLocalCollectorV03Test`) ✅；真机 E2E 仍需 Mac/Linux + 真机 + 真账号。
 
 ## 范围
 
-A8 v0.2 surface = **profile-only**。所有读取接口 (history/favourite/post/like) 都需 X-Bogus + msToken 签名 (mssdk.js 反爬 SDK)，v0.3 接通后再补 E2E。当前 E2E 只覆盖 cookie 登录态 + ByteDance 老 passport endpoint (`/aweme/v1/passport/account/info/v2/?aid=2906`, unsigned)。
+**v0.3 surface** (本轮新增 — 复用 Toutiao 模板)：
+- ✅ profile (`/aweme/v1/passport/account/info/v2/?aid=2906`, unsigned passport endpoint, v0.2 已通)
+- 🆕 history → KIND_HISTORY (`/aweme/v1/web/history/read/`, 需 `X-Bogus` header + `_signature` query)
+- 🆕 favourites → KIND_FAVOURITE (`/aweme/v1/web/aweme/favorite/`)
+- 🆕 likes → KIND_LIKE (`/aweme/v1/web/aweme/post/like/`)
+
+`X-Bogus` + `_signature` 由 `DouyinSignBridge` 在登录 cookie 注入后的 hidden WebView 里跑 `window.byted_acrawler.sign({url, aid:2906, platform:'PC'})` 拿 — 与 Toutiao 同 ByteDance acrawler 家族，**复用 Toutiao 的 probe 候选** (`byted_acrawler.sign` / `_0x32d839` / `acrawler.sign`)，差异在 aid (2906 抖音 web vs 24 头条 web) + 输出 shape (Douyin 返 `{X-Bogus, _signature}` 对象，Toutiao 返裸 string)。
+
+`SignProvider` 接口扩展了 `signedHeaders(rawUrl, purpose): Map<String, String>` 支持 Douyin 的 header-form 签名 (X-Bogus)。Bridge 单 JS eval 同时算出 URL 签名 + header 签名，单槽缓存配对调用。
+
+**Graceful degrade** (与 Toutiao 同):
+- bridge warmUp 失败 → 跳过 3 个 v0.3 端点, v0.2 profile 仍 emit
+- signUrl 返 null (函数名 rotate / X-Bogus 算法漂) → 短路 (不发 HTTP), lastErrorCode=-99
+- 任一 endpoint 返 412 / status_code != 0 → 其它两个继续
+
+`v03Attempted` 字段在 `SnapshotResult.Ok` 透出 → UI banner 区分: "v0.3 命中 (N 历史/M 收藏/K 点赞)" / "v0.3 attempted 但 0 抓到" / "v0.2 fallback"。
 
 ```
 WebView 登录 → SocialCookieWebViewScreen 提取 cookie

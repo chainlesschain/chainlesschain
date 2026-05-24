@@ -39,6 +39,19 @@ interface SignProvider {
     suspend fun signUrl(rawUrl: HttpUrl, purpose: String): HttpUrl?
 
     /**
+     * Extra request headers required by the signing protocol. Toutiao's
+     * `_signature` lives in the URL so this defaults to empty; Douyin's
+     * `X-Bogus` and Kuaishou's signed `Cookie` mutations belong here.
+     *
+     * Implementations that compute headers + URL from the SAME JS
+     * evaluation MUST stash the result during [signUrl] and serve it
+     * back here when called with the same [rawUrl] — see
+     * [WebSignBridge] for the single-slot cache pattern.
+     */
+    suspend fun signedHeaders(rawUrl: HttpUrl, purpose: String): Map<String, String> =
+        emptyMap()
+
+    /**
      * Eagerly warm up the underlying signing context (load the WebView,
      * inject cookies, wait for the platform's anti-bot SDK to initialize).
      * Calling [signUrl] without [warmUp] is supported but will pay the

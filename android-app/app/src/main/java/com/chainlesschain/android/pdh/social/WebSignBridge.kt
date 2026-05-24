@@ -160,9 +160,20 @@ abstract class WebSignBridge(
     }
 
     private suspend fun evalSignFragment(rawUrl: String, purpose: String): String? =
+        runJsAndDecode(buildSignScript(rawUrl, purpose))
+
+    /**
+     * Run [script] in the WebView and return the JSON-decoded result.
+     * Protected so subclasses that need the raw eval result (rather than
+     * a sign-fragment that the base flow appends to the URL) can call
+     * this directly — see [com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge].
+     *
+     * Caller is responsible for serialization via [evalMutex] if needed.
+     * Returns null on bridge not ready / timeout / evaluateJavascript throw.
+     */
+    protected suspend fun runJsAndDecode(script: String): String? =
         withContext(Dispatchers.Main) {
             val wv = webView ?: return@withContext null
-            val script = buildSignScript(rawUrl, purpose)
             val result = CompletableDeferred<String?>()
             try {
                 wv.evaluateJavascript(script) { value ->

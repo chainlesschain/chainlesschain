@@ -1,5 +1,7 @@
 package com.chainlesschain.android.pdh.social.douyin
 
+import com.chainlesschain.android.pdh.social.NullSignProvider
+import com.chainlesschain.android.pdh.social.SignProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -48,6 +50,37 @@ class DouyinApiClient @Inject constructor() {
 
     /** Override the base URL for MockWebServer in tests. */
     var baseUrl: HttpUrl = "https://www.douyin.com/".toHttpUrl()
+
+    /**
+     * v0.3 — pluggable [SignProvider] for `_signature` + `X-Bogus`. Defaults
+     * to [NullSignProvider] so v0.2 callers (fetchProfile only, no signing
+     * needed) keep working. Production wires [DouyinSignBridge]; JVM tests
+     * inject a stub that returns deterministic values + header pair.
+     */
+    var signProvider: SignProvider = NullSignProvider
+
+    data class HistoryItem(
+        val awemeId: String,
+        val description: String,
+        val authorSecUid: String?,
+        val authorNickname: String?,
+        val watchedAt: Long,
+        val duration: Long,
+    )
+
+    data class FavouriteItem(
+        val awemeId: String,
+        val description: String,
+        val authorNickname: String?,
+        val savedAt: Long,
+    )
+
+    data class LikeItem(
+        val awemeId: String,
+        val description: String,
+        val authorNickname: String?,
+        val likedAt: Long,
+    )
 
     data class ProfileInfo(
         val secUid: String,
@@ -150,8 +183,116 @@ class DouyinApiClient @Inject constructor() {
     @Volatile var lastErrorMessage: String? = null
         private set
 
-    private fun doGetJson(url: HttpUrl, cookie: String): JSONObject? {
-        val req = Request.Builder()
+    /**
+     * v0.3 — Watch history (`/aweme/v1/web/history/read/`). Returns a list
+     * of awemes the user dwelled on. `aweme_list` carries the metadata
+     * (aweme_id / desc / author / create_time → watched_at heuristic).
+     */
+    suspend fun fetchHistory(cookie: String, limit: Int = 50): List<HistoryItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("aweme/v1/web/history/read/")
+                .addQueryParameter("aid", "6383")
+                .addQueryParameter("device_platform", "webapp")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val signed = signProvider.signUrl(rawUrl, "history")
+            if (signed == null) {
+                setLastError(-99, "X-Bogus/_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val headers = signProvider.signedHeaders(rawUrl, "history")
+            val obj = doGetJson(signed, cookie, headers) ?: return@withContext emptyList()
+            extractAwemeList(obj) { item, desc, author, ts ->
+                HistoryItem(
+                    awemeId = item.optStringOrNull("aweme_id") ?: return@extractAwemeList null,
+                    description = desc,
+                    authorSecUid = author?.optStringOrNull("sec_uid"),
+                    authorNickname = author?.optStringOrNull("nickname"),
+                    watchedAt = ts,
+                    duration = item.optLong("duration"),
+                )
+            }
+        }
+
+    /**
+     * v0.3 — Favourites/collected awemes (`/aweme/v1/web/aweme/favorite/`).
+     */
+    suspend fun fetchFavourites(cookie: String, limit: Int = 100): List<FavouriteItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("aweme/v1/web/aweme/favorite/")
+                .addQueryParameter("aid", "6383")
+                .addQueryParameter("device_platform", "webapp")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val signed = signProvider.signUrl(rawUrl, "favourite")
+            if (signed == null) {
+                setLastError(-99, "X-Bogus/_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val headers = signProvider.signedHeaders(rawUrl, "favourite")
+            val obj = doGetJson(signed, cookie, headers) ?: return@withContext emptyList()
+            extractAwemeList(obj) { item, desc, author, ts ->
+                FavouriteItem(
+                    awemeId = item.optStringOrNull("aweme_id") ?: return@extractAwemeList null,
+                    description = desc,
+                    authorNickname = author?.optStringOrNull("nickname"),
+                    savedAt = ts,
+                )
+            }
+        }
+
+    /**
+     * v0.3 — Liked awemes (`/aweme/v1/web/aweme/post/like/`). Note: this is
+     * "videos the user has 点赞'd" — distinct from favourites which are
+     * "videos the user has saved to favorites folder". Same response shape
+     * (`aweme_list` of aweme objects).
+     */
+    suspend fun fetchLikes(cookie: String, limit: Int = 100): List<LikeItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("aweme/v1/web/aweme/post/like/")
+                .addQueryParameter("aid", "6383")
+                .addQueryParameter("device_platform", "webapp")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val signed = signProvider.signUrl(rawUrl, "like")
+            if (signed == null) {
+                setLastError(-99, "X-Bogus/_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val headers = signProvider.signedHeaders(rawUrl, "like")
+            val obj = doGetJson(signed, cookie, headers) ?: return@withContext emptyList()
+            extractAwemeList(obj) { item, desc, author, ts ->
+                LikeItem(
+                    awemeId = item.optStringOrNull("aweme_id") ?: return@extractAwemeList null,
+                    description = desc,
+                    authorNickname = author?.optStringOrNull("nickname"),
+                    likedAt = ts,
+                )
+            }
+        }
+
+    private fun <T : Any> extractAwemeList(
+        obj: JSONObject,
+        build: (JSONObject, String, JSONObject?, Long) -> T?,
+    ): List<T> {
+        val list = obj.optJSONArray("aweme_list") ?: return emptyList()
+        val out = ArrayList<T>(list.length())
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val desc = item.optStringOrNull("desc") ?: "(no desc)"
+            val author = item.optJSONObject("author")
+            val ts = (item.optLong("create_time").takeIf { it > 0 } ?: item.optLong("time")) * 1000L
+            val built = build(item, desc, author, ts) ?: continue
+            out.add(built)
+        }
+        return out
+    }
+
+    private fun doGetJson(url: HttpUrl, cookie: String, extraHeaders: Map<String, String> = emptyMap()): JSONObject? {
+        val builder = Request.Builder()
             .url(url)
             .header("Cookie", cookie)
             .header(
@@ -162,7 +303,10 @@ class DouyinApiClient @Inject constructor() {
             .header("Referer", "https://www.douyin.com/")
             .header("Accept", "application/json, text/plain, */*")
             .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-            .build()
+        for ((k, v) in extraHeaders) {
+            builder.header(k, v)
+        }
+        val req = builder.build()
         return try {
             httpClient.newCall(req).execute().use { resp ->
                 val body = resp.body?.string()
