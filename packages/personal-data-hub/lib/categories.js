@@ -57,6 +57,7 @@ const PREFIX_RULES = Object.freeze([
   ["win-recent",      "system"],
   ["git-activity",    "system"],
   ["shell-history",   "system"],
+  ["local-files",     "system"],
   ["ai-chat-*",       "ai-chat"],
 ]);
 

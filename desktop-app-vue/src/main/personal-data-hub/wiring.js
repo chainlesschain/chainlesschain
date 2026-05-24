@@ -50,6 +50,7 @@ const {
   WinRecentAdapter,
   GitActivityAdapter,
   ShellHistoryAdapter,
+  LocalFilesAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -439,6 +440,18 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register shell-history adapter",
+      err && err.message,
+    );
+  }
+
+  try {
+    const localFiles = new LocalFilesAdapter();
+    if (!registry.has(localFiles.name)) {
+      registry.register(localFiles);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register local-files adapter",
       err && err.message,
     );
   }
