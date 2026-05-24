@@ -10,9 +10,27 @@ import okhttp3.Request
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
+import java.net.URLEncoder
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Bilibili WBI signature mixin key reorder table — fixed 64-index list the
+ * web client uses to derive `mixin_key` from `img_key + sub_key`. Standard
+ * across Bilibili clients; if these indexes change the JS that builds w_rid
+ * has changed, and we'll need to refresh from a browser session.
+ */
+private val WBI_MIXIN_KEY_TABLE = intArrayOf(
+    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35,
+    27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13,
+    37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4,
+    22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52,
+)
+
+/** Chars Bilibili strips from query values before signing (matches their JS). */
+private val WBI_FORBIDDEN_CHARS = charArrayOf('!', '\'', '(', ')', '*')
 
 /**
  * A8 v0.1 — Bilibili public-API client driven by a captured browser cookie.
@@ -191,10 +209,137 @@ class BilibiliApiClient @Inject constructor() {
         return substituteBuvid3(cookie, b3)
     }
 
+    /**
+     * Bilibili WBI (Web-side anti-spider) signature: the web client signs
+     * each API request with `w_rid` + `wts` query params derived from a
+     * `mixin_key` rotated daily via /x/web-interface/nav. Without these,
+     * data endpoints silently return `{code:0, data:{list:[]}}` or
+     * `code:-400 请求错误` (resource/list specifically) even when SESSDATA
+     * + buvid3 are valid. Verified on real device 2026-05-24: 4-API empty
+     * persists even after buvid3 mint until WBI signing was added.
+     *
+     * Cache strategy: mixin_key rotates daily but the same key works for
+     * the whole session. Cache for the process lifetime; if a request
+     * fails with -403 / -352 (WBI-related errors) we could invalidate
+     * and re-fetch, but for now once-per-process is fine.
+     */
+    @Volatile
+    private var wbiMixinKey: String? = null
+
+    /** For tests: pre-seed mixin key to skip the network nav fetch. */
+    internal fun setWbiMixinKeyForTest(value: String?) {
+        wbiMixinKey = value
+    }
+
+    private suspend fun ensureWbiMixinKey(): String? {
+        wbiMixinKey?.let { return it }
+        return withContext(Dispatchers.IO) {
+            val url = baseUrl.newBuilder().addPathSegments("x/web-interface/nav").build()
+            val req = Request.Builder()
+                .url(url)
+                .header(
+                    "User-Agent",
+                    "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+                )
+                .header("Referer", "https://www.bilibili.com/")
+                .header("Origin", "https://www.bilibili.com")
+                .header("Accept", "application/json, text/plain, */*")
+                .build()
+            try {
+                httpClient.newCall(req).execute().use { resp ->
+                    val body = resp.body?.string()
+                    if (!resp.isSuccessful || body == null) {
+                        Timber.w("BilibiliApiClient: /nav → HTTP %d", resp.code)
+                        return@withContext null
+                    }
+                    val obj = JSONObject(body)
+                    // nav returns code=-101 for unauthenticated, but wbi_img is
+                    // still in `data` either way — don't gate on code.
+                    val wbiImg = obj.optJSONObject("data")?.optJSONObject("wbi_img")
+                        ?: return@withContext null
+                    val imgUrl = wbiImg.optString("img_url")
+                    val subUrl = wbiImg.optString("sub_url")
+                    val imgKey = extractWbiKeyFromUrl(imgUrl) ?: return@withContext null
+                    val subKey = extractWbiKeyFromUrl(subUrl) ?: return@withContext null
+                    val raw = imgKey + subKey
+                    if (raw.length < 64) {
+                        Timber.w("BilibiliApiClient: wbi raw key too short: %d", raw.length)
+                        return@withContext null
+                    }
+                    val mixin = buildString(32) {
+                        for (i in WBI_MIXIN_KEY_TABLE) {
+                            if (i < raw.length) append(raw[i])
+                            if (length >= 32) break
+                        }
+                    }
+                    Timber.i("BilibiliApiClient: derived wbi mixin_key (len=%d)", mixin.length)
+                    wbiMixinKey = mixin
+                    mixin
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "BilibiliApiClient: ensureWbiMixinKey failed")
+                null
+            }
+        }
+    }
+
+    /** "https://i0.hdslb.com/bfs/wbi/abc123.png" → "abc123". */
+    internal fun extractWbiKeyFromUrl(url: String): String? {
+        if (url.isBlank()) return null
+        val lastSlash = url.lastIndexOf('/')
+        val lastDot = url.lastIndexOf('.')
+        if (lastSlash < 0 || lastDot <= lastSlash) return null
+        return url.substring(lastSlash + 1, lastDot).takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Sign an HttpUrl by appending `wts` + `w_rid` query params derived
+     * from [mixinKey]. Existing query params are included in the signature
+     * (sorted alphabetically, value chars in [WBI_FORBIDDEN_CHARS] stripped,
+     * URL-encoded). The returned URL has BOTH the original params and the
+     * two signature params.
+     */
+    internal fun signUrl(url: HttpUrl, mixinKey: String): HttpUrl {
+        val wts = System.currentTimeMillis() / 1000L
+        val existing = LinkedHashMap<String, String>(url.querySize + 1)
+        for (i in 0 until url.querySize) {
+            existing[url.queryParameterName(i)] = url.queryParameterValue(i) ?: ""
+        }
+        existing["wts"] = wts.toString()
+        val sortedQuery = existing.entries
+            .sortedBy { it.key }
+            .joinToString("&") { (k, v) ->
+                val cleaned = v.filter { it !in WBI_FORBIDDEN_CHARS }
+                "${urlEncodeWbi(k)}=${urlEncodeWbi(cleaned)}"
+            }
+        val wRid = md5Hex(sortedQuery + mixinKey)
+        return url.newBuilder()
+            .addQueryParameter("wts", wts.toString())
+            .addQueryParameter("w_rid", wRid)
+            .build()
+    }
+
+    /**
+     * Compose buvid3 mint + WBI sign for a request URL. Returns Pair(cookie,
+     * signedUrl) or fallback to the unsigned URL if WBI keys can't be
+     * fetched (preserves the buvid3-only path as a degraded mode).
+     */
+    private suspend fun prepareRequest(cookie: String, url: HttpUrl): Pair<String, HttpUrl> {
+        val effectiveCookie = prepareCookie(cookie)
+        val mixin = ensureWbiMixinKey() ?: return effectiveCookie to url
+        val signed = try {
+            signUrl(url, mixin)
+        } catch (e: Exception) {
+            Timber.w(e, "BilibiliApiClient: signUrl failed")
+            url
+        }
+        return effectiveCookie to signed
+    }
+
     suspend fun fetchHistory(cookie: String, limit: Int = 200): List<HistoryItem> =
         withContext(Dispatchers.IO) {
-            val effectiveCookie = prepareCookie(cookie)
-            val url = baseUrl.newBuilder()
+            val rawUrl = baseUrl.newBuilder()
                 // Real-device 2026-05-22: /x/v2/history/cursor returns 404
                 // (HTML page, not JSON) — Bilibili deprecated the v2 path in
                 // favor of /x/web-interface/history/cursor (same response shape).
@@ -202,6 +347,7 @@ class BilibiliApiClient @Inject constructor() {
                 .addQueryParameter("ps", "30")
                 .addQueryParameter("type", "archive")
                 .build()
+            val (effectiveCookie, url) = prepareRequest(cookie, rawUrl)
             val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val list = data.optJSONArray("list") ?: return@withContext emptyList()
@@ -232,11 +378,11 @@ class BilibiliApiClient @Inject constructor() {
      */
     suspend fun fetchFavourites(cookie: String, uid: Long, perFolderLimit: Int = 50): List<FavouriteItem> =
         withContext(Dispatchers.IO) {
-            val effectiveCookie = prepareCookie(cookie)
-            val foldersUrl = baseUrl.newBuilder()
+            val rawFoldersUrl = baseUrl.newBuilder()
                 .addPathSegments("x/v3/fav/folder/created/list-all")
                 .addQueryParameter("up_mid", uid.toString())
                 .build()
+            val (effectiveCookie, foldersUrl) = prepareRequest(cookie, rawFoldersUrl)
             val foldersJson = doGetJson(foldersUrl, effectiveCookie) ?: return@withContext emptyList()
             val foldersData = foldersJson.optJSONObject("data") ?: return@withContext emptyList()
             val folders = foldersData.optJSONArray("list") ?: return@withContext emptyList()
@@ -246,7 +392,7 @@ class BilibiliApiClient @Inject constructor() {
                 val folderId = folder.optLong("id")
                 val folderName = folder.optStringOrNull("title")
                 if (folderId == 0L) continue
-                val itemsUrl = baseUrl.newBuilder()
+                val rawItemsUrl = baseUrl.newBuilder()
                     .addPathSegments("x/v3/fav/resource/list")
                     .addQueryParameter("media_id", folderId.toString())
                     .addQueryParameter("ps", perFolderLimit.toString())
@@ -256,6 +402,9 @@ class BilibiliApiClient @Inject constructor() {
                     // require an explicit platform tag.
                     .addQueryParameter("platform", "web")
                     .build()
+                // Sign the per-folder URL too (signature wraps each request,
+                // not the session). Reuse the already-prepared cookie.
+                val itemsUrl = wbiMixinKey?.let { signUrl(rawItemsUrl, it) } ?: rawItemsUrl
                 val itemsJson = doGetJson(itemsUrl, effectiveCookie) ?: continue
                 val itemsData = itemsJson.optJSONObject("data") ?: continue
                 val medias = itemsData.optJSONArray("medias") ?: continue
@@ -279,17 +428,17 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchDynamics(cookie: String, limit: Int = 50): List<DynamicItem> =
         withContext(Dispatchers.IO) {
-            val effectiveCookie = prepareCookie(cookie)
             // Real-device 2026-05-22: Bilibili dynamics returned 0 items
             // silently (code=0 + empty list, no WARN). Adding `type=all` +
             // `platform=web` + `timezone_offset` to match what the web client
             // sends — without these the anti-bot returns an OK + empty page.
-            val url = baseUrl.newBuilder()
+            val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("x/polymer/web-dynamic/v1/feed/all")
                 .addQueryParameter("type", "all")
                 .addQueryParameter("platform", "web")
                 .addQueryParameter("timezone_offset", "-480")
                 .build()
+            val (effectiveCookie, url) = prepareRequest(cookie, rawUrl)
             val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val items = data.optJSONArray("items") ?: return@withContext emptyList()
@@ -320,8 +469,7 @@ class BilibiliApiClient @Inject constructor() {
 
     suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
         withContext(Dispatchers.IO) {
-            val effectiveCookie = prepareCookie(cookie)
-            val url = baseUrl.newBuilder()
+            val rawUrl = baseUrl.newBuilder()
                 .addPathSegments("x/relation/followings")
                 .addQueryParameter("vmid", uid.toString())
                 .addQueryParameter("ps", "50")
@@ -329,6 +477,7 @@ class BilibiliApiClient @Inject constructor() {
                 .addQueryParameter("order", "desc")
                 .addQueryParameter("order_type", "attention")
                 .build()
+            val (effectiveCookie, url) = prepareRequest(cookie, rawUrl)
             val obj = doGetJson(url, effectiveCookie) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
             val list = data.optJSONArray("list") ?: return@withContext emptyList()
@@ -455,4 +604,24 @@ private fun JSONObject.optLongOrNull(key: String): Long? {
         is String -> v.toLongOrNull()
         else -> null
     }
+}
+
+/**
+ * URL-encode per Bilibili's WBI sign rules (UTF-8 + standard %xx, mirrors
+ * the JS encodeURIComponent the web client uses on each key/value).
+ */
+internal fun urlEncodeWbi(s: String): String = URLEncoder.encode(s, "UTF-8")
+    // URLEncoder uses + for space; encodeURIComponent uses %20.
+    .replace("+", "%20")
+
+/** Lowercase-hex MD5 digest (matches Bilibili's JS CryptoJS.MD5 output). */
+internal fun md5Hex(input: String): String {
+    val md = MessageDigest.getInstance("MD5")
+    val bytes = md.digest(input.toByteArray(Charsets.UTF_8))
+    val sb = StringBuilder(bytes.size * 2)
+    for (b in bytes) {
+        sb.append(((b.toInt() shr 4) and 0xF).toString(16))
+        sb.append((b.toInt() and 0xF).toString(16))
+    }
+    return sb.toString()
 }
