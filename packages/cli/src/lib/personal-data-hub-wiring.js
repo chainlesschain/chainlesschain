@@ -45,6 +45,7 @@ const {
   EmailAdapter,
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
+  BrowserHistoryChromeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -292,6 +293,18 @@ async function initHub() {
   } catch (_err) {
     // Boot must continue even if the adapter fails to register; cc hub will
     // surface the absence via list-adapters.
+  }
+
+  // Phase 17 (2026-05-24) — desktop Chrome history + bookmarks. Reads
+  // %LOCALAPPDATA%\Google\Chrome\User Data\Default\{History,Bookmarks}
+  // (Win) / equivalent on macOS/Linux. No bridge, no extension, no
+  // network. authenticate() reports PROFILE_NOT_FOUND when Chrome isn't
+  // installed; sync() throws same. opts.profilePath overrides default.
+  try {
+    const chrome = new BrowserHistoryChromeAdapter();
+    if (!registry.has(chrome.name)) registry.register(chrome);
+  } catch (_err) {
+    // Continue boot
   }
 
   // A8 v0.1 (2026-05-22) — social adapters in snapshot mode. Stateless: the
