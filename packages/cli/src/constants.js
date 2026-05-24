@@ -145,6 +145,13 @@ export const DEFAULT_CONFIG = {
     apiKey: null,
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     model: "doubao-seed-1-6-251015",
+    // When true, `cc ask` (provider=ollama only) overrides baseUrl to point at
+    // the Android LocalLlmServer (127.0.0.1:18484). User opt-in toggle:
+    //   cc config set llm.preferAndroidLocal true
+    // Resolution priority in ask.js:
+    //   --base-url > CC_HUB_OLLAMA_URL env > --prefer-android-local flag >
+    //   this config > config.llm.baseUrl > hardcoded localhost:11434
+    preferAndroidLocal: false,
   },
   enterprise: {
     serverUrl: null,

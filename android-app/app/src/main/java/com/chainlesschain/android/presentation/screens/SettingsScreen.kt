@@ -262,6 +262,42 @@ fun SettingsScreen(
                 )
             }
 
+            // A3.5 — AI 后端：cc ask 默认路由开关
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_section_ai),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            item {
+                val aiBackendVm: AiBackendSettingsViewModel = hiltViewModel()
+                val aiState by aiBackendVm.uiState.collectAsState()
+                val syncSubtitle = when (aiState.syncState) {
+                    AiBackendSettingsViewModel.SyncState.SYNCING ->
+                        stringResource(R.string.settings_prefer_android_local_syncing)
+                    AiBackendSettingsViewModel.SyncState.OK ->
+                        stringResource(R.string.settings_prefer_android_local_ok)
+                    AiBackendSettingsViewModel.SyncState.FAILED ->
+                        stringResource(
+                            R.string.settings_prefer_android_local_failed,
+                            aiState.syncErrorMessage ?: "",
+                        )
+                    AiBackendSettingsViewModel.SyncState.IDLE ->
+                        stringResource(R.string.settings_prefer_android_local_desc)
+                }
+                SettingsToggleItem(
+                    icon = Icons.Default.SmartToy,
+                    title = stringResource(R.string.settings_prefer_android_local),
+                    subtitle = syncSubtitle,
+                    checked = aiState.preferAndroidLocal,
+                    onCheckedChange = { aiBackendVm.setPreferAndroidLocal(it) }
+                )
+            }
+
             // 存储设置
             item {
                 Spacer(modifier = Modifier.height(8.dp))
