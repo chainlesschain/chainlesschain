@@ -15,7 +15,11 @@ jobs:
   unit-tests:
     name: Unit Tests (P0 + P1 DAO)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Bumped 60 → 90 (2026-05-24): run 26347950715 hit the 1h ceiling
+    # mid-artifact-upload right after :app:testDebugUnitTest ✓ passed —
+    # gradle setup + 5 sub-runs (P0 + P1 + libs + core-p2p + :app) + 300+
+    # test-result xml uploads no longer fit 60min on ubuntu-latest.
+    timeout-minutes: 90
 
     steps:
       - name: Checkout code
