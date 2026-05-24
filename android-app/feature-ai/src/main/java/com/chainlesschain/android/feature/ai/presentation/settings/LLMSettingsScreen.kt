@@ -38,6 +38,7 @@ import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 fun LLMSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToUsageStatistics: () -> Unit = {},
+    onNavigateToLocalModel: () -> Unit = {},
     viewModel: LLMSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -56,6 +57,13 @@ fun LLMSettingsScreen(
                     }
                 },
                 actions = {
+                    // 本机模型管理（Gemma-3 1B 端侧 LLM）
+                    IconButton(onClick = onNavigateToLocalModel) {
+                        Icon(
+                            Icons.Default.PhoneAndroid,
+                            contentDescription = stringResource(R.string.llm_settings_android_local_model)
+                        )
+                    }
                     // 使用统计按钮
                     IconButton(onClick = onNavigateToUsageStatistics) {
                         Icon(Icons.Default.Analytics, contentDescription = stringResource(R.string.llm_settings_usage_statistics))

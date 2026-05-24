@@ -10,6 +10,7 @@ import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -36,13 +37,30 @@ import javax.inject.Inject
 class LLMTestChatViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val llmAdapterFactory: LLMAdapterFactory,
-    private val securePreferences: SecurePreferences
+    private val securePreferences: SecurePreferences,
+    private val localEngine: LlmInferenceEngine,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LLMTestChatUiState())
     val uiState: StateFlow<LLMTestChatUiState> = _uiState.asStateFlow()
 
     private var currentAdapter: LLMAdapter? = null
+
+    /**
+     * 切到"本机 Gemma"模式 —— 跳过 cloud adapter wiring，sendMessage 走 [localEngine.chat]。
+     * 由 NavGraph `llm_test_local` 路由调（LocalModelCard "测试对话" 按钮入口）。
+     */
+    fun setLocalEngine() {
+        _uiState.update {
+            it.copy(
+                provider = LLMProvider.OLLAMA, // UI 题头用 displayName，"本机 Gemma" 由 useLocalEngine 标识展示
+                currentModel = "gemma-3-1b-it-int4 (本机)",
+                useLocalEngine = true,
+                error = null,
+            )
+        }
+        currentAdapter = null
+    }
 
     /**
      * 设置提供商
@@ -88,6 +106,10 @@ class LLMTestChatViewModel @Inject constructor(
      * 发送消息
      */
     fun sendMessage(content: String, enableRAG: Boolean) {
+        if (_uiState.value.useLocalEngine) {
+            sendMessageLocal(content)
+            return
+        }
         if (currentAdapter == null) {
             _uiState.update { it.copy(
                 error = "LLM适配器未初始化，请检查API密钥配置"
@@ -188,6 +210,89 @@ class LLMTestChatViewModel @Inject constructor(
     }
 
     /**
+     * 本机引擎分支 —— 跳过 streamChat（MediaPipe v0.2 还没接 streaming），单次完整返回。
+     * v0.3 follow-up 接 [com.chainlesschain.android.pdh.llm.MediaPipeLlmEngine] 的
+     * `generateResponseAsync` ProgressListener 后改 streamingContent 喂。
+     */
+    private fun sendMessageLocal(content: String) {
+        viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            val userMessage = Message(
+                id = UUID.randomUUID().toString(),
+                conversationId = "test-local",
+                role = MessageRole.USER,
+                content = content,
+                createdAt = System.currentTimeMillis(),
+                tokenCount = estimateTokenCount(content)
+            )
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages + userMessage,
+                    isLoading = true,
+                    streamingContent = "",
+                    error = null
+                )
+            }
+
+            try {
+                val history = _uiState.value.messages.map { m ->
+                    LlmInferenceEngine.ChatMessage(
+                        role = when (m.role) {
+                            MessageRole.USER -> "user"
+                            MessageRole.ASSISTANT -> "assistant"
+                            MessageRole.SYSTEM -> "system"
+                            MessageRole.TOOL -> "user" // Gemma 不识 tool 角色，降级 user
+                        },
+                        content = m.content
+                    )
+                }
+                val response = withContext(Dispatchers.IO) {
+                    localEngine.chat(
+                        messages = history,
+                        opts = LlmInferenceEngine.ChatOptions(temperature = 0.7f, maxTokens = 512),
+                    )
+                }
+                val responseTime = System.currentTimeMillis() - startTime
+                val assistantMessage = Message(
+                    id = UUID.randomUUID().toString(),
+                    conversationId = "test-local",
+                    role = MessageRole.ASSISTANT,
+                    content = response.text,
+                    createdAt = System.currentTimeMillis(),
+                    tokenCount = response.completionTokens.takeIf { it > 0 }
+                        ?: estimateTokenCount(response.text)
+                )
+                _uiState.update { state ->
+                    val newMessages = state.messages + assistantMessage
+                    val totalTokens = newMessages.sumOf { it.tokenCount ?: 0 }
+                    state.copy(
+                        messages = newMessages,
+                        isLoading = false,
+                        streamingContent = "",
+                        performanceStats = state.performanceStats.copy(
+                            lastResponseTime = responseTime,
+                            totalTokens = totalTokens,
+                            messageCount = newMessages.size,
+                            successRate = 100
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        streamingContent = "",
+                        error = "本机推理失败: ${e.message ?: e.javaClass.simpleName}",
+                        performanceStats = state.performanceStats.copy(
+                            successRate = calculateSuccessRate(state.messages.size, 1)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
      * 清空消息
      */
     fun clearMessages() {
@@ -272,5 +377,7 @@ data class LLMTestChatUiState(
     val error: String? = null,
     val ragEnabled: Boolean = false,
     val showStats: Boolean = true,
-    val performanceStats: PerformanceStats = PerformanceStats()
+    val performanceStats: PerformanceStats = PerformanceStats(),
+    /** 本机 Gemma 模式（由 NavGraph `llm_test_local` 路由 setLocalEngine() 切入）。 */
+    val useLocalEngine: Boolean = false,
 )
