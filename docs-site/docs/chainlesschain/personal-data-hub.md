@@ -21,6 +21,22 @@
 
 > 完整设计与 13-Phase 路线图见设计文档：[`Personal_Data_Hub_Architecture.md`](https://design.chainlesschain.com/Personal_Data_Hub_Architecture.html)（"个人数据中台 专题"）。
 
+## Phase 17/18 — 本机开发者活动 Adapter（v5.0.3.83+）
+
+7 个零配置 / no-arg 即采集的本机数据源，对开发者尤其重要：你的本机操作流也是个人 RAG 语料。
+
+| Adapter | 数据源 | 平台 | 内容 | 启用方式 |
+|---|---|---|---|---|
+| **git-activity** | 本机所有 git repo | 桌面三端 | commit / 分支 / merge 历史 | 默认扫描常用代码目录 |
+| **shell-history** | bash / zsh / pwsh history | 桌面三端 | 命令历史，去敏感词 | 默认 |
+| **vscode** | VSCode 用户配置 | 桌面三端 | 最近工作区 + 集成终端历史 | 默认 |
+| **win-recent** | `%APPDATA%/Microsoft/Windows/Recent/*.lnk` | Windows | 跨应用文件打开历史（任何 App 打开过的文件） | Windows 默认 |
+| **local-files** | Documents / Desktop / Downloads / Pictures / Videos / Music | 桌面三端 | 文件元数据遍历（不读内容） | 默认 |
+| **browser-history-chrome** | `Default/History` SQLite | 桌面三端 | 浏览历史 + 书签 | Chrome 安装即扫 |
+| **browser-history-edge** | `Default/History` SQLite | 桌面三端 | 浏览历史 + 书签 | Edge 安装即扫 |
+
+所有 7 个 adapter 走 `category=system` bucket 在 Vault Browser 侧栏可单独看；FTS5 全文检索同样有效。`cc hub sync browser-history-chrome` 单独触发某个 adapter，`cc hub stats --adapter <name>` 看分源覆盖。
+
 ## 核心特性
 
 - 🔐 **本地优先加密落盘**：SQLCipher AES-256 LocalVault，单文件即可备份/迁移；FileKeyProvider 默认 0600 权限存放主密钥，Phase 4 升级为 Windows DPAPI / macOS Keychain / Linux libsecret
