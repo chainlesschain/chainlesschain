@@ -97,6 +97,7 @@ class HubLocalViewModelTest {
     private lateinit var toutiaoSignBridge: ToutiaoSignBridge
     private lateinit var kuaishouCollector: KuaishouLocalCollector
     private lateinit var kuaishouCredentials: KuaishouCredentialsStore
+    private lateinit var kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
     private lateinit var qqCollector: QQLocalCollector
     private lateinit var qqCredentials: QQCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
@@ -164,6 +165,7 @@ class HubLocalViewModelTest {
         every { toutiaoCollector.lastLoginErrorMessage } returns null
         kuaishouCollector = mockk(relaxed = true)
         kuaishouCredentials = mockk(relaxed = true)
+        kuaishouSignBridge = mockk(relaxed = true)
         every { kuaishouCredentials.hasCredentials() } returns false
         every { kuaishouCredentials.getUid() } returns null
         every { kuaishouCredentials.getCookie() } returns null
@@ -260,6 +262,7 @@ class HubLocalViewModelTest {
             toutiaoSignBridge,
             kuaishouCollector,
             kuaishouCredentials,
+            kuaishouSignBridge,
             qqCollector,
             qqCredentials,
             systemDataState,
@@ -3328,6 +3331,7 @@ class HubLocalViewModelTest {
                 ToutiaoLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-toutiao.json",
                     profileCount = 1,
+                    readCount = 0, collectionCount = 0, searchCount = 0,
                     totalEvents = 1,
                     everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
@@ -3485,6 +3489,7 @@ class HubLocalViewModelTest {
                 KuaishouLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-kuaishou.json",
                     profileCount = 1,
+                    watchCount = 0, collectCount = 0, searchCount = 0,
                     totalEvents = 1,
                     everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
