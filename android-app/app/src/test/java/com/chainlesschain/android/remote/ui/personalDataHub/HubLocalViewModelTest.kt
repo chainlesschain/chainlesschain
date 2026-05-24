@@ -84,6 +84,7 @@ class HubLocalViewModelTest {
     private lateinit var emailCredentials: EmailCredentialsStore
     private lateinit var emailCollector: EmailLocalCollector
     private lateinit var travelCredentials: TravelCredentialsStore
+    private lateinit var kyfw12306Collector: com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
     private lateinit var weiboCollector: WeiboLocalCollector
     private lateinit var weiboCredentials: WeiboCredentialsStore
     private lateinit var douyinCollector: DouyinLocalCollector
@@ -125,6 +126,7 @@ class HubLocalViewModelTest {
         emailCredentials = mockk(relaxed = true)
         emailCollector = mockk(relaxed = true)
         travelCredentials = mockk(relaxed = true)
+        kyfw12306Collector = mockk(relaxed = true)
         weiboCollector = mockk(relaxed = false)
         weiboCredentials = mockk(relaxed = true)
         every { weiboCredentials.hasCredentials() } returns false
@@ -243,6 +245,7 @@ class HubLocalViewModelTest {
             emailCredentials,
             emailCollector,
             travelCredentials,
+            kyfw12306Collector,
             weiboCollector,
             weiboCredentials,
             douyinCollector,
@@ -3316,9 +3319,6 @@ class HubLocalViewModelTest {
                 ToutiaoLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-toutiao.json",
                     profileCount = 1,
-                    readCount = 0,
-                    collectionCount = 0,
-                    searchCount = 0,
                     totalEvents = 1,
                     everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
