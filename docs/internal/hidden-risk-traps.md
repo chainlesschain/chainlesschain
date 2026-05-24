@@ -1314,6 +1314,71 @@ USTAR tar header 的 `name` 字段固定 100 字节 + `prefix` 字段 155 字节
 
 ---
 
+## 22. MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → 整进程 SIGABRT（隐性风险）
+
+**触发文件**：`android-app/app/src/main/java/com/chainlesschain/android/pdh/llm/MediaPipeLlmEngine.kt` + `LocalLlmServer.kt` —— 任何走 `com.google.mediapipe:tasks-genai` 的本机 LLM 推理路径，配合"上下文窗口配置 + prompt 长度"的两个边界条件。
+
+**陷阱本质**：
+
+MediaPipe `LlmInference` 把上下文窗口 (`setMaxTokens`) 烤进 native handle，且整个推理路径**没有可恢复的 Java 异常**——当 prompt token 数 > `setMaxTokens` 配额时：
+
+1. native `LlmTaskRunner.nativePredictSync` 先抛 `IllegalStateException: Failed to predict sync: %sOUT_OF_RANGE: CalculatorGraph::Run() failed`
+2. 紧接着 native 代码**不 clear pending exception** 就调 JNI `NewByteArray` 申请结果 buffer
+3. CheckJNI 检测到 "JNI NewByteArray called with pending exception"
+4. → `art::JavaVMExt::JniAbort` → `libc abort()` → SIGABRT → **整 app 直接崩**
+
+Kotlin `try { ... } catch (t: Throwable) { ... }` 包裹 `generateResponse` **够不到** —— SIGABRT 在 Java 异常机制之上一层，进程已死。
+
+复现场景（v5.0.3.84 实测）：Plan A 联系人 + 应用列表入 vault 共 ~1305 entities，问"我有几个联系人" 触发 PDH 上下文检索 → prompt 包含 facts JSON → 估算 ~5000+ token → MediaPipe session 配的 `setMaxTokens=512`（错误的 numPredict 映射）→ 一次 chat 就 SIGABRT。
+
+**三处必须联动的真 bug（缺一个修不全）**：
+
+| Fix | 位置 | 错误 |
+|-----|------|------|
+| A | `LocalLlmServer.handleChat` | `setMaxTokens = req.options?.numPredict ?: 512`。Ollama `num_predict` 是 **output budget**；MediaPipe `setMaxTokens` 是**总上下文窗口**（prompt+output）。语义错位 + 默认值过小 = 几乎所有 PDH 检索类问题秒崩 |
+| B | `MediaPipeLlmEngine.ensureLoadedLocked` | session 缓存只按 `loadedModelPath`。MediaPipe 把 ctx 窗口烤进 handle (无 per-call override)，首次 chat 用 512 建好后，后续 `opts.maxTokens` 永远被忽略。即使 fix A 让 server 改传 4096，native session 仍是 512 → 仍 SIGABRT |
+| C | `MediaPipeLlmEngine.chat` 进 native 前 | 没有 prompt-length guard。任何超长 prompt 都会让进程 SIGABRT，前端看不到错误，只看到 app 闪退 + relaunch |
+
+**为什么排查难**：
+
+- crash 不在 logcat 主 buffer，要 `logcat -b crash -t 1000` 才能拿到 Abort message。普通 `*:E` filter 只看到 `libc Fatal signal 6 (SIGABRT)` 不知道是哪儿
+- 栈底最近的 Java 帧是 `LocalLlmServer.handleChat → MediaPipeLlmEngine.chat`，看着像 server 层 bug；实际根因在 native + 多个配置层错位累加
+- MediaPipe 的错误信息 `%sOUT_OF_RANGE: CalculatorGraph::Run() failed` 里 `%s` 是 sprintf 未替换的占位符 —— 看着像"格式化失败"误导排查方向，其实关键字是 `OUT_OF_RANGE`
+- fix A 单独修不够（B 让 session lock 512），fix B 单独修也不够（A 让 server 仍传 512），所以"我改了某一处验证还崩"会让人误以为修错地方
+- 端侧 LLM 测试用 JVM mock 验证不到 native abort（mock 路径直接走 NoOpLlmInferenceEngine 不进 MediaPipe），CI 全绿真机首次崩
+- 普通"调大 maxTokens 让模型回答更长"的直觉调优会绕过这个 bug 不修，因为开发者改的是 `num_predict` 而不是 `num_ctx`
+
+**SOP / checklist**：
+
+- 任何端侧 LLM engine（MediaPipe / llama.cpp / MLC / TFLite）的 chat() 入口**必须**加 prompt-length guard 在进 native 前 fail-fast，估算 `prompt.length / 4` 与 `ctxBudget - safetyMargin (128)` 比较，超了抛可恢复 `LlmInferenceException`，**不能**让 native 自己 OOM
+- session/handle 缓存的 key **必须**包含所有"烤进 handle 时不可改"的参数（modelPath, maxTokens, GPU/CPU backend, …），任何变化都 close + 重建
+- Ollama-compat HTTP server 映射 `num_ctx` 才对应 native 的 context window；`num_predict` 是 output budget，不要混。文件里加注释明确语义防后人改回去
+- 改 native LLM 路径必须 `adb shell logcat -b crash` 抓真机 abort 栈，而不是只看 `*:E`
+- JVM 单测 cover fix C 正反两例（超长 prompt 必抛 + 正常 prompt 不被误伤）—— guard 写在 ensureLoadedLocked 之前，pure-JVM 也能跑
+- 切换不同 ctx 窗口（cloud LLM 8K vs 本机 LLM 4K vs 老模型 2K）时验证 session 真重建，不要假设 cache 会自动失效
+
+**反模式**：
+
+- ❌ "Java 异常一定能 catch 到" —— native abort 是进程级 SIGABRT，try/catch 在死亡之前根本没被执行
+- ❌ "maxTokens 调大就行了" —— 没修 fix B 时, session 已经 lock 在小窗口
+- ❌ "Ollama `num_predict` 和 MediaPipe `maxTokens` 名字像就一定同义" —— 完全不同，一个是 output 限额一个是总窗口
+- ❌ "JVM 单测全绿就说明修好了" —— mock 路径不经过 native predictSync，必须 emulator/真机验
+- ❌ "用 ProcessBuilder/JNI 隔离掉 MediaPipe" —— 单独子进程能避免主进程崩，但 IPC 复杂度太高；上游 fail-fast 才是最经济解
+
+**单测覆盖建议**：
+
+- `MediaPipeLlmEngineTest`：覆盖"超长 prompt（estTokens > maxTokens-128）→ 必抛 LlmInferenceException 含'过长'/'token'"以及"正常 prompt → 不被误伤（不会因 guard 抛 '过长'）"
+- LocalLlmServer 路由层：MockEngine 验证 `setMaxTokens` 拿到的是 `numCtx` 而非 `numPredict`
+- 真机 E2E（待 future）：emulator 上跑 1k+ entities PDH adapter snapshot → 问 LLM → 验证返回 `error` JSON 而非 process crash
+
+**关联**：
+
+- commit `3fa4a81d5 fix(pdh-android): MediaPipe OUT_OF_RANGE -> JNI abort 防 SIGABRT 三连修`
+- memory `mediapipe_jni_out_of_range_abort.md`
+- 相关：#21（手写 tar parser silent fail）—— 同样是"native 层失败 → 上层看不到 stack trace → 调试要从 N 层 wrapper 往下挖"；本 #22 更狠：连 stack trace 都得换 logcat buffer 才能拿到
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间
