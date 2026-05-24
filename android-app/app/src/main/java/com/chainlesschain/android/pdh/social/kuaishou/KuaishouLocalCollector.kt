@@ -12,28 +12,36 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * v0.1 — Kuaishou snapshot writer.
+ * §A8 v0.2 — Kuaishou snapshot writer.
  *
- * **v0.1 仅持账号 + 写空 events 快照**：快手 web read 接口（`/graphql`
- * visionFeedRecommend / visionProfilePhotoList / visionSearchPhoto）都需
- * `NS_sig3` 签名（快手 anti-bot SDK），没有可靠的纯 Kotlin 实现，比抖音
- * X-Bogus / 头条 _signature 更复杂（multi-stage hash chain）。v0.2 走
- * WebView JS hook 注入或者 NS_sig3 端口。
+ * **v0.2 surface**: cookie + profile parse (`kuaishou.web.cp.api_ph` cookie
+ * 字段的 URL-encoded JSON，含 user_name/headurl/kuaishou_id/sex/city/...）。
+ * 无网络调用，因快手 GraphQL 全需 NS_sig3 签名。与 Toutiao 不同（Toutiao 走
+ * ByteDance unsigned passport endpoint），但 v0.2 用户体感一致：登录后能看
+ * 到自己的昵称头像。
  *
- * v0.1 output schema (与 packages/personal-data-hub/lib/adapters/
+ * v0.3+ 走 NS_sig3 接通 GraphQL 拿 watch/collect/search/动态计数。
+ *
+ * v0.2 output schema (与 packages/personal-data-hub/lib/adapters/
  * social-kuaishou SNAPSHOT_SCHEMA_VERSION = 1 对齐)：
  *
  *   {
  *     "schemaVersion": 1,
  *     "snapshottedAt": <epoch-ms>,
  *     "account": { "uid": "12345", "displayName": "alice" },
- *     "events": []      ← v0.1 始终 empty；v0.2 加 watch/collect/search
+ *     "events": [
+ *       { "kind": "profile", "id": "profile-<uid>", "capturedAt": <ms>,
+ *         "uid": "...", "nickname": "...", "kuaishouId": "...",
+ *         "avatarUrl": "...", "sex": "...", "city": "...",
+ *         "constellation": "...", "description": "..." }
+ *     ]
  *   }
  *
- * 因 events=[]，`cc hub sync social-kuaishou` 返 ingested=0，但 account.uid
- * 被持有 → 既能让用户看到"我已登录快手"卡片，又不引入虚假数据。
+ * v0.2 fetchProfile 成功 → 1 profile event；失败（cookie 无 api_ph 字段）→
+ * events: []，但 account.uid 仍持有。VM 透 everythingEmpty=true 给 UI。
  *
- * 与 Toutiao v0.1 完全对称（同 dual-mode JS adapter，同空-events 策略）。
+ * 与 Toutiao v0.2 几乎完全对称（同 dual-mode JS adapter，同 KIND_PROFILE
+ * 策略），仅 fetchProfile 路径不同（cookie-parse vs HTTP passport）。
  */
 @Singleton
 class KuaishouLocalCollector @Inject constructor(
@@ -45,9 +53,12 @@ class KuaishouLocalCollector @Inject constructor(
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
+            val profileCount: Int,
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
+            val lastErrorCode: Int = 0,
+            val lastErrorMessage: String? = null,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -59,13 +70,35 @@ class KuaishouLocalCollector @Inject constructor(
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials
         }
-        val uid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
-        val displayName = credentialsStore.getDisplayName()
+        val cookie = credentialsStore.getCookie() ?: return@withContext SnapshotResult.NoCredentials
+        val storedUid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
+
+        val profile = try {
+            apiClient.fetchProfile(cookie)
+        } catch (t: Throwable) {
+            Timber.w(t, "KuaishouLocalCollector: fetchProfile threw")
+            null
+        }
 
         val snapshottedAt = System.currentTimeMillis()
-
-        // v0.1: empty events array. v0.2 will push watch/collect/search events here.
         val events = JSONArray()
+        if (profile != null) {
+            events.put(
+                JSONObject()
+                    .put("kind", "profile")
+                    .put("id", "profile-" + profile.uid)
+                    .put("capturedAt", snapshottedAt)
+                    .put("uid", profile.uid)
+                    .put("nickname", profile.nickname)
+                    .putOpt("kuaishouId", profile.kuaishouId)
+                    .putOpt("avatarUrl", profile.avatarUrl)
+                    .putOpt("sex", profile.sex)
+                    .putOpt("city", profile.city)
+                    .putOpt("constellation", profile.constellation)
+                    .putOpt("description", profile.description)
+            )
+        }
+        val total = events.length()
 
         val root = JSONObject()
             .put("schemaVersion", SNAPSHOT_SCHEMA_VERSION)
@@ -73,8 +106,8 @@ class KuaishouLocalCollector @Inject constructor(
             .put(
                 "account",
                 JSONObject()
-                    .put("uid", uid)
-                    .put("displayName", displayName ?: ""),
+                    .put("uid", profile?.uid ?: storedUid)
+                    .put("displayName", profile?.nickname ?: credentialsStore.getDisplayName() ?: ""),
             )
             .put("events", events)
 
@@ -92,23 +125,40 @@ class KuaishouLocalCollector @Inject constructor(
             return@withContext SnapshotResult.Failed("write failed: ${t.message}")
         }
 
-        credentialsStore.recordSync(snapshottedAt, 0)
+        credentialsStore.recordSync(snapshottedAt, total)
 
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
-            totalEvents = 0,
-            everythingEmpty = true,
+            profileCount = if (profile != null) 1 else 0,
+            totalEvents = total,
+            everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
+            lastErrorCode = apiClient.lastErrorCode,
+            lastErrorMessage = apiClient.lastErrorMessage,
         )
     }
 
     /**
-     * WebView 把 cookie 抛回来后调本方法：抽 uid → 写 store。
+     * WebView 把 cookie 抛回来后调本方法：抽 uid → 调 fetchProfile 拿
+     * nickname/avatar → 写 store。fetchProfile 失败（cookie 无 api_ph）也不
+     * 阻断（uid 仍可用），displayName 字段保持空，由 caller 引导 v0.3 接通后
+     * 用 GraphQL 拿。
+     *
      * 返 false = cookie 不含可识别 uid (登录未完成 / 仅游客态)，上层 surface 引导。
      */
-    fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
+    suspend fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
         val uid = apiClient.extractUid(cookie) ?: return false
-        credentialsStore.saveCredentials(cookie = cookie, uid = uid, displayName = displayName)
+        val profile = try {
+            apiClient.fetchProfile(cookie)
+        } catch (t: Throwable) {
+            Timber.w(t, "KuaishouLocalCollector.acceptLoginCookie: fetchProfile threw")
+            null
+        }
+        credentialsStore.saveCredentials(
+            cookie = cookie,
+            uid = profile?.uid ?: uid,
+            displayName = profile?.nickname ?: displayName,
+        )
         return true
     }
 

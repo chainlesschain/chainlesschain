@@ -41,18 +41,23 @@ const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
+  PERSON_SUBTYPES,
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
 
 const NAME = "social-kuaishou";
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
+const KIND_PROFILE = "profile";
 const KIND_WATCH = "watch";
 const KIND_COLLECT = "collect";
 const KIND_SEARCH = "search";
+// v0.2.1 — KIND_PROFILE added (mirrors Douyin/Toutiao); v0.3 will add watch/
+// collect/search via NS_sig3. SNAPSHOT_SCHEMA_VERSION stays at 1 — additive.
 const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_PROFILE,
   KIND_WATCH,
   KIND_COLLECT,
   KIND_SEARCH,
@@ -102,6 +107,7 @@ class KuaishouAdapter {
     this.capabilities = [
       "sync:snapshot",
       "sync:sqlite",
+      "parse:kuaishou-profile",
       "parse:kuaishou-photo-history",
       "parse:kuaishou-user-collect",
       "parse:kuaishou-search",
@@ -110,6 +116,7 @@ class KuaishouAdapter {
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
+        "kuaishou:profile (user_id / user_name / kuaishou_id / headurl / sex / city)",
         "kuaishou:photo_history (photo_id / caption / view_time / duration / author_id)",
         "kuaishou:user_collect (photo_id / caption / collect_time)",
         "kuaishou:search_record (keyword / search_time)",
@@ -117,6 +124,7 @@ class KuaishouAdapter {
       sensitivity: "medium",
       legalGate: false,
       defaultInclude: {
+        profile: true,
         watch: true,
         collect: true,
         search: true,
@@ -307,6 +315,9 @@ class KuaishouAdapter {
     const kind = raw.kind || raw.payload.kind;
     const p = raw.payload;
 
+    if (kind === KIND_PROFILE) {
+      return normalizeProfile(p, raw, ingestedAt);
+    }
     if (kind === KIND_COLLECT) {
       return normalizeCollect(p, raw, ingestedAt);
     }
@@ -318,6 +329,47 @@ class KuaishouAdapter {
     }
     throw new Error(`KuaishouAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function normalizeProfile(p, raw, ingestedAt) {
+  // v0.2 snapshot-only — produces a person record for the logged-in user
+  // (person-self) carrying kuaishou-uid + kuaishou-id identifiers + profile
+  // metadata in extra. Repeated syncs dedupe on the same id; extra fields
+  // get refreshed.
+  const uid = p.uid || (p.account && p.account.uid) || null;
+  const nickname =
+    p.nickname || (p.account && p.account.displayName) || "(unnamed)";
+  const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
+  const identifiers = {};
+  if (uid) identifiers["kuaishou-uid"] = [String(uid)];
+  if (p.kuaishouId) identifiers["kuaishou-id"] = [String(p.kuaishouId)];
+  return {
+    events: [],
+    persons: [
+      {
+        id: uid ? `person-kuaishou-${uid}` : `person-kuaishou-self-${newId()}`,
+        type: ENTITY_TYPES.PERSON,
+        subtype: PERSON_SUBTYPES.SELF,
+        names: [nickname],
+        ingestedAt,
+        source,
+        identifiers,
+        extra: {
+          platform: "kuaishou",
+          avatarUrl: p.avatarUrl || null,
+          sex: p.sex || null,
+          city: p.city || null,
+          constellation: p.constellation || null,
+          description: p.description || null,
+          snapshottedAt: occurredAt,
+        },
+      },
+    ],
+    places: [],
+    items: [],
+    topics: [],
+  };
 }
 
 function buildSource(raw, occurredAt, capturedBy) {
@@ -486,4 +538,8 @@ module.exports = {
   VERSION,
   SNAPSHOT_SCHEMA_VERSION,
   VALID_SNAPSHOT_KINDS,
+  KIND_PROFILE,
+  KIND_WATCH,
+  KIND_COLLECT,
+  KIND_SEARCH,
 };

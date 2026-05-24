@@ -31,9 +31,14 @@ describe("ToutiaoAdapter snapshot mode", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "toutiao-snap-"));
   });
 
-  it("exports SNAPSHOT_SCHEMA_VERSION = 1 + 3 VALID_SNAPSHOT_KINDS", () => {
+  it("exports SNAPSHOT_SCHEMA_VERSION = 1 + 4 VALID_SNAPSHOT_KINDS (v0.2.1 adds profile)", () => {
     expect(SNAPSHOT_SCHEMA_VERSION).toBe(1);
-    expect(VALID_SNAPSHOT_KINDS).toEqual(["read", "collection", "search"]);
+    expect(VALID_SNAPSHOT_KINDS).toEqual([
+      "profile",
+      "read",
+      "collection",
+      "search",
+    ]);
   });
 
   it("authenticate(inputPath) ok when readable", async () => {
@@ -100,6 +105,53 @@ describe("ToutiaoAdapter snapshot mode", () => {
     const raws = [];
     for await (const r of a.sync({ inputPath: p })) raws.push(r);
     expect(raws.length).toBe(0);
+  });
+
+  it("v0.2 profile event normalizes to person-self with toutiao-uid identifier", async () => {
+    const now = Date.now();
+    const p = writeSnapshot(tmpDir, {
+      schemaVersion: 1,
+      snapshottedAt: now,
+      account: { uid: "99999", displayName: "alice" },
+      events: [
+        {
+          kind: "profile",
+          id: "profile-99999",
+          capturedAt: now - 500,
+          uid: "99999",
+          nickname: "alice",
+          avatarUrl: "https://p.toutiao.com/u/alice.jpg",
+          description: "hi there",
+          followingCount: 12,
+          followerCount: 34,
+          mediaId: "media-1",
+        },
+      ],
+    });
+    const a = new ToutiaoAdapter();
+    const raws = [];
+    for await (const r of a.sync({ inputPath: p })) raws.push(r);
+    expect(raws.length).toBe(1);
+    expect(raws[0].kind).toBe("profile");
+    expect(raws[0].originalId).toMatch(/^toutiao:profile:/);
+
+    const batch = a.normalize(raws[0]);
+    expect(validateBatch(batch).valid).toBe(true);
+    // KIND_PROFILE produces a person record (not an event)
+    expect(batch.events.length).toBe(0);
+    expect(batch.persons.length).toBe(1);
+    const person = batch.persons[0];
+    expect(person.id).toBe("person-toutiao-99999");
+    expect(person.subtype).toBe("self");
+    expect(person.names).toEqual(["alice"]);
+    expect(person.identifiers["toutiao-uid"]).toEqual(["99999"]);
+    expect(person.identifiers["toutiao-media-id"]).toEqual(["media-1"]);
+    expect(person.extra.platform).toBe("toutiao");
+    expect(person.extra.avatarUrl).toBe("https://p.toutiao.com/u/alice.jpg");
+    expect(person.extra.description).toBe("hi there");
+    expect(person.extra.followingCount).toBe(12);
+    expect(person.extra.followerCount).toBe(34);
+    expect(person.source.capturedBy).toBe("api");
   });
 
   it("read event round-trips normalize cleanly (BROWSE subtype)", async () => {

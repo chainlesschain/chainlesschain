@@ -44,18 +44,25 @@ const fs = require("node:fs");
 const { newId } = require("../../ids");
 const {
   ENTITY_TYPES,
+  PERSON_SUBTYPES,
   EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
 
 const NAME = "social-toutiao";
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
+const KIND_PROFILE = "profile";
 const KIND_READ = "read";
 const KIND_COLLECTION = "collection";
 const KIND_SEARCH = "search";
+// v0.2.1 — KIND_PROFILE added (mirrors Douyin); v0.3 will add read/collection
+// /search once _signature path is wired. SNAPSHOT_SCHEMA_VERSION stays at 1:
+// old (events-only) snapshots remain compatible; new profile events are an
+// additive extension.
 const VALID_SNAPSHOT_KINDS = Object.freeze([
+  KIND_PROFILE,
   KIND_READ,
   KIND_COLLECTION,
   KIND_SEARCH,
@@ -106,6 +113,7 @@ class ToutiaoAdapter {
     this.capabilities = [
       "sync:snapshot",
       "sync:sqlite",
+      "parse:toutiao-profile",
       "parse:toutiao-read-history",
       "parse:toutiao-collection",
       "parse:toutiao-search",
@@ -116,6 +124,7 @@ class ToutiaoAdapter {
     this.rateLimits = {};
     this.dataDisclosure = {
       fields: [
+        "toutiao:profile (user_id / screen_name / avatar / mobile / following / followers)",
         "toutiao:read_history (item_id / title / read_time / category)",
         "toutiao:collection_article (item_id / title / save_time)",
         "toutiao:search_history (keyword / search_time)",
@@ -124,6 +133,7 @@ class ToutiaoAdapter {
       sensitivity: "high",
       legalGate: false,
       defaultInclude: {
+        profile: true,
         read: true,
         collection: true,
         search: true,
@@ -317,6 +327,9 @@ class ToutiaoAdapter {
     const kind = raw.kind || raw.payload.kind;
     const p = raw.payload;
 
+    if (kind === KIND_PROFILE) {
+      return normalizeProfile(p, raw, ingestedAt);
+    }
     if (kind === KIND_COLLECTION) {
       return normalizeCollection(p, raw, ingestedAt);
     }
@@ -328,6 +341,47 @@ class ToutiaoAdapter {
     }
     throw new Error(`ToutiaoAdapter.normalize: unknown kind ${kind}`);
   }
+}
+
+function normalizeProfile(p, raw, ingestedAt) {
+  // v0.2 snapshot-only — produces a person record for the logged-in user
+  // (person-self) carrying toutiao-uid identifier + counts in extra.
+  // Repeated syncs dedupe on the same id; extra fields get refreshed.
+  const uid = p.uid || (p.account && p.account.uid) || null;
+  const nickname =
+    p.nickname || (p.account && p.account.displayName) || "(unnamed)";
+  const occurredAt = parseTime(p.capturedAt) || raw.capturedAt || ingestedAt;
+  const source = buildSource(raw, occurredAt, CAPTURED_BY.API);
+  const identifiers = {};
+  if (uid) identifiers["toutiao-uid"] = [String(uid)];
+  if (p.mediaId) identifiers["toutiao-media-id"] = [String(p.mediaId)];
+  return {
+    events: [],
+    persons: [
+      {
+        id: uid ? `person-toutiao-${uid}` : `person-toutiao-self-${newId()}`,
+        type: ENTITY_TYPES.PERSON,
+        subtype: PERSON_SUBTYPES.SELF,
+        names: [nickname],
+        ingestedAt,
+        source,
+        identifiers,
+        extra: {
+          platform: "toutiao",
+          avatarUrl: p.avatarUrl || null,
+          description: p.description || null,
+          mobile: p.mobile || null,
+          followingCount: p.followingCount || 0,
+          followerCount: p.followerCount || 0,
+          mediaId: p.mediaId || null,
+          snapshottedAt: occurredAt,
+        },
+      },
+    ],
+    places: [],
+    items: [],
+    topics: [],
+  };
 }
 
 function buildSource(raw, occurredAt, capturedBy) {
@@ -503,4 +557,8 @@ module.exports = {
   VERSION,
   SNAPSHOT_SCHEMA_VERSION,
   VALID_SNAPSHOT_KINDS,
+  KIND_PROFILE,
+  KIND_READ,
+  KIND_COLLECTION,
+  KIND_SEARCH,
 };
