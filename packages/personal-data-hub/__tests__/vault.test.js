@@ -568,7 +568,7 @@ describe("LocalVault.stats", () => {
     vault.audit("hello");
 
     const s = vault.stats();
-    expect(s.schemaVersion).toBe(2);
+    expect(s.schemaVersion).toBe(TARGET_VERSION);
     expect(s.events).toBe(3);
     expect(s.persons).toBe(1);
     expect(s.places).toBe(2);
