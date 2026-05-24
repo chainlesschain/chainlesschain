@@ -72,6 +72,8 @@ class AnalysisEngine {
    * @param {boolean} [options.acceptNonLocal=false]  required true for cloud LLMs
    * @param {number} [options.now]
    * @param {boolean} [options.skipAudit=false]
+   * @param {number} [options.maxFacts]                per-call override of constructor `maxFacts` (e.g. on-device 1.5B model wants ~20)
+   * @param {number} [options.maxQueryLimit]           per-call override of constructor `maxQueryLimit`
    * @returns {Promise<AskResult>}
    *
    * @typedef {object} AskResult
@@ -99,8 +101,20 @@ class AnalysisEngine {
     const startedAt = Date.now();
     const parsed = parseQuery(question, { now: options.now });
 
+    // Per-call budget overrides — on-device small models (Qwen2.5-1.5B etc.)
+    // need a much tighter prompt than desktop 7B+. Fall back to constructor
+    // defaults if not passed. Non-positive overrides are ignored.
+    const effMaxFacts =
+      Number.isInteger(options.maxFacts) && options.maxFacts > 0
+        ? options.maxFacts
+        : this.maxFacts;
+    const effMaxQueryLimit =
+      Number.isInteger(options.maxQueryLimit) && options.maxQueryLimit > 0
+        ? options.maxQueryLimit
+        : this.maxQueryLimit;
+
     // Gather facts from the vault.
-    const facts = this._gatherFacts(parsed);
+    const facts = this._gatherFacts(parsed, { maxFacts: effMaxFacts, maxQueryLimit: effMaxQueryLimit });
 
     // Optional RAG augmentation.
     let ragContext = [];
@@ -135,7 +149,7 @@ class AnalysisEngine {
       systemPrompt: this.systemPrompt,
       intent: parsed.intent,
       timeWindow: parsed.timeWindow,
-      maxFacts: this.maxFacts,
+      maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
     });
 
@@ -224,6 +238,8 @@ class AnalysisEngine {
    * @param {object} [options]
    * @param {number} [options.now]
    * @param {boolean} [options.skipAudit=false]
+   * @param {number} [options.maxFacts]                per-call override (small-model budget)
+   * @param {number} [options.maxQueryLimit]           per-call override
    * @returns {Promise<RetrieveContextResult>}
    *
    * @typedef {object} RetrieveContextResult
@@ -246,7 +262,17 @@ class AnalysisEngine {
 
     const startedAt = Date.now();
     const parsed = parseQuery(question, { now: options.now });
-    const facts = this._gatherFacts(parsed);
+
+    const effMaxFacts =
+      Number.isInteger(options.maxFacts) && options.maxFacts > 0
+        ? options.maxFacts
+        : this.maxFacts;
+    const effMaxQueryLimit =
+      Number.isInteger(options.maxQueryLimit) && options.maxQueryLimit > 0
+        ? options.maxQueryLimit
+        : this.maxQueryLimit;
+
+    const facts = this._gatherFacts(parsed, { maxFacts: effMaxFacts, maxQueryLimit: effMaxQueryLimit });
 
     const ragContextIds = [];
     if (this.ragRetriever) {
@@ -276,7 +302,7 @@ class AnalysisEngine {
       systemPrompt: this.systemPrompt,
       intent: parsed.intent,
       timeWindow: parsed.timeWindow,
-      maxFacts: this.maxFacts,
+      maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
     });
 
@@ -312,7 +338,18 @@ class AnalysisEngine {
 
   // ─── Internals ─────────────────────────────────────────────────────
 
-  _gatherFacts(parsed) {
+  _gatherFacts(parsed, budget = {}) {
+    // Per-call budget overrides constructor defaults — small-model callers
+    // (Android Qwen2.5-1.5B) pass tighter caps here.
+    const effMaxFacts =
+      Number.isInteger(budget.maxFacts) && budget.maxFacts > 0
+        ? budget.maxFacts
+        : this.maxFacts;
+    const effMaxQueryLimit =
+      Number.isInteger(budget.maxQueryLimit) && budget.maxQueryLimit > 0
+        ? budget.maxQueryLimit
+        : this.maxQueryLimit;
+
     // Deliberately do NOT pass parsed.filters.subtype as a vault filter:
     // the keyword heuristic (`order` vs `payment` vs `transfer`) is too
     // crude to reliably narrow without false negatives. E.g. a user
@@ -323,7 +360,7 @@ class AnalysisEngine {
     // apply on prose. The LLM is good at filtering; SQL keyword guessing
     // is brittle.
     const q = {
-      limit: this.maxQueryLimit,
+      limit: effMaxQueryLimit,
     };
     if (parsed.filters && parsed.filters.adapter) q.adapter = parsed.filters.adapter;
     if (parsed.timeWindow) {
@@ -349,7 +386,7 @@ class AnalysisEngine {
     // state snapshots that should always be visible. Adapter filter is also
     // skipped because users asking "我有几个联系人" don't say "from
     // system-data-android".
-    const remaining = Math.max(0, this.maxFacts - events.length);
+    const remaining = Math.max(0, effMaxFacts - events.length);
     const sideBudget = Math.floor(remaining / 2);
     const personBudget = sideBudget > 0 ? sideBudget : 0;
     const itemBudget = remaining - personBudget;

@@ -1548,6 +1548,38 @@ class HubLocalViewModelTest {
     }
 
     @Test
+    fun `askQuestion uses small-model budget defaults maxFacts=20 maxQueryLimit=50`() =
+        runTest(testDispatcher) {
+            // Contract test: HubLocalViewModel does NOT pass per-call budget, so
+            // LocalCcRunner.askQuestion's defaults supply 20/50. If anyone bumps
+            // those defaults (or stops using them) this test breaks loud — the
+            // whole reason Qwen2.5-1.5B answers don't overflow is this budget.
+            coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+                report = LocalCcRunner.AskReport(
+                    answer = "ok",
+                    citations = emptyList(),
+                    llmName = null, isLocal = true, durationMs = 0L,
+                ),
+                rawJson = "{}",
+            )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.onAskQuestionChanged("q")
+            vm.askQuestion()
+            advanceUntilIdle()
+            io.mockk.coVerify(exactly = 1) {
+                ccRunner.askQuestion(
+                    question = "q",
+                    ollamaUrl = any(),
+                    acceptNonLocal = any(),
+                    maxFacts = 20,
+                    maxQueryLimit = 50,
+                    timeoutMs = any(),
+                )
+            }
+        }
+
+    @Test
     fun `clearAskAnswer wipes answer + citations + error`() = runTest(testDispatcher) {
         coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
             report = LocalCcRunner.AskReport(
@@ -1825,6 +1857,157 @@ class HubLocalViewModelTest {
         vm.requestCitationDetail("")
         assertFalse(vm.state.value.citationDetail.visible)
         io.mockk.coVerify(exactly = 0) { ccRunner.queryEvent(any(), any()) }
+    }
+
+    // 2026-05-24 vault preview sheet — "看本机数据" entry point so users can
+    // verify what actually landed in vault after a sync (vs trusting card
+    // lastSyncCount / AI answer).
+
+    @Test
+    fun `requestVaultPreview success populates rows`() = runTest(testDispatcher) {
+        val rows = listOf(
+            LocalCcRunner.EventRow(
+                id = "weibo:post:abc",
+                subtype = "social.post",
+                occurredAt = 1716000000000L,
+                ingestedAt = 1716100000000L,
+                sourceAdapter = "social-weibo",
+                summary = "今天天气真好",
+                rawJson = "{}",
+            ),
+            LocalCcRunner.EventRow(
+                id = "weibo:follow:xyz",
+                subtype = "social.follow",
+                occurredAt = 1715900000000L,
+                ingestedAt = 1716100000000L,
+                sourceAdapter = "social-weibo",
+                summary = "@另一个用户",
+                rawJson = "{}",
+            ),
+        )
+        coEvery { ccRunner.queryEvents(adapter = "social-weibo", limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(rows = rows)
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.requestVaultPreview(adapter = "social-weibo", displayName = "微博")
+        assertTrue(vm.state.value.vaultPreview.open)
+        assertTrue(vm.state.value.vaultPreview.isLoading)
+        assertEquals("social-weibo", vm.state.value.vaultPreview.adapterFilter)
+        assertEquals("微博", vm.state.value.vaultPreview.displayName)
+
+        advanceUntilIdle()
+        val p = vm.state.value.vaultPreview
+        assertTrue(p.open)
+        assertFalse(p.isLoading)
+        assertEquals(2, p.rows.size)
+        assertEquals("weibo:post:abc", p.rows[0].id)
+        assertEquals("social.post", p.rows[0].subtype)
+        assertEquals("今天天气真好", p.rows[0].summary)
+        assertNull(p.errorMessage)
+    }
+
+    @Test
+    fun `requestVaultPreview empty rows surfaces empty state`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvents(adapter = "social-weibo", limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(rows = emptyList())
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestVaultPreview(adapter = "social-weibo", displayName = "微博")
+        advanceUntilIdle()
+        val p = vm.state.value.vaultPreview
+        assertTrue(p.open)
+        assertFalse(p.isLoading)
+        assertEquals(0, p.rows.size)
+        assertNull(p.errorMessage)
+    }
+
+    @Test
+    fun `requestVaultPreview failure surfaces errorMessage`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvents(adapter = any(), limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Failed("bootstrap-failed: cc shim missing", null)
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestVaultPreview(adapter = "social-weibo", displayName = "微博")
+        advanceUntilIdle()
+        val p = vm.state.value.vaultPreview
+        assertTrue(p.open)
+        assertFalse(p.isLoading)
+        assertEquals(0, p.rows.size)
+        assertEquals("bootstrap-failed: cc shim missing", p.errorMessage)
+    }
+
+    @Test
+    fun `requestVaultPreview truncates long summary to 160 chars`() = runTest(testDispatcher) {
+        val longText = "x".repeat(500)
+        coEvery { ccRunner.queryEvents(adapter = any(), limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(
+                rows = listOf(
+                    LocalCcRunner.EventRow(
+                        id = "id-1",
+                        subtype = "x.y",
+                        occurredAt = 1L,
+                        ingestedAt = 2L,
+                        sourceAdapter = "social-weibo",
+                        summary = longText,
+                        rawJson = "{}",
+                    ),
+                )
+            )
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestVaultPreview(adapter = "social-weibo")
+        advanceUntilIdle()
+        val row = vm.state.value.vaultPreview.rows.single()
+        assertEquals(160, row.summary?.length)
+    }
+
+    @Test
+    fun `dismissVaultPreview closes sheet`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvents(adapter = any(), limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(rows = emptyList())
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.requestVaultPreview(adapter = "social-weibo")
+        advanceUntilIdle()
+        assertTrue(vm.state.value.vaultPreview.open)
+        vm.dismissVaultPreview()
+        assertFalse(vm.state.value.vaultPreview.open)
+        assertNull(vm.state.value.vaultPreview.adapterFilter)
+        assertEquals(0, vm.state.value.vaultPreview.rows.size)
+    }
+
+    @Test
+    fun `requestVaultPreview stale guard drops late result for different filter`() = runTest(testDispatcher) {
+        coEvery { ccRunner.queryEvents(adapter = "social-bilibili", limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(
+                rows = listOf(
+                    LocalCcRunner.EventRow(
+                        id = "stale", subtype = "x", occurredAt = 1L, ingestedAt = 2L,
+                        sourceAdapter = "social-bilibili", summary = "stale-row", rawJson = "{}",
+                    ),
+                )
+            )
+        coEvery { ccRunner.queryEvents(adapter = "social-weibo", limit = any(), timeoutMs = any()) } returns
+            LocalCcRunner.QueryEventsResult.Ok(
+                rows = listOf(
+                    LocalCcRunner.EventRow(
+                        id = "fresh", subtype = "x", occurredAt = 1L, ingestedAt = 2L,
+                        sourceAdapter = "social-weibo", summary = "fresh-row", rawJson = "{}",
+                    ),
+                )
+            )
+        val vm = newVm()
+        advanceUntilIdle()
+
+        // User taps "看采集到的" on Bilibili card, then before result lands taps
+        // 微博 card. The first response must NOT bleed into the 微博 sheet.
+        vm.requestVaultPreview(adapter = "social-bilibili")
+        vm.requestVaultPreview(adapter = "social-weibo")
+        advanceUntilIdle()
+        val p = vm.state.value.vaultPreview
+        assertEquals("social-weibo", p.adapterFilter)
+        assertEquals("fresh", p.rows.single().id)
     }
 
     @Test

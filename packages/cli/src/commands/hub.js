@@ -39,6 +39,20 @@ function jsonAndExit(obj) {
   );
 }
 
+/**
+ * Coerce a Commander string option to a positive integer, returning null if
+ * unset / blank / non-numeric / ≤0. Used by `--max-facts` / `--max-query-limit`
+ * on `cc hub ask` so on-device callers can pass smaller budgets without
+ * silent fallback to constructor defaults on a typo (`--max-facts abc`
+ * should not silently use 80).
+ */
+function parsePositiveInt(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
 function fail(spinner, err, asJson) {
   if (spinner) spinner.stop();
   const msg = err && err.message ? err.message : String(err);
@@ -55,7 +69,9 @@ function fail(spinner, err, asJson) {
 async function cmdAsk(question, options) {
   const spinner = options.json ? null : ora("Asking hub...").start();
   try {
-    const hub = await getHub();
+    // _getHub injection mirrors other handlers — lets unit tests stub the
+    // engine without standing up a real vault.
+    const hub = await (options._getHub || getHub)();
     if (!hub.engine) throw new Error("Analysis engine unavailable");
     // 推文 §三道锁第二把 "默认不许问云端" — acceptNonLocal 默认 false (拒云)。
     // 优先 --accept-non-local CLI 旗，其次 env CC_HUB_ALLOW_NON_LOCAL (Android UI
@@ -64,10 +80,19 @@ async function cmdAsk(question, options) {
       process.env.CC_HUB_ALLOW_NON_LOCAL === "1" ||
       process.env.CC_HUB_ALLOW_NON_LOCAL === "true";
     const acceptNonLocal = !!options.acceptNonLocal || envAllow;
-    const result = await hub.engine.ask(question, {
+    // Per-call budget overrides for small-model callers (Android Qwen2.5-1.5B
+    // passes --max-facts 20 --max-query-limit 50 to keep prompt ~1.5K tokens
+    // and stay under the model's effective instruction-following window).
+    // Commander parses --max-facts <n> as string — coerce + drop invalid.
+    const maxFacts = parsePositiveInt(options.maxFacts);
+    const maxQueryLimit = parsePositiveInt(options.maxQueryLimit);
+    const askOptions = {
       useRag: options.useRag !== false,
       acceptNonLocal,
-    });
+    };
+    if (maxFacts !== null) askOptions.maxFacts = maxFacts;
+    if (maxQueryLimit !== null) askOptions.maxQueryLimit = maxQueryLimit;
+    const result = await hub.engine.ask(question, askOptions);
     if (spinner) spinner.stop();
     if (options.json) {
       printJson(result);
@@ -297,6 +322,82 @@ async function cmdQueryEvents(options) {
       logger.log(
         `  ${chalk.gray(at)} ${chalk.cyan(ev.subtype)} ${ev.summary || ev.id}`,
       );
+    }
+    process.exit(0);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+// ─── search / facet-counts (Phase 16 Vault Browser) ──────────────────
+//
+// Surfaces vault.searchEvents + vault.facetCounts for headless use
+// (Android LocalCcRunner.searchEvents calls this; CI smoke too).
+async function cmdSearchEvents(options) {
+  try {
+    const hub = await getHub();
+    const q = {};
+    if (options.q) q.q = String(options.q);
+    if (options.adapter) q.adapter = options.adapter;
+    if (options.category) q.category = options.category;
+    if (options.subtype) q.subtype = options.subtype;
+    if (options.since) q.since = Number(options.since);
+    if (options.until) q.until = Number(options.until);
+    if (options.limit) q.limit = Number(options.limit);
+    // cursor passed as `--cursor "<occurredAt>:<id>"` (cli-friendly)
+    if (options.cursor) {
+      const m = String(options.cursor).match(/^(\d+):(.+)$/);
+      if (m) q.cursor = { occurredAt: Number(m[1]), id: m[2] };
+    }
+    const result = hub.vault.searchEvents(q);
+    if (options.json) {
+      jsonAndExit(result);
+      return;
+    }
+    logger.log(
+      `${result.rows.length} events (mode=${result.mode}${result.shortQuery ? " shortQuery!" : ""})` +
+        (result.nextCursor
+          ? `  nextCursor=${result.nextCursor.occurredAt}:${result.nextCursor.id}`
+          : ""),
+    );
+    for (const ev of result.rows) {
+      const at = new Date(ev.occurredAt).toISOString();
+      const summary =
+        (ev.content &&
+          (ev.content.text || ev.content.title || ev.content.subject)) ||
+        ev.id;
+      logger.log(
+        `  ${chalk.gray(at)} ${chalk.cyan(ev.source.adapter)} ${chalk.dim(ev.subtype)} ${summary}`,
+      );
+    }
+    process.exit(0);
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+async function cmdFacetCounts(options) {
+  try {
+    const hub = await getHub();
+    const q = {};
+    if (options.q) q.q = String(options.q);
+    if (options.since) q.since = Number(options.since);
+    if (options.until) q.until = Number(options.until);
+    const result = hub.vault.facetCounts(q);
+    if (options.json) {
+      jsonAndExit(result);
+      return;
+    }
+    logger.log(
+      `total=${result.total} mode=${result.mode}${result.shortQuery ? " shortQuery!" : ""}`,
+    );
+    logger.log(chalk.bold("by category:"));
+    for (const [k, n] of Object.entries(result.byCategory)) {
+      logger.log(`  ${chalk.cyan(k.padEnd(10))} ${n}`);
+    }
+    logger.log(chalk.bold("by adapter:"));
+    for (const [k, n] of Object.entries(result.byAdapter)) {
+      logger.log(`  ${chalk.cyan(k.padEnd(24))} ${n}`);
     }
     process.exit(0);
   } catch (err) {
@@ -1081,6 +1182,14 @@ export function registerHubCommand(program) {
       "--accept-non-local",
       "Allow non-local LLM (sends data off device — required when provider is not Ollama/vLLM)",
     )
+    .option(
+      "--max-facts <n>",
+      "Cap facts in prompt (default 80; on-device small models e.g. Qwen2.5-1.5B should pass 20)",
+    )
+    .option(
+      "--max-query-limit <n>",
+      "Cap vault queryEvents limit (default 200; small-model callers should pass 50)",
+    )
     .option("--json", "Output JSON")
     .action(cmdAsk);
 
@@ -1135,6 +1244,34 @@ export function registerHubCommand(program) {
     .option("--limit <n>", "Max rows", "100")
     .option("--json", "Output JSON")
     .action(cmdQueryEvents);
+
+  hub
+    .command("search")
+    .description("Vault Browser search — events_fts (FTS5) + faceted filters")
+    .option("--q <text>", "Keyword (FTS5 phrase match if mode=fts5)")
+    .option("--adapter <name>", "Filter by exact adapter")
+    .option(
+      "--category <cat>",
+      "Filter by category (chat/social/email/shopping/travel/system/ai-chat/other)",
+    )
+    .option("--subtype <t>", "Filter by event subtype")
+    .option("--since <ms>", "Start of time window (unix-ms)")
+    .option("--until <ms>", "End of time window (unix-ms)")
+    .option("--cursor <occurredAt:id>", "Page cursor from previous response")
+    .option("--limit <n>", "Page size (max 500)", "50")
+    .option("--json", "Output JSON")
+    .action(cmdSearchEvents);
+
+  hub
+    .command("facet-counts")
+    .description(
+      "Sidebar / chip counts — events grouped by category / adapter / subtype",
+    )
+    .option("--q <text>", "Keyword filter (same semantics as `cc hub search`)")
+    .option("--since <ms>", "Start of time window (unix-ms)")
+    .option("--until <ms>", "End of time window (unix-ms)")
+    .option("--json", "Output JSON")
+    .action(cmdFacetCounts);
 
   hub
     .command("recent-audit")
@@ -1307,6 +1444,8 @@ export function registerHubCommand(program) {
 // `_wizard` / `_factoryDeps` / `_knownVendors` injected, bypassing the
 // real `getHub()` call. The commander wiring above is the runtime path.
 export const _internal = {
+  cmdAsk,
+  parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,
   cmdAIChatProbe,
