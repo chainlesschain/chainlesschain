@@ -64,6 +64,7 @@ const vscodeAdapter = require("./adapters/vscode");
 const winRecentAdapter = require("./adapters/win-recent");
 const gitActivityAdapter = require("./adapters/git-activity");
 const shellHistoryAdapter = require("./adapters/shell-history");
+const localFilesAdapter = require("./adapters/local-files");
 const categories = require("./categories");
 
 module.exports = {
@@ -306,6 +307,14 @@ module.exports = {
   SHELL_HISTORY_NAME: shellHistoryAdapter.SHELL_HISTORY_NAME,
   SHELL_HISTORY_VERSION: shellHistoryAdapter.SHELL_HISTORY_VERSION,
   defaultShellHistorySources: shellHistoryAdapter.defaultHistorySources,
+
+  // Phase 18 — local files (file walk under Documents / Desktop / Downloads /
+  // Pictures / Videos / Music). Cross-application "what files do I have"
+  // timeline rooted in mtime, with app-cache excludes baked in.
+  LocalFilesAdapter: localFilesAdapter.LocalFilesAdapter,
+  LOCAL_FILES_NAME: localFilesAdapter.LOCAL_FILES_NAME,
+  LOCAL_FILES_VERSION: localFilesAdapter.LOCAL_FILES_VERSION,
+  defaultLocalFileRoots: localFilesAdapter.defaultRoots,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

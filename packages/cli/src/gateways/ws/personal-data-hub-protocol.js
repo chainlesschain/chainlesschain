@@ -81,6 +81,7 @@ async function _tryAdbAutoPullInputPath(hub, name, options) {
     "win-recent",
     "git-activity",
     "shell-history",
+    "local-files",
   ]);
   if (BRIDGE_PREFERRED.has(name)) {
     return options || {};

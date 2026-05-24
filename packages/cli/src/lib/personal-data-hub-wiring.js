@@ -51,6 +51,7 @@ const {
   WinRecentAdapter,
   GitActivityAdapter,
   ShellHistoryAdapter,
+  LocalFilesAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -353,6 +354,13 @@ async function initHub() {
   try {
     const shell = new ShellHistoryAdapter();
     if (!registry.has(shell.name)) registry.register(shell);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
+    const localFiles = new LocalFilesAdapter();
+    if (!registry.has(localFiles.name)) registry.register(localFiles);
   } catch (_err) {
     // Continue boot
   }
