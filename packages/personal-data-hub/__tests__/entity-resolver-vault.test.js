@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const { LocalVault } = require("../lib/vault");
 const { generateKeyHex } = require("../lib/key-providers");
+const { TARGET_VERSION } = require("../lib/migrations");
 
 // Helper to spin up a fresh vault each test
 function makeVault() {
@@ -30,8 +31,10 @@ describe("Phase 8 migration v2 — EntityResolver tables", () => {
   beforeEach(() => { ({ vault, dir } = makeVault()); });
   afterEach(() => cleanup(vault, dir));
 
-  it("schemaVersion is 2 after open()", () => {
-    expect(vault.schemaVersion()).toBe(2);
+  it("schemaVersion is current after open()", () => {
+    expect(vault.schemaVersion()).toBe(TARGET_VERSION);
+    // Phase 8 ER tables landed in v2; subsequent migrations must not regress.
+    expect(TARGET_VERSION).toBeGreaterThanOrEqual(2);
   });
 
   it("all 5 new tables exist + are queryable", () => {

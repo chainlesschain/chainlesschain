@@ -58,6 +58,7 @@ const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
+const categories = require("./categories");
 
 module.exports = {
   // Constants / enums
@@ -87,6 +88,7 @@ module.exports = {
   TARGET_SCHEMA_VERSION: migrations.TARGET_VERSION,
   applyMigrations: migrations.applyMigrations,
   getSchemaVersion: migrations.getSchemaVersion,
+  getFtsMode: migrations.getFtsMode,
 
   // Key providers
   KEY_HEX_LEN: keyProviders.KEY_HEX_LEN,
@@ -273,4 +275,11 @@ module.exports = {
   alipayCounterpartyToPersonId: alipayBillAdapter.alipayCounterpartyToPersonId,
   ALIPAY_KNOWN_MERCHANTS: alipayBillAdapter.ALIPAY_KNOWN_MERCHANTS,
   mapAlipayTypeToSubtype: alipayBillAdapter.mapAlipayTypeToSubtype,
+
+  // Phase 16 — Vault Browser shared taxonomy (categories + adapter mapping)
+  CATEGORIES: categories.CATEGORIES,
+  CATEGORY_LABELS: categories.CATEGORY_LABELS,
+  PDH_PREFIX_RULES: categories.PREFIX_RULES,
+  getAdapterCategory: categories.getCategory,
+  groupAdaptersByCategory: categories.groupByCategory,
 };
