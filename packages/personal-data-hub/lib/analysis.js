@@ -48,6 +48,19 @@ const LATEST_INTENT_FACT_LIMIT = 3;
 // the user explicitly asked for. Stays additive (never replaces events).
 const LIST_INTENT_FTS_LIMIT = 10;
 
+// intent=sum-amount routing — the only event subtypes that carry an
+// amount field worth summing. Order keeps "order" first because it's the
+// most common shopping flow (taobao/jd/meituan/pdd all map to it). When
+// the user asks "总共花了多少" we only want events from this set; pulling
+// `message` / `visit` / `browse` would waste prompt budget on rows the
+// LLM cannot use to compute a sum.
+const SUM_AMOUNT_SUBTYPES = ["order", "payment", "transfer", "income"];
+// Per-subtype query cap divider — split the effMaxQueryLimit across the
+// 4 subtypes so a popular `payment` slice can't crowd out `transfer`.
+// Floor at 20 so per-call small-model budget (effMaxQueryLimit=50 →
+// 12) doesn't starve any single subtype.
+const SUM_AMOUNT_MIN_PER_SUBTYPE = 20;
+
 class AnalysisEngine {
   /**
    * @param {object} opts
@@ -413,6 +426,52 @@ class AnalysisEngine {
       // 0 results → fall through to default broader path below.
     }
 
+    // intent=sum-amount routing — "总共花了多少" / "在淘宝花了多少钱"
+    // only needs events from amount-bearing subtypes (order/payment/
+    // transfer/income). Pulling messages / visits / browses wastes
+    // prompt budget on rows the LLM can't aggregate into a sum.
+    //
+    // We split the budget across the 4 subtypes (min 20 each, floor),
+    // union the results, dedup by id (an event would only appear once
+    // anyway since subtype is unique per event — defensive), and sort
+    // by occurredAt DESC. Adapter + time window are passed through so
+    // "上个月在淘宝总共花了多少" stays scoped.
+    //
+    // Skip persons/items — they don't carry amounts.
+    // 0 hits → fall through to default broader path (defensive: if
+    // user vault has zero amount events, LLM should at least get
+    // persons/items to answer "找不到记录" gracefully).
+    if (parsed.intent === "sum-amount") {
+      const perSubtype = Math.max(
+        SUM_AMOUNT_MIN_PER_SUBTYPE,
+        Math.floor(effMaxQueryLimit / SUM_AMOUNT_SUBTYPES.length)
+      );
+      const seen = new Set();
+      const amountEvents = [];
+      for (const sub of SUM_AMOUNT_SUBTYPES) {
+        const subQ = { limit: perSubtype, subtype: sub };
+        if (parsed.filters && parsed.filters.adapter) {
+          subQ.adapter = parsed.filters.adapter;
+        }
+        if (parsed.timeWindow) {
+          if (Number.isFinite(parsed.timeWindow.since)) subQ.since = parsed.timeWindow.since;
+          if (Number.isFinite(parsed.timeWindow.until)) subQ.until = parsed.timeWindow.until;
+        }
+        const rows = this.vault.queryEvents(subQ);
+        for (const e of rows) {
+          if (e && e.id && !seen.has(e.id)) {
+            seen.add(e.id);
+            amountEvents.push(e);
+          }
+        }
+      }
+      if (amountEvents.length > 0) {
+        amountEvents.sort((a, b) => (b.occurredAt || 0) - (a.occurredAt || 0));
+        return amountEvents.slice(0, effMaxFacts);
+      }
+      // 0 results → fall through to default broader path below.
+    }
+
     // Deliberately do NOT pass parsed.filters.subtype as a vault filter:
     // the keyword heuristic (`order` vs `payment` vs `transfer`) is too
     // crude to reliably narrow without false negatives. E.g. a user
@@ -566,4 +625,6 @@ module.exports = {
   DEFAULT_MAX_QUERY_LIMIT,
   LATEST_INTENT_FACT_LIMIT,
   LIST_INTENT_FTS_LIMIT,
+  SUM_AMOUNT_SUBTYPES,
+  SUM_AMOUNT_MIN_PER_SUBTYPE,
 };

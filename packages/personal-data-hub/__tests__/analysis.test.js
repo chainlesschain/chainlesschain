@@ -1109,3 +1109,222 @@ describe("AnalysisEngine._gatherFacts intent=list + entity-name FTS augmentation
     expect(queryItemsCalls[0]).toBe(3);
   });
 });
+
+// ─── intent=sum-amount routing — subtype-narrowed amount slice ──────────
+//
+// 2026-05-24 follow-up — "总共花了多少" / "在淘宝花了多少钱" only needs
+// events from amount-bearing subtypes (order/payment/transfer/income).
+// Pulling messages / visits / browses wastes prompt budget on rows the
+// LLM can't sum. We split the budget across the 4 subtypes (min 20 each),
+// union+dedup+sort by occurredAt DESC, skip persons/items entirely.
+// 0 hits → fall through to default (defensive: empty-vault graceful).
+// Memory: pdh_analysis_engine_intent_routing.md.
+
+describe("AnalysisEngine._gatherFacts intent=sum-amount routing", () => {
+  const mkEvent = (id, subtype, adapter = "taobao", occurredAt = Date.now()) => ({
+    id, type: "event", subtype, occurredAt, actor: "self",
+    content: { amount: { value: 100, currency: "CNY", direction: "out" } },
+    ingestedAt: Date.now(),
+    source: { adapter, adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+  });
+
+  it("(a) hits 4 subtype queries: order/payment/transfer/income → merged + deduped + sorted DESC", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        // Return one event per subtype, occurredAt staggered so we can verify sort.
+        if (q.subtype === "order") return [mkEvent("o-1", "order", "taobao", 5000)];
+        if (q.subtype === "payment") return [mkEvent("p-1", "payment", "alipay-bill", 4000)];
+        if (q.subtype === "transfer") return [mkEvent("t-1", "transfer", "wechat", 3000)];
+        if (q.subtype === "income") return [mkEvent("i-1", "income", "email-imap", 2000)];
+        return [];
+      },
+      queryPersons: vi.fn(() => []),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 4, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("总共花了多少钱");
+
+    expect(r.parsed.intent).toBe("sum-amount");
+    // 4 queryEvents calls, one per subtype.
+    expect(queryEventsCalls).toHaveLength(4);
+    expect(queryEventsCalls.map((c) => c.subtype).sort()).toEqual(
+      ["income", "order", "payment", "transfer"]
+    );
+    // facts: 4 unique events, sorted DESC by occurredAt → o-1 first.
+    expect(r.facts.map((f) => f.id)).toEqual(["o-1", "p-1", "t-1", "i-1"]);
+    // persons + items skipped — sum-amount doesn't need them.
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryItems).not.toHaveBeenCalled();
+  });
+
+  it("(b) 0 amount events → fall through to default broader path (persons/items pulled)", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return []; // both narrow (4 calls) AND default (1 call) return 0
+      },
+      queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 2) }, (_, i) => ({
+        id: "p-" + i, type: "person", subtype: "contact", names: ["P" + i],
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 2, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("总共花了多少");
+
+    // 4 narrow (subtype-keyed) + 1 default = 5 queryEvents calls
+    expect(queryEventsCalls).toHaveLength(5);
+    expect(queryEventsCalls[0].subtype).toBe("order");
+    expect(queryEventsCalls[4].subtype).toBeUndefined(); // default path: no subtype filter
+    // Fallback returned persons — user gets useful answer instead of nothing.
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(2);
+  });
+
+  it("(c) adapter filter passes through to all 4 subtype queries", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return q.subtype === "order" ? [mkEvent("o-1", "order", "taobao")] : [];
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("在淘宝总共花了多少钱");
+
+    expect(queryEventsCalls).toHaveLength(4);
+    for (const c of queryEventsCalls) {
+      expect(c.adapter).toBe("taobao");
+    }
+  });
+
+  it("(d) timeWindow passes through to all 4 subtype queries", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return [];
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("上个月总共花了多少", { now: NOW });
+
+    // Narrow path's 4 subtype calls + 1 default fallback (since amountEvents=0)
+    expect(queryEventsCalls.length).toBeGreaterThanOrEqual(4);
+    for (let i = 0; i < 4; i++) {
+      expect(queryEventsCalls[i].since).toBeDefined();
+      expect(queryEventsCalls[i].until).toBeDefined();
+    }
+  });
+
+  it("(e) sum-amount does NOT trigger FTS augmentation (list-only branch)", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [mkEvent("o-1", "order")],
+      searchEvents: (q) => { searchEventsCalls.push(q); return { rows: [], mode: "fts5", shortQuery: false }; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    // Question carries a potential entity name "王老板", but intent=sum-amount
+    // must NOT call searchEvents (FTS is list-only).
+    await engine.ask("总共付给王老板多少钱");
+    expect(searchEventsCalls).toHaveLength(0);
+  });
+
+  it("(f) per-subtype budget respects effMaxQueryLimit/4 with floor of 20", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => { queryEventsCalls.push(q); return []; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    // effMaxQueryLimit = 200 (constructor default) → 200/4 = 50 per subtype
+    await engine.ask("总共花了多少");
+    // First 4 calls are narrow path (subtype-keyed).
+    expect(queryEventsCalls[0].limit).toBe(50);
+
+    // Small-model budget: effMaxQueryLimit=50 → 50/4 = 12 → max(20, 12) = 20
+    queryEventsCalls.length = 0;
+    await engine.ask("总共花了多少", { maxQueryLimit: 50 });
+    expect(queryEventsCalls[0].limit).toBe(20);
+  });
+
+  it("(g) dedup: same event id surfaced under multiple subtypes appears once", async () => {
+    // Defensive — events have unique subtype, but verify dedup if vault
+    // ever returns the same event from multiple subtype queries.
+    const fakeVault = {
+      queryEvents: (q) => {
+        // Both "order" and "payment" return e-shared (impossible in real
+        // vault but proves dedup logic).
+        if (q.subtype === "order" || q.subtype === "payment") {
+          return [mkEvent("e-shared", q.subtype)];
+        }
+        return [];
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("总共花了多少");
+
+    expect(r.facts).toHaveLength(1);
+    expect(r.facts[0].id).toBe("e-shared");
+  });
+
+  it("(h) result truncated to effMaxFacts (small-model 20 budget)", async () => {
+    const fakeVault = {
+      queryEvents: (q) => {
+        // Each subtype returns 50 events → 4*50 = 200 total before cap
+        return Array.from({ length: 50 }, (_, i) => mkEvent(
+          q.subtype + "-" + i, q.subtype, "taobao", Date.now() - i
+        ));
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 200, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("总共花了多少", { maxFacts: 20 });
+    expect(r.facts).toHaveLength(20);
+  });
+});
