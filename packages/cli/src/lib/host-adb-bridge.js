@@ -160,6 +160,67 @@ async function listApps(params, opts) {
 }
 
 /**
+ * Query SMS via the system content provider. No root, no permissions
+ * declared by host — ADB shell user already has READ_SMS-equivalent
+ * access. Returns one row per message. The body can contain commas;
+ * parseContentQueryRows treats `, <ident>=` as the field boundary so
+ * naturally-written text doesn't break the parse (only adversarial
+ * SMS containing `, X=` would).
+ *
+ * @returns {Promise<Array<{id, address, body, date, dateSent, type, threadId, read, subject}>>}
+ */
+async function querySms(params, opts) {
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    ["shell", "content", "query", "--uri", "content://sms"],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 },
+  );
+  const rows = parseContentQueryRows(stdout);
+  return rows
+    .map((r) => ({
+      id: r._id ? String(r._id) : null,
+      address: r.address || null,
+      body: r.body || null,
+      date: r.date ? parseInt(r.date, 10) : null,
+      dateSent: r.date_sent ? parseInt(r.date_sent, 10) : null,
+      // SMS type: 1=inbox, 2=sent, 3=draft, 4=outbox, 5=failed, 6=queued
+      type: r.type ? parseInt(r.type, 10) : null,
+      threadId: r.thread_id ? parseInt(r.thread_id, 10) : null,
+      read: r.read === "1" ? true : r.read === "0" ? false : null,
+      subject: r.subject || null,
+    }))
+    .filter((m) => m.id); // drop rows with no _id (malformed)
+}
+
+/**
+ * Query call log via the system content provider. Same access model
+ * as SMS. Returns one row per call.
+ *
+ * @returns {Promise<Array<{id, number, name, duration, date, type, geocoded}>>}
+ */
+async function queryCallLog(params, opts) {
+  const serial = await pickDevice(opts);
+  const stdout = await adb(
+    ["shell", "content", "query", "--uri", "content://call_log/calls"],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 120_000 },
+  );
+  const rows = parseContentQueryRows(stdout);
+  return rows
+    .map((r) => ({
+      id: r._id ? String(r._id) : null,
+      number: r.number || null,
+      name: r.name || null,
+      // Call duration in seconds
+      duration: r.duration ? parseInt(r.duration, 10) : null,
+      date: r.date ? parseInt(r.date, 10) : null,
+      // Call type: 1=incoming, 2=outgoing, 3=missed, 4=voicemail, 5=rejected, 6=blocked
+      type: r.type ? parseInt(r.type, 10) : null,
+      geocoded: r.geocoded_location || null,
+    }))
+    .filter((c) => c.id);
+}
+
+/**
  * List snapshot JSON files in the Android app's staging directory.
  * Uses `adb shell run-as` so only works on debuggable builds (which is
  * always true for `<pkg>.debug` variants). Production builds will
@@ -266,6 +327,10 @@ export function createHostAdbBridge(opts = {}) {
           return await queryContacts(params, opts);
         case "app.list":
           return await listApps(params, opts);
+        case "sms.query":
+          return await querySms(params, opts);
+        case "call.query":
+          return await queryCallLog(params, opts);
         case "snapshot.list":
           return await listSnapshots(params, opts);
         case "snapshot.read":
