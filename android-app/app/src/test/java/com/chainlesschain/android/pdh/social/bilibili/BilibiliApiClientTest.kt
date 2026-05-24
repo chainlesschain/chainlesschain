@@ -36,6 +36,13 @@ class BilibiliApiClientTest {
         client = BilibiliApiClient().apply {
             baseUrl = server.url("/").toString().toHttpUrl()
             httpClient = OkHttpClient.Builder().build()
+            // prepareCookie() calls mintBuvid3() which fires an extra request
+            // to /x/frontend/finger/spi BEFORE the real endpoint. Without
+            // seeding here, every fetcher test would have to enqueue 2
+            // responses (1 for the mint, 1 for the real endpoint), and the
+            // existing single-enqueue tests hang in runTest with
+            // UncompletedCoroutinesError — see CI run 26347368380 (8 failures).
+            setMintedBuvid3ForTest("test-buvid3")
         }
     }
 
