@@ -1,10 +1,23 @@
 # A8 今日头条 (Toutiao) — 真机 E2E 测试计划
 
-**Status**: v0.2 计划 (2026-05-24) — stub `A8ToutiaoE2ETest.kt` 已落，真机执行需 Mac/Linux + Android 真机 + 真账号；Win dev box 无法运行。
+**Status**: v0.3 计划 (2026-05-24 update) — v0.2 stub `A8ToutiaoE2ETest.kt` 已落；v0.3 新增 `ToutiaoSignBridge` (hidden WebView 跑 acrawler.js 取 `_signature`) + ApiClient 3 endpoint 接通 + collector fan-out。Win dev box 跑 JVM 单测 (`WebSignBridgeHelpersTest` + `ToutiaoApiClientV03Test` + `ToutiaoLocalCollectorV03Test`) ✅；真机 E2E 仍需 Mac/Linux + 真机 + 真账号。
 
 ## 范围
 
-A8 v0.2 surface = **profile-only**。所有读取接口（history/collection/search）都需 `_signature` 签名（ByteDance acrawler.js 反爬 SDK），v0.3 接通后再补 E2E。当前 E2E 只覆盖 cookie 登录态 + ByteDance 老 passport endpoint（`/passport/account/info/v2/?aid=24`, unsigned, 与 Douyin aid=2906 同 family）。
+**v0.3 surface** (本轮新增 — 三家 v0.3 模板)：
+- ✅ profile (`/passport/account/info/v2/?aid=24`, unsigned passport endpoint, v0.2 已通)
+- 🆕 feed → KIND_READ (`/api/news/feed/v90/?category=__all__`, 需 `_signature`)
+- 🆕 collection → KIND_COLLECTION (`/article/v2/tab_comments/`, 需 `_signature`)
+- 🆕 search history → KIND_SEARCH (`/api/search/content/?keyword=`, 需 `_signature`)
+
+`_signature` 由 `ToutiaoSignBridge` 在登录 cookie 注入后的 hidden WebView 里跑 `window.byted_acrawler.sign({url, aid:24, platform:'PC'})` 拿 — 不复刻 acrawler.js（每 4-8 周 rotate 函数名），直接复用平台自带签名 JS。Bridge probe 3 个候选函数名: `byted_acrawler.sign` / `_0x32d839` / `acrawler.sign`。
+
+**Graceful degrade**：
+- bridge warmUp 失败 (WebView 加载超时 / SDK 没出现) → 跳过 3 个 v0.3 端点, v0.2 profile 仍 emit
+- 3 个 endpoint 任一 signUrl 返 null (函数名 rotate) → 短路 (不发 HTTP), ApiClient `lastErrorCode=-99`
+- 任一 endpoint 返 412 / status_code != 0 → 其它两个继续
+
+`v03Attempted` 字段在 `SnapshotResult.Ok` 透出 → UI banner 区分三种状态: "v0.3 完整命中 (N 推荐/M 收藏/K 搜索)" / "v0.3 attempted 但 0 抓到" / "v0.2 fallback (signProvider 未注入)"。
 
 ```
 WebView 登录 → SocialCookieWebViewScreen 提取 cookie

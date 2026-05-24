@@ -51,15 +51,28 @@ class ToutiaoLocalCollector @Inject constructor(
     private val credentialsStore: ToutiaoCredentialsStore,
 ) {
 
+    /**
+     * v0.3 — optional signer for the v0.3 read/collection/search endpoints.
+     * Default null = caller never wired a [ToutiaoSignBridge]; we degrade
+     * gracefully to v0.2 profile-only (preserves v0.2 behavior). When non-null,
+     * the collector warms the bridge once + calls fetchFeed/Collection/Search.
+     */
+    var signProvider: com.chainlesschain.android.pdh.social.SignProvider? = null
+
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
             val profileCount: Int,
+            val readCount: Int,
+            val collectionCount: Int,
+            val searchCount: Int,
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
             val lastErrorCode: Int = 0,
             val lastErrorMessage: String? = null,
+            /** True if v0.3 endpoints were attempted (signProvider was wired). */
+            val v03Attempted: Boolean = false,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -81,6 +94,33 @@ class ToutiaoLocalCollector @Inject constructor(
             null
         }
 
+        // v0.3 — try to warm the sign bridge, then call the three signed
+        // endpoints. Each is best-effort: a failure on one doesn't tank the
+        // others. ApiClient handles _signature unavailable by returning
+        // emptyList with lastErrorCode=-99 (short-circuit, no HTTP issued).
+        val signer = signProvider
+        apiClient.signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider
+        val v03Attempted = signer != null
+        var feed: List<ToutiaoApiClient.FeedItem> = emptyList()
+        var collection: List<ToutiaoApiClient.CollectionItem> = emptyList()
+        var searches: List<ToutiaoApiClient.SearchItem> = emptyList()
+        if (signer != null) {
+            // Warm the bridge once — costs ~3-5s the first time, ~0ms subsequent.
+            val warm = try {
+                signer.warmUp(cookie)
+            } catch (t: Throwable) {
+                Timber.w(t, "ToutiaoLocalCollector: signProvider.warmUp threw")
+                false
+            }
+            if (warm) {
+                feed = safelyFetch("fetchFeed") { apiClient.fetchFeed(cookie) }
+                collection = safelyFetch("fetchCollection") { apiClient.fetchCollection(cookie) }
+                searches = safelyFetch("fetchSearchHistory") { apiClient.fetchSearchHistory(cookie) }
+            } else {
+                Timber.w("ToutiaoLocalCollector: signProvider.warmUp returned false — skipping v0.3 endpoints")
+            }
+        }
+
         val snapshottedAt = System.currentTimeMillis()
         val events = JSONArray()
         if (profile != null) {
@@ -97,6 +137,45 @@ class ToutiaoLocalCollector @Inject constructor(
                     .put("followingCount", profile.followingCount)
                     .put("followerCount", profile.followerCount)
                     .putOpt("mediaId", profile.mediaId)
+            )
+        }
+        // v0.3 — feed becomes KIND_READ events (consumed articles / dwelled).
+        for (item in feed) {
+            events.put(
+                JSONObject()
+                    .put("kind", "read")
+                    .put("id", "read-" + item.itemId)
+                    .put("capturedAt", item.publishedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("itemId", item.itemId)
+                    .put("title", item.title)
+                    .putOpt("category", item.category)
+                    .putOpt("author", item.author)
+                    .put("readDuration", item.readDuration)
+                    .putOpt("source", item.source),
+            )
+        }
+        // v0.3 — saved articles → KIND_COLLECTION events.
+        for (item in collection) {
+            events.put(
+                JSONObject()
+                    .put("kind", "collection")
+                    .put("id", "collect-" + item.itemId)
+                    .put("capturedAt", item.savedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("itemId", item.itemId)
+                    .put("title", item.title)
+                    .putOpt("category", item.category)
+                    .putOpt("author", item.author),
+            )
+        }
+        // v0.3 — recent searches → KIND_SEARCH events.
+        for (item in searches) {
+            events.put(
+                JSONObject()
+                    .put("kind", "search")
+                    .put("id", "search-" + item.keyword + ":" + item.searchedAt)
+                    .put("capturedAt", item.searchedAt.takeIf { it > 0 } ?: snapshottedAt)
+                    .put("keyword", item.keyword)
+                    .put("searchAt", item.searchedAt),
             )
         }
         val total = events.length()
@@ -131,12 +210,25 @@ class ToutiaoLocalCollector @Inject constructor(
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
             profileCount = if (profile != null) 1 else 0,
+            readCount = feed.size,
+            collectionCount = collection.size,
+            searchCount = searches.size,
             totalEvents = total,
             everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
             lastErrorCode = apiClient.lastErrorCode,
             lastErrorMessage = apiClient.lastErrorMessage,
+            v03Attempted = v03Attempted,
         )
+    }
+
+    private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
+        return try {
+            block()
+        } catch (t: Throwable) {
+            Timber.w(t, "ToutiaoLocalCollector: %s threw", label)
+            emptyList()
+        }
     }
 
     /**

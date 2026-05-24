@@ -1,11 +1,14 @@
 package com.chainlesschain.android.pdh.social.toutiao
 
+import com.chainlesschain.android.pdh.social.NullSignProvider
+import com.chainlesschain.android.pdh.social.SignProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
@@ -50,6 +53,37 @@ class ToutiaoApiClient @Inject constructor() {
 
     /** Override the base URL for MockWebServer in tests. */
     var baseUrl: HttpUrl = "https://www.toutiao.com/".toHttpUrl()
+
+    /**
+     * v0.3 — pluggable [SignProvider] for `_signature` (defaults to a
+     * no-op so existing v0.2 callers / tests still pass). Production wires
+     * [ToutiaoSignBridge]; JVM tests can inject a fake that returns a
+     * deterministic signature without standing up a WebView.
+     */
+    var signProvider: SignProvider = NullSignProvider
+
+    data class FeedItem(
+        val itemId: String,
+        val title: String,
+        val category: String?,
+        val author: String?,
+        val publishedAt: Long,
+        val readDuration: Int,
+        val source: String?,
+    )
+
+    data class CollectionItem(
+        val itemId: String,
+        val title: String,
+        val category: String?,
+        val author: String?,
+        val savedAt: Long,
+    )
+
+    data class SearchItem(
+        val keyword: String,
+        val searchedAt: Long,
+    )
 
     data class ProfileInfo(
         val uid: String,
@@ -184,6 +218,164 @@ class ToutiaoApiClient @Inject constructor() {
             mediaId = data.optStringOrNull("media_id")
                 ?: data.optLong("media_id", 0L).takeIf { it > 0L }?.toString(),
         )
+    }
+
+    /**
+     * v0.3 — Recommended feed (`/api/news/feed/v90/?category=__all__`). Each
+     * item that the user dwelled on is a [FeedItem] read-history candidate.
+     * Toutiao's recommended endpoint doesn't return an explicit "viewed at"
+     * timestamp; we use `behot_time` (the publishing/promotion timestamp the
+     * feed engine sorts by) as a stand-in. The collector treats these as
+     * KIND_READ events but UI labels them "推荐流" to be honest about what
+     * we have.
+     */
+    suspend fun fetchFeed(cookie: String, limit: Int = 50): List<FeedItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("api/news/feed/v90/")
+                .addQueryParameter("category", "__all__")
+                .addQueryParameter("aid", "24")
+                .addQueryParameter("client_extra_params", "{}")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val url = signProvider.signUrl(rawUrl, "feed")
+            if (url == null) {
+                setLastError(-99, "_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val data = obj.optJSONArray("data") ?: return@withContext emptyList()
+            extractFeedItems(data, limit)
+        }
+
+    /**
+     * v0.3 — Collected articles. `tab_comments` is misleadingly named: it's
+     * the user's "my favorites" list in the Toutiao web app, returning
+     * `data: [{ group_id, title, source, behot_time, ...}]`.
+     */
+    suspend fun fetchCollection(cookie: String, limit: Int = 200): List<CollectionItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("article/v2/tab_comments/")
+                .addQueryParameter("aid", "24")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val url = signProvider.signUrl(rawUrl, "comments")
+            if (url == null) {
+                setLastError(-99, "_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            val data = obj.optJSONArray("data") ?: return@withContext emptyList()
+            val out = ArrayList<CollectionItem>(minOf(limit, data.length()))
+            for (i in 0 until minOf(limit, data.length())) {
+                val item = data.optJSONObject(i) ?: continue
+                val id = item.optStringOrNull("group_id")
+                    ?: item.optStringOrNull("item_id")
+                    ?: continue
+                out.add(
+                    CollectionItem(
+                        itemId = id,
+                        title = item.optStringOrNull("title") ?: "(no title)",
+                        category = item.optStringOrNull("category"),
+                        author = item.optJSONObject("user_info")?.optStringOrNull("name")
+                            ?: item.optStringOrNull("source"),
+                        savedAt = (item.optLong("behot_time").takeIf { it > 0 }
+                            ?: item.optLong("create_time")) * 1000L,
+                    ),
+                )
+            }
+            out
+        }
+
+    /**
+     * v0.3 — Search history. Toutiao web stores recent searches in
+     * `/api/search/content/?keyword=<empty>` returns the user's recent
+     * query list under `data.user_search_history` (when logged in).
+     */
+    suspend fun fetchSearchHistory(cookie: String, limit: Int = 100): List<SearchItem> =
+        withContext(Dispatchers.IO) {
+            val rawUrl = baseUrl.newBuilder()
+                .addPathSegments("api/search/content/")
+                .addQueryParameter("aid", "24")
+                .addQueryParameter("keyword", "")
+                .addQueryParameter("count", limit.toString())
+                .build()
+            val url = signProvider.signUrl(rawUrl, "search")
+            if (url == null) {
+                setLastError(-99, "_signature unavailable (bridge not warm or rotated)")
+                return@withContext emptyList()
+            }
+            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
+            // Two response shapes observed: top-level `data.user_search_history`
+            // OR nested `data.search_history`. Try both.
+            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
+            val history = data.optJSONArray("user_search_history")
+                ?: data.optJSONArray("search_history")
+                ?: return@withContext emptyList()
+            val out = ArrayList<SearchItem>(minOf(limit, history.length()))
+            for (i in 0 until minOf(limit, history.length())) {
+                val raw = history.opt(i) ?: continue
+                val keyword: String
+                val ts: Long
+                when (raw) {
+                    is JSONObject -> {
+                        keyword = raw.optStringOrNull("keyword")
+                            ?: raw.optStringOrNull("query")
+                            ?: continue
+                        ts = (raw.optLong("time").takeIf { it > 0 }
+                            ?: raw.optLong("search_time")) * 1000L
+                    }
+                    is String -> {
+                        // Older shape: bare string list, no timestamp. Use
+                        // snapshot time minus index ordering so latest stays
+                        // first in vault dedupe.
+                        keyword = raw
+                        ts = System.currentTimeMillis() - i * 1000L
+                    }
+                    else -> continue
+                }
+                if (keyword.isBlank()) continue
+                out.add(SearchItem(keyword = keyword, searchedAt = ts))
+            }
+            out
+        }
+
+    private fun extractFeedItems(arr: JSONArray, limit: Int): List<FeedItem> {
+        val out = ArrayList<FeedItem>(minOf(limit, arr.length()))
+        for (i in 0 until minOf(limit, arr.length())) {
+            val raw = arr.optJSONObject(i) ?: continue
+            // Some feed cells have the real article nested under
+            // `raw_data` (encoded JSON string); others are top-level.
+            val item = decodeNestedRaw(raw) ?: raw
+            val id = item.optStringOrNull("group_id")
+                ?: item.optStringOrNull("item_id")
+                ?: continue
+            out.add(
+                FeedItem(
+                    itemId = id,
+                    title = item.optStringOrNull("title") ?: "(no title)",
+                    category = item.optStringOrNull("category")
+                        ?: raw.optStringOrNull("category"),
+                    author = item.optJSONObject("user_info")?.optStringOrNull("name")
+                        ?: item.optStringOrNull("source"),
+                    publishedAt = (item.optLong("behot_time").takeIf { it > 0 }
+                        ?: item.optLong("publish_time")) * 1000L,
+                    readDuration = item.optInt("read_duration", 0),
+                    source = item.optStringOrNull("source"),
+                ),
+            )
+        }
+        return out
+    }
+
+    private fun decodeNestedRaw(cell: JSONObject): JSONObject? {
+        val rawData = cell.optStringOrNull("raw_data") ?: return null
+        return try {
+            JSONObject(rawData)
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     private fun doGetJson(url: HttpUrl, cookie: String): JSONObject? {
