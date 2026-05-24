@@ -146,7 +146,7 @@ describe("LocalVault open + migrations", () => {
     expect(() => wrong.open()).toThrow();
   });
 
-  // ── 2026-05-24 trap #22 — partial-index residue from `IF NOT EXISTS` ─────
+  // ── 2026-05-24 trap #25 — partial-index residue from `IF NOT EXISTS` ─────
   // Older vaults (pre commit 44c4188a8) may have full unique indices on
   // uniq_{events,persons,places,items}_source without the WHERE clause.
   // Migration v4 explicitly DROPs + CREATEs to force partial index, fixing

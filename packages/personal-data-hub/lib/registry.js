@@ -270,7 +270,7 @@ class AdapterRegistry {
   /**
    * 2026-05-24 — re-derive canonical events from raw_events archive.
    * Use case: a past sync wrote to raw_events (putRawEvent succeeded) but
-   * putBatch failed silently (e.g. partial-index drift trap #22) → events
+   * putBatch failed silently (e.g. partial-index drift trap #25) → events
    * table stuck at 0 for those entities while raw piled up. After fixing
    * the underlying schema/code bug, call this to promote the orphan raws
    * to canonical events without re-fetching from the source.

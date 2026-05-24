@@ -1541,6 +1541,74 @@ const Database = loadDatabase();
 
 ---
 
+## 25. SQLite partial unique index `IF NOT EXISTS` 隐藏 schema drift —— UPSERT `ON CONFLICT WHERE` 永久找不到匹配（隐性风险）
+
+**Slug**: `pdh_partial_index_if_not_exists_drift`
+
+**陷阱本质**：
+
+SQLite `UPSERT` 的 `ON CONFLICT(cols) WHERE expr DO UPDATE` 在 prepare 阶段需要找到一个 unique index / constraint 定义**完全匹配**：列要 match，**WHERE 表达式也要 match**。如果某个早期 migration 用 `CREATE UNIQUE INDEX IF NOT EXISTS uniq_x ON t(a, b)`（没 WHERE）创建过该索引，后续 migration 试图用同样的 SQL 加上 WHERE 子句**重新建**，`IF NOT EXISTS` 静默 skip —— 索引名已占用，定义永不更新。结果新代码的 `ON CONFLICT(a, b) WHERE expr` 找不到匹配的 partial index，prepare 抛 `2nd ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint`。
+
+PDH `events / persons / places / items` 4 张表（commit `44c4188a8` 前）用 `IF NOT EXISTS` 建过 full unique index。后续 `putEvent / putPerson / putPlace / putItem` 的 SQL 改成 partial `ON CONFLICT (source_adapter, source_original_id) WHERE source_original_id IS NOT NULL DO UPDATE` —— 老 vault 上跑必报 "2nd ON CONFLICT" 错。错被 `_ingestRawBatch` 的 try-catch 吞，写 `audit_log` 不弹错，UI 看不到。**黄金诊断信号：`events` 表 1 行 vs `raw_events` 表 1308 行**。
+
+**为什么排查难**：
+
+- `IF NOT EXISTS` 是 silent 失败本质 —— migration 跑没报错，schema_version 正常 bump，但实际 schema 是旧定义；
+- adapter.sync 的 try-catch 吞错让上层完全看不到 SQLite 错；
+- raw_events 写入成功（因为它的 unique 约束在 commit `44c4188a8` 之前就已是 partial）所以"采集到了数据"假象成立；
+- UI 报"数据浏览空 0" 让人怀疑采集 / WebView / 网络等无关方向，根因在 `putEvent` 的 ON CONFLICT 路径；
+- 直接看 `migrations.js` 源码看不出问题 —— DDL 写得是对的，"我都加了 WHERE 子句啊"；要看真实 vault 的 `sqlite_master.sql` 才能锁定 drift。
+
+**SOP / checklist**：
+
+1. **改 partial unique index 必走 `DROP IF EXISTS` + `CREATE`（无 IF NOT EXISTS）pattern**：
+   ```js
+   db.exec(`DROP INDEX IF EXISTS uniq_events_source`);
+   db.exec(`
+     CREATE UNIQUE INDEX uniq_events_source
+       ON events(source_adapter, source_original_id)
+       WHERE source_original_id IS NOT NULL
+   `);
+   ```
+   范例：`packages/personal-data-hub/lib/migrations.js` migration v4，4 张表各一对，幂等安全。
+2. **测试必须**覆盖"模拟旧 drift → reopen → putEvent 不抛"路径。`freshVault()` 走完整 DDL 测不到 drift；要手工 `DROP INDEX uniq_x ON t(a,b)` + `CREATE UNIQUE INDEX uniq_x ON t(a,b)`（无 WHERE）+ 改 `_meta.schema_version` 回退 → reopen 让 migration 重跑 → 断言 `sqlite_master.sql` 含 `WHERE` + `putEvent` 不抛。
+3. **`adapter.sync` 的 try-catch 不要静默吞错** —— `entityCounts.events = 0` 而 `rawCount > 0` 是强信号，syncReport 必须显式标 `entityCounts.events === 0 && rawCount > 0 → status = "warning"` 让上层早一点感知。
+4. **再写 partial index 时 grep 整 repo `CREATE UNIQUE INDEX IF NOT EXISTS` 看是否有兄弟索引也漏掉 WHERE** —— 这次 4 张表都中招，可能后续表也会重蹈。
+5. **老 vault 升级**：仅 schema migration 修不了 raw_events 历史 —— 已有 1000+ orphan raws 需手工 re-derive。配 `cc hub rederive [--adapter <name>]` 命令把 raw_events 重新跑 normalize+putBatch 写到 events 表。
+6. **adapter `originalId` 必填**：drift 修了之后空 `originalId` 仍会触发 `WHERE source_original_id IS NOT NULL` 路径 skip → invalidCount 暴涨，相关检查见 memory `pdh-adapter-originalid-required`。
+
+**反模式**：
+
+- ❌ `CREATE UNIQUE INDEX IF NOT EXISTS` 后面跟 partial WHERE —— 老 vault 上的 full 索引永远不被替换
+- ❌ 用 schema_version bump 来"标记"已迁移而不真实 DROP 老索引 —— migrate 函数不抛但实际 schema 没变
+- ❌ try-catch 吞 `putEvent` 抛错只写 audit_log，不让 syncReport 标 error —— 用户看 UI 永远不知道
+- ❌ migration 写的 DDL 和 `putEvent` 写的 `ON CONFLICT` 不在一个文件 —— 容易演进时一个改了一个忘
+- ❌ 单测仅覆盖 freshVault 路径 —— 旧 vault 重开 + 重 migration 的真实场景测不到
+
+**诊断快速键**：
+
+```bash
+# 在真机上
+adb shell run-as <pkg> 'sh -c "cd files && PREFIX=\$PWD/usr HOME=\$PWD/home TMPDIR=\$PWD/usr/tmp PATH=\$PWD/usr/bin:\$PATH usr/bin/mksh usr/bin/cc hub stats --json"' | jq '.vault'
+# events: 1, rawEvents: 1308 → 几乎肯定 partial-index drift
+
+adb shell ... cc hub recent-audit --limit 30 --json | jq '[.[]|select(.action|test("adapter.sync.error|put_batch_failed"))][0:3]'
+# "2nd ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint" → 锁实
+```
+
+**修复路径**：
+
+- 长期：migration v4 入 packages/personal-data-hub → CI 重打 cc-cli.tgz → APK 重打 → 用户重装 → bootstrap 强制重抽 ccModule
+- 短期（这台设备）：`cc hub rederive --json` 把累积的 raw_events 重新 promote 到 events 表（不重新拉源数据，幂等可重复跑）
+
+**关联 memory / commit**：
+
+- memory: `pdh_partial_index_if_not_exists_drift`、`pdh_cc_subprocess_exit_and_vault_upsert`（commit `44c4188a8` 修 SQL 但漏 schema migration —— 是这次根因的种子）、`pdh_adapter_originalid_required`
+- 共同模式：`android_cc_bundle_tar_gnu_long_name`（trap #21）—— 都是 `IF NOT EXISTS` / 默认参数让演进 silent 失败
+- commit: `7af396405 feat(pdh): rederive + migration v4 — recover orphan raw_events from trap #25 partial-index drift`
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间

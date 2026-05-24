@@ -43,7 +43,7 @@ describe("cc hub command surface", () => {
         "list-adapters",
         "query-events",
         "recent-audit",
-        "rederive", // trap #22 recovery — promote orphan raw_events to canonical
+        "rederive", // trap #25 recovery — promote orphan raw_events to canonical
         "register-mock",
         "run-skill",
         "search", // Phase 16 Vault Browser — FTS5 search surface
