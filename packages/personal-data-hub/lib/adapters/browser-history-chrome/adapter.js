@@ -36,13 +36,18 @@ const { readBookmarks } = require("./bookmarks-reader");
 const NAME = "browser-history-chrome";
 const VERSION = "0.1.0";
 
+// The adapter is browser-agnostic — Chromium-derived browsers (Chrome / Edge /
+// Brave / Vivaldi / Arc) share the History SQLite + Bookmarks JSON schema.
+// Subclasses override `_browserConfig()` to point at a different profile root.
 class BrowserHistoryChromeAdapter {
   constructor(opts = {}) {
-    this.name = NAME;
-    this.version = VERSION;
+    const cfg = this._browserConfig();
+    this.name = cfg.name;
+    this.version = cfg.version;
+    this._browser = cfg.browser;
     this.capabilities = [
-      "sync:chrome-history-sqlite",
-      "sync:chrome-bookmarks-json",
+      `sync:${cfg.browser}-history-sqlite`,
+      `sync:${cfg.browser}-bookmarks-json`,
     ];
     this.extractMode = "file-import";
     this.rateLimits = { perDay: 96 }; // ~once per 15 min ceiling
@@ -57,9 +62,18 @@ class BrowserHistoryChromeAdapter {
     };
     this._deps = {
       fs: require("node:fs"),
-      defaultProfileDir: defaultChromeProfileDir,
+      defaultProfileDir: cfg.defaultProfileDir,
     };
     this._profileOverride = typeof opts.profilePath === "string" ? opts.profilePath : null;
+  }
+
+  _browserConfig() {
+    return {
+      name: NAME,
+      version: VERSION,
+      browser: "chrome",
+      defaultProfileDir: defaultChromeProfileDir,
+    };
   }
 
   _resolveProfileDir(opts) {
@@ -76,7 +90,7 @@ class BrowserHistoryChromeAdapter {
       return {
         ok: false,
         reason: "PROFILE_PATH_UNRESOLVED",
-        message: "no default Chrome profile dir on this platform; pass opts.profilePath",
+        message: `no default ${this._browser} profile dir on this platform; pass opts.profilePath`,
       };
     }
     const histPath = path.join(dir, "History");
@@ -84,7 +98,7 @@ class BrowserHistoryChromeAdapter {
       return {
         ok: false,
         reason: "PROFILE_NOT_FOUND",
-        message: `no Chrome History at ${histPath} — install Chrome / open it at least once, or point opts.profilePath at a different profile`,
+        message: `no ${this._browser} History at ${histPath} — install ${this._browser} / open it at least once, or point opts.profilePath at a different profile`,
       };
     }
     return { ok: true, mode: "file-import", profileDir: dir };
@@ -100,7 +114,7 @@ class BrowserHistoryChromeAdapter {
     const profileDir = this._resolveProfileDir(opts);
     if (!profileDir || !this._deps.fs.existsSync(path.join(profileDir, "History"))) {
       throw new Error(
-        `browser-history-chrome.sync: no History at ${path.join(profileDir || "?", "History")} — set opts.profilePath`,
+        `${this.name}.sync: no History at ${path.join(profileDir || "?", "History")} — set opts.profilePath`,
       );
     }
 
@@ -123,7 +137,7 @@ class BrowserHistoryChromeAdapter {
           if (emitted >= limit) return;
           yield {
             kind: "visit",
-            originalId: `chrome-visit:${profileDir}:${v.visitId}`,
+            originalId: `${this._browser}-visit:${profileDir}:${v.visitId}`,
             capturedAt,
             payload: { ...v, profileDir },
           };
@@ -140,7 +154,7 @@ class BrowserHistoryChromeAdapter {
         if (emitted >= limit) return;
         yield {
           kind: "bookmark",
-          originalId: `chrome-bookmark:${profileDir}:${b.guid || b.id || b.url}`,
+          originalId: `${this._browser}-bookmark:${profileDir}:${b.guid || b.id || b.url}`,
           capturedAt,
           payload: { ...b, profileDir },
         };
@@ -151,9 +165,10 @@ class BrowserHistoryChromeAdapter {
 
   normalize(raw) {
     const ingestedAt = Date.now();
+    const browser = this._browser;
     const source = (originalId) => ({
-      adapter: NAME,
-      adapterVersion: VERSION,
+      adapter: this.name,
+      adapterVersion: this.version,
       capturedAt: raw.capturedAt,
       capturedBy: CAPTURED_BY.SQLITE,
       originalId,
@@ -167,12 +182,12 @@ class BrowserHistoryChromeAdapter {
         : (url || "(无标题)");
       const occurredAt = Number.isInteger(p.visitTimeMs) ? p.visitTimeMs : raw.capturedAt;
       const event = {
-        id: `event-chrome-visit-${p.visitId}`,
+        id: `event-${browser}-visit-${p.visitId}`,
         type: ENTITY_TYPES.EVENT,
         subtype: EVENT_SUBTYPES.BROWSE,
         occurredAt,
         ingestedAt,
-        source: source(`chrome-visit:${p.profileDir}:${p.visitId}`),
+        source: source(`${browser}-visit:${p.profileDir}:${p.visitId}`),
         actor: "self",
         content: {
           title: title.length > 200 ? title.substring(0, 200) + "…" : title,
@@ -190,7 +205,7 @@ class BrowserHistoryChromeAdapter {
         typedCount: p.typedCount || 0,
         hidden: p.hidden === true,
         fromVisit: p.fromVisit || 0,
-        browser: "chrome",
+        browser,
         profileDir: p.profileDir,
       };
       return { events: [event], persons: [], places: [], items: [], topics: [] };
@@ -202,26 +217,26 @@ class BrowserHistoryChromeAdapter {
       const name = typeof p.name === "string" && p.name.length > 0 ? p.name : url;
       const stableId = p.guid || p.id || url;
       const item = {
-        id: `item-chrome-bookmark-${stableId}`,
+        id: `item-${browser}-bookmark-${stableId}`,
         type: ENTITY_TYPES.ITEM,
         subtype: ITEM_SUBTYPES.LINK,
         name,
         category: "bookmark",
         ingestedAt,
-        source: source(`chrome-bookmark:${p.profileDir}:${stableId}`),
+        source: source(`${browser}-bookmark:${p.profileDir}:${stableId}`),
         extra: {
           url,
           dateAddedMs: Number.isInteger(p.dateAddedMs) ? p.dateAddedMs : null,
           dateLastUsedMs: Number.isInteger(p.dateLastUsedMs) ? p.dateLastUsedMs : null,
           folderPath: typeof p.folderPath === "string" ? p.folderPath : null,
-          browser: "chrome",
+          browser,
           profileDir: p.profileDir,
         },
       };
       return { events: [], persons: [], places: [], items: [item], topics: [] };
     }
 
-    throw new Error(`browser-history-chrome.normalize: unknown raw.kind=${raw.kind}`);
+    throw new Error(`${this.name}.normalize: unknown raw.kind=${raw.kind}`);
   }
 }
 

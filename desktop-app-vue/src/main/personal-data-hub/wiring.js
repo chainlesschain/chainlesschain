@@ -45,6 +45,7 @@ const {
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
+  BrowserHistoryEdgeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -367,6 +368,18 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register browser-history-chrome adapter",
+      err && err.message,
+    );
+  }
+
+  try {
+    const edge = new BrowserHistoryEdgeAdapter();
+    if (!registry.has(edge.name)) {
+      registry.register(edge);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-edge adapter",
       err && err.message,
     );
   }

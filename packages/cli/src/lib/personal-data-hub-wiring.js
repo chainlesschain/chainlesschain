@@ -46,6 +46,7 @@ const {
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
+  BrowserHistoryEdgeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -303,6 +304,13 @@ async function initHub() {
   try {
     const chrome = new BrowserHistoryChromeAdapter();
     if (!registry.has(chrome.name)) registry.register(chrome);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
+    const edge = new BrowserHistoryEdgeAdapter();
+    if (!registry.has(edge.name)) registry.register(edge);
   } catch (_err) {
     // Continue boot
   }
