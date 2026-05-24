@@ -46,6 +46,7 @@ const {
   SystemDataAndroidAdapter,
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
+  VSCodeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -380,6 +381,20 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register browser-history-edge adapter",
+      err && err.message,
+    );
+  }
+
+  // VS Code workspace + terminal history. Same desktop-local file-import
+  // pattern as the browser adapters.
+  try {
+    const vscode = new VSCodeAdapter();
+    if (!registry.has(vscode.name)) {
+      registry.register(vscode);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register vscode adapter",
       err && err.message,
     );
   }

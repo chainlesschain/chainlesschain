@@ -60,6 +60,7 @@ const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
 const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const browserHistoryEdge = require("./adapters/browser-history-edge");
+const vscodeAdapter = require("./adapters/vscode");
 const categories = require("./categories");
 
 module.exports = {
@@ -277,6 +278,12 @@ module.exports = {
   BrowserHistoryEdgeAdapter: browserHistoryEdge.BrowserHistoryEdgeAdapter,
   BROWSER_HISTORY_EDGE_NAME: browserHistoryEdge.BROWSER_HISTORY_EDGE_NAME,
   BROWSER_HISTORY_EDGE_VERSION: browserHistoryEdge.BROWSER_HISTORY_EDGE_VERSION,
+
+  // VS Code — workspace history + global terminal command/dir history.
+  VSCodeAdapter: vscodeAdapter.VSCodeAdapter,
+  VSCODE_NAME: vscodeAdapter.VSCODE_NAME,
+  VSCODE_VERSION: vscodeAdapter.VSCODE_VERSION,
+  defaultVscodeRoot: vscodeAdapter.defaultVscodeRoot,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

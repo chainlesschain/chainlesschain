@@ -53,6 +53,7 @@ const PREFIX_RULES = Object.freeze([
   ["travel-*",        "travel"],
   ["system-data*",    "system"],
   ["browser-*",       "system"],
+  ["vscode",          "system"],
   ["ai-chat-*",       "ai-chat"],
 ]);
 
