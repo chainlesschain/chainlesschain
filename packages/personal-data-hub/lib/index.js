@@ -59,6 +59,7 @@ const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
 const browserHistoryChrome = require("./adapters/browser-history-chrome");
+const browserHistoryEdge = require("./adapters/browser-history-edge");
 const categories = require("./categories");
 
 module.exports = {
@@ -271,6 +272,11 @@ module.exports = {
   BROWSER_HISTORY_CHROME_NAME: browserHistoryChrome.BROWSER_HISTORY_CHROME_NAME,
   BROWSER_HISTORY_CHROME_VERSION: browserHistoryChrome.BROWSER_HISTORY_CHROME_VERSION,
   defaultChromeProfileDir: browserHistoryChrome.defaultChromeProfileDir,
+
+  // Edge — Chromium under the hood, same readers, different profile root.
+  BrowserHistoryEdgeAdapter: browserHistoryEdge.BrowserHistoryEdgeAdapter,
+  BROWSER_HISTORY_EDGE_NAME: browserHistoryEdge.BROWSER_HISTORY_EDGE_NAME,
+  BROWSER_HISTORY_EDGE_VERSION: browserHistoryEdge.BROWSER_HISTORY_EDGE_VERSION,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

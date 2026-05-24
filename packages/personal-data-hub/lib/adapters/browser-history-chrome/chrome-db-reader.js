@@ -56,6 +56,42 @@ function defaultChromeProfileDir() {
   return path.join(os.homedir(), ".config", "google-chrome", "Default");
 }
 
+// Edge is Chromium under the hood — identical History/Bookmarks schema,
+// just a different on-disk profile root. Same reader code works.
+function defaultEdgeProfileDir() {
+  if (process.platform === "win32") {
+    const lad = process.env.LOCALAPPDATA;
+    if (!lad) return null;
+    return path.join(lad, "Microsoft", "Edge", "User Data", "Default");
+  }
+  if (process.platform === "darwin") {
+    return path.join(os.homedir(), "Library", "Application Support", "Microsoft Edge", "Default");
+  }
+  return path.join(os.homedir(), ".config", "microsoft-edge", "Default");
+}
+
+// Brave: another Chromium fork; same schema again. Not auto-registered unless
+// the user has Brave installed, since the wiring layer calls authenticate()
+// at the adapter level rather than the registry filtering ahead of time.
+function defaultBraveProfileDir() {
+  if (process.platform === "win32") {
+    const lad = process.env.LOCALAPPDATA;
+    if (!lad) return null;
+    return path.join(lad, "BraveSoftware", "Brave-Browser", "User Data", "Default");
+  }
+  if (process.platform === "darwin") {
+    return path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "BraveSoftware",
+      "Brave-Browser",
+      "Default",
+    );
+  }
+  return path.join(os.homedir(), ".config", "BraveSoftware", "Brave-Browser", "Default");
+}
+
 // Copy the History file + any sidecar journal/WAL/SHM next to it. Returns
 // the temp path that the caller is responsible for cleaning up.
 function copyHistorySnapshot(profileDir, opts = {}) {
@@ -148,6 +184,8 @@ function* readVisits(tmpPath, opts = {}) {
 
 module.exports = {
   defaultChromeProfileDir,
+  defaultEdgeProfileDir,
+  defaultBraveProfileDir,
   copyHistorySnapshot,
   cleanupHistorySnapshot,
   readVisits,
