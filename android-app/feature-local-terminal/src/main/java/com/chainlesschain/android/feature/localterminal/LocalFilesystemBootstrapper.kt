@@ -345,9 +345,18 @@ class LocalFilesystemBootstrapper @Inject constructor(
      * the commons-compress ~600KB dep (the module already declares
      * `org.tukaani:xz` for gzip not needed; GZIPInputStream is JDK-built-in).
      */
-    private fun extractTarToDir(tarIn: java.io.InputStream, destDir: File) {
+    @androidx.annotation.VisibleForTesting
+    internal fun extractTarToDir(tarIn: java.io.InputStream, destDir: File) {
         val buf = ByteArray(512)
         destDir.mkdirs()
+        // 2026-05-24 — GNU tar 'L' (long-name) / 'K' (long-linkname) extension：
+        // 一个 typeFlag='L' header 后跟 size 字节的下一 entry 真实路径（path>100 字符
+        // 时触发），随后才是下一个 entry 的真 header（其 name 字段被截断）。修前
+        // 解析器把 @LongLink 当 regular file 写入磁盘 + 用截断 name → 路径错位 +
+        // EISDIR collision → 整个 cc bootstrap 挂。npm pack @aws-sdk/core 等深路径
+        // 包会触发。
+        var pendingLongName: String? = null
+        var pendingLongLink: String? = null
         while (true) {
             // Read tar header (512 bytes per block)
             var read = 0
@@ -366,7 +375,44 @@ class LocalFilesystemBootstrapper @Inject constructor(
             val typeFlag = buf[156].toInt().toChar()
             val linkName = parseTarString(buf, 157, 100)
             val prefix = parseTarString(buf, 345, 155)
-            val fullName = if (prefix.isNotEmpty()) "$prefix/$name" else name
+
+            // GNU long-name / long-linkname: 读 size 字节作为下一 entry 的覆盖路径
+            if (typeFlag == 'L' || typeFlag == 'K') {
+                val longBuf = ByteArray(size.toInt())
+                var got = 0
+                while (got < longBuf.size) {
+                    val n = tarIn.read(longBuf, got, longBuf.size - got)
+                    if (n < 0) return  // truncated
+                    got += n
+                }
+                val padding = ((512L - (size % 512L)) % 512L).toInt()
+                if (padding > 0) {
+                    val padBuf = ByteArray(padding)
+                    var p = 0
+                    while (p < padding) {
+                        val n = tarIn.read(padBuf, p, padding - p)
+                        if (n < 0) return
+                        p += n
+                    }
+                }
+                // GNU 'L' data 末尾习惯加 NULL terminator；不剥掉会让 File 路径
+                // 含 NULL → libc open() 在 NULL 截断 → 文件落到错误位置，且 Java
+                // File API 视为有效路径不抛错。Kotlin Character.isWhitespace
+                // 不含 U+0000，所以单独 trim。
+                val nullIdx = longBuf.indexOf(0)
+                val effectiveLen = if (nullIdx >= 0) nullIdx else longBuf.size
+                val longStr = String(longBuf, 0, effectiveLen, Charsets.UTF_8)
+                    .trimEnd(' ')
+                if (typeFlag == 'L') pendingLongName = longStr
+                else pendingLongLink = longStr
+                continue  // 直接进下一 entry，绝不写 @LongLink 文件
+            }
+
+            val headerFullName = if (prefix.isNotEmpty()) "$prefix/$name" else name
+            val fullName = pendingLongName ?: headerFullName
+            val effectiveLinkName = pendingLongLink ?: linkName
+            pendingLongName = null
+            pendingLongLink = null
 
             // npm pack output starts with `package/` — strip the leading
             // segment so we extract directly into destDir (matching `tar
@@ -384,26 +430,46 @@ class LocalFilesystemBootstrapper @Inject constructor(
                     target.parentFile?.mkdirs()
                     if (target.exists()) target.delete()
                     try {
-                        Files.createSymbolicLink(target.toPath(), Paths.get(linkName))
+                        Files.createSymbolicLink(target.toPath(), Paths.get(effectiveLinkName))
                     } catch (_: Exception) {
                         // ignore — symlinks in npm packs are rare
                     }
                 }
                 else -> {                // regular file (also covers ' ')
                     target.parentFile?.mkdirs()
-                    target.outputStream().use { fileOut ->
-                        var remaining = size
-                        while (remaining > 0) {
-                            val want = minOf(remaining, 8192L).toInt()
-                            val tmp = ByteArray(want)
-                            var got = 0
-                            while (got < want) {
-                                val n = tarIn.read(tmp, got, want - got)
-                                if (n < 0) return  // truncated
-                                got += n
+                    // 2026-05-24 trap fix: cc-cli.tgz 里 @aws-sdk/core 等包存在
+                    // 同名 文件+目录 entry —— sub-entry 先把 `foo/` 建成目录，后续
+                    // 又出现 `foo` 当 regular file 写 → FileOutputStream EISDIR 抛 →
+                    // 整个 cc bootstrap 挂 → 数据浏览/审计/提问全 0 结果。npm pack
+                    // 同名 file 通常是 0 字节 marker，跳过无害；仍需消费 entry 字节
+                    // 流，否则下一 entry 错位。
+                    if (target.isDirectory) {
+                        Timber.tag(TAG).w(
+                            "Skipping tar file entry that collides with existing dir: %s",
+                            effective,
+                        )
+                        var remainingSkip = size
+                        while (remainingSkip > 0) {
+                            val want = minOf(remainingSkip, 8192L).toInt()
+                            val skipped = tarIn.skip(want.toLong())
+                            if (skipped <= 0) break
+                            remainingSkip -= skipped
+                        }
+                    } else {
+                        target.outputStream().use { fileOut ->
+                            var remaining = size
+                            while (remaining > 0) {
+                                val want = minOf(remaining, 8192L).toInt()
+                                val tmp = ByteArray(want)
+                                var got = 0
+                                while (got < want) {
+                                    val n = tarIn.read(tmp, got, want - got)
+                                    if (n < 0) return  // truncated
+                                    got += n
+                                }
+                                fileOut.write(tmp, 0, got)
+                                remaining -= got
                             }
-                            fileOut.write(tmp, 0, got)
-                            remaining -= got
                         }
                     }
                 }
