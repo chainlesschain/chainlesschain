@@ -122,12 +122,15 @@ fun SocialCookieWebViewScreen(
                 .fillMaxSize(),
         ) {
             // Hint banner — tells user why this WebView appears.
-            // 2026-05-24: 单纯账密登录对 Bilibili/抖音/小红书/头条/快手 都常踩
-            // captcha 墙；推"扫码登录"路径 — 用户手机上同一台已登录的原生 App
-            // 扫这里的 web QR，cookie 直接回灌进我们的 CookieManager，绕过滑块/
-            // 短信/邮箱验证。微博走移动 web 账密软校验本来就过；其他 5 个平台
-            // 必须靠扫码闭环（参见 memory `bilibili_post_onload_cookie_race.md`
-            // 提到的硬字段校验链 SESSDATA+DedeUserID+bili_jct+buvid3 等）。
+            // 2026-05-24: 同手机场景账密 captcha 墙 / 跨手机扫码自己照不到自己。
+            // 推 "本机一键登录" 路径 — 各平台 web 登录页底部"通过 X App 一键登录"
+            // / "本机已登录，点此确认"按钮跳 `bilibili://` / `snssdk1128://` 等
+            // scheme，刚加的 shouldOverrideUrlLoading 拦截后派发 Intent.ACTION_VIEW
+            // 拉起原生 App。原生 App 向自家服务器确认授权，WebView 的 JS 轮询拿到
+            // "已授权" → Set-Cookie header 下发 → 我们 CookieManager 接住。同手机
+            // 流程不需要相机，跟扫码本质同路径（cookie 是服务器下发，不是 App 灌
+            // 给我们）。微博走移动 web 账密软校验本身就过 — 详见 memory
+            // `bilibili_post_onload_cookie_race.md` 字段校验链。
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -140,8 +143,9 @@ fun SocialCookieWebViewScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "建议切到「扫码登录」Tab — 用手机上已登录的 $displayName App " +
-                        "扫描下方二维码即可，比账密登录更不容易触发风控。",
+                    "推荐：找下方「通过 $displayName App 一键登录」/「本机已登录，" +
+                        "点此确认」按钮（在扫码二维码下方），点了会拉起本机已登录的 " +
+                        "$displayName App 完成授权，比账密登录稳得多。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
