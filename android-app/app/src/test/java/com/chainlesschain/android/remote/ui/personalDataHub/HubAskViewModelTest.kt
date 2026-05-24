@@ -531,7 +531,8 @@ class HubAskViewModelTest {
                     llmName = "llama3",
                     isLocal = false,
                     durationMs = 100L,
-                )
+                ),
+                rawJson = "{}",
             )
             val vm = newVm()
             advanceUntilIdle()

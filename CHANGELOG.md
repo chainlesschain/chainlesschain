@@ -5,6 +5,63 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - PDH AnalysisEngine 意图分类 + 按需检索路由 (4/4 intent)
+
+> 「让小模型把 prompt 预算花在对的事实上」— `_gatherFacts` 加 4 个 intent
+> routing 分支，Android 端侧 Qwen2.5-1.5B 2-4K token 窗特别受益。
+
+- **`packages/personal-data-hub/lib/analysis.js`** `_gatherFacts` 新增 3 个
+  routing 分支（count 之前已 land 19c11920e）：
+  - `intent=latest && !timeWindow` → narrow `queryEvents({limit: 3, adapter?})`
+    + skip persons/items；有 timeWindow 时 fallthrough；0 结果 fallback 默认。
+    新 const `LATEST_INTENT_FACT_LIMIT=3`。commit `9a00c0d95`。
+  - `intent=list && entity extracted` → 默认 path 之后追加
+    `vault.searchEvents({q, adapter?, since?, until?, limit:min(headroom,10)})`
+    去重；FTS 抛错 / 老 vault graceful skip。新 const `LIST_INTENT_FTS_LIMIT=10`。
+    commit `a1fd5ffca`。
+  - `intent=sum-amount` → 4 个 amount-bearing subtype `[order/payment/transfer/income]`
+    各拉 `max(20, effMaxQueryLimit/4)` 条 + 去重 + occurredAt DESC + 截 effMaxFacts；
+    skip persons/items；0 结果 **不 fallback**（避免拉 message/visit 给 LLM 错算 sum）。
+    新 const `SUM_AMOUNT_SUBTYPES` + `SUM_AMOUNT_MIN_PER_SUBTYPE=20`。commit `c0fe34933`。
+- **`packages/personal-data-hub/lib/query-parser.js`** 新 export `extractEntityTerm(text)`
+  + `ENTITY_STOP_PATTERNS` 黑名单（时间/intent/subtype/adapter/list-trigger/虚词/标点/数字，
+  multi-char compound 先于 short alternative 防 "多少钱" decay）。剩下 2-10 字符段取最长。
+  单字中文名（"妈"/"爸"）不抽 — single-char false-positive 过多（已知限制）。
+- **Bug fix (2026-05-24)**：sum-amount narrow 0 结果原 fallback 到默认 path 会拉
+  messages/visits 给 LLM 错算 sum。改为返回 `[]` 触发 `warning="no-facts"` +
+  TOTALS preamble 让模型说"找不到相关花费记录"。与 latest fallback 行为不对称
+  （latest 仍 fallback — 那是"最新活动"的可接受 context；sum-amount fallback 会误导）。
+- **测试**：
+  - `analysis.test.js` +28 routing cases（latest 6 / list FTS 9 / sum-amount 8 / count 5 isolated）
+  - `query-parser.test.js` +10 extractEntityTerm cases
+  - `cli/hub-ask.test.js` +1 question-verbatim-passthrough canary（CLI 不能预处理问题，
+    否则 routing 路径全错）
+- **文档**：新设计文档 [`docs/design/PDH_Analysis_Engine_Intent_Routing.md`](docs/design/PDH_Analysis_Engine_Intent_Routing.md)
+  + Personal_Data_Hub_Architecture.md §8.3 加 cross-reference。
+- 关键 caveat (memory `pdh_analysis_engine_intent_routing.md` 详记):
+  - latest 必须 `!timeWindow` 才走 narrow（"最近 30 天" 是 list-with-window 不是"最新 3 条"）
+  - sum-amount 0-result 不 fallback（避免 LLM 错算）— 与 latest 不对称
+  - extractEntityTerm 抽词错 = SAFE（最多浪费 budget，绝不丢主路径 events）
+- telemetry: `[PDH-ASK] gathered=N intent=X adapter=Y` stderr 行透传到
+  Android logcat（`LocalCcRunner.kt:1082` 已过滤）
+
+## [Unreleased] - PDH 4 档 LLM 路由选择器 + 三屏 selector
+
+> 用户反馈 "首页对话框没看到选项"。把 tab 0 HubAskScreen 既有的 2 路 LLM 路由
+> (CLOUD_ANDROID / PC_LOCAL) 扩到 4 路 (+LOCAL_DEVICE / +LAN_OLLAMA)，并把路由选择器镜像到
+> tab 3 "本机数据" 与 tab 4 "本机提问" 的 HubAskCard。用户能在首页对话框直接选目标 LLM:
+> 端侧 MediaPipe / 手机端云 LLM / 桌面 Ollama / 局域网 Ollama。
+
+- **`pdh/llm/LlmPreferences.kt`** + `lanLlmBaseUrl: StateFlow<String?>` + 规范化 setter（去尾斜杠 / blank=clear）
+- **`presentation/screens/SettingsScreen.kt`** + Settings → AI 后端 加 "局域网 Ollama URL" OutlinedTextField + http(s) regex 校验
+- **`HubAskViewModel.kt`** LlmRoute enum +2 (LOCAL_DEVICE/LAN_OLLAMA); 注入 LocalCcRunner + LlmPreferences + LlmInferenceEngine; `submit()` 4-way dispatch
+- **`HubAskScreen.kt`** `HubAskRouteSelector` 扩到 4 radio + 不可用项灰显 + 0/1/≥2 routes 三态分支
+- **`HubLocalViewModel.kt`** AskCardState +5 字段（selectedRoute / lanLlmBaseUrl / androidLlm / remoteHealth / localDeviceReady）+ `effectiveRoute` fallback; 注入 LlmPreferences + AndroidLocalLlmExecutor + PersonalDataHubCommands; `setAskRoute()`; askQuestion dispatch 4-way
+- **`HubAskCard.kt`** + `HubAskCardRouteSelector` 私有 composable + `onRouteSelected` 新回调
+- **测试**: LlmPreferencesTest +4 LAN URL 用例; HubAskViewModelTest +3 (LOCAL_DEVICE / LAN_OLLAMA happy / LAN no-url banner); HubLocalViewModelTest +3 (默认 LOCAL_DEVICE dispatch / LAN_OLLAMA dispatch / setAskRoute persistence); HubAskRouteSelectorTest 8 Compose UI 集成测试 (stateless content pattern); LlmRouteSelectorE2ETest 8 `@Ignore`'d 真机 E2E placeholder (需配对桌面 / 真机 API key / LAN Ollama)
+- 关键 trap (新 memory `pdh_4tier_llm_route_card_selector.md` 记 7 trap): llmName 后缀污染 / Settings combine 5-arg 上限 / remoteHub.health 失败非 fatal / LAN acceptNonLocal 必 true / lazy delegate 双 flow reflect
+- commits: `7079de909` (主) + 后续测试补 + 文档更新
+
 ## [v5.0.3.84] - 2026-05-23 — hotfix4: CLI + desktop 接通 PDH 11 个 no-arg adapter (+ 修 2 个静默吞错)
 
 > v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 `AdapterRegistry.syncAdapter: no adapter <X>`：CLI 的 `personal-data-hub-wiring.js` 只 `new BilibiliAdapter()` 一个，desktop 的 `wiring.js` 也只有 Bilibili。PDH 0.2.3+ ship 了 9 个 social/messaging + 5 个 map/shopping snapshot-mode adapter。第一轮补 8 个 (94b0ecf25c) 时把 Telegram/WhatsApp 也塞 for-loop 但它们 ctor 需要 account 参数 → 被 try/catch silent 吞，实际从未 register。第二轮 audit 修正后 land 11 个真正 no-arg + 注明 6 个需 per-account credential 的 defer。

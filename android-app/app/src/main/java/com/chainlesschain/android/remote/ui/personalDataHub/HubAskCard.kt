@@ -373,7 +373,7 @@ private fun ModelStatusBanner(
  *  - ≥2 路可用 → 4 radio rows (不可用项 disabled 灰显)
  */
 @Composable
-private fun HubAskCardRouteSelector(
+internal fun HubAskCardRouteSelector(
     state: HubLocalViewModel.AskCardState,
     isLoading: Boolean,
     onRouteSelected: (LlmRoute) -> Unit,
