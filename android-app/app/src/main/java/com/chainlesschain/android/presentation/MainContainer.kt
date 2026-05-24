@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
 import com.chainlesschain.android.presentation.components.BottomNavigationBar
 import com.chainlesschain.android.presentation.screens.*
+import com.chainlesschain.android.update.UpdateViewModel
 
 /**
  * 主容器，包含底部导航栏和各个页面
@@ -49,6 +50,8 @@ fun MainContainer(
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     onNavigateToLocalDataHub: () -> Unit = {},
+    // 2026-05-24 — 首页 row2 cell 1 替代社交广场的本机模型入口
+    onNavigateToLocalModel: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
     onNavigateToRemoteOperate: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -56,7 +59,10 @@ fun MainContainer(
     onNavigateToHelpFeedback: () -> Unit = {},
     onNavigateToP2PChatSessionList: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
-    notificationViewModel: NotificationViewModel = hiltViewModel()
+    notificationViewModel: NotificationViewModel = hiltViewModel(),
+    // 2026-05-24 — 首页 更多 sheet "版本更新" 直接 trigger checkForUpdates；
+    // 把 VM + 对话框 host 在 MainContainer 顶层，任何子 tab 都能弹同一份 UpdateDialog。
+    updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
     var selectedTab by rememberSaveable { mutableStateOf(0) }
@@ -115,6 +121,8 @@ fun MainContainer(
                         onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                         onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
                         onNavigateToLocalDataHub = onNavigateToLocalDataHub,
+                        onNavigateToLocalModel = onNavigateToLocalModel,
+                        onCheckForUpdates = { updateViewModel.checkForUpdates(silent = false) },
                         onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
                         onNavigateToRemoteOperate = onNavigateToRemoteOperate,
                         socialUnreadCount = notificationState.unreadCount
@@ -158,6 +166,10 @@ fun MainContainer(
             }
         }
     }
+
+    // 顶层 UpdateDialog —— state-driven，触发后任何 tab 都能弹出。
+    // 由 FunctionEntryGrid 更多 sheet 的 "版本更新" / SettingsScreen 的 "检查更新" 共同驱动。
+    UpdateDialog(viewModel = updateViewModel)
 
     // 个人资料弹窗（从首页头像点击打开）
     if (showProfileDialog) {

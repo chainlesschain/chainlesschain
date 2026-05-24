@@ -90,6 +90,8 @@
     <string name="feature_file_browser">文件浏览</string>
     <string name="feature_p2p_devices">P2P设备</string>
     <string name="feature_remote_control">远程控制</string>
+    <string name="feature_local_model">本机模型</string>
+    <string name="feature_check_update">版本更新</string>
 
     <!-- ==================== Settings Screen ==================== -->
     <string name="settings_title">设置</string>
@@ -117,6 +119,13 @@
     <string name="settings_clear_cache_desc">释放临时文件占用的空间</string>
     <string name="settings_data_management">数据管理</string>
     <string name="settings_data_management_desc">导出或备份个人数据</string>
+    <!-- A3.5 — cc ask 默认 AI 后端开关 -->
+    <string name="settings_section_ai">AI 后端</string>
+    <string name="settings_prefer_android_local">默认使用本机 LLM</string>
+    <string name="settings_prefer_android_local_desc">开启后 `cc ask` 默认走 APK 内置 LocalLlmServer (127.0.0.1:18484)。关闭：按 cc 现有配置走（云 / 桌面 Ollama 等）。</string>
+    <string name="settings_prefer_android_local_syncing">正在同步到 cc 配置…</string>
+    <string name="settings_prefer_android_local_ok">已同步到 cc 配置</string>
+    <string name="settings_prefer_android_local_failed">同步失败：%1$s</string>
     <string name="settings_section_other">其他</string>
     <string name="settings_about">关于</string>
     <string name="settings_about_desc">应用版本和信息</string>
@@ -457,7 +466,7 @@
 
     <!-- ==================== LLM Test Chat Screen ==================== -->
     <string name="llm_test_title">LLM测试 - %s</string>
-    <string name="llm_test_title_local">LLM测试 - 本机 (%1$s)</string>
+    <string name="llm_test_title_local">%1$s · 本机</string>
     <string name="llm_test_response_time">响应时间</string>
     <string name="llm_test_total_tokens">总Token</string>
     <string name="llm_test_message_count">消息数</string>
