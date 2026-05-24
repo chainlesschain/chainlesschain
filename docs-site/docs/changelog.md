@@ -3,6 +3,30 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.85] - 2026-05-24 — hotfix5: MediaPipe SIGABRT + PDH trap #22 recovery
+
+> 用户反馈：「安卓端本机模型问几个联系人会崩」— v5.0.3.84 APK 在 productVersion bump (2026-05-23 09:10) 之后 30 小时才 land MediaPipe 三连修 (`3fa4a81d5`)，84 装机包不含 guard。本 hotfix 把 trap #22 (MediaPipe OUT_OF_RANGE → JNI abort → SIGABRT) 三处联动修真 ship；同期把 trap #22b (PDH partial-index drift) + rederive 孤儿数据救援 一并入袋。
+
+### Android — MediaPipe JNI abort 防护 (`3fa4a81d5`)
+
+- **`MediaPipeLlmEngine.chat()`** 进 native 前加 prompt-length guard — MediaPipe `predictSync` 在 prompt > setMaxTokens 时抛 `IllegalStateException` 后**不 clear pending exception** 就调 `NewByteArray` → CheckJNI JniAbort → SIGABRT 整 app，Kotlin try/catch 完全够不到，只能上游 fail-fast。
+- **`ensureLoadedLocked()`** session 缓存 key 加 `loadedMaxTokens` — MediaPipe 把 ctx 窗口烤进 `LlmInference` handle，首次 chat 用 512 建好后后续 maxTokens 变更全被忽略。
+- **`LocalLlmServer.handleChat`** `setMaxTokens ← req.options?.numCtx`（不是 numPredict）。Ollama num_predict 是 output budget，与 MediaPipe maxTokens (总上下文窗口) 不同义。
+- 3 处必须联动 — 漏一个都不修。新加 2 JVM 单测 + handbook trap #22。
+
+### PDH — partial-index drift recovery (`7af396405`)
+
+- **migration v4**：explicit DROP + CREATE partial unique index — 4 表 `events/persons/places/items` 同步带 `WHERE source_original_id IS NOT NULL`。修老 vault (pre `44c4188a8`) 因 `CREATE UNIQUE INDEX IF NOT EXISTS` 隐藏的 schema drift → adapter.sync silent fail / events 卡 0 行 / raw_events 累积 1000+。
+- **`registry.rederive({ adapter?, batchSize=100 })` + `vault.queryRawEvents()`** — 升级到 v4 后，raw_events 里的孤儿数据手动 re-derive（不 re-fetch source，不更新 watermark）。
+- **`cc hub rederive [--adapter <name>] [--batch-size <n>] [--json]`** CLI 入口，镜像 syncAdapter/syncAll 体例。
+- Android: cc-cli.tgz repack 含本修，`LocalCcRunner` 走 `cc hub rederive` 救 1305-row raw_events orphan。
+- 测试：sandbox runner 47 PASS。
+
+### 包版本
+
+- `chainlesschain` (CLI) **0.162.17 → 0.162.18**：bundle 本修 (`cc hub rederive` 新命令)。
+- PDH 不动 (仍 0.2.4)。
+
 ## [Unreleased — PDH Vault Browser Phase 16 — 桌面 + Android 数据可视化入口] - 2026-05-24
 
 > 用户反馈"安卓端和桌面端都缺少采集上来数据的可视化展示"。之前用户只能"问 AI"间接看到 RAG 召回片段，或 Android 个别 tab 的"看采集到的"bottom sheet（5 tab 中 4 个没该按钮）。本期补完整双端主动浏览器入口：分类侧栏 + FTS5 CJK 全文检索 + 5 种 category-keyed 渲染器 + 游标分页 + JSON/NDJSON/CSV 导出。
