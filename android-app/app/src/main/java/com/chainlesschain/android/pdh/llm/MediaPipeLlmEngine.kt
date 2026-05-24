@@ -265,13 +265,38 @@ class MediaPipeLlmEngine @Inject constructor(
     }
 
     /**
-     * Gemma chat template:
-     *   <start_of_turn>user\n{user}<end_of_turn>\n<start_of_turn>model\n
+     * Chat template 由 [ModelManager.ModelSpec.promptFamily] 决定。
+     *  - QWEN_CHATML: `<|im_start|>role\n{content}<|im_end|>\n…<|im_start|>assistant\n`
+     *    Qwen / DeepSeek-R1-Distill 系（含本机默认 Qwen2.5-0.5B-Instruct）
+     *  - GEMMA: `<start_of_turn>role\n{content}<end_of_turn>\n…<start_of_turn>model\n`
+     *    Gemma 系（备选 Gemma3-1B-IT 时）
+     *
+     * 套错模板模型不会硬错，但会把模板字面 token 当输入，输出风格混乱、漏停。
      */
-    private fun formatPrompt(messages: List<LlmInferenceEngine.ChatMessage>): String {
+    private fun formatPrompt(messages: List<LlmInferenceEngine.ChatMessage>): String =
+        when (modelManager.defaultSpec.promptFamily) {
+            ModelManager.PromptFamily.QWEN_CHATML -> formatQwenChatML(messages)
+            ModelManager.PromptFamily.GEMMA -> formatGemma(messages)
+        }
+
+    private fun formatQwenChatML(messages: List<LlmInferenceEngine.ChatMessage>): String {
         val sb = StringBuilder()
         for (m in messages) {
-            // Map role → Gemma's "user" / "model" terms.
+            val role = when (m.role) {
+                "assistant", "model" -> "assistant"
+                "system" -> "system"
+                else -> "user"
+            }
+            sb.append("<|im_start|>").append(role).append("\n")
+                .append(m.content).append("<|im_end|>\n")
+        }
+        sb.append("<|im_start|>assistant\n")
+        return sb.toString()
+    }
+
+    private fun formatGemma(messages: List<LlmInferenceEngine.ChatMessage>): String {
+        val sb = StringBuilder()
+        for (m in messages) {
             val gemmaRole = when (m.role) {
                 "assistant", "model" -> "model"
                 "system" -> "user" // Gemma 3 lacks system role; prepend as user.

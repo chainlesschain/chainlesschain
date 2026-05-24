@@ -76,38 +76,45 @@ class ModelManager @Inject constructor(
     }
 
     /**
-     * Default model spec — Gemma-3 1B Instruct int4 quantized .task
-     * (~555 MB). Adopted 2026-05-23 after `pdh_llm_native_dep_audit.md` ruled
-     * out llama.cpp Kotlin bindings (0 published artifacts for kotlinllamacpp
-     * / Llamatik / llama-cpp-kt). MediaPipe tasks-genai is the active engine;
-     * its `.task` format embeds model+tokenizer, no separate ggml fork needed.
+     * Default model spec — Qwen2.5-0.5B-Instruct q8 quantized `.task` (~547 MB).
      *
-     * SHA256 left blank → TOFU. v0.3 lock to a verified hash from Google's
-     * litert-community HF repo.
+     * 2026-05-24 切换：Gemma-3 1B 在 HF 上 license-gated，hf-mirror 镜像虽然历史上
+     * 不要 token，但用户实测下载 fail（可能 hf-mirror 也开始拒 gated 模型，或网络抖）。
+     * 改换 `litert-community/Qwen2.5-0.5B-Instruct` —— 同样 MediaPipe `.task` 格式、
+     * 同样在 hf-mirror 上、**无 license gate**、且尺寸相近（547 MB vs 555 MB）。
+     * 国内场景 Qwen 中文效果好于 Gemma，下载链路也更稳。
+     *
+     * SHA256 留空 = TOFU；v0.3 锁 litert-community HF 上的 verified hash。
+     *
+     * 备选（性能/效果优先时手动 swap）：
+     *  - `litert-community/Qwen2.5-1.5B-Instruct` `_multi-prefill-seq_q8_ekv1280.task`
+     *    (1.57 GB) — 显著更强的对话能力，但下载和 RAM 占用都翻倍
+     *  - `litert-community/DeepSeek-R1-Distill-Qwen-1.5B` — 推理 + 中文
+     *  - `litert-community/Gemma3-1B-IT` `gemma3-1b-it-int4.task` (555 MB) — 需 HF token
      */
     data class ModelSpec(
         val filename: String,
         val url: String,
         val expectedSha256: String?,
         val sizeBytesApprox: Long,
+        /** Prompt 模板族 —— 影响 [MediaPipeLlmEngine.formatPrompt] 的拼装。 */
+        val promptFamily: PromptFamily = PromptFamily.QWEN_CHATML,
     )
 
+    /**
+     * Prompt 模板族枚举 —— 不同模型用不同 chat 模板，套错会让模型生成混乱续写。
+     *  - QWEN_CHATML: Qwen / DeepSeek-R1-Distill 系，`<|im_start|>role\n...<|im_end|>`
+     *  - GEMMA: Gemma 系，`<start_of_turn>role\n...<end_of_turn>`
+     */
+    enum class PromptFamily { QWEN_CHATML, GEMMA }
+
     val defaultSpec = ModelSpec(
-        filename = "gemma3-1b-it-int4.task",
-        // hf-mirror.com is China-reachable mirror of huggingface.co/litert-community
-        // /Gemma3-1B-IT. NOTE: the Gemma model itself is gated on HF — users must
-        // accept the Gemma license at https://huggingface.co/google/gemma-3-1b-it
-        // (one-time per HF account). The hf-mirror mirror serves the file without
-        // a per-download auth header, but if upstream tightens that, fallback is
-        // to swap defaultSpec.url to a non-gated alternative (e.g., a self-hosted
-        // CDN of the converted .task) or to switch ModelManager to fetch via
-        // the user's HF token (settings page TODO).
-        //
-        // v0.3 follow-up: turn this into a list of mirrors with health-probe
-        // failover (hf-mirror → modelscope → HF direct).
-        url = "https://hf-mirror.com/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
+        filename = "Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+        url = "https://hf-mirror.com/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/" +
+            "Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
         expectedSha256 = null,
-        sizeBytesApprox = 555_000_000L, // ~555 MB
+        sizeBytesApprox = 547_000_000L, // ~547 MB
+        promptFamily = PromptFamily.QWEN_CHATML,
     )
 
     /** Check if model already on disk + verified. Updates [state]. */
