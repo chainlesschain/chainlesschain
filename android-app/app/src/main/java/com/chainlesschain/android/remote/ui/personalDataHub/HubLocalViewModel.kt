@@ -90,6 +90,7 @@ class HubLocalViewModel @Inject constructor(
     private val weiboCredentials: WeiboCredentialsStore,
     private val douyinCollector: DouyinLocalCollector,
     private val douyinCredentials: DouyinCredentialsStore,
+    private val douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
     private val toutiaoCollector: ToutiaoLocalCollector,
@@ -2749,7 +2750,20 @@ class HubLocalViewModel @Inject constructor(
                     douyin = it.douyin.copy(isSyncing = true, errorMessage = null),
                 )
             }
-            val result = douyinCollector.snapshot()
+            // v0.3 — wire DouyinSignBridge for X-Bogus + _signature. Same
+            // finally-shutdown pattern as Toutiao to free the 30-50MB hidden
+            // WebView heap; re-warm next sync costs ~3s dominated by user
+            // click anyway.
+            douyinCollector.signProvider = douyinSignBridge
+            val result = try {
+                douyinCollector.snapshot()
+            } finally {
+                try {
+                    douyinSignBridge.shutdown()
+                } catch (t: Throwable) {
+                    Timber.w(t, "HubLocalViewModel: douyinSignBridge.shutdown threw")
+                }
+            }
             when (result) {
                 is DouyinLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -2804,20 +2818,24 @@ class HubLocalViewModel @Inject constructor(
                     )) {
                         is LocalCcRunner.CcResult.Ok -> {
                             _state.update {
+                                val banner = if (r.report.status != "ok" && r.report.error != null) {
+                                    "入库状态: ${r.report.status} (${r.report.error})"
+                                } else if (result.v03Attempted &&
+                                    (result.historyCount + result.favouriteCount + result.likeCount) > 0
+                                ) {
+                                    "已同步 profile + ${result.historyCount} 历史 / ${result.favouriteCount} 收藏 / ${result.likeCount} 点赞"
+                                } else if (result.v03Attempted) {
+                                    "已同步账号信息。v0.3 签名 bridge 未就绪 — 历史/赞/收藏本次未抓到（代码 ${result.lastErrorCode}），稍后再同步。"
+                                } else if (result.totalEvents <= 1) {
+                                    "已同步账号信息（v0.2）。历史/赞/收藏需 v0.3 X-Bogus 签名接通。"
+                                } else null
                                 it.copy(
                                     globalSyncingAdapter = null,
                                     douyin = it.douyin.copy(
                                         isSyncing = false,
                                         lastSyncAt = result.snapshottedAt,
                                         lastSyncCount = r.report.ingested,
-                                        // v0.2 honest banner — 透出限制让用户
-                                        // 知道历史/赞/收藏需 v0.3。lastSyncCount
-                                        // 只有 1（profile），不是 bug 是 scope。
-                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
-                                            "入库状态: ${r.report.status} (${r.report.error})"
-                                        } else if (result.totalEvents <= 1) {
-                                            "已同步账号信息（v0.2）。历史/赞/收藏需 v0.3 X-Bogus 签名接通。"
-                                        } else null,
+                                        errorMessage = banner,
                                     ),
                                 )
                             }
