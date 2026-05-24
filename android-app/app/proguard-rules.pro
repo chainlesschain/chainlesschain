@@ -7,6 +7,15 @@
 -dontskipnonpubliclibraryclasses
 -verbose
 
+# R8 optimization pass — disabled to dodge `java.util.ConcurrentModificationException`
+# in :app:minifyReleaseWithR8 on AGP 8.x. Memory `android_release_r8_minify_hotfix_chain`
+# documents the symptom; v5.0.3.86 build-android (run 26363851116) burned 20 min before
+# CME despite `android.enableR8.fullMode=false` (gradle.properties:54). The optimize
+# pass is what trips the concurrent collection iteration race; shrink + obfuscate keep
+# working, so APK is still minified (just ~3-5% larger DEX, accepted trade-off until
+# upstream R8 fixes the race). Re-enable when AGP 8.x R8 ships the fix.
+-dontoptimize
+
 # Keep line numbers for debugging (Crashlytics stack traces)
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
