@@ -60,6 +60,7 @@ const PREFIX_RULES = Object.freeze([
   ["alipay-",         "shopping"],
   ["travel-",         "travel"],
   ["system-data",     "system"],
+  ["browser-",        "system"],
   ["ai-chat-",        "ai-chat"],
 ]);
 

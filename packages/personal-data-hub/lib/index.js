@@ -58,6 +58,7 @@ const entityResolver = require("./entity-resolver");
 const analysisSkills = require("./analysis-skills");
 const mobileExtractor = require("./mobile-extractor");
 const systemDataAndroid = require("./adapters/system-data-android");
+const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const categories = require("./categories");
 
 module.exports = {
@@ -263,6 +264,13 @@ module.exports = {
   // Path C — staging + ingest helper shared by IPC / WS / mobile-route layers
   ingestSystemDataAndroidSnapshot:
     systemDataAndroid.ingestSystemDataAndroidSnapshot,
+
+  // Phase 17 (2026-05-24) — desktop Chrome local browser history + bookmarks.
+  // SQLite snapshot copy + Bookmarks JSON parse; no network, no extension.
+  BrowserHistoryChromeAdapter: browserHistoryChrome.BrowserHistoryChromeAdapter,
+  BROWSER_HISTORY_CHROME_NAME: browserHistoryChrome.BROWSER_HISTORY_CHROME_NAME,
+  BROWSER_HISTORY_CHROME_VERSION: browserHistoryChrome.BROWSER_HISTORY_CHROME_VERSION,
+  defaultChromeProfileDir: browserHistoryChrome.defaultChromeProfileDir,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

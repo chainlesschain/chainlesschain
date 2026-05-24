@@ -44,6 +44,7 @@ const {
   EmailAdapter,
   AlipayBillAdapter,
   SystemDataAndroidAdapter,
+  BrowserHistoryChromeAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -350,6 +351,22 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register system-data-android adapter",
+      err && err.message,
+    );
+  }
+
+  // Phase 17 (2026-05-24) — desktop Chrome history + bookmarks. Stateless;
+  // reads %LOCALAPPDATA%\Google\Chrome\User Data\Default\{History,Bookmarks}
+  // on Win (per-platform equivalent on macOS/Linux). authenticate() reports
+  // PROFILE_NOT_FOUND when Chrome isn't installed; sync() throws same.
+  try {
+    const chrome = new BrowserHistoryChromeAdapter();
+    if (!registry.has(chrome.name)) {
+      registry.register(chrome);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register browser-history-chrome adapter",
       err && err.message,
     );
   }
