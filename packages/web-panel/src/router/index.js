@@ -25,6 +25,7 @@ const routes = [
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
       { path: 'knowledge',  name: 'Knowledge',   component: () => import('../views/KnowledgeGraph.vue') },
       { path: 'personal-data-hub', name: 'PersonalDataHub', component: () => import('../views/PersonalDataHub.vue') },
+      { path: 'personal-data-hub/browser', name: 'PdhVaultBrowser', component: () => import('../views/PdhVaultBrowser.vue') },
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
       { path: 'workflow',   name: 'Workflow',    component: () => import('../views/WorkflowEditor.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },

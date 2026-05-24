@@ -74,6 +74,7 @@
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>{{ $t('appLayout.items.memory') }}</a-menu-item>
             <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template>{{ $t('appLayout.items.knowledge') }}</a-menu-item>
             <a-menu-item key="personal-data-hub"><template #icon><DatabaseOutlined /></template>个人数据中台</a-menu-item>
+            <a-menu-item key="personal-data-hub/browser"><template #icon><UnorderedListOutlined /></template>数据浏览器</a-menu-item>
             <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template>{{ $t('appLayout.items.marketplace') }}</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>{{ $t('appLayout.items.cron') }}</a-menu-item>
             <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template>{{ $t('appLayout.items.workflow') }}</a-menu-item>
@@ -165,6 +166,7 @@
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="knowledge"><template #icon><ShareAltOutlined /></template></a-menu-item>
           <a-menu-item key="personal-data-hub"><template #icon><DatabaseOutlined /></template></a-menu-item>
+          <a-menu-item key="personal-data-hub/browser"><template #icon><UnorderedListOutlined /></template></a-menu-item>
           <a-menu-item key="marketplace"><template #icon><ShoppingOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
           <a-menu-item key="workflow"><template #icon><ApartmentOutlined /></template></a-menu-item>
@@ -320,7 +322,7 @@ import {
   ExperimentOutlined, DeploymentUnitOutlined, BulbOutlined, BankOutlined, PartitionOutlined,
   AuditOutlined, FileSearchOutlined, TrophyOutlined, FireOutlined, SearchOutlined,
   NumberOutlined, ClusterOutlined, SoundOutlined, DesktopOutlined, BellOutlined,
-  SyncOutlined, MobileOutlined, DatabaseOutlined,
+  SyncOutlined, MobileOutlined, DatabaseOutlined, UnorderedListOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { useWsStore } from '../stores/ws.js'
