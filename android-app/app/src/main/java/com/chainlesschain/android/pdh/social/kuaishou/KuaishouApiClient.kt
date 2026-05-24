@@ -228,14 +228,17 @@ class KuaishouApiClient @Inject constructor() {
                 ?: return@withContext emptyList()
             val feeds = data.optJSONObject("visionFeedRecommend")?.optJSONArray("feeds")
                 ?: return@withContext emptyList()
-            extractPhotoList(feeds, limit) { item, photoId, caption, ts ->
+            extractPhotoList(feeds, limit) { item, photo, photoId, caption, ts ->
                 WatchItem(
                     photoId = photoId,
                     caption = caption,
                     authorName = item.optJSONObject("author")?.optStringOrNull("name"),
                     authorId = item.optJSONObject("author")?.optStringOrNull("id"),
                     viewedAt = ts,
-                    duration = item.optLong("duration"),
+                    // duration lives on the nested photo object, not the
+                    // feed item wrapper. Fall back to flat-shape `item` so
+                    // responses without nesting still work.
+                    duration = photo.optLong("duration"),
                 )
             }
         }
@@ -258,7 +261,7 @@ class KuaishouApiClient @Inject constructor() {
                 ?: return@withContext emptyList()
             val feeds = data.optJSONObject("visionProfilePhotoList")?.optJSONArray("feeds")
                 ?: return@withContext emptyList()
-            extractPhotoList(feeds, limit) { _, photoId, caption, ts ->
+            extractPhotoList(feeds, limit) { _, _, photoId, caption, ts ->
                 ProfilePhotoItem(
                     photoId = photoId,
                     caption = caption,
@@ -341,7 +344,7 @@ class KuaishouApiClient @Inject constructor() {
     private fun <T : Any> extractPhotoList(
         feeds: JSONArray,
         limit: Int,
-        build: (JSONObject, String, String, Long) -> T?,
+        build: (JSONObject, JSONObject, String, String, Long) -> T?,
     ): List<T> {
         val out = ArrayList<T>(minOf(limit, feeds.length()))
         for (i in 0 until minOf(limit, feeds.length())) {
@@ -353,7 +356,7 @@ class KuaishouApiClient @Inject constructor() {
             val caption = photo.optStringOrNull("caption") ?: "(no caption)"
             val ts = (photo.optLong("timestamp").takeIf { it > 0 }
                 ?: photo.optLong("createTime")) * 1000L
-            val built = build(item, photoId, caption, ts) ?: continue
+            val built = build(item, photo, photoId, caption, ts) ?: continue
             out.add(built)
         }
         return out
