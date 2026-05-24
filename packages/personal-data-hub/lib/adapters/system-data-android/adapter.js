@@ -23,11 +23,16 @@ const {
   ENTITY_TYPES,
   PERSON_SUBTYPES,
   ITEM_SUBTYPES,
+  EVENT_SUBTYPES,
   CAPTURED_BY,
 } = require("../../constants");
 
 const NAME = "system-data-android";
-const VERSION = "0.1.0";
+// v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode
+//   (host-adb-bridge sms.query / call.query). Snapshot mode still v1
+//   schema — sms/calls only land via bridge path until Android snapshot
+//   writer is updated to include them.
+const VERSION = "0.2.0";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -48,6 +53,18 @@ function appOriginalId(a) {
     `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return `android-app:${k}`;
 }
+function smsOriginalId(s) {
+  // Stable across re-syncs: use SMS _id from the system content provider.
+  const k = (s && s.id != null && String(s.id)) ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `android-sms:${k}`;
+}
+function callOriginalId(c) {
+  // Stable across re-syncs: use call_log _id from the system content provider.
+  const k = (c && c.id != null && String(c.id)) ||
+    `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `android-call:${k}`;
+}
 
 class SystemDataAndroidAdapter {
   constructor(opts = {}) {
@@ -56,6 +73,8 @@ class SystemDataAndroidAdapter {
     this.capabilities = [
       "sync:android-content-provider",
       "sync:android-package-manager",
+      "sync:android-sms",
+      "sync:android-call-log",
     ];
     this.extractMode = "device-pull";
     this.rateLimits = { perDay: 24 };
@@ -63,10 +82,16 @@ class SystemDataAndroidAdapter {
       fields: [
         "contacts:displayName,phones,emails,starred,organization,photoUri",
         "installed_apps:packageName,label,versionName,versionCode,firstInstallTime,lastUpdateTime,isSystem",
+        "sms:id,address,body,date,dateSent,type,threadId,read,subject",
+        "callLog:id,number,name,duration,date,type,geocoded",
       ],
-      sensitivity: "medium",
+      // SMS bodies + call numbers are high-sensitivity. Defaults below are
+      // permissive (matches contacts/apps behavior — UI doesn't yet have
+      // per-kind toggles; user opts in by triggering sync at all). Tighten
+      // when the UI grows a per-kind include picker.
+      sensitivity: "high",
       legalGate: false,
-      defaultInclude: { contacts: true, apps: true },
+      defaultInclude: { contacts: true, apps: true, sms: true, calls: true },
     };
 
     // _deps for test injection — mirrors the pattern in cli-dev.md so test
@@ -187,6 +212,42 @@ class SystemDataAndroidAdapter {
           originalId: appOriginalId(a),
           capturedAt,
           payload: a,
+        };
+        emitted += 1;
+      }
+    }
+
+    const includeSms = opts.include?.sms !== false;
+    if (includeSms) {
+      const res = await bridge.invoke("sms.query", {
+        since: Number.isInteger(opts.since) ? opts.since : undefined,
+      });
+      const arr = Array.isArray(res) ? res : Array.isArray(res?.sms) ? res.sms : [];
+      for (const s of arr) {
+        if (emitted >= limit) return;
+        yield {
+          kind: "sms",
+          originalId: smsOriginalId(s),
+          capturedAt,
+          payload: s,
+        };
+        emitted += 1;
+      }
+    }
+
+    const includeCalls = opts.include?.calls !== false;
+    if (includeCalls) {
+      const res = await bridge.invoke("call.query", {
+        since: Number.isInteger(opts.since) ? opts.since : undefined,
+      });
+      const arr = Array.isArray(res) ? res : Array.isArray(res?.calls) ? res.calls : [];
+      for (const c of arr) {
+        if (emitted >= limit) return;
+        yield {
+          kind: "call",
+          originalId: callOriginalId(c),
+          capturedAt,
+          payload: c,
         };
         emitted += 1;
       }
@@ -334,6 +395,86 @@ class SystemDataAndroidAdapter {
         items: [item],
         topics: [],
       };
+    }
+
+    if (raw.kind === "sms") {
+      const p = raw.payload || {};
+      // SMS type from Android SDK Telephony.Sms (Inbox.MESSAGE_TYPE_*):
+      //   1 INBOX, 2 SENT, 3 DRAFT, 4 OUTBOX, 5 FAILED, 6 QUEUED
+      const direction = p.type === 2 || p.type === 4 ? "out" : "in";
+      const eventId = `event-android-sms-${p.id || raw.capturedAt}`;
+      const occurredAt = Number.isInteger(p.date) ? p.date : raw.capturedAt;
+      const bodyText = typeof p.body === "string" ? p.body : "";
+      const event = {
+        id: eventId,
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.MESSAGE,
+        occurredAt,
+        ingestedAt,
+        source: source(`android-sms:${p.id || raw.capturedAt}`),
+        actor: direction === "in" ? p.address : "self",
+        // Participants on the OTHER side of the message.
+        participants: p.address ? [p.address] : [],
+        // Validator (lib/schemas.js validateEvent) requires `content` to be
+        // a plain object — title/text/etc go INSIDE this object, not on the
+        // event root.
+        content: {
+          title: bodyText.length > 0
+            ? (bodyText.length > 80 ? bodyText.substring(0, 80) + "…" : bodyText)
+            : "(空短信)",
+          text: bodyText,
+        },
+      };
+      const extra = { direction, threadId: p.threadId };
+      if (typeof p.dateSent === "number") extra.dateSent = p.dateSent;
+      if (typeof p.read === "boolean") extra.read = p.read;
+      if (typeof p.subject === "string" && p.subject.length > 0) extra.subject = p.subject;
+      if (Number.isInteger(p.type)) extra.smsType = p.type;
+      event.extra = extra;
+
+      return { events: [event], persons: [], places: [], items: [], topics: [] };
+    }
+
+    if (raw.kind === "call") {
+      const p = raw.payload || {};
+      // Call type from Android SDK CallLog.Calls.TYPE:
+      //   1 INCOMING, 2 OUTGOING, 3 MISSED, 4 VOICEMAIL, 5 REJECTED, 6 BLOCKED
+      const direction = p.type === 2 ? "out" : "in";
+      const eventId = `event-android-call-${p.id || raw.capturedAt}`;
+      const occurredAt = Number.isInteger(p.date) ? p.date : raw.capturedAt;
+      const callTypeName =
+        p.type === 1 ? "incoming" :
+        p.type === 2 ? "outgoing" :
+        p.type === 3 ? "missed" :
+        p.type === 4 ? "voicemail" :
+        p.type === 5 ? "rejected" :
+        p.type === 6 ? "blocked" : "unknown";
+      const titleName =
+        (typeof p.name === "string" && p.name.trim().length > 0) ? p.name.trim() : (p.number || "未知号码");
+      const title =
+        `${callTypeName === "missed" ? "未接 " : ""}${callTypeName === "outgoing" ? "拨打 " : ""}${callTypeName === "incoming" ? "来电 " : ""}${titleName}`;
+      const event = {
+        id: eventId,
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.CALL,
+        occurredAt,
+        ingestedAt,
+        source: source(`android-call:${p.id || raw.capturedAt}`),
+        actor: direction === "in" ? p.number : "self",
+        participants: p.number ? [p.number] : [],
+        // Schema-required `content` object — title goes here, not on root.
+        content: { title },
+      };
+      if (Number.isInteger(p.duration) && p.duration > 0) {
+        event.durationMs = p.duration * 1000;
+      }
+      const extra = { direction, callType: callTypeName };
+      if (Number.isInteger(p.type)) extra.androidCallType = p.type;
+      if (typeof p.geocoded === "string" && p.geocoded.length > 0) extra.geocoded = p.geocoded;
+      if (typeof p.name === "string" && p.name.length > 0) extra.name = p.name;
+      event.extra = extra;
+
+      return { events: [event], persons: [], places: [], items: [], topics: [] };
     }
 
     throw new Error(`system-data-android.normalize: unknown raw.kind=${raw.kind}`);

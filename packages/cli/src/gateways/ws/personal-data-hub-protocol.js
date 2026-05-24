@@ -63,6 +63,17 @@ async function _tryAdbAutoPullInputPath(hub, name, options) {
   ) {
     return options; // caller already supplied a path
   }
+  // Skip auto-pull for adapters that have a live bridge mode — pulling
+  // a stale snapshot file would short-circuit the bridge path which
+  // yields fresher / richer data (e.g. system-data-android's bridge
+  // mode pulls contacts + apps + sms + call_log live via ADB, while
+  // an Android-collected snapshot only contains contacts + apps).
+  // Keep this list in sync with adapters whose _syncViaBridge is
+  // strictly richer than their snapshot output.
+  const BRIDGE_PREFERRED = new Set(["system-data-android"]);
+  if (BRIDGE_PREFERRED.has(name)) {
+    return options || {};
+  }
   try {
     const { createHostAdbBridge } =
       await import("../../lib/host-adb-bridge.js");
