@@ -50,6 +50,8 @@ fun MainContainer(
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     onNavigateToLocalDataHub: () -> Unit = {},
+    // 2026-05-24 — PDH 第 6 tab "数据浏览" (vault browser) 快捷入口
+    onNavigateToPdhBrowser: () -> Unit = {},
     // 2026-05-24 — 首页 row2 cell 1 替代社交广场的本机模型入口
     onNavigateToLocalModel: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
@@ -121,6 +123,7 @@ fun MainContainer(
                         onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                         onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
                         onNavigateToLocalDataHub = onNavigateToLocalDataHub,
+                        onNavigateToPdhBrowser = onNavigateToPdhBrowser,
                         onNavigateToLocalModel = onNavigateToLocalModel,
                         onCheckForUpdates = { updateViewModel.checkForUpdates(silent = false) },
                         onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
