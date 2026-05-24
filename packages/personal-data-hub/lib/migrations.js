@@ -245,6 +245,90 @@ const PHASE_8_DDL = [
   `CREATE INDEX IF NOT EXISTS idx_review_queue_pending ON review_queue(reviewed_at, enqueued_at)`,
 ];
 
+// Phase 16 DDL — FTS5 full-text index over events for the Vault Browser UI.
+//
+// Uses FTS5 in **external-content** mode (content='events', content_rowid='rowid')
+// so the events table remains the single source of truth — events_fts only
+// stores the inverted index, kept in sync by 3 triggers.
+//
+// Tokenizer is `trigram` (SQLite ≥3.34) which gives substring matching for
+// CJK (中文) — unicode61 (the FTS5 default) splits only on whitespace and
+// is unusable for Chinese. Trigram min query length is 3 chars (1-2 char
+// queries match nothing); the UI surfaces a hint.
+//
+// If FTS5 or the trigram tokenizer is unavailable in the local SQLite build
+// (rare with bs3mc which bundles SQLCipher 4 / SQLite 3.42+, but possible
+// in custom builds), the probe sets `_meta.fts_mode = 'like'` and the
+// migration skips the virtual table + triggers. vault.searchEvents falls
+// back to LIKE-mode (slower, no ranking, ASCII-only correct).
+//
+// Backfill runs inline inside the migration transaction; on multi-100k-row
+// vaults this can take ~5-15 seconds (one-time cost on upgrade).
+function _hasFts5Trigram(db) {
+  // Probe by trying to create a temp virtual table. We can't rely on
+  // pragma_compile_options because (a) some bs3mc builds don't surface
+  // ENABLE_FTS5 there, and (b) trigram is a tokenizer registration, not
+  // a compile option. The CREATE is the ground truth.
+  try {
+    db.exec(
+      "CREATE VIRTUAL TABLE temp._fts_probe USING fts5(x, tokenize='trigram')"
+    );
+    db.exec("DROP TABLE temp._fts_probe");
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
+const PHASE_16_FTS_DDL = {
+  // External-content FTS5: no row data copy, just the inverted index.
+  // Columns mirror what's worth searching in events:
+  //   content_text  — the JSON payload, searched as-is (JSON braces tokenize
+  //                   harmlessly with trigram; query "{key" never matches
+  //                   anything users type)
+  //   extra_text    — extra JSON tail (also worth searching: order numbers,
+  //                   merchant names, message bodies live here for many
+  //                   adapters)
+  //   subtype/actor/place — short flat strings, indexed for keyword filter
+  createVirtualTable: `
+    CREATE VIRTUAL TABLE events_fts USING fts5(
+      subtype, content_text, actor, place, extra_text,
+      content='events',
+      content_rowid='rowid',
+      tokenize='trigram'
+    )
+  `,
+  // After INSERT — index the new row.
+  triggerAi: `
+    CREATE TRIGGER events_ai AFTER INSERT ON events BEGIN
+      INSERT INTO events_fts(rowid, subtype, content_text, actor, place, extra_text)
+      VALUES (new.rowid, new.subtype, new.content, new.actor, new.place, new.extra);
+    END
+  `,
+  // After DELETE — remove from index. external-content delete uses the
+  // sentinel ('delete', rowid, ...all-cols) pattern.
+  triggerAd: `
+    CREATE TRIGGER events_ad AFTER DELETE ON events BEGIN
+      INSERT INTO events_fts(events_fts, rowid, subtype, content_text, actor, place, extra_text)
+      VALUES('delete', old.rowid, old.subtype, old.content, old.actor, old.place, old.extra);
+    END
+  `,
+  // After UPDATE — delete-then-insert (FTS5 external-content idiom).
+  triggerAu: `
+    CREATE TRIGGER events_au AFTER UPDATE ON events BEGIN
+      INSERT INTO events_fts(events_fts, rowid, subtype, content_text, actor, place, extra_text)
+      VALUES('delete', old.rowid, old.subtype, old.content, old.actor, old.place, old.extra);
+      INSERT INTO events_fts(rowid, subtype, content_text, actor, place, extra_text)
+      VALUES (new.rowid, new.subtype, new.content, new.actor, new.place, new.extra);
+    END
+  `,
+  // One-shot backfill of all existing rows.
+  backfill: `
+    INSERT INTO events_fts(rowid, subtype, content_text, actor, place, extra_text)
+    SELECT rowid, subtype, content, actor, place, extra FROM events
+  `,
+};
+
 const MIGRATIONS = [
   {
     version: 1,
@@ -258,6 +342,29 @@ const MIGRATIONS = [
     description: "Phase 8 EntityResolver — merge_groups + merge_members + resolve_decisions + resolve_queue + review_queue",
     up(db) {
       for (const sql of PHASE_8_DDL) db.exec(sql);
+    },
+  },
+  {
+    version: 3,
+    description:
+      "Phase 16 Vault Browser — events_fts FTS5 (trigram) virtual table + 3 sync triggers + backfill; LIKE fallback when FTS5 unavailable",
+    up(db) {
+      const supported = _hasFts5Trigram(db);
+      // Record the mode in _meta so the runtime can pick the right query path
+      // without re-probing every open. Set BEFORE creating tables so partial
+      // failures still leave a queryable mode marker.
+      const now = Date.now();
+      db.prepare(
+        `INSERT INTO _meta (key, value, updated_at) VALUES ('fts_mode', ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+      ).run(supported ? "fts5" : "like", now);
+      if (!supported) return;
+
+      db.exec(PHASE_16_FTS_DDL.createVirtualTable);
+      db.exec(PHASE_16_FTS_DDL.triggerAi);
+      db.exec(PHASE_16_FTS_DDL.triggerAd);
+      db.exec(PHASE_16_FTS_DDL.triggerAu);
+      db.exec(PHASE_16_FTS_DDL.backfill);
     },
   },
 ];
@@ -311,9 +418,25 @@ function getSchemaVersion(db) {
   }
 }
 
+/**
+ * Returns 'fts5' or 'like' depending on what migration 3 recorded.
+ * Pre-migration-3 vaults return 'like' as the safe default.
+ */
+function getFtsMode(db) {
+  try {
+    const row = db.prepare("SELECT value FROM _meta WHERE key = 'fts_mode'").get();
+    return row && (row.value === "fts5" || row.value === "like") ? row.value : "like";
+  } catch (_err) {
+    return "like";
+  }
+}
+
 module.exports = {
   MIGRATIONS,
   TARGET_VERSION,
   applyMigrations,
   getSchemaVersion,
+  getFtsMode,
+  // Exported for tests + driver capability checks at vault open time.
+  _hasFts5Trigram,
 };

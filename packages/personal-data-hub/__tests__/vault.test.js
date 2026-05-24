@@ -9,6 +9,7 @@ const path = require("node:path");
 const { newId } = require("../lib/ids");
 const { generateKeyHex } = require("../lib/key-providers");
 const { LocalVault } = require("../lib/vault");
+const { TARGET_VERSION } = require("../lib/migrations");
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ afterEach(() => {
 describe("LocalVault open + migrations", () => {
   it("opens a fresh vault and runs initial migrations", () => {
     freshVault();
-    expect(vault.schemaVersion()).toBe(2);
+    expect(vault.schemaVersion()).toBe(TARGET_VERSION);
     expect(fs.existsSync(vaultPath)).toBe(true);
   });
 
@@ -116,7 +117,7 @@ describe("LocalVault open + migrations", () => {
 
     const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
     reopen.open();
-    expect(reopen.schemaVersion()).toBe(2);
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
     expect(reopen.stats().persons).toBe(1);
     reopen.close();
   });

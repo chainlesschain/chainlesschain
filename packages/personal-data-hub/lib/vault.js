@@ -27,8 +27,79 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const { validate } = require("./schemas");
-const { applyMigrations, getSchemaVersion } = require("./migrations");
+const { applyMigrations, getSchemaVersion, getFtsMode } = require("./migrations");
 const { isValidKeyHex } = require("./key-providers");
+const { getCategory, PREFIX_RULES } = require("./categories");
+
+// FTS5 trigram tokenizer requires queries of >= 3 chars to produce any
+// trigrams at all (single 2-char input gives zero index keys → empty result).
+// Surface this to the caller so the UI can show a hint instead of a confusing
+// "no results" state.
+const FTS5_MIN_QUERY_LEN = 3;
+
+/**
+ * Translate a user-typed FTS5 query into a safe-to-bind string. FTS5 has its
+ * own query syntax — bare operators like `OR`, `AND`, `NOT`, `(`, `:`, `*`,
+ * double-quotes have meaning. For the browser keyword box we want literal
+ * substring search, so wrap the whole input in double quotes (FTS5 phrase
+ * mode) after escaping any embedded double quotes.
+ */
+function _quoteFtsQuery(q) {
+  return '"' + String(q).replace(/"/g, '""') + '"';
+}
+
+/**
+ * Build a (sql, params) fragment matching events for the given category.
+ * Uses categories.js PREFIX_RULES as the single source of truth so a new
+ * adapter prefix only needs to be added in one place.
+ *
+ * Returns `{ sql: "(...)", params: { catN: ... } }` or
+ * `{ sql: "0=1", params: {} }` when no rule matches (unknown category).
+ */
+function _categoryToWhere(category, paramPrefix = "cat") {
+  if (typeof category !== "string" || category.length === 0) {
+    return { sql: null, params: {} };
+  }
+  const matched = PREFIX_RULES.filter((rule) => rule[1] === category);
+  // "other" is a synthetic bucket — nothing in PREFIX_RULES maps to it; an
+  // event's category is "other" iff its adapter matches no prefix. Translate
+  // that to a NOT-IN-any-prefix condition.
+  if (category === "other") {
+    const exclude = [];
+    const params = {};
+    let i = 0;
+    for (const [rule] of PREFIX_RULES) {
+      const key = `${paramPrefix}${i}`;
+      if (rule.endsWith("*")) {
+        params[key] = rule.slice(0, -1) + "%";
+        exclude.push(`source_adapter NOT LIKE @${key}`);
+      } else {
+        params[key] = rule;
+        exclude.push(`source_adapter != @${key}`);
+      }
+      i++;
+    }
+    return { sql: "(" + exclude.join(" AND ") + ")", params };
+  }
+  if (matched.length === 0) {
+    return { sql: "0=1", params: {} };
+  }
+  const conds = [];
+  const params = {};
+  let i = 0;
+  for (const [rule] of matched) {
+    const key = `${paramPrefix}${i}`;
+    if (rule.endsWith("*")) {
+      params[key] = rule.slice(0, -1) + "%";
+      conds.push(`source_adapter LIKE @${key}`);
+    } else {
+      params[key] = rule;
+      conds.push(`source_adapter = @${key}`);
+    }
+    i++;
+  }
+  return { sql: "(" + conds.join(" OR ") + ")", params };
+}
 
 // Default SQLCipher cipher (matches WCDB / mainstream SQLCipher v4).
 const DEFAULT_CIPHER = "sqlcipher";
@@ -790,6 +861,190 @@ class LocalVault {
       .map((row) => this._rowToItem(row));
   }
 
+  /**
+   * Mode (`'fts5'` or `'like'`) recorded by migration 3. Determines whether
+   * searchEvents uses the FTS5 virtual table or falls back to LIKE scans.
+   * Cached on first read.
+   */
+  ftsMode() {
+    if (!this._ftsMode) this._ftsMode = getFtsMode(this._requireOpen());
+    return this._ftsMode;
+  }
+
+  /**
+   * Full-text + faceted search over events for the Vault Browser UI.
+   *
+   * Filters (all optional, ANDed):
+   *   q         — keyword string; FTS5 phrase match if length >= 3 (or LIKE
+   *               substring match on subtype/content/actor/place/extra in
+   *               fallback mode). Shorter queries are ignored as if absent.
+   *   adapter   — exact source_adapter
+   *   category  — one of categories.CATEGORIES; expands to adapter prefix list
+   *   subtype   — exact subtype match
+   *   since     — occurred_at >= since (ms epoch)
+   *   until     — occurred_at <= until
+   *   cursor    — { occurredAt, id } from previous page's last row
+   *   limit     — default 50, max 500
+   *
+   * Pagination is cursor-based on (occurred_at DESC, id DESC) — stable under
+   * concurrent inserts (newer events appear only on re-fetch of page 1).
+   *
+   * Returns `{ rows: Event[], nextCursor: {occurredAt, id} | null, mode: 'fts5'|'like', shortQuery: boolean }`.
+   *   - shortQuery=true means the q was non-empty but below FTS5_MIN_QUERY_LEN
+   *     and was dropped — UI should hint "请输入至少 3 个字".
+   */
+  searchEvents(q = {}) {
+    const db = this._requireOpen();
+    const mode = this.ftsMode();
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 500) : 50;
+
+    const where = [];
+    const params = { limit: limit + 1 }; // +1 to detect "is there a next page?"
+
+    let shortQuery = false;
+    const rawQ = typeof q.q === "string" ? q.q.trim() : "";
+
+    // Keyword filter — FTS5 path uses MATCH on events_fts; LIKE path does
+    // OR across the 5 indexed columns. Sub-min-length q in FTS5 mode is
+    // dropped silently (and reported back as shortQuery=true).
+    let joinFts = false;
+    if (rawQ.length > 0) {
+      if (mode === "fts5") {
+        if (rawQ.length >= FTS5_MIN_QUERY_LEN) {
+          joinFts = true;
+          params.q = _quoteFtsQuery(rawQ);
+          where.push("events_fts MATCH @q");
+        } else {
+          shortQuery = true;
+        }
+      } else {
+        params.qLike = "%" + rawQ + "%";
+        where.push(
+          "(subtype LIKE @qLike OR content LIKE @qLike OR actor LIKE @qLike OR place LIKE @qLike OR extra LIKE @qLike)"
+        );
+      }
+    }
+
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    if (q.category) {
+      const { sql, params: catParams } = _categoryToWhere(q.category);
+      if (sql) {
+        where.push(sql);
+        Object.assign(params, catParams);
+      }
+    }
+    if (q.subtype) {
+      where.push("e.subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+    // Cursor: rows strictly older than the cursor's (occurred_at, id) tuple.
+    // SQLite tuple comparison handles this natively.
+    if (q.cursor && Number.isFinite(q.cursor.occurredAt) && typeof q.cursor.id === "string") {
+      where.push("(occurred_at, e.id) < (@cursorAt, @cursorId)");
+      params.cursorAt = q.cursor.occurredAt;
+      params.cursorId = q.cursor.id;
+    }
+
+    const sql =
+      "SELECT e.* FROM events e" +
+      (joinFts ? " JOIN events_fts f ON e.rowid = f.rowid" : "") +
+      (where.length ? " WHERE " + where.join(" AND ") : "") +
+      " ORDER BY occurred_at DESC, e.id DESC LIMIT @limit";
+
+    const rowsPlusOne = db.prepare(sql).all(params);
+    const hasMore = rowsPlusOne.length > limit;
+    const rows = hasMore ? rowsPlusOne.slice(0, limit) : rowsPlusOne;
+    const events = rows.map((r) => this._rowToEvent(r));
+    const last = rows[rows.length - 1];
+    return {
+      rows: events,
+      nextCursor: hasMore && last ? { occurredAt: last.occurred_at, id: last.id } : null,
+      mode,
+      shortQuery,
+    };
+  }
+
+  /**
+   * Counts events grouped by category / adapter / subtype, honoring the
+   * same q/since/until filters as searchEvents. Powers the sidebar badges
+   * + adapter chips ("社交聊天 (123)" / "social-bilibili (45)").
+   *
+   * Returns `{ byCategory, byAdapter, bySubtype, total, mode, shortQuery }`.
+   * Each map is `{ key: count }`. Empty keys are omitted.
+   */
+  facetCounts(q = {}) {
+    const db = this._requireOpen();
+    const mode = this.ftsMode();
+    const params = {};
+    const where = [];
+
+    let shortQuery = false;
+    const rawQ = typeof q.q === "string" ? q.q.trim() : "";
+    let joinFts = false;
+    if (rawQ.length > 0) {
+      if (mode === "fts5") {
+        if (rawQ.length >= FTS5_MIN_QUERY_LEN) {
+          joinFts = true;
+          params.q = _quoteFtsQuery(rawQ);
+          where.push("events_fts MATCH @q");
+        } else {
+          shortQuery = true;
+        }
+      } else {
+        params.qLike = "%" + rawQ + "%";
+        where.push(
+          "(subtype LIKE @qLike OR content LIKE @qLike OR actor LIKE @qLike OR place LIKE @qLike OR extra LIKE @qLike)"
+        );
+      }
+    }
+    if (Number.isFinite(q.since)) {
+      where.push("occurred_at >= @since");
+      params.since = q.since;
+    }
+    if (Number.isFinite(q.until)) {
+      where.push("occurred_at <= @until");
+      params.until = q.until;
+    }
+
+    const baseFrom =
+      "FROM events e" + (joinFts ? " JOIN events_fts f ON e.rowid = f.rowid" : "");
+    const whereSql = where.length ? " WHERE " + where.join(" AND ") : "";
+
+    const adapterRows = db
+      .prepare(
+        `SELECT source_adapter AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY source_adapter`
+      )
+      .all(params);
+    const subtypeRows = db
+      .prepare(`SELECT e.subtype AS k, COUNT(*) AS n ${baseFrom}${whereSql} GROUP BY e.subtype`)
+      .all(params);
+
+    const byAdapter = {};
+    const byCategory = {};
+    let total = 0;
+    for (const r of adapterRows) {
+      byAdapter[r.k] = r.n;
+      const cat = getCategory(r.k);
+      byCategory[cat] = (byCategory[cat] || 0) + r.n;
+      total += r.n;
+    }
+    const bySubtype = {};
+    for (const r of subtypeRows) bySubtype[r.k] = r.n;
+
+    return { byCategory, byAdapter, bySubtype, total, mode, shortQuery };
+  }
+
   countEvents(q = {}) {
     const where = [];
     const params = {};
@@ -1331,4 +1586,10 @@ class LocalVault {
   }
 }
 
-module.exports = { LocalVault, _internal: { loadDriver, formatDriverLoadError } };
+module.exports = {
+  LocalVault,
+  _internal: { loadDriver, formatDriverLoadError },
+  // Pure-JS helpers exported for unit testing without the native bs3mc
+  // binding (search SQL builders, category WHERE translator, FTS5 escape).
+  _searchHelpers: { _categoryToWhere, _quoteFtsQuery, FTS5_MIN_QUERY_LEN },
+};
