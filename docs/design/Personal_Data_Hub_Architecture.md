@@ -2,6 +2,8 @@
 
 > **状态**：v0.3 设计稿（2026-05-20）。Phase 0 / 1 待启。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
 >
+> **v0.4 (2026-05-24)**：**Phase 17 桌面本机数据五件套** land — `browser-history-chrome` + `browser-history-edge`（Chromium 子类复用）+ `vscode`（workspace + 全局终端 history.entries）+ `win-recent`（.lnk 跨应用时间线）+ `system-data-android v0.3.0` 加媒体清单（5 类 /sdcard 目录元数据）。全部 desktop-local file-import 模式（零 ADB、零网络、零账号）；新增 76 单测 + 4-adapter pipeline 整合测试 + CLI E2E spawn 测试（bs3mc 本地 ABI 不匹配时 skip，CI Linux 真跑）；wiring 跨 3 入口（desktop IPC、CLI 单跑、web-shell WS）+ 2 categories.js 全同步。
+>
 > **v0.3 (2026-05-20)**：引入 **Python sidecar (forensics-bridge)** 作为采集前端，fork 自 [`sjqz`](file://C:/code/sjqz) (17 parser + Android/iOS extraction + WeChat 解密)，避免重写 1.7w 行成熟代码。新增 §4.1 sidecar 子层、§9.4 PythonSidecarAdapter 接口、§12 Phase 4.5 系统数据 adapter（通讯录/通话/短信/WiFi 作 EntityResolver 种子）、Phase 12 WeChat 引用 sjqz 解密方案（T3 风险 高→中）、T13 新增（sidecar 跨平台部署）。配套新文档：[`Personal_Data_Hub_Python_Sidecar.md`](./Personal_Data_Hub_Python_Sidecar.md)、[`Adapter_System_Data.md`](./Adapter_System_Data.md)。
 >
 > **v0.2 (2026-05-19)**：§12 Phase 拆分基于 Redmi 24115RA8EC 真机 inventory（175 个第三方 app）重排，replace 原 hypothetical 顺序。新增 §12.1 真机 inventory × Phase 映射。EmailAdapter 提前为首个 adapter（IMAP 一拍多得），AIChatHistoryAdapter 提升为 Phase 10 旗舰差异化（用户装了 8 家国产 AI），WeChat 压轴 Phase 12。
@@ -705,6 +707,7 @@ last_error TEXT
 | **Phase 11** | **内置分析 skill 5 个** — spending / relations / footprint / interests / timeline + 月度报告 Workflow | 7d | 每个 skill UI 卡片 + 单测 + 真机典型问题验收 |
 | **Phase 12** | **WeChatAdapter（压轴）** — 微信聊天 + 朋友圈 + 公众号收藏（root + SQLCipher EnMicroMsg.db/SnsMicroMsg.db；密钥优先走 sjqz `wechat_decrypt.py` 的 IMEI+UIN MD5[:7] 方案，8.0+ 走 Frida hook libwechatmm.so 兜底） | 7d（原 10d，sjqz 降险后 −3d） | `com.tencent.mm` Redmi 24115RA8EC 真机 5 年消息全量；sidecar `wechat.decrypt` + `wechat.parse` 两 method 复用；密钥提取脚本 + 文档可复用其它机器 |
 | **Phase 13+** | **Long-tail 渐进**（按用户实际需求触发，非 v1 必选）：知乎 / 小红书 / 抖音 / 微博 / BOSS / 银行 PDF 邮件解析 / 个税 APP / i 厦门 / WPS + 腾讯文档 / 百度网盘 / 飞书 + 钉钉 + 企微 / 携程同程互补 / 滴滴 / 美柚 / 12123 / 网易云音乐 / 酷狗 / 爱奇艺 / 腾讯视频 / 头条 / 西瓜 / CSDN | ongoing | 每加一个不破现有；adapter 模板成熟后单 adapter 平均 2-3 天 |
+| **Phase 17 v0.1.0 (2026-05-24)** | **桌面本机数据五件套**：`browser-history-chrome` + `browser-history-edge`（Chromium 子类） + `vscode`（workspace + 全局终端历史） + `win-recent`（跨应用 .lnk 时间线） + `system-data-android v0.3.0`（媒体清单 5 类 /sdcard） | 1d | 全部 desktop-local 文件直读（零扩展、零网络、零账号）；4 adapter 真机实测：14689 visits + 27 bookmarks (Chrome) / 2022 visits (Edge) / 22 workspace + 32 命令 + 13 路径 (VSCode) / 52 .lnk (Win Recent) / 3751 media files (Android v0.3)；76 新单测 + 整合 + e2e 测试（bs3mc ABI 不匹配时本地 skip，CI Linux 真跑） |
 
 **总工期估**：Phase 0-12 ≈ 77 天 ≈ **11 周（单人）**。
 - v0.3 调整：+Phase 4.5 (4d) − Phase 12 (3d, sjqz 降险) = 净 +1d；不显著拖长 v1 工期

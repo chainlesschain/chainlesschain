@@ -48,7 +48,9 @@ describe("SystemDataAndroidAdapter — contract", () => {
     expect(adapter.name).toBe(SYSTEM_DATA_ANDROID_NAME);
     expect(adapter.version).toBe(SYSTEM_DATA_ANDROID_VERSION);
     expect(adapter.extractMode).toBe("device-pull");
-    expect(adapter.dataDisclosure.sensitivity).toBe("medium");
+    // v0.2 bumped sensitivity medium → high when sms/call_log were added
+    // (real address book + SMS body are firmly PII-grade).
+    expect(adapter.dataDisclosure.sensitivity).toBe("high");
     expect(adapter.dataDisclosure.legalGate).toBe(false);
   });
 });
@@ -272,13 +274,29 @@ describe("SystemDataAndroidAdapter — degenerate snapshots", () => {
 // the new path without a real device.
 
 describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
-  function makeBridge({ contacts = [], apps = [], throws = null } = {}) {
+  // Helper accepts every kind the adapter may invoke today (v0.3.0 added
+  // sms / call / media). Unspecified kinds return empty so existing tests
+  // only need to opt-in to the kinds they assert against.
+  function makeBridge({
+    contacts = [],
+    apps = [],
+    sms = [],
+    calls = [],
+    media = {},
+    throws = null,
+  } = {}) {
     return {
       caps: () => ({ available: true, reason: "test" }),
-      invoke: async (method) => {
+      invoke: async (method, params) => {
         if (throws) throw throws;
         if (method === "contacts.query") return { contacts };
         if (method === "app.list") return { apps };
+        if (method === "sms.query") return { sms };
+        if (method === "call.query") return { calls };
+        if (method === "media.list") {
+          const cat = params && params.category;
+          return { files: media[cat] || [] };
+        }
         throw new Error("unexpected method " + method);
       },
     };
@@ -383,5 +401,88 @@ describe("SystemDataAndroidAdapter — bridge-direct sync", () => {
     for await (const r of adapter.sync({ inputPath: snapshotPath })) out.push(r);
     expect(out).toHaveLength(1);
     expect(out[0].payload.displayName).toBe("From Snapshot");
+  });
+
+  // v0.2 — sms/call bridge methods. Validate yields + originalId stability.
+  it("v0.2 bridge yields sms + call rows when present", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        sms: [{ id: 7, address: "10086", body: "余额: ¥10", date: 1_700_000_000_000, type: 1 }],
+        calls: [{ id: 9, number: "13900000000", duration: 12, date: 1_700_000_001_000, type: 2 }],
+      });
+    const out = [];
+    for await (const r of adapter.sync({ useBridge: true })) out.push(r);
+    expect(out.map((r) => r.kind)).toEqual(["sms", "call"]);
+    expect(out[0].originalId).toBe("android-sms:7");
+    expect(out[1].originalId).toBe("android-call:9");
+  });
+
+  it("v0.2 include.sms=false / include.calls=false honoured per-kind", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        sms: [{ id: 1, address: "x", body: "y", date: 1, type: 1 }],
+        calls: [{ id: 2, number: "x", duration: 0, date: 1, type: 1 }],
+      });
+    const noSms = [];
+    for await (const r of adapter.sync({ useBridge: true, include: { sms: false } })) noSms.push(r);
+    expect(noSms.map((r) => r.kind)).toEqual(["call"]);
+    const noCalls = [];
+    for await (const r of adapter.sync({ useBridge: true, include: { calls: false } })) noCalls.push(r);
+    expect(noCalls.map((r) => r.kind)).toEqual(["sms"]);
+  });
+
+  // v0.3 — media files across 5 /sdcard categories.
+  it("v0.3 bridge yields media-file per category with stable originalId", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        media: {
+          photos: [{ path: "/sdcard/DCIM/Camera/img.jpg", size: 1234, mtimeMs: 1, ext: "jpg", category: "photos" }],
+          videos: [{ path: "/sdcard/Movies/m.mp4", size: 999, mtimeMs: 2, ext: "mp4", category: "videos" }],
+        },
+      });
+    const out = [];
+    for await (const r of adapter.sync({ useBridge: true })) out.push(r);
+    expect(out.map((r) => r.kind)).toEqual(["media-file", "media-file"]);
+    expect(out[0].originalId).toBe("android-media:/sdcard/DCIM/Camera/img.jpg");
+    expect(out[1].originalId).toBe("android-media:/sdcard/Movies/m.mp4");
+  });
+
+  it("v0.3 include.media=false disables ALL media categories", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        media: {
+          photos: [{ path: "/p.jpg", category: "photos" }],
+          videos: [{ path: "/v.mp4", category: "videos" }],
+        },
+      });
+    const out = [];
+    for await (const r of adapter.sync({ useBridge: true, include: { media: false } })) {
+      out.push(r);
+    }
+    expect(out).toHaveLength(0);
+  });
+
+  it("v0.3 include.media.photos=false skips just photos, keeps videos", async () => {
+    const adapter = new SystemDataAndroidAdapter();
+    adapter._deps.bridgeProvider = () =>
+      makeBridge({
+        media: {
+          photos: [{ path: "/p.jpg", category: "photos" }],
+          videos: [{ path: "/v.mp4", category: "videos" }],
+        },
+      });
+    const out = [];
+    for await (const r of adapter.sync({
+      useBridge: true,
+      include: { media: { photos: false } },
+    })) {
+      out.push(r);
+    }
+    expect(out).toHaveLength(1);
+    expect(out[0].payload.category).toBe("videos");
   });
 });
