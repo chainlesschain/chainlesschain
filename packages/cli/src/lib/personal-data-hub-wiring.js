@@ -274,6 +274,20 @@ async function initHub() {
   // call provides inputPath); future hosts may filter by platform if useful.
   try {
     const sda = new SystemDataAndroidAdapter();
+    // Auto-engage host-side ADB bridge: when the UI clicks 同步 with no
+    // inputPath, the adapter falls back to bridge mode and pulls
+    // contacts + app.list via `adb shell` against the
+    // developer-mode-attached phone. The adapter's constructor hardcodes
+    // `_deps.bridgeProvider = () => null`, so we mutate after construction.
+    // See packages/cli/src/lib/host-adb-bridge.js for the bridge surface
+    // + caveats (Windows CRLF parse trap, 0/multi device, ENOENT).
+    try {
+      const { createHostAdbBridge } = await import("./host-adb-bridge.js");
+      const hostAdbBridge = createHostAdbBridge();
+      sda._deps.bridgeProvider = () => hostAdbBridge;
+    } catch (_e) {
+      // Bridge module missing or failed to load — leave snapshot-only.
+    }
     if (!registry.has(sda.name)) registry.register(sda);
   } catch (_err) {
     // Boot must continue even if the adapter fails to register; cc hub will
