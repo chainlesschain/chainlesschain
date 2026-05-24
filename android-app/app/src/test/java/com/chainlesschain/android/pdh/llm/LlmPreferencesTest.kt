@@ -101,28 +101,71 @@ class LlmPreferencesTest {
         assertTrue(store.preferAndroidLocal.value)
     }
 
+    // ─── LAN LLM base URL ───────────────────────────────────────────────────
+
+    @Test
+    fun `lanLlmBaseUrl default is null`() {
+        val (store, _) = makeStoreWithCapturingPrefs(initialStored = false, initialLanUrl = null)
+        kotlin.test.assertNull(store.getLanLlmBaseUrl())
+        kotlin.test.assertNull(store.lanLlmBaseUrl.value)
+    }
+
+    @Test
+    fun `setLanLlmBaseUrl normalizes trailing slash and persists`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs(initialStored = false, initialLanUrl = null)
+        store.setLanLlmBaseUrl("http://192.168.1.5:11434/")
+        assertEquals("http://192.168.1.5:11434", store.lanLlmBaseUrl.value)
+        verify { prefs.edit() }
+    }
+
+    @Test
+    fun `setLanLlmBaseUrl blank or null clears value`() {
+        val (store, _) = makeStoreWithCapturingPrefs(initialStored = false, initialLanUrl = "http://lan:11434")
+        store.setLanLlmBaseUrl("   ")
+        kotlin.test.assertNull(store.lanLlmBaseUrl.value)
+        store.setLanLlmBaseUrl("http://lan2:11434")
+        store.setLanLlmBaseUrl(null)
+        kotlin.test.assertNull(store.lanLlmBaseUrl.value)
+    }
+
+    @Test
+    fun `setLanLlmBaseUrl idempotent - same normalized value does not re-write`() {
+        val (store, prefs) = makeStoreWithCapturingPrefs(initialStored = false, initialLanUrl = "http://x:11434")
+        store.setLanLlmBaseUrl("http://x:11434/")  // trailing slash normalized to same value
+        verify(exactly = 0) { prefs.edit() }
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     private fun makeStoreWithCapturingPrefs(
         initialStored: Boolean,
+        initialLanUrl: String? = null,
     ): Pair<LlmPreferences, SharedPreferences> {
         val ctx = mockk<Context>(relaxed = true)
         val prefs = mockk<SharedPreferences>(relaxed = true)
         val editor = mockk<SharedPreferences.Editor>(relaxed = true)
         every { prefs.getBoolean(any(), any()) } returns initialStored
+        every { prefs.getString(any(), any()) } returns initialLanUrl
         every { prefs.edit() } returns editor
         every { editor.putBoolean(any(), any()) } returns editor
+        every { editor.putString(any(), any()) } returns editor
+        every { editor.remove(any()) } returns editor
         every { editor.apply() } just Runs
 
         val store = LlmPreferences(ctx)
         val prefsField = LlmPreferences::class.java.getDeclaredField("prefs\$delegate")
         prefsField.isAccessible = true
         prefsField.set(store, lazy { prefs })
-        // Reset the lazy MutableStateFlow too so it re-reads with the new prefs
+        // Reset the lazy MutableStateFlows too so they re-read with the new prefs
         val flowField = LlmPreferences::class.java.getDeclaredField("_preferAndroidLocal\$delegate")
         flowField.isAccessible = true
         flowField.set(store, lazy {
             kotlinx.coroutines.flow.MutableStateFlow(initialStored)
+        })
+        val lanFlowField = LlmPreferences::class.java.getDeclaredField("_lanLlmBaseUrl\$delegate")
+        lanFlowField.isAccessible = true
+        lanFlowField.set(store, lazy {
+            kotlinx.coroutines.flow.MutableStateFlow(initialLanUrl)
         })
         return store to prefs
     }

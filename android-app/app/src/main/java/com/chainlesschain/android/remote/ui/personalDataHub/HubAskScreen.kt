@@ -290,12 +290,12 @@ internal fun HubChatBubble(
 }
 
 /**
- * LLM 路由选择器 (2026-05-24)。
+ * LLM 路由选择器 (2026-05-24)，扩展到 4 路由。
  *
  * 显示规则：
- *  - 两路都可用 → 2-option radio Row（默认 CLOUD_ANDROID）
- *  - 只一路可用 → 单行标签提示当前推理源（无选择器）
- *  - 两路都不可用 → errorContainer banner 引导用户去配置
+ *  - ≥2 路可用 → radio Row 列出每个可用项，不可用项灰显（用户能看到所有选项，但选不动）
+ *  - 仅 1 路可用 → 单行标签提示当前推理源（无选择器）
+ *  - 0 路可用 → errorContainer banner 引导用户去配置
  *
  * 见 [LlmRoute] / [HubAskUiState.effectiveRoute] 注释了解 fallback 语义。
  */
@@ -305,17 +305,21 @@ internal fun HubAskRouteSelector(
     isLoading: Boolean,
     onRouteSelected: (LlmRoute) -> Unit,
 ) {
-    val cloudOk = state.cloudAvailable
-    val pcOk = state.pcLocalAvailable
+    val availableCount = listOf(
+        state.cloudAvailable,
+        state.pcLocalAvailable,
+        state.localDeviceAvailable,
+        state.lanAvailable,
+    ).count { it }
 
-    when {
-        !cloudOk && !pcOk -> {
+    when (availableCount) {
+        0 -> {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    "请在「设置 → 大模型」中配置云 LLM API Key，或确保桌面端已配对并启用本机模型。",
+                    "暂无可用 LLM。请到「设置 → AI 后端」配置:云 API Key / 配对桌面 / 局域网 Ollama URL / 下载端侧模型，至少满足一项。",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp),
@@ -324,7 +328,18 @@ internal fun HubAskRouteSelector(
                 )
             }
         }
-        cloudOk && pcOk -> {
+        1 -> {
+            // Show a single read-only label so the user still knows which route runs
+            val (title, subtitle) = when {
+                state.cloudAvailable -> "推理走云 LLM（手机端）" to
+                    (state.androidLlm?.let { "${it.displayLabel} · ${it.model}" } ?: "—")
+                state.pcLocalAvailable -> "推理走 PC 本机模型" to (state.health?.llm?.name ?: "桌面 Ollama")
+                state.localDeviceAvailable -> "推理走端侧模型" to "MediaPipe · Qwen2.5-1.5B"
+                else -> "推理走局域网 LLM" to (state.lanLlmBaseUrl ?: "—")
+            }
+            HubAskRouteSingleLabel(title = title, subtitle = subtitle)
+        }
+        else -> {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(8.dp)
@@ -338,33 +353,42 @@ internal fun HubAskRouteSelector(
                     Spacer(Modifier.height(4.dp))
                     HubAskRouteOption(
                         selected = state.effectiveRoute == LlmRoute.CLOUD_ANDROID,
-                        enabled = !isLoading,
+                        enabled = !isLoading && state.cloudAvailable,
                         title = "云 LLM（手机端）",
                         subtitle = state.androidLlm?.let { "${it.displayLabel} · ${it.model}" }
-                            ?: "未配置",
+                            ?: "未配置 — 到「设置」加 API Key",
                         onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
                     )
                     HubAskRouteOption(
                         selected = state.effectiveRoute == LlmRoute.PC_LOCAL,
-                        enabled = !isLoading,
+                        enabled = !isLoading && state.pcLocalAvailable,
                         title = "PC 本机模型",
-                        subtitle = state.health?.llm?.name ?: "桌面 Ollama",
+                        subtitle = if (state.pcLocalAvailable)
+                            (state.health?.llm?.name ?: "桌面 Ollama")
+                        else
+                            "未配对桌面或未启用本机模型",
                         onClick = { onRouteSelected(LlmRoute.PC_LOCAL) },
+                    )
+                    HubAskRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.LOCAL_DEVICE,
+                        enabled = !isLoading && state.localDeviceAvailable,
+                        title = "本地模型（端侧 MediaPipe）",
+                        subtitle = if (state.localDeviceAvailable)
+                            "Qwen2.5-1.5B · 飞机模式可用，无 RAG"
+                        else
+                            "端侧引擎未就绪 — 先到 tab 4 下载模型",
+                        onClick = { onRouteSelected(LlmRoute.LOCAL_DEVICE) },
+                    )
+                    HubAskRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.LAN_OLLAMA,
+                        enabled = !isLoading && state.lanAvailable,
+                        title = "局域网 LLM",
+                        subtitle = state.lanLlmBaseUrl
+                            ?: "未配置 — 到「设置 → AI 后端」填 URL",
+                        onClick = { onRouteSelected(LlmRoute.LAN_OLLAMA) },
                     )
                 }
             }
-        }
-        cloudOk -> {
-            HubAskRouteSingleLabel(
-                title = "推理走云 LLM（手机端）",
-                subtitle = state.androidLlm?.let { "${it.displayLabel} · ${it.model}" } ?: "—",
-            )
-        }
-        else -> {  // pcOk == true
-            HubAskRouteSingleLabel(
-                title = "推理走 PC 本机模型",
-                subtitle = state.health?.llm?.name ?: "桌面 Ollama",
-            )
         }
     }
 }

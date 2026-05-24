@@ -1,6 +1,9 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
+import com.chainlesschain.android.pdh.LocalCcRunner
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.remote.commands.AskResult
 import com.chainlesschain.android.remote.commands.HealthLlm
 import com.chainlesschain.android.remote.commands.HealthOk
@@ -15,6 +18,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -43,14 +47,27 @@ class HubAskViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var hub: PersonalDataHubCommands
     private lateinit var androidLlm: AndroidLocalLlmExecutor
+    private lateinit var ccRunner: LocalCcRunner
+    private lateinit var llmPreferences: LlmPreferences
+    private lateinit var llmEngine: LlmInferenceEngine
+    private val lanUrlFlow = MutableStateFlow<String?>(null)
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         hub = mockk(relaxed = false)
         androidLlm = mockk(relaxed = false)
+        ccRunner = mockk(relaxed = true)
+        llmPreferences = mockk(relaxed = false)
+        llmEngine = mockk(relaxed = false)
         // Default: no Android-side cloud LLM configured. Path-Y tests override.
         every { androidLlm.detectProvider() } returns null
+        // LAN URL default unset; LOCAL_DEVICE default not ready.
+        every { llmPreferences.getLanLlmBaseUrl() } returns null
+        lanUrlFlow.value = null
+        every { llmPreferences.lanLlmBaseUrl } returns lanUrlFlow
+        every { llmEngine.nativeReady } returns false
+        every { llmEngine.name } returns "mediapipe-test"
         // health() always succeeds with vault.ok = true; tests can override
         coEvery { hub.health() } returns Result.success(
             HubHealth(
@@ -62,7 +79,7 @@ class HubAskViewModelTest {
         )
     }
 
-    private fun newVm() = HubAskViewModel(hub, androidLlm)
+    private fun newVm() = HubAskViewModel(hub, androidLlm, ccRunner, llmPreferences, llmEngine)
 
     @After
     fun tearDown() { Dispatchers.resetMain() }
@@ -466,5 +483,99 @@ class HubAskViewModelTest {
         assertTrue(s.errorMessage!!.contains("配置"))
         coVerify(exactly = 0) { hub.ask(any(), any(), any(), any()) }
         coVerify(exactly = 0) { hub.retrieveContext(any(), any(), any()) }
+    }
+
+    // ─── 2026-05-24: LOCAL_DEVICE + LAN_OLLAMA route coverage ──────────────
+
+    @Test
+    fun `LOCAL_DEVICE route calls llmEngine chat directly without RAG`() = runTest(testDispatcher) {
+        every { llmEngine.nativeReady } returns true
+        coEvery { llmEngine.chat(any(), any()) } returns LlmInferenceEngine.ChatResponse(
+            text = "端侧答",
+            promptTokens = 5,
+            completionTokens = 10,
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.localDeviceAvailable)
+
+        vm.setRoute(LlmRoute.LOCAL_DEVICE)
+        vm.onQuestionChange("飞机模式 Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertEquals("端侧答", s.answer)
+        assertTrue(s.isLocal)
+        assertTrue(s.llmName?.contains("端侧") == true)
+        assertTrue(s.citations.isEmpty())  // 无 RAG
+        coVerify(exactly = 0) { hub.ask(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { hub.retrieveContext(any(), any(), any()) }
+    }
+
+    @Test
+    fun `LAN_OLLAMA route invokes ccRunner with custom ollamaUrl + acceptNonLocal=true`() =
+        runTest(testDispatcher) {
+            every { llmPreferences.getLanLlmBaseUrl() } returns "http://192.168.1.5:11434"
+            lanUrlFlow.value = "http://192.168.1.5:11434"
+            coEvery {
+                ccRunner.askQuestion(
+                    question = any(),
+                    ollamaUrl = "http://192.168.1.5:11434",
+                    acceptNonLocal = true,
+                )
+            } returns LocalCcRunner.AskResult.Ok(
+                LocalCcRunner.AskReport(
+                    answer = "LAN 答",
+                    citations = emptyList(),
+                    llmName = "llama3",
+                    isLocal = false,
+                    durationMs = 100L,
+                )
+            )
+            val vm = newVm()
+            advanceUntilIdle()
+            assertTrue(vm.uiState.value.lanAvailable)
+
+            vm.setRoute(LlmRoute.LAN_OLLAMA)
+            vm.onQuestionChange("局域网 Q")
+            vm.submit()
+            advanceUntilIdle()
+
+            val s = vm.uiState.value
+            assertEquals("LAN 答", s.answer)
+            assertFalse(s.isLocal)
+            assertTrue(s.llmName?.contains("LAN") == true)
+            coVerify(exactly = 1) {
+                ccRunner.askQuestion(
+                    question = "局域网 Q",
+                    ollamaUrl = "http://192.168.1.5:11434",
+                    acceptNonLocal = true,
+                )
+            }
+        }
+
+    @Test
+    fun `LAN_OLLAMA route surfaces error when no URL configured`() = runTest(testDispatcher) {
+        // lanLlmBaseUrl null by default → lanAvailable = false → effectiveRoute falls back
+        coEvery { hub.health() } returns Result.success(
+            HubHealth(
+                vault = HealthVault(ok = true, schemaVersion = 1),
+                llm = HealthLlm(ok = false, isLocal = false, name = null),
+                kgSink = HealthOk(ok = true),
+                ragSink = HealthOk(ok = true),
+            )
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.lanAvailable)
+
+        // selectedRoute=LAN_OLLAMA but unavailable → falls through to anyRouteAvailable=false branch
+        vm.setRoute(LlmRoute.LAN_OLLAMA)
+        vm.onQuestionChange("Q")
+        vm.submit()
+        advanceUntilIdle()
+
+        assertNotNull(vm.uiState.value.errorMessage)
     }
 }

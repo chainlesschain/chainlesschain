@@ -3,6 +3,9 @@ package com.chainlesschain.android.remote.ui.personalDataHub
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.pdh.LocalCcRunner
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.remote.commands.AskResult
 import com.chainlesschain.android.remote.commands.Citation
 import com.chainlesschain.android.remote.commands.EventDetailResponse
@@ -16,6 +19,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -39,12 +44,14 @@ data class HubAskUiState(
     // Phase 14.1 step 5 (ChatBubble UI) — 提交时刻的问题快照，与 `question` (input field 实时内容)
     // 分离，让答案 bubble 可以独立显示历史问题；input field 清空 / 续打字时 bubble 仍在屏。
     val submittedQuestion: String? = null,
-    // 3 档 LLM 路由 (2026-05-24)：
-    //  - androidLlm: null = 用户没在 LLMSettings 配过 cloud key
-    //  - selectedRoute = 当前路由；默认 CLOUD_ANDROID（手机端云 LLM 走 Path Y）
-    //  - PC_LOCAL 仅当 health.llm.ok && health.llm.isLocal == true 时可选
-    //  - 真机验 MediaPipe 端侧效果不佳，端侧路径不连主路由（保留作未来 Settings 离线 fallback）
+    // 4 档 LLM 路由 (2026-05-24)：
+    //  - LOCAL_DEVICE = 端侧 MediaPipe (Qwen2.5-1.5B) — 无 RAG，直答（速度优先）
+    //  - CLOUD_ANDROID = 手机端云 LLM 走 Path Y（桌面 retrieveContext + Android adapter.chat）
+    //  - PC_LOCAL = 桌面 hub.ask()（桌面 Ollama 本机模型）
+    //  - LAN_OLLAMA = 用户自填的 LAN Ollama URL（cc 子进程 ollamaUrl override；走桌面 hub）
     val androidLlm: AndroidLocalLlmExecutor.ConfiguredProvider? = null,
+    val lanLlmBaseUrl: String? = null,
+    val localDeviceReady: Boolean = false,
     val selectedRoute: LlmRoute = LlmRoute.CLOUD_ANDROID
 ) {
     /** Android 侧云 LLM 可用：用户在 LLMSettings 配过任一云厂商 API key。 */
@@ -54,23 +61,44 @@ data class HubAskUiState(
     val pcLocalAvailable: Boolean
         get() = health?.llm?.ok == true && health.llm.isLocal
 
-    /** 用户的当前选择投影到真正可执行的路由；都不可用时返回 selectedRoute（submit 会兜底报错）。 */
+    /** 端侧 MediaPipe 已就绪（模型下载完 + 引擎可推理）。 */
+    val localDeviceAvailable: Boolean get() = localDeviceReady
+
+    /** 用户在 Settings 配过 LAN Ollama URL。 */
+    val lanAvailable: Boolean get() = !lanLlmBaseUrl.isNullOrBlank()
+
+    /** 任一路由是否可用 — 都不可用时 UI 显引导 banner，submit 兜底 errorMessage。 */
+    val anyRouteAvailable: Boolean
+        get() = cloudAvailable || pcLocalAvailable || localDeviceAvailable || lanAvailable
+
+    /**
+     * 用户的当前选择投影到真正可执行的路由。fallback 顺序按 "用户最可能配 / 速度感知"：
+     *  CLOUD_ANDROID → PC_LOCAL → LAN_OLLAMA → LOCAL_DEVICE → selectedRoute（都没就报错）
+     */
     val effectiveRoute: LlmRoute
         get() = when {
+            selectedRoute == LlmRoute.LOCAL_DEVICE && localDeviceAvailable -> LlmRoute.LOCAL_DEVICE
+            selectedRoute == LlmRoute.LAN_OLLAMA && lanAvailable -> LlmRoute.LAN_OLLAMA
             selectedRoute == LlmRoute.PC_LOCAL && pcLocalAvailable -> LlmRoute.PC_LOCAL
             selectedRoute == LlmRoute.CLOUD_ANDROID && cloudAvailable -> LlmRoute.CLOUD_ANDROID
-            cloudAvailable -> LlmRoute.CLOUD_ANDROID  // 选了不可用的 PC_LOCAL → 自动回退
-            pcLocalAvailable -> LlmRoute.PC_LOCAL    // 选了不可用的 CLOUD_ANDROID → 自动回退
-            else -> selectedRoute  // 两条都不可用：UI 应该已显 banner，submit 兜底 errorMessage
+            cloudAvailable -> LlmRoute.CLOUD_ANDROID
+            pcLocalAvailable -> LlmRoute.PC_LOCAL
+            lanAvailable -> LlmRoute.LAN_OLLAMA
+            localDeviceAvailable -> LlmRoute.LOCAL_DEVICE
+            else -> selectedRoute
         }
 }
 
-/** 用户可选的 LLM 推理路由。MediaPipe 端侧（A3）暂不在此 enum，因当前不连主路由。 */
+/** 用户可选的 LLM 推理路由。 */
 enum class LlmRoute {
+    /** 端侧 MediaPipe (Qwen2.5-1.5B) 直接推理，无 RAG —— 飞机模式可用 */
+    LOCAL_DEVICE,
     /** 手机端调云 LLM（豆包/DeepSeek/...）走 Path Y：桌面 retrieveContext + Android adapter.chat */
     CLOUD_ANDROID,
     /** 桌面端跑本机 LLM (Ollama)：手机调 hub.ask() 全交桌面处理 */
     PC_LOCAL,
+    /** 用户自填 LAN Ollama URL：桌面 cc 子进程注入 CC_HUB_OLLAMA_URL（走桌面 hub.ask --base-url）*/
+    LAN_OLLAMA,
 }
 
 sealed class HubAskEvent {
@@ -90,10 +118,18 @@ sealed class HubAskEvent {
 @HiltViewModel
 class HubAskViewModel @Inject constructor(
     private val hub: PersonalDataHubCommands,
-    private val androidLlmExecutor: AndroidLocalLlmExecutor
+    private val androidLlmExecutor: AndroidLocalLlmExecutor,
+    private val ccRunner: LocalCcRunner,
+    private val llmPreferences: LlmPreferences,
+    private val llmEngine: LlmInferenceEngine,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HubAskUiState())
+    private val _uiState = MutableStateFlow(
+        HubAskUiState(
+            localDeviceReady = llmEngine.nativeReady,
+            lanLlmBaseUrl = llmPreferences.getLanLlmBaseUrl(),
+        )
+    )
     val uiState: StateFlow<HubAskUiState> = _uiState.asStateFlow()
 
     private val _events = MutableSharedFlow<HubAskEvent>()
@@ -102,6 +138,10 @@ class HubAskViewModel @Inject constructor(
     init {
         refreshHealth()
         refreshAndroidLlm()
+        // Settings 改 LAN URL 时实时同步到本 VM 的 state（route selector subtitle / availability）
+        llmPreferences.lanLlmBaseUrl
+            .onEach { url -> _uiState.update { it.copy(lanLlmBaseUrl = url) } }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -168,16 +208,80 @@ class HubAskViewModel @Inject constructor(
                     if (provider != null) {
                         submitViaAndroidLlm(q, provider)
                     } else {
-                        // 两路都不可用兜底 — UI banner 应该已经提示，但万一用户绕过：
-                        val msg = "请先在「设置」中配置云 LLM API Key，或确保桌面端已配对并启用本机模型"
+                        // 4 路都不可用兜底 — UI banner 应该已经提示，但万一用户绕过：
+                        val msg = "请先在「设置」中配置云 LLM API Key、配对桌面、或填写局域网 Ollama URL"
                         _uiState.update { it.copy(errorMessage = msg) }
                         _events.emit(HubAskEvent.ShowToast(msg))
                     }
                 }
                 LlmRoute.PC_LOCAL -> submitViaDesktopAsk(q)
+                LlmRoute.LOCAL_DEVICE -> submitViaLocalDevice(q)
+                LlmRoute.LAN_OLLAMA -> submitViaLanOllama(q, snapshot.lanLlmBaseUrl)
             }
 
             _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    /**
+     * LOCAL_DEVICE — 端侧 MediaPipe (Qwen2.5-1.5B) 直接 chat，无 RAG，无桌面参与。
+     * 飞机模式可用。citations 必空（没查 vault）。
+     */
+    private suspend fun submitViaLocalDevice(q: String) {
+        try {
+            val response = llmEngine.chat(
+                messages = listOf(LlmInferenceEngine.ChatMessage(role = "user", content = q))
+            )
+            _uiState.update {
+                it.copy(
+                    answer = response.text,
+                    citations = emptyList(),
+                    llmName = "${llmEngine.name} (端侧)",
+                    isLocal = true,
+                    errorMessage = null,
+                )
+            }
+        } catch (e: Throwable) {
+            Timber.w(e, "HubAskViewModel: llmEngine.chat() failed")
+            val msg = e.message ?: "端侧推理失败"
+            _uiState.update { it.copy(errorMessage = msg) }
+            _events.emit(HubAskEvent.ShowToast(msg))
+        }
+    }
+
+    /**
+     * LAN_OLLAMA — 走 in-APK cc 子进程（写 LAN URL 到 CC_HUB_OLLAMA_URL），让 cc 跑
+     * 本机 vault RAG + 远端 Ollama 推理。等价于"本机数据走 LAN LLM"。
+     * 数据源是 phone-side vault（与 tab 3 一致），不是桌面 PC。
+     */
+    private suspend fun submitViaLanOllama(q: String, baseUrl: String?) {
+        if (baseUrl.isNullOrBlank()) {
+            val msg = "局域网 LLM URL 未配置 — 请到「设置 → AI 后端」填写"
+            _uiState.update { it.copy(errorMessage = msg) }
+            _events.emit(HubAskEvent.ShowToast(msg))
+            return
+        }
+        val result = ccRunner.askQuestion(
+            question = q,
+            ollamaUrl = baseUrl,
+            acceptNonLocal = true,  // LAN endpoint = non-local LLM by definition
+        )
+        when (result) {
+            is LocalCcRunner.AskResult.Ok -> _uiState.update {
+                it.copy(
+                    answer = result.report.answer,
+                    citations = result.report.citations.map { c -> Citation(eventId = c.eventId) },
+                    llmName = "${result.report.llmName ?: "Ollama"} @ LAN",
+                    isLocal = false,
+                    errorMessage = null,
+                )
+            }
+            is LocalCcRunner.AskResult.Failed -> {
+                Timber.w("HubAskViewModel: LAN ask failed reason=%s", result.reason)
+                val msg = "局域网 LLM 调用失败：${result.reason}"
+                _uiState.update { it.copy(errorMessage = msg) }
+                _events.emit(HubAskEvent.ShowToast(msg))
+            }
         }
     }
 

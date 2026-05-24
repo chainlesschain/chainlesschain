@@ -38,28 +38,37 @@ class AiBackendSettingsViewModel @Inject constructor(
 
     data class UiState(
         val preferAndroidLocal: Boolean,
+        val lanLlmBaseUrl: String?,
+        val lanLlmUrlError: String?,
         val syncState: SyncState,
         val syncErrorMessage: String?,
     )
 
     private val _syncState = MutableStateFlow(SyncState.IDLE)
     private val _syncErrorMessage = MutableStateFlow<String?>(null)
+    private val _lanLlmUrlError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<UiState> = combine(
         llmPreferences.preferAndroidLocal,
+        llmPreferences.lanLlmBaseUrl,
         _syncState,
         _syncErrorMessage,
-    ) { prefer, sync, err ->
+        _lanLlmUrlError,
+    ) { prefer, lanUrl, sync, syncErr, urlErr ->
         UiState(
             preferAndroidLocal = prefer,
+            lanLlmBaseUrl = lanUrl,
+            lanLlmUrlError = urlErr,
             syncState = sync,
-            syncErrorMessage = err,
+            syncErrorMessage = syncErr,
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000L),
         UiState(
             preferAndroidLocal = llmPreferences.getPreferAndroidLocal(),
+            lanLlmBaseUrl = llmPreferences.getLanLlmBaseUrl(),
+            lanLlmUrlError = null,
             syncState = SyncState.IDLE,
             syncErrorMessage = null,
         ),
@@ -90,5 +99,33 @@ class AiBackendSettingsViewModel @Inject constructor(
                 _syncState.value = SyncState.FAILED
             }
         }
+    }
+
+    /**
+     * Update the LAN Ollama base URL. Validates http(s)://host[:port] shape and
+     * surfaces a UI-friendly error if invalid. Empty string clears the value.
+     * No cc-config sync — LAN URL is consumed by the in-APK ask flow only.
+     */
+    fun setLanLlmBaseUrl(raw: String) {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) {
+            _lanLlmUrlError.value = null
+            llmPreferences.setLanLlmBaseUrl(null)
+            return
+        }
+        if (!LAN_URL_PATTERN.matches(trimmed)) {
+            _lanLlmUrlError.value = "格式：http(s)://host[:port]"
+            return
+        }
+        _lanLlmUrlError.value = null
+        llmPreferences.setLanLlmBaseUrl(trimmed)
+    }
+
+    companion object {
+        // Permissive shape check: scheme + host (letters/digits/dots/dashes) +
+        // optional :port + optional /path. cc OllamaClient does the real reach
+        // test at first ask; this is just to catch obvious typos like missing scheme.
+        private val LAN_URL_PATTERN =
+            Regex("^https?://[A-Za-z0-9.\\-]+(:\\d{1,5})?(/.*)?$")
     }
 }
