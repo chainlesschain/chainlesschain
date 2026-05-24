@@ -304,3 +304,117 @@ describe("Phase 2 perf gate: 1k events ingest", () => {
     expect(qDur).toBeLessThan(2000); // 1k-row read should be ms-scale
   }, 60_000); // vitest test timeout — extra headroom for slow CI
 });
+
+// ─── rederive (recover orphan raw_events) ────────────────────────────────
+
+describe("AdapterRegistry.rederive", () => {
+  it("promotes raw_events to canonical events for registered adapter", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    const adapter = new MockAdapter({ name: "mock-rederive" });
+    reg.register(adapter);
+
+    // Simulate the failure mode: putRawEvent succeeded (raw landed) but
+    // putBatch failed at sync time (e.g. partial-index drift trap #22),
+    // so events table is empty while raw_events has 3 rows.
+    const baseTs = 1_700_000_000_000;
+    for (let i = 0; i < 3; i++) {
+      vault.putRawEvent({
+        adapter: "mock-rederive",
+        originalId: `raw-${i}`,
+        capturedAt: baseTs + i * 1000,
+        payload: {
+          variant: 1,
+          senderName: `Alice${i}`,
+          text: `hello ${i}`,
+          index: i,
+        },
+      });
+    }
+    expect(vault.stats().rawEvents).toBe(3);
+    expect(vault.stats().events).toBe(0);
+
+    const report = await reg.rederive();
+
+    expect(report.rawSeen).toBe(3);
+    expect(report.adapterMissing).toBe(0);
+    expect(report.invalidCount).toBe(0);
+    expect(report.entityCounts.events).toBe(3);
+    expect(report.entityCounts.persons).toBe(3); // MockAdapter variant 1 yields 1 person/raw
+    expect(report.errors).toEqual([]);
+    expect(vault.stats().events).toBe(3);
+    expect(vault.stats().persons).toBe(3);
+  });
+
+  it("counts raws whose adapter is not registered", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    // No adapter registered — every raw is orphan
+    vault.putRawEvent({
+      adapter: "ghost-adapter",
+      originalId: "x",
+      capturedAt: Date.now(),
+      payload: {},
+    });
+    const report = await reg.rederive();
+    expect(report.rawSeen).toBe(1);
+    expect(report.adapterMissing).toBe(1);
+    expect(report.entityCounts.events).toBe(0);
+    expect(vault.stats().events).toBe(0);
+  });
+
+  it("isolates per-raw normalize failures (invalidCount)", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    // MockAdapter.normalize throws on call #3 (1-indexed). 3 raws → 3rd throws,
+    // 1st+2nd succeed → events=2, invalidCount=1.
+    const adapter = new MockAdapter({ name: "mock-throw" });
+    adapter.normalizeShouldThrowAt(2);
+    reg.register(adapter);
+    for (let i = 0; i < 3; i++) {
+      vault.putRawEvent({
+        adapter: "mock-throw",
+        originalId: `raw-${i}`,
+        capturedAt: 1_700_000_000_000 + i * 1000,
+        payload: { variant: 1, senderName: `Bob${i}`, text: `t${i}`, index: i },
+      });
+    }
+    const report = await reg.rederive();
+    expect(report.rawSeen).toBe(3);
+    expect(report.invalidCount).toBe(1);
+    expect(report.entityCounts.events).toBe(2);
+    expect(vault.stats().events).toBe(2);
+  });
+
+  it("filters by --adapter option", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    reg.register(new MockAdapter({ name: "adapter-a" }));
+    reg.register(new MockAdapter({ name: "adapter-b" }));
+    vault.putRawEvent({
+      adapter: "adapter-a", originalId: "a1", capturedAt: 1_700_000_000_001,
+      payload: { variant: 1, senderName: "S", text: "ta", index: 1 },
+    });
+    vault.putRawEvent({
+      adapter: "adapter-b", originalId: "b1", capturedAt: 1_700_000_000_002,
+      payload: { variant: 1, senderName: "S", text: "tb", index: 1 },
+    });
+    const report = await reg.rederive({ adapter: "adapter-a" });
+    expect(report.rawSeen).toBe(1); // only adapter-a was queried
+    expect(report.entityCounts.events).toBe(1);
+  });
+
+  it("is idempotent: rerunning produces same events table (UPSERT via partial index)", async () => {
+    freshVault();
+    const reg = new AdapterRegistry({ vault });
+    reg.register(new MockAdapter({ name: "idemp" }));
+    vault.putRawEvent({
+      adapter: "idemp", originalId: "x", capturedAt: 1_700_000_000_000,
+      payload: { variant: 1, senderName: "Alice", text: "hi", index: 0 },
+    });
+    await reg.rederive();
+    const eventsAfterFirst = vault.stats().events;
+    await reg.rederive();
+    expect(vault.stats().events).toBe(eventsAfterFirst);
+  });
+});

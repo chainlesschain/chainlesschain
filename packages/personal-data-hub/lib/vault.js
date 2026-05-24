@@ -673,6 +673,50 @@ class LocalVault {
       .run(adapter, originalId, capturedAt, json);
   }
 
+  /**
+   * 2026-05-24 — iterate raw_events sequentially for re-derive flow.
+   * Returns rows shaped like the original raw payload object the adapter
+   * yielded ({ originalId, capturedAt, payload }) so the caller can feed
+   * directly into adapter.normalize().
+   *
+   * @param {object} [opts]
+   * @param {string} [opts.adapter]  Filter by adapter name; default = all
+   * @param {number} [opts.limit]    Max rows; default = unlimited
+   * @param {number} [opts.offset=0] Skip first N rows
+   * @returns {Array<{adapter: string, originalId: string, capturedAt: number, payload: object}>}
+   */
+  queryRawEvents({ adapter, limit, offset = 0 } = {}) {
+    const db = this._requireOpen();
+    let sql =
+      "SELECT adapter, original_id, captured_at, payload FROM raw_events";
+    const args = [];
+    if (adapter) {
+      sql += " WHERE adapter = ?";
+      args.push(adapter);
+    }
+    sql += " ORDER BY adapter, captured_at, original_id";
+    if (Number.isInteger(limit) && limit > 0) {
+      sql += " LIMIT ? OFFSET ?";
+      args.push(limit, Number.isInteger(offset) ? offset : 0);
+    } else if (Number.isInteger(offset) && offset > 0) {
+      sql += " LIMIT -1 OFFSET ?";
+      args.push(offset);
+    }
+    const rows = db.prepare(sql).all(...args);
+    return rows.map((r) => ({
+      adapter: r.adapter,
+      originalId: r.original_id,
+      capturedAt: r.captured_at,
+      payload: (() => {
+        try {
+          return JSON.parse(r.payload);
+        } catch (_e) {
+          return r.payload; // raw string if not JSON
+        }
+      })(),
+    }));
+  }
+
   // ─── Entity reads ──────────────────────────────────────────────────────
 
   getEvent(id) {
