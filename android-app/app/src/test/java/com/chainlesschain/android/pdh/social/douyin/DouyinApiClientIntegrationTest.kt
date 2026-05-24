@@ -85,10 +85,13 @@ class DouyinApiClientIntegrationTest {
     // ─── Non-JSON body (anti-bot login redirect) ────────────────────────────
 
     @Test
-    fun `fetchProfile non-JSON body sets lastErrorCode parse error`() = runTest {
-        // Douyin can return 200 + HTML login page when sessionid expired.
-        // The JSON parser throws → caught as -3 (parse error) — distinct
-        // from clean status_code branches handled by existing test.
+    fun `fetchProfile non-JSON body sets lastErrorCode -4 non-json hint`() = runTest {
+        // Douyin can return 200 + HTML login page when sessionid expired or
+        // anti-bot triggered. doGetJson has a `trimmed.startsWith("{")` check
+        // (DouyinApiClient.kt:183) that catches the HTML BEFORE JSON parse
+        // and sets lastErrorCode = -4 with a "non-json (cookie expired or
+        // anti-bot triggered)" hint — same shape as Weibo/Xhs anti-bot
+        // detectors, distinct from -3 generic parse error.
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
@@ -99,10 +102,9 @@ class DouyinApiClientIntegrationTest {
         val result = client.fetchProfile(fakeCookie())
 
         assertNull(result)
-        // Douyin's doGetJson catches JSON parse exception as -3.
-        assertEquals(-3, client.lastErrorCode)
+        assertEquals(-4, client.lastErrorCode)
         assertNotNull(client.lastErrorMessage)
-        assertTrue(client.lastErrorMessage!!.startsWith("parse:"))
+        assertTrue(client.lastErrorMessage!!.contains("non-json"))
     }
 
     // ─── URL + header shape (anti-bot gates) ────────────────────────────────
