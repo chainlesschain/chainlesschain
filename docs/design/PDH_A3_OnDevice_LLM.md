@@ -217,6 +217,73 @@ A3 v0.1 可演示 = 全部以下满足：
 - 性能 dashboard（tok/s 实时显示）
 - Memory pressure 自动卸模型 + 重 mmap
 
+## §"路由策略调整 2026-05-24" — 4 档 LLM 路由 + 三屏 selector
+
+> 真机验 MediaPipe 端侧效果不佳后，2026-05-24 决策：把 LLM 路由从单一端侧改为 4 档可选，
+> 用户在首页对话框 (HubAskCard / HubAskScreen) 直接选目标推理源。MediaPipe 不删，作端侧
+> 路径之一保留。详见 memory `pdh_4tier_llm_route_card_selector` (7 trap)。
+
+### 4 档路由
+
+| LlmRoute | 数据源 | LLM 端点 | 触发条件 |
+|---|---|---|---|
+| `LOCAL_DEVICE` | tab 3/4: phone vault (cc + RAG) / tab 0: phone in-VM | tab 3/4: on-device LocalLlmServer / tab 0: MediaPipe direct chat (无 RAG) | tab 3/4: `llmEngine.nativeReady` / tab 0: 同 |
+| `CLOUD_ANDROID` | tab 0: desktop retrieveContext / tab 3/4: 无 RAG | Android adapter (豆包/DeepSeek/Claude/通义/Qwen...10 家) | SecurePreferences 配过任一云厂商 API key |
+| `PC_LOCAL` | desktop vault (REMOTE RPC) | 桌面 Ollama / LM Studio | `remoteHub.health().llm.ok && isLocal == true` |
+| `LAN_OLLAMA` | phone vault (cc + RAG) | 用户填的 LAN host (CC_HUB_OLLAMA_URL env) | `llmPreferences.lanLlmBaseUrl != null` |
+
+### UI 三屏统一
+
+- **tab 0 "提问"** (`HubAskScreen` + `HubAskViewModel`): REMOTE / desktop hub
+- **tab 3 "本机数据"** (`HubLocalScreen` + `HubLocalViewModel` 的 `HubAskCard`)
+- **tab 4 "本机提问"** (`HubLocalAskScreen`，同 `HubLocalViewModel` 实例)
+
+三屏共享同款选择器形态：
+- 0 路可用 → `errorContainer` banner 引导用户去 Settings 配置
+- 1 路可用 → 单行只读 label 显当前路由
+- ≥2 路可用 → 4 `RadioButton` 行，不可用项灰显
+
+### LAN baseUrl 配置入口
+
+Settings → AI 后端 → "局域网 Ollama URL" `OutlinedTextField`:
+- 规范化: 去尾斜杠 + blank=clear
+- 校验: `^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/.*)?$`
+- 持久: `LlmPreferences` (EncryptedSharedPreferences) — 不 sync 到 cc config (LAN URL 仅 in-APK ask 消费)
+- 实时同步: `StateFlow<String?>` → 三屏 ViewModel `onEach` 订阅
+
+### effectiveRoute fallback 链
+
+```kotlin
+val effectiveRoute: LlmRoute get() = when {
+    selectedRoute == X && xAvailable -> X  // 4 × selected-route 命中分支
+    cloudAvailable -> CLOUD_ANDROID         // 否则按 cloud→pc→lan→local 找第一个可用
+    pcLocalAvailable -> PC_LOCAL
+    lanAvailable -> LAN_OLLAMA
+    localDeviceAvailable -> LOCAL_DEVICE
+    else -> selectedRoute                   // 都不可用：UI 已显 banner，submit 兜底报错
+}
+```
+
+### MediaPipe 端侧路径定位
+
+- tab 0 `LOCAL_DEVICE` = MediaPipe 直答（无 RAG），因为 tab 0 数据源在 desktop，phone 端 vault 通常空
+- tab 3/4 `LOCAL_DEVICE` = on-device LocalLlmServer + cc subprocess + 本机 vault RAG（既有默认行为）
+- 用户实测 MediaPipe Qwen2.5-1.5B 答非数据问题质量不佳；数据问题靠 RAG 拉准上下文
+
+### 测试覆盖
+
+- `LlmPreferencesTest` — 4 LAN URL 用例 (默认 null / 规范化尾斜杠 / blank-clear / 幂等)
+- `HubAskViewModelTest` — 3 路由用例 (LOCAL_DEVICE / LAN_OLLAMA happy / LAN no-url banner)
+- `HubLocalViewModelTest` — 3 路由用例 (默认 LOCAL_DEVICE dispatch / LAN_OLLAMA dispatch / setAskRoute persistence)
+- `HubAskRouteSelectorTest` — 8 Compose UI 集成测试 (stateless content + RadioButton click + disabled state)
+- `LlmRouteSelectorE2ETest` — 8 `@Ignore`'d 真机 E2E placeholder (需配对桌面 / 真机 API key / LAN Ollama)
+
+### 关联
+
+- memory `pdh_4tier_llm_route_card_selector` — 7 trap + 完整文件清单
+- memory `pdh_a3_3tier_llm_routing` — 2026-05-24 上午 3 档版本（被本节扩到 4 档）
+- memory `cc_ask_android_local_routing` — `cc ask` CLI 端的 6 级 baseUrl 优先链
+
 ## 8. 关联
 
 - [[pdh-plan-a-android-standalone-design]] — Plan A v0.1 主架构，本 A3 是 feature 层扩展

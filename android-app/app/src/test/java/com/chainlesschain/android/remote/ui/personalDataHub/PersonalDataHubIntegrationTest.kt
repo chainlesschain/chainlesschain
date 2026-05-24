@@ -1,5 +1,8 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import com.chainlesschain.android.pdh.LocalCcRunner
+import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.remote.client.RemoteCommandClient
 import com.chainlesschain.android.remote.commands.AdaptersResponse
 import com.chainlesschain.android.remote.commands.AskResult
@@ -11,6 +14,7 @@ import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.remote.commands.SyncReport
 import com.chainlesschain.android.remote.events.HubSyncEvent
 import com.chainlesschain.android.remote.events.HubSyncEventDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -53,6 +57,14 @@ class PersonalDataHubIntegrationTest {
     // verify the remote-RPC pipeline, so a relaxed mockk stub keeps detectProvider
     // / chat from being invoked unless the asked-test explicitly opts in.
     private lateinit var llmExecutorStub: AndroidLocalLlmExecutor
+    // 2026-05-24 (this session) — HubAskViewModel ctor grew 3 more deps for the
+    // 4-route picker. Tests only exercise the REMOTE pipeline, so default stubs
+    // make LOCAL_DEVICE / LAN_OLLAMA / cloud routes unavailable → effectiveRoute
+    // falls back to PC_LOCAL which preserves existing assertions.
+    private lateinit var ccRunnerStub: LocalCcRunner
+    private lateinit var llmPreferencesStub: LlmPreferences
+    private lateinit var llmEngineStub: LlmInferenceEngine
+    private val lanUrlFlow = MutableStateFlow<String?>(null)
 
     @Before
     fun setUp() {
@@ -61,6 +73,12 @@ class PersonalDataHubIntegrationTest {
         hub = PersonalDataHubCommands(mockClient)
         llmExecutorStub = mockk(relaxed = true)
         coEvery { llmExecutorStub.detectProvider() } returns null
+        ccRunnerStub = mockk(relaxed = true)
+        llmPreferencesStub = mockk(relaxed = true)
+        every { llmPreferencesStub.getLanLlmBaseUrl() } returns null
+        every { llmPreferencesStub.lanLlmBaseUrl } returns lanUrlFlow
+        llmEngineStub = mockk(relaxed = true)
+        every { llmEngineStub.nativeReady } returns false
 
         // health 在 HubAskViewModel.init 调；默认本地 LLM 路径
         coEvery {
@@ -88,7 +106,7 @@ class PersonalDataHubIntegrationTest {
                 llmName = "ollama:qwen2.5", isLocal = true)
         )
 
-        val vm = HubAskViewModel(hub, llmExecutorStub)
+        val vm = HubAskViewModel(hub, llmExecutorStub, ccRunnerStub, llmPreferencesStub, llmEngineStub)
         advanceUntilIdle()
         vm.onQuestionChange("天气")
         vm.submit()
@@ -116,7 +134,7 @@ class PersonalDataHubIntegrationTest {
                 llmName = "claude", isLocal = false))
         )
 
-        val vm = HubAskViewModel(hub, llmExecutorStub)
+        val vm = HubAskViewModel(hub, llmExecutorStub, ccRunnerStub, llmPreferencesStub, llmEngineStub)
         advanceUntilIdle()
         vm.onQuestionChange("解释一下相对论")
         vm.submit()

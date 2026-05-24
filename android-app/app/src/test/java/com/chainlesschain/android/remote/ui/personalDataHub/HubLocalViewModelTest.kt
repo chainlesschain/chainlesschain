@@ -1545,7 +1545,9 @@ class HubLocalViewModelTest {
 
     @Test
     fun `askQuestion forwards acceptNonLocal=true when toggle ON`() = runTest(testDispatcher) {
-        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+        coEvery {
+            ccRunner.askQuestion(any(), any(), any(), any(), any(), any())
+        } returns LocalCcRunner.AskResult.Ok(
             report = LocalCcRunner.AskReport(
                 answer = "ok",
                 citations = emptyList(),
@@ -1560,11 +1562,14 @@ class HubLocalViewModelTest {
         vm.askQuestion()
         advanceUntilIdle()
         // Toggle ON → cc gets acceptNonLocal=true → ccRunner appends --accept-non-local.
+        // 与此同时 maxFacts/maxQueryLimit 切到 CLOUD 档 (80/200) 因为大模型 32K+ 上下文撑得起。
         io.mockk.coVerify(exactly = 1) {
             ccRunner.askQuestion(
                 question = "q",
                 ollamaUrl = "http://127.0.0.1:18484",
                 acceptNonLocal = true,
+                maxFacts = 80,
+                maxQueryLimit = 200,
                 timeoutMs = any(),
             )
         }
@@ -1607,7 +1612,9 @@ class HubLocalViewModelTest {
             // 云大模型分档：toggle ON (allowCloudFallback=true) 走 80/200 —
             // GPT/DeepSeek/Doubao 32K+ 上下文撑得起，召回更全。用户 2026-05-24
             // 反馈："用云模型时可以把更多上下文加入"。
-            coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            coEvery {
+                ccRunner.askQuestion(any(), any(), any(), any(), any(), any())
+            } returns LocalCcRunner.AskResult.Ok(
                 report = LocalCcRunner.AskReport(
                     answer = "ok",
                     citations = emptyList(),
@@ -1693,7 +1700,7 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `askQuestion meta question normalization (你好? -> 你好) takes fast path`() = runTest(testDispatcher) {
+    fun `askQuestion meta question normalization with trailing qmark takes fast path`() = runTest(testDispatcher) {
         every { llmEngine.name } returns "mediapipe"
         coEvery { llmEngine.chat(any(), any()) } returns LlmInferenceEngine.ChatResponse(
             text = "你好！", promptTokens = 1, completionTokens = 1, totalDurationMs = 50L,
@@ -3538,7 +3545,8 @@ class HubLocalViewModelTest {
                     llmName = "qwen2.5",
                     isLocal = true,
                     durationMs = 200L,
-                )
+                ),
+                rawJson = "{}",
             )
             val vm = newVm()
             advanceUntilIdle()
@@ -3579,7 +3587,8 @@ class HubLocalViewModelTest {
                 llmName = "llama3",
                 isLocal = false,
                 durationMs = 150L,
-            )
+            ),
+            rawJson = "{}",
         )
         val vm = newVm()
         advanceUntilIdle()

@@ -3,6 +3,21 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased — PDH 4 档 LLM 路由 + 三屏 selector] - 2026-05-24
+
+> 用户反馈 "首页对话框没看到选项"。把 tab 0 HubAskScreen 既有的 2 路 (CLOUD_ANDROID / PC_LOCAL) 扩到 4 路 (+LOCAL_DEVICE / +LAN_OLLAMA)，并把路由选择器镜像到 tab 3 "本机数据" 与 tab 4 "本机提问" 的 HubAskCard。用户能在首页对话框直接选目标 LLM。
+
+- **新增 2 路**：`LOCAL_DEVICE` (端侧 MediaPipe + 本机 RAG) + `LAN_OLLAMA` (用户填的局域网 Ollama URL)
+- **三屏统一选择器**：tab 0 `HubAskScreen` + tab 3 `HubLocalScreen` + tab 4 `HubLocalAskScreen`，0/1/≥2 routes 三态分支 (banner / single label / 4 radio)
+- **LAN baseUrl 持久**：`LlmPreferences` (EncryptedSharedPreferences) + Settings → AI 后端 加 "局域网 Ollama URL" OutlinedTextField + regex 校验。`StateFlow` 实时同步到 ViewModel
+- **测试** (15+):
+  - JVM 单测: LlmPreferences 4 LAN 用例 / HubAskViewModel 3 路由 / HubLocalViewModel 3 路由 / PersonalDataHubIntegrationTest 已更新 ctor
+  - Compose UI: HubAskRouteSelectorTest 8 集成场景 (stateless content + RadioButton click + disabled state)
+  - 真机 E2E: LlmRouteSelectorE2ETest 8 @Ignore'd placeholder (需配对桌面 / 真机 API key / LAN Ollama)
+- **顺手修 pre-existing test bug**: HubLocalViewModelTest 2 个 budget 验证测试 stub 用了 4-any 而 fn 是 6 参，maxFacts=80 != eq(20) 默认匹配 → 补全 6-any stub 并显式断言 maxFacts/maxQueryLimit
+- **commits**: `7079de909` (主) + 测试 + 文档跟随
+- 关键 trap (新 memory `pdh_4tier_llm_route_card_selector`): llmName 后缀污染 / combine 5-arg 上限 / remoteHub.health 失败非 fatal / LAN acceptNonLocal 必 true
+
 ## [v5.0.3.84 — hotfix4: CLI + desktop 接通 PDH 11 个 no-arg adapter (+ 修 2 个静默吞错)] - 2026-05-23
 
 > v5.0.3.83 修了 wizard 但 `cc hub sync-adapter <name>` 仍报 "no adapter X"：CLI + desktop wiring 历史都只 wire 了 BilibiliAdapter，PDH 0.2.3+ ship 了 9 social/messaging + 5 map/shopping。第一轮补 8 (`94b0ecf25c`) 时把 Telegram/WhatsApp 也塞 for-loop，但它们 ctor 需 account 参数 → 被 try/catch silent 吞，实际从未 register。本 hotfix 修正后 land 11 个真正 no-arg + 注明 6 个 credential adapter defer。
