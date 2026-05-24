@@ -61,6 +61,7 @@ const systemDataAndroid = require("./adapters/system-data-android");
 const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const browserHistoryEdge = require("./adapters/browser-history-edge");
 const vscodeAdapter = require("./adapters/vscode");
+const winRecentAdapter = require("./adapters/win-recent");
 const categories = require("./categories");
 
 module.exports = {
@@ -284,6 +285,13 @@ module.exports = {
   VSCODE_NAME: vscodeAdapter.VSCODE_NAME,
   VSCODE_VERSION: vscodeAdapter.VSCODE_VERSION,
   defaultVscodeRoot: vscodeAdapter.defaultVscodeRoot,
+
+  // Windows Recent — .lnk shortcut list from %APPDATA%\Microsoft\Windows\Recent.
+  // Cross-application "what did I open and when" timeline (Win-only adapter).
+  WinRecentAdapter: winRecentAdapter.WinRecentAdapter,
+  WIN_RECENT_NAME: winRecentAdapter.WIN_RECENT_NAME,
+  WIN_RECENT_VERSION: winRecentAdapter.WIN_RECENT_VERSION,
+  defaultWinRecentDir: winRecentAdapter.defaultRecentDir,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

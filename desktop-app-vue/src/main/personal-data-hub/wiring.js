@@ -47,6 +47,7 @@ const {
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
   VSCodeAdapter,
+  WinRecentAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -395,6 +396,20 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register vscode adapter",
+      err && err.message,
+    );
+  }
+
+  // Windows Recent — Win-only; authenticate() returns PLATFORM_UNSUPPORTED
+  // on macOS/Linux which surfaces as a friendly card in the UI.
+  try {
+    const winRecent = new WinRecentAdapter();
+    if (!registry.has(winRecent.name)) {
+      registry.register(winRecent);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register win-recent adapter",
       err && err.message,
     );
   }

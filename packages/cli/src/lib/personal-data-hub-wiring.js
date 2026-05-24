@@ -48,6 +48,7 @@ const {
   BrowserHistoryChromeAdapter,
   BrowserHistoryEdgeAdapter,
   VSCodeAdapter,
+  WinRecentAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -322,6 +323,16 @@ async function initHub() {
   try {
     const vscode = new VSCodeAdapter();
     if (!registry.has(vscode.name)) registry.register(vscode);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Windows Recent — cross-application "what did I open" .lnk timeline.
+  // Win-only adapter; authenticate() fails on macOS/Linux with
+  // PLATFORM_UNSUPPORTED, which surfaces nicely in the UI.
+  try {
+    const winRecent = new WinRecentAdapter();
+    if (!registry.has(winRecent.name)) registry.register(winRecent);
   } catch (_err) {
     // Continue boot
   }

@@ -78,6 +78,7 @@ async function _tryAdbAutoPullInputPath(hub, name, options) {
     "browser-history-chrome",
     "browser-history-edge",
     "vscode",
+    "win-recent",
   ]);
   if (BRIDGE_PREFERRED.has(name)) {
     return options || {};
