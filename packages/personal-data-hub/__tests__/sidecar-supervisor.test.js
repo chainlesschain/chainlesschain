@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import path from "node:path";
+import fs from "node:fs";
 
 const {
   SidecarSupervisor,
@@ -46,7 +47,14 @@ try {
   pythonAvailable = false;
 }
 
-const itPy = pythonAvailable ? it : it.skip;
+// In the FTS5 sandbox runner the relative ../../personal-data-hub-bridge
+// resolves outside the temp tree and the directory does not exist; without
+// this gate, spawn() returns ENOENT and the test fails for environment
+// reasons rather than code reasons. Keep both gates so the file is safe
+// to run in either layout.
+const sidecarRootAvailable = fs.existsSync(SIDECAR_ROOT);
+
+const itPy = pythonAvailable && sidecarRootAvailable ? it : it.skip;
 
 describe("SidecarSupervisor (forensics-bridge integration)", () => {
   let supervisor;
