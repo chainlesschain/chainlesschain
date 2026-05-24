@@ -1163,33 +1163,40 @@ describe("AnalysisEngine._gatherFacts intent=sum-amount routing", () => {
     expect(fakeVault.queryItems).not.toHaveBeenCalled();
   });
 
-  it("(b) 0 amount events → fall through to default broader path (persons/items pulled)", async () => {
+  it("(b) 0 amount events → return EMPTY (NOT fall through, prevents LLM summing unrelated rows)", async () => {
+    // Design change 2026-05-24: sum-amount narrow returning 0 used to fall
+    // through to the default broader path, which pulled persons/items.
+    // Bug: default path would also pull messages/visits/browsing — events
+    // the LLM might wrongly try to "sum" when asked total spending.
+    // Fix: return empty → warning="no-facts" → LLM uses TOTALS preamble to
+    // say "找不到相关花费记录" cleanly. Diverges from latest's fallback
+    // (which surfaces context); for sum-amount fallback actively misleads.
     const queryEventsCalls = [];
+    const queryPersonsCalls = [];
+    const queryItemsCalls = [];
     const fakeVault = {
-      queryEvents: (q) => {
-        queryEventsCalls.push(q);
-        return []; // both narrow (4 calls) AND default (1 call) return 0
-      },
-      queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 2) }, (_, i) => ({
-        id: "p-" + i, type: "person", subtype: "contact", names: ["P" + i],
-        ingestedAt: Date.now(),
-        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
-      })),
-      queryItems: () => [],
+      queryEvents: (q) => { queryEventsCalls.push(q); return []; },
+      queryPersons: vi.fn(() => { queryPersonsCalls.push(true); return []; }),
+      queryItems: vi.fn(() => { queryItemsCalls.push(true); return []; }),
       getEvent: () => null,
       audit: () => {},
-      stats: () => ({ events: 0, persons: 2, places: 0, items: 0, topics: 0 }),
+      stats: () => ({ events: 0, persons: 5, places: 0, items: 2, topics: 0 }),
     };
-    const llm = new MockLLMClient({ reply: "ok" });
+    const llm = new MockLLMClient({ reply: "找不到相关花费记录" });
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     const r = await engine.ask("总共花了多少");
 
-    // 4 narrow (subtype-keyed) + 1 default = 5 queryEvents calls
-    expect(queryEventsCalls).toHaveLength(5);
-    expect(queryEventsCalls[0].subtype).toBe("order");
-    expect(queryEventsCalls[4].subtype).toBeUndefined(); // default path: no subtype filter
-    // Fallback returned persons — user gets useful answer instead of nothing.
-    expect(r.facts.filter((f) => f.type === "person").length).toBe(2);
+    // Only the 4 narrow (subtype-keyed) calls — NO default path call.
+    expect(queryEventsCalls).toHaveLength(4);
+    expect(queryEventsCalls.map((c) => c.subtype).sort()).toEqual(
+      ["income", "order", "payment", "transfer"]
+    );
+    // persons/items NOT pulled (sum-amount skips them; no fallback to default).
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryItems).not.toHaveBeenCalled();
+    // Empty facts + warning fired.
+    expect(r.facts).toHaveLength(0);
+    expect(r.warning).toBe("no-facts");
   });
 
   it("(c) adapter filter passes through to all 4 subtype queries", async () => {
@@ -1232,11 +1239,12 @@ describe("AnalysisEngine._gatherFacts intent=sum-amount routing", () => {
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     await engine.ask("上个月总共花了多少", { now: NOW });
 
-    // Narrow path's 4 subtype calls + 1 default fallback (since amountEvents=0)
-    expect(queryEventsCalls.length).toBeGreaterThanOrEqual(4);
-    for (let i = 0; i < 4; i++) {
-      expect(queryEventsCalls[i].since).toBeDefined();
-      expect(queryEventsCalls[i].until).toBeDefined();
+    // Narrow path's 4 subtype calls — NO default fallback since 2026-05-24
+    // sum-amount bug fix (empty narrow no longer falls through).
+    expect(queryEventsCalls).toHaveLength(4);
+    for (const c of queryEventsCalls) {
+      expect(c.since).toBeDefined();
+      expect(c.until).toBeDefined();
     }
   });
 
@@ -1326,5 +1334,134 @@ describe("AnalysisEngine._gatherFacts intent=sum-amount routing", () => {
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     const r = await engine.ask("总共花了多少", { maxFacts: 20 });
     expect(r.facts).toHaveLength(20);
+  });
+});
+
+// ─── intent=count routing — isolated coverage ───────────────────────────
+//
+// 2026-05-24 — `intent=count` ("几个 X" / "多少个 Y") is handled by the
+// TOTALS preamble (commit 19c11920e): vault.stats() is rendered before
+// FACTS so the LLM quotes the real number instead of FACTS array length.
+// FACTS itself still goes through the default broader path (no narrow
+// routing). This block isolates the count-specific behavior into its
+// own describe so the audit gap is closed.
+
+describe("AnalysisEngine._gatherFacts intent=count routing", () => {
+  const mkEvent = (id, subtype = "order", adapter = "taobao") => ({
+    id, type: "event", subtype, occurredAt: Date.now(), actor: "self",
+    ingestedAt: Date.now(),
+    source: { adapter, adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+  });
+
+  it("(a) intent=count goes through default broader path (no narrow query)", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return [mkEvent("e-1"), mkEvent("e-2")];
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 2, persons: 500, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "你有 500 个联系人" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我有几个联系人");
+
+    expect(r.parsed.intent).toBe("count");
+    // Single default queryEvents call (limit=200, no subtype filter, no narrow).
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(200);
+    expect(queryEventsCalls[0].subtype).toBeUndefined();
+  });
+
+  it("(b) intent=count emits TOTALS block in prompt (authoritative ground truth)", async () => {
+    const chatCalls = [];
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 12, persons: 512, places: 3, items: 89, topics: 0 }),
+    };
+    const llm = {
+      isLocal: true,
+      chat: async (msgs) => { chatCalls.push(msgs); return { text: "你有 512 个联系人", usage: {} }; },
+    };
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("我有多少个联系人");
+
+    const userMsg = chatCalls[0][1].content;
+    expect(userMsg).toContain("TOTALS");
+    expect(userMsg).toContain('"persons": 512');
+    expect(userMsg).toContain('"items": 89');
+    // System prompt instructs LLM to trust TOTALS over FACTS length.
+    expect(chatCalls[0][0].content).toMatch(/TOTALS.*authoritative/i);
+  });
+
+  it("(c) intent=count does NOT trigger FTS augmentation (even with entity name)", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [],
+      searchEvents: (q) => { searchEventsCalls.push(q); return { rows: [], mode: "fts5", shortQuery: false }; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    // Question carries an entity name "王老板" but intent=count must not call FTS
+    // (FTS is list-only; count uses TOTALS path).
+    await engine.ask("提到王老板的几个消息");
+    expect(searchEventsCalls).toHaveLength(0);
+  });
+
+  it("(d) intent=count does NOT trigger sum-amount narrow (separate routing)", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => { queryEventsCalls.push(q); return []; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("几个订单");
+    // Single default call — NOT 4 subtype calls (those are sum-amount only).
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].subtype).toBeUndefined();
+  });
+
+  it("(e) intent=count pulls persons + items in FACTS (default path behavior)", async () => {
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 5) }, (_, i) => ({
+        id: "p-" + i, type: "person", subtype: "contact", names: ["P" + i],
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryItems: ({ limit }) => Array.from({ length: Math.min(limit, 3) }, (_, i) => ({
+        id: "i-" + i, type: "item", subtype: "other", name: "App" + i,
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 5, places: 0, items: 3, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我有几个 app");
+
+    expect(r.parsed.intent).toBe("count");
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(5);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(3);
   });
 });

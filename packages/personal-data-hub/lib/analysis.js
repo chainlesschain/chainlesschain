@@ -438,9 +438,15 @@ class AnalysisEngine {
     // "上个月在淘宝总共花了多少" stays scoped.
     //
     // Skip persons/items — they don't carry amounts.
-    // 0 hits → fall through to default broader path (defensive: if
-    // user vault has zero amount events, LLM should at least get
-    // persons/items to answer "找不到记录" gracefully).
+    //
+    // 0 hits → return EMPTY (do NOT fall through). If the user asks
+    // "总共花了多少" and the vault has zero amount-bearing events under
+    // adapter+time scope, the default path would pull messages / visits /
+    // browsing rows the LLM might wrongly try to sum. Empty FACTS +
+    // warning="no-facts" + TOTALS preamble lets the model say "找不到
+    // 相关花费记录" cleanly. This diverges from latest's fallback (which
+    // surfaces persons/items for general "what's recent" context); for
+    // sum-amount that fallback would actively mislead.
     if (parsed.intent === "sum-amount") {
       const perSubtype = Math.max(
         SUM_AMOUNT_MIN_PER_SUBTYPE,
@@ -465,11 +471,8 @@ class AnalysisEngine {
           }
         }
       }
-      if (amountEvents.length > 0) {
-        amountEvents.sort((a, b) => (b.occurredAt || 0) - (a.occurredAt || 0));
-        return amountEvents.slice(0, effMaxFacts);
-      }
-      // 0 results → fall through to default broader path below.
+      amountEvents.sort((a, b) => (b.occurredAt || 0) - (a.occurredAt || 0));
+      return amountEvents.slice(0, effMaxFacts);
     }
 
     // Deliberately do NOT pass parsed.filters.subtype as a vault filter:

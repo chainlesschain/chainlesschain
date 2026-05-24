@@ -111,4 +111,26 @@ describe("cc hub ask --max-facts / --max-query-limit", () => {
     expect(opts.acceptNonLocal).toBe(true);
     expect(opts.maxFacts).toBe(20);
   });
+
+  // Question text must pass through verbatim — AnalysisEngine.ask is the
+  // single place that runs parseQuery + intent routing (latest narrow / list
+  // FTS / sum-amount narrow / count TOTALS). If the CLI ever pre-normalizes
+  // the question (lowercase / strip punctuation / truncate), routing would
+  // misclassify or miss entity extraction. This case is the canary.
+  it("passes question text to engine.ask verbatim (no CLI-side preprocessing)", async () => {
+    const { askSpy, _getHub } = makeStubHub();
+    const cases = [
+      "最近的订单", // intent=latest (narrow path)
+      "最近 30 天的消费", // intent=latest + timeWindow (fallthrough)
+      "提到王老板的微信消息", // intent=list + entity (FTS augment)
+      "上个月在淘宝总共花了多少？", // intent=sum-amount (4-subtype narrow)
+      "我有几个联系人", // intent=count (TOTALS bypass)
+    ];
+    for (const q of cases) {
+      askSpy.mockClear();
+      await cmdAsk(q, { json: true, _getHub });
+      expect(askSpy).toHaveBeenCalledTimes(1);
+      expect(askSpy.mock.calls[0][0]).toBe(q);
+    }
+  });
 });

@@ -477,6 +477,14 @@ LocalVault.db
 
 ### 8.3 RAG 流程（per 自然语言问题）
 
+> **意图分类 + 按需检索路由** — 4 个 intent (`count` / `latest` / `list+entity` /
+> `sum-amount`) 在 `_gatherFacts` 走不同检索路径。详见
+> [PDH_Analysis_Engine_Intent_Routing.md](PDH_Analysis_Engine_Intent_Routing.md)。
+> 总结：count 走 `TOTALS` 旁路（vault.stats 给真数）；latest 无 timeWindow
+> 时硬限 3 条；list 抽到实体名时 FTS5 追加补召回；sum-amount 只拉 4 类
+> amount-bearing subtype。Android 小模型 prompt 预算紧时尤其受益。
+
+
 ```
 用户问 "上个月我妈生日那周买了啥送哪儿？"
   ↓
