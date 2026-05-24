@@ -38,78 +38,85 @@ function seedMixedCategories(vault, baseTime = 1700000000000) {
   const seeds = [
     {
       adapter: "wechat",
-      subtype: "chat.message",
+      subtype: "message",
       content: { text: "妈妈让我记得带钥匙" },
       actor: "wxid_self",
     },
     {
       adapter: "messaging-qq",
-      subtype: "chat.message",
+      subtype: "message",
       content: { text: "晚上一起吃火锅吗" },
       actor: "qq_1234",
     },
     {
       adapter: "social-bilibili",
-      subtype: "social.video.play",
+      subtype: "media",
       content: { title: "支付宝年度账单怎么看", url: "https://b23.tv/x" },
     },
     {
       adapter: "social-weibo",
-      subtype: "social.post.read",
+      subtype: "post",
       content: { text: "今天天气真好" },
     },
     {
       adapter: "email-imap-qq",
-      subtype: "email.received",
+      subtype: "message",
       content: { subject: "招商银行账单提醒", from: "noreply@cmbchina.com" },
     },
     {
       adapter: "shopping-taobao",
-      subtype: "shopping.order",
-      content: { title: "罗技 MX Master 3S", amount: 729.0 },
+      subtype: "order",
+      content: {
+        title: "罗技 MX Master 3S",
+        amount: { value: 729.0, currency: "CNY", direction: "out" },
+      },
       extra: { merchant: "罗技旗舰店", orderNo: "TAO-2024-09-001" },
     },
     {
       adapter: "alipay-bill",
-      subtype: "payment.transfer",
-      content: { amount: 25.5, counterparty: "瑞幸咖啡" },
+      subtype: "transfer",
+      content: {
+        amount: { value: 25.5, currency: "CNY", direction: "out" },
+        counterparty: "瑞幸咖啡",
+      },
     },
     {
       adapter: "travel-12306",
-      subtype: "travel.train.order",
+      subtype: "trip",
       content: { from: "厦门北", to: "上海虹桥", trainNo: "G3204" },
       place: "厦门北",
     },
     {
       adapter: "system-data-android",
-      subtype: "system.contact",
+      subtype: "other",
       content: { name: "李雷", phone: "13800000000" },
     },
     {
       adapter: "ai-chat-history",
-      subtype: "ai.chat",
+      subtype: "ai-message",
       content: { prompt: "帮我写一段 Kotlin 代码", model: "deepseek-r1" },
     },
     {
       adapter: "unknown-collector",
-      subtype: "weird",
+      subtype: "other",
       content: { x: 1 },
     },
   ];
   let i = 0;
   for (const seed of seeds) {
-    vault.putEvent(
-      eventOk({
-        id: `seed-${i.toString().padStart(3, "0")}-${seed.adapter}`,
-        subtype: seed.subtype,
-        occurredAt: baseTime + i * 1000,
-        actor: seed.actor || null,
-        place: seed.place || null,
-        content: seed.content,
-        extra: seed.extra || null,
-        source: source(seed.adapter),
-      })
-    );
+    // schema-aware fixture: omit place/extra/actor when nullish so validator
+    // accepts (it rejects explicit null on optional-typed fields)
+    const ev = {
+      id: `seed-${i.toString().padStart(3, "0")}-${seed.adapter}`,
+      subtype: seed.subtype,
+      occurredAt: baseTime + i * 1000,
+      content: seed.content,
+      source: source(seed.adapter),
+    };
+    if (seed.actor) ev.actor = seed.actor;
+    if (seed.place) ev.place = seed.place;
+    if (seed.extra) ev.extra = seed.extra;
+    vault.putEvent(eventOk(ev));
     i++;
   }
   return i;
@@ -351,8 +358,8 @@ describe("vault.facetCounts", () => {
   it("groups events by subtype", () => {
     seedMixedCategories(vault);
     const r = vault.facetCounts({});
-    expect(r.bySubtype["chat.message"]).toBe(2); // wechat + qq
-    expect(r.bySubtype["shopping.order"]).toBe(1);
+    expect(r.bySubtype["message"]).toBe(3); // wechat + qq + email-imap-qq (all "message" subtype)
+    expect(r.bySubtype["order"]).toBe(1);
   });
 
   it("respects since/until + keyword filters", () => {

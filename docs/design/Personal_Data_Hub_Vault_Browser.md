@@ -133,7 +133,8 @@ vault.ftsMode() → 'fts5' | 'like'
 **Test coverage**:
 - `__tests__/categories.test.js` — 36 tests (prefix mapping, fallback to "other", `groupByCategory`)
 - `__tests__/vault-search-helpers.test.js` — 13 tests (pure-JS SQL builder, FTS5 escape)
-- `__tests__/vault-search.test.js` — 27 integration tests (FTS5 migration + search + cursor + triggers + category filter; **requires native bs3mc binding, CI only**)
+- `__tests__/vault-search.test.js` — 27 integration tests (FTS5 migration + search + cursor + triggers + category filter; **requires native bs3mc binding**; CI plays natively, Win local needs `scripts/run-native-tests-sandbox.sh` due to Electron 39 ABI 140 root binding — see §5 L1)
+- `scripts/run-native-tests-sandbox.sh` — sandbox runner for the local FTS5 native suite
 
 ### 4.2 协议层
 
@@ -197,7 +198,7 @@ android-app/app/src/main/java/com/chainlesschain/android/
 
 | # | 项 | 状态 / 后续 |
 |---|---|---|
-| L1 | FTS5 native integration test 在 Win Node 22 跑不动 | bs3mc ABI 错（编给 ABI 140 = Node 24），见 [`node_23_native_dep_trap`](../../内存/node_23_native_dep_trap.md)。CI Linux 跑。本地需 `nvm install 24` 或 `npm rebuild bs3mc --build-from-source` |
+| L1 ✅ 已解 | FTS5 native integration test 在 Win Node 22 跑不动 | **真正原因：root node_modules bs3mc 是给 Electron 39 编的 ABI 140**，Node 任何版本（24=ABI 137, 25=ABI 141）都加载不了；纯 Node rebuild 又被 desktop-app-vue dev server 占用文件 EBUSY/EPERM。**修法**：`bash packages/personal-data-hub/scripts/run-native-tests-sandbox.sh` — 在 $TMPDIR/pdh-fts5-sandbox/ 独立 `npm install` 给当前 Node ABI 编一份独立 bs3mc，跑 27/27 PASS（21s）。脚本 idempotent，第二次只复制源不重装。CI Linux 不需这步（无 Electron 占用）。 |
 | L2 | Android Compose UI 真机渲染测试 | androidTest 已 stateful/stateless 拆分 ready，需要真机或 API 30+ emulator（Win dev box 无 device），待 CI Android emulator job 启用 |
 | L3 | 真机 latency benchmark (≥10k events, <500ms first page) | 同 L2 |
 | L4 | 子表 (persons / items / places) 全文检索 | v1.0 仅 events_fts；其他表数据量小、用户主要按事件浏览。如需要可加 persons_fts / items_fts，模式相同 |
