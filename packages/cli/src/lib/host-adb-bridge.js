@@ -159,6 +159,95 @@ async function listApps(params, opts) {
   return apps;
 }
 
+/**
+ * List snapshot JSON files in the Android app's staging directory.
+ * Uses `adb shell run-as` so only works on debuggable builds (which is
+ * always true for `<pkg>.debug` variants). Production builds will
+ * surface `package not debuggable` — UI can fall back to a manual
+ * upload path.
+ *
+ * @param {{packageName?: string}} params
+ *   - packageName: defaults to `com.chainlesschain.android.debug`. The
+ *     release variant `com.chainlesschain.android` is NOT readable via
+ *     run-as.
+ * @returns {Promise<Array<{name, sizeBytes}>>}
+ */
+async function listSnapshots(params, opts) {
+  const serial = await pickDevice(opts);
+  const pkg =
+    (params && params.packageName) || "com.chainlesschain.android.debug";
+  const stdout = await adb(
+    ["shell", "run-as", pkg, "ls", "-la", "files/.chainlesschain/staging/"],
+    { ...opts, serial },
+  );
+  if (/run-as: package not debuggable/.test(stdout)) {
+    throw new HostAdbBridgeUnavailableError(
+      `${pkg} is not debuggable — only debug-variant packages expose staging via run-as`,
+    );
+  }
+  const out = [];
+  for (const rawLine of stdout.split("\n")) {
+    const line = rawLine.replace(/\r+$/, "").trim();
+    if (!line || line.startsWith("total ") || line.startsWith("d")) continue;
+    // ls -la row: `-rw------- 1 u0_a395 u0_a395 204110 2026-05-23 13:47 system-data-android.json`
+    const m = line.match(
+      /^[-l]\S*\s+\d+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+(.+\.json)$/,
+    );
+    if (m) out.push({ name: m[2], sizeBytes: parseInt(m[1], 10) });
+  }
+  return out;
+}
+
+/**
+ * Read a snapshot file's content from the Android app's staging directory.
+ * Returns the raw UTF-8 text (the JSON the adapter's _syncViaSnapshot
+ * expects). Same debuggable-only constraint as listSnapshots.
+ *
+ * @param {{packageName?: string, fileName: string}} params
+ * @returns {Promise<string>}
+ */
+async function readSnapshot(params, opts) {
+  if (
+    !params ||
+    typeof params.fileName !== "string" ||
+    !params.fileName.endsWith(".json")
+  ) {
+    throw new HostAdbBridgeUnavailableError(
+      "readSnapshot: params.fileName must be a .json filename inside the staging dir",
+    );
+  }
+  // Defense-in-depth: reject path traversal — fileName must be a bare
+  // basename, no slashes / dots-leading.
+  if (params.fileName.includes("/") || params.fileName.startsWith(".")) {
+    throw new HostAdbBridgeUnavailableError(
+      `readSnapshot: refusing suspicious fileName "${params.fileName}"`,
+    );
+  }
+  const serial = await pickDevice(opts);
+  const pkg = params.packageName || "com.chainlesschain.android.debug";
+  const stdout = await adb(
+    [
+      "shell",
+      "run-as",
+      pkg,
+      "cat",
+      `files/.chainlesschain/staging/${params.fileName}`,
+    ],
+    { ...opts, serial, timeoutMs: opts.timeoutMs || 60_000 },
+  );
+  if (/run-as: package not debuggable/.test(stdout)) {
+    throw new HostAdbBridgeUnavailableError(
+      `${pkg} is not debuggable — only debug variant exposes staging via run-as`,
+    );
+  }
+  if (/No such file or directory/.test(stdout)) {
+    throw new HostAdbBridgeUnavailableError(
+      `snapshot ${params.fileName} not found in ${pkg}'s staging dir (collector probably never ran for this adapter)`,
+    );
+  }
+  return stdout;
+}
+
 export function createHostAdbBridge(opts = {}) {
   return {
     /**
@@ -177,6 +266,10 @@ export function createHostAdbBridge(opts = {}) {
           return await queryContacts(params, opts);
         case "app.list":
           return await listApps(params, opts);
+        case "snapshot.list":
+          return await listSnapshots(params, opts);
+        case "snapshot.read":
+          return await readSnapshot(params, opts);
         default:
           throw new HostAdbBridgeUnavailableError(
             `method "${method}" not implemented by host-adb-bridge`,
@@ -193,4 +286,6 @@ export const _internals = {
   pickDevice,
   queryContacts,
   listApps,
+  listSnapshots,
+  readSnapshot,
 };

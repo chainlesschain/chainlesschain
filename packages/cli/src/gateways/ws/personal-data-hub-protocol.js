@@ -22,11 +22,79 @@ import {
   close as closeHub,
 } from "../../lib/personal-data-hub-wiring.js";
 import { getAIChatWizard } from "../../lib/personal-data-hub-aichat-wizard.js";
-import { existsSync, unlinkSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  unlinkSync,
+  readdirSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import pdhPkg from "@chainlesschain/personal-data-hub";
 
 const { ingestSystemDataAndroidSnapshot } = pdhPkg;
+
+/**
+ * If the caller didn't pass `inputPath`, try to pull a snapshot for
+ * this adapter off the attached Android phone via `adb shell run-as
+ * <pkg.debug> cat files/.chainlesschain/staging/<name>.json`. On
+ * success, write the JSON to `hub.hubDir/staging/` and return an
+ * `options` object with `inputPath` set so the adapter's _syncViaSnapshot
+ * picks it up.
+ *
+ * Why this is needed: every social adapter (bilibili, weibo, douyin,
+ * xiaohongshu, toutiao, kuaishou, qq, wechat, baidu-map, tencent-map,
+ * jd, meituan, pinduoduo) is snapshot-only and the Android in-app
+ * collectors write their JSON into the app's filesDir/.chainlesschain/
+ * staging/. Without an auto-pull, the desktop 同步 button can never
+ * reach a working state for these adapters — it just throws "needs
+ * opts.inputPath".
+ *
+ * Best-effort: if anything fails (no device, package not debuggable,
+ * snapshot file missing for that adapter, bridge module unavailable),
+ * return the original options unchanged so the adapter's normal error
+ * path fires and the UI banner shows a meaningful message.
+ */
+async function _tryAdbAutoPullInputPath(hub, name, options) {
+  if (
+    options &&
+    typeof options.inputPath === "string" &&
+    options.inputPath.length > 0
+  ) {
+    return options; // caller already supplied a path
+  }
+  try {
+    const { createHostAdbBridge } =
+      await import("../../lib/host-adb-bridge.js");
+    const bridge = createHostAdbBridge();
+    const content = await bridge.invoke("snapshot.read", {
+      fileName: `${name}.json`,
+    });
+    // Sanity: must be parseable JSON. If not, the adapter would fail
+    // with a confusing parse error — surface a clearer one here.
+    try {
+      JSON.parse(content);
+    } catch (_e) {
+      return options; // leave to adapter — it'll report parse error
+    }
+    const stagingDir = join(hub.hubDir, "staging");
+    mkdirSync(stagingDir, { recursive: true });
+    const stagingPath = join(
+      stagingDir,
+      `${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`,
+    );
+    writeFileSync(stagingPath, content, "utf-8");
+    return {
+      ...(options || {}),
+      inputPath: stagingPath,
+      _autoPulledViaAdb: true,
+    };
+  } catch (_e) {
+    // Bridge unavailable / device not attached / file missing — let the
+    // adapter throw its normal error so the banner explains.
+    return options || {};
+  }
+}
 
 async function withHub(fn) {
   try {
@@ -83,10 +151,26 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
     withHub((hub) => hub.registry.list()),
 
   "personal-data-hub.sync-adapter": async (msg) =>
-    withHub(
-      async (hub) =>
-        await hub.registry.syncAdapter(msg.name, msg.options || {}),
-    ),
+    withHub(async (hub) => {
+      const options = await _tryAdbAutoPullInputPath(
+        hub,
+        msg.name,
+        msg.options,
+      );
+      try {
+        return await hub.registry.syncAdapter(msg.name, options);
+      } finally {
+        // Best-effort cleanup of staging file we just wrote (don't shadow
+        // a real adapter error with cleanup noise).
+        if (options && options._autoPulledViaAdb && options.inputPath) {
+          try {
+            if (existsSync(options.inputPath)) unlinkSync(options.inputPath);
+          } catch (_e) {
+            /* ignore */
+          }
+        }
+      }
+    }),
 
   "personal-data-hub.sync-all": async (msg) =>
     withHub(async (hub) => await hub.registry.syncAll(msg.options || {})),
@@ -379,14 +463,19 @@ export const PERSONAL_DATA_HUB_STREAMING_HANDLERS = {
         } catch (_e) {}
       }
     };
+    const options = await _tryAdbAutoPullInputPath(hub, msg.name, msg.options);
     try {
-      const report = await hub.registry.syncAdapter(
-        msg.name,
-        msg.options || {},
-      );
+      const report = await hub.registry.syncAdapter(msg.name, options);
       return { result: report };
     } finally {
       hub.registry.onSyncEvent = original;
+      if (options && options._autoPulledViaAdb && options.inputPath) {
+        try {
+          if (existsSync(options.inputPath)) unlinkSync(options.inputPath);
+        } catch (_e) {
+          /* ignore */
+        }
+      }
     }
   },
 
