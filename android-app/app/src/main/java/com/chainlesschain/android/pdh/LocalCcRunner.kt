@@ -1236,4 +1236,273 @@ class LocalCcRunner @Inject constructor(
         Timber.d("LocalCcRunner.setCcConfigValue: set %s = %s", key, value)
         Result.success(Unit)
     }
+
+    // ─── Phase 16 Vault Browser — search / facet-counts ─────────────────
+    //
+    // Wraps `cc hub search --json` and `cc hub facet-counts --json`. Returns
+    // structured result rows + cursor for paginated load. Mirrors WS topic
+    // semantics in packages/cli/src/gateways/ws/personal-data-hub-protocol.js
+    // and vault.searchEvents in packages/personal-data-hub/lib/vault.js.
+
+    data class Cursor(val occurredAt: Long, val id: String)
+
+    sealed class SearchResult {
+        data class Ok(
+            val rows: List<EventRow>,
+            val nextCursor: Cursor?,
+            val mode: String,        // "fts5" | "like"
+            val shortQuery: Boolean, // true when q was dropped (sub-trigram-min)
+        ) : SearchResult()
+        data class Failed(val reason: String, val exitCode: Int?) : SearchResult()
+    }
+
+    sealed class FacetCountsResult {
+        data class Ok(
+            val byCategory: Map<String, Int>,
+            val byAdapter: Map<String, Int>,
+            val bySubtype: Map<String, Int>,
+            val total: Int,
+            val mode: String,
+            val shortQuery: Boolean,
+        ) : FacetCountsResult()
+        data class Failed(val reason: String, val exitCode: Int?) : FacetCountsResult()
+    }
+
+    suspend fun searchEvents(
+        q: String? = null,
+        adapter: String? = null,
+        category: String? = null,
+        subtype: String? = null,
+        since: Long? = null,
+        until: Long? = null,
+        cursor: Cursor? = null,
+        limit: Int = 50,
+        timeoutMs: Long = 30_000L,
+    ): SearchResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext SearchResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext SearchResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("search")
+            if (!q.isNullOrBlank()) { add("--q"); add(q) }
+            if (!adapter.isNullOrBlank()) { add("--adapter"); add(adapter) }
+            if (!category.isNullOrBlank()) { add("--category"); add(category) }
+            if (!subtype.isNullOrBlank()) { add("--subtype"); add(subtype) }
+            if (since != null && since > 0) { add("--since"); add(since.toString()) }
+            if (until != null && until > 0) { add("--until"); add(until.toString()) }
+            if (cursor != null) { add("--cursor"); add("${cursor.occurredAt}:${cursor.id}") }
+            if (limit > 0) { add("--limit"); add(limit.toString()) }
+            add("--json")
+        }
+        val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+        if (timedOut) return@withContext SearchResult.Failed("timeout after ${timeoutMs}ms", null)
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext SearchResult.Failed(
+                reason = errMsg ?: "cc exited $exit: ${stderr.take(300)}",
+                exitCode = exit,
+            )
+        }
+        try {
+            val obj = JSONObject(stdout.trim())
+            val arr = obj.optJSONArray("rows") ?: org.json.JSONArray()
+            val rows = buildList {
+                for (i in 0 until arr.length()) {
+                    val ev = arr.optJSONObject(i) ?: continue
+                    val src = ev.optJSONObject("source")
+                    val content = ev.optJSONObject("content")
+                    val summary = content?.let { c ->
+                        c.optString("text", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("title", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("subject", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("summary", "").takeIf { it.isNotEmpty() }
+                            ?: firstNonEmptyStringField(c)
+                    }
+                    add(
+                        EventRow(
+                            id = ev.optString("id", ""),
+                            subtype = ev.optString("subtype", ""),
+                            occurredAt = ev.optLong("occurredAt", 0L),
+                            ingestedAt = ev.optLong("ingestedAt", 0L),
+                            sourceAdapter = src?.optString("adapter", "")?.takeIf { it.isNotEmpty() },
+                            summary = summary,
+                            rawJson = ev.toString(),
+                        )
+                    )
+                }
+            }
+            val nextCur = obj.optJSONObject("nextCursor")?.let { c ->
+                Cursor(c.optLong("occurredAt", 0L), c.optString("id", ""))
+            }
+            SearchResult.Ok(
+                rows = rows,
+                nextCursor = nextCur,
+                mode = obj.optString("mode", "like"),
+                shortQuery = obj.optBoolean("shortQuery", false),
+            )
+        } catch (e: Exception) {
+            SearchResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
+    suspend fun facetCounts(
+        q: String? = null,
+        since: Long? = null,
+        until: Long? = null,
+        timeoutMs: Long = 15_000L,
+    ): FacetCountsResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext FacetCountsResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext FacetCountsResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("facet-counts")
+            if (!q.isNullOrBlank()) { add("--q"); add(q) }
+            if (since != null && since > 0) { add("--since"); add(since.toString()) }
+            if (until != null && until > 0) { add("--until"); add(until.toString()) }
+            add("--json")
+        }
+        val (stdout, stderr, exit, timedOut) = _runCcJson(command, timeoutMs)
+        if (timedOut) return@withContext FacetCountsResult.Failed("timeout after ${timeoutMs}ms", null)
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext FacetCountsResult.Failed(
+                reason = errMsg ?: "cc exited $exit: ${stderr.take(300)}",
+                exitCode = exit,
+            )
+        }
+        try {
+            val obj = JSONObject(stdout.trim())
+            FacetCountsResult.Ok(
+                byCategory = _jsonObjectToIntMap(obj.optJSONObject("byCategory")),
+                byAdapter = _jsonObjectToIntMap(obj.optJSONObject("byAdapter")),
+                bySubtype = _jsonObjectToIntMap(obj.optJSONObject("bySubtype")),
+                total = obj.optInt("total", 0),
+                mode = obj.optString("mode", "like"),
+                shortQuery = obj.optBoolean("shortQuery", false),
+            )
+        } catch (e: Exception) {
+            FacetCountsResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
+    private fun _jsonObjectToIntMap(obj: JSONObject?): Map<String, Int> {
+        if (obj == null) return emptyMap()
+        val out = mutableMapOf<String, Int>()
+        val keys = obj.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            out[k] = obj.optInt(k, 0)
+        }
+        return out
+    }
+
+    /**
+     * Spawn cc with the given argv, capture stdout/stderr/exit. Returns
+     * (stdout, stderr, exitCode, timedOut). On timeout exitCode = -1.
+     *
+     * Extracted from the search / facetCounts duplication; pre-Phase-16
+     * methods inline this same boilerplate (queryEvents / exportVault /
+     * etc.) — left untouched to avoid colliding with parallel-session edits.
+     */
+    private fun _runCcJson(
+        command: List<String>,
+        timeoutMs: Long,
+    ): _CcSpawnOut {
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return _CcSpawnOut("", "spawn-failed: ${e.message ?: e.javaClass.simpleName}", -1, false)
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner._runCcJson: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner._runCcJson: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return _CcSpawnOut(stdoutBuilder.toString(), stderrBuilder.toString(), -1, true)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        return _CcSpawnOut(
+            stdout = stdoutBuilder.toString(),
+            stderr = stderrBuilder.toString(),
+            exitCode = process.exitValue(),
+            timedOut = false,
+        )
+    }
+
+    private data class _CcSpawnOut(
+        val stdout: String,
+        val stderr: String,
+        val exitCode: Int,
+        val timedOut: Boolean,
+    )
 }
