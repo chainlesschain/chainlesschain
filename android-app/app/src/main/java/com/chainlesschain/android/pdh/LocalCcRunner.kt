@@ -962,4 +962,92 @@ class LocalCcRunner @Inject constructor(
             error = obj.optString("error", "").takeIf { it.isNotEmpty() && it != "null" },
         )
     }
+
+    /**
+     * §2.1 A3.5 — runs `cc config set <key> <value>` non-interactively.
+     *
+     * Used by AiBackendSettingsViewModel to keep cc's persistent
+     * `.chainlesschain/config.json` in sync with the in-app
+     * [com.chainlesschain.android.pdh.llm.LlmPreferences] toggle, so that
+     * future `cc ask` invocations (from anywhere — terminal feature, future
+     * cc subprocess calls) pick up the user's choice.
+     *
+     * Returns:
+     *  - Result.success(Unit) — cc exited 0
+     *  - Result.failure(IllegalStateException) — bootstrap missing / spawn /
+     *    timeout / non-zero exit. Caller may log+ignore (Settings toggle is
+     *    fire-and-forget; the in-memory flag is already updated).
+     *
+     * Quoting: `value` is passed as a separate argv element via ProcessBuilder
+     * so spaces / shell metacharacters are safe. No shell interpolation.
+     */
+    suspend fun setCcConfigValue(
+        key: String,
+        value: String,
+        timeoutMs: Long = 15_000L,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext Result.failure(
+                IllegalStateException("bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}"),
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext Result.failure(
+                IllegalStateException("cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}"),
+            )
+        }
+        val command = listOf(
+            mkshPath.absolutePath,
+            ccPath.absolutePath,
+            "config", "set", key, value,
+        )
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(true)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext Result.failure(
+                IllegalStateException("spawn-failed: ${e.message ?: e.javaClass.simpleName}", e),
+            )
+        }
+        val outBuilder = StringBuilder()
+        val readerThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) outBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.setCcConfigValue: reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            readerThread.join(500)
+            return@withContext Result.failure(
+                IllegalStateException("timeout after ${timeoutMs}ms"),
+            )
+        }
+        readerThread.join(2_000)
+        val exit = process.exitValue()
+        if (exit != 0) {
+            return@withContext Result.failure(
+                IllegalStateException("cc exited $exit: ${outBuilder.toString().trim().take(500)}"),
+            )
+        }
+        Timber.d("LocalCcRunner.setCcConfigValue: set %s = %s", key, value)
+        Result.success(Unit)
+    }
 }
