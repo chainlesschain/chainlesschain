@@ -199,6 +199,27 @@ export function usePersonalDataHub() {
       return await send("personal-data-hub.recent-audit", filters, 10000);
     },
 
+    /**
+     * Phase 16 — Vault Browser full-text + faceted search.
+     * Args: { q, adapter, category, subtype, since, until, cursor, limit }
+     * Returns: { rows: Event[], nextCursor, mode: 'fts5'|'like', shortQuery }
+     *   - nextCursor: { occurredAt, id } | null — pass back as `cursor` to page
+     *   - shortQuery: true when q was non-empty but below FTS5 trigram min (3)
+     */
+    async searchEvents(filters = {}) {
+      return await send("personal-data-hub.search-events", filters, 15000);
+    },
+
+    /**
+     * Phase 16 — counts grouped by category / adapter / subtype, honoring
+     * the same q + since/until filters as searchEvents. Powers sidebar
+     * badges + adapter chip counts. Args: { q, since, until }.
+     * Returns: { byCategory, byAdapter, bySubtype, total, mode, shortQuery }
+     */
+    async facetCounts(filters = {}) {
+      return await send("personal-data-hub.facet-counts", filters, 10000);
+    },
+
     // ─── Phase 5.6 — email config + event detail ───────────────────────
 
     /**

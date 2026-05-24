@@ -211,6 +211,36 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 16 Vault Browser — full-text + faceted search over events.
+  // See packages/personal-data-hub/lib/vault.js#searchEvents for the
+  // query/result shape. The desktop browser view + Android "我的数据" tab
+  // both consume this topic.
+  "personal-data-hub.search-events": async (msg) =>
+    withHub((hub) =>
+      hub.vault.searchEvents({
+        q: msg.q,
+        adapter: msg.adapter,
+        category: msg.category,
+        subtype: msg.subtype,
+        since: msg.since,
+        until: msg.until,
+        cursor: msg.cursor,
+        limit: msg.limit,
+      }),
+    ),
+
+  // Phase 16 Vault Browser — counts grouped by category/adapter/subtype,
+  // honoring the same q + since/until filters as search-events. Powers
+  // the sidebar badges + adapter chip counts in the browser UI.
+  "personal-data-hub.facet-counts": async (msg) =>
+    withHub((hub) =>
+      hub.vault.facetCounts({
+        q: msg.q,
+        since: msg.since,
+        until: msg.until,
+      }),
+    ),
+
   "personal-data-hub.recent-audit": async (msg) =>
     withHub((hub) =>
       hub.vault.queryAudit({
