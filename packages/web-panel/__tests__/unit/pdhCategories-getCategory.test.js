@@ -20,6 +20,7 @@ describe("frontend pdhCategories", () => {
     ["travel-12306", "travel"],
     ["system-data-android", "system"],
     ["system-data", "system"],
+    ["browser-history-chrome", "system"],
     ["ai-chat-history", "ai-chat"],
     ["unknown-x", "other"],
     ["", "other"],
