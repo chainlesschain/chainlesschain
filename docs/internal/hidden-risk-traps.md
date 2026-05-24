@@ -1264,6 +1264,56 @@ fun acceptLoginCookie(cookie: String): AcceptResult {
 
 ---
 
+## 21. 手写 tar parser 漏 GNU `@LongLink` 长名扩展（隐性风险）
+
+**触发文件**：`android-app/feature-local-terminal/.../LocalFilesystemBootstrapper.kt` — 任何手写的 minimal tar parser 当 npm pack 输入路径 >100 字符即栽。
+
+**陷阱本质**：
+
+USTAR tar header 的 `name` 字段固定 100 字节 + `prefix` 字段 155 字节，对超过 255 字符或基名 >100 字符的路径必须用 GNU 扩展：先发一个 `typeFlag='L'` header（name 固定 `././@LongLink`），data 是下一 entry 真实路径 + NULL；紧跟的真 entry header 里 `name` 被截断到 100 字符。parser 必须识别 'L' typeflag，把 data 存进 pendingLongName，下一 entry 用它覆盖 header.name。
+
+**修前 parser 的两种典型 silent failure**：
+
+1. **`@LongLink` 当文件写**：parser 不识 typeFlag='L'，落到默认 `else -> regular file` 分支，把 long-name data 写到磁盘上一个叫 `@LongLink` 的文件（102 字节）。下一 entry 用 header 里 100-char 截断 name 当真实路径，文件落到 `bom-hand` 而不是 `bom-handling.js`。**Node `require('./bom-handling')` 找不到 → cc 子进程 exit 1 → 数据浏览全 0 → 用户以为"没采集到数据"，但 vault.db 里实际 2.9MB 真数据都在**。
+
+2. **NULL terminator 残留**：即使加了 'L' handling，如果 `String(longBuf, ...)` 没剥末尾 NULL byte → File 路径含 NULL → libc `open(2)` 在 NULL 截断 → 文件落到错误位置。Java `File` API 把 NULL 当合法字符不抛异常，**测试断言 `File.isFile == false` 不报错只显示文件不存在**。Kotlin `String.trimEnd()` 不剥 U+0000（不属于 `Character.isWhitespace`）—— 必须用 `longBuf.indexOf(0)` 显式截断。
+
+**为什么排查难**：
+
+- 上层 wrapper `bootstrap-failed: rootDir must be verified to be directory beforehand` 是次生症状（`FileOutputStream` 对一个已存在的目录开写），离根因 N 层
+- `ccModule.isDirectory` check 让"残留半解压"被识别为"已就绪"，APK 升级带新 fix 也不会重抽 —— 必须人工 `rm -rf` ccModule + marker 才能触发
+- 早期 cc bundle 路径都 <100 字符，加 @aws-sdk 这类深 dep 才会突然爆雷；blame 指向引 dep 的 commit，但实际根因在年代久远的 tar parser
+- 测试覆盖盲区：unit test 用短名 tar 入口都通过；只有跑真实 npm pack 输出才暴露
+
+**SOP / checklist**：
+
+- 改 tar 解析（或写新的）必须 cover 4 case：短名 file / dir / GNU 'L' / 同名 file+dir collision
+- `pendingLongName` / `pendingLongLink` 在 'L'/'K' 分支里设置，**必须**在下一非-L/K entry 用完后立即 reset 为 null
+- 'L' data 末尾 NULL byte 用 `indexOf(0)` 截断，不要依赖 `.trimEnd()`
+- 文件 entry 写之前判断 `target.isDirectory`，是就跳过 + 仍 `skip(size)` 消费字节流（否则后续 entry 错位）
+- 升级 cc-cli.tgz 后**必须** rm 一次设备上的 `$PREFIX/lib/node_modules/chainlesschain` + `$PREFIX/var/lib/cc/.bundled-version` marker，强制重抽（marker-version 没 bump 时 skip 路径会跑残留）
+
+**反模式**：
+
+- ❌ "GNU tar 现在没人用了" — npm pack 默认输出 GNU 长名 entry。`tar --format=ustar` 才禁用 GNU 扩展
+- ❌ "依赖 commons-compress" — ~600KB dep 不值得为 90% 用例引入；手写 ~150 行覆盖
+- ❌ "extraction 失败就让用户清 app data" — 这会把 vault.db 一起干掉；改写 `extractCcCliIfPresent` 在每次 bootstrap 都强制 deleteRecursively ccModule 才对（marker 改成 SHA256 of tgz 而不是 version 字符串就能自动 invalidate）
+- ❌ "tar entry size=0 直接 skip 不读 data" — 这没问题；但 'L' typeFlag entry 的 size != 0（=真实路径长度），必须读完 data + padding
+
+**单测覆盖建议**：
+
+- `extractTarToDir`：短名 file / dir / GNU 'L' single / GNU 'L' multiple consecutive / file colliding with dir / `package/` prefix strip with long-name
+- `TarBuilder` 工具类合成 USTAR bytestream（包含 'L' entry），不依赖外部 tar 命令；checksum + octal padding 严格按 spec
+- 真实 cc-cli.tgz fixture 不入 git（太大）但 CI 跑端到端：build cc bundle → boot in emulator → assert `cc hub search --json` 返回 vault 行数 > 0
+
+**关联**：
+
+- commit `1a369359f fix(android-pdh-browser): cc bundle tar GNU LongLink + JVM coverage + handbook #21`
+- memory `android_cc_bundle_tar_gnu_long_name.md`
+- 相关：#10（lint-staged silent data loss）、#15（SQLite TEXT 隐性陷阱）— 共同点：success-path silent fail，无 stack trace，调试要从 N 层 wrapper 往下挖
+
+---
+
 ## 维护说明
 
 - 新踩到的隐性陷阱按编号顺序追加（#19, #20, ...），不要插入到已有编号之间
