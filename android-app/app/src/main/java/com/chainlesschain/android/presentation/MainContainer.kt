@@ -52,6 +52,8 @@ fun MainContainer(
     onNavigateToLocalDataHub: () -> Unit = {},
     // 2026-05-24 — PDH 第 6 tab "数据浏览" (vault browser) 快捷入口
     onNavigateToPdhBrowser: () -> Unit = {},
+    // 2026-05-24 — 首页 RAG inline sheet「查看详情」→ PDH tab 4 + 自动 submit
+    onNavigateToPdhAsk: (question: String) -> Unit = {},
     // 2026-05-24 — 首页 row2 cell 1 替代社交广场的本机模型入口
     onNavigateToLocalModel: () -> Unit = {},
     onNavigateToScanDesktopPairing: () -> Unit = {},
@@ -128,6 +130,7 @@ fun MainContainer(
                         onCheckForUpdates = { updateViewModel.checkForUpdates(silent = false) },
                         onNavigateToScanDesktopPairing = onNavigateToScanDesktopPairing,
                         onNavigateToRemoteOperate = onNavigateToRemoteOperate,
+                        onNavigateToPdhAsk = onNavigateToPdhAsk,
                         socialUnreadCount = notificationState.unreadCount
                     )
                 }
