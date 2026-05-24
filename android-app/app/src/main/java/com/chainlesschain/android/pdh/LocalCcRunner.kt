@@ -548,6 +548,176 @@ class LocalCcRunner @Inject constructor(
         }
     }
 
+    /** Row shape mirrored from vault.queryEvents() in personal-data-hub/lib/vault.js
+     * `_rowToEvent`. Only the fields used by the in-APK preview UI are surfaced;
+     * full row stays in [rawJson] for callers that want it (e.g. event-detail
+     * sheet reuse). */
+    data class EventRow(
+        val id: String,
+        val subtype: String,
+        val occurredAt: Long,
+        val ingestedAt: Long,
+        val sourceAdapter: String?,
+        val summary: String?,
+        val rawJson: String,
+    )
+
+    sealed class QueryEventsResult {
+        data class Ok(val rows: List<EventRow>) : QueryEventsResult()
+        data class Failed(val reason: String, val exitCode: Int?) : QueryEventsResult()
+    }
+
+    /**
+     * `cc hub query-events [--adapter <name>] [--limit <n>] --json` →
+     * 最近 N 条事件 (vault.queryEvents() default sort = occurredAt DESC).
+     *
+     * 用途：HubLocalScreen "看本机数据" 入口，回答 "微博同步成功但 AI 说没内容"
+     * 类问题 — 让用户能直接看到 vault 里到底有没有真东西，不用进终端。
+     * 同步成功但 UI 看不到 = 视野缺失，加这条 method 让 UI 能直接 dump 样本。
+     *
+     * @param adapter null = 不过滤 (取所有 adapter)；否则只取该 adapter 写的
+     * @param limit   default 5 — 用户预览样本，多了 UI 列表难看
+     */
+    suspend fun queryEvents(
+        adapter: String? = null,
+        limit: Int = 5,
+        timeoutMs: Long = 20_000L,
+    ): QueryEventsResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext QueryEventsResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+        if (!ccPath.exists() || !mkshPath.exists()) {
+            return@withContext QueryEventsResult.Failed(
+                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
+                exitCode = null,
+            )
+        }
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub"); add("query-events")
+            if (!adapter.isNullOrBlank()) {
+                add("--adapter"); add(adapter)
+            }
+            if (limit > 0) {
+                add("--limit"); add(limit.toString())
+            }
+            add("--json")
+        }
+        val envList = ptyEnvironment.envp().toList()
+        val pb = ProcessBuilder(command).apply {
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext QueryEventsResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+            )
+        }
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.queryEvents: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.queryEvents: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext QueryEventsResult.Failed("timeout after ${timeoutMs}ms", null)
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) { null }
+            return@withContext QueryEventsResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+            )
+        }
+        try {
+            val arr = org.json.JSONArray(stdout.trim())
+            val rows = buildList {
+                for (i in 0 until arr.length()) {
+                    val ev = arr.optJSONObject(i) ?: continue
+                    val src = ev.optJSONObject("source")
+                    val content = ev.optJSONObject("content")
+                    // content shape varies per-adapter — pick "text" / "title" /
+                    // "summary" / "label" first, then fall back to first non-null
+                    // string field for a best-effort preview line.
+                    val summary = content?.let { c ->
+                        c.optString("text", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("title", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("summary", "").takeIf { it.isNotEmpty() }
+                            ?: c.optString("label", "").takeIf { it.isNotEmpty() }
+                            ?: firstNonEmptyStringField(c)
+                    }
+                    add(
+                        EventRow(
+                            id = ev.optString("id", ""),
+                            subtype = ev.optString("subtype", ""),
+                            occurredAt = ev.optLong("occurredAt", 0L),
+                            ingestedAt = ev.optLong("ingestedAt", 0L),
+                            sourceAdapter = src?.optString("adapter", "")?.takeIf { it.isNotEmpty() },
+                            summary = summary,
+                            rawJson = ev.toString(),
+                        )
+                    )
+                }
+            }
+            QueryEventsResult.Ok(rows = rows)
+        } catch (e: Exception) {
+            QueryEventsResult.Failed(
+                reason = "parse-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = exit,
+            )
+        }
+    }
+
+    private fun firstNonEmptyStringField(obj: JSONObject): String? {
+        val keys = obj.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            val v = obj.opt(k)
+            if (v is String && v.isNotEmpty()) return v
+        }
+        return null
+    }
+
     /** Result for export-vault flow. */
     sealed class ExportResult {
         data class Ok(val outputPath: String, val bytes: Long, val encrypted: Boolean) : ExportResult()
@@ -772,6 +942,11 @@ class LocalCcRunner @Inject constructor(
      *                       让 AnalysisEngine 允许非本地 LLM。false（默认）下
      *                       cc 在 LLM 非 local 时拒答（"AnalysisEngine.ask: LLM
      *                       declared non-local"），推文 §三道锁·第二把的硬约束。
+     * @param maxFacts 端侧小模型预算覆写。Qwen2.5-1.5B 实战指令跟随窗口只有 2-4K
+     *                  token，桌面默认 80 facts (prompt ~5K) 会撑爆。本机调用默认
+     *                  传 20 → prompt ≈ 1.5K，留足回答空间。null 走 cc 默认。
+     * @param maxQueryLimit Vault `queryEvents.limit` 覆写。配合 [maxFacts] 减少
+     *                       事实候选池扫描；默认 50 (cc 默认 200)。
      * @param timeoutMs ~60s budget for first-token + decode of a ~200-token
      *                  answer at 8-15 tok/s (Qwen2.5-1.5B on Dimensity 7025).
      */
@@ -779,6 +954,8 @@ class LocalCcRunner @Inject constructor(
         question: String,
         ollamaUrl: String? = null,
         acceptNonLocal: Boolean = false,
+        maxFacts: Int? = 20,
+        maxQueryLimit: Int? = 50,
         timeoutMs: Long = 60_000L,
     ): AskResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
@@ -805,6 +982,15 @@ class LocalCcRunner @Inject constructor(
             add("hub"); add("ask"); add(question)
             add("--json")
             if (acceptNonLocal) add("--accept-non-local")
+            // Small-model budget — see KDoc on [maxFacts] / [maxQueryLimit].
+            // Only emit flags when caller passed a positive int; null / ≤0
+            // means "let cc fall back to its own defaults".
+            if (maxFacts != null && maxFacts > 0) {
+                add("--max-facts"); add(maxFacts.toString())
+            }
+            if (maxQueryLimit != null && maxQueryLimit > 0) {
+                add("--max-query-limit"); add(maxQueryLimit.toString())
+            }
         }
 
         val envList = ptyEnvironment.envp().toList()

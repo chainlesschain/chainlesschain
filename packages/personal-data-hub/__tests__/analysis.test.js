@@ -628,3 +628,98 @@ describe("AnalysisEngine.retrieveContext", () => {
     await expect(engine.retrieveContext(null)).rejects.toThrow();
   });
 });
+
+// ─── Per-call budget overrides (small-model callers) ─────────────────────
+//
+// On-device Qwen2.5-1.5B has an effective instruction-following window of
+// 2-4K tokens, much tighter than the 80-fact / 200-row default sized for
+// desktop 7B+ models. Android passes `maxFacts=20 maxQueryLimit=50` per
+// call to keep the prompt ~1.5K tokens. Construction stays untouched so
+// the desktop default path is unaffected.
+describe("AnalysisEngine per-call budget overrides", () => {
+  it("ask() honors options.maxFacts and options.maxQueryLimit", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        // Return exactly q.limit rows so we can detect the cap.
+        return Array.from({ length: q.limit }, (_, i) => ({
+          id: "e" + i, type: "event", subtype: "order",
+          occurredAt: Date.now(), actor: "self", ingestedAt: Date.now(),
+          source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+        }));
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 30, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    // Default constructor (maxFacts=80, maxQueryLimit=200) — overridden per call.
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("hi", { maxFacts: 10, maxQueryLimit: 50 });
+    // queryEvents.limit must reflect the per-call override, not the default 200.
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(50);
+  });
+
+  it("ask() retrieveContext-level maxFacts bounds factCount via buildPrompt", async () => {
+    const fakeVault = {
+      queryEvents: (q) => Array.from({ length: q.limit }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "order",
+        occurredAt: Date.now(), actor: "self", ingestedAt: Date.now(),
+        source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 200, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.retrieveContext("hi", { maxFacts: 10, maxQueryLimit: 50 });
+    // _gatherFacts returns 50 events, but buildPrompt caps factCount to maxFacts=10.
+    // `truncated` is a count of dropped facts, not a boolean.
+    expect(r.factCount).toBe(10);
+    expect(r.truncated).toBe(40); // 50 gathered - 10 kept = 40 truncated
+  });
+
+  it("retrieveContext() honors options.maxFacts and options.maxQueryLimit", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return [];
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.retrieveContext("hi", { maxFacts: 15, maxQueryLimit: 40 });
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(40);
+  });
+
+  it("ignores non-positive / non-integer overrides → falls back to constructor defaults", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => { queryEventsCalls.push(q); return []; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.retrieveContext("hi", { maxFacts: 0, maxQueryLimit: -5 });
+    // Both bogus → fall back to ctor defaults (maxQueryLimit=200)
+    expect(queryEventsCalls[0].limit).toBe(200);
+  });
+});
