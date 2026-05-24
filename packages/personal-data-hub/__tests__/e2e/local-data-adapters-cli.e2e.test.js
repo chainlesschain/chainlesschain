@@ -35,11 +35,15 @@ try {
   bs3mcAvailable = false;
   bs3mcSkipReason = e && e.message ? e.message : String(e);
 }
-const itOrSkip = bs3mcAvailable ? it : it.skip;
-
 // Resolve the CLI entry — we run it through node directly (avoids cc
 // PATH lookup hassles + the workspace symlink resolves to current source).
+// In the FTS5 sandbox runner (lib/ + __tests__/ copied to $TMPDIR) the
+// relative ../../../cli path resolves outside the repo and is missing;
+// gate the tests so they skip cleanly when the CLI binary is absent.
 const CLI_BIN = path.resolve(__dirname, "..", "..", "..", "cli", "bin", "chainlesschain.js");
+const cliBinAvailable = fs.existsSync(CLI_BIN);
+
+const itOrSkip = bs3mcAvailable && cliBinAvailable ? it : it.skip;
 
 let sandboxAppData;
 
