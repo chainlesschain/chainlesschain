@@ -93,9 +93,53 @@ class LlmPreferences @Inject constructor(
         false
     }
 
+    // ─── LAN Ollama baseUrl (4th LLM route) ──────────────────────────────
+    //
+    // User-supplied "http(s)://host[:port]" pointing at any Ollama-compat
+    // server on the same LAN (e.g. another laptop, a NAS, a home server).
+    // Empty / null = unset, route hidden in HubAskRouteSelector. Stored in
+    // same EncryptedSharedPreferences as preferAndroidLocal so backup /
+    // wipe behaves uniformly.
+
+    private val _lanLlmBaseUrl: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(readLanLlmBaseUrl())
+    }
+
+    val lanLlmBaseUrl: StateFlow<String?> get() = _lanLlmBaseUrl.asStateFlow()
+
+    fun getLanLlmBaseUrl(): String? = _lanLlmBaseUrl.value
+
+    /**
+     * Persist a LAN base URL. Normalizes by trimming whitespace + stripping
+     * a single trailing slash so `http://x:11434/` and `http://x:11434`
+     * collapse to one value (cc OllamaClient appends `/api/chat` itself).
+     * Blank/null clears the preference.
+     */
+    fun setLanLlmBaseUrl(raw: String?) {
+        val normalized = raw?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
+        if (_lanLlmBaseUrl.value == normalized) return
+        try {
+            val editor = prefs.edit()
+            if (normalized == null) editor.remove(KEY_LAN_LLM_BASE_URL)
+            else editor.putString(KEY_LAN_LLM_BASE_URL, normalized)
+            editor.apply()
+        } catch (t: Throwable) {
+            Timber.w(t, "LlmPreferences: LAN url write failed (non-fatal)")
+        }
+        _lanLlmBaseUrl.value = normalized
+    }
+
+    private fun readLanLlmBaseUrl(): String? = try {
+        prefs.getString(KEY_LAN_LLM_BASE_URL, null)?.takeIf { it.isNotBlank() }
+    } catch (t: Throwable) {
+        Timber.w(t, "LlmPreferences: LAN url read failed, defaulting to null")
+        null
+    }
+
     companion object {
         private const val PREFS_NAME = "pdh_llm_preferences"
         private const val PREFS_NAME_FALLBACK = "pdh_llm_preferences_plain"
         private const val KEY_PREFER_ANDROID_LOCAL = "preferAndroidLocal"
+        private const val KEY_LAN_LLM_BASE_URL = "lanLlmBaseUrl"
     }
 }

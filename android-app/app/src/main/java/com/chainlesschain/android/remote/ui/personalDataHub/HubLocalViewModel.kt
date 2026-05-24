@@ -10,8 +10,11 @@ import com.chainlesschain.android.pdh.email.EmailCredentialsStore
 import com.chainlesschain.android.pdh.email.EmailLocalCollector
 import com.chainlesschain.android.pdh.email.EmailVendor
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
+import com.chainlesschain.android.remote.commands.HubHealth
+import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
@@ -41,6 +44,8 @@ import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -94,6 +99,9 @@ class HubLocalViewModel @Inject constructor(
     private val systemDataState: SystemDataSyncStateStore,
     private val modelManager: ModelManager,
     private val llmEngine: LlmInferenceEngine,
+    private val llmPreferences: LlmPreferences,
+    private val androidLlmExecutor: AndroidLocalLlmExecutor,
+    private val remoteHub: PersonalDataHubCommands,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -206,6 +214,11 @@ class HubLocalViewModel @Inject constructor(
      * A3 — "提问" card state. Drives the local LLM ask flow via
      * [LocalCcRunner.askQuestion] which spawns `cc hub ask --json` against
      * the Kotlin-hosted Ollama-compat LLM server (A3.2 — pending wire).
+     *
+     * 2026-05-24 — added 4-way LLM route selector (LOCAL_DEVICE / CLOUD_ANDROID
+     * / PC_LOCAL / LAN_OLLAMA). 默认 LOCAL_DEVICE 兼容旧行为（on-device LocalLlmServer
+     * + 本机 vault RAG）。selectedRoute 由 [LlmRoute] enum 表示，可用性由 4 个 *Available
+     * 字段驱动 UI gating。
      */
     @Immutable
     data class AskCardState(
@@ -217,7 +230,35 @@ class HubLocalViewModel @Inject constructor(
         val isLocal: Boolean = true,
         val durationMs: Long = 0L,
         val errorMessage: String? = null,
-    )
+        // 4-way LLM 路由（默认 LOCAL_DEVICE = on-device LocalLlmServer + 本机 RAG）
+        val selectedRoute: LlmRoute = LlmRoute.LOCAL_DEVICE,
+        val lanLlmBaseUrl: String? = null,
+        val androidLlm: AndroidLocalLlmExecutor.ConfiguredProvider? = null,
+        val remoteHealth: HubHealth? = null,
+        val localDeviceReady: Boolean = false,
+    ) {
+        /** 端侧 LocalLlmServer + 本机 vault RAG（即默认 ccRunner.askQuestion 路径） */
+        val localDeviceAvailable: Boolean get() = localDeviceReady
+        val cloudAvailable: Boolean get() = androidLlm != null
+        val pcLocalAvailable: Boolean
+            get() = remoteHealth?.llm?.ok == true && remoteHealth.llm.isLocal
+        val lanAvailable: Boolean get() = !lanLlmBaseUrl.isNullOrBlank()
+        val anyRouteAvailable: Boolean
+            get() = localDeviceAvailable || cloudAvailable || pcLocalAvailable || lanAvailable
+
+        val effectiveRoute: LlmRoute
+            get() = when {
+                selectedRoute == LlmRoute.LOCAL_DEVICE && localDeviceAvailable -> LlmRoute.LOCAL_DEVICE
+                selectedRoute == LlmRoute.LAN_OLLAMA && lanAvailable -> LlmRoute.LAN_OLLAMA
+                selectedRoute == LlmRoute.PC_LOCAL && pcLocalAvailable -> LlmRoute.PC_LOCAL
+                selectedRoute == LlmRoute.CLOUD_ANDROID && cloudAvailable -> LlmRoute.CLOUD_ANDROID
+                localDeviceAvailable -> LlmRoute.LOCAL_DEVICE
+                cloudAvailable -> LlmRoute.CLOUD_ANDROID
+                pcLocalAvailable -> LlmRoute.PC_LOCAL
+                lanAvailable -> LlmRoute.LAN_OLLAMA
+                else -> selectedRoute
+            }
+    }
 
     /**
      * §2.1 A3.4 — UI mirror of [ModelManager.State]. The Compose layer renders
@@ -484,6 +525,51 @@ class HubLocalViewModel @Inject constructor(
         refreshEmailFromStore()
         refreshTravelFromStore()
         observeModelManager()
+        initAskRouteState()
+    }
+
+    /**
+     * 2026-05-24 — populate AskCardState route gating fields:
+     *  - lanLlmBaseUrl: hot Flow from LlmPreferences (Settings 改变实时同步)
+     *  - androidLlm: one-shot detectProvider() — refresh when user 回到 tab 3/4 可以手动重测
+     *  - remoteHealth: one-shot hub.health() — paired desktop's LLM info
+     *  - localDeviceReady: snapshot llmEngine.nativeReady at init (engine ready 之后 app restart 才翻)
+     */
+    private fun initAskRouteState() {
+        _state.update {
+            it.copy(
+                ask = it.ask.copy(
+                    localDeviceReady = llmEngine.nativeReady,
+                    lanLlmBaseUrl = llmPreferences.getLanLlmBaseUrl(),
+                    androidLlm = try { androidLlmExecutor.detectProvider() }
+                                  catch (e: Throwable) { Timber.w(e, "detectProvider failed"); null },
+                ),
+            )
+        }
+        llmPreferences.lanLlmBaseUrl
+            .onEach { url -> _state.update { it.copy(ask = it.ask.copy(lanLlmBaseUrl = url)) } }
+            .launchIn(viewModelScope)
+        viewModelScope.launch {
+            remoteHub.health()
+                .onSuccess { h -> _state.update { it.copy(ask = it.ask.copy(remoteHealth = h)) } }
+                .onFailure { e -> Timber.w(e, "remoteHub.health() failed (desktop unpaired?)") }
+        }
+    }
+
+    /** User flipped the route radio. effectiveRoute auto-falls back if not available. */
+    fun setAskRoute(route: LlmRoute) {
+        _state.update { it.copy(ask = it.ask.copy(selectedRoute = route)) }
+    }
+
+    /** 用户在 LLMSettings 里加了新 API key 后,手动再探一次. */
+    fun refreshAndroidLlmRoute() {
+        val provider = try {
+            androidLlmExecutor.detectProvider()
+        } catch (e: Throwable) {
+            Timber.w(e, "refreshAndroidLlmRoute: detectProvider failed")
+            null
+        }
+        _state.update { it.copy(ask = it.ask.copy(androidLlm = provider)) }
     }
 
     /**
@@ -698,9 +784,48 @@ class HubLocalViewModel @Inject constructor(
             askDirectLocal(q)
             return
         }
-        // A3.10 — snapshot the cloud-fallback toggle at submit time. User can
-        // flip while in flight; we honor whatever was set on tap (race-immune).
-        val acceptNonLocal = _state.value.threeLocks.allowCloudFallback
+        // 2026-05-24 — route dispatch. Default LOCAL_DEVICE = 既有 on-device LocalLlmServer
+        // + 本机 vault RAG（与旧行为一致）。其他路由按用户在 HubAskCard radio 选项分派。
+        val askState = _state.value.ask
+        val route = askState.effectiveRoute
+        when (route) {
+            LlmRoute.CLOUD_ANDROID -> {
+                val provider = askState.androidLlm
+                if (provider == null) {
+                    setAskError("请先在「设置 → 大模型」配置云 LLM API Key")
+                    return
+                }
+                submitAskViaCloudAndroid(q, provider)
+            }
+            LlmRoute.PC_LOCAL -> submitAskViaRemoteDesktop(q)
+            LlmRoute.LAN_OLLAMA -> {
+                val baseUrl = askState.lanLlmBaseUrl
+                if (baseUrl.isNullOrBlank()) {
+                    setAskError("局域网 LLM URL 未配置 — 请到「设置 → AI 后端」填写")
+                    return
+                }
+                submitAskViaCc(q, ollamaUrl = baseUrl, llmTag = "LAN")
+            }
+            LlmRoute.LOCAL_DEVICE -> {
+                // 既有路径：cc + 本机 vault RAG + on-device LocalLlmServer
+                submitAskViaCc(q, ollamaUrl = llmServer.baseUrl, llmTag = "端侧")
+            }
+        }
+    }
+
+    private fun setAskError(message: String) {
+        _state.update {
+            it.copy(ask = it.ask.copy(isAsking = false, errorMessage = message, answer = null))
+        }
+    }
+
+    /**
+     * 既有 cc 子进程路径（A3.2 wire 后真出答案）。LOCAL_DEVICE / LAN_OLLAMA 共用，
+     * 只换 ollamaUrl —— 局域网 LLM 把流量导向用户填的 LAN host，端侧导向本机
+     * LocalLlmServer (127.0.0.1)。
+     */
+    private fun submitAskViaCc(q: String, ollamaUrl: String?, llmTag: String) {
+        val acceptNonLocal = _state.value.threeLocks.allowCloudFallback || llmTag == "LAN"
         _state.update {
             it.copy(
                 ask = it.ask.copy(
@@ -714,17 +839,12 @@ class HubLocalViewModel @Inject constructor(
         // RAG 上下文预算按目标 LLM 体量分档。本机 Qwen2.5-1.5B / Gemma-2B
         // 指令跟随窗口 ~2-4K token，80 facts (cc 默认) 会撑爆 prompt 留不下答
         // 案空间；云端 GPT/DeepSeek/Doubao 32K+ 上下文，能塞更多召回更全。
-        // 用户 2026-05-24 反馈："本机模型太小，云模型可以加更多上下文"。
         val maxFacts = if (acceptNonLocal) FACTS_BUDGET_CLOUD else FACTS_BUDGET_LOCAL
         val maxQueryLimit = if (acceptNonLocal) QUERY_LIMIT_BUDGET_CLOUD else QUERY_LIMIT_BUDGET_LOCAL
         viewModelScope.launch {
-            // A3.2 — LocalLlmServer baseUrl is "http://127.0.0.1:<port>" once
-            // ChainlessChainApplication.delayedInit started it. If start failed
-            // (rare port-exhaustion) baseUrl=null and we pass null → cc falls
-            // back to localhost:11434 default, which then fails fast.
             val result = ccRunner.askQuestion(
                 q,
-                ollamaUrl = llmServer.baseUrl,
+                ollamaUrl = ollamaUrl,
                 acceptNonLocal = acceptNonLocal,
                 maxFacts = maxFacts,
                 maxQueryLimit = maxQueryLimit,
@@ -736,6 +856,8 @@ class HubLocalViewModel @Inject constructor(
                             isAsking = false,
                             answer = result.report.answer,
                             citations = result.report.citations,
+                            // llmName 保持 raw 模型名，路由信息走 radio 标签;
+                            // 兼容旧测试断言 llmName == "qwen2.5"。
                             llmName = result.report.llmName,
                             isLocal = result.report.isLocal,
                             durationMs = result.report.durationMs,
@@ -743,16 +865,15 @@ class HubLocalViewModel @Inject constructor(
                     )
                     is LocalCcRunner.AskResult.Failed -> {
                         Timber.w(
-                            "HubLocalViewModel.askQuestion: cc failed reason=%s exit=%s",
+                            "HubLocalViewModel.submitAskViaCc: cc failed reason=%s exit=%s",
                             result.reason, result.exitCode,
                         )
-                        // Friendlier message for the common A3.2-not-wired case
                         val hint = if (
                             result.reason.contains("OllamaClient", ignoreCase = true) ||
                             result.reason.contains("ECONNREFUSED", ignoreCase = true) ||
                             result.reason.contains("fetch failed", ignoreCase = true)
                         ) {
-                            "端侧 LLM 未启动 (A3.2 待落地) — 原始错误: ${result.reason}"
+                            "$llmTag LLM 未启动或不可达 — 原始错误: ${result.reason}"
                         } else {
                             result.reason
                         }
@@ -760,6 +881,113 @@ class HubLocalViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * CLOUD_ANDROID — 因 ccRunner 只能讲 Ollama-compat 协议无法直连云 API，
+     * 这条走 androidLlmExecutor.chat() 不带 RAG（v0.1 占位，v0.2 再加 local
+     * retrieve-context 接 PromptMessage）。citations 必空 + isLocal=false。
+     */
+    private fun submitAskViaCloudAndroid(
+        q: String,
+        provider: AndroidLocalLlmExecutor.ConfiguredProvider,
+    ) {
+        _state.update {
+            it.copy(
+                ask = it.ask.copy(
+                    isAsking = true,
+                    answer = null,
+                    citations = emptyList(),
+                    errorMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            val t0 = System.currentTimeMillis()
+            try {
+                val messages = listOf(
+                    com.chainlesschain.android.remote.commands.PromptMessage(role = "user", content = q),
+                )
+                val answer = androidLlmExecutor.chat(messages, provider)
+                val elapsed = System.currentTimeMillis() - t0
+                _state.update { st ->
+                    st.copy(
+                        ask = st.ask.copy(
+                            isAsking = false,
+                            answer = answer,
+                            citations = emptyList(),
+                            llmName = "${provider.provider.displayName} · ${provider.model} (云)",
+                            isLocal = false,
+                            durationMs = elapsed,
+                        ),
+                    )
+                }
+            } catch (e: Throwable) {
+                Timber.w(e, "HubLocalViewModel.submitAskViaCloudAndroid failed")
+                _state.update { st ->
+                    st.copy(
+                        ask = st.ask.copy(
+                            isAsking = false,
+                            errorMessage = "云 LLM 调用失败: ${e.message ?: e.javaClass.simpleName}",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * PC_LOCAL — 走 DC RPC 到已配对桌面，让桌面用自己的本机 Ollama 推理并附 citation。
+     * 数据源 = 桌面 vault（与"本机数据" tab 的 phone vault 不同），用户需理解。
+     */
+    private fun submitAskViaRemoteDesktop(q: String) {
+        val acceptNonLocal = _state.value.threeLocks.allowCloudFallback
+        _state.update {
+            it.copy(
+                ask = it.ask.copy(
+                    isAsking = true,
+                    answer = null,
+                    citations = emptyList(),
+                    errorMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            val t0 = System.currentTimeMillis()
+            remoteHub.ask(question = q, acceptNonLocal = if (acceptNonLocal) true else null)
+                .onSuccess { res ->
+                    val elapsed = System.currentTimeMillis() - t0
+                    _state.update { st ->
+                        st.copy(
+                            ask = st.ask.copy(
+                                isAsking = false,
+                                answer = res.answer,
+                                citations = res.citations.map {
+                                    LocalCcRunner.AskReport.Citation(
+                                        eventId = it.eventId,
+                                        excerpt = it.excerpt,
+                                        source = null,
+                                    )
+                                },
+                                llmName = "${res.llmName ?: "PC Ollama"} (PC)",
+                                isLocal = res.isLocal,
+                                durationMs = elapsed,
+                            ),
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    Timber.w(err, "HubLocalViewModel.submitAskViaRemoteDesktop failed")
+                    _state.update { st ->
+                        st.copy(
+                            ask = st.ask.copy(
+                                isAsking = false,
+                                errorMessage = "PC 本机模型调用失败: ${err.message ?: err.javaClass.simpleName}",
+                            ),
+                        )
+                    }
+                }
         }
     }
 

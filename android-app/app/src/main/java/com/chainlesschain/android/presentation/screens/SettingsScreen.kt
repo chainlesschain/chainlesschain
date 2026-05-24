@@ -296,6 +296,41 @@ fun SettingsScreen(
                     checked = aiState.preferAndroidLocal,
                     onCheckedChange = { aiBackendVm.setPreferAndroidLocal(it) }
                 )
+
+                // 局域网 Ollama URL — surfaces as 4th LLM route in HubAsk* screens
+                // when set. Empty clears. Persisted in EncryptedSharedPreferences;
+                // no cc-config sync (consumed only by in-APK ask flow).
+                var lanUrlInput by remember(aiState.lanLlmBaseUrl) {
+                    mutableStateOf(aiState.lanLlmBaseUrl.orEmpty())
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = lanUrlInput,
+                        onValueChange = {
+                            lanUrlInput = it
+                            aiBackendVm.setLanLlmBaseUrl(it)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("局域网 Ollama URL") },
+                        placeholder = { Text("http://192.168.1.10:11434") },
+                        supportingText = {
+                            val err = aiState.lanLlmUrlError
+                            Text(
+                                err ?: "可选 — 设置后在提问页可选「局域网 LLM」路由；留空隐藏",
+                                color = if (err != null)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        isError = aiState.lanLlmUrlError != null,
+                    )
+                }
             }
 
             // 存储设置

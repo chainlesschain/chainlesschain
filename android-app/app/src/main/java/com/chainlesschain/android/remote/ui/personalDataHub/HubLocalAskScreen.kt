@@ -81,6 +81,7 @@ fun HubLocalAskScreen(
                     modelStatus = state.modelStatus,
                     onDownloadModel = { viewModel.downloadModel() },
                     onDeleteModel = { viewModel.deleteModel() },
+                    onRouteSelected = { route -> viewModel.setAskRoute(route) },
                 )
             }
 

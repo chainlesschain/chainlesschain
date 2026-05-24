@@ -19,6 +19,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +50,7 @@ fun HubAskCard(
     modelStatus: HubLocalViewModel.ModelStatusState = HubLocalViewModel.ModelStatusState(),
     onDownloadModel: () -> Unit = {},
     onDeleteModel: () -> Unit = {},
+    onRouteSelected: (LlmRoute) -> Unit = {},
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -94,6 +96,15 @@ fun HubAskCard(
                     onDelete = onDeleteModel,
                 )
             }
+
+            // 2026-05-24 — 4-way LLM route selector. 跟 tab 0 HubAskScreen 同形态，
+            // 但用 AskCardState 字段（不是 HubAskUiState）以避免双 VM 耦合。
+            Spacer(modifier = Modifier.height(12.dp))
+            HubAskCardRouteSelector(
+                state = state,
+                isLoading = state.isAsking,
+                onRouteSelected = onRouteSelected,
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -348,6 +359,162 @@ private fun ModelStatusBanner(
         }
         HubLocalViewModel.ModelStatusState.Kind.UNKNOWN -> {
             // Caller already gates on UNKNOWN, but be defensive.
+        }
+    }
+}
+
+/**
+ * 2026-05-24 — 4-way LLM route selector for HubAskCard (tab 3 本机数据 / tab 4 本机提问).
+ * 镜像 HubAskScreen.HubAskRouteSelector 形态但绑 AskCardState 字段。
+ *
+ * 显示规则同 HubAskScreen:
+ *  - 0 路可用 → errorContainer banner 引导用户去配置
+ *  - 1 路可用 → 单行只读 label
+ *  - ≥2 路可用 → 4 radio rows (不可用项 disabled 灰显)
+ */
+@Composable
+private fun HubAskCardRouteSelector(
+    state: HubLocalViewModel.AskCardState,
+    isLoading: Boolean,
+    onRouteSelected: (LlmRoute) -> Unit,
+) {
+    val availableCount = listOf(
+        state.localDeviceAvailable,
+        state.cloudAvailable,
+        state.pcLocalAvailable,
+        state.lanAvailable,
+    ).count { it }
+
+    when (availableCount) {
+        0 -> {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text(
+                    "暂无可用 LLM。到「设置 → AI 后端」配:云 API Key / 配对桌面 / 局域网 Ollama URL / 端侧模型，至少一项。",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        }
+        1 -> {
+            val (title, subtitle) = when {
+                state.localDeviceAvailable -> "推理走端侧 LocalLlmServer + 本机 vault RAG" to
+                    "MediaPipe · Qwen2.5-1.5B"
+                state.cloudAvailable -> "推理走云 LLM（手机端，无 RAG）" to
+                    (state.androidLlm?.let { "${it.provider.displayName} · ${it.model}" } ?: "—")
+                state.pcLocalAvailable -> "推理走 PC 本机模型（桌面数据 + 桌面 Ollama）" to
+                    (state.remoteHealth?.llm?.name ?: "桌面 Ollama")
+                else -> "推理走局域网 LLM + 本机 vault RAG" to (state.lanLlmBaseUrl ?: "—")
+            }
+            HubAskCardSingleLabel(title = title, subtitle = subtitle)
+        }
+        else -> {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Text(
+                        "推理路由",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    HubAskCardRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.LOCAL_DEVICE,
+                        enabled = !isLoading && state.localDeviceAvailable,
+                        title = "本地模型（端侧 + 本机 RAG）",
+                        subtitle = if (state.localDeviceAvailable)
+                            "on-device LocalLlmServer · Qwen2.5-1.5B · 飞机模式可用"
+                        else
+                            "端侧引擎未就绪 — 先下载模型",
+                        onClick = { onRouteSelected(LlmRoute.LOCAL_DEVICE) },
+                    )
+                    HubAskCardRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.CLOUD_ANDROID,
+                        enabled = !isLoading && state.cloudAvailable,
+                        title = "云 LLM（手机端，无 RAG）",
+                        subtitle = state.androidLlm?.let { "${it.provider.displayName} · ${it.model}" }
+                            ?: "未配置 — 到「设置 → 大模型」加 API Key",
+                        onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
+                    )
+                    HubAskCardRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.PC_LOCAL,
+                        enabled = !isLoading && state.pcLocalAvailable,
+                        title = "PC 本机模型（桌面数据源）",
+                        subtitle = if (state.pcLocalAvailable)
+                            (state.remoteHealth?.llm?.name ?: "桌面 Ollama")
+                        else
+                            "未配对桌面或桌面未开本机模型",
+                        onClick = { onRouteSelected(LlmRoute.PC_LOCAL) },
+                    )
+                    HubAskCardRouteOption(
+                        selected = state.effectiveRoute == LlmRoute.LAN_OLLAMA,
+                        enabled = !isLoading && state.lanAvailable,
+                        title = "局域网 LLM（本机 RAG）",
+                        subtitle = state.lanLlmBaseUrl
+                            ?: "未配置 — 到「设置 → AI 后端」填 URL",
+                        onClick = { onRouteSelected(LlmRoute.LAN_OLLAMA) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HubAskCardRouteOption(
+    selected: Boolean,
+    enabled: Boolean,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = if (enabled) onClick else null,
+            enabled = enabled,
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HubAskCardSingleLabel(title: String, subtitle: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

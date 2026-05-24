@@ -4,8 +4,14 @@ import android.content.Context
 import com.chainlesschain.android.pdh.LocalCcRunner
 import com.chainlesschain.android.pdh.LocalSystemDataSnapshotter
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.LlmPreferences
 import com.chainlesschain.android.pdh.llm.LocalLlmServer
 import com.chainlesschain.android.pdh.llm.ModelManager
+import com.chainlesschain.android.remote.commands.HealthLlm
+import com.chainlesschain.android.remote.commands.HealthOk
+import com.chainlesschain.android.remote.commands.HealthVault
+import com.chainlesschain.android.remote.commands.HubHealth
+import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
 import com.chainlesschain.android.pdh.email.EmailCredentialsStore
@@ -92,6 +98,10 @@ class HubLocalViewModelTest {
     private lateinit var systemDataState: SystemDataSyncStateStore
     private lateinit var modelManager: ModelManager
     private lateinit var llmEngine: LlmInferenceEngine
+    private lateinit var llmPreferences: LlmPreferences
+    private lateinit var androidLlmExecutor: AndroidLocalLlmExecutor
+    private lateinit var remoteHub: PersonalDataHubCommands
+    private val lanUrlFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private lateinit var appContext: Context
 
     @Before
@@ -188,6 +198,16 @@ class HubLocalViewModelTest {
         // scenario flip this in-place via `every { llmEngine.nativeReady } returns true`.
         llmEngine = mockk(relaxed = true)
         every { llmEngine.nativeReady } returns false
+        // 2026-05-24 — 4-route ask dispatch deps. Defaults make all non-default
+        // routes unavailable (LAN url null, no Android cloud key, health() failing).
+        llmPreferences = mockk(relaxed = true)
+        every { llmPreferences.getLanLlmBaseUrl() } returns null
+        lanUrlFlow.value = null
+        every { llmPreferences.lanLlmBaseUrl } returns lanUrlFlow
+        androidLlmExecutor = mockk(relaxed = true)
+        every { androidLlmExecutor.detectProvider() } returns null
+        remoteHub = mockk(relaxed = true)
+        coEvery { remoteHub.health() } returns Result.failure(RuntimeException("no desktop paired"))
         appContext = mockk(relaxed = true)
         // A3 default: server "started" with deterministic baseUrl so ask
         // tests can assert ccRunner.askQuestion was called with this URL.
@@ -235,6 +255,9 @@ class HubLocalViewModelTest {
             systemDataState,
             modelManager,
             llmEngine,
+            llmPreferences,
+            androidLlmExecutor,
+            remoteHub,
             appContext,
         )
 
@@ -3492,5 +3515,95 @@ class HubLocalViewModelTest {
         assertNull(s.uid)
         assertNull(s.lastSyncAt)
         io.mockk.verify { kuaishouCollector.logout() }
+    }
+
+    // ─── 2026-05-24 Ask route dispatch ───────────────────────────────────────
+
+    @Test
+    fun `default route LOCAL_DEVICE dispatches to ccRunner with llmServer baseUrl`() =
+        runTest(testDispatcher) {
+            every { llmEngine.nativeReady } returns true
+            coEvery {
+                ccRunner.askQuestion(
+                    question = any(),
+                    ollamaUrl = "http://127.0.0.1:18484",
+                    acceptNonLocal = any(),
+                    maxFacts = any(),
+                    maxQueryLimit = any(),
+                )
+            } returns LocalCcRunner.AskResult.Ok(
+                LocalCcRunner.AskReport(
+                    answer = "本机答",
+                    citations = emptyList(),
+                    llmName = "qwen2.5",
+                    isLocal = true,
+                    durationMs = 200L,
+                )
+            )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.onAskQuestionChanged("本机数据 Q")
+            vm.askQuestion()
+            advanceUntilIdle()
+
+            val s = vm.state.value.ask
+            assertEquals("本机答", s.answer)
+            assertEquals("qwen2.5", s.llmName)
+            coVerify(exactly = 1) {
+                ccRunner.askQuestion(
+                    question = "本机数据 Q",
+                    ollamaUrl = "http://127.0.0.1:18484",
+                    acceptNonLocal = any(),
+                    maxFacts = any(),
+                    maxQueryLimit = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `LAN_OLLAMA route routes ccRunner to user-supplied URL`() = runTest(testDispatcher) {
+        every { llmPreferences.getLanLlmBaseUrl() } returns "http://192.168.1.7:11434"
+        lanUrlFlow.value = "http://192.168.1.7:11434"
+        coEvery {
+            ccRunner.askQuestion(
+                question = any(),
+                ollamaUrl = "http://192.168.1.7:11434",
+                acceptNonLocal = true,
+                maxFacts = any(),
+                maxQueryLimit = any(),
+            )
+        } returns LocalCcRunner.AskResult.Ok(
+            LocalCcRunner.AskReport(
+                answer = "LAN 答",
+                citations = emptyList(),
+                llmName = "llama3",
+                isLocal = false,
+                durationMs = 150L,
+            )
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.ask.lanAvailable)
+
+        vm.setAskRoute(LlmRoute.LAN_OLLAMA)
+        vm.onAskQuestionChanged("局域网 Q")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertEquals("LAN 答", s.answer)
+        // llmName 是 cc 报回的原始名（路由由 selectedRoute 表达，不污染 llmName）
+        assertEquals("llama3", s.llmName)
+        assertFalse(s.isLocal)
+    }
+
+    @Test
+    fun `setAskRoute persists selection in state`() = runTest(testDispatcher) {
+        every { llmEngine.nativeReady } returns true
+        val vm = newVm()
+        advanceUntilIdle()
+        assertEquals(LlmRoute.LOCAL_DEVICE, vm.state.value.ask.selectedRoute)
+        vm.setAskRoute(LlmRoute.CLOUD_ANDROID)
+        assertEquals(LlmRoute.CLOUD_ANDROID, vm.state.value.ask.selectedRoute)
     }
 }
