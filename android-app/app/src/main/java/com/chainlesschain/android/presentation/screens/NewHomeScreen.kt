@@ -661,22 +661,23 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_my_qrcode), Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
             FunctionEntryItem(context.getString(R.string.feature_scan_qrcode), Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
-            // Row 3：项目管理 + 文件浏览 (+ auto 更多)
-            FunctionEntryItem(context.getString(R.string.feature_project_management), Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            // Row 3：版本更新 + 文件浏览 (+ auto 更多)
+            // user feedback 2026-05-24 round 2：版本更新 和 项目管理 swap —— 版本更新 promote 到 row 3 cell 1，项目管理 demoted 到 更多 sheet
+            FunctionEntryItem(context.getString(R.string.feature_check_update), Icons.Outlined.SystemUpdate, Color(0xFF607D8B), FeatureGroup.SYSTEM, onClick = onCheckForUpdates),
             FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
 
             // 更多 sheet items —— take(8) 之后这些走 ModalBottomSheet
             // 社交广场 demoted from row 2 cell 1（让位 本机模型）
             FunctionEntryItem(context.getString(R.string.feature_social_feed), Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed, badgeCount = socialUnreadCount),
+            // 项目管理 — demoted from row 3 cell 1（让位 版本更新）
+            FunctionEntryItem(context.getString(R.string.feature_project_management), Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
             // 知识库 — demoted from row 3 cell 3
             FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
             // AI 对话 — 依赖远控桌面 LLM，离线不可用
             FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
             FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
             FunctionEntryItem(context.getString(R.string.feature_remote_control), Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
-            FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics),
-            // 版本更新 —— 触发 UpdateViewModel.checkForUpdates(silent=false)
-            FunctionEntryItem(context.getString(R.string.feature_check_update), Icons.Outlined.SystemUpdate, Color(0xFF607D8B), FeatureGroup.SYSTEM, onClick = onCheckForUpdates)
+            FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
         )
     }
     var showMoreSheet by remember { mutableStateOf(false) }
