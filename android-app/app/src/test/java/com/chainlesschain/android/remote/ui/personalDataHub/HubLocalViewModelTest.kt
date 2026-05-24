@@ -879,7 +879,7 @@ class HubLocalViewModelTest {
         // snapshot signature added optional onProgress callback (commit ca6dbff09).
         // Match any() so the named-arg call site `snapshot(onProgress = onProgress)`
         // routes to this stub.
-        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
+        coEvery { weiboCollector.snapshot(any<(String) -> Unit>()) } returns
             WeiboLocalCollector.SnapshotResult.NoCredentials
 
         val vm = newVm()
@@ -897,7 +897,7 @@ class HubLocalViewModelTest {
     fun `syncWeibo everythingEmpty path surfaces cookie expired hint`() = runTest(testDispatcher) {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
+        coEvery { weiboCollector.snapshot(any<(String) -> Unit>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-empty.json",
                 postCount = 0, favouriteCount = 0, followCount = 0,
@@ -922,7 +922,7 @@ class HubLocalViewModelTest {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
         val syncAt = 1716000000000L
-        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
+        coEvery { weiboCollector.snapshot(any<(String) -> Unit>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 10, favouriteCount = 5, followCount = 3,
@@ -938,7 +938,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any<((String) -> Unit)?>(),
+                onProgress = any<(String) -> Unit>(),
             )
         } returns
             LocalCcRunner.CcResult.Ok(
@@ -966,14 +966,14 @@ class HubLocalViewModelTest {
     fun `syncWeibo ccRunner Failed surfaces error`() = runTest(testDispatcher) {
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
+        coEvery { weiboCollector.snapshot(any<(String) -> Unit>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 1, favouriteCount = 0, followCount = 0,
                 totalEvents = 1, everythingEmpty = false,
                 snapshottedAt = 1L,
             )
-        coEvery { ccRunner.syncAdapter(any(), any(), any(), any<Int?>(), any<((String) -> Unit)?>()) } returns
+        coEvery { ccRunner.syncAdapter(any(), any(), any(), any<Int>(), any<(String) -> Unit>()) } returns
             LocalCcRunner.CcResult.Failed(
                 reason = "bs3mc cold-load timeout",
                 exitCode = 124, stderr = "...",
@@ -1015,7 +1015,7 @@ class HubLocalViewModelTest {
         // first, not on a real device after a 4-minute spinner.
         every { weiboCredentials.hasCredentials() } returns true
         every { weiboCredentials.getUid() } returns 9876L
-        coEvery { weiboCollector.snapshot(any<((String) -> Unit)?>()) } returns
+        coEvery { weiboCollector.snapshot(any<(String) -> Unit>()) } returns
             WeiboLocalCollector.SnapshotResult.Ok(
                 snapshotPath = "/tmp/weibo-snap.json",
                 postCount = 100, favouriteCount = 100, followCount = 100,
@@ -1027,7 +1027,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any<((String) -> Unit)?>(),
+                onProgress = any<(String) -> Unit>(),
             )
         } returns
             LocalCcRunner.CcResult.Ok(
@@ -1050,7 +1050,7 @@ class HubLocalViewModelTest {
                 adapterName = "social-weibo",
                 inputPath = "/tmp/weibo-snap.json",
                 limit = HubLocalViewModel.WEIBO_FIRST_PASS_LIMIT,
-                onProgress = any<((String) -> Unit)?>(),
+                onProgress = any<(String) -> Unit>(),
             )
         }
         assertEquals(
