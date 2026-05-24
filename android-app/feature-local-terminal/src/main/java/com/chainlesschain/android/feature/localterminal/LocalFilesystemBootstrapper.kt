@@ -5,6 +5,8 @@ import com.chainlesschain.android.feature.localterminal.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
@@ -64,6 +66,35 @@ class LocalFilesystemBootstrapper @Inject constructor(
     // wrap calls in runBlocking with a TestScope rather than swapping it.
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
+    // 2026-05-24 trap #24 — serialise bootstrap() invocations. The class is
+    // @Singleton but the suspend body had no concurrency guard, and HubLocal*
+    // cards init in parallel (askQuestion + facetCounts + queryEvents all
+    // call bootstrapper.bootstrap() from independent viewModelScope launches).
+    // Two callers racing `wipeAndRecreate()` produced: thread A finishes
+    // wipe+mkdirs+writeStaticFiles, then enters extractTarToDir holding an
+    // open FileOutputStream; thread B re-enters wipeAndRecreate, its
+    // prefixDir.deleteRecursively() partially succeeds (deletes etc/+share/
+    // but fails on A's open file) → IOException for B + permanently broken
+    // tree (.bootstrap_version=6 written by A but etc/ wiped by B → every
+    // subsequent boot: fullExtract=false → writeStaticFiles ENOENT on
+    // etc/profile). Holding the mutex across the entire suspend body is
+    // safe — bootstrap() is idempotent and the slow path (~5s tarball
+    // extract) only runs once anyway; concurrent callers get the fast
+    // relink-only path.
+    //
+    // 2026-05-24 v2 — Real-device race STILL fired with instance-scoped
+    // mutex. Logcat showed 2 threads (same PID 23272, different threads
+    // 25776 + 25662) both inside `Bootstrapping $PREFIX (target version 6)`
+    // 14ms apart, meaning withLock did NOT serialise them. Hypothesis:
+    // even with `@Singleton`, Hilt cross-module DI on feature-local-terminal
+    // can produce >1 instance under certain classloader paths (the
+    // Bootstrapper is injected from BOTH app (via PtyEnvironment) AND
+    // feature-local-terminal (LocalSessionViewModel) — both paths should
+    // resolve to the SAME SingletonComponent binding, but reality differs).
+    // Promoting the mutex to `companion object` (see bottom of file) makes
+    // it provably process-wide: regardless of how many instances Hilt
+    // produces, all serialise on this single mutex value.
+
     /** Returns the `$PREFIX` directory; safe to call before bootstrap (no
      *  side effects). */
     val prefixDir: File get() = File(context.filesDir, "usr")
@@ -89,14 +120,22 @@ class LocalFilesystemBootstrapper @Inject constructor(
      *         match), Result.failure on IO error.
      */
     suspend fun bootstrap(): Result<Boolean> = withContext(ioDispatcher) {
-        try {
+        processBootstrapMutex.withLock { bootstrapLocked() }
+    }
+
+    private fun bootstrapLocked(): Result<Boolean> {
+        return try {
             val versionFile = File(prefixDir, ".bootstrap_version")
             val targetVersion = BuildConfig.USR_VERSION
             val fullExtract = !versionFile.exists() ||
                 versionFile.readText().trim() != targetVersion
 
             if (fullExtract) {
-                Timber.tag(TAG).i("Bootstrapping \$PREFIX (target version $targetVersion)")
+                Timber.tag(TAG).i(
+                    "Bootstrapping \$PREFIX (target version $targetVersion, " +
+                        "instance=${System.identityHashCode(this)}, " +
+                        "thread=${Thread.currentThread().name})"
+                )
                 wipeAndRecreate()
             }
             // Always rewrite etc/ — Kotlin code changes to profile/mkshrc/motd
@@ -153,6 +192,13 @@ class LocalFilesystemBootstrapper @Inject constructor(
     }
 
     private fun writeStaticFiles() {
+        // Defense in depth (trap #24): a previous bootstrap race may have
+        // wiped etc/+share/ after .bootstrap_version was already written,
+        // landing the on-disk tree in a stuck state where every subsequent
+        // boot takes the relink-only path and crashes here on ENOENT. The
+        // mutex now prevents the race upstream, but self-heal is cheap.
+        File(prefixDir, "etc").mkdirs()
+        File(prefixDir, "share/doc").mkdirs()
         File(prefixDir, "etc/profile").writeText(profileContents())
         File(prefixDir, "etc/mkshrc").writeText(mkshrcContents())
         File(prefixDir, "etc/motd").writeText(motdContents())
@@ -279,13 +325,52 @@ class LocalFilesystemBootstrapper @Inject constructor(
         }
 
         Timber.tag(TAG).i("Extracting cc CLI snapshot from $tgzAsset")
-        if (ccModule.exists()) ccModule.deleteRecursively()
-        ccModule.parentFile?.mkdirs()
+        // 2026-05-24 trap #24 v2 — atomic extract via .tmp + rename.
+        // Old code wrote directly to ccModule. If a concurrent caller
+        // entered with a stale view, it might wipe partway through OR
+        // leave half-written files mixed with prior install's files.
+        // Real-device symptom: hub.js extracted as 1286 lines (matching
+        // an older cc CLI commit, NOT what's in the bundled tgz), while
+        // bin/ + node_modules/ landed correctly from the new tgz —
+        // half-and-half corruption.
+        //
+        // Fix: extract to ccModule.tmp first, then atomically rename
+        // over ccModule. If ANY step fails, ccModule keeps its prior
+        // state (working or absent) rather than ending up half-written.
+        val tmpModule = File(ccModule.parentFile, "chainlesschain.tmp")
+        if (tmpModule.exists()) {
+            val deleted = tmpModule.deleteRecursively()
+            if (!deleted) {
+                throw java.io.IOException(
+                    "Failed to clean prior tmp extract at ${tmpModule.absolutePath} — " +
+                        "concurrent extract suspected"
+                )
+            }
+        }
+        tmpModule.mkdirs()
 
         context.assets.open(tgzAsset).use { tgzIn ->
             java.util.zip.GZIPInputStream(tgzIn).use { gzIn ->
-                extractTarToDir(gzIn, ccModule)
+                extractTarToDir(gzIn, tmpModule)
             }
+        }
+
+        // Atomically swap: delete stale ccModule + rename tmp into place.
+        if (ccModule.exists()) {
+            val deleted = ccModule.deleteRecursively()
+            if (!deleted) {
+                throw java.io.IOException(
+                    "Failed to delete stale ccModule at ${ccModule.absolutePath} " +
+                        "(file still open by another process?) — leaving tmp at " +
+                        tmpModule.absolutePath
+                )
+            }
+        }
+        val renamed = tmpModule.renameTo(ccModule)
+        if (!renamed) {
+            throw java.io.IOException(
+                "Failed to rename ${tmpModule.absolutePath} → ${ccModule.absolutePath}"
+            )
         }
         wireCcCliSymlinks()
 
@@ -578,6 +663,15 @@ class LocalFilesystemBootstrapper @Inject constructor(
 
     companion object {
         private const val TAG = "LocalFsBootstrap"
+
+        /**
+         * Process-wide bootstrap mutex (NOT instance-scoped). See trap #24
+         * v2 comment near the top of the class — instance mutex didn't
+         * serialise threads on real device because Hilt apparently
+         * produced multiple Bootstrapper instances despite `@Singleton`.
+         * Companion-object scope guarantees one shared mutex per process.
+         */
+        private val processBootstrapMutex = Mutex()
 
         /**
          * Toybox subcommands enabled in `kconfig/android_miniconfig`. When a
