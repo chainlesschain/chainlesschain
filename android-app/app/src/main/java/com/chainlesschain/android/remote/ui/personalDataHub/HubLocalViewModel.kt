@@ -33,6 +33,7 @@ import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsLocalCollector
+import com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
 import com.chainlesschain.android.pdh.travel.TravelCredentialsStore
 import com.chainlesschain.android.pdh.travel.TravelVendor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -84,6 +85,7 @@ class HubLocalViewModel @Inject constructor(
     private val emailCredentials: EmailCredentialsStore,
     private val emailCollector: EmailLocalCollector,
     private val travelCredentials: TravelCredentialsStore,
+    private val kyfw12306Collector: Kyfw12306LocalCollector,
     private val weiboCollector: WeiboLocalCollector,
     private val weiboCredentials: WeiboCredentialsStore,
     private val douyinCollector: DouyinLocalCollector,
@@ -1973,6 +1975,13 @@ class HubLocalViewModel @Inject constructor(
             requestTravelLogin(vendorKey)
             return
         }
+        // §2.5 v0.2 — 12306 走专用 collector，fetch 订单历史写真 events 进
+        // snapshot；其它 vendor 仍走 cookie-scrape generic path（地图三家 +
+        // 携程 v0.2 暂未接 web API，桌面 adapter 暂未对接）。
+        if (v == TravelVendor.KYFW_12306) {
+            syncKyfw12306(card)
+            return
+        }
         val cookie = travelCredentials.getCookie(vendorKey)
         if (cookie.isNullOrBlank()) {
             _state.update { st ->
@@ -2052,6 +2061,98 @@ class HubLocalViewModel @Inject constructor(
                                 errorMessage = hint,
                             )),
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * §2.5 v0.2 — 12306 专用同步路径。走 [Kyfw12306LocalCollector] fetch 订单
+     * 历史 (last 90d) + pending 订单，写 schemaVersion=1 snapshot，cc 入库。
+     * NoCredentials → cookie 过期 (kyfw 30min idle session 超时) 提示重 login；
+     * Ok with everythingEmpty → 用户账号上真没订单（不算错）。
+     */
+    private fun syncKyfw12306(card: TravelCardState) {
+        val vendorKey = TravelVendor.KYFW_12306.key
+        _state.update {
+            it.copy(
+                globalSyncingAdapter = "travel:$vendorKey",
+                travel = it.travel + (vendorKey to card.copy(
+                    isSyncing = true, errorMessage = null,
+                )),
+            )
+        }
+        viewModelScope.launch {
+            val result = kyfw12306Collector.snapshot()
+            when (result) {
+                is Kyfw12306LocalCollector.SnapshotResult.NoCredentials -> {
+                    _state.update { st ->
+                        val cur = st.travel[vendorKey] ?: card
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            travel = st.travel + (vendorKey to cur.copy(
+                                isSyncing = false,
+                                isLoggedIn = false,
+                                errorMessage = "12306 session 已过期（约 30 分钟空闲后失效），请重新登录",
+                            )),
+                        )
+                    }
+                }
+                is Kyfw12306LocalCollector.SnapshotResult.Failed -> {
+                    _state.update { st ->
+                        val cur = st.travel[vendorKey] ?: card
+                        st.copy(
+                            globalSyncingAdapter = null,
+                            travel = st.travel + (vendorKey to cur.copy(
+                                isSyncing = false,
+                                errorMessage = "采集失败: ${result.reason}",
+                            )),
+                        )
+                    }
+                }
+                is Kyfw12306LocalCollector.SnapshotResult.Ok -> {
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = vendorKey,
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            _state.update { st ->
+                                val cur = st.travel[vendorKey] ?: card
+                                val banner = if (r.report.status != "ok" && r.report.error != null) {
+                                    "入库状态: ${r.report.status} (${r.report.error})"
+                                } else if (result.everythingEmpty) {
+                                    "已同步完成 — 近 90 天无车票记录"
+                                } else {
+                                    "已同步 ${result.completedCount} 张已完成车票 + ${result.pendingCount} 张待出行"
+                                }
+                                st.copy(
+                                    globalSyncingAdapter = null,
+                                    travel = st.travel + (vendorKey to cur.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    )),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "syncKyfw12306: cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update { st ->
+                                val cur = st.travel[vendorKey] ?: card
+                                st.copy(
+                                    globalSyncingAdapter = null,
+                                    travel = st.travel + (vendorKey to cur.copy(
+                                        isSyncing = false,
+                                        errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    )),
+                                )
+                            }
+                        }
                     }
                 }
             }

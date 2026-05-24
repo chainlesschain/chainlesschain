@@ -103,7 +103,84 @@ describe("Train12306Adapter", () => {
     const r = assertAdapter(a);
     expect(r.ok).toBe(true);
     if (!r.ok) console.log(r.errors);
-    expect(a.extractMode).toBe("file-import");
+    // v0.2: snapshot mode is the primary path (in-APK collector); legacy
+    // file-import preserved for backward compat. extractMode reports
+    // "device-pull" to match the snapshot-based social adapters family.
+    expect(a.extractMode).toBe("device-pull");
+  });
+
+  it("v0.2 snapshot mode — sync yields ticket events from snapshot file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-snap-"));
+    const inputPath = path.join(dir, "travel-12306.json");
+    fs.writeFileSync(inputPath, JSON.stringify({
+      schemaVersion: 1,
+      snapshottedAt: 1_700_000_000_000,
+      vendor: "12306",
+      events: [
+        {
+          kind: "ticket",
+          id: "ticket-EE123:0",
+          capturedAt: 1_700_001_000_000,
+          orderSequenceNo: "EE123",
+          ticketNumber: "T-1",
+          passengerName: "张三",
+          passengerIdLast6: "123456",
+          trainNumber: "G123",
+          fromStation: "上海虹桥",
+          toStation: "北京南",
+          departureMs: 1_700_001_000_000,
+          arrivalMs: 1_700_018_000_000,
+          seatTypeName: "二等座",
+          coachNo: "05",
+          seatNo: "12A",
+          ticketPrice: 553.5,
+          orderDateMs: 1_699_950_000_000,
+          orderTotalPrice: 553.5,
+          isCompleted: true,
+        },
+      ],
+    }));
+    try {
+      const a = new Train12306Adapter(); // snapshot mode — no account needed
+      const auth = await a.authenticate({ inputPath });
+      expect(auth.ok).toBe(true);
+      expect(auth.mode).toBe("snapshot-file");
+      const raws = [];
+      for await (const r of a.sync({ inputPath })) raws.push(r);
+      expect(raws).toHaveLength(1);
+      expect(raws[0].adapter).toBe("travel-12306");
+      expect(raws[0].kind).toBe("ticket");
+      expect(raws[0].originalId).toMatch(/^12306:ticket:/);
+      expect(raws[0].payload.snapshot).toBe(true);
+      const batch = a.normalize(raws[0]);
+      const v = validateBatch(batch);
+      expect(v.valid).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("v0.2 snapshot mode — rejects schemaVersion mismatch", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-snap-bad-"));
+    const inputPath = path.join(dir, "travel-12306.json");
+    fs.writeFileSync(inputPath, JSON.stringify({
+      schemaVersion: 99,
+      snapshottedAt: Date.now(),
+      events: [],
+    }));
+    try {
+      const a = new Train12306Adapter();
+      let threw = null;
+      try {
+        for await (const _r of a.sync({ inputPath })) { /* drain */ }
+      } catch (err) {
+        threw = err;
+      }
+      expect(threw).toBeTruthy();
+      expect(String(threw.message)).toMatch(/schemaVersion mismatch/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("parseRecords parses JSON array", () => {
@@ -131,7 +208,7 @@ describe("Train12306Adapter", () => {
     expect(recs).toHaveLength(2);
   });
 
-  it("sync yields raw events from a file", async () => {
+  it("legacy file-import mode — yields raw events from JSON file", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "12306-"));
     const dataPath = path.join(dir, "12306.json");
     fs.writeFileSync(dataPath, JSON.stringify([
@@ -151,9 +228,24 @@ describe("Train12306Adapter", () => {
     }
   });
 
-  it("rejects missing account.username", () => {
-    expect(() => new Train12306Adapter({})).toThrow();
-    expect(() => new Train12306Adapter({ account: {} })).toThrow(/username/);
+  it("v0.2: account.username optional at construction (snapshot mode is stateless)", () => {
+    // Previously threw — v0.2 lifts this since snapshot mode doesn't need it.
+    expect(() => new Train12306Adapter({})).not.toThrow();
+    expect(() => new Train12306Adapter()).not.toThrow();
+  });
+
+  it("authenticate without inputPath OR dataPath returns NO_INPUT", async () => {
+    const a = new Train12306Adapter();
+    const r = await a.authenticate({});
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("NO_INPUT");
+  });
+
+  it("authenticate file-import mode without account.username returns NO_ACCOUNT_USERNAME", async () => {
+    const a = new Train12306Adapter({ dataPath: "/no/such/file.json" });
+    const r = await a.authenticate({});
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("NO_ACCOUNT_USERNAME");
   });
 });
 
