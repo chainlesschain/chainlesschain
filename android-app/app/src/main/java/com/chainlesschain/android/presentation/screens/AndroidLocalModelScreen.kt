@@ -140,9 +140,15 @@ private fun ModelSpecCard(uiState: AndroidLocalModelUiState) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = uiState.spec.filename,
+                text = uiState.spec.displayName,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+                text = uiState.spec.filename,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                fontFamily = FontFamily.Monospace,
             )
             Text(
                 text = stringResource(

@@ -457,7 +457,7 @@
 
     <!-- ==================== LLM Test Chat Screen ==================== -->
     <string name="llm_test_title">LLM测试 - %s</string>
-    <string name="llm_test_title_local">LLM测试 - 本机 Gemma</string>
+    <string name="llm_test_title_local">LLM测试 - 本机 (%1$s)</string>
     <string name="llm_test_response_time">响应时间</string>
     <string name="llm_test_total_tokens">总Token</string>
     <string name="llm_test_message_count">消息数</string>
@@ -466,7 +466,7 @@
     <string name="llm_test_api_key_not_configured">未配置%1$s的API密钥，请先在AI配置中设置</string>
 
     <!-- ==================== Android 本机 LLM 模型 ==================== -->
-    <string name="local_model_title">本机模型 (Gemma)</string>
+    <string name="local_model_title">本机模型</string>
     <string name="local_model_refresh">刷新状态</string>
     <string name="local_model_size_label">大小：%1$d MB</string>
     <string name="local_model_url_label">来源：%1$s</string>
@@ -485,7 +485,7 @@
     <string name="local_model_download_start">开始下载…</string>
     <string name="local_model_deleted">已删除模型文件</string>
     <string name="local_model_tips_title">使用提示</string>
-    <string name="local_model_tips_body">• 默认模型 Gemma-3 1B int4 (约 555 MB)，建议 Wi-Fi 环境下载\n• 文件存到 APP 私有目录，已排除自动备份\n• 删除可释放空间，随时可重新下载\n• 下载完成后点 "测试对话" 进入推理验证页面</string>
+    <string name="local_model_tips_body">• 建议 Wi-Fi 环境下载（一次性）\n• 文件存到 APP 私有目录，已排除自动备份\n• 删除可释放空间，随时可重新下载\n• 下载完成后点 "测试对话" 进入推理验证页面</string>
 
     <!-- ==================== Profile ==================== -->
     <string name="profile_center">个人中心</string>

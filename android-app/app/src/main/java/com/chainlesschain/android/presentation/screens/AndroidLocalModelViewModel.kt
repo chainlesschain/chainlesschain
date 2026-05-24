@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * AndroidLocalModelScreen 的 VM —— 管 Gemma-3 1B 本机模型的下载/删除/状态可视化。
+ * AndroidLocalModelScreen 的 VM —— 管本机模型（[ModelManager.defaultSpec]，当前 Qwen2.5
+ * 0.5B Instruct，可在 ModelManager 内 swap）的下载/删除/状态可视化。
  *
  * 设计参考 `HubAskViewModel.observeModelManager()` (commit `c7452de00`) — 同 ModelManager
  * 状态来源、同 5 态映射，新屏单跑独立 collect，避免和 HubAsk 抢 Flow。
