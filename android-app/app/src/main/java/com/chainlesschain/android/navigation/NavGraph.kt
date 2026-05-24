@@ -188,6 +188,11 @@ fun NavGraph(
                 onNavigateToLocalDataHub = { navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 3)) },
                 // 2026-05-24 — PDH 第 6 tab "数据浏览" (b4fa54b6d) 快捷入口
                 onNavigateToPdhBrowser = { navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 5)) },
+                // 2026-05-24 — 首页 ChatInputBar 选本机 RAG 路由 → inline sheet「查看详情」
+                // 跳 PDH tab 4 (本机提问) 并把同一问题作为 askPrefill 自动重 submit。
+                onNavigateToPdhAsk = { question ->
+                    navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 4, askPrefill = question))
+                },
                 // 2026-05-24 — 首页快捷入口跳 AndroidLocalModel（Gemma/Qwen .task 下载 + 测试）
                 onNavigateToLocalModel = { navController.navigate(Screen.AndroidLocalModel.route) },
                 // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
@@ -741,11 +746,18 @@ fun NavGraph(
                 navArgument("tab") {
                     type = NavType.IntType
                     defaultValue = 0
-                }
+                },
+                navArgument("ask") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
             ),
         ) { backStackEntry ->
             val initialTab = backStackEntry.arguments?.getInt("tab") ?: 0
-            PersonalDataHubScreen(initialTab = initialTab)
+            val askPrefill = backStackEntry.arguments?.getString("ask")
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+            PersonalDataHubScreen(initialTab = initialTab, askPrefill = askPrefill)
         }
         composable(
             route = Screen.TerminalList.routePattern,
@@ -1080,8 +1092,15 @@ sealed class Screen(val route: String) {
     // Plan A v0.1 — initialTab path arg lets the home shortcut "本机数据" land
     // straight on the local-data tab without scrolling through remote ones.
     data object PersonalDataHub : Screen("personal_data_hub") {
-        const val routePattern = "personal_data_hub?tab={tab}"
-        fun createRoute(initialTab: Int = 0) = "personal_data_hub?tab=$initialTab"
+        // 2026-05-24 — 加 ask query param：首页 ChatInputBar 选「本机 RAG」路由发问
+        // 后点 inline sheet 的「查看详情」→ 跳 PDH tab 4 并自动 submit 同一问题。
+        // ask 用 URLEncoder.encode 防中文 / 空格 / & 破坏 route。
+        const val routePattern = "personal_data_hub?tab={tab}&ask={ask}"
+        fun createRoute(initialTab: Int = 0, askPrefill: String? = null): String {
+            val base = "personal_data_hub?tab=$initialTab"
+            return if (askPrefill.isNullOrBlank()) base
+            else "$base&ask=${java.net.URLEncoder.encode(askPrefill, "UTF-8")}"
+        }
     }
     // Plan A 远程终端 — list + single session
     // Sub-phase 5-6 (2026-05-17): 加 cwd 可选 query 让项目详情页 Terminal icon

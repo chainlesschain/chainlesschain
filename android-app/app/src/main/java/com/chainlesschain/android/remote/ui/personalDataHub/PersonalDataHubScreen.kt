@@ -40,6 +40,10 @@ import androidx.compose.ui.unit.dp
 fun PersonalDataHubScreen(
     modifier: Modifier = Modifier,
     initialTab: Int = 0,
+    // 2026-05-24 — 首页 ChatInputBar 选「本机 RAG」路由发问 → 「查看详情」
+    // 跳 PDH tab 4 时携带的预填问题；HubLocalAskScreen 监听并自动 submit。
+    // 仅当 initialTab=4 时生效（其它 tab 不消费此参数）。
+    askPrefill: String? = null,
 ) {
     var tab by remember { mutableStateOf(initialTab.coerceIn(0, 5)) }
     val titles = listOf("提问", "Adapter", "审计", "本机数据", "本机提问", "数据浏览")
@@ -63,7 +67,7 @@ fun PersonalDataHubScreen(
             1 -> HubAdaptersScreen()
             2 -> HubAuditScreen()
             3 -> HubLocalScreen()
-            4 -> HubLocalAskScreen()
+            4 -> HubLocalAskScreen(askPrefill = askPrefill)
             5 -> HubBrowserScreen()
             else -> Text("?", color = MaterialTheme.colorScheme.error)
         }

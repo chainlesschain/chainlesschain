@@ -55,6 +55,8 @@ import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.ai.presentation.ConversationViewModel
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.presentation.screens.peers.PairedDevicesViewModel
+import com.chainlesschain.android.remote.ui.personalDataHub.HubLocalViewModel
+import com.chainlesschain.android.remote.ui.personalDataHub.LlmRoute
 import java.util.Locale
 import timber.log.Timber
 
@@ -98,14 +100,29 @@ fun NewHomeScreen(
     onNavigateToScanDesktopPairing: () -> Unit = {},
     // v1.3+ 点已连接桌面卡片 → 进 RemoteControl 操作页（带 pcPeerId）
     onNavigateToRemoteOperate: (String) -> Unit = {},
+    // 2026-05-24 — 首页 ChatInputBar 路由 = LOCAL_DEVICE/LAN/PC_LOCAL 时点 inline sheet
+    // 「查看详情」 → 跳 PDH tab 4 本机提问 + 自动重 submit 拿完整引用。
+    onNavigateToPdhAsk: (question: String) -> Unit = {},
     socialUnreadCount: Int = 0,
     homeStatusViewModel: HomeStatusViewModel = hiltViewModel(),
     pairedDevicesViewModel: PairedDevicesViewModel = hiltViewModel(),
     conversationViewModel: ConversationViewModel = hiltViewModel(),
+    // 2026-05-24 — 首页 ChatInputBar 4 路 LLM selector + 本机 vault RAG 分流路径。
+    // 用 hiltViewModel() 拿 NavBackStackEntry-scoped 实例 — 与 PDH tab 4 同名 VM 实例
+    // 不共享 in-memory state（一个在 Home backStackEntry，一个在 PersonalDataHub
+    // backStackEntry），但 disk-back 字段（model 状态、sync 时间）共享。
+    hubLocalViewModel: HubLocalViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLlmConfigured by homeStatusViewModel.isLlmConfigured.collectAsStateWithLifecycle()
     val voiceState by homeStatusViewModel.voiceState.collectAsStateWithLifecycle()
+    // 2026-05-24 — 4 路 LLM selector + RAG 分流 state
+    val hubState by hubLocalViewModel.state.collectAsState()
+    val askState = hubState.ask
+    // 用户提交后 inline sheet 是否打开 — 只在「本机 RAG」路径下显示（云走 nav 跳转）
+    var showAnswerSheet by remember { mutableStateOf(false) }
+    // 用户最近一次从首页发出的问题 — 「查看详情」跳 PDH tab 4 时携带
+    var lastAskedFromHome by remember { mutableStateOf("") }
     // v1.3+：首页桌面连接卡读 *持久化* 列表（不再读 live WS 连接 — 扫码完信令
     // 立刻断，那个列表永远空，首页永远显示「未连接」）。
     val pairedDesktops by pairedDevicesViewModel.persistedDesktops.collectAsStateWithLifecycle()
@@ -251,6 +268,15 @@ fun NewHomeScreen(
             else -> Unit
         }
 
+        // 2026-05-24 — ChatInputBar 上方一行 4 路 chip。
+        // 默认 LOCAL_DEVICE（端侧 + 本机 vault RAG）；不可用的路用 disabled 灰色 chip。
+        // 用户问个人数据相关 → 选本机/PC/局域网；问"今天天气"等无关 → 切云 LLM。
+        HomeAskRouteChips(
+            askState = askState,
+            isLoading = askState.isAsking,
+            onRouteSelected = { hubLocalViewModel.setAskRoute(it) },
+        )
+
         // 底部输入框
         ChatInputBar(
             value = inputText,
@@ -259,7 +285,15 @@ fun NewHomeScreen(
                 if (message.isNotBlank()) {
                     val toSend = message
                     inputText = ""
-                    onNavigateToAIChatWithMessage(toSend)
+                    when (resolveHomeSendAction(askState.effectiveRoute)) {
+                        HomeSendAction.NAV_CLOUD_CHAT -> onNavigateToAIChatWithMessage(toSend)
+                        HomeSendAction.INVOKE_LOCAL_RAG -> {
+                            lastAskedFromHome = toSend
+                            showAnswerSheet = true
+                            hubLocalViewModel.onAskQuestionChanged(toSend)
+                            hubLocalViewModel.askQuestion()
+                        }
+                    }
                 }
             },
             onVoiceInput = {
@@ -282,6 +316,25 @@ fun NewHomeScreen(
                     }
                 }
             }
+        )
+    }
+
+    // 2026-05-24 — 本机 RAG 答案 inline sheet。打开条件：用户从首页发了一次本机
+    // 路径的问题（showAnswerSheet=true）。
+    // 进度（isAsking）显 spinner；答案到 inline 显前 N 行 + 引用 chip + 「查看详情」
+    // 按钮跳 PDH tab 4 用同问题重新 submit 拿完整引用。
+    if (showAnswerSheet) {
+        HomeRagAnswerSheet(
+            question = lastAskedFromHome,
+            askState = askState,
+            onDismiss = {
+                showAnswerSheet = false
+                hubLocalViewModel.clearAskAnswer()
+            },
+            onViewDetail = {
+                showAnswerSheet = false
+                onNavigateToPdhAsk(lastAskedFromHome)
+            },
         )
     }
 }
@@ -1034,4 +1087,209 @@ enum class FeatureGroup {
     DEVICE_CONNECTION,
     DATA_STATISTICS,
     SYSTEM
+}
+
+/**
+ * 2026-05-24 — 首页 ChatInputBar send 时的分流决策。CLOUD_ANDROID 路径不带 RAG，
+ * 走老 AI 聊天屏；其他 3 路全经本机 vault RAG（HubLocalViewModel.askQuestion）。
+ * 抽成 enum + 纯函数让分流策略 JVM 可测，避免内联在 Composable lambda 里漂移。
+ */
+enum class HomeSendAction { NAV_CLOUD_CHAT, INVOKE_LOCAL_RAG }
+
+fun resolveHomeSendAction(route: LlmRoute): HomeSendAction = when (route) {
+    LlmRoute.CLOUD_ANDROID -> HomeSendAction.NAV_CLOUD_CHAT
+    LlmRoute.LOCAL_DEVICE,
+    LlmRoute.LAN_OLLAMA,
+    LlmRoute.PC_LOCAL -> HomeSendAction.INVOKE_LOCAL_RAG
+}
+
+/**
+ * 2026-05-24 — 首页 ChatInputBar 上方的 4 路 LLM selector chip 行。
+ *
+ * 默认显示 4 个 chip（本机 / 桌面 / 局域网 / 云），不可用的 chip 灰显且不可点。
+ * 用户问个人数据相关 → 选本机/PC/局域网（带 vault RAG）；问"今天天气"无关问题
+ * → 切云 LLM（无 RAG，走桌面 AI 聊天屏老路径）。
+ *
+ * 与 HubAskCard 的 4 路 selector 同语义但形态压缩成水平 chip 适配首页底部。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeAskRouteChips(
+    askState: HubLocalViewModel.AskCardState,
+    isLoading: Boolean,
+    onRouteSelected: (LlmRoute) -> Unit,
+) {
+    val current = askState.effectiveRoute
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HomeRouteChip(
+            label = "本机",
+            sublabel = "vault RAG",
+            selected = current == LlmRoute.LOCAL_DEVICE,
+            enabled = !isLoading && askState.localDeviceAvailable,
+            onClick = { onRouteSelected(LlmRoute.LOCAL_DEVICE) },
+        )
+        HomeRouteChip(
+            label = "桌面",
+            sublabel = "PC Ollama",
+            selected = current == LlmRoute.PC_LOCAL,
+            enabled = !isLoading && askState.pcLocalAvailable,
+            onClick = { onRouteSelected(LlmRoute.PC_LOCAL) },
+        )
+        HomeRouteChip(
+            label = "局域网",
+            sublabel = "LAN Ollama",
+            selected = current == LlmRoute.LAN_OLLAMA,
+            enabled = !isLoading && askState.lanAvailable,
+            onClick = { onRouteSelected(LlmRoute.LAN_OLLAMA) },
+        )
+        HomeRouteChip(
+            label = "云",
+            sublabel = "无 RAG",
+            selected = current == LlmRoute.CLOUD_ANDROID,
+            enabled = !isLoading && askState.cloudAvailable,
+            onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeRouteChip(
+    label: String,
+    sublabel: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        enabled = enabled,
+        label = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(sublabel, style = MaterialTheme.typography.labelSmall)
+            }
+        },
+    )
+}
+
+/**
+ * 2026-05-24 — 首页 RAG 答案 inline ModalBottomSheet。
+ *
+ * 触发：用户在 ChatInputBar 选了本机/PC/局域网路由后点发送。
+ * 内容：问题回放 + 进度 spinner（asking） + 答案前 N 行 + 引用 chip + 「查看详情」
+ * 跳 PDH tab 4「本机提问」用同问题重新 submit 拿完整引用 + delete answer。
+ *
+ * 设计：不显完整引用 sheet —— 首页定位是「快速看一眼」；想看引用原文走「查看详情」。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeRagAnswerSheet(
+    question: String,
+    askState: HubLocalViewModel.AskCardState,
+    onDismiss: () -> Unit,
+    onViewDetail: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = "提问 · 本机数据",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = question,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            when {
+                askState.isAsking -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "正在查本机数据并生成答案…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                askState.errorMessage != null -> {
+                    Text(
+                        text = askState.errorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                askState.answer != null -> {
+                    val ans = askState.answer
+                    // 首页 inline 预览压到 ~6 行；想看完整走「查看详情」跳 PDH tab 4
+                    val preview = if (ans.length > 280) ans.take(280) + "…" else ans
+                    Text(
+                        text = preview,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (askState.citations.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "依据 ${askState.citations.size} 条本机记录",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (askState.llmName != null) {
+                        Spacer(Modifier.height(2.dp))
+                        val tag = if (askState.isLocal) "本地" else "云端"
+                        Text(
+                            text = "$tag · ${askState.llmName} · ${askState.durationMs} ms",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "等待回复…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) { Text("关闭") }
+                Spacer(Modifier.width(8.dp))
+                FilledTonalButton(
+                    onClick = onViewDetail,
+                    enabled = !askState.isAsking,
+                ) {
+                    Text("查看详情")
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
 }

@@ -16,8 +16,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,8 +45,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun HubLocalAskScreen(
     viewModel: HubLocalViewModel = hiltViewModel(),
+    // 2026-05-24 — 首页 ChatInputBar 「查看详情」跳过来时携带的预填问题。
+    // 非空且与当前 ask state 不同时一次性自动 submit；用 consumed 防止 nav 回退后再触发。
+    askPrefill: String? = null,
 ) {
     val state by viewModel.state.collectAsState()
+    var consumedPrefill by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(askPrefill) {
+        val q = askPrefill?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        if (q == consumedPrefill) return@LaunchedEffect
+        consumedPrefill = q
+        viewModel.onAskQuestionChanged(q)
+        viewModel.askQuestion()
+    }
 
     Scaffold { padding ->
         LazyColumn(
