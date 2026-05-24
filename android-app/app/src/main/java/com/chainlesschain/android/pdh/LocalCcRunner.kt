@@ -560,6 +560,10 @@ class LocalCcRunner @Inject constructor(
         val sourceAdapter: String?,
         val summary: String?,
         val rawJson: String,
+        // Stop-gap for parallel-session HubBrowserRenderers.kt (commit 7b9815381) —
+        // category renderers (chat / email) read event.actor for from-label。
+        // 默认 null，等并行 session 在 _runCcJson() / queryEvents JSON 解析里补 actor 字段后即可生效。
+        val actor: String? = null,
     )
 
     sealed class QueryEventsResult {
@@ -993,6 +997,17 @@ class LocalCcRunner @Inject constructor(
             }
         }
 
+        // Telemetry for "is the small-model budget really making it to cc?"
+        // Grep logcat: `adb logcat | grep PDH-ASK` to see this line on every ask.
+        Timber.d(
+            "PDH-ASK askQuestion: q=%s acceptNonLocal=%s maxFacts=%s maxQueryLimit=%s ollamaUrl=%s",
+            question.take(60),
+            acceptNonLocal,
+            maxFacts,
+            maxQueryLimit,
+            ollamaUrl ?: "(default)",
+        )
+
         val envList = ptyEnvironment.envp().toList()
         val pb = ProcessBuilder(command).apply {
             val envMap = environment()
@@ -1058,6 +1073,15 @@ class LocalCcRunner @Inject constructor(
         val exit = process.exitValue()
         val stdout = stdoutBuilder.toString()
         val stderr = stderrBuilder.toString()
+
+        // Surface cc-side budget telemetry to logcat regardless of exit code.
+        // AnalysisEngine writes `[PDH-ASK] ask effMaxFacts=… gathered=…` lines
+        // to stderr — without this they get swallowed on the success path.
+        if (stderr.isNotEmpty()) {
+            stderr.lineSequence()
+                .filter { it.contains("[PDH-ASK]") }
+                .forEach { Timber.d("PDH-ASK %s", it.removePrefix("[PDH-ASK] ").trim()) }
+        }
 
         if (exit != 0) {
             val errMsg = try {

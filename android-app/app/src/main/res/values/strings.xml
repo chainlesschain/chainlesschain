@@ -92,6 +92,7 @@
     <string name="feature_remote_control">Remote Control</string>
     <string name="feature_local_model">On-Device Model</string>
     <string name="feature_check_update">Check Updates</string>
+    <string name="feature_pdh_browser">Data Browser</string>
 
     <!-- ==================== Settings Screen ==================== -->
     <string name="settings_title">Settings</string>

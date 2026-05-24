@@ -92,6 +92,7 @@
     <string name="feature_remote_control">远程控制</string>
     <string name="feature_local_model">本机模型</string>
     <string name="feature_check_update">版本更新</string>
+    <string name="feature_pdh_browser">数据浏览</string>
 
     <!-- ==================== Settings Screen ==================== -->
     <string name="settings_title">设置</string>

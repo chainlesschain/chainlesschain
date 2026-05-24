@@ -86,8 +86,10 @@ fun NewHomeScreen(
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
-    // Plan A v0.1 — 本机数据中台入口；走 in-APK cc + ContentResolver/PackageManager。
+    // Plan A v0.1 — 本机数据中台入口（数据采集 tab 3）；走 in-APK cc + ContentResolver/PackageManager。
     onNavigateToLocalDataHub: () -> Unit = {},
+    // 2026-05-24 — PDH 第 6 个 tab "数据浏览"（vault browser，b4fa54b6d）的快捷入口
+    onNavigateToPdhBrowser: () -> Unit = {},
     // 2026-05-24 — 首页快捷入口跳 AndroidLocalModelScreen（Gemma/Qwen .task 下载 + 测试）
     onNavigateToLocalModel: () -> Unit = {},
     // 2026-05-24 — 首页 更多 sheet "版本更新"，触发 UpdateViewModel.checkForUpdates(silent=false)
@@ -218,6 +220,7 @@ fun NewHomeScreen(
                 onNavigateToLocalTerminal = onNavigateToLocalTerminal,
                 onNavigateToP2P = onNavigateToP2P,
                 onNavigateToLocalDataHub = onNavigateToLocalDataHub,
+                onNavigateToPdhBrowser = onNavigateToPdhBrowser,
                 onNavigateToLocalModel = onNavigateToLocalModel,
                 onCheckForUpdates = onCheckForUpdates,
                 socialUnreadCount = socialUnreadCount
@@ -625,6 +628,7 @@ fun FunctionEntryGrid(
     onNavigateToLocalTerminal: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
     onNavigateToLocalDataHub: () -> Unit = {},
+    onNavigateToPdhBrowser: () -> Unit = {},
     onNavigateToLocalModel: () -> Unit = {},
     onCheckForUpdates: () -> Unit = {},
     socialUnreadCount: Int = 0
@@ -645,6 +649,7 @@ fun FunctionEntryGrid(
         onNavigateToRemoteControl,
         onNavigateToLocalTerminal,
         onNavigateToLocalDataHub,
+        onNavigateToPdhBrowser,
         onNavigateToLocalModel,
         onCheckForUpdates,
         socialUnreadCount
@@ -661,16 +666,19 @@ fun FunctionEntryGrid(
             FunctionEntryItem(context.getString(R.string.feature_my_qrcode), Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
             FunctionEntryItem(context.getString(R.string.feature_scan_qrcode), Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
-            // Row 3：版本更新 + 文件浏览 (+ auto 更多)
-            // user feedback 2026-05-24 round 2：版本更新 和 项目管理 swap —— 版本更新 promote 到 row 3 cell 1，项目管理 demoted 到 更多 sheet
+            // Row 3：版本更新 + 数据浏览 (+ auto 更多)
+            // user feedback 2026-05-24 round 3：数据浏览 promote 到 row 3 cell 2（替代 文件浏览），
+            // 接 PDH 第 6 tab vault browser (b4fa54b6d)；文件浏览 demoted 到 更多 sheet。
             FunctionEntryItem(context.getString(R.string.feature_check_update), Icons.Outlined.SystemUpdate, Color(0xFF607D8B), FeatureGroup.SYSTEM, onClick = onCheckForUpdates),
-            FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
+            FunctionEntryItem(context.getString(R.string.feature_pdh_browser), Icons.Outlined.ManageSearch, Color(0xFF26A69A), FeatureGroup.CORE_WORK, onClick = onNavigateToPdhBrowser),
 
             // 更多 sheet items —— take(8) 之后这些走 ModalBottomSheet
             // 社交广场 demoted from row 2 cell 1（让位 本机模型）
             FunctionEntryItem(context.getString(R.string.feature_social_feed), Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed, badgeCount = socialUnreadCount),
             // 项目管理 — demoted from row 3 cell 1（让位 版本更新）
             FunctionEntryItem(context.getString(R.string.feature_project_management), Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            // 文件浏览 — demoted from row 3 cell 2（让位 数据浏览）
+            FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // 知识库 — demoted from row 3 cell 3
             FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
             // AI 对话 — 依赖远控桌面 LLM，离线不可用
