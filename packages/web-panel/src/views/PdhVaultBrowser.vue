@@ -72,9 +72,9 @@
           />
 
           <div class="results-list">
-            <GenericCardRenderer
-              v-for="ev in store.results"
-              :key="ev.id"
+            <RendererDispatcher
+              v-for="(ev, idx) in store.results"
+              :key="`r-${idx}-${ev.id}`"
               :event="ev"
             />
           </div>
@@ -101,7 +101,7 @@ import { usePdhBrowserStore } from "../stores/pdhBrowser.js";
 import { categoryLabel } from "../utils/pdhCategories.js";
 import CategorySidebar from "../components/pdh/CategorySidebar.vue";
 import SearchFilterBar from "../components/pdh/SearchFilterBar.vue";
-import GenericCardRenderer from "../components/pdh/renderers/GenericCardRenderer.vue";
+import RendererDispatcher from "../components/pdh/renderers/RendererDispatcher.vue";
 
 const store = usePdhBrowserStore();
 
