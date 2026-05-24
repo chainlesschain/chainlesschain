@@ -92,6 +92,7 @@ class HubLocalViewModel @Inject constructor(
     private val xhsCredentials: XhsCredentialsStore,
     private val toutiaoCollector: ToutiaoLocalCollector,
     private val toutiaoCredentials: ToutiaoCredentialsStore,
+    private val toutiaoSignBridge: com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge,
     private val kuaishouCollector: KuaishouLocalCollector,
     private val kuaishouCredentials: KuaishouCredentialsStore,
     private val qqCollector: QQLocalCollector,
@@ -3038,7 +3039,23 @@ class HubLocalViewModel @Inject constructor(
                     toutiao = it.toutiao.copy(isSyncing = true, errorMessage = null),
                 )
             }
-            val result = toutiaoCollector.snapshot()
+            // v0.3 — wire the sign bridge so the collector can attempt
+            // feed/comments/search. The bridge gracefully degrades when its
+            // WebView fails to load or acrawler.js rotates its function
+            // name — collector then falls back to v0.2 profile-only.
+            // Bridge holds a ~30-50MB hidden WebView while warm; we shut it
+            // down right after snapshot to free the heap (re-warm next sync
+            // costs ~3s, dominated by the user's manual click anyway).
+            toutiaoCollector.signProvider = toutiaoSignBridge
+            val result = try {
+                toutiaoCollector.snapshot()
+            } finally {
+                try {
+                    toutiaoSignBridge.shutdown()
+                } catch (t: Throwable) {
+                    Timber.w(t, "HubLocalViewModel: toutiaoSignBridge.shutdown threw")
+                }
+            }
             when (result) {
                 is ToutiaoLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {
@@ -3074,18 +3091,27 @@ class HubLocalViewModel @Inject constructor(
                     )) {
                         is LocalCcRunner.CcResult.Ok -> {
                             _state.update {
+                                val banner = if (r.report.status != "ok" && r.report.error != null) {
+                                    "入库状态: ${r.report.status} (${r.report.error})"
+                                } else if (result.v03Attempted &&
+                                    (result.readCount + result.collectionCount + result.searchCount) > 0
+                                ) {
+                                    // v0.3 happy path — bridge worked, counts are real.
+                                    "已同步 profile + ${result.readCount} 推荐 / ${result.collectionCount} 收藏 / ${result.searchCount} 搜索"
+                                } else if (result.v03Attempted) {
+                                    // v0.3 attempted but counts all 0 — bridge warm-up failed
+                                    // or acrawler.js rotated (lastErrorCode=-99 from ApiClient).
+                                    "已同步账号 profile。v0.3 签名 bridge 未就绪 — 历史/收藏/搜索本次未抓到（代码 ${result.lastErrorCode}），稍后再同步。"
+                                } else {
+                                    "已同步账号 profile（v0.2 含昵称/头像/粉丝数）。历史/收藏/搜索需 v0.3 _signature 签名接通。"
+                                }
                                 it.copy(
                                     globalSyncingAdapter = null,
                                     toutiao = it.toutiao.copy(
                                         isSyncing = false,
                                         lastSyncAt = result.snapshottedAt,
                                         lastSyncCount = r.report.ingested,
-                                        // v0.2 honest banner — 透出 scope 限制
-                                        errorMessage = if (r.report.status != "ok" && r.report.error != null) {
-                                            "入库状态: ${r.report.status} (${r.report.error})"
-                                        } else {
-                                            "已同步账号 profile（v0.2 含昵称/头像/粉丝数）。历史/收藏/搜索需 v0.3 _signature 签名接通。"
-                                        },
+                                        errorMessage = banner,
                                     ),
                                 )
                             }

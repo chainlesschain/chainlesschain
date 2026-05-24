@@ -26,6 +26,7 @@ import com.chainlesschain.android.pdh.social.kuaishou.KuaishouCredentialsStore
 import com.chainlesschain.android.pdh.social.kuaishou.KuaishouLocalCollector
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoCredentialsStore
 import com.chainlesschain.android.pdh.social.toutiao.ToutiaoLocalCollector
+import com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge
 import com.chainlesschain.android.pdh.social.weibo.WeiboCredentialsStore
 import com.chainlesschain.android.pdh.social.weibo.WeiboLocalCollector
 import com.chainlesschain.android.pdh.social.xiaohongshu.XhsCredentialsStore
@@ -91,6 +92,7 @@ class HubLocalViewModelTest {
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
     private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
+    private lateinit var toutiaoSignBridge: ToutiaoSignBridge
     private lateinit var kuaishouCollector: KuaishouLocalCollector
     private lateinit var kuaishouCredentials: KuaishouCredentialsStore
     private lateinit var qqCollector: QQLocalCollector
@@ -147,6 +149,7 @@ class HubLocalViewModelTest {
         xhsCredentials = mockk(relaxed = true)
         toutiaoCollector = mockk(relaxed = true)
         toutiaoCredentials = mockk(relaxed = true)
+        toutiaoSignBridge = mockk(relaxed = true)
         every { toutiaoCredentials.hasCredentials() } returns false
         every { toutiaoCredentials.getUid() } returns null
         every { toutiaoCredentials.getCookie() } returns null
@@ -248,6 +251,7 @@ class HubLocalViewModelTest {
             xhsCredentials,
             toutiaoCollector,
             toutiaoCredentials,
+            toutiaoSignBridge,
             kuaishouCollector,
             kuaishouCredentials,
             qqCollector,
@@ -3312,6 +3316,9 @@ class HubLocalViewModelTest {
                 ToutiaoLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-toutiao.json",
                     profileCount = 1,
+                    readCount = 0,
+                    collectionCount = 0,
+                    searchCount = 0,
                     totalEvents = 1,
                     everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
