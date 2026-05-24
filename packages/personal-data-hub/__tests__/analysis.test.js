@@ -723,3 +723,180 @@ describe("AnalysisEngine per-call budget overrides", () => {
     expect(queryEventsCalls[0].limit).toBe(200);
   });
 });
+
+// ─── intent=latest routing — newest-few path ─────────────────────────────
+//
+// 2026-05-24 follow-up — _gatherFacts now routes intent=latest WITHOUT a
+// time window to a hard-capped queryEvents({ limit: 3 }) and skips
+// persons/items entirely. Frees prompt budget for the LLM to actually read
+// row content instead of skimming 200 rows. Memory:
+// pdh_analysis_engine_intent_routing.md.
+//
+// Guards covered:
+//   (a) intent=latest + no timeWindow → ≤3 events, persons/items NOT touched
+//   (b) intent=latest + timeWindow ("最近 30 天") → fall through (list semantics)
+//   (c) intent=latest + 0 results → fall back to default (persons+items pulled)
+//   (d) intent=latest + adapter filter → respects filter on the narrow path
+//   (e) parseQuery sanity: "最近的订单" → intent=latest, timeWindow=null
+
+describe("AnalysisEngine._gatherFacts intent=latest routing", () => {
+  it("(a) latest without timeWindow → ≤3 events, persons/items NOT queried", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return Array.from({ length: 10 }, (_, i) => ({
+          id: "e-" + i, type: "event", subtype: "order",
+          occurredAt: Date.now() - i * 1000, actor: "self",
+          ingestedAt: Date.now(),
+          source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+        })).slice(0, q.limit);
+      },
+      queryPersons: vi.fn(() => []),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 10, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("最近的订单");
+
+    expect(r.parsed.intent).toBe("latest");
+    expect(r.parsed.timeWindow).toBeNull();
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(3);
+    expect(r.facts).toHaveLength(3);
+    expect(r.facts.every((f) => f.type === "event")).toBe(true);
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryItems).not.toHaveBeenCalled();
+  });
+
+  it("(b) latest WITH timeWindow ('最近 30 天') → falls through to default broader path", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return [];
+      },
+      queryPersons: vi.fn(() => []),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("最近 30 天的消费", { now: NOW });
+
+    expect(r.parsed.intent).toBe("latest");
+    expect(r.parsed.timeWindow).not.toBeNull();
+    // Default path: limit=200 (DEFAULT_MAX_QUERY_LIMIT), NOT 3.
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].limit).toBe(200);
+    // Default path also tries persons + items (budget remaining after 0 events).
+    expect(fakeVault.queryPersons).toHaveBeenCalled();
+    expect(fakeVault.queryItems).toHaveBeenCalled();
+  });
+
+  it("(c) latest with 0 results → fallback pulls persons + items via default path", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return []; // both narrow + default calls return 0 events
+      },
+      queryPersons: ({ limit }) => Array.from({ length: Math.min(limit, 2) }, (_, i) => ({
+        id: "p-" + i, type: "person", subtype: "contact", names: ["P" + i],
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryItems: ({ limit }) => Array.from({ length: Math.min(limit, 2) }, (_, i) => ({
+        id: "i-" + i, type: "item", subtype: "other", name: "I" + i,
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 0, persons: 2, places: 0, items: 2, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("最近的订单");
+
+    // Narrow path (limit=3) called first, returned 0 → fall through to default
+    // (limit=200) — so we expect 2 queryEvents calls total.
+    expect(queryEventsCalls).toHaveLength(2);
+    expect(queryEventsCalls[0].limit).toBe(3);
+    expect(queryEventsCalls[1].limit).toBe(200);
+    // Default path pulled persons + items; user gets a useful answer instead of "no-facts".
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(2);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(2);
+  });
+
+  it("(d) latest passes adapter filter to the narrow queryEvents call", async () => {
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return Array.from({ length: 3 }, (_, i) => ({
+          id: "e-" + i, type: "event", subtype: "order",
+          occurredAt: Date.now() - i * 1000, actor: "self",
+          ingestedAt: Date.now(),
+          source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+        }));
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 3, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("最近在淘宝买的");
+
+    expect(queryEventsCalls).toHaveLength(1);
+    expect(queryEventsCalls[0].adapter).toBe("taobao");
+    expect(queryEventsCalls[0].limit).toBe(3);
+  });
+
+  it("(e) parseQuery sanity: '最近的订单' → intent=latest, timeWindow=null", () => {
+    const { parseQuery } = require("../lib/query-parser");
+    const q = parseQuery("最近的订单");
+    expect(q.intent).toBe("latest");
+    expect(q.timeWindow).toBeNull();
+    // Sanity: 最近 N 天 still produces both (list-with-window semantics on
+    // the engine side, but parser still tags intent=latest because "最近"
+    // matches. Engine's heuristic handles the disambiguation.)
+    const q2 = parseQuery("最近 30 天");
+    expect(q2.intent).toBe("latest");
+    expect(q2.timeWindow).not.toBeNull();
+  });
+
+  it("(f) latest narrow path respects per-call maxFacts cap (Android small-model 20 budget)", async () => {
+    // If caller passes maxFacts=2 (tighter than LATEST_INTENT_FACT_LIMIT=3),
+    // honor the tighter cap — small-model callers know their budget best.
+    const queryEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (q) => {
+        queryEventsCalls.push(q);
+        return Array.from({ length: q.limit }, (_, i) => ({
+          id: "e-" + i, type: "event", subtype: "order",
+          occurredAt: Date.now() - i * 1000, actor: "self",
+          ingestedAt: Date.now(),
+          source: { adapter: "taobao", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+        }));
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 2, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    await engine.ask("最近消息", { maxFacts: 2 });
+    expect(queryEventsCalls[0].limit).toBe(2);
+  });
+});

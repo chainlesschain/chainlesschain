@@ -33,6 +33,14 @@ const { toError } = require("./adapter-spec");
 const DEFAULT_MAX_FACTS = 80;
 const DEFAULT_MAX_QUERY_LIMIT = 200;
 
+// intent=latest hard cap when no time window is set. "最近的订单" / "最新消息"
+// want the newest 1-3 rows, not 80 — freeing prompt budget lets the LLM
+// actually read the row content instead of skimming. Memory:
+// pdh_analysis_engine_intent_routing.md. When the user also gives a time
+// window ("最近 30 天的消费") we treat it as list-with-window and fall
+// through to the default broader path — see _gatherFacts.
+const LATEST_INTENT_FACT_LIMIT = 3;
+
 class AnalysisEngine {
   /**
    * @param {object} opts
@@ -116,6 +124,20 @@ class AnalysisEngine {
     // Gather facts from the vault.
     const facts = this._gatherFacts(parsed, { maxFacts: effMaxFacts, maxQueryLimit: effMaxQueryLimit });
 
+    // Telemetry: prove the budget is reaching the engine. Goes to stderr so
+    // the Android side's stderrBuilder + logcat can surface it.
+    // Grep: `adb logcat | grep PDH-ASK`.
+    try {
+      process.stderr.write(
+        `[PDH-ASK] ask effMaxFacts=${effMaxFacts} effMaxQueryLimit=${effMaxQueryLimit} ` +
+          `gathered=${facts.length} (events=${facts.filter((f) => f.type === "event").length} ` +
+          `persons=${facts.filter((f) => f.type === "person").length} ` +
+          `items=${facts.filter((f) => f.type === "item").length}) ` +
+          `adapter=${(parsed.filters && parsed.filters.adapter) || "*"} ` +
+          `intent=${parsed.intent || "*"}\n`
+      );
+    } catch (_e) { /* stderr write failures are non-fatal */ }
+
     // Optional RAG augmentation.
     let ragContext = [];
     if (this.ragRetriever) {
@@ -152,6 +174,16 @@ class AnalysisEngine {
       maxFacts: effMaxFacts,
       vaultTotals: this._gatherVaultTotals(),
     });
+
+    // Telemetry: post-cap prompt size + truncation count. If `truncated` > 0
+    // the LLM is seeing fewer facts than _gatherFacts found.
+    try {
+      const promptChars = messages.reduce((s, m) => s + (m.content || "").length, 0);
+      process.stderr.write(
+        `[PDH-ASK] prompt factCount=${factCount} truncated=${truncated} ` +
+          `messages=${messages.length} promptChars=${promptChars}\n`
+      );
+    } catch (_e) { /* non-fatal */ }
 
     // Call LLM. **skipCache: true** is critical: PDH answers depend on
     // current vault state (new contacts / events / items ingested between
@@ -350,6 +382,30 @@ class AnalysisEngine {
         ? budget.maxQueryLimit
         : this.maxQueryLimit;
 
+    // Intent routing — intent=latest WITHOUT a time window means "newest
+    // few" (e.g. "最近的订单", "最新消息"). Hard-cap to
+    // LATEST_INTENT_FACT_LIMIT and skip persons/items entirely: the user
+    // is asking about an event timeline, not their contact list.
+    //
+    // When timeWindow IS set ("最近 30 天的消费" hits BOTH parseTimeWindow
+    // AND intent=latest), fall through to the default list-with-window
+    // path — a user asking for 30 days doesn't want 3 newest rows.
+    //
+    // Fallback: if the targeted query returns 0 events, fall through to
+    // the broader default behavior. Protects against low-confidence
+    // classifier picks (see pdh_analysis_engine_intent_routing memory).
+    if (parsed.intent === "latest" && !parsed.timeWindow) {
+      const latestQ = {
+        limit: Math.min(LATEST_INTENT_FACT_LIMIT, effMaxFacts),
+      };
+      if (parsed.filters && parsed.filters.adapter) {
+        latestQ.adapter = parsed.filters.adapter;
+      }
+      const latestEvents = this.vault.queryEvents(latestQ);
+      if (latestEvents.length > 0) return latestEvents;
+      // 0 results → fall through to default broader path below.
+    }
+
     // Deliberately do NOT pass parsed.filters.subtype as a vault filter:
     // the keyword heuristic (`order` vs `payment` vs `transfer`) is too
     // crude to reliably narrow without false negatives. E.g. a user
@@ -449,4 +505,5 @@ module.exports = {
   AnalysisEngine,
   DEFAULT_MAX_FACTS,
   DEFAULT_MAX_QUERY_LIMIT,
+  LATEST_INTENT_FACT_LIMIT,
 };
