@@ -3080,11 +3080,11 @@ class HubLocalViewModel @Inject constructor(
                                         isSyncing = false,
                                         lastSyncAt = result.snapshottedAt,
                                         lastSyncCount = r.report.ingested,
-                                        // v0.1 honest banner — 透出 scope 限制
+                                        // v0.2 honest banner — 透出 scope 限制
                                         errorMessage = if (r.report.status != "ok" && r.report.error != null) {
                                             "入库状态: ${r.report.status} (${r.report.error})"
                                         } else {
-                                            "已同步账号信息（v0.1）。历史/收藏/搜索需 v0.2 _signature 签名接通。"
+                                            "已同步账号 profile（v0.2 含昵称/头像/粉丝数）。历史/收藏/搜索需 v0.3 _signature 签名接通。"
                                         },
                                     ),
                                 )
@@ -3245,7 +3245,7 @@ class HubLocalViewModel @Inject constructor(
                                         errorMessage = if (r.report.status != "ok" && r.report.error != null) {
                                             "入库状态: ${r.report.status} (${r.report.error})"
                                         } else {
-                                            "已同步账号信息（v0.1）。历史/收藏/搜索需 v0.2 NS_sig3 签名接通。"
+                                            "已同步账号 profile（v0.2 含昵称/头像 cookie 解析）。推荐/收藏/搜索需 v0.3 NS_sig3 签名接通。"
                                         },
                                     ),
                                 )

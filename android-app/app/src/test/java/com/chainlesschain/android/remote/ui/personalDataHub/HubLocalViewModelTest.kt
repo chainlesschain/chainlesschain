@@ -3260,7 +3260,7 @@ class HubLocalViewModelTest {
 
     @Test
     fun `onToutiaoLoginCookie success persists + refreshes`() = runTest(testDispatcher) {
-        every { toutiaoCollector.acceptLoginCookie(any(), any()) } returns true
+        coEvery { toutiaoCollector.acceptLoginCookie(any(), any()) } returns true
         every { toutiaoCredentials.hasCredentials() } returnsMany listOf(false, true)
         every { toutiaoCredentials.getUid() } returnsMany listOf(null, "99999")
         val vm = newVm()
@@ -3278,7 +3278,7 @@ class HubLocalViewModelTest {
     @Test
     fun `onToutiaoLoginCookie acceptance failure surfaces login incomplete error`() =
         runTest(testDispatcher) {
-            every { toutiaoCollector.acceptLoginCookie(any(), any()) } returns false
+            coEvery { toutiaoCollector.acceptLoginCookie(any(), any()) } returns false
             every { toutiaoCollector.lastLoginErrorCode } returns -7
             every { toutiaoCollector.lastLoginErrorMessage } returns "cookie 缺 passport_uid"
             val vm = newVm()
@@ -3304,15 +3304,16 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `syncToutiao v0_1 Ok path records lastSync + honest v0_2 hint`() =
+    fun `syncToutiao v0_2 Ok path records lastSync + honest v0_3 hint`() =
         runTest(testDispatcher) {
             every { toutiaoCredentials.hasCredentials() } returns true
             every { toutiaoCredentials.getUid() } returns "12345"
             coEvery { toutiaoCollector.snapshot() } returns
                 ToutiaoLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-toutiao.json",
-                    totalEvents = 0,
-                    everythingEmpty = true,
+                    profileCount = 1,
+                    totalEvents = 1,
+                    everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
                 )
             coEvery { ccRunner.syncAdapter(adapterName = "social-toutiao", inputPath = any()) } returns
@@ -3333,8 +3334,9 @@ class HubLocalViewModelTest {
             assertFalse(s.isSyncing)
             assertEquals(1_700_000_000_000L, s.lastSyncAt)
             assertEquals(0, s.lastSyncCount)
-            // v0.1 honest banner ON — 透出 _signature 限制
-            assertTrue(s.errorMessage!!.contains("v0.1"))
+            // v0.2 honest banner ON — 透出 _signature v0.3 限制
+            assertTrue(s.errorMessage!!.contains("v0.2"))
+            assertTrue(s.errorMessage!!.contains("v0.3"))
             assertTrue(s.errorMessage!!.contains("_signature"))
             assertNull(vm.state.value.globalSyncingAdapter)
         }
@@ -3415,7 +3417,7 @@ class HubLocalViewModelTest {
 
     @Test
     fun `onKuaishouLoginCookie success persists + refreshes`() = runTest(testDispatcher) {
-        every { kuaishouCollector.acceptLoginCookie(any(), any()) } returns true
+        coEvery { kuaishouCollector.acceptLoginCookie(any(), any()) } returns true
         every { kuaishouCredentials.hasCredentials() } returnsMany listOf(false, true)
         every { kuaishouCredentials.getUid() } returnsMany listOf(null, "77777")
         val vm = newVm()
@@ -3433,7 +3435,7 @@ class HubLocalViewModelTest {
     @Test
     fun `onKuaishouLoginCookie acceptance failure surfaces login incomplete error`() =
         runTest(testDispatcher) {
-            every { kuaishouCollector.acceptLoginCookie(any(), any()) } returns false
+            coEvery { kuaishouCollector.acceptLoginCookie(any(), any()) } returns false
             every { kuaishouCollector.lastLoginErrorCode } returns -7
             every { kuaishouCollector.lastLoginErrorMessage } returns "cookie 缺 userId"
             val vm = newVm()
@@ -3459,15 +3461,16 @@ class HubLocalViewModelTest {
         }
 
     @Test
-    fun `syncKuaishou v0_1 Ok path records lastSync + honest v0_2 hint`() =
+    fun `syncKuaishou v0_2 Ok path records lastSync + honest v0_3 hint`() =
         runTest(testDispatcher) {
             every { kuaishouCredentials.hasCredentials() } returns true
             every { kuaishouCredentials.getUid() } returns "98765"
             coEvery { kuaishouCollector.snapshot() } returns
                 KuaishouLocalCollector.SnapshotResult.Ok(
                     snapshotPath = "/tmp/social-kuaishou.json",
-                    totalEvents = 0,
-                    everythingEmpty = true,
+                    profileCount = 1,
+                    totalEvents = 1,
+                    everythingEmpty = false,
                     snapshottedAt = 1_700_000_000_000L,
                 )
             coEvery { ccRunner.syncAdapter(adapterName = "social-kuaishou", inputPath = any()) } returns
@@ -3488,8 +3491,9 @@ class HubLocalViewModelTest {
             assertFalse(s.isSyncing)
             assertEquals(1_700_000_000_000L, s.lastSyncAt)
             assertEquals(0, s.lastSyncCount)
-            // v0.1 honest banner — 透出 NS_sig3 限制
-            assertTrue(s.errorMessage!!.contains("v0.1"))
+            // v0.2 honest banner — 透出 NS_sig3 v0.3 限制
+            assertTrue(s.errorMessage!!.contains("v0.2"))
+            assertTrue(s.errorMessage!!.contains("v0.3"))
             assertTrue(s.errorMessage!!.contains("NS_sig3"))
             assertNull(vm.state.value.globalSyncingAdapter)
         }

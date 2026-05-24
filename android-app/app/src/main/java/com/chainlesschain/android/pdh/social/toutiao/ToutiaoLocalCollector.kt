@@ -12,31 +12,37 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * v0.1 — Toutiao snapshot writer.
+ * §A8 v0.2 — Toutiao snapshot writer.
  *
- * **v0.1 仅持账号 + 写空 events 快照**：头条 web read 接口 (`/api/news/feed/v90/`
- * 推荐流、`/article/v2/tab_comments/` 收藏、`/api/search/content/` 搜索) 都需
- * `_signature` 签名（ByteDance acrawler.js），没有可靠的纯 Kotlin 实现，与
- * 抖音 X-Bogus 同 family。v0.2 走 WebView JS hook 注入或 acrawler 端口。
+ * **v0.2 surface**: cookie + profile fetch (`/passport/account/info/v2/?aid=24`,
+ * unsigned ByteDance passport endpoint). 与 Douyin v0.2 同模板。read/collection/
+ * search 接口都需 `_signature` 签名（ByteDance acrawler.js），与抖音 X-Bogus 同
+ * family，留给 v0.3 走 WebView JS hook 注入或 acrawler 端口。
  *
- * v0.1 output schema (与 packages/personal-data-hub/lib/adapters/social-toutiao
+ * v0.2 output schema (与 packages/personal-data-hub/lib/adapters/social-toutiao
  * SNAPSHOT_SCHEMA_VERSION = 1 对齐)：
  *
  *   {
  *     "schemaVersion": 1,
  *     "snapshottedAt": <epoch-ms>,
  *     "account": { "uid": "12345", "displayName": "alice" },
- *     "events": []      ← v0.1 始终 empty；v0.2 加 read/collection/search
+ *     "events": [
+ *       { "kind": "profile", "id": "profile-<uid>", "capturedAt": <ms>,
+ *         "uid": "...", "nickname": "...", "avatarUrl": "...",
+ *         "description": "...", "followingCount": N, "followerCount": N,
+ *         "mediaId": "..." }
+ *     ]
  *   }
  *
- * 因 `events: []`，`cc hub sync social-toutiao` 返 ingested=0，但 account.uid
- * 被持有 → 既能让用户看到"我已登录头条"卡片，又不引入虚假数据。VM 在 sync
- * 完后把 `everythingEmpty=true` 透出到 UI banner，提醒 v0.2 会接通历史。
+ * v0.2 fetchProfile 成功 → 1 profile event；失败 → events: []，但 account.uid
+ * 仍持有。VM 在 sync 完后把 `everythingEmpty=true` 透出到 UI banner，提醒 v0.3
+ * 会接通历史/收藏/搜索。
  *
  * Failure modes:
  *   - No credentials → [SnapshotResult.NoCredentials]
+ *   - fetchProfile 失败 → snapshot still written but events empty，lastErrorCode
+ *     从 apiClient 透出给 UI 提示重 login
  *   - staging dir 创建失败 / write 异常 → [SnapshotResult.Failed]
- *   - everythingEmpty=true → v0.1 始终如此，**不**算 failure；UI 走 statusLine
  */
 @Singleton
 class ToutiaoLocalCollector @Inject constructor(
@@ -48,9 +54,12 @@ class ToutiaoLocalCollector @Inject constructor(
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
+            val profileCount: Int,
             val totalEvents: Int,
             val everythingEmpty: Boolean,
             val snapshottedAt: Long,
+            val lastErrorCode: Int = 0,
+            val lastErrorMessage: String? = null,
         ) : SnapshotResult()
 
         object NoCredentials : SnapshotResult()
@@ -62,13 +71,35 @@ class ToutiaoLocalCollector @Inject constructor(
         if (!credentialsStore.hasCredentials()) {
             return@withContext SnapshotResult.NoCredentials
         }
-        val uid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
-        val displayName = credentialsStore.getDisplayName()
+        val cookie = credentialsStore.getCookie() ?: return@withContext SnapshotResult.NoCredentials
+        val storedUid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
+
+        val profile = try {
+            apiClient.fetchProfile(cookie)
+        } catch (t: Throwable) {
+            Timber.w(t, "ToutiaoLocalCollector: fetchProfile threw")
+            null
+        }
 
         val snapshottedAt = System.currentTimeMillis()
-
-        // v0.1: empty events array. v0.2 will push read/collection/search events here.
         val events = JSONArray()
+        if (profile != null) {
+            events.put(
+                JSONObject()
+                    .put("kind", "profile")
+                    .put("id", "profile-" + profile.uid)
+                    .put("capturedAt", snapshottedAt)
+                    .put("uid", profile.uid)
+                    .put("nickname", profile.nickname)
+                    .putOpt("avatarUrl", profile.avatarUrl)
+                    .putOpt("mobile", profile.mobile)
+                    .putOpt("description", profile.description)
+                    .put("followingCount", profile.followingCount)
+                    .put("followerCount", profile.followerCount)
+                    .putOpt("mediaId", profile.mediaId)
+            )
+        }
+        val total = events.length()
 
         val root = JSONObject()
             .put("schemaVersion", SNAPSHOT_SCHEMA_VERSION)
@@ -76,8 +107,8 @@ class ToutiaoLocalCollector @Inject constructor(
             .put(
                 "account",
                 JSONObject()
-                    .put("uid", uid)
-                    .put("displayName", displayName ?: ""),
+                    .put("uid", profile?.uid ?: storedUid)
+                    .put("displayName", profile?.nickname ?: credentialsStore.getDisplayName() ?: ""),
             )
             .put("events", events)
 
@@ -95,23 +126,39 @@ class ToutiaoLocalCollector @Inject constructor(
             return@withContext SnapshotResult.Failed("write failed: ${t.message}")
         }
 
-        credentialsStore.recordSync(snapshottedAt, 0)
+        credentialsStore.recordSync(snapshottedAt, total)
 
         SnapshotResult.Ok(
             snapshotPath = snapshotFile.absolutePath,
-            totalEvents = 0,
-            everythingEmpty = true,
+            profileCount = if (profile != null) 1 else 0,
+            totalEvents = total,
+            everythingEmpty = total == 0,
             snapshottedAt = snapshottedAt,
+            lastErrorCode = apiClient.lastErrorCode,
+            lastErrorMessage = apiClient.lastErrorMessage,
         )
     }
 
     /**
-     * WebView 把 cookie 抛回来后调本方法：抽 uid → 写 store。
+     * WebView 把 cookie 抛回来后调本方法：抽 uid → 调 fetchProfile 拿 nickname
+     * → 写 store。fetchProfile 失败也不阻断（cookie 可能限流但 uid 已抽到）；
+     * displayName 用 fetchProfile 结果优先，否则用 caller 传的 displayName。
+     *
      * 返 false = cookie 不含可识别 uid (登录未完成 / 仅游客态)，上层 surface 引导。
      */
-    fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
+    suspend fun acceptLoginCookie(cookie: String, displayName: String? = null): Boolean {
         val uid = apiClient.extractUid(cookie) ?: return false
-        credentialsStore.saveCredentials(cookie = cookie, uid = uid, displayName = displayName)
+        val profile = try {
+            apiClient.fetchProfile(cookie)
+        } catch (t: Throwable) {
+            Timber.w(t, "ToutiaoLocalCollector.acceptLoginCookie: fetchProfile threw")
+            null
+        }
+        credentialsStore.saveCredentials(
+            cookie = cookie,
+            uid = profile?.uid ?: uid,
+            displayName = profile?.nickname ?: displayName,
+        )
         return true
     }
 
