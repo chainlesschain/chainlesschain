@@ -3,7 +3,10 @@ package com.chainlesschain.android.feature.localterminal
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -108,6 +111,204 @@ class LocalFilesystemBootstrapperTest {
         assertEquals(
             BuildConfig.USR_VERSION,
             File(bootstrapper.prefixDir, ".bootstrap_version").readText().trim()
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // Concurrency — trap #24 regression guard
+    // -----------------------------------------------------------------------
+
+    /**
+     * Real-device repro of the 2026-05-24 race: two HubLocal cards each
+     * launched a viewModelScope coroutine that called bootstrapper.bootstrap()
+     * in parallel. Without the bootstrapMutex, thread A entered
+     * extractCcCliIfPresent holding an open tarball FileOutputStream while
+     * thread B re-entered wipeAndRecreate → prefixDir.deleteRecursively()
+     * returned false (open file in the tree) → B threw IOException AND
+     * partially wiped etc/+share/. A then wrote .bootstrap_version=6.
+     * Permanent stuck state: next boot saw version match → skipped wipe →
+     * writeStaticFiles ENOENT on etc/profile.
+     *
+     * Post-fix expectation: 8 concurrent callers all succeed, the on-disk
+     * tree is intact (etc/profile present), and exactly one caller reports
+     * fullExtract=true (the first to acquire the mutex on a clean tree).
+     */
+    @Test
+    fun bootstrap_concurrentCallers_allSucceedAndTreeIntact() = runBlocking {
+        val deferreds = (1..8).map {
+            async(Dispatchers.IO) { bootstrapper.bootstrap() }
+        }
+        val results = deferreds.awaitAll()
+
+        results.forEachIndexed { idx, r ->
+            assertTrue(
+                "concurrent caller #$idx must succeed, got ${r.exceptionOrNull()}",
+                r.isSuccess
+            )
+        }
+        val fullExtractCount = results.count { it.getOrThrow() }
+        assertEquals(
+            "exactly one caller should report fullExtract=true on clean tree",
+            1, fullExtractCount
+        )
+
+        val prefix = bootstrapper.prefixDir
+        assertTrue("etc/ must survive race", File(prefix, "etc").isDirectory)
+        assertTrue("etc/profile must exist", File(prefix, "etc/profile").isFile)
+        assertTrue("share/doc must survive race", File(prefix, "share/doc").isDirectory)
+        assertTrue(".bootstrap_version must exist", File(prefix, ".bootstrap_version").isFile)
+        assertEquals(
+            BuildConfig.USR_VERSION,
+            File(prefix, ".bootstrap_version").readText().trim()
+        )
+    }
+
+    /**
+     * Defense-in-depth: even if a pre-fix install left the device in the
+     * stuck state (`.bootstrap_version` present + `etc/` wiped), the next
+     * bootstrap call must self-heal via the mkdirs() in writeStaticFiles
+     * rather than crash with ENOENT on etc/profile.
+     */
+    @Test
+    fun bootstrap_recoversFromMissingEtcAfterVersionMatch() = runBlocking {
+        // Bootstrap once cleanly so .bootstrap_version=USR_VERSION is on disk.
+        bootstrapper.bootstrap().getOrThrow()
+        // Simulate the pre-fix stuck state.
+        File(bootstrapper.prefixDir, "etc").deleteRecursively()
+        File(bootstrapper.prefixDir, "share").deleteRecursively()
+
+        val result = bootstrapper.bootstrap()
+        assertTrue(
+            "self-heal bootstrap must succeed, got ${result.exceptionOrNull()}",
+            result.isSuccess
+        )
+        // Version matched, so this is a relink-only run (fullExtract=false),
+        // yet etc/ must have been re-created by the defensive mkdirs().
+        assertEquals(false, result.getOrThrow())
+        assertTrue(File(bootstrapper.prefixDir, "etc/profile").isFile)
+    }
+
+    /**
+     * 2026-05-24 trap #24 v2 — instance-scoped Mutex failed under real-device
+     * Hilt cross-module DI (PtyEnvironment / LocalSessionViewModel /
+     * LocalCcRunner inject the same class through different module paths
+     * and may produce >1 instance despite @Singleton). The fix moves the
+     * mutex to `companion object` so it's process-wide regardless of
+     * instance count.
+     *
+     * This test verifies the fix by explicitly constructing TWO
+     * Bootstrapper instances and racing them. Pre-fix: both instances
+     * could enter wipeAndRecreate concurrently and corrupt each other's
+     * extract. Post-fix: companion `processBootstrapMutex` serialises
+     * regardless of instance identity.
+     *
+     * Assertion: exactly ONE caller across both instances reports
+     * fullExtract=true on a clean tree (the second caller — same or
+     * different instance — sees `.bootstrap_version` already written
+     * and takes the relink-only fast path).
+     */
+    @Test
+    fun bootstrap_multiInstance_companionMutexSerialises() = runBlocking {
+        val instanceA = LocalFilesystemBootstrapper(context)
+        val instanceB = LocalFilesystemBootstrapper(context)
+        // Sanity: prove the instances are distinct (HashCode differs).
+        // If JIT optimises this away the test still works — the property
+        // we care about is mutex serialisation, not instance distinctness.
+        assertTrue(
+            "instances must be distinct objects to exercise companion mutex",
+            instanceA !== instanceB
+        )
+
+        val deferreds = (0..7).map { idx ->
+            async(Dispatchers.IO) {
+                val target = if (idx % 2 == 0) instanceA else instanceB
+                target.bootstrap()
+            }
+        }
+        val results = deferreds.awaitAll()
+
+        results.forEachIndexed { idx, r ->
+            assertTrue(
+                "concurrent multi-instance caller #$idx must succeed, got ${r.exceptionOrNull()}",
+                r.isSuccess
+            )
+        }
+        val fullExtractCount = results.count { it.getOrThrow() }
+        assertEquals(
+            "exactly one caller across BOTH instances should report fullExtract=true; " +
+                "race would surface as 2+ (each instance wipes once independently)",
+            1, fullExtractCount
+        )
+
+        // Verify tree integrity — race would leave etc/ wiped by losing thread
+        // mid-way through winning thread's extract.
+        val prefix = instanceA.prefixDir  // same dir for both instances
+        assertTrue("etc/ must survive multi-instance race", File(prefix, "etc").isDirectory)
+        assertTrue("etc/profile must exist", File(prefix, "etc/profile").isFile)
+        assertEquals(
+            BuildConfig.USR_VERSION,
+            File(prefix, ".bootstrap_version").readText().trim()
+        )
+    }
+
+    /**
+     * extractCcCliIfPresent atomicity — pre-fix, extract wrote directly to
+     * `$PREFIX/lib/node_modules/chainlesschain/`, so a concurrent caller's
+     * wipe would leave a half-deleted / half-rewritten module tree mixed
+     * with the prior install's files. Real-device symptom: `hub.js`
+     * ended up as the OLD commit's content (1286 lines) while `bin/` had
+     * the NEW tgz content — making `cc hub ask --max-facts 20` fail with
+     * `error: unknown option '--max-facts'` (Commander didn't know the
+     * flag because the old hub.js didn't define it).
+     *
+     * Post-fix: extract goes to `chainlesschain.tmp/` first, then atomic
+     * rename. If any caller is mid-extract the other waits at the
+     * companion mutex; tree is always either prior good state or new
+     * good state, never half.
+     *
+     * Assertion: after concurrent bootstrap() with cc bundle present,
+     * `chainlesschain.tmp` does NOT exist on disk (rename succeeded or
+     * the loser didn't even enter extract due to mutex).
+     */
+    @Test
+    fun extractCcCli_noTmpResidueAfterConcurrentBootstrap() = runBlocking {
+        // Skip cleanly if asset isn't shipped (Phase 0-4 baseline build).
+        val tgzAsset = "local-terminal/cc-cli.tgz"
+        val ccBundleShipped = try {
+            context.assets.open(tgzAsset).use { it.read() != -1 }
+        } catch (_: Exception) {
+            false
+        }
+        if (!ccBundleShipped) {
+            // Test is meaningless without bundled cc CLI; pass trivially.
+            return@runBlocking
+        }
+
+        val deferreds = (1..6).map {
+            async(Dispatchers.IO) { bootstrapper.bootstrap() }
+        }
+        deferreds.awaitAll().forEach {
+            assertTrue("bootstrap must succeed", it.isSuccess)
+        }
+
+        val ccModuleParent = File(bootstrapper.prefixDir, "lib/node_modules")
+        val tmpResidue = File(ccModuleParent, "chainlesschain.tmp")
+        assertFalse(
+            "chainlesschain.tmp must NOT exist after extract completes — " +
+                "leftover indicates rename failed or exception aborted mid-extract",
+            tmpResidue.exists()
+        )
+
+        // Spot-check that the real ccModule is intact (has src/ and bin/).
+        val ccModule = File(ccModuleParent, "chainlesschain")
+        assertTrue("chainlesschain/ must exist", ccModule.isDirectory)
+        assertTrue(
+            "chainlesschain/src/commands/ must exist (top-level extract complete)",
+            File(ccModule, "src/commands").isDirectory
+        )
+        assertTrue(
+            "chainlesschain/bin/chainlesschain.js must exist",
+            File(ccModule, "bin/chainlesschain.js").isFile
         )
     }
 

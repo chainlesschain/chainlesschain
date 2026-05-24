@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#23）
+# 隐性风险陷阱手册（#6-#24）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -32,16 +32,17 @@
 | 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符 | `android_cc_bundle_tar_gnu_long_name.md` |
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
 | 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter | `bs3mc_bs3_abi_dual_load_adapter.md` |
+| 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
 ```
 Release / 打包   : 7, 13, 14, 18, 19
-Git / 并发       : 9, 10
+Git / 并发       : 9, 10, 24
 CI / 测试        : 8, 11, 19, 23
 Toolchain        : 12, 16, 23
-Runtime / 数据   : 15, 20, 21, 22, 23
-Mobile 平台      : 14, 17, 19, 20, 21, 22
+Runtime / 数据   : 15, 20, 21, 22, 23, 24
+Mobile 平台      : 14, 17, 19, 20, 21, 22, 24
 Docs             : 6
 ```
 
@@ -1466,6 +1467,77 @@ const Database = loadDatabase();
 - 相邻 trap：[[bs3mc_electron_abi_sandbox_workaround]] 是测试侧的同根问题（root bs3mc 给 Electron 编的让 Node 跑 vault FTS5 test 也炸），修法 sandbox 装独立 bs3mc。本 #23 是 runtime 侧 dual-load；两者合起来覆盖 ABI mismatch 的"runtime + 测试"全部展开
 - #12（Node 23 native-dep prebuild gap）—— 机制相邻，都是 "Node 版本 vs prebuild ABI 错配"。本 #23 把同样问题推到 Electron vs Node 跨进程维度
 - #15（better-sqlite3 Number→TEXT `"1.0"` trap）—— 同样是 bs3/bs3mc 家族的 silent surprise，但层次不同：#15 是 binding 写入语义，#23 是 binding 能不能加载
+
+---
+
+## 24. Android Bootstrap race —— `@Singleton` + instance Mutex 仍并发, half-half extract（隐性风险）
+
+**Slug**: `android_bootstrap_singleton_mutex_race`
+
+**陷阱本质**：
+
+`LocalFilesystemBootstrapper` 标 `@Singleton` + 用 instance `private val bootstrapMutex = Mutex()` 串行化 `bootstrap()` 调用。理论上 Hilt SingletonComponent 保证单实例，instance mutex 即 process-wide。**真机不是这样**：Xiaomi 2026-05-24 logcat 显示**同 PID 两个线程**在 14ms 内都进了 `Bootstrapping $PREFIX (target version 6)` 日志，意味着 `withLock` 没生效。
+
+后果：两线程并发跑 `extractTarToDir(assets/cc-cli.tgz → $PREFIX/lib/node_modules/chainlesschain/)`：
+- 一个完成 `wipeAndRecreate` + `writeStaticFiles` + 部分 extract 后另一个进来又 wipe；
+- 文件写到一半被并发 wipe 删，新 tgz 的部分 entry 与**之前 APK 安装**留下的旧 entry 残留并存；
+- 真机现场：`hub.js` 是 1286 行（=旧 cc CLI commit 6bb5eb826），`bin/` + `node_modules/` 是新 tgz 内容。
+- 用户问 "几个联系人" → cc 子进程 exit 1 `error: unknown option '--max-facts'`（旧 hub.js 不识别新 flag）。
+
+**为什么排查难**：
+
+- `@Singleton` + instance mutex 在代码 review 看着 100% 对，没人怀疑 Hilt 真的吐了 2 个实例；
+- `cc exit 1` 错信息**没有任何文件 hash 比对**线索，看起来像 PDH 路由 bug，实际是 extract 损坏；
+- tgz 在 APK 内验证正确（unzip + tar -tzf 都对），让人以为 extractor 没问题；
+- 第一次 reproduce 后 `rm -rf usr/lib/node_modules/chainlesschain/` 重 extract，**仍然是旧 hub.js** — 因为之前 APK 安装的 OLD bundle 在 `usr/` 其它位置（或被 deleteRecursive 没完全清干净）混进新 extract；
+- 单测里 mock 永远不会复现 — race 只发生在 multi-thread + filesystem 真共享的 ART runtime；
+- AGP 默认压不压 `.tgz` asset 还是个干扰项（无关，但容易误判方向）；
+- adb logcat 默认看不到 `cc` 子进程 stderr（只过滤 `[PDH-ASK]` 行），exit code 1 + 无 stderr 让人以为 PDH 路由代码炸；用 `adb shell run-as ... node bin/chainlesschain.js hub ask "..."` 手动跑才看到真错。
+
+**SOP / checklist**：
+
+1. **bootstrap 互斥用 `companion object` 不要用 instance**：
+   ```kotlin
+   companion object {
+       private val processBootstrapMutex = Mutex()  // 进程级保证
+   }
+   suspend fun bootstrap() = withContext(ioDispatcher) {
+       processBootstrapMutex.withLock { bootstrapLocked() }
+   }
+   ```
+   即使 Hilt 出 N 个实例，所有 instance 都共享同一 companion 字段。
+2. **extract 用 atomic `.tmp + rename` pattern**：
+   ```kotlin
+   val tmp = File(parent, "chainlesschain.tmp")
+   if (tmp.exists()) tmp.deleteRecursively() // 必断言 deleted=true
+   extractTarToDir(gzIn, tmp)
+   if (ccModule.exists()) require(ccModule.deleteRecursively())
+   require(tmp.renameTo(ccModule))
+   ```
+   任何中途失败 ccModule 保持上次成功状态，绝不会半半坑。
+3. **`deleteRecursively()` 必断言返回值**：File API 返回 `Boolean` 而非抛错；ignore 返回值 = 静默 leftover 旧文件混新 extract。
+4. **bootstrap 日志加 instance hashCode + thread name**：
+   ```kotlin
+   Timber.tag(TAG).i("Bootstrapping ... instance=${System.identityHashCode(this)} thread=${Thread.currentThread().name}")
+   ```
+   下一次 race 重现可直接看出是否 multi-instance。
+5. **多 ViewModel 同时调 bootstrap 时考虑加 first-launch debounce** —— HubLocal* 几个 card 各自 `viewModelScope.launch { bootstrapper.bootstrap() }` 是 race 源头。可改 `Flow<Result<Unit>>` shared cold flow 用 `stateIn(scope, SharingStarted.Lazily, ...)` 让所有 collector 共享一次 init。
+6. **`@Singleton` ≠ "肯定只有一个实例"**：cross-module Hilt 在 feature module + app module 都 inject 同一类时，某些 classloader 路径下可能出多实例。**永远用 process-wide 锁原语，不要靠 DI scope**。
+
+**反模式**：
+
+- ❌ `private val mutex = Mutex()` + `@Singleton` —— Hilt cross-module 不保证；多 instance 各自有自己的 mutex
+- ❌ `if (dir.exists()) dir.deleteRecursively()` 不验返回值 —— 旧文件残留无声混入新 extract
+- ❌ extract 直接写到目标路径 —— 中途 fail / 并发 wipe 导致 half-and-half corruption
+- ❌ "tgz 文件验证正确就以为 extract 也正确" —— extract pipeline 任何一步坏都同样症状
+- ❌ 仅过滤特定 stderr tag (`[PDH-ASK]`) 写 logcat —— cc 子进程其他错全静默；至少 verbose mode 全 stderr 写日志方便诊断
+
+**真机重现 + 验证**：
+
+- 复现：先装一个旧版 APK 让 bootstrap 完成留下 1286-line hub.js → 升级 APK（带新 cc-cli.tgz 1462-line hub.js）→ 同时 trigger HubLocal 多 tab → 看 logcat 是否两个 Bootstrapping 日志 14ms 内连发 + 真机 `cc hub ask` 报 `unknown option`
+- 验证 fix：装新 APK + 清 marker + 多 tab 并发 trigger → logcat 应该只有 ONE Bootstrapping + extract 完成后 `wc -l hub.js` = 1462
+
+**相关 memory**: `parallel_claude_session_win_orphans`（也是 race / mutex 类陷阱）/ `android_cc_bundle_tar_gnu_long_name`（trap #21，cc bundle 半 extract 表现类似但根因 GNU LongLink）
 
 ---
 
