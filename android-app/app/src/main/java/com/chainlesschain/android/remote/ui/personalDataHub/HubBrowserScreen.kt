@@ -206,7 +206,7 @@ fun HubBrowserScreenContent(
                     items = state.rows,
                     key = { idx, ev -> "row-$idx-${ev.id}" },
                 ) { _, ev ->
-                    EventCard(event = ev)
+                    EventRenderer(event = ev)
                 }
                 if (state.canLoadMore) {
                     item(key = "load-more") {
