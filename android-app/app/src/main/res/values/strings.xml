@@ -457,7 +457,7 @@
 
     <!-- ==================== LLM Test Chat Screen ==================== -->
     <string name="llm_test_title">LLM Test - %s</string>
-    <string name="llm_test_title_local">LLM Test - On-Device Gemma</string>
+    <string name="llm_test_title_local">LLM Test - On-Device (%1$s)</string>
     <string name="llm_test_response_time">Response Time</string>
     <string name="llm_test_total_tokens">Total Tokens</string>
     <string name="llm_test_message_count">Messages</string>
@@ -466,7 +466,7 @@
     <string name="llm_test_api_key_not_configured">API key for %1$s is not configured. Please set it in AI Settings first.</string>
 
     <!-- ==================== Android On-Device LLM Model ==================== -->
-    <string name="local_model_title">On-Device Model (Gemma)</string>
+    <string name="local_model_title">On-Device Model</string>
     <string name="local_model_refresh">Refresh state</string>
     <string name="local_model_size_label">Size: %1$d MB</string>
     <string name="local_model_url_label">Source: %1$s</string>
@@ -485,7 +485,7 @@
     <string name="local_model_download_start">Download started…</string>
     <string name="local_model_deleted">Model file deleted</string>
     <string name="local_model_tips_title">Notes</string>
-    <string name="local_model_tips_body">• Default model is Gemma-3 1B int4 (~555 MB). Wi-Fi recommended.\n• Stored under app private dir, excluded from auto-backup.\n• Delete to free space; download again any time.\n• After download completes, tap "Test conversation" to verify inference works.</string>
+    <string name="local_model_tips_body">• Wi-Fi recommended for the one-time download.\n• Stored under app private dir, excluded from auto-backup.\n• Delete to free space; download again any time.\n• After download completes, tap "Test conversation" to verify inference works.</string>
 
     <!-- ==================== Profile ==================== -->
     <string name="profile_center">Profile</string>

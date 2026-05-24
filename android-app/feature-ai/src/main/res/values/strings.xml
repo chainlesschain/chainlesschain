@@ -52,7 +52,7 @@
     <string name="llm_settings_title">LLM Configuration</string>
     <string name="llm_settings_navigate_back">Back</string>
     <string name="llm_settings_usage_statistics">Usage Statistics</string>
-    <string name="llm_settings_android_local_model">Android On-Device Model</string>
+    <string name="llm_settings_android_local_model">On-Device Model</string>
     <string name="llm_settings_smart_recommendation">Smart Recommendation</string>
     <string name="llm_settings_import_export">Import/Export</string>
     <string name="llm_settings_refresh">Refresh</string>

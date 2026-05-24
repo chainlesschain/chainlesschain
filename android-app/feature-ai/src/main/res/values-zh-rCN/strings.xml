@@ -52,7 +52,7 @@
     <string name="llm_settings_title">LLM配置</string>
     <string name="llm_settings_navigate_back">返回</string>
     <string name="llm_settings_usage_statistics">使用统计</string>
-    <string name="llm_settings_android_local_model">本机模型 (Gemma)</string>
+    <string name="llm_settings_android_local_model">本机模型</string>
     <string name="llm_settings_smart_recommendation">智能推荐</string>
     <string name="llm_settings_import_export">导入/导出</string>
     <string name="llm_settings_refresh">刷新</string>

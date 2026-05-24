@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.pdh.llm.LlmInferenceEngine
+import com.chainlesschain.android.pdh.llm.ModelManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,7 @@ class LLMTestChatViewModel @Inject constructor(
     private val llmAdapterFactory: LLMAdapterFactory,
     private val securePreferences: SecurePreferences,
     private val localEngine: LlmInferenceEngine,
+    private val modelManager: ModelManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LLMTestChatUiState())
@@ -47,14 +49,19 @@ class LLMTestChatViewModel @Inject constructor(
     private var currentAdapter: LLMAdapter? = null
 
     /**
-     * 切到"本机 Gemma"模式 —— 跳过 cloud adapter wiring，sendMessage 走 [localEngine.chat]。
+     * 切到本机引擎模式 —— 跳过 cloud adapter wiring，sendMessage 走 [localEngine.chat]。
      * 由 NavGraph `llm_test_local` 路由调（LocalModelCard "测试对话" 按钮入口）。
+     *
+     * 模型显示名从 [ModelManager.defaultSpec.displayName] 取，避免 UI 文案 hardcode
+     * 跟实际模型不一致（如已经换 Qwen 但 UI 还写 Gemma）。
      */
     fun setLocalEngine() {
+        val spec = modelManager.defaultSpec
         _uiState.update {
             it.copy(
-                provider = LLMProvider.OLLAMA, // UI 题头用 displayName，"本机 Gemma" 由 useLocalEngine 标识展示
-                currentModel = "gemma-3-1b-it-int4 (本机)",
+                provider = LLMProvider.OLLAMA, // 题头由 useLocalEngine + spec.displayName 接管
+                currentModel = "${spec.displayName} (本机)",
+                localEngineDisplayName = spec.displayName,
                 useLocalEngine = true,
                 error = null,
             )
@@ -241,7 +248,7 @@ class LLMTestChatViewModel @Inject constructor(
                             MessageRole.USER -> "user"
                             MessageRole.ASSISTANT -> "assistant"
                             MessageRole.SYSTEM -> "system"
-                            MessageRole.TOOL -> "user" // Gemma 不识 tool 角色，降级 user
+                            MessageRole.TOOL -> "user" // ChatML/Gemma 都不识 tool 角色，降级 user
                         },
                         content = m.content
                     )
@@ -378,6 +385,8 @@ data class LLMTestChatUiState(
     val ragEnabled: Boolean = false,
     val showStats: Boolean = true,
     val performanceStats: PerformanceStats = PerformanceStats(),
-    /** 本机 Gemma 模式（由 NavGraph `llm_test_local` 路由 setLocalEngine() 切入）。 */
+    /** 本机引擎模式（由 NavGraph `llm_test_local` 路由 setLocalEngine() 切入）。 */
     val useLocalEngine: Boolean = false,
+    /** 本机引擎模式下当前 spec 的人类可读名，用于题头展示。 */
+    val localEngineDisplayName: String = "",
 )

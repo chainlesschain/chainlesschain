@@ -42,10 +42,11 @@ class AndroidLocalModelViewModelTest {
         Dispatchers.setMain(testDispatcher)
         modelManager = mockk(relaxed = true)
         every { modelManager.defaultSpec } returns ModelManager.ModelSpec(
-            filename = "gemma3-1b-it-int4.task",
+            filename = "test-model.task",
             url = "https://hf-mirror.com/test/path",
             expectedSha256 = null,
             sizeBytesApprox = 555_000_000L,
+            displayName = "Test Model",
         )
         every { modelManager.state } returns
             MutableStateFlow<ModelManager.State>(ModelManager.State.NotDownloaded)
@@ -78,7 +79,7 @@ class AndroidLocalModelViewModelTest {
     fun `Ready state maps to LocalModelStatus Ready with isReady true`() =
         runTest(testDispatcher) {
             val readyState = ModelManager.State.Ready(
-                file = File("/tmp/gemma3-1b-it-int4.task"),
+                file = File("/tmp/test-model.task"),
                 sha256 = "deadbeefcafebabe1234567890",
             )
             every { modelManager.state } returns MutableStateFlow<ModelManager.State>(readyState)
@@ -89,7 +90,7 @@ class AndroidLocalModelViewModelTest {
 
             val status = vm.uiState.value.modelState
             assertTrue(status is LocalModelStatus.Ready)
-            assertEquals("gemma3-1b-it-int4.task", status.filename)
+            assertEquals("test-model.task", status.filename)
             assertEquals("deadbeefcafe", status.sha256Short)
             assertTrue(vm.uiState.value.isReady)
         }

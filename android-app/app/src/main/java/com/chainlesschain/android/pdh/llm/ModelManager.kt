@@ -97,6 +97,8 @@ class ModelManager @Inject constructor(
         val url: String,
         val expectedSha256: String?,
         val sizeBytesApprox: Long,
+        /** 人类可读名（UI 显示用，避免界面文案和实际模型不一致）。 */
+        val displayName: String,
         /** Prompt 模板族 —— 影响 [MediaPipeLlmEngine.formatPrompt] 的拼装。 */
         val promptFamily: PromptFamily = PromptFamily.QWEN_CHATML,
     )
@@ -114,6 +116,7 @@ class ModelManager @Inject constructor(
             "Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
         expectedSha256 = null,
         sizeBytesApprox = 547_000_000L, // ~547 MB
+        displayName = "Qwen2.5 0.5B Instruct (q8)",
         promptFamily = PromptFamily.QWEN_CHATML,
     )
 

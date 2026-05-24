@@ -77,7 +77,10 @@ fun LLMTestChatScreen(
                 title = {
                     Column {
                         val titleLabel = if (uiState.useLocalEngine) {
-                            stringResource(R.string.llm_test_title_local)
+                            stringResource(
+                                R.string.llm_test_title_local,
+                                uiState.localEngineDisplayName.ifEmpty { "Local" }
+                            )
                         } else {
                             stringResource(R.string.llm_test_title, uiState.provider.displayName)
                         }
