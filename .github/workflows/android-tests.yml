@@ -11,6 +11,15 @@ on:
     paths:
       - 'android-app/**'
 
+# 2026-05-24: parallel session 每 ~10 min push 一次 → 8+ queued runs 堆积
+# (see CI run 26349686684 stuck in 5th queue position 30+ min)，每个 run
+# 接近 1h wall-clock 跑同样的事毫无价值。group=workflow+ref 让同分支的
+# 后续 push 直接 cancel 还在 queued / in_progress 的旧 run，只保留最新一个。
+# PR 用 head_ref 防 fork → upstream 冲撞自己 (push 走 ref 区分分支即可)。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-tests:
     name: Unit Tests (P0 + P1 DAO)
