@@ -226,8 +226,8 @@ describe("browser-history-chrome pipeline", () => {
     expect(report.invalidCount).toBe(0);
 
     // Vault row count crosscheck (proves entities really persisted)
-    const eventsN = rig.vault._db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
-    const itemsN = rig.vault._db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
+    const eventsN = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
+    const itemsN = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
     expect(eventsN).toBe(2);
     expect(itemsN).toBe(1);
   });
@@ -241,7 +241,7 @@ describe("browser-history-chrome pipeline", () => {
     rig.registry.register(adapter);
     await rig.registry.syncAdapter("browser-history-chrome");
     await rig.registry.syncAdapter("browser-history-chrome");
-    const n = rig.vault._db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
+    const n = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
     expect(n).toBe(1); // dedup by source.originalId UNIQUE constraint
   });
 });
@@ -259,7 +259,7 @@ describe("browser-history-edge pipeline (Chromium subclass)", () => {
     expect(report.entityCounts.events).toBe(1);
 
     // Drill into the row to confirm the subclass set source.adapter correctly
-    const row = rig.vault._db.prepare("SELECT source FROM events LIMIT 1").get();
+    const row = rig.vault.db.prepare("SELECT source FROM events LIMIT 1").get();
     const source = JSON.parse(row.source);
     expect(source.adapter).toBe("browser-history-edge");
     expect(source.originalId).toMatch(/^edge-visit:/);
@@ -285,7 +285,7 @@ describe("vscode pipeline", () => {
     expect(report.entityCounts.events).toBe(3); // 2 commands + 1 dir
     expect(report.invalidCount).toBe(0);
 
-    const items = rig.vault._db
+    const items = rig.vault.db
       .prepare("SELECT name, category FROM items ORDER BY name")
       .all();
     expect(items.map((i) => i.category)).toEqual(["code-project", "code-project"]);
@@ -305,8 +305,8 @@ describe("win-recent pipeline", () => {
     expect(report.status).toBe("ok");
     expect(report.entityCounts.events).toBe(2);
 
-    const titles = rig.vault._db
-      .prepare("SELECT content FROM events ORDER BY occurredAt")
+    const titles = rig.vault.db
+      .prepare("SELECT content FROM events ORDER BY occurred_at")
       .all()
       .map((r) => JSON.parse(r.content).title);
     expect(titles).toEqual(["打开了 report.docx", "打开了 todo.txt"]);
@@ -347,15 +347,15 @@ describe("all 4 adapters registered together", () => {
     expect([r1, r2, r3, r4].every((r) => r.status === "ok")).toBe(true);
 
     // Totals across vault
-    const eventsTotal = rig.vault._db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
-    const itemsTotal = rig.vault._db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
+    const eventsTotal = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM events").get().n;
+    const itemsTotal = rig.vault.db.prepare("SELECT COUNT(*) AS n FROM items").get().n;
     // Chrome 1 visit + Edge 1 visit + VSCode 1 command + Win 1 recent = 4 events
     // VSCode 1 workspace = 1 item
     expect(eventsTotal).toBe(4);
     expect(itemsTotal).toBe(1);
 
     // Source-tagged distribution
-    const sourceCounts = rig.vault._db
+    const sourceCounts = rig.vault.db
       .prepare("SELECT source FROM events")
       .all()
       .map((r) => JSON.parse(r.source).adapter)

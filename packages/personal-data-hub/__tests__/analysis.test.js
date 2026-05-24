@@ -561,7 +561,9 @@ describe("AnalysisEngine.retrieveContext", () => {
     expect(r.facts.length).toBe(3);
     expect(r.factIds).toEqual(expect.arrayContaining([e1.id, e2.id, e3.id]));
     expect(r.factCount).toBe(3);
-    expect(r.truncated).toBe(false);
+    // `truncated` is the count of dropped facts (Number), not a boolean.
+    // 3 gathered, all kept (no maxFacts cap) → 0 dropped.
+    expect(r.truncated).toBe(0);
     expect(Array.isArray(r.messages)).toBe(true);
     expect(r.messages.length).toBeGreaterThan(0);
     expect(r.messages[0]).toHaveProperty("role");

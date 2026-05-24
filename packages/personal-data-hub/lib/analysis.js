@@ -300,7 +300,7 @@ class AnalysisEngine {
    * @property {Array<object>} facts
    * @property {string[]} factIds
    * @property {number} factCount
-   * @property {boolean} truncated
+   * @property {number} truncated   Count of facts dropped at the maxFacts cap (0 = nothing truncated)
    * @property {string[]} ragContextIds
    * @property {Array<{role: string, content: string}>} messages   prompt-builder output, LLM-ready
    * @property {string} systemPrompt
