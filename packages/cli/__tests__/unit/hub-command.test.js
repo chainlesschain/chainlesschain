@@ -38,12 +38,15 @@ describe("cc hub command surface", () => {
         "destroy",
         "event-detail", // §A6 citation chip — opens raw event for "出处" link
         "export", // §A8 v0.2 export staged snapshot rows
+        "facet-counts", // Phase 16 Vault Browser — per-category counts
         "health",
         "list-adapters",
         "query-events",
         "recent-audit",
+        "rederive", // trap #22 recovery — promote orphan raw_events to canonical
         "register-mock",
         "run-skill",
+        "search", // Phase 16 Vault Browser — FTS5 search surface
         "stats",
         "sync-adapter",
         "sync-all",
