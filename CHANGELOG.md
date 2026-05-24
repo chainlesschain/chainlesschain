@@ -5,6 +5,96 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - PDH Vault Browser Phase 16 — 桌面 + Android 数据可视化入口
+
+> 用户反馈："安卓端和桌面端都缺少采集上来数据的可视化展示，需要有可视化展示入口"。
+> 之前用户只能通过"问 AI"间接看到 RAG 召回片段，或 Android 个别 tab 的 "看采集到的"
+> bottom sheet（5 tab 中 4 个没该按钮）。本期补完整双端主动浏览器入口：分类侧栏 +
+> FTS5 CJK 全文检索 + 5 种 category-keyed 渲染器 + 游标分页 + JSON/NDJSON/CSV 导出。
+
+### 后端 (FTS5 + categories + search/facet API)
+
+- **`packages/personal-data-hub/lib/categories.js`** (NEW) — 7 buckets
+  (chat/social/email/shopping/travel/system/ai-chat) + prefix-rule mapper
+  `getCategory()` / `groupByCategory()`。**单一真相源**，desktop/Android UI 各
+  自 mirror。
+- **`packages/personal-data-hub/lib/migrations.js`** — migration v3：FTS5
+  external-content 虚拟表 `events_fts` + 3 个 INSERT/UPDATE/DELETE triggers
+  保持索引同步 + 一次性 backfill；trigram tokenizer（CJK 子串匹配，**比 LIKE
+  快 10-100×**）；探测不支持时 `_meta.fts_mode='like'` 透明降级。
+- **`packages/personal-data-hub/lib/vault.js`** + `searchEvents` / `facetCounts`
+  / `ftsMode`：游标分页 `(occurred_at DESC, id DESC)` / FTS5 phrase-match
+  自动加引号 / category WHERE 翻译 / sub-3-char query `shortQuery=true` UI 提示。
+- 测试：36 categories + 13 SQL helpers + **27 FTS5 native integration**（含
+  trigger sync / cursor / category 过滤 / CJK trigram，21s）。CI native 直跑；
+  Win 本地走 `scripts/run-native-tests-sandbox.sh` 绕开 Electron 39 ABI 140 占用
+  （memory `bs3mc_electron_abi_sandbox_workaround.md`）。
+
+### 协议层 (CLI + WS + composable)
+
+- **`packages/cli/src/commands/hub.js`** + `cc hub search` / `cc hub facet-counts`
+  子命令（含 `--q --adapter --category --subtype --since --until --cursor --limit`）。
+- **`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`** + 2 WS topics
+  `personal-data-hub.search-events` / `.facet-counts`，复用同一 vault 方法。
+- **`packages/web-panel/src/composables/usePersonalDataHub.js`** + `searchEvents()`
+  / `facetCounts()` thin wrapper。
+- 测试：4 composable unit tests。
+
+### 桌面 UI (Vue 3 + Pinia)
+
+- **新路由** `/personal-data-hub/browser` (router/index.js + AppLayout 菜单)
+- **`stores/pdhBrowser.js`** — Pinia store：filters / results / cursor /
+  facets / debounce (300ms) / **race-resolution token**（stale slow response
+  silently drop）/ facets 调用故意 strip adapter/category/subtype（否则 sidebar
+  bucket counts 始终 100%）。
+- **`components/pdh/`** — `CategorySidebar.vue` (8 类目 + badge counts) +
+  `SearchFilterBar.vue` (keyword + adapter chip + date range + 模式提示) +
+  `ExportDropdown.vue` (3 格客户端下载) + 5 个 renderers
+  (`ChatBubble/OrderTable/Timeline/EmailList/Generic` + `RendererDispatcher`，
+  按 **category** 派发非 subtype — trap `pdh_llm_routing_split_trap`)。
+- **`views/PdhVaultBrowser.vue`** — 主视图，layout = sidebar + filter + result
+  list + load-more + 4 个 empty-state 分支。
+- 测试：10 store + 12 view-level (vue-test-utils + @pinia/testing) + 19
+  getCategory + 11 export (3 格 + RFC-4180 escaping) + e2e SPA 路由探活 2 条。
+
+### Android UI (Compose + Hilt)
+
+- **`PersonalDataHubScreen.kt`** — tab 列表 5→6，新 tab "数据浏览" index 5。
+  Back-compat：existing NavGraph `initialTab=0-4` 路由不动。
+- **`HubBrowserViewModel.kt`** — MutableStateFlow<HubBrowserUiState>，
+  debounce 300ms / race-token / 并行 facet+search async / error 捕获。
+- **`HubBrowserScreen.kt`** — stateful wrapper + stateless `HubBrowserScreenContent`
+  （memory `android_mockk_viewmodel_androidtest_initializer_trap` 避雷）。
+- **`HubBrowserRenderers.kt`** — `categoryFor()` dispatcher + 5 Composable renderers
+  镜像桌面（chat 气泡 / order 表格 / travel 时间线 / email 列表 / generic 卡）。
+- **`LocalCcRunner.kt`** + `searchEvents` / `facetCounts` 包 `cc hub search` 子进程，
+  含 `Cursor` / `SearchResult` / `FacetCountsResult` sealed classes，
+  `_runCcJson` helper 抽 boilerplate。
+- 测试：7 JVM VM test + 10 JVM renderer dispatcher test。
+- **剩**: Compose UI test + 真机 latency benchmark 等 Android emulator CI job 启用。
+
+### Commit 链
+
+```
+86b3cda98  merge: github/main into local main (plumbing zero-touch merge)
+8b2757704  test(pdh): vault-search.test.js fixture 修 + sandbox runner script
+fe102c112  test(pdh-browser): view integration + e2e SPA routes + browser-history sync
+839e534c5  feat(pdh-browser): JSON/NDJSON/CSV 导出
+7b9815381  feat(pdh-browser): 4 category-keyed renderers (both shells)
+b4fa54b6d  feat(pdh-android): vault browser tab + LocalCcRunner.searchEvents
+3aebbbffe  feat(desktop):     PdhVaultBrowser view + Pinia store
+856312de8  feat(ws):          search-events + facet-counts topics + composable
+c8142e573  feat(pdh):         vault FTS5 search + facetCounts API (migration v3)
+801a95969  feat(pdh):         shared adapter→category taxonomy
+```
+
+**测试总计：149 ✅** (36+27+13+4+10+12+19+11+10+7) — pure-JS 137 + JVM 17 -
+本地全跑通；Android Compose UI + 真机 latency 走 CI / 真机。
+
+**设计文档**: [`docs/design/Personal_Data_Hub_Vault_Browser.md`](docs/design/Personal_Data_Hub_Vault_Browser.md)
+覆盖 5 个关键决策 (FTS5 trigram / 两轴 taxonomy / category-keyed renderers /
+cursor 分页 / race token) + 文件清单 + 已知限制 + commit 链。
+
 ## [Unreleased] - PDH AnalysisEngine 意图分类 + 按需检索路由 (4/4 intent)
 
 > 「让小模型把 prompt 预算花在对的事实上」— `_gatherFacts` 加 4 个 intent
