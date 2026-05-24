@@ -90,6 +90,8 @@
     <string name="feature_file_browser">File Browser</string>
     <string name="feature_p2p_devices">P2P Devices</string>
     <string name="feature_remote_control">Remote Control</string>
+    <string name="feature_local_model">On-Device Model</string>
+    <string name="feature_check_update">Check Updates</string>
 
     <!-- ==================== Settings Screen ==================== -->
     <string name="settings_title">Settings</string>
@@ -117,6 +119,13 @@
     <string name="settings_clear_cache_desc">Free space used by temporary files</string>
     <string name="settings_data_management">Data Management</string>
     <string name="settings_data_management_desc">Export or backup personal data</string>
+    <!-- A3.5 — AI backend routing for cc ask -->
+    <string name="settings_section_ai">AI Backend</string>
+    <string name="settings_prefer_android_local">Use on-device LLM as default</string>
+    <string name="settings_prefer_android_local_desc">Route `cc ask` to the in-APK LocalLlmServer (127.0.0.1:18484). Off: use whatever `cc ask` is configured with (cloud / desktop Ollama / etc.).</string>
+    <string name="settings_prefer_android_local_syncing">Syncing to cc config…</string>
+    <string name="settings_prefer_android_local_ok">cc config synced</string>
+    <string name="settings_prefer_android_local_failed">cc config sync failed: %1$s</string>
     <string name="settings_section_other">Other</string>
     <string name="settings_about">About</string>
     <string name="settings_about_desc">App version and information</string>
@@ -457,7 +466,7 @@
 
     <!-- ==================== LLM Test Chat Screen ==================== -->
     <string name="llm_test_title">LLM Test - %s</string>
-    <string name="llm_test_title_local">LLM Test - On-Device (%1$s)</string>
+    <string name="llm_test_title_local">%1$s · Local</string>
     <string name="llm_test_response_time">Response Time</string>
     <string name="llm_test_total_tokens">Total Tokens</string>
     <string name="llm_test_message_count">Messages</string>

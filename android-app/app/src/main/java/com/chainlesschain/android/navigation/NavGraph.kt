@@ -186,6 +186,8 @@ fun NavGraph(
                 // Plan A v0.1 — 首页 "本机数据" 直跳 PersonalDataHub 容器屏 +
                 // initialTab=3 (本机数据 tab 默认聚焦)；不依赖配对桌面。
                 onNavigateToLocalDataHub = { navController.navigate(Screen.PersonalDataHub.createRoute(initialTab = 3)) },
+                // 2026-05-24 — 首页快捷入口跳 AndroidLocalModel（Gemma/Qwen .task 下载 + 测试）
+                onNavigateToLocalModel = { navController.navigate(Screen.AndroidLocalModel.route) },
                 // 用户反馈：首页要可直接扫描桌面 QR (不要隐藏在设置里)
                 onNavigateToScanDesktopPairing = { navController.navigate(Screen.ScanDesktopPairing.route) },
                 // v1.3+ issue #21 plan C — 首页已连接桌面卡点击 → 走 signaling forward

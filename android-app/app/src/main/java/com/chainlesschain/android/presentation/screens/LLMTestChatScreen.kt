@@ -84,12 +84,22 @@ fun LLMTestChatScreen(
                         } else {
                             stringResource(R.string.llm_test_title, uiState.provider.displayName)
                         }
-                        Text(titleLabel)
-                        if (uiState.currentModel.isNotEmpty()) {
+                        Text(
+                            text = titleLabel,
+                            // 用 titleSmall 比 default titleLarge 小一档，长 displayName (Qwen2.5
+                            // 0.5B Instruct (q8)) 不再三行换行 + 被尾部 actions 遮挡
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                        // 本机引擎模式题头已含 displayName，副标题完全重复 — 隐掉
+                        if (!uiState.useLocalEngine && uiState.currentModel.isNotEmpty()) {
                             Text(
                                 text = uiState.currentModel,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             )
                         }
                     }
