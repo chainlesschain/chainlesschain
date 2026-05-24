@@ -62,6 +62,8 @@ const browserHistoryChrome = require("./adapters/browser-history-chrome");
 const browserHistoryEdge = require("./adapters/browser-history-edge");
 const vscodeAdapter = require("./adapters/vscode");
 const winRecentAdapter = require("./adapters/win-recent");
+const gitActivityAdapter = require("./adapters/git-activity");
+const shellHistoryAdapter = require("./adapters/shell-history");
 const categories = require("./categories");
 
 module.exports = {
@@ -292,6 +294,18 @@ module.exports = {
   WIN_RECENT_NAME: winRecentAdapter.WIN_RECENT_NAME,
   WIN_RECENT_VERSION: winRecentAdapter.WIN_RECENT_VERSION,
   defaultWinRecentDir: winRecentAdapter.defaultRecentDir,
+
+  // Phase 18 — git activity (commit timeline across local code repos).
+  GitActivityAdapter: gitActivityAdapter.GitActivityAdapter,
+  GIT_ACTIVITY_NAME: gitActivityAdapter.GIT_ACTIVITY_NAME,
+  GIT_ACTIVITY_VERSION: gitActivityAdapter.GIT_ACTIVITY_VERSION,
+  defaultCodeRoots: gitActivityAdapter.defaultCodeRoots,
+
+  // Phase 18 — shell history (PowerShell / bash / zsh command timelines).
+  ShellHistoryAdapter: shellHistoryAdapter.ShellHistoryAdapter,
+  SHELL_HISTORY_NAME: shellHistoryAdapter.SHELL_HISTORY_NAME,
+  SHELL_HISTORY_VERSION: shellHistoryAdapter.SHELL_HISTORY_VERSION,
+  defaultShellHistorySources: shellHistoryAdapter.defaultHistorySources,
 
   // Phase 6 — AlipayBillAdapter (CSV import)
   AlipayBillAdapter: alipayBillAdapter.AlipayBillAdapter,

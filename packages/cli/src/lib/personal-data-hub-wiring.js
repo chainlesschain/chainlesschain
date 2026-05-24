@@ -49,6 +49,8 @@ const {
   BrowserHistoryEdgeAdapter,
   VSCodeAdapter,
   WinRecentAdapter,
+  GitActivityAdapter,
+  ShellHistoryAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -333,6 +335,24 @@ async function initHub() {
   try {
     const winRecent = new WinRecentAdapter();
     if (!registry.has(winRecent.name)) registry.register(winRecent);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  // Phase 18 — git activity (commit timeline via local `git log`) +
+  // shell history (PSReadLine / bash / zsh history files). Both pure
+  // file-import, no network. authenticate() degrades gracefully when
+  // no code roots / no history files exist on the host.
+  try {
+    const git = new GitActivityAdapter();
+    if (!registry.has(git.name)) registry.register(git);
+  } catch (_err) {
+    // Continue boot
+  }
+
+  try {
+    const shell = new ShellHistoryAdapter();
+    if (!registry.has(shell.name)) registry.register(shell);
   } catch (_err) {
     // Continue boot
   }
