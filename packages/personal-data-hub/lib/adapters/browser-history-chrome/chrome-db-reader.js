@@ -8,7 +8,35 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const Database = require("better-sqlite3");
+// Dual-load: bs3mc tracks Electron's ABI 140 (runtime path), plain
+// better-sqlite3 tracks Node's ABI 127 (test path). Whichever loads
+// without NODE_MODULE_VERSION mismatch wins. Both expose the same
+// Database class for unencrypted DBs.
+function loadDatabase() {
+  for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
+    let cls;
+    try {
+      // eslint-disable-next-line global-require
+      cls = require(mod);
+    } catch (_e) {
+      continue; // require failed, try next
+    }
+    // require() returns the JS class even when the native binding is
+    // ABI-mismatched; instantiation is what actually loads the .node
+    // and throws. Smoke-test with an in-memory DB.
+    try {
+      const probe = new cls(":memory:");
+      probe.close();
+      return cls;
+    } catch (_e) {
+      // ABI mismatch — try next candidate
+    }
+  }
+  throw new Error(
+    "chrome-db-reader: neither better-sqlite3-multiple-ciphers nor better-sqlite3 loaded — both ABI-mismatched",
+  );
+}
+const Database = loadDatabase();
 
 // WebKit timestamps are microseconds since 1601-01-01 UTC. Convert to
 // epoch-ms by shifting the epoch (11644473600 seconds × 1e6 µs/s).

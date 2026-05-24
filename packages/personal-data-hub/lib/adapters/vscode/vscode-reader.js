@@ -20,7 +20,31 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const Database = require("better-sqlite3");
+// Dual-load: bs3mc tracks Electron's ABI 140 (runtime path), plain
+// better-sqlite3 tracks Node's ABI 127 (test path). Whichever loads
+// wins. See chrome-db-reader.js for the same pattern + rationale.
+function loadDatabase() {
+  for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
+    let cls;
+    try {
+      // eslint-disable-next-line global-require
+      cls = require(mod);
+    } catch (_e) {
+      continue;
+    }
+    try {
+      const probe = new cls(":memory:");
+      probe.close();
+      return cls;
+    } catch (_e) {
+      /* ABI mismatch, try next */
+    }
+  }
+  throw new Error(
+    "vscode-reader: neither better-sqlite3-multiple-ciphers nor better-sqlite3 loaded — both ABI-mismatched",
+  );
+}
+const Database = loadDatabase();
 
 function defaultVscodeRoot() {
   if (process.platform === "win32") {
