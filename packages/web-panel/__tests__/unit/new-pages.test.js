@@ -22,19 +22,21 @@ import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/pa
 // ─── Router registration ─────────────────────────────────────────────────────
 
 describe('Router registration', () => {
-  it('has exactly 61 child routes under root', async () => {
+  it('has exactly 64 child routes under root', async () => {
     const routerModule = await import('../../src/router/index.js')
     const router = routerModule.default
     const rootRoute = router.options.routes[0]
-    // 1 redirect + 60 named pages = 61 children
+    // 1 redirect + 63 named pages = 64 children
     // (Mtc added 2026-05-02; SyncSettings added 2026-05-06 for tray "同步设置…" entry;
     //  NotificationSettings added 2026-05-07 for Phase 3c.7 web-shell parity;
     //  MtcAudit added unstaged for the audit log surface; Multisig added for
     //  M-of-N flow; ProjectInit + MobileBridge added for Plan C; Terminal
-    //  added 2026-05-14 for Plan A remote-terminal Phase 2.
-    //  This test was previously stale at 57 before the Terminal bump made the
-    //  drift visible — corrected in the same commit.)
-    expect(rootRoute.children.length).toBe(61)
+    //  added 2026-05-14 for Plan A remote-terminal Phase 2; PersonalDataHub
+    //  added 2026-05-19 (`98c593dcb`) for Hub Phase 4 cross-shell UI;
+    //  PdhVaultBrowser added 2026-05-24 for Hub Phase 16 数据可视化 entry;
+    //  MobileProjects added 2026-05-17 (`d1fad8159`) for Android project
+    //  management → remote-terminal entry PC placeholder.)
+    expect(rootRoute.children.length).toBe(64)
   })
 
   it('contains all expected route names', async () => {
