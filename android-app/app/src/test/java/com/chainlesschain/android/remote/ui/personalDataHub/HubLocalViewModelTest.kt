@@ -1548,12 +1548,11 @@ class HubLocalViewModelTest {
     }
 
     @Test
-    fun `askQuestion uses small-model budget defaults maxFacts=20 maxQueryLimit=50`() =
+    fun `askQuestion local model uses small budget maxFacts=20 maxQueryLimit=50`() =
         runTest(testDispatcher) {
-            // Contract test: HubLocalViewModel does NOT pass per-call budget, so
-            // LocalCcRunner.askQuestion's defaults supply 20/50. If anyone bumps
-            // those defaults (or stops using them) this test breaks loud — the
-            // whole reason Qwen2.5-1.5B answers don't overflow is this budget.
+            // 本机小模型分档：HubLocalViewModel 显式传 20/50 (FACTS_BUDGET_LOCAL
+            // / QUERY_LIMIT_BUDGET_LOCAL)，防 Qwen2.5-1.5B / Gemma-2B 2-4K 窗口
+            // 撑爆。toggle OFF (allowCloudFallback=false) 走这一档。
             coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
                 report = LocalCcRunner.AskReport(
                     answer = "ok",
@@ -1571,9 +1570,41 @@ class HubLocalViewModelTest {
                 ccRunner.askQuestion(
                     question = "q",
                     ollamaUrl = any(),
-                    acceptNonLocal = any(),
+                    acceptNonLocal = false,
                     maxFacts = 20,
                     maxQueryLimit = 50,
+                    timeoutMs = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `askQuestion cloud model uses larger budget maxFacts=80 maxQueryLimit=200`() =
+        runTest(testDispatcher) {
+            // 云大模型分档：toggle ON (allowCloudFallback=true) 走 80/200 —
+            // GPT/DeepSeek/Doubao 32K+ 上下文撑得起，召回更全。用户 2026-05-24
+            // 反馈："用云模型时可以把更多上下文加入"。
+            coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+                report = LocalCcRunner.AskReport(
+                    answer = "ok",
+                    citations = emptyList(),
+                    llmName = null, isLocal = false, durationMs = 0L,
+                ),
+                rawJson = "{}",
+            )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.setAllowCloudFallback(true)
+            vm.onAskQuestionChanged("q")
+            vm.askQuestion()
+            advanceUntilIdle()
+            io.mockk.coVerify(exactly = 1) {
+                ccRunner.askQuestion(
+                    question = "q",
+                    ollamaUrl = any(),
+                    acceptNonLocal = true,
+                    maxFacts = 80,
+                    maxQueryLimit = 200,
                     timeoutMs = any(),
                 )
             }
@@ -1602,6 +1633,99 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.ask.answer)
         assertTrue(vm.state.value.ask.citations.isEmpty())
         assertNull(vm.state.value.ask.errorMessage)
+    }
+
+    // ─── A3 — meta-question 短路 (你是谁/你好/...) ───────────────────────────
+    //
+    // Fast-path 走 llmEngine.chat 直接进程内推理，跳过 cc 子进程 + RAG。覆盖：
+    //  - 命中白名单：调 llmEngine 不调 ccRunner
+    //  - 未命中：保留原 ccRunner 路径（旧测试群已覆盖，这里只确认混合调度未误伤）
+    //  - llmEngine 抛错：errorMessage 透出"本机推理失败"
+
+    @Test
+    fun `askQuestion meta question 你是谁 takes fast path via llmEngine`() = runTest(testDispatcher) {
+        every { llmEngine.name } returns "mediapipe-gemma-2b"
+        coEvery { llmEngine.chat(any(), any()) } returns LlmInferenceEngine.ChatResponse(
+            text = "我是 ChainlessChain 的本机助手。",
+            promptTokens = 8,
+            completionTokens = 14,
+            totalDurationMs = 320L,
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.onAskQuestionChanged("你是谁")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertFalse(s.isAsking)
+        assertEquals("我是 ChainlessChain 的本机助手。", s.answer)
+        assertTrue(s.citations.isEmpty())
+        assertTrue(s.isLocal)
+        assertEquals("mediapipe-gemma-2b (本机·直答)", s.llmName)
+        // Critical: cc 子进程没被打扰
+        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any(), any()) }
+        io.mockk.coVerify(exactly = 1) { llmEngine.chat(any(), any()) }
+    }
+
+    @Test
+    fun `askQuestion meta question normalization (你好? -> 你好) takes fast path`() = runTest(testDispatcher) {
+        every { llmEngine.name } returns "mediapipe"
+        coEvery { llmEngine.chat(any(), any()) } returns LlmInferenceEngine.ChatResponse(
+            text = "你好！", promptTokens = 1, completionTokens = 1, totalDurationMs = 50L,
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.onAskQuestionChanged("  你好？  ")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        assertEquals("你好！", vm.state.value.ask.answer)
+        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `askQuestion non-meta question still uses cc subprocess path`() = runTest(testDispatcher) {
+        coEvery { ccRunner.askQuestion(any(), any(), any(), any()) } returns LocalCcRunner.AskResult.Ok(
+            report = LocalCcRunner.AskReport(
+                answer = "data-driven answer",
+                citations = emptyList(),
+                llmName = "ollama:qwen", isLocal = true, durationMs = 1234L,
+            ),
+            rawJson = "{}",
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.onAskQuestionChanged("上周妈妈给我打了几个电话")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        assertEquals("data-driven answer", vm.state.value.ask.answer)
+        io.mockk.coVerify(exactly = 1) { ccRunner.askQuestion(any(), any(), any(), any()) }
+        io.mockk.coVerify(exactly = 0) { llmEngine.chat(any(), any()) }
+    }
+
+    @Test
+    fun `askQuestion meta question surfaces error when llmEngine throws`() = runTest(testDispatcher) {
+        every { llmEngine.name } returns "noop-llm"
+        coEvery { llmEngine.chat(any(), any()) } throws
+            com.chainlesschain.android.pdh.llm.LlmInferenceException("engine not wired")
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.onAskQuestionChanged("hi")
+        vm.askQuestion()
+        advanceUntilIdle()
+
+        val s = vm.state.value.ask
+        assertFalse(s.isAsking)
+        assertNotNull(s.errorMessage)
+        assertTrue(s.errorMessage!!.contains("本机推理失败"))
+        assertTrue(s.errorMessage!!.contains("engine not wired"))
+        io.mockk.coVerify(exactly = 0) { ccRunner.askQuestion(any(), any(), any(), any()) }
     }
 
     // ─── 三道锁 ─────────────────────────────────────────────────────────────
