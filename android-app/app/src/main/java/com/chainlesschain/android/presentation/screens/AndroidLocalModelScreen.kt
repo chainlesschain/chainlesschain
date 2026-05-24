@@ -159,7 +159,7 @@ private fun ModelSpecCard(uiState: AndroidLocalModelUiState) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Text(
-                text = stringResource(R.string.local_model_url_label, uiState.spec.url),
+                text = stringResource(R.string.local_model_url_label, uiState.spec.primaryUrl),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 fontFamily = FontFamily.Monospace,

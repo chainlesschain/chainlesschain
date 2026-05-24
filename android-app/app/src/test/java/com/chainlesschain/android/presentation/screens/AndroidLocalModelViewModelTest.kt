@@ -43,7 +43,7 @@ class AndroidLocalModelViewModelTest {
         modelManager = mockk(relaxed = true)
         every { modelManager.defaultSpec } returns ModelManager.ModelSpec(
             filename = "test-model.task",
-            url = "https://hf-mirror.com/test/path",
+            urls = listOf("https://hf-mirror.com/test/path"),
             expectedSha256 = null,
             sizeBytesApprox = 555_000_000L,
             displayName = "Test Model",
