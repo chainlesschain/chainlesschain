@@ -40,6 +40,7 @@ import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 fun LLMTestChatScreen(
     onNavigateBack: () -> Unit,
     provider: LLMProvider = LLMProvider.DOUBAO,
+    useLocalEngine: Boolean = false,
     viewModel: LLMTestChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,9 +62,13 @@ fun LLMTestChatScreen(
         }
     }
 
-    // 初始化提供商
-    LaunchedEffect(provider) {
-        viewModel.setProvider(provider)
+    // 初始化提供商 / 本机引擎模式
+    LaunchedEffect(provider, useLocalEngine) {
+        if (useLocalEngine) {
+            viewModel.setLocalEngine()
+        } else {
+            viewModel.setProvider(provider)
+        }
     }
 
     Scaffold(
@@ -71,7 +76,12 @@ fun LLMTestChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.llm_test_title, uiState.provider.displayName))
+                        val titleLabel = if (uiState.useLocalEngine) {
+                            stringResource(R.string.llm_test_title_local)
+                        } else {
+                            stringResource(R.string.llm_test_title, uiState.provider.displayName)
+                        }
+                        Text(titleLabel)
                         if (uiState.currentModel.isNotEmpty()) {
                             Text(
                                 text = uiState.currentModel,

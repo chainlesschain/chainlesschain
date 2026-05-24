@@ -384,7 +384,22 @@ fun NavGraph(
         composable(Screen.LLMSettings.route) {
             LLMSettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToUsageStatistics = { navController.navigate(Screen.UsageStatistics.route) }
+                onNavigateToUsageStatistics = { navController.navigate(Screen.UsageStatistics.route) },
+                onNavigateToLocalModel = { navController.navigate(Screen.AndroidLocalModel.route) }
+            )
+        }
+
+        composable(Screen.AndroidLocalModel.route) {
+            com.chainlesschain.android.presentation.screens.AndroidLocalModelScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTestChat = { navController.navigate(Screen.LLMTestLocal.route) }
+            )
+        }
+
+        composable(Screen.LLMTestLocal.route) {
+            LLMTestChatScreen(
+                onNavigateBack = { navController.popBackStack() },
+                useLocalEngine = true
             )
         }
 
@@ -1003,6 +1018,10 @@ sealed class Screen(val route: String) {
     data object LLMTest : Screen("llm_test") {
         fun createRoute(provider: String) = "llm_test/$provider"
     }
+    /** 安卓本机 Gemma-3 1B 模型管理屏（下载/删除/测试入口）。 */
+    data object AndroidLocalModel : Screen("android_local_model")
+    /** LLMTestChatScreen 的本机引擎模式路由 —— useLocalEngine=true 自动注入。 */
+    data object LLMTestLocal : Screen("llm_test_local")
     data object FileBrowser : Screen("file_browser")
     // #21 user feedback "在项目管理要可以查看本项目文件" — project-scoped file list
     data object ProjectFiles : Screen("project_files") {
