@@ -1,15 +1,18 @@
 package com.chainlesschain.android.pdh.social
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -118,19 +121,29 @@ fun SocialCookieWebViewScreen(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            // Hint banner — tells user why this WebView appears
-            Row(
+            // Hint banner — tells user why this WebView appears.
+            // 2026-05-24: 单纯账密登录对 Bilibili/抖音/小红书/头条/快手 都常踩
+            // captcha 墙；推"扫码登录"路径 — 用户手机上同一台已登录的原生 App
+            // 扫这里的 web QR，cookie 直接回灌进我们的 CookieManager，绕过滑块/
+            // 短信/邮箱验证。微博走移动 web 账密软校验本来就过；其他 5 个平台
+            // 必须靠扫码闭环（参见 memory `bilibili_post_onload_cookie_race.md`
+            // 提到的硬字段校验链 SESSDATA+DedeUserID+bili_jct+buvid3 等）。
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    "请在下方页面用您自己的账号登录 $displayName。" +
-                        "登录成功后会自动返回。",
+                    "请在下方页面登录 $displayName。登录成功后会自动返回。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "建议切到「扫码登录」Tab — 用手机上已登录的 $displayName App " +
+                        "扫描下方二维码即可，比账密登录更不容易触发风控。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
             // Progress bar (indeterminate when 0f or 1f, otherwise determinate)
@@ -219,6 +232,43 @@ private fun CookieWebViewHost(
                         " ChainlesschainAndroid/A8"
                 }
                 webViewClient = object : WebViewClient() {
+                    /**
+                     * 2026-05-24: 各平台 web 登录页弹"打开 App 授权/扫码"按钮
+                     * 跳的是 `bilibili://` / `snssdk1128://` / `xhsdiscover://` /
+                     * `snssdk143://` / `kwai://` 这类自定义 scheme，或
+                     * `intent://...#Intent;scheme=...;package=...;end` URI。
+                     * WebView 默认只认 http(s)/file/javascript，遇到这些会
+                     * **静默 no-op** — 用户体感"按了没反应"。
+                     *
+                     * 这里把 http(s) 之外的全派发为 [Intent.ACTION_VIEW]，让
+                     * Android 系统去匹配能处理该 scheme 的原生 App。
+                     *
+                     * 关于 cookie 共享：原生 App 完成授权后，cookie 落在它自己
+                     * 的沙箱里，**不会** 回灌到我们的 [CookieManager]。所以即
+                     * 便能开起原生 App，最终也得靠 web 端扫码/账密走完后续
+                     * 流程才能拿到 cookie。本 override 主要消除"按了没反应"
+                     * 的死路体感，并支持极少数有 universal-link 回灌的开放
+                     * 平台流程（如微博"开放平台授权"）。
+                     */
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                    ): Boolean {
+                        val uri = request?.url ?: return false
+                        val scheme = uri.scheme?.lowercase()
+                        // 让 WebView 自己继续处理 http(s)/file/javascript/about/data。
+                        if (scheme == null ||
+                            scheme == "http" ||
+                            scheme == "https" ||
+                            scheme == "file" ||
+                            scheme == "javascript" ||
+                            scheme == "about" ||
+                            scheme == "data"
+                        ) {
+                            return false
+                        }
+                        return dispatchExternalScheme(view?.context, uri)
+                    }
                     override fun onPageFinished(view: WebView, url: String) {
                         super.onPageFinished(view, url)
                         onProgress(1f)
@@ -281,6 +331,61 @@ private fun CookieWebViewHost(
             }
         },
     )
+}
+
+/**
+ * 派发 WebView 里碰到的非 http(s) URI 给系统：`intent://` URI 走
+ * [Intent.parseUri] 解析（自带 scheme/package/fallback），其它自定义
+ * scheme（`bilibili://` / `snssdk1128://` / `xhsdiscover://` 等）走裸
+ * `ACTION_VIEW`。一律 catch [ActivityNotFoundException] — 没装对应原生
+ * App 时不能 crash 我们这个 Activity；URISyntaxException 兜底同理。
+ *
+ * 返回 true 表示 WebView 不要继续 loadUrl 这条 URI（无论原生 App 是否真
+ * 起来都算"我们已尝试"）。返回 false 仅在解析完全失败时，让 WebView 走
+ * 默认错误处理。
+ *
+ * @param context WebView 所属的 Activity context — Intent 需要它 startActivity；
+ *                空 context 直接放弃（罕见，但 view?.context 理论上可为 null）。
+ */
+internal fun dispatchExternalScheme(context: Context?, uri: Uri): Boolean {
+    if (context == null) return true  // Swallow — no way to dispatch.
+    val rawUrl = uri.toString()
+    val intent = try {
+        if (rawUrl.startsWith("intent://", ignoreCase = true)) {
+            // `intent://host/path#Intent;scheme=foo;package=com.bar;end`
+            // 由 parseUri 自动拆 scheme / package / S.fallback_url
+            Intent.parseUri(rawUrl, Intent.URI_INTENT_SCHEME)
+        } else {
+            Intent(Intent.ACTION_VIEW, uri)
+        }
+    } catch (t: Throwable) {
+        // Malformed intent URI — log + give up. False lets WebView surface
+        // its own "ERR_UNKNOWN_URL_SCHEME" error rather than swallowing
+        // silently (which would be the worse UX).
+        Timber.w(t, "SocialCookieWebView: failed to parse external URI: %s", rawUrl)
+        return false
+    }
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    return try {
+        context.startActivity(intent)
+        Timber.i("SocialCookieWebView: dispatched external scheme: %s", rawUrl)
+        true
+    } catch (e: ActivityNotFoundException) {
+        // 原生 App 未装。intent:// URI 的 fallback_url 自动由系统消费；
+        // 普通 scheme 需要我们自己处理 — 但 v1 不试 fallback（多数平台
+        // fallback 也是同个 web QR 页面，会循环）。日志告知开发，UI 端
+        // 用户看不到任何提示（与原 silent no-op 相比改善：至少有日志）。
+        Timber.i(
+            "SocialCookieWebView: no app to handle scheme %s (uri=%s)",
+            uri.scheme, rawUrl,
+        )
+        true
+    } catch (t: Throwable) {
+        // SecurityException (e.g. requires permission) / IllegalArgumentException
+        // (malformed Intent extras) — same handling: swallow + log, don't crash.
+        Timber.w(t, "SocialCookieWebView: startActivity threw for %s", rawUrl)
+        true
+    }
 }
 
 /**
