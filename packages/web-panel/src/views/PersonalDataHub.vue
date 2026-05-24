@@ -225,6 +225,43 @@
               <a-button size="small" :loading="loading.sync[record.name]" @click="syncOne(record.name)">
                 同步
               </a-button>
+              <!-- Per-kind include toggles (only adapters with multi-kind
+                   bridge output show this — currently just system-data-android).
+                   Popover content is a checkbox group writing into
+                   syncIncludeOptions[record.name]; changes auto-persist to
+                   localStorage so the user's privacy choice survives reloads. -->
+              <a-popover
+                v-if="adapterHasIncludeToggles(record.name)"
+                v-model:open="includePopoverOpen[record.name]"
+                trigger="click"
+                placement="left"
+                :title="`${record.name} 采集范围`"
+              >
+                <template #content>
+                  <div style="min-width: 220px;">
+                    <div
+                      v-for="kind in INCLUDE_KIND_META[record.name]"
+                      :key="kind.key"
+                      style="margin: 6px 0;"
+                    >
+                      <a-checkbox
+                        :checked="syncIncludeOptions[record.name][kind.key] !== false"
+                        @change="onIncludeKindToggle(record.name, kind.key, $event)"
+                      >
+                        {{ kind.label }}
+                        <span style="color: #999; font-size: 12px; margin-left: 4px;">
+                          {{ kind.hint }}
+                        </span>
+                        <a-tag v-if="kind.sensitive" color="orange" size="small" style="margin-left: 4px;">敏感</a-tag>
+                      </a-checkbox>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #999;">
+                      取消勾选的数据本次同步不会拉取入库
+                    </div>
+                  </div>
+                </template>
+                <a-button size="small" title="选择采集范围">⚙</a-button>
+              </a-popover>
               <a-popconfirm
                 :title="`从注册表移除 ${record.name}？（vault 数据不会删除）`"
                 @confirm="unregisterAdapter(record.name)"
@@ -680,6 +717,65 @@ const auditOpen = ref(false)
 const auditRows = ref([])
 const lastSync = ref(null)
 
+// Per-adapter include toggles. Only adapters with multi-kind bridge
+// output need this; for now that's just system-data-android.
+// Persisted in localStorage so the user's privacy preferences survive
+// page reloads. Default: all kinds ON (matches adapter's defaultInclude).
+//
+// Uses `reactive()` (deep proxy) instead of `ref()` because Ant Design
+// Vue's a-checkbox with `:checked` binding wasn't observing nested
+// ref-of-object mutations cleanly across popover open/close cycles.
+const SYNC_INCLUDE_STORAGE_KEY = 'pdh.syncIncludeOptions.v1'
+const DEFAULT_SYNC_INCLUDE = {
+  'system-data-android': { contacts: true, apps: true, sms: true, calls: true },
+}
+function _loadSyncInclude() {
+  try {
+    const raw = localStorage.getItem(SYNC_INCLUDE_STORAGE_KEY)
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE))
+    const parsed = JSON.parse(raw)
+    return {
+      'system-data-android': {
+        ...DEFAULT_SYNC_INCLUDE['system-data-android'],
+        ...(parsed['system-data-android'] || {}),
+      },
+    }
+  } catch (_e) {
+    return JSON.parse(JSON.stringify(DEFAULT_SYNC_INCLUDE))
+  }
+}
+const syncIncludeOptions = reactive(_loadSyncInclude())
+function persistSyncInclude() {
+  try {
+    localStorage.setItem(SYNC_INCLUDE_STORAGE_KEY, JSON.stringify(syncIncludeOptions))
+    // eslint-disable-next-line no-console
+    console.log('[PDH-include] persisted:', JSON.stringify(syncIncludeOptions))
+  } catch (e) { console.warn('[PDH-include] persist failed:', e && e.message) }
+}
+const includePopoverOpen = ref({}) // per-row popover state, keyed by adapter name
+// Metadata for the per-kind UI — order + labels + per-kind sensitivity hint.
+const INCLUDE_KIND_META = {
+  'system-data-android': [
+    { key: 'contacts', label: '联系人', hint: '~767 条' },
+    { key: 'apps', label: '已安装应用', hint: '~176 个' },
+    { key: 'sms', label: '短信内容', hint: '~2400 条 · 高敏感', sensitive: true },
+    { key: 'calls', label: '通话记录', hint: '~18000 条 · 包含号码', sensitive: true },
+  ],
+}
+function adapterHasIncludeToggles(name) {
+  return Object.prototype.hasOwnProperty.call(INCLUDE_KIND_META, name)
+}
+function onIncludeKindToggle(adapterName, kindKey, e) {
+  const checked = e && e.target ? !!e.target.checked : !!e
+  // eslint-disable-next-line no-console
+  console.log('[PDH-include] toggle', adapterName, kindKey, '=>', checked)
+  if (!syncIncludeOptions[adapterName]) {
+    syncIncludeOptions[adapterName] = {}
+  }
+  syncIncludeOptions[adapterName][kindKey] = checked
+  persistSyncInclude()
+}
+
 // Phase 5.6 — email config + event detail
 const emailConfigOpen = ref(false)
 const emailForm = reactive({
@@ -885,11 +981,19 @@ async function syncOne(name) {
   loading.sync[name] = true
   resetSyncProgress(name)
   try {
+    // Per-kind include toggles — only system-data-android currently
+    // produces multi-kind output (contacts / apps / sms / calls).
+    // For other adapters, options is empty and the server falls through
+    // to default behavior (which is auto-pull-from-phone for socials).
+    // Persisted in localStorage so the user's choice survives reloads.
+    const includeOpts = syncIncludeOptions[name]
+    const options = includeOpts ? { include: { ...includeOpts } } : {}
+
     // Phase 5.7: streaming when supported, falls back to plain syncAdapter
     if (typeof hub.syncAdapterStream === 'function') {
-      lastSync.value = await hub.syncAdapterStream(name, {}, handleSyncEvent)
+      lastSync.value = await hub.syncAdapterStream(name, options, handleSyncEvent)
     } else {
-      lastSync.value = await hub.syncAdapter(name)
+      lastSync.value = await hub.syncAdapter(name, options)
     }
     await refresh()
   } catch (err) {
