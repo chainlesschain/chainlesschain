@@ -123,6 +123,9 @@ fun NewHomeScreen(
     var showAnswerSheet by remember { mutableStateOf(false) }
     // 用户最近一次从首页发出的问题 — 「查看详情」跳 PDH tab 4 时携带
     var lastAskedFromHome by remember { mutableStateOf("") }
+    // 2026-05-24 — 用户点 Send 时所选 4 路 chip 还没配置 → 弹此对话框引导去配置页。
+    // 非 null 时打开 dialog；点「去配置」分派到对应 nav callback；点「取消」回原页保留输入框文本。
+    var pendingUnconfigRoute by remember { mutableStateOf<LlmRoute?>(null) }
     // v1.3+：首页桌面连接卡读 *持久化* 列表（不再读 live WS 连接 — 扫码完信令
     // 立刻断，那个列表永远空，首页永远显示「未连接」）。
     val pairedDesktops by pairedDevicesViewModel.persistedDesktops.collectAsStateWithLifecycle()
@@ -283,15 +286,23 @@ fun NewHomeScreen(
             onValueChange = { inputText = it },
             onSendMessage = { message ->
                 if (message.isNotBlank()) {
-                    val toSend = message
-                    inputText = ""
-                    when (resolveHomeSendAction(askState.effectiveRoute)) {
-                        HomeSendAction.NAV_CLOUD_CHAT -> onNavigateToAIChatWithMessage(toSend)
-                        HomeSendAction.INVOKE_LOCAL_RAG -> {
-                            lastAskedFromHome = toSend
-                            showAnswerSheet = true
-                            hubLocalViewModel.onAskQuestionChanged(toSend)
-                            hubLocalViewModel.askQuestion()
+                    when (val gate = resolveHomeAskGate(askState)) {
+                        is HomeAskGateDecision.NeedConfig -> {
+                            // 所选路未配置 — 不清输入框，弹引导对话框
+                            pendingUnconfigRoute = gate.route
+                        }
+                        HomeAskGateDecision.Submit -> {
+                            val toSend = message
+                            inputText = ""
+                            when (resolveHomeSendAction(askState.selectedRoute)) {
+                                HomeSendAction.NAV_CLOUD_CHAT -> onNavigateToAIChatWithMessage(toSend)
+                                HomeSendAction.INVOKE_LOCAL_RAG -> {
+                                    lastAskedFromHome = toSend
+                                    showAnswerSheet = true
+                                    hubLocalViewModel.onAskQuestionChanged(toSend)
+                                    hubLocalViewModel.askQuestion()
+                                }
+                            }
                         }
                     }
                 }
@@ -334,6 +345,25 @@ fun NewHomeScreen(
             onViewDetail = {
                 showAnswerSheet = false
                 onNavigateToPdhAsk(lastAskedFromHome)
+            },
+        )
+    }
+
+    // 2026-05-24 — 用户点 Send 时所选路未配置 → 弹此对话框引导到对应配置页。
+    pendingUnconfigRoute?.let { route ->
+        UnconfiguredRouteDialog(
+            route = route,
+            onDismiss = { pendingUnconfigRoute = null },
+            onGoConfigure = {
+                pendingUnconfigRoute = null
+                when (route) {
+                    LlmRoute.LOCAL_DEVICE -> onNavigateToLocalModel()
+                    LlmRoute.PC_LOCAL -> onNavigateToScanDesktopPairing()
+                    // LAN URL 字段在 Settings → AI 后端 section；用 LLM 设置入口同
+                    // 落地页（用户反馈 sublabel 已经说了"未填 URL"，标签足够）
+                    LlmRoute.LAN_OLLAMA -> onNavigateToLLMSettings()
+                    LlmRoute.CLOUD_ANDROID -> onNavigateToLLMSettings()
+                }
             },
         )
     }
@@ -1104,11 +1134,86 @@ fun resolveHomeSendAction(route: LlmRoute): HomeSendAction = when (route) {
 }
 
 /**
+ * 2026-05-24 — 首页 ChatInputBar Send 前的可用性 gate。
+ *
+ * Chip 永远可点（用户能切 `selectedRoute`），但点 Send 时若选的路没配置 →
+ * 返回 NEED_CONFIG_<route>，调用方弹 [UnconfiguredRouteDialog] 跳对应配置页；
+ * 否则返回 SUBMIT 走 [resolveHomeSendAction] 正常分流。
+ *
+ * 抽成纯函数 + sealed 让 JVM 可测，避免内联在 Composable lambda 里跟着 4 条
+ * availability 字段漂移（漏校验一条就 silent crash on submit）。
+ */
+sealed class HomeAskGateDecision {
+    object Submit : HomeAskGateDecision()
+    data class NeedConfig(val route: LlmRoute) : HomeAskGateDecision()
+}
+
+fun resolveHomeAskGate(state: HubLocalViewModel.AskCardState): HomeAskGateDecision {
+    val available = when (state.selectedRoute) {
+        LlmRoute.LOCAL_DEVICE -> state.localDeviceAvailable
+        LlmRoute.CLOUD_ANDROID -> state.cloudAvailable
+        LlmRoute.PC_LOCAL -> state.pcLocalAvailable
+        LlmRoute.LAN_OLLAMA -> state.lanAvailable
+    }
+    return if (available) HomeAskGateDecision.Submit
+    else HomeAskGateDecision.NeedConfig(state.selectedRoute)
+}
+
+/**
+ * 2026-05-24 — 用户在首页 ChatInputBar 点 Send 但所选 4 路 chip 路由没配置时弹的对话框。
+ *
+ * 标题 / 描述按路由定制；「去配置」按钮调对应 nav callback；「取消」回原页（输入框文本保留，
+ * 配完回来即可重发）。文案目标是让用户一眼明白要去哪开关、为什么这条路现在不能用。
+ */
+@Composable
+private fun UnconfiguredRouteDialog(
+    route: LlmRoute,
+    onDismiss: () -> Unit,
+    onGoConfigure: () -> Unit,
+) {
+    val (title, body, cta) = when (route) {
+        LlmRoute.LOCAL_DEVICE -> Triple(
+            "本机 LLM 未就绪",
+            "端侧推理需要先下载模型（Gemma / Qwen .task，约 1 GB）。下载后可完全离线提问。",
+            "去下载",
+        )
+        LlmRoute.PC_LOCAL -> Triple(
+            "尚未配对桌面",
+            "桌面（PC Ollama）路由要求先扫描桌面端二维码完成配对，且桌面端启用了本机 Ollama。",
+            "扫码配对",
+        )
+        LlmRoute.LAN_OLLAMA -> Triple(
+            "局域网 Ollama URL 未填",
+            "去「设置 → AI 后端」填入同局域网内的 Ollama 地址（如 http://192.168.x.x:11434）。",
+            "去设置",
+        )
+        LlmRoute.CLOUD_ANDROID -> Triple(
+            "云 LLM API Key 未配置",
+            "去「LLM 设置」选择云提供商（豆包 / DeepSeek / OpenAI 等）并填入 API Key。",
+            "去 LLM 设置",
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = {
+            TextButton(onClick = onGoConfigure) { Text(cta) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
+}
+
+/**
  * 2026-05-24 — 首页 ChatInputBar 上方的 4 路 LLM selector chip 行。
  *
- * 默认显示 4 个 chip（本机 / 桌面 / 局域网 / 云），不可用的 chip 灰显且不可点。
- * 用户问个人数据相关 → 选本机/PC/局域网（带 vault RAG）；问"今天天气"无关问题
- * → 切云 LLM（无 RAG，走桌面 AI 聊天屏老路径）。
+ * 4 个 chip（本机 / 桌面 / 局域网 / 云）**永远可点**（只在 isAsking 时禁用），
+ * 未配置的路由 sublabel 显示具体原因（未下载模型 / 未配对 / 未填 URL / 未填 API Key）。
+ * 选中状态绑 `selectedRoute`（用户的真实选择），不走 effectiveRoute 自动回退 —
+ * 自动回退会让用户「点了 A 但显示 B 选中」迷惑。Submit 时再用 [resolveHomeAskGate]
+ * 校验，若选的路未配置则弹 [UnconfiguredRouteDialog] 跳对应配置页。
  *
  * 与 HubAskCard 的 4 路 selector 同语义但形态压缩成水平 chip 适配首页底部。
  */
@@ -1119,7 +1224,7 @@ fun HomeAskRouteChips(
     isLoading: Boolean,
     onRouteSelected: (LlmRoute) -> Unit,
 ) {
-    val current = askState.effectiveRoute
+    val current = askState.selectedRoute
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1130,30 +1235,34 @@ fun HomeAskRouteChips(
     ) {
         HomeRouteChip(
             label = "本机",
-            sublabel = "vault RAG",
+            sublabel = if (askState.localDeviceAvailable) "vault RAG" else "未下载模型",
             selected = current == LlmRoute.LOCAL_DEVICE,
-            enabled = !isLoading && askState.localDeviceAvailable,
+            enabled = !isLoading,
+            configured = askState.localDeviceAvailable,
             onClick = { onRouteSelected(LlmRoute.LOCAL_DEVICE) },
         )
         HomeRouteChip(
             label = "桌面",
-            sublabel = "PC Ollama",
+            sublabel = if (askState.pcLocalAvailable) "PC Ollama" else "未配对桌面",
             selected = current == LlmRoute.PC_LOCAL,
-            enabled = !isLoading && askState.pcLocalAvailable,
+            enabled = !isLoading,
+            configured = askState.pcLocalAvailable,
             onClick = { onRouteSelected(LlmRoute.PC_LOCAL) },
         )
         HomeRouteChip(
             label = "局域网",
-            sublabel = "LAN Ollama",
+            sublabel = if (askState.lanAvailable) "LAN Ollama" else "未填 URL",
             selected = current == LlmRoute.LAN_OLLAMA,
-            enabled = !isLoading && askState.lanAvailable,
+            enabled = !isLoading,
+            configured = askState.lanAvailable,
             onClick = { onRouteSelected(LlmRoute.LAN_OLLAMA) },
         )
         HomeRouteChip(
             label = "云",
-            sublabel = "无 RAG",
+            sublabel = if (askState.cloudAvailable) "无 RAG" else "未填 API Key",
             selected = current == LlmRoute.CLOUD_ANDROID,
-            enabled = !isLoading && askState.cloudAvailable,
+            enabled = !isLoading,
+            configured = askState.cloudAvailable,
             onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
         )
     }
@@ -1166,8 +1275,13 @@ private fun HomeRouteChip(
     sublabel: String,
     selected: Boolean,
     enabled: Boolean,
+    configured: Boolean,
     onClick: () -> Unit,
 ) {
+    // 未配置时 sublabel 用 error 色提示「这路要先去配置」，但 chip 本身仍可点
+    val sublabelColor =
+        if (configured) MaterialTheme.colorScheme.onSurfaceVariant
+        else MaterialTheme.colorScheme.error
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -1175,7 +1289,7 @@ private fun HomeRouteChip(
         label = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                Text(sublabel, style = MaterialTheme.typography.labelSmall)
+                Text(sublabel, style = MaterialTheme.typography.labelSmall, color = sublabelColor)
             }
         },
     )
