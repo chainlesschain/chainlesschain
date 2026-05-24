@@ -60,6 +60,11 @@ class HubBrowserRenderersTest {
     }
 
     @Test
+    fun `browser-history prefix maps to system`() {
+        assertEquals("system", categoryFor("browser-history-chrome"))
+    }
+
+    @Test
     fun `ai-chat prefix maps to ai-chat`() {
         assertEquals("ai-chat", categoryFor("ai-chat-history"))
         assertEquals("ai-chat", categoryFor("ai-chat-deepseek"))

@@ -60,6 +60,7 @@ private val PREFIX_MAP: List<Pair<String, String>> = listOf(
     "alipay-" to "shopping",
     "travel-" to "travel",
     "system-data" to "system",
+    "browser-" to "system",   // browser-history-chrome lands here
     "ai-chat-" to "ai-chat",
 )
 

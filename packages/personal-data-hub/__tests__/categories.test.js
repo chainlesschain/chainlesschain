@@ -50,6 +50,7 @@ describe("PDH categories taxonomy", () => {
     ["travel-tencent-map", "travel"],
     ["system-data", "system"],
     ["system-data-android", "system"],
+    ["browser-history-chrome", "system"],
     ["ai-chat-history", "ai-chat"],
     ["ai-chat-deepseek", "ai-chat"],
   ])("getCategory(%s) → %s", (adapter, cat) => {

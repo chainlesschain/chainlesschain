@@ -192,6 +192,10 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     '/community', '/governance', '/reputation', '/recommend',
     '/video',
     '/rssfeed', '/webauthn',
+    // Phase 16 — Personal Data Hub views (main hub + vault browser).
+    // Hash-routing SPA, server returns index.html for any depth.
+    '/personal-data-hub',
+    '/personal-data-hub/browser',
   ]
 
   for (const route of SPA_ROUTES) {

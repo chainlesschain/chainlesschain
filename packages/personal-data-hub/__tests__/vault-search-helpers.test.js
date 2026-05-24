@@ -70,9 +70,14 @@ describe("_categoryToWhere", () => {
     expect(r.sql).toMatch(/OR/);
   });
 
-  it("translates 'system' to system-data prefix", () => {
+  it("translates 'system' to system-data + browser-history prefixes", () => {
     const r = _categoryToWhere("system");
-    expect(r.params).toEqual({ cat0: "system-data%" });
+    // 2 rules currently map to "system": system-data* and browser-*
+    // (browser-history-chrome adapter landed 2026-05-24). If a future
+    // adapter joins this bucket, just bump the expected length.
+    const vals = Object.values(r.params).sort();
+    expect(vals).toEqual(["browser-%", "system-data%"]);
+    expect(r.sql).toContain("OR");
   });
 
   it("translates 'other' to NOT-IN-any-prefix (negation form)", () => {
