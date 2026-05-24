@@ -11,6 +11,7 @@
       <a-space>
         <a-tag v-if="store.mode === 'fts5'" color="green">FTS5 trigram</a-tag>
         <a-tag v-else-if="store.mode === 'like'" color="orange">LIKE 兜底</a-tag>
+        <ExportDropdown :events="store.results" :category="store.filters.category" />
         <a-button @click="store.search()" :loading="store.isLoading">
           <template #icon><ReloadOutlined /></template>
           刷新
@@ -102,6 +103,7 @@ import { categoryLabel } from "../utils/pdhCategories.js";
 import CategorySidebar from "../components/pdh/CategorySidebar.vue";
 import SearchFilterBar from "../components/pdh/SearchFilterBar.vue";
 import RendererDispatcher from "../components/pdh/renderers/RendererDispatcher.vue";
+import ExportDropdown from "../components/pdh/ExportDropdown.vue";
 
 const store = usePdhBrowserStore();
 
