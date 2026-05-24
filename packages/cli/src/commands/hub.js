@@ -1278,7 +1278,7 @@ export function registerHubCommand(program) {
     .description(
       "Re-derive canonical events from raw_events without re-fetching " +
         "from source (recovers orphan raws from a past sync where putBatch " +
-        "silently failed, e.g. trap #22 partial-index drift).",
+        "silently failed, e.g. trap #25 partial-index drift).",
     )
     .option(
       "--adapter <name>",

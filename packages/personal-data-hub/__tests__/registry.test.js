@@ -315,7 +315,7 @@ describe("AdapterRegistry.rederive", () => {
     reg.register(adapter);
 
     // Simulate the failure mode: putRawEvent succeeded (raw landed) but
-    // putBatch failed at sync time (e.g. partial-index drift trap #22),
+    // putBatch failed at sync time (e.g. partial-index drift trap #25),
     // so events table is empty while raw_events has 3 rows.
     const baseTs = 1_700_000_000_000;
     for (let i = 0; i < 3; i++) {
