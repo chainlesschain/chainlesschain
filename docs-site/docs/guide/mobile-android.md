@@ -45,6 +45,34 @@ ChainlessChain 桌面端是"重资产个人 AI 主机"——141 内置 skills、
 - 🚀 **M5 SignAsService**: macOS / Linux 桌面调手机硬件签名，跨平台 U-Key 替代品
 - 🏗️ **25 Gradle 模块**: 9 core / 13 feature / 2 data / app / wear-app，Hilt DI + Compose UI
 
+## v5.0.3.85 新增 — 本机大模型 + 数据浏览器
+
+> Android 终于摆脱"必须在线"和"看不到采集了啥"两大痛点。
+
+### 🧠 4 档 LLM 路由 — 离线也能问 AI
+
+首页 ChatInputBar + 本机数据 tab + 本机提问 tab **三屏统一 selector**：
+
+| 路由 | 何时用 | 隐私 |
+|---|---|---|
+| **LOCAL_DEVICE** (端侧) | 无网 / 飞行模式 / 敏感问题 | 模型在 APK 内，零外传 — MediaPipe tasks-genai |
+| **CLOUD_ANDROID** (云) | 联网 + 复杂推理 | 走 Android 本机配置的 9 家云 LLM（DeepSeek/Doubao/Kimi/通义...）|
+| **PC_LOCAL** (桌面) | 配对桌面在 LAN | 走桌面本机 Ollama，跨设备零外传 |
+| **LAN_OLLAMA** (局域网) | 自托管 Ollama 服务 | 填 baseUrl，持久到 EncryptedSharedPreferences |
+
+设置 → AI 后端 配 LAN baseUrl；首页对话框直接选目标。**默认 CLOUD_ANDROID**（PC_LOCAL 配对后可自动切）；MediaPipe 端侧降级为离线 fallback 保留不主推（端侧模型小，回答质量明显弱于云）。
+
+### 📊 第 6 tab "数据浏览" — 看采集到了啥
+
+PersonalDataHub 6 tab：① 概览 / ② 同步 / ③ 提问 / ④ 本机数据 / ⑤ 本机提问 / **⑥ 数据浏览（新）**。
+
+- **分类侧栏**：7 buckets（chat/social/email/shopping/travel/system/ai-chat）按 category 过滤
+- **FTS5 全文搜索**：trigram tokenizer，CJK 子串可匹配（"我妈生日"也能命中"妈妈生日"）
+- **5 种渲染器**：ChatBubble（聊天）/ OrderTable（订单）/ Timeline（出行）/ EmailList（邮件）/ Generic（兜底），按 category 自动派发
+- **导出**：JSON / NDJSON / CSV 三格，客户端直下载到 `/sdcard/Download/`
+
+之前用户只能"问 AI"间接看到 RAG 召回片段或个别 tab 的"看采集到的"bottom sheet（5 tab 中 4 个没该按钮），现在主动浏览全部数据。
+
 ## 三层定位详解
 
 ### L1：StrongBox DID 钱包
