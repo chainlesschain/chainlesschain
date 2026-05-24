@@ -301,6 +301,12 @@ fun HubLocalScreen(
                             "social-kuaishou" -> viewModel.logoutKuaishou()
                         }
                     },
+                    onPreviewVault = {
+                        viewModel.requestVaultPreview(
+                            adapter = card.adapterName,
+                            displayName = card.displayName,
+                        )
+                    },
                 )
                 Spacer(Modifier.height(8.dp))
             }
@@ -436,6 +442,13 @@ fun HubLocalScreen(
     CitationDetailSheet(
         state = state.citationDetail,
         onDismiss = { viewModel.dismissCitationDetail() },
+    )
+
+    // 2026-05-24 "看本机数据"入口 — SocialAdapterCard 上"看采集到的"按钮触发。
+    // 让用户能直接看 vault 里到底有没有真东西，回答"同步成功但 AI 说没内容"。
+    VaultPreviewSheet(
+        state = state.vaultPreview,
+        onDismiss = { viewModel.dismissVaultPreview() },
     )
 
     // §2.3 D6.2 — Email IMAP credentials dialog. 至多 1 个 vendor 同时 pending
@@ -660,6 +673,7 @@ private fun SocialAdapterCard(
     onLogin: () -> Unit,
     onSync: () -> Unit,
     onLogout: () -> Unit,
+    onPreviewVault: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -735,6 +749,18 @@ private fun SocialAdapterCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // "看本机数据" — only shown when this adapter has actually
+                // written something to vault. Lets the user verify the sync
+                // wasn't a silent empty (3-API-empty branch shows error, but
+                // partial-empty / RAG-miss-but-data-present is invisible w/o
+                // this button). 2026-05-24 user feedback.
+                if (state.isLoggedIn && state.lastSyncCount > 0 && state.implemented) {
+                    TextButton(
+                        onClick = onPreviewVault,
+                        enabled = !state.isSyncing && !globalBusy,
+                    ) { Text("看采集到的") }
+                    Spacer(Modifier.size(8.dp))
+                }
                 if (state.isLoggedIn && state.implemented) {
                     TextButton(
                         onClick = onLogout,
