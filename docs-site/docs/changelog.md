@@ -3,6 +3,63 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [Unreleased — PDH Vault Browser Phase 16 — 桌面 + Android 数据可视化入口] - 2026-05-24
+
+> 用户反馈"安卓端和桌面端都缺少采集上来数据的可视化展示"。之前用户只能"问 AI"间接看到 RAG 召回片段，或 Android 个别 tab 的"看采集到的"bottom sheet（5 tab 中 4 个没该按钮）。本期补完整双端主动浏览器入口：分类侧栏 + FTS5 CJK 全文检索 + 5 种 category-keyed 渲染器 + 游标分页 + JSON/NDJSON/CSV 导出。
+
+### 后端 (FTS5 + categories + search/facet API)
+
+- **新 `categories.js`** — 7 buckets (chat/social/email/shopping/travel/system/ai-chat) + 单一真相源 + prefix-rule mapper `getCategory()` / `groupByCategory()`
+- **migration v3**：FTS5 external-content 虚拟表 `events_fts` + 3 个 INSERT/UPDATE/DELETE triggers 保持索引同步 + 一次性 backfill；**trigram tokenizer**（CJK 子串匹配，比 LIKE 快 10-100×）；探测不支持时 `_meta.fts_mode='like'` 透明降级
+- **`vault.searchEvents` / `facetCounts` / `ftsMode`**：游标分页 `(occurred_at DESC, id DESC)` 比 OFFSET 稳定 / FTS5 phrase-match 自动加引号 / category WHERE 翻译 / sub-3-char query `shortQuery=true` UI 提示
+- 测试：36 categories + 13 SQL helpers + **27 FTS5 native integration**（trigger sync / cursor / category 过滤 / CJK trigram，21s）
+
+### 协议层 (CLI + WS + composable)
+
+- **CLI**: `cc hub search` + `cc hub facet-counts` (含 --q --adapter --category --subtype --since --until --cursor --limit)
+- **WS topics**: `personal-data-hub.search-events` + `personal-data-hub.facet-counts`
+- **composable**: `usePersonalDataHub.searchEvents()` + `.facetCounts()`
+- 测试：4 composable wrapper tests
+
+### 桌面 UI (Vue 3 + Pinia + Ant Design)
+
+- **新路由** `/personal-data-hub/browser` + AppLayout 侧栏菜单"数据浏览器"入口
+- **Pinia store** `pdhBrowser.js`：filters/results/cursor/facets + debounce 300ms + **race-resolution token**（stale slow response silently drop）+ facets 调用故意 strip adapter/category/subtype（否则 sidebar bucket counts 始终 100%）
+- **5 种 renderer**：`ChatBubble/OrderTable/Timeline/EmailList/Generic` + dispatcher 按 **category** 派发（不按 subtype — subtype 漂移快）
+- **导出** `ExportDropdown.vue`：JSON/NDJSON/CSV 三格客户端下载，RFC-4180 escaping，filename 含日期+category
+- 测试：10 store + 12 view-level (vue-test-utils + @pinia/testing) + 19 getCategory + 11 export
+
+### Android UI (Compose + Hilt)
+
+- **第 6 tab "数据浏览"** in `PersonalDataHubScreen.kt` (back-compat: existing NavGraph `initialTab=0-4` 不动)
+- **`HubBrowserViewModel`**：MutableStateFlow + debounce + race-token + 并行 facet+search async + error 捕获
+- **`HubBrowserScreen`**：stateful wrapper + stateless `HubBrowserScreenContent`（避 mockk HiltViewModel androidTest 初始化 trap）
+- **`HubBrowserRenderers.kt`**：`categoryFor()` 派发 + 5 个 Composable renderers 镜像桌面
+- **`LocalCcRunner` 扩展**：`searchEvents` / `facetCounts` 包 `cc hub search` 子进程，含 sealed `SearchResult` / `FacetCountsResult` / `Cursor`，抽 `_runCcJson` helper
+- 测试：7 JVM VM + 10 JVM renderer dispatcher
+- **剩**: Compose UI test + 真机 latency benchmark 等 Android emulator CI job 启用
+
+### Commit 链
+
+```
+86b3cda98  merge: github/main into local main (plumbing zero-touch merge)
+8b2757704  test(pdh): vault-search.test.js fixture 修 + sandbox runner script
+fe102c112  test(pdh-browser): view integration + e2e SPA routes + browser-history sync
+839e534c5  feat(pdh-browser): JSON/NDJSON/CSV 导出
+7b9815381  feat(pdh-browser): 4 category-keyed renderers (both shells)
+b4fa54b6d  feat(pdh-android): vault browser tab + LocalCcRunner.searchEvents
+3aebbbffe  feat(desktop):     PdhVaultBrowser view + Pinia store
+856312de8  feat(ws):          search-events + facet-counts topics + composable
+c8142e573  feat(pdh):         vault FTS5 search + facetCounts API (migration v3)
+801a95969  feat(pdh):         shared adapter→category taxonomy
+```
+
+**测试总计 149 ✅** (36+27+13+4+10+12+19+11+10+7) — Win 本地全跑通；Android Compose UI + 真机 latency 走 CI / 真机
+
+**设计文档**: `docs/design/Personal_Data_Hub_Vault_Browser.md` 覆盖 5 个关键决策（FTS5 trigram / 两轴 taxonomy / category-keyed renderers / cursor 分页 / race token）+ 文件清单 + 已知限制 + commit 链。
+
+**FTS5 native test 本地解法**: bs3mc 在 root 是给 Electron 39 (NODE_MODULE_VERSION 140) 编的，Node 任何版本都加载不了。修法 = `bash packages/personal-data-hub/scripts/run-native-tests-sandbox.sh` 在 `$TMPDIR/pdh-fts5-sandbox/` 独立装 bs3mc 跑 27/27 PASS 21s。CI 不需此步（无 Electron 占用）。详 memory `bs3mc_electron_abi_sandbox_workaround.md`。
+
 ## [Unreleased — PDH 4 档 LLM 路由 + 三屏 selector] - 2026-05-24
 
 > 用户反馈 "首页对话框没看到选项"。把 tab 0 HubAskScreen 既有的 2 路 (CLOUD_ANDROID / PC_LOCAL) 扩到 4 路 (+LOCAL_DEVICE / +LAN_OLLAMA)，并把路由选择器镜像到 tab 3 "本机数据" 与 tab 4 "本机提问" 的 HubAskCard。用户能在首页对话框直接选目标 LLM。
