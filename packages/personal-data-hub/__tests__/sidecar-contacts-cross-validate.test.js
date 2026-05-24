@@ -38,7 +38,30 @@ try {
   pythonAvailable = false;
 }
 
-const describePy = pythonAvailable ? describe : describe.skip;
+// Probe bs3mc — fixture seeding opens an unencrypted SQLite file via
+// better-sqlite3-multiple-ciphers, which fails on dev boxes where the root
+// node_modules binding was compiled for Electron's NODE_MODULE_VERSION
+// instead of the host Node ABI. Skip cleanly when the native binding
+// can't load; CI Linux builds get a Node-ABI binary and runs the full path.
+let bs3mcAvailable = true;
+try {
+  const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), "bs3mc-contacts-probe-"));
+  const probeDb = new Database(path.join(probeDir, "p.db"));
+  probeDb.close();
+  fs.rmSync(probeDir, { recursive: true, force: true });
+} catch (_err) {
+  bs3mcAvailable = false;
+}
+
+// FTS5 sandbox runner: the relative path to personal-data-hub-bridge
+// resolves outside the temp tree. Without this gate the spawn fails with
+// ENOENT during beforeAll instead of skipping cleanly.
+const sidecarRootAvailable = fs.existsSync(SIDECAR_ROOT);
+
+const describePy =
+  pythonAvailable && bs3mcAvailable && sidecarRootAvailable
+    ? describe
+    : describe.skip;
 
 function seedFixtureContactsDb(dbPath) {
   const db = new Database(dbPath);
