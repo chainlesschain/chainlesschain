@@ -145,6 +145,79 @@ describe("LocalVault open + migrations", () => {
     const wrong = new LocalVault({ path: vaultPath, key: generateKeyHex(), skipAudit: true });
     expect(() => wrong.open()).toThrow();
   });
+
+  // ── 2026-05-24 trap #22 — partial-index residue from `IF NOT EXISTS` ─────
+  // Older vaults (pre commit 44c4188a8) may have full unique indices on
+  // uniq_{events,persons,places,items}_source without the WHERE clause.
+  // Migration v4 explicitly DROPs + CREATEs to force partial index, fixing
+  // the "2nd ON CONFLICT clause does not match" SQLite error that silently
+  // breaks adapter.sync.putEvent path.
+  it("migration v4 recreates uniq_*_source as partial indices (WHERE NOT NULL)", () => {
+    freshVault();
+    const tables = ["events", "persons", "places", "items"];
+    for (const t of tables) {
+      const row = vault.db
+        .prepare(`SELECT sql FROM sqlite_master WHERE type='index' AND name=?`)
+        .get(`uniq_${t}_source`);
+      expect(row, `index uniq_${t}_source must exist on fresh vault`).toBeTruthy();
+      expect(
+        row.sql,
+        `uniq_${t}_source must include WHERE source_original_id IS NOT NULL`
+      ).toContain("source_original_id IS NOT NULL");
+    }
+  });
+
+  it("migration v4 fixes pre-existing FULL unique indices (simulated drift)", () => {
+    freshVault();
+    const tables = ["events", "persons", "places", "items"];
+    for (const t of tables) {
+      vault.db.exec(`DROP INDEX uniq_${t}_source`);
+      vault.db.exec(
+        `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id)`
+      );
+    }
+    vault.db
+      .prepare(`UPDATE _meta SET value=?, updated_at=? WHERE key='schema_version'`)
+      .run("3", Date.now());
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+    for (const t of tables) {
+      const row = reopen.db
+        .prepare(`SELECT sql FROM sqlite_master WHERE name=?`)
+        .get(`uniq_${t}_source`);
+      expect(
+        row.sql,
+        `migration v4 must add WHERE clause to uniq_${t}_source`
+      ).toContain("source_original_id IS NOT NULL");
+    }
+    expect(reopen.schemaVersion()).toBe(TARGET_VERSION);
+    reopen.close();
+  });
+
+  it("putEvent ON CONFLICT WHERE matches after migration v4 (no SQLite parse error)", () => {
+    freshVault();
+    vault.db.exec(`DROP INDEX uniq_events_source`);
+    vault.db.exec(
+      `CREATE UNIQUE INDEX uniq_events_source ON events(source_adapter, source_original_id)`
+    );
+    vault.db
+      .prepare(`UPDATE _meta SET value='3' WHERE key='schema_version'`)
+      .run();
+    vault.close();
+
+    const reopen = new LocalVault({ path: vaultPath, key, skipAudit: true });
+    reopen.open();
+    const baseSource = source({ originalId: "test:dup:1" });
+    expect(() => reopen.putEvent(eventOk({ source: baseSource }))).not.toThrow();
+    expect(() =>
+      reopen.putEvent(
+        eventOk({ source: baseSource, content: { text: "updated" } })
+      )
+    ).not.toThrow();
+    reopen.close();
+  });
 });
 
 // ─── Entity put/get ───────────────────────────────────────────────────────

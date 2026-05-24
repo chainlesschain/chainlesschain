@@ -299,6 +299,46 @@ async function cmdSyncAll(options) {
   }
 }
 
+// ─── rederive ────────────────────────────────────────────────────────
+
+async function cmdRederive(options) {
+  const spinner = options.json
+    ? null
+    : ora(
+        options.adapter
+          ? `re-deriving ${options.adapter} from raw_events...`
+          : "re-deriving all adapters from raw_events...",
+      ).start();
+  try {
+    const hub = await getHub();
+    const opts = {};
+    if (options.adapter) opts.adapter = String(options.adapter);
+    if (options.batchSize) opts.batchSize = Number(options.batchSize);
+    const report = await hub.registry.rederive(opts);
+    if (spinner) {
+      spinner.succeed(
+        `re-derived ${report.rawSeen} raw → events:${report.entityCounts.events} ` +
+          `persons:${report.entityCounts.persons} items:${report.entityCounts.items} ` +
+          `(invalid:${report.invalidCount} missing:${report.adapterMissing} ` +
+          `${report.durationMs}ms)`,
+      );
+    }
+    if (options.json) {
+      jsonAndExit(report);
+      return;
+    }
+    if (report.errors.length > 0) {
+      logger.log(chalk.red(`errors: ${report.errors.length}`));
+      for (const e of report.errors) {
+        logger.log(`  ${chalk.red(e.adapter)}: ${e.error}`);
+      }
+    }
+    process.exit(0);
+  } catch (err) {
+    fail(spinner, err, options.json);
+  }
+}
+
 // ─── query-events / recent-audit ─────────────────────────────────────
 
 async function cmdQueryEvents(options) {
@@ -1232,6 +1272,24 @@ export function registerHubCommand(program) {
     .option("--limit <n>", "Cap each adapter")
     .option("--json", "Output JSON")
     .action(cmdSyncAll);
+
+  hub
+    .command("rederive")
+    .description(
+      "Re-derive canonical events from raw_events without re-fetching " +
+        "from source (recovers orphan raws from a past sync where putBatch " +
+        "silently failed, e.g. trap #22 partial-index drift).",
+    )
+    .option(
+      "--adapter <name>",
+      "Filter to one adapter; default = all registered",
+    )
+    .option(
+      "--batch-size <n>",
+      "Raws per partitionBatch+putBatch tx (default 100)",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdRederive);
 
   hub
     .command("query-events")

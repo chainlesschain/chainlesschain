@@ -268,6 +268,168 @@ class AdapterRegistry {
   }
 
   /**
+   * 2026-05-24 — re-derive canonical events from raw_events archive.
+   * Use case: a past sync wrote to raw_events (putRawEvent succeeded) but
+   * putBatch failed silently (e.g. partial-index drift trap #22) → events
+   * table stuck at 0 for those entities while raw piled up. After fixing
+   * the underlying schema/code bug, call this to promote the orphan raws
+   * to canonical events without re-fetching from the source.
+   *
+   * Behaviour:
+   *   - Iterates raw_events filtered by [opts.adapter] (or all)
+   *   - For each row: lookup registered adapter → normalize(raw) →
+   *     partition valid/invalid → putBatch
+   *   - Skips raws whose adapter is not currently registered (logs
+   *     `adapter.rederive.adapter_missing` audit)
+   *   - On adapter.normalize() throw, increments invalidCount + audit
+   *
+   * Does NOT re-fetch from the source, does NOT update watermarks (raw
+   * archive timestamp is what it was), does NOT run KG/RAG sinks (those
+   * are sync-time concerns — call them via syncAll if needed).
+   *
+   * @param {object} [opts]
+   * @param {string} [opts.adapter]  Filter by adapter name; default = all
+   * @param {number} [opts.batchSize=100] Raws per partitionBatch+putBatch tx
+   * @returns {Promise<RederiveReport>}
+   *
+   * @typedef {object} RederiveReport
+   * @property {number} rawSeen        Total raw_events iterated
+   * @property {number} invalidCount   Normalize threw or partition rejected
+   * @property {number} adapterMissing Raws whose adapter not registered
+   * @property {object} entityCounts   { events, persons, places, items, topics }
+   * @property {number} durationMs
+   * @property {Array<{adapter,error,sample?}>} errors  Adapter-level errors
+   */
+  async rederive(opts = {}) {
+    const startedAt = Date.now();
+    const report = {
+      rawSeen: 0,
+      invalidCount: 0,
+      adapterMissing: 0,
+      entityCounts: { events: 0, persons: 0, places: 0, items: 0, topics: 0 },
+      durationMs: 0,
+      errors: [],
+    };
+    const batchSize = Number.isInteger(opts.batchSize) && opts.batchSize > 0
+      ? opts.batchSize
+      : 100;
+
+    // Page through raw_events in batches to avoid loading the whole table
+    // for large vaults (1000+ rows is normal). Group raws by adapter so a
+    // single putBatch tx commits per-adapter (mirrors syncAdapter shape).
+    let offset = 0;
+    let totalProcessed = 0;
+    /** @type {Map<string, Array<object>>} */
+    const buffersByAdapter = new Map();
+
+    const flushAdapter = async (adapterName) => {
+      const buffer = buffersByAdapter.get(adapterName);
+      if (!buffer || buffer.length === 0) return;
+      const adapter = this._adapters.get(adapterName);
+      if (!adapter) {
+        report.adapterMissing += buffer.length;
+        try {
+          this.vault.audit("adapter.rederive.adapter_missing", adapterName, {
+            droppedCount: buffer.length,
+          });
+        } catch (_e) { /* audit failure is non-fatal */ }
+        buffersByAdapter.set(adapterName, []);
+        return;
+      }
+      // normalize + collect into one merged batch (per adapter buffer)
+      const merged = { events: [], persons: [], places: [], items: [], topics: [] };
+      for (const raw of buffer) {
+        let normalized;
+        try {
+          normalized = adapter.normalize(raw);
+        } catch (err) {
+          report.invalidCount += 1;
+          try {
+            this.vault.audit("adapter.rederive.normalize_failed", adapterName, {
+              originalId: raw.originalId,
+              error: toError(err, "normalize").message,
+            });
+          } catch (_e) { /* audit non-fatal */ }
+          continue;
+        }
+        if (!normalized || typeof normalized !== "object") continue;
+        for (const k of ["events", "persons", "places", "items", "topics"]) {
+          if (Array.isArray(normalized[k])) merged[k].push(...normalized[k]);
+        }
+      }
+      const { valid, invalidReasons } = partitionBatch(merged);
+      if (invalidReasons.length > 0) {
+        report.invalidCount += invalidReasons.length;
+        try {
+          this.vault.audit("adapter.rederive.invalid_entities", adapterName, {
+            count: invalidReasons.length,
+            sample: invalidReasons.slice(0, 5),
+          });
+        } catch (_e) { /* audit non-fatal */ }
+      }
+      try {
+        const counts = this.vault.putBatch(valid);
+        for (const k of Object.keys(counts)) {
+          report.entityCounts[k] = (report.entityCounts[k] || 0) + counts[k];
+        }
+      } catch (err) {
+        report.errors.push({
+          adapter: adapterName,
+          error: toError(err, "putBatch").message,
+          sample: buffer.slice(0, 3).map((r) => r.originalId),
+        });
+        try {
+          this.vault.audit("adapter.rederive.put_batch_failed", adapterName, {
+            error: toError(err, "putBatch").message,
+            droppedCount: buffer.length,
+          });
+        } catch (_e) { /* audit non-fatal */ }
+      }
+      buffersByAdapter.set(adapterName, []);
+    };
+
+    while (true) {
+      const page = this.vault.queryRawEvents({
+        adapter: opts.adapter,
+        limit: batchSize,
+        offset,
+      });
+      if (page.length === 0) break;
+      offset += page.length;
+      report.rawSeen += page.length;
+      // Group by adapter into buffers, flush whenever a buffer hits batchSize.
+      for (const raw of page) {
+        let buf = buffersByAdapter.get(raw.adapter);
+        if (!buf) {
+          buf = [];
+          buffersByAdapter.set(raw.adapter, buf);
+        }
+        buf.push(raw);
+        if (buf.length >= batchSize) {
+          await flushAdapter(raw.adapter);
+        }
+      }
+      totalProcessed += page.length;
+    }
+    // Final flush of remaining per-adapter buffers
+    for (const name of Array.from(buffersByAdapter.keys())) {
+      await flushAdapter(name);
+    }
+
+    report.durationMs = Date.now() - startedAt;
+    try {
+      this.vault.audit("adapter.rederive.summary", opts.adapter || "*", {
+        rawSeen: report.rawSeen,
+        invalidCount: report.invalidCount,
+        adapterMissing: report.adapterMissing,
+        entityCounts: report.entityCounts,
+        durationMs: report.durationMs,
+      });
+    } catch (_e) { /* audit non-fatal */ }
+    return report;
+  }
+
+  /**
    * Sync every registered adapter sequentially.
    * Returns an array of SyncReports in registration order.
    */

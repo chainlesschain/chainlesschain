@@ -367,6 +367,29 @@ const MIGRATIONS = [
       db.exec(PHASE_16_FTS_DDL.backfill);
     },
   },
+  {
+    version: 4,
+    description:
+      "Recreate uniq_{events,persons,places,items}_source as partial indices " +
+      "(WHERE source_original_id IS NOT NULL) to match putEvent/putPerson/etc " +
+      "UPSERT ON CONFLICT WHERE clauses. Older vaults (pre commit 44c4188a8) " +
+      "may have full unique indices created via CREATE UNIQUE INDEX IF NOT " +
+      "EXISTS without the WHERE clause; the IF-NOT-EXISTS hides the schema " +
+      "drift forever, manifesting only as runtime SQLite error '2nd ON CONFLICT " +
+      "clause does not match any PRIMARY KEY or UNIQUE constraint'. Symptom on " +
+      "Android: adapter.sync fails silently, vault events table stays at 1 row " +
+      "while raw_events accumulates 1000+. Idempotent on already-correct vaults.",
+    up(db) {
+      const tables = ["events", "persons", "places", "items"];
+      for (const t of tables) {
+        db.exec(`DROP INDEX IF EXISTS uniq_${t}_source`);
+        db.exec(
+          `CREATE UNIQUE INDEX uniq_${t}_source ON ${t}(source_adapter, source_original_id) ` +
+            `WHERE source_original_id IS NOT NULL`
+        );
+      }
+    },
+  },
 ];
 
 const TARGET_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
