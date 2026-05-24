@@ -900,3 +900,212 @@ describe("AnalysisEngine._gatherFacts intent=latest routing", () => {
     expect(queryEventsCalls[0].limit).toBe(2);
   });
 });
+
+// ─── intent=list + entity-name FTS5 augmentation ────────────────────────
+//
+// 2026-05-24 follow-up — when the parser pulls a probable entity name out
+// of the question (extractEntityTerm), _gatherFacts appends FTS5 hits to
+// the FACTS pool via vault.searchEvents. Strictly additive: wrong term →
+// 0 rows wasted, never lost events. FTS unavailable / errors → main path
+// (queryEvents + persons + items) unaffected. Memory:
+// pdh_analysis_engine_intent_routing.md.
+
+describe("AnalysisEngine._gatherFacts intent=list + entity-name FTS augmentation", () => {
+  // Shared event row factory.
+  const mkEvent = (id, adapter = "wechat") => ({
+    id, type: "event", subtype: "message",
+    occurredAt: Date.now(), actor: "self",
+    ingestedAt: Date.now(),
+    source: { adapter, adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+  });
+
+  it("(a) entity extracted → searchEvents called with q + adapter + timeWindow passthrough", async () => {
+    const queryEventsCalls = [];
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: (qq) => {
+        queryEventsCalls.push(qq);
+        return [mkEvent("e-1", "wechat"), mkEvent("e-2", "wechat")];
+      },
+      searchEvents: (qq) => {
+        searchEventsCalls.push(qq);
+        return { rows: [mkEvent("fts-1", "wechat"), mkEvent("fts-2", "wechat")], nextCursor: null, mode: "fts5", shortQuery: false };
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 4, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("提到王老板的微信消息");
+
+    expect(r.parsed.intent).toBe("list");
+    expect(searchEventsCalls).toHaveLength(1);
+    expect(searchEventsCalls[0].q).toBe("王老板");
+    expect(searchEventsCalls[0].adapter).toBe("wechat"); // parsed.filters.adapter passthrough
+    expect(searchEventsCalls[0].limit).toBe(10); // LIST_INTENT_FTS_LIMIT cap
+    // facts: 2 events + 2 FTS hits = 4 unique
+    expect(r.facts.filter((f) => f.type === "event")).toHaveLength(4);
+    expect(r.facts.map((f) => f.id)).toEqual(expect.arrayContaining(["e-1", "e-2", "fts-1", "fts-2"]));
+  });
+
+  it("(b) no extractable entity → searchEvents NOT called", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1")],
+      searchEvents: (qq) => { searchEventsCalls.push(qq); return { rows: [], mode: "fts5", shortQuery: false }; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    // "在淘宝买了什么" — extractEntityTerm strips everything → null
+    await engine.ask("在淘宝买了什么");
+    expect(searchEventsCalls).toHaveLength(0);
+  });
+
+  it("(c) vault without searchEvents method → graceful skip, main path runs", async () => {
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1")],
+      // no searchEvents — legacy vault fork
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("提到王老板的消息");
+    // Engine doesn't blow up; main path returns the 1 event.
+    expect(r.facts).toHaveLength(1);
+  });
+
+  it("(d) FTS hits with overlapping ids are deduped (no double-count)", async () => {
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1"), mkEvent("e-2")],
+      searchEvents: () => ({
+        rows: [mkEvent("e-1"), mkEvent("fts-3")], // e-1 overlaps with main query
+        nextCursor: null, mode: "fts5", shortQuery: false,
+      }),
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 3, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("提到王老板的消息");
+    // e-1, e-2, fts-3 — NOT 4 entries (e-1 dedup'd)
+    expect(r.facts.filter((f) => f.type === "event")).toHaveLength(3);
+    const ids = r.facts.map((f) => f.id);
+    expect(new Set(ids).size).toBe(ids.length); // no duplicates
+  });
+
+  it("(e) intent=count / latest / sum-amount do NOT trigger FTS augmentation", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1")],
+      searchEvents: (qq) => { searchEventsCalls.push(qq); return { rows: [], mode: "fts5", shortQuery: false }; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 1, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    // intent=count
+    await engine.ask("提到王老板的几个消息");
+    // intent=latest is short-circuited in narrow path; with extracted entity
+    // "王老板" wouldn't be hit because narrow returns 1 event and bails. Still
+    // verify the augmentation branch doesn't fire post-narrow.
+    await engine.ask("最近提到王老板的消息");
+    // intent=sum-amount
+    await engine.ask("总共花了多少在王老板这？");
+    expect(searchEventsCalls).toHaveLength(0);
+  });
+
+  it("(f) searchEvents throwing does not block — main events still returned", async () => {
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1"), mkEvent("e-2")],
+      searchEvents: () => { throw new Error("FTS5 module missing"); },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 2, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("提到王老板的消息");
+    expect(r.facts).toHaveLength(2); // main path's events survive
+  });
+
+  it("(g) FTS limit respects headroom — small maxFacts shrinks the FTS slice", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1"), mkEvent("e-2"), mkEvent("e-3")],
+      searchEvents: (qq) => {
+        searchEventsCalls.push(qq);
+        return { rows: [mkEvent("fts-" + qq.limit)], mode: "fts5", shortQuery: false };
+      },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 4, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 5 });
+    await engine.ask("提到王老板的消息");
+    // maxFacts=5, events=3 → headroom=2, FTS limit = min(2, 10) = 2
+    expect(searchEventsCalls[0].limit).toBe(2);
+  });
+
+  it("(h) when events already fill maxFacts, FTS skipped entirely", async () => {
+    const searchEventsCalls = [];
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 10 }, (_, i) => mkEvent("e-" + i)),
+      searchEvents: (qq) => { searchEventsCalls.push(qq); return { rows: [], mode: "fts5", shortQuery: false }; },
+      queryPersons: () => [],
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 10, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 10 });
+    await engine.ask("提到王老板的消息");
+    expect(searchEventsCalls).toHaveLength(0); // headroom = 0
+  });
+
+  it("(i) FTS hit budget consumes persons/items remainder — not additive on top", async () => {
+    // FTS hits push events.length up → remaining budget for persons/items shrinks.
+    // Validates the FTS augment happens BEFORE persons/items calc.
+    const queryPersonsCalls = [];
+    const queryItemsCalls = [];
+    const fakeVault = {
+      queryEvents: () => [mkEvent("e-1"), mkEvent("e-2")], // 2 events
+      searchEvents: () => ({ rows: [mkEvent("fts-1"), mkEvent("fts-2")], mode: "fts5", shortQuery: false }),
+      queryPersons: ({ limit }) => { queryPersonsCalls.push(limit); return []; },
+      queryItems: ({ limit }) => { queryItemsCalls.push(limit); return []; },
+      getEvent: () => null,
+      audit: () => {},
+      stats: () => ({ events: 4, persons: 0, places: 0, items: 0, topics: 0 }),
+    };
+    const llm = new MockLLMClient({ reply: "ok" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 10 });
+    await engine.ask("提到王老板的消息");
+    // 2 events + 2 FTS = 4 in events array → remaining = 10-4 = 6
+    // sideBudget = 3 → personBudget=3, itemBudget=3
+    expect(queryPersonsCalls[0]).toBe(3);
+    expect(queryItemsCalls[0]).toBe(3);
+  });
+});
