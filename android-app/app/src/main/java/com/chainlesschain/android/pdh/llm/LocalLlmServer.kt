@@ -149,10 +149,17 @@ class LocalLlmServer @Inject constructor(
             respond(ChatErrorResponse(error = "messages array required and non-empty"))
             return
         }
+        // MediaPipe `setMaxTokens` is the TOTAL context window (prompt + response),
+        // not the output budget. Ollama's `num_ctx` matches that semantic; mapping
+        // from `num_predict` (which is OUTPUT-only) was wrong and defaulted to 512,
+        // causing MediaPipe `OUT_OF_RANGE: CalculatorGraph::Run() failed` → JNI
+        // abort → SIGABRT (whole-process crash) the moment a PDH-gathered prompt
+        // exceeded a handful of facts. See trap #22.
+        val ctxWindow = req.options?.numCtx ?: 4096
         val opts = LlmInferenceEngine.ChatOptions(
             temperature = req.options?.temperature ?: 0.2f,
-            maxTokens = req.options?.numPredict ?: 512,
-            numCtx = req.options?.numCtx ?: 4096,
+            maxTokens = ctxWindow,
+            numCtx = ctxWindow,
         )
         try {
             val resp = engine.chat(messages, opts)

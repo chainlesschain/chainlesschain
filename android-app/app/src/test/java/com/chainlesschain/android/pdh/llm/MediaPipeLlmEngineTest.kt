@@ -133,4 +133,59 @@ class MediaPipeLlmEngineTest {
             )
         }
     }
+
+    /**
+     * Fix C — trap #22 regression guard.
+     *
+     * Reproduces the contact-question crash: PDH-gathered prompt (~5000+
+     * estimated tokens) hits MediaPipe with a session built for maxTokens=512.
+     * Before the fix this would reach `nativePredictSync` → OUT_OF_RANGE →
+     * SIGABRT. After the fix the engine must short-circuit in Kotlin with a
+     * readable [LlmInferenceException]. Test runs in pure JVM — the guard
+     * triggers BEFORE `ensureLoadedLocked`, so no MediaPipe class load needed.
+     */
+    @Test
+    fun `chat refuses oversized prompt before calling native (fix C, trap 22)`() = runTest {
+        val engine = newEngine().apply { nativeLoadedOverride = true }
+        // ~5000 estimated tokens (20_000 chars / 4); ctx window 512 → must refuse.
+        val bigContent = "x".repeat(20_000)
+        try {
+            engine.chat(
+                messages = listOf(LlmInferenceEngine.ChatMessage(role = "user", content = bigContent)),
+                opts = LlmInferenceEngine.ChatOptions(maxTokens = 512),
+            )
+            fail("Expected LlmInferenceException for oversized prompt")
+        } catch (e: LlmInferenceException) {
+            val msg = e.message.orEmpty()
+            assertTrue(
+                msg.contains("过长") || msg.contains("token") || msg.contains("上下文"),
+                "guard message should explain overflow but was: $msg",
+            )
+        }
+    }
+
+    /**
+     * Counterpart — normal-size prompt with generous ctx window must flow past
+     * the guard. JVM has no real MediaPipe so the call still fails downstream
+     * (in `ensureLoadedLocked` → ModelManager mock), but the message must NOT
+     * mention 过长 — confirming the guard didn't over-trigger.
+     */
+    @Test
+    fun `chat allows normal-size prompt past guard (fix C false-positive check)`() = runTest {
+        coEvery { modelManager.refresh(any()) } returns ModelManager.State.NotDownloaded
+        val engine = newEngine().apply { nativeLoadedOverride = true }
+        try {
+            engine.chat(
+                messages = listOf(LlmInferenceEngine.ChatMessage(role = "user", content = "hi there")),
+                opts = LlmInferenceEngine.ChatOptions(maxTokens = 4096),
+            )
+            fail("Expected LlmInferenceException from ensureLoadedLocked (no model)")
+        } catch (e: LlmInferenceException) {
+            val msg = e.message.orEmpty()
+            assertFalse(
+                msg.contains("过长"),
+                "guard should not refuse short prompt under 4096-token ctx, but said: $msg",
+            )
+        }
+    }
 }

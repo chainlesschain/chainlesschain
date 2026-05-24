@@ -73,6 +73,16 @@ class MediaPipeLlmEngine @Inject constructor(
      */
     @Volatile private var sessionRef: Any? = null
     @Volatile private var loadedModelPath: String? = null
+    /**
+     * Cached `setMaxTokens` value the live [sessionRef] was built with.
+     * MediaPipe bakes the context window into the LlmInference handle at
+     * `createFromOptions` time — there is NO per-call override — so if the
+     * caller bumps maxTokens between chats we must close + rebuild the
+     * session. Was missed pre-fix-B: first chat baked 512 (old default), all
+     * later chats silently kept 512 even after [LocalLlmServer] started
+     * passing 4096. See trap #22.
+     */
+    @Volatile private var loadedMaxTokens: Int = -1
 
     override val nativeReady: Boolean
         get() = nativeLoadedOverride ?: probeNative()
@@ -159,8 +169,29 @@ class MediaPipeLlmEngine @Inject constructor(
             )
         }
         sessionMutex.withLock {
-            ensureLoadedLocked(opts)
+            // Fix C — prompt-length guard BEFORE native predict.
+            //
+            // MediaPipe tasks-genai (libllm_inference_engine_jni.so) does NOT
+            // surface OUT_OF_RANGE as a recoverable Java exception. When prompt
+            // tokens > setMaxTokens budget, native predictSync throws an
+            // IllegalStateException THEN immediately calls NewByteArray without
+            // clearing the pending exception → CheckJNI fires JniAbort → SIGABRT
+            // the whole app. We cannot catch this from Kotlin — by the time
+            // control returns we are already dead. The only safe path is to
+            // refuse the prompt up front and let the user retry with a tighter
+            // question or switch to a cloud LLM. estimateChars/4 mirrors the
+            // existing token estimator used for ChatResponse.promptTokens.
             val prompt = formatPrompt(messages)
+            val estPromptTokens = prompt.length / 4
+            val ctxBudget = opts.maxTokens
+            val safetyMargin = 128
+            if (estPromptTokens > ctxBudget - safetyMargin) {
+                throw LlmInferenceException(
+                    "本机 LLM prompt 过长 (~$estPromptTokens token，上下文窗口 $ctxBudget)。" +
+                        "请缩小问题范围，或在「设置 > AI 后端」切换到「安卓云端 / PC 本机」LLM。"
+                )
+            }
+            ensureLoadedLocked(opts)
             val startMs = System.currentTimeMillis()
             val output = try {
                 generateResponseReflective(sessionRef!!, prompt)
@@ -196,6 +227,7 @@ class MediaPipeLlmEngine @Inject constructor(
         }
         sessionRef = null
         loadedModelPath = null
+        loadedMaxTokens = -1
     }
 
     /** Caller MUST hold [sessionMutex]. */
@@ -205,7 +237,14 @@ class MediaPipeLlmEngine @Inject constructor(
             "模型文件未就绪 (state=${modelState.javaClass.simpleName})",
         )
         val targetPath = ready.file.absolutePath
-        if (sessionRef != null && loadedModelPath == targetPath) return
+        // Fix B — invalidate cached session when maxTokens changes too, not just
+        // model path. MediaPipe bakes the context window in at create time;
+        // ignoring opts changes meant the first chat permanently locked the
+        // engine to whatever maxTokens it happened to be called with.
+        if (sessionRef != null &&
+            loadedModelPath == targetPath &&
+            loadedMaxTokens == opts.maxTokens
+        ) return
         if (sessionRef != null) {
             try {
                 val closeMethod = sessionRef!!.javaClass.methods.firstOrNull { it.name == "close" }
@@ -219,6 +258,7 @@ class MediaPipeLlmEngine @Inject constructor(
             throw LlmInferenceException("MediaPipe LlmInference.createFromOptions failed: ${t.message ?: t.javaClass.simpleName}", t)
         }
         loadedModelPath = targetPath
+        loadedMaxTokens = opts.maxTokens
     }
 
     /**
