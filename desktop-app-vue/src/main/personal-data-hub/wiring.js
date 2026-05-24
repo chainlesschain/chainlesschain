@@ -48,6 +48,8 @@ const {
   BrowserHistoryEdgeAdapter,
   VSCodeAdapter,
   WinRecentAdapter,
+  GitActivityAdapter,
+  ShellHistoryAdapter,
   BilibiliAdapter,
   WeiboAdapter,
   DouyinAdapter,
@@ -410,6 +412,33 @@ async function initHub() {
   } catch (err) {
     logger.warn(
       "[PersonalDataHub] failed to register win-recent adapter",
+      err && err.message,
+    );
+  }
+
+  // Phase 18 — git activity + shell history. Pure local file walks
+  // (git log + PSReadLine/.bash_history/.zsh_history). authenticate()
+  // returns NO_GIT_REPOS / NO_HISTORY_SOURCES gracefully if absent.
+  try {
+    const git = new GitActivityAdapter();
+    if (!registry.has(git.name)) {
+      registry.register(git);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register git-activity adapter",
+      err && err.message,
+    );
+  }
+
+  try {
+    const shell = new ShellHistoryAdapter();
+    if (!registry.has(shell.name)) {
+      registry.register(shell);
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register shell-history adapter",
       err && err.message,
     );
   }
