@@ -93,6 +93,7 @@ class HubLocalViewModel @Inject constructor(
     private val douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
+    private val xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge,
     private val toutiaoCollector: ToutiaoLocalCollector,
     private val toutiaoCredentials: ToutiaoCredentialsStore,
     private val toutiaoSignBridge: com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge,
@@ -2962,7 +2963,22 @@ class HubLocalViewModel @Inject constructor(
                     xiaohongshu = it.xiaohongshu.copy(isSyncing = true, errorMessage = null),
                 )
             }
-            val result = xhsCollector.snapshot()
+            // v0.3 — wire XhsSignBridge for X-s/X-t/X-s-common. Unlike
+            // Toutiao/Douyin/Kuaishou (where the bridge gates v0.3
+            // endpoints), Xhs always calls all 3 fetchers — bridge is a
+            // reliability upgrade (~60% GET hit rate → ~100% when bridge
+            // succeeds). Bridge null/failure falls through to computeXsXt
+            // in the ApiClient. finally-shutdown releases the WebView heap.
+            xhsCollector.signProvider = xhsSignBridge
+            val result = try {
+                xhsCollector.snapshot()
+            } finally {
+                try {
+                    xhsSignBridge.shutdown()
+                } catch (t: Throwable) {
+                    Timber.w(t, "HubLocalViewModel: xhsSignBridge.shutdown threw")
+                }
+            }
             when (result) {
                 is XhsLocalCollector.SnapshotResult.NoCredentials -> {
                     _state.update {

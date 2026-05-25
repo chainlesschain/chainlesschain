@@ -38,6 +38,17 @@ class XhsLocalCollector @Inject constructor(
     private val credentialsStore: XhsCredentialsStore,
 ) {
 
+    /**
+     * v0.3 — optional [SignProvider] for X-s/X-t/X-s-common signing. When
+     * wired the ApiClient prefers bridge headers over the in-process
+     * best-effort computeXsXt (which only hits ~60% of GET requests). Null
+     * = v0.2 fallback (computeXsXt only). Unlike Toutiao/Douyin/Kuaishou
+     * v0.3 patterns, Xhs always calls all 3 fetch endpoints regardless of
+     * bridge state — the bridge is purely a reliability upgrade, not a
+     * gating condition.
+     */
+    var signProvider: com.chainlesschain.android.pdh.social.SignProvider? = null
+
     sealed class SnapshotResult {
         data class Ok(
             val snapshotPath: String,
@@ -64,6 +75,20 @@ class XhsLocalCollector @Inject constructor(
         val a1 = credentialsStore.getA1() ?: return@withContext SnapshotResult.NoCredentials
         val userId = credentialsStore.getUserIdStr() ?: return@withContext SnapshotResult.NoCredentials
         val numericUid = credentialsStore.getUid() ?: return@withContext SnapshotResult.NoCredentials
+
+        // v0.3 — wire signer + warm. ApiClient prefers bridge headers when
+        // available, falls back to computeXsXt when bridge returns null
+        // (rotation) or empty headers (probe miss). Warm failures don't
+        // tank the fetch path — fallback still ships ~60% GET coverage.
+        val signer = signProvider
+        apiClient.signProvider = signer ?: com.chainlesschain.android.pdh.social.NullSignProvider
+        if (signer != null) {
+            try {
+                signer.warmUp(cookie)
+            } catch (t: Throwable) {
+                Timber.w(t, "XhsLocalCollector: signProvider.warmUp threw — using fallback")
+            }
+        }
 
         val notes = try { apiClient.fetchNotes(cookie, a1, userId) } catch (t: Throwable) {
             Timber.w(t, "XhsLocalCollector: fetchNotes threw")

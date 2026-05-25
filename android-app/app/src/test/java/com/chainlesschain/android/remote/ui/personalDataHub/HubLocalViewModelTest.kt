@@ -91,6 +91,7 @@ class HubLocalViewModelTest {
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
     private lateinit var xhsCollector: XhsLocalCollector
+    private lateinit var xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
     private lateinit var xhsCredentials: XhsCredentialsStore
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
     private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
@@ -151,6 +152,7 @@ class HubLocalViewModelTest {
         every { douyinCredentials.getLastSyncAt() } returns null
         every { douyinCredentials.getLastSyncCount() } returns 0
         xhsCollector = mockk(relaxed = true)
+        xhsSignBridge = mockk(relaxed = true)
         xhsCredentials = mockk(relaxed = true)
         toutiaoCollector = mockk(relaxed = true)
         toutiaoCredentials = mockk(relaxed = true)
@@ -257,6 +259,7 @@ class HubLocalViewModelTest {
             douyinSignBridge,
             xhsCollector,
             xhsCredentials,
+            xhsSignBridge,
             toutiaoCollector,
             toutiaoCredentials,
             toutiaoSignBridge,
