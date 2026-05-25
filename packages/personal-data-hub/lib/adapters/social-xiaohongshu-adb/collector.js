@@ -36,7 +36,12 @@ async function collect(bridge, opts = {}) {
     );
   }
   const now = opts.now || Date.now;
-  const client = opts.apiClient || new XhsApiClient({ now });
+  // Phase 6b: signProvider opt — desktop wiring injects XhsSignBridge for
+  // ~100% X-S hit rate; cli wiring leaves undefined → client falls back
+  // to in-process best-effort md5 (~60% GET / <30% POST).
+  const signProvider = opts.signProvider || undefined;
+  const client =
+    opts.apiClient || new XhsApiClient({ now, signProvider });
   const limits = opts.limits || {};
 
   const cookieResult = await bridge.invoke("xhs.cookies");
@@ -54,67 +59,108 @@ async function collect(bridge, opts = {}) {
   }
   const { cookie, a1, diagnostic: cookieDiagnostic } = cookieResult;
 
-  // fetchMe — no X-S required
-  const me = await client.fetchMe(cookie);
-  if (!me) {
-    // Cookie expired or web_session missing — write empty snapshot
-    // (build requires userId, use sentinel "0" + emit 0 events).
+  // Phase 6b: warm up the sign bridge with the captured cookie BEFORE
+  // calling any X-S endpoint. warmUp is idempotent (no-op when already
+  // warm). NullSignProvider.warmUp doesn't exist (only on the abstract
+  // base + ElectronWebSignBridge), so we feature-detect.
+  if (signProvider && typeof signProvider.warmUp === "function") {
+    try {
+      await signProvider.warmUp(cookie);
+    } catch (e) {
+      // Bridge warm-up failed (timeout / xhs.com 403 / IPC error).
+      // Fall through — api-client will use in-process fallback. Surface
+      // the reason via lastErrorMessage so UI can hint "Electron bridge
+      // unavailable, command-line precision degraded".
+      client._setLastError(
+        -98,
+        `signProvider warm-up failed: ${e && e.message ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  try {
+    // fetchMe — no X-S required
+    const me = await client.fetchMe(cookie);
+    if (!me) {
+      // Cookie expired or web_session missing — write empty snapshot
+      // (build requires userId, use sentinel "0" + emit 0 events).
+      const snapshot = buildSnapshot({
+        userId: "unknown-user",
+        nickname: opts.displayName,
+        snapshottedAt: now(),
+      });
+      const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+      return {
+        snapshotPath,
+        userId: null,
+        nickname: null,
+        eventCounts: { note: 0, liked: 0, follow: 0, total: 0 },
+        lastErrorCode: client.lastErrorCode,
+        lastErrorMessage: client.lastErrorMessage,
+        cookieDiagnostic: cookieDiagnostic || null,
+        meFetchFailed: true,
+        signProviderUsed: signProvider
+          ? signProvider.constructor.name
+          : "none",
+        signProviderHits: client._bridgeHits,
+        signProviderFallbacks: client._fallbackHits,
+      };
+    }
+
+    // Parallel 3 endpoints — partial failure tolerated; bridge-signed
+    // requests should hit ~100% while fallback hits ~60% GET / <30% POST.
+    const [notes, liked, follows] = await Promise.all([
+      client.fetchNotes(cookie, a1, me.userId, {
+        limit: Number.isInteger(limits.note) ? limits.note : undefined,
+      }),
+      client.fetchLiked(cookie, a1, {
+        limit: Number.isInteger(limits.liked) ? limits.liked : undefined,
+      }),
+      client.fetchFollows(cookie, a1, me.userId, {
+        limit: Number.isInteger(limits.follow) ? limits.follow : undefined,
+      }),
+    ]);
+
     const snapshot = buildSnapshot({
-      userId: "unknown-user",
-      nickname: opts.displayName,
+      userId: me.userId,
+      nickname: opts.displayName || me.nickname,
+      notes,
+      liked,
+      follows,
       snapshottedAt: now(),
     });
     const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
+
     return {
       snapshotPath,
-      userId: null,
-      nickname: null,
-      eventCounts: { note: 0, liked: 0, follow: 0, total: 0 },
+      userId: me.userId,
+      nickname: me.nickname,
+      eventCounts: {
+        note: notes.length,
+        liked: liked.length,
+        follow: follows.length,
+        total: snapshot.events.length,
+      },
       lastErrorCode: client.lastErrorCode,
       lastErrorMessage: client.lastErrorMessage,
       cookieDiagnostic: cookieDiagnostic || null,
-      meFetchFailed: true,
+      meFetchFailed: false,
+      signProviderUsed: signProvider ? signProvider.constructor.name : "none",
+      signProviderHits: client._bridgeHits,
+      signProviderFallbacks: client._fallbackHits,
     };
+  } finally {
+    // Always release the WebContentsView heap (~30-50MB) — even on
+    // throw. shutdown is idempotent so collectAndSync's outer cleanup
+    // calling it again is safe.
+    if (signProvider && typeof signProvider.shutdown === "function") {
+      try {
+        await signProvider.shutdown();
+      } catch (_e) {
+        // Best-effort — shutdown errors don't block sync result.
+      }
+    }
   }
-
-  // Parallel 3 endpoints — partial failure tolerated (~60% X-S hit rate)
-  const [notes, liked, follows] = await Promise.all([
-    client.fetchNotes(cookie, a1, me.userId, {
-      limit: Number.isInteger(limits.note) ? limits.note : undefined,
-    }),
-    client.fetchLiked(cookie, a1, {
-      limit: Number.isInteger(limits.liked) ? limits.liked : undefined,
-    }),
-    client.fetchFollows(cookie, a1, me.userId, {
-      limit: Number.isInteger(limits.follow) ? limits.follow : undefined,
-    }),
-  ]);
-
-  const snapshot = buildSnapshot({
-    userId: me.userId,
-    nickname: opts.displayName || me.nickname,
-    notes,
-    liked,
-    follows,
-    snapshottedAt: now(),
-  });
-  const snapshotPath = writeSnapshotJson(snapshot, { dir: opts.stagingDir });
-
-  return {
-    snapshotPath,
-    userId: me.userId,
-    nickname: me.nickname,
-    eventCounts: {
-      note: notes.length,
-      liked: liked.length,
-      follow: follows.length,
-      total: snapshot.events.length,
-    },
-    lastErrorCode: client.lastErrorCode,
-    lastErrorMessage: client.lastErrorMessage,
-    cookieDiagnostic: cookieDiagnostic || null,
-    meFetchFailed: false,
-  };
 }
 
 async function collectAndSync(bridge, registry, opts = {}) {
@@ -147,6 +193,11 @@ async function collectAndSync(bridge, registry, opts = {}) {
       lastErrorMessage: collectResult.lastErrorMessage,
       cookieDiagnostic: collectResult.cookieDiagnostic,
       meFetchFailed: collectResult.meFetchFailed,
+      // Phase 6b diagnostic — UI can highlight when bridge upgraded
+      // X-S signing from ~60% best-effort to ~100% bridge.
+      signProviderUsed: collectResult.signProviderUsed,
+      signProviderHits: collectResult.signProviderHits,
+      signProviderFallbacks: collectResult.signProviderFallbacks,
       cleanupFailed,
     },
   };

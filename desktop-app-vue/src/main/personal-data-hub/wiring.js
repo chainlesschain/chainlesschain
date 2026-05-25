@@ -1145,9 +1145,13 @@ async function initHub() {
       }
     },
 
-    // ─── Phase 3c — Xhs C 路径 one-shot sync ────────────────────────────
+    // ─── Phase 3c + 6b — Xhs C 路径 one-shot sync ───────────────────────
     //
-    // Mirror of cli `xhsAdbSync`. Best-effort X-S signing (~60% GET hit).
+    // Phase 6b: inject XhsSignBridge so X-S signing hits ~100% (vs
+    // ~60% GET / <30% POST without bridge). Bridge spawns a hidden
+    // Electron WebContentsView, navigates to xiaohongshu.com, and runs
+    // xhs's own `_webmsxyw` signer JS per request. Heavy (~30-50MB heap)
+    // — released via shutdown() in collector's finally.
     async xhsAdbSync(opts = {}) {
       if (!desktopAdbBridge) {
         return {
@@ -1167,11 +1171,26 @@ async function initHub() {
           message: err && err.message ? err.message : String(err),
         };
       }
+      // Phase 6b: create the XhsSignBridge per-sync. Lazy require so
+      // cli/test contexts don't try to load Electron-only module at
+      // import time.
+      let signProvider = null;
+      try {
+        const { XhsSignBridge } = require("../sign-bridge");
+        signProvider = new XhsSignBridge({
+          onWarn: (m) => logger.warn("[PersonalDataHub] XhsSignBridge:", m),
+        });
+      } catch (err) {
+        logger.warn(
+          "[PersonalDataHub] XhsSignBridge load failed — Xhs sync will use ~60% best-effort fallback:",
+          err && err.message ? err.message : String(err),
+        );
+      }
       try {
         const report = await collector.collectAndSync(
           desktopAdbBridge,
           registry,
-          opts,
+          { ...opts, signProvider },
         );
         return { ok: true, report };
       } catch (err) {
