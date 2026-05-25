@@ -207,6 +207,9 @@
           <a-button @click="xhsAdbSync" :loading="loading.xhsAdbSync">
             通过 PC ADB 同步 Xhs
           </a-button>
+          <a-button @click="toutiaoAdbSync" :loading="loading.toutiaoAdbSync">
+            通过 PC ADB 同步 Toutiao
+          </a-button>
           <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
             通过 PC ADB 同步 Douyin
           </a-button>
@@ -886,6 +889,7 @@ const loading = reactive({
   douyinAdbSync: false,
   weiboAdbSync: false,
   xhsAdbSync: false,
+  toutiaoAdbSync: false,
 })
 
 /**
@@ -1100,6 +1104,101 @@ async function xhsAdbSync() {
     })
   } finally {
     loading.xhsAdbSync = false
+  }
+}
+
+/**
+ * Phase 6c — Toutiao C 路径 (PC + ADB + acrawler.js _signature) UI handler.
+ *
+ * Desktop context: ToutiaoSignBridge (Electron WebContentsView running
+ * acrawler.js) → ~100% hit rate on 3 signed endpoints. Web/CLI context
+ * has no bridge → 3 signed endpoints short-circuit (no HTTP traffic) —
+ * banner directs user to open from desktop app.
+ */
+function toutiaoReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'TOUTIAO_NO_ROOT':
+      return '手机未 root — 头条正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
+    case 'TOUTIAO_NOT_INSTALLED':
+      return '请在手机上安装今日头条 App（com.ss.android.article.news，不是极速版）并登录后随便点开一篇文章（让 WebView 写入 cookies），再重试'
+    case 'TOUTIAO_COOKIES_EMPTY':
+      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
+    case 'TOUTIAO_COOKIES_TRUNCATED':
+      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'TOUTIAO_NOT_SQLITE':
+      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
+    case 'TOUTIAO_BASE64_PARSE':
+      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
+    case 'TOUTIAO_COOKIES_INCOMPLETE':
+      return 'sessionid / sessionid_ss cookie 缺失 — 请在手机头条 App 上重新登录'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function toutiaoAdbSync() {
+  if (loading.toutiaoAdbSync) return
+  loading.toutiaoAdbSync = true
+  try {
+    const result = await hub.toutiaoAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = toutiaoReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Toutiao ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const toutiao = report.toutiao || {}
+    const counts = toutiao.eventCounts || {}
+    if (toutiao.profileFetchFailed) {
+      message.warning({
+        content: `Toutiao 同步未拉到 user_id — passport/info/v2 返失败`,
+        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ''}。可能 cookie 已过期或 sessionid 缺失，请在手机重新登录。`,
+        duration: 10,
+      })
+    } else if (
+      toutiao.signProviderUsed === 'none' &&
+      (counts.feed === 0 && counts.collection === 0 && counts.search === 0)
+    ) {
+      // Phase 6c — web-shell context lacks ToutiaoSignBridge (Electron
+      // only). 3 signed endpoints short-circuit silently to save
+      // bandwidth — UI must explain WHY.
+      message.warning({
+        content: `Toutiao 同步仅获取了 profile (${counts.profile || 0} event)`,
+        description: `当前 web-shell 上下文不支持 _signature 签名（仅 desktop app 提供 ToutiaoSignBridge）。打开桌面 app 同步可获取 feed / collection / search。`,
+        duration: 12,
+      })
+    } else if (toutiao.lastErrorCode) {
+      message.warning({
+        content: `Toutiao 同步部分完成 (${counts.total || 0} events)`,
+        description: `lastErrorCode=${toutiao.lastErrorCode}, ${toutiao.lastErrorMessage || ''}`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Toutiao 同步成功：profile=${counts.profile || 0} / feed=${counts.feed || 0} / collection=${counts.collection || 0} / search=${counts.search || 0} (total=${counts.total || 0})${toutiao.nickname ? ' [' + toutiao.nickname + ']' : ''}`,
+      )
+    }
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Toutiao ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.toutiaoAdbSync = false
   }
 }
 
