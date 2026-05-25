@@ -242,6 +242,24 @@ class BilibiliLocalCollector @Inject constructor(
             "BilibiliLocalCollector: ingested prefetched events=%d → %s",
             total, snapshotFile.absolutePath,
         )
+        // v2 诊断：JS 端 fetch 逐条 status/err dump — events=0 但 cookie/UID 都有
+        // 时锁定 CORS / HTTP 401 / 风控空响应
+        root.optJSONArray("_debug")?.let { dbg ->
+            for (i in 0 until dbg.length()) {
+                val e = dbg.optJSONObject(i) ?: continue
+                Timber.i(
+                    "BilibiliLocalCollector: prefetch[%d] engine=%s url=%s status=%s len=%d err=%s head=%s smoke=%s",
+                    i,
+                    e.optString("e", "?"),
+                    e.optString("u"),
+                    e.optString("s", "?"),
+                    e.optInt("l", -1),
+                    e.optString("err", ""),
+                    e.optString("head", "").replace("\n", " ").take(50),
+                    if (e.has("_smokeTest")) "isLogin=${e.optBoolean("isLogin")} code=${e.opt("code")} cookieLen=${e.optInt("cookieLen")} loc=${e.optString("locHref")}" else "",
+                )
+            }
+        }
         // 各 kind 计数（per-kind 字段保持 sane defaults — UI 不依赖单独 kind）
         var historyCount = 0; var favCount = 0; var dynCount = 0; var followCount = 0
         if (events != null) for (i in 0 until events.length()) {

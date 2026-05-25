@@ -91,19 +91,45 @@ object BilibiliJsBridge {
     // .catch(()=>null) 把错吞了。诊断版每个 fetch 抓 HTTP status + 错误 + body 头
     // 长度，最后塞到 result.debug 让 Kotlin 端能看到 b 站到底返了什么
     const debug = [];
+    // v3: tryFetch 双引擎 — fetch 失败自动 fallback 到 XHR。某些 WebView 配置
+    // 下 fetch + credentials:'include' 跨子域有奇怪 CORS 行为，XHR 同条件下更稳。
     const tryJson = async (url) => {
       const shortUrl = url.length > 80 ? url.slice(0, 80) + '…' : url;
+      // 先 fetch
       try {
         const r = await fetch(url, {credentials:'include', mode:'cors'});
         const txt = await r.text();
-        debug.push({u: shortUrl, s: r.status, l: txt.length});
-        if (!r.ok) return null;
-        try { return JSON.parse(txt); } catch (e) { return null; }
+        debug.push({u: shortUrl, e: 'fetch', s: r.status, l: txt.length, head: txt.slice(0, 50)});
+        if (r.ok) {
+          try { return JSON.parse(txt); } catch (e) {}
+        }
       } catch (e) {
-        debug.push({u: shortUrl, err: String(e).slice(0, 80)});
-        return null;
+        debug.push({u: shortUrl, e: 'fetch', err: String(e).slice(0, 80)});
       }
+      // fetch 失败 / 非 ok → XHR fallback
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, false); // sync — 简化等待
+        xhr.withCredentials = true;
+        xhr.send();
+        const txt = xhr.responseText || '';
+        debug.push({u: shortUrl, e: 'xhr', s: xhr.status, l: txt.length, head: txt.slice(0, 50)});
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { return JSON.parse(txt); } catch (e) {}
+        }
+      } catch (e) {
+        debug.push({u: shortUrl, e: 'xhr', err: String(e).slice(0, 80)});
+      }
+      return null;
     };
+
+    // v3 smoke test — 优先调 /x/web-interface/nav (well-known 端点，登录后必返
+    // 含 isLogin 的 user info)。如果这都返不来，下面 4 个数据 fetch 必然全空，
+    // 直接看 debug 数组的 status / err / head 锁定 CORS / HTTP 401 / WebView 行为
+    const navResp = await tryJson('https://api.bilibili.com/x/web-interface/nav');
+    const navIsLogin = !!(navResp && navResp.data && navResp.data.isLogin);
+    debug.push({_smokeTest: 'nav', isLogin: navIsLogin, code: navResp ? navResp.code : null,
+                cookieLen: document.cookie.length, locHref: location.href});
 
     // history (recent view history)
     const histResp = await tryJson('https://api.bilibili.com/x/web-interface/history/cursor?ps=200&type=archive');
