@@ -373,12 +373,17 @@ async function initHub() {
     const {
       createXhsCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+    // Phase 6c: register `toutiao.cookies` extension (mirror of cli wiring).
+    const {
+      createToutiaoCookiesExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
         "douyin.pull-im-db": createDouyinDbExtension(),
         "weibo.cookies": createWeiboCookiesExtension(),
         "xhs.cookies": createXhsCookiesExtension(),
+        "toutiao.cookies": createToutiaoCookiesExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -1196,6 +1201,62 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(XHS_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 6c — Toutiao C 路径 one-shot sync ────────────────────────
+    //
+    // Mirror of cli `toutiaoAdbSync` but with ToutiaoSignBridge injected
+    // (Electron WebContentsView running acrawler.js → ~100% _signature
+    // hit rate). Bridge is per-sync (released after) — ~30-50MB heap.
+    async toutiaoAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      // Phase 6c: instantiate ToutiaoSignBridge per-sync. Lazy require
+      // so non-Electron contexts (cli, tests) don't try to load it.
+      let signProvider = null;
+      try {
+        const { ToutiaoSignBridge } = require("../sign-bridge");
+        signProvider = new ToutiaoSignBridge({
+          onWarn: (m) => logger.warn("[PersonalDataHub] ToutiaoSignBridge:", m),
+        });
+      } catch (err) {
+        logger.warn(
+          "[PersonalDataHub] ToutiaoSignBridge load failed — Toutiao signed endpoints will short-circuit:",
+          err && err.message ? err.message : String(err),
+        );
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          { ...opts, signProvider },
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(TOUTIAO_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

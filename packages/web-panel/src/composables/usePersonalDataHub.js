@@ -636,6 +636,30 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * Phase 6c — Toutiao C 路径 one-shot sync.
+     *
+     * Pulls www.toutiao.com cookies via ADB, fetches passport profile +
+     * 3 _signature endpoints (feed/collection/search). Desktop context
+     * gets ~100% hit via ToutiaoSignBridge (Electron WebContentsView
+     * running acrawler.js). Web/CLI context: 3 signed endpoints short-
+     * circuit with no HTTP traffic — banner explains "run from desktop".
+     *
+     * 90s timeout — passport (no _sig) + 3 signed endpoints + warmUp
+     * (~3-5s) + shutdown.
+     */
+    async toutiaoAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.toutiao-adb-sync",
+        {
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        90_000,
+      );
+    },
+
+    /**
      * Phase 2a — Douyin C 路径 one-shot sync.
      *
      * Pulls <uid>_im.db cohort from the user's Android Douyin App via
