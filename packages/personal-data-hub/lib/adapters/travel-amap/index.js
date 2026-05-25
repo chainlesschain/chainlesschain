@@ -19,20 +19,22 @@ const fs = require("node:fs");
 const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
 
 const NAME = "travel-amap";
-const VERSION = "0.5.0";
+const VERSION = "0.6.0"; // 2026-05-25 — account.deviceId OPTIONAL + inputPath alias
 
 class AmapAdapter {
   constructor(opts = {}) {
-    if (!opts.account || !opts.account.deviceId) {
-      throw new Error("AmapAdapter: opts.account.deviceId required");
-    }
-    this.account = opts.account;
-    this._dbPath = opts.dbPath || null;
+    // 2026-05-25 — account.deviceId OPTIONAL (mirror Taobao/Ctrip/Telegram).
+    // sqlite-mode adapter still requires user to provide a pulled amap.db
+    // (`/data/data/com.autonavi.minimap/databases/amap.db`). Earlier strict
+    // ctor blocked auto-register at boot → silent "no adapter travel-amap"
+    // when Android collector ships extracted db.
+    this.account = opts.account || null;
+    this._dbPath = opts.dbPath || opts.inputPath || null;
     this._dbDriverFactory = opts.dbDriverFactory || null;
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:sqlite", "parse:amap-history"];
+    this.capabilities = ["sync:sqlite", "sync:snapshot", "parse:amap-history"];
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -46,8 +48,12 @@ class AmapAdapter {
     };
   }
 
-  async authenticate() {
-    return { ok: true, account: this.account.deviceId };
+  async authenticate(ctx = {}) {
+    const dbPath = (ctx && (ctx.inputPath || ctx.dbPath)) || this._dbPath;
+    if (!dbPath || !fs.existsSync(dbPath)) {
+      return { ok: true, account: this.account ? this.account.deviceId : null, mode: "ready" };
+    }
+    return { ok: true, account: this.account ? this.account.deviceId : null, mode: "snapshot-file" };
   }
 
   async healthCheck() {
@@ -55,7 +61,7 @@ class AmapAdapter {
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.dbPath || this._dbPath;
+    const dbPath = opts.inputPath || opts.dbPath || this._dbPath;
     if (!dbPath || !fs.existsSync(dbPath)) return;
     const Database = this._dbDriverFactory || (() => require("better-sqlite3-multiple-ciphers"));
     const Driver = typeof Database === "function" ? Database() : Database;

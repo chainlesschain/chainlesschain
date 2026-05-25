@@ -67,6 +67,9 @@ const {
   Train12306Adapter,
   TaobaoAdapter,
   CtripAdapter,
+  AmapAdapter,
+  TelegramAdapter,
+  WhatsAppAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -390,17 +393,16 @@ async function initHub() {
   // reads it; no per-account credential needed at boot. Each wrapped in
   // its own try so one broken ctor doesn't cascade.
   //
-  // **Deferred** (hardware-blocked — sqlite device-pull, require root Android
-  // device for cross-app SQLite extraction; **cannot wire snapshot mode** since
-  // there's no source data without the root SQLite read):
-  //   AmapAdapter       (opts.account.deviceId)
-  //   TelegramAdapter   (opts.account.userId)
-  //   WhatsAppAdapter   (opts.account.phone)
-  // TaobaoAdapter + CtripAdapter moved out of deferred 2026-05-25 — both
-  // gained no-arg snapshot mode (TaobaoAdapter v0.2 mirrors jd/meituan/pdd
-  // dual-mode; CtripAdapter v0.2 file-import + inputPath alias). Android
-  // in-APK collector can now ship snapshot JSON via syncAdapter("<name>",
-  // path) → registry resolves instead of "no adapter".
+  // **No more deferred adapters at boot** — 2026-05-25 final pass made all
+  // sqlite/device-pull adapters (Amap/Telegram/WhatsApp) ctor-optional:
+  // account.<x> dropped from required, inputPath alias added. The sqlite
+  // sync still requires the user to pre-extract the SQLite db (Telegram
+  // cache4.db unencrypted; WhatsApp msgstore.db needs WhatsApp Crypt key;
+  // Amap amap.db needs root ADB pull) — but the registry slot is now
+  // claimed so syncAdapter("<name>", path) routes correctly instead of
+  // "no adapter X" silent swallow. v0.2 followup: Android in-APK extractor
+  // for these 3 sqlite adapters (depends on root ADB / device-specific
+  // Crypt key recovery; previously blocked the whole code path before).
   // Train12306Adapter moved out of deferred (v0.2 added snapshot mode —
   // account.username OPTIONAL, see adapters/travel-12306/index.js:53-56);
   // Android Kyfw12306LocalCollector ships snapshot JSON via
@@ -425,6 +427,9 @@ async function initHub() {
     Train12306Adapter,
     TaobaoAdapter,
     CtripAdapter,
+    AmapAdapter,
+    TelegramAdapter,
+    WhatsAppAdapter,
   ]) {
     try {
       const adapter = new Cls();

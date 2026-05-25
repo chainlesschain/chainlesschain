@@ -22,21 +22,23 @@ const fs = require("node:fs");
 const { newId } = require("../../ids");
 
 const NAME = "messaging-whatsapp";
-const VERSION = "0.5.0";
+const VERSION = "0.6.0"; // 2026-05-25 — account.phone OPTIONAL + inputPath alias
 
 class WhatsAppAdapter {
   constructor(opts = {}) {
-    if (!opts.account || !opts.account.phone) {
-      throw new Error("WhatsAppAdapter: opts.account.phone required");
-    }
-    this.account = opts.account;
-    this._dbPath = opts.dbPath || null;
+    // 2026-05-25 — account.phone OPTIONAL (mirror Taobao/Ctrip/Telegram).
+    // sqlite-mode adapter still requires user to provide a decrypted
+    // msgstore.db (user pre-decrypts with WhatsApp Crypt key — out of band).
+    // Earlier strict ctor blocked auto-register at boot → silent "no adapter
+    // messaging-whatsapp" when Android collector ships extracted db.
+    this.account = opts.account || null;
+    this._dbPath = opts.dbPath || opts.inputPath || null;
     this._keyProvider = opts.keyProvider || null;
     this._dbDriverFactory = opts.dbDriverFactory || null;
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:sqlite", "parse:whatsapp-messages"];
+    this.capabilities = ["sync:sqlite", "sync:snapshot", "parse:whatsapp-messages"];
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -50,11 +52,12 @@ class WhatsAppAdapter {
     };
   }
 
-  async authenticate() {
-    if (!this._dbPath || !fs.existsSync(this._dbPath)) {
-      return { ok: false, reason: "DB_NOT_PULLED" };
+  async authenticate(ctx = {}) {
+    const dbPath = (ctx && (ctx.inputPath || ctx.dbPath)) || this._dbPath;
+    if (!dbPath || !fs.existsSync(dbPath)) {
+      return { ok: false, reason: "DB_NOT_PULLED", message: "needs ctx.inputPath / opts.dbPath pointing to decrypted msgstore.db" };
     }
-    return { ok: true, account: this.account.phone };
+    return { ok: true, account: this.account ? this.account.phone : null, mode: "snapshot-file" };
   }
 
   async healthCheck() {
@@ -63,7 +66,7 @@ class WhatsAppAdapter {
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.dbPath || this._dbPath;
+    const dbPath = opts.inputPath || opts.dbPath || this._dbPath;
     if (!dbPath || !fs.existsSync(dbPath)) return;
     const Driver = this._dbDriverFactory
       ? this._dbDriverFactory()

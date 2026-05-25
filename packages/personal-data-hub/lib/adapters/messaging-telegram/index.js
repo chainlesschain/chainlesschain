@@ -18,20 +18,22 @@ const fs = require("node:fs");
 const { newId } = require("../../ids");
 
 const NAME = "messaging-telegram";
-const VERSION = "0.5.0";
+const VERSION = "0.6.0"; // 2026-05-25 — account.userId OPTIONAL + inputPath alias
 
 class TelegramAdapter {
   constructor(opts = {}) {
-    if (!opts.account || !opts.account.userId) {
-      throw new Error("TelegramAdapter: opts.account.userId required");
-    }
-    this.account = opts.account;
-    this._dbPath = opts.dbPath || null;
+    // 2026-05-25 — account.userId OPTIONAL (mirror Taobao/Ctrip dual-mode).
+    // sqlite-mode adapter still requires user to provide a decrypted
+    // cache4.db (Telegram cache db is unencrypted — easier than WeChat).
+    // Earlier strict ctor blocked auto-register at boot → silent "no adapter
+    // messaging-telegram" when Android collector ships extracted db.
+    this.account = opts.account || null;
+    this._dbPath = opts.dbPath || opts.inputPath || null;
     this._dbDriverFactory = opts.dbDriverFactory || null;
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:sqlite", "parse:telegram-messages"];
+    this.capabilities = ["sync:sqlite", "sync:snapshot", "parse:telegram-messages"];
     this.extractMode = "device-pull";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -43,11 +45,12 @@ class TelegramAdapter {
     };
   }
 
-  async authenticate() {
-    if (!this._dbPath || !fs.existsSync(this._dbPath)) {
-      return { ok: false, reason: "DB_NOT_PULLED" };
+  async authenticate(ctx = {}) {
+    const dbPath = (ctx && (ctx.inputPath || ctx.dbPath)) || this._dbPath;
+    if (!dbPath || !fs.existsSync(dbPath)) {
+      return { ok: false, reason: "DB_NOT_PULLED", message: "needs ctx.inputPath / opts.dbPath pointing to extracted cache4.db" };
     }
-    return { ok: true, account: this.account.userId };
+    return { ok: true, account: this.account ? this.account.userId : null, mode: "snapshot-file" };
   }
 
   async healthCheck() {
@@ -56,7 +59,7 @@ class TelegramAdapter {
   }
 
   async *sync(opts = {}) {
-    const dbPath = opts.dbPath || this._dbPath;
+    const dbPath = opts.inputPath || opts.dbPath || this._dbPath;
     if (!dbPath || !fs.existsSync(dbPath)) return;
     const Driver = this._dbDriverFactory
       ? this._dbDriverFactory()

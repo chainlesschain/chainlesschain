@@ -369,6 +369,13 @@ describe("AmapAdapter", () => {
     expect(a.extractMode).toBe("device-pull");
   });
 
+  it("no-arg ctor passes contract (2026-05-25 v0.6 — account.deviceId OPTIONAL for snapshot mode)", () => {
+    const a = new AmapAdapter();
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
+  });
+
   it("sync yields route + search records via mocked driver", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "amap-"));
     const dbPath = path.join(dir, "amap.db");
