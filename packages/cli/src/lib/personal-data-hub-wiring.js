@@ -296,7 +296,17 @@ async function initHub() {
     // + caveats (Windows CRLF parse trap, 0/multi device, ENOENT).
     try {
       const { createHostAdbBridge } = await import("./host-adb-bridge.js");
-      const hostAdbBridge = createHostAdbBridge();
+      // Phase 1b: register `bilibili.cookies` extension so the Phase 1c
+      // collector can pull WebView cookies from the user's Android Bilibili
+      // App. The factory is a pure function — no side effects until the
+      // handler is invoked, so cost of always-registering is zero.
+      const { createBilibiliCookiesExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+      const hostAdbBridge = createHostAdbBridge({
+        extensions: {
+          "bilibili.cookies": createBilibiliCookiesExtension(),
+        },
+      });
       sda._deps.bridgeProvider = () => hostAdbBridge;
     } catch (_e) {
       // Bridge module missing or failed to load — leave snapshot-only.

@@ -350,7 +350,18 @@ async function initHub() {
   // the UI alert description after the syncSummary patch).
   try {
     const { createDesktopAdbBridge } = require("./desktop-adb-bridge");
-    const desktopAdbBridge = createDesktopAdbBridge();
+    // Phase 1b: register `bilibili.cookies` extension so the Phase 1c
+    // collector can pull WebView cookies from the user's Android Bilibili
+    // App. The factory is a pure function — no side effects until the
+    // handler is invoked, so cost of always-registering is zero.
+    const {
+      createBilibiliCookiesExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+    const desktopAdbBridge = createDesktopAdbBridge({
+      extensions: {
+        "bilibili.cookies": createBilibiliCookiesExtension(),
+      },
+    });
     const sda = new SystemDataAndroidAdapter();
     // SystemDataAndroidAdapter's constructor ignores opts.bridgeProvider
     // and hardcodes `_deps.bridgeProvider = () => null`. Mutate after

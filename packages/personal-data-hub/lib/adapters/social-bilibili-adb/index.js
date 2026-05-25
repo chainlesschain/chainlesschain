@@ -3,21 +3,15 @@
 /**
  * social-bilibili-adb — Phase 1 (Bilibili C 路径) entry.
  *
- * Phase 1a (this commit) exports the cookies extraction layer only:
- *   - createBilibiliCookiesExtension — bridge extension handler factory
- *   - readChromiumCookies / assembleBilibiliCookieHeader — building blocks
- *     for testing + reuse by future platforms (Weibo / Xhs / Douyin) that
- *     also have Chromium WebView cookies
+ * Phase 1a (commit `7c12fd253`) — cookies extraction layer
+ * Phase 1b (this commit)        — Node API client + snapshot builder + collector
+ * Phase 1c (next)               — wiring injection + UI + real-device E2E
  *
- * Phase 1b (next session) will add:
- *   - BilibiliApiClient (Node) with WBI signing — ports the algorithm from
- *     android-app/.../pdh/social/bilibili/BilibiliApiClient.kt (the 64-index
- *     mixin key table + img_key/sub_key handshake)
- *   - BilibiliSnapshotBuilder — turns API responses into the events array
- *     shape that the existing `social-bilibili` JS adapter consumes in
- *     snapshot mode (so we don't duplicate the adapter, just feed it from
- *     a different upstream)
- *   - Collector orchestrator + wiring registration
+ * Pipeline (see collector.js):
+ *   bridge.invoke("bilibili.cookies")
+ *     → BilibiliApiClient (4 endpoints, WBI-signed)
+ *     → buildSnapshot → writeSnapshotJson
+ *     → registry.syncAdapter("social-bilibili", { inputPath })
  */
 
 const {
@@ -29,11 +23,29 @@ const {
   assembleBilibiliCookieHeader,
   BILIBILI_COOKIE_NAMES,
 } = require("./chromium-cookies-reader");
+const { BilibiliApiClient, extractUid } = require("./api-client");
+const {
+  buildSnapshot,
+  writeSnapshotJson,
+  cleanupSnapshotJson,
+  SNAPSHOT_SCHEMA_VERSION,
+} = require("./snapshot-builder");
+const { collect, collectAndSync } = require("./collector");
 
 module.exports = {
+  // Phase 1a
   createBilibiliCookiesExtension,
   BILIBILI_COOKIES_REMOTE_PATH,
   readChromiumCookies,
   assembleBilibiliCookieHeader,
   BILIBILI_COOKIE_NAMES,
+  // Phase 1b
+  BilibiliApiClient,
+  extractUid,
+  buildSnapshot,
+  writeSnapshotJson,
+  cleanupSnapshotJson,
+  SNAPSHOT_SCHEMA_VERSION,
+  collect,
+  collectAndSync,
 };
