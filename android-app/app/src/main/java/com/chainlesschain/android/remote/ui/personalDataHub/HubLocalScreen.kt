@@ -92,6 +92,7 @@ fun HubLocalScreen(
                 displayName = pending.displayName,
                 isLoginSuccess = pending.isLoginSuccess,
                 userAgent = pending.userAgent,
+                isLoginSuccessByCookie = pending.isLoginSuccessByCookie,
                 // 2026-05-25 真机 fix：b 站桌面 web API 风控严，OkHttp 一切都被拒
                 // (cookie / WBI 签名 / dm_img 指纹全齐仍 -400 + silent empty)。唯
                 // 一稳路在 WebView 内 evaluateJavascript 跑 fetch（真 Chrome TLS

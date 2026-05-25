@@ -17,7 +17,7 @@ import com.chainlesschain.android.remote.commands.HubHealth
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
-import com.chainlesschain.android.pdh.social.DESKTOP_CHROME_USER_AGENT
+import com.chainlesschain.android.pdh.social.MOBILE_CHROME_USER_AGENT
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
@@ -192,12 +192,22 @@ class HubLocalViewModel @Inject constructor(
         val isLoginSuccess: (String) -> Boolean,
         /**
          * 可选 WebView UA 整串覆盖。5 个反 WebView 严格平台 (Bilibili / 抖音 /
-         * 小红书 / 头条 / 快手) 设 DESKTOP_CHROME_USER_AGENT，否则平台返
-         * 「请用 X App 打开」拦截页（无 JS 轮询，cookie 永远抓不到）。微博
-         * m.weibo.cn 不需要 → 留 null 走 sanitize 默认。详 memory
+         * 小红书 / 头条 / 快手) 设 [MOBILE_CHROME_USER_AGENT]，让平台返带
+         * polling 闭环 + 「一键登录」按钮的 mobile 登录页。微博 m.weibo.cn
+         * 不严，留 null 走 sanitize 默认。
+         *
+         * 2026-05-25 post `daabf6dfb` 修正：上次走 DESKTOP_CHROME_USER_AGENT
+         * 方向反了 —— 桌面 UA 让平台返桌面登录流（无一键登录入口；抖音直接
+         * modal-only 不 redirect → onPageFinished 永不命中）。详 memory
          * `pdh_social_webview_deeplink_cookie_capture.md`。
          */
         val userAgent: String? = null,
+        /**
+         * 可选 cookie-presence based 登录成功检测，每 1.5s 轮询。用于"登录后
+         * URL 不变"的平台（典型：抖音 modal 登录 — 弹窗关闭后 URL 仍是
+         * `?showLogin=1`）。null = 不轮询，纯走 [isLoginSuccess] URL 路径。
+         */
+        val isLoginSuccessByCookie: ((cookie: String) -> Boolean)? = null,
     )
 
     /**
@@ -2304,7 +2314,7 @@ class HubLocalViewModel @Inject constructor(
                             url == "https://m.bilibili.com") &&
                             !url.contains("passport.bilibili.com")
                     },
-                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                    userAgent = MOBILE_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -2826,19 +2836,32 @@ class HubLocalViewModel @Inject constructor(
                 pendingLogin = LoginRequest(
                     adapterName = "social-douyin",
                     displayName = "抖音",
+                    // 2026-05-25：登录 URL 是 modal 形式 — 弹窗关闭后 URL 仍含
+                    // ?showLogin=1，[isLoginSuccess] URL predicate 永不命中。
+                    // 改靠 [isLoginSuccessByCookie] 轮询 cookie 出现作信号。
                     // www.douyin.com passport 登录页 — 扫码 + 密码两种登录方式都进
                     // 这个 URL（抖音桌面端没单独 mobile passport.douyin.com 入口）
                     loginUrl = "https://www.douyin.com/?showLogin=1",
                     cookieDomain = "https://www.douyin.com",
-                    // 登录成功后跳转 www.douyin.com 主页或 www.douyin.com/user/<sec_uid>
-                    // 但 URL 也包含 showLogin=1 的可能，所以匹配 host 但排除 ?showLogin
+                    // URL predicate 兜底：少数场景抖音确实会 redirect 到 /user/<id>
+                    // 或 m.douyin.com，匹配但排除 modal/passport 中间态。主信号
+                    // 是下方的 isLoginSuccessByCookie。
                     isLoginSuccess = { url ->
                         (url.startsWith("https://www.douyin.com/") ||
-                            url == "https://www.douyin.com") &&
+                            url.startsWith("https://m.douyin.com/") ||
+                            url == "https://www.douyin.com" ||
+                            url == "https://m.douyin.com") &&
                             !url.contains("showLogin=1") &&
                             !url.contains("passport.")
                     },
-                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                    // 抖音登录后 cookie 写两个 session key 之一即可视为成功 —
+                    // sessionid_ucp_v1（新版主 key）或 sessionid（兼容路径）。
+                    // 任一出现就 trigger onLoginComplete。
+                    isLoginSuccessByCookie = { cookie ->
+                        cookie.contains("sessionid_ucp_v1=") ||
+                            cookie.contains("sessionid=")
+                    },
+                    userAgent = MOBILE_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3039,17 +3062,19 @@ class HubLocalViewModel @Inject constructor(
                 pendingLogin = LoginRequest(
                     adapterName = "social-xiaohongshu",
                     displayName = "小红书",
-                    // xiaohongshu.com 网页版登录页（移动端会有更严反检测）
+                    // xiaohongshu.com 网页版登录页（Mobile UA 下平台会自动跳
+                    // m.xiaohongshu.com，predicate 必须兼容两域）
                     loginUrl = "https://www.xiaohongshu.com/explore",
                     cookieDomain = "https://www.xiaohongshu.com",
-                    // 登录成功后跳 www.xiaohongshu.com 子路径，但不在 login/passport
+                    // 登录成功后跳 www.xiaohongshu.com / m.xiaohongshu.com 子路径，
+                    // 但不在 login/passport
                     isLoginSuccess = { url ->
-                        url.startsWith("https://www.xiaohongshu.com") &&
+                        url.contains("xiaohongshu.com") &&
                             !url.contains("/login") &&
                             !url.contains("/sign-in") &&
                             !url.contains("passport")
                     },
-                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                    userAgent = MOBILE_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3268,7 +3293,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
-                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                    userAgent = MOBILE_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3462,7 +3487,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
-                    userAgent = DESKTOP_CHROME_USER_AGENT,
+                    userAgent = MOBILE_CHROME_USER_AGENT,
                 ),
             )
         }

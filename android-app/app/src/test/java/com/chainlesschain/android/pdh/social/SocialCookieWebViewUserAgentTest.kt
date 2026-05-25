@@ -71,4 +71,44 @@ class SocialCookieWebViewUserAgentTest {
         assertFalse(ua.contains("; wv)"), "desktop UA must not carry wv marker: $ua")
         assertFalse(ua.contains("Mobile"), "desktop UA must not claim Mobile: $ua")
     }
+
+    @Test
+    fun `MOBILE_CHROME_USER_AGENT looks like real Android Chrome Mobile`() {
+        // 2026-05-25 — 5 家平台登录走这串。锁形态防有人手抖把它改成 WebView UA
+        // 或桌面 UA（5 家会立刻退回登录失败）。
+        val ua = MOBILE_CHROME_USER_AGENT
+        assertTrue(ua.startsWith("Mozilla/5.0"), "must start with Mozilla/5.0: $ua")
+        assertTrue(ua.contains("Linux; Android"), "must claim Android: $ua")
+        assertTrue(ua.contains("AppleWebKit/537.36"), "must carry AppleWebKit/537.36: $ua")
+        assertTrue(Regex("Chrome/\\d+\\.").containsMatchIn(ua), "must carry Chrome/<major>.: $ua")
+        assertTrue(ua.contains("Mobile Safari/537.36"), "must carry Mobile Safari tail: $ua")
+        // 这串是 *真* Mobile Chrome，不是 WebView — 严禁含 wv / Version/4.0 标记
+        assertFalse(ua.contains("; wv)"), "mobile Chrome UA must not carry wv marker: $ua")
+        assertFalse(
+            Regex("Version/\\d").containsMatchIn(ua),
+            "mobile Chrome UA must not carry Version/<N> WebView marker: $ua",
+        )
+        // 也不该带 ChainlesschainAndroid 后缀 — 该 marker 是 anti-bot 命中点
+        assertFalse(
+            ua.contains("ChainlesschainAndroid"),
+            "must not carry app-identifier suffix (anti-bot): $ua",
+        )
+    }
+
+    @Test
+    fun `sanitize result does not append ChainlesschainAndroid suffix`() {
+        // 2026-05-25 — 默认路径（userAgent=null 调用方）的 sanitize 产物不再加
+        // " ChainlesschainAndroid/A8" 后缀。该 marker 跟 wv 同列是 anti-bot 命
+        // 中点，post `daabf6dfb` 真机回归剥光。此测锁契约 — 防回归。
+        val raw = "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230805.001; wv) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Version/4.0 Chrome/119.0.6045.66 Mobile Safari/537.36"
+
+        val sanitized = sanitizeWebViewUserAgent(raw)
+
+        assertFalse(
+            sanitized.contains("ChainlesschainAndroid"),
+            "sanitize itself must not inject app-identifier marker: $sanitized",
+        )
+    }
 }
