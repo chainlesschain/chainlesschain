@@ -16,19 +16,21 @@ const fs = require("node:fs");
 const { normalizeTravelRecord, parseChineseDateTime } = require("../travel-base");
 
 const NAME = "travel-ctrip";
-const VERSION = "0.5.0";
+const VERSION = "0.6.0"; // §9.3b — account.email OPTIONAL + inputPath snapshot alias
 
 class CtripAdapter {
   constructor(opts = {}) {
-    if (!opts.account || !opts.account.email) {
-      throw new Error("CtripAdapter: opts.account.email required");
-    }
-    this.account = opts.account;
+    // §9.3b 2026-05-25 — account.email OPTIONAL (mirror shopping-jd/taobao
+    // dual-mode). file-import mode is stateless; bookkeeping account.email
+    // is informational, not gating. Earlier strict ctor blocked
+    // auto-register at boot → Android collector ship JSON staging path
+    // failed with silent "no adapter travel-ctrip".
+    this.account = opts.account || null;
     this._dataPath = opts.dataPath || null;
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["import:json", "parse:ctrip-orders"];
+    this.capabilities = ["import:json", "sync:snapshot", "parse:ctrip-orders"];
     this.extractMode = "file-import";
     this.rateLimits = {};
     this.dataDisclosure = {
@@ -40,8 +42,19 @@ class CtripAdapter {
     };
   }
 
-  async authenticate() {
-    return { ok: true, account: this.account.email };
+  async authenticate(ctx = {}) {
+    // Snapshot / file-import path: validate file readable when an inputPath
+    // / dataPath is provided. Otherwise return ok with whatever account
+    // bookkeeping we have (file path can be supplied later via sync(opts)).
+    const filePath = (ctx && ctx.inputPath) || ctx.dataPath || this._dataPath;
+    if (filePath) {
+      try { fs.accessSync(filePath, fs.constants.R_OK); }
+      catch (err) {
+        return { ok: false, reason: "INPUT_PATH_UNREADABLE", message: `not readable at ${filePath}: ${err.message}` };
+      }
+      return { ok: true, mode: "snapshot-file" };
+    }
+    return { ok: true, account: this.account ? this.account.email : null, mode: "ready" };
   }
 
   async healthCheck() {
@@ -49,7 +62,10 @@ class CtripAdapter {
   }
 
   async *sync(opts = {}) {
-    const dataPath = opts.dataPath || this._dataPath;
+    // Snapshot mode aliases dataPath → inputPath so Android in-APK cc can
+    // call syncAdapter("travel-ctrip", path) with the same shape it uses
+    // for the other snapshot-mode adapters (shopping-jd / travel-12306).
+    const dataPath = opts.inputPath || opts.dataPath || this._dataPath;
     if (!dataPath || !fs.existsSync(dataPath)) return;
     const text = fs.readFileSync(dataPath, "utf-8");
     let records;

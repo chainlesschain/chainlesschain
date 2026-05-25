@@ -299,6 +299,65 @@ describe("CtripAdapter", () => {
     expect(CTRIP_TYPE_MAP.train).toBe("train");
     expect(CTRIP_TYPE_MAP.cruise).toBe("cruise");
   });
+
+  // §9.3b v0.2 — no-arg ctor (auto-register at boot) + inputPath alias for
+  // Android in-APK cc syncAdapter("travel-ctrip", path). Earlier strict ctor
+  // (opts.account.email required) blocked the auto-register loop.
+
+  it("no-arg ctor passes contract (snapshot mode)", () => {
+    const a = new CtripAdapter();
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("import:json"); // both kept
+  });
+
+  it("sync(inputPath) alias yields records same as dataPath", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ctrip-snap-"));
+    const inputPath = path.join(dir, "snap.json");
+    fs.writeFileSync(inputPath, JSON.stringify([
+      {
+        orderId: "C-SNAP-1", type: "flight",
+        depCity: "上海", arrCity: "北京",
+        flightNumber: "MU100", airline: "东航",
+        departureTime: "2026-05-01 08:00:00",
+        arrivalTime: "2026-05-01 10:30:00",
+        passengerName: "张三", price: 800, pnr: "XYZ",
+      },
+    ]), "utf-8");
+    try {
+      const a = new CtripAdapter();
+      const raws = [];
+      for await (const r of a.sync({ inputPath })) raws.push(r);
+      expect(raws).toHaveLength(1);
+      expect(raws[0].adapter).toBe("travel-ctrip");
+      expect(raws[0].originalId).toBe("C-SNAP-1");
+      const batch = a.normalize(raws[0]);
+      expect(validateBatch(batch).valid).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("authenticate(ctx.inputPath) returns ok when file readable", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ctrip-auth-"));
+    const inputPath = path.join(dir, "snap.json");
+    fs.writeFileSync(inputPath, "[]", "utf-8");
+    try {
+      const a = new CtripAdapter();
+      const auth = await a.authenticate({ inputPath });
+      expect(auth.ok).toBe(true);
+      expect(auth.mode).toBe("snapshot-file");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("authenticate(no path) ok with mode=ready (no account required)", async () => {
+    const a = new CtripAdapter();
+    const auth = await a.authenticate({});
+    expect(auth.ok).toBe(true);
+    expect(auth.mode).toBe("ready");
+  });
 });
 
 // ─── Amap adapter (mocked SQLite) ───────────────────────────────────────

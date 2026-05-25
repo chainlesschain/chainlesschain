@@ -65,6 +65,7 @@ const {
   PinduoduoAdapter,
   Train12306Adapter,
   TaobaoAdapter,
+  CtripAdapter,
   ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -484,16 +485,13 @@ async function initHub() {
   // 10 surfaced "AdapterRegistry.syncAdapter: no adapter X" on real device
   // when the Android collector produced staging JSON for them.
   //
-  // **Deferred** (need per-account credential infra — `<vendor>-accounts.json`
-  // loader similar to email/alipay/wechat — OR root-real-device for sqlite
-  // adapters):
-  //   CtripAdapter (account.email, file-import only)
-  //   AmapAdapter / TelegramAdapter / WhatsAppAdapter (sqlite device-pull, root)
-  // Train12306Adapter + TaobaoAdapter moved out of deferred 2026-05-25 (both
-  // gained snapshot mode — Train12306 v0.2 account.username OPTIONAL;
-  // TaobaoAdapter v0.2 mirror jd/meituan/pinduoduo dual-mode); Android
-  // collectors ship snapshot JSON via syncAdapter("<name>", path) — must be
-  // registered here too or desktop IPC says "no adapter <name>" while CLI works.
+  // **Deferred** (hardware-blocked — sqlite device-pull require root Android;
+  // cannot snapshot-mode-wire since no source data without root SQLite read):
+  //   AmapAdapter / TelegramAdapter / WhatsAppAdapter
+  // Train12306Adapter + TaobaoAdapter + CtripAdapter moved out of deferred
+  // 2026-05-25 (all three gained no-arg snapshot mode); Android collectors
+  // ship snapshot JSON via syncAdapter("<name>", path) — must be registered
+  // here too or desktop IPC says "no adapter <name>" while CLI works.
   for (const Cls of [
     WeiboAdapter,
     DouyinAdapter,
@@ -508,6 +506,7 @@ async function initHub() {
     PinduoduoAdapter,
     Train12306Adapter,
     TaobaoAdapter,
+    CtripAdapter,
   ]) {
     try {
       const adapter = new Cls();
