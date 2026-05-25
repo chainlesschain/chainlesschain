@@ -201,6 +201,9 @@
           <a-button @click="bilibiliAdbSync" :loading="loading.bilibiliAdbSync">
             通过 PC ADB 同步 Bilibili
           </a-button>
+          <a-button @click="weiboAdbSync" :loading="loading.weiboAdbSync">
+            通过 PC ADB 同步 Weibo
+          </a-button>
           <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
             通过 PC ADB 同步 Douyin
           </a-button>
@@ -878,6 +881,7 @@ const loading = reactive({
   bilibiliAdbSync: false,
   bilibiliAdbDoctor: false,
   douyinAdbSync: false,
+  weiboAdbSync: false,
 })
 
 /**
@@ -967,6 +971,93 @@ function douyinReasonMessage(reason) {
     case 'SYNC_FAILED':
     default:
       return '同步失败 — 详见 message 字段'
+  }
+}
+
+/**
+ * Phase 3b — Weibo C 路径 (PC + ADB) UI handler.
+ *
+ * Pipeline: WS topic personal-data-hub.weibo-adb-sync → hub method
+ * weiboAdbSync → WeiboAdbCollector.collectAndSync → pull m.weibo.cn
+ * Chromium cookies → fetchUid (/api/config) → 3 endpoints parallel
+ * (posts/favourites/follows) → snapshot → ingest.
+ *
+ * 10 typed reason codes mapped to Chinese banners. uidFetchFailed
+ * (cookie expired or anti-bot HTML redirect) shows a dedicated warning
+ * notification distinct from empty-result.
+ */
+function weiboReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'WEIBO_NO_ROOT':
+      return '手机未 root — 微博正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
+    case 'WEIBO_NOT_INSTALLED':
+      return '请在手机上安装微博 App 并登录一次，然后重试 (或微博使用了非默认 WebView 数据目录)'
+    case 'WEIBO_COOKIES_EMPTY':
+      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
+    case 'WEIBO_COOKIES_TRUNCATED':
+      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'WEIBO_NOT_SQLITE':
+      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
+    case 'WEIBO_BASE64_PARSE':
+      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
+    case 'WEIBO_COOKIES_INCOMPLETE':
+      return 'SUB cookie 缺失 — 请在手机微博 App 上重新登录'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function weiboAdbSync() {
+  if (loading.weiboAdbSync) return
+  loading.weiboAdbSync = true
+  try {
+    const result = await hub.weiboAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = weiboReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Weibo ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const wb = report.weibo || {}
+    const counts = wb.eventCounts || {}
+    if (wb.uidFetchFailed) {
+      message.warning({
+        content: `Weibo 同步未拉到 UID — /api/config 返 login=false`,
+        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ''}。可能 cookie 已过期 (请在手机重新登录) 或微博触发 anti-bot redirect。事件数 0，未入 vault。`,
+        duration: 10,
+      })
+    } else if (wb.lastErrorCode) {
+      message.warning({
+        content: `Weibo 同步部分完成 (${counts.total || 0} events)`,
+        description: `lastErrorCode=${wb.lastErrorCode}, ${wb.lastErrorMessage || ''} — 部分接口受反爬限制，稍后重试可补齐`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Weibo 同步成功：posts=${counts.post || 0} / fav=${counts.favourite || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})`,
+      )
+    }
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Weibo ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.weiboAdbSync = false
   }
 }
 

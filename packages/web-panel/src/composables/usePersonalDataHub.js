@@ -592,6 +592,29 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * Phase 3a — Weibo C 路径 one-shot sync.
+     *
+     * Pulls m.weibo.cn cookies from the user's Android Weibo App via
+     * ADB, fetches UID via /api/config + 3 endpoints (posts/favourites/
+     * follows), ingests via social-weibo adapter snapshot mode. 10 typed
+     * reason codes for UI banner mapping.
+     *
+     * 60s timeout — Weibo HTTP is faster than Bilibili (no WBI handshake)
+     * but 3 endpoints sequential + cookie pull base64 stream sums up.
+     */
+    async weiboAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.weibo-adb-sync",
+        {
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        60_000,
+      );
+    },
+
+    /**
      * Phase 2a — Douyin C 路径 one-shot sync.
      *
      * Pulls <uid>_im.db cohort from the user's Android Douyin App via
