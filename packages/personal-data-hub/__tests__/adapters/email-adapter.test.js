@@ -100,7 +100,7 @@ describe("EmailAdapter contract", () => {
       sessionFactory: makeMockSession({}).factory,
     });
     expect(a.name).toBe("email-imap");
-    expect(a.version).toBe("0.6.0"); // Phase 5.7 — retry + progress streaming
+    expect(a.version).toBe("0.7.0"); // Phase 5.8 — snapshot mode for Android in-APK IMAP fetch
     expect(a.capabilities).toContain("sync:imap");
     expect(a.capabilities).toContain("auth:authcode");
     expect(a.capabilities).toContain("parse:mime-body");

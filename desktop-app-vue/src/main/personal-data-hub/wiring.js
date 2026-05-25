@@ -519,6 +519,24 @@ async function initHub() {
     }
   }
 
+  // Phase 5.8 — email-imap snapshot mode (2026-05-25): Android
+  // EmailLocalCollector does Jakarta Mail IMAP fetch on-device + writes
+  // staging JSON; desktop EmailAdapter consumes via snapshot path (no IMAP
+  // credentials needed at boot). Skipped when a persisted email-imap
+  // account already claimed the slot via the loop at line 308-322 (desktop-
+  // direct IMAP wins — the snapshot adapter is just a fallback for the
+  // Android-to-desktop path).
+  try {
+    if (!registry.has("email-imap")) {
+      registry.register(new EmailAdapter({ snapshotMode: true }));
+    }
+  } catch (err) {
+    logger.warn(
+      "[PersonalDataHub] failed to register email-imap snapshot adapter",
+      err && err.message,
+    );
+  }
+
   // Phase 6: same file-based persistence for Alipay accounts.
   const alipayAccountsPath = path.join(hubDir, "alipay-accounts.json");
   const alipayAccounts = loadAlipayAccounts(alipayAccountsPath);
@@ -686,10 +704,12 @@ async function initHub() {
         throw new Error("account required");
       }
       const adapter = new EmailAdapter({ account, ...opts });
+      // Phase 5.8 — if the boot-time snapshot stub claimed the "email-imap"
+      // slot, swap it out for this per-account IMAP adapter (user's explicit
+      // IMAP credentials should take priority over the Android-snapshot
+      // fallback). Both share `name === "email-imap"`.
       if (registry.has(adapter.name)) {
-        throw new Error(
-          `adapter name "${adapter.name}" already registered — pick a distinct provider/email`,
-        );
+        registry.unregister(adapter.name);
       }
       registry.register(adapter);
       const accounts = loadEmailAccounts(emailAccountsPath);
@@ -720,6 +740,16 @@ async function initHub() {
       // guard). Unregister by name.
       if (target) {
         registry.unregister("email-imap");
+        // Phase 5.8 — restore the snapshot stub so Android sync paths still
+        // work after the user unregisters their explicit IMAP account.
+        try {
+          registry.register(new EmailAdapter({ snapshotMode: true }));
+        } catch (err) {
+          logger.warn(
+            "[PersonalDataHub] failed to restore email-imap snapshot adapter",
+            err && err.message,
+          );
+        }
       }
       return { ok: true, removed: !!target };
     },

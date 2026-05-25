@@ -280,7 +280,7 @@ describe("EmailAdapter — Phase 5.7 surface advertising", () => {
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeFlakySession({}).factory,
     });
-    expect(a.version).toBe("0.6.0");
+    expect(a.version).toBe("0.7.0");
   });
 
   it("capabilities advertise sync:retry-backoff + sync:progress-stream", () => {

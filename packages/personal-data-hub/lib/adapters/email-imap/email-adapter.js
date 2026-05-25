@@ -15,6 +15,7 @@
 
 "use strict";
 
+const fs = require("node:fs");
 const {
   EVENT_SUBTYPES,
   PERSON_SUBTYPES,
@@ -34,26 +35,45 @@ const { extractPdfText, passwordsFromHints } = require("./pdf-extractor");
 const { extractTransactions } = require("./transactions");
 
 const NAME = "email-imap";
-const VERSION = "0.6.0"; // Phase 5.7 — retry-with-backoff + progress streaming
+const VERSION = "0.7.0"; // Phase 5.8 — snapshot mode for Android in-APK IMAP fetch
+const SNAPSHOT_SCHEMA_VERSION = 1;
 
 class EmailAdapter {
   constructor(opts) {
     if (!opts || typeof opts !== "object") {
       throw new Error("EmailAdapter: opts required");
     }
-    const account = opts.account;
-    if (!account || typeof account !== "object") {
-      throw new Error("EmailAdapter: opts.account required");
-    }
-    if (typeof account.email !== "string" || !account.email.includes("@")) {
-      throw new Error("EmailAdapter: account.email must be a full address");
-    }
-    if (typeof account.authCode !== "string" || account.authCode.length === 0) {
-      throw new Error("EmailAdapter: account.authCode required (provider authorization code)");
+
+    // Phase 5.8 — snapshot mode: Android EmailLocalCollector ships pre-fetched
+    // {records:[]} JSON via ccRunner.syncAdapter("email-imap", path). When
+    // snapshotMode=true: skip IMAP-account validation (no IMAP login needed)
+    // and switch authenticate/sync to the snapshot path. The single registered
+    // instance handles every Android vendor; each snapshot file carries its
+    // own vendor + user, no per-account constructor needed (mirror of
+    // travel-12306 / travel-baidu-map / social-bilibili snapshot mode).
+    this._snapshotMode = !!opts.snapshotMode;
+
+    if (!this._snapshotMode) {
+      const account = opts.account;
+      if (!account || typeof account !== "object") {
+        throw new Error("EmailAdapter: opts.account required");
+      }
+      if (typeof account.email !== "string" || !account.email.includes("@")) {
+        throw new Error("EmailAdapter: account.email must be a full address");
+      }
+      if (typeof account.authCode !== "string" || account.authCode.length === 0) {
+        throw new Error("EmailAdapter: account.authCode required (provider authorization code)");
+      }
+      this.account = account;
+      this._provider = resolveProvider(account);
+    } else {
+      // Snapshot-mode stub: account fields used by _envelopeToRawEvent/
+      // normalize fall back to "(snapshot)" placeholders. Real per-record
+      // vendor + user surface in the snapshot envelope payload instead.
+      this.account = opts.account || { email: "(snapshot)", authCode: "(snapshot)" };
+      this._provider = null;
     }
 
-    this.account = account;
-    this._provider = resolveProvider(account);
     this._sessionFactory = typeof opts.sessionFactory === "function"
       ? opts.sessionFactory
       : (cfg) => new ImapSession(cfg);
@@ -129,16 +149,15 @@ class EmailAdapter {
     this.name = NAME;
     this.version = VERSION;
     this.capabilities = [
-      "sync:imap",
-      "auth:authcode",
+      ...(this._snapshotMode ? ["sync:snapshot"] : ["sync:imap"]),
+      ...(this._snapshotMode ? [] : ["auth:authcode"]),
       "parse:mime-body",
       "parse:attachment-metadata",
       "classify:layer1-rules",
       ...(this._llm ? ["classify:layer2-llm"] : []),
       "extract:6-templates",
       ...(this._disablePdfExtraction ? [] : ["decrypt:pdf-bills"]),
-      "sync:retry-backoff",
-      "sync:progress-stream",
+      ...(this._snapshotMode ? [] : ["sync:retry-backoff", "sync:progress-stream"]),
     ];
     this.rateLimits = { perMinute: 60 };
     this.dataDisclosure = {
@@ -159,7 +178,30 @@ class EmailAdapter {
     };
   }
 
-  async authenticate(_ctx = {}) {
+  async authenticate(ctx = {}) {
+    // Phase 5.8 — snapshot mode authenticate: validate ctx.inputPath is
+    // readable; no IMAP login. Snapshot mode WITHOUT inputPath in ctx
+    // returns NO_INPUT (parallel to travel-12306 / travel-baidu-map shape).
+    if (this._snapshotMode || (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0)) {
+      if (!ctx || typeof ctx.inputPath !== "string" || ctx.inputPath.length === 0) {
+        return {
+          ok: false,
+          reason: "NO_INPUT",
+          message: "email-imap (snapshot mode): ctx.inputPath required",
+        };
+      }
+      try {
+        fs.accessSync(ctx.inputPath, fs.constants.R_OK);
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
+      }
+      return { ok: true, mode: "snapshot-file" };
+    }
+
     const session = this._sessionFactory(this._sessionConfig());
     try {
       await session.connect();
@@ -184,6 +226,15 @@ class EmailAdapter {
   }
 
   async *sync(opts = {}) {
+    // Phase 5.8 — snapshot mode: bypass IMAP session entirely, read Android
+    // EmailLocalCollector's staging JSON, yield one raw event per record.
+    // Classification + extraction reused on envelope-only data (bodyPreview
+    // is the only text we get; PDF decryption skipped since attachment
+    // buffers never crossed the Android → desktop boundary).
+    if (this._snapshotMode || (typeof opts.inputPath === "string" && opts.inputPath.length > 0)) {
+      yield* this._syncViaSnapshot(opts);
+      return;
+    }
     const folders = Array.isArray(opts.folders) && opts.folders.length > 0
       ? opts.folders
       : this._provider.folders;
@@ -327,6 +378,143 @@ class EmailAdapter {
     } finally {
       try { await session.close(); } catch (_e) {}
     }
+  }
+
+  /**
+   * Phase 5.8 — snapshot path: read Android EmailLocalCollector's staging
+   * JSON, convert each record to an IMAP-shaped envelope, run classifier +
+   * extractor (no PDF — Android only ships bodyPreview), yield raw events.
+   *
+   * Expected snapshot shape (matches EmailLocalCollector.kt:135-156):
+   *   {vendor, user, fetchedAt, records: [{
+   *     messageNumber, subject, from, to, sentDateMs, bodyPreview,
+   *     hasAttachments
+   *   }]}
+   *
+   * Lossy compared to IMAP path:
+   *   - No HTML body (Android Jakarta Mail only ships text/plain or
+   *     stripped-html as bodyPreview, capped 8KB).
+   *   - No attachment buffers → no PDF decryption / transaction extraction
+   *     even for bill-template matches. `hasAttachments` boolean only.
+   *   - No real Message-ID → originalId synthesized from
+   *     `android-snapshot:<vendor>:<user>:<messageNumber>` (stable per device).
+   *   - No flags / cc / size; UID = Android messageNumber (per-folder).
+   */
+  async *_syncViaSnapshot(opts) {
+    const raw = fs.readFileSync(opts.inputPath, "utf-8");
+    let snapshot;
+    try {
+      snapshot = JSON.parse(raw);
+    } catch (err) {
+      throw new Error(
+        `email-imap.sync (snapshot): bad JSON at ${opts.inputPath}: ${err.message}`,
+      );
+    }
+    if (!snapshot || typeof snapshot !== "object") {
+      throw new Error(
+        `email-imap.sync (snapshot): expected object, got ${typeof snapshot}`,
+      );
+    }
+    if (!Array.isArray(snapshot.records)) {
+      throw new Error(
+        "email-imap.sync (snapshot): expected {records: [...]} shape (Android EmailLocalCollector writes this)",
+      );
+    }
+    const vendor = typeof snapshot.vendor === "string" ? snapshot.vendor : "unknown";
+    const user = typeof snapshot.user === "string" ? snapshot.user : "unknown@snapshot";
+    const fallbackCapturedAt =
+      Number.isFinite(snapshot.fetchedAt) && snapshot.fetchedAt > 0
+        ? Math.floor(snapshot.fetchedAt)
+        : Date.now();
+
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+    let emitted = 0;
+
+    for (const r of snapshot.records) {
+      if (emitted >= limit) return;
+      if (!r || typeof r !== "object") continue;
+      const env = this._androidRecordToEnvelope(r, vendor, user, fallbackCapturedAt);
+      // bodyPreview is the only text we have — wrap as a thin parsedBody so
+      // the classifier sees the same shape it does for IMAP-fetched mail.
+      const parsedBody = {
+        textBody: typeof r.bodyPreview === "string" ? r.bodyPreview : "",
+        htmlBody: "",
+        attachments: r.hasAttachments
+          ? [{ filename: "(unknown)", contentType: "application/octet-stream", size: 0 }]
+          : [],
+        headers: {},
+      };
+
+      let classification = null;
+      if (!this._disableClassification) {
+        try {
+          classification = await this._classifier(
+            this._classifierInput(env, parsedBody),
+            { llm: this._llm, minLayer1Confidence: this._minLayer1Confidence },
+          );
+        } catch (err) {
+          classification = {
+            category: CATEGORIES.OTHER,
+            confidence: 0,
+            layer: "error",
+            error: err && err.message ? err.message : String(err),
+          };
+        }
+      }
+
+      let extraction = null;
+      if (!this._disableExtraction) {
+        try {
+          extraction = await this._extractor(
+            this._classifierInput(env, parsedBody),
+            classification || { category: CATEGORIES.OTHER },
+            { llm: this._llm },
+          );
+        } catch (err) {
+          extraction = {
+            template: null,
+            fields: null,
+            warnings: [`extractor threw: ${err && err.message ? err.message : err}`],
+          };
+        }
+      }
+
+      // PDF extraction intentionally skipped — attachment buffers never crossed
+      // the Android → desktop boundary. Bill-template extractions on snapshot
+      // records get extraction.fields but no transactions list.
+      yield this._envelopeToRawEvent(env, "INBOX", parsedBody, classification, extraction);
+      emitted += 1;
+    }
+  }
+
+  /**
+   * Convert Android EmailLocalCollector record → IMAP-shaped envelope.
+   * Address strings ("Name <addr@x>" / "addr@x" / "addr@x, addr2@y") parse
+   * into {address, name} objects matching mailparser's output. Multi-recipient
+   * `to` strings split on comma.
+   */
+  _androidRecordToEnvelope(r, vendor, user, fallbackCapturedAt) {
+    const messageNumber = Number.isInteger(r.messageNumber) ? r.messageNumber : 0;
+    const sentDate = Number.isFinite(r.sentDateMs) && r.sentDateMs > 0
+      ? new Date(r.sentDateMs)
+      : new Date(fallbackCapturedAt);
+    return {
+      uid: messageNumber,
+      messageId: `android-snapshot:${vendor}:${user}:${messageNumber}`,
+      folder: "INBOX",
+      subject: typeof r.subject === "string" ? r.subject : "(no subject)",
+      from: typeof r.from === "string" && r.from.length > 0
+        ? [parseSnapshotAddress(r.from)]
+        : [],
+      to: typeof r.to === "string" && r.to.length > 0
+        ? r.to.split(",").map((s) => parseSnapshotAddress(s.trim())).filter(Boolean)
+        : [],
+      cc: [],
+      flags: [],
+      size: 0,
+      internalDate: sentDate,
+      date: sentDate,
+    };
   }
 
   /**
@@ -671,6 +859,25 @@ function formatWatermark(uidValidity, lastUid) {
 function formatAddr(a) {
   if (!a || !a.address) return "?";
   return a.name ? `${a.name} <${a.address}>` : a.address;
+}
+
+/**
+ * Phase 5.8 — snapshot mode address parser. Android records ship address
+ * fields as strings like "Name <addr@x.com>" or "addr@x.com". Convert to
+ * mailparser-compatible {address, name} shape. Returns null for blank input.
+ */
+function parseSnapshotAddress(s) {
+  if (typeof s !== "string") return null;
+  const t = s.trim();
+  if (t.length === 0) return null;
+  // "Name <addr@x>" form
+  const m = t.match(/^(.*?)\s*<([^>]+)>\s*$/);
+  if (m) {
+    const name = m[1].trim().replace(/^["']|["']$/g, "");
+    return { address: m[2].trim(), name: name.length > 0 ? name : undefined };
+  }
+  // Bare address form
+  return { address: t, name: undefined };
 }
 
 function formatRecipients(list) {
