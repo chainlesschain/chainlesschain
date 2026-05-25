@@ -53,6 +53,7 @@
     "./adapters/shopping-jd": "./lib/adapters/shopping-jd/index.js",
     "./adapters/shopping-meituan": "./lib/adapters/shopping-meituan/index.js",
     "./adapters/social-bilibili": "./lib/adapters/social-bilibili/index.js",
+    "./adapters/social-bilibili-adb": "./lib/adapters/social-bilibili-adb/index.js",
     "./adapters/social-weibo": "./lib/adapters/social-weibo/index.js",
     "./adapters/social-douyin": "./lib/adapters/social-douyin/index.js",
     "./adapters/social-xiaohongshu": "./lib/adapters/social-xiaohongshu/index.js",
