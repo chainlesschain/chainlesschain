@@ -86,7 +86,9 @@ class Kyfw12306ApiClient @Inject constructor() {
     @Volatile var lastErrorMessage: String? = null
         private set
 
-    /** GET /otn/login/conf 拿 sessionid 健康检查；返 false 视为 cookie 失效。 */
+    /** GET /otn/login/conf 拿 sessionid 健康检查；返 false 视为 cookie 失效。
+     *  Note: `status:true` 只表示请求被服务端处理 (不是 4xx)，登录态由
+     *  data.is_login 字段判定 — `Y` = 登录 / `N` = 未登录。 */
     suspend fun checkLogin(cookie: String): Boolean = withContext(Dispatchers.IO) {
         val url = baseUrl.newBuilder()
             .addPathSegments("otn/login/conf")
@@ -94,7 +96,13 @@ class Kyfw12306ApiClient @Inject constructor() {
         val body = FormBody.Builder().build() // empty POST
         val resp = doRequest(url, cookie, body, postOverride = true) ?: return@withContext false
         val isLogin = resp.optJSONObject("data")?.optString("is_login")
-        isLogin == "Y" || resp.optBoolean("status", false)
+        // 优先用 data.is_login (canonical) — Y/N 真值
+        // is_login 缺时 fallback 到 top-level status (老接口 shape)
+        if (!isLogin.isNullOrEmpty()) {
+            isLogin == "Y"
+        } else {
+            resp.optBoolean("status", false)
+        }
     }
 
     /**
