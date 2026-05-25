@@ -233,11 +233,42 @@ async function listApps(params, opts) {
 }
 
 /**
+ * Phase B0 — plugin point for platform-specific ADB methods.
+ *
+ * Mirrors the ESM `host-adb-bridge.js` extension API. `opts.extensions`
+ * is an optional `{ [methodName]: handler }` map. Each handler is
+ * called as `handler(params, ctx)` where:
+ *
+ *   ctx = { adb, pickDevice, parseContentQueryRows }
+ *
+ * Built-in methods always win (cannot be shadowed). See ESM mirror at
+ * `packages/cli/src/lib/host-adb-bridge.js` for the full design rationale.
+ */
+const BUILTIN_METHODS = new Set([
+  "contacts.query",
+  "app.list",
+  // Note: desktop-adb-bridge currently exposes only contacts.query +
+  // app.list (the V5/V6 IPC code path's narrower scope). Phase 1 will
+  // expand here in lockstep with the ESM mirror when the desktop
+  // PersonalDataHub UI consumes the new platform methods.
+]);
+
+/**
  * Factory: returns an object matching the bridgeProvider contract
  * `(method, params) => Promise<result>`. Wiring code passes this into
  * the SystemDataAndroidAdapter as `_deps.bridgeProvider`.
  */
 function createDesktopAdbBridge(opts = {}) {
+  const extensions = opts.extensions || {};
+  for (const k of Object.keys(extensions)) {
+    if (BUILTIN_METHODS.has(k)) {
+      console.warn(
+        `desktop-adb-bridge: extension "${k}" shadows a built-in method and will be ignored at dispatch`,
+      );
+    }
+  }
+  const ctx = { adb, pickDevice, parseContentQueryRows };
+
   return {
     /**
      * SystemDataAndroidAdapter._bridgeAvailable() reads this; it MUST
@@ -252,16 +283,25 @@ function createDesktopAdbBridge(opts = {}) {
     caps() {
       return { available: true };
     },
+    /** Diagnostic: list extension method names registered. */
+    extensionMethods() {
+      return Object.keys(extensions).filter((k) => !BUILTIN_METHODS.has(k));
+    },
     async invoke(method, params = {}) {
       switch (method) {
         case "contacts.query":
           return await queryContacts(params, opts);
         case "app.list":
           return await listApps(params, opts);
-        default:
+        default: {
+          const ext = extensions[method];
+          if (typeof ext === "function") {
+            return await ext(params, ctx);
+          }
           throw new DesktopAdbBridgeUnavailableError(
             `method "${method}" not implemented by desktop-adb-bridge`,
           );
+        }
       }
     },
   };

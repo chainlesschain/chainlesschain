@@ -381,7 +381,71 @@ async function readSnapshot(params, opts) {
   return stdout;
 }
 
+/**
+ * Phase B0 — plugin point for platform-specific ADB methods.
+ *
+ * `opts.extensions` is an optional `{ [methodName]: handler }` map. Each
+ * handler is called as `handler(params, ctx)` where `ctx` exposes the
+ * shared ADB primitives so platform extensions don't re-implement
+ * device-picking or row-parsing:
+ *
+ *   ctx = {
+ *     adb,                    // (args, opts) => Promise<stdout>
+ *     pickDevice,             // (opts) => Promise<serial>
+ *     parseContentQueryRows,  // (stdout) => Array<{key:value}>
+ *   }
+ *
+ * Resolution order in `invoke(method, params)`:
+ *   1. Built-in method (the switch below)
+ *   2. Extension method from opts.extensions
+ *   3. Throw HostAdbBridgeUnavailableError
+ *
+ * Built-ins always win — extensions cannot shadow them. This guarantees
+ * the multipath plan's Phase 1+ per-platform extensions can't break the
+ * already-shipping system-data-android consumer.
+ *
+ * Example (Phase 1 will land for real):
+ *   const bridge = createHostAdbBridge({
+ *     extensions: {
+ *       "douyin.snapshot": async (params, { adb, pickDevice }) => {
+ *         const serial = await pickDevice();
+ *         const uid = params.uid;
+ *         const out = await adb(
+ *           ["shell", "su", "-c", `base64 /data/data/com.ss.android.ugc.aweme/databases/${uid}_im.db`],
+ *           { serial, timeoutMs: 60_000 },
+ *         );
+ *         return { snapshotBase64: out };
+ *       },
+ *     },
+ *   });
+ *   await bridge.invoke("douyin.snapshot", { uid: "1234567890" });
+ */
+const BUILTIN_METHODS = new Set([
+  "contacts.query",
+  "app.list",
+  "sms.query",
+  "call.query",
+  "media.list",
+  "snapshot.list",
+  "snapshot.read",
+]);
+
 export function createHostAdbBridge(opts = {}) {
+  const extensions = opts.extensions || {};
+  // Defense: warn (but allow) when an extension tries to shadow a
+  // built-in. Built-ins always win in dispatch — Phase B0 keeps this
+  // a soft warning so it surfaces in tests; we can upgrade to a hard
+  // throw in Phase 1 if any extension author actually attempts it.
+  for (const k of Object.keys(extensions)) {
+    if (BUILTIN_METHODS.has(k)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `host-adb-bridge: extension "${k}" shadows a built-in method and will be ignored at dispatch`,
+      );
+    }
+  }
+  const ctx = { adb, pickDevice, parseContentQueryRows };
+
   return {
     /**
      * SystemDataAndroidAdapter._bridgeAvailable() reads this; must be
@@ -392,6 +456,13 @@ export function createHostAdbBridge(opts = {}) {
      */
     caps() {
       return { available: true };
+    },
+    /**
+     * Diagnostic only — reflects extension method names registered for
+     * this bridge instance. Useful for `cc doctor`-style introspection.
+     */
+    extensionMethods() {
+      return Object.keys(extensions).filter((k) => !BUILTIN_METHODS.has(k));
     },
     async invoke(method, params = {}) {
       switch (method) {
@@ -409,10 +480,15 @@ export function createHostAdbBridge(opts = {}) {
           return await listSnapshots(params, opts);
         case "snapshot.read":
           return await readSnapshot(params, opts);
-        default:
+        default: {
+          const ext = extensions[method];
+          if (typeof ext === "function") {
+            return await ext(params, ctx);
+          }
           throw new HostAdbBridgeUnavailableError(
             `method "${method}" not implemented by host-adb-bridge`,
           );
+        }
       }
     },
   };
