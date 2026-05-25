@@ -148,6 +148,18 @@ class ToutiaoSignBridge extends ElectronWebSignBridge {
   async signedHeaders(_rawUrl, _purpose) {
     return {};
   }
+
+  /**
+   * Phase 6e — return JSON-stringified candidate presence map for the
+   * 3 known Toutiao signing globals.
+   */
+  get probeScript() {
+    return `JSON.stringify({
+      'byted_acrawler.sign': !!(window.byted_acrawler && typeof window.byted_acrawler.sign === 'function'),
+      _0x32d839: typeof window._0x32d839 === 'function',
+      'acrawler.sign': !!(window.acrawler && typeof window.acrawler.sign === 'function')
+    });`;
+  }
 }
 
 /** Toutiao web client id (Douyin web = 2906). */

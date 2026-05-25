@@ -755,3 +755,172 @@ describe("KuaishouSignBridge", () => {
     expect(b._warm).toBe(false);
   });
 });
+
+// ─── Phase 6e — probe() / probeScript ─────────────────────────────────
+
+describe("ElectronWebSignBridge.probe — base no-op", () => {
+  it("returns empty report when probeScript not overridden", async () => {
+    const mock = makeMockElectron({ jsResult: "ignored" });
+    const b = new FakeBridge({ electron: mock.electron });
+    await b.warmUp("a=1");
+    const r = await b.probe();
+    expect(r).toEqual({ candidates: {}, anyPresent: false });
+    // Bridge never called executeJavaScript since probeScript was null
+    expect(mock.evalCalls).toHaveLength(0);
+  });
+});
+
+describe("XhsSignBridge.probe", () => {
+  it("returns 4-candidate presence map when one function found", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        _webmsxyw: true,
+        webmsxyw: false,
+        "xhs.sign": false,
+        "_b8.xs": false,
+      }),
+    });
+    const b = new XhsSignBridge({ electron: mock.electron });
+    await b.warmUp("a1=fp; web_session=s");
+    const r = await b.probe();
+    expect(r.candidates).toEqual({
+      _webmsxyw: true,
+      webmsxyw: false,
+      "xhs.sign": false,
+      "_b8.xs": false,
+    });
+    expect(r.anyPresent).toBe(true);
+  });
+
+  it("anyPresent=false when all candidates absent (rotation)", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        _webmsxyw: false,
+        webmsxyw: false,
+        "xhs.sign": false,
+        "_b8.xs": false,
+      }),
+    });
+    const b = new XhsSignBridge({ electron: mock.electron });
+    await b.warmUp("a1=fp");
+    const r = await b.probe();
+    expect(r.anyPresent).toBe(false);
+  });
+
+  it("probeScript references all 4 candidate globals", () => {
+    const b = new XhsSignBridge({ electron: {} });
+    const s = b.probeScript;
+    expect(s).toContain("_webmsxyw");
+    expect(s).toContain("webmsxyw");
+    expect(s).toContain("xhs.sign");
+    expect(s).toContain("_b8.xs");
+  });
+});
+
+describe("ToutiaoSignBridge.probe", () => {
+  it("returns 3-candidate map", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        "byted_acrawler.sign": true,
+        _0x32d839: false,
+        "acrawler.sign": false,
+      }),
+    });
+    const b = new ToutiaoSignBridge({ electron: mock.electron });
+    await b.warmUp("passport_uid=1");
+    const r = await b.probe();
+    expect(r.candidates).toEqual({
+      "byted_acrawler.sign": true,
+      _0x32d839: false,
+      "acrawler.sign": false,
+    });
+    expect(r.anyPresent).toBe(true);
+  });
+
+  it("probeScript references all 3 candidate globals", () => {
+    const b = new ToutiaoSignBridge({ electron: {} });
+    const s = b.probeScript;
+    expect(s).toContain("byted_acrawler");
+    expect(s).toContain("_0x32d839");
+    expect(s).toContain("acrawler.sign");
+  });
+});
+
+describe("KuaishouSignBridge.probe", () => {
+  it("returns 4-candidate map", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        "__APP__.encryptParams": true,
+        "NS.sign": false,
+        "GraphQL.fetch.sign": false,
+        __SIGN__: false,
+      }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    const r = await b.probe();
+    expect(r.candidates).toEqual({
+      "__APP__.encryptParams": true,
+      "NS.sign": false,
+      "GraphQL.fetch.sign": false,
+      __SIGN__: false,
+    });
+    expect(r.anyPresent).toBe(true);
+  });
+
+  it("probeScript references all 4 candidate globals", () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    const s = b.probeScript;
+    expect(s).toContain("__APP__");
+    expect(s).toContain("NS.sign");
+    expect(s).toContain("GraphQL.fetch.sign");
+    expect(s).toContain("__SIGN__");
+  });
+});
+
+describe("ElectronWebSignBridge.probe — error paths", () => {
+  // Subclass that returns a probeScript so we exercise the eval path.
+  class ProbeBridge extends ElectronWebSignBridge {
+    get homepageUrl() {
+      return "https://example.com";
+    }
+    get cookieDomain() {
+      return ".example.com";
+    }
+    get postLoadDelayMs() {
+      return 0;
+    }
+    buildSignScript() {
+      return "";
+    }
+    get probeScript() {
+      return `JSON.stringify({foo: true})`;
+    }
+  }
+
+  it("returns error when probe result is not JSON", async () => {
+    const mock = makeMockElectron({ jsResult: "not json" });
+    const b = new ProbeBridge({ electron: mock.electron });
+    await b.warmUp("a=1");
+    const r = await b.probe();
+    expect(r.anyPresent).toBe(false);
+    expect(r.error).toMatch(/not JSON/);
+  });
+
+  it("returns error when probe returns null (eval timeout)", async () => {
+    const mock = makeMockElectron({ jsResult: null });
+    const b = new ProbeBridge({ electron: mock.electron });
+    await b.warmUp("a=1");
+    const r = await b.probe();
+    expect(r.anyPresent).toBe(false);
+    expect(r.error).toMatch(/null/);
+  });
+
+  it("returns empty report when called before warmUp", async () => {
+    const mock = makeMockElectron({ jsResult: "ignored" });
+    const b = new ProbeBridge({ electron: mock.electron });
+    // No warmUp
+    const r = await b.probe();
+    expect(r.anyPresent).toBe(false);
+  });
+});
