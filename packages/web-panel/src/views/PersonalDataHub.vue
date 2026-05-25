@@ -195,6 +195,9 @@
             <template #icon><WechatOutlined /></template>
             添加 WeChat
           </a-button>
+          <a-button @click="bilibiliAdbDoctor" :loading="loading.bilibiliAdbDoctor">
+            诊断 Bilibili ADB
+          </a-button>
           <a-button @click="bilibiliAdbSync" :loading="loading.bilibiliAdbSync">
             通过 PC ADB 同步 Bilibili
           </a-button>
@@ -870,6 +873,7 @@ const loading = reactive({
   resolverDrain: false,
   skill: false,
   bilibiliAdbSync: false,
+  bilibiliAdbDoctor: false,
 })
 
 /**
@@ -922,6 +926,45 @@ function bilibiliReasonMessage(reason) {
     case 'SYNC_FAILED':
     default:
       return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function bilibiliAdbDoctor() {
+  if (loading.bilibiliAdbDoctor) return
+  loading.bilibiliAdbDoctor = true
+  try {
+    const result = await hub.bilibiliAdbDoctor()
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'PROBE_FAILED'
+      const human = bilibiliReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Bilibili 诊断失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const diag = result.cookieDiagnostic || {}
+    if (diag.hadEncrypted) {
+      message.warning({
+        content: `Bilibili 环境就绪 (uid=${result.uid}) — 但发现 Keystore 加密 cookie`,
+        description: `cookies 数=${diag.cookieCount || '?'}; 部分行使用 Android Keystore 加密 (跳过)。可能是较新 Bilibili App + Android 14+。可继续同步，但可能数据不全。`,
+        duration: 10,
+      })
+    } else {
+      message.success(
+        `Bilibili 环境就绪 — uid=${result.uid}, 找到 ${diag.cookieCount || '?'} 个 cookie，可以同步`,
+      )
+    }
+  } catch (err) {
+    message.error({
+      content: 'Bilibili 诊断异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.bilibiliAdbDoctor = false
   }
 }
 

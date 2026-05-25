@@ -215,9 +215,20 @@ async function initHub() {
   // and skip embedding+LLM stages entirely. Rule-stage still runs; the
   // resolve_queue picks up enqueued pairs later if a host with Ollama is
   // ever attached (e.g. desktop-side replay).
+  //
+  // 2026-05-25 — broadened the detection. The old startsWith("/data/data/
+  // com.chainlesschain.android") missed two cases:
+  //   1. /data/user/0/ — on Android 7+ (multi-user), context.filesDir
+  //      resolves under /data/user/0/<pkg>/ instead of /data/data/<pkg>/,
+  //      so the legacy startsWith never matched on real device.
+  //   2. Variant suffixes — com.chainlesschain.android.debug,
+  //      .staging, etc. all have a separate package id but should share
+  //      the in-APK skip behaviour.
+  // Match either path prefix + optional variant suffix in one regex; if
+  // the env override is set, honour it unconditionally.
   const isInAppAndroidCc =
     typeof process.env.PREFIX === "string" &&
-    process.env.PREFIX.startsWith("/data/data/com.chainlesschain.android");
+    /\/com\.chainlesschain\.android(\.[a-z]+)?\//.test(process.env.PREFIX);
   const skipEmbeddings =
     isInAppAndroidCc || process.env.CC_HUB_DISABLE_EMBEDDINGS === "1";
   try {
@@ -796,6 +807,48 @@ async function initHub() {
         registeredAt: row.registeredAt || null,
         lastSyncAt: row.lastSyncAt || null,
       }));
+    },
+
+    // ─── Phase 1e — Bilibili C 路径 dry-run env probe ────────────────────
+    //
+    // "Doctor" mode mirrors `cc hub wechat doctor`: runs only the cookies-
+    // extraction half of the sync pipeline (no API calls, no vault writes)
+    // so the user can confirm root / Bilibili-installed / cookie-complete
+    // status before triggering a real sync. Same 9 typed reasons as
+    // bilibiliAdbSync — UI maps reasons to the same banners — but with
+    // an extra `cookieDiagnostic` payload on success so the doctor can
+    // print "found 5 of 5 cookies, no encrypted_value rows skipped, uid=N".
+    //
+    // Returns one of:
+    //   {ok: true, uid, extractedAt, cookieDiagnostic: {cookieCount, hadEncrypted}}
+    //   {ok: false, reason, message}  — same reason taxonomy as
+    //     bilibiliAdbSync; UI re-uses bilibiliReasonMessage()
+    async bilibiliAdbDoctor() {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      try {
+        const result = await hostAdbBridge.invoke("bilibili.cookies");
+        return {
+          ok: true,
+          uid: result.uid,
+          extractedAt: result.extractedAt,
+          cookieDiagnostic: result.diagnostic || null,
+        };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "PROBE_FAILED",
+          message: msg,
+        };
+      }
     },
 
     // ─── Phase 1c — Bilibili C 路径 one-shot sync ────────────────────────

@@ -407,6 +407,10 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 1e — dry-run env probe (cookies path only, no API calls / vault writes)
+  "personal-data-hub.bilibili-adb-doctor": async () =>
+    withHub((hub) => hub.bilibiliAdbDoctor()),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>

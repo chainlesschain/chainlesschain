@@ -122,3 +122,65 @@ describe("usePersonalDataHub — Phase 1d bilibiliAdbSync", () => {
     await expect(hub.bilibiliAdbSync()).rejects.toThrow(/ws timeout/);
   });
 });
+
+describe("usePersonalDataHub — Phase 1e bilibiliAdbDoctor", () => {
+  beforeEach(() => {
+    sendRaw.mockReset();
+  });
+
+  it("sends bilibili-adb-doctor with empty payload + 15s timeout", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: {
+        ok: true,
+        uid: 1234567890,
+        extractedAt: 1716383021000,
+        cookieDiagnostic: { cookieCount: 5, hadEncrypted: false },
+      },
+    });
+    const hub = usePersonalDataHub();
+    const r = await hub.bilibiliAdbDoctor();
+    expect(sendRaw).toHaveBeenCalledOnce();
+    const [envelope, timeout] = sendRaw.mock.calls[0];
+    expect(envelope.type).toBe("personal-data-hub.bilibili-adb-doctor");
+    expect(timeout).toBe(15_000);
+    expect(r.ok).toBe(true);
+    expect(r.uid).toBe(1234567890);
+    expect(r.cookieDiagnostic.cookieCount).toBe(5);
+  });
+
+  it("propagates typed-reason failure verbatim", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: {
+        ok: false,
+        reason: "BILIBILI_NO_ROOT",
+        message: "su returned uid=2000",
+      },
+    });
+    const hub = usePersonalDataHub();
+    const r = await hub.bilibiliAdbDoctor();
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("BILIBILI_NO_ROOT");
+  });
+
+  it("propagates hadEncrypted=true diagnostic", async () => {
+    sendRaw.mockResolvedValueOnce({
+      result: {
+        ok: true,
+        uid: 1,
+        extractedAt: 1,
+        cookieDiagnostic: { cookieCount: 3, hadEncrypted: true },
+      },
+    });
+    const hub = usePersonalDataHub();
+    const r = await hub.bilibiliAdbDoctor();
+    expect(r.cookieDiagnostic.hadEncrypted).toBe(true);
+  });
+
+  it("rethrows transport-level WS errors", async () => {
+    sendRaw.mockResolvedValueOnce({
+      error: "ws disconnected",
+    });
+    const hub = usePersonalDataHub();
+    await expect(hub.bilibiliAdbDoctor()).rejects.toThrow(/ws disconnected/);
+  });
+});

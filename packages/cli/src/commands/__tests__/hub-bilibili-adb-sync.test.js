@@ -234,3 +234,117 @@ describe("cc hub bilibili-adb-sync — _internal export", () => {
     expect(typeof _internal.cmdBilibiliAdbSync).toBe("function");
   });
 });
+
+// ─── Phase 1e — cc hub bilibili-adb-doctor ──────────────────────────────
+
+const DOCTOR_HAPPY = {
+  ok: true,
+  uid: 1234567890,
+  extractedAt: 1716383021000,
+  cookieDiagnostic: { cookieCount: 5, hadEncrypted: false },
+};
+
+function fakeDoctorHub(result) {
+  return { bilibiliAdbDoctor: vi.fn(async () => result) };
+}
+
+describe("cc hub bilibili-adb-doctor — happy path", () => {
+  it("prints ready summary on success", async () => {
+    const hub = fakeDoctorHub(DOCTOR_HAPPY);
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    expect(hub.bilibiliAdbDoctor).toHaveBeenCalledOnce();
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/env ready to sync/);
+    expect(out).toMatch(/uid:.*1234567890/);
+    expect(out).toMatch(/cookies found:.*5/);
+    expect(out).toMatch(/Next: run.*bilibili-adb-sync/);
+  });
+
+  it("renders encrypted-rows warning when present", async () => {
+    const result = JSON.parse(JSON.stringify(DOCTOR_HAPPY));
+    result.cookieDiagnostic.hadEncrypted = true;
+    const hub = fakeDoctorHub(result);
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/encrypted rows/);
+    expect(out).toMatch(/Android-Keystore-wrapped/);
+  });
+
+  it("--json outputs raw result", async () => {
+    const hub = fakeDoctorHub(DOCTOR_HAPPY);
+    await _internal.cmdBilibiliAdbDoctor({
+      _getHub: async () => hub,
+      json: true,
+    });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(true);
+    expect(parsed.uid).toBe(1234567890);
+  });
+});
+
+describe("cc hub bilibili-adb-doctor — failure reasons", () => {
+  it("BRIDGE_UNAVAILABLE → exit 1 + install tip", async () => {
+    const hub = fakeDoctorHub({
+      ok: false,
+      reason: "BRIDGE_UNAVAILABLE",
+      message: "adb not found",
+    });
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    expect(process.exitCode).toBe(1);
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/BRIDGE_UNAVAILABLE/);
+    expect(out).toMatch(/install Android Platform Tools/);
+  });
+
+  it("BILIBILI_NO_ROOT → exit 1 + Magisk tip", async () => {
+    const hub = fakeDoctorHub({
+      ok: false,
+      reason: "BILIBILI_NO_ROOT",
+      message: "uid=2000",
+    });
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    expect(process.exitCode).toBe(1);
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/Magisk root/);
+  });
+
+  it("BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN → install+login tip", async () => {
+    const hub = fakeDoctorHub({
+      ok: false,
+      reason: "BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN",
+      message: "Cookies file missing",
+    });
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/install Bilibili App.*log in/);
+  });
+
+  it("BILIBILI_COOKIES_INCOMPLETE → relog tip", async () => {
+    const hub = fakeDoctorHub({
+      ok: false,
+      reason: "BILIBILI_COOKIES_INCOMPLETE",
+      message: "missing buvid3",
+    });
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/relog on the Bilibili App/);
+  });
+
+  it("BILIBILI_COOKIES_TRUNCATED → USB-replug tip", async () => {
+    const hub = fakeDoctorHub({
+      ok: false,
+      reason: "BILIBILI_COOKIES_TRUNCATED",
+      message: "decoded 50 bytes",
+    });
+    await _internal.cmdBilibiliAdbDoctor({ _getHub: async () => hub });
+    const out = logSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(out).toMatch(/unplug \+ replug USB/);
+  });
+});
+
+describe("cc hub bilibili-adb-doctor — _internal export", () => {
+  it("cmdBilibiliAdbDoctor is exported", () => {
+    expect(typeof _internal.cmdBilibiliAdbDoctor).toBe("function");
+  });
+});
