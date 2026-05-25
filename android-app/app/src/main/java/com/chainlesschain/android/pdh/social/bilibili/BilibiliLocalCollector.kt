@@ -205,6 +205,72 @@ class BilibiliLocalCollector @Inject constructor(
         )
     }
 
+    /**
+     * 2026-05-25: in-WebView prefetch 路径 — [BilibiliJsBridge.PREFETCH_JS] 在登录用
+     * 的 WebView 内并发 fetch 4 API 后把跟 [snapshot] 完全同 shape 的 JSON 字符串
+     * 传上来。本方法把它直接落到 staging 路径，返 SnapshotResult.Ok 让 caller 走
+     * cc CLI sync 入 vault — 跟普通 snapshot 同后半段。
+     *
+     * 绕过 b 站 OkHttp 端 TLS 指纹 + JS-set anti-bot cookie 风控 — WebView 是真
+     * Chrome，b 站不能拒。详 [BilibiliJsBridge] KDoc。
+     */
+    suspend fun ingestPrefetched(prefetchedJson: String): SnapshotResult = withContext(Dispatchers.IO) {
+        val root = try {
+            JSONObject(prefetchedJson)
+        } catch (e: Exception) {
+            Timber.w(e, "BilibiliLocalCollector: prefetched JSON parse failed (len=%d)", prefetchedJson.length)
+            return@withContext SnapshotResult.Failed("prefetched not JSON: ${e.message}")
+        }
+        val events = root.optJSONArray("events")
+        val total = events?.length() ?: 0
+        val snapshottedAt = root.optLong("snapshottedAt", System.currentTimeMillis())
+        val stagingDir = File(context.filesDir, ".chainlesschain/staging")
+        if (!stagingDir.exists() && !stagingDir.mkdirs()) {
+            return@withContext SnapshotResult.Failed(
+                "failed to create staging dir at ${stagingDir.absolutePath}"
+            )
+        }
+        val snapshotFile = File(stagingDir, "social-bilibili.json")
+        try {
+            snapshotFile.writeText(prefetchedJson, Charsets.UTF_8)
+        } catch (t: Throwable) {
+            Timber.e(t, "BilibiliLocalCollector: prefetched write failed")
+            return@withContext SnapshotResult.Failed("write failed: ${t.message}")
+        }
+        credentialsStore.recordSync(snapshottedAt, total)
+        Timber.i(
+            "BilibiliLocalCollector: ingested prefetched events=%d → %s",
+            total, snapshotFile.absolutePath,
+        )
+        // 各 kind 计数（per-kind 字段保持 sane defaults — UI 不依赖单独 kind）
+        var historyCount = 0; var favCount = 0; var dynCount = 0; var followCount = 0
+        if (events != null) for (i in 0 until events.length()) {
+            when (events.optJSONObject(i)?.optString("kind")) {
+                "history" -> historyCount++
+                "favourite" -> favCount++
+                "dynamic" -> dynCount++
+                "follow" -> followCount++
+            }
+        }
+        SnapshotResult.Ok(
+            snapshotPath = snapshotFile.absolutePath,
+            historyCount = historyCount,
+            favouriteCount = favCount,
+            dynamicCount = dynCount,
+            followCount = followCount,
+            totalEvents = total,
+            everythingEmpty = total == 0,
+            snapshottedAt = snapshottedAt,
+            lastErrorCode = 0,
+            lastErrorMessage = null,
+        )
+    }
+
+    /** Called by [HubLocalViewModel.onBilibiliLoginWithPrefetch] after cc sync ok. */
+    fun recordSync(eventCount: Int) {
+        credentialsStore.recordSync(System.currentTimeMillis(), eventCount)
+    }
+
     /** Result of feeding a WebView-captured cookie into the collector. */
     sealed class AcceptResult {
         /** Cookie has all required fields and was persisted. */

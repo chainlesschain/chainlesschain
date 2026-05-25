@@ -2310,6 +2310,110 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 2026-05-25：post-login WebView prefetch 路径 — [SocialCookieWebViewScreen]
+     * 在登录 cookie 抓到后 evaluateJavascript 跑聚合 fetch（详 BilibiliJsBridge.
+     * PREFETCH_JS）把 4 API + per-folder fav 在 WebView 内拉好直接传上来。绕开
+     * b 站 OkHttp 端 TLS 指纹 + JS-set anti-bot cookie 风控。
+     *
+     * `prefetched` 是 JS 拼好的、跟 [BilibiliLocalCollector.snapshot] 同 shape 的
+     * JSON（schemaVersion=1, events:[…]）— 直接写到 staging 路径 + 走 cc adapter
+     * 入 vault。null = JS 抛错 / 15s 超时，回退到普通 onBilibiliLoginCookie 路径
+     * （会跑 OkHttp snapshot 然后大概率 "4 API empty" — UI 有错误 message 引导）。
+     */
+    fun onBilibiliLoginWithPrefetch(cookie: String, prefetched: String?) {
+        if (prefetched == null) {
+            Timber.w("HubLocalViewModel: Bilibili prefetch null (JS 抛错或超时), 回退")
+            onBilibiliLoginCookie(cookie)
+            return
+        }
+        when (val r = bilibiliCollector.acceptLoginCookie(cookie)) {
+            is BilibiliLocalCollector.AcceptResult.Ok -> {
+                _state.update {
+                    it.copy(
+                        pendingLogin = null,
+                        bilibili = it.bilibili.copy(
+                            isSyncing = true,
+                            errorMessage = null,
+                        ),
+                        globalSyncingAdapter = "social-bilibili",
+                    )
+                }
+                refreshBilibiliFromStore()
+                viewModelScope.launch {
+                    val syncResult = bilibiliCollector.ingestPrefetched(prefetched)
+                    when (syncResult) {
+                        is BilibiliLocalCollector.SnapshotResult.Ok -> {
+                            // 走 cc CLI sync 入 vault — 跟普通 snapshot 同路径
+                            when (val cc = ccRunner.syncAdapter(
+                                adapterName = "social-bilibili",
+                                inputPath = syncResult.snapshotPath,
+                            )) {
+                                is LocalCcRunner.CcResult.Ok -> {
+                                    bilibiliCollector.recordSync(syncResult.totalEvents)
+                                    _state.update {
+                                        it.copy(
+                                            globalSyncingAdapter = null,
+                                            bilibili = it.bilibili.copy(
+                                                isSyncing = false,
+                                                lastSyncAt = System.currentTimeMillis(),
+                                                lastSyncCount = syncResult.totalEvents,
+                                                errorMessage = null,
+                                            ),
+                                        )
+                                    }
+                                }
+                                is LocalCcRunner.CcResult.Failed -> {
+                                    _state.update {
+                                        it.copy(
+                                            globalSyncingAdapter = null,
+                                            bilibili = it.bilibili.copy(
+                                                isSyncing = false,
+                                                errorMessage = "cc sync 失败：${cc.reason}",
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        is BilibiliLocalCollector.SnapshotResult.Failed -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    bilibili = it.bilibili.copy(
+                                        isSyncing = false,
+                                        errorMessage = "prefetch ingest 失败：${syncResult.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                        else -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    bilibili = it.bilibili.copy(
+                                        isSyncing = false,
+                                        errorMessage = "prefetch ingest 异常结果: $syncResult",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            is BilibiliLocalCollector.AcceptResult.MissingField -> {
+                _state.update {
+                    it.copy(
+                        pendingLogin = null,
+                        bilibili = it.bilibili.copy(
+                            errorMessage = "登录未完成：cookie 缺 ${r.name}。请重新登录并等待首页完全加载（约 3-5s）后再返回。",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     fun onBilibiliLoginCookie(cookie: String) {
         when (val r = bilibiliCollector.acceptLoginCookie(cookie)) {
             is BilibiliLocalCollector.AcceptResult.Ok -> {
