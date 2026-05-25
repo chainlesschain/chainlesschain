@@ -63,6 +63,8 @@
     "./adapters/social-xiaohongshu-adb": "./lib/adapters/social-xiaohongshu-adb/index.js",
     "./adapters/social-toutiao": "./lib/adapters/social-toutiao/index.js",
     "./adapters/social-toutiao-adb": "./lib/adapters/social-toutiao-adb/index.js",
+    "./adapters/social-kuaishou": "./lib/adapters/social-kuaishou/index.js",
+    "./adapters/social-kuaishou-adb": "./lib/adapters/social-kuaishou-adb/index.js",
     "./adapters/messaging-qq": "./lib/adapters/messaging-qq/index.js",
     "./adapters/messaging-telegram": "./lib/adapters/messaging-telegram/index.js",
     "./adapters/messaging-whatsapp": "./lib/adapters/messaging-whatsapp/index.js",
