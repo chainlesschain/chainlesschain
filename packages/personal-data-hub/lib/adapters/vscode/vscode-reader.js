@@ -23,7 +23,12 @@ const os = require("node:os");
 // Dual-load: bs3mc tracks Electron's ABI 140 (runtime path), plain
 // better-sqlite3 tracks Node's ABI 127 (test path). Whichever loads
 // wins. See chrome-db-reader.js for the same pattern + rationale.
+//
+// CRITICAL: must be lazy. Top-level invocation kills main process when
+// both modules absent/ABI-mismatched (v5.0.3.87 startup crash).
+let _cachedDatabaseClass = null;
 function loadDatabase() {
+  if (_cachedDatabaseClass) return _cachedDatabaseClass;
   for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
     let cls;
     try {
@@ -35,6 +40,7 @@ function loadDatabase() {
     try {
       const probe = new cls(":memory:");
       probe.close();
+      _cachedDatabaseClass = cls;
       return cls;
     } catch (_e) {
       /* ABI mismatch, try next */
@@ -44,7 +50,6 @@ function loadDatabase() {
     "vscode-reader: neither better-sqlite3-multiple-ciphers nor better-sqlite3 loaded — both ABI-mismatched",
   );
 }
-const Database = loadDatabase();
 
 function defaultVscodeRoot() {
   if (process.platform === "win32") {
@@ -136,6 +141,7 @@ function readTerminalHistory(vscodeRoot, opts = {}) {
     }
   }
   try {
+    const Database = loadDatabase();
     const db = new Database(tmp, { readonly: true });
     const get = (k) => {
       try {

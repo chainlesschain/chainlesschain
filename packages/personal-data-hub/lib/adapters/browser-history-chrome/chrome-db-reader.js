@@ -12,7 +12,16 @@ const os = require("node:os");
 // better-sqlite3 tracks Node's ABI 127 (test path). Whichever loads
 // without NODE_MODULE_VERSION mismatch wins. Both expose the same
 // Database class for unencrypted DBs.
+//
+// CRITICAL: must be lazy. Calling at module-load time means any require()
+// of this file (e.g. via PDH wiring's eager `require("@chainlesschain/
+// personal-data-hub/adapters/browser-history-chrome")`) throws synchronously
+// when both modules are absent/ABI-mismatched, killing the entire main
+// process before the BrowserHistoryChromeAdapter try/catch in wiring.js
+// can swallow it. See v5.0.3.87 crash + handbook trap #23.
+let _cachedDatabaseClass = null;
 function loadDatabase() {
+  if (_cachedDatabaseClass) return _cachedDatabaseClass;
   for (const mod of ["better-sqlite3-multiple-ciphers", "better-sqlite3"]) {
     let cls;
     try {
@@ -27,6 +36,7 @@ function loadDatabase() {
     try {
       const probe = new cls(":memory:");
       probe.close();
+      _cachedDatabaseClass = cls;
       return cls;
     } catch (_e) {
       // ABI mismatch — try next candidate
@@ -36,7 +46,6 @@ function loadDatabase() {
     "chrome-db-reader: neither better-sqlite3-multiple-ciphers nor better-sqlite3 loaded — both ABI-mismatched",
   );
 }
-const Database = loadDatabase();
 
 // WebKit timestamps are microseconds since 1601-01-01 UTC. Convert to
 // epoch-ms by shifting the epoch (11644473600 seconds × 1e6 µs/s).
@@ -168,6 +177,7 @@ function* readVisits(tmpPath, opts = {}) {
     : 0n;
   const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : 200_000;
   const includeHidden = opts.includeHidden === true;
+  const Database = loadDatabase();
   const db = new Database(tmpPath, { readonly: true });
   try {
     // Bind sinceWk as a string — better-sqlite3 accepts BigInt only when
