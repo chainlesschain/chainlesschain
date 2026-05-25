@@ -27,6 +27,7 @@
     "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",
     "./bridges/cc-kg-sink": "./lib/bridges/cc-kg-sink.js",
     "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js",
+    "./sign-providers": "./lib/sign-providers/index.js",
     "./adapters/email-imap": "./lib/adapters/email-imap/index.js",
     "./adapters/alipay-bill": "./lib/adapters/alipay-bill/index.js",
     "./adapters/system-data": "./lib/adapters/system-data/index.js",
