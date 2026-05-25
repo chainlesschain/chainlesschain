@@ -1089,6 +1089,104 @@ async function cmdBilibiliAdbSync(options) {
 }
 
 /**
+ * Phase 3a — `cc hub weibo-adb-sync`
+ *
+ * Pulls m.weibo.cn cookies from the user's Android Weibo App, fetches
+ * UID + 3 endpoints (posts/favourites/follows), ingests via social-weibo
+ * adapter snapshot mode. Inline tip per typed reason codes.
+ */
+async function cmdWeiboAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.weiboAdbSync({
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitPost || options.limitFavourite || options.limitFollow
+          ? {
+              post: parsePositiveInt(options.limitPost),
+              favourite: parsePositiveInt(options.limitFavourite),
+              follow: parsePositiveInt(options.limitFollow),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ weibo-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "WEIBO_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Weibo release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "WEIBO_NOT_INSTALLED") {
+        logger.log(
+          chalk.gray(
+            "  Install Weibo App on the phone + log in once, then retry",
+          ),
+        );
+      } else if (result.reason === "WEIBO_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  SUB cookie missing — relog on the Weibo App (or app uses non-default WebView profile dir)",
+          ),
+        );
+      } else if (
+        result.reason === "WEIBO_COOKIES_TRUNCATED" ||
+        result.reason === "WEIBO_NOT_SQLITE"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  ADB stream may be corrupted; unplug + replug USB and retry",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const wb = report.weibo || {};
+    const counts = wb.eventCounts || {};
+    logger.log(chalk.green(`✓ weibo-adb-sync succeeded`));
+    logger.log(`  uid:        ${chalk.cyan(wb.uid || "(uid fetch failed)")}`);
+    logger.log(`  posts:      ${counts.post || 0}`);
+    logger.log(`  favourites: ${counts.favourite || 0}`);
+    logger.log(`  follows:    ${counts.follow || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    if (wb.uidFetchFailed) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ /api/config returned login=false — cookie expired or anti-bot redirect (lastErrorCode=${wb.lastErrorCode})`,
+        ),
+      );
+    } else if (wb.lastErrorCode) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ partial: lastErrorCode=${wb.lastErrorCode} (${wb.lastErrorMessage || "?"})`,
+        ),
+      );
+    }
+    if (wb.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * Phase 2a — `cc hub douyin-adb-sync`
  *
  * Pulls <uid>_im.db from the user's Android Douyin App, parses msg +
@@ -1597,6 +1695,26 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdBilibiliAdbDoctor);
 
+  // Phase 3a — Weibo C 路径 one-shot (m.weibo.cn cookies + 4 endpoints, sign-less)
+  hub
+    .command("weibo-adb-sync")
+    .description(
+      "Weibo C 路径: pull m.weibo.cn cookies via ADB from the user's Android Weibo App, fetch UID + 3 endpoints (posts/favourites/follows), ingest as snapshot. Needs rooted Android + Weibo App logged in + `adb` on PATH. No X-Bogus / WBI signing required.",
+    )
+    .option("--limit-post <n>", "Cap user-timeline posts (default 100)")
+    .option("--limit-favourite <n>", "Cap favourite items (default 100)")
+    .option("--limit-follow <n>", "Cap follow items (default 200)")
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default empty)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdWeiboAdbSync);
+
   // Phase 2a — Douyin C 路径 one-shot (pull <uid>_im.db → parse abrignoni DFIR schema)
   hub
     .command("douyin-adb-sync")
@@ -1871,6 +1989,7 @@ export const _internal = {
   cmdBilibiliAdbSync,
   cmdBilibiliAdbDoctor,
   cmdDouyinAdbSync,
+  cmdWeiboAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };
