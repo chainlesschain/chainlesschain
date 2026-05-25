@@ -57,18 +57,19 @@ import timber.log.Timber
 private const val COOKIE_CAPTURE_DELAY_MS = 5000L
 
 /**
- * 2026-05-25 真机回归：除微博外 5 家 (Bilibili / 抖音 / 小红书 / 头条 / 快手)
- * 一点登录就被推到「请用 X App 打开」拦截页 —— 各家服务端识别 Android Chrome
- * WebView 默认 UA 里的 `; wv)` 标记 + ` Version/4.0 ` 段拒不返登录页（拦截页
- * 没 JS 轮询，cookie 永远 Set-Cookie 不下来 → onPageFinished/isLoginSuccess
- * 永远不命中 → 用户体感"跳了 App 登了又回来还是空"）。
+ * 2026-05-25 (post `daabf6dfb` 真机回归修正)：5 家 (Bilibili / 抖音 / 小红书 /
+ * 头条 / 快手) 平台原 UA 反检测命中点是 WebView 默认 UA 里 3 件套 —
+ * `; wv)` + ` Version/4.0 ` + 我们自加的 ` ChainlesschainAndroid/A8` 后缀。
+ * 剥光这 3 个 marker 后伪装成「真 Mobile Chrome on Android」即可拿到带
+ * polling 闭环 + 「一键登录」按钮的 mobile 登录页。
  *
- * 此 const 仿 Win 桌面 Chrome 119 — 让平台返"真正的扫码 + 一键登录页"含
- * polling 闭环。5 家共用同一串，差异在 isLoginSuccess。维护提示：Chrome
- * 主版本 ~6 周一次；若某家升级到必须最新版（罕见）手动 bump 即可。
+ * 上次走 [DESKTOP_CHROME_USER_AGENT] 整串覆盖的方向是反的 —— Desktop UA
+ * 让平台返桌面登录流（桌面用户不装原生 App，本就不该有一键登录入口；
+ * 抖音直接 modal-only 不 redirect → onPageFinished 不命中 → cookie 永远
+ * 拿不到）。本 const 保留供 ad-hoc desktop-only API 抓取场景，**不用在
+ * 5 平台登录上**。
  *
- * 微博 m.weibo.cn 不做这检测 → 不传此 UA, 保持默认（[sanitizeWebViewUserAgent]
- * 已防御纵深兜底）。
+ * 维护提示：Chrome 主版本 ~6 周一次；若某家升级强制最新版（罕见）手动 bump。
  */
 const val DESKTOP_CHROME_USER_AGENT: String =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
@@ -76,9 +77,22 @@ const val DESKTOP_CHROME_USER_AGENT: String =
         "Chrome/119.0.0.0 Safari/537.36"
 
 /**
+ * 5 家平台登录用的 Mobile Chrome on Android UA。区别于 WebView 默认 UA —
+ * 没有 `; wv)` / ` Version/4.0` 标记 + 不带 ChainlesschainAndroid 后缀，
+ * 平台服务端把我们看成"真 Mobile Chrome"，返带 polling 闭环 + 一键登录
+ * 按钮的 mobile 登录页 (`m.bilibili.com` / `m.xiaohongshu.com` 等)。
+ *
+ * 微博 m.weibo.cn 无此反检测 → 仍传 null 走 [sanitizeWebViewUserAgent] 默认。
+ */
+const val MOBILE_CHROME_USER_AGENT: String =
+    "Mozilla/5.0 (Linux; Android 13; Pixel 5) " +
+        "AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/119.0.6045.66 Mobile Safari/537.36"
+
+/**
  * 去掉 Android System WebView 默认 UA 里的两个"我是嵌入式 WebView"标记 —
- * `; wv)` 和 ` Version/4.0`。即使调用方不显式传 [DESKTOP_CHROME_USER_AGENT]
- * 也吃这层防御，避免某天平台只升级 wv 检测漏过桌面 UA 也不行的兜底场景。
+ * `; wv)` 和 ` Version/4.0`。无 [userAgent] 整串覆盖时调用方仍吃这层
+ * 防御纵深 (微博走这路径)。
  *
  * Idempotent：再调一次结果一样（marker 已剔除，replace no-op）。
  *
@@ -131,13 +145,27 @@ fun SocialCookieWebViewScreen(
     modifier: Modifier = Modifier,
     /**
      * 可选 WebView UA 整串覆盖。传 null = 用 [sanitizeWebViewUserAgent] 处理
-     * 过的默认 Android WebView UA + " ChainlesschainAndroid/A8" 后缀；传非
-     * null（典型 [DESKTOP_CHROME_USER_AGENT]）= 整串替换不加后缀。
+     * 过的默认 Android WebView UA（不再 append "ChainlesschainAndroid/A8"
+     * 后缀 —— 该后缀是 anti-bot 反检测的命中 marker，2026-05-25 真机回归
+     * 后已剥）；传非 null（典型 [MOBILE_CHROME_USER_AGENT]）= 整串替换。
      *
-     * 5 个反 WebView 严格的平台 (Bilibili/抖音/小红书/头条/快手) 必须传桌面
-     * UA 才能拿到带 JS 轮询的真登录页；微博 m.weibo.cn 不需要。
+     * 5 个反 WebView 严格的平台 (Bilibili/抖音/小红书/头条/快手) 必须传
+     * [MOBILE_CHROME_USER_AGENT] 才能拿到带 JS 轮询 + 一键登录按钮的
+     * mobile 登录页；微博 m.weibo.cn 不需要走该路径。
      */
     userAgent: String? = null,
+    /**
+     * 可选：cookie-presence based 登录成功检测，每 1.5s 轮询 CookieManager
+     * 一次，返 true 触发与 [isLoginSuccess] 同 onLoginComplete 路径（同 dedup
+     * 守卫）。
+     *
+     * 用于"登录后 URL 不变"的平台（典型：抖音 modal 登录 — 弹窗关闭后 URL
+     * 仍是 `?showLogin=1`，[WebViewClient.onPageFinished] 不再触发）。检测
+     * key 用平台 session cookie 出现（如抖音 `sessionid_ucp_v1`）。
+     *
+     * null = 不轮询，纯走 URL 路径。
+     */
+    isLoginSuccessByCookie: ((cookie: String) -> Boolean)? = null,
     /**
      * 可选：登录成功 + cookie 抓到后，**在 WebView 内**执行的 JS 脚本（典型
      * Bilibili 聚合 fetch 4 API + per-folder fav，结果通过 `BilibiliBridge.
@@ -235,6 +263,7 @@ fun SocialCookieWebViewScreen(
                     userAgent = userAgent,
                     prefetchJs = prefetchJs,
                     onPrefetchComplete = onPrefetchComplete,
+                    isLoginSuccessByCookie = isLoginSuccessByCookie,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (loadingProgress in 0.01f..0.99f) {
@@ -266,6 +295,7 @@ private fun CookieWebViewHost(
     userAgent: String? = null,
     prefetchJs: String? = null,
     onPrefetchComplete: ((cookie: String, data: String?) -> Unit)? = null,
+    isLoginSuccessByCookie: ((cookie: String) -> Boolean)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Hold the WebView ref so DisposableEffect can stop/destroy it
@@ -301,16 +331,19 @@ private fun CookieWebViewHost(
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     databaseEnabled = true
-                    // 2026-05-25 UA 反检测三档：
-                    //   1. 调用方传 [userAgent]（典型 [DESKTOP_CHROME_USER_AGENT]）
-                    //      → 整串覆盖 — 不加 "ChainlesschainAndroid/A8" 后缀
-                    //      （桌面 Chrome UA 该是干净串，加 marker 反而提示反爬）
+                    // 2026-05-25 UA 反检测两档（post `daabf6dfb` 真机回归 — A8
+                    // 后缀剥光，Desktop UA 不再用于登录）：
+                    //   1. 调用方传 [userAgent]（典型 [MOBILE_CHROME_USER_AGENT]）
+                    //      → 整串覆盖 — 5 家严平台走此档拿 mobile 登录页
                     //   2. 没传 → 默认 WebView UA 走 [sanitizeWebViewUserAgent]
-                    //      剥 `; wv)` + ` Version/4.0` 防御纵深 + 加 A8 标识
-                    //   3. 5 家严平台必走档 1；微博 m.weibo.cn 用档 2 即可
+                    //      剥 `; wv)` + ` Version/4.0` 防御纵深（微博 m.weibo.cn
+                    //      不严，走此档）
+                    //
+                    // 已剥 " ChainlesschainAndroid/A8" 后缀 — 该 marker 是 anti-
+                    // bot 反检测命中点（"自报家门"），跟 wv 标记同列，剥光让 5 家
+                    // 平台拿到真 mobile 登录页含 polling 闭环。
                     userAgentString = userAgent
-                        ?: (sanitizeWebViewUserAgent(settings.userAgentString) +
-                            " ChainlesschainAndroid/A8")
+                        ?: sanitizeWebViewUserAgent(settings.userAgentString)
                 }
                 // 2026-05-25 真机：b 站 OkHttp 路径被风控（详 BilibiliJsBridge KDoc）。
                 // 唯一稳路是登录后在 WebView 内 evaluateJavascript 跑 fetch。统一注
@@ -438,6 +471,45 @@ private fun CookieWebViewHost(
                         super.onProgressChanged(view, newProgress)
                         onProgress(newProgress / 100f)
                     }
+                }
+                // 2026-05-25 — cookie-presence based 登录检测（D 路径）。抖音
+                // 典型：登录是 modal 形式，弹窗关闭后 URL 不变（仍 `?showLogin=1`），
+                // [onPageFinished] 不会因登录再触发；唯一靠谱信号是 CookieManager
+                // 里出现平台 session cookie。1.5s 轮询 cookie；命中即调
+                // onLoginCookie（外层 [SocialCookieWebViewScreen] 已有
+                // hasSubmittedSuccess 守卫去重 URL/cookie 双触发）。
+                //
+                // 用 view.postDelayed 自递归 (而非 LaunchedEffect+coroutines)
+                // 原因：LaunchedEffect 在 @Composable 内会让 JaCoCo offline
+                // 仪表化 transform 静默 drop 整 top-level file 类（具体 trap
+                // 未追根，但跑 1 轮 baseline + 1 轮加 LaunchedEffect 复现稳）；
+                // Handler-based 轮询无 Compose runtime 集成、view dispose 时
+                // 自然停（WebView.destroy() 清队列）。
+                if (isLoginSuccessByCookie != null) {
+                    val pollIntervalMs = 1500L
+                    val webViewSelf = this
+                    val pollRunnable = object : Runnable {
+                        override fun run() {
+                            try {
+                                CookieManager.getInstance().flush()
+                                val cookie = CookieManager.getInstance()
+                                    .getCookie(cookieDomain) ?: ""
+                                if (cookie.isNotEmpty() && isLoginSuccessByCookie(cookie)) {
+                                    Timber.i(
+                                        "SocialCookieWebView: cookie-presence login " +
+                                            "success domain=%s cookieLen=%d",
+                                        cookieDomain, cookie.length,
+                                    )
+                                    onLoginCookie(cookie)
+                                    return  // stop polling
+                                }
+                            } catch (t: Throwable) {
+                                Timber.w(t, "SocialCookieWebView: cookie poll threw")
+                            }
+                            webViewSelf.postDelayed(this, pollIntervalMs)
+                        }
+                    }
+                    postDelayed(pollRunnable, pollIntervalMs)
                 }
                 loadUrl(loginUrl)
             }
