@@ -1007,6 +1007,39 @@ async function initHub() {
       return loadWechatAccounts(wechatAccountsPath).map(scrubWechatRow);
     },
 
+    // ─── Phase 1e — Bilibili C 路径 dry-run env probe ────────────────────
+    //
+    // Mirror of cli `bilibiliAdbDoctor`. Probes the cookies path only
+    // (no API calls, no vault writes) so the user can confirm env before
+    // triggering a sync. Same 9 typed reasons as bilibiliAdbSync.
+    async bilibiliAdbDoctor() {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      try {
+        const result = await desktopAdbBridge.invoke("bilibili.cookies");
+        return {
+          ok: true,
+          uid: result.uid,
+          extractedAt: result.extractedAt,
+          cookieDiagnostic: result.diagnostic || null,
+        };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "PROBE_FAILED",
+          message: msg,
+        };
+      }
+    },
+
     // ─── Phase 1c — Bilibili C 路径 one-shot sync ────────────────────────
     //
     // Mirror of cli `bilibiliAdbSync`. Pulls cookies via the bilibili.cookies

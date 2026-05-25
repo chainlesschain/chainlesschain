@@ -1089,6 +1089,94 @@ async function cmdBilibiliAdbSync(options) {
 }
 
 /**
+ * Phase 1e — `cc hub bilibili-adb-doctor`
+ *
+ * Dry-run env probe. Runs only the cookies-extraction half of the sync
+ * pipeline (no api.bilibili.com calls, no vault writes) so the user can
+ * confirm root + Bilibili-installed + cookie-complete BEFORE triggering
+ * a real sync. Surfaces the same 9 typed reasons as bilibili-adb-sync
+ * but with a green "✓ ready to sync" message on success.
+ *
+ * Use this as the first command in a real-device E2E session.
+ */
+async function cmdBilibiliAdbDoctor(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.bilibiliAdbDoctor();
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ bilibili-adb-doctor: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Fix: install Android Platform Tools, or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "BILIBILI_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Fix: phone needs Magisk root — Bilibili release APK isn't debuggable",
+          ),
+        );
+      } else if (
+        result.reason === "BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN"
+      ) {
+        logger.log(
+          chalk.gray("  Fix: install Bilibili App + log in once on the phone"),
+        );
+      } else if (result.reason === "BILIBILI_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  Fix: relog on the Bilibili App — required cookies are missing",
+          ),
+        );
+      } else if (
+        result.reason === "BILIBILI_COOKIES_TRUNCATED" ||
+        result.reason === "BILIBILI_NOT_SQLITE"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  Fix: ADB stream may be corrupted; unplug + replug USB and retry",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const diag = result.cookieDiagnostic || {};
+    logger.log(chalk.green(`✓ bilibili-adb-doctor: env ready to sync`));
+    logger.log(`  uid:                 ${chalk.cyan(result.uid)}`);
+    logger.log(`  cookies found:       ${diag.cookieCount || "?"}`);
+    if (diag.hadEncrypted) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ encrypted rows:    some cookies are Android-Keystore-wrapped (skipped)`,
+        ),
+      );
+      logger.log(
+        chalk.gray(
+          `  This may indicate a newer Bilibili App on Android 14+ using Keystore wrap.`,
+        ),
+      );
+    }
+    logger.log(
+      `  extracted at:        ${new Date(result.extractedAt).toISOString()}`,
+    );
+    logger.log(
+      chalk.gray(
+        `\n  Next: run \`cc hub bilibili-adb-sync\` to ingest 4 endpoints.`,
+      ),
+    );
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * `cc hub wechat doctor` — env-probe + actionable interpretation +
  * inline reference to the Phase 12.9 §5.1 Frida hook trap table.
  *
@@ -1408,6 +1496,15 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdBilibiliAdbSync);
 
+  // Phase 1e — dry-run env probe (cookies only, no API, no vault write)
+  hub
+    .command("bilibili-adb-doctor")
+    .description(
+      "Bilibili C 路径 dry-run: probe adb + root + Bilibili App + cookies completeness without triggering a sync. Use this BEFORE `cc hub bilibili-adb-sync` to debug env issues.",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdBilibiliAdbDoctor);
+
   hub
     .command("rederive")
     .description(
@@ -1651,6 +1748,7 @@ export const _internal = {
   cmdWechatUnregister,
   cmdWechatDoctor,
   cmdBilibiliAdbSync,
+  cmdBilibiliAdbDoctor,
   interpretWechatProbe,
   _defaultKnownVendors,
 };

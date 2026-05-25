@@ -576,5 +576,19 @@ export function usePersonalDataHub() {
         120_000,
       );
     },
+
+    /**
+     * Phase 1e — Bilibili C 路径 dry-run env probe.
+     *
+     * Probes the cookies path only (no api.bilibili.com calls, no vault
+     * writes). Returns same 9 typed reasons as bilibiliAdbSync but with
+     * `uid` + `cookieDiagnostic: {cookieCount, hadEncrypted}` on success.
+     *
+     * 15s timeout — only does `adb shell ls` + `id -u` + `base64 ...` +
+     * a quick sqlite parse, no HTTP.
+     */
+    async bilibiliAdbDoctor() {
+      return await send("personal-data-hub.bilibili-adb-doctor", {}, 15_000);
+    },
   };
 }
