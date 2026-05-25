@@ -102,6 +102,21 @@ enum class AiChatVendor(
         loginUrl = "https://www.coze.cn/space",
         cookieDomain = "https://www.coze.cn",
         isLoginSuccess = { url -> url.contains("coze.cn") && !url.contains("sign-in") },
+    ),
+    /**
+     * 即梦 (Dreamina) — ByteDance AI image / video gen. Phase 10.2 desktop
+     * vendor adapter已 ship (packages/.../vendors/dreamina.js, BASE=
+     * jimeng.jianying.com)。Phase 5.8 (2026-05-25) Android UI 接通同套
+     * cookie-scrape WebView 流，与 8 个聊天 vendor 同架构 — 不同 schema：
+     * message.subtype=ai-image-generation + content.generatedImages 由
+     * schema-map.js 设置。
+     */
+    DREAMINA(
+        key = "dreamina",
+        displayName = "即梦 (字节)",
+        loginUrl = "https://jimeng.jianying.com/",
+        cookieDomain = "https://jimeng.jianying.com",
+        isLoginSuccess = { url -> url.contains("jimeng.jianying.com") && !url.contains("login") },
     );
 
     companion object {
@@ -111,12 +126,13 @@ enum class AiChatVendor(
          * 推文 §"AI 助手 9 家" 原列豆包/文心/Kimi/通义/DeepSeek/智谱/混元/
          * 千帆/扣子。2026-05-22 WENXIN+QIANFAN 合并后 8 家：文心 entry
          * (key=qianfan) 复用桌面 qianfan adapter (BASE=yiyan.baidu.com)。
-         * UI 直接 iterate；顺序与 PaymentShoppingCard.AiAssistantsGroup
-         * providers 列表对齐。
+         * 2026-05-25 加 DREAMINA (字节即梦图像/视频生成, 桌面 vendor 已 ship)
+         * 凑 9 家与原推文承诺对齐。UI 直接 iterate；顺序与
+         * PaymentShoppingCard.AiAssistantsGroup providers 列表对齐。
          */
         val ORDERED: List<AiChatVendor> = listOf(
             DOUBAO, WENXIN, KIMI, TONGYI, DEEPSEEK,
-            ZHIPU, HUNYUAN, COZE,
+            ZHIPU, HUNYUAN, COZE, DREAMINA,
         )
     }
 }

@@ -2305,10 +2305,10 @@ class HubLocalViewModelTest {
         assertNull(vm.state.value.localAudit.errorMessage)
     }
 
-    // ─── §2.6 D10.2 — AI 助手 8 路 WebView (合并 wenxin+qianfan 后) ────────
+    // ─── §2.6 D10.2 — AI 助手 9 路 WebView (合并 wenxin+qianfan + 加 dreamina) ─
 
     @Test
-    fun `init renders 8 AI vendor cards in推文 order (wenxin+qianfan merged)`() = runTest(testDispatcher) {
+    fun `init renders 9 AI vendor cards in推文 order (wenxin+qianfan merged + dreamina added)`() = runTest(testDispatcher) {
         every { aiChatCredentials.hasCredentials(any()) } returns false
         every { aiChatCredentials.getLastSyncAt(any()) } returns null
         every { aiChatCredentials.getLastSyncCount(any()) } returns 0
@@ -2316,8 +2316,9 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
         val keys = vm.state.value.aiChat.keys
         // 2026-05-22 推文原 9 家中独立"千帆" entry 合并到"文心一言" (key=qianfan
-        // 对齐桌面 qianfan adapter BASE=yiyan.baidu.com)，UI 显 8 张。
-        assertEquals(8, keys.size)
+        // 对齐桌面 qianfan adapter BASE=yiyan.baidu.com) → 8 张。
+        // 2026-05-25 加 dreamina (即梦, 桌面 vendor 已 ship Phase 10.2) → 凑回 9 张。
+        assertEquals(9, keys.size)
         assertTrue("doubao" in keys)
         assertTrue("qianfan" in keys)   // 文心一言 (WENXIN entry, key=qianfan)
         assertTrue("kimi" in keys)
@@ -2326,6 +2327,7 @@ class HubLocalViewModelTest {
         assertTrue("zhipu" in keys)
         assertTrue("hunyuan" in keys)
         assertTrue("coze" in keys)
+        assertTrue("dreamina" in keys)
         // 旧 "wenxin" key 已删 (合到 qianfan)
         assertTrue("wenxin" !in keys)
     }
