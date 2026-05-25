@@ -28,6 +28,13 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.3.2 (2026-05-25): denormalise contact identifiers (phones/emails/
+//   organization/starred) and app version/install fields onto
+//   event.extra so the Vault Browser tap-to-detail sheet can render
+//   human-readable fields without joining back to the persons/items
+//   tables. Same content lives on the entity rows; events are now a
+//   convenience copy. Adds ~50-200 bytes per event but keeps the detail
+//   UI single-table.
 // v0.3.1 (2026-05-25): normalize() now emits a synthetic OTHER event per
 //   contact + per app. Snapshot mode previously only wrote persons/items;
 //   Vault Browser's `category=system` facet only counts events, so the
@@ -42,7 +49,7 @@ const NAME = "system-data-android";
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.3.1";
+const VERSION = "0.3.2";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -403,7 +410,25 @@ class SystemDataAndroidAdapter {
       // in the Vault Browser's `category=system` facet (which counts events,
       // not persons). Stable id keyed on stableKey makes re-syncs idempotent
       // via UPSERT; occurredAt floats forward to the latest snapshot time
-      // ("last time we saw this contact"), payload itself lives on the person.
+      // ("last time we saw this contact").
+      //
+      // v0.3.2 — duplicate the contact's identifying fields onto event.extra
+      // so the Vault Browser's tap-to-detail sheet can render them inline
+      // without joining back to the persons table. Phones/emails/relation/
+      // starred — same data shape as person.identifiers + person.relation
+      // + person.extra, just denormalised so a single events-table read
+      // suffices for the detail UI.
+      const eventExtra = { kind: "contact-snapshot" };
+      if (identifiers.phone && identifiers.phone.length > 0) {
+        eventExtra.phones = identifiers.phone;
+      }
+      if (identifiers.email && identifiers.email.length > 0) {
+        eventExtra.emails = identifiers.email;
+      }
+      if (typeof p.organization === "string" && p.organization.trim().length > 0) {
+        eventExtra.organization = p.organization.trim();
+      }
+      if (typeof p.starred === "boolean") eventExtra.starred = p.starred;
       const event = {
         id: `event-android-contact-${stableKey}`,
         type: ENTITY_TYPES.EVENT,
@@ -412,7 +437,7 @@ class SystemDataAndroidAdapter {
         ingestedAt,
         source: source(`android-contact:${stableKey}`),
         content: { title: `联系人：${displayName}` },
-        extra: { kind: "contact-snapshot" },
+        extra: eventExtra,
       };
 
       return {
@@ -454,6 +479,18 @@ class SystemDataAndroidAdapter {
 
       // v0.3.1 — same rationale as the contact branch: emit a synthetic
       // OTHER event so installed apps show up in the system facet count.
+      // v0.3.2 — copy versioning/install fields onto event.extra so the
+      // detail sheet can render them inline.
+      const eventExtra = { kind: "app-snapshot", packageName: pkgName };
+      if (typeof a.versionName === "string" && a.versionName.length > 0) {
+        eventExtra.versionName = a.versionName;
+      }
+      if (Number.isInteger(a.versionCode)) eventExtra.versionCode = a.versionCode;
+      if (Number.isInteger(a.firstInstallTime)) {
+        eventExtra.firstInstallTime = a.firstInstallTime;
+      }
+      if (Number.isInteger(a.lastUpdateTime)) eventExtra.lastUpdateTime = a.lastUpdateTime;
+      if (typeof a.isSystem === "boolean") eventExtra.isSystem = a.isSystem;
       const event = {
         id: `event-android-app-${pkgName}`,
         type: ENTITY_TYPES.EVENT,
@@ -462,7 +499,7 @@ class SystemDataAndroidAdapter {
         ingestedAt,
         source: source(`android-app:${pkgName}`),
         content: { title: `应用：${label}` },
-        extra: { kind: "app-snapshot", packageName: pkgName },
+        extra: eventExtra,
       };
 
       return {

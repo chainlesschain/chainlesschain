@@ -284,13 +284,24 @@ fun HubBrowserScreenContent(
 
 @Composable
 private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
+    val parsed = remember(event.rawJson) {
+        try {
+            org.json.JSONObject(event.rawJson)
+        } catch (_: Throwable) {
+            org.json.JSONObject()
+        }
+    }
+    val content = parsed.optJSONObject("content") ?: org.json.JSONObject()
+    val extra = parsed.optJSONObject("extra") ?: org.json.JSONObject()
+    val kind = extra.optString("kind", "")
     val prettyJson = remember(event.rawJson) {
         try {
-            org.json.JSONObject(event.rawJson).toString(2)
+            parsed.toString(2)
         } catch (_: Throwable) {
             event.rawJson
         }
     }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -298,7 +309,7 @@ private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
             .verticalScroll(rememberScrollState()),
     ) {
         Text(
-            text = event.summary ?: "(无摘要)",
+            text = content.optString("title").ifEmpty { event.summary ?: "(无摘要)" },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -326,11 +337,27 @@ private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Per-kind formatted fields. For known synthetic-event kinds
+        // (contact-snapshot / app-snapshot) the adapter denormalised
+        // identifying fields onto event.extra, so this just reads them
+        // out. Unknown kinds fall through to the JSON section below.
+        when (kind) {
+            "contact-snapshot" -> ContactDetail(extra)
+            "app-snapshot" -> AppDetail(extra)
+            else -> {
+                // Generic detail: dump content fields as kv rows.
+                GenericContentFields(content, extra)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         Text("ID", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-        Text(event.id, style = MaterialTheme.typography.bodySmall)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("原始 JSON", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Text(event.id, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("完整 JSON", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -351,6 +378,98 @@ private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
         ) {
             Text("关闭")
         }
+    }
+}
+
+@Composable
+private fun ContactDetail(extra: org.json.JSONObject) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("联系方式", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        val phones = extra.optJSONArray("phones")
+        if (phones != null && phones.length() > 0) {
+            for (i in 0 until phones.length()) {
+                DetailRow(label = "电话", value = phones.optString(i))
+            }
+        }
+        val emails = extra.optJSONArray("emails")
+        if (emails != null && emails.length() > 0) {
+            for (i in 0 until emails.length()) {
+                DetailRow(label = "邮箱", value = emails.optString(i))
+            }
+        }
+        val org = extra.optString("organization", "")
+        if (org.isNotEmpty()) DetailRow(label = "组织", value = org)
+        if (extra.has("starred")) {
+            DetailRow(label = "星标", value = if (extra.optBoolean("starred")) "是" else "否")
+        }
+        if (phones == null && emails == null && org.isEmpty()) {
+            Text(
+                "（同步时该联系人没有电话/邮箱/组织字段）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppDetail(extra: org.json.JSONObject) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("应用信息", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        DetailRow(label = "包名", value = extra.optString("packageName", "—"))
+        val versionName = extra.optString("versionName", "")
+        if (versionName.isNotEmpty()) DetailRow(label = "版本", value = versionName)
+        if (extra.has("versionCode")) {
+            DetailRow(label = "versionCode", value = extra.optInt("versionCode").toString())
+        }
+        if (extra.has("firstInstallTime")) {
+            DetailRow(label = "首次安装", value = formatTime(extra.optLong("firstInstallTime")))
+        }
+        if (extra.has("lastUpdateTime")) {
+            DetailRow(label = "最近更新", value = formatTime(extra.optLong("lastUpdateTime")))
+        }
+        if (extra.has("isSystem")) {
+            DetailRow(label = "系统应用", value = if (extra.optBoolean("isSystem")) "是" else "否")
+        }
+    }
+}
+
+@Composable
+private fun GenericContentFields(content: org.json.JSONObject, extra: org.json.JSONObject) {
+    val keys = mutableListOf<String>()
+    content.keys().forEachRemaining { keys.add(it) }
+    if (keys.isEmpty() && extra.length() == 0) return
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (keys.isNotEmpty()) {
+            Text("内容", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(4.dp))
+            for (k in keys) {
+                if (k == "title") continue  // already shown as the header
+                DetailRow(label = k, value = content.opt(k)?.toString() ?: "")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(width = 88.dp, height = 20.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
