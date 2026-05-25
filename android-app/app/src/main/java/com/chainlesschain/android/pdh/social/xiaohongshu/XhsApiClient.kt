@@ -1,5 +1,7 @@
 package com.chainlesschain.android.pdh.social.xiaohongshu
 
+import com.chainlesschain.android.pdh.social.NullSignProvider
+import com.chainlesschain.android.pdh.social.SignProvider
 import com.chainlesschain.android.pdh.social.SocialCookieWebViewHelpers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -66,6 +68,15 @@ class XhsApiClient @Inject constructor() {
 
     /** Override the base URL for MockWebServer in tests. */
     var baseUrl: HttpUrl = "https://edith.xiaohongshu.com/".toHttpUrl()
+
+    /**
+     * v0.3 — pluggable [SignProvider] for X-s/X-t/X-s-common headers.
+     * Defaults to [NullSignProvider] so v0.2 behavior is preserved: when
+     * no bridge is wired, doGetJson falls back to the in-process
+     * best-effort [computeXsXt] (~60% GET hit / <30% POST hit).
+     * Production wires [XhsSignBridge] for ~100% hit rate.
+     */
+    var signProvider: SignProvider = NullSignProvider
 
     data class NoteItem(
         val noteId: String,
@@ -255,7 +266,7 @@ class XhsApiClient @Inject constructor() {
     @Volatile var lastErrorMessage: String? = null
         private set
 
-    private fun doGetJson(
+    private suspend fun doGetJson(
         url: HttpUrl,
         cookie: String,
         a1: String? = null,
@@ -274,8 +285,26 @@ class XhsApiClient @Inject constructor() {
             .header("Accept", "application/json, text/plain, */*")
             .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
         if (requireSign && a1 != null) {
-            val (xs, xt) = computeXsXt(url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: ""), null, a1)
-            builder.header("X-S", xs).header("X-T", xt.toString())
+            // v0.3 — prefer the bridge (xhs's own signing JS) over the
+            // in-process best-effort [computeXsXt] fallback. The bridge
+            // hits ~100% on live endpoints; the fallback ~60% GET / <30%
+            // POST. When the bridge is NullSignProvider (v0.2 mode) OR
+            // returns empty headers (warm-up failed / rotation), we fall
+            // back to computeXsXt so v0.2 callers keep partial coverage.
+            val pathWithQuery = url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: "")
+            val purpose = "$pathWithQuery|"  // GET => empty body part
+            val bridgeSigned = signProvider.signUrl(url, purpose)
+            val bridgeHeaders = if (bridgeSigned != null) {
+                signProvider.signedHeaders(url, purpose)
+            } else {
+                emptyMap()
+            }
+            if (bridgeHeaders.isNotEmpty()) {
+                for ((k, v) in bridgeHeaders) builder.header(k, v)
+            } else {
+                val (xs, xt) = computeXsXt(pathWithQuery, null, a1)
+                builder.header("X-S", xs).header("X-T", xt.toString())
+            }
         }
         val req = builder.build()
         return try {
