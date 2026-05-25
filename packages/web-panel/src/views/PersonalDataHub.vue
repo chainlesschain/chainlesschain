@@ -213,6 +213,9 @@
           <a-button @click="kuaishouAdbSync" :loading="loading.kuaishouAdbSync">
             通过 PC ADB 同步 Kuaishou
           </a-button>
+          <a-button @click="bridgeDoctor" :loading="loading.bridgeDoctor">
+            诊断签名 Bridges
+          </a-button>
           <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
             通过 PC ADB 同步 Douyin
           </a-button>
@@ -894,7 +897,11 @@ const loading = reactive({
   xhsAdbSync: false,
   toutiaoAdbSync: false,
   kuaishouAdbSync: false,
+  bridgeDoctor: false,
 })
+
+// Phase 6e — last bridge-doctor report kept for inspection (raw JSON)
+const bridgeDoctorReport = ref(null)
 
 /**
  * Phase 1d — UI surface for the `cc hub bilibili-adb-sync` flow.
@@ -1296,6 +1303,85 @@ async function kuaishouAdbSync() {
     })
   } finally {
     loading.kuaishouAdbSync = false
+  }
+}
+
+/**
+ * Phase 6e — Bridge dry-run doctor.
+ *
+ * Spins up Xhs / Toutiao / Kuaishou sign bridges with empty cookie,
+ * probes for candidate signing globals, reports per-bridge health.
+ * Lets users detect SDK rotation BEFORE starting a real sync.
+ *
+ * Desktop-only (Electron WebContentsView). Web-shell without desktop
+ * returns MODULE_LOAD_FAILED — banner explains.
+ */
+async function bridgeDoctor() {
+  if (loading.bridgeDoctor) return
+  loading.bridgeDoctor = true
+  try {
+    const result = await hub.bridgeDoctor()
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'BRIDGE_DOCTOR_FAILED'
+      const detail = (result && result.message) || ''
+      if (reason === 'MODULE_LOAD_FAILED') {
+        message.error({
+          content: 'Bridge doctor 不可用',
+          description:
+            '当前上下文不是 Electron desktop app（cli / web-shell-only 无 sign-bridge 模块）。请从桌面 app 运行此诊断。',
+          duration: 10,
+        })
+      } else {
+        message.error({
+          content: `Bridge doctor 失败：${reason}`,
+          description: detail,
+          duration: 8,
+        })
+      }
+      return
+    }
+    const r = result.results || {}
+    const platforms = ['xhs', 'toutiao', 'kuaishou']
+    const okCount = platforms.filter((p) => r[p] && r[p].anyCandidatePresent).length
+    const totalCount = platforms.length
+    const lines = []
+    for (const p of platforms) {
+      const entry = r[p]
+      if (!entry || !entry.ok) {
+        lines.push(`${p}: ✗ ${entry && entry.error ? entry.error : 'unknown error'}`)
+        continue
+      }
+      const cands = entry.candidates || {}
+      const presentNames = Object.keys(cands).filter((k) => cands[k] === true)
+      const totalCandidates = Object.keys(cands).length
+      const tag = entry.anyCandidatePresent ? '✓' : '⚠'
+      const desc = entry.anyCandidatePresent
+        ? `${presentNames.length}/${totalCandidates} candidate(s): ${presentNames.join(', ')}`
+        : `0/${totalCandidates} candidates (rotation? 需更新 buildSignScript)`
+      lines.push(
+        `${p}: ${tag} ${desc} (warmUp=${entry.warmUpMs}ms, probe=${entry.probeMs}ms)`,
+      )
+    }
+    const overall =
+      okCount === totalCount
+        ? message.success
+        : okCount === 0
+          ? message.error
+          : message.warning
+    overall({
+      content: `Bridge doctor: ${okCount}/${totalCount} 平台签名可用`,
+      description: lines.join('\n'),
+      duration: 15,
+    })
+    bridgeDoctorReport.value = result
+  } catch (err) {
+    message.error({
+      content: 'Bridge doctor 异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.bridgeDoctor = false
   }
 }
 

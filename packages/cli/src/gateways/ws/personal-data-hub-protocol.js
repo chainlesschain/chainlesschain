@@ -468,6 +468,14 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 6e — Bridge dry-run doctor. Spins up Xhs / Toutiao / Kuaishou
+  // sign bridges with empty cookie, probes for candidate signing globals,
+  // times each phase. No phone needed. Detects SDK rotation BEFORE the
+  // user starts a real sync. Desktop-only — CLI/web-shell-no-desktop
+  // returns MODULE_LOAD_FAILED.
+  "personal-data-hub.bridge-doctor": async () =>
+    withHub((hub) => hub.bridgeDoctor()),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>
