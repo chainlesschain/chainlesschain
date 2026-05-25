@@ -183,6 +183,102 @@ describe("TaobaoAdapter", () => {
     for await (const r of a.sync()) raws.push(r);
     expect(raws).toHaveLength(0);
   });
+
+  // §2.4d v0.2 — snapshot mode (mirror shopping-jd/meituan/pinduoduo dual-mode).
+  // Android in-APK collector ships JSON snapshot via syncAdapter("shopping-
+  // taobao", path); desktop adapter consumes via inputPath.
+
+  it("snapshot mode — no-arg ctor passes contract", () => {
+    const a = new TaobaoAdapter();
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:cookie-api"); // both advertised
+  });
+
+  it("snapshot mode — authenticate(ctx.inputPath) returns ok when file readable", async () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const os = require("node:os");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-"));
+    const inputPath = path.join(dir, "snap.json");
+    fs.writeFileSync(inputPath, "{}", "utf-8");
+    try {
+      const a = new TaobaoAdapter();
+      const auth = await a.authenticate({ inputPath });
+      expect(auth.ok).toBe(true);
+      expect(auth.mode).toBe("snapshot-file");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("snapshot mode — sync yields order events from snapshot file", async () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const os = require("node:os");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-yield-"));
+    const inputPath = path.join(dir, "snap.json");
+    fs.writeFileSync(inputPath, JSON.stringify({
+      schemaVersion: 1,
+      snapshottedAt: 1_700_000_000_000,
+      account: { userId: "u-snap" },
+      events: [
+        {
+          kind: "order",
+          id: "TB-SNAP-1",
+          capturedAt: 1_700_000_100_000,
+          vendorId: "taobao",
+          orderId: "TB-SNAP-1",
+          placedAt: 1_700_000_000_000,
+          paidAt: 1_700_000_010_000,
+          status: "delivered",
+          merchantName: "Test 旗舰店",
+          totalAmount: { value: 123.45, currency: "CNY" },
+          items: [{ name: "Item X", quantity: 1, unitPrice: 123.45 }],
+        },
+      ],
+    }), "utf-8");
+    try {
+      const a = new TaobaoAdapter();
+      const raws = [];
+      for await (const r of a.sync({ inputPath })) raws.push(r);
+      expect(raws).toHaveLength(1);
+      expect(raws[0].adapter).toBe("shopping-taobao");
+      expect(raws[0].kind).toBe("order");
+      expect(raws[0].originalId).toBe("taobao:order:TB-SNAP-1");
+      const batch = a.normalize(raws[0]);
+      expect(validateBatch(batch).valid).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("snapshot mode — schemaVersion mismatch throws", async () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const os = require("node:os");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taobao-snap-bad-"));
+    const inputPath = path.join(dir, "snap.json");
+    fs.writeFileSync(inputPath, JSON.stringify({ schemaVersion: 99, events: [] }), "utf-8");
+    try {
+      const a = new TaobaoAdapter();
+      let threw = null;
+      try {
+        for await (const _r of a.sync({ inputPath })) { /* drain */ }
+      } catch (err) { threw = err; }
+      expect(threw).toBeTruthy();
+      expect(threw.message).toMatch(/schemaVersion mismatch/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("no-arg ctor + no inputPath = NO_INPUT (legible failure)", async () => {
+    const a = new TaobaoAdapter();
+    const auth = await a.authenticate({});
+    expect(auth.ok).toBe(false);
+    expect(auth.reason).toBe("NO_INPUT");
+  });
 });
 
 // ─── JdAdapter ───────────────────────────────────────────────────────────

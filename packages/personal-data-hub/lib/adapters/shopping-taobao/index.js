@@ -18,28 +18,36 @@
 
 "use strict";
 
+const fs = require("node:fs");
 const { normalizeOrderRecord, CookieAuth } = require("../shopping-base");
 
 const NAME = "shopping-taobao";
-const VERSION = "0.5.0";
+const VERSION = "0.6.0"; // §2.4d snapshot mode for Android in-APK cc
+const SNAPSHOT_SCHEMA_VERSION = 1;
+
+const KIND_ORDER = "order";
+const VALID_SNAPSHOT_KINDS = Object.freeze([KIND_ORDER]);
 
 const TAOBAO_ORDERS_URL = "https://h5.m.taobao.com/mlapp/olist.html";
 
 class TaobaoAdapter {
   constructor(opts = {}) {
-    if (!opts.account || !opts.account.userId) {
-      throw new Error("TaobaoAdapter: opts.account.userId required");
-    }
-    this.account = opts.account;
-    this._cookieAuth = new CookieAuth({
-      platform: "taobao",
-      cookies: opts.account.cookies || "",
-    });
+    // §2.4d v0.2 — account.userId OPTIONAL (mirror shopping-jd/meituan/pinduoduo
+    // dual-mode). Snapshot mode is stateless; cookie mode requires it; checked
+    // at sync time, not construction. Earlier strict ctor blocked auto-register
+    // at boot → user-driven HTML import worked but JSON snapshot path didn't.
+    this.account = opts.account || null;
+    this._cookieAuth = opts.account
+      ? new CookieAuth({
+          platform: "taobao",
+          cookies: opts.account.cookies || "",
+        })
+      : null;
     this._fetchFn = typeof opts.fetchFn === "function" ? opts.fetchFn : defaultFetch;
 
     this.name = NAME;
     this.version = VERSION;
-    this.capabilities = ["sync:cookie-api", "parse:taobao-orders"];
+    this.capabilities = ["sync:snapshot", "sync:cookie-api", "parse:taobao-orders"];
     this.extractMode = "web-api";
     this.rateLimits = { perMinute: 6, perDay: 200 }; // respect Taobao风控
     this.dataDisclosure = {
@@ -48,23 +56,132 @@ class TaobaoAdapter {
       ],
       sensitivity: "high",
       legalGate: false,
+      defaultInclude: { order: true },
+    };
+
+    // _deps injection seam — vi.mock fs doesn't intercept inlined CJS require.
+    this._deps = { fs };
+  }
+
+  async authenticate(ctx = {}) {
+    if (ctx && typeof ctx.inputPath === "string" && ctx.inputPath.length > 0) {
+      try {
+        this._deps.fs.accessSync(ctx.inputPath, this._deps.fs.constants.R_OK);
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "INPUT_PATH_UNREADABLE",
+          message: `snapshot not readable at ${ctx.inputPath}: ${err.message}`,
+        };
+      }
+      return { ok: true, mode: "snapshot-file" };
+    }
+    if (this._cookieAuth) {
+      const ok = await this._cookieAuth.validate();
+      if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing or empty" };
+      if (!this.account || !this.account.userId) {
+        return { ok: false, reason: "NO_ACCOUNT_USERID", message: "cookie mode requires account.userId" };
+      }
+      return { ok: true, account: this.account.userId, mode: "cookie" };
+    }
+    return {
+      ok: false,
+      reason: "NO_INPUT",
+      message: "TaobaoAdapter.authenticate: needs opts.inputPath (snapshot mode) OR opts.account.cookies (cookie mode)",
     };
   }
 
-  async authenticate() {
-    const ok = await this._cookieAuth.validate();
-    if (!ok) return { ok: false, reason: "INVALID_COOKIE", error: "cookies missing or empty" };
-    return { ok: true, account: this.account.userId };
-  }
-
   async healthCheck() {
-    const r = await this.authenticate();
-    return r.ok
-      ? { ok: true, lastChecked: Date.now() }
-      : { ok: false, reason: r.reason, error: r.error };
+    if (this._cookieAuth) {
+      const r = await this.authenticate();
+      return r.ok
+        ? { ok: true, lastChecked: Date.now() }
+        : { ok: false, reason: r.reason, error: r.error };
+    }
+    return { ok: true, lastChecked: Date.now() };
   }
 
   async *sync(opts = {}) {
+    if (typeof opts.inputPath === "string" && opts.inputPath.length > 0) {
+      yield* this._syncViaSnapshot(opts);
+      return;
+    }
+    if (this._cookieAuth) {
+      yield* this._syncViaCookie(opts);
+      return;
+    }
+    throw new Error(
+      "TaobaoAdapter.sync: needs opts.inputPath (snapshot mode, Android in-APK cc) OR opts.account.cookies (cookie mode)",
+    );
+  }
+
+  async *_syncViaSnapshot(opts) {
+    const raw = this._deps.fs.readFileSync(opts.inputPath, "utf-8");
+    let snapshot;
+    try {
+      snapshot = JSON.parse(raw);
+    } catch (err) {
+      throw new Error(
+        `shopping-taobao.sync: snapshot must be JSON (v0.3 will add HTML parsing for SAF-exported pages). Got parse error: ${err.message}`,
+      );
+    }
+    if (
+      !snapshot ||
+      typeof snapshot !== "object" ||
+      snapshot.schemaVersion !== SNAPSHOT_SCHEMA_VERSION
+    ) {
+      throw new Error(
+        `shopping-taobao.sync: snapshot schemaVersion mismatch (got ${snapshot && snapshot.schemaVersion}, expected ${SNAPSHOT_SCHEMA_VERSION})`,
+      );
+    }
+    const fallbackCapturedAt =
+      Number.isFinite(snapshot.snapshottedAt) && snapshot.snapshottedAt > 0
+        ? Math.floor(snapshot.snapshottedAt)
+        : Date.now();
+    const account =
+      snapshot.account && typeof snapshot.account === "object"
+        ? snapshot.account
+        : null;
+    const include = opts.include || {};
+    const limit =
+      Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : Infinity;
+
+    const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+    let emitted = 0;
+    for (const ev of events) {
+      if (emitted >= limit) return;
+      if (!ev || typeof ev !== "object") continue;
+      const kind = ev.kind;
+      if (!VALID_SNAPSHOT_KINDS.includes(kind)) continue;
+      if (include[kind] === false) continue;
+
+      const capturedAt =
+        parseTime(ev.capturedAt) ||
+        parseTime(ev.placedAt) ||
+        parseTime(ev.paidAt) ||
+        fallbackCapturedAt;
+      const id =
+        (typeof ev.id === "string" && ev.id.length > 0 && ev.id) ||
+        ev.orderId ||
+        null;
+
+      yield {
+        adapter: NAME,
+        kind,
+        originalId: stableOriginalId(kind, id),
+        capturedAt,
+        payload: { ...ev, account },
+      };
+      emitted += 1;
+    }
+  }
+
+  async *_syncViaCookie(opts = {}) {
+    if (!this.account || !this.account.userId) {
+      throw new Error(
+        "TaobaoAdapter._syncViaCookie: account.userId required (set via new TaobaoAdapter({ account: { userId } }))",
+      );
+    }
     if (!(await this._cookieAuth.validate())) return;
     const sinceMs = opts.sinceWatermark != null
       ? parseWatermarkMs(opts.sinceWatermark)
@@ -97,14 +214,37 @@ class TaobaoAdapter {
   }
 
   normalize(raw) {
-    if (!raw || !raw.payload || !raw.payload.record) {
-      throw new Error("TaobaoAdapter.normalize: raw.payload.record missing");
+    if (!raw || !raw.payload) {
+      throw new Error("TaobaoAdapter.normalize: raw.payload missing");
     }
-    return normalizeOrderRecord(raw.payload.record, {
+    // Snapshot mode payload is the raw event spread + account; cookie mode
+    // wraps a normalized record under payload.record. Dispatch on shape.
+    if (raw.payload.record) {
+      return normalizeOrderRecord(raw.payload.record, {
+        adapterName: NAME,
+        adapterVersion: VERSION,
+      });
+    }
+    // Snapshot path: the Android collector ships records that already match
+    // the OrderRecord shape (vendorId/orderId/placedAt/...). Pass through.
+    return normalizeOrderRecord(raw.payload, {
       adapterName: NAME,
       adapterVersion: VERSION,
     });
   }
+}
+
+function parseTime(v) {
+  if (Number.isFinite(v) && v > 0) return v < 1e12 ? v * 1000 : v;
+  if (typeof v === "string") {
+    const t = Date.parse(v);
+    if (Number.isFinite(t)) return t;
+  }
+  return null;
+}
+
+function stableOriginalId(kind, id) {
+  return id ? `taobao:${kind}:${id}` : `taobao:${kind}:unknown-${Date.now()}`;
 }
 
 function orderToRecord(o) {
