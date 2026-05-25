@@ -28,13 +28,21 @@ const {
 } = require("../../constants");
 
 const NAME = "system-data-android";
+// v0.3.1 (2026-05-25): normalize() now emits a synthetic OTHER event per
+//   contact + per app. Snapshot mode previously only wrote persons/items;
+//   Vault Browser's `category=system` facet only counts events, so the
+//   chip showed (0) forever even after a successful sync. Synthetic event
+//   per entity (stable id, idempotent across re-syncs via UPSERT) lights
+//   up the chip with `total = #contacts + #apps`. occurredAt = capturedAt
+//   of the latest snapshot containing the entity. sms/call/media events
+//   were already emitted in v0.2 — unchanged.
 // v0.3.0 (2026-05-24): added kind="media-file" via bridge mode
 //   (host-adb-bridge media.list across 5 /sdcard categories). Metadata
 //   only — path/size/mtime/ext, no file content.
 // v0.2.0 (2026-05-24): added kind="sms" + kind="call" via bridge mode.
 //   Snapshot mode still v1 schema — sms/calls/media only land via
 //   bridge path until Android snapshot writer is updated to include them.
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 const SNAPSHOT_SCHEMA_VERSION = 1;
 
 // Stable per-source originalId — registry.putRawEvent rejects null originalId
@@ -391,8 +399,24 @@ class SystemDataAndroidAdapter {
       if (typeof p.photoUri === "string" && p.photoUri.length > 0) extra.photoUri = p.photoUri;
       if (Object.keys(extra).length > 0) person.extra = extra;
 
+      // v0.3.1 — synthesise an OTHER event so the snapshot contact shows up
+      // in the Vault Browser's `category=system` facet (which counts events,
+      // not persons). Stable id keyed on stableKey makes re-syncs idempotent
+      // via UPSERT; occurredAt floats forward to the latest snapshot time
+      // ("last time we saw this contact"), payload itself lives on the person.
+      const event = {
+        id: `event-android-contact-${stableKey}`,
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.OTHER,
+        occurredAt: raw.capturedAt,
+        ingestedAt,
+        source: source(`android-contact:${stableKey}`),
+        content: { title: `联系人：${displayName}` },
+        extra: { kind: "contact-snapshot" },
+      };
+
       return {
-        events: [],
+        events: [event],
         persons: [person],
         places: [],
         items: [],
@@ -428,8 +452,21 @@ class SystemDataAndroidAdapter {
         },
       };
 
+      // v0.3.1 — same rationale as the contact branch: emit a synthetic
+      // OTHER event so installed apps show up in the system facet count.
+      const event = {
+        id: `event-android-app-${pkgName}`,
+        type: ENTITY_TYPES.EVENT,
+        subtype: EVENT_SUBTYPES.OTHER,
+        occurredAt: raw.capturedAt,
+        ingestedAt,
+        source: source(`android-app:${pkgName}`),
+        content: { title: `应用：${label}` },
+        extra: { kind: "app-snapshot", packageName: pkgName },
+      };
+
       return {
-        events: [],
+        events: [event],
         persons: [],
         places: [],
         items: [item],
