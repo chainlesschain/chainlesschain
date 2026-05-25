@@ -213,15 +213,16 @@ fun SocialCookieWebViewScreen(
                 .fillMaxSize(),
         ) {
             // Hint banner — tells user why this WebView appears.
-            // 2026-05-24: 同手机场景账密 captcha 墙 / 跨手机扫码自己照不到自己。
-            // 推 "本机一键登录" 路径 — 各平台 web 登录页底部"通过 X App 一键登录"
-            // / "本机已登录，点此确认"按钮跳 `bilibili://` / `snssdk1128://` 等
-            // scheme，刚加的 shouldOverrideUrlLoading 拦截后派发 Intent.ACTION_VIEW
-            // 拉起原生 App。原生 App 向自家服务器确认授权，WebView 的 JS 轮询拿到
-            // "已授权" → Set-Cookie header 下发 → 我们 CookieManager 接住。同手机
-            // 流程不需要相机，跟扫码本质同路径（cookie 是服务器下发，不是 App 灌
-            // 给我们）。微博走移动 web 账密软校验本身就过 — 详见 memory
-            // `bilibili_post_onload_cookie_race.md` 字段校验链。
+            // 2026-05-25 真机迭代教训：
+            //   - 一键登录 / 「使用 App 打开」 deep-link 拉起原生 App → App
+            //     进程自己写 cookie 到自家沙箱（Android per-process 隔离），
+            //     **不会**回灌到我们 WebView CookieManager。所以"App 起来登
+            //     完 cookie 还是 0"。
+            //   - Desktop UA (DESKTOP_CHROME_USER_AGENT) 让平台返带账密表单
+            //     的桌面登录页。账密走完 cookie 直接写到我们 WebView，没跨
+            //     进程问题。
+            //   - 微博 m.weibo.cn 不严，走默认 sanitize 路径即可（不传 UA）。
+            // 详 memory `pdh_social_webview_deeplink_cookie_capture.md` v2 段。
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -234,9 +235,10 @@ fun SocialCookieWebViewScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "推荐：找下方「通过 $displayName App 一键登录」/「本机已登录，" +
-                        "点此确认」按钮（在扫码二维码下方），点了会拉起本机已登录的 " +
-                        "$displayName App 完成授权，比账密登录稳得多。",
+                    "推荐：用账号密码登录（手机号 + 密码 或 手机号 + 短信验证码）。" +
+                        "⚠️ 不要点「一键登录」/「使用 App 打开」/「打开 App 授权」" +
+                        "等会拉起 $displayName App 的按钮 — Android 隔离 App 和" +
+                        "我们 WebView 的 cookie，从 App 登完返回这里也是空的。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -320,6 +322,39 @@ private fun CookieWebViewHost(
         }
     }
 
+    // 2026-05-25 v2 — cookie 抓到后的统一 dispatch lambda：URL 路径 (onPageFinished)
+    // 和 cookie 轮询路径 (pollRunnable) 都调本函数。prefetchJs 非 null 则走 in-WebView
+    // JS fetch，否则旧 onLoginCookie 兜底。第 1 版只在 URL 路径加 prefetch → 抖音走
+    // cookie 路径直接跳 OkHttp HTTP 404，得不偿失
+    val dispatchCookieReady: (WebView, String) -> Unit = { view, cookie ->
+        if (prefetchJs != null && onPrefetchComplete != null) {
+            val responded = java.util.concurrent.atomic.AtomicBoolean(false)
+            val sharedCb: (String?) -> Unit = { data ->
+                if (responded.compareAndSet(false, true)) {
+                    onPrefetchComplete(cookie, data)
+                }
+            }
+            // broadcast 注册 — 每平台 bridge 一个单例，AtomicBoolean 守护去重
+            com.chainlesschain.android.pdh.social.bilibili
+                .BilibiliJsBridge.setPending(sharedCb)
+            com.chainlesschain.android.pdh.social.douyin
+                .DouyinJsBridge.setPending(sharedCb)
+            view.evaluateJavascript(prefetchJs, null)
+            view.postDelayed({
+                if (responded.compareAndSet(false, true)) {
+                    com.chainlesschain.android.pdh.social.bilibili
+                        .BilibiliJsBridge.clearPending()
+                    com.chainlesschain.android.pdh.social.douyin
+                        .DouyinJsBridge.clearPending()
+                    Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
+                    onPrefetchComplete(cookie, null)
+                }
+            }, 15_000)
+        } else {
+            onLoginCookie(cookie)
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
@@ -351,6 +386,10 @@ private fun CookieWebViewHost(
                 addJavascriptInterface(
                     com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge,
                     "BilibiliBridge",
+                )
+                addJavascriptInterface(
+                    com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge,
+                    "DouyinBridge",
                 )
                 webViewClient = object : WebViewClient() {
                     /**
@@ -427,31 +466,7 @@ private fun CookieWebViewHost(
                                     "SocialCookieWebView: login success url=%s cookieLen=%d",
                                     url, cookie.length
                                 )
-                                if (prefetchJs != null && onPrefetchComplete != null) {
-                                    // 2026-05-25：post-login in-WebView JS fetch — 唯一稳路
-                                    // 绕 b 站桌面 web API 风控。v2: AtomicBoolean 互斥
-                                    // bridge cb 和 timeout — v1 timeout 无脑覆盖了已
-                                    // fired 的 onPrefetchComplete(data) 为 (null)，回退
-                                    // 到 OkHttp 把刚抓到的真数据丢了。
-                                    val responded = java.util.concurrent.atomic.AtomicBoolean(false)
-                                    com.chainlesschain.android.pdh.social.bilibili
-                                        .BilibiliJsBridge.setPending { data ->
-                                            if (responded.compareAndSet(false, true)) {
-                                                onPrefetchComplete(cookie, data)
-                                            }
-                                        }
-                                    view.evaluateJavascript(prefetchJs, null)
-                                    view.postDelayed({
-                                        if (responded.compareAndSet(false, true)) {
-                                            com.chainlesschain.android.pdh.social.bilibili
-                                                .BilibiliJsBridge.clearPending()
-                                            Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
-                                            onPrefetchComplete(cookie, null)
-                                        }
-                                    }, 15_000)
-                                } else {
-                                    onLoginCookie(cookie)
-                                }
+                                dispatchCookieReady(view, cookie)
                             }, COOKIE_CAPTURE_DELAY_MS)
                         }
                     }
@@ -500,7 +515,7 @@ private fun CookieWebViewHost(
                                             "success domain=%s cookieLen=%d",
                                         cookieDomain, cookie.length,
                                     )
-                                    onLoginCookie(cookie)
+                                    dispatchCookieReady(webViewSelf, cookie)
                                     return  // stop polling
                                 }
                             } catch (t: Throwable) {

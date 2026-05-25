@@ -20,7 +20,7 @@ import javax.inject.Singleton
  *    cookies+SignBridge flow.
  *
  *  - [ToutiaoRootCredentialsStore] (this, path B) — uid only. Path B
- *    reads `/data/data/com.ss.android.article.news/databases/*.db`
+ *    reads `/data/data/com.ss.android.article.news/databases/` `*.db`
  *    directly via root; doesn't need cookies because we're not making
  *    HTTP requests.
  *
