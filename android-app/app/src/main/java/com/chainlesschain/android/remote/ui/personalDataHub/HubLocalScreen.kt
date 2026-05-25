@@ -91,6 +91,7 @@ fun HubLocalScreen(
                 cookieDomain = pending.cookieDomain,
                 displayName = pending.displayName,
                 isLoginSuccess = pending.isLoginSuccess,
+                userAgent = pending.userAgent,
                 onLoginComplete = { cookie ->
                     when {
                         pending.adapterName == "social-bilibili" ->

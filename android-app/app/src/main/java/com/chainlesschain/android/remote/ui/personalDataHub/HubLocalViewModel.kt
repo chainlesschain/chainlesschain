@@ -17,6 +17,7 @@ import com.chainlesschain.android.remote.commands.HubHealth
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
+import com.chainlesschain.android.pdh.social.DESKTOP_CHROME_USER_AGENT
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
@@ -189,6 +190,14 @@ class HubLocalViewModel @Inject constructor(
         val cookieDomain: String,
         /** URL-pattern detector run by the WebView screen — true ⇒ extract cookie + return. */
         val isLoginSuccess: (String) -> Boolean,
+        /**
+         * 可选 WebView UA 整串覆盖。5 个反 WebView 严格平台 (Bilibili / 抖音 /
+         * 小红书 / 头条 / 快手) 设 DESKTOP_CHROME_USER_AGENT，否则平台返
+         * 「请用 X App 打开」拦截页（无 JS 轮询，cookie 永远抓不到）。微博
+         * m.weibo.cn 不需要 → 留 null 走 sanitize 默认。详 memory
+         * `pdh_social_webview_deeplink_cookie_capture.md`。
+         */
+        val userAgent: String? = null,
     )
 
     /**
@@ -2295,6 +2304,7 @@ class HubLocalViewModel @Inject constructor(
                             url == "https://m.bilibili.com") &&
                             !url.contains("passport.bilibili.com")
                     },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -2724,6 +2734,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("showLogin=1") &&
                             !url.contains("passport.")
                     },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -2934,6 +2945,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("/sign-in") &&
                             !url.contains("passport")
                     },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3152,6 +3164,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3345,6 +3358,7 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
