@@ -56,8 +56,8 @@ android {
         // local-terminal) can be revisited if a 26-baseline ship target appears.
         minSdk = 28  // Android 9 Pie
         targetSdk = 35  // Android 15
-        versionCode = 503090
-        versionName = "5.0.3.90"
+        versionCode = 503091
+        versionName = "5.0.3.91"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
@@ -110,8 +110,16 @@ android {
         }
 
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // R8 minify + resource shrink temporarily disabled (v5.0.3.91+) — AGP 8.5.2
+            // R8 backend `:app:minifyReleaseWithR8` 在 .88/.89/.90 三个 release run 都
+            // 4 分钟内炸 java.util.ConcurrentModificationException，已 land 的 enableR8.
+            // fullMode=false (gradle.properties) + -dontoptimize (proguard) + systemProp
+            // r8.threadCount=1 + heap 8→6 GB + workers.max=1 都没拦住。upstream R8 8.5.x
+            // 已知 race，估计要等 AGP 8.7+ 升 R8 后再开。trade-off: APK ~+30% 体积，
+            // alpha track 接受。memory [[android_release_r8_minify_hotfix_chain]] trap
+            // tier 升级到 "all 4 workarounds failed → disable minify"。
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
