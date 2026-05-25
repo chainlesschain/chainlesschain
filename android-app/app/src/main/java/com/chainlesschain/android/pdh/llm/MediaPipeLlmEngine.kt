@@ -179,10 +179,9 @@ class MediaPipeLlmEngine @Inject constructor(
             // the whole app. We cannot catch this from Kotlin — by the time
             // control returns we are already dead. The only safe path is to
             // refuse the prompt up front and let the user retry with a tighter
-            // question or switch to a cloud LLM. estimateChars/4 mirrors the
-            // existing token estimator used for ChatResponse.promptTokens.
+            // question or switch to a cloud LLM.
             val prompt = formatPrompt(messages)
-            val estPromptTokens = prompt.length / 4
+            val estPromptTokens = estimateTokens(prompt)
             val ctxBudget = opts.maxTokens
             val safetyMargin = 128
             if (estPromptTokens > ctxBudget - safetyMargin) {
@@ -205,8 +204,8 @@ class MediaPipeLlmEngine @Inject constructor(
             LlmInferenceEngine.ChatResponse(
                 text = output,
                 // v0.3 wire MediaPipe TaskMetric.tokens if exposed; for now estimate.
-                promptTokens = prompt.length / 4,
-                completionTokens = output.length / 4,
+                promptTokens = estimateTokens(prompt),
+                completionTokens = estimateTokens(output),
                 totalDurationMs = durationMs,
             )
         }
@@ -332,6 +331,48 @@ class MediaPipeLlmEngine @Inject constructor(
         }
         sb.append("<|im_start|>assistant\n")
         return sb.toString()
+    }
+
+    /**
+     * CJK-aware token estimator. The original `chars / 4` heuristic is an
+     * English-centric rule that under-estimates Chinese by 3-4×: Qwen / Gemma
+     * tokenizers map each CJK ideograph to roughly 1 token (sometimes 2 for
+     * rare characters), not 0.25. When a contact list with Chinese names hit
+     * the original guard the estimate said ~1250 tokens but native tokenized
+     * to 4199 → guard passed → SIGABRT (trap #22 regression in logcat
+     * 2026-05-25 08:41:29). The fix: count CJK code points as ~1.2 tokens
+     * each, ASCII as 0.25 token/char. Conservatively rounded UP so the guard
+     * errs on the side of refusing borderline prompts rather than crashing.
+     *
+     * CJK ranges covered (most common for Chinese / Japanese / Korean):
+     *  - U+3000..U+303F  CJK symbols & punctuation (、。「」etc.)
+     *  - U+3040..U+309F  Hiragana
+     *  - U+30A0..U+30FF  Katakana
+     *  - U+3400..U+4DBF  CJK Unified Ideographs Extension A
+     *  - U+4E00..U+9FFF  CJK Unified Ideographs (most common Chinese)
+     *  - U+AC00..U+D7AF  Hangul syllables
+     *  - U+F900..U+FAFF  CJK Compatibility Ideographs
+     *  - U+FF00..U+FFEF  Halfwidth & fullwidth forms (．、。etc.)
+     */
+    internal fun estimateTokens(text: String): Int {
+        var cjk = 0
+        var other = 0
+        for (ch in text) {
+            val code = ch.code
+            val isCjk =
+                (code in 0x3000..0x303F) ||
+                    (code in 0x3040..0x309F) ||
+                    (code in 0x30A0..0x30FF) ||
+                    (code in 0x3400..0x4DBF) ||
+                    (code in 0x4E00..0x9FFF) ||
+                    (code in 0xAC00..0xD7AF) ||
+                    (code in 0xF900..0xFAFF) ||
+                    (code in 0xFF00..0xFFEF)
+            if (isCjk) cjk++ else other++
+        }
+        // 1.2 token/CJK char + 0.25 token/ASCII char, rounded up.
+        val approx = cjk * 12 / 10 + (other + 3) / 4
+        return approx
     }
 
     private fun formatGemma(messages: List<LlmInferenceEngine.ChatMessage>): String {
