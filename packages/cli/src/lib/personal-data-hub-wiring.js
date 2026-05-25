@@ -327,11 +327,16 @@ async function initHub() {
       // C-path collector (m.weibo.cn cookies + 4 HTTP endpoints).
       const { createWeiboCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+      // Phase 3c: register `xhs.cookies` extension for the Xhs C-path
+      // collector (xiaohongshu.com cookies + 4 endpoints with X-S sign).
+      const { createXhsCookiesExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
           "douyin.pull-im-db": createDouyinDbExtension(),
           "weibo.cookies": createWeiboCookiesExtension(),
+          "xhs.cookies": createXhsCookiesExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -1007,6 +1012,59 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(WEIBO_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 3c — Xhs C 路径 one-shot sync ────────────────────────────
+    //
+    // Pulls xiaohongshu.com cookies via xhs.cookies extension → fetchMe
+    // (/user/me — no X-S) → 3 endpoints (notes/liked/follows, X-S signed)
+    // → snapshot → syncAdapter("social-xiaohongshu") snapshot mode.
+    //
+    // **X-S signing is best-effort** (~60% GET hit, <30% POST). Endpoint
+    // failures tolerated as partial results — lastErrorCode surfaces the
+    // 461 X-S rejection so UI can recommend "稍后重试".
+    //
+    // Typed reason codes: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED /
+    // XHS_NO_ROOT / XHS_NOT_INSTALLED / XHS_COOKIES_EMPTY /
+    // XHS_COOKIES_TRUNCATED / XHS_NOT_SQLITE / XHS_COOKIES_INCOMPLETE /
+    // XHS_BASE64_PARSE / SYNC_FAILED.
+    async xhsAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(XHS_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

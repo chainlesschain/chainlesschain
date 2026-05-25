@@ -432,6 +432,16 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 3c — Xhs C 路径 one-shot sync (xiaohongshu.com cookies + 4 endpoints X-S signed)
+  "personal-data-hub.xhs-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.xhsAdbSync({
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>

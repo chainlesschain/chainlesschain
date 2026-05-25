@@ -204,6 +204,9 @@
           <a-button @click="weiboAdbSync" :loading="loading.weiboAdbSync">
             通过 PC ADB 同步 Weibo
           </a-button>
+          <a-button @click="xhsAdbSync" :loading="loading.xhsAdbSync">
+            通过 PC ADB 同步 Xhs
+          </a-button>
           <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
             通过 PC ADB 同步 Douyin
           </a-button>
@@ -882,6 +885,7 @@ const loading = reactive({
   bilibiliAdbDoctor: false,
   douyinAdbSync: false,
   weiboAdbSync: false,
+  xhsAdbSync: false,
 })
 
 /**
@@ -1009,6 +1013,93 @@ function weiboReasonMessage(reason) {
     case 'SYNC_FAILED':
     default:
       return '同步失败 — 详见 message 字段'
+  }
+}
+
+/**
+ * Phase 3c — Xhs C 路径 (PC + ADB + X-S signing) UI handler.
+ *
+ * X-S signing is best-effort (~60% GET hit rate); UI surfaces 461
+ * partial-result reasonably rather than treating it as failure.
+ */
+function xhsReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'XHS_NO_ROOT':
+      return '手机未 root — 小红书正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
+    case 'XHS_NOT_INSTALLED':
+      return '请在手机上安装小红书 App 并登录一次，然后重试'
+    case 'XHS_COOKIES_EMPTY':
+      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
+    case 'XHS_COOKIES_TRUNCATED':
+      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'XHS_NOT_SQLITE':
+      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
+    case 'XHS_BASE64_PARSE':
+      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
+    case 'XHS_COOKIES_INCOMPLETE':
+      return 'a1 或 web_session cookie 缺失 — 请在手机小红书 App 上重新登录 (X-S 签名需要 a1 字段)'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function xhsAdbSync() {
+  if (loading.xhsAdbSync) return
+  loading.xhsAdbSync = true
+  try {
+    const result = await hub.xhsAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = xhsReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Xhs ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const xhs = report.xhs || {}
+    const counts = xhs.eventCounts || {}
+    if (xhs.meFetchFailed) {
+      message.warning({
+        content: `Xhs 同步未拉到 user_id — /user/me 返空 data`,
+        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ''}。可能 cookie 已过期或 web_session 缺失，请在手机重新登录。`,
+        duration: 10,
+      })
+    } else if (xhs.lastErrorCode === 461) {
+      message.warning({
+        content: `Xhs X-S 签名被拒 (461) — 部分接口未抓到`,
+        description: `命中 ${counts.total || 0} events。我们的 X-S 算法 best-effort (~60% GET / <30% POST hit)，461 在 POST 较常见。稍后重试 (X-S 算法可能 4-8 周 rotate)。`,
+        duration: 10,
+      })
+    } else if (xhs.lastErrorCode) {
+      message.warning({
+        content: `Xhs 同步部分完成 (${counts.total || 0} events)`,
+        description: `lastErrorCode=${xhs.lastErrorCode}, ${xhs.lastErrorMessage || ''}`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Xhs 同步成功：notes=${counts.note || 0} / liked=${counts.liked || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})${xhs.nickname ? ' [' + xhs.nickname + ']' : ''}`,
+      )
+    }
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Xhs ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.xhsAdbSync = false
   }
 }
 

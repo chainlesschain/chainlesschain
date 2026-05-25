@@ -369,11 +369,16 @@ async function initHub() {
     const {
       createWeiboCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+    // Phase 3c: register `xhs.cookies` extension (mirror of cli wiring).
+    const {
+      createXhsCookiesExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
         "douyin.pull-im-db": createDouyinDbExtension(),
         "weibo.cookies": createWeiboCookiesExtension(),
+        "xhs.cookies": createXhsCookiesExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -1132,6 +1137,46 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(WEIBO_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 3c — Xhs C 路径 one-shot sync ────────────────────────────
+    //
+    // Mirror of cli `xhsAdbSync`. Best-effort X-S signing (~60% GET hit).
+    async xhsAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(XHS_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",
