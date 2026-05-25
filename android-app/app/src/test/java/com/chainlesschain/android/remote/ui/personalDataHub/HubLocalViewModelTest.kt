@@ -143,6 +143,12 @@ class HubLocalViewModelTest {
         // tests override these to assert correct surfacing.
         every { douyinCollector.lastLoginErrorCode } returns 0
         every { douyinCollector.lastLoginErrorMessage } returns null
+        // v0.3 — VM sets `douyinCollector.signProvider = douyinSignBridge`
+        // before snapshot(). Strict mock needs the setter stubbed; otherwise
+        // launch{} throws MockKException ("no answer found for property setter"),
+        // state.update never reaches the NoCredentials/Ok branches, and asserts
+        // see stale isLoggedIn=true / errorMessage=null.
+        every { douyinCollector.signProvider = any() } just runs
         douyinCredentials = mockk(relaxed = true)
         every { douyinCredentials.hasCredentials() } returns false
         every { douyinCredentials.getSecUid() } returns null
