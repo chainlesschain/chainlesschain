@@ -660,6 +660,30 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * Phase 6d — Kuaishou C 路径 one-shot sync.
+     *
+     * Pulls www.kuaishou.com cookies via ADB, parses profile from cookie's
+     * kuaishou.web.cp.api_ph payload (no HTTP), then fetches 3 signed
+     * GraphQL endpoints (watch/collect/search). Desktop: ~100% via
+     * KuaishouSignBridge running NS_sig3 SDK. Web/CLI: signed endpoints
+     * short-circuit (no HTTP traffic) — banner explains "run from desktop".
+     *
+     * 120s timeout — NS_sig3 init heavier than acrawler.js (~5-8s warmUp)
+     * + 3 signed GraphQL POST endpoints + shutdown.
+     */
+    async kuaishouAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.kuaishou-adb-sync",
+        {
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        120_000,
+      );
+    },
+
+    /**
      * Phase 2a — Douyin C 路径 one-shot sync.
      *
      * Pulls <uid>_im.db cohort from the user's Android Douyin App via

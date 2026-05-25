@@ -337,6 +337,12 @@ async function initHub() {
       // short-circuit, desktop wiring upgrades via ToutiaoSignBridge).
       const { createToutiaoCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+      // Phase 6d: register `kuaishou.cookies` extension. Profile from
+      // cookie's api_ph payload (no HTTP); 3 GraphQL POST endpoints need
+      // __NS_sig3 + kpf/kpn — CLI short-circuits, desktop upgrades via
+      // KuaishouSignBridge.
+      const { createKuaishouCookiesExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
@@ -344,6 +350,7 @@ async function initHub() {
           "weibo.cookies": createWeiboCookiesExtension(),
           "xhs.cookies": createXhsCookiesExtension(),
           "toutiao.cookies": createToutiaoCookiesExtension(),
+          "kuaishou.cookies": createKuaishouCookiesExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -1125,6 +1132,61 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(TOUTIAO_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 6d — Kuaishou C 路径 one-shot sync ───────────────────────
+    //
+    // Pulls www.kuaishou.com cookies via kuaishou.cookies extension →
+    // fetchProfile (PURE COOKIE PARSE — reads api_ph payload, no HTTP)
+    // → 3 signed GraphQL POST endpoints (visionFeedRecommend /
+    // visionProfilePhotoList / visionSearchPhoto, __NS_sig3 + kpf/kpn).
+    //
+    // **CLI context has NO sign bridge** — 3 signed endpoints short-
+    // circuit with lastErrorCode=-99 (no HTTP traffic). Profile + uid
+    // still emit from cookie payload. Desktop wiring upgrades via
+    // KuaishouSignBridge.
+    //
+    // Typed reason codes: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED /
+    // KUAISHOU_NO_ROOT / KUAISHOU_NOT_INSTALLED / KUAISHOU_COOKIES_EMPTY /
+    // KUAISHOU_COOKIES_TRUNCATED / KUAISHOU_NOT_SQLITE /
+    // KUAISHOU_COOKIES_INCOMPLETE / KUAISHOU_BASE64_PARSE / SYNC_FAILED.
+    async kuaishouAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(KUAISHOU_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

@@ -455,6 +455,19 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 6d — Kuaishou C 路径 one-shot sync (www.kuaishou.com cookies +
+  // profile from api_ph payload + 3 GraphQL endpoints with __NS_sig3 +
+  // kpf/kpn). CLI/web context: signed endpoints short-circuit (no HTTP).
+  // Desktop wiring uses KuaishouSignBridge → ~100% hit.
+  "personal-data-hub.kuaishou-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.kuaishouAdbSync({
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>

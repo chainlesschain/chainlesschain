@@ -377,6 +377,10 @@ async function initHub() {
     const {
       createToutiaoCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+    // Phase 6d: register `kuaishou.cookies` extension (mirror of cli wiring).
+    const {
+      createKuaishouCookiesExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
@@ -384,6 +388,7 @@ async function initHub() {
         "weibo.cookies": createWeiboCookiesExtension(),
         "xhs.cookies": createXhsCookiesExtension(),
         "toutiao.cookies": createToutiaoCookiesExtension(),
+        "kuaishou.cookies": createKuaishouCookiesExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -1257,6 +1262,64 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(TOUTIAO_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 6d — Kuaishou C 路径 one-shot sync ───────────────────────
+    //
+    // Mirror of cli `kuaishouAdbSync` but with KuaishouSignBridge injected
+    // (Electron WebContentsView running NS_sig3 SDK → ~100% hit rate on
+    // 3 GraphQL endpoints). Bridge per-sync — ~30-50MB heap released
+    // after via collector's try/finally shutdown.
+    async kuaishouAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-kuaishou-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      // Phase 6d: instantiate KuaishouSignBridge per-sync. Lazy require
+      // so non-Electron contexts don't load it at import time.
+      let signProvider = null;
+      try {
+        const { KuaishouSignBridge } = require("../sign-bridge");
+        signProvider = new KuaishouSignBridge({
+          onWarn: (m) =>
+            logger.warn("[PersonalDataHub] KuaishouSignBridge:", m),
+        });
+      } catch (err) {
+        logger.warn(
+          "[PersonalDataHub] KuaishouSignBridge load failed — Kuaishou signed endpoints will short-circuit:",
+          err && err.message ? err.message : String(err),
+        );
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          { ...opts, signProvider },
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(KUAISHOU_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",
