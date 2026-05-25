@@ -66,6 +66,9 @@ const {
   Train12306Adapter,
   TaobaoAdapter,
   CtripAdapter,
+  AmapAdapter,
+  TelegramAdapter,
+  WhatsAppAdapter,
   ingestSystemDataAndroidSnapshot,
   EntityResolver,
   EntityResolverEmbeddingStage,
@@ -485,13 +488,11 @@ async function initHub() {
   // 10 surfaced "AdapterRegistry.syncAdapter: no adapter X" on real device
   // when the Android collector produced staging JSON for them.
   //
-  // **Deferred** (hardware-blocked — sqlite device-pull require root Android;
-  // cannot snapshot-mode-wire since no source data without root SQLite read):
-  //   AmapAdapter / TelegramAdapter / WhatsAppAdapter
-  // Train12306Adapter + TaobaoAdapter + CtripAdapter moved out of deferred
-  // 2026-05-25 (all three gained no-arg snapshot mode); Android collectors
-  // ship snapshot JSON via syncAdapter("<name>", path) — must be registered
-  // here too or desktop IPC says "no adapter <name>" while CLI works.
+  // **No more deferred adapters** — 2026-05-25 final pass made all sqlite/
+  // device-pull adapters (Amap/Telegram/WhatsApp) ctor-optional + inputPath
+  // alias. The sqlite sync still requires user to pre-extract DB (Telegram
+  // unencrypted, WhatsApp needs Crypt key, Amap needs root ADB pull) but the
+  // registry slot is claimed so syncAdapter("<name>", path) routes correctly.
   for (const Cls of [
     WeiboAdapter,
     DouyinAdapter,
@@ -507,6 +508,9 @@ async function initHub() {
     Train12306Adapter,
     TaobaoAdapter,
     CtripAdapter,
+    AmapAdapter,
+    TelegramAdapter,
+    WhatsAppAdapter,
   ]) {
     try {
       const adapter = new Cls();

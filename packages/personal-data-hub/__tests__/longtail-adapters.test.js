@@ -231,8 +231,21 @@ describe("TelegramAdapter", () => {
     expect(a.dataDisclosure.legalGate).toBe(true);
   });
 
-  it("rejects missing account.userId", () => {
-    expect(() => new TelegramAdapter({ account: {} })).toThrow(/userId/);
+  it("no-arg ctor passes contract (2026-05-25 v0.6 — account.userId OPTIONAL for snapshot mode)", () => {
+    const a = new TelegramAdapter();
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
+  });
+
+  it("authenticate(ctx.inputPath) returns ok when file readable (snapshot mode)", async () => {
+    const { dir, dbPath } = tmpDb();
+    try {
+      const a = new TelegramAdapter();
+      const auth = await a.authenticate({ inputPath: dbPath });
+      expect(auth.ok).toBe(true);
+      expect(auth.mode).toBe("snapshot-file");
+    } finally { cleanup(dir); }
   });
 
   it("sync yields user + chat + messages (no key needed)", async () => {

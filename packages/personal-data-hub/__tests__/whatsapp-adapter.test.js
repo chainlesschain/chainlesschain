@@ -43,8 +43,11 @@ describe("WhatsAppAdapter", () => {
     expect(a.dataDisclosure.legalGate).toBe(true);
   });
 
-  it("rejects missing account.phone", () => {
-    expect(() => new WhatsAppAdapter({ account: {} })).toThrow(/phone/);
+  it("no-arg ctor passes contract (2026-05-25 v0.6 — account.phone OPTIONAL for snapshot mode)", () => {
+    const a = new WhatsAppAdapter();
+    expect(assertAdapter(a).ok).toBe(true);
+    expect(a.capabilities).toContain("sync:snapshot");
+    expect(a.capabilities).toContain("sync:sqlite");
   });
 
   it("authenticate fails without DB", async () => {
