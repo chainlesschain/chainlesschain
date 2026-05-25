@@ -751,13 +751,30 @@ class HubLocalViewModel @Inject constructor(
                         "HubLocalViewModel: cc syncAdapter failed: %s (exit=%s)",
                         r.reason, r.exitCode,
                     )
+                    // 用户层面最常见的"sync 失败"原因是首次 EntityResolver 的
+                    // embedding 阶段（OllamaClient.embed）超时 —— in-APK 自动
+                    // skip 逻辑只在 PREFIX 以 com.chainlesschain.android 开头
+                    // 时生效，debug variant (`com.chainlesschain.android.debug`)
+                    // 不命中前缀，所以 embed 仍尝试 connect 桌面端 Ollama
+                    // (http://localhost:11434)，桌面端没开就 ETIMEDOUT。用户
+                    // 不知道这层依赖，会把超时当成 app bug。把提示直接拼到
+                    // errorMessage 上，省得查日志。后续 followup：debug 后缀
+                    // 也加进 PREFIX 检测；或者把 LLM 桥接换成本地 in-APK 引擎。
+                    val needsDesktopHint = r.reason.contains("timed-out", ignoreCase = true) ||
+                        r.reason.contains("timeout", ignoreCase = true) ||
+                        r.reason.contains("ECONNREFUSED", ignoreCase = true) ||
+                        r.reason.contains("Ollama", ignoreCase = true)
+                    val baseMsg = "写入本地数据库失败: ${r.reason}"
+                    val finalMsg = if (needsDesktopHint) {
+                        "$baseMsg\n\n提示：首次同步需要桌面端在线（EntityResolver 的 embedding 阶段会调用桌面端 Ollama，桌面端没启动会超时）。请确认桌面 app 在运行 + Ollama 服务可用，然后重试。"
+                    } else baseMsg
                     _state.update {
                         it.copy(
                             globalSyncingAdapter = null,
                             systemData = it.systemData.copy(
                                 isLoading = false,
                                 phase = null,
-                                errorMessage = "写入本地数据库失败: ${r.reason}",
+                                errorMessage = finalMsg,
                             ),
                         )
                     }
