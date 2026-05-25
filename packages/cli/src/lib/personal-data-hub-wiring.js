@@ -331,12 +331,19 @@ async function initHub() {
       // collector (xiaohongshu.com cookies + 4 endpoints with X-S sign).
       const { createXhsCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-xiaohongshu-adb");
+      // Phase 6c: register `toutiao.cookies` extension for the Toutiao
+      // C-path collector (www.toutiao.com cookies + 4 endpoints, 3 of
+      // which need _signature signing — CLI context falls back to -99
+      // short-circuit, desktop wiring upgrades via ToutiaoSignBridge).
+      const { createToutiaoCookiesExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
           "douyin.pull-im-db": createDouyinDbExtension(),
           "weibo.cookies": createWeiboCookiesExtension(),
           "xhs.cookies": createXhsCookiesExtension(),
+          "toutiao.cookies": createToutiaoCookiesExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -1065,6 +1072,59 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(XHS_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 6c — Toutiao C 路径 one-shot sync ────────────────────────
+    //
+    // Pulls www.toutiao.com cookies via toutiao.cookies extension →
+    // fetchProfile (/passport/account/info/v2 — no _sig) → 3 endpoints
+    // (feed/collection/search, _signature required).
+    //
+    // **CLI context has NO sign bridge** — the 3 _signature endpoints
+    // short-circuit with lastErrorCode=-99 (no HTTP traffic). Profile is
+    // still fetched. Desktop wiring upgrades via ToutiaoSignBridge.
+    //
+    // Typed reason codes: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED /
+    // TOUTIAO_NO_ROOT / TOUTIAO_NOT_INSTALLED / TOUTIAO_COOKIES_EMPTY /
+    // TOUTIAO_COOKIES_TRUNCATED / TOUTIAO_NOT_SQLITE /
+    // TOUTIAO_COOKIES_INCOMPLETE / TOUTIAO_BASE64_PARSE / SYNC_FAILED.
+    async toutiaoAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-toutiao-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(TOUTIAO_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

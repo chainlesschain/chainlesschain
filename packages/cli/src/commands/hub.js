@@ -1193,6 +1193,123 @@ async function cmdXhsAdbSync(options) {
 }
 
 /**
+ * Phase 6c — `cc hub toutiao-adb-sync`
+ *
+ * Pulls www.toutiao.com cookies from the user's Android Toutiao App,
+ * fetches uid + profile (no _sig) + 3 signed endpoints (feed / collection
+ * / search). CLI context has NO sign bridge — 3 signed endpoints short-
+ * circuit with lastErrorCode=-99 (no HTTP traffic). Desktop wiring
+ * upgrades via ToutiaoSignBridge (Electron WebContentsView).
+ */
+async function cmdToutiaoAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.toutiaoAdbSync({
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitFeed || options.limitCollection || options.limitSearch
+          ? {
+              feed: parsePositiveInt(options.limitFeed),
+              collection: parsePositiveInt(options.limitCollection),
+              search: parsePositiveInt(options.limitSearch),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ toutiao-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "TOUTIAO_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Toutiao release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "TOUTIAO_NOT_INSTALLED") {
+        logger.log(
+          chalk.gray(
+            "  Install 今日头条 (com.ss.android.article.news, NOT 极速版/.lite) + log in once + open any article (WebView populates cookies), then retry",
+          ),
+        );
+      } else if (result.reason === "TOUTIAO_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  sessionid / sessionid_ss missing — relog on the Toutiao App",
+          ),
+        );
+      } else if (
+        result.reason === "TOUTIAO_COOKIES_TRUNCATED" ||
+        result.reason === "TOUTIAO_NOT_SQLITE"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  ADB stream may be corrupted; unplug + replug USB and retry",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const toutiao = report.toutiao || {};
+    const counts = toutiao.eventCounts || {};
+    logger.log(chalk.green(`✓ toutiao-adb-sync succeeded`));
+    logger.log(
+      `  uid:        ${chalk.cyan(toutiao.uid || "(profile fetch failed)")}`,
+    );
+    if (toutiao.nickname) {
+      logger.log(`  nickname:   ${toutiao.nickname}`);
+    }
+    logger.log(`  profile:    ${counts.profile || 0}`);
+    logger.log(`  feed:       ${counts.feed || 0}`);
+    logger.log(`  collection: ${counts.collection || 0}`);
+    logger.log(`  search:     ${counts.search || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    if (toutiao.profileFetchFailed) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ passport/info/v2 returned no user_id — cookie expired or sessionid missing (lastErrorCode=${toutiao.lastErrorCode})`,
+        ),
+      );
+    } else if (
+      toutiao.signProviderUsed === "none" &&
+      counts.feed === 0 &&
+      counts.collection === 0 &&
+      counts.search === 0
+    ) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ 3 signed endpoints short-circuited (no sign bridge in CLI context) — run from desktop app to enable _signature via Electron WebContentsView`,
+        ),
+      );
+    } else if (toutiao.lastErrorCode) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ partial: lastErrorCode=${toutiao.lastErrorCode} (${toutiao.lastErrorMessage || "?"})`,
+        ),
+      );
+    }
+    if (toutiao.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * Phase 3a — `cc hub weibo-adb-sync`
  *
  * Pulls m.weibo.cn cookies from the user's Android Weibo App, fetches
@@ -1819,6 +1936,28 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdWeiboAdbSync);
 
+  // Phase 6c — Toutiao C 路径 one-shot (www.toutiao.com cookies + profile +
+  // 3 endpoints with _signature). CLI context: signed endpoints short-circuit
+  // (-99) with no HTTP traffic. Desktop: ToutiaoSignBridge → ~100% hit.
+  hub
+    .command("toutiao-adb-sync")
+    .description(
+      "Toutiao C 路径: pull www.toutiao.com cookies via ADB from the user's Android Toutiao App (com.ss.android.article.news, NOT 极速版), fetch profile (no _sig) + 3 endpoints (feed/collection/search, _signature required — CLI short-circuits, desktop uses ToutiaoSignBridge). Needs rooted Android + Toutiao App logged in once + `adb` on PATH.",
+    )
+    .option("--limit-feed <n>", "Cap recommended feed (default 50)")
+    .option("--limit-collection <n>", "Cap saved articles (default 200)")
+    .option("--limit-search <n>", "Cap search history (default 100)")
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default = passport screen_name)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdToutiaoAdbSync);
+
   // Phase 3c — Xhs C 路径 one-shot (xiaohongshu.com cookies + 4 endpoints with X-S signing)
   hub
     .command("xhs-adb-sync")
@@ -2115,6 +2254,7 @@ export const _internal = {
   cmdDouyinAdbSync,
   cmdWeiboAdbSync,
   cmdXhsAdbSync,
+  cmdToutiaoAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };

@@ -442,6 +442,19 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 6c — Toutiao C 路径 one-shot sync (www.toutiao.com cookies +
+  // passport profile + 3 _signature endpoints). CLI/web context with no
+  // desktop bridge: 3 signed endpoints short-circuit (no HTTP). Desktop
+  // wiring uses ToutiaoSignBridge → ~100% hit.
+  "personal-data-hub.toutiao-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.toutiaoAdbSync({
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>
