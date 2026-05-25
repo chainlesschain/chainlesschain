@@ -169,9 +169,9 @@ fun AiAssistantsGroup(
     onProviderLogin: (providerKey: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek 等" 8 家（合并千帆+文心后）。
-    // p.key 必须与 AiChatVendor.key 对齐（文心 entry key=qianfan，复用桌面
-    // qianfan adapter）。
+    // 推文 §"豆包 / 文心 / Kimi / 通义 / DeepSeek 等" 9 家（合并千帆+文心后 8
+    // 家 + 2026-05-25 加 即梦 凑回 9 家）。p.key 必须与 AiChatVendor.key 对齐
+    // （文心 entry key=qianfan，复用桌面 qianfan adapter）。
     val providers = listOf(
         ProviderCard("doubao", "豆包 (字节)", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("qianfan", "文心一言 (百度)", "网页 cookie → 对话历史", "WebView"),
@@ -181,6 +181,7 @@ fun AiAssistantsGroup(
         ProviderCard("zhipu", "智谱 GLM", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("hunyuan", "混元 (腾讯)", "网页 cookie → 对话历史", "WebView"),
         ProviderCard("coze", "扣子 (Coze)", "网页 cookie → 对话历史", "WebView"),
+        ProviderCard("dreamina", "即梦 (字节)", "网页 cookie → 图像/视频生成历史", "WebView"),
     )
     Column(modifier = modifier.fillMaxWidth()) {
         providers.forEachIndexed { idx, p ->
