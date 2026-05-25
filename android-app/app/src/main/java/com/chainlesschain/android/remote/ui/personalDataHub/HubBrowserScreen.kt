@@ -1,6 +1,7 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -36,6 +42,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,7 +97,13 @@ fun HubBrowserScreen(
 /**
  * Stateless body — receives the entire UI state + callback lambdas. Used by
  * the wrapper above and directly by tests / @Preview.
+ *
+ * Tap-to-detail: when a row is tapped, we surface a ModalBottomSheet showing
+ * the full event JSON. State is local (not in HubBrowserUiState) because the
+ * event payload already lives in `state.rows` — re-fetching via
+ * LocalCcRunner.queryEvent would be redundant.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HubBrowserScreenContent(
     modifier: Modifier = Modifier,
@@ -98,6 +115,10 @@ fun HubBrowserScreenContent(
     onReset: () -> Unit,
     onRefresh: () -> Unit,
 ) {
+    var selectedEvent by remember { mutableStateOf<EventRow?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
     Column(modifier = modifier.fillMaxSize()) {
         // Search row
         Row(
@@ -215,7 +236,13 @@ fun HubBrowserScreenContent(
                     items = state.rows,
                     key = { idx, ev -> "row-$idx-${ev.id}" },
                 ) { _, ev ->
-                    EventRenderer(event = ev)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedEvent = ev },
+                    ) {
+                        EventRenderer(event = ev)
+                    }
                 }
                 if (state.canLoadMore) {
                     item(key = "load-more") {
@@ -233,6 +260,96 @@ fun HubBrowserScreenContent(
                     }
                 }
             }
+        }
+    }
+
+    // Detail sheet — rendered above the Column so swipe-down to dismiss works.
+    selectedEvent?.let { ev ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedEvent = null },
+            sheetState = sheetState,
+        ) {
+            EventDetailSheet(
+                event = ev,
+                onClose = {
+                    scope.launch {
+                        sheetState.hide()
+                        selectedEvent = null
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventDetailSheet(event: EventRow, onClose: () -> Unit) {
+    val prettyJson = remember(event.rawJson) {
+        try {
+            org.json.JSONObject(event.rawJson).toString(2)
+        } catch (_: Throwable) {
+            event.rawJson
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Text(
+            text = event.summary ?: "(无摘要)",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = formatTime(event.occurredAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            event.sourceAdapter?.let {
+                AssistChip(
+                    onClick = {},
+                    label = { Text(it, fontSize = 10.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                )
+            }
+            Spacer(modifier = Modifier.size(4.dp))
+            Text(
+                text = event.subtype,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("ID", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Text(event.id, style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("原始 JSON", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text(
+                text = prettyJson,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("关闭")
         }
     }
 }
