@@ -12,6 +12,7 @@ import timber.log.Timber
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -146,17 +147,28 @@ class LocalFilesystemBootstrapper @Inject constructor(
             // bump.
             writeStaticFiles()
 
-            // Always: relink lib + bin symlinks. APK upgrade may have moved
+            // Always: relink lib symlinks. APK upgrade may have moved
             // nativeLibraryDir, and new ABI binaries may have landed since
             // last bootstrap.
             relinkLibraries()
-            relinkBinSymlinks()
-            relinkNodeIfPresent()
 
-            // Phase 2.5 — extract chainlesschain CLI snapshot from assets
-            // (if present). Idempotent: re-extract only when the bundled
-            // version differs from the on-disk one.
-            extractCcCliIfPresent()
+            // 2026-05-25 trap #24 v3 — atomic bin/ rebuild. Old code called
+            // relinkBinSymlinks() + relinkNodeIfPresent() + extractCcCliIfPresent()
+            // directly against `$PREFIX/bin/`, and relinkBinSymlinks started
+            // with `binDir.listFiles().forEach { it.delete() }` — a destructive
+            // wipe-then-recreate on every bootstrap. A LocalCcRunner caller
+            // running `File("bin/cc").exists()` AFTER its own bootstrap returned
+            // success but BEFORE another tab's concurrent bootstrap completed
+            // its rebuild would observe an empty bin/ and bail with "cc/mksh
+            // shim missing under …/usr". Symptom: HubBrowser tab shows red
+            // banner + 0 events even though node ran and vault has data.
+            //
+            // rebuildBinAtomically() builds the new bin contents in an inactive
+            // slot dir (.bin-slot-{a,b}, ping-pong) and atomically swaps the
+            // bin/ symlink via rename(2). Concurrent readers either see the
+            // OLD slot via the still-pointing-there symlink, or the NEW slot
+            // via the swapped symlink — never a transient empty dir.
+            rebuildBinAtomically()
 
             // Ensure $HOME / $TMPDIR exist (untouched by $PREFIX rebootstrap).
             homeDir.mkdirs()
@@ -228,16 +240,113 @@ class LocalFilesystemBootstrapper @Inject constructor(
     }
 
     /**
-     * Re-create `bin/<cmd>` symlinks pointing at `../lib/<library>.so`.
+     * Build `$PREFIX/bin/` contents in an inactive slot then atomically
+     * make `$PREFIX/bin` point at it via symlink rename.
      *
-     * - `bin/mksh` and `bin/sh` always point at `../lib/libmksh.so`.
-     * - Each entry in [TOYBOX_COMMANDS] gets a `bin/<cmd>` → `../lib/libtoybox.so`
+     * Slot layout: `.bin-slot-a/` and `.bin-slot-b/` ping-pong. `bin/` is
+     * a symlink to the currently-active one. On each rebuild:
+     *
+     *  1. Detect which slot bin/ currently points at (or that bin/ is a
+     *     legacy regular dir from pre-fix Bootstrapper).
+     *  2. Wipe and re-populate the INACTIVE slot via the same helpers
+     *     ([relinkBinSymlinks] + [relinkNodeIfPresent] +
+     *     [extractCcCliIfPresent]), but targeting the slot instead of `bin/`.
+     *  3. Create a temp symlink at `.bin-linktmp` pointing at the new slot.
+     *  4. `Files.move(.bin-linktmp, bin, REPLACE_EXISTING)` — rename(2)
+     *     atomicity on POSIX guarantees concurrent observers see either
+     *     the OLD slot or the NEW slot, never an empty directory.
+     *
+     * Legacy migration: if `bin/` is a real dir (existing install from
+     * before this fix landed), it's deleted first — a sub-millisecond
+     * window that triggers once per install. All subsequent rebuilds are
+     * symlink-over-symlink renames, fully atomic.
+     *
+     * The relative `../lib/<x>.so` symlinks inside the slot still resolve
+     * correctly: kernel walks `bin/mksh` → `.bin-slot-a/mksh` → reads the
+     * symlink target `../lib/libmksh.so`, resolves it relative to the
+     * symlink's containing directory (`.bin-slot-a/`), giving
+     * `$PREFIX/lib/libmksh.so`. Same for the cc/chainlesschain wrapper
+     * scripts whose shebang `#!$PREFIX/bin/mksh` resolves through the
+     * active symlink on every execve.
+     */
+    private fun rebuildBinAtomically() {
+        val activeBin = File(prefixDir, "bin")
+        val slotA = File(prefixDir, ".bin-slot-a")
+        val slotB = File(prefixDir, ".bin-slot-b")
+
+        // Pick the inactive slot to build into. If bin/ is currently a
+        // symlink, build into the OTHER slot so concurrent readers of bin/<x>
+        // keep working against the still-active slot.
+        val currentTargetCanonical: String? = try {
+            if (Files.isSymbolicLink(activeBin.toPath())) {
+                val rel = Files.readSymbolicLink(activeBin.toPath())
+                val resolved = if (rel.isAbsolute) rel.toFile() else File(prefixDir, rel.toString())
+                resolved.canonicalPath
+            } else null
+        } catch (_: Exception) {
+            null
+        }
+        val targetSlot = if (currentTargetCanonical == slotA.canonicalPath) slotB else slotA
+
+        // Wipe target slot first — it's either stale-inactive from a prior
+        // rebuild (no concurrent reader uses it; the active symlink points
+        // elsewhere) or never used. No race window here.
+        if (targetSlot.exists() && !targetSlot.deleteRecursively()) {
+            throw java.io.IOException(
+                "Failed to clean inactive bin slot at ${targetSlot.absolutePath}"
+            )
+        }
+        targetSlot.mkdirs()
+
+        // Build into target slot (helpers take binDir explicitly so they
+        // don't touch the live bin/ symlink while concurrent readers hold it).
+        relinkBinSymlinks(targetSlot)
+        relinkNodeIfPresent(targetSlot)
+        extractCcCliIfPresent(targetSlot)
+
+        // Atomically replace bin/ with a symlink to the new slot. Create the
+        // symlink at a temp path first, then rename(2) it over bin/. POSIX
+        // rename(2) is atomic for symlink-over-symlink. For the
+        // upgrade-from-legacy case (bin/ is a real dir from pre-atomic
+        // Bootstrapper), we delete it first; that window is microseconds and
+        // only triggers ONCE per install.
+        val tmpLink = File(prefixDir, ".bin-linktmp")
+        if (tmpLink.exists()) tmpLink.delete()
+        // Relative symlink so the slot dir is referenced by name — matches
+        // the convention used by lib/lib*.so symlinks elsewhere in $PREFIX.
+        Files.createSymbolicLink(tmpLink.toPath(), Paths.get(targetSlot.name))
+
+        val activeIsLegacyDir = activeBin.exists() &&
+            !Files.isSymbolicLink(activeBin.toPath())
+        if (activeIsLegacyDir) {
+            if (!activeBin.deleteRecursively()) {
+                throw java.io.IOException(
+                    "Failed to migrate legacy bin/ dir at ${activeBin.absolutePath}"
+                )
+            }
+        }
+        Files.move(
+            tmpLink.toPath(),
+            activeBin.toPath(),
+            StandardCopyOption.REPLACE_EXISTING,
+        )
+    }
+
+    /**
+     * Re-create `<binDir>/<cmd>` symlinks pointing at `../lib/<library>.so`.
+     *
+     * - `<binDir>/mksh` and `<binDir>/sh` always point at `../lib/libmksh.so`.
+     * - Each entry in [TOYBOX_COMMANDS] gets a `<binDir>/<cmd>` → `../lib/libtoybox.so`
      *   symlink ONLY IF `lib/libtoybox.so` actually exists (i.e. the toybox
      *   build wasn't skipped on Windows). Missing toybox = clean skip; mksh
      *   still works.
+     *
+     * [binDir] is the build target — typically an inactive slot dir from
+     * [rebuildBinAtomically], NOT the live `$PREFIX/bin/` symlink. The
+     * relative `../lib/<x>.so` symlinks resolve correctly after the slot
+     * becomes the active bin/ target.
      */
-    private fun relinkBinSymlinks() {
-        val binDir = File(prefixDir, "bin")
+    private fun relinkBinSymlinks(binDir: File) {
         binDir.mkdirs()
         binDir.listFiles()?.forEach { it.delete() }
 
@@ -273,9 +382,8 @@ class LocalFilesystemBootstrapper @Inject constructor(
      * same lib/<abi>/ directory at runtime. See workflow
      * `node-runtime-bundle.yml` for the patchelf details.
      */
-    private fun relinkNodeIfPresent() {
+    private fun relinkNodeIfPresent(binDir: File) {
         val libDir = File(prefixDir, "lib")
-        val binDir = File(prefixDir, "bin")
         val nodeLib = File(libDir, "libnode.so")
         if (!nodeLib.exists()) {
             Timber.tag(TAG).i("libnode.so absent — \$PREFIX/bin/node not created (Phase 2.5 not bundled)")
@@ -295,7 +403,7 @@ class LocalFilesystemBootstrapper @Inject constructor(
      * matched against [BuildConfig.USR_VERSION] (bumped at the same
      * time as the rest of \$PREFIX changes).
      */
-    private fun extractCcCliIfPresent() {
+    private fun extractCcCliIfPresent(binDir: File) {
         val tgzAsset = "local-terminal/cc-cli.tgz"
         val markerFile = File(prefixDir, "var/lib/cc/.bundled-version")
         val targetVersion = BuildConfig.USR_VERSION
@@ -320,7 +428,7 @@ class LocalFilesystemBootstrapper @Inject constructor(
             ccModule.isDirectory
         ) {
             // Already extracted at this version — just refresh symlinks.
-            wireCcCliSymlinks()
+            wireCcCliSymlinks(binDir)
             return
         }
 
@@ -372,7 +480,7 @@ class LocalFilesystemBootstrapper @Inject constructor(
                 "Failed to rename ${tmpModule.absolutePath} → ${ccModule.absolutePath}"
             )
         }
-        wireCcCliSymlinks()
+        wireCcCliSymlinks(binDir)
 
         markerFile.parentFile?.mkdirs()
         markerFile.writeText(targetVersion)
@@ -394,8 +502,7 @@ class LocalFilesystemBootstrapper @Inject constructor(
      * across APK upgrades (only the per-version SHA in /data/app/<pkg>-<x>
      * changes, and that's nativeLibraryDir not filesDir).
      */
-    private fun wireCcCliSymlinks() {
-        val binDir = File(prefixDir, "bin")
+    private fun wireCcCliSymlinks(binDir: File) {
         val prefix = prefixDir.absolutePath
         // Shebang MUST point at our bundled mksh — `/system/bin/sh` lives in
         // `shell_exec` SELinux context, which `untrusted_app` (the terminal
