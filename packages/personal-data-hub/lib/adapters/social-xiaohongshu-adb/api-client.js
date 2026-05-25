@@ -19,6 +19,7 @@
  */
 
 const { computeXsXt } = require("./sign");
+const { NULL_SIGN_PROVIDER } = require("../../sign-providers");
 
 const DEFAULT_BASE_URL = "https://edith.xiaohongshu.com/";
 
@@ -80,19 +81,49 @@ class XhsApiClient {
       );
     }
     this._now = opts.now || Date.now;
+    // Phase 6b: signProvider injectable. Desktop wiring injects
+    // XhsSignBridge (Electron WebContentsView running xhs.js, ~100% hit
+    // rate). CLI / tests get NULL_SIGN_PROVIDER → falls back to the
+    // in-process best-effort computeXsXt (~60% GET / <30% POST hit).
+    // Both code paths are present so the client works in either context
+    // without the caller having to swap api-client implementations.
+    this.signProvider = opts.signProvider || NULL_SIGN_PROVIDER;
     this.lastErrorCode = 0;
     this.lastErrorMessage = null;
+    // Diagnostic counters — collector reads these to decide whether to
+    // surface "bridge upgrade succeeded" in the report.
+    this._bridgeHits = 0;
+    this._fallbackHits = 0;
   }
 
   async _doGetJson(url, cookie, a1, requireSign) {
     const headers = { ...BROWSER_HEADERS, Cookie: cookie };
     if (requireSign && a1) {
       const pathWithQuery = url.pathname + url.search;
-      const { xs, xt } = computeXsXt(pathWithQuery, null, a1, {
-        now: this._now,
-      });
-      headers["X-S"] = xs;
-      headers["X-T"] = xt;
+      // Phase 6b: prefer bridge over in-process computeXsXt.
+      // signedHeaders is async — bridge does executeJavaScript across
+      // Electron IPC. Returns {} on cold bridge / xhs.js rotation / IPC
+      // error, in which case we fall back to the best-effort md5.
+      const bridgeHeaders = await this.signProvider.signedHeaders(
+        url,
+        `${pathWithQuery}|`,
+      );
+      const bridgeKeys = Object.keys(bridgeHeaders);
+      if (bridgeKeys.length > 0) {
+        // Bridge produced headers — use them verbatim. xhs.js returns
+        // X-s / X-t (lowercase t in some builds) / X-s-common; we let
+        // the bridge's normalizeXhsHeader handle case.
+        Object.assign(headers, bridgeHeaders);
+        this._bridgeHits += 1;
+      } else {
+        // Fallback: in-process best-effort md5 (P3c path).
+        const { xs, xt } = computeXsXt(pathWithQuery, null, a1, {
+          now: this._now,
+        });
+        headers["X-S"] = xs;
+        headers["X-T"] = xt;
+        this._fallbackHits += 1;
+      }
     }
     try {
       const resp = await this._fetch(url.toString(), {
