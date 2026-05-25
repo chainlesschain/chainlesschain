@@ -978,6 +978,117 @@ async function cmdWechatList(options) {
 }
 
 /**
+ * Phase 1c — `cc hub bilibili-adb-sync`
+ *
+ * One-shot Bilibili C 路径 sync: pulls cookies from the user's Android
+ * Bilibili App via ADB, fetches history/favourite/dynamic/follow, writes
+ * a snapshot, and ingests via the existing social-bilibili adapter.
+ *
+ * Requires:
+ *  - `adb` on PATH (or ADB_PATH env var) — see host-adb-bridge.js
+ *  - exactly one Android device attached + authorized (set ADB_SERIAL if
+ *    multiple are present)
+ *  - phone rooted (Bilibili release APK isn't debuggable; we use `su -c
+ *    base64` to read /data/data/tv.danmaku.bili/app_webview/Default/Cookies)
+ *  - user already logged into the Bilibili App on the phone
+ *
+ * Common failure reasons (UI maps these to actionable banners):
+ *  - BRIDGE_UNAVAILABLE — adb missing on host
+ *  - BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN — Cookies path absent
+ *  - BILIBILI_NO_ROOT — phone isn't rooted
+ *  - BILIBILI_COOKIES_INCOMPLETE — user logged out, or Keystore-wrapped
+ *    cookies we can't decrypt yet
+ *  - SYNC_FAILED — anything else (HTTP / vault error)
+ */
+async function cmdBilibiliAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.bilibiliAdbSync({
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitHistory ||
+        options.limitFavourite ||
+        options.limitDynamic ||
+        options.limitFollow
+          ? {
+              history: parsePositiveInt(options.limitHistory),
+              favourite: parsePositiveInt(options.limitFavourite),
+              dynamic: parsePositiveInt(options.limitDynamic),
+              follow: parsePositiveInt(options.limitFollow),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ bilibili-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      // Inline tips for the common reasons — saves a doc lookup.
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "BILIBILI_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Bilibili release APK isn't debuggable; root + Magisk required to read its Cookies DB",
+          ),
+        );
+      } else if (
+        result.reason === "BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  Install Bilibili App on the phone + log in once, then retry",
+          ),
+        );
+      } else if (result.reason === "BILIBILI_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  Cookie file is missing required fields — relog on the phone",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const bili = report.bilibili || {};
+    const counts = bili.eventCounts || {};
+    logger.log(chalk.green(`✓ bilibili-adb-sync succeeded`));
+    logger.log(`  uid:        ${chalk.cyan(bili.uid)}`);
+    logger.log(`  history:    ${counts.history || 0}`);
+    logger.log(`  favourite:  ${counts.favourite || 0}`);
+    logger.log(`  dynamic:    ${counts.dynamic || 0}`);
+    logger.log(`  follow:     ${counts.follow || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    if (bili.lastErrorCode) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ partial: lastErrorCode=${bili.lastErrorCode} (${bili.lastErrorMessage || "?"})`,
+        ),
+      );
+    }
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    const ec = report.entityCounts || {};
+    logger.log(`  events:     ${ec.events || 0}`);
+    if (bili.cleanupFailed) {
+      logger.log(
+        chalk.gray(`  (note: staging file cleanup failed — non-fatal)`),
+      );
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * `cc hub wechat doctor` — env-probe + actionable interpretation +
  * inline reference to the Phase 12.9 §5.1 Frida hook trap table.
  *
@@ -1273,6 +1384,30 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdSyncAll);
 
+  // Phase 1c — Bilibili C 路径 one-shot
+  hub
+    .command("bilibili-adb-sync")
+    .description(
+      "Bilibili C 路径: pull cookies via ADB from the user's Android Bilibili App, fetch 4 endpoints, ingest as snapshot. Needs rooted Android + Bilibili App logged in + `adb` on PATH.",
+    )
+    .option("--limit-history <n>", "Cap history items (default 200)")
+    .option(
+      "--limit-favourite <n>",
+      "Cap favourite items per folder (default 50)",
+    )
+    .option("--limit-dynamic <n>", "Cap dynamic items (default 50)")
+    .option("--limit-follow <n>", "Cap follow items (default 200)")
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default empty)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdBilibiliAdbSync);
+
   hub
     .command("rederive")
     .description(
@@ -1515,6 +1650,7 @@ export const _internal = {
   cmdWechatList,
   cmdWechatUnregister,
   cmdWechatDoctor,
+  cmdBilibiliAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };
