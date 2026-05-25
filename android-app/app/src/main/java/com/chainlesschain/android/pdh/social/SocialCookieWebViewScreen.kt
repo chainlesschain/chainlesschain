@@ -57,6 +57,40 @@ import timber.log.Timber
 private const val COOKIE_CAPTURE_DELAY_MS = 5000L
 
 /**
+ * 2026-05-25 真机回归：除微博外 5 家 (Bilibili / 抖音 / 小红书 / 头条 / 快手)
+ * 一点登录就被推到「请用 X App 打开」拦截页 —— 各家服务端识别 Android Chrome
+ * WebView 默认 UA 里的 `; wv)` 标记 + ` Version/4.0 ` 段拒不返登录页（拦截页
+ * 没 JS 轮询，cookie 永远 Set-Cookie 不下来 → onPageFinished/isLoginSuccess
+ * 永远不命中 → 用户体感"跳了 App 登了又回来还是空"）。
+ *
+ * 此 const 仿 Win 桌面 Chrome 119 — 让平台返"真正的扫码 + 一键登录页"含
+ * polling 闭环。5 家共用同一串，差异在 isLoginSuccess。维护提示：Chrome
+ * 主版本 ~6 周一次；若某家升级到必须最新版（罕见）手动 bump 即可。
+ *
+ * 微博 m.weibo.cn 不做这检测 → 不传此 UA, 保持默认（[sanitizeWebViewUserAgent]
+ * 已防御纵深兜底）。
+ */
+const val DESKTOP_CHROME_USER_AGENT: String =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+        "AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/119.0.0.0 Safari/537.36"
+
+/**
+ * 去掉 Android System WebView 默认 UA 里的两个"我是嵌入式 WebView"标记 —
+ * `; wv)` 和 ` Version/4.0`。即使调用方不显式传 [DESKTOP_CHROME_USER_AGENT]
+ * 也吃这层防御，避免某天平台只升级 wv 检测漏过桌面 UA 也不行的兜底场景。
+ *
+ * Idempotent：再调一次结果一样（marker 已剔除，replace no-op）。
+ *
+ * Example:
+ *  - 输入 `"Mozilla/5.0 (Linux; Android 13; ...; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.66 Mobile Safari/537.36"`
+ *  - 输出 `"Mozilla/5.0 (Linux; Android 13; ...) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.66 Mobile Safari/537.36"`
+ */
+internal fun sanitizeWebViewUserAgent(raw: String): String =
+    raw.replace("; wv)", ")")
+        .replace(Regex(" Version/[0-9.]+"), "")
+
+/**
  * A8 v0.1 — generic in-app WebView used by all 4 social adapters
  * (Bilibili / Weibo / Douyin / Xiaohongshu) for cookie capture.
  *
@@ -95,6 +129,15 @@ fun SocialCookieWebViewScreen(
     onLoginComplete: (cookie: String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * 可选 WebView UA 整串覆盖。传 null = 用 [sanitizeWebViewUserAgent] 处理
+     * 过的默认 Android WebView UA + " ChainlesschainAndroid/A8" 后缀；传非
+     * null（典型 [DESKTOP_CHROME_USER_AGENT]）= 整串替换不加后缀。
+     *
+     * 5 个反 WebView 严格的平台 (Bilibili/抖音/小红书/头条/快手) 必须传桌面
+     * UA 才能拿到带 JS 轮询的真登录页；微博 m.weibo.cn 不需要。
+     */
+    userAgent: String? = null,
 ) {
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var hasSubmittedSuccess by remember { mutableStateOf(false) }
@@ -169,6 +212,7 @@ fun SocialCookieWebViewScreen(
                             onLoginComplete(cookie)
                         }
                     },
+                    userAgent = userAgent,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (loadingProgress in 0.01f..0.99f) {
@@ -197,6 +241,7 @@ private fun CookieWebViewHost(
     isLoginSuccess: (String) -> Boolean,
     onProgress: (Float) -> Unit,
     onLoginCookie: (String) -> Unit,
+    userAgent: String? = null,
     modifier: Modifier = Modifier,
 ) {
     // Hold the WebView ref so DisposableEffect can stop/destroy it
@@ -232,8 +277,16 @@ private fun CookieWebViewHost(
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     databaseEnabled = true
-                    userAgentString = settings.userAgentString +
-                        " ChainlesschainAndroid/A8"
+                    // 2026-05-25 UA 反检测三档：
+                    //   1. 调用方传 [userAgent]（典型 [DESKTOP_CHROME_USER_AGENT]）
+                    //      → 整串覆盖 — 不加 "ChainlesschainAndroid/A8" 后缀
+                    //      （桌面 Chrome UA 该是干净串，加 marker 反而提示反爬）
+                    //   2. 没传 → 默认 WebView UA 走 [sanitizeWebViewUserAgent]
+                    //      剥 `; wv)` + ` Version/4.0` 防御纵深 + 加 A8 标识
+                    //   3. 5 家严平台必走档 1；微博 m.weibo.cn 用档 2 即可
+                    userAgentString = userAgent
+                        ?: (sanitizeWebViewUserAgent(settings.userAgentString) +
+                            " ChainlesschainAndroid/A8")
                 }
                 webViewClient = object : WebViewClient() {
                     /**
