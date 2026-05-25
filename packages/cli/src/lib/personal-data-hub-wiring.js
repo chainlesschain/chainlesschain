@@ -66,6 +66,7 @@ const {
   PinduoduoAdapter,
   Train12306Adapter,
   TaobaoAdapter,
+  CtripAdapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -389,16 +390,17 @@ async function initHub() {
   // reads it; no per-account credential needed at boot. Each wrapped in
   // its own try so one broken ctor doesn't cascade.
   //
-  // **Deferred** (need per-account credential — `<vendor>-accounts.json`
-  // loader infra similar to email/alipay/wechat, not yet built):
-  //   CtripAdapter      (opts.account.email; file-import only, no snapshot mode)
-  //   AmapAdapter       (opts.account.deviceId; sqlite device-pull, root only)
-  //   TelegramAdapter   (opts.account.userId; sqlite device-pull, root only)
-  //   WhatsAppAdapter   (opts.account.phone; sqlite device-pull, root only)
-  // TaobaoAdapter moved out of deferred 2026-05-25 — v0.2 added snapshot mode
-  // (account.userId OPTIONAL, mirror shopping-jd/meituan/pinduoduo dual-mode);
-  // Android in-APK collector can now ship snapshot JSON via syncAdapter
-  // ("shopping-taobao", path) → registry resolves instead of "no adapter".
+  // **Deferred** (hardware-blocked — sqlite device-pull, require root Android
+  // device for cross-app SQLite extraction; **cannot wire snapshot mode** since
+  // there's no source data without the root SQLite read):
+  //   AmapAdapter       (opts.account.deviceId)
+  //   TelegramAdapter   (opts.account.userId)
+  //   WhatsAppAdapter   (opts.account.phone)
+  // TaobaoAdapter + CtripAdapter moved out of deferred 2026-05-25 — both
+  // gained no-arg snapshot mode (TaobaoAdapter v0.2 mirrors jd/meituan/pdd
+  // dual-mode; CtripAdapter v0.2 file-import + inputPath alias). Android
+  // in-APK collector can now ship snapshot JSON via syncAdapter("<name>",
+  // path) → registry resolves instead of "no adapter".
   // Train12306Adapter moved out of deferred (v0.2 added snapshot mode —
   // account.username OPTIONAL, see adapters/travel-12306/index.js:53-56);
   // Android Kyfw12306LocalCollector ships snapshot JSON via
@@ -422,6 +424,7 @@ async function initHub() {
     PinduoduoAdapter,
     Train12306Adapter,
     TaobaoAdapter,
+    CtripAdapter,
   ]) {
     try {
       const adapter = new Cls();
