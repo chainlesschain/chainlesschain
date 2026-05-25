@@ -109,20 +109,16 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists()) {
-            return@withContext CcResult.Failed(
-                reason = "cc shim missing at ${ccPath.absolutePath}",
-                exitCode = null,
-                stderr = null,
-            )
-        }
-        if (!mkshPath.exists()) {
-            return@withContext CcResult.Failed(
-                reason = "mksh shim missing at ${mkshPath.absolutePath}",
-                exitCode = null,
-                stderr = null,
-            )
-        }
+        // 2026-05-25 trap #24 v3 — no File.exists() pre-flight here. The
+        // check was racy: it ran AFTER bootstrap() released its mutex but
+        // BEFORE ProcessBuilder.start(), and another tab's concurrent
+        // bootstrap could wipe bin/ in that window. Bootstrapper now
+        // rebuilds bin/ atomically via symlink-slot swap (see
+        // LocalFilesystemBootstrapper.rebuildBinAtomically), so if bootstrap
+        // returned success the shims are present. If they're somehow truly
+        // absent (e.g. corrupted install), the ProcessBuilder.start() below
+        // surfaces the real ENOENT as a "spawn-failed" reason — strictly
+        // more informative than the silent false-positive the old gate gave.
 
         // Android W^X / SELinux: untrusted_app:s0 cannot execve a plain-text
         // script in filesDir even with +x bit (LocalPtyClient sidesteps this
@@ -314,12 +310,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext RecentAuditResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = listOf(
             mkshPath.absolutePath,
             ccPath.absolutePath,
@@ -452,12 +443,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext EventDetailResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = listOf(
             mkshPath.absolutePath,
             ccPath.absolutePath,
@@ -596,12 +582,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext QueryEventsResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = buildList {
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
@@ -750,12 +731,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext ExportResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = listOf(
             mkshPath.absolutePath,
             ccPath.absolutePath,
@@ -853,12 +829,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext DestroyResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = listOf(
             mkshPath.absolutePath,
             ccPath.absolutePath,
@@ -972,13 +943,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext AskResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-                stderr = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
 
         val command = buildList {
             add(mkshPath.absolutePath)
@@ -1204,11 +1169,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext Result.failure(
-                IllegalStateException("cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}"),
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = listOf(
             mkshPath.absolutePath,
             ccPath.absolutePath,
@@ -1312,12 +1273,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext SearchResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = buildList {
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
@@ -1403,12 +1359,7 @@ class LocalCcRunner @Inject constructor(
         }
         val ccPath = File(bootstrapper.prefixDir, "bin/cc")
         val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
-        if (!ccPath.exists() || !mkshPath.exists()) {
-            return@withContext FacetCountsResult.Failed(
-                reason = "cc/mksh shim missing under ${bootstrapper.prefixDir.absolutePath}",
-                exitCode = null,
-            )
-        }
+        // Gate dropped — see trap #24 v3 note on syncAdapter above.
         val command = buildList {
             add(mkshPath.absolutePath)
             add(ccPath.absolutePath)
