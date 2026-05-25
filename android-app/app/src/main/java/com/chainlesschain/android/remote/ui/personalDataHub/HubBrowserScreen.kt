@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -62,6 +63,14 @@ fun HubBrowserScreen(
     viewModel: HubBrowserViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    // Re-run search on every (re-)entry to the tab. ViewModel's `init { search() }`
+    // only fires once at construction; with HiltViewModel scoped to the Activity
+    // (default for top-level tabs), a sync triggered from another tab (e.g. the
+    // SystemDataCard refresh in HubLocal writing new events to vault) would not
+    // be reflected here until the Activity is destroyed. LaunchedEffect(Unit)
+    // re-queries facets + first page each time the screen enters composition,
+    // so the user sees fresh data after switching back from any data-writing tab.
+    LaunchedEffect(Unit) { viewModel.search() }
     HubBrowserScreenContent(
         modifier = modifier,
         state = state,
