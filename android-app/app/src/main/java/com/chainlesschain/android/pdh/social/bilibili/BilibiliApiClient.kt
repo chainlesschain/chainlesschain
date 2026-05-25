@@ -154,7 +154,7 @@ class BilibiliApiClient @Inject constructor() {
                 .url(url)
                 .header(
                     "User-Agent",
-                    "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                    "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
                         "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
                 )
                 .header("Referer", "https://www.bilibili.com/")
@@ -168,13 +168,27 @@ class BilibiliApiClient @Inject constructor() {
                         Timber.w("BilibiliApiClient: /spi → HTTP %d", resp.code)
                         return@withContext null
                     }
-                    val obj = JSONObject(body)
+                    val obj = try {
+                        JSONObject(body)
+                    } catch (e: Exception) {
+                        Timber.w(
+                            "BilibiliApiClient: /spi body not JSON (len=%d head=%s)",
+                            body.length, body.take(120),
+                        )
+                        return@withContext null
+                    }
                     if (obj.optInt("code", -1) != 0) {
                         Timber.w("BilibiliApiClient: /spi → code=%d", obj.optInt("code"))
                         return@withContext null
                     }
-                    val b3 = obj.optJSONObject("data")?.optString("b_3")
-                        ?.takeIf { it.isNotBlank() } ?: return@withContext null
+                    val b3 = obj.optJSONObject("data")?.optString("b_3")?.takeIf { it.isNotBlank() }
+                    if (b3 == null) {
+                        Timber.w(
+                            "BilibiliApiClient: /spi data.b_3 missing/blank (top-keys=%s)",
+                            obj.keys().asSequence().toList(),
+                        )
+                        return@withContext null
+                    }
                     Timber.i("BilibiliApiClient: minted buvid3 (len=%d)", b3.length)
                     mintedBuvid3 = b3
                     b3
@@ -239,7 +253,7 @@ class BilibiliApiClient @Inject constructor() {
                 .url(url)
                 .header(
                     "User-Agent",
-                    "Mozilla/5.0 (Linux; Android 14; ChainlessChain) AppleWebKit/537.36 " +
+                    "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 " +
                         "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
                 )
                 .header("Referer", "https://www.bilibili.com/")
@@ -253,15 +267,36 @@ class BilibiliApiClient @Inject constructor() {
                         Timber.w("BilibiliApiClient: /nav → HTTP %d", resp.code)
                         return@withContext null
                     }
-                    val obj = JSONObject(body)
+                    val obj = try {
+                        JSONObject(body)
+                    } catch (e: Exception) {
+                        Timber.w(
+                            "BilibiliApiClient: /nav body not JSON (len=%d head=%s)",
+                            body.length, body.take(120),
+                        )
+                        return@withContext null
+                    }
                     // nav returns code=-101 for unauthenticated, but wbi_img is
                     // still in `data` either way — don't gate on code.
                     val wbiImg = obj.optJSONObject("data")?.optJSONObject("wbi_img")
-                        ?: return@withContext null
+                    if (wbiImg == null) {
+                        Timber.w(
+                            "BilibiliApiClient: /nav missing data.wbi_img (code=%d top-keys=%s)",
+                            obj.optInt("code", -999), obj.keys().asSequence().toList(),
+                        )
+                        return@withContext null
+                    }
                     val imgUrl = wbiImg.optString("img_url")
                     val subUrl = wbiImg.optString("sub_url")
-                    val imgKey = extractWbiKeyFromUrl(imgUrl) ?: return@withContext null
-                    val subKey = extractWbiKeyFromUrl(subUrl) ?: return@withContext null
+                    val imgKey = extractWbiKeyFromUrl(imgUrl)
+                    val subKey = extractWbiKeyFromUrl(subUrl)
+                    if (imgKey == null || subKey == null) {
+                        Timber.w(
+                            "BilibiliApiClient: /nav wbi_img URL parse failed img=%s sub=%s",
+                            imgUrl, subUrl,
+                        )
+                        return@withContext null
+                    }
                     val raw = imgKey + subKey
                     if (raw.length < 64) {
                         Timber.w("BilibiliApiClient: wbi raw key too short: %d", raw.length)
@@ -397,10 +432,38 @@ class BilibiliApiClient @Inject constructor() {
                     .addQueryParameter("media_id", folderId.toString())
                     .addQueryParameter("ps", perFolderLimit.toString())
                     .addQueryParameter("pn", "1")
-                    // Real-device 2026-05-22: missing `platform=web` returns
-                    // code=-400 "请求错误". Bilibili tightened this endpoint to
-                    // require an explicit platform tag.
+                    // 2026-05-22: missing `platform=web` returns -400.
                     .addQueryParameter("platform", "web")
+                    // 2026-05-25 真机：带 platform + WBI 签名仍 -400. b 站 2024+
+                    // 反爬升级 — web 客户端实际请求带这 5 个新必需 param。少任何
+                    // 一个 → -400「请求错误」(body 不暴露哪个缺，只能照 web 端
+                    // network tab 全补)：
+                    //   keyword       默认空串
+                    //   order=mtime   按收藏时间倒序
+                    //   type=0        全资源类型
+                    //   tid=0         无分区过滤
+                    //   web_location  333.1387 = "我的收藏" 页 location 锚
+                    // 必须在 signUrl 之前 add（signUrl 哈希所有 query 含这 5 个）
+                    .addQueryParameter("keyword", "")
+                    .addQueryParameter("order", "mtime")
+                    .addQueryParameter("type", "0")
+                    .addQueryParameter("tid", "0")
+                    .addQueryParameter("web_location", "333.1387")
+                    // 2026-05-25 真机：5 个 param + WBI 仍 -400。b 站风控加 canvas
+                    // /WebGL 指纹检测。dm_img_str=base64("WebGL 1.0 (OpenGL ES 2.0
+                    // Chromium)") + dm_cover_img_str=base64(GPU info) +
+                    // dm_img_list=[] 是真实浏览器固定字面值，欠这三个 -400 才会触发。
+                    // 必须在 signUrl 前 add（signUrl 会哈希全 query 含这 3 个）
+                    .addQueryParameter(
+                        "dm_img_list", "[]",
+                    )
+                    .addQueryParameter(
+                        "dm_img_str", "V2ViR0wgMS4wIChPcGVuR0wgRVMgMi4wIENocm9taXVtKQ",
+                    )
+                    .addQueryParameter(
+                        "dm_cover_img_str",
+                        "QU5HTEUgKEludGVsLCBJbnRlbChSKSBVSEQgR3JhcGhpY3MgKDB4MDAwMDljNDIpIERpcmVjdDNEMTEgdnNfNV8wIHBzXzVfMCksIG9yIHNpbWlsYXIgZ3JhcGhpY3Mp",
+                    )
                     .build()
                 // Sign the per-folder URL too (signature wraps each request,
                 // not the session). Reuse the already-prepared cookie.
@@ -558,8 +621,8 @@ class BilibiliApiClient @Inject constructor() {
                 if (code != 0) {
                     val msg = obj.optString("message")
                     Timber.w(
-                        "BilibiliApiClient: %s → code=%d msg=%s",
-                        url.encodedPath, code, msg
+                        "BilibiliApiClient: %s → code=%d msg=%s | full-url=%s | body-head=%s",
+                        url.encodedPath, code, msg, url.toString(), body.take(300)
                     )
                     setLastError(code, msg)
                     return null

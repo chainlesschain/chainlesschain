@@ -138,6 +138,26 @@ fun SocialCookieWebViewScreen(
      * UA 才能拿到带 JS 轮询的真登录页；微博 m.weibo.cn 不需要。
      */
     userAgent: String? = null,
+    /**
+     * 可选：登录成功 + cookie 抓到后，**在 WebView 内**执行的 JS 脚本（典型
+     * Bilibili 聚合 fetch 4 API + per-folder fav，结果通过 `BilibiliBridge.
+     * onSyncData(json)` JavascriptInterface 回 Kotlin）。
+     *
+     * 为什么必须 in-WebView fetch：b 站桌面 web API 风控严，OkHttp 不论怎么
+     * 配 cookie / UA / WBI 签名 / dm_img 指纹，TLS ClientHello 与 JS-set
+     * cookie (`_uuid` / `buvid_fp` / `b_lsid` / `b_nut`) 缺失依然被识别为
+     * 非浏览器 → 多端点静默空 + `/fav/resource/list` 硬 -400。WebView 是真
+     * Chrome，TLS 指纹真，cookie 全 = 唯一稳路。
+     *
+     * 传 null（默认）= 跳过 prefetch，行为同今日。传非 null 时同步必须配
+     * [onPrefetchComplete] 接收 JSON（或 null = JS 报错）。
+     */
+    prefetchJs: String? = null,
+    /**
+     * 配套 [prefetchJs]：JS 跑完后回调。`data` 非 null = JSON 字符串；null =
+     * JS 抛错或 JavascriptInterface 没被叫到（5s 超时）。
+     */
+    onPrefetchComplete: ((cookie: String, data: String?) -> Unit)? = null,
 ) {
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var hasSubmittedSuccess by remember { mutableStateOf(false) }
@@ -213,6 +233,8 @@ fun SocialCookieWebViewScreen(
                         }
                     },
                     userAgent = userAgent,
+                    prefetchJs = prefetchJs,
+                    onPrefetchComplete = onPrefetchComplete,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (loadingProgress in 0.01f..0.99f) {
@@ -242,6 +264,8 @@ private fun CookieWebViewHost(
     onProgress: (Float) -> Unit,
     onLoginCookie: (String) -> Unit,
     userAgent: String? = null,
+    prefetchJs: String? = null,
+    onPrefetchComplete: ((cookie: String, data: String?) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Hold the WebView ref so DisposableEffect can stop/destroy it
@@ -288,6 +312,13 @@ private fun CookieWebViewHost(
                         ?: (sanitizeWebViewUserAgent(settings.userAgentString) +
                             " ChainlesschainAndroid/A8")
                 }
+                // 2026-05-25 真机：b 站 OkHttp 路径被风控（详 BilibiliJsBridge KDoc）。
+                // 唯一稳路是登录后在 WebView 内 evaluateJavascript 跑 fetch。统一注
+                // 入 `BilibiliBridge` JavascriptInterface（其它平台不用就 idle，无成本）
+                addJavascriptInterface(
+                    com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge,
+                    "BilibiliBridge",
+                )
                 webViewClient = object : WebViewClient() {
                     /**
                      * 2026-05-24: 各平台 web 登录页弹"打开 App 授权/扫码"按钮
@@ -352,17 +383,41 @@ private fun CookieWebViewHost(
                             view.postDelayed({
                                 CookieManager.getInstance().flush()
                                 val cookie = CookieManager.getInstance().getCookie(cookieDomain) ?: ""
-                                if (cookie.isNotEmpty()) {
-                                    Timber.i(
-                                        "SocialCookieWebView: login success url=%s cookieLen=%d",
-                                        url, cookie.length
-                                    )
-                                    onLoginCookie(cookie)
-                                } else {
+                                if (cookie.isEmpty()) {
                                     Timber.w(
                                         "SocialCookieWebView: success URL hit but cookie empty (domain=%s)",
                                         cookieDomain
                                     )
+                                    return@postDelayed
+                                }
+                                Timber.i(
+                                    "SocialCookieWebView: login success url=%s cookieLen=%d",
+                                    url, cookie.length
+                                )
+                                if (prefetchJs != null && onPrefetchComplete != null) {
+                                    // 2026-05-25：post-login in-WebView JS fetch — 唯一稳路
+                                    // 绕 b 站桌面 web API 风控。v2: AtomicBoolean 互斥
+                                    // bridge cb 和 timeout — v1 timeout 无脑覆盖了已
+                                    // fired 的 onPrefetchComplete(data) 为 (null)，回退
+                                    // 到 OkHttp 把刚抓到的真数据丢了。
+                                    val responded = java.util.concurrent.atomic.AtomicBoolean(false)
+                                    com.chainlesschain.android.pdh.social.bilibili
+                                        .BilibiliJsBridge.setPending { data ->
+                                            if (responded.compareAndSet(false, true)) {
+                                                onPrefetchComplete(cookie, data)
+                                            }
+                                        }
+                                    view.evaluateJavascript(prefetchJs, null)
+                                    view.postDelayed({
+                                        if (responded.compareAndSet(false, true)) {
+                                            com.chainlesschain.android.pdh.social.bilibili
+                                                .BilibiliJsBridge.clearPending()
+                                            Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
+                                            onPrefetchComplete(cookie, null)
+                                        }
+                                    }, 15_000)
+                                } else {
+                                    onLoginCookie(cookie)
                                 }
                             }, COOKIE_CAPTURE_DELAY_MS)
                         }
