@@ -1193,6 +1193,123 @@ async function cmdXhsAdbSync(options) {
 }
 
 /**
+ * Phase 6d — `cc hub kuaishou-adb-sync`
+ *
+ * Pulls www.kuaishou.com cookies from the user's Android Kuaishou App,
+ * fetches uid + profile via cookie's api_ph payload (PURE COOKIE PARSE,
+ * no HTTP) + 3 signed GraphQL endpoints (watch / collect / search).
+ * CLI context has NO sign bridge — 3 signed endpoints short-circuit
+ * with lastErrorCode=-99. Desktop wiring upgrades via KuaishouSignBridge.
+ */
+async function cmdKuaishouAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.kuaishouAdbSync({
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitWatch || options.limitCollect || options.limitSearch
+          ? {
+              watch: parsePositiveInt(options.limitWatch),
+              collect: parsePositiveInt(options.limitCollect),
+              search: parsePositiveInt(options.limitSearch),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ kuaishou-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "KUAISHOU_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Kuaishou release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "KUAISHOU_NOT_INSTALLED") {
+        logger.log(
+          chalk.gray(
+            "  Install 快手 (com.smile.gifmaker, NOT 极速版 com.kuaishou.nebula) + log in once + open any video (WebView populates cookies), then retry",
+          ),
+        );
+      } else if (result.reason === "KUAISHOU_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  userId / kuaishou.web.cp.api_ph missing — relog on the Kuaishou App",
+          ),
+        );
+      } else if (
+        result.reason === "KUAISHOU_COOKIES_TRUNCATED" ||
+        result.reason === "KUAISHOU_NOT_SQLITE"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  ADB stream may be corrupted; unplug + replug USB and retry",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const kuaishou = report.kuaishou || {};
+    const counts = kuaishou.eventCounts || {};
+    logger.log(chalk.green(`✓ kuaishou-adb-sync succeeded`));
+    logger.log(
+      `  uid:        ${chalk.cyan(kuaishou.uid || "(profile fetch failed)")}`,
+    );
+    if (kuaishou.nickname) {
+      logger.log(`  nickname:   ${kuaishou.nickname}`);
+    }
+    logger.log(`  profile:    ${counts.profile || 0}`);
+    logger.log(`  watch:      ${counts.watch || 0}`);
+    logger.log(`  collect:    ${counts.collect || 0}`);
+    logger.log(`  search:     ${counts.search || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    if (kuaishou.profileFetchFailed) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ cookie 缺 kuaishou.web.cp.api_ph — relog on Kuaishou (lastErrorCode=${kuaishou.lastErrorCode})`,
+        ),
+      );
+    } else if (
+      kuaishou.signProviderUsed === "none" &&
+      counts.watch === 0 &&
+      counts.collect === 0 &&
+      counts.search === 0
+    ) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ 3 signed endpoints short-circuited (no sign bridge in CLI context) — run from desktop app to enable __NS_sig3 via Electron WebContentsView`,
+        ),
+      );
+    } else if (kuaishou.lastErrorCode) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ partial: lastErrorCode=${kuaishou.lastErrorCode} (${kuaishou.lastErrorMessage || "?"})`,
+        ),
+      );
+    }
+    if (kuaishou.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * Phase 6c — `cc hub toutiao-adb-sync`
  *
  * Pulls www.toutiao.com cookies from the user's Android Toutiao App,
@@ -1936,6 +2053,31 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdWeiboAdbSync);
 
+  // Phase 6d — Kuaishou C 路径 one-shot (www.kuaishou.com cookies + profile
+  // from api_ph + 3 GraphQL endpoints with __NS_sig3 + kpf/kpn).
+  // CLI: signed endpoints short-circuit. Desktop: KuaishouSignBridge.
+  hub
+    .command("kuaishou-adb-sync")
+    .description(
+      "Kuaishou C 路径: pull www.kuaishou.com cookies via ADB from the user's Android Kuaishou App (com.smile.gifmaker, NOT 极速版 com.kuaishou.nebula), parse profile from kuaishou.web.cp.api_ph cookie payload (no HTTP) + 3 GraphQL endpoints (watch/collect/search, __NS_sig3 + kpf/kpn — CLI short-circuits, desktop uses KuaishouSignBridge). Needs rooted Android + Kuaishou App logged in once + opened a video once + `adb` on PATH.",
+    )
+    .option(
+      "--limit-watch <n>",
+      "Cap recommended feed watch history (default 50)",
+    )
+    .option("--limit-collect <n>", "Cap own posted photos (default 100)")
+    .option("--limit-search <n>", "Cap search history (default 50)")
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default = api_ph user_name)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdKuaishouAdbSync);
+
   // Phase 6c — Toutiao C 路径 one-shot (www.toutiao.com cookies + profile +
   // 3 endpoints with _signature). CLI context: signed endpoints short-circuit
   // (-99) with no HTTP traffic. Desktop: ToutiaoSignBridge → ~100% hit.
@@ -2255,6 +2397,7 @@ export const _internal = {
   cmdWeiboAdbSync,
   cmdXhsAdbSync,
   cmdToutiaoAdbSync,
+  cmdKuaishouAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };
