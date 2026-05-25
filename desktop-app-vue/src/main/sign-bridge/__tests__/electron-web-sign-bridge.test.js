@@ -20,6 +20,9 @@ const { XhsSignBridge, _internals: xhsInternals } = require_(
 const { ToutiaoSignBridge, _internals: toutiaoInternals } = require_(
   "../toutiao-sign-bridge.js",
 );
+const { KuaishouSignBridge, _internals: kuaishouInternals } = require_(
+  "../kuaishou-sign-bridge.js",
+);
 
 // ─── parseCookieHeader ──────────────────────────────────────────────────
 
@@ -511,6 +514,242 @@ describe("ToutiaoSignBridge", () => {
       "feed",
     );
     expect(signed.searchParams.get("_signature")).toBe("SIG_XYZ");
+    await b.shutdown();
+    expect(mock.fakeWebContents.destroy).toHaveBeenCalledOnce();
+    expect(b._warm).toBe(false);
+  });
+});
+
+// ─── KuaishouSignBridge ─────────────────────────────────────────────────
+
+describe("KuaishouSignBridge", () => {
+  it("homepageUrl + cookieDomain + postLoadDelayMs are correct", () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    expect(b.homepageUrl).toBe("https://www.kuaishou.com/new-reco");
+    expect(b.cookieDomain).toBe(".kuaishou.com");
+    // NS_sig3 init heavier than acrawler — 3000ms vs Toutiao's 2500ms
+    expect(b.postLoadDelayMs).toBe(3000);
+  });
+
+  it("operation name constants", () => {
+    expect(kuaishouInternals.OP_FEED_RECOMMEND).toBe("visionFeedRecommend");
+    expect(kuaishouInternals.OP_PROFILE_PHOTOS).toBe("visionProfilePhotoList");
+    expect(kuaishouInternals.OP_SEARCH_PHOTO).toBe("visionSearchPhoto");
+  });
+
+  it("buildSignScript probes 4 candidate globals in order", () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    const script = b.buildSignScript(
+      "https://www.kuaishou.com/graphql",
+      'visionFeedRecommend|{"pcursor":""}',
+    );
+    expect(script).toContain("window.__APP__");
+    expect(script).toContain("encryptParams");
+    expect(script).toContain("window.NS");
+    expect(script).toContain("window.GraphQL");
+    expect(script).toContain("window.__SIGN__");
+    // Order: __APP__ first, __SIGN__ last
+    const appIdx = script.indexOf("window.__APP__");
+    const nsIdx = script.indexOf("window.NS");
+    const gqIdx = script.indexOf("window.GraphQL");
+    const signIdx = script.indexOf("window.__SIGN__");
+    expect(appIdx).toBeLessThan(nsIdx);
+    expect(nsIdx).toBeLessThan(gqIdx);
+    expect(gqIdx).toBeLessThan(signIdx);
+  });
+
+  it("buildSignScript splits purpose on first pipe (body may contain JSON)", () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    const script = b.buildSignScript(
+      "https://www.kuaishou.com/graphql",
+      `visionSearchPhoto|{"keyword":"AI|with|pipes","pcursor":""}`,
+    );
+    // operationName piece (before first pipe) → "visionSearchPhoto"
+    expect(script).toContain('"operationName":"visionSearchPhoto"');
+    // body piece (after first pipe) is full remainder — pipes inside the
+    // body string don't re-split
+    expect(script).toContain("AI|with|pipes");
+  });
+
+  it("buildSignScript falls back to '{}' when no pipe in purpose", () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    const script = b.buildSignScript(
+      "https://www.kuaishou.com/graphql",
+      "visionFeedRecommend",
+    );
+    expect(script).toContain('"operationName":"visionFeedRecommend"');
+    expect(script).toContain('"body":"{}"');
+  });
+
+  it("signUrl returns null + clears headers when bridge cold", async () => {
+    const b = new KuaishouSignBridge({ electron: {} });
+    const r = await b.signUrl(
+      "https://www.kuaishou.com/graphql",
+      "visionFeedRecommend|{}",
+    );
+    expect(r).toBe(null);
+    const h = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      "visionFeedRecommend|{}",
+    );
+    expect(h).toEqual({});
+  });
+
+  it("signUrl appends __NS_sig3 + caches kpf/kpn from object result", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        __NS_sig3: "NS_sig_value_abc",
+        kpf: "PC_WEB",
+        kpn: "KUAISHOU_VISION",
+      }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1; kuaishou.web.cp.api_ph=x");
+    const signed = await b.signUrl(
+      "https://www.kuaishou.com/graphql",
+      'visionFeedRecommend|{"pcursor":""}',
+    );
+    expect(signed.searchParams.get("__NS_sig3")).toBe("NS_sig_value_abc");
+    // Sequential signedHeaders for SAME rawUrl returns cached kpf/kpn
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      'visionFeedRecommend|{"pcursor":""}',
+    );
+    expect(headers).toEqual({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" });
+  });
+
+  it("signedHeaders returns {} when rawUrl doesn't match last signUrl", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        __NS_sig3: "X",
+        kpf: "PC_WEB",
+        kpn: "KUAISHOU_VISION",
+      }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    await b.signUrl(
+      "https://www.kuaishou.com/graphql?A=1",
+      "visionFeedRecommend|{}",
+    );
+    // Different rawUrl → no cached headers
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql?B=2",
+      "anything",
+    );
+    expect(headers).toEqual({});
+  });
+
+  it("signUrl recognizes alternate sig key aliases (NS_sig3, sig3)", async () => {
+    for (const key of ["__NS_sig3", "NS_sig3", "sig3"]) {
+      const mock = makeMockElectron({
+        jsResult: JSON.stringify({ [key]: "V_" + key }),
+      });
+      const b = new KuaishouSignBridge({ electron: mock.electron });
+      await b.warmUp("userId=1");
+      const signed = await b.signUrl(
+        "https://www.kuaishou.com/graphql",
+        "op|{}",
+      );
+      expect(signed.searchParams.get("__NS_sig3")).toBe("V_" + key);
+    }
+  });
+
+  it("signUrl falls back to defaults when kpf/kpn missing in result", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({ __NS_sig3: "X" }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    await b.signUrl("https://www.kuaishou.com/graphql", "op|{}");
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      "op|{}",
+    );
+    expect(headers).toEqual({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" });
+  });
+
+  it("signUrl treats bare-string result as sig value (no object)", async () => {
+    const mock = makeMockElectron({ jsResult: "BARE_NS_SIG" });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    const signed = await b.signUrl("https://www.kuaishou.com/graphql", "op|{}");
+    expect(signed.searchParams.get("__NS_sig3")).toBe("BARE_NS_SIG");
+    // Defaults applied to headers when no object result
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      "op|{}",
+    );
+    expect(headers).toEqual({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" });
+  });
+
+  it("signUrl returns null + clears headers when JS returns null", async () => {
+    const mock = makeMockElectron({ jsResult: null });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    const signed = await b.signUrl("https://www.kuaishou.com/graphql", "op|{}");
+    expect(signed).toBe(null);
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      "op|{}",
+    );
+    expect(headers).toEqual({});
+  });
+
+  it("signUrl returns null on 'null' / 'undefined' / empty sentinel", async () => {
+    for (const sentinel of ["null", "undefined", ""]) {
+      const mock = makeMockElectron({ jsResult: sentinel });
+      const b = new KuaishouSignBridge({ electron: mock.electron });
+      await b.warmUp("userId=1");
+      expect(await b.signUrl("https://www.kuaishou.com/graphql", "op|{}")).toBe(
+        null,
+      );
+    }
+  });
+
+  it("signUrl returns null when object lacks any sig key alias", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({ other: "value" }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1");
+    // Object missing __NS_sig3/NS_sig3/sig3 → falls back to JSON-stringified
+    // raw which IS a valid string → signs URL with the JSON string sig.
+    // (Defensive fallback — server will reject but bridge doesn't crash.)
+    const signed = await b.signUrl("https://www.kuaishou.com/graphql", "op|{}");
+    expect(signed).not.toBeNull();
+    expect(signed.searchParams.get("__NS_sig3")).toBe(
+      JSON.stringify({ other: "value" }),
+    );
+  });
+
+  it("warmUp + signUrl + signedHeaders + shutdown lifecycle", async () => {
+    const mock = makeMockElectron({
+      jsResult: JSON.stringify({
+        __NS_sig3: "NS_SIG_XYZ",
+        kpf: "PC_WEB",
+        kpn: "KUAISHOU_VISION",
+      }),
+    });
+    const b = new KuaishouSignBridge({ electron: mock.electron });
+    await b.warmUp("userId=1; kuaishou.web.cp.api_ph=encoded");
+    expect(b._warm).toBe(true);
+    expect(mock.cookieSets).toHaveLength(2);
+    expect(mock.cookieSets[0]).toMatchObject({
+      name: "userId",
+      domain: ".kuaishou.com",
+    });
+    expect(mock.navigationCalls).toEqual(["https://www.kuaishou.com/new-reco"]);
+    const signed = await b.signUrl(
+      "https://www.kuaishou.com/graphql",
+      "visionFeedRecommend|{}",
+    );
+    expect(signed.searchParams.get("__NS_sig3")).toBe("NS_SIG_XYZ");
+    const headers = await b.signedHeaders(
+      "https://www.kuaishou.com/graphql",
+      "visionFeedRecommend|{}",
+    );
+    expect(headers).toEqual({ kpf: "PC_WEB", kpn: "KUAISHOU_VISION" });
     await b.shutdown();
     expect(mock.fakeWebContents.destroy).toHaveBeenCalledOnce();
     expect(b._warm).toBe(false);
