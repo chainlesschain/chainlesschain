@@ -426,6 +426,21 @@ async function initHub() {
     }
   }
 
+  // Phase 5.8 — email-imap snapshot mode (2026-05-25): Android
+  // EmailLocalCollector does Jakarta Mail IMAP fetch on-device + writes
+  // staging JSON; desktop EmailAdapter consumes it via snapshot path
+  // (no IMAP-account credential needed at boot). The user-driven
+  // `registerEmailAdapter` per-account flow still wires explicit IMAP
+  // sessions for desktop-direct IMAP fetch (different code path, both
+  // resolve `name === "email-imap"` — registry de-dups by name; the
+  // per-account flow wins when the user has registered an account).
+  try {
+    const emailSnapshot = new EmailAdapter({ snapshotMode: true });
+    if (!registry.has(emailSnapshot.name)) registry.register(emailSnapshot);
+  } catch (_err) {
+    // Continue boot even if snapshot ctor throws (shouldn't happen — no required opts)
+  }
+
   // Phase 6: auto-register persisted Alipay accounts.
   const alipayAccountsPath = join(hubDir, "alipay-accounts.json");
   const alipayAccounts = loadAlipayAccounts(alipayAccountsPath);
@@ -535,8 +550,12 @@ async function initHub() {
       if (!account || typeof account !== "object")
         throw new Error("account required");
       const adapter = new EmailAdapter({ account, ...opts });
+      // Phase 5.8 — if the boot-time snapshot stub claimed the "email-imap"
+      // slot, swap it out for this per-account IMAP adapter (user's explicit
+      // IMAP credentials should take priority over the Android-snapshot
+      // fallback). Both share `name === "email-imap"`.
       if (registry.has(adapter.name)) {
-        throw new Error(`adapter name "${adapter.name}" already registered`);
+        registry.unregister(adapter.name);
       }
       registry.register(adapter);
       const accounts = loadEmailAccounts(emailAccountsPath);
@@ -556,7 +575,16 @@ async function initHub() {
       const target = accounts.find((c) => c.account.email === emailAddress);
       const next = accounts.filter((c) => c.account.email !== emailAddress);
       saveEmailAccounts(emailAccountsPath, next);
-      if (target) registry.unregister("email-imap");
+      if (target) {
+        registry.unregister("email-imap");
+        // Phase 5.8 — restore the snapshot stub so Android sync paths still
+        // work after the user unregisters their explicit IMAP account.
+        try {
+          registry.register(new EmailAdapter({ snapshotMode: true }));
+        } catch (_err) {
+          // Defensive — snapshot ctor has no required opts so this shouldn't fail
+        }
+      }
       return { ok: true, removed: !!target };
     },
 

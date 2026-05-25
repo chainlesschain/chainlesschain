@@ -524,6 +524,6 @@ describe("EmailAdapter — Phase 5.5 PDF extraction integration", () => {
       account: { provider: "qq", email: "u@qq.com", authCode: "x" },
       sessionFactory: makeSession([]),
     });
-    expect(a.version).toBe("0.6.0");
+    expect(a.version).toBe("0.7.0");
   });
 });
