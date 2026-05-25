@@ -59,6 +59,7 @@
     "./adapters/social-douyin": "./lib/adapters/social-douyin/index.js",
     "./adapters/social-douyin-adb": "./lib/adapters/social-douyin-adb/index.js",
     "./adapters/social-xiaohongshu": "./lib/adapters/social-xiaohongshu/index.js",
+    "./adapters/social-xiaohongshu-adb": "./lib/adapters/social-xiaohongshu-adb/index.js",
     "./adapters/messaging-qq": "./lib/adapters/messaging-qq/index.js",
     "./adapters/messaging-telegram": "./lib/adapters/messaging-telegram/index.js",
     "./adapters/messaging-whatsapp": "./lib/adapters/messaging-whatsapp/index.js",

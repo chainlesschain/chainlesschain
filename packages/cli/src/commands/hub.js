@@ -1089,6 +1089,110 @@ async function cmdBilibiliAdbSync(options) {
 }
 
 /**
+ * Phase 3c — `cc hub xhs-adb-sync`
+ *
+ * Pulls xiaohongshu.com cookies from the user's Android Xhs App, fetches
+ * userId + 3 endpoints (notes/liked/follows, X-S signed best-effort).
+ * Inline tip per typed reason codes + meFetchFailed warning.
+ */
+async function cmdXhsAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.xhsAdbSync({
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitNote || options.limitLiked || options.limitFollow
+          ? {
+              note: parsePositiveInt(options.limitNote),
+              liked: parsePositiveInt(options.limitLiked),
+              follow: parsePositiveInt(options.limitFollow),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ xhs-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "XHS_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Xhs release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "XHS_NOT_INSTALLED") {
+        logger.log(
+          chalk.gray(
+            "  Install Xiaohongshu App on the phone + log in once, then retry",
+          ),
+        );
+      } else if (result.reason === "XHS_COOKIES_INCOMPLETE") {
+        logger.log(
+          chalk.gray(
+            "  a1 / web_session cookie missing — relog on the Xhs App",
+          ),
+        );
+      } else if (
+        result.reason === "XHS_COOKIES_TRUNCATED" ||
+        result.reason === "XHS_NOT_SQLITE"
+      ) {
+        logger.log(
+          chalk.gray(
+            "  ADB stream may be corrupted; unplug + replug USB and retry",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const xhs = report.xhs || {};
+    const counts = xhs.eventCounts || {};
+    logger.log(chalk.green(`✓ xhs-adb-sync succeeded`));
+    logger.log(
+      `  userId:     ${chalk.cyan(xhs.userId || "(me fetch failed)")}`,
+    );
+    if (xhs.nickname) {
+      logger.log(`  nickname:   ${xhs.nickname}`);
+    }
+    logger.log(`  notes:      ${counts.note || 0}`);
+    logger.log(`  liked:      ${counts.liked || 0}`);
+    logger.log(`  follows:    ${counts.follow || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    if (xhs.meFetchFailed) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ /user/me returned no user_id — cookie expired or web_session missing (lastErrorCode=${xhs.lastErrorCode})`,
+        ),
+      );
+    } else if (xhs.lastErrorCode) {
+      // X-S sign best-effort: ~60% GET hit, <30% POST hit; 461 = X-S rejected
+      logger.log(
+        chalk.yellow(
+          `  ⚠ partial: lastErrorCode=${xhs.lastErrorCode} (${xhs.lastErrorMessage || "?"}) — X-S 签名 best-effort, 部分接口 461 可能正常`,
+        ),
+      );
+    }
+    if (xhs.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * Phase 3a — `cc hub weibo-adb-sync`
  *
  * Pulls m.weibo.cn cookies from the user's Android Weibo App, fetches
@@ -1715,6 +1819,26 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdWeiboAdbSync);
 
+  // Phase 3c — Xhs C 路径 one-shot (xiaohongshu.com cookies + 4 endpoints with X-S signing)
+  hub
+    .command("xhs-adb-sync")
+    .description(
+      "Xhs C 路径: pull xiaohongshu.com cookies via ADB from the user's Android Xhs App, fetch userId + 3 endpoints (notes/liked/follows). Best-effort X-S signing (~60% GET hit rate). Needs rooted Android + Xhs App logged in + `adb` on PATH.",
+    )
+    .option("--limit-note <n>", "Cap user notes (default 30)")
+    .option("--limit-liked <n>", "Cap liked notes (default 30)")
+    .option("--limit-follow <n>", "Cap follow list (default 100)")
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default = xhs nickname)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdXhsAdbSync);
+
   // Phase 2a — Douyin C 路径 one-shot (pull <uid>_im.db → parse abrignoni DFIR schema)
   hub
     .command("douyin-adb-sync")
@@ -1990,6 +2114,7 @@ export const _internal = {
   cmdBilibiliAdbDoctor,
   cmdDouyinAdbSync,
   cmdWeiboAdbSync,
+  cmdXhsAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };

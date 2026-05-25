@@ -615,6 +615,27 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * Phase 3c — Xhs C 路径 one-shot sync.
+     *
+     * Pulls xiaohongshu.com cookies via ADB, fetches userId via /user/me
+     * (no X-S) + 3 endpoints (notes/liked/follows, X-S signed best-effort).
+     * ~60% GET hit rate; UI handles partial via lastErrorCode propagation.
+     *
+     * 60s timeout — similar to Weibo (3 endpoints + cookie pull).
+     */
+    async xhsAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.xhs-adb-sync",
+        {
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        60_000,
+      );
+    },
+
+    /**
      * Phase 2a — Douyin C 路径 one-shot sync.
      *
      * Pulls <uid>_im.db cohort from the user's Android Douyin App via
