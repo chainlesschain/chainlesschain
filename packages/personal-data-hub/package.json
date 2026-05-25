@@ -55,6 +55,7 @@
     "./adapters/social-bilibili": "./lib/adapters/social-bilibili/index.js",
     "./adapters/social-bilibili-adb": "./lib/adapters/social-bilibili-adb/index.js",
     "./adapters/social-weibo": "./lib/adapters/social-weibo/index.js",
+    "./adapters/social-weibo-adb": "./lib/adapters/social-weibo-adb/index.js",
     "./adapters/social-douyin": "./lib/adapters/social-douyin/index.js",
     "./adapters/social-douyin-adb": "./lib/adapters/social-douyin-adb/index.js",
     "./adapters/social-xiaohongshu": "./lib/adapters/social-xiaohongshu/index.js",

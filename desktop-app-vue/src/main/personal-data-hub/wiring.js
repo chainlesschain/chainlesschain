@@ -365,10 +365,15 @@ async function initHub() {
     const {
       createDouyinDbExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+    // Phase 3a: register `weibo.cookies` extension (mirror of cli wiring).
+    const {
+      createWeiboCookiesExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
         "douyin.pull-im-db": createDouyinDbExtension(),
+        "weibo.cookies": createWeiboCookiesExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -1085,6 +1090,48 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 3a — Weibo C 路径 one-shot sync ──────────────────────────
+    //
+    // Mirror of cli `weiboAdbSync`. Pulls m.weibo.cn cookies → fetchUid →
+    // 3 endpoints (posts/favourites/follows) → ingests via social-weibo
+    // snapshot mode.
+    async weiboAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(WEIBO_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

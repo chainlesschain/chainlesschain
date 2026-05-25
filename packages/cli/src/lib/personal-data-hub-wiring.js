@@ -323,10 +323,15 @@ async function initHub() {
       // user's Android Douyin App.
       const { createDouyinDbExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+      // Phase 3a: register `weibo.cookies` extension for the Weibo
+      // C-path collector (m.weibo.cn cookies + 4 HTTP endpoints).
+      const { createWeiboCookiesExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
           "douyin.pull-im-db": createDouyinDbExtension(),
+          "weibo.cookies": createWeiboCookiesExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -951,6 +956,57 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(DOUYIN_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 3a — Weibo C 路径 one-shot sync ──────────────────────────
+    //
+    // Pulls m.weibo.cn cookies via the weibo.cookies extension → fetchUid
+    // (/api/config — cookie has no inline UID) → 3 endpoints (posts /
+    // favourites / follows) → snapshot → syncAdapter("social-weibo")
+    // snapshot mode. **No WBI signing** (m.weibo.cn mobile API is
+    // sign-less).
+    //
+    // Typed reason codes: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED /
+    // WEIBO_NO_ROOT / WEIBO_NOT_INSTALLED / WEIBO_COOKIES_EMPTY /
+    // WEIBO_COOKIES_TRUNCATED / WEIBO_NOT_SQLITE / WEIBO_COOKIES_INCOMPLETE /
+    // WEIBO_BASE64_PARSE / SYNC_FAILED.
+    async weiboAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-weibo-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(WEIBO_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

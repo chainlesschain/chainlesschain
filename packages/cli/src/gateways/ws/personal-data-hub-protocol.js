@@ -422,6 +422,16 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
       }),
     ),
 
+  // Phase 3a — Weibo C 路径 one-shot sync (m.weibo.cn cookies + 4 endpoints)
+  "personal-data-hub.weibo-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.weiboAdbSync({
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>
