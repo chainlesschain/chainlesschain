@@ -16,9 +16,11 @@
 const { ElectronWebSignBridge } = require("./electron-web-sign-bridge");
 const { XhsSignBridge } = require("./xhs-sign-bridge");
 const { ToutiaoSignBridge } = require("./toutiao-sign-bridge");
+const { KuaishouSignBridge } = require("./kuaishou-sign-bridge");
 
 module.exports = {
   ElectronWebSignBridge,
   XhsSignBridge,
   ToutiaoSignBridge,
+  KuaishouSignBridge,
 };
