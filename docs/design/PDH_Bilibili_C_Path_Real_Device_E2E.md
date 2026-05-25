@@ -13,20 +13,33 @@ Phase 1a-1d 已经把 Bilibili C 路径（PC + ADB → 桌面端调 api.bilibili
 2. 验 4 个 endpoint 真返事件（而不是 `{code:0,data:[]}` 静默失败）
 3. 验 9 typed reason banner 至少能命中 4 个常见路径（happy / no-root / not-installed / logged-out）
 
-Win 跑不动（adb 行为偶尔有出入；MIUI/HyperOS SELinux trap 也是 Win adb 触发率更低）。**强烈推荐 Mac/Linux 桌面**。
+**Win 跑得动 — 推荐 Win 桌面优先** (user 用 Win 比较多)。我们代码已经 Win-friendly:
+- `.replace(/\r+$/, "")` handle CRLF / `chcp 65001` UTF-8 / `maxBuffer: 32 * 1024 * 1024` / `encoding: "utf8"` explicit
+- ADB Win 二进制行为跟 Mac/Linux 对齐 (Google 官方 Platform Tools ZIP 包)
 
-## 1. 准备清单 (上桌前必备)
+Mac/Linux 同步骤可跑，只是 USB 驱动设置简单一些。**Win 跑通 ≠ Mac/Linux 必跑通**（MIUI/HyperOS FUSE SELinux trap 历史上在 Win adb 触发率低，bug 可能 latent）— 如果有 Mac/Linux 可跑就 cross-verify。
 
-| 项 | 验证命令 |
+## 1. 准备清单 (Win 桌面优先)
+
+| 项 | 验证命令 (PowerShell / cmd) |
 |---|---|
 | 桌面装好 Android Platform Tools（adb 在 PATH） | `adb version` 显示 ≥ 35.0 |
-| Android 手机 Magisk-root（或 LineageOS / KernelSU 同等） | `adb shell su -c id -u` 返 `0` 或 `uid=0(...)` |
-| Android 启 USB debugging + 已 authorize PC RSA fingerprint | `adb devices` 显示 device 状态 `device`（非 `unauthorized`） |
+| Android 手机 Magisk-root（或 KernelSU / LineageOS 同等） | `adb shell su -c "id -u"` 返 `0` 或 `uid=0(...)` |
+| Android 启 USB debugging + 授权 PC RSA fingerprint | `adb devices` 显示 device 状态 `device`（非 `unauthorized`） |
+| Win 装小米 / OPPO / 华为等厂商 USB 驱动 | `adb devices` 命中（部分品牌 Win 不带原生驱动） |
+| MIUI/HyperOS: 开 "USB 调试（安全设置）" 第二开关 | `adb shell pm list packages -3 \| Select-Object -First 3` 应返 ≥ 1 行 |
 | 手机装 Bilibili 正式版 APK | `adb shell pm list packages tv.danmaku.bili` 命中 |
 | Bilibili App 已登录账号 | 手机点开 Bilibili App 看到自己头像（不是登录页） |
 | 项目 cc CLI 装好 (`cc serve` 能起来) | `cc --version` ≥ 0.16x（含 Phase 1c） |
+| Terminal 中文编码 | `chcp 65001`（cc 自动做了，但 PowerShell 偶尔需手动） |
 
-可选（多设备时）：`export ADB_SERIAL=<device-serial>` 选一台（`adb devices` 第一列拷过来）。
+**Win-specific 易踩坑**:
+- **小米 MIUI / HyperOS**: 必须开 "USB 调试（安全设置）" **第二个开关**，否则 `adb shell su -c "..."` 静默 silent 返空，user 看到的是 `BILIBILI_NO_ROOT`
+- **USB Debugging 授权**: 第一次插 PC 弹窗必须勾「始终允许此电脑」
+- **OEM 解锁**: OPPO / vivo Magisk root 需先申请解锁码 + 168 小时等待
+- **小米 USB 驱动**: Win 自带不识别 fastboot，装 [MIUSB 官方驱动](https://www.miui.com/shouji/) 或 PdaNet Universal Driver
+
+可选（多设备时）：`set ADB_SERIAL=<device-serial>` (cmd) 或 `$env:ADB_SERIAL = "<serial>"` (PowerShell) 选一台。
 
 ## 2. 三种入口任选其一
 
