@@ -1328,6 +1328,83 @@ async function initHub() {
       }
     },
 
+    // ─── Phase 6e — Bridge dry-run doctor ───────────────────────────────
+    //
+    // Spins up each of the 3 Electron WebContentsView sign bridges
+    // (Xhs / Toutiao / Kuaishou) in sequence with NO cookie auth,
+    // probes for candidate signing globals, times each phase, and
+    // returns a structured report. Lets users detect SDK rotation
+    // BEFORE starting a real sync — when xhs.js / acrawler.js /
+    // NS_sig3 renames its entry function, the doctor surfaces it
+    // immediately with actionable detail.
+    //
+    // No phone needed; just live internet + xiaohongshu.com /
+    // toutiao.com / kuaishou.com reachable.
+    //
+    // Returns `{ok: true, results: {xhs, toutiao, kuaishou}}` where
+    // each entry is `{ok, homepageUrl, warmUpMs, probeMs, candidates,
+    // anyCandidatePresent}` on success, or `{ok: false, error}` on
+    // bridge failure (Electron 32+ check, navigation timeout, etc).
+    async bridgeDoctor(_opts = {}) {
+      let XhsSignBridge, ToutiaoSignBridge, KuaishouSignBridge;
+      try {
+        const sb = require("../sign-bridge");
+        XhsSignBridge = sb.XhsSignBridge;
+        ToutiaoSignBridge = sb.ToutiaoSignBridge;
+        KuaishouSignBridge = sb.KuaishouSignBridge;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      const platforms = [
+        ["xhs", XhsSignBridge],
+        ["toutiao", ToutiaoSignBridge],
+        ["kuaishou", KuaishouSignBridge],
+      ];
+      const results = {};
+      for (const [key, Klass] of platforms) {
+        const bridge = new Klass({
+          onWarn: (m) => logger.warn(`[bridge-doctor:${key}]`, m),
+        });
+        const homepageUrl = bridge.homepageUrl;
+        const startWarm = Date.now();
+        try {
+          // Empty cookie — we just want to load the page + check globals
+          // existence. Anti-bot SDKs load even for anonymous visitors.
+          await bridge.warmUp("");
+          const warmUpMs = Date.now() - startWarm;
+          const startProbe = Date.now();
+          const probe = await bridge.probe();
+          const probeMs = Date.now() - startProbe;
+          results[key] = {
+            ok: true,
+            homepageUrl,
+            warmUpMs,
+            probeMs,
+            candidates: probe.candidates,
+            anyCandidatePresent: probe.anyPresent,
+            probeError: probe.error || null,
+          };
+        } catch (err) {
+          results[key] = {
+            ok: false,
+            homepageUrl,
+            error: err && err.message ? err.message : String(err),
+          };
+        } finally {
+          try {
+            await bridge.shutdown();
+          } catch (_e) {
+            // best-effort
+          }
+        }
+      }
+      return { ok: true, results };
+    },
+
     // ─── Phase 2a — Douyin C 路径 one-shot sync ─────────────────────────
     //
     // Mirror of cli `douyinAdbSync`. Pulls <uid>_im.db cohort via the

@@ -684,6 +684,19 @@ export function usePersonalDataHub() {
     },
 
     /**
+     * Phase 6e — Bridge dry-run doctor.
+     *
+     * Spins up Xhs / Toutiao / Kuaishou sign bridges with empty cookie,
+     * probes for candidate signing globals, times each phase. Lets users
+     * detect SDK rotation BEFORE starting a real sync. Desktop-only.
+     *
+     * 60s timeout — 3 bridges × (warmUp ~3-5s + probe ~1s) sequential.
+     */
+    async bridgeDoctor() {
+      return await send("personal-data-hub.bridge-doctor", {}, 60_000);
+    },
+
+    /**
      * Phase 2a — Douyin C 路径 one-shot sync.
      *
      * Pulls <uid>_im.db cohort from the user's Android Douyin App via
