@@ -62,6 +62,8 @@ const KIND_HISTORY = "history";   // v0.3 (X-Bogus required)
 const KIND_FAVOURITE = "favourite"; // v0.3 (X-Bogus required)
 const KIND_LIKE = "like";         // v0.3 (X-Bogus required)
 const KIND_SEARCH = "search";     // legacy sqlite-mode only
+const KIND_MESSAGE = "message";   // Phase 2a — IM private messages from <uid>_im.db (abrignoni DFIR)
+const KIND_CONTACT = "contact";   // Phase 2a — SIMPLE_USER table contacts/follows from <uid>_im.db
 
 // Forward-compat: list every kind v0.3+ may emit so cc adapter accepts
 // snapshots from a newer Android even if this JS hasn't been bumped yet.
@@ -70,6 +72,8 @@ const VALID_SNAPSHOT_KINDS = Object.freeze([
   KIND_HISTORY,
   KIND_FAVOURITE,
   KIND_LIKE,
+  KIND_MESSAGE,
+  KIND_CONTACT,
 ]);
 
 function stableOriginalId(kind, id) {

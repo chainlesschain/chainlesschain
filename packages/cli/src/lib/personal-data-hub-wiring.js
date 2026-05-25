@@ -318,9 +318,15 @@ async function initHub() {
       // handler is invoked, so cost of always-registering is zero.
       const { createBilibiliCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+      // Phase 2a: register `douyin.pull-im-db` extension so the
+      // douyinAdbSync hub method can pull <uid>_im.db cohort from the
+      // user's Android Douyin App.
+      const { createDouyinDbExtension } =
+        await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
       hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
+          "douyin.pull-im-db": createDouyinDbExtension(),
         },
       });
       sda._deps.bridgeProvider = () => hostAdbBridge;
@@ -896,6 +902,55 @@ async function initHub() {
         // the cookies-extension throws, falling back to SYNC_FAILED for
         // anything from the API client / registry path.
         const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 2a — Douyin C 路径 one-shot sync ─────────────────────────
+    //
+    // Pulls <uid>_im.db cohort via the douyin.pull-im-db extension (P2a) →
+    // parses msg + SIMPLE_USER (abrignoni DFIR) → writes snapshot →
+    // syncAdapter("social-douyin") snapshot mode.
+    //
+    // 9 typed reason codes: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED /
+    // DOUYIN_NO_ROOT / DOUYIN_NOT_INSTALLED / DOUYIN_NO_IM_DB /
+    // DOUYIN_MULTIPLE_USERS / DOUYIN_PULL_FAILED / DOUYIN_NOT_SQLITE /
+    // SYNC_FAILED.
+    async douyinAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(DOUYIN_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

@@ -411,6 +411,17 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.bilibili-adb-doctor": async () =>
     withHub((hub) => hub.bilibiliAdbDoctor()),
 
+  // Phase 2a — Douyin C 路径 one-shot sync (db extraction)
+  "personal-data-hub.douyin-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.douyinAdbSync({
+        uid: msg && msg.uid,
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>
