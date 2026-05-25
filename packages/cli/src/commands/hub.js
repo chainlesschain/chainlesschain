@@ -1089,6 +1089,98 @@ async function cmdBilibiliAdbSync(options) {
 }
 
 /**
+ * Phase 2a — `cc hub douyin-adb-sync`
+ *
+ * Pulls <uid>_im.db from the user's Android Douyin App, parses msg +
+ * SIMPLE_USER (abrignoni DFIR schema), ingests via social-douyin adapter
+ * snapshot mode. Inline tip per 9 typed reason codes.
+ */
+async function cmdDouyinAdbSync(options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    const result = await hub.douyinAdbSync({
+      uid: options.uid,
+      stagingDir: options.stagingDir,
+      displayName: options.displayName,
+      limits:
+        options.limitMessages || options.limitContacts
+          ? {
+              messages: parsePositiveInt(options.limitMessages),
+              contacts: parsePositiveInt(options.limitContacts),
+            }
+          : undefined,
+    });
+    if (options.json) {
+      printJson(result);
+      return;
+    }
+    if (!result.ok) {
+      logger.log(chalk.red(`✗ douyin-adb-sync failed: ${result.reason}`));
+      logger.log(chalk.gray(`  ${result.message || ""}`));
+      if (result.reason === "BRIDGE_UNAVAILABLE") {
+        logger.log(
+          chalk.gray(
+            "  Install Android Platform Tools or set ADB_PATH=/path/to/adb",
+          ),
+        );
+      } else if (result.reason === "DOUYIN_NO_ROOT") {
+        logger.log(
+          chalk.gray(
+            "  Phone needs Magisk root — Douyin release APK isn't debuggable",
+          ),
+        );
+      } else if (result.reason === "DOUYIN_NOT_INSTALLED") {
+        logger.log(chalk.gray("  Install Douyin App on the phone, then retry"));
+      } else if (result.reason === "DOUYIN_NO_IM_DB") {
+        logger.log(
+          chalk.gray(
+            "  Log in to Douyin App + open any chat thread to materialize the IM database",
+          ),
+        );
+      } else if (result.reason === "DOUYIN_MULTIPLE_USERS") {
+        logger.log(
+          chalk.gray(
+            "  Multiple accounts on this phone — pass --uid <19-digit> to pick one",
+          ),
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const report = result.report || {};
+    const dy = report.douyin || {};
+    const counts = dy.eventCounts || {};
+    logger.log(chalk.green(`✓ douyin-adb-sync succeeded`));
+    logger.log(`  uid:        ${chalk.cyan(dy.uid)}`);
+    logger.log(`  messages:   ${counts.message || 0}`);
+    logger.log(`  contacts:   ${counts.contact || 0}`);
+    logger.log(`  total:      ${counts.total || 0}`);
+    logger.log(`  status:     ${report.status || "?"}`);
+    logger.log(`  rawCount:   ${report.rawCount || 0}`);
+    const diag = dy.parserDiagnostic || {};
+    if (!diag.hadMsgTable) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ msg table not found — Douyin App version may use a different IM schema`,
+        ),
+      );
+    }
+    if (!diag.hadSimpleUserTable) {
+      logger.log(
+        chalk.yellow(
+          `  ⚠ SIMPLE_USER table not found — contacts won't be ingested`,
+        ),
+      );
+    }
+    if (dy.cleanupFailed) {
+      logger.log(chalk.gray(`  (note: staging cleanup failed — non-fatal)`));
+    }
+  } catch (err) {
+    fail(null, err, options.json);
+  }
+}
+
+/**
  * Phase 1e — `cc hub bilibili-adb-doctor`
  *
  * Dry-run env probe. Runs only the cookies-extraction half of the sync
@@ -1505,6 +1597,35 @@ export function registerHubCommand(program) {
     .option("--json", "Output JSON")
     .action(cmdBilibiliAdbDoctor);
 
+  // Phase 2a — Douyin C 路径 one-shot (pull <uid>_im.db → parse abrignoni DFIR schema)
+  hub
+    .command("douyin-adb-sync")
+    .description(
+      "Douyin C 路径: pull <uid>_im.db cohort via ADB from the user's Android Douyin App, parse msg + SIMPLE_USER (abrignoni DFIR), ingest as snapshot. Needs rooted Android + Douyin App logged in + `adb` on PATH.",
+    )
+    .option(
+      "--uid <id>",
+      "19-digit Douyin uid — required when multiple accounts logged in on the phone",
+    )
+    .option(
+      "--limit-messages <n>",
+      "Cap msg rows from the IM db (default 10000)",
+    )
+    .option(
+      "--limit-contacts <n>",
+      "Cap SIMPLE_USER rows from the IM db (default 5000)",
+    )
+    .option(
+      "--display-name <s>",
+      "Account displayName for the snapshot (default empty)",
+    )
+    .option(
+      "--staging-dir <path>",
+      "Custom dir for the temp snapshot JSON (default os.tmpdir())",
+    )
+    .option("--json", "Output JSON")
+    .action(cmdDouyinAdbSync);
+
   hub
     .command("rederive")
     .description(
@@ -1749,6 +1870,7 @@ export const _internal = {
   cmdWechatDoctor,
   cmdBilibiliAdbSync,
   cmdBilibiliAdbDoctor,
+  cmdDouyinAdbSync,
   interpretWechatProbe,
   _defaultKnownVendors,
 };

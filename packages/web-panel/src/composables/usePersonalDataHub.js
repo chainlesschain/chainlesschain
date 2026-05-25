@@ -590,5 +590,30 @@ export function usePersonalDataHub() {
     async bilibiliAdbDoctor() {
       return await send("personal-data-hub.bilibili-adb-doctor", {}, 15_000);
     },
+
+    /**
+     * Phase 2a — Douyin C 路径 one-shot sync.
+     *
+     * Pulls <uid>_im.db cohort from the user's Android Douyin App via
+     * ADB, parses msg + SIMPLE_USER (abrignoni DFIR), ingests via
+     * social-douyin adapter snapshot mode. 9 typed reason codes for
+     * the UI to map to banners.
+     *
+     * 60s timeout — db extraction is faster than Bilibili's 4-endpoint
+     * fetch (no api.bilibili.com latency); the cap is mostly for base64
+     * streaming of a large IM db (~5-50MB raw).
+     */
+    async douyinAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.douyin-adb-sync",
+        {
+          uid: opts.uid,
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        60_000,
+      );
+    },
   };
 }

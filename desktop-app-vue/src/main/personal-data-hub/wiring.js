@@ -361,9 +361,14 @@ async function initHub() {
     const {
       createBilibiliCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+    // Phase 2a: register `douyin.pull-im-db` extension (mirror of cli wiring).
+    const {
+      createDouyinDbExtension,
+    } = require("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
     desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
+        "douyin.pull-im-db": createDouyinDbExtension(),
       },
     });
     const sda = new SystemDataAndroidAdapter();
@@ -1080,6 +1085,48 @@ async function initHub() {
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
+    },
+
+    // ─── Phase 2a — Douyin C 路径 one-shot sync ─────────────────────────
+    //
+    // Mirror of cli `douyinAdbSync`. Pulls <uid>_im.db cohort via the
+    // douyin.pull-im-db extension → parses msg + SIMPLE_USER → ingests
+    // via social-douyin snapshot mode.
+    async douyinAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-douyin-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(DOUYIN_[A-Z_]+)/);
         return {
           ok: false,
           reason: m ? m[1] : "SYNC_FAILED",

@@ -201,6 +201,9 @@
           <a-button @click="bilibiliAdbSync" :loading="loading.bilibiliAdbSync">
             通过 PC ADB 同步 Bilibili
           </a-button>
+          <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
+            通过 PC ADB 同步 Douyin
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -874,6 +877,7 @@ const loading = reactive({
   skill: false,
   bilibiliAdbSync: false,
   bilibiliAdbDoctor: false,
+  douyinAdbSync: false,
 })
 
 /**
@@ -926,6 +930,96 @@ function bilibiliReasonMessage(reason) {
     case 'SYNC_FAILED':
     default:
       return '同步失败 — 详见 message 字段'
+  }
+}
+
+/**
+ * Phase 2a — Douyin C 路径 (PC + ADB) UI handler.
+ *
+ * Pipeline: `cc serve` WS topic personal-data-hub.douyin-adb-sync → hub
+ * method douyinAdbSync → DouyinAdbCollector.collectAndSync → pull
+ * <uid>_im.db cohort → parseImDb msg + SIMPLE_USER → snapshot → ingest.
+ *
+ * 9 typed reason codes mapped to Chinese banners. Partial-result
+ * diagnostic (parserDiagnostic.hadMsgTable / hadSimpleUserTable false)
+ * renders a warning so user knows which table was empty.
+ */
+function douyinReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'DOUYIN_NO_ROOT':
+      return '手机未 root — 抖音正式版 APK 不是 debuggable，需 Magisk root 才能读 IM 数据库'
+    case 'DOUYIN_NOT_INSTALLED':
+      return '请在手机上安装抖音 App，然后重试'
+    case 'DOUYIN_NO_IM_DB':
+      return '抖音 App 已装但未生成 IM 数据库 — 请登录抖音并打开任一聊天会话后重试'
+    case 'DOUYIN_MULTIPLE_USERS':
+      return '此手机登录了多个抖音账号 — 请加 --uid <19位数字> 选一个'
+    case 'DOUYIN_UID_NOT_FOUND':
+      return '指定的 uid 不在设备上的抖音账号列表里'
+    case 'DOUYIN_PULL_FAILED':
+      return 'ADB 流传输失败 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'DOUYIN_NOT_SQLITE':
+      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function douyinAdbSync() {
+  if (loading.douyinAdbSync) return
+  loading.douyinAdbSync = true
+  try {
+    const result = await hub.douyinAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = douyinReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Douyin ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const dy = report.douyin || {}
+    const counts = dy.eventCounts || {}
+    const diag = dy.parserDiagnostic || {}
+    if (!diag.hadMsgTable && !diag.hadSimpleUserTable) {
+      message.warning({
+        content: `Douyin 同步完成但 0 events`,
+        description: 'msg 和 SIMPLE_USER 表都未在 IM 数据库中找到 — 抖音 App 版本可能用了不同 schema',
+        duration: 10,
+      })
+    } else if (!diag.hadMsgTable || !diag.hadSimpleUserTable) {
+      const missing = []
+      if (!diag.hadMsgTable) missing.push('msg (私信)')
+      if (!diag.hadSimpleUserTable) missing.push('SIMPLE_USER (联系人)')
+      message.warning({
+        content: `Douyin 部分同步：msg=${counts.message || 0} contacts=${counts.contact || 0}`,
+        description: `${missing.join('、')} 表未找到，未入库部分数据`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Douyin 同步成功：messages=${counts.message || 0} contacts=${counts.contact || 0} (total=${counts.total || 0})`,
+      )
+    }
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Douyin ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.douyinAdbSync = false
   }
 }
 

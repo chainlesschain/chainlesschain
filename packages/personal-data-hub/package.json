@@ -56,6 +56,7 @@
     "./adapters/social-bilibili-adb": "./lib/adapters/social-bilibili-adb/index.js",
     "./adapters/social-weibo": "./lib/adapters/social-weibo/index.js",
     "./adapters/social-douyin": "./lib/adapters/social-douyin/index.js",
+    "./adapters/social-douyin-adb": "./lib/adapters/social-douyin-adb/index.js",
     "./adapters/social-xiaohongshu": "./lib/adapters/social-xiaohongshu/index.js",
     "./adapters/messaging-qq": "./lib/adapters/messaging-qq/index.js",
     "./adapters/messaging-telegram": "./lib/adapters/messaging-telegram/index.js",
