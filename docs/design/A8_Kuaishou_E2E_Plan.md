@@ -1,10 +1,25 @@
 # A8 快手 (Kuaishou) — 真机 E2E 测试计划
 
-**Status**: v0.2 计划 (2026-05-24) — stub `A8KuaishouE2ETest.kt` 已落，真机执行需 Mac/Linux + Android 真机 + 真账号；Win dev box 无法运行。
+**Status**: v0.3 计划 (2026-05-25 update) — v0.2 stub `A8KuaishouE2ETest.kt` 已落；v0.3 新增 `KuaishouSignBridge` (hidden WebView 跑 NS_sig3 + kpf/kpn) + ApiClient GraphQL POST 3 endpoint (visionFeedRecommend / visionProfilePhotoList / visionSearchPhoto) + collector fan-out。Win dev box JVM 单测 (`KuaishouApiClientV03Test` + `KuaishouLocalCollectorV03Test`) ✅；真机 E2E 仍需 Mac/Linux + 真机 + 真账号。
 
 ## 范围
 
-A8 v0.2 surface = **cookie-parse only**（无网络调用）。快手 web 几乎所有读接口（GraphQL `visionFeedRecommend` / `visionProfilePhotoList` / `visionSearchPhoto`）都需 NS_sig3 签名，比抖音 X-Bogus 更复杂（multi-stage hash chain + visitor_id timestamp salt）。v0.2 fetchProfile 改走解 `kuaishou.web.cp.api_ph` cookie 字段中的 URL-encoded JSON payload（含 user_id / user_name / kuaishou_id / headurl / sex / city...）。
+**v0.3 surface** (本轮新增):
+- ✅ profile (cookie-parse `kuaishou.web.cp.api_ph`, v0.2 已通)
+- 🆕 watch history → KIND_WATCH (`visionFeedRecommend` GraphQL, 需 `__NS_sig3` + kpf/kpn headers)
+- 🆕 profile photos → KIND_COLLECT (`visionProfilePhotoList`, 用户自己发的视频)
+- 🆕 search history → KIND_SEARCH (`visionSearchPhoto` with empty keyword)
+
+NS_sig3 由 `KuaishouSignBridge` 在登录 cookie 注入后的 hidden WebView 里跑平台自带签名 JS — probe 4 候选 (`window.__APP__.encryptParams` / `window.NS.sign` / `window.GraphQL.fetch.sign` / `window.__SIGN__`)，与 Toutiao/Douyin (ByteDance acrawler 家族) 完全不同。signing JS 输入是 URL + operationName + 完整 POST body (GraphQL spec)，输出 `{__NS_sig3, kpf, kpn}`：__NS_sig3 进 URL 查询，kpf/kpn 进 header。Bridge 单 JS eval 产双输出，单槽缓存配对调用 (signUrl → signedHeaders 严格相等命中)。
+
+**GraphQL POST 形态** vs Toutiao/Douyin GET：ApiClient 走 `/graphql` POST + JSON body，doPostJson helper 处理 GraphQL errors (`{errors:[...]}` → lastErrorCode=-5)。三个 endpoint 同 endpoint 不同 operationName，区分靠 body.operationName 字段。
+
+**Graceful degrade**：
+- bridge warmUp 失败 → 跳过 3 个 v0.3 端点, v0.2 profile (cookie-parse) 仍 emit
+- signUrl 返 null (函数名 rotate / NS_sig3 算法漂) → 短路 (不发 HTTP), lastErrorCode=-99
+- GraphQL errors → lastErrorCode=-5 + 错误消息 propagate
+
+`v03Attempted` 字段在 `SnapshotResult.Ok` 透出。UI banner 三档与 Toutiao/Douyin 对齐。
 
 ```
 WebView 登录 → SocialCookieWebViewScreen 提取 cookie
