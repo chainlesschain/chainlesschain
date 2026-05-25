@@ -210,6 +210,9 @@
           <a-button @click="toutiaoAdbSync" :loading="loading.toutiaoAdbSync">
             通过 PC ADB 同步 Toutiao
           </a-button>
+          <a-button @click="kuaishouAdbSync" :loading="loading.kuaishouAdbSync">
+            通过 PC ADB 同步 Kuaishou
+          </a-button>
           <a-button @click="douyinAdbSync" :loading="loading.douyinAdbSync">
             通过 PC ADB 同步 Douyin
           </a-button>
@@ -890,6 +893,7 @@ const loading = reactive({
   weiboAdbSync: false,
   xhsAdbSync: false,
   toutiaoAdbSync: false,
+  kuaishouAdbSync: false,
 })
 
 /**
@@ -1199,6 +1203,99 @@ async function toutiaoAdbSync() {
     })
   } finally {
     loading.toutiaoAdbSync = false
+  }
+}
+
+/**
+ * Phase 6d — Kuaishou C 路径 (PC + ADB + GraphQL + NS_sig3) UI handler.
+ *
+ * Desktop context: KuaishouSignBridge (Electron WebContentsView running
+ * NS_sig3 SDK) → ~100% hit on 3 GraphQL endpoints + valid kpf/kpn
+ * headers. Web/CLI context: signed endpoints short-circuit (no HTTP).
+ * Profile comes from cookie's api_ph payload — works in both contexts.
+ */
+function kuaishouReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'KUAISHOU_NO_ROOT':
+      return '手机未 root — 快手正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
+    case 'KUAISHOU_NOT_INSTALLED':
+      return '请在手机上安装快手 App（com.smile.gifmaker，不是极速版 com.kuaishou.nebula）并登录后随便看一个视频（让 WebView 写入 cookies），再重试'
+    case 'KUAISHOU_COOKIES_EMPTY':
+      return 'ADB 流返 0 字节 — MIUI/HyperOS silent 失败？拔插 USB 重试'
+    case 'KUAISHOU_COOKIES_TRUNCATED':
+      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'KUAISHOU_NOT_SQLITE':
+      return '拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI 干扰，拔插 USB 重试'
+    case 'KUAISHOU_BASE64_PARSE':
+      return 'base64 解码失败 — adb 终端编码问题，请检查 `chcp 65001`'
+    case 'KUAISHOU_COOKIES_INCOMPLETE':
+      return 'userId / kuaishou.web.cp.api_ph cookie 缺失 — 请在手机快手 App 上重新登录'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function kuaishouAdbSync() {
+  if (loading.kuaishouAdbSync) return
+  loading.kuaishouAdbSync = true
+  try {
+    const result = await hub.kuaishouAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = kuaishouReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Kuaishou ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const kuaishou = report.kuaishou || {}
+    const counts = kuaishou.eventCounts || {}
+    if (kuaishou.profileFetchFailed) {
+      message.warning({
+        content: `Kuaishou 同步 cookie 缺 api_ph payload`,
+        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ''}。可能 cookie 已过期或登录态不完整（仅有 userId 但没有 api_ph），请在手机重新登录。`,
+        duration: 10,
+      })
+    } else if (
+      kuaishou.signProviderUsed === 'none' &&
+      counts.watch === 0 && counts.collect === 0 && counts.search === 0
+    ) {
+      // Phase 6d — web-shell context lacks KuaishouSignBridge (Electron only)
+      message.warning({
+        content: `Kuaishou 同步仅获取了 profile (${counts.profile || 0} event)`,
+        description: `当前 web-shell 上下文不支持 __NS_sig3 签名（仅 desktop app 提供 KuaishouSignBridge）。打开桌面 app 同步可获取 watch / collect / search。`,
+        duration: 12,
+      })
+    } else if (kuaishou.lastErrorCode) {
+      message.warning({
+        content: `Kuaishou 同步部分完成 (${counts.total || 0} events)`,
+        description: `lastErrorCode=${kuaishou.lastErrorCode}, ${kuaishou.lastErrorMessage || ''}`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Kuaishou 同步成功：profile=${counts.profile || 0} / watch=${counts.watch || 0} / collect=${counts.collect || 0} / search=${counts.search || 0} (total=${counts.total || 0})${kuaishou.nickname ? ' [' + kuaishou.nickname + ']' : ''}`,
+      )
+    }
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Kuaishou ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.kuaishouAdbSync = false
   }
 }
 
