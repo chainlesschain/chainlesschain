@@ -149,9 +149,19 @@ describe("SystemDataAndroidAdapter.sync + normalize", () => {
     expect(events[0].subtype).toBe(EVENT_SUBTYPES.OTHER);
     expect(events[0].content.title).toBe("联系人：妈妈");
     expect(events[0].extra.kind).toBe("contact-snapshot");
+    // v0.3.2 — contact event.extra carries identifying fields so detail
+    // sheet doesn't have to join the persons table.
+    expect(events[0].extra.phones).toEqual(["+8613800138000"]);
+    expect(events[0].extra.organization).toBe("家庭");
+    expect(events[0].extra.starred).toBe(true);
     expect(events[1].content.title).toBe("应用：微信");
     expect(events[1].extra.kind).toBe("app-snapshot");
     expect(events[1].extra.packageName).toBe("com.tencent.mm");
+    // v0.3.2 — app event.extra carries version + install fields.
+    expect(events[1].extra.versionName).toBe("8.0.45");
+    expect(events[1].extra.versionCode).toBe(2200);
+    expect(events[1].extra.firstInstallTime).toBe(1_650_000_000_000);
+    expect(events[1].extra.isSystem).toBe(false);
     events.forEach((e) => {
       const ev = validateEvent(e);
       expect(ev).toEqual({ valid: true, errors: [] });
