@@ -64,6 +64,7 @@ const {
   JdAdapter,
   MeituanAdapter,
   PinduoduoAdapter,
+  Train12306Adapter,
   EntityResolver,
   EntityResolverEmbeddingStage,
   EntityResolverLLMStage,
@@ -389,12 +390,16 @@ async function initHub() {
   //
   // **Deferred** (need per-account credential — `<vendor>-accounts.json`
   // loader infra similar to email/alipay/wechat, not yet built):
-  //   Train12306Adapter (opts.account.username)
   //   CtripAdapter      (opts.account.email)
   //   AmapAdapter       (opts.account.deviceId)
   //   TaobaoAdapter     (opts.account.userId)
   //   TelegramAdapter   (opts.account.userId)
   //   WhatsAppAdapter   (opts.account.phone)
+  // Train12306Adapter moved out of deferred (v0.2 added snapshot mode —
+  // account.username OPTIONAL, see adapters/travel-12306/index.js:53-56);
+  // Android Kyfw12306LocalCollector ships snapshot JSON via
+  // ccRunner.syncAdapter("travel-12306", path) — must be registered here
+  // or cc returns "unknown adapter" + UI shows misleading "v0.2 补齐" hint.
   // Earlier oversight: v5.0.3.84 wired Telegram + WhatsApp here, but their
   // ctors throw without account args, so they were silently swallowed by
   // try/catch and never actually registered. Removed to make the list
@@ -411,6 +416,7 @@ async function initHub() {
     JdAdapter,
     MeituanAdapter,
     PinduoduoAdapter,
+    Train12306Adapter,
   ]) {
     try {
       const adapter = new Cls();
