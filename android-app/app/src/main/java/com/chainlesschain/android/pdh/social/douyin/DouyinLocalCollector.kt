@@ -208,6 +208,87 @@ class DouyinLocalCollector @Inject constructor(
         )
     }
 
+    /**
+     * 2026-05-25 — in-WebView prefetch 路径 (复刻 [BilibiliLocalCollector.ingestPrefetched])。
+     * [DouyinJsBridge.PREFETCH_JS] 在 www.douyin.com 登录 WebView 内 fetch profile +
+     * history + favourite + like 后把 JSON 传上来。本方法直接落到 staging 路径，返
+     * SnapshotResult.Ok 让 caller 走 cc CLI sync 入 vault — 跟普通 snapshot 同后半段。
+     */
+    suspend fun ingestPrefetched(prefetchedJson: String): SnapshotResult = withContext(Dispatchers.IO) {
+        val root = try {
+            JSONObject(prefetchedJson)
+        } catch (e: Exception) {
+            Timber.w(e, "DouyinLocalCollector: prefetched JSON parse failed (len=%d)", prefetchedJson.length)
+            return@withContext SnapshotResult.Failed("prefetched not JSON: ${e.message}")
+        }
+        val events = root.optJSONArray("events")
+        val total = events?.length() ?: 0
+        val snapshottedAt = root.optLong("snapshottedAt", System.currentTimeMillis())
+        val stagingDir = File(context.filesDir, ".chainlesschain/staging")
+        if (!stagingDir.exists() && !stagingDir.mkdirs()) {
+            return@withContext SnapshotResult.Failed(
+                "failed to create staging dir at ${stagingDir.absolutePath}",
+            )
+        }
+        val snapshotFile = File(stagingDir, "social-douyin.json")
+        try {
+            snapshotFile.writeText(prefetchedJson, Charsets.UTF_8)
+        } catch (t: Throwable) {
+            Timber.e(t, "DouyinLocalCollector: prefetched write failed")
+            return@withContext SnapshotResult.Failed("write failed: ${t.message}")
+        }
+        // credentials store 由 HubLocalViewModel 在调本方法前先 saveCredentials
+        // (从 prefetched JSON 拿 secUid/nickname) — 这里只 recordSync 时间戳
+        credentialsStore.recordSync(snapshottedAt, total)
+        Timber.i(
+            "DouyinLocalCollector: ingested prefetched events=%d → %s",
+            total, snapshotFile.absolutePath,
+        )
+        root.optJSONArray("_debug")?.let { dbg ->
+            for (i in 0 until dbg.length()) {
+                val e = dbg.optJSONObject(i) ?: continue
+                Timber.i(
+                    "DouyinLocalCollector: prefetch[%d] engine=%s url=%s status=%s len=%d err=%s head=%s smoke=%s",
+                    i,
+                    e.optString("e", "?"),
+                    e.optString("u"),
+                    e.optString("s", "?"),
+                    e.optInt("l", -1),
+                    e.optString("err", ""),
+                    e.optString("head", "").replace("\n", " ").take(500),
+                    if (e.has("_smokeTest")) "secUid=${e.optString("secUid", "null")} nickname=${e.optString("nickname")} cookieLen=${e.optInt("cookieLen")} hasAcrawler=${e.optBoolean("hasAcrawler")} loc=${e.optString("locHref")}" else "",
+                )
+            }
+        }
+        var profileCount = 0; var historyCount = 0; var favCount = 0; var likeCount = 0
+        if (events != null) for (i in 0 until events.length()) {
+            when (events.optJSONObject(i)?.optString("kind")) {
+                "profile" -> profileCount++
+                "history" -> historyCount++
+                "favourite" -> favCount++
+                "like" -> likeCount++
+            }
+        }
+        SnapshotResult.Ok(
+            snapshotPath = snapshotFile.absolutePath,
+            profileCount = profileCount,
+            historyCount = historyCount,
+            favouriteCount = favCount,
+            likeCount = likeCount,
+            totalEvents = total,
+            everythingEmpty = total == 0,
+            snapshottedAt = snapshottedAt,
+            lastErrorCode = 0,
+            lastErrorMessage = null,
+            v03Attempted = false,
+        )
+    }
+
+    /** Called by [HubLocalViewModel.onDouyinLoginWithPrefetch] after cc sync ok. */
+    fun recordSync(eventCount: Int) {
+        credentialsStore.recordSync(System.currentTimeMillis(), eventCount)
+    }
+
     private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
         return try {
             block()

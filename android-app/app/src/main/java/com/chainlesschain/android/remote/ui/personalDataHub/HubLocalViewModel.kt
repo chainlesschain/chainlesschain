@@ -17,7 +17,7 @@ import com.chainlesschain.android.remote.commands.HubHealth
 import com.chainlesschain.android.remote.commands.PersonalDataHubCommands
 import com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore
 import com.chainlesschain.android.pdh.messaging.qq.QQLocalCollector
-import com.chainlesschain.android.pdh.social.MOBILE_CHROME_USER_AGENT
+import com.chainlesschain.android.pdh.social.DESKTOP_CHROME_USER_AGENT
 import com.chainlesschain.android.pdh.social.aichat.AiChatCredentialsStore
 import com.chainlesschain.android.pdh.social.aichat.AiChatVendor
 import com.chainlesschain.android.pdh.social.bilibili.BilibiliCredentialsStore
@@ -98,6 +98,10 @@ class HubLocalViewModel @Inject constructor(
     private val toutiaoCollector: ToutiaoLocalCollector,
     private val toutiaoCredentials: ToutiaoCredentialsStore,
     private val toutiaoSignBridge: com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge,
+    // Phase 7.1.2 — Toutiao Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix.
+    private val toutiaoRootCollector: com.chainlesschain.android.pdh.social.toutiao.ToutiaoRootDbCollector,
+    private val toutiaoRootCredentials: com.chainlesschain.android.pdh.social.toutiao.ToutiaoRootCredentialsStore,
     private val kuaishouCollector: KuaishouLocalCollector,
     private val kuaishouCredentials: KuaishouCredentialsStore,
     private val kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge,
@@ -191,21 +195,27 @@ class HubLocalViewModel @Inject constructor(
         /** URL-pattern detector run by the WebView screen — true ⇒ extract cookie + return. */
         val isLoginSuccess: (String) -> Boolean,
         /**
-         * 可选 WebView UA 整串覆盖。5 个反 WebView 严格平台 (Bilibili / 抖音 /
-         * 小红书 / 头条 / 快手) 设 [MOBILE_CHROME_USER_AGENT]，让平台返带
-         * polling 闭环 + 「一键登录」按钮的 mobile 登录页。微博 m.weibo.cn
-         * 不严，留 null 走 sanitize 默认。
+         * 可选 WebView UA 整串覆盖。5 家 (Bilibili / 抖音 / 小红书 / 头条 / 快手)
+         * 设 [DESKTOP_CHROME_USER_AGENT]，让平台返带**账密表单**的桌面登录页。
+         * 微博 m.weibo.cn 不严，留 null 走 sanitize 默认。
          *
-         * 2026-05-25 post `daabf6dfb` 修正：上次走 DESKTOP_CHROME_USER_AGENT
-         * 方向反了 —— 桌面 UA 让平台返桌面登录流（无一键登录入口；抖音直接
-         * modal-only 不 redirect → onPageFinished 永不命中）。详 memory
-         * `pdh_social_webview_deeplink_cookie_capture.md`。
+         * 2026-05-25 多轮真机迭代教训：
+         *   - 初版（Mobile UA + sanitize 剥 wv）→ 平台 funnel 到 mobile 页只剩
+         *     deep-link 按钮，账密表单都看不到。抖音直接「下载 App」拦截页。
+         *   - 一键登录 deep-link 拉 App，App 内完成授权但 cookie 写在 App 自己
+         *     进程沙箱（Android per-process 隔离）→ 我们 WebView CookieManager
+         *     拿不到。memory `pdh_social_webview_deeplink_cookie_capture.md`
+         *     里的"跨进程 cookie 闭环"假设**对这 5 个平台是错的**。
+         *   - **正向**：Desktop UA 让平台返桌面登录页含账密表单 + 扫码（QR）。
+         *     账密 cookie 直接写到我们 WebView，跨进程问题不存在。
          */
         val userAgent: String? = null,
         /**
-         * 可选 cookie-presence based 登录成功检测，每 1.5s 轮询。用于"登录后
-         * URL 不变"的平台（典型：抖音 modal 登录 — 弹窗关闭后 URL 仍是
-         * `?showLogin=1`）。null = 不轮询，纯走 [isLoginSuccess] URL 路径。
+         * 可选 cookie-presence based 登录成功检测，每 1.5s 轮询 CookieManager。
+         * 5 家全部走此路径作 belt-and-suspenders 兜底 — onPageFinished URL
+         * 检测对 modal/SPA 登录失效（典型：抖音 modal 关后 URL 不变；其它平台
+         * 桌面登录也可能 SPA history.replaceState 不触发 onPageFinished）。
+         * null = 不轮询，纯走 [isLoginSuccess] URL 路径。
          */
         val isLoginSuccessByCookie: ((cookie: String) -> Boolean)? = null,
     )
@@ -2314,7 +2324,13 @@ class HubLocalViewModel @Inject constructor(
                             url == "https://m.bilibili.com") &&
                             !url.contains("passport.bilibili.com")
                     },
-                    userAgent = MOBILE_CHROME_USER_AGENT,
+                    // Bilibili 账密登录后 cookie 里至少含 SESSDATA= (主 session)。
+                    // 同时 bili_jct + DedeUserID + buvid3 通常一起写。任一出现
+                    // 视为登录成功。
+                    isLoginSuccessByCookie = { cookie ->
+                        cookie.contains("SESSDATA=")
+                    },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -2861,9 +2877,127 @@ class HubLocalViewModel @Inject constructor(
                         cookie.contains("sessionid_ucp_v1=") ||
                             cookie.contains("sessionid=")
                     },
-                    userAgent = MOBILE_CHROME_USER_AGENT,
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
+        }
+    }
+
+    /**
+     * 2026-05-25 — 抖音 in-WebView prefetch 路径（复刻 [onBilibiliLoginWithPrefetch]）。
+     * [DouyinJsBridge.PREFETCH_JS] 在登录用 WebView 内 fetch profile + history + fav
+     * + like 后传 JSON 上来。绕开 OkHttp 端 TLS 指纹 + `_signature` 客户端签名风控。
+     *
+     * 流程：解 prefetched JSON 拿 secUid/nickname → saveCredentials → ingestPrefetched
+     * 写 staging → ccRunner.syncAdapter 入 vault。prefetched=null fallback 到旧
+     * onDouyinLoginCookie 路径（OkHttp acceptLoginCookie，知道大概率 fail）。
+     */
+    fun onDouyinLoginWithPrefetch(cookie: String, prefetched: String?) {
+        if (prefetched == null) {
+            Timber.w("HubLocalViewModel: Douyin prefetch null (JS 抛错或超时), 回退")
+            onDouyinLoginCookie(cookie)
+            return
+        }
+        val root = try { org.json.JSONObject(prefetched) } catch (e: Exception) {
+            Timber.w(e, "HubLocalViewModel: Douyin prefetched JSON parse failed")
+            onDouyinLoginCookie(cookie)
+            return
+        }
+        val account = root.optJSONObject("account")
+        val secUid = account?.optString("secUid")?.takeIf { it.isNotBlank() }
+        if (secUid == null) {
+            Timber.w("HubLocalViewModel: Douyin prefetched account.secUid missing — 调 ingestPrefetched 留 _debug log + 文件备查")
+            viewModelScope.launch {
+                douyinCollector.ingestPrefetched(prefetched)
+            }
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    douyin = it.douyin.copy(
+                        errorMessage = "登录未完成 — prefetch 未拿到 sec_uid (账号未登录或 cookie 缺关键字段)",
+                    ),
+                )
+            }
+            return
+        }
+        val nickname = account.optString("nickname").takeIf { it.isNotBlank() }
+        val shortIdFromCookie = com.chainlesschain.android.pdh.social.douyin.DouyinApiClient
+            .extractShortIdFromCookie(cookie)
+        douyinCredentials.saveCredentials(
+            cookie = cookie,
+            secUid = secUid,
+            shortId = shortIdFromCookie,
+            displayName = nickname,
+        )
+        _state.update {
+            it.copy(
+                pendingLogin = null,
+                douyin = it.douyin.copy(
+                    isSyncing = true,
+                    errorMessage = null,
+                ),
+                globalSyncingAdapter = "social-douyin",
+            )
+        }
+        refreshDouyinFromStore()
+        viewModelScope.launch {
+            val syncResult = douyinCollector.ingestPrefetched(prefetched)
+            when (syncResult) {
+                is com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector.SnapshotResult.Ok -> {
+                    when (val cc = ccRunner.syncAdapter(
+                        adapterName = "social-douyin",
+                        inputPath = syncResult.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            douyinCollector.recordSync(syncResult.totalEvents)
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = System.currentTimeMillis(),
+                                        lastSyncCount = syncResult.totalEvents,
+                                        errorMessage = null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        errorMessage = "cc sync 失败：${cc.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.douyin.DouyinLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 失败：${syncResult.reason}",
+                            ),
+                        )
+                    }
+                }
+                else -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 异常: $syncResult",
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -3074,7 +3208,12 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("/sign-in") &&
                             !url.contains("passport")
                     },
-                    userAgent = MOBILE_CHROME_USER_AGENT,
+                    // 小红书 web 登录后 cookie 里 web_session= 是主 session key；
+                    // a1= 是设备指纹（登录前后都在），不作信号。
+                    isLoginSuccessByCookie = { cookie ->
+                        cookie.contains("web_session=")
+                    },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3293,7 +3432,13 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
-                    userAgent = MOBILE_CHROME_USER_AGENT,
+                    // 头条 web 登录后 cookie 含 passport_uid= 或 sessionid=
+                    // (passport_uid 是 user identity，sessionid 是 web session)
+                    isLoginSuccessByCookie = { cookie ->
+                        cookie.contains("passport_uid=") ||
+                            cookie.contains("sessionid=")
+                    },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }
@@ -3432,6 +3577,172 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Phase 7.1.2 — Toutiao Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncToutiao] (path A, cookies + passport + signed
+     * endpoints). Path B reads `/data/data/com.ss.android.article.news/
+     * databases/*.db` directly via root — no internet, no PC, no signing
+     * required.
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A
+     * (only one sync per platform at a time). Banner prefix "本机 root:"
+     * discriminates from path A banners in the same SocialCardState.
+     *
+     * Pipeline:
+     *   1. globalSyncingAdapter gate
+     *   2. credentials store hasCredentials check (uid present)
+     *   3. toutiaoRootCollector.snapshot() → LocalSnapshotResult
+     *   4. On Ok: ccRunner.syncAdapter("social-toutiao", inputPath=...)
+     *   5. Map result variants to errorMessage with "本机 root:" prefix
+     */
+    fun syncToutiaoRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!toutiaoRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    toutiao = it.toutiao.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (passport_uid 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-toutiao",
+                    toutiao = it.toutiao.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 DB cohort...",
+                    ),
+                )
+            }
+            val result = toutiaoRootCollector.snapshot()
+            when (result) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录头条 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            toutiao = it.toutiao.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-toutiao",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["read"]?.takeIf { it > 0 }?.let { "$it 历史" },
+                                counts["collection"]?.takeIf { it > 0 }?.let { "$it 收藏" },
+                                counts["search"]?.takeIf { it > 0 }?.let { "$it 搜索" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                val dbName = result.diagnosticFields["dbFilename"] ?: "(unknown)"
+                                "本机 root: 同步成功但 0 events — DB '$dbName' 表 schema 可能漂移 (P7.1.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: toutiao root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun logoutToutiao() {
         toutiaoCollector.logout()
         _state.update {
@@ -3487,7 +3798,13 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("passport.") &&
                             !url.contains("/login")
                     },
-                    userAgent = MOBILE_CHROME_USER_AGENT,
+                    // 快手 web 登录后 cookie 含 userId= 或 passToken=
+                    // (userId 是 user id，passToken 是 auth token)
+                    isLoginSuccessByCookie = { cookie ->
+                        cookie.contains("userId=") ||
+                            cookie.contains("passToken=")
+                    },
+                    userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
         }

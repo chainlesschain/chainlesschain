@@ -97,12 +97,16 @@ fun HubLocalScreen(
                 // (cookie / WBI 签名 / dm_img 指纹全齐仍 -400 + silent empty)。唯
                 // 一稳路在 WebView 内 evaluateJavascript 跑 fetch（真 Chrome TLS
                 // 指纹 + 自动带全 JS-set cookie）。详 BilibiliJsBridge KDoc。
-                prefetchJs = if (pending.adapterName == "social-bilibili") {
-                    com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge.PREFETCH_JS
-                } else null,
-                onPrefetchComplete = if (pending.adapterName == "social-bilibili") {
-                    { cookie, data -> viewModel.onBilibiliLoginWithPrefetch(cookie, data) }
-                } else null,
+                prefetchJs = when (pending.adapterName) {
+                    "social-bilibili" -> com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge.PREFETCH_JS
+                    "social-douyin" -> com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge.PREFETCH_JS
+                    else -> null
+                },
+                onPrefetchComplete = when (pending.adapterName) {
+                    "social-bilibili" -> { cookie, data -> viewModel.onBilibiliLoginWithPrefetch(cookie, data) }
+                    "social-douyin" -> { cookie, data -> viewModel.onDouyinLoginWithPrefetch(cookie, data) }
+                    else -> null
+                },
                 onLoginComplete = { cookie ->
                     when {
                         pending.adapterName == "social-bilibili" ->
@@ -318,6 +322,14 @@ fun HubLocalScreen(
                             adapter = card.adapterName,
                             displayName = card.displayName,
                         )
+                    },
+                    // Phase 7.1.2 — wire Mode B (in-APK root + DB) sync.
+                    // Toutiao first as v0.1; Douyin / Bilibili etc. follow
+                    // in P7.1.2b once their RootDbCollectors are also
+                    // wired (Douyin has classes but no VM method yet).
+                    onSyncRoot = when (card.adapterName) {
+                        "social-toutiao" -> { -> viewModel.syncToutiaoRoot() }
+                        else -> null
                     },
                 )
                 Spacer(Modifier.height(8.dp))
@@ -686,6 +698,10 @@ private fun SocialAdapterCard(
     onSync: () -> Unit,
     onLogout: () -> Unit,
     onPreviewVault: () -> Unit,
+    // Phase 7.1.2 — Optional Mode B (path B) sync. Non-null for platforms
+    // that have an in-APK root collector wired (Toutiao first as v0.1).
+    // Renders a secondary "本机 root" button next to the main sync.
+    onSyncRoot: (() -> Unit)? = null,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -792,6 +808,20 @@ private fun SocialAdapterCard(
                     enabled = !state.isSyncing && !globalBusy && state.implemented,
                 ) {
                     Text(if (state.isSyncing) "同步中…" else "同步")
+                }
+                // Phase 7.1.2 — Mode B (in-APK root) sync, when wired for this
+                // platform. Renders only when caller supplied onSyncRoot (i.e.
+                // a RootDbCollector exists for this adapter — currently only
+                // Toutiao). Path B reads /data/data/<pkg>/databases/ directly
+                // via root + cohort copy + local SQLite — no network, no PC.
+                onSyncRoot?.let { handler ->
+                    Spacer(Modifier.size(8.dp))
+                    OutlinedButton(
+                        onClick = handler,
+                        enabled = !state.isSyncing && !globalBusy && state.implemented,
+                    ) {
+                        Text("本机 root")
+                    }
                 }
             }
 

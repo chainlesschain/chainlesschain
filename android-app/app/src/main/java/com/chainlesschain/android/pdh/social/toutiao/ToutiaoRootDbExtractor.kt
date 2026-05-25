@@ -18,7 +18,7 @@ import javax.inject.Singleton
 /**
  * Phase 7.1 — Android in-APK root Toutiao DB extractor (path B).
  *
- * Reads `/data/data/com.ss.android.article.news/databases/*.db` via
+ * Reads `/data/data/com.ss.android.article.news/databases/` `*.db` files via
  * `su -c "cp ..."` cohort copy (WAL/SHM siblings included) + standard
  * Android SQLiteDatabase open. Toutiao uses **plaintext SQLite** —
  * **no SQLCipher**, **no frida hook needed** — same pattern as Douyin
