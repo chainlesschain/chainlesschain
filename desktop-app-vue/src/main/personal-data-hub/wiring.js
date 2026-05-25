@@ -152,6 +152,10 @@ let _hub = null;
 let _initPromise = null;
 
 async function initHub() {
+  // Phase 1c: hoisted so the hub-level `bilibiliAdbSync` method can reuse
+  // the same bridge instance the system-data-android adapter wires below.
+  // Mirrors the cli wiring (packages/cli/src/lib/personal-data-hub-wiring.js).
+  let desktopAdbBridge = null;
   const hubDir = resolveHubDir();
   fs.mkdirSync(hubDir, { recursive: true });
   fs.mkdirSync(path.join(hubDir, "keys"), { recursive: true });
@@ -357,7 +361,7 @@ async function initHub() {
     const {
       createBilibiliCookiesExtension,
     } = require("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
-    const desktopAdbBridge = createDesktopAdbBridge({
+    desktopAdbBridge = createDesktopAdbBridge({
       extensions: {
         "bilibili.cookies": createBilibiliCookiesExtension(),
       },
@@ -1001,6 +1005,54 @@ async function initHub() {
      */
     listWechatAccounts() {
       return loadWechatAccounts(wechatAccountsPath).map(scrubWechatRow);
+    },
+
+    // ─── Phase 1c — Bilibili C 路径 one-shot sync ────────────────────────
+    //
+    // Mirror of cli `bilibiliAdbSync`. Pulls cookies via the bilibili.cookies
+    // extension (P1a) → fetches 4 endpoints via BilibiliApiClient (P1b) →
+    // writes a snapshot JSON → calls registry.syncAdapter("social-bilibili")
+    // to ingest into the vault. Returns `{ok: true, report}` on success or
+    // `{ok: false, reason, message}` with a typed reason the UI can pattern-
+    // match: BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED / BILIBILI_NO_ROOT /
+    // BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN / BILIBILI_COOKIES_INCOMPLETE /
+    // BILIBILI_COOKIES_TRUNCATED / BILIBILI_NOT_SQLITE / BILIBILI_INVALID_UID /
+    // SYNC_FAILED.
+    async bilibiliAdbSync(opts = {}) {
+      if (!desktopAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "desktop-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        collector = require("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          desktopAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
     },
   };
 }

@@ -392,6 +392,21 @@ export const PERSONAL_DATA_HUB_HANDLERS = {
   "personal-data-hub.list-wechat-accounts": async () =>
     withHub((hub) => hub.listWechatAccounts()),
 
+  // ─── Phase 1c — Bilibili C 路径 one-shot sync ─────────────────────────
+  //
+  // Pulls cookies from the user's Android Bilibili App via ADB, fetches 4
+  // endpoints, ingests as a snapshot. Returns the standard
+  // `{ok, report?, reason?, message?}` shape — see hub.bilibiliAdbSync for
+  // the full reason taxonomy. UI maps reasons to banner strings.
+  "personal-data-hub.bilibili-adb-sync": async (msg) =>
+    withHub((hub) =>
+      hub.bilibiliAdbSync({
+        limits: msg && msg.limits,
+        stagingDir: msg && msg.stagingDir,
+        displayName: msg && msg.displayName,
+      }),
+    ),
+
   // ─── Phase 8 — EntityResolver review / merge / unmerge ───────────────
 
   "personal-data-hub.review-queue-list": async (msg) =>

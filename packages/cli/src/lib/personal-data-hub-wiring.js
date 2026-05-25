@@ -153,6 +153,11 @@ export function resolveHubDir() {
 }
 
 async function initHub() {
+  // Phase 1c: hoisted so the hub-level `bilibiliAdbSync` method can reuse
+  // the same bridge instance the system-data-android adapter wires below.
+  // Single bridge per hub keeps `bilibili.cookies` extension state /
+  // adb path resolution / device picking consistent across callers.
+  let hostAdbBridge = null;
   const hubDir = resolveHubDir();
   mkdirSync(hubDir, { recursive: true });
   mkdirSync(join(hubDir, "keys"), { recursive: true });
@@ -302,7 +307,7 @@ async function initHub() {
       // handler is invoked, so cost of always-registering is zero.
       const { createBilibiliCookiesExtension } =
         await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
-      const hostAdbBridge = createHostAdbBridge({
+      hostAdbBridge = createHostAdbBridge({
         extensions: {
           "bilibili.cookies": createBilibiliCookiesExtension(),
         },
@@ -791,6 +796,59 @@ async function initHub() {
         registeredAt: row.registeredAt || null,
         lastSyncAt: row.lastSyncAt || null,
       }));
+    },
+
+    // ─── Phase 1c — Bilibili C 路径 one-shot sync ────────────────────────
+    //
+    // Pulls cookies via the bilibili.cookies extension (P1a) → fetches
+    // history/favourite/dynamic/follow via BilibiliApiClient (P1b) → writes
+    // a snapshot JSON → calls registry.syncAdapter("social-bilibili") to
+    // ingest into the vault. Always cleans up the staging file even on
+    // error. Returns `{ok: true, report}` on success or
+    // `{ok: false, reason, message}` on failure with a stable typed reason
+    // string the UI can pattern-match (BILIBILI_NO_ROOT /
+    // BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN / BILIBILI_COOKIES_INCOMPLETE
+    // / SYNC_FAILED / BRIDGE_UNAVAILABLE).
+    async bilibiliAdbSync(opts = {}) {
+      if (!hostAdbBridge) {
+        return {
+          ok: false,
+          reason: "BRIDGE_UNAVAILABLE",
+          message:
+            "host-adb-bridge failed to initialize at hub boot — check `adb` is on PATH or set ADB_PATH env var",
+        };
+      }
+      let collector;
+      try {
+        const mod =
+          await import("@chainlesschain/personal-data-hub/adapters/social-bilibili-adb");
+        collector = mod.default ? mod.default : mod;
+      } catch (err) {
+        return {
+          ok: false,
+          reason: "MODULE_LOAD_FAILED",
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+      try {
+        const report = await collector.collectAndSync(
+          hostAdbBridge,
+          registry,
+          opts,
+        );
+        return { ok: true, report };
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        // Extract a typed reason prefix from the BILIBILI_* error codes
+        // the cookies-extension throws, falling back to SYNC_FAILED for
+        // anything from the API client / registry path.
+        const m = msg.match(/^(BILIBILI_[A-Z_]+)/);
+        return {
+          ok: false,
+          reason: m ? m[1] : "SYNC_FAILED",
+          message: msg,
+        };
+      }
     },
   };
 }
