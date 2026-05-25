@@ -195,6 +195,9 @@
             <template #icon><WechatOutlined /></template>
             添加 WeChat
           </a-button>
+          <a-button @click="bilibiliAdbSync" :loading="loading.bilibiliAdbSync">
+            通过 PC ADB 同步 Bilibili
+          </a-button>
           <a-button @click="addMock" :loading="loading.addMock">
             注册 MockAdapter（开发）
           </a-button>
@@ -866,7 +869,105 @@ const loading = reactive({
   reviewQueue: false,
   resolverDrain: false,
   skill: false,
+  bilibiliAdbSync: false,
 })
+
+/**
+ * Phase 1d — UI surface for the `cc hub bilibili-adb-sync` flow.
+ *
+ * Trigger: user clicks "通过 PC ADB 同步 Bilibili" in the extra-bar.
+ * Backend: WS topic `personal-data-hub.bilibili-adb-sync` → hub method
+ * `bilibiliAdbSync()` → BilibiliAdbCollector.collectAndSync → registry
+ * snapshot ingest. Round-trip is ~10-30s on a healthy rooted device.
+ *
+ * The hub returns 9 typed reason codes on failure. Each gets its own
+ * actionable banner so the user can fix the root cause without digging
+ * into logs:
+ *
+ *   BRIDGE_UNAVAILABLE   → "Install Android Platform Tools; set ADB_PATH"
+ *   MODULE_LOAD_FAILED   → "PDH adapter package missing — reinstall cc"
+ *   BILIBILI_NO_ROOT     → "Phone isn't rooted; Bilibili release APK
+ *                          needs Magisk root to read its Cookies DB"
+ *   BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN
+ *                        → "Install Bilibili App + log in once on the phone"
+ *   BILIBILI_COOKIES_INCOMPLETE
+ *                        → "Logged out on phone — relog the Bilibili App"
+ *   BILIBILI_COOKIES_TRUNCATED / BILIBILI_NOT_SQLITE
+ *                        → "ADB stream corrupted; try unplug + replug USB"
+ *   BILIBILI_INVALID_UID → "Cookie file is malformed — relog"
+ *   SYNC_FAILED          → generic; surfaces the underlying message
+ *
+ * Partial-result paths (Ok: true + lastErrorCode != 0) emit a warning
+ * notification noting which endpoint hit anti-spider, so the user knows
+ * the sync ran but data is incomplete.
+ */
+function bilibiliReasonMessage(reason) {
+  switch (reason) {
+    case 'BRIDGE_UNAVAILABLE':
+      return 'adb 未安装或不在 PATH — 请安装 Android Platform Tools 或设置 ADB_PATH 环境变量'
+    case 'MODULE_LOAD_FAILED':
+      return 'PDH adapter 模块缺失 — 请重装 cc'
+    case 'BILIBILI_NO_ROOT':
+      return '手机未 root — Bilibili 正式版 APK 不是 debuggable，需 Magisk root 才能读 Cookies DB'
+    case 'BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN':
+      return '请在手机上安装 Bilibili App 并登录一次，然后重试'
+    case 'BILIBILI_COOKIES_INCOMPLETE':
+      return 'Cookie 缺关键字段 — 请在手机 Bilibili App 上重新登录'
+    case 'BILIBILI_COOKIES_TRUNCATED':
+      return 'ADB 流被截断 — 拔插 USB 重试，或检查 `adb logcat` 是否有 MIUI ROM 干扰'
+    case 'BILIBILI_NOT_SQLITE':
+      return 'ADB 拉回的文件不是 sqlite — 可能 base64 stream 被 MIUI/HyperOS 干扰，拔插 USB 重试'
+    case 'BILIBILI_INVALID_UID':
+      return 'Cookie 中 DedeUserID 不是正整数 — 请重新登录'
+    case 'SYNC_FAILED':
+    default:
+      return '同步失败 — 详见 message 字段'
+  }
+}
+
+async function bilibiliAdbSync() {
+  if (loading.bilibiliAdbSync) return
+  loading.bilibiliAdbSync = true
+  try {
+    const result = await hub.bilibiliAdbSync({})
+    if (!result || !result.ok) {
+      const reason = (result && result.reason) || 'SYNC_FAILED'
+      const human = bilibiliReasonMessage(reason)
+      const detail = (result && result.message) || ''
+      message.error({
+        content: `Bilibili ADB 同步失败：${human}`,
+        description: detail,
+        duration: 8,
+      })
+      return
+    }
+    const report = result.report || {}
+    const bili = report.bilibili || {}
+    const counts = bili.eventCounts || {}
+    if (bili.lastErrorCode) {
+      message.warning({
+        content: `Bilibili 同步部分完成 (${counts.total || 0} events)`,
+        description: `lastErrorCode=${bili.lastErrorCode}, ${bili.lastErrorMessage || ''} — 部分接口受反爬限制，稍后重试可补齐`,
+        duration: 8,
+      })
+    } else {
+      message.success(
+        `Bilibili 同步成功：history=${counts.history || 0} / fav=${counts.favourite || 0} / dyn=${counts.dynamic || 0} / follow=${counts.follow || 0} (total=${counts.total || 0})`,
+      )
+    }
+    // Refresh adapter list + stats so the user sees the new event count.
+    lastSync.value = report
+    refresh()
+  } catch (err) {
+    message.error({
+      content: 'Bilibili ADB 同步异常',
+      description: err && err.message ? err.message : String(err),
+      duration: 8,
+    })
+  } finally {
+    loading.bilibiliAdbSync = false
+  }
+}
 
 // Table columns
 const adapterColumns = [

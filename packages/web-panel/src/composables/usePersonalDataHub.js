@@ -542,5 +542,39 @@ export function usePersonalDataHub() {
     async unregisterWechat(uin) {
       return await send("personal-data-hub.unregister-wechat", { uin }, 5_000);
     },
+
+    /**
+     * Phase 1c — Bilibili C 路径 one-shot sync.
+     *
+     * Pulls the Android Bilibili App's WebView cookies via ADB, fetches
+     * history/favourite/dynamic/follow, and ingests as a snapshot via the
+     * existing social-bilibili adapter. Returns the standard wiring shape
+     * `{ok, report?, reason?, message?}`. UI maps reason to a banner —
+     * see PersonalDataHub.vue:bilibiliAdbSync handler.
+     *
+     * Long timeout (120s) because the API client makes up to ~3 + 1 +
+     * fav-folders sequential HTTP calls to api.bilibili.com (each can
+     * sit at 15s if anti-spider rate-limits us), and adb base64-stream
+     * of the Cookies sqlite is ~1-2s on most rooted phones.
+     *
+     * 9 reason codes (handler maps each to its own banner):
+     *  - BRIDGE_UNAVAILABLE / MODULE_LOAD_FAILED
+     *  - BILIBILI_NO_ROOT
+     *  - BILIBILI_NOT_INSTALLED_OR_NEVER_LOGGED_IN
+     *  - BILIBILI_COOKIES_INCOMPLETE / BILIBILI_COOKIES_TRUNCATED /
+     *    BILIBILI_NOT_SQLITE / BILIBILI_INVALID_UID
+     *  - SYNC_FAILED  (catch-all for HTTP / vault errors)
+     */
+    async bilibiliAdbSync(opts = {}) {
+      return await send(
+        "personal-data-hub.bilibili-adb-sync",
+        {
+          limits: opts.limits,
+          stagingDir: opts.stagingDir,
+          displayName: opts.displayName,
+        },
+        120_000,
+      );
+    },
   };
 }
