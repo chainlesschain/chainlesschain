@@ -255,7 +255,7 @@ class BilibiliLocalCollector @Inject constructor(
                     e.optString("s", "?"),
                     e.optInt("l", -1),
                     e.optString("err", ""),
-                    e.optString("head", "").replace("\n", " ").take(50),
+                    e.optString("head", "").replace("\n", " ").take(500),
                     if (e.has("_smokeTest")) "isLogin=${e.optBoolean("isLogin")} code=${e.opt("code")} cookieLen=${e.optInt("cookieLen")} loc=${e.optString("locHref")}" else "",
                 )
             }

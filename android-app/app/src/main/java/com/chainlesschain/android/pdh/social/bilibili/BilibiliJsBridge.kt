@@ -99,7 +99,7 @@ object BilibiliJsBridge {
       try {
         const r = await fetch(url, {credentials:'include', mode:'cors'});
         const txt = await r.text();
-        debug.push({u: shortUrl, e: 'fetch', s: r.status, l: txt.length, head: txt.slice(0, 50)});
+        debug.push({u: shortUrl, e: 'fetch', s: r.status, l: txt.length, head: txt.slice(0, 500)});
         if (r.ok) {
           try { return JSON.parse(txt); } catch (e) {}
         }
@@ -113,7 +113,7 @@ object BilibiliJsBridge {
         xhr.withCredentials = true;
         xhr.send();
         const txt = xhr.responseText || '';
-        debug.push({u: shortUrl, e: 'xhr', s: xhr.status, l: txt.length, head: txt.slice(0, 50)});
+        debug.push({u: shortUrl, e: 'xhr', s: xhr.status, l: txt.length, head: txt.slice(0, 500)});
         if (xhr.status >= 200 && xhr.status < 300) {
           try { return JSON.parse(txt); } catch (e) {}
         }
@@ -131,8 +131,9 @@ object BilibiliJsBridge {
     debug.push({_smokeTest: 'nav', isLogin: navIsLogin, code: navResp ? navResp.code : null,
                 cookieLen: document.cookie.length, locHref: location.href});
 
-    // history (recent view history)
-    const histResp = await tryJson('https://api.bilibili.com/x/web-interface/history/cursor?ps=200&type=archive');
+    // history — v4: ps=200 → -400, b 站上限 ps=30。改 cursor+view_at+business
+    // 显式起点。v5 加 max+view_at 分页扩到 200
+    const histResp = await tryJson('https://api.bilibili.com/x/web-interface/history/cursor?max=0&view_at=0&business=archive&ps=30');
     (histResp && histResp.data && histResp.data.list || []).forEach(item => {
       events.push({
         kind: 'history',
@@ -153,9 +154,10 @@ object BilibiliJsBridge {
     const folders = (foldersResp && foldersResp.data && foldersResp.data.list) || [];
     for (const folder of folders) {
       if (!folder.id) continue;
+      // v4: ps=50 → -400, b 站上限 ps=20。同 folder 多页等 v5 加 pagination loop
       const itemsResp = await tryJson(
         'https://api.bilibili.com/x/v3/fav/resource/list?media_id=' + folder.id +
-        '&pn=1&ps=50&platform=web&keyword=&order=mtime&type=0&tid=0'
+        '&pn=1&ps=20&platform=web&keyword=&order=mtime&type=0&tid=0'
       );
       (itemsResp && itemsResp.data && itemsResp.data.medias || []).forEach(media => {
         events.push({
