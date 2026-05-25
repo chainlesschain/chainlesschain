@@ -101,6 +101,20 @@ class XhsSignBridge extends ElectronWebSignBridge {
   }
 
   /**
+   * Phase 6e — return JSON-stringified candidate presence map for the
+   * 4 known Xhs signing globals. Bridge-doctor runs this after warmUp
+   * (live www.xiaohongshu.com/explore) to detect rotation.
+   */
+  get probeScript() {
+    return `JSON.stringify({
+      _webmsxyw: typeof window._webmsxyw === 'function',
+      webmsxyw: typeof window.webmsxyw === 'function',
+      'xhs.sign': !!(window.xhs && typeof window.xhs.sign === 'function'),
+      '_b8.xs': !!(window._b8 && typeof window._b8.xs === 'function')
+    });`;
+  }
+
+  /**
    * URL is unchanged — Xhs uses headers only. Always returns null.
    * `signedHeaders` is the actual implementation.
    */

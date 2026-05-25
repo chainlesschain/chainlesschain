@@ -230,11 +230,24 @@ class ElectronWebSignBridge {
    * implementations.
    */
   async _eval(rawUrl, purpose) {
+    const script = this.buildSignScript(String(rawUrl), purpose);
+    return await this._evalRaw(script);
+  }
+
+  /**
+   * Run an arbitrary JS expression in the bridge's WebContentsView through
+   * the same eval mutex as `_eval`. Subclasses use this for probe scripts
+   * that bypass [buildSignScript] (e.g. presence checks for candidate
+   * signing globals — see [probe]).
+   *
+   * @param {string} script  raw JS to executeJavaScript
+   * @returns {Promise<string|null>}  stringified result or null
+   */
+  async _evalRaw(script) {
     if (!this._warm || !this._view) {
       this._onWarn("eval before warmUp — call warmUp(cookie) first");
       return null;
     }
-    const script = this.buildSignScript(String(rawUrl), purpose);
     // Mutex via promise chain: next eval waits for previous.
     const prevChain = this._evalChain;
     let release;
@@ -260,6 +273,64 @@ class ElectronWebSignBridge {
     } finally {
       release();
     }
+  }
+
+  /**
+   * Phase 6e — dry-run "what's loaded?" introspection.
+   *
+   * Runs [probeScript] (subclass-defined) in the WebContentsView and
+   * returns a `{candidates: {name: bool}, anyPresent: bool}` report.
+   * Lets the bridge-doctor surface "acrawler.js global rotated" /
+   * "NS_sig3 absent" BEFORE the user sees a 0-event sync.
+   *
+   * No-op fallback (no probeScript getter overridden): returns
+   * `{candidates: {}, anyPresent: false}`.
+   */
+  async probe() {
+    const script = this.probeScript;
+    if (!script) {
+      return { candidates: {}, anyPresent: false };
+    }
+    const result = await this._evalRaw(script);
+    if (!result) {
+      return {
+        candidates: {},
+        anyPresent: false,
+        error: "probe returned null (warmUp failed / eval timeout)",
+      };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(result);
+    } catch (e) {
+      return {
+        candidates: {},
+        anyPresent: false,
+        error: "probe result not JSON: " + e.message,
+      };
+    }
+    if (!parsed || typeof parsed !== "object") {
+      return { candidates: {}, anyPresent: false };
+    }
+    const candidates = {};
+    for (const k of Object.keys(parsed)) {
+      candidates[k] = Boolean(parsed[k]);
+    }
+    return {
+      candidates,
+      anyPresent: Object.values(candidates).some((v) => v === true),
+    };
+  }
+
+  /**
+   * Subclass override. Should return a JS expression that evaluates to a
+   * JSON-stringified object `{candidateName: bool, ...}` indicating which
+   * signing globals are present in the bridge's WebContentsView.
+   *
+   * Default null → [probe] degrades to empty report.
+   */
+  get probeScript() {
+    return null;
   }
 
   /**

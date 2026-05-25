@@ -179,6 +179,19 @@ class KuaishouSignBridge extends ElectronWebSignBridge {
     }
     return {};
   }
+
+  /**
+   * Phase 6e — return JSON-stringified candidate presence map for the
+   * 4 known Kuaishou signing globals.
+   */
+  get probeScript() {
+    return `JSON.stringify({
+      '__APP__.encryptParams': !!(window.__APP__ && typeof window.__APP__.encryptParams === 'function'),
+      'NS.sign': !!(window.NS && typeof window.NS.sign === 'function'),
+      'GraphQL.fetch.sign': !!(window.GraphQL && window.GraphQL.fetch && typeof window.GraphQL.fetch.sign === 'function'),
+      __SIGN__: typeof window.__SIGN__ === 'function'
+    });`;
+  }
 }
 
 /** GraphQL operation names — purpose prefix when calling sign. */
