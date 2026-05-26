@@ -264,7 +264,14 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}
+          # 2026-05-27: scope cache key to this workflow. The bare
+          # `avd-${matrix.api-level}` prefix-collided with android-build.yml's
+          # `avd-${matrix.api-level}-ubuntu-v2` cache after the matrix moved
+          # to [28, 30] — actions/cache@v4 restore-key fallback handed back a
+          # foreign AVD with an incompatible config.ini, the emulator launched
+          # but immediately logged "no valid sdk root directory" and never
+          # opened port 5554 (run 26479612061 / job 77974125586).
+          key: avd-android-ci-${{ matrix.api-level }}-v1
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
