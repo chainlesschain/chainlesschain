@@ -346,6 +346,11 @@ fun HubLocalScreen(
                         // + libshield.so 反 frida → v0.1 likely 命中 likely-sqlcipher
                         // banner 跳 v2.0 frida + libshield neuter 路径。
                         "social-xiaohongshu" -> { -> viewModel.syncXhsRoot() }
+                        // Phase 7.6.2 — Kuaishou Mode B wired (final 6/6 platform).
+                        // Plan §6.6: 极低公开 + libmsaoaidsec.so 反 frida 极高
+                        // → v0.1 likely 命中 likely-sqlcipher banner 跳 v2.0
+                        // frida + libmsaoaidsec neuter 路径。
+                        "social-kuaishou" -> { -> viewModel.syncKuaishouRoot() }
                         else -> null
                     },
                 )

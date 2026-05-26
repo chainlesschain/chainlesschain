@@ -102,8 +102,10 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: ChainlessChain
-  # `include: installer.nsh` removed — file does not exist in repo.
-  # Re-add when a custom NSIS script is needed.
+  # Custom NSIS script — force-kills any running ChainlessChain.exe in
+  # .onInit so the installer/updater doesn't show the "无法关闭，请手动
+  # 关闭它" manual-retry dialog when overwriting the locked .exe.
+  include: build/installer.nsh
   perMachine: true
   runAfterFinish: false
   # 差分更新配置
