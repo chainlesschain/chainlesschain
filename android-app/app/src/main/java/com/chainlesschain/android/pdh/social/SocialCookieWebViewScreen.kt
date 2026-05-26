@@ -327,6 +327,54 @@ private fun CookieWebViewHost(
     // JS fetch，否则旧 onLoginCookie 兜底。第 1 版只在 URL 路径加 prefetch → 抖音走
     // cookie 路径直接跳 OkHttp HTTP 404，得不偿失
     val dispatchCookieReady: (WebView, String) -> Unit = { view, cookie ->
+        // 2026-05-26 真机：xhs `/user/me` 返 code=-104 "没有权限"，cookieFields
+        // 缺 `web_session` — xhs 把它 scope 到 www.xiaohongshu.com (Domain=
+        // www.xiaohongshu.com Path=/)，跨子域 fetch 到 edith.xiaohongshu.com
+        // 不带这条 cookie 所以服务器看到游客身份。修法：把 www. 域的 web_session
+        // 用 Domain=.xiaohongshu.com 重写一份到 edith 子域，cross-subdomain
+        // shared。其它平台 (b 站 .bilibili.com / 抖音 .douyin.com) 默认就 cross-
+        // subdomain 不需要此操作。
+        if (cookieDomain.contains("xiaohongshu.com")) {
+            try {
+                val cm = CookieManager.getInstance()
+                val wwwCookies = cm.getCookie(cookieDomain) ?: ""
+                val edithBefore = cm.getCookie("https://edith.xiaohongshu.com") ?: ""
+                // dump web_session value 前 4 字符 + 长度 — 占位 session 一般空
+                // 或 < 20 字符，真登录后约 40-80 字符
+                val sessionRegex = Regex("(?:^|;\\s*)web_session=([^;\\s]+)")
+                val wwwSess = sessionRegex.find(wwwCookies)?.groupValues?.getOrNull(1) ?: ""
+                val edithSess = sessionRegex.find(edithBefore)?.groupValues?.getOrNull(1) ?: ""
+                Timber.i(
+                    "SocialCookieWebView: xhs cookie domain bridge — www_len=%d edith_before_len=%d www_session_len=%d (prefix=%s) edith_session_len=%d (prefix=%s)",
+                    wwwCookies.length, edithBefore.length,
+                    wwwSess.length, wwwSess.take(4),
+                    edithSess.length, edithSess.take(4),
+                )
+                // 抽 www. 域所有 cookie 重写到 .xiaohongshu.com 子域共享 — 不只
+                // web_session，凡可能 auth 相关的字段全 cross-set (一次性兜底)
+                val keysToBridge = listOf("web_session", "webId", "xsecappid", "gid", "a1", "websectiga")
+                wwwCookies.split(";").map { it.trim() }.forEach { kv ->
+                    val eq = kv.indexOf('=')
+                    if (eq <= 0) return@forEach
+                    val k = kv.substring(0, eq)
+                    val v = kv.substring(eq + 1)
+                    if (k in keysToBridge) {
+                        cm.setCookie(
+                            "https://edith.xiaohongshu.com",
+                            "$k=$v; Domain=.xiaohongshu.com; Path=/",
+                        )
+                    }
+                }
+                cm.flush()
+                val edithAfter = cm.getCookie("https://edith.xiaohongshu.com") ?: ""
+                Timber.i(
+                    "SocialCookieWebView: xhs cookie bridge done — edith_after_len=%d edith_after_has_session=%s",
+                    edithAfter.length, edithAfter.contains("web_session="),
+                )
+            } catch (t: Throwable) {
+                Timber.w(t, "SocialCookieWebView: xhs cookie bridge threw")
+            }
+        }
         if (prefetchJs != null && onPrefetchComplete != null) {
             val responded = java.util.concurrent.atomic.AtomicBoolean(false)
             val sharedCb: (String?) -> Unit = { data ->
@@ -339,6 +387,8 @@ private fun CookieWebViewHost(
                 .BilibiliJsBridge.setPending(sharedCb)
             com.chainlesschain.android.pdh.social.douyin
                 .DouyinJsBridge.setPending(sharedCb)
+            com.chainlesschain.android.pdh.social.xiaohongshu
+                .XhsJsBridge.setPending(sharedCb)
             view.evaluateJavascript(prefetchJs, null)
             view.postDelayed({
                 if (responded.compareAndSet(false, true)) {
@@ -346,6 +396,8 @@ private fun CookieWebViewHost(
                         .BilibiliJsBridge.clearPending()
                     com.chainlesschain.android.pdh.social.douyin
                         .DouyinJsBridge.clearPending()
+                    com.chainlesschain.android.pdh.social.xiaohongshu
+                        .XhsJsBridge.clearPending()
                     Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
                     onPrefetchComplete(cookie, null)
                 }
@@ -390,6 +442,10 @@ private fun CookieWebViewHost(
                 addJavascriptInterface(
                     com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge,
                     "DouyinBridge",
+                )
+                addJavascriptInterface(
+                    com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge,
+                    "XhsBridge",
                 )
                 webViewClient = object : WebViewClient() {
                     /**

@@ -92,6 +92,10 @@ class HubLocalViewModel @Inject constructor(
     private val douyinCollector: DouyinLocalCollector,
     private val douyinCredentials: DouyinCredentialsStore,
     private val douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge,
+    // Phase 7.1.2b — Douyin Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix.
+    private val douyinRootCollector: com.chainlesschain.android.pdh.social.douyin.DouyinRootDbCollector,
+    private val douyinRootCredentials: com.chainlesschain.android.pdh.social.douyin.DouyinRootCredentialsStore,
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
     private val xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge,
@@ -3152,6 +3156,163 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Phase 7.1.2b — Douyin Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncDouyin] (path A, cookies + WebView + passport
+     * endpoint + DouyinSignBridge). Path B reads `/data/data/
+     * com.ss.android.ugc.aweme/databases/<uid>_im.db` directly via root
+     * — no internet, no PC, no signing required. Mirror of P7.1.2
+     * `syncToutiaoRoot` pattern.
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A.
+     * Banner prefix "本机 root:" discriminates in the same SocialCardState.
+     */
+    fun syncDouyinRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!douyinRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    douyin = it.douyin.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (sec_user_id + uid 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-douyin",
+                    douyin = it.douyin.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 <uid>_im.db cohort...",
+                    ),
+                )
+            }
+            val result = douyinRootCollector.snapshot()
+            when (result) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录抖音 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            douyin = it.douyin.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            douyin = it.douyin.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-douyin",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["message"]?.takeIf { it > 0 }?.let { "$it 消息" },
+                                counts["contact"]?.takeIf { it > 0 }?.let { "$it 联系人" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                "本机 root: 同步成功但 0 events — <uid>_im.db 表 schema 可能漂移 (P7.1.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: douyin root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    douyin = it.douyin.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun logoutDouyin() {
         douyinCollector.logout()
         _state.update {
@@ -3216,6 +3377,117 @@ class HubLocalViewModel @Inject constructor(
                     userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
+        }
+    }
+
+    /**
+     * 2026-05-26 — 小红书 in-WebView prefetch (复刻 onDouyinLoginWithPrefetch).
+     * 详 memory `bilibili_in_webview_prefetch_architecture.md`。被并行 session
+     * rebase race 整丢过一次，commit `<待 land>` 重新加回 + lock 住。
+     */
+    fun onXhsLoginWithPrefetch(cookie: String, prefetched: String?) {
+        if (prefetched == null) {
+            Timber.w("HubLocalViewModel: Xhs prefetch null (JS 抛错或超时), 回退")
+            onXhsLoginCookie(cookie)
+            return
+        }
+        val root = try { org.json.JSONObject(prefetched) } catch (e: Exception) {
+            Timber.w(e, "HubLocalViewModel: Xhs prefetched JSON parse failed")
+            onXhsLoginCookie(cookie)
+            return
+        }
+        val account = root.optJSONObject("account")
+        val userId = account?.optString("uid")?.takeIf { it.isNotBlank() }
+        val a1 = account?.optString("a1")?.takeIf { it.isNotBlank() }
+        val nickname = account?.optString("displayName")?.takeIf { it.isNotBlank() }
+        if (userId == null || a1 == null) {
+            Timber.w(
+                "HubLocalViewModel: Xhs prefetched account missing fields userId=%s a1=%s — 调 ingestPrefetched 留 _debug log + 文件备查",
+                userId, if (a1 != null) "present" else "null",
+            )
+            viewModelScope.launch {
+                xhsCollector.ingestPrefetched(prefetched)
+            }
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    xiaohongshu = it.xiaohongshu.copy(
+                        errorMessage = "登录未完成 — prefetch 未拿到 ${if (userId == null) "user_id" else "a1"}。" +
+                            "原始诊断已落 staging/social-xiaohongshu.json，看 logcat XhsLocalCollector prefetch[N] 行定位",
+                    ),
+                )
+            }
+            return
+        }
+        val numericUid = userId.hashCode().toLong()
+        xhsCredentials.saveCredentials(
+            cookie = cookie, uid = numericUid, userIdStr = userId, a1 = a1, displayName = nickname,
+        )
+        _state.update {
+            it.copy(
+                pendingLogin = null,
+                xiaohongshu = it.xiaohongshu.copy(isSyncing = true, errorMessage = null),
+                globalSyncingAdapter = "social-xiaohongshu",
+            )
+        }
+        refreshXhsFromStore()
+        viewModelScope.launch {
+            val syncResult = xhsCollector.ingestPrefetched(prefetched)
+            when (syncResult) {
+                is XhsLocalCollector.SnapshotResult.Ok -> {
+                    when (val cc = ccRunner.syncAdapter(
+                        adapterName = "social-xiaohongshu", inputPath = syncResult.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            xhsCollector.recordSync(syncResult.totalEvents)
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = System.currentTimeMillis(),
+                                        lastSyncCount = syncResult.totalEvents,
+                                        errorMessage = null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        errorMessage = "cc sync 失败：${cc.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                is XhsLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 失败：${syncResult.reason}",
+                            ),
+                        )
+                    }
+                }
+                else -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 异常: $syncResult",
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -3581,9 +3853,9 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.1.2 — Toutiao Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncToutiao] (path A, cookies + passport + signed
-     * endpoints). Path B reads `/data/data/com.ss.android.article.news/
-     * databases/*.db` directly via root — no internet, no PC, no signing
-     * required.
+     * endpoints). Path B reads `/data/data/com.ss.android.article.news/`
+     * `databases/` `*.db` files directly via root — no internet, no PC, no
+     * signing required.
      *
      * UI single-flight via `globalSyncingAdapter` shared with path A
      * (only one sync per platform at a time). Banner prefix "本机 root:"
@@ -3743,164 +4015,6 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Phase 7.1.2 — Toutiao Mode B (path B): in-APK root + local SQLite.
-     *
-     * Coexists with [syncToutiao] (path A, cookies + passport + signed
-     * endpoints). Path B reads `/data/data/com.ss.android.article.news/
-     * databases/*.db` directly via root — no internet, no PC, no signing
-     * required.
-     *
-     * UI single-flight via `globalSyncingAdapter` shared with path A
-     * (only one sync per platform at a time). Banner prefix "本机 root:"
-     * discriminates from path A banners in the same SocialCardState.
-     */
-    fun syncToutiaoRoot() {
-        if (_state.value.globalSyncingAdapter != null) return
-        if (!toutiaoRootCredentials.hasCredentials()) {
-            _state.update {
-                it.copy(
-                    toutiao = it.toutiao.copy(
-                        errorMessage = "本机 root: 请先在路径 A 完成登录 (passport_uid 会自动用作 root uid)",
-                    ),
-                )
-            }
-            return
-        }
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    globalSyncingAdapter = "social-toutiao",
-                    toutiao = it.toutiao.copy(
-                        isSyncing = true,
-                        errorMessage = null,
-                        syncStatusText = "本机 root: 拷贝 DB cohort...",
-                    ),
-                )
-            }
-            val result = toutiaoRootCollector.snapshot()
-            when (result) {
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
-                    _state.update {
-                        it.copy(
-                            globalSyncingAdapter = null,
-                            toutiao = it.toutiao.copy(
-                                isSyncing = false,
-                                syncStatusText = null,
-                                errorMessage = "本机 root: credentials 缺失 — 请先登录头条 App",
-                            ),
-                        )
-                    }
-                }
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
-                    _state.update {
-                        it.copy(
-                            globalSyncingAdapter = null,
-                            toutiao = it.toutiao.copy(
-                                isSyncing = false,
-                                syncStatusText = null,
-                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
-                            ),
-                        )
-                    }
-                }
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
-                    _state.update {
-                        it.copy(
-                            globalSyncingAdapter = null,
-                            toutiao = it.toutiao.copy(
-                                isSyncing = false,
-                                syncStatusText = null,
-                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
-                            ),
-                        )
-                    }
-                }
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
-                    _state.update {
-                        it.copy(
-                            globalSyncingAdapter = null,
-                            toutiao = it.toutiao.copy(
-                                isSyncing = false,
-                                syncStatusText = null,
-                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
-                            ),
-                        )
-                    }
-                }
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
-                    _state.update {
-                        it.copy(
-                            globalSyncingAdapter = null,
-                            toutiao = it.toutiao.copy(
-                                isSyncing = false,
-                                syncStatusText = null,
-                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
-                            ),
-                        )
-                    }
-                }
-                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
-                    _state.update {
-                        it.copy(
-                            toutiao = it.toutiao.copy(
-                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
-                            ),
-                        )
-                    }
-                    when (val r = ccRunner.syncAdapter(
-                        adapterName = "social-toutiao",
-                        inputPath = result.snapshotPath,
-                    )) {
-                        is LocalCcRunner.CcResult.Ok -> {
-                            val counts = result.perCategoryCounts
-                            val summary = listOfNotNull(
-                                counts["read"]?.takeIf { it > 0 }?.let { "$it 历史" },
-                                counts["collection"]?.takeIf { it > 0 }?.let { "$it 收藏" },
-                                counts["search"]?.takeIf { it > 0 }?.let { "$it 搜索" },
-                            ).joinToString(" / ")
-                            val banner = if (result.totalEvents == 0) {
-                                val dbName = result.diagnosticFields["dbFilename"] ?: "(unknown)"
-                                "本机 root: 同步成功但 0 events — DB '$dbName' 表 schema 可能漂移 (P7.1.0 探测待跟)"
-                            } else if (r.report.status != "ok" && r.report.error != null) {
-                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
-                            } else {
-                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
-                            }
-                            _state.update {
-                                it.copy(
-                                    globalSyncingAdapter = null,
-                                    toutiao = it.toutiao.copy(
-                                        isSyncing = false,
-                                        syncStatusText = null,
-                                        lastSyncAt = result.snapshottedAt,
-                                        lastSyncCount = r.report.ingested,
-                                        errorMessage = banner,
-                                    ),
-                                )
-                            }
-                        }
-                        is LocalCcRunner.CcResult.Failed -> {
-                            Timber.w(
-                                "HubLocalViewModel: toutiao root cc syncAdapter failed: %s",
-                                r.reason,
-                            )
-                            _state.update {
-                                it.copy(
-                                    globalSyncingAdapter = null,
-                                    toutiao = it.toutiao.copy(
-                                        isSyncing = false,
-                                        syncStatusText = null,
-                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
-                                    ),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     fun logoutToutiao() {
         toutiaoCollector.logout()
