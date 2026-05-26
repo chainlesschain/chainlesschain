@@ -433,6 +433,8 @@ throw new Error(JSON.stringify({
 
 ## 12. Node 23 native-dep prebuild gap（隐性风险）
 
+> **✅ Resolved 2026-05-26** — `.github/workflows/upstream-watch.yml` 周跑确认 `better-sqlite3-multiple-ciphers` ABI v131 prebuild 已 ship，`engines.node` 已从 `>=22.12.0 <23.0.0 || >=24.0.0` 放宽回 `>=22.12.0`（issue #23 / commit 见 git log）。本节保留**模式**——只要将来又有 odd-numbered Node ABI 在 native-dep 加 prebuild 前 ship，同样症状会再现。`upstream-watch.yml` 每周 Sunday 04:00 UTC 守门，从 green 转 red 时再考虑回 pin。
+
 Node 23 是 odd-numbered（非 LTS），ABI 版本 `v131`。大量 native-dep（含本项目核心的 `better-sqlite3-multiple-ciphers`、`sqlcipher`、`@libp2p/*` C++ binding 等）**只为 LTS ABI 发 prebuild**（v127 = Node 22 LTS、v137 = Node 24 LTS）。`npm install` 在 Node 23 下走 source rebuild 路径，需要 node-gyp + Python + 完整 C++ toolchain，**任何一环缺就级联失败**——而失败信号往往埋在 npm warning 堆里，最终错误是 N 层下游的 `Cannot find module 'better-sqlite3-multiple-ciphers'`，让人去查依赖配置而不是 Node 版本。
 
 **为什么排查难**：
@@ -453,7 +455,7 @@ Node 23 是 odd-numbered（非 LTS），ABI 版本 `v131`。大量 native-dep（
 
 **项目已有的硬保护**：
 
-`package.json` 已锁：
+`package.json` 历史上曾锁：
 
 ```json
 {
@@ -463,7 +465,7 @@ Node 23 是 odd-numbered（非 LTS），ABI 版本 `v131`。大量 native-dep（
 }
 ```
 
-这会让 npm 在 Node 23 下**警告**但不阻止安装（npm 的 engines 默认是 advisory）。配 `.npmrc` 加 `engine-strict=true` 才会变 hard fail，但项目目前没开（理由：不想阻塞用 Node 24 的早期 adopter）。
+这会让 npm 在 Node 23 下**警告**但不阻止安装（npm 的 engines 默认是 advisory）。配 `.npmrc` 加 `engine-strict=true` 才会变 hard fail。2026-05-26 upstream prebuild 补齐后已放宽回 `>=22.12.0` —— 若后续 ABI 又出 gap，回贴这条锁就行。
 
 **检测 SOP**：
 
