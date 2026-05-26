@@ -167,6 +167,67 @@ class ChainlessChainApp {
       }
     }
 
+    // Legacy-GPU crash recovery (v5.0.3.95+).
+    // Why: Chromium 130+ GPU process init (CoreMessaging.dll on Windows,
+    // ANGLE/D3D11 path) fail-fasts with 0xc0000602 on machines with very old
+    // GPU drivers (e.g. Intel Iris Pro 5200 + 2016-09 driver). Symptom from
+    // the user's POV is "installer crashes" — actually NSIS install succeeds
+    // but the auto-launched ChainlessChain.exe dies before its first frame.
+    // Pattern (used by VS Code, Slack, Cursor): write a marker file before
+    // potentially crashing GPU init; main window's ready-to-show clears it.
+    // Next launch, marker still present ⇒ assume previous crash ⇒ persist a
+    // disable flag and turn off hardware acceleration. Recoverable by deleting
+    // the .gpu-disabled file. Also honors CHAINLESSCHAIN_DISABLE_GPU=1 env.
+    this._gpuRecoveryMarker = null;
+    try {
+      const userDataDir = app.getPath("userData");
+      const gpuFlag = path.join(userDataDir, ".gpu-disabled");
+      const marker = path.join(userDataDir, ".launching");
+      const envOff = process.env.CHAINLESSCHAIN_DISABLE_GPU === "1";
+      const persistedOff = fs.existsSync(gpuFlag);
+      let crashRecovered = false;
+      if (fs.existsSync(marker)) {
+        crashRecovered = true;
+        try {
+          fs.writeFileSync(
+            gpuFlag,
+            JSON.stringify({
+              reason: "previous-launch-crash-before-ready-to-show",
+              detectedAt: new Date().toISOString(),
+            }),
+          );
+        } catch (_e) {
+          // best-effort; we still disable GPU for this run via the in-memory branch below
+        }
+      } else {
+        try {
+          fs.mkdirSync(userDataDir, { recursive: true });
+          fs.writeFileSync(marker, String(process.pid));
+          this._gpuRecoveryMarker = marker;
+        } catch (_e) {
+          // userData not yet writable — skip marker, will retry next launch
+        }
+      }
+      if (envOff || persistedOff || crashRecovered) {
+        app.disableHardwareAcceleration();
+        app.commandLine.appendSwitch("disable-gpu");
+        app.commandLine.appendSwitch("disable-gpu-compositing");
+        app.commandLine.appendSwitch("disable-software-rasterizer");
+        console.log(
+          "[gpu-recovery] hardware acceleration disabled (reason: " +
+            (envOff
+              ? "env"
+              : crashRecovered
+                ? "previous-crash"
+                : "persisted-flag") +
+            ")",
+        );
+      }
+    } catch (err) {
+      // Never block app startup on recovery-init failure
+      console.warn("[gpu-recovery] init failed:", err && err.message);
+    }
+
     // 单实例锁
     if (process.env.NODE_ENV !== "test") {
       const gotTheLock = app.requestSingleInstanceLock();
@@ -1170,6 +1231,18 @@ class ChainlessChainApp {
       }
       this.mainWindow?.show();
       this.mainWindow?.focus();
+      // Crash-recovery marker — see [gpu-recovery] in setupApp(). Reaching
+      // here means the GPU process survived init + first frame painted, so
+      // this launch was healthy; clear the marker so the next launch doesn't
+      // mistakenly think it crashed.
+      if (this._gpuRecoveryMarker) {
+        try {
+          fs.unlinkSync(this._gpuRecoveryMarker);
+        } catch (_e) {
+          // marker may have been cleared by parallel cleanup or removed by user
+        }
+        this._gpuRecoveryMarker = null;
+      }
     });
 
     this.mainWindow.webContents.on("did-finish-load", () => {
