@@ -5,6 +5,39 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.93] - 2026-05-26 — hotfix: PDH 「刷新失败」 (bs3mc ABI mismatch) + Providers 「加载配置 key 变了」 + save 假阴
+
+> User report: (1) desktop v5.0.3.88/.92 PersonalDataHub 点「刷新」 throws `刷新失败: NODE_MODULE_VERSION 127. This version of Node.js requires NODE_MODULE_VERSION 140`; (2) LLM config page 点「加载配置」 后 apiKey 被字符串 `null` 覆盖; (3) 保存 LLM key 后 toast 报「没有检测到配置变更」 实际未保存。 本 hotfix 三事齐修。
+
+### Fix 1 — bs3mc native binding ABI mismatch (release pipeline)
+
+- `.github/workflows/release.yml` win/mac/linux 三个 job 都加 step「Rebuild bs3mc native bindings for Electron ABI」 用 `@electron/rebuild@^4 --only better-sqlite3-multiple-ciphers` 拉 bs3mc 官方 Electron prebuild
+- 根因： `electron-builder.yml:16` 设 `npmRebuild: false`（因 node-gyp 三平台编译都有坑）， CI Node 22 `npm install` 抓 Node ABI 127 prebuild → ship 二进制； Electron 39 ABI 140 加载即崩。 Rebuild step 拉 upstream Electron prebuild 不本地 node-gyp，绕开 npmRebuild 禁因
+- 同步 rebuild `desktop-app-vue/node_modules/` 和 `packages/cli/node_modules/`（walker 会找到 PDH 嵌套的 bs3mc）— 用户实际报错路径是后者
+- macOS 当前 last-rebuild-wins on disk → x64 final。 arm64 DMG 反而被 x64 binary 覆盖， arm64 mac 用户 followup 修
+- memory `release_bs3mc_no_rebuild_step.md`（trap #26 候选 — `npmRebuild: false` + 无 @electron/rebuild step = release ship Node ABI binary silent fail）
+
+### Fix 2 — Providers.vue parser section 污染
+
+- `packages/web-panel/src/views/Providers.vue` parser 抽到 `parsers.js` 作 `parseLlmConfigOutput` 导出 — 测试不再复制粘贴
+- 原 parser 用扁平正则 `^(?:llm\.)?(\w+)…` 扫全文; `cc config list` 输出里 `llm:` 段 `apiKey: ****`（masked 被过滤） + `enterprise:` 段 `apiKey: null`（不含 `***` 通过过滤） → result.apiKey 被字符串 `"null"` 覆盖 → UI 上「点击加载配置 key 变了」
+- 改 parser 跟踪 currentSection， 只读 `llm:` 段内的值， 跨段不污染
+- 加 4 个回归测： enterprise apiKey:null 不污染 / 跨段同名 key 不被覆盖 / llm 段前的 top-level key 被忽略
+- 103/103 tests 通过
+
+### Fix 3 — saveConfig 假阴 + 重启提示
+
+- `loadConfig` 改成只快照 parsed 出来的值， 不再 `{ ...configForm }` 把"用户输入但未保存的值"误当 baseline → 修「保存提示无变更但 key 实际没发后端」 silent fail
+- 保存成功后弹横幅提示： 桌面 ws-cli-loader 只在 createSession 时重读 config.json (`ws-cli-loader.js:118-128`)， 已存在的聊天 session 拿不到新 key/provider/baseUrl/model — 必须新建 Chat 或重启 app
+
+### Versions
+
+- root productVersion `v5.0.3.92` → `v5.0.3.93`
+- desktop-app-vue `5.0.3-alpha.92` → `5.0.3-alpha.93`
+- Android versionCode `503092` → `503093` / versionName `5.0.3.93`
+- iOS CFBundleVersion `92` → `93`
+- 无 npm 包改动（packages/cli + packages/personal-data-hub 源码 since v5.0.3.92 未变）
+
 ## [v5.0.3.92] - 2026-05-26 — PDH Mode B Phase 7 (6-platform Android in-APK root local DB extraction) + Toutiao in-WebView prefetch (6/6 platforms) + npm pkg refresh
 
 ### Toutiao in-WebView prefetch (Mode A 6/6 platforms 全 wired)
