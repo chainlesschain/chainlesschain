@@ -103,12 +103,14 @@ fun HubLocalScreen(
                     "social-bilibili" -> com.chainlesschain.android.pdh.social.bilibili.BilibiliJsBridge.PREFETCH_JS
                     "social-douyin" -> com.chainlesschain.android.pdh.social.douyin.DouyinJsBridge.PREFETCH_JS
                     "social-xiaohongshu" -> com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge.PREFETCH_JS
+                    "social-toutiao" -> com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge.PREFETCH_JS
                     else -> null
                 },
                 onPrefetchComplete = when (pending.adapterName) {
                     "social-bilibili" -> { cookie, data -> viewModel.onBilibiliLoginWithPrefetch(cookie, data) }
                     "social-douyin" -> { cookie, data -> viewModel.onDouyinLoginWithPrefetch(cookie, data) }
                     "social-xiaohongshu" -> { cookie, data -> viewModel.onXhsLoginWithPrefetch(cookie, data) }
+                    "social-toutiao" -> { cookie, data -> viewModel.onToutiaoLoginWithPrefetch(cookie, data) }
                     else -> null
                 },
                 onLoginComplete = { cookie ->

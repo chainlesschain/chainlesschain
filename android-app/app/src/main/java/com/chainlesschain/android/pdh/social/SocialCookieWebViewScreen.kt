@@ -327,10 +327,41 @@ private fun CookieWebViewHost(
     // JS fetch，否则旧 onLoginCookie 兜底。第 1 版只在 URL 路径加 prefetch → 抖音走
     // cookie 路径直接跳 OkHttp HTTP 404，得不偿失
     val dispatchCookieReady: (WebView, String) -> Unit = { view, cookie ->
-        // 2026-05-26 v6：xhs id_token 是 httpOnly cookie, JS document.cookie 读
-        // 不到。Kotlin CookieManager 能读 → JWT decode 抠 user_id → 注入到 JS
-        // 全局 window.__XHS_USER_ID__ → JS 跳过 /user/me HTTP 直接用
+        // 2026-05-26 v6 (xhs) / v7 (toutiao)：平台关键 ID 多是 httpOnly cookie,
+        // JS document.cookie 读不到。Kotlin CookieManager 能读 → 注入到 JS 全局
+        // window.__XHS_USER_ID__ / window.__TOUTIAO_UID__ → JS 跳过 HTTP 端点
         var injectedXhsUserId: String? = null
+        var injectedToutiaoUid: String? = null
+        if (cookieDomain.contains("toutiao.com")) {
+            try {
+                val cm = CookieManager.getInstance()
+                val wwwCookies = cm.getCookie(cookieDomain) ?: ""
+                // 2026-05-26 v3 真机查 cookies db 发现: toutiao 新 SSO 登录已废弃
+                // `passport_uid` 字段, 改用 sso_uid_tt (32 hex) / sid_ucp_v1 (144)
+                // 按优先级试 4 个候选字段; 取到任一即视为登录成功
+                val candidates = listOf("passport_uid", "sso_uid_tt", "sid_tt", "sessionid")
+                for (key in candidates) {
+                    val m = Regex("(?:^|;\\s*)$key=([^;\\s]+)").find(wwwCookies)
+                    val v = m?.groupValues?.getOrNull(1)?.takeIf { it.length >= 4 }
+                    if (v != null) {
+                        injectedToutiaoUid = v
+                        Timber.i(
+                            "SocialCookieWebView: toutiao cookie bridge — wwwLen=%d uidKey=%s uidLen=%d",
+                            wwwCookies.length, key, v.length,
+                        )
+                        break
+                    }
+                }
+                if (injectedToutiaoUid == null) {
+                    Timber.w(
+                        "SocialCookieWebView: toutiao cookie bridge — wwwLen=%d no uid candidate (passport_uid/sso_uid_tt/sid_tt/sessionid all missing)",
+                        wwwCookies.length,
+                    )
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "SocialCookieWebView: toutiao cookie bridge threw")
+            }
+        }
         // 2026-05-26 真机：xhs `/user/me` 返 code=-104 "没有权限"，cookieFields
         // 缺 `web_session` — xhs 把它 scope 到 www.xiaohongshu.com (Domain=
         // www.xiaohongshu.com Path=/)，跨子域 fetch 到 edith.xiaohongshu.com
@@ -423,11 +454,17 @@ private fun CookieWebViewHost(
                 .XhsJsBridge.setPending(sharedCb)
             com.chainlesschain.android.pdh.social.toutiao
                 .ToutiaoJsBridge.setPending(sharedCb)
-            // 注入 Kotlin 侧拿到的 user_id (xhs 走 JWT decode 拿) — JS 端
-            // window.__XHS_USER_ID__ 直接读, 跳过 /user/me HTTP
-            val injectedPrefix = if (injectedXhsUserId != null) {
-                "window.__XHS_USER_ID__ = ${org.json.JSONObject.quote(injectedXhsUserId)};"
-            } else ""
+            // 注入 Kotlin 侧拿到的 user_id (xhs JWT decode / toutiao passport_uid
+            // httpOnly cookie 抠) — JS 端 window.__XHS_USER_ID__ /
+            // __TOUTIAO_UID__ 直接读, 跳过 HTTP /user/me + /passport/account/
+            val injectedPrefix = buildString {
+                if (injectedXhsUserId != null) {
+                    append("window.__XHS_USER_ID__ = ${org.json.JSONObject.quote(injectedXhsUserId)};")
+                }
+                if (injectedToutiaoUid != null) {
+                    append("window.__TOUTIAO_UID__ = ${org.json.JSONObject.quote(injectedToutiaoUid)};")
+                }
+            }
             view.evaluateJavascript(injectedPrefix + prefetchJs, null)
             view.postDelayed({
                 if (responded.compareAndSet(false, true)) {
