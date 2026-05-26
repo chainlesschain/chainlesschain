@@ -3972,8 +3972,12 @@ class HubLocalViewModelTest {
         assertEquals("social-toutiao", p.adapterName)
         assertEquals("今日头条", p.displayName)
         assertTrue(p.loginUrl.contains("toutiao.com"))
-        // isLoginSuccess: 已到 www.toutiao.com 视为成功；sso/passport/login 中间页 false
-        assertTrue(p.isLoginSuccess("https://www.toutiao.com/"))
+        // 2026-05-26 (bdca2f693): isLoginSuccess is intentionally disabled
+        // (`{ _ -> false }`) — the toutiao.com landing page IS the login page,
+        // so URL-based detection always misfires. Cookie-based detection
+        // takes over via isLoginSuccessByCookie. Assert the URL hook is
+        // permanently off for all candidate URLs.
+        assertFalse(p.isLoginSuccess("https://www.toutiao.com/"))
         assertFalse(p.isLoginSuccess("https://sso.toutiao.com/login"))
         assertFalse(p.isLoginSuccess("https://passport.toutiao.com/auth"))
     }
