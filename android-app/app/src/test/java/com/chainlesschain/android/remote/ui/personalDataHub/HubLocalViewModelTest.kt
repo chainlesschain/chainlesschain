@@ -102,6 +102,9 @@ class HubLocalViewModelTest {
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
     private lateinit var xhsCredentials: XhsCredentialsStore
+    // Phase 7.5.2 — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var xhsRootCollector: com.chainlesschain.android.pdh.social.xiaohongshu.XhsRootDbCollector
+    private lateinit var xhsRootCredentials: com.chainlesschain.android.pdh.social.xiaohongshu.XhsRootCredentialsStore
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
     private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
     private lateinit var toutiaoSignBridge: ToutiaoSignBridge
@@ -190,6 +193,12 @@ class HubLocalViewModelTest {
         xhsCollector = mockk(relaxed = true)
         xhsSignBridge = mockk(relaxed = true)
         xhsCredentials = mockk(relaxed = true)
+        // Phase 7.5.2 — Mode B path B mocks for Xhs. Default:
+        // hasCredentials=false so syncXhsRoot short-circuits cleanly.
+        xhsRootCollector = mockk(relaxed = true)
+        xhsRootCredentials = mockk(relaxed = true)
+        every { xhsRootCredentials.hasCredentials() } returns false
+        every { xhsRootCredentials.getUid() } returns null
         toutiaoCollector = mockk(relaxed = true)
         toutiaoCredentials = mockk(relaxed = true)
         toutiaoSignBridge = mockk(relaxed = true)
@@ -246,6 +255,32 @@ class HubLocalViewModelTest {
             kotlinx.coroutines.flow.MutableStateFlow<
                 com.chainlesschain.android.pdh.llm.ModelManager.State
             >(com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded)
+        // 2026-05-26 — model picker stubs: availableSpecs + selectedSpec used in
+        // observeModelManager seed step. Use real specs (cheap; doesn't hit any
+        // SharedPreferences) so the VM gets a sane picker view to render.
+        val realQwen05b = com.chainlesschain.android.pdh.llm.ModelManager.ModelSpec(
+            key = "qwen-0.5b",
+            filename = "qwen-0.5b.task",
+            urls = listOf("http://localhost/0.5b"),
+            expectedSha256 = "a".repeat(64),
+            sizeBytesApprox = 547_000_000L,
+            displayName = "Qwen2.5 0.5B Instruct (q8)",
+            recommendedRamMb = 2_048L,
+        )
+        val realQwen15b = com.chainlesschain.android.pdh.llm.ModelManager.ModelSpec(
+            key = "qwen-1.5b",
+            filename = "qwen-1.5b.task",
+            urls = listOf("http://localhost/1.5b"),
+            expectedSha256 = null,
+            sizeBytesApprox = 1_686_000_000L,
+            displayName = "Qwen2.5 1.5B Instruct (q8)",
+            recommendedRamMb = 6_144L,
+        )
+        every { modelManager.availableSpecs } returns listOf(realQwen05b, realQwen15b)
+        every { modelManager.qwen05bSpec } returns realQwen05b
+        every { modelManager.qwen15bSpec } returns realQwen15b
+        every { modelManager.selectedSpec } returns
+            kotlinx.coroutines.flow.MutableStateFlow(realQwen05b)
         // §2.1 A3.4 — default: native engine NOT ready (mirrors Win build
         // where .so isn't bundled). Tests overriding the "Ready engine"
         // scenario flip this in-place via `every { llmEngine.nativeReady } returns true`.
@@ -311,6 +346,9 @@ class HubLocalViewModelTest {
             xhsCollector,
             xhsCredentials,
             xhsSignBridge,
+            // Phase 7.5.2 — Mode B (path B) collector + store
+            xhsRootCollector,
+            xhsRootCredentials,
             toutiaoCollector,
             toutiaoCredentials,
             toutiaoSignBridge,
@@ -512,6 +550,78 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
 
         io.mockk.coVerify { modelManager.delete(any()) }
+    }
+
+    // ─── 2026-05-26 — 双档模型选择器 ─────────────────────────────────────
+
+    @Test
+    fun `init seeds availableModels + selectedModelKey from ModelManager`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        val s = vm.state.value.modelStatus
+        assertEquals(2, s.availableModels.size, "should expose both 0.5B and 1.5B")
+        assertEquals("qwen-0.5b", s.availableModels[0].key)
+        assertEquals("qwen-1.5b", s.availableModels[1].key)
+        // 0.5B is the default selectedSpec from setUp.
+        assertEquals("qwen-0.5b", s.selectedModelKey)
+        // Sizes converted bytes → MB
+        assertTrue(s.availableModels[0].sizeMb in 500L..700L, "0.5B ≈ 547MB: ${s.availableModels[0].sizeMb}")
+        assertTrue(s.availableModels[1].sizeMb in 1500L..1800L, "1.5B ≈ 1607MB: ${s.availableModels[1].sizeMb}")
+        // shaLocked reflects ModelSpec.expectedSha256 nullability
+        assertTrue(s.availableModels[0].shaLocked, "0.5B SHA pinned")
+        assertFalse(s.availableModels[1].shaLocked, "1.5B TOFU")
+    }
+
+    @Test
+    fun `selectModel flips to the new spec and triggers refresh`() = runTest(testDispatcher) {
+        val selectedFlow = kotlinx.coroutines.flow.MutableStateFlow(
+            (modelManager.availableSpecs)[0],
+        )
+        every { modelManager.selectedSpec } returns selectedFlow
+        every { modelManager.selectSpec(any()) } answers {
+            selectedFlow.value = firstArg()
+        }
+        coEvery { modelManager.refresh(any()) } returns
+            com.chainlesschain.android.pdh.llm.ModelManager.State.NotDownloaded
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        vm.selectModel("qwen-1.5b")
+        advanceUntilIdle()
+
+        io.mockk.verify { modelManager.selectSpec(match { it.key == "qwen-1.5b" }) }
+        io.mockk.coVerify(atLeast = 1) { modelManager.refresh(any()) }
+        assertEquals("qwen-1.5b", vm.state.value.modelStatus.selectedModelKey)
+    }
+
+    @Test
+    fun `selectModel ignores unknown key`() = runTest(testDispatcher) {
+        val vm = newVm()
+        advanceUntilIdle()
+        vm.selectModel("not-a-real-key")
+        advanceUntilIdle()
+        // No selectSpec dispatch for an unknown key.
+        io.mockk.verify(exactly = 0) { modelManager.selectSpec(any()) }
+    }
+
+    @Test
+    fun `selectModel refuses to switch while DOWNLOADING`() = runTest(testDispatcher) {
+        val flow = kotlinx.coroutines.flow.MutableStateFlow<
+            com.chainlesschain.android.pdh.llm.ModelManager.State
+        >(com.chainlesschain.android.pdh.llm.ModelManager.State.Downloading(50L, 500L))
+        every { modelManager.state } returns flow
+        val vm = newVm()
+        advanceUntilIdle()
+        assertEquals(
+            HubLocalViewModel.ModelStatusState.Kind.DOWNLOADING,
+            vm.state.value.modelStatus.kind,
+        )
+        vm.selectModel("qwen-1.5b")
+        advanceUntilIdle()
+        // Guard: no selectSpec call while a download is in flight (would
+        // corrupt the .part file and confuse UI progress display).
+        io.mockk.verify(exactly = 0) { modelManager.selectSpec(any()) }
     }
 
     @Test
@@ -996,6 +1106,113 @@ class HubLocalViewModelTest {
             )
             assertTrue(s.errorMessage?.contains("weibo.db") == true)
             assertTrue(s.errorMessage?.contains("P7.3") == true)
+        }
+
+    // ─── Phase 7.5.2 syncXhsRoot (Mode B path B) ────────────────────────────
+
+    @Test
+    fun `syncXhsRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { xhsRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncXhsRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.xiaohongshu
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("user_id") == true)
+            coVerify(exactly = 0) { xhsRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncXhsRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { xhsRootCredentials.hasCredentials() } returns true
+            every { xhsRootCredentials.getUid() } returns "5e8c8f7e1234567890abcdef"
+            coEvery { xhsRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncXhsRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.xiaohongshu
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncXhsRoot ExtractFailed likely-sqlcipher surfaces v2_0 transition hint`() =
+        runTest(testDispatcher) {
+            // Plan §6.5: Xhs DB 几乎确定 SQLCipher + libshield.so 反 frida.
+            // 'likely-sqlcipher' must surface explicit v2.0 path mention
+            // (SQLCipher + libshield + frida) so v0.1 → v2.0 transition is
+            // user-actionable (not a dead end).
+            every { xhsRootCredentials.hasCredentials() } returns true
+            every { xhsRootCredentials.getUid() } returns "5e8c8f7e1234567890abcdef"
+            coEvery { xhsRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "likely-sqlcipher",
+                    message = "file is not a database — Xhs DB 几乎确定 SQLCipher 加密 + libshield.so 反 frida (v2.0 路径: frida + libshield neuter + key 派生 hook, 见 Phase 7 plan §6.5)",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncXhsRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.xiaohongshu
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("likely-sqlcipher") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("SQLCipher") == true)
+            assertTrue(s.errorMessage?.contains("libshield") == true)
+            assertTrue(s.errorMessage?.contains("frida") == true)
+        }
+
+    @Test
+    fun `syncXhsRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { xhsRootCredentials.hasCredentials() } returns true
+            every { xhsRootCredentials.getUid() } returns "5e8c8f7e1234567890abcdef"
+            coEvery { xhsRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-xiaohongshu-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("note" to 0, "liked" to 0, "follow" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("dbFilename" to "xhs.db"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-xiaohongshu",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncXhsRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.xiaohongshu
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("xhs.db") == true)
+            assertTrue(s.errorMessage?.contains("P7.5.0") == true)
         }
 
     // ─── Logout ─────────────────────────────────────────────────────────────
