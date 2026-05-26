@@ -5,6 +5,52 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.95] - 2026-05-27 — fix(desktop): legacy-GPU Chromium 130+ crash recovery (trap #26)
+
+> User report: `ChainlessChain-Setup-5.0.3-alpha.94.exe` 装一会闪退。诊断 → 不是 installer 问题：NSIS 装成功（`C:\Program Files\ChainlessChain\` 落地），但安装完最后那步自动启动 `ChainlessChain.exe`，Electron 39 / Chromium 130+ GPU 进程在 `CoreMessaging.dll` fail-fast `0xc0000602`，因目标机的 GPU 驱动太老（确认机型 Intel Iris Pro 5200 + 2016-09 驱动）。任何 ≤2018 GPU 驱动 + 老 Intel HD/Iris 系列机器都会撞这条。这是 trap #26 (Legacy-GPU Chromium fail-fast) 的典型表现。
+
+### Fix — auto-recovery marker file pattern
+
+- `desktop-app-vue/src/main/index.js` setupApp() 启动前写 `.launching` marker；`mainWindow.once("ready-to-show")` 清掉 marker。下次启动看到残留 marker → 判定上次崩了 → 写持久化 `.gpu-disabled` 文件 + `app.disableHardwareAcceleration()` + `--disable-gpu/--disable-gpu-compositing/--disable-software-rasterizer` Chromium switches
+- 同时支持 `CHAINLESSCHAIN_DISABLE_GPU=1` env var 手动触发；删 `<userData>/.gpu-disabled` 可恢复 GPU
+- Pattern 同 VS Code / Slack / Cursor / Discord 的 disable-gpu 恢复，外部行为驱动不依赖任何 GPU API 状态
+- commit `d8dc212f1`
+
+### Docs — trap #26 + handbook
+
+- `docs/internal/hidden-risk-traps.md` 加 trap #26 完整正文（诊断三步 + SOP/checklist + 反模式 + 快速诊断键），标题升到 `#6-#26`
+- `CLAUDE.md` handbook reference 同步到 `21 silent-failure patterns #6-#26`
+- memory `gpu_crash_recovery_legacy_intel_driver.md` 落地经验
+
+### Diagnostic 三步（user 报 "installer 闪退"时强制走）
+
+```powershell
+# (1) installer 是否真崩 — 看 app 是否落地
+Test-Path "$env:ProgramFiles\ChainlessChain\ChainlessChain.exe"
+# True → installer 装成功，问题在 app 启动
+
+# (2) Event Log 找 0xc0000602
+Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='Application Error'; StartTime=(Get-Date).AddMinutes(-30)} |
+  ?{$_.Message -match 'chainless'} | Select-Object TimeCreated, Message | Format-List
+# 看 异常代码: 0xc0000602 + CoreMessaging.dll → 锁实 trap #26
+
+# (3) GPU 驱动年龄
+Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, DriverDate
+# DriverDate < 2020 + 老 Intel HD/Iris → 强相关
+```
+
+### Bundled
+
+- `chore(ci): PR-advisory sidebar coverage audit for design docs` (`3432e0926`)
+- `chore(ci): hard-gate trap #25 partial-index drift in PDH` (`bb6c1496e`)
+- `chore(docs-infra): consolidate sync filename maps to shared JSON` (`24f315551`)
+- `test(android): fix TurnEphemeralRefresherTest CI flake — 3s → 10s poll` (`90f32397c`)
+- `fix(ci): unblock 3 long-running test/release failures` (`12954e3d5`)
+- `fix(android-tests): resolve 27 unit test failures across 7 classes` (`965ee41be`)
+- `test(android): resolve 17 .kt.broken — delete 14 LLM-hallucinated + fix 2 stubs + revive TaskPlanCardTest` (`b10175940`)
+- `fix(android-ci): probe step needs set -o pipefail so gradle exit isn't swallowed by tee` (`a246e0853`)
+- `chore(android): add release-precheck workflow — R8 hotfix-chain prevention` (`06ae8b686`)
+
 ## [v5.0.3.94] - 2026-05-26 — re-tag of .93 fixes after release.yml bs3mc rebuild step failed CI
 
 > v5.0.3.93 tag 推送后 release.yml 新加的 bs3mc rebuild step 在 win/mac/linux 三 build 都 fail：desktop-app-vue 那份 bs3mc rebuild 成功（prebuild-install 拉 Electron 二进制），但 packages/cli 那份 fall back 到 source build，撞 v8::Context::GetIsolate 被移除的 V8 API（正是 electron-builder.yml 注释里说的那个坑）。改用 COPY 策略：只对 desktop-app-vue 跑 @electron/rebuild + `find packages -name better_sqlite3.node | xargs cp -f` 覆盖所有 nested 副本。v5.0.3.93 tag 试 delete-recreate / force-push / workflow_dispatch 都没能重新触发 release.yml（GitHub Actions 对同 tag 不重 trigger），所以 bump v5.0.3.94 强触发。所有 .93 修复内容保持原样（见下）。
