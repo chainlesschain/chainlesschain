@@ -126,6 +126,12 @@ class HubLocalViewModel @Inject constructor(
     private val kuaishouCollector: KuaishouLocalCollector,
     private val kuaishouCredentials: KuaishouCredentialsStore,
     private val kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge,
+    // Phase 7.6.2 — Kuaishou Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix. Plan
+    // §6.6: 极低公开 schema + 极高 libmsaoaidsec.so 反爬 → v0.1 likely
+    // 命中 likely-sqlcipher banner 跳 v2.0 frida + libmsaoaidsec neuter 路径。
+    private val kuaishouRootCollector: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootDbCollector,
+    private val kuaishouRootCredentials: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootCredentialsStore,
     private val qqCollector: QQLocalCollector,
     private val qqCredentials: QQCredentialsStore,
     private val systemDataState: SystemDataSyncStateStore,
@@ -4314,21 +4320,123 @@ class HubLocalViewModel @Inject constructor(
                     // 排除 sso / passport / login 中间页避免 cookie 抢跑（与
                     // memory bilibili_post_onload_cookie_race.md 同 family 的
                     // 风险点，2 秒延迟由 SocialCookieWebViewScreen 通用处理）
-                    isLoginSuccess = { url ->
-                        url.contains("toutiao.com") &&
-                            !url.contains("sso.") &&
-                            !url.contains("passport.") &&
-                            !url.contains("/login")
-                    },
-                    // 头条 web 登录后 cookie 含 passport_uid= 或 sessionid=
-                    // (passport_uid 是 user identity，sessionid 是 web session)
+                    // 2026-05-26 真机回归 (同 Xhs trap): toutiao.com/ 是登录页本
+                    // 身, url 一加载就匹配 contains("toutiao.com") 误触发。禁掉
+                    // URL 路径只走 cookie poll
+                    isLoginSuccess = { _ -> false },
+                    // 头条 web 登录后 cookie 含 passport_uid= (numeric, 真用户态)
+                    // 或 sessionid=。passport_uid 长度 ≥ 4 拒空占位
                     isLoginSuccessByCookie = { cookie ->
-                        cookie.contains("passport_uid=") ||
-                            cookie.contains("sessionid=")
+                        val m = Regex("(?:^|;\\s*)passport_uid=(\\d+)").find(cookie)
+                        val value = m?.groupValues?.getOrNull(1) ?: ""
+                        value.length >= 4 || cookie.contains("sessionid=")
                     },
                     userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
             )
+        }
+    }
+
+    /**
+     * 2026-05-26 — 头条 in-WebView prefetch (复刻 onXhsLoginWithPrefetch).
+     * /passport/account/info/v2/?aid=24 不需签名直接返用户数据。详 memory
+     * `bilibili_in_webview_prefetch_architecture.md`。
+     */
+    fun onToutiaoLoginWithPrefetch(cookie: String, prefetched: String?) {
+        if (prefetched == null) {
+            Timber.w("HubLocalViewModel: Toutiao prefetch null (JS 抛错或超时), 回退")
+            onToutiaoLoginCookie(cookie)
+            return
+        }
+        val root = try { org.json.JSONObject(prefetched) } catch (e: Exception) {
+            Timber.w(e, "HubLocalViewModel: Toutiao prefetched JSON parse failed")
+            onToutiaoLoginCookie(cookie)
+            return
+        }
+        val account = root.optJSONObject("account")
+        val uid = account?.optString("uid")?.takeIf { it.isNotBlank() }
+        val nickname = account?.optString("displayName")?.takeIf { it.isNotBlank() }
+        if (uid == null) {
+            Timber.w("HubLocalViewModel: Toutiao prefetched account.uid missing — 调 ingestPrefetched 留 _debug log + 文件备查")
+            viewModelScope.launch {
+                toutiaoCollector.ingestPrefetched(prefetched)
+            }
+            _state.update {
+                it.copy(
+                    pendingLogin = null,
+                    toutiao = it.toutiao.copy(
+                        errorMessage = "登录未完成 — prefetch 未拿到 passport_uid。看 logcat ToutiaoLocalCollector prefetch[N] 行定位",
+                    ),
+                )
+            }
+            return
+        }
+        toutiaoCredentials.saveCredentials(cookie = cookie, uid = uid, displayName = nickname)
+        _state.update {
+            it.copy(
+                pendingLogin = null,
+                toutiao = it.toutiao.copy(isSyncing = true, errorMessage = null),
+                globalSyncingAdapter = "social-toutiao",
+            )
+        }
+        refreshToutiaoFromStore()
+        viewModelScope.launch {
+            val syncResult = toutiaoCollector.ingestPrefetched(prefetched)
+            when (syncResult) {
+                is ToutiaoLocalCollector.SnapshotResult.Ok -> {
+                    when (val cc = ccRunner.syncAdapter(
+                        adapterName = "social-toutiao", inputPath = syncResult.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            toutiaoCollector.recordSync(syncResult.totalEvents)
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        lastSyncAt = System.currentTimeMillis(),
+                                        lastSyncCount = syncResult.totalEvents,
+                                        errorMessage = null,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        errorMessage = "cc sync 失败：${cc.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                is ToutiaoLocalCollector.SnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 失败：${syncResult.reason}",
+                            ),
+                        )
+                    }
+                }
+                else -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                errorMessage = "prefetch ingest 异常: $syncResult",
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -4808,6 +4916,166 @@ class HubLocalViewModel @Inject constructor(
                                     kuaishou = it.kuaishou.copy(
                                         isSyncing = false,
                                         errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Phase 7.6.2 — Kuaishou Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncKuaishou] (path A, cookies + NS_sig3 签名 GraphQL).
+     * Path B reads `/data/data/com.smile.gifmaker/databases/*.db` directly
+     * via root — no internet, no NS_sig3 signing.
+     *
+     * **v0.1 期望失败率与 Xhs 并列最高** per plan §6.6: Kuaishou DB 几乎
+     * 确定 SQLCipher / 自研加密 + libmsaoaidsec.so 反 frida 极高强度。v0.1
+     * ship 是 user-explicit "Mode B 全面 5 平台" override; 真机大概率命中
+     * `likely-sqlcipher` banner 跳 v2.0 路径。
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A.
+     * Banner prefix "本机 root:" discriminates in the same SocialCardState.
+     */
+    fun syncKuaishouRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!kuaishouRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    kuaishou = it.kuaishou.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (uid 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-kuaishou",
+                    kuaishou = it.kuaishou.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 kwai.db cohort...",
+                    ),
+                )
+            }
+            when (val result = kuaishouRootCollector.snapshot()) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录快手 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            kuaishou = it.kuaishou.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            kuaishou = it.kuaishou.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-kuaishou",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["watch"]?.takeIf { it > 0 }?.let { "$it 观看" },
+                                counts["collect"]?.takeIf { it > 0 }?.let { "$it 收藏" },
+                                counts["search"]?.takeIf { it > 0 }?.let { "$it 搜索" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                "本机 root: 同步成功但 0 events — kwai.db 表 schema 可能漂移 (P7.6.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    kuaishou = it.kuaishou.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: kuaishou root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    kuaishou = it.kuaishou.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
                                     ),
                                 )
                             }

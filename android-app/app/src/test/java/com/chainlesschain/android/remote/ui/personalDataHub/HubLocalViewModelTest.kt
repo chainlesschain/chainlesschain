@@ -114,6 +114,9 @@ class HubLocalViewModelTest {
     private lateinit var kuaishouCollector: KuaishouLocalCollector
     private lateinit var kuaishouCredentials: KuaishouCredentialsStore
     private lateinit var kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
+    // Phase 7.6.2 — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var kuaishouRootCollector: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootDbCollector
+    private lateinit var kuaishouRootCredentials: com.chainlesschain.android.pdh.social.kuaishou.KuaishouRootCredentialsStore
     private lateinit var qqCollector: QQLocalCollector
     private lateinit var qqCredentials: QQCredentialsStore
     private lateinit var systemDataState: SystemDataSyncStateStore
@@ -219,6 +222,12 @@ class HubLocalViewModelTest {
         kuaishouCollector = mockk(relaxed = true)
         kuaishouCredentials = mockk(relaxed = true)
         kuaishouSignBridge = mockk(relaxed = true)
+        // Phase 7.6.2 — Mode B path B mocks for Kuaishou. Default:
+        // hasCredentials=false so syncKuaishouRoot short-circuits cleanly.
+        kuaishouRootCollector = mockk(relaxed = true)
+        kuaishouRootCredentials = mockk(relaxed = true)
+        every { kuaishouRootCredentials.hasCredentials() } returns false
+        every { kuaishouRootCredentials.getUid() } returns null
         every { kuaishouCredentials.hasCredentials() } returns false
         every { kuaishouCredentials.getUid() } returns null
         every { kuaishouCredentials.getCookie() } returns null
@@ -358,6 +367,9 @@ class HubLocalViewModelTest {
             kuaishouCollector,
             kuaishouCredentials,
             kuaishouSignBridge,
+            // Phase 7.6.2 — Mode B (path B) collector + store
+            kuaishouRootCollector,
+            kuaishouRootCredentials,
             qqCollector,
             qqCredentials,
             systemDataState,
@@ -1213,6 +1225,113 @@ class HubLocalViewModelTest {
             )
             assertTrue(s.errorMessage?.contains("xhs.db") == true)
             assertTrue(s.errorMessage?.contains("P7.5.0") == true)
+        }
+
+    // ─── Phase 7.6.2 syncKuaishouRoot (Mode B path B) ───────────────────────
+
+    @Test
+    fun `syncKuaishouRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { kuaishouRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishouRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("uid") == true)
+            coVerify(exactly = 0) { kuaishouRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncKuaishouRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { kuaishouRootCredentials.hasCredentials() } returns true
+            every { kuaishouRootCredentials.getUid() } returns "1234567890"
+            coEvery { kuaishouRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishouRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncKuaishouRoot ExtractFailed likely-sqlcipher surfaces v2_0 transition hint`() =
+        runTest(testDispatcher) {
+            // Plan §6.6: Kuaishou DB 几乎确定 SQLCipher / 自研 + libmsaoaidsec.so
+            // 反 frida. 'likely-sqlcipher' must surface explicit v2.0 path
+            // mention (SQLCipher + libmsaoaidsec + frida) so v0.1 → v2.0
+            // transition is user-actionable (not a dead end).
+            every { kuaishouRootCredentials.hasCredentials() } returns true
+            every { kuaishouRootCredentials.getUid() } returns "1234567890"
+            coEvery { kuaishouRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "likely-sqlcipher",
+                    message = "file is not a database — Kuaishou DB 几乎确定 SQLCipher 或自研加密 + libmsaoaidsec.so 反 frida (v2.0 路径: frida + libmsaoaidsec neuter + key 派生 hook, 见 Phase 7 plan §6.6)",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishouRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("likely-sqlcipher") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("SQLCipher") == true)
+            assertTrue(s.errorMessage?.contains("libmsaoaidsec") == true)
+            assertTrue(s.errorMessage?.contains("frida") == true)
+        }
+
+    @Test
+    fun `syncKuaishouRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { kuaishouRootCredentials.hasCredentials() } returns true
+            every { kuaishouRootCredentials.getUid() } returns "1234567890"
+            coEvery { kuaishouRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-kuaishou-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("watch" to 0, "collect" to 0, "search" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("dbFilename" to "kwai.db"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-kuaishou",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncKuaishouRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.kuaishou
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("kwai.db") == true)
+            assertTrue(s.errorMessage?.contains("P7.6.0") == true)
         }
 
     // ─── Logout ─────────────────────────────────────────────────────────────
