@@ -217,20 +217,13 @@ class HubLocalViewModel @Inject constructor(
      */
 
     /**
-     * Phase 13.5 v0.2 — QQ uses string-uin like WeChat but has NO keyProvider
-     * gate (IMEI is the only decrypt key — see [QQCredentialsStore] kdoc).
+     * Phase 8.3 — QQ state migrated to [SocialCardState] (mirrors WeChat
+     * P8.2 migration). Initial value in [UiState] carries `adapterName="qq"`,
+     * `displayName="QQ"`, `implemented=true`, `requiresUinEntry=true`.
+     *
+     * Unlike WeChat (md5 / frida keyProvider gate), QQ uses IMEI-only XOR
+     * decrypt — no keyProvider field needed (stays null on SocialCardState).
      */
-    @Immutable
-    data class QQCardState(
-        val isLoggedIn: Boolean = false,
-        val uin: String? = null,
-        val isSyncing: Boolean = false,
-        val lastSyncAt: Long? = null,
-        val lastSyncCount: Int = 0,
-        val errorMessage: String? = null,
-        /** When true, show the uin+imei entry dialog (Phase 13.5 onboarding). */
-        val pendingUinEntry: Boolean = false,
-    )
 
     @Immutable
     data class LoginRequest(
@@ -603,7 +596,13 @@ class HubLocalViewModel @Inject constructor(
             implemented = true,
             requiresUinEntry = true,
         ),
-        val qq: QQCardState = QQCardState(),
+        // Phase 8.3 — QQ migrated to SocialCardState (was QQCardState).
+        val qq: SocialCardState = SocialCardState(
+            adapterName = "qq",
+            displayName = "QQ",
+            implemented = true,
+            requiresUinEntry = true,
+        ),
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
         val ask: AskCardState = AskCardState(),
@@ -5399,7 +5398,7 @@ class HubLocalViewModel @Inject constructor(
             it.copy(
                 qq = it.qq.copy(
                     isLoggedIn = loggedIn,
-                    uin = uin,
+                    uidStr = uin,
                     lastSyncAt = lastSync,
                     lastSyncCount = lastCount,
                 ),
@@ -5594,7 +5593,17 @@ class HubLocalViewModel @Inject constructor(
         qqCredentials.clear()
         _state.update {
             it.copy(
-                qq = QQCardState(),
+                // Reset QQ-specific fields; keep adapterName/displayName/
+                // implemented/requiresUinEntry shape via copy() vs fresh init.
+                qq = it.qq.copy(
+                    isLoggedIn = false,
+                    uidStr = null,
+                    isSyncing = false,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                    pendingUinEntry = false,
+                ),
             )
         }
     }

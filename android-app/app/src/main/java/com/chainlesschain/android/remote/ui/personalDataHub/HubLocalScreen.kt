@@ -388,12 +388,21 @@ fun HubLocalScreen(
             }
             item("im-qq") {
                 Spacer(Modifier.height(8.dp))
-                QQCard(
+                // Phase 8.3 — QQCard composable retired; use SocialAdapterCard
+                // for 8/8 platform UI parity. requiresUinEntry=true on
+                // state.qq signals the UIN+IMEI-entry dialog flow.
+                SocialAdapterCard(
                     state = state.qq,
                     globalBusy = globalBusy,
                     onLogin = { viewModel.requestQQLogin() },
                     onSync = { viewModel.syncQQ() },
                     onLogout = { viewModel.logoutQQ() },
+                    onPreviewVault = {
+                        viewModel.requestVaultPreview(
+                            adapter = state.qq.adapterName,
+                            displayName = state.qq.displayName,
+                        )
+                    },
                 )
                 if (state.qq.pendingUinEntry) {
                     QQUinImeiEntryDialog(
@@ -988,116 +997,10 @@ private fun WechatUinEntryDialog(
     )
 }
 
-/**
- * Phase 13.5 v0.2 — QQ adapter card. Visually mirrors [WechatCard] but takes
- * [HubLocalViewModel.QQCardState] directly because QQ has no `keyProvider`
- * gate (IMEI is the sole decrypt key — see [com.chainlesschain.android.pdh.messaging.qq.QQCredentialsStore]).
- *
- * Real-impl: [com.chainlesschain.android.pdh.messaging.qq.QQDbExtractor] does
- * `su` copy + plaintext SQLite read + XOR-cycle decrypt of msgData. v0.1 ship
- * gate: needs root QQ device (Phase 13.5.6 real-device E2E).
- */
-@Composable
-private fun QQCard(
-    state: HubLocalViewModel.QQCardState,
-    globalBusy: Boolean,
-    onLogin: () -> Unit,
-    onSync: () -> Unit,
-    onLogout: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "QQ",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.size(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Text(
-                        "Phase 13.5 v0.2",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                if (state.isLoggedIn) {
-                    "UIN: ${state.uin} · XOR-IMEI 解密"
-                } else {
-                    "需要 root + QQ 已登录主账号。Phase 13.5 实施中。"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+// Phase 8.3 — QQCard composable deleted; SocialAdapterCard used instead.
+// See item("im-qq") block (line ~389) for the call site. QQUinImeiEntryDialog
+// (below) stays — still rendered when `state.qq.pendingUinEntry == true`.
 
-            if (state.lastSyncAt != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "上次同步: ${syncFormatter.format(Date(state.lastSyncAt))} · +${state.lastSyncCount} 事件",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            state.errorMessage?.let { err ->
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(6.dp),
-                ) {
-                    Text(
-                        err,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!state.isLoggedIn) {
-                    Button(
-                        onClick = onLogin,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) { Text("登录 / 授权") }
-                } else {
-                    Button(
-                        onClick = onSync,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) {
-                        if (state.isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(Modifier.size(6.dp))
-                            Text("同步中…")
-                        } else {
-                            Text("立即同步")
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = onLogout,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) { Text("退出") }
-                }
-            }
-        }
-    }
-}
 
 /**
  * Phase 13.5 v0.2 — QQ uin + imei entry dialog. Both fields required —
