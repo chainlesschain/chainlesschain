@@ -341,6 +341,10 @@ fun HubLocalScreen(
                         // schema 资料; defensive PRAGMA picker + likely-sqlcipher
                         // hint route v0.1 → v0.2 via P7.3 §3.5-3.6 frida hook.
                         "social-weibo" -> { -> viewModel.syncWeiboRoot() }
+                        // Phase 7.5.2 — Xhs Mode B wired. Plan §6.5: 极低公开
+                        // + libshield.so 反 frida → v0.1 likely 命中 likely-sqlcipher
+                        // banner 跳 v2.0 frida + libshield neuter 路径。
+                        "social-xiaohongshu" -> { -> viewModel.syncXhsRoot() }
                         else -> null
                     },
                 )

@@ -110,6 +110,12 @@ class HubLocalViewModel @Inject constructor(
     private val xhsCollector: XhsLocalCollector,
     private val xhsCredentials: XhsCredentialsStore,
     private val xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge,
+    // Phase 7.5.2 — Xhs Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix. Plan
+    // §6.5: 极低公开 schema + 高 libshield.so 反爬 → v0.1 期望大概率命中
+    // likely-sqlcipher banner 跳 v2.0 frida + libshield neuter 路径。
+    private val xhsRootCollector: com.chainlesschain.android.pdh.social.xiaohongshu.XhsRootDbCollector,
+    private val xhsRootCredentials: com.chainlesschain.android.pdh.social.xiaohongshu.XhsRootCredentialsStore,
     private val toutiaoCollector: ToutiaoLocalCollector,
     private val toutiaoCredentials: ToutiaoCredentialsStore,
     private val toutiaoSignBridge: com.chainlesschain.android.pdh.social.toutiao.ToutiaoSignBridge,
@@ -4079,6 +4085,166 @@ class HubLocalViewModel @Inject constructor(
                                     xiaohongshu = it.xiaohongshu.copy(
                                         isSyncing = false,
                                         errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Phase 7.5.2 — Xhs Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncXhs] (path A, cookies + X-S 签名 HTTP + WebView
+     * prefetch). Path B reads `/data/data/com.xingin.xhs/databases/*.db`
+     * directly via root — no internet, no X-S signing.
+     *
+     * **v0.1 期望成功率最低 of 4 platforms** per plan §6.5: Xhs DB
+     * 几乎确定 SQLCipher 加密 + libshield.so 反 frida. v0.1 ship 是 user-
+     * explicit "Mode B 全面 5 平台" override; 真机 大概率命中
+     * `likely-sqlcipher` banner 跳 v2.0 frida + libshield neuter 路径。
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A.
+     * Banner prefix "本机 root:" discriminates in the same SocialCardState.
+     */
+    fun syncXhsRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!xhsRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    xiaohongshu = it.xiaohongshu.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (user_id 24-char hex 会自动用作 root user_id)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-xiaohongshu",
+                    xiaohongshu = it.xiaohongshu.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 xhs.db cohort...",
+                    ),
+                )
+            }
+            when (val result = xhsRootCollector.snapshot()) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录小红书 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            xiaohongshu = it.xiaohongshu.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            xiaohongshu = it.xiaohongshu.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-xiaohongshu",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["note"]?.takeIf { it > 0 }?.let { "$it 笔记" },
+                                counts["liked"]?.takeIf { it > 0 }?.let { "$it 点赞" },
+                                counts["follow"]?.takeIf { it > 0 }?.let { "$it 关注" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                "本机 root: 同步成功但 0 events — xhs.db 表 schema 可能漂移 (P7.5.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: xhs root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    xiaohongshu = it.xiaohongshu.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
                                     ),
                                 )
                             }
