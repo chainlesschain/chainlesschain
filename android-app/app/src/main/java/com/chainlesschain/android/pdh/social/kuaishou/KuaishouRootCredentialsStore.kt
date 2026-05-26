@@ -22,7 +22,7 @@ import javax.inject.Singleton
  *    wired by HubLocalViewModel for the cookies + GraphQL 签名 flow.
  *
  *  - [KuaishouRootCredentialsStore] (this, path B) — uid only. Path B
- *    reads `/data/data/com.smile.gifmaker/databases/*.db` directly via root.
+ *    reads `/data/data/com.smile.gifmaker/databases/` `*.db` files directly via root.
  *
  * Schema (from [BaseRootCredentialsStore] base):
  *   - "uid"             : Kuaishou uid (numeric string)
