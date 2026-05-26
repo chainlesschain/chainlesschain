@@ -22,7 +22,7 @@ import javax.inject.Singleton
  *
  * Coexists with [BilibiliLocalCollector] (path A, cookies + WBI signing
  * + api.bilibili.com endpoints). Path B reads
- * `/data/data/tv.danmaku.bili/databases/*.db` directly via root — no
+ * `/data/data/tv.danmaku.bili/databases/` `*.db` files directly via root — no
  * internet, no signing, no anti-bot risk.
  *
  * Pipeline:

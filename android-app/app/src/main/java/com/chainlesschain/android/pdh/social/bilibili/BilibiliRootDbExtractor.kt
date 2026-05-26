@@ -18,7 +18,7 @@ import javax.inject.Singleton
 /**
  * Phase 7.2 — Android in-APK root Bilibili DB extractor (path B).
  *
- * Reads `/data/data/tv.danmaku.bili/databases/*.db` via `su -c "cp ..."`
+ * Reads `/data/data/tv.danmaku.bili/databases/` `*.db` files via `su -c "cp ..."`
  * cohort copy (WAL/SHM siblings included) + standard Android
  * SQLiteDatabase open. Bilibili uses **plaintext SQLite** — no SQLCipher,
  * no frida hook needed. Schema is publicly documented via
