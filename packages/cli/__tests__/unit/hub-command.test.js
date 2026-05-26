@@ -43,6 +43,7 @@ describe("cc hub command surface", () => {
         "export", // §A8 v0.2 export staged snapshot rows
         "facet-counts", // Phase 16 Vault Browser — per-category counts
         "health",
+        "kuaishou-adb-sync", // Phase 6d.3 (Kuaishou C 路径) — PC + ADB + NS_sig3 SignProvider
         "list-adapters",
         "query-events",
         "recent-audit",
@@ -53,6 +54,7 @@ describe("cc hub command surface", () => {
         "stats",
         "sync-adapter",
         "sync-all",
+        "toutiao-adb-sync", // Phase 6c.3 (Toutiao C 路径) — PC + ADB + acrawler SignProvider
         "wechat",
         "weibo-adb-sync", // Phase 3a (Weibo C 路径) — PC + ADB m.weibo.cn cookies
         "xhs-adb-sync", // Phase 3c (Xhs C 路径) — PC + ADB + X-S best-effort sig
