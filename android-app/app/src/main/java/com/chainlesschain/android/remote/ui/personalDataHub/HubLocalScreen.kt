@@ -235,6 +235,7 @@ fun HubLocalScreen(
                     onDownloadModel = { viewModel.downloadModel() },
                     onDeleteModel = { viewModel.deleteModel() },
                     onRouteSelected = { route -> viewModel.setAskRoute(route) },
+                    onSelectModel = { key -> viewModel.selectModel(key) },
                 )
             }
 

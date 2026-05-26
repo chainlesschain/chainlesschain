@@ -51,6 +51,7 @@ fun HubAskCard(
     onDownloadModel: () -> Unit = {},
     onDeleteModel: () -> Unit = {},
     onRouteSelected: (LlmRoute) -> Unit = {},
+    onSelectModel: (String) -> Unit = {},
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -94,6 +95,7 @@ fun HubAskCard(
                     status = modelStatus,
                     onDownload = onDownloadModel,
                     onDelete = onDeleteModel,
+                    onSelectModel = onSelectModel,
                 )
             }
 
@@ -211,7 +213,23 @@ private fun ModelStatusBanner(
     status: HubLocalViewModel.ModelStatusState,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
+    onSelectModel: (String) -> Unit,
 ) {
+    // 2026-05-26 — 双档模型选择器渲染在状态条之上。下载/校验中不显（避免用户切档
+    // 污染当前 .part 文件，VM.selectModel 也会拒切，UI 层只是把按钮藏起来防误点）。
+    val pickerVisible = status.availableModels.size >= 2 &&
+        status.kind != HubLocalViewModel.ModelStatusState.Kind.DOWNLOADING &&
+        status.kind != HubLocalViewModel.ModelStatusState.Kind.VERIFYING &&
+        status.kind != HubLocalViewModel.ModelStatusState.Kind.UNKNOWN
+    if (pickerVisible) {
+        ModelPicker(status = status, onSelect = onSelectModel)
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+    // Dynamic copy — replace the old hardcoded "Qwen2.5-1.5B Q4 · ~1GB" with
+    // whatever spec the user currently has selected (0.5B default / 1.5B opt-in).
+    val selected = status.selectedModel
+    val modelCopy = selected?.let { "${it.displayName} · ${it.sizeMb}MB" }
+        ?: "端侧 LLM 模型"
     when (status.kind) {
         HubLocalViewModel.ModelStatusState.Kind.READY -> {
             // Ready: compact one-line caption so the question input stays
@@ -257,9 +275,9 @@ private fun ModelStatusBanner(
                         // 真实状态，不让用户白下 1GB 后被错误信息卡住。
                         Text(
                             text = if (status.nativeEngineReady)
-                                "Qwen2.5-1.5B Q4 · ~1GB · 一次下载，永久离线可用"
+                                "$modelCopy · 一次下载，永久离线可用"
                             else
-                                "Qwen2.5-1.5B Q4 · ~1GB · 推理引擎将在 v0.2 启用 (可先下载备用)",
+                                "$modelCopy · 推理引擎将在 v0.2 启用 (可先下载备用)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
@@ -494,6 +512,82 @@ private fun HubAskCardRouteOption(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/**
+ * 2026-05-26 — 双档模型选择器（0.5B / 1.5B）。推文 §"机器好的话可装更大模型"
+ * 真接通入口：默认 0.5B 让普通用户开箱即用；高端机用户点 1.5B radio 切档，再点
+ * "下载"换更大模型，对话质量显著提升。
+ *
+ * UI 规则：
+ *  - 每行：RadioButton + 名字 + "${MB} · 推荐 RAM ≥ ${rec}GB" caption
+ *  - shaLocked=false 行加 "TOFU" tag（未锁 SHA 字节级校验，首次下载后才能 pin）
+ *  - 当前选中且设备 RAM < recommendedRamMb → 红色 RAM 警告条
+ *
+ * 不可见时机由调用方控制：DOWNLOADING / VERIFYING 期间 caller 已 gate 掉，picker
+ * 不渲染（防 .part 文件污染 + UI 状态错位）。
+ */
+@Composable
+private fun ModelPicker(
+    status: HubLocalViewModel.ModelStatusState,
+    onSelect: (String) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(
+                text = "端侧模型档位",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            status.availableModels.forEach { option ->
+                val selected = option.key == status.selectedModelKey
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = selected,
+                        onClick = { if (!selected) onSelect(option.key) },
+                    )
+                    Spacer(modifier = Modifier.size(4.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = option.displayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        val ramHint = if (option.recommendedRamMb > 0L)
+                            " · 推荐 RAM ≥ ${option.recommendedRamMb / 1024}GB"
+                        else ""
+                        val shaTag = if (!option.shaLocked) " · TOFU" else ""
+                        Text(
+                            text = "${option.sizeMb}MB$ramHint$shaTag",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            val selectedOption = status.selectedModel
+            // RAM 警告 — 只在选中档推荐 RAM > 设备 RAM 时显，且设备 RAM 已知（>0）。
+            if (selectedOption != null &&
+                status.deviceTotalRamMb in 1L until selectedOption.recommendedRamMb
+            ) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "⚠ 设备总内存约 ${status.deviceTotalRamMb / 1024}GB，低于 ${selectedOption.displayName} 推荐的 ${selectedOption.recommendedRamMb / 1024}GB —— 推理时可能被系统 OOM-kill。",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

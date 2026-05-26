@@ -221,6 +221,70 @@ export default defineConfig({
               text: "A8 Bilibili 真机 E2E 计划 ⭐NEW",
               link: "/A8_Bilibili_E2E_Plan",
             },
+            {
+              text: "A8 Weibo 真机 E2E 计划 ⭐NEW",
+              link: "/A8_Weibo_E2E_Plan",
+            },
+            {
+              text: "A8 Douyin 真机 E2E 计划 ⭐NEW",
+              link: "/A8_Douyin_E2E_Plan",
+            },
+            {
+              text: "A8 Xiaohongshu 真机 E2E 计划 ⭐NEW",
+              link: "/A8_Xhs_E2E_Plan",
+            },
+            {
+              text: "A8 Toutiao 真机 E2E 计划 ⭐NEW",
+              link: "/A8_Toutiao_E2E_Plan",
+            },
+            {
+              text: "A8 Kuaishou 真机 E2E 计划 ⭐NEW",
+              link: "/A8_Kuaishou_E2E_Plan",
+            },
+            {
+              text: "PDH Social 多路径本机采集方案 (Mode A/B/C) ⭐NEW",
+              link: "/PDH_Social_Multipath_Local_Collection_Plan",
+            },
+            {
+              text: "PDH Bilibili C 路径 (PC ADB) 真机 E2E ⭐NEW",
+              link: "/PDH_Bilibili_C_Path_Real_Device_E2E",
+            },
+            {
+              text: "PDH Bilibili Mode B (Android in-APK root) 真机 E2E ⭐NEW",
+              link: "/PDH_Bilibili_Mode_B_Real_Device_E2E",
+            },
+            {
+              text: "PDH Weibo DB Schema 探测 ⭐NEW",
+              link: "/PDH_Weibo_DB_Schema_Probe",
+            },
+            {
+              text: "PDH Weibo Mode B (Android in-APK root) 真机 E2E ⭐NEW",
+              link: "/PDH_Weibo_Mode_B_Real_Device_E2E",
+            },
+            {
+              text: "PDH Weibo C 路径 真机 E2E ⭐NEW",
+              link: "/PDH_Weibo_Real_Device_E2E",
+            },
+            {
+              text: "PDH Xiaohongshu C 路径 真机 E2E ⭐NEW",
+              link: "/PDH_Xhs_Real_Device_E2E",
+            },
+            {
+              text: "PDH Douyin 真机 E2E ⭐NEW",
+              link: "/PDH_Douyin_Real_Device_E2E",
+            },
+            {
+              text: "PDH Toutiao C 路径 真机 E2E ⭐NEW",
+              link: "/PDH_Toutiao_C_Path_Real_Device_E2E",
+            },
+            {
+              text: "PDH Kuaishou C 路径 真机 E2E ⭐NEW",
+              link: "/PDH_Kuaishou_C_Path_Real_Device_E2E",
+            },
+            {
+              text: "PDH Mode B Toutiao+Douyin 真机 E2E ⭐NEW",
+              link: "/PDH_Mode_B_Toutiao_Douyin_Real_Device_E2E",
+            },
           ],
         },
         {

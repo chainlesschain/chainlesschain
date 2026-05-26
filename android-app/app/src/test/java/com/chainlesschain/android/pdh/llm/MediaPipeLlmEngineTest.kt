@@ -38,7 +38,8 @@ class MediaPipeLlmEngineTest {
         // mockk (relaxed=false) otherwise throws MockKException as soon as the
         // property is touched, masking the actual code path we're trying to
         // assert (guard, ensureLoadedLocked, etc.).
-        every { modelManager.defaultSpec } returns ModelManager.ModelSpec(
+        val testSpec = ModelManager.ModelSpec(
+            key = "test-spec",
             filename = "test.task",
             urls = emptyList(),
             expectedSha256 = null,
@@ -46,6 +47,11 @@ class MediaPipeLlmEngineTest {
             displayName = "test",
             promptFamily = ModelManager.PromptFamily.QWEN_CHATML,
         )
+        every { modelManager.defaultSpec } returns testSpec
+        // 2026-05-26 — MediaPipeLlmEngine now reads selectedSpec for promptFamily;
+        // stub it so formatPrompt picks QWEN_CHATML template.
+        every { modelManager.selectedSpec } returns
+            kotlinx.coroutines.flow.MutableStateFlow(testSpec)
     }
 
     private fun newEngine(): MediaPipeLlmEngine =
