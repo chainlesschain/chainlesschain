@@ -1,4 +1,4 @@
-# 隐性风险陷阱手册（#6-#24）
+# 隐性风险陷阱手册（#6-#26）
 
 > Internal engineering reference. 项目内每一次"代码能跑 / CI 全绿 / dev 没问题但生产 / 用户 / 下次重装炸"事件的总结。
 >
@@ -33,16 +33,19 @@
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
 | 23 | bs3mc / bs3 ABI dual-load — Electron 39 (ABI 140) vs Node 22 (ABI 127) | 加 / 改 `packages/personal-data-hub/lib/adapters/**/*-reader.js` 任何 require SQLite native binding 走 Electron main + Node 测试双路径的 adapter | `bs3mc_bs3_abi_dual_load_adapter.md` |
 | 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
+| 25 | SQLite partial-index `IF NOT EXISTS` 隐藏 schema drift | 改 `packages/personal-data-hub/lib/migrations.js` partial unique index 定义；改 `vault.js` UPSERT `ON CONFLICT ... WHERE`；老 vault 升级；user 报 "events=1 rawEvents=1308" | `pdh_partial_index_if_not_exists_drift.md` |
+| 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持 | `gpu_crash_recovery_legacy_intel_driver.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
 ```
-Release / 打包   : 7, 13, 14, 18, 19
+Release / 打包   : 7, 13, 14, 18, 19, 26
 Git / 并发       : 9, 10, 24
 CI / 测试        : 8, 11, 19, 23
 Toolchain        : 12, 16, 23
-Runtime / 数据   : 15, 20, 21, 22, 23, 24
+Runtime / 数据   : 15, 20, 21, 22, 23, 24, 25, 26
 Mobile 平台      : 14, 17, 19, 20, 21, 22, 24
+Desktop 平台     : 13, 26
 Docs             : 6
 ```
 
@@ -1616,6 +1619,121 @@ adb shell ... cc hub recent-audit --limit 30 --json | jq '[.[]|select(.action|te
 - memory: `pdh_partial_index_if_not_exists_drift`、`pdh_cc_subprocess_exit_and_vault_upsert`（commit `44c4188a8` 修 SQL 但漏 schema migration —— 是这次根因的种子）、`pdh_adapter_originalid_required`
 - 共同模式：`android_cc_bundle_tar_gnu_long_name`（trap #21）—— 都是 `IF NOT EXISTS` / 默认参数让演进 silent 失败
 - commit: `7af396405 feat(pdh): rederive + migration v4 — recover orphan raw_events from trap #25 partial-index drift`
+
+**CI gate（hard fail）**：
+
+- `.github/workflows/pdh-partial-index-lint.yml` 在 PR 触及 `packages/personal-data-hub/lib/{migrations.js,vault.js}` 时自动跑 `scripts/lint-pdh-partial-index.mjs`，检测任何 `CREATE UNIQUE INDEX ... (source_adapter, source_original_id)` 缺 `WHERE source_original_id IS NOT NULL` 的写法（含 string-concat 拆行 pattern）。
+- 规则文档化在 lint 脚本顶部注释；测试在 `scripts/__tests__/lint-pdh-partial-index.test.mjs` (8 case)。
+- 修法已具备模板：migration v4 explicit DROP+CREATE pattern（见上方 SOP 第 1 条代码块）。lint 失败时按那个 pattern 复刻即可。
+
+---
+
+## 26. Legacy-GPU Chromium 130+ fail-fast `0xc0000602` —— "installer 闪退" 实际是 app 首帧崩（隐性风险）
+
+**Slug**: `gpu_crash_recovery_legacy_intel_driver`
+
+**陷阱本质**：
+
+Electron 39 / Chromium 130+ 的 GPU 进程初始化路径（Windows 上 `CoreMessaging.dll` + ANGLE/D3D11）对老 GPU 驱动有硬下限。**Intel Iris Pro 5200 + 2016-09 驱动**、HD 4000 / HD 5000 系列、AMD 同代 + 2017 前驱动的机型，GPU 子进程一启动就 `STATUS_FAIL_FAST_EXCEPTION (0xc0000602)` 整个 app 进程退出。**user 视角是 "installer 装一会闪退"** —— 因为 NSIS 装完成功，最后那步勾选的"启动 ChainlessChain"启动后 ~200ms 内崩，installer 窗口同时关闭看起来像 installer 本身崩了。
+
+**为什么排查难**：
+
+- 症状 misleading：错误归因到 installer / 下载文件 / 杀毒软件 / Win 版本，根因在 app 启动后的 GPU 进程；
+- 没有任何 Electron / app log 落盘 —— 崩在 GPU 进程 init 早于任何 logger 接通；
+- 唯一的诊断信号在 Windows Event Log `Application` 频道 `Application Error` (Event ID 1000)：`错误应用程序名称: ChainlessChain.exe ... 错误模块名称: CoreMessaging.dll ... 异常代码: 0xc0000602`。普通 user 不会看 Event Viewer；
+- Defender 默认行为 + MOTW + 各种安全 hint 都跟症状对不上 → 容易钻牛角尖；
+- Electron / Chromium GPU blocklist 不覆盖这种古董配置（Chromium 已 EOL Haswell GT3 GPU 路径，但 process abort 仍发生在 blocklist 检查之前）；
+- regression 误判：user 报"之前版本没事"，实际任何 Electron 39 release 都中招；如果某个老版本"看起来能跑"通常是别的更早错误（PDH / vault / 启动卡死）让 GPU 崩没机会显现；
+- dev box 一般装新驱动看不到 → CI 不能复现 → release 前抓不到。
+
+**SOP / checklist**：
+
+1. **诊断三步**（user 报 "installer 闪退"时强制走一遍）：
+   ```powershell
+   # (1) 是不是真 installer 问题？看 app 是否已落地
+   Test-Path "$env:ProgramFiles\ChainlessChain\ChainlessChain.exe"
+   # True → installer 装成功了，问题在 app 启动
+
+   # (2) Event Log 找 0xc0000602
+   Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='Application Error'; StartTime=(Get-Date).AddMinutes(-30)} |
+     Where-Object { $_.Message -match 'chainless' } |
+     Select-Object TimeCreated, @{N='Msg';E={($_.Message -split "`n")[0..5] -join "`n"}} | Format-List
+   # 看到 0xc0000602 + CoreMessaging.dll → 锁实 trap #26
+
+   # (3) GPU 驱动年龄
+   Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, DriverDate
+   # DriverDate < 2020 + Intel HD/Iris 旧型号 → 强相关
+   ```
+
+2. **代码层 fix（已 land v5.0.3.95+）**：`desktop-app-vue/src/main/index.js` setupApp 起点加 GPU crash recovery（marker file 模式，跟 VS Code / Slack / Cursor 一致）：
+   ```js
+   // 启动前写 marker
+   const marker = path.join(app.getPath("userData"), ".launching");
+   const gpuFlag = path.join(app.getPath("userData"), ".gpu-disabled");
+   let crashRecovered = false;
+   if (fs.existsSync(marker)) {
+     // 上次启动崩在 ready-to-show 之前 → 持久化 disable
+     crashRecovered = true;
+     fs.writeFileSync(gpuFlag, JSON.stringify({ reason: "previous-crash", at: new Date().toISOString() }));
+   } else {
+     fs.mkdirSync(app.getPath("userData"), { recursive: true });
+     fs.writeFileSync(marker, String(process.pid));
+   }
+   if (crashRecovered || fs.existsSync(gpuFlag) || process.env.CHAINLESSCHAIN_DISABLE_GPU === "1") {
+     app.disableHardwareAcceleration();
+     app.commandLine.appendSwitch("disable-gpu");
+     app.commandLine.appendSwitch("disable-gpu-compositing");
+     app.commandLine.appendSwitch("disable-software-rasterizer");
+   }
+   // mainWindow.once("ready-to-show") 里删 marker（健康路径）
+   ```
+   关键：marker 删除位置必须是 **first-frame-painted**（`ready-to-show`）。早删（在 `app.whenReady()`）会让 GPU 进程仍未初始化完就误判健康；晚删（在用户首次交互后）会让正常启动也被误判成 crash。
+
+3. **本机 workaround（没装到 v5.0.3.95+ 的 user）**：建一个带 `--disable-gpu` 参数的快捷方式：
+   ```powershell
+   $shell = New-Object -ComObject WScript.Shell
+   $lnk = $shell.CreateShortcut("$env:USERPROFILE\Desktop\ChainlessChain (兼容模式).lnk")
+   $lnk.TargetPath = "C:\Program Files\ChainlessChain\ChainlessChain.exe"
+   $lnk.Arguments = "--disable-gpu --disable-gpu-compositing --disable-software-rasterizer"
+   $lnk.WorkingDirectory = "C:\Program Files\ChainlessChain"
+   $lnk.Save()
+   ```
+   注意：系统级 `C:\Users\Public\Desktop\ChainlessChain.lnk` 和 `C:\ProgramData\...\Start Menu\...\ChainlessChain.lnk` 改不动（需要 UAC）。用 user-level 路径绕过。
+
+4. **回退路径**：user 想试新驱动后重新开 GPU → 删 `<userData>/.gpu-disabled`（Windows: `%APPDATA%\chainlesschain-desktop-vue\.gpu-disabled`）。
+
+**反模式**：
+
+- ❌ 推 user 重下 installer / 改杀毒 / 重装系统 —— 根因在硬件配置，重多少遍都崩
+- ❌ 把 `app.disableHardwareAcceleration()` 直接 hard-code 给所有 Windows user —— 主流用户白白损失 GPU 加速性能
+- ❌ marker file 删除位置选 `app.whenReady()` 或 `did-finish-load` —— GPU 进程崩在那之前但晚于这两个事件，marker 已被错误清掉导致下次启动不开 recovery
+- ❌ 用 `process.crash()` 或 uncaught-exception handler 检测 GPU 崩 —— Chromium GPU 子进程 fail-fast 不抛 JS 异常，主进程在子进程退出后直接 `app.exit()`，handler 接不到
+- ❌ 在 macOS / Linux 上也跑 marker 写盘 —— 跨平台冗余开销 + 这俩平台 GPU 路径不同，没必要
+
+**诊断快速键**：
+
+```powershell
+# user 报"installer 闪退"时一键诊断
+$installer = "$env:USERPROFILE\Downloads\ChainlessChain-Setup-*.exe" | Get-ChildItem | Select-Object -Last 1
+Write-Output "Installer SHA: $((Get-FileHash $installer -Algorithm SHA256).Hash)"
+Write-Output "App installed: $(Test-Path "$env:ProgramFiles\ChainlessChain\ChainlessChain.exe")"
+Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='Application Error'; StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue |
+  Where-Object { $_.Message -match 'chainless' } |
+  Select-Object TimeCreated, @{N='Msg';E={($_.Message -split "`n")[0..4] -join "`n"}} | Format-List
+Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, DriverDate | Format-List
+```
+
+如果三个信号都吻合（SHA 对得上 + app 装好了 + Event Log 看到 0xc0000602 + GPU 驱动 ≤2018）→ 100% trap #26。
+
+**关联 memory / commit**：
+
+- memory: `gpu_crash_recovery_legacy_intel_driver`
+- commit: `d8dc212f1 fix(desktop): legacy-GPU crash recovery — disable HW accel after fail-fast 0xc0000602`
+- 类似 silent-fail-on-first-launch 模式：trap #19 (Android R8 minify 只在 CI 暴露)、trap #13 (desktop release npm workspace hoisting) —— 都是 dev box 跑得通但 user 机第一次启动炸
+
+**为什么不走 GPU blocklist 检测**：
+
+Chromium 内置 GPU blocklist 对老 Intel 卡的 entry 通常 disable 某些 feature（WebGL2 / accelerated 2D canvas），但 process abort 发生在 blocklist 加载前的 GPU init bootstrap 阶段（DXGI factory / D3D11 device 创建），blocklist 来不及生效。marker file recovery 是唯一稳路 —— 它不依赖任何 GPU API 状态，纯外部行为驱动。
 
 ---
 

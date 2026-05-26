@@ -1,0 +1,53 @@
+name: PDH Partial Index Lint (hard gate, trap #25)
+
+# Hard gate: any PR that touches packages/personal-data-hub/lib/{migrations.js,
+# vault.js} must keep all `CREATE UNIQUE INDEX ... (source_adapter,
+# source_original_id)` partial-indexed with `WHERE source_original_id IS NOT
+# NULL`. Forgetting the WHERE clause silently breaks vault UPSERT (events
+# table stays at ~1 row while raw_events accumulates 1000+). The
+# `IF NOT EXISTS` makes the drift permanent for any user already on the old
+# index, so detection must happen *before* merge.
+#
+# See:
+#   docs/internal/hidden-risk-traps.md #25
+#   memory pdh_partial_index_if_not_exists_drift.md
+#   scripts/lint-pdh-partial-index.mjs
+
+on:
+  pull_request:
+    paths:
+      - 'packages/personal-data-hub/lib/migrations.js'
+      - 'packages/personal-data-hub/lib/vault.js'
+      - 'scripts/lint-pdh-partial-index.mjs'
+      - 'scripts/__tests__/lint-pdh-partial-index.test.mjs'
+      - '.github/workflows/pdh-partial-index-lint.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/personal-data-hub/lib/migrations.js'
+      - 'packages/personal-data-hub/lib/vault.js'
+      - 'scripts/lint-pdh-partial-index.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdh-partial-index-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run lint unit tests
+        run: node --test scripts/__tests__/lint-pdh-partial-index.test.mjs
+
+      - name: Lint PDH partial indices
+        run: node scripts/lint-pdh-partial-index.mjs
