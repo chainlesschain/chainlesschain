@@ -49,13 +49,21 @@ cd packages/cli && npm install && npm test
 docker-compose up -d
 ```
 
-## Git Workflow — auto dual-push (installed 2026-05-12)
+## Git Workflow — auto push to github (installed 2026-05-12, gitee dropped 2026-05-26)
 
-After every `git commit` on this repo, `.husky/post-commit` automatically pushes to both `gitee` and `github` remotes (skips `github-https`). **No manual `git push gitee main && git push github main` needed** — that runs by default. Uses `--no-verify` to skip the pre-push `vue-tsc` check (~60s saved per commit); type-checking still runs in CI.
+After every `git commit` on this repo, `.husky/post-commit` automatically pushes to the `github` remote (skips `github-https`). **No manual `git push github main` needed** — that runs by default. Uses `--no-verify` to skip the pre-push `vue-tsc` check (~60s saved per commit); type-checking still runs in CI.
 
-If the hook fires but a push fails, it prints `[post-commit] WARN <remote> push FAILED` with the last 5 lines of error. Retry manually with `git push <remote> main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
+If the hook fires but a push fails, it prints `[post-commit] WARN github push FAILED` with the last 5 lines of error. Retry manually with `git push github main`. Force-pushes (amend / rebase) are not automated — the hook detects rewritten HEAD and warns; use `git push --force-with-lease=main:<expected-sha>` manually after confirming no parallel-session race (see memory `feedback_parallel_session_git_race.md` + `feedback_dual_remote_push.md`).
 
-Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `core.hooksPath=.husky/_`). To also push to gitee, run once: `git remote add gitee git@gitee.com:chainlesschaincn/chainlesschain.git` — the hook gracefully skips unconfigured remotes.
+**Gitee status (2026-05-26)**: gitee main was reset to a single-commit orphan snapshot at `969068dfc` because local `.git` (1325MB) exceeds gitee's 1GB quota. Gitee history is now detached from local main — any further `git push gitee main` would be non-fast-forward. To re-push to gitee after new local commits, rebuild a snapshot:
+```bash
+TREE=$(git rev-parse HEAD^{tree})
+COMMIT=$(git commit-tree "$TREE" -m "snapshot of $(git rev-parse --short HEAD)")
+git push gitee "$COMMIT:refs/heads/main" --force
+```
+Gitee is intentionally out of the auto-push loop to avoid every commit failing non-ff.
+
+Fresh clones inherit the hook via `npm install` (husky's `prepare` script sets `core.hooksPath=.husky/_`).
 
 ## CLI Commands Reference
 
