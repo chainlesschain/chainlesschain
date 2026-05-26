@@ -79,6 +79,11 @@ class HubLocalViewModel @Inject constructor(
     private val ccRunner: LocalCcRunner,
     private val bilibiliCollector: BilibiliLocalCollector,
     private val bilibiliCredentials: BilibiliCredentialsStore,
+    // Phase 7.2.2 — Bilibili Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix. Plan
+    // §6.4 推 SKIP — Mode B 仅作 path A 不可用时的 fallback.
+    private val bilibiliRootCollector: com.chainlesschain.android.pdh.social.bilibili.BilibiliRootDbCollector,
+    private val bilibiliRootCredentials: com.chainlesschain.android.pdh.social.bilibili.BilibiliRootCredentialsStore,
     private val wechatCollector: WeChatLocalCollector,
     private val wechatCredentials: WeChatCredentialsStore,
     private val llmServer: LocalLlmServer,
@@ -2598,6 +2603,166 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Phase 7.2.2 — Bilibili Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncBilibili] (path A, cookies + WBI signing + WebView
+     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/*.db`
+     * directly via root — no internet, no WBI, no anti-bot risk.
+     *
+     * **Plan §6.4 推 SKIP**: path A 已最优。Mode B 仅作 path A 不可用
+     * (api.bilibili.com 被风控/无网) 时的 fallback。
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A.
+     * Banner prefix "本机 root:" discriminates in the same SocialCardState.
+     */
+    fun syncBilibiliRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!bilibiliRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    bilibili = it.bilibili.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (DedeUserID 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-bilibili",
+                    bilibili = it.bilibili.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 DB cohort...",
+                    ),
+                )
+            }
+            val result = bilibiliRootCollector.snapshot()
+            when (result) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录 B 站 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            bilibili = it.bilibili.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            bilibili = it.bilibili.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-bilibili",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["history"]?.takeIf { it > 0 }?.let { "$it 历史" },
+                                counts["favourite"]?.takeIf { it > 0 }?.let { "$it 收藏" },
+                                counts["follow"]?.takeIf { it > 0 }?.let { "$it 关注" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                val dbName = result.diagnosticFields["dbFilename"] ?: "(unknown)"
+                                "本机 root: 同步成功但 0 events — DB '$dbName' 表 schema 可能漂移 (P7.2.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    bilibili = it.bilibili.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: bilibili root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    bilibili = it.bilibili.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun logoutBilibili() {
         bilibiliCollector.logout()
         _state.update {
@@ -3376,7 +3541,7 @@ class HubLocalViewModel @Inject constructor(
                     isLoginSuccessByCookie = { cookie ->
                         val m = Regex("(?:^|;\\s*)web_session=([^;\\s]+)").find(cookie)
                         val value = m?.groupValues?.getOrNull(1) ?: ""
-                        value.length >= 50
+                        value.length >= 30
                     },
                     userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),

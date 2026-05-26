@@ -77,6 +77,9 @@ class HubLocalViewModelTest {
     private lateinit var ccRunner: LocalCcRunner
     private lateinit var bilibiliCollector: BilibiliLocalCollector
     private lateinit var bilibiliCredentials: BilibiliCredentialsStore
+    // Phase 7.2.2 — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var bilibiliRootCollector: com.chainlesschain.android.pdh.social.bilibili.BilibiliRootDbCollector
+    private lateinit var bilibiliRootCredentials: com.chainlesschain.android.pdh.social.bilibili.BilibiliRootCredentialsStore
     private lateinit var wechatCollector: WeChatLocalCollector
     private lateinit var wechatCredentials: WeChatCredentialsStore
     private lateinit var llmServer: LocalLlmServer
@@ -128,6 +131,12 @@ class HubLocalViewModelTest {
         // stale-cookie tests below override this.
         every { bilibiliCollector.clearIfStoredCookieStale() } returns null
         bilibiliCredentials = mockk(relaxed = true)
+        // Phase 7.2.2 — Mode B path B mocks for Bilibili. Default:
+        // hasCredentials=false so syncBilibiliRoot short-circuits.
+        bilibiliRootCollector = mockk(relaxed = true)
+        bilibiliRootCredentials = mockk(relaxed = true)
+        every { bilibiliRootCredentials.hasCredentials() } returns false
+        every { bilibiliRootCredentials.getUid() } returns null
         wechatCollector = mockk(relaxed = true)
         wechatCredentials = mockk(relaxed = true)
         llmServer = mockk(relaxed = true)
@@ -268,6 +277,9 @@ class HubLocalViewModelTest {
             ccRunner,
             bilibiliCollector,
             bilibiliCredentials,
+            // Phase 7.2.2 — Mode B (path B) collector + store
+            bilibiliRootCollector,
+            bilibiliRootCredentials,
             wechatCollector,
             wechatCredentials,
             llmServer,
@@ -767,6 +779,106 @@ class HubLocalViewModelTest {
         assertTrue(vm.state.value.bilibili.errorMessage!!.contains("ENOENT bs3mc"))
         assertNull(vm.state.value.globalSyncingAdapter)
     }
+
+    // ─── Phase 7.2.2 — Bilibili Mode B (path B, in-APK root) ───────────────
+
+    @Test
+    fun `syncBilibiliRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { bilibiliRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncBilibiliRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.bilibili
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("DedeUserID") == true)
+            coVerify(exactly = 0) { bilibiliRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncBilibiliRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { bilibiliRootCredentials.hasCredentials() } returns true
+            every { bilibiliRootCredentials.getUid() } returns "12345678"
+            coEvery { bilibiliRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncBilibiliRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.bilibili
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncBilibiliRoot ExtractFailed surfaces reason + message`() =
+        runTest(testDispatcher) {
+            every { bilibiliRootCredentials.hasCredentials() } returns true
+            every { bilibiliRootCredentials.getUid() } returns "12345678"
+            coEvery { bilibiliRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "source-db-missing",
+                    message = "candidate list miss — run P7.2.0",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncBilibiliRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.bilibili
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("source-db-missing") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("P7.2.0") == true)
+        }
+
+    @Test
+    fun `syncBilibiliRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { bilibiliRootCredentials.hasCredentials() } returns true
+            every { bilibiliRootCredentials.getUid() } returns "12345678"
+            coEvery { bilibiliRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-bilibili-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("history" to 0, "favourite" to 0, "follow" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("dbFilename" to "bili.db"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-bilibili",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncBilibiliRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.bilibili
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("bili.db") == true)
+        }
 
     // ─── Logout ─────────────────────────────────────────────────────────────
 
