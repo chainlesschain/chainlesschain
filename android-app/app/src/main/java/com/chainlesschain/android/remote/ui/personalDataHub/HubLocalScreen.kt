@@ -58,8 +58,10 @@ import java.util.Locale
  *   1. 提问 — [HubAskCard] (A3 端侧 LLM ask flow，A3.2 wire 后真出答案)
  *   2. 基础数据 — [SystemDataCard] (system-data-android: contacts + apps)
  *   3. 内容平台 — Bilibili (real) + 微博/抖音/小红书 stubs (A8 v0.2 待接通)
- *   4. 社交聊天 — 微信 ([WechatCard], Phase 12.10 scaffold — frida injector
- *      stub'd, surfaces "改用桌面端" until Phase 12.10.4 lands real injection)
+ *   4. 社交聊天 — 微信 + QQ (Phase 8 unified via SocialAdapterCard;
+ *      WechatCard/QQCard retired P8.2/P8.3). UIN-entry dialog flow via
+ *      `state.{wechat,qq}.requiresUinEntry`. Frida injector still scaffold
+ *      v0.1 until Phase 12.10.4 lands real injection.
  *   5. 邮箱 — QQ/Gmail/163/Outlook placeholder (D6 待开放)
  *   6. 支付与购物 — 支付宝/淘宝 placeholder (D7 待开放)
  *   7. 出行 — 高德/携程 placeholder (D8 待开放)
