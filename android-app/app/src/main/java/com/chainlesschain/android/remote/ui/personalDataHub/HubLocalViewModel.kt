@@ -4099,7 +4099,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.5.2 — Xhs Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncXhs] (path A, cookies + X-S 签名 HTTP + WebView
-     * prefetch). Path B reads `/data/data/com.xingin.xhs/databases/*.db`
+     * prefetch). Path B reads `/data/data/com.xingin.xhs/databases/` `*.db` files
      * directly via root — no internet, no X-S signing.
      *
      * **v0.1 期望成功率最低 of 4 platforms** per plan §6.5: Xhs DB

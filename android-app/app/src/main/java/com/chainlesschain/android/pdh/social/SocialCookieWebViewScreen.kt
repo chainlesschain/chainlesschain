@@ -327,6 +327,10 @@ private fun CookieWebViewHost(
     // JS fetch，否则旧 onLoginCookie 兜底。第 1 版只在 URL 路径加 prefetch → 抖音走
     // cookie 路径直接跳 OkHttp HTTP 404，得不偿失
     val dispatchCookieReady: (WebView, String) -> Unit = { view, cookie ->
+        // 2026-05-26 v6：xhs id_token 是 httpOnly cookie, JS document.cookie 读
+        // 不到。Kotlin CookieManager 能读 → JWT decode 抠 user_id → 注入到 JS
+        // 全局 window.__XHS_USER_ID__ → JS 跳过 /user/me HTTP 直接用
+        var injectedXhsUserId: String? = null
         // 2026-05-26 真机：xhs `/user/me` 返 code=-104 "没有权限"，cookieFields
         // 缺 `web_session` — xhs 把它 scope 到 www.xiaohongshu.com (Domain=
         // www.xiaohongshu.com Path=/)，跨子域 fetch 到 edith.xiaohongshu.com
@@ -339,6 +343,34 @@ private fun CookieWebViewHost(
                 val cm = CookieManager.getInstance()
                 val wwwCookies = cm.getCookie(cookieDomain) ?: ""
                 val edithBefore = cm.getCookie("https://edith.xiaohongshu.com") ?: ""
+                // v6 真机：id_token 是 httpOnly cookie, JS document.cookie 读不到。
+                // Kotlin CookieManager.getCookie 能读它。id_token 是 xhs 的 JWT
+                // (`header.payload.signature`)，payload base64-decode 含 user_id
+                // 等信息。从 Kotlin 抠 user_id 后注入到 evaluateJavascript 全局
+                // 变量 window.__XHS_USER_ID__，JS 跳过 /user/me HTTP 直接用
+                val idToken = Regex("(?:^|;\\s*)id_token=([^;\\s]+)").find(wwwCookies)?.groupValues?.getOrNull(1)
+                val xhsUserId: String? = if (idToken != null && idToken.contains(".")) {
+                    try {
+                        val parts = idToken.split(".")
+                        if (parts.size >= 2) {
+                            val payloadB64 = parts[1].padEnd((parts[1].length + 3) and 3.inv(), '=')
+                                .replace('-', '+').replace('_', '/')
+                            val decoded = String(android.util.Base64.decode(payloadB64, android.util.Base64.DEFAULT))
+                            val jsonObj = org.json.JSONObject(decoded)
+                            Timber.i("SocialCookieWebView: xhs id_token JWT payload keys=%s",
+                                jsonObj.keys().asSequence().toList())
+                            jsonObj.optString("user_id").takeIf { it.isNotBlank() }
+                                ?: jsonObj.optString("userId").takeIf { it.isNotBlank() }
+                                ?: jsonObj.optString("sub").takeIf { it.isNotBlank() }
+                        } else null
+                    } catch (t: Throwable) {
+                        Timber.w(t, "SocialCookieWebView: xhs id_token JWT decode failed")
+                        null
+                    }
+                } else null
+                injectedXhsUserId = xhsUserId
+                Timber.i("SocialCookieWebView: xhs id_token parsing — present=%s userIdExtracted=%s idTokenLen=%d idTokenHead=%s",
+                    idToken != null, xhsUserId, idToken?.length ?: 0, idToken?.take(30) ?: "")
                 // dump web_session value 前 4 字符 + 长度 — 占位 session 一般空
                 // 或 < 20 字符，真登录后约 40-80 字符
                 val sessionRegex = Regex("(?:^|;\\s*)web_session=([^;\\s]+)")
@@ -389,7 +421,12 @@ private fun CookieWebViewHost(
                 .DouyinJsBridge.setPending(sharedCb)
             com.chainlesschain.android.pdh.social.xiaohongshu
                 .XhsJsBridge.setPending(sharedCb)
-            view.evaluateJavascript(prefetchJs, null)
+            // 注入 Kotlin 侧拿到的 user_id (xhs 走 JWT decode 拿) — JS 端
+            // window.__XHS_USER_ID__ 直接读, 跳过 /user/me HTTP
+            val injectedPrefix = if (injectedXhsUserId != null) {
+                "window.__XHS_USER_ID__ = ${org.json.JSONObject.quote(injectedXhsUserId)};"
+            } else ""
+            view.evaluateJavascript(injectedPrefix + prefetchJs, null)
             view.postDelayed({
                 if (responded.compareAndSet(false, true)) {
                     com.chainlesschain.android.pdh.social.bilibili

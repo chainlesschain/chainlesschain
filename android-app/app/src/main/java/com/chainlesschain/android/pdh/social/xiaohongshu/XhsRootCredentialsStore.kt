@@ -26,7 +26,7 @@ import javax.inject.Singleton
  *    this**; wired by HubLocalViewModel for the cookies + 签名 flow.
  *
  *  - [XhsRootCredentialsStore] (this, path B) — userIdStr only.
- *    Path B reads `/data/data/com.xingin.xhs/databases/*.db` directly
+ *    Path B reads `/data/data/com.xingin.xhs/databases/` `*.db` files directly
  *    via root.
  *
  * Schema (from [BaseRootCredentialsStore] base):

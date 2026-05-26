@@ -21,7 +21,7 @@ import javax.inject.Singleton
  * (mirror of WeChat 12.10 pattern).
  *
  * Coexists with [WeiboLocalCollector] (path A, cookies + m.weibo.cn
- * HTTP). Path B reads `/data/data/com.sina.weibo/databases/*.db`
+ * HTTP). Path B reads `/data/data/com.sina.weibo/databases/` `*.db` files
  * directly via root — no internet, no signing.
  *
  * Output: staging JSON consumed by `cc hub sync-adapter social-weibo
