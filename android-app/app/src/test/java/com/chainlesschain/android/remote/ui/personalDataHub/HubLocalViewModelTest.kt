@@ -96,6 +96,9 @@ class HubLocalViewModelTest {
     private lateinit var toutiaoCollector: ToutiaoLocalCollector
     private lateinit var toutiaoCredentials: ToutiaoCredentialsStore
     private lateinit var toutiaoSignBridge: ToutiaoSignBridge
+    // Phase 7.1.2 — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var toutiaoRootCollector: com.chainlesschain.android.pdh.social.toutiao.ToutiaoRootDbCollector
+    private lateinit var toutiaoRootCredentials: com.chainlesschain.android.pdh.social.toutiao.ToutiaoRootCredentialsStore
     private lateinit var kuaishouCollector: KuaishouLocalCollector
     private lateinit var kuaishouCredentials: KuaishouCredentialsStore
     private lateinit var kuaishouSignBridge: com.chainlesschain.android.pdh.social.kuaishou.KuaishouSignBridge
@@ -171,6 +174,12 @@ class HubLocalViewModelTest {
         every { toutiaoCredentials.getLastSyncCount() } returns 0
         every { toutiaoCollector.lastLoginErrorCode } returns 0
         every { toutiaoCollector.lastLoginErrorMessage } returns null
+        // Phase 7.1.2 — Mode B path B mocks. Default: hasCredentials=false
+        // so syncToutiaoRoot short-circuits cleanly without hitting su.
+        toutiaoRootCollector = mockk(relaxed = true)
+        toutiaoRootCredentials = mockk(relaxed = true)
+        every { toutiaoRootCredentials.hasCredentials() } returns false
+        every { toutiaoRootCredentials.getUid() } returns null
         kuaishouCollector = mockk(relaxed = true)
         kuaishouCredentials = mockk(relaxed = true)
         kuaishouSignBridge = mockk(relaxed = true)
@@ -269,6 +278,9 @@ class HubLocalViewModelTest {
             toutiaoCollector,
             toutiaoCredentials,
             toutiaoSignBridge,
+            // Phase 7.1.2 — Mode B (path B) collector + store
+            toutiaoRootCollector,
+            toutiaoRootCredentials,
             kuaishouCollector,
             kuaishouCredentials,
             kuaishouSignBridge,
@@ -3401,6 +3413,113 @@ class HubLocalViewModelTest {
         assertNull(s.lastSyncAt)
         io.mockk.verify { toutiaoCollector.logout() }
     }
+
+    // ─── Phase 7.1.2 — Toutiao Mode B (path B, in-APK root) ────────────────
+
+    @Test
+    fun `syncToutiaoRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { toutiaoRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiaoRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isSyncing)
+            // banner uses "本机 root:" prefix to discriminate from path A
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("passport_uid") == true)
+            // never calls extractor on missing credentials
+            coVerify(exactly = 0) { toutiaoRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncToutiaoRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { toutiaoRootCredentials.hasCredentials() } returns true
+            every { toutiaoRootCredentials.getUid() } returns "12345"
+            coEvery { toutiaoRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiaoRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncToutiaoRoot ExtractFailed surfaces reason + message`() =
+        runTest(testDispatcher) {
+            every { toutiaoRootCredentials.hasCredentials() } returns true
+            every { toutiaoRootCredentials.getUid() } returns "12345"
+            coEvery { toutiaoRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "source-db-missing",
+                    message = "candidate list miss — run P7.1.0",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiaoRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("source-db-missing") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("P7.1.0") == true)
+        }
+
+    @Test
+    fun `syncToutiaoRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { toutiaoRootCredentials.hasCredentials() } returns true
+            every { toutiaoRootCredentials.getUid() } returns "12345"
+            coEvery { toutiaoRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-toutiao-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("read" to 0, "collection" to 0, "search" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("dbFilename" to "article.db"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-toutiao",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncToutiaoRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.toutiao
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("article.db") == true)
+        }
+
+    // Note: VM-layer single-flight isn't tested — sync mutation happens
+    // inside viewModelScope.launch so two synchronous calls both pass the
+    // gate. Real single-flight comes from the UI Button being disabled
+    // when isSyncing=true. Matches Douyin Mode A precedent.
 
     // ─── Kuaishou v0.1 placeholder card ────────────────────────────────────
 
