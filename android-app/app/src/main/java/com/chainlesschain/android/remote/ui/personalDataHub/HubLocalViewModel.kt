@@ -2726,7 +2726,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.2.2 — Bilibili Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncBilibili] (path A, cookies + WBI signing + WebView
-     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/*.db`
+     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/` `*.db` files
      * directly via root — no internet, no WBI, no anti-bot risk.
      *
      * **Plan §6.4 推 SKIP**: path A 已最优。Mode B 仅作 path A 不可用
@@ -3093,7 +3093,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.4.2 — Weibo Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncWeibo] (path A, cookies + m.weibo.cn HTTP). Path B
-     * reads `/data/data/com.sina.weibo/databases/*.db` directly via root
+     * reads `/data/data/com.sina.weibo/databases/` `*.db` files directly via root
      * — no internet, no signing. Plan §6.2: 零公开 schema 资料 → defensive
      * PRAGMA-based column picker handles unknown drift; user runs P7.3
      * probe + paste-back to confirm DB filename / column candidates.
