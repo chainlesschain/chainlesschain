@@ -750,6 +750,15 @@ private fun SocialAdapterCard(
                     Spacer(Modifier.height(2.dp))
                     val statusLine = when {
                         !state.implemented -> "v0.2 开放（框架已就绪，API 未接通）"
+                        // Phase 8.1 — prefer uidStr (WeChat/QQ String UIN
+                        // with leading-zero matter; Xhs 24-char hex) over
+                        // uid.toString(). uidStr takes precedence when
+                        // non-null. keyProvider (WeChat md5/frida) appended
+                        // when present.
+                        state.isLoggedIn && (state.uidStr ?: state.uid?.toString()) != null &&
+                            state.keyProvider != null ->
+                            "已登录 UID:${state.uidStr ?: state.uid} · keyProvider=${state.keyProvider}"
+                        state.isLoggedIn && state.uidStr != null -> "已登录 UID:${state.uidStr}"
                         state.isLoggedIn && state.uid != null -> "已登录 UID:${state.uid}"
                         state.isLoggedIn -> "已登录"
                         else -> "未登录"

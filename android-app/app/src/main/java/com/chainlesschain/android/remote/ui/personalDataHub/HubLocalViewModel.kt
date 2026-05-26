@@ -175,6 +175,36 @@ class HubLocalViewModel @Inject constructor(
          * 收藏... / 写入金库（N s）..." so a stuck sync at least *says where*.
          */
         val syncStatusText: String? = null,
+        /**
+         * Phase 8.1 — String-form uid for platforms whose identifier can't fit
+         * in `Long` (WeChat/QQ UIN is 12+ digits with leading-zero matter for
+         * md5 derivation; Xhs userIdStr is 24-char hex ObjectId). When non-null,
+         * SocialAdapterCard prefers this over `uid.toString()` in status line.
+         * Existing 6 social platforms (Bilibili/Weibo/Douyin/Xhs/Toutiao/Kuaishou)
+         * leave null; new IM platforms (WeChat=P8.2, QQ=P8.3) populate this.
+         */
+        val uidStr: String? = null,
+        /**
+         * Phase 8.1 — When `true`, the host should render a UIN-entry dialog
+         * (WeChat: numeric UIN + keyProvider + IMEI; QQ: UIN + IMEI). Distinct
+         * from the WebView-cookie login flow used by the 6 social platforms.
+         * VM sets this via [requestWechatLogin] / [requestQQLogin]; cleared on
+         * confirm/cancel.
+         */
+        val pendingUinEntry: Boolean = false,
+        /**
+         * Phase 8.1 — WeChat-specific: "md5" (7.x) or "frida" (8.0+). Other
+         * platforms leave null. SocialAdapterCard surfaces in status line when
+         * non-null so the user knows which DB-key derivation path is active.
+         */
+        val keyProvider: String? = null,
+        /**
+         * Phase 8.1 — When `true`, login flow uses UIN-entry dialog instead of
+         * WebView cookie scrape. WeChat + QQ set this `true`; the 6 social
+         * platforms leave `false` (their `onLogin` callbacks push pendingLogin
+         * with a WebView loginUrl + cookieDomain).
+         */
+        val requiresUinEntry: Boolean = false,
     )
 
     /**
