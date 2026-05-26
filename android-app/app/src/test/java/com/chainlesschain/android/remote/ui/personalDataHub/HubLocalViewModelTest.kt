@@ -90,6 +90,9 @@ class HubLocalViewModelTest {
     private lateinit var douyinCollector: DouyinLocalCollector
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
+    // Phase 7.1.2b — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var douyinRootCollector: com.chainlesschain.android.pdh.social.douyin.DouyinRootDbCollector
+    private lateinit var douyinRootCredentials: com.chainlesschain.android.pdh.social.douyin.DouyinRootCredentialsStore
     private lateinit var xhsCollector: XhsLocalCollector
     private lateinit var xhsSignBridge: com.chainlesschain.android.pdh.social.xiaohongshu.XhsSignBridge
     private lateinit var xhsCredentials: XhsCredentialsStore
@@ -140,6 +143,12 @@ class HubLocalViewModelTest {
         every { weiboCredentials.getLastSyncAt() } returns null
         every { weiboCredentials.getLastSyncCount() } returns 0
         douyinSignBridge = mockk(relaxed = true)
+        // Phase 7.1.2b — Mode B path B mocks for Douyin. Default:
+        // hasCredentials=false so syncDouyinRoot short-circuits cleanly.
+        douyinRootCollector = mockk(relaxed = true)
+        douyinRootCredentials = mockk(relaxed = true)
+        every { douyinRootCredentials.hasCredentials() } returns false
+        every { douyinRootCredentials.getUid() } returns null
         douyinCollector = mockk(relaxed = false)
         // Default-stub the lastLoginError* getters so the strict mock doesn't
         // throw on the success path (where VM never reads them). Failure-path
@@ -272,6 +281,9 @@ class HubLocalViewModelTest {
             douyinCollector,
             douyinCredentials,
             douyinSignBridge,
+            // Phase 7.1.2b — Mode B (path B) collector + store
+            douyinRootCollector,
+            douyinRootCredentials,
             xhsCollector,
             xhsCredentials,
             xhsSignBridge,
@@ -1353,6 +1365,106 @@ class HubLocalViewModelTest {
         assertTrue(vm.state.value.douyin.errorMessage!!.contains("bs3mc cold-load timeout"))
         assertNull(vm.state.value.globalSyncingAdapter)
     }
+
+    // ─── Phase 7.1.2b — Douyin Mode B (path B, in-APK root) ────────────────
+
+    @Test
+    fun `syncDouyinRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { douyinRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncDouyinRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.douyin
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("sec_user_id") == true)
+            coVerify(exactly = 0) { douyinRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncDouyinRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { douyinRootCredentials.hasCredentials() } returns true
+            every { douyinRootCredentials.getUid() } returns "1234567890123456789"
+            coEvery { douyinRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncDouyinRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.douyin
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncDouyinRoot ExtractFailed surfaces reason + message`() =
+        runTest(testDispatcher) {
+            every { douyinRootCredentials.hasCredentials() } returns true
+            every { douyinRootCredentials.getUid() } returns "1234567890123456789"
+            coEvery { douyinRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "source-db-missing",
+                    message = "uid_im.db not found — please open IM session first",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncDouyinRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.douyin
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("source-db-missing") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("uid_im.db") == true)
+        }
+
+    @Test
+    fun `syncDouyinRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { douyinRootCredentials.hasCredentials() } returns true
+            every { douyinRootCredentials.getUid() } returns "1234567890123456789"
+            coEvery { douyinRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-douyin-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("message" to 0, "contact" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("uid" to "1234567890123456789"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-douyin",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncDouyinRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.douyin
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("uid>_im.db") == true)
+        }
 
     @Test
     fun `logoutDouyin calls collector and clears state`() = runTest(testDispatcher) {
