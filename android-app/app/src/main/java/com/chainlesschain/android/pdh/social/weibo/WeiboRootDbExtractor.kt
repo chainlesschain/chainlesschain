@@ -18,7 +18,7 @@ import javax.inject.Singleton
 /**
  * Phase 7.4 — Android in-APK root Weibo DB extractor (path B).
  *
- * Reads `/data/data/com.sina.weibo/databases/*.db` via `su -c "cp ..."`
+ * Reads `/data/data/com.sina.weibo/databases/` `*.db` files via `su -c "cp ..."`
  * cohort copy (WAL/SHM siblings included) + standard Android
  * SQLiteDatabase open. **v0.1 assumes plaintext SQLite** per P7.3 §6
  * prediction. If real-device probe (P7.3 §3) reveals SQLCipher, v0.2

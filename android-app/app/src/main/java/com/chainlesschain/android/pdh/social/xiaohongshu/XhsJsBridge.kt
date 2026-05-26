@@ -129,10 +129,17 @@ object XhsJsBridge {
       };
     };
 
-    // smoke: /user/me — 2026-05-26 真机回归 HTTP 406, 改为带签名
-    const mePath = '/api/sns/web/v1/user/me';
-    const meHeaders = buildSignedHeaders(mePath);
-    const meResp = await tryJson('https://edith.xiaohongshu.com' + mePath, meHeaders);
+    // v6: Kotlin 侧 dispatchCookieReady 从 id_token (httpOnly JWT) decode 抠
+    // user_id 注入 window.__XHS_USER_ID__。若有就跳过 /user/me HTTP (服务端
+    // 风控严，不论 -104 还是 406)。否则降级跑 /user/me 试。
+    let userId = window.__XHS_USER_ID__ || null;
+    let nickname = '';
+    const meResp = userId ? null : await (async () => {
+      const mePath = '/api/sns/web/v1/user/me';
+      const meHeaders = buildSignedHeaders(mePath);
+      return await tryJson('https://edith.xiaohongshu.com' + mePath, meHeaders);
+    })();
+    debug.push({_smokeTest: 'injected', injectedUserId: userId, idTokenInjected: !!userId});
 
     // v7 兜底 smoke — 试两条 alternative endpoint 看是不是 /user/me 端点单独被拒
     const altSmokePaths = [
@@ -143,8 +150,8 @@ object XhsJsBridge {
       const h = buildSignedHeaders(p);
       await tryJson('https://edith.xiaohongshu.com' + p, h);
     }
-    let userId = null, nickname = '';
-    if (meResp && meResp.success && meResp.data) {
+    // userId 已在 v6 上面 declare (来自 injected window.__XHS_USER_ID__)
+    if (!userId && meResp && meResp.success && meResp.data) {
       userId = meResp.data.user_id || meResp.data.userid || null;
       nickname = meResp.data.nickname || meResp.data.name || '';
     }
@@ -161,6 +168,19 @@ object XhsJsBridge {
                   b8xs: !!(window._b8 && typeof window._b8.xs === 'function'),
                 }});
 
+    // v8: 至少推个 profile event 让用户看见「已采到账号信息」(+1 事件)。
+    // notes/liked/follow CORS 全挡，只能从 /user/me 拿到资料
+    if (userId) {
+      events.push({
+        kind: 'profile',
+        id: 'profile-' + userId,
+        capturedAt: now,
+        userId: userId,
+        nickname: nickname,
+        redId: (meResp && meResp.data && meResp.data.red_id) || '',
+        avatar: (meResp && meResp.data && meResp.data.images) || '',
+      });
+    }
     if (userId) {
       // notes (用户自己发的笔记)
       const notesPath = '/api/sns/web/v2/user_posted?num=30&cursor=&user_id=' + encodeURIComponent(userId) +

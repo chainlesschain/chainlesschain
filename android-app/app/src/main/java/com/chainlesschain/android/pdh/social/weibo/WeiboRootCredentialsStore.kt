@@ -25,7 +25,7 @@ import javax.inject.Singleton
  *    this**; wired by HubLocalViewModel for the cookies flow.
  *
  *  - [WeiboRootCredentialsStore] (this, path B) — uid only. Path B
- *    reads `/data/data/com.sina.weibo/databases/*.db` directly via root.
+ *    reads `/data/data/com.sina.weibo/databases/` `*.db` files directly via root.
  *
  * Schema (from [BaseRootCredentialsStore] base):
  *   - "uid"             : Weibo uid (numeric string, typically 10 digits

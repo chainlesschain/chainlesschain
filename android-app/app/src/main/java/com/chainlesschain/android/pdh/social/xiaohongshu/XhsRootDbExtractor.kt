@@ -18,7 +18,7 @@ import javax.inject.Singleton
 /**
  * Phase 7.5 — Android in-APK root Xhs DB extractor (path B).
  *
- * Reads `/data/data/com.xingin.xhs/databases/*.db` via `su -c "cp ..."`
+ * Reads `/data/data/com.xingin.xhs/databases/` `*.db` files via `su -c "cp ..."`
  * cohort copy + standard Android SQLiteDatabase open.
  *
  * **v0.1 期望 SQLCipher / libshield 路径占主导** per plan §6.5. The
