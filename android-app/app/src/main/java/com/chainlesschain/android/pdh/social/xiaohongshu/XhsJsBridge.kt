@@ -133,6 +133,16 @@ object XhsJsBridge {
     const mePath = '/api/sns/web/v1/user/me';
     const meHeaders = buildSignedHeaders(mePath);
     const meResp = await tryJson('https://edith.xiaohongshu.com' + mePath, meHeaders);
+
+    // v7 兜底 smoke — 试两条 alternative endpoint 看是不是 /user/me 端点单独被拒
+    const altSmokePaths = [
+      '/api/sns/web/v1/feed?source=homefeed_recommend',
+      '/api/sns/web/v1/login/info',
+    ];
+    for (const p of altSmokePaths) {
+      const h = buildSignedHeaders(p);
+      await tryJson('https://edith.xiaohongshu.com' + p, h);
+    }
     let userId = null, nickname = '';
     if (meResp && meResp.success && meResp.data) {
       userId = meResp.data.user_id || meResp.data.userid || null;

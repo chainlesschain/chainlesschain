@@ -3369,10 +3369,14 @@ class HubLocalViewModel @Inject constructor(
                             !url.contains("/sign-in") &&
                             !url.contains("passport")
                     },
-                    // 小红书 web 登录后 cookie 里 web_session= 是主 session key；
-                    // a1= 是设备指纹（登录前后都在），不作信号。
+                    // 2026-05-26 真机回归 v3: 仅 contains("web_session=") 不够，
+                    // xhs 即使访客也发 38 字符 `0300...` web_session 作 tracking
+                    // ID (cookie poll 触发但 /user/me 返 code=-104)。真登录后
+                    // value 约 60-88 字符 base64-like token。改阈值 ≥ 50 拒占位
                     isLoginSuccessByCookie = { cookie ->
-                        cookie.contains("web_session=")
+                        val m = Regex("(?:^|;\\s*)web_session=([^;\\s]+)").find(cookie)
+                        val value = m?.groupValues?.getOrNull(1) ?: ""
+                        value.length >= 50
                     },
                     userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),
