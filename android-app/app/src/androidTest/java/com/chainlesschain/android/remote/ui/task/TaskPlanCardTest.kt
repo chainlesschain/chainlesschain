@@ -1,7 +1,6 @@
 package com.chainlesschain.android.remote.ui.task
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -14,9 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * UI tests for TaskPlanCard composables
- */
 class TaskPlanCardTest {
 
     @get:Rule
@@ -31,10 +27,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -48,10 +43,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -65,10 +59,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -84,33 +77,14 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
         composeTestRule.onNodeWithText("确认").assertIsDisplayed()
         composeTestRule.onNodeWithText("拒绝").assertIsDisplayed()
-    }
-
-    @Test
-    fun fullCard_hidesButtonsInExecutingState() {
-        val plan = createTestPlan()
-
-        composeTestRule.setContent {
-            TaskPlanCardFull(
-                plan = plan,
-                status = PlanningState.EXECUTING,
-                onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
-            )
-        }
-
-        composeTestRule.onNodeWithText("确认").assertDoesNotExist()
-        composeTestRule.onNodeWithText("拒绝").assertDoesNotExist()
     }
 
     @Test
@@ -121,10 +95,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = { confirmed = true },
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -140,34 +113,14 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = { rejected = true },
-                onTaskClick = {}
+                onReject = { rejected = true }
             )
         }
 
         composeTestRule.onNodeWithText("拒绝").performClick()
         assertTrue(rejected)
-    }
-
-    @Test
-    fun fullCard_taskClickTriggersCallback() {
-        var clickedTaskId: Int? = null
-        val plan = createTestPlan()
-
-        composeTestRule.setContent {
-            TaskPlanCardFull(
-                plan = plan,
-                status = PlanningState.EXECUTING,
-                onConfirm = {},
-                onReject = {},
-                onTaskClick = { clickedTaskId = it }
-            )
-        }
-
-        composeTestRule.onNodeWithText("Task 1").performClick()
-        assertTrue(clickedTaskId == 1)
     }
 
     @Test
@@ -182,10 +135,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -204,10 +156,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.CONFIRMING,
+                state = PlanningState.CONFIRMING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -224,8 +175,8 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardCompact(
                 plan = plan,
-                status = PlanningState.EXECUTING,
-                onClick = {}
+                state = PlanningState.EXECUTING,
+                onViewDetails = {}
             )
         }
 
@@ -246,12 +197,11 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardCompact(
                 plan = plan,
-                status = PlanningState.EXECUTING,
-                onClick = {}
+                state = PlanningState.EXECUTING,
+                onViewDetails = {}
             )
         }
 
-        // Should show 1/2 progress
         composeTestRule.onNodeWithText("1/2", substring = true).assertIsDisplayed()
     }
 
@@ -263,8 +213,8 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardCompact(
                 plan = plan,
-                status = PlanningState.EXECUTING,
-                onClick = { clicked = true }
+                state = PlanningState.EXECUTING,
+                onViewDetails = { clicked = true }
             )
         }
 
@@ -285,10 +235,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.EXECUTING,
+                state = PlanningState.EXECUTING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -306,10 +255,9 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.EXECUTING,
+                state = PlanningState.EXECUTING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
@@ -327,17 +275,14 @@ class TaskPlanCardTest {
         composeTestRule.setContent {
             TaskPlanCardFull(
                 plan = plan,
-                status = PlanningState.EXECUTING,
+                state = PlanningState.EXECUTING,
                 onConfirm = {},
-                onReject = {},
-                onTaskClick = {}
+                onReject = {}
             )
         }
 
         composeTestRule.onNodeWithContentDescription("失败", substring = true).assertIsDisplayed()
     }
-
-    // ===== Helper Methods =====
 
     private fun createTestPlan(): TaskPlan {
         return TaskPlan(
