@@ -136,7 +136,7 @@ class MediaPipeLlmEngine @Inject constructor(
                 ready = false,
                 modelLoaded = false,
                 modelName = null,
-                reason = "Gemma-3 1B .task 未下载 — 请到 LLM 设置页触发下载",
+                reason = "${modelManager.selectedSpec.value.displayName} .task 未下载 — 请到 LLM 设置页触发下载",
             )
             is ModelManager.State.Downloading -> LlmInferenceEngine.HealthStatus(
                 ready = false,
@@ -313,7 +313,7 @@ class MediaPipeLlmEngine @Inject constructor(
      * 套错模板模型不会硬错，但会把模板字面 token 当输入，输出风格混乱、漏停。
      */
     private fun formatPrompt(messages: List<LlmInferenceEngine.ChatMessage>): String =
-        when (modelManager.defaultSpec.promptFamily) {
+        when (modelManager.selectedSpec.value.promptFamily) {
             ModelManager.PromptFamily.QWEN_CHATML -> formatQwenChatML(messages)
             ModelManager.PromptFamily.GEMMA -> formatGemma(messages)
         }

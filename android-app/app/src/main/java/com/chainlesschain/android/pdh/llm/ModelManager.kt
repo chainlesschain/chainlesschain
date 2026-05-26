@@ -85,28 +85,18 @@ class ModelManager @Inject constructor(
     }
 
     /**
-     * Default model spec — Qwen2.5-0.5B-Instruct q8 quantized `.task` (~547 MB).
+     * 端侧 LLM 模型规格。每条 [ModelSpec] 描述一个可下载的 MediaPipe `.task` 文件
+     * 及其 SHA / 镜像链 / prompt 模板族。同一份 [ModelManager] 通过 [selectedSpec]
+     * 暴露用户当前选中的一档（默认 0.5B，进阶用户可切到 1.5B）。
      *
-     * 2026-05-24 切换：Gemma-3 1B 在 HF 上 license-gated，hf-mirror 镜像虽然历史上
-     * 不要 token，但用户实测下载 fail（可能 hf-mirror 也开始拒 gated 模型，或网络抖）。
-     * 改换 `litert-community/Qwen2.5-0.5B-Instruct` —— 同样 MediaPipe `.task` 格式、
-     * 同样在 hf-mirror 上、**无 license gate**、且尺寸相近（547 MB vs 555 MB）。
-     * 国内场景 Qwen 中文效果好于 Gemma，下载链路也更稳。
-     *
-     * 2026-05-24 v0.3 加固：[urls] 改为 ordered fallback chain (hf-mirror →
-     * modelscope)，[expectedSha256] 锁 HF LFS metadata 拿到的 verified hash
-     * `e608953f169aeb1bd7b9155fec2559825e08453fc209b84eda3a781ed0452fd2` —
-     * hf-mirror 不在 HF 官方控制下，TOFU 模式无法发现镜像被污染；ModelScope
-     * 同步同一个 litert-community 仓库（file size 字节级对齐 → 同源 LFS），
-     * 共用一个 SHA 即可两边校验通过。
-     *
-     * 备选（性能/效果优先时手动 swap）：
-     *  - `litert-community/Qwen2.5-1.5B-Instruct` `_multi-prefill-seq_q8_ekv1280.task`
-     *    (1.57 GB) — 显著更强的对话能力，但下载和 RAM 占用都翻倍
-     *  - `litert-community/DeepSeek-R1-Distill-Qwen-1.5B` — 推理 + 中文
-     *  - `litert-community/Gemma3-1B-IT` `gemma3-1b-it-int4.task` (555 MB) — 需 HF token
+     * 历史背景：
+     *  - 2026-05-24 从 Gemma-3 1B 切换到 Qwen2.5-0.5B，因 Gemma license-gated。
+     *  - 2026-05-26 加入 Qwen2.5-1.5B 作可选档；用户机器好（≥6GB RAM、≥3GB 可用
+     *    存储、对中文对话质量要求高）时手动切到 1.5B，效果显著更好。
      */
     data class ModelSpec(
+        /** 稳定标识，SharedPreferences 持久化用 key，UI radio onClick 派发也用它。 */
+        val key: String,
         val filename: String,
         /**
          * Ordered list of download URLs. [download] tries each in sequence,
@@ -120,9 +110,17 @@ class ModelManager @Inject constructor(
         val displayName: String,
         /** Prompt 模板族 —— 影响 [MediaPipeLlmEngine.formatPrompt] 的拼装。 */
         val promptFamily: PromptFamily = PromptFamily.QWEN_CHATML,
+        /**
+         * 推荐的最低设备总内存（MB）。UI 用它对低端机展示 RAM 警告（不强制阻止下载，
+         * 但提醒用户 1.5B 在 4GB 以下机器上可能 OOM kill）。0.5B 设 2048，1.5B 设 6144。
+         */
+        val recommendedRamMb: Long = 0L,
     ) {
         /** Primary mirror displayed in the UI "Source: …" label. */
         val primaryUrl: String get() = urls.firstOrNull().orEmpty()
+
+        /** 给 UI label 用：true=SHA 已锁字节级校验；false=TOFU 模式（首次下载后再锁）。 */
+        val shaLocked: Boolean get() = !expectedSha256.isNullOrBlank()
     }
 
     /**
@@ -132,7 +130,17 @@ class ModelManager @Inject constructor(
      */
     enum class PromptFamily { QWEN_CHATML, GEMMA }
 
-    val defaultSpec = ModelSpec(
+    /**
+     * Qwen2.5-0.5B q8 — 默认档。
+     *
+     * 2026-05-24 v0.3 加固：[urls] 改为 ordered fallback chain (hf-mirror →
+     * modelscope)，[expectedSha256] 锁 HF LFS metadata 拿到的 verified hash —
+     * hf-mirror 不在 HF 官方控制下，TOFU 模式无法发现镜像被污染；ModelScope
+     * 同步同一个 litert-community 仓库（file size 字节级对齐 → 同源 LFS），
+     * 共用一个 SHA 即可两边校验通过。
+     */
+    val qwen05bSpec = ModelSpec(
+        key = "qwen-0.5b",
         filename = "Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
         urls = listOf(
             // Primary — hf-mirror community mirror, no token, fastest path 国内.
@@ -149,10 +157,99 @@ class ModelManager @Inject constructor(
         sizeBytesApprox = 546_660_344L, // exact from HF API
         displayName = "Qwen2.5 0.5B Instruct (q8)",
         promptFamily = PromptFamily.QWEN_CHATML,
+        recommendedRamMb = 2_048L,
     )
 
+    /**
+     * Qwen2.5-1.5B q8 — 进阶档（推文 §"机器好可装更大模型"）。
+     *
+     * 同 litert-community 系列，对话连贯性 / 推理深度显著优于 0.5B，代价是：
+     *  - 文件 ~1.57 GB（vs 547 MB），下载更慢
+     *  - 推理峰值内存约 2-3 GB，4 GB 以下机型可能被 OOM killer 杀掉
+     *  - prefill 慢约 2-3×，token 生成慢约 2×
+     *
+     * SHA: 当前 TOFU 模式（expectedSha256 = null）—— 首次真机下载后用 `sha256sum`
+     * 拿到字节后再 pin 到这里。pin 之前 ModelScope 镜像污染风险无法字节级排除，但
+     * MediaPipe runtime 加载非法 .task 会立即解析失败，攻击面相对窄；这是一个有意识
+     * 的权衡（让用户尽早能用上 1.5B，避免阻塞在 SHA 探测）。锁后改 commit message
+     * `chore(pdh-android): lock Qwen2.5-1.5B SHA from real device download`。
+     */
+    val qwen15bSpec = ModelSpec(
+        key = "qwen-1.5b",
+        filename = "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+        urls = listOf(
+            "https://hf-mirror.com/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/" +
+                "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+            "https://modelscope.cn/api/v1/models/litert-community/Qwen2.5-1.5B-Instruct/repo" +
+                "?Revision=master" +
+                "&FilePath=Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+        ),
+        // TODO(pdh-android): lock from real device download. See KDoc above.
+        expectedSha256 = null,
+        sizeBytesApprox = 1_686_000_000L, // ~1.57 GiB approx; locked when SHA locks
+        displayName = "Qwen2.5 1.5B Instruct (q8)",
+        promptFamily = PromptFamily.QWEN_CHATML,
+        recommendedRamMb = 6_144L,
+    )
+
+    /** 可选模型列表，UI radio source。0.5B 在前作默认推荐。 */
+    val availableSpecs: List<ModelSpec> = listOf(qwen05bSpec, qwen15bSpec)
+
+    /**
+     * Back-compat alias — 始终指向 0.5B。
+     * 之前的调用方（含 [ModelManagerTest] `defaultSpec has SHA256 locked`）依赖
+     * 这个字段恒定不变；当前用户选中的 spec 改读 [selectedSpec]。
+     */
+    val defaultSpec: ModelSpec get() = qwen05bSpec
+
+    private val prefs by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val _selectedSpec: MutableStateFlow<ModelSpec> by lazy {
+        MutableStateFlow(loadSelectedSpec())
+    }
+
+    /**
+     * 用户当前选中的模型规格。VM 收集这个 flow 派发到 UI；切换时调 [selectSpec]。
+     * 默认 [qwen05bSpec]；从 SharedPreferences 恢复，未知 key 回退默认。
+     */
+    val selectedSpec: StateFlow<ModelSpec> get() = _selectedSpec.asStateFlow()
+
+    private fun loadSelectedSpec(): ModelSpec {
+        val key = try {
+            prefs.getString(KEY_SELECTED_SPEC, null)
+        } catch (t: Throwable) {
+            // mockk(relaxed=true) 路径下不会发，但真机首启 prefs 可能尚未提交。
+            Timber.w(t, "ModelManager.loadSelectedSpec: prefs read failed; defaulting")
+            null
+        }
+        return availableSpecs.firstOrNull { it.key == key } ?: qwen05bSpec
+    }
+
+    /**
+     * 用户切换选中的模型档。idempotent — 选当前已选项是 no-op；不在 [availableSpecs]
+     * 的 spec 被拒（防御性，避免 UI 端意外传 stale 引用）。
+     *
+     * 切换不自动触发下载/删除 — 状态机由调用方驱动：UI 切到新档后 [state] 立刻反映
+     * 新档的 NotDownloaded/Ready/Failed，用户再点"下载"才落盘。这样允许用户先比较
+     * 两档的体积估计，再决定要不要切。
+     */
+    fun selectSpec(spec: ModelSpec) {
+        require(availableSpecs.any { it.key == spec.key }) {
+            "spec ${spec.key} not in availableSpecs"
+        }
+        if (_selectedSpec.value.key == spec.key) return
+        try {
+            prefs.edit().putString(KEY_SELECTED_SPEC, spec.key).apply()
+        } catch (t: Throwable) {
+            Timber.w(t, "ModelManager.selectSpec: prefs write failed (continuing in-memory)")
+        }
+        _selectedSpec.value = spec
+    }
+
     /** Check if model already on disk + verified. Updates [state]. */
-    suspend fun refresh(spec: ModelSpec = defaultSpec): State = withContext(Dispatchers.IO) {
+    suspend fun refresh(spec: ModelSpec = selectedSpec.value): State = withContext(Dispatchers.IO) {
         val file = File(modelsDir, spec.filename)
         if (!file.exists()) {
             _state.value = State.NotDownloaded
@@ -193,7 +290,7 @@ class ModelManager @Inject constructor(
      * @return Ready on success, Failed only after every mirror has failed
      *         (caller can retry — partial bytes preserved for next attempt).
      */
-    suspend fun download(spec: ModelSpec = defaultSpec): State = withContext(Dispatchers.IO) {
+    suspend fun download(spec: ModelSpec = selectedSpec.value): State = withContext(Dispatchers.IO) {
         val partFile = File(modelsDir, "${spec.filename}.part")
         val finalFile = File(modelsDir, spec.filename)
         if (finalFile.exists()) {
@@ -305,10 +402,15 @@ class ModelManager @Inject constructor(
     }
 
     /** Delete the model file (forced re-download next call). */
-    suspend fun delete(spec: ModelSpec = defaultSpec) = withContext(Dispatchers.IO) {
+    suspend fun delete(spec: ModelSpec = selectedSpec.value) = withContext(Dispatchers.IO) {
         File(modelsDir, spec.filename).delete()
         File(modelsDir, "${spec.filename}.part").delete()
         _state.value = State.NotDownloaded
+    }
+
+    companion object {
+        private const val PREFS_NAME = "model_manager"
+        private const val KEY_SELECTED_SPEC = "selected_spec_key"
     }
 
     private fun sha256(file: File): String {

@@ -70,6 +70,7 @@ class ModelManagerTest {
         ),
         sha: String? = fixtureSha,
     ) = ModelManager.ModelSpec(
+        key = "test-spec",
         filename = "m.task",
         urls = urls,
         expectedSha256 = sha,
@@ -176,6 +177,93 @@ class ModelManagerTest {
             "fallback list should include modelscope.cn: ${spec.urls}",
         )
         assertEquals(spec.urls.first(), spec.primaryUrl, "primaryUrl getter should return urls[0]")
+    }
+
+    // ─── 2026-05-26 — 双档模型选择器 ─────────────────────────────────────
+
+    @Test
+    fun `availableSpecs contains 0_5B as default head and 1_5B alternative`() {
+        val specs = manager.availableSpecs
+        assertEquals(2, specs.size, "expected exactly 0.5B + 1.5B options")
+        assertEquals("qwen-0.5b", specs[0].key, "0.5B should be first (default)")
+        assertEquals("qwen-1.5b", specs[1].key, "1.5B should be second (opt-in)")
+        assertTrue(specs[0].displayName.contains("0.5B"), "displayName matches: ${specs[0].displayName}")
+        assertTrue(specs[1].displayName.contains("1.5B"), "displayName matches: ${specs[1].displayName}")
+        assertTrue(specs[0].shaLocked, "0.5B SHA must be pinned")
+        // 1.5B is TOFU until first real-device download locks the SHA.
+        assertFalse(specs[1].shaLocked, "1.5B should be TOFU until SHA is pinned")
+        // RAM recommendation must scale up for the heavier model so UI warning fires.
+        assertTrue(
+            specs[1].recommendedRamMb > specs[0].recommendedRamMb,
+            "1.5B should require more RAM than 0.5B: ${specs[0].recommendedRamMb} vs ${specs[1].recommendedRamMb}",
+        )
+    }
+
+    @Test
+    fun `selectedSpec defaults to 0_5B when prefs is empty`() {
+        // setUp's relaxed mockk returns null from prefs.getString, so loadSelectedSpec
+        // must fall back to qwen05bSpec.
+        assertEquals("qwen-0.5b", manager.selectedSpec.value.key)
+    }
+
+    @Test
+    fun `selectSpec flips selectedSpec to the new key`() {
+        manager.selectSpec(manager.qwen15bSpec)
+        assertEquals("qwen-1.5b", manager.selectedSpec.value.key)
+        // Switching back is allowed
+        manager.selectSpec(manager.qwen05bSpec)
+        assertEquals("qwen-0.5b", manager.selectedSpec.value.key)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `selectSpec rejects a spec not in availableSpecs`() {
+        // Construct a stray spec with the right shape but an unknown key —
+        // defensive guard prevents UI from passing stale/wrong references.
+        val unknown = ModelManager.ModelSpec(
+            key = "made-up-model",
+            filename = "x.task",
+            urls = listOf("http://nope"),
+            expectedSha256 = null,
+            sizeBytesApprox = 1L,
+            displayName = "stray",
+        )
+        manager.selectSpec(unknown)
+    }
+
+    @Test
+    fun `selectSpec persists across ModelManager instances via SharedPreferences`() {
+        // Drive a real-ish SharedPreferences via a Map-backed mock so two ModelManager
+        // instances can share the prefs state. Construction 1 writes; construction 2 reads.
+        val store = mutableMapOf<String, String?>()
+        val editor = mockk<android.content.SharedPreferences.Editor>(relaxed = true)
+        val prefs = mockk<android.content.SharedPreferences>(relaxed = true)
+        every { prefs.getString(any(), any()) } answers {
+            store[firstArg<String>()] ?: secondArg<String?>()
+        }
+        every { prefs.edit() } returns editor
+        every { editor.putString(any(), any()) } answers {
+            store[firstArg<String>()] = secondArg<String>()
+            editor
+        }
+        every { editor.apply() } returns Unit
+
+        val ctx = mockk<Context>(relaxed = true)
+        every { ctx.filesDir } returns tmp.newFolder("persistence")
+        every { ctx.getSharedPreferences(any(), any()) } returns prefs
+
+        // Instance 1 — user flips to 1.5B
+        val m1 = ModelManager(ctx)
+        assertEquals("qwen-0.5b", m1.selectedSpec.value.key)
+        m1.selectSpec(m1.qwen15bSpec)
+        assertEquals("qwen-1.5b", m1.selectedSpec.value.key)
+
+        // Instance 2 — should hydrate from prefs and see 1.5B already selected
+        val m2 = ModelManager(ctx)
+        assertEquals(
+            "qwen-1.5b",
+            m2.selectedSpec.value.key,
+            "second instance should rehydrate selectedSpec from prefs",
+        )
     }
 
     private fun sha256Hex(bytes: ByteArray): String {
