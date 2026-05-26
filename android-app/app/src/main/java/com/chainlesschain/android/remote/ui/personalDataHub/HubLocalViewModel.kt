@@ -2607,7 +2607,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.2.2 — Bilibili Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncBilibili] (path A, cookies + WBI signing + WebView
-     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/*.db`
+     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/` `*.db` files
      * directly via root — no internet, no WBI, no anti-bot risk.
      *
      * **Plan §6.4 推 SKIP**: path A 已最优。Mode B 仅作 path A 不可用
