@@ -118,8 +118,16 @@ android {
             // 已知 race，估计要等 AGP 8.7+ 升 R8 后再开。trade-off: APK ~+30% 体积，
             // alpha track 接受。memory [[android_release_r8_minify_hotfix_chain]] trap
             // tier 升级到 "all 4 workarounds failed → disable minify"。
-            isMinifyEnabled = false
-            isShrinkResources = false
+            //
+            // Watchdog override: `./gradlew assembleRelease -Pminify.override=true`
+            // re-enables minify+shrink. Driven by .github/workflows/android-release-
+            // precheck.yml r8-fullmode-probe (advisory, continue-on-error). 探针
+            // 转绿 = AGP/R8 upstream race 可能修了，可以考虑翻默认回 true。详见
+            // docs/internal/hidden-risk-traps.md #19 + memory
+            // [[android_release_r8_minify_hotfix_chain]]。
+            val minifyOverride = (project.findProperty("minify.override") as? String) == "true"
+            isMinifyEnabled = minifyOverride
+            isShrinkResources = minifyOverride
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

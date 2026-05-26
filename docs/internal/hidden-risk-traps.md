@@ -27,7 +27,7 @@
 | 16 | commit-msg hook scope regex 拒数字 | 写 commit message；想用 `feat(p2p)` / `feat(v6)` / `feat(b4)` 类带数字 scope | `feedback_commit_msg_hook_scope_regex.md` |
 | 17 | Android remote file skill 接通 6 雷 | 加新 `RemoteCommandClient.invoke` 类 Android skill；接 Plan C signaling 路径 | `android_remote_file_skill_traps.md` |
 | 18 | GitHub immutable releases burn tag | `gh release create` / `gh release delete`；release pipeline 失败救援；测试发版命名 | `github_immutable_release_tag_burn.md` |
-| 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前 | `android_release_r8_minify_hotfix_chain.md` |
+| 19 | Android release-mode R8 minify 只在 CI 暴露 | 加新重 lib dep（Ktor / gRPC / SLF4J / 大反射）；发版前。**自动化已 land** `android-release-precheck.yml` (2026-05-26) | `android_release_r8_minify_hotfix_chain.md` |
 | 20 | Post-onload JS-set cookie race in WebView capture | 加 / 改 `SocialCookieWebViewScreen.kt` 或任何在 `WebViewClient.onPageFinished` 抓 `CookieManager.getCookie()` 的代码；为反爬严格的平台（Bilibili / Weibo / Douyin / 小红书 / 抖音）做 cookie-based 登录采集 | `bilibili_post_onload_cookie_race.md` |
 | 21 | 手写 tar parser 漏 GNU `@LongLink` | 改 `LocalFilesystemBootstrapper.extractTarToDir` 或任何 in-app 手写 tar 解包；npm pack 出来的 tgz 路径 >100 字符 | `android_cc_bundle_tar_gnu_long_name.md` |
 | 22 | MediaPipe tasks-genai OUT_OF_RANGE → JNI abort → SIGABRT | 改 `MediaPipeLlmEngine.kt` / `LocalLlmServer.kt` 或加新端侧 LLM engine；端侧 LLM context 窗口语义混淆 | `mediapipe_jni_out_of_range_abort.md` |
@@ -1114,6 +1114,8 @@ sandbox-<feature>       # 用完就 burn
 
 ## 19. Android release-mode R8 minify 只在 CI 暴露（隐性风险）
 
+> **状态升级 (2026-05-26)** — `.github/workflows/android-release-precheck.yml` 已 land，每个改 `android-app/**` 的 PR 自动跑 `assembleRelease` + `bundleRelease`（job: `shipping-config`，**mandatory**）。"形态 A" Missing class 失败现在 PR 时就 catch，不再 burn release tag。配套 advisory `r8-fullmode-probe` job（continue-on-error）作 R8 上游 race 修复的 passive watchdog —— 一旦它 transitions 转绿就是信号可以翻默认。这条陷阱仍保留供"为什么以前老炸"的历史记录，但实操路径已自动化。
+
 **陷阱本质** — Android debug build 走 `isMinifyEnabled = false`，**完全跳过 R8**；release build (`./gradlew :app:assembleRelease`) 才跑 `:app:minifyReleaseWithR8`。任何新引入的"重 lib dep"（Ktor / gRPC / SLF4J / 大反射 / 引用 `java.lang.management.*` 的 JVM-only lib）只在 release 模式才暴露 R8 失败。
 
 新 lib commit 之后跑 `./gradlew assembleDebug` 全绿 + unit tests 全绿 + 真机 debug APK 跑得动 → **以为没事** → 直接打 tag 推 release → CI 跑 `:app:minifyReleaseWithR8` → 失败 → 整条 release pipeline 已经 `gh release create --draft` 成功了一半（desktop 全绿，Android 缺 4 个 asset），但 GitHub immutable releases 让这个 tag 永久 burn，要发 Android 必须再打个新 tag。
@@ -1127,7 +1129,11 @@ sandbox-<feature>       # 用完就 burn
 3. `release.yml` 里 `create-release` 条件只 require **3 个 desktop build** 成功，Android 失败不阻塞 release 创建（best-effort 设计）→ "workflow conclusion=failure 但 release 已 published 缺 Android assets" 隐性现象
 4. memory `feedback_android_tag_follows_desktop.md` 记录 Android 自更新走 desktop tag → release 缺 Android assets = Android 用户彻底无法收到这个版本的自更新（silent）
 
-**SOP — 任何引入新重 lib 的 PR 必跑**：
+**SOP — 自 2026-05-26 起自动化**：
+
+`.github/workflows/android-release-precheck.yml` 在每个 `android-app/**` PR 上跑 `assembleRelease + bundleRelease`（`shipping-config` job, mandatory, ~15 min on ubuntu-latest）。失败 → PR 不可 merge。
+
+**本地手动验**（仍推荐在 dep-bump PR commit 前跑，加速反馈）：
 
 ```bash
 cd android-app
@@ -1140,6 +1146,8 @@ ls app/build/outputs/apk/release/*.apk
 
 # 3. 通过后再 bump 版本 / tag
 ```
+
+**R8 fullMode advisory probe** — 同 workflow 第二个 job (`r8-fullmode-probe`, `continue-on-error: true`) 用 `-Pminify.override=true -Pandroid.enableR8.fullMode=true` + sed 去掉 `-dontoptimize` 重启完整 R8。当前预期 fail（AGP 8.5.2 上游 CME 未修）。**probe 转绿即信号**：可以考虑翻默认（build.gradle.kts:121 / gradle.properties:77 / proguard-rules.pro:17）。
 
 **两种 R8 失败的修法（按错误形态分流）**：
 
