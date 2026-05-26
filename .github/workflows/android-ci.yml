@@ -214,7 +214,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 33] # Test on Android 8.0 and 13
+        # 2026-05-27: switched from [26, 33] → [28, 30]. APK ships only
+        # armeabi-v7a + arm64-v8a (app/build.gradle.kts:76). x86_64 emulators
+        # at API 26/33 lack ndk_translation → "No compatible devices
+        # connected" 100% fail. API 28/30 ship ndk_translation and run the
+        # arm APK natively — proven green by android-tests.yml::instrumented
+        # under the same x86_64 runner. See memory
+        # [[android_e2e_api33_abi_mismatch]] for the full root-cause writeup.
+        api-level: [28, 30] # Test on Android 9 (Pie) and 11 (R)
 
     steps:
       - name: Checkout code

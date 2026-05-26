@@ -78,7 +78,15 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}-${{ matrix.arch }}-${{ matrix.target }}
+          # 2026-05-27: bump cache key (suffix v2) to invalidate AVDs whose
+          # default_boot snapshot triggers "adb: device offline" right after
+          # Successfully loaded snapshot. Symptom in run 26446346875 / job
+          # 77853573741 was an FB::flushEmulatedEglWindowSurfaceColorBuffer
+          # error 750ms post-snapshot-load, then adb device offline, then
+          # action's terminate-emulator path fired before user script ran.
+          # Forcing a fresh AVD + disabling snapshot reuse below dodges the
+          # bad snapshot. Re-bump suffix if it recurs.
+          key: avd-${{ matrix.api-level }}-${{ matrix.arch }}-${{ matrix.target }}-v2
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -113,7 +121,13 @@ jobs:
           arch: ${{ matrix.arch }}
           target: ${{ matrix.target }}
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # 2026-05-27: added -no-snapshot-load to bypass cached default_boot
+          # snapshot. Loading the snapshot reliably triggered FB color-buffer
+          # error → adb device offline → action killed emulator before user
+          # script ran. Cold boot is ~30-60s slower but stable. Pair with
+          # the cache-key bump above; remove if AVD-runner upstream fixes
+          # snapshot-load FB state corruption on swiftshader.
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
             adb logcat -c

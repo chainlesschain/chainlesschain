@@ -26,7 +26,17 @@ jobs:
           node-version: 22
 
       - name: Install workspace dependencies
-        run: npm install --legacy-peer-deps
+        # 2026-05-27: drop package-lock.json before install to dodge
+        # https://github.com/npm/cli/issues/4828 — npm 9+ writes the
+        # lockfile with only the publishing platform's optional deps,
+        # so a Win/macOS-generated lock omits @rollup/rollup-linux-x64-gnu
+        # and `npm install` quietly skips it. Renderer build then crashes
+        # with "Cannot find module @rollup/rollup-linux-x64-gnu". Removing
+        # the lock forces fresh resolution that picks up the linux variant.
+        # Release-only workflow → lockfile-skip is acceptable here.
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps
 
       - name: Link hoisted modules for packaging
         run: |
