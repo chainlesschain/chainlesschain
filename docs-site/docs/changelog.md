@@ -3,6 +3,50 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.95] - 2026-05-27 — fix(desktop): legacy-GPU Chromium 130+ 崩溃自动恢复 (trap #26)
+
+> 用户反馈：`ChainlessChain-Setup-5.0.3-alpha.94.exe` 装一会闪退。诊断结果不是 installer 问题 —— NSIS 装成功，但安装完最后那步自动启动 `ChainlessChain.exe`，Electron 39 / Chromium 130+ 的 GPU 进程在 `CoreMessaging.dll` 抛 `STATUS_FAIL_FAST_EXCEPTION (0xc0000602)`，因目标机 GPU 驱动太老（确认机型 Intel Iris Pro 5200 + 2016-09 驱动）。任何 ≤2018 GPU 驱动 + 老 Intel HD/Iris 系列机器都会撞这条，是 trap #26 (Legacy-GPU Chromium fail-fast) 的典型表现。
+
+### Fix —— marker file 自动恢复
+
+- `desktop-app-vue/src/main/index.js` setupApp() 启动前写 `.launching` marker 到 userData；`mainWindow.once("ready-to-show")` 清掉 marker
+- 下次启动看到残留 marker → 判定上次崩了 → 持久化 `.gpu-disabled` 文件 + `app.disableHardwareAcceleration()` + Chromium switches (`--disable-gpu` / `--disable-gpu-compositing` / `--disable-software-rasterizer`)
+- 支持 `CHAINLESSCHAIN_DISABLE_GPU=1` env var 手动触发；删 `<userData>/.gpu-disabled` 可恢复 GPU
+- 同 VS Code / Slack / Cursor / Discord 的 disable-gpu 恢复模式，外部行为驱动不依赖任何 GPU API 状态
+- commit `d8dc212f1`
+
+### Docs —— trap #26 + handbook
+
+- `docs/internal/hidden-risk-traps.md` 加 trap #26 完整正文（诊断三步 + SOP/checklist + 反模式 + 快速诊断键），标题升到 `#6-#26`
+- `CLAUDE.md` handbook reference 同步到 `21 silent-failure patterns #6-#26`
+- memory `gpu_crash_recovery_legacy_intel_driver.md` 落地
+
+### 诊断快速键（user 报 "installer 闪退"时强制走）
+
+```powershell
+# (1) installer 是否真崩
+Test-Path "$env:ProgramFiles\ChainlessChain\ChainlessChain.exe"
+# True → installer ✅, 问题在 app 启动
+
+# (2) Event Log 找 0xc0000602
+Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='Application Error'; StartTime=(Get-Date).AddMinutes(-30)} |
+  ?{$_.Message -match 'chainless'} | Select-Object TimeCreated, Message | Format-List
+# 异常代码: 0xc0000602 + CoreMessaging.dll → 锁实 trap #26
+
+# (3) GPU 驱动年龄
+Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, DriverDate
+```
+
+### 同时打包
+
+- `chore(ci): PR-advisory sidebar coverage audit for design docs`
+- `chore(ci): hard-gate trap #25 partial-index drift in PDH`（PDH `IF NOT EXISTS` partial-index drift → events 表卡 1 行 / raw_events 1308 行的 silent fail，CI lint 硬拦）
+- `chore(docs-infra): consolidate sync filename maps to shared JSON`（两份 sync 脚本共享 `docs/design/_filename-map.json`）
+- `test(android): fix TurnEphemeralRefresherTest CI flake — 3s → 10s poll`
+- `fix(android-tests): resolve 27 unit test failures across 7 classes`
+- `test(android): resolve 17 .kt.broken — delete 14 LLM-hallucinated + fix 2 stubs + revive TaskPlanCardTest`
+- `chore(android): add release-precheck workflow — R8 hotfix-chain prevention`
+
 ## [v5.0.3.94] - 2026-05-26 — re-tag of .93 fixes after release.yml bs3mc rebuild step failed CI
 
 > v5.0.3.93 tag 推送后 release.yml 新加的 bs3mc rebuild step 在 win/mac/linux 三 build 都 fail：desktop-app-vue 那份 bs3mc rebuild 成功（prebuild-install 拉 Electron 二进制），但 packages/cli 那份 fall back 到 source build，撞 v8::Context::GetIsolate 被移除的 V8 API。改用 COPY 策略：只对 desktop-app-vue 跑 @electron/rebuild + `find packages -name better_sqlite3.node | xargs cp -f` 覆盖所有 nested 副本。v5.0.3.93 tag 重 trigger workflow 试了多种方法都没成（delete-recreate / force-push / workflow_dispatch HTTP 500），bump v5.0.3.94 强触发。.93 全部修复内容保持原样（见下）。
