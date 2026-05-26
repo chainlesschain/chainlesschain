@@ -24,7 +24,7 @@ import javax.inject.Singleton
  *    by HubLocalViewModel for the cookies + WBI signing flow.
  *
  *  - [BilibiliRootCredentialsStore] (this, path B) — DedeUserID (mid)
- *    only. Path B reads `/data/data/tv.danmaku.bili/databases/*.db`
+ *    only. Path B reads `/data/data/tv.danmaku.bili/databases/` `*.db` files
  *    directly via root; doesn't need cookies because we're not making
  *    HTTP requests.
  *
