@@ -186,7 +186,13 @@ jobs:
       - name: Build release APK with R8 fullMode + minify + optimize ON
         id: probe
         working-directory: android-app
+        # set -o pipefail is critical: `tee` always exits 0, so without it
+        # gradle's non-zero exit gets swallowed by the pipe and the step is
+        # reported as success — making the next `if: success()` notify step
+        # post a misleading "R8 upstream may be fixed" notice.
+        shell: bash
         run: |
+          set -o pipefail
           ./gradlew assembleRelease --no-daemon \
             -Pminify.override=true \
             -Pandroid.enableR8.fullMode=true \
