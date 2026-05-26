@@ -334,6 +334,9 @@ fun HubLocalScreen(
                         // Phase 7.1.2b — Douyin Mode B wired. Same pattern
                         // as Toutiao (su + cohort + plaintext SQLite).
                         "social-douyin" -> { -> viewModel.syncDouyinRoot() }
+                        // Phase 7.2.2 — Bilibili Mode B wired. Plan §6.4 推
+                        // SKIP, ship 作 path A fallback only.
+                        "social-bilibili" -> { -> viewModel.syncBilibiliRoot() }
                         else -> null
                     },
                 )
