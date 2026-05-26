@@ -44,6 +44,8 @@ try {
   );
 }
 
+const { classifyUpdateError } = require("./update-error-classifier.js");
+
 class AutoUpdater {
   constructor() {
     this.mainWindow = null;
@@ -135,10 +137,38 @@ class AutoUpdater {
   setupAutoUpdater() {
     // 检查更新错误
     autoUpdater.on("error", (error) => {
-      log.error("更新检查错误:", error);
+      const classified = classifyUpdateError(error);
       this.clearTaskbarProgress();
+
+      // v5.0.3.96 — release-in-progress 不是真错误：用户已经发了新版本但
+      // release.yml workflow 还在上传 assets，latest*.yml 暂不可达。后台
+      // 自检完全静默（不发 error 状态给 notifier，避免角落弹红卡），手动
+      // 检查弹 info dialog 给"稍后再试"提示而不是 stacktrace。
+      if (classified.kind === "release-in-progress") {
+        log.info(
+          "[auto-updater] release-in-progress, skip error:",
+          classified.raw,
+        );
+        if (this._manualCheckPending) {
+          this._manualCheckPending = false;
+          if (this.mainWindow) {
+            dialog
+              .showMessageBox(this.mainWindow, {
+                type: "info",
+                title: classified.title,
+                message: classified.message,
+                detail: classified.detail,
+                buttons: ["确定"],
+              })
+              .catch(() => {});
+          }
+        }
+        return;
+      }
+
+      log.error("更新检查错误:", error);
       this.sendStatusToWindow("error", null, {
-        message: String((error && error.message) || error || "未知错误"),
+        message: classified.detail,
       });
       // v5.0.3.36 — 用户主动触发的检查必须给 feedback；后台自检静默。
       if (this._manualCheckPending) {
@@ -147,9 +177,9 @@ class AutoUpdater {
           dialog
             .showMessageBox(this.mainWindow, {
               type: "error",
-              title: "检查更新失败",
-              message: "无法检查更新",
-              detail: String((error && error.message) || error || "未知错误"),
+              title: classified.title,
+              message: classified.message,
+              detail: classified.detail,
               buttons: ["确定"],
             })
             .catch(() => {});
