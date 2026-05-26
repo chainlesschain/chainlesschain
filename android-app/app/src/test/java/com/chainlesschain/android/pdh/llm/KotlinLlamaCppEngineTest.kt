@@ -4,6 +4,7 @@ import android.content.Context
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
@@ -31,6 +32,21 @@ class KotlinLlamaCppEngineTest {
     @Before
     fun setUp() {
         modelManager = mockk()
+        // ModelManager.refresh() defaults its spec arg to selectedSpec.value;
+        // the generated default-arg bridge reads the property before the call
+        // is dispatched to mockk, so strict-mode throws on unstubbed access
+        // and the engine's try/catch turns the result into a "refresh threw"
+        // HealthStatus that bypasses the per-state assertions.
+        every { modelManager.selectedSpec } returns MutableStateFlow(
+            ModelManager.ModelSpec(
+                key = "test-spec",
+                filename = "qwen.gguf",
+                urls = listOf("https://hf-mirror.com/test/path"),
+                expectedSha256 = null,
+                sizeBytesApprox = 0L,
+                displayName = "Test Spec",
+            )
+        )
         context = mockk(relaxed = true)
     }
 

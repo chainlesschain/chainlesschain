@@ -84,13 +84,13 @@ class XhsApiClientSignBridgeTest {
         val notes = client.fetchNotes("web_session=x; a1=fake", "fake_a1", "user-1")
         assertEquals(1, notes.size)
         val req = server.takeRequest()
-        // Bridge headers must reach the server VERBATIM (no fallback overwrite)
+        // Bridge headers must reach the server VERBATIM (no fallback overwrite).
+        // HTTP headers are case-insensitive (per RFC 7230 §3.2 + OkHttp's Headers
+        // class normalizes), so we cannot disambiguate "bridge X-s" vs "fallback
+        // X-S" by case alone — verifying the value is the actual test.
         assertEquals("XYW_bridge_sig", req.getHeader("X-s"))
         assertEquals("1716500000000", req.getHeader("X-t"))
         assertEquals("common_value", req.getHeader("X-s-common"))
-        // Fallback's X-S/X-T (capital) should be ABSENT when bridge succeeded
-        // (avoids double-signing collision on the server side)
-        assertNull(req.getHeader("X-S"))
     }
 
     @Test
@@ -103,11 +103,11 @@ class XhsApiClientSignBridgeTest {
         )
         client.fetchNotes("web_session=x; a1=fake", "fake_a1", "user-1")
         val req = server.takeRequest()
-        // Bridge failed → fallback ships X-S/X-T (capital) from computeXsXt
+        // Bridge failed → fallback ships X-S/X-T from computeXsXt.
+        // (HTTP headers are case-insensitive — getHeader resolves regardless
+        // of case, so we only assert that signature headers are present.)
         assertNotNull(req.getHeader("X-S"))
         assertNotNull(req.getHeader("X-T"))
-        // Bridge-style lowercase headers MUST NOT leak from a failed call
-        assertNull(req.getHeader("X-s"))
     }
 
     @Test

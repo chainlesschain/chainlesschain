@@ -41,7 +41,7 @@ class AndroidLocalModelViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         modelManager = mockk(relaxed = true)
-        every { modelManager.defaultSpec } returns ModelManager.ModelSpec(
+        val testSpec = ModelManager.ModelSpec(
             key = "test-spec",
             filename = "test-model.task",
             urls = listOf("https://hf-mirror.com/test/path"),
@@ -49,6 +49,11 @@ class AndroidLocalModelViewModelTest {
             sizeBytesApprox = 555_000_000L,
             displayName = "Test Model",
         )
+        every { modelManager.defaultSpec } returns testSpec
+        // ModelManager.refresh/download/delete default to selectedSpec.value;
+        // a relaxed-mock StateFlow returns null from .value which trips the
+        // generated null check on the spec parameter. Hand back a real flow.
+        every { modelManager.selectedSpec } returns MutableStateFlow(testSpec)
         every { modelManager.state } returns
             MutableStateFlow<ModelManager.State>(ModelManager.State.NotDownloaded)
         coEvery { modelManager.refresh(any()) } returns ModelManager.State.NotDownloaded

@@ -51,6 +51,10 @@ class DouyinLocalCollectorTest {
         // Stub default zero/null so unstubbed code paths don't throw.
         every { apiClient.lastErrorCode } returns 0
         every { apiClient.lastErrorMessage } returns null
+        // v0.3 — collector wires SignProvider into apiClient before each
+        // snapshot (NullSignProvider when no signer is configured). Stub the
+        // setter so strict mockk doesn't throw on unstubbed property write.
+        every { apiClient.signProvider = any() } just runs
         credentialsStore = mockk(relaxed = true)
         collector = DouyinLocalCollector(
             context = context,

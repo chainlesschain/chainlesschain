@@ -56,6 +56,11 @@ class BilibiliApiClientIntegrationTest {
             // /x/frontend/finger/spi roundtrip that would consume the
             // first enqueued MockResponse intended for fetchHistory.
             setMintedBuvid3ForTest("test-buvid3")
+            // 2026-05-26: prepareRequest now also runs WBI signing (commit
+            // fbb125295). Without a pre-seeded mixin key the request flow
+            // makes an extra /x/web-interface/nav roundtrip that consumes
+            // the first MockResponse → fetchHistory hangs → 10s timeout.
+            setWbiMixinKeyForTest("test-mixin-key-32chars-padding-x")
         }
     }
 
