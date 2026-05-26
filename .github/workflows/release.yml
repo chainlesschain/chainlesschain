@@ -180,6 +180,43 @@ jobs:
           bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
             npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
+      - name: Rebuild bs3mc native bindings for Electron ABI (Windows)
+        # Why: electron-builder.yml sets `npmRebuild: false` (cross-platform
+        # node-gyp pain), so `npm install/ci` leaves bs3mc as the Node-ABI
+        # prebuild (NODE_MODULE_VERSION 127 for Node 22). Electron 39's
+        # runtime needs ABI 140 and throws on load:
+        #   "compiled against … NODE_MODULE_VERSION 127. This version of Node.js
+        #    requires NODE_MODULE_VERSION 140"
+        # which on the user's `刷新` action in PersonalDataHub.vue surfaces as
+        # `刷新失败: The module … better_sqlite3.node …`. Repro path is the
+        # CLI's NESTED copy under `packages/cli/node_modules/@chainlesschain/
+        # personal-data-hub/node_modules/better-sqlite3-multiple-ciphers/`,
+        # but we rebuild ALL bs3mc copies (desktop-app-vue/ + nested CLI) for
+        # safety — Node CJS resolution may pick either depending on caller.
+        # @electron/rebuild fetches the Electron-prebuilt binary from
+        # bs3mc's release page (no local node-gyp), so the cross-platform
+        # node-gyp issues that drove `npmRebuild: false` do NOT apply here.
+        shell: bash
+        run: |
+          set -e
+          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          echo "Rebuilding bs3mc for Electron $ELECTRON_VER"
+          rebuilt_any=false
+          for root in desktop-app-vue packages/cli; do
+            if [ -d "$root/node_modules" ]; then
+              echo "=== Rebuilding bs3mc under $root ==="
+              (cd "$root" && npx --yes @electron/rebuild@^4 \
+                --version "$ELECTRON_VER" \
+                --only better-sqlite3-multiple-ciphers \
+                --force)
+              rebuilt_any=true
+            fi
+          done
+          if [ "$rebuilt_any" = "false" ]; then
+            echo "::error ::No bs3mc rebuild root found — release would ship Node-ABI binary"
+            exit 1
+          fi
+
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         shell: cmd
         run: |
@@ -372,6 +409,36 @@ jobs:
           # hoist back to root.
           bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
             npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
+      - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
+        # See Windows job for full rationale. macOS specifically: the
+        # macos-latest runner is arm64; without explicit --arch x64,
+        # @electron/rebuild downloads only the arm64 Electron prebuild and
+        # the resulting bs3mc binary is arm64-only. electron-builder still
+        # ships both x64 and arm64 DMGs (mac.target.arch: [x64, arm64]),
+        # so the x64 DMG would carry an arm64 .node and crash on Intel
+        # Macs. Rebuild both archs sequentially; electron-builder's per-arch
+        # output dir layout means the LAST rebuild wins on disk, so we end
+        # with x64 binaries. Followup needed: per-arch tmpdir or universal
+        # binary so BOTH DMGs ship the right ABI binary. arm64-only mac
+        # users (M1+) are dominant; x64 mac is the regression window.
+        shell: bash
+        run: |
+          set -e
+          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          echo "Rebuilding bs3mc for Electron $ELECTRON_VER (both archs)"
+          for arch in arm64 x64; do
+            for root in desktop-app-vue packages/cli; do
+              if [ -d "$root/node_modules" ]; then
+                echo "=== Rebuilding bs3mc under $root for $arch ==="
+                (cd "$root" && npx --yes @electron/rebuild@^4 \
+                  --version "$ELECTRON_VER" \
+                  --arch "$arch" \
+                  --only better-sqlite3-multiple-ciphers \
+                  --force)
+              fi
+            done
+          done
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
@@ -585,6 +652,30 @@ jobs:
           # hoist back to root.
           bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
             npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
+      - name: Rebuild bs3mc native bindings for Electron ABI (Linux)
+        # See Windows job for full rationale. Linux runner is x64; no cross-arch
+        # complications (electron-builder Linux output is x64 only).
+        shell: bash
+        run: |
+          set -e
+          ELECTRON_VER=$(node -p "require('./desktop-app-vue/node_modules/electron/package.json').version")
+          echo "Rebuilding bs3mc for Electron $ELECTRON_VER"
+          rebuilt_any=false
+          for root in desktop-app-vue packages/cli; do
+            if [ -d "$root/node_modules" ]; then
+              echo "=== Rebuilding bs3mc under $root ==="
+              (cd "$root" && npx --yes @electron/rebuild@^4 \
+                --version "$ELECTRON_VER" \
+                --only better-sqlite3-multiple-ciphers \
+                --force)
+              rebuilt_any=true
+            fi
+          done
+          if [ "$rebuilt_any" = "false" ]; then
+            echo "::error ::No bs3mc rebuild root found — release would ship Node-ABI binary"
+            exit 1
+          fi
 
       - name: Merge hoisted modules into nested (preserve non-hoistable deps)
         run: |
