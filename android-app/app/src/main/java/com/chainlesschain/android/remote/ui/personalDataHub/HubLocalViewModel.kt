@@ -4352,10 +4352,14 @@ class HubLocalViewModel @Inject constructor(
                     isLoginSuccess = { _ -> false },
                     // 头条 web 登录后 cookie 含 passport_uid= (numeric, 真用户态)
                     // 或 sessionid=。passport_uid 长度 ≥ 4 拒空占位
+                    // 2026-05-26 v3 真机回归: toutiao 新 SSO 登录用 sso_uid_tt /
+                    // sid_ucp_v1 / sid_tt (32+ 字符), passport_uid 字段已废弃。
+                    // 检任一 ≥ 32 字符即视为真登录态 (访客没这些)
                     isLoginSuccessByCookie = { cookie ->
-                        val m = Regex("(?:^|;\\s*)passport_uid=(\\d+)").find(cookie)
-                        val value = m?.groupValues?.getOrNull(1) ?: ""
-                        value.length >= 4 || cookie.contains("sessionid=")
+                        listOf("sid_ucp_v1", "sso_uid_tt", "sid_tt").any { key ->
+                            Regex("(?:^|;\\s*)$key=([^;\\s]+)").find(cookie)
+                                ?.groupValues?.getOrNull(1)?.length?.let { it >= 32 } == true
+                        }
                     },
                     userAgent = DESKTOP_CHROME_USER_AGENT,
                 ),

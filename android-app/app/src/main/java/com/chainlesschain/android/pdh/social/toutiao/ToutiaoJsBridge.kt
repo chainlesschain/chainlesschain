@@ -93,36 +93,46 @@ object ToutiaoJsBridge {
       return null;
     };
 
-    // passport_uid (primary UID) 从 cookie 直接抠 — 不需 HTTP
-    const uidMatch = document.cookie.match(/(?:^|;\s*)passport_uid=(\d+)/);
-    const passportUid = uidMatch ? uidMatch[1] : '';
+    // v2 真机：passport_uid 是 httpOnly cookie, JS document.cookie 读不到。
+    // 走 Kotlin 侧 dispatchCookieReady 抠 + 注入 window.__TOUTIAO_UID__。
+    // 同时 /passport/account/info/v2 返 error_code=16 "该应用无权限" — 头条
+    // 风控严不返用户资料。MVP 仅靠注入 uid 推 profile event
+    const injectedUid = window.__TOUTIAO_UID__ || null;
+    // 兜底降级也试 document.cookie (登录早期或 httpOnly 关掉时还能拿到)
+    const docCookieMatch = document.cookie.match(/(?:^|;\s*)passport_uid=(\d+)/);
+    const passportUidFromCookie = docCookieMatch ? docCookieMatch[1] : '';
 
-    // smoke: passport/account/info/v2 cookie-only, returns {status_code:0, data:{user_id, screen_name, ...}}
+    // 仍试 /passport/account/info/v2 拿 nickname/avatar (即使 error_code=16
+    // 也 dump 出来诊断) — 不阻断 profile event
     const meResp = await tryJson('https://www.toutiao.com/passport/account/info/v2/?aid=24');
-    let uid = passportUid || '', nickname = '';
+    let uid = injectedUid || passportUidFromCookie || '';
+    let nickname = '';
     if (meResp && meResp.status_code === 0 && meResp.data) {
-      uid = String(meResp.data.user_id || passportUid || '');
+      uid = String(meResp.data.user_id || uid);
       nickname = meResp.data.screen_name || meResp.data.name || '';
-      if (uid) {
-        events.push({
-          kind: 'profile',
-          id: 'profile-' + uid,
-          capturedAt: now,
-          uid: uid,
-          nickname: nickname,
-          avatarUrl: meResp.data.avatar_url || '',
-          mobile: meResp.data.mobile || null,
-          description: meResp.data.description || '',
-          followingCount: parseInt(meResp.data.following_count || 0) || 0,
-          followerCount: parseInt(meResp.data.followers_count || meResp.data.follower_count || 0) || 0,
-          mediaId: meResp.data.media_id || null,
-        });
-      }
     }
     debug.push({_smokeTest: 'passport', uid: uid, nickname: nickname,
-                passportUidFromCookie: passportUid,
+                passportUidFromCookie: passportUidFromCookie,
+                injectedFromKotlin: injectedUid,
                 cookieLen: document.cookie.length, locHref: location.href,
                 hasAcrawler: !!(window.byted_acrawler && window.byted_acrawler.sign)});
+
+    // 至少推 profile event (即使 /passport/account/info 返风控错误)
+    if (uid) {
+      events.push({
+        kind: 'profile',
+        id: 'profile-' + uid,
+        capturedAt: now,
+        uid: uid,
+        nickname: nickname,
+        avatarUrl: (meResp && meResp.data && meResp.data.avatar_url) || '',
+        mobile: (meResp && meResp.data && meResp.data.mobile) || null,
+        description: (meResp && meResp.data && meResp.data.description) || '',
+        followingCount: parseInt((meResp && meResp.data && (meResp.data.following_count || 0)) || 0) || 0,
+        followerCount: parseInt((meResp && meResp.data && (meResp.data.followers_count || meResp.data.follower_count || 0)) || 0) || 0,
+        mediaId: (meResp && meResp.data && meResp.data.media_id) || null,
+      });
+    }
 
     // 试 byted_acrawler signer 给 feed/collection/search 加 _signature
     const signUrl = (url) => {
