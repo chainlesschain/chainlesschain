@@ -337,6 +337,10 @@ fun HubLocalScreen(
                         // Phase 7.2.2 — Bilibili Mode B wired. Plan §6.4 推
                         // SKIP, ship 作 path A fallback only.
                         "social-bilibili" -> { -> viewModel.syncBilibiliRoot() }
+                        // Phase 7.4.2 — Weibo Mode B wired. Plan §6.2 零公开
+                        // schema 资料; defensive PRAGMA picker + likely-sqlcipher
+                        // hint route v0.1 → v0.2 via P7.3 §3.5-3.6 frida hook.
+                        "social-weibo" -> { -> viewModel.syncWeiboRoot() }
                         else -> null
                     },
                 )

@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import android.app.ActivityManager
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -94,6 +95,11 @@ class HubLocalViewModel @Inject constructor(
     private val kyfw12306Collector: Kyfw12306LocalCollector,
     private val weiboCollector: WeiboLocalCollector,
     private val weiboCredentials: WeiboCredentialsStore,
+    // Phase 7.4.2 — Weibo Mode B (in-APK root + local SQLite). Co-exists
+    // with path A; UI banner discriminates via "本机 root:" prefix. Plan
+    // §6.2: Weibo schema 零公开资料 — defensive PRAGMA picker absorbs drift.
+    private val weiboRootCollector: com.chainlesschain.android.pdh.social.weibo.WeiboRootDbCollector,
+    private val weiboRootCredentials: com.chainlesschain.android.pdh.social.weibo.WeiboRootCredentialsStore,
     private val douyinCollector: DouyinLocalCollector,
     private val douyinCredentials: DouyinCredentialsStore,
     private val douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge,
@@ -332,12 +338,38 @@ class HubLocalViewModel @Inject constructor(
          * inference can't actually run until v0.2 native lib lands.
          */
         val nativeEngineReady: Boolean = true,
+        /**
+         * 2026-05-26 — 双档模型选择器。UI 渲染 RadioButton 用 [availableModels]
+         * 列出 0.5B / 1.5B；[selectedModelKey] 反映用户当前选中的 [ModelManager.ModelSpec.key]。
+         * [deviceTotalRamMb] 从 [ActivityManager] 一次性读取，UI 拿来比 1.5B 推荐 RAM
+         * (6144 MB) 给 RAM 警告。空 list 时 UI 退化到旧单档渲染（兼容尚未 collect 完成的初始态）。
+         */
+        val availableModels: List<ModelOption> = emptyList(),
+        val selectedModelKey: String = "",
+        val deviceTotalRamMb: Long = 0L,
     ) {
         enum class Kind { UNKNOWN, NOT_DOWNLOADED, DOWNLOADING, VERIFYING, READY, FAILED }
 
         val progressFraction: Float
             get() = if (totalBytes > 0L) receivedBytes.toFloat() / totalBytes.toFloat() else 0f
+
+        val selectedModel: ModelOption?
+            get() = availableModels.firstOrNull { it.key == selectedModelKey }
     }
+
+    /**
+     * 2026-05-26 — UI-facing snapshot of [ModelManager.ModelSpec]，给 RadioButton
+     * 列表用。不直接暴露 [ModelManager.ModelSpec] 是为了让 Compose preview / unit
+     * test 不依赖 ModelManager 实例化。
+     */
+    @Immutable
+    data class ModelOption(
+        val key: String,
+        val displayName: String,
+        val sizeMb: Long,
+        val shaLocked: Boolean,
+        val recommendedRamMb: Long,
+    )
 
     /**
      * 推文 §"AI 给出处 · 点一下看原文" 的 bottom sheet state。
@@ -623,15 +655,78 @@ class HubLocalViewModel @Inject constructor(
      * state changes flow through the StateFlow collector.
      */
     private fun observeModelManager() {
+        // 2026-05-26 — seed availableModels + deviceTotalRamMb once at init. RAM
+        // can't change at runtime; spec list is static so a one-shot mapping is
+        // enough. selectedModelKey is then driven by the selectedSpec collector.
+        val options = modelManager.availableSpecs.map { it.toUi() }
+        val ramMb = readDeviceTotalRamMb()
+        _state.update {
+            it.copy(
+                modelStatus = it.modelStatus.copy(
+                    availableModels = options,
+                    selectedModelKey = modelManager.selectedSpec.value.key,
+                    deviceTotalRamMb = ramMb,
+                ),
+            )
+        }
         viewModelScope.launch {
             // Kick a refresh so an already-on-disk model promotes from
             // NotDownloaded → Ready on first compose. Idempotent.
             modelManager.refresh()
         }
         viewModelScope.launch {
-            modelManager.state.collect { s -> _state.update { it.copy(modelStatus = s.toUi()) } }
+            modelManager.state.collect { s ->
+                // 2026-05-26 — copy() not replace, so picker fields (availableModels /
+                // selectedModelKey / deviceTotalRamMb) seeded at init survive the stream.
+                _state.update { ui ->
+                    val incoming = s.toUi()
+                    ui.copy(
+                        modelStatus = ui.modelStatus.copy(
+                            kind = incoming.kind,
+                            modelName = incoming.modelName,
+                            receivedBytes = incoming.receivedBytes,
+                            totalBytes = incoming.totalBytes,
+                            errorMessage = incoming.errorMessage,
+                            nativeEngineReady = incoming.nativeEngineReady,
+                        ),
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            // Picker selection — when user flips radio, selectedSpec emits new
+            // value and we mirror it into UiState so Compose recomposes the radio.
+            modelManager.selectedSpec.collect { spec ->
+                _state.update {
+                    it.copy(modelStatus = it.modelStatus.copy(selectedModelKey = spec.key))
+                }
+            }
         }
     }
+
+    /**
+     * 2026-05-26 — RAM 总量从 [ActivityManager.MemoryInfo] 读，单位 MB。失败回 0
+     * （UI 端 0 视作"未知"，跳过 RAM 警告以免误报）。
+     */
+    private fun readDeviceTotalRamMb(): Long = try {
+        val am = appContext.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        am?.let {
+            val info = ActivityManager.MemoryInfo()
+            it.getMemoryInfo(info)
+            info.totalMem / 1_048_576L
+        } ?: 0L
+    } catch (t: Throwable) {
+        Timber.w(t, "readDeviceTotalRamMb failed")
+        0L
+    }
+
+    private fun ModelManager.ModelSpec.toUi(): ModelOption = ModelOption(
+        key = key,
+        displayName = displayName,
+        sizeMb = sizeBytesApprox / 1_048_576L,
+        shaLocked = shaLocked,
+        recommendedRamMb = recommendedRamMb,
+    )
 
     /**
      * §2.1 A3.4 — user-triggered model download from HubAskCard banner. Hard
@@ -651,6 +746,30 @@ class HubLocalViewModel @Inject constructor(
      */
     fun deleteModel() {
         viewModelScope.launch { modelManager.delete() }
+    }
+
+    /**
+     * 2026-05-26 — 用户切换选中的模型档（0.5B / 1.5B）。
+     *
+     * 切换不自动下载/删除 — VM 只通知 ModelManager 改 selectedSpec，然后调
+     * refresh() 让 state stream emit 新档的 NotDownloaded/Ready/Failed，UI 重绘。
+     * 用户拿到新档真实状态再决定要不要点"下载"。
+     *
+     * Idempotent。下载/校验进行中 ([Kind.DOWNLOADING] / [Kind.VERIFYING]) 时拒切，
+     * 避免 .part 文件污染 — 那两个状态期间 [ModelManager.download] 持有当前 spec
+     * 在跑，切档会让进度条对应错档导致 UI 混乱。
+     */
+    fun selectModel(key: String) {
+        val spec = modelManager.availableSpecs.firstOrNull { it.key == key } ?: return
+        val kind = _state.value.modelStatus.kind
+        if (kind == ModelStatusState.Kind.DOWNLOADING || kind == ModelStatusState.Kind.VERIFYING) {
+            return
+        }
+        if (modelManager.selectedSpec.value.key == spec.key) return
+        viewModelScope.launch {
+            modelManager.selectSpec(spec)
+            modelManager.refresh()
+        }
     }
 
     private fun ModelManager.State.toUi(): ModelStatusState {
@@ -2607,7 +2726,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.2.2 — Bilibili Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncBilibili] (path A, cookies + WBI signing + WebView
-     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/` `*.db` files
+     * prefetch). Path B reads `/data/data/tv.danmaku.bili/databases/*.db`
      * directly via root — no internet, no WBI, no anti-bot risk.
      *
      * **Plan §6.4 推 SKIP**: path A 已最优。Mode B 仅作 path A 不可用
@@ -2960,6 +3079,168 @@ class HubLocalViewModel @Inject constructor(
                                         isSyncing = false,
                                         syncStatusText = null,
                                         errorMessage = "写入本地数据库失败: ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Phase 7.4.2 — Weibo Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncWeibo] (path A, cookies + m.weibo.cn HTTP). Path B
+     * reads `/data/data/com.sina.weibo/databases/*.db` directly via root
+     * — no internet, no signing. Plan §6.2: 零公开 schema 资料 → defensive
+     * PRAGMA-based column picker handles unknown drift; user runs P7.3
+     * probe + paste-back to confirm DB filename / column candidates.
+     *
+     * **likely-sqlcipher branch**: if SQLite open hits "file is not a
+     * database", extractor surfaces `Failed(reason = "likely-sqlcipher")`
+     * with explicit P7.3 §3.4-3.6 frida hook hint. v0.2 follows once user
+     * runs the hook to extract the key (mirror of WeChat 12.10 pattern).
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A.
+     * Banner prefix "本机 root:" discriminates in the same SocialCardState.
+     */
+    fun syncWeiboRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!weiboRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    weibo = it.weibo.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (uid 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-weibo",
+                    weibo = it.weibo.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 weibo.db cohort...",
+                    ),
+                )
+            }
+            when (val result = weiboRootCollector.snapshot()) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录微博 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            weibo = it.weibo.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            weibo = it.weibo.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-weibo",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["post"]?.takeIf { it > 0 }?.let { "$it 微博" },
+                                counts["favourite"]?.takeIf { it > 0 }?.let { "$it 收藏" },
+                                counts["follow"]?.takeIf { it > 0 }?.let { "$it 关注" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                "本机 root: 同步成功但 0 events — weibo.db 表 schema 可能漂移 (P7.3 §4 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    weibo = it.weibo.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: weibo root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    weibo = it.weibo.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
                                     ),
                                 )
                             }
