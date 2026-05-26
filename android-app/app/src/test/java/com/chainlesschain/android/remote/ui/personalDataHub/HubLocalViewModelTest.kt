@@ -90,6 +90,9 @@ class HubLocalViewModelTest {
     private lateinit var kyfw12306Collector: com.chainlesschain.android.pdh.travel.Kyfw12306LocalCollector
     private lateinit var weiboCollector: WeiboLocalCollector
     private lateinit var weiboCredentials: WeiboCredentialsStore
+    // Phase 7.4.2 — Mode B path B (in-APK root) collector + credentials.
+    private lateinit var weiboRootCollector: com.chainlesschain.android.pdh.social.weibo.WeiboRootDbCollector
+    private lateinit var weiboRootCredentials: com.chainlesschain.android.pdh.social.weibo.WeiboRootCredentialsStore
     private lateinit var douyinCollector: DouyinLocalCollector
     private lateinit var douyinCredentials: DouyinCredentialsStore
     private lateinit var douyinSignBridge: com.chainlesschain.android.pdh.social.douyin.DouyinSignBridge
@@ -151,6 +154,12 @@ class HubLocalViewModelTest {
         every { weiboCredentials.getUid() } returns null
         every { weiboCredentials.getLastSyncAt() } returns null
         every { weiboCredentials.getLastSyncCount() } returns 0
+        // Phase 7.4.2 — Mode B path B mocks for Weibo. Default:
+        // hasCredentials=false so syncWeiboRoot short-circuits cleanly.
+        weiboRootCollector = mockk(relaxed = true)
+        weiboRootCredentials = mockk(relaxed = true)
+        every { weiboRootCredentials.hasCredentials() } returns false
+        every { weiboRootCredentials.getUid() } returns null
         douyinSignBridge = mockk(relaxed = true)
         // Phase 7.1.2b — Mode B path B mocks for Douyin. Default:
         // hasCredentials=false so syncDouyinRoot short-circuits cleanly.
@@ -290,6 +299,9 @@ class HubLocalViewModelTest {
             kyfw12306Collector,
             weiboCollector,
             weiboCredentials,
+            // Phase 7.4.2 — Mode B (path B) collector + store
+            weiboRootCollector,
+            weiboRootCredentials,
             douyinCollector,
             douyinCredentials,
             douyinSignBridge,
@@ -878,6 +890,112 @@ class HubLocalViewModelTest {
                 "got: ${s.errorMessage}",
             )
             assertTrue(s.errorMessage?.contains("bili.db") == true)
+        }
+
+    // ─── Phase 7.4.2 syncWeiboRoot (Mode B path B) ──────────────────────────
+
+    @Test
+    fun `syncWeiboRoot short-circuits with hint when credentials absent`() =
+        runTest(testDispatcher) {
+            every { weiboRootCredentials.hasCredentials() } returns false
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncWeiboRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.weibo
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("本机 root:") == true,
+                "expected '本机 root:' prefix, got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("uid") == true)
+            coVerify(exactly = 0) { weiboRootCollector.snapshot() }
+        }
+
+    @Test
+    fun `syncWeiboRoot NoRoot surfaces root-required banner`() =
+        runTest(testDispatcher) {
+            every { weiboRootCredentials.hasCredentials() } returns true
+            every { weiboRootCredentials.getUid() } returns "1234567890"
+            coEvery { weiboRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncWeiboRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.weibo
+            assertFalse(s.isSyncing)
+            assertTrue(s.errorMessage?.contains("本机 root:") == true)
+            assertTrue(s.errorMessage?.contains("Magisk") == true)
+        }
+
+    @Test
+    fun `syncWeiboRoot ExtractFailed likely-sqlcipher surfaces frida hint`() =
+        runTest(testDispatcher) {
+            // Plan §6.2 + P7.3 §6: 明文 OR SQLCipher both plausible. The
+            // 'likely-sqlcipher' reason from extractor must surface a clear
+            // P7.3 §3.4-3.6 frida pointer so v0.1 → v0.2 transition is
+            // user-actionable (not a dead end).
+            every { weiboRootCredentials.hasCredentials() } returns true
+            every { weiboRootCredentials.getUid() } returns "1234567890"
+            coEvery { weiboRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed(
+                    reason = "likely-sqlcipher",
+                    message = "file is not a database — 可能是 SQLCipher 加密 (P7.3 §3.4-3.6 frida hook path 解锁 v0.2)",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncWeiboRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.weibo
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("likely-sqlcipher") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("SQLCipher") == true)
+            assertTrue(s.errorMessage?.contains("frida") == true)
+        }
+
+    @Test
+    fun `syncWeiboRoot Ok with totalEvents=0 surfaces schema-drift hint`() =
+        runTest(testDispatcher) {
+            every { weiboRootCredentials.hasCredentials() } returns true
+            every { weiboRootCredentials.getUid() } returns "1234567890"
+            coEvery { weiboRootCollector.snapshot() } returns
+                com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok(
+                    snapshotPath = "/tmp/social-weibo-root.json",
+                    totalEvents = 0,
+                    perCategoryCounts = mapOf("post" to 0, "favourite" to 0, "follow" to 0),
+                    snapshottedAt = 1716383021000L,
+                    diagnosticFields = mapOf("dbFilename" to "weibo.db"),
+                )
+            coEvery { ccRunner.syncAdapter(any(), any()) } returns
+                LocalCcRunner.CcResult.Ok(
+                    report = LocalCcRunner.SyncReport(
+                        adapter = "social-weibo",
+                        status = "ok",
+                        ingested = 0,
+                        invalidCount = 0,
+                        kgTriples = 0,
+                        ragDocs = 0,
+                        durationMs = 5L,
+                        error = null,
+                    ),
+                    rawJson = "{}",
+                )
+            val vm = newVm()
+            advanceUntilIdle()
+            vm.syncWeiboRoot()
+            advanceUntilIdle()
+            val s = vm.state.value.weibo
+            assertFalse(s.isSyncing)
+            assertTrue(
+                s.errorMessage?.contains("schema 可能漂移") == true,
+                "got: ${s.errorMessage}",
+            )
+            assertTrue(s.errorMessage?.contains("weibo.db") == true)
+            assertTrue(s.errorMessage?.contains("P7.3") == true)
         }
 
     // ─── Logout ─────────────────────────────────────────────────────────────
