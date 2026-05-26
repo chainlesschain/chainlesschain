@@ -190,8 +190,12 @@ class ModelManagerTest {
         assertTrue(specs[0].displayName.contains("0.5B"), "displayName matches: ${specs[0].displayName}")
         assertTrue(specs[1].displayName.contains("1.5B"), "displayName matches: ${specs[1].displayName}")
         assertTrue(specs[0].shaLocked, "0.5B SHA must be pinned")
-        // 1.5B is TOFU until first real-device download locks the SHA.
-        assertFalse(specs[1].shaLocked, "1.5B should be TOFU until SHA is pinned")
+        // 2026-05-26 — 1.5B SHA locked from real-device hf-mirror download.
+        assertTrue(specs[1].shaLocked, "1.5B SHA pinned after first verified download")
+        assertEquals(
+            64, specs[1].expectedSha256!!.length,
+            "1.5B SHA256 should be 64 hex chars: ${specs[1].expectedSha256}",
+        )
         // RAM recommendation must scale up for the heavier model so UI warning fires.
         assertTrue(
             specs[1].recommendedRamMb > specs[0].recommendedRamMb,

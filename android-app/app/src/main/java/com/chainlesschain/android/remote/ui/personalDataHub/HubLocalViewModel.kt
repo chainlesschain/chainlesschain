@@ -208,28 +208,17 @@ class HubLocalViewModel @Inject constructor(
     )
 
     /**
-     * Phase 12.10.1 — wechat uses string-uin not Long-uid (UIN is sometimes
-     * 12+ digits and the leading-zero variant matters for md5 derivation),
-     * so [SocialCardState.uid] can't carry it. We track wechat-specific
-     * fields separately.
+     * Phase 8.2 — WeChat state migrated to [SocialCardState] (uidStr +
+     * keyProvider + pendingUinEntry + requiresUinEntry fields added in P8.1).
+     * Old WechatCardState data class deleted. Initial value in [UiState]
+     * carries `adapterName="wechat"`, `displayName="微信"`, `implemented=true`,
+     * `requiresUinEntry=true` (signals WeChat uses UIN-entry dialog instead
+     * of WebView cookie scrape for login).
      */
-    @Immutable
-    data class WechatCardState(
-        val isLoggedIn: Boolean = false,
-        val uin: String? = null,
-        val keyProvider: String? = null,  // "md5" / "frida"
-        val isSyncing: Boolean = false,
-        val lastSyncAt: Long? = null,
-        val lastSyncCount: Int = 0,
-        val errorMessage: String? = null,
-        /** When non-null, show the uin-entry dialog (Phase 12.10.1 onboarding). */
-        val pendingUinEntry: Boolean = false,
-    )
 
     /**
      * Phase 13.5 v0.2 — QQ uses string-uin like WeChat but has NO keyProvider
      * gate (IMEI is the only decrypt key — see [QQCredentialsStore] kdoc).
-     * Mirrors [WechatCardState] minus the `keyProvider` field.
      */
     @Immutable
     data class QQCardState(
@@ -605,7 +594,15 @@ class HubLocalViewModel @Inject constructor(
             displayName = "快手",
             implemented = true,
         ),
-        val wechat: WechatCardState = WechatCardState(),
+        // Phase 8.2 — WeChat migrated to SocialCardState (was WechatCardState).
+        // `requiresUinEntry=true` signals WeChat uses UIN-entry dialog flow
+        // (vs WebView cookie scrape used by the 6 internet-content cards).
+        val wechat: SocialCardState = SocialCardState(
+            adapterName = "wechat",
+            displayName = "微信",
+            implemented = true,
+            requiresUinEntry = true,
+        ),
         val qq: QQCardState = QQCardState(),
         val pendingLogin: LoginRequest? = null,
         val globalSyncingAdapter: String? = null,
@@ -5156,7 +5153,7 @@ class HubLocalViewModel @Inject constructor(
             it.copy(
                 wechat = it.wechat.copy(
                     isLoggedIn = loggedIn,
-                    uin = uin,
+                    uidStr = uin,
                     keyProvider = provider,
                     lastSyncAt = lastSync,
                     lastSyncCount = lastCount,
@@ -5167,7 +5164,7 @@ class HubLocalViewModel @Inject constructor(
 
     /**
      * User tapped "登录/授权" on the WeChat card → show the uin-entry dialog.
-     * The dialog UI (HubLocalScreen) reads [WechatCardState.pendingUinEntry]
+     * The dialog UI (HubLocalScreen) reads `state.wechat.pendingUinEntry`
      * to know whether to render itself.
      */
     fun requestWechatLogin() {
@@ -5369,7 +5366,18 @@ class HubLocalViewModel @Inject constructor(
         wechatCredentials.clear()
         _state.update {
             it.copy(
-                wechat = WechatCardState(),
+                // Reset WeChat-specific fields; keep adapterName/displayName/
+                // implemented/requiresUinEntry shape via copy() vs fresh init.
+                wechat = it.wechat.copy(
+                    isLoggedIn = false,
+                    uidStr = null,
+                    keyProvider = null,
+                    isSyncing = false,
+                    lastSyncAt = null,
+                    lastSyncCount = 0,
+                    errorMessage = null,
+                    pendingUinEntry = false,
+                ),
             )
         }
     }

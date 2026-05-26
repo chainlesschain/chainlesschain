@@ -168,11 +168,11 @@ class ModelManager @Inject constructor(
      *  - 推理峰值内存约 2-3 GB，4 GB 以下机型可能被 OOM killer 杀掉
      *  - prefill 慢约 2-3×，token 生成慢约 2×
      *
-     * SHA: 当前 TOFU 模式（expectedSha256 = null）—— 首次真机下载后用 `sha256sum`
-     * 拿到字节后再 pin 到这里。pin 之前 ModelScope 镜像污染风险无法字节级排除，但
-     * MediaPipe runtime 加载非法 .task 会立即解析失败，攻击面相对窄；这是一个有意识
-     * 的权衡（让用户尽早能用上 1.5B，避免阻塞在 SHA 探测）。锁后改 commit message
-     * `chore(pdh-android): lock Qwen2.5-1.5B SHA from real device download`。
+     * SHA: 2026-05-26 lock from hf-mirror primary download on Xiaomi 24115RA8EC
+     * (device 21e9bbfb). 5 refresh() invocations all hashed the on-disk bytes to
+     * the same `8d867a7c…b42e0`, so future downloads from either mirror byte-
+     * mismatch → refresh() deletes + Failed("校验失败"). ModelScope mirror sources
+     * the same litert-community LFS object as HF, so a single SHA covers both.
      */
     val qwen15bSpec = ModelSpec(
         key = "qwen-1.5b",
@@ -184,9 +184,9 @@ class ModelManager @Inject constructor(
                 "?Revision=master" +
                 "&FilePath=Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
         ),
-        // TODO(pdh-android): lock from real device download. See KDoc above.
-        expectedSha256 = null,
-        sizeBytesApprox = 1_686_000_000L, // ~1.57 GiB approx; locked when SHA locks
+        // 2026-05-26 locked from real-device hf-mirror download (see KDoc above).
+        expectedSha256 = "8d867a7c93a6acf2892f08e0174e2f6f351ad256b7e3cfb6d6cd9c89794b42e0",
+        sizeBytesApprox = 1_686_000_000L, // ~1.57 GiB approx; informational only
         displayName = "Qwen2.5 1.5B Instruct (q8)",
         promptFamily = PromptFamily.QWEN_CHATML,
         recommendedRamMb = 6_144L,

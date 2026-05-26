@@ -360,12 +360,22 @@ fun HubLocalScreen(
             // ─── 社交聊天（推文 §"社交聊天": 微信 + Phase 13.5 QQ）────────
             item("section-im") { SectionHeader("社交聊天") }
             item("im-wechat") {
-                WechatCard(
+                // Phase 8.2 — WechatCard composable retired; use SocialAdapterCard
+                // for 8/8 platform UI parity. requiresUinEntry=true on
+                // state.wechat signals the UIN-entry dialog flow (vs WebView
+                // cookie scrape used by the 6 internet-content cards).
+                SocialAdapterCard(
                     state = state.wechat,
                     globalBusy = globalBusy,
                     onLogin = { viewModel.requestWechatLogin() },
                     onSync = { viewModel.syncWechat() },
                     onLogout = { viewModel.logoutWechat() },
+                    onPreviewVault = {
+                        viewModel.requestVaultPreview(
+                            adapter = state.wechat.adapterName,
+                            displayName = state.wechat.displayName,
+                        )
+                    },
                 )
                 if (state.wechat.pendingUinEntry) {
                     WechatUinEntryDialog(
@@ -889,117 +899,9 @@ private fun CountCard(label: String, value: Int, modifier: Modifier = Modifier) 
     }
 }
 
-/**
- * Phase 12.10.1 — WeChat adapter card (replaces the prior PlaceholderCategoryCard).
- * Visually mirrors [SocialAdapterCard] but takes [HubLocalViewModel.WechatCardState]
- * directly because wechat tracks string-uin not Long-uid + has no WebView login.
- *
- * v0.1 sync path is stubbed at the collector layer — until Phase 12.10.4 ships
- * a real frida-inject binary, the "立即同步" button always surfaces a
- * "改用桌面端" banner. The login + uin entry + state persistence + UI scaffolding
- * are real and exercised by unit tests.
- */
-@Composable
-private fun WechatCard(
-    state: HubLocalViewModel.WechatCardState,
-    globalBusy: Boolean,
-    onLogin: () -> Unit,
-    onSync: () -> Unit,
-    onLogout: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "微信",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.size(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Text(
-                        "scaffold v0.1",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                if (state.isLoggedIn) {
-                    "UIN: ${state.uin} · keyProvider=${state.keyProvider ?: "?"}"
-                } else {
-                    "需要 root + WeChat 已登录主账号。Phase 12.10 实施中。"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (state.lastSyncAt != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "上次同步: ${syncFormatter.format(Date(state.lastSyncAt))} · +${state.lastSyncCount} 事件",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            state.errorMessage?.let { err ->
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(6.dp),
-                ) {
-                    Text(
-                        err,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!state.isLoggedIn) {
-                    Button(
-                        onClick = onLogin,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) { Text("登录 / 授权") }
-                } else {
-                    Button(
-                        onClick = onSync,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) {
-                        if (state.isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(Modifier.size(6.dp))
-                            Text("同步中…")
-                        } else {
-                            Text("立即同步")
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = onLogout,
-                        enabled = !globalBusy && !state.isSyncing,
-                    ) { Text("退出") }
-                }
-            }
-        }
-    }
-}
+// Phase 8.2 — WechatCard composable deleted; SocialAdapterCard used instead.
+// See item("im-wechat") block (line ~363) for the call site. WechatUinEntryDialog
+// (below) stays — still rendered when `state.wechat.pendingUinEntry == true`.
 
 /**
  * Phase 12.10.1 — uin entry dialog shown when the user taps "登录 / 授权"
