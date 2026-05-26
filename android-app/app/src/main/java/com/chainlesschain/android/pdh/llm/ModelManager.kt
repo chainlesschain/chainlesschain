@@ -270,7 +270,12 @@ class ModelManager @Inject constructor(
             ready
         } else {
             // TOFU mode — trust file presence, compute SHA for caller info.
+            // Surface the SHA via Timber.i so the user can pin it after a clean
+            // download. `adb logcat -s ModelManager:I | grep "TOFU SHA256"` finds
+            // the line; copy the hex into [qwen15bSpec.expectedSha256] to flip
+            // the spec out of TOFU mode.
             val sha = sha256(file)
+            Timber.i("ModelManager: TOFU SHA256 spec=%s file=%s sha=%s", spec.key, spec.filename, sha)
             val ready = State.Ready(file, sha)
             _state.value = ready
             ready
