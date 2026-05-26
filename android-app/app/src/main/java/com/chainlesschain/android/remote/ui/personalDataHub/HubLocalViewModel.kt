@@ -4930,7 +4930,7 @@ class HubLocalViewModel @Inject constructor(
      * Phase 7.6.2 — Kuaishou Mode B (path B): in-APK root + local SQLite.
      *
      * Coexists with [syncKuaishou] (path A, cookies + NS_sig3 签名 GraphQL).
-     * Path B reads `/data/data/com.smile.gifmaker/databases/*.db` directly
+     * Path B reads `/data/data/com.smile.gifmaker/databases/` `*.db` files directly
      * via root — no internet, no NS_sig3 signing.
      *
      * **v0.1 期望失败率与 Xhs 并列最高** per plan §6.6: Kuaishou DB 几乎
