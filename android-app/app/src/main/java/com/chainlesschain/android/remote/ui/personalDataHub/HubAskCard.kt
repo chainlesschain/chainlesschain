@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.ui.personalDataHub
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -496,6 +497,7 @@ private fun HubAskCardRouteOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
