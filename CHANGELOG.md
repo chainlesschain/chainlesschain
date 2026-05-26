@@ -5,6 +5,62 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-05-26 — PDH Mode B Phase 7 (6-platform Android in-APK root local DB extraction)
+
+> 推 Mode B = APK 内 root + 本机 SQLite 直读 path B,let user 没桌面/没网 时也能采集自己的社交数据 (path A 是 cookies + HTTP)。原 plan `docs/design/PDH_Mode_B_Phase_7_Plan.md` §5 推只做 P7.1 Toutiao + defer 4 platforms 独立 session；user 在 P7.0 后 explicit "Mode B 全面 5 平台" override, **本 session 6/6 platforms 全 ship v0.1**: Toutiao + Douyin + Bilibili + Weibo + Xhs + Kuaishou.
+
+### 6 per-platform Mode B v0.1 (18 commits, ~6700 LOC)
+
+每 platform 3 Kotlin files mirror Weibo template (`<Platform>Root{CredentialsStore,DbExtractor,DbCollector}.kt`) + 21 JVM tests:
+
+- **Toutiao** (`4e328bc46` + `7156ebae4` + `a2be1e1d6`) — 明文 SQLite推论 from Douyin DFIR; kinds: read/collection/search
+- **Douyin** (`7ae0f54b0` + `56afebbb5`) — 明文 SQLite确认 from abrignoni; kinds: message/contact
+- **Bilibili** (`0cbe4b0fe` + `b41fd2a0f` + `bfb4a9ac4`) — 明文 SQLite确认; kinds: history/favourite/follow. Plan §6.4 原推 SKIP (path A SESSDATA 已最优), v0.1 ship 作 path A 不可用 fallback.
+- **Weibo** (`1c877954f` + `e3b6641c2` + `8aef6419e` + `8b202c326`) — 零公开 schema, **3-branch decision E2E doc** (明文/SQLCipher/source-missing); kinds: post/favourite/follow
+- **Xhs** (`c1b601cfe` + `2fad4bfa8` + `9f37b10f8`) — **defer-recommended** per plan §6.5 (SQLCipher 几乎确定 + libshield.so 反 frida); v0.1 期待 70% 命中 likely-sqlcipher banner; kinds: note/liked/follow. uid 是 24-char hex (ObjectId).
+- **Kuaishou** (`b8fcbc47b` + `cac364435` ⚠ misattributed + `1046a4dfe`) — **defer-recommended** per plan §6.6 (SQLCipher 几乎确定 + libmsaoaidsec.so 反 frida 极高强度, **dual-role NS_sig3 SDK + anti-frida guard**); kinds: watch/collect/search (skip profile)
+
+### Shared scaffold (`pdh/social/common/`, Phase B0 `8051f4ae5`)
+
+- `LocalRootCollector` interface + `LocalSnapshotResult` sealed class
+- `BaseRootCredentialsStore` — EncryptedSharedPreferences + recordSync/recordError boilerplate
+- `DbCohortCopier` — WAL+SHM atomic cohort copy via `su -c`
+- `RootShellRunner` — `isSuAvailable()` + `execAndCapture()` for ls/probe
+
+### UI wiring
+
+- `HubLocalScreen.kt` onSyncRoot dispatch 6/6 platforms (Toutiao+Douyin+Bilibili+Weibo+Xhs+Kuaishou)
+- `HubLocalViewModel.kt` 6 `syncXxxRoot()` methods (~150 LOC each) + 24 VM tests + 12 constructor injections
+- 共享 path A 的 `globalSyncingAdapter` 单飞; "本机 root:" banner 前缀区分 path A/B
+
+### E2E docs (Win-first PowerShell)
+
+- 5 platform-specific E2E checklists (Toutiao+Douyin 1 个 + Bilibili / Weibo / Xhs / Kuaishou 各 1)
+- 1 unified 真机回归 master `PDH_Mode_B_RealDevice_Master_Checklist.md` (~1 day execution plan, 6 platforms in 1 Android session)
+- Defer-recommended platforms (Xhs/Kuaishou) explicitly frame v0.1 as expected-failure-mode validation, not success expectation
+
+### Phase 7 closure artifacts (this commit)
+
+- `docs/design/PDH_Mode_B_Phase_7_Plan.md` restored from `90e7f659c` (silently deleted, no commit log) + §8 shipped state added
+- `docs/design/PDH_Mode_B_Phase_7_Complete.md` (new) — retrospective + risk distribution + 5 traps + remaining work
+- `docs/design/PDH_Mode_B_RealDevice_Master_Checklist.md` (new) — unified 1-day真机回归 plan
+- CHANGELOG entry (this section)
+
+### Remaining (all user-driven from physical Android device)
+
+1. **真机 schema 探测** — 5 P7.x.0 fill-ins → update `DB_FILENAME_CANDIDATES` + column candidates per platform → v0.2 commits
+2. **Weibo v0.2** — depends on real-device W-2 branch (明文 / SQLCipher / source-missing)
+3. **Xhs v2.0 / Kuaishou v2.0** — frida + 反爬 SDK neuter + SQLCipher key derivation (~4-6 weeks/platform). Kuaishou v2.0 更复杂 — libmsaoaidsec dual-role hook 不能误伤 NS_sig3 签名.
+4. **6-platform 真机 E2E runs** — see `PDH_Mode_B_RealDevice_Master_Checklist.md`
+
+### Process traps surfaced (5, captured in memory `pdh_mode_b_phase_7.md`)
+
+1. Parallel-session WIP rip-out 误判 (P7.4.2) — 检查对方有没 commit 再 reapply patch
+2. Backup-restore loses just-committed edits (P7.5.2) — diff delta + git apply 不要 raw cp restore
+3. Parallel session steals my commit (P7.6.2) — `cac364435` NSIS commit bundled 412 lines of Kuaishou Mode B wiring
+4. Plan doc silently deleted — 关键 design docs 应 CI integrity check
+5. `cc` 子进程 epoll_wait dead-wait — `pdh_cc_subprocess_exit_and_vault_upsert` 已收
+
 ## [v5.0.3.85] - 2026-05-24 — hotfix5: MediaPipe SIGABRT + PDH trap #25 partial-index recovery
 
 > 用户反馈：「安卓端本机模型问几个联系人会崩」— v5.0.3.84 APK 在 productVersion bump (2026-05-23 09:10) 之后 30 小时才 land MediaPipe 三连修 (`3fa4a81d5`)，84 装机包不含 guard。本 hotfix 把 trap #22 (MediaPipe OUT_OF_RANGE → JNI abort → SIGABRT) 三处联动修真 ship；同期把 trap #25 (PDH partial-index `IF NOT EXISTS` drift) + rederive 孤儿数据救援 一并入袋。
