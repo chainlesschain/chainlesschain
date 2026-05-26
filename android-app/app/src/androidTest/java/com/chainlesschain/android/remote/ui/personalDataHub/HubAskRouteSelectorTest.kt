@@ -10,7 +10,7 @@ import com.chainlesschain.android.remote.commands.HealthVault
 import com.chainlesschain.android.remote.commands.HubHealth
 import org.junit.Rule
 import org.junit.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
 
 /**
  * 2026-05-24 — Compose UI integration test for the 4-way LLM route selector
