@@ -5,6 +5,10 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v5.0.3.94] - 2026-05-26 — re-tag of .93 fixes after release.yml bs3mc rebuild step failed CI
+
+> v5.0.3.93 tag 推送后 release.yml 新加的 bs3mc rebuild step 在 win/mac/linux 三 build 都 fail：desktop-app-vue 那份 bs3mc rebuild 成功（prebuild-install 拉 Electron 二进制），但 packages/cli 那份 fall back 到 source build，撞 v8::Context::GetIsolate 被移除的 V8 API（正是 electron-builder.yml 注释里说的那个坑）。改用 COPY 策略：只对 desktop-app-vue 跑 @electron/rebuild + `find packages -name better_sqlite3.node | xargs cp -f` 覆盖所有 nested 副本。v5.0.3.93 tag 试 delete-recreate / force-push / workflow_dispatch 都没能重新触发 release.yml（GitHub Actions 对同 tag 不重 trigger），所以 bump v5.0.3.94 强触发。所有 .93 修复内容保持原样（见下）。
+
 ## [v5.0.3.93] - 2026-05-26 — hotfix: PDH 「刷新失败」 (bs3mc ABI mismatch) + Providers 「加载配置 key 变了」 + save 假阴
 
 > User report: (1) desktop v5.0.3.88/.92 PersonalDataHub 点「刷新」 throws `刷新失败: NODE_MODULE_VERSION 127. This version of Node.js requires NODE_MODULE_VERSION 140`; (2) LLM config page 点「加载配置」 后 apiKey 被字符串 `null` 覆盖; (3) 保存 LLM key 后 toast 报「没有检测到配置变更」 实际未保存。 本 hotfix 三事齐修。
