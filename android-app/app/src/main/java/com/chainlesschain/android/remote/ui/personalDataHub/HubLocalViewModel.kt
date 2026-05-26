@@ -3743,6 +3743,165 @@ class HubLocalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Phase 7.1.2 — Toutiao Mode B (path B): in-APK root + local SQLite.
+     *
+     * Coexists with [syncToutiao] (path A, cookies + passport + signed
+     * endpoints). Path B reads `/data/data/com.ss.android.article.news/
+     * databases/*.db` directly via root — no internet, no PC, no signing
+     * required.
+     *
+     * UI single-flight via `globalSyncingAdapter` shared with path A
+     * (only one sync per platform at a time). Banner prefix "本机 root:"
+     * discriminates from path A banners in the same SocialCardState.
+     */
+    fun syncToutiaoRoot() {
+        if (_state.value.globalSyncingAdapter != null) return
+        if (!toutiaoRootCredentials.hasCredentials()) {
+            _state.update {
+                it.copy(
+                    toutiao = it.toutiao.copy(
+                        errorMessage = "本机 root: 请先在路径 A 完成登录 (passport_uid 会自动用作 root uid)",
+                    ),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    globalSyncingAdapter = "social-toutiao",
+                    toutiao = it.toutiao.copy(
+                        isSyncing = true,
+                        errorMessage = null,
+                        syncStatusText = "本机 root: 拷贝 DB cohort...",
+                    ),
+                )
+            }
+            val result = toutiaoRootCollector.snapshot()
+            when (result) {
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoCredentials -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: credentials 缺失 — 请先登录头条 App",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoRoot -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: 设备未 root — 需 Magisk root 才能读 databases/ 目录",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.NoDbKey -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: db key unavailable (provider=${result.provider})",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.ExtractFailed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Failed -> {
+                    _state.update {
+                        it.copy(
+                            globalSyncingAdapter = null,
+                            toutiao = it.toutiao.copy(
+                                isSyncing = false,
+                                syncStatusText = null,
+                                errorMessage = "本机 root: ${result.reason}${result.message?.let { " — $it" } ?: ""}",
+                            ),
+                        )
+                    }
+                }
+                is com.chainlesschain.android.pdh.social.common.LocalSnapshotResult.Ok -> {
+                    _state.update {
+                        it.copy(
+                            toutiao = it.toutiao.copy(
+                                syncStatusText = "本机 root: 写入金库 (${result.totalEvents} events)...",
+                            ),
+                        )
+                    }
+                    when (val r = ccRunner.syncAdapter(
+                        adapterName = "social-toutiao",
+                        inputPath = result.snapshotPath,
+                    )) {
+                        is LocalCcRunner.CcResult.Ok -> {
+                            val counts = result.perCategoryCounts
+                            val summary = listOfNotNull(
+                                counts["read"]?.takeIf { it > 0 }?.let { "$it 历史" },
+                                counts["collection"]?.takeIf { it > 0 }?.let { "$it 收藏" },
+                                counts["search"]?.takeIf { it > 0 }?.let { "$it 搜索" },
+                            ).joinToString(" / ")
+                            val banner = if (result.totalEvents == 0) {
+                                val dbName = result.diagnosticFields["dbFilename"] ?: "(unknown)"
+                                "本机 root: 同步成功但 0 events — DB '$dbName' 表 schema 可能漂移 (P7.1.0 探测待跟)"
+                            } else if (r.report.status != "ok" && r.report.error != null) {
+                                "本机 root: 入库状态 ${r.report.status} ($summary; ${r.report.error})"
+                            } else {
+                                "本机 root: 已同步 $summary (total ${result.totalEvents})"
+                            }
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        lastSyncAt = result.snapshottedAt,
+                                        lastSyncCount = r.report.ingested,
+                                        errorMessage = banner,
+                                    ),
+                                )
+                            }
+                        }
+                        is LocalCcRunner.CcResult.Failed -> {
+                            Timber.w(
+                                "HubLocalViewModel: toutiao root cc syncAdapter failed: %s",
+                                r.reason,
+                            )
+                            _state.update {
+                                it.copy(
+                                    globalSyncingAdapter = null,
+                                    toutiao = it.toutiao.copy(
+                                        isSyncing = false,
+                                        syncStatusText = null,
+                                        errorMessage = "本机 root: 写入金库失败 ${r.reason}",
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun logoutToutiao() {
         toutiaoCollector.logout()
         _state.update {
