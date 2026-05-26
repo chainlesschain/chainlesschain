@@ -3,6 +3,29 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.92] - 2026-05-26 — PDH Mode B Phase 7 (6-platform Android in-APK root local DB extraction) + Toutiao in-WebView prefetch (6/6 platforms) + npm pkg refresh
+
+### Toutiao in-WebView prefetch (Mode A 6/6 平台齐)
+
+- `ToutiaoJsBridge.kt`（新建） + `SocialCookieWebViewScreen.kt`/`HubLocalScreen.kt` 接入 — 复刻 [[bilibili_in_webview_prefetch_architecture]] 给头条；passport_uid cookie 抠 + `/passport/account/info/v2/?aid=24` 拿 profile event；feed/collection 试调 byted_acrawler 签名（多半 CORS 拒，v0 跳过）
+- `ToutiaoLocalCollector.kt` — `ingestPrefetched()` + `recordSync()` 写 staging JSON 走 cc adapter 入 vault
+- 至此 in-WebView prefetch 路径 4/6 平台齐（Bilibili + Douyin + Xhs + Toutiao），Weibo 路径 A 已稳，Kuaishou 走 SignProvider
+
+### npm 包升版
+
+- `@chainlesschain/personal-data-hub`: 0.3.6 → 0.3.7（SignProvider 接口 + Xhs/Toutiao/Kuaishou C 路径 collector，4 commit since last bump）
+- `chainlesschain` CLI: 0.162.25 → 0.162.26（C 路径 CLI/WS wiring + Bridge dry-run doctor，4 commit since last bump）
+- CLI dep pin `@chainlesschain/personal-data-hub` 同步 0.3.6 → 0.3.7
+
+### PDH Mode B Phase 7 — 6 平台 Android in-APK root SQLite 直读
+
+> 6/6 platforms 全 ship v0.1：Toutiao + Douyin + Bilibili + Weibo + Xhs + Kuaishou。每 platform 3 Kotlin files + 21 JVM tests。详 `CHANGELOG.md` 根条目。
+
+- Shared scaffold `pdh/social/common/` (B0 `8051f4ae5`)：LocalRootCollector + BaseRootCredentialsStore + DbCohortCopier + RootShellRunner
+- HubLocalScreen + HubLocalViewModel 6 `syncXxxRoot()` methods + 24 VM tests
+- 5 E2E checklists + 1 unified master checklist (Win-first PowerShell, ~1 day execution)
+- 剩 (user-driven 真机): 5 platform schema 探测 / Weibo v0.2 决策树 / Xhs v2.0 + Kuaishou v2.0 (frida + 反爬 SDK neuter, 4-6 weeks/platform)
+
 ## [v5.0.3.85] - 2026-05-24 — hotfix5: MediaPipe SIGABRT + PDH trap #22 recovery
 
 > 用户反馈：「安卓端本机模型问几个联系人会崩」— v5.0.3.84 APK 在 productVersion bump (2026-05-23 09:10) 之后 30 小时才 land MediaPipe 三连修 (`3fa4a81d5`)，84 装机包不含 guard。本 hotfix 把 trap #22 (MediaPipe OUT_OF_RANGE → JNI abort → SIGABRT) 三处联动修真 ship；同期把 trap #22b (PDH partial-index drift) + rederive 孤儿数据救援 一并入袋。

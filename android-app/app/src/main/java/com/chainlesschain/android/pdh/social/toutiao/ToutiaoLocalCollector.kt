@@ -222,6 +222,81 @@ class ToutiaoLocalCollector @Inject constructor(
         )
     }
 
+    /**
+     * 2026-05-26 — in-WebView prefetch 路径 (复刻 [BilibiliLocalCollector]/
+     * [DouyinLocalCollector]/[XhsLocalCollector].ingestPrefetched)。
+     */
+    suspend fun ingestPrefetched(prefetchedJson: String): SnapshotResult = withContext(Dispatchers.IO) {
+        val root = try {
+            JSONObject(prefetchedJson)
+        } catch (e: Exception) {
+            Timber.w(e, "ToutiaoLocalCollector: prefetched JSON parse failed (len=%d)", prefetchedJson.length)
+            return@withContext SnapshotResult.Failed("prefetched not JSON: ${e.message}")
+        }
+        val events = root.optJSONArray("events")
+        val total = events?.length() ?: 0
+        val snapshottedAt = root.optLong("snapshottedAt", System.currentTimeMillis())
+        val stagingDir = File(context.filesDir, ".chainlesschain/staging")
+        if (!stagingDir.exists() && !stagingDir.mkdirs()) {
+            return@withContext SnapshotResult.Failed(
+                "failed to create staging dir at ${stagingDir.absolutePath}",
+            )
+        }
+        val snapshotFile = File(stagingDir, "social-toutiao.json")
+        try {
+            snapshotFile.writeText(prefetchedJson, Charsets.UTF_8)
+        } catch (t: Throwable) {
+            Timber.e(t, "ToutiaoLocalCollector: prefetched write failed")
+            return@withContext SnapshotResult.Failed("write failed: ${t.message}")
+        }
+        credentialsStore.recordSync(snapshottedAt, total)
+        Timber.i("ToutiaoLocalCollector: ingested prefetched events=%d → %s",
+            total, snapshotFile.absolutePath)
+        root.optJSONArray("_debug")?.let { dbg ->
+            for (i in 0 until dbg.length()) {
+                val e = dbg.optJSONObject(i) ?: continue
+                Timber.i(
+                    "ToutiaoLocalCollector: prefetch[%d] engine=%s url=%s status=%s len=%d err=%s head=%s smoke=%s",
+                    i,
+                    e.optString("e", "?"),
+                    e.optString("u"),
+                    e.optString("s", "?"),
+                    e.optInt("l", -1),
+                    e.optString("err", ""),
+                    e.optString("head", "").replace("\n", " ").take(500),
+                    if (e.has("_smokeTest")) "uid=${e.optString("uid", "null")} nickname=${e.optString("nickname")} passportUidFromCookie=${e.optString("passportUidFromCookie")} cookieLen=${e.optInt("cookieLen")} hasAcrawler=${e.optBoolean("hasAcrawler")} loc=${e.optString("locHref")}" else "",
+                )
+            }
+        }
+        var profileCount = 0; var readCount = 0; var collectionCount = 0; var searchCount = 0
+        if (events != null) for (i in 0 until events.length()) {
+            when (events.optJSONObject(i)?.optString("kind")) {
+                "profile" -> profileCount++
+                "read" -> readCount++
+                "collection" -> collectionCount++
+                "search" -> searchCount++
+            }
+        }
+        SnapshotResult.Ok(
+            snapshotPath = snapshotFile.absolutePath,
+            profileCount = profileCount,
+            readCount = readCount,
+            collectionCount = collectionCount,
+            searchCount = searchCount,
+            totalEvents = total,
+            everythingEmpty = total == 0,
+            snapshottedAt = snapshottedAt,
+            lastErrorCode = 0,
+            lastErrorMessage = null,
+            v03Attempted = false,
+        )
+    }
+
+    /** Called by [HubLocalViewModel.onToutiaoLoginWithPrefetch] after cc sync ok. */
+    fun recordSync(eventCount: Int) {
+        credentialsStore.recordSync(System.currentTimeMillis(), eventCount)
+    }
+
     private suspend fun <T> safelyFetch(label: String, block: suspend () -> List<T>): List<T> {
         return try {
             block()

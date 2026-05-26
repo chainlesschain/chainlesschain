@@ -421,6 +421,8 @@ private fun CookieWebViewHost(
                 .DouyinJsBridge.setPending(sharedCb)
             com.chainlesschain.android.pdh.social.xiaohongshu
                 .XhsJsBridge.setPending(sharedCb)
+            com.chainlesschain.android.pdh.social.toutiao
+                .ToutiaoJsBridge.setPending(sharedCb)
             // 注入 Kotlin 侧拿到的 user_id (xhs 走 JWT decode 拿) — JS 端
             // window.__XHS_USER_ID__ 直接读, 跳过 /user/me HTTP
             val injectedPrefix = if (injectedXhsUserId != null) {
@@ -435,6 +437,8 @@ private fun CookieWebViewHost(
                         .DouyinJsBridge.clearPending()
                     com.chainlesschain.android.pdh.social.xiaohongshu
                         .XhsJsBridge.clearPending()
+                    com.chainlesschain.android.pdh.social.toutiao
+                        .ToutiaoJsBridge.clearPending()
                     Timber.w("SocialCookieWebView: prefetch JS timeout (15s)")
                     onPrefetchComplete(cookie, null)
                 }
@@ -483,6 +487,10 @@ private fun CookieWebViewHost(
                 addJavascriptInterface(
                     com.chainlesschain.android.pdh.social.xiaohongshu.XhsJsBridge,
                     "XhsBridge",
+                )
+                addJavascriptInterface(
+                    com.chainlesschain.android.pdh.social.toutiao.ToutiaoJsBridge,
+                    "ToutiaoBridge",
                 )
                 webViewClient = object : WebViewClient() {
                     /**

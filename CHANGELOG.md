@@ -5,7 +5,23 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-05-26 — PDH Mode B Phase 7 (6-platform Android in-APK root local DB extraction)
+## [v5.0.3.92] - 2026-05-26 — PDH Mode B Phase 7 (6-platform Android in-APK root local DB extraction) + Toutiao in-WebView prefetch (6/6 platforms) + npm pkg refresh
+
+### Toutiao in-WebView prefetch (Mode A 6/6 platforms 全 wired)
+
+- `ToutiaoJsBridge.kt`（新建）— 复刻 [[bilibili_in_webview_prefetch_architecture]] 同套路径给头条：JavascriptInterface `ToutiaoBridge` + AtomicReference pendingCallback + PREFETCH_JS（passport_uid cookie 抠 + `/passport/account/info/v2/?aid=24` 拿 user_id/screen_name → profile event；feed/collection 试调 byted_acrawler 签名，多半 CORS 拒 → v0 跳过）
+- `SocialCookieWebViewScreen.kt` — addJavascriptInterface + setPending/clearPending 4 处接入
+- `ToutiaoLocalCollector.kt` — `ingestPrefetched()` + `recordSync()` 写 staging JSON 走 cc adapter 入 vault
+- `HubLocalScreen.kt` — onPrefetchComplete + PREFETCH_JS 路由分支为 `social-toutiao`
+- 至此 in-WebView prefetch 路径 4/6 平台齐（Bilibili + Douyin + Xhs + Toutiao），剩 Weibo + Kuaishou v0.2 跟同套架子（Weibo 路径 A 已稳，Kuaishou 走 SignProvider 不走 prefetch）
+
+### npm 包升版 (per memory `npm_publish_pre_audit_version_bumps.md`)
+
+- `@chainlesschain/personal-data-hub`: 0.3.6 → 0.3.7（Phase 6a/6b/6c.2/6d.2 SignProvider 接口 + Xhs/Toutiao/Kuaishou C 路径 collector，4 commit since last bump）
+- `chainlesschain` (CLI): 0.162.25 → 0.162.26（Phase 6c.3/6d.3/6e.2 Toutiao/Kuaishou C 路径 CLI/WS wiring + Bridge dry-run doctor，4 commit since last bump）
+- CLI dep pin `@chainlesschain/personal-data-hub` 同步 0.3.6 → 0.3.7
+
+### PDH Mode B Phase 7 — 6-platform Android in-APK root local DB extraction
 
 > 推 Mode B = APK 内 root + 本机 SQLite 直读 path B,let user 没桌面/没网 时也能采集自己的社交数据 (path A 是 cookies + HTTP)。原 plan `docs/design/PDH_Mode_B_Phase_7_Plan.md` §5 推只做 P7.1 Toutiao + defer 4 platforms 独立 session；user 在 P7.0 后 explicit "Mode B 全面 5 平台" override, **本 session 6/6 platforms 全 ship v0.1**: Toutiao + Douyin + Bilibili + Weibo + Xhs + Kuaishou.
 
