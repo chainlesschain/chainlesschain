@@ -3771,7 +3771,7 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
         val s = vm.state.value.qq
         assertFalse(s.isLoggedIn)
-        assertNull(s.uin)
+        assertNull(s.uidStr)
         assertNull(s.lastSyncAt)
         assertFalse(s.pendingUinEntry)
     }
@@ -3786,7 +3786,7 @@ class HubLocalViewModelTest {
         advanceUntilIdle()
         val s = vm.state.value.qq
         assertTrue(s.isLoggedIn)
-        assertEquals("10086", s.uin)
+        assertEquals("10086", s.uidStr)
         assertEquals(1_700_000_000_000L, s.lastSyncAt)
         assertEquals(42, s.lastSyncCount)
     }
@@ -3839,7 +3839,7 @@ class HubLocalViewModelTest {
             val s = vm.state.value.qq
             assertFalse(s.pendingUinEntry)
             assertTrue(s.isLoggedIn)
-            assertEquals("10086", s.uin)
+            assertEquals("10086", s.uidStr)
             assertNull(s.errorMessage)
             io.mockk.verify { qqCredentials.saveAccount("10086", "123456789012345", null) }
         }
@@ -3918,7 +3918,7 @@ class HubLocalViewModelTest {
         vm.logoutQQ()
         val s = vm.state.value.qq
         assertFalse(s.isLoggedIn)
-        assertNull(s.uin)
+        assertNull(s.uidStr)
         assertNull(s.lastSyncAt)
         io.mockk.verify { qqCredentials.clear() }
     }
