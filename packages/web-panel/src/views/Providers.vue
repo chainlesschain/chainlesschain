@@ -100,6 +100,17 @@
       <!-- LLM Parameter Settings -->
       <a-divider style="border-color: var(--border-color); margin: 32px 0 24px;" />
 
+      <a-alert
+        v-if="showRestartHint"
+        type="warning"
+        show-icon
+        closable
+        style="margin-bottom: 16px;"
+        message="配置已保存，但当前聊天会话仍在用旧 key"
+        description="桌面端的 LLM 会话只在新建会话时重读配置。请新建一个 Chat，或重启应用，新 key/Provider 才会生效。"
+        @close="showRestartHint = false"
+      />
+
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <h3 class="section-title">LLM 参数设置</h3>
         <a-button
@@ -225,12 +236,14 @@ import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useProvidersStore } from '../stores/providers.js'
 import { useWsStore } from '../stores/ws.js'
+import { parseLlmConfigOutput } from '../utils/parsers.js'
 
 const providersStore = useProvidersStore()
 const ws = useWsStore()
 
 const configLoading = ref(false)
 const configSaving = ref(false)
+const showRestartHint = ref(false)
 
 const configForm = reactive({
   provider: undefined,
@@ -285,74 +298,11 @@ async function test(name) {
   }
 }
 
-/**
- * Parse `config list` output to extract LLM-related fields.
- * Expected output lines like:
- *   llm.provider = volcengine
- *   llm.model = doubao-seed-1-6-251015
- *   llm.apiKey = sk-***masked***
- *   llm.baseUrl = https://...
- *   llm.temperature = 0.7
- *   llm.maxTokens = 4096
- * Or JSON format, or key: value format.
- */
-function parseConfigOutput(output) {
-  const result = {}
-  if (!output) return result
-
-  // Try JSON parse first
-  try {
-    const json = JSON.parse(output.trim())
-    const llm = json.llm || json
-    if (llm.provider) result.provider = llm.provider
-    if (llm.model) result.model = llm.model
-    if (llm.apiKey) result.apiKey = llm.apiKey
-    if (llm.baseUrl) result.baseUrl = llm.baseUrl
-    if (llm.temperature !== undefined) result.temperature = Number(llm.temperature)
-    if (llm.maxTokens !== undefined) result.maxTokens = Number(llm.maxTokens)
-    return result
-  } catch (_) {
-    // Not JSON, parse line-by-line
-  }
-
-  const lines = output.split('\n')
-  for (const line of lines) {
-    const trimmed = line.trim()
-    // Match patterns: "llm.key = value" or "llm.key: value" or "key = value"
-    const match = trimmed.match(/^(?:llm\.)?(\w+)\s*[=:]\s*(.+)$/i)
-    if (!match) continue
-    const [, key, val] = match
-    const value = val.trim()
-    const keyLower = key.toLowerCase()
-
-    if (keyLower === 'provider' && value) {
-      result.provider = value
-    } else if (keyLower === 'model' && value) {
-      result.model = value
-    } else if (keyLower === 'apikey' && value) {
-      // Don't overwrite with masked values
-      if (!value.includes('***')) {
-        result.apiKey = value
-      }
-    } else if (keyLower === 'baseurl') {
-      result.baseUrl = value
-    } else if (keyLower === 'temperature') {
-      const num = parseFloat(value)
-      if (!isNaN(num)) result.temperature = num
-    } else if (keyLower === 'maxtokens') {
-      const num = parseInt(value, 10)
-      if (!isNaN(num)) result.maxTokens = num
-    }
-  }
-
-  return result
-}
-
 async function loadConfig() {
   configLoading.value = true
   try {
     const { output } = await ws.execute('config list', 15000)
-    const parsed = parseConfigOutput(output)
+    const parsed = parseLlmConfigOutput(output)
 
     if (parsed.provider) configForm.provider = parsed.provider
     if (parsed.model) configForm.model = parsed.model
@@ -361,8 +311,19 @@ async function loadConfig() {
     if (parsed.temperature !== undefined) configForm.temperature = parsed.temperature
     if (parsed.maxTokens !== undefined) configForm.maxTokens = parsed.maxTokens
 
-    // Snapshot for change detection
-    loadedConfig = { ...configForm }
+    // Snapshot ONLY backend-parsed values. Do NOT clone configForm — that
+    // would capture any user-typed-but-unsaved value (notably apiKey, which
+    // the CLI masks as `****` and the parser filters out) as the "loaded"
+    // baseline, causing the subsequent saveConfig diff check to see no
+    // change and silently skip writing the user's input to disk.
+    loadedConfig = {
+      provider: parsed.provider ?? '',
+      model: parsed.model ?? '',
+      apiKey: parsed.apiKey ?? '',
+      baseUrl: parsed.baseUrl ?? '',
+      temperature: parsed.temperature ?? configForm.temperature,
+      maxTokens: parsed.maxTokens ?? configForm.maxTokens,
+    }
 
     message.success('配置已加载')
   } catch (e) {
@@ -437,8 +398,21 @@ async function saveConfig() {
       message.warning(`部分配置保存失败: ${errors.join('; ')}`)
     } else if (saved.length > 0) {
       message.success(`已保存 ${saved.length} 项配置`)
-      // Update snapshot
+      // Update snapshot from form — at this point form == on-disk state.
       loadedConfig = { ...configForm }
+      // The desktop WS session manager re-reads config.json only when a new
+      // Session is created (see ws-cli-loader.js:118-128). Existing chat
+      // sessions still hold the old LLM credentials, so the user must start
+      // a new chat or restart the app for the change to reach the LLM client.
+      // Surface this explicitly when credentials/provider/baseUrl changed.
+      const needsRestart =
+        saved.includes('apiKey') ||
+        saved.includes('provider') ||
+        saved.includes('baseUrl') ||
+        saved.includes('model')
+      if (needsRestart) {
+        showRestartHint.value = true
+      }
       // Refresh provider list in case provider/model changed
       if (saved.includes('provider')) {
         providersStore.loadProviders()
