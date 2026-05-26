@@ -17,7 +17,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { parseProviders, parseStatus, KNOWN_PROVIDERS } from '../../src/utils/parsers.js'
+import {
+  parseProviders,
+  parseStatus,
+  KNOWN_PROVIDERS,
+  parseLlmConfigOutput,
+} from '../../src/utils/parsers.js'
 
 // ─── Router registration ─────────────────────────────────────────────────────
 
@@ -438,55 +443,17 @@ describe('parseStatus edge cases', () => {
   })
 })
 
-// ─── Providers config parsing (inline in Providers.vue) ──────────────────────
+// ─── Providers config parsing (parsers.parseLlmConfigOutput) ────────────────
+//
+// These tests bind the LIVE export imported above — not a local replica — so
+// regressions in the real implementation get caught instead of silently
+// passing against a stale copy.
 
-describe('Providers config parsing (parseConfigOutput logic)', () => {
-  // Replicate the parseConfigOutput function from Providers.vue
-  function parseConfigOutput(output) {
-    const result = {}
-    if (!output) return result
-    try {
-      const json = JSON.parse(output.trim())
-      const llm = json.llm || json
-      if (llm.provider) result.provider = llm.provider
-      if (llm.model) result.model = llm.model
-      if (llm.apiKey) result.apiKey = llm.apiKey
-      if (llm.baseUrl) result.baseUrl = llm.baseUrl
-      if (llm.temperature !== undefined) result.temperature = Number(llm.temperature)
-      if (llm.maxTokens !== undefined) result.maxTokens = Number(llm.maxTokens)
-      return result
-    } catch (_) { /* not JSON */ }
-
-    const lines = output.split('\n')
-    for (const line of lines) {
-      const trimmed = line.trim()
-      const match = trimmed.match(/^(?:llm\.)?(\w+)\s*[=:]\s*(.+)$/i)
-      if (!match) continue
-      const [, key, val] = match
-      const value = val.trim()
-      const keyLower = key.toLowerCase()
-      if (keyLower === 'provider' && value) result.provider = value
-      else if (keyLower === 'model' && value) result.model = value
-      else if (keyLower === 'apikey' && value) {
-        if (!value.includes('***')) result.apiKey = value
-      }
-      else if (keyLower === 'baseurl') result.baseUrl = value
-      else if (keyLower === 'temperature') {
-        const num = parseFloat(value)
-        if (!isNaN(num)) result.temperature = num
-      }
-      else if (keyLower === 'maxtokens') {
-        const num = parseInt(value, 10)
-        if (!isNaN(num)) result.maxTokens = num
-      }
-    }
-    return result
-  }
-
+describe('Providers config parsing (parseLlmConfigOutput)', () => {
   it('returns empty object for empty output', () => {
-    expect(parseConfigOutput('')).toEqual({})
-    expect(parseConfigOutput(null)).toEqual({})
-    expect(parseConfigOutput(undefined)).toEqual({})
+    expect(parseLlmConfigOutput('')).toEqual({})
+    expect(parseLlmConfigOutput(null)).toEqual({})
+    expect(parseLlmConfigOutput(undefined)).toEqual({})
   })
 
   it('parses YAML-like key: value lines', () => {
@@ -497,21 +464,21 @@ describe('Providers config parsing (parseConfigOutput logic)', () => {
       '  baseUrl: https://ark.cn-beijing.volces.com/api/v3',
       '  model: doubao-seed-1-6-251015',
     ].join('\n')
-    const result = parseConfigOutput(output)
+    const result = parseLlmConfigOutput(output)
     expect(result.provider).toBe('volcengine')
     expect(result.model).toBe('doubao-seed-1-6-251015')
     expect(result.baseUrl).toBe('https://ark.cn-beijing.volces.com/api/v3')
   })
 
   it('skips masked apiKey with ***', () => {
-    const output = 'apiKey: sk-***masked***'
-    const result = parseConfigOutput(output)
+    const output = 'llm.apiKey: sk-***masked***'
+    const result = parseLlmConfigOutput(output)
     expect(result.apiKey).toBeUndefined()
   })
 
-  it('accepts unmasked apiKey', () => {
-    const output = 'apiKey: sk-1234567890abcdef'
-    const result = parseConfigOutput(output)
+  it('accepts unmasked apiKey via flat llm.<key> form', () => {
+    const output = 'llm.apiKey: sk-1234567890abcdef'
+    const result = parseLlmConfigOutput(output)
     expect(result.apiKey).toBe('sk-1234567890abcdef')
   })
 
@@ -522,7 +489,7 @@ describe('Providers config parsing (parseConfigOutput logic)', () => {
       'llm.temperature = 0.5',
       'llm.maxTokens = 8192',
     ].join('\n')
-    const result = parseConfigOutput(output)
+    const result = parseLlmConfigOutput(output)
     expect(result.provider).toBe('openai')
     expect(result.model).toBe('gpt-4o')
     expect(result.temperature).toBe(0.5)
@@ -533,7 +500,7 @@ describe('Providers config parsing (parseConfigOutput logic)', () => {
     const json = JSON.stringify({
       llm: { provider: 'anthropic', model: 'claude-3', temperature: 0.8, maxTokens: 4096 },
     })
-    const result = parseConfigOutput(json)
+    const result = parseLlmConfigOutput(json)
     expect(result.provider).toBe('anthropic')
     expect(result.model).toBe('claude-3')
     expect(result.temperature).toBe(0.8)
@@ -542,9 +509,66 @@ describe('Providers config parsing (parseConfigOutput logic)', () => {
 
   it('parses flat JSON without llm wrapper', () => {
     const json = JSON.stringify({ provider: 'ollama', model: 'qwen2:7b' })
-    const result = parseConfigOutput(json)
+    const result = parseLlmConfigOutput(json)
     expect(result.provider).toBe('ollama')
     expect(result.model).toBe('qwen2:7b')
+  })
+
+  // ─── Regression: section scoping ──────────────────────────────────────────
+  //
+  // Bug (pre-fix): the parser used a flat regex `^(?:llm\.)?(\w+)…`. The real
+  // `cc config list` output has TWO `apiKey:` lines — one inside `llm:` (the
+  // masked `****`) and one inside `enterprise:` (the literal `null`). The
+  // flat parser hit `enterprise > apiKey: null`, saw "null" did not contain
+  // `***`, and silently overwrote result.apiKey with the string "null". On
+  // the UI that surfaced as: clicking "加载配置" replaced the form's real
+  // apiKey with literal text "null".
+  it('does NOT leak apiKey from a non-llm section (regression: enterprise apiKey: null)', () => {
+    const output = [
+      '  Config: C:\\Users\\u\\.chainlesschain\\config.json',
+      '',
+      '  llm:',
+      '    provider: volcengine',
+      '    apiKey: ****',
+      '    baseUrl: https://ark.cn-beijing.volces.com/api/v3',
+      '    model: doubao-seed-1-6-251015',
+      '  enterprise:',
+      '    serverUrl: null',
+      '    apiKey: null',
+    ].join('\n')
+    const result = parseLlmConfigOutput(output)
+    expect(result.provider).toBe('volcengine')
+    expect(result.baseUrl).toBe('https://ark.cn-beijing.volces.com/api/v3')
+    expect(result.model).toBe('doubao-seed-1-6-251015')
+    // Critical: apiKey must remain undefined because the only apiKey in the
+    // `llm:` block was masked. The `enterprise > apiKey: null` line must
+    // be ignored.
+    expect(result.apiKey).toBeUndefined()
+  })
+
+  it('ignores keys in sections following llm', () => {
+    const output = [
+      '  llm:',
+      '    provider: openai',
+      '    model: gpt-4o',
+      '  enterprise:',
+      '    provider: should-not-be-used',
+      '    model: should-not-be-used',
+    ].join('\n')
+    const result = parseLlmConfigOutput(output)
+    expect(result.provider).toBe('openai')
+    expect(result.model).toBe('gpt-4o')
+  })
+
+  it('ignores top-level keys appearing BEFORE the llm section header', () => {
+    const output = [
+      '  setupCompleted: true',
+      '  edition: enterprise',
+      '  llm:',
+      '    provider: anthropic',
+    ].join('\n')
+    const result = parseLlmConfigOutput(output)
+    expect(result.provider).toBe('anthropic')
   })
 })
 

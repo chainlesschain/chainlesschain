@@ -342,3 +342,97 @@ export function classifyLogLine(line) {
   if (/^\s/.test(line)) return 'line-indent'
   return ''
 }
+
+// ─── LLM Config (Providers.vue) ──────────────────────────────────────────────
+
+/**
+ * Parse `cc config list` output into the LLM section's parameter values.
+ *
+ * `cc config list` emits an indented section format:
+ *   llm:
+ *     provider: volcengine
+ *     apiKey: ****               ← masked, filtered out below
+ *     baseUrl: https://...
+ *   enterprise:
+ *     apiKey: null               ← belongs to a different section, MUST NOT leak
+ *
+ * The parser is section-aware: keys under `llm:` are captured, keys under any
+ * other section are ignored. The `llm.<key> = value` flat form is also
+ * honoured regardless of section context.
+ *
+ * Also accepts JSON: either `{llm:{…}}` or a flat object.
+ *
+ * @param {string|null|undefined} output
+ * @returns {{provider?:string, model?:string, apiKey?:string, baseUrl?:string, temperature?:number, maxTokens?:number}}
+ */
+export function parseLlmConfigOutput(output) {
+  const result = {}
+  if (!output) return result
+
+  // Try JSON parse first
+  try {
+    const json = JSON.parse(output.trim())
+    const llm = json.llm || json
+    if (llm.provider) result.provider = llm.provider
+    if (llm.model) result.model = llm.model
+    if (llm.apiKey) result.apiKey = llm.apiKey
+    if (llm.baseUrl) result.baseUrl = llm.baseUrl
+    if (llm.temperature !== undefined) result.temperature = Number(llm.temperature)
+    if (llm.maxTokens !== undefined) result.maxTokens = Number(llm.maxTokens)
+    return result
+  } catch (_) {
+    // Not JSON, parse line-by-line
+  }
+
+  const assign = (key, val) => {
+    const value = val.trim()
+    const keyLower = key.toLowerCase()
+    if (keyLower === 'provider' && value) {
+      result.provider = value
+    } else if (keyLower === 'model' && value) {
+      result.model = value
+    } else if (keyLower === 'apikey' && value) {
+      // Don't overwrite with masked values
+      if (!value.includes('***')) {
+        result.apiKey = value
+      }
+    } else if (keyLower === 'baseurl') {
+      result.baseUrl = value
+    } else if (keyLower === 'temperature') {
+      const num = parseFloat(value)
+      if (!isNaN(num)) result.temperature = num
+    } else if (keyLower === 'maxtokens') {
+      const num = parseInt(value, 10)
+      if (!isNaN(num)) result.maxTokens = num
+    }
+  }
+
+  let currentSection = null
+  const lines = output.split('\n')
+  for (const rawLine of lines) {
+    if (!rawLine.trim()) continue
+    const trimmed = rawLine.trim()
+
+    // Flat-key form: "llm.<key> = value" / "llm.<key>: value"
+    const flatMatch = trimmed.match(/^llm\.(\w+)\s*[=:]\s*(.+)$/i)
+    if (flatMatch) {
+      assign(flatMatch[1], flatMatch[2])
+      continue
+    }
+
+    // Section header: "<name>:" with no value
+    const sectionMatch = trimmed.match(/^([a-zA-Z][\w-]*)\s*:\s*$/)
+    if (sectionMatch) {
+      currentSection = sectionMatch[1].toLowerCase()
+      continue
+    }
+
+    // Indented "key: value" — only honoured inside the `llm:` block
+    if (currentSection !== 'llm') continue
+    const kvMatch = trimmed.match(/^(\w+)\s*[=:]\s*(.+)$/)
+    if (!kvMatch) continue
+    assign(kvMatch[1], kvMatch[2])
+  }
+
+  return result
+}
