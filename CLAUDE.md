@@ -143,6 +143,8 @@ REDIS_HOST=localhost:6379
 
 要改设计文档：(1) `git ls-files --error-unmatch <path>` 确认是否 tracked；(2) 若不是，找对应的 `sync-*.js` 看 `sourceDir` 找源；(3) 改源 + 跑 `node <sync-script>` 让两份副本刷新。`docs-site/docs/guide/**` 是 git tracked 的源文件，可以直接改。
 
+**加新中文文件名的源文档**：两 sync 脚本共享 `docs/design/_filename-map.json`（single source）。加映射改 JSON 即可，两 site 同时生效。值为字符串时两 site 用同名，值为 `{"docs-site": "...", "docs-site-design": "..."}` 对象时各 site 用各自 key。
+
 **例外白名单（每个 docs site 自管，不来自源）**：`index.md` 和 `.vitepress/`（在 EXCLUDE 里）。
 
 类似的"生成产物 vs 源"也存在于其它子树（如 `desktop-app-vue/docs/api/generated/`），编辑前先确认。

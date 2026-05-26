@@ -4,6 +4,9 @@
  * 对 markdown 中的裸 <tag> 占位符进行转义，避免 Vue 模板解析错误
  * 中文文件名转为 ASCII，避免服务器解压乱码
  * index.md 和 .vitepress/ 不会被覆盖
+ *
+ * 文件名映射来自单源 `docs/design/_filename-map.json`（两 site 共享）。
+ * 加新中文文件名 → 改 JSON。详见 CLAUDE.md "Doc-site source-of-truth"。
  */
 import {
   readFileSync,
@@ -13,203 +16,40 @@ import {
   readdirSync,
   statSync,
 } from "fs";
-import { join, dirname, resolve, basename } from "path";
+import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
 const sourceDir = resolve(projectRoot, "..", "docs", "design");
 const targetDir = resolve(projectRoot, "docs");
+const SITE_KEY = "docs-site-design";
 
 // 不覆盖的文件/目录
 const EXCLUDE = new Set(["index.md", ".vitepress"]);
 
-// ── 中文文件名 → ASCII 映射 ──────────────────────────────────────
-// 根目录文件
-const ROOT_FILE_MAP = {
-  "系统设计_主文档.md": "system-design-main.md",
-  "系统设计_个人移动AI管理系统.md": "system-design-full.md",
-  "安全机制设计.md": "security-design.md",
-  "数据同步方案.md": "data-sync-design.md",
-  "AI模型部署方案.md": "ai-model-deploy.md",
-  "实施总结与附录.md": "implementation-summary.md",
-  // 英文文件保持原名
-  "HOOKS_SYSTEM_DESIGN.md": "HOOKS_SYSTEM_DESIGN.md",
-  "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
-  "README.md": "README.md",
-  "桌面版UI重构_设计文档.md": "desktop-ui-refactor.md",
-  "桌面Web壳_架构与落地_设计文档.md": "desktop-web-shell-architecture.md",
-  "CC_PACK_打包指令设计文档.md": "cc-pack-design.md",
-  "CC_PACK_项目模式_设计文档.md": "cc-pack-project-mode-design.md",
-  "ClaudeBox学习_工具卡与任务面板落地方案.md": "claudebox-learning-plan.md",
-  "默克尔树证书_MTC_落地方案.md": "mtc-landing-plan.md",
-  "MTC_数据格式_v1.md": "mtc-data-format-v1.md",
-  "默克尔树证书_MTC_v0.2_评审清单.md": "mtc-review-checklist.md",
-  "MTC_联邦治理_v1.md": "mtc-federation-governance-v1.md",
-  "MTC_跨链桥_v1.md": "mtc-cross-chain-bridge-v1.md",
-  "Android_重新定位_设计文档.md": "android-repositioning.md",
-  "Android_ADR_重评估_v2.0.md": "android-adr-review-v2.md",
-  "三端_UI_Consistency_设计文档.md": "three-surface-ui-consistency.md",
-  "B1_WebShell_Multisig_Sign_spike.md": "b1-webshell-multisig-sign.md",
-  "B5_Crosschain_Outbound_Multisig_spike.md": "b5-crosschain-outbound-multisig.md",
-  "C1_WatchFace_VoiceMode_spike.md": "c1-watchface-voicemode.md",
-  "A1_Linux_Native_Pairing_spike.md": "a1-linux-native-pairing.md",
-  "Android_REMOTE_commands_inventory.md": "Android_REMOTE_commands_inventory.md",
-  "Android_Remote_Operate_Plan_C.md": "Android_Remote_Operate_Plan_C.md",
-  "Android_Remote_Terminal_Plan_A.md": "Android_Remote_Terminal_Plan_A.md",
-  "Android_Remote_Terminal_Plan_A1.md": "Android_Remote_Terminal_Plan_A1.md",
-  "Android_Remote_Operate_Plan_AB.md": "Android_Remote_Operate_Plan_AB.md",
-  "Android_Remote_File_Skill.md": "Android_Remote_File_Skill.md",
-  "iOS_Phase_1_Pairing_Flow_B.md": "iOS_Phase_1_Pairing_Flow_B.md",
-  "iOS_Phase_2_Remote_Terminal.md": "iOS_Phase_2_Remote_Terminal.md",
-  "iOS_Phase_3_Remote_Operate_Framework.md": "iOS_Phase_3_Remote_Operate_Framework.md",
-  "iOS_Phase_4_Notification_Skill.md": "iOS_Phase_4_Notification_Skill.md",
-  "iOS_Phase_5_AI_Chat_Skill.md": "iOS_Phase_5_AI_Chat_Skill.md",
-  "iOS_对标_Android_Phase_6_Plan.md": "iOS_Phase_6_Mirror_Android_Plan.md",
-  "Phase3d_Mobile_Sync_设计文档.md": "phase3d-mobile-sync.md",
-  "Phase3c_OSS_WebDAV_网盘_设计文档.md": "phase3c-oss-webdav.md",
-  "web-shell-ChatPanel_port_v1.md": "web-shell-chatpanel-port.md",
-  "MofN_多签_应用扩展_v1.md": "mofn-multisig-extension-v1.md",
-  "Android_Auto_DHU_Setup.md": "Android_Auto_DHU_Setup.md",
-  "Personal_Data_Hub_Architecture.md": "Personal_Data_Hub_Architecture.md",
-  "Personal_Data_Hub_E2E_Runbook.md": "Personal_Data_Hub_E2E_Runbook.md",
-  "Personal_Data_Hub_EntityResolver.md": "Personal_Data_Hub_EntityResolver.md",
-  "Adapter_Email_IMAP.md": "Adapter_Email_IMAP.md",
-  "Adapter_Alipay_Bill.md": "Adapter_Alipay_Bill.md",
-  "Adapter_AIChat_History.md": "Adapter_AIChat_History.md",
-  "Adapter_WeChat_SQLCipher.md": "Adapter_WeChat_SQLCipher.md",
-  "Adapter_WeChat_SQLCipher_Frida_Setup.md": "Adapter_WeChat_SQLCipher_Frida_Setup.md",
-  "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md": "Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md",
-  "Adapter_System_Data.md": "Adapter_System_Data.md",
-  "Adapter_Shopping_Cookie.md": "Adapter_Shopping_Cookie.md",
-  "Adapter_Travel_LBS.md": "Adapter_Travel_LBS.md",
-  "Adapter_Social_Messaging.md": "Adapter_Social_Messaging.md",
-  "Personal_Data_Hub_Python_Sidecar.md": "Personal_Data_Hub_Python_Sidecar.md",
-  "Personal_Data_Hub_sjqz_Comparison.md": "Personal_Data_Hub_sjqz_Comparison.md",
-  "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md": "Personal_Data_Hub_Phase_14_Mobile_Native_Entry.md",
-  "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md": "Personal_Data_Hub_Phase_14_3_Sync_Audit_Streaming.md",
-  "Personal_Data_Hub_Analysis_Skills.md": "Personal_Data_Hub_Analysis_Skills.md",
-  "Personal_Data_Hub_Fixture_Pin_Protocol.md": "Personal_Data_Hub_Fixture_Pin_Protocol.md",
-  "Personal_Data_Hub_Android_Standalone_Cc.md": "Personal_Data_Hub_Android_Standalone_Cc.md",
-  "Cc_NL_Phone_App_Manager.md": "Cc_NL_Phone_App_Manager.md",
-};
+// ── 共享 single-source filename map ──
+const sharedMap = JSON.parse(
+  readFileSync(resolve(sourceDir, "_filename-map.json"), "utf-8"),
+);
 
-// modules/ 文件：提取编号前缀作为 ASCII 名
-// 01_知识库管理模块.md → m01-knowledge-base.md
-const MODULE_FILE_MAP = {
-  "01_知识库管理模块.md": "m01-knowledge-base.md",
-  "02_去中心化社交模块.md": "m02-decentralized-social.md",
-  "03_交易辅助模块.md": "m03-trading-assistant.md",
-  "04_项目管理模块.md": "m04-project-management.md",
-  "05_企业版组织模块.md": "m05-enterprise-org.md",
-  "06_AI优化系统.md": "m06-ai-optimization.md",
-  "07_性能优化系统.md": "m07-performance-optimization.md",
-  "08_MCP与配置系统.md": "m08-mcp-config.md",
-  "09_浏览器自动化系统.md": "m09-browser-automation.md",
-  "10_远程控制系统.md": "m10-remote-control.md",
-  "11_企业审计系统.md": "m11-enterprise-audit.md",
-  "12_插件市场系统.md": "m12-plugin-marketplace.md",
-  "13_多代理系统.md": "m13-multi-agent.md",
-  "14_SSO企业认证.md": "m14-sso-enterprise-auth.md",
-  "15_MCP_SDK系统.md": "m15-mcp-sdk.md",
-  "16_AI技能系统.md": "m16-ai-skills.md",
-  "17_EvoMap系统.md": "m17-evomap.md",
-  "17_IPFS去中心化存储.md": "m17b-ipfs-storage.md",
-  "18_社交AI系统.md": "m18-social-ai.md",
-  "18_P2P实时协作系统.md": "m18b-p2p-realtime-collab.md",
-  "19_合规分类系统.md": "m19-compliance.md",
-  "19_自治Agent_Runner.md": "m19b-agent-runner.md",
-  "20_企业用户配置系统.md": "m20-enterprise-provisioning.md",
-  "20_模型量化系统.md": "m20b-model-quantization.md",
-  "21_统一密钥系统.md": "m21-unified-key.md",
-  "21_i18n国际化.md": "m21b-i18n.md",
-  "22_智能内容推荐系统.md": "m22-content-recommendation.md",
-  "22_性能自动调优.md": "m22b-performance-tuning.md",
-  "23_Nostr桥接系统.md": "m23-nostr-bridge.md",
-  "23_企业组织管理.md": "m23b-enterprise-org-mgmt.md",
-  "24_去中心化Agent网络.md": "m24-decentralized-agent-network.md",
-  "24_数据防泄漏系统.md": "m24b-dlp-prevention.md",
-  "25_安全信息事件管理系统.md": "m25-siem.md",
-  "25_自治运维系统.md": "m25b-autonomous-ops.md",
-  "26_社区治理系统.md": "m26-community-governance.md",
-  "26_开发流水线编排.md": "m26b-dev-pipeline.md",
-  "27_Matrix集成系统.md": "m27-matrix-integration.md",
-  "27_多模态协作.md": "m27b-multimodal-collab.md",
-  "28_基础设施编排系统.md": "m28-infra-orchestration.md",
-  "28_自然语言编程.md": "m28b-nl-programming.md",
-  "29_生产强化系统.md": "m29-production-hardening.md",
-  "30_联邦强化系统.md": "m30-federation-hardening.md",
-  "31_压力测试系统.md": "m31-stress-testing.md",
-  "32_信誉优化系统.md": "m32-reputation-optimizer.md",
-  "33_跨组织SLA管理系统.md": "m33-cross-org-sla.md",
-  "34_技术学习引擎系统.md": "m34-tech-learning.md",
-  "35_自主开发者系统.md": "m35-autonomous-developer.md",
-  "36_协作治理系统.md": "m36-collaboration-governance.md",
-  "37_技能市场系统.md": "m37-skill-marketplace.md",
-  "38_去中心化推理网络系统.md": "m38-decentralized-inference.md",
-  "39_信任安全系统.md": "m39-trust-security.md",
-  "40_协议融合系统.md": "m40-protocol-fusion.md",
-  "41_去中心化基础设施系统.md": "m41-decentralized-infra.md",
-  "42_EvoMap高级联邦系统.md": "m42-evomap-federation.md",
-  "43_IPC域分割与懒加载系统.md": "m43-ipc-domain-split.md",
-  "44_共享资源层与依赖注入容器.md": "m44-di-container.md",
-  "45_数据库演进与迁移框架.md": "m45-database-migration.md",
-  "46_A2A协议引擎.md": "m46-a2a-protocol.md",
-  "47_自主工作流编排器.md": "m47-workflow-orchestrator.md",
-  "48_层次化记忆系统2.0.md": "m48-hierarchical-memory.md",
-  "49_多模态感知层.md": "m49-multimodal-perception.md",
-  "50_Agent经济系统.md": "m50-agent-economy.md",
-  "51_代码生成Agent2.0.md": "m51-code-agent.md",
-  "52_Agent安全沙箱2.0.md": "m52-agent-sandbox.md",
-  "53_零知识证明引擎.md": "m53-zkp-engine.md",
-  "54_跨链互操作协议.md": "m54-cross-chain.md",
-  "55_去中心化身份2.0.md": "m55-did-v2.md",
-  "56_隐私计算框架.md": "m56-privacy-computing.md",
-  "57_DAO治理2.0.md": "m57-dao-governance.md",
-  "58_低代码平台.md": "m58-low-code.md",
-  "59_企业知识图谱.md": "m59-enterprise-kg.md",
-  "60_BI智能分析.md": "m60-bi-analytics.md",
-  "61_工作流自动化引擎.md": "m61-workflow-automation.md",
-  "62_多租户SaaS引擎.md": "m62-multi-tenant-saas.md",
-  "63_统一应用运行时.md": "m63-unified-runtime.md",
-  "64_智能插件生态2.0.md": "m64-plugin-ecosystem.md",
-  "65_自进化AI系统.md": "m65-self-evolving-ai.md",
-  "66_CLI分发系统.md": "m66-cli-distribution.md",
-  "67_CLI高级功能补齐.md": "m67-cli-advanced.md",
-  "68_CLI-Anything集成.md": "m68-cli-anything.md",
-  "69_WebSocket服务器接口.md": "m69-websocket-server.md",
-  "70_Agent智能增强系统.md": "m70-agent-intelligence.md",
-  "71_子代理隔离系统.md": "m71-sub-agent-isolation.md",
-  "60_CLI指令技能包系统.md": "m60b-cli-skill-packs.md",
-  "71_AI音视频创作模板.md": "m71b-ai-media-creator.md",
-  "72_AI文档创作模板.md": "m72-ai-doc-creator.md",
-  "73_Web管理界面.md": "m73-web-ui.md",
-  "74_AI编排层系统.md": "m74-orchestration-layer.md",
-  "75_Web管理面板.md": "m75-web-panel.md",
-  "76_技能创建系统.md": "m76-skill-creator.md",
-  "77_Agent架构优化系统.md": "m77-agent-optimization.md",
-  "78_CLI_Agent_Runtime重构实施计划.md": "m78-cli-agent-runtime.md",
-  "79_Coding_Agent系统.md": "m79-coding-agent.md",
-  "80_规范工作流系统.md": "m80-canonical-workflow.md",
-  "81_轻量多Agent编排系统.md": "m81-sub-runtime-pool.md",
-  "82_CLI_Runtime收口路线图.md": "m82-cli-runtime-convergence.md",
-  "83_工具描述规范统一.md": "m83-tool-descriptor-unification.md",
-  "84_自主学习闭环系统.md": "m84-autonomous-learning-loop.md",
-  "85_Hermes_Agent对标实施方案.md": "m85-hermes-agent-parity.md",
-  "85_文档代码差距补全.md": "m85b-doc-code-gap-fill.md",
-  "86_Web_Cowork日常任务协作系统.md": "m86-web-cowork.md",
-  "87_Cowork_Evolution_N1_N7.md": "m87-cowork-evolution.md",
-  "88_OpenAgents对标补齐方案.md": "m88-open-agents-parity.md",
-  "89_v5.0.2.9_六项优化_设计说明.md": "m89-runtime-six-enhancements.md",
-  "90_AI视频生成_Volcengine_Seedance.md": "m90-ai-video-generation-seedance.md",
-  "91_Managed_Agents对标计划.md": "m91-managed-agents-parity.md",
-  "92_Deep_Agents_Deploy借鉴落地方案.md": "m92-deep-agents-deploy.md",
-  "93_CutClaw借鉴_视频剪辑Agent.md": "m93-cutclaw-video-editing-agent.md",
-  "94_QualityGate通用质量门控.md": "m94-quality-gate.md",
-  "95_社交协议生态补齐方案.md": "m95-social-protocol-parity.md",
-  "96_V2规范层governance.md": "m96-v2-governance.md",
-  "97_桌面版UI_ClaudeDesktop重构计划.md": "m97-claude-desktop-refactor.md",
-};
+function resolveForSite(value) {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  return value[SITE_KEY] ?? null;
+}
+
+function buildSectionMap(section) {
+  const out = {};
+  for (const [src, value] of Object.entries(section)) {
+    const target = resolveForSite(value);
+    if (target != null) out[src] = target;
+  }
+  return out;
+}
+
+const ROOT_FILE_MAP = buildSectionMap(sharedMap.root);
+const MODULE_FILE_MAP = buildSectionMap(sharedMap.modules);
 
 /**
  * 获取目标文件名（中文 → ASCII）
@@ -227,12 +67,12 @@ function getTargetFilename(filename, isModule) {
   // 含 CJK 字符且未映射 → 硬失败。之前 fall-through 返回 "unknown-unmapped.md"
   // 会让多个未映射文件 silently 互相覆盖（见 memory
   // docs_site_sync_unmapped_fallthrough）。强制要求显式映射。
-  const mapName = isModule ? "MODULE_FILE_MAP" : "ROOT_FILE_MAP";
+  const section = isModule ? "modules" : "root";
   const srcRel = `docs/design/${isModule ? "modules/" : ""}${filename}`;
   throw new Error(
     `[sync-docs] 未映射的非 ASCII 文件名: ${filename}\n` +
       `  源文件: ${srcRel}\n` +
-      `  请在 docs-site-design/scripts/sync-docs.js 的 ${mapName} 中添加显式映射，\n` +
+      `  请在 docs/design/_filename-map.json 的 "${section}" 节下添加映射，\n` +
       `  或将源文件重命名为纯 ASCII（regex /^[\\x20-\\x7e]+$/）。`,
   );
 }
@@ -390,6 +230,7 @@ function syncDir(src, dest, isRoot = false, isModuleDir = false) {
 
   for (const entry of entries) {
     if (isRoot && EXCLUDE.has(entry)) continue;
+    if (isRoot && entry === "_filename-map.json") continue;
 
     const srcPath = join(src, entry);
     const stat = statSync(srcPath);
