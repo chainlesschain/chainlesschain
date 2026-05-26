@@ -187,6 +187,81 @@ class XhsLocalCollector @Inject constructor(
     }
 
     /**
+     * 2026-05-26 — in-WebView prefetch 路径 (复刻 [BilibiliLocalCollector]
+     * /[DouyinLocalCollector].ingestPrefetched)。绕开 OkHttp 端 TLS 指纹 + X-S
+     * 签名死路，直接落 staging JSON 给 cc adapter ingest。
+     */
+    suspend fun ingestPrefetched(prefetchedJson: String): SnapshotResult = withContext(Dispatchers.IO) {
+        val root = try {
+            JSONObject(prefetchedJson)
+        } catch (e: Exception) {
+            Timber.w(e, "XhsLocalCollector: prefetched JSON parse failed (len=%d)", prefetchedJson.length)
+            return@withContext SnapshotResult.Failed("prefetched not JSON: ${e.message}")
+        }
+        val events = root.optJSONArray("events")
+        val total = events?.length() ?: 0
+        val snapshottedAt = root.optLong("snapshottedAt", System.currentTimeMillis())
+        val stagingDir = File(context.filesDir, ".chainlesschain/staging")
+        if (!stagingDir.exists() && !stagingDir.mkdirs()) {
+            return@withContext SnapshotResult.Failed(
+                "failed to create staging dir at ${stagingDir.absolutePath}",
+            )
+        }
+        val snapshotFile = File(stagingDir, "social-xiaohongshu.json")
+        try {
+            snapshotFile.writeText(prefetchedJson, Charsets.UTF_8)
+        } catch (t: Throwable) {
+            Timber.e(t, "XhsLocalCollector: prefetched write failed")
+            return@withContext SnapshotResult.Failed("write failed: ${t.message}")
+        }
+        credentialsStore.recordSync(snapshottedAt, total)
+        Timber.i(
+            "XhsLocalCollector: ingested prefetched events=%d → %s",
+            total, snapshotFile.absolutePath,
+        )
+        root.optJSONArray("_debug")?.let { dbg ->
+            for (i in 0 until dbg.length()) {
+                val e = dbg.optJSONObject(i) ?: continue
+                Timber.i(
+                    "XhsLocalCollector: prefetch[%d] engine=%s url=%s status=%s len=%d err=%s head=%s smoke=%s",
+                    i,
+                    e.optString("e", "?"),
+                    e.optString("u"),
+                    e.optString("s", "?"),
+                    e.optInt("l", -1),
+                    e.optString("err", ""),
+                    e.optString("head", "").replace("\n", " ").take(500),
+                    if (e.has("_smokeTest")) "userId=${e.optString("userId", "null")} nickname=${e.optString("nickname")} a1Present=${e.optBoolean("a1Present")} cookieLen=${e.optInt("cookieLen")} cookieFields=${e.optString("cookieFields")} signers=${e.optJSONObject("signerCandidates")} loc=${e.optString("locHref")}" else "",
+                )
+            }
+        }
+        var noteCount = 0; var likedCount = 0; var followCount = 0
+        if (events != null) for (i in 0 until events.length()) {
+            when (events.optJSONObject(i)?.optString("kind")) {
+                "note" -> noteCount++
+                "liked" -> likedCount++
+                "follow" -> followCount++
+            }
+        }
+        SnapshotResult.Ok(
+            snapshotPath = snapshotFile.absolutePath,
+            noteCount = noteCount,
+            likedCount = likedCount,
+            followCount = followCount,
+            totalEvents = total,
+            everythingEmpty = total == 0,
+            snapshottedAt = snapshottedAt,
+            lastErrorCode = 0,
+            lastErrorMessage = null,
+        )
+    }
+
+    /** Called by [HubLocalViewModel.onXhsLoginWithPrefetch] after cc sync ok. */
+    fun recordSync(eventCount: Int) {
+        credentialsStore.recordSync(System.currentTimeMillis(), eventCount)
+    }
+
+    /**
      * 与 Weibo 同：suspend (因为 fetchMe 是 HTTP 调用)。但又比 Weibo 多解 a1
      * cookie 字段单独存。返 false = cookie 不全 (缺 a1) / fetchMe 失败 / login
      * 未完成 — caller 通过 [lastLoginErrorCode] / [lastLoginErrorMessage] 拿到

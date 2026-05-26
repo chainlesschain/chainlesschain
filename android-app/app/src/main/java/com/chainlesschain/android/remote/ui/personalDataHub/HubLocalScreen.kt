@@ -331,6 +331,9 @@ fun HubLocalScreen(
                     // wired (Douyin has classes but no VM method yet).
                     onSyncRoot = when (card.adapterName) {
                         "social-toutiao" -> { -> viewModel.syncToutiaoRoot() }
+                        // Phase 7.1.2b — Douyin Mode B wired. Same pattern
+                        // as Toutiao (su + cohort + plaintext SQLite).
+                        "social-douyin" -> { -> viewModel.syncDouyinRoot() }
                         else -> null
                     },
                 )
