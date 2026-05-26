@@ -80,8 +80,12 @@ class TurnEphemeralRefresherTest {
         refresher = TurnEphemeralRefresher(preferences, client, iceConfig)
 
         refresher.start()
-        // 等首次 fetch + apply 完成（poll up to 3s, Windows JVM Dispatchers.IO 启动可能慢）
-        val deadline = System.currentTimeMillis() + 3000
+        // 等首次 fetch + apply 完成。3s deadline 在 CI 大并发 (1671 其他 test 同跑)
+        // 下 race-lose: refreshLoop 还没把 fetch 结果 apply 到 iceConfig，poll 就先
+        // 超时退出 → addTurnServer verify 0 calls → 假阳性 fail (run 26478795271
+        // / 26451121618 retry pass)。bump 到 10s — current() 一就续 break 不付
+        // delay 成本，只有 flake 路径才吃满 budget。
+        val deadline = System.currentTimeMillis() + 10000
         while (refresher.current() == null && System.currentTimeMillis() < deadline) {
             kotlinx.coroutines.delay(50)
         }
