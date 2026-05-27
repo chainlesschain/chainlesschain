@@ -182,7 +182,8 @@ class XhsApiClientSignBridgeTest {
         val req = server.takeRequest()
         assertEquals("XYW_bridge_sig", req.getHeader("X-s"))
         assertNotNull(bridge.lastPurpose)
-        assertTrue(bridge.lastPurpose!!.contains("note/like/page"))
+        // 2026-05-27 path 改：`note/like/page` (admin/300011) → `note/liked` (user-facing)
+        assertTrue(bridge.lastPurpose!!.contains("note/liked"))
     }
 
     @Test
@@ -198,7 +199,8 @@ class XhsApiClientSignBridgeTest {
         val req = server.takeRequest()
         assertEquals("XYW_bridge_sig", req.getHeader("X-s"))
         assertNotNull(bridge.lastPurpose)
-        assertTrue(bridge.lastPurpose!!.contains("follow/list"))
+        // 2026-05-27 path 改：`user/follow/list?user_id=X` (404) → `user/<uid>/followings`
+        assertTrue(bridge.lastPurpose!!.contains("followings"))
     }
 
     @Test
