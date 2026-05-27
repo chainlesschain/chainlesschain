@@ -3,6 +3,28 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## [v5.0.3.96] - 2026-05-27 — fix(desktop): 检查更新两路兜底 — release-in-progress 友好提示 + 窗口隐藏发系统通知
+
+> 用户在 v5.0.3.94 反馈：托盘点「检查更新」没反应；早些时候同一按钮还弹出过红色 dialog 把整段 HttpError 404 stacktrace 糊脸。诊断 → 两个独立但叠在一起的问题：(1) tag 推后 release.yml workflow 还在上传 assets 时 `latest*.yml` 暂 404，electron-updater 把整段 stacktrace 当 error 发渲染端 + 弹红卡；(2) v5.0.3.44 后更新提示走渲染端 AppUpdateNotifier 卡片（画在 BrowserWindow 内），用户从托盘点检查更新时主窗口仍在托盘 → 卡片画在不可见窗口 → 哑响。
+
+### Fix #1 —— release-in-progress 友好提示 (`39913cfd7`)
+
+- 新 `desktop-app-vue/src/main/system/update-error-classifier.js` 把 electron-updater 错按 kind 分类：`release-in-progress` (Cannot find latest*.yml / 404 拉 latest*.yml) vs `generic`
+- `auto-updater.js` error handler 按 kind 分流：release-in-progress 后台自检完全静默；手动检查弹 info dialog「新版本正在发布中，请稍后几分钟再试」 而不是糊 stacktrace
+- 8 case 单测覆盖（含真实 v5.0.3.95 错误文本 + latest-mac/linux 变体 + 404-only-on-non-yml 反例 + null/undefined 边界）
+
+### Fix #2 —— 窗口隐藏到托盘时检查更新发系统通知兜底 (`bc322467d`)
+
+- `enhanced-tray-manager.js#triggerCheckForUpdates`：触发检查前先 `this.showWindow()` 把主窗口拉回前台，确保 notifier 卡片可见
+- `auto-updater.js`：`update-downloaded` + `update-not-available` 两个事件加 OS Notification 兜底（窗口隐藏 / 最小化 / destroyed 时发），点击通知亮窗 → 用户随即看到 notifier 卡片 / native dialog
+- 新 `update-window-visibility.js` 抽 `shouldFallbackToOsNotification` 纯函数 helper
+- 9 case 单测覆盖 null / destroyed / 不支持 / 可见 / 隐藏 / 最小化 / 防御性兼容
+
+### Bundled
+
+- `test(android): Phase 2-6 androidTest infra — 18-stub reactivation foundation` (`c34e8b8ee`)
+- `docs: auto-generate documentation from latest changes` (`c3f7a0c1c`)
+
 ## [v5.0.3.95] - 2026-05-27 — fix(desktop): legacy-GPU Chromium 130+ 崩溃自动恢复 (trap #26)
 
 > 用户反馈：`ChainlessChain-Setup-5.0.3-alpha.94.exe` 装一会闪退。诊断结果不是 installer 问题 —— NSIS 装成功，但安装完最后那步自动启动 `ChainlessChain.exe`，Electron 39 / Chromium 130+ 的 GPU 进程在 `CoreMessaging.dll` 抛 `STATUS_FAIL_FAST_EXCEPTION (0xc0000602)`，因目标机 GPU 驱动太老（确认机型 Intel Iris Pro 5200 + 2016-09 驱动）。任何 ≤2018 GPU 驱动 + 老 Intel HD/Iris 系列机器都会撞这条，是 trap #26 (Legacy-GPU Chromium fail-fast) 的典型表现。
