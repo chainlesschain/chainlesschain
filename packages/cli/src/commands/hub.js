@@ -121,6 +121,43 @@ async function cmdAsk(question, options) {
   }
 }
 
+// ─── retrieve-context (LLM-free RAG preflight) ─────────────────────────
+//
+// 2026-05-27 — Bridges Android CLOUD_ANDROID route to RAG. AnalysisEngine
+// already exposes `retrieveContext()` which runs parseQuery → _gatherFacts
+// → buildPrompt and returns the LLM-ready messages WITHOUT calling any
+// LLM. This subcommand surfaces that JSON to stdout so a non-Ollama
+// caller (Android cloud LLM provider — Doubao / DeepSeek / Kimi) can:
+//   1. Spawn `cc hub retrieve-context "<q>" --max-facts 20 --json`
+//   2. Parse JSON → get { messages, factIds, factCount, parsed, ... }
+//   3. POST messages to the cloud LLM provider directly
+//   4. Validate citations from the answer against factIds locally
+//
+// Privacy invariant: retrieveContext does NOT invoke any LLM, so it never
+// touches `acceptNonLocal` — the caller's own gate is the gate. The
+// returned messages contain raw user data (events / persons / items)
+// formatted as the prompt's FACTS block; the caller is responsible for
+// where they POST it.
+
+async function cmdRetrieveContext(question, options) {
+  try {
+    const hub = await (options._getHub || getHub)();
+    if (!hub.engine) throw new Error("Analysis engine unavailable");
+    const maxFacts = parsePositiveInt(options.maxFacts);
+    const maxQueryLimit = parsePositiveInt(options.maxQueryLimit);
+    const retrieveOptions = { skipAudit: false };
+    if (maxFacts !== null) retrieveOptions.maxFacts = maxFacts;
+    if (maxQueryLimit !== null) retrieveOptions.maxQueryLimit = maxQueryLimit;
+    const result = await hub.engine.retrieveContext(question, retrieveOptions);
+    // Always JSON output — this command is machine-only by design. The
+    // shape mirrors AnalysisEngine.retrieveContext return + the system
+    // prompt baked in (so the caller doesn't need to re-fetch it).
+    printJson(result);
+  } catch (err) {
+    fail(null, err, true /* json */);
+  }
+}
+
 // ─── stats ────────────────────────────────────────────────────────────
 
 async function cmdStats(options) {
@@ -1961,6 +1998,21 @@ export function registerHubCommand(program) {
     .action(cmdAsk);
 
   hub
+    .command("retrieve-context <question>")
+    .description(
+      "RAG preflight — gather facts + build LLM prompt WITHOUT calling LLM (for cloud-LLM callers that need RAG context)",
+    )
+    .option(
+      "--max-facts <n>",
+      "Cap facts in prompt (default 80; on-device small models e.g. Qwen2.5-1.5B should pass 20)",
+    )
+    .option(
+      "--max-query-limit <n>",
+      "Cap vault queryEvents limit (default 200; small-model callers should pass 50)",
+    )
+    .action(cmdRetrieveContext);
+
+  hub
     .command("stats")
     .description("Vault row counts + registered adapter list + hub paths")
     .option("--json", "Output JSON")
@@ -2379,6 +2431,7 @@ export function registerHubCommand(program) {
 // real `getHub()` call. The commander wiring above is the runtime path.
 export const _internal = {
   cmdAsk,
+  cmdRetrieveContext,
   parsePositiveInt,
   cmdAIChatList,
   cmdAIChatLogin,

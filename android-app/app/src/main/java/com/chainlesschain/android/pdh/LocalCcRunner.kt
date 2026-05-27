@@ -1085,6 +1085,210 @@ class LocalCcRunner @Inject constructor(
         AskResult.Ok(report = report, rawJson = stdout.trim())
     }
 
+    /**
+     * Result for [retrieveContext] — RAG preflight that gathers facts +
+     * builds LLM messages WITHOUT invoking any LLM. Bridges CLOUD_ANDROID
+     * route to the same RAG context the LOCAL_DEVICE / LAN_OLLAMA / DESKTOP
+     * routes get via cc ask.
+     */
+    sealed class RetrieveContextResult {
+        data class Ok(val context: RetrieveContext) : RetrieveContextResult()
+        data class Failed(val reason: String, val exitCode: Int?, val stderr: String?) : RetrieveContextResult()
+    }
+
+    /**
+     * Parsed shape of `cc hub retrieve-context --json` stdout. Mirrors
+     * AnalysisEngine.retrieveContext() in packages/personal-data-hub/lib/
+     * analysis.js — pre-assembled prompt messages + factIds for citation
+     * validation. The caller POSTs `messages` to its own LLM provider.
+     */
+    data class RetrieveContext(
+        val messages: List<PromptMessage>,
+        val factIds: List<String>,
+        val factCount: Int,
+        val truncated: Int,
+        val systemPrompt: String,
+    )
+
+    /**
+     * §S4 治本 — RAG preflight for the CLOUD_ANDROID route.
+     *
+     * Spawns `cc hub retrieve-context "<q>" --max-facts N --max-query-limit M`
+     * and parses the JSON stdout. NO LLM is called by cc — the caller is
+     * responsible for POSTing the returned messages to its own (cloud or
+     * local) LLM provider.
+     *
+     * Why: prior to 2026-05-27 the `submitAskViaCloudAndroid` path
+     * (HubLocalViewModel) ran a raw cloud chat with the user question as
+     * the only message — zero RAG context — so the LLM hallucinated
+     * "I don't have access to your contacts". Stitching retrieve-context
+     * in front of the cloud chat gives the cloud LLM the same FACTS +
+     * TOTALS preamble that the local LLM gets via `cc ask`.
+     *
+     * Timeout 90s — retrieveContext does no LLM call so the budget is
+     * just node spawn (~1s) + bs3mc load (~1-2s) + vault open + key
+     * derive (~1-3s) + queryEvents/Persons/Items (~50-100ms) + buildPrompt
+     * (~ms). 60s is safe; 90s gives headroom for SQLCipher key derivation
+     * on lower-end devices.
+     */
+    suspend fun retrieveContext(
+        question: String,
+        maxFacts: Int? = 20,
+        maxQueryLimit: Int? = 50,
+        timeoutMs: Long = 90_000L,
+    ): RetrieveContextResult = withContext(Dispatchers.IO) {
+        val ensure = bootstrapper.bootstrap()
+        if (ensure.isFailure) {
+            return@withContext RetrieveContextResult.Failed(
+                reason = "bootstrap-failed: ${ensure.exceptionOrNull()?.message ?: "unknown"}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+        val ccPath = File(bootstrapper.prefixDir, "bin/cc")
+        val mkshPath = File(bootstrapper.prefixDir, "bin/mksh")
+
+        val command = buildList {
+            add(mkshPath.absolutePath)
+            add(ccPath.absolutePath)
+            add("hub")
+            add("retrieve-context")
+            add(question)
+            if (maxFacts != null && maxFacts > 0) {
+                add("--max-facts")
+                add(maxFacts.toString())
+            }
+            if (maxQueryLimit != null && maxQueryLimit > 0) {
+                add("--max-query-limit")
+                add(maxQueryLimit.toString())
+            }
+        }
+
+        Timber.tag("LocalCcRunner\$retrieveContext").d(
+            "PDH-RC retrieveContext: q=%s maxFacts=%s maxQueryLimit=%s",
+            question.take(80), maxFacts, maxQueryLimit,
+        )
+
+        val pb = ProcessBuilder(command).apply {
+            environment().putAll(bootstrapper.envForCc())
+            redirectErrorStream(false)
+            directory(bootstrapper.homeDir)
+        }
+
+        val process = try {
+            pb.start()
+        } catch (e: Exception) {
+            return@withContext RetrieveContextResult.Failed(
+                reason = "spawn-failed: ${e.message ?: e.javaClass.simpleName}",
+                exitCode = null,
+                stderr = null,
+            )
+        }
+
+        val stdoutBuilder = StringBuilder()
+        val stderrBuilder = StringBuilder()
+        val stdoutThread = Thread {
+            try {
+                process.inputStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stdoutBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.retrieveContext: stdout reader exited via exception")
+            }
+        }.also { it.start() }
+        val stderrThread = Thread {
+            try {
+                process.errorStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                    for (line in lines) stderrBuilder.append(line).append('\n')
+                }
+            } catch (t: Throwable) {
+                Timber.w(t, "LocalCcRunner.retrieveContext: stderr reader exited via exception")
+            }
+        }.also { it.start() }
+
+        val finished = process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            stdoutThread.join(500)
+            stderrThread.join(500)
+            return@withContext RetrieveContextResult.Failed(
+                reason = "timeout after ${timeoutMs}ms",
+                exitCode = null,
+                stderr = stderrBuilder.toString().take(2000),
+            )
+        }
+        stdoutThread.join(2_000)
+        stderrThread.join(2_000)
+        val exit = process.exitValue()
+        val stdout = stdoutBuilder.toString()
+        val stderr = stderrBuilder.toString()
+
+        if (stderr.isNotEmpty()) {
+            stderr.lineSequence()
+                .filter { it.contains("[PDH-ASK]") }
+                .forEach { Timber.d("PDH-RC %s", it.removePrefix("[PDH-ASK] ").trim()) }
+        }
+
+        if (exit != 0) {
+            val errMsg = try {
+                JSONObject(stdout.trim()).optString("error", "").takeIf { it.isNotEmpty() }
+            } catch (_: Exception) {
+                null
+            }
+            return@withContext RetrieveContextResult.Failed(
+                reason = errMsg ?: "cc exited with code $exit",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+
+        val context = try {
+            parseRetrieveContext(stdout)
+        } catch (e: Exception) {
+            Timber.w(e, "LocalCcRunner.retrieveContext: failed to parse cc stdout: %s", stdout.take(500))
+            return@withContext RetrieveContextResult.Failed(
+                reason = "parse-failed: ${e.message}",
+                exitCode = exit,
+                stderr = stderr.take(2000),
+            )
+        }
+        RetrieveContextResult.Ok(context = context)
+    }
+
+    private fun parseRetrieveContext(stdout: String): RetrieveContext {
+        val obj = JSONObject(stdout.trim())
+        val messagesArr = obj.optJSONArray("messages")
+        val messages = buildList {
+            if (messagesArr != null) {
+                for (i in 0 until messagesArr.length()) {
+                    val m = messagesArr.optJSONObject(i) ?: continue
+                    add(
+                        com.chainlesschain.android.remote.commands.PromptMessage(
+                            role = m.optString("role", "user"),
+                            content = m.optString("content", ""),
+                        )
+                    )
+                }
+            }
+        }
+        val factIdsArr = obj.optJSONArray("factIds")
+        val factIds = buildList {
+            if (factIdsArr != null) {
+                for (i in 0 until factIdsArr.length()) {
+                    val id = factIdsArr.optString(i)
+                    if (id.isNotEmpty()) add(id)
+                }
+            }
+        }
+        return RetrieveContext(
+            messages = messages,
+            factIds = factIds,
+            factCount = obj.optInt("factCount", 0),
+            truncated = obj.optInt("truncated", 0),
+            systemPrompt = obj.optString("systemPrompt", ""),
+        )
+    }
+
     private fun parseAskReport(stdout: String): AskReport {
         val obj = JSONObject(stdout.trim())
         val citationsArr = obj.optJSONArray("citations")
