@@ -172,7 +172,18 @@ function createAIChatHealthChecker({
           deps.logger.error("[aichat-health] interval run failed", err && err.message),
         );
       }, intervalMs);
+      // Don't keep the event loop alive on the periodic check alone. Without
+      // unref a one-shot `cc hub list-adapters --json` from in-APK Android
+      // sits idle in epoll_wait until Kotlin LocalCcRunner.waitFor 240s
+      // timeout → false "写入本地数据库失败". Real-device repro 2026-05-27
+      // Xiaomi 24115RA8EC (PID 24828 lingered with vault.db RW handles).
+      if (intervalHandle && typeof intervalHandle.unref === "function") {
+        intervalHandle.unref();
+      }
     }, firstRunDelayMs);
+    if (firstRunHandle && typeof firstRunHandle.unref === "function") {
+      firstRunHandle.unref();
+    }
     return true;
   }
 
