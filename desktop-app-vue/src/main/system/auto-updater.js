@@ -4,7 +4,13 @@
  */
 
 const { autoUpdater } = require("electron-updater");
-const { dialog, BrowserWindow, ipcMain, app } = require("electron");
+const {
+  dialog,
+  BrowserWindow,
+  ipcMain,
+  app,
+  Notification,
+} = require("electron");
 
 // v5.0.3.35 — electron-log 是 optional logger（electron-updater 文档明确支持
 // winston / 任意 `{info,warn,error}` shape）。v5.0.3.34 的诊断 dialog 暴露
@@ -45,6 +51,9 @@ try {
 }
 
 const { classifyUpdateError } = require("./update-error-classifier.js");
+const {
+  shouldFallbackToOsNotification,
+} = require("./update-window-visibility.js");
 
 class AutoUpdater {
   constructor() {
@@ -217,13 +226,16 @@ class AutoUpdater {
       // 不弹（电源管理 / 锁屏唤醒等场景下大量弹窗很骚扰）。
       if (this._manualCheckPending) {
         this._manualCheckPending = false;
+        let appVersion = "";
+        try {
+          appVersion = require("../../../package.json").version || "";
+        } catch {
+          // ignore — desktop-app-vue/package.json should always be reachable
+        }
+        // v5.0.3.96 — 窗口隐藏到托盘 / 最小化时模态 dialog 跟着 parent 一起
+        // 看不见 = 用户觉得点了没反应。OS 通知兜底，点击亮窗。
+        this.maybeNotifyNoUpdate(appVersion);
         if (this.mainWindow) {
-          let appVersion = "";
-          try {
-            appVersion = require("../../../package.json").version || "";
-          } catch {
-            // ignore — desktop-app-vue/package.json should always be reachable
-          }
           dialog
             .showMessageBox(this.mainWindow, {
               type: "info",
@@ -262,6 +274,10 @@ class AutoUpdater {
       // v5.0.3.44 — notifier-only：渲染端 AppUpdateNotifier 提供"立即重启 /
       // 下次启动" 按钮，原 native dialog 不再弹。函数保留，方便回退。
       // this.showUpdateReadyDialog(info);
+
+      // v5.0.3.96 — 窗口隐藏到托盘 / 最小化时 notifier 卡片不可见，发系统
+      // 通知兜底；点击亮窗用户随即看到"立即重启"按钮。
+      this.maybeNotifyDownloaded(info);
     });
   }
 
@@ -289,6 +305,74 @@ class AutoUpdater {
       this.mainWindow.setProgressBar(-1);
     } catch (err) {
       log.warn("setProgressBar(-1) failed:", err && err.message);
+    }
+  }
+
+  /**
+   * 主窗口隐藏到托盘 / 最小化时，发系统通知告知用户更新已就绪；点击通知
+   * 亮窗，用户随即看到 notifier 卡片。窗口可见时 notifier 卡片自己就够，
+   * 跳过通知避免双重提示。
+   */
+  maybeNotifyDownloaded(info) {
+    if (!this._needOsNotification()) {
+      return;
+    }
+    const version = info && info.version;
+    this._showOsNotification({
+      title: "ChainlessChain 更新已就绪",
+      body: version
+        ? `v${version} 已下载完成，点击查看`
+        : "新版本已下载完成，点击查看",
+      logTag: "update-downloaded",
+    });
+  }
+
+  /**
+   * 用户手动检查 + 主窗口隐藏到托盘 / 最小化时，发系统通知告知"已是最新版"；
+   * 否则 dialog.showMessageBox 的模态框跟着隐藏 parentWindow 一起不可见 = 用户
+   * 看不到任何反馈。窗口可见时走原来的 native dialog 路径（在 event handler 里）。
+   */
+  maybeNotifyNoUpdate(appVersion) {
+    if (!this._needOsNotification()) {
+      return;
+    }
+    this._showOsNotification({
+      title: "ChainlessChain 检查更新",
+      body: appVersion ? `你已经是最新版本 v${appVersion}` : "你已经是最新版本",
+      logTag: "update-not-available",
+    });
+  }
+
+  _needOsNotification() {
+    return shouldFallbackToOsNotification({
+      window: this.mainWindow,
+      notificationSupported:
+        typeof Notification !== "undefined" &&
+        typeof Notification.isSupported === "function" &&
+        Notification.isSupported(),
+    });
+  }
+
+  _showOsNotification({ title, body, logTag }) {
+    try {
+      const n = new Notification({ title, body, silent: false });
+      n.on("click", () => {
+        try {
+          if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+            return;
+          }
+          if (this.mainWindow.isMinimized()) {
+            this.mainWindow.restore();
+          }
+          this.mainWindow.show();
+          this.mainWindow.focus();
+        } catch (err) {
+          log.warn(`${logTag} notification click failed:`, err && err.message);
+        }
+      });
+      n.show();
+    } catch (err) {
+      log.warn(`${logTag} notification show failed:`, err && err.message);
     }
   }
 
