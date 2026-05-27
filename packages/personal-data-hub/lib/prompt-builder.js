@@ -67,12 +67,20 @@ function summarizeEvent(e) {
 }
 
 function summarizePerson(p) {
+  // 2026-05-27 — include identifiers (phone / wechatId / email / etc.) +
+  // notes in the LLM-facing summary. Without this, asking "妈手机号是多少"
+  // ships only names+relation to the LLM and it can't possibly answer.
+  // Person rows are dense — keep all identifying fields. The LLM sees this
+  // verbatim under FACTS so user-visible privacy is the same as the user
+  // querying their own vault (which is the whole point of PDH).
   return {
     id: p.id,
     type: "person",
     subtype: p.subtype,
     names: p.names,
     ...(p.relation ? { relation: p.relation } : {}),
+    ...(p.identifiers ? { identifiers: p.identifiers } : {}),
+    ...(p.notes ? { notes: p.notes } : {}),
   };
 }
 

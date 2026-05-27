@@ -38,20 +38,40 @@ describe("summarizeFact", () => {
     expect(s).not.toHaveProperty("extra");
   });
 
-  it("packs person names + relation; omits source/identifiers", () => {
+  it("packs person names + relation + identifiers + notes; omits source", () => {
+    // 2026-05-27 — identifiers (phone/wechatId/email) MUST reach the LLM,
+    // otherwise "妈手机号是多少" can never be answered even when vault has
+    // the phone. notes too — they're user-written context. source/ingestedAt
+    // are framing metadata, not user data, so still stripped.
     const p = summarizePerson({
       id: "p1",
       type: "person",
       subtype: "contact",
       names: ["妈妈", "陈某某"],
       relation: "母亲",
-      identifiers: { phone: ["13800001111"] },
+      identifiers: { phone: ["13800001111"], wechatId: "wxid_abc" },
+      notes: "best mom ever",
       ingestedAt: 1,
       source: { adapter: "x", adapterVersion: "0.1.0", capturedAt: 1, capturedBy: "api" },
     });
     expect(p.names).toEqual(["妈妈", "陈某某"]);
     expect(p.relation).toBe("母亲");
+    expect(p.identifiers).toEqual({ phone: ["13800001111"], wechatId: "wxid_abc" });
+    expect(p.notes).toBe("best mom ever");
+    expect(p).not.toHaveProperty("source");
+    expect(p).not.toHaveProperty("ingestedAt");
+  });
+
+  it("omits identifiers / notes fields when absent on the person row", () => {
+    const p = summarizePerson({
+      id: "p2",
+      type: "person",
+      subtype: "contact",
+      names: ["路人甲"],
+    });
     expect(p).not.toHaveProperty("identifiers");
+    expect(p).not.toHaveProperty("notes");
+    expect(p).not.toHaveProperty("relation");
   });
 
   it("returns null for non-object / unknown types just yields minimal shape", () => {
