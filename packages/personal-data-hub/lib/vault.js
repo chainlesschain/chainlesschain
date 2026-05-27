@@ -866,6 +866,70 @@ class LocalVault {
   }
 
   /**
+   * searchPersons — LIKE-based name/identifier/notes search.
+   *
+   * 2026-05-27 — AnalysisEngine entityFocus="persons" path uses this when the
+   * question carries a probable person-name candidate ("妈手机号", "张三的电话").
+   * Pre-fix the engine dumped the first N contacts by ingest_at and let the
+   * LLM scan — but on small-model (Qwen 0.5B/1.5B, 20-fact budget) and large
+   * contact tables (100+), the target person rarely landed in the slice.
+   * Searching by LIKE %term% against the JSON-serialized `names` column +
+   * `identifiers` (phone numbers) + `notes` + `relation` gives the LLM the
+   * matching contact directly, eliminating that miss.
+   *
+   * No FTS5 schema migration: contact tables are small (typically <2000
+   * rows on Android), full LIKE scan stays sub-millisecond. Sticking with
+   * LIKE also avoids partial-index drift trap #25.
+   *
+   * @param {object} q
+   * @param {string} q.q          term to match. Falls back to queryPersons when empty.
+   * @param {string} [q.subtype]
+   * @param {string} [q.adapter]
+   * @param {number} [q.limit=100]
+   * @param {number} [q.offset=0]
+   */
+  searchPersons(q = {}) {
+    const term = typeof q.q === "string" ? q.q.trim() : "";
+    if (term.length === 0) {
+      return this.queryPersons(q);
+    }
+    const where = [];
+    const params = {};
+    // LIKE-escape % and _ in the user input so a name with literal % won't
+    // wildcard. SQLite LIKE ESCAPE clause handles this.
+    const escaped = term.replace(/([\\%_])/g, "\\$1");
+    params.qPat = "%" + escaped + "%";
+    where.push(
+      "(" +
+        "names LIKE @qPat ESCAPE '\\' OR " +
+        "identifiers LIKE @qPat ESCAPE '\\' OR " +
+        "notes LIKE @qPat ESCAPE '\\' OR " +
+        "relation LIKE @qPat ESCAPE '\\'" +
+        ")"
+    );
+    if (q.subtype) {
+      where.push("subtype = @subtype");
+      params.subtype = q.subtype;
+    }
+    if (q.adapter) {
+      where.push("source_adapter = @adapter");
+      params.adapter = q.adapter;
+    }
+    const limit = Number.isInteger(q.limit) && q.limit > 0 ? Math.min(q.limit, 10000) : 100;
+    const offset = Number.isInteger(q.offset) && q.offset >= 0 ? q.offset : 0;
+    params.limit = limit;
+    params.offset = offset;
+    const sql =
+      "SELECT * FROM persons WHERE " + where.join(" AND ") +
+      " ORDER BY (confidence IS NULL) ASC, confidence DESC, ingested_at DESC" +
+      " LIMIT @limit OFFSET @offset";
+    return this._requireOpen()
+      .prepare(sql)
+      .all(params)
+      .map((row) => this._rowToPerson(row));
+  }
+
+  /**
    * queryItems — list item entities (installed apps, purchases, media...).
    * Pairs with queryPersons for AnalysisEngine fact gathering.
    *

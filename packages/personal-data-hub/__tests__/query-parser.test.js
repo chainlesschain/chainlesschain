@@ -9,6 +9,7 @@ const {
   parseIntent,
   parseEntityFocus,
   extractEntityTerm,
+  extractPersonNameCandidate,
 } = require("../lib/query-parser");
 
 // Pin "now" to 2026-05-19 12:00:00 UTC for deterministic windows
@@ -252,5 +253,50 @@ describe("extractEntityTerm", () => {
     // 拼出一个 12 char ASCII token，期望被 length 上限过滤掉
     const r = extractEntityTerm("提到 abcdefghijkl 的消息");
     expect(r).toBeNull();
+  });
+});
+
+// ─── extractPersonNameCandidate — persons-branch name search ─────────────
+//
+// 2026-05-27 — Powers AnalysisEngine entityFocus=persons name-search
+// short-circuit. Differs from extractEntityTerm in two ways: strips
+// person-FOCUS framing words first (联系人/手机号/etc.) and allows
+// single-char Chinese names from a relation whitelist (妈/爸/姐/...).
+
+describe("extractPersonNameCandidate", () => {
+  it("extracts multi-char name when present", () => {
+    expect(extractPersonNameCandidate("张三的电话号码")).toBe("张三");
+    expect(extractPersonNameCandidate("王医生手机号是多少")).toBe("王医生");
+  });
+
+  it("falls back to single-char relation word ('妈', '爸', '姐')", () => {
+    expect(extractPersonNameCandidate("妈手机号是多少")).toBe("妈");
+    expect(extractPersonNameCandidate("爸的电话")).toBe("爸");
+    expect(extractPersonNameCandidate("姐姐的号码")).toBe("姐姐");
+  });
+
+  it("multi-char wins over single-char fallback", () => {
+    // "王医生" (3 char) preferred over leaked single "医" / "生".
+    expect(extractPersonNameCandidate("王医生的手机号")).toBe("王医生");
+  });
+
+  it("returns null when no name candidate (pure framing)", () => {
+    expect(extractPersonNameCandidate("我有哪些联系人")).toBeNull();
+    expect(extractPersonNameCandidate("通讯录里有多少人")).toBeNull();
+  });
+
+  it("ignores single-char Chinese outside the relation whitelist", () => {
+    // "说" / "看" are not relation chars — should NOT slip through as names.
+    expect(extractPersonNameCandidate("说手机号")).toBeNull();
+  });
+
+  it("returns null for non-string / empty input", () => {
+    expect(extractPersonNameCandidate("")).toBeNull();
+    expect(extractPersonNameCandidate(null)).toBeNull();
+    expect(extractPersonNameCandidate(undefined)).toBeNull();
+  });
+
+  it("handles ASCII names ≥2 chars", () => {
+    expect(extractPersonNameCandidate("Alice 的电话号码")).toBe("Alice");
   });
 });

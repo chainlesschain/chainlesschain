@@ -327,6 +327,56 @@ function extractEntityTerm(text) {
   return candidates[0];
 }
 
+// ─── Person-name extraction (entityFocus=persons routing) ────────────────
+//
+// Specialized extractor for the persons branch in AnalysisEngine. Differs
+// from extractEntityTerm in two ways:
+//
+//  1. Strips person-FOCUS framing words first (联系人/手机号/电话/etc.) —
+//     they're question scaffolding, not the target name. extractEntityTerm
+//     left "妈手机号" intact because it doesn't know that phrase is framing.
+//
+//  2. Allows single-character names from a relation-word whitelist
+//     (妈/爸/姐/弟/...) — extractEntityTerm filtered every 1-char Chinese to
+//     suppress verb false positives, but that also dropped "妈" / "爸" which
+//     are the dominant contact-name shorthands on a personal phonebook.
+//
+// Multi-char candidates always win over single-char fallback so "张三的
+// 手机号" returns "张三" not "三".
+
+const PERSON_FRAMING_STOP_PATTERNS = [
+  /(联系人|通讯录|电话簿|通信录|好友列表|朋友列表)/g,
+  /(手机号|电话号|号码是|的电话|的手机|号码|电话)/g,
+  /(谁是|是谁|是什么人|是哪位)/g,
+  /\b(contact|contacts|phonebook|address\s*book|phone\s*number)\b/gi,
+];
+
+// Whitelisted single-character Chinese relation words. Single-char tokens
+// outside this set are dropped to keep verb / particle false-positives from
+// leaking through. Extend cautiously — every new char widens the LIKE
+// surface area and could match unrelated rows.
+const PERSON_RELATION_SINGLE_CHARS_RE =
+  /^[妈爸姐妹哥弟爹娘爷奶姥舅姑叔伯婶嫂嫁公婆]$/;
+
+function extractPersonNameCandidate(text) {
+  if (typeof text !== "string" || text.length === 0) return null;
+  let s = text;
+  for (const re of PERSON_FRAMING_STOP_PATTERNS) {
+    s = s.replace(re, " ");
+  }
+  for (const re of ENTITY_STOP_PATTERNS) {
+    s = s.replace(re, " ");
+  }
+  const all = s.split(/\s+/).filter((t) => t.length >= 1 && t.length <= 10);
+  if (all.length === 0) return null;
+  const multi = all
+    .filter((t) => t.length >= 2)
+    .sort((a, b) => b.length - a.length);
+  if (multi.length > 0) return multi[0];
+  const single = all.find((t) => t.length === 1 && PERSON_RELATION_SINGLE_CHARS_RE.test(t));
+  return single || null;
+}
+
 // ─── Full parser ─────────────────────────────────────────────────────────
 
 /**
@@ -361,10 +411,13 @@ module.exports = {
   parseIntent,
   parseEntityFocus,
   extractEntityTerm,
+  extractPersonNameCandidate,
   // exposed for tests
   SUBTYPE_KEYWORDS,
   ADAPTER_KEYWORDS,
   PERSON_FOCUS_PATTERNS,
   ITEM_FOCUS_PATTERNS,
   ENTITY_STOP_PATTERNS,
+  PERSON_FRAMING_STOP_PATTERNS,
+  PERSON_RELATION_SINGLE_CHARS_RE,
 };

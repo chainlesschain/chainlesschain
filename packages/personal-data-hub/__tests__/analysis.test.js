@@ -626,6 +626,97 @@ describe("AnalysisEngine._gatherFacts entityFocus routing", () => {
     expect(r.facts.filter((f) => f.type === "event").length).toBe(5);
   });
 
+  it("entityFocus=persons with name candidate → searchPersons short-circuit", async () => {
+    // 2026-05-27 S3 治本 — "妈手机号" must hit searchPersons LIKE search
+    // even when vault holds 500 contacts. Pre-S3 _gatherFacts dumped the
+    // first N by ingest_at; the target person rarely landed in the slice.
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: vi.fn(() => [
+        { id: "p-other", type: "person", subtype: "contact", names: ["张三"], ingestedAt: 0,
+          source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: 0, capturedBy: "api" } },
+      ]),
+      searchPersons: vi.fn(({ q, limit }) => {
+        if (q === "妈") {
+          return [{
+            id: "p-mom", type: "person", subtype: "contact", names: ["妈妈"],
+            identifiers: { phone: ["13800138000"] }, ingestedAt: 0,
+            source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: 0, capturedBy: "api" },
+          }];
+        }
+        return [];
+      }),
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "妈手机号是 13800138000" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 20 });
+    const r = await engine.ask("妈手机号是多少");
+    expect(fakeVault.searchPersons).toHaveBeenCalledWith({ q: "妈", limit: 19 });
+    expect(fakeVault.queryPersons).not.toHaveBeenCalled(); // search hit → skip fallback
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(1);
+    expect(r.facts.find((f) => f.id === "p-mom")).toBeDefined();
+  });
+
+  it("entityFocus=persons with name candidate but 0 search hits → falls back to queryPersons", async () => {
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: vi.fn(({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "p" + i, type: "person", subtype: "contact", names: ["P" + i], ingestedAt: 0,
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: 0, capturedBy: "api" },
+      }))),
+      searchPersons: vi.fn(() => []), // 0 hits
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 20 });
+    await engine.ask("张三的电话号码");
+    expect(fakeVault.searchPersons).toHaveBeenCalled();
+    expect(fakeVault.queryPersons).toHaveBeenCalledWith({ limit: 19 });
+  });
+
+  it("entityFocus=persons without name candidate (pure list) skips searchPersons", async () => {
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: vi.fn(({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "p" + i, type: "person", subtype: "contact", names: ["P" + i], ingestedAt: 0,
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: 0, capturedBy: "api" },
+      }))),
+      searchPersons: vi.fn(() => []),
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 20 });
+    await engine.ask("我有哪些联系人");
+    // Pure list — no name in question → skip searchPersons, go straight to queryPersons.
+    expect(fakeVault.searchPersons).not.toHaveBeenCalled();
+    expect(fakeVault.queryPersons).toHaveBeenCalledWith({ limit: 19 });
+  });
+
+  it("entityFocus=persons tolerates vault without searchPersons (legacy)", async () => {
+    const fakeVault = {
+      queryEvents: () => [],
+      queryPersons: vi.fn(({ limit }) => Array.from({ length: Math.min(limit, 3) }, (_, i) => ({
+        id: "p" + i, type: "person", subtype: "contact", names: ["P" + i], ingestedAt: 0,
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: 0, capturedBy: "api" },
+      }))),
+      // No searchPersons method
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 20 });
+    const r = await engine.ask("妈手机号");
+    expect(fakeVault.queryPersons).toHaveBeenCalled();
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(3);
+  });
+
   it("entityFocus=items prioritizes items table over events", async () => {
     const fakeVault = {
       queryEvents: () => Array.from({ length: 100 }, (_, i) => ({
