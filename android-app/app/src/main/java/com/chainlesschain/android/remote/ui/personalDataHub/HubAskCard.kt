@@ -424,7 +424,7 @@ internal fun HubAskCardRouteSelector(
             val (title, subtitle) = when {
                 state.localDeviceAvailable -> "推理走端侧 LocalLlmServer + 本机 vault RAG" to
                     "MediaPipe · Qwen2.5-1.5B"
-                state.cloudAvailable -> "推理走云 LLM（手机端，无 RAG）" to
+                state.cloudAvailable -> "推理走云 LLM（手机端 + 本机 RAG）" to
                     (state.androidLlm?.let { "${it.provider.displayName} · ${it.model}" } ?: "—")
                 state.pcLocalAvailable -> "推理走 PC 本机模型（桌面数据 + 桌面 Ollama）" to
                     (state.remoteHealth?.llm?.name ?: "桌面 Ollama")
@@ -457,8 +457,8 @@ internal fun HubAskCardRouteSelector(
                     HubAskCardRouteOption(
                         selected = state.effectiveRoute == LlmRoute.CLOUD_ANDROID,
                         enabled = !isLoading && state.cloudAvailable,
-                        title = "云 LLM（手机端，无 RAG）",
-                        subtitle = state.androidLlm?.let { "${it.provider.displayName} · ${it.model}" }
+                        title = "云 LLM（手机端 + 本机 RAG）",
+                        subtitle = state.androidLlm?.let { "${it.provider.displayName} · ${it.model} · 3-5s 出答案" }
                             ?: "未配置 — 到「设置 → 大模型」加 API Key",
                         onClick = { onRouteSelected(LlmRoute.CLOUD_ANDROID) },
                     )
