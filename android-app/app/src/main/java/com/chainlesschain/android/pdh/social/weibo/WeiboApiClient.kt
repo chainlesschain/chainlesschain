@@ -130,38 +130,26 @@ class WeiboApiClient @Inject constructor() {
             out
         }
 
-    /** 收藏夹。 */
-    suspend fun fetchFavourites(cookie: String, limit: Int = 100): List<FavouriteItem> =
-        withContext(Dispatchers.IO) {
-            val url = baseUrl.newBuilder()
-                .addPathSegments("api/favorites")
-                .addQueryParameter("page", "1")
-                .build()
-            val obj = doGetJson(url, cookie) ?: return@withContext emptyList()
-            val data = obj.optJSONObject("data") ?: return@withContext emptyList()
-            val favs = data.optJSONArray("favorites") ?: return@withContext emptyList()
-            val out = ArrayList<FavouriteItem>(minOf(limit, favs.length()))
-            for (i in 0 until minOf(limit, favs.length())) {
-                val fav = favs.optJSONObject(i) ?: continue
-                val status = fav.optJSONObject("status") ?: continue
-                val mid = status.optString("mid").takeIf { it.isNotBlank() }
-                    ?: status.optString("id").takeIf { it.isNotBlank() }
-                    ?: continue
-                val author = status.optJSONObject("user")
-                val favAt = parseWeiboTime(fav.optString("favorited_time"))
-                    .takeIf { it > 0 }
-                    ?: parseWeiboTime(status.optString("created_at"))
-                out.add(
-                    FavouriteItem(
-                        mid = mid,
-                        text = stripHtml(status.optString("text")),
-                        favAt = favAt,
-                        authorScreenName = author?.optStringOrNull("screen_name"),
-                    )
-                )
-            }
-            out
-        }
+    /**
+     * 收藏夹。
+     *
+     * 2026-05-27 真机测试 (Xiaomi 24115RA8EC) 证实 m.weibo.cn `/api/favorites`
+     * **endpoint 已被微博服务端下线** — 返 200 OK + `{"ok":0,"msg":"出错了:
+     * 链接http://m.weibo.cn/api/favorites无效"}`。微博自己服务端的错误文案
+     * 直接说 "链接无效"，与 cookie / 签名 / UA 无关。
+     *
+     * 桌面端 weibo.com `/ajax/favorites/all_fav` 仍工作，但要 XSRF-TOKEN 签
+     * 名，本 client 锁定 m.weibo.cn 不支持。v0.3 + WeiboDesktopApiClient 路径
+     * 加。
+     *
+     * 当前实现：优雅降级 — 直接返空列表，不触 setLastError，让 collector
+     * everythingEmpty 判定时不把缺失的收藏算作 "全空" 错误。posts + follows
+     * 仍可正常拉。
+     */
+    suspend fun fetchFavourites(cookie: String, limit: Int = 100): List<FavouriteItem> {
+        Timber.i("WeiboApiClient: skipping /api/favorites — endpoint deprecated by Weibo (返 链接无效)")
+        return emptyList()
+    }
 
     /** 关注列表。 */
     suspend fun fetchFollows(cookie: String, uid: Long, limit: Int = 200): List<FollowItem> =
