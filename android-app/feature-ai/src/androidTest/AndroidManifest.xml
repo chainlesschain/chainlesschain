@@ -35,8 +35,13 @@
             AIConversationE2ETest tests referenced. See
             src/androidTest/.../TestActivity.kt KDoc.
         -->
+        <!--
+            android:name MUST be fully-qualified — see :feature-knowledge
+            sibling manifest KDoc for the runtime "Unable to resolve activity"
+            failure that `.TestActivity` (relative) caused on run 26493612650.
+        -->
         <activity
-            android:name=".TestActivity"
+            android:name="com.chainlesschain.android.feature.ai.TestActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
     </application>
