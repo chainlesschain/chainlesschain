@@ -192,20 +192,39 @@ object DouyinJsBridge {
           duration: a.duration || 0,
         });
       });
-      const favResp = await tryJson(signUrl(
-        'https://www.douyin.com/aweme/v1/web/aweme/favorite/?sec_user_id=' + encodeURIComponent(secUid) +
-        '&count=30&aid=6383'
-      ));
-      ((favResp && favResp.aweme_list) || []).forEach(a => {
-        events.push({
-          kind: 'favourite',
-          id: 'fav-' + a.aweme_id,
-          capturedAt: (a.create_time || 0) * 1000 || now,
-          awemeId: String(a.aweme_id || ''),
-          description: a.desc || '',
-          authorNickname: a.author && a.author.nickname,
+      // 2026-05-27 pagination — 之前只一页 (count=30 → 24 items returned)，
+      // 但 favResp.has_more=1 + max_cursor 暴露第二页起的全部内容被静默丢。
+      // 抖音 web /aweme/v1/web/aweme/favorite/ API 接受 count 1-50 + max_cursor
+      // 翻页 (max_cursor=0 起，下一页用上次响应的 max_cursor)。
+      // 最多翻 20 页 = 1000 条上限保护事件循环 + WebView 内存。
+      let favCursor = 0;
+      let favPageIdx = 0;
+      const FAV_MAX_PAGES = 20;
+      const FAV_PAGE_SIZE = 50;
+      while (favPageIdx < FAV_MAX_PAGES) {
+        const favResp = await tryJson(signUrl(
+          'https://www.douyin.com/aweme/v1/web/aweme/favorite/?sec_user_id=' + encodeURIComponent(secUid) +
+          '&count=' + FAV_PAGE_SIZE +
+          '&max_cursor=' + favCursor +
+          '&aid=6383'
+        ));
+        const items = (favResp && favResp.aweme_list) || [];
+        items.forEach(a => {
+          events.push({
+            kind: 'favourite',
+            id: 'fav-' + a.aweme_id,
+            capturedAt: (a.create_time || 0) * 1000 || now,
+            awemeId: String(a.aweme_id || ''),
+            description: a.desc || '',
+            authorNickname: a.author && a.author.nickname,
+          });
         });
-      });
+        favPageIdx++;
+        if (!favResp || !favResp.has_more || items.length === 0) break;
+        const nextCursor = favResp.max_cursor;
+        if (typeof nextCursor !== 'number' || nextCursor === favCursor) break; // 防 cursor 不动死循环
+        favCursor = nextCursor;
+      }
       const likeResp = await tryJson(signUrl(
         'https://www.douyin.com/aweme/v1/web/aweme/post/like/?sec_user_id=' + encodeURIComponent(secUid) +
         '&count=30&aid=6383'
