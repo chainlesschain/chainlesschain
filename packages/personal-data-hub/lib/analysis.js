@@ -61,6 +61,27 @@ const SUM_AMOUNT_SUBTYPES = ["order", "payment", "transfer", "income"];
 // 12) doesn't starve any single subtype.
 const SUM_AMOUNT_MIN_PER_SUBTYPE = 20;
 
+// entityFocus="persons" routing — explicit contact queries ("我有哪些联系人",
+// "妈手机号"). When the user names the target table the engine MUST NOT
+// compete persons against the events pool: small-model Android budgets
+// (20 facts / 50 row cap) get drained by a few hundred Bilibili
+// notifications and the contact slice ends up empty. parseEntityFocus
+// surfaces the signal; we honor it by going persons-first.
+//
+// Keep a TINY events headroom (5%) so questions like "我最近跟妈打过电话吗"
+// still surface 通话 event rows alongside the contact entry.
+const PERSONS_FOCUS_EVENT_HEADROOM_RATIO = 0.05;
+
+// Default-path budget split when no entityFocus signal. Pre-fix events
+// got the entire effMaxFacts pool first and persons/items shared only the
+// remainder; on a busy vault that meant 0 contacts in the prompt. Cap
+// events at 70%, reserve 20% for persons and 10% for items so a generic
+// "what's going on" question still sees the full data shape.
+const DEFAULT_EVENT_BUDGET_RATIO = 0.7;
+const DEFAULT_PERSON_BUDGET_RATIO = 0.2;
+// Items take whatever remains; intent=count/list questions about contacts
+// already short-circuit via entityFocus before reaching this branch.
+
 class AnalysisEngine {
   /**
    * @param {object} opts
@@ -426,6 +447,74 @@ class AnalysisEngine {
       // 0 results → fall through to default broader path below.
     }
 
+    // entityFocus=persons routing — "我有哪些联系人", "妈手机号", "通讯录里
+    // 有多少人". Skip the events broad scan and put the entire fact budget
+    // on the persons table (with a 5% events headroom for adjacent rows
+    // like 通话/短信). Adapter / time window are NOT applied to persons:
+    // contacts are current-state snapshots, not time-stamped events.
+    //
+    // 0 hits → fall through to the default path. A user might say "联系人"
+    // colloquially when they mean "people I've messaged" — the default
+    // events+persons mix is the right safety net.
+    if (parsed.entityFocus === "persons") {
+      const personLimit = effMaxFacts > 1 ? effMaxFacts - 1 : effMaxFacts;
+      let persons = [];
+      try {
+        persons = this.vault.queryPersons({ limit: personLimit });
+      } catch (_e) {
+        // legacy vault — fall through
+      }
+      if (persons.length > 0) {
+        const eventHeadroom = Math.max(
+          0,
+          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO)
+        );
+        let events = [];
+        if (eventHeadroom > 0) {
+          const eq = { limit: eventHeadroom };
+          if (parsed.filters && parsed.filters.adapter) eq.adapter = parsed.filters.adapter;
+          if (parsed.timeWindow) {
+            if (Number.isFinite(parsed.timeWindow.since)) eq.since = parsed.timeWindow.since;
+            if (Number.isFinite(parsed.timeWindow.until)) eq.until = parsed.timeWindow.until;
+          }
+          try {
+            events = this.vault.queryEvents(eq);
+          } catch (_e) { /* tolerate */ }
+        }
+        // persons-first ordering so the LLM reads the contact rows before
+        // the (sparse) event tail.
+        const combined = [...persons, ...events].slice(0, effMaxFacts);
+        return combined;
+      }
+      // 0 persons → fall through.
+    }
+
+    // entityFocus=items routing — "我装了哪些 app", "有哪些游戏". Mirror
+    // persons branch: skip events, query items table directly, keep a
+    // tiny events headroom for adjacent rows.
+    if (parsed.entityFocus === "items") {
+      const itemLimit = effMaxFacts > 1 ? effMaxFacts - 1 : effMaxFacts;
+      let items = [];
+      try {
+        items = this.vault.queryItems({ limit: itemLimit });
+      } catch (_e) { /* legacy */ }
+      if (items.length > 0) {
+        const eventHeadroom = Math.max(
+          0,
+          Math.floor(effMaxFacts * PERSONS_FOCUS_EVENT_HEADROOM_RATIO)
+        );
+        let events = [];
+        if (eventHeadroom > 0) {
+          const eq = { limit: eventHeadroom };
+          if (parsed.filters && parsed.filters.adapter) eq.adapter = parsed.filters.adapter;
+          try {
+            events = this.vault.queryEvents(eq);
+          } catch (_e) { /* tolerate */ }
+        }
+        return [...items, ...events].slice(0, effMaxFacts);
+      }
+    }
+
     // intent=sum-amount routing — "总共花了多少" / "在淘宝花了多少钱"
     // only needs events from amount-bearing subtypes (order/payment/
     // transfer/income). Pulling messages / visits / browses wastes
@@ -551,22 +640,40 @@ class AnalysisEngine {
     //  - installed apps land in `items`, not `events`
     //  - places (visited locations) live in `places`
     // Without these the LLM gets 0 facts for "我有几个联系人" style questions
-    // and hallucinates a count. We pull a bounded slice of each entity type
-    // and append; prompt-builder.summarizeFact already handles `person` /
-    // `place` / fallback `item` shapes, so this is additive with no schema
-    // change to the LLM-facing prompt.
+    // and hallucinates a count.
     //
-    // Sizing: keep events as the majority (existing behavior is unchanged for
-    // event-heavy queries like 消费 / 通话); split the remaining 1/2 budget
-    // between persons + items. Time window + adapter filters don't apply to
-    // these tables (persons aren't time-stamped events) — they're current-
-    // state snapshots that should always be visible. Adapter filter is also
-    // skipped because users asking "我有几个联系人" don't say "from
-    // system-data-android".
-    const remaining = Math.max(0, effMaxFacts - events.length);
-    const sideBudget = Math.floor(remaining / 2);
-    const personBudget = sideBudget > 0 ? sideBudget : 0;
-    const itemBudget = remaining - personBudget;
+    // Sizing — two regimes:
+    //  (a) Events fit (events.length < effMaxFacts): legacy behavior —
+    //      events first, split the remainder evenly between persons + items.
+    //  (b) Events would monopolize (events.length >= effMaxFacts): reserve
+    //      DEFAULT_PERSON_BUDGET_RATIO (20%) + 10% for persons + items so a
+    //      busy event timeline doesn't shove every contact out of the prompt.
+    //      If persons + items tables BOTH return 0 rows, refill the reserve
+    //      with events — no point starving the LLM of facts when the side
+    //      tables are empty (small vaults / pre-Path-C ingest state).
+    //
+    // Time window + adapter filters don't apply to persons/items: they're
+    // current-state snapshots, not time-stamped events. A user asking
+    // "上个月联系人变化" is rare enough to leave for a future intent.
+    let cappedEvents = events;
+    let personBudget;
+    let itemBudget;
+    if (events.length >= effMaxFacts) {
+      const personReserve = Math.max(1, Math.floor(effMaxFacts * DEFAULT_PERSON_BUDGET_RATIO));
+      const itemReserve = Math.max(
+        1,
+        Math.floor(effMaxFacts * (1 - DEFAULT_EVENT_BUDGET_RATIO - DEFAULT_PERSON_BUDGET_RATIO))
+      );
+      const eventCap = Math.max(1, effMaxFacts - personReserve - itemReserve);
+      cappedEvents = events.slice(0, eventCap);
+      personBudget = personReserve;
+      itemBudget = itemReserve;
+    } else {
+      const remaining = effMaxFacts - events.length;
+      const sideBudget = Math.floor(remaining / 2);
+      personBudget = sideBudget > 0 ? sideBudget : 0;
+      itemBudget = remaining - personBudget;
+    }
 
     let persons = [];
     if (personBudget > 0) {
@@ -585,7 +692,20 @@ class AnalysisEngine {
       }
     }
 
-    return [...events, ...persons, ...items];
+    // Refill backfill — when events overflowed (reservation branch) but
+    // persons + items both returned 0 rows, give the reserved slots back
+    // to events. Small vaults / pre-Path-C state would otherwise see fewer
+    // facts than the budget allowed.
+    if (
+      events.length >= effMaxFacts &&
+      persons.length === 0 &&
+      items.length === 0 &&
+      cappedEvents.length < effMaxFacts
+    ) {
+      cappedEvents = events.slice(0, effMaxFacts);
+    }
+
+    return [...cappedEvents, ...persons, ...items];
   }
 
   /**
@@ -630,4 +750,7 @@ module.exports = {
   LIST_INTENT_FTS_LIMIT,
   SUM_AMOUNT_SUBTYPES,
   SUM_AMOUNT_MIN_PER_SUBTYPE,
+  PERSONS_FOCUS_EVENT_HEADROOM_RATIO,
+  DEFAULT_EVENT_BUDGET_RATIO,
+  DEFAULT_PERSON_BUDGET_RATIO,
 };

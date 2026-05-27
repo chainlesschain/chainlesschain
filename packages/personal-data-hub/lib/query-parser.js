@@ -219,6 +219,42 @@ function parseIntent(text) {
   return "list";
 }
 
+// ─── Entity-focus detection (persons / items routing) ────────────────────
+//
+// 2026-05-27 — Bug: user asked "我有哪些联系人" / "我妈手机号" several times;
+// vault held real contacts but the LLM kept replying "没数据" because the
+// default _gatherFacts pulled 200 row-cap of events first and the persons
+// slice got squeezed out of the small-model 20-fact budget. parseIntent
+// already catches "几个 X" as count, but that doesn't tell the engine WHICH
+// table the user means. parseEntityFocus is the missing signal: when the
+// question is explicitly about contacts/apps, the engine prioritizes that
+// table instead of competing with events.
+//
+// Returns null when no focus signal — engine falls back to the existing
+// events-majority + persons/items remainder behavior.
+//
+// Memory: pdh_analysis_engine_intent_routing.md.
+
+const PERSON_FOCUS_PATTERNS = [
+  /(联系人|通讯录|电话簿|通信录|好友列表|朋友列表)/,
+  /(手机号|电话号|号码是|的电话|的手机)/,
+  /(谁是|是谁|是什么人)/,
+  /\b(contact|contacts|phonebook|address\s*book|phone\s*number)\b/i,
+];
+
+const ITEM_FOCUS_PATTERNS = [
+  /(装了|安装了|装过|下了什么|下载了什么|有哪些(app|应用|软件|游戏))/i,
+  /(我的(app|应用|软件)|哪些(app|应用|软件|游戏))/i,
+  /\b(installed\s+apps?|my\s+apps?|installed\s+packages?)\b/i,
+];
+
+function parseEntityFocus(text) {
+  if (typeof text !== "string" || text.length === 0) return null;
+  if (PERSON_FOCUS_PATTERNS.some((re) => re.test(text))) return "persons";
+  if (ITEM_FOCUS_PATTERNS.some((re) => re.test(text))) return "items";
+  return null;
+}
+
 // ─── Entity-name extraction (FTS5 fulltext routing) ────────────────────
 //
 // Pull a probable entity-name candidate out of the raw question so
@@ -314,6 +350,7 @@ function parseQuery(question, opts = {}) {
     timeWindow: parseTimeWindow(raw, now),
     filters: parseFilters(raw),
     intent: parseIntent(raw),
+    entityFocus: parseEntityFocus(raw),
   };
 }
 
@@ -322,9 +359,12 @@ module.exports = {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  parseEntityFocus,
   extractEntityTerm,
   // exposed for tests
   SUBTYPE_KEYWORDS,
   ADAPTER_KEYWORDS,
+  PERSON_FOCUS_PATTERNS,
+  ITEM_FOCUS_PATTERNS,
   ENTITY_STOP_PATTERNS,
 };
