@@ -424,6 +424,19 @@ class EnhancedTrayManager {
     const isProd =
       process.env.NODE_ENV === "production" || app.isPackaged === true;
     if (hasUpdater && isProd) {
+      // v5.0.3.96 — 把主窗口拉回前台。v5.0.3.44 后更新提示走渲染端
+      // AppUpdateNotifier 卡片（画在 BrowserWindow 右下角），如果用户最小化
+      // 到托盘点的检查更新，整套 UI 在不可见窗口里 = 哑响。一定要先 show
+      // 再触发检查，否则 checking → available → downloading → downloaded
+      // 全程没人看得见。
+      try {
+        this.showWindow();
+      } catch (err) {
+        logger.warn(
+          "[TrayManager] showWindow before update check failed:",
+          err.message,
+        );
+      }
       // v5.0.3.36 — 标记为 manual 触发，让 auto-updater 事件回调弹 native
       // dialog 给 feedback（"当前已是最新版本" / "检查更新失败"）。后台 3s
       // 启动自检 + 每 4h 周期检查路径不传 manual=true，全程静默不弹任何 UI。
