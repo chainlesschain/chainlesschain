@@ -8,8 +8,20 @@
             in androidTest. Hilt-aware via @AndroidEntryPoint. See
             src/androidTest/.../TestActivity.kt KDoc for rationale.
         -->
+        <!--
+            android:name MUST be fully-qualified (not `.TestActivity`).
+            androidTest applicationId = main packageName + `.test` suffix
+            (so it differs from the test APK's class location). With `.TestActivity`,
+            Android's manifest merger would resolve to
+            `com.chainlesschain.android.feature.knowledge.test.TestActivity`,
+            but the actual class lives at
+            `com.chainlesschain.android.feature.knowledge.TestActivity`
+            (no `.test`). Intent resolution then fails at runtime with
+            "Unable to resolve activity for: Intent ... cmp=...test/...TestActivity"
+            (run 26493612650 reproducer). Always FQN here.
+        -->
         <activity
-            android:name=".TestActivity"
+            android:name="com.chainlesschain.android.feature.knowledge.TestActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
     </application>
