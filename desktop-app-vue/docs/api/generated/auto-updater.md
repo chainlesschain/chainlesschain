@@ -59,6 +59,30 @@ setTaskbarProgress(percent)
 
 ---
 
+## maybeNotifyDownloaded(info)
+
+```javascript
+maybeNotifyDownloaded(info)
+```
+
+* 主窗口隐藏到托盘 / 最小化时，发系统通知告知用户更新已就绪；点击通知
+   * 亮窗，用户随即看到 notifier 卡片。窗口可见时 notifier 卡片自己就够，
+   * 跳过通知避免双重提示。
+
+---
+
+## maybeNotifyNoUpdate(appVersion)
+
+```javascript
+maybeNotifyNoUpdate(appVersion)
+```
+
+* 用户手动检查 + 主窗口隐藏到托盘 / 最小化时，发系统通知告知"已是最新版"；
+   * 否则 dialog.showMessageBox 的模态框跟着隐藏 parentWindow 一起不可见 = 用户
+   * 看不到任何反馈。窗口可见时走原来的 native dialog 路径（在 event handler 里）。
+
+---
+
 ## async checkForUpdates(manual = false)
 
 ```javascript
