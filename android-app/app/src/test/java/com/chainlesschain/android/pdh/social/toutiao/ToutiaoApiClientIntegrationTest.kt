@@ -166,7 +166,40 @@ class ToutiaoApiClientIntegrationTest {
     @Test
     fun `extractUid returns null on anonymous cookie + sets code -7`() {
         // Only device fingerprints, no uid field — typical游客态。
+        // tt_webid=anon NOT matching since regex requires 10+ digits.
         assertNull(client.extractUid("tt_webid=anon; s_v_web_id=anon"))
         assertEquals(-7, client.lastErrorCode)
+    }
+
+    // 2026-05-27 真机 cookie schema 调查后新增的 fallback 候选 (uid_tt /
+    // sso_uid_tt / tt_webid)。头条 2025 已 deprecate passport_uid，新登录态
+    // 只下发这三个字段。
+
+    @Test
+    fun `extractUid pulls uid_tt 32-hex when passport_uid absent`() {
+        val uid = client.extractUid("uid_tt=8164781bb85a86eb0159b97b74cd53d9; sessionid=xxx")
+        assertEquals("8164781bb85a86eb0159b97b74cd53d9", uid)
+        assertEquals(0, client.lastErrorCode)
+    }
+
+    @Test
+    fun `extractUid falls back to sso_uid_tt when uid_tt absent`() {
+        val uid = client.extractUid("sso_uid_tt=4ddce340d3eeee42ae840c1b2bc690a3; tt_webid=anon")
+        assertEquals("4ddce340d3eeee42ae840c1b2bc690a3", uid)
+    }
+
+    @Test
+    fun `extractUid falls back to numeric tt_webid as last resort`() {
+        val uid = client.extractUid("tt_webid=7643974031003534911; s_v_web_id=anon")
+        assertEquals("7643974031003534911", uid)
+    }
+
+    @Test
+    fun `extractUid prefers passport_uid over new fields`() {
+        // passport_uid 是最高优先级 — 不论 cookie 同时含 uid_tt / sso_uid_tt。
+        val uid = client.extractUid(
+            "passport_uid=999; uid_tt=8164781bb85a86eb0159b97b74cd53d9; sso_uid_tt=4ddce340d3eeee42ae840c1b2bc690a3"
+        )
+        assertEquals("999", uid)
     }
 }
