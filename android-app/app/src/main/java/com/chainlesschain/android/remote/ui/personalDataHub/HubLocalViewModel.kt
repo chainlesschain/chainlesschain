@@ -1104,8 +1104,19 @@ class HubLocalViewModel @Inject constructor(
 
     /**
      * CLOUD_ANDROID — 因 ccRunner 只能讲 Ollama-compat 协议无法直连云 API，
-     * 这条走 androidLlmExecutor.chat() 不带 RAG（v0.1 占位，v0.2 再加 local
-     * retrieve-context 接 PromptMessage）。citations 必空 + isLocal=false。
+     * 走 androidLlmExecutor.chat() 直连云端。
+     *
+     * v0.2 (2026-05-27) — RAG 接上：先 `cc hub retrieve-context` 拿到 vault
+     * facts + buildPrompt-assembled messages，再把那些 messages POST 给云端
+     * LLM provider。云端拿到的 prompt 跟本机 cc ask 一样含 FACTS + TOTALS 块，
+     * "我有哪些联系人" 这种 RAG-dependent 问题能拿到真实数据。
+     *
+     * citations 来自 retrieve-context 返回的 factIds — 我们这里做最小验证
+     * (LLM 答案是否引用了 [evt-...] 形式的 id，若在 factIds 里算 known)。
+     * isLocal=false 标识答案出自云端，便于 audit。
+     *
+     * Fallback: 如果 retrieveContext 失败（vault 没开 / bootstrap 失败 / cc
+     * 异常），降级到无 RAG 直问，并在 UI 提示用户。
      */
     private fun submitAskViaCloudAndroid(
         q: String,
@@ -1124,18 +1135,51 @@ class HubLocalViewModel @Inject constructor(
         viewModelScope.launch {
             val t0 = System.currentTimeMillis()
             try {
-                val messages = listOf(
-                    com.chainlesschain.android.remote.commands.PromptMessage(role = "user", content = q),
+                // 1. RAG preflight — LLM-free, returns messages + factIds.
+                //    failure 降级到 raw user question，不阻塞 cloud path。
+                val retrieve = ccRunner.retrieveContext(
+                    q,
+                    maxFacts = FACTS_BUDGET_CLOUD,
+                    maxQueryLimit = QUERY_LIMIT_BUDGET_CLOUD,
                 )
+                val (messages, knownFactIds) = when (retrieve) {
+                    is LocalCcRunner.RetrieveContextResult.Ok -> {
+                        Timber.d(
+                            "submitAskViaCloudAndroid: RAG OK factCount=%d truncated=%d",
+                            retrieve.context.factCount, retrieve.context.truncated,
+                        )
+                        retrieve.context.messages to retrieve.context.factIds.toSet()
+                    }
+                    is LocalCcRunner.RetrieveContextResult.Failed -> {
+                        Timber.w(
+                            "submitAskViaCloudAndroid: RAG fail reason=%s exit=%s — fallback to no-RAG",
+                            retrieve.reason, retrieve.exitCode,
+                        )
+                        // Fallback: send raw question. The cloud LLM may say
+                        // "I don't have your data" but the path stays usable.
+                        listOf(
+                            com.chainlesschain.android.remote.commands.PromptMessage(
+                                role = "user",
+                                content = q,
+                            ),
+                        ) to emptySet<String>()
+                    }
+                }
+                // 2. POST to cloud LLM provider.
                 val answer = androidLlmExecutor.chat(messages, provider)
+                // 3. Validate citations against factIds (best-effort).
+                val cited = CITATION_REGEX.findAll(answer)
+                    .map { it.groupValues[1] }
+                    .toSet()
+                val knownCitations = cited.filter { it in knownFactIds }
                 val elapsed = System.currentTimeMillis() - t0
                 _state.update { st ->
                     st.copy(
                         ask = st.ask.copy(
                             isAsking = false,
                             answer = answer,
-                            citations = emptyList(),
-                            llmName = "${provider.provider.displayName} · ${provider.model} (云)",
+                            citations = knownCitations.toList(),
+                            llmName = "${provider.provider.displayName} · ${provider.model} (云+RAG)",
                             isLocal = false,
                             durationMs = elapsed,
                         ),
@@ -5650,6 +5694,12 @@ class HubLocalViewModel @Inject constructor(
         const val QUERY_LIMIT_BUDGET_LOCAL: Int = 50
         const val FACTS_BUDGET_CLOUD: Int = 80
         const val QUERY_LIMIT_BUDGET_CLOUD: Int = 200
+
+        // §S4 — CLOUD_ANDROID RAG bridge. Matches the [evt-XXX] / [item-XXX]
+        // citation format produced by prompt-builder.js (CITATION_RE there).
+        // Used to validate cloud LLM answers against factIds returned by
+        // `cc hub retrieve-context`.
+        internal val CITATION_REGEX = Regex("""\[([A-Za-z0-9][A-Za-z0-9_:-]+)\]""")
 
         // Meta-question 短路白名单。归一化形式 = trim + lowercase + 末尾标点剥离
         // (？?。.！!~～)。匹配走 [askDirectLocal]，跳过 cc 子进程 + RAG。新增条目

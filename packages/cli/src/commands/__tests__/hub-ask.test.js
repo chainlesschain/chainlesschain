@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { _internal } from "../hub.js";
 
-const { cmdAsk, parsePositiveInt } = _internal;
+const { cmdAsk, cmdRetrieveContext, parsePositiveInt } = _internal;
 
 let exitSpy, logSpy;
 
@@ -132,5 +132,108 @@ describe("cc hub ask --max-facts / --max-query-limit", () => {
       expect(askSpy).toHaveBeenCalledTimes(1);
       expect(askSpy.mock.calls[0][0]).toBe(q);
     }
+  });
+});
+
+// ─── retrieve-context (LLM-free RAG preflight, cloud-LLM bridge) ────────
+//
+// Bridges Android CLOUD_ANDROID route to RAG. Caller spawns this command
+// to get { messages, factIds, ... } then POSTs `messages` to the cloud
+// provider (Doubao / DeepSeek / Kimi / etc.) directly. NO LLM here.
+
+function makeStubHubWithRetrieve() {
+  const retrieveSpy = vi.fn(async (q, opts) => ({
+    question: q,
+    parsed: {
+      raw: q,
+      intent: "list",
+      entityFocus: null,
+      timeWindow: null,
+      filters: {},
+    },
+    facts: [],
+    factIds: [],
+    factCount: 0,
+    truncated: 0,
+    ragContextIds: [],
+    messages: [
+      { role: "system", content: "system prompt" },
+      { role: "user", content: `USER QUESTION: ${q}` },
+    ],
+    systemPrompt: "system prompt",
+    retrievedAt: 0,
+    durationMs: 1,
+    _maxFactsSeen: opts?.maxFacts,
+    _maxQueryLimitSeen: opts?.maxQueryLimit,
+  }));
+  return {
+    retrieveSpy,
+    _getHub: async () => ({ engine: { retrieveContext: retrieveSpy } }),
+  };
+}
+
+describe("cc hub retrieve-context", () => {
+  it("forwards parsed budget to engine.retrieveContext()", async () => {
+    const { retrieveSpy, _getHub } = makeStubHubWithRetrieve();
+    await cmdRetrieveContext("我有哪些联系人", {
+      maxFacts: "20",
+      maxQueryLimit: "50",
+      _getHub,
+    });
+    expect(retrieveSpy).toHaveBeenCalledTimes(1);
+    const [q, opts] = retrieveSpy.mock.calls[0];
+    expect(q).toBe("我有哪些联系人");
+    expect(opts.maxFacts).toBe(20);
+    expect(opts.maxQueryLimit).toBe(50);
+    // skipAudit=false by default — retrieve writes its own audit row distinct
+    // from ask's, so the desktop / Android side can tell apart "LLM-free
+    // preflight" vs "full ask" in audit_log filter views.
+    expect(opts.skipAudit).toBe(false);
+  });
+
+  it("outputs JSON unconditionally (machine-only command)", async () => {
+    const { _getHub } = makeStubHubWithRetrieve();
+    await cmdRetrieveContext("hello", { _getHub });
+    expect(logSpy).toHaveBeenCalled();
+    const printed = logSpy.mock.calls[0][0];
+    // printJson stringifies the result; basic shape check.
+    const parsed = JSON.parse(printed);
+    expect(parsed).toHaveProperty("messages");
+    expect(parsed).toHaveProperty("factIds");
+    expect(Array.isArray(parsed.messages)).toBe(true);
+  });
+
+  it("omits maxFacts/maxQueryLimit when flags absent (engine uses defaults)", async () => {
+    const { retrieveSpy, _getHub } = makeStubHubWithRetrieve();
+    await cmdRetrieveContext("hello", { _getHub });
+    const [, opts] = retrieveSpy.mock.calls[0];
+    expect(opts).not.toHaveProperty("maxFacts");
+    expect(opts).not.toHaveProperty("maxQueryLimit");
+  });
+
+  it("does NOT touch acceptNonLocal (no LLM call → no privacy gate here)", async () => {
+    const { retrieveSpy, _getHub } = makeStubHubWithRetrieve();
+    // Even if env demanding non-local, retrieve-context still runs — the
+    // caller's own LLM provider is the gate. Verify retrieveContext was
+    // called without acceptNonLocal being forwarded.
+    process.env.CC_HUB_ALLOW_NON_LOCAL = "1";
+    await cmdRetrieveContext("hello", { _getHub });
+    const [, opts] = retrieveSpy.mock.calls[0];
+    expect(opts).not.toHaveProperty("acceptNonLocal");
+  });
+
+  it("exits 1 with JSON error envelope when engine throws", async () => {
+    const errGetHub = async () => ({
+      engine: {
+        retrieveContext: async () => {
+          throw new Error("vault not open");
+        },
+      },
+    });
+    await cmdRetrieveContext("hello", { _getHub: errGetHub });
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    const errPrinted = logSpy.mock.calls[0][0];
+    const parsed = JSON.parse(errPrinted);
+    expect(parsed.error).toMatch(/vault not open/);
   });
 });
