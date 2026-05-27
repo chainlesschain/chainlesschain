@@ -922,8 +922,19 @@ class LocalCcRunner @Inject constructor(
      *                  传 20 → prompt ≈ 1.5K，留足回答空间。null 走 cc 默认。
      * @param maxQueryLimit Vault `queryEvents.limit` 覆写。配合 [maxFacts] 减少
      *                       事实候选池扫描；默认 50 (cc 默认 200)。
-     * @param timeoutMs ~60s budget for first-token + decode of a ~200-token
-     *                  answer at 8-15 tok/s (Qwen2.5-1.5B on Dimensity 7025).
+     * @param timeoutMs wall-clock budget. 60s was the original target ("first
+     *                  token + decode at 8-15 tok/s") but real-device 2026-05-27
+     *                  Xiaomi 24115RA8EC showed cold-start cc spawn + bs3mc
+     *                  require + SQLCipher PBKDF2-100K key derive + MediaPipe
+     *                  first-token bootstrap routinely eats 30-50s BEFORE
+     *                  generation even starts, then a 200-token answer adds
+     *                  another 20-40s. 60s caused silent timeouts mid-answer
+     *                  and the user saw "几个联系人" never respond. Bumped to
+     *                  240s to match `runCommand` water-line; LLM tail / hang
+     *                  recovery still works, just patient. UX side should
+     *                  surface a "thinking..." indicator if this becomes a
+     *                  pattern. Future S4: route to cloud LLM by default on
+     *                  Android (per memory pdh_a3_3tier_llm_routing.md).
      */
     suspend fun askQuestion(
         question: String,
@@ -931,7 +942,7 @@ class LocalCcRunner @Inject constructor(
         acceptNonLocal: Boolean = false,
         maxFacts: Int? = 20,
         maxQueryLimit: Int? = 50,
-        timeoutMs: Long = 60_000L,
+        timeoutMs: Long = 240_000L,
     ): AskResult = withContext(Dispatchers.IO) {
         val ensure = bootstrapper.bootstrap()
         if (ensure.isFailure) {
