@@ -48,6 +48,22 @@ jobs:
         target: [google_apis]
 
     steps:
+      # 2026-05-28: feature-local-terminal NDK build + connectedAndroidTest dex
+      # merge regularly blew past the ~14 GB free on ubuntu-latest, producing
+      # "No space left on device" at :core-ui:mergeExtDexDebugAndroidTest (e.g.
+      # run 26521153811 build-apk step). jlumbroso/free-disk-space frees ~30 GB
+      # by removing pre-installed .NET, Haskell, Android extras we don't need
+      # (we install our own NDK via android-emulator-runner).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
