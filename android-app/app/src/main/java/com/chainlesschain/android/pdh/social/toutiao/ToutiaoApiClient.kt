@@ -112,7 +112,7 @@ class ToutiaoApiClient @Inject constructor() {
             setLastError(-1, "cookie 为空")
             return null
         }
-        // 优先：passport_uid (现行登录后稳定)
+        // 优先：passport_uid (旧版登录后稳定，2025+ 已 deprecated)
         val passportUid = Regex("(?:^|; ?)passport_uid=(\\d+)").find(cookie)?.groupValues?.getOrNull(1)
         if (passportUid != null && passportUid.isNotBlank() && passportUid != "0") {
             clearLastError()
@@ -127,14 +127,36 @@ class ToutiaoApiClient @Inject constructor() {
                 return firstUid
             }
         }
-        // legacy fallback
+        // legacy 数字 uid fallback
         val legacy = Regex("(?:^|; ?)(?:__ac_uid|tt_uid)=(\\d+)").find(cookie)?.groupValues?.getOrNull(1)
         if (legacy != null && legacy.isNotBlank() && legacy != "0") {
             clearLastError()
             return legacy
         }
+        // 2026-05-27 真机 cookie 调查 (Xiaomi 24115RA8EC, www.toutiao.com 登录后)：
+        // passport_uid / multi_sids / __ac_uid 三个都 absent。但 cookie 里有
+        //   uid_tt        = 8164781bb85a86eb0159b97b74cd53d9   (toutiao 内 uid, 32-hex)
+        //   sso_uid_tt    = 4ddce340d3eeee42ae840c1b2bc690a3   (SSO 统一 uid, 32-hex)
+        //   tt_webid      = 7643974031003534911                  (web 访问者 numeric)
+        // 头条 2025 改了登录态 cookie schema, passport_uid 不再下发到 web 端。
+        // 优先 uid_tt (站内 ID), 其次 sso_uid_tt, 兜底 tt_webid。
+        val uidTt = Regex("(?:^|; ?)uid_tt=([0-9a-fA-F]{16,64})").find(cookie)?.groupValues?.getOrNull(1)
+        if (uidTt != null && uidTt.isNotBlank()) {
+            clearLastError()
+            return uidTt
+        }
+        val ssoUidTt = Regex("(?:^|; ?)sso_uid_tt=([0-9a-fA-F]{16,64})").find(cookie)?.groupValues?.getOrNull(1)
+        if (ssoUidTt != null && ssoUidTt.isNotBlank()) {
+            clearLastError()
+            return ssoUidTt
+        }
+        val ttWebid = Regex("(?:^|; ?)tt_webid=(\\d{10,})").find(cookie)?.groupValues?.getOrNull(1)
+        if (ttWebid != null && ttWebid.isNotBlank() && ttWebid != "0") {
+            clearLastError()
+            return ttWebid
+        }
         // 没找到任何 uid 字段 — cookie 是"匿名"或"登录未完成"
-        setLastError(-7, "cookie 缺 passport_uid / multi_sids / __ac_uid — 登录未完成或仅游客态")
+        setLastError(-7, "cookie 缺 passport_uid/multi_sids/__ac_uid/uid_tt/sso_uid_tt/tt_webid — 登录未完成或仅游客态")
         Timber.w(
             "ToutiaoApiClient.extractUid: no uid candidate found in cookie (length=%d)",
             cookie.length,
