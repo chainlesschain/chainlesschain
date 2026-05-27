@@ -453,7 +453,7 @@ private fun TaskStatusIndicator(
         when (status) {
             TaskStatus.COMPLETED -> Icon(
                 Icons.Default.Check,
-                null,
+                contentDescription = "Completed",
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
             )
@@ -476,7 +476,7 @@ private fun TaskStatusIndicator(
             }
             TaskStatus.FAILED -> Icon(
                 Icons.Default.Close,
-                null,
+                contentDescription = "Failed",
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onError
             )

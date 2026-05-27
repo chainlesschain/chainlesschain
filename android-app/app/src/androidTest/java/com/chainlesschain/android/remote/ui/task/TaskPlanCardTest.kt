@@ -83,8 +83,8 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithText("确认").assertIsDisplayed()
-        composeTestRule.onNodeWithText("拒绝").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Execute").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Reject").assertIsDisplayed()
     }
 
     @Test
@@ -101,7 +101,7 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithText("确认").performClick()
+        composeTestRule.onNodeWithText("Execute").performClick()
         assertTrue(confirmed)
     }
 
@@ -119,7 +119,7 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithText("拒绝").performClick()
+        composeTestRule.onNodeWithText("Reject").performClick()
         assertTrue(rejected)
     }
 
@@ -202,7 +202,10 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithText("1/2", substring = true).assertIsDisplayed()
+        // TaskPlanCardCompact shows total task count "${plan.tasks.size} tasks", not
+        // a "completed/total" progress fraction. The 1/2 assertion predated b10175940
+        // revive when production renderer was different — align with current prod.
+        composeTestRule.onNodeWithText("2 tasks", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -241,7 +244,10 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithContentDescription("待处理", substring = true).assertIsDisplayed()
+        // TaskStatusIndicator renders Text("$taskId") for PENDING (no Icon, no
+        // contentDescription). Production has not had a 待处理 contentDescription
+        // since at least b10175940 — check the visible task-id text instead.
+        composeTestRule.onNodeWithText("1").assertIsDisplayed()
     }
 
     @Test
@@ -261,7 +267,7 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithContentDescription("已完成", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Completed", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -281,7 +287,7 @@ class TaskPlanCardTest {
             )
         }
 
-        composeTestRule.onNodeWithContentDescription("失败", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Failed", substring = true).assertIsDisplayed()
     }
 
     private fun createTestPlan(): TaskPlan {

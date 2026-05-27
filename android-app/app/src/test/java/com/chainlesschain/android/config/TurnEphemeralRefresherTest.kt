@@ -80,17 +80,26 @@ class TurnEphemeralRefresherTest {
         refresher = TurnEphemeralRefresher(preferences, client, iceConfig)
 
         refresher.start()
-        // 等首次 fetch + apply 完成。3s deadline 在 CI 大并发 (1671 其他 test 同跑)
-        // 下 race-lose: refreshLoop 还没把 fetch 结果 apply 到 iceConfig，poll 就先
-        // 超时退出 → addTurnServer verify 0 calls → 假阳性 fail (run 26478795271
-        // / 26451121618 retry pass)。bump 到 10s — current() 一就续 break 不付
-        // delay 成本，只有 flake 路径才吃满 budget。
-        val deadline = System.currentTimeMillis() + 10000
-        while (refresher.current() == null && System.currentTimeMillis() < deadline) {
-            kotlinx.coroutines.delay(50)
+        // 直接 poll 真正想 verify 的 side effect (addTurnServer 调用)，不再走
+        // refresher.current()。current() poll 在 android-tests.yml 的 --no-daemon
+        // 路径 (cold JVM + 7 core-* parallel jobs 占满 IO dispatcher) 下出现 race:
+        // refreshLoop 还没 launch / fetch 还没 dispatch → current() 一直 null →
+        // 10s 也吃满 (run 26519236926 fail，同 commit 在 android-ci.yml daemon 路径
+        // 顺利 pass 26519236922)。30s deadline 兜底冷启 worst case。
+        val deadline = System.currentTimeMillis() + 30000
+        var observed = false
+        while (!observed && System.currentTimeMillis() < deadline) {
+            try {
+                verify(atLeast = 1) { iceConfig.addTurnServer("turn:a:3478", "u", "p") }
+                verify(atLeast = 1) { iceConfig.addTurnServer("turn:b:3478", "u", "p") }
+                observed = true
+            } catch (e: AssertionError) {
+                kotlinx.coroutines.delay(50)
+            }
         }
         refresher.stop()  // 截断后续 80%TTL delay
 
+        // Final assertion (no try/catch) — if 30s timeout 用尽仍 0 calls，真错。
         verify(atLeast = 1) { iceConfig.addTurnServer("turn:a:3478", "u", "p") }
         verify(atLeast = 1) { iceConfig.addTurnServer("turn:b:3478", "u", "p") }
     }
