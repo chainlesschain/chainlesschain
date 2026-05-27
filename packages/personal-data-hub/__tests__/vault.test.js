@@ -425,6 +425,94 @@ describe("LocalVault.queryEvents + countEvents", () => {
   });
 });
 
+// ─── searchPersons (LIKE name search) ────────────────────────────────────
+//
+// 2026-05-27 — AnalysisEngine entityFocus="persons" routes to searchPersons
+// when the question carries a name candidate ("妈手机号", "张三的电话").
+// LIKE on names / identifiers / notes / relation, no FTS5 migration.
+
+describe("LocalVault.searchPersons", () => {
+  it("matches against names column (JSON-serialized array)", () => {
+    freshVault();
+    vault.putPerson(personOk({ names: ["妈妈", "陈某某"] }));
+    vault.putPerson(personOk({ names: ["张三"] }));
+    vault.putPerson(personOk({ names: ["王医生"] }));
+
+    const r = vault.searchPersons({ q: "妈" });
+    expect(r.length).toBe(1);
+    expect(r[0].names).toContain("妈妈");
+  });
+
+  it("matches against identifiers (phone numbers)", () => {
+    freshVault();
+    vault.putPerson(personOk({
+      names: ["张三"],
+      identifiers: { phone: ["13800001111"] },
+    }));
+    vault.putPerson(personOk({
+      names: ["李四"],
+      identifiers: { phone: ["13900002222"] },
+    }));
+
+    const r = vault.searchPersons({ q: "13800" });
+    expect(r.length).toBe(1);
+    expect(r[0].names).toContain("张三");
+  });
+
+  it("matches against notes + relation", () => {
+    freshVault();
+    vault.putPerson(personOk({
+      names: ["陈某某"], relation: "母亲", notes: "best mom ever",
+    }));
+    vault.putPerson(personOk({ names: ["路人甲"], relation: "stranger" }));
+
+    expect(vault.searchPersons({ q: "母亲" }).length).toBe(1);
+    expect(vault.searchPersons({ q: "best mom" }).length).toBe(1);
+  });
+
+  it("empty q delegates to queryPersons (ingest-ordered)", () => {
+    freshVault();
+    vault.putPerson(personOk({ names: ["A"] }));
+    vault.putPerson(personOk({ names: ["B"] }));
+    vault.putPerson(personOk({ names: ["C"] }));
+
+    const r = vault.searchPersons({ q: "", limit: 2 });
+    expect(r.length).toBe(2);
+  });
+
+  it("LIKE meta-characters in user input are escaped (no wildcard injection)", () => {
+    freshVault();
+    vault.putPerson(personOk({ names: ["100%棉"] }));
+    vault.putPerson(personOk({ names: ["AAA"] }));
+
+    // "100%" should match only the literal "100%棉" row, not everything.
+    const r = vault.searchPersons({ q: "100%" });
+    expect(r.length).toBe(1);
+    expect(r[0].names).toContain("100%棉");
+  });
+
+  it("respects subtype + adapter filters", () => {
+    freshVault();
+    vault.putPerson(personOk({
+      subtype: "contact", names: ["张三"],
+      source: source({ adapter: "wechat" }),
+    }));
+    vault.putPerson(personOk({
+      subtype: "merchant", names: ["张三"],
+      source: source({ adapter: "system-data-android" }),
+    }));
+
+    expect(vault.searchPersons({ q: "张三", subtype: "merchant" }).length).toBe(1);
+    expect(vault.searchPersons({ q: "张三", adapter: "wechat" }).length).toBe(1);
+  });
+
+  it("returns empty array when no match", () => {
+    freshVault();
+    vault.putPerson(personOk({ names: ["张三"] }));
+    expect(vault.searchPersons({ q: "完全不存在的名字" })).toEqual([]);
+  });
+});
+
 // ─── sync watermarks ──────────────────────────────────────────────────────
 
 describe("LocalVault sync watermarks", () => {

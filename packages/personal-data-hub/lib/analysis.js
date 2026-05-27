@@ -21,7 +21,7 @@
 
 "use strict";
 
-const { parseQuery, extractEntityTerm } = require("./query-parser");
+const { parseQuery, extractEntityTerm, extractPersonNameCandidate } = require("./query-parser");
 const {
   buildPrompt,
   parseCitations,
@@ -459,10 +459,24 @@ class AnalysisEngine {
     if (parsed.entityFocus === "persons") {
       const personLimit = effMaxFacts > 1 ? effMaxFacts - 1 : effMaxFacts;
       let persons = [];
-      try {
-        persons = this.vault.queryPersons({ limit: personLimit });
-      } catch (_e) {
-        // legacy vault — fall through
+      // Name-search short-circuit — when the question carries a probable
+      // person-name candidate ("妈手机号", "张三的电话"), try LIKE-search
+      // against names / identifiers / notes / relation. Hits go straight
+      // to FACTS so the LLM sees the target contact even when the vault
+      // holds hundreds of others. Falls back to ingest-ordered queryPersons
+      // when 0 hits or no name candidate.
+      const nameCandidate = extractPersonNameCandidate(parsed.raw);
+      if (nameCandidate && typeof this.vault.searchPersons === "function") {
+        try {
+          persons = this.vault.searchPersons({ q: nameCandidate, limit: personLimit });
+        } catch (_e) { /* tolerate — try ingest-ordered fallback */ }
+      }
+      if (persons.length === 0) {
+        try {
+          persons = this.vault.queryPersons({ limit: personLimit });
+        } catch (_e) {
+          // legacy vault — fall through
+        }
       }
       if (persons.length > 0) {
         const eventHeadroom = Math.max(
