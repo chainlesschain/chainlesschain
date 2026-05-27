@@ -403,11 +403,16 @@ describe("AnalysisEngine.ask cache bypass", () => {
 // + items into facts within the maxFacts budget.
 
 describe("AnalysisEngine._gatherFacts includes persons and items", () => {
-  it("returns persons + items even when events are empty (contacts-only vault)", async () => {
+  it("contact question routes via entityFocus=persons — persons only, no items competition", async () => {
     freshVault();
-    // Use a fake vault that exposes queryPersons / queryItems but no event
-    // history — mimics the post-Path-C-ingest state where contacts +
-    // installed apps are the only data.
+    // 2026-05-27 fix: "我有几个联系人" now matches parseEntityFocus → "persons",
+    // which intentionally skips the items table to give the full prompt
+    // budget to contacts. Pre-fix this test asserted 5 persons + 3 items
+    // (8 facts) because _gatherFacts always pulled both tables; post-fix
+    // items are deliberately excluded — the user asked about contacts, not
+    // apps. Items still surface for generic "what's in my vault" questions
+    // (entityFocus=null) and for explicit "我装了哪些 app" (entityFocus=
+    // "items"). Verified at __tests__:_gatherFacts entityFocus routing.
     const fakeVault = {
       queryEvents: () => [],
       queryPersons: ({ limit }) => {
@@ -448,9 +453,8 @@ describe("AnalysisEngine._gatherFacts includes persons and items", () => {
     const llm = new MockLLMClient({ reply: "你共有 5 个联系人" });
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     const r = await engine.ask("我有几个联系人");
-    expect(r.facts.length).toBe(8); // 0 events + 5 persons + 3 items
     expect(r.facts.filter((f) => f.type === "person").length).toBe(5);
-    expect(r.facts.filter((f) => f.type === "item").length).toBe(3);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(0);
   });
 
   it("respects maxFacts budget — events get majority, persons + items split remainder", async () => {
@@ -498,7 +502,11 @@ describe("AnalysisEngine._gatherFacts includes persons and items", () => {
     expect(r.warning).toBe("no-facts");
   });
 
-  it("events take majority when budget < events.length (no person/item budget left)", async () => {
+  it("events overflow + empty side tables → events refill the reserved slots", async () => {
+    // 2026-05-27 fix: when events would monopolize effMaxFacts the engine
+    // reserves slots for persons + items; if BOTH side tables return 0 rows
+    // the reserve is refilled with events so a contact-less vault still
+    // sees the full event budget.
     const fakeVault = {
       queryEvents: () => Array.from({ length: 80 }, (_, i) => ({
         id: "e" + i, type: "event", subtype: "order",
@@ -515,10 +523,134 @@ describe("AnalysisEngine._gatherFacts includes persons and items", () => {
     const engine = new AnalysisEngine({ vault: fakeVault, llm, maxFacts: 80 });
     const r = await engine.ask("hi");
     expect(r.facts.length).toBe(80);
-    // budget exhausted → queryPersons / queryItems still called but with limit 0
-    // (current impl skips with personBudget <= 0). Verify they're NOT called.
-    expect(fakeVault.queryPersons).not.toHaveBeenCalled();
-    expect(fakeVault.queryItems).not.toHaveBeenCalled();
+    expect(r.facts.filter((f) => f.type === "event").length).toBe(80);
+    // Side queries WERE called (different from pre-fix); they just returned [].
+    expect(fakeVault.queryPersons).toHaveBeenCalledWith({ limit: 16 });
+    expect(fakeVault.queryItems).toHaveBeenCalledWith({ limit: 8 });
+  });
+
+  it("Android small-model budget — events overflow cap, persons survive", async () => {
+    // Regression: Android local path (effMaxFacts=20, effMaxQueryLimit=50).
+    // Vault returns 50 events; pre-fix _gatherFacts shipped 50 events,
+    // buildPrompt sliced to first 20 events, persons = 0 → "几个联系人"
+    // hallucinated zero. Now events cap at 14 (20*0.7), persons get 3,
+    // items get 3 → contact rows reach the LLM.
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 50 }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "message",
+        occurredAt: Date.now(), actor: "self",
+        ingestedAt: Date.now(),
+        source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryPersons: ({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "p" + i, type: "person", subtype: "contact",
+        names: ["联系人" + i], ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryItems: ({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "i" + i, type: "item", subtype: "other", name: "App" + i,
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({
+      vault: fakeVault, llm,
+      maxFacts: 20, maxQueryLimit: 50,
+    });
+    const r = await engine.ask("hi"); // generic question — default path
+    // 20 * 0.2 = 4 persons, 20 * 0.1 = 2 items, remainder 14 for events.
+    expect(r.facts.filter((f) => f.type === "event").length).toBe(14);
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(4);
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(2);
+  });
+});
+
+// ─── entityFocus routing — persons / items table priority ────────────────
+//
+// 2026-05-27 fix: when the question is explicitly about contacts ("我有
+// 哪些联系人", "妈手机号"), _gatherFacts must NOT compete persons against
+// the events pool. Pre-fix Android small-model budgets (20 facts / 50 row
+// cap) had events drown out the contact slice → user saw "没数据" even
+// when the vault held hundreds of contacts.
+
+describe("AnalysisEngine._gatherFacts entityFocus routing", () => {
+  it("entityFocus=persons skips events broad scan, prioritizes persons", async () => {
+    const fakeVault = {
+      queryEvents: vi.fn(() => Array.from({ length: 50 }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "message",
+        occurredAt: Date.now(), actor: "self",
+        ingestedAt: Date.now(),
+        source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      }))),
+      queryPersons: vi.fn(({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "p" + i, type: "person", subtype: "contact",
+        names: ["联系人" + i], ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      }))),
+      queryItems: vi.fn(() => []),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({
+      vault: fakeVault, llm,
+      maxFacts: 20, maxQueryLimit: 50,
+    });
+    const r = await engine.ask("我有哪些联系人");
+    // 95% goes to persons (19), 5% headroom = 1 event slot.
+    expect(r.facts.filter((f) => f.type === "person").length).toBe(19);
+    expect(r.facts.filter((f) => f.type === "event").length).toBeLessThanOrEqual(1);
+    expect(fakeVault.queryPersons).toHaveBeenCalledWith({ limit: 19 });
+  });
+
+  it("entityFocus=persons falls through to default path when persons table is empty", async () => {
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 5 }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "message",
+        occurredAt: Date.now(), actor: "self",
+        ingestedAt: Date.now(),
+        source: { adapter: "wechat", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryPersons: () => [], // empty contacts table
+      queryItems: () => [],
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({ vault: fakeVault, llm });
+    const r = await engine.ask("我有哪些联系人");
+    // Fell through to default → 5 events surfaced (no cap since 5 < 80).
+    expect(r.facts.filter((f) => f.type === "event").length).toBe(5);
+  });
+
+  it("entityFocus=items prioritizes items table over events", async () => {
+    const fakeVault = {
+      queryEvents: () => Array.from({ length: 100 }, (_, i) => ({
+        id: "e" + i, type: "event", subtype: "browse",
+        occurredAt: Date.now(), actor: "self",
+        ingestedAt: Date.now(),
+        source: { adapter: "browser-history", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      })),
+      queryPersons: () => [],
+      queryItems: vi.fn(({ limit }) => Array.from({ length: limit }, (_, i) => ({
+        id: "i" + i, type: "item", subtype: "other", name: "App" + i,
+        ingestedAt: Date.now(),
+        source: { adapter: "system-data-android", adapterVersion: "0", capturedAt: Date.now(), capturedBy: "api" },
+      }))),
+      getEvent: () => null,
+      audit: () => {},
+    };
+    const llm = new MockLLMClient({ reply: "" });
+    const engine = new AnalysisEngine({
+      vault: fakeVault, llm,
+      maxFacts: 20, maxQueryLimit: 50,
+    });
+    const r = await engine.ask("我装了哪些 app");
+    expect(r.facts.filter((f) => f.type === "item").length).toBe(19);
+    expect(fakeVault.queryItems).toHaveBeenCalledWith({ limit: 19 });
   });
 });
 
@@ -682,10 +814,12 @@ describe("AnalysisEngine per-call budget overrides", () => {
     const llm = { isLocal: true, chat: () => { throw new Error("nope"); } };
     const engine = new AnalysisEngine({ vault: fakeVault, llm });
     const r = await engine.retrieveContext("hi", { maxFacts: 10, maxQueryLimit: 50 });
-    // _gatherFacts returns 50 events, but buildPrompt caps factCount to maxFacts=10.
-    // `truncated` is a count of dropped facts, not a boolean.
+    // 2026-05-27 fix: _gatherFacts now respects effMaxFacts upstream
+    // (events would have overflowed → reservation branch; persons/items
+    // returned [] → refill back to events.slice(0,10)). buildPrompt sees
+    // exactly 10 facts, nothing to truncate.
     expect(r.factCount).toBe(10);
-    expect(r.truncated).toBe(40); // 50 gathered - 10 kept = 40 truncated
+    expect(r.truncated).toBe(0);
   });
 
   it("retrieveContext() honors options.maxFacts and options.maxQueryLimit", async () => {

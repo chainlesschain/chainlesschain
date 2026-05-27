@@ -7,6 +7,7 @@ const {
   parseTimeWindow,
   parseFilters,
   parseIntent,
+  parseEntityFocus,
   extractEntityTerm,
 } = require("../lib/query-parser");
 
@@ -126,6 +127,38 @@ describe("parseIntent", () => {
   });
 });
 
+describe("parseEntityFocus", () => {
+  it("returns 'persons' for 联系人 / 通讯录 phrasing", () => {
+    expect(parseEntityFocus("我有哪些联系人")).toBe("persons");
+    expect(parseEntityFocus("通讯录里有多少人")).toBe("persons");
+    expect(parseEntityFocus("好友列表谁是张三")).toBe("persons");
+  });
+
+  it("returns 'persons' for phone-number phrasing", () => {
+    expect(parseEntityFocus("妈手机号是多少")).toBe("persons");
+    expect(parseEntityFocus("王医生的电话号码")).toBe("persons");
+    expect(parseEntityFocus("show me my contacts")).toBe("persons");
+  });
+
+  it("returns 'items' for installed-app phrasing", () => {
+    expect(parseEntityFocus("我装了哪些 app")).toBe("items");
+    expect(parseEntityFocus("有哪些游戏")).toBe("items");
+    expect(parseEntityFocus("installed apps")).toBe("items");
+  });
+
+  it("returns null when no focus signal", () => {
+    expect(parseEntityFocus("上个月在淘宝花了多少")).toBeNull();
+    expect(parseEntityFocus("最近的订单")).toBeNull();
+    expect(parseEntityFocus("hello")).toBeNull();
+  });
+
+  it("returns null for non-string / empty input", () => {
+    expect(parseEntityFocus("")).toBeNull();
+    expect(parseEntityFocus(null)).toBeNull();
+    expect(parseEntityFocus(undefined)).toBeNull();
+  });
+});
+
 describe("parseQuery (integration)", () => {
   it("full parse for spending question", () => {
     const r = parseQuery("上个月在淘宝总共花了多少钱？", { now: NOW });
@@ -133,6 +166,13 @@ describe("parseQuery (integration)", () => {
     expect(r.filters.subtype).toBe("payment");
     expect(r.filters.adapter).toBe("taobao");
     expect(r.intent).toBe("sum-amount");
+    expect(r.entityFocus).toBeNull();
+  });
+
+  it("contact question carries entityFocus=persons", () => {
+    const r = parseQuery("我有哪些联系人", { now: NOW });
+    expect(r.entityFocus).toBe("persons");
+    expect(r.intent).toBe("list");
   });
 
   it("full parse for footprint question", () => {
