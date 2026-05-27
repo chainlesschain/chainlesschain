@@ -2,11 +2,10 @@ package com.chainlesschain.android.feature.knowledge.e2e
 
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.core.app.ApplicationProvider
 import com.chainlesschain.android.core.common.util.DeviceIdManager
-import com.chainlesschain.android.feature.knowledge.TestActivity
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
@@ -55,8 +54,19 @@ class KnowledgeE2ETest {
     @get:Rule(order = 0)
     val databaseFixture = DatabaseFixture()
 
+    // KB-01 deliberately does NOT use createAndroidComposeRule<TestActivity>() —
+    // TestActivity carries @AndroidEntryPoint, and launching it without an
+    // active Hilt graph (no @HiltAndroidTest / HiltAndroidRule on this class
+    // — see file KDoc on the avoid-SQLCipher rationale) crashes the
+    // instrumentation process at onCreate with
+    //   IllegalStateException: The component was not created. Check that you
+    //   have added the HiltAndroidRule.
+    // (run 26498143551 reproducer). createComposeRule() instead uses the debug
+    // Activity supplied by `debugImplementation androidx.compose.ui:ui-test-manifest`
+    // — a plain ComponentActivity, no Hilt expectation. TestActivity stays
+    // around for future @HiltAndroidTest-based reactivations (KB-02..KB-08).
     @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<TestActivity>()
+    val composeTestRule = createComposeRule()
 
     private lateinit var viewModel: KnowledgeViewModel
     private lateinit var repository: KnowledgeRepository
