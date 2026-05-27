@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application android:name="dagger.hilt.android.testing.HiltTestApplication">
+        <!--
+            Module-local host Activity for createAndroidComposeRule<TestActivity>()
+            in androidTest. Hilt-aware via @AndroidEntryPoint. See
+            src/androidTest/.../TestActivity.kt KDoc for rationale.
+        -->
+        <activity
+            android:name=".TestActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+    </application>
+</manifest>

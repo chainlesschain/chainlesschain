@@ -26,4 +26,18 @@
     <uses-sdk
         android:minSdkVersion="26"
         tools:overrideLibrary="com.chainlesschain.android.feature.localterminal" />
+
+    <application android:name="dagger.hilt.android.testing.HiltTestApplication">
+        <!--
+            Module-local host Activity for createAndroidComposeRule<TestActivity>()
+            in androidTest. Hilt-aware via @AndroidEntryPoint. Replaces the
+            never-existed `:app/MainActivity` reverse-dep the 10 stubbed
+            AIConversationE2ETest tests referenced. See
+            src/androidTest/.../TestActivity.kt KDoc.
+        -->
+        <activity
+            android:name=".TestActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+    </application>
 </manifest>

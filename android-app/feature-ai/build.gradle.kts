@@ -130,6 +130,10 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // Shared Compose test extensions (clickOnText / typeTextInField /
+    // waitForText / etc.) — formerly only at :app/.../test/. See
+    // :core-test-helpers/build.gradle.kts KDoc.
+    androidTestImplementation(project(":core-test-helpers"))
     // material-icons-extended needed even though :core-ui declares it as
     // api() — the transitive dep does NOT reach androidTest compile classpath.
     // Empirically verified via KnowledgeUITest unquarantine (commit 6afedbbf8).

@@ -131,7 +131,15 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
-            cd android-app && (./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
+            cd android-app && (./gradlew :app:connectedDebugAndroidTest :feature-knowledge:connectedDebugAndroidTest :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
+            # 2026-05-27: added :feature-knowledge: + :feature-ai: explicit
+            # task lists after Phase 2-6 quarantine-clear (Wave 1 KB-01
+            # reactivated via TestActivity + FakeAppBindingsModule +
+            # :core-test-helpers; HiltGraphSmokeTest validates Hilt cross-mod
+            # binding). Keeps the bare `connectedDebugAndroidTest` trap
+            # avoided (empty source sets in core-common / core-blockchain
+            # still don't get hit) while extending coverage to the modules
+            # that just got real androidTest classes.
             # 2026-05-23 investigation (run 26321740702):
             #   1. Dropped `package=com.chainlesschain.android.e2e` filter —
             #      it matched no live tests (only AppE2ETestSuite.kt.broken

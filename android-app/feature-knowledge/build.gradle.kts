@@ -87,6 +87,8 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // Shared Compose test extensions — see :core-test-helpers KDoc.
+    androidTestImplementation(project(":core-test-helpers"))
     // Even though :core-ui already declares `api("androidx.compose.material:
     // material-icons-extended")`, that transitive dep doesn't reach the
     // androidTest compile classpath — empirically verified 2026-05-20 (icons

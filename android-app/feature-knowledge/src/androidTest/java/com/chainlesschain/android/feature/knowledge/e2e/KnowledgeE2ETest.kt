@@ -1,89 +1,180 @@
 package com.chainlesschain.android.feature.knowledge.e2e
 
+import android.content.Context
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.test.core.app.ApplicationProvider
+import com.chainlesschain.android.core.common.util.DeviceIdManager
+import com.chainlesschain.android.feature.knowledge.TestActivity
+import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
+import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
+import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
+import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeViewModel
+import com.chainlesschain.android.test.DatabaseFixture
+import com.chainlesschain.android.test.assertTextExists
+import com.chainlesschain.android.test.waitForText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Ignore
+import org.junit.Rule
 import org.junit.Test
 
 /**
- * 知识库 E2E 测试 — stub placeholder
+ * 知识库 E2E 测试（Phase 6 infra-reactivated）
  *
- * Same pattern as feature-ai's AIConversationE2ETest:
- * the original test drove MainActivity's Compose UI through Chinese button
- * labels using a never-existed helper package `com.chainlesschain.android.
- * test.*`, plus `DatabaseFixture` from :core-database's androidTest source
- * set which isn't on this module's androidTest classpath.
+ * Hilt graph wiring lives in [com.chainlesschain.android.feature.knowledge.HiltGraphSmokeTest].
+ * This file focuses on the end-to-end workflow itself; it deliberately
+ * constructs `KnowledgeViewModel` + `KnowledgeRepository` by hand against an
+ * in-memory Room database (via [DatabaseFixture]) rather than going through
+ * the production DI graph, because that graph pulls in
+ * `:core-database/DatabaseModule.provideDatabase` which `System.loadLibrary("sqlcipher")`
+ * + opens the real SQLCipher-encrypted DB through `KeyManager` →
+ * AndroidKeyStore. None of that is necessary to validate the knowledge
+ * workflow itself.
  *
- * Stubbed @Ignore so the test surface remains discoverable when the
- * infra is built. Hilt annotations intentionally stripped — earlier
- * @HiltAndroidTest caused KSP to fail on :feature-knowledge's androidTest
- * Hilt graph (see commit 4c44bfc95). Stubs need no DI; reactivation
- * brings Hilt back along with the rest of the infrastructure.
- *
- * Real reactivation needs (same as AIConversationE2ETest):
- *   1. Module-local TestActivity that hosts feature-knowledge's Compose
- *      root WITHOUT requiring :app's MainActivity (reverse-dep);
- *   2. Helper module defining clickOnText / typeTextInField /
- *      waitForLoadingToComplete / etc. as test-rule extensions;
- *   3. Wiring DatabaseFixture from :core-database's androidTest source
- *      set into :feature-knowledge's androidTest classpath;
- *   4. Hilt runtime (HiltTestApplication via custom AndroidJUnitRunner),
- *      and re-add @HiltAndroidTest + HiltAndroidRule at that point.
- *
- * See memory `android_quarantined_tests_llm_hallucinated.md` for the
- * broader pattern.
+ * Workflow tests share the [TestActivity] / [DatabaseFixture] / shared
+ * [ComposeTestExtensions] infrastructure landed in Phase 2-5 (see memory
+ * `android_quarantined_tests_llm_hallucinated.md`).
  *
  * Original 8-test surface:
  *   testCompleteKnowledgeWorkflow / testMarkdownEditorFunctionality /
  *   testOfflineCreationAndSync / testFullTextSearch /
  *   testPaginationLoading / testFavoritesFunctionality /
  *   testTagFiltering / testMultiDeviceSync
+ *
+ * Reactivated in this commit: testCompleteKnowledgeWorkflow (KB-01) only.
+ * The other 7 remain `@Ignore` pending per-test scope decisions (see KDoc
+ * on each).
  */
 class KnowledgeE2ETest {
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @get:Rule(order = 0)
+    val databaseFixture = DatabaseFixture()
+
+    @get:Rule(order = 1)
+    val composeTestRule = createAndroidComposeRule<TestActivity>()
+
+    private lateinit var viewModel: KnowledgeViewModel
+    private lateinit var repository: KnowledgeRepository
+
+    private fun initViewModel() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        // DeviceIdManager uses EncryptedSharedPreferences (via AndroidKeyStore),
+        // which works fine on the API 30 emulator. The `testSharedPreferences`
+        // override is `internal` to :core-common so we can't swap from another
+        // module — the prod path is acceptable here, just a small startup cost.
+        val deviceIdManager = DeviceIdManager(context)
+        repository = KnowledgeRepository(databaseFixture.database.knowledgeItemDao())
+        viewModel = KnowledgeViewModel(repository, deviceIdManager)
+    }
+
     @Test
     fun testCompleteKnowledgeWorkflow() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        initViewModel()
+
+        // 1) Render the list screen — empty DB, FAB visible, no items.
+        composeTestRule.setContent {
+            KnowledgeListScreen(
+                onItemClick = {},
+                onAddClick = {},
+                viewModel = viewModel
+            )
+        }
+        composeTestRule.onNodeWithContentDescription("添加知识库").assertIsDisplayed()
+
+        // 2) Create an item via the ViewModel API (mimics user tapping FAB →
+        //    editor → save). Verify it lands in the DB.
+        viewModel.createItem(
+            title = "测试笔记 1",
+            content = "这是一条测试笔记内容",
+            type = KnowledgeType.NOTE,
+            tags = listOf("test", "kb-01")
+        )
+
+        // VM update is async (viewModelScope.launch). Wait for the success
+        // toast/state to settle before reading DB. waitForText polls so it's
+        // robust to coroutine scheduling jitter on slow emulators.
+        composeTestRule.waitForText("测试笔记 1", timeoutMillis = 5000)
+        composeTestRule.assertTextExists("测试笔记 1")
+
+        // DB-level sanity: the item is persisted, not just rendered.
+        val itemCount = runBlocking {
+            // Allow the createItem coroutine to commit before we count.
+            // The Compose waitForText above only proves the UI saw the
+            // emission; the DB row should be there too. KnowledgeItemDao has
+            // no count() — use getAllItemsSync().size; the in-memory DB is
+            // freshly created per test so 1 row is the expected total.
+            delay(50)
+            databaseFixture.database.knowledgeItemDao().getAllItemsSync().size
+        }
+        assertEquals("Exactly one item should be persisted", 1, itemCount)
+
+        // 3) Search — narrow to the just-created item by title substring.
+        viewModel.searchKnowledge("测试")
+        composeTestRule.waitForText("测试笔记 1", timeoutMillis = 3000)
+
+        // Search query state is reflected on the VM.
+        assertEquals("测试", viewModel.uiState.value.searchQuery)
+
+        // 4) Clear search — VM state resets to empty query.
+        viewModel.clearSearch()
+        composeTestRule.waitForText("测试笔记 1", timeoutMillis = 3000)
+        assertEquals("", viewModel.uiState.value.searchQuery)
+
+        // 5) Confirm createItem reported success via uiState.
+        assertTrue(
+            "createItem should have set operationSuccess",
+            viewModel.uiState.value.operationSuccess
+        )
+        assertNotNull(
+            "successMessage should be populated after create",
+            viewModel.uiState.value.successMessage
+        )
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs Markdown editor screen wired into TestActivity nav (Phase 6 follow-up KB-02)")
     @Test
     fun testMarkdownEditorFunctionality() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-02 — see KnowledgeEditorScreen + module-local NavHost")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs sync wiring (SyncManager → FakeSyncOutbound) + WorkManager harness (KB-03)")
     @Test
     fun testOfflineCreationAndSync() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-03 — pending FakeSyncOutbound assertions infra")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs FTS5 / search indexer setup with real corpus (KB-04)")
     @Test
     fun testFullTextSearch() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-04 — depends on FTS-backed KnowledgeItemDao.search() shape")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs paging fixture with >50 items + scroll assertions (KB-05)")
     @Test
     fun testPaginationLoading() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-05 — pending DatabaseFixture.withKnowledgeItems(N) helper")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs favorite-mode filter wired (KB-06) — small addition once KB-01 lands cleanly")
     @Test
     fun testFavoritesFunctionality() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-06 — pending toggleFavorite + setFilterMode(FAVORITE) assertions")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs tag-index data + filter chip assertions (KB-07)")
     @Test
     fun testTagFiltering() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-07")
     }
 
-    @Ignore("MainActivity reverse-dep + non-existent test.* helpers. See file KDoc.")
+    @Ignore("Needs two-device emulator harness + sync mock (KB-08)")
     @Test
     fun testMultiDeviceSync() {
-        TODO("Needs module-local TestActivity + helper package — see file KDoc")
+        TODO("KB-08 — likely requires multi-emulator CI matrix")
     }
 }
