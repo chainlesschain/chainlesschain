@@ -1168,17 +1168,30 @@ class HubLocalViewModel @Inject constructor(
                 // 2. POST to cloud LLM provider.
                 val answer = androidLlmExecutor.chat(messages, provider)
                 // 3. Validate citations against factIds (best-effort).
+                //    state.ask.citations is List<LocalCcRunner.AskReport.Citation>;
+                //    we have just event ids here (no excerpt/source from raw
+                //    cloud answer text), so wrap each known id as a minimal
+                //    Citation with excerpt=null source=null. UI side renders
+                //    `${c.eventId}` directly.
                 val cited = CITATION_REGEX.findAll(answer)
                     .map { it.groupValues[1] }
                     .toSet()
-                val knownCitations = cited.filter { it in knownFactIds }
+                val knownCitations = cited
+                    .filter { it in knownFactIds }
+                    .map {
+                        LocalCcRunner.AskReport.Citation(
+                            eventId = it,
+                            excerpt = null,
+                            source = null,
+                        )
+                    }
                 val elapsed = System.currentTimeMillis() - t0
                 _state.update { st ->
                     st.copy(
                         ask = st.ask.copy(
                             isAsking = false,
                             answer = answer,
-                            citations = knownCitations.toList(),
+                            citations = knownCitations,
                             llmName = "${provider.provider.displayName} · ${provider.model} (云+RAG)",
                             isLocal = false,
                             durationMs = elapsed,

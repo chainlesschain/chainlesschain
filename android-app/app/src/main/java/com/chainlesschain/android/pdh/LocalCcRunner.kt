@@ -1103,7 +1103,7 @@ class LocalCcRunner @Inject constructor(
      * validation. The caller POSTs `messages` to its own LLM provider.
      */
     data class RetrieveContext(
-        val messages: List<PromptMessage>,
+        val messages: List<com.chainlesschain.android.remote.commands.PromptMessage>,
         val factIds: List<String>,
         val factCount: Int,
         val truncated: Int,
@@ -1169,8 +1169,14 @@ class LocalCcRunner @Inject constructor(
             question.take(80), maxFacts, maxQueryLimit,
         )
 
+        val envList = ptyEnvironment.envp().toList()
         val pb = ProcessBuilder(command).apply {
-            environment().putAll(bootstrapper.envForCc())
+            val envMap = environment()
+            envMap.clear()
+            for (kv in envList) {
+                val eq = kv.indexOf('=')
+                if (eq > 0) envMap[kv.substring(0, eq)] = kv.substring(eq + 1)
+            }
             redirectErrorStream(false)
             directory(bootstrapper.homeDir)
         }
