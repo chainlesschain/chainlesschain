@@ -1273,6 +1273,95 @@ export async function getHub() {
   return _initPromise;
 }
 
+// ─── Minimal hub bootstrap for read-only / LLM-free commands ────────────
+//
+// 2026-05-27 — `cc hub retrieve-context` cold-start was 90s+ on Android
+// because initHub() wires 50+ adapters + KG sink + RAG sink + EntityResolver
+// + email accounts auto-load + 6 ADB extension imports — none of which
+// retrieveContext actually needs. AnalysisEngine.retrieveContext only
+// touches: vault.queryEvents / queryPersons / queryItems / stats / audit /
+// searchEvents / searchPersons. No adapters. No LLM call. Skipping the
+// heavy wiring should cut cold-start from ~90s to <5s in-APK.
+//
+// Singleton-cached separately from full hub — if the user later runs a
+// `cc hub sync-adapter` in the same process, getHub() lazy-builds the
+// full hub on demand. The minimal hub's vault is closed when full hub
+// boots to avoid double-open contention (SQLCipher allows single writer).
+//
+// Returns the same shape as getHub() for the keys retrieveContext needs:
+// { hubDir, vault, engine, llm, kgSink:null, ragSink:null, registry:null }.
+
+let _hubMinimal = null;
+let _hubMinimalInitPromise = null;
+
+async function initHubMinimal() {
+  const hubDir = resolveHubDir();
+  mkdirSync(hubDir, { recursive: true });
+  mkdirSync(join(hubDir, "keys"), { recursive: true });
+
+  const keyProvider = new FileKeyProvider(join(hubDir, "keys"));
+  const KEY_NAME = "vault:default";
+  let key = await keyProvider.get(KEY_NAME);
+  if (!key) {
+    key = generateKeyHex();
+    await keyProvider.set(KEY_NAME, key);
+  }
+
+  const vault = new LocalVault({ path: join(hubDir, "vault.db"), key });
+  vault.open();
+
+  // No LLM: retrieveContext is LLM-free. AnalysisEngine constructor still
+  // requires a `llm` arg with chat() + isLocal — pass a sentinel that
+  // throws if anyone actually calls it (defense against future code
+  // accidentally invoking ask() via this minimal hub).
+  const sentinelLlm = {
+    isLocal: true,
+    name: "minimal-hub-sentinel",
+    chat: () => {
+      throw new Error(
+        "minimal hub: LLM unavailable — use getHub() for ask() / chat paths",
+      );
+    },
+  };
+
+  const engine = new AnalysisEngine({
+    vault,
+    llm: sentinelLlm,
+    // No ragRetriever — BM25 sink is part of full hub init, skip here.
+  });
+
+  return {
+    hubDir,
+    vault,
+    engine,
+    llm: null,
+    kgSink: null,
+    ragSink: null,
+    registry: null,
+    minimal: true,
+  };
+}
+
+export async function getHubMinimal() {
+  if (_hubMinimal) return _hubMinimal;
+  // If full hub is already initialized, reuse its vault + engine — opening
+  // a second LocalVault against the same SQLCipher DB would fight for the
+  // file lock.
+  if (_hub) return _hub;
+  if (!_hubMinimalInitPromise) {
+    _hubMinimalInitPromise = initHubMinimal()
+      .then((h) => {
+        _hubMinimal = h;
+        return h;
+      })
+      .catch((err) => {
+        _hubMinimalInitPromise = null;
+        throw err;
+      });
+  }
+  return _hubMinimalInitPromise;
+}
+
 export function close() {
   if (_hub && _hub.aichatHealthChecker) {
     try {
@@ -1284,8 +1373,15 @@ export function close() {
       _hub.vault.close();
     } catch (_e) {}
   }
+  if (_hubMinimal && _hubMinimal.vault && _hubMinimal !== _hub) {
+    try {
+      _hubMinimal.vault.close();
+    } catch (_e) {}
+  }
   _hub = null;
   _initPromise = null;
+  _hubMinimal = null;
+  _hubMinimalInitPromise = null;
   _bm25 = null;
   _kgMod = null;
   _bm25Mod = null;
