@@ -49,6 +49,7 @@ describe("cc hub command surface", () => {
         "recent-audit",
         "rederive", // trap #25 recovery — promote orphan raw_events to canonical
         "register-mock",
+        "retrieve-context", // S4 cloud RAG bridge — LLM-free fact gathering
         "run-skill",
         "search", // Phase 16 Vault Browser — FTS5 search surface
         "stats",
