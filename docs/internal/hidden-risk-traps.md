@@ -35,16 +35,17 @@
 | 24 | Android Bootstrap `@Singleton` + instance Mutex 仍 race | 改 `LocalFilesystemBootstrapper` 互斥逻辑；多个 `Hub*ViewModel` 并发触发 `bootstrap()`；改 cc bundle extract 路径 | `android_bootstrap_singleton_mutex_race.md` |
 | 25 | SQLite partial-index `IF NOT EXISTS` 隐藏 schema drift | 改 `packages/personal-data-hub/lib/migrations.js` partial unique index 定义；改 `vault.js` UPSERT `ON CONFLICT ... WHERE`；老 vault 升级；user 报 "events=1 rawEvents=1308" | `pdh_partial_index_if_not_exists_drift.md` |
 | 26 | Legacy-GPU Chromium 130+ fail-fast 0xc0000602 — "installer 闪退" 假象 | 加 Electron `BrowserWindow` / 窗口启动逻辑；user 报 Windows "installer 装一会闪退" / app 启动崩 / Application Error `CoreMessaging.dll` `0xc0000602`；老 Intel/AMD GPU 驱动机型（≤2018 驱动）支持 | `gpu_crash_recovery_legacy_intel_driver.md` |
+| 27 | 改 PDH lib / cc-cli.tgz refresh 后忘 bump `USR_VERSION` —— 真机缓存旧代码 | 改 `packages/personal-data-hub/lib/**` / `packages/cli/lib/**` 后；`node-runtime-bundle.yml` 跑完看到 `cc-cli.tgz` Bin 大小变化；user 报"装新版 Android APK 但 PDH 行为还是旧的" | `android_usr_version_sentinel_cache.md` |
 
 **按维度归类**（一个陷阱可能属多类）：
 
 ```
-Release / 打包   : 7, 13, 14, 18, 19, 26
+Release / 打包   : 7, 13, 14, 18, 19, 26, 27
 Git / 并发       : 9, 10, 24
 CI / 测试        : 8, 11, 19, 23
 Toolchain        : 12, 16, 23
 Runtime / 数据   : 15, 20, 21, 22, 23, 24, 25, 26
-Mobile 平台      : 14, 17, 19, 20, 21, 22, 24
+Mobile 平台      : 14, 17, 19, 20, 21, 22, 24, 27
 Desktop 平台     : 13, 26
 Docs             : 6
 ```
@@ -1734,6 +1735,78 @@ Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, Drive
 **为什么不走 GPU blocklist 检测**：
 
 Chromium 内置 GPU blocklist 对老 Intel 卡的 entry 通常 disable 某些 feature（WebGL2 / accelerated 2D canvas），但 process abort 发生在 blocklist 加载前的 GPU init bootstrap 阶段（DXGI factory / D3D11 device 创建），blocklist 来不及生效。marker file recovery 是唯一稳路 —— 它不依赖任何 GPU API 状态，纯外部行为驱动。
+
+---
+
+## 27. 改 PDH lib / cc-cli.tgz refresh 后忘 bump `USR_VERSION` —— 真机缓存旧代码（隐性风险）
+
+**Slug**: `android_usr_version_sentinel_cache`
+
+**陷阱本质**：
+
+Android `LocalFilesystemBootstrapper` 用 `feature-local-terminal/build.gradle.kts` 里 `USR_VERSION` buildConfigField 跟设备上的 `$PREFIX/.bootstrap_version` sentinel 比对，**相等就跳过解压**（fast-path 缓存，避免每次启动重 extract 60MB tgz，常态启动 < 100ms）。但这意味着：
+
+1. CI `node-runtime-bundle.yml` 跑完把 `cc-cli.tgz` refresh 后（包含最新 `packages/personal-data-hub/lib/` + `packages/cli/lib/` 内容）；
+2. 如果**没**手动 bump `USR_VERSION`（例如 12 → 13），新 APK 装到设备上 sentinel 已经是 12 ≠ 12 不成立 → bootstrap 走 fast-path 跳解压 → `$PREFIX/lib/node_modules/chainlesschain/` 还是上次 APK 留下的旧 cc CLI；
+3. user 立刻验证 PDH 新功能（比如本次的 entityFocus persons routing / searchPersons）→ cc 子进程跑的是旧 lib → 行为完全没变 → "我装新版了怎么还是出不来联系人？"
+
+CI auto-commit 不会自动 bump USR_VERSION —— `node-runtime-bundle.yml` 只 refresh tgz 字节、libnode.so，写完 commit `[skip ci]` 走了。`USR_VERSION` 是手工 buildConfigField 字符串常量，**只能开发者在改 lib 同 PR 里自己 bump**。
+
+**为什么排查难**：
+
+- `gh run view <run>` 显示 CI 绿、auto-commit 也成功 push 到 main，`git diff` 看 `cc-cli.tgz Bin 62.3 → 62.9MB` 清清楚楚 —— 表面证据**全是"已生效"信号**；
+- `git pull && ./gradlew :app:assembleDebug` 编译 0 错，APK 里 `assets/local-terminal/cc-cli.tgz` 真的是新版本；
+- adb 装上去也不报错，应用启动也正常，HubLocal 各 tab 都加载；
+- 第一次 reproduce 后 `adb shell run-as <pkg> ls usr/lib/node_modules/chainlesschain/lib/analysis.js` 看到代码是**旧的**才能锁实根因（但需要 root 或 debuggable APK 才进得去 `run-as`）；
+- 不开 logcat 完全没线索 —— bootstrap fast-path 走的是默认 `Timber.tag(TAG).d("Bootstrap fast-path: version match $USR_VERSION")`，info 级别下根本看不到；
+- "明明 cc-cli.tgz 字节变了！" → 因为 fast-path 根本没去读 tgz，只读 sentinel；
+- 与 trap #24（Bootstrap singleton race）症状叠加时尤其难分辨 —— #24 是半 extract、#27 是零 extract，但 user 端表现都是"新代码没生效"。
+
+**SOP / checklist**：
+
+1. **`packages/personal-data-hub/lib/**` 或 `packages/cli/lib/**` 任一 PR 改了被 Android cc 子进程跑的代码 → 同 PR 必 bump `USR_VERSION`**。即使 PR 本身不碰 Android。Pre-commit gate 不会检（lint-staged 只看 staged 文件 lint，不做 cross-package dep 分析），靠人。
+2. **CI auto-refresh `cc-cli.tgz` 后立刻 bump**：
+   ```bash
+   # 触发 CI
+   gh workflow run "Node.js Runtime Bundle (Termux)" --ref main
+   # 等完成 (~4 min)
+   gh run watch <run-id>
+   # 拉新 commit
+   git pull github main --rebase
+   # bump
+   #   android-app/feature-local-terminal/build.gradle.kts
+   #   buildConfigField("String", "USR_VERSION", "\"N+1\"")
+   # commit + push
+   ```
+   两步流程，不要省第二步。
+3. **bump 协议**：单调递增整数字符串。**不要**用语义版本（`"12.1"` 会让 sentinel 比对走字符串 equality，看着像 bump 实际任何 `.` 都判 ≠ 即 force re-extract 没问题，但下次有人改成 `"12.2"` 后再回 `"13"` 就完全乱了）。永远 N → N+1。
+4. **真机验 bump 真生效**：
+   ```bash
+   # 装新 APK 后第一次启动
+   adb logcat -s LocalFilesystemBootstrapper:* | grep -iE "version|fast-path|extract"
+   # 期待看到: "Bootstrap version mismatch: device=12 target=13, re-extracting"
+   # 如果看到 "Bootstrap fast-path: version match 13" 说明你打成 13 的 APK 之前装过，trap 隐身
+   ```
+   首装真机或 `adb uninstall <pkg>` 后再装是最干净的验证路径。
+5. **PR 模板加 checklist 条目**（防自己 / reviewer 忘）：
+   ```
+   - [ ] 本 PR 改了 packages/personal-data-hub/lib/** 或 packages/cli/lib/** 吗？
+         若是，是否 bump 了 android-app/feature-local-terminal/build.gradle.kts 的 USR_VERSION？
+   ```
+
+**反模式**：
+
+- ❌ "CI 自动 commit 了 cc-cli.tgz，应该够了" —— CI 只 refresh tgz 字节，不改 USR_VERSION；
+- ❌ 用 git short SHA / 日期戳当 USR_VERSION —— sentinel 比对是字符串 equality 没事，但人类直觉看 `"abc1234"` → `"def5678"` 不知道哪边新，bump 顺序乱；
+- ❌ 改 lib 不 bump，靠 user `adb uninstall && install` 清 sentinel —— user 不会这样做，看 trap 表现就是"装了新版没用"；
+- ❌ 与 trap #24 (Bootstrap race) 修法混淆 —— #24 改的是 mutex / extract atomicity，**不影响 sentinel 比对**；fast-path 命中阶段 #24 的修都还没跑；
+- ❌ 把 USR_VERSION 改成"很大"想"一次到位"避免下次 bump —— 没用，下次还得 bump，且大数字让历史 burned-version 列表混乱（如果将来想出 sentinel 版本对应 lib 内容 commit hash 表）。
+
+**关联 memory / commit**：
+
+- memory: `android_bootstrap_singleton_mutex_race`（trap #24，互补 —— fast-path 跳过后才有 race / half-extract 风险）、`android_cc_bundle_tar_gnu_long_name`（trap #21，extract 阶段 GNU LongLink）
+- 历史 bump：USR_VERSION 6 → 7（trap #21 land 2026-05-24）、12 → 13（本 trap land 2026-05-27 `91fe70bc1`）
+- 类似 "sentinel-gated cache 改源数据忘 bump" 模式：trap #6 (docs sync 副本编辑) —— 都是 "源真改了但下游靠 sentinel / 比对判断不需要更新" 一类；区别在 #6 是 sync 脚本 silent 覆盖，#27 是设备 silent 走 fast-path。
 
 ---
 
