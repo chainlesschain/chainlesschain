@@ -43,6 +43,11 @@ include(":core-e2ee")
 include(":core-ui")
 include(":core-blockchain")
 
+// 测试基础设施（共享 Compose UI test 扩展 + Hilt test fixtures）
+// 仅供 androidTestImplementation 消费；main source set 放共享代码，让模块可作普通
+// android-library 被引用。详见 core-test-helpers/build.gradle.kts 的 KDoc。
+include(":core-test-helpers")
+
 // 功能模块
 include(":feature-auth")
 include(":feature-knowledge")
