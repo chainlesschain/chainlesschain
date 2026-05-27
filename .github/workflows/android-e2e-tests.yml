@@ -131,7 +131,15 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
-            cd android-app && (./gradlew :app:connectedDebugAndroidTest :feature-knowledge:connectedDebugAndroidTest :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
+            cd android-app && (./gradlew :app:connectedDebugAndroidTest :feature-knowledge:connectedDebugAndroidTest :feature-ai:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.clearPackageData=true --stacktrace --no-daemon --continue; rc=$?; adb logcat -d > /tmp/logcat-e2e.txt 2>&1 || true; exit $rc)
+            # 2026-05-27 (follow-up): added `--continue` so a failure in
+            # :app:connectedDebugAndroidTest (currently flaky TaskPlanCardTest
+            # — prod TaskPlanCardFull UI strings drifted after b10175940
+            # revive) doesn't short-circuit :feature-knowledge: and
+            # :feature-ai: instrumented runs. The overall step still exits
+            # non-zero on any module failure (rc=$? captures the bitmask) so
+            # CI surface is honest; we just get per-module test reports for
+            # the modules that DID complete.
             # 2026-05-27: added :feature-knowledge: + :feature-ai: explicit
             # task lists after Phase 2-6 quarantine-clear (Wave 1 KB-01
             # reactivated via TestActivity + FakeAppBindingsModule +
