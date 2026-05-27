@@ -160,7 +160,13 @@ class XhsApiClient @Inject constructor() {
         MeResult(userId = uidStr, numericUid = numericUid, nickname = nickname)
     }
 
-    /** 用户自己发布的笔记 (timeline)。需 X-S 签名。 */
+    /**
+     * 用户自己发布的笔记 (timeline)。需 X-S 签名。
+     *
+     * 2026-05-27 真机 HTTP 404 修：xhs web 2025 强制要 xsec_source=pc_user
+     * query param，缺它返 404 page not found (即使 X-S/X-T 签名正确)。
+     * `XhsJsBridge.PREFETCH_JS` 已经带这俩 — Kotlin OkHttp 路径补齐对齐。
+     */
     suspend fun fetchNotes(cookie: String, a1: String, userId: String, limit: Int = 30): List<NoteItem> =
         withContext(Dispatchers.IO) {
             val url = baseUrl.newBuilder()
@@ -169,6 +175,8 @@ class XhsApiClient @Inject constructor() {
                 .addQueryParameter("num", "30")
                 .addQueryParameter("cursor", "")
                 .addQueryParameter("image_formats", "jpg,webp,avif")
+                .addQueryParameter("xsec_token", "")
+                .addQueryParameter("xsec_source", "pc_user")
                 .build()
             val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()
@@ -199,12 +207,18 @@ class XhsApiClient @Inject constructor() {
             out
         }
 
-    /** 用户点赞过的笔记。需 X-S 签名。 */
+    /**
+     * 用户点赞过的笔记。需 X-S 签名。
+     *
+     * 2026-05-27 path 改：原 `note/like/page` 真机返 code=300011 "当前账号
+     * 存在异常" — 这是 xhs admin/back-office endpoint，对前端账号触风控。
+     * `XhsJsBridge.PREFETCH_JS` 用的是 user-facing `/note/liked` 路径，对齐。
+     */
     suspend fun fetchLiked(cookie: String, a1: String, limit: Int = 30): List<LikedItem> =
         withContext(Dispatchers.IO) {
             val url = baseUrl.newBuilder()
-                .addPathSegments("api/sns/web/v1/note/like/page")
-                .addQueryParameter("num", "20")
+                .addPathSegments("api/sns/web/v1/note/liked")
+                .addQueryParameter("num", "30")
                 .addQueryParameter("cursor", "")
                 .build()
             val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
@@ -231,14 +245,19 @@ class XhsApiClient @Inject constructor() {
             out
         }
 
-    /** 关注列表。需 X-S 签名。 */
+    /**
+     * 关注列表。需 X-S 签名。
+     *
+     * 2026-05-27 path 改：原 `/user/follow/list?user_id=X` 真机 HTTP 404 —
+     * xhs 改 RESTful 风格 uid 入 URL path 段且 endpoint 改名 `followings`。
+     * `XhsJsBridge.PREFETCH_JS` 同款。pagination 也从 cursor-based 改 page-based。
+     */
     suspend fun fetchFollows(cookie: String, a1: String, userId: String, limit: Int = 100): List<FollowItem> =
         withContext(Dispatchers.IO) {
             val url = baseUrl.newBuilder()
-                .addPathSegments("api/sns/web/v1/user/follow/list")
-                .addQueryParameter("user_id", userId)
-                .addQueryParameter("num", "20")
-                .addQueryParameter("cursor", "")
+                .addPathSegments("api/sns/web/v1/user/$userId/followings")
+                .addQueryParameter("page", "1")
+                .addQueryParameter("page_size", "20")
                 .build()
             val obj = doGetJson(url, cookie, a1 = a1, requireSign = true) ?: return@withContext emptyList()
             val data = obj.optJSONObject("data") ?: return@withContext emptyList()

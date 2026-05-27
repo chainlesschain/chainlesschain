@@ -212,9 +212,11 @@ class XhsApiClientIntegrationTest {
         client.fetchFollows(fakeCookie(), fakeA1(), userId = "TARGET-UID-123")
 
         val req = server.takeRequest()
-        assertTrue(req.path!!.contains("user_id=TARGET-UID-123"),
-            "follow-list URL must include user_id query — got: ${req.path}")
-        assertTrue(req.path!!.contains("user/follow/list"))
+        // 2026-05-27 RESTful path 改：user_id 入 URL path 段而不是 query。
+        // endpoint 名 `followings`，pagination 改 page-based。
+        assertTrue(req.path!!.contains("/user/TARGET-UID-123/followings"),
+            "follows URL must put user_id in path + use 'followings' — got: ${req.path}")
+        assertTrue(req.path!!.contains("page=1"))
     }
 
     // ─── Cross-cutting error modes (xhs-specific) ───────────────────────────
